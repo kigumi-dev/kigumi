@@ -53,8 +53,8 @@ func (c *borrowCheck) captureStep(in Inst, s flowSets, put func(LocalID, uint32)
 	}
 }
 
-// keepInto puts what the given values carry into every value holding one of the closures, and into the cells and
-// borrowed locals their literals here share.
+// keepInto puts what the given values carry into every value holding one of the closures, and into the cells,
+// borrowed locals and shared storage their literals here capture.
 func (c *borrowCheck) keepInto(cls []sem.EntityID, from []LocalID, s flowSets, put func(LocalID, uint32)) {
 	var dsts []LocalID
 	for l, fs := range s {
@@ -69,6 +69,7 @@ func (c *borrowCheck) keepInto(cls []sem.EntityID, from []LocalID, s flowSets, p
 				if j < len(caps) && (caps[j].Mode == sem.CapCell || caps[j].Mode == sem.CapBorrow) {
 					dsts = append(dsts, a)
 				}
+				dsts = append(dsts, c.sharedPlaces(a)...)
 			}
 		}
 	}
@@ -86,7 +87,7 @@ func (c *borrowCheck) keepInto(cls []sem.EntityID, from []LocalID, s flowSets, p
 }
 
 // mayKeep reports whether running closure cl may keep a value it is given or holds in what it captures: its body may
-// store into a capture, calls a callee value that may be such a closure, or runs a closure that may.
+// store into a capture (shared storage included), calls a callee value that may be such a closure, or runs one that may.
 func (c *borrowCheck) mayKeep(cl sem.EntityID) bool {
 	return c.callGraphMay(cl, c.offloads().keep, func(e sem.EntityID) (bool, []sem.EntityID) {
 		g := c.p.ByEnt[e]
@@ -96,9 +97,10 @@ func (c *borrowCheck) mayKeep(cl sem.EntityID) bool {
 		if g == nil {
 			return true, nil
 		}
-		direct := false
+		_, kept, ok := c.finishedFlow(g)
+		direct := !ok
 		for j := range c.p.R.Closure(e).Captures {
-			direct = direct || c.paramStores(g, j)
+			direct = direct || c.paramStores(g, j) || j < len(g.Params) && len(kept[g.Params[j]]) > 0
 		}
 		var out []sem.EntityID
 		for _, blk := range g.Blocks {

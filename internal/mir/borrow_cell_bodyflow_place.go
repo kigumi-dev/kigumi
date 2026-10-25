@@ -84,15 +84,17 @@ func (c *borrowCheck) calleeOf(g *Func, fs flowSets, in Inst) (ents, params []se
 	return ents, params, unseen
 }
 
-// boundParams are the parameters of the given callees that argument k of in binds.
+// boundParams are the parameters of the given callees that argument k of in binds: a value call's callee is no
+// argument of its own, except a method value's, which is its receiver.
 func (c *borrowCheck) boundParams(ents []sem.EntityID, in Inst, k int) []sem.EntityID {
-	if in.Op != OpCall {
-		k--
-	}
 	var out []sem.EntityID
 	for _, e := range ents {
-		if params := c.declaredParams(e); k >= 0 && k < len(params) {
-			out = append(out, params[k])
+		j := k
+		if in.Op != OpCall && c.methodOf(e) == 0 {
+			j--
+		}
+		if params := c.declaredParams(e); j >= 0 && j < len(params) {
+			out = append(out, params[j])
 		}
 	}
 	return out

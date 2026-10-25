@@ -1,0 +1,509 @@
+-- module --
+mir: planned
+-- src --
+import task from std/task
+import alloc from std/alloc
+
+type SHold = { s alloc.Shared[Future[Int]?] }
+fn putIn(s: alloc.Shared[Future[Int]?], h: Future[Int]) { s.set(Some(h)) }
+fn putClone(s: alloc.Shared[Future[Int]?], h: Future[Int]) { let s2 = s.clone(); s2.set(Some(h)) }
+fn putGen[T](s: alloc.Shared[T?], v: T) { s.set(Some(v)) }
+fn putMethodValue(s: alloc.Shared[Future[Int]?], h: Future[Int]) { let set = s.set; set(Some(h)) }
+async fn putAsync(s: alloc.Shared[Future[Int]?], h: Future[Int]) -> Int { s.set(Some(h)); 0 }
+fn startInto[F: FnOnce[fn() -> Int]](s: alloc.Shared[Future[Int]?], pool: task.BlockingPool, w: escaping F) { s.set(Some(pool.run(w).unwrap())) }
+fn setVia(s: &mut alloc.Shared[Future[Int]?], h: Future[Int]) { s.set(Some(h)) }
+fn dropShared(s: alloc.Shared[Future[Int]?]) {}
+fn finish(h: Future[Int]) -> Int { 0 }
+
+async fn setThroughReceiver() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    s.set(Some(pool.run(() => { other = "x"; 1 }).unwrap()))
+    let r = &other //~ ERROR `other` is written by a closure that may still be running on another thread
+    r.len().toInt() || 0
+}
+
+async fn setThroughHelper() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    putIn(s.clone(), pool.run(() => { other = "x"; 1 }).unwrap())
+    let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    dropShared(s)
+    k
+}
+
+async fn setThroughCloneInHelper() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    putClone(s.clone(), pool.run(() => { other = "x"; 1 }).unwrap())
+    let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    dropShared(s)
+    k
+}
+
+async fn setThroughGenericHelper() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    putGen(s.clone(), pool.run(() => { other = "x"; 1 }).unwrap())
+    let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    dropShared(s)
+    k
+}
+
+async fn setThroughAsyncHelper() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    let n = await putAsync(s.clone(), pool.run(() => { other = "x"; 1 }).unwrap())
+    let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    dropShared(s)
+    k + n
+}
+
+async fn setThroughMethodValue() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    let set = s.set
+    set(Some(pool.run(() => { other = "x"; 1 }).unwrap()))
+    other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+}
+
+async fn setThroughMethodValueInHelper() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    putMethodValue(s.clone(), pool.run(() => { other = "x"; 1 }).unwrap())
+    let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    dropShared(s)
+    k
+}
+
+async fn offloadedIntoParamByHelper() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    startInto(s.clone(), pool, () => { other = "x"; 1 })
+    let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    dropShared(s)
+    k
+}
+
+async fn setIntoOwnParam(s: alloc.Shared[Future[Int]?]) -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    s.set(Some(pool.run(() => { other = "x"; 1 }).unwrap()))
+    other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+}
+
+async fn setThroughField() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let hd = SHold { s: alloc.Shared.new(None) }
+    hd.s.set(Some(pool.run(() => { other = "x"; 1 }).unwrap()))
+    other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+}
+
+async fn setThroughElement() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let arr: Array[alloc.Shared[Future[Int]?]] = Array.of(alloc.Shared.new(None))
+    arr[0].set(Some(pool.run(() => { other = "x"; 1 }).unwrap()))
+    other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+}
+
+async fn keptByEarlierClone() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    let s2 = s.clone()
+    s.set(Some(pool.run(() => { other = "x"; 1 }).unwrap()))
+    dropShared(s)
+    let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    dropShared(s2)
+    k
+}
+
+async fn keptByEarlierRecord() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    let hd = SHold { s: s.clone() }
+    s.set(Some(pool.run(() => { other = "x"; 1 }).unwrap()))
+    dropShared(s)
+    let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    let kept = hd
+    k
+}
+
+async fn keptByUpgradedWeak() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    let w = s.downgrade()
+    s.set(Some(pool.run(() => { other = "x"; 1 }).unwrap()))
+    let s3 = w.upgrade()
+    dropShared(s)
+    let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    let kept = s3
+    k
+}
+
+async fn keptByCloneThroughMutRef() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let mut s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    let s2 = s.clone()
+    setVia(&mut s, pool.run(() => { other = "x"; 1 }).unwrap())
+    dropShared(s)
+    let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    dropShared(s2)
+    k
+}
+
+async fn setByCapturingClosure() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    let put = (h: Future[Int]) => { s.set(Some(h)) }
+    put(pool.run(() => { other = "x"; 1 }).unwrap())
+    let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    dropShared(s)
+    k
+}
+
+async fn setByMoveClosureKeptByClone() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    let s2 = s.clone()
+    {
+        let put = move (h: Future[Int]) => { s.set(Some(h)) }
+        put(pool.run(() => { other = "x"; 1 }).unwrap())
+    }
+    let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    dropShared(s2)
+    k
+}
+
+async fn setByClosureParam() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    let put = (sh: alloc.Shared[Future[Int]?], h: Future[Int]) => { sh.set(Some(h)) }
+    put(s.clone(), pool.run(() => { other = "x"; 1 }).unwrap())
+    let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    dropShared(s)
+    k
+}
+
+async fn setInLoop() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    let mut k = 0
+    for i in 0..2 {
+        k = k + (other.len().toInt() || 0) //~ ERROR `other` is written by a closure that may still be running on another thread
+        s.set(Some(pool.run(() => { other = "x"; 1 }).unwrap())) //~ ERROR `other` is written by a closure that may still be running on another thread
+    }
+    k
+}
+
+async fn droppedInBlock() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    {
+        let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+        s.set(Some(pool.run(() => { other = "x"; 1 }).unwrap()))
+    }
+    other.len().toInt() || 0
+}
+
+async fn awaitedBeforeSet() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let s: alloc.Shared[Int?] = alloc.Shared.new(None)
+    s.set(Some(await pool.run(() => { other = "x"; 1 }).unwrap()))
+    other.len().toInt() || 0
+}
+
+async fn setDroppingValue() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let s: alloc.Shared[Int?] = alloc.Shared.new(None)
+    s.set(Some(finish(pool.run(() => { other = "x"; 1 }).unwrap())))
+    other.len().toInt() || 0
+}
+
+async fn helperConsumesShared() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    putIn(s, pool.run(() => { other = "x"; 1 }).unwrap())
+    other.len().toInt() || 0
+}
+
+async fn offloaderConsumesShared() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    startInto(s, pool, () => { other = "x"; 1 })
+    other.len().toInt() || 0
+}
+
+async fn asyncHelperConsumesShared() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    let n = await putAsync(s, pool.run(() => { other = "x"; 1 }).unwrap())
+    n + (other.len().toInt() || 0)
+}
+
+async fn unrelatedShared() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    let n = await pool.run(() => { other = "x"; 1 }).unwrap()
+    s.set(None)
+    n + (other.len().toInt() || 0)
+}
+-- expect --
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+  --> main.kg:20:13
+   |
+20 |     let r = &other //~ ERROR `other` is written by a closure that may still be running on another thread
+   |             ^^^^^^
+   = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+  --> main.kg:19:16
+   |
+19 |     s.set(Some(pool.run(() => { other = "x"; 1 }).unwrap()))
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+  --> main.kg:29:13
+   |
+29 |     let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+   |             ^^^^^
+   = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+  --> main.kg:28:22
+   |
+28 |     putIn(s.clone(), pool.run(() => { other = "x"; 1 }).unwrap())
+   |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+  --> main.kg:39:13
+   |
+39 |     let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+   |             ^^^^^
+   = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+  --> main.kg:38:25
+   |
+38 |     putClone(s.clone(), pool.run(() => { other = "x"; 1 }).unwrap())
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+  --> main.kg:49:13
+   |
+49 |     let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+   |             ^^^^^
+   = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+  --> main.kg:48:23
+   |
+48 |     putGen(s.clone(), pool.run(() => { other = "x"; 1 }).unwrap())
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+  --> main.kg:59:13
+   |
+59 |     let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+   |             ^^^^^
+   = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+  --> main.kg:58:39
+   |
+58 |     let n = await putAsync(s.clone(), pool.run(() => { other = "x"; 1 }).unwrap())
+   |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+  --> main.kg:70:5
+   |
+70 |     other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+   |     ^^^^^
+   = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+  --> main.kg:69:14
+   |
+69 |     set(Some(pool.run(() => { other = "x"; 1 }).unwrap()))
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+  --> main.kg:78:13
+   |
+78 |     let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+   |             ^^^^^
+   = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+  --> main.kg:77:31
+   |
+77 |     putMethodValue(s.clone(), pool.run(() => { other = "x"; 1 }).unwrap())
+   |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+  --> main.kg:88:13
+   |
+88 |     let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+   |             ^^^^^
+   = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+  --> main.kg:87:5
+   |
+87 |     startInto(s.clone(), pool, () => { other = "x"; 1 })
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+  --> main.kg:97:5
+   |
+97 |     other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+   |     ^^^^^
+   = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+  --> main.kg:96:16
+   |
+96 |     s.set(Some(pool.run(() => { other = "x"; 1 }).unwrap()))
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+   --> main.kg:105:5
+    |
+105 |     other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    |     ^^^^^
+    = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+   --> main.kg:104:19
+    |
+104 |     hd.s.set(Some(pool.run(() => { other = "x"; 1 }).unwrap()))
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+   --> main.kg:113:5
+    |
+113 |     other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    |     ^^^^^
+    = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+   --> main.kg:112:21
+    |
+112 |     arr[0].set(Some(pool.run(() => { other = "x"; 1 }).unwrap()))
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+   --> main.kg:123:13
+    |
+123 |     let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    |             ^^^^^
+    = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+   --> main.kg:121:16
+    |
+121 |     s.set(Some(pool.run(() => { other = "x"; 1 }).unwrap()))
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+   --> main.kg:135:13
+    |
+135 |     let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    |             ^^^^^
+    = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+   --> main.kg:133:16
+    |
+133 |     s.set(Some(pool.run(() => { other = "x"; 1 }).unwrap()))
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+   --> main.kg:148:13
+    |
+148 |     let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    |             ^^^^^
+    = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+   --> main.kg:145:16
+    |
+145 |     s.set(Some(pool.run(() => { other = "x"; 1 }).unwrap()))
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+   --> main.kg:160:13
+    |
+160 |     let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    |             ^^^^^
+    = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+   --> main.kg:158:20
+    |
+158 |     setVia(&mut s, pool.run(() => { other = "x"; 1 }).unwrap())
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+   --> main.kg:171:13
+    |
+171 |     let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    |             ^^^^^
+    = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+   --> main.kg:170:9
+    |
+170 |     put(pool.run(() => { other = "x"; 1 }).unwrap())
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+   --> main.kg:185:13
+    |
+185 |     let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    |             ^^^^^
+    = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+   --> main.kg:183:13
+    |
+183 |         put(pool.run(() => { other = "x"; 1 }).unwrap())
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+   --> main.kg:196:13
+    |
+196 |     let k = other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+    |             ^^^^^
+    = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+   --> main.kg:195:20
+    |
+195 |     put(s.clone(), pool.run(() => { other = "x"; 1 }).unwrap())
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+   --> main.kg:207:18
+    |
+207 |         k = k + (other.len().toInt() || 0) //~ ERROR `other` is written by a closure that may still be running on another thread
+    |                  ^^^^^
+    = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+   --> main.kg:208:20
+    |
+208 |         s.set(Some(pool.run(() => { other = "x"; 1 }).unwrap())) //~ ERROR `other` is written by a closure that may still be running on another thread
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+   --> main.kg:208:20
+    |
+208 |         s.set(Some(pool.run(() => { other = "x"; 1 }).unwrap())) //~ ERROR `other` is written by a closure that may still be running on another thread
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+

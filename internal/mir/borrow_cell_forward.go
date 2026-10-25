@@ -6,8 +6,12 @@ import (
 	"kigumi/internal/sem"
 )
 
-// declaredParams are the parameter entities of a known fn or closure, in the order a call passes its arguments.
+// declaredParams are the parameter entities of a known fn or closure, in the order a call passes its arguments; a
+// method value's are its method's, receiver first.
 func (c *borrowCheck) declaredParams(ent sem.EntityID) []sem.EntityID {
+	if m := c.methodOf(ent); m != 0 {
+		ent = m
+	}
 	switch c.p.R.Entity(ent).Kind {
 	case sem.EntFn:
 		info := c.p.R.Fn(ent)
@@ -57,19 +61,19 @@ func (c *borrowCheck) callsParam(p sem.EntityID) bool {
 
 // calleeParam is the parameter of a known callee that argument k of in, in body g with sole definitions defs, binds, or 0.
 func (c *borrowCheck) calleeParam(g *Func, defs map[LocalID]*Inst, in Inst, k int) sem.EntityID {
-	var ent sem.EntityID
+	var ents []sem.EntityID
 	switch {
 	case in.Op == OpCall && in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn:
-		ent = in.Ent
-	case in.Op == OpCallValue && k > 0 && c.calleeClosure(g, in) != 0:
-		ent, k = c.calleeClosure(g, in), k-1
-	case in.Op == OpFutureNew && k > 0:
+		ents = []sem.EntityID{in.Ent}
+	case in.Op == OpCallValue && c.calleeClosure(g, in) != 0:
+		ents = []sem.EntityID{c.calleeClosure(g, in)}
+	case in.Op == OpFutureNew:
 		if d := defs[in.Args[0]]; d != nil && d.Op == OpFnItem {
-			ent, k = d.Ent, k-1
+			ents = []sem.EntityID{d.Ent}
 		}
 	}
-	if params := c.declaredParams(ent); ent != 0 && k < len(params) {
-		return params[k]
+	if qs := c.boundParams(ents, in, k); len(qs) > 0 {
+		return qs[0]
 	}
 	return 0
 }
@@ -104,13 +108,9 @@ func (c *borrowCheck) opaqueStep(in Inst, s flowSets, put func(LocalID, uint32))
 		put(in.Dst, opaqueFact)
 	}
 	lent := func(k int, facts []uint32) {
-		for _, p := range c.lentMutPlaces(in.Args[k]) {
-			for _, l := range []LocalID{p.root, p.via} {
-				for _, f := range facts {
-					if l != 0 {
-						put(l, f)
-					}
-				}
+		for _, l := range c.storePlaces(in.Args[k]) {
+			for _, f := range facts {
+				put(l, f)
 			}
 		}
 	}
@@ -121,7 +121,7 @@ func (c *borrowCheck) opaqueStep(in Inst, s flowSets, put func(LocalID, uint32))
 	}
 	if in.Op == OpAwait || c.knownCallees(c.f, s, in) == nil {
 		for k, a := range in.Args {
-			if c.lendsPlace(c.f, a) && c.typeRuns(c.f.Locals[a].Type, runsCallable) {
+			if c.keepsThrough(c.f, a) && c.typeRuns(c.f.Locals[a].Type, runsCallable) {
 				lent(k, []uint32{opaqueFact})
 			}
 		}

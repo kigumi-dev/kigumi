@@ -24,6 +24,7 @@ type cellState struct {
 	contentsMemo    map[LocalID]contentsResult
 	plainTypes      map[sem.TypeID]bool
 	offloadNode     map[sem.EntityID]syntax.NodeID
+	keeperState     *keeperGraph
 }
 
 // dropFact marks, among the closure facts, a value that may hold a resource whose user `drop` runs when it is dropped.

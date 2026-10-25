@@ -4480,6 +4480,23 @@
       ]
     },
     {
+      "id": "run/blocking_pool_shared_keep",
+      "kind": "run",
+      "path": "testdata/run/blocking_pool_shared_keep.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/blocking_pool_stored_closure",
       "kind": "run",
       "path": "testdata/run/blocking_pool_stored_closure.txtar",
@@ -18825,6 +18842,17 @@
       "id": "sem/cell_local_offload_err",
       "kind": "sem",
       "path": "testdata/sem/cell_local_offload_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/cell_local_offload_shared_err",
+      "kind": "sem",
+      "path": "testdata/sem/cell_local_offload_shared_err.txtar",
       "mode": [
         "check"
       ],

@@ -22,8 +22,15 @@ func (c *borrowCheck) finishedFlow(h *Func) (fs, kept flowSets, ok bool) {
 	return fs, kept, fs != nil
 }
 
-// summaryOf is e's summary; ok is false where finishedFlow is.
+// summaryOf is e's summary, its method's for a method value and by its declared shape for a bodiless fn; ok is false
+// where finishedFlow is.
 func (c *borrowCheck) summaryOf(e sem.EntityID) (calleeSummary, bool) {
+	if m := c.methodOf(e); m != 0 {
+		e = m
+	}
+	if c.p.R.Entity(e).Kind == sem.EntFn && c.p.R.Fn(e).Body == 0 {
+		return c.primSummary(e), true
+	}
 	g := c.p.ByEnt[e]
 	fs, kept, ok := c.finishedFlow(g)
 	if !ok {
@@ -70,6 +77,11 @@ func (c *borrowCheck) lendsPlace(g *Func, a LocalID) bool {
 	return mut || g.Locals[a].Cell
 }
 
+// keepsThrough is lendsPlace or an argument reaching shared storage, which a callee may store into by value.
+func (c *borrowCheck) keepsThrough(g *Func, a LocalID) bool {
+	return c.lendsPlace(g, a) || c.sharedStorage(g.Locals[a].Type)
+}
+
 // knownCallees are the callees of in this body can name: a fn item, a closure by type, or an async fn's future; nil for
 // a call it cannot see into.
 func (c *borrowCheck) knownCallees(g *Func, fs flowSets, in Inst) []sem.EntityID {
@@ -90,7 +102,7 @@ func (c *borrowCheck) calleeStores(g *Func, fs flowSets, in Inst, argFacts func(
 	}
 	opaqueAll := func() {
 		for k, a := range in.Args {
-			if c.lendsPlace(g, a) && c.typeRuns(g.Locals[a].Type, runsCallable) {
+			if c.keepsThrough(g, a) && c.typeRuns(g.Locals[a].Type, runsCallable) {
 				lent(k, []uint32{opaqueFact})
 			}
 		}
@@ -137,7 +149,7 @@ func (c *borrowCheck) bodyCallStores(g *Func, defs map[LocalID][]*Inst, in Inst,
 		return out
 	}
 	c.calleeStores(g, fs, in, argFacts, func(k int, facts []uint32) {
-		if a := in.Args[k]; c.lendsPlace(g, a) {
+		if a := in.Args[k]; c.keepsThrough(g, a) {
 			roots, ok := c.placeRoots(g, defs, a)
 			into(roots, ok, facts)
 		}

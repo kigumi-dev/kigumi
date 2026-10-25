@@ -117,6 +117,11 @@ func (c *borrowCheck) releaseOnly(l LocalID) bool {
 // typeHolds reports whether t or a type it can keep inside (a type argument, an element, or a field or payload of a
 // named type, with the type's arguments put in) satisfies hit; past a bound on the types visited it says yes.
 func (c *borrowCheck) typeHolds(t sem.TypeID, hit func(sem.TypeID) bool) bool {
+	return c.typeHoldsUntil(t, hit, nil)
+}
+
+// typeHoldsUntil is typeHolds without looking inside a type stop reports keeping none of its parts.
+func (c *borrowCheck) typeHoldsUntil(t sem.TypeID, hit, stop func(sem.TypeID) bool) bool {
 	seen := map[sem.TypeID]bool{}
 	var walk func(sem.TypeID) bool
 	walk = func(t sem.TypeID) bool {
@@ -129,6 +134,9 @@ func (c *borrowCheck) typeHolds(t sem.TypeID, hit func(sem.TypeID) bool) bool {
 		seen[t] = true
 		if hit(t) {
 			return true
+		}
+		if stop != nil && stop(t) {
+			return false
 		}
 		n := c.p.R.Types.Node(t)
 		if walk(n.Elem) {

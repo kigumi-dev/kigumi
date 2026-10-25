@@ -2,8 +2,8 @@ package mir
 
 import "kigumi/internal/sem"
 
-// emptyHandles is, per block and instruction, the handles known to hold nothing there: on every path in their content
-// was moved out, or a branch found them a variant without a payload.
+// emptyHandles is, per block and instruction, the handles known to hold nothing running there: on every path their
+// content was moved out or its sole payload awaited, or a branch found them a variant whose payload keeps no handle.
 func (c *borrowCheck) emptyHandles(handles map[LocalID]bool) [][]map[LocalID]bool {
 	n := len(c.f.Blocks)
 	in := make([]map[LocalID]bool, n)
@@ -50,9 +50,9 @@ func (c *borrowCheck) emptyThrough(b BlockID, s, handles map[LocalID]bool, befor
 		if in.Op == OpMove && handles[in.Args[0]] {
 			s[in.Args[0]] = true
 		}
-		if c.takesPayload(in) {
-			if d := c.definition(in.Args[0]); d != nil && d.Op == OpPayload && handles[d.Args[0]] && c.onePayloadEach(d.Args[0]) {
-				s[d.Args[0]] = true
+		if in.Op == OpAwait {
+			if o := c.awaitedPayloadOf(in.Args[0], handles); o != 0 {
+				s[o] = true
 			}
 		}
 		if in.Op.Yields() && definesDst(in) {
@@ -62,7 +62,7 @@ func (c *borrowCheck) emptyThrough(b BlockID, s, handles map[LocalID]bool, befor
 	return s
 }
 
-// emptyOnEdge marks a handle a branch on its variant leaves holding no payload along target k.
+// emptyOnEdge marks a handle a branch on its variant leaves holding nothing able to keep a Future or Task along target k.
 func (c *borrowCheck) emptyOnEdge(b BlockID, k int, s, handles map[LocalID]bool) map[LocalID]bool {
 	blk := &c.f.Blocks[b]
 	if blk.Term.Op != TermBranch || len(blk.Term.Args) == 0 {
@@ -85,7 +85,7 @@ func (c *borrowCheck) emptyOnEdge(b BlockID, k int, s, handles map[LocalID]bool)
 	if test == nil {
 		return s
 	}
-	payloadless := func(v sem.EntityID) bool { return len(c.p.R.Variant(v).Payload) == 0 }
+	payloadless := func(v sem.EntityID) bool { return !c.variantHoldsHandle(c.f.Locals[test.Args[0]].Type, v) }
 	others := true
 	for _, v := range c.p.R.TypeDecl(c.p.R.Entity(test.Ent).Parent).Variants {
 		others = others && (v == test.Ent || payloadless(v))
@@ -94,6 +94,24 @@ func (c *borrowCheck) emptyOnEdge(b BlockID, k int, s, handles map[LocalID]bool)
 		s[test.Args[0]] = true
 	}
 	return s
+}
+
+// awaitedPayloadOf is the handle an await of l finishes, l being through moves and copies the sole payload taken out
+// of it; a payload taken out only shares the work, which the handle keeps until it is finished, or 0.
+func (c *borrowCheck) awaitedPayloadOf(l LocalID, handles map[LocalID]bool) LocalID {
+	for range len(c.f.Locals) {
+		d := soleDef(c.f, l)
+		switch {
+		case d == nil || len(d.Args) == 0:
+			return 0
+		case d.Op == OpPayload && handles[d.Args[0]] && c.onePayloadEach(d.Args[0]):
+			return d.Args[0]
+		case d.Op != OpMove && d.Op != OpCopy && d.Op != OpAlias:
+			return 0
+		}
+		l = d.Args[0]
+	}
+	return 0
 }
 
 // onePayloadEach reports a value whose variants carry at most one payload each, so moving one out leaves it empty.
@@ -108,4 +126,21 @@ func (c *borrowCheck) onePayloadEach(l LocalID) bool {
 		}
 	}
 	return true
+}
+
+// variantHoldsHandle reports whether variant v of t carries a payload, as t instantiates it, able to hold a Future or Task.
+func (c *borrowCheck) variantHoldsHandle(t sem.TypeID, v sem.EntityID) bool {
+	n := c.p.R.Types.Node(t)
+	sub := map[sem.EntityID]sem.TypeID{}
+	for i, p := range c.p.R.TypeDecl(c.p.R.Entity(v).Parent).Params {
+		if i < len(n.Args) {
+			sub[p] = n.Args[i]
+		}
+	}
+	for _, pt := range c.p.R.Variant(v).Payload {
+		if c.holdsHandle(c.p.R.Types.Subst(pt, sub)) {
+			return true
+		}
+	}
+	return false
 }

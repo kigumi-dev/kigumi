@@ -117,7 +117,7 @@ func (c *borrowCheck) offloadStep(in Inst, s flowSets, put func(LocalID, uint32)
 		held, handed := c.splitOffloadFacts(s[a], a)
 		hands := off && c.argRunnable(in, k)
 		if hands {
-			for _, d := range c.offloadDsts(in) {
+			for _, d := range c.offloadDsts(in, s) {
 				c.handOff(in, held, d, put)
 			}
 		}
@@ -165,12 +165,17 @@ func (c *borrowCheck) splitOffloadFacts(facts map[uint32]bool, a LocalID) (held 
 	return held, handed
 }
 
-func (c *borrowCheck) offloadDsts(in Inst) []LocalID {
+// offloadDsts are where an offloading call may leave the handle of the work it hands off: its result, what it lends
+// `&mut`, and the shared storage it may store into.
+func (c *borrowCheck) offloadDsts(in Inst, s flowSets) []LocalID {
 	dsts := []LocalID{in.Dst}
 	for _, a := range in.Args {
 		for _, p := range c.lentMutPlaces(a) {
 			dsts = append(append(dsts, p.root, p.via), c.heldMutOwners(p.root)...)
 		}
+	}
+	for _, k := range c.keptArgs(in, s) {
+		dsts = append(dsts, c.storePlaces(in.Args[k])...)
 	}
 	return dsts
 }

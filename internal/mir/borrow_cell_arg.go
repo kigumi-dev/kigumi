@@ -81,10 +81,11 @@ const (
 	runsDrop
 	runsCallable
 	runsHandle
+	runsShared
 )
 
 // typeRuns memoizes a typeHolds question about t: runsCall (mayRunType), runsSpawn (a Future or Task), runsDrop (a user
-// `drop` may run, calling what it holds), runsCallable (a callableNode) or runsHandle (holdsHandle).
+// `drop` may run), runsCallable (a callableNode), runsHandle (holdsHandle) or runsShared (a sharedNode).
 func (c *borrowCheck) typeRuns(t sem.TypeID, kind uint8) bool {
 	key := typeRunKey{t, kind}
 	if v, ok := c.typeRunMemo[key]; ok {
@@ -103,6 +104,8 @@ func (c *borrowCheck) typeRuns(t sem.TypeID, kind uint8) bool {
 		v = c.typeHolds(t, c.callableNode)
 	case runsHandle:
 		v = c.holdsHandle(t)
+	case runsShared:
+		v = c.typeHoldsUntil(t, c.sharedNode, func(t sem.TypeID) bool { return c.p.R.Types.Kind(t) == sem.KFn })
 	case runsDrop:
 		c.typeRunMemo[key] = false
 		v = c.typeHolds(t, func(t sem.TypeID) bool {

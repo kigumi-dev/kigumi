@@ -1,0 +1,106 @@
+-- src --
+import task from std/task
+import alloc from std/alloc
+fn churn() -> Int { let mut arr: Array[String] = Array.of("x"); for i in 100..400 { arr.push("w${i}") }; arr.len().toInt() || 0 }
+fn putIn(s: alloc.Shared[Future[Int]?], h: Future[Int]) { s.set(Some(h)) }
+async fn putAsync(s: alloc.Shared[Future[Int]?], h: Future[Int]) -> Int { s.set(Some(h)); 0 }
+fn startInto[F: FnOnce[fn() -> Int]](s: alloc.Shared[Future[Int]?], pool: task.BlockingPool, w: escaping F) { s.set(Some(pool.run(w).unwrap())) }
+fn finish(h: Future[Int]) -> Int { 0 }
+fn seenOf(r: &String) -> String {
+    let mut seen = Array.empty[usize]()
+    for j in 0..3000 { let l = r.len(); if seen.len() == 0 || seen[seen.len() - 1] != l { seen.push(l) } }
+    "${debug(&seen)} ${r}"
+}
+async fn droppedInBlock() -> String {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o${churn()}"
+    {
+        let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+        s.set(Some(pool.run(() => { for i in 0..300 { other = "b${i}${churn()}" }; 1 }).unwrap()))
+    }
+    seenOf(&other)
+}
+async fn awaitedBeforeSet() -> String {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o${churn()}"
+    let s: alloc.Shared[Int?] = alloc.Shared.new(None)
+    s.set(Some(await pool.run(() => { for i in 0..300 { other = "a${i}${churn()}" }; 2 }).unwrap()))
+    "${seenOf(&other)} ${s.get() || 0}"
+}
+async fn setDroppingValue() -> String {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o${churn()}"
+    let s: alloc.Shared[Int?] = alloc.Shared.new(None)
+    s.set(Some(finish(pool.run(() => { for i in 0..300 { other = "d${i}${churn()}" }; 3 }).unwrap())))
+    seenOf(&other)
+}
+async fn helperConsumesShared() -> String {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o${churn()}"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    putIn(s, pool.run(() => { for i in 0..300 { other = "h${i}${churn()}" }; 4 }).unwrap())
+    seenOf(&other)
+}
+async fn offloaderConsumesShared() -> String {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o${churn()}"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    startInto(s, pool, () => { for i in 0..300 { other = "s${i}${churn()}" }; 5 })
+    seenOf(&other)
+}
+async fn asyncHelperConsumesShared() -> String {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o${churn()}"
+    let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
+    let n = await putAsync(s, pool.run(() => { for i in 0..300 { other = "y${i}${churn()}" }; 6 }).unwrap())
+    "${seenOf(&other)} ${n}"
+}
+async fn awaitedFromNamedResult() -> String {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o${churn()}"
+    let res = pool.run(() => { for i in 0..300 { other = "r${i}${churn()}" }; 7 })
+    let n = match res {
+        Ok(f) -> await f,
+        Err(e) -> 0
+    }
+    "${seenOf(&other)} ${n}"
+}
+async fn errArmFirst() -> String {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o${churn()}"
+    let res = pool.run(() => { for i in 0..300 { other = "e${i}${churn()}" }; 8 })
+    let n = match res {
+        Err(e) -> 0,
+        Ok(f) -> await f
+    }
+    "${seenOf(&other)} ${n}"
+}
+async fn droppedFromTemporaryResult() -> String {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o${churn()}"
+    let n = match pool.run(() => { for i in 0..300 { other = "t${i}${churn()}" }; 9 }) {
+        Ok(f) -> 1,
+        Err(e) -> 0
+    }
+    "${seenOf(&other)} ${n}"
+}
+let ex = task.threadPoolExecutor(2)
+print ex.runToCompletion(droppedInBlock())
+print ex.runToCompletion(awaitedBeforeSet())
+print ex.runToCompletion(setDroppingValue())
+print ex.runToCompletion(helperConsumesShared())
+print ex.runToCompletion(offloaderConsumesShared())
+print ex.runToCompletion(asyncHelperConsumesShared())
+print ex.runToCompletion(awaitedFromNamedResult())
+print ex.runToCompletion(errArmFirst())
+print ex.runToCompletion(droppedFromTemporaryResult())
+-- stdout --
+[7] b299301
+[7] a299301 2
+[7] d299301
+[7] h299301
+[7] s299301
+[7] y299301 0
+[7] r299301 7
+[7] e299301 8
+[7] t299301 1
