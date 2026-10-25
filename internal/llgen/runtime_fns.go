@@ -137,7 +137,7 @@ var runtimeFns = []RuntimeFn{
 	rtFutureSuspend, rtFutureResume, rtFutureComplete, rtFutureSettle, rtTaskClose, rtUnwindEnter, rtUnwindEnterSlots, rtUnwindEnterStd, rtUnwindLeave,
 	rtDropOuter, rtReleaseOuter, rtSweepRelease, rtOuterFatal,
 	rtSetfieldSwap, rtSetindexSwap, rtSetindexCopySwap, rtSetfieldCopySwap, rtCellsetSwap,
-	rtDLen, rtDArrayLen, rtDBytesGet, rtDArrayGet, rtDParseFloat,
+	rtDLen, rtDArrayLen, rtDMapSeed, rtDBytesGet, rtDArrayGet, rtDParseFloat,
 	rtDHashInt, rtDHashBool, rtDHashChar, rtDHashFloat, rtDTry, rtDTryOpt,
 }
 

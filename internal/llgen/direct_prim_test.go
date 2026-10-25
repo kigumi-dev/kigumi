@@ -69,3 +69,20 @@ fn main() -> Void! {}
 		t.Errorf("an Option of a String must stay on the boxed call:\n%s", body)
 	}
 }
+
+// Every Map lookup reads the hash seed, so the read must not box the random u64.
+func TestMapSeedComesBackWithoutABox(t *testing.T) {
+	ir := emitIR(t, `
+import map from std/map
+
+fn main() {
+    if map.tryEmpty[Int, Int]() is Ok(m) {
+        let _ = m.contains(&1)
+    }
+}
+`)
+	body := bodyOf(t, ir, `@"std/map.startSlot"(`)
+	if !strings.Contains(body, "@rt_d_map_seed(") || strings.Contains(body, "@rt_std_id(") || strings.Contains(body, "@rt_int(") {
+		t.Errorf("startSlot boxes the seed:\n%s", body)
+	}
+}

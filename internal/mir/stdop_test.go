@@ -90,7 +90,7 @@ func TestRegistryTablesArePopulated(t *testing.T) {
 			elems++
 		}
 	}
-	if len(directResultOps) != 36 || len(hoCallbackArg) != 12 || elems < 3 {
+	if len(directResultOps) != 37 || len(hoCallbackArg) != 12 || elems < 3 {
 		t.Errorf("tables hold %d direct ops, %d callbacks, %d element ops", len(directResultOps), len(hoCallbackArg), elems)
 	}
 }

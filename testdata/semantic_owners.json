@@ -6201,16 +6201,6 @@
     "status": "ok"
   },
   {
-    "key": "map.drawSeed",
-    "signature": "pure fn(\u0026mut Array[usize]) -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
     "key": "map.empty",
     "signature": "pure fn() -\u003e Map[K, V]",
     "has_body": true,
@@ -6261,6 +6251,16 @@
     "status": "ok"
   },
   {
+    "key": "map.openMeta",
+    "signature": "pure fn(\u0026mut Array[usize]) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "map.roomNeeded",
     "signature": "pure noalloc fn(usize, usize, usize) -\u003e Bool",
     "has_body": true,
@@ -6292,7 +6292,7 @@
   },
   {
     "key": "map.startSlot",
-    "signature": "pure noalloc fn(u64, usize, usize) -\u003e usize",
+    "signature": "pure noalloc fn(u64, usize) -\u003e usize",
     "has_body": true,
     "kind": "",
     "vm": "gap",

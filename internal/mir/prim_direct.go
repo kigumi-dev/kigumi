@@ -61,6 +61,8 @@ func (p *Program) primTypesFit(f *Func, in Inst, kind DirectPrim) bool {
 	switch kind {
 	case DPLen, DPArrayLen:
 		return len(in.Args) == 1 && shape == shapeScalar
+	case DPMapSeed:
+		return len(in.Args) == 0 && shape == shapeScalar
 	case DPBytesGet, DPArrayGet:
 		return len(in.Args) == 2 && p.R.RegScalar(arg(1)) && shape == shapeOption
 	case DPArrayFirst, DPArrayLast:

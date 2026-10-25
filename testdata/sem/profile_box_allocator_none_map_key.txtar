@@ -1,0 +1,42 @@
+-- module --
+mir: planned
+allocator: none
+-- src --
+import map from std/map
+
+type Plain = {
+    a Int
+}
+
+pure fn Plain.equals(self, other: &Plain) -> Bool {
+    self.a == other.a
+}
+
+pure fn Plain.hash(self) -> u64 {
+    self.a.toU64() || 0
+}
+
+// Without a default allocator the map cannot be built at all, so the check stops before the box.
+fn fill() -> Result[Bool, AllocError] {
+    let mut m = map.tryEmpty[Plain, Int]()?
+    let mut i = 0
+    for i < 10 {
+        m.trySet(Plain { a: i }, i)?
+        i = i + 1
+    }
+    Ok(m.len() == 10)
+}
+
+fn main() {
+    if fill() is Ok(b) { //~ ERROR `fill` needs the default allocator
+        let _ = b
+    }
+}
+-- expect --
+error[E959]: `fill` needs the default allocator, but this build has none (--allocator none)
+  --> main.kg:27:8
+   |
+27 |     if fill() is Ok(b) { //~ ERROR `fill` needs the default allocator
+   |        ^^^^^
+   = help: allocate inside an `allocator` block
+

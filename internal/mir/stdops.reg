@@ -508,6 +508,7 @@ key prelude.u128.truncate
 key prelude.usize.truncate
 isr inert
 op 163 MAP_SEED primitive () -> int
+direct MapSeed
 key map.seed
 op 164 BYTES_INDEX_OF retired
 op 165 STRING_CONTAINS retired

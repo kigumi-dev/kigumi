@@ -1,0 +1,50 @@
+-- module --
+mir: planned
+profile: recoverable-only
+-- src --
+import map from std/map
+import {AllocatorHandle} from std/alloc
+import alloc from std/alloc
+
+type Plain = {
+    a Int
+}
+
+pure fn Plain.equals(self, other: &Plain) -> Bool {
+    self.a == other.a
+}
+
+pure fn Plain.hash(self) -> u64 {
+    self.a.toU64() || 0
+}
+
+// The allocator block covers only this call of the shared instance.
+fn inA(h: AllocatorHandle) -> Result[Bool, AllocError] {
+    allocator h.scope() {
+        let mut m = map.tryEmpty[Plain, Int]()?
+        m.trySet(Plain { a: 1 }, 1)?
+        Ok(m.len() == 1)
+    }
+}
+
+fn inB() -> Result[Bool, AllocError] {
+    let mut m = map.tryEmpty[Plain, Int]()?
+    m.trySet(Plain { a: 2 }, 2)? //~ ERROR `inB` passed the recoverable-only profile as if `Plain` stayed unboxed
+    Ok(m.len() == 1)
+}
+
+fn main() {
+    if alloc.Arena.tryCreate() is Ok(ar) {
+        if inB() is Err(_) {
+            print "err"
+        }
+        let _ = inA(ar)
+    }
+}
+-- expect --
+error[E2313]: `inB` passed the recoverable-only profile as if `Plain` stayed unboxed, yet handing it to a slot that holds a reference allocates a box here that a refused allocation would end the program on; call a form that takes it unboxed, or allocate inside an `allocator` block
+  --> main.kg:28:5
+   |
+28 |     m.trySet(Plain { a: 2 }, 2)? //~ ERROR `inB` passed the recoverable-only profile as if `Plain` stayed unboxed
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+

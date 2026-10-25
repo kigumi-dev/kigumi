@@ -21941,9 +21941,53 @@
       ]
     },
     {
+      "id": "sem/profile_box_allocator_none_map_key",
+      "kind": "sem",
+      "path": "testdata/sem/profile_box_allocator_none_map_key.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/profile_box_allocator_none_witness",
       "kind": "sem",
       "path": "testdata/sem/profile_box_allocator_none_witness.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/profile_box_recoverable_map_key",
+      "kind": "sem",
+      "path": "testdata/sem/profile_box_recoverable_map_key.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/profile_box_recoverable_map_key_scoped_first",
+      "kind": "sem",
+      "path": "testdata/sem/profile_box_recoverable_map_key_scoped_first.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/profile_box_recoverable_map_key_scoped_last",
+      "kind": "sem",
+      "path": "testdata/sem/profile_box_recoverable_map_key_scoped_last.txtar",
       "mode": [
         "check"
       ],
@@ -22065,6 +22109,17 @@
       "id": "sem/recoverable_map_derived_key",
       "kind": "sem",
       "path": "testdata/sem/recoverable_map_derived_key.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/recoverable_map_int_key_ok",
+      "kind": "sem",
+      "path": "testdata/sem/recoverable_map_int_key_ok.txtar",
       "mode": [
         "check"
       ],

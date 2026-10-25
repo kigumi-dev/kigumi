@@ -7,7 +7,7 @@ pub type Map[K: Eq + Hash, V] = {
     mut slots Array[usize]
     // seqList[pos] is the sequence number of entry pos after a removal; before that it is empty or the identity.
     mut seqList Array[usize]
-    // meta is empty until the first insert, then [hash seed, removals since the last reindex].
+    // meta is empty until the first insert, then [removals since the last reindex].
     mut meta Array[usize]
 }
 
@@ -78,14 +78,14 @@ pure noalloc fn mix(h: u64) -> u64 {
     d ^ d.wrappingShiftRight(33)
 }
 
-/// First slot of the probe sequence of a key with hash h in an index of size slots.
-pure noalloc fn startSlot(h: u64, seed: usize, size: usize) -> usize {
-    mix(h ^ seed.toU64()).toUsize() & (size - 1)
+/// First slot of the probe sequence of a key with hash h in an index of size slots, under the per-process seed.
+pure noalloc fn startSlot(h: u64, size: usize) -> usize {
+    mix(h ^ seed()).toUsize() & (size - 1)
 }
 
 /// Entries removed since the last reindex; each left a dead slot and a gap in the sequence numbers.
 pure noalloc fn gapOf(meta: &Array[usize]) -> usize {
-    meta.get(1) || 0
+    meta.get(0) || 0
 }
 
 /// The position of the entry with sequence number seq; the two agree until the first removal after a reindex.
@@ -140,10 +140,9 @@ pure noalloc fn indexSizeFor(live: usize, gap: usize) -> usize {
     size
 }
 
-/// Draws the hash seed on the first insert.
-pure fn drawSeed(meta: &mut Array[usize]) {
+/// Opens the removal count on the first insert.
+pure fn openMeta(meta: &mut Array[usize]) {
     if meta.len() == 0 {
-        meta.push(seed().toUsize())
         meta.push(0)
     }
 }
@@ -169,7 +168,7 @@ pure fn Map[K: Eq + Hash, V].positionHashed(self, h: u64, key: &K) -> usize? {
     if self.slots.len() == 0 {
         return None
     }
-    let start = startSlot(h, self.meta[0], self.slots.len())
+    let start = startSlot(h, self.slots.len())
     if self.findSlot(start, key) is Some(i) {
         return Some(seqPosition(&self.seqList, gapOf(&self.meta), self.slots[i] - 2))
     }
@@ -184,15 +183,14 @@ pure fn Map[K: Eq + Hash, V].position(self, key: &K) -> usize? {
 /// Installs a fresh index, renumbers the entries by position and files them all; allocates nothing.
 pure fn Map[K: Eq + Hash, V].rebuild(mut self, slots: Array[usize]) {
     self.slots = slots
-    self.meta[1] = 0
-    let seed = self.meta[0]
+    self.meta[0] = 0
     let size = self.slots.len()
     let mut pos: usize = 0
     for pos < self.keyList.len() {
         if pos < self.seqList.len() {
             self.seqList[pos] = pos
         }
-        let start = startSlot(hash(&self.keyList[pos]), seed, size)
+        let start = startSlot(hash(&self.keyList[pos]), size)
         fileSlot(&mut self.slots, start, pos)
         pos = pos + 1
     }
@@ -207,7 +205,7 @@ pure fn Map[K: Eq + Hash, V].append(mut self, h: u64, key: K, value: V) {
     if gap > 0 {
         self.seqList.push(seq)
     }
-    let start = startSlot(h, self.meta[0], self.slots.len())
+    let start = startSlot(h, self.slots.len())
     fileSlot(&mut self.slots, start, seq)
 }
 
@@ -218,7 +216,7 @@ pub pure fn Map[K: Eq + Hash, V].set(mut self, key: K, value: V) {
         self.valueList[pos] = value
         return
     }
-    drawSeed(&mut self.meta)
+    openMeta(&mut self.meta)
     if roomNeeded(self.keyList.len(), gapOf(&self.meta), self.slots.len()) {
         self.rebuild(Array.tryFill[usize](0, indexSizeFor(self.keyList.len(), gapOf(&self.meta))) || panic("out of memory"))
     }
@@ -233,7 +231,7 @@ pub pure fn Map[K: Eq + Hash, V].trySet(mut self, key: K, value: V) -> Result[Vo
         self.valueList[pos] = value
     } else {
         if self.meta.len() == 0 {
-            self.meta.tryReserve(2)?
+            self.meta.tryReserve(1)?
         }
         self.keyList.tryReserve(1)?
         self.valueList.tryReserve(1)?
@@ -244,7 +242,7 @@ pub pure fn Map[K: Eq + Hash, V].trySet(mut self, key: K, value: V) -> Result[Vo
             // Build the bigger index before committing key/value, so a
             // refused allocation here still leaves the map untouched.
             let slots = Array.tryFill[usize](0, indexSizeFor(self.keyList.len(), gapOf(&self.meta)))?
-            drawSeed(&mut self.meta)
+            openMeta(&mut self.meta)
             self.rebuild(slots)
         }
         self.append(h, key, value)
@@ -273,7 +271,7 @@ pub pure fn Map[K: Eq + Hash, V].take(mut self, key: &K) -> V? {
     if self.slots.len() == 0 {
         return None
     }
-    let start = startSlot(hash(key), self.meta[0], self.slots.len())
+    let start = startSlot(hash(key), self.slots.len())
     if self.findSlot(start, key) is Some(i) {
         let pos = seqPosition(&self.seqList, gapOf(&self.meta), self.slots[i] - 2)
         for self.seqList.len() < self.keyList.len() {
@@ -282,7 +280,7 @@ pub pure fn Map[K: Eq + Hash, V].take(mut self, key: &K) -> V? {
         self.slots[i] = 1
         _ = self.keyList.takeAt(pos)
         _ = self.seqList.takeAt(pos)
-        self.meta[1] = self.meta[1] + 1
+        self.meta[0] = self.meta[0] + 1
         return self.valueList.takeAt(pos)
     }
     None

@@ -17,14 +17,16 @@ func (p *Program) profileClaims() []AllocClaim {
 		return nil
 	}
 	var out []AllocClaim
-	for _, f := range p.reachedFrom(roots) {
-		if f.Ent == 0 || !p.R.ProfileTrusts(f.Ent) {
+	seen := map[blamedBox]bool{}
+	for _, r := range p.reachedFrom(roots) {
+		f := r.f
+		if f.Ent == 0 || !p.profileTrusts(f.Ent) {
 			continue
 		}
 		for _, blk := range f.Blocks {
 			for _, in := range blk.Insts {
 				if in.Op == OpBoxDirect && !in.Fixed && !p.R.InAllocatorBlock(f.File, in.Node) {
-					out = append(out, p.claimAt(f, c, in.Node, in.Type))
+					out = p.blameBox(out, seen, r, c, in)
 				}
 			}
 		}
@@ -33,28 +35,28 @@ func (p *Program) profileClaims() []AllocClaim {
 }
 
 // reachedFrom walks the bodies a call, a function value or an entry can run from roots.
-func (p *Program) reachedFrom(roots []sem.EntityID) []*Func {
-	seen := map[*Func]bool{}
-	var out, work []*Func
-	add := func(f *Func) {
-		if f != nil && !seen[f] {
-			seen[f] = true
-			out, work = append(out, f), append(work, f)
+func (p *Program) reachedFrom(roots []sem.EntityID) []profileReach {
+	seen := map[profileReach]bool{}
+	var out, work []profileReach
+	add := func(f *Func, via profileReach) {
+		if r := p.reachAt(f, via); f != nil && !seen[r] {
+			seen[r] = true
+			out, work = append(out, r), append(work, r)
 		}
 	}
 	for _, r := range roots {
-		add(p.ByEnt[r])
+		add(p.ByEnt[r], profileReach{})
 	}
 	for len(work) > 0 {
-		f := work[len(work)-1]
+		r := work[len(work)-1]
 		work = work[:len(work)-1]
-		add(f.Entry)
-		add(f.Wraps)
-		for _, blk := range f.Blocks {
+		add(r.f.Entry, r)
+		add(r.f.Wraps, r)
+		for _, blk := range r.f.Blocks {
 			for _, in := range blk.Insts {
 				switch in.Op {
 				case OpCall, OpFnItem, OpBind, OpClosure, OpFutureNew:
-					add(p.ByEnt[in.Ent])
+					add(p.ByEnt[in.Ent], p.via(r, in.Node))
 				}
 			}
 		}

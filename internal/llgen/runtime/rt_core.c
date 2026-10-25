@@ -3356,6 +3356,7 @@ static uint64_t map_seed(void) {
     }
     return seed;
 }
+int64_t rt_d_map_seed(void) { return (int64_t)map_seed(); }
 // Constant-time compare: time
 // depends only on the lengths (an early return there is fine, lengths
 // aren't secret), never on where the bytes differ. `diff` is volatile so

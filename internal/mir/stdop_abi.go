@@ -34,6 +34,7 @@ const (
 	DPPow
 	DPTryRef
 	DPTryOpt
+	DPMapSeed
 )
 
 var directPrimByName = map[string]DirectPrim{
@@ -41,7 +42,7 @@ var directPrimByName = map[string]DirectPrim{
 	"ArrayFirst": DPArrayFirst, "ArrayLast": DPArrayLast, "CharFromInt": DPCharFromInt, "ParseFloat": DPParseFloat,
 	"WrapAdd": DPWrapAdd, "WrapSub": DPWrapSub, "WrapMul": DPWrapMul, "WrapShl": DPWrapShl, "WrapShr": DPWrapShr,
 	"Rotl": DPRotl, "Rotr": DPRotr, "Sqrt": DPSqrt, "Floor": DPFloor, "Ceil": DPCeil, "Round": DPRound, "Pow": DPPow,
-	"TryRef": DPTryRef, "TryOpt": DPTryOpt,
+	"TryRef": DPTryRef, "TryOpt": DPTryOpt, "MapSeed": DPMapSeed,
 }
 
 // A call takes the direct form only when its result type is a register scalar, an Option of one, or a direct Result[T, AllocError].

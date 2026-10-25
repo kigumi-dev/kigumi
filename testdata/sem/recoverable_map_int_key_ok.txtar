@@ -1,0 +1,23 @@
+-- module --
+mir: planned
+profile: recoverable-only
+-- src --
+import map from std/map
+
+// The hash seed is read in a register and the keys stay below the static small integers, so nothing here allocates fatally.
+fn fill() -> Result[Bool, AllocError] {
+    let mut m = map.tryEmpty[Int, Int]()?
+    let mut i = 0
+    for i < 40 {
+        m.trySet(i * 7 + 3, i)?
+        i = i + 1
+    }
+    Ok(m.contains(&38))
+}
+
+fn main() {
+    if fill() is Err(_) {
+        print "err"
+    }
+}
+-- expect --

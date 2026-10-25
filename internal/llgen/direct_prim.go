@@ -10,6 +10,7 @@ import (
 var (
 	rtDLen        = RuntimeFn{"rt_d_len", []Type{TPtr}, TI64}
 	rtDArrayLen   = RuntimeFn{"rt_d_array_len", []Type{TPtr}, TI64}
+	rtDMapSeed    = RuntimeFn{"rt_d_map_seed", nil, TI64}
 	rtDBytesGet   = RuntimeFn{"rt_d_bytes_get", []Type{TPtr, TI64, TPtr}, TI32}
 	rtDArrayGet   = RuntimeFn{"rt_d_array_get", []Type{TPtr, TI64, TPtr}, TI32}
 	rtDParseFloat = RuntimeFn{"rt_d_parse_float", []Type{TPtr, TPtr}, TI32}
@@ -38,6 +39,9 @@ func (e *emitter) directPrimCall(sb *strings.Builder, f *mir.Func, in mir.Inst) 
 		return
 	case mir.DPArrayLen:
 		e.storeScalarBits(sb, f, in.Dst, b.Call(rtDArrayLen, args[0]).Text)
+		return
+	case mir.DPMapSeed:
+		e.storeScalarBits(sb, f, in.Dst, b.Call(rtDMapSeed).Text)
 		return
 	}
 	out := e.stackSlot(sb, "i64")
