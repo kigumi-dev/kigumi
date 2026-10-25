@@ -67,6 +67,7 @@ type borrowCheck struct {
 	definedIn []map[LocalID]bool
 	reported  map[reportKey]int
 	quiet     bool
+	typeMemo  borrowTypeMemo
 	// defs maps a temporary to its defining instruction (nil when defined
 	// more than once), built on first use.
 	defs map[LocalID]*Inst

@@ -189,9 +189,3 @@ func (c *borrowCheck) fnResult(t sem.TypeID) sem.TypeID {
 	}
 	return 0
 }
-
-func (c *borrowCheck) holdsBorrow(t sem.TypeID) bool {
-	return c.typeHolds(t, func(t sem.TypeID) bool {
-		return c.p.R.Types.Kind(t) == sem.KRef || c.declaredLifetime(t) != 0
-	})
-}

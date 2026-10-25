@@ -5,16 +5,6 @@ import (
 	"kigumi/internal/syntax"
 )
 
-// declaredLifetime is the sole named lifetime t's own generic arguments carry, 0 for none.
-func (c *borrowCheck) declaredLifetime(t sem.TypeID) sem.EntityID {
-	for _, p := range c.p.R.Types.Params(t) {
-		if c.p.R.TypeParam(p).IsLifetime {
-			return p
-		}
-	}
-	return 0
-}
-
 // paramLifetime is prm's own named lifetime (an explicit `'a` tag, self's sole
 // lifetime parameter, or a `T: Peek['a]` bound) and the node to blame on escape.
 func (c *borrowCheck) paramLifetime(prm LocalID) (sem.EntityID, syntax.NodeID) {

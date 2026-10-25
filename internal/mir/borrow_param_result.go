@@ -6,11 +6,6 @@ import (
 	"kigumi/internal/sem"
 )
 
-// namesTypeParam reports whether t names a type parameter, whose instantiation may hold a reference.
-func (c *borrowCheck) namesTypeParam(t sem.TypeID) bool {
-	return len(c.typeParamsOf(t)) > 0
-}
-
 // frameBorrows is the part of b that borrows this frame's own storage, nil for none; a borrow of what a
 // reference parameter or a `self` receiver reaches is the caller's value, which outlives the call.
 func (c *borrowCheck) frameBorrows(b *borrowInfo) *borrowInfo {
