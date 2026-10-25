@@ -1,0 +1,80 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type Wrap = {
+    pub r Res
+}
+
+fn mk(n: Int) -> Wrap? {
+    Some(Wrap { r: Res { id: n } })
+}
+
+fn mkOk(n: Int) -> Result[Wrap, String] {
+    Ok(Wrap { r: Res { id: n } })
+}
+
+fn hold(w: Wrap?, n: Int) -> Int {
+    print "hold ${n}"
+    match w {
+        Some(x) -> x.r.id + n
+        None -> 0
+    }
+}
+
+fn holdOk(w: Result[Wrap, String], n: Int) -> Int {
+    print "holdOk ${n}"
+    match w {
+        Ok(x) -> x.r.id + n
+        Err(_) -> 0
+    }
+}
+
+fn viaSync(n: Int, f: fn(Wrap?, Int) -> Int) -> Int {
+    let w = mk(n)
+    f(w, n)
+}
+
+async fn fine() -> Int {
+    let a = mk(1)
+    let x = hold(a, 10)
+    print "after hold"
+    let b = mkOk(2)
+    let y = holdOk(b, 20)
+    print "after holdOk"
+    let z = viaSync(3, (w: Wrap?, n: Int) => {
+        print "closure ${n}"
+        match w {
+            Some(v) -> v.r.id
+            None -> 0
+        }
+    })
+    print "after closure"
+    x + y + z
+}
+
+async fn root() -> Int {
+    let t = task.spawn(fine())
+    await t
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+hold 10
+drop 1
+after hold
+holdOk 20
+drop 2
+after holdOk
+closure 3
+drop 3
+after closure
+total 36

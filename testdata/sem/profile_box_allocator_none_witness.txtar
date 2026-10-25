@@ -1,0 +1,43 @@
+-- module --
+mir: planned
+allocator: none
+-- src --
+interface Putter {
+    noalloc fn put(self, v: Pt) -> Int
+}
+
+type Pt = {
+    pub x Int
+    pub y Int
+}
+
+type Nm = {
+    pub name String
+    pub n Int
+}
+
+noalloc fn Nm.put(self, v: Pt) -> Int {
+    v.x + v.y + self.n
+}
+
+fn mkNm() -> Nm {
+    Nm { name: "a", n: 1 }
+}
+
+static sink: Nm = comptime mkNm()
+
+// `Nm` holds a String, so `send` keeps one shared body and the witness call takes the record boxed.
+fn send[T: Putter](g: T, n: Int) -> Int {
+    g.put(Pt { x: n, y: 1 }) //~ ERROR `send` passed --allocator none as if `Pt` stayed unboxed
+}
+
+fn main() -> Void! {
+    let _ = send(sink, 2)
+}
+-- expect --
+error[E2314]: `send` passed --allocator none as if `Pt` stayed unboxed, yet handing it to a slot that holds a reference allocates a box from the default allocator here; call a form that takes it unboxed, or allocate inside an `allocator` block
+  --> main.kg:27:5
+   |
+27 |     g.put(Pt { x: n, y: 1 }) //~ ERROR `send` passed --allocator none as if `Pt` stayed unboxed
+   |     ^^^^^^^^^^^^^^^^^^^^^
+

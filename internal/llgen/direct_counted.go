@@ -161,23 +161,29 @@ func (e *emitter) countedCrosses(f *mir.Func) map[mir.LocalID]countedCross {
 	return out
 }
 
-// An alias of a crossing out of a named local is a view the local keeps counted, and a move of it takes the local.
 func (e *emitter) settleCountedCross(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 	for i, a := range in.Args {
-		x, ok := e.countedX[a]
-		if !ok {
-			continue
+		if x, ok := e.countedX[a]; ok && x.unbox && e.keepsCrossTemp(f, in, i, x) {
+			e.refCall(sb, e.direct[a], refDrop, aggPtr(a))
 		}
-		if x.unbox {
-			switch {
-			case in.Op == mir.OpShare || !e.p.ArgConsumed(f, in, i) || in.Op == mir.OpAlias && !x.hands:
-				e.refCall(sb, e.direct[a], refDrop, aggPtr(a))
-			case in.Op == mir.OpMove && x.named:
+	}
+}
+
+// An alias of a crossing out of a named local is a view the local keeps counted, and a move of it takes the local.
+func (e *emitter) keepsCrossTemp(f *mir.Func, in mir.Inst, i int, x countedCross) bool {
+	return in.Op == mir.OpShare || !e.p.ArgConsumed(f, in, i) || in.Op == mir.OpAlias && !x.hands
+}
+
+func (e *emitter) settleCountedSources(sb *strings.Builder, f *mir.Func, in mir.Inst) {
+	for i, a := range in.Args {
+		x, ok := e.countedX[a]
+		switch {
+		case !ok:
+		case x.unbox:
+			if in.Op == mir.OpMove && x.named && !e.keepsCrossTemp(f, in, i, x) {
 				e.irb(sb).Call(rtRelease, vptr(e.load(sb, x.src)))
 			}
-			continue
-		}
-		if e.p.BoxConsumed(in, i) {
+		case e.p.BoxConsumed(in, i):
 			e.dropCrossSource(sb, x, in.Op == mir.OpMove)
 		}
 	}

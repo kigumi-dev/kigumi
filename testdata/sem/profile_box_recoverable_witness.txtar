@@ -1,0 +1,41 @@
+-- module --
+mir: planned
+profile: recoverable-only
+-- src --
+interface Putter {
+    noalloc fn put(self, v: Int?) -> Int
+}
+
+type Nm = {
+    pub name String
+    pub n Int
+}
+
+noalloc fn Nm.put(self, v: Int?) -> Int {
+    match v {
+        Some(x) -> x + self.n
+        None -> self.n
+    }
+}
+
+fn mkNm() -> Nm {
+    Nm { name: "a", n: 1 }
+}
+
+static sink: Nm = comptime mkNm()
+
+// `Nm` holds a String, so `use` keeps one shared body and the witness call takes the Option boxed.
+fn use[T: Putter](g: T, n: Int) -> Int {
+    g.put(Some(n)) //~ ERROR `use` passed the recoverable-only profile as if `Int?` stayed unboxed
+}
+
+fn main() -> Void! {
+    let _ = use(sink, 2)
+}
+-- expect --
+error[E2313]: `use` passed the recoverable-only profile as if `Int?` stayed unboxed, yet handing it to a slot that holds a reference allocates a box here that a refused allocation would end the program on; call a form that takes it unboxed, or allocate inside an `allocator` block
+  --> main.kg:25:5
+   |
+25 |     g.put(Some(n)) //~ ERROR `use` passed the recoverable-only profile as if `Int?` stayed unboxed
+   |     ^^^^^^^^^^^^
+

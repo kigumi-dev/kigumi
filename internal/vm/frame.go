@@ -82,6 +82,9 @@ func (m *Machine) run(fr *frame) *obj {
 		for k := range blk.Insts {
 			m.chargeStep()
 			fr.blk, fr.pc = bid, k
+			if len(fr.pending) > 0 {
+				m.settleSources(fr, &blk.Insts[k])
+			}
 			m.exec(fr, &blk.Insts[k], &ics[k])
 			if len(fr.pending) > 0 {
 				m.settle(fr, &blk.Insts[k])

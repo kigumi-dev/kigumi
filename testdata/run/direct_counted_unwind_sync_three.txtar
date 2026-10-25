@@ -1,0 +1,58 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type Wrap = {
+    pub r Res
+}
+
+fn mk(n: Int) -> Wrap? {
+    Some(Wrap { r: Res { id: n } })
+}
+
+fn mkOk(n: Int) -> Result[Wrap, String] {
+    Ok(Wrap { r: Res { id: n } })
+}
+
+fn nothing() -> Int? {
+    None
+}
+
+fn three(a: Wrap?, b: Result[Wrap, String], c: Wrap?, n: Int) -> Int {
+    let _z = nothing().expect("boom ${n}")
+    0
+}
+
+fn viaSync() -> Int {
+    let a = mk(1)
+    let b = mkOk(2)
+    let c = mk(3)
+    three(a, b, c, 1)
+}
+
+async fn boom() -> Int {
+    viaSync()
+}
+
+async fn root() -> Int {
+    let a = task.spawn(boom())
+    await a
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 3
+drop 2
+drop 1
+-- stderr --
+panic: boom 1
+-- exit --
+2

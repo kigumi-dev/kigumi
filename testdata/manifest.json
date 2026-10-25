@@ -7295,6 +7295,23 @@
       ]
     },
     {
+      "id": "run/direct_counted_moved_return",
+      "kind": "run",
+      "path": "testdata/run/direct_counted_moved_return.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/direct_counted_payloads",
       "kind": "run",
       "path": "testdata/run/direct_counted_payloads.txtar",
@@ -7315,6 +7332,108 @@
       "id": "run/direct_counted_unwind",
       "kind": "run",
       "path": "testdata/run/direct_counted_unwind.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_counted_unwind_boxed_arg",
+      "kind": "run",
+      "path": "testdata/run/direct_counted_unwind_boxed_arg.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_counted_unwind_moved",
+      "kind": "run",
+      "path": "testdata/run/direct_counted_unwind_moved.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_counted_unwind_moved_result",
+      "kind": "run",
+      "path": "testdata/run/direct_counted_unwind_moved_result.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_counted_unwind_moved_three",
+      "kind": "run",
+      "path": "testdata/run/direct_counted_unwind_moved_three.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_counted_unwind_named_async",
+      "kind": "run",
+      "path": "testdata/run/direct_counted_unwind_named_async.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_counted_unwind_sync_three",
+      "kind": "run",
+      "path": "testdata/run/direct_counted_unwind_sync_three.txtar",
       "mode": [
         "vm",
         "native"
@@ -21707,6 +21826,28 @@
       "id": "sem/pipeline_ok",
       "kind": "sem",
       "path": "testdata/sem/pipeline_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/profile_box_allocator_none_witness",
+      "kind": "sem",
+      "path": "testdata/sem/profile_box_allocator_none_witness.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/profile_box_recoverable_witness",
+      "kind": "sem",
+      "path": "testdata/sem/profile_box_recoverable_witness.txtar",
       "mode": [
         "check"
       ],

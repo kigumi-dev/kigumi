@@ -1,4 +1,6 @@
 -- src --
+import task from std/task
+
 type Bag = {pub mut items Array[i64], pub mut tag String}
 type Sh = Boxy(b: Bag) | Nil
 type Hold = {pub mut sh Sh, pub mut n Int}
@@ -431,6 +433,27 @@ fn deferTry(h: &mut RHold, c: Bool) -> Result[Int, String] {
     Ok(k)
 }
 
+async fn doubled(x: Int) -> Int { x * 2 }
+
+async fn awaitAfter(h: &mut RHold, c: Bool) -> Int {
+    let t = rsMut(h)
+    let mut k = 0
+    if c {
+        k = idOf(t)
+    }
+    let a = await doubled(k)
+    h.s = mkRs(91)
+    print "awaitAfter wrote"
+    a
+}
+
+async fn awaitRoot() -> Int {
+    let mut h = RHold { s: mkRs(90) }
+    let x = await awaitAfter(&mut h, true)
+    let y = await awaitAfter(&mut h, false)
+    x + y
+}
+
 fn showRes(r: Result[Int, String]) -> String {
     match r {
         Ok(v) -> "ok ${v}"
@@ -501,6 +524,8 @@ print showRes(ghostBreak(&mut gh, true))
 print showRes(ghostBreak(&mut gh, false))
 print showRes(deferTry(&mut gh, true))
 print showRes(deferTry(&mut gh, false))
+let ex = task.currentThreadExecutor()
+print "awaitRoot ${ex.runToCompletion(awaitRoot())}"
 -- stdout --
 a nil
 b again 2
@@ -579,6 +604,12 @@ ok 161
 rollback
 deferTry done
 err big 405
+drop 90
+awaitAfter wrote
+drop 91
+awaitAfter wrote
+drop 91
+awaitRoot 180
 drop 81
 drop 71
 drop 60

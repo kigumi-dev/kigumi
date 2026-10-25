@@ -52,9 +52,11 @@ func (e *emitter) crossSources(f *mir.Func) map[mir.LocalID]mir.LocalID {
 	return out
 }
 
+// A crossing holds its own counts, so its source is released before the reader runs and a panic there leaks nothing.
 func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
-	e.instBody(sb, f, in)
 	e.releaseCrossSources(sb, f, in)
+	e.settleCountedSources(sb, f, in)
+	e.instBody(sb, f, in)
 	e.settleCountedCross(sb, f, in)
 }
 

@@ -10,6 +10,7 @@ import (
 type crossing struct {
 	dst, src   mir.LocalID
 	from, copy *obj
+	hands      bool
 }
 
 // cross copies where native copies, so a frame value and a box never share storage.
@@ -26,7 +27,7 @@ func (m *Machine) cross(fr *frame, in *mir.Inst, v *obj) *obj {
 	}
 	c := m.crossCopy(in.Type, v)
 	if fr.f.Locals[in.Dst].Cross {
-		fr.pending = append(fr.pending, crossing{dst: in.Dst, src: in.Args[0], from: v, copy: c})
+		fr.pending = append(fr.pending, crossing{dst: in.Dst, src: in.Args[0], from: v, copy: c, hands: m.p.CrossHandsOver(fr.f, in)})
 		return c
 	}
 	fr.locals[in.Args[0]] = nil
@@ -47,6 +48,21 @@ func (m *Machine) crossShares(fr *frame, in *mir.Inst) bool {
 		return r.Op == mir.OpAlias && !m.p.CrossHandsOver(fr.f, in) || r.Op == mir.OpShare && r.Copy && !r.IfWritable
 	}
 	return false
+}
+
+// As in native, a handed-over source goes before its consumer runs, so a panic there unwinds the copy with the consumer.
+func (m *Machine) settleSources(fr *frame, in *mir.Inst) {
+	kept := fr.pending[:0]
+	for _, c := range fr.pending {
+		i := slices.Index(in.Args, c.dst)
+		if i < 0 || !c.hands || in.Op == mir.OpShare || !m.p.ArgConsumed(fr.f, *in, i) {
+			kept = append(kept, c)
+			continue
+		}
+		fr.locals[c.src] = nil
+		m.release(c.from)
+	}
+	fr.pending = kept
 }
 
 // A consumer keeps the copy so the source is dropped; a reader only borrowed it so the copy is.

@@ -162,6 +162,9 @@ func (m *Machine) resume(fu *future) (*obj, polled) {
 			}
 			m.chargeStep()
 			co.fr.blk, co.fr.pc = co.bid, co.pc
+			if len(co.fr.pending) > 0 {
+				m.settleSources(&co.fr, in)
+			}
 			m.exec(&co.fr, in, &co.fr.code.blocks[co.bid][co.pc])
 			if len(co.fr.pending) > 0 {
 				m.settle(&co.fr, in)
