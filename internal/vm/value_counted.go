@@ -43,9 +43,6 @@ func (m *Machine) crossTicks(t sem.TypeID, v *obj) int {
 	if pts == nil {
 		return boxTicks(v)
 	}
-	if len(d.fields) == 0 {
-		return 0
-	}
 	n := 2
 	for i, pt := range pts {
 		switch {

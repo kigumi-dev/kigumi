@@ -44,6 +44,12 @@ func TestNarrowCIntegersCarryExtensionAttributes(t *testing.T) {
 			"declare zeroext i8 @take(i8 signext, i16 zeroext, i32 signext)", "declare signext i32 @word(i32 signext)",
 			"call signext i32 (i32) @word(i32 signext ",
 		}},
+		{"arm64", "darwin", []string{
+			"define signext i8 @k_i8(i8 %a0)", "declare zeroext i8 @take(i8 signext, i16 zeroext, i32)", "call zeroext i8 (i8, i16, i32) @take(i8 signext ",
+		}},
+		{"amd64", "windows", []string{
+			"define i8 @k_i8(i8 %a0)", "declare i8 @take(i8, i16, i32)", "call i8 (i8, i16, i32) @take(i8 ",
+		}},
 		{"arm64", "linux", []string{
 			"define i8 @k_i8(i8 %a0)", "define i16 @k_u16(i16 %a0)", "declare i8 @take(i8, i16, i32)", "call i8 (i8, i16, i32) @take(i8 ",
 		}},

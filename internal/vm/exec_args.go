@@ -58,9 +58,7 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 	case mir.OpFutureDone:
 		return
 	case mir.OpRecord:
-		if len(args) > 0 {
-			m.aggTicks(f, in, args, 2)
-		}
+		m.aggTicks(f, in, args, 2)
 		res = mkRecord(in.Ent, args)
 		m.chargeMemory(res)
 	case mir.OpVariant:
@@ -141,6 +139,7 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 			}
 			sb.WriteString(piece)
 		}
+		m.tick(1)
 		res = mkStr([]byte(sb.String()))
 		m.chargeMemory(res)
 	case mir.OpShell:

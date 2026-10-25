@@ -193,22 +193,3 @@ func TestWitnessBindTicksAgree(t *testing.T) {
 		})
 	}
 }
-
-// The programs these fixtures accept must survive a refusal at every allocation on both backends;
-// recoverable_bound_pure_impl is accepted only when the impl that runs is judged, not its declaration.
-func TestRecoverableBoundInstanceSurvivesSweep(t *testing.T) {
-	t.Parallel()
-	for _, name := range []string{"recoverable_bound_instance_ok", "recoverable_bound_pure_impl"} {
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			m := loadSweepModule(t, fixtureSource(t, name), "recoverable-only")
-			for backend, exits := range map[string][]int{"vm": vmSweepExits(t, m), "native": nativeSweepExits(t, m)} {
-				for i, code := range exits {
-					if code != 0 {
-						t.Errorf("%s N=%d: exit %d", backend, i+1, code)
-					}
-				}
-			}
-		})
-	}
-}

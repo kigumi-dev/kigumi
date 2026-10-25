@@ -155,8 +155,6 @@ func mkStr(s []byte) *obj   { v := newObj(kStr); v.setStr(s); return v }
 func mkBytes(s []byte) *obj { v := newObj(kBytes); v.setStr(s); return v }
 func mkChar(c rune) *obj    { v := newObj(kChar); v.setCh(c); return v }
 
-func mkArray(items []*obj) *obj { return withFields(kArray, 0, items) }
-
 func mkRecord(ent sem.EntityID, fields []*obj) *obj { return withFields(kRecord, ent, fields) }
 
 func mkVariant(ent sem.EntityID, payload []*obj) *obj { return withFields(kVariant, ent, payload) }
