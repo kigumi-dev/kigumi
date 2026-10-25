@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/mir"
 	"kigumi/internal/sem"
 )
 
@@ -49,67 +48,6 @@ func (e *emitter) foreignCall(sb *strings.Builder, ent sem.EntityID, args []stri
 	return e.cCall(sb, e.declareForeign(ent), sig, args, types)
 }
 
-func (e *emitter) exportWrapper(f *mir.Func) string {
-	var sb strings.Builder
-	tt := e.r.Types
-	sig := tt.Node(e.r.Fn(f.Ent).Sig)
-	var params, vals []string
-	for i, pt := range sig.Args {
-		params = append(params, fmt.Sprintf("%s %%a%d", e.cType(pt), i))
-	}
-	ret := e.cType(sig.Elem)
-	fmt.Fprintf(&sb, "define %s @%s(%s) {\nentry:\n", ret, e.cName(f.Ent), strings.Join(params, ", "))
-	for i, pt := range sig.Args {
-		// rt_unit() is immortal, so it stands in here: a trivial export(C) fn
-		// can end up as a signal handler, where malloc/free must not reenter.
-		if deadParam(f, i) {
-			vals = append(vals, "ptr "+e.irb(&sb).Call(rtUnit).Text)
-			continue
-		}
-		vals = append(vals, "ptr "+e.box(&sb, fmt.Sprintf("%%a%d", i), pt, e.cType(pt)))
-	}
-	r := e.newTmp()
-	fmt.Fprintf(&sb, "  %s = call ptr %s(%s)\n", r, e.sym(f), strings.Join(vals, ", "))
-	if ret == "void" {
-		e.irb(&sb).Call(rtRelease, vptr(r))
-		sb.WriteString("  ret void\n}\n\n")
-		return sb.String()
-	}
-	out := e.unbox(&sb, r, sig.Elem, ret)
-	e.irb(&sb).Call(rtRelease, vptr(r))
-	fmt.Fprintf(&sb, "  ret %s %s\n}\n\n", ret, out)
-	return sb.String()
-}
-
-// deadParam reports whether f's body never reads parameter i, treating
-// only MIR's own scope-exit drop (build_scope.go) as a non-use; any other
-// reference counts as used, conservatively.
-func deadParam(f *mir.Func, i int) bool {
-	if i >= len(f.Params) {
-		return false
-	}
-	id := f.Params[i]
-	for _, b := range f.Blocks {
-		for _, in := range b.Insts {
-			trailing := in.Op == mir.OpDrop || in.Op == mir.OpRelease
-			if in.Dst == id && !trailing {
-				return false
-			}
-			for _, a := range in.Args {
-				if a == id && !trailing {
-					return false
-				}
-			}
-		}
-		for _, a := range b.Term.Args {
-			if a == id {
-				return false
-			}
-		}
-	}
-	return true
-}
-
 func (e *emitter) unbox(sb *strings.Builder, v string, t sem.TypeID, ct string) string {
 	tt := e.r.Types
 	t = e.r.UnderlyingRepr(t)
@@ -127,16 +65,7 @@ func (e *emitter) unbox(sb *strings.Builder, v string, t sem.TypeID, ct string) 
 	case ct == "i128":
 		return e.unboxScalar(sb, TI128, v).Text
 	case tt.IsInteger(t):
-		w := e.irb(sb).Call(rtIntVal, vptr(v)).Text
-		if ct != "i64" {
-			if t == sem.TyUsize || t == sem.TyIsize {
-				e.checkCRange(sb, w, t, ct)
-			}
-			out := e.newTmp()
-			fmt.Fprintf(sb, "  %s = trunc i64 %s to %s\n", out, w, ct)
-			return out
-		}
-		return w
+		return e.cNarrow(sb, Value{TI64, e.irb(sb).Call(rtIntVal, vptr(v)).Text}, t, ct)
 	}
 	return e.irb(sb).Call(rtCstr, vptr(v)).Text
 }
@@ -156,16 +85,7 @@ func (e *emitter) box(sb *strings.Builder, raw string, t sem.TypeID, ct string) 
 	case ct == "i128":
 		return e.boxNative(sb, scalarInfo{Ty: TI128, Nk: e.numKind(t)}, Value{TI128, raw})
 	case tt.IsInteger(t):
-		w := raw
-		if ct != "i64" {
-			w = e.newTmp()
-			ext := "sext"
-			if !tt.IsSigned(t) {
-				ext = "zext"
-			}
-			fmt.Fprintf(sb, "  %s = %s %s %s to i64\n", w, ext, ct, raw)
-		}
-		return e.irb(sb).Call(rtInt, vi64text(w), vi32(e.numKind(t))).Text
+		return e.irb(sb).Call(rtInt, e.cWiden(sb, raw, t, ct), vi32(e.numKind(t))).Text
 	}
 	return e.irb(sb).Call(rtFromCstr, vptr(raw)).Text
 }

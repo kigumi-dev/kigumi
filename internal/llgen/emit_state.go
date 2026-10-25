@@ -13,6 +13,7 @@ type emitter struct {
 	cancelFlag   string
 	hoisting     bool
 	freestanding bool
+	cabi         cIntABI
 	entrySymbol  string
 	reachable    *mir.Reachability
 	r            *sem.Result

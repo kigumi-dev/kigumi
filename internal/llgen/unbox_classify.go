@@ -12,7 +12,7 @@ type scalarInfo struct {
 	Nk int
 }
 
-// scalarType covers Bool, Char, f32 (an LLVM float), f64 and every integer width;
+// scalarType covers Bool, Char, f32 (an LLVM float), f64, raw pointers and every integer width;
 // a 128-bit integer is an i128 in a register and a two-word slot in a direct aggregate.
 func (e *emitter) scalarType(t sem.TypeID) (Type, bool) {
 	tt := e.r.Types
@@ -29,6 +29,8 @@ func (e *emitter) scalarType(t sem.TypeID) (Type, bool) {
 		return TI128, true
 	case tt.IsInteger(t):
 		return TI64, true
+	case tt.Kind(t) == sem.KPtr:
+		return TCPtr, true
 	}
 	return TVoid, false
 }
@@ -94,7 +96,11 @@ func (e *emitter) classifyDst(f *mir.Func, in mir.Inst, disqualify func(mir.Loca
 		if (!e.inPlaceBuiltin(in) || in.Str == "fixed.fill") && !e.iterRaw(f, in) {
 			disqualify(in.Dst)
 		}
-	case mir.OpConst, mir.OpBinary, mir.OpAlias, mir.OpShare, mir.OpMove:
+	case mir.OpConst:
+		if t, _ := e.scalarType(f.Locals[in.Dst].Type); t == TCPtr {
+			disqualify(in.Dst)
+		}
+	case mir.OpBinary, mir.OpAlias, mir.OpShare, mir.OpMove:
 	case mir.OpGlobalGet:
 		if _, ok := e.directStatic(in.Ent); !ok {
 			disqualify(in.Dst)
@@ -104,7 +110,7 @@ func (e *emitter) classifyDst(f *mir.Func, in mir.Inst, disqualify func(mir.Loca
 			disqualify(in.Dst)
 		}
 	case mir.OpCall:
-		if _, ok := e.calleeScalarSig(in).ret(); in.DPrim == mir.DPNone && !ok && e.wideCallOp(f, in) == "" && !e.rawConvert(f, in) {
+		if _, ok := e.calleeScalarSig(in).ret(); in.DPrim == mir.DPNone && !ok && e.wideCallOp(f, in) == "" && !e.rawConvert(f, in) && !(e.cNative(in) && e.cDstInReg(f, in)) {
 			disqualify(in.Dst)
 		}
 	case mir.OpCallValue:
@@ -151,7 +157,7 @@ func (e *emitter) classifyArgs(f *mir.Func, in mir.Inst, disqualify func(mir.Loc
 	case mir.OpBinary:
 	case mir.OpInterp:
 		for _, a := range in.Args {
-			if !e.raw[a] {
+			if t, _ := e.scalarType(f.Locals[a].Type); !e.raw[a] || t == TCPtr {
 				disqualify(a)
 			}
 		}
@@ -168,9 +174,9 @@ func (e *emitter) classifyArgs(f *mir.Func, in mir.Inst, disqualify func(mir.Loc
 		}
 	case mir.OpCall:
 		if in.DPrim == mir.DPNone && e.wideCallOp(f, in) == "" && !e.rawConvert(f, in) {
-			sig := e.calleeScalarSig(in)
+			sig, c := e.calleeScalarSig(in), e.cNative(in)
 			for i, a := range in.Args {
-				if _, ok := sig.param(i); !ok {
+				if _, ok := sig.param(i); !ok && !(c && e.cArgInReg(in, i)) {
 					disqualify(a)
 				}
 			}

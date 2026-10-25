@@ -3254,17 +3254,25 @@ int64_t rt_iter_at_int(val it, int64_t i) {
     if (it->kind == K_BYTES) return (unsigned char)it->u.s.data[i];
     return it->u.rec.fields[0]->u.i + i;
 }
+// print takes a String, so its bytes go out as they are and nothing is allocated.
+static void print_line(int fd, val v) {
+    v = deref(v);
+    if (v->kind == K_BOX) v = deref(v->u.box.v);
+    if (v->kind == K_STR && v->u.s.len >= 0) {
+        write_line(fd, "", 0, v->u.s.data, v->u.s.len);
+        return;
+    }
+    val s = display(v);
+    write_line(fd, "", 0, s->u.s.data, s->u.s.len);
+    rt_release(s);
+}
 val rt_builtin(const char* name, int n, val* args) {
     if (!strcmp(name, "print")) {
-        val s = display(args[0]);
-        write_line(1, "", 0, s->u.s.data, s->u.s.len);
-        rt_release(s);
+        print_line(1, args[0]);
         return rt_unit();
     }
     if (!strcmp(name, "eprint")) {
-        val s = display(args[0]);
-        write_line(2, "", 0, s->u.s.data, s->u.s.len);
-        rt_release(s);
+        print_line(2, args[0]);
         fault_arm();
         return rt_unit();
     }

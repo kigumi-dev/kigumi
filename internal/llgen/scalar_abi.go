@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"kigumi/internal/mir"
+	"kigumi/internal/sem"
 )
 
 // scalarSig marks the positions a call passes in a native register; a nil entry stays boxed.
@@ -36,12 +37,20 @@ func (s *scalarSig) empty() bool {
 	return s.Ret == nil
 }
 
-// Exports, sections and the entry are entered from C, and an async body from its Future.
+// Sections and the entry are entered from C, and an async body from its Future; an export's wrapper converts for it.
 func (e *emitter) scalarCarried(f *mir.Func) bool {
-	if f.Ent == 0 || f.Async || f == e.p.Entry || !e.r.DirectCarried(f.Ent) || e.r.FnSectionOf(f.Ent) != "" {
+	if f.Ent == 0 || f.Async || f == e.p.Entry || !e.r.DirectCarried(f.Ent) && !e.cExport(f) || e.r.FnSectionOf(f.Ent) != "" {
 		return false
 	}
 	return e.reachable == nil || e.reachable.Keep(f.Ent)
+}
+
+// regSlot reports whether parameter or result type t may take a register; an export's wrapper converts only C register types.
+func (e *emitter) regSlot(f *mir.Func, p sem.EntityID, t sem.TypeID) bool {
+	if e.cExport(f) {
+		return e.cRegister(t)
+	}
+	return p == 0 || e.r.DirectParamSlot(f.Ent, p)
 }
 
 func (e *emitter) scalarSigOf(f *mir.Func) *scalarSig {
@@ -51,11 +60,11 @@ func (e *emitter) scalarSigOf(f *mir.Func) *scalarSig {
 	s := &scalarSig{Params: make([]*scalarInfo, len(f.Params))}
 	for i, prm := range f.Params {
 		l := f.Locals[prm]
-		if ty, ok := e.scalarType(l.Type); ok && !l.Cell && e.r.DirectParamSlot(f.Ent, l.Ent) {
+		if ty, ok := e.scalarType(l.Type); ok && !l.Cell && l.Ent != 0 && e.regSlot(f, l.Ent, l.Type) {
 			s.Params[i] = &scalarInfo{Ty: ty, Nk: e.numKind(l.Type)}
 		}
 	}
-	if ty, ok := e.scalarType(f.Ret); ok {
+	if ty, ok := e.scalarType(f.Ret); ok && e.regSlot(f, 0, f.Ret) {
 		s.Ret = &scalarInfo{Ty: ty, Nk: e.numKind(f.Ret)}
 	}
 	if s.empty() {

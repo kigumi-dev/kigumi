@@ -8581,6 +8581,25 @@
       ]
     },
     {
+      "id": "run/export_register_abi",
+      "kind": "run",
+      "path": "testdata/run/export_register_abi.txtar",
+      "mode": [
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "skip": {
+        "vm": "static-refusal"
+      }
+    },
+    {
       "id": "run/f32_native_c_call",
       "kind": "run",
       "path": "testdata/run/f32_native_c_call.txtar",
@@ -14450,6 +14469,23 @@
       "id": "run/pipe_placeholder",
       "kind": "run",
       "path": "testdata/run/pipe_placeholder.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/print_write_path",
+      "kind": "run",
+      "path": "testdata/run/print_write_path.txtar",
       "mode": [
         "vm",
         "native"

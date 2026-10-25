@@ -1,0 +1,168 @@
+-- src --
+import ffi from std/ffi
+
+pub type Pair layout(C) = {
+    pub a i32
+    pub b f64
+}
+
+export(C) {
+    pub fn k_i8(x: i8) -> i8 {
+        x.wrappingSub(1)
+    }
+
+    pub fn k_u8(x: u8) -> u8 {
+        x.wrappingAdd(1)
+    }
+
+    pub fn k_i16(x: i16) -> i16 {
+        x.wrappingSub(1)
+    }
+
+    pub fn k_u16(x: u16) -> u16 {
+        x.wrappingAdd(1)
+    }
+
+    pub fn k_u32(x: u32) -> u32 {
+        x.wrappingAdd(1)
+    }
+
+    pub fn k_u64(x: u64) -> u64 {
+        x.wrappingAdd(1)
+    }
+
+    pub fn k_usize(x: usize) -> usize {
+        x.wrappingAdd(1)
+    }
+
+    pub fn k_f32(x: f32) -> f32 {
+        x * 2.5
+    }
+
+    pub fn k_f64(x: f64) -> f64 {
+        x / 4.0
+    }
+
+    pub fn k_ptr(p: *const u8, k: i32) -> *const u8 {
+        if ffi.isNull(p) {
+            return p
+        }
+        unsafe {
+            ffi.offset(p, k.toInt())
+        }
+    }
+
+    pub fn k_widen8(x: i8) -> i64 {
+        x.toInt() * 1000
+    }
+
+    pub fn k_widen16(x: u16) -> i64 {
+        x.toInt() * 3
+    }
+
+    pub fn k_dead(unused: i32, x: i16) -> i16 {
+        x
+    }
+
+    pub fn k_pair(p: Pair, k: i8) -> Pair {
+        Pair {
+            a: p.a + k.toI32()
+            b: p.b * 2.0
+        }
+    }
+}
+
+extern(C) {
+    fn run_harness()
+    fn c_dec8(x: i8) -> i8
+    fn c_dec16(x: i16) -> i16
+    fn c_dec32(x: i32) -> i32
+    fn c_mix(a: i8, b: i16, c: i32) -> i64
+}
+
+unsafe {
+    run_harness()
+}
+let f8: extern(C) fn(i8) -> i8 = k_i8
+let fu16: extern(C) fn(u16) -> u16 = k_u16
+let ff: extern(C) fn(f32) -> f32 = k_f32
+let fp: extern(C) fn(*const u8, i32) -> *const u8 = k_ptr
+print "kigumi ${k_i8(-128)} ${k_u16(65535)} ${unsafe { f8(-128) }} ${unsafe { fu16(65535) }} ${unsafe { ff(1.5) }} ${ffi.isNull(unsafe { fp(ffi.null[u8](), 1) })}"
+print "c ${unsafe { c_dec8(-1) }} ${unsafe { c_dec16(-2) }} ${unsafe { c_dec32(-3) }} ${unsafe { c_mix(-1, -2, -3) }}"
+-- mod.kg --
+Module {
+    name: "exportabi"
+    kigumi: "0.1"
+}
+
+Source { c: "helper.c" }
+-- helper.c --
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+
+int8_t k_i8(int8_t);
+uint8_t k_u8(uint8_t);
+int16_t k_i16(int16_t);
+uint16_t k_u16(uint16_t);
+uint32_t k_u32(uint32_t);
+uint64_t k_u64(uint64_t);
+size_t k_usize(size_t);
+float k_f32(float);
+double k_f64(double);
+const unsigned char *k_ptr(const unsigned char *, int32_t);
+int64_t k_widen8(int8_t);
+int64_t k_widen16(uint16_t);
+int16_t k_dead(int32_t, int16_t);
+struct pair {
+    int32_t a;
+    double b;
+};
+struct pair k_pair(struct pair, int8_t);
+
+typedef void (*fnp)(void);
+
+int8_t c_dec8(int8_t x) { return (int8_t)(x - 1); }
+int16_t c_dec16(int16_t x) { return (int16_t)(x - 1); }
+int32_t c_dec32(int32_t x) { return x - 1; }
+int64_t c_mix(int8_t a, int16_t b, int32_t c) { return (int64_t)a * 1000000 + (int64_t)b * 1000 + c; }
+
+void run_harness(void) {
+    static const unsigned char buf[8] = "abcdefg";
+    printf("i8 %d %d\n", k_i8(-128), k_i8(5));
+    printf("u8 %u %u\n", k_u8(255), k_u8(7));
+    printf("i16 %d %d\n", k_i16(-32768), k_i16(-2));
+    printf("u16 %u %u\n", k_u16(65535), k_u16(9));
+    printf("u32 %u u64 %llu usize %zu\n", k_u32(4294967295u), (unsigned long long)k_u64(18446744073709551615ull), k_usize(41));
+    printf("f32 %.2f f64 %.3f\n", k_f32(1.5f), k_f64(3.0));
+    printf("ptr %c null %d\n", *k_ptr(buf, 3), k_ptr(NULL, 3) == NULL);
+    printf("dead %d\n", k_dead(123456, -7));
+    struct pair q = k_pair((struct pair){40, 1.25}, -2);
+    printf("pair %d %.2f\n", q.a, q.b);
+    /* Mismatched prototypes leave garbage above each narrow argument; the callee must use only the declared width. */
+    int32_t (*wide_i8)(int64_t) = (int32_t (*)(int64_t))(fnp)k_i8;
+    uint32_t (*wide_u8)(int64_t) = (uint32_t (*)(int64_t))(fnp)k_u8;
+    int32_t (*wide_i16)(int64_t) = (int32_t (*)(int64_t))(fnp)k_i16;
+    uint32_t (*wide_u16)(int64_t) = (uint32_t (*)(int64_t))(fnp)k_u16;
+    int64_t (*wide_w8)(int64_t) = (int64_t (*)(int64_t))(fnp)k_widen8;
+    int64_t (*wide_w16)(int64_t) = (int64_t (*)(int64_t))(fnp)k_widen16;
+    printf("wide %d %u %d %u\n", (int8_t)wide_i8(0x7a5a5a5a5a5a5a81LL), (uint8_t)wide_u8(0x7a5a5a5a5a5a5affLL), (int16_t)wide_i16(0x7a5a5a5a5a5a8001LL), (uint16_t)wide_u16(0x7a5a5a5a5a5affffLL));
+    printf("widen %lld %lld\n", (long long)wide_w8(0x7a5a5a5a5a5a5a81LL), (long long)wide_w16(0x7a5a5a5a5a5affffLL));
+    fflush(stdout);
+}
+-- engines --
+native
+-- stdout --
+i8 127 4
+u8 0 8
+i16 32767 -3
+u16 0 10
+u32 0 u64 0 usize 42
+f32 3.75 f64 0.750
+ptr d null 1
+dead -7
+pair 38 2.50
+wide -128 0 -32768 0
+widen -127000 196605
+kigumi 127 0 127 0 3.75 true
+c -2 -3 -4 -1002003

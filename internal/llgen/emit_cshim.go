@@ -96,7 +96,7 @@ func (e *emitter) shimFn(shim string, sig sem.TypeID, callee string, viaPtr bool
 		if e.isCRecord(a) {
 			params, llParams, callArgs = append(params, "const "+e.cLang(a)+" *"+p), append(llParams, "ptr"), append(callArgs, "*"+p)
 		} else {
-			params, llParams, callArgs = append(params, e.cLang(a)+" "+p), append(llParams, e.cType(a)), append(callArgs, p)
+			params, llParams, callArgs = append(params, e.cLang(a)+" "+p), append(llParams, e.cType(a)+e.cExt(a)), append(callArgs, p)
 		}
 	}
 	body := ""
@@ -115,11 +115,11 @@ func (e *emitter) shimFn(shim string, sig sem.TypeID, callee string, viaPtr bool
 		body += "    return " + call + ";\n"
 	}
 	fmt.Fprintf(&e.shim.fns, "%s %s(%s) {\n%s}\n", ret, shim, orVoid(params), body)
-	llRet := "void"
+	llRet, ext := "void", ""
 	if !outRet {
-		llRet = e.cType(sn.Elem)
+		llRet, ext = e.cType(sn.Elem), e.cExt(sn.Elem)
 	}
-	e.foreign[shim] = fmt.Sprintf("declare %s @%s(%s)", llRet, shim, strings.Join(llParams, ", "))
+	e.foreign[shim] = fmt.Sprintf("declare%s %s @%s(%s)", ext, llRet, shim, strings.Join(llParams, ", "))
 }
 
 func (e *emitter) byvalShim(ent sem.EntityID) string {

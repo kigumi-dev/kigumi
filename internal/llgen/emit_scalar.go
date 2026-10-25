@@ -30,7 +30,7 @@ func (e *emitter) tryScalarInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 		if e.rawConvert(f, in) {
 			return e.rawConvertInst(sb, f, in)
 		}
-		return false
+		return e.tryCNativeCall(sb, f, in)
 	case mir.OpGlobalGet, mir.OpGlobalSet:
 		return e.tryDirectStaticInst(sb, f, in)
 	case mir.OpBuiltin:
@@ -75,6 +75,8 @@ func (e *emitter) boxNative(sb *strings.Builder, info scalarInfo, v Value) strin
 		return e.boolBox(sb, v.Text)
 	case TI32:
 		return e.irb(sb).Call(rtChar, v).Text
+	case TCPtr:
+		return e.irb(sb).Call(rtPtr, vptr(v.Text)).Text
 	}
 	panic("llgen: boxNative: unknown scalar type")
 }
@@ -103,6 +105,8 @@ func (e *emitter) unboxScalar(sb *strings.Builder, ty Type, ptrVal string) Value
 		return Value{TI1, e.irb(sb).Call(rtTruth, vptr(ptrVal)).Text}
 	case TI32:
 		return Value{TI32, e.irb(sb).Call(rtCharVal, vptr(ptrVal)).Text}
+	case TCPtr:
+		return Value{TCPtr, e.irb(sb).Call(rtPtrVal, vptr(ptrVal)).Text}
 	}
 	panic("llgen: unbox: unknown scalar type")
 }
@@ -186,13 +190,4 @@ func (e *emitter) releaseScalarBox(sb *strings.Builder, ty Type, box string) {
 	if ty != TI1 {
 		e.irb(sb).Call(rtRelease, vptr(box))
 	}
-}
-
-// zeroOf initializes a scalar local's alloca the way every other local
-// starts out null.
-func zeroOf(t Type) string {
-	if t == TDouble || t == TFloat {
-		return "0.0"
-	}
-	return "0"
 }

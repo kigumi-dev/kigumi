@@ -46,3 +46,15 @@ func (e *emitter) carrierSlots(locals []mir.LocalID) []mir.LocalID {
 	}
 	return out
 }
+
+// zeroOf initializes a scalar local's alloca the way every other local
+// starts out null.
+func zeroOf(t Type) string {
+	switch t {
+	case TDouble, TFloat:
+		return "0.0"
+	case TCPtr:
+		return "null"
+	}
+	return "0"
+}

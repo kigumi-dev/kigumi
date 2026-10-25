@@ -85,7 +85,7 @@ func (e *emitter) shimCall(sb *strings.Builder, shim string, sig sem.TypeID, ext
 			continue
 		}
 		ct := e.cType(pt)
-		vals = append(vals, ct+" "+e.unbox(sb, args[i], pt, ct))
+		vals = append(vals, ct+e.cExt(pt)+" "+e.unbox(sb, args[i], pt, ct))
 	}
 	if out != "" {
 		fmt.Fprintf(sb, "  call void @%s(%s)\n", shim, strings.Join(vals, ", "))
@@ -97,7 +97,7 @@ func (e *emitter) shimCall(sb *strings.Builder, shim string, sig sem.TypeID, ext
 		return e.call(sb, "rt_unit", nil)
 	}
 	raw := e.newTmp()
-	fmt.Fprintf(sb, "  %s = call %s @%s(%s)\n", raw, ret, shim, strings.Join(vals, ", "))
+	fmt.Fprintf(sb, "  %s = call%s %s @%s(%s)\n", raw, e.cExt(sn.Elem), ret, shim, strings.Join(vals, ", "))
 	return e.box(sb, raw, sn.Elem, ret)
 }
 
@@ -123,31 +123,26 @@ func (e *emitter) exportByval(f *mir.Func) string {
 	if !outRet {
 		ret = e.cType(sn.Elem)
 	}
-	fmt.Fprintf(&sb, "define %s @kg_export_%s(%s) {\nentry:\n", ret, name, strings.Join(params, ", "))
+	fmt.Fprintf(&sb, "define%s %s @kg_export_%s(%s) {\nentry:\n", e.cExt(sn.Elem), ret, name, strings.Join(params, ", "))
 	for i, pt := range sn.Args {
 		a := fmt.Sprintf("%%a%d", i)
-		switch {
-		case deadParam(f, i):
-			// See exportWrapper's identical check: a param the body only
-			// drops needs no real box, record-shaped or not.
-			vals = append(vals, "ptr "+e.irb(&sb).Call(rtUnit).Text)
-		case e.isCRecord(pt):
+		if e.isCRecord(pt) && !deadParam(f, i) {
 			vals = append(vals, "ptr "+e.call(&sb, strings.TrimPrefix(e.cReader(e.r.Types.Node(pt).Ent, 0), "@"), []string{"ptr " + a}))
-		default:
-			vals = append(vals, "ptr "+e.box(&sb, a, pt, e.cType(pt)))
+			continue
 		}
+		vals = append(vals, e.exportArg(&sb, f, i, pt, a, e.cType(pt)))
 	}
-	r := e.newTmp()
-	fmt.Fprintf(&sb, "  %s = call ptr %s(%s)\n", r, e.sym(f), strings.Join(vals, ", "))
 	switch {
 	case outRet:
+		r := e.newTmp()
+		fmt.Fprintf(&sb, "  %s = call ptr %s(%s)\n", r, e.sym(f), strings.Join(vals, ", "))
 		fmt.Fprintf(&sb, "  call void %s(ptr %%out, ptr %s)\n", e.cWriter(e.r.Types.Node(sn.Elem).Ent, 0), r)
 		fmt.Fprintf(&sb, "  call void @rt_release(ptr %s)\n  ret void\n}\n\n", r)
 	case ret == "void":
-		fmt.Fprintf(&sb, "  call void @rt_release(ptr %s)\n  ret void\n}\n\n", r)
+		e.exportCall(&sb, f, vals, sn.Elem, ret)
+		sb.WriteString("  ret void\n}\n\n")
 	default:
-		out := e.unbox(&sb, r, sn.Elem, ret)
-		fmt.Fprintf(&sb, "  call void @rt_release(ptr %s)\n  ret %s %s\n}\n\n", r, ret, out)
+		fmt.Fprintf(&sb, "  ret %s %s\n}\n\n", ret, e.exportCall(&sb, f, vals, sn.Elem, ret))
 	}
 	e.exportShim(f)
 	return sb.String()

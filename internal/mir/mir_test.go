@@ -83,6 +83,9 @@ func checkFixture(t *testing.T, path string, std []*sem.Package) (*sem.Result, s
 		case "expect", "stdout", "stderr", "exit", "engines":
 			continue
 		}
+		if s.name != "src" && (!strings.HasSuffix(s.name, ".kg") || filepath.Base(s.name) == "mod.kg") {
+			continue
+		}
 		name := s.name
 		if name == "src" {
 			name = "main/main.kg"

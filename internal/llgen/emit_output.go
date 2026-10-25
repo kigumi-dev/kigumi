@@ -39,6 +39,8 @@ type EmitOptions struct {
 	AbiCheck bool
 	// Catch lets the build unwind on a panic; it also needs the runtime built with KIGUMI_TASK_CATCH.
 	Catch bool
+	// Arch and OS name the target as the driver does (amd64, riscv64, ...; linux, darwin, ...); "" is amd64 and linux.
+	Arch, OS string
 }
 
 func EmitWith(p *mir.Program, opts EmitOptions) string { return EmitProgram(p, opts).IR }

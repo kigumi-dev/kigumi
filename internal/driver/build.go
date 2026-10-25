@@ -24,7 +24,7 @@ func CompileWith(m *Module, stderr io.Writer, opts BuildOptions) (string, bool, 
 // emitOptionsFor is the one Target -> llgen.EmitOptions mapping shared by
 // IR dump (Compile), a normal build and the build graph (buildOnce).
 func emitOptionsFor(t Target) llgen.EmitOptions {
-	opts := llgen.EmitOptions{Freestanding: t.Bare(), Catch: wantsTaskCatch(t), AbiCheck: true}
+	opts := llgen.EmitOptions{Freestanding: t.Bare(), Catch: wantsTaskCatch(t), AbiCheck: true, Arch: t.Arch, OS: t.OS}
 	if t.OS == "darwin" {
 		opts.SymbolPrefix = "_"
 	}

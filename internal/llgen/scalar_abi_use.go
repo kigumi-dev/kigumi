@@ -56,7 +56,7 @@ func (e *emitter) unboxedUse(f *mir.Func, in mir.Inst, i int) bool {
 		return in.Str == "!" && ty == TI1 || in.Str == "-" && (ty == TI64 || ty == TI128 || ty == TDouble || ty == TFloat) || in.Str == "~" && (ty == TI64 || ty == TI128)
 	case mir.OpCall:
 		_, ok := e.calleeScalarSig(in).param(i)
-		return in.DPrim != mir.DPNone || ok || e.wideCallOp(f, in) != "" || e.rawConvert(f, in)
+		return in.DPrim != mir.DPNone || ok || e.wideCallOp(f, in) != "" || e.rawConvert(f, in) || e.cNative(in) && e.cArgInReg(in, i)
 	case mir.OpRecord, mir.OpVariant, mir.OpClosure:
 		return e.isDirect(in.Dst)
 	case mir.OpSetField, mir.OpIndex, mir.OpSetIndex:

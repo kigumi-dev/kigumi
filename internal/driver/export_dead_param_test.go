@@ -10,9 +10,8 @@ import (
 	"kigumi/internal/driver"
 )
 
-// A dead parameter in an export(C) wrapper, scalar or layout(C) record,
-// must lower to rt_unit() with no allocator call, so a no-op signal handler
-// stays async-signal-safe; a read parameter must still be boxed.
+// An export(C) wrapper must reach its body with no allocator call, so a signal handler stays
+// async-signal-safe: a dead record parameter lowers to rt_unit(), a scalar one crosses in a register.
 func TestExportDeadParamNeedsNoBox(t *testing.T) {
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"w\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
@@ -48,12 +47,16 @@ print "ok"
 			t.Fatalf("dead parameter still boxed through %s:\n%s", alloc, dead)
 		}
 	}
-	if strings.Count(dead, "@rt_unit()") < 2 {
-		t.Fatalf("dead parameters should lower to rt_unit():\n%s", dead)
+	wrapper := defineBlock(ir, "kg_export_onSig")
+	if !strings.Contains(dead, `define ptr @"w.onSig$kg"(i64 %p0, ptr %p1)`) || !strings.Contains(wrapper, "sext i32 %a0 to i64") {
+		t.Fatalf("the dead scalar parameter should cross as its register, not a box:\n%s", dead)
+	}
+	if !strings.Contains(wrapper, "@rt_unit()") {
+		t.Fatalf("the dead record parameter should lower to rt_unit():\n%s", wrapper)
 	}
 	live := defineBlock(ir, "twice")
-	if !strings.Contains(live, "@rt_int(") {
-		t.Fatalf("a read parameter must still be boxed:\n%s", live)
+	if strings.Contains(live, "@rt_int(") || !strings.Contains(live, `define i64 @"w.twice$kg"(i64 %p0)`) {
+		t.Fatalf("a read scalar parameter and the result must cross in registers:\n%s", live)
 	}
 }
 

@@ -23,13 +23,15 @@ const (
 	TI16
 	TI128
 	TFloat
+	// TCPtr is a raw C pointer held in a register, unlike TPtr's runtime value.
+	TCPtr
 )
 
 func (t Type) String() string {
 	switch t {
 	case TVoid:
 		return "void"
-	case TPtr:
+	case TPtr, TCPtr:
 		return "ptr"
 	case TI1:
 		return "i1"

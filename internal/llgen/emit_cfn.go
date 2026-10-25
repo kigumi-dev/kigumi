@@ -17,7 +17,7 @@ func (e *emitter) cCall(sb *strings.Builder, callee string, sig sem.TypeID, args
 		}
 		ct := e.cType(pt)
 		params = append(params, ct)
-		vals = append(vals, ct+" "+e.unbox(sb, args[i], pt, ct))
+		vals = append(vals, ct+e.cExt(pt)+" "+e.unbox(sb, args[i], pt, ct))
 	}
 	if sn.Flags&sem.FnCVariadic != 0 {
 		for i := len(sn.Args); i < len(args); i++ {
@@ -32,7 +32,7 @@ func (e *emitter) cCall(sb *strings.Builder, callee string, sig sem.TypeID, args
 		return e.irb(sb).Call(rtUnit).Text
 	}
 	raw := e.newTmp()
-	fmt.Fprintf(sb, "  %s = call %s %s(%s)\n", raw, fnType, callee, strings.Join(vals, ", "))
+	fmt.Fprintf(sb, "  %s = call%s %s %s(%s)\n", raw, e.cExt(sn.Elem), fnType, callee, strings.Join(vals, ", "))
 	return e.box(sb, raw, sn.Elem, ret)
 }
 
@@ -41,12 +41,12 @@ func (e *emitter) declareForeign(ent sem.EntityID) string {
 	sn := e.r.Types.Node(e.r.Fn(ent).Sig)
 	var params []string
 	for _, pt := range sn.Args {
-		params = append(params, e.cType(pt))
+		params = append(params, e.cType(pt)+e.cExt(pt))
 	}
 	if sn.Flags&sem.FnCVariadic != 0 {
 		params = append(params, "...")
 	}
-	e.foreign[name] = fmt.Sprintf("declare %s @%s(%s)", e.cType(sn.Elem), name, strings.Join(params, ", "))
+	e.foreign[name] = fmt.Sprintf("declare%s %s @%s(%s)", e.cExt(sn.Elem), e.cType(sn.Elem), name, strings.Join(params, ", "))
 	return "@" + name
 }
 

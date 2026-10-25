@@ -13,7 +13,7 @@ import (
 	"kigumi/internal/vm"
 )
 
-// A print allocates on native and not on the VM, so the only eprint is the one that arms the injection.
+// Each case's one eprint arms the injection.
 var tickSweepCases = []struct{ name, src string }{
 	{"closure returned from a function", `fn mk(k: Int) -> fn(Int) -> Int { (x: Int) => x + k }
 fn run(n: Int) -> Int {
