@@ -2293,6 +2293,23 @@
       ]
     },
     {
+      "id": "run/array_bytes_copy_independent",
+      "kind": "run",
+      "path": "testdata/run/array_bytes_copy_independent.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/array_contains_fold_borrow",
       "kind": "run",
       "path": "testdata/run/array_contains_fold_borrow.txtar",

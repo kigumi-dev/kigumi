@@ -1210,11 +1210,13 @@ val rt_copy(val v) {
 }
 
 #define KG_WRITABLE_RECORD 4
-// Only a record with a `mut` field and a FixedArray are written in place; any other form reaches one only inside it.
+// Bytes (secureErase) and a FixedArray are written in place, as is a record with a `mut` field; a Box is copied whole.
 static int writable_inside(val v) {
     if (!v || v->rc < 0) return 0;
     switch (v->kind) {
-    case K_ARRAY: return 1;
+    case K_ARRAY:
+    case K_BYTES:
+    case K_BOX: return 1;
     case K_RECORD: {
         const rt_type* t = v->u.rec.type;
         if (t->kind == KG_WRITABLE_RECORD) return 1;

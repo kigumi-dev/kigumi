@@ -1,0 +1,87 @@
+-- src --
+import mem from std/mem
+
+type V = Has(Bytes) | Nothing
+
+fn showV(v: &V) -> String {
+    match v {
+        Has(b) -> show(b)
+        Nothing -> "-"
+    }
+}
+
+fn eraseV(v: &mut V) {
+    match v {
+        Has(b) -> mem.secureErase(b)
+        Nothing -> {}
+    }
+}
+
+fn showO(v: &Bytes?) -> String {
+    match v {
+        Some(b) -> show(b)
+        None -> "-"
+    }
+}
+
+fn eraseO(v: &mut Bytes?) {
+    match v {
+        Some(b) -> mem.secureErase(b)
+        None -> {}
+    }
+}
+
+type Holder = { pub mut b Bytes }
+
+fn show(b: &Bytes) -> String {
+    let mut out = ""
+    for x in b { out = "${out}${x}," }
+    out
+}
+
+fn mk(xs: Array[u8]) -> Bytes { Bytes.fromArray(&xs) }
+
+let a = Array.of(mk(Array.of[u8](1, 2, 3)))
+let mut c = a.clone()
+_ = c.withMut(0, (x: &mut Bytes) => mem.secureErase(x))
+print "clone a=${show(&a[0])} c=${show(&c[0])}"
+let mut r = a.reverse()
+_ = r.withMut(0, (x: &mut Bytes) => mem.secureErase(x))
+print "reverse a=${show(&a[0])} r=${show(&r[0])}"
+let mut t = a.take(1)
+_ = t.withMut(0, (x: &mut Bytes) => mem.secureErase(x))
+print "take a=${show(&a[0])} t=${show(&t[0])}"
+let mut g = a.concat(Array.of(mk(Array.of[u8](9))))
+_ = g.withMut(0, (x: &mut Bytes) => mem.secureErase(x))
+print "concat a=${show(&a[0])} g=${show(&g[0])}"
+
+let h = Array.of(Holder { b: mk(Array.of[u8](4, 5)) })
+let mut hc = h.clone()
+_ = hc.withMut(0, (x: &mut Holder) => mem.secureErase(&mut x.b))
+print "holder h=${show(&h[0].b)} hc=${show(&hc[0].b)}"
+
+let n = Array.of(FixedArray.filled[u8, 2](7))
+let mut nc = n.clone()
+_ = nc.withMut(0, (x: &mut FixedArray[u8, 2]) => { let _ = x.set(0, 0) })
+fn first(a: &Array[FixedArray[u8, 2]]) -> u8 {
+    a.with(0, (f: &FixedArray[u8, 2]) => f.get(0) || 9) || 9
+}
+print "nested n=${first(&n)} nc=${first(&nc)}"
+let o: Array[Bytes?] = Array.of(Some(mk(Array.of[u8](1, 1, 1))), None)
+let mut orv = o.reverse()
+_ = orv.withMut(1, (x: &mut Bytes?) => eraseO(x))
+print "option a=${showO(&o[0])} r=${showO(&orv[1])}"
+
+let vs = Array.of(Has(mk(Array.of[u8](2, 2, 2))))
+let mut vc = vs.clone()
+_ = vc.withMut(0, (x: &mut V) => eraseV(x))
+print "variant a=${showV(&vs[0])} c=${showV(&vc[0])}"
+-- stdout --
+clone a=1,2,3, c=0,0,0,
+reverse a=1,2,3, r=0,0,0,
+take a=1,2,3, t=0,0,0,
+concat a=1,2,3, g=0,0,0,
+holder h=4,5, hc=0,0,
+nested n=7 nc=0
+option a=1,1,1, r=0,0,0,
+variant a=2,2,2, c=0,0,0,

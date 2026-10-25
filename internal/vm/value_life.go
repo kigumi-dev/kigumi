@@ -151,13 +151,13 @@ func (m *Machine) copy(v *obj) *obj {
 	return retain(v)
 }
 
-// writableInside mirrors the native rt_copy_mut's test.
+// writableInside mirrors the native rt_copy_mut's test; Bytes is erased in place.
 func (m *Machine) writableInside(v *obj) bool {
 	if v == nil {
 		return false
 	}
 	switch v.k {
-	case kArray, kRawArray:
+	case kArray, kRawArray, kBytes, kBox:
 		return true
 	case kRecord:
 		if m.r.RecordWritable(v.ent) {
