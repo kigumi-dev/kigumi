@@ -1,20 +1,17 @@
 package mir
 
-import (
-	"slices"
-
-	"kigumi/internal/sem"
-)
-
-// valueFlow follows seeded facts forward through copies, fn coercions, futures, containers, stores and lent `&mut`
-// places: in is each block's entry state, first where a block adds a fact, ever every fact a local takes anywhere.
+// valueFlow follows seeded facts through copies, fn coercions, futures, containers, stores, lent `&mut` places and step:
+// in is each block's entry state, first where a block adds a fact, ever every fact a local takes anywhere.
 type valueFlow struct {
 	seed  func(Inst) []uint32
-	spawn bool
+	step  flowStep
 	in    []flowSets
 	first map[BlockID]map[LocalID]map[uint32]int
 	ever  flowSets
 }
+
+// flowStep adds the facts in passes on beyond its own result, given the state just after it.
+type flowStep func(in Inst, s flowSets, put func(LocalID, uint32))
 
 // valueFlowFresh lists the opcodes whose result cannot carry a value from an operand.
 var valueFlowFresh = map[Opcode]bool{OpConst: true, OpUnit: true, OpBinary: true, OpUnary: true, OpTag: true, OpIsVariant: true,
@@ -24,9 +21,9 @@ var valueFlowFresh = map[Opcode]bool{OpConst: true, OpUnit: true, OpBinary: true
 // body ends; it is one past the body's locals.
 func (c *borrowCheck) spawnScope() LocalID { return LocalID(len(c.f.Locals)) }
 
-func (c *borrowCheck) solveFlow(seed func(Inst) []uint32, spawn bool) *valueFlow {
+func (c *borrowCheck) solveFlow(seed func(Inst) []uint32, step flowStep) *valueFlow {
 	n := len(c.f.Blocks)
-	fl := &valueFlow{seed: seed, spawn: spawn, in: make([]flowSets, n), first: map[BlockID]map[LocalID]map[uint32]int{}, ever: flowSets{}}
+	fl := &valueFlow{seed: seed, step: step, in: make([]flowSets, n), first: map[BlockID]map[LocalID]map[uint32]int{}, ever: flowSets{}}
 	for i := range fl.in {
 		fl.in[i] = flowSets{}
 	}
@@ -127,26 +124,8 @@ func (c *borrowCheck) replayFlow(fl *valueFlow, s flowSets, bid BlockID, added f
 				}
 			}
 		}
-		if !fl.spawn || in.Op != OpCall && in.Op != OpCallValue && in.Op != OpAwait {
-			continue
-		}
-		// A value the call may spawn, or run while it spawns, may leave every closure it holds in the task.
-		for k, a := range in.Args {
-			var held []uint32
-			for f := range s[a] {
-				if f != dropFact {
-					held = append(held, f)
-				}
-			}
-			for _, cl := range c.typeClosures(c.f.Locals[a].Type) {
-				held = append(held, uint32(cl))
-			}
-			if !c.argSpawns(in, k) && (!c.argRunnable(in, k) || !slices.ContainsFunc(held, func(f uint32) bool { return c.maySpawn(sem.EntityID(f)) })) {
-				continue
-			}
-			for _, f := range held {
-				put(c.spawnScope(), f, i)
-			}
+		if fl.step != nil {
+			fl.step(in, s, func(l LocalID, f uint32) { put(l, f, i) })
 		}
 	}
 	return s

@@ -26,6 +26,12 @@ func (r *Result) checkThreadPool() {
 	}
 }
 
+// ThreadPoolAllowed reports whether a thread-pool executor may drive this program, so handed-off work may run on another thread.
+func (r *Result) ThreadPoolAllowed() bool {
+	_, blocked := r.threadPoolBlockedCode()
+	return !blocked
+}
+
 func (r *Result) threadPoolBlockedCode() (Code, bool) {
 	switch {
 	case r.target == Freestanding || r.noPlatform:

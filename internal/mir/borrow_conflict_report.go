@@ -12,11 +12,10 @@ func (c *borrowCheck) reportTouch(in Inst, holder LocalID, b *borrowInfo, o owne
 	if site, ok := c.writeBackSite(in); ok {
 		in.Node = site
 	}
-	moves := in.Op == OpMove || in.Op == OpDrop || in.Op == OpFieldMove || in.Op == OpCellTake || c.takesPayload(in)
+	moves := c.movesAway(in)
 	passes := c.passesMutRef(in, o.owner)
 	_, runs := c.cellRunHit(in, o)
-	mutates := moves || (in.Op == OpBorrow && in.Index == 1) ||
-		in.Op == OpSetField || in.Op == OpSetIndex || in.Op == OpCellSet || passes || runs
+	mutates := c.writesOwner(in, o.owner) || runs
 	name := c.f.Locals[o.owner].Name
 	switch {
 	case runs && c.replacesDropping(in) && !c.touchesDirect(in, o.owner):
@@ -51,6 +50,16 @@ func (c *borrowCheck) reportTouch(in Inst, holder LocalID, b *borrowInfo, o owne
 	case mutates || in.Dst == o.owner:
 		c.reportHelped(in.Node, o.owner, "borrow-conflict", "`"+name+"` is borrowed and cannot be mutated here", o.at(b), "`"+name+"` is borrowed here", c.dropHeldHelp(holder))
 	}
+}
+
+func (c *borrowCheck) movesAway(in Inst) bool {
+	return in.Op == OpMove || in.Op == OpDrop || in.Op == OpFieldMove || in.Op == OpCellTake || c.takesPayload(in)
+}
+
+// writesOwner reports whether in, touching owner, moves, replaces, drops or lends it exclusively.
+func (c *borrowCheck) writesOwner(in Inst, owner LocalID) bool {
+	return c.movesAway(in) || in.Op == OpBorrow && in.Index == 1 || in.Op == OpSetField || in.Op == OpSetIndex || in.Op == OpCellSet ||
+		c.passesMutRef(in, owner)
 }
 
 // dropHeldHelp names a holder nothing reads, whose release at the end of its scope, which may run its drop, keeps the borrow.

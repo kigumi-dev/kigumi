@@ -79,10 +79,12 @@ const (
 	runsCall uint8 = iota
 	runsSpawn
 	runsDrop
+	runsCallable
+	runsHandle
 )
 
-// typeRuns memoizes a typeHolds question about t, one of runsCall (mayRunType), runsSpawn (holds a Future or Task)
-// or runsDrop (dropping it may run a user `drop`, which can call what it holds).
+// typeRuns memoizes a typeHolds question about t: runsCall (mayRunType), runsSpawn (a Future or Task), runsDrop (a user
+// `drop` may run, calling what it holds), runsCallable (a callableNode) or runsHandle (holdsHandle).
 func (c *borrowCheck) typeRuns(t sem.TypeID, kind uint8) bool {
 	key := typeRunKey{t, kind}
 	if v, ok := c.typeRunMemo[key]; ok {
@@ -97,6 +99,10 @@ func (c *borrowCheck) typeRuns(t sem.TypeID, kind uint8) bool {
 		v = c.mayRunType(t)
 	case runsSpawn:
 		v = c.holdsAsync(t)
+	case runsCallable:
+		v = c.typeHolds(t, c.callableNode)
+	case runsHandle:
+		v = c.holdsHandle(t)
 	case runsDrop:
 		c.typeRunMemo[key] = false
 		v = c.typeHolds(t, func(t sem.TypeID) bool {
@@ -128,17 +134,20 @@ func (c *borrowCheck) typeRuns(t sem.TypeID, kind uint8) bool {
 func (c *borrowCheck) mayRunType(t sem.TypeID) bool {
 	return c.typeHolds(t, func(t sem.TypeID) bool {
 		n := c.p.R.Types.Node(t)
-		switch n.Kind {
-		case sem.KFn, sem.KClosure, sem.KIface, sem.KVar:
-			return true
-		case sem.KParam:
-			for _, con := range c.p.R.TypeParam(n.Ent).Constraints {
-				if con.Kind == sem.CFn || con.Kind == sem.CFnMut || con.Kind == sem.CFnOnce || con.Kind == sem.CIface {
-					return true
-				}
-			}
-			return false
-		}
-		return n.Kind == sem.KNamed && n.Ent == c.p.R.Types.FutureEnt() || c.p.R.IsTaskType(t)
+		return c.callableNode(t) || n.Kind == sem.KNamed && n.Ent == c.p.R.Types.FutureEnt() || c.p.R.IsTaskType(t)
 	})
+}
+
+// callableNode reports a fn, closure, interface or open type, or a type parameter bound to be callable.
+func (c *borrowCheck) callableNode(t sem.TypeID) bool {
+	n := c.p.R.Types.Node(t)
+	switch n.Kind {
+	case sem.KFn, sem.KClosure, sem.KIface, sem.KVar:
+		return true
+	case sem.KParam:
+		return slices.ContainsFunc(c.p.R.TypeParam(n.Ent).Constraints, func(con sem.Constraint) bool {
+			return con.Kind == sem.CFn || con.Kind == sem.CFnMut || con.Kind == sem.CFnOnce || con.Kind == sem.CIface
+		})
+	}
+	return false
 }

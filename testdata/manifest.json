@@ -4293,6 +4293,23 @@
       ]
     },
     {
+      "id": "run/blocking_pool_cell_capture",
+      "kind": "run",
+      "path": "testdata/run/blocking_pool_cell_capture.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/blocking_pool_contract",
       "kind": "run",
       "path": "testdata/run/blocking_pool_contract.txtar",
@@ -18628,6 +18645,17 @@
       "id": "sem/cell_local_borrow_err",
       "kind": "sem",
       "path": "testdata/sem/cell_local_borrow_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/cell_local_offload_err",
+      "kind": "sem",
+      "path": "testdata/sem/cell_local_offload_err.txtar",
       "mode": [
         "check"
       ],

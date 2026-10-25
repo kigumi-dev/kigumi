@@ -20,12 +20,20 @@ type closureUseKey struct {
 // cellRunHit reports whether in may run a closure reaching o's place in a way the borrow forbids, and whether it writes:
 // a call or await that can run or drop an argument holding it, a drop that may run a user `drop`, or an async body's end.
 func (c *borrowCheck) cellRunHit(in Inst, o ownerRef) (hit, writes bool) {
+	return c.cellRunHitExcept(in, o, nil)
+}
+
+// cellRunHitExcept is cellRunHit leaving out each closure skip names for the value in would run it through.
+func (c *borrowCheck) cellRunHitExcept(in Inst, o ownerRef, skip func(LocalID, sem.EntityID) bool) (hit, writes bool) {
 	loc := c.f.Locals[o.owner]
 	if !loc.Cell || loc.Ent == 0 {
 		return false, false
 	}
-	check := func(cls []sem.EntityID) {
-		for _, cl := range cls {
+	check := func(a LocalID) {
+		for _, cl := range c.argClosures(a) {
+			if skip != nil && skip(a, cl) {
+				continue
+			}
 			for i, cp := range c.p.R.Closure(cl).Captures {
 				if cp.Local != loc.Ent || cp.Mode != sem.CapCell {
 					continue
@@ -39,14 +47,14 @@ func (c *borrowCheck) cellRunHit(in Inst, o ownerRef) (hit, writes bool) {
 		}
 	}
 	if taskClose(in) {
-		check(c.argClosures(c.spawnScope()))
+		check(c.spawnScope())
 	}
 	if in.Op == OpDrop && c.dropRuns(in.Args[0]) || c.replacesDropping(in) {
-		check(c.argClosures(in.Args[0]))
+		check(in.Args[0])
 	}
 	for i, a := range in.Args {
 		if c.argRunnable(in, i) || (in.Op == OpCall || in.Op == OpCallValue) && c.dropRuns(a) {
-			check(c.argClosures(a))
+			check(a)
 		}
 	}
 	return hit, writes

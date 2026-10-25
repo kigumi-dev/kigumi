@@ -4,6 +4,7 @@ import (
 	"slices"
 
 	"kigumi/internal/sem"
+	"kigumi/internal/syntax"
 )
 
 // cellState is what the checks of closure-shared cells compute once per body.
@@ -22,6 +23,7 @@ type cellState struct {
 	siteRuns        int
 	contentsMemo    map[LocalID]contentsResult
 	plainTypes      map[sem.TypeID]bool
+	offloadNode     map[sem.EntityID]syntax.NodeID
 }
 
 // dropFact marks, among the closure facts, a value that may hold a resource whose user `drop` runs when it is dropped.
@@ -39,7 +41,7 @@ func (c *borrowCheck) heldClosures(a LocalID) map[uint32]bool {
 				out = append(out, dropFact)
 			}
 			return out
-		}, true)
+		}, c.spawnStep)
 	}
 	return c.flowAt(c.closures, a)
 }
@@ -57,7 +59,7 @@ func (c *borrowCheck) ownerMayBeHeld(holder, owner LocalID) bool {
 		return c.mayBeBorrowed(owner, c.curIdx)
 	}
 	if c.borrowFlow == nil {
-		c.borrowFlow = c.solveFlow(c.flowBorrowRoots, false)
+		c.borrowFlow = c.solveFlow(c.flowBorrowRoots, nil)
 	}
 	// An owner the flow never carries into holder, or a holder something else can write through, may take the
 	// owner on a route the flow does not model: keep the reach rule.

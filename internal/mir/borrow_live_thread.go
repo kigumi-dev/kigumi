@@ -19,7 +19,7 @@ func (c *borrowCheck) liveThrough(bid BlockID, out map[LocalID]bool, skip func(L
 
 // stepBack turns the holders live after in into those live before it; a drop of a holder skip accepts is no use.
 func (c *borrowCheck) stepBack(in Inst, live map[LocalID]bool, skip func(LocalID) bool) {
-	if _, ok := c.holders[in.Dst]; ok && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpGlobalSet && in.Op != OpFutureDone && in.Op != OpCancelDone {
+	if _, ok := c.holders[in.Dst]; ok && definesDst(in) {
 		delete(live, in.Dst)
 	}
 	if in.Op == OpDrop && (in.Emptied || skip(in.Args[0])) {
@@ -30,6 +30,15 @@ func (c *borrowCheck) stepBack(in Inst, live map[LocalID]bool, skip func(LocalID
 			live[a] = true
 		}
 	}
+}
+
+// definesDst reports whether in gives Dst a new value rather than writing into or completing what it holds.
+func definesDst(in Inst) bool {
+	switch in.Op {
+	case OpDrop, OpSetField, OpSetIndex, OpCellSet, OpGlobalSet, OpFutureDone, OpCancelDone:
+		return false
+	}
+	return true
 }
 
 // plainRefRelease reports whether dropping l only releases a count on a Copy referent,

@@ -15,6 +15,7 @@ type Program struct {
 	unwind    unwindMemo
 	sole      *soleIndex
 	executor  executorMemo
+	offloads  offloadMemo
 	Diags     []FileDiag
 	// Entries holds every Func.Entry; they are not in Funcs, so nothing keyed by entity sees them.
 	Entries []*Func

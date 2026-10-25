@@ -1,6 +1,10 @@
 package mir
 
-import "kigumi/internal/sem"
+import (
+	"slices"
+
+	"kigumi/internal/sem"
+)
 
 // argSpawns reports whether in may start a task from argument i, which then runs until the body ends: an awaited
 // future, which may spawn into the running task, or a callee that takes or reaches a Future or Task.
@@ -20,6 +24,30 @@ func (c *borrowCheck) argSpawns(in Inst, i int) bool {
 		return c.argRunnable(in, i) && c.maySpawn(in.Ent)
 	}
 	return false
+}
+
+// spawnStep leaves every closure a value holds in the task scope when the call may spawn it, or run it while it spawns.
+func (c *borrowCheck) spawnStep(in Inst, s flowSets, put func(LocalID, uint32)) {
+	if in.Op != OpCall && in.Op != OpCallValue && in.Op != OpAwait {
+		return
+	}
+	for k, a := range in.Args {
+		var held []uint32
+		for f := range s[a] {
+			if f != dropFact {
+				held = append(held, f)
+			}
+		}
+		for _, cl := range c.typeClosures(c.f.Locals[a].Type) {
+			held = append(held, uint32(cl))
+		}
+		if !c.argSpawns(in, k) && (!c.argRunnable(in, k) || !slices.ContainsFunc(held, func(f uint32) bool { return c.maySpawn(sem.EntityID(f)) })) {
+			continue
+		}
+		for _, f := range held {
+			put(c.spawnScope(), f)
+		}
+	}
 }
 
 // maySpawn reports whether running fn or closure ent may start a task: it, or something it calls, takes a Future or
