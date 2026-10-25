@@ -4,16 +4,16 @@ package vm
 func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 	switch key {
 	case "array.Array.empty":
-		if m.userCaller() {
-			m.tick(1)
+		if m.birthRefused(key, 0) {
+			m.abort("out of memory")
 		}
-		return mkArray(nil)
+		return newArray(key, 0, nil)
 	case "array.Array.of":
 		return retain(a0)
 	case "prelude.FixedArray.adopt":
 		return m.compact(a0)
 	case "array.Array.push":
-		if m.userCaller() && !m.growArray(a0, 1) {
+		if !m.growFor(key, a0, nil) {
 			m.abort("out of memory")
 		}
 		a0.fields = append(a0.fields, retain(a[1]))
@@ -22,9 +22,9 @@ func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		m.chargeMemory(a0)
 		return unitObj
 	case "array.Array.growBy":
-		return mkBool(uint64(a1.i) < maxVMAlloc && m.growBy(a0, uint64(a1.i)))
+		return mkBool(uint64(a1.i) < maxVMAlloc && m.growFor(key, a0, a1))
 	case "array.Array.pushCopy":
-		if m.userCaller() && !m.growArray(a0, 1) {
+		if !m.growFor(key, a0, nil) {
 			return mkBool(false)
 		}
 		if !m.writableInside(a1) {

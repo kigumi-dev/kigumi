@@ -57,7 +57,7 @@ fn main() {
 `,
 	"tryreserve_push": `fn main() {
     let mut xs = Array.empty[Int]()
-    let r = xs.tryReserve(8)
+    xs.tryReserve(8).unwrap()
     for i in 0..12 {
         xs.push(i)
     }
@@ -66,7 +66,7 @@ fn main() {
 `,
 	"trypush_push": `fn main() {
     let mut xs = Array.empty[Int]()
-    let r = xs.tryPush(1)
+    xs.tryPush(1).unwrap()
     for i in 0..12 {
         xs.push(i)
     }

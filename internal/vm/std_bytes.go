@@ -5,7 +5,7 @@ package vm
 func (m *Machine) bytesStd(key string, a0, a1, a2 *obj) *obj {
 	switch key {
 	case "prelude.Bytes.tryZeros", "prelude.ByteBuffer.tryNew":
-		if uint64(a0.i) >= maxVMAlloc || m.faultTick() {
+		if uint64(a0.i) >= maxVMAlloc || m.faultTick() || m.faultTick() {
 			return m.allocError()
 		}
 		return m.ok(mkBytes(make([]byte, a0.i)))

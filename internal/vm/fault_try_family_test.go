@@ -67,4 +67,4 @@ func TestFaultInjectionTryFamilyLeavesNothingLive(t *testing.T) {
 }
 
 // tryFamilyNoAlloc names the fixtures whose success path allocates nothing on the VM, so no tick can refuse.
-var tryFamilyNoAlloc = map[string]bool{"map_set_existing_key": true, "map_set_existing_key_twice": true}
+var tryFamilyNoAlloc = map[string]bool{"map_set_existing_key": true, "map_set_existing_key_twice": true, "alloc_wrap": true, "alloc_wrap_twice": true}

@@ -72,7 +72,9 @@ type Machine struct {
 	sh       *shared
 	// site is the call being dispatched, for primitives whose meaning
 	// depends on the argument types at the call (ffi.sizeOf).
-	site       *mir.Inst
+	site *mir.Inst
+	// tryBare: the call being dispatched returns its Ok payload without the Result variant (rt_d_try).
+	tryBare    bool
 	siteFn     *mir.Func
 	valueSites map[valueSiteKey]valueSite
 	boxFacts   map[*mir.Func]localFacts

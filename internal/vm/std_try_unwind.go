@@ -17,8 +17,9 @@ func (m *Machine) releaseProducedOnPanic(base int, done *bool, items func() []*o
 	})
 }
 
-func (m *Machine) tryMapItems(src, f *obj) *obj {
-	if m.faultTick() {
+func (m *Machine) tryMapItems(key string, src, f *obj) *obj {
+	n := int64(len(src.fields))
+	if m.birthRefused(key, n) {
 		return m.allocError()
 	}
 	var out []*obj
@@ -28,22 +29,27 @@ func (m *Machine) tryMapItems(src, f *obj) *obj {
 		out = append(out, m.callValueLent(f, []*obj{x}))
 	}
 	done = true
-	return m.ok(m.sized(mkArray(out)))
+	return m.okWrapped(m.sized(newArray(key, n, out)))
 }
 
-func (m *Machine) tryFilterItems(src, keep *obj) *obj {
-	if m.faultTick() {
+func (m *Machine) tryFilterItems(key string, src, keep *obj) *obj {
+	if m.birthRefused(key, 0) {
 		return m.allocError()
 	}
-	var out []*obj
+	out := newArray(key, 0, nil)
 	done := false
-	defer m.releaseProducedOnPanic(len(m.frames), &done, func() []*obj { return out })
+	defer m.releaseProducedOnPanic(len(m.frames), &done, func() []*obj { return out.fields })
 	for _, x := range src.fields {
-		r := deref(m.callValueLent(keep, []*obj{x}))
-		if r.b {
-			out = append(out, m.copy(x))
+		if !deref(m.callValueLent(keep, []*obj{x})).b {
+			continue
 		}
+		if !m.growFor(key, out, nil) {
+			done = true
+			m.release(out)
+			return m.allocError()
+		}
+		out.fields = append(out.fields, m.copy(x))
 	}
 	done = true
-	return m.ok(m.sized(mkArray(out)))
+	return m.okWrapped(m.sized(out))
 }

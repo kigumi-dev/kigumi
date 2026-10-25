@@ -2321,6 +2321,23 @@
       ]
     },
     {
+      "id": "run/array_capacity_after_primitives",
+      "kind": "run",
+      "path": "testdata/run/array_capacity_after_primitives.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/array_contains_fold_borrow",
       "kind": "run",
       "path": "testdata/run/array_contains_fold_borrow.txtar",

@@ -110,10 +110,10 @@ func TestFaultInjectionTryFamilyNative(t *testing.T) {
 }
 
 // tryFamilyNoAlloc are the fixtures on a path that allocates nothing, so no tick can be refused inside the call.
-var tryFamilyNoAlloc = map[string]bool{"map_set_existing_key": true, "map_set_existing_key_twice": true}
+var tryFamilyNoAlloc = map[string]bool{"map_set_existing_key": true, "map_set_existing_key_twice": true, "alloc_wrap": true, "alloc_wrap_twice": true}
 
 // tryFamilyNoAllocNative build their Result inline and copy or wrap nothing that allocates; the VM still ticks once per try op.
-var tryFamilyNoAllocNative = map[string]bool{"shared_get": true, "shared_get_twice": true, "alloc_wrap": true, "alloc_wrap_twice": true}
+var tryFamilyNoAllocNative = map[string]bool{"shared_get": true, "shared_get_twice": true}
 
 var tryFamilyNoAllocWindow = regexp.MustCompile(`^O+$`)
 

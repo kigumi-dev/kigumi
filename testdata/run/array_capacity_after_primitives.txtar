@@ -1,0 +1,65 @@
+-- src --
+fn big(x: &Int) -> Bool {
+    x > 1
+}
+
+fn total(xs: &Array[Int]) -> Int {
+    let mut sum = 0
+    for x in xs {
+        sum = sum + x
+    }
+    sum
+}
+
+let mut withCap = Array.tryWithCapacity[Int](2).unwrap()
+for i in 0..7 {
+    withCap.push(i)
+}
+print "withCapacity len=${withCap.len()} sum=${total(&withCap)}"
+
+let mut inserted = Array.of(1, 2, 3, 4)
+let v = inserted.first().unwrap()
+print "insertAt ok=${inserted.tryInsertAt(0, v).unwrap()}"
+for i in 0..9 {
+    inserted.push(i)
+}
+print "insertAt len=${inserted.len()} sum=${total(&inserted)}"
+
+let mut kept = Array.of(1, 2, 3, 4, 5, 6).tryFilter(big).unwrap()
+kept.tryPush(9).unwrap()
+for i in 0..9 {
+    kept.push(i)
+}
+print "filter len=${kept.len()} sum=${total(&kept)}"
+
+let mut mapped = Array.of(1, 2, 3).tryMap(big).unwrap()
+mapped.tryPush(true).unwrap()
+for i in 0..9 {
+    mapped.push(false)
+}
+print "map len=${mapped.len()}"
+
+let mut reserved = Array.empty[Int]()
+reserved.tryReserve(8).unwrap()
+reserved.tryPush(1).unwrap()
+reserved.tryPush(2).unwrap()
+reserved.tryAppendAll(Array.of(3, 4)).unwrap()
+for i in 0..9 {
+    reserved.push(i)
+}
+print "reserve len=${reserved.len()} sum=${total(&reserved)}"
+
+let mut joined = Array.of(1, 2, 3).tryConcat(Array.of(4)).unwrap()
+joined.tryPush(5).unwrap()
+for i in 0..9 {
+    joined.push(i)
+}
+print "concat len=${joined.len()} sum=${total(&joined)}"
+-- stdout --
+withCapacity len=7 sum=21
+insertAt ok=true
+insertAt len=14 sum=47
+filter len=15 sum=65
+map len=13
+reserve len=13 sum=46
+concat len=14 sum=51
