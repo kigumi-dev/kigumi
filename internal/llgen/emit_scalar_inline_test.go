@@ -64,6 +64,9 @@ func TestScalarArithmeticLowersToInlineIR(t *testing.T) {
 			t.Errorf("the module lacks %s", want)
 		}
 	}
+	if !regexp.MustCompile(`call double @pow\([^)]*\) nobuiltin`).MatchString(fnBody(t, ir, "main.root")) {
+		t.Error("main.root must call libm pow as nobuiltin")
+	}
 	for _, helper := range []string{"@kg.udivmod128(", "@kg.umulo128("} {
 		if n := strings.Count(ir, "define internal i128 "+helper) + strings.Count(ir, "define internal { i128, i1 } "+helper); n != 1 {
 			t.Errorf("%s is defined %d times, want once", helper, n)

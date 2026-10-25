@@ -11085,6 +11085,23 @@
       ]
     },
     {
+      "id": "run/int128_panic_mod_min_neg1",
+      "kind": "run",
+      "path": "testdata/run/int128_panic_mod_min_neg1.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/int128_panic_mod_zero",
       "kind": "run",
       "path": "testdata/run/int128_panic_mod_zero.txtar",

@@ -1,0 +1,14 @@
+-- src --
+fn f(a: i128, b: i128) -> i128 {
+    a % b
+}
+
+print "start"
+let r = f(-170141183460469231731687303715884105728, -1)
+print "unreachable ${r}"
+-- stdout --
+start
+-- stderr --
+panic: integer overflow
+-- exit --
+2

@@ -34,7 +34,10 @@ func compileLinked(m *Module, stderr io.Writer, opts BuildOptions, emit bool) (l
 		return l, false, err
 	}
 	if emit && len(m.headers.triples) == 0 {
-		cc := m.compiler.CCompiler()
+		cc, err := CCompilerFor(m)
+		if err != nil {
+			return l, false, err
+		}
 		l.t, l.link, err = resolveLinkage(m, t, opts.Link, len(cc) == 0 || isZig(cc), l.code, l.cflags, l.lflags)
 		return l, err == nil, err
 	}

@@ -5,9 +5,8 @@ import (
 	"kigumi/internal/sem"
 )
 
-// scalarInfo is a local materialized in a native register: Ty is the
-// register type, Nk the numeric-kind tag rt_int and the inline integer ops expect
-// (meaningless for TDouble, TFloat, TI1 and TI32).
+// scalarInfo is a local held in a native register of type Ty; Nk is the numeric-kind
+// tag the inline integer ops expect (meaningless for TDouble, TFloat, TI1, TI32).
 type scalarInfo struct {
 	Ty Type
 	Nk int
