@@ -1,0 +1,1817 @@
+-- module --
+mir: planned
+-- src --
+import task from std/task
+
+type V['a] = { pub s &'a String }
+type Rec = { pub mut name String, pub mut n Int }
+type H[F] = { pub f F }
+type P = { pub mut a Int, pub mut b Int }
+type Named = { pub name String, pub mut n Int }
+type W = { pub mut nm Named, pub k Int }
+type FW = { pub f fn() -> usize }
+type Guard[F] = resource { pub mut f F }
+type Sink['a] = { pub items &'a mut Array[V['a]] }
+type FB = { pub mut futs Array[Future[Int]] }
+type SG[F] = { pub mut g Guard[F] }
+type Outer = { pub mut fb FB, pub k Int }
+type FO = { pub mut fut Future[Int]?, pub k Int }
+type HR['a] = { pub mut fb &'a mut FB }
+type GB[T] = { pub mut v Array[T] }
+type N0['a] = { pub mut fb &'a mut FB }
+type N1['a] = { pub mut n &'a mut N0['a] }
+type N2['a] = { pub mut n &'a mut N1['a] }
+type N3['a] = { pub mut n &'a mut N2['a] }
+type N4['a] = { pub mut n &'a mut N3['a] }
+type N5['a] = { pub mut n &'a mut N4['a] }
+type N6['a] = { pub mut n &'a mut N5['a] }
+type N7['a] = { pub mut n &'a mut N6['a] }
+type N8['a] = { pub mut n &'a mut N7['a] }
+
+fn mkV['a](s: &'a String) -> V['a] { V { s: s } }
+fn setS(s: &mut String) { s = "q" }
+fn run[F: FnMut[fn() -> Void]](mut f: F) { f() }
+fn runWith[F: FnMut[fn() -> Void]](s: &String, mut f: F) -> usize { f(); s.len() }
+async fn work[F: FnMut[fn() -> Void]](mut f: F) -> Int { f(); 1 }
+fn runs[F: FnMut[fn() -> Void]](x: Named, mut f: F) -> Int { f(); x.n }
+fn viaShared[F: FnMut[fn() -> Void]](w: &W, mut f: F) -> Int { runs(w.nm, f) }
+fn peekLen(s: &String) { let n = s.len() }
+fn Guard[F: FnMut[fn() -> Void]].drop(move self) { self.f() }
+fn two(a: &mut String, b: &mut String) { a = "1"; b = "2" }
+async fn holdGuard[F: FnMut[fn() -> Void]](g: Guard[F]) -> Int { 1 }
+fn eatGuard[F: FnMut[fn() -> Void]](g: Guard[F]) { }
+async fn workEsc[F: FnMut[fn() -> Void]](mut f: escaping F) -> Int { f(); 1 }
+fn spawnA[F: FnMut[fn() -> Void]](f: escaping F, n: Int) {
+    if n > 0 { spawnB(f, n - 1) } else { let tk = task.spawn(workEsc(f)) }
+}
+fn spawnB[F: FnMut[fn() -> Void]](f: escaping F, n: Int) { spawnA(f, n) }
+fn FB.futsMut(mut self) -> &mut Array[Future[Int]] { &mut self.futs }
+fn FB.me(mut self) -> &mut FB { &mut self }
+fn pickMix['a](a: &'a mut FB, o: &'a mut Outer, c: Bool) -> &'a mut FB { if c { a.me() } else { &mut o.fb } }
+fn GB[T].vm(mut self) -> &mut Array[T] { &mut self.v }
+fn addF(h: &mut Array[Future[Int]], f: Future[Int]) { h.push(f) }
+fn viaParam[F: FnMut[fn() -> Void]](h: &mut FB, f: escaping F) { h.futs.push(work(f)) }
+fn viaHR['a, F: FnMut[fn() -> Void]](k: &mut HR['a], f: escaping F) { k.fb.futs.push(work(f)) }
+fn call2[F: FnMut[fn() -> Void]](mut c: F) { c() }
+fn FB.addW[F: FnMut[fn() -> Void]](mut self, f: escaping F) { self.futs.push(work(f)) }
+fn futsOf(b: &mut FB) -> &mut Array[Future[Int]] { &mut b.futs }
+fn pickTwo['a](a: &'a mut FB, b: &'a mut FB, first: Bool) -> &'a mut Array[Future[Int]] { if first { &mut a.futs } else { &mut b.futs } }
+fn spawnLater[F: FnMut[fn() -> Void]](f: escaping F) { let tk = task.spawn(workEsc(f)) }
+fn viaOnce[G: FnOnce[fn() -> Int]](g: G) -> Int { g() }
+fn both(s: &mut String, f: fn() -> usize) -> usize { s = "z"; f() }
+fn bothRev(f: fn() -> usize, s: &mut String) -> usize { s = "z"; f() }
+fn bothWrapped(s: &mut String, w: FW) -> usize { s = "z"; w.f() }
+
+fn writeAfterBorrow() -> Int {
+    let mut other = "o"
+    let g = () => other.len()
+    let r = mkV(&other)
+    other = "zzz" //~ ERROR `other` is borrowed and cannot be mutated here
+    (r.s.len() + g()).toInt() || 0
+}
+
+fn writerCalled() -> Int {
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let r = &other
+    w() //~ ERROR `other` is borrowed and cannot be mutated here
+    r.len().toInt() || 0
+}
+
+fn writerMadeAfterBorrow() -> Int {
+    let mut other = "o"
+    let r = &other
+    let w = () => { other = "x" }
+    w() //~ ERROR `other` is borrowed and cannot be mutated here
+    r.len().toInt() || 0
+}
+
+fn mutWhileShared() -> Int {
+    let mut other = "o"
+    let g = () => other.len()
+    let r = &other
+    setS(&mut other) //~ ERROR `other` is borrowed //~ ERROR `other` is borrowed
+    let n = r.len() + g()
+    other = "later"
+    n.toInt() || 0
+}
+
+fn readWhileExclusive() -> Int {
+    let mut other = "o"
+    let g = () => other.len()
+    let m = &mut other
+    let n = g() //~ ERROR `other` is exclusively borrowed and cannot be used here
+    let k = m.len()
+    other = "later"
+    (n + k).toInt() || 0
+}
+
+fn recordLiteral() -> Int {
+    let mut other = "o"
+    let g = () => other.len()
+    let v = V { s: &other }
+    other = "x" //~ ERROR `other` is borrowed and cannot be mutated here
+    (v.s.len() + g()).toInt() || 0
+}
+
+fn arrayOfHolders() -> Int {
+    let mut other = "o"
+    let g = () => other.len()
+    let a = Array.of(mkV(&other))
+    other = "x" //~ ERROR `other` is borrowed and cannot be mutated here
+    (a[0].s.len() + g()).toInt() || 0
+}
+
+fn optionOfHolder() -> Int {
+    let mut other = "o"
+    let g = () => other.len()
+    let o = Some(mkV(&other))
+    other = "x" //~ ERROR `other` is borrowed and cannot be mutated here
+    let n = if let Some(v) = o { v.s.len() } else { 0 }
+    (n + g()).toInt() || 0
+}
+
+fn blockResult() -> Int {
+    let mut other = "o"
+    let g = () => other.len()
+    let r = { let t = &other; t }
+    other = "x" //~ ERROR `other` is borrowed and cannot be mutated here
+    (r.len() + g()).toInt() || 0
+}
+
+fn readerThenWrite() -> Int {
+    let mut other = "o"
+    let g = () => other.len()
+    let r = &other
+    let a = g()
+    other = "x" //~ ERROR `other` is borrowed and cannot be mutated here
+    (r.len() + a + g()).toInt() || 0
+}
+
+fn loopReassign() -> Int {
+    let mut other = "o"
+    let g = () => other.len()
+    let mut n: usize = 0
+    for i in 0..3 {
+        let r = &other
+        other = "x${i}" //~ ERROR `other` is borrowed and cannot be mutated here
+        n = n + r.len()
+    }
+    (n + g()).toInt() || 0
+}
+
+fn loopBorrowOutside() -> Int {
+    let mut other = "o"
+    let g = () => other.len()
+    let r = &other
+    let mut n: usize = 0
+    for i in 0..3 {
+        n = n + r.len()
+        other = "x${i}" //~ ERROR `other` is borrowed and cannot be mutated here
+    }
+    (n + g()).toInt() || 0
+}
+
+fn nestedWriter() -> Int {
+    let mut other = "o"
+    let g = () => { let h = () => { other = "y" }; h() }
+    let r = &other
+    g() //~ ERROR `other` is borrowed and cannot be mutated here
+    r.len().toInt() || 0
+}
+
+fn capturedWriter() -> Int {
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let g = () => w()
+    let r = &other
+    g() //~ ERROR `other` is borrowed and cannot be mutated here
+    r.len().toInt() || 0
+}
+
+fn passedWriter() -> Int {
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let r = &other
+    run(w) //~ ERROR `other` is borrowed and cannot be mutated here
+    r.len().toInt() || 0
+}
+
+fn borrowAndWriterInOneCall() -> Int {
+    let mut other = "o"
+    let w = () => { other = "x" }
+    runWith(&other, w).toInt() || 0 //~ ERROR `other` is borrowed and cannot be mutated here
+}
+
+fn writerInRecord() -> Int {
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let h = H { f: w }
+    let r = &other
+    h.f() //~ ERROR `other` is borrowed and cannot be mutated here
+    r.len().toInt() || 0
+}
+
+fn insideClosure() -> Int {
+    let mut other = "o"
+    let f = () => {
+        let r = &other
+        other = "zz" //~ ERROR `other` is borrowed and cannot be mutated here
+        r.len()
+    }
+    f().toInt() || 0
+}
+
+fn writerInsideReader() -> Int {
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let g = () => {
+        let r = &other
+        w() //~ ERROR `other` is borrowed and cannot be mutated here
+        r.len()
+    }
+    g().toInt() || 0
+}
+
+fn fieldOfCell() -> Int {
+    let mut rc = Rec { name: "a", n: 1 }
+    let g = () => rc.n
+    let r = &rc.name
+    rc.name = "b" //~ ERROR `rc` is borrowed and cannot be mutated here
+    (r.len().toInt() || 0) + g()
+}
+
+fn Rec.receiverWriter(mut self) -> Int {
+    let w = () => { self.name = "z" }
+    let r = &self.name
+    w() //~ ERROR `self` is borrowed and cannot be mutated here
+    r.len().toInt() || 0
+}
+
+async fn asyncBody() -> Int {
+    let mut other = "o"
+    let g = () => other.len()
+    let r = &other
+    other = "x" //~ ERROR `other` is borrowed and cannot be mutated here
+    (r.len() + g()).toInt() || 0
+}
+
+fn futureRunAfterBorrow() -> Int {
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let ex = task.currentThreadExecutor()
+    let r = mkV(&other)
+    let t = work(w)
+    let n = ex.runToCompletion(t) //~ ERROR `other` is borrowed and cannot be mutated here
+    (r.s.len().toInt() || 0) + n
+}
+
+fn futureMadeBeforeBorrow() -> Int {
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let ex = task.currentThreadExecutor()
+    let t = work(w)
+    let r = &other
+    let n = ex.runToCompletion(t) //~ ERROR `other` is borrowed and cannot be mutated here
+    (r.len().toInt() || 0) + n
+}
+
+fn recordReadWhileExclusive() -> Int {
+    let mut rc = Rec { name: "n", n: 1 }
+    let g = () => rc.n
+    let m = &mut rc
+    let x = g() //~ ERROR `rc` is exclusively borrowed and cannot be used here
+    x + (m.name.len().toInt() || 0)
+}
+
+fn fieldReadWhileExclusive() -> Int {
+    let mut rc = Rec { name: "n", n: 1 }
+    let g = () => rc.name.len()
+    let m = &mut rc.name
+    let x = g() //~ ERROR `rc` is exclusively borrowed and cannot be used here
+    (x + m.len()).toInt() || 0
+}
+
+fn directRecordCell() -> Int {
+    let mut p = P { a: 1, b: 2 }
+    let g = () => p.a
+    let r = &p
+    p = P { a: 7, b: 8 } //~ ERROR `p` is borrowed and cannot be mutated here
+    r.a + g()
+}
+
+fn intCell() -> Int {
+    let mut k = 1
+    let g = () => k
+    let r = &k
+    k = 2 //~ ERROR `k` is borrowed and cannot be mutated here
+    r + g()
+}
+
+fn erasedReader() -> usize {
+    let mut s = "ab"
+    let g = () => s.len()
+    let h: fn() -> usize = g
+    let m = &mut s
+    let n = h() //~ ERROR `s` is exclusively borrowed and cannot be used here
+    let q = m.len()
+    s = "z"
+    n + q
+}
+
+fn sharedLentWriter() -> Int {
+    let mut a = W { nm: Named { name: "a", n: 1 }, k: 0 }
+    viaShared(&a, () => { a.nm.n = 4 }) //~ ERROR `a` is borrowed and cannot be mutated here
+}
+
+fn writeBackWithErasedReader() -> usize {
+    let mut s = "abc"
+    let g = () => s.len()
+    let h: fn() -> usize = g
+    let x = both(&mut s, h) //~ ERROR `s` is exclusively borrowed and cannot be used here
+    let y = bothRev(h, &mut s) //~ ERROR `s` is exclusively borrowed and cannot be used here
+    x + y + bothWrapped(&mut s, FW { f: h }) //~ ERROR `s` is exclusively borrowed and cannot be used here
+}
+
+async fn spawnedAtBodyEnd() -> Int { //~ ERROR `other` is still borrowed where this body ends
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let tk = task.spawn(work(w))
+    let r = &other
+    defer peekLen(r)
+    1
+}
+
+async fn spawnedThenAwaited() -> Int {
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let tk = task.spawn(work(w))
+    let r = &other
+    let n = await tk //~ ERROR a borrow of `other` is still live across this `await` //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+async fn spawnedWhileBorrowed() -> Int { //~ ERROR `other` is still borrowed where this body ends
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let r = &other
+    defer peekLen(r)
+    let tk = task.spawn(work(w)) //~ ERROR `other` is borrowed and cannot be mutated here
+    1
+}
+
+fn guardDroppedWhileBorrowed() -> usize {
+    let mut other = "o"
+    let r = &other
+    {
+        let g = Guard { f: () => { other = "x" } } //~ ERROR `other` is borrowed and cannot be mutated here
+    }
+    r.len()
+}
+
+fn passedTwice() -> usize {
+    let mut a = "x"
+    let g = () => a.len()
+    two(&mut a, &mut a) //~ ERROR `a` is passed twice as `&mut`
+    g()
+}
+
+fn storeThroughStoredMutInBranch(c: Bool) -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    if c {
+        a.push(V { s: &v })
+    } else {
+        let sk = Sink { items: &mut a }
+        sk.items.push(V { s: &v })
+        v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    }
+    a.len()
+}
+
+fn storeThroughStoredMutOtherBranch(c: Bool) -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    if c {
+        let sk = Sink { items: &mut a }
+        sk.items.push(V { s: &v })
+    } else {
+        a.push(V { s: &v })
+    }
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a.len()
+}
+
+fn storeThroughStoredMut() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let sk = Sink { items: &mut a }
+    sk.items.push(V { s: &v })
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+async fn spawnThroughCallCycle() -> Int { //~ ERROR `o2` is still borrowed where this body ends
+    let mut o1 = "a"
+    let mut o2 = "b"
+    let w1 = () => { o1 = "x" }
+    let w2 = () => { o2 = "y" }
+    spawnA(w1, 0)
+    spawnB(w2, 0)
+    let r2 = &o2
+    defer peekLen(r2)
+    1
+}
+
+fn unawaitedFutureDropsGuard() -> usize {
+    let mut other = "o"
+    let r = &other
+    {
+        let fut = holdGuard(Guard { f: () => { other = "x" } }) //~ ERROR `other` is borrowed and cannot be mutated here
+    }
+    r.len()
+}
+
+fn closureDropsMovedGuard() -> usize {
+    let mut other = "o"
+    let r = &other
+    let g = Guard { f: () => { other = "x" } }
+    {
+        let c = () => { eatGuard(g) } //~ ERROR `other` is borrowed and cannot be mutated here
+    }
+    r.len()
+}
+
+fn pushThroughReturnedMut() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut fb = FB { futs: Array.empty() }
+    fb.futsMut().push(work(w))
+    let r = &other
+    let f = fb.futs.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn pushThroughNamedReturnedMut() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut fb = FB { futs: Array.empty() }
+    let m = fb.futsMut()
+    m.push(work(w))
+    let r = &other
+    let f = fb.futs.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn pushThroughFreeFnReturnedMut() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut fb = FB { futs: Array.empty() }
+    futsOf(&mut fb).push(work(w))
+    let r = &other
+    let f = fb.futs.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn pushThroughTwoOwnerResult() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut fa = FB { futs: Array.empty() }
+    let mut fb = FB { futs: Array.empty() }
+    pickTwo(&mut fa, &mut fb, true).push(work(w))
+    let r = &other
+    let f = fa.futs.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn pushThroughIfElseHolder(first: Bool) -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut fa = FB { futs: Array.empty() }
+    let mut fb = FB { futs: Array.empty() }
+    {
+        let m = if first { fa.futsMut() } else { fb.futsMut() }
+        m.push(work(w))
+    }
+    let r = &other
+    let f = fb.futs.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn pushThroughMixedOwnerHolder(first: Bool) -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut fa = FB { futs: Array.empty() }
+    let mut arr: Array[Future[Int]] = Array.empty()
+    {
+        let m = if first { fa.futsMut() } else { &mut arr }
+        m.push(work(w))
+    }
+    let r = &other
+    let f = fa.futs.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn pushThroughRecordHolder() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut fa = FB { futs: Array.empty() }
+    let h = &mut fa
+    h.futs.push(work(w))
+    let r = &other
+    let f = fa.futs.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn pushThroughReturnedRecordHolder() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut fa = FB { futs: Array.empty() }
+    let h = fa.me()
+    h.futs.push(work(w))
+    let r = &other
+    let f = fa.futs.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn pushThroughMixedRecordHolder(c: Bool) -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut fa = FB { futs: Array.empty() }
+    let mut o = Outer { fb: FB { futs: Array.empty() }, k: 1 }
+    let h = pickMix(&mut fa, &mut o, c)
+    h.futs.push(work(w))
+    let r = &other
+    let f = o.fb.futs.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn setFieldThroughHolder() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut fo = FO { fut: None, k: 1 }
+    let h = &mut fo
+    h.fut = Some(work(w))
+    let r = &other
+    let f = fo.fut.take().unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn setIndexThroughHolder() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut arr: Array[Future[Int]] = Array.empty()
+    arr.push(work(() => { }))
+    let h = &mut arr
+    h[0] = work(w)
+    let r = &other
+    let f = arr.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn passNamedHolder() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut fb = FB { futs: Array.empty() }
+    let h = &mut fb
+    viaParam(h, w)
+    let r = &other
+    let f = fb.futs.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn passNamedFieldHolder() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut o = Outer { fb: FB { futs: Array.empty() }, k: 1 }
+    let h = &mut o.fb
+    viaParam(h, w)
+    let r = &other
+    let f = o.fb.futs.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn passNamedArrayHolder() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut arr: Array[Future[Int]] = Array.empty()
+    let h = &mut arr
+    addF(h, work(w))
+    let r = &other
+    let f = arr.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn pushThroughGenericOwner(first: Bool) -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut ga: GB[Future[Int]] = GB { v: Array.empty() }
+    let mut arr: Array[Future[Int]] = Array.empty()
+    {
+        let m = if first { ga.vm() } else { &mut arr }
+        m.push(work(w))
+    }
+    let r = &other
+    let f = ga.v.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn pushThroughHolderOfHolder() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut fb = FB { futs: Array.empty() }
+    let mut hr = HR { fb: &mut fb }
+    let k = &mut hr
+    k.fb.futs.push(work(w))
+    let r = &other
+    let f = fb.futs.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn lendHolderOfHolder() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut fb = FB { futs: Array.empty() }
+    let mut hr = HR { fb: &mut fb }
+    viaHR(&mut hr, w)
+    let r = &other
+    let f = fb.futs.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn setFieldThroughEightReads() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut fb = FB { futs: Array.of(work(() => { })) }
+    let mut n0 = N0 { fb: &mut fb }
+    let mut n1 = N1 { n: &mut n0 }
+    let mut n2 = N2 { n: &mut n1 }
+    let mut n3 = N3 { n: &mut n2 }
+    let mut n4 = N4 { n: &mut n3 }
+    let mut n5 = N5 { n: &mut n4 }
+    let mut n6 = N6 { n: &mut n5 }
+    let mut n7 = N7 { n: &mut n6 }
+    let mut n8 = N8 { n: &mut n7 }
+    let k = &mut n8
+    k.n.n.n.n.n.n.n.n.fb.futs = Array.of(work(w))
+    let r = &other
+    let f = fb.futs.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn setIndexThroughEightReads() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut fb = FB { futs: Array.of(work(() => { })) }
+    let mut n0 = N0 { fb: &mut fb }
+    let mut n1 = N1 { n: &mut n0 }
+    let mut n2 = N2 { n: &mut n1 }
+    let mut n3 = N3 { n: &mut n2 }
+    let mut n4 = N4 { n: &mut n3 }
+    let mut n5 = N5 { n: &mut n4 }
+    let mut n6 = N6 { n: &mut n5 }
+    let mut n7 = N7 { n: &mut n6 }
+    let mut n8 = N8 { n: &mut n7 }
+    let k = &mut n8
+    k.n.n.n.n.n.n.n.n.fb.futs[0] = work(w)
+    let r = &other
+    let f = fb.futs.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn setFieldThroughEightReadsOfLocal() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut fb = FB { futs: Array.of(work(() => { })) }
+    let mut n0 = N0 { fb: &mut fb }
+    let mut n1 = N1 { n: &mut n0 }
+    let mut n2 = N2 { n: &mut n1 }
+    let mut n3 = N3 { n: &mut n2 }
+    let mut n4 = N4 { n: &mut n3 }
+    let mut n5 = N5 { n: &mut n4 }
+    let mut n6 = N6 { n: &mut n5 }
+    let mut n7 = N7 { n: &mut n6 }
+    let mut n8 = N8 { n: &mut n7 }
+    n8.n.n.n.n.n.n.n.n.fb.futs = Array.of(work(w))
+    let r = &other
+    let f = fb.futs.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn capturedHolderPassed() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut fb = FB { futs: Array.empty() }
+    let h = &mut fb
+    call2(() => viaParam(h, w))
+    let r = &other
+    let f = fb.futs.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn capturedHolderStoredThrough() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut fb = FB { futs: Array.empty() }
+    let h = &mut fb
+    call2(() => call2(() => { h.futs.push(work(w)) }))
+    let r = &other
+    let f = fb.futs.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn capturedHolderPassedNested() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut fb = FB { futs: Array.empty() }
+    let h = &mut fb
+    call2(() => call2(() => viaParam(h, w)))
+    let r = &other
+    let f = fb.futs.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn capturedHolderAssigned() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut fb = FB { futs: Array.empty() }
+    let h = &mut fb
+    call2(() => { h.futs = Array.of(work(w)) })
+    let r = &other
+    let f = fb.futs.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn capturedHolderMethodStores() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut fb = FB { futs: Array.empty() }
+    let h = &mut fb
+    call2(() => { h.addW(w) })
+    let r = &other
+    let f = fb.futs.takeAt(0).unwrap()
+    let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    n + (r.len().toInt() || 0)
+}
+
+fn overwriteElementDropsGuard() -> usize {
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut a = Array.of(Guard { f: w })
+    let r = &other
+    a[0] = Guard { f: w } //~ ERROR `other` is borrowed and cannot be mutated here
+    r.len()
+}
+
+fn overwriteFieldDropsGuard() -> usize {
+    let mut other = "o"
+    let w = () => { other = "x" }
+    let mut s = SG { g: Guard { f: w } }
+    let r = &other
+    s.g = Guard { f: w } //~ ERROR `other` is borrowed and cannot be mutated here
+    r.len()
+}
+
+async fn spawnInCalledClosure() -> Int { //~ ERROR `o1` is still borrowed where this body ends
+    let mut o1 = "a"
+    let w1 = () => { o1 = "x" }
+    let sp = move () => {
+        let tk = task.spawn(workEsc(w1))
+        1
+    }
+    let z = sp()
+    let r1 = &o1
+    defer peekLen(r1)
+    z
+}
+
+async fn spawnInFnOnceCallback() -> Int { //~ ERROR `o1` is still borrowed where this body ends
+    let mut o1 = "a"
+    let w1 = () => { o1 = "x" }
+    let z = viaOnce(move () => {
+        let tk = task.spawn(workEsc(w1))
+        1
+    })
+    let r1 = &o1
+    defer peekLen(r1)
+    z
+}
+
+async fn spawnInCalledRunner() -> Int { //~ ERROR `o2` is still borrowed where this body ends
+    let mut o2 = "b"
+    let w = () => { o2 = "y" }
+    let c = () => { spawnLater(w) }
+    c()
+    let r2 = &o2
+    defer peekLen(r2)
+    1
+}
+
+async fn spawnInMapCallback() -> Int { //~ ERROR `o2` is still borrowed where this body ends
+    let mut o2 = "b"
+    let w = () => { o2 = "y" }
+    let xs = Array.of(1, 2)
+    let ys = xs.map((x: &Int) => {
+        spawnLater(w)
+        x + 0
+    })
+    let r2 = &o2
+    defer peekLen(r2)
+    1
+}
+-- expect --
+error[E2198]: `other` is borrowed and cannot be mutated here
+  --> main.kg:66:5
+   |
+66 |     other = "zzz" //~ ERROR `other` is borrowed and cannot be mutated here
+   |     ^^^^^
+   = help: end the borrow first or use a copy
+note: `other` is borrowed here
+  --> main.kg:65:17
+   |
+65 |     let r = mkV(&other)
+   |                 ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+  --> main.kg:74:5
+   |
+74 |     w() //~ ERROR `other` is borrowed and cannot be mutated here
+   |     ^^
+   = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+  --> main.kg:73:13
+   |
+73 |     let r = &other
+   |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+  --> main.kg:82:5
+   |
+82 |     w() //~ ERROR `other` is borrowed and cannot be mutated here
+   |     ^^
+   = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+  --> main.kg:80:13
+   |
+80 |     let r = &other
+   |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+  --> main.kg:90:15
+   |
+90 |     setS(&mut other) //~ ERROR `other` is borrowed //~ ERROR `other` is borrowed
+   |               ^^^^^
+   = help: end the borrow first or use a copy
+note: `other` is borrowed here
+  --> main.kg:89:13
+   |
+89 |     let r = &other
+   |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+  --> main.kg:90:10
+   |
+90 |     setS(&mut other) //~ ERROR `other` is borrowed //~ ERROR `other` is borrowed
+   |          ^^^^^^^^^^
+   = help: end the borrow first or use a copy
+note: `other` is borrowed here
+  --> main.kg:89:13
+   |
+89 |     let r = &other
+   |             ^^^^^^
+
+error[E2198]: `other` is exclusively borrowed and cannot be used here
+   --> main.kg:100:13
+    |
+100 |     let n = g() //~ ERROR `other` is exclusively borrowed and cannot be used here
+    |             ^^
+    = help: end the borrow first or use a copy
+note: `other` is borrowed here
+   --> main.kg:99:13
+    |
+ 99 |     let m = &mut other
+    |             ^^^^^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:110:5
+    |
+110 |     other = "x" //~ ERROR `other` is borrowed and cannot be mutated here
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `other` is borrowed here
+   --> main.kg:109:20
+    |
+109 |     let v = V { s: &other }
+    |                    ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:118:5
+    |
+118 |     other = "x" //~ ERROR `other` is borrowed and cannot be mutated here
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `other` is borrowed here
+   --> main.kg:117:13
+    |
+117 |     let a = Array.of(mkV(&other))
+    |             ^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:126:5
+    |
+126 |     other = "x" //~ ERROR `other` is borrowed and cannot be mutated here
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `other` is borrowed here
+   --> main.kg:125:22
+    |
+125 |     let o = Some(mkV(&other))
+    |                      ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:135:5
+    |
+135 |     other = "x" //~ ERROR `other` is borrowed and cannot be mutated here
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `other` is borrowed here
+   --> main.kg:134:23
+    |
+134 |     let r = { let t = &other; t }
+    |                       ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:144:5
+    |
+144 |     other = "x" //~ ERROR `other` is borrowed and cannot be mutated here
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `other` is borrowed here
+   --> main.kg:142:13
+    |
+142 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:154:9
+    |
+154 |         other = "x${i}" //~ ERROR `other` is borrowed and cannot be mutated here
+    |         ^^^^^
+    = help: end the borrow first or use a copy
+note: `other` is borrowed here
+   --> main.kg:153:17
+    |
+153 |         let r = &other
+    |                 ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:167:9
+    |
+167 |         other = "x${i}" //~ ERROR `other` is borrowed and cannot be mutated here
+    |         ^^^^^
+    = help: end the borrow first or use a copy
+note: `other` is borrowed here
+   --> main.kg:163:13
+    |
+163 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:176:5
+    |
+176 |     g() //~ ERROR `other` is borrowed and cannot be mutated here
+    |     ^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:175:13
+    |
+175 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:185:5
+    |
+185 |     g() //~ ERROR `other` is borrowed and cannot be mutated here
+    |     ^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:184:13
+    |
+184 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:193:5
+    |
+193 |     run(w) //~ ERROR `other` is borrowed and cannot be mutated here
+    |     ^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:192:13
+    |
+192 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:200:5
+    |
+200 |     runWith(&other, w).toInt() || 0 //~ ERROR `other` is borrowed and cannot be mutated here
+    |     ^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:200:13
+    |
+200 |     runWith(&other, w).toInt() || 0 //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:208:5
+    |
+208 |     h.f() //~ ERROR `other` is borrowed and cannot be mutated here
+    |     ^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:207:13
+    |
+207 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:216:9
+    |
+216 |         other = "zz" //~ ERROR `other` is borrowed and cannot be mutated here
+    |         ^^^^^
+    = help: end the borrow first or use a copy
+note: `other` is borrowed here
+   --> main.kg:215:17
+    |
+215 |         let r = &other
+    |                 ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:227:9
+    |
+227 |         w() //~ ERROR `other` is borrowed and cannot be mutated here
+    |         ^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:226:17
+    |
+226 |         let r = &other
+    |                 ^^^^^^
+
+error[E2198]: `rc` is borrowed and cannot be mutated here
+   --> main.kg:237:5
+    |
+237 |     rc.name = "b" //~ ERROR `rc` is borrowed and cannot be mutated here
+    |     ^^^^^^^
+    = help: end the borrow first or use a copy
+note: `rc` is borrowed here
+   --> main.kg:236:13
+    |
+236 |     let r = &rc.name
+    |             ^^^^^^^^
+
+error[E2198]: `self` is borrowed and cannot be mutated here
+   --> main.kg:244:5
+    |
+244 |     w() //~ ERROR `self` is borrowed and cannot be mutated here
+    |     ^^
+    = help: this call runs a closure that writes `self`; end the borrow before the call
+note: `self` is borrowed here
+   --> main.kg:243:13
+    |
+243 |     let r = &self.name
+    |             ^^^^^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:252:5
+    |
+252 |     other = "x" //~ ERROR `other` is borrowed and cannot be mutated here
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `other` is borrowed here
+   --> main.kg:251:13
+    |
+251 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:262:13
+    |
+262 |     let n = ex.runToCompletion(t) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:260:17
+    |
+260 |     let r = mkV(&other)
+    |                 ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:272:13
+    |
+272 |     let n = ex.runToCompletion(t) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:271:13
+    |
+271 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `rc` is exclusively borrowed and cannot be used here
+   --> main.kg:280:13
+    |
+280 |     let x = g() //~ ERROR `rc` is exclusively borrowed and cannot be used here
+    |             ^^
+    = help: end the borrow first or use a copy
+note: `rc` is borrowed here
+   --> main.kg:279:13
+    |
+279 |     let m = &mut rc
+    |             ^^^^^^^
+
+error[E2198]: `rc` is exclusively borrowed and cannot be used here
+   --> main.kg:288:13
+    |
+288 |     let x = g() //~ ERROR `rc` is exclusively borrowed and cannot be used here
+    |             ^^
+    = help: end the borrow first or use a copy
+note: `rc` is borrowed here
+   --> main.kg:287:13
+    |
+287 |     let m = &mut rc.name
+    |             ^^^^^^^^^^^^
+
+error[E2198]: `p` is borrowed and cannot be mutated here
+   --> main.kg:296:5
+    |
+296 |     p = P { a: 7, b: 8 } //~ ERROR `p` is borrowed and cannot be mutated here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `p` is borrowed here
+   --> main.kg:295:13
+    |
+295 |     let r = &p
+    |             ^^
+
+error[E2198]: `k` is borrowed and cannot be mutated here
+   --> main.kg:304:5
+    |
+304 |     k = 2 //~ ERROR `k` is borrowed and cannot be mutated here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `k` is borrowed here
+   --> main.kg:303:13
+    |
+303 |     let r = &k
+    |             ^^
+
+error[E2198]: `s` is exclusively borrowed and cannot be used here
+   --> main.kg:313:13
+    |
+313 |     let n = h() //~ ERROR `s` is exclusively borrowed and cannot be used here
+    |             ^^
+    = help: end the borrow first or use a copy
+note: `s` is borrowed here
+   --> main.kg:312:13
+    |
+312 |     let m = &mut s
+    |             ^^^^^^
+
+error[E2198]: `a` is borrowed and cannot be mutated here
+   --> main.kg:321:5
+    |
+321 |     viaShared(&a, () => { a.nm.n = 4 }) //~ ERROR `a` is borrowed and cannot be mutated here
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `a`; end the borrow before the call
+note: `a` is borrowed here
+   --> main.kg:321:15
+    |
+321 |     viaShared(&a, () => { a.nm.n = 4 }) //~ ERROR `a` is borrowed and cannot be mutated here
+    |               ^^
+
+error[E2198]: `s` is exclusively borrowed and cannot be used here
+   --> main.kg:330:13
+    |
+330 |     x + y + bothWrapped(&mut s, FW { f: h }) //~ ERROR `s` is exclusively borrowed and cannot be used here
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: end the borrow first or use a copy
+note: `s` is borrowed here
+   --> main.kg:330:25
+    |
+330 |     x + y + bothWrapped(&mut s, FW { f: h }) //~ ERROR `s` is exclusively borrowed and cannot be used here
+    |                         ^^^^^^
+
+error[E2198]: `s` is exclusively borrowed and cannot be used here
+   --> main.kg:329:13
+    |
+329 |     let y = bothRev(h, &mut s) //~ ERROR `s` is exclusively borrowed and cannot be used here
+    |             ^^^^^^^^^^^^^^^^^
+    = help: end the borrow first or use a copy
+note: `s` is borrowed here
+   --> main.kg:329:24
+    |
+329 |     let y = bothRev(h, &mut s) //~ ERROR `s` is exclusively borrowed and cannot be used here
+    |                        ^^^^^^
+
+error[E2198]: `s` is exclusively borrowed and cannot be used here
+   --> main.kg:328:13
+    |
+328 |     let x = both(&mut s, h) //~ ERROR `s` is exclusively borrowed and cannot be used here
+    |             ^^^^^^^^^^^^^^
+    = help: end the borrow first or use a copy
+note: `s` is borrowed here
+   --> main.kg:328:18
+    |
+328 |     let x = both(&mut s, h) //~ ERROR `s` is exclusively borrowed and cannot be used here
+    |                  ^^^^^^
+
+error[E2198]: `other` is still borrowed where this body ends, and a task it spawned, which runs there, writes it
+   --> main.kg:333:36
+    |
+333 | async fn spawnedAtBodyEnd() -> Int { //~ ERROR `other` is still borrowed where this body ends
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: await the task before taking the borrow, or end the borrow before the body ends (a `defer` keeps it live)
+note: `other` is borrowed here
+   --> main.kg:337:13
+    |
+337 |     let r = &other
+    |             ^^^^^^
+
+error[E1290]: a borrow of `other` is still live across this `await`
+   --> main.kg:347:13
+    |
+347 |     let n = await tk //~ ERROR a borrow of `other` is still live across this `await` //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:347:13
+    |
+347 |     let n = await tk //~ ERROR a borrow of `other` is still live across this `await` //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:346:13
+    |
+346 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is still borrowed where this body ends, and a task it spawned, which runs there, writes it
+   --> main.kg:351:40
+    |
+351 | async fn spawnedWhileBorrowed() -> Int { //~ ERROR `other` is still borrowed where this body ends
+    |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: await the task before taking the borrow, or end the borrow before the body ends (a `defer` keeps it live)
+note: `other` is borrowed here
+   --> main.kg:354:13
+    |
+354 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:356:14
+    |
+356 |     let tk = task.spawn(work(w)) //~ ERROR `other` is borrowed and cannot be mutated here
+    |              ^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:354:13
+    |
+354 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:364:13
+    |
+364 |         let g = Guard { f: () => { other = "x" } } //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^
+    = help: dropping `g` here runs a `drop` that may call a closure writing `other`; end the borrow before it is dropped
+note: `other` is borrowed here
+   --> main.kg:362:13
+    |
+362 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `a` is passed twice as `&mut`; the callee would get two exclusive borrows of the same value
+   --> main.kg:372:5
+    |
+372 |     two(&mut a, &mut a) //~ ERROR `a` is passed twice as `&mut`
+    |     ^^^^^^^^^^^^^^^^^^
+    = help: end the borrow first or use a copy
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:385:9
+    |
+385 |         v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |         ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:381:23
+    |
+381 |         a.push(V { s: &v })
+    |                       ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:385:9
+    |
+385 |         v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |         ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:400:5
+    |
+400 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:396:30
+    |
+396 |         sk.items.push(V { s: &v })
+    |                              ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:400:5
+    |
+400 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:410:5
+    |
+410 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:409:26
+    |
+409 |     sk.items.push(V { s: &v })
+    |                          ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:410:5
+    |
+410 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `o2` is still borrowed where this body ends, and a task it spawned, which runs there, writes it
+   --> main.kg:414:41
+    |
+414 | async fn spawnThroughCallCycle() -> Int { //~ ERROR `o2` is still borrowed where this body ends
+    |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: await the task before taking the borrow, or end the borrow before the body ends (a `defer` keeps it live)
+note: `o2` is borrowed here
+   --> main.kg:421:14
+    |
+421 |     let r2 = &o2
+    |              ^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:430:13
+    |
+430 |         let fut = holdGuard(Guard { f: () => { other = "x" } }) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^
+    = help: dropping `fut` here runs a `drop` that may call a closure writing `other`; end the borrow before it is dropped
+note: `other` is borrowed here
+   --> main.kg:428:13
+    |
+428 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:440:13
+    |
+440 |         let c = () => { eatGuard(g) } //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^
+    = help: dropping `c` here runs a `drop` that may call a closure writing `other`; end the borrow before it is dropped
+note: `other` is borrowed here
+   --> main.kg:437:13
+    |
+437 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:453:13
+    |
+453 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:451:13
+    |
+451 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:466:13
+    |
+466 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:464:13
+    |
+464 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:478:13
+    |
+478 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:476:13
+    |
+476 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:491:13
+    |
+491 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:489:13
+    |
+489 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:507:13
+    |
+507 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:505:13
+    |
+505 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:523:13
+    |
+523 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:521:13
+    |
+521 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:536:13
+    |
+536 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:534:13
+    |
+534 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:549:13
+    |
+549 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:547:13
+    |
+547 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:563:13
+    |
+563 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:561:13
+    |
+561 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:576:13
+    |
+576 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:574:13
+    |
+574 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:590:13
+    |
+590 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:588:13
+    |
+588 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:603:13
+    |
+603 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:601:13
+    |
+601 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:616:13
+    |
+616 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:614:13
+    |
+614 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:629:13
+    |
+629 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:627:13
+    |
+627 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:645:13
+    |
+645 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:643:13
+    |
+643 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:659:13
+    |
+659 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:657:13
+    |
+657 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:672:13
+    |
+672 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:670:13
+    |
+670 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:694:13
+    |
+694 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:692:13
+    |
+692 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:716:13
+    |
+716 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:714:13
+    |
+714 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:737:13
+    |
+737 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:735:13
+    |
+735 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:750:13
+    |
+750 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:748:13
+    |
+748 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:763:13
+    |
+763 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:761:13
+    |
+761 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:776:13
+    |
+776 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:774:13
+    |
+774 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:789:13
+    |
+789 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:787:13
+    |
+787 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:802:13
+    |
+802 |     let n = ex.runToCompletion(f) //~ ERROR `other` is borrowed and cannot be mutated here
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: this call runs a closure that writes `other`; end the borrow before the call
+note: `other` is borrowed here
+   --> main.kg:800:13
+    |
+800 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:811:5
+    |
+811 |     a[0] = Guard { f: w } //~ ERROR `other` is borrowed and cannot be mutated here
+    |     ^^^
+    = help: this store drops the value it replaces, whose `drop` may call a closure writing `other`; end the borrow before the store
+note: `other` is borrowed here
+   --> main.kg:810:13
+    |
+810 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:820:5
+    |
+820 |     s.g = Guard { f: w } //~ ERROR `other` is borrowed and cannot be mutated here
+    |     ^^^
+    = help: this store drops the value it replaces, whose `drop` may call a closure writing `other`; end the borrow before the store
+note: `other` is borrowed here
+   --> main.kg:819:13
+    |
+819 |     let r = &other
+    |             ^^^^^^
+
+error[E2198]: `o1` is still borrowed where this body ends, and a task it spawned, which runs there, writes it
+   --> main.kg:824:40
+    |
+824 | async fn spawnInCalledClosure() -> Int { //~ ERROR `o1` is still borrowed where this body ends
+    |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: await the task before taking the borrow, or end the borrow before the body ends (a `defer` keeps it live)
+note: `o1` is borrowed here
+   --> main.kg:832:14
+    |
+832 |     let r1 = &o1
+    |              ^^^
+
+error[E2198]: `o1` is still borrowed where this body ends, and a task it spawned, which runs there, writes it
+   --> main.kg:837:41
+    |
+837 | async fn spawnInFnOnceCallback() -> Int { //~ ERROR `o1` is still borrowed where this body ends
+    |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: await the task before taking the borrow, or end the borrow before the body ends (a `defer` keeps it live)
+note: `o1` is borrowed here
+   --> main.kg:844:14
+    |
+844 |     let r1 = &o1
+    |              ^^^
+
+error[E2198]: `o2` is still borrowed where this body ends, and a task it spawned, which runs there, writes it
+   --> main.kg:849:39
+    |
+849 | async fn spawnInCalledRunner() -> Int { //~ ERROR `o2` is still borrowed where this body ends
+    |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: await the task before taking the borrow, or end the borrow before the body ends (a `defer` keeps it live)
+note: `o2` is borrowed here
+   --> main.kg:854:14
+    |
+854 |     let r2 = &o2
+    |              ^^^
+
+error[E2198]: `o2` is still borrowed where this body ends, and a task it spawned, which runs there, writes it
+   --> main.kg:859:38
+    |
+859 | async fn spawnInMapCallback() -> Int { //~ ERROR `o2` is still borrowed where this body ends
+    |                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: await the task before taking the borrow, or end the borrow before the body ends (a `defer` keeps it live)
+note: `o2` is borrowed here
+   --> main.kg:867:14
+    |
+867 |     let r2 = &o2
+    |              ^^^
+

@@ -2,31 +2,22 @@ package mir
 
 import "slices"
 
-// placelessBorrow is the holder of a borrow whose operand is no local's place: a statement's temporary, or a shared cell.
-func (c *borrowCheck) placelessBorrow(in Inst) (*borrowInfo, bool) {
-	if b, ok := c.tempBorrow(in); ok {
-		return b, true
-	}
-	return c.cellBorrow(in)
+// placeCell reports a named local kept in a cell, shared with closures or lent as a scalar `&mut`: the cell is its
+// storage, so it owns a borrow of its content like any local.
+func (c *borrowCheck) placeCell(l LocalID) bool {
+	loc := c.f.Locals[l]
+	return loc.Ent != 0 && loc.Cell && !loc.Borrowed
 }
 
-// cellBorrow makes `&v` of a local shared with closures through a cell a holder of that cell,
-// so storing it is checked like any borrow of a local.
-func (c *borrowCheck) cellBorrow(in Inst) (*borrowInfo, bool) {
-	d := c.definition(in.Args[0])
-	if d == nil || d.Op != OpCellGet {
-		return nil, false
-	}
-	if cell := c.f.Locals[d.Args[0]]; cell.Ent == 0 || cell.Borrowed {
-		return nil, false
-	}
-	return &borrowInfo{owners: []ownerRef{{owner: d.Args[0], mut: in.Index == 1, exact: true, cell: true}}, hasOwner: true, node: in.Node}, true
+// paramCell reports a cell this body received from its caller: a closure's capture or a `mut self` receiver.
+func (c *borrowCheck) paramCell(l LocalID) bool {
+	return c.f.Locals[l].Cell && slices.Contains(c.f.Params, l)
 }
 
 // callerCells reports a holder that only borrows cells a closure captured: the frame that owns them
 // tracks what the closure returns, so only storing such a borrow is checked here.
 func (c *borrowCheck) callerCells(b *borrowInfo) bool {
 	return len(b.owners) > 0 && !slices.ContainsFunc(b.owners, func(o ownerRef) bool {
-		return !o.cell || !slices.Contains(c.f.Params, o.owner)
+		return !c.placeCell(o.owner) || !slices.Contains(c.f.Params, o.owner)
 	})
 }

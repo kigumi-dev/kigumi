@@ -114,15 +114,19 @@ func (c *borrowCheck) releaseOnly(l LocalID) bool {
 	})
 }
 
-// typeHolds reports whether t or a type it can keep inside (a type argument, an element,
-// or a field or payload of a named type) satisfies hit.
+// typeHolds reports whether t or a type it can keep inside (a type argument, an element, or a field or payload of a
+// named type, with the type's arguments put in) satisfies hit; past a bound on the types visited it says yes.
 func (c *borrowCheck) typeHolds(t sem.TypeID, hit func(sem.TypeID) bool) bool {
-	seen := map[sem.EntityID]bool{}
+	seen := map[sem.TypeID]bool{}
 	var walk func(sem.TypeID) bool
 	walk = func(t sem.TypeID) bool {
-		if t == 0 {
+		if t == 0 || seen[t] {
 			return false
 		}
+		if len(seen) > 512 {
+			return true
+		}
+		seen[t] = true
 		if hit(t) {
 			return true
 		}
@@ -135,25 +139,31 @@ func (c *borrowCheck) typeHolds(t sem.TypeID, hit func(sem.TypeID) bool) bool {
 				return true
 			}
 		}
-		if n.Kind != sem.KNamed || seen[n.Ent] || c.p.R.Entity(n.Ent).Kind != sem.EntType {
+		if n.Kind != sem.KNamed || c.p.R.Entity(n.Ent).Kind != sem.EntType {
 			return false
 		}
-		seen[n.Ent] = true
 		d := c.p.R.TypeDecl(n.Ent)
 		if d == nil {
 			return false
 		}
-		if walk(d.Underlying) {
+		sub := map[sem.EntityID]sem.TypeID{}
+		for i, p := range d.Params {
+			if i < len(n.Args) {
+				sub[p] = n.Args[i]
+			}
+		}
+		in := func(t sem.TypeID) bool { return walk(c.p.R.Types.Subst(t, sub)) }
+		if in(d.Underlying) {
 			return true
 		}
 		for _, f := range d.Fields {
-			if walk(c.p.R.Entity(f).Type) {
+			if in(c.p.R.Entity(f).Type) {
 				return true
 			}
 		}
 		for _, v := range d.Variants {
 			for _, pt := range c.p.R.Variant(v).Payload {
-				if walk(pt) {
+				if in(pt) {
 					return true
 				}
 			}

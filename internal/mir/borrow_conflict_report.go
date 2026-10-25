@@ -4,12 +4,25 @@ import "slices"
 
 // reportTouch reports in touching o.owner while holder still borrows it.
 func (c *borrowCheck) reportTouch(in Inst, holder LocalID, b *borrowInfo, o ownerRef) {
-	moves := in.Op == OpMove || in.Op == OpDrop || in.Op == OpFieldMove || c.takesPayload(in)
+	moves := in.Op == OpMove || in.Op == OpDrop || in.Op == OpFieldMove || in.Op == OpCellTake || c.takesPayload(in)
 	passes := c.passesMutRef(in, o.owner)
+	_, runs := c.cellRunHit(in, o)
 	mutates := moves || (in.Op == OpBorrow && in.Index == 1) ||
-		in.Op == OpSetField || in.Op == OpSetIndex || in.Op == OpCellSet || passes
+		in.Op == OpSetField || in.Op == OpSetIndex || in.Op == OpCellSet || passes || runs
 	name := c.f.Locals[o.owner].Name
 	switch {
+	case runs && c.replacesDropping(in) && !c.touchesDirect(in, o.owner):
+		c.reportHelped(in.Node, o.owner, "borrow-conflict", "`"+name+"` is borrowed and cannot be mutated here", o.at(b), "`"+name+"` is borrowed here",
+			"this store drops the value it replaces, whose `drop` may call a closure writing `"+name+"`; end the borrow before the store")
+	case runs && in.Op == OpDrop && in.Args[0] != o.owner:
+		dropped := c.f.Locals[in.Args[0]].Name
+		if dropped == "" {
+			dropped = "a value"
+		} else {
+			dropped = "`" + dropped + "`"
+		}
+		c.reportHelped(in.Node, o.owner, "borrow-conflict", "`"+name+"` is borrowed and cannot be mutated here", o.at(b), "`"+name+"` is borrowed here",
+			"dropping "+dropped+" here runs a `drop` that may call a closure writing `"+name+"`; end the borrow before it is dropped")
 	case c.tempScopeEnd(in, holder, b, o):
 	case in.Op == OpDrop && in.EndScope:
 		c.report(in.Node, o.owner, "move-while-borrowed", "`"+name+"` is still borrowed when its scope ends here")
@@ -17,6 +30,12 @@ func (c *borrowCheck) reportTouch(in Inst, holder LocalID, b *borrowInfo, o owne
 		c.report(c.takeNode(in), o.owner, "move-while-borrowed", "`"+name+"` is borrowed and cannot be moved or dropped here")
 	case o.mut:
 		c.reportNoted(in.Node, o.owner, "borrow-conflict", "`"+name+"` is exclusively borrowed and cannot be used here", o.at(b), "`"+name+"` is borrowed here")
+	case runs && taskClose(in):
+		c.reportHelped(in.Node, o.owner, "borrow-conflict", "`"+name+"` is still borrowed where this body ends, and a task it spawned, which runs there, writes it", o.at(b), "`"+name+"` is borrowed here",
+			"await the task before taking the borrow, or end the borrow before the body ends (a `defer` keeps it live)")
+	case runs:
+		c.reportHelped(in.Node, o.owner, "borrow-conflict", "`"+name+"` is borrowed and cannot be mutated here", o.at(b), "`"+name+"` is borrowed here",
+			"this call runs a closure that writes `"+name+"`; end the borrow before the call")
 	case passes:
 		c.reportHelped(in.Node, o.owner, "borrow-conflict", "`"+name+"` is borrowed and cannot be mutated here", o.at(b),
 			"`"+name+"` is borrowed here, and the `&mut` argument may write through it",
@@ -47,4 +66,9 @@ func (c *borrowCheck) onlyDropped(l LocalID) bool {
 		}
 	}
 	return true
+}
+
+func (c *borrowCheck) touchesDirect(in Inst, owner LocalID) bool {
+	touched, _, _ := c.touch(in, owner)
+	return touched
 }

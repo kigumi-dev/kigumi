@@ -5485,6 +5485,23 @@
       ]
     },
     {
+      "id": "run/cell_local_borrow",
+      "kind": "run",
+      "path": "testdata/run/cell_local_borrow.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/cfn_extern_block_value",
       "kind": "run",
       "path": "testdata/run/cfn_extern_block_value.txtar",
@@ -18494,6 +18511,28 @@
       "id": "sem/capture_kept_shared",
       "kind": "sem",
       "path": "testdata/sem/capture_kept_shared.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/cell_capture_outside_write",
+      "kind": "sem",
+      "path": "testdata/sem/cell_capture_outside_write.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/cell_local_borrow_err",
+      "kind": "sem",
+      "path": "testdata/sem/cell_local_borrow_err.txtar",
       "mode": [
         "check"
       ],

@@ -1,0 +1,186 @@
+-- src --
+fn call[F: Fn[fn() -> usize]](f: F) -> usize { f() }
+fn callVoid[F: Fn[fn() -> Void]](f: F) { f() }
+fn callInt[F: Fn[fn() -> Int]](f: F) -> Int { f() }
+fn setS(s: &mut String, v: String) { s = v }
+
+fn readerAfterMutIsFnMut() -> usize {
+    let mut s = "abc"
+    let g = () => s.len()
+    setS(&mut s, "z")
+    call(g) //~ ERROR the closure shares `s` through a cell, since it is written outside the closure
+}
+
+fn readerAfterAssignIsFnMut() -> usize {
+    let mut s = "abc"
+    let g = () => s.len()
+    s = "zz"
+    call(g) //~ ERROR the closure shares `s` through a cell, since it is written outside the closure
+}
+
+fn runsCapturedWriter() {
+    let mut s = "abc"
+    let w = () => { s = "w" }
+    let g = () => { w() }
+    callVoid(g) //~ ERROR the closure captures `w`, which is `FnMut`
+}
+
+fn loopImmediateReaderStaysCopy() -> Int {
+    let xs: Array[Int] = Array.of(1, 2, 3)
+    let mut best = 0
+    let mut total = 0
+    for x in &xs {
+        best = best + x
+        let ys = xs.filter((y: &Int) => y > best)
+        total = total + (ys.len().toInt() || 0)
+    }
+    total
+}
+
+fn writerIsNotFn() -> usize {
+    let mut s = "abc"
+    let g = () => {
+        s = "w"
+        s.len()
+    }
+    call(g) //~ ERROR the closure assigns `s`
+}
+
+fn erasedAfterOutsideWrite() -> usize {
+    let mut s = "abc"
+    let g = () => s.len()
+    setS(&mut s, "z")
+    let h: fn() -> usize = g //~ ERROR written outside this closure
+    h()
+}
+
+fn erasedInLoop() {
+    let mut other = "init"
+    let mut hs: Array[fn() -> String] = Array.of()
+    for i in 0..2 {
+        setS(&mut other, "v${i}")
+        let g = () => other
+        hs.push(g) //~ ERROR written outside this closure
+    }
+}
+
+fn loopLocalStaysCopy() -> Int {
+    let mut hs: Array[fn() -> Int] = Array.empty()
+    for i in 0..3 {
+        let mut t = i
+        t = t + 10
+        hs.push(() => t)
+    }
+    hs.len().toInt() || 0
+}
+
+fn inlineRunsFnMutCallable() -> usize {
+    let mut count = 0
+    let inc = () => { count = count + 1 }
+    let xs = Array.of(1, 2, 3)
+    let ys = xs.map((x: &Int) => {
+        inc()
+        x + 1
+    })
+    ys.len()
+}
+
+fn namedRunsFnMutCallable() -> Int {
+    let mut k = 1
+    let g = () => k
+    let h = () => g() + 1
+    k = 5
+    let f: fn() -> Int = h //~ ERROR closure captures `g` (a callable that is `FnMut`)
+    f()
+}
+
+fn namedLoopReaderIsFnMut() -> Int {
+    let mut best = 1
+    let mut out = 0
+    for i in 0..3 {
+        best = best + 10
+        let g = () => best
+        out = out + callInt(g) //~ ERROR the closure shares `best` through a cell
+    }
+    out
+}
+
+fn inlineReadsSharedCell() -> Int {
+    let mut count = 0
+    let inc = () => { count = count + 1 }
+    inc()
+    let xs = Array.of(1, 2, 3)
+    let ys = xs.map((x: &Int) => x + count)
+    ys[0]
+}
+
+fn inlineAssignsSharedCell() -> usize {
+    let mut count = 0
+    let inc = () => { count = count + 1 }
+    let xs = Array.of(1, 2, 3)
+    let ys = xs.map((x: &Int) => { //~ ERROR closure captures `count` (assigned inside the closure)
+        count = count + 1
+        x + 0
+    })
+    inc()
+    ys.len()
+}
+-- expect --
+error[E300]: `closure fn() -> usize` does not satisfy `Fn[fn() -> usize]`: the closure shares `s` through a cell, since it is written outside the closure; it is `FnMut`
+  --> main/main.kg:10:5
+   |
+10 |     call(g) //~ ERROR the closure shares `s` through a cell, since it is written outside the closure
+   |     ^^^^^^
+
+error[E300]: `closure fn() -> usize` does not satisfy `Fn[fn() -> usize]`: the closure shares `s` through a cell, since it is written outside the closure; it is `FnMut`
+  --> main/main.kg:17:5
+   |
+17 |     call(g) //~ ERROR the closure shares `s` through a cell, since it is written outside the closure
+   |     ^^^^^^
+
+error[E300]: `closure fn() -> Void` does not satisfy `Fn[fn() -> Void]`: the closure captures `w`, which is `FnMut`; it is `FnMut` too
+  --> main/main.kg:24:5
+   |
+24 |     callVoid(g) //~ ERROR the closure captures `w`, which is `FnMut`
+   |     ^^^^^^^^^^
+
+error[E300]: `closure fn() -> usize` does not satisfy `Fn[fn() -> usize]`: the closure assigns `s`; it is `FnMut`
+  --> main/main.kg:45:5
+   |
+45 |     call(g) //~ ERROR the closure assigns `s`
+   |     ^^^^^^
+
+error[E413]: closure captures `s` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+  --> main/main.kg:52:28
+   |
+52 |     let h: fn() -> usize = g //~ ERROR written outside this closure
+   |                            ^
+   = help: a plain `fn` cannot share a captured variable's cell; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+
+error[E413]: closure captures `other` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+  --> main/main.kg:62:17
+   |
+62 |         hs.push(g) //~ ERROR written outside this closure
+   |                 ^
+   = help: a plain `fn` cannot share a captured variable's cell; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+
+error[E413]: closure captures `g` (a callable that is `FnMut`) and cannot be a plain `fn`
+  --> main/main.kg:92:26
+   |
+92 |     let f: fn() -> Int = h //~ ERROR closure captures `g` (a callable that is `FnMut`)
+   |                          ^
+   = help: a plain `fn` cannot run the captured `FnMut` callable `g`; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+
+error[E300]: `closure fn() -> Int` does not satisfy `Fn[fn() -> Int]`: the closure shares `best` through a cell, since it is written outside the closure; it is `FnMut`
+   --> main/main.kg:102:21
+    |
+102 |         out = out + callInt(g) //~ ERROR the closure shares `best` through a cell
+    |                     ^^^^^^^^^
+
+error[E413]: closure captures `count` (assigned inside the closure) and cannot be a plain `fn`
+   --> main/main.kg:120:21
+    |
+120 |     let ys = xs.map((x: &Int) => { //~ ERROR closure captures `count` (assigned inside the closure)
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: a plain `fn` cannot assign a captured variable; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+

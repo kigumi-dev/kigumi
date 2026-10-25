@@ -61,3 +61,20 @@ func (c *checker) plainFnHelp(want TypeID, moveOnly bool) string {
 	}
 	return "a plain `fn` cannot assign a captured variable; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`"
 }
+
+// cellFnHelp is plainFnHelp for a closure capturing ent through a cell, worded for one that only reads it (still `FnMut`).
+func (c *checker) cellFnHelp(want TypeID, closure, ent EntityID) string {
+	h := c.plainFnHelp(want, false)
+	if lentReceiver(c.r.Entity(ent)) || c.closureWrites(closure, ent) || c.returnedClosureHelp(want, false) != "" {
+		return h
+	}
+	return "a plain `fn` cannot share a captured variable's cell; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`"
+}
+
+// fnMutCallableHelp is plainFnHelp for a closure that runs a captured `FnMut` callable named name.
+func (c *checker) fnMutCallableHelp(want TypeID, name string) string {
+	if h := c.returnedClosureHelp(want, false); h != "" {
+		return h
+	}
+	return "a plain `fn` cannot run the captured `FnMut` callable `" + name + "`; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`"
+}

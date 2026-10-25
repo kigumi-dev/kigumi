@@ -36,7 +36,7 @@ func (c *borrowCheck) throughRef(root LocalID, path []int, exact, mut bool) *bor
 		if o.exact && !cut {
 			p = append(p, path...)
 		}
-		out.owners = append(out.owners, ownerRef{owner: o.owner, mut: mut, path: p, exact: o.exact && exact && !cut, lifetime: o.lifetime, cell: o.cell})
+		out.owners = append(out.owners, ownerRef{owner: o.owner, mut: mut, path: p, exact: o.exact && exact && !cut, lifetime: o.lifetime})
 	}
 	if len(out.owners) == 0 {
 		return nil
@@ -81,7 +81,7 @@ func (c *borrowCheck) walkPlace(l LocalID, throughBorrow bool) (root LocalID, pa
 			path, exact = nil, false
 			l = in.Args[0]
 		case OpCellGet:
-			if !c.f.Locals[in.Args[0]].Borrowed {
+			if !c.f.Locals[in.Args[0]].Borrowed && !c.placeCell(in.Args[0]) {
 				return 0, nil, false, false
 			}
 			l = in.Args[0]

@@ -27,6 +27,9 @@ type heldMuts struct {
 	reborrows map[syntax.NodeID]bool
 	// wantRead: the next synth reads through a reference, so a `&mut` field is not taken.
 	wantRead bool
+
+	// localWrites lists where each local is written (assignment, `&mut`, `mut self` call), for captures in a loop.
+	localWrites map[EntityID][]syntax.NodeID
 }
 
 type mutHolder struct {

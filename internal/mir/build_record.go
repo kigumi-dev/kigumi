@@ -81,6 +81,9 @@ func (b *builder) lambda(e *hir.Expr) LocalID {
 		id := b.local(cap.Ent)
 		t := b.fn.Locals[id].Type
 		switch {
+		// A scalar kept in a cell for its `&mut` but captured by copy hands the closure the value it holds now.
+		case b.fn.Locals[id].Cell && !cap.Cell && !cap.Move && b.r.IsCopy(t):
+			caps = append(caps, b.emit(Inst{Op: OpCellGet, Dst: b.temp(t), Args: []LocalID{id}, Node: e.Node}))
 		case b.fn.Locals[id].Cell || cap.Cell && !cap.Move:
 			caps = append(caps, id)
 		case cap.Cell:

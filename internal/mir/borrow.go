@@ -23,8 +23,6 @@ type ownerRef struct {
 	lifetime sem.EntityID
 	// temp marks a borrow of a call's result temporary, which lives only to the statement's end.
 	temp bool
-	// cell marks a borrow of a closure-shared local's cell; sem judges its conflicts with the closures.
-	cell bool
 	// caller marks a borrow of a writable caller place, kept only to conflict with this body's writes.
 	caller bool
 	// node is where a store put this borrow into its holder, 0 for the holder's own node.
@@ -99,6 +97,8 @@ type borrowCheck struct {
 	reborrows   []reborrowSite
 	unions      []unionSite
 	mixed       map[syntax.NodeID]LocalID
+
+	cellState
 }
 
 func analyzeBorrows(p *Program, f *Func) {
@@ -169,6 +169,7 @@ func (c *borrowCheck) checkInst(in Inst, liveAfter, realAfter map[LocalID]bool) 
 	c.checkViewReuse(in, liveAfter)
 	c.checkViewSpawn(in)
 	c.checkSuspend(in, liveAfter)
+	c.checkCellRunArgs(in, liveAfter)
 	// A receiver cell's write-back releases the place's old value; the
 	// exclusive borrow the call took of that place already reported.
 	if in.Op == OpDrop && in.Scoped || in.Op == OpNop {
@@ -181,10 +182,13 @@ func (c *borrowCheck) checkInst(in Inst, liveAfter, realAfter map[LocalID]bool) 
 			continue
 		}
 		for _, o := range b.owners {
-			if o.view || o.cell || o.through && in.Op == OpDrop && in.EndScope || !c.mayBeBorrowed(o.owner, c.curIdx) || o.carried && !c.carryReaches(holder, o.owner, c.curIdx) || o.tied && !c.tieReaches(holder, o.owner, c.curIdx) || !c.resetReaches(holder, o.owner, c.curIdx) {
+			if o.view || o.through && in.Op == OpDrop && in.EndScope || !c.ownerMayBeHeld(holder, o.owner) || o.carried && !c.carryReaches(holder, o.owner, c.curIdx) || o.tied && !c.tieReaches(holder, o.owner, c.curIdx) || !c.resetReaches(holder, o.owner, c.curIdx) {
 				continue
 			}
 			touched, path, _ := c.touch(in, o.owner)
+			if hit, _ := c.cellRunHit(in, o); !touched && hit {
+				touched, path = true, o.path
+			}
 			if !touched || !fieldPathsOverlap(path, o.path) {
 				continue
 			}

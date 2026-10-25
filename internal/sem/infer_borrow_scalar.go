@@ -39,14 +39,14 @@ func (c *checker) noteScalarBorrow(n, inner syntax.NodeID, refT TypeID) {
 	b := scalarBorrow{inner: inner, ref: refT, arg: c.argPlace[n], async: c.argAsyncPlace[n]}
 	switch c.mutRefShape(refT) {
 	case refScalar:
-		c.markScalarBorrow(b, c.noteCaptureWrite)
+		c.markScalarBorrow(b, nil)
 	case refOpen:
 		c.openBorrows = append(c.openBorrows, b)
 	}
 }
 
-// settleBorrows decides the borrows a boundary settled; a lambda that captured
-// the local already saw the write at the borrow, which may sit in a closed lambda.
+// settleBorrows decides the borrows a boundary settled; the write itself was noted at
+// the borrow, but sharing the cell with capturing closures waited for the scalar type.
 func (c *checker) settleBorrows() {
 	kept := c.openBorrows[:0]
 	for _, b := range c.openBorrows {
@@ -54,7 +54,7 @@ func (c *checker) settleBorrows() {
 		case refOpen:
 			kept = append(kept, b)
 		case refScalar:
-			c.markScalarBorrow(b, c.promoteCaptures)
+			c.markScalarBorrow(b, c.settledCaptureWrite)
 		}
 	}
 	c.openBorrows = kept
@@ -67,11 +67,21 @@ func (c *checker) markScalarBorrow(b scalarBorrow, written func(syntax.NodeID, E
 		// `.value` through a reference reaches the referent's own cell; the local is not the storage.
 	case ok:
 		c.r.Entities[ent].Flags |= EfAddrTaken
-		written(b.inner, ent)
+		if written != nil {
+			written(b.inner, ent)
+		}
 	case c.indexAssignUnsupported(b.inner) || !c.isMutablePlace(b.inner):
 	case b.async:
 		c.errAt(b.inner, cMutPlaceAsyncArg)
 	case !b.arg:
 		c.errAt(b.inner, cMutPlaceEscape)
 	}
+}
+
+func (c *checker) settledCaptureWrite(n syntax.NodeID, ent EntityID) {
+	if c.capturedHere(ent) {
+		c.promoteCaptures(n, ent)
+		return
+	}
+	c.shareOutsideWrite(n, ent)
 }

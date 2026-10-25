@@ -48,6 +48,10 @@ fn viaMut[F: FnMut[fn() -> Void]](w: &mut W, mut f: F) -> Int {
     runs(w.nm, f)
 }
 
+fn viaLent(w: &mut W) -> Int {
+    runs(w.nm, () => { w.nm.n = 4 })
+}
+
 fn viaRef(x: Named, w: &mut W) -> Int {
     w.nm.n = 9
     x.n
@@ -115,10 +119,13 @@ fn nestedCaptures() {
 
 fn wrapped() {
     let mut a = mkw()
-    let r = viaShared(&a, () => { a.nm.n = 4 })
+    let mut c = mkw()
+    let r = viaShared(&a, () => { c.nm.n = 4 })
     let mut b = mkw()
     let r2 = viaMut(&mut b, () => { a.nm.n = 6 })
-    print "wrapped ${r} ${a.nm.n} ${r2} ${b.nm.n}"
+    let mut d = mkw()
+    let r3 = viaLent(&mut d)
+    print "wrapped ${r} ${a.nm.n} ${r2} ${b.nm.n} ${c.nm.n} ${r3} ${d.nm.n}"
 }
 
 fn handOver() {
@@ -162,6 +169,6 @@ fn main() -> Void! {
 -- stdout --
 captures 1 9 1 8 1 9 1 9 1 2 7
 nestedCaptures 1 31 105 1 21
-wrapped 1 6 1 1
+wrapped 1 6 1 1 4 1 4
 handOver b 50 a 60 70 3 5 8
 lastUse 40 1 1 1 2 3 9

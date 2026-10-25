@@ -83,6 +83,9 @@ func (c *borrowCheck) storeRoot(fl storeFlow) (root LocalID, place sem.TypeID, c
 			l = in.Args[0]
 		}
 	}
+	if refs := c.storedReferents(l); len(refs) > 0 {
+		l = refs[0].owner
+	}
 	if c.p.R.Types.Kind(place) == sem.KRef {
 		place = c.p.R.Types.Node(place).Elem
 	}
@@ -122,21 +125,27 @@ func (c *borrowCheck) collectFlows(in Inst) {
 func (c *borrowCheck) collectFlow(fl storeFlow, in Inst) {
 	c.callNode = in.Node
 	root, _, caller, ok := c.storeRoot(fl)
-	if !ok || caller || !c.targets[root] {
+	if !ok || caller {
 		return
 	}
-	for _, v := range fl.values {
-		if b, ok := c.storedInfo(fl, v, false); ok {
-			if v.tie != tieNone {
-				b = c.tiedAt(fl.target, root, b)
-			} else if idx, ok := c.tieSite(fl.target, root); ok {
-				c.retie(root, idx, v.arg, b)
-			} else {
-				b = untied(b)
-			}
-			c.merge(c.sink(root, in.Node), storedAt(b))
-			if c.replacesHolder(in, root) {
-				c.noteResetSite(root, b)
+	for _, r := range append([]LocalID{root}, c.otherReferents(fl)...) {
+		// A store through a `&mut` read out of a stored value finds its root only once holders are known.
+		if !c.targets[r] {
+			c.targets[r], c.grew = true, true
+		}
+		for _, v := range fl.values {
+			if b, ok := c.storedInfo(fl, v, false); ok {
+				if v.tie != tieNone {
+					b = c.tiedAt(fl.target, r, b)
+				} else if idx, ok := c.tieSite(fl.target, r); ok {
+					c.retie(r, idx, v.arg, b)
+				} else {
+					b = untied(b)
+				}
+				c.merge(c.sink(r, in.Node), storedAt(b))
+				if c.replacesHolder(in, r) {
+					c.noteResetSite(r, b)
+				}
 			}
 		}
 	}

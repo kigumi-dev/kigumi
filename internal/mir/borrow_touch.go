@@ -36,10 +36,10 @@ func (c *borrowCheck) touch(in Inst, owner LocalID) (touched bool, path []int, e
 			return true, p, ex
 		}
 		return touchesLocal(in, owner), nil, true
-	// Reading a lent receiver's write-back cell stands for the receiver
-	// itself, so a field chain through it resolves like a plain one.
+	// Reading a lent receiver's write-back cell, or the cell a local lives in, stands for the
+	// local itself, so a field chain through it resolves like a plain one.
 	case OpCellGet:
-		if !c.f.Locals[in.Args[0]].Borrowed {
+		if !c.f.Locals[in.Args[0]].Borrowed && !c.placeCell(in.Args[0]) {
 			return in.Dst == owner || in.Args[0] == owner, nil, true
 		}
 		if c.chainedOnly(in.Dst) {
@@ -49,6 +49,12 @@ func (c *borrowCheck) touch(in Inst, owner LocalID) (touched bool, path []int, e
 			return true, p, ex
 		}
 		return false, nil, true
+	// A closure literal shares a cell it captures without reading it; running the closure is the touch (cellRunHit).
+	case OpClosure:
+		return touchesLocal(in, owner) && !c.f.Locals[owner].Cell, nil, true
+	// Dropping a cell the caller handed in releases only this body's handle; the frame owning the cell keeps the content.
+	case OpDrop:
+		return in.Args[0] == owner && !c.paramCell(owner), nil, true
 	case OpCopy:
 		if c.takesPayload(in) && c.f.Locals[in.Args[0]].Ent != 0 {
 			if in.Args[0] == owner {

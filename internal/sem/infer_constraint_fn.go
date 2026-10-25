@@ -1,5 +1,7 @@
 package sem
 
+import "slices"
+
 func (c *checker) fnUnsatisfied(arg TypeID, con Constraint) string {
 	tt := c.r.Types
 	switch tt.Kind(arg) {
@@ -20,14 +22,7 @@ func (c *checker) fnUnsatisfied(arg TypeID, con Constraint) string {
 			return "the closure consumes `" + info.Once + "`; it is `FnOnce`"
 		}
 		if con.Kind == CFn {
-			for _, cap := range info.Captures {
-				if cap.Mode == capCell {
-					if lentReceiver(&c.r.Entities[cap.Local]) {
-						return "the closure captures the lent receiver `" + c.r.Entities[cap.Local].Name + "`"
-					}
-					return "the closure assigns `" + c.r.Entities[cap.Local].Name + "`; it is `FnMut`"
-				}
-			}
+			return c.fnMutWhy(tt.Node(arg).Ent, map[EntityID]bool{})
 		}
 		return ""
 	case KParam:
@@ -79,4 +74,61 @@ func (c *checker) paramEscapes(fn TypeID, i int) bool {
 		return false
 	}
 	return tt.FnParamEscapes(fn, i) || tt.FnIsEscaping(c.vars.resolve(n.Args[i]))
+}
+
+// fnMutWhy says why closure is at most `FnMut`, "" when it is `Fn`: it captures a cell (written inside it or
+// outside it), or a closure or callable parameter that is itself `FnMut`, which running it runs.
+func (c *checker) fnMutWhy(closure EntityID, seen map[EntityID]bool) string {
+	if seen[closure] {
+		return ""
+	}
+	seen[closure] = true
+	for _, cap := range c.r.closure(closure).Captures {
+		name := c.r.Entities[cap.Local].Name
+		switch {
+		case cap.Mode == capCell && lentReceiver(&c.r.Entities[cap.Local]):
+			return "the closure captures the lent receiver `" + name + "`"
+		case cap.Mode == capCell && c.closureWrites(closure, cap.Local):
+			return "the closure assigns `" + name + "`; it is `FnMut`"
+		case cap.Mode == capCell:
+			return "the closure shares `" + name + "` through a cell, since it is written outside the closure; it is `FnMut`"
+		case c.callsFnMut(c.r.Entities[cap.Local].Type, seen):
+			return "the closure captures `" + name + "`, which is `FnMut`; it is `FnMut` too"
+		}
+	}
+	return ""
+}
+
+// callsFnMut reports a captured callable that is at most `FnMut`: a closure that is, or a parameter bound `FnMut`;
+// one bound only `FnOnce` cannot be called from a closure at all, which is reported where it is called.
+func (c *checker) callsFnMut(t TypeID, seen map[EntityID]bool) bool {
+	n := c.r.Types.Node(c.vars.resolve(t))
+	switch n.Kind {
+	case KClosure:
+		return n.Ent != 0 && c.r.Entities[n.Ent].Kind == EntClosure && c.fnMutWhy(n.Ent, seen) != ""
+	case KParam:
+		mut := false
+		for _, con := range c.r.typeParam(n.Ent).Constraints {
+			if con.Kind == CFn || con.Kind == CFnOnce {
+				return false
+			}
+			mut = mut || con.Kind == CFnMut
+		}
+		return mut
+	}
+	return false
+}
+
+func (c *checker) cellCaptureWhy(closure, ent EntityID) string {
+	switch {
+	case lentReceiver(&c.r.Entities[ent]):
+		return "a receiver lent by the caller"
+	case c.closureWrites(closure, ent):
+		return "assigned inside the closure"
+	}
+	return "written outside this closure, so the closure shares it through a cell"
+}
+
+func (c *checker) closureWrites(closure, ent EntityID) bool {
+	return slices.Contains(c.held.closureWrites[closure], ent)
 }

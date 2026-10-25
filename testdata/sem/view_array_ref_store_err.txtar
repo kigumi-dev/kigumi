@@ -52,12 +52,14 @@ fn mutated() -> Int {
 
 fn pick['a](d: &'a mut Array[View['a]]) -> &'a mut Array[View['a]] { d }
 
-fn viaCall() -> usize {
-    let a = Array.of(1, 2, 3)
-    let mut o = Array.of(View { data: &a, off: 0 })
+fn viaCall() -> Int {
+    let mut a = Array.of(1, 2, 3)
+    let b = Array.of(5)
+    let mut o = Array.of(View { data: &b, off: 0 })
     let r = pick(&mut o)
     r.push(View { data: &a, off: 1 })
-    0
+    a = Array.of(9)
+    o[1].at()
 }
 
 let n = viaCall()
@@ -104,9 +106,21 @@ error[move-from-borrow]: `d` is borrowed by this method and cannot be moved out;
 50 | fn pick['a](d: &'a mut Array[View['a]]) -> &'a mut Array[View['a]] { d }
    |                                                                      ^
 
-error[E2160]: a borrow cannot be stored into `Array[View['a]]` behind `r`: the checker does not track where its contents borrow from; it follows writes only into an array, fixed array, map, record or variant held in a local, a `&mut` parameter, or a reference bound once to one of those, so write through that local or store a value it can own
-  --> main.kg:56:5
+error[E2198]: `a` is borrowed and cannot be mutated here
+  --> main.kg:58:5
    |
-56 |     r.push(View { data: &a, off: 1 })
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+58 |     a = Array.of(9)
+   |     ^
+   = help: end the borrow first or use a copy
+note: `a` is borrowed here
+  --> main.kg:57:25
+   |
+57 |     r.push(View { data: &a, off: 1 })
+   |                         ^^
+
+error[move-while-borrowed]: `a` is borrowed and cannot be moved or dropped here
+  --> main.kg:58:5
+   |
+58 |     a = Array.of(9)
+   |     ^
 

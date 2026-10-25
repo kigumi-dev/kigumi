@@ -339,7 +339,7 @@ error[E2198]: `x` is exclusively borrowed and cannot be used here
   --> main.kg:61:5
    |
 61 |     x.id = 50 //~ ERROR `x` is exclusively borrowed
-   |     ^
+   |     ^^^^
    = help: end the borrow first or use a copy
 note: `x` is borrowed here
   --> main.kg:60:21

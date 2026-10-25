@@ -129,7 +129,7 @@ func (p *Program) canBeCell(f *Func, l LocalID, seen map[LocalID]bool) bool {
 	return !defined
 }
 
-func (p *Program) cellContent(f *Func, l LocalID, seen map[LocalID]bool) []sem.TypeID {
+func (p *Program) cellContent(f *Func, defs cellDefs, l LocalID, seen map[LocalID]bool) []sem.TypeID {
 	if seen[l] {
 		return nil
 	}
@@ -148,32 +148,27 @@ func (p *Program) cellContent(f *Func, l LocalID, seen map[LocalID]bool) []sem.T
 		return nil
 	}
 	var found []sem.TypeID
-	for _, blk := range f.Blocks {
-		for _, in := range blk.Insts {
-			if !in.Op.Yields() || in.Dst != l {
-				continue
+	for _, in := range defs[l] {
+		var c []sem.TypeID
+		switch in.Op {
+		case OpNewCell:
+			c = []sem.TypeID{t}
+			if tt.Kind(t) == sem.KRef {
+				c = append(c, tt.Node(t).Elem)
 			}
-			var c []sem.TypeID
-			switch in.Op {
-			case OpNewCell:
-				c = []sem.TypeID{t}
-				if tt.Kind(t) == sem.KRef {
-					c = append(c, tt.Node(t).Elem)
-				}
-			case OpAlias, OpShare, OpCopy, OpMove, OpBorrow:
-				c = p.cellContent(f, in.Args[0], seen)
-			}
-			if len(c) == 0 {
-				return nil
-			}
-			found = append(found, c...)
+		case OpAlias, OpShare, OpCopy, OpMove, OpBorrow:
+			c = p.cellContent(f, defs, in.Args[0], seen)
 		}
+		if len(c) == 0 {
+			return nil
+		}
+		found = append(found, c...)
 	}
 	return found
 }
 
-func (p *Program) cellFits(f *Func, l LocalID, v sem.TypeID) (bool, sem.TypeID) {
-	content := p.cellContent(f, l, map[LocalID]bool{})
+func (p *Program) cellFits(f *Func, defs cellDefs, l LocalID, v sem.TypeID) (bool, sem.TypeID) {
+	content := p.cellContent(f, defs, l, map[LocalID]bool{})
 	for _, c := range content {
 		if p.fits(c, v) {
 			return true, 0

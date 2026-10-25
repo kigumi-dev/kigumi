@@ -35,8 +35,11 @@ func (p *Program) build(hf *hir.Func) *Func {
 		// without EfMove marks it, since a closure's Func has no hf.Self to read.
 		e := b.r.Entity(d.Ent).Flags
 		f.Locals[id].Borrowed = e&sem.EfSelf != 0 && e&sem.EfMove == 0
+		// A copyable local kept in a cell for its own `&mut` but captured by copy arrives as a plain value (lambda).
 		if b.r.IsMutSelf(d.Ent) || d.Cell {
 			f.Locals[id].Cell = true
+		} else if !d.Move && b.r.IsCopy(d.Type) {
+			f.Locals[id].Cell = false
 		}
 	}
 	for _, decls := range [][]*hir.LocalDecl{hf.Params, hf.Witness, hf.Const} {

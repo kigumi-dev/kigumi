@@ -45,10 +45,11 @@ func (c *checker) noteCapture(n syntax.NodeID, ent EntityID, found ScopeID) {
 		if mode == capMove {
 			c.deferCaptureReserve(ctx, n, ent)
 		}
-		// Start shared rather than waiting for a write this checker
-		// won't see again once ctx is off c.lambdas.
-		if mode == capCopy && e.Flags&EfCapturedMut != 0 {
+		// Start shared when a write is already known, or a write earlier in a loop around a closure that may outlive
+		// the call it feeds runs again after the capture: a write seen once ctx is off c.lambdas no longer reaches it.
+		if mode == capCopy && (e.Flags&EfCapturedMut != 0 || !ctx.immediate && c.writtenInLoopOf(ent, n)) {
 			mode = capCell
+			e.Flags |= EfCapturedMut
 		}
 		// A `mut self` receiver is the caller's write-back cell, so a closure over it shares that cell.
 		if lentReceiver(e) {
@@ -80,6 +81,7 @@ func (c *checker) noteCaptureWrite(n syntax.NodeID, ent EntityID) {
 		return
 	}
 	c.noteLambdaWrite(ent)
+	c.noteLocalWrite(n, ent)
 	if c.capturedHere(ent) {
 		c.edge(EffectEdge{Kind: EdgeMutateCaller, Target: ent, Node: n})
 	}
@@ -116,7 +118,7 @@ func closureCopy(caps []Capture) bool {
 	return true
 }
 
-// closureErase coerces a closure to a plain fn type; cell and move-only captures cannot erase.
+// closureErase coerces a closure to a plain fn type; move-only captures cannot erase, nor cell ones unless an inline argument only reads them.
 func (c *checker) closureErase(n syntax.NodeID, closure EntityID, want TypeID) ([]CoStep, bool) {
 	info := c.r.closure(closure)
 	if !c.sameFnShape(info.Sig, want) {
@@ -130,10 +132,17 @@ func (c *checker) closureErase(n syntax.NodeID, closure EntityID, want TypeID) (
 		name := c.capturedName(n, info, cap.Local)
 		switch cap.Mode {
 		case capCell:
-			c.errAtHelp(n, c.plainFnHelp(want, false), cClosureNotPlainFn, name, c.r.cellCaptureWhy(cap.Local))
+			if info.Immediate && !lentReceiver(c.r.Entity(cap.Local)) && !c.closureWrites(closure, cap.Local) {
+				continue
+			}
+			c.errAtHelp(n, c.cellFnHelp(want, closure, cap.Local), cClosureNotPlainFn, name, c.cellCaptureWhy(closure, cap.Local))
 			return nil, true
 		case capMove, capRetain, capRead:
 			c.errAtHelp(n, c.plainFnHelp(want, true), cClosureNotPlainFn, name, "move-only")
+			return nil, true
+		}
+		if !info.Immediate && c.callsFnMut(c.r.Entities[cap.Local].Type, map[EntityID]bool{closure: true}) {
+			c.errAtHelp(n, c.fnMutCallableHelp(want, name), cClosureNotPlainFn, name, "a callable that is `FnMut`")
 			return nil, true
 		}
 	}
@@ -176,11 +185,4 @@ func lentReceiver(e *Entity) bool {
 
 func plainSelfReceiver(e *Entity) bool {
 	return e.Flags&(EfSelf|EfMut|EfMove) == EfSelf
-}
-
-func (r *Result) cellCaptureWhy(ent EntityID) string {
-	if lentReceiver(&r.Entities[ent]) {
-		return "a receiver lent by the caller"
-	}
-	return "assigned inside the closure"
 }

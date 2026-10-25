@@ -1,0 +1,696 @@
+-- src --
+import task from std/task
+
+type V['a] = { pub s &'a String }
+type Rec = { pub mut name String, pub mut n Int }
+type P = { pub mut a Int, pub mut b Int }
+
+fn Rec.bump(mut self) { self.n = self.n + 1 }
+
+type Box = { pub mut n Int }
+type Guard[F] = resource { pub mut f F }
+
+fn Guard[F: FnMut[fn() -> Void]].drop(move self) { self.f() }
+type H['a] = { pub r &'a mut Box }
+
+fn Box.update(mut self, k: Int) { self.n = self.n + k }
+
+type FB = { pub mut futs Array[Future[Int]] }
+type HR['a] = { pub mut fb &'a mut FB }
+type GB[T] = { pub mut v Array[T] }
+type FN = { pub mut futs Array[Future[Int]], pub mut n Int }
+type N0['a] = { pub mut fb &'a mut FB }
+type N1['a] = { pub mut n &'a mut N0['a] }
+type N2['a] = { pub mut n &'a mut N1['a] }
+type N3['a] = { pub mut n &'a mut N2['a] }
+type N4['a] = { pub mut n &'a mut N3['a] }
+type N5['a] = { pub mut n &'a mut N4['a] }
+type N6['a] = { pub mut n &'a mut N5['a] }
+type N7['a] = { pub mut n &'a mut N6['a] }
+type N8['a] = { pub mut n &'a mut N7['a] }
+
+fn FB.me(mut self) -> &mut FB { &mut self }
+fn call2[F: FnMut[fn() -> Void]](mut c: F) { c() }
+fn callN[F: FnMut[fn() -> usize]](mut c: F) -> usize { c() }
+fn bumpN(x: &mut FN) { x.n = x.n + 1 }
+fn FN.bump(mut self) { self.n = self.n + 1 }
+fn GB[T].vm(mut self) -> &mut Array[T] { &mut self.v }
+fn viaParam[F: FnMut[fn() -> Void]](h: &mut FB, f: escaping F) { h.futs.push(work(f)) }
+fn viaHR['a, F: FnMut[fn() -> Void]](k: &mut HR['a], f: escaping F) { k.fb.futs.push(work(f)) }
+fn pickTwo['a](a: &'a mut FB, b: &'a mut FB, first: Bool) -> &'a mut Array[Future[Int]] { if first { &mut a.futs } else { &mut b.futs } }
+
+fn mkV['a](s: &'a String) -> V['a] { V { s: s } }
+fn run[F: FnMut[fn() -> Void]](mut f: F) { f() }
+fn readWith[F: Fn[fn() -> usize]](s: &String, f: F) -> String { "${s} ${f()}" }
+fn setS(s: &mut String) { s = "set${churn()}" }
+fn bumpI(k: &mut Int) { k = k + 1 }
+async fn work[F: FnMut[fn() -> Void]](mut f: F) -> Int { f(); 1 }
+fn bumpBox(b: &mut Box) { b.n = b.n + 1 }
+fn callMut[F: FnMut[fn() -> usize]](mut f: F) -> usize { f() }
+fn keepInt(f: fn() -> Int) -> Int { f() }
+fn setTo(s: &mut String, v: String) { s = v }
+fn churn() -> Int {
+    let mut arr: Array[String] = Array.of("x")
+    for i in 100..400 { arr.push("w${i}") }
+    arr.len().toInt() || 0
+}
+
+fn intCell() -> String {
+    let mut k = 1
+    let g = () => k
+    let r = &k
+    let seen = r + 0
+    k = 2
+    "${seen} ${g()} ${k}"
+}
+
+fn sharedAfterMut() -> String {
+    let mut other = "m${churn()}"
+    let g = () => other
+    setS(&mut other)
+    let mut k = 1
+    let h = () => k
+    bumpI(&mut k)
+    bumpI(&mut k)
+    "${g()} ${other} ${h()} ${k}"
+}
+
+fn sharedAfterReceiver() -> String {
+    let mut rc = Rec { name: "r${churn()}", n: 1 }
+    let g = () => rc.n
+    let f = () => rc.name
+    rc.bump()
+    setS(&mut rc.name)
+    "${g()} ${f()} ${rc.n}"
+}
+
+fn futureAfterBorrow() -> String {
+    let mut other = "f${churn()}"
+    let w = () => { other = "fut${churn()}" }
+    let ex = task.currentThreadExecutor()
+    let t = work(w)
+    let r = &other
+    let seen = "${r}"
+    let n = ex.runToCompletion(t)
+    "${seen} ${n} ${other}"
+}
+
+fn directRecordAfterBorrow() -> String {
+    let mut p = P { a: 1, b: 2 }
+    let g = () => p.a
+    let r = &p
+    let seen = r.a
+    p = P { a: 7, b: 8 }
+    "${seen} ${g()} ${p.b}"
+}
+
+fn otherFieldWriter() -> String {
+    let mut rc = Rec { name: "o${churn()}", n: 1 }
+    let w = () => { rc.n = 9 }
+    let r = &rc.name
+    w()
+    "${r} ${rc.n}"
+}
+
+fn disjointMutField() -> String {
+    let mut rc = Rec { name: "d${churn()}", n: 1 }
+    let w = () => { rc.n = 4 }
+    let m = &mut rc.name
+    w()
+    "${m.len()} ${rc.n}"
+}
+
+fn readerWhileShared() -> String {
+    let mut other = "o${churn()}"
+    let g = () => other.len()
+    let r = mkV(&other)
+    let n = g()
+    let out = "${r.s} ${n}"
+    other = "zz${churn()}"
+    "${out} ${g()} ${other}"
+}
+
+fn writerAfterLastUse() -> String {
+    let mut other = "a${churn()}"
+    let w = () => { other = "w${churn()}" }
+    let r = &other
+    let first = "${r}"
+    w()
+    let second = "${other}"
+    other = "x${churn()}"
+    "${first} ${second} ${other}"
+}
+
+fn readerBeforeAndAfter() -> String {
+    let mut other = "b${churn()}"
+    let g = () => other.len()
+    let before = g()
+    let r = &other
+    let seen = "${r}"
+    other = "longer${churn()}"
+    "${before} ${seen} ${g()}"
+}
+
+fn exclusiveThenReader() -> String {
+    let mut other = "e${churn()}"
+    let g = () => other.len()
+    let m = &mut other
+    let k = m.len()
+    let n = g()
+    other = "late${churn()}"
+    "${k} ${n} ${g()}"
+}
+
+fn disjointField() -> String {
+    let mut rc = Rec { name: "n${churn()}", n: 1 }
+    let g = () => rc.n
+    let r = &rc.name
+    rc.n = 5
+    "${r} ${g()} ${rc.n}"
+}
+
+fn loopFresh() -> String {
+    let mut other = "l${0}"
+    let g = () => other.len()
+    let mut total: usize = 0
+    for i in 0..3 {
+        let r = &other
+        total = total + r.len()
+        other = "loop${i}${churn()}"
+    }
+    "${total} ${g()} ${other}"
+}
+
+fn nestedReader() -> String {
+    let mut other = "n${churn()}"
+    let g = () => { let h = () => other.len(); h() }
+    let r = &other
+    let n = g()
+    let out = "${r} ${n}"
+    other = "nested${churn()}"
+    "${out} ${g()}"
+}
+
+fn writerPassedAfter() -> String {
+    let mut other = "p${churn()}"
+    let w = () => { other = "ran${churn()}" }
+    let r = &other
+    let seen = "${r}"
+    run(w)
+    "${seen} ${other}"
+}
+
+fn borrowAndReaderInOneCall() -> String {
+    let mut other = "c${churn()}"
+    let g = () => other.len()
+    let out = readWith(&other, g)
+    other = "after${churn()}"
+    "${out} ${g()}"
+}
+
+fn readerAfterMutRuns() -> String {
+    let mut s = "abc${churn()}"
+    let g = () => s.len()
+    setTo(&mut s, "z")
+    "${callMut(g)} ${s}"
+}
+
+fn twoClosures() -> String {
+    let mut k = 1
+    let g = () => k
+    let h = () => k + 10
+    bumpI(&mut k)
+    let m = () => k + 100
+    bumpI(&mut k)
+    "${g()} ${h()} ${m()} ${k}"
+}
+
+fn loopFilterCopies() -> Int {
+    let xs: Array[Int] = Array.of(1, 2, 3)
+    let mut best = 0
+    let mut total = 0
+    for x in &xs {
+        best = best + x
+        let ys = xs.filter((y: &Int) => y > best)
+        total = total + (ys.len().toInt() || 0)
+    }
+    total
+}
+
+fn loopMapCopies() -> Int {
+    let xs: Array[Int] = Array.of(1, 2, 3)
+    let mut base = 0
+    let mut total = 0
+    for x in &xs {
+        base = base + x
+        let ys = xs.map((y: &Int) => y + base)
+        total = total + ys[0]
+    }
+    total
+}
+
+fn scalarAfterMutCopies() -> Int {
+    let mut k = 1
+    bumpI(&mut k)
+    keepInt(() => k) + 10 * k
+}
+
+fn loopLocalsCopy() -> String {
+    let mut hs: Array[fn() -> Int] = Array.empty()
+    for i in 0..3 {
+        let mut t = i
+        t = t + 10
+        hs.push(() => t)
+    }
+    let mut out = ""
+    for h in hs { out = "${out}[${h()}]" }
+    out
+}
+
+fn inlineRunsCounter() -> String {
+    let mut count = 0
+    let inc = () => { count = count + 1 }
+    let xs = Array.of(1, 2, 3)
+    let ys = xs.map((x: &Int) => {
+        inc()
+        x + 1
+    })
+    inc()
+    let peek = () => count
+    let zs = xs.map((x: &Int) => x + peek())
+    "${ys.len()} ${count} ${zs[0]}"
+}
+
+fn inlineReadsCell() -> String {
+    let mut count = 0
+    let inc = () => { count = count + 1 }
+    inc()
+    let xs = Array.of(1, 2, 3)
+    let ys = xs.map((x: &Int) => x + count)
+    inc()
+    let zs = xs.map((x: &Int) => x + count)
+    "${ys[0]} ${zs[0]} ${count}"
+}
+
+fn overwriteAfterBorrow() -> String {
+    let mut other = "o${churn()}"
+    let w = () => { other = "${other}x" }
+    let mut a = Array.of(Guard { f: w })
+    let r = &other
+    let seen = "${r}"
+    a[0] = Guard { f: w }
+    "${seen} ${other}"
+}
+
+fn guardDropsAfterBorrow() -> String {
+    let mut other = "g${churn()}"
+    let r = &other
+    let seen = "${r}"
+    {
+        let g = Guard { f: () => { other = "dropped${churn()}" } }
+    }
+    "${seen} ${other}"
+}
+
+fn scalarCellCapture() -> String {
+    let mut k = 1
+    bumpI(&mut k)
+    let g = () => k
+    bumpI(&mut k)
+    "${g()} ${k}"
+}
+
+fn loopSharesCell() -> String {
+    let mut other = "init"
+    let mut seen = ""
+    for i in 0..3 {
+        let g = () => other
+        if i > 0 { seen = "${seen} ${g()}" }
+        setTo(&mut other, "v${i}")
+        seen = "${seen}/${g()}"
+    }
+    seen
+}
+
+fn takeDoesNotRun() -> String {
+    let mut other = "t${churn()}"
+    let w = () => { other = "ran${churn()}" }
+    let r = &other
+    let a = Array.of(w)
+    let b = a.take(1)
+    let n = r.len()
+    for f in b { f() }
+    "${n} ${other}"
+}
+
+fn sequentialSink() -> String {
+    let mut v = Box { n: 3 }
+    bumpBox(&mut v)
+    let mut u = Box { n: 0 }
+    let mut a = Array.of(H { r: &mut u })
+    a.push(H { r: &mut v })
+    for h in a { h.r.update(1) }
+    "${v.n} ${u.n}"
+}
+
+fn recordHolderRunsAfterBorrow() -> String {
+    let ex = task.currentThreadExecutor()
+    let mut other = "h${churn()}"
+    let w = () => { other = "held${churn()}" }
+    let mut fa = FB { futs: Array.empty() }
+    let h = fa.me()
+    h.futs.push(work(w))
+    let r = &other
+    let seen = "${r}"
+    let n = ex.runToCompletion(fa.futs.takeAt(0).unwrap())
+    "${seen} ${n} ${other}"
+}
+
+fn pickDoesNotRun() -> String {
+    let ex = task.currentThreadExecutor()
+    let mut other = "p${churn()}"
+    let w = () => { other = "picked${churn()}" }
+    let mut fa = FB { futs: Array.empty() }
+    let mut fb = FB { futs: Array.empty() }
+    fa.futs.push(work(w))
+    let n = ex.runToCompletion(fa.futs.takeAt(0).unwrap())
+    let r = &other
+    pickTwo(&mut fa, &mut fb, true).push(work(w))
+    let seen = "${r} ${n}"
+    let m = ex.runToCompletion(fa.futs.takeAt(0).unwrap())
+    "${seen} ${m} ${other}"
+}
+
+fn namedHolderRunsAfterBorrow() -> String {
+    let ex = task.currentThreadExecutor()
+    let mut other = "n${churn()}"
+    let w = () => { other = "nran${churn()}" }
+    let mut fb = FB { futs: Array.empty() }
+    let h = &mut fb
+    viaParam(h, w)
+    let r = &other
+    let seen = "${r}"
+    let n = ex.runToCompletion(fb.futs.takeAt(0).unwrap())
+    "${seen} ${n} ${other}"
+}
+
+fn genericOwnerRunsAfterBorrow() -> String {
+    let ex = task.currentThreadExecutor()
+    let mut other = "g${churn()}"
+    let w = () => { other = "gran${churn()}" }
+    let mut ga: GB[Future[Int]] = GB { v: Array.empty() }
+    let mut arr: Array[Future[Int]] = Array.empty()
+    {
+        let m = if churn() > 0 { ga.vm() } else { &mut arr }
+        m.push(work(w))
+    }
+    let r = &other
+    let seen = "${r}"
+    let n = ex.runToCompletion(ga.v.takeAt(0).unwrap())
+    "${seen} ${n} ${other}"
+}
+
+fn holderOfHolderRunsAfterBorrow() -> String {
+    let ex = task.currentThreadExecutor()
+    let mut other = "k${churn()}"
+    let w = () => { other = "kran${churn()}" }
+    let mut fb = FB { futs: Array.empty() }
+    let mut hr = HR { fb: &mut fb }
+    let k = &mut hr
+    k.fb.futs.push(work(w))
+    let r = &other
+    let seen = "${r}"
+    let n = ex.runToCompletion(fb.futs.takeAt(0).unwrap())
+    "${seen} ${n} ${other}"
+}
+
+fn lentHolderRunsAfterBorrow() -> String {
+    let ex = task.currentThreadExecutor()
+    let mut other = "l${churn()}"
+    let w = () => { other = "lran${churn()}" }
+    let mut fb = FB { futs: Array.empty() }
+    let mut hr = HR { fb: &mut fb }
+    viaHR(&mut hr, w)
+    let r = &other
+    let seen = "${r}"
+    let n = ex.runToCompletion(fb.futs.takeAt(0).unwrap())
+    "${seen} ${n} ${other}"
+}
+
+fn eightReadsSetFieldRunsAfterBorrow() -> String {
+    let ex = task.currentThreadExecutor()
+    let mut other = "e${churn()}"
+    let w = () => { other = "eran${churn()}" }
+    let mut fb = FB { futs: Array.of(work(() => { })) }
+    let mut n0 = N0 { fb: &mut fb }
+    let mut n1 = N1 { n: &mut n0 }
+    let mut n2 = N2 { n: &mut n1 }
+    let mut n3 = N3 { n: &mut n2 }
+    let mut n4 = N4 { n: &mut n3 }
+    let mut n5 = N5 { n: &mut n4 }
+    let mut n6 = N6 { n: &mut n5 }
+    let mut n7 = N7 { n: &mut n6 }
+    let mut n8 = N8 { n: &mut n7 }
+    let k = &mut n8
+    k.n.n.n.n.n.n.n.n.fb.futs = Array.of(work(w))
+    let r = &other
+    let seen = "${r}"
+    let n = ex.runToCompletion(fb.futs.takeAt(0).unwrap())
+    "${seen} ${n} ${other}"
+}
+
+fn eightReadsSetIndexRunsAfterBorrow() -> String {
+    let ex = task.currentThreadExecutor()
+    let mut other = "i${churn()}"
+    let w = () => { other = "iran${churn()}" }
+    let mut fb = FB { futs: Array.of(work(() => { })) }
+    let mut n0 = N0 { fb: &mut fb }
+    let mut n1 = N1 { n: &mut n0 }
+    let mut n2 = N2 { n: &mut n1 }
+    let mut n3 = N3 { n: &mut n2 }
+    let mut n4 = N4 { n: &mut n3 }
+    let mut n5 = N5 { n: &mut n4 }
+    let mut n6 = N6 { n: &mut n5 }
+    let mut n7 = N7 { n: &mut n6 }
+    let mut n8 = N8 { n: &mut n7 }
+    let k = &mut n8
+    k.n.n.n.n.n.n.n.n.fb.futs[0] = work(w)
+    let r = &other
+    let seen = "${r}"
+    let n = ex.runToCompletion(fb.futs.takeAt(0).unwrap())
+    "${seen} ${n} ${other}"
+}
+
+fn eightReadsOfLocalRunsAfterBorrow() -> String {
+    let ex = task.currentThreadExecutor()
+    let mut other = "d${churn()}"
+    let w = () => { other = "dran${churn()}" }
+    let mut fb = FB { futs: Array.of(work(() => { })) }
+    let mut n0 = N0 { fb: &mut fb }
+    let mut n1 = N1 { n: &mut n0 }
+    let mut n2 = N2 { n: &mut n1 }
+    let mut n3 = N3 { n: &mut n2 }
+    let mut n4 = N4 { n: &mut n3 }
+    let mut n5 = N5 { n: &mut n4 }
+    let mut n6 = N6 { n: &mut n5 }
+    let mut n7 = N7 { n: &mut n6 }
+    let mut n8 = N8 { n: &mut n7 }
+    n8.n.n.n.n.n.n.n.n.fb.futs = Array.of(work(w))
+    let r = &other
+    let seen = "${r}"
+    let n = ex.runToCompletion(fb.futs.takeAt(0).unwrap())
+    "${seen} ${n} ${other}"
+}
+
+fn capturedHolderRunsAfterBorrow() -> String {
+    let ex = task.currentThreadExecutor()
+    let mut other = "c${churn()}"
+    let w = () => { other = "cran${churn()}" }
+    let mut fb = FB { futs: Array.empty() }
+    let h = &mut fb
+    call2(() => viaParam(h, w))
+    let r = &other
+    let seen = "${r}"
+    let n = ex.runToCompletion(fb.futs.takeAt(0).unwrap())
+    "${seen} ${n} ${other}"
+}
+
+fn capturedHolderOnlyRead() -> String {
+    let ex = task.currentThreadExecutor()
+    let mut other = "c${churn()}"
+    let w = () => { other = "cran${churn()}" }
+    let mut fb = FB { futs: Array.of(work(() => { })) }
+    let h = &mut fb
+    let k = callN(() => { w(); h.futs.len() })
+    let r = &other
+    let seen = "${r}"
+    let n = ex.runToCompletion(fb.futs.takeAt(0).unwrap())
+    "${seen} ${r} ${n} ${other} ${k}"
+}
+
+fn capturedHolderScalarField() -> String {
+    let ex = task.currentThreadExecutor()
+    let mut other = "s${churn()}"
+    let w = () => { other = "sran${churn()}" }
+    let mut fb = FN { futs: Array.of(work(() => { })), n: 0 }
+    let h = &mut fb
+    call2(() => { w(); h.n = h.n + 1 })
+    h.futs.push(work(() => { }))
+    let r = &other
+    let seen = "${r}"
+    let n = ex.runToCompletion(fb.futs.takeAt(0).unwrap())
+    "${seen} ${r} ${n} ${other} ${fb.n}"
+}
+
+fn capturedHolderScalarHelper() -> String {
+    let ex = task.currentThreadExecutor()
+    let mut other = "u${churn()}"
+    let w = () => { other = "uran${churn()}" }
+    let mut fb = FN { futs: Array.of(work(() => { })), n: 0 }
+    let h = &mut fb
+    call2(() => { w(); bumpN(h) })
+    h.futs.push(work(() => { }))
+    let r = &other
+    let seen = "${r}"
+    let n = ex.runToCompletion(fb.futs.takeAt(0).unwrap())
+    "${seen} ${r} ${n} ${other} ${fb.n}"
+}
+
+fn capturedHolderScalarMethod() -> String {
+    let ex = task.currentThreadExecutor()
+    let mut other = "m${churn()}"
+    let w = () => { other = "mran${churn()}" }
+    let mut fb = FN { futs: Array.of(work(() => { })), n: 0 }
+    let h = &mut fb
+    call2(() => { w(); h.bump() })
+    h.futs.push(work(() => { }))
+    let r = &other
+    let seen = "${r}"
+    let n = ex.runToCompletion(fb.futs.takeAt(0).unwrap())
+    "${seen} ${r} ${n} ${other} ${fb.n}"
+}
+
+fn capturedHolderTakes() -> String {
+    let ex = task.currentThreadExecutor()
+    let mut other = "t${churn()}"
+    let w = () => { other = "tran${churn()}" }
+    let mut fb = FN { futs: Array.of(work(() => { })), n: 0 }
+    let h = &mut fb
+    call2(() => { w(); let t = h.futs.takeAt(0) })
+    h.futs.push(work(() => { }))
+    let r = &other
+    let seen = "${r}"
+    let n = ex.runToCompletion(fb.futs.takeAt(0).unwrap())
+    "${seen} ${r} ${n} ${other} ${fb.n}"
+}
+
+async fn spawnedRunsAtEnd() -> String {
+    let mut other = "s${churn()}"
+    let w = () => { other = "late${churn()}" }
+    let tk = task.spawn(work(w))
+    let r = &other
+    let seen = "${r}"
+    seen
+}
+
+async fn asyncBody() -> String {
+    let mut other = "s${churn()}"
+    let g = () => other.len()
+    let r = &other
+    let seen = "${r} ${g()}"
+    other = "async${churn()}"
+    "${seen} ${g()} ${other}"
+}
+
+print intCell()
+print sharedAfterMut()
+print sharedAfterReceiver()
+print futureAfterBorrow()
+print directRecordAfterBorrow()
+print otherFieldWriter()
+print disjointMutField()
+print readerWhileShared()
+print writerAfterLastUse()
+print readerBeforeAndAfter()
+print exclusiveThenReader()
+print disjointField()
+print loopFresh()
+print nestedReader()
+print writerPassedAfter()
+print borrowAndReaderInOneCall()
+let ex = task.currentThreadExecutor()
+print ex.runToCompletion(asyncBody())
+print readerAfterMutRuns()
+print twoClosures()
+print "${loopFilterCopies()} ${loopMapCopies()} ${scalarAfterMutCopies()}"
+print guardDropsAfterBorrow()
+print loopLocalsCopy()
+print inlineRunsCounter()
+print inlineReadsCell()
+print overwriteAfterBorrow()
+print scalarCellCapture()
+print loopSharesCell()
+print takeDoesNotRun()
+print sequentialSink()
+print ex.runToCompletion(spawnedRunsAtEnd())
+print recordHolderRunsAfterBorrow()
+print pickDoesNotRun()
+print namedHolderRunsAfterBorrow()
+print genericOwnerRunsAfterBorrow()
+print holderOfHolderRunsAfterBorrow()
+print lentHolderRunsAfterBorrow()
+print eightReadsSetFieldRunsAfterBorrow()
+print eightReadsSetIndexRunsAfterBorrow()
+print eightReadsOfLocalRunsAfterBorrow()
+print capturedHolderRunsAfterBorrow()
+print capturedHolderOnlyRead()
+print capturedHolderScalarField()
+print capturedHolderScalarHelper()
+print capturedHolderScalarMethod()
+print capturedHolderTakes()
+-- stdout --
+1 2 2
+set301 set301 3 3
+2 set301 2
+f301 1 fut301
+1 7 8
+o301 9
+4 4
+o301 4 5 zz301
+a301 w301 x301
+4 b301 9
+4 4 7
+n301 5 5
+18 8 loop2301
+n301 4 9
+p301 ran301
+c301 4 8
+s301 4 8 async301
+1 z
+3 13 103 3
+2 13 22
+g301 dropped301
+[10][11][12]
+3 4 5
+2 3 2
+o301 o301x
+3 3
+/v0 v0/v1 v1/v2
+4 ran301
+5 1
+s301
+h301 1 held301
+picked301 1 1 picked301
+n301 1 nran301
+g301 1 gran301
+k301 1 kran301
+l301 1 lran301
+e301 1 eran301
+i301 1 iran301
+d301 1 dran301
+c301 1 cran301
+cran301 cran301 1 cran301 1
+sran301 sran301 1 sran301 1
+uran301 uran301 1 uran301 1
+mran301 mran301 1 mran301 1
+tran301 tran301 1 tran301 0

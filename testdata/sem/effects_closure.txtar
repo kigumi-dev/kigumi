@@ -33,7 +33,7 @@ fn use(files: fs.Files, p: fs.Path) {
     }
     let j: pure fn() -> Void = inc //~ ERROR closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
     let k = (x: Int) => x + n
-    let m: pure fn(Int) -> Int = k //~ ERROR closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
+    let m: pure fn(Int) -> Int = k //~ ERROR closure captures `n` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
 }
 
 pure fn callsClosure(x: Int) -> Int {
@@ -77,12 +77,12 @@ error[E413]: closure captures `n` (assigned inside the closure) and cannot be a 
    |                                ^^^
    = help: a plain `fn` cannot assign a captured variable; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
 
-error[E413]: closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
+error[E413]: closure captures `n` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
   --> lib/cl.kg:35:34
    |
-35 |     let m: pure fn(Int) -> Int = k //~ ERROR closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
+35 |     let m: pure fn(Int) -> Int = k //~ ERROR closure captures `n` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
    |                                  ^
-   = help: a plain `fn` cannot assign a captured variable; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+   = help: a plain `fn` cannot share a captured variable's cell; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
 
 error[E900]: `f` is not `pure`
   --> lib/cl.kg:45:5

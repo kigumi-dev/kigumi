@@ -78,6 +78,8 @@ func (c *checker) synthBorrow(n syntax.NodeID, want TypeID) TypeID {
 		c.invalidatePlace(inner)
 		if root := c.rootOf(inner); root != 0 && c.capturedHere(root) {
 			c.noteCaptureWrite(inner, root)
+		} else if root != 0 {
+			c.shareOutsideWrite(inner, root)
 		}
 	}
 	c.crossBorrow(inner)
