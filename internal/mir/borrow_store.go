@@ -120,12 +120,16 @@ func (c *borrowCheck) collectFlows(in Inst) {
 }
 
 func (c *borrowCheck) collectFlow(fl storeFlow, in Inst) {
+	c.callNode = in.Node
 	root, _, caller, ok := c.storeRoot(fl)
 	if !ok || caller || !c.targets[root] {
 		return
 	}
 	for _, v := range fl.values {
 		if b, ok := c.storedInfo(fl, v, false); ok {
+			if v.tie != tieNone {
+				b = c.tiedAt(fl.target, root, b)
+			}
 			c.merge(c.sink(root, in.Node), storedAt(b))
 			if c.replacesHolder(in, root) {
 				c.noteResetSite(root, b)
@@ -137,6 +141,7 @@ func (c *borrowCheck) collectFlow(fl storeFlow, in Inst) {
 // checkFlow rejects a write into a place whose type keeps no sources, or into the caller's
 // place unless the value carries this function's own lifetime that the place names.
 func (c *borrowCheck) checkFlow(fl storeFlow, in Inst) {
+	c.callNode = in.Node
 	root, place, caller, ok := c.storeRoot(fl)
 	for _, v := range fl.values {
 		b, has := c.storedInfo(fl, v, caller)
@@ -146,7 +151,7 @@ func (c *borrowCheck) checkFlow(fl storeFlow, in Inst) {
 		switch {
 		case !ok:
 			c.reportCode(in.Node, v.arg, "borrow-store-untracked", c.untrackedPlace(fl))
-		case !c.trackedContainer(place):
+		case !c.trackedContainer(place) && (v.tie == tieNone || !c.callerKept(b)):
 			c.reportCode(in.Node, v.arg, "borrow-store-untracked", c.typeName(place))
 		case !caller && c.keepsTemp(b):
 			c.reportCode(in.Node, v.arg, "temporary-borrow-kept", c.f.Locals[root].Name, tempDropped)

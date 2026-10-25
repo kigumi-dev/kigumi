@@ -75,7 +75,7 @@ func (c *borrowCheck) callFlows(in Inst) []storeFlow {
 				fl.values = append(fl.values, flowArg{arg: v.arg, contents: v.contents})
 			}
 		}
-		fl.values = append(fl.values, c.tieValues(slots, t, fl.values)...)
+		fl.values = append(fl.values, c.tieValues(info, slots, t, fl.values)...)
 		if fl.values != nil {
 			out = append(out, fl)
 		}

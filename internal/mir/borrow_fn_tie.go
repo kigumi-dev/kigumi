@@ -23,8 +23,7 @@ func (c *borrowCheck) tiedCallSource(in Inst) (*borrowInfo, bool) {
 	return s, true
 }
 
-// fnTie lists the borrows of a call's reference arguments and receiver when it passes a function value whose result
-// borrows its own arguments for a parameter returning the result's type parameter: the callee can build its result from them.
+// fnTie: a passed fn value whose result may borrow its arguments lets the callee build its result from them.
 func (c *borrowCheck) fnTie(in Inst) []*borrowInfo {
 	info := c.p.R.Fn(in.Ent)
 	want := c.typeParamsOf(c.p.R.Types.Node(info.Sig).Elem)
@@ -33,29 +32,9 @@ func (c *borrowCheck) fnTie(in Inst) []*borrowInfo {
 	if len(want) == 0 || !generic && !c.holdsBorrow(dst) {
 		return nil
 	}
-	slots := c.callSlots(info, in.Args, 0)
-	if !c.passesBorrowMaker(slots, want) {
-		return nil
-	}
 	var out []*borrowInfo
-	for i, s := range slots {
-		var b *borrowInfo
-		ok := false
-		switch {
-		case i == 0 && info.Recv != sem.RecvNone:
-			if info.Recv == sem.RecvMove {
-				continue
-			}
-			b, ok = c.receiverPlaceInfo(s.arg, info.Recv == sem.RecvMut)
-		case c.p.R.Types.Kind(s.exact) == sem.KRef:
-			b, ok = c.holders[s.arg]
-			if ok && !generic {
-				b = c.referentOr(s.arg, b)
-			}
-			if generic && (!ok || !b.hasOwner) {
-				b, ok = c.receiverPlaceInfo(s.arg, false)
-			}
-		}
+	for _, v := range c.tieArgs(info, c.callSlots(info, in.Args, 0), want) {
+		b, ok := c.tieInfo(v, generic, false)
 		if ok && generic {
 			b = c.carriedBorrows(b)
 			ok = b != nil
@@ -67,30 +46,14 @@ func (c *borrowCheck) fnTie(in Inst) []*borrowInfo {
 	return out
 }
 
-// tieValues are the reference arguments, beyond have, a `&mut` target t may come to borrow through a passed function value.
-func (c *borrowCheck) tieValues(slots []callSlot, t callSlot, have []flowArg) []flowArg {
-	if !c.passesBorrowMaker(slots, t.params) {
-		return nil
-	}
+func (c *borrowCheck) tieValues(info *sem.FnInfo, slots []callSlot, t callSlot, have []flowArg) []flowArg {
 	var out []flowArg
-	for _, s := range slots {
-		v := flowArg{arg: s.arg}
-		if s.arg != t.arg && !s.target && c.p.R.Types.Kind(s.exact) == sem.KRef && !slices.Contains(have, v) {
+	for _, v := range c.tieArgs(info, slots, t.params) {
+		if v.arg != t.arg && !slices.ContainsFunc(have, func(h flowArg) bool { return h.arg == v.arg }) {
 			out = append(out, v)
 		}
 	}
 	return out
-}
-
-// passesBorrowMaker reports whether a slot whose function type returns one of want gets a function value whose
-// result may borrow its own arguments, or a slot naming one of want gets a value that carries such a function.
-func (c *borrowCheck) passesBorrowMaker(slots []callSlot, want []sem.EntityID) bool {
-	return slices.ContainsFunc(slots, func(s callSlot) bool {
-		if ft := c.slotFnType(s.exact); ft != 0 {
-			return sharesParam(c.typeParamsOf(c.p.R.Types.Node(ft).Elem), want) && c.makesOwnBorrow(s.arg)
-		}
-		return sharesParam(s.params, want) && c.carriesBorrowMaker(c.f.Locals[s.arg].Type, map[sem.TypeID]bool{})
-	})
 }
 
 // carriesBorrowMaker reports whether a value of type t holds, in an argument, element, field or payload, a function

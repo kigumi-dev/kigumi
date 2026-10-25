@@ -21,7 +21,7 @@ func (c *borrowCheck) borrowReach() {
 				out[l] = true
 			}
 			for _, in := range c.f.Blocks[bid].Insts {
-				if root, ok := c.borrowRoot(in); ok {
+				for _, root := range c.borrowRoots(in) {
 					out[root] = true
 				}
 			}
@@ -60,7 +60,7 @@ func (c *borrowCheck) enterBlock(bid BlockID) {
 	}
 	c.firstBorrow = map[LocalID]int{}
 	for i, in := range c.f.Blocks[bid].Insts {
-		if root, ok := c.borrowRoot(in); ok {
+		for _, root := range c.borrowRoots(in) {
 			if _, seen := c.firstBorrow[root]; !seen {
 				c.firstBorrow[root] = i
 			}

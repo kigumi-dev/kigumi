@@ -78,11 +78,13 @@ func (c *borrowCheck) argContents(a LocalID) (*borrowInfo, bool) {
 type flowArg struct {
 	arg      LocalID
 	contents bool
+	tie      tieKind
+	shared   bool
 }
 
-// flowInfo is what one flowing argument contributes: an immediate closure
+// flowInfoOf is what one flowing argument contributes: an immediate closure
 // contributes what it captured, since its results can only come from there.
-func (c *borrowCheck) flowInfo(f flowArg) (*borrowInfo, bool) {
+func (c *borrowCheck) flowInfoOf(f flowArg) (*borrowInfo, bool) {
 	if def := c.definition(f.arg); def != nil && def.Op == OpClosure && c.p.R.Entity(def.Ent).Kind == sem.EntClosure {
 		s := c.captureInfo(f.arg, def)
 		return s, !s.empty
@@ -112,6 +114,7 @@ func (c *borrowCheck) captureInfo(l LocalID, def *Inst) *borrowInfo {
 		}
 	}
 	c.merge(s, c.deferredCaptures(def))
+	c.merge(s, c.returnedCaptures(def))
 	return s
 }
 

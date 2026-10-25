@@ -5,10 +5,8 @@ import (
 	"kigumi/internal/syntax"
 )
 
-// Borrow rules, checked per function on the MIR: a borrow may not
-// escape (return, store, capture), the owner cannot be touched while an
-// exclusive borrow is live, and cannot be mutated, moved or dropped while
-// a shared borrow is live. Liveness is by last use.
+// Borrow rules per function on the MIR: no escape (return, store, capture); the owner is untouchable under an exclusive
+// borrow and cannot be mutated, moved or dropped under a shared one; liveness is by last use.
 
 // ownerRef is one local a borrow may actually alias, with the field chain
 // (see projectionPlace) it was taken through.
@@ -33,6 +31,7 @@ type ownerRef struct {
 	node syntax.NodeID
 	// through marks a call result's borrow through a reference local; the result holds its own count, so the local may end first.
 	through bool
+	tied    bool
 }
 
 // borrowInfo tracks every owner a holder might alias, not just one: an ambiguous
@@ -61,9 +60,7 @@ type borrowCheck struct {
 	firstDef map[LocalID]int
 	// realOut is liveOut without the scope-end release of a reference, which only ends or replaces nothing.
 	realOut []map[LocalID]bool
-	// definedIn holds the holders that may have been assigned on some
-	// path into a block: a binding that `is` assigns only when its pattern
-	// matches is live at the join but not yet defined before the test.
+	// definedIn: holders assigned on some path into a block, since an `is` binding is live at the join before it is defined.
 	definedIn []map[LocalID]bool
 	reported  map[reportKey]int
 	quiet     bool
@@ -91,6 +88,8 @@ type borrowCheck struct {
 	keptOwners  map[LocalID]bool
 	carry       map[LocalID][]carrySite
 	carryIn     map[[2]LocalID][]bool
+	ties        tieState
+	held        *heldState
 	resets      resetState
 	recvBorrows map[recvBorrowKey]*borrowInfo
 	callNode    syntax.NodeID
@@ -109,6 +108,7 @@ func analyzeBorrows(p *Program, f *Func) {
 	}
 	c.liveness()
 	c.definitions()
+	c.held = &heldState{borrows: c.heldBorrows(), in: map[heldBorrow][]bool{}}
 	c.borrowReach()
 	for bid := range f.Blocks {
 		c.checkBlock(BlockID(bid))
@@ -173,13 +173,14 @@ func (c *borrowCheck) checkInst(in Inst, liveAfter, realAfter map[LocalID]bool) 
 	if in.Op == OpDrop && in.Scoped || in.Op == OpNop {
 		return
 	}
+	c.checkHeld(in)
 	for holder := range liveAfter {
 		b := c.holders[holder]
 		if !b.hasOwner || holder == in.Dst || !realAfter[holder] && !c.mayDrop(in) {
 			continue
 		}
 		for _, o := range b.owners {
-			if o.view || o.cell || o.through && in.Op == OpDrop && in.EndScope || !c.mayBeBorrowed(o.owner, c.curIdx) || o.carried && !c.carryReaches(holder, o.owner, c.curIdx) || !c.resetReaches(holder, o.owner, c.curIdx) {
+			if o.view || o.cell || o.through && in.Op == OpDrop && in.EndScope || !c.mayBeBorrowed(o.owner, c.curIdx) || o.carried && !c.carryReaches(holder, o.owner, c.curIdx) || o.tied && !c.tieReaches(holder, o.owner, c.curIdx) || !c.resetReaches(holder, o.owner, c.curIdx) {
 				continue
 			}
 			touched, path, _ := c.touch(in, o.owner)

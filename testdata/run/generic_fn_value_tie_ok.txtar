@@ -1,0 +1,264 @@
+-- src --
+import task from std/task
+
+type V['a] = { pub s &'a String }
+
+type Sack = { pub mut xs Array[String] }
+
+fn mkV['a](s: &'a String) -> V['a] {
+    V { s: s }
+}
+
+fn idV['a](v: V['a]) -> V['a] {
+    v
+}
+
+fn lenKey['a](n: &Int, s: &'a String) -> V['a] {
+    V { s: s }
+}
+
+fn putMut[U](out: &mut U, items: &mut Array[String], f: fn(&String) -> U) {
+    out = f(&items[0])
+}
+
+fn pushMut[U](out: &mut Array[U], items: &mut Array[String], f: fn(&String) -> U) {
+    out.push(f(&items[1]))
+}
+
+fn oneMut[U](items: &mut Array[String], f: fn(&String) -> U) -> U {
+    f(&items[0])
+}
+
+fn putV[U](out: &mut U, items: &Array[String], f: fn(&String) -> U) {
+    out = f(&items[1])
+}
+
+fn Sack.putInto[U](self, out: &mut U, f: fn(&String) -> U) {
+    out = f(&self.xs[0])
+}
+
+fn putFromV['a, U](out: &mut U, v: V['a], f: fn(V['a]) -> U) {
+    out = f(v)
+}
+
+fn getFromV['a, U](v: V['a], f: fn(V['a]) -> U) -> U {
+    f(v)
+}
+
+fn two[U](a: &String, b: &Array[Int], f: fn(&String) -> U) -> U {
+    f(a)
+}
+
+fn keyed[U](k: &Int, s: &String, ns: &Array[Int], f: fn(&Int, &String) -> U) -> U {
+    f(&ns[0], s)
+}
+
+fn twoBy[U](a: &String, b: &Array[Int], f: fn(&String) -> U) -> U {
+    two(a, b, f)
+}
+
+fn fwdShared['a](out: &mut V['a], items: &'a Array[String]) {
+    putV(out, items, mkV)
+}
+
+fn fwdMut['a](out: &mut V['a], items: &'a mut Array[String]) {
+    putMut(out, items, mkV)
+}
+
+fn mutG[U](items: &mut Array[String], f: fn(&String) -> U, show: fn(&U) -> String) -> String {
+    let k2 = "k2"
+    let mut out = f(&k2)
+    putMut(&mut out, items, f)
+    "${show(&out)} ${items.len()}"
+}
+
+fn showV['a](v: &V['a]) -> String {
+    "${v.s}"
+}
+
+fn putW['a, U](out: &mut U, items: &'a mut Array[String], f: fn(V['a]) -> U) {
+    out = f(V { s: &items[1] })
+}
+
+fn putWn['a, U](out: &mut U, items: &'a Array[String], nums: &Array[Int], f: fn(V['a]) -> U) {
+    out = f(V { s: &items[0] })
+}
+
+fn storeRead[U](out: &mut U, items: &mut Array[String], f: fn(&String) -> U) -> usize {
+    items.push("pre")
+    out = f(&items[0])
+    items.len()
+}
+
+fn storeReplace[U](out: &mut U, items: &mut Array[String], f: fn(&String) -> U, k: &String) {
+    out = f(&items[0])
+    out = f(k)
+    items.push("after")
+}
+
+fn storeLRead['a](out: &mut V['a], items: &'a mut Array[String]) -> usize {
+    items.push("pre")
+    out = mkV(&items[0])
+    items.len()
+}
+
+fn carrierForms() {
+    let k = "k"
+    let mut items = Array.of("a", "bcd")
+    let mut out = mkV(&k)
+    putW(&mut out, &mut items, idV)
+    print "putW ${items.len()} ${out.s}"
+    let mut nums = Array.of(1, 2)
+    let mut wo = mkV(&k)
+    putWn(&mut wo, &items, &nums, idV)
+    nums.push(3)
+    print "putWn ${wo.s} ${nums.len()}"
+    let mut other = "o1"
+    let mut co = mkV(&k)
+    putMut(&mut co, &mut items, (s: &String) => mkV(&other))
+    print "closure ${co.s}"
+    other = "o2"
+    print "other ${other}"
+    let mut so = mkV(&k)
+    print "storeRead ${storeRead(&mut so, &mut items, mkV)} ${so.s}"
+    let mut ro = mkV(&k)
+    storeReplace(&mut ro, &mut items, mkV, &k)
+    print "storeReplace ${ro.s} ${items.len()}"
+    let mut lo = mkV(&k)
+    print "storeLRead ${storeLRead(&mut lo, &mut items)} ${lo.s}"
+}
+
+fn closureForms() {
+    let mut items = Array.of("c1", "c22")
+    let mut n = 1
+    let mut so = "s"
+    let cl = (s: &String) => "${s}${n}"
+    putMut(&mut so, &mut items, cl)
+    print "local ${so}"
+    let cl2 = cl
+    putMut(&mut so, &mut items, cl2)
+    let mk = () => (s: &String) => "${s}!"
+    putMut(&mut so, &mut items, mk())
+    let r = items.map(cl)
+    items.push("c333")
+    n = 3
+    print "owned ${so} ${r[1]} ${n} ${items.len()}"
+    let mut other = "o1"
+    let k = "k"
+    let mut out = mkV(&k)
+    let bc = (s: &String) => mkV(&other)
+    let bc2 = bc
+    putMut(&mut out, &mut items, bc2)
+    let rs = items.map(bc)
+    print "borrowing ${out.s} ${rs[2].s}"
+    other = "o9"
+    print "after ${other}"
+    let mut o3 = mkV(&k)
+    let o4 = o3
+    putMut(&mut o3, &mut items, mkV)
+    print "tie ${o3.s}"
+    items.push("c4444")
+    print "copy ${o4.s} ${items.len()}"
+}
+
+async fn wrapAsync[T](x: T) -> T {
+    x
+}
+
+async fn asyncForms() -> Int {
+    let mut n = 1
+    let mut items = Array.of("a1", "b22")
+    let cl = (s: &String) => "${s}${n}"
+    let g = await wrapAsync(cl)
+    let mut so = "s"
+    putMut(&mut so, &mut items, g)
+    n = 2
+    print "async ${so} ${n}"
+    n
+}
+
+fn main() {
+    let k = "k"
+    let s = "s"
+    let mut items = Array.of("a", "bcd")
+    let mut out = mkV(&k)
+    putMut(&mut out, &mut items, mkV)
+    print "putMut ${items.len()} ${out.s}"
+    let r = oneMut(&mut items, mkV)
+    print "oneMut ${items[1]} ${r.s}"
+    let mut outs = Array.of(mkV(&k))
+    pushMut(&mut outs, &mut items, mkV)
+    print "pushMut ${items.len()} ${outs[1].s}"
+    let mut sack = Sack { xs: Array.of("x", "yy") }
+    let mut so = mkV(&k)
+    sack.putInto(&mut so, mkV)
+    print "putInto ${sack.xs.len()} ${so.s}"
+    let v = mkV(&items[1])
+    let mut vo = mkV(&k)
+    putFromV(&mut vo, v, idV)
+    print "putFromV ${items.len()} ${vo.s}"
+    let gv = getFromV(mkV(&items[0]), idV)
+    print "getFromV ${items.len()} ${gv.s}"
+    let mut nums = Array.of(1, 2)
+    let t = two(&s, &nums, mkV)
+    nums.push(4)
+    let t2 = twoBy(&s, &nums, mkV)
+    nums.push(5)
+    let kv = keyed(&nums[0], &s, &nums, lenKey)
+    nums.push(6)
+    print "two ${t.s} ${t2.s} ${kv.s} ${nums.len()}"
+    let mut fo = mkV(&k)
+    fwdShared(&mut fo, &items)
+    print "fwdShared ${fo.s}"
+    let mut fm = mkV(&k)
+    fwdMut(&mut fm, &mut items)
+    print "fwdMut ${fm.s}"
+    let mut gs = Array.of("g1", "g2")
+    print "mutG ${mutG(&mut gs, mkV, showV)}"
+    let mut ys = Array.of("y1", "y22")
+    let first = &ys[0]
+    print "first ${first}"
+    ys.push("y333")
+    let mut yo = mkV(&k)
+    putMut(&mut yo, &mut ys, mkV)
+    print "later ${yo.s} ${ys.len()}"
+    let mut yos = Array.of(mkV(&k))
+    pushMut(&mut yos, &mut ys, mkV)
+    print "later ${yos[1].s} ${ys.len()}"
+    yo = mkV(&k)
+    ys.push("y4444")
+    print "reset ${yo.s} ${ys.len()}"
+    carrierForms()
+    closureForms()
+    print "asyncForms ${task.currentThreadExecutor().runToCompletion(asyncForms())}"
+}
+-- stdout --
+putMut 2 a
+oneMut bcd a
+pushMut 2 bcd
+putInto 2 x
+putFromV 2 bcd
+getFromV 2 a
+two s s s 5
+fwdShared bcd
+fwdMut a
+mutG g1 2
+first y1
+later y1 3
+later y22 3
+reset k 4
+putW 2 bcd
+putWn a 3
+closure o1
+other o2
+storeRead 3 a
+storeReplace k 4
+storeLRead 5 a
+local c11
+owned c1! c221 3 3
+borrowing o1 o1
+after o9
+tie c1
+copy k 4
+async a11 2
+asyncForms 2

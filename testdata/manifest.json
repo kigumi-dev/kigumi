@@ -10541,6 +10541,23 @@
       ]
     },
     {
+      "id": "run/generic_fn_value_tie_ok",
+      "kind": "run",
+      "path": "testdata/run/generic_fn_value_tie_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/generic_move_self_builder",
       "kind": "run",
       "path": "testdata/run/generic_move_self_builder.txtar",
@@ -16786,6 +16803,23 @@
       "id": "run/utf8_validate_edge_cases",
       "kind": "run",
       "path": "testdata/run/utf8_validate_edge_cases.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/value_call_lent_drop",
+      "kind": "run",
+      "path": "testdata/run/value_call_lent_drop.txtar",
       "mode": [
         "vm",
         "native"

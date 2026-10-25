@@ -19,7 +19,7 @@ func (c *borrowCheck) collect() {
 				if c.collectInst(in) {
 					changed = true
 				}
-				c.collectCarry(in, BlockID(bid), i)
+				c.collectValue(in, BlockID(bid), i)
 			}
 		}
 		c.refreshReborrows()

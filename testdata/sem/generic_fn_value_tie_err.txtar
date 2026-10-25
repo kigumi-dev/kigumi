@@ -373,8 +373,251 @@ fn dropHeld[U](xs: &mut Array[String], f: fn(&String) -> U) {
     xs.push("x") //~ ERROR `xs` is borrowed and cannot be mutated
 }
 
+fn putMut[U](out: &mut U, items: &mut Array[String], f: fn(&String) -> U) {
+    out = f(&items[0])
+}
+
+fn pushMut[U](out: &mut Array[U], items: &mut Array[String], f: fn(&String) -> U) {
+    out.push(f(&items[0]))
+}
+
+type Sack = { pub mut xs Array[String] }
+
+fn Sack.putInto[U](self, out: &mut U, f: fn(&String) -> U) {
+    out = f(&self.xs[0])
+}
+
+fn idV['a](v: V['a]) -> V['a] {
+    v
+}
+
+fn putFromV['a, U](out: &mut U, v: V['a], f: fn(V['a]) -> U) {
+    out = f(v)
+}
+
+fn getFromV['a, U](v: V['a], f: fn(V['a]) -> U) -> U {
+    f(v)
+}
+
+fn putMutAssign() -> String {
+    let base = "q"
+    let mut items = Array.of("a${churn()}", "bcd")
+    let mut out = mkV(&base)
+    putMut(&mut out, &mut items, mkV)
+    items = Array.of("zzz${churn()}") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    showR(&out, churn())
+}
+
+fn pushMutAssign() -> String {
+    let base = "q"
+    let mut items = Array.of("a${churn()}", "bcd")
+    let mut out = Array.of(mkV(&base))
+    pushMut(&mut out, &mut items, mkV)
+    items = Array.of("zzz${churn()}") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    showR(&out[1], churn())
+}
+
+fn pushMutTwice() -> String {
+    let base = "q"
+    let mut items = Array.of("a${churn()}", "bcd")
+    let mut out = Array.of(mkV(&base))
+    pushMut(&mut out, &mut items, mkV)
+    pushMut(&mut out, &mut items, mkV) //~ ERROR `items` is borrowed and cannot be mutated
+    showR(&out[1], churn())
+}
+
+fn recvAssign() -> String {
+    let base = "q"
+    let mut sack = Sack { xs: Array.of("a${churn()}", "bcd") }
+    let mut out = mkV(&base)
+    sack.putInto(&mut out, mkV)
+    sack = Sack { xs: Array.of("zzz${churn()}") } //~ ERROR `sack` is borrowed and cannot be mutated //~ ERROR `sack` is borrowed and cannot be moved
+    showR(&out, churn())
+}
+
+fn recvFieldPush() -> String {
+    let base = "q"
+    let mut sack = Sack { xs: Array.of("a${churn()}", "bcd") }
+    let mut out = mkV(&base)
+    sack.putInto(&mut out, mkV)
+    sack.xs.push("zzz${churn()}") //~ ERROR `sack` is borrowed and cannot be mutated
+    showR(&out, churn())
+}
+
+fn carrierAssign() -> String {
+    let base = "q"
+    let mut items = Array.of("a${churn()}", "bcd")
+    let v = mkV(&items[0])
+    let mut out = mkV(&base)
+    putFromV(&mut out, v, idV)
+    items = Array.of("zzz${churn()}") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    showR(&out, churn())
+}
+
+fn carrierResult() -> String {
+    let mut items = Array.of("a${churn()}", "bcd")
+    let v = mkV(&items[0])
+    let out = getFromV(v, idV)
+    items = Array.of("zzz${churn()}") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    showR(&out, churn())
+}
+
+fn fwdMutBody(items: &mut Array[String]) -> String {
+    let base = "q"
+    let mut out = mkV(&base)
+    putMut(&mut out, items, mkV)
+    items.push("x${churn()}") //~ ERROR `items` is borrowed and cannot be mutated
+    showR(&out, churn())
+}
+
+fn fwdMutGeneric[U](items: &mut Array[String], f: fn(&String) -> U, show: fn(&U, Int) -> String) -> String {
+    let base = "q"
+    let mut out = f(&base)
+    putMut(&mut out, items, f)
+    items.push("q") //~ ERROR `items` is borrowed and cannot be mutated
+    show(&out, churn())
+}
+
+fn Sack.fwdSelf['a](self, out: &mut V['a]) {
+    self.putInto(out, mkV) //~ ERROR a borrow cannot be stored into `out` here
+}
+
+fn putWMut['a, U](out: &mut U, items: &'a mut Array[String], f: fn(V['a]) -> U) {
+    out = f(V { s: &items[0] })
+}
+
+fn putWRef['a, U](out: &mut U, items: &'a Array[String], f: fn(V['a]) -> U) {
+    out = f(V { s: &items[0] })
+}
+
+fn carrierParamMut() -> String {
+    let base = "q"
+    let mut items = Array.of("a${churn()}", "bcd")
+    let mut out = mkV(&base)
+    putWMut(&mut out, &mut items, idV)
+    items = Array.of("zzz${churn()}") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    showR(&out, churn())
+}
+
+fn carrierParamRef() -> String {
+    let base = "q"
+    let mut items = Array.of("a${churn()}", "bcd")
+    let mut out = mkV(&base)
+    putWRef(&mut out, &items, idV)
+    items.push("x${churn()}") //~ ERROR `items` is borrowed and cannot be mutated
+    showR(&out, churn())
+}
+
+fn closureCapture() -> String {
+    let base = "q"
+    let mut other = "o${churn()}"
+    let mut items = Array.of("a")
+    let mut out = mkV(&base)
+    putMut(&mut out, &mut items, (s: &String) => mkV(&other))
+    other = "zzz${churn()}" //~ ERROR `other` is borrowed and cannot be mutated
+    showR(&out, churn())
+}
+
+fn storeThenWrite[U](out: &mut U, items: &mut Array[String], f: fn(&String) -> U) {
+    out = f(&items[0])
+    items = Array.of("zzz${churn()}") //~ ERROR `items` is borrowed and cannot be mutated
+}
+
+fn storeLThenWrite['a](out: &mut V['a], items: &'a mut Array[String]) {
+    out = mkV(&items[0])
+    items.push("zzz${churn()}") //~ ERROR `items` is borrowed and cannot be mutated
+}
+
+fn forwardThenWrite[U](out: &mut U, items: &mut Array[String], f: fn(&String) -> U) {
+    putMut(out, items, f)
+    items.push("q") //~ ERROR `items` is borrowed and cannot be mutated
+}
+
+fn closureLocal() -> String {
+    let base = "q"
+    let mut other = "o${churn()}"
+    let mut items = Array.of("a")
+    let mut out = mkV(&base)
+    let cl = (s: &String) => mkV(&other)
+    putMut(&mut out, &mut items, cl)
+    other = "zzz${churn()}" //~ ERROR `other` is borrowed and cannot be mutated
+    showR(&out, churn())
+}
+
+fn closureCopy() -> String {
+    let base = "q"
+    let mut other = "o${churn()}"
+    let mut items = Array.of("a")
+    let mut out = mkV(&base)
+    let cl = (s: &String) => mkV(&other)
+    let cl2 = cl
+    putMut(&mut out, &mut items, cl2)
+    other = "zzz${churn()}" //~ ERROR `other` is borrowed and cannot be mutated
+    showR(&out, churn())
+}
+
+fn closureMade() -> String {
+    let base = "q"
+    let mut other = "o${churn()}"
+    let mut items = Array.of("a")
+    let mut out = mkV(&base)
+    let mk = () => (s: &String) => mkV(&other)
+    putMut(&mut out, &mut items, mk())
+    other = "zzz${churn()}" //~ ERROR `other` is borrowed and cannot be mutated
+    showR(&out, churn())
+}
+
+fn closureMap() -> String {
+    let mut other = "o${churn()}"
+    let items = Array.of("a", "b")
+    let cl = (s: &String) => mkV(&other)
+    let r = items.map(cl)
+    other = "zzz${churn()}" //~ ERROR `other` is borrowed and cannot be mutated
+    showR(&r[0], churn())
+}
+
+fn putVia[U, W](out: &mut U, g: fn() -> W, f: fn(W) -> U) {
+    out = f(g())
+}
+
+fn closureOtherFn() -> String {
+    let base = "q"
+    let mut other = "o${churn()}"
+    let mut out = mkV(&base)
+    let g = () => mkV(&other)
+    putVia(&mut out, g, idV)
+    other = "zzz${churn()}" //~ ERROR `other` is borrowed and cannot be mutated
+    showR(&out, churn())
+}
+
+fn copyAfterTie() -> String {
+    let base = "q"
+    let mut items = Array.of("a${churn()}", "bcd")
+    let mut out = mkV(&base)
+    putMut(&mut out, &mut items, mkV)
+    let o2 = out
+    items.push("x") //~ ERROR `items` is borrowed and cannot be mutated
+    showR(&o2, churn())
+}
+
+async fn wrapAsync[T](x: T) -> T {
+    x
+}
+
+async fn closureAsync() -> String {
+    let base = "q"
+    let mut other = "o${churn()}"
+    let mut items = Array.of("a")
+    let cl = (s: &String) => mkV(&other)
+    let g = await wrapAsync(cl)
+    let mut out = mkV(&base)
+    putMut(&mut out, &mut items, g)
+    other = "zzz${churn()}" //~ ERROR `other` is borrowed and cannot be mutated
+    showR(&out, churn())
+}
+
 fn main() {
-    print "${collectAssign()} ${collectPush()} ${putAssign()} ${foldAssign()} ${nestedAssign()} ${bytesAssign()} ${oneAssign()} ${readOnly()} ${mapThenPush()} ${viaArray()} ${viaField()} ${viaCallee()} ${lenField()} ${fwdKeep(mkV, showVR)} ${fwdLen(lenOf)}"
+    print "${collectAssign()} ${collectPush()} ${putAssign()} ${foldAssign()} ${nestedAssign()} ${bytesAssign()} ${oneAssign()} ${readOnly()} ${mapThenPush()} ${viaArray()} ${viaField()} ${viaCallee()} ${lenField()} ${fwdKeep(mkV, showVR)} ${fwdLen(lenOf)} ${carrierParamMut()} ${carrierParamRef()} ${closureCapture()} ${closureLocal()} ${closureCopy()} ${closureMade()} ${closureMap()} ${closureOtherFn()} ${copyAfterTie()}"
 }
 -- expect --
 error[E2198]: `items` is borrowed and cannot be mutated here
@@ -760,4 +1003,310 @@ note: `xs` is borrowed here
     |
 369 |     let u = f(&xs[0])
     |             ^^^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+   --> main.kg:404:5
+    |
+404 |     items = Array.of("zzz${churn()}") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `items` is borrowed here
+   --> main.kg:403:22
+    |
+403 |     putMut(&mut out, &mut items, mkV)
+    |                      ^^^^^^^^^^
+
+error[move-while-borrowed]: `items` is borrowed and cannot be moved or dropped here
+   --> main.kg:404:5
+    |
+404 |     items = Array.of("zzz${churn()}") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    |     ^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+   --> main.kg:413:5
+    |
+413 |     items = Array.of("zzz${churn()}") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `items` is borrowed here
+   --> main.kg:412:23
+    |
+412 |     pushMut(&mut out, &mut items, mkV)
+    |                       ^^^^^^^^^^
+
+error[move-while-borrowed]: `items` is borrowed and cannot be moved or dropped here
+   --> main.kg:413:5
+    |
+413 |     items = Array.of("zzz${churn()}") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    |     ^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+   --> main.kg:422:23
+    |
+422 |     pushMut(&mut out, &mut items, mkV) //~ ERROR `items` is borrowed and cannot be mutated
+    |                       ^^^^^^^^^^
+    = help: end the borrow first or use a copy
+note: `items` is borrowed here
+   --> main.kg:421:23
+    |
+421 |     pushMut(&mut out, &mut items, mkV)
+    |                       ^^^^^^^^^^
+
+error[E2198]: `sack` is borrowed and cannot be mutated here
+   --> main.kg:431:5
+    |
+431 |     sack = Sack { xs: Array.of("zzz${churn()}") } //~ ERROR `sack` is borrowed and cannot be mutated //~ ERROR `sack` is borrowed and cannot be moved
+    |     ^^^^
+    = help: end the borrow first or use a copy
+note: `sack` is borrowed here
+   --> main.kg:430:5
+    |
+430 |     sack.putInto(&mut out, mkV)
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `sack` is borrowed and cannot be moved or dropped here
+   --> main.kg:431:5
+    |
+431 |     sack = Sack { xs: Array.of("zzz${churn()}") } //~ ERROR `sack` is borrowed and cannot be mutated //~ ERROR `sack` is borrowed and cannot be moved
+    |     ^^^^
+
+error[E2198]: `sack` is borrowed and cannot be mutated here
+   --> main.kg:440:5
+    |
+440 |     sack.xs.push("zzz${churn()}") //~ ERROR `sack` is borrowed and cannot be mutated
+    |     ^^^^^^^
+    = help: end the borrow first or use a copy
+note: `sack` is borrowed here
+   --> main.kg:439:5
+    |
+439 |     sack.putInto(&mut out, mkV)
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+   --> main.kg:450:5
+    |
+450 |     items = Array.of("zzz${churn()}") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `items` is borrowed here
+   --> main.kg:447:17
+    |
+447 |     let v = mkV(&items[0])
+    |                 ^^^^^^^^
+
+error[move-while-borrowed]: `items` is borrowed and cannot be moved or dropped here
+   --> main.kg:450:5
+    |
+450 |     items = Array.of("zzz${churn()}") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    |     ^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+   --> main.kg:458:5
+    |
+458 |     items = Array.of("zzz${churn()}") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `items` is borrowed here
+   --> main.kg:457:15
+    |
+457 |     let out = getFromV(v, idV)
+    |               ^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `items` is borrowed and cannot be moved or dropped here
+   --> main.kg:458:5
+    |
+458 |     items = Array.of("zzz${churn()}") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    |     ^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+   --> main.kg:466:5
+    |
+466 |     items.push("x${churn()}") //~ ERROR `items` is borrowed and cannot be mutated
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `items` is borrowed here
+   --> main.kg:465:5
+    |
+465 |     putMut(&mut out, items, mkV)
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+   --> main.kg:474:5
+    |
+474 |     items.push("q") //~ ERROR `items` is borrowed and cannot be mutated
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `items` is borrowed here
+   --> main.kg:473:5
+    |
+473 |     putMut(&mut out, items, f)
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `out` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:479:5
+    |
+479 |     self.putInto(out, mkV) //~ ERROR a borrow cannot be stored into `out` here
+    |     ^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+   --> main.kg:495:5
+    |
+495 |     items = Array.of("zzz${churn()}") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `items` is borrowed here
+   --> main.kg:494:23
+    |
+494 |     putWMut(&mut out, &mut items, idV)
+    |                       ^^^^^^^^^^
+
+error[move-while-borrowed]: `items` is borrowed and cannot be moved or dropped here
+   --> main.kg:495:5
+    |
+495 |     items = Array.of("zzz${churn()}") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    |     ^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+   --> main.kg:504:5
+    |
+504 |     items.push("x${churn()}") //~ ERROR `items` is borrowed and cannot be mutated
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `items` is borrowed here
+   --> main.kg:503:23
+    |
+503 |     putWRef(&mut out, &items, idV)
+    |                       ^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:514:5
+    |
+514 |     other = "zzz${churn()}" //~ ERROR `other` is borrowed and cannot be mutated
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `other` is borrowed here
+   --> main.kg:513:34
+    |
+513 |     putMut(&mut out, &mut items, (s: &String) => mkV(&other))
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+   --> main.kg:520:5
+    |
+520 |     items = Array.of("zzz${churn()}") //~ ERROR `items` is borrowed and cannot be mutated
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `items` is borrowed here
+   --> main.kg:519:5
+    |
+519 |     out = f(&items[0])
+    |     ^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+   --> main.kg:525:5
+    |
+525 |     items.push("zzz${churn()}") //~ ERROR `items` is borrowed and cannot be mutated
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `items` is borrowed here
+   --> main.kg:524:5
+    |
+524 |     out = mkV(&items[0])
+    |     ^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+   --> main.kg:530:5
+    |
+530 |     items.push("q") //~ ERROR `items` is borrowed and cannot be mutated
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `items` is borrowed here
+   --> main.kg:529:5
+    |
+529 |     putMut(out, items, f)
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:540:5
+    |
+540 |     other = "zzz${churn()}" //~ ERROR `other` is borrowed and cannot be mutated
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `other` is borrowed here
+   --> main.kg:538:14
+    |
+538 |     let cl = (s: &String) => mkV(&other)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:552:5
+    |
+552 |     other = "zzz${churn()}" //~ ERROR `other` is borrowed and cannot be mutated
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `other` is borrowed here
+   --> main.kg:549:14
+    |
+549 |     let cl = (s: &String) => mkV(&other)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:563:5
+    |
+563 |     other = "zzz${churn()}" //~ ERROR `other` is borrowed and cannot be mutated
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `other` is borrowed here
+   --> main.kg:561:14
+    |
+561 |     let mk = () => (s: &String) => mkV(&other)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:572:5
+    |
+572 |     other = "zzz${churn()}" //~ ERROR `other` is borrowed and cannot be mutated
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `other` is borrowed here
+   --> main.kg:570:14
+    |
+570 |     let cl = (s: &String) => mkV(&other)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:586:5
+    |
+586 |     other = "zzz${churn()}" //~ ERROR `other` is borrowed and cannot be mutated
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `other` is borrowed here
+   --> main.kg:584:13
+    |
+584 |     let g = () => mkV(&other)
+    |             ^^^^^^^^^^^^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+   --> main.kg:596:5
+    |
+596 |     items.push("x") //~ ERROR `items` is borrowed and cannot be mutated
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `items` is borrowed here
+   --> main.kg:594:22
+    |
+594 |     putMut(&mut out, &mut items, mkV)
+    |                      ^^^^^^^^^^
+
+error[E2198]: `other` is borrowed and cannot be mutated here
+   --> main.kg:612:5
+    |
+612 |     other = "zzz${churn()}" //~ ERROR `other` is borrowed and cannot be mutated
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `other` is borrowed here
+   --> main.kg:608:14
+    |
+608 |     let cl = (s: &String) => mkV(&other)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^
 

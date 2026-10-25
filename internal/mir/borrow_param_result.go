@@ -64,7 +64,7 @@ func (c *borrowCheck) projectsOwned(t sem.TypeID, src LocalID) bool {
 // storedInfo is what v puts into a store; a flow found only through a type parameter stores this frame's borrows,
 // and into this frame's own place also the marked borrows of a caller place the body may write.
 func (c *borrowCheck) storedInfo(fl storeFlow, v flowArg, caller bool) (*borrowInfo, bool) {
-	b, ok := c.flowInfo(v)
+	b, ok := c.tieInfo(v, fl.generic, caller)
 	if !ok || !fl.generic {
 		return b, ok
 	}

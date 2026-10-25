@@ -1,0 +1,66 @@
+-- src --
+import {Box} from std/alloc
+
+type D = resource { pub n Int }
+
+fn D.drop(move self) {
+    print "drop ${self.n}"
+}
+
+fn dLen(d: &D) -> Int {
+    d.n
+}
+
+fn dTake(d: D) -> Int {
+    d.n * 10
+}
+
+fn refD(d: &D) -> &D {
+    d
+}
+
+fn fwdV[A](f: fn(A) -> Int, a: A) -> Int {
+    f(a)
+}
+
+fn applyRef[A](f: fn(&A) -> Int, a: &A) -> Int {
+    f(a)
+}
+
+fn wrapF[A](f: escaping fn(A) -> Int) -> fn(A) -> Int {
+    (a: A) => f(a)
+}
+
+fn main() {
+    {
+        let d = D { n: 1 }
+        print "a ${fwdV(dLen, refD(&d))}"
+        print "b ${fwdV(wrapF(wrapF(dLen)), refD(&d))}"
+        print "c ${applyRef(dLen, &d)}"
+        print "d ${applyRef(wrapF(dLen), &d)}"
+        print "e ${Array.of(D { n: 5 }).map(wrapF(dLen))[0]}"
+        print "f ${Box.new(D { n: 6 }).with(wrapF(wrapF(dLen)))}"
+        print "g ${fwdV(dTake, D { n: 7 })}"
+        print "h ${fwdV(wrapF(wrapF(dTake)), D { n: 8 })}"
+        print "i ${d.n}"
+        print "end"
+    }
+    print "done"
+}
+-- stdout --
+a 1
+b 1
+c 1
+d 1
+e 5
+drop 5
+f 6
+drop 6
+drop 7
+g 70
+drop 8
+h 80
+i 1
+end
+drop 1
+done
