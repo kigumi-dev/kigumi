@@ -3,9 +3,10 @@ package sem
 import "kigumi/internal/syntax"
 
 var (
-	cWitnessFnValue = defineCode("E1730", "witness-fn-value", "`{name}` has interface-bounded type parameters, which a function value cannot carry; call it directly or wrap the call in a closure")
-	cConstFnValue   = defineCode("E1731", "const-fn-value", "`{name}` has const generic parameters, which a function value cannot carry; call it directly or wrap the call in a closure")
-	cAllocBind      = defineCode("E1820", "alloc-bind-fn-value", "binding the witnesses of `{name}` into a function value allocates; call it directly or bind it outside the `noalloc` body")
+	cWitnessFnValue   = defineCode("E1730", "witness-fn-value", "`{name}` has interface-bounded type parameters, which a function value cannot carry; call it directly or wrap the call in a closure")
+	cConstFnValue     = defineCode("E1731", "const-fn-value", "`{name}` has const generic parameters, which a function value cannot carry; call it directly or wrap the call in a closure")
+	cAllocBind        = defineCode("E1820", "alloc-bind-fn-value", "binding the witnesses of `{name}` into a function value allocates; call it directly or bind it outside the `noalloc` body")
+	cAllocBindWitness = defineCode("E1821", "alloc-bind-witness", "handing `{name}` over as a witness binds its own witnesses into a closure, which allocates; use a type argument whose impl takes no witnesses, or call it outside the `noalloc` body")
 )
 
 // rejectHiddenArgs: hidden trailing arguments have no slot in a method value.

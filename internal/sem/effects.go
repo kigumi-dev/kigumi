@@ -137,7 +137,7 @@ func (r *Result) inferSummaries(nodes []EntityID) {
 			s := r.summaryPtr(id)
 			pure, noalloc := true, true
 			for _, e := range r.edgesOf(id) {
-				r.deferredClaims = r.deferredClaims || e.Kind == EdgeAlloc && e.Why == whyLendCross
+				r.deferredClaims = r.deferredClaims || e.Kind == EdgeAlloc && demotableWhy(e.Why)
 				pure = pure && r.edgeAllows(e, EffPure)
 				noalloc = noalloc && r.edgeAllows(e, EffNoalloc)
 			}
@@ -169,7 +169,7 @@ func (r *Result) edgeAllows(e EffectEdge, mod Effects) bool {
 	case EdgeMutateCaller, EdgeUnsafe:
 		return mod != EffPure
 	case EdgeAlloc:
-		return mod != EffNoalloc || e.Why == whyLendCross && !r.boxedLends[lendSite{e.File, e.Node}]
+		return mod != EffNoalloc || r.undemoted(e)
 	case EdgeDrop:
 		return allows(r.dropEffect(e.Type), mod)
 	}

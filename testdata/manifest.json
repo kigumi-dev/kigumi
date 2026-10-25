@@ -17358,6 +17358,17 @@
       ]
     },
     {
+      "id": "sem/allocator_none_witness_bind",
+      "kind": "sem",
+      "path": "testdata/sem/allocator_none_witness_bind.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/ambiguous_member",
       "kind": "sem",
       "path": "testdata/sem/ambiguous_member.txtar",
@@ -21681,6 +21692,17 @@
       ]
     },
     {
+      "id": "sem/noalloc_witness_bind",
+      "kind": "sem",
+      "path": "testdata/sem/noalloc_witness_bind.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/operators_decl",
       "kind": "sem",
       "path": "testdata/sem/operators_decl.txtar",
@@ -21956,9 +21978,64 @@
       ]
     },
     {
+      "id": "sem/recoverable_bound_call",
+      "kind": "sem",
+      "path": "testdata/sem/recoverable_bound_call.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/recoverable_bound_instance_ok",
+      "kind": "sem",
+      "path": "testdata/sem/recoverable_bound_instance_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/recoverable_bound_noalloc",
+      "kind": "sem",
+      "path": "testdata/sem/recoverable_bound_noalloc.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/recoverable_noalloc_fn_value",
+      "kind": "sem",
+      "path": "testdata/sem/recoverable_noalloc_fn_value.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/recoverable_panic_forms",
       "kind": "sem",
       "path": "testdata/sem/recoverable_panic_forms.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/recoverable_witness_bind",
+      "kind": "sem",
+      "path": "testdata/sem/recoverable_witness_bind.txtar",
       "mode": [
         "check"
       ],

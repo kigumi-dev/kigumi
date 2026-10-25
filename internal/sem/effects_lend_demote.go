@@ -44,16 +44,23 @@ func (r *Result) SettleLendDemotions() {
 	}
 }
 
-// profileDeferred: a profile leaves to the built program a lend it kept direct and a crossing an instance takes unboxed.
+// profileDeferred: the built program answers for these allocations.
 func (r *Result) profileDeferred(e EffectEdge) bool {
-	return e.Why == whyLendCross && !r.boxedLends[lendSite{e.File, e.Node}] || r.takenUnboxed(e) || witnessWhy(e.Why)
+	return r.undemoted(e) || r.takenUnboxed(e) || witnessWhy(e.Why)
+}
+
+// demotableWhy: the built program demotes the sites where these allocations stay.
+func demotableWhy(why uint8) bool { return why == whyLendCross || why == whyWitnessBind }
+
+func (r *Result) undemoted(e EffectEdge) bool {
+	return demotableWhy(e.Why) && !r.boxedLends[lendSite{e.File, e.Node}]
 }
 
 // ProfileTrusts reports whether the active allocation profile accepted fn, possibly on crossings it left to the built program.
 func (r *Result) ProfileTrusts(fn EntityID) bool {
 	switch {
 	case r.recoverableOnly:
-		return r.recoverableSafe[fn]
+		return r.recoverable.safe[fn]
 	case r.noDefault:
 		return r.defaultOf(fn)
 	}

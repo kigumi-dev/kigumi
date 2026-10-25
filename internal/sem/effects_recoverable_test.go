@@ -20,11 +20,11 @@ func checkRecoverableOnly(t *testing.T, src string) *sem.Result {
 }
 
 func TestRecoverableOnlyRejectsFatalConvenience(t *testing.T) {
-	bad := checkRecoverableOnly(t, "let mut xs = Array.empty[Int]()\nxs.push(1)\n")
+	bad := checkRecoverableOnly(t, "let mut xs = Array.tryEmpty[Int]().unwrap()\nxs.push(1)\n")
 	if !bad.HasErrors() || !strings.Contains(bad.Render(), "recoverable-only") {
 		t.Fatalf("Array.push must be rejected under recoverable-only:\n%s", bad.Render())
 	}
-	good := checkRecoverableOnly(t, "let mut xs = Array.empty[Int]()\nlet r = xs.tryPush(1)\n")
+	good := checkRecoverableOnly(t, "let mut xs = Array.tryEmpty[Int]().unwrap()\nlet r = xs.tryPush(1)\n")
 	if good.HasErrors() {
 		t.Fatalf("Array.tryPush must pass under recoverable-only:\n%s", good.Render())
 	}
@@ -54,7 +54,7 @@ func TestRecoverableOnlyRejectsBoxNew(t *testing.T) {
 }
 
 func TestRecoverableOnlyAcceptsTrustedWrapper(t *testing.T) {
-	good := checkRecoverableOnly(t, "let mut xs = Array.empty[Int]()\n_ = xs.tryPush(1)\n_ = xs.tryReserve(4)\nlet n = xs.len()\n")
+	good := checkRecoverableOnly(t, "let mut xs = Array.tryEmpty[Int]().unwrap()\n_ = xs.tryPush(1)\n_ = xs.tryReserve(4)\nlet n = xs.len()\n")
 	if good.HasErrors() {
 		t.Fatalf("Array.tryPush/tryReserve must pass under recoverable-only:\n%s", good.Render())
 	}
@@ -91,5 +91,15 @@ func TestRecoverableOnlyAcceptsADirectVariant(t *testing.T) {
 	bad := checkRecoverableOnly(t, "type Tag = Named(s: String) | Blank\n\nfn tag(s: String) -> Tag { Named(s) }\n\nlet t = tag(\"x\")\n")
 	if !bad.HasErrors() || !strings.Contains(bad.Render(), "recoverable-only") {
 		t.Fatalf("a variant with a carrier payload must be rejected:\n%s", bad.Render())
+	}
+}
+
+// TestRecoverableOnlyJudgesMapKeyImpl runs sem alone: a planned build of Map.trySet with a derived record key stops in MIR.
+func TestRecoverableOnlyJudgesMapKeyImpl(t *testing.T) {
+	src := "import map from std/map\n\ntype Id = { pub n Int }\n\npure fn Id.hash(self) -> u64 {\n    let s = \"${self.n}\"\n    1\n}\n\n" +
+		"if map.tryEmpty[Id, Int]() is Ok(m0) {\n    let mut m = m0\n    let r = m.trySet(Id { n: 1 }, 2)\n}\n"
+	bad := checkRecoverableOnly(t, src)
+	if want := "`trySet`, which calls `Id.hash` as `Hash.hash`"; !strings.Contains(bad.Render(), want) {
+		t.Fatalf("an allocating key hash must be named through Map.trySet, want %q:\n%s", want, bad.Render())
 	}
 }

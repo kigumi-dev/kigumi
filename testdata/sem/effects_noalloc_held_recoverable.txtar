@@ -16,8 +16,8 @@ fn copied(a: &Array[String]) -> Bool {
 }
 
 fn main() {
-    let mut xs: Array[Int] = Array.empty()
-    let mut ws: Array[String] = Array.empty()
+    let mut xs: Array[Int] = Array.tryEmpty().unwrap()
+    let mut ws: Array[String] = Array.tryEmpty().unwrap()
     if xs.tryPush(1) is Ok(_) {
         let b = helper(&xs)
         let c = copied(&ws) //~ ERROR `copied` may terminate on a refused allocation

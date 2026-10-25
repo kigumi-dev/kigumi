@@ -1,0 +1,46 @@
+-- module --
+mir: planned
+allocator: none
+-- src --
+interface Counter {
+    noalloc fn count(self) -> Int
+}
+
+type Pick[T] = Neither | One(T)
+
+type Tally = Low | High
+
+noalloc fn Pick[T: Counter].count(self) -> Int {
+    match self {
+        Pick.Neither -> 0
+        Pick.One(v) -> v.count()
+    }
+}
+
+noalloc fn Tally.count(self) -> Int {
+    1
+}
+
+fn total[T: Counter](g: T) -> Int {
+    g.count()
+}
+
+export(C) {
+    pub fn lib_direct(n: i64) -> i64 {
+        total(Tally.High) + n
+    }
+
+    pub fn lib_wrapped(n: i64) -> i64 {
+        total(Pick.One(Tally.High)) + n //~ ERROR binding the witnesses of `Pick.count` needs the default allocator
+    }
+}
+
+fn main() {}
+-- expect --
+error[E959]: binding the witnesses of `Pick.count` needs the default allocator, but this build has none (--allocator none)
+  --> main.kg:30:9
+   |
+30 |         total(Pick.One(Tally.High)) + n //~ ERROR binding the witnesses of `Pick.count` needs the default allocator
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: allocate inside an `allocator` block
+

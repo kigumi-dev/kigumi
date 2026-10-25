@@ -1,0 +1,16 @@
+fn run() {
+    let a = Array.of(1, 2, 3)
+    let before = a.len()
+    eprint "go"
+    let r1 = Array.tryEmpty[Int]()
+    let r = Array.tryEmpty[Int]()
+    if r is Err(_) || r1 is Err(_) {
+        if a.len() == before && (a.first() || 0) == 1 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

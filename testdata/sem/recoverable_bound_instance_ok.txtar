@@ -1,0 +1,58 @@
+-- module --
+mir: planned
+profile: recoverable-only
+-- src --
+interface Putter {
+    fn put(self, v: Int) -> Int
+}
+
+type Mode = Fast | Slow
+
+type Col = Red | Green
+
+fn Mode.put(self, v: Int) -> Int {
+    if "a".tryConcat("b") is Ok(s) {
+        v + 1
+    } else {
+        v
+    }
+}
+
+fn useBound[T: Putter](g: T, n: Int) -> Int {
+    g.put(n)
+}
+
+fn maxOf[T: Ord](a: T, b: T) -> T {
+    if a > b {
+        a
+    } else {
+        b
+    }
+}
+
+fn digest[T: Hash](v: &T) -> u64 {
+    hash(v)
+}
+
+fn dg[T: Hash](x: T) -> u64 {
+    x.hash()
+}
+
+fn same(a: &Int?, b: &Int?) -> Bool {
+    a == b
+}
+
+fn main() {
+    let p = useBound(Mode.Fast, 2)
+    let a = maxOf(1, 2)
+    let d = digest(&3)
+    let x = Some(1)
+    let h = hash(&x)
+    let e = Some(1) == Some(2)
+    let s = same(&x, &x)
+    let g = dg(Col.Red)
+    if Array.tryEmpty[Int]() is Ok(xs) {
+        let c = xs.contains(1)
+    }
+}
+-- expect --

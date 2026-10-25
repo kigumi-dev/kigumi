@@ -1,0 +1,88 @@
+-- module --
+mir: planned
+profile: recoverable-only
+-- src --
+import map from std/map
+
+type Pick[T] = Neither | One(T)
+
+fn dg[T: Hash](x: T) -> u64 {
+    x.hash()
+}
+
+fn byRef(a: &Int?) -> u64 {
+    hash(a)
+}
+
+export(C) {
+    pub fn lib_variant(n: i64) -> i64 {
+        let h = dg(Pick.One(1)) //~ ERROR binding the witnesses of `Pick.hash` for this call
+        n
+    }
+
+    pub fn lib_option_key(n: i64) -> i64 {
+        if map.tryEmpty[Int?, Int]() is Ok(m0) { //~ ERROR binding the witnesses of `Option.equals` for this call
+            let mut m = m0
+            let r = m.trySet(Some(1), 2)
+        }
+        n
+    }
+
+    pub fn lib_by_ref(n: i64) -> i64 {
+        let a: Int? = Some(1)
+        let h = byRef(&a) //~ ERROR `byRef`, which binds the witnesses of `Option.hash` for a call
+        n
+    }
+
+    pub fn lib_closure(n: i64) -> i64 {
+        let f = () => {
+            let h = dg(Pick.One(1))
+        }
+        f() //~ ERROR `closure`, which binds the witnesses of `Pick.hash` for a call
+        n
+    }
+
+    pub fn lib_nested(n: i64) -> i64 {
+        let x = Some(Some(1))
+        let h = hash(&x) //~ ERROR binding the witnesses of `Option.hash` for this call
+        n
+    }
+}
+
+fn main() {}
+-- expect --
+error[E1280]: binding the witnesses of `Pick.hash` for this call may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+  --> main.kg:15:17
+   |
+15 |         let h = dg(Pick.One(1)) //~ ERROR binding the witnesses of `Pick.hash` for this call
+   |                 ^^^^^^^^^^^^^
+   = help: use a type argument whose impl takes no witnesses (a non-generic type) instead
+
+error[E1280]: binding the witnesses of `Option.equals` for this call may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+  --> main.kg:20:12
+   |
+20 |         if map.tryEmpty[Int?, Int]() is Ok(m0) { //~ ERROR binding the witnesses of `Option.equals` for this call
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: use a type argument whose impl takes no witnesses (a non-generic type) instead
+
+error[E1280]: `byRef`, which binds the witnesses of `Option.hash` for a call, may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+  --> main.kg:29:17
+   |
+29 |         let h = byRef(&a) //~ ERROR `byRef`, which binds the witnesses of `Option.hash` for a call
+   |                 ^^^^^^^^
+   = help: use a type argument whose impl takes no witnesses (a non-generic type) instead
+
+error[E1280]: `closure`, which binds the witnesses of `Pick.hash` for a call, may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+  --> main.kg:37:9
+   |
+37 |         f() //~ ERROR `closure`, which binds the witnesses of `Pick.hash` for a call
+   |         ^^
+   = help: use a type argument whose impl takes no witnesses (a non-generic type) instead
+
+error[E1280]: binding the witnesses of `Option.hash` for this call may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+  --> main.kg:43:17
+   |
+43 |         let h = hash(&x) //~ ERROR binding the witnesses of `Option.hash` for this call
+   |                 ^^^^^^^
+   = help: use a type argument whose impl takes no witnesses (a non-generic type) instead
+

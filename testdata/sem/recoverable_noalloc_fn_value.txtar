@@ -1,0 +1,13 @@
+-- module --
+mir: planned
+profile: recoverable-only
+-- src --
+fn positive(i: Int) -> Bool {
+    i > 0
+}
+
+fn main() {
+    let f: noalloc fn(Int) -> Bool = positive
+    let b = f(2)
+}
+-- expect --

@@ -192,7 +192,7 @@ type Result struct {
 	boxedForwards             []boxedForward
 	lendSites                 map[lendSite]lendSite
 	boxedLends                map[lendSite]bool
-	recoverableSafe           map[EntityID]bool
+	recoverable               recoverableProfile
 	pendingLends              []lendSite
 	allocBlocks               []allocBlock
 	skipBody                  []bool

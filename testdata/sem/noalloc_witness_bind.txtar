@@ -1,0 +1,46 @@
+-- module --
+mir: planned
+-- src --
+interface Counter {
+    noalloc fn count(self) -> Int
+}
+
+type Pick[T] = Neither | One(T)
+
+type Tally = Low | High
+
+noalloc fn Pick[T: Counter].count(self) -> Int {
+    match self {
+        Pick.Neither -> 0
+        Pick.One(v) -> v.count()
+    }
+}
+
+noalloc fn Tally.count(self) -> Int {
+    1
+}
+
+noalloc fn total[T: Counter](g: T) -> Int {
+    g.count()
+}
+
+noalloc fn direct() -> Int {
+    total(Tally.High)
+}
+
+noalloc fn wrapped() -> Int {
+    total(Pick.One(Tally.High)) //~ ERROR handing `Pick.count` over as a witness binds its own witnesses
+}
+
+fn main() {
+    let a = direct()
+    let b = wrapped()
+}
+-- expect --
+error[E1821]: handing `Pick.count` over as a witness binds its own witnesses into a closure, which allocates
+  --> main.kg:29:5
+   |
+29 |     total(Pick.One(Tally.High)) //~ ERROR handing `Pick.count` over as a witness binds its own witnesses
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: use a type argument whose impl takes no witnesses, or call it outside the `noalloc` body
+

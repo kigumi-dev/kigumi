@@ -15,7 +15,7 @@ func (r *Result) checkContracts(id EntityID) {
 			continue
 		}
 		// The built program's alloc-claim check answers for a crossing an instantiation takes unboxed or a callee takes by value.
-		if e.Kind == EdgeAlloc && (r.takenUnboxed(e) || witnessWhy(e.Why) || e.Why == whyLendCross) {
+		if e.Kind == EdgeAlloc && (r.takenUnboxed(e) || witnessWhy(e.Why) || demotableWhy(e.Why)) {
 			r.deferredClaims = r.deferredClaims || declared&EffNoalloc != 0
 			continue
 		}
@@ -153,6 +153,8 @@ func (r *Result) reportContractEdge(e EffectEdge, mod Effects) {
 			r.errAt(e.File, e.Node, cAllocVariadic)
 		case e.Why == whyBind:
 			r.errAt(e.File, e.Node, cAllocBind, r.Entities[e.Target].Name)
+		case e.Why == whyWitnessBind:
+			r.errAt(e.File, e.Node, cAllocBindWitness, r.implName(e.Target))
 		case e.Why == whyBuild || e.Why == whySharedValue:
 			r.errAt(e.File, e.Node, cAllocConstruct, r.TypeString(e.Type))
 		case e.Why == whyEntryBox:

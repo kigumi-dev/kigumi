@@ -116,8 +116,14 @@ func (r *Result) checkDefaultAllocator() {
 				break
 			}
 			what := "this allocation"
-			if e.Kind == EdgeCall || e.Kind == EdgeWitness || e.Kind == EdgeCallback && e.Target != 0 {
+			switch {
+			case e.Kind == EdgeAlloc && e.Why == whyWitnessBind:
+				what = "binding the witnesses of `" + r.implName(e.Target) + "`"
+			case e.Kind == EdgeCall || e.Kind == EdgeWitness || e.Kind == EdgeCallback && e.Target != 0:
 				what = "`" + r.Entities[e.Target].Name + "`"
+				if b, ok := r.bindIn(e.Target, func(x EffectEdge) bool { return !r.edgeAllowsDefault(x) }); ok {
+					what += ", which binds the witnesses of `" + r.implName(b.Target) + "` for a call,"
+				}
 			}
 			r.errAt(e.File, e.Node, cNoDefaultAllocator, what)
 			break

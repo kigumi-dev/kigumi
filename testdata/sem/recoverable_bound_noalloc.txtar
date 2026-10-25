@@ -1,0 +1,51 @@
+-- module --
+mir: planned
+profile: recoverable-only
+-- src --
+interface Counter {
+    noalloc fn count(self, v: Int) -> Int
+}
+
+interface Zeroed {
+    noalloc fn zeroed() -> Self
+}
+
+interface Scaled {
+    pure? noalloc fn scale(self, v: Int) -> Int
+}
+
+type Tally = {
+    pub n Int
+}
+
+noalloc fn Tally.count(self, v: Int) -> Int {
+    self.n + v
+}
+
+noalloc fn Tally.zeroed() -> Tally {
+    Tally { n: 0 }
+}
+
+noalloc fn Tally.scale(self, v: Int) -> Int {
+    self.n * v
+}
+
+fn total[T: Counter](g: T, n: Int) -> Int {
+    g.count(n)
+}
+
+fn fresh[T: Zeroed]() -> T {
+    T.zeroed()
+}
+
+fn scaled[T: Scaled](g: T, n: Int) -> Int {
+    g.scale(n)
+}
+
+fn main() {
+    let t = Tally { n: 1 }
+    let a = total(t, 2)
+    let z: Tally = fresh()
+    let b = scaled(t, 3)
+}
+-- expect --

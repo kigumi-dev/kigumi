@@ -1,0 +1,277 @@
+-- module --
+mir: planned
+profile: recoverable-only
+-- src --
+import fmt from std/fmt
+import map from std/map
+
+interface Putter {
+    fn put(self, v: Int) -> Int
+}
+
+interface Maker {
+    fn make() -> Self
+}
+
+type Named = {
+    pub name String
+    pub n Int
+}
+
+type Count = {
+    pub n Int
+}
+
+type Key = {
+    pub n Int
+}
+
+fn Named.put(self, v: Int) -> Int {
+    let s = "${self.name}${v}"
+    self.n
+}
+
+fn Count.make() -> Count {
+    let s = "count${1}"
+    Count { n: 1 }
+}
+
+pure fn Key.equals(self, other: &Key) -> Bool {
+    let s = "${self.n}"
+    self.n == other.n
+}
+
+pure fn Key.hash(self) -> u64 {
+    let s = "${self.n}"
+    1
+}
+
+fn useBound[T: Putter](g: T, n: Int) -> Int {
+    g.put(n)
+}
+
+fn build[T: Maker]() -> T {
+    T.make()
+}
+
+fn same[T: Eq](a: &T, b: &T) -> Bool {
+    a == b
+}
+
+fn show[T: fmt.Display](v: &T) -> Int {
+    let s = v.display()
+    0
+}
+
+fn viaClosure[T: Putter](g: T) -> Int {
+    let f = () => g.put(1)
+    f()
+}
+
+fn run(p: &Putter) -> Int {
+    p.put(1)
+}
+
+fn lookup(m: &map.Map[Key, Int]) -> Bool {
+    m.contains(&Key { n: 1 })
+}
+
+fn inner[T: Hash](v: &T) -> u64 {
+    v.hash()
+}
+
+fn outer[T: Hash](v: &T) -> u64 {
+    inner(v)
+}
+
+fn digest[T: Hash](v: &T) -> u64 {
+    hash(v)
+}
+
+fn hashed(n: Int, h: u64 = digest(&Key { n: 1 })) -> u64 {
+    h
+}
+
+
+fn mkNamed() -> Named {
+    Named { name: "a", n: 1 }
+}
+
+fn mkKey() -> Key {
+    Key { n: 1 }
+}
+
+static sink: Named = comptime mkNamed()
+static key: Key = comptime mkKey()
+
+export(C) {
+    pub fn lib_method(n: i64) -> i64 {
+        useBound(sink, n) //~ ERROR `useBound`, which calls `Named.put` as `Putter.put`
+    }
+
+    pub fn lib_static(n: i64) -> i64 {
+        let c: Count = build() //~ ERROR `build`, which calls `Count.make` as `Maker.make`
+        c.n + n
+    }
+
+    pub fn lib_eq(n: i64) -> i64 {
+        if same(&key, &key) { //~ ERROR `same`, which calls `Key.equals` as `Eq.equals`
+            n
+        } else {
+            0
+        }
+    }
+
+    pub fn lib_display(n: i64) -> i64 {
+        show(&sink) + n //~ ERROR `show`, which calls `Named.display` as `Display.display`
+    }
+
+    pub fn lib_closure(n: i64) -> i64 {
+        viaClosure(sink) + n //~ ERROR `viaClosure`, which calls `Named.put` as `Putter.put`
+    }
+
+    pub fn lib_iface(n: i64) -> i64 {
+        run(&sink) + n //~ ERROR `run`, which calls `Putter.put` on an interface value
+    }
+
+    pub fn lib_set(n: i64) -> i64 {
+        if map.tryEmpty[Key, Int]() is Ok(m0) {
+            let mut m = m0
+            let r = m.trySet(Key { n: 1 }, 2) //~ ERROR `trySet`, which calls `Key.equals` as `Eq.equals`
+        }
+        n
+    }
+
+    pub fn lib_lookup(n: i64) -> i64 {
+        if map.tryEmpty[Key, Int]() is Ok(m0) {
+            if lookup(&m0) { //~ ERROR `lookup`, whose call to `contains` runs `Key.equals` as `Eq.equals`
+                return n
+            }
+        }
+        0
+    }
+
+    pub fn lib_layers(n: i64) -> i64 {
+        let h = outer(&Key { n: 1 }) //~ ERROR `outer`, which calls `Key.hash` as `Hash.hash`
+        n
+    }
+
+    pub fn lib_value(n: i64) -> i64 {
+        let f = digest[Key] //~ ERROR `digest`, which calls `Key.hash` as `Hash.hash`
+        n
+    }
+
+    pub fn lib_default(n: i64) -> i64 {
+        let h = hashed(n) //~ ERROR `hashed`, whose call to `digest` runs `Key.hash` as `Hash.hash`
+        n
+    }
+
+    pub fn lib_array_key(n: i64) -> i64 {
+        if map.tryEmpty[Array[Int], Int]() is Ok(m0) {
+            if Array.tryWithCapacity[Int](1) is Ok(a) {
+                let mut m = m0
+                let r = m.trySet(a, 1) //~ ERROR `trySet`, which calls `Array.equals` as `Eq.equals`
+            }
+        }
+        n
+    }
+
+    pub fn lib_empty(n: i64) -> i64 {
+        let a = Array.empty[Int]() //~ ERROR `empty` may terminate on a refused allocation
+        n
+    }
+}
+
+fn main() {}
+-- expect --
+error[E1280]: `useBound`, which calls `Named.put` as `Putter.put`, may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+   --> main.kg:105:9
+    |
+105 |         useBound(sink, n) //~ ERROR `useBound`, which calls `Named.put` as `Putter.put`
+    |         ^^^^^^^^^^^^^^^^
+    = help: use `noalloc` or only the fallible (`try`-prefixed) forms in `Named.put` instead
+
+error[E1280]: `build`, which calls `Count.make` as `Maker.make`, may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+   --> main.kg:109:24
+    |
+109 |         let c: Count = build() //~ ERROR `build`, which calls `Count.make` as `Maker.make`
+    |                        ^^^^^^
+    = help: use `noalloc` or only the fallible (`try`-prefixed) forms in `Count.make` instead
+
+error[E1280]: `same`, which calls `Key.equals` as `Eq.equals`, may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+   --> main.kg:114:12
+    |
+114 |         if same(&key, &key) { //~ ERROR `same`, which calls `Key.equals` as `Eq.equals`
+    |            ^^^^^^^^^^^^^^^
+    = help: use `noalloc` or only the fallible (`try`-prefixed) forms in `Key.equals` instead
+
+error[E1280]: `show`, which calls `Named.display` as `Display.display`, may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+   --> main.kg:122:9
+    |
+122 |         show(&sink) + n //~ ERROR `show`, which calls `Named.display` as `Display.display`
+    |         ^^^^^^^^^^
+    = help: use `noalloc` or only the fallible (`try`-prefixed) forms in `Named.display` instead
+
+error[E1280]: `viaClosure`, which calls `Named.put` as `Putter.put`, may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+   --> main.kg:126:9
+    |
+126 |         viaClosure(sink) + n //~ ERROR `viaClosure`, which calls `Named.put` as `Putter.put`
+    |         ^^^^^^^^^^^^^^^
+    = help: use `noalloc` or only the fallible (`try`-prefixed) forms in `Named.put` instead
+
+error[E1280]: `run`, which calls `Putter.put` on an interface value, may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+   --> main.kg:130:9
+    |
+130 |         run(&sink) + n //~ ERROR `run`, which calls `Putter.put` on an interface value
+    |         ^^^^^^^^^
+    = help: use a requirement declared `noalloc` or a concrete receiver instead
+
+error[E1280]: `trySet`, which calls `Key.equals` as `Eq.equals`, may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+   --> main.kg:136:21
+    |
+136 |             let r = m.trySet(Key { n: 1 }, 2) //~ ERROR `trySet`, which calls `Key.equals` as `Eq.equals`
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: use `noalloc` or only the fallible (`try`-prefixed) forms in `Key.equals` instead
+
+error[E1280]: `lookup`, whose call to `contains` runs `Key.equals` as `Eq.equals`, may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+   --> main.kg:143:16
+    |
+143 |             if lookup(&m0) { //~ ERROR `lookup`, whose call to `contains` runs `Key.equals` as `Eq.equals`
+    |                ^^^^^^^^^^
+    = help: use `noalloc` or only the fallible (`try`-prefixed) forms in `Key.equals` instead
+
+error[E1280]: `outer`, which calls `Key.hash` as `Hash.hash`, may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+   --> main.kg:151:17
+    |
+151 |         let h = outer(&Key { n: 1 }) //~ ERROR `outer`, which calls `Key.hash` as `Hash.hash`
+    |                 ^^^^^^^^^^^^^^^^^
+    = help: use `noalloc` or only the fallible (`try`-prefixed) forms in `Key.hash` instead
+
+error[E1280]: `digest`, which calls `Key.hash` as `Hash.hash`, may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+   --> main.kg:156:17
+    |
+156 |         let f = digest[Key] //~ ERROR `digest`, which calls `Key.hash` as `Hash.hash`
+    |                 ^^^^^^^^^^
+    = help: use `noalloc` or only the fallible (`try`-prefixed) forms in `Key.hash` instead
+
+error[E1280]: `hashed`, whose call to `digest` runs `Key.hash` as `Hash.hash`, may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+   --> main.kg:161:17
+    |
+161 |         let h = hashed(n) //~ ERROR `hashed`, whose call to `digest` runs `Key.hash` as `Hash.hash`
+    |                 ^^^^^^
+    = help: use `noalloc` or only the fallible (`try`-prefixed) forms in `Key.hash` instead
+
+error[E1280]: `trySet`, which calls `Array.equals` as `Eq.equals`, may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+   --> main.kg:169:25
+    |
+169 |                 let r = m.trySet(a, 1) //~ ERROR `trySet`, which calls `Array.equals` as `Eq.equals`
+    |                         ^^^^^^^^^^^^^
+    = help: use a type argument whose `equals` is `noalloc` or only uses the fallible (`try`-prefixed) forms instead
+
+error[E1280]: `empty` may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+   --> main.kg:176:17
+    |
+176 |         let a = Array.empty[Int]() //~ ERROR `empty` may terminate on a refused allocation
+    |                 ^^^^^^^^^^^^^^^^^
+    = help: use the fallible form `tryEmpty` instead
+

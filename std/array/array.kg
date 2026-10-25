@@ -24,6 +24,11 @@ pub pure fn Array[T].tryCloneWith(self, f: fn(&T) -> T) -> Result[Array[T], Allo
 /// Creates an empty array.
 pub pure fn Array.empty[T]() -> Array[T]
 
+/// An empty array, or AllocError when the allocator refuses (empty panics instead).
+pub pure fn Array.tryEmpty[T]() -> Result[Array[T], AllocError] {
+    Array.tryWithCapacity[T](0)
+}
+
 /// Creates an array holding the given items in order.
 pub pure fn Array.of[T](items: ...T) -> Array[T]
 

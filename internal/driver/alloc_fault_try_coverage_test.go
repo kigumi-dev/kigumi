@@ -16,7 +16,7 @@ import (
 // oomCovers names, for every std try function, the testdata/oom fixture pair (name and name_twice) whose sweeps drive it.
 var oomCovers = map[string]string{
 	"array.Array.tryClone": "array_clone", "array.Array.tryCloneWith": "array_clone_with", "array.Array.tryFill": "array_fill",
-	"array.Array.tryWithCapacity": "array_with_capacity", "array.Array.tryCopyRange": "array_take", "array.Array.tryReverse": "array_reverse",
+	"array.Array.tryWithCapacity": "array_with_capacity", "array.Array.tryEmpty": "array_try_empty", "array.Array.tryCopyRange": "array_take", "array.Array.tryReverse": "array_reverse",
 	"array.Array.tryPush": "array_push", "array.Array.tryReserve": "array_reserve", "array.Array.tryAppendAll": "array_append_all",
 	"array.Array.tryInsertAt": "array_insert_at", "array.Array.tryTake": "array_take", "array.Array.tryMap": "array_map",
 	"array.Array.tryFilter": "array_filter", "array.Array.trySlice": "array_slice", "array.Array.tryConcat": "array_concat",

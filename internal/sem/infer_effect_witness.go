@@ -52,6 +52,7 @@ func (c *checker) deferWitnessCallback(fn EntityID, node syntax.NodeID, passes [
 func (r *Result) resolvePendingWitnessCallbacks() {
 	pending := r.pendingWitnessCallbacks
 	r.pendingWitnessCallbacks = nil
+	r.recoverable.sites = append(r.recoverable.sites, pending...)
 	for _, p := range pending {
 		r.witnessCallbackEdges(p)
 	}
@@ -61,6 +62,13 @@ func (r *Result) resolvePendingWitnessCallbacks() {
 // parameter (WitnessLocal) is not chased further and stays the conservative
 // default of impure, like an interface value's dynamic dispatch.
 func (r *Result) witnessCallbackEdges(p pendingWitnessCallback) {
+	if bound := boundWitness(p.passes); bound != 0 && !r.boundAsValue(p) {
+		r.addEdge(p.owner, EffectEdge{Kind: EdgeAlloc, Target: bound, Why: whyWitnessBind, Node: p.node, File: p.file, Scoped: p.scoped})
+		if r.lendSites == nil {
+			r.lendSites = map[lendSite]lendSite{}
+		}
+		r.lendSites[lendSite{p.file, p.node}] = lendSite{p.file, p.node}
+	}
 	info := r.Fn(p.fn)
 	for _, key := range info.CalledWitnessReqs {
 		i := slices.IndexFunc(info.Witnesses, func(w WitnessSlot) bool {
@@ -107,4 +115,26 @@ func (r *Result) witnessArgMods(arg WitnessArg) Effects {
 		mods &= r.witnessArgMods(arg.Args[i])
 	}
 	return mods
+}
+
+// whyWitnessBind: handing a generic impl over as a witness binds its own witnesses into a closure.
+const whyWitnessBind = 24
+
+func boundWitness(passes []WitnessArg) EntityID {
+	for _, a := range passes {
+		if a.Kind == WitnessBind {
+			return a.Ent
+		}
+	}
+	return 0
+}
+
+// boundAsValue: a function value already pays for its bind (whyBind).
+func (r *Result) boundAsValue(p pendingWitnessCallback) bool {
+	for _, e := range r.edgesOf(p.owner) {
+		if e.Kind == EdgeAlloc && e.Why == whyBind && e.Node == p.node && e.File == p.file {
+			return true
+		}
+	}
+	return false
 }

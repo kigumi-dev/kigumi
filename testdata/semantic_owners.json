@@ -580,6 +580,16 @@
     "status": "ok"
   },
   {
+    "key": "array.Array.tryEmpty",
+    "signature": "pure fn() -\u003e Result[Array[T], AllocError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "array.Array.tryFill",
     "signature": "pure fn(T, usize) -\u003e Result[Array[T], AllocError]",
     "has_body": true,

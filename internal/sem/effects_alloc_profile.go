@@ -63,14 +63,7 @@ func (r *Result) inferRecoverableSafe(nodes []EntityID) map[EntityID]bool {
 	for changed := true; changed; {
 		changed = false
 		for _, id := range inferred {
-			ok := true
-			for _, e := range r.edgesOf(id) {
-				if !r.recoverableEdgeSafe(e, safe) {
-					ok = false
-					break
-				}
-			}
-			if ok != safe[id] {
+			if ok := r.recoverableBodySafe(id, safe); ok != safe[id] {
 				safe[id] = ok
 				changed = true
 			}
@@ -79,8 +72,20 @@ func (r *Result) inferRecoverableSafe(nodes []EntityID) map[EntityID]bool {
 	return safe
 }
 
-// recoverableFixed mirrors isrFixed: non-bodied entities are inert, and a bodiless
-// fn is safe unless it is a fatal convenience or `mem.uninit`, which ends the program when its cell is refused.
+func (r *Result) recoverableBodySafe(id EntityID, safe map[EntityID]bool) bool {
+	if _, _, _, bad := r.badSiteOf(id, safe); bad {
+		return false
+	}
+	for _, e := range r.edgesOf(id) {
+		if !r.recoverableEdgeSafe(e, safe) {
+			return false
+		}
+	}
+	return true
+}
+
+// recoverableFixed mirrors isrFixed. A requirement keeps its declared contract; a bodiless fn is safe
+// unless it is a fatal convenience or `mem.uninit`, which ends the program when its cell is refused.
 func (r *Result) recoverableFixed(id EntityID) (bool, bool) {
 	e := &r.Entities[id]
 	if e.Kind == EntClosure {
@@ -88,6 +93,9 @@ func (r *Result) recoverableFixed(id EntityID) (bool, bool) {
 	}
 	if e.Kind != EntFn && e.Kind != EntContract && e.Kind != EntImplicitMain && e.Kind != EntTest {
 		return true, true
+	}
+	if noalloc, ok := r.boundContract(id); ok {
+		return noalloc, true
 	}
 	if e.Flags&EfStd != 0 && (r.fatalConveniences()[r.fatalAllocKey(id)] || r.storageFn(id) == "Uninit") {
 		return false, true
@@ -114,52 +122,65 @@ func (r *Result) recoverableTargetSafe(target EntityID, safe map[EntityID]bool) 
 	return false
 }
 
-// recoverableEdgeSafe treats EdgeAlloc as always fatal (no fallible path
-// yet) and leaves EdgePanic alone; an unproven dynamic callee counts unsafe.
+// recoverableEdgeSafe: a bound call is judged at its witness site, and a callee with no body to read
+// passes only when declared `noalloc`.
 func (r *Result) recoverableEdgeSafe(e EffectEdge, safe map[EntityID]bool) bool {
 	switch e.Kind {
 	case EdgeAlloc:
 		return r.profileDeferred(e)
-	case EdgeCall:
-		return r.recoverableTargetSafe(e.Target, safe)
+	case EdgeCall, EdgeWitness, EdgeWitnessCall:
+		return r.boundLocal(e) != 0 || r.recoverableTargetSafe(e.Target, safe)
 	case EdgeCallback:
-		return e.Target != 0 && r.recoverableTargetSafe(e.Target, safe)
-	case EdgeWitness, EdgeParamCall, EdgeWitnessCall:
+		if e.Target == 0 {
+			return e.Mods&EffNoalloc != 0
+		}
+		return r.recoverableTargetSafe(e.Target, safe)
+	case EdgeParamCall:
 		return false
 	}
 	return true
 }
 
 // checkRecoverableOnly enforces the recoverable-only profile at every
-// root: the first edge reaching a fatal allocation path is reported.
+// root: the first edge or witness site reaching a fatal allocation path is reported.
 func (r *Result) checkRecoverableOnly(nodes []EntityID) {
 	roots := r.allocRoots()
 	if len(roots) == 0 {
 		return
 	}
+	r.markBoundSlots(nodes)
 	safe := r.inferRecoverableSafe(nodes)
-	r.recoverableSafe = safe
+	r.recoverable.safe = safe
 	for _, root := range roots {
-		if safe[root] {
-			continue
-		}
-		for _, e := range r.edgesOf(root) {
-			if r.recoverableEdgeSafe(e, safe) {
-				continue
-			}
-			if r.reportStorageAlloc(e) {
-				break
-			}
-			what, fix := "this allocation", "the fallible (`try`-prefixed) form"
-			if (e.Kind == EdgeCall || e.Kind == EdgeCallback) && e.Target != 0 {
-				name := r.Entities[e.Target].Name
-				what = "`" + name + "`"
-				if r.Entities[e.Target].Flags&EfStd != 0 && r.fatalConveniences()[r.fatalAllocKey(e.Target)] {
-					fix = "the fallible form `try" + strings.ToUpper(name[:1]) + name[1:] + "`"
-				}
-			}
-			r.errAt(e.File, e.Node, cRecoverableOnlyFatalAlloc, what, fix)
-			break
+		if !safe[root] {
+			r.reportRecoverableRoot(root, safe)
 		}
 	}
+}
+
+// reportRecoverableRoot reports root's first failing check.
+func (r *Result) reportRecoverableRoot(root EntityID, safe map[EntityID]bool) {
+	f, e, found := r.firstFault(root, safe)
+	if !found {
+		return
+	}
+	if f != nil {
+		r.reportSiteFault(f, "`"+r.Entities[f.site.fn].Name+"`", ", which calls", f.site.file, f.site.node)
+		return
+	}
+	if r.reportStorageAlloc(e) || r.reportBoundCall(root, e, safe) {
+		return
+	}
+	what, fix := "this allocation", "the fallible (`try`-prefixed) form"
+	switch {
+	case e.Kind == EdgeAlloc && e.Why == whyWitnessBind:
+		what, fix = "binding the witnesses of `"+r.implName(e.Target)+"` for this call", "a type argument whose impl takes no witnesses (a non-generic type)"
+	case (e.Kind == EdgeCall || e.Kind == EdgeCallback) && e.Target != 0:
+		name := r.Entities[e.Target].Name
+		what = "`" + name + "`"
+		if r.Entities[e.Target].Flags&EfStd != 0 && r.fatalConveniences()[r.fatalAllocKey(e.Target)] {
+			fix = "the fallible form `try" + strings.ToUpper(name[:1]) + name[1:] + "`"
+		}
+	}
+	r.errAt(e.File, e.Node, cRecoverableOnlyFatalAlloc, what, fix)
 }

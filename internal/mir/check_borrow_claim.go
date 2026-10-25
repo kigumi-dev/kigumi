@@ -26,20 +26,26 @@ func (p *Program) boxedLend(f *Func, in Inst) sem.TypeID {
 }
 
 // An undeclared body is noalloc only while its lends stay direct; one that boxes allocates after all, which callers learn here.
+// A witness bind that survives planning allocates, declared `noalloc` or not.
 func (p *Program) demoteBoxedLends(reached map[sem.EntityID]bool) {
 	for _, f := range p.allFuncs() {
-		if f.Ent == 0 || p.declaredNoalloc(f) || p.sharedUnreached(f, reached) {
+		if f.Ent == 0 || p.sharedUnreached(f, reached) {
 			continue
 		}
+		declared := p.declaredNoalloc(f)
 		for _, blk := range f.Blocks {
 			for _, in := range blk.Insts {
-				if p.boxedLend(f, in) != 0 {
+				if !declared && p.boxedLend(f, in) != 0 || p.keptWitnessBind(f, in) {
 					p.R.DemoteBoxedLend(f.File, in.Node)
 				}
 			}
 		}
 	}
 	p.R.SettleLendDemotions()
+}
+
+func (p *Program) keptWitnessBind(f *Func, in Inst) bool {
+	return in.Op == OpBind && len(in.Args) > 0 && p.R.LendSite(f.File, in.Node)
 }
 
 // A payload-free variant is one immortal every site shares, so borrowing it costs nothing.
