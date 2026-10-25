@@ -21,6 +21,7 @@ func runBorrowChecks(p *Program, f *Func) {
 	analyzeBorrows(p, f)
 	checkBorrowedMoves(p, f)
 	checkImmediateCaptures(p, f)
+	checkErasedReaders(p, f)
 }
 
 // runPendingChecks restores each body's lowering position, so calleeBody answers as it did right after that body was built.

@@ -108,7 +108,7 @@ func (c *borrowCheck) checkLentTwice(in Inst) {
 		for _, p := range seen {
 			if p.root == ps[0].root && fieldPathsOverlap(p.path, ps[0].path) {
 				name := ps[0].root
-				if ps[0].via != 0 {
+				if ps[0].hasVia {
 					name = ps[0].via
 				}
 				c.report(in.Node, name, "borrow-conflict", "`"+c.f.Locals[name].Name+"` is passed twice as `&mut`; the callee would get two exclusive borrows of the same value")

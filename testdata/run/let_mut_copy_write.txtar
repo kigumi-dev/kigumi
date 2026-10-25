@@ -15,6 +15,7 @@ fn next(k: &mut Char) { k = 'z' }
 fn moveP(k: &mut P) { k.x = k.x + 1 }
 fn grow(k: &mut String) { k = "${k}!" }
 fn fill(k: &mut Int?) { k = Some(9) }
+fn applyInt(f: fn() -> Int) -> Int { f() }
 
 fn rangeLit() -> String {
     let mut out = ""
@@ -232,6 +233,28 @@ fn inLambda() -> String {
     out
 }
 
+fn inLambdaOpen() -> String {
+    let mut out = ""
+    if let Ok(v) = json.decode("5") {
+        let mut k = v
+        let f = () => { bump(&mut k); k }
+        let got = f()
+        out = "${v}>${got},${k}"
+    }
+    out
+}
+
+fn inlineOpen() -> String {
+    let mut out = ""
+    if let Ok(v) = json.decode("5") {
+        let mut k = v
+        let got = applyInt(() => k)
+        bump(&mut k)
+        out = "${v}>${got},${k}"
+    }
+    out
+}
+
 fn main() {
     print "range${rangeLit()}"
     print "rangen${rangeParam(2)}"
@@ -253,6 +276,8 @@ fn main() {
     print "writes${writes()}"
     print "captured ${capturedOpen()}"
     print "lambda${inLambda()}"
+    print "lambdaopen ${inLambdaOpen()}"
+    print "inline ${inlineOpen()}"
 }
 -- stdout --
 range 0:0>1 1:1>2 2:2>3
@@ -275,3 +300,5 @@ locals 3>4 8>9 2>3
 writes 0>5,1,7 1>6,2,8
 captured 5>6,6
 lambda 0>1,1 1>2,2
+lambdaopen 5>6,6
+inline 5>5,6

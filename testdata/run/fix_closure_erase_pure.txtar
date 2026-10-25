@@ -1,9 +1,8 @@
 -- src --
+fn ap(f: pure fn(Int) -> Int, x: Int) -> Int { f(x) }
 let mut n = 0
-let k = (x: Int) => x + n
-let m: pure fn(Int) -> Int = k
 let inc = () => { n += 1 }
 inc()
-print "${m(1)}"
+print "${ap((x: Int) => x + n, 1)}"
 -- stdout --
 2

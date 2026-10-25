@@ -63,6 +63,7 @@ func (c *checker) synthLambda(n syntax.NodeID, want TypeID) TypeID {
 	c.locals = savedLocals
 	c.consumed, c.branch = savedConsumed, savedBranch
 	c.lambdas = c.lambdas[:len(c.lambdas)-1]
+	c.settleOpenCaptures()
 	c.settleCaptureReserves(ctx)
 	c.popScope(saved)
 	if bad {

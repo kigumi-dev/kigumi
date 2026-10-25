@@ -1,20 +1,19 @@
 -- src --
+fn ap(f: pure fn(Int) -> Int, x: Int) -> Int { f(x) }
 let mut n = 0
-let k = (x: Int) => x + n
-let m: pure fn(Int) -> Int = k
 let inc = () => { n += 1 }
 inc()
-print "${m(1)}"
+print "${ap((x: Int) => x + n, 1)}"
 -- expect --
-fn main.closure1(%n: Int, %x: Int) -> Int {
+fn main.ap(%f: pure fn(Int) -> Int, %x: Int) -> Int {
   b0:
-    %t2 = cellget(%n)
-    %t3 = bin +(%x, %t2)
+    %t2 = copy(%x)
+    %t3 = callv(%f, %t2)
     drop(%x)
-    drop(%n)
+    drop(%f)
     return %t3
 }
-fn main.closure2(%n: Int) -> Void {
+fn main.closure1(%n: Int) -> Void {
   b0:
     %t1 = cellget(%n)
     %t2 = const 1: Int
@@ -24,27 +23,30 @@ fn main.closure2(%n: Int) -> Void {
     drop(%n)
     return %t4
 }
+fn main.closure2(%n: Int, %x: Int) -> Int {
+  b0:
+    %t2 = cellget(%n)
+    %t3 = bin +(%x, %t2)
+    drop(%x)
+    drop(%n)
+    return %t3
+}
 fn main() -> Void! {
   b0:
     %t0 = const 0: Int
     %n = newcell(%t0)
     %t2 = closure main.closure1(%n)
-    %k = copy(%t2)
-    %t4 = copy(%k)
-    %m = copy(%t4)
+    %inc = copy(%t2)
+    %t4 = callv(%inc)
+    drop(%t4)
     %t6 = closure main.closure2(%n)
-    %inc = copy(%t6)
-    %t8 = callv(%inc)
-    drop(%t8)
-    %t10 = const 1: Int
-    %t11 = callv(%m, %t10)
-    %t9 = interp ""(%t11)
-    %t12 = builtin print(%t9)
-    drop(%t12)
+    %t7 = const 1: Int
+    %t8 = call main.ap(%t6, %t7)
+    %t5 = interp ""(%t8)
+    %t9 = builtin print(%t5)
+    drop(%t9)
     drop(%inc)
-    drop(%m)
-    drop(%k)
     drop(%n)
-    %t13 = unit
-    return %t13
+    %t10 = unit
+    return %t10
 }

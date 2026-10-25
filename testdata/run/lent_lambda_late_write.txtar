@@ -1,0 +1,67 @@
+-- src --
+type P = { n Int }
+
+fn apply(f: fn() -> Int) -> Int { f() }
+fn P.run(self, f: fn() -> Int) -> Int { f() + self.n }
+
+fn declared() -> Int {
+    let mut k = 1
+    let a = apply(() => k)
+    k = 2
+    a + k
+}
+
+fn loopMap() -> Int {
+    let xs: Array[Int] = Array.of(1, 2, 3)
+    let mut k = 0
+    let mut total = 0
+    for x in &xs {
+        let ys = xs.map((y: &Int) => y + k)
+        total = total + ys[0]
+        k = k + 1
+    }
+    total + k
+}
+
+fn fnValue() -> Int {
+    let mut k = 1
+    let run: fn(fn() -> Int) -> Int = apply
+    let a = run(() => k)
+    k = 2
+    a + k
+}
+
+fn paren() -> Int {
+    let mut k = 1
+    let a = apply((() => k))
+    k = 2
+    a + k
+}
+
+fn moved() -> Int {
+    let mut k = 1
+    let a = apply(move () => k)
+    k = 2
+    a + k
+}
+
+fn method() -> Int {
+    let mut k = 1
+    let p = P { n: 0 }
+    let a = p.run(() => k)
+    k = 2
+    a + k
+}
+
+fn piped() -> Int {
+    let mut k = 1
+    let a = 5 |> (x: Int) => x + k
+    k = 2
+    a + k
+}
+
+fn main() {
+    print "${declared()} ${loopMap()} ${fnValue()} ${paren()} ${moved()} ${method()} ${piped()}"
+}
+-- stdout --
+3 9 3 3 3 3 8

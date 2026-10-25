@@ -311,7 +311,7 @@ fn intCell() -> Int {
 fn erasedReader() -> usize {
     let mut s = "ab"
     let g = () => s.len()
-    let h: fn() -> usize = g
+    let h: fn() -> usize = g //~ ERROR closure captures `s` (written outside this closure
     let m = &mut s
     let n = h() //~ ERROR `s` is exclusively borrowed and cannot be used here
     let q = m.len()
@@ -327,7 +327,7 @@ fn sharedLentWriter() -> Int {
 fn writeBackWithErasedReader() -> usize {
     let mut s = "abc"
     let g = () => s.len()
-    let h: fn() -> usize = g
+    let h: fn() -> usize = g //~ ERROR closure captures `s` (written outside this closure
     let x = both(&mut s, h) //~ ERROR `s` is exclusively borrowed and cannot be used here
     let y = bothRev(h, &mut s) //~ ERROR `s` is exclusively borrowed and cannot be used here
     x + y + bothWrapped(&mut s, FW { f: h }) //~ ERROR `s` is exclusively borrowed and cannot be used here
@@ -1232,6 +1232,18 @@ note: `s` is borrowed here
 312 |     let m = &mut s
     |             ^^^^^^
 
+error[E413]: closure captures `s` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:311:9
+    |
+311 |     let h: fn() -> usize = g //~ ERROR closure captures `s` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `s`, or bind the closure without a `fn` type
+note: `s` is written here while the plain `fn` may still run
+   --> main.kg:312:13
+    |
+312 |     let m = &mut s
+    |             ^^^^^^
+
 error[E2198]: `a` is borrowed and cannot be mutated here
    --> main.kg:321:5
     |
@@ -1275,6 +1287,18 @@ error[E2198]: `s` is exclusively borrowed and cannot be used here
     |             ^^^^^^^^^^^^^^
     = help: end the borrow first or use a copy
 note: `s` is borrowed here
+   --> main.kg:328:18
+    |
+328 |     let x = both(&mut s, h) //~ ERROR `s` is exclusively borrowed and cannot be used here
+    |                  ^^^^^^
+
+error[E413]: closure captures `s` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:327:9
+    |
+327 |     let h: fn() -> usize = g //~ ERROR closure captures `s` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `s`, or bind the closure without a `fn` type
+note: `s` is written here while the plain `fn` may still run
    --> main.kg:328:18
     |
 328 |     let x = both(&mut s, h) //~ ERROR `s` is exclusively borrowed and cannot be used here

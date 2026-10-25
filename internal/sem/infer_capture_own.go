@@ -10,6 +10,7 @@ import (
 // ones already closed: ctx.list aliases the backing array copied into ClosureInfo.
 func (c *checker) promoteCaptures(n syntax.NodeID, ent EntityID) {
 	sites := c.captureSites[ent]
+	c.markOpenWritten(ent)
 	if len(sites) == 0 || c.movedCaptureWrite(n, ent, sites) {
 		return
 	}

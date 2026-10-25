@@ -22,4 +22,9 @@ type exprState struct {
 	loopValues map[syntax.NodeID][]syntax.NodeID
 	// openBorrows are the `&mut` borrows whose referent type is still an open variable.
 	openBorrows []scalarBorrow
+	// openCaptures wait for their local's type; erased are the closures coerced to a plain fn so far.
+	openCaptures []openCapture
+	erased       []erasure
+	// eraseSites are the values marked lent to a call or bound to a local before they are checked.
+	eraseSites map[syntax.NodeID]eraseSite
 }

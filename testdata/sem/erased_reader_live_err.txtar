@@ -1,0 +1,1082 @@
+-- module --
+mir: planned
+-- src --
+import json from std/json
+
+type C = { mut n Int }
+type R = { mut f fn() -> Int }
+type Outer = { mut inner R }
+type G = resource { pub f fn() -> Int }
+type Bad = { pub why String }
+
+interface Msg { fn text(self) -> String }
+
+fn G.drop(move self) { _ = (self.f)() }
+fn Bad.text(self) -> String { self.why }
+fn compute(f: fn() -> Int) -> Result[Int, Msg] {
+    let v = f()
+    if v > 100 { Err(Bad { why: "big" }) } else { Ok(v) }
+}
+fn mkOther(f: fn() -> Int) -> fn() -> Int { () => 42 }
+fn adapt(f: escaping fn() -> Int) -> fn(Int) -> Int { (x: Int) => x + f() }
+fn addAll(mut xs: Array[fn() -> Int], f: escaping fn() -> Int) -> Array[fn() -> Int] { xs.push(f); xs }
+fn pushFirst(out: &mut Array[fn() -> Int], f: escaping fn() -> Int) { out.push(f) }
+fn storeIn(r: &mut R, f: escaping fn() -> Int) { r.f = f }
+fn storeIn2(r: &mut R, f: escaping fn() -> Int) { storeIn(r, f) }
+fn holderFirst(f: escaping fn() -> Int, r: &mut R) { r.f = f }
+fn mix(f: escaping fn() -> Int, r: &mut R) { holderFirst(f, r) }
+fn passOn(r: &mut R, f: escaping fn() -> Int) { storeIn2(r, f) }
+fn readIn(r: &mut R, f: escaping fn() -> Int) -> Int { r.f() + f() }
+fn readIn2(r: &mut R, f: escaping fn() -> Int) -> Int { readIn(r, f) }
+fn rd(r: &mut R, f: escaping fn() -> Int, n: Int) -> Int { if n > 0 { rd(r, f, n - 1) } else { r.f() + f() } }
+fn ma(r: &mut R, f: escaping fn() -> Int, n: Int) -> Int { if n > 0 { mb(r, f, n - 1) } else { r.f() + f() } }
+fn mb(r: &mut R, f: escaping fn() -> Int, n: Int) -> Int { if n > 0 { ma(r, f, n - 1) } else { f() } }
+fn rdStore(r: &mut R, f: escaping fn() -> Int, n: Int) { if n > 0 { rdStore(r, f, n - 1) } else { r.f = f } }
+fn sa(r: &mut R, f: escaping fn() -> Int, n: Int) { if n > 0 { sb(r, f, n - 1) } }
+fn sb(r: &mut R, f: escaping fn() -> Int, n: Int) { if n > 0 { sa(r, f, n - 1) } else { r.f = f } }
+
+fn R.setVia(mut self) {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    storeIn2(&mut self, f)
+    k = 2
+}
+
+fn R.setLater(mut self) {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    self.f = f
+    k = 2
+}
+
+fn R.setSettled(mut self) {
+    let mut k = 1
+    k = 2
+    let f: fn() -> Int = () => k
+    self.f = f
+}
+
+fn C.inc(mut self) { self.n = self.n + 1 }
+fn bump(k: &mut Int) { k = k + 1 }
+fn apply(f: fn() -> Int) -> Int { f() }
+fn keep(f: escaping fn() -> Int) -> Int { f() }
+
+fn pureCalledAfter() -> String {
+    let mut k = 1
+    let h: pure fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    k = 2
+    "${h()} ${k}"
+}
+
+fn openCalledAfter() -> String {
+    if let Ok(v) = json.decode("5") {
+        let mut k = v
+        let h: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+        k = 2
+        return "${h()} ${k}"
+    }
+    ""
+}
+
+fn deadAfterWrite() -> Int {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let a = f()
+    k = 2
+    a + k
+}
+
+fn openDeadAfterWrite() -> String {
+    if let Ok(v) = json.decode("5") {
+        let mut k = v
+        let f: fn() -> Int = () => k
+        let a = f()
+        k = 9
+        return "${a} ${k}"
+    }
+    ""
+}
+
+fn untakenBranchCalledAfter() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    if false { k = 2 }
+    "${f()} ${k}"
+}
+
+fn untakenBranchDead() -> Int {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let a = f()
+    if false { k = 2 }
+    a + k
+}
+
+fn borrowedBeforeCall() -> Int {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    bump(&mut k)
+    f()
+}
+
+fn receiverBeforeCall() -> Int {
+    let mut c = C { n: 1 }
+    let f: fn() -> Int = () => c.n //~ ERROR closure captures `c` (written outside this closure
+    c.inc()
+    f()
+}
+
+fn fieldBeforeCall() -> Int {
+    let mut c = C { n: 1 }
+    let f: fn() -> Int = () => c.n //~ ERROR closure captures `c` (written outside this closure
+    c.n = 5
+    f()
+}
+
+fn heldByClosure() -> Int {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    let g = () => f() + 1
+    k = 2
+    g()
+}
+
+fn escapedThenWritten() -> Int {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    let keeper: fn(escaping fn() -> Int) -> Int = keep
+    let a = keeper(f)
+    k = 2
+    a + k
+}
+
+fn escapingParamOnlyCalls() -> Int {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let a = keep(f)
+    k = 2
+    a + k
+}
+
+fn nextIteration() -> Int {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    let mut t = 0
+    for i in 0..3 {
+        t = t + f()
+        k = k + 1
+    }
+    t
+}
+
+fn namedCalledAfter() -> Int {
+    let mut k = 1
+    let g = () => k
+    let h: fn() -> Int = g //~ ERROR closure captures `k` (written outside this closure
+    k = 2
+    h()
+}
+
+fn runsSharingClosure() -> Int {
+    let mut k = 1
+    let g = () => k
+    let h = () => g() + 1
+    let f: fn() -> Int = h //~ ERROR closure captures `k` (written outside this closure
+    k = 5
+    f()
+}
+
+fn namedLentThenWritten() -> String {
+    let mut k = 1
+    let f = () => k
+    let a = apply(f)
+    k = 2
+    "${a} ${k}"
+}
+
+fn unwrapAfter() -> String {
+    let mut k = 1
+    let f: pure fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    let g: pure fn() -> Int = Some(f).unwrap()
+    k = 2
+    "${g()} ${k}"
+}
+
+fn unwrapDead() -> String {
+    let mut k = 1
+    let f: pure fn() -> Int = () => k
+    let g: pure fn() -> Int = Some(f).unwrap()
+    let a = g()
+    k = 2
+    "${a} ${k}"
+}
+
+fn fieldReadAfter() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    let r = R { f: f }
+    let g = r.f
+    k = 2
+    "${g()} ${k}"
+}
+
+fn fieldReadDead() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let r = R { f: f }
+    let g = r.f
+    let a = g()
+    k = 2
+    "${a} ${k}"
+}
+
+fn literalFieldAfter() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    let g = R { f: f }.f
+    bump(&mut k)
+    "${g()} ${k}"
+}
+
+fn literalFieldDead() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let g = R { f: f }.f
+    let a = g()
+    bump(&mut k)
+    "${a} ${k}"
+}
+
+fn callResultAfter() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    let g = (() => f)()
+    k = 2
+    "${g()} ${k}"
+}
+
+fn callResultDead() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let g = (() => f)()
+    let a = g()
+    k = 2
+    "${a} ${k}"
+}
+
+fn ifLetAfter() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    if let Some(g) = Some(f) {
+        k = 2
+        return "${g()} ${k}"
+    }
+    ""
+}
+
+fn ifLetDead() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let mut a = 0
+    if let Some(g) = Some(f) {
+        a = g()
+    }
+    k = 2
+    "${a} ${k}"
+}
+
+fn destructuredAfter() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    let R { f: g } = R { f: f }
+    k = 2
+    "${g()} ${k}"
+}
+
+fn destructuredDead() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let R { f: g } = R { f: f }
+    let a = g()
+    k = 2
+    "${a} ${k}"
+}
+
+fn openUnwrapAfter() -> String {
+    if let Ok(v) = json.decode("1") {
+        let mut k = v
+        let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+        let g = Some(f).unwrap()
+        k = 2
+        return "${g()} ${k}"
+    }
+    ""
+}
+
+fn openUnwrapDead() -> String {
+    if let Ok(v) = json.decode("1") {
+        let mut k = v
+        let f: fn() -> Int = () => k
+        let g = Some(f).unwrap()
+        let a = g()
+        k = 2
+        return "${a} ${k}"
+    }
+    ""
+}
+
+fn madeInOuterLambda() -> String {
+    let mut k = 1
+    let outer = () => {
+        let f: fn() -> Int = () => k
+        let a = f()
+        a
+    }
+    k = 2
+    "${outer()} ${k}"
+}
+
+fn leavesOuterLambda() -> String {
+    let mut k = 1
+    let outer = () => {
+        let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+        f
+    }
+    let h = outer() //~ ERROR closure captures `k` (written outside this closure
+    k = 2
+    "${h()} ${k}"
+}
+
+fn packIndexAfter() -> String {
+    let mut k = 1
+    let f: pure fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    let a = Array.of(f)
+    k = 2
+    let g: pure fn() -> Int = a[0]
+    "${g()} ${k}"
+}
+
+fn packIndexDead() -> String {
+    let mut k = 1
+    let f: pure fn() -> Int = () => k
+    let a = Array.of(f)
+    let g: pure fn() -> Int = a[0]
+    let x = g()
+    k = 2
+    "${x} ${k}"
+}
+
+fn packLiteralAfter() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    let g = Array.of(f)[0]
+    bump(&mut k)
+    "${g()} ${k}"
+}
+
+fn packLiteralDead() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let x = Array.of(f)[0]()
+    bump(&mut k)
+    "${x} ${k}"
+}
+
+fn packGetAfter() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    let a = Array.of(f)
+    k = 2
+    "${a.get(0).unwrap()()} ${k}"
+}
+
+fn packGetDead() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let a = Array.of(f)
+    let x = a.get(0).unwrap()()
+    k = 2
+    "${x} ${k}"
+}
+
+fn openPackAfter() -> String {
+    if let Ok(v) = json.decode("5") {
+        let mut k = v
+        let h: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+        let a = Array.of(h)
+        bump(&mut k)
+        return "${a[0]()} ${k}"
+    }
+    ""
+}
+
+fn openPackDead() -> String {
+    if let Ok(v) = json.decode("5") {
+        let mut k = v
+        let h: fn() -> Int = () => k
+        let a = Array.of(h)
+        let x = a[0]()
+        bump(&mut k)
+        return "${x} ${k}"
+    }
+    ""
+}
+
+fn dropRunsHeld() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    let g = G { f: f }
+    k = 2
+    "${k}"
+}
+
+fn plainRecordDead() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let r = R { f: f }
+    let x = (r.f)()
+    k = 2
+    "${x} ${k}"
+}
+
+fn resultCannotHold() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let r = compute(f)
+    let g = mkOther(f)
+    k = 2
+    match r { Ok(v) -> "${v} ${g()} ${k}", Err(e) -> e.text() }
+}
+
+fn resultWrapsIt() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    let a = adapt(f)
+    k = 2
+    "${a(1)}"
+}
+
+fn calleeFirstParam() -> Int {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    let xs = addAll(Array.empty[fn() -> Int](), f)
+    k = 2
+    xs[0]()
+}
+
+fn calleeFirstParamDead() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let xs = addAll(Array.empty[fn() -> Int](), f)
+    let x = xs[0]()
+    k = 2
+    "${x} ${k}"
+}
+
+fn callerFirstParam(mut a: Array[fn() -> Int]) -> Int {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    pushFirst(&mut a, f)
+    k = 2
+    a[0]()
+}
+
+fn callerFirstParamDead(mut a: Array[fn() -> Int]) -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    pushFirst(&mut a, f)
+    let x = a[0]()
+    k = 2
+    "${x} ${k}"
+}
+
+fn throughMutParam(r: &mut R) {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    r.f = f
+    k = 2
+}
+
+fn throughMutParamSettled(r: &mut R) {
+    let mut k = 1
+    k = 2
+    let f: fn() -> Int = () => k
+    r.f = f
+}
+
+fn throughNestedField(o: &mut Outer) {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    o.inner.f = f
+    k = 2
+}
+
+fn throughNestedFieldSettled(o: &mut Outer) {
+    let k = 3
+    let f: fn() -> Int = () => k
+    o.inner.f = f
+}
+
+fn throughElement(out: &mut Array[fn() -> Int]) {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    out[0] = f
+    k = 2
+}
+
+fn throughPushHelper(out: &mut Array[fn() -> Int]) {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    pushFirst(out, f)
+    k = 2
+}
+
+fn throughStoreHelper(r: &mut R) {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    storeIn(r, f)
+    k = 2
+}
+
+fn throughHelpersCapturesNothingLater(r: &mut R, out: &mut Array[fn() -> Int]) {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let x = f()
+    let g: fn() -> Int = () => x
+    pushFirst(out, g)
+    storeIn(r, g)
+    out[0] = g
+    k = 2
+}
+
+fn throughTwoHelpers(r: &mut R) {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    storeIn2(r, f)
+    k = 2
+}
+
+fn throughMixedOrder(r: &mut R) {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    mix(f, r)
+    k = 2
+}
+
+fn throughPassOn(r: &mut R) {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    passOn(r, f)
+    k = 2
+}
+
+fn twoHelpersOnlyRead(r: &mut R) -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let x = readIn2(r, f)
+    k = 2
+    "${x} ${k}"
+}
+
+fn recursiveHelpersOnlyRead(r: &mut R) -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let a = rd(r, f, 3) + ma(r, f, 3)
+    k = 2
+    "${a} ${k}"
+}
+
+fn recursiveHelperStoresAtBase(r: &mut R) {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    rdStore(r, f, 3)
+    k = 2
+}
+
+fn mutualHelpersStoreAtBase(r: &mut R) {
+    let mut k = 1
+    let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    sa(r, f, 3)
+    k = 2
+}
+-- expect --
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+  --> main.kg:37:9
+   |
+37 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+   |         ^
+   = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+  --> main.kg:39:5
+   |
+39 |     k = 2
+   |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+  --> main.kg:44:9
+   |
+44 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+   |         ^
+   = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+  --> main.kg:46:5
+   |
+46 |     k = 2
+   |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+  --> main.kg:63:9
+   |
+63 |     let h: pure fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+   |         ^
+   = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+  --> main.kg:64:5
+   |
+64 |     k = 2
+   |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+  --> main.kg:71:13
+   |
+71 |         let h: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+   |             ^
+   = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+  --> main.kg:72:9
+   |
+72 |         k = 2
+   |         ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:99:9
+    |
+ 99 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:100:16
+    |
+100 |     if false { k = 2 }
+    |                ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:114:9
+    |
+114 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:115:10
+    |
+115 |     bump(&mut k)
+    |          ^^^^^^
+
+error[E413]: closure captures `c` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:121:9
+    |
+121 |     let f: fn() -> Int = () => c.n //~ ERROR closure captures `c` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `c`, or bind the closure without a `fn` type
+note: `c` is written here while the plain `fn` may still run
+   --> main.kg:122:5
+    |
+122 |     c.inc()
+    |     ^
+
+error[E413]: closure captures `c` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:128:9
+    |
+128 |     let f: fn() -> Int = () => c.n //~ ERROR closure captures `c` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `c`, or bind the closure without a `fn` type
+note: `c` is written here while the plain `fn` may still run
+   --> main.kg:129:5
+    |
+129 |     c.n = 5
+    |     ^^^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:135:9
+    |
+135 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:137:5
+    |
+137 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:143:9
+    |
+143 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:146:5
+    |
+146 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:160:9
+    |
+160 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:164:9
+    |
+164 |         k = k + 1
+    |         ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:172:9
+    |
+172 |     let h: fn() -> Int = g //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:173:5
+    |
+173 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:181:9
+    |
+181 |     let f: fn() -> Int = h //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:182:5
+    |
+182 |     k = 5
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:196:9
+    |
+196 |     let f: pure fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:198:5
+    |
+198 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:213:9
+    |
+213 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:216:5
+    |
+216 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:232:9
+    |
+232 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:234:10
+    |
+234 |     bump(&mut k)
+    |          ^^^^^^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:249:9
+    |
+249 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:251:5
+    |
+251 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:266:9
+    |
+266 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:268:9
+    |
+268 |         k = 2
+    |         ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:287:9
+    |
+287 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:289:5
+    |
+289 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:305:13
+    |
+305 |         let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |             ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:307:9
+    |
+307 |         k = 2
+    |         ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:339:13
+    |
+339 |         let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |             ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: the plain `fn` leaves this closure here, and the enclosing body may write `k` before it runs
+   --> main.kg:340:9
+    |
+340 |         f
+    |         ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:342:13
+    |
+342 |     let h = outer() //~ ERROR closure captures `k` (written outside this closure
+    |             ^^^^^^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:343:5
+    |
+343 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:349:9
+    |
+349 |     let f: pure fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:351:5
+    |
+351 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:368:9
+    |
+368 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:370:10
+    |
+370 |     bump(&mut k)
+    |          ^^^^^^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:384:9
+    |
+384 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:386:5
+    |
+386 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:402:13
+    |
+402 |         let h: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |             ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:404:14
+    |
+404 |         bump(&mut k)
+    |              ^^^^^^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:424:9
+    |
+424 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:426:5
+    |
+426 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:450:9
+    |
+450 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:452:5
+    |
+452 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:458:9
+    |
+458 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:460:5
+    |
+460 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:475:9
+    |
+475 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:477:5
+    |
+477 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:492:9
+    |
+492 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:494:5
+    |
+494 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:506:9
+    |
+506 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:508:5
+    |
+508 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:519:9
+    |
+519 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:521:5
+    |
+521 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:526:9
+    |
+526 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:528:5
+    |
+528 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:533:9
+    |
+533 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:535:5
+    |
+535 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:551:9
+    |
+551 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:553:5
+    |
+553 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:558:9
+    |
+558 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:560:5
+    |
+560 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:565:9
+    |
+565 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:567:5
+    |
+567 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:588:9
+    |
+588 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:590:5
+    |
+590 |     k = 2
+    |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:595:9
+    |
+595 |     let f: fn() -> Int = () => k //~ ERROR closure captures `k` (written outside this closure
+    |         ^
+    = help: a plain `fn` cannot share a captured variable's cell; use it before writing `k`, or bind the closure without a `fn` type
+note: `k` is written here while the plain `fn` may still run
+   --> main.kg:597:5
+    |
+597 |     k = 2
+    |     ^
+

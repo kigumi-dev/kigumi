@@ -52,6 +52,8 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 	c.noteWholeRefAssign(lhs)
 	if elem, ok := c.r.MutRefElem(target); ok && c.isIdentPlace(lhs) {
 		target = elem
+	} else if ent, ok := c.identPlaceEnt(lhs); ok && c.t.Kind(lhs) == syntax.Ident && !c.capturedHere(ent) {
+		c.markEraseSite(rhs, siteLocal)
 	}
 	c.check(rhs, target)
 	c.rejectTempBorrowStore(rhs)

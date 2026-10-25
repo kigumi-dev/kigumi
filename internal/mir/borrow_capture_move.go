@@ -16,7 +16,7 @@ func checkCapturedFieldMoves(p *Program, f *Func) {
 	for bi := range f.Blocks {
 		for ii := range f.Blocks[bi].Insts {
 			in := &f.Blocks[bi].Insts[ii]
-			if in.Dst == 0 {
+			if !in.Op.Yields() {
 				continue
 			}
 			if defs[in.Dst] != nil {
@@ -44,7 +44,7 @@ func checkCapturedFieldMoves(p *Program, f *Func) {
 	if len(caps) == 0 {
 		return
 	}
-	liveOut := capturedLiveness(f, caps)
+	liveOut := capturedLiveness(f, caps, nil)
 	for bi := range f.Blocks {
 		blk := &f.Blocks[bi]
 		live := map[LocalID]bool{}
@@ -71,14 +71,22 @@ func checkCapturedFieldMoves(p *Program, f *Func) {
 }
 
 func sharedBy(moved capturedPlace, caps map[LocalID][]capturedPlace, live map[LocalID]bool) bool {
+	_, ok := sharerOf(moved, caps, live)
+	return ok
+}
+
+// sharerOf is a live holder of a place overlapping moved; the lowest id keeps the choice stable.
+func sharerOf(moved capturedPlace, caps map[LocalID][]capturedPlace, live map[LocalID]bool) (LocalID, bool) {
+	var out LocalID
+	found := false
 	for l := range live {
 		for _, cp := range caps[l] {
-			if cp.root == moved.root && fieldPathsOverlap(cp.path, moved.path) {
-				return true
+			if cp.root == moved.root && fieldPathsOverlap(cp.path, moved.path) && (!found || l < out) {
+				out, found = l, true
 			}
 		}
 	}
-	return false
+	return out, found
 }
 
 func markCapturedUses(args []LocalID, caps map[LocalID][]capturedPlace, live map[LocalID]bool) {

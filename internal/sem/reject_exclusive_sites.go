@@ -59,6 +59,7 @@ func (c *checker) sharesLoop(a, b syntax.NodeID) bool {
 }
 
 func (c *checker) settleExclusive() {
+	c.recheckErasures()
 	for _, call := range c.outsideCalls {
 		c.settleOrDefer(call.roots, func() { c.settleOutsideCall(call) })
 	}

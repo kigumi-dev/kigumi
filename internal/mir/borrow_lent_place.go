@@ -14,7 +14,9 @@ type lentPlace struct {
 	path  []int
 	exact bool
 	node  syntax.NodeID
-	via   LocalID
+	// via is the named `&mut` holder the place was reached through, when hasVia.
+	via    LocalID
+	hasVia bool
 }
 
 // lentMutPlaces are the places a call argument may lend `&mut`, directly or through a write-back cell: a plain
@@ -36,7 +38,7 @@ func (c *borrowCheck) lentMutPlaces(a LocalID) []lentPlace {
 				return nil
 			}
 			if refs := c.storedReferents(d.Args[0]); len(refs) > 0 {
-				return lentPlaces(c.heldReferents(d.Args[0], refs), d.Node, 0)
+				return lentPlaces(c.heldReferents(d.Args[0], refs), d.Node)
 			}
 			if out := c.refPlaces(d.Args[0]); len(out) > 0 {
 				for i := range out {
@@ -73,10 +75,14 @@ func (c *borrowCheck) passedRefPlaces(l LocalID) []lentPlace {
 	return c.refPlaces(l)
 }
 
-func lentPlaces(refs []ownerRef, node syntax.NodeID, via LocalID) []lentPlace {
+// lentPlaces are refs as lent places, reached through the holder via when one is given.
+func lentPlaces(refs []ownerRef, node syntax.NodeID, via ...LocalID) []lentPlace {
 	out := make([]lentPlace, len(refs))
 	for i, o := range refs {
-		out[i] = lentPlace{root: o.owner, path: o.path, exact: o.exact, node: node, via: via}
+		out[i] = lentPlace{root: o.owner, path: o.path, exact: o.exact, node: node}
+		if len(via) > 0 {
+			out[i].via, out[i].hasVia = via[0], true
+		}
 	}
 	return out
 }

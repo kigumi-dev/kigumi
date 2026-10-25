@@ -171,7 +171,11 @@ func (c *borrowCheck) flowEdges(in Inst) (dsts, srcs []LocalID) {
 				continue
 			}
 			for _, p := range c.lentMutPlaces(a) {
-				dsts = append(append(dsts, p.root, p.via), c.heldMutOwners(p.root)...)
+				dsts = append(dsts, p.root)
+				if p.hasVia {
+					dsts = append(dsts, p.via)
+				}
+				dsts = append(dsts, c.heldMutOwners(p.root)...)
 			}
 		}
 		return dsts, in.Args

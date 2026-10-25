@@ -6,26 +6,24 @@ import "kigumi/internal/syntax"
 // targetType backs the check when target has no entity; marked is the callee fn type's `escaping F` mark.
 func (c *checker) checkEscapeArg(a syntax.NodeID, target EntityID, targetType TypeID, marked bool, calleeName string) {
 	rp := c.restrictedParam(a)
-	if rp == 0 {
+	if rp == 0 || c.nonEscapingArg(target, targetType, marked) {
 		return
 	}
-	if target != 0 {
-		if c.r.nonEscapingParam(target) {
-			return
-		}
-		if c.r.fnShapeOf(c.r.callbackType(&c.r.Entities[target])) == 0 {
-			// Rejected, not unverified: a generic body is checked once for abstract T, with no per-call-site tracking.
-			c.errAt(a, cEscapingForwardedOpaque, c.r.Entities[rp].Name, calleeName)
-			return
-		}
-		c.errAt(a, cEscapingForwarded, c.r.Entities[rp].Name, calleeName, c.r.escapingForm(rp))
-		return
-	}
-	rt := c.vars.resolve(targetType)
-	if !marked && c.r.fnShapeOf(rt) != 0 && !c.r.Types.FnIsEscaping(rt) {
+	if target != 0 && c.r.fnShapeOf(c.r.callbackType(&c.r.Entities[target])) == 0 {
+		// Rejected, not unverified: a generic body is checked once for abstract T, with no per-call-site tracking.
+		c.errAt(a, cEscapingForwardedOpaque, c.r.Entities[rp].Name, calleeName)
 		return
 	}
 	c.errAt(a, cEscapingForwarded, c.r.Entities[rp].Name, calleeName, c.r.escapingForm(rp))
+}
+
+// nonEscapingArg: the parameter an argument binds to cannot keep it past the call.
+func (c *checker) nonEscapingArg(target EntityID, targetType TypeID, marked bool) bool {
+	if target != 0 {
+		return c.r.nonEscapingParam(target)
+	}
+	rt := c.vars.resolve(targetType)
+	return !marked && c.r.fnShapeOf(rt) != 0 && !c.r.Types.FnIsEscaping(rt)
 }
 
 func (c *checker) checkEscapeReturn(n syntax.NodeID) {

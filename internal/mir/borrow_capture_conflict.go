@@ -112,7 +112,7 @@ func soleDefs(f *Func) map[LocalID]*Inst {
 	for bi := range f.Blocks {
 		for ii := range f.Blocks[bi].Insts {
 			in := &f.Blocks[bi].Insts[ii]
-			if in.Dst == 0 {
+			if !in.Op.Yields() {
 				continue
 			}
 			if defs[in.Dst] != nil {

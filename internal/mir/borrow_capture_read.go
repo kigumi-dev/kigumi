@@ -58,21 +58,36 @@ type readCheck struct {
 	defs   map[LocalID]*Inst
 	events map[BlockID][]moveEvent
 	seen   map[syntax.NodeID]bool
+	// emit reports an event on root while holder may still run; dropUse names holders whose drop may run them.
+	emit    func(n syntax.NodeID, root, holder LocalID)
+	dropUse func(LocalID) bool
+	// escapeFn replaces escapes for a check that follows more flows itself.
+	escapeFn func(Inst, map[LocalID][]capturedPlace) []LocalID
+}
+
+func newReadCheck(p *Program, f *Func) *readCheck {
+	return &readCheck{p: p, f: f, defs: soleDefs(f), events: map[BlockID][]moveEvent{}, seen: map[syntax.NodeID]bool{}}
 }
 
 // checkReadCaptures: a closure that only reads a move-only local shares it, so the local is neither moved nor changed while the closure may run.
 func checkReadCaptures(p *Program, f *Func, moves []moveEvent) {
-	c := &readCheck{p: p, f: f, defs: soleDefs(f), events: map[BlockID][]moveEvent{}, seen: map[syntax.NodeID]bool{}}
+	c := newReadCheck(p, f)
+	c.emit = c.report
 	caps := holdersFrom(p, f, c.readCaptures)
 	if len(caps) == 0 {
 		return
 	}
-	for _, m := range append(moves, c.changes()...) {
+	c.scan(caps, append(moves, c.changes()...))
+}
+
+// scan reports each event on a place a holder shares while the holder is live, or at any point after it escaped.
+func (c *readCheck) scan(caps map[LocalID][]capturedPlace, events []moveEvent) {
+	for _, m := range events {
 		c.events[m.at.bid] = append(c.events[m.at.bid], m)
 	}
-	liveOut := capturedLiveness(f, caps)
-	for bi := range f.Blocks {
-		blk := &f.Blocks[bi]
+	liveOut := capturedLiveness(c.f, caps, c.dropUse)
+	for bi := range c.f.Blocks {
+		blk := &c.f.Blocks[bi]
 		live := map[LocalID]bool{}
 		for l := range liveOut[bi] {
 			live[l] = true
@@ -81,17 +96,24 @@ func checkReadCaptures(p *Program, f *Func, moves []moveEvent) {
 		for i := len(blk.Insts) - 1; i >= 0; i-- {
 			in := &blk.Insts[i]
 			for _, m := range c.events[BlockID(bi)] {
-				if m.at.idx == i && !m.field && sharedBy(capturedPlace{root: m.root}, caps, live) {
-					c.report(m.node, m.root)
+				if h, ok := sharerOf(capturedPlace{root: m.root}, caps, live); m.at.idx == i && !m.field && ok {
+					c.emit(m.node, m.root, h)
 				}
 			}
 			if in.Op == OpDrop {
+				markDropUse(*in, caps, live, c.dropUse)
 				continue
 			}
-			for _, h := range c.escapes(*in, caps) {
-				c.walkAfter(movePos{BlockID(bi), i}, caps[h])
+			escapes := c.escapes
+			if c.escapeFn != nil {
+				escapes = c.escapeFn
 			}
-			delete(live, in.Dst)
+			for _, h := range escapes(*in, caps) {
+				c.walkAfter(movePos{BlockID(bi), i}, h, caps[h])
+			}
+			if in.Op.Yields() {
+				delete(live, in.Dst)
+			}
 			markCapturedUses(in.Args, caps, live)
 		}
 	}
@@ -114,13 +136,13 @@ func (c *readCheck) readCaptures(in Inst) []capturedPlace {
 }
 
 // walkAfter checks everything reachable after an escape, where the closure may run at any time.
-func (c *readCheck) walkAfter(from movePos, held []capturedPlace) {
+func (c *readCheck) walkAfter(from movePos, holder LocalID, held []capturedPlace) {
 	visited := map[BlockID]bool{}
 	var walk func(bid BlockID, after int)
 	walk = func(bid BlockID, after int) {
 		for _, m := range c.events[bid] {
 			if m.at.idx > after && hasCapturedPlace(held, capturedPlace{root: m.root}) {
-				c.report(m.node, m.root)
+				c.emit(m.node, m.root, holder)
 			}
 		}
 		for _, t := range c.f.Blocks[bid].Term.Targets {
@@ -133,7 +155,7 @@ func (c *readCheck) walkAfter(from movePos, held []capturedPlace) {
 	walk(from.bid, from.idx)
 }
 
-func (c *readCheck) report(n syntax.NodeID, root LocalID) {
+func (c *readCheck) report(n syntax.NodeID, root, _ LocalID) {
 	if n == 0 || c.seen[n] {
 		return
 	}

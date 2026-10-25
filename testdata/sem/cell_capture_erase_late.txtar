@@ -1,0 +1,207 @@
+-- src --
+import json from std/json
+
+fn bump(k: &mut Int) { k = k + 1 }
+fn apply(f: fn() -> Int) -> Int { f() }
+fn keep(f: escaping fn() -> Int) -> Int { f() }
+type Runner = { n Int }
+fn Runner.run(self, f: fn() -> Int) -> Int { f() + self.n }
+fn setS(s: &mut String, v: String) { s = v }
+
+fn openBorrowInPlainFn() -> String {
+    if let Ok(v) = json.decode("5") {
+        let mut k = v
+        let got = apply(() => { bump(&mut k); k }) //~ ERROR closure captures `k` (assigned inside the closure)
+        return "${got} ${k}"
+    }
+    ""
+}
+
+fn closedBorrowInPlainFn() -> String {
+    let mut k = 5
+    let got = apply(() => { bump(&mut k); k }) //~ ERROR closure captures `k` (assigned inside the closure)
+    "${got} ${k}"
+}
+
+fn openBorrowInLocalClosure() -> String {
+    if let Ok(v) = json.decode("5") {
+        let mut k = v
+        let f = () => { bump(&mut k); k }
+        let got = f()
+        return "${got} ${k}"
+    }
+    ""
+}
+
+fn openWriterThenOutsideBorrow() -> Int {
+    if let Ok(v) = json.decode("5") {
+        let mut k = v
+        let mut w = () => { bump(&mut k) }
+        bump(&mut k) //~ ERROR `&mut k` conflicts with a closure that shares its identity cell
+        w()
+        return k
+    }
+    0
+}
+
+fn pushedThenBorrowed() -> String {
+    let mut k = 1
+    let mut hs: Array[fn() -> Int] = Array.empty()
+    hs.push(() => k) //~ ERROR closure captures `k` (written outside this closure
+    bump(&mut k)
+    "${hs[0]()} ${k}"
+}
+
+fn pushedInLoopThenWritten() {
+    let mut other = "init"
+    let mut hs: Array[fn() -> String] = Array.of()
+    for i in 0..2 {
+        let g = () => other
+        hs.push(g) //~ ERROR closure captures `other` (written outside this closure
+        setS(&mut other, "v${i}")
+    }
+}
+
+fn pureErasedThenClosureWrites() -> Int {
+    let mut n = 0
+    let k = (x: Int) => x + n
+    let m: pure fn(Int) -> Int = k //~ ERROR closure captures `n` (written outside this closure
+    let inc = () => { n += 1 }
+    inc()
+    m(1)
+}
+
+fn inlineToEscapingThenWritten() -> Int {
+    let mut k = 1
+    let a = keep(() => k) //~ ERROR closure captures `k` (written outside this closure
+    k = 2
+    a
+}
+
+fn lentToFnValueWritesInside() -> Int {
+    let mut k = 1
+    let run: fn(fn() -> Int) -> Int = apply
+    run(() => { k = k + 1; k }) //~ ERROR closure captures `k` (assigned inside the closure)
+}
+
+fn lentShapesThenWritten() -> Int {
+    let mut k = 1
+    let run: fn(fn() -> Int) -> Int = apply
+    let a = run(() => k)
+    let b = apply((() => k))
+    let c = apply(move () => k)
+    let d = Runner { n: 0 }.run(() => k)
+    let e = 5 |> (x: Int) => x + k
+    k = 2
+    a + b + c + d + e + k
+}
+
+fn lentInLoopThenWritten() -> Int {
+    let xs: Array[Int] = Array.of(1, 2, 3)
+    let mut k = 0
+    let mut total = 0
+    for x in &xs {
+        let ys = xs.map((y: &Int) => y + k)
+        total = total + ys[0] + apply(() => k)
+        k = k + 1
+    }
+    total
+}
+
+fn inlineReaderThenWritten() -> Int {
+    let mut k = 1
+    let got = apply(() => k)
+    bump(&mut k)
+    got + k
+}
+
+fn openInlineReaderThenBorrowed() -> String {
+    if let Ok(v) = json.decode("5") {
+        let mut k = v
+        let got = apply(() => k)
+        bump(&mut k)
+        return "${got} ${k}"
+    }
+    ""
+}
+
+fn lentLeavesThenWritten(c: Bool) -> Int {
+    let mut k = 1
+    let a = apply(if c { () => k } else { () => 0 })
+    let b = apply({ () => k })
+    let d = apply(match c { true -> () => k, false -> () => 0 })
+    k = 2
+    a + b + d + k
+}
+
+fn namedLentThenWritten() -> Int {
+    let xs: Array[Int] = Array.of(1, 2)
+    let mut k = 1
+    let f = () => k
+    let g = (y: &Int) => y + k
+    let a = apply(f) + Runner { n: 0 }.run(f) + xs.map(g)[0]
+    k = 2
+    a + k
+}
+-- expect --
+error[E413]: closure captures `k` (assigned inside the closure) and cannot be a plain `fn`
+  --> main/main.kg:13:25
+   |
+13 |         let got = apply(() => { bump(&mut k); k }) //~ ERROR closure captures `k` (assigned inside the closure)
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^
+   = help: a plain `fn` cannot assign a captured variable; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+
+error[E413]: closure captures `k` (assigned inside the closure) and cannot be a plain `fn`
+  --> main/main.kg:21:21
+   |
+21 |     let got = apply(() => { bump(&mut k); k }) //~ ERROR closure captures `k` (assigned inside the closure)
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^
+   = help: a plain `fn` cannot assign a captured variable; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+
+error[E2113]: `&mut k` conflicts with a closure that shares its identity cell
+  --> main/main.kg:39:14
+   |
+39 |         bump(&mut k) //~ ERROR `&mut k` conflicts with a closure that shares its identity cell
+   |              ^^^^^^
+   = help: end the closure's use before the borrow, or capture a copy
+note: `k` is shared with a closure that writes it here
+  --> main/main.kg:38:39
+   |
+38 |         let mut w = () => { bump(&mut k) }
+   |                                       ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+  --> main/main.kg:49:13
+   |
+49 |     hs.push(() => k) //~ ERROR closure captures `k` (written outside this closure
+   |             ^^^^^^^
+   = help: a plain `fn` cannot share a captured variable's cell; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+
+error[E413]: closure captures `other` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+  --> main/main.kg:59:17
+   |
+59 |         hs.push(g) //~ ERROR closure captures `other` (written outside this closure
+   |                 ^
+   = help: a plain `fn` cannot share a captured variable's cell; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+
+error[E413]: closure captures `n` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+  --> main/main.kg:67:34
+   |
+67 |     let m: pure fn(Int) -> Int = k //~ ERROR closure captures `n` (written outside this closure
+   |                                  ^
+   = help: a plain `fn` cannot share a captured variable's cell; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+  --> main/main.kg:75:18
+   |
+75 |     let a = keep(() => k) //~ ERROR closure captures `k` (written outside this closure
+   |                  ^^^^^^^
+   = help: a plain `fn` cannot share a captured variable's cell; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+
+error[E413]: closure captures `k` (assigned inside the closure) and cannot be a plain `fn`
+  --> main/main.kg:83:9
+   |
+83 |     run(() => { k = k + 1; k }) //~ ERROR closure captures `k` (assigned inside the closure)
+   |         ^^^^^^^^^^^^^^^^^^^^
+   = help: a plain `fn` cannot assign a captured variable; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+

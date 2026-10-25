@@ -64,6 +64,7 @@ func (c *checker) noteCapture(n syntax.NodeID, ent EntityID, found ScopeID) {
 		ctx.captured[ent] = len(ctx.list)
 		ctx.list = append(ctx.list, Capture{Local: ent, Mode: mode, OwnCell: mode == capMove && c.ownCellAbove(i, ent)})
 		c.captureSites[ent] = append(c.captureSites[ent], captureSite{ctx: ctx, idx: len(ctx.list) - 1})
+		c.noteOpenCapture(ctx, n, ent)
 	}
 }
 
@@ -118,7 +119,7 @@ func closureCopy(caps []Capture) bool {
 	return true
 }
 
-// closureErase coerces a closure to a plain fn type; move-only captures cannot erase, nor cell ones unless an inline argument only reads them.
+// closureErase coerces a closure to a plain fn type; recheckErasures judges the captures again once the body is done.
 func (c *checker) closureErase(n syntax.NodeID, closure EntityID, want TypeID) ([]CoStep, bool) {
 	info := c.r.closure(closure)
 	if !c.sameFnShape(info.Sig, want) {
@@ -128,24 +129,10 @@ func (c *checker) closureErase(n syntax.NodeID, closure EntityID, want TypeID) (
 		c.errAt(n, cEscapingCoerce, c.typeText(info.Sig), i+1, c.typeText(want))
 		return nil, true
 	}
-	for _, cap := range info.Captures {
-		name := c.capturedName(n, info, cap.Local)
-		switch cap.Mode {
-		case capCell:
-			if info.Immediate && !lentReceiver(c.r.Entity(cap.Local)) && !c.closureWrites(closure, cap.Local) {
-				continue
-			}
-			c.errAtHelp(n, c.cellFnHelp(want, closure, cap.Local), cClosureNotPlainFn, name, c.cellCaptureWhy(closure, cap.Local))
-			return nil, true
-		case capMove, capRetain, capRead:
-			c.errAtHelp(n, c.plainFnHelp(want, true), cClosureNotPlainFn, name, "move-only")
-			return nil, true
-		}
-		if !info.Immediate && c.callsFnMut(c.r.Entities[cap.Local].Type, map[EntityID]bool{closure: true}) {
-			c.errAtHelp(n, c.fnMutCallableHelp(want, name), cClosureNotPlainFn, name, "a callable that is `FnMut`")
-			return nil, true
-		}
+	if !c.eraseCaptures(n, closure, want, ruleFull) {
+		return nil, true
 	}
+	c.noteErasure(n, closure, want)
 	need := Effects(c.r.Types.Node(want).Flags) & (EffPure | EffNoalloc)
 	if need != 0 {
 		c.edge(EffectEdge{Kind: EdgeContract, Target: closure, Mods: need, Node: n})

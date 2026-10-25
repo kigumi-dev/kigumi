@@ -8,6 +8,8 @@ type scalarBorrow struct {
 	inner      syntax.NodeID
 	ref        TypeID
 	arg, async bool
+	// captured: the innermost lambda open at the borrow captured the borrowed local.
+	captured bool
 }
 
 type refShape uint8
@@ -36,7 +38,7 @@ func (c *checker) mutRefShape(t TypeID) refShape {
 }
 
 func (c *checker) noteScalarBorrow(n, inner syntax.NodeID, refT TypeID) {
-	b := scalarBorrow{inner: inner, ref: refT, arg: c.argPlace[n], async: c.argAsyncPlace[n]}
+	b := scalarBorrow{inner: inner, ref: refT, arg: c.argPlace[n], async: c.argAsyncPlace[n], captured: c.capturedHere(c.rootOf(inner))}
 	switch c.mutRefShape(refT) {
 	case refScalar:
 		c.markScalarBorrow(b, nil)
@@ -60,7 +62,7 @@ func (c *checker) settleBorrows() {
 	c.openBorrows = kept
 }
 
-func (c *checker) markScalarBorrow(b scalarBorrow, written func(syntax.NodeID, EntityID)) {
+func (c *checker) markScalarBorrow(b scalarBorrow, written func(scalarBorrow, EntityID)) {
 	ent, ok := c.identPlaceEnt(b.inner)
 	switch {
 	case ok && c.r.Types.Kind(c.vars.resolve(c.r.Entities[ent].Type)) == KRef:
@@ -68,7 +70,7 @@ func (c *checker) markScalarBorrow(b scalarBorrow, written func(syntax.NodeID, E
 	case ok:
 		c.r.Entities[ent].Flags |= EfAddrTaken
 		if written != nil {
-			written(b.inner, ent)
+			written(b, ent)
 		}
 	case c.indexAssignUnsupported(b.inner) || !c.isMutablePlace(b.inner):
 	case b.async:
@@ -78,10 +80,10 @@ func (c *checker) markScalarBorrow(b scalarBorrow, written func(syntax.NodeID, E
 	}
 }
 
-func (c *checker) settledCaptureWrite(n syntax.NodeID, ent EntityID) {
-	if c.capturedHere(ent) {
-		c.promoteCaptures(n, ent)
+func (c *checker) settledCaptureWrite(b scalarBorrow, ent EntityID) {
+	if b.captured {
+		c.promoteCaptures(b.inner, ent)
 		return
 	}
-	c.shareOutsideWrite(n, ent)
+	c.shareOutsideWrite(b.inner, ent)
 }

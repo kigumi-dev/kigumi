@@ -161,6 +161,7 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 			if pass == 1 {
 				c.markImmediate(a, c.r.nonEscapingParam(entAt(declParams, pi)))
 			}
+			c.noteLentArg(a, entAt(declParams, pi), param, tt.escMarked(sn.Var, pi))
 			from := len(*c.edges)
 			c.markReborrowArg(a, param, entAt(declParams, pi), async)
 			c.checkArg(a, param, entAt(declParams, pi), async)

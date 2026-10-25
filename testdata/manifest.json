@@ -8292,6 +8292,23 @@
       ]
     },
     {
+      "id": "run/erased_fn_dead_write",
+      "kind": "run",
+      "path": "testdata/run/erased_fn_dead_write.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/error_as",
       "kind": "run",
       "path": "testdata/run/error_as.txtar",
@@ -12155,6 +12172,23 @@
       "id": "run/lent_field_instance_cell",
       "kind": "run",
       "path": "testdata/run/lent_field_instance_cell.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/lent_lambda_late_write",
+      "kind": "run",
+      "path": "testdata/run/lent_lambda_late_write.txtar",
       "mode": [
         "vm",
         "native"
@@ -18519,6 +18553,17 @@
       ]
     },
     {
+      "id": "sem/cell_capture_erase_late",
+      "kind": "sem",
+      "path": "testdata/sem/cell_capture_erase_late.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/cell_capture_outside_write",
       "kind": "sem",
       "path": "testdata/sem/cell_capture_outside_write.txtar",
@@ -20150,6 +20195,17 @@
       "id": "sem/entry_ok",
       "kind": "sem",
       "path": "testdata/sem/entry_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/erased_reader_live_err",
+      "kind": "sem",
+      "path": "testdata/sem/erased_reader_live_err.txtar",
       "mode": [
         "check"
       ],

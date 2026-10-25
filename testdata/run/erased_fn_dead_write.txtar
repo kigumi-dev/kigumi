@@ -1,0 +1,271 @@
+-- src --
+import json from std/json
+
+type R = { mut f fn() -> Int }
+type Outer = { mut inner R }
+type Bad = { pub why String }
+
+interface Msg { fn text(self) -> String }
+
+fn Bad.text(self) -> String { self.why }
+fn compute(f: fn() -> Int) -> Result[Int, Msg] {
+    let v = f()
+    if v > 100 { Err(Bad { why: "big" }) } else { Ok(v) }
+}
+fn tagIt(f: fn() -> Int) -> Msg { Bad { why: "n${f()}" } }
+fn mkOther(f: fn() -> Int) -> fn() -> Int { () => 42 }
+fn keep(f: escaping fn() -> Int) -> Int { f() }
+fn addAll(mut xs: Array[fn() -> Int], f: escaping fn() -> Int) -> Array[fn() -> Int] { xs.push(f); xs }
+fn pushFirst(out: &mut Array[fn() -> Int], f: escaping fn() -> Int) { out.push(f) }
+fn storeIn(r: &mut R, f: escaping fn() -> Int) { r.f = f }
+fn readIn(r: &mut R, f: escaping fn() -> Int) -> Int { r.f() + f() }
+fn readIn2(r: &mut R, f: escaping fn() -> Int) -> Int { readIn(r, f) }
+fn rd(r: &mut R, f: escaping fn() -> Int, n: Int) -> Int { if n > 0 { rd(r, f, n - 1) } else { r.f() + f() } }
+fn ma(r: &mut R, f: escaping fn() -> Int, n: Int) -> Int { if n > 0 { mb(r, f, n - 1) } else { r.f() + f() } }
+fn mb(r: &mut R, f: escaping fn() -> Int, n: Int) -> Int { if n > 0 { ma(r, f, n - 1) } else { f() } }
+
+fn R.setSettled(mut self) {
+    let mut k = 1
+    k = 2
+    let f: fn() -> Int = () => k
+    self.f = f
+}
+
+fn bumpI(k: &mut Int) { k = k + 1 }
+fn apply(f: fn() -> Int) -> Int { f() }
+
+fn unwrapDead() -> String {
+    let mut k = 1
+    let f: pure fn() -> Int = () => k
+    let g: pure fn() -> Int = Some(f).unwrap()
+    let a = g()
+    k = 2
+    "${a} ${k}"
+}
+
+fn fieldDead() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let r = R { f: f }
+    let g = r.f
+    let a = g()
+    k = 2
+    "${a} ${k}"
+}
+
+fn litFieldDead() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let g = R { f: f }.f
+    let a = g()
+    bumpI(&mut k)
+    "${a} ${k}"
+}
+
+fn callResultDead() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let g = (() => f)()
+    let a = g()
+    k = 2
+    "${a} ${k}"
+}
+
+fn ifLetDead() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let mut a = 0
+    if let Some(g) = Some(f) {
+        a = g()
+    }
+    k = 2
+    "${a} ${k}"
+}
+
+fn destructDead() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let R { f: g } = R { f: f }
+    let a = g()
+    k = 2
+    "${a} ${k}"
+}
+
+fn openUnwrapDead() -> String {
+    if let Ok(v) = json.decode("1") {
+        let mut k = v
+        let f: fn() -> Int = () => k
+        let g = Some(f).unwrap()
+        let a = g()
+        k = 2
+        return "${a} ${k}"
+    }
+    ""
+}
+
+fn innerDead() -> String {
+    let mut k = 1
+    let outer = () => { let f: fn() -> Int = () => k; let a = f(); a }
+    k = 2
+    "${outer()} ${k}"
+}
+
+fn namedLent() -> String {
+    let mut k = 1
+    let f = () => k
+    let a = apply(f)
+    k = 2
+    "${a} ${k}"
+}
+
+fn packDead() -> String {
+    let mut k = 1
+    let f: pure fn() -> Int = () => k
+    let a = Array.of(f)
+    let g: pure fn() -> Int = a[0]
+    let x = g() + Array.of(f)[0]() + a.get(0).unwrap()()
+    k = 2
+    "${x} ${k}"
+}
+
+fn openPackDead() -> String {
+    if let Ok(v) = json.decode("5") {
+        let mut k = v
+        let h: fn() -> Int = () => k
+        let a = Array.of(h)
+        let x = a[0]()
+        bumpI(&mut k)
+        return "${x} ${k}"
+    }
+    ""
+}
+
+fn plainRecordDead() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let r = R { f: f }
+    let x = (r.f)()
+    k = 2
+    "${x} ${k}"
+}
+
+fn resultsCannotHold() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let r = compute(f)
+    let m = tagIt(f)
+    let g = mkOther(f)
+    let a = keep(f)
+    k = 2
+    match r { Ok(v) -> "${v} ${m.text()} ${g()} ${a} ${k}", Err(e) -> e.text() }
+}
+
+fn calleeFirstParamDead() -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let xs = addAll(Array.empty[fn() -> Int](), f)
+    let x = xs[0]()
+    k = 2
+    "${x} ${k}"
+}
+
+fn callerFirstParamDead(mut a: Array[fn() -> Int]) -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    pushFirst(&mut a, f)
+    let x = a[0]()
+    k = 2
+    "${x} ${k}"
+}
+
+fn throughMutParamSettled(r: &mut R) {
+    let mut k = 1
+    k = 2
+    let f: fn() -> Int = () => k
+    r.f = f
+}
+
+fn throughNestedFieldSettled(o: &mut Outer) {
+    let k = 3
+    let f: fn() -> Int = () => k
+    o.inner.f = f
+}
+
+fn throughHelpersCapturesNothingLater(r: &mut R, out: &mut Array[fn() -> Int]) {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let x = f()
+    let g: fn() -> Int = () => x
+    pushFirst(out, g)
+    storeIn(r, g)
+    out[0] = g
+    k = 2
+}
+
+fn callerPlaces() -> String {
+    let mut r = R { f: () => 0 }
+    let mut o = Outer { inner: R { f: () => 0 } }
+    let mut out: Array[fn() -> Int] = Array.of(() => 0)
+    throughMutParamSettled(&mut r)
+    let a = (r.f)()
+    throughNestedFieldSettled(&mut o)
+    throughHelpersCapturesNothingLater(&mut r, &mut out)
+    let b = (r.f)()
+    r.setSettled()
+    "${a} ${(o.inner.f)()} ${b} ${out[0]()} ${out.len()} ${(r.f)()}"
+}
+
+fn twoHelpersOnlyRead(r: &mut R) -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let x = readIn2(r, f)
+    k = 2
+    "${x} ${k}"
+}
+
+fn recursiveHelpersOnlyRead(r: &mut R) -> String {
+    let mut k = 1
+    let f: fn() -> Int = () => k
+    let a = rd(r, f, 3) + ma(r, f, 3)
+    k = 2
+    "${a} ${k}"
+}
+
+fn main() {
+    print "unwrap ${unwrapDead()}"
+    print "field ${fieldDead()}"
+    print "literal ${litFieldDead()}"
+    print "call ${callResultDead()}"
+    print "iflet ${ifLetDead()}"
+    print "destructure ${destructDead()}"
+    print "open ${openUnwrapDead()}"
+    print "inner ${innerDead()}"
+    print "lent ${namedLent()}"
+    print "pack ${packDead()}"
+    print "openpack ${openPackDead()}"
+    print "record ${plainRecordDead()}"
+    print "results ${resultsCannotHold()}"
+    print "first ${calleeFirstParamDead()} ${callerFirstParamDead(Array.empty[fn() -> Int]())}"
+    print "caller ${callerPlaces()}"
+    let mut r10 = R { f: () => 10 }
+    print "readonly ${twoHelpersOnlyRead(&mut r10)}"
+    print "recursive ${recursiveHelpersOnlyRead(&mut r10)}"
+}
+-- stdout --
+unwrap 1 2
+field 1 2
+literal 1 2
+call 1 2
+iflet 1 2
+destructure 1 2
+open 1 2
+inner 2 2
+lent 1 2
+pack 3 2
+openpack 5 6
+record 1 2
+results 1 n1 42 1 2
+first 1 2 1 2
+caller 2 3 1 1 2 2
+readonly 11 2
+recursive 12 2

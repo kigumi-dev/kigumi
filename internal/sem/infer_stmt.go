@@ -76,6 +76,9 @@ func (c *checker) letStmt(n syntax.NodeID) {
 		annotated = c.resolveLocalType(s.Type)
 	}
 	var got TypeID
+	if c.t.Kind(s.Pattern) == syntax.PatBind {
+		c.markEraseSite(s.Init, siteLocal)
+	}
 	if annotated != 0 {
 		got = c.checkAlias(s.Init, annotated, c.f, s.Type)
 	} else {

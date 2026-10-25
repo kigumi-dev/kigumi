@@ -40,14 +40,14 @@ func holdersFrom(p *Program, f *Func, direct func(Inst) []capturedPlace) map[Loc
 				if in.Op == OpDrop {
 					continue
 				}
-				if cps := direct(in); in.Dst != 0 && len(cps) > 0 && add(in.Dst, cps) {
+				if cps := direct(in); in.Op.Yields() && len(cps) > 0 && add(in.Dst, cps) {
 					changed = true
 				}
-				dst := in.Dst
+				dst, ok := in.Dst, in.Op.Yields()
 				if in.Op == OpSetField || in.Op == OpSetIndex {
-					dst = in.Args[0]
+					dst, ok = in.Args[0], true
 				}
-				if dst == 0 || p.R.IsCopy(f.Locals[dst].Type) && p.R.Types.Kind(f.Locals[dst].Type) != sem.KRef {
+				if !ok || p.R.IsCopy(f.Locals[dst].Type) && p.R.Types.Kind(f.Locals[dst].Type) != sem.KRef {
 					continue
 				}
 				for _, a := range in.Args {
@@ -61,6 +61,13 @@ func holdersFrom(p *Program, f *Func, direct func(Inst) []capturedPlace) map[Loc
 	return caps
 }
 
+// markDropUse marks a dropped holder live when its drop may run what it holds.
+func markDropUse(in Inst, caps map[LocalID][]capturedPlace, live map[LocalID]bool, dropUse func(LocalID) bool) {
+	if dropUse != nil && len(in.Args) > 0 && dropUse(in.Args[0]) {
+		markCapturedUses(in.Args[:1], caps, live)
+	}
+}
+
 func hasCapturedPlace(list []capturedPlace, cp capturedPlace) bool {
 	for _, x := range list {
 		if x.root == cp.root && len(x.path) == len(cp.path) && fieldPathsOverlap(x.path, cp.path) {
@@ -70,7 +77,8 @@ func hasCapturedPlace(list []capturedPlace, cp capturedPlace) bool {
 	return false
 }
 
-func capturedLiveness(f *Func, caps map[LocalID][]capturedPlace) []map[LocalID]bool {
+// capturedLiveness is each block's live-out holders; a drop is a use only of a holder dropUse names (nil: none).
+func capturedLiveness(f *Func, caps map[LocalID][]capturedPlace, dropUse func(LocalID) bool) []map[LocalID]bool {
 	n := len(f.Blocks)
 	liveOut := make([]map[LocalID]bool, n)
 	liveIn := make([]map[LocalID]bool, n)
@@ -95,9 +103,12 @@ func capturedLiveness(f *Func, caps map[LocalID][]capturedPlace) []map[LocalID]b
 			for i := len(blk.Insts) - 1; i >= 0; i-- {
 				in := &blk.Insts[i]
 				if in.Op == OpDrop {
+					markDropUse(*in, caps, live, dropUse)
 					continue
 				}
-				delete(live, in.Dst)
+				if in.Op.Yields() {
+					delete(live, in.Dst)
+				}
 				markCapturedUses(in.Args, caps, live)
 			}
 			if !sameSet(out, liveOut[bid]) || !sameSet(live, liveIn[bid]) {

@@ -22,6 +22,7 @@ func (c *checker) checkCapturedMutConflict(base syntax.NodeID, root EntityID) {
 // them reaches them; no closure writes here, so unlike an assignment it records no closure write site.
 func (c *checker) shareOutsideWrite(n syntax.NodeID, root EntityID) {
 	e := &c.r.Entities[root]
+	c.markOpenWritten(root)
 	if c.r.Types.Kind(e.Type) == KRef || !c.copyNow(e.Type) {
 		return
 	}
