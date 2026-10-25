@@ -67,6 +67,7 @@ func (c *borrowCheck) checkCapture(in Inst) {
 		c.contentsMemo = nil
 		c.checkOpaqueStores(in)
 		c.checkCarry(in)
+		c.checkScalarTies(in)
 	case OpBox:
 		if b, ok := c.holders[in.Args[0]]; ok && (b.hasOwner || !b.fromStatic) {
 			c.reportCode(in.Node, in.Args[0], "borrow-in-existential", c.p.R.TypeString(c.f.Locals[in.Dst].Type))

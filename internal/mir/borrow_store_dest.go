@@ -133,6 +133,8 @@ func (c *borrowCheck) collectFlow(fl storeFlow, in Inst) {
 			c.merge(c.sink(r, in.Node), storedAt(c.fitDest(b, r)))
 			if c.replacesHolder(in, r) {
 				c.noteResetSite(r, b)
+			} else if r == dests[0] {
+				c.noteCallReset(in, fl, r, b)
 			}
 		}
 	}

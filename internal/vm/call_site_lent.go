@@ -36,10 +36,18 @@ func (m *Machine) callSite(in *mir.Inst, args []*obj) *obj {
 }
 
 // calleeLent says which call arguments the function a value calls only borrows; known is false when the value only
-// forwards (an interface requirement) or runs later (an async value).
+// forwards (an interface requirement). An async value's Future keeps every argument, so it borrows none.
 func (m *Machine) calleeLent(fv *obj) (borrows func(int) bool, known bool) {
-	if fv.k != kClosure || fv.creq() != nil || fv.async {
+	switch {
+	case fv.k != kClosure:
 		return nil, false
+	case fv.creq() != nil:
+		if !fv.creq().witness || !deref(fv.cenv().fields[0]).async {
+			return nil, false
+		}
+		return func(int) bool { return false }, true
+	case fv.async:
+		return func(int) bool { return false }, true
 	}
 	callee := fv.cfn()
 	switch {

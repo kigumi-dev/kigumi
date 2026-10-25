@@ -1,0 +1,79 @@
+-- src --
+type View['a] = { pub mut data &'a Array[Int], pub mut off usize }
+
+type V['a] = { pub s &'a String }
+
+type W['a] = { pub mut s &'a String, pub n Int }
+
+fn View['a].at(self) -> Int {
+    self.data[self.off]
+}
+
+fn View['a].setAll(mut self, d: &'a Array[Int]) {
+    self = View { data: d, off: 0 }
+}
+
+fn View['a].setData(mut self, d: &'a Array[Int]) {
+    self.data = d
+}
+
+fn V['a].reset(mut self, s: &'a String) {
+    self = V { s: s }
+}
+
+fn putS['a](out: &mut W['a], s: &'a String) {
+    out.s = s
+}
+
+fn mkV['a](s: &'a String) -> V['a] {
+    V { s: s }
+}
+
+fn putMut[U](out: &mut U, items: &mut Array[String], f: fn(&String) -> U) {
+    out = f(&items[0])
+}
+
+fn setWhole() -> Int {
+    let mut a = Array.of(1, 2, 3)
+    let b = Array.of(7, 8)
+    let mut cur = View { data: &a, off: 0 }
+    cur.setAll(&b)
+    a = Array.of(9)
+    cur.at() + a[0]
+}
+
+fn setField() -> Int {
+    let mut a = Array.of(1, 2, 3)
+    let b = Array.of(7, 8)
+    let mut cur = View { data: &a, off: 1 }
+    cur.setData(&b)
+    a = Array.of(9)
+    cur.at() + a[0]
+}
+
+fn putField() -> usize {
+    let mut x = "xx"
+    let y = "yyy"
+    let mut w = W { s: &x, n: 1 }
+    putS(&mut w, &y)
+    x = "z"
+    w.s.len() + x.len()
+}
+
+fn recvReset() {
+    let k = "k"
+    let mut items = Array.of("i1", "i22")
+    let mut out = mkV(&k)
+    putMut(&mut out, &mut items, mkV)
+    out.reset(&k)
+    items.push("x")
+    print "${out.s} ${items.len()}"
+}
+
+fn main() {
+    print "${setWhole()} ${setField()} ${putField()}"
+    recvReset()
+}
+-- stdout --
+16 17 4
+k 3

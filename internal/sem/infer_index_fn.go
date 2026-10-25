@@ -16,6 +16,7 @@ func (c *checker) explicitFnItem(n syntax.NodeID, fn EntityID, params []EntityID
 	c.touched = append(c.touched, n)
 	if c.r.Fn(fn).Declared&EffAsync != 0 {
 		sig = c.asyncValueFn(sig)
+		c.noteAsyncValue(n, fn)
 	} else {
 		c.valueEntry(n, fn, sig)
 	}

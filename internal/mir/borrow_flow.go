@@ -65,13 +65,13 @@ func (c *borrowCheck) callFlows(in Inst) []storeFlow {
 		if !t.target {
 			continue
 		}
-		lifetime := c.declaredLifetime(c.f.Locals[t.arg].Type) != 0 || c.declaredLifetime(c.placeOf(t.arg)) != 0
-		if !lifetime && !c.namesTypeParam(c.f.Locals[t.arg].Type) && !c.namesTypeParam(c.placeOf(t.arg)) {
+		kind := c.targetKindOf(t.arg)
+		if kind == targetNone {
 			continue
 		}
-		fl := storeFlow{target: t.arg, ref: true, generic: !lifetime, callee: in.Ent, param: i}
+		fl := storeFlow{target: t.arg, ref: true, generic: kind == targetParam, callee: in.Ent, param: i}
 		for j, v := range slots {
-			if i != j && sharesParam(t.params, v.params) {
+			if i != j && kind != targetDeferred && sharesParam(t.params, v.params) {
 				fl.values = append(fl.values, flowArg{arg: v.arg, contents: v.contents, param: j})
 			}
 		}

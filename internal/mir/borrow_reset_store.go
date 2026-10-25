@@ -5,33 +5,34 @@ import (
 	"kigumi/internal/syntax"
 )
 
-// replacesHolder reports whether in stores into the named holder's only field that may carry a borrow, a bare
-// reference, so the store ends every borrow the holder had.
+// replacesHolder reports whether in stores into the named holder's only field that may carry a borrow, so the store
+// ends every borrow the holder had.
 func (c *borrowCheck) replacesHolder(in Inst, holder LocalID) bool {
-	if in.Op != OpSetField || len(in.Args) == 0 || in.Args[0] != holder || c.f.Locals[holder].Ent == 0 {
-		return false
-	}
-	tt := c.p.R.Types
-	t := c.f.Locals[holder].Type
+	return in.Op == OpSetField && len(in.Args) > 0 && in.Args[0] == holder && c.f.Locals[holder].Ent != 0 && c.p.replacingField(c.f.Locals[holder].Type, in.Index)
+}
+
+// replacingField reports whether field index of record type t is a bare reference and its only field that may carry a borrow.
+func (p *Program) replacingField(t sem.TypeID, index int) bool {
+	tt := p.R.Types
 	if tt.Kind(t) != sem.KNamed {
 		return false
 	}
-	decl := c.p.R.TypeDecl(tt.Node(t).Ent)
+	decl := p.R.TypeDecl(tt.Node(t).Ent)
 	if decl == nil || decl.Form != sem.FormRecord {
 		return false
 	}
-	for _, p := range decl.Params {
-		if !c.p.R.TypeParam(p).IsLifetime {
+	for _, prm := range decl.Params {
+		if !p.R.TypeParam(prm).IsLifetime {
 			return false
 		}
 	}
 	for _, fid := range decl.Fields {
-		f := c.p.R.Field(fid)
-		if f.Index == in.Index {
+		f := p.R.Field(fid)
+		if f.Index == index {
 			if f.Lifetime == 0 || tt.Kind(f.Type) != sem.KRef {
 				return false
 			}
-		} else if f.Lifetime != 0 || c.resultMayCarryLifetime(f.Type) || !c.p.R.IsCopy(f.Type) || len(tt.Params(f.Type)) != 0 {
+		} else if f.Lifetime != 0 || tt.Kind(f.Type) == sem.KRef || !p.R.IsCopy(f.Type) || len(tt.Params(f.Type)) != 0 {
 			return false
 		}
 	}
@@ -47,7 +48,7 @@ func (c *borrowCheck) storesOnlyReplace(holder LocalID) bool {
 			for _, in := range blk.Insts {
 				for _, fl := range c.storeFlows(in) {
 					for _, r := range c.storeDests(fl) {
-						c.resets.stored[r] = c.resets.stored[r] || !c.replacesHolder(in, r)
+						c.resets.stored[r] = c.resets.stored[r] || !c.replacesHolder(in, r) && !c.callResets(in, fl, r)
 					}
 				}
 				targets, _ := c.carryFlows(in)

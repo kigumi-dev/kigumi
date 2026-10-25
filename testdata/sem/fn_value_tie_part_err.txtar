@@ -1,0 +1,181 @@
+-- module --
+mir: planned
+-- src --
+type V['a] = { pub s &'a String }
+type R2['a] = { pub mut v V['a], pub mut w V['a] }
+fn mkV['a](s: &'a String) -> V['a] { V { s: s } }
+fn putMut[U](out: &mut U, items: &mut Array[String], f: fn(&String) -> U) { out = f(&items[0]) }
+fn putSome[U](out: &mut U, items: &mut Array[String], f: fn(&String) -> U, go: Bool) { if go { out = f(&items[0]) } }
+fn R2['a].swap(mut self) {
+    let t = self.v
+    self.v = self.w
+    self.w = t
+}
+fn swapped() -> usize {
+    let k = "k"
+    let mut items = Array.of("i1", "i22")
+    let mut other = Array.of("o1", "o2")
+    let mut r = R2 { v: mkV(&k), w: mkV(&k) }
+    putMut(&mut r.v, &mut items, mkV)
+    r.swap()
+    putMut(&mut r.v, &mut other, mkV)
+    items.push("x") //~ ERROR `items` is borrowed and cannot be mutated
+    r.w.s.len()
+}
+fn inserted() -> usize {
+    let k = "k"
+    let mut items = Array.of("i1", "i22")
+    let mut other = Array.of("o1", "o2")
+    let mut arr = Array.of(mkV(&k))
+    putMut(&mut arr[0], &mut items, mkV)
+    let ok = arr.insertAt(0, mkV(&k))
+    putMut(&mut arr[0], &mut other, mkV)
+    items.push("x") //~ ERROR `items` is borrowed and cannot be mutated
+    arr[1].s.len()
+}
+fn looped() -> usize {
+    let k = "k"
+    let mut items = Array.of("i1", "i22")
+    let mut other = Array.of("o1", "o2")
+    let mut arr = Array.of(mkV(&k), mkV(&k))
+    for i in 0..2 {
+        putMut(&mut arr[i], &mut items, mkV) //~ ERROR `items` is borrowed and cannot be mutated
+    }
+    putMut(&mut arr[0], &mut other, mkV)
+    items.push("x") //~ ERROR `items` is borrowed and cannot be mutated
+    arr[1].s.len()
+}
+fn otherField() -> usize {
+    let k = "k"
+    let mut items = Array.of("i1", "i22")
+    let mut other = Array.of("o1", "o2")
+    let mut r = R2 { v: mkV(&k), w: mkV(&k) }
+    putMut(&mut r.v, &mut items, mkV)
+    putMut(&mut r.w, &mut other, mkV)
+    items.push("x") //~ ERROR `items` is borrowed and cannot be mutated
+    r.v.s.len()
+}
+fn otherIndex() -> usize {
+    let k = "k"
+    let mut items = Array.of("i1", "i22")
+    let mut other = Array.of("o1", "o2")
+    let mut arr = Array.of(mkV(&k), mkV(&k))
+    putMut(&mut arr[0], &mut items, mkV)
+    putMut(&mut arr[1], &mut other, mkV)
+    items.push("x") //~ ERROR `items` is borrowed and cannot be mutated
+    arr[0].s.len()
+}
+fn some() -> usize {
+    let k = "k"
+    let mut items = Array.of("i1", "i22")
+    let mut other = Array.of("o1", "o2")
+    let mut r = R2 { v: mkV(&k), w: mkV(&k) }
+    putMut(&mut r.v, &mut items, mkV)
+    putSome(&mut r.v, &mut other, mkV, false)
+    items.push("x") //~ ERROR `items` is borrowed and cannot be mutated
+    r.v.s.len()
+}
+fn copied() -> usize {
+    let k = "k"
+    let mut items = Array.of("i1", "i22")
+    let mut other = Array.of("o1", "o2")
+    let mut r = R2 { v: mkV(&k), w: mkV(&k) }
+    putMut(&mut r.v, &mut items, mkV)
+    r.w = r.v
+    putMut(&mut r.v, &mut other, mkV)
+    items.push("x") //~ ERROR `items` is borrowed and cannot be mutated
+    r.w.s.len()
+}
+fn main() { print "${swapped()} ${inserted()} ${looped()} ${otherField()} ${otherIndex()} ${some()} ${copied()}" }
+-- expect --
+error[E2198]: `items` is borrowed and cannot be mutated here
+  --> main.kg:19:5
+   |
+19 |     items.push("x") //~ ERROR `items` is borrowed and cannot be mutated
+   |     ^^^^^
+   = help: end the borrow first or use a copy
+note: `items` is borrowed here
+  --> main.kg:16:22
+   |
+16 |     putMut(&mut r.v, &mut items, mkV)
+   |                      ^^^^^^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+  --> main.kg:30:5
+   |
+30 |     items.push("x") //~ ERROR `items` is borrowed and cannot be mutated
+   |     ^^^^^
+   = help: end the borrow first or use a copy
+note: `items` is borrowed here
+  --> main.kg:27:25
+   |
+27 |     putMut(&mut arr[0], &mut items, mkV)
+   |                         ^^^^^^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+  --> main.kg:39:29
+   |
+39 |         putMut(&mut arr[i], &mut items, mkV) //~ ERROR `items` is borrowed and cannot be mutated
+   |                             ^^^^^^^^^^
+   = help: end the borrow first or use a copy
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+  --> main.kg:42:5
+   |
+42 |     items.push("x") //~ ERROR `items` is borrowed and cannot be mutated
+   |     ^^^^^
+   = help: end the borrow first or use a copy
+note: `items` is borrowed here
+  --> main.kg:39:29
+   |
+39 |         putMut(&mut arr[i], &mut items, mkV) //~ ERROR `items` is borrowed and cannot be mutated
+   |                             ^^^^^^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+  --> main.kg:52:5
+   |
+52 |     items.push("x") //~ ERROR `items` is borrowed and cannot be mutated
+   |     ^^^^^
+   = help: end the borrow first or use a copy
+note: `items` is borrowed here
+  --> main.kg:50:22
+   |
+50 |     putMut(&mut r.v, &mut items, mkV)
+   |                      ^^^^^^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+  --> main.kg:62:5
+   |
+62 |     items.push("x") //~ ERROR `items` is borrowed and cannot be mutated
+   |     ^^^^^
+   = help: end the borrow first or use a copy
+note: `items` is borrowed here
+  --> main.kg:60:25
+   |
+60 |     putMut(&mut arr[0], &mut items, mkV)
+   |                         ^^^^^^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+  --> main.kg:72:5
+   |
+72 |     items.push("x") //~ ERROR `items` is borrowed and cannot be mutated
+   |     ^^^^^
+   = help: end the borrow first or use a copy
+note: `items` is borrowed here
+  --> main.kg:70:22
+   |
+70 |     putMut(&mut r.v, &mut items, mkV)
+   |                      ^^^^^^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+  --> main.kg:83:5
+   |
+83 |     items.push("x") //~ ERROR `items` is borrowed and cannot be mutated
+   |     ^^^^^
+   = help: end the borrow first or use a copy
+note: `items` is borrowed here
+  --> main.kg:80:22
+   |
+80 |     putMut(&mut r.v, &mut items, mkV)
+   |                      ^^^^^^^^^^
+

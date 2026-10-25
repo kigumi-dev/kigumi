@@ -2,6 +2,7 @@ package llgen
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"kigumi/internal/mir"
@@ -165,15 +166,26 @@ func (e *emitter) releaseSlots(sb *strings.Builder, f *mir.Func, locals []mir.Lo
 	sb.WriteString("  br label %done\n")
 }
 
-// asyncDesc is what a Future is built from: the poll and drop functions, the
-// frame's slot count, and whether a pool may move it between workers.
+// asyncDesc is what a Future is built from: the poll and drop functions, the frame's slot count, whether a pool may
+// move it between workers, and which parameters take a `&mut` write-back cell's referent (mir.ReferentParams).
 func (e *emitter) asyncDesc(f *mir.Func) string {
 	mobile := 0
 	if e.r.Entity(f.Ent).Kind == sem.EntFn && e.r.Fn(f.Ent).Mobility == sem.MobilityMigratable {
 		mobile = 1
 	}
-	return fmt.Sprintf("%s = internal global { ptr, ptr, i32, i32 } { ptr %s, ptr %s, i32 %d, i32 %d }, align 8\n",
-		e.asyncDescSym(f), e.sym(f), e.frameDropSym(f), f.Frame, mobile)
+	refs := e.p.ReferentParams(f)
+	flags := make([]string, len(refs))
+	for i, r := range refs {
+		flags[i] = "i8 " + strconv.Itoa(boolBit(r))
+	}
+	init := "zeroinitializer"
+	if len(flags) > 0 {
+		init = "[" + strings.Join(flags, ", ") + "]"
+	}
+	sym := e.asyncDescSym(f)
+	refSym := strings.TrimSuffix(sym, "\"") + "$referent\""
+	return fmt.Sprintf("%s = private constant [%d x i8] %s\n%s = internal global { ptr, ptr, i32, i32, i32, ptr } { ptr %s, ptr %s, i32 %d, i32 %d, i32 %d, ptr %s }, align 8\n",
+		refSym, len(refs), init, sym, e.sym(f), e.frameDropSym(f), f.Frame, mobile, len(refs), refSym)
 }
 
 func endsCancelled(blk mir.Block) bool {

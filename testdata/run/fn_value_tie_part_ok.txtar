@@ -1,0 +1,54 @@
+-- src --
+type V['a] = { pub s &'a String }
+
+type Rec['a] = { pub mut v V['a], pub n Int }
+
+fn mkV['a](s: &'a String) -> V['a] {
+    V { s: s }
+}
+
+fn V['a].reset(mut self, s: &'a String) {
+    self = V { s: s }
+}
+
+fn putMut[U](out: &mut U, items: &mut Array[String], f: fn(&String) -> U) {
+    out = f(&items[0])
+}
+
+fn fieldTarget() -> usize {
+    let k = "k"
+    let mut items = Array.of("i1", "i22")
+    let mut other = Array.of("o1", "o2")
+    let mut rec = Rec { v: mkV(&k), n: 0 }
+    putMut(&mut rec.v, &mut items, mkV)
+    putMut(&mut rec.v, &mut other, mkV)
+    items.push("x")
+    rec.v.s.len() + items.len()
+}
+
+fn indexTarget() -> usize {
+    let k = "k"
+    let mut items = Array.of("i1", "i22")
+    let mut other = Array.of("o333", "o2")
+    let mut arr = Array.of(mkV(&k), mkV(&k))
+    putMut(&mut arr[0], &mut items, mkV)
+    putMut(&mut arr[0], &mut other, mkV)
+    items.push("x")
+    arr[0].s.len() + arr[1].s.len() + items.len()
+}
+
+fn fieldReset() -> usize {
+    let k = "kk"
+    let mut items = Array.of("i1", "i22")
+    let mut rec = Rec { v: mkV(&k), n: 0 }
+    putMut(&mut rec.v, &mut items, mkV)
+    rec.v.reset(&k)
+    items.push("x")
+    rec.v.s.len() + items.len()
+}
+
+fn main() {
+    print "${fieldTarget()} ${indexTarget()} ${fieldReset()}"
+}
+-- stdout --
+5 8 5

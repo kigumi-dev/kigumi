@@ -143,7 +143,7 @@ func (c *borrowCheck) carryStep(bid BlockID, holder, owner LocalID, sites []carr
 	for i := 0; i < end && i < len(insts); i++ {
 		in := insts[i]
 		ends := shapes[in.Op].result && in.Dst == holder || (in.Op == OpMove || in.Op == OpDrop) && len(in.Args) > 0 && in.Args[0] == holder
-		if ends && !c.writeBackKeeps(bid, i, holder) || stores && c.replacesHolder(in, holder) {
+		if ends && !c.writeBackKeeps(bid, i, holder) || stores && c.resetsAt(bid, i, holder) || c.partReplaced(bid, i, holder, owner, sites) {
 			cur = false
 		}
 		for _, s := range sites {

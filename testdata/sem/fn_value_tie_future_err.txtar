@@ -1,0 +1,335 @@
+-- module --
+mir: planned
+-- src --
+import task from std/task
+
+type Hold[U] = { pub mut v U }
+
+async fn lenOf(s: &String) -> usize {
+    s.len()
+}
+
+fn one[U](items: &Array[String], f: fn(&String) -> U) -> U {
+    f(&items[0])
+}
+
+fn fwd[U](items: &Array[String], f: fn(&String) -> U) -> U {
+    one(items, f)
+}
+
+fn putTie[U](out: &mut U, items: &Array[String], f: fn(&String) -> U) {
+    out = f(&items[0])
+}
+
+fn optOne[U](items: &Array[String], f: fn(&String) -> U) -> Option[U] {
+    Some(f(&items[0]))
+}
+
+fn holdOne[U](items: &Array[String], f: fn(&String) -> U) -> Hold[U] {
+    Hold { v: f(&items[0]) }
+}
+
+fn collect[U](items: &Array[String], f: fn(&String) -> U) -> Array[U] {
+    let mut out: Array[U] = Array.empty()
+    for s in items {
+        out.push(f(s))
+    }
+    out
+}
+
+fn pushTie[U](out: &mut Array[U], items: &Array[String], f: fn(&String) -> U) {
+    out.push(f(&items[0]))
+}
+
+fn putField[U](out: &mut Hold[U], items: &Array[String], f: fn(&String) -> U) {
+    out.v = f(&items[0])
+}
+
+fn two[U, W](items: &Array[String], f: fn(&String) -> U, g: fn(U) -> W) -> W {
+    g(f(&items[0]))
+}
+
+fn spawnIt(f: Future[usize]) -> task.Task[usize] {
+    task.spawn(f)
+}
+
+fn viaResult() -> usize {
+    let ex = task.currentThreadExecutor()
+    let mut items = Array.of("i1")
+    let fut = one(&items, lenOf)
+    items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    ex.runToCompletion(fut) + items.len()
+}
+
+fn viaFwd() -> usize {
+    let ex = task.currentThreadExecutor()
+    let mut items = Array.of("i1")
+    let fut = fwd(&items, lenOf)
+    items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    ex.runToCompletion(fut) + items.len()
+}
+
+fn viaOut() -> usize {
+    let ex = task.currentThreadExecutor()
+    let k = "k"
+    let mut items = Array.of("i1")
+    let mut fut = lenOf(&k)
+    putTie(&mut fut, &items, lenOf)
+    items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    ex.runToCompletion(fut) + items.len()
+}
+
+fn viaOption() -> usize {
+    let ex = task.currentThreadExecutor()
+    let mut items = Array.of("i1")
+    let o = optOne(&items, lenOf)
+    items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    match o {
+        Some(f) -> ex.runToCompletion(f) + items.len()
+        None -> 0
+    }
+}
+
+fn viaRecord() -> usize {
+    let ex = task.currentThreadExecutor()
+    let mut items = Array.of("i1")
+    let h = holdOne(&items, lenOf)
+    items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    ex.runToCompletion(h.v) + items.len()
+}
+
+fn viaArray() -> usize {
+    let ex = task.currentThreadExecutor()
+    let mut items = Array.of("i1", "i22")
+    let futs = collect(&items, lenOf)
+    items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    let mut n = items.len()
+    for f in futs {
+        n = n + ex.runToCompletion(f)
+    }
+    n
+}
+
+fn viaPush() -> usize {
+    let ex = task.currentThreadExecutor()
+    let mut items = Array.of("i1")
+    let mut futs: Array[Future[usize]] = Array.empty()
+    pushTie(&mut futs, &items, lenOf)
+    items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    let mut n = items.len()
+    for f in futs {
+        n = n + ex.runToCompletion(f)
+    }
+    n
+}
+
+fn viaField() -> usize {
+    let ex = task.currentThreadExecutor()
+    let k = "k"
+    let mut items = Array.of("i1")
+    let mut h = Hold { v: lenOf(&k) }
+    putField(&mut h, &items, lenOf)
+    items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    ex.runToCompletion(h.v) + items.len()
+}
+
+async fn viaTask() -> usize {
+    let mut items = Array.of("i1")
+    let t: task.Task[usize] = two(&items, lenOf, spawnIt)
+    items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    await t + items.len()
+}
+
+async fn viaTaskLambda() -> usize {
+    let mut items = Array.of("i1")
+    let t: task.Task[usize] = two(&items, lenOf, (f: Future[usize]) => task.spawn(f))
+    items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    await t + items.len()
+}
+
+fn main() {
+    let ex = task.currentThreadExecutor()
+    print "${viaResult()} ${viaFwd()} ${viaOut()} ${viaOption()} ${viaRecord()} ${viaArray()} ${viaPush()} ${viaField()}"
+    print "${ex.runToCompletion(viaTask())} ${ex.runToCompletion(viaTaskLambda())}"
+}
+-- expect --
+error[E2198]: `items` is borrowed and cannot be mutated here
+  --> main.kg:57:5
+   |
+57 |     items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+   |     ^^^^^
+   = help: end the borrow first or use a copy
+note: `items` is borrowed here
+  --> main.kg:56:15
+   |
+56 |     let fut = one(&items, lenOf)
+   |               ^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `items` is borrowed and cannot be moved or dropped here
+  --> main.kg:57:5
+   |
+57 |     items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+   |     ^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+  --> main.kg:65:5
+   |
+65 |     items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+   |     ^^^^^
+   = help: end the borrow first or use a copy
+note: `items` is borrowed here
+  --> main.kg:64:15
+   |
+64 |     let fut = fwd(&items, lenOf)
+   |               ^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `items` is borrowed and cannot be moved or dropped here
+  --> main.kg:65:5
+   |
+65 |     items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+   |     ^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+  --> main.kg:75:5
+   |
+75 |     items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+   |     ^^^^^
+   = help: end the borrow first or use a copy
+note: `items` is borrowed here
+  --> main.kg:74:22
+   |
+74 |     putTie(&mut fut, &items, lenOf)
+   |                      ^^^^^^
+
+error[move-while-borrowed]: `items` is borrowed and cannot be moved or dropped here
+  --> main.kg:75:5
+   |
+75 |     items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+   |     ^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+  --> main.kg:83:5
+   |
+83 |     items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+   |     ^^^^^
+   = help: end the borrow first or use a copy
+note: `items` is borrowed here
+  --> main.kg:82:13
+   |
+82 |     let o = optOne(&items, lenOf)
+   |             ^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `items` is borrowed and cannot be moved or dropped here
+  --> main.kg:83:5
+   |
+83 |     items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+   |     ^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+  --> main.kg:94:5
+   |
+94 |     items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+   |     ^^^^^
+   = help: end the borrow first or use a copy
+note: `items` is borrowed here
+  --> main.kg:93:13
+   |
+93 |     let h = holdOne(&items, lenOf)
+   |             ^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `items` is borrowed and cannot be moved or dropped here
+  --> main.kg:94:5
+   |
+94 |     items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+   |     ^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+   --> main.kg:102:5
+    |
+102 |     items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `items` is borrowed here
+   --> main.kg:101:16
+    |
+101 |     let futs = collect(&items, lenOf)
+    |                ^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `items` is borrowed and cannot be moved or dropped here
+   --> main.kg:102:5
+    |
+102 |     items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    |     ^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+   --> main.kg:115:5
+    |
+115 |     items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `items` is borrowed here
+   --> main.kg:114:24
+    |
+114 |     pushTie(&mut futs, &items, lenOf)
+    |                        ^^^^^^
+
+error[move-while-borrowed]: `items` is borrowed and cannot be moved or dropped here
+   --> main.kg:115:5
+    |
+115 |     items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    |     ^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+   --> main.kg:129:5
+    |
+129 |     items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `items` is borrowed here
+   --> main.kg:128:22
+    |
+128 |     putField(&mut h, &items, lenOf)
+    |                      ^^^^^^
+
+error[move-while-borrowed]: `items` is borrowed and cannot be moved or dropped here
+   --> main.kg:129:5
+    |
+129 |     items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    |     ^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+   --> main.kg:136:5
+    |
+136 |     items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `items` is borrowed here
+   --> main.kg:135:31
+    |
+135 |     let t: task.Task[usize] = two(&items, lenOf, spawnIt)
+    |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `items` is borrowed and cannot be moved or dropped here
+   --> main.kg:136:5
+    |
+136 |     items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    |     ^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+   --> main.kg:143:5
+    |
+143 |     items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `items` is borrowed here
+   --> main.kg:142:31
+    |
+142 |     let t: task.Task[usize] = two(&items, lenOf, (f: Future[usize]) => task.spawn(f))
+    |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `items` is borrowed and cannot be moved or dropped here
+   --> main.kg:143:5
+    |
+143 |     items = Array.of("zz") //~ ERROR `items` is borrowed and cannot be mutated //~ ERROR `items` is borrowed and cannot be moved
+    |     ^^^^^
+

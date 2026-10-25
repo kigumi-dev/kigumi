@@ -8,7 +8,8 @@ type pendingCheck struct {
 	cur sem.EntityID
 }
 
-// checkBorrowsOf defers f's borrow checks until every reachable body is lowered, so no answer depends on declaration order.
+// checkBorrowsOf defers f's borrow checks to the end of lowering, so storesParam, which reads p.ByEnt, sees every
+// lowered body; what goes through calleeBody still depends on entity order, as runPendingChecks keeps it.
 func (p *Program) checkBorrowsOf(f *Func) {
 	if l := p.lowering; l != nil {
 		l.checks = append(l.checks, pendingCheck{f: f, cur: l.cur})

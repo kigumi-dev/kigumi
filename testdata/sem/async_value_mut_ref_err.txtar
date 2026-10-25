@@ -1,0 +1,91 @@
+-- src --
+import task from std/task
+
+type H = { pub n Int }
+
+async fn rep(a: &mut Array[String]) -> usize {
+    a = Array.of("z")
+    a.len()
+}
+
+fn swapAll(a: &mut Array[String]) {
+    a = Array.of("q")
+}
+
+async fn viaInner(a: &mut Array[String]) -> usize {
+    swapAll(a)
+    a.len()
+}
+
+async fn H.fill(self, a: &mut Array[String]) -> usize {
+    a = Array.of("w")
+    a.len()
+}
+
+async fn inPlace(a: &mut Array[String]) -> usize {
+    a.push("x")
+    a.len()
+}
+
+async fn wide32(p0: usize, p1: usize, p2: usize, p3: usize, p4: usize, p5: usize, p6: usize, p7: usize, p8: usize, p9: usize, p10: usize, p11: usize, p12: usize, p13: usize, p14: usize, p15: usize, p16: usize, p17: usize, p18: usize, p19: usize, p20: usize, p21: usize, p22: usize, p23: usize, p24: usize, p25: usize, p26: usize, p27: usize, p28: usize, p29: usize, p30: usize, a: &mut Array[String]) -> usize {
+    a.push("x")
+    a.len() + p30
+}
+
+async fn wide40(p0: usize, p1: usize, p2: usize, p3: usize, p4: usize, p5: usize, p6: usize, p7: usize, p8: usize, p9: usize, p10: usize, p11: usize, p12: usize, p13: usize, p14: usize, p15: usize, p16: usize, p17: usize, p18: usize, p19: usize, p20: usize, p21: usize, p22: usize, p23: usize, p24: usize, p25: usize, p26: usize, p27: usize, p28: usize, p29: usize, p30: usize, p31: usize, p32: usize, p33: usize, p34: usize, p35: usize, p36: usize, p37: usize, p38: usize, a: &mut Array[String]) -> usize {
+    a.push("x")
+    a.len() + p38
+}
+
+fn run(f: Future[usize]) -> usize {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+fn main() {
+    let mut arr = Array.of("a")
+    let h = H { n: 1 }
+    let r = rep //~ ERROR `rep` replaces its `&mut` parameter `a` as a whole
+    let v = viaInner //~ ERROR `viaInner` replaces its `&mut` parameter `a` as a whole
+    let m = h.fill //~ ERROR `fill` replaces its `&mut` parameter `a` as a whole
+    let ok = inPlace
+    let w32 = wide32 //~ ERROR `wide32` takes 32 arguments, more than the 31 a call through an `async` fn value can lend
+    let w40 = wide40 //~ ERROR `wide40` takes 40 arguments, more than the 31 a call through an `async` fn value can lend
+    print "${run(r(&mut arr))} ${run(v(&mut arr))} ${run(m(&mut arr))} ${run(ok(&mut arr))}"
+    print "${run(w32(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, &mut arr))} ${run(w40(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, &mut arr))}"
+}
+-- expect --
+error[E1501]: `rep` replaces its `&mut` parameter `a` as a whole, so it cannot be used as a value: a call through the value lends the `&mut` to a Future that outlives the storage the new value would go back to
+  --> main/main.kg:46:13
+   |
+46 |     let r = rep //~ ERROR `rep` replaces its `&mut` parameter `a` as a whole
+   |             ^^^
+   = help: take the value itself instead of a `&mut`, or update the referent in place
+
+error[E1501]: `viaInner` replaces its `&mut` parameter `a` as a whole, so it cannot be used as a value: a call through the value lends the `&mut` to a Future that outlives the storage the new value would go back to
+  --> main/main.kg:47:13
+   |
+47 |     let v = viaInner //~ ERROR `viaInner` replaces its `&mut` parameter `a` as a whole
+   |             ^^^^^^^^
+   = help: take the value itself instead of a `&mut`, or update the referent in place
+
+error[E1501]: `fill` replaces its `&mut` parameter `a` as a whole, so it cannot be used as a value: a call through the value lends the `&mut` to a Future that outlives the storage the new value would go back to
+  --> main/main.kg:48:13
+   |
+48 |     let m = h.fill //~ ERROR `fill` replaces its `&mut` parameter `a` as a whole
+   |             ^^^^^^
+   = help: take the value itself instead of a `&mut`, or update the referent in place
+
+error[E1504]: `wide32` takes 32 arguments, more than the 31 a call through an `async` fn value can lend
+  --> main/main.kg:50:15
+   |
+50 |     let w32 = wide32 //~ ERROR `wide32` takes 32 arguments, more than the 31 a call through an `async` fn value can lend
+   |               ^^^^^^
+   = help: call it directly, or pass some of the arguments in a record
+
+error[E1504]: `wide40` takes 40 arguments, more than the 31 a call through an `async` fn value can lend
+  --> main/main.kg:51:15
+   |
+51 |     let w40 = wide40 //~ ERROR `wide40` takes 40 arguments, more than the 31 a call through an `async` fn value can lend
+   |               ^^^^^^
+   = help: call it directly, or pass some of the arguments in a record
+

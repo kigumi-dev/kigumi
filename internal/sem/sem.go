@@ -169,6 +169,7 @@ type Result struct {
 	refCellSeeds              []EntityID
 	refCellEdges              []refCellEdge
 	refCellSites, refCellArgs []refCellSite
+	asyncValues               []refCellSite
 	refCellValues             []refCellValue
 	refCellParams             map[EntityID]bool
 	refCellHard               map[EntityID]bool
@@ -195,6 +196,5 @@ type Result struct {
 	recoverable               recoverableProfile
 	pendingLends              []lendSite
 	allocBlocks               []allocBlock
-	skipBody                  []bool
-	lazyPkg                   []bool
+	skipBody, lazyPkg         []bool
 }

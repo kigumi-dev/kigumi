@@ -110,6 +110,7 @@ func (r *Result) resolveRefCells() {
 	closeRefCells(r.refCellSeeds, edges, r.refCellParams)
 	closeRefCells(soft, edges, r.refCellParams)
 	r.reportRefCellSites()
+	r.rejectReplacingAsyncValues()
 	r.rejectAsyncSelfReplace()
 	r.reportLentRefArgs()
 	r.conformSealed = len(r.conformMemo)

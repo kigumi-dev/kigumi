@@ -1,0 +1,167 @@
+-- src --
+import task from std/task
+
+type Hold[U] = { pub mut v U }
+
+type V['a] = { pub s &'a String }
+
+async fn lenOf(s: &String) -> usize {
+    s.len()
+}
+
+fn mkV['a](s: &'a String) -> V['a] {
+    V { s: s }
+}
+
+fn idV['a](v: V['a]) -> V['a] {
+    v
+}
+
+fn one[U](items: &Array[String], f: fn(&String) -> U) -> U {
+    f(&items[0])
+}
+
+fn fwd[U](items: &Array[String], f: fn(&String) -> U) -> U {
+    one(items, f)
+}
+
+fn putTie[U](out: &mut U, items: &Array[String], f: fn(&String) -> U) {
+    out = f(&items[0])
+}
+
+fn optOne[U](items: &Array[String], f: fn(&String) -> U) -> Option[U] {
+    Some(f(&items[0]))
+}
+
+fn holdOne[U](items: &Array[String], f: fn(&String) -> U) -> Hold[U] {
+    Hold { v: f(&items[0]) }
+}
+
+fn collect[U](items: &Array[String], f: fn(&String) -> U) -> Array[U] {
+    let mut out: Array[U] = Array.empty()
+    for s in items {
+        out.push(f(s))
+    }
+    out
+}
+
+fn putField[U](out: &mut Hold[U], items: &Array[String], f: fn(&String) -> U) {
+    out.v = f(&items[0])
+}
+
+fn two[U, W](items: &Array[String], f: fn(&String) -> U, g: fn(U) -> W) -> W {
+    g(f(&items[0]))
+}
+
+fn spawnIt(f: Future[usize]) -> task.Task[usize] {
+    task.spawn(f)
+}
+
+fn churn() -> usize {
+    let mut junk: Array[String] = Array.empty()
+    for i in 0..64 {
+        junk.push("junk${i}junk${i}junk${i}junk${i}junk${i}junk${i}")
+    }
+    junk.len()
+}
+
+fn viaResult() -> usize {
+    let ex = task.currentThreadExecutor()
+    let mut items = Array.of("i1")
+    let fut = one(&items, lenOf)
+    let n = ex.runToCompletion(fut)
+    items = Array.of("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
+    n + items.len() + churn()
+}
+
+fn viaFwd() -> usize {
+    let ex = task.currentThreadExecutor()
+    let mut items = Array.of("i22")
+    let fut = fwd(&items, lenOf)
+    let n = ex.runToCompletion(fut)
+    items = Array.of("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
+    n + items.len() + churn()
+}
+
+fn viaOut() -> usize {
+    let ex = task.currentThreadExecutor()
+    let k = "k"
+    let mut items = Array.of("i333")
+    let mut fut = lenOf(&k)
+    putTie(&mut fut, &items, lenOf)
+    let n = ex.runToCompletion(fut)
+    items = Array.of("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
+    n + items.len() + churn()
+}
+
+fn viaOption() -> usize {
+    let ex = task.currentThreadExecutor()
+    let mut items = Array.of("i4444")
+    let n = match optOne(&items, lenOf) {
+        Some(f) -> ex.runToCompletion(f)
+        None -> 0
+    }
+    items = Array.of("zz")
+    n + items.len()
+}
+
+fn viaRecordField() -> usize {
+    let ex = task.currentThreadExecutor()
+    let k = "k"
+    let mut items = Array.of("i55555")
+    let mut more = Array.of("m666666")
+    let h = holdOne(&items, lenOf)
+    let mut g = Hold { v: lenOf(&k) }
+    putField(&mut g, &more, lenOf)
+    let n = ex.runToCompletion(h.v) + ex.runToCompletion(g.v)
+    items = Array.of("zz")
+    more = Array.of("zz")
+    n + items.len() + more.len()
+}
+
+fn viaArray() -> usize {
+    let ex = task.currentThreadExecutor()
+    let mut items = Array.of("i1", "i22")
+    let mut n: usize = 0
+    for f in collect(&items, lenOf) {
+        n = n + ex.runToCompletion(f)
+    }
+    items = Array.of("zz")
+    n + items.len()
+}
+
+async fn viaTask() -> usize {
+    let mut items = Array.of("i1")
+    let t: task.Task[usize] = two(&items, lenOf, spawnIt)
+    let n = await t
+    let u: task.Task[usize] = two(&items, lenOf, (f: Future[usize]) => task.spawn(f))
+    let m = await u
+    items = Array.of("zz")
+    n + m + items.len()
+}
+
+fn viaValue() -> usize {
+    let ex = task.currentThreadExecutor()
+    let items = Array.of("v1")
+    let f = lenOf
+    let a = ex.runToCompletion(f(&items[0]))
+    let b = ex.runToCompletion(f(&items[0]))
+    let unrun = Some(f(&items[0]))
+    let held: usize = if unrun is Some(_) { 1 } else { 0 }
+    a + b + items[0].len() + held
+}
+
+fn viaChain() -> usize {
+    let items = Array.of("i333")
+    let v = two(&items, mkV, idV)
+    v.s.len()
+}
+
+fn main() {
+    let ex = task.currentThreadExecutor()
+    print "future ${viaResult()} ${viaFwd()} ${viaOut()} ${viaOption()} ${viaRecordField()} ${viaArray()}"
+    print "task ${ex.runToCompletion(viaTask())} ${viaValue()} ${viaChain()}"
+}
+-- stdout --
+future 67 68 69 6 15 6
+task 5 7 4

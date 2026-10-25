@@ -26,15 +26,18 @@ func (c *borrowCheck) tiedCallSource(in Inst) (*borrowInfo, bool) {
 // fnTie: a passed fn value whose result may borrow its arguments lets the callee build its result from them.
 func (c *borrowCheck) fnTie(in Inst) []*borrowInfo {
 	info := c.p.R.Fn(in.Ent)
-	want := c.typeParamsOf(c.p.R.Types.Node(info.Sig).Elem)
+	want := c.wantOf(c.p.R.Types.Node(info.Sig).Elem)
 	dst := c.f.Locals[in.Dst].Type
 	generic := !c.holdsBorrow(dst) && c.namesTypeParam(dst)
-	if len(want) == 0 || !generic && !c.holdsBorrow(dst) {
+	if want.empty() || !generic && !c.tieCarrier(dst) {
 		return nil
 	}
 	var out []*borrowInfo
 	for _, v := range c.tieArgs(info, c.callSlots(info, in.Args, 0), want) {
 		b, ok := c.tieInfo(v, generic, false)
+		if !ok && v.tie == tieRef {
+			b, ok = c.lentCellBorrow(v.arg, in.Dst)
+		}
 		if ok && generic {
 			b = c.carriedBorrows(b)
 			ok = b != nil
@@ -48,7 +51,13 @@ func (c *borrowCheck) fnTie(in Inst) []*borrowInfo {
 
 func (c *borrowCheck) tieValues(info *sem.FnInfo, slots []callSlot, t callSlot, have []flowArg) []flowArg {
 	var out []flowArg
-	for _, v := range c.tieArgs(info, slots, t.params) {
+	decl := t.exact
+	if decl == 0 && info.SelfParam != 0 {
+		decl = c.p.R.Entity(info.SelfParam).Type
+	}
+	want := c.wantOf(decl)
+	want.params = t.params
+	for _, v := range c.tieArgs(info, slots, want) {
 		if v.arg != t.arg && !slices.ContainsFunc(have, func(h flowArg) bool { return h.arg == v.arg }) {
 			out = append(out, v)
 		}
@@ -92,18 +101,21 @@ func (c *borrowCheck) mayBorrowResult(r sem.TypeID) bool {
 	return c.holdsBorrow(r) || c.namesTypeParam(r)
 }
 
-// makesOwnBorrow reports whether the function value a returns a reference, or names a lifetime of its own declaration;
-// a lifetime a closure names belongs to the enclosing function. An unknown value is judged by its type.
+// makesOwnBorrow reports whether the function value a returns a reference, names a lifetime of its own declaration (a
+// closure's belongs to the enclosing function) or keeps an argument's Future or capture. An unknown value is judged by its type.
 func (c *borrowCheck) makesOwnBorrow(a LocalID) bool {
 	switch fn := c.fnEntityOf(a); {
+	case fn != 0 && c.p.isAsyncBody(fn):
+		return c.asyncKeepsBorrow(c.p.R.Fn(fn))
 	case fn != 0 && c.p.R.Entity(fn).Kind == sem.EntFn:
 		info := c.p.R.Fn(fn)
 		ret := c.p.R.Types.Node(info.Sig).Elem
-		return c.refIn(ret) || slices.ContainsFunc(c.p.R.Types.Params(ret), func(p sem.EntityID) bool {
+		return c.refIn(ret) || c.keepsDeferredArg(info.Params, ret) || slices.ContainsFunc(c.p.R.Types.Params(ret), func(p sem.EntityID) bool {
 			return c.p.R.TypeParam(p).IsLifetime && slices.Contains(info.TypeParams, p)
 		})
 	case fn != 0 && c.p.R.Entity(fn).Kind == sem.EntClosure:
-		return c.refIn(c.p.R.Closure(fn).Ret)
+		info := c.p.R.Closure(fn)
+		return c.refIn(info.Ret) || c.keepsDeferredArg(info.Params, info.Ret)
 	}
 	r := c.fnResult(c.f.Locals[a].Type)
 	return r != 0 && c.mayBorrowResult(r)

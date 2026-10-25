@@ -1,0 +1,246 @@
+-- module --
+mir: planned
+-- src --
+type View['a] = { pub mut data &'a Array[Int], pub mut off usize }
+
+type Two['a] = { pub mut x &'a String, pub mut y &'a String }
+
+type V['a] = { pub s &'a String }
+
+fn View['a].at(self) -> Int {
+    self.data[self.off]
+}
+
+fn View['a].setAll(mut self, d: &'a Array[Int]) {
+    self = View { data: d, off: 0 }
+}
+
+fn View['a].setData(mut self, d: &'a Array[Int]) {
+    self.data = d
+}
+
+fn View['a].setSome(mut self, d: &'a Array[Int], go: Bool) {
+    if go {
+        self = View { data: d, off: 0 }
+    }
+}
+
+fn View['a].setLate(mut self, d: &'a Array[Int], go: Bool) {
+    if go {
+        return
+    }
+    self.data = d
+}
+
+fn Two['a].setX(mut self, s: &'a String) {
+    self.x = s
+}
+
+fn mkV['a](s: &'a String) -> V['a] {
+    V { s: s }
+}
+
+fn putMut[U](out: &mut U, items: &mut Array[String], f: fn(&String) -> U) {
+    out = f(&items[0])
+}
+
+fn putTry[U](out: &mut U, items: &mut Array[String], f: fn(&String) -> U, r: Result[Int, String]) -> Result[Int, String] {
+    let n = r?
+    out = f(&items[0])
+    Ok(n)
+}
+
+fn someLeft(go: Bool) -> Int {
+    let mut a = Array.of(1, 2, 3)
+    let b = Array.of(7, 8)
+    let mut cur = View { data: &a, off: 0 }
+    cur.setSome(&b, go)
+    a = Array.of(9) //~ ERROR `a` is borrowed and cannot be mutated //~ ERROR `a` is borrowed and cannot be moved
+    cur.at()
+}
+
+fn lateLeft(go: Bool) -> Int {
+    let mut a = Array.of(1, 2, 3)
+    let b = Array.of(7, 8)
+    let mut cur = View { data: &a, off: 0 }
+    cur.setLate(&b, go)
+    a = Array.of(9) //~ ERROR `a` is borrowed and cannot be mutated //~ ERROR `a` is borrowed and cannot be moved
+    cur.at()
+}
+
+fn branchLeft(go: Bool) -> Int {
+    let mut a = Array.of(1, 2, 3)
+    let b = Array.of(7, 8)
+    let mut cur = View { data: &a, off: 0 }
+    if go {
+        cur.setData(&b)
+    }
+    a = Array.of(9) //~ ERROR `a` is borrowed and cannot be mutated //~ ERROR `a` is borrowed and cannot be moved
+    cur.at()
+}
+
+fn otherField() -> usize {
+    let mut p = "p"
+    let q = "qq"
+    let mut t = Two { x: &q, y: &p }
+    t.setX(&q)
+    p = "z" //~ ERROR `p` is borrowed and cannot be mutated //~ ERROR `p` is borrowed and cannot be moved
+    t.y.len()
+}
+
+fn newAll() -> Int {
+    let a = Array.of(1, 2, 3)
+    let mut b = Array.of(7, 8)
+    let mut cur = View { data: &a, off: 0 }
+    cur.setAll(&b)
+    b = Array.of(9) //~ ERROR `b` is borrowed and cannot be mutated //~ ERROR `b` is borrowed and cannot be moved
+    cur.at()
+}
+
+fn newData() -> Int {
+    let a = Array.of(1, 2, 3)
+    let mut b = Array.of(7, 8)
+    let mut cur = View { data: &a, off: 0 }
+    cur.setData(&b)
+    b = Array.of(9) //~ ERROR `b` is borrowed and cannot be mutated //~ ERROR `b` is borrowed and cannot be moved
+    cur.at()
+}
+
+fn tryKeeps() -> usize {
+    let k = "k"
+    let mut items = Array.of("i1", "i22")
+    let mut other = Array.of("o1", "o2")
+    let mut out = mkV(&k)
+    putMut(&mut out, &mut items, mkV)
+    let r = putTry(&mut out, &mut other, mkV, Err("no"))
+    items.push("x") //~ ERROR `items` is borrowed and cannot be mutated
+    match r {
+        Ok(n) -> out.s.len() + (n.toUsize() || 0)
+        Err(e) -> out.s.len() + e.len()
+    }
+}
+
+fn main() {
+    print "${someLeft(true)} ${lateLeft(false)} ${branchLeft(true)} ${otherField()} ${newAll()} ${newData()} ${tryKeeps()}"
+}
+-- expect --
+error[E2198]: `a` is borrowed and cannot be mutated here
+  --> main.kg:55:5
+   |
+55 |     a = Array.of(9) //~ ERROR `a` is borrowed and cannot be mutated //~ ERROR `a` is borrowed and cannot be moved
+   |     ^
+   = help: end the borrow first or use a copy
+note: `a` is borrowed here
+  --> main.kg:53:32
+   |
+53 |     let mut cur = View { data: &a, off: 0 }
+   |                                ^^
+
+error[move-while-borrowed]: `a` is borrowed and cannot be moved or dropped here
+  --> main.kg:55:5
+   |
+55 |     a = Array.of(9) //~ ERROR `a` is borrowed and cannot be mutated //~ ERROR `a` is borrowed and cannot be moved
+   |     ^
+
+error[E2198]: `a` is borrowed and cannot be mutated here
+  --> main.kg:64:5
+   |
+64 |     a = Array.of(9) //~ ERROR `a` is borrowed and cannot be mutated //~ ERROR `a` is borrowed and cannot be moved
+   |     ^
+   = help: end the borrow first or use a copy
+note: `a` is borrowed here
+  --> main.kg:62:32
+   |
+62 |     let mut cur = View { data: &a, off: 0 }
+   |                                ^^
+
+error[move-while-borrowed]: `a` is borrowed and cannot be moved or dropped here
+  --> main.kg:64:5
+   |
+64 |     a = Array.of(9) //~ ERROR `a` is borrowed and cannot be mutated //~ ERROR `a` is borrowed and cannot be moved
+   |     ^
+
+error[E2198]: `a` is borrowed and cannot be mutated here
+  --> main.kg:75:5
+   |
+75 |     a = Array.of(9) //~ ERROR `a` is borrowed and cannot be mutated //~ ERROR `a` is borrowed and cannot be moved
+   |     ^
+   = help: end the borrow first or use a copy
+note: `a` is borrowed here
+  --> main.kg:71:32
+   |
+71 |     let mut cur = View { data: &a, off: 0 }
+   |                                ^^
+
+error[move-while-borrowed]: `a` is borrowed and cannot be moved or dropped here
+  --> main.kg:75:5
+   |
+75 |     a = Array.of(9) //~ ERROR `a` is borrowed and cannot be mutated //~ ERROR `a` is borrowed and cannot be moved
+   |     ^
+
+error[E2198]: `p` is borrowed and cannot be mutated here
+  --> main.kg:84:5
+   |
+84 |     p = "z" //~ ERROR `p` is borrowed and cannot be mutated //~ ERROR `p` is borrowed and cannot be moved
+   |     ^
+   = help: end the borrow first or use a copy
+note: `p` is borrowed here
+  --> main.kg:82:17
+   |
+82 |     let mut t = Two { x: &q, y: &p }
+   |                 ^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `p` is borrowed and cannot be moved or dropped here
+  --> main.kg:84:5
+   |
+84 |     p = "z" //~ ERROR `p` is borrowed and cannot be mutated //~ ERROR `p` is borrowed and cannot be moved
+   |     ^
+
+error[E2198]: `b` is borrowed and cannot be mutated here
+  --> main.kg:93:5
+   |
+93 |     b = Array.of(9) //~ ERROR `b` is borrowed and cannot be mutated //~ ERROR `b` is borrowed and cannot be moved
+   |     ^
+   = help: end the borrow first or use a copy
+note: `b` is borrowed here
+  --> main.kg:92:16
+   |
+92 |     cur.setAll(&b)
+   |                ^^
+
+error[move-while-borrowed]: `b` is borrowed and cannot be moved or dropped here
+  --> main.kg:93:5
+   |
+93 |     b = Array.of(9) //~ ERROR `b` is borrowed and cannot be mutated //~ ERROR `b` is borrowed and cannot be moved
+   |     ^
+
+error[E2198]: `b` is borrowed and cannot be mutated here
+   --> main.kg:102:5
+    |
+102 |     b = Array.of(9) //~ ERROR `b` is borrowed and cannot be mutated //~ ERROR `b` is borrowed and cannot be moved
+    |     ^
+    = help: end the borrow first or use a copy
+note: `b` is borrowed here
+   --> main.kg:101:17
+    |
+101 |     cur.setData(&b)
+    |                 ^^
+
+error[move-while-borrowed]: `b` is borrowed and cannot be moved or dropped here
+   --> main.kg:102:5
+    |
+102 |     b = Array.of(9) //~ ERROR `b` is borrowed and cannot be mutated //~ ERROR `b` is borrowed and cannot be moved
+    |     ^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+   --> main.kg:113:5
+    |
+113 |     items.push("x") //~ ERROR `items` is borrowed and cannot be mutated
+    |     ^^^^^
+    = help: end the borrow first or use a copy
+note: `items` is borrowed here
+   --> main.kg:111:22
+    |
+111 |     putMut(&mut out, &mut items, mkV)
+    |                      ^^^^^^^^^^
+

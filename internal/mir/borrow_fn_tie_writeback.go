@@ -16,27 +16,13 @@ func (c *borrowCheck) writeBackKeeps(bid BlockID, i int, holder LocalID) bool {
 	if keep, ok := c.writeBacks[key]; ok {
 		return keep
 	}
-	cell, ok := c.writeBackCell(insts[i], holder)
-	keep := ok && !c.callStores(insts[:i], cell)
+	wb, ok := c.writeBackOf(insts[i], holder)
+	keep := ok && wb.kind == wbWhole && !c.callStores(insts[:i], wb.cell)
 	if c.writeBacks == nil {
 		c.writeBacks = map[carrySite]bool{}
 	}
 	c.writeBacks[key] = keep
 	return keep
-}
-
-func (c *borrowCheck) writeBackCell(in Inst, holder LocalID) (LocalID, bool) {
-	if !shapes[in.Op].result || in.Dst != holder || in.Op != OpCopy && in.Op != OpMove || len(in.Args) == 0 {
-		return 0, false
-	}
-	d := c.definition(in.Args[0])
-	for d != nil && d.Op == OpAlias && len(d.Args) > 0 {
-		d = c.definition(d.Args[0])
-	}
-	if d == nil || d.Op != OpCellTake || len(d.Args) == 0 {
-		return 0, false
-	}
-	return d.Args[0], true
 }
 
 // callStores reports whether the last call before the write-back that was given cell stores into it on every path.
@@ -78,13 +64,13 @@ func (p *Program) storesParam(fn sem.EntityID, k int) bool {
 	return s
 }
 
-// storedOnEveryPath: every return of f follows a `cellset` of cell or a call that stores into it, and f never reads it.
+// storedOnEveryPath: every return of f follows a `cellset` of cell, a fieldStore or a call that stores into it, and f never reads it.
 func (p *Program) storedOnEveryPath(f *Func, cell LocalID) bool {
 	stored := make([]bool, len(f.Blocks))
 	for b, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			for k, a := range in.Args {
-				if a != cell || in.Op == OpDrop || in.Op == OpCellSet && k == 0 {
+				if a != cell || in.Op == OpDrop || k == 0 && p.replacingUse(f, in, cell) {
 					continue
 				}
 				if in.Op != OpCall || in.Ent == 0 || !p.storesParam(in.Ent, k) {
@@ -92,7 +78,7 @@ func (p *Program) storedOnEveryPath(f *Func, cell LocalID) bool {
 				}
 				stored[b] = true
 			}
-			stored[b] = stored[b] || in.Op == OpCellSet && in.Args[0] == cell
+			stored[b] = stored[b] || in.Op == OpCellSet && in.Args[0] == cell || p.fieldStore(f, in, cell)
 		}
 		if slices.Contains(blk.Term.Args, cell) {
 			return false

@@ -4106,6 +4106,74 @@
       ]
     },
     {
+      "id": "run/async_value_lent_ok",
+      "kind": "run",
+      "path": "testdata/run/async_value_lent_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_value_mut_ref_ok",
+      "kind": "run",
+      "path": "testdata/run/async_value_mut_ref_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_value_wide_ok",
+      "kind": "run",
+      "path": "testdata/run/async_value_wide_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_value_wrap_ok",
+      "kind": "run",
+      "path": "testdata/run/async_value_wrap_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/async_yield_handoff",
       "kind": "run",
       "path": "testdata/run/async_yield_handoff.txtar",
@@ -10180,6 +10248,40 @@
       ]
     },
     {
+      "id": "run/fn_value_tie_future_ok",
+      "kind": "run",
+      "path": "testdata/run/fn_value_tie_future_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_value_tie_part_ok",
+      "kind": "run",
+      "path": "testdata/run/fn_value_tie_part_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/fn_value_witness_generic",
       "kind": "run",
       "path": "testdata/run/fn_value_witness_generic.txtar",
@@ -10472,6 +10574,23 @@
       "id": "run/future_await_once",
       "kind": "run",
       "path": "testdata/run/future_await_once.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/future_local_reassign_ok",
+      "kind": "run",
+      "path": "testdata/run/future_local_reassign_ok.txtar",
       "mode": [
         "vm",
         "native"
@@ -14857,6 +14976,23 @@
       ]
     },
     {
+      "id": "run/recv_store_reset_ok",
+      "kind": "run",
+      "path": "testdata/run/recv_store_reset_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/recv_write_copy_receiver",
       "kind": "run",
       "path": "testdata/run/recv_write_copy_receiver.txtar",
@@ -18037,6 +18173,39 @@
       ]
     },
     {
+      "id": "sem/async_value_mut_ref_err",
+      "kind": "sem",
+      "path": "testdata/sem/async_value_mut_ref_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_value_mut_tie_err",
+      "kind": "sem",
+      "path": "testdata/sem/async_value_mut_tie_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_value_scalar_place_err",
+      "kind": "sem",
+      "path": "testdata/sem/async_value_scalar_place_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/async_witness_mismatch",
       "kind": "sem",
       "path": "testdata/sem/async_witness_mismatch.txtar",
@@ -20842,6 +21011,28 @@
       ]
     },
     {
+      "id": "sem/fn_value_tie_future_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_value_tie_future_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_value_tie_part_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_value_tie_part_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/for_borrow_move_err",
       "kind": "sem",
       "path": "testdata/sem/for_borrow_move_err.txtar",
@@ -20889,6 +21080,17 @@
       "id": "sem/foreign_wake",
       "kind": "sem",
       "path": "testdata/sem/foreign_wake.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/future_local_reassign_err",
+      "kind": "sem",
+      "path": "testdata/sem/future_local_reassign_err.txtar",
       "mode": [
         "check"
       ],
@@ -22484,6 +22686,17 @@
       "id": "sem/recursive_adt_box",
       "kind": "sem",
       "path": "testdata/sem/recursive_adt_box.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/recv_store_reset_err",
+      "kind": "sem",
+      "path": "testdata/sem/recv_store_reset_err.txtar",
       "mode": [
         "check"
       ],

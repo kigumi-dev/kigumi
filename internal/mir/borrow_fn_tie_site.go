@@ -3,9 +3,12 @@ package mir
 import "slices"
 
 type tieState struct {
-	sites map[LocalID][]carrySite
-	in    map[[2]LocalID][]bool
-	caps  map[LocalID]*borrowInfo
+	sites  map[LocalID][]carrySite
+	in     map[[2]LocalID][]bool
+	caps   map[LocalID]*borrowInfo
+	stable map[LocalID]bool
+	// scalarCells are scalar field or element `&mut` cells a call's result would keep (E1122).
+	scalarCells map[LocalID]bool
 }
 
 // tiedAt gates the tie on the call's reach; b stays unmarked when the site is not found.
@@ -50,7 +53,7 @@ func untied(b *borrowInfo) *borrowInfo {
 	return &out
 }
 
-// tieSite is the write-back of a `&mut` cell target when it follows in the call's block, else the call itself.
+// tieSite is the write-back of a `&mut` cell target (whole, field or element) when it follows in the call's block, else the call.
 func (c *borrowCheck) tieSite(target, holder LocalID) (int, bool) {
 	at := c.resets.at
 	if d := c.definition(target); d == nil || d.Op != OpNewCell {
@@ -58,13 +61,12 @@ func (c *borrowCheck) tieSite(target, holder LocalID) (int, bool) {
 	}
 	insts := c.f.Blocks[at.block].Insts
 	for i := at.idx + 1; i < len(insts); i++ {
-		if in := insts[i]; in.Dst == holder && (in.Op == OpCopy || in.Op == OpMove) && len(in.Args) > 0 {
-			if d := c.definition(in.Args[0]); d != nil && d.Op == OpCellTake && d.Args[0] == target {
-				return i, true
-			}
+		if wb, ok := c.writeBackOf(insts[i], holder); ok && wb.cell == target {
+			return i, true
 		}
 	}
-	return 0, false
+	// No write-back: the callee stores through the cell in place (a `mut self` field store), so the call is the site.
+	return at.idx, true
 }
 
 func (c *borrowCheck) tieReaches(holder, owner LocalID, at int) bool {

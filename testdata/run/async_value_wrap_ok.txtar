@@ -1,0 +1,183 @@
+-- src --
+import task from std/task
+
+interface Bump {
+    fn bump(mut self)
+    fn get(self) -> Int
+}
+
+type Counter = { pub mut n Int }
+
+fn Counter.bump(mut self) {
+    self.n = self.n + 1
+}
+
+fn Counter.get(self) -> Int {
+    self.n
+}
+
+type R = { pub mut n Int }
+
+type Rec = { pub f fn(&mut Array[String]) -> Future[usize] }
+
+type Slot = { pub mut fu Option[Future[Int]] }
+
+type Pool = { pub mut fs Array[Future[Int]] }
+
+async fn later() -> usize {
+    1
+}
+
+async fn pl(a: &mut Array[String]) -> usize {
+    let w = await later()
+    a.push("y")
+    a.len() + w
+}
+
+async fn bump(n: &mut Int) -> Int {
+    let w = await later()
+    n = n + 1
+    w.toInt() || 0
+}
+
+async fn acount(c: &mut Bump) -> Int {
+    let w = await later()
+    c.bump()
+    c.get() + (w.toInt() || 0)
+}
+
+fn mkf(a: &mut Array[String]) -> Future[usize] {
+    a.push("x")
+    later()
+}
+
+fn mkg(a: &mut Array[String]) -> Future[usize] {
+    a.push("g")
+    later()
+}
+
+fn Slot.put(mut self, f: fn(&mut Int) -> Future[Int], n: &mut Int) {
+    self.fu = Some(f(n))
+}
+
+fn Pool.add(mut self, f: fn(&mut Int) -> Future[Int], n: &mut Int) {
+    self.fs.push(f(n))
+}
+
+fn mkn(n: &mut Int) -> Future[usize] {
+    n = n + 1
+    later()
+}
+
+fn run[T](f: Future[T]) -> T {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+fn mk(f: fn(&mut Array[String]) -> Future[usize], a: &mut Array[String]) -> Future[usize] {
+    f(a)
+}
+
+fn runG[R](f: fn(&mut Array[String]) -> R, a: &mut Array[String]) -> R {
+    f(a)
+}
+
+fn mkS(f: fn(&mut Int) -> Future[Int], n: &mut Int) -> Future[Int] {
+    f(n)
+}
+
+fn call1[X](f: fn(&mut Int) -> X, n: &mut Int) -> X {
+    f(n)
+}
+
+fn mkW(f: fn(&mut Int) -> Future[Int], n: &mut Int) -> Int {
+    run(f(n))
+}
+
+async fn zero() -> Int {
+    0
+}
+
+fn mkInto(f: fn(&mut Int) -> Future[Int], n: &mut Int, out: &mut Future[Int]) {
+    out = f(n)
+}
+
+fn wrapped() -> usize {
+    let mut z = Array.of("a")
+    let n = run(mk(pl, &mut z))
+    z.push("b")
+    let m = run(runG(pl, &mut z))
+    n + m + z.len()
+}
+
+fn scalars() -> Int {
+    let mut k = 1
+    let mut r = R { n: 10 }
+    let x = run(mkS(bump, &mut k)) + run(call1(bump, &mut k))
+    let w = mkW(bump, &mut r.n)
+    let mut fk = zero()
+    mkInto(bump, &mut k, &mut fk)
+    let o = run(fk)
+    x + w + o + k + r.n
+}
+
+async fn inFrame() -> Int {
+    let a = acount
+    let mut c = Counter { n: 5 }
+    let n = await a(&mut c)
+    n + c.n
+}
+
+fn syncValues() -> usize {
+    let m = mkf
+    let mut z = Array.of("a")
+    let h = m(&mut z)
+    z.push("q")
+    let mm: fn(&mut Int) -> Future[usize] = mkn
+    let mut r = R { n: 1 }
+    let g = mm(&mut r.n)
+    run(h) + z.len() + run(g) + (r.n.toUsize() || 0)
+}
+
+fn syncShapes(c: Bool) -> usize {
+    let r = Rec { f: mkf }
+    let fs = Array.of(mkf, mkg)
+    let o = Some(mkg)
+    let m = if c { mkf } else { mkg }
+    let mut z = Array.of("a")
+    let h1 = (r.f)(&mut z)
+    let h2 = fs[0](&mut z)
+    let h3 = match o {
+        Some(f) -> f(&mut z)
+        None -> later()
+    }
+    let h4 = m(&mut z)
+    z.push("q")
+    run(h1) + run(h2) + run(h3) + run(h4) + z.len()
+}
+
+fn receivers() -> Int {
+    let mut k = 1
+    let n = {
+        let mut s = Slot { fu: None }
+        s.put(bump, &mut k)
+        match s.fu {
+            Some(f) -> run(f)
+            None -> 0
+        }
+    }
+    let mut p = Pool { fs: Array.empty() }
+    p.add(bump, &mut k)
+    let mut m = 0
+    for f in move p.fs {
+        m = m + run(f)
+    }
+    n + m + k
+}
+
+fn main() {
+    print "wrap ${wrapped()} scalar ${scalars()} view ${run(inFrame())} sync ${syncValues()}"
+    print "shapes ${syncShapes(true)} receivers ${receivers()}"
+}
+-- stdout --
+wrap 12 scalar 19 view 13 sync 7
+shapes 10 receivers 5

@@ -131,11 +131,11 @@ func (c *borrowCheck) widen(dst LocalID, b *borrowInfo) {
 	c.noteResetSite(dst, b)
 }
 
-// widens reports whether dst keeps the union of every value written to it instead of the first
-// one: a store target, a temporary joining branches, or a named local of a type carrying a lifetime.
+// widens reports whether dst keeps the union of every value written to it instead of the first one: a store
+// target, a temporary joining branches, or a named local of a type carrying a lifetime or a Future or Task.
 func (c *borrowCheck) widens(dst LocalID) bool {
 	l := c.f.Locals[dst]
-	return c.targets[dst] || c.multiDefined(dst) || l.Ent != 0 && c.elementHolder(l.Type)
+	return c.targets[dst] || c.multiDefined(dst) || l.Ent != 0 && (c.elementHolder(l.Type) || c.holdsAsync(l.Type))
 }
 
 // collectArray makes an array literal a container of its elements' sources

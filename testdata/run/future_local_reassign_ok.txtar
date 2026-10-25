@@ -1,0 +1,65 @@
+-- src --
+import task from std/task
+
+type Box = { pub f fn(&String) -> Future[usize] }
+
+async fn lenOf(s: &String) -> usize {
+    s.len()
+}
+
+fn one[U](items: &Array[String], f: fn(&String) -> U) -> U {
+    f(&items[0])
+}
+
+fn conc(f: fn(&String) -> Future[usize], items: &Array[String]) -> Future[usize] {
+    f(&items[0])
+}
+
+fn concOut(out: &mut Future[usize], f: fn(&String) -> Future[usize], items: &Array[String]) {
+    out = f(&items[0])
+}
+
+fn viaRec(b: &Box, items: &Array[String]) -> Future[usize] {
+    (b.f)(&items[0])
+}
+
+fn run(f: Future[usize]) -> usize {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+fn awaitedFirst() -> usize {
+    let k = "k"
+    let mut items = Array.of("i1")
+    let mut fu = lenOf(&k)
+    fu = one(&items, lenOf)
+    let n = run(fu)
+    items = Array.of("zzzz")
+    n + items.len()
+}
+
+fn replacedBack() -> usize {
+    let k = "kk"
+    let mut items = Array.of("i1")
+    let mut fu = lenOf(&items[0])
+    fu = lenOf(&k)
+    items = Array.of("zzzz")
+    run(fu) + items.len()
+}
+
+fn concrete() -> usize {
+    let k = "k"
+    let mut items = Array.of("i333")
+    let f = lenOf
+    let b = Box { f: lenOf }
+    let mut fu = lenOf(&k)
+    concOut(&mut fu, lenOf, &items)
+    let n = run(f(&items[0])) + run(conc(lenOf, &items)) + run(viaRec(&b, &items)) + run(fu)
+    items = Array.of("zz")
+    n + items.len()
+}
+
+fn main() {
+    print "reassign ${awaitedFirst()} ${replacedBack()} ${concrete()}"
+}
+-- stdout --
+reassign 3 3 17

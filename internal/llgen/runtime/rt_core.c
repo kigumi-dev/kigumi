@@ -2379,8 +2379,29 @@ val invoke(adapter_fn fn, val env, int n, val* args) {
 // A call's argument count has no compile-time cap, and a variable-length
 // stack array needs __chkstk, which freestanding_symbols.txt refuses.
 #define STACK_ARGS 16
-// args are dedicated to this call, so they move into the frame the Future owns.
+typedef struct kg_async_desc {
+    val (*poll)(val);
+    void (*drop)(val);
+    int32_t nslots;
+    int32_t mobile;
+    int32_t nref;
+    const uint8_t* referent;
+} kg_async_desc;
+// args move into the frame the Future owns; a `&mut` write-back cell the caller takes back at once, bare or behind an
+// existential view, goes in as its referent where the body's parameter takes one (the descriptor's referent flags).
 static val callv_async(val f, int n, val* args) {
+    const kg_async_desc* d = (const kg_async_desc*)(void*)f->u.clo.fn;
+    int off = f->u.clo.async == 2 || !f->u.clo.env ? 0 : (int)f->u.clo.env->u.arr.len;
+    for (int i = 0; i < n; i++) {
+        val a = args[i];
+        if (off + i >= d->nref || !d->referent[off + i] || !a) continue;
+        if (a->kind == K_CELL) {
+            args[i] = rt_retain(a->u.cell.v);
+            rt_release(a);
+        } else if (a->kind == K_BOX) {
+            a->u.box.src = NULL;
+        }
+    }
     val fut = rt_future_new(f, n, args);
     for (int i = 0; i < n; i++) rt_release(args[i]);
     return fut;
@@ -2390,7 +2411,8 @@ static val callv_async(val f, int n, val* args) {
 val rt_callv_m(val f, int n, val* args, uint32_t lent, uint32_t given) {
     val g = deref(f);
     uint32_t m = g->kind == K_CLOSURE && !g->u.clo.async ? g->u.clo.lent : 0;
-    int known = g->kind == K_CLOSURE && !g->u.clo.async && (g->u.clo.key || ((m >> 31) & 1));
+    // An async value's Future keeps every argument, so it borrows none.
+    int known = g->kind == K_CLOSURE && (g->u.clo.async || g->u.clo.key || ((m >> 31) & 1));
     for (int i = 0; known && i < n && i < 31; i++)
         if (((lent >> i) & 1) && !((m >> i) & 1)) rt_retain(args[i]);
     val r = rt_callv(f, n, args);
@@ -2488,12 +2510,6 @@ void rt_drop(val v) {
     rt_release(v);
 }
 // A frame's slots[] holds nslots words of locals then the arguments; a slot may hold inline aggregate bytes or a raw scalar.
-typedef struct kg_async_desc {
-    val (*poll)(val);
-    void (*drop)(val);
-    int32_t nslots;
-    int32_t mobile;
-} kg_async_desc;
 #define KG_FRAME_PANICKED (1 << 30)
 typedef struct kgframe {
     const kg_async_desc* desc;

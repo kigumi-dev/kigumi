@@ -24,16 +24,16 @@ func (c *borrowCheck) frameBorrows(b *borrowInfo) *borrowInfo {
 	return &kept
 }
 
-// valueResultSource makes a value or witness call whose result names a type parameter a carrier of the borrows its
-// arguments take of this frame: the signature cannot say the result does not keep them.
+// valueResultSource makes a value or witness call whose result names a type parameter or holds a Future or Task a
+// carrier of the borrows its arguments take of this frame: the signature cannot say the result does not keep them.
 func (c *borrowCheck) valueResultSource(in Inst) (*borrowInfo, bool) {
-	if !c.namesTypeParam(c.f.Locals[in.Dst].Type) {
+	if !c.namesTypeParam(c.f.Locals[in.Dst].Type) && !c.asyncValueCall(in) {
 		return nil, false
 	}
 	var found []*borrowInfo
 	whole := true
 	for _, a := range in.Args[1:] {
-		h, ok := c.holders[a]
+		h, ok := c.lentArgBorrow(in, a)
 		if !ok {
 			continue
 		}
@@ -65,6 +65,9 @@ func (c *borrowCheck) projectsOwned(t sem.TypeID, src LocalID) bool {
 // and into this frame's own place also the marked borrows of a caller place the body may write.
 func (c *borrowCheck) storedInfo(fl storeFlow, v flowArg, caller bool) (*borrowInfo, bool) {
 	b, ok := c.tieInfo(v, fl.generic, caller)
+	if !ok && v.tie == tieRef {
+		c.scalarCell(v.arg)
+	}
 	if !ok || !fl.generic {
 		return b, ok
 	}

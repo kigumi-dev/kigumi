@@ -2,6 +2,7 @@ package llgen
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"kigumi/internal/mir"
@@ -27,7 +28,12 @@ func (e *emitter) appliedValue(sb *strings.Builder, in mir.Inst, args []string) 
 		e.cio[sym] = true
 		e.helpers.WriteString(e.applyBoundAdapter(sym, n, move, async))
 	}
-	return e.closureCtor(sb, sym, false, args, e.argArray(sb, args))
+	v := e.closureCtor(sb, sym, false, args, e.argArray(sb, args))
+	if !async {
+		return v
+	}
+	// The adapter hands every argument on to the async body's Future: a lent mask with only bit 31, the complete mark.
+	return e.irb(sb).Call(rtClosureLent, vptr(v), vi32(math.MinInt32)).Text
 }
 
 func (e *emitter) applyBoundAdapter(sym string, n int, move, async bool) string {

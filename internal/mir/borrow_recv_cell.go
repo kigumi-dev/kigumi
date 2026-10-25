@@ -64,7 +64,12 @@ func (c *borrowCheck) recvOwners(cell LocalID) []ownerRef {
 	}
 	out := []ownerRef{{owner: root, mut: true, path: path, exact: exact}}
 	if b, ok := c.holders[root]; ok && b.hasOwner && len(path) == 0 {
-		out = append(out, b.owners...)
+		for _, o := range b.owners {
+			// A tie this very call stores into the receiver starts after it.
+			if !o.tied || c.tieReaches(root, o.owner, c.curIdx) {
+				out = append(out, o)
+			}
+		}
 	}
 	return out
 }

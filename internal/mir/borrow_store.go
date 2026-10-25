@@ -133,7 +133,7 @@ func (c *borrowCheck) checkFlow(fl storeFlow, in Inst) {
 		switch {
 		case !ok:
 			c.reportCode(in.Node, v.arg, "borrow-store-untracked", c.untrackedPlace(fl))
-		case !c.trackedContainer(place) && (v.tie == tieNone || !c.callerKept(b)):
+		case !c.placeKeeps(place, v) && (v.tie == tieNone || !c.callerKept(b)):
 			c.reportCode(in.Node, v.arg, "borrow-store-untracked", c.typeName(place))
 		case !caller && c.keepsTemp(b):
 			c.reportCode(in.Node, v.arg, "temporary-borrow-kept", c.f.Locals[root].Name, tempDropped)

@@ -1,0 +1,119 @@
+-- src --
+import task from std/task
+
+interface Bump {
+    fn bump(mut self)
+    fn get(self) -> Int
+}
+
+type Counter = { pub mut n Int }
+
+fn Counter.bump(mut self) {
+    self.n = self.n + 1
+}
+
+fn Counter.get(self) -> Int {
+    self.n
+}
+
+type Pt = { pub x Int }
+
+pub async fn Pt.addEq[U: Eq](self, a: &mut Array[Int], u: U, w: U) -> Bool {
+    a.push(self.x)
+    u == w
+}
+
+pub async fn Pt.sumEq[U: Eq](self, a: &Array[String], u: U, w: U) -> usize {
+    a[0].len() + a.len()
+}
+
+type Box[T] = { pub v T }
+
+pub async fn Box[T].grow[U: Eq](self, a: &mut Array[String], u: U) -> usize {
+    a.push("g")
+    a.len()
+}
+
+pub async fn gen[U: Eq](a: &mut Array[Int], u: U) -> usize {
+    a.push(1)
+    a.len()
+}
+
+async fn later() -> usize {
+    1
+}
+
+async fn pl(a: &mut Array[String]) -> usize {
+    let w = await later()
+    a.push("y")
+    a.len() + w
+}
+
+async fn stall() -> Int {
+    0
+}
+
+async fn acount(c: &mut Bump) -> Int {
+    c.bump()
+    let z = await task.spawn(stall())
+    c.bump()
+    c.get() + z
+}
+
+fn run[T](f: Future[T]) -> T {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+fn mk(f: fn(&mut Array[Int], Int, Int) -> Future[Bool], a: &mut Array[Int]) -> Future[Bool] {
+    f(a, 1, 1)
+}
+
+async fn appliedInAsync(f: fn(&mut Array[Int], Int, Int) -> Future[Bool]) -> usize {
+    let mut xs = Array.of(1, 2)
+    let ok = await f(&mut xs, 3, 3)
+    if ok { xs.len() } else { 0 }
+}
+
+async fn viaView() -> Int {
+    let a = acount
+    let mut c = Counter { n: 5 }
+    let b = await a(&mut c)
+    let d = await acount(&mut c)
+    b + d + c.n
+}
+
+fn sequential() -> usize {
+    let m = pl
+    let mut z = Array.of("a")
+    let n = run(m(&mut z))
+    z.push("b")
+    let h = m(&mut z)
+    let p = run(h)
+    n + p + z.len()
+}
+
+fn main() {
+    let p = Pt { x: 4 }
+    let f: fn(&mut Array[Int], Int, Int) -> Future[Bool] = p.addEq
+    let mut xs = Array.of(1)
+    print "applied ${run(f(&mut xs, 2, 2))} ${xs.len()}"
+    let s: fn(&Array[String], Int, Int) -> Future[usize] = p.sumEq
+    let words = Array.of("abc", "d")
+    print "shared ${run(s(&words, 2, 2))} ${run(s(&words, 2, 2))} ${words[0]}"
+    let b = Box { v: 1 }
+    let g: fn(&mut Array[String], Int) -> Future[usize] = b.grow
+    let mut ss = Array.of("s")
+    print "grow ${run(g(&mut ss, 3))} ${ss.len()}"
+    let h: fn(&mut Array[Int], Int) -> Future[usize] = gen
+    print "gen ${run(h(&mut xs, 5))} ${xs.len()}"
+    let mut ys = Array.of(7, 8, 9)
+    print "mk ${run(mk(f, &mut ys))} ${ys.len()}"
+    print "async ${run(appliedInAsync(f))} view ${run(viaView())} seq ${sequential()}"
+}
+-- stdout --
+applied true 2
+shared 5 5 abc
+grow 2 2
+gen 3 3
+mk true 4
+async 3 view 25 seq 12

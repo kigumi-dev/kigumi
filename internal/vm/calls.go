@@ -121,16 +121,37 @@ func (m *Machine) callValue(fv *obj, args []*obj) *obj {
 	return r
 }
 
-// asyncValueCall is rt_callv on an async fn/method value: it builds the
-// same lazy Future a direct call does, instead of
-// running the body. fv is lent (its own last use is released elsewhere),
-// so the Future keeps an independent closure of its own; args arrive
-// already dedicated to this call and move into the Future unchanged.
+// asyncValueCall is rt_callv on an async fn/method value: it builds the lazy Future a direct call does, with a closure of
+// its own (fv is lent); the args, dedicated to this call, move into the Future.
 func (m *Machine) asyncValueCall(fv *obj, args []*obj) *obj {
 	raw := newObj(kClosure)
 	rc, src := raw.clo(), fv.clo()
 	rc.fn, rc.stdKey, rc.lent, rc.prov, rc.dyn = src.fn, src.stdKey, src.lent, src.prov, src.dyn
 	raw.ent, raw.bind = fv.ent, fv.bind
 	rc.env = retain(src.env)
+	m.takeReferents(fv, args)
 	return mkOpaque("Future", &future{fn: raw, args: args})
+}
+
+// takeReferents swaps each `&mut` cell the caller lends and takes back at once for its referent, and cuts an existential
+// view's link to such a cell, as a direct call lends the place.
+func (m *Machine) takeReferents(fv *obj, args []*obj) {
+	if fv.cfn() == nil {
+		return
+	}
+	off := 0
+	if env := fv.cenv(); env != nil && !fv.bind {
+		off = len(env.fields)
+	}
+	refs := m.p.ReferentParams(fv.cfn())
+	for i, a := range args {
+		switch {
+		case off+i >= len(refs) || !refs[off+i] || a == nil:
+		case a.k == kCell:
+			args[i] = retain(a.inner)
+			m.release(a)
+		case a.k == kBox && a.b:
+			a.fields = nil
+		}
+	}
 }

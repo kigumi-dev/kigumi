@@ -1,0 +1,251 @@
+-- module --
+mir: planned
+-- src --
+import task from std/task
+
+interface Bump {
+    fn bump(mut self)
+    fn get(self) -> Int
+}
+
+type Counter = { pub mut n Int }
+
+fn Counter.bump(mut self) {
+    self.n = self.n + 1
+}
+
+fn Counter.get(self) -> Int {
+    self.n
+}
+
+async fn later() -> usize {
+    1
+}
+
+async fn pl(a: &mut Array[String]) -> usize {
+    let w = await later()
+    a.push("y")
+    a.len() + w
+}
+
+async fn acount(c: &mut Bump) -> Int {
+    let w = await later()
+    c.bump()
+    c.get() + (w.toInt() || 0)
+}
+
+fn run[T](f: Future[T]) -> T {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+fn mk(f: fn(&mut Array[String]) -> Future[usize], a: &mut Array[String]) -> Future[usize] {
+    f(a)
+}
+
+fn runG[R](f: fn(&mut Array[String]) -> R, a: &mut Array[String]) -> R {
+    f(a)
+}
+
+type Rec = { pub f fn(&mut Array[String]) -> Future[usize] }
+
+fn mkf(a: &mut Array[String]) -> Future[usize] {
+    a.push("x")
+    later()
+}
+
+fn detach(f: Future[Int]) {
+    let t = task.spawn(f)
+}
+
+fn heldThenWritten() -> usize {
+    let m = pl
+    let mut z = Array.of("a")
+    let h = m(&mut z)
+    z = Array.of("n1", "n2") //~ ERROR `z` is exclusively borrowed and cannot be used here //~ ERROR `z` is borrowed and cannot be moved
+    run(h) + z.len()
+}
+
+fn heldTwice() -> usize {
+    let m = pl
+    let mut z = Array.of("a")
+    let h = m(&mut z)
+    let k = m(&mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+    run(h) + run(k)
+}
+
+fn escapes() -> Future[usize] {
+    let mut a = Array.of("1") //~ ERROR `a` is still borrowed when its scope ends here
+    let m = pl
+    m(&mut a) //~ ERROR a borrow cannot be returned
+}
+
+fn wrapperWritten() -> usize {
+    let mut z = Array.of("a")
+    let h = mk(pl, &mut z)
+    z = Array.of("n1", "n2") //~ ERROR `z` is exclusively borrowed and cannot be used here //~ ERROR `z` is borrowed and cannot be moved
+    run(h) + z.len()
+}
+
+fn wrapperPushed() -> usize {
+    let mut z = Array.of("a")
+    let h = runG(pl, &mut z)
+    z.push("p") //~ ERROR `z` is exclusively borrowed and cannot be used here
+    run(h)
+}
+
+fn wrapperEscapes() -> Future[usize] {
+    let mut z = Array.of("a") //~ ERROR `z` is still borrowed when its scope ends here
+    mk(pl, &mut z) //~ ERROR a borrow cannot be returned
+}
+
+fn viewSpawned() {
+    let a = acount
+    let mut c = Counter { n: 5 }
+    detach(a(&mut c)) //~ ERROR a future holding an `&Interface` view made in this frame cannot be spawned
+}
+
+fn asyncThroughShapes(c: Bool) -> usize {
+    let r = Rec { f: pl }
+    let fs = Array.of(pl, pl)
+    let m = if c { mkf } else { pl }
+    let mut z = Array.of("a")
+    let h1 = (r.f)(&mut z)
+    let h2 = fs[0](&mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+    let h3 = m(&mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+    z.push("q") //~ ERROR `z` is exclusively borrowed and cannot be used here
+    run(h1) + run(h2) + run(h3)
+}
+
+fn main() {
+    print "${heldThenWritten()} ${heldTwice()} ${run(escapes())}"
+    print "${wrapperWritten()} ${wrapperPushed()} ${run(wrapperEscapes())}"
+    viewSpawned()
+    print "${asyncThroughShapes(true)}"
+}
+-- expect --
+error[E2198]: `z` is exclusively borrowed and cannot be used here
+  --> main.kg:61:5
+   |
+61 |     z = Array.of("n1", "n2") //~ ERROR `z` is exclusively borrowed and cannot be used here //~ ERROR `z` is borrowed and cannot be moved
+   |     ^
+   = help: end the borrow first or use a copy
+note: `z` is borrowed here
+  --> main.kg:60:15
+   |
+60 |     let h = m(&mut z)
+   |               ^^^^^^
+
+error[move-while-borrowed]: `z` is borrowed and cannot be moved or dropped here
+  --> main.kg:61:5
+   |
+61 |     z = Array.of("n1", "n2") //~ ERROR `z` is exclusively borrowed and cannot be used here //~ ERROR `z` is borrowed and cannot be moved
+   |     ^
+
+error[E2198]: `z` is exclusively borrowed and cannot be used here
+  --> main.kg:69:15
+   |
+69 |     let k = m(&mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+   |               ^^^^^^
+   = help: end the borrow first or use a copy
+note: `z` is borrowed here
+  --> main.kg:68:15
+   |
+68 |     let h = m(&mut z)
+   |               ^^^^^^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:76:7
+   |
+76 |     m(&mut a) //~ ERROR a borrow cannot be returned
+   |       ^^^^^^
+
+error[move-while-borrowed]: `a` is still borrowed when its scope ends here
+  --> main.kg:74:13
+   |
+74 |     let mut a = Array.of("1") //~ ERROR `a` is still borrowed when its scope ends here
+   |             ^
+
+error[E2198]: `z` is exclusively borrowed and cannot be used here
+  --> main.kg:82:5
+   |
+82 |     z = Array.of("n1", "n2") //~ ERROR `z` is exclusively borrowed and cannot be used here //~ ERROR `z` is borrowed and cannot be moved
+   |     ^
+   = help: end the borrow first or use a copy
+note: `z` is borrowed here
+  --> main.kg:81:13
+   |
+81 |     let h = mk(pl, &mut z)
+   |             ^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `z` is borrowed and cannot be moved or dropped here
+  --> main.kg:82:5
+   |
+82 |     z = Array.of("n1", "n2") //~ ERROR `z` is exclusively borrowed and cannot be used here //~ ERROR `z` is borrowed and cannot be moved
+   |     ^
+
+error[E2198]: `z` is exclusively borrowed and cannot be used here
+  --> main.kg:89:5
+   |
+89 |     z.push("p") //~ ERROR `z` is exclusively borrowed and cannot be used here
+   |     ^
+   = help: end the borrow first or use a copy
+note: `z` is borrowed here
+  --> main.kg:88:13
+   |
+88 |     let h = runG(pl, &mut z)
+   |             ^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:95:5
+   |
+95 |     mk(pl, &mut z) //~ ERROR a borrow cannot be returned
+   |     ^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `z` is still borrowed when its scope ends here
+  --> main.kg:94:13
+   |
+94 |     let mut z = Array.of("a") //~ ERROR `z` is still borrowed when its scope ends here
+   |             ^
+
+error[E2262]: a future holding an `&Interface` view made in this frame cannot be spawned or passed to a call that may spawn it, since the frame ends before the task may next run; pass `&T` of the concrete type, or await the future here
+   --> main.kg:101:5
+    |
+101 |     detach(a(&mut c)) //~ ERROR a future holding an `&Interface` view made in this frame cannot be spawned
+    |     ^^^^^^^^^^^^^^^
+
+error[E2198]: `z` is exclusively borrowed and cannot be used here
+   --> main.kg:112:5
+    |
+112 |     z.push("q") //~ ERROR `z` is exclusively borrowed and cannot be used here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `z` is borrowed here
+   --> main.kg:111:16
+    |
+111 |     let h3 = m(&mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+    |                ^^^^^^
+
+error[E2198]: `z` is exclusively borrowed and cannot be used here
+   --> main.kg:111:16
+    |
+111 |     let h3 = m(&mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+    |                ^^^^^^
+    = help: end the borrow first or use a copy
+note: `z` is borrowed here
+   --> main.kg:110:20
+    |
+110 |     let h2 = fs[0](&mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+    |                    ^^^^^^
+
+error[E2198]: `z` is exclusively borrowed and cannot be used here
+   --> main.kg:110:20
+    |
+110 |     let h2 = fs[0](&mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+    |                    ^^^^^^
+    = help: end the borrow first or use a copy
+note: `z` is borrowed here
+   --> main.kg:109:20
+    |
+109 |     let h1 = (r.f)(&mut z)
+    |                    ^^^^^^
+

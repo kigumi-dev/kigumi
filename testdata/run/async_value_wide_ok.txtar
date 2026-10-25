@@ -1,0 +1,82 @@
+-- src --
+import task from std/task
+
+async fn later() -> usize {
+    1
+}
+
+fn run[T](f: Future[T]) -> T {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+async fn big(p0: usize, p1: usize, p2: usize, p3: usize, p4: usize, p5: usize, p6: usize, p7: usize, p8: usize, p9: usize, p10: usize, p11: usize, p12: usize, p13: usize, p14: usize, p15: usize, p16: usize, p17: usize, p18: usize, p19: usize, p20: usize, p21: usize, p22: usize, p23: usize, p24: usize, p25: usize, p26: usize, p27: usize, p28: usize, p29: usize, a: &mut Array[String]) -> usize {
+    let w = await later()
+    a.push("y")
+    a.len() + w + p29
+}
+
+fn bigValue() -> usize {
+    let f = big
+    let mut z = Array.of("a")
+    let n = run(f(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, &mut z))
+    n + z.len()
+}
+
+fn bigDirect() -> usize {
+    let mut z = Array.of("a")
+    let n = run(big(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, &mut z))
+    n + z.len()
+}
+
+async fn bigAsync() -> usize {
+    let f = big
+    let mut z = Array.of("a")
+    let n = await f(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, &mut z)
+    n + z.len()
+}
+
+
+async fn wide(p0: usize, s1: &Array[String], p2: usize, p3: usize, s4: &Array[String], p5: usize, p6: usize, m7: &mut Array[String], p8: usize, p9: usize, s10: &Array[String], p11: usize, p12: usize, s13: &Array[String], p14: usize, p15: usize, s16: &Array[String], p17: usize, p18: usize, m19: &mut Array[String], p20: usize, p21: usize, s22: &Array[String], p23: usize, p24: usize, s25: &Array[String], p26: usize, p27: usize, s28: &Array[String], p29: usize, m30: &mut Array[String]) -> usize {
+    let w = await later()
+    m7.push("a")
+    m19.push("b")
+    m30.push("c")
+    m7.len() + m19.len() + m30.len() + s1.len() + s28.len() + s25[0].len() + p29 + w
+}
+
+fn wideValue() -> usize {
+    let f = wide
+    let w = Array.of("ww", "x")
+    let mut z7 = Array.of("7")
+    let mut z19 = Array.of("19")
+    let mut z30 = Array.of("30")
+    let n = run(f(0, &w, 2, 3, &w, 5, 6, &mut z7, 8, 9, &w, 11, 12, &w, 14, 15, &w, 17, 18, &mut z19, 20, 21, &w, 23, 24, &w, 26, 27, &w, 29, &mut z30))
+    n + z7.len() + z19.len() + z30.len() + w.len() + w[0].len()
+}
+
+fn wideDirect() -> usize {
+    let w = Array.of("ww", "x")
+    let mut z7 = Array.of("7")
+    let mut z19 = Array.of("19")
+    let mut z30 = Array.of("30")
+    let n = run(wide(0, &w, 2, 3, &w, 5, 6, &mut z7, 8, 9, &w, 11, 12, &w, 14, 15, &w, 17, 18, &mut z19, 20, 21, &w, 23, 24, &w, 26, 27, &w, 29, &mut z30))
+    n + z7.len() + z19.len() + z30.len() + w.len() + w[0].len()
+}
+
+async fn wideAsync() -> usize {
+    let f = wide
+    let w = Array.of("ww", "x")
+    let mut z7 = Array.of("7")
+    let mut z19 = Array.of("19")
+    let mut z30 = Array.of("30")
+    let n = await f(0, &w, 2, 3, &w, 5, 6, &mut z7, 8, 9, &w, 11, 12, &w, 14, 15, &w, 17, 18, &mut z19, 20, 21, &w, 23, 24, &w, 26, 27, &w, 29, &mut z30)
+    n + z7.len() + z19.len() + z30.len() + w.len() + w[0].len()
+}
+
+fn main() {
+    print "big ${bigValue()} ${bigDirect()} ${run(bigAsync())}"
+    print "wide ${wideValue()} ${wideDirect()} ${run(wideAsync())}"
+}
+-- stdout --
+big 34 34 34
+wide 52 52 52

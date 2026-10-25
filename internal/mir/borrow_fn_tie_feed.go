@@ -18,7 +18,7 @@ const (
 )
 
 // tieArgs keeps only the arguments whose type can reach a parameter the fn value's result may borrow.
-func (c *borrowCheck) tieArgs(info *sem.FnInfo, slots []callSlot, want []sem.EntityID) []flowArg {
+func (c *borrowCheck) tieArgs(info *sem.FnInfo, slots []callSlot, want tieWant) []flowArg {
 	feeds, all, found := c.makerFeeds(slots, want)
 	if !found {
 		return nil
@@ -115,21 +115,34 @@ func sharedBorrows(b *borrowInfo) *borrowInfo {
 	return &out
 }
 
-// makerFeeds: `all` marks a value only known to carry such a fn value inside, whose parameters are not seen.
-func (c *borrowCheck) makerFeeds(slots []callSlot, want []sem.EntityID) (feeds []sem.TypeID, all, found bool) {
-	for _, s := range slots {
-		if ft := c.slotFnType(s.exact); ft != 0 {
-			n := c.p.R.Types.Node(ft)
-			if sharesParam(c.typeParamsOf(n.Elem), want) && c.makesOwnBorrow(s.arg) {
-				found = true
+// makerFeeds: `all` marks a value only known to carry such a fn value inside, whose parameters are not seen; a type
+// parameter a maker is fed joins want, so the maker building that argument (`g(f(x))`) feeds the result too.
+func (c *borrowCheck) makerFeeds(slots []callSlot, want tieWant) (feeds []sem.TypeID, all, found bool) {
+	want.params = slices.Clone(want.params)
+	used := make([]bool, len(slots))
+	for grown := true; grown; {
+		grown = false
+		for k, s := range slots {
+			ft := c.slotFnType(s.exact)
+			switch {
+			case used[k]:
+			case ft != 0:
+				n := c.p.R.Types.Node(ft)
+				if !want.fed(c, n.Elem) || !c.makesOwnBorrow(s.arg) {
+					continue
+				}
+				found, used[k] = true, true
 				for _, i := range c.feedingParams(s.arg, len(n.Args)) {
 					feeds = append(feeds, n.Args[i])
+					for _, p := range c.typeParamsOf(n.Args[i]) {
+						if !slices.Contains(want.params, p) {
+							want.params, grown = append(want.params, p), true
+						}
+					}
 				}
+			case c.carriesWanted(s, want):
+				found, all, used[k] = true, true, true
 			}
-			continue
-		}
-		if sharesParam(s.params, want) && c.carriesBorrowMaker(c.f.Locals[s.arg].Type, map[sem.TypeID]bool{}) {
-			found, all = true, true
 		}
 	}
 	return feeds, all, found
@@ -142,7 +155,7 @@ func (c *borrowCheck) feedingParams(a LocalID, n int) []int {
 		every[i] = i
 	}
 	fn := c.fnEntityOf(a)
-	if fn == 0 || c.p.R.Entity(fn).Kind != sem.EntFn {
+	if fn == 0 || c.p.R.Entity(fn).Kind != sem.EntFn || c.p.isAsyncBody(fn) {
 		return every
 	}
 	info := c.p.R.Fn(fn)

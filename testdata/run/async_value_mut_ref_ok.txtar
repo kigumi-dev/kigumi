@@ -1,0 +1,83 @@
+-- src --
+import task from std/task
+
+type R = { pub mut xs Array[String], pub n Int }
+
+async fn mut1(a: &mut Array[String]) -> usize {
+    a.push("x")
+    a.len()
+}
+
+async fn mut2(a: &mut Array[String], b: &mut Array[String]) -> usize {
+    a.push("x")
+    b.push("y")
+    b.push("z")
+    a.len() + b.len()
+}
+
+async fn bump(n: &mut Int) -> Int {
+    n = n + 1
+    0
+}
+
+async fn pushAll[T: Copy](a: &mut Array[T], v: T) -> usize {
+    a.push(v)
+    a.len()
+}
+
+async fn spawned(m: fn(&mut Array[String]) -> Future[usize]) -> usize {
+    let mut arr = Array.of("a")
+    let t = task.spawn(m(&mut arr))
+    let n = await t
+    n + arr.len()
+}
+
+fn run[T](f: Future[T]) -> T {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+async fn awaited(m: fn(&mut Array[String]) -> Future[usize]) -> usize {
+    let mut arr = Array.of("a")
+    let n = await m(&mut arr)
+    n + arr.len()
+}
+
+fn neverRun(m: fn(&mut Array[String]) -> Future[usize]) -> usize {
+    let mut arr = Array.of("a")
+    let held = unstarted(m, &mut arr)
+    held + arr.len()
+}
+
+fn unstarted(m: fn(&mut Array[String]) -> Future[usize], a: &mut Array[String]) -> usize {
+    let fut = Some(m(a))
+    if fut is Some(_) { 1 } else { 0 }
+}
+
+fn main() {
+    let m = mut1
+    let m2 = mut2
+    let b = bump
+    let p: fn(&mut Array[Int], Int) -> Future[usize] = pushAll
+    let mut x = Array.of("a")
+    let mut y = Array.of("b")
+    print "one ${run(m(&mut x))} ${x.len()}"
+    print "two ${run(m2(&mut x, &mut y))} ${x.len()} ${y.len()}"
+    let mut r = R { xs: Array.of("c"), n: 0 }
+    print "field ${run(m(&mut r.xs))} ${r.xs.len()}"
+    let mut k = 1
+    print "scalar ${run(b(&mut k))} ${k}"
+    let mut ints = Array.of(1, 2)
+    print "generic ${run(p(&mut ints, 3))} ${ints.len()}"
+    print "awaited ${run(awaited(m))}"
+    print "never ${neverRun(m)}"
+    print "spawned ${run(spawned(m))}"
+}
+-- stdout --
+one 2 2
+two 6 3 3
+field 2 2
+scalar 0 2
+generic 3 3
+awaited 4
+never 2
+spawned 4
