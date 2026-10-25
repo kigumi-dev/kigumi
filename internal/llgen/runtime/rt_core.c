@@ -3347,14 +3347,19 @@ uint64_t hash_of(val v) {
     free(b.p);
     return h;
 }
-// A fixed seed stands in on targets without an entropy source.
+// A fixed seed stands in on targets without an entropy source; workers racing the first draw keep the CAS winner.
 static uint64_t map_seed(void) {
-    static uint64_t seed;
-    if (!seed) {
-        seed = (uint64_t)rt_sys_seed();
-        if (!seed) seed = 0x9e3779b97f4a7c15ULL;
-    }
-    return seed;
+    static KG_I64 seed;
+    int64_t s = KG_ALOAD(seed);
+    if (s) return (uint64_t)s;
+    int64_t drawn = rt_sys_seed();
+    if (!drawn) drawn = (int64_t)0x1e3779b97f4a7c15ULL;
+#ifdef KIGUMI_THREADS
+    if (!atomic_compare_exchange_strong(&seed, &s, drawn)) return (uint64_t)s;
+#else
+    seed = drawn;
+#endif
+    return (uint64_t)drawn;
 }
 int64_t rt_d_map_seed(void) { return (int64_t)map_seed(); }
 // Constant-time compare: time

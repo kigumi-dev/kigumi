@@ -112,7 +112,7 @@ func (p *BuildProgram) Run(target Target, flags []string, outDir string) (*build
 	}
 	host := p.Module.compiler.HostOrAmbient()
 	if p.prog == nil {
-		prog, err := buildProgram(p.Res, progOptions{verifyEach: p.Module.verifyPasses})
+		prog, err := buildProgram(p.Res, progOptions{verifyEach: p.Module.verifyPasses, target: p.Module.target})
 		if err != nil {
 			return nil, err
 		}

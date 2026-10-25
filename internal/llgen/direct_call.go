@@ -73,8 +73,9 @@ func (e *emitter) directCallArgs(sb *strings.Builder, in mir.Inst, s *aggSig, ss
 			args = append(args, e.aggArg(sb, a, l))
 			continue
 		}
+		e.noteHanded(i)
 		if e.isScalar(l) {
-			args = append(args, "ptr "+e.scalarBoxOnDemand(sb, l))
+			args = append(args, "ptr "+e.argBoxOnDemand(sb, i, l))
 			continue
 		}
 		v := e.load(sb, l)

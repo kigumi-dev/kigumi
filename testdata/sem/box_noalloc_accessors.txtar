@@ -48,7 +48,7 @@ noalloc fn replace(b: &mut Box[Int], n: Int) {
 }
 
 noalloc fn viaAllocatingCallback(b: &Box[Int]) -> Int {
-    b.with((n: &Int) => mkn(*n).n) //~ ERROR closure is not `noalloc`
+    b.with((n: &Int) => mkn(n + 0).n) //~ ERROR closure is not `noalloc`
 }
 
 noalloc fn wrap(n: Int) {
@@ -101,8 +101,8 @@ error[E907]: `set` is not `noalloc`
 error[E422]: closure is not `noalloc` (calls `mkn`)
   --> main.kg:48:12
    |
-48 |     b.with((n: &Int) => mkn(*n).n) //~ ERROR closure is not `noalloc`
-   |            ^^^^^^^^^^^^^^^^^^^^^^
+48 |     b.with((n: &Int) => mkn(n + 0).n) //~ ERROR closure is not `noalloc`
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E907]: `new` is not `noalloc`
   --> main.kg:52:13

@@ -1,0 +1,49 @@
+-- module --
+mir: planned
+allocator: none
+-- std/probe/probe.kg --
+/// A record handed to a putter.
+pub type Pt = {
+    pub x Int
+    pub y Int
+}
+
+/// Takes a point without allocating.
+pub interface Putter {
+    noalloc fn put(self, v: Pt) -> Int
+}
+
+/// Builds a point and hands it to g.
+pub fn send[T: Putter](g: T, n: Int) -> Int {
+    g.put(Pt { x: n, y: 1 })
+}
+-- src --
+import probe from std/probe
+import {Pt} from std/probe
+
+type Nm = {
+    pub name String
+    pub n Int
+}
+
+noalloc fn Nm.put(self, v: Pt) -> Int {
+    v.x + v.y + self.n
+}
+
+fn mkNm() -> Nm {
+    Nm { name: "a", n: 1 }
+}
+
+static sink: Nm = comptime mkNm()
+
+// `Nm` holds a String, so `send` keeps one shared std body whose witness call boxes the record; the user's call is blamed.
+fn main() -> Void! {
+    let _ = probe.send(sink, 2) //~ ERROR `main` passed --allocator none as if `Pt` stayed unboxed
+}
+-- expect --
+error[E2314]: `main` passed --allocator none as if `Pt` stayed unboxed, yet handing it to a slot that holds a reference allocates a box from the default allocator here; call a form that takes it unboxed, or allocate inside an `allocator` block
+  --> main.kg:21:13
+   |
+21 |     let _ = probe.send(sink, 2) //~ ERROR `main` passed --allocator none as if `Pt` stayed unboxed
+   |             ^^^^^^^^^^^^^^^^^^
+

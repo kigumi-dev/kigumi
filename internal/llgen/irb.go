@@ -82,11 +82,16 @@ type StructType struct {
 type Builder struct {
 	sb   *strings.Builder
 	next func() string
+	note func(RuntimeFn)
 }
 
 // irb returns a Builder over sb, sharing the emitter's temporary counter.
 func (e *emitter) irb(sb *strings.Builder) Builder {
-	return Builder{sb: sb, next: e.newTmp}
+	b := Builder{sb: sb, next: e.newTmp}
+	if e.boxes != nil {
+		b.note = e.noteRuntimeCall
+	}
+	return b
 }
 
 // Call emits a call to fn and returns its result (TVoid, text "" for a
@@ -106,6 +111,9 @@ func (b Builder) Call(fn RuntimeFn, args ...Value) Value {
 func (b Builder) CallAs(dst string, fn RuntimeFn, args ...Value) { b.emit(dst, fn, args) }
 
 func (b Builder) emit(dst string, fn RuntimeFn, args []Value) {
+	if b.note != nil {
+		b.note(fn)
+	}
 	if len(args) != len(fn.Params) {
 		panic(fmt.Sprintf("irb: %s takes %d argument(s), got %d", fn.Name, len(fn.Params), len(args)))
 	}

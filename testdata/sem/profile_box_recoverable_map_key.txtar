@@ -21,7 +21,7 @@ fn fill() -> Result[Bool, AllocError] {
     let mut m = map.tryEmpty[Plain, Int]()?
     let mut i = 0
     for i < 10 {
-        m.trySet(Plain { a: i }, i)? //~ ERROR `fill` passed the recoverable-only profile as if `Plain` stayed unboxed
+        m.trySet(Plain { a: i }, 1)? //~ ERROR `fill` passed the recoverable-only profile as if `Plain` stayed unboxed
         i = i + 1
     }
     Ok(m.len() == 10)
@@ -36,6 +36,6 @@ fn main() {
 error[E2313]: `fill` passed the recoverable-only profile as if `Plain` stayed unboxed, yet handing it to a slot that holds a reference allocates a box here that a refused allocation would end the program on; call a form that takes it unboxed, or allocate inside an `allocator` block
   --> main.kg:20:9
    |
-20 |         m.trySet(Plain { a: i }, i)? //~ ERROR `fill` passed the recoverable-only profile as if `Plain` stayed unboxed
+20 |         m.trySet(Plain { a: i }, 1)? //~ ERROR `fill` passed the recoverable-only profile as if `Plain` stayed unboxed
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
 

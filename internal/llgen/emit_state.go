@@ -70,4 +70,6 @@ type emitter struct {
 	intrinsics   map[string]string
 
 	immortalStatics map[sem.EntityID]bool
+	// boxes records the scalar boxes ScalarArgBoxes' lowering makes; nil when emitting.
+	boxes *boxRecord
 }

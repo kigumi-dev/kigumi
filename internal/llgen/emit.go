@@ -11,19 +11,31 @@ import (
 	"kigumi/internal/sem"
 )
 
-func EmitProgram(p *mir.Program, opts EmitOptions) Output {
+// prepareEmitter is the emitter EmitProgram lowers with, its scalar ABI planned.
+func prepareEmitter(p *mir.Program, opts EmitOptions) *emitter {
 	e := &emitter{p: p, r: p.R, strs: map[string]string{}, descs: map[sem.EntityID]string{}, vdescs: map[sem.EntityID]string{}, foreign: map[string]string{}, stdDrops: map[sem.EntityID]bool{}, cio: map[string]bool{}, fnItems: map[string]fnItem{}, stdBindOf: map[string]string{}, constVals: map[string]constVal{}, constShape: map[string]constVal{}, immortalStatics: map[sem.EntityID]bool{}, constIndex: map[string]int{}, aggs: map[sem.TypeID]*aggInfo{}, aggDone: map[sem.TypeID]bool{}, refDone: map[string]bool{}, sigs: map[*mir.Func]*aggSig{}, wrapNeed: map[wrapperKey]bool{}, wrapDone: map[wrapperKey]bool{}, freestanding: opts.Freestanding, entrySymbol: opts.EntrySymbol, symPrefix: opts.SymbolPrefix, reachable: opts.Reachable, shim: newCshim()}
 	e.catch = e.wantsCatch(opts)
 	if opts.AbiCheck {
 		e.abiSym = e.cstr(AbiPlaceholder)
 	}
 	e.planScalarABI()
+	return e
+}
+
+func (e *emitter) keeps(f *mir.Func) bool { return e.reachable == nil || e.reachable.Keep(f.Ent) }
+
+func (e *emitter) naked(f *mir.Func) bool {
+	return e.r.Entity(f.Ent).Kind == sem.EntFn && e.r.Fn(f.Ent).Naked
+}
+
+func EmitProgram(p *mir.Program, opts EmitOptions) Output {
+	e := prepareEmitter(p, opts)
 	var body strings.Builder
 	for _, f := range p.Funcs {
-		if e.reachable != nil && !e.reachable.Keep(f.Ent) {
+		if !e.keeps(f) {
 			continue
 		}
-		if e.r.Entity(f.Ent).Kind == sem.EntFn && e.r.Fn(f.Ent).Naked {
+		if e.naked(f) {
 			e.nakedFn(f)
 			continue
 		}
@@ -85,10 +97,8 @@ func (e *emitter) newTmp() string {
 	return fmt.Sprintf("%%v%d", e.tmp)
 }
 
-func (e *emitter) function(f *mir.Func) string {
-	var sb strings.Builder
-	e.tmp = 0
-	e.sig, e.ssig = e.directSig(f), e.ssigs[f]
+// classifyBody fixes how f's locals are held; function and asyncFunction lower on it.
+func (e *emitter) classifyBody(f *mir.Func) {
 	e.direct = e.classifyDirect(f)
 	e.boxTmp = boxTemps(f)
 	e.crossSrc = e.crossSources(f)
@@ -99,6 +109,13 @@ func (e *emitter) function(f *mir.Func) string {
 	e.scalarAliasBoxes(f)
 	e.constOwned = map[mir.LocalID]bool{}
 	e.constKey = e.constLocals(f)
+}
+
+func (e *emitter) function(f *mir.Func) string {
+	var sb strings.Builder
+	e.tmp = 0
+	e.sig, e.ssig = e.directSig(f), e.ssigs[f]
+	e.classifyBody(f)
 	e.unwind = e.unwindFor(f)
 	e.outer = e.outerDropsFor(f)
 	sb.WriteString(e.sigHeader(f, e.sig))

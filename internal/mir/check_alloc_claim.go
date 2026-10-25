@@ -71,10 +71,14 @@ func (p *Program) boxClaims(f *Func, code string) []AllocClaim {
 }
 
 func (p *Program) claimAt(f *Func, c sem.Code, n syntax.NodeID, typ sem.TypeID) AllocClaim {
+	return p.claimWith(f, c, n, typ, c.Help)
+}
+
+func (p *Program) claimWith(f *Func, c sem.Code, n syntax.NodeID, typ sem.TypeID, help string) AllocClaim {
 	t := p.R.Tree(f.File)
 	msg := sem.FillTemplate(c.Template, p.R.Entity(f.Ent).Name, p.R.TypeString(typ))
-	if c.Help != "" {
-		msg += "; " + c.Help
+	if help != "" {
+		msg += "; " + help
 	}
 	return AllocClaim{File: f.File, Diag: diag.Diagnostic{
 		Severity: diag.Error, Loc: diag.At(t.File, t.Span(n)), Msg: msg, Code: c.Num,

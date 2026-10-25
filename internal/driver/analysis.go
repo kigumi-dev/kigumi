@@ -1,6 +1,7 @@
 package driver
 
 import (
+	"kigumi/internal/llgen"
 	"kigumi/internal/mir"
 	"kigumi/internal/schema"
 	"kigumi/internal/sem"
@@ -67,7 +68,7 @@ func (m *Module) analyzeCore(mod *sem.Module, gen sem.DeriveGenerator, keep func
 	}
 	m.stats.MIR++
 	var err error
-	if a.Prog, err = buildProgram(res, progOptions{strict: m.target.StrictStack, budgetKiB: m.target.StackBudgetKiB, verifyEach: m.verifyPasses, lowerAll: m.lowerAll, rootKeep: keep}); err != nil {
+	if a.Prog, err = buildProgram(res, progOptions{strict: m.target.StrictStack, budgetKiB: m.target.StackBudgetKiB, verifyEach: m.verifyPasses, lowerAll: m.lowerAll, rootKeep: keep, target: m.target}); err != nil {
 		return nil, err
 	}
 	// Several cmd/ scripts each have an implicit main; the module's entry
@@ -91,6 +92,8 @@ type progOptions struct {
 	lowerAll   bool
 	// rootKeep limits the own packages lowered up front.
 	rootKeep func(path string) bool
+	// target is what the program is built for, which the native lowering's boxes depend on.
+	target Target
 }
 
 // buildProgram returns a program with diagnostics unverified.
@@ -100,6 +103,7 @@ func buildProgram(res *sem.Result, o progOptions) (*mir.Program, error) {
 		return prog, nil
 	}
 	prog.VerifyEach = o.verifyEach
+	prog.ArgBoxes = scalarArgBoxes(o.target)
 	if err := prog.Apply(planPasses(true)...); err != nil {
 		return prog, err
 	}
@@ -113,6 +117,15 @@ func buildProgram(res *sem.Result, o progOptions) (*mir.Program, error) {
 		res.Files[c.File].Diags = append(res.Files[c.File].Diags, c.Diag)
 	}
 	return prog, nil
+}
+
+// scalarArgBoxes lists the call-site scalar boxes a build for t emits, under the options and reachability compile uses.
+func scalarArgBoxes(t Target) func(*mir.Program) map[*mir.Func][]mir.ArgBox {
+	return func(p *mir.Program) map[*mir.Func][]mir.ArgBox {
+		opts := emitOptionsFor(t)
+		opts.Reachable = mir.Reachable(p)
+		return llgen.ScalarArgBoxes(p, opts)
+	}
 }
 
 func lowerProgram(res *sem.Result, all bool, keep func(path string) bool) *mir.Program {

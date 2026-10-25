@@ -16,16 +16,7 @@ func (e *emitter) frameDropSym(f *mir.Func) string { return "@\"" + e.symName(f)
 func (e *emitter) asyncFunction(f *mir.Func) string {
 	var sb strings.Builder
 	e.tmp = 0
-	e.direct = e.classifyDirect(f)
-	e.scalar = e.classifyScalars(f)
-	e.boxTmp = boxTemps(f)
-	e.crossSrc = e.crossSources(f)
-	e.countedX = e.countedCrosses(f)
-	e.nameAlias = nameAliases(f)
-	e.lentCells = nil
-	e.scalarAliasBoxes(f)
-	e.constOwned = map[mir.LocalID]bool{}
-	e.constKey = e.constLocals(f)
+	e.classifyBody(f)
 	e.sig, e.ssig = nil, nil
 	e.unwind, e.outer = e.asyncUnwindFor(f), nil
 	defer func() { e.unwind = nil }()

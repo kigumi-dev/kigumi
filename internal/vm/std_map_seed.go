@@ -13,7 +13,7 @@ var (
 	mapSeed     int64
 )
 
-// One seed per process; every Map copies it on its first insert.
+// One seed per process, drawn once even when machines race; every probe of every Map reads it.
 func (m *Machine) registerMapSeed() {
 	m.host["map.seed"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		mapSeedOnce.Do(func() {

@@ -12796,6 +12796,23 @@
       ]
     },
     {
+      "id": "run/map_thread_seed",
+      "kind": "run",
+      "path": "testdata/run/map_thread_seed.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/match_mut_scrutinee_field",
       "kind": "run",
       "path": "testdata/run/match_mut_scrutinee_field.txtar",
@@ -21980,9 +21997,42 @@
       ]
     },
     {
+      "id": "sem/profile_box_allocator_none_scalar_arg",
+      "kind": "sem",
+      "path": "testdata/sem/profile_box_allocator_none_scalar_arg.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/profile_box_allocator_none_std_body",
+      "kind": "sem",
+      "path": "testdata/sem/profile_box_allocator_none_std_body.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/profile_box_allocator_none_witness",
       "kind": "sem",
       "path": "testdata/sem/profile_box_allocator_none_witness.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/profile_box_recoverable_map_int_key",
+      "kind": "sem",
+      "path": "testdata/sem/profile_box_recoverable_map_int_key.txtar",
       "mode": [
         "check"
       ],

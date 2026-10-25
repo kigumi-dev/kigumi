@@ -1,0 +1,45 @@
+-- module --
+mir: planned
+allocator: none
+-- std/probe/probe.kg --
+/// Counts without allocating.
+pub interface Counter {
+    noalloc fn count(self, n: Int) -> Int
+}
+
+/// Hands n to c.
+pub fn tally[T: Counter](c: T, n: Int) -> Int {
+    c.count(n)
+}
+-- src --
+import probe from std/probe
+
+type Nm = {
+    pub name String
+    pub n Int
+}
+
+noalloc fn Nm.count(self, n: Int) -> Int {
+    n + self.n
+}
+
+fn mkNm() -> Nm {
+    Nm { name: "a", n: 1 }
+}
+
+static sink: Nm = comptime mkNm()
+
+// `Nm` holds a String, so `tally` keeps one shared std body that takes `n` boxed for the witness call.
+fn main() -> Void! {
+    let mut n = 1
+    n = n + 2
+    let _ = probe.tally(sink, n * 1000) //~ ERROR `main` passed --allocator none as if `Int` stayed unboxed
+    let _ = probe.tally(sink, 5000)
+}
+-- expect --
+error[E2314]: `main` passed --allocator none as if `Int` stayed unboxed, yet handing it to a slot that holds a reference allocates a box from the default allocator here; `n` of `tally` takes it boxed, so pass a constant or a value that is already boxed, or allocate inside an `allocator` block
+  --> main.kg:22:31
+   |
+22 |     let _ = probe.tally(sink, n * 1000) //~ ERROR `main` passed --allocator none as if `Int` stayed unboxed
+   |                               ^^^^^^^^
+

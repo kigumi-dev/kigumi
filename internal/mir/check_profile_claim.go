@@ -18,7 +18,8 @@ func (p *Program) profileClaims() []AllocClaim {
 	}
 	var out []AllocClaim
 	seen := map[blamedBox]bool{}
-	for _, r := range p.reachedFrom(roots) {
+	reached := p.reachedFrom(roots)
+	for _, r := range reached {
 		f := r.f
 		if f.Ent == 0 || !p.profileTrusts(f.Ent) {
 			continue
@@ -31,7 +32,7 @@ func (p *Program) profileClaims() []AllocClaim {
 			}
 		}
 	}
-	return out
+	return p.argBoxClaims(out, reached, c)
 }
 
 // reachedFrom walks the bodies a call, a function value or an entry can run from roots.

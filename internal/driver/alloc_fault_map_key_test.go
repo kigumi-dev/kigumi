@@ -65,7 +65,7 @@ func TestRecoverableMapIntKeySurvivesSweep(t *testing.T) {
 	})
 }
 
-// sweepToCompletion refuses allocation n for n = 1, 2, ... until the run passes every allocation it makes.
+// sweepToCompletion refuses allocation n for n = 1, 2, ... until a run passes; only a refused or wrong run prints.
 func sweepToCompletion(t *testing.T, backend string, run func(n int) (int, string, string)) {
 	t.Helper()
 	for n := 1; n <= mapIntKeySweep; n++ {

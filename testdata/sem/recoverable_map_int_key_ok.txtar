@@ -4,20 +4,28 @@ profile: recoverable-only
 -- src --
 import map from std/map
 
-// The hash seed is read in a register and the keys stay below the static small integers, so nothing here allocates fatally.
+// Constant keys and values go in as immortals and the hash seed is read in a register, so nothing here allocates fatally.
 fn fill() -> Result[Bool, AllocError] {
     let mut m = map.tryEmpty[Int, Int]()?
-    let mut i = 0
-    for i < 40 {
-        m.trySet(i * 7 + 3, i)?
-        i = i + 1
-    }
-    Ok(m.contains(&38))
+    m.trySet(3, 0)?
+    m.trySet(10, 1)?
+    m.trySet(17, 2)?
+    m.trySet(24, 3)?
+    m.trySet(31, 4)?
+    m.trySet(38, 5)?
+    m.trySet(45, 6)?
+    m.trySet(52, 7)?
+    m.trySet(5000, 8)?
+    m.trySet(-7000, 9)?
+    Ok(m.contains(&38) && m.contains(&5000) && m.contains(&(-7000)) && !m.contains(&39))
 }
 
+// Printing allocates on native, so a correct run prints nothing and only a refused or wrong one prints.
 fn main() {
-    if fill() is Err(_) {
-        print "err"
+    match fill() {
+        Ok(true) -> {}
+        Ok(false) -> print "missing"
+        Err(_) -> print "err"
     }
 }
 -- expect --

@@ -1,0 +1,54 @@
+-- module --
+mir: planned
+profile: recoverable-only
+-- src --
+import map from std/map
+import {AllocatorHandle} from std/alloc
+import alloc from std/alloc
+
+// The shared instance takes key and value boxed, so the call boxes each computed Int; a constant goes in as its immortal.
+fn fill() -> Result[Bool, AllocError] {
+    let mut m = map.tryEmpty[Int, Int]()?
+    let mut i = 0
+    for i < 40 {
+        m.trySet(i * 100003 + 5000, 1)? //~ ERROR `key` of `Map.trySet` takes it boxed
+        m.trySet(7, i)? //~ ERROR `value` of `Map.trySet` takes it boxed
+        i = i + 1
+    }
+    m.trySet(2000000, 2)?
+    Ok(m.contains(&5000))
+}
+
+fn scoped(h: AllocatorHandle) -> Result[Bool, AllocError] {
+    allocator h.scope() {
+        let mut m = map.tryEmpty[Int, Int]()?
+        let mut i = 0
+        for i < 4 {
+            m.trySet(i * 100003, i)?
+            i = i + 1
+        }
+        Ok(m.len() == 4)
+    }
+}
+
+fn main() {
+    if alloc.Arena.tryCreate() is Ok(ar) {
+        let _ = scoped(ar)
+    }
+    if fill() is Err(_) {
+        print "err"
+    }
+}
+-- expect --
+error[E2313]: `fill` passed the recoverable-only profile as if `Int` stayed unboxed, yet handing it to a slot that holds a reference allocates a box here that a refused allocation would end the program on; `key` of `Map.trySet` takes it boxed, so pass a constant or a value that is already boxed, or allocate inside an `allocator` block
+  --> main.kg:10:18
+   |
+10 |         m.trySet(i * 100003 + 5000, 1)? //~ ERROR `key` of `Map.trySet` takes it boxed
+   |                  ^^^^^^^^^^^^^^^^^
+
+error[E2313]: `fill` passed the recoverable-only profile as if `Int` stayed unboxed, yet handing it to a slot that holds a reference allocates a box here that a refused allocation would end the program on; `value` of `Map.trySet` takes it boxed, so pass a constant or a value that is already boxed, or allocate inside an `allocator` block
+  --> main.kg:11:21
+   |
+11 |         m.trySet(7, i)? //~ ERROR `value` of `Map.trySet` takes it boxed
+   |                     ^
+

@@ -1,0 +1,39 @@
+-- src --
+import map from std/map
+import task from std/task
+
+// Each worker's first Map operation draws the process seed, so the two workers race that draw.
+async fn build(base: Int) -> map.Map[Int, Int] {
+    let mut m = map.empty[Int, Int]()
+    let mut i = 0
+    for i < 200 {
+        m.set(base + i * 7919, i)
+        i = i + 1
+    }
+    m
+}
+
+fn found(m: &map.Map[Int, Int], base: Int) -> Int {
+    let mut n = 0
+    let mut i = 0
+    for i < 200 {
+        if m.get(&(base + i * 7919)) == Some(i) {
+            n = n + 1
+        }
+        i = i + 1
+    }
+    n
+}
+
+async fn root() -> Int {
+    let a = task.spawn(build(1))
+    let b = task.spawn(build(1000003))
+    let ma = await a
+    let mb = await b
+    found(&ma, 1) + found(&mb, 1000003)
+}
+
+let ex = task.threadPoolExecutor(3)
+print "found ${ex.runToCompletion(root())} of 400"
+-- stdout --
+found 400 of 400

@@ -117,6 +117,9 @@ func (e *emitter) instArgs(sb *strings.Builder, in mir.Inst) ([]string, []bool) 
 	args := make([]string, 0, len(in.Args))
 	boxed := make([]bool, len(in.Args))
 	for i, a := range in.Args {
+		if in.Op == mir.OpCall {
+			e.noteHanded(i)
+		}
 		if e.isScalar(a) {
 			// classifyArgs only lets a scalar-classified local reach here
 			// at a non-retaining read; released below, in releaseScalarArgs.
@@ -124,7 +127,7 @@ func (e *emitter) instArgs(sb *strings.Builder, in mir.Inst) ([]string, []bool) 
 				args = append(args, e.scalarFrameBox(sb, a))
 				continue
 			}
-			args = append(args, e.scalarBoxOnDemand(sb, a))
+			args = append(args, e.argBoxOnDemand(sb, i, a))
 			continue
 		}
 		args = append(args, e.load(sb, a))
