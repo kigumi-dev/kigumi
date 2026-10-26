@@ -1,0 +1,162 @@
+-- src --
+import task from std/task
+
+interface Bump {
+    fn bump(mut self)
+    fn get(self) -> Int
+}
+
+type Counter = { pub mut n Int }
+
+fn Counter.bump(mut self) {
+    self.n = self.n + 1
+}
+
+fn Counter.get(self) -> Int {
+    self.n
+}
+
+type Rec = { pub f fn(fn(&mut Array[String]) -> Future[usize], &mut Array[String]) -> Future[usize] }
+
+async fn later() -> usize {
+    1
+}
+
+async fn acount(c: &mut Bump) -> Int {
+    let w = await later()
+    c.bump()
+    c.get() + (w.toInt() || 0)
+}
+
+async fn mut1(a: &mut Array[String]) -> usize {
+    let w = await later()
+    a.push("x")
+    a.len() + w
+}
+
+async fn bump(n: &mut Int) -> Int {
+    let w = await later()
+    n = n + 1
+    n + (w.toInt() || 0)
+}
+
+fn mkV(f: fn(&mut Bump) -> Future[Int], c: &mut Bump) -> Future[Int] {
+    f(c)
+}
+
+fn mk(f: fn(&mut Array[String]) -> Future[usize], a: &mut Array[String]) -> Future[usize] {
+    f(a)
+}
+
+fn mkS(f: fn(&mut Int) -> Future[Int], n: &mut Int) -> Future[Int] {
+    f(n)
+}
+
+fn viaLocal(a: &mut Array[String]) -> Future[usize] {
+    let g = mut1
+    g(a)
+}
+
+fn mk3(c: &mut Bump) -> Future[Int] {
+    let g = acount
+    g(c)
+}
+
+fn popF(fs: &mut Array[Future[Int]]) -> Future[Int]? {
+    fs.takeAt(0)
+}
+
+async fn readyN(n: usize) -> usize {
+    n
+}
+
+fn lenF(a: &Array[String]) -> Future[usize] {
+    let n = a.len()
+    readyN(n)
+}
+
+fn mkf(a: &mut Array[String]) -> Future[usize] {
+    a.push("f")
+    later()
+}
+
+fn mkLen(a: &Array[String]) -> Future[usize] {
+    if a.len() > 100 {
+        later()
+    } else {
+        later()
+    }
+}
+
+fn mkCount(c: &mut Bump) -> Future[usize] {
+    c.bump()
+    later()
+}
+
+fn run[T](f: Future[T]) -> T {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+fn forwarded() -> usize {
+    let w = mk
+    let mut z = Array.of("a")
+    let n = run(w(mut1, &mut z))
+    z = Array.of("q", "q", "q")
+    let r = Rec { f: mk }
+    let m = run((r.f)(mut1, &mut z))
+    let l = viaLocal
+    let k = run(l(&mut z))
+    let d = run(viaLocal(&mut z))
+    n + m + k + d + z.len()
+}
+
+async fn inFrame() -> Int {
+    let w = mkV
+    let mut c = Counter { n: 5 }
+    let n = await w(acount, &mut c)
+    let s = mkS
+    let mut k = 1
+    let x = await s(bump, &mut k)
+    let d = await mk3(&mut c)
+    n + c.n + x + k + d
+}
+
+fn keepsNothing() -> usize {
+    let f = mkf
+    let mut z = Array.of("a")
+    let h = f(&mut z)
+    z = Array.of("q", "q")
+    let l = mkLen
+    let h2 = l(&z)
+    z.push("r")
+    let c = mkCount
+    let mut cc = Counter { n: 1 }
+    let h3 = c(&mut cc)
+    cc = Counter { n: 10 }
+    let h4 = lenF(&z)
+    z = Array.of("s")
+    let lf = lenF
+    let h5 = lf(&z)
+    z.push("t")
+    run(h) + run(h2) + run(h3) + z.len() + (cc.n.toUsize() || 0) + run(h4) + run(h5)
+}
+
+async fn takenThroughValue() -> Int {
+    let mut k = 2
+    let mut fs = Array.empty[Future[Int]]()
+    fs.push(bump(&mut k))
+    let p = popF
+    let f = p(&mut fs)
+    let v = match f {
+        Some(g) -> await g
+        None -> 0
+    }
+    k = 40
+    v + k
+}
+
+fn main() {
+    print "forwarded ${forwarded()} frame ${run(inFrame())} nothing ${keepsNothing()} taken ${run(takenThroughValue())}"
+}
+-- stdout --
+forwarded 27 frame 27 nothing 19 taken 44

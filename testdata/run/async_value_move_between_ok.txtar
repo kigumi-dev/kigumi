@@ -1,0 +1,91 @@
+-- src --
+import task from std/task
+
+type Counter = { pub mut n Int }
+
+async fn mut1(a: &mut Array[String]) -> usize {
+    a.push("x")
+    a.len()
+}
+
+async fn aInt(n: Int) -> Int {
+    n + 1
+}
+
+fn run[T](f: Future[T]) -> T {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+fn sum(a: Array[Future[usize]]) -> usize {
+    let mut n: usize = 0
+    for f in move a {
+        n = n + run(f)
+    }
+    n
+}
+
+fn swapOut(a: &mut Array[Future[usize]], b: &mut Array[Future[usize]]) {
+    match a.takeAt(0) {
+        Some(x) -> b.push(x)
+        None -> {}
+    }
+}
+
+fn fw(f: fn(&mut Array[String]) -> Future[usize], a: &mut Array[Future[usize]], b: &mut Array[Future[usize]], c: &mut Array[String]) {
+    a.push(f(c))
+    swapOut(a, b)
+}
+
+fn fill(c: &Counter, o: &mut Array[Future[Int]]) {
+    o.push(aInt(c.n))
+}
+
+fn apply(w: fn(&Counter, &mut Array[Future[Int]]) -> Void, c: &Counter, o: &mut Array[Future[Int]]) {
+    w(c, o)
+}
+
+fn moves() -> usize {
+    let mut c = Array.of("a")
+    let n1 = {
+        let w = fw
+        let mut a = Array.empty[Future[usize]]()
+        let mut b = Array.empty[Future[usize]]()
+        w(mut1, &mut a, &mut b, &mut c)
+        sum(b)
+    }
+    c = Array.of("b")
+    let n2 = {
+        let mut a = Array.empty[Future[usize]]()
+        let mut b = Array.empty[Future[usize]]()
+        fw(mut1, &mut a, &mut b, &mut c)
+        sum(b)
+    }
+    c = Array.of("c")
+    let n3 = {
+        let mut a = Array.empty[Future[usize]]()
+        let mut b = Array.empty[Future[usize]]()
+        a.push(mut1(&mut c))
+        swapOut(&mut a, &mut b)
+        sum(b)
+    }
+    c.push("d")
+    n1 + n2 + n3 + c.len()
+}
+
+fn applied() -> Int {
+    let mut c = Counter { n: 4 }
+    let mut a = Array.empty[Future[Int]]()
+    apply(fill, &c, &mut a)
+    c = Counter { n: 40 }
+    let mut t = 0
+    for f in move a {
+        t = t + run(f)
+    }
+    t + c.n
+}
+
+fn main() {
+    print "moves ${moves()} applied ${applied()}"
+}
+-- stdout --
+moves 9 applied 45

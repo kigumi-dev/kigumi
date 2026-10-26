@@ -1,0 +1,204 @@
+-- src --
+import task from std/task
+
+interface Bump {
+    fn bump(mut self)
+    fn get(self) -> Int
+}
+
+type Counter = { pub mut n Int }
+
+fn Counter.bump(mut self) {
+    self.n = self.n + 1
+}
+
+fn Counter.get(self) -> Int {
+    self.n
+}
+
+type H = { pub mut v Array[String] }
+
+type W = { pub mut f Future[Int] }
+
+type Slot = { pub mut f Future[Int] }
+
+type Box = { pub mut fu Option[Future[usize]] }
+
+async fn later() -> usize {
+    1
+}
+
+async fn zero() -> Int {
+    0
+}
+
+async fn acount(c: &mut Bump) -> Int {
+    c.bump()
+    c.get()
+}
+
+async fn mut1(a: &mut Array[String]) -> usize {
+    a.push("x")
+    a.len()
+}
+
+async fn countFs(fs: &mut Array[Future[Int]]) -> usize {
+    let w = await later()
+    fs.len() + w
+}
+
+async fn useW(w: &mut W) -> Int {
+    let v = await later()
+    (v.toInt() || 0) + 1
+}
+
+fn out2(f: fn(&mut Bump) -> Future[Int], c: &mut Bump, o: &mut Array[Future[Int]]) {
+    o.push(f(c))
+}
+
+fn out1(f: fn(&mut Bump) -> Future[Int], c: &mut Bump, o: &mut Future[Int]) {
+    o = f(c)
+}
+
+fn outR(f: fn(&mut Bump) -> Future[Int], c: &mut Bump, o: &mut Slot) {
+    o.f = f(c)
+}
+
+fn outA(f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], o: &mut Array[Future[usize]]) {
+    o.push(f(c))
+}
+
+fn out3(c: &mut Array[String], o: &mut Array[Future[usize]]) {
+    let g = mut1
+    o.push(g(c))
+}
+
+fn mkQ(fs: &mut Array[Future[Int]]) -> Future[usize] {
+    let g = countFs
+    g(fs)
+}
+
+fn mkW(w: &mut W) -> Future[Int] {
+    let g = useW
+    g(w)
+}
+
+fn mkH(h: &mut H) -> Future[usize] {
+    let g = mut1
+    g(&mut h.v)
+}
+
+fn H.mk(mut self) -> Future[usize] {
+    let g = mut1
+    g(&mut self.v)
+}
+
+fn Box.put3(mut self, c: &mut Array[String]) {
+    let g = mut1
+    self.fu = Some(g(c))
+}
+
+fn run[T](f: Future[T]) -> T {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+type SlotU = { pub mut f Future[usize] }
+
+fn outF(f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], o: &mut Future[usize]) {
+    o = f(c)
+}
+
+fn outS(f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], o: &mut SlotU) {
+    o.f = f(c)
+}
+
+fn outsIn() -> usize {
+    let mut c = Array.of("a")
+    let y = {
+        let v = outF
+        let mut o = later()
+        v(mut1, &mut c, &mut o)
+        run(o)
+    }
+    c = Array.of("q")
+    let z = {
+        let r = outS
+        let mut s = SlotU { f: later() }
+        r(mut1, &mut c, &mut s)
+        run(s.f)
+    }
+    c.push("r")
+    let mut k = Counter { n: 5 }
+    let n = {
+        let w = out2
+        let mut a = Array.empty[Future[Int]]()
+        w(acount, &mut k, &mut a)
+        let one: usize = 1
+        one
+    }
+    k.bump()
+    y + z + c.len() + n + (k.n.toUsize() || 0)
+}
+
+fn sum(a: Array[Future[usize]]) -> usize {
+    let mut n: usize = 0
+    for f in move a {
+        n = n + run(f)
+    }
+    n
+}
+
+fn arraysIn() -> usize {
+    let w = outA
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    w(mut1, &mut c, &mut a)
+    let n = sum(a)
+    c = Array.of("q")
+    let mut b = Array.empty[Future[usize]]()
+    outA(mut1, &mut c, &mut b)
+    let m = sum(b)
+    c = Array.of("r", "r")
+    let mut d = Array.empty[Future[usize]]()
+    out3(&mut c, &mut d)
+    let k = sum(d)
+    c.push("s")
+    n + m + k + c.len()
+}
+
+fn keptIn() -> usize {
+    let mut fs = Array.of(zero(), zero())
+    let n = run(mkQ(&mut fs))
+    fs = Array.of(zero())
+    let m = mkQ
+    let k = run(m(&mut fs))
+    let mut w = W { f: zero() }
+    let x = run(mkW(&mut w))
+    w = W { f: zero() }
+    let mut hh = H { v: Array.of("a") }
+    let y = run(mkH(&mut hh))
+    hh.v = Array.of("q", "q", "q")
+    let z = run(hh.mk())
+    hh.v.push("t")
+    n + k + (x.toUsize() || 0) + y + z + hh.v.len() + fs.len()
+}
+
+fn boxIn() -> usize {
+    let mut c = Array.of("a")
+    let n = {
+        let mut b = Box { fu: None }
+        b.put3(&mut c)
+        match b.fu {
+            Some(f) -> run(f)
+            None -> 0
+        }
+    }
+    c = Array.of("q")
+    n + c.len()
+}
+
+fn main() {
+    print "outs ${outsIn()} arrays ${arraysIn()} kept ${keptIn()} box ${boxIn()}"
+}
+-- stdout --
+outs 14 arrays 11 kept 19 box 3

@@ -24,16 +24,24 @@ func (c *borrowCheck) frameBorrows(b *borrowInfo) *borrowInfo {
 	return &kept
 }
 
-// valueResultSource makes a value or witness call whose result names a type parameter or holds a Future or Task a
-// carrier of the borrows its arguments take of this frame: the signature cannot say the result does not keep them.
+// valueResultSource makes a value or witness call whose result names a type parameter, or holds a Future or Task that may
+// keep an argument (asyncKept), a carrier of the borrows those arguments take of this frame.
 func (c *borrowCheck) valueResultSource(in Inst) (*borrowInfo, bool) {
-	if !c.namesTypeParam(c.f.Locals[in.Dst].Type) && !c.asyncValueCall(in) {
+	generic, kept := c.namesTypeParam(c.f.Locals[in.Dst].Type), c.asyncKept(in)
+	if !generic && kept == nil {
 		return nil, false
 	}
 	var found []*borrowInfo
 	whole := true
-	for _, a := range in.Args[1:] {
-		h, ok := c.lentArgBorrow(in, a)
+	for k, a := range in.Args[1:] {
+		var h *borrowInfo
+		ok := false
+		switch {
+		case kept != nil && kept(k):
+			h, ok = c.keptArgBorrow(in.Dst, a)
+		case generic:
+			h, ok = c.holders[a]
+		}
 		if !ok {
 			continue
 		}
@@ -67,10 +75,10 @@ func (c *borrowCheck) storedInfo(fl storeFlow, v flowArg, caller bool) (*borrowI
 	b, ok := c.tieInfo(v, fl.generic, caller)
 	if v.at != nil {
 		b, ok = c.partInfo(v)
-	} else if !ok && v.tie == tieRef {
-		c.scalarCell(v.arg)
+	} else if !ok && v.tie == tieRef && !c.scalarCell(v.arg) {
+		b, ok = c.cellPlaceBorrow(v.arg)
 	}
-	if !ok || !fl.generic {
+	if !ok || !fl.generic && !fl.kept {
 		return b, ok
 	}
 	if caller {

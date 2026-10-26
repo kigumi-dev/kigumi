@@ -42,7 +42,7 @@ func (c *checker) methodValue(n, base syntax.NodeID, valueType TypeID, m EntityI
 	c.deferTruncateValue(n, m, inst)
 	if async {
 		sig = c.asyncValueFn(sig)
-		c.noteAsyncValue(n, m)
+		c.noteAsyncValue(n, m, sig)
 	} else {
 		c.valueEntry(n, m, sig)
 	}

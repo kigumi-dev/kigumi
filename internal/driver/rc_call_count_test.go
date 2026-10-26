@@ -23,15 +23,15 @@ var rcCallSites = map[string]*regexp.Regexp{
 
 // Call sites of the count and cell runtime calls in the IR of every native run fixture, std included.
 var pinnedRCCalls = map[string]int{
-	"fixtures":         911,
-	"rt_retain":        9095,
-	"rt_release":       68827,
-	"rt_release_outer": 26515,
-	"rt_drop":          40997,
-	"rt_cell_init":     5595,
-	"rt_cell_take":     2128,
-	"rt_setfield_swap": 543,
-	"rt_setindex_swap": 100,
+	"fixtures":         919,
+	"rt_retain":        9223,
+	"rt_release":       69119,
+	"rt_release_outer": 27204,
+	"rt_drop":          41117,
+	"rt_cell_init":     5720,
+	"rt_cell_take":     2225,
+	"rt_setfield_swap": 552,
+	"rt_setindex_swap": 106,
 }
 
 // The same call sites over the fixtures that existed before the retain / release elimination, re-measured when a
@@ -432,6 +432,14 @@ var addedAfterBaseline = map[string]bool{
 	"async_value_wrap_ok.txtar":                     true,
 	"async_value_wide_ok.txtar":                     true,
 	"borrow_store_dest.txtar":                       true,
+	"async_value_sync_forward_ok.txtar":             true,
+	"async_method_value_wide_ok.txtar":              true,
+	"async_value_sync_store_ok.txtar":               true,
+	"async_value_unknown_callee_ok.txtar":           true,
+	"method_value_receiver_ok.txtar":                true,
+	"async_value_kept_store_ok.txtar":               true,
+	"async_value_forward_relay_ok.txtar":            true,
+	"async_value_move_between_ok.txtar":             true,
 }
 
 func TestRCCallCounts(t *testing.T) {

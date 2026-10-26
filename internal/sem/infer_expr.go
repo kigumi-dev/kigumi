@@ -155,7 +155,7 @@ func (c *checker) fnItemValue(n syntax.NodeID, set OverloadSetID) TypeID {
 	}
 	if info.Declared&EffAsync != 0 {
 		sig = c.asyncValueFn(sig)
-		c.noteAsyncValue(n, fn)
+		c.noteAsyncValue(n, fn, sig)
 	} else {
 		c.valueEntry(n, fn, sig)
 	}

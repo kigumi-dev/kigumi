@@ -1,0 +1,119 @@
+-- src --
+import task from std/task
+
+interface Bump {
+    fn bump(mut self)
+    fn get(self) -> Int
+}
+
+type Counter = { pub mut n Int }
+
+fn Counter.bump(mut self) {
+    self.n = self.n + 1
+}
+
+fn Counter.get(self) -> Int {
+    self.n
+}
+
+interface Mk {
+    fn make(self, f: fn(&mut Bump) -> Future[Int], c: &mut Bump) -> Future[Int]
+}
+
+type M = { pub k Int }
+
+fn M.make(self, f: fn(&mut Bump) -> Future[Int], c: &mut Bump) -> Future[Int] {
+    f(c)
+}
+
+async fn zero() -> Int {
+    0
+}
+
+async fn acount(c: &mut Bump) -> Int {
+    c.bump()
+    c.get()
+}
+
+async fn aInt(n: Int) -> Int {
+    n + 1
+}
+
+async fn mut1(a: &mut Array[String]) -> usize {
+    a.push("x")
+    a.len()
+}
+
+fn run[T](f: Future[T]) -> T {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+fn put(f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], o: &mut Array[Future[usize]]) {
+    o.push(f(c))
+}
+
+fn fk(f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], o: &mut Array[Future[usize]]) {
+    put(f, c, o)
+}
+
+fn fill(c: &Counter, o: &mut Array[Future[Int]]) {
+    o.push(aInt(c.n))
+}
+
+fn apply(w: fn(&Counter, &mut Array[Future[Int]]) -> Void, c: &Counter, o: &mut Array[Future[Int]]) {
+    w(c, o)
+}
+
+fn reg(cbs: &mut Array[fn(Int) -> Future[Int]], c: &Counter) {
+    cbs.push(aInt)
+}
+
+fn applyReg(w: fn(&mut Array[fn(Int) -> Future[Int]], &Counter) -> Void, cbs: &mut Array[fn(Int) -> Future[Int]], c: &Counter) {
+    w(cbs, c)
+}
+
+fn viaG[G: Fn[fn(fn(&mut Bump) -> Future[Int], &mut Bump, &mut Array[Future[Int]]) -> Void]](w: G, c: &mut Bump, o: &mut Array[Future[Int]]) {
+    w(acount, c, o)
+}
+
+fn fw[T: Mk](m: &T, f: fn(&mut Bump) -> Future[Int], c: &mut Bump) -> Future[Int] {
+    m.make(f, c)
+}
+
+fn h1() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    fk(mut1, &mut c, &mut a)
+    let n = match a.takeAt(0) {
+        Some(f) -> run(f)
+        None -> 0
+    }
+    n
+}
+
+fn b1() -> Int {
+    let c = Counter { n: 4 }
+    let mut a = Array.empty[Future[Int]]()
+    apply(fill, &c, &mut a)
+    let mut t = 0
+    for x in move a {
+        t = t + run(x)
+    }
+    t
+}
+
+fn c1() -> Int {
+    let c = Counter { n: 4 }
+    let mut cbs = Array.empty[fn(Int) -> Future[Int]]()
+    applyReg(reg, &mut cbs, &c)
+    match cbs.takeAt(0) {
+        Some(g) -> run(g(1))
+        None -> 0
+    }
+}
+
+fn main() {
+    print "h1 ${h1()} b1 ${b1()} c1 ${c1()}"
+}
+-- stdout --
+h1 2 b1 5 c1 2

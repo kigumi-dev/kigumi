@@ -1,0 +1,111 @@
+-- module --
+mir: planned
+-- src --
+interface Bump {
+    fn bump(mut self)
+    fn get(self) -> Int
+}
+
+type Counter = { pub mut n Int }
+
+fn Counter.bump(mut self) {
+    self.n = self.n + 1
+}
+
+fn Counter.get(self) -> Int {
+    self.n
+}
+
+type S = { pub mut fs Array[Future[Int]] }
+
+type V = { pub mut k Int }
+
+type G[T] = { pub mut xs Array[T] }
+
+async fn acount(c: &mut Bump) -> Int {
+    c.bump()
+    c.get()
+}
+
+async fn zero() -> Int {
+    0
+}
+
+fn S.put(mut self, f: Future[Int]) {
+    self.fs.push(f)
+}
+
+fn S.look(self, f: Future[Int]) -> usize {
+    self.fs.len()
+}
+
+fn V.put(mut self, f: Future[Int]) {
+    self.k = 1
+}
+
+fn G[T].push1(mut self, x: T) {
+    self.xs.push(x)
+}
+
+fn moveOnly() -> S {
+    let mut s = S { fs: Array.empty() }
+    let mut c = Counter { n: 5 }
+    let put = s.put //~ ERROR cannot form a method value on move-only `S`
+    put(acount(&mut c))
+    s
+}
+
+fn viaRef() -> S {
+    let mut s = S { fs: Array.empty() }
+    let r = &mut s
+    let put = r.put //~ ERROR cannot form a method value on move-only `S`
+    put(zero())
+    s
+}
+
+fn generic() -> G[Future[Int]] {
+    let mut g = G { xs: Array.empty[Future[Int]]() }
+    let mut c = Counter { n: 5 }
+    let p = g.push1 //~ ERROR cannot form a method value on move-only `G[Future[Int]]`
+    p(acount(&mut c))
+    g
+}
+
+fn copied() -> V {
+    let mut v = V { k: 0 }
+    let put = v.put //~ ERROR `put` takes `mut self`, but a method value runs it on its own copy of the receiver, so its writes are lost
+    put(zero())
+    v
+}
+
+fn main() {
+}
+-- expect --
+error[E416]: cannot form a method value on move-only `S`
+  --> main.kg:50:15
+   |
+50 |     let put = s.put //~ ERROR cannot form a method value on move-only `S`
+   |               ^^^^^
+   = help: write a lambda
+
+error[E416]: cannot form a method value on move-only `S`
+  --> main.kg:58:15
+   |
+58 |     let put = r.put //~ ERROR cannot form a method value on move-only `S`
+   |               ^^^^^
+   = help: write a lambda
+
+error[E416]: cannot form a method value on move-only `G[Future[Int]]`
+  --> main.kg:66:13
+   |
+66 |     let p = g.push1 //~ ERROR cannot form a method value on move-only `G[Future[Int]]`
+   |             ^^^^^^^
+   = help: write a lambda
+
+error[E2270]: `put` takes `mut self`, but a method value runs it on its own copy of the receiver, so its writes are lost
+  --> main.kg:73:15
+   |
+73 |     let put = v.put //~ ERROR `put` takes `mut self`, but a method value runs it on its own copy of the receiver, so its writes are lost
+   |               ^^^^^
+   = help: call the method directly, or write a lambda that calls it
+

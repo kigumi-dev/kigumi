@@ -1,0 +1,396 @@
+-- module --
+mir: planned
+-- src --
+import task from std/task
+
+interface Bump {
+    fn bump(mut self)
+    fn get(self) -> Int
+}
+
+type Counter = { pub mut n Int }
+
+fn Counter.bump(mut self) {
+    self.n = self.n + 1
+}
+
+fn Counter.get(self) -> Int {
+    self.n
+}
+
+type R = { pub mut n Int }
+
+type Rec = { pub f fn(fn(&mut Array[String]) -> Future[usize], &mut Array[String]) -> Future[usize] }
+
+async fn acount(c: &mut Bump) -> Int {
+    c.bump()
+    c.get()
+}
+
+async fn mut1(a: &mut Array[String]) -> usize {
+    a.push("x")
+    a.len()
+}
+
+async fn bump(n: &mut Int) -> Int {
+    n = n + 1
+    n + 0
+}
+
+fn mkV(f: fn(&mut Bump) -> Future[Int], c: &mut Bump) -> Future[Int] {
+    f(c)
+}
+
+fn mk(f: fn(&mut Array[String]) -> Future[usize], a: &mut Array[String]) -> Future[usize] {
+    f(a)
+}
+
+fn mkS(f: fn(&mut Int) -> Future[Int], n: &mut Int) -> Future[Int] {
+    f(n)
+}
+
+fn viaLocal(a: &mut Array[String]) -> Future[usize] {
+    let g = mut1
+    g(a)
+}
+
+fn mk3(c: &mut Bump) -> Future[Int] {
+    let g = acount
+    g(c)
+}
+
+fn mkN(n: &mut Int) -> Future[Int] {
+    let g = bump
+    g(n)
+}
+
+fn mkG[T](f: fn(&mut T) -> Future[usize], a: &mut T) -> Future[usize] {
+    f(a)
+}
+
+fn rec(f: fn(&mut Array[String]) -> Future[usize], a: &mut Array[String], n: Int) -> Future[usize] {
+    if n == 0 {
+        f(a)
+    } else {
+        rec(f, a, n - 1)
+    }
+}
+
+fn nest(f: fn(&mut Array[String]) -> Future[usize], a: &mut Array[String]) -> Future[usize] {
+    mk(f, a)
+}
+
+fn noKeep(f: fn(&mut Array[String]) -> Future[usize], a: &mut Array[String]) -> Future[usize] {
+    a.push("n")
+    zero()
+}
+
+async fn zero() -> usize {
+    0
+}
+
+fn run[T](f: Future[T]) -> T {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+fn esc() -> Future[Int] {
+    let w = mkV
+    let mut c = Counter { n: 5 } //~ ERROR `c` is still borrowed when its scope ends here
+    w(acount, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+}
+
+fn detach(f: Future[Int]) {
+    let t = task.spawn(f)
+}
+
+fn spawned() {
+    let w = mkV
+    let mut c = Counter { n: 5 }
+    detach(w(acount, &mut c)) //~ ERROR a future holding an `&Interface` view made in this frame cannot be spawned
+}
+
+fn escScalar() -> Future[Int] {
+    let w = mkS
+    let mut k = 1 //~ ERROR `k` is still borrowed when its scope ends here
+    w(bump, &mut k) //~ ERROR a borrow cannot be returned
+}
+
+fn reassigned() -> usize {
+    let w = mk
+    let mut z = Array.of("a")
+    let h = w(mut1, &mut z)
+    z = Array.of("q", "q", "q") //~ ERROR `z` is exclusively borrowed and cannot be used here //~ ERROR `z` is borrowed and cannot be moved
+    run(h) + z.len()
+}
+
+fn fromRecord() -> usize {
+    let r = Rec { f: mk }
+    let mut z = Array.of("a")
+    let h = (r.f)(mut1, &mut z)
+    z.push("q") //~ ERROR `z` is exclusively borrowed and cannot be used here
+    run(h) + z.len()
+}
+
+fn localForward() -> usize {
+    let w = viaLocal
+    let mut z = Array.of("a")
+    let h = w(&mut z)
+    z.push("q") //~ ERROR `z` is exclusively borrowed and cannot be used here
+    run(h) + z.len()
+}
+
+fn shapes(c: Bool) -> usize {
+    let mut z = Array.of("a")
+    let g = mkG[Array[String]]
+    let h1 = g(mut1, &mut z)
+    let r = rec
+    let h2 = r(mut1, &mut z, 2) //~ ERROR `z` is exclusively borrowed and cannot be used here
+    let n = nest
+    let h3 = n(mut1, &mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+    let j = if c { noKeep } else { mk }
+    let h4 = j(mut1, &mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+    let o = Some(mk)
+    let h5 = match o {
+        Some(f) -> f(mut1, &mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+        None -> zero()
+    }
+    z.push("q") //~ ERROR `z` is exclusively borrowed and cannot be used here
+    run(h1) + run(h2) + run(h3) + run(h4) + run(h5)
+}
+
+fn scalarField() -> Int {
+    let w = mkS
+    let mut r = R { n: 1 }
+    let x = run(w(bump, &mut r.n)) //~ ERROR a mutable borrow of an array element or struct field cannot be passed to an async call
+    x + r.n
+}
+
+fn directEsc() -> Future[Int] {
+    let mut c = Counter { n: 5 } //~ ERROR `c` is still borrowed when its scope ends here
+    mk3(&mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+}
+
+fn directSpawned() {
+    let mut c = Counter { n: 5 }
+    detach(mk3(&mut c)) //~ ERROR a future holding an `&Interface` view made in this frame cannot be spawned
+}
+
+fn directScalar() -> Future[Int] {
+    let mut k = 1 //~ ERROR `k` is still borrowed when its scope ends here
+    mkN(&mut k) //~ ERROR a borrow cannot be returned
+}
+
+fn directReassigned() -> usize {
+    let mut z = Array.of("a")
+    let h = viaLocal(&mut z)
+    z = Array.of("q") //~ ERROR `z` is exclusively borrowed and cannot be used here //~ ERROR `z` is borrowed and cannot be moved
+    run(h) + z.len()
+}
+
+fn directField() -> Int {
+    let mut r = R { n: 1 }
+    let x = run(mkN(&mut r.n)) //~ ERROR a mutable borrow of an array element or struct field cannot be passed to an async call
+    x + r.n
+}
+
+fn main() {
+    spawned()
+    directSpawned()
+    print "${run(directEsc())} ${run(directScalar())} ${directReassigned()} ${directField()}"
+    print "${run(esc())} ${run(escScalar())} ${reassigned()} ${fromRecord()} ${localForward()} ${shapes(true)} ${scalarField()}"
+}
+-- expect --
+error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
+  --> main.kg:96:15
+   |
+96 |     w(acount, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+   |               ^^^^^^
+
+error[move-while-borrowed]: `c` is still borrowed when its scope ends here
+  --> main.kg:95:13
+   |
+95 |     let mut c = Counter { n: 5 } //~ ERROR `c` is still borrowed when its scope ends here
+   |             ^
+
+error[E2262]: a future holding an `&Interface` view made in this frame cannot be spawned or passed to a call that may spawn it, since the frame ends before the task may next run; pass `&T` of the concrete type, or await the future here
+   --> main.kg:106:5
+    |
+106 |     detach(w(acount, &mut c)) //~ ERROR a future holding an `&Interface` view made in this frame cannot be spawned
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a borrow cannot be returned
+   --> main.kg:112:13
+    |
+112 |     w(bump, &mut k) //~ ERROR a borrow cannot be returned
+    |             ^^^^^^
+
+error[move-while-borrowed]: `k` is still borrowed when its scope ends here
+   --> main.kg:111:13
+    |
+111 |     let mut k = 1 //~ ERROR `k` is still borrowed when its scope ends here
+    |             ^
+
+error[E2198]: `z` is exclusively borrowed and cannot be used here
+   --> main.kg:119:5
+    |
+119 |     z = Array.of("q", "q", "q") //~ ERROR `z` is exclusively borrowed and cannot be used here //~ ERROR `z` is borrowed and cannot be moved
+    |     ^
+    = help: end the borrow first or use a copy
+note: `z` is borrowed here
+   --> main.kg:118:21
+    |
+118 |     let h = w(mut1, &mut z)
+    |                     ^^^^^^
+
+error[move-while-borrowed]: `z` is borrowed and cannot be moved or dropped here
+   --> main.kg:119:5
+    |
+119 |     z = Array.of("q", "q", "q") //~ ERROR `z` is exclusively borrowed and cannot be used here //~ ERROR `z` is borrowed and cannot be moved
+    |     ^
+
+error[E2198]: `z` is exclusively borrowed and cannot be used here
+   --> main.kg:127:5
+    |
+127 |     z.push("q") //~ ERROR `z` is exclusively borrowed and cannot be used here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `z` is borrowed here
+   --> main.kg:126:25
+    |
+126 |     let h = (r.f)(mut1, &mut z)
+    |                         ^^^^^^
+
+error[E2198]: `z` is exclusively borrowed and cannot be used here
+   --> main.kg:135:5
+    |
+135 |     z.push("q") //~ ERROR `z` is exclusively borrowed and cannot be used here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `z` is borrowed here
+   --> main.kg:134:15
+    |
+134 |     let h = w(&mut z)
+    |               ^^^^^^
+
+error[E2198]: `z` is exclusively borrowed and cannot be used here
+   --> main.kg:146:22
+    |
+146 |     let h3 = n(mut1, &mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+    |                      ^^^^^^
+    = help: end the borrow first or use a copy
+note: `z` is borrowed here
+   --> main.kg:144:22
+    |
+144 |     let h2 = r(mut1, &mut z, 2) //~ ERROR `z` is exclusively borrowed and cannot be used here
+    |                      ^^^^^^
+
+error[E2198]: `z` is exclusively borrowed and cannot be used here
+   --> main.kg:144:22
+    |
+144 |     let h2 = r(mut1, &mut z, 2) //~ ERROR `z` is exclusively borrowed and cannot be used here
+    |                      ^^^^^^
+    = help: end the borrow first or use a copy
+note: `z` is borrowed here
+   --> main.kg:142:22
+    |
+142 |     let h1 = g(mut1, &mut z)
+    |                      ^^^^^^
+
+error[E2198]: `z` is exclusively borrowed and cannot be used here
+   --> main.kg:148:22
+    |
+148 |     let h4 = j(mut1, &mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+    |                      ^^^^^^
+    = help: end the borrow first or use a copy
+note: `z` is borrowed here
+   --> main.kg:146:22
+    |
+146 |     let h3 = n(mut1, &mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+    |                      ^^^^^^
+
+error[E2198]: `z` is exclusively borrowed and cannot be used here
+   --> main.kg:154:5
+    |
+154 |     z.push("q") //~ ERROR `z` is exclusively borrowed and cannot be used here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `z` is borrowed here
+   --> main.kg:151:28
+    |
+151 |         Some(f) -> f(mut1, &mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+    |                            ^^^^^^
+
+error[E2198]: `z` is exclusively borrowed and cannot be used here
+   --> main.kg:151:28
+    |
+151 |         Some(f) -> f(mut1, &mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+    |                            ^^^^^^
+    = help: end the borrow first or use a copy
+note: `z` is borrowed here
+   --> main.kg:148:22
+    |
+148 |     let h4 = j(mut1, &mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+    |                      ^^^^^^
+
+error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call
+   --> main.kg:161:30
+    |
+161 |     let x = run(w(bump, &mut r.n)) //~ ERROR a mutable borrow of an array element or struct field cannot be passed to an async call
+    |                              ^^^
+    = help: copy the value to a local first, call with `&mut` on that local, and write it back after the call
+
+error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
+   --> main.kg:167:5
+    |
+167 |     mk3(&mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    |     ^^^^^^^^^^
+
+error[move-while-borrowed]: `c` is still borrowed when its scope ends here
+   --> main.kg:166:13
+    |
+166 |     let mut c = Counter { n: 5 } //~ ERROR `c` is still borrowed when its scope ends here
+    |             ^
+
+error[E2262]: a future holding an `&Interface` view made in this frame cannot be spawned or passed to a call that may spawn it, since the frame ends before the task may next run; pass `&T` of the concrete type, or await the future here
+   --> main.kg:172:5
+    |
+172 |     detach(mk3(&mut c)) //~ ERROR a future holding an `&Interface` view made in this frame cannot be spawned
+    |     ^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a borrow cannot be returned
+   --> main.kg:177:5
+    |
+177 |     mkN(&mut k) //~ ERROR a borrow cannot be returned
+    |     ^^^^^^^^^^
+
+error[move-while-borrowed]: `k` is still borrowed when its scope ends here
+   --> main.kg:176:13
+    |
+176 |     let mut k = 1 //~ ERROR `k` is still borrowed when its scope ends here
+    |             ^
+
+error[E2198]: `z` is exclusively borrowed and cannot be used here
+   --> main.kg:183:5
+    |
+183 |     z = Array.of("q") //~ ERROR `z` is exclusively borrowed and cannot be used here //~ ERROR `z` is borrowed and cannot be moved
+    |     ^
+    = help: end the borrow first or use a copy
+note: `z` is borrowed here
+   --> main.kg:182:13
+    |
+182 |     let h = viaLocal(&mut z)
+    |             ^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `z` is borrowed and cannot be moved or dropped here
+   --> main.kg:183:5
+    |
+183 |     z = Array.of("q") //~ ERROR `z` is exclusively borrowed and cannot be used here //~ ERROR `z` is borrowed and cannot be moved
+    |     ^
+
+error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call
+   --> main.kg:189:26
+    |
+189 |     let x = run(mkN(&mut r.n)) //~ ERROR a mutable borrow of an array element or struct field cannot be passed to an async call
+    |                          ^^^
+    = help: copy the value to a local first, call with `&mut` on that local, and write it back after the call
+

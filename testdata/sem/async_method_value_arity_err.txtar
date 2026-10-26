@@ -1,0 +1,28 @@
+-- module --
+mir: planned
+-- src --
+type T = { pub n usize }
+
+async fn T.big31(self, p0: usize, p1: usize, p2: usize, p3: usize, p4: usize, p5: usize, p6: usize, p7: usize, p8: usize, p9: usize, p10: usize, p11: usize, p12: usize, p13: usize, p14: usize, p15: usize, p16: usize, p17: usize, p18: usize, p19: usize, p20: usize, p21: usize, p22: usize, p23: usize, p24: usize, p25: usize, p26: usize, p27: usize, p28: usize, s: &Array[String], a: &mut Array[String]) -> usize {
+    a.push("x")
+    self.n + p0 + s.len() + a.len()
+}
+
+async fn T.big32(self, p0: usize, p1: usize, p2: usize, p3: usize, p4: usize, p5: usize, p6: usize, p7: usize, p8: usize, p9: usize, p10: usize, p11: usize, p12: usize, p13: usize, p14: usize, p15: usize, p16: usize, p17: usize, p18: usize, p19: usize, p20: usize, p21: usize, p22: usize, p23: usize, p24: usize, p25: usize, p26: usize, p27: usize, p28: usize, p29: usize, s: &Array[String], a: &mut Array[String]) -> usize {
+    a.push("x")
+    self.n + p0 + s.len() + a.len()
+}
+
+fn main() {
+    let t = T { n: 1 }
+    let f = t.big31
+    let g = t.big32 //~ ERROR `big32` takes 32 arguments, more than the 31 a call through an `async` fn value can lend
+}
+-- expect --
+error[E1504]: `big32` takes 32 arguments, more than the 31 a call through an `async` fn value can lend
+  --> main.kg:16:13
+   |
+16 |     let g = t.big32 //~ ERROR `big32` takes 32 arguments, more than the 31 a call through an `async` fn value can lend
+   |             ^^^^^^^
+   = help: call it directly, or pass some of the arguments in a record
+

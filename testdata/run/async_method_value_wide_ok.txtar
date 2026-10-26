@@ -1,0 +1,38 @@
+-- src --
+import task from std/task
+
+type T = { pub n usize }
+
+async fn later() -> usize {
+    1
+}
+
+async fn T.big(self, p0: usize, p1: usize, p2: usize, p3: usize, p4: usize, p5: usize, p6: usize, p7: usize, p8: usize, p9: usize, p10: usize, p11: usize, p12: usize, p13: usize, p14: usize, p15: usize, p16: usize, p17: usize, p18: usize, p19: usize, p20: usize, p21: usize, p22: usize, p23: usize, p24: usize, p25: usize, p26: usize, p27: usize, p28: usize, s: &Array[String], a: &mut Array[String]) -> usize {
+    let w = await later()
+    a.push("x")
+    self.n + p0 + p28 + s.len() + a.len() + w
+}
+
+fn run[R](f: Future[R]) -> R {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+async fn inAsync(t: T, names: &Array[String]) -> usize {
+    let f = t.big
+    let mut y = Array.of("a")
+    let v = await f(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, names, &mut y)
+    v + y.len()
+}
+
+fn main() {
+    let t = T { n: 1 }
+    let names = Array.of("n1", "n2")
+    let f = t.big
+    let mut z = Array.of("a")
+    let v = run(f(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, &names, &mut z))
+    let d = run(t.big(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, &names, &mut z))
+    let e = run(inAsync(t, &names))
+    print "big ${v} ${d} ${e} ${z.len()}"
+}
+-- stdout --
+big 36 37 38 3

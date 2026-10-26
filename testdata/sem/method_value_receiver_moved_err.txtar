@@ -1,0 +1,59 @@
+-- module --
+mir: planned
+-- src --
+interface Bump {
+    fn bump(mut self)
+    fn get(self) -> Int
+}
+
+type Counter = { pub mut n Int }
+
+fn Counter.bump(mut self) {
+    self.n = self.n + 1
+}
+
+fn Counter.get(self) -> Int {
+    self.n
+}
+
+type S = { pub mut fs Array[Future[Int]] }
+
+type V = { pub mut k Int }
+
+type G[T] = { pub mut xs Array[T] }
+
+async fn acount(c: &mut Bump) -> Int {
+    c.bump()
+    c.get()
+}
+
+async fn zero() -> Int {
+    0
+}
+
+fn S.look(self, f: Future[Int]) -> usize {
+    self.fs.len()
+}
+
+fn movedReceiver() -> S {
+    let s = S { fs: Array.empty() }
+    let look = s.look
+    let n = look(zero())
+    s //~ ERROR `s` was moved; it cannot be used again
+}
+
+fn main() {
+}
+-- expect --
+error[E2197]: `s` was moved; it cannot be used again
+  --> main.kg:39:5
+   |
+39 |     s //~ ERROR `s` was moved; it cannot be used again
+   |     ^
+   = help: clone it before the move, borrow it with `&`, or make the move its last use
+note: `s` is moved here
+  --> main.kg:37:16
+   |
+37 |     let look = s.look
+   |                ^
+

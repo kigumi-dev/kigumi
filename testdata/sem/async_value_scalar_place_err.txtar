@@ -126,69 +126,80 @@ fn main() {
     print "${scalarPlaces()} ${throughWrappers()} ${outOfWrappers()} ${intoReceivers()}"
 }
 -- expect --
-error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call; copy the value to a local first, call with `&mut` on that local, and write it back after the call
-  --> main.kg:75:19
+error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call
+  --> main.kg:75:24
    |
 75 |     let y = run(b(&mut a[1])) //~ ERROR a mutable borrow of an array element or struct field cannot be passed to an async call
-   |                   ^^^^^^^^
+   |                        ^^^
+   = help: copy the value to a local first, call with `&mut` on that local, and write it back after the call
 
-error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call; copy the value to a local first, call with `&mut` on that local, and write it back after the call
-  --> main.kg:74:19
+error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call
+  --> main.kg:74:24
    |
 74 |     let x = run(b(&mut r.n)) //~ ERROR a mutable borrow of an array element or struct field cannot be passed to an async call
-   |                   ^^^^^^^^
+   |                        ^^^
+   = help: copy the value to a local first, call with `&mut` on that local, and write it back after the call
 
-error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call; copy the value to a local first, call with `&mut` on that local, and write it back after the call
-  --> main.kg:85:29
+error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call
+  --> main.kg:85:34
    |
 85 |     let y = run(call1(bump, &mut a[1])) //~ ERROR a mutable borrow of an array element or struct field cannot be passed to an async call
-   |                             ^^^^^^^^
+   |                                  ^^^
+   = help: copy the value to a local first, call with `&mut` on that local, and write it back after the call
 
-error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call; copy the value to a local first, call with `&mut` on that local, and write it back after the call
-  --> main.kg:84:27
+error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call
+  --> main.kg:84:32
    |
 84 |     let x = run(mkS(bump, &mut r.n)) //~ ERROR a mutable borrow of an array element or struct field cannot be passed to an async call
-   |                           ^^^^^^^^
+   |                                ^^^
+   = help: copy the value to a local first, call with `&mut` on that local, and write it back after the call
 
-error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call; copy the value to a local first, call with `&mut` on that local, and write it back after the call
-   --> main.kg:102:27
+error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call
+   --> main.kg:102:32
     |
 102 |     let hh = mkHold(bump, &mut r.n) //~ ERROR a mutable borrow of an array element or struct field cannot be passed to an async call
-    |                           ^^^^^^^^
+    |                                ^^^
+    = help: copy the value to a local first, call with `&mut` on that local, and write it back after the call
 
-error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call; copy the value to a local first, call with `&mut` on that local, and write it back after the call
-   --> main.kg:101:25
+error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call
+   --> main.kg:101:30
     |
 101 |     let o = mkOpt(bump, &mut a[1]) //~ ERROR a mutable borrow of an array element or struct field cannot be passed to an async call
-    |                         ^^^^^^^^
+    |                              ^^^
+    = help: copy the value to a local first, call with `&mut` on that local, and write it back after the call
 
-error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call; copy the value to a local first, call with `&mut` on that local, and write it back after the call
-   --> main.kg:100:20
+error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call
+   --> main.kg:100:25
     |
 100 |     pushInto(bump, &mut r.n, &mut fs) //~ ERROR a mutable borrow of an array element or struct field cannot be passed to an async call
-    |                    ^^^^^^^^
+    |                         ^^^
+    = help: copy the value to a local first, call with `&mut` on that local, and write it back after the call
 
-error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call; copy the value to a local first, call with `&mut` on that local, and write it back after the call
-  --> main.kg:98:18
+error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call
+  --> main.kg:98:23
    |
 98 |     putRec(bump, &mut a[0], &mut h) //~ ERROR a mutable borrow of an array element or struct field cannot be passed to an async call
-   |                  ^^^^^^^^
+   |                       ^^^
+   = help: copy the value to a local first, call with `&mut` on that local, and write it back after the call
 
-error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call; copy the value to a local first, call with `&mut` on that local, and write it back after the call
-  --> main.kg:96:18
+error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call
+  --> main.kg:96:23
    |
 96 |     mkInto(bump, &mut r.n, &mut fu) //~ ERROR a mutable borrow of an array element or struct field cannot be passed to an async call
-   |                  ^^^^^^^^
+   |                       ^^^
+   = help: copy the value to a local first, call with `&mut` on that local, and write it back after the call
 
-error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call; copy the value to a local first, call with `&mut` on that local, and write it back after the call
-   --> main.kg:118:17
+error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call
+   --> main.kg:118:22
     |
 118 |     p.add(bump, &mut a[2]) //~ ERROR a mutable borrow of an array element or struct field cannot be passed to an async call
-    |                 ^^^^^^^^
+    |                      ^^^
+    = help: copy the value to a local first, call with `&mut` on that local, and write it back after the call
 
-error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call; copy the value to a local first, call with `&mut` on that local, and write it back after the call
-   --> main.kg:116:17
+error[E1122]: a mutable borrow of an array element or struct field cannot be passed to an async call
+   --> main.kg:116:22
     |
 116 |     s.put(bump, &mut r.n) //~ ERROR a mutable borrow of an array element or struct field cannot be passed to an async call
-    |                 ^^^^^^^^
+    |                      ^^^
+    = help: copy the value to a local first, call with `&mut` on that local, and write it back after the call
 

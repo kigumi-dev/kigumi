@@ -1,0 +1,213 @@
+-- module --
+mir: planned
+-- src --
+import task from std/task
+
+interface Bump {
+    fn bump(mut self)
+    fn get(self) -> Int
+}
+
+type Counter = { pub mut n Int }
+
+fn Counter.bump(mut self) {
+    self.n = self.n + 1
+}
+
+fn Counter.get(self) -> Int {
+    self.n
+}
+
+type Maker = { pub k Int }
+
+async fn zero() -> Int {
+    0
+}
+
+async fn acount(c: &mut Bump) -> Int {
+    c.bump()
+    c.get()
+}
+
+async fn aInt(n: Int) -> Int {
+    n + 1
+}
+
+fn oArr(f: fn(&mut Bump) -> Future[Int], c: &mut Bump, o: &mut Array[Future[Int]]) {
+    o.push(f(c))
+}
+
+fn oNone(f: fn(&mut Bump) -> Future[Int], c: &mut Bump, o: &mut Array[Future[Int]]) {
+}
+
+fn Maker.out(self, f: fn(&mut Bump) -> Future[Int], c: &mut Bump, o: &mut Array[Future[Int]]) {
+    o.push(f(c))
+}
+
+fn pick() -> fn(fn(&mut Bump) -> Future[Int], &mut Bump, &mut Array[Future[Int]]) -> Void {
+    oArr
+}
+
+fn viaG[F: Fn[fn(fn(&mut Bump) -> Future[Int], &mut Bump, &mut Array[Future[Int]]) -> Void]](w: F) -> Array[Future[Int]] {
+    let mut c = Counter { n: 5 }
+    let mut a = Array.empty[Future[Int]]()
+    w(acount, &mut c, &mut a) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    a
+}
+
+fn pv(f: fn(&mut Bump) -> Future[Int], fs: &mut Array[Future[Int]], c: &mut Bump) -> Future[Int] {
+    fs.push(f(c))
+    match fs.takeAt(0) {
+        Some(x) -> x
+        None -> zero()
+    }
+}
+
+fn po(f: fn(&mut Bump) -> Future[Int], o: &mut Option[Future[Int]], c: &mut Bump) -> Future[Int] {
+    o = Some(f(c))
+    match o.take() {
+        Some(x) -> x
+        None -> zero()
+    }
+}
+
+fn b1(f: fn(Int) -> Future[Int], a: &Array[Int]) -> Future[Int] {
+    f(a.len().toInt() || 0)
+}
+
+fn b5(f: fn(Int) -> Future[Int], c: &Counter) -> Future[Int] {
+    f(c.n)
+}
+
+fn run[T](f: Future[T]) -> T {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+fn eMethod() -> Array[Future[Int]] {
+    let mut c = Counter { n: 5 }
+    let m = Maker { k: 1 }
+    let mut a = Array.empty[Future[Int]]()
+    let p = m.out
+    p(acount, &mut c, &mut a) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    a
+}
+
+fn ePick() -> Array[Future[Int]] {
+    let w = pick()
+    let mut c = Counter { n: 5 }
+    let mut a = Array.empty[Future[Int]]()
+    w(acount, &mut c, &mut a) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    a
+}
+
+fn eLambda() -> Array[Future[Int]] {
+    let w: fn(fn(&mut Bump) -> Future[Int], &mut Bump, &mut Array[Future[Int]]) -> Void = (f, c, o) => {
+        o.push(f(c))
+    }
+    let mut c = Counter { n: 5 }
+    let mut a = Array.empty[Future[Int]]()
+    w(acount, &mut c, &mut a) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    a
+}
+
+fn eGeneric() -> Array[Future[Int]] {
+    viaG(oArr)
+}
+
+fn eCell() -> Array[Future[Int]] {
+    let mut w = oNone
+    let g = () => {
+        w = oArr
+    }
+    g()
+    let mut c = Counter { n: 5 }
+    let mut a = Array.empty[Future[Int]]()
+    w(acount, &mut c, &mut a) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    a
+}
+
+fn eTake() -> Future[Int] {
+    let w = pv
+    let mut c = Counter { n: 5 } //~ ERROR `c` is still borrowed when its scope ends here
+    let mut fs = Array.empty[Future[Int]]()
+    w(acount, &mut fs, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+}
+
+fn eOpt() -> Future[Int] {
+    let w = po
+    let mut c = Counter { n: 5 } //~ ERROR `c` is still borrowed when its scope ends here
+    let mut o: Option[Future[Int]] = None
+    w(acount, &mut o, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+}
+
+fn intOnly() -> Int {
+    let w = b1
+    let mut a = Array.of(1, 2, 3)
+    let f = w(aInt, &a)
+    a.push(4)
+    a = Array.of(9)
+    let v = b5
+    let mut c = Counter { n: 5 }
+    let g = v(aInt, &c)
+    c.n = 50
+    run(f) + run(g) + a[0] + c.n
+}
+
+fn main() {
+    print "int ${intOnly()}"
+}
+-- expect --
+error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
+  --> main.kg:51:5
+   |
+51 |     w(acount, &mut c, &mut a) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
+  --> main.kg:88:5
+   |
+88 |     p(acount, &mut c, &mut a) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
+  --> main.kg:96:5
+   |
+96 |     w(acount, &mut c, &mut a) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
+   --> main.kg:106:5
+    |
+106 |     w(acount, &mut c, &mut a) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
+   --> main.kg:122:5
+    |
+122 |     w(acount, &mut c, &mut a) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
+   --> main.kg:130:24
+    |
+130 |     w(acount, &mut fs, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    |                        ^^^^^^
+
+error[move-while-borrowed]: `c` is still borrowed when its scope ends here
+   --> main.kg:128:13
+    |
+128 |     let mut c = Counter { n: 5 } //~ ERROR `c` is still borrowed when its scope ends here
+    |             ^
+
+error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
+   --> main.kg:137:23
+    |
+137 |     w(acount, &mut o, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    |                       ^^^^^^
+
+error[move-while-borrowed]: `c` is still borrowed when its scope ends here
+   --> main.kg:135:13
+    |
+135 |     let mut c = Counter { n: 5 } //~ ERROR `c` is still borrowed when its scope ends here
+    |             ^
+

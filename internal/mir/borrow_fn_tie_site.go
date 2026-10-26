@@ -11,11 +11,21 @@ type tieState struct {
 	scalarCells map[LocalID]bool
 }
 
-// tiedAt gates the tie on the call's reach; b stays unmarked when the site is not found.
-func (c *borrowCheck) tiedAt(target, holder LocalID, b *borrowInfo) *borrowInfo {
-	idx, ok := c.tieSite(target, holder)
+// tiedAt gates the tie on the call's reach, after the write-backs of both the target and a `&mut` cell value, or of
+// every argument for a kept flow, whose values may come from any of them; b stays unmarked when the site is not found.
+func (c *borrowCheck) tiedAt(fl storeFlow, value, holder LocalID, b *borrowInfo) *borrowInfo {
+	idx, ok := c.tieSite(fl.target, holder)
 	if !ok {
 		return b
+	}
+	args := []LocalID{value}
+	if fl.kept {
+		args = c.f.Blocks[c.resets.at.block].Insts[c.resets.at.idx].Args
+	}
+	for _, a := range args {
+		if wb, ok := c.cellWriteBack(a); ok {
+			idx = max(idx, wb)
+		}
 	}
 	out := *b
 	out.owners = slices.Clone(b.owners)

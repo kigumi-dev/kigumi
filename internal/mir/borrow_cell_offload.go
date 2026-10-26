@@ -18,6 +18,7 @@ type offloadMemo struct {
 	gate                     int8
 	may, detach, keep, calls map[sem.EntityID]bool
 	body, kept               map[*Func]flowSets
+	keeps                    map[keptKey]*keptSummary
 	busy                     map[*Func]bool
 }
 
@@ -25,7 +26,7 @@ func (c *borrowCheck) offloads() *offloadMemo {
 	m := &c.p.offloads
 	if m.gate == 0 {
 		m.gate, m.may, m.detach, m.keep, m.calls = -1, map[sem.EntityID]bool{}, map[sem.EntityID]bool{}, map[sem.EntityID]bool{}, map[sem.EntityID]bool{}
-		m.body, m.kept, m.busy = map[*Func]flowSets{}, map[*Func]flowSets{}, map[*Func]bool{}
+		m.body, m.kept, m.keeps, m.busy = map[*Func]flowSets{}, map[*Func]flowSets{}, map[keptKey]*keptSummary{}, map[*Func]bool{}
 		for id := 1; id < len(c.p.R.Entities); id++ {
 			if c.offloadPrim(sem.EntityID(id)) {
 				m.gate = 1

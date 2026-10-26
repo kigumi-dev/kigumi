@@ -77,6 +77,16 @@ func (c *borrowCheck) reportCode(n syntax.NodeID, local LocalID, name string, ar
 	c.report(n, local, code.Num, msg)
 }
 
+// reportCatalog is reportCode with the help on a line of its own, split by sem.FillCode as sem reports the code.
+func (c *borrowCheck) reportCatalog(n syntax.NodeID, local LocalID, name string, args ...any) {
+	code, ok := sem.CodeByName(name)
+	if !ok {
+		return
+	}
+	msg, help := sem.FillCode(code, args...)
+	c.reportHelped(n, local, code.Num, msg, 0, "", help)
+}
+
 // reportTemplate is reportCode for a message that varies by shape (E1531's
 // tuple element vs. record field): template already carries its help text.
 func (c *borrowCheck) reportTemplate(n syntax.NodeID, local LocalID, num, template string, args ...any) {

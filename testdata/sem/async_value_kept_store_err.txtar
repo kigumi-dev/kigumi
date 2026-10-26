@@ -1,0 +1,194 @@
+-- module --
+mir: planned
+-- src --
+import map from std/map
+
+interface Bump {
+    fn bump(mut self)
+    fn get(self) -> Int
+}
+
+type Counter = { pub mut n Int }
+
+fn Counter.bump(mut self) {
+    self.n = self.n + 1
+}
+
+fn Counter.get(self) -> Int {
+    self.n
+}
+
+interface Sink {
+    fn put(mut self, f: Future[Int])
+}
+
+type Coll = { pub mut fs Array[Future[Int]] }
+
+fn Coll.put(mut self, f: Future[Int]) {
+    self.fs.push(f)
+}
+
+type Q = { pub mut fs Array[Future[Int]] }
+
+fn Q.put(mut self, f: Future[Int]) {
+    self.fs.push(f)
+}
+
+fn Q.pop(mut self) -> Future[Int] {
+    match self.fs.takeAt(0) {
+        Some(x) -> x
+        None -> zero()
+    }
+}
+
+async fn zero() -> Int {
+    0
+}
+
+async fn acount(c: &mut Bump) -> Int {
+    c.bump()
+    c.get()
+}
+
+fn viaSink(f: fn(&mut Bump) -> Future[Int], c: &mut Bump, o: &mut Sink) {
+    o.put(f(c))
+}
+
+fn popF(fs: &mut Array[Future[Int]]) -> Future[Int]? {
+    fs.takeAt(0)
+}
+
+fn pv2(f: fn(&mut Bump) -> Future[Int], fs: &mut Array[Future[Int]], c: &mut Bump) -> Future[Int] {
+    fs.push(f(c))
+    match popF(fs) {
+        Some(x) -> x
+        None -> zero()
+    }
+}
+
+fn pm(f: fn(&mut Bump) -> Future[Int], m: &mut map.Map[String, Future[Int]], c: &mut Bump) -> Future[Int] {
+    m.set("k", f(c))
+    match m.take(&"k") {
+        Some(x) -> x
+        None -> zero()
+    }
+}
+
+fn viaQ(f: fn(&mut Bump) -> Future[Int], q: &mut Q, c: &mut Bump) -> Future[Int] {
+    q.put(f(c))
+    q.pop()
+}
+
+fn pp(f: fn(&mut Bump) -> Future[Int], c: &mut Bump) -> Future[Int] {
+    let mut o = Some(f(c))
+    match o.take() {
+        Some(y) -> y
+        None -> zero()
+    }
+}
+
+fn sinkValue() -> Array[Future[Int]] {
+    let mut c = Counter { n: 5 }
+    let mut k = Coll { fs: Array.empty[Future[Int]]() }
+    let w = viaSink
+    w(acount, &mut c, &mut k) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    k.fs
+}
+
+fn sinkDirect() -> Array[Future[Int]] {
+    let mut c = Counter { n: 5 }
+    let mut k = Coll { fs: Array.empty[Future[Int]]() }
+    viaSink(acount, &mut c, &mut k) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    k.fs
+}
+
+fn helperTake() -> Future[Int] {
+    let w = pv2
+    let mut c = Counter { n: 5 } //~ ERROR `c` is still borrowed when its scope ends here
+    let mut fs = Array.empty[Future[Int]]()
+    w(acount, &mut fs, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+}
+
+fn mapTake() -> Future[Int] {
+    let w = pm
+    let mut c = Counter { n: 5 } //~ ERROR `c` is still borrowed when its scope ends here
+    let mut m: map.Map[String, Future[Int]] = map.empty()
+    w(acount, &mut m, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+}
+
+fn queueTake() -> Future[Int] {
+    let w = viaQ
+    let mut c = Counter { n: 5 } //~ ERROR `c` is still borrowed when its scope ends here
+    let mut q = Q { fs: Array.empty[Future[Int]]() }
+    w(acount, &mut q, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+}
+
+fn localTake() -> Future[Int] {
+    let w = pp
+    let mut c = Counter { n: 5 } //~ ERROR `c` is still borrowed when its scope ends here
+    w(acount, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+}
+
+fn main() {
+}
+-- expect --
+error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
+  --> main.kg:91:5
+   |
+91 |     w(acount, &mut c, &mut k) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
+  --> main.kg:98:5
+   |
+98 |     viaSink(acount, &mut c, &mut k) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
+   --> main.kg:106:24
+    |
+106 |     w(acount, &mut fs, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    |                        ^^^^^^
+
+error[move-while-borrowed]: `c` is still borrowed when its scope ends here
+   --> main.kg:104:13
+    |
+104 |     let mut c = Counter { n: 5 } //~ ERROR `c` is still borrowed when its scope ends here
+    |             ^
+
+error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
+   --> main.kg:113:23
+    |
+113 |     w(acount, &mut m, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    |                       ^^^^^^
+
+error[move-while-borrowed]: `c` is still borrowed when its scope ends here
+   --> main.kg:111:13
+    |
+111 |     let mut c = Counter { n: 5 } //~ ERROR `c` is still borrowed when its scope ends here
+    |             ^
+
+error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
+   --> main.kg:120:23
+    |
+120 |     w(acount, &mut q, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    |                       ^^^^^^
+
+error[move-while-borrowed]: `c` is still borrowed when its scope ends here
+   --> main.kg:118:13
+    |
+118 |     let mut c = Counter { n: 5 } //~ ERROR `c` is still borrowed when its scope ends here
+    |             ^
+
+error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
+   --> main.kg:126:15
+    |
+126 |     w(acount, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    |               ^^^^^^
+
+error[move-while-borrowed]: `c` is still borrowed when its scope ends here
+   --> main.kg:125:13
+    |
+125 |     let mut c = Counter { n: 5 } //~ ERROR `c` is still borrowed when its scope ends here
+    |             ^
+

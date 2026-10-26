@@ -1,0 +1,34 @@
+-- src --
+import task from std/task
+
+type V = { pub k Int }
+
+type S = { pub mut fs Array[Future[Int]] }
+
+async fn mk() -> Int {
+    7
+}
+
+fn run[T](f: Future[T]) -> T {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+fn V.add(self, f: Future[Int]) -> Int {
+    self.k + run(f)
+}
+
+fn S.addAll(self, f: Future[Int]) -> usize {
+    self.fs.len() + (run(f).toUsize() || 0)
+}
+
+fn main() {
+    let v = V { k: 3 }
+    let put = v.add
+    let a = put(mk())
+    let s = S { fs: Array.of(mk()) }
+    let look = s.addAll
+    let b = look(mk())
+    print "receiver ${a} ${b} ${v.k}"
+}
+-- stdout --
+receiver 10 8 3

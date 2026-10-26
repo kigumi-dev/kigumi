@@ -138,8 +138,8 @@ func (c *borrowCheck) collectFlow(fl storeFlow, in Inst) {
 			if b == nil || v.at != nil && !fl.byValue && r == dests[0] {
 				continue
 			}
-			if v.tie != tieNone {
-				b = c.tiedAt(fl.target, r, b)
+			if v.tie != tieNone || fl.kept {
+				b = c.tiedAt(fl, v.arg, r, b)
 			} else if idx, ok := c.tieSite(fl.target, r); ok {
 				c.retie(r, idx, v.arg, b)
 			} else {

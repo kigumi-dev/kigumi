@@ -1,0 +1,134 @@
+-- src --
+import task from std/task
+import map from std/map
+
+interface Sink {
+    fn put(mut self, f: Future[usize])
+}
+
+type Coll = { pub mut fs Array[Future[usize]] }
+
+fn Coll.put(mut self, f: Future[usize]) {
+    self.fs.push(f)
+}
+
+type Q = { pub mut fs Array[Future[usize]] }
+
+fn Q.put(mut self, f: Future[usize]) {
+    self.fs.push(f)
+}
+
+fn Q.pop(mut self) -> Future[usize] {
+    match self.fs.takeAt(0) {
+        Some(x) -> x
+        None -> later()
+    }
+}
+
+async fn later() -> usize {
+    1
+}
+
+async fn mut1(a: &mut Array[String]) -> usize {
+    a.push("x")
+    a.len()
+}
+
+fn run[T](f: Future[T]) -> T {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+fn sum(a: Array[Future[usize]]) -> usize {
+    let mut n: usize = 0
+    for f in move a {
+        n = n + run(f)
+    }
+    n
+}
+
+fn viaSink(f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], o: &mut Sink) {
+    o.put(f(c))
+}
+
+fn popF(fs: &mut Array[Future[usize]]) -> Future[usize]? {
+    fs.takeAt(0)
+}
+
+fn pv2(f: fn(&mut Array[String]) -> Future[usize], fs: &mut Array[Future[usize]], c: &mut Array[String]) -> Future[usize] {
+    fs.push(f(c))
+    match popF(fs) {
+        Some(x) -> x
+        None -> later()
+    }
+}
+
+fn pm(f: fn(&mut Array[String]) -> Future[usize], m: &mut map.Map[String, Future[usize]], c: &mut Array[String]) -> Future[usize] {
+    m.set("k", f(c))
+    match m.take(&"k") {
+        Some(x) -> x
+        None -> later()
+    }
+}
+
+fn viaQ(f: fn(&mut Array[String]) -> Future[usize], q: &mut Q, c: &mut Array[String]) -> Future[usize] {
+    q.put(f(c))
+    q.pop()
+}
+
+fn pp(f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String]) -> Future[usize] {
+    let mut o = Some(f(c))
+    match o.take() {
+        Some(y) -> y
+        None -> later()
+    }
+}
+
+fn sinks() -> usize {
+    let mut c = Array.of("a")
+    let n1 = {
+        let mut k = Coll { fs: Array.empty[Future[usize]]() }
+        let w = viaSink
+        w(mut1, &mut c, &mut k)
+        sum(k.fs)
+    }
+    c = Array.of("b")
+    let n2 = {
+        let mut k = Coll { fs: Array.empty[Future[usize]]() }
+        viaSink(mut1, &mut c, &mut k)
+        sum(k.fs)
+    }
+    c.push("c")
+    n1 + n2 + c.len()
+}
+
+fn takes() -> usize {
+    let mut c = Array.of("a")
+    let n1 = {
+        let w = pv2
+        let mut fs = Array.empty[Future[usize]]()
+        run(w(mut1, &mut fs, &mut c))
+    }
+    c = Array.of("b")
+    let n2 = {
+        let w = pm
+        let mut m: map.Map[String, Future[usize]] = map.empty()
+        run(w(mut1, &mut m, &mut c))
+    }
+    c = Array.of("c")
+    let n3 = {
+        let w = viaQ
+        let mut q = Q { fs: Array.empty[Future[usize]]() }
+        run(w(mut1, &mut q, &mut c))
+    }
+    c = Array.of("d")
+    let w = pp
+    let n4 = run(w(mut1, &mut c))
+    c.push("e")
+    n1 + n2 + n3 + n4 + c.len()
+}
+
+fn main() {
+    print "sinks ${sinks()} takes ${takes()}"
+}
+-- stdout --
+sinks 7 takes 11

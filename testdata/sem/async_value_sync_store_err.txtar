@@ -1,0 +1,416 @@
+-- module --
+mir: planned
+-- src --
+import task from std/task
+
+interface Bump {
+    fn bump(mut self)
+    fn get(self) -> Int
+}
+
+type Counter = { pub mut n Int }
+
+fn Counter.bump(mut self) {
+    self.n = self.n + 1
+}
+
+fn Counter.get(self) -> Int {
+    self.n
+}
+
+type H = { pub mut v Array[String] }
+
+type W = { pub mut f Future[Int] }
+
+type Slot = { pub mut f Future[Int] }
+
+type Box = { pub mut fu Option[Future[usize]] }
+
+async fn later() -> usize {
+    1
+}
+
+async fn zero() -> Int {
+    0
+}
+
+async fn acount(c: &mut Bump) -> Int {
+    c.bump()
+    c.get()
+}
+
+async fn mut1(a: &mut Array[String]) -> usize {
+    a.push("x")
+    a.len()
+}
+
+async fn countFs(fs: &mut Array[Future[Int]]) -> usize {
+    let w = await later()
+    fs.len() + w
+}
+
+async fn useW(w: &mut W) -> Int {
+    let v = await later()
+    (v.toInt() || 0) + 1
+}
+
+fn out2(f: fn(&mut Bump) -> Future[Int], c: &mut Bump, o: &mut Array[Future[Int]]) {
+    o.push(f(c))
+}
+
+fn out1(f: fn(&mut Bump) -> Future[Int], c: &mut Bump, o: &mut Future[Int]) {
+    o = f(c)
+}
+
+fn outR(f: fn(&mut Bump) -> Future[Int], c: &mut Bump, o: &mut Slot) {
+    o.f = f(c)
+}
+
+fn outA(f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], o: &mut Array[Future[usize]]) {
+    o.push(f(c))
+}
+
+fn out3(c: &mut Array[String], o: &mut Array[Future[usize]]) {
+    let g = mut1
+    o.push(g(c))
+}
+
+fn mkQ(fs: &mut Array[Future[Int]]) -> Future[usize] {
+    let g = countFs
+    g(fs)
+}
+
+fn mkW(w: &mut W) -> Future[Int] {
+    let g = useW
+    g(w)
+}
+
+fn mkH(h: &mut H) -> Future[usize] {
+    let g = mut1
+    g(&mut h.v)
+}
+
+fn H.mk(mut self) -> Future[usize] {
+    let g = mut1
+    g(&mut self.v)
+}
+
+fn Box.put3(mut self, c: &mut Array[String]) {
+    let g = mut1
+    self.fu = Some(g(c))
+}
+
+fn run[T](f: Future[T]) -> T {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+fn e3() -> Array[Future[Int]] {
+    let w = out2
+    let mut c = Counter { n: 5 }
+    let mut a = Array.empty[Future[Int]]()
+    w(acount, &mut c, &mut a) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    a
+}
+
+fn e1() -> Future[Int] {
+    let w = out1
+    let mut c = Counter { n: 5 }
+    let mut o = zero()
+    w(acount, &mut c, &mut o) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    o
+}
+
+fn eR() -> Slot {
+    let w = outR
+    let mut c = Counter { n: 5 }
+    let mut o = Slot { f: zero() }
+    w(acount, &mut c, &mut o) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    o
+}
+
+fn vA() -> usize {
+    let w = outA
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    w(mut1, &mut c, &mut a)
+    c = Array.of("q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved
+    a.len() + c.len() //~ ERROR `c` is exclusively borrowed and cannot be used here
+}
+
+fn dA() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    outA(mut1, &mut c, &mut a)
+    c = Array.of("q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved
+    a.len() + c.len() //~ ERROR `c` is exclusively borrowed and cannot be used here
+}
+
+fn d3() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    out3(&mut c, &mut a)
+    c = Array.of("q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved
+    a.len() + c.len() //~ ERROR `c` is exclusively borrowed and cannot be used here
+}
+
+fn q1() -> usize {
+    let mut fs = Array.of(zero(), zero())
+    let h = mkQ(&mut fs)
+    fs = Array.of(zero()) //~ ERROR `fs` is exclusively borrowed and cannot be used here //~ ERROR `fs` is borrowed and cannot be moved
+    run(h) + fs.len()
+}
+
+fn q2() -> usize {
+    let m = mkQ
+    let mut fs = Array.of(zero(), zero())
+    let h = m(&mut fs)
+    fs = Array.of(zero()) //~ ERROR `fs` is exclusively borrowed and cannot be used here //~ ERROR `fs` is borrowed and cannot be moved
+    run(h) + fs.len()
+}
+
+fn w1() -> Int {
+    let mut w = W { f: zero() }
+    let h = mkW(&mut w)
+    w = W { f: zero() } //~ ERROR `w` is exclusively borrowed and cannot be used here //~ ERROR `w` is borrowed and cannot be moved
+    run(h)
+}
+
+fn h1() -> usize {
+    let mut hh = H { v: Array.of("a") }
+    let h = mkH(&mut hh)
+    hh.v = Array.of("q", "q", "q") //~ ERROR `hh` is exclusively borrowed and cannot be used here
+    run(h) + hh.v.len()
+}
+
+fn h2() -> Future[usize] {
+    let mut hh = H { v: Array.of("a") } //~ ERROR `hh` is still borrowed when its scope ends here
+    hh.mk() //~ ERROR a borrow cannot be returned
+}
+
+fn b3() -> usize {
+    let mut c = Array.of("a")
+    let mut b = Box { fu: None }
+    b.put3(&mut c)
+    c = Array.of("q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved
+    c.len() //~ ERROR `c` is exclusively borrowed and cannot be used here
+}
+
+fn main() {
+}
+-- expect --
+error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
+   --> main.kg:108:5
+    |
+108 |     w(acount, &mut c, &mut a) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
+   --> main.kg:116:5
+    |
+116 |     w(acount, &mut c, &mut o) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
+   --> main.kg:124:5
+    |
+124 |     w(acount, &mut c, &mut o) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:134:15
+    |
+134 |     a.len() + c.len() //~ ERROR `c` is exclusively borrowed and cannot be used here
+    |               ^^^^^^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:132:13
+    |
+132 |     w(mut1, &mut c, &mut a)
+    |             ^^^^^^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:133:5
+    |
+133 |     c = Array.of("q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:132:13
+    |
+132 |     w(mut1, &mut c, &mut a)
+    |             ^^^^^^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+   --> main.kg:133:5
+    |
+133 |     c = Array.of("q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved
+    |     ^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:142:15
+    |
+142 |     a.len() + c.len() //~ ERROR `c` is exclusively borrowed and cannot be used here
+    |               ^^^^^^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:140:16
+    |
+140 |     outA(mut1, &mut c, &mut a)
+    |                ^^^^^^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:141:5
+    |
+141 |     c = Array.of("q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:140:16
+    |
+140 |     outA(mut1, &mut c, &mut a)
+    |                ^^^^^^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+   --> main.kg:141:5
+    |
+141 |     c = Array.of("q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved
+    |     ^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:150:15
+    |
+150 |     a.len() + c.len() //~ ERROR `c` is exclusively borrowed and cannot be used here
+    |               ^^^^^^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:148:10
+    |
+148 |     out3(&mut c, &mut a)
+    |          ^^^^^^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:149:5
+    |
+149 |     c = Array.of("q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:148:10
+    |
+148 |     out3(&mut c, &mut a)
+    |          ^^^^^^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+   --> main.kg:149:5
+    |
+149 |     c = Array.of("q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved
+    |     ^
+
+error[E2198]: `fs` is exclusively borrowed and cannot be used here
+   --> main.kg:156:5
+    |
+156 |     fs = Array.of(zero()) //~ ERROR `fs` is exclusively borrowed and cannot be used here //~ ERROR `fs` is borrowed and cannot be moved
+    |     ^^
+    = help: end the borrow first or use a copy
+note: `fs` is borrowed here
+   --> main.kg:155:13
+    |
+155 |     let h = mkQ(&mut fs)
+    |             ^^^^^^^^^^^
+
+error[move-while-borrowed]: `fs` is borrowed and cannot be moved or dropped here
+   --> main.kg:156:5
+    |
+156 |     fs = Array.of(zero()) //~ ERROR `fs` is exclusively borrowed and cannot be used here //~ ERROR `fs` is borrowed and cannot be moved
+    |     ^^
+
+error[E2198]: `fs` is exclusively borrowed and cannot be used here
+   --> main.kg:164:5
+    |
+164 |     fs = Array.of(zero()) //~ ERROR `fs` is exclusively borrowed and cannot be used here //~ ERROR `fs` is borrowed and cannot be moved
+    |     ^^
+    = help: end the borrow first or use a copy
+note: `fs` is borrowed here
+   --> main.kg:163:15
+    |
+163 |     let h = m(&mut fs)
+    |               ^^^^^^^
+
+error[move-while-borrowed]: `fs` is borrowed and cannot be moved or dropped here
+   --> main.kg:164:5
+    |
+164 |     fs = Array.of(zero()) //~ ERROR `fs` is exclusively borrowed and cannot be used here //~ ERROR `fs` is borrowed and cannot be moved
+    |     ^^
+
+error[E2198]: `w` is exclusively borrowed and cannot be used here
+   --> main.kg:171:5
+    |
+171 |     w = W { f: zero() } //~ ERROR `w` is exclusively borrowed and cannot be used here //~ ERROR `w` is borrowed and cannot be moved
+    |     ^
+    = help: end the borrow first or use a copy
+note: `w` is borrowed here
+   --> main.kg:170:13
+    |
+170 |     let h = mkW(&mut w)
+    |             ^^^^^^^^^^
+
+error[move-while-borrowed]: `w` is borrowed and cannot be moved or dropped here
+   --> main.kg:171:5
+    |
+171 |     w = W { f: zero() } //~ ERROR `w` is exclusively borrowed and cannot be used here //~ ERROR `w` is borrowed and cannot be moved
+    |     ^
+
+error[E2198]: `hh` is exclusively borrowed and cannot be used here
+   --> main.kg:178:5
+    |
+178 |     hh.v = Array.of("q", "q", "q") //~ ERROR `hh` is exclusively borrowed and cannot be used here
+    |     ^^^^
+    = help: end the borrow first or use a copy
+note: `hh` is borrowed here
+   --> main.kg:177:13
+    |
+177 |     let h = mkH(&mut hh)
+    |             ^^^^^^^^^^^
+
+error[borrow-escape]: a borrow cannot be returned
+   --> main.kg:184:5
+    |
+184 |     hh.mk() //~ ERROR a borrow cannot be returned
+    |     ^^^^^^
+
+error[move-while-borrowed]: `hh` is still borrowed when its scope ends here
+   --> main.kg:183:13
+    |
+183 |     let mut hh = H { v: Array.of("a") } //~ ERROR `hh` is still borrowed when its scope ends here
+    |             ^^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:192:5
+    |
+192 |     c.len() //~ ERROR `c` is exclusively borrowed and cannot be used here
+    |     ^^^^^^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:190:12
+    |
+190 |     b.put3(&mut c)
+    |            ^^^^^^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:191:5
+    |
+191 |     c = Array.of("q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:190:12
+    |
+190 |     b.put3(&mut c)
+    |            ^^^^^^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+   --> main.kg:191:5
+    |
+191 |     c = Array.of("q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved
+    |     ^
+

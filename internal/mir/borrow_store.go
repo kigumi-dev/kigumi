@@ -17,6 +17,8 @@ type storeFlow struct {
 	param  int
 	// opaque marks a `&mut` argument of a call through a function value, whose body is unknown.
 	opaque bool
+	// kept marks a flow a keptSummary or the unknown-callee default finds; like generic, it stores this frame's borrows.
+	kept bool
 	// byValue marks a holder handed over by value: what is stored lands in the places its `&mut`s reach.
 	byValue bool
 	// args are a named call's arguments by parameter, for the callee's sites that hand on to code an argument gives.
@@ -49,7 +51,7 @@ func (c *borrowCheck) storeFlows(in Inst) []storeFlow {
 		}
 		return []storeFlow{{target: in.Args[0], values: []flowArg{{arg: v}}, generic: !lifetime}}
 	case OpCall, OpCallValue:
-		return append(c.callFlows(in), c.opaqueFlows(in)...)
+		return c.withKeptFlows(in, append(c.callFlows(in), c.opaqueFlows(in)...))
 	}
 	return nil
 }

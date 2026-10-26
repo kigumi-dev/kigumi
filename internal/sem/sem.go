@@ -169,7 +169,7 @@ type Result struct {
 	refCellSeeds              []EntityID
 	refCellEdges              []refCellEdge
 	refCellSites, refCellArgs []refCellSite
-	asyncValues               []refCellSite
+	asyncValues               []asyncValueSite
 	refCellValues             []refCellValue
 	refCellParams             map[EntityID]bool
 	refCellHard               map[EntityID]bool

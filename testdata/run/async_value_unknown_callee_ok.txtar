@@ -1,0 +1,149 @@
+-- src --
+import task from std/task
+
+type Maker = { pub k Int }
+
+type Counter = { pub mut n Int }
+
+async fn later() -> usize {
+    1
+}
+
+async fn mut1(a: &mut Array[String]) -> usize {
+    a.push("x")
+    a.len()
+}
+
+async fn aInt(n: Int) -> Int {
+    n + 1
+}
+
+fn oArr(f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], o: &mut Array[Future[usize]]) {
+    o.push(f(c))
+}
+
+fn oNone(f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], o: &mut Array[Future[usize]]) {
+}
+
+fn Maker.out(self, f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], o: &mut Array[Future[usize]]) {
+    o.push(f(c))
+}
+
+fn pick() -> fn(fn(&mut Array[String]) -> Future[usize], &mut Array[String], &mut Array[Future[usize]]) -> Void {
+    oArr
+}
+
+fn run[T](f: Future[T]) -> T {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+fn sum(a: Array[Future[usize]]) -> usize {
+    let mut n: usize = 0
+    for f in move a {
+        n = n + run(f)
+    }
+    n
+}
+
+fn viaG[F: Fn[fn(fn(&mut Array[String]) -> Future[usize], &mut Array[String], &mut Array[Future[usize]]) -> Void]](w: F, c: &mut Array[String]) -> usize {
+    let mut a = Array.empty[Future[usize]]()
+    w(mut1, c, &mut a)
+    sum(a)
+}
+
+fn pv(f: fn(&mut Array[String]) -> Future[usize], fs: &mut Array[Future[usize]], c: &mut Array[String]) -> Future[usize] {
+    fs.push(f(c))
+    match fs.takeAt(0) {
+        Some(x) -> x
+        None -> later()
+    }
+}
+
+fn po(f: fn(&mut Array[String]) -> Future[usize], o: &mut Option[Future[usize]], c: &mut Array[String]) -> Future[usize] {
+    o = Some(f(c))
+    match o.take() {
+        Some(x) -> x
+        None -> later()
+    }
+}
+
+fn b1(f: fn(Int) -> Future[Int], a: &Array[Int]) -> Future[Int] {
+    f(a.len().toInt() || 0)
+}
+
+fn b5(f: fn(Int) -> Future[Int], c: &Counter) -> Future[Int] {
+    f(c.n)
+}
+
+fn shapes() -> usize {
+    let mut c = Array.of("a")
+    let n1 = {
+        let m = Maker { k: 1 }
+        let p = m.out
+        let mut a = Array.empty[Future[usize]]()
+        p(mut1, &mut c, &mut a)
+        sum(a)
+    }
+    c = Array.of("b")
+    let n2 = {
+        let w = pick()
+        let mut a = Array.empty[Future[usize]]()
+        w(mut1, &mut c, &mut a)
+        sum(a)
+    }
+    c = Array.of("c")
+    let n3 = {
+        let w: fn(fn(&mut Array[String]) -> Future[usize], &mut Array[String], &mut Array[Future[usize]]) -> Void = (f, x, o) => {
+            o.push(f(x))
+        }
+        let mut a = Array.empty[Future[usize]]()
+        w(mut1, &mut c, &mut a)
+        sum(a)
+    }
+    c = Array.of("d")
+    let n4 = viaG(oArr, &mut c)
+    c = Array.of("e")
+    let n5 = {
+        let mut w = oNone
+        let g = () => {
+            w = oArr
+        }
+        g()
+        let mut a = Array.empty[Future[usize]]()
+        w(mut1, &mut c, &mut a)
+        sum(a)
+    }
+    c = Array.of("f")
+    let n6 = {
+        let t = pv
+        let mut fs = Array.empty[Future[usize]]()
+        run(t(mut1, &mut fs, &mut c))
+    }
+    c = Array.of("g")
+    let n7 = {
+        let q = po
+        let mut o: Option[Future[usize]] = None
+        run(q(mut1, &mut o, &mut c))
+    }
+    c.push("h")
+    n1 + n2 + n3 + n4 + n5 + n6 + n7 + c.len()
+}
+
+fn intOnly() -> Int {
+    let w = b1
+    let mut a = Array.of(1, 2, 3)
+    let f = w(aInt, &a)
+    a.push(4)
+    a = Array.of(9)
+    let v = b5
+    let mut c = Counter { n: 5 }
+    let g = v(aInt, &c)
+    c.n = 50
+    run(f) + run(g) + a[0] + c.n
+}
+
+fn main() {
+    print "shapes ${shapes()} int ${intOnly()}"
+}
+-- stdout --
+shapes 17 int 69

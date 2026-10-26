@@ -2,9 +2,17 @@ package sem
 
 import "kigumi/internal/syntax"
 
+// asyncValueSite is where an async fn is taken as a value; args counts what a call through the value passes, which
+// leaves out a method value's bound receiver.
+type asyncValueSite struct {
+	refCellSite
+	args int
+}
+
 // A call through an async fn's value lends each `&mut` argument to its Future, as a direct async call does.
-func (c *checker) noteAsyncValue(n syntax.NodeID, fn EntityID) {
-	c.r.asyncValues = append(c.r.asyncValues, refCellSite{ent: fn, file: c.f, node: n, async: true})
+func (c *checker) noteAsyncValue(n syntax.NodeID, fn EntityID, sig TypeID) {
+	site := refCellSite{ent: fn, file: c.f, node: n, async: true}
+	c.r.asyncValues = append(c.r.asyncValues, asyncValueSite{refCellSite: site, args: len(c.r.Types.Node(sig).Args)})
 }
 
 // maxAsyncValueArgs is how many arguments a call through a value declares lent or handed over (mir.Inst.LendArgs).
@@ -15,12 +23,8 @@ const maxAsyncValueArgs = 31
 func (r *Result) rejectReplacingAsyncValues() {
 	for _, s := range r.asyncValues {
 		info := r.Fn(s.ent)
-		n := len(info.Params)
-		if info.Recv != RecvNone {
-			n++
-		}
-		if n > maxAsyncValueArgs {
-			r.errAt(s.file, s.node, cAsyncValueArity, r.Entities[s.ent].Name, n)
+		if s.args > maxAsyncValueArgs {
+			r.errAt(s.file, s.node, cAsyncValueArity, r.Entities[s.ent].Name, s.args)
 			continue
 		}
 		for _, p := range info.Params {

@@ -9,7 +9,8 @@ import (
 // tiedCallSource adds to what a call's result borrows the reference arguments a passed function value can borrow from.
 func (c *borrowCheck) tiedCallSource(in Inst) (*borrowInfo, bool) {
 	b, ok := c.calleeSource(in)
-	tie := c.fnTie(in)
+	tie, done := c.fnTie(in)
+	tie = append(tie, c.summaryTie(in, done)...)
 	if len(tie) == 0 {
 		return b, ok
 	}
@@ -23,17 +24,18 @@ func (c *borrowCheck) tiedCallSource(in Inst) (*borrowInfo, bool) {
 	return s, true
 }
 
-// fnTie: a passed fn value whose result may borrow its arguments lets the callee build its result from them.
-func (c *borrowCheck) fnTie(in Inst) []*borrowInfo {
+// fnTie: a passed fn value whose result may borrow its arguments lets the callee build its result from them; args are
+// the arguments it judged.
+func (c *borrowCheck) fnTie(in Inst) (out []*borrowInfo, args []LocalID) {
 	info := c.p.R.Fn(in.Ent)
 	want := c.wantOf(c.p.R.Types.Node(info.Sig).Elem)
 	dst := c.f.Locals[in.Dst].Type
 	generic := !c.holdsBorrow(dst) && c.namesTypeParam(dst)
 	if want.empty() || !generic && !c.tieCarrier(dst) {
-		return nil
+		return nil, nil
 	}
-	var out []*borrowInfo
 	for _, v := range c.tieArgs(info, c.callSlots(info, in.Args, 0), want) {
+		args = append(args, v.arg)
 		b, ok := c.tieInfo(v, generic, false)
 		if !ok && v.tie == tieRef {
 			b, ok = c.lentCellBorrow(v.arg, in.Dst)
@@ -46,7 +48,7 @@ func (c *borrowCheck) fnTie(in Inst) []*borrowInfo {
 			out = append(out, b)
 		}
 	}
-	return out
+	return out, args
 }
 
 func (c *borrowCheck) tieValues(info *sem.FnInfo, slots []callSlot, t callSlot, have []flowArg) []flowArg {

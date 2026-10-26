@@ -2780,6 +2780,23 @@
       ]
     },
     {
+      "id": "run/async_method_value_wide_ok",
+      "kind": "run",
+      "path": "testdata/run/async_method_value_wide_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/async_method_value_witness",
       "kind": "run",
       "path": "testdata/run/async_method_value_witness.txtar",
@@ -4123,6 +4140,40 @@
       ]
     },
     {
+      "id": "run/async_value_forward_relay_ok",
+      "kind": "run",
+      "path": "testdata/run/async_value_forward_relay_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_value_kept_store_ok",
+      "kind": "run",
+      "path": "testdata/run/async_value_kept_store_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/async_value_lent_ok",
       "kind": "run",
       "path": "testdata/run/async_value_lent_ok.txtar",
@@ -4140,9 +4191,77 @@
       ]
     },
     {
+      "id": "run/async_value_move_between_ok",
+      "kind": "run",
+      "path": "testdata/run/async_value_move_between_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/async_value_mut_ref_ok",
       "kind": "run",
       "path": "testdata/run/async_value_mut_ref_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_value_sync_forward_ok",
+      "kind": "run",
+      "path": "testdata/run/async_value_sync_forward_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_value_sync_store_ok",
+      "kind": "run",
+      "path": "testdata/run/async_value_sync_store_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_value_unknown_callee_ok",
+      "kind": "run",
+      "path": "testdata/run/async_value_unknown_callee_ok.txtar",
       "mode": [
         "vm",
         "native"
@@ -13376,6 +13495,23 @@
       ]
     },
     {
+      "id": "run/method_value_receiver_ok",
+      "kind": "run",
+      "path": "testdata/run/method_value_receiver_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/method_value_type_args",
       "kind": "run",
       "path": "testdata/run/method_value_type_args.txtar",
@@ -17955,6 +18091,17 @@
       ]
     },
     {
+      "id": "sem/async_method_value_arity_err",
+      "kind": "sem",
+      "path": "testdata/sem/async_method_value_arity_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/async_root_bridge",
       "kind": "sem",
       "path": "testdata/sem/async_root_bridge.txtar",
@@ -18241,6 +18388,28 @@
       ]
     },
     {
+      "id": "sem/async_value_kept_store_err",
+      "kind": "sem",
+      "path": "testdata/sem/async_value_kept_store_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_value_move_between_err",
+      "kind": "sem",
+      "path": "testdata/sem/async_value_move_between_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/async_value_mut_ref_err",
       "kind": "sem",
       "path": "testdata/sem/async_value_mut_ref_err.txtar",
@@ -18266,6 +18435,39 @@
       "id": "sem/async_value_scalar_place_err",
       "kind": "sem",
       "path": "testdata/sem/async_value_scalar_place_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_value_sync_forward_err",
+      "kind": "sem",
+      "path": "testdata/sem/async_value_sync_forward_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_value_sync_store_err",
+      "kind": "sem",
+      "path": "testdata/sem/async_value_sync_store_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_value_unknown_callee_err",
+      "kind": "sem",
+      "path": "testdata/sem/async_value_unknown_callee_err.txtar",
       "mode": [
         "check"
       ],
@@ -21940,6 +22142,28 @@
       "id": "sem/method_value_place_receiver",
       "kind": "sem",
       "path": "testdata/sem/method_value_place_receiver.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/method_value_receiver_moved_err",
+      "kind": "sem",
+      "path": "testdata/sem/method_value_receiver_moved_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/method_value_receiver_store_err",
+      "kind": "sem",
+      "path": "testdata/sem/method_value_receiver_store_err.txtar",
       "mode": [
         "check"
       ],
