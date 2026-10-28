@@ -217,7 +217,7 @@ fn foldFirst[A](items: &Array[Int], init: A, step: fn(A, &Int) -> A, show: fn(A)
     let mut acc = init
     for i in 0..2 {
         let first = items[0] //~ ERROR `first` is still borrowed when its scope ends //~ ERROR `first` is borrowed and cannot be mutated
-        acc = step(acc, &first)
+        acc = step(acc, &first) //~ ERROR a borrow cannot be stored into `A`
     }
     show(acc)
 }
@@ -427,6 +427,12 @@ error[move-while-borrowed]: `first` is still borrowed when its scope ends here
 216 |         let first = items[0] //~ ERROR `first` is still borrowed when its scope ends //~ ERROR `first` is borrowed and cannot be mutated
     |             ^^^^^
 
+error[E2160]: a borrow cannot be stored into `A`: the checker does not track where its contents borrow from; it follows writes only into an array, fixed array, map, record or variant held in a local, a `&mut` parameter, or a reference bound once to one of those, so write through that local or store a value it can own
+   --> main.kg:217:15
+    |
+217 |         acc = step(acc, &first) //~ ERROR a borrow cannot be stored into `A`
+    |               ^^^^^^^^^^^^^^^^
+
 error[E2198]: `first` is borrowed and cannot be mutated here
    --> main.kg:216:13
     |
@@ -436,7 +442,7 @@ error[E2198]: `first` is borrowed and cannot be mutated here
 note: `first` is borrowed here
    --> main.kg:217:25
     |
-217 |         acc = step(acc, &first)
+217 |         acc = step(acc, &first) //~ ERROR a borrow cannot be stored into `A`
     |                         ^^^^^^
 
 error[borrow-escape]: a borrow of a value this function owns cannot be stored through `out`, which outlives the call

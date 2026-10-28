@@ -4157,6 +4157,23 @@
       ]
     },
     {
+      "id": "run/async_value_kept_holder_ok",
+      "kind": "run",
+      "path": "testdata/run/async_value_kept_holder_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/async_value_kept_store_ok",
       "kind": "run",
       "path": "testdata/run/async_value_kept_store_ok.txtar",
@@ -18448,6 +18465,17 @@
       "id": "sem/async_self_replace_call",
       "kind": "sem",
       "path": "testdata/sem/async_self_replace_call.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_value_kept_holder_err",
+      "kind": "sem",
+      "path": "testdata/sem/async_value_kept_holder_err.txtar",
       "mode": [
         "check"
       ],

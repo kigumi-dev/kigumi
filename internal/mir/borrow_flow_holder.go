@@ -7,8 +7,29 @@ import (
 )
 
 // holdsMutPlace reports a value, not a reference, whose type keeps a `&mut` of some place.
-func (c *borrowCheck) holdsMutPlace(l LocalID) bool {
-	t := c.f.Locals[l].Type
+func (c *borrowCheck) holdsMutPlace(l LocalID) bool { return c.mutHolder(c.f.Locals[l].Type) }
+
+// mayHoldPlace reports a local a of g that keeps a `&mut`, or whose layout a type parameter or interface hides.
+func (c *borrowCheck) mayHoldPlace(g *Func, a LocalID) bool {
+	return c.mutHolder(g.Locals[a].Type) || c.hidesLayout(g.Locals[a].Type)
+}
+
+// hidesLayout reports a value of t, not behind a reference, part of which is a type parameter, interface or
+// unresolved type.
+func (c *borrowCheck) hidesLayout(t sem.TypeID) bool {
+	tt := c.p.R.Types
+	return c.typeHoldsUntil(t, func(u sem.TypeID) bool {
+		switch n := tt.Node(u); n.Kind {
+		case sem.KIface, sem.KVar:
+			return true
+		case sem.KParam:
+			return !c.p.R.TypeParam(n.Ent).IsLifetime
+		}
+		return false
+	}, func(u sem.TypeID) bool { k := tt.Kind(u); return k == sem.KFn || k == sem.KClosure || k == sem.KRef })
+}
+
+func (c *borrowCheck) mutHolder(t sem.TypeID) bool {
 	return c.p.R.Types.Kind(t) != sem.KRef && c.keepsMutRef(t)
 }
 

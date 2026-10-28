@@ -156,7 +156,7 @@ func (c *borrowCheck) keptStep(k *keptCtx, in Inst) {
 			k.put(in.Dst, res)
 		}
 		for i, a := range in.Args {
-			if c.lendsPlace(g, a) {
+			if c.lendsPlace(g, a) || c.mayHoldPlace(g, a) {
 				into(a, lent(i))
 			}
 		}

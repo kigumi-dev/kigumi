@@ -28,7 +28,12 @@ func (c *borrowCheck) keptCall(k *keptCtx, in Inst) (uint64, func(int) uint64) {
 				res |= c.moved(k, a)
 			}
 		}
-		return res, every
+		return res, func(i int) uint64 {
+			if c.lendsPlace(g, in.Args[i]) {
+				return from
+			}
+			return 0
+		}
 	}
 	args := in.Args[min(off, len(in.Args)):]
 	type callee struct {

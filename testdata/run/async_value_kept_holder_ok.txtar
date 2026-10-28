@@ -1,0 +1,219 @@
+-- src --
+import task from std/task
+
+interface Sink {
+    fn put(move self, f: Future[usize])
+}
+
+type Hold['a] = { pub r &'a mut Array[Future[usize]] }
+type Pair['a] = { pub h Hold['a], pub n usize }
+type Plain['a] = { pub r &'a mut Array[String] }
+
+fn Hold['a].put(move self, f: Future[usize]) {
+    self.r.push(f)
+}
+
+fn Hold['a].fwdL(move self, c: &mut Array[String]) {
+    let g = mut1
+    self.r.push(g(c))
+}
+
+async fn rd(x: &Array[String]) -> usize {
+    x.len()
+}
+
+async fn mut1(a: &mut Array[String]) -> usize {
+    a.push("x")
+    a.len()
+}
+
+fn run[T](f: Future[T]) -> T {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+fn sum(a: Array[Future[usize]]) -> usize {
+    let mut n: usize = 0
+    for f in move a {
+        n = n + run(f)
+    }
+    n
+}
+
+fn outH['a](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], h: Hold['a]) {
+    h.r.push(f(c))
+}
+
+fn outM['a](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], h: Hold['a]) {
+    h.put(f(c))
+}
+
+fn outP['a](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], p: Pair['a]) {
+    p.h.r.push(f(c))
+}
+
+fn outO['a](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], o: Option[Hold['a]]) {
+    match o {
+        Some(h) -> h.r.push(f(c))
+        None -> {}
+    }
+}
+
+fn outA['a](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], hs: Array[Hold['a]]) {
+    for h in move hs {
+        h.r.push(f(c))
+    }
+}
+
+fn outL['a](c: &mut Array[String], h: Hold['a]) {
+    let g = mut1
+    h.r.push(g(c))
+}
+
+fn plainPut['a](c: &mut Array[String], h: Plain['a]) {
+    h.r.push(c[0])
+}
+
+fn inFrame() -> usize {
+    let w = outH
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    w(mut1, &mut c, Hold { r: &mut a })
+    let n = sum(a)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn shapes() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let wm = outM
+    wm(mut1, &mut c, Hold { r: &mut a })
+    let m = sum(a)
+    c.push("m")
+    let mut b = Array.empty[Future[usize]]()
+    let wp = outP
+    wp(mut1, &mut c, Pair { h: Hold { r: &mut b }, n: 1 })
+    let p = sum(b)
+    c.push("p")
+    let mut d = Array.empty[Future[usize]]()
+    let wo = outO
+    wo(mut1, &mut c, Some(Hold { r: &mut d }))
+    let o = sum(d)
+    c.push("o")
+    let mut e = Array.empty[Future[usize]]()
+    let wa = outA
+    wa(mut1, &mut c, Array.of(Hold { r: &mut e }))
+    let x = sum(e)
+    c = Array.of("q")
+    m * 1000 + p * 100 + o * 10 + x + c.len()
+}
+
+fn locals() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    outL(&mut c, Hold { r: &mut a })
+    let d = sum(a)
+    c.push("d")
+    let mut b = Array.empty[Future[usize]]()
+    let w = outL
+    w(&mut c, Hold { r: &mut b })
+    let v = sum(b)
+    c.push("v")
+    let mut e = Array.empty[Future[usize]]()
+    Hold { r: &mut e }.fwdL(&mut c)
+    let s = sum(e)
+    c = Array.of("q", "q")
+    d * 100 + v * 10 + s + c.len()
+}
+
+fn unknown['a](w: fn(fn(&mut Array[String]) -> Future[usize], &mut Array[String], Hold['a]) -> Void) -> usize {
+    let mut c = Array.of("a", "b")
+    let mut a = Array.empty[Future[usize]]()
+    w(mut1, &mut c, Hold { r: &mut a })
+    let n = sum(a)
+    c = Array.of("q")
+    n * 10 + c.len()
+}
+
+fn plain() -> usize {
+    let w = plainPut
+    let mut c = Array.of("a")
+    let mut s = Array.empty[String]()
+    w(&mut c, Plain { r: &mut s })
+    c = Array.of("q", "q", "q")
+    s.len() * 10 + c.len()
+}
+
+fn outI[S: Sink](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], h: S) {
+    h.put(f(c))
+}
+
+fn gen[H](w: fn(fn(&mut Array[String]) -> Future[usize], &mut Array[String], H) -> Void, h: H, c: &mut Array[String]) {
+    w(mut1, c, h)
+}
+
+fn mid[H: Sink](c: &mut Array[String], h: H) {
+    outI(mut1, c, h)
+}
+
+fn pushRd['a](h: Hold['a], x: &Array[String]) {
+    let g = rd
+    h.r.push(g(x))
+}
+
+fn foldOk[A](init: A, xs: &Array[String], step: fn(A, &Array[String]) -> Void) {
+    step(init, xs)
+}
+
+fn generic() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    outI(mut1, &mut c, Hold { r: &mut a })
+    let i = sum(a)
+    c.push("i")
+    let mut b = Array.empty[Future[usize]]()
+    gen(outH, Hold { r: &mut b }, &mut c)
+    let g = sum(b)
+    c.push("g")
+    let mut d = Array.empty[Future[usize]]()
+    mid(&mut c, Hold { r: &mut d })
+    let m = sum(d)
+    let mut e = Array.empty[Future[usize]]()
+    foldOk(Hold { r: &mut e }, &c, pushRd)
+    let f = sum(e)
+    c = Array.of("q")
+    i * 1000 + g * 100 + m * 10 + f + c.len()
+}
+
+fn step[T](x: T, b: &mut Array[Int]) -> T {
+    b.push(1)
+    x
+}
+
+fn twiceKnown[T](x: T, buf: &mut Array[Int]) -> T {
+    let y = step(x, buf)
+    let z = step(y, buf)
+    buf.push(2)
+    z
+}
+
+fn twiceShared[T](x: T, buf: &Array[Int], g: fn(T, &Array[Int]) -> T) -> T {
+    let y = g(x, buf)
+    g(y, buf)
+}
+
+fn addLen(n: Int, b: &Array[Int]) -> Int {
+    n + (b.len().toInt() || 0)
+}
+
+fn callbacks() -> Int {
+    let mut b: Array[Int] = Array.empty()
+    let k = twiceKnown(5, &mut b)
+    k * 100 + twiceShared(1, &b, addLen)
+}
+
+fn main() {
+    print "frame ${inFrame()} shapes ${shapes()} locals ${locals()} unknown ${unknown(outH)} plain ${plain()} generic ${generic()} callbacks ${callbacks()}"
+}
+-- stdout --
+frame 5 shapes 2469 locals 248 unknown 31 plain 13 generic 2467 callbacks 507

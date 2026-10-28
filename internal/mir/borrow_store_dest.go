@@ -146,6 +146,10 @@ func (c *borrowCheck) collectFlow(fl storeFlow, in Inst) {
 			if v.tie != tieNone || fl.kept {
 				b = c.tiedAt(fl, v.arg, r, b)
 			} else if idx, ok := c.tieSite(fl.target, r); ok {
+				// What a target reaches may hold ties this call makes, which start after its write-backs.
+				if v.at != nil {
+					idx = c.pastWriteBacks(idx, in.Args)
+				}
 				c.retie(r, idx, v.arg, b)
 			} else {
 				b = untied(b)

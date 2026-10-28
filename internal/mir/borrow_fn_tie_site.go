@@ -22,11 +22,7 @@ func (c *borrowCheck) tiedAt(fl storeFlow, value, holder LocalID, b *borrowInfo)
 	if fl.kept {
 		args = c.f.Blocks[c.resets.at.block].Insts[c.resets.at.idx].Args
 	}
-	for _, a := range args {
-		if wb, ok := c.cellWriteBack(a); ok {
-			idx = max(idx, wb)
-		}
-	}
+	idx = c.pastWriteBacks(idx, args)
 	out := *b
 	out.owners = slices.Clone(b.owners)
 	for i := range out.owners {
@@ -34,6 +30,15 @@ func (c *borrowCheck) tiedAt(fl storeFlow, value, holder LocalID, b *borrowInfo)
 		c.addTieSite(holder, carrySite{block: c.resets.at.block, idx: idx, owner: out.owners[i].owner})
 	}
 	return &out
+}
+
+func (c *borrowCheck) pastWriteBacks(idx int, args []LocalID) int {
+	for _, a := range args {
+		if wb, ok := c.cellWriteBack(a); ok {
+			idx = max(idx, wb)
+		}
+	}
+	return idx
 }
 
 // retie: holder takes from's value at instruction idx of the current block, with the tied owners from holds there.
