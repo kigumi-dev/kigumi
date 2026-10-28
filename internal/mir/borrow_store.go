@@ -72,15 +72,17 @@ func (c *borrowCheck) borrowIntoHolderField(in Inst, v LocalID) bool {
 	return c.declaredLifetime(rec) != 0
 }
 
-// storeRoot resolves where a flow writes: the named local owning the place,
-// the place's type, and whether that local is the caller's (a lent parameter).
+// storeRoot resolves where a flow writes: the named local owning the place, the place's type, and whether it is the
+// caller's: a lent parameter, or the parameter whose `&mut`s the holder written through may keep.
 func (c *borrowCheck) storeRoot(fl storeFlow) (root LocalID, place sem.TypeID, caller, ok bool) {
 	l := fl.target
 	place = c.f.Locals[l].Type
 	if fl.byValue {
-		// A parameter's `&mut`s reach places its caller owns.
 		l = c.valueSource(l)
-		return l, c.f.Locals[l].Type, slices.Contains(c.f.Params, l), true
+		if p, ok := c.heldOrigin(l); ok {
+			return p, c.f.Locals[l].Type, true, true
+		}
+		return l, c.f.Locals[l].Type, false, true
 	}
 	if fl.ref {
 		for c.f.Locals[l].Ent == 0 {
@@ -99,11 +101,14 @@ func (c *borrowCheck) storeRoot(fl storeFlow) (root LocalID, place sem.TypeID, c
 			l = in.Args[0]
 		}
 	}
-	if refs := c.referents(l); len(refs) > 0 {
-		l = refs[0].owner
-	}
 	if c.p.R.Types.Kind(place) == sem.KRef {
 		place = c.p.R.Types.Node(place).Elem
+	}
+	if p, ok := c.heldRead(l); ok {
+		return p, place, true, true
+	}
+	if refs := c.referents(l); len(refs) > 0 {
+		l = refs[0].owner
 	}
 	root, _, _, ok = c.projectionPlace(l)
 	if ok && c.f.Locals[root].Ent != 0 && !slices.Contains(c.f.Params, root) && c.p.R.Types.Kind(c.f.Locals[root].Type) == sem.KRef {
@@ -112,8 +117,7 @@ func (c *borrowCheck) storeRoot(fl storeFlow) (root LocalID, place sem.TypeID, c
 	if !ok {
 		return 0, 0, false, false
 	}
-	// A reference read out of a parameter taken by value points into storage the caller owns.
-	if c.callerPlace(root) || root != l && slices.Contains(c.f.Params, root) && c.p.R.Types.Kind(c.f.Locals[l].Type) == sem.KRef {
+	if c.callerPlace(root) {
 		return root, place, true, true
 	}
 	if c.p.R.Types.Kind(c.f.Locals[root].Type) == sem.KRef {

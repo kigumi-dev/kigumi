@@ -4735,6 +4735,23 @@
       ]
     },
     {
+      "id": "run/borrow_held_origin",
+      "kind": "run",
+      "path": "testdata/run/borrow_held_origin.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/borrow_hold_last_use",
       "kind": "run",
       "path": "testdata/run/borrow_hold_last_use.txtar",
@@ -18573,6 +18590,17 @@
       "id": "sem/borrow_cell_in_element_err",
       "kind": "sem",
       "path": "testdata/sem/borrow_cell_in_element_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_held_origin_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_held_origin_err.txtar",
       "mode": [
         "check"
       ],

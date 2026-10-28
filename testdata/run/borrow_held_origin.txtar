@@ -1,0 +1,105 @@
+-- src --
+type V['a] = { pub s &'a String }
+type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+type W['a] = { pub inner Sink['a] }
+
+fn churn() -> Int { let mut arr: Array[String] = Array.of("x"); for i in 100..400 { arr.push("w${i}") }; arr.len().toInt() || 0 }
+fn pushByValue['a](k: Sink['a], x: V['a]) { k.items.push(x) }
+fn pushRef['a](k: &mut Sink['a], x: V['a]) { k.items.push(x) }
+fn at['a](ks: &mut Array[Sink['a]]) -> Sink['a] { ks.takeAt(0).unwrap() }
+fn Sink['a].add(mut self, x: V['a]) { self.items.push(x) }
+
+fn forwardLocal2['a](k: Sink['a], x: V['a]) { let kk = k; pushByValue(kk, x) }
+fn direct2['a](k: Sink['a], x: V['a]) { let mut kk = k; kk.items.push(x) }
+fn Sink['a].putLocalCopy(move self, x: V['a]) { let s = self; s.items.push(x) }
+fn refOfCopy['a](k: Sink['a], x: V['a]) { let mut kk = k; pushRef(&mut kk, x) }
+fn wrapped['a](k: Sink['a], x: V['a]) { let w = W { inner: k }; w.inner.items.push(x) }
+fn mutSelfOnCopy['a](k: Sink['a], x: V['a]) { let mut kk = k; kk.add(x) }
+fn fnValueCopy['a](k: Sink['a], x: V['a]) { let f = pushByValue; let kk = k; f(kk, x) }
+fn swappedIn['a](k: Sink['a], x: V['a]) -> usize {
+    let f = "f"
+    let mut mine = Array.of(V { s: &f })
+    let mut kk = Sink { items: &mut mine }
+    kk = k
+    kk.items.push(x)
+    mine.len()
+}
+fn calleeTakes['a](ks: &mut Array[Sink['a]], x: V['a]) { let t = ks.takeAt(0); if let Some(s) = t { pushByValue(s, x) } }
+fn calleeTakesRef['a](ks: &mut Array[Sink['a]], x: V['a]) { let t = ks.takeAt(0); if let Some(s) = t { let mut ss = s; pushRef(&mut ss, x) } }
+fn calleeTakesDirect['a](ks: &mut Array[Sink['a]], x: V['a]) { let t = ks.takeAt(0); if let Some(s) = t { s.items.push(x) } }
+fn helperReturns['a](ks: &mut Array[Sink['a]], x: V['a]) { let s = at(ks); s.items.push(x) }
+fn calleeTakesReads['a](ks: &mut Array[Sink['a]]) -> usize { let t = ks.takeAt(0); if let Some(s) = t { s.items.len() } else { 0 } }
+
+fn ownLifetime() -> String {
+    let u = "u"
+    let v = "v"
+    let mut a = Array.of(V { s: &u })
+    forwardLocal2(Sink { items: &mut a }, V { s: &v })
+    direct2(Sink { items: &mut a }, V { s: &v })
+    Sink { items: &mut a }.putLocalCopy(V { s: &v })
+    refOfCopy(Sink { items: &mut a }, V { s: &v })
+    wrapped(Sink { items: &mut a }, V { s: &v })
+    mutSelfOnCopy(Sink { items: &mut a }, V { s: &v })
+    fnValueCopy(Sink { items: &mut a }, V { s: &v })
+    let m = swappedIn(Sink { items: &mut a }, V { s: &v })
+    let n = churn()
+    "${a.len()} ${a[1].s} ${a[4].s} ${a[8].s} ${m} ${n}"
+}
+
+fn takenOwnLifetime() -> String {
+    let u = "u"
+    let v = "v"
+    let mut a = Array.of(V { s: &u })
+    { let mut ks = Array.of(Sink { items: &mut a }); calleeTakes(&mut ks, V { s: &v }) }
+    { let mut ks = Array.of(Sink { items: &mut a }); calleeTakesRef(&mut ks, V { s: &v }) }
+    { let mut ks = Array.of(Sink { items: &mut a }); calleeTakesDirect(&mut ks, V { s: &v }) }
+    { let mut ks = Array.of(Sink { items: &mut a }); helperReturns(&mut ks, V { s: &v }) }
+    let r = { let mut ks = Array.of(Sink { items: &mut a }); calleeTakesReads(&mut ks) }
+    let n = churn()
+    "${a.len()} ${a[1].s} ${a[4].s} ${r} ${n}"
+}
+
+fn localHolder['a](k: Sink['a]) -> usize {
+    let loc = "l${churn()}"
+    let f = "f"
+    let mut mine = Array.of(V { s: &f })
+    let h = Sink { items: &mut mine }
+    h.items.push(V { s: &loc })
+    let mut hs = Array.of(Sink { items: &mut mine })
+    if let Some(g) = hs.takeAt(0) { g.items.push(V { s: &loc }) }
+    let kk = k
+    kk.items.len() * 10 + mine.len()
+}
+
+fn arrayIndex['a](k: Sink['a], x: V['a]) { let mut arr = Array.of(k); arr[0].items.push(x) }
+fn arrayTake['a](k: Sink['a], x: V['a]) { let mut arr = Array.of(k); let t = arr.takeAt(0); if let Some(s) = t { s.items.push(x) } }
+fn arrayLoop['a](k: Sink['a], x: V['a]) { let arr = Array.of(k); for s in arr { s.items.push(x) } }
+fn resultOf['a](k: Sink['a], x: V['a]) { let r: Result[Sink['a], Int] = Ok(k); if let Ok(s) = r { s.items.push(x) } }
+
+fn arrays() -> String {
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    arrayIndex(Sink { items: &mut a }, V { s: &u })
+    arrayTake(Sink { items: &mut a }, V { s: &u })
+    arrayLoop(Sink { items: &mut a }, V { s: &u })
+    resultOf(Sink { items: &mut a }, V { s: &u })
+    let n = churn()
+    "${a.len()} ${a[4].s} ${n}"
+}
+
+fn frameHolders() -> String {
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let m = localHolder(Sink { items: &mut a })
+    "${m} ${a.len()}"
+}
+
+print ownLifetime()
+print takenOwnLifetime()
+print frameHolders()
+print arrays()
+-- stdout --
+9 v v v 1 301
+5 v v 5 301
+13 1
+5 u 301

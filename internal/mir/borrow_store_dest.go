@@ -18,12 +18,15 @@ func (c *borrowCheck) storeReach(fl storeFlow) (out, callers []LocalID) {
 	if !ok || caller {
 		return nil, nil
 	}
+	addCaller := func(o LocalID) {
+		if !slices.Contains(callers, o) {
+			callers = append(callers, o)
+		}
+	}
 	add := func(o LocalID) {
 		switch {
 		case c.callerPlace(o):
-			if !slices.Contains(callers, o) {
-				callers = append(callers, o)
-			}
+			addCaller(o)
 		case !slices.Contains(out, o) && c.p.R.Types.Kind(c.f.Locals[o].Type) != sem.KRef:
 			out = append(out, o)
 		}
@@ -41,15 +44,15 @@ func (c *borrowCheck) storeReach(fl storeFlow) (out, callers []LocalID) {
 	sites := c.calleeStoreSites(fl)
 	if lit := c.closureLiteral(root); fl.byValue && lit != nil {
 		if len(sites) > 0 {
-			c.captureReach(lit, add, func(o LocalID) {
-				if !slices.Contains(callers, o) {
-					callers = append(callers, o)
-				}
-			})
+			c.captureReach(lit, add, addCaller)
 		}
 		return out, callers
 	}
+	via := slices.ContainsFunc(sites, func(s paramStore) bool { return s.via })
 	for _, d := range holders {
+		if p, ok := c.heldOrigin(d); ok && via && c.keepsMutRef(c.f.Locals[d].Type) {
+			addCaller(p)
+		}
 		for _, u := range c.siteOwners(d, sites) {
 			if c.callerPlace(u) || c.keepsBorrows(u) {
 				add(u)

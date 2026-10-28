@@ -9,9 +9,10 @@ import (
 // holdsMutPlace reports a value, not a reference, whose type keeps a `&mut` of some place.
 func (c *borrowCheck) holdsMutPlace(l LocalID) bool {
 	t := c.f.Locals[l].Type
-	if c.p.R.Types.Kind(t) == sem.KRef {
-		return false
-	}
+	return c.p.R.Types.Kind(t) != sem.KRef && c.keepsMutRef(t)
+}
+
+func (c *borrowCheck) keepsMutRef(t sem.TypeID) bool {
 	held, ok := c.mutHolders[t]
 	if !ok {
 		held = c.storesMutRef(t)

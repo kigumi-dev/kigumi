@@ -28,6 +28,7 @@ type cellState struct {
 	callableTypes   map[sem.TypeID]bool
 	offloadNode     map[sem.EntityID]syntax.NodeID
 	keeperState     *keeperGraph
+	origins         map[LocalID]LocalID
 }
 
 // dropFact marks, among the closure facts, a value that may hold a resource whose user `drop` runs when it is dropped.
