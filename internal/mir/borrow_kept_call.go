@@ -11,7 +11,6 @@ import (
 // keptCall is what call in hands its result and, per operand i, that operand's place: by keptCallees' summaries, for a
 // body-less primitive only what moved hands on from a lent operand unless the result can hold a reference, else all.
 func (c *borrowCheck) keptCall(k *keptCtx, in Inst) (uint64, func(int) uint64) {
-	g := k.g
 	var from uint64
 	for _, a := range in.Args {
 		from |= k.facts[a]
@@ -19,46 +18,41 @@ func (c *borrowCheck) keptCall(k *keptCtx, in Inst) (uint64, func(int) uint64) {
 	every := func(int) uint64 { return from }
 	ents, off := c.keptCallees(k, in)
 	args := in.Args[min(off, len(in.Args)):]
-	if len(ents) == 1 && c.p.ByEnt[ents[0]] == nil {
-		var res uint64
-		ref := in.Op.Yields() && (c.holdsBorrow(g.Locals[in.Dst].Type) || c.ifaceRequirement(ents[0]) && c.holdsDeferred(g.Locals[in.Dst].Type))
-		for _, a := range args {
-			if ref || c.p.R.Types.Kind(g.Locals[a].Type) != sem.KRef && !g.Locals[a].Cell {
-				res |= k.facts[a]
-			} else {
-				res |= c.moved(k, a)
-			}
-		}
-		return res, func(i int) uint64 {
-			if i >= off && (c.lendsPlace(g, in.Args[i]) || c.ifaceRequirement(ents[0]) && c.mayHoldPlace(g, in.Args[i])) {
-				return from
-			}
-			return 0
-		}
-	}
+	plainResult := c.ifaceRequirement(in.Ent) && !c.holdsBorrow(k.g.Locals[in.Dst].Type) && !c.holdsDeferred(k.g.Locals[in.Dst].Type)
 	type callee struct {
 		s *keptSummary
 		h *Func
 		n int
 	}
 	var cs []callee
+	var signatures []func(int) uint64
+	var res uint64
 	for _, e := range ents {
+		if c.p.ByEnt[e] == nil {
+			r, lent := c.keptSignature(k, in, e, args, off)
+			res |= r
+			signatures = append(signatures, lent)
+			continue
+		}
 		s := c.keptBound(e, c.argBind(k, e, args))
 		if s == nil {
 			return from, every
 		}
 		cs = append(cs, callee{s, c.p.ByEnt[e], len(c.declaredParams(e))})
 	}
-	if cs == nil {
+	if cs == nil && signatures == nil {
 		return from, every
 	}
-	var res uint64
 	for j, a := range args {
 		for _, ce := range cs {
 			switch {
+			case plainResult && (c.p.R.Types.Kind(k.g.Locals[a].Type) == sem.KRef || k.g.Locals[a].Cell):
+				if j >= ce.n || ce.s.keepsResult(j) || ce.s.movesOut(j) || j < len(ce.h.Params) && c.paramMoves(ce.h, j) {
+					res |= c.moved(k, a)
+				}
 			case j >= ce.n || ce.s.keepsResult(j):
 				res |= k.facts[a]
-			case c.lendsPlace(g, a) && (ce.s.movesOut(j) || j < len(ce.h.Params) && c.paramMoves(ce.h, j)):
+			case c.lendsPlace(k.g, a) && (ce.s.movesOut(j) || j < len(ce.h.Params) && c.paramMoves(ce.h, j)):
 				res |= c.moved(k, a)
 			}
 		}
@@ -69,12 +63,15 @@ func (c *borrowCheck) keptCall(k *keptCtx, in Inst) (uint64, func(int) uint64) {
 			return k.facts[in.Args[i]]
 		}
 		out := k.facts[args[t]]
+		for _, lent := range signatures {
+			out |= lent(i)
+		}
 		for j, a := range args {
 			for _, ce := range cs {
 				switch {
 				case t >= ce.n || j >= ce.n || ce.s.storesInto(t, j):
 					out |= k.facts[a]
-				case c.lendsPlace(g, a) && ce.s.movesInto(t, j):
+				case c.lendsPlace(k.g, a) && ce.s.movesInto(t, j):
 					out |= c.moved(k, a)
 				}
 			}
@@ -95,6 +92,7 @@ func (c *borrowCheck) keptCallees(k *keptCtx, in Inst) ([]sem.EntityID, int) {
 	case in.Op == OpCallValue && in.Ent == 0 && len(in.Args) > 0:
 		ents, off = c.itemsIn(k, in.Args[0], 8), 1
 	}
+	ents = c.resolveKeptCallees(ents)
 	if slices.ContainsFunc(ents, func(e sem.EntityID) bool { return c.p.R.Entity(e).Kind != sem.EntFn || c.p.isAsyncBody(e) }) {
 		return nil, 0
 	}

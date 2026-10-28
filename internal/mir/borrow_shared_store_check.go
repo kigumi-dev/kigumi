@@ -108,7 +108,7 @@ func (c *borrowCheck) carriedName(b *borrowInfo) string {
 	for _, o := range b.owners {
 		l := o.owner
 		if o.view {
-			l = c.viewSource(l)
+			l = c.viewSources(l).locals[0]
 			if r, ok := c.refRoot(l); ok {
 				l = r
 			}

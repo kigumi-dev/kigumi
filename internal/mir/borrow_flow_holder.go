@@ -14,14 +14,14 @@ func (c *borrowCheck) mayHoldPlace(g *Func, a LocalID) bool {
 	return c.mutHolder(g.Locals[a].Type) || c.hidesLayout(g.Locals[a].Type)
 }
 
-// hidesLayout reports a value of t, not behind a reference, part of which is a type parameter, interface or
-// unresolved type.
 func (c *borrowCheck) hidesLayout(t sem.TypeID) bool {
 	tt := c.p.R.Types
 	return c.typeHoldsUntil(t, func(u sem.TypeID) bool {
 		switch n := tt.Node(u); n.Kind {
 		case sem.KIface, sem.KVar:
 			return true
+		case sem.KRef:
+			return tt.Kind(n.Elem) == sem.KIface
 		case sem.KParam:
 			return !c.p.R.TypeParam(n.Ent).IsLifetime
 		}

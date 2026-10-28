@@ -449,7 +449,226 @@ fn boundLentDirect() -> usize {
     n + c.len()
 }
 
+fn outDyn(f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], h: &mut RefSink) {
+    h.putRef(f(c))
+}
+
+fn dynDirect() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    outDyn(mut1, &mut c, &mut hold)
+    let n = sum(a)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn dynValue() -> usize {
+    let w = outDyn
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    w(mut1, &mut c, &mut hold)
+    let n = sum(a)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn dynFrame() -> usize {
+    let f = mut1
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    let v: &mut RefSink = &mut hold
+    v.putRef(f(&mut c))
+    let n = sum(a)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn boundFrame() -> usize {
+    let f = mut1
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    hold.putRef(f(&mut c))
+    let n = sum(a)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+async fn mutInt(c: &mut Int) -> usize {
+    c = c + 1
+    1
+}
+
+fn outInt['a](f: fn(&mut Int) -> Future[usize], c: &mut Int, h: &mut Hold['a]) {
+    h.r.push(f(c))
+}
+
+fn lentIntDirect() -> usize {
+    let mut c = 0
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    outInt(mutInt, &mut c, &mut hold)
+    let n = sum(a)
+    c = 5
+    n
+}
+
+fn lentIntValue() -> usize {
+    let w = outInt
+    let mut c = 0
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    w(mutInt, &mut c, &mut hold)
+    let n = sum(a)
+    c = 5
+    n
+}
+
+interface RefConsumer {
+    fn consumeRef(mut self, f: Future[usize])
+}
+
+fn Hold['a].consumeRef(mut self, f: Future[usize]) {
+    let _ = run(f)
+    let _ = self.r.len()
+}
+
+fn useDyn(f: fn(&mut Int) -> Future[usize], c: &mut Int, h: &mut RefConsumer) {
+    h.consumeRef(f(c))
+}
+
+fn consumedDynDirect() -> usize {
+    let mut c = 0
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    useDyn(mutInt, &mut c, &mut hold)
+    c = 5
+    sum(a)
+}
+
+fn consumedDynValue() -> usize {
+    let w = useDyn
+    let mut c = 0
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    w(mutInt, &mut c, &mut hold)
+    c = 5
+    sum(a)
+}
+
+type RefView['a] = { pub mut v &'a mut RefSink }
+
+fn dynIfJoin() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    let mut a2 = Array.empty[Future[usize]]()
+    let mut hold2 = Hold { r: &mut a2 }
+    let v: &mut RefSink = if c.len() > 0 { &mut hold } else { &mut hold2 }
+    v.putRef(mut1(&mut c))
+    let n = sum(a) + sum(a2)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn dynMatchJoin() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    let mut a2 = Array.empty[Future[usize]]()
+    let mut hold2 = Hold { r: &mut a2 }
+    let v: &mut RefSink = match c.len() {
+        0 -> &mut hold
+        _ -> &mut hold2
+    }
+    v.putRef(mut1(&mut c))
+    let n = sum(a) + sum(a2)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn dynLoopView() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    let mut a2 = Array.empty[Future[usize]]()
+    let mut hold2 = Hold { r: &mut a2 }
+    let mut slot = RefView { v: &mut hold }
+    for i in 0..2 {
+        if i == 1 { slot = RefView { v: &mut hold2 } }
+    }
+    slot.v.putRef(mut1(&mut c))
+    let n = sum(a) + sum(a2)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn dynBranchView() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    let mut a2 = Array.empty[Future[usize]]()
+    let mut hold2 = Hold { r: &mut a2 }
+    let mut slot = RefView { v: &mut hold }
+    if c.len() > 0 { slot = RefView { v: &mut hold2 } }
+    slot.v.putRef(mut1(&mut c))
+    let n = sum(a) + sum(a2)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn dynIfCallee() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    let mut a2 = Array.empty[Future[usize]]()
+    let mut hold2 = Hold { r: &mut a2 }
+    let v: &mut RefSink = if c.len() > 0 { &mut hold } else { &mut hold2 }
+    outDyn(mut1, &mut c, v)
+    let n = sum(a) + sum(a2)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn dynMatchMakerValue() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    let mut a2 = Array.empty[Future[usize]]()
+    let mut hold2 = Hold { r: &mut a2 }
+    let v: &mut RefSink = match c.len() {
+        0 -> &mut hold
+        _ -> &mut hold2
+    }
+    let f = mut1
+    v.putRef(f(&mut c))
+    let n = sum(a) + sum(a2)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn dynIfSecondHolder() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    let mut a2 = Array.empty[Future[usize]]()
+    let mut hold2 = Hold { r: &mut a2 }
+    let v: &mut RefSink = if c.len() > 0 { &mut hold } else { &mut hold2 }
+    v.putRef(mut1(&mut c))
+    let n = sum(a)
+    let m = sum(a2)
+    c = Array.of("q", "q", "q")
+    n + m + c.len()
+}
+
 fn main() {
+    print "joined ${dynIfJoin()} ${dynMatchJoin()} ${dynLoopView()} ${dynBranchView()} ${dynIfCallee()} ${dynMatchMakerValue()} ${dynIfSecondHolder()}"
+    print "consumed dynamic ${consumedDynDirect()} ${consumedDynValue()}"
+    print "dynamic ${dynDirect()} ${dynValue()} ${dynFrame()} bound ${boundFrame()}"
+    print "scalar ${lentIntDirect()} ${lentIntValue()}"
     print "bound lent ${boundLentDirect()}"
     print "generic lent ${genericLentDirect()} ${genericLentRelay()} ${genericLentConsumed()}"
     print "plain lent ${plainLent(plainPutR)} consumed ${consumedLent()}"
@@ -457,6 +676,10 @@ fn main() {
     print "frame ${inFrame()} shapes ${shapes()} locals ${locals()} unknown ${unknown(outH)} plain ${plain()} generic ${generic()} callbacks ${callbacks()}"
 }
 -- stdout --
+joined 5 5 5 5 5 5 5
+consumed dynamic 0 0
+dynamic 5 5 5 bound 5
+scalar 1 1
 bound lent 5
 generic lent 5 5 3
 plain lent 4 consumed 3

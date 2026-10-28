@@ -8,9 +8,13 @@ func (c *borrowCheck) checkOpaqueStores(in Inst) {
 	if in.Op != OpCallValue || in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn || len(in.Args) < 2 {
 		return
 	}
+	known := len(c.summarizedValueCallees(in)) > 0
 	for i, t := range in.Args[1:] {
 		typ := c.f.Locals[t].Type
 		if c.p.R.Types.Kind(typ) != sem.KRef || !c.p.R.Types.RefMut(typ) || c.declaredLifetime(typ) == 0 {
+			continue
+		}
+		if known && c.keptPlace(t) {
 			continue
 		}
 		for j, v := range in.Args[1:] {
@@ -36,10 +40,14 @@ func (c *borrowCheck) opaqueFlows(in Inst) []storeFlow {
 		return nil
 	}
 	args := in.Args[1:]
+	known := len(c.summarizedValueCallees(in)) > 0
 	var out []storeFlow
 	for i, t := range args {
 		byValue := c.holdsMutPlace(t)
 		if _, mut := c.p.R.MutRefElem(c.f.Locals[t].Type); !mut && !byValue {
+			continue
+		}
+		if known && c.keptPlace(t) {
 			continue
 		}
 		lifetime := c.declaredLifetime(c.f.Locals[t].Type) != 0 || c.declaredLifetime(c.placeOf(t)) != 0

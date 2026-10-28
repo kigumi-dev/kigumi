@@ -106,7 +106,7 @@ func (c *borrowCheck) instStoreSites(key paramKey, in Inst, from map[LocalID]der
 		}
 		if in.Op != OpCall && in.Op != OpCallValue && in.Op != OpBuiltin || slices.ContainsFunc(in.Args, other) {
 			callback := slices.ContainsFunc(in.Args, func(b LocalID) bool { return b != a && c.typeHolds(g.Locals[b].Type, c.callableNode) })
-			site := paramStore{via: in.Op != OpCall || callback || c.seesThrough(in.Ent, k)}
+			site := paramStore{via: in.Op != OpCall || callback || c.seesThrough(in.Ent, k) || c.viewType(g.Locals[a].Type)}
 			if in.Op == OpCallValue {
 				callee, quiet := c.relayCallee(g, defs, in.Args[0])
 				if quiet {

@@ -86,14 +86,6 @@ func (c *borrowCheck) keptPlace(a LocalID) bool {
 	return c.heldAsyncType(t)
 }
 
-// viewSource is what an existential view a lends boxes, whose place a store through the view reaches; else a itself.
-func (c *borrowCheck) viewSource(a LocalID) LocalID {
-	if d := c.definition(a); d != nil && d.Op == OpLendBox && len(d.Args) > 0 {
-		return d.Args[0]
-	}
-	return a
-}
-
 func (c *borrowCheck) keptTie(info *sem.FnInfo, q sem.EntityID) tieKind {
 	t := c.p.R.Entity(q).Type
 	switch {

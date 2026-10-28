@@ -7,9 +7,10 @@ import (
 )
 
 type storeFlow struct {
-	target LocalID
-	values []flowArg
-	ref    bool
+	target     LocalID
+	values     []flowArg
+	ref        bool
+	unresolved bool
 	// generic marks a flow found only through a type parameter the target's type names.
 	generic bool
 	// callee and param name the parameter a call's `&mut` argument is lent to; callee is 0 for a plain store.
@@ -75,6 +76,9 @@ func (c *borrowCheck) borrowIntoHolderField(in Inst, v LocalID) bool {
 // storeRoot resolves where a flow writes: the named local owning the place, the place's type, and whether it is the
 // caller's: a lent parameter, or the parameter whose `&mut`s the holder written through may keep.
 func (c *borrowCheck) storeRoot(fl storeFlow) (root LocalID, place sem.TypeID, caller, ok bool) {
+	if fl.unresolved {
+		return 0, 0, false, false
+	}
 	l := fl.target
 	place = c.f.Locals[l].Type
 	if fl.byValue {

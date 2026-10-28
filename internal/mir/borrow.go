@@ -99,6 +99,8 @@ type borrowCheck struct {
 	reborrows   []reborrowSite
 	unions      []unionSite
 	mixed       map[syntax.NodeID]LocalID
+	viewDefs    map[LocalID][]*Inst
+	viewSets    map[LocalID]viewSourceSet
 
 	cellState
 	fields fieldState

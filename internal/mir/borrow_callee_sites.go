@@ -25,8 +25,6 @@ func (c *borrowCheck) calleeStoreSites(fl storeFlow) []paramStore {
 	return nil
 }
 
-// seesThrough reports whether a callee without a body may store through a `&mut` its argument in slot keeps, when it
-// is handed no callable that could: only if the slot's declared type shows one, as a type parameter hides it.
 func (c *borrowCheck) seesThrough(callee sem.EntityID, slot int) bool {
 	if callee == 0 || c.p.R.Entity(callee).Kind != sem.EntFn {
 		return true
