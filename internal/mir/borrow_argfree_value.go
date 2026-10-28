@@ -107,15 +107,21 @@ func (c *borrowCheck) fnItemParts(l LocalID, k, depth int) ([]sem.EntityID, bool
 }
 
 func (c *borrowCheck) defsOf(l LocalID) []*Inst {
-	var out []*Inst
-	for b := range c.f.Blocks {
-		for i := range c.f.Blocks[b].Insts {
-			if in := &c.f.Blocks[b].Insts[i]; shapes[in.Op].result && in.Dst == l || in.Op == OpCellSet && in.Args[0] == l {
-				out = append(out, in)
+	if c.defsAll == nil {
+		c.defsAll = map[LocalID][]*Inst{}
+		for b := range c.f.Blocks {
+			for i := range c.f.Blocks[b].Insts {
+				in := &c.f.Blocks[b].Insts[i]
+				switch {
+				case shapes[in.Op].result:
+					c.defsAll[in.Dst] = append(c.defsAll[in.Dst], in)
+				case in.Op == OpCellSet:
+					c.defsAll[in.Args[0]] = append(c.defsAll[in.Args[0]], in)
+				}
 			}
 		}
 	}
-	return out
+	return c.defsAll[l]
 }
 
 // writtenThrough reports whether something stores into l or borrows it mutably.

@@ -66,8 +66,9 @@ type borrowCheck struct {
 	// defs maps a temporary to its defining instruction (nil when defined
 	// more than once), built on first use.
 	defs map[LocalID]*Inst
-	// sole caches soleDefs for soleDef, built on first use.
-	sole map[LocalID]*Inst
+	// sole caches soleDefs for soleDef, built on first use; defsAll caches defsOf.
+	sole    map[LocalID]*Inst
+	defsAll map[LocalID][]*Inst
 	// chainOnly caches chainedOnly's result per local.
 	chainOnly map[LocalID]bool
 	// unowned caches unownedRefs, built on first use.
