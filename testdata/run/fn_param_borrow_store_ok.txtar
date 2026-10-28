@@ -1,5 +1,5 @@
 -- src --
-type V['a] = { pub s &'a String }
+pub type V['a] = { pub s &'a String }
 fn apply['a](g: fn(V['a]) -> Void, x: V['a]) { g(x) }
 fn applyIn['a](g: fn(V['a]) -> Void, x: V['a]) { g(x) }
 
@@ -55,6 +55,65 @@ ownedForwarded((s: String) => { r.push(s) })
 ownedNested((s: String) => { r.push(s) })
 ownedAliased((s: String) => { r.push(s) })
 print "${arr.len()} ${arr[1]} ${arr[2]} ${arr[3]} ${arr[4]}"
+
+fn twoWays['a](g: fn(V['a]) -> Void, h: fn(V['a]) -> Void, b: Bool, s: &'a String) {
+    apply((x: V['a]) => { applyIn((y: V['a]) => { if b { g(y) } else { h(y) } }, x) }, V { s: s })
+}
+fn threeWays['a](g: fn(V['a]) -> Void, h: fn(V['a]) -> Void, j: fn(V['a]) -> Void, n: Int, s: &'a String) {
+    apply((x: V['a]) => { applyIn((y: V['a]) => { match n { 0 -> g(y), 1 -> h(y), _ -> j(y) } }, x) }, V { s: s })
+}
+fn mixed['a](g: fn(V['a]) -> Void, b: Bool, s: &'a String) {
+    let h = (v: V['a]) => { _ = v.s }
+    apply((x: V['a]) => { applyIn((y: V['a]) => { if b { g(y) } else { h(y) } }, x) }, V { s: s })
+}
+fn storeRead['a](g: fn(V['a]) -> Void, h: fn(V['a]) -> Void, b: Bool, s: &'a String) {
+    apply((x: V['a]) => { applyIn((y: V['a]) => { if b { h(y) } else { g(y) } }, x) }, V { s: s })
+}
+
+fn unknownRelay['a](g: fn(V['a]) -> Void, h: fn(V['a]) -> Void, b: Bool, s: &'a String) {
+    let mut k = g
+    if b { k = h }
+    apply((x: V['a]) => { applyIn((y: V['a]) => { k(y) }, x) }, V { s: s })
+}
+fn read['a](x: V['a]) { _ = x.s }
+fn dispatchCaller['a](s: &'a String) {
+    let mut arr1 = Array.of(V { s: s })
+    let mut arr2 = Array.of(V { s: s })
+    let mut arr3 = Array.of(V { s: s })
+    let r1 = &mut arr1
+    let r2 = &mut arr2
+    let r3 = &mut arr3
+    twoWays((v: V['a]) => { r1.push(v) }, (v: V['a]) => { r2.push(v) }, true, s)
+    twoWays((v: V['a]) => { r1.push(v) }, (v: V['a]) => { r2.push(v) }, false, s)
+    threeWays((v: V['a]) => { r1.push(v) }, (v: V['a]) => { r2.push(v) }, (v: V['a]) => { r3.push(v) }, 0, s)
+    threeWays((v: V['a]) => { r1.push(v) }, (v: V['a]) => { r2.push(v) }, (v: V['a]) => { r3.push(v) }, 1, s)
+    threeWays((v: V['a]) => { r1.push(v) }, (v: V['a]) => { r2.push(v) }, (v: V['a]) => { r3.push(v) }, 2, s)
+    mixed((v: V['a]) => { r1.push(v) }, true, s)
+    mixed((v: V['a]) => { r1.push(v) }, false, s)
+    storeRead((v: V['a]) => { r1.push(v) }, read, false, s)
+    storeRead((v: V['a]) => { r1.push(v) }, read, true, s)
+    unknownRelay((v: V['a]) => { r1.push(v) }, (v: V['a]) => { r2.push(v) }, false, s)
+    unknownRelay((v: V['a]) => { r1.push(v) }, (v: V['a]) => { r2.push(v) }, true, s)
+    print "${arr1.len()} ${arr2.len()} ${arr3.len()} ${arr1[1].s} ${arr2[1].s} ${arr3[1].s}"
+}
+
+pub fn viaRef['a](g: fn(&V['a]) -> Void, s: &'a String) {
+    let v = V { s: s }
+    g(&v)
+}
+pub fn viaRefArr['a](g: fn(&Array[V['a]]) -> Void, s: &'a String) {
+    let arr = Array.of(V { s: s })
+    g(&arr)
+}
+fn refCaller['a](s: &'a String) {
+    viaRef((v: &V['a]) => { print "${v.s}" }, s)
+    viaRefArr((a: &Array[V['a]]) => { print "${a[0].s}" }, s)
+}
+dispatchCaller(&s)
+refCaller(&s)
 -- stdout --
 5 caller-owned caller-owned caller-owned caller-owned
 5 owned owned-forwarded owned-nested owned-aliased
+6 4 2 caller-owned caller-owned caller-owned
+caller-owned
+caller-owned

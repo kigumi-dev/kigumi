@@ -19,24 +19,30 @@ func copiedFrom(defs map[LocalID]*Inst, l LocalID) LocalID {
 	return l
 }
 
-func (c *borrowCheck) relayCallee(g *Func, defs map[LocalID]*Inst, l LocalID, kind siteKind) (int, bool) {
+func (c *borrowCheck) relayCallee(g *Func, defs map[LocalID]*Inst, l LocalID, kind siteKind) []relayTarget {
+	return c.relayTargets(g, defs, l, kind, 8)
+}
+
+func (c *borrowCheck) relayTargets(g *Func, defs map[LocalID]*Inst, l LocalID, kind siteKind, depth int) []relayTarget {
+	if kind == siteOut && !c.calleeKeepsBorrow(g.Locals[l].Type) {
+		return nil
+	}
 	o := c.calleeOrigin(g, defs, l)
-	if o.param > 0 || o.body == nil {
-		return o.param, false
+	if o.isParam {
+		return []relayTarget{{kind: relayParam, param: o.param}}
 	}
-	callee := 0
+	if o.body == nil || depth == 0 {
+		return []relayTarget{{kind: relayUnknown}}
+	}
+	var out []relayTarget
 	for _, s := range c.callableSites(o.body, len(o.captures), kind) {
-		cap := s.callee - 1
-		if cap < 0 || cap >= len(o.captures) {
-			return 0, false
+		for _, mapped := range c.relaySite(g, defs, s, o.captures, kind, depth-1) {
+			if !slices.Contains(out, mapped.callee) {
+				out = append(out, mapped.callee)
+			}
 		}
-		p := paramIndex(g, defs, o.captures[cap]) + 1
-		if p == 0 || callee != 0 && callee != p {
-			return 0, false
-		}
-		callee = p
 	}
-	return callee, callee == 0
+	return out
 }
 
 func (c *borrowCheck) callableSites(h *Func, skip int, kind siteKind) []paramStore {
@@ -45,8 +51,11 @@ func (c *borrowCheck) callableSites(h *Func, skip int, kind siteKind) []paramSto
 	}
 	var out []paramStore
 	for j := skip; j < len(h.Params); j++ {
+		if kind == siteOut && !c.paramKeepsRef(h, j) && !c.paramKeepsBorrow(h.Locals[h.Params[j]].Type) {
+			continue
+		}
 		if kind == siteStores && len(c.paramSelfSources(h, j)) > 0 {
-			return wholeParam
+			return []paramStore{{via: true}}
 		}
 		out = append(out, c.paramSites(paramKey{g: h, i: j, kind: kind})...)
 	}

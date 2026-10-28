@@ -23,7 +23,7 @@ const (
 )
 
 // wholeParam is the answer that assumes anything: a store anywhere under the parameter, through what it holds too.
-var wholeParam = []paramStore{{via: true}}
+var wholeParam = []paramStore{{via: true, callee: relayTarget{kind: relayUnknown}}}
 
 // path is a prefix, empty for the whole parameter; beyond lies past a reference the place holds, leaving its fields;
 // via marks a store that may go through such a reference, so only it reaches the places the reference points at.
@@ -31,9 +31,7 @@ type paramStore struct {
 	path   stepPath
 	beyond bool
 	via    bool
-	// callee, when set, is 1 + the parameter holding the code the store hands the value to; the caller drops the site
-	// when its argument there is code that stores through nothing it is called with.
-	callee int
+	callee relayTarget
 }
 
 func (s paramStore) same(o paramStore) bool {

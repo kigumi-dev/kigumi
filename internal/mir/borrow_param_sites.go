@@ -85,17 +85,9 @@ func (c *borrowCheck) instStoreSites(key paramKey, in Inst, from map[LocalID]der
 		}
 		if h := c.bodyCallee(in); h != nil {
 			for _, s := range c.paramSites(paramKey{g: h, i: k, kind: key.kind}) {
-				if m := s.callee - 1; m >= 0 {
-					s.callee = 0
-					if m < len(in.Args) {
-						callee, quiet := c.relayCallee(g, defs, in.Args[m], key.kind)
-						if quiet {
-							continue
-						}
-						s.callee = callee
-					}
+				for _, mapped := range c.relaySite(g, defs, s, in.Args, key.kind, 8) {
+					add(from[a], mapped)
 				}
-				add(from[a], s)
 			}
 			continue
 		}
@@ -108,11 +100,11 @@ func (c *borrowCheck) instStoreSites(key paramKey, in Inst, from map[LocalID]der
 			callback := slices.ContainsFunc(in.Args, func(b LocalID) bool { return b != a && c.typeHolds(g.Locals[b].Type, c.callableNode) })
 			site := paramStore{via: in.Op != OpCall || callback || c.seesThrough(in.Ent, k) || c.viewType(g.Locals[a].Type)}
 			if in.Op == OpCallValue {
-				callee, quiet := c.relayCallee(g, defs, in.Args[0], key.kind)
-				if quiet {
-					continue
+				for _, target := range c.relayCallee(g, defs, in.Args[0], key.kind) {
+					site.callee = target
+					add(from[a], site)
 				}
-				site.callee = callee
+				continue
 			}
 			add(from[a], site)
 		}

@@ -2,6 +2,7 @@ package mir
 
 type calleeOrigin struct {
 	param    int
+	isParam  bool
 	body     *Func
 	captures []LocalID
 	known    bool
@@ -9,7 +10,7 @@ type calleeOrigin struct {
 
 func (c *borrowCheck) calleeOrigin(g *Func, defs map[LocalID]*Inst, l LocalID) calleeOrigin {
 	if i := paramIndex(g, defs, l); i >= 0 {
-		return calleeOrigin{param: i + 1}
+		return calleeOrigin{param: i, isParam: true}
 	}
 	d := defs[copiedFrom(defs, l)]
 	if d == nil || d.Op != OpClosure && d.Op != OpFnItem && d.Op != OpBind {
@@ -27,15 +28,11 @@ func (c *borrowCheck) frameCallee(g *Func, defs map[LocalID]*Inst, l LocalID, de
 		return false
 	}
 	o := c.calleeOrigin(g, defs, l)
-	if o.param > 0 || o.body == nil || depth == 0 {
+	if o.isParam || o.body == nil || depth == 0 {
 		return true
 	}
 	for _, s := range c.callableSites(o.body, len(o.captures), siteOut) {
-		if s.callee == 0 {
-			continue
-		}
-		cap := s.callee - 1
-		if cap < len(o.captures) && c.frameCallee(g, defs, o.captures[cap], depth-1) {
+		if c.frameTarget(g, defs, s.callee, o.captures, depth-1) {
 			return true
 		}
 	}

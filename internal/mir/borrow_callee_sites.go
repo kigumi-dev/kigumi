@@ -62,5 +62,5 @@ func (c *borrowCheck) lentContents(fl storeFlow, v flowArg, b *borrowInfo) *borr
 
 // quietCallee reports a site that hands the value to code the call passes, when that code stores through nothing.
 func (c *borrowCheck) quietCallee(fl storeFlow, s paramStore) bool {
-	return s.callee > 0 && s.callee <= len(fl.args) && c.callableArg(fl.args[s.callee-1]) && !c.callableMayStore(fl.args[s.callee-1])
+	return s.callee.kind == relayParam && s.callee.param < len(fl.args) && c.callableArg(fl.args[s.callee.param]) && !c.callableMayStore(fl.args[s.callee.param])
 }

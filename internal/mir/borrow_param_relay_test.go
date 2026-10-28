@@ -47,7 +47,7 @@ func TestParamRelaySummaryKinds(t *testing.T) {
 				t.Errorf("paramStores = %v, want %v", got, want)
 			}
 			if name == "forwarded" {
-				if sites := c.paramSites(paramKey{g: g, i: i, kind: siteOut}); len(sites) != 1 || sites[0].callee != 1 {
+				if sites := c.paramSites(paramKey{g: g, i: i, kind: siteOut}); len(sites) != 1 || sites[0].callee != (relayTarget{kind: relayParam, param: 0}) {
 					t.Errorf("forwarded sites = %v, want a relay to the first parameter", sites)
 				}
 			}

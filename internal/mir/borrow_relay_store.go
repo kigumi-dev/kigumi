@@ -41,8 +41,8 @@ func (c *borrowCheck) relayStoreValues(in Inst) []flowArg {
 			var out []flowArg
 			for k, a := range in.Args[1:] {
 				decl, _ := c.callParam(c.f, in, k+1)
-				if v, ok := c.relayValue(a, decl, nil); ok {
-					if c.flowBorrow(a, !v.contents) == nil || o.param > 0 && c.boundCalleeQuiet(c.f, o.param-1, k) {
+				if v, ok := c.relayValue(a, decl, false, nil); ok {
+					if c.flowBorrow(a, !v.contents) == nil || o.isParam && c.boundCalleeQuiet(c.f, o.param, k) {
 						continue
 					}
 					out = append(out, v)
@@ -57,11 +57,11 @@ func (c *borrowCheck) relayStoreValues(in Inst) []flowArg {
 	var out []flowArg
 	for k, a := range args {
 		for _, s := range c.paramSites(paramKey{g: h, i: k, kind: siteOut}) {
-			if s.callee == 0 || s.callee > len(args) || !c.frameCallee(c.f, defs, args[s.callee-1], 8) {
+			if !c.frameTarget(c.f, defs, s.callee, args, 8) {
 				continue
 			}
-			decl := h.Locals[h.Params[k]].Type
-			if v, ok := c.relayValue(a, decl, s.path); ok {
+			prm := h.Locals[h.Params[k]]
+			if v, ok := c.relayValue(a, prm.Type, c.paramKeepsRef(h, k), s.path); ok {
 				out = append(out, v)
 			}
 		}
@@ -69,12 +69,12 @@ func (c *borrowCheck) relayStoreValues(in Inst) []flowArg {
 	return out
 }
 
-func (c *borrowCheck) relayValue(a LocalID, decl sem.TypeID, path stepPath) (flowArg, bool) {
+func (c *borrowCheck) relayValue(a LocalID, decl sem.TypeID, keepsRef bool, path stepPath) (flowArg, bool) {
 	tt := c.p.R.Types
-	if decl != 0 && !c.paramKeepsBorrow(decl) {
+	if decl != 0 && !keepsRef && !c.paramKeepsBorrow(decl) {
 		return flowArg{}, false
 	}
-	v := flowArg{arg: a, contents: decl != 0 && tt.Kind(c.f.Locals[a].Type) == sem.KRef && c.declaredLifetime(decl) == 0}
+	v := flowArg{arg: a, contents: decl != 0 && tt.Kind(c.f.Locals[a].Type) == sem.KRef && !keepsRef}
 	if len(path) > 0 {
 		v.at = []stepPath{path}
 	}
