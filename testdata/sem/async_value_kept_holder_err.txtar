@@ -694,6 +694,52 @@ fn asyncStoringHoldValue() -> usize {
     sum(a)
 }
 
+type RH['a] = { pub mut r &'a Array[Int] }
+type RSlot['a] = { pub mut r &'a mut RH['a] }
+type MH['a] = { pub mut r &'a mut Array[Int] }
+
+async fn putA['a](c: &'a Array[Int], h: &mut RH['a]) -> usize {
+    h.r = c
+    0
+}
+
+async fn putValueA['a](c: &'a Array[Int], mut h: RSlot['a]) -> usize {
+    h.r.r = c
+    0
+}
+
+async fn putMutA['a](c: MH['a], h: &mut MH['a]) -> usize {
+    h.r = c.r
+    0
+}
+
+fn asyncReferenceDirect() -> usize {
+    let z = Array.of(1)
+    let mut hold = RH { r: &z }
+    let mut c = Array.of(2, 3)
+    let _ = run(putA(&c, &mut hold))
+    c = Array.of(9, 9, 9, 9, 9) //~ ERROR `c` is borrowed and cannot be mutated here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    hold.r.len() + c.len()
+}
+
+fn asyncReferenceByValue() -> usize {
+    let z = Array.of(1)
+    let mut hold = RH { r: &z }
+    let mut c = Array.of(2, 3)
+    let _ = run(putValueA(&c, RSlot { r: &mut hold }))
+    c = Array.of(9, 9, 9, 9, 9) //~ ERROR `c` is borrowed and cannot be mutated here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    hold.r.len() + c.len()
+}
+
+fn asyncMutFieldStore() -> usize {
+    let mut z = Array.of(1)
+    let mut hold = MH { r: &mut z }
+    let mut c = Array.of(2, 3)
+    let _ = run(putMutA(MH { r: &mut c }, &mut hold))
+    c = Array.of(9, 9, 9, 9, 9) //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    hold.r.len() + c.len()
+}
+
 fn main() {
     print "joined ${dynIfJoin()} ${dynMatchJoin()} ${dynLoopView()} ${dynBranchView()} ${dynIfCallee()} ${dynMatchMakerValue()} ${dynIfSecondHolder()}"
     print "dynamic ${dynDirect()} ${dynValue()} ${dynFrame()} bound ${boundFrame()}"
@@ -1551,4 +1597,58 @@ note: `c` is borrowed here
     |
 689 |     let _ = run(w(&mut c, &mut hold))
     |                   ^^^^^^
+
+error[E2198]: `c` is borrowed and cannot be mutated here
+   --> main.kg:718:5
+    |
+718 |     c = Array.of(9, 9, 9, 9, 9) //~ ERROR `c` is borrowed and cannot be mutated here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:717:22
+    |
+717 |     let _ = run(putA(&c, &mut hold))
+    |                      ^^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+   --> main.kg:718:5
+    |
+718 |     c = Array.of(9, 9, 9, 9, 9) //~ ERROR `c` is borrowed and cannot be mutated here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `c` is borrowed and cannot be mutated here
+   --> main.kg:727:5
+    |
+727 |     c = Array.of(9, 9, 9, 9, 9) //~ ERROR `c` is borrowed and cannot be mutated here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:726:27
+    |
+726 |     let _ = run(putValueA(&c, RSlot { r: &mut hold }))
+    |                           ^^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+   --> main.kg:727:5
+    |
+727 |     c = Array.of(9, 9, 9, 9, 9) //~ ERROR `c` is borrowed and cannot be mutated here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:736:5
+    |
+736 |     c = Array.of(9, 9, 9, 9, 9) //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:735:33
+    |
+735 |     let _ = run(putMutA(MH { r: &mut c }, &mut hold))
+    |                                 ^^^^^^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+   --> main.kg:736:5
+    |
+736 |     c = Array.of(9, 9, 9, 9, 9) //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
 

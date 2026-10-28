@@ -759,7 +759,51 @@ fn asyncNonStoringHold() -> usize {
     z + y + sum(a) + (c.toUsize() || 0)
 }
 
+type RH['a] = { pub mut r &'a Array[Int] }
+type RSlot['a] = { pub mut r &'a mut RH['a] }
+type MH['a] = { pub mut r &'a mut Array[Int] }
+
+async fn putA['a](c: &'a Array[Int], h: &mut RH['a]) -> usize {
+    h.r = c
+    0
+}
+
+async fn putValueA['a](c: &'a Array[Int], mut h: RSlot['a]) -> usize {
+    h.r.r = c
+    0
+}
+
+async fn putMutA['a](c: MH['a], h: &mut MH['a]) -> usize {
+    h.r = c.r
+    0
+}
+
+fn asyncReferenceDirect() -> usize {
+    let z = Array.of(1)
+    let mut hold = RH { r: &z }
+    let c = Array.of(2, 3)
+    let _ = run(putA(&c, &mut hold))
+    hold.r.len() + c.len()
+}
+
+fn asyncReferenceByValue() -> usize {
+    let z = Array.of(1)
+    let mut hold = RH { r: &z }
+    let c = Array.of(2, 3)
+    let _ = run(putValueA(&c, RSlot { r: &mut hold }))
+    hold.r.len() + c.len()
+}
+
+fn asyncMutFieldStore() -> usize {
+    let mut z = Array.of(1)
+    let mut hold = MH { r: &mut z }
+    let mut c = Array.of(2, 3)
+    let _ = run(putMutA(MH { r: &mut c }, &mut hold))
+    hold.r.len()
+}
+
 fn main() {
+    print "references ${asyncReferenceDirect()} ${asyncReferenceByValue()} ${asyncMutFieldStore()}"
     print "non-storing ${asyncNonStoringFrame()} ${asyncNonStoringHold()}"
     print "async ${asyncLentValue()} ${asyncLentDirect()} ${asyncLentIntValue()} ${asyncLentIntDirect()}"
     print "joined ${dynIfJoin()} ${dynMatchJoin()} ${dynLoopView()} ${dynBranchView()} ${dynIfCallee()} ${dynMatchMakerValue()} ${dynIfSecondHolder()}"
@@ -773,6 +817,7 @@ fn main() {
     print "frame ${inFrame()} shapes ${shapes()} locals ${locals()} unknown ${unknown(outH)} plain ${plain()} generic ${generic()} callbacks ${callbacks()}"
 }
 -- stdout --
+references 4 4 2
 non-storing 10 10
 async 4 4 6 6
 joined 5 5 5 5 5 5 5

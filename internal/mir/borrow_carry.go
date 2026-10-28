@@ -18,17 +18,14 @@ type carrySite struct {
 // carryFlows lists a call's `mut self` / `&mut` arguments and by-value `&mut` holders, and the by-value arguments
 // carrying a borrow their types do not name (a Future or Task); a plain type parameter's borrow goes through callFlows.
 func (c *borrowCheck) carryFlows(in Inst) (targets []storeFlow, values []LocalID) {
-	if in.Op != OpCall && in.Op != OpCallValue || in.Ent == 0 || c.p.R.Entity(in.Ent).Kind != sem.EntFn {
+	e, args := c.flowCallee(in)
+	if e == 0 {
 		return nil, nil
 	}
-	info := c.p.R.Fn(in.Ent)
-	recvIdx := 0
-	if in.Op == OpCallValue {
-		recvIdx = 1
-	}
-	for i, s := range c.callSlots(info, in.Args, recvIdx) {
+	info := c.p.R.Fn(e)
+	for i, s := range c.callSlots(info, args, 0) {
 		if s.target || s.holder {
-			targets = append(targets, storeFlow{target: s.arg, ref: s.target, byValue: s.holder, callee: in.Ent, param: i})
+			targets = append(targets, storeFlow{target: s.arg, ref: s.target, byValue: s.holder, callee: e, param: i})
 			continue
 		}
 		if i == 0 && info.Recv != sem.RecvNone || c.p.R.Types.Kind(s.exact) == sem.KRef {

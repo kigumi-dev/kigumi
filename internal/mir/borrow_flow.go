@@ -49,20 +49,17 @@ func sharesParam(a, b []sem.EntityID) bool {
 // callFlows lists, for each `&mut` / `mut self` argument or by-value `&mut` holder whose place names a lifetime
 // or a type parameter, the other arguments whose declared types share a parameter with it.
 func (c *borrowCheck) callFlows(in Inst) []storeFlow {
-	if in.Ent == 0 || c.p.R.Entity(in.Ent).Kind != sem.EntFn {
+	e, args := c.flowCallee(in)
+	if e == 0 {
 		return nil
 	}
-	info := c.p.R.Fn(in.Ent)
+	info := c.p.R.Fn(e)
 	if info.Recv != sem.RecvMut && !slices.ContainsFunc(info.Params, func(p sem.EntityID) bool {
 		return c.p.R.Types.RefMut(c.p.R.Entity(p).Type)
-	}) && !slices.ContainsFunc(in.Args, func(a LocalID) bool { return c.holdsMutPlace(a) || c.capturesHolder(a) }) {
+	}) && !slices.ContainsFunc(args, func(a LocalID) bool { return c.holdsMutPlace(a) || c.capturesHolder(a) }) {
 		return nil
 	}
-	recvIdx := 0
-	if in.Op == OpCallValue {
-		recvIdx = 1
-	}
-	slots := c.callSlots(info, in.Args, recvIdx)
+	slots := c.callSlots(info, args, 0)
 	c.linkSlots(info, slots)
 	var out []storeFlow
 	for i, t := range slots {
@@ -76,7 +73,7 @@ func (c *borrowCheck) callFlows(in Inst) []storeFlow {
 		if kind == targetNone {
 			continue
 		}
-		fl := storeFlow{target: t.arg, ref: t.target, byValue: t.holder, generic: kind == targetParam, callee: in.Ent, param: i, args: append(slotArgs(slots), in.Args[min(recvIdx+len(slots), len(in.Args)):]...)}
+		fl := storeFlow{target: t.arg, ref: t.target, byValue: t.holder, generic: kind == targetParam, callee: e, param: i, args: append(slotArgs(slots), args[min(len(slots), len(args)):]...)}
 		params := c.linkedParams(slots, i)
 		for j, v := range slots {
 			if i != j && kind != targetDeferred && sharesParam(params, v.params) {
@@ -84,9 +81,9 @@ func (c *borrowCheck) callFlows(in Inst) []storeFlow {
 			}
 		}
 		if lit := c.closureLiteral(t.arg); t.holder && lit != nil {
-			fl.values = append(c.closureFed(c.p.ByEnt[in.Ent], i, lit, fl.values), c.captureValues(lit)...)
+			fl.values = append(c.closureFed(c.p.ByEnt[e], i, lit, fl.values), c.captureValues(lit)...)
 		}
-		if at := c.selfSources(in.Ent, i, slots); at != nil {
+		if at := c.selfSources(e, i, slots); at != nil {
 			fl.values = append(fl.values, flowArg{arg: t.arg, contents: t.contents, param: i, at: at})
 		}
 		fl.values = append(fl.values, c.tieValues(info, slots, t, fl.values)...)
