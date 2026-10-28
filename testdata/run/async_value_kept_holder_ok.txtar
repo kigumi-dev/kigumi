@@ -212,8 +212,253 @@ fn callbacks() -> Int {
     k * 100 + twiceShared(1, &b, addLen)
 }
 
+type Pair2['a] = { pub n usize, pub h Hold['a] }
+type Two['a] = Both(usize, Hold['a]) | NoneOf
+
+fn outP2['a](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], p: Pair2['a]) {
+    p.h.r.push(f(c))
+}
+
+fn outT['a](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], t: Two['a]) {
+    match t {
+        Both(_, h) -> h.r.push(f(c))
+        NoneOf -> {}
+    }
+}
+
+fn wrapP2['a](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], h: Hold['a]) {
+    outP2(f, c, Pair2 { n: 1, h: h })
+}
+
+fn wrapP['a](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], h: Hold['a]) {
+    outP(f, c, Pair { h: h, n: 1 })
+}
+
+fn wrapT['a](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], h: Hold['a]) {
+    outT(f, c, Both(1, h))
+}
+
+fn wrapA['a](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], h: Hold['a]) {
+    let mut tmp = Array.empty[Future[usize]]()
+    outA(f, c, Array.of(Hold { r: &mut tmp }, h))
+    let _ = sum(tmp)
+}
+
+fn outR['a](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], h: &mut Hold['a]) {
+    h.r.push(f(c))
+}
+
+fn packedRecord() -> usize {
+    let w = wrapP2
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    w(mut1, &mut c, Hold { r: &mut a })
+    let n = sum(a)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn packedVariant() -> usize {
+    let w = wrapT
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    w(mut1, &mut c, Hold { r: &mut a })
+    let n = sum(a)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn packedArray() -> usize {
+    let w = wrapA
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    w(mut1, &mut c, Hold { r: &mut a })
+    let n = sum(a)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn packedDirect() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    wrapP2(mut1, &mut c, Hold { r: &mut a })
+    let n = sum(a)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn packedFirst() -> usize {
+    let w = wrapP
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    w(mut1, &mut c, Hold { r: &mut a })
+    let n = sum(a)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn lentValue() -> usize {
+    let w = outR
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    w(mut1, &mut c, &mut hold)
+    let n = sum(a)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn lentDirect() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    outR(mut1, &mut c, &mut hold)
+    let n = sum(a)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn unknownLent['a](w: fn(fn(&mut Array[String]) -> Future[usize], &mut Array[String], &mut Hold['a]) -> Void) -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    w(mut1, &mut c, &mut hold)
+    let n = sum(a)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn scopedPacked() -> usize {
+    let mut c = Array.of("a")
+    let n = {
+        let mut a = Array.empty[Future[usize]]()
+        let w = wrapP2
+        w(mut1, &mut c, Hold { r: &mut a })
+        sum(a)
+    }
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn scopedLent() -> usize {
+    let mut c = Array.of("a")
+    let n = {
+        let mut a = Array.empty[Future[usize]]()
+        let mut hold = Hold { r: &mut a }
+        let w = outR
+        w(mut1, &mut c, &mut hold)
+        sum(a)
+    }
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn plainPutR['a](c: &mut Array[String], h: &mut Plain['a]) {
+    h.r.push(c[0])
+}
+
+fn plainLent['a](w: fn(&mut Array[String], &mut Plain['a]) -> Void) -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[String]()
+    let mut hold = Plain { r: &mut a }
+    w(&mut c, &mut hold)
+    c = Array.of("q", "q", "q")
+    a.len() + c.len()
+}
+
+fn useR['a](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], h: &mut Hold['a]) {
+    let _ = run(f(c))
+    let _ = h.r.len()
+}
+
+fn consumedLent() -> usize {
+    let w = useR
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    w(mut1, &mut c, &mut hold)
+    c = Array.of("q", "q", "q")
+    sum(a) + c.len()
+}
+
+fn outG[H](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], h: &mut H, put: fn(&mut H, Future[usize]) -> Void) {
+    put(h, f(c))
+}
+
+fn relayG[H](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], h: &mut H, put: fn(&mut H, Future[usize]) -> Void) {
+    outG(f, c, h, put)
+}
+
+fn pt['a](h: &mut Hold['a], f: Future[usize]) {
+    h.r.push(f)
+}
+
+fn genericLentDirect() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    outG(mut1, &mut c, &mut hold, pt)
+    let n = sum(a)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn genericLentRelay() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    relayG(mut1, &mut c, &mut hold, pt)
+    let n = sum(a)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
+fn consumeR['a](h: &mut Hold['a], f: Future[usize]) {
+    let _ = run(f)
+    let _ = h.r.len()
+}
+
+fn genericLentConsumed() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    outG(mut1, &mut c, &mut hold, consumeR)
+    c = Array.of("q", "q", "q")
+    sum(a) + c.len()
+}
+
+interface RefSink {
+    fn putRef(mut self, f: Future[usize])
+}
+
+fn Hold['a].putRef(mut self, f: Future[usize]) {
+    self.r.push(f)
+}
+
+fn outRefI[S: RefSink](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], h: &mut S) {
+    h.putRef(f(c))
+}
+
+fn boundLentDirect() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    outRefI(mut1, &mut c, &mut hold)
+    let n = sum(a)
+    c = Array.of("q", "q", "q")
+    n + c.len()
+}
+
 fn main() {
+    print "bound lent ${boundLentDirect()}"
+    print "generic lent ${genericLentDirect()} ${genericLentRelay()} ${genericLentConsumed()}"
+    print "plain lent ${plainLent(plainPutR)} consumed ${consumedLent()}"
+    print "packed ${packedRecord()} ${packedVariant()} ${packedArray()} ${packedDirect()} ${packedFirst()} ${lentValue()} ${lentDirect()} ${unknownLent(outR)} ${scopedPacked()} ${scopedLent()}"
     print "frame ${inFrame()} shapes ${shapes()} locals ${locals()} unknown ${unknown(outH)} plain ${plain()} generic ${generic()} callbacks ${callbacks()}"
 }
 -- stdout --
+bound lent 5
+generic lent 5 5 3
+plain lent 4 consumed 3
+packed 5 5 6 5 5 5 5 5 5 5
 frame 5 shapes 2469 locals 248 unknown 31 plain 13 generic 2467 callbacks 507

@@ -18,10 +18,11 @@ func (c *borrowCheck) keptCall(k *keptCtx, in Inst) (uint64, func(int) uint64) {
 	}
 	every := func(int) uint64 { return from }
 	ents, off := c.keptCallees(k, in)
-	if len(ents) == 1 && off == 0 && c.p.ByEnt[ents[0]] == nil {
+	args := in.Args[min(off, len(in.Args)):]
+	if len(ents) == 1 && c.p.ByEnt[ents[0]] == nil {
 		var res uint64
-		ref := in.Op.Yields() && c.holdsBorrow(g.Locals[in.Dst].Type)
-		for _, a := range in.Args {
+		ref := in.Op.Yields() && (c.holdsBorrow(g.Locals[in.Dst].Type) || c.ifaceRequirement(ents[0]) && c.holdsDeferred(g.Locals[in.Dst].Type))
+		for _, a := range args {
 			if ref || c.p.R.Types.Kind(g.Locals[a].Type) != sem.KRef && !g.Locals[a].Cell {
 				res |= k.facts[a]
 			} else {
@@ -29,13 +30,12 @@ func (c *borrowCheck) keptCall(k *keptCtx, in Inst) (uint64, func(int) uint64) {
 			}
 		}
 		return res, func(i int) uint64 {
-			if c.lendsPlace(g, in.Args[i]) {
+			if i >= off && (c.lendsPlace(g, in.Args[i]) || c.ifaceRequirement(ents[0]) && c.mayHoldPlace(g, in.Args[i])) {
 				return from
 			}
 			return 0
 		}
 	}
-	args := in.Args[min(off, len(in.Args)):]
 	type callee struct {
 		s *keptSummary
 		h *Func
@@ -90,6 +90,8 @@ func (c *borrowCheck) keptCallees(k *keptCtx, in Inst) ([]sem.EntityID, int) {
 	switch {
 	case in.Op == OpCall && in.Ent != 0:
 		ents = []sem.EntityID{in.Ent}
+	case in.Op == OpCallValue && in.Ent != 0:
+		ents, off = []sem.EntityID{in.Ent}, 1
 	case in.Op == OpCallValue && in.Ent == 0 && len(in.Args) > 0:
 		ents, off = c.itemsIn(k, in.Args[0], 8), 1
 	}

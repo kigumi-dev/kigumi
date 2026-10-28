@@ -57,17 +57,33 @@ func (c *borrowCheck) asyncType(t sem.TypeID) bool {
 	}, func(u sem.TypeID) bool { return tt.Kind(u) == sem.KFn || tt.Kind(u) == sem.KClosure })
 }
 
-// heldAsync reports a value handed over by value that may be a holder whose `&mut`s reach a place of asyncType: one
-// whose type hides its layout (decided at each call site from the argument's type there), or one that shows it.
+// heldAsync uses the argument type: a generic or interface parameter can hide the holder's mutable destinations.
 func (c *borrowCheck) heldAsync(a LocalID) bool {
-	t := c.f.Locals[a].Type
-	return c.hidesLayout(t) || c.holdsMutPlace(a) && c.typeHoldsUntil(t, func(u sem.TypeID) bool {
+	return c.heldAsyncType(c.f.Locals[a].Type)
+}
+
+func (c *borrowCheck) heldAsyncType(t sem.TypeID) bool {
+	return c.hidesLayout(t) || c.mutHolder(t) && c.typeHoldsUntil(t, func(u sem.TypeID) bool {
 		elem, mut := c.p.R.MutRefElem(u)
 		return mut && (c.asyncType(elem) || c.hidesLayout(elem))
 	}, func(u sem.TypeID) bool {
 		k := c.p.R.Types.Kind(u)
 		return k == sem.KFn || k == sem.KClosure || k == sem.KIface
 	})
+}
+
+func (c *borrowCheck) keptPlace(a LocalID) bool {
+	if c.asyncPlace(a) {
+		return true
+	}
+	t := c.placeOf(a)
+	if t == 0 {
+		t = c.f.Locals[a].Type
+		if c.p.R.Types.Kind(t) == sem.KRef {
+			t = c.p.R.Types.Node(t).Elem
+		}
+	}
+	return c.heldAsyncType(t)
 }
 
 // viewSource is what an existential view a lends boxes, whose place a store through the view reaches; else a itself.

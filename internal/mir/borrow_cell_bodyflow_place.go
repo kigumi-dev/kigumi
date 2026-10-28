@@ -34,7 +34,8 @@ func (c *borrowCheck) placeRoots(g *Func, defs map[LocalID][]*Inst, l LocalID) (
 				ok = ok && !isRef
 			case bodyRoles[d.Op] == roleCarry:
 				next = d.Args[:1]
-				if d.Op == OpCopy || d.Op == OpMove || d.Op == OpAlias || d.Op == OpShare {
+				switch d.Op {
+				case OpCopy, OpMove, OpAlias, OpShare, OpRecord, OpVariant, OpArray:
 					next = d.Args
 				}
 			case bodyRoles[d.Op] == roleCall:

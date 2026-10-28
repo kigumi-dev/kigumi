@@ -235,7 +235,199 @@ fn upd[T](x: T, r: &mut Rec, h: fn(T, &mut Rec) -> T) -> T {
     h(y, r) //~ ERROR `r` is exclusively borrowed and cannot be used here
 }
 
+type Pair2['a] = { pub n usize, pub h Hold['a] }
+type Two['a] = Both(usize, Hold['a]) | NoneOf
+
+fn outP2['a](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], p: Pair2['a]) {
+    p.h.r.push(f(c))
+}
+
+fn outT['a](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], t: Two['a]) {
+    match t {
+        Both(_, h) -> h.r.push(f(c))
+        NoneOf -> {}
+    }
+}
+
+fn wrapP2['a](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], h: Hold['a]) {
+    outP2(f, c, Pair2 { n: 1, h: h })
+}
+
+fn wrapP['a](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], h: Hold['a]) {
+    outP(f, c, Pair { h: h, n: 1 })
+}
+
+fn wrapT['a](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], h: Hold['a]) {
+    outT(f, c, Both(1, h))
+}
+
+fn wrapA['a](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], h: Hold['a]) {
+    let mut tmp = Array.empty[Future[usize]]()
+    outA(f, c, Array.of(Hold { r: &mut tmp }, h))
+    let _ = sum(tmp)
+}
+
+fn outR['a](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], h: &mut Hold['a]) {
+    h.r.push(f(c))
+}
+
+fn packedRecord() -> usize {
+    let w = wrapP2
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    w(mut1, &mut c, Hold { r: &mut a })
+    c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    sum(a) + c.len()
+}
+
+fn packedVariant() -> usize {
+    let w = wrapT
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    w(mut1, &mut c, Hold { r: &mut a })
+    c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    sum(a) + c.len()
+}
+
+fn packedArray() -> usize {
+    let w = wrapA
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    w(mut1, &mut c, Hold { r: &mut a })
+    c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    sum(a) + c.len()
+}
+
+fn packedDirect() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    wrapP2(mut1, &mut c, Hold { r: &mut a })
+    c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    sum(a) + c.len()
+}
+
+fn packedFirst() -> usize {
+    let w = wrapP
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    w(mut1, &mut c, Hold { r: &mut a })
+    c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    sum(a) + c.len()
+}
+
+fn lentValue() -> usize {
+    let w = outR
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    w(mut1, &mut c, &mut hold)
+    c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    sum(a) + c.len()
+}
+
+fn lentDirect() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    outR(mut1, &mut c, &mut hold)
+    c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    sum(a) + c.len()
+}
+
+fn unknownLent['a](w: fn(fn(&mut Array[String]) -> Future[usize], &mut Array[String], &mut Hold['a]) -> Void) -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    w(mut1, &mut c, &mut hold)
+    c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    sum(a) + c.len()
+}
+
+fn escapePacked['a](h: Hold['a]) {
+    let w = wrapP2
+    let mut c = Array.of("a")
+    w(mut1, &mut c, h) //~ ERROR a borrow cannot be stored into `h` here
+}
+
+fn escapeLent['a](hold: &mut Hold['a]) {
+    let w = outR
+    let mut c = Array.of("a")
+    w(mut1, &mut c, hold) //~ ERROR a borrow cannot be stored into `hold` here
+}
+
+async fn mutInt(c: &mut Int) -> usize {
+    c = c + 1
+    1
+}
+
+fn outInt['a](f: fn(&mut Int) -> Future[usize], c: &mut Int, h: &mut Hold['a]) {
+    h.r.push(f(c))
+}
+
+fn lentInt() -> usize {
+    let w = outInt
+    let mut c = 0
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    w(mutInt, &mut c, &mut hold) //~ ERROR a call through a function value may store a borrow into `hold`
+    sum(a)
+}
+
+fn outG[H](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], h: &mut H, put: fn(&mut H, Future[usize]) -> Void) {
+    put(h, f(c))
+}
+
+fn relayG[H](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], h: &mut H, put: fn(&mut H, Future[usize]) -> Void) {
+    outG(f, c, h, put)
+}
+
+fn pt['a](h: &mut Hold['a], f: Future[usize]) {
+    h.r.push(f)
+}
+
+fn genericLentDirect() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    outG(mut1, &mut c, &mut hold, pt)
+    c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    sum(a) + c.len()
+}
+
+fn genericLentRelay() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    relayG(mut1, &mut c, &mut hold, pt)
+    c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    sum(a) + c.len()
+}
+
+interface RefSink {
+    fn putRef(mut self, f: Future[usize])
+}
+
+fn Hold['a].putRef(mut self, f: Future[usize]) {
+    self.r.push(f)
+}
+
+fn outRefI[S: RefSink](f: fn(&mut Array[String]) -> Future[usize], c: &mut Array[String], h: &mut S) {
+    h.putRef(f(c))
+}
+
+fn boundLentDirect() -> usize {
+    let mut c = Array.of("a")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    outRefI(mut1, &mut c, &mut hold)
+    c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    sum(a) + c.len()
+}
+
 fn main() {
+    print "bound lent ${boundLentDirect()}"
+    print "generic lent ${genericLentDirect()} ${genericLentRelay()}"
+    print "packed ${packedRecord()} ${packedVariant()} ${packedArray()} ${packedDirect()} ${packedFirst()} ${lentValue()} ${lentDirect()} ${unknownLent(outR)}"
     print "${viaValue()} ${direct()} ${viaMoveSelf()} ${viaRecord()} ${viaOption()} ${viaArray()}"
     print "${localDirect()} ${localValue()} ${unknown(outH)} ${moveSelfLocal()}"
     print "${viaBound()} ${viaGeneric()} ${viaMid()}"
@@ -534,4 +726,220 @@ note: `r` is borrowed here
     |
 231 |     let y = h(x, r)
     |             ^^^^^^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:276:5
+    |
+276 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:275:13
+    |
+275 |     w(mut1, &mut c, Hold { r: &mut a })
+    |             ^^^^^^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+   --> main.kg:276:5
+    |
+276 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:285:5
+    |
+285 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:284:13
+    |
+284 |     w(mut1, &mut c, Hold { r: &mut a })
+    |             ^^^^^^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+   --> main.kg:285:5
+    |
+285 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:294:5
+    |
+294 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:293:13
+    |
+293 |     w(mut1, &mut c, Hold { r: &mut a })
+    |             ^^^^^^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+   --> main.kg:294:5
+    |
+294 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:302:5
+    |
+302 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:301:18
+    |
+301 |     wrapP2(mut1, &mut c, Hold { r: &mut a })
+    |                  ^^^^^^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+   --> main.kg:302:5
+    |
+302 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:311:5
+    |
+311 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:310:13
+    |
+310 |     w(mut1, &mut c, Hold { r: &mut a })
+    |             ^^^^^^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+   --> main.kg:311:5
+    |
+311 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:321:5
+    |
+321 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:320:13
+    |
+320 |     w(mut1, &mut c, &mut hold)
+    |             ^^^^^^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+   --> main.kg:321:5
+    |
+321 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:330:5
+    |
+330 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:329:16
+    |
+329 |     outR(mut1, &mut c, &mut hold)
+    |                ^^^^^^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+   --> main.kg:330:5
+    |
+330 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:339:5
+    |
+339 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:338:13
+    |
+338 |     w(mut1, &mut c, &mut hold)
+    |             ^^^^^^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+   --> main.kg:339:5
+    |
+339 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2159]: a borrow cannot be stored into `h` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:346:5
+    |
+346 |     w(mut1, &mut c, h) //~ ERROR a borrow cannot be stored into `h` here
+    |     ^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `hold` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:352:5
+    |
+352 |     w(mut1, &mut c, hold) //~ ERROR a borrow cannot be stored into `hold` here
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+error[E2161]: a call through a function value may store a borrow into `hold`, and that write cannot be tracked; call the function by name, or pass a value it can own
+   --> main.kg:369:5
+    |
+369 |     w(mutInt, &mut c, &mut hold) //~ ERROR a call through a function value may store a borrow into `hold`
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:390:5
+    |
+390 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:389:16
+    |
+389 |     outG(mut1, &mut c, &mut hold, pt)
+    |                ^^^^^^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+   --> main.kg:390:5
+    |
+390 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:399:5
+    |
+399 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:398:18
+    |
+398 |     relayG(mut1, &mut c, &mut hold, pt)
+    |                  ^^^^^^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+   --> main.kg:399:5
+    |
+399 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:420:5
+    |
+420 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:419:19
+    |
+419 |     outRefI(mut1, &mut c, &mut hold)
+    |                   ^^^^^^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+   --> main.kg:420:5
+    |
+420 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
+    |     ^
 

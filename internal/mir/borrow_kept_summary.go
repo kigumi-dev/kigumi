@@ -124,6 +124,13 @@ func (c *borrowCheck) own(k *keptCtx, a LocalID) uint64 {
 // moved is what a callee taking something out of lent operand a may hand on: what a's place was given in this body and
 // what the referents of the parameters a names (own) held at the call, not those parameters themselves.
 func (c *borrowCheck) moved(k *keptCtx, a LocalID) uint64 {
+	t := k.g.Locals[a].Type
+	if c.p.R.Types.Kind(t) == sem.KRef {
+		t = c.p.R.Types.Node(t).Elem
+	}
+	if !c.holdsBorrow(t) && !c.holdsDeferred(t) && !c.namesTypeParam(t) && !c.hidesLayout(t) {
+		return 0
+	}
 	own := c.own(k, a)
 	return k.facts[a]&^own | own<<contentShift
 }

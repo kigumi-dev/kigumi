@@ -26,31 +26,15 @@ func (c *borrowCheck) keptFlows(in Inst) []storeFlow {
 		if s == nil || c.p.R.Entity(e).Kind != sem.EntFn || c.p.isAsyncBody(e) {
 			continue
 		}
-		info, params := c.p.R.Fn(e), c.declaredParams(e)
-		for t, ta := range args {
-			if t >= len(params) {
-				continue
-			}
-			fl, ok := c.keptTarget(info, params[t], ta)
+		for t := range args {
+			fl, ok := c.keptStoreFlow(e, args, s, t)
 			if !ok {
 				continue
 			}
-			if fl.byValue {
-				fl.callee, fl.param, fl.args = e, t, args
+			if in.Op == OpCall && fl.byValue {
+				fl.values = slices.DeleteFunc(fl.values, func(v flowArg) bool { return v.tie == tieValue })
 			}
-			for k, a := range args {
-				tie := tieNone
-				if k != t && k < len(params) && s.storesInto(t, k) {
-					tie = c.keptTie(info, params[k])
-				}
-				switch {
-				case tie != tieNone && (in.Op == OpCallValue || tie != tieValue):
-					fl.values = append(fl.values, flowArg{arg: a, tie: tie, param: k})
-				case k != t && k < len(params) && s.movesInto(t, k) && c.lentByCaller(info, params[k]):
-					fl.values = append(fl.values, flowArg{arg: c.viewSource(a), contents: true, param: k})
-				}
-			}
-			if fl.values != nil {
+			if len(fl.values) > 0 {
 				out = append(out, fl)
 			}
 		}
@@ -58,12 +42,11 @@ func (c *borrowCheck) keptFlows(in Inst) []storeFlow {
 	return out
 }
 
-// keptTarget is the kept flow into a, the argument for q: a `&mut` or `mut self` whose place is an asyncPlace, or a
-// holder handed over by value whose `&mut`s reach one (heldAsync), which lands where the callee stores through it.
+// keptTarget preserves by-value holders' indirect destinations, which only the callee's store sites can identify.
 func (c *borrowCheck) keptTarget(info *sem.FnInfo, q sem.EntityID, a LocalID) (storeFlow, bool) {
 	switch {
 	case c.mutTarget(info, q):
-		return storeFlow{target: c.viewSource(a), ref: true, kept: true}, c.asyncPlace(c.viewSource(a))
+		return storeFlow{target: c.viewSource(a), ref: true, kept: true}, c.keptPlace(c.viewSource(a))
 	case c.byValueParam(info, q) && c.heldAsync(a):
 		return storeFlow{target: a, byValue: true, kept: true}, true
 	}
@@ -83,8 +66,8 @@ func (c *borrowCheck) opaqueKeptFlows(args []LocalID) []storeFlow {
 	for t, ta := range args {
 		var fl storeFlow
 		switch _, mut := c.p.R.MutRefElem(c.f.Locals[ta].Type); {
-		case mut && c.asyncPlace(c.viewSource(ta)):
-			fl = storeFlow{target: c.viewSource(ta), ref: true, kept: true}
+		case mut && c.keptPlace(c.viewSource(ta)):
+			fl = storeFlow{target: c.viewSource(ta), ref: true, kept: true, opaque: true}
 		case !mut && c.heldAsync(ta):
 			fl = storeFlow{target: ta, byValue: true, kept: true, opaque: true}
 		default:
@@ -107,10 +90,11 @@ func (c *borrowCheck) opaqueKeptFlows(args []LocalID) []storeFlow {
 // withKeptFlows adds keptFlows to fls, each keeping only the values no flow into the same target already stores the
 // same way (the argument itself, or what it lends), as a flow of its own so it stays kept.
 func (c *borrowCheck) withKeptFlows(in Inst, fls []storeFlow) []storeFlow {
-	n := len(fls)
+	carried, _ := c.carryFlows(in)
+	known := slices.Concat(fls, carried)
 	for _, k := range c.keptFlows(in) {
 		k.values = slices.DeleteFunc(k.values, func(v flowArg) bool {
-			return slices.ContainsFunc(fls[:n], func(f storeFlow) bool {
+			return slices.ContainsFunc(known, func(f storeFlow) bool {
 				return f.target == k.target && slices.ContainsFunc(f.values, func(h flowArg) bool { return h.arg == v.arg && h.contents == v.contents })
 			})
 		})
