@@ -19,7 +19,7 @@ func (c *borrowCheck) refRoot(l LocalID) (LocalID, bool) {
 			if !isRef(l) {
 				return l, true
 			}
-			in = soleDef(c.f, l)
+			in = c.soleDef(l)
 		} else {
 			in = c.definition(l)
 		}

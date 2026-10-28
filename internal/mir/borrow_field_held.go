@@ -54,7 +54,7 @@ func (c *borrowCheck) partHeld(lit *Inst, path stepPath) []ownerRef {
 }
 
 func (c *borrowCheck) literalOf(l LocalID) *Inst {
-	d := soleDef(c.f, l)
+	d := c.soleDef(l)
 	switch {
 	case d == nil:
 		return nil

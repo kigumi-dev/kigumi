@@ -106,6 +106,13 @@ func (c *readCheck) root(l LocalID) LocalID {
 	return l
 }
 
+func (c *borrowCheck) soleDef(l LocalID) *Inst {
+	if c.sole == nil {
+		c.sole = soleDefs(c.f)
+	}
+	return c.sole[l]
+}
+
 func soleDefs(f *Func) map[LocalID]*Inst {
 	defs := map[LocalID]*Inst{}
 	multi := map[LocalID]bool{}

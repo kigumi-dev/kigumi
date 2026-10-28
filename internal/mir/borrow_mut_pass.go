@@ -55,7 +55,7 @@ func (c *borrowCheck) calleeParams(t sem.TypeID) (params []sem.TypeID, known boo
 // refOf follows a reference argument's single definitions through copies to the local it reborrows.
 func (c *borrowCheck) refOf(l LocalID) LocalID {
 	for range len(c.f.Locals) {
-		d := soleDef(c.f, l)
+		d := c.soleDef(l)
 		if d == nil || len(d.Args) == 0 || d.Op != OpCopy && d.Op != OpMove && d.Op != OpAlias && d.Op != OpShare && d.Op != OpNewCell {
 			return l
 		}

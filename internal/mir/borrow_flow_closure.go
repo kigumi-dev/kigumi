@@ -17,7 +17,7 @@ func (c *borrowCheck) closureLiteral(l LocalID) *Inst {
 // defThrough is the instruction of opcode op that l is a copy of.
 func (c *borrowCheck) defThrough(l LocalID, op Opcode) *Inst {
 	for range 8 {
-		d := soleDef(c.f, l)
+		d := c.soleDef(l)
 		switch {
 		case d == nil:
 			return nil

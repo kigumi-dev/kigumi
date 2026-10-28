@@ -101,7 +101,7 @@ func (c *borrowCheck) outerRef(r LocalID) (LocalID, readHop, bool) {
 		seen[r] = true
 		d := c.definition(r)
 		if c.f.Locals[r].Ent != 0 {
-			d = soleDef(c.f, r)
+			d = c.soleDef(r)
 		}
 		if d == nil || len(d.Args) == 0 {
 			return 0, readHop{}, false

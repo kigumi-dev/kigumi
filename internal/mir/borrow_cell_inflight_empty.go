@@ -100,7 +100,7 @@ func (c *borrowCheck) emptyOnEdge(b BlockID, k int, s, handles map[LocalID]bool)
 // of it; a payload taken out only shares the work, which the handle keeps until it is finished, or 0.
 func (c *borrowCheck) awaitedPayloadOf(l LocalID, handles map[LocalID]bool) LocalID {
 	for range len(c.f.Locals) {
-		d := soleDef(c.f, l)
+		d := c.soleDef(l)
 		switch {
 		case d == nil || len(d.Args) == 0:
 			return 0

@@ -122,7 +122,7 @@ func (c *borrowCheck) storedReferents(l LocalID) []ownerRef {
 // destructured from `Pair { a: &mut v, b: &mut w }` is.
 func (c *borrowCheck) literalPart(l LocalID) (ownerRef, bool) {
 	for range 8 {
-		d := soleDef(c.f, l)
+		d := c.soleDef(l)
 		if d == nil || len(d.Args) == 0 {
 			return ownerRef{}, false
 		}
@@ -131,7 +131,7 @@ func (c *borrowCheck) literalPart(l LocalID) (ownerRef, bool) {
 			l = d.Args[0]
 			continue
 		case OpField, OpPayload:
-			lit := soleDef(c.f, d.Args[0])
+			lit := c.soleDef(d.Args[0])
 			if lit == nil || lit.Op != OpRecord && lit.Op != OpVariant || d.Index >= len(lit.Args) {
 				return ownerRef{}, false
 			}

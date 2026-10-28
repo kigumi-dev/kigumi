@@ -21,7 +21,7 @@ func (c *borrowCheck) callerStorageFrom(l LocalID, projected bool, depth int, ro
 			}
 			return true
 		}
-		d := soleDef(c.f, l)
+		d := c.soleDef(l)
 		if d == nil || len(d.Args) == 0 {
 			return false
 		}

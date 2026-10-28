@@ -126,7 +126,7 @@ func (c *borrowCheck) makesOwnBorrow(a LocalID) bool {
 // fnEntityOf follows a's single definitions through copies to the function item or closure it names.
 func (c *borrowCheck) fnEntityOf(a LocalID) sem.EntityID {
 	for range len(c.f.Locals) {
-		d := soleDef(c.f, a)
+		d := c.soleDef(a)
 		switch {
 		case d == nil:
 			return 0
