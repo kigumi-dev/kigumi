@@ -59,6 +59,14 @@ fn arrayRelay['a](k: Sink['a]) { let mut arr = Array.of(k); let mut b: Array[Sin
 fn optionRelay['a](k: Sink['a]) { let mut arr = Array.of(k); let mut b: Array[Option[Sink['a]]] = Array.of(); b.push(arr.takeAt(0)); let loc = "l"; if let Some(Some(s)) = b.takeAt(0) { s.items.push(V { s: &loc }) } } //~ ERROR a borrow cannot be stored into `k` here
 fn resultWrapped['a](k: Sink['a]) { let loc = "l"; let r: Result[Sink['a], Int] = Ok(k); if let Ok(s) = r { s.items.push(V { s: &loc }) } } //~ ERROR a borrow cannot be stored into `k` here
 
+fn apply['a](g: fn(V['a]) -> Void, x: V['a]) { g(x) }
+fn capSinkRef['a](k: Sink['a]) { let loc = "l"; let r = k.items; apply((x: V['a]) => { r.push(x) }, V { s: &loc }) } //~ ERROR a borrow cannot be stored into `k` here
+fn capTakenRef['a](ks: &mut Array[Sink['a]]) { let loc = "l"; if let Some(s) = ks.takeAt(0) { let r = s.items; apply((x: V['a]) => { r.push(x) }, V { s: &loc }) } } //~ ERROR a borrow cannot be stored into `ks` here
+fn capFieldRef['a](w: W['a]) { let loc = "l"; let r = w.inner.items; apply((x: V['a]) => { r.push(x) }, V { s: &loc }) } //~ ERROR a borrow cannot be stored into `w` here
+fn capCopy['a](k: Sink['a]) { let loc = "l"; let kk = k; apply((x: V['a]) => { kk.items.push(x) }, V { s: &loc }) } //~ ERROR a borrow cannot be stored into `k` here
+fn capTaken['a](ks: &mut Array[Sink['a]]) { let loc = "l"; if let Some(s) = ks.takeAt(0) { apply((x: V['a]) => { s.items.push(x) }, V { s: &loc }) } } //~ ERROR a borrow cannot be stored into `ks` here
+fn capDirect['a](k: Sink['a]) { let loc = "l"; apply((x: V['a]) => { k.items.push(x) }, V { s: &loc }) } //~ ERROR a borrow cannot be stored into `k` here
+
 let u = "u"
 let mut a = Array.of(V { s: &u })
 print "${a.len()}"
@@ -272,4 +280,40 @@ error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller 
    |
 57 | fn resultWrapped['a](k: Sink['a]) { let loc = "l"; let r: Result[Sink['a], Int] = Ok(k); if let Ok(s) = r { s.items.push(V { s: &loc }) } } //~ ERROR a borrow cannot be stored into `k` here
    |                                                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:60:66
+   |
+60 | fn capSinkRef['a](k: Sink['a]) { let loc = "l"; let r = k.items; apply((x: V['a]) => { r.push(x) }, V { s: &loc }) } //~ ERROR a borrow cannot be stored into `k` here
+   |                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `ks` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:61:112
+   |
+61 | fn capTakenRef['a](ks: &mut Array[Sink['a]]) { let loc = "l"; if let Some(s) = ks.takeAt(0) { let r = s.items; apply((x: V['a]) => { r.push(x) }, V { s: &loc }) } } //~ ERROR a borrow cannot be stored into `ks` here
+   |                                                                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `w` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:62:70
+   |
+62 | fn capFieldRef['a](w: W['a]) { let loc = "l"; let r = w.inner.items; apply((x: V['a]) => { r.push(x) }, V { s: &loc }) } //~ ERROR a borrow cannot be stored into `w` here
+   |                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:63:58
+   |
+63 | fn capCopy['a](k: Sink['a]) { let loc = "l"; let kk = k; apply((x: V['a]) => { kk.items.push(x) }, V { s: &loc }) } //~ ERROR a borrow cannot be stored into `k` here
+   |                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `ks` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:64:92
+   |
+64 | fn capTaken['a](ks: &mut Array[Sink['a]]) { let loc = "l"; if let Some(s) = ks.takeAt(0) { apply((x: V['a]) => { s.items.push(x) }, V { s: &loc }) } } //~ ERROR a borrow cannot be stored into `ks` here
+   |                                                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:65:48
+   |
+65 | fn capDirect['a](k: Sink['a]) { let loc = "l"; apply((x: V['a]) => { k.items.push(x) }, V { s: &loc }) } //~ ERROR a borrow cannot be stored into `k` here
+   |                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

@@ -94,12 +94,36 @@ fn frameHolders() -> String {
     "${m} ${a.len()}"
 }
 
+fn apply['a](g: fn(V['a]) -> Void, x: V['a]) { g(x) }
+fn capSinkRef['a](k: Sink['a], x: V['a]) { let r = k.items; apply((x: V['a]) => { r.push(x) }, x) }
+fn capTakenRef['a](ks: &mut Array[Sink['a]], x: V['a]) { if let Some(s) = ks.takeAt(0) { let r = s.items; apply((x: V['a]) => { r.push(x) }, x) } }
+fn capFieldRef['a](w: W['a], x: V['a]) { let r = w.inner.items; apply((x: V['a]) => { r.push(x) }, x) }
+fn capCopy['a](k: Sink['a], x: V['a]) { let kk = k; apply((x: V['a]) => { kk.items.push(x) }, x) }
+fn capTaken['a](ks: &mut Array[Sink['a]], x: V['a]) { if let Some(s) = ks.takeAt(0) { apply((x: V['a]) => { s.items.push(x) }, x) } }
+fn capDirect['a](k: Sink['a], x: V['a]) { apply((x: V['a]) => { k.items.push(x) }, x) }
+
+fn capturedOwnLifetime() -> String {
+    let u = "u"
+    let v = "v"
+    let mut a = Array.of(V { s: &u })
+    capSinkRef(Sink { items: &mut a }, V { s: &v })
+    { let mut ks = Array.of(Sink { items: &mut a }); capTakenRef(&mut ks, V { s: &v }) }
+    capFieldRef(W { inner: Sink { items: &mut a } }, V { s: &v })
+    capCopy(Sink { items: &mut a }, V { s: &v })
+    { let mut ks = Array.of(Sink { items: &mut a }); capTaken(&mut ks, V { s: &v }) }
+    capDirect(Sink { items: &mut a }, V { s: &v })
+    let n = churn()
+    "${a.len()} ${a[1].s} ${a[2].s} ${a[3].s} ${a[4].s} ${a[5].s} ${a[6].s} ${n}"
+}
+
 print ownLifetime()
 print takenOwnLifetime()
 print frameHolders()
 print arrays()
+print capturedOwnLifetime()
 -- stdout --
 9 v v v 1 301
 5 v v 5 301
 13 1
 5 u 301
+7 v v v v v v 301

@@ -14,10 +14,7 @@ func (c *borrowCheck) checkBlock(bid BlockID) {
 				live[a] = true
 				continue
 			}
-			// A holder with no owner is a borrow inherited from a
-			// parameter, not one taken of a local: returning it is the
-			// intended lifetime escape, and the caller's
-			// own call site becomes the new holder (lifetimeSource).
+			// An ownerless holder inherits a parameter's borrow; the caller's call site becomes its new holder.
 			if !b.hasOwner {
 				c.checkLifetimeEscape(a, b)
 				live[a] = true

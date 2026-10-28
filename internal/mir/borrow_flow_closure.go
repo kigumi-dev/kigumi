@@ -48,6 +48,9 @@ func (c *borrowCheck) captureReach(lit *Inst, add, addCaller func(LocalID)) {
 		}
 		root := c.valueSource(a)
 		if c.p.R.Types.Kind(c.f.Locals[a].Type) == sem.KRef {
+			if p, ok := c.heldRead(a); ok {
+				addCaller(p)
+			}
 			if pl, ok := c.flowPlace(storeFlow{target: a, ref: true}); ok {
 				root = pl
 				add(root)
