@@ -1,0 +1,60 @@
+-- src --
+type V['a] = { pub s &'a String }
+fn apply['a](g: fn(V['a]) -> Void, x: V['a]) { g(x) }
+fn applyIn['a](g: fn(V['a]) -> Void, x: V['a]) { g(x) }
+
+fn direct['a](g: fn(V['a]) -> Void, s: &'a String) {
+    g(V { s: s })
+}
+fn forwarded['a](g: fn(V['a]) -> Void, s: &'a String) {
+    apply(g, V { s: s })
+}
+fn nested['a](g: fn(V['a]) -> Void, s: &'a String) {
+    apply((x: V['a]) => { applyIn((y: V['a]) => { g(y) }, x) }, V { s: s })
+}
+fn aliased['a](g: fn(V['a]) -> Void, s: &'a String) {
+    let h = g
+    h(V { s: s })
+}
+
+fn owned(g: fn(String) -> Void) {
+    let loc = "owned"
+    g(loc)
+}
+fn applyOwned(g: fn(String) -> Void, x: String) { g(x) }
+fn applyOwnedIn(g: fn(String) -> Void, x: String) { g(x) }
+fn ownedForwarded(g: fn(String) -> Void) {
+    let loc = "owned-forwarded"
+    applyOwned(g, loc)
+}
+fn ownedNested(g: fn(String) -> Void) {
+    let loc = "owned-nested"
+    applyOwned((x: String) => { applyOwnedIn((y: String) => { g(y) }, x) }, loc)
+}
+fn ownedAliased(g: fn(String) -> Void) {
+    let loc = "owned-aliased"
+    let h = g
+    h(loc)
+}
+fn caller['a](s: &'a String) {
+    let mut arr = Array.of(V { s: s })
+    let r = &mut arr
+    direct((v: V['a]) => { r.push(v) }, s)
+    forwarded((v: V['a]) => { r.push(v) }, s)
+    nested((v: V['a]) => { r.push(v) }, s)
+    aliased((v: V['a]) => { r.push(v) }, s)
+    print "${arr.len()} ${arr[1].s} ${arr[2].s} ${arr[3].s} ${arr[4].s}"
+}
+
+let s = "caller-owned"
+caller(&s)
+let mut arr = Array.of("first")
+let r = &mut arr
+owned((s: String) => { r.push(s) })
+ownedForwarded((s: String) => { r.push(s) })
+ownedNested((s: String) => { r.push(s) })
+ownedAliased((s: String) => { r.push(s) })
+print "${arr.len()} ${arr[1]} ${arr[2]} ${arr[3]} ${arr[4]}"
+-- stdout --
+5 caller-owned caller-owned caller-owned caller-owned
+5 owned owned-forwarded owned-nested owned-aliased

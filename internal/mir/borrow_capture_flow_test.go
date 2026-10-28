@@ -50,3 +50,28 @@ func TestImmediateCaptureKeepsBorrowedOwner(t *testing.T) {
 		t.Error("capture lost the reference's actual owner")
 	}
 }
+
+func TestImmediateCaptureKeepsCallResultOwner(t *testing.T) {
+	for _, tc := range []struct{ name, before, after string }{
+		{"taken", "let mut arr = Array.of(Sink { items: &mut c.own }); if let Some(s) = arr.takeAt(0) { let r = s.items", "}"},
+		{"unwrap", "let mut arr = Array.of(Sink { items: &mut c.own }); let s = arr.takeAt(0).unwrap(); let r = s.items", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			src := strings.ReplaceAll(captureFlowSrc, "BODY", tc.before+"; apply((y: V['a]) => { r.push(y) }, V { s: &loc })"+tc.after)
+			p, body := srcProgram(t, src)
+			g := body("f")
+			c := collected(p, g)
+			r, loc, dst := localNamed(t, g, "r"), localNamed(t, g, "loc"), localNamed(t, g, "c")
+			if !slices.ContainsFunc(c.holderOwners(r), func(o ownerRef) bool { return o.owner == loc }) {
+				t.Fatal("capture did not receive the stored borrow before narrowing")
+			}
+			owners := c.flowOwners(r, flowMemo{})
+			if !slices.ContainsFunc(owners, func(o ownerRef) bool { return o.owner == dst }) {
+				t.Error("call result lost the reference's actual owner")
+			}
+			if slices.ContainsFunc(owners, func(o ownerRef) bool { return o.owner == loc }) {
+				t.Error("call result kept a borrow stored after the capture")
+			}
+		})
+	}
+}

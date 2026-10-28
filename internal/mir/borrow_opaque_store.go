@@ -5,6 +5,7 @@ import "kigumi/internal/sem"
 // checkOpaqueStores rejects handing a borrow to a function value next to a
 // `&mut` place that names a lifetime: the callee's writes cannot be followed.
 func (c *borrowCheck) checkOpaqueStores(in Inst) {
+	c.checkRelayStores(in)
 	if in.Op != OpCallValue || in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn || len(in.Args) < 2 {
 		return
 	}

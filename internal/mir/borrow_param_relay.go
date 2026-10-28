@@ -20,29 +20,17 @@ func copiedFrom(defs map[LocalID]*Inst, l LocalID) LocalID {
 }
 
 func (c *borrowCheck) relayCallee(g *Func, defs map[LocalID]*Inst, l LocalID, kind siteKind) (int, bool) {
-	l = copiedFrom(defs, l)
-	if i := slices.Index(g.Params, l); i >= 0 {
-		return i + 1, false
-	}
-	d := defs[l]
-	if d == nil || d.Op != OpClosure && d.Op != OpFnItem && d.Op != OpBind {
-		return 0, false
-	}
-	h := c.p.ByEnt[d.Ent]
-	if h == nil {
-		return 0, false
-	}
-	skip := 0
-	if d.Op != OpFnItem {
-		skip = len(d.Args)
+	o := c.calleeOrigin(g, defs, l)
+	if o.param > 0 || o.body == nil {
+		return o.param, false
 	}
 	callee := 0
-	for _, s := range c.callableSites(h, skip, kind) {
+	for _, s := range c.callableSites(o.body, len(o.captures), kind) {
 		cap := s.callee - 1
-		if cap < 0 || cap >= skip {
+		if cap < 0 || cap >= len(o.captures) {
 			return 0, false
 		}
-		p := paramIndex(g, defs, d.Args[cap]) + 1
+		p := paramIndex(g, defs, o.captures[cap]) + 1
 		if p == 0 || callee != 0 && callee != p {
 			return 0, false
 		}

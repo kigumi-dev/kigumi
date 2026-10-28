@@ -10382,6 +10382,23 @@
       ]
     },
     {
+      "id": "run/fn_param_borrow_store_ok",
+      "kind": "run",
+      "path": "testdata/run/fn_param_borrow_store_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/fn_value_error_as",
       "kind": "run",
       "path": "testdata/run/fn_value_error_as.txtar",
@@ -21447,6 +21464,17 @@
       "id": "sem/fixed_store_foreign_chain",
       "kind": "sem",
       "path": "testdata/sem/fixed_store_foreign_chain.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_param_borrow_store_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_param_borrow_store_err.txtar",
       "mode": [
         "check"
       ],

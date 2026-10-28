@@ -1,0 +1,147 @@
+-- module --
+mir: planned
+-- src --
+type V['a] = { pub s &'a String }
+fn apply['a](g: fn(V['a]) -> Void, x: V['a]) { g(x) }
+fn applyIn['a](g: fn(V['a]) -> Void, x: V['a]) { g(x) }
+
+fn direct['a](g: fn(V['a]) -> Void) {
+    let loc = "frame-local"
+    g(V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+}
+
+fn forwarded['a](g: fn(V['a]) -> Void) {
+    let loc = "frame-local"
+    apply(g, V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+}
+
+fn nested['a](g: fn(V['a]) -> Void) {
+    let loc = "frame-local"
+    apply((x: V['a]) => { applyIn((y: V['a]) => { g(y) }, x) }, V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+}
+
+fn aliased['a](g: fn(V['a]) -> Void) {
+    let loc = "frame-local"
+    let h = g
+    h(V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+}
+
+fn read['a](x: V['a]) { _ = x.s }
+fn replaced['a](mut g: fn(V['a]) -> Void, h: fn(V['a]) -> Void, b: Bool) {
+    if b { g = h } else { g = h }
+    let loc = "frame-local"
+    g(V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+}
+
+fn wrapped['a](g: fn(V['a]) -> Void) {
+    let loc = "frame-local"
+    g(V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+}
+fn proxy['a](g: fn(V['a]) -> Void) {
+    wrapped((x: V['a]) => { g(x) })
+}
+
+fn caller['a](u: &'a String) {
+    let mut arr = Array.of(V { s: u })
+    let r = &mut arr
+    direct((y: V['a]) => { r.push(y) })
+    forwarded((y: V['a]) => { r.push(y) })
+    nested((y: V['a]) => { r.push(y) })
+    aliased((y: V['a]) => { r.push(y) })
+    replaced(read, (y: V['a]) => { r.push(y) }, true)
+    proxy((y: V['a]) => { r.push(y) })
+    _ = arr.len()
+}
+
+fn unbound['a](g: fn(V['a]) -> Void) {
+    let loc = "frame-local"
+    g(V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+}
+
+let u = "caller"
+caller(&u)
+-- expect --
+error[E2158]: a value borrowing `loc` cannot go into shared storage: another handle to that storage can keep it after `loc` is gone
+ --> main.kg:7:5
+  |
+7 |     g(V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+  |     ^^^^^^^^^^^^^
+  = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `loc` is borrowed here
+ --> main.kg:7:14
+  |
+7 |     g(V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+  |              ^^^^
+
+error[E2158]: a value borrowing `loc` cannot go into shared storage: another handle to that storage can keep it after `loc` is gone
+  --> main.kg:12:5
+   |
+12 |     apply(g, V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |     ^^^^^^^^^^^^^^^^^^^^
+   = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `loc` is borrowed here
+  --> main.kg:12:21
+   |
+12 |     apply(g, V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |                     ^^^^
+
+error[E2158]: a value borrowing `loc` cannot go into shared storage: another handle to that storage can keep it after `loc` is gone
+  --> main.kg:17:5
+   |
+17 |     apply((x: V['a]) => { applyIn((y: V['a]) => { g(y) }, x) }, V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `loc` is borrowed here
+  --> main.kg:17:72
+   |
+17 |     apply((x: V['a]) => { applyIn((y: V['a]) => { g(y) }, x) }, V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |                                                                        ^^^^
+
+error[E2158]: a value borrowing `loc` cannot go into shared storage: another handle to that storage can keep it after `loc` is gone
+  --> main.kg:23:5
+   |
+23 |     h(V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |     ^^^^^^^^^^^^^
+   = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `loc` is borrowed here
+  --> main.kg:23:14
+   |
+23 |     h(V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |              ^^^^
+
+error[E2158]: a value borrowing `loc` cannot go into shared storage: another handle to that storage can keep it after `loc` is gone
+  --> main.kg:30:5
+   |
+30 |     g(V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |     ^^^^^^^^^^^^^
+   = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `loc` is borrowed here
+  --> main.kg:30:14
+   |
+30 |     g(V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |              ^^^^
+
+error[E2158]: a value borrowing `loc` cannot go into shared storage: another handle to that storage can keep it after `loc` is gone
+  --> main.kg:35:5
+   |
+35 |     g(V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |     ^^^^^^^^^^^^^
+   = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `loc` is borrowed here
+  --> main.kg:35:14
+   |
+35 |     g(V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |              ^^^^
+
+error[E2158]: a value borrowing `loc` cannot go into shared storage: another handle to that storage can keep it after `loc` is gone
+  --> main.kg:55:5
+   |
+55 |     g(V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |     ^^^^^^^^^^^^^
+   = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `loc` is borrowed here
+  --> main.kg:55:14
+   |
+55 |     g(V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |              ^^^^
+
