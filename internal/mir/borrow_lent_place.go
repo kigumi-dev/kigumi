@@ -19,6 +19,14 @@ type lentPlace struct {
 	hasVia bool
 }
 
+// locals are the place's root and, when it has one, the holder it was reached through.
+func (p lentPlace) locals() []LocalID {
+	if p.hasVia {
+		return []LocalID{p.root, p.via}
+	}
+	return []LocalID{p.root}
+}
+
 // lentMutPlaces are the places a call argument may lend `&mut`, directly or through a write-back cell: a plain
 // borrow's place, or every local a `&mut` that is no plain borrow may point into, also when passed as it is.
 func (c *borrowCheck) lentMutPlaces(a LocalID) []lentPlace {

@@ -43,7 +43,7 @@ func (c *borrowCheck) keepers() *keeperGraph {
 		if c.p.R.Types.Kind(t) == sem.KRef {
 			t = c.p.R.Types.Node(t).Elem
 		}
-		return l != 0 && c.keepable(t)
+		return c.keepable(t)
 	}
 	for _, blk := range c.f.Blocks {
 		for _, in := range blk.Insts {
@@ -78,7 +78,7 @@ func reachLocals(from []LocalID, edges map[LocalID][]LocalID) []LocalID {
 func (c *borrowCheck) storePlaces(a LocalID) []LocalID {
 	var out []LocalID
 	for _, p := range c.lentMutPlaces(a) {
-		out = append(out, p.root, p.via)
+		out = append(out, p.locals()...)
 	}
 	return append(out, c.sharedPlaces(a)...)
 }

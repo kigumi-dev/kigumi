@@ -68,9 +68,9 @@ func (c *borrowCheck) deriveStep(g *Func, in *Inst, d derivation, base bool, def
 func (c *borrowCheck) opaqueResult(in *Inst) bool {
 	switch in.Op {
 	case OpBuiltin, OpCallValue:
-		return in.Dst != 0
+		return true
 	case OpCall:
-		return in.Dst != 0 && c.p.ByEnt[in.Ent] == nil
+		return c.p.ByEnt[in.Ent] == nil
 	}
 	return false
 }

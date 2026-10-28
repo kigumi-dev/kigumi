@@ -260,7 +260,7 @@ fn continueBeforeRefill(c: Bool) {
     let mut h = mkh(1)
     let f = () => {
         for i in 0..1 {
-            h.close()
+            h.close() //~ ERROR `h` was moved
             if c {
                 continue
             }
@@ -499,6 +499,13 @@ note: `f` may already be called here
     |
 252 |     sink(f(1))
     |          ^^^
+
+error[E2197]: `h` was moved; it cannot be used again
+   --> main.kg:260:13
+    |
+260 |             h.close() //~ ERROR `h` was moved
+    |             ^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[E2151]: `f` consumes `h` when called and can be called only once
    --> main.kg:268:5

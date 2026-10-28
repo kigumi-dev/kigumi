@@ -1160,6 +1160,61 @@ async fn closureStoresDropThroughParam() -> Int {
     let r = &other
     r.len().toInt() || 0
 }
+
+fn startIn[F: FnOnce[fn() -> Int]](pool: task.BlockingPool, out: &mut Array[Future[Int]], w: escaping F) { out.push(pool.run(w).unwrap()) }
+
+async fn reassignedFirstParam(mut h: Future[Int]?) -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    h = Some(pool.run(() => { other = "x"; 1 }).unwrap())
+    other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+}
+
+async fn awaitedParamMayBeCallers(mut x: Future[Int], b: Bool) -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let o = Some(pool.run(() => { other = "x"; 1 }).unwrap())
+    match o {
+        Some(f) -> { if b { x = f } },
+        None -> {}
+    }
+    let n = await x
+    n + (other.len().toInt() || 0) //~ ERROR `other` is written by a closure that may still be running on another thread
+}
+
+async fn reassignedFirstParamAwaited(mut h: Future[Int]?) -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    h = Some(pool.run(() => { other = "x"; 1 }).unwrap())
+    let n = match h {
+        Some(f) -> await f,
+        None -> 0
+    }
+    n + (other.len().toInt() || 0)
+}
+
+async fn awaitedPayloadBesideParam(x: Future[Int]) -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let o = Some(pool.run(() => { other = "x"; 1 }).unwrap())
+    let n = match o {
+        Some(f) -> await f,
+        None -> 0
+    }
+    let m = await x
+    n + m + (other.len().toInt() || 0)
+}
+
+async fn plainLendBesideFirstParam(g: Future[Int]) -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    {
+        let mut fs: Array[Future[Int]] = Array.empty()
+        startIn(pool, &mut fs, () => { other = "x"; 1 })
+    }
+    let k = other.len().toInt() || 0
+    k + await g
+}
 -- expect --
 error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
   --> main.kg:12:13
@@ -1942,4 +1997,28 @@ note: the closure is handed off here
      |
 1140 |     runClosureStoredParam(pool.run(() => { other = "x"; 1 }).unwrap())
      |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+    --> main.kg:1167:5
+     |
+1167 |     other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+     |     ^^^^^
+     = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+    --> main.kg:1166:14
+     |
+1166 |     h = Some(pool.run(() => { other = "x"; 1 }).unwrap())
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+    --> main.kg:1179:10
+     |
+1179 |     n + (other.len().toInt() || 0) //~ ERROR `other` is written by a closure that may still be running on another thread
+     |          ^^^^^
+     = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+    --> main.kg:1173:18
+     |
+1173 |     let o = Some(pool.run(() => { other = "x"; 1 }).unwrap())
+     |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

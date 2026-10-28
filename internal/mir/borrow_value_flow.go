@@ -101,7 +101,7 @@ func (c *borrowCheck) flowAt(fl *valueFlow, l LocalID) map[uint32]bool {
 // replayFlow applies a block to s, calling added for each fact an instruction adds.
 func (c *borrowCheck) replayFlow(fl *valueFlow, s flowSets, bid BlockID, added func(LocalID, uint32, int)) flowSets {
 	put := func(l LocalID, f uint32, i int) {
-		if l == 0 || s[l][f] || l != c.spawnScope() && c.p.retainOnly(c.f.Locals[l].Type) {
+		if s[l][f] || l != c.spawnScope() && c.p.retainOnly(c.f.Locals[l].Type) {
 			return
 		}
 		if s[l] == nil {
@@ -114,7 +114,9 @@ func (c *borrowCheck) replayFlow(fl *valueFlow, s flowSets, bid BlockID, added f
 	}
 	for i, in := range c.f.Blocks[bid].Insts {
 		for _, f := range fl.seed(in) {
-			put(in.Dst, f, i)
+			if in.Op.Yields() {
+				put(in.Dst, f, i)
+			}
 		}
 		dsts, srcs := c.flowEdges(in)
 		for _, d := range dsts {
@@ -150,11 +152,7 @@ func (c *borrowCheck) flowEdges(in Inst) (dsts, srcs []LocalID) {
 				continue
 			}
 			for _, p := range c.lentMutPlaces(a) {
-				dsts = append(dsts, p.root)
-				if p.hasVia {
-					dsts = append(dsts, p.via)
-				}
-				dsts = append(dsts, c.heldMutOwners(p.root)...)
+				dsts = append(append(dsts, p.locals()...), c.heldMutOwners(p.root)...)
 			}
 		}
 		return dsts, in.Args

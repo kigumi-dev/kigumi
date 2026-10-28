@@ -20,10 +20,12 @@ func (c *readCheck) changes() []moveEvent {
 			case OpBorrow:
 				changed = in.Index == 1
 			}
-			if r := c.root(firstArg(in)); changed && r != 0 && c.f.Locals[r].Ent != 0 {
-				out = append(out, moveEvent{at: movePos{BlockID(bi), i}, root: r, node: in.Node, field: field})
+			if changed {
+				if r := c.root(in.Args[0]); c.f.Locals[r].Ent != 0 {
+					out = append(out, moveEvent{at: movePos{BlockID(bi), i}, root: r, node: in.Node, field: field})
+				}
 			}
-			if r := c.cellTaken(in); r != 0 {
+			if r, ok := c.cellTaken(in); ok {
 				out = append(out, moveEvent{at: movePos{BlockID(bi), i}, root: r, node: in.Node})
 			}
 		}
@@ -31,24 +33,17 @@ func (c *readCheck) changes() []moveEvent {
 	return out
 }
 
-func (c *readCheck) cellTaken(in Inst) LocalID {
+func (c *readCheck) cellTaken(in Inst) (LocalID, bool) {
 	for i, a := range in.Args {
 		d := c.defs[a]
 		if d == nil || d.Op != OpCellGet || c.f.Locals[d.Args[0]].Ent == 0 {
 			continue
 		}
 		if in.Op == OpMove || constructs(in.Op) || c.p.consumesArg(&in, i) || c.p.primitiveTakes(&in, i) {
-			return d.Args[0]
+			return d.Args[0], true
 		}
 	}
-	return 0
-}
-
-func firstArg(in Inst) LocalID {
-	if len(in.Args) == 0 {
-		return 0
-	}
-	return in.Args[0]
+	return 0, false
 }
 
 func (c *readCheck) escapes(in Inst, caps map[LocalID][]capturedPlace) []LocalID {

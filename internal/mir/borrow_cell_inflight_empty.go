@@ -1,6 +1,10 @@
 package mir
 
-import "kigumi/internal/sem"
+import (
+	"slices"
+
+	"kigumi/internal/sem"
+)
 
 // emptyHandles is, per block and instruction, the handles known to hold nothing running there: on every path their
 // content was moved out or its sole payload awaited, or a branch found them a variant whose payload keeps no handle.
@@ -51,7 +55,7 @@ func (c *borrowCheck) emptyThrough(b BlockID, s, handles map[LocalID]bool, befor
 			s[in.Args[0]] = true
 		}
 		if in.Op == OpAwait {
-			if o := c.awaitedPayloadOf(in.Args[0], handles); o != 0 {
+			if o, ok := c.awaitedPayloadOf(in.Args[0], handles); ok {
 				s[o] = true
 			}
 		}
@@ -97,21 +101,21 @@ func (c *borrowCheck) emptyOnEdge(b BlockID, k int, s, handles map[LocalID]bool)
 }
 
 // awaitedPayloadOf is the handle an await of l finishes, l being through moves and copies the sole payload taken out
-// of it; a payload taken out only shares the work, which the handle keeps until it is finished, or 0.
-func (c *borrowCheck) awaitedPayloadOf(l LocalID, handles map[LocalID]bool) LocalID {
+// of it; a taken payload only shares the handle's work, and a parameter may still hold its caller's value.
+func (c *borrowCheck) awaitedPayloadOf(l LocalID, handles map[LocalID]bool) (LocalID, bool) {
 	for range len(c.f.Locals) {
 		d := c.soleDef(l)
 		switch {
-		case d == nil || len(d.Args) == 0:
-			return 0
+		case d == nil || len(d.Args) == 0 || slices.Contains(c.f.Params, l):
+			return 0, false
 		case d.Op == OpPayload && handles[d.Args[0]] && c.onePayloadEach(d.Args[0]):
-			return d.Args[0]
+			return d.Args[0], true
 		case d.Op != OpMove && d.Op != OpCopy && d.Op != OpAlias:
-			return 0
+			return 0, false
 		}
 		l = d.Args[0]
 	}
-	return 0
+	return 0, false
 }
 
 // onePayloadEach reports a value whose variants carry at most one payload each, so moving one out leaves it empty.

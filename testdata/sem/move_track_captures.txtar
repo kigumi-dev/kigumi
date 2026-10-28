@@ -412,6 +412,51 @@ fn lambdaAfterFieldRefill() {
     p.r = mkr(2)
     applyNow(() => { say(p.r.peek()) })
 }
+
+type FirstRec = {
+    pub mut a Array[Int]
+    pub mut s String
+}
+
+fn firstParamIndexWrite(mut a: Array[String]) -> String {
+    let c = () => a[0]
+    a[0] = "changed" //~ ERROR `a` is shared with a closure that may still run
+    c()
+}
+
+fn firstParamFieldPush(mut r: FirstRec) -> usize {
+    let c = () => r.a.len()
+    r.a.push(1) //~ ERROR `r` is shared with a closure that may still run
+    c()
+}
+
+fn firstParamFieldSet(mut r: FirstRec) -> String {
+    let c = () => r.s
+    r.s = "y" //~ ERROR `r` is shared with a closure that may still run
+    c()
+}
+
+fn firstParamWriteAfterLastCall(mut a: Array[String]) -> String {
+    let c = () => a[0]
+    let v = c()
+    a[0] = "changed"
+    v
+}
+
+fn guardAssignsFirstParam(mut o: Res?) {
+    match o {
+        Some(r) if { o = None; false } -> r.close() //~ ERROR `o` is held by the pattern binding `r` until its guard passes, so it cannot be changed here
+        _ -> {}
+    }
+}
+
+fn guardKeepsFirstParam(mut o: Res?) {
+    match o {
+        Some(r) if r.peek() > 0 -> r.close()
+        _ -> {}
+    }
+    o = None
+}
 -- expect --
 error[move-while-borrowed]: `r` is shared with a closure that may still run, so it cannot be moved or changed here
   --> main.kg:36:5
@@ -684,4 +729,28 @@ error[E2197]: `o` was moved; it cannot be used again
 403 |     applyNow(() => { sayB(o is None) }) //~ ERROR `o` was moved
     |              ^^^^^^^^^^^^^^^^^^^^^^
     = help: borrow it with `&` where it is used before the move, or make the move its last use
+
+error[move-while-borrowed]: `a` is shared with a closure that may still run, so it cannot be moved or changed here
+   --> main.kg:420:5
+    |
+420 |     a[0] = "changed" //~ ERROR `a` is shared with a closure that may still run
+    |     ^^^
+
+error[move-while-borrowed]: `r` is shared with a closure that may still run, so it cannot be moved or changed here
+   --> main.kg:426:5
+    |
+426 |     r.a.push(1) //~ ERROR `r` is shared with a closure that may still run
+    |     ^^^
+
+error[move-while-borrowed]: `r` is shared with a closure that may still run, so it cannot be moved or changed here
+   --> main.kg:432:5
+    |
+432 |     r.s = "y" //~ ERROR `r` is shared with a closure that may still run
+    |     ^^^
+
+error[move-while-borrowed]: `o` is held by the pattern binding `r` until its guard passes, so it cannot be changed here
+   --> main.kg:445:22
+    |
+445 |         Some(r) if { o = None; false } -> r.close() //~ ERROR `o` is held by the pattern binding `r` until its guard passes, so it cannot be changed here
+    |                      ^
 

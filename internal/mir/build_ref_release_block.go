@@ -92,7 +92,7 @@ func refDerived(p *Program, f *Func, l LocalID) map[LocalID]bool {
 		grew = false
 		for _, blk := range f.Blocks {
 			for _, in := range blk.Insts {
-				if in.Dst == 0 || held[in.Dst] || !shapes[in.Op].result || !slices.ContainsFunc(in.Args, func(a LocalID) bool { return held[a] }) {
+				if !shapes[in.Op].result || held[in.Dst] || !slices.ContainsFunc(in.Args, func(a LocalID) bool { return held[a] }) {
 					continue
 				}
 				t := f.Locals[in.Dst].Type

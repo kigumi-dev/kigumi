@@ -100,12 +100,12 @@ func (c *borrowCheck) callableArg(l LocalID) bool {
 func (c *borrowCheck) partInfo(v flowArg) (*borrowInfo, bool) {
 	whole := v
 	whole.at = nil
-	base := c.valueSource(v.arg)
+	base, ok := c.valueSource(v.arg), true
 	if v.contents {
-		base = c.flowPlace(storeFlow{target: v.arg, ref: true})
+		base, ok = c.flowPlace(storeFlow{target: v.arg, ref: true})
 	}
-	h, ok := c.holders[base]
-	if base == 0 || !ok || !h.hasOwner {
+	h, held := c.holders[base]
+	if !ok || !held || !h.hasOwner {
 		return c.flowInfo(whole)
 	}
 	out := &borrowInfo{empty: true, node: h.node}

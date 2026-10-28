@@ -126,7 +126,7 @@ func (c *borrowCheck) touchesInFlight(in Inst, o ownerRef) bool {
 		return false
 	}
 	touched, path, _ := c.touch(in, o.owner)
-	return touched && fieldPathsOverlap(path, o.path) && (o.mut || c.writesOwner(in, o.owner) || in.Dst == o.owner)
+	return touched && fieldPathsOverlap(path, o.path) && (o.mut || c.writesOwner(in, o.owner) || in.Op.Yields() && in.Dst == o.owner)
 }
 
 func (c *borrowCheck) reportInFlight(in Inst, owner LocalID, cl sem.EntityID, writes bool) {

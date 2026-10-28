@@ -117,7 +117,7 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 	for i := range blk.Insts {
 		in := &blk.Insts[i]
 		a.pos = movePos{bid, i}
-		if in.Dst != 0 {
+		if in.Op.Yields() {
 			a.defNode[in.Dst] = in.Node
 		}
 		switch in.Op {

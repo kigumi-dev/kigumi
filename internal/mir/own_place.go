@@ -33,7 +33,7 @@ func findPlaces(p *Program, f *Func) *places {
 	lentOK := p.R.Entity(f.Ent).Kind != sem.EntClosure
 	for bi := range f.Blocks {
 		for _, in := range f.Blocks[bi].Insts {
-			if in.Op == OpCellGet && in.Dst != 0 && (lentOK && f.Locals[in.Args[0]].Borrowed || trackedCell(p, f.Locals[in.Args[0]])) {
+			if in.Op == OpCellGet && (lentOK && f.Locals[in.Args[0]].Borrowed || trackedCell(p, f.Locals[in.Args[0]])) {
 				pl.cellRoot[in.Dst] = in.Args[0]
 			}
 		}
@@ -43,7 +43,7 @@ func findPlaces(p *Program, f *Func) *places {
 		changed = false
 		for bi := range f.Blocks {
 			for _, in := range f.Blocks[bi].Insts {
-				if !pl.projects(t, in) || in.Dst == 0 || pl.key[in.Dst] != "" {
+				if !pl.projects(t, in) || pl.key[in.Dst] != "" {
 					continue
 				}
 				base, ok := pl.base(f, in)

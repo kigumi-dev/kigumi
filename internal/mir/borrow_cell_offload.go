@@ -172,7 +172,7 @@ func (c *borrowCheck) offloadDsts(in Inst, s flowSets) []LocalID {
 	dsts := []LocalID{in.Dst}
 	for _, a := range in.Args {
 		for _, p := range c.lentMutPlaces(a) {
-			dsts = append(append(dsts, p.root, p.via), c.heldMutOwners(p.root)...)
+			dsts = append(append(dsts, p.locals()...), c.heldMutOwners(p.root)...)
 		}
 	}
 	for _, k := range c.keptArgs(in, s) {

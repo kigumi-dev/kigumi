@@ -4548,6 +4548,23 @@
       ]
     },
     {
+      "id": "run/blocking_pool_first_param",
+      "kind": "run",
+      "path": "testdata/run/blocking_pool_first_param.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/blocking_pool_many",
       "kind": "run",
       "path": "testdata/run/blocking_pool_many.txtar",

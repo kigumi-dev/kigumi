@@ -41,7 +41,7 @@ func (p *Program) isrForbidden(f *Func, in Inst, inert []bool, releases bool) st
 	case OpIndex, OpSetIndex:
 		return "may panic on an out-of-bounds index"
 	case OpBinary, OpUnary:
-		if isrCheckedOps[in.Str] && in.Dst != 0 && p.R.Types.IsInteger(f.Locals[in.Dst].Type) {
+		if isrCheckedOps[in.Str] && p.R.Types.IsInteger(f.Locals[in.Dst].Type) {
 			return "may panic on integer overflow or a zero divisor"
 		}
 	case OpBuiltin:

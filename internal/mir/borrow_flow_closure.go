@@ -48,8 +48,10 @@ func (c *borrowCheck) captureReach(lit *Inst, add, addCaller func(LocalID)) {
 		}
 		root := c.valueSource(a)
 		if c.p.R.Types.Kind(c.f.Locals[a].Type) == sem.KRef {
-			root = c.flowPlace(storeFlow{target: a, ref: true})
-			add(root)
+			if pl, ok := c.flowPlace(storeFlow{target: a, ref: true}); ok {
+				root = pl
+				add(root)
+			}
 		} else if p, ok := c.heldOrigin(root); ok && slices.ContainsFunc(sites, func(s paramStore) bool { return s.via }) {
 			addCaller(p)
 		}

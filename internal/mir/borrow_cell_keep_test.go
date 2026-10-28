@@ -44,12 +44,22 @@ fn classes(p: alloc.Shared[Future[Int]?], f: Future[Int]) {
     let k = s2
     let a = apart
 }
+type Store = { s alloc.Shared[Future[Int]?] }
+fn same(s: alloc.Shared[Future[Int]?]) -> alloc.Shared[Future[Int]?] { s }
+fn byClone(p: alloc.Shared[Future[Int]?], f: Future[Int]) { let t = p.clone(); t.set(Some(f)) }
+fn byLet(p: alloc.Shared[Future[Int]?], f: Future[Int]) { let t = p; t.set(Some(f)) }
+fn byHelper(p: alloc.Shared[Future[Int]?], f: Future[Int]) { let t = same(p); t.set(Some(f)) }
+fn byField(st: Store, f: Future[Int]) { st.s.set(Some(f)) }
+fn Store.bySelf(self, f: Future[Int]) { self.s.set(Some(f)) }
 `
 
-func keepProgram(t *testing.T) (*Program, func(string) *Func) {
+func keepProgram(t *testing.T) (*Program, func(string) *Func) { return srcProgram(t, keepSrc) }
+
+// srcProgram builds src as package main and finds a body by name, a method's too.
+func srcProgram(t *testing.T, src string) (*Program, func(string) *Func) {
 	t.Helper()
 	main := &sem.Package{Path: "main"}
-	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(keepSrc)))
+	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
 	main.Files = []*syntax.Tree{main.Entry}
 	res := sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../std"), main)}, schema.GenerateDerive)
 	if res.HasErrors() {
@@ -57,11 +67,16 @@ func keepProgram(t *testing.T) (*Program, func(string) *Func) {
 	}
 	p := Build(res)
 	return p, func(name string) *Func {
-		g := p.ByEnt[res.PackageMember(res.PackageByPath("main"), name)]
-		if g == nil {
-			t.Fatalf("no body %s", name)
+		if g := p.ByEnt[res.PackageMember(res.PackageByPath("main"), name)]; g != nil {
+			return g
 		}
-		return g
+		for e, g := range p.ByEnt {
+			if g != nil && res.Entity(e).Name == name && res.Entity(e).Kind == sem.EntFn && res.Fn(e).Recv != sem.RecvNone {
+				return g
+			}
+		}
+		t.Fatalf("no body %s", name)
+		return nil
 	}
 }
 
@@ -140,5 +155,17 @@ func TestKeeperClassLinksEarlierCopies(t *testing.T) {
 	}
 	if !param.escapes {
 		t.Errorf("a store into parameter p does not escape the body")
+	}
+}
+
+func TestKeeperClassReachesFirstParam(t *testing.T) {
+	p, body := keepProgram(t)
+	for _, fn := range []string{"byClone", "byLet", "byHelper", "byField", "bySelf"} {
+		g := body(fn)
+		c := &borrowCheck{p: p, f: g}
+		k := c.keeperOf(calls(p, g, "set")[0].Args[0])
+		if !k.escapes || !slices.Contains(k.locals, g.Params[0]) || !slices.Contains(c.sharedPlaces(calls(p, g, "set")[0].Args[0]), c.spawnScope()) {
+			t.Errorf("%s: class %v (escapes %v), want the first parameter in it and the task scope kept", fn, k.locals, k.escapes)
+		}
 	}
 }

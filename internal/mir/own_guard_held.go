@@ -41,7 +41,7 @@ func (a *owner) checkGuardHeld(in *Inst, l LocalID, st *dstate, report bool, own
 		a.reported[in.Node] = true
 		t := a.p.R.Tree(a.f.File)
 		verb := "moved"
-		if in.Op == OpBorrow || in.Op == OpSetField || in.Op == OpSetIndex || in.Op == OpCellSet || in.Dst == l {
+		if in.Op == OpBorrow || in.Op == OpSetField || in.Op == OpSetIndex || in.Op == OpCellSet || in.Op.Yields() && in.Dst == l {
 			verb = "changed"
 		}
 		msg := "`" + a.ownerName(l) + "` is held by the pattern binding `" + a.f.Locals[bind].Name + "` until its guard passes, so it cannot be " + verb + " here"
@@ -82,7 +82,7 @@ func (a *owner) heldOverlap(in *Inst, src, l LocalID) bool {
 }
 
 func (a *owner) assignHeld(in *Inst, st *dstate, report bool) {
-	if in.Dst != 0 && a.f.Locals[in.Dst].Ent != 0 && !in.Guarded {
+	if in.Op.Yields() && a.f.Locals[in.Dst].Ent != 0 && !in.Guarded {
 		a.checkGuardHeld(in, in.Dst, st, report, 0)
 	}
 }

@@ -34,9 +34,11 @@ func (c *borrowCheck) storeReach(fl storeFlow) (out, callers []LocalID) {
 	holders := []LocalID{root}
 	if !fl.byValue {
 		out = append(out, root)
-		for i, o := range c.referents(c.flowPlace(fl)) {
-			if i > 0 {
-				add(o.owner)
+		if pl, ok := c.flowPlace(fl); ok {
+			for i, o := range c.referents(pl) {
+				if i > 0 {
+					add(o.owner)
+				}
 			}
 		}
 		holders = slices.Clone(out)
@@ -95,20 +97,20 @@ func (c *borrowCheck) valueSource(l LocalID) LocalID {
 	return l
 }
 
-// For a call's `&mut` argument, flowPlace is the place it borrows.
-func (c *borrowCheck) flowPlace(fl storeFlow) LocalID {
+// For a call's `&mut` argument, flowPlace is the place it borrows; not ok when the reference comes from elsewhere.
+func (c *borrowCheck) flowPlace(fl storeFlow) (LocalID, bool) {
 	l := fl.target
 	for fl.ref && c.f.Locals[l].Ent == 0 {
 		in := c.definition(l)
 		if in == nil || len(in.Args) == 0 || in.Op != OpBorrow && in.Op != OpNewCell && in.Op != OpShare && in.Op != OpCopy && in.Op != OpMove && in.Op != OpAlias {
-			return 0
+			return 0, false
 		}
 		l = in.Args[0]
 		if in.Op == OpBorrow {
 			break
 		}
 	}
-	return l
+	return l, true
 }
 
 // collectFlows widens each local target's sources with every value written

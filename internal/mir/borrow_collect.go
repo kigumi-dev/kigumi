@@ -164,9 +164,6 @@ func (c *borrowCheck) collectArray(in Inst) {
 // collectBuiltin ties a builtin's result (a loop's element) to what every
 // argument holds, and to the referent's elements for a reference argument.
 func (c *borrowCheck) collectBuiltin(in Inst) {
-	if in.Dst == 0 {
-		return
-	}
 	if ret := c.f.Locals[in.Dst].Type; !c.resultMayCarryLifetime(ret) {
 		c.collectBuiltinCarry(in, ret)
 		return

@@ -32,7 +32,7 @@ func resultDefs(f *Func) map[LocalID][]Inst {
 	defs := map[LocalID][]Inst{}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if shapes[in.Op].result && in.Dst != 0 {
+			if shapes[in.Op].result {
 				defs[in.Dst] = append(defs[in.Dst], in)
 			}
 		}
@@ -89,7 +89,7 @@ func hoistRefRelease(p *Program, f *Func, l LocalID) bool {
 				}
 				dropBlk, drop = bid, i
 			case slices.Contains(in.Args, l):
-				if bid != home || in.Dst != 0 && !p.R.IsCopy(f.Locals[in.Dst].Type) {
+				if bid != home || shapes[in.Op].result && !p.R.IsCopy(f.Locals[in.Dst].Type) {
 					return false
 				}
 				last = i

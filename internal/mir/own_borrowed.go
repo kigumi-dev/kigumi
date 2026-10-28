@@ -33,7 +33,7 @@ func checkBorrowedMoves(p *Program, f *Func) {
 	fieldRead := make([]syntax.NodeID, len(f.Locals))
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Dst != 0 {
+			if in.Op.Yields() {
 				defNode[in.Dst] = in.Node
 				if in.Op == OpField {
 					fieldRead[in.Dst] = in.Node

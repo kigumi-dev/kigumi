@@ -86,7 +86,7 @@ func (c *borrowCheck) partStable(holder LocalID) bool {
 	for _, blk := range c.f.Blocks {
 		for _, in := range blk.Insts {
 			wb, ok := c.writeBackOf(in, holder)
-			for l := wb.cell; ok && l != 0; {
+			for l := wb.cell; ok && !back[l]; {
 				back[l] = true
 				d := c.definition(l)
 				if d == nil || len(d.Args) == 0 || d.Op != OpNewCell && d.Op != OpShare && d.Op != OpCopy && d.Op != OpAlias {

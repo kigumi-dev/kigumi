@@ -1,31 +1,28 @@
 package mir
 
 // cellOf is the cell local whose whole content the temporary l holds; field and payload reads of a cell are places of their own.
-func (a *owner) cellOf(l LocalID) LocalID {
+func (a *owner) cellOf(l LocalID) (LocalID, bool) {
 	if a.cellDefs == nil {
 		a.cellDefs = soleDefs(a.f)
 	}
 	for range 32 {
 		if a.f.Locals[l].Ent != 0 {
-			return 0
+			return 0, false
 		}
 		d := a.cellDefs[l]
 		if d == nil || len(d.Args) == 0 {
-			return 0
+			return 0, false
 		}
 		switch d.Op {
 		case OpCellGet:
-			if a.cellTracked(d.Args[0]) {
-				return d.Args[0]
-			}
-			return 0
+			return d.Args[0], a.cellTracked(d.Args[0])
 		case OpCopy:
 			l = d.Args[0]
 		default:
-			return 0
+			return 0, false
 		}
 	}
-	return 0
+	return 0, false
 }
 
 // cellTracked is a move-only local kept in a cell because an immediate lambda writes it; ownership analysis follows its content through st.field.
@@ -45,7 +42,7 @@ func hasTrackedCell(p *Program, f *Func) bool {
 }
 
 func (a *owner) cellConsume(in *Inst, t LocalID, st *dstate, report bool) {
-	if c := a.cellOf(t); c != 0 {
+	if c, ok := a.cellOf(t); ok {
 		a.cellRead(in, c, st, report)
 		a.checkWhole(in.Node, c, st, report)
 		st.field.set(c, ownMoved)
