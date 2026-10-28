@@ -113,7 +113,7 @@ func (r *Result) resolveRefCells() {
 	r.rejectReplacingAsyncValues()
 	r.rejectAsyncSelfReplace()
 	r.reportLentRefArgs()
-	r.conformSealed = len(r.conformMemo)
+	r.seal = witnessSeal{conforms: len(r.conformMemo), witnesses: r.witnessesByRequirement()}
 }
 
 func (r *Result) recvReplaces(q refCellRecv) bool {

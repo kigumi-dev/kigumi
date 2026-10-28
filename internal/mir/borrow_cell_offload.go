@@ -20,6 +20,7 @@ type offloadMemo struct {
 	body, kept               map[*Func]flowSets
 	keeps                    map[keptKey]*keptSummary
 	busy                     map[*Func]bool
+	shared                   *sinkMemo
 }
 
 func (c *borrowCheck) offloads() *offloadMemo {

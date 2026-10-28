@@ -178,7 +178,7 @@ type Result struct {
 	selfRecvCalls             []selfRecvCall
 	witnessPairs              []witnessPair
 	witnessSeen               map[witnessPair]bool
-	conformSealed             int
+	seal                      witnessSeal
 	instances                 map[EntityID]InstanceInfo
 	instanceKeys              map[string]EntityID
 	closureOrigins            map[EntityID]EntityID

@@ -9,6 +9,7 @@ var (
 )
 
 var (
+	cBorrowStoreShared    = defineCode("E2158", "borrow-store-shared", "a value borrowing {name} cannot go into shared storage: another handle to that storage can keep it after {name} is gone; finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing")
 	cBorrowStoreOutlives  = defineCode("E2159", "borrow-store-outlives", "a borrow cannot be stored into `{name}` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead")
 	cBorrowStoreUntracked = defineCode("E2160", "borrow-store-untracked", "a borrow cannot be stored into {type}: the checker does not track where its contents borrow from; it follows writes only into an array, fixed array, map, record or variant held in a local, a `&mut` parameter, or a reference bound once to one of those, so write through that local or store a value it can own")
 	cBorrowStoreOpaque    = defineCode("E2161", "borrow-store-opaque-call", "a call through a function value may store a borrow into `{name}`, and that write cannot be tracked; call the function by name, or pass a value it can own")

@@ -1,0 +1,343 @@
+-- src --
+import task from std/task
+import {Shared, Box} from std/alloc
+import {UnsafeCell} from std/mem
+import ffi from std/ffi
+
+interface Bump {
+    fn bump(mut self)
+    fn get(self) -> Int
+}
+
+type Counter = { pub mut n Int }
+
+fn Counter.bump(mut self) {
+    self.n = self.n + 1
+}
+
+fn Counter.get(self) -> Int {
+    self.n
+}
+
+async fn acount(c: &mut Bump) -> Int {
+    c.bump()
+    c.get()
+}
+
+async fn mut1(a: &mut Array[String]) -> usize {
+    a.push("b")
+    a.len()
+}
+
+async fn plain(n: usize) -> usize {
+    n + 1
+}
+
+fn run[T](f: Future[T]) -> T {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+fn drain(sh: Shared[Future[usize]?]) -> usize {
+    match sh.withMut((o: &mut Future[usize]?) => o.take()) {
+        Some(f) -> run(f)
+        None -> 0
+    }
+}
+
+type Sh = { cell Shared[Future[usize]?] }
+
+fn Sh.put(self, f: Future[usize]) {
+    self.cell.set(Some(f))
+}
+
+fn Sh.putMut(mut self, f: Future[usize]) {
+    self.cell.set(Some(f))
+}
+
+fn putRef(s: &mut Sh, f: Future[usize]) {
+    s.cell.set(Some(f))
+}
+
+fn putIn(s: Shared[Future[usize]?], f: Future[usize]) {
+    s.set(Some(f))
+}
+
+type Rec = { pub f Future[usize] }
+
+async fn putLater(s: Shared[Future[usize]?], f: Future[usize]) {
+    s.set(Some(f))
+}
+
+fn recPut(s: Shared[Future[usize]?], n: Int, f: Future[usize]) {
+    if n > 0 {
+        recPut(s, n - 1, f)
+    } else {
+        s.set(Some(f))
+    }
+}
+
+type Holder = { pub s Shared[Future[usize]?] }
+
+interface Sink {
+    fn take(mut self, f: Future[usize])
+}
+
+type ShSink = { cell Shared[Future[usize]?] }
+
+fn ShSink.take(mut self, f: Future[usize]) {
+    self.cell.set(Some(f))
+}
+
+fn sinkInto(o: &mut Sink, f: Future[usize]) {
+    o.take(f)
+}
+
+fn each(n: Int, f: fn(Int) -> Void) {
+    f(n)
+}
+
+fn viaForms(sh: Shared[Future[usize]?]) -> usize {
+    let mut total: usize = 0
+    sh.set(Some(plain(1)))
+    total = total + drain(sh.clone())
+    let s = Sh { cell: sh.clone() }
+    s.put(plain(2))
+    total = total + drain(sh.clone())
+    let put = Sh { cell: sh.clone() }.put
+    put(plain(3))
+    total = total + drain(sh.clone())
+    let set = sh.clone().set
+    set(Some(plain(4)))
+    total = total + drain(sh.clone())
+    let mut t = Sh { cell: sh.clone() }
+    t.putMut(plain(5))
+    total = total + drain(sh.clone())
+    putRef(&mut t, plain(6))
+    total = total + drain(sh.clone())
+    putIn(sh.clone(), plain(7))
+    total = total + drain(sh.clone())
+    let w = sh.downgrade()
+    if let Some(u) = w.upgrade() {
+        u.set(Some(plain(8)))
+    }
+    total = total + drain(sh.clone())
+    let h = Holder { s: sh.clone() }
+    h.s.set(Some(plain(9)))
+    total = total + drain(sh.clone())
+    run(putLater(sh.clone(), plain(10)))
+    total = total + drain(sh.clone())
+    recPut(sh.clone(), 3, plain(11))
+    total = total + drain(sh.clone())
+    let mut k = ShSink { cell: sh.clone() }
+    sinkInto(&mut k, plain(12))
+    total = total + drain(sh.clone())
+    let g = (f: Future[usize]) => sh.set(Some(f))
+    g(plain(13))
+    total = total + drain(sh.clone())
+    total
+}
+
+fn viaRecord() -> usize {
+    let r: Shared[Rec?] = Shared.new(None)
+    r.set(Some(Rec { f: plain(20) }))
+    match r.withMut((o: &mut Rec?) => o.take()) {
+        Some(x) -> run(x.f)
+        None -> 0
+    }
+}
+
+fn awaitedFirst(sh: Shared[Future[usize]?]) -> usize {
+    let mut z = Array.of("a")
+    let n = run(mut1(&mut z))
+    sh.set(Some(plain(n)))
+    z.push("c")
+    let first = drain(sh.clone())
+    each(1, (x: Int) => sh.set(Some(plain(z.len()))))
+    z.push("d")
+    let second = drain(sh.clone())
+    let m = run(viewFirst(sh.clone()))
+    first + second + m + drain(sh.clone())
+}
+
+async fn viewFirst(sh: Shared[Future[usize]?]) -> usize {
+    let mut c = Counter { n: 30 }
+    let m = await acount(&mut c)
+    c.n = 0
+    sh.set(Some(plain(m.toUsize() || 0)))
+    m.toUsize() || 0
+}
+
+fn cells() -> usize {
+    let c: UnsafeCell[Future[usize]?] = UnsafeCell.new(None)
+    unsafe { c.set(Some(plain(40))) }
+    let t: ffi.HandleTable[Future[usize]] = ffi.HandleTable.new()
+    let h = t.insert(plain(41))
+    let f = t.remove(h)
+    run(f)
+}
+
+fn plainCells() -> String {
+    let a: Shared[Int] = Shared.new(0)
+    let b: Shared[String] = Shared.new("")
+    let mut z = Array.of("a", "b")
+    a.set(z.len().toInt() || 0)
+    b.set(z[1])
+    z.push("c")
+    "${a.get()} ${b.with((s: &String) => s.len())} ${z.len()}"
+}
+
+fn boxedInBlock() -> usize {
+    let mut z = Array.of("a")
+    let n = {
+        let mut b: Box[Future[usize]?] = Box.new(None)
+        b.set(Some(mut1(&mut z)))
+        match b.into() {
+            Some(f) -> run(f)
+            None -> 0
+        }
+    }
+    z.push("e")
+    n + z.len()
+}
+
+interface Tk {
+    fn keep(self, f: Future[usize])
+}
+
+type D = { pub s Shared[Future[usize]?] }
+
+fn D.keep(self, f: Future[usize]) {
+    self.s.set(Some(f))
+}
+
+interface TkG[T] {
+    fn hold(self, f: T)
+}
+
+type G = { pub s Shared[Future[usize]?] }
+
+fn G.hold(self, f: Future[usize]) {
+    self.s.set(Some(f))
+}
+
+type GV = { pub s Shared[Future[Int]?] }
+
+fn GV.hold(self, f: Future[Int]) {
+    self.s.set(Some(f))
+}
+
+async fn plainI(n: Int) -> Int {
+    n + 2
+}
+
+fn boundKeep[K: Tk](k: K, n: usize) {
+    k.keep(plain(n))
+}
+
+fn keepVia[K: Tk](k: K, f: Future[usize]) {
+    k.keep(f)
+}
+
+fn genericAwaited[K: TkG[Future[usize]]](k: K) -> usize {
+    let mut z = Array.of("a")
+    let n = run(mut1(&mut z))
+    z.push("q")
+    k.hold(plain(n + z.len()))
+    n
+}
+
+async fn genericViewAwaited[K: TkG[Future[Int]]](k: K) -> Int {
+    let mut c = Counter { n: 50 }
+    let m = await acount(&mut c)
+    c.n = 0
+    k.hold(plainI(m))
+    m
+}
+
+type Hold = { pub f fn(Shared[Future[usize]?], Future[usize]) -> Void }
+
+fn apply[T](f: fn(T, Future[usize]) -> Void, t: T, x: Future[usize]) {
+    f(t, x)
+}
+
+fn viaBounds(sh: Shared[Future[usize]?]) -> String {
+    boundKeep(D { s: sh.clone() }, 60)
+    let a = drain(sh.clone())
+    keepVia(D { s: sh.clone() }, plain(61))
+    let b = drain(sh.clone())
+    let n = genericAwaited(G { s: sh.clone() })
+    let c = drain(sh.clone())
+    let v: Shared[Future[Int]?] = Shared.new(None)
+    let m = run(genericViewAwaited(GV { s: v.clone() }))
+    let d = match v.withMut((o: &mut Future[Int]?) => o.take()) {
+        Some(f) -> run(f)
+        None -> 0
+    }
+    let h = Hold { f: putIn }
+    apply(h.f, sh.clone(), plain(62))
+    let e = drain(sh.clone())
+    "${a} ${b} ${n} ${c} ${m} ${d} ${e}"
+}
+
+type Two = { pub a Shared[Future[usize]?], pub b Shared[Future[usize]?] }
+
+type Fns = { pub a Shared[Array[fn(Int) -> Int]], pub b Shared[Array[fn(Int) -> Int]] }
+
+fn double(n: Int) -> Int {
+    n * 2
+}
+
+fn movedBetween() -> String {
+    let t = Two { a: Shared.new(Some(plain(70))), b: Shared.new(None) }
+    let x = t.a.withMut((o: &mut Future[usize]?) => o.take())
+    t.b.set(x)
+    let fs = Fns { a: Shared.new(Array.of(double)), b: Shared.new(Array.empty()) }
+    let xs = fs.a.with((o: &Array[fn(Int) -> Int]) => o.clone())
+    fs.b.set(xs)
+    let g = fs.b.with((o: &Array[fn(Int) -> Int]) => o[0])
+    "${drain(t.b.clone())} ${drain(t.a.clone())} ${g(21)}"
+}
+
+type P = { pub a Future[usize], pub n Int }
+
+fn unpacked() -> String {
+    let s: Shared[Future[usize]?] = Shared.new(Some(plain(80)))
+    let d: Shared[Future[usize]?] = Shared.new(None)
+    let x = s.withMut((o: &mut Future[usize]?) => o.take())
+    if let Some(f) = x {
+        d.set(Some(f))
+    }
+    let a = drain(d.clone())
+    s.set(Some(plain(81)))
+    let t: ffi.HandleTable[Future[usize]] = ffi.HandleTable.new()
+    let hs: Shared[ffi.FfiHandle[Future[usize]]?] = Shared.new(None)
+    match s.withMut((o: &mut Future[usize]?) => o.take()) {
+        Some(f) -> hs.set(Some(t.insert(f)))
+        None -> {}
+    }
+    let b = match hs.withMut((o: &mut ffi.FfiHandle[Future[usize]]?) => o.take()) {
+        Some(h) -> run(t.remove(h))
+        None -> 0
+    }
+    let ps: Shared[P?] = Shared.new(Some(P { a: plain(82), n: 1 }))
+    match ps.withMut((o: &mut P?) => o.take()) {
+        Some(q) -> d.set(Some(move q.a))
+        None -> {}
+    }
+    "${a} ${b} ${drain(d.clone())}"
+}
+
+fn main() {
+    let sh: Shared[Future[usize]?] = Shared.new(None)
+    print "forms ${viaForms(sh.clone())} record ${viaRecord()} awaited ${awaitedFirst(sh.clone())}"
+    print "cells ${cells()} plain ${plainCells()} boxed ${boxedInBlock()}"
+    print "bounds ${viaBounds(sh.clone())}"
+    print "moved ${movedBetween()}"
+    print "unpacked ${unpacked()}"
+}
+-- stdout --
+forms 104 record 21 awaited 70
+cells 42 plain 2 1 3 boxed 5
+bounds 61 62 2 6 51 53 63
+moved 71 0 42
+unpacked 81 82 83

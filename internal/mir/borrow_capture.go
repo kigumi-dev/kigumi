@@ -48,6 +48,7 @@ func (c *borrowCheck) checkCapture(in Inst) {
 		}
 		c.checkElementBorrows(in)
 	case OpFutureNew:
+		c.checkSharedStores(in)
 		// Same holder-record exception, for a future's own captures.
 		if _, ok := c.holders[in.Dst]; ok {
 			return
@@ -66,6 +67,7 @@ func (c *borrowCheck) checkCapture(in Inst) {
 		}
 		c.contentsMemo = nil
 		c.checkOpaqueStores(in)
+		c.checkSharedStores(in)
 		c.checkCarry(in)
 		c.checkScalarTies(in)
 	case OpBox:

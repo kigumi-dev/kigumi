@@ -15828,6 +15828,23 @@
       ]
     },
     {
+      "id": "run/shared_borrow_store_ok",
+      "kind": "run",
+      "path": "testdata/run/shared_borrow_store_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/shared_fixed_array_whole_element",
       "kind": "run",
       "path": "testdata/run/shared_fixed_array_whole_element.txtar",
@@ -23426,6 +23443,17 @@
       "id": "sem/send_sync_future",
       "kind": "sem",
       "path": "testdata/sem/send_sync_future.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/shared_borrow_store_err",
+      "kind": "sem",
+      "path": "testdata/sem/shared_borrow_store_err.txtar",
       "mode": [
         "check"
       ],

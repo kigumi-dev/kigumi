@@ -101,8 +101,10 @@ func (c *borrowCheck) calleeClosure(g *Func, in Inst) sem.EntityID {
 // open type, interface or closure that may; a borrow can neither be kept nor spawned, and a plain `fn` captures no move-only value.
 func (c *borrowCheck) holdsHandle(t sem.TypeID) bool {
 	return c.p.R.Types.Kind(t) != sem.KRef && c.typeHolds(t, func(t sem.TypeID) bool {
-		switch c.p.R.Types.Kind(t) {
-		case sem.KParam, sem.KVar, sem.KIface, sem.KClosure:
+		switch n := c.p.R.Types.Node(t); n.Kind {
+		case sem.KParam:
+			return !c.p.R.TypeParam(n.Ent).IsLifetime
+		case sem.KVar, sem.KIface, sem.KClosure:
 			return true
 		}
 		return c.p.R.Types.Kind(t) == sem.KNamed && c.p.R.Types.Node(t).Ent == c.p.R.Types.FutureEnt() || c.p.R.IsTaskType(t)

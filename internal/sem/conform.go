@@ -29,7 +29,7 @@ func (r *Result) conforms(t, iface TypeID, from PackageID) conformResult {
 }
 
 // Nonzero means the `&mut` cell fixpoint closed over the witness table before resolveRefCells finished sealing it.
-func (r *Result) ConformMissesAfterSeal() int { return len(r.conformMemo) - r.conformSealed }
+func (r *Result) ConformMissesAfterSeal() int { return len(r.conformMemo) - r.seal.conforms }
 
 func (r *Result) computeConforms(t, iface TypeID, from PackageID) conformResult {
 	if t == TyPoison || iface == TyPoison {

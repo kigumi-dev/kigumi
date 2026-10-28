@@ -1,0 +1,902 @@
+-- module --
+mir: planned
+-- src --
+import {Shared, Weak, Box} from std/alloc
+import {UnsafeCell} from std/mem
+import ffi from std/ffi
+
+interface Bump {
+    fn bump(mut self)
+    fn get(self) -> Int
+}
+
+type Counter = { pub mut n Int }
+
+fn Counter.bump(mut self) {
+    self.n = self.n + 1
+}
+
+fn Counter.get(self) -> Int {
+    self.n
+}
+
+async fn acount(c: &mut Bump) -> Int {
+    c.bump()
+    c.get()
+}
+
+async fn mut1(a: &mut Array[String]) -> usize {
+    a.push("b")
+    a.len()
+}
+
+async fn plain(n: usize) -> usize {
+    n + 1
+}
+
+type Sh = { cell Shared[Future[usize]?] }
+
+fn Sh.put(self, f: Future[usize]) {
+    self.cell.set(Some(f))
+}
+
+fn Sh.putMut(mut self, f: Future[usize]) {
+    self.cell.set(Some(f))
+}
+
+fn putRef(s: &mut Sh, f: Future[usize]) {
+    s.cell.set(Some(f))
+}
+
+fn putIn(s: Shared[Future[usize]?], f: Future[usize]) {
+    s.set(Some(f))
+}
+
+type Rec = { pub f Future[usize] }
+
+fn putRec(s: Shared[Rec?], r: Rec) {
+    s.set(Some(r))
+}
+
+fn putView(s: Shared[Future[Int]?], f: Future[Int]) {
+    s.set(Some(f))
+}
+
+async fn putLater(s: Shared[Future[usize]?], f: Future[usize]) {
+    s.set(Some(f))
+}
+
+fn recPut(s: Shared[Future[usize]?], n: Int, f: Future[usize]) {
+    if n > 0 {
+        recPut(s, n - 1, f)
+    } else {
+        s.set(Some(f))
+    }
+}
+
+type Holder = { pub s Shared[Future[usize]?] }
+
+interface Sink {
+    fn take(mut self, f: Future[usize])
+}
+
+type ShSink = { cell Shared[Future[usize]?] }
+
+fn ShSink.take(mut self, f: Future[usize]) {
+    self.cell.set(Some(f))
+}
+
+fn sinkInto(o: &mut Sink, f: Future[usize]) {
+    o.take(f)
+}
+
+fn each(n: Int, f: fn(Int) -> Void) {
+    f(n)
+}
+
+interface Tk {
+    fn keep(self, f: Future[usize])
+}
+
+type D = { pub s Shared[Future[usize]?] }
+
+fn D.keep(self, f: Future[usize]) {
+    self.s.set(Some(f))
+}
+
+interface TkG[T] {
+    fn hold(self, f: T)
+}
+
+type G = { pub s Shared[Future[usize]?] }
+
+fn G.hold(self, f: Future[usize]) {
+    self.s.set(Some(f))
+}
+
+type GV = { pub s Shared[Future[Int]?] }
+
+fn GV.hold(self, f: Future[Int]) {
+    self.s.set(Some(f))
+}
+
+fn keepVia[K: Tk](k: K, f: Future[usize]) {
+    k.keep(f)
+}
+
+type Hold = { pub f fn(Shared[Future[usize]?], Future[usize]) -> Void }
+
+fn apply[T](f: fn(T, Future[usize]) -> Void, t: T, x: Future[usize]) {
+    f(t, x)
+}
+
+type Two = { pub a Shared[Future[usize]?], pub b Shared[Future[usize]?] }
+
+type Fns = { pub a Shared[Array[fn(Int) -> Int]], pub b Shared[Array[fn(Int) -> Int]] }
+
+async fn peek(o: &mut Future[usize]?) -> usize {
+    3
+}
+
+fn takeOpt(o: &mut Future[usize]?) -> Future[usize]? {
+    o.take()
+}
+
+fn unwrap1(mut o: Future[usize]?) -> Future[usize]? {
+    o.take()
+}
+
+fn callBound[F: Fn[fn(Future[usize]) -> Void]](g: F) {
+    let mut z = Array.of("a")
+    g(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn direct(sh: Shared[Future[usize]?]) {
+    let mut z = Array.of("a")
+    sh.set(Some(mut1(&mut z))) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn selfMethod(s: Sh) {
+    let mut z = Array.of("a")
+    s.put(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn selfMethodValue(s: Sh) {
+    let mut z = Array.of("a")
+    let put = s.put
+    put(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn cloneMethodValue(sh: Shared[Future[usize]?]) {
+    let mut z = Array.of("a")
+    let set = sh.clone().set
+    set(Some(mut1(&mut z))) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn mutRecv(s: Sh) {
+    let mut z = Array.of("a")
+    let mut t = s
+    t.putMut(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn mutRefHelper(s: Sh) {
+    let mut z = Array.of("a")
+    let mut t = s
+    putRef(&mut t, mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn helper(sh: Shared[Future[usize]?]) {
+    let mut z = Array.of("a")
+    putIn(sh.clone(), mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn clonedAlias(sh: Shared[Future[usize]?]) {
+    let t = sh.clone()
+    let mut z = Array.of("a")
+    t.set(Some(mut1(&mut z))) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn localAlias() -> Shared[Future[usize]?] {
+    let sh: Shared[Future[usize]?] = Shared.new(None)
+    let t = sh.clone()
+    let mut z = Array.of("a")
+    t.set(Some(mut1(&mut z))) //~ ERROR a value borrowing `z` cannot go into shared storage
+    sh
+}
+
+fn upgraded(w: Weak[Future[usize]?]) {
+    let mut z = Array.of("a")
+    if let Some(s) = w.upgrade() {
+        s.set(Some(mut1(&mut z))) //~ ERROR a value borrowing `z` cannot go into shared storage
+    }
+}
+
+fn fieldClone(sh: Shared[Future[usize]?]) {
+    let h = Holder { s: sh.clone() }
+    let mut z = Array.of("a")
+    h.s.set(Some(mut1(&mut z))) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn record(s: Shared[Rec?]) {
+    let mut z = Array.of("a")
+    s.set(Some(Rec { f: mut1(&mut z) })) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn recordHelper(s: Shared[Rec?]) {
+    let mut z = Array.of("a")
+    putRec(s, Rec { f: mut1(&mut z) }) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn array(s: Shared[Array[Future[usize]]]) {
+    let mut z = Array.of("a")
+    s.set(Array.of(mut1(&mut z))) //~ ERROR a borrow cannot go in element 0
+}
+
+fn view(s: Shared[Future[Int]?]) {
+    let mut c = Counter { n: 1 }
+    s.set(Some(acount(&mut c))) //~ ERROR a value borrowing `c` cannot go into shared storage
+}
+
+fn viewHelper(s: Shared[Future[Int]?]) {
+    let mut c = Counter { n: 1 }
+    putView(s, acount(&mut c)) //~ ERROR a value borrowing `c` cannot go into shared storage //~ ERROR cannot be spawned or passed to a call that may spawn it
+}
+
+fn asyncHelper(s: Shared[Future[usize]?]) -> Future[Void] {
+    let mut z = Array.of("a") //~ ERROR `z` is still borrowed when its scope ends here
+    putLater(s, mut1(&mut z)) //~ ERROR a borrow cannot be returned //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn recursive(s: Shared[Future[usize]?]) {
+    let mut z = Array.of("a")
+    recPut(s, 3, mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn unsafeCell(c: &UnsafeCell[Future[usize]?]) {
+    let mut z = Array.of("a")
+    unsafe { c.set(Some(mut1(&mut z))) } //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn handleTable(t: ffi.HandleTable[Future[usize]]) {
+    let mut z = Array.of("a")
+    let h = t.insert(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    _ = h
+}
+
+fn ifaceHelper(sh: Shared[Future[usize]?]) {
+    let mut z = Array.of("a")
+    let mut k = ShSink { cell: sh.clone() }
+    sinkInto(&mut k, mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn ifaceView(sh: Shared[Future[usize]?]) {
+    let mut z = Array.of("a")
+    let mut k = ShSink { cell: sh.clone() }
+    let o: &mut Sink = &mut k
+    o.take(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn closureCapture(sh: Shared[Future[usize]?]) {
+    let mut z = Array.of("a")
+    let g = (f: Future[usize]) => sh.set(Some(f))
+    g(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn immediateCapture(sh: Shared[Future[usize]?]) {
+    let mut z = Array.of("a")
+    each(1, (x: Int) => sh.set(Some(mut1(&mut z)))) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn bound[K: Tk](k: K) {
+    let mut z = Array.of("a")
+    k.keep(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn boundHelper(sh: Shared[Future[usize]?]) {
+    let mut z = Array.of("a")
+    keepVia(D { s: sh.clone() }, mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn genericBound[K: TkG[Future[usize]]](k: K) {
+    let mut z = Array.of("a")
+    k.hold(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn genericBoundView[K: TkG[Future[Int]]](k: K) {
+    let mut c = Counter { n: 1 }
+    k.hold(acount(&mut c)) //~ ERROR a value borrowing `c` cannot go into shared storage
+}
+
+fn opaqueFnGeneric(sh: Shared[Future[usize]?], h: Hold) {
+    let mut z = Array.of("a")
+    apply(h.f, sh.clone(), mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn cellBorrowedOut(t: Two) {
+    let f = t.a.withMut(peek)
+    t.b.set(Some(f)) //~ ERROR a value borrowing `t` cannot go into shared storage
+}
+
+fn takenFromLocal(s: Shared[Future[usize]?]) {
+    let mut z = Array.of("a")
+    let mut o = Some(mut1(&mut z))
+    s.set(o.take()) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn takenByHelper(s: Shared[Future[usize]?]) {
+    let mut z = Array.of("a")
+    let mut o = Some(mut1(&mut z))
+    s.set(takeOpt(&mut o)) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn takenByValue(s: Shared[Future[usize]?]) {
+    let mut z = Array.of("a")
+    let o = Some(mut1(&mut z))
+    s.set(unwrap1(o)) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+fn takenFromBox(s: Shared[Future[usize]?]) {
+    let mut z = Array.of("a")
+    let mut b = Box.new(Some(mut1(&mut z)))
+    s.set(b.withMut((p: &mut Future[usize]?) => p.take())) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+
+type P = { pub a Future[usize], pub n Int }
+
+fn unpackedParam(d: Shared[Future[usize]?], s: Shared[Future[usize]?]) {
+    let x = s.withMut((o: &mut Future[usize]?) => o.take())
+    if let Some(f) = x {
+        d.set(Some(f))
+    }
+}
+
+fn unpackedLocal(d: Shared[Future[usize]?]) {
+    let s: Shared[Future[usize]?] = Shared.new(Some(plain(1)))
+    match s.withMut((o: &mut Future[usize]?) => o.take()) {
+        Some(f) -> d.set(Some(f))
+        None -> {}
+    }
+}
+
+fn unpackedInsert(t: ffi.HandleTable[Future[usize]], s: Shared[Future[usize]?]) {
+    match s.withMut((o: &mut Future[usize]?) => o.take()) {
+        Some(f) -> {
+            let h = t.insert(f)
+            _ = h
+        }
+        None -> {}
+    }
+}
+
+fn unpackedRemove(t: ffi.HandleTable[Future[usize]], s: Shared[ffi.FfiHandle[Future[usize]]?]) {
+    match s.withMut((o: &mut ffi.FfiHandle[Future[usize]]?) => o.take()) {
+        Some(h) -> {
+            let f = t.remove(h)
+            _ = f
+        }
+        None -> {}
+    }
+}
+
+fn unpackedField(d: Shared[Future[usize]?], s: Shared[P?]) {
+    match s.withMut((o: &mut P?) => o.take()) {
+        Some(q) -> d.set(Some(move q.a))
+        None -> {}
+    }
+}
+
+fn unpackedBorrowed(d: Shared[Future[usize]?]) {
+    let mut z = Array.of("a")
+    let r = Some(P { a: mut1(&mut z), n: 1 })
+    match r {
+        Some(q) -> d.set(Some(move q.a)) //~ ERROR a value borrowing `z` cannot go into shared storage
+        None -> {}
+    }
+}
+
+fn takenOut(t: Two) {
+    let x = t.a.withMut((o: &mut Future[usize]?) => o.take())
+    t.b.set(x)
+}
+
+fn takenOutLocal() {
+    let t = Two { a: Shared.new(None), b: Shared.new(None) }
+    let x = t.a.withMut((o: &mut Future[usize]?) => o.take())
+    t.b.set(x)
+}
+
+fn clonedOut(t: Fns) {
+    let xs = t.a.with((o: &Array[fn(Int) -> Int]) => o.clone())
+    t.b.set(xs)
+}
+
+fn boxReturned() -> Box[Future[usize]?] {
+    let mut b: Box[Future[usize]?] = Box.new(None)
+    let mut z = Array.of("a") //~ ERROR `z` is still borrowed when its scope ends here
+    b.set(Some(mut1(&mut z))) //~ ERROR a borrow cannot be returned
+    b
+}
+
+fn borrowFree(sh: Shared[Future[usize]?], s: Sh) {
+    sh.set(Some(plain(1)))
+    putIn(sh.clone(), plain(2))
+    s.put(plain(3))
+}
+
+fn plainCells(a: Shared[Int], b: Shared[String]) {
+    let mut z = Array.of("a")
+    let n = z.len()
+    a.set(n.toInt() || 0)
+    b.set(z[0])
+    z.push("c")
+}
+
+type V['a] = { pub s &'a String }
+
+fn keepNamed['a](c: &UnsafeCell[V['a]?], v: V['a]) {
+    unsafe { c.set(Some(v)) }
+}
+
+fn keepNamedVia['a](c: &UnsafeCell[V['a]?], v: V['a]) {
+    keepNamed(c, v)
+}
+
+fn main() {
+}
+-- expect --
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:148:5
+    |
+148 |     g(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:148:12
+    |
+148 |     g(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |            ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:153:5
+    |
+153 |     sh.set(Some(mut1(&mut z))) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:153:22
+    |
+153 |     sh.set(Some(mut1(&mut z))) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                      ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:158:5
+    |
+158 |     s.put(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:158:16
+    |
+158 |     s.put(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:164:5
+    |
+164 |     put(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:164:14
+    |
+164 |     put(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |              ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:170:5
+    |
+170 |     set(Some(mut1(&mut z))) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:170:19
+    |
+170 |     set(Some(mut1(&mut z))) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                   ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:176:5
+    |
+176 |     t.putMut(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:176:19
+    |
+176 |     t.putMut(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                   ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:182:5
+    |
+182 |     putRef(&mut t, mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:182:25
+    |
+182 |     putRef(&mut t, mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                         ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:187:5
+    |
+187 |     putIn(sh.clone(), mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:187:28
+    |
+187 |     putIn(sh.clone(), mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                            ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:193:5
+    |
+193 |     t.set(Some(mut1(&mut z))) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:193:21
+    |
+193 |     t.set(Some(mut1(&mut z))) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                     ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:200:5
+    |
+200 |     t.set(Some(mut1(&mut z))) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:200:21
+    |
+200 |     t.set(Some(mut1(&mut z))) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                     ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:207:9
+    |
+207 |         s.set(Some(mut1(&mut z))) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:207:25
+    |
+207 |         s.set(Some(mut1(&mut z))) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                         ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:214:5
+    |
+214 |     h.s.set(Some(mut1(&mut z))) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:214:23
+    |
+214 |     h.s.set(Some(mut1(&mut z))) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                       ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:219:5
+    |
+219 |     s.set(Some(Rec { f: mut1(&mut z) })) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:219:30
+    |
+219 |     s.set(Some(Rec { f: mut1(&mut z) })) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                              ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:224:5
+    |
+224 |     putRec(s, Rec { f: mut1(&mut z) }) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:224:29
+    |
+224 |     putRec(s, Rec { f: mut1(&mut z) }) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                             ^^^^^^
+
+error[E1581]: a borrow cannot go in element 0, an element of `Array[T]`: an element is released with the array and this borrow has no count to give; an array tracks a borrow only inside a value whose type takes a `['a]`, so wrap it in such a type, or store a value it can own
+   --> main.kg:229:11
+    |
+229 |     s.set(Array.of(mut1(&mut z))) //~ ERROR a borrow cannot go in element 0
+    |           ^^^^^^^^^^^^^^^^^^^^
+
+error[E2158]: a value borrowing `c` cannot go into shared storage: another handle to that storage can keep it after `c` is gone
+   --> main.kg:234:5
+    |
+234 |     s.set(Some(acount(&mut c))) //~ ERROR a value borrowing `c` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `c` is borrowed here
+   --> main.kg:234:23
+    |
+234 |     s.set(Some(acount(&mut c))) //~ ERROR a value borrowing `c` cannot go into shared storage
+    |                       ^^^^^^
+
+error[E2158]: a value borrowing `c` cannot go into shared storage: another handle to that storage can keep it after `c` is gone
+   --> main.kg:239:5
+    |
+239 |     putView(s, acount(&mut c)) //~ ERROR a value borrowing `c` cannot go into shared storage //~ ERROR cannot be spawned or passed to a call that may spawn it
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `c` is borrowed here
+   --> main.kg:239:23
+    |
+239 |     putView(s, acount(&mut c)) //~ ERROR a value borrowing `c` cannot go into shared storage //~ ERROR cannot be spawned or passed to a call that may spawn it
+    |                       ^^^^^^
+
+error[E2262]: a future holding an `&Interface` view made in this frame cannot be spawned or passed to a call that may spawn it, since the frame ends before the task may next run; pass `&T` of the concrete type, or await the future here
+   --> main.kg:239:5
+    |
+239 |     putView(s, acount(&mut c)) //~ ERROR a value borrowing `c` cannot go into shared storage //~ ERROR cannot be spawned or passed to a call that may spawn it
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a borrow cannot be returned
+   --> main.kg:244:22
+    |
+244 |     putLater(s, mut1(&mut z)) //~ ERROR a borrow cannot be returned //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                      ^^^^^^
+
+error[move-while-borrowed]: `z` is still borrowed when its scope ends here
+   --> main.kg:243:13
+    |
+243 |     let mut z = Array.of("a") //~ ERROR `z` is still borrowed when its scope ends here
+    |             ^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:244:5
+    |
+244 |     putLater(s, mut1(&mut z)) //~ ERROR a borrow cannot be returned //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:244:22
+    |
+244 |     putLater(s, mut1(&mut z)) //~ ERROR a borrow cannot be returned //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                      ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:249:5
+    |
+249 |     recPut(s, 3, mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:249:23
+    |
+249 |     recPut(s, 3, mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                       ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:254:14
+    |
+254 |     unsafe { c.set(Some(mut1(&mut z))) } //~ ERROR a value borrowing `z` cannot go into shared storage
+    |              ^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:254:30
+    |
+254 |     unsafe { c.set(Some(mut1(&mut z))) } //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                              ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:259:13
+    |
+259 |     let h = t.insert(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |             ^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:259:27
+    |
+259 |     let h = t.insert(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                           ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:266:5
+    |
+266 |     sinkInto(&mut k, mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:266:27
+    |
+266 |     sinkInto(&mut k, mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                           ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:273:5
+    |
+273 |     o.take(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:273:17
+    |
+273 |     o.take(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                 ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:279:5
+    |
+279 |     g(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:279:12
+    |
+279 |     g(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |            ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:284:25
+    |
+284 |     each(1, (x: Int) => sh.set(Some(mut1(&mut z)))) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:284:42
+    |
+284 |     each(1, (x: Int) => sh.set(Some(mut1(&mut z)))) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                                          ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:289:5
+    |
+289 |     k.keep(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:289:17
+    |
+289 |     k.keep(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                 ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:294:5
+    |
+294 |     keepVia(D { s: sh.clone() }, mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:294:39
+    |
+294 |     keepVia(D { s: sh.clone() }, mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                                       ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:299:5
+    |
+299 |     k.hold(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:299:17
+    |
+299 |     k.hold(mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                 ^^^^^^
+
+error[E2158]: a value borrowing `c` cannot go into shared storage: another handle to that storage can keep it after `c` is gone
+   --> main.kg:304:5
+    |
+304 |     k.hold(acount(&mut c)) //~ ERROR a value borrowing `c` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `c` is borrowed here
+   --> main.kg:304:19
+    |
+304 |     k.hold(acount(&mut c)) //~ ERROR a value borrowing `c` cannot go into shared storage
+    |                   ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:309:5
+    |
+309 |     apply(h.f, sh.clone(), mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:309:33
+    |
+309 |     apply(h.f, sh.clone(), mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                                 ^^^^^^
+
+error[E2158]: a value borrowing `t` cannot go into shared storage: another handle to that storage can keep it after `t` is gone
+   --> main.kg:314:5
+    |
+314 |     t.b.set(Some(f)) //~ ERROR a value borrowing `t` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `t` is borrowed here
+   --> main.kg:313:13
+    |
+313 |     let f = t.a.withMut(peek)
+    |             ^^^^^^^^^^^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:320:5
+    |
+320 |     s.set(o.take()) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:319:27
+    |
+319 |     let mut o = Some(mut1(&mut z))
+    |                           ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:326:5
+    |
+326 |     s.set(takeOpt(&mut o)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:325:27
+    |
+325 |     let mut o = Some(mut1(&mut z))
+    |                           ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:332:5
+    |
+332 |     s.set(unwrap1(o)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:331:23
+    |
+331 |     let o = Some(mut1(&mut z))
+    |                       ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:338:5
+    |
+338 |     s.set(b.withMut((p: &mut Future[usize]?) => p.take())) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:338:11
+    |
+338 |     s.set(b.withMut((p: &mut Future[usize]?) => p.take())) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+   --> main.kg:389:20
+    |
+389 |         Some(q) -> d.set(Some(move q.a)) //~ ERROR a value borrowing `z` cannot go into shared storage
+    |                    ^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+   --> main.kg:387:30
+    |
+387 |     let r = Some(P { a: mut1(&mut z), n: 1 })
+    |                              ^^^^^^
+
+error[borrow-escape]: a borrow cannot be returned
+   --> main.kg:413:5
+    |
+413 |     b.set(Some(mut1(&mut z))) //~ ERROR a borrow cannot be returned
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `z` is still borrowed when its scope ends here
+   --> main.kg:412:13
+    |
+412 |     let mut z = Array.of("a") //~ ERROR `z` is still borrowed when its scope ends here
+    |             ^
+
