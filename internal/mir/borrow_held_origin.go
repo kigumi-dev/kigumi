@@ -64,7 +64,7 @@ func (c *borrowCheck) heldOrigins() map[LocalID]LocalID {
 	for _, blk := range c.f.Blocks {
 		insts = append(insts, blk.Insts...)
 	}
-	defs := soleDefs(c.f)
+	defs := c.soleDefMap()
 	edges := make([]*originEdge, len(insts))
 	for changed := true; changed; {
 		changed = false

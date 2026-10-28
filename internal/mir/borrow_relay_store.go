@@ -32,7 +32,7 @@ func (c *borrowCheck) relayStoreValues(in Inst) []flowArg {
 	if in.Op != OpCall && in.Op != OpCallValue {
 		return nil
 	}
-	defs := soleDefs(c.f)
+	defs := c.soleDefMap()
 	h, args := c.bodyCallee(in), in.Args
 	if in.Op == OpCallValue {
 		o := c.calleeOrigin(c.f, defs, in.Args[0])
