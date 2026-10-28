@@ -35,7 +35,7 @@ func (m *Machine) tryFamily(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		m.chargeMemory(a0)
 		return m.ok(mkBool(true))
 	case "alloc.Shared.tryGet":
-		return m.okCopied(key, a0.opaqueData().(*sharedCtrl).cell.inner)
+		return m.copiedResult(key, a0.opaqueData().(*sharedCtrl).cell.inner)
 	case "alloc.Shared.tryDowngrade":
 		if m.planRefused(key) {
 			return m.allocError()
@@ -64,7 +64,7 @@ func (m *Machine) tryFamily(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		}
 		return m.okPlanned(key, m.some(mkBytes(append([]byte{}, a0.str()[s:e]...))))
 	case "map.Map.tryClone", "os.OsString.tryClone":
-		return m.okCopied(key, a0)
+		return m.copiedResult(key, a0)
 	case "map.Map.tryEntries":
 		return m.tryMapEntries(key, a0)
 	case "map.tryEmpty":
@@ -83,14 +83,6 @@ func (m *Machine) bareWrapRefused(layers int) bool {
 	bare := m.tryBare
 	m.tryBare = false
 	return !bare && m.wrapRefused(layers)
-}
-
-func (m *Machine) okCopied(key string, v *obj) *obj {
-	c, ok := m.copyTry(v)
-	if !ok {
-		return m.allocError()
-	}
-	return m.okTry(key, 1, c)
 }
 
 func (m *Machine) tryOptionalCopy(key string, src *obj, start, end int64) *obj {

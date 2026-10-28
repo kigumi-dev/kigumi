@@ -48,7 +48,7 @@ func (m *Machine) tryFilterItems(key string, src, keep *obj) *obj {
 			m.release(out)
 			return m.allocError()
 		}
-		out.fields = append(out.fields, m.copyPanicking(x))
+		out.fields = append(out.fields, m.copiedResult(key, x))
 	}
 	done = true
 	return m.okTry(key, 1, m.sized(out))

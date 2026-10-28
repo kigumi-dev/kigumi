@@ -10,11 +10,14 @@ const tryWrapSweep = 30
 
 type tryWrapOp struct {
 	imports, setup, call string
+	check                string
 	// fn is the function's own name when it can be held as a fn value and called through it, the shape that keeps the Ok wrap on native.
-	fn, args string
+	fn, args  string
+	panicking bool
+	ticks     int
 }
 
-var tryWrapOps = map[string]tryWrapOp{
+var tryWrapOps = addResultCopyOps(map[string]tryWrapOp{
 	"with_capacity":    {call: "Array.tryWithCapacity[Int](4)", fn: "Array.tryWithCapacity[Int]", args: "4"},
 	"bytes_zeros":      {call: "Bytes.tryZeros(4)", fn: "Bytes.tryZeros", args: "4"},
 	"byte_buffer_new":  {call: "ByteBuffer.tryNew(4)", fn: "ByteBuffer.tryNew", args: "4"},
@@ -30,7 +33,7 @@ var tryWrapOps = map[string]tryWrapOp{
 	"map_try_empty":    {imports: "import map from std/map", call: "map.tryEmpty[Int, Int]()", fn: "map.tryEmpty[Int, Int]"},
 	"builder_new":      {imports: "import text from std/text", call: "text.StringBuilder.tryNew()", fn: "text.StringBuilder.tryNew"},
 	"os_string_clone":  {imports: "import os from std/os", setup: "let s = os.OsString.fromUnixBytes(Bytes.zeros(3))", call: "s.tryClone()"},
-}
+})
 
 func (o tryWrapOp) source(viaValue bool) string {
 	setup, call := "    "+o.setup+"\n", o.call
@@ -38,7 +41,11 @@ func (o tryWrapOp) source(viaValue bool) string {
 		setup += "    let f = " + o.fn + "\n"
 		call = "f(" + o.args + ")"
 	}
-	return fmt.Sprintf("%s\n\nfn main() {\n%s    eprint \"go\"\n    let r = %s\n    if r is Err(_) {\n        let none: Int? = None\n        none.unwrap()\n    }\n    print \"ok\"\n}\n", o.imports, setup, call)
+	check := "    if r is Err(_) {\n        let none: Int? = None\n        none.unwrap()\n    }\n"
+	if o.panicking {
+		check = o.check
+	}
+	return fmt.Sprintf("%s\n\nfn main() {\n%s    eprint \"go\"\n    let r = %s\n%s    print \"ok\"\n}\n", o.imports, setup, call, check)
 }
 
 // A try op takes the refusable allocations native's runtime does, wrap included, whichever way it is called.
@@ -53,8 +60,19 @@ func TestTryWrapTicksAgree(t *testing.T) {
 				t.Parallel()
 				m := loadSweepModule(t, op.source(viaValue), "")
 				vmExits := vmSweepExitsTo(t, m, tryWrapSweep, true)
-				if vmExits[0] == 0 {
+				if vmExits[0] == 0 && (!op.panicking || op.ticks > 0) {
 					t.Fatalf("vm: the first allocation was not refused: %v", vmExits)
+				}
+				if op.panicking {
+					for i, exit := range vmExits {
+						want := 0
+						if i < op.ticks {
+							want = 2
+						}
+						if exit != want {
+							t.Errorf("vm N=%d: exit %d, want %d", i+1, exit, want)
+						}
+					}
 				}
 				if native := nativeSweepExitsTo(t, m, tryWrapSweep, true); !slices.Equal(vmExits, native) {
 					t.Errorf("fault sweep exits differ\nvm:     %v\nnative: %v", vmExits, native)

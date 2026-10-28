@@ -7,7 +7,7 @@ func (m *Machine) memStd(key string, a []*obj, a0, a1 *obj) *obj {
 	case "mem.UnsafeCell.new":
 		return mkOpaque("UnsafeCell", mkCell(retain(a0)))
 	case "mem.UnsafeCell.get":
-		return m.copy(a0.opaqueData().(*obj).inner)
+		return m.copiedResult(key, a0.opaqueData().(*obj).inner)
 	case "mem.UnsafeCell.set":
 		cell := a0.opaqueData().(*obj)
 		old := cell.inner
@@ -25,7 +25,7 @@ func (m *Machine) memStd(key string, a []*obj, a0, a1 *obj) *obj {
 	case "mem.borrowInitialized":
 		return retain(m.filled(a0))
 	case "mem.copyInitialized":
-		return m.copy(m.filled(a0))
+		return m.copiedResult(key, m.filled(a0))
 	case "mem.borrowInitializedMut":
 		return retain(a0.opaqueData().(*obj))
 	case "mem.takeInitialized":

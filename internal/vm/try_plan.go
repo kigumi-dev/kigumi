@@ -2,9 +2,19 @@ package vm
 
 import "kigumi/internal/mir"
 
-// tryPlan is the allocation sequence native's rt_std_id runs for a try op built from one fixed chain of allocations:
-// own refusable allocations in order, then layers of variant around the result (Ok is 1, Ok(Some) is 2).
-type tryPlan struct{ own, layers int }
+type resultCopy uint8
+
+const (
+	copyValue resultCopy = iota
+	copySome
+	copyOk
+	copyElements
+)
+
+type tryPlan struct {
+	own, layers int
+	copy        resultCopy
+}
 
 var tryPlans = map[string]tryPlan{
 	"prelude.Bytes.tryZeros":       {own: 2, layers: 1},
@@ -16,6 +26,18 @@ var tryPlans = map[string]tryPlan{
 	"alloc.Shared.tryNew":          {own: 3, layers: 1},
 	"alloc.Shared.tryDowngrade":    {own: 1, layers: 1},
 	"alloc.Box.tryNew":             {own: 2, layers: 1},
+	"alloc.Shared.tryGet":          {layers: 1, copy: copyOk},
+	"map.Map.tryClone":             {layers: 1, copy: copyOk},
+	"os.OsString.tryClone":         {layers: 1, copy: copyOk},
+	"array.Array.get":              {copy: copySome},
+	"array.Array.first":            {copy: copySome},
+	"array.Array.last":             {copy: copySome},
+	"alloc.Box.get":                {copy: copyValue},
+	"array.Array.tryFilter":        {copy: copyValue},
+	"mem.UnsafeCell.get":           {copy: copyValue},
+	"mem.copyInitialized":          {copy: copyValue},
+	"error.as":                     {copy: copySome},
+	"fixed.fill":                   {copy: copyElements},
 }
 
 // directTry holds the ops whose registry entry has a direct result form: a call site that takes the payload bare skips the wrap.

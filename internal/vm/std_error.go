@@ -2,11 +2,6 @@ package vm
 
 import "kigumi/internal/sem"
 
-// registerError implements std/error.as[E]: `e is E(x)` doesn't type-check
-// over a type parameter (E101), so this downcast compares box
-// identity the way OpIsType does for a concrete type, looking through any
-// Context wrapping. sem requires E: Copy, so the match is duplicated with
-// m.copy (like Shared[T: Copy].get), never aliased into the caller's borrow.
 func (m *Machine) registerError() {
 	m.host["error.as"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		opt, _ := m.r.Types.IsOption(m.siteFn.Locals[m.site.Dst].Type)
@@ -20,11 +15,11 @@ func (m *Machine) registerError() {
 			}
 			et := m.typeEnt(cur.dynType())
 			if et == want {
-				v := m.copy(cur.inner)
+				v := m.copiedResult(m.stdKey(fn), cur.inner)
 				if owned {
 					m.release(cur)
 				}
-				return m.some(v)
+				return v
 			}
 			if ctxEnt == 0 || et != ctxEnt {
 				break

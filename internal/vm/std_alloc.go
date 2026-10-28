@@ -1,10 +1,7 @@
 package vm
 
-// sharedCtrl is the control block behind Shared and Weak: the cell holding
-// the value, whether a strong reference still exists, and the weak count.
-// borrow is a RefCell-style dynamic borrow flag (0 free, -1 exclusive, >0
-// shared count) since Shared's receiver is a freely-copyable handle the
-// static borrow checker does not track.
+// Shared handles are freely copied, so borrowing is checked dynamically:
+// borrow is 0 when free, -1 for an exclusive borrow, or the shared borrow count.
 type sharedCtrl struct {
 	cell   *obj
 	shared *obj
@@ -74,7 +71,7 @@ func (m *Machine) alloc(key string, a []*obj, a0, a1 *obj) *obj {
 		}
 		return m.okPlanned(key, mkOpaque("Box", mkCell(retain(a0))))
 	case "alloc.Box.get":
-		return m.copy(a0.opaqueData().(*obj).inner)
+		return m.copiedResult(key, a0.opaqueData().(*obj).inner)
 	case "alloc.Box.set":
 		cell := a0.opaqueData().(*obj)
 		old := cell.inner

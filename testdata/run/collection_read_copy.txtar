@@ -1,0 +1,91 @@
+-- src --
+import {Box} from std/alloc
+import {UnsafeCell, BoundedArray} from std/mem
+import error from std/error
+
+type Cell = { mut n Int }
+type Point = { n Int }
+type ReadError = { mut n Int }
+
+fn ReadError.message(self) -> String { "read" }
+
+let cells = Array.of(Cell { n: 1 }, Cell { n: 2 })
+let cell = Box.new(Cell { n: 3 })
+let mut a = cells.get(0).unwrap()
+let mut b = cells.first().unwrap()
+let mut c = cells.last().unwrap()
+let mut d = cell.get()
+a.n = 10
+b.n = 20
+c.n = 30
+d.n = 40
+print "cells ${a.n} ${b.n} ${c.n} ${d.n}"
+print "original ${cells.first().unwrap().n} ${cells.last().unwrap().n} ${cell.get().n}"
+
+let points = Array.of(Point { n: 4 }, Point { n: 5 })
+let point = Box.new(Point { n: 6 })
+print "points ${points.get(0).unwrap().n} ${points.first().unwrap().n} ${points.last().unwrap().n} ${point.get().n}"
+
+let options = Array.of(Some(Cell { n: 7 }), Some(Cell { n: 8 }))
+let option = Box.new(Some(Cell { n: 9 }))
+let mut e = options.get(0).unwrap().unwrap()
+let mut f = options.first().unwrap().unwrap()
+let mut g = options.last().unwrap().unwrap()
+let mut h = option.get().unwrap()
+e.n = 70
+f.n = 80
+g.n = 90
+h.n = 100
+print "options ${e.n} ${f.n} ${g.n} ${h.n}"
+print "original ${options.first().unwrap().unwrap().n} ${options.last().unwrap().unwrap().n} ${option.get().unwrap().n}"
+
+let arrays = Array.of(FixedArray.filled[Cell, 1](Cell { n: 11 }), FixedArray.filled[Cell, 1](Cell { n: 12 }))
+let array = Box.new(FixedArray.filled[Cell, 1](Cell { n: 13 }))
+let mut i = arrays.get(0).unwrap()
+let mut j = arrays.first().unwrap()
+let mut k = arrays.last().unwrap()
+let mut l = array.get()
+_ = i.withMut(0, (x: &mut Cell) => { x.n = 110 })
+_ = j.withMut(0, (x: &mut Cell) => { x.n = 120 })
+_ = k.withMut(0, (x: &mut Cell) => { x.n = 130 })
+_ = l.withMut(0, (x: &mut Cell) => { x.n = 140 })
+print "arrays ${i.get(0).unwrap().n} ${j.get(0).unwrap().n} ${k.get(0).unwrap().n} ${l.get(0).unwrap().n}"
+print "original ${arrays.first().unwrap().get(0).unwrap().n} ${arrays.last().unwrap().get(0).unwrap().n} ${array.get().get(0).unwrap().n}"
+
+let empty = Array.empty[Cell]()
+print "absent ${empty.get(0) is None} ${empty.first() is None} ${empty.last() is None} ${cells.get(2) is None}"
+
+let interior = UnsafeCell.new(Cell { n: 14 })
+let mut read = unsafe { interior.get() }
+read.n = 140
+let original = unsafe { interior.get() }
+print "unsafe ${read.n} ${original.n}"
+
+let mut bounded = BoundedArray.new[Cell, 1]()
+bounded.push(Cell { n: 15 })
+let mut copied = bounded.get(0).unwrap()
+copied.n = 150
+print "uninit ${copied.n} ${bounded.get(0).unwrap().n}"
+
+let failure: Error = ReadError { n: 16 }
+let mut downcast = error.as[ReadError](&failure).unwrap()
+downcast.n = 160
+print "error ${downcast.n} ${error.as[ReadError](&failure).unwrap().n}"
+
+let value = Cell { n: 17 }
+let mut filled = FixedArray.filled[Cell, 1](value)
+_ = filled.withMut(0, (x: &mut Cell) => { x.n = 170 })
+print "filled ${filled.get(0).unwrap().n} ${value.n}"
+-- stdout --
+cells 10 20 30 40
+original 1 2 3
+points 4 4 5 6
+options 70 80 90 100
+original 7 8 9
+arrays 110 120 130 140
+original 11 12 13
+absent true true true true
+unsafe 140 14
+uninit 150 15
+error 160 16
+filled 170 17

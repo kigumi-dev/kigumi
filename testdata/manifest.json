@@ -6167,6 +6167,23 @@
       ]
     },
     {
+      "id": "run/collection_read_copy",
+      "kind": "run",
+      "path": "testdata/run/collection_read_copy.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/compound_assign_through_mut_ref",
       "kind": "run",
       "path": "testdata/run/compound_assign_through_mut_ref.txtar",

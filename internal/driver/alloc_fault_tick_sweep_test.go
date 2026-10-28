@@ -14,7 +14,7 @@ import (
 )
 
 // Each case's one eprint arms the injection.
-var tickSweepCases = []struct{ name, src string }{
+var tickSweepCases = append([]struct{ name, src string }{
 	{"closure returned from a function", `fn mk(k: Int) -> fn(Int) -> Int { (x: Int) => x + k }
 fn run(n: Int) -> Int {
     eprint "start"
@@ -70,7 +70,7 @@ fn run(n: Int) -> Int {
     c
 }
 run(3)`},
-}
+}, resultCopyTickCases()...)
 
 type refusedRun struct {
 	exit int
@@ -129,7 +129,7 @@ func TestFaultInjectionRefusedTickEndsBothBackendsTheSameWay(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			vmRuns := vmRefusedRuns(t, c.src)
-			if len(vmRuns) < 4 {
+			if len(vmRuns) < 3 {
 				t.Fatalf("the program allocates only %d times", len(vmRuns)-1)
 			}
 			nativeRuns := nativeRefusedRuns(t, c.src, len(vmRuns))

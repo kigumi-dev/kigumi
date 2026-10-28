@@ -55,15 +55,7 @@ func (m *Machine) builtin(name string, args []*obj) *obj {
 	case "cmp.guard":
 		return mkBool(deref(args[0]).b && !deref(args[1]).b)
 	case "fixed.fill":
-		n := deref(args[1]).i
-		items := make([]*obj, n)
-		for i := range items {
-			items[i] = m.copy(args[0])
-		}
-		out := newObj(kArray)
-		out.fields = items
-		m.chargeMemory(out)
-		return out
+		return m.fillFixed(name, args[0], deref(args[1]).i)
 	case "alloc.push":
 		// The VM allocates from Go; an `allocator` block only scopes.
 		return mkOpaque("AllocatorScope", nil)
@@ -104,19 +96,11 @@ func (m *Machine) builtin(name string, args []*obj) *obj {
 		case kArray:
 			switch name {
 			case "iter.at_ref":
-				// A borrowed element is never dropped by its own binding
-				// (declare() excludes KRef locals), so it must not retain
-				// either: nothing would release the extra count.
+				// Borrowed bindings never release their elements, so retaining would leak.
 				return it.fields[i]
 			case "iter.at_move":
-				// The owned form of a non-Copy element moves it out:
-				// the slot is tombstoned so the array's own eventual
-				// drop never double-releases it. A generic loop body compiles
-				// once per T, so this also runs for a Copy instantiation
-				// (Array[T].fold, no `T: Copy` bound); a trivial scalar has
-				// no drop to order, and some std loops re-read the array
-				// mid-loop by index (Array.reverse), so it keeps the retain
-				// instead.
+				// Scalars stay readable by later loop iterations; other elements leave
+				// a tombstone so dropping the array cannot release a moved value twice.
 				if isTrivialScalar(it.fields[i].k) {
 					return retain(it.fields[i])
 				}

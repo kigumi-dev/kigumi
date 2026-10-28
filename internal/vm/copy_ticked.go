@@ -1,5 +1,7 @@
 package vm
 
+import "kigumi/internal/mir"
+
 // copier copies a value as one of native's two deep copies does, allocation for allocation: copy_try
 // (try set: exact array stores, an owned Bytes buffer is refusable, a refusal is reported) and rt_copy (a refusal aborts).
 type copier struct {
@@ -15,6 +17,36 @@ func (m *Machine) copyPanicking(v *obj) *obj {
 		m.abort("out of memory")
 	}
 	return out
+}
+
+func (m *Machine) copiedResult(key string, v *obj) *obj {
+	plan := tryPlans[key]
+	if m.inlineResultCopy(key) {
+		return m.copy(v)
+	}
+	if plan.copy == copySome && m.site != nil && m.site.DPrim != mir.DPNone {
+		return m.some(retain(v))
+	}
+	if plan.copy == copyOk {
+		out, ok := m.copyTry(v)
+		if !ok {
+			return m.allocError()
+		}
+		return m.okPlanned(key, out)
+	}
+	out := m.copyPanicking(v)
+	if plan.copy == copySome {
+		if m.wrapRefused(1) {
+			m.release(out)
+			m.abort("out of memory")
+		}
+		return m.some(out)
+	}
+	return out
+}
+
+func (m *Machine) inlineResultCopy(key string) bool {
+	return tryPlans[key].copy == copyElements && m.site != nil && m.siteFn != nil && m.siteFn.IsDirect(m.site.Dst)
 }
 
 // ticks takes n refusable allocations, stopping at the first refused one.

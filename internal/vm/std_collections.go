@@ -42,17 +42,17 @@ func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		if a1.i < 0 || a1.i >= int64(len(a0.fields)) {
 			return m.none()
 		}
-		return m.some(m.copy(a0.fields[a1.i]))
+		return m.copiedResult(key, a0.fields[a1.i])
 	case "array.Array.first":
 		if len(a0.fields) == 0 {
 			return m.none()
 		}
-		return m.some(m.copy(a0.fields[0]))
+		return m.copiedResult(key, a0.fields[0])
 	case "array.Array.last":
 		if len(a0.fields) == 0 {
 			return m.none()
 		}
-		return m.some(m.copy(a0.fields[len(a0.fields)-1]))
+		return m.copiedResult(key, a0.fields[len(a0.fields)-1])
 	case "array.Array.with":
 		if a1.i < 0 || a1.i >= int64(len(a0.fields)) {
 			return m.none()
