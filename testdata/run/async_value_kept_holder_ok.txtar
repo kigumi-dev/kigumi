@@ -664,7 +664,104 @@ fn dynIfSecondHolder() -> usize {
     n + m + c.len()
 }
 
+async fn outAsync['a](f: fn(&Array[String]) -> Future[usize], c: &Array[String], h: &mut Hold['a]) -> usize {
+    h.r.push(f(c))
+    0
+}
+
+async fn outAsyncInt['a](f: fn(&mut Int) -> Future[usize], c: &mut Int, h: &mut Hold['a]) -> usize {
+    h.r.push(f(c))
+    0
+}
+
+async fn outAsyncFrame(f: fn(&Array[String]) -> Future[usize], c: &Array[String], a: &mut Array[Future[usize]]) -> usize {
+    a.push(f(c))
+    0
+}
+
+async fn outAsyncIntFrame(f: fn(&mut Int) -> Future[usize], c: &mut Int, a: &mut Array[Future[usize]]) -> usize {
+    a.push(f(c))
+    0
+}
+
+fn asyncLentValue() -> usize {
+    let w = outAsync
+    let mut c = Array.of("a", "b", "c")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    let _ = run(w(rd, &c, &mut hold))
+    let n = sum(a)
+    c = Array.of("q")
+    n + c.len()
+}
+
+fn asyncLentDirect() -> usize {
+    let mut c = Array.of("a", "b", "c")
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    let _ = run(outAsync(rd, &c, &mut hold))
+    let n = sum(a)
+    c = Array.of("q")
+    n + c.len()
+}
+
+fn asyncLentIntValue() -> usize {
+    let w = outAsyncInt
+    let mut c = 0
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    let _ = run(w(mutInt, &mut c, &mut hold))
+    let n = sum(a)
+    c = 5
+    n + (c.toUsize() || 0)
+}
+
+fn asyncLentIntDirect() -> usize {
+    let mut c = 0
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    let _ = run(outAsyncInt(mutInt, &mut c, &mut hold))
+    let n = sum(a)
+    c = 5
+    n + (c.toUsize() || 0)
+}
+
+async fn cnt(c: &mut Int, a: &mut Array[Future[usize]]) -> usize {
+    c = c + 1
+    1
+}
+
+async fn cntHold['a](c: &mut Int, h: &mut Hold['a]) -> usize {
+    c = c + 1
+    1
+}
+
+fn asyncNonStoringFrame() -> usize {
+    let mut c = 0
+    let mut a = Array.empty[Future[usize]]()
+    let z = run(cnt(&mut c, &mut a))
+    c = 4
+    let w = cnt
+    let y = run(w(&mut c, &mut a))
+    c = 8
+    z + y + sum(a) + (c.toUsize() || 0)
+}
+
+fn asyncNonStoringHold() -> usize {
+    let mut c = 0
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    let z = run(cntHold(&mut c, &mut hold))
+    c = 4
+    let w = cntHold
+    let y = run(w(&mut c, &mut hold))
+    c = 8
+    z + y + sum(a) + (c.toUsize() || 0)
+}
+
 fn main() {
+    print "non-storing ${asyncNonStoringFrame()} ${asyncNonStoringHold()}"
+    print "async ${asyncLentValue()} ${asyncLentDirect()} ${asyncLentIntValue()} ${asyncLentIntDirect()}"
     print "joined ${dynIfJoin()} ${dynMatchJoin()} ${dynLoopView()} ${dynBranchView()} ${dynIfCallee()} ${dynMatchMakerValue()} ${dynIfSecondHolder()}"
     print "consumed dynamic ${consumedDynDirect()} ${consumedDynValue()}"
     print "dynamic ${dynDirect()} ${dynValue()} ${dynFrame()} bound ${boundFrame()}"
@@ -676,6 +773,8 @@ fn main() {
     print "frame ${inFrame()} shapes ${shapes()} locals ${locals()} unknown ${unknown(outH)} plain ${plain()} generic ${generic()} callbacks ${callbacks()}"
 }
 -- stdout --
+non-storing 10 10
+async 4 4 6 6
 joined 5 5 5 5 5 5 5
 consumed dynamic 0 0
 dynamic 5 5 5 bound 5

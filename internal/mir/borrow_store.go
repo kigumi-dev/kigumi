@@ -51,7 +51,7 @@ func (c *borrowCheck) storeFlows(in Inst) []storeFlow {
 			return nil
 		}
 		return []storeFlow{{target: in.Args[0], values: []flowArg{{arg: v}}, generic: !lifetime}}
-	case OpCall, OpCallValue:
+	case OpCall, OpCallValue, OpFutureNew:
 		return c.withKeptFlows(in, append(c.callFlows(in), c.opaqueFlows(in)...))
 	}
 	return nil

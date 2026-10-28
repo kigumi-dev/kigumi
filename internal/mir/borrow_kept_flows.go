@@ -6,12 +6,10 @@ import (
 	"kigumi/internal/sem"
 )
 
-// keptFlows ties into each keptTarget of a call the other arguments the callee's keptSummary stores there, or the
-// contents it moves there from a lent one.
 func (c *borrowCheck) keptFlows(in Inst) []storeFlow {
 	ents, args := c.keptFlowCallees(in)
 	witness := c.ifaceRequirement(in.Ent)
-	unknown := len(ents) == 0 || !witness && in.Op == OpCallValue && slices.ContainsFunc(ents, c.unsummarized)
+	unknown := len(ents) == 0 || !witness && (in.Op == OpCallValue || in.Op == OpFutureNew) && slices.ContainsFunc(ents, c.unsummarized)
 	unknown = unknown || witness && len(c.implementers(in.Ent)) == 0
 	if unknown {
 		if witness {
@@ -29,10 +27,10 @@ func (c *borrowCheck) keptFlows(in Inst) []storeFlow {
 	}
 	var out []storeFlow
 	for _, e := range ents {
-		if c.p.R.Entity(e).Kind != sem.EntFn || c.p.isAsyncBody(e) {
+		if c.p.R.Entity(e).Kind != sem.EntFn {
 			continue
 		}
-		s := c.keptBound(e, c.siteBind(e, args))
+		s := c.keptStoreSummary(e, c.siteBind(e, args))
 		opaque := s == nil
 		if opaque {
 			if !witness {
@@ -55,7 +53,6 @@ func (c *borrowCheck) keptFlows(in Inst) []storeFlow {
 	return out
 }
 
-// keptTarget preserves by-value holders' indirect destinations, which only the callee's store sites can identify.
 func (c *borrowCheck) keptTargets(info *sem.FnInfo, q sem.EntityID, a LocalID) []storeFlow {
 	decl := c.p.R.Entity(q).Type
 	if c.p.R.Types.Kind(decl) == sem.KRef {
@@ -77,7 +74,6 @@ func (c *borrowCheck) byValueParam(info *sem.FnInfo, q sem.EntityID) bool {
 	return c.p.R.Types.Kind(c.p.R.Entity(q).Type) != sem.KRef
 }
 
-// opaqueKeptFlows is keptFlows for a value call of a callee with no keptSummary: every other argument may be stored.
 func (c *borrowCheck) opaqueKeptFlows(args []LocalID) []storeFlow {
 	var out []storeFlow
 	for t, ta := range args {

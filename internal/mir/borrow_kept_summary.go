@@ -31,9 +31,14 @@ type keptKey struct {
 
 func (c *borrowCheck) keptOf(e sem.EntityID) *keptSummary { return c.keptBound(e, nil) }
 
-// keptBound is e's keptSummary with bind's parameters calling those fn items, nil for no body here; a body asked for
-// again while it is computed keeps everything.
 func (c *borrowCheck) keptBound(e sem.EntityID, bind map[int][]sem.EntityID) *keptSummary {
+	if c.p.isAsyncBody(e) {
+		return nil
+	}
+	return c.keptStoreSummary(e, bind)
+}
+
+func (c *borrowCheck) keptStoreSummary(e sem.EntityID, bind map[int][]sem.EntityID) *keptSummary {
 	g := c.p.ByEnt[e]
 	if g == nil {
 		return nil

@@ -34,7 +34,7 @@ func (c *borrowCheck) summaryTie(in Inst, done []LocalID) []*borrowInfo {
 }
 
 func (c *borrowCheck) unsummarized(e sem.EntityID) bool {
-	return c.p.R.Entity(e).Kind != sem.EntFn || !c.p.isAsyncBody(e) && c.keptOf(e) == nil
+	return c.p.R.Entity(e).Kind != sem.EntFn || c.keptStoreSummary(e, nil) == nil
 }
 
 // asyncPlace reports whether the place a `&mut` argument a lends, of a type no lifetime or type parameter names (those

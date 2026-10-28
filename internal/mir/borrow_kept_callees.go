@@ -22,7 +22,7 @@ func (c *borrowCheck) resolveKeptCallees(ents []sem.EntityID) []sem.EntityID {
 
 func (c *borrowCheck) keptFlowCallees(in Inst) ([]sem.EntityID, []LocalID) {
 	ents, args := []sem.EntityID{in.Ent}, in.Args
-	if in.Op == OpCallValue {
+	if in.Op == OpCallValue || in.Op == OpFutureNew {
 		args = in.Args[1:]
 		if in.Ent == 0 {
 			var ok bool

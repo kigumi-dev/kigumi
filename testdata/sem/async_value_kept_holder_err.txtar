@@ -584,6 +584,116 @@ fn dynIfSecondHolder() -> usize {
     n + sum(a2) + c.len()
 }
 
+async fn outAsync['a](f: fn(&Array[String]) -> Future[usize], c: &Array[String], h: &mut Hold['a]) -> usize {
+    h.r.push(f(c))
+    0
+}
+
+async fn outAsyncInt['a](f: fn(&mut Int) -> Future[usize], c: &mut Int, h: &mut Hold['a]) -> usize {
+    h.r.push(f(c))
+    0
+}
+
+fn asyncEscapeValue['a](h: &mut Hold['a]) {
+    let w = outAsync
+    let c = Array.of("a", "b", "c")
+    let _ = run(w(rd, &c, h)) //~ ERROR a borrow cannot be stored into `h` here
+}
+
+fn asyncEscapeDirect['a](h: &mut Hold['a]) {
+    let c = Array.of("a", "b", "c")
+    let _ = run(outAsync(rd, &c, h)) //~ ERROR a borrow cannot be captured by a future //~ ERROR `h` is borrowed by this method and cannot be moved out
+}
+
+fn asyncLentIntValue() -> usize {
+    let w = outAsyncInt
+    let mut c = 0
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    let _ = run(w(mutInt, &mut c, &mut hold))
+    c = 5 //~ ERROR `c` is exclusively borrowed and cannot be used here
+    sum(a)
+}
+
+fn asyncLentIntDirect() -> usize {
+    let mut c = 0
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    let _ = run(outAsyncInt(mutInt, &mut c, &mut hold))
+    c = 5 //~ ERROR `c` is exclusively borrowed and cannot be used here
+    sum(a)
+}
+
+async fn outAsyncIntFrame(f: fn(&mut Int) -> Future[usize], c: &mut Int, a: &mut Array[Future[usize]]) -> usize {
+    a.push(f(c))
+    0
+}
+
+fn asyncFrameValue() -> usize {
+    let w = outAsyncIntFrame
+    let mut c = 0
+    let mut a = Array.empty[Future[usize]]()
+    let _ = run(w(mutInt, &mut c, &mut a))
+    c = 5 //~ ERROR `c` is exclusively borrowed and cannot be used here
+    sum(a)
+}
+
+fn asyncFrameDirect() -> usize {
+    let mut c = 0
+    let mut a = Array.empty[Future[usize]]()
+    let _ = run(outAsyncIntFrame(mutInt, &mut c, &mut a))
+    c = 5 //~ ERROR `c` is exclusively borrowed and cannot be used here
+    sum(a)
+}
+
+async fn storeCount(c: &mut Int, a: &mut Array[Future[usize]]) -> usize {
+    let f = mutInt
+    a.push(f(c))
+    1
+}
+
+async fn storeCountHold['a](c: &mut Int, h: &mut Hold['a]) -> usize {
+    let f = mutInt
+    h.r.push(f(c))
+    1
+}
+
+fn asyncStoringFrame() -> usize {
+    let mut c = 0
+    let mut a = Array.empty[Future[usize]]()
+    let _ = run(storeCount(&mut c, &mut a))
+    c = 4 //~ ERROR `c` is exclusively borrowed and cannot be used here
+    sum(a)
+}
+
+fn asyncStoringFrameValue() -> usize {
+    let mut c = 0
+    let mut a = Array.empty[Future[usize]]()
+    let w = storeCount
+    let _ = run(w(&mut c, &mut a))
+    c = 4 //~ ERROR `c` is exclusively borrowed and cannot be used here
+    sum(a)
+}
+
+fn asyncStoringHold() -> usize {
+    let mut c = 0
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    let _ = run(storeCountHold(&mut c, &mut hold))
+    c = 4 //~ ERROR `c` is exclusively borrowed and cannot be used here
+    sum(a)
+}
+
+fn asyncStoringHoldValue() -> usize {
+    let mut c = 0
+    let mut a = Array.empty[Future[usize]]()
+    let mut hold = Hold { r: &mut a }
+    let w = storeCountHold
+    let _ = run(w(&mut c, &mut hold))
+    c = 4 //~ ERROR `c` is exclusively borrowed and cannot be used here
+    sum(a)
+}
+
 fn main() {
     print "joined ${dynIfJoin()} ${dynMatchJoin()} ${dynLoopView()} ${dynBranchView()} ${dynIfCallee()} ${dynMatchMakerValue()} ${dynIfSecondHolder()}"
     print "dynamic ${dynDirect()} ${dynValue()} ${dynFrame()} bound ${boundFrame()}"
@@ -1327,4 +1437,118 @@ error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
     |
 580 |     c = Array.of("q", "q", "q") //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
     |     ^
+
+error[E2159]: a borrow cannot be stored into `h` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:597:17
+    |
+597 |     let _ = run(w(rd, &c, h)) //~ ERROR a borrow cannot be stored into `h` here
+    |                 ^^^^^^^^^^^
+
+error[borrow-escape]: a borrow cannot be captured by a future; the future may run after the borrowed value is gone, so pass the value itself
+   --> main.kg:602:17
+    |
+602 |     let _ = run(outAsync(rd, &c, h)) //~ ERROR a borrow cannot be captured by a future //~ ERROR `h` is borrowed by this method and cannot be moved out
+    |                 ^^^^^^^^^^^^^^^^^^
+
+error[move-from-borrow]: `h` is borrowed by this method and cannot be moved out; clone it or take `move self`
+   --> main.kg:602:34
+    |
+602 |     let _ = run(outAsync(rd, &c, h)) //~ ERROR a borrow cannot be captured by a future //~ ERROR `h` is borrowed by this method and cannot be moved out
+    |                                  ^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:611:5
+    |
+611 |     c = 5 //~ ERROR `c` is exclusively borrowed and cannot be used here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:610:27
+    |
+610 |     let _ = run(w(mutInt, &mut c, &mut hold))
+    |                           ^^^^^^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:620:5
+    |
+620 |     c = 5 //~ ERROR `c` is exclusively borrowed and cannot be used here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:619:37
+    |
+619 |     let _ = run(outAsyncInt(mutInt, &mut c, &mut hold))
+    |                                     ^^^^^^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:634:5
+    |
+634 |     c = 5 //~ ERROR `c` is exclusively borrowed and cannot be used here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:633:27
+    |
+633 |     let _ = run(w(mutInt, &mut c, &mut a))
+    |                           ^^^^^^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:642:5
+    |
+642 |     c = 5 //~ ERROR `c` is exclusively borrowed and cannot be used here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:641:42
+    |
+641 |     let _ = run(outAsyncIntFrame(mutInt, &mut c, &mut a))
+    |                                          ^^^^^^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:662:5
+    |
+662 |     c = 4 //~ ERROR `c` is exclusively borrowed and cannot be used here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:661:28
+    |
+661 |     let _ = run(storeCount(&mut c, &mut a))
+    |                            ^^^^^^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:671:5
+    |
+671 |     c = 4 //~ ERROR `c` is exclusively borrowed and cannot be used here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:670:19
+    |
+670 |     let _ = run(w(&mut c, &mut a))
+    |                   ^^^^^^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:680:5
+    |
+680 |     c = 4 //~ ERROR `c` is exclusively borrowed and cannot be used here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:679:32
+    |
+679 |     let _ = run(storeCountHold(&mut c, &mut hold))
+    |                                ^^^^^^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+   --> main.kg:690:5
+    |
+690 |     c = 4 //~ ERROR `c` is exclusively borrowed and cannot be used here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `c` is borrowed here
+   --> main.kg:689:19
+    |
+689 |     let _ = run(w(&mut c, &mut hold))
+    |                   ^^^^^^
 
