@@ -20,6 +20,7 @@ type erasedReaders struct {
 	found map[syntax.NodeID]erasedWrite
 	fates fateMemo
 	defs  map[LocalID]*Inst
+	win   erasedWindow
 }
 
 type erasedWrite struct {
@@ -28,8 +29,8 @@ type erasedWrite struct {
 	how   erasedHow
 }
 
-// checkErasedReaders: a plain `fn` cannot share a cell, so while one made from a closure reading it may still run the local
-// is not written directly or by another argument of a call it is lent to; sem judges writes made inside closures.
+// checkErasedReaders: a plain `fn` cannot share a cell, so the local is not written between the making of a closure reading
+// it and the last run of the plain `fn` made from it; sem judges writes made inside closures.
 func checkErasedReaders(p *Program, f *Func) {
 	if !slices.ContainsFunc(f.Blocks, func(b Block) bool {
 		return slices.ContainsFunc(b.Insts, func(in Inst) bool { return storageClosure(p, in, storageReach) })
@@ -39,7 +40,6 @@ func checkErasedReaders(p *Program, f *Func) {
 	e := &erasedReaders{bc: quietBorrowCheck(p, f), p: p, f: f, closures: map[LocalID][]capturedPlace{}, caps: map[LocalID][]capturedPlace{},
 		site: map[LocalID]syntax.NodeID{}, found: map[syntax.NodeID]erasedWrite{}, fates: fateMemo{results: map[resultKey]paramFate{}, checks: map[*Func]*borrowCheck{}}, defs: soleDefs(f)}
 	e.solve()
-	e.lentReaders()
 	if len(e.caps) > 0 {
 		c := newReadCheck(p, f)
 		c.emit = e.note
@@ -48,6 +48,7 @@ func checkErasedReaders(p *Program, f *Func) {
 		c.scan(e.caps, e.writes())
 		e.leaving()
 	}
+	e.lentReaders()
 	e.flush()
 }
 

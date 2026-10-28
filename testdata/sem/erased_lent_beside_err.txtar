@@ -214,6 +214,35 @@ fn besideCannotRun() -> Int {
     let w = () => { k = k + 1 }
     keepOnly(() => k, w)
 }
+
+type R[F] = { pub mut f F }
+
+fn both4[F: FnMut[fn() -> Void]](f: fn() -> Int, mut r: R[F]) -> Int { r.f(); f() }
+fn bothRefH[F: FnMut[fn() -> Void]](f: fn() -> Int, h: &mut H[F]) -> Int { h.f(); f() }
+
+fn recordArgWrites() -> Int {
+    let mut k = 1
+    both4(() => k, R { f: () => { k = k + 1 } }) //~ ERROR closure captures `k` (written outside this closure
+}
+
+fn recordArgReads() -> Int {
+    let mut k = 1
+    let a = both4(() => k, R { f: () => { _ = k + 1 } })
+    a + both2(() => 0, () => { k = k + 1 })
+}
+
+fn recordRefWrites() -> Int {
+    let mut k = 1
+    let mut h = H { f: () => { k = k + 1 } }
+    bothRefH(() => k, &mut h) //~ ERROR closure captures `k` (written outside this closure
+}
+
+fn recordRefReads() -> Int {
+    let mut k = 1
+    let mut h = H { f: () => { _ = k + 1 } }
+    let a = bothRefH(() => k, &mut h)
+    a + both2(() => 0, () => { k = k + 1 })
+}
 -- expect --
 error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
   --> main.kg:23:11
@@ -418,4 +447,28 @@ note: this argument of the same call may write `q` while the call runs the plain
     |
 200 |     both2(() => q.xs.len().toInt() || 0, () => { q.xs.push(1) }) //~ ERROR closure captures `q` (written outside this closure
     |                                          ^^^^^^^^^^^^^^^^^^^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:222:11
+    |
+222 |     both4(() => k, R { f: () => { k = k + 1 } }) //~ ERROR closure captures `k` (written outside this closure
+    |           ^^^^^^^
+    = help: a plain `fn` cannot share a captured variable's cell; read what it needs from `k` into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: this argument of the same call may write `k` while the call runs the plain `fn`
+   --> main.kg:222:20
+    |
+222 |     both4(() => k, R { f: () => { k = k + 1 } }) //~ ERROR closure captures `k` (written outside this closure
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:234:14
+    |
+234 |     bothRefH(() => k, &mut h) //~ ERROR closure captures `k` (written outside this closure
+    |              ^^^^^^^
+    = help: a plain `fn` cannot share a captured variable's cell; read what it needs from `k` into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: this argument of the same call may write `k` while the call runs the plain `fn`
+   --> main.kg:234:23
+    |
+234 |     bothRefH(() => k, &mut h) //~ ERROR closure captures `k` (written outside this closure
+    |                       ^^^^^^
 

@@ -45,9 +45,8 @@ func (c *checker) noteCapture(n syntax.NodeID, ent EntityID, found ScopeID) {
 		if mode == capMove {
 			c.deferCaptureReserve(ctx, n, ent)
 		}
-		// Start shared when a write is already known, or a write earlier in a loop around a closure that may outlive
-		// the call it feeds runs again after the capture: a write seen once ctx is off c.lambdas no longer reaches it.
-		if mode == capCopy && (e.Flags&EfCapturedMut != 0 || !ctx.immediate && c.writtenInLoopOf(ent, n)) {
+		// A write checked before this capture never promotes it, so the capture starts shared.
+		if mode == capCopy && c.startsShared(ctx, n, ent) {
 			mode = capCell
 			e.Flags |= EfCapturedMut
 		}

@@ -103,6 +103,7 @@ const (
 	writtenLive erasedHow = iota
 	leavesBody
 	lentBeside
+	lentAfterMade
 )
 
 var erasedTexts = [...]struct{ note, help string }{
@@ -112,4 +113,6 @@ var erasedTexts = [...]struct{ note, help string }{
 		"a plain `fn` cannot share a captured variable's cell; use it before writing {name}, or bind the closure without a `fn` type"},
 	lentBeside: {"this argument of the same call may write {name} while the call runs the plain `fn`",
 		"a plain `fn` cannot share a captured variable's cell; read what it needs from {name} into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`"},
+	lentAfterMade: {"{name} is written here after the closure was made and before the call it is lent to runs it",
+		"a plain `fn` cannot share a captured variable's cell; write {name} before the closure is made, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`"},
 }

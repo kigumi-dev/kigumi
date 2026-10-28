@@ -27,56 +27,57 @@ func cellUses(p *Program, g *Func, cell LocalID, depth int) []cellUse {
 			out = append(out, cellUse{path, w})
 		}
 	}
-	place := func(l LocalID) (stepPath, bool, bool) {
-		root, path, exact, ok := cellContentPlace(g, defs, l)
-		return path, exact, ok && root == cell
-	}
 	for _, blk := range g.Blocks {
 		for _, in := range blk.Insts {
-			switch in.Op {
-			case OpDrop:
-				continue
-			case OpCellGet, OpField, OpPayload, OpIndex, OpUnbox:
-				if path, _, ok := place(in.Dst); ok && !chained[in.Dst] {
-					add(path, false)
-				}
-				continue
-			case OpSetField, OpFieldMove:
-				if path, exact, ok := place(in.Args[0]); ok {
-					if exact {
-						path = append(slices.Clone(path), in.Index)
-					}
-					add(path, true)
-					continue
-				}
-			case OpSetIndex:
-				if path, _, ok := place(in.Args[0]); ok {
-					add(path, true)
-					continue
-				}
-			case OpBorrow:
-				if path, _, ok := place(in.Args[0]); ok {
-					add(path, in.Index == 1)
-					continue
-				}
-			case OpClosure:
-				for j, a := range in.Args {
-					if h := p.ByEnt[in.Ent]; a == cell && (h == nil || j >= len(h.Params)) {
-						add(nil, true)
-					} else if a == cell {
-						for _, u := range cellUses(p, h, h.Params[j], depth+1) {
-							add(u.path, u.writes)
-						}
-					}
+			if in.Op != OpClosure {
+				if u, ok := cellAccess(g, defs, chained, cell, in); ok {
+					add(u.path, u.writes)
 				}
 				continue
 			}
-			if slices.Contains(in.Args, cell) {
-				add(nil, true)
+			for j, a := range in.Args {
+				if h := p.ByEnt[in.Ent]; a == cell && (h == nil || j >= len(h.Params)) {
+					add(nil, true)
+				} else if a == cell {
+					for _, u := range cellUses(p, h, h.Params[j], depth+1) {
+						add(u.path, u.writes)
+					}
+				}
 			}
 		}
 	}
 	return out
+}
+
+// cellAccess is the place one instruction other than a closure's construction reaches in cell, if any.
+func cellAccess(g *Func, defs map[LocalID]*Inst, chained map[LocalID]bool, cell LocalID, in Inst) (cellUse, bool) {
+	place := func(l LocalID) (stepPath, bool, bool) {
+		root, path, exact, ok := cellContentPlace(g, defs, l)
+		return path, exact, ok && root == cell
+	}
+	switch in.Op {
+	case OpDrop:
+		return cellUse{}, false
+	case OpCellGet, OpField, OpPayload, OpIndex, OpUnbox:
+		path, _, ok := place(in.Dst)
+		return cellUse{path, false}, ok && !chained[in.Dst]
+	case OpSetField, OpFieldMove:
+		if path, exact, ok := place(in.Args[0]); ok {
+			if exact {
+				path = append(slices.Clone(path), in.Index)
+			}
+			return cellUse{path, true}, true
+		}
+	case OpSetIndex:
+		if path, _, ok := place(in.Args[0]); ok {
+			return cellUse{path, true}, true
+		}
+	case OpBorrow:
+		if path, _, ok := place(in.Args[0]); ok {
+			return cellUse{path, in.Index == 1}, true
+		}
+	}
+	return cellUse{nil, true}, slices.Contains(in.Args, cell)
 }
 
 // cellContentPlace follows a temporary back to the cell whose content it reads, with the field chain; an index or unbox

@@ -28,7 +28,7 @@ type heldMuts struct {
 	// wantRead: the next synth reads through a reference, so a `&mut` field is not taken.
 	wantRead bool
 
-	// localWrites lists where each local is written (assignment, `&mut`, `mut self` call), for captures in a loop.
+	// localWrites lists where each local is written (assignment, `&mut`, `mut self` call), for captures in a loop or call.
 	localWrites map[EntityID][]syntax.NodeID
 }
 

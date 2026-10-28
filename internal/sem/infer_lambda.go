@@ -11,6 +11,7 @@ type lambdaCtx struct {
 	// refCapture: an E412 (borrow captured) already explains a borrow-typed body.
 	refCapture bool
 	immediate  bool
+	later      []syntax.NodeID
 	// reserveUses are uses of cleanup-reserved bindings, judged when the lambda closes.
 	reserveUses []captureUse
 	writes      []EntityID
@@ -36,7 +37,7 @@ func (c *checker) synthLambda(n syntax.NodeID, want TypeID) TypeID {
 	c.info.Defs[n] = id
 	saved := c.scope
 	c.pushScope(ScopeLambda, n)
-	ctx := &lambdaCtx{ent: id, scope: c.scope, captured: map[EntityID]int{}, immediate: c.argLambda[n]}
+	ctx := &lambdaCtx{ent: id, scope: c.scope, captured: map[EntityID]int{}, immediate: c.argLambda[n], later: c.laterArgs[n]}
 	c.lambdas = append(c.lambdas, ctx)
 	ptypes, pents, bad := c.lambdaParams(id, params, target)
 	ret := TypeID(0)

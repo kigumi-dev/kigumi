@@ -160,6 +160,7 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 			}
 			if pass == 1 {
 				c.markImmediate(a, c.r.nonEscapingParam(entAt(declParams, pi)))
+				c.markLaterArgs(a, plan.Eval)
 			}
 			c.noteLentArg(a, entAt(declParams, pi), param, tt.escMarked(sn.Var, pi))
 			from := len(*c.edges)

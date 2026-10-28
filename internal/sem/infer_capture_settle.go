@@ -18,8 +18,7 @@ func (c *checker) noteOpenCapture(ctx *lambdaCtx, n syntax.NodeID, ent EntityID)
 	if c.copyNow(e.Type) || !c.openType(e.Type, c.openCaptures) {
 		return
 	}
-	cell := e.Flags&EfCapturedMut != 0 || !ctx.immediate && c.writtenInLoopOf(ent, n)
-	c.openCaptures = append(c.openCaptures, openCapture{site: captureSite{ctx: ctx, idx: len(ctx.list) - 1}, ent: ent, cell: cell})
+	c.openCaptures = append(c.openCaptures, openCapture{site: captureSite{ctx: ctx, idx: len(ctx.list) - 1}, ent: ent, cell: c.startsShared(ctx, n, ent)})
 }
 
 func (c *checker) markOpenWritten(ent EntityID) {

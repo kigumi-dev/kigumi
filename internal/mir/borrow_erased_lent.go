@@ -5,8 +5,8 @@ import (
 	"kigumi/internal/syntax"
 )
 
-// lentReaders reports a plain `fn` argument reading a cell that another argument of the same call may write as the
-// call runs, judged by the cell checker's closure uses and argument reach.
+// lentReaders reports a plain `fn` argument reading a cell that is written after the closure was made and before the
+// call is done: by an instruction evaluated before the call, or by another argument the call runs.
 func (e *erasedReaders) lentReaders() {
 	cells := map[sem.EntityID]LocalID{}
 	for l, loc := range e.f.Locals {
@@ -19,11 +19,17 @@ func (e *erasedReaders) lentReaders() {
 			if in.Op != OpCall && in.Op != OpCallValue {
 				continue
 			}
-			e.bc.curBlock, e.bc.curIdx = BlockID(bi), i
+			at := movePos{BlockID(bi), i}
 			for k, a := range in.Args {
-				for _, o := range e.lentReads(in, k, cells) {
-					if b, ok := e.besideWriter(in, a, o); ok {
-						e.noteBeside(in, a, b, o.owner)
+				e.bc.curBlock, e.bc.curIdx = at.bid, at.idx
+				for _, r := range e.lentReads(in, k, cells) {
+					if n, ok := e.earlierWriter(at, r); ok {
+						e.noteLent(in, a, erasedWrite{write: n, root: r.o.owner, how: lentAfterMade})
+						break
+					}
+					e.bc.curBlock, e.bc.curIdx = at.bid, at.idx
+					if b, ok := e.besideWriter(in, a, r.o); ok {
+						e.noteLent(in, a, erasedWrite{write: e.argNode(b, in), root: r.o.owner, how: lentBeside})
 						break
 					}
 				}
@@ -32,13 +38,19 @@ func (e *erasedReaders) lentReaders() {
 	}
 }
 
+// lentRead is a cell place a plain `fn` argument may read through closure cl.
+type lentRead struct {
+	cl sem.EntityID
+	o  ownerRef
+}
+
 // lentReads are the cell places argument k may read through the closures it carries, when the call takes it as plain
 // `fn` values.
-func (e *erasedReaders) lentReads(in Inst, k int, cells map[sem.EntityID]LocalID) []ownerRef {
+func (e *erasedReaders) lentReads(in Inst, k int, cells map[sem.EntityID]LocalID) []lentRead {
 	if !e.erasedParam(in, k) {
 		return nil
 	}
-	var out []ownerRef
+	var out []lentRead
 	for _, cl := range e.bc.argClosures(in.Args[k]) {
 		for idx, cp := range e.p.R.Closure(cl).Captures {
 			r, ok := cells[cp.Local]
@@ -46,20 +58,20 @@ func (e *erasedReaders) lentReads(in Inst, k int, cells map[sem.EntityID]LocalID
 				continue
 			}
 			for _, u := range e.bc.closureUses(cl, idx) {
-				out = append(out, ownerRef{owner: r, path: u.path})
+				out = append(out, lentRead{cl: cl, o: ownerRef{owner: r, path: u.path}})
 			}
 		}
 	}
 	return out
 }
 
-func (e *erasedReaders) noteBeside(in Inst, a, b, root LocalID) {
+func (e *erasedReaders) noteLent(in Inst, a LocalID, w erasedWrite) {
 	at := e.site[a]
 	if at == 0 {
 		at = e.argNode(a, in)
 	}
 	if _, ok := e.found[at]; !ok {
-		e.found[at] = erasedWrite{write: e.argNode(b, in), root: root, how: lentBeside}
+		e.found[at] = w
 	}
 }
 

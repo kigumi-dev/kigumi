@@ -8615,6 +8615,23 @@
       ]
     },
     {
+      "id": "run/erased_lent_later_ok",
+      "kind": "run",
+      "path": "testdata/run/erased_lent_later_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/error_as",
       "kind": "run",
       "path": "testdata/run/error_as.txtar",
@@ -20790,6 +20807,17 @@
       "id": "sem/erased_lent_beside_err",
       "kind": "sem",
       "path": "testdata/sem/erased_lent_beside_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/erased_lent_later_err",
+      "kind": "sem",
+      "path": "testdata/sem/erased_lent_later_err.txtar",
       "mode": [
         "check"
       ],
