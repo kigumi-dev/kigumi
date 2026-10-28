@@ -68,7 +68,7 @@ func (e *erasedReaders) lentReads(in Inst, k int, owners map[sem.EntityID]LocalI
 }
 
 func (e *erasedReaders) noteLent(in Inst, a LocalID, w erasedWrite) {
-	if _, reported := e.prior[reportKey{w.write, "borrow-conflict", w.root}]; reported {
+	if e.lentReported(w) {
 		return
 	}
 	at := e.site[a]

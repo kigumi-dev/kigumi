@@ -2,6 +2,7 @@
 type V['a] = { pub s &'a String }
 type Sink['a] = { pub mut items &'a mut Array[V['a]] }
 type W['a] = { pub inner Sink['a] }
+type Own['a] = { pub mut own Array[V['a]] }
 
 fn churn() -> Int { let mut arr: Array[String] = Array.of("x"); for i in 100..400 { arr.push("w${i}") }; arr.len().toInt() || 0 }
 fn pushByValue['a](k: Sink['a], x: V['a]) { k.items.push(x) }
@@ -95,6 +96,19 @@ fn frameHolders() -> String {
 }
 
 fn apply['a](g: fn(V['a]) -> Void, x: V['a]) { g(x) }
+fn pushArr['a](a: &mut Array[V['a]], x: V['a]) { a.push(x) }
+fn ownDirect['a](mut k: Own['a]) -> usize { let loc = "l"; k.own.push(V { s: &loc }); k.own.len() }
+fn ownRefDirect['a](mut k: Own['a]) -> usize { let loc = "l"; let r = &mut k.own; r.push(V { s: &loc }); k.own.len() }
+fn ownHelper['a](mut k: Own['a]) -> usize { let loc = "l"; pushArr(&mut k.own, V { s: &loc }); k.own.len() }
+fn ownHelperRef['a](mut k: Own['a]) -> usize { let loc = "l"; let r = &mut k.own; pushArr(r, V { s: &loc }); k.own.len() }
+fn ownLocalClosure['a](k: Own['a]) -> String {
+    let loc = "l"
+    let mut c = k
+    let r = &mut c.own
+    apply((x: V['a]) => { r.push(x) }, V { s: &loc })
+    let n = churn()
+    "${c.own.len()} ${c.own[1].s} ${n}"
+}
 fn capSinkRef['a](k: Sink['a], x: V['a]) { let r = k.items; apply((x: V['a]) => { r.push(x) }, x) }
 fn capTakenRef['a](ks: &mut Array[Sink['a]], x: V['a]) { if let Some(s) = ks.takeAt(0) { let r = s.items; apply((x: V['a]) => { r.push(x) }, x) } }
 fn capFieldRef['a](w: W['a], x: V['a]) { let r = w.inner.items; apply((x: V['a]) => { r.push(x) }, x) }
@@ -121,9 +135,14 @@ print takenOwnLifetime()
 print frameHolders()
 print arrays()
 print capturedOwnLifetime()
+let u = "u"
+print "${ownDirect(Own { own: Array.of(V { s: &u }) })} ${ownRefDirect(Own { own: Array.of(V { s: &u }) })} ${ownHelper(Own { own: Array.of(V { s: &u }) })} ${ownHelperRef(Own { own: Array.of(V { s: &u }) })}"
+print ownLocalClosure(Own { own: Array.of(V { s: &u }) })
 -- stdout --
 9 v v v 1 301
 5 v v 5 301
 13 1
 5 u 301
 7 v v v v v v 301
+2 2 2 2
+2 l 301

@@ -1,0 +1,173 @@
+-- module --
+mir: planned
+-- src --
+type V['a] = { pub s &'a String }
+type Own['a] = { pub mut own Array[V['a]] }
+type Hold[T] = { pub mut v T }
+interface Adder[X] { fn add(mut self, x: X) }
+
+fn apply['a](g: fn(V['a]) -> Void, x: V['a]) { g(x) }
+
+fn returned['a](mut k: Own['a]) -> Own['a] {
+    let loc = "frame-local-string"
+    let r = &mut k.own
+    apply((x: V['a]) => { r.push(x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `k` here
+    k
+}
+
+fn pushed['a](mut k: Own['a], out: &mut Array[Own['a]]) {
+    let loc = "frame-local-string"
+    let r = &mut k.own
+    apply((x: V['a]) => { r.push(x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `k` here
+    out.push(k)
+}
+
+fn Own['a].mutSelf(mut self) {
+    let loc = "frame-local-string"
+    let r = &mut self.own
+    apply((x: V['a]) => { r.push(x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `self` here
+}
+
+fn ownClosure['a](mut k: Own['a]) -> usize {
+    let loc = "frame-local-string"
+    let r = &mut k.own
+    apply((x: V['a]) => { r.push(x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `k` here
+    k.own.len()
+}
+
+fn genericHold['a, T: Adder[V['a]]](mut h: Hold[T]) {
+    let loc = "l"
+    let r = &mut h.v
+    apply((x: V['a]) => { r.add(x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `h` here //~ ERROR a value borrowing `loc` cannot go into shared storage
+}
+
+fn genericParam['a, T: Adder[V['a]]](mut h: T) {
+    let loc = "l"
+    let r = &mut h
+    apply((x: V['a]) => { r.add(x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `h` here //~ ERROR a value borrowing `loc` cannot go into shared storage
+}
+
+fn localPushed['a](k: Own['a], out: &mut Array[Own['a]]) {
+    let loc = "frame-local-string"
+    let mut c = k
+    let r = &mut c.own
+    apply((x: V['a]) => { r.push(x) }, V { s: &loc })
+    out.push(c) //~ ERROR a borrow cannot be stored into `out` here
+}
+
+fn localReturned['a](k: Own['a]) -> Own['a] { //~ ERROR a borrow cannot be returned
+    let loc = "frame-local-string" //~ ERROR `loc` is still borrowed when its scope ends here
+    let mut c = k
+    let r = &mut c.own
+    apply((x: V['a]) => { r.push(x) }, V { s: &loc })
+    c
+}
+
+fn Own['a].movedCapture(mut self) {
+    let loc = "l"
+    let r = &mut self.own
+    apply((x: V['a]) => { let q = r; q.push(x) }, V { s: &loc }) //~ ERROR is lent to this closure and cannot be moved out //~ ERROR a borrow cannot be stored into `self` here
+}
+
+fn Own['a].movedCaptureRead(mut self) {
+    let loc = "l"
+    let r = &mut self.own
+    apply((x: V['a]) => { let q = r; _ = q.len() }, V { s: &loc }) //~ ERROR is lent to this closure and cannot be moved out
+}
+-- expect --
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:11:5
+   |
+11 |     apply((x: V['a]) => { r.push(x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `k` here
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:18:5
+   |
+18 |     apply((x: V['a]) => { r.push(x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `k` here
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `self` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:25:5
+   |
+25 |     apply((x: V['a]) => { r.push(x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `self` here
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:31:5
+   |
+31 |     apply((x: V['a]) => { r.push(x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `k` here
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `h` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:38:5
+   |
+38 |     apply((x: V['a]) => { r.add(x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `h` here //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2158]: a value borrowing `loc` cannot go into shared storage: another handle to that storage can keep it after `loc` is gone
+  --> main.kg:38:5
+   |
+38 |     apply((x: V['a]) => { r.add(x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `h` here //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `loc` is borrowed here
+  --> main.kg:38:46
+   |
+38 |     apply((x: V['a]) => { r.add(x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `h` here //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |                                              ^^^^
+
+error[E2159]: a borrow cannot be stored into `h` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:44:5
+   |
+44 |     apply((x: V['a]) => { r.add(x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `h` here //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2158]: a value borrowing `loc` cannot go into shared storage: another handle to that storage can keep it after `loc` is gone
+  --> main.kg:44:5
+   |
+44 |     apply((x: V['a]) => { r.add(x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `h` here //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `loc` is borrowed here
+  --> main.kg:44:46
+   |
+44 |     apply((x: V['a]) => { r.add(x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `h` here //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |                                              ^^^^
+
+error[E2159]: a borrow cannot be stored into `out` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:52:5
+   |
+52 |     out.push(c) //~ ERROR a borrow cannot be stored into `out` here
+   |     ^^^^^^^^^^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:55:22
+   |
+55 | fn localReturned['a](k: Own['a]) -> Own['a] { //~ ERROR a borrow cannot be returned
+   |                      ^^^^^^^^^
+
+error[move-while-borrowed]: `loc` is still borrowed when its scope ends here
+  --> main.kg:56:9
+   |
+56 |     let loc = "frame-local-string" //~ ERROR `loc` is still borrowed when its scope ends here
+   |         ^^^
+
+error[move-from-borrow]: `r` is lent to this closure and cannot be moved out; write `move` before the closure to give it `r`, or clone it
+  --> main.kg:66:35
+   |
+66 |     apply((x: V['a]) => { let q = r; q.push(x) }, V { s: &loc }) //~ ERROR is lent to this closure and cannot be moved out //~ ERROR a borrow cannot be stored into `self` here
+   |                                   ^
+
+error[E2159]: a borrow cannot be stored into `self` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:66:5
+   |
+66 |     apply((x: V['a]) => { let q = r; q.push(x) }, V { s: &loc }) //~ ERROR is lent to this closure and cannot be moved out //~ ERROR a borrow cannot be stored into `self` here
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-from-borrow]: `r` is lent to this closure and cannot be moved out; write `move` before the closure to give it `r`, or clone it
+  --> main.kg:72:35
+   |
+72 |     apply((x: V['a]) => { let q = r; _ = q.len() }, V { s: &loc }) //~ ERROR is lent to this closure and cannot be moved out
+   |                                   ^
+

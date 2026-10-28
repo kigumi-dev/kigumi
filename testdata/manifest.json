@@ -18793,6 +18793,17 @@
       ]
     },
     {
+      "id": "sem/borrow_own_escape_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_own_escape_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/borrow_owned_holder_return_err",
       "kind": "sem",
       "path": "testdata/sem/borrow_owned_holder_return_err.txtar",
@@ -20886,6 +20897,17 @@
       "id": "sem/erased_lent_beside_err",
       "kind": "sem",
       "path": "testdata/sem/erased_lent_beside_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/erased_lent_dedupe_err",
+      "kind": "sem",
+      "path": "testdata/sem/erased_lent_dedupe_err.txtar",
       "mode": [
         "check"
       ],

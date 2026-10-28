@@ -48,14 +48,10 @@ func (c *borrowCheck) captureReach(lit *Inst, add, addCaller func(LocalID)) {
 		}
 		root := c.valueSource(a)
 		if c.p.R.Types.Kind(c.f.Locals[a].Type) == sem.KRef {
-			if p, ok := c.heldRead(a); ok {
-				addCaller(p)
-			}
-			if pl, ok := c.flowPlace(storeFlow{target: a, ref: true}); ok {
-				root = pl
-				add(root)
-			}
-		} else if p, ok := c.heldOrigin(root); ok && slices.ContainsFunc(sites, func(s paramStore) bool { return s.via }) {
+			c.captureRefReach(lit, j, add, addCaller)
+			continue
+		}
+		if p, ok := c.heldOrigin(root); ok && slices.ContainsFunc(sites, func(s paramStore) bool { return s.via }) {
 			addCaller(p)
 		}
 		for _, u := range c.siteOwners(root, sites) {
@@ -63,6 +59,26 @@ func (c *borrowCheck) captureReach(lit *Inst, add, addCaller func(LocalID)) {
 				add(u)
 			}
 		}
+	}
+}
+
+func (c *borrowCheck) captureRefReach(lit *Inst, j int, add, addCaller func(LocalID)) {
+	a := lit.Args[j]
+	if p, ok := c.heldRead(a); ok {
+		addCaller(p)
+		return
+	}
+	fl := storeFlow{target: a, ref: true, callee: lit.Ent, param: j, args: lit.Args}
+	if root, _, caller, ok := c.storeRoot(fl); ok && caller {
+		addCaller(root)
+		return
+	}
+	dests, callers := c.storeReach(fl)
+	for _, d := range dests {
+		add(d)
+	}
+	for _, p := range callers {
+		addCaller(p)
 	}
 }
 

@@ -1,0 +1,96 @@
+-- module --
+mir: planned
+-- src --
+type R = { pub mut xs Array[Int], pub mut n Int }
+
+fn lenF(f: fn() -> Int, x: Int) -> Int { f() + x }
+fn bumpArr(a: &mut Array[Int]) -> Int { a.push(1); 0 }
+fn bumpN(r: &mut R) -> Int { r.n = r.n + 1; 0 }
+fn R.incN(mut self) -> Int { self.n = self.n + 1; 0 }
+fn R.pushX(mut self) -> Int { self.xs.push(1); self.n = self.n + 1; 0 }
+fn R.pushOnlyX(mut self) -> Int { self.xs.push(1); 0 }
+
+fn directField() -> Int {
+    let mut r = R { xs: Array.of(1), n: 0 }
+    lenF(() => r.n, { r.n = 1; 0 }) //~ ERROR is captured by a closure passed to this call
+}
+
+fn helperArray() -> Int {
+    let mut arr = Array.of(1)
+    lenF(() => arr.len().toInt() || 0, bumpArr(&mut arr)) //~ ERROR is captured by a closure passed to this call
+}
+
+fn helperRecord() -> Int {
+    let mut r = R { xs: Array.of(1), n: 0 }
+    lenF(() => r.n, bumpN(&mut r)) //~ ERROR is captured by a closure passed to this call
+}
+
+fn fieldReceiver() -> Int {
+    let mut r = R { xs: Array.of(1), n: 0 }
+    lenF(() => r.xs.len().toInt() || 0, { r.xs.push(1); 0 }) //~ ERROR is captured by a closure passed to this call
+}
+
+fn methodField() -> Int {
+    let mut r = R { xs: Array.of(1), n: 0 }
+    lenF(() => r.n, r.incN()) //~ ERROR is captured by a closure passed to this call
+}
+
+fn methodBothFields() -> Int {
+    let mut r = R { xs: Array.of(1), n: 0 }
+    lenF(() => r.n, r.pushX()) //~ ERROR is captured by a closure passed to this call
+}
+
+fn methodOtherField() -> Int {
+    let mut r = R { xs: Array.of(1), n: 0 }
+    lenF(() => r.n, r.pushOnlyX()) //~ ERROR is captured by a closure passed to this call
+}
+-- expect --
+error[E2198]: `r` is captured by a closure passed to this call and cannot be used until the call returns
+  --> main.kg:12:23
+   |
+12 |     lenF(() => r.n, { r.n = 1; 0 }) //~ ERROR is captured by a closure passed to this call
+   |                       ^^^
+   = help: end the borrow first or use a copy
+
+error[E2198]: `arr` is captured by a closure passed to this call and cannot be used until the call returns
+  --> main.kg:17:48
+   |
+17 |     lenF(() => arr.len().toInt() || 0, bumpArr(&mut arr)) //~ ERROR is captured by a closure passed to this call
+   |                                                ^^^^^^^^
+   = help: end the borrow first or use a copy
+
+error[E2198]: `r` is captured by a closure passed to this call and cannot be used until the call returns
+  --> main.kg:22:27
+   |
+22 |     lenF(() => r.n, bumpN(&mut r)) //~ ERROR is captured by a closure passed to this call
+   |                           ^^^^^^
+   = help: end the borrow first or use a copy
+
+error[E2198]: `r` is captured by a closure passed to this call and cannot be used until the call returns
+  --> main.kg:27:43
+   |
+27 |     lenF(() => r.xs.len().toInt() || 0, { r.xs.push(1); 0 }) //~ ERROR is captured by a closure passed to this call
+   |                                           ^^^^
+   = help: end the borrow first or use a copy
+
+error[E2198]: `r` is captured by a closure passed to this call and cannot be used until the call returns
+  --> main.kg:32:21
+   |
+32 |     lenF(() => r.n, r.incN()) //~ ERROR is captured by a closure passed to this call
+   |                     ^
+   = help: end the borrow first or use a copy
+
+error[E2198]: `r` is captured by a closure passed to this call and cannot be used until the call returns
+  --> main.kg:37:21
+   |
+37 |     lenF(() => r.n, r.pushX()) //~ ERROR is captured by a closure passed to this call
+   |                     ^
+   = help: end the borrow first or use a copy
+
+error[E2198]: `r` is captured by a closure passed to this call and cannot be used until the call returns
+  --> main.kg:42:21
+   |
+42 |     lenF(() => r.n, r.pushOnlyX()) //~ ERROR is captured by a closure passed to this call
+   |                     ^
+   = help: end the borrow first or use a copy
+
