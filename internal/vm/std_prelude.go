@@ -32,13 +32,13 @@ func (m *Machine) prelude(key string, a []*obj, a0, a1 *obj) *obj {
 		return mkVariant(miss, []*obj{unitObj})
 	case "prelude.Bytes.tryConcat":
 		m.reserveMemory(uint64(len(a0.str())) + uint64(len(a1.str())))
-		if uint64(len(a0.str()))+uint64(len(a1.str())) >= maxVMAlloc || m.faultTick() {
+		if uint64(len(a0.str()))+uint64(len(a1.str())) >= maxVMAlloc || m.planRefused(key) {
 			return m.allocError()
 		}
 		out := make([]byte, 0, len(a0.str())+len(a1.str()))
 		out = append(out, a0.str()...)
 		out = append(out, a1.str()...)
-		return m.ok(mkBytes(out))
+		return m.okPlanned(key, mkBytes(out))
 	case "prelude.Option.take":
 		if m.r.Entity(a0.ent).Name != "Some" {
 			return m.none()

@@ -32,12 +32,12 @@ func (m *Machine) alloc(key string, a []*obj, a0, a1 *obj) *obj {
 	case "alloc.AllocatorHandle.allocated":
 		return mkInt(0, 64|256)
 	case "alloc.Shared.tryNew":
-		if m.faultTick() {
+		if m.planRefused(key) {
 			return m.allocError()
 		}
 		c := &sharedCtrl{cell: mkCell(retain(a0)), alive: true}
 		c.shared = mkOpaque("Shared", c)
-		return m.ok(c.shared)
+		return m.okPlanned(key, c.shared)
 	case "alloc.Shared.clone", "alloc.Weak.clone":
 		return retain(a0)
 	case "alloc.Shared.set":
@@ -69,10 +69,10 @@ func (m *Machine) alloc(key string, a []*obj, a0, a1 *obj) *obj {
 		// other &mut Cell store, instead of a snapshot of its content.
 		return m.callValueLent(a1, []*obj{c.cell})
 	case "alloc.Box.tryNew":
-		if m.faultTick() {
+		if m.planRefused(key) {
 			return m.allocError()
 		}
-		return m.ok(mkOpaque("Box", mkCell(retain(a0))))
+		return m.okPlanned(key, mkOpaque("Box", mkCell(retain(a0))))
 	case "alloc.Box.get":
 		return m.copy(a0.opaqueData().(*obj).inner)
 	case "alloc.Box.set":

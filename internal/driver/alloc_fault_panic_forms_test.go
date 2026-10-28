@@ -16,27 +16,26 @@ import (
 const panicFormSweep = 24
 
 // panicFormCases are the std functions that are a Kigumi body over their try form; setup runs before the arming eprint, call after it.
-// nativeTicks is how many ticks the native try form refuses before the call completes; vmTicks is the same for the VM, 0 meaning one.
+// ticks is how many ticks the try form refuses before the call completes, the same on both backends.
 var panicFormCases = []struct {
 	name, setup, call string
-	nativeTicks       int
-	vmTicks           int
+	ticks             int
 }{
-	{"bytes_slice", "let b = Bytes.zeros(4)", "let _ = b.slice(1, 3)", 2, 0},
-	{"bytes_zeros", "", "let _ = Bytes.zeros(4)", 2, 2},
-	{"bytes_fill", "", "let _ = Bytes.fill(7, 4)", 2, 2},
-	{"bytes_from_array", "let a = Array.of[u8](1, 2, 3)", "let _ = Bytes.fromArray(&a)", 2, 0},
-	{"bytes_concat", "let a = Bytes.zeros(2)\n    let b = Bytes.zeros(2)", "let _ = a.concat(b)", 2, 0},
-	{"string_slice_bytes", "let s = \"hello world\".concat(\"!\")", "let _ = s.sliceBytes(1, 4)", 2, 0},
-	{"array_clone", "let a = Array.of(1, 2, 3)", "let _ = a.clone()", 2, 2},
-	{"array_take", "let a = Array.of(1, 2, 3)", "let _ = a.take(2)", 2, 2},
-	{"array_reverse", "let a = Array.of(1, 2, 3)", "let _ = a.reverse()", 2, 2},
-	{"array_concat", "let a = Array.of(1, 2, 3)\n    let b = Array.of(7, 8)", "let _ = a.concat(b)", 2, 2},
-	{"array_append_all", "let mut a = Array.of(1, 2, 3, 4)\n    let b = Array.of(4, 5, 6, 7)", "a.appendAll(b)", 1, 0},
-	{"shared_new", "", "let _ = alloc.Shared.new(41)", 3, 0},
-	{"shared_get", "let s = alloc.Shared.new(41)", "let _ = s.get()", 0, 0},
-	{"shared_downgrade", "let s = alloc.Shared.new(41)", "let _ = s.downgrade()", 1, 0},
-	{"box_new", "", "let _ = alloc.Box.new(5)", 2, 0},
+	{"bytes_slice", "let b = Bytes.zeros(4)", "let _ = b.slice(1, 3)", 2},
+	{"bytes_zeros", "", "let _ = Bytes.zeros(4)", 2},
+	{"bytes_fill", "", "let _ = Bytes.fill(7, 4)", 2},
+	{"bytes_from_array", "let a = Array.of[u8](1, 2, 3)", "let _ = Bytes.fromArray(&a)", 2},
+	{"bytes_concat", "let a = Bytes.zeros(2)\n    let b = Bytes.zeros(2)", "let _ = a.concat(b)", 2},
+	{"string_slice_bytes", "let s = \"hello world\".concat(\"!\")", "let _ = s.sliceBytes(1, 4)", 2},
+	{"array_clone", "let a = Array.of(1, 2, 3)", "let _ = a.clone()", 2},
+	{"array_take", "let a = Array.of(1, 2, 3)", "let _ = a.take(2)", 2},
+	{"array_reverse", "let a = Array.of(1, 2, 3)", "let _ = a.reverse()", 2},
+	{"array_concat", "let a = Array.of(1, 2, 3)\n    let b = Array.of(7, 8)", "let _ = a.concat(b)", 2},
+	{"array_append_all", "let mut a = Array.of(1, 2, 3, 4)\n    let b = Array.of(4, 5, 6, 7)", "a.appendAll(b)", 1},
+	{"shared_new", "", "let _ = alloc.Shared.new(41)", 3},
+	{"shared_get", "let s = alloc.Shared.new(41)", "let _ = s.get()", 0},
+	{"shared_downgrade", "let s = alloc.Shared.new(41)", "let _ = s.downgrade()", 1},
+	{"box_new", "", "let _ = alloc.Box.new(5)", 2},
 }
 
 func panicFormSource(setup, call string) string {
@@ -64,15 +63,12 @@ func TestFaultInjectionPanickingFormsPanicWhenATickIsRefused(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			src := panicFormSource(c.setup, c.call)
-			for backend, ticks := range map[string]int{"native": c.nativeTicks, "vm": max(c.vmTicks, 1)} {
-				classes := panicFormNativeClasses
-				if backend == "vm" {
-					classes = panicFormVMClasses
-				} else if !hasCC {
+			for backend, classes := range map[string]func(*testing.T, string) []byte{"native": panicFormNativeClasses, "vm": panicFormVMClasses} {
+				if backend == "native" && !hasCC {
 					continue
 				}
 				got := classes(t, src)
-				if want := regexp.MustCompile("^P{" + strconv.Itoa(ticks) + "}O+$"); !want.Match(got) {
+				if want := regexp.MustCompile("^P{" + strconv.Itoa(c.ticks) + "}O+$"); !want.Match(got) {
 					t.Errorf("%s outcomes %s do not match %s", backend, got, want)
 				}
 			}

@@ -29,7 +29,7 @@ func (m *Machine) tryMapItems(key string, src, f *obj) *obj {
 		out = append(out, m.callValueLent(f, []*obj{x}))
 	}
 	done = true
-	return m.okWrapped(m.sized(newArray(key, n, out)))
+	return m.okTry(key, 1, m.sized(newArray(key, n, out)))
 }
 
 func (m *Machine) tryFilterItems(key string, src, keep *obj) *obj {
@@ -48,8 +48,8 @@ func (m *Machine) tryFilterItems(key string, src, keep *obj) *obj {
 			m.release(out)
 			return m.allocError()
 		}
-		out.fields = append(out.fields, m.copy(x))
+		out.fields = append(out.fields, m.copyPanicking(x))
 	}
 	done = true
-	return m.okWrapped(m.sized(out))
+	return m.okTry(key, 1, m.sized(out))
 }

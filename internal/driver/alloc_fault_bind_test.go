@@ -1,17 +1,13 @@
 package driver_test
 
 import (
-	"bytes"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
-	"strconv"
 	"strings"
 	"testing"
 
 	"kigumi/internal/driver"
-	"kigumi/internal/vm"
 )
 
 const bindSweep = 24
@@ -138,42 +134,12 @@ func loadSweepModule(t *testing.T, src, profile string) *driver.Module {
 
 func vmSweepExits(t *testing.T, m *driver.Module) []int {
 	t.Helper()
-	a, err := driver.Analyze(m)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if a.Res.HasErrors() {
-		t.Fatal(a.Res.Render())
-	}
-	var exits []int
-	for n := 1; n <= bindSweep; n++ {
-		var out, errOut bytes.Buffer
-		code, err := vm.Run(a.Prog, vm.Options{FaultInjectAt: int64(n)}, &out, &errOut)
-		if err != nil {
-			t.Fatalf("vm N=%d: %v", n, err)
-		}
-		exits = append(exits, code)
-	}
-	return exits
+	return vmSweepExitsTo(t, m, bindSweep, false)
 }
 
 func nativeSweepExits(t *testing.T, m *driver.Module) []int {
 	t.Helper()
-	if testCompiler().CCompiler() == nil {
-		t.Skip("no C compiler")
-	}
-	exe := filepath.Join(t.TempDir(), "prog")
-	var buildErr bytes.Buffer
-	if ok, err := driver.BuildWith(m, exe, &buildErr, driver.BuildOptions{CFlags: []string{"-DKIGUMI_FAULT_INJECT"}}); err != nil || !ok {
-		t.Fatalf("build: %v\n%s", err, buildErr.String())
-	}
-	var exits []int
-	for n := 1; n <= bindSweep; n++ {
-		cmd := exec.Command(exe)
-		cmd.Env = append(os.Environ(), "KIGUMI_FAIL_ALLOC_AT="+strconv.Itoa(n))
-		exits = append(exits, exitCodeOf(cmd.Run()))
-	}
-	return exits
+	return nativeSweepExitsTo(t, m, bindSweep, false)
 }
 
 // Building a closure (a witness bind, a method value) and calling through it take the same refusable allocations on both backends.

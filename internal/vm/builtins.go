@@ -28,7 +28,7 @@ func (m *Machine) builtin(name string, args []*obj) *obj {
 		line := append([]byte(m.display(args[0])), '\n')
 		if name == "eprint" {
 			m.writeErr(line)
-			if m.sh.faultArmed.CompareAndSwap(false, true) {
+			if m.opts.FaultArmOnEprint && m.sh.faultArmed.CompareAndSwap(false, true) {
 				m.sh.faultN.Store(0)
 			}
 		} else {

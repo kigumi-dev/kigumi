@@ -17000,6 +17000,23 @@
       ]
     },
     {
+      "id": "run/try_copy_after_primitives",
+      "kind": "run",
+      "path": "testdata/run/try_copy_after_primitives.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/try_family_array",
       "kind": "run",
       "path": "testdata/run/try_family_array.txtar",

@@ -8,10 +8,10 @@ func (m *Machine) tryFamily(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		if uint64(a0.i) >= maxVMAlloc || m.birthRefused(key, a0.i) {
 			return m.allocError()
 		}
-		return m.okBare(newArray(key, a0.i, nil))
+		return m.okTry(key, 1, newArray(key, a0.i, nil))
 	case "array.Array.trySlice":
 		if a1.i < 0 || a1.i > a2.i || a2.i > int64(len(a0.fields)) {
-			return m.ok(m.none())
+			return m.okTry(key, 1, m.none())
 		}
 		return m.tryOptionalCopy(key, a0, a1.i, a2.i)
 	case "array.Array.tryMap":
@@ -35,139 +35,132 @@ func (m *Machine) tryFamily(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		m.chargeMemory(a0)
 		return m.ok(mkBool(true))
 	case "alloc.Shared.tryGet":
-		if m.faultTick() {
-			return m.allocError()
-		}
-		return m.ok(m.copy(a0.opaqueData().(*sharedCtrl).cell.inner))
+		return m.okCopied(key, a0.opaqueData().(*sharedCtrl).cell.inner)
 	case "alloc.Shared.tryDowngrade":
-		if m.faultTick() {
+		if m.planRefused(key) {
 			return m.allocError()
 		}
 		c := a0.opaqueData().(*sharedCtrl)
 		c.weak++
-		return m.ok(mkOpaque("Weak", c))
+		return m.okPlanned(key, mkOpaque("Weak", c))
 	case "prelude.AllocError.wrap":
-		return m.okBare(retain(a[0]))
+		return m.okTry(key, 1, retain(a[0]))
 	case "prelude.String.trySliceBytes":
 		s, e := a1.i, a2.i
 		if s < 0 || s > e || e > int64(len(a0.str())) || !boundary(a0.str(), s) || !boundary(a0.str(), e) {
-			return m.ok(m.none())
+			return m.okTry(key, 1, m.none())
 		}
-		if m.faultTick() {
+		if m.planRefused(key) {
 			return m.allocError()
 		}
-		return m.ok(m.some(mkStr(append([]byte{}, a0.str()[s:e]...))))
+		return m.okPlanned(key, m.some(mkStr(append([]byte{}, a0.str()[s:e]...))))
 	case "prelude.Bytes.trySlice":
 		s, e := a1.i, a2.i
 		if s < 0 || s > e || e > int64(len(a0.str())) {
-			return m.ok(m.none())
+			return m.okTry(key, 1, m.none())
 		}
-		if m.faultTick() {
+		if m.planRefused(key) {
 			return m.allocError()
 		}
-		return m.ok(m.some(mkBytes(append([]byte{}, a0.str()[s:e]...))))
+		return m.okPlanned(key, m.some(mkBytes(append([]byte{}, a0.str()[s:e]...))))
 	case "map.Map.tryClone", "os.OsString.tryClone":
-		if m.faultTick() {
-			return m.allocError()
-		}
-		return m.ok(m.copy(a0))
+		return m.okCopied(key, a0)
 	case "map.Map.tryEntries":
 		return m.tryMapEntries(key, a0)
 	case "map.tryEmpty":
-		return m.tryEmptyRecord("std/map", "Map", 5)
+		return m.tryEmptyRecord(key, "std/map", "Map")
 	case "text.StringBuilder.tryNew":
-		return m.tryEmptyRecord("std/text", "StringBuilder", 1)
+		return m.tryEmptyRecord(key, "std/text", "StringBuilder")
 	}
 	return nil
 }
 
 // wrapRefused takes the two allocations (header, payload slots) of each variant layer native builds around a result.
-func (m *Machine) wrapRefused(layers int) bool {
-	for range 2 * layers {
-		if m.faultTick() {
-			return true
-		}
-	}
-	return false
-}
+func (m *Machine) wrapRefused(layers int) bool { return m.ticks(2 * layers) }
 
-// bareWrapRefused is wrapRefused for the ops with a direct result form (tryWithCapacity, trySlice,
-// AllocError.wrap), which skip the variant when the call site takes the payload bare.
+// bareWrapRefused is wrapRefused for the ops with a direct result form, which skip the variant when the call site takes the payload bare.
 func (m *Machine) bareWrapRefused(layers int) bool {
 	bare := m.tryBare
 	m.tryBare = false
 	return !bare && m.wrapRefused(layers)
 }
 
-func (m *Machine) okWrapped(v *obj) *obj {
-	if m.wrapRefused(1) {
-		m.release(v)
+func (m *Machine) okCopied(key string, v *obj) *obj {
+	c, ok := m.copyTry(v)
+	if !ok {
 		return m.allocError()
 	}
-	return m.ok(v)
-}
-
-func (m *Machine) okBare(v *obj) *obj {
-	if m.bareWrapRefused(1) {
-		m.release(v)
-		return m.allocError()
-	}
-	return m.ok(v)
+	return m.okTry(key, 1, c)
 }
 
 func (m *Machine) tryOptionalCopy(key string, src *obj, start, end int64) *obj {
 	if m.birthRefused(key, end-start) {
 		return m.allocError()
 	}
-	out := m.sized(newArray(key, end-start, copyList(m, src, start, end)))
-	if m.bareWrapRefused(2) {
-		m.release(out)
-		return m.allocError()
+	items := make([]*obj, 0, end-start)
+	for i := start; i < end; i++ {
+		x, ok := m.copyTry(src.fields[i])
+		if !ok {
+			m.releaseAll(items)
+			return m.allocError()
+		}
+		items = append(items, x)
 	}
-	return m.ok(m.some(out))
+	return m.okTry(key, 2, m.some(m.sized(newArray(key, end-start, items))))
 }
 
-func copyList(m *Machine, src *obj, start, end int64) []*obj {
+func (m *Machine) releaseAll(items []*obj) {
+	for _, x := range items {
+		m.release(x)
+	}
+}
+
+func copyItems(m *Machine, src *obj, start, end int64) *obj {
 	out := make([]*obj, 0, end-start)
 	for i := start; i < end; i++ {
 		out = append(out, m.copy(src.fields[i]))
 	}
-	return out
-}
-
-func copyItems(m *Machine, src *obj, start, end int64) *obj {
-	return m.sized(mkArray(copyList(m, src, start, end)))
+	return m.sized(mkArray(out))
 }
 
 func (m *Machine) tryMapEntries(key string, mp *obj) *obj {
-	if m.birthRefused(key, int64(len(deref(mp.fields[0]).fields))) {
+	keys, values := deref(mp.fields[0]), deref(mp.fields[1])
+	if m.birthRefused(key, int64(len(keys.fields))) {
 		return m.allocError()
 	}
-	keys, values := deref(mp.fields[0]), deref(mp.fields[1])
 	entry := m.lookup("std/map", "Entry")
 	out := make([]*obj, len(keys.fields))
 	for i := range out {
-		if m.faultTick() || m.faultTick() {
-			for _, built := range out[:i] {
-				m.release(built)
-			}
+		if m.ticks(2) {
+			m.releaseAll(out[:i])
 			return m.allocError()
 		}
-		out[i] = mkRecord(entry, []*obj{m.copy(keys.fields[i]), m.copy(values.fields[i])})
+		k, ok := m.copyTry(keys.fields[i])
+		var v *obj
+		if ok {
+			v, ok = m.copyTry(values.fields[i])
+		}
+		if !ok {
+			m.releaseAll(out[:i])
+			m.release(k)
+			return m.allocError()
+		}
+		out[i] = mkRecord(entry, []*obj{k, v})
 	}
-	return m.okWrapped(m.sized(newArray(key, int64(len(out)), out)))
+	return m.okTry(key, 1, m.sized(newArray(key, int64(len(out)), out)))
 }
 
-// tryEmptyRecord builds a std record whose n fields are all empty arrays.
-func (m *Machine) tryEmptyRecord(pkg, name string, n int) *obj {
-	if m.faultTick() {
+// tryEmptyRecord builds a std record whose fields are all empty arrays: the record's header and slots, then each array's header.
+func (m *Machine) tryEmptyRecord(key, pkg, name string) *obj {
+	ent := m.lookup(pkg, name)
+	fields := make([]*obj, len(m.r.TypeDecl(ent).Fields))
+	if m.ticks(2 + len(fields)) {
 		return m.allocError()
 	}
-	fields := make([]*obj, n)
 	for i := range fields {
 		fields[i] = mkArray(nil)
 	}
-	return m.ok(mkRecord(m.lookup(pkg, name), fields))
+	return m.okTry(key, 1, mkRecord(ent, fields))
 }
 
 func (m *Machine) sized(v *obj) *obj {

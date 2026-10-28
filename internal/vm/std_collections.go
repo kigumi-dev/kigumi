@@ -29,10 +29,10 @@ func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		}
 		if !m.writableInside(a1) {
 			a0.fields = append(a0.fields, retain(a1))
-		} else if m.faultTick() {
-			return mkBool(false)
+		} else if x, ok := m.copyTry(a1); ok {
+			a0.fields = append(a0.fields, x)
 		} else {
-			a0.fields = append(a0.fields, m.copy(a1))
+			return mkBool(false)
 		}
 		m.chargeMemory(a0)
 		return mkBool(true)

@@ -1,0 +1,81 @@
+-- src --
+import map from std/map
+import text from std/text
+import {Box, Shared} from std/alloc
+
+type Cell = {
+    mut n Int
+}
+
+fn big(c: &Cell) -> Bool {
+    c.n > 1
+}
+
+fn total(xs: &Array[Cell]) -> Int {
+    let mut sum = 0
+    for c in xs {
+        sum = sum + c.n
+    }
+    sum
+}
+
+let cells = Array.of(Cell { n: 1 }, Cell { n: 2 }, Cell { n: 3 })
+
+let mut sliced = cells.trySlice(0, 3).unwrap().unwrap()
+sliced.tryPush(Cell { n: 4 }).unwrap()
+for i in 0..9 {
+    sliced.push(Cell { n: i })
+}
+print "slice len=${sliced.len()} sum=${total(&sliced)}"
+
+let mut cloned = cells.tryClone().unwrap()
+cloned.tryPush(Cell { n: 4 }).unwrap()
+for i in 0..9 {
+    cloned.push(Cell { n: i })
+}
+print "clone len=${cloned.len()} sum=${total(&cloned)}"
+
+let mut kept = cells.tryFilter(big).unwrap()
+kept.tryPush(Cell { n: 4 }).unwrap()
+for i in 0..9 {
+    kept.push(Cell { n: i })
+}
+print "filter len=${kept.len()} sum=${total(&kept)}"
+
+let mut m = map.tryEmpty[Int, Cell]().unwrap()
+m.set(1, Cell { n: 10 })
+m.set(2, Cell { n: 20 })
+let mut copy = m.tryClone().unwrap()
+copy.set(3, Cell { n: 30 })
+copy.set(4, Cell { n: 40 })
+print "map len=${m.len()} copy=${copy.len()}"
+
+let mut entries = m.tryEntries().unwrap()
+entries.tryReserve(1).unwrap()
+print "entries len=${entries.len()}"
+
+let shared = Shared.tryNew(Cell { n: 7 }).unwrap()
+print "shared n=${shared.tryGet().unwrap().n}"
+
+let b = Box.tryNew(5).unwrap()
+print "box ${b.get()}"
+
+let mut builder = text.StringBuilder.tryNew().unwrap()
+builder.tryPush("ab").unwrap()
+print "builder ${builder.tryFreeze().unwrap()}"
+
+let zeros = Bytes.tryZeros(3).unwrap()
+let joined = zeros.tryConcat(zeros).unwrap()
+print "bytes ${joined.len()} ${joined.trySlice(1, 4).unwrap().unwrap().len()}"
+print "text ${"hello".trySliceBytes(1, 3).unwrap().unwrap()}"
+-- stdout --
+slice len=13 sum=46
+clone len=13 sum=46
+filter len=12 sum=45
+map len=2 copy=4
+entries len=2
+shared n=7
+box 5
+builder ab
+bytes 6 3
+text el

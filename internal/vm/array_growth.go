@@ -22,7 +22,7 @@ func exactCap(n int64) int64 { return n }
 func one(*obj) uint64 { return 1 }
 
 // arrayCapRules lists every primitive that sizes an array, keyed like the native std op table.
-// Arrays made outside it (literals, copies, slices) are rt_array's and take literalCap.
+// Arrays made outside it (literals, rt_copy) are rt_array's and take literalCap; copy_try's are exact (copy_ticked.go).
 var arrayCapRules = map[string]capRule{
 	"array.Array.empty":           {born: literalCap},
 	"array.Array.tryWithCapacity": {born: exactCap},

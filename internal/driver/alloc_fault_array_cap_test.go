@@ -84,6 +84,90 @@ fn main() {
     print "ok"
 }
 `,
+	"entries_push": `import map from std/map
+
+fn main() {
+    let mut m = map.empty[Int, Int]()
+    m.set(1, 10)
+    m.set(2, 20)
+    let mut es = m.tryEntries().unwrap()
+    let r = es.tryReserve(1)
+    print "ok"
+}
+`,
+	"map_clone_set": `import map from std/map
+
+fn main() {
+    let mut m = map.empty[Int, Int]()
+    m.set(1, 10)
+    m.set(2, 20)
+    let mut c = m.tryClone().unwrap()
+    c.set(3, 30)
+    c.set(4, 40)
+    print "ok"
+}
+`,
+	"slice_records": `type Cell = {
+    mut n Int
+}
+
+fn main() {
+    let a = Array.of(Cell { n: 1 }, Cell { n: 2 })
+    let mut b = a.trySlice(0, 2).unwrap().unwrap()
+    let r = b.tryPush(Cell { n: 3 })
+    for i in 0..12 {
+        b.push(Cell { n: 3 })
+    }
+    print "ok"
+}
+`,
+	"clone_records": `type Cell = {
+    mut n Int
+}
+
+fn main() {
+    let a = Array.of(Cell { n: 1 }, Cell { n: 2 })
+    let mut b = a.tryClone().unwrap()
+    let r = b.tryPush(Cell { n: 3 })
+    for i in 0..12 {
+        b.push(Cell { n: 3 })
+    }
+    print "ok"
+}
+`,
+	"filter_records": `type Cell = {
+    mut n Int
+}
+
+fn big(c: &Cell) -> Bool {
+    c.n > 1
+}
+
+fn main() {
+    let a = Array.of(Cell { n: 1 }, Cell { n: 2 }, Cell { n: 3 })
+    let mut k = a.tryFilter(big).unwrap()
+    let r = k.tryPush(Cell { n: 4 })
+    for i in 0..12 {
+        k.push(Cell { n: 5 })
+    }
+    print "ok"
+}
+`,
+	"entries_records": `import map from std/map
+
+type Cell = {
+    mut n Int
+}
+
+fn main() {
+    let mut m = map.empty[Int, Cell]()
+    m.set(1, Cell { n: 1 })
+    m.set(2, Cell { n: 2 })
+    let mut es = m.tryEntries().unwrap()
+    let r = es.tryReserve(1)
+    print "ok"
+}
+`,
 	"concat_push": `fn main() {
     let a = Array.of(1, 2, 3)
     let mut k = a.tryConcat(Array.of(4)).unwrap()
@@ -103,11 +187,11 @@ func TestArrayCapacityTicksAgree(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			m := loadSweepModule(t, src, "")
-			vmExits := vmSweepExits(t, m)
+			vmExits := vmSweepExitsTo(t, m, 30, false)
 			if vmExits[0] == 0 {
 				t.Fatalf("vm: the first allocation was not refused: %v", vmExits)
 			}
-			if native := nativeSweepExits(t, m); !slices.Equal(vmExits, native) {
+			if native := nativeSweepExitsTo(t, m, 30, false); !slices.Equal(vmExits, native) {
 				t.Errorf("fault sweep exits differ\nvm:     %v\nnative: %v", vmExits, native)
 			}
 		})
