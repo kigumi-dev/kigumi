@@ -52,7 +52,7 @@ func cellUses(p *Program, g *Func, cell LocalID, depth int) []cellUse {
 // cellAccess is the place one instruction other than a closure's construction reaches in cell, if any.
 func cellAccess(g *Func, defs map[LocalID]*Inst, chained map[LocalID]bool, cell LocalID, in Inst) (cellUse, bool) {
 	place := func(l LocalID) (stepPath, bool, bool) {
-		root, path, exact, ok := cellContentPlace(g, defs, l)
+		root, path, exact, ok := storageContentPlace(g, defs, l)
 		return path, exact, ok && root == cell
 	}
 	switch in.Op {
@@ -80,9 +80,8 @@ func cellAccess(g *Func, defs map[LocalID]*Inst, chained map[LocalID]bool, cell 
 	return cellUse{nil, true}, slices.Contains(in.Args, cell)
 }
 
-// cellContentPlace follows a temporary back to the cell whose content it reads, with the field chain; an index or unbox
-// step cuts the chain there, as walkPlace does.
-func cellContentPlace(g *Func, defs map[LocalID]*Inst, l LocalID) (cell LocalID, path stepPath, exact, ok bool) {
+// An index or unbox cuts the field chain because the selected element has no fixed field path.
+func storageContentPlace(g *Func, defs map[LocalID]*Inst, l LocalID) (root LocalID, path stepPath, exact, ok bool) {
 	exact = true
 	for g.Locals[l].Ent == 0 {
 		d := defs[l]
@@ -100,7 +99,7 @@ func cellContentPlace(g *Func, defs map[LocalID]*Inst, l LocalID) (cell LocalID,
 		}
 		l = d.Args[0]
 	}
-	return 0, nil, false, false
+	return l, path, exact, true
 }
 
 // chainedTemps are g's temporaries used only as the base of a further projection, store or borrow.

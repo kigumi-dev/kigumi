@@ -18,6 +18,7 @@ type erasedReaders struct {
 	// site is where the closure a holder runs became a plain `fn`; found keeps the earliest write seen for each site.
 	site  map[LocalID]syntax.NodeID
 	found map[syntax.NodeID]erasedWrite
+	prior map[reportKey]int
 	fates fateMemo
 	defs  map[LocalID]*Inst
 	win   erasedWindow
@@ -31,14 +32,15 @@ type erasedWrite struct {
 
 // checkErasedReaders: a plain `fn` cannot share a cell, so the local is not written between the making of a closure reading
 // it and the last run of the plain `fn` made from it; sem judges writes made inside closures.
-func checkErasedReaders(p *Program, f *Func) {
+func checkErasedReaders(p *Program, f *Func, prior map[reportKey]int) {
 	if !slices.ContainsFunc(f.Blocks, func(b Block) bool {
-		return slices.ContainsFunc(b.Insts, func(in Inst) bool { return storageClosure(p, in, storageReach) })
+		return slices.ContainsFunc(b.Insts, func(in Inst) bool { return storageClosure(p, in, lentReach) })
 	}) {
 		return
 	}
 	e := &erasedReaders{bc: quietBorrowCheck(p, f), p: p, f: f, closures: map[LocalID][]capturedPlace{}, caps: map[LocalID][]capturedPlace{},
-		site: map[LocalID]syntax.NodeID{}, found: map[syntax.NodeID]erasedWrite{}, fates: fateMemo{results: map[resultKey]paramFate{}, checks: map[*Func]*borrowCheck{}}, defs: soleDefs(f)}
+		site: map[LocalID]syntax.NodeID{}, found: map[syntax.NodeID]erasedWrite{}, prior: prior,
+		fates: fateMemo{results: map[resultKey]paramFate{}, checks: map[*Func]*borrowCheck{}}, defs: soleDefs(f)}
 	e.solve()
 	if len(e.caps) > 0 {
 		c := newReadCheck(p, f)

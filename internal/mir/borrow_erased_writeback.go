@@ -23,21 +23,26 @@ func (e *erasedReaders) callWrites(in Inst, owner LocalID) []stepPath {
 	if in.Op != OpCall && in.Op != OpCallValue {
 		return nil
 	}
-	g := e.callee(in)
 	var out []stepPath
-	for k, a := range in.Args {
-		lent, ok := e.lentCellPlace(a, owner)
-		if !ok {
-			continue
-		}
-		if g == nil || !g.Locals[g.Params[k]].Cell {
-			out = append(out, lent)
-			continue
-		}
-		for _, u := range cellUses(e.p, g, g.Params[k], 0) {
-			if u.writes {
-				out = append(out, lent.with(u.path...))
-			}
+	for k := range in.Args {
+		out = append(out, e.argWrites(in, k, owner)...)
+	}
+	return out
+}
+
+func (e *erasedReaders) argWrites(in Inst, k int, owner LocalID) []stepPath {
+	lent, ok := e.lentCellPlace(in.Args[k], owner)
+	if !ok {
+		return nil
+	}
+	g := e.callee(in)
+	if g == nil || !g.Locals[g.Params[k]].Cell {
+		return []stepPath{lent}
+	}
+	var out []stepPath
+	for _, u := range cellUses(e.p, g, g.Params[k], 0) {
+		if u.writes {
+			out = append(out, lent.with(u.path...))
 		}
 	}
 	return out

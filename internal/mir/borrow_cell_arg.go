@@ -16,20 +16,14 @@ func (c *borrowCheck) argRunnable(in Inst, i int) bool {
 		if i == 0 {
 			return true
 		}
-		params, known := c.calleeParams(c.f.Locals[in.Args[0]].Type)
-		return !known || i-1 >= len(params) || c.typeRuns(params[i-1], runsCall)
+		t, known := c.callParam(c.f, in, i)
+		return !known || c.typeRuns(t, runsCall)
 	case OpCall:
 		if in.Ent == 0 || c.p.R.Entity(in.Ent).Kind != sem.EntFn {
 			return true
 		}
-		info := c.p.R.Fn(in.Ent)
-		if info.Recv != sem.RecvNone {
-			if i == 0 {
-				return (info.SelfParam == 0 || c.typeRuns(c.p.R.Entity(info.SelfParam).Type, runsCall)) && c.mayRun(in.Ent)
-			}
-			i--
-		}
-		return (i >= len(info.Params) || c.typeRuns(c.p.R.Entity(info.Params[i]).Type, runsCall)) && c.mayRun(in.Ent)
+		t, known := c.callParam(c.f, in, i)
+		return (!known || c.typeRuns(t, runsCall)) && c.mayRun(in.Ent)
 	}
 	return false
 }

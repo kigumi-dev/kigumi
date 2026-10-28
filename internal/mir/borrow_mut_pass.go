@@ -24,12 +24,12 @@ func (c *borrowCheck) passesMutRef(in Inst, owner LocalID) bool {
 	if in.Ent != 0 {
 		return false
 	}
-	params, known := c.calleeParams(c.f.Locals[in.Args[0]].Type)
 	for i := 1; i < len(in.Args); i++ {
 		if c.refOf(in.Args[i]) != owner {
 			continue
 		}
-		if !known || i-1 < len(params) && tt.Kind(params[i-1]) == sem.KRef && tt.RefMut(params[i-1]) {
+		t, known := c.callParam(c.f, in, i)
+		if !known || tt.Kind(t) == sem.KRef && tt.RefMut(t) {
 			return true
 		}
 	}

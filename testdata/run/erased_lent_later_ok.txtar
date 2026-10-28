@@ -149,12 +149,91 @@ fn laterWritesOtherFieldThroughCalls() -> String {
     "${x} ${y} ${p.a} ${z} ${w} ${q.p.a}"
 }
 
+interface Runner { fn run(self, f: fn() -> Int, x: Int) -> Int }
+interface SiblingRunner { fn both(self, f: fn() -> Int, g: fn() -> Void, x: Int) -> Int }
+@impl(Runner, SiblingRunner)
+type RunnerValue = { pub n Int }
+fn RunnerValue.run(self, f: fn() -> Int, x: Int) -> Int { f() + x + self.n }
+fn RunnerValue.both(self, f: fn() -> Int, g: fn() -> Void, x: Int) -> Int { g(); f() + x + self.n }
+
+fn viaBound[T: Runner](r: &T) -> Int {
+    let mut k = 1
+    let a = r.run(() => k, { k + 1 })
+    a + bump(&mut k)
+}
+
+fn viaBoundVal[T: Runner](r: T) -> Int {
+    let mut k = 1
+    let a = r.run(() => k, { k + 1 })
+    a + bump(&mut k)
+}
+
+fn besideBound[T: Runner](r: &T) -> Int {
+    let mut k = 1
+    let mut seen = 0
+    let mut w = () => { seen = k + 1 }
+    let a = r.run(() => k, { w(); 0 })
+    let b = bump(&mut k)
+    a + seen
+}
+
+fn viaView(r: &Runner) -> Int {
+    let mut k = 1
+    let a = r.run(() => k, { k + 1 })
+    a + bump(&mut k)
+}
+
+fn boundSibling[T: SiblingRunner](r: &T) -> Int {
+    let mut k = 1
+    let mut seen = 0
+    let mut w = () => { seen = k + 1 }
+    let a = r.both(() => k, () => w(), 0)
+    let b = bump(&mut k)
+    a + seen
+}
+
+fn P.useF(mut self, f: fn() -> Int) -> Int { self.a = self.a + 1; f() }
+fn P.useG(mut self, f: fn() -> Int) -> Int { self.a = self.a + 1; f() }
+
+fn sameCallReceiverWritesOther() -> String {
+    let mut p = P { a: 1, b: 2 }
+    let x = p.useG(() => p.b)
+    let mut q = P { a: 1, b: 2 }
+    let a = q.a
+    let y = q.useF(() => a)
+    "${x} ${p.a} ${y} ${q.a}"
+}
+
+fn loopLentWindows() -> String {
+    let mut k = 1
+    let mut s = 0
+    for i in 0..2 { s = s + apply2(() => k, 0); k = k + 1 }
+    let mut t = 0
+    let mut j = 0
+    for j < 2 { t = t + apply2(() => k, { if j == 5 { k = k + 1; continue }; 0 }); j = j + 1 }
+    "${s} ${k} ${t}"
+}
+
+fn loopContinue() -> String {
+    let mut k = 1
+    let mut t = 0
+    let mut j = 0
+    for j < 3 {
+        t = t + apply2(() => k, { if j == 1 { k = k + 1; j = j + 1; continue }; 0 })
+        j = j + 1
+    }
+    "${t} ${k} ${j}"
+}
+
 fn main() {
     print "${laterBlockReads()} | ${laterValueReads()} | ${laterBorrowReads()} | ${laterRunsReader()} | ${laterCallRunsReader()}"
     print "${laterReceiverReads()} | ${laterWritesOtherField()} | ${earlierNamedArgWrites()} | ${laterNestedCallReads()}"
     print "${laterWriteLeaves(true)} ${laterWriteLeaves(false)} | ${namedReaderLaterRead()} | ${fnBoundLaterRead()}"
     print "${sharedLaterWrite()} ${sharedLaterBorrow()} ${sharedLaterReceiver()} ${sharedLaterNamedArg()}"
     print "${recordArgReads()} | ${recordRefReads()} | ${laterWritesOtherFieldThroughCalls()}"
+    let r = RunnerValue { n: 0 }
+    print "${viaBound(&r)} ${viaBoundVal(r)} ${besideBound(&r)} ${viaView(&r)} ${boundSibling(&r)}"
+    print "${sameCallReceiverWritesOther()} | ${loopLentWindows()} | ${loopContinue()}"
 }
 -- stdout --
 1 2 2 | 3 2 | 11 2 | 1 2 2 | 1 6 2
@@ -162,3 +241,5 @@ fn main() {
 0 1 | 3 2 | 3
 2 2 2 122
 1 2 2 | 1 2 2 | 2 2 3 5 5 3
+3 3 3 3 3
+2 2 1 2 | 3 3 6 | 3 2 3

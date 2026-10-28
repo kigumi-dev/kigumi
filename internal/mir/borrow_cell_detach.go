@@ -64,28 +64,12 @@ func (c *borrowCheck) handsToUnknown(g *Func) (bool, []sem.EntityID) {
 // slotKeepsHandle reports whether argument k of call in, in body g, goes to a parameter whose declared type can keep a
 // Future or Task, by the argument's own type where the parameter is unknown; the callee value itself is not handed on.
 func (c *borrowCheck) slotKeepsHandle(g *Func, in Inst, k int) bool {
-	t := g.Locals[in.Args[k]].Type
-	switch in.Op {
-	case OpCallValue:
-		if k == 0 {
-			return false
-		}
-		if params, known := c.calleeParams(g.Locals[in.Args[0]].Type); known && k-1 < len(params) {
-			t = params[k-1]
-		}
-	case OpCall:
-		if in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn {
-			info := c.p.R.Fn(in.Ent)
-			params := info.Params
-			if info.Recv != sem.RecvNone {
-				params = append([]sem.EntityID{info.SelfParam}, params...)
-			}
-			if k < len(params) && params[k] != 0 {
-				t = c.p.R.Entity(params[k]).Type
-			}
-		}
-	default:
+	if in.Op == OpCallValue && k == 0 || in.Op != OpCall && in.Op != OpCallValue {
 		return false
+	}
+	t, known := c.callParam(g, in, k)
+	if !known {
+		t = g.Locals[in.Args[k]].Type
 	}
 	return c.typeRuns(t, runsHandle)
 }

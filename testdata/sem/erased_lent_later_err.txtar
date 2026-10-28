@@ -176,6 +176,49 @@ fn laterFieldReceiverWritesOther() -> Int {
     let mut q = Q { p: P { a: 1, b: 2 }, c: 3 }
     apply2(() => q.p.b + q.c, q.p.incA())
 }
+
+interface Runner { fn run(self, f: fn() -> Int, x: Int) -> Int }
+interface SiblingRunner { fn both(self, f: fn() -> Int, g: fn() -> Void, x: Int) -> Int }
+
+fn viaBound[T: Runner](r: &T) -> Int {
+    let mut k = 1
+    r.run(() => k, { k = k + 1; 0 }) //~ ERROR closure captures `k` (written outside this closure
+}
+
+fn viaBoundVal[T: Runner](r: T) -> Int {
+    let mut k = 1
+    r.run(() => k, { k = k + 1; 0 }) //~ ERROR closure captures `k` (written outside this closure
+}
+
+fn besideBound[T: Runner](r: &T) -> Int {
+    let mut k = 1
+    let mut w = () => { k = k + 1 }
+    r.run(() => k, { w(); 0 }) //~ ERROR closure captures `k` (written outside this closure
+}
+
+fn viaView(r: &Runner) -> Int {
+    let mut k = 1
+    r.run(() => k, { k = k + 1; 0 }) //~ ERROR closure captures `k` (written outside this closure
+}
+
+fn boundSibling[T: SiblingRunner](r: &T) -> Int {
+    let mut k = 1
+    let mut w = () => { k = k + 1 }
+    r.both(() => k, () => w(), 0) //~ ERROR closure captures `k` (written outside this closure
+}
+
+fn P.useF(mut self, f: fn() -> Int) -> Int { self.a = self.a + 1; f() }
+fn P.useG(mut self, f: fn() -> Int) -> Int { self.a = self.a + 1; f() }
+
+fn sameCallReceiverWrites() -> Int {
+    let mut p = P { a: 1, b: 2 }
+    p.useF(() => p.a) //~ ERROR closure captures `p` (written outside this closure
+}
+
+fn sameCallReceiverWritesOther() -> Int {
+    let mut p = P { a: 1, b: 2 }
+    p.useG(() => p.b)
+}
 -- expect --
 error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
   --> main.kg:13:11
@@ -344,4 +387,76 @@ note: `q` is written here after the closure was made and before the call it is l
     |
 169 |     apply2(() => q.p.a, q.p.incA()) //~ ERROR closure captures `q` (written outside this closure
     |                         ^^^^^^^^^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:182:11
+    |
+182 |     r.run(() => k, { k = k + 1; 0 }) //~ ERROR closure captures `k` (written outside this closure
+    |           ^^^^^^^
+    = help: a plain `fn` cannot share a captured variable's cell; write `k` before the closure is made, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: `k` is written here after the closure was made and before the call it is lent to runs it
+   --> main.kg:182:22
+    |
+182 |     r.run(() => k, { k = k + 1; 0 }) //~ ERROR closure captures `k` (written outside this closure
+    |                      ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:187:11
+    |
+187 |     r.run(() => k, { k = k + 1; 0 }) //~ ERROR closure captures `k` (written outside this closure
+    |           ^^^^^^^
+    = help: a plain `fn` cannot share a captured variable's cell; write `k` before the closure is made, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: `k` is written here after the closure was made and before the call it is lent to runs it
+   --> main.kg:187:22
+    |
+187 |     r.run(() => k, { k = k + 1; 0 }) //~ ERROR closure captures `k` (written outside this closure
+    |                      ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:193:11
+    |
+193 |     r.run(() => k, { w(); 0 }) //~ ERROR closure captures `k` (written outside this closure
+    |           ^^^^^^^
+    = help: a plain `fn` cannot share a captured variable's cell; write `k` before the closure is made, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: `k` is written here after the closure was made and before the call it is lent to runs it
+   --> main.kg:193:22
+    |
+193 |     r.run(() => k, { w(); 0 }) //~ ERROR closure captures `k` (written outside this closure
+    |                      ^^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:198:11
+    |
+198 |     r.run(() => k, { k = k + 1; 0 }) //~ ERROR closure captures `k` (written outside this closure
+    |           ^^^^^^^
+    = help: a plain `fn` cannot share a captured variable's cell; write `k` before the closure is made, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: `k` is written here after the closure was made and before the call it is lent to runs it
+   --> main.kg:198:22
+    |
+198 |     r.run(() => k, { k = k + 1; 0 }) //~ ERROR closure captures `k` (written outside this closure
+    |                      ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:204:12
+    |
+204 |     r.both(() => k, () => w(), 0) //~ ERROR closure captures `k` (written outside this closure
+    |            ^^^^^^^
+    = help: a plain `fn` cannot share a captured variable's cell; read what it needs from `k` into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: this argument of the same call may write `k` while the call runs the plain `fn`
+   --> main.kg:204:21
+    |
+204 |     r.both(() => k, () => w(), 0) //~ ERROR closure captures `k` (written outside this closure
+    |                     ^^^^^^^^
+
+error[E413]: closure captures `p` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:212:12
+    |
+212 |     p.useF(() => p.a) //~ ERROR closure captures `p` (written outside this closure
+    |            ^^^^^^^^^
+    = help: a plain `fn` cannot share a captured variable's cell; read what it needs from `p` into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: this argument of the same call may write `p` while the call runs the plain `fn`
+   --> main.kg:212:5
+    |
+212 |     p.useF(() => p.a) //~ ERROR closure captures `p` (written outside this closure
+    |     ^
 

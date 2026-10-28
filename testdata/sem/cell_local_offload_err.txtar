@@ -1215,6 +1215,35 @@ async fn plainLendBesideFirstParam(g: Future[Int]) -> Int {
     let k = other.len().toInt() || 0
     k + await g
 }
+interface Consumer { fn take(self, f: Future[Int], x: Int) }
+interface Observer { fn inspect(self, f: &Future[Int], x: Int) }
+
+async fn detachThroughBound[T: Consumer](t: &T) -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let fut = pool.run(() => { other = "x"; 1 }).unwrap()
+    t.take(fut, 0)
+    other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+}
+
+async fn afterBoundBorrow[T: Observer](t: &T) -> Int {
+    let pool = task.BlockingPool.new(1)
+    let mut other = "o"
+    let fut = pool.run(() => { other = "x"; 1 }).unwrap()
+    t.inspect(&fut, 0)
+    let n = await fut
+    n + (other.len().toInt() || 0)
+}
+
+type BoundPayload = Data(Array[Int], Array[Int]) | Empty
+interface Reset { fn reset(self, e: &mut BoundPayload, x: Int) }
+
+fn mutPassThroughBound[T: Reset](t: &T, e: &mut BoundPayload) {
+    if e is Data(x, _) {
+        t.reset(e, 0) //~ ERROR `e` is exclusively borrowed
+        x.push(1)
+    }
+}
 -- expect --
 error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
   --> main.kg:12:13
@@ -2021,4 +2050,28 @@ note: the closure is handed off here
      |
 1173 |     let o = Some(pool.run(() => { other = "x"; 1 }).unwrap())
      |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
+    --> main.kg:1223:5
+     |
+1223 |     other.len().toInt() || 0 //~ ERROR `other` is written by a closure that may still be running on another thread
+     |     ^^^^^
+     = help: await the result of the hand-off before using `other`, or give the closure a copy of its own
+note: the closure is handed off here
+    --> main.kg:1221:15
+     |
+1221 |     let fut = pool.run(() => { other = "x"; 1 }).unwrap()
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `e` is exclusively borrowed and cannot be used here
+    --> main.kg:1240:9
+     |
+1240 |         t.reset(e, 0) //~ ERROR `e` is exclusively borrowed
+     |         ^^^^^^^^^^^^
+     = help: end the borrow first or use a copy
+note: `e` is borrowed here
+    --> main.kg:1239:18
+     |
+1239 |     if e is Data(x, _) {
+     |                  ^
 
