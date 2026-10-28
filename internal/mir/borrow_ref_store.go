@@ -28,10 +28,6 @@ func (c *borrowCheck) refRoot(l LocalID) (LocalID, bool) {
 		}
 		switch in.Op {
 		case OpBorrow, OpCopy, OpMove, OpAlias, OpShare, OpNewCell:
-		case OpCellGet:
-			if !c.paramCell(in.Args[0]) {
-				return 0, false
-			}
 		case OpPayload, OpField, OpIndex, OpUnbox:
 			if isRef(l) && !isRef(in.Args[0]) {
 				return 0, false

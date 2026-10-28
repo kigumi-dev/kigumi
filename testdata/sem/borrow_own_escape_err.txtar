@@ -74,6 +74,65 @@ fn Own['a].movedCaptureRead(mut self) {
     let r = &mut self.own
     apply((x: V['a]) => { let q = r; _ = q.len() }, V { s: &loc }) //~ ERROR is lent to this closure and cannot be moved out
 }
+
+fn applyIn['b](g: fn(V['b]) -> Void, x: V['b]) { g(x) }
+fn applyDeep['c](g: fn(V['c]) -> Void, x: V['c]) { g(x) }
+
+fn nestedLocalPushed['a](k: Own['a], out: &mut Array[Own['a]]) {
+    let loc = "frame-local-${churn()}"
+    let mut c = k
+    let r = &mut c.own
+    apply((x: V['a]) => { applyIn((y: V['a]) => { r.push(y) }, x) }, V { s: &loc })
+    out.push(c) //~ ERROR a borrow cannot be stored into `out` here
+}
+
+fn nestedReturned['a](mut k: Own['a]) -> Own['a] {
+    let loc = "frame-local-${churn()}"
+    let r = &mut k.own
+    apply((x: V['a]) => { applyIn((y: V['a]) => { r.push(y) }, x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `k` here
+    k
+}
+
+fn Own['a].nestedSelf(mut self) {
+    let loc = "frame-local-${churn()}"
+    let r = &mut self.own
+    apply((x: V['a]) => { applyIn((y: V['a]) => { r.push(y) }, x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `self` here
+}
+
+fn nestedRefParam['a](k: &mut Own['a]) {
+    let loc = "frame-local-${churn()}"
+    let r = &mut k.own
+    apply((x: V['a]) => { applyIn((y: V['a]) => { r.push(y) }, x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `k` here
+}
+
+fn deepLocalPushed['a](k: Own['a], out: &mut Array[Own['a]]) {
+    let loc = "frame-local-${churn()}"
+    let mut c = k
+    let r = &mut c.own
+    apply((x: V['a]) => { applyIn((y: V['a]) => { applyDeep((z: V['a]) => { r.push(z) }, y) }, x) }, V { s: &loc })
+    out.push(c) //~ ERROR a borrow cannot be stored into `out` here
+}
+
+fn deepReturned['a](mut k: Own['a]) -> Own['a] {
+    let loc = "frame-local-${churn()}"
+    let r = &mut k.own
+    apply((x: V['a]) => { applyIn((y: V['a]) => { applyDeep((z: V['a]) => { r.push(z) }, y) }, x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `k` here
+    k
+}
+
+fn Own['a].deepSelf(mut self) {
+    let loc = "frame-local-${churn()}"
+    let r = &mut self.own
+    apply((x: V['a]) => { applyIn((y: V['a]) => { applyDeep((z: V['a]) => { r.push(z) }, y) }, x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `self` here
+}
+
+fn deepRefParam['a](k: &mut Own['a]) {
+    let loc = "frame-local-${churn()}"
+    let r = &mut k.own
+    apply((x: V['a]) => { applyIn((y: V['a]) => { applyDeep((z: V['a]) => { r.push(z) }, y) }, x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `k` here
+}
+
+fn churn() -> Int { let mut arr: Array[String] = Array.of("x"); for i in 100..400 { arr.push("w${i}") }; arr.len().toInt() || 0 }
 -- expect --
 error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
   --> main.kg:11:5
@@ -170,4 +229,52 @@ error[move-from-borrow]: `r` is lent to this closure and cannot be moved out; wr
    |
 72 |     apply((x: V['a]) => { let q = r; _ = q.len() }, V { s: &loc }) //~ ERROR is lent to this closure and cannot be moved out
    |                                   ^
+
+error[E2159]: a borrow cannot be stored into `out` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:83:5
+   |
+83 |     out.push(c) //~ ERROR a borrow cannot be stored into `out` here
+   |     ^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:89:5
+   |
+89 |     apply((x: V['a]) => { applyIn((y: V['a]) => { r.push(y) }, x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `k` here
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `self` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:96:5
+   |
+96 |     apply((x: V['a]) => { applyIn((y: V['a]) => { r.push(y) }, x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `self` here
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:102:5
+    |
+102 |     apply((x: V['a]) => { applyIn((y: V['a]) => { r.push(y) }, x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `k` here
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `out` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:110:5
+    |
+110 |     out.push(c) //~ ERROR a borrow cannot be stored into `out` here
+    |     ^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:116:5
+    |
+116 |     apply((x: V['a]) => { applyIn((y: V['a]) => { applyDeep((z: V['a]) => { r.push(z) }, y) }, x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `k` here
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `self` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:123:5
+    |
+123 |     apply((x: V['a]) => { applyIn((y: V['a]) => { applyDeep((z: V['a]) => { r.push(z) }, y) }, x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `self` here
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:129:5
+    |
+129 |     apply((x: V['a]) => { applyIn((y: V['a]) => { applyDeep((z: V['a]) => { r.push(z) }, y) }, x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `k` here
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

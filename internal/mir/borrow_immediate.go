@@ -5,6 +5,7 @@ import "kigumi/internal/sem"
 // checkImmediateCaptures: a capBorrow closure's owners must stay untouched from its creation to the call it feeds.
 func checkImmediateCaptures(p *Program, f *Func) map[reportKey]int {
 	c := quietBorrowCheck(p, f)
+	memo := flowMemo{}
 	for bi := range f.Blocks {
 		blk := &f.Blocks[bi]
 		for i, in := range blk.Insts {
@@ -20,7 +21,7 @@ func checkImmediateCaptures(p *Program, f *Func) map[reportKey]int {
 			for ci, cap := range info.Captures {
 				if h, ok := c.holders[in.Args[ci]]; ok {
 					if h.hasOwner {
-						for _, o := range h.owners {
+						for _, o := range c.flowOwners(in.Args[ci], memo) {
 							owners = append(owners, o.owner)
 						}
 					}

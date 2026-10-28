@@ -130,6 +130,51 @@ fn capturedOwnLifetime() -> String {
     "${a.len()} ${a[1].s} ${a[2].s} ${a[3].s} ${a[4].s} ${a[5].s} ${a[6].s} ${n}"
 }
 
+fn applyIn['b](g: fn(V['b]) -> Void, x: V['b]) { g(x) }
+fn applyDeep['c](g: fn(V['c]) -> Void, x: V['c]) { g(x) }
+fn nestedLocalPushed['a](k: Own['a], out: &mut Array[Own['a]], v: V['a]) { let mut c = k; let r = &mut c.own; apply((x: V['a]) => { applyIn((y: V['a]) => { r.push(y) }, x) }, v); out.push(c) }
+fn nestedReturned['a](mut k: Own['a], v: V['a]) -> Own['a] { let r = &mut k.own; apply((x: V['a]) => { applyIn((y: V['a]) => { r.push(y) }, x) }, v); k }
+fn Own['a].nestedSelf(mut self, v: V['a]) { let r = &mut self.own; apply((x: V['a]) => { applyIn((y: V['a]) => { r.push(y) }, x) }, v) }
+fn nestedRefParam['a](k: &mut Own['a], v: V['a]) { let r = &mut k.own; apply((x: V['a]) => { applyIn((y: V['a]) => { r.push(y) }, x) }, v) }
+fn deepLocalPushed['a](k: Own['a], out: &mut Array[Own['a]], v: V['a]) { let mut c = k; let r = &mut c.own; apply((x: V['a]) => { applyIn((y: V['a]) => { applyDeep((z: V['a]) => { r.push(z) }, y) }, x) }, v); out.push(c) }
+fn deepReturned['a](mut k: Own['a], v: V['a]) -> Own['a] { let r = &mut k.own; apply((x: V['a]) => { applyIn((y: V['a]) => { applyDeep((z: V['a]) => { r.push(z) }, y) }, x) }, v); k }
+fn Own['a].deepSelf(mut self, v: V['a]) { let r = &mut self.own; apply((x: V['a]) => { applyIn((y: V['a]) => { applyDeep((z: V['a]) => { r.push(z) }, y) }, x) }, v) }
+fn deepRefParam['a](k: &mut Own['a], v: V['a]) { let r = &mut k.own; apply((x: V['a]) => { applyIn((y: V['a]) => { applyDeep((z: V['a]) => { r.push(z) }, y) }, x) }, v) }
+
+fn nestedOwnLifetime() -> String {
+    let u = "u"
+    let v = "v"
+    let mut out = Array.of(Own { own: Array.of(V { s: &u }) })
+    nestedLocalPushed(Own { own: Array.of(V { s: &u }) }, &mut out, V { s: &v })
+    deepLocalPushed(Own { own: Array.of(V { s: &u }) }, &mut out, V { s: &v })
+    let got = nestedReturned(Own { own: Array.of(V { s: &u }) }, V { s: &v })
+    let deep = deepReturned(Own { own: Array.of(V { s: &u }) }, V { s: &v })
+    let mut k = Own { own: Array.of(V { s: &u }) }
+    k.nestedSelf(V { s: &v })
+    k.deepSelf(V { s: &v })
+    nestedRefParam(&mut k, V { s: &v })
+    deepRefParam(&mut k, V { s: &v })
+    let n = churn()
+    "${out[1].own.len()} ${out[1].own[1].s} ${out[2].own.len()} ${out[2].own[1].s} ${got.own.len()} ${got.own[1].s} ${deep.own.len()} ${deep.own[1].s} ${k.own.len()} ${k.own[1].s} ${k.own[2].s} ${k.own[3].s} ${k.own[4].s} ${n}"
+}
+
+fn ownTakenClosure['a](x: V['a]) -> usize {
+    let loc = "frame-local"; let mut c = Own { own: Array.of(x) }
+    let mut arr = Array.of(Sink { items: &mut c.own })
+    if let Some(s) = arr.takeAt(0) {
+        let r = s.items
+        apply((y: V['a]) => { r.push(y) }, V { s: &loc })
+    }
+    c.own.len()
+}
+fn ownUnwrapClosure['a](x: V['a]) -> usize {
+    let loc = "frame-local"; let mut c = Own { own: Array.of(x) }
+    let mut arr = Array.of(Sink { items: &mut c.own })
+    let s = arr.takeAt(0).unwrap()
+    let r = s.items
+    apply((y: V['a]) => { r.push(y) }, V { s: &loc })
+    c.own.len()
+}
 print ownLifetime()
 print takenOwnLifetime()
 print frameHolders()
@@ -138,6 +183,8 @@ print capturedOwnLifetime()
 let u = "u"
 print "${ownDirect(Own { own: Array.of(V { s: &u }) })} ${ownRefDirect(Own { own: Array.of(V { s: &u }) })} ${ownHelper(Own { own: Array.of(V { s: &u }) })} ${ownHelperRef(Own { own: Array.of(V { s: &u }) })}"
 print ownLocalClosure(Own { own: Array.of(V { s: &u }) })
+print nestedOwnLifetime()
+print "${ownTakenClosure(V { s: &u })} ${ownUnwrapClosure(V { s: &u })}"
 -- stdout --
 9 v v v 1 301
 5 v v 5 301
@@ -146,3 +193,5 @@ print ownLocalClosure(Own { own: Array.of(V { s: &u }) })
 7 v v v v v v 301
 2 2 2 2
 2 l 301
+2 v 2 v 2 v 2 v 5 v v v v 301
+2 2

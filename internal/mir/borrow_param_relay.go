@@ -19,9 +19,7 @@ func copiedFrom(defs map[LocalID]*Inst, l LocalID) LocalID {
 	return l
 }
 
-// relayCallee is 1 + the parameter of g whose code l runs, or for code made in g what its body depends on, quiet when
-// it stores through nothing it is called with; 0 when unknown.
-func (c *borrowCheck) relayCallee(g *Func, defs map[LocalID]*Inst, l LocalID) (int, bool) {
+func (c *borrowCheck) relayCallee(g *Func, defs map[LocalID]*Inst, l LocalID, kind siteKind) (int, bool) {
 	l = copiedFrom(defs, l)
 	if i := slices.Index(g.Params, l); i >= 0 {
 		return i + 1, false
@@ -39,23 +37,32 @@ func (c *borrowCheck) relayCallee(g *Func, defs map[LocalID]*Inst, l LocalID) (i
 		skip = len(d.Args)
 	}
 	callee := 0
-	for j := skip; j < len(h.Params); j++ {
-		if len(c.paramSelfSources(h, j)) > 0 {
+	for _, s := range c.callableSites(h, skip, kind) {
+		cap := s.callee - 1
+		if cap < 0 || cap >= skip {
 			return 0, false
 		}
-		for _, s := range c.paramStoreSites(h, j) {
-			cap := s.callee - 1
-			if cap < 0 || cap >= skip {
-				return 0, false
-			}
-			p := paramIndex(g, defs, d.Args[cap]) + 1
-			if p == 0 || callee != 0 && callee != p {
-				return 0, false
-			}
-			callee = p
+		p := paramIndex(g, defs, d.Args[cap]) + 1
+		if p == 0 || callee != 0 && callee != p {
+			return 0, false
 		}
+		callee = p
 	}
 	return callee, callee == 0
+}
+
+func (c *borrowCheck) callableSites(h *Func, skip int, kind siteKind) []paramStore {
+	if h == nil || skip > len(h.Params) {
+		return wholeParam
+	}
+	var out []paramStore
+	for j := skip; j < len(h.Params); j++ {
+		if kind == siteStores && len(c.paramSelfSources(h, j)) > 0 {
+			return wholeParam
+		}
+		out = append(out, c.paramSites(paramKey{g: h, i: j, kind: kind})...)
+	}
+	return out
 }
 
 // closureFed keeps, of the values a call may hand to the closure in slot i, those the callee passes on to a parameter

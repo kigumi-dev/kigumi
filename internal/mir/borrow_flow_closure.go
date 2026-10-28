@@ -94,15 +94,7 @@ func (c *borrowCheck) callableMayStore(l LocalID) bool {
 	} else if d := c.defThrough(l, OpBind); d != nil {
 		h, skip = c.p.ByEnt[d.Ent], len(d.Args)
 	}
-	if h == nil {
-		return true
-	}
-	for j := skip; j < len(h.Params); j++ {
-		if c.paramStores(h, j) || len(c.paramSelfSources(h, j)) > 0 {
-			return true
-		}
-	}
-	return false
+	return len(c.callableSites(h, skip, siteStores)) > 0
 }
 
 // captureValues are the captures a closure's body may store under another capture, and the parts of a capture it may
