@@ -2474,6 +2474,23 @@
       ]
     },
     {
+      "id": "run/async_caller_place_ok",
+      "kind": "run",
+      "path": "testdata/run/async_caller_place_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/async_cancel_await",
       "kind": "run",
       "path": "testdata/run/async_cancel_await.txtar",

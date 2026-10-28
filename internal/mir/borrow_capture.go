@@ -47,8 +47,11 @@ func (c *borrowCheck) checkCapture(in Inst) {
 			return
 		}
 		c.checkElementBorrows(in)
-	case OpFutureNew:
-		c.checkSharedStores(in)
+	case OpCall, OpCallValue, OpFutureNew:
+		c.checkCallCapture(in)
+		if in.Op != OpFutureNew {
+			return
+		}
 		// Same holder-record exception, for a future's own captures.
 		if _, ok := c.holders[in.Dst]; ok {
 			return
@@ -59,17 +62,6 @@ func (c *borrowCheck) checkCapture(in Inst) {
 				break
 			}
 		}
-	case OpCall, OpCallValue:
-		c.checkOwningArgs(in)
-		c.contentsMemo = map[LocalID]contentsResult{}
-		for _, fl := range c.storeFlows(in) {
-			c.checkFlow(fl, in)
-		}
-		c.contentsMemo = nil
-		c.checkOpaqueStores(in)
-		c.checkSharedStores(in)
-		c.checkCarry(in)
-		c.checkScalarTies(in)
 	case OpBox:
 		if b, ok := c.holders[in.Args[0]]; ok && (b.hasOwner || !b.fromStatic) {
 			c.reportCode(in.Node, in.Args[0], "borrow-in-existential", c.p.R.TypeString(c.f.Locals[in.Dst].Type))
@@ -85,4 +77,17 @@ func (c *borrowCheck) checkCapture(in Inst) {
 			c.report(in.Node, in.Args[len(in.Args)-1], "borrow-escape", "a borrow cannot be stored")
 		}
 	}
+}
+
+func (c *borrowCheck) checkCallCapture(in Inst) {
+	c.checkOwningArgs(in)
+	c.contentsMemo = map[LocalID]contentsResult{}
+	for _, fl := range c.storeFlows(in) {
+		c.checkFlow(fl, in)
+	}
+	c.contentsMemo = nil
+	c.checkOpaqueStores(in)
+	c.checkSharedStores(in)
+	c.checkCarry(in)
+	c.checkScalarTies(in)
 }

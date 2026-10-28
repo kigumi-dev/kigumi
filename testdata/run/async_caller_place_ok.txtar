@@ -1,0 +1,153 @@
+-- src --
+import task from std/task
+
+type RH['a] = { pub mut r &'a Array[Int] }
+type RSlot['a] = { pub mut r &'a mut RH['a] }
+type MH['a] = { pub mut r &'a mut Array[Int] }
+type Hold['a] = { pub r &'a mut Array[Future[usize]] }
+
+fn run[T](f: Future[T]) -> T {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+async fn RH['a].put(mut self, c: &'a Array[Int]) -> usize {
+    self.r = c
+    0
+}
+
+async fn RSlot['a].put(mut self, c: &'a Array[Int]) -> usize {
+    self.r.r = c
+    0
+}
+
+async fn putA['a](c: &'a Array[Int], h: &mut RH['a]) -> usize {
+    h.r = c
+    0
+}
+
+async fn putValueA['a](c: &'a Array[Int], mut h: RSlot['a]) -> usize {
+    h.r.r = c
+    0
+}
+
+async fn putMutA['a](c: MH['a], h: &mut MH['a]) -> usize {
+    h.r = c.r
+    0
+}
+
+fn ownReference['a](c: &'a Array[Int], h: &mut RH['a]) {
+    let _ = run(h.put(c))
+}
+
+fn ownSlotValue['a](c: &'a Array[Int], mut h: RSlot['a]) {
+    let _ = run(h.put(c))
+    let _ = run(putValueA(c, h))
+}
+
+fn ownSlotRef['a](c: &'a Array[Int], h: &mut RSlot['a]) {
+    let _ = run(h.put(c))
+}
+
+fn MH['a].ownMutField(mut self, c: MH['a]) {
+    let _ = run(putMutA(c, &mut self))
+}
+
+fn references() -> usize {
+    let z = Array.of(1)
+    let c = Array.of(2, 3)
+    let mut h = RH { r: &z }
+    ownReference(&c, &mut h)
+    let n = h.r.len()
+    ownSlotValue(&c, RSlot { r: &mut h })
+    let m = h.r.len()
+    let mut slot = RSlot { r: &mut h }
+    ownSlotRef(&c, &mut slot)
+    n + m + slot.r.r.len()
+}
+
+fn mutField() -> usize {
+    let mut z = Array.of(1)
+    let mut c = Array.of(2, 3)
+    let mut h = MH { r: &mut z }
+    h.ownMutField(MH { r: &mut c })
+    h.r.len()
+}
+
+async fn mutInt(a: &mut Int) -> usize {
+    a = a + 1
+    1
+}
+
+fn putFR['a](f: Future[usize], h: &mut Hold['a]) -> usize {
+    h.r.push(f)
+    0
+}
+
+async fn putFRA['a](f: Future[usize], h: &mut Hold['a]) -> usize {
+    h.r.push(f)
+    0
+}
+
+fn Hold['a].putF(mut self, f: Future[usize]) -> usize {
+    self.r.push(f)
+    0
+}
+
+async fn Hold['a].putFA(mut self, f: Future[usize]) -> usize {
+    self.r.push(f)
+    0
+}
+
+fn sum(a: Array[Future[usize]]) -> usize {
+    let mut n: usize = 0
+    for f in move a { n = n + run(f) }
+    n
+}
+
+fn frameRef() -> usize {
+    let mut c = 0
+    let mut a = Array.empty[Future[usize]]()
+    let mut h = Hold { r: &mut a }
+    let f = mutInt(&mut c)
+    let _ = putFR(f, &mut h)
+    let n = sum(a)
+    n + (c.toUsize() || 0)
+}
+
+fn asyncFrameRef() -> usize {
+    let mut c = 0
+    let mut a = Array.empty[Future[usize]]()
+    let mut h = Hold { r: &mut a }
+    let f = mutInt(&mut c)
+    let _ = run(putFRA(f, &mut h))
+    let n = sum(a)
+    n + (c.toUsize() || 0)
+}
+
+fn frameMethod() -> usize {
+    let mut c = 0
+    let mut a = Array.empty[Future[usize]]()
+    let mut h = Hold { r: &mut a }
+    let f = mutInt(&mut c)
+    let _ = h.putF(f)
+    let n = sum(a)
+    n + (c.toUsize() || 0)
+}
+
+fn asyncFrameMethod() -> usize {
+    let mut c = 0
+    let mut a = Array.empty[Future[usize]]()
+    let mut h = Hold { r: &mut a }
+    let f = mutInt(&mut c)
+    let _ = run(h.putFA(f))
+    let n = sum(a)
+    n + (c.toUsize() || 0)
+}
+
+fn main() {
+    print "own lifetime ${references()} ${mutField()}"
+    print "consumed ${frameRef()} ${asyncFrameRef()} ${frameMethod()} ${asyncFrameMethod()}"
+}
+-- stdout --
+own lifetime 6 2
+consumed 2 2 2 2

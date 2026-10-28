@@ -22,13 +22,7 @@ func (c *borrowCheck) lifetimeSource(in Inst) (*borrowInfo, bool) {
 	return nil, false
 }
 
-// futureLifetimeSource treats a future's captures (Args[1:]; Args[0] is the
-// async fn item) like recordLifetimeSource treats a record's fields.
-func (c *borrowCheck) futureLifetimeSource(in Inst) (*borrowInfo, bool) {
-	return c.recordLifetimeSource(Inst{Op: in.Op, Dst: in.Dst, Node: in.Node, Args: in.Args[1:]})
-}
-
-// recordLifetimeSource shares the one holder the borrow arguments name; a record, variant or future
+// recordLifetimeSource shares the one holder the borrow arguments name; a record or variant
 // built from several merges them, unless one is a parameter's borrow under a lifetime the type lacks.
 func (c *borrowCheck) recordLifetimeSource(in Inst) (*borrowInfo, bool) {
 	var found []*borrowInfo
@@ -37,7 +31,7 @@ func (c *borrowCheck) recordLifetimeSource(in Inst) (*borrowInfo, bool) {
 			found = append(found, b)
 		}
 	}
-	if len(found) == 0 || len(found) > 1 && in.Op != OpRecord && in.Op != OpVariant && in.Op != OpFutureNew {
+	if len(found) == 0 {
 		return nil, false
 	}
 	for _, b := range found {

@@ -90,7 +90,8 @@ func (c *borrowCheck) addCarrySite(root LocalID, site carrySite) {
 func (c *borrowCheck) checkCarry(in Inst) {
 	targets, values := c.carryFlows(in)
 	for _, fl := range targets {
-		if _, _, caller, ok := c.storeRoot(fl); ok && caller {
+		_, callers := c.storeReach(fl)
+		if _, _, caller, ok := c.storeRoot(fl); ok && (caller || len(callers) > 0) {
 			c.report(in.Node, values[0], "borrow-escape", "a borrow cannot be stored")
 		}
 	}

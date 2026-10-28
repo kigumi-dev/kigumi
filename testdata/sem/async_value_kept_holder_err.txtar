@@ -602,7 +602,7 @@ fn asyncEscapeValue['a](h: &mut Hold['a]) {
 
 fn asyncEscapeDirect['a](h: &mut Hold['a]) {
     let c = Array.of("a", "b", "c")
-    let _ = run(outAsync(rd, &c, h)) //~ ERROR a borrow cannot be captured by a future //~ ERROR `h` is borrowed by this method and cannot be moved out
+    let _ = run(outAsync(rd, &c, h)) //~ ERROR a borrow cannot be stored into `h` here //~ ERROR a borrow cannot be captured by a future //~ ERROR `h` is borrowed by this method and cannot be moved out
 }
 
 fn asyncLentIntValue() -> usize {
@@ -738,6 +738,110 @@ fn asyncMutFieldStore() -> usize {
     let _ = run(putMutA(MH { r: &mut c }, &mut hold))
     c = Array.of(9, 9, 9, 9, 9) //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
     hold.r.len() + c.len()
+}
+
+async fn RH['a].put(mut self, c: &'a Array[Int]) -> usize {
+    self.r = c
+    0
+}
+
+async fn RSlot['a].put(mut self, c: &'a Array[Int]) -> usize {
+    self.r.r = c
+    0
+}
+
+fn asyncCallerReference['a](h: &mut RH['a]) {
+    let c = Array.of(2, 3)
+    let _ = run(h.put(&c)) //~ ERROR a borrow cannot be stored into `h` here
+}
+
+fn asyncCallerSlotValue['a](mut h: RSlot['a]) {
+    let c = Array.of(2, 3)
+    let _ = run(h.put(&c)) //~ ERROR a borrow cannot be stored into `h` here
+}
+
+fn asyncCallerSlotRef['a](h: &mut RSlot['a]) {
+    let c = Array.of(2, 3)
+    let _ = run(h.put(&c)) //~ ERROR a borrow cannot be stored into `h` here
+}
+
+fn asyncCallerDirect['a](h: &mut RH['a]) {
+    let c = Array.of(2, 3)
+    let _ = run(putA(&c, h)) //~ ERROR a borrow cannot be stored into `h` here //~ ERROR a borrow cannot be captured by a future //~ ERROR `h` is borrowed by this method and cannot be moved out
+}
+
+fn asyncCallerByValue['a](h: RSlot['a]) {
+    let c = Array.of(2, 3)
+    let _ = run(putValueA(&c, h)) //~ ERROR a borrow cannot be stored into `h` here
+}
+
+fn asyncCallerMutField['a](h: &mut MH['a]) {
+    let mut c = Array.of(2, 3)
+    let _ = run(putMutA(MH { r: &mut c }, h)) //~ ERROR a borrow cannot be stored into `h` here //~ ERROR a borrow cannot be captured by a future //~ ERROR `h` is borrowed by this method and cannot be moved out
+}
+
+fn putFR['a](f: Future[usize], h: &mut Hold['a]) -> usize {
+    h.r.push(f)
+    0
+}
+
+async fn putFRA['a](f: Future[usize], h: &mut Hold['a]) -> usize {
+    h.r.push(f)
+    0
+}
+
+fn Hold['a].putF(mut self, f: Future[usize]) -> usize {
+    self.r.push(f)
+    0
+}
+
+async fn Hold['a].putFA(mut self, f: Future[usize]) -> usize {
+    self.r.push(f)
+    0
+}
+
+fn callerCarryRef['a](mut h: Hold['a]) {
+    let mut c = 0
+    let f = mutInt(&mut c)
+    let _ = putFR(f, &mut h) //~ ERROR a borrow cannot be stored
+}
+
+fn asyncCallerCarryRef['a](mut h: Hold['a]) {
+    let mut c = 0
+    let f = mutInt(&mut c)
+    let _ = run(putFRA(f, &mut h)) //~ ERROR a borrow cannot be stored
+}
+
+fn callerCarryMethod['a](mut h: Hold['a]) {
+    let mut c = 0
+    let f = mutInt(&mut c)
+    let _ = h.putF(f) //~ ERROR a borrow cannot be stored
+}
+
+fn asyncCallerCarryMethod['a](mut h: Hold['a]) {
+    let mut c = 0
+    let f = mutInt(&mut c)
+    let _ = run(h.putFA(f)) //~ ERROR a borrow cannot be stored
+}
+
+async fn readNamed['a](c: &'a Array[String]) -> usize { c.len() }
+
+fn futureCallerReturn['a](c: &'a Array[String]) -> Future[usize] {
+    readNamed(c) //~ ERROR a borrow returned here cannot be traced to the declared lifetime
+}
+
+fn futureLentReturn(c: &Array[String]) -> Future[usize] {
+    rd(c) //~ ERROR a borrow cannot be captured by a future
+}
+
+fn consumedLentCapture(c: &Array[String]) -> usize {
+    let f = rd(c) //~ ERROR a borrow cannot be captured by a future
+    run(f)
+}
+
+async fn spawnedLentCapture(c: &Array[String]) -> usize {
+    let t = task.spawn(rd(c)) //~ ERROR a borrow cannot be captured by a future
+    await t
 }
 
 fn main() {
@@ -1490,16 +1594,22 @@ error[E2159]: a borrow cannot be stored into `h` here: it belongs to the caller 
 597 |     let _ = run(w(rd, &c, h)) //~ ERROR a borrow cannot be stored into `h` here
     |                 ^^^^^^^^^^^
 
+error[E2159]: a borrow cannot be stored into `h` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:602:17
+    |
+602 |     let _ = run(outAsync(rd, &c, h)) //~ ERROR a borrow cannot be stored into `h` here //~ ERROR a borrow cannot be captured by a future //~ ERROR `h` is borrowed by this method and cannot be moved out
+    |                 ^^^^^^^^^^^^^^^^^^
+
 error[borrow-escape]: a borrow cannot be captured by a future; the future may run after the borrowed value is gone, so pass the value itself
    --> main.kg:602:17
     |
-602 |     let _ = run(outAsync(rd, &c, h)) //~ ERROR a borrow cannot be captured by a future //~ ERROR `h` is borrowed by this method and cannot be moved out
+602 |     let _ = run(outAsync(rd, &c, h)) //~ ERROR a borrow cannot be stored into `h` here //~ ERROR a borrow cannot be captured by a future //~ ERROR `h` is borrowed by this method and cannot be moved out
     |                 ^^^^^^^^^^^^^^^^^^
 
 error[move-from-borrow]: `h` is borrowed by this method and cannot be moved out; clone it or take `move self`
    --> main.kg:602:34
     |
-602 |     let _ = run(outAsync(rd, &c, h)) //~ ERROR a borrow cannot be captured by a future //~ ERROR `h` is borrowed by this method and cannot be moved out
+602 |     let _ = run(outAsync(rd, &c, h)) //~ ERROR a borrow cannot be stored into `h` here //~ ERROR a borrow cannot be captured by a future //~ ERROR `h` is borrowed by this method and cannot be moved out
     |                                  ^
 
 error[E2198]: `c` is exclusively borrowed and cannot be used here
@@ -1651,4 +1761,112 @@ error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
     |
 736 |     c = Array.of(9, 9, 9, 9, 9) //~ ERROR `c` is exclusively borrowed and cannot be used here //~ ERROR `c` is borrowed and cannot be moved or dropped here
     |     ^
+
+error[E2159]: a borrow cannot be stored into `h` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:752:17
+    |
+752 |     let _ = run(h.put(&c)) //~ ERROR a borrow cannot be stored into `h` here
+    |                 ^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `h` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:757:17
+    |
+757 |     let _ = run(h.put(&c)) //~ ERROR a borrow cannot be stored into `h` here
+    |                 ^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `h` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:762:17
+    |
+762 |     let _ = run(h.put(&c)) //~ ERROR a borrow cannot be stored into `h` here
+    |                 ^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `h` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:767:17
+    |
+767 |     let _ = run(putA(&c, h)) //~ ERROR a borrow cannot be stored into `h` here //~ ERROR a borrow cannot be captured by a future //~ ERROR `h` is borrowed by this method and cannot be moved out
+    |                 ^^^^^^^^^^
+
+error[borrow-escape]: a borrow cannot be captured by a future; the future may run after the borrowed value is gone, so pass the value itself
+   --> main.kg:767:17
+    |
+767 |     let _ = run(putA(&c, h)) //~ ERROR a borrow cannot be stored into `h` here //~ ERROR a borrow cannot be captured by a future //~ ERROR `h` is borrowed by this method and cannot be moved out
+    |                 ^^^^^^^^^^
+
+error[move-from-borrow]: `h` is borrowed by this method and cannot be moved out; clone it or take `move self`
+   --> main.kg:767:26
+    |
+767 |     let _ = run(putA(&c, h)) //~ ERROR a borrow cannot be stored into `h` here //~ ERROR a borrow cannot be captured by a future //~ ERROR `h` is borrowed by this method and cannot be moved out
+    |                          ^
+
+error[E2159]: a borrow cannot be stored into `h` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:772:17
+    |
+772 |     let _ = run(putValueA(&c, h)) //~ ERROR a borrow cannot be stored into `h` here
+    |                 ^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `h` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:777:17
+    |
+777 |     let _ = run(putMutA(MH { r: &mut c }, h)) //~ ERROR a borrow cannot be stored into `h` here //~ ERROR a borrow cannot be captured by a future //~ ERROR `h` is borrowed by this method and cannot be moved out
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a borrow cannot be captured by a future; the future may run after the borrowed value is gone, so pass the value itself
+   --> main.kg:777:17
+    |
+777 |     let _ = run(putMutA(MH { r: &mut c }, h)) //~ ERROR a borrow cannot be stored into `h` here //~ ERROR a borrow cannot be captured by a future //~ ERROR `h` is borrowed by this method and cannot be moved out
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-from-borrow]: `h` is borrowed by this method and cannot be moved out; clone it or take `move self`
+   --> main.kg:777:43
+    |
+777 |     let _ = run(putMutA(MH { r: &mut c }, h)) //~ ERROR a borrow cannot be stored into `h` here //~ ERROR a borrow cannot be captured by a future //~ ERROR `h` is borrowed by this method and cannot be moved out
+    |                                           ^
+
+error[borrow-escape]: a borrow cannot be stored
+   --> main.kg:803:13
+    |
+803 |     let _ = putFR(f, &mut h) //~ ERROR a borrow cannot be stored
+    |             ^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a borrow cannot be stored
+   --> main.kg:809:17
+    |
+809 |     let _ = run(putFRA(f, &mut h)) //~ ERROR a borrow cannot be stored
+    |                 ^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a borrow cannot be stored
+   --> main.kg:815:13
+    |
+815 |     let _ = h.putF(f) //~ ERROR a borrow cannot be stored
+    |             ^^^^^^^^
+
+error[borrow-escape]: a borrow cannot be stored
+   --> main.kg:821:17
+    |
+821 |     let _ = run(h.putFA(f)) //~ ERROR a borrow cannot be stored
+    |                 ^^^^^^^^^
+
+error[E1041]: a borrow returned here cannot be traced to the declared lifetime; its source must carry the same `'a` as this function's own return
+   --> main.kg:827:5
+    |
+827 |     readNamed(c) //~ ERROR a borrow returned here cannot be traced to the declared lifetime
+    |     ^^^^^^^^^^^
+
+error[borrow-escape]: a borrow cannot be captured by a future; the future may run after the borrowed value is gone, so pass the value itself
+   --> main.kg:831:5
+    |
+831 |     rd(c) //~ ERROR a borrow cannot be captured by a future
+    |     ^^^^
+
+error[borrow-escape]: a borrow cannot be captured by a future; the future may run after the borrowed value is gone, so pass the value itself
+   --> main.kg:835:13
+    |
+835 |     let f = rd(c) //~ ERROR a borrow cannot be captured by a future
+    |             ^^^^
+
+error[borrow-escape]: a borrow cannot be captured by a future; the future may run after the borrowed value is gone, so pass the value itself
+   --> main.kg:840:24
+    |
+840 |     let t = task.spawn(rd(c)) //~ ERROR a borrow cannot be captured by a future
+    |                        ^^^^
 
