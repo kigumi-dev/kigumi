@@ -14,6 +14,7 @@ func TestByteBoxesAllocateNothingNatively(t *testing.T) {
 	for _, c := range []struct{ name, before string }{
 		{"byte_box_noalloc", "            signed(&a)"},
 		{"byte_box_callback_noalloc", "    _ = indirect(identity, -128)"},
+		{"recoverable_noalloc_callback", "    invoke(noop)"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()

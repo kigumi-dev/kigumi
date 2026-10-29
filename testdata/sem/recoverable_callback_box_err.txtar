@@ -1,0 +1,15 @@
+-- module --
+stage: driver
+profile: recoverable-only
+-- src --
+noalloc fn wide() -> Int { 10000 }
+fn invoke(f: noalloc fn() -> Int) -> Int { f() }
+fn main() { _ = invoke(wide) }
+-- expect --
+error[E1280]: `invoke` may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+ --> main.kg:3:17
+  |
+3 | fn main() { _ = invoke(wide) }
+  |                 ^^^^^^^^^^^
+  = help: use the fallible (`try`-prefixed) form instead
+

@@ -1,0 +1,22 @@
+-- module --
+stage: driver
+profile: recoverable-only
+-- src --
+noalloc fn noop() {}
+noalloc fn invoke(f: noalloc fn() -> Void) { f() }
+noalloc fn forward(f: noalloc fn() -> Void) { invoke(f) }
+noalloc fn alias(f: noalloc fn() -> Void) {
+    let g = f
+    g()
+}
+
+pure noalloc fn identity(x: u8) -> u8 { x }
+noalloc fn octet(f: pure noalloc fn(u8) -> u8, x: u8) -> u8 { f(x) }
+
+fn main() {
+    invoke(noop)
+    forward(noop)
+    alias(noop)
+    _ = octet(identity, 255)
+}
+-- expect --

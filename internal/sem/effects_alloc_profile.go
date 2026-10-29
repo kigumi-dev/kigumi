@@ -136,7 +136,8 @@ func (r *Result) recoverableEdgeSafe(e EffectEdge, safe map[EntityID]bool) bool 
 		}
 		return r.recoverableTargetSafe(e.Target, safe)
 	case EdgeParamCall:
-		return false
+		shape := r.fnShapeOf(r.Entities[e.Target].Type)
+		return shape != 0 && Effects(r.Types.Node(shape).Flags)&EffNoalloc != 0
 	}
 	return true
 }

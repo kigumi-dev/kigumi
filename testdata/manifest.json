@@ -23382,6 +23382,28 @@
       ]
     },
     {
+      "id": "sem/recoverable_callback_box_err",
+      "kind": "sem",
+      "path": "testdata/sem/recoverable_callback_box_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/recoverable_callback_unknown_err",
+      "kind": "sem",
+      "path": "testdata/sem/recoverable_callback_unknown_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/recoverable_map_derived_key",
       "kind": "sem",
       "path": "testdata/sem/recoverable_map_derived_key.txtar",
@@ -23396,6 +23418,17 @@
       "id": "sem/recoverable_map_int_key_ok",
       "kind": "sem",
       "path": "testdata/sem/recoverable_map_int_key_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/recoverable_noalloc_callback",
+      "kind": "sem",
+      "path": "testdata/sem/recoverable_noalloc_callback.txtar",
       "mode": [
         "check"
       ],

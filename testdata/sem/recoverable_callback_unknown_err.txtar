@@ -1,0 +1,15 @@
+-- module --
+stage: driver
+profile: recoverable-only
+-- src --
+fn fatal() { _ = Array.of(1, 2, 3) }
+fn invoke(f: fn() -> Void) { f() }
+fn main() { invoke(fatal) }
+-- expect --
+error[E1280]: `invoke` may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+ --> main.kg:3:13
+  |
+3 | fn main() { invoke(fatal) }
+  |             ^^^^^^^^^^^^
+  = help: use the fallible (`try`-prefixed) form instead
+
