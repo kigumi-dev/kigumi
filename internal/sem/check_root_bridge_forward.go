@@ -99,11 +99,12 @@ func (r *Result) rootOf(ent EntityID) EntityID {
 // along the whole forwarding chain under visited, not just callee's own calls.
 func (r *Result) calleeHopsWith(callee EntityID, subst map[EntityID][]EntityID, rr *rootRun, visited map[EntityID]bool) int {
 	best := 0
+	cache := rootForwardCache{}
 	for _, e := range r.edgesOf(callee) {
 		if !rootRunCallEdge(e, rr) {
 			continue
 		}
-		if d := r.forwardHops(callee, e, subst, rr, visited); d > 0 && (best == 0 || d < best) {
+		if d := r.forwardHops(callee, e, subst, rr, visited, cache); d > 0 && (best == 0 || d < best) {
 			best = d
 		}
 	}
@@ -112,7 +113,7 @@ func (r *Result) calleeHopsWith(callee EntityID, subst map[EntityID][]EntityID, 
 
 // forwardHops is edgeHops' recursive step, narrowing via subst instead of the
 // global witness pool; EdgeParamCall/EdgeCallback/EdgeKnownCall key on Target, not EdgeCall's Param.
-func (r *Result) forwardHops(caller EntityID, e EffectEdge, subst map[EntityID][]EntityID, rr *rootRun, visited map[EntityID]bool) int {
+func (r *Result) forwardHops(caller EntityID, e EffectEdge, subst map[EntityID][]EntityID, rr *rootRun, visited map[EntityID]bool, cache rootForwardCache) int {
 	d := rr.hops(e.Target)
 	switch e.Kind {
 	case EdgeParamCall, EdgeCallback, EdgeKnownCall:
@@ -145,20 +146,28 @@ func (r *Result) forwardHops(caller EntityID, e EffectEdge, subst map[EntityID][
 			return d
 		}
 	}
+	key := rootForwardKey{e.Target, rootBindingKey(sub2)}
+	if d, ok := cache[key]; ok {
+		return d
+	}
 	visited2 := make(map[EntityID]bool, len(visited)+1)
 	for id := range visited {
 		visited2[id] = true
 	}
 	visited2[e.Target] = true
+	d = 0
 	if sd := r.calleeHopsWith(e.Target, sub2, rr, visited2); sd > 0 {
-		return sd + 1
+		d = sd + 1
 	}
-	return 0
+	if cache != nil {
+		cache[key] = d
+	}
+	return d
 }
 
 // edgeHops is forwardHops with no inherited subst and a fresh visited set.
 func (r *Result) edgeHops(caller EntityID, e EffectEdge, rr *rootRun) int {
-	return r.forwardHops(caller, e, nil, rr, map[EntityID]bool{caller: true})
+	return r.forwardHops(caller, e, nil, rr, map[EntityID]bool{caller: true}, nil)
 }
 
 func (r *Result) placeWriters(caller, place EntityID, subst map[EntityID][]EntityID) ([]EntityID, bool) {
