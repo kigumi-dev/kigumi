@@ -7142,7 +7142,7 @@
   },
   {
     "key": "mem.borrowInitialized",
-    "signature": "pure noalloc unsafe fn(\u0026Uninit[T]) -\u003e \u0026T",
+    "signature": "pure noalloc unsafe fn(\u0026'a Uninit[T]) -\u003e \u0026T",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -7152,7 +7152,7 @@
   },
   {
     "key": "mem.borrowInitializedMut",
-    "signature": "pure noalloc unsafe fn(\u0026mut Uninit[T]) -\u003e \u0026mut T",
+    "signature": "pure noalloc unsafe fn(\u0026'a mut Uninit[T]) -\u003e \u0026mut T",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
