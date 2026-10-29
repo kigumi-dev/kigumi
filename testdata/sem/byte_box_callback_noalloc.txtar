@@ -1,0 +1,16 @@
+-- module --
+stage: driver
+allocator: none
+-- src --
+pure noalloc fn identity(x: i8) -> i8 { x }
+pure noalloc fn unsigned(x: u8) -> u8 { x }
+noalloc fn indirect(f: pure noalloc fn(i8) -> i8, x: i8) -> i8 { f(x) }
+noalloc fn indirectUnsigned(f: pure noalloc fn(u8) -> u8, x: u8) -> u8 { f(x) }
+
+fn main() {
+    _ = indirect(identity, -128)
+    _ = indirect(identity, 127)
+    _ = indirectUnsigned(unsigned, 0)
+    _ = indirectUnsigned(unsigned, 255)
+}
+-- expect --

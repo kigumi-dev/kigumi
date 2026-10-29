@@ -1,0 +1,47 @@
+-- module --
+stage: driver
+profile: recoverable-only
+-- src --
+import mem from std/mem
+import {Arena} from std/alloc
+
+fn signed(cell: &mem.UnsafeCell[i8]) {
+    unsafe {
+        _ = cell.atomicLoad(mem.AtomicOrder.Relaxed)
+        cell.atomicStore(127, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicExchange(-128, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicCompareExchange(-128, 0, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicAdd(1, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicSub(1, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicAnd(7, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicOr(8, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicXor(1, mem.AtomicOrder.Relaxed)
+    }
+}
+
+fn unsigned(cell: &mem.UnsafeCell[u8]) {
+    unsafe {
+        _ = cell.atomicLoad(mem.AtomicOrder.Relaxed)
+        cell.atomicStore(255, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicExchange(0, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicCompareExchange(0, 0, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicAdd(1, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicSub(1, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicAnd(7, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicOr(8, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicXor(1, mem.AtomicOrder.Relaxed)
+    }
+}
+
+fn main() {
+    match Arena.tryCreate() {
+        Ok(h) -> {
+            let a = allocator h.scope() { mem.UnsafeCell.new[i8](-128) }
+            let b = allocator h.scope() { mem.UnsafeCell.new[u8](255) }
+            signed(&a)
+            unsigned(&b)
+        }
+        Err(_) -> {}
+    }
+}
+-- expect --

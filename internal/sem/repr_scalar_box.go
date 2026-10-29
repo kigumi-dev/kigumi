@@ -2,9 +2,13 @@ package sem
 
 import "kigumi/internal/syntax"
 
-// ScalarBoxes reports whether a t crossing into a boxed slot may take a heap box on native; Bool and Void boxes are immortals.
+// ScalarBoxes reports whether a t crossing into a boxed slot may take a heap box on native.
 func (r *Result) ScalarBoxes(t TypeID) bool {
-	return t != TyBool && (r.RegScalar(t) || WideScalar(t) || r.Types.Kind(t) == KPtr || r.Types.IsCFn(t))
+	// Every i8/u8 value fits in the native integer cache, and Bool boxes are immortal.
+	if t == TyBool || t == TyI8 || t == TyU8 {
+		return false
+	}
+	return r.RegScalar(t) || WideScalar(t) || r.Types.Kind(t) == KPtr || r.Types.IsCFn(t)
 }
 
 // boxCharged reports whether a box edge over t allocates; a witness boxes a scalar only in a shared body, which the built program decides.

@@ -19114,6 +19114,39 @@
       ]
     },
     {
+      "id": "sem/byte_box_callback_noalloc",
+      "kind": "sem",
+      "path": "testdata/sem/byte_box_callback_noalloc.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/byte_box_noalloc",
+      "kind": "sem",
+      "path": "testdata/sem/byte_box_noalloc.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/byte_box_wider_err",
+      "kind": "sem",
+      "path": "testdata/sem/byte_box_wider_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/c_bit_pattern_params",
       "kind": "sem",
       "path": "testdata/sem/c_bit_pattern_params.txtar",

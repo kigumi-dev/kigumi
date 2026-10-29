@@ -1,0 +1,23 @@
+-- module --
+stage: driver
+profile: recoverable-only
+-- src --
+import mem from std/mem
+import {Arena} from std/alloc
+
+fn main() {
+    match Arena.tryCreate() {
+        Ok(h) -> {
+            let cell = allocator h.scope() { mem.UnsafeCell.new[u16](60000) }
+            _ = unsafe { cell.atomicLoad(mem.AtomicOrder.Relaxed) }
+        }
+        Err(_) -> {}
+    }
+}
+-- expect --
+error[E2318]: `main` passed the recoverable-only profile, yet this operation allocates a box of `u16` that a refused allocation would end the program on; allocate inside an `allocator` block
+ --> main.kg:8:26
+  |
+8 |             _ = unsafe { cell.atomicLoad(mem.AtomicOrder.Relaxed) }
+  |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
