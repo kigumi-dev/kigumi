@@ -18685,6 +18685,28 @@
       ]
     },
     {
+      "id": "sem/atomic_box_recoverable",
+      "kind": "sem",
+      "path": "testdata/sem/atomic_box_recoverable.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/atomic_box_scoped",
+      "kind": "sem",
+      "path": "testdata/sem/atomic_box_scoped.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/atomic_order_misuse",
       "kind": "sem",
       "path": "testdata/sem/atomic_order_misuse.txtar",

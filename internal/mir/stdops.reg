@@ -9,6 +9,7 @@
 
 # cap C, key K, suffix METHOD, prefix P, type PKG NAME, direct NAME, elem and
 # callback N attach to the op above.
+# scalar-box ARG TYPEARG marks a native scalar box of a named argument's generic parameter.
 
 # type is a std record the C runtime builds by name; direct the DirectPrim result form;
 # elem an op that copies an array element; callback the index of a closure argument.
@@ -514,22 +515,31 @@ op 164 BYTES_INDEX_OF retired
 op 165 STRING_CONTAINS retired
 op 166 BYTES_LAST_INDEX_OF retired
 op 167 UCELL_ATOMIC_LOAD primitive (named, any) -> any
+scalar-box 0 0
 key mem.UnsafeCell.atomicLoad
 op 168 UCELL_ATOMIC_STORE primitive (named, any, any) -> unit
+scalar-box 0 0
 key mem.UnsafeCell.atomicStore
 op 169 UCELL_ATOMIC_EXCHANGE primitive (named, any, any) -> any
+scalar-box 0 0
 key mem.UnsafeCell.atomicExchange
 op 170 UCELL_ATOMIC_COMPARE_EXCHANGE primitive (named, any, any, any) -> any
+scalar-box 0 0
 key mem.UnsafeCell.atomicCompareExchange
 op 171 UCELL_ATOMIC_ADD primitive (named, any, any) -> any
+scalar-box 0 0
 key mem.UnsafeCell.atomicAdd
 op 172 UCELL_ATOMIC_SUB primitive (named, any, any) -> any
+scalar-box 0 0
 key mem.UnsafeCell.atomicSub
 op 173 UCELL_ATOMIC_AND primitive (named, any, any) -> any
+scalar-box 0 0
 key mem.UnsafeCell.atomicAnd
 op 174 UCELL_ATOMIC_OR primitive (named, any, any) -> any
+scalar-box 0 0
 key mem.UnsafeCell.atomicOr
 op 175 UCELL_ATOMIC_XOR primitive (named, any, any) -> any
+scalar-box 0 0
 key mem.UnsafeCell.atomicXor
 builtin atomic.load () -> any vm native=inline
 builtin atomic.store (any) -> unit min=1 vm native=inline

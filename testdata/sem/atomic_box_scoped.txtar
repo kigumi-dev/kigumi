@@ -1,0 +1,44 @@
+-- module --
+stage: driver
+profile: recoverable-only
+-- src --
+import mem from std/mem
+import {Arena, AllocatorHandle} from std/alloc
+
+fn booleans(cell: &mem.UnsafeCell[Bool]) {
+    unsafe {
+        _ = cell.atomicLoad(mem.AtomicOrder.Relaxed)
+        cell.atomicStore(false, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicExchange(true, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicCompareExchange(true, false, mem.AtomicOrder.Relaxed)
+    }
+}
+
+fn scoped(h: &AllocatorHandle, cell: &mem.UnsafeCell[Int]) {
+    allocator h.scope() {
+        unsafe {
+            _ = cell.atomicLoad(mem.AtomicOrder.Relaxed)
+            cell.atomicStore(2000, mem.AtomicOrder.Relaxed)
+            _ = cell.atomicExchange(3000, mem.AtomicOrder.Relaxed)
+            _ = cell.atomicCompareExchange(3000, 4000, mem.AtomicOrder.Relaxed)
+            _ = cell.atomicAdd(1, mem.AtomicOrder.Relaxed)
+            _ = cell.atomicSub(1, mem.AtomicOrder.Relaxed)
+            _ = cell.atomicAnd(4095, mem.AtomicOrder.Relaxed)
+            _ = cell.atomicOr(8192, mem.AtomicOrder.Relaxed)
+            _ = cell.atomicXor(1, mem.AtomicOrder.Relaxed)
+        }
+    }
+}
+
+fn main() {
+    match Arena.tryCreate() {
+        Ok(h) -> {
+            let bits = allocator h.scope() { mem.UnsafeCell.new(false) }
+            let numbers = allocator h.scope() { mem.UnsafeCell.new(10000) }
+            booleans(&bits)
+            scoped(&h, &numbers)
+        }
+        Err(_) -> {}
+    }
+}
+-- expect --

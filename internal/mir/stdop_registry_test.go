@@ -22,6 +22,13 @@ func TestParseStdOpRegistryRejects(t *testing.T) {
 		{"unknown directive", "frob 1\n", "unknown directive"},
 		{"unknown direct", "op 0 A primitive () -> unit\ndirect Bogus\n", "not a direct primitive"},
 		{"bad callback", "op 0 A primitive () -> unit\ncallback x\n", "argument index"},
+		{"scalar-box arity", "op 0 A primitive (named) -> any\nscalar-box 0\n", "type-argument index"},
+		{"scalar-box negative", "op 0 A primitive (named) -> any\nscalar-box 0 -1\n", "non-negative"},
+		{"scalar-box noninteger", "op 0 A primitive (named) -> any\nscalar-box x 0\n", "non-negative"},
+		{"scalar-box argument", "op 0 A primitive (named) -> any\nscalar-box 1 0\n", "named argument"},
+		{"scalar-box class", "op 0 A primitive (int) -> int\nscalar-box 0 0\n", "named argument"},
+		{"scalar-box duplicate", "op 0 A primitive (named) -> any\nscalar-box 0 0\nscalar-box 0 0\n", "twice"},
+		{"scalar-box retired", "op 0 A retired\nscalar-box 0 0\n", "retired"},
 		{"retired with attributes", "op 0 A retired\nkey x.y\n", "retired"},
 		{"retired with descriptor", "op 0 A retired () -> unit\n", "retired"},
 		{"builtin flag", "builtin print (string) -> unit nope\n", "unknown flag"},
@@ -34,6 +41,29 @@ func TestParseStdOpRegistryRejects(t *testing.T) {
 				t.Fatalf("got %v, want an error mentioning %q", err, c.want)
 			}
 		})
+	}
+}
+
+func TestStdOpScalarBoxSource(t *testing.T) {
+	text := "op 0 A primitive (named) -> any\nscalar-box 0 0\n"
+	reg, err := mir.ParseStdOpRegistry(text)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if src := reg.Ops[0].ScalarBox; src == nil || src.Argument != 0 || src.TypeArg != 0 {
+		t.Fatalf("scalar box source = %+v", src)
+	}
+	if !strings.Contains(reg.Canonical(), "scalar-box 0 0\n") {
+		t.Fatal("canonical registry lost the scalar-box contract")
+	}
+	other, err := mir.ParseStdOpRegistry(strings.Replace(text, "scalar-box 0 0", "scalar-box 0 1", 1))
+	if err != nil || reg.Canonical() == other.Canonical() {
+		t.Fatal("changing the scalar-box type argument did not change the contract")
+	}
+	for _, op := range mir.Registry.Ops {
+		if strings.HasPrefix(op.Name, "UCELL_ATOMIC_") && (op.ScalarBox == nil || op.ScalarBox.Argument != 0 || op.ScalarBox.TypeArg != 0) {
+			t.Errorf("%s has no content-box contract", op.Name)
+		}
 	}
 }
 

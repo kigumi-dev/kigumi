@@ -25,6 +25,9 @@ func (u *stdUse) add(op mir.StdOpId) {
 // stdIdCall emits rt_std_id for op into dst ("" takes a fresh register).
 func (e *emitter) stdIdCall(sb *strings.Builder, dst string, op mir.StdOpId, n int, arr string) string {
 	e.std.add(op)
+	if e.boxes != nil && mir.Registry.Ops[op].ScalarBox != nil {
+		e.boxes.primitives[e.at] = op
+	}
 	// Pointer-valued runtime primitives return an owned box even when the caller immediately unboxes it.
 	if e.boxes != nil && mir.Registry.Ops[op].Desc.Result == mir.ClassSet(1<<mir.ClassPtr) {
 		e.boxes.made[boxSite{e.at, -1}] = true

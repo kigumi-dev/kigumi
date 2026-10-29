@@ -19,9 +19,16 @@ type ResultBox struct {
 	Inst  int
 }
 
+type OperationBox struct {
+	Block BlockID
+	Inst  int
+	Type  sem.TypeID
+}
+
 type NativeBoxSites struct {
-	Arguments map[*Func][]ArgBox
-	Results   map[*Func][]ResultBox
+	Arguments  map[*Func][]ArgBox
+	Results    map[*Func][]ResultBox
+	Operations map[*Func][]OperationBox
 }
 
 func (p *Program) scalarBoxClaims(out []AllocClaim, reached []profileReach, c sem.Code) []AllocClaim {
@@ -34,6 +41,11 @@ func (p *Program) scalarBoxClaims(out []AllocClaim, reached []profileReach, c se
 		resultCode = "pointer-result-without-default-allocator"
 	}
 	rc, _ := sem.CodeByName(resultCode)
+	opCode := "primitive-box-in-recoverable-only"
+	if c.Name == "box-without-default-allocator" {
+		opCode = "primitive-box-without-default-allocator"
+	}
+	oc, _ := sem.CodeByName(opCode)
 	seen := map[blamedBox]bool{}
 	for _, r := range reached {
 		f := r.f
@@ -44,6 +56,11 @@ func (p *Program) scalarBoxClaims(out []AllocClaim, reached []profileReach, c se
 			in := f.Blocks[rb.Block].Insts[rb.Inst]
 			in.Type = f.Locals[in.Dst].Type
 			out = p.blameBox(out, seen, r, rc, in)
+		}
+		for _, ob := range boxes.Operations[f] {
+			in := f.Blocks[ob.Block].Insts[ob.Inst]
+			in.Type = ob.Type
+			out = p.blameBox(out, seen, r, oc, in)
 		}
 		if !p.userBody(f) {
 			continue

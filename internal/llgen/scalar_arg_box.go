@@ -14,6 +14,7 @@ import (
 type boxRecord struct {
 	made, handed map[boxSite]bool
 	charged      map[siteAt]bool
+	primitives   map[siteAt]mir.StdOpId
 	arg          int
 }
 
@@ -49,12 +50,12 @@ func (e *emitter) argBoxOnDemand(sb *strings.Builder, i int, l mir.LocalID) stri
 func ScalarBoxSites(p *mir.Program, opts EmitOptions) mir.NativeBoxSites {
 	e := prepareEmitter(p, opts)
 	defer func() { e.boxes = nil }()
-	out := mir.NativeBoxSites{Arguments: map[*mir.Func][]mir.ArgBox{}, Results: map[*mir.Func][]mir.ResultBox{}}
+	out := mir.NativeBoxSites{Arguments: map[*mir.Func][]mir.ArgBox{}, Results: map[*mir.Func][]mir.ResultBox{}, Operations: map[*mir.Func][]mir.OperationBox{}}
 	for _, f := range p.Funcs {
 		if !e.keeps(f) || e.naked(f) {
 			continue
 		}
-		e.boxes = &boxRecord{made: map[boxSite]bool{}, handed: map[boxSite]bool{}, charged: map[siteAt]bool{}, arg: -1}
+		e.boxes = &boxRecord{made: map[boxSite]bool{}, handed: map[boxSite]bool{}, charged: map[siteAt]bool{}, primitives: map[siteAt]mir.StdOpId{}, arg: -1}
 		if f.Async {
 			e.asyncFunction(f)
 		} else {
@@ -66,6 +67,9 @@ func ScalarBoxSites(p *mir.Program, opts EmitOptions) mir.NativeBoxSites {
 		for bid, blk := range f.Blocks {
 			for pc, in := range blk.Insts {
 				at := siteAt{mir.BlockID(bid), pc}
+				if box, ok := e.primitiveScalarBox(f, in, at); ok {
+					out.Operations[f] = append(out.Operations[f], box)
+				}
 				if !in.Op.Yields() || !e.boxes.made[boxSite{at, -1}] || e.boxes.charged[at] {
 					continue
 				}

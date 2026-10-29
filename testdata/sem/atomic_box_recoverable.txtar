@@ -1,0 +1,146 @@
+-- module --
+stage: driver
+profile: recoverable-only
+-- src --
+import mem from std/mem
+import ffi from std/ffi
+import {Arena, AllocatorHandle} from std/alloc
+
+fn integers(cell: &mem.UnsafeCell[Int]) {
+    unsafe {
+        _ = cell.atomicLoad(mem.AtomicOrder.Relaxed)
+        cell.atomicStore(2000, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicExchange(3000, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicCompareExchange(3000, 4000, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicAdd(1, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicSub(1, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicAnd(4095, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicOr(8192, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicXor(1, mem.AtomicOrder.Relaxed)
+    }
+}
+
+fn pointers(h: &AllocatorHandle, cell: &mem.UnsafeCell[*const u8]) {
+    let p = allocator h.scope() { unsafe { cell.atomicLoad(mem.AtomicOrder.Relaxed) } }
+    unsafe {
+        _ = cell.atomicLoad(mem.AtomicOrder.Relaxed)
+        cell.atomicStore(p, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicExchange(p, mem.AtomicOrder.Relaxed)
+        _ = cell.atomicCompareExchange(p, p, mem.AtomicOrder.Relaxed)
+    }
+}
+
+fn main() {
+    match Arena.tryCreate() {
+        Ok(h) -> {
+            let numbers = allocator h.scope() { mem.UnsafeCell.new(10000) }
+            let ptrs = allocator h.scope() { mem.UnsafeCell.new(ffi.null[u8]()) }
+            integers(&numbers)
+            pointers(&h, &ptrs)
+        }
+        Err(_) -> {}
+    }
+}
+-- expect --
+error[E2318]: `integers` passed the recoverable-only profile, yet this operation allocates a box of `Int` that a refused allocation would end the program on; allocate inside an `allocator` block
+ --> main.kg:7:13
+  |
+7 |         _ = cell.atomicLoad(mem.AtomicOrder.Relaxed)
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2318]: `integers` passed the recoverable-only profile, yet this operation allocates a box of `Int` that a refused allocation would end the program on; allocate inside an `allocator` block
+ --> main.kg:8:9
+  |
+8 |         cell.atomicStore(2000, mem.AtomicOrder.Relaxed)
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2318]: `integers` passed the recoverable-only profile, yet this operation allocates a box of `Int` that a refused allocation would end the program on; allocate inside an `allocator` block
+ --> main.kg:9:13
+  |
+9 |         _ = cell.atomicExchange(3000, mem.AtomicOrder.Relaxed)
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2318]: `integers` passed the recoverable-only profile, yet this operation allocates a box of `Int` that a refused allocation would end the program on; allocate inside an `allocator` block
+  --> main.kg:10:13
+   |
+10 |         _ = cell.atomicCompareExchange(3000, 4000, mem.AtomicOrder.Relaxed)
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2318]: `integers` passed the recoverable-only profile, yet this operation allocates a box of `Int` that a refused allocation would end the program on; allocate inside an `allocator` block
+  --> main.kg:11:13
+   |
+11 |         _ = cell.atomicAdd(1, mem.AtomicOrder.Relaxed)
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2318]: `integers` passed the recoverable-only profile, yet this operation allocates a box of `Int` that a refused allocation would end the program on; allocate inside an `allocator` block
+  --> main.kg:12:13
+   |
+12 |         _ = cell.atomicSub(1, mem.AtomicOrder.Relaxed)
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2318]: `integers` passed the recoverable-only profile, yet this operation allocates a box of `Int` that a refused allocation would end the program on; allocate inside an `allocator` block
+  --> main.kg:13:13
+   |
+13 |         _ = cell.atomicAnd(4095, mem.AtomicOrder.Relaxed)
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2318]: `integers` passed the recoverable-only profile, yet this operation allocates a box of `Int` that a refused allocation would end the program on; allocate inside an `allocator` block
+  --> main.kg:14:13
+   |
+14 |         _ = cell.atomicOr(8192, mem.AtomicOrder.Relaxed)
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2318]: `integers` passed the recoverable-only profile, yet this operation allocates a box of `Int` that a refused allocation would end the program on; allocate inside an `allocator` block
+  --> main.kg:15:13
+   |
+15 |         _ = cell.atomicXor(1, mem.AtomicOrder.Relaxed)
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2318]: `pointers` passed the recoverable-only profile, yet this operation allocates a box of `*const u8` that a refused allocation would end the program on; allocate inside an `allocator` block
+  --> main.kg:22:13
+   |
+22 |         _ = cell.atomicLoad(mem.AtomicOrder.Relaxed)
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2318]: `pointers` passed the recoverable-only profile, yet this operation allocates a box of `*const u8` that a refused allocation would end the program on; allocate inside an `allocator` block
+  --> main.kg:23:9
+   |
+23 |         cell.atomicStore(p, mem.AtomicOrder.Relaxed)
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2318]: `pointers` passed the recoverable-only profile, yet this operation allocates a box of `*const u8` that a refused allocation would end the program on; allocate inside an `allocator` block
+  --> main.kg:24:13
+   |
+24 |         _ = cell.atomicExchange(p, mem.AtomicOrder.Relaxed)
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2318]: `pointers` passed the recoverable-only profile, yet this operation allocates a box of `*const u8` that a refused allocation would end the program on; allocate inside an `allocator` block
+  --> main.kg:25:13
+   |
+25 |         _ = cell.atomicCompareExchange(p, p, mem.AtomicOrder.Relaxed)
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2313]: `pointers` passed the recoverable-only profile as if `*const u8` stayed unboxed, yet handing it to a slot that holds a reference allocates a box here that a refused allocation would end the program on; `value` of `UnsafeCell.atomicStore` takes it boxed, so pass a constant or a value that is already boxed, or allocate inside an `allocator` block
+  --> main.kg:23:26
+   |
+23 |         cell.atomicStore(p, mem.AtomicOrder.Relaxed)
+   |                          ^
+
+error[E2313]: `pointers` passed the recoverable-only profile as if `*const u8` stayed unboxed, yet handing it to a slot that holds a reference allocates a box here that a refused allocation would end the program on; `value` of `UnsafeCell.atomicExchange` takes it boxed, so pass a constant or a value that is already boxed, or allocate inside an `allocator` block
+  --> main.kg:24:33
+   |
+24 |         _ = cell.atomicExchange(p, mem.AtomicOrder.Relaxed)
+   |                                 ^
+
+error[E2313]: `pointers` passed the recoverable-only profile as if `*const u8` stayed unboxed, yet handing it to a slot that holds a reference allocates a box here that a refused allocation would end the program on; `expected` of `UnsafeCell.atomicCompareExchange` takes it boxed, so pass a constant or a value that is already boxed, or allocate inside an `allocator` block
+  --> main.kg:25:40
+   |
+25 |         _ = cell.atomicCompareExchange(p, p, mem.AtomicOrder.Relaxed)
+   |                                        ^
+
+error[E2313]: `pointers` passed the recoverable-only profile as if `*const u8` stayed unboxed, yet handing it to a slot that holds a reference allocates a box here that a refused allocation would end the program on; `desired` of `UnsafeCell.atomicCompareExchange` takes it boxed, so pass a constant or a value that is already boxed, or allocate inside an `allocator` block
+  --> main.kg:25:43
+   |
+25 |         _ = cell.atomicCompareExchange(p, p, mem.AtomicOrder.Relaxed)
+   |                                           ^
+

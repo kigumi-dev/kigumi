@@ -20,6 +20,9 @@ func (reg *StdOpRegistry) Canonical() string {
 		}
 		fmt.Fprintf(&sb, "op %d %s %s %s\n", op.ID, op.Name, kind, op.Desc)
 		fmt.Fprintf(&sb, "cap %s\nkeys %s\nsuffixes %s\nprefixes %s\ntypes %v\ndirect %s elem %t callback %d\n", op.Cap, strings.Join(op.Keys, ","), strings.Join(op.Suffixes, ","), strings.Join(op.Prefixes, ","), op.Types, op.Direct, op.Elem, op.Callback)
+		if src := op.ScalarBox; src != nil {
+			fmt.Fprintf(&sb, "scalar-box %d %d\n", src.Argument, src.TypeArg)
+		}
 	}
 	for _, b := range reg.Builtins {
 		fmt.Fprintf(&sb, "builtin %s %s min=%d iter=%t vm=%t native=%d\n", b.Name, b.Desc(), b.Min, b.Iter, b.VM, b.Native)

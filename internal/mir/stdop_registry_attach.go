@@ -8,6 +8,24 @@ import (
 	"kigumi/internal/sem"
 )
 
+type ScalarBoxSource struct {
+	Argument int
+	TypeArg  int
+}
+
+func parseScalarBox(value string) (*ScalarBoxSource, error) {
+	fields := strings.Fields(value)
+	if len(fields) != 2 {
+		return nil, fmt.Errorf("scalar-box wants an argument index and a type-argument index")
+	}
+	argument, aerr := strconv.Atoi(fields[0])
+	typeArg, terr := strconv.Atoi(fields[1])
+	if aerr != nil || terr != nil || argument < 0 || typeArg < 0 {
+		return nil, fmt.Errorf("scalar-box indices must be non-negative integers")
+	}
+	return &ScalarBoxSource{Argument: argument, TypeArg: typeArg}, nil
+}
+
 func (reg *StdOpRegistry) attach(op *StdOpEntry, word, value string) error {
 	switch word {
 	case "cap":
@@ -28,6 +46,13 @@ func (reg *StdOpRegistry) attach(op *StdOpEntry, word, value string) error {
 			return fmt.Errorf("callback wants an argument index, got %q", value)
 		}
 		op.Callback = n
+	case "scalar-box":
+		if op.ScalarBox != nil {
+			return fmt.Errorf("op %s has scalar-box twice", op.Name)
+		}
+		var err error
+		op.ScalarBox, err = parseScalarBox(value)
+		return err
 	case "type":
 		pkg, name, ok := strings.Cut(value, " ")
 		if !ok {
