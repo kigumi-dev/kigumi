@@ -18,9 +18,7 @@ import (
 	"kigumi/internal/driver"
 )
 
-// Server holds the open documents and the module roots; every LSP method
-// it does not override answers "method not found". go.lsp.dev runs
-// handlers concurrently, so each one takes mu.
+// Server protects documents and snapshots from background analysis with mu; Connect orders incoming messages.
 type Server struct {
 	protocol.UnimplementedServer
 	mu sync.Mutex
@@ -101,7 +99,7 @@ func Serve(stdRoot string, target driver.Target, cache string, o driver.Compiler
 	if o.Cwd == "" {
 		return errors.New("lsp: CompilerOptions.Cwd is required; the caller fills it from the process")
 	}
-	_, conn, _ := protocol.NewServer(context.Background(), New(stdRoot).WithTarget(target).WithPackageCache(cache, o).WithLazyStd(lazyStd), jsonrpc2.NewStream(stdio{}))
+	conn := New(stdRoot).WithTarget(target).WithPackageCache(cache, o).WithLazyStd(lazyStd).Connect(context.Background(), jsonrpc2.NewStream(stdio{}))
 	<-conn.Done()
 	if err := conn.Err(); err != nil && err != io.EOF {
 		return err

@@ -56,7 +56,7 @@ func TestJSONRPCEditsPublishOnlyTheLatestGeneration(t *testing.T) {
 	srv := newServer("../../std").WithDebounce(3 * time.Second)
 	a, b := net.Pipe()
 	ctx := context.Background()
-	protocol.NewServer(ctx, srv, jsonrpc2.NewStream(a))
+	srv.Connect(ctx, jsonrpc2.NewStream(a))
 	client := &liveClient{changed: make(chan struct{}, 1)}
 	_, _, server := protocol.NewClient(ctx, client, jsonrpc2.NewStream(b))
 	t.Cleanup(func() { a.Close(); b.Close(); srv.WaitIdle() })
