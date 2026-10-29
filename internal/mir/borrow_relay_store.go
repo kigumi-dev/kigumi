@@ -39,9 +39,10 @@ func (c *borrowCheck) relayStoreValues(in Inst) []flowArg {
 		h, args = o.body, slices.Concat(o.captures, in.Args[1:])
 		if h == nil {
 			var out []flowArg
+			sig := c.slotFnType(c.f.Locals[in.Args[0]].Type)
 			for k, a := range in.Args[1:] {
 				decl, _ := c.callParam(c.f, in, k+1)
-				if v, ok := c.relayValue(a, decl, false, nil); ok {
+				if v, ok := c.relayValue(a, decl, c.p.R.Types.FnParamKeepsRef(sig, k), nil); ok {
 					if c.flowBorrow(a, !v.contents) == nil || o.isParam && c.boundCalleeQuiet(c.f, o.param, k) {
 						continue
 					}

@@ -46,7 +46,14 @@ func (c *checker) lambdaParams(closure EntityID, params []syntax.NodeID, target 
 			pe.Flags |= EfEscaping
 		}
 		pid := c.r.newEntity(pe)
-		c.r.Entities[pid].Detail = c.r.addLocal(LocalInfo{Scope: c.scope})
+		lt := EntityID(0)
+		if tt.Kind(pt) == KRef {
+			lt = c.r.explicitLifetimeOf(c.f, c.scope, ps.Type)
+		}
+		if qualifier := tt.Node(tt.RefLifetime(pt)); lt == 0 && qualifier.Kind == KParam {
+			lt = qualifier.Ent
+		}
+		c.r.Entities[pid].Detail = c.r.addLocal(LocalInfo{Scope: c.scope, Lifetime: lt})
 		c.info.Defs[p] = pid
 		if _, dup := c.r.Scopes[c.scope].Names[name]; dup {
 			c.errAt(p, cParamDuplicate, name)

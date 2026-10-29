@@ -1,0 +1,30 @@
+-- module --
+mir: planned
+-- src --
+pub type View['a] = { pub value &'a String }
+pub type Sink['a] = { pub values &'a mut Array[View['a]] }
+
+interface Writer['a] {
+    fn write(self, value: &String, sink: Sink['a]) -> View['a]
+}
+
+type Worker = { pub n Int }
+
+fn Worker.write['a](self, value: &'a String, sink: Sink['a]) -> View['a] { //~ ERROR cannot be erased
+    sink.values.push(View { value: value })
+    View { value: value }
+}
+
+fn run['a, W: Writer['a]](worker: W, sink: Sink['a]) {
+    let local = "local"
+    let result = worker.write(&local, sink)
+}
+
+pub fn use['a](sink: Sink['a]) { run(Worker { n: 0 }, sink) }
+-- expect --
+error[E2297]: the reference lifetime of `write` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:10:1
+   |
+10 | fn Worker.write['a](self, value: &'a String, sink: Sink['a]) -> View['a] { //~ ERROR cannot be erased
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

@@ -42,6 +42,7 @@ type TypeRef struct {
 	Elem      *TypeRef    `json:"elem,omitempty"`
 	Params    []*TypeRef  `json:"params,omitempty"`
 	Mutable   bool        `json:"mutable,omitempty"`
+	Lifetime  *TypeRef    `json:"lifetime,omitempty"`
 }
 
 // DeclRef names a declaration by stable ID (id.go), never a process-local

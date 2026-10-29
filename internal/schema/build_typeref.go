@@ -38,7 +38,7 @@ func typeRef(res *sem.Result, t sem.TypeID) *TypeRef {
 		}
 		return ref
 	case sem.KRef:
-		return &TypeRef{Kind: TRBorrow, Display: display, Elem: typeRef(res, n.Elem), Mutable: res.Types.RefMut(t)}
+		return &TypeRef{Kind: TRBorrow, Display: display, Elem: typeRef(res, n.Elem), Mutable: res.Types.RefMut(t), Lifetime: typeRef(res, n.Lifetime)}
 	case sem.KPtr:
 		return &TypeRef{Kind: TRPointer, Display: display, Elem: typeRef(res, n.Elem)}
 	case sem.KConst:

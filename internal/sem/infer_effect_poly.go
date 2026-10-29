@@ -68,7 +68,7 @@ func (c *checker) upgradeFnEffects(ft TypeID, eff Effects) TypeID {
 	if n.Kind != KFn || n.Flags&fnEffectPoly == 0 {
 		return ft
 	}
-	return tt.Intern(typeNode{Kind: KFn, Flags: n.Flags | uint16(eff), Var: n.Var, Elem: n.Elem, Args: n.Args})
+	return tt.Intern(typeNode{Kind: KFn, Flags: n.Flags | uint16(eff), Var: n.Var, Elem: n.Elem, Lifetime: n.Lifetime, Args: n.Args})
 }
 
 // stashFieldFact lets callValue add the matching edge later, in place of

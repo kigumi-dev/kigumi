@@ -80,7 +80,7 @@ func (v *varStore) defaulted(t TypeID) TypeID {
 	for i, a := range n.Args {
 		args[i] = v.defaulted(a)
 	}
-	return tt.Intern(typeNode{Kind: n.Kind, Flags: n.Flags, Ent: n.Ent, Elem: v.defaulted(n.Elem), Var: n.Var, Args: args})
+	return tt.Intern(typeNode{Kind: n.Kind, Flags: n.Flags, Ent: n.Ent, Elem: v.defaulted(n.Elem), Lifetime: v.defaulted(n.Lifetime), Var: n.Var, Args: args})
 }
 
 func (v *varStore) notePending(i uint32, lit syntax.NodeID) {

@@ -1,0 +1,47 @@
+-- module --
+mir: planned
+-- src --
+pub type View['a] = { pub value &'a String }
+pub type Sink['a] = { pub values &'a mut Array[View['a]] }
+
+pure fn retain['a](value: &'a String, sink: Sink['a]) -> View['a] {
+    sink.values.push(View { value: value })
+    View { value: value }
+}
+
+pub fn erase['a](sink: Sink['a]) {
+    let f: fn(&String, Sink['a]) -> View['a] = retain //~ ERROR cannot be erased
+}
+
+fn apply['a, U, F: Fn[fn(&String, Sink['a]) -> U]](f: F, sink: Sink['a]) {
+    let local = "local"
+    let result = f(&local, sink)
+}
+
+pub fn bound['a](sink: Sink['a]) {
+    apply(retain, sink) //~ ERROR cannot be erased
+}
+
+pub fn array['a](sink: Sink['a]) {
+    let fs = Array.of(retain)
+    let f: fn(&String, Sink['a]) -> View['a] = fs[0] //~ ERROR cannot be erased
+}
+-- expect --
+error[E2297]: the reference lifetime of `retain` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:10:48
+   |
+10 |     let f: fn(&String, Sink['a]) -> View['a] = retain //~ ERROR cannot be erased
+   |                                                ^^^^^^
+
+error[E2297]: the reference lifetime of `retain` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:19:11
+   |
+19 |     apply(retain, sink) //~ ERROR cannot be erased
+   |           ^^^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:24:48
+   |
+24 |     let f: fn(&String, Sink['a]) -> View['a] = fs[0] //~ ERROR cannot be erased
+   |                                                ^^^^
+

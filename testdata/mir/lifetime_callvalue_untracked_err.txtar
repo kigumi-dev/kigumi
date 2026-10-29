@@ -4,7 +4,7 @@ fn chooseRef['a](b: &'a Bytes, which: fn(&'a Bytes) -> &'a Bytes) {
     _ = r
 }
 -- expect --
-fn lib.chooseRef(%b: &Bytes, %which: fn(&Bytes) -> &Bytes) -> Void {
+fn lib.chooseRef(%b: &Bytes, %which: fn(&'a Bytes) -> &Bytes) -> Void {
   b0:
     %t2 = copy(%b)
     %t3 = callv(%which, %t2)

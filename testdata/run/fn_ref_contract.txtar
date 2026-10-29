@@ -1,0 +1,34 @@
+-- src --
+type View['a] = { pub value &'a String }
+
+fn view['a](value: &'a String) -> View['a] { View { value: value } }
+pure fn pureView['a](value: &'a String) -> View['a] { View { value: value } }
+fn length['a](value: &'a String) -> usize { value.len() }
+
+fn apply['a](f: fn(&'a String) -> View['a], value: &'a String) -> usize {
+    f(value).value.len()
+}
+
+fn call[U, F: Fn[fn(&String) -> U]](f: F, value: &String) -> U { f(value) }
+
+fn run['a](value: &'a String) {
+    let scoped: fn(&String) -> View['a] = view
+    let qualified: fn(&'a String) -> View['a] = view
+    let reader: pure fn(&'a String) -> View['a] = pureView
+    let erased: fn(&String) -> View['a] = reader
+    let fs = Array.of(scoped)
+    let viaArray = call(fs[0], value)
+    let lambda = (s: &'a String) => View { value: s }
+    let callback: fn(&String) -> View['a] = lambda
+    print "${callback(value).value}"
+    print "${apply(qualified, value)} ${scoped(value).value} ${erased(value).value} ${viaArray.value}"
+}
+
+let text = "hello"
+run(&text)
+let lengthFn: fn(&String) -> usize = length
+print "${lengthFn(&text)}"
+-- stdout --
+hello
+5 hello hello hello
+5

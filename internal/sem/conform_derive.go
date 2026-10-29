@@ -157,5 +157,5 @@ func (r *Result) satisfies(t TypeID, c Constraint, from PackageID) (bool, string
 
 func (r *Result) callableMatches(fn, want TypeID) bool {
 	a, b := r.Types.Node(fn), r.Types.Node(want)
-	return sameArgs(r.Types, a.Args, b.Args) && r.Types.SameIgnoringEscaping(a.Elem, b.Elem) && Effects(a.Flags)&Effects(b.Flags)&(EffPure|EffNoalloc) == Effects(b.Flags)&(EffPure|EffNoalloc)
+	return r.Types.ExactRefParams(fn, want) && sameCallableShape(r.Types, fn, want) && Effects(a.Flags)&Effects(b.Flags)&(EffPure|EffNoalloc) == Effects(b.Flags)&(EffPure|EffNoalloc)
 }

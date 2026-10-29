@@ -73,9 +73,13 @@ func (c *checker) fixHintedSignature(a syntax.NodeID, got, hint TypeID) {
 			c.coerceGenericFnItem(c.t.Unparen(a), item, got, hint)
 			return
 		}
-		c.sameFnShape(got, hint)
+		if c.sameFnShape(got, hint) {
+			c.refScopeContract(a, got, hint)
+		}
 	case KClosure:
-		c.sameFnShape(c.r.closure(c.r.Types.Node(got).Ent).Sig, hint)
+		if c.sameFnShape(c.r.closure(c.r.Types.Node(got).Ent).Sig, hint) {
+			c.refScopeContract(a, got, hint)
+		}
 	}
 }
 

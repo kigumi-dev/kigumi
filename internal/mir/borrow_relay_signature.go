@@ -8,7 +8,15 @@ import (
 
 func (c *borrowCheck) calleeKeepsBorrow(t sem.TypeID) bool {
 	params, known := c.calleeParams(t)
-	return !known || slices.ContainsFunc(params, c.paramKeepsBorrow)
+	if !known || slices.ContainsFunc(params, c.paramKeepsBorrow) {
+		return true
+	}
+	for i := range params {
+		if c.p.R.Types.FnParamKeepsRef(c.slotFnType(t), i) {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *borrowCheck) paramKeepsRef(g *Func, i int) bool {
@@ -19,6 +27,9 @@ func (c *borrowCheck) paramKeepsRef(g *Func, i int) bool {
 func (c *borrowCheck) paramKeepsBorrow(t sem.TypeID) bool {
 	tt := c.p.R.Types
 	if n := tt.Node(t); n.Kind == sem.KRef {
+		if n.Lifetime != 0 {
+			return true
+		}
 		if e := tt.Node(n.Elem); !tt.RefMut(t) && e.Kind == sem.KParam && !c.p.R.IsCopy(n.Elem) && len(c.p.R.TypeParam(e.Ent).Constraints) == 0 {
 			return false
 		}

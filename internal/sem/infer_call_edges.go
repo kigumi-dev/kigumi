@@ -30,6 +30,7 @@ func (c *checker) callbackEdges(n syntax.NodeID, fn EntityID, sig TypeID, args [
 			param = info.Params[i]
 		}
 		at := c.vars.resolve(c.info.Types[a])
+		c.refScopeContract(a, at, c.r.fnShapeOf(pt))
 		need, bound := c.fnBoundMods(fn, i)
 		if bound != 0 {
 			c.rejectFnItemBound(n, a, fn, i)

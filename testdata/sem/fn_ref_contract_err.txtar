@@ -1,0 +1,72 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+
+pub fn direct['a](g: fn(&'a String, Sink['a]) -> Void, k: Sink['a]) {
+    let loc = "local"
+    g(&loc, k) //~ ERROR a value borrowing `loc` cannot go into shared storage
+}
+
+pub fn bound['a, F: Fn[fn(&'a String, Sink['a]) -> Void]](g: F, k: Sink['a]) {
+    let loc = "local"
+    g(&loc, k) //~ ERROR a value borrowing `loc` cannot go into shared storage
+}
+
+pub fn alias['a](g: fn(&'a String, Sink['a]) -> Void, k: Sink['a]) {
+    let loc = "local"
+    let h = g
+    h(&loc, k) //~ ERROR a value borrowing `loc` cannot go into shared storage
+}
+
+pub fn known['a](k: Sink['a]) {
+    let loc = "local"
+    keep(&loc, k) //~ ERROR a borrow cannot be stored into `k`
+}
+
+-- expect --
+error[E2158]: a value borrowing `loc` cannot go into shared storage: another handle to that storage can keep it after `loc` is gone
+ --> main.kg:8:5
+  |
+8 |     g(&loc, k) //~ ERROR a value borrowing `loc` cannot go into shared storage
+  |     ^^^^^^^^^
+  = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `loc` is borrowed here
+ --> main.kg:8:7
+  |
+8 |     g(&loc, k) //~ ERROR a value borrowing `loc` cannot go into shared storage
+  |       ^^^^
+
+error[E2158]: a value borrowing `loc` cannot go into shared storage: another handle to that storage can keep it after `loc` is gone
+  --> main.kg:13:5
+   |
+13 |     g(&loc, k) //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |     ^^^^^^^^^
+   = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `loc` is borrowed here
+  --> main.kg:13:7
+   |
+13 |     g(&loc, k) //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |       ^^^^
+
+error[E2158]: a value borrowing `loc` cannot go into shared storage: another handle to that storage can keep it after `loc` is gone
+  --> main.kg:19:5
+   |
+19 |     h(&loc, k) //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |     ^^^^^^^^^
+   = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `loc` is borrowed here
+  --> main.kg:19:7
+   |
+19 |     h(&loc, k) //~ ERROR a value borrowing `loc` cannot go into shared storage
+   |       ^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:24:5
+   |
+24 |     keep(&loc, k) //~ ERROR a borrow cannot be stored into `k`
+   |     ^^^^^^^^^^^^
+

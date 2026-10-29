@@ -84,12 +84,13 @@ const (
 )
 
 type typeNode struct {
-	Kind  TypeKind
-	Flags uint16
-	Ent   EntityID
-	Elem  TypeID
-	Var   uint32
-	Args  []TypeID
+	Kind     TypeKind
+	Flags    uint16
+	Ent      EntityID
+	Elem     TypeID
+	Lifetime TypeID
+	Var      uint32
+	Args     []TypeID
 }
 
 type typeProps struct {
@@ -161,6 +162,8 @@ func encode(n typeNode) string {
 	sb.WriteString(strconv.FormatUint(uint64(n.Elem), 10))
 	sb.WriteByte(':')
 	sb.WriteString(strconv.FormatUint(uint64(n.Var), 10))
+	sb.WriteByte(':')
+	sb.WriteString(strconv.FormatUint(uint64(n.Lifetime), 10))
 	for _, a := range n.Args {
 		sb.WriteByte(',')
 		sb.WriteString(strconv.FormatUint(uint64(a), 10))
@@ -178,7 +181,7 @@ func (tt *TypeTable) Intern(n typeNode) TypeID {
 	}
 	id := TypeID(len(tt.nodes))
 	tt.nodes = append(tt.nodes, n)
-	tt.props = append(tt.props, typeProps{hasVar: n.Kind == KVar || tt.props[n.Elem].hasVar || slices.ContainsFunc(n.Args, func(a TypeID) bool { return tt.props[a].hasVar })})
+	tt.props = append(tt.props, typeProps{hasVar: n.Kind == KVar || tt.props[n.Elem].hasVar || tt.props[n.Lifetime].hasVar || slices.ContainsFunc(n.Args, func(a TypeID) bool { return tt.props[a].hasVar })})
 	tt.index[key] = id
 	return id
 }

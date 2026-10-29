@@ -16,6 +16,23 @@ func sameArgs(tt *TypeTable, a, b []TypeID) bool {
 	return true
 }
 
+func sameCallableShape(tt *TypeTable, a, b TypeID) bool {
+	if len(tt.Node(a).Args) != len(tt.Node(b).Args) {
+		return false
+	}
+	an, bn := tt.Node(a), tt.Node(b)
+	for i, p := range an.Args {
+		q := bn.Args[i]
+		if tt.RefLifetime(p) == 0 || tt.RefLifetime(q) == 0 {
+			p, q = tt.WithRefLifetime(p, 0), tt.WithRefLifetime(q, 0)
+		}
+		if !tt.SameIgnoringEscaping(p, q) {
+			return false
+		}
+	}
+	return tt.SameIgnoringEscaping(an.Elem, bn.Elem)
+}
+
 func recvText(k RecvKind) string {
 	switch k {
 	case RecvMut:

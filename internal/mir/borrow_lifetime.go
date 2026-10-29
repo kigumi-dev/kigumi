@@ -107,6 +107,9 @@ func (c *borrowCheck) futureHandleSource(in Inst) (*borrowInfo, bool) {
 // args[0] as the witness; a closure or fn pointer only reaches valueResultSource and rejectUntrackedResult.
 func (c *borrowCheck) callValueLifetimeSource(in Inst) (*borrowInfo, bool) {
 	c.callNode = in.Node
+	if b, ok := c.signatureLifetimeSource(in); ok {
+		return b, true
+	}
 	if in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn {
 		if b, ok := c.entityLifetimeSource(in.Ent, c.p.R.Fn(in.Ent), in.Args, 1); ok {
 			return b, true

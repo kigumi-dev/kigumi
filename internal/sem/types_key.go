@@ -55,6 +55,16 @@ func (r *Result) writeKey(sb *strings.Builder, t TypeID, num paramNumbering) {
 			sb.WriteString(r.entityName(n.Ent))
 		}
 	case KRef:
+		if n.Lifetime != 0 {
+			sb.WriteString("&")
+			r.writeKey(sb, n.Lifetime, num)
+			sb.WriteByte(' ')
+			if n.Flags&flagMut != 0 {
+				sb.WriteString("mut ")
+			}
+			r.writeKey(sb, n.Elem, num)
+			return
+		}
 		if n.Flags&flagMut != 0 {
 			sb.WriteString("&mut(")
 			r.writeKey(sb, n.Elem, num)

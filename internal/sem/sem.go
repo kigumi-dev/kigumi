@@ -21,16 +21,15 @@ type PackageInfo struct {
 }
 
 type Result struct {
-	Types     *TypeTable
-	Entities  []Entity
-	Scopes    []Scope
-	Files     []FileInfo
-	Packages  []PackageInfo
-	Bodies    []BodyRef
-	Overloads []OverloadSet
-	Places    []Place
-	Instances map[EntityID][]Instance
-
+	Types      *TypeTable
+	Entities   []Entity
+	Scopes     []Scope
+	Files      []FileInfo
+	Packages   []PackageInfo
+	Bodies     []BodyRef
+	Overloads  []OverloadSet
+	Places     []Place
+	Instances  map[EntityID][]Instance
 	TypeDecls  []TypeDeclInfo
 	Fns        []FnInfo
 	Ifaces     []InterfaceInfo
@@ -179,6 +178,7 @@ type Result struct {
 	witnessPairs              []witnessPair
 	witnessSeen               map[witnessPair]bool
 	seal                      witnessSeal
+	refUses                   []RefScopeUse
 	instances                 map[EntityID]InstanceInfo
 	instanceKeys              map[string]EntityID
 	closureOrigins            map[EntityID]EntityID

@@ -56,6 +56,9 @@ func (r *Result) unifyOwnType(isOwn map[EntityID]bool, got, want TypeID, subst m
 	if gn.Kind != wn.Kind || gn.Flags != wn.Flags || gn.Ent != wn.Ent || gn.Var != wn.Var || len(gn.Args) != len(wn.Args) {
 		return false
 	}
+	if gn.Lifetime != 0 && wn.Lifetime != 0 && !r.unifyOwnType(isOwn, gn.Lifetime, wn.Lifetime, subst) {
+		return false
+	}
 	if !r.unifyOwnType(isOwn, gn.Elem, wn.Elem, subst) {
 		return false
 	}

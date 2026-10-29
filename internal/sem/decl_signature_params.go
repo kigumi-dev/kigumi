@@ -111,6 +111,7 @@ func (r *Result) resolveSignature(id EntityID, scope ScopeID, selfType TypeID) {
 	}
 	if info.Abi == "" && !info.Naked {
 		info.Sig = r.Types.WithEscParams(info.Sig, r.escapingMarks(params, granted))
+		info.Sig = r.refSignature(info.Sig, info.Params)
 	}
 	r.Entities[id].Type = info.Sig
 	if info.Abi != "" || info.Export != "" {

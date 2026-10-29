@@ -132,7 +132,7 @@ func (tt *TypeTable) SameIgnoringEscaping(a, b TypeID) bool {
 	if na.Kind != nb.Kind || na.Ent != nb.Ent || va != vb || fa != fb || len(na.Args) != len(nb.Args) {
 		return false
 	}
-	if !tt.SameIgnoringEscaping(na.Elem, nb.Elem) {
+	if !tt.SameIgnoringEscaping(na.Lifetime, nb.Lifetime) || !tt.SameIgnoringEscaping(na.Elem, nb.Elem) {
 		return false
 	}
 	for i := range na.Args {

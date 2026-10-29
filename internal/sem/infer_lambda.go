@@ -74,6 +74,7 @@ func (c *checker) synthLambda(n syntax.NodeID, want TypeID) TypeID {
 	info.Params = pents
 	info.Ret = ret
 	info.Sig = tt.WithEscParams(tt.Fn(ptypes, ret, 0, c.lambdaVariadic(params, target)), c.r.escapingMarks(ptypes, c.escapingFlags(pents)))
+	info.Sig = c.r.refSignature(info.Sig, pents)
 	c.demoteReadCaptures(ctx)
 	c.rejectKeptMut(ctx)
 	info.Captures = ctx.list

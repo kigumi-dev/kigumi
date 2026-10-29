@@ -116,6 +116,7 @@ func (c *checker) coerceToFn(n syntax.NodeID, got, want TypeID) ([]CoStep, bool)
 	if !c.sameFnShape(got, want) || (g.Flags^w.Flags)&uint16(EffUnsafe) != 0 {
 		return nil, false
 	}
+	c.refScopeContract(n, got, want)
 	if i, ok := c.firstEscapeMismatch(got, want); ok {
 		c.errAt(n, cEscapingCoerce, c.typeText(got), i+1, c.typeText(want))
 		return nil, true

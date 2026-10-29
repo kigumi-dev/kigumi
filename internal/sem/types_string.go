@@ -82,6 +82,10 @@ func (r *Result) writeType(sb *strings.Builder, t TypeID) {
 		}
 	case KRef:
 		sb.WriteString("&")
+		if n.Lifetime != 0 {
+			r.writeType(sb, n.Lifetime)
+			sb.WriteByte(' ')
+		}
 		if n.Flags&flagMut != 0 {
 			sb.WriteString("mut ")
 		}

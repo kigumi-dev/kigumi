@@ -1,0 +1,25 @@
+-- module --
+mir: planned
+-- src --
+pub type View['a] = { pub value &'a String }
+
+pub fn unknown['a](f: fn(&'a String) -> View['a]) {
+    let g: fn(&String) -> View['a] = f //~ ERROR cannot be erased
+}
+
+pub fn unknownPure['a](f: pure fn(&'a String) -> View['a]) {
+    let g: fn(&String) -> View['a] = f //~ ERROR cannot be erased
+}
+-- expect --
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+ --> main.kg:4:38
+  |
+4 |     let g: fn(&String) -> View['a] = f //~ ERROR cannot be erased
+  |                                      ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+ --> main.kg:8:38
+  |
+8 |     let g: fn(&String) -> View['a] = f //~ ERROR cannot be erased
+  |                                      ^
+

@@ -152,6 +152,8 @@ func (c *borrowCheck) slotFnType(t sem.TypeID) sem.TypeID {
 	switch c.p.R.Types.Kind(t) {
 	case sem.KFn:
 		return t
+	case sem.KClosure:
+		return c.p.R.Closure(c.p.R.Types.Node(t).Ent).Sig
 	case sem.KParam:
 		for _, k := range c.p.R.TypeParam(c.p.R.Types.Node(t).Ent).Constraints {
 			if (k.Kind == sem.CFn || k.Kind == sem.CFnMut || k.Kind == sem.CFnOnce) && c.p.R.Types.Kind(k.Type) == sem.KFn {

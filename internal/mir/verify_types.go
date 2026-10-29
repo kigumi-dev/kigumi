@@ -53,7 +53,7 @@ func (p *Program) verifyTypes(f *Func) *Error {
 					return fail("types", bid, i, "shell plan yields %s, not a Plan", p.R.TypeString(ty(in.Dst)))
 				}
 			case OpBorrow:
-				if ty(in.Dst) != tt.Ref(ty(in.Args[0]), in.Index == 1) {
+				if tt.WithRefLifetime(ty(in.Dst), 0) != tt.Ref(ty(in.Args[0]), in.Index == 1) {
 					return fail("types", bid, i, "borrow of %s yields %s", p.R.TypeString(ty(in.Args[0])), p.R.TypeString(ty(in.Dst)))
 				}
 			case OpVariant, OpCFnPtr:
@@ -127,6 +127,7 @@ func (p *Program) returnable(f *Func, t sem.TypeID) bool {
 // every back end treats a closure as a function value, and those qualifiers never reach the runtime representation.
 func (p *Program) sameType(a, b sem.TypeID) bool {
 	a, b = p.fnType(a), p.fnType(b)
+	a, b = p.R.Types.WithRefLifetime(a, 0), p.R.Types.WithRefLifetime(b, 0)
 	if a == b || p.sameFnRepr(a, b) || p.R.Types.SameIgnoringEscaping(a, b) {
 		return true
 	}
@@ -162,11 +163,11 @@ func (p *Program) sameFnRepr(a, b sem.TypeID) bool {
 	if na.Kind != sem.KFn || nb.Kind != sem.KFn {
 		return false
 	}
-	if na.Flags&structural != nb.Flags&structural || na.Elem != nb.Elem || len(na.Args) != len(nb.Args) {
+	if na.Flags&structural != nb.Flags&structural || !p.sameType(na.Elem, nb.Elem) || len(na.Args) != len(nb.Args) {
 		return false
 	}
 	for i := range na.Args {
-		if na.Args[i] != nb.Args[i] {
+		if !p.sameType(na.Args[i], nb.Args[i]) {
 			return false
 		}
 	}

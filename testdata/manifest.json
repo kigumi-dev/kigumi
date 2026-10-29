@@ -941,9 +941,9 @@
       ]
     },
     {
-      "id": "mir/lifetime_callvalue_composite_untracked_err",
+      "id": "mir/lifetime_callvalue_composite",
       "kind": "mir",
-      "path": "testdata/mir/lifetime_callvalue_composite_untracked_err.txtar",
+      "path": "testdata/mir/lifetime_callvalue_composite.txtar",
       "mode": [
         "build"
       ],
@@ -10402,6 +10402,23 @@
       "id": "run/fn_param_borrow_store_ok",
       "kind": "run",
       "path": "testdata/run/fn_param_borrow_store_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_ref_contract",
+      "kind": "run",
+      "path": "testdata/run/fn_ref_contract.txtar",
       "mode": [
         "vm",
         "native"
@@ -21509,6 +21526,61 @@
       "id": "sem/fn_param_borrow_store_err",
       "kind": "sem",
       "path": "testdata/sem/fn_param_borrow_store_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_contract_coerce_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_contract_coerce_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_contract_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_contract_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_contract_return_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_contract_return_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_contract_unknown_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_contract_unknown_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_contract_witness_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_contract_witness_err.txtar",
       "mode": [
         "check"
       ],

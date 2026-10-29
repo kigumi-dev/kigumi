@@ -6,7 +6,7 @@ fn chooseView['a](b: &'a Bytes, which: fn(&'a Bytes) -> View['a]) {
     _ = v
 }
 -- expect --
-fn lib.chooseView(%b: &Bytes, %which: fn(&Bytes) -> View['a]) -> Void {
+fn lib.chooseView(%b: &Bytes, %which: fn(&'a Bytes) -> View['a]) -> Void {
   b0:
     %t2 = copy(%b)
     %t3 = callv(%which, %t2)
@@ -16,9 +16,3 @@ fn lib.chooseView(%b: &Bytes, %which: fn(&Bytes) -> View['a]) -> Void {
     drop(%which)
     return %t5
 }
-error[E1040]: a borrow returned through this call cannot be traced to an owner; give the callee's signature a named lifetime connecting its parameter to its return type
- --> lib/lt.kg:4:13
-  |
-4 |     let v = which(b)
-  |             ^^^^^^^
-

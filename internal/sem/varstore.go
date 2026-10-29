@@ -96,11 +96,11 @@ func (v *varStore) resolve(t TypeID) TypeID {
 		args[i] = v.resolve(a)
 		changed = changed || args[i] != a
 	}
-	elem := v.resolve(n.Elem)
-	if !changed && elem == n.Elem && n.Kind != KFn {
+	elem, lifetime := v.resolve(n.Elem), v.resolve(n.Lifetime)
+	if !changed && elem == n.Elem && lifetime == n.Lifetime && n.Kind != KFn {
 		return t
 	}
-	return tt.Intern(tt.absorbEscMarks(typeNode{Kind: n.Kind, Flags: n.Flags, Ent: n.Ent, Elem: elem, Var: n.Var, Args: args}))
+	return tt.Intern(tt.absorbEscMarks(typeNode{Kind: n.Kind, Flags: n.Flags, Ent: n.Ent, Elem: elem, Lifetime: lifetime, Var: n.Var, Args: args}))
 }
 
 func (v *varStore) bind(i uint32, t TypeID) { v.trail = append(v.trail, i); v.binding[i] = t }

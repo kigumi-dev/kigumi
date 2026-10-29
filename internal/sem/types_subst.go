@@ -32,18 +32,18 @@ func (tt *TypeTable) Subst(t TypeID, s map[EntityID]TypeID) TypeID {
 		if !changed {
 			args = n.Args
 		}
-		return tt.Intern(tt.absorbEscMarks(typeNode{Kind: n.Kind, Flags: n.Flags, Ent: n.Ent, Elem: elem, Var: n.Var, Args: args}))
+		return tt.Intern(tt.absorbEscMarks(typeNode{Kind: n.Kind, Flags: n.Flags, Ent: n.Ent, Elem: elem, Lifetime: n.Lifetime, Var: n.Var, Args: args}))
 	case KClosure:
 		if r, ok := s[n.Ent]; ok {
 			return r
 		}
 		return t
 	case KRef, KPtr:
-		elem := tt.Subst(n.Elem, s)
-		if elem == n.Elem {
+		elem, lifetime := tt.Subst(n.Elem, s), tt.Subst(n.Lifetime, s)
+		if elem == n.Elem && lifetime == n.Lifetime {
 			return t
 		}
-		return tt.Intern(typeNode{Kind: n.Kind, Flags: n.Flags, Elem: elem})
+		return tt.Intern(typeNode{Kind: n.Kind, Flags: n.Flags, Elem: elem, Lifetime: lifetime})
 	}
 	return t
 }
@@ -57,6 +57,9 @@ func (tt *TypeTable) Contains(t, needle TypeID) bool {
 		return false
 	}
 	n := tt.nodes[t]
+	if n.Lifetime != 0 && tt.Contains(n.Lifetime, needle) {
+		return true
+	}
 	if n.Elem != 0 && tt.Contains(n.Elem, needle) {
 		return true
 	}
@@ -86,6 +89,7 @@ func (tt *TypeTable) Params(t TypeID) []EntityID {
 			return
 		}
 		walk(n.Elem)
+		walk(n.Lifetime)
 		for _, a := range n.Args {
 			walk(a)
 		}

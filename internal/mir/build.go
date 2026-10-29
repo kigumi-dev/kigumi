@@ -25,6 +25,7 @@ func build(r *sem.Result, all bool) *Program { return buildFor(r, all, nil) }
 func buildFor(r *sem.Result, all bool, keep func(path string) bool) *Program {
 	p := &Program{R: r, ByEnt: map[sem.EntityID]*Func{}, rootKeep: keep}
 	p.lowerReachable(all)
+	p.checkRefScopes()
 	p.Entry = p.ByEnt[r.MainFn()]
 	resolveStdOps(p)
 	for _, f := range p.allFuncs() {

@@ -19,7 +19,7 @@ fn lib.Holder.mix(%self: Holder['a], %other: &Bytes) -> &Bytes {
     %t2 = copy(%other)
     return %t2
 }
-fn lib.useWitness(%x: T, %$w:T:mix: fn(&Bytes) -> &Bytes) -> &Bytes {
+fn lib.useWitness(%x: T, %$w:T:mix: fn(&'a Bytes) -> &Bytes) -> &Bytes {
   b0:
     %t3 = const 7: u8
     %t4 = const 8: u8

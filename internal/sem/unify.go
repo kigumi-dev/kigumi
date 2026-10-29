@@ -51,6 +51,12 @@ func (v *varStore) unifyInner(a, b TypeID, ignoreEscaping bool) bool {
 	if na.Kind != nb.Kind || fa != fb || na.Ent != nb.Ent || va != vb || len(na.Args) != len(nb.Args) {
 		return false
 	}
+	if na.Kind == KFn && !tt.ExactRefParams(a, b) {
+		return false
+	}
+	if na.Lifetime != 0 && nb.Lifetime != 0 && !v.unifyInner(na.Lifetime, nb.Lifetime, ignoreEscaping) {
+		return false
+	}
 	if !v.unifyInner(na.Elem, nb.Elem, ignoreEscaping) {
 		return false
 	}
@@ -64,7 +70,7 @@ func (v *varStore) unifyInner(a, b TypeID, ignoreEscaping bool) bool {
 
 func (v *varStore) bindVar(i uint32, t TypeID, n typeNode) bool {
 	tt := v.r.Types
-	t = tt.WithoutEscaping(t)
+	t = tt.WithRefLifetime(tt.WithoutEscaping(t), 0)
 	switch {
 	case n.Kind == KVar:
 		if v.pending[i] != 0 && v.pending[n.Var] == 0 {

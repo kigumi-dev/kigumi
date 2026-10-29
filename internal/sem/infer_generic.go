@@ -112,6 +112,7 @@ func (c *checker) coerceGenericFnItem(n syntax.NodeID, item EntityID, got, want 
 		c.vars.rollback(mark)
 		return false
 	}
+	c.refScopeContract(n, got, want)
 	if i, ok := c.firstEscapeMismatch(got, want); ok {
 		c.errAt(n, cEscapingCoerce, c.typeText(got), i+1, c.typeText(want))
 		return true

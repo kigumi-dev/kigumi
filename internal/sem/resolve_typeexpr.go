@@ -65,7 +65,7 @@ func (r *Result) resolveFnType(f FileID, scope ScopeID, n syntax.NodeID) TypeID 
 	list := t.List(s.Params)
 	variadic := s.Flags&syntax.FlagVariadic != 0 && s.Abi == 0 && list.Len() > 0
 	for i, p := range list.EnumerateIDs() {
-		pt := r.resolveType(f, scope, p, posParam)
+		pt := r.refTypeSlot(f, scope, p, r.resolveType(f, scope, p, posParam))
 		ok := false
 		if s.Flags&(syntax.FlagEscapingParam0<<i) != 0 {
 			pt, ok = r.escapingParamType(f, p, pt)

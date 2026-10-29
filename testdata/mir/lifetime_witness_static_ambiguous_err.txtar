@@ -19,7 +19,7 @@ fn lib.Holder.make(%x: &Bytes, %y: &Bytes) -> &Bytes {
     %t2 = copy(%y)
     return %t2
 }
-fn lib.useStatic(%x: T, %a: &Bytes, %$w:T:make: fn(&Bytes, &Bytes) -> &Bytes) -> &Bytes {
+fn lib.useStatic(%x: T, %a: &Bytes, %$w:T:make: fn(&'a Bytes, &'a Bytes) -> &Bytes) -> &Bytes {
   b0:
     %t4 = const 1: u8
     %t5 = const 2: u8
@@ -49,4 +49,16 @@ error[move-while-borrowed]: `buf2` is still borrowed when its scope ends here
    |
 12 |     let buf2 = Bytes.fromArray(&Array.of(1, 2, 3))
    |         ^^^^
+
+error[E2158]: a value borrowing `buf2` cannot go into shared storage: another handle to that storage can keep it after `buf2` is gone
+  --> lib/lt.kg:13:5
+   |
+13 |     T.make(a, &buf2)
+   |     ^^^^^^^^^^^^^^^
+   = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `buf2` is borrowed here
+  --> lib/lt.kg:13:15
+   |
+13 |     T.make(a, &buf2)
+   |               ^^^^^
 

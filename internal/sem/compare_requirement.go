@@ -28,7 +28,7 @@ func (r *Result) sameRequirementSig(reqA EntityID, sigA TypeID, reqB EntityID, s
 		if an.Kind != bn.Kind || an.Flags != bn.Flags || an.Ent != bn.Ent || an.Var != bn.Var || len(an.Args) != len(bn.Args) {
 			return false
 		}
-		if !eq(an.Elem, bn.Elem) {
+		if !eq(an.Lifetime, bn.Lifetime) || !eq(an.Elem, bn.Elem) {
 			return false
 		}
 		for i := range an.Args {

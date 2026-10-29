@@ -1,0 +1,16 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+pub fn erase['a](k: Sink['a]) {
+    let f: fn(&String, Sink['a]) -> Void = keep //~ ERROR cannot be erased
+}
+-- expect --
+error[E2297]: the reference lifetime of `keep` cannot be erased: the callable may retain that reference outside its result
+ --> main.kg:5:44
+  |
+5 |     let f: fn(&String, Sink['a]) -> Void = keep //~ ERROR cannot be erased
+  |                                            ^^^^
+
