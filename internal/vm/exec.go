@@ -35,7 +35,7 @@ func (m *Machine) exec(fr *frame, in *mir.Inst, ic *instCode) {
 	case mir.OpShare:
 		v := loc[in.Args[0]]
 		if in.Copy && (!in.IfWritable || m.writableInside(v)) {
-			v = m.copyShared(f, in, v)
+			v = m.copyShared(f, in, ic, v)
 			m.chargeMemory(v)
 		} else {
 			v = retain(v)

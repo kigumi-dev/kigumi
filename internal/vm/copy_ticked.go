@@ -15,8 +15,8 @@ type copier struct {
 
 func (m *Machine) copyTry(v *obj) (*obj, bool) { return copier{m, true}.value(v) }
 
-func (m *Machine) copyShared(f *mir.Func, in *mir.Inst, v *obj) *obj {
-	if m.opts.FaultInjectAt <= 0 || f.IsDirect(in.Dst) {
+func (m *Machine) copyShared(f *mir.Func, in *mir.Inst, ic *instCode, v *obj) *obj {
+	if m.opts.FaultInjectAt <= 0 || f.IsDirect(in.Dst) || ic.inlineCopy {
 		return m.copy(v)
 	}
 	return m.copyPanicking(v)

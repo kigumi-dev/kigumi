@@ -13,11 +13,12 @@ type funcCode struct {
 }
 
 type instCode struct {
-	bin   bop
-	nk    int
-	konst *obj
-	call  atomic.Pointer[callPlan]
-	clo   atomic.Pointer[closurePlan]
+	bin        bop
+	nk         int
+	konst      *obj
+	call       atomic.Pointer[callPlan]
+	clo        atomic.Pointer[closurePlan]
+	inlineCopy bool
 }
 
 type planKind uint8
@@ -68,6 +69,9 @@ func (m *Machine) decode(f *mir.Func) *funcCode {
 			}
 		}
 		c.blocks[b] = ics
+	}
+	for _, store := range m.p.CopyStores(f) {
+		c.blocks[store.Block][store.Share].inlineCopy = true
 	}
 	return c
 }
