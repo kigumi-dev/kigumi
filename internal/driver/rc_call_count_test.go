@@ -49,6 +49,7 @@ var baselineRCCalls = map[string]int{
 }
 
 var addedAfterBaseline = map[string]bool{
+	"variant_mut_parameter.txtar":                   true,
 	"async_caller_place_ok.txtar":                   true,
 	"fn_param_borrow_store_ok.txtar":                true,
 	"collection_read_copy.txtar":                    true,

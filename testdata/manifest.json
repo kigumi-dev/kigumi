@@ -17629,6 +17629,23 @@
       ]
     },
     {
+      "id": "run/variant_mut_parameter",
+      "kind": "run",
+      "path": "testdata/run/variant_mut_parameter.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/view_array_containers",
       "kind": "run",
       "path": "testdata/run/view_array_containers.txtar",

@@ -1,5 +1,7 @@
 package mir
 
+import "slices"
+
 // exposedLocals numbers the locals read before a definition in their own block, parameters excepted; only those cross block edges live or undefined.
 func exposedLocals(f *Func) (idx []int32, locals []LocalID) {
 	idx = make([]int32, len(f.Locals))
@@ -102,6 +104,10 @@ func (lv *edgeLive) dead(f *Func, bid BlockID, fn func(LocalID)) {
 	lv.in[bid].minus(out).each(func(i int32) { fn(lv.locals[i]) })
 	for _, in := range f.Blocks[bid].Insts {
 		if !in.Op.Yields() {
+			continue
+		}
+		// Parameters are excluded from idx even when a later block reads a reassigned value.
+		if slices.Contains(f.Params, in.Dst) {
 			continue
 		}
 		if i := lv.idx[in.Dst]; i < 0 || !out.has(i) {

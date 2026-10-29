@@ -1,0 +1,28 @@
+-- src --
+fn replace(mut h: Int?) -> Int {
+    h = Some(3)
+    match h { Some(v) -> v, None -> 0 }
+}
+
+fn fromValue(mut h: Int?, value: Int?) -> Int {
+    h = value
+    match h { Some(v) -> v, None -> 0 }
+}
+
+fn second(ignored: Int, mut h: Int?) -> Int {
+    h = Some(8)
+    match h { Some(v) -> v, None -> 0 }
+}
+
+fn walk(mut h: Int?) -> Int {
+    let mut total = 0
+    for h is Some(v) {
+        total += v
+        h = if v > 0 { Some(v - 1) } else { None }
+    }
+    total
+}
+
+print "${replace(None)} ${fromValue(Some(1), None)} ${fromValue(None, Some(7))} ${second(1, None)} ${walk(Some(4))}"
+-- stdout --
+3 0 7 8 10
