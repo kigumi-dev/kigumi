@@ -6,6 +6,40 @@ import (
 )
 
 var tickParitySources = map[string]string{
+	"share_copy_fill": `type Text = { s String }
+fn text(s: String) -> Text { Text { s: s } }
+fn main() {
+    let value = text("hello")
+    eprint "go"
+    let xs = FixedArray.filled[Text, 1](value)
+    if xs[0].s != "hello" { let none: Int? = None; none.unwrap() }
+    print "ok"
+}
+`,
+	"share_copy_duplicate": `type Text = { s String }
+fn text(s: String) -> Text { Text { s: s } }
+fn duplicate[T: Copy](value: T) -> (T, T) { (value, value) }
+fn main() {
+    let value = text("hello")
+    eprint "go"
+    let (left, right) = duplicate(value)
+    if left.s != "hello" || right.s != "hello" { let none: Int? = None; none.unwrap() }
+    print "ok"
+}
+`,
+	"share_copy_mutable": `type Text = { mut s String }
+fn text(s: String) -> Text { Text { s: s } }
+fn duplicate[T: Copy](value: T) -> (T, T) { (value, value) }
+fn main() {
+    let value = text("hello")
+    eprint "go"
+    let (first, right) = duplicate(value)
+    let mut left = first
+    left.s = "changed"
+    if right.s != "hello" { let none: Int? = None; none.unwrap() }
+    print "ok"
+}
+`,
 	"interp": `type E = {}
 
 fn E.tag(self) -> Int {

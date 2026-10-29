@@ -1,6 +1,10 @@
 package vm
 
-import "kigumi/internal/mir"
+import (
+	"sync/atomic"
+
+	"kigumi/internal/mir"
+)
 
 // copier copies a value as one of native's two deep copies does, allocation for allocation: copy_try
 // (try set: exact array stores, an owned Bytes buffer is refusable, a refusal is reported) and rt_copy (a refusal aborts).
@@ -10,6 +14,13 @@ type copier struct {
 }
 
 func (m *Machine) copyTry(v *obj) (*obj, bool) { return copier{m, true}.value(v) }
+
+func (m *Machine) copyShared(f *mir.Func, in *mir.Inst, v *obj) *obj {
+	if m.opts.FaultInjectAt <= 0 || f.IsDirect(in.Dst) {
+		return m.copy(v)
+	}
+	return m.copyPanicking(v)
+}
 
 func (m *Machine) copyPanicking(v *obj) *obj {
 	out, ok := copier{m, false}.value(v)
@@ -60,7 +71,7 @@ func (m *Machine) ticks(n int) bool {
 }
 
 func (c copier) value(v *obj) (*obj, bool) {
-	if v == nil {
+	if v == nil || atomic.LoadInt32(&v.rc) < 0 {
 		return v, true
 	}
 	m := c.m
