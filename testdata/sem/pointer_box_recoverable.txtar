@@ -1,0 +1,42 @@
+-- module --
+stage: driver
+profile: recoverable-only
+-- src --
+import ffi from std/ffi
+
+fn peek(b: &Bytes) -> u8 {
+    unsafe { ffi.readU8(ffi.bytesPtr(b)) }
+}
+
+fn cString(c: &ffi.CString) -> *const u8 { c.ptr() }
+fn cValue(v: &ffi.CValue[Int]) -> *mut Int { v.ptr() }
+
+fn main() {
+    let b = b"zero"
+    _ = peek(&b)
+    match ffi.CString.new(&"c") {
+        Ok(c) -> { _ = cString(&c) }
+        Err(_) -> {}
+    }
+    let v = ffi.CValue.new(0)
+    _ = cValue(&v)
+}
+-- expect --
+error[E2316]: `peek` passed the recoverable-only profile, yet producing this `*const u8` result allocates a box that a refused allocation would end the program on; allocate inside an `allocator` block
+ --> main.kg:4:25
+  |
+4 |     unsafe { ffi.readU8(ffi.bytesPtr(b)) }
+  |                         ^^^^^^^^^^^^^^
+
+error[E2316]: `cValue` passed the recoverable-only profile, yet producing this `*mut Int` result allocates a box that a refused allocation would end the program on; allocate inside an `allocator` block
+ --> main.kg:8:46
+  |
+8 | fn cValue(v: &ffi.CValue[Int]) -> *mut Int { v.ptr() }
+  |                                              ^^^^^^
+
+error[E2316]: `cString` passed the recoverable-only profile, yet producing this `*const u8` result allocates a box that a refused allocation would end the program on; allocate inside an `allocator` block
+ --> main.kg:7:44
+  |
+7 | fn cString(c: &ffi.CString) -> *const u8 { c.ptr() }
+  |                                            ^^^^^^
+

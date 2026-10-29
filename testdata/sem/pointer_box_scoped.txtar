@@ -1,0 +1,25 @@
+-- module --
+stage: driver
+profile: recoverable-only
+-- src --
+import ffi from std/ffi
+import {Arena, AllocatorHandle} from std/alloc
+
+fn peek(h: &AllocatorHandle, b: &Bytes) -> u8 {
+    allocator h.scope() {
+        unsafe { ffi.readU8(ffi.bytesPtr(b)) }
+    }
+}
+
+fn main() {
+    let p = unsafe { ffi.offset(ffi.null[u8](), 0) }
+    _ = ffi.isNull(p)
+    match Arena.tryCreate() {
+        Ok(h) -> {
+            let b = b"zero"
+            _ = peek(&h, &b)
+        }
+        Err(_) -> {}
+    }
+}
+-- expect --

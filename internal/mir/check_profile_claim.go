@@ -32,7 +32,7 @@ func (p *Program) profileClaims() []AllocClaim {
 			}
 		}
 	}
-	return p.argBoxClaims(out, reached, c)
+	return p.scalarBoxClaims(out, reached, c)
 }
 
 // reachedFrom walks the bodies a call, a function value or an entry can run from roots.

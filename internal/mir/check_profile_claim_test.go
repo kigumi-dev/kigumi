@@ -52,8 +52,8 @@ func TestProfileClaimsReportACrossingTheProfileTrusted(t *testing.T) {
 		code string
 	}{{sem.Module{RecoverableOnly: true}, "E2313"}, {sem.Module{NoDefaultAllocator: true}, "E2314"}} {
 		prog := profiledProgram(t, c.mod, profileCrossSrc)
-		prog.ArgBoxes = func(p *mir.Program) map[*mir.Func][]mir.ArgBox {
-			return llgen.ScalarArgBoxes(p, llgen.EmitOptions{Reachable: mir.Reachable(p)})
+		prog.NativeBoxes = func(p *mir.Program) mir.NativeBoxSites {
+			return llgen.ScalarBoxSites(p, llgen.EmitOptions{Reachable: mir.Reachable(p)})
 		}
 		var codes []string
 		for _, claim := range mir.CheckAllocClaims(prog) {
@@ -66,11 +66,11 @@ func TestProfileClaimsReportACrossingTheProfileTrusted(t *testing.T) {
 }
 
 // Without the native lowering's boxes a profile check would pass a computed Int handed to a boxed parameter.
-func TestProfileClaimsRefuseToRunWithoutTheArgBoxes(t *testing.T) {
+func TestProfileClaimsRefuseToRunWithoutTheNativeBoxes(t *testing.T) {
 	prog := profiledProgram(t, sem.Module{RecoverableOnly: true}, profileCrossSrc)
 	defer func() {
 		if recover() == nil {
-			t.Error("CheckAllocClaims ran a profile check with no ArgBoxes")
+			t.Error("CheckAllocClaims ran a profile check with no NativeBoxes")
 		}
 	}()
 	mir.CheckAllocClaims(prog)

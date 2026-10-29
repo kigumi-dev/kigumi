@@ -59,7 +59,7 @@ func paramOf(p *mir.Program, ent mir.Inst, i int) string {
 
 // The hook lists exactly the scalar boxes fill's emitted body makes for call arguments: computed values, a phi of
 // constants, a reassigned local and a loop-carried one, into bodies and a bodiless primitive alike.
-func TestScalarArgBoxesMatchTheEmittedBoxes(t *testing.T) {
+func TestScalarBoxSitesMatchTheEmittedBoxes(t *testing.T) {
 	p := plannedProgram(t, argBoxSrc)
 	opts := llgen.EmitOptions{Reachable: mir.Reachable(p)}
 	var fill *mir.Func
@@ -72,7 +72,7 @@ func TestScalarArgBoxesMatchTheEmittedBoxes(t *testing.T) {
 		t.Fatal("no main.fill")
 	}
 	var got []string
-	for _, ab := range llgen.ScalarArgBoxes(p, opts)[fill] {
+	for _, ab := range llgen.ScalarBoxSites(p, opts).Arguments[fill] {
 		got = append(got, paramOf(p, fill.Blocks[ab.Block].Insts[ab.Inst], ab.Arg))
 	}
 	slices.Sort(got)

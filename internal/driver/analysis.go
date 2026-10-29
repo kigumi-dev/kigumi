@@ -103,7 +103,7 @@ func buildProgram(res *sem.Result, o progOptions) (*mir.Program, error) {
 		return prog, nil
 	}
 	prog.VerifyEach = o.verifyEach
-	prog.ArgBoxes = scalarArgBoxes(o.target)
+	prog.NativeBoxes = nativeBoxSites(o.target)
 	if err := prog.Apply(planPasses(true)...); err != nil {
 		return prog, err
 	}
@@ -119,12 +119,11 @@ func buildProgram(res *sem.Result, o progOptions) (*mir.Program, error) {
 	return prog, nil
 }
 
-// scalarArgBoxes lists the call-site scalar boxes a build for t emits, under the options and reachability compile uses.
-func scalarArgBoxes(t Target) func(*mir.Program) map[*mir.Func][]mir.ArgBox {
-	return func(p *mir.Program) map[*mir.Func][]mir.ArgBox {
+func nativeBoxSites(t Target) func(*mir.Program) mir.NativeBoxSites {
+	return func(p *mir.Program) mir.NativeBoxSites {
 		opts := emitOptionsFor(t)
 		opts.Reachable = mir.Reachable(p)
-		return llgen.ScalarArgBoxes(p, opts)
+		return llgen.ScalarBoxSites(p, opts)
 	}
 }
 

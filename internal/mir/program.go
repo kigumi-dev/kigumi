@@ -27,8 +27,8 @@ type Program struct {
 	rootKeep func(path string) bool
 	// Skipped lists the bodies lowering needed that sem left unchecked; the program is unusable when it is non-empty.
 	Skipped []sem.EntityID
-	// ArgBoxes is the native call lowering's scalar boxes, set by whoever links a backend; a profile check panics without it.
-	ArgBoxes func(*Program) map[*Func][]ArgBox
+	// NativeBoxes reports scalar allocations made by native lowering; profiles require this hook.
+	NativeBoxes func(*Program) NativeBoxSites
 
 	paramStores map[paramSlot]bool
 }

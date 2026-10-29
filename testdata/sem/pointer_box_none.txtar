@@ -1,0 +1,22 @@
+-- module --
+stage: driver
+allocator: none
+-- src --
+import ffi from std/ffi
+
+fn peek(b: &Bytes) -> u8 {
+    unsafe { ffi.readU8(ffi.bytesPtr(b)) }
+}
+
+fn main() {
+    let b = b"zero"
+    _ = peek(&b)
+}
+-- expect --
+error[E959]: `peek` needs the default allocator, but this build has none (--allocator none)
+ --> main.kg:9:9
+  |
+9 |     _ = peek(&b)
+  |         ^^^^^^^
+  = help: allocate inside an `allocator` block
+

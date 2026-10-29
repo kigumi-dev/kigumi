@@ -1,0 +1,19 @@
+-- module --
+stage: driver
+profile: recoverable-only
+-- src --
+export(C) {
+    pub noalloc fn idle() {}
+}
+
+fn main() {
+    let f: extern(C) fn() -> Void = idle
+    _ = f
+}
+-- expect --
+error[E2316]: `main` passed the recoverable-only profile, yet producing this `extern(C) fn() -> Void` result allocates a box that a refused allocation would end the program on; allocate inside an `allocator` block
+ --> main.kg:6:37
+  |
+6 |     let f: extern(C) fn() -> Void = idle
+  |                                     ^^^^
+

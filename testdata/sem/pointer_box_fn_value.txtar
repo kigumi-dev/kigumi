@@ -1,0 +1,19 @@
+-- module --
+stage: driver
+profile: recoverable-only
+-- src --
+import ffi from std/ffi
+
+fn main() {
+    let b = b"zero"
+    let f = ffi.bytesPtr
+    _ = unsafe { f(&b) }
+}
+-- expect --
+error[E1280]: this allocation may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+ --> main.kg:5:13
+  |
+5 |     let f = ffi.bytesPtr
+  |             ^^^^^^^^^^^^
+  = help: use the fallible (`try`-prefixed) form instead
+

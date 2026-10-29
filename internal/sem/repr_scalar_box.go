@@ -4,7 +4,7 @@ import "kigumi/internal/syntax"
 
 // ScalarBoxes reports whether a t crossing into a boxed slot may take a heap box on native; Bool and Void boxes are immortals.
 func (r *Result) ScalarBoxes(t TypeID) bool {
-	return t != TyBool && (r.RegScalar(t) || WideScalar(t))
+	return t != TyBool && (r.RegScalar(t) || WideScalar(t) || r.Types.Kind(t) == KPtr || r.Types.IsCFn(t))
 }
 
 // boxCharged reports whether a box edge over t allocates; a witness boxes a scalar only in a shared body, which the built program decides.

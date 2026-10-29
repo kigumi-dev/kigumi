@@ -23030,6 +23030,83 @@
       ]
     },
     {
+      "id": "sem/pointer_box_argument",
+      "kind": "sem",
+      "path": "testdata/sem/pointer_box_argument.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/pointer_box_c_function",
+      "kind": "sem",
+      "path": "testdata/sem/pointer_box_c_function.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/pointer_box_c_function_none",
+      "kind": "sem",
+      "path": "testdata/sem/pointer_box_c_function_none.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/pointer_box_fn_value",
+      "kind": "sem",
+      "path": "testdata/sem/pointer_box_fn_value.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/pointer_box_none",
+      "kind": "sem",
+      "path": "testdata/sem/pointer_box_none.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/pointer_box_recoverable",
+      "kind": "sem",
+      "path": "testdata/sem/pointer_box_recoverable.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/pointer_box_scoped",
+      "kind": "sem",
+      "path": "testdata/sem/pointer_box_scoped.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/profile_box_allocator_none_map_key",
       "kind": "sem",
       "path": "testdata/sem/profile_box_allocator_none_map_key.txtar",

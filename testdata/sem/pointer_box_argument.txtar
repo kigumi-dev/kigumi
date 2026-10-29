@@ -1,0 +1,27 @@
+-- module --
+stage: driver
+profile: recoverable-only
+-- src --
+import ffi from std/ffi
+
+fn put(p: *const u8, xs: &mut Array[*const u8]) {
+    _ = xs.tryPush(p)
+}
+
+fn main() {
+    let p = unsafe { ffi.offset(ffi.null[u8](), 0) }
+    match Array.tryEmpty[*const u8]() {
+        Ok(xs) -> {
+            let mut out = xs
+            put(p, &mut out)
+        }
+        Err(_) -> {}
+    }
+}
+-- expect --
+error[E2313]: `main` passed the recoverable-only profile as if `*const u8` stayed unboxed, yet handing it to a slot that holds a reference allocates a box here that a refused allocation would end the program on; `p` of `put` takes it boxed, so pass a constant or a value that is already boxed, or allocate inside an `allocator` block
+  --> main.kg:12:17
+   |
+12 |             put(p, &mut out)
+   |                 ^
+

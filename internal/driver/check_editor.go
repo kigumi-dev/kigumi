@@ -73,7 +73,7 @@ func editorDiagsWith(m *Module, lazy bool) (*sem.Result, []mir.FileDiag, bool) {
 		return res, nil, true
 	}
 	known := diagKeys(res)
-	prog.ArgBoxes = scalarArgBoxes(m.target)
+	prog.NativeBoxes = nativeBoxSites(m.target)
 	if prog.Apply(planPasses(false)...) != nil {
 		return res, nil, true
 	}

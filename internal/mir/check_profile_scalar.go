@@ -14,18 +14,41 @@ type ArgBox struct {
 	Arg   int
 }
 
-// argBoxClaims reports a scalar a trusted user body hands to a boxed parameter, whose box the native lowering makes in that body.
-func (p *Program) argBoxClaims(out []AllocClaim, reached []profileReach, c sem.Code) []AllocClaim {
-	if p.ArgBoxes == nil {
-		panic("mir: a profile check needs Program.ArgBoxes, the native lowering's call-site scalar boxes")
+type ResultBox struct {
+	Block BlockID
+	Inst  int
+}
+
+type NativeBoxSites struct {
+	Arguments map[*Func][]ArgBox
+	Results   map[*Func][]ResultBox
+}
+
+func (p *Program) scalarBoxClaims(out []AllocClaim, reached []profileReach, c sem.Code) []AllocClaim {
+	if p.NativeBoxes == nil {
+		panic("mir: a profile check needs Program.NativeBoxes, the native lowering's call-site scalar boxes")
 	}
-	boxes := p.ArgBoxes(p)
+	boxes := p.NativeBoxes(p)
+	resultCode := "pointer-result-in-recoverable-only"
+	if c.Name == "box-without-default-allocator" {
+		resultCode = "pointer-result-without-default-allocator"
+	}
+	rc, _ := sem.CodeByName(resultCode)
+	seen := map[blamedBox]bool{}
 	for _, r := range reached {
 		f := r.f
-		if !p.userBody(f) || !p.profileTrusts(f.Ent) {
+		if f.Ent == 0 || !p.profileTrusts(f.Ent) {
 			continue
 		}
-		for _, ab := range boxes[f] {
+		for _, rb := range boxes.Results[f] {
+			in := f.Blocks[rb.Block].Insts[rb.Inst]
+			in.Type = f.Locals[in.Dst].Type
+			out = p.blameBox(out, seen, r, rc, in)
+		}
+		if !p.userBody(f) {
+			continue
+		}
+		for _, ab := range boxes.Arguments[f] {
 			in := f.Blocks[ab.Block].Insts[ab.Inst]
 			n := argNode(f, ab, in.Node)
 			if p.R.InAllocatorBlock(f.File, n) {
