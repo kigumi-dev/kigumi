@@ -17,6 +17,7 @@ type varStore struct {
 	lifetimeDefault []TypeID
 	first           int // first variable created since the last boundary
 	trail           []uint32
+	resolved        map[TypeID]*varResolution
 }
 
 func newVarStore(r *Result) *varStore { return &varStore{r: r} }
@@ -49,7 +50,7 @@ func (v *varStore) poison(t TypeID) {
 	}
 	n := v.r.Types.Node(t)
 	if n.Kind == KVar {
-		v.binding[n.Var] = TyPoison
+		v.setBinding(n.Var, TyPoison)
 		return
 	}
 	v.poison(n.Elem)
@@ -83,12 +84,21 @@ func (v *varStore) resolve(t TypeID) TypeID {
 		return t
 	}
 	tt := v.r.Types
+	cached := v.resolution(t)
+	if cached.value != 0 {
+		return cached.value
+	}
 	n := tt.Node(t)
 	if n.Kind == KVar {
+		cached.value = t
 		if b := v.binding[n.Var]; b != 0 {
-			return v.resolve(b)
+			cached.value = v.resolve(b)
+			if cached.source == 0 {
+				v.depend(t, b)
+				cached.source = b
+			}
 		}
-		return t
+		return cached.value
 	}
 	args := make([]TypeID, len(n.Args))
 	changed := false
@@ -97,10 +107,23 @@ func (v *varStore) resolve(t TypeID) TypeID {
 		changed = changed || args[i] != a
 	}
 	elem, lifetime := v.resolve(n.Elem), v.resolve(n.Lifetime)
+	if !cached.linked {
+		v.depend(t, n.Elem)
+		v.depend(t, n.Lifetime)
+		for _, a := range n.Args {
+			v.depend(t, a)
+		}
+		cached.linked = true
+	}
+	cached.value = t
 	if !changed && elem == n.Elem && lifetime == n.Lifetime && n.Kind != KFn {
 		return t
 	}
-	return tt.Intern(tt.absorbEscMarks(typeNode{Kind: n.Kind, Flags: n.Flags, Ent: n.Ent, Elem: elem, Lifetime: lifetime, Var: n.Var, Args: args}))
+	cached.value = tt.Intern(tt.absorbEscMarks(typeNode{Kind: n.Kind, Flags: n.Flags, Ent: n.Ent, Elem: elem, Lifetime: lifetime, Var: n.Var, Args: args}))
+	return cached.value
 }
 
-func (v *varStore) bind(i uint32, t TypeID) { v.trail = append(v.trail, i); v.binding[i] = t }
+func (v *varStore) bind(i uint32, t TypeID) {
+	v.trail = append(v.trail, i)
+	v.setBinding(i, t)
+}

@@ -74,7 +74,7 @@ func (c *checker) closeBlock() {
 		}
 		help := "a call with arguments in this block, or pass it to a parameter bound like `F: Fn[" + mv.deferrable[p.v] + "]`"
 		c.errAt(c.vars.origin[p.v], cInferUnresolved, c.vars.names[p.v], help)
-		c.vars.binding[open] = TyPoison
+		c.vars.setBinding(open, TyPoison)
 	}
 	mv.pending = kept
 	c.resolveClosures(mv.closures)

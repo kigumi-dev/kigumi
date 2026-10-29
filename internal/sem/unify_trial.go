@@ -15,7 +15,7 @@ func (v *varStore) rollback(mark int) {
 	for len(v.trail) > mark {
 		i := v.trail[len(v.trail)-1]
 		v.trail = v.trail[:len(v.trail)-1]
-		v.binding[i] = 0
+		v.setBinding(i, 0)
 	}
 }
 
@@ -23,7 +23,7 @@ func (v *varStore) rollback(mark int) {
 func (v *varStore) poisonFrom(start int) {
 	for i := start; i < len(v.binding); i++ {
 		if v.binding[i] == 0 {
-			v.binding[i] = TyPoison
+			v.setBinding(uint32(i), TyPoison)
 		}
 	}
 }

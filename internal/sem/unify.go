@@ -16,11 +16,7 @@ func (v *varStore) unifyMode(a, b TypeID, ignoreEscaping bool) bool {
 	if v.unifyInner(a, b, ignoreEscaping) {
 		return true
 	}
-	for len(v.trail) > mark {
-		i := v.trail[len(v.trail)-1]
-		v.trail = v.trail[:len(v.trail)-1]
-		v.binding[i] = 0
-	}
+	v.rollback(mark)
 	return false
 }
 
@@ -108,10 +104,6 @@ func (v *varStore) bindVar(i uint32, t TypeID, n typeNode) bool {
 func (v *varStore) unifiable(a, b TypeID) bool {
 	mark := len(v.trail)
 	ok := v.unifyInner(a, b, false)
-	for len(v.trail) > mark {
-		i := v.trail[len(v.trail)-1]
-		v.trail = v.trail[:len(v.trail)-1]
-		v.binding[i] = 0
-	}
+	v.rollback(mark)
 	return ok
 }

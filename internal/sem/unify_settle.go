@@ -12,15 +12,15 @@ func (v *varStore) settle(c *checker) {
 		}
 		switch {
 		case v.pending[i] == 1:
-			v.binding[i] = TyI64
+			v.setBinding(uint32(i), TyI64)
 		case v.pending[i] == 2:
-			v.binding[i] = TyF64
+			v.setBinding(uint32(i), TyF64)
 		case v.lifetimeDefault[i] != 0:
-			v.binding[i] = v.lifetimeDefault[i]
+			v.setBinding(uint32(i), v.lifetimeDefault[i])
 		case c.deferInference(uint32(i)):
 		default:
 			c.errAt(v.origin[i], cInferUnresolved, v.names[i], "explicit type arguments or an annotation")
-			v.binding[i] = TyPoison
+			v.setBinding(uint32(i), TyPoison)
 		}
 	}
 	for i := v.first; i < len(v.binding); i++ {
