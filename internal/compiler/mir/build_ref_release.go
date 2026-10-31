@@ -8,7 +8,7 @@ import (
 
 // hoistRefReleases moves the scope-end release of a named reference used in one block up to its
 // last use there; releasing a borrow of a named local runs no destructor, so only the borrow's end moves.
-func hoistRefReleases(p *Program, f *Func) {
+func (g *ghostSet) hoistRefReleases(p *Program, f *Func) {
 	var defs map[LocalID][]Inst
 	var flow *blockFlow
 	for l := range f.Locals {
@@ -19,11 +19,11 @@ func hoistRefReleases(p *Program, f *Func) {
 		if defs == nil {
 			defs = resultDefs(f)
 		}
-		if namedReferent(p, f, defs, LocalID(l), map[LocalID]bool{}) && !hoistRefRelease(p, f, LocalID(l)) && callResult(defs, LocalID(l)) {
+		if namedReferent(p, f, defs, LocalID(l), map[LocalID]bool{}) && !g.hoistRefRelease(p, f, LocalID(l)) && callResult(defs, LocalID(l)) {
 			if flow == nil || len(flow.preds) != len(f.Blocks) {
 				flow = newBlockFlow(f)
 			}
-			hoistRefDrops(p, f, LocalID(l), flow)
+			g.hoistRefDrops(p, f, LocalID(l), flow)
 		}
 	}
 }
@@ -71,7 +71,7 @@ func namedReferent(p *Program, f *Func, defs map[LocalID][]Inst, l LocalID, seen
 }
 
 // hoistRefRelease moves l's one release to its defining block when every use is there, false when it cannot.
-func hoistRefRelease(p *Program, f *Func, l LocalID) bool {
+func (g *ghostSet) hoistRefRelease(p *Program, f *Func, l LocalID) bool {
 	home, def, last := -1, -1, -1
 	dropBlk, drop := -1, -1
 	for bid := range f.Blocks {
@@ -106,6 +106,6 @@ func hoistRefRelease(p *Program, f *Func, l LocalID) bool {
 	if dropBlk == home && (last > drop || at >= drop) {
 		return true
 	}
-	f.insertInst(home, at, f.deleteInst(dropBlk, drop))
+	g.insertInst(f, home, at, g.deleteInst(f, dropBlk, drop))
 	return true
 }

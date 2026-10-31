@@ -6,7 +6,7 @@ type releasePoint struct{ block, at int }
 
 // releaseAtExits puts one release of l on each way out of the blocks still using l or a borrow read from it: after
 // the last use, at the start of a block entered only from them, or in a new block on an edge into a join.
-func releaseAtExits(f *Func, l LocalID, held map[LocalID]bool, live []bool, home int, flow *blockFlow) bool {
+func (g *ghostSet) releaseAtExits(f *Func, l LocalID, held map[LocalID]bool, live []bool, home int, flow *blockFlow) bool {
 	in := func(b int) bool { return live[b] || b == home }
 	var points []releasePoint
 	var edges []Edge
@@ -45,7 +45,7 @@ func releaseAtExits(f *Func, l LocalID, held map[LocalID]bool, live []bool, home
 	var tmpl Inst
 	for b := range f.Blocks {
 		if i := slices.IndexFunc(f.Blocks[b].Insts, func(x Inst) bool { return releasesRef(x, l) }); i >= 0 {
-			tmpl = f.deleteInst(b, i)
+			tmpl = g.deleteInst(f, b, i)
 		}
 	}
 	for _, pt := range points {
@@ -53,7 +53,7 @@ func releaseAtExits(f *Func, l LocalID, held map[LocalID]bool, live []bool, home
 		if pt.at > 0 {
 			at = lastTouch(f.Blocks[pt.block].Insts, l, held)
 		}
-		f.insertInst(pt.block, at, tmpl)
+		g.insertInst(f, pt.block, at, tmpl)
 	}
 	for _, e := range edges {
 		to := f.Blocks[e.From].Term.Targets[e.Slot]

@@ -49,7 +49,7 @@ func cloneD(s *dstate) *dstate {
 // keeps its own presence state independent of the place that held it;
 // using that place as a whole while one of its fields is gone is also an
 // error, and a drop of it becomes a drop of the fields still there.
-func analyzeOwnership(p *Program, f *Func) {
+func analyzeOwnership(p *Program, f *Func, ghosts *ghostSet) {
 	defer clearGuardMarks(f)
 	moveOnly := func(l Local) bool {
 		return !p.R.IsCopy(l.Type) && !l.Cell
@@ -69,7 +69,7 @@ func analyzeOwnership(p *Program, f *Func) {
 	if len(tracked) == 0 && !hasTrackedCell(p, f) {
 		return
 	}
-	a := &owner{p: p, f: f, pl: pl, tracked: tracked, in: make([]*dstate, len(f.Blocks)),
+	a := &owner{p: p, f: f, ghosts: ghosts, pl: pl, tracked: tracked, in: make([]*dstate, len(f.Blocks)),
 		reported: map[syntax.NodeID]bool{}, defNode: map[LocalID]syntax.NodeID{}, thread: &flagThread{f: f}}
 	entry := newDstate()
 	for _, prm := range f.Params {

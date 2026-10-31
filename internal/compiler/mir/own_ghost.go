@@ -13,7 +13,7 @@ func (a *owner) stateAt(bid BlockID, idx int) *dstate {
 }
 
 func (a *owner) solveGhosts() {
-	for _, g := range a.f.ghosts.runs {
+	for _, g := range a.ghosts.runs {
 		for _, m := range g.marks {
 			if st := a.stateAt(m.blk, m.idx); st != nil {
 				a.merge(g.entry, st)

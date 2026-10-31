@@ -8,6 +8,7 @@ import (
 
 type owner struct {
 	p        *Program
+	ghosts   *ghostSet
 	f        *Func
 	pl       *places
 	tracked  map[LocalID]bool

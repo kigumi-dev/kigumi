@@ -81,9 +81,9 @@ func (p *lowering) build(hf *hir.Func) *Func {
 	p.ByEnt[hf.Ent] = f
 	p.top[f] = p.cur
 	b.lowerGhosts()
-	hoistRefReleases(p.Program, f)
-	analyzeOwnership(p.Program, f)
-	f.dropGhosts()
+	b.ghostRuns.hoistRefReleases(p.Program, f)
+	analyzeOwnership(p.Program, f, &b.ghostRuns)
+	b.ghostRuns.drop(f)
 	p.checkBorrowsOf(f)
 	return f
 }

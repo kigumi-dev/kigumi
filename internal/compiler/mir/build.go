@@ -67,11 +67,12 @@ type builder struct {
 	argFixups []argFixup
 	cancelled *cancelPath
 	// unowned tracks which locals hold no count of their own: a borrow, or anything that only forwards one.
-	unowned map[LocalID]bool
-	joins   map[LocalID][]joinArm
-	body    *hir.Block
-	ghosts  []pendingGhost
-	full    fullState
+	unowned   map[LocalID]bool
+	joins     map[LocalID][]joinArm
+	body      *hir.Block
+	ghostRuns ghostSet
+	ghosts    []pendingGhost
+	full      fullState
 }
 
 // scope tracks the owned locals and deferred statements of one block.

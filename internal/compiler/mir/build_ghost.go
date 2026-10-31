@@ -77,7 +77,7 @@ func (b *builder) lowerGhosts() {
 	if len(b.ghosts) == 0 {
 		return
 	}
-	b.fn.ghosts.blocks, b.fn.ghosts.locals = len(b.fn.Blocks), len(b.fn.Locals)
+	b.ghostRuns.blocks, b.ghostRuns.locals = len(b.fn.Blocks), len(b.fn.Locals)
 	for _, g := range b.ghosts {
 		run := ghostRun{entry: b.newBlock(), marks: g.marks}
 		b.pushScope()
@@ -90,16 +90,16 @@ func (b *builder) lowerGhosts() {
 		b.scopes = b.scopes[:len(b.scopes)-1]
 		b.term(Term{Op: TermUnreachable})
 		run.end = BlockID(len(b.fn.Blocks))
-		b.fn.ghosts.runs = append(b.fn.ghosts.runs, run)
+		b.ghostRuns.runs = append(b.ghostRuns.runs, run)
 	}
 }
 
 // dropGhosts removes the ghost runs' blocks and locals; a block appended after them, as an edge split, stays.
-func (f *Func) dropGhosts() {
-	if len(f.ghosts.runs) == 0 {
+func (g *ghostSet) drop(f *Func) {
+	if len(g.runs) == 0 {
 		return
 	}
-	start, end := f.ghostRange()
+	start, end := g.ghostRange(f)
 	f.Blocks = slices.Delete(f.Blocks, start, end)
 	for b := range f.Blocks {
 		for i, t := range f.Blocks[b].Term.Targets {
@@ -108,6 +108,6 @@ func (f *Func) dropGhosts() {
 			}
 		}
 	}
-	f.Locals = f.Locals[:f.ghosts.locals]
-	f.ghosts = ghostSet{}
+	f.Locals = f.Locals[:g.locals]
+	*g = ghostSet{}
 }

@@ -4,7 +4,7 @@ import "slices"
 
 // hoistRefDrops moves the scope-end releases of l to just after the last use of l or of a borrow read from it on each
 // path, else each into the earliest block that runs exactly when its own block does, so a later write to l's owner is free.
-func hoistRefDrops(p *Program, f *Func, l LocalID, flow *blockFlow) {
+func (g *ghostSet) hoistRefDrops(p *Program, f *Func, l LocalID, flow *blockFlow) {
 	defs, home := 0, -1
 	var drops []int
 	for bid, blk := range f.Blocks {
@@ -18,7 +18,7 @@ func hoistRefDrops(p *Program, f *Func, l LocalID, flow *blockFlow) {
 		}
 	}
 	held := refDerived(p, f, l)
-	start, end := f.ghostRange()
+	start, end := g.ghostRange(f)
 	ghostUse := slices.ContainsFunc(f.Blocks[start:end], func(b Block) bool {
 		return slices.ContainsFunc(b.Insts, func(in Inst) bool { return touchesHeld(in, l, held) })
 	})
@@ -26,7 +26,7 @@ func hoistRefDrops(p *Program, f *Func, l LocalID, flow *blockFlow) {
 		return
 	}
 	live := heldLiveIn(f, l, held)
-	if releaseAtExits(f, l, held, live, home, flow) {
+	if g.releaseAtExits(f, l, held, live, home, flow) {
 		return
 	}
 	for _, d := range drops {
@@ -39,7 +39,7 @@ func hoistRefDrops(p *Program, f *Func, l LocalID, flow *blockFlow) {
 			}
 			to, at = j, lastTouch(f.Blocks[j].Insts, l, held)
 		}
-		f.insertInst(to, at, f.deleteInst(d, i))
+		g.insertInst(f, to, at, g.deleteInst(f, d, i))
 	}
 }
 
