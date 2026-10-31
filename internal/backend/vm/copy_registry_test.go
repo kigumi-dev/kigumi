@@ -10,13 +10,13 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 func TestNativeCopyPrimitivesUsePlans(t *testing.T) {
 	funcs, cases := copyPrimitiveBodies(t)
 	keys := map[string][]string{}
-	for _, op := range mir.Registry.Ops {
+	for _, op := range opdef.Registry.Ops {
 		keys[op.Name] = op.Keys
 	}
 	check := func(key string) {

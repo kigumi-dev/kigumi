@@ -4,10 +4,9 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 var builtinEmit = regexp.MustCompile(`Op:\s*OpBuiltin[^}]*Str:\s*"([^"]+)"`)
@@ -37,17 +36,8 @@ func TestEveryEmittedBuiltinIsRegistered(t *testing.T) {
 		t.Fatalf("found only %d emitted builtins; the scan lost its pattern", len(seen))
 	}
 	for name := range seen {
-		if _, ok := mir.BuiltinFor(name); !ok {
+		if _, ok := opdef.BuiltinFor(name); !ok {
 			t.Errorf("the builder emits builtin %q, which the registry lacks", name)
-		}
-	}
-}
-
-func TestRegistryNamesAreUnique(t *testing.T) {
-	names := mir.BuiltinNames()
-	for i, n := range names {
-		if slices.Index(names, n) != i {
-			t.Errorf("builtin %q registered twice", n)
 		}
 	}
 }

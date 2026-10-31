@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -113,7 +114,7 @@ func (m *Machine) supportsInst(in *mir.Inst) string {
 	case mir.OpFutureNew, mir.OpAwait, mir.OpFutureDone, mir.OpCancelled, mir.OpCancelDone:
 		return ""
 	case mir.OpBuiltin:
-		if spec, ok := mir.BuiltinFor(in.Str); ok && spec.VM {
+		if spec, ok := opdef.BuiltinFor(in.Str); ok && spec.VM {
 			return ""
 		}
 		if in.Str == "comptime" {
@@ -134,7 +135,7 @@ func (m *Machine) primitiveKnown(key string) bool {
 	if knownPrimitives[key] {
 		return true
 	}
-	if id, ok := mir.StdOpFor(key); ok && id.Kind() == mir.KindPrimitive {
+	if id, ok := opdef.StdOpFor(key); ok && id.Kind() == opdef.KindPrimitive {
 		return true
 	}
 	if strings.HasPrefix(key, "prelude.") && (strings.Contains(strings.TrimPrefix(key, "prelude."), ".to") || strings.HasSuffix(key, ".truncate")) {

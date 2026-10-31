@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"kigumi/internal/backend/llgen"
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 func TestFixedPayloadVariantBuildsWithoutAllocating(t *testing.T) {
@@ -117,7 +117,7 @@ func TestVariantRewriteInventory(t *testing.T) {
 	if len(got) > 0 {
 		t.Errorf("rt_core.c rewrites variants in place at:\n%s", strings.Join(got, "\n"))
 	}
-	if _, ok := mir.StdOpIdOf("OPTION_TAKE"); !ok {
+	if _, ok := opdef.StdOpIdOf("OPTION_TAKE"); !ok {
 		t.Error("the registry no longer names OPTION_TAKE")
 	}
 }

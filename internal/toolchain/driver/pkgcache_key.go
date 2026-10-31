@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"kigumi/internal/backend/llgen"
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/toolchain/version"
 )
@@ -84,7 +84,7 @@ func (m *Module) cacheEnv() string {
 	}
 	fmt.Fprintf(h, "%s|%+v|", targetIdentity(m.target), m.target)
 	fmt.Fprintf(h, "deny=%s|ceil=%s|art=%s|test=%v|verify=%v|", strings.Join(slices.Sorted(slices.Values(m.deny)), ","), m.ceiling, m.artifactName, m.test, m.verifyPasses)
-	fmt.Fprintf(h, "isr=%s|%s|", sem.InterruptKey(m.Manifest.Interrupt, m.depInterrupt), mir.IsrContracts.IsrVersion())
+	fmt.Fprintf(h, "isr=%s|%s|", sem.InterruptKey(m.Manifest.Interrupt, m.depInterrupt), opdef.IsrContracts.IsrVersion())
 	fmt.Fprintf(h, "abi=%s", runtimeAbi())
 	return hex.EncodeToString(h.Sum(nil))
 }

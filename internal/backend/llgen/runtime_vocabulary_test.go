@@ -5,7 +5,7 @@ import (
 	"slices"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 var capMacroRe = regexp.MustCompile(`KIGUMI_CAP_[A-Z0-9_]+`)
@@ -13,7 +13,7 @@ var capMacroRe = regexp.MustCompile(`KIGUMI_CAP_[A-Z0-9_]+`)
 func TestRuntimeGuardsAreTheVocabulary(t *testing.T) {
 	src := RuntimeSource() + runtimeSignal + runtimeFreestandingHeader
 	want := map[string]bool{}
-	for _, c := range mir.Vocabulary() {
+	for _, c := range opdef.Vocabulary() {
 		want[c.Macro()] = true
 	}
 	seen := map[string]bool{}
@@ -35,7 +35,7 @@ func TestRuntimeFragmentsAreTheVocabulary(t *testing.T) {
 	for _, f := range capFiles {
 		got = append(got, f.Name)
 	}
-	for _, c := range mir.Vocabulary() {
+	for _, c := range opdef.Vocabulary() {
 		if c.HasSource() {
 			want = append(want, c.SourceFile())
 		}
@@ -52,7 +52,7 @@ var namedTypeRe = regexp.MustCompile(`(?:make_record|find_type)\("(?:std/[a-z]+\
 
 // Tuple2 is built for a Map element, whose loop variable's own type keeps it.
 func TestRuntimeNamedTypesAreReachabilityRoots(t *testing.T) {
-	named := mir.RuntimeNamedTypes()
+	named := opdef.RuntimeNamedTypes()
 	used := map[string]bool{}
 	for _, m := range namedTypeRe.FindAllStringSubmatch(RuntimeSource(), -1) {
 		used[m[1]] = true

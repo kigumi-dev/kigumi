@@ -1,4 +1,4 @@
-package mir
+package ops
 
 import (
 	_ "embed"
@@ -22,7 +22,7 @@ type StdOpEntry struct {
 	Keys     []string
 	Suffixes []string
 	Prefixes []string
-	Types    []nativeTypeRef
+	Types    []NativeType
 	Direct   string
 	Elem     bool
 	// Callback is the argument index of a closure the op calls, -1 for none.

@@ -5,6 +5,7 @@ import (
 	"unsafe"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -66,12 +67,12 @@ func (v *obj) clo() *closureObj {
 	return (*closureObj)(unsafe.Pointer(v))
 }
 
-func (v *obj) cfn() *mir.Func          { return v.clo().fn }
-func (v *obj) cenv() *obj              { return v.clo().env }
-func (v *obj) creq() *reqCall          { return v.clo().req }
-func (v *obj) cstd() string            { return v.clo().stdKey }
-func (v *obj) clent() int              { return v.clo().lent }
-func (v *obj) cprov() mir.ProviderOpId { return v.clo().prov }
+func (v *obj) cfn() *mir.Func            { return v.clo().fn }
+func (v *obj) cenv() *obj                { return v.clo().env }
+func (v *obj) creq() *reqCall            { return v.clo().req }
+func (v *obj) cstd() string              { return v.clo().stdKey }
+func (v *obj) clent() int                { return v.clo().lent }
+func (v *obj) cprov() opdef.ProviderOpId { return v.clo().prov }
 
 func (v *obj) opq() *opaqueObj {
 	if v.k != kOpaque {

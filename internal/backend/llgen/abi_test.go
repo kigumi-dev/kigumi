@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"kigumi/internal/backend/llgen"
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/toolchain/version"
 )
 
@@ -28,13 +28,13 @@ func TestRuntimeLayoutCoversTheSharedStructs(t *testing.T) {
 
 func TestAbiFingerprintInputs(t *testing.T) {
 	layout, _ := llgen.RuntimeLayout()
-	base := llgen.AbiFingerprint(mir.Registry, layout, version.AbiRevision, []string{"KIGUMI_UNWIND", "KIGUMI_CAP_TASK_THREADS"})
-	if got := llgen.AbiFingerprint(mir.Registry, layout, version.AbiRevision, []string{"KIGUMI_CAP_TASK_THREADS", "KIGUMI_UNWIND", "KIGUMI_UNWIND"}); got != base {
+	base := llgen.AbiFingerprint(opdef.Registry, layout, version.AbiRevision, []string{"KIGUMI_UNWIND", "KIGUMI_CAP_TASK_THREADS"})
+	if got := llgen.AbiFingerprint(opdef.Registry, layout, version.AbiRevision, []string{"KIGUMI_CAP_TASK_THREADS", "KIGUMI_UNWIND", "KIGUMI_UNWIND"}); got != base {
 		t.Error("flag order or repetition moved the fingerprint")
 	}
 	for name, got := range map[string]string{
-		"a flag":   llgen.AbiFingerprint(mir.Registry, layout, version.AbiRevision, []string{"KIGUMI_UNWIND"}),
-		"a layout": llgen.AbiFingerprint(mir.Registry, strings.Replace(layout, "K_PTR", "K_PTR2", 1), version.AbiRevision, []string{"KIGUMI_UNWIND", "KIGUMI_CAP_TASK_THREADS"}),
+		"a flag":   llgen.AbiFingerprint(opdef.Registry, layout, version.AbiRevision, []string{"KIGUMI_UNWIND"}),
+		"a layout": llgen.AbiFingerprint(opdef.Registry, strings.Replace(layout, "K_PTR", "K_PTR2", 1), version.AbiRevision, []string{"KIGUMI_UNWIND", "KIGUMI_CAP_TASK_THREADS"}),
 	} {
 		if got == base {
 			t.Errorf("changing %s left the fingerprint unchanged", name)
@@ -91,13 +91,13 @@ func TestOnlyThreadPoolCreatesThreads(t *testing.T) {
 	if n := len(re.FindAllIndex(src, -1)); n != 1 {
 		t.Errorf("the executor creates threads at %d sites, want the one in rt_thread_pool_new", n)
 	}
-	op, ok := mir.StdOpIdOf("TASK_THREAD_POOL_EXECUTOR")
-	if c, has := op.Capability(); !ok || !has || c != mir.CapTaskThreads {
+	op, ok := opdef.StdOpIdOf("TASK_THREAD_POOL_EXECUTOR")
+	if c, has := op.Capability(); !ok || !has || c != opdef.CapTaskThreads {
 		t.Errorf("the thread pool constructor's capability is %q, want task.threads", c)
 	}
-	for _, name := range mir.StdOpNames {
-		id, _ := mir.StdOpIdOf(name)
-		if c, has := id.Capability(); has && c == mir.CapTaskThreads && name != "TASK_THREAD_POOL_EXECUTOR" {
+	for _, name := range opdef.StdOpNames {
+		id, _ := opdef.StdOpIdOf(name)
+		if c, has := id.Capability(); has && c == opdef.CapTaskThreads && name != "TASK_THREAD_POOL_EXECUTOR" {
 			t.Errorf("op %s also needs task.threads", name)
 		}
 	}

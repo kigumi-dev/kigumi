@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -14,7 +15,7 @@ import (
 type boxRecord struct {
 	made, handed map[boxSite]bool
 	charged      map[siteAt]bool
-	primitives   map[siteAt]mir.StdOpId
+	primitives   map[siteAt]opdef.StdOpId
 	arg          int
 }
 
@@ -55,7 +56,7 @@ func ScalarBoxSites(p *mir.Program, opts EmitOptions) mir.NativeBoxSites {
 		if !e.keeps(f) || e.naked(f) {
 			continue
 		}
-		e.boxes = &boxRecord{made: map[boxSite]bool{}, handed: map[boxSite]bool{}, charged: map[siteAt]bool{}, primitives: map[siteAt]mir.StdOpId{}, arg: -1}
+		e.boxes = &boxRecord{made: map[boxSite]bool{}, handed: map[boxSite]bool{}, charged: map[siteAt]bool{}, primitives: map[siteAt]opdef.StdOpId{}, arg: -1}
 		if f.Async {
 			e.asyncFunction(f)
 		} else {

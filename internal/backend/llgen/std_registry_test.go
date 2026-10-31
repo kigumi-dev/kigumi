@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/devkit/semfixture"
 	"kigumi/internal/toolchain/contract/schema"
@@ -25,7 +25,7 @@ func TestRegistryMatchesStd(t *testing.T) {
 	if len(bodiless) < 40 {
 		t.Fatalf("only %d bodiless std functions found; std not loaded as std?", len(bodiless))
 	}
-	for _, op := range mir.Registry.Ops {
+	for _, op := range opdef.Registry.Ops {
 		if op.Retired {
 			continue
 		}
@@ -39,7 +39,7 @@ func TestRegistryMatchesStd(t *testing.T) {
 		}
 	}
 	for key := range bodiless {
-		if _, ok := mir.StdOpFor(key); !ok && !lowered[key] && !conversionKey(key) {
+		if _, ok := opdef.StdOpFor(key); !ok && !lowered[key] && !conversionKey(key) {
 			t.Errorf("%s: bodiless std function that resolves to no registry op", key)
 		}
 	}

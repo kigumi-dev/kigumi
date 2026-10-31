@@ -1,6 +1,10 @@
 package mir
 
-import "sync"
+import (
+	"sync"
+
+	opdef "kigumi/internal/compiler/mir/ops"
+)
 
 type executorMemo struct {
 	once sync.Once
@@ -11,8 +15,8 @@ type executorMemo struct {
 func (p *Program) reachMemo() *executorMemo {
 	p.executor.once.Do(func() {
 		rs := Reachable(p)
-		for _, c := range Capabilities(rs.Ops) {
-			if Capability(c) == CapTaskExecutor {
+		for _, c := range opdef.Capabilities(rs.Ops) {
+			if opdef.Capability(c) == opdef.CapTaskExecutor {
 				p.executor.exec = true
 			}
 		}

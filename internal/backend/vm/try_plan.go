@@ -1,6 +1,8 @@
 package vm
 
-import "kigumi/internal/compiler/mir"
+import (
+	opdef "kigumi/internal/compiler/mir/ops"
+)
 
 type resultCopy uint8
 
@@ -43,7 +45,7 @@ var tryPlans = map[string]tryPlan{
 // directTry holds the ops whose registry entry has a direct result form: a call site that takes the payload bare skips the wrap.
 var directTry = func() map[string]bool {
 	out := map[string]bool{}
-	for _, op := range mir.Registry.Ops {
+	for _, op := range opdef.Registry.Ops {
 		if op.Direct == "TryRef" || op.Direct == "TryOpt" {
 			for _, k := range op.Keys {
 				out[k] = true

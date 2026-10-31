@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -12,16 +13,16 @@ type mutator struct {
 	types []sem.TypeID
 	ents  map[sem.EntityKind][]sem.EntityID
 	strs  []string
-	prims []mir.PrimitiveId
-	provs []mir.ProviderOpId
+	prims []opdef.PrimitiveId
+	provs []opdef.ProviderOpId
 }
 
 func newMutator(p *mir.Program) *mutator {
 	m := &mutator{ents: map[sem.EntityKind][]sem.EntityID{}}
 	seenType := map[sem.TypeID]bool{}
 	seenStr := map[string]bool{}
-	seenPrim := map[mir.PrimitiveId]bool{}
-	seenProv := map[mir.ProviderOpId]bool{}
+	seenPrim := map[opdef.PrimitiveId]bool{}
+	seenProv := map[opdef.ProviderOpId]bool{}
 	addType := func(t sem.TypeID) {
 		if !seenType[t] {
 			seenType[t] = true

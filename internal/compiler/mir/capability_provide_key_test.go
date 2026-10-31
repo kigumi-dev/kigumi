@@ -3,6 +3,8 @@ package mir
 import (
 	"reflect"
 	"testing"
+
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 func TestProvisionKeyEqualImpliesSameVerdicts(t *testing.T) {
@@ -23,7 +25,7 @@ func TestProvisionKeyEqualImpliesSameVerdicts(t *testing.T) {
 	}
 	table := func(p Platform) []Provision {
 		var out []Provision
-		for _, c := range Vocabulary() {
+		for _, c := range opdef.Vocabulary() {
 			out = append(out, p.Provides(c))
 		}
 		return out

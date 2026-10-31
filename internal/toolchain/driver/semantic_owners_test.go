@@ -9,6 +9,7 @@ import (
 
 	"kigumi/internal/backend/vm"
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/devkit/semfixture"
 	"kigumi/internal/toolchain/contract/schema"
@@ -143,7 +144,7 @@ func isConversion(key string) bool {
 
 // nativeCovers is covered if the registry resolves it, llgen lowers it, or it is a numeric conversion.
 func nativeCovers(key string) bool {
-	if _, ok := mir.StdOpFor(key); ok {
+	if _, ok := opdef.StdOpFor(key); ok {
 		return true
 	}
 	return nativeLowered[key] || isConversion(key)

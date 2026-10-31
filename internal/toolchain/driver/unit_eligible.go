@@ -3,7 +3,7 @@ package driver
 import (
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 // unitEligible limits replay to targets where no whole-program rule reports at a library site on behalf of an entry: no profile, no stack budget, every capability provided.
@@ -16,7 +16,7 @@ func (m *Module) unitEligible() bool {
 		return false
 	}
 	plat := capabilityPlatform(t)
-	for _, c := range mir.Vocabulary() {
+	for _, c := range opdef.Vocabulary() {
 		if !plat.Provides(c).Provided {
 			return false
 		}

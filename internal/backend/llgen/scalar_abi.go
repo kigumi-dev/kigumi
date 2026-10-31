@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -113,7 +114,7 @@ func (e *emitter) narrowScalarSig(f *mir.Func) bool {
 }
 
 func (e *emitter) calleeScalarSig(in mir.Inst) *scalarSig {
-	if in.Op != mir.OpCall || in.DPrim != mir.DPNone {
+	if in.Op != mir.OpCall || in.DPrim != opdef.DPNone {
 		return nil
 	}
 	if fn, ok := e.p.ByEnt[in.Ent]; ok {

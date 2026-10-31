@@ -1,6 +1,10 @@
 package mir
 
-import "fmt"
+import (
+	"fmt"
+
+	opdef "kigumi/internal/compiler/mir/ops"
+)
 
 type Platform struct {
 	OS string
@@ -28,15 +32,15 @@ type Provision struct {
 	Reason   string
 }
 
-var provisionRules = map[Capability]func(Platform) string{
-	CapHostStdio:   needsOS,
-	CapHostArgs:    needsOS,
-	CapHostFiles:   needsOS,
-	CapHostEntropy: needsOS,
-	CapHostShell:   needsOSExcept("wasi", "has no process spawning"),
-	CapHostNet:     needsOSExcept("wasi", "has no sockets"),
-	CapHostDL:      needsOSExcept("wasi", "has no dynamic loader"),
-	CapHostSignals: func(p Platform) string {
+var provisionRules = map[opdef.Capability]func(Platform) string{
+	opdef.CapHostStdio:   needsOS,
+	opdef.CapHostArgs:    needsOS,
+	opdef.CapHostFiles:   needsOS,
+	opdef.CapHostEntropy: needsOS,
+	opdef.CapHostShell:   needsOSExcept("wasi", "has no process spawning"),
+	opdef.CapHostNet:     needsOSExcept("wasi", "has no sockets"),
+	opdef.CapHostDL:      needsOSExcept("wasi", "has no dynamic loader"),
+	opdef.CapHostSignals: func(p Platform) string {
 		if why := needsOS(p); why != "" {
 			return why
 		}
@@ -45,13 +49,13 @@ var provisionRules = map[Capability]func(Platform) string{
 		}
 		return ""
 	},
-	CapTaskBlocking: func(p Platform) string {
+	opdef.CapTaskBlocking: func(p Platform) string {
 		if p.NoLibc {
 			return fmt.Sprintf("the %s runtime does not include the blocking pool", p.OS)
 		}
 		return ""
 	},
-	CapTaskThreads: func(p Platform) string {
+	opdef.CapTaskThreads: func(p Platform) string {
 		switch {
 		case p.Bare:
 			return "worker threads need an operating system"
@@ -84,7 +88,7 @@ func needsOSExcept(os, what string) func(Platform) string {
 }
 
 // A capability is withheld when one it needs is.
-func (p Platform) Provides(c Capability) Provision {
+func (p Platform) Provides(c opdef.Capability) Provision {
 	if c.HeapBacked() {
 		if why := p.heapWithheld(); why != "" {
 			return Provision{Reason: why}

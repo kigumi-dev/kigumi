@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"kigumi/internal/backend/llgen"
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 	"kigumi/internal/toolchain/version"
@@ -92,29 +92,29 @@ func TestRegistryFingerprintTracksEdits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	alt, err := mir.ParseStdOpRegistry(mirRegistryText(t) + fmt.Sprintf("op %d", len(mir.Registry.Ops)) + " ZZ_NEW primitive () -> unit\nkey zz.new\n")
+	alt, err := opdef.ParseStdOpRegistry(mirRegistryText(t) + fmt.Sprintf("op %d", len(opdef.Registry.Ops)) + " ZZ_NEW primitive () -> unit\nkey zz.new\n")
 	if err != nil {
 		t.Fatal(err)
 	}
 	flags := []string{"KIGUMI_UNWIND"}
-	if llgen.AbiFingerprint(alt, layout, version.AbiRevision, flags) == llgen.AbiFingerprint(mir.Registry, layout, version.AbiRevision, flags) {
+	if llgen.AbiFingerprint(alt, layout, version.AbiRevision, flags) == llgen.AbiFingerprint(opdef.Registry, layout, version.AbiRevision, flags) {
 		t.Error("an added op left the fingerprint unchanged")
 	}
-	if llgen.StdOpHeader(alt) == llgen.StdOpHeader(mir.Registry) || !strings.Contains(llgen.StdOpHeader(alt), "OP_ZZ_NEW = ") {
+	if llgen.StdOpHeader(alt) == llgen.StdOpHeader(opdef.Registry) || !strings.Contains(llgen.StdOpHeader(alt), "OP_ZZ_NEW = ") {
 		t.Error("an added op did not reach the generated C header")
 	}
-	renamed, err := mir.ParseStdOpRegistry(strings.Replace(mirRegistryText(t), "op 0 LEN primitive (string|bytes)", "op 0 LEN primitive (any)", 1))
+	renamed, err := opdef.ParseStdOpRegistry(strings.Replace(mirRegistryText(t), "op 0 LEN primitive (string|bytes)", "op 0 LEN primitive (any)", 1))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if llgen.AbiFingerprint(renamed, layout, version.AbiRevision, flags) == llgen.AbiFingerprint(mir.Registry, layout, version.AbiRevision, flags) {
+	if llgen.AbiFingerprint(renamed, layout, version.AbiRevision, flags) == llgen.AbiFingerprint(opdef.Registry, layout, version.AbiRevision, flags) {
 		t.Error("a changed descriptor left the fingerprint unchanged")
 	}
-	commented, err := mir.ParseStdOpRegistry("# a comment\n\n" + mirRegistryText(t))
+	commented, err := opdef.ParseStdOpRegistry("# a comment\n\n" + mirRegistryText(t))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if llgen.AbiFingerprint(commented, layout, version.AbiRevision, flags) != llgen.AbiFingerprint(mir.Registry, layout, version.AbiRevision, flags) {
+	if llgen.AbiFingerprint(commented, layout, version.AbiRevision, flags) != llgen.AbiFingerprint(opdef.Registry, layout, version.AbiRevision, flags) {
 		t.Error("a comment moved the fingerprint")
 	}
 }
@@ -184,13 +184,13 @@ func TestRegistryChangeInvalidatesRuntime(t *testing.T) {
 		return stderr.String(), fp
 	}
 	_, bareBefore := bareBuild()
-	alt, err := mir.ParseStdOpRegistry(mirRegistryText(t) + fmt.Sprintf("op %d", len(mir.Registry.Ops)) + " ZZ_NEW primitive () -> unit\nkey zz.new\n")
+	alt, err := opdef.ParseStdOpRegistry(mirRegistryText(t) + fmt.Sprintf("op %d", len(opdef.Registry.Ops)) + " ZZ_NEW primitive () -> unit\nkey zz.new\n")
 	if err != nil {
 		t.Fatal(err)
 	}
-	saved := mir.Registry
-	mir.Registry = alt
-	defer func() { mir.Registry = saved }()
+	saved := opdef.Registry
+	opdef.Registry = alt
+	defer func() { opdef.Registry = saved }()
 	seen := len(runtimeCompiles())
 	edited := buildProgram(t, singleThreadSrc)
 	run(edited)
@@ -239,7 +239,7 @@ func logRuntimeCompiles(t *testing.T) func() []string {
 
 func mirRegistryText(t *testing.T) string {
 	t.Helper()
-	b, err := os.ReadFile("../../compiler/mir/stdops.reg")
+	b, err := os.ReadFile("../../compiler/mir/ops/stdops.reg")
 	if err != nil {
 		t.Fatal(err)
 	}

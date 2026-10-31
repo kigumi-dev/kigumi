@@ -3,11 +3,12 @@ package mir
 import (
 	"slices"
 
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
 func iterAt(name string) bool {
-	s, ok := builtinByName[name]
+	s, ok := opdef.BuiltinFor(name)
 	return ok && s.Iter && len(s.Args) == 2
 }
 

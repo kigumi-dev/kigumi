@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 var (
@@ -18,7 +19,7 @@ func (e *emitter) tryRefCall(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 	arr := e.argArray(sb, args)
 	op, _ := in.StdOp()
 	e.std.add(op)
-	if in.DPrim == mir.DPTryOpt {
+	if in.DPrim == opdef.DPTryOpt {
 		out := e.stackSlot(sb, "ptr")
 		k := e.irb(sb).Call(rtDTryOpt, vi32(int(op)), vi32(len(args)), vptr(arr), vptr(out)).Text
 		e.releaseScalarArgs(sb, in, args)

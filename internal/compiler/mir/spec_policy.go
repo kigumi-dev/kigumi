@@ -1,5 +1,9 @@
 package mir
 
+import (
+	opdef "kigumi/internal/compiler/mir/ops"
+)
+
 // A revert changes its caller's crossings, so the check repeats until stable.
 func (s *specializer) settle() {
 	live := s.live()
@@ -20,7 +24,7 @@ func (s *specializer) settle() {
 		f.DSig, f.Direct = nil, nil
 		for bid := range f.Blocks {
 			for i := range f.Blocks[bid].Insts {
-				f.Blocks[bid].Insts[i].DPrim = DPNone
+				f.Blocks[bid].Insts[i].DPrim = opdef.DPNone
 			}
 		}
 	}

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -71,7 +72,7 @@ func ffiWrite(e *emitter, sb *strings.Builder, a ffiArgs, _ sem.TypeID) Value {
 }
 
 func (e *emitter) ffiRegOp(in mir.Inst) string {
-	if in.Op != mir.OpCall || in.DPrim != mir.DPNone || e.r.Entity(in.Ent).Kind != sem.EntFn || e.r.Fn(in.Ent).Body != 0 {
+	if in.Op != mir.OpCall || in.DPrim != opdef.DPNone || e.r.Entity(in.Ent).Kind != sem.EntFn || e.r.Fn(in.Ent).Body != 0 {
 		return ""
 	}
 	if key := e.stdKey(in.Ent); ffiPrims[key] != nil {

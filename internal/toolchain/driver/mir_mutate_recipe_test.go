@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -194,8 +195,8 @@ func (pk pick) format(p *mir.Program, f *mir.Func) string {
 	case 's':
 		return "s" + strconv.Quote(pk.text)
 	case 'p':
-		return "p" + strconv.Quote(mir.StdOpNames[pk.n-1])
+		return "p" + strconv.Quote(opdef.StdOpNames[pk.n-1])
 	default:
-		return "v" + strconv.Quote(mir.StdOpNames[pk.n-1])
+		return "v" + strconv.Quote(opdef.StdOpNames[pk.n-1])
 	}
 }

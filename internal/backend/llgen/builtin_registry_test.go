@@ -5,7 +5,7 @@ import (
 	"slices"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 var builtinCompare = regexp.MustCompile(`!strcmp\(name, "([^"]+)"\)`)
@@ -24,8 +24,8 @@ func TestRuntimeBuiltinsMatchTheRegistry(t *testing.T) {
 	for _, m := range builtinCompare.FindAllStringSubmatch(body, -1) {
 		got = append(got, m[1])
 	}
-	for _, name := range mir.BuiltinNames() {
-		if spec, _ := mir.BuiltinFor(name); spec.Native == mir.NativeRuntime {
+	for _, name := range opdef.BuiltinNames() {
+		if spec, _ := opdef.BuiltinFor(name); spec.Native == opdef.NativeRuntime {
 			want = append(want, name)
 		}
 	}

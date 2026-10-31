@@ -1,4 +1,4 @@
-package mir
+package ops
 
 // StdOpNames names, in id order, every op a bodiless std function can
 // resolve to; the order is the registry's and the native runtime's `enum std_op`.

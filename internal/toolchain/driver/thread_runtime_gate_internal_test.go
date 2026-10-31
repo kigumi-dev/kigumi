@@ -3,7 +3,7 @@ package driver
 import (
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	buildconfig "kigumi/internal/toolchain/config"
 )
 
@@ -28,7 +28,7 @@ func TestTargetProvidesWorkerThreads(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			if got := capabilityPlatform(c.target).Provides(mir.CapTaskThreads).Provided; got != c.want {
+			if got := capabilityPlatform(c.target).Provides(opdef.CapTaskThreads).Provided; got != c.want {
 				t.Errorf("%+v provides task.threads = %v, want %v", c.target, got, c.want)
 			}
 		})

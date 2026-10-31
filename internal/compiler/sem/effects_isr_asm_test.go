@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/devkit/semfixture"
@@ -17,7 +17,7 @@ func checkIsrArch(t *testing.T, arch, os, src string) *sem.Result {
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
 	main.Files = []*syntax.Tree{main.Entry}
-	return sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../../std"), main), Arch: arch, OS: os, IsrContracts: mir.IsrContracts}, schema.GenerateDerive)
+	return sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../../std"), main), Arch: arch, OS: os, IsrContracts: opdef.IsrContracts}, schema.GenerateDerive)
 }
 
 func nakedIsr(body, extra string) string {

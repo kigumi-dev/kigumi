@@ -3,6 +3,7 @@ package mir
 import (
 	"sort"
 
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -41,13 +42,13 @@ func (rs *Reachability) CapabilityReasons(r *sem.Result, plat Platform) []Capabi
 			continue
 		}
 		sites := rs.capabilitySites(r, op)
-		add := func(cap Capability, name, by string) {
+		add := func(cap opdef.Capability, name, by string) {
 			got := plat.Provides(cap)
 			out = append(out, CapabilityReason{Capability: string(cap), Op: name, RequiredBy: by, RootKind: sites[0].RootKind, Path: sites[0].Path, Sites: sites, Provided: got.Provided, Why: got.Reason})
 		}
-		add(c, StdOpNames[op], "")
-		implied := map[Capability]bool{c: true}
-		closure(implied)
+		add(c, opdef.StdOpNames[op], "")
+		implied := map[opdef.Capability]bool{c: true}
+		opdef.AddRequirements(implied)
 		delete(implied, c)
 		for _, need := range sortedCapabilities(implied) {
 			add(need, "", string(c))
@@ -62,7 +63,7 @@ func (rs *Reachability) CapabilityReasons(r *sem.Result, plat Platform) []Capabi
 	return out
 }
 
-func (rs *Reachability) capabilitySites(r *sem.Result, op StdOpId) []CapabilitySite {
+func (rs *Reachability) capabilitySites(r *sem.Result, op opdef.StdOpId) []CapabilitySite {
 	var out []CapabilitySite
 	index := map[sem.EntityID]int{}
 	for _, site := range rs.AllOpSites[op] {
@@ -76,8 +77,8 @@ func (rs *Reachability) capabilitySites(r *sem.Result, op StdOpId) []CapabilityS
 	return out
 }
 
-func sortedCapabilities(set map[Capability]bool) []Capability {
-	out := make([]Capability, 0, len(set))
+func sortedCapabilities(set map[opdef.Capability]bool) []opdef.Capability {
+	out := make([]opdef.Capability, 0, len(set))
 	for c := range set {
 		out = append(out, c)
 	}

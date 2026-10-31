@@ -2,6 +2,7 @@ package driver
 
 import (
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	buildconfig "kigumi/internal/toolchain/config"
 )
 
@@ -22,7 +23,7 @@ type CapabilityVerdict struct {
 func ProvidedCapabilities(t buildconfig.Target) []CapabilityVerdict {
 	plat := capabilityPlatform(t)
 	var out []CapabilityVerdict
-	for _, c := range mir.Vocabulary() {
+	for _, c := range opdef.Vocabulary() {
 		got := plat.Provides(c)
 		out = append(out, CapabilityVerdict{Capability: string(c), Provided: got.Provided, Why: got.Reason})
 	}

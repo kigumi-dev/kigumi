@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/toolchain/contract/schema"
@@ -126,7 +126,7 @@ func (m *Module) semModuleOf(keep func(path string) bool) (*sem.Module, error) {
 	mod.NoPlatform = m.target.Sys == "none"
 	mod.BlockingProfile = m.target.BlockingExecutor
 	mod.OS = m.target.OS
-	mod.IsrContracts = mir.IsrContracts
+	mod.IsrContracts = opdef.IsrContracts
 	mod.Interrupt = m.Manifest.Interrupt
 	mod.DepInterrupt = m.depInterrupt
 	mod.Deny = m.deny

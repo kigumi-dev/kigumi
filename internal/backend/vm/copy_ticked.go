@@ -4,6 +4,7 @@ import (
 	"sync/atomic"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 // copier copies a value as one of native's two deep copies does, allocation for allocation: copy_try
@@ -35,7 +36,7 @@ func (m *Machine) copiedResult(key string, v *obj) *obj {
 	if m.inlineResultCopy(key) {
 		return m.copy(v)
 	}
-	if plan.copy == copySome && m.site != nil && m.site.DPrim != mir.DPNone {
+	if plan.copy == copySome && m.site != nil && m.site.DPrim != opdef.DPNone {
 		return m.some(retain(v))
 	}
 	if plan.copy == copyOk {

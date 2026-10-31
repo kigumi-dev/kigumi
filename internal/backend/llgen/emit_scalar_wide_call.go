@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 // wideCallOp names the 128-bit prelude primitive in a call computed on registers, or "".
@@ -20,7 +21,7 @@ func (e *emitter) wideCallOp(f *mir.Func, in mir.Inst) string {
 	if !ok {
 		return ""
 	}
-	switch name := mir.StdOpNames[id]; name {
+	switch name := opdef.StdOpNames[id]; name {
 	case "WRAPPING_ADD", "WRAPPING_SUB", "WRAPPING_MUL", "WRAPPING_SHL", "WRAPPING_SHR", "ROTATE_LEFT", "ROTATE_RIGHT":
 		return name
 	}

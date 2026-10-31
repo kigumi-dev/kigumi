@@ -5,13 +5,13 @@ import (
 	"testing"
 
 	"kigumi/internal/backend/llgen"
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	buildconfig "kigumi/internal/toolchain/config"
 )
 
 func TestResolveLinkage(t *testing.T) {
 	host := buildconfig.Target{OS: "linux", Arch: "amd64", Sys: "posix"}
-	dl := compiled{Output: llgen.Output{Capabilities: []string{mir.CapHostDL.Macro()}}}
+	dl := compiled{Output: llgen.Output{Capabilities: []string{opdef.CapHostDL.Macro()}}}
 	externDL := compiled{Output: llgen.Output{Foreign: []string{"dlopen", "printf"}}}
 	musl := buildconfig.Target{Triple: "x86_64-linux-musl", OS: "linux", Arch: "amd64", Sys: "posix"}
 	gnu := buildconfig.Target{Triple: "x86_64-linux-gnu", OS: "linux", Arch: "amd64", Sys: "posix"}

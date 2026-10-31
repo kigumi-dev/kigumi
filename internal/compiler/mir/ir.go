@@ -4,6 +4,7 @@
 package mir
 
 import (
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/lang/diag"
@@ -122,9 +123,9 @@ type Inst struct {
 	LendArgs     uint32
 	argsDeclared bool
 	// Prim/Prov are zero unless Ent is a registry-covered std call.
-	Prim  PrimitiveId
-	Prov  ProviderOpId
-	DPrim DirectPrim
+	Prim  opdef.PrimitiveId
+	Prov  opdef.ProviderOpId
+	DPrim opdef.DirectPrim
 }
 
 type TermOp uint8

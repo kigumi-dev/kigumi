@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 func directRule(t *testing.T, p *mir.Program, fragment string) {
@@ -67,9 +68,9 @@ fn main() -> Void! {}
 	f := funcNamed(t, p, "main.widen")
 	for bi := range f.Blocks {
 		for k, in := range f.Blocks[bi].Insts {
-			if in.Op == mir.OpCall && in.DPrim == mir.DPConvert {
+			if in.Op == mir.OpCall && in.DPrim == opdef.DPConvert {
 				f.Blocks[bi].Insts[k].Args = []mir.LocalID{f.Params[1]}
-				f.Blocks[bi].Insts[k].DPrim = mir.DPNone
+				f.Blocks[bi].Insts[k].DPrim = opdef.DPNone
 				ve, ok := p.Verify().(*mir.Error)
 				if !ok || (ve.Rule != "types" && ve.Rule != "direct") || !strings.Contains(ve.Msg, "String") {
 					t.Fatalf("got %v, want a types or direct error naming the String operand", ve)

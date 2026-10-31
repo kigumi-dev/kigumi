@@ -3,6 +3,7 @@ package mir
 import (
 	"strings"
 
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -102,7 +103,7 @@ func (b *BoxedParams) boxedUse(f *Func, in Inst, i int) bool {
 		return i == 2 && !f.IsDirect(in.Args[0])
 	case OpCall:
 		g := b.p.ByEnt[in.Ent]
-		return g != nil && in.DPrim == DPNone && i < len(g.Params) && b.Of(g)[i]
+		return g != nil && in.DPrim == opdef.DPNone && i < len(g.Params) && b.Of(g)[i]
 	}
 	return false
 }
@@ -111,7 +112,7 @@ func copyLike(op Opcode) bool { return op == OpAlias || op == OpShare || op == O
 
 // Native computes these on registers and boxes the result only where it is stored or handed on.
 func (p *Program) FloatConversion(f *Func, in Inst) bool {
-	if in.Op != OpCall || len(in.Args) != 1 || in.DPrim != DPNone || p.ByEnt[in.Ent] != nil || f.Locals[in.Dst].Type != sem.TyF64 {
+	if in.Op != OpCall || len(in.Args) != 1 || in.DPrim != opdef.DPNone || p.ByEnt[in.Ent] != nil || f.Locals[in.Dst].Type != sem.TyF64 {
 		return false
 	}
 	e := p.R.Entity(in.Ent)

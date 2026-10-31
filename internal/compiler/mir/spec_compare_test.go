@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 const specCompareSrc = `
@@ -54,7 +54,7 @@ func TestGenericComparisonKeepsItsNaNGuardOnlyInTheSharedBody(t *testing.T) {
 
 func TestGenericComparisonBuiltinsAreRegistered(t *testing.T) {
 	for _, name := range []string{"cmp.unordered", "cmp.guard"} {
-		if _, ok := mir.BuiltinFor(name); !ok {
+		if _, ok := opdef.BuiltinFor(name); !ok {
 			t.Errorf("no registry entry for %s", name)
 		}
 	}

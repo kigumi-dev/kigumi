@@ -4,13 +4,14 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
-func dprims(f *mir.Func) map[mir.DirectPrim]int {
-	out := map[mir.DirectPrim]int{}
+func dprims(f *mir.Func) map[opdef.DirectPrim]int {
+	out := map[opdef.DirectPrim]int{}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == mir.OpCall && in.DPrim != mir.DPNone {
+			if in.Op == mir.OpCall && in.DPrim != opdef.DPNone {
 				out[in.DPrim]++
 			}
 		}
@@ -56,15 +57,15 @@ func TestPlanDirectTakesADirectResultFromAPrimitive(t *testing.T) {
 	p := planned(t, directPrimSrc)
 	cases := []struct {
 		fn   string
-		kind mir.DirectPrim
+		kind opdef.DirectPrim
 	}{
-		{"main.narrow", mir.DPConvert},
-		{"main.widen", mir.DPConvert},
-		{"main.byteAt", mir.DPBytesGet},
-		{"main.pick", mir.DPArrayGet},
-		{"main.spin", mir.DPWrapAdd},
-		{"main.spin", mir.DPRotl},
-		{"main.hyp", mir.DPSqrt},
+		{"main.narrow", opdef.DPConvert},
+		{"main.widen", opdef.DPConvert},
+		{"main.byteAt", opdef.DPBytesGet},
+		{"main.pick", opdef.DPArrayGet},
+		{"main.spin", opdef.DPWrapAdd},
+		{"main.spin", opdef.DPRotl},
+		{"main.hyp", opdef.DPSqrt},
 	}
 	for _, c := range cases {
 		if got := dprims(funcNamed(t, p, c.fn))[c.kind]; got != 1 {
@@ -85,14 +86,14 @@ func TestPlanDirectKeepsAnElementThatIsNotALeafBoxed(t *testing.T) {
 
 func TestStdOpResultABI(t *testing.T) {
 	for _, name := range []string{"BYTES_GET", "ARRAY_GET", "CHAR_FROM_INT", "TEXT_PARSE_FLOAT", "LEN", "ARRAY_LEN"} {
-		id, ok := mir.StdOpIdOf(name)
-		if !ok || id.ResultABI() != mir.ResultDirect {
+		id, ok := opdef.StdOpIdOf(name)
+		if !ok || id.ResultABI() != opdef.ResultDirect {
 			t.Errorf("%s: result ABI is not direct", name)
 		}
 	}
 	for _, name := range []string{"ARRAY_PUSH", "STRING_FROM_BYTES", "HOST_FILES", "ARRAY_TAKE_AT"} {
-		id, ok := mir.StdOpIdOf(name)
-		if !ok || id.ResultABI() != mir.ResultBoxed {
+		id, ok := opdef.StdOpIdOf(name)
+		if !ok || id.ResultABI() != opdef.ResultBoxed {
 			t.Errorf("%s: result ABI is not boxed", name)
 		}
 	}
@@ -137,7 +138,7 @@ func TestPlanDirectKeepsABoxedResultWhereTheOptionWouldBeBoxedAgain(t *testing.T
 			t.Errorf("%s: %d box crossings, want none", name, n)
 		}
 	}
-	if got := dprims(funcNamed(t, p, "main.viaMatch"))[mir.DPConvert]; got != 1 {
+	if got := dprims(funcNamed(t, p, "main.viaMatch"))[opdef.DPConvert]; got != 1 {
 		t.Errorf("main.viaMatch: %d direct-result conversions, want 1", got)
 	}
 }

@@ -2,6 +2,7 @@ package vm
 
 import (
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -54,7 +55,7 @@ func (m *Machine) computes(f *mir.Func, in *mir.Inst) bool {
 		return in.Str == "iter.at" && !f.IsDirect(in.Args[0]) && m.r.Types.IsInteger(t) && t != sem.TyI128 && t != sem.TyU128
 	case mir.OpCall:
 		g := m.p.ByEnt[in.Ent]
-		return in.DPrim != mir.DPNone || m.p.FloatConversion(f, *in) || g != nil && len(g.Blocks) > 0 && !g.Async
+		return in.DPrim != opdef.DPNone || m.p.FloatConversion(f, *in) || g != nil && len(g.Blocks) > 0 && !g.Async
 	}
 	return false
 }
@@ -62,7 +63,7 @@ func (m *Machine) computes(f *mir.Func, in *mir.Inst) bool {
 // Native boxes a computed scalar at the call when the callee keeps that parameter boxed.
 func (m *Machine) callTicks(f *mir.Func, in *mir.Inst, loc []*obj) {
 	g := m.p.ByEnt[in.Ent]
-	if m.opts.FaultInjectAt <= 0 || in.Op != mir.OpCall || in.DPrim != mir.DPNone || g == nil || f.Wraps != nil {
+	if m.opts.FaultInjectAt <= 0 || in.Op != mir.OpCall || in.DPrim != opdef.DPNone || g == nil || f.Wraps != nil {
 		return
 	}
 	lf := m.factsOf(f)

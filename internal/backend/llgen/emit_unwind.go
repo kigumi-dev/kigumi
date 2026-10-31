@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -28,7 +29,7 @@ func (e *emitter) wantsCatch(opts EmitOptions) bool {
 	if opts.Reachable == nil {
 		return true
 	}
-	return slices.Contains(mir.CapabilityMacros(opts.Reachable.Ops), "KIGUMI_CAP_TASK_EXECUTOR") || e.p.ReachesDropHook(opts.Reachable)
+	return slices.Contains(opdef.CapabilityMacros(opts.Reachable.Ops), "KIGUMI_CAP_TASK_EXECUTOR") || e.p.ReachesDropHook(opts.Reachable)
 }
 
 // Exports and section-placed bodies are entered from outside the Kigumi call tree.

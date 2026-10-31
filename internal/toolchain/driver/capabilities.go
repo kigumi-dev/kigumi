@@ -2,6 +2,7 @@ package driver
 
 import (
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	buildconfig "kigumi/internal/toolchain/config"
 )
 
@@ -13,7 +14,7 @@ func Capabilities(a *Analysis) []string {
 	if a == nil || a.Prog == nil {
 		return nil
 	}
-	return mir.Capabilities(mir.Reachable(a.Prog).Ops)
+	return opdef.Capabilities(mir.Reachable(a.Prog).Ops)
 }
 
 func CapabilityReasons(a *Analysis, t buildconfig.Target) []CapabilityReason {

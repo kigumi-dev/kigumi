@@ -1,6 +1,9 @@
 package llgen
 
-import "kigumi/internal/compiler/mir"
+import (
+	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
+)
 
 // keepsUnboxed: a boxed parameter is reused for free, so a register one pays only if no copy of it is ever boxed.
 func (e *emitter) keepsUnboxed(f *mir.Func, prm mir.LocalID, regs map[mir.LocalID]scalarInfo, retNative bool) bool {
@@ -56,7 +59,7 @@ func (e *emitter) unboxedUse(f *mir.Func, in mir.Inst, i int) bool {
 		return in.Str == "!" && ty == TI1 || in.Str == "-" && (ty == TI64 || ty == TI128 || ty == TDouble || ty == TFloat) || in.Str == "~" && (ty == TI64 || ty == TI128)
 	case mir.OpCall:
 		_, ok := e.calleeScalarSig(in).param(i)
-		return in.DPrim != mir.DPNone || ok || e.wideCallOp(f, in) != "" || e.rawConvert(f, in) || e.cNative(in) && e.cArgInReg(in, i)
+		return in.DPrim != opdef.DPNone || ok || e.wideCallOp(f, in) != "" || e.rawConvert(f, in) || e.cNative(in) && e.cArgInReg(in, i)
 	case mir.OpRecord, mir.OpVariant, mir.OpClosure:
 		return e.isDirect(in.Dst)
 	case mir.OpSetField, mir.OpIndex, mir.OpSetIndex:

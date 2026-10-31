@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/devkit/semfixture"
@@ -17,7 +17,7 @@ func checkIsr(t *testing.T, src string) *sem.Result {
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
 	main.Files = []*syntax.Tree{main.Entry}
-	return sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../../std"), main), IsrContracts: mir.IsrContracts}, schema.GenerateDerive)
+	return sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../../std"), main), IsrContracts: opdef.IsrContracts}, schema.GenerateDerive)
 }
 
 // checkIsrWithSource is checkIsr plus a bodiless Std package whose functions carry an inert contract, isolating a drop-only path.
@@ -34,7 +34,7 @@ type isrTestContracts struct {
 
 func (c isrTestContracts) IsrContract(key string) (sem.IsrContract, bool) {
 	if !strings.HasPrefix(key, "buflib.") {
-		return mir.IsrContracts.IsrContract(key)
+		return opdef.IsrContracts.IsrContract(key)
 	}
 	if got, ok := c.contracts[key]; ok {
 		return got, true
@@ -48,7 +48,7 @@ func (c isrTestContracts) IsrKnown(id string) bool {
 			return true
 		}
 	}
-	return mir.IsrContracts.IsrKnown(id)
+	return opdef.IsrContracts.IsrKnown(id)
 }
 
 func (isrTestContracts) IsrVersion() string { return "test" }

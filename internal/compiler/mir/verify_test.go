@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/devkit/semfixture"
@@ -25,7 +26,7 @@ func checkSourceMir(t *testing.T, src string) *sem.Result {
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
 	main.Files = []*syntax.Tree{main.Entry}
-	res := sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../../std"), main), IsrContracts: mir.IsrContracts}, schema.GenerateDerive)
+	res := sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../../std"), main), IsrContracts: opdef.IsrContracts}, schema.GenerateDerive)
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}

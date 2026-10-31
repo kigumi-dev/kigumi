@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 // TestHostForBuildKeysStayDistinct checks hostFor doesn't let hostByOp conflate build.* keys, which all share one BUILD_ONLY id.
@@ -12,11 +12,11 @@ func TestHostForBuildKeysStayDistinct(t *testing.T) {
 	m := &Machine{host: map[string]hostFn{}}
 	m.registerAll()
 
-	id, ok := mir.StdOpFor("build.Builder.file")
+	id, ok := opdef.StdOpFor("build.Builder.file")
 	if !ok {
 		t.Fatal("build.Builder.file: not in the registry")
 	}
-	prov := mir.ProviderOpId(id) + 1
+	prov := opdef.ProviderOpId(id) + 1
 
 	fileFn, ok := m.hostFor(prov, "build.Builder.file")
 	if !ok {

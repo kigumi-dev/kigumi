@@ -1,5 +1,9 @@
 package mir
 
+import (
+	opdef "kigumi/internal/compiler/mir/ops"
+)
+
 // A direct Option boxed again at its use adds an allocation the op summary does not charge.
 func (p *Program) settlePrims(f *Func, pin []bool) {
 	for p.unmarkBoxedPrims(f) {
@@ -12,7 +16,7 @@ func (p *Program) unmarkBoxedPrims(f *Func) bool {
 	for bid := range f.Blocks {
 		insts := f.Blocks[bid].Insts
 		for i := range insts {
-			if in := &insts[i]; in.Op == OpCall && in.DPrim != DPNone && p.R.DirectAgg(f.Locals[in.Dst].Type) {
+			if in := &insts[i]; in.Op == OpCall && in.DPrim != opdef.DPNone && p.R.DirectAgg(f.Locals[in.Dst].Type) {
 				origin[in.Dst] = append(origin[in.Dst], in)
 			}
 		}
@@ -36,7 +40,7 @@ func (p *Program) unmarkBoxedPrims(f *Func) bool {
 		}
 	}
 	for in := range bad {
-		in.DPrim = DPNone
+		in.DPrim = opdef.DPNone
 	}
 	return len(bad) > 0
 }
@@ -56,7 +60,7 @@ func (p *Program) flowPrimOrigins(f *Func, in Inst, origin map[LocalID][]*Inst, 
 			changed = joinOrigins(origin, in.Dst, srcs) || changed
 		}
 	}
-	if in.Op == OpCall && in.DPrim != DPNone && len(origin[in.Dst]) > 0 {
+	if in.Op == OpCall && in.DPrim != opdef.DPNone && len(origin[in.Dst]) > 0 {
 		if cross, _, ok := p.dstCross(f, in); ok && cross == OpBoxDirect {
 			changed = markBad(origin[in.Dst], bad) || changed
 		}

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 var (
@@ -21,7 +22,7 @@ var (
 )
 
 func (e *emitter) directPrimCall(sb *strings.Builder, f *mir.Func, in mir.Inst) {
-	if in.DPrim == mir.DPTryRef || in.DPrim == mir.DPTryOpt {
+	if in.DPrim == opdef.DPTryRef || in.DPrim == opdef.DPTryOpt {
 		e.tryRefCall(sb, f, in)
 		return
 	}
@@ -34,34 +35,34 @@ func (e *emitter) directPrimCall(sb *strings.Builder, f *mir.Func, in mir.Inst) 
 	}
 	b := e.irb(sb)
 	switch in.DPrim {
-	case mir.DPLen:
+	case opdef.DPLen:
 		e.storeScalarBits(sb, f, in.Dst, b.Call(rtDLen, args[0]).Text)
 		return
-	case mir.DPArrayLen:
+	case opdef.DPArrayLen:
 		e.storeScalarBits(sb, f, in.Dst, b.Call(rtDArrayLen, args[0]).Text)
 		return
-	case mir.DPMapSeed:
+	case opdef.DPMapSeed:
 		e.storeScalarBits(sb, f, in.Dst, b.Call(rtDMapSeed).Text)
 		return
 	}
 	out := e.stackSlot(sb, "i64")
 	var present Value
 	switch in.DPrim {
-	case mir.DPBytesGet:
+	case opdef.DPBytesGet:
 		present = b.Call(rtDBytesGet, args[0], args[1], vptr(out))
-	case mir.DPArrayGet:
+	case opdef.DPArrayGet:
 		present = b.Call(rtDArrayGet, args[0], args[1], vptr(out))
-	case mir.DPArrayFirst:
+	case opdef.DPArrayFirst:
 		present = b.Call(rtDArrayGet, args[0], vi64(0), vptr(out))
-	case mir.DPArrayLast:
+	case opdef.DPArrayLast:
 		n, last := b.Call(rtDArrayLen, args[0]).Text, e.newTmp()
 		fmt.Fprintf(sb, "  %s = sub i64 %s, 1\n", last, n)
 		present = b.Call(rtDArrayGet, args[0], vi64text(last), vptr(out))
-	case mir.DPCharFromInt:
+	case opdef.DPCharFromInt:
 		present = e.charFromInt(sb, args[0], out)
-	case mir.DPParseFloat:
+	case opdef.DPParseFloat:
 		present = b.Call(rtDParseFloat, args[0], vptr(out))
-	case mir.DPConvert:
+	case opdef.DPConvert:
 		present = e.convertRaw(sb, f, in, args[0], out)
 	}
 	bits := e.newTmp()

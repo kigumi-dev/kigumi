@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -92,7 +93,7 @@ func (e *emitter) stdAdapterWith(fn sem.EntityID, sym string, bound int, value s
 	if arr == "" {
 		arr = e.argArray(&sb, vals)
 	}
-	if op, ok := mir.StdOpFor(e.stdKey(fn)); ok {
+	if op, ok := opdef.StdOpFor(e.stdKey(fn)); ok {
 		e.stdIdCall(&sb, "%r", op, n, arr)
 	} else {
 		e.irb(&sb).CallAs("%r", rtStd, vptr(e.stdKeyStr(e.stdKey(fn))), vi32(n), vptr(arr))

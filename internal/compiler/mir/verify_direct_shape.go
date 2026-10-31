@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -46,7 +47,7 @@ func (p *verifier) directShape(f *Func, in Inst) string {
 			return "calls a value that is not a closure"
 		}
 	case OpCall:
-		if in.DPrim != DPNone && !p.primTypesFit(f, in, in.DPrim) {
+		if in.DPrim != opdef.DPNone && !p.primTypesFit(f, in, in.DPrim) {
 			return "hands a direct primitive operands it does not take"
 		}
 	case OpBuiltin:

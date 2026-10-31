@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -278,7 +279,7 @@ func editPrim(s *site) string {
 		}
 		in.Prov = s.prov()
 	default:
-		in.DPrim = mir.DirectPrim(s.r.Intn(int(mir.DPPow) + 2))
+		in.DPrim = opdef.DirectPrim(s.r.Intn(int(opdef.DPPow) + 2))
 	}
 	return fmt.Sprintf("%s primitive tags of %s changed", s.where(), in.Op)
 }

@@ -1,6 +1,9 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	opdef "kigumi/internal/compiler/mir/ops"
+	"kigumi/internal/compiler/sem"
+)
 
 // trustedStdFrame is the stack contribution trusted for a resolved
 // bodiless std operation: a small constant, not a measured native frame.
@@ -10,7 +13,7 @@ const trustedStdFrame = 2
 // (invisible to the call graph otherwise) to that closure's Args index.
 var hoCallbackArg = func() map[string]int {
 	m := map[string]int{}
-	for _, op := range Registry.Ops {
+	for _, op := range opdef.Registry.Ops {
 		if op.Callback >= 0 {
 			m[op.Name] = op.Callback
 		}
@@ -93,7 +96,7 @@ func (cs *chainState) chain(ent sem.EntityID) StackBound {
 // A std primitive is trusted as a constant unless it routes through hoCallbackArg.
 func (cs *chainState) edgeBound(f *Func, inst Inst) (string, StackBound) {
 	if id, ok := inst.StdOp(); ok {
-		if argIdx, isHO := hoCallbackArg[StdOpNames[id]]; isHO {
+		if argIdx, isHO := hoCallbackArg[opdef.StdOpNames[id]]; isHO {
 			return cs.callbackEdgeBound(f, inst, argIdx)
 		}
 		return "<std>", StackBound{Kind: Bounded, Bytes: trustedStdFrame * cs.word}

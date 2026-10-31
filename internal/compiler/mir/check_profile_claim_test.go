@@ -5,6 +5,7 @@ import (
 
 	"kigumi/internal/backend/llgen"
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/devkit/semfixture"
@@ -33,7 +34,7 @@ func profiledProgram(t *testing.T, mod sem.Module, src string) *mir.Program {
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
 	main.Files = []*syntax.Tree{main.Entry}
 	mod.Packages = append(testkit.LoadStd(t, "../../../std"), main)
-	mod.IsrContracts = mir.IsrContracts
+	mod.IsrContracts = opdef.IsrContracts
 	res := sem.CheckWith(&mod, schema.GenerateDerive)
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 var (
@@ -76,7 +76,7 @@ func TestStdOpsMatchC(t *testing.T) {
 	for _, m := range enumEntryRe.FindAllSubmatch(block[1], -1) {
 		enumNames = append(enumNames, string(m[1]))
 	}
-	live := mir.Registry.Ops
+	live := opdef.Registry.Ops
 	if len(enumNames) != len(live) {
 		t.Fatalf("enum std_op has %d entries, the registry has %d ops", len(enumNames), len(live))
 	}
@@ -93,8 +93,8 @@ func TestStdOpsMatchC(t *testing.T) {
 		t.Fatal("RT_STD_OPS_RETIRED_CASES not defined in the runtime")
 	}
 	for i, name := range enumNames {
-		if want := "case OP_" + name + ":"; mir.Registry.Ops[i].Retired != strings.Contains(string(retiredCases[1]), want) {
-			t.Errorf("OP_%s: retired=%v but RT_STD_OPS_RETIRED_CASES disagrees", name, mir.Registry.Ops[i].Retired)
+		if want := "case OP_" + name + ":"; opdef.Registry.Ops[i].Retired != strings.Contains(string(retiredCases[1]), want) {
+			t.Errorf("OP_%s: retired=%v but RT_STD_OPS_RETIRED_CASES disagrees", name, opdef.Registry.Ops[i].Retired)
 		}
 	}
 	cases := caseSites(retiredCasesRe.ReplaceAll(src, nil))
@@ -102,7 +102,7 @@ func TestStdOpsMatchC(t *testing.T) {
 	for i, name := range enumNames {
 		declared[name] = true
 		sites := cases[name]
-		if mir.Registry.Ops[i].Retired {
+		if opdef.Registry.Ops[i].Retired {
 			if len(sites) != 0 {
 				t.Errorf("OP_%s is retired but rt_std_id still has a case for it", name)
 			}

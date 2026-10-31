@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
@@ -23,7 +24,7 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 		res = m.cross(fr, in, args[0])
 	case mir.OpCall:
 		m.callTicks(f, in, fr.locals)
-		m.tryBare = in.DPrim == mir.DPTryRef || in.DPrim == mir.DPTryOpt
+		m.tryBare = in.DPrim == opdef.DPTryRef || in.DPrim == opdef.DPTryOpt
 		res = m.callPlanned(in, ic, args)
 		m.tryBare = false
 		if m.p.ResultBoxed(f, *in) {

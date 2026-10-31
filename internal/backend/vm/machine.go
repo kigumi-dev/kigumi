@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -68,7 +69,7 @@ type Machine struct {
 	out, err io.Writer
 	opts     Options
 	host     map[string]hostFn
-	hostByOp map[mir.ProviderOpId]hostFn
+	hostByOp map[opdef.ProviderOpId]hostFn
 	sh       *shared
 	// site is the call being dispatched, for primitives whose meaning
 	// depends on the argument types at the call (ffi.sizeOf).

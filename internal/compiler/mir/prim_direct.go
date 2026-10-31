@@ -3,6 +3,7 @@ package mir
 import (
 	"strings"
 
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -25,22 +26,22 @@ func (p *Program) markDirectPrims(f *Func) {
 	}
 }
 
-func (p *Program) directPrimOf(f *Func, in Inst) DirectPrim {
+func (p *Program) directPrimOf(f *Func, in Inst) opdef.DirectPrim {
 	if _, own := p.ByEnt[in.Ent]; own || !p.IsStdPrimitive(in.Ent) {
-		return DPNone
+		return opdef.DPNone
 	}
 	info := p.R.Fn(in.Ent)
 	if info.Naked || p.R.Entity(p.R.Entity(in.Ent).Parent).Kind == sem.EntInterface {
-		return DPNone
+		return opdef.DPNone
 	}
-	kind, ok := DPNone, false
-	if id, found := in.StdOp(); found && id.ResultABI() == ResultDirect {
-		kind, ok = id.directPrim(), true
+	kind, ok := opdef.DPNone, false
+	if id, found := in.StdOp(); found && id.ResultABI() == opdef.ResultDirect {
+		kind, ok = id.DirectPrimitive(), true
 	} else if p.isConversion(in.Ent) {
-		kind, ok = DPConvert, true
+		kind, ok = opdef.DPConvert, true
 	}
 	if !ok || !p.primTypesFit(f, in, kind) {
-		return DPNone
+		return opdef.DPNone
 	}
 	return kind
 }
@@ -55,33 +56,33 @@ func (p *Program) resultShape(t sem.TypeID) primShape {
 	return shapeNone
 }
 
-func (p *Program) primTypesFit(f *Func, in Inst, kind DirectPrim) bool {
+func (p *Program) primTypesFit(f *Func, in Inst, kind opdef.DirectPrim) bool {
 	arg := func(i int) sem.TypeID { return f.Locals[in.Args[i]].Type }
 	shape := p.resultShape(f.Locals[in.Dst].Type)
 	switch kind {
-	case DPLen, DPArrayLen:
+	case opdef.DPLen, opdef.DPArrayLen:
 		return len(in.Args) == 1 && shape == shapeScalar
-	case DPMapSeed:
+	case opdef.DPMapSeed:
 		return len(in.Args) == 0 && shape == shapeScalar
-	case DPBytesGet, DPArrayGet:
+	case opdef.DPBytesGet, opdef.DPArrayGet:
 		return len(in.Args) == 2 && p.R.RegScalar(arg(1)) && shape == shapeOption
-	case DPArrayFirst, DPArrayLast:
+	case opdef.DPArrayFirst, opdef.DPArrayLast:
 		return len(in.Args) == 1 && shape == shapeOption
-	case DPCharFromInt:
+	case opdef.DPCharFromInt:
 		return len(in.Args) == 1 && p.R.RegScalar(arg(0)) && shape == shapeOption && p.optionElem(f.Locals[in.Dst].Type) == sem.TyChar
-	case DPParseFloat:
+	case opdef.DPParseFloat:
 		return len(in.Args) == 1 && shape == shapeOption && p.optionElem(f.Locals[in.Dst].Type) == sem.TyF64
-	case DPConvert:
+	case opdef.DPConvert:
 		return len(in.Args) == 1 && p.numericOrChar(arg(0)) && shape != shapeNone && p.numericOrChar(p.leafOf(f.Locals[in.Dst].Type))
-	case DPSqrt, DPFloor, DPCeil, DPRound:
+	case opdef.DPSqrt, opdef.DPFloor, opdef.DPCeil, opdef.DPRound:
 		return len(in.Args) == 1 && arg(0) == sem.TyF64 && f.Locals[in.Dst].Type == sem.TyF64
-	case DPPow:
+	case opdef.DPPow:
 		return len(in.Args) == 2 && arg(0) == sem.TyF64 && arg(1) == sem.TyF64 && f.Locals[in.Dst].Type == sem.TyF64
 	}
-	if kind == DPTryRef || kind == DPTryOpt {
-		return p.tryRefResult(f.Locals[in.Dst].Type, kind == DPTryOpt)
+	if kind == opdef.DPTryRef || kind == opdef.DPTryOpt {
+		return p.tryRefResult(f.Locals[in.Dst].Type, kind == opdef.DPTryOpt)
 	}
-	if kind >= DPWrapAdd && kind <= DPRotr {
+	if kind >= opdef.DPWrapAdd && kind <= opdef.DPRotr {
 		t := f.Locals[in.Dst].Type
 		return len(in.Args) == 2 && p.R.RegScalar(t) && p.R.Types.IsInteger(t) && arg(0) == t && arg(1) == t
 	}
@@ -114,13 +115,13 @@ func (p *Program) isConversion(fn sem.EntityID) bool {
 }
 
 func (p *Program) markPrimResult(f *Func, in Inst, out []bool) {
-	if in.Op == OpCall && in.DPrim != DPNone && p.R.DirectAgg(f.Locals[in.Dst].Type) {
+	if in.Op == OpCall && in.DPrim != opdef.DPNone && p.R.DirectAgg(f.Locals[in.Dst].Type) {
 		out[in.Dst] = true
 	}
 }
 
 func (p *Program) primResult(f *Func, in Inst) sem.TypeID {
-	if t := f.Locals[in.Dst].Type; in.DPrim != DPNone && p.R.DirectAgg(t) {
+	if t := f.Locals[in.Dst].Type; in.DPrim != opdef.DPNone && p.R.DirectAgg(t) {
 		return t
 	}
 	return 0

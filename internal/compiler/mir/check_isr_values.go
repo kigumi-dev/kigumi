@@ -1,5 +1,9 @@
 package mir
 
+import (
+	opdef "kigumi/internal/compiler/mir/ops"
+)
+
 // isrCallbackArg is the index of the closure argument a std primitive call runs natively, if the op takes one.
 func (p *Program) isrCallbackArg(in Inst) (int, bool) {
 	if !p.IsStdPrimitive(in.Ent) {
@@ -7,12 +11,12 @@ func (p *Program) isrCallbackArg(in Inst) (int, bool) {
 	}
 	id, ok := in.StdOp()
 	if !ok {
-		id, ok = StdOpFor(StdKey(p.R, in.Ent, true))
+		id, ok = opdef.StdOpFor(StdKey(p.R, in.Ent, true))
 	}
-	if !ok || int(id) >= len(Registry.Ops) {
+	if !ok || int(id) >= len(opdef.Registry.Ops) {
 		return 0, false
 	}
-	cb := Registry.Ops[id].Callback
+	cb := opdef.Registry.Ops[id].Callback
 	return cb, cb >= 0 && cb < len(in.Args)
 }
 

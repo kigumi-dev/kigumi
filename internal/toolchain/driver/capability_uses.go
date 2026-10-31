@@ -2,13 +2,14 @@ package driver
 
 import (
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	buildconfig "kigumi/internal/toolchain/config"
 )
 
 func capabilityUses(p *mir.Program, reach *mir.Reachability, plat mir.Platform) []sem.CapabilityUse {
 	var out []sem.CapabilityUse
-	reported := map[mir.Capability]bool{}
+	reported := map[opdef.Capability]bool{}
 	for _, op := range reach.Ops {
 		c, ok := op.Capability()
 		if !ok {
@@ -22,7 +23,7 @@ func capabilityUses(p *mir.Program, reach *mir.Reachability, plat mir.Platform) 
 		}
 		reported[c] = true
 		out = append(out, sem.CapabilityUse{
-			Op: mir.StdOpNames[op], Capability: string(c), Reason: got.Reason,
+			Op: opdef.StdOpNames[op], Capability: string(c), Reason: got.Reason,
 			File: caller.File, Node: site.Node, Path: reach.PathNames(p.R, site.Caller),
 		})
 	}

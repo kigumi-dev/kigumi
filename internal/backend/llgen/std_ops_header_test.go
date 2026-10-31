@@ -4,14 +4,14 @@ import (
 	"os"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 const stdOpHeaderPath = "runtime/rt_std_ops.h"
 
 // TestStdOpHeaderFresh regenerates rt_std_ops.h with UPDATE=1 and otherwise fails when it is stale.
 func TestStdOpHeaderFresh(t *testing.T) {
-	want := StdOpHeader(mir.Registry)
+	want := StdOpHeader(opdef.Registry)
 	if os.Getenv("UPDATE") == "1" {
 		if err := os.WriteFile(stdOpHeaderPath, []byte(want), 0o644); err != nil {
 			t.Fatal(err)

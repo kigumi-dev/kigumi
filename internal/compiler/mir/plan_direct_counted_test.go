@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 const countedSrc = `
@@ -46,7 +47,7 @@ func TestPlanDirectKeepsCountedResultsInline(t *testing.T) {
 		tryRef := 0
 		for _, blk := range funcNamed(t, p, name).Blocks {
 			for _, in := range blk.Insts {
-				if in.Op == mir.OpCall && in.DPrim == mir.DPTryRef {
+				if in.Op == mir.OpCall && in.DPrim == opdef.DPTryRef {
 					tryRef++
 				}
 			}

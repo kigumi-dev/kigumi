@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -84,7 +85,7 @@ func EmitProgram(p *mir.Program, opts EmitOptions) Output {
 	e.out.WriteString(e.mainWrapper(main))
 	var caps []string
 	if opts.Reachable != nil {
-		caps = mir.CapabilityMacros(opts.Reachable.Ops)
+		caps = opdef.CapabilityMacros(opts.Reachable.Ops)
 	}
 	ir := e.out.String()
 	if e.freestanding {

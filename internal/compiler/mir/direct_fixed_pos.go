@@ -1,6 +1,9 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	opdef "kigumi/internal/compiler/mir/ops"
+	"kigumi/internal/compiler/sem"
+)
 
 func (p *Program) fixedBase(f *Func, base LocalID) sem.TypeID {
 	t := p.wholePos(f, base)
@@ -23,7 +26,7 @@ func (p *Program) elemPos(f *Func, base LocalID) sem.TypeID {
 }
 
 func iterBuiltin(in Inst) bool {
-	s, ok := builtinByName[in.Str]
+	s, ok := opdef.BuiltinFor(in.Str)
 	return in.Op == OpBuiltin && ok && s.Iter
 }
 

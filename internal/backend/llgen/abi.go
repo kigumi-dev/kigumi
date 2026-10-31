@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 const abiFormat = "kgabi1"
@@ -19,7 +19,7 @@ var AbiPlaceholder = abiFormat + ":" + strings.Repeat("0", 32)
 
 // AbiFingerprint hashes everything a runtime object and the code emitted
 // against it must agree on: the op registry, the value layout, the ABI revision (the driver's) and the runtime flag set.
-func AbiFingerprint(reg *mir.StdOpRegistry, layout string, revision int, flags []string) string {
+func AbiFingerprint(reg *opdef.StdOpRegistry, layout string, revision int, flags []string) string {
 	flags = slices.Compact(slices.Sorted(slices.Values(flags)))
 	h := sha256.New()
 	fmt.Fprintf(h, "%s\nrevision %d\n%s\nlayout\n%s\nflags %s\n", abiFormat, revision, reg.Canonical(), layout, strings.Join(flags, " "))
@@ -28,7 +28,7 @@ func AbiFingerprint(reg *mir.StdOpRegistry, layout string, revision int, flags [
 
 // CurrentAbiFingerprint is this compiler's fingerprint for a runtime built with flags.
 func CurrentAbiFingerprint(revision int, flags []string) string {
-	return AbiFingerprint(mir.Registry, currentLayout(), revision, flags)
+	return AbiFingerprint(opdef.Registry, currentLayout(), revision, flags)
 }
 
 var currentLayout = sync.OnceValue(func() string {

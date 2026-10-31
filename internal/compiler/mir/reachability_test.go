@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/devkit/semfixture"
@@ -119,7 +120,7 @@ print "taken"
 	rs := mir.Reachable(mir.Build(res))
 	seen := map[string]bool{}
 	for _, op := range rs.Ops {
-		seen[mir.StdOpNames[op]] = true
+		seen[opdef.StdOpNames[op]] = true
 	}
 	for _, want := range []string{"CSTRING_NEW", "SECURE_ERASE"} {
 		if !seen[want] {

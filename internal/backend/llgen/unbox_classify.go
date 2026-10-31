@@ -2,6 +2,7 @@ package llgen
 
 import (
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -110,7 +111,7 @@ func (e *emitter) classifyDst(f *mir.Func, in mir.Inst, disqualify func(mir.Loca
 			disqualify(in.Dst)
 		}
 	case mir.OpCall:
-		if _, ok := e.calleeScalarSig(in).ret(); in.DPrim == mir.DPNone && !ok && e.wideCallOp(f, in) == "" && !e.rawConvert(f, in) && !(e.cNative(in) && e.cDstInReg(f, in)) {
+		if _, ok := e.calleeScalarSig(in).ret(); in.DPrim == opdef.DPNone && !ok && e.wideCallOp(f, in) == "" && !e.rawConvert(f, in) && !(e.cNative(in) && e.cDstInReg(f, in)) {
 			disqualify(in.Dst)
 		}
 	case mir.OpCallValue:
@@ -173,7 +174,7 @@ func (e *emitter) classifyArgs(f *mir.Func, in mir.Inst, disqualify func(mir.Loc
 			disqualify(in.Args[0])
 		}
 	case mir.OpCall:
-		if in.DPrim == mir.DPNone && e.wideCallOp(f, in) == "" && !e.rawConvert(f, in) {
+		if in.DPrim == opdef.DPNone && e.wideCallOp(f, in) == "" && !e.rawConvert(f, in) {
 			sig, c := e.calleeScalarSig(in), e.cNative(in)
 			for i, a := range in.Args {
 				if _, ok := sig.param(i); !ok && !(c && e.cArgInReg(in, i)) {

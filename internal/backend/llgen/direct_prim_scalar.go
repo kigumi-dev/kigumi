@@ -5,19 +5,20 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
-var mathIntrinsics = map[mir.DirectPrim]string{
-	mir.DPSqrt: "sqrt.f64", mir.DPFloor: "floor.f64", mir.DPCeil: "ceil.f64", mir.DPRound: "round.f64",
+var mathIntrinsics = map[opdef.DirectPrim]string{
+	opdef.DPSqrt: "sqrt.f64", opdef.DPFloor: "floor.f64", opdef.DPCeil: "ceil.f64", opdef.DPRound: "round.f64",
 }
 
 func (e *emitter) scalarPrimCall(sb *strings.Builder, f *mir.Func, in mir.Inst, args []Value) bool {
-	if in.DPrim >= mir.DPWrapAdd && in.DPrim <= mir.DPRotr {
+	if in.DPrim >= opdef.DPWrapAdd && in.DPrim <= opdef.DPRotr {
 		nk := e.numKind(f.Locals[in.Dst].Type)
 		e.storeScalarResult(sb, f, in.Dst, e.wrappingOp(sb, in.DPrim, nk, args[0], args[1]))
 		return true
 	}
-	if in.DPrim == mir.DPPow {
+	if in.DPrim == opdef.DPPow {
 		e.storeScalarResult(sb, f, in.Dst, Value{TDouble, e.libmPow(sb, args[0].Text, args[1].Text)})
 		return true
 	}
@@ -32,7 +33,7 @@ func (e *emitter) scalarPrimCall(sb *strings.Builder, f *mir.Func, in mir.Inst, 
 	return false
 }
 
-func (e *emitter) wrappingOp(sb *strings.Builder, prim mir.DirectPrim, nk int, l, r Value) Value {
+func (e *emitter) wrappingOp(sb *strings.Builder, prim opdef.DirectPrim, nk int, l, r Value) Value {
 	ty := intTy(nk)
 	x, y := e.narrowInt(sb, nk, l.Text), e.narrowInt(sb, nk, r.Text)
 	instr := func(op, a, b string) string {
@@ -42,23 +43,23 @@ func (e *emitter) wrappingOp(sb *strings.Builder, prim mir.DirectPrim, nk int, l
 	}
 	var v string
 	switch prim {
-	case mir.DPWrapAdd:
+	case opdef.DPWrapAdd:
 		v = instr("add", x, y)
-	case mir.DPWrapSub:
+	case opdef.DPWrapSub:
 		v = instr("sub", x, y)
-	case mir.DPWrapMul:
+	case opdef.DPWrapMul:
 		v = instr("mul", x, y)
-	case mir.DPWrapShl, mir.DPWrapShr:
+	case opdef.DPWrapShl, opdef.DPWrapShr:
 		c := instr("and", y, fmt.Sprint(intBits(nk)-1))
 		op := "shl"
-		if prim == mir.DPWrapShr {
+		if prim == opdef.DPWrapShr {
 			op = "lshr"
 			if isSignedNk(nk) {
 				op = "ashr"
 			}
 		}
 		v = instr(op, x, c)
-	case mir.DPRotl:
+	case opdef.DPRotl:
 		v = e.callIntrinsic(sb, "fshl."+ty, ty, x, x, y)
 	default:
 		v = e.callIntrinsic(sb, "fshr."+ty, ty, x, x, y)

@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -73,7 +74,7 @@ type closureObj struct {
 	env    *obj
 	req    *reqCall
 	lent   int
-	prov   mir.ProviderOpId
+	prov   opdef.ProviderOpId
 	dyn    sem.TypeID
 }
 

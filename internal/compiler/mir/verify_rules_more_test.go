@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -201,7 +202,7 @@ func TestVerifyOperandsAndTags(t *testing.T) {
 	call := mir.Inst{Op: mir.OpCall, Ent: sqrt, Dst: 0, Args: []mir.LocalID{1}}
 	call.Prim = 7
 	expectRule(t, p, fn("tags", sem.TyF64, f64, mir.Block{Insts: []mir.Inst{call}, Term: ret(0)}), "stdop", "runtime op tags")
-	unit := mir.Inst{Op: mir.OpUnit, Dst: 0, DPrim: mir.DPPow}
+	unit := mir.Inst{Op: mir.OpUnit, Dst: 0, DPrim: opdef.DPPow}
 	expectRule(t, p, fn("dprim", sem.TyUnit, []mir.Local{{Name: "t0", Type: sem.TyUnit}}, mir.Block{Insts: []mir.Inst{unit}, Term: ret(0)}), "stdop", "direct result tag")
 }
 

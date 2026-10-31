@@ -1,6 +1,9 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	opdef "kigumi/internal/compiler/mir/ops"
+	"kigumi/internal/compiler/sem"
+)
 
 func (p *verifier) verifyStdOpTags(f *Func) *Error {
 	for bid, blk := range f.Blocks {
@@ -11,7 +14,7 @@ func (p *verifier) verifyStdOpTags(f *Func) *Error {
 					return fail("stdop", BlockID(bid), i, "%s carries runtime op tags %d/%d, which its entity does not resolve to", in.Op, in.Prim, in.Prov)
 				}
 			}
-			if in.DPrim != DPNone && (in.Op != OpCall || in.DPrim != p.directPrimOf(f, in)) {
+			if in.DPrim != opdef.DPNone && (in.Op != OpCall || in.DPrim != p.directPrimOf(f, in)) {
 				return fail("stdop", BlockID(bid), i, "%s carries direct result tag %d, which it does not take", in.Op, in.DPrim)
 			}
 		}
@@ -19,7 +22,7 @@ func (p *verifier) verifyStdOpTags(f *Func) *Error {
 	return nil
 }
 
-func (p *verifier) resolvedTags(in Inst) (PrimitiveId, ProviderOpId) {
+func (p *verifier) resolvedTags(in Inst) (opdef.PrimitiveId, opdef.ProviderOpId) {
 	switch in.Op {
 	case OpCall, OpClosure, OpFnItem, OpBind:
 	default:

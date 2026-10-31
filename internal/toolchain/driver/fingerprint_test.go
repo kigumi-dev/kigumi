@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"kigumi/internal/backend/llgen"
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 	"kigumi/internal/toolchain/version"
@@ -131,7 +131,7 @@ func TestBuildArchiveFingerprint(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	grown, err := mir.ParseStdOpRegistry(mirRegistryText(t) + fmt.Sprintf("op %d ZZ_NEW primitive () -> unit\nkey zz.new\n", len(mir.Registry.Ops)))
+	grown, err := opdef.ParseStdOpRegistry(mirRegistryText(t) + fmt.Sprintf("op %d ZZ_NEW primitive () -> unit\nkey zz.new\n", len(opdef.Registry.Ops)))
 	if err != nil {
 		t.Fatal(err)
 	}

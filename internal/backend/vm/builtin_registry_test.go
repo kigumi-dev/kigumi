@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 func TestBuiltinCasesMatchTheRegistry(t *testing.T) {
@@ -38,8 +38,8 @@ func TestBuiltinCasesMatchTheRegistry(t *testing.T) {
 		}
 	}
 	var want []string
-	for _, name := range mir.BuiltinNames() {
-		if spec, _ := mir.BuiltinFor(name); spec.VM {
+	for _, name := range opdef.BuiltinNames() {
+		if spec, _ := opdef.BuiltinFor(name); spec.VM {
 			want = append(want, name)
 		}
 	}

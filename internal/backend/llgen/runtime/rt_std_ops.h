@@ -1,4 +1,4 @@
-// Generated from internal/compiler/mir/stdops.reg by TestStdOpHeaderFresh; do not edit.
+// Generated from internal/compiler/mir/ops/stdops.reg by TestStdOpHeaderFresh; do not edit.
 #ifndef KIGUMI_RT_STD_OPS_H
 #define KIGUMI_RT_STD_OPS_H
 enum std_op {

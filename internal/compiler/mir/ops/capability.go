@@ -1,4 +1,4 @@
-package mir
+package ops
 
 import (
 	"sort"
@@ -107,3 +107,5 @@ func CapabilityMacros(ops []StdOpId) []string {
 	}
 	return out
 }
+
+func AddRequirements(seen map[Capability]bool) { closure(seen) }

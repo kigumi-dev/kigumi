@@ -5,31 +5,31 @@ import (
 	"slices"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 // stdUse is what the emitted code asks of rt_std_id: the ops it names by id
 // and whether it names a std function by key (rt_std, rt_std_bind, rt_stditem_init).
 type stdUse struct {
-	ops     map[mir.StdOpId]bool
+	ops     map[opdef.StdOpId]bool
 	dynamic bool
 }
 
-func (u *stdUse) add(op mir.StdOpId) {
+func (u *stdUse) add(op opdef.StdOpId) {
 	if u.ops == nil {
-		u.ops = map[mir.StdOpId]bool{}
+		u.ops = map[opdef.StdOpId]bool{}
 	}
 	u.ops[op] = true
 }
 
 // stdIdCall emits rt_std_id for op into dst ("" takes a fresh register).
-func (e *emitter) stdIdCall(sb *strings.Builder, dst string, op mir.StdOpId, n int, arr string) string {
+func (e *emitter) stdIdCall(sb *strings.Builder, dst string, op opdef.StdOpId, n int, arr string) string {
 	e.std.add(op)
-	if e.boxes != nil && mir.Registry.Ops[op].ScalarBox != nil {
+	if e.boxes != nil && opdef.Registry.Ops[op].ScalarBox != nil {
 		e.boxes.primitives[e.at] = op
 	}
 	// Pointer-valued runtime primitives return an owned box even when the caller immediately unboxes it.
-	if e.boxes != nil && mir.Registry.Ops[op].Desc.Result == mir.ClassSet(1<<mir.ClassPtr) {
+	if e.boxes != nil && opdef.Registry.Ops[op].Desc.Result == opdef.ClassSet(1<<opdef.ClassPtr) {
 		e.boxes.made[boxSite{e.at, -1}] = true
 	}
 	if dst == "" {
@@ -42,7 +42,7 @@ func (e *emitter) stdIdCall(sb *strings.Builder, dst string, op mir.StdOpId, n i
 // stdKeyStr is the C string a keyed runtime call resolves at run time; the op it names stays compiled in.
 func (e *emitter) stdKeyStr(key string) string {
 	e.std.dynamic = true
-	if op, ok := mir.StdOpFor(key); ok {
+	if op, ok := opdef.StdOpFor(key); ok {
 		e.std.add(op)
 	}
 	return e.cstr(key)
@@ -55,7 +55,7 @@ func (u stdUse) macros() []string {
 		out = append(out, "KIGUMI_STD_DYNAMIC")
 	}
 	for _, op := range slices.Sorted(maps.Keys(u.ops)) {
-		if entry := mir.Registry.Ops[op]; !entry.Retired {
+		if entry := opdef.Registry.Ops[op]; !entry.Retired {
 			out = append(out, OpMacro(entry.Name))
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 func (e *emitter) tryDirectInst(sb *strings.Builder, f *mir.Func, in mir.Inst) bool {
@@ -60,7 +61,7 @@ func (e *emitter) tryDirectInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 			return true
 		}
 	case mir.OpCall:
-		if in.DPrim != mir.DPNone {
+		if in.DPrim != opdef.DPNone {
 			e.directPrimCall(sb, f, in)
 			return true
 		}

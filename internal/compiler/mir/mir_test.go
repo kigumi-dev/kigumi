@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/devkit/fixture"
@@ -106,7 +107,7 @@ func checkFixture(t *testing.T, path string, std []*sem.Package) (*sem.Result, s
 		}
 		head += "-- " + s.name + " --\n" + s.body
 	}
-	mod := &sem.Module{IsrContracts: mir.IsrContracts}
+	mod := &sem.Module{IsrContracts: opdef.IsrContracts}
 	var paths []string
 	for p := range pkgs {
 		paths = append(paths, p)

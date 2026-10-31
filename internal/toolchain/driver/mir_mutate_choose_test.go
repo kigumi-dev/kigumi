@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -133,20 +134,20 @@ func (s *site) str() string {
 	return v
 }
 
-func (s *site) prim() mir.PrimitiveId {
+func (s *site) prim() opdef.PrimitiveId {
 	if s.r.replaying() {
-		id, _ := mir.StdOpIdOf(s.r.take('p').text)
-		return mir.PrimitiveId(id) + 1
+		id, _ := opdef.StdOpIdOf(s.r.take('p').text)
+		return opdef.PrimitiveId(id) + 1
 	}
 	v := s.m.prims[s.r.draw(len(s.m.prims))]
 	s.r.note(pick{kind: 'p', n: int(v)})
 	return v
 }
 
-func (s *site) prov() mir.ProviderOpId {
+func (s *site) prov() opdef.ProviderOpId {
 	if s.r.replaying() {
-		id, _ := mir.StdOpIdOf(s.r.take('v').text)
-		return mir.ProviderOpId(id) + 1
+		id, _ := opdef.StdOpIdOf(s.r.take('v').text)
+		return opdef.ProviderOpId(id) + 1
 	}
 	v := s.m.provs[s.r.draw(len(s.m.provs))]
 	s.r.note(pick{kind: 'v', n: int(v)})

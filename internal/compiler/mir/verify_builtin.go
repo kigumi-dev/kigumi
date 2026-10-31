@@ -3,6 +3,7 @@ package mir
 import (
 	"strings"
 
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -22,7 +23,7 @@ func (p *verifier) verifyBuiltins(f *Func) *Error {
 }
 
 func (p *verifier) builtinMismatch(f *Func, in Inst) string {
-	spec, ok := builtinByName[in.Str]
+	spec, ok := opdef.BuiltinFor(in.Str)
 	if !ok {
 		return "no runtime entry \"" + in.Str + "\""
 	}
@@ -43,26 +44,26 @@ func (p *verifier) builtinMismatch(f *Func, in Inst) string {
 	return ""
 }
 
-func (p *verifier) builtinArgMismatch(name string, k int, want ClassSet, got sem.TypeID) string {
+func (p *verifier) builtinArgMismatch(name string, k int, want opdef.ClassSet, got sem.TypeID) string {
 	got = p.R.UnderlyingRepr(p.derefAll(got))
 	switch {
 	case p.looseType(got):
-	case want == classBit(ClassString) && !p.compatible(sem.TyString, got):
+	case want == opdef.ClassString.Set() && !p.compatible(sem.TyString, got):
 		return name + " takes " + p.R.TypeString(got) + " as argument " + itoa(k) + ", not a String"
-	case want == classBit(ClassInt) && !p.R.Types.IsInteger(got) && got != sem.TyUntypedInt:
+	case want == opdef.ClassInt.Set() && !p.R.Types.IsInteger(got) && got != sem.TyUntypedInt:
 		return name + " indexes with " + p.R.TypeString(got)
 	}
 	return ""
 }
 
-func (p *verifier) builtinResultMismatch(spec *BuiltinSpec, got sem.TypeID) string {
+func (p *verifier) builtinResultMismatch(spec opdef.BuiltinSpec, got sem.TypeID) string {
 	var want sem.TypeID
 	switch spec.Result {
-	case classBit(ClassUnit):
+	case opdef.ClassUnit.Set():
 		want = sem.TyUnit
-	case classBit(ClassBool):
+	case opdef.ClassBool.Set():
 		want = sem.TyBool
-	case classBit(ClassInt):
+	case opdef.ClassInt.Set():
 		if t := p.R.UnderlyingRepr(p.derefAll(got)); !p.looseType(t) && !p.R.Types.IsInteger(t) {
 			return "yields " + p.R.TypeString(got) + ", not an integer"
 		}

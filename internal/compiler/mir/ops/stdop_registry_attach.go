@@ -1,4 +1,4 @@
-package mir
+package ops
 
 import (
 	"fmt"
@@ -58,7 +58,7 @@ func (reg *StdOpRegistry) attach(op *StdOpEntry, word, value string) error {
 		if !ok {
 			return fmt.Errorf("type wants PACKAGE NAME")
 		}
-		op.Types = append(op.Types, nativeTypeRef{pkg, name})
+		op.Types = append(op.Types, NativeType{pkg, name})
 	case "isr":
 		c, err := sem.ParseIsrPermission(value)
 		if err != nil {

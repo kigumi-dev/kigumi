@@ -1,5 +1,9 @@
 package mir
 
+import (
+	opdef "kigumi/internal/compiler/mir/ops"
+)
+
 // A position and the local reaching it always agree on the form, so every
 // crossing is an OpBoxDirect/OpUnboxDirect and no backend picks for itself.
 func (p *verifier) verifyDirect(f *Func) *Error {
@@ -53,7 +57,7 @@ func (p *verifier) verifyDirectInst(f *Func, bid BlockID, i int, in Inst) *Error
 	if in.Op.Yields() && f.IsDirect(in.Dst) != (p.dstPos(f, in) != 0) {
 		return fail("direct", bid, i, "%s writes %s in the form this position does not yield", in.Op, p.local(f, in.Dst))
 	}
-	if in.Op == OpCall && in.DPrim != DPNone && !p.primTypesFit(f, in, in.DPrim) {
+	if in.Op == OpCall && in.DPrim != opdef.DPNone && !p.primTypesFit(f, in, in.DPrim) {
 		return fail("direct", bid, i, "call hands its direct primitive operands of other types")
 	}
 	if msg := p.directShape(f, in); msg != "" {

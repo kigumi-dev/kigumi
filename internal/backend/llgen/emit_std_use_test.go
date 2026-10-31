@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"kigumi/internal/backend/llgen"
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 var (
@@ -34,7 +34,7 @@ func TestStdOpMacrosCoverTheIR(t *testing.T) {
 			}
 			for _, m := range stdIdCallRe.FindAllStringSubmatch(out.IR, -1) {
 				id, _ := strconv.Atoi(m[1])
-				if want := llgen.OpMacro(mir.Registry.Ops[id].Name); !slices.Contains(out.StdOps, want) {
+				if want := llgen.OpMacro(opdef.Registry.Ops[id].Name); !slices.Contains(out.StdOps, want) {
 					t.Errorf("the IR calls rt_std_id(%d) but StdOps lacks %s: %v", id, want, out.StdOps)
 				}
 			}
@@ -51,13 +51,13 @@ func TestStdOpMacrosCoverTheIR(t *testing.T) {
 }
 
 func TestStdOpOfMatchesSuffixesOnlyAfterADot(t *testing.T) {
-	h := llgen.StdOpHeader(mir.Registry)
+	h := llgen.StdOpHeader(opdef.Registry)
 	guard := strings.Index(h, "    if (dot) {\n")
 	if guard < 0 {
 		t.Fatal("rt_std_op_of does not guard the suffix matches on a dot, as mir.StdOpFor does")
 	}
 	end := guard + strings.Index(h[guard:], "\n    }\n")
-	for _, op := range mir.Registry.Ops {
+	for _, op := range opdef.Registry.Ops {
 		for _, s := range op.Suffixes {
 			at := strings.Index(h, `!strcmp(m, "`+s+`")`)
 			if at < guard || at > end {

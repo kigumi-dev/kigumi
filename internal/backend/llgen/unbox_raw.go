@@ -1,6 +1,9 @@
 package llgen
 
-import "kigumi/internal/compiler/mir"
+import (
+	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
+)
 
 // rawScalars are the locals whose value no box holds yet: boxing one costs an allocation wherever it
 // happens, so a reader that never keeps it can format it from the frame instead.
@@ -37,7 +40,7 @@ func (e *emitter) rawDef(f *mir.Func, in mir.Inst, raw map[mir.LocalID]bool) boo
 		return e.callvI64(f, in)
 	case mir.OpCall:
 		_, native := e.calleeScalarSig(in).ret()
-		return in.DPrim != mir.DPNone || native || e.wideCallOp(f, in) != "" || e.rawConvert(f, in) || e.cNative(in) && e.cDstInReg(f, in)
+		return in.DPrim != opdef.DPNone || native || e.wideCallOp(f, in) != "" || e.rawConvert(f, in) || e.cNative(in) && e.cDstInReg(f, in)
 	case mir.OpAlias, mir.OpMove, mir.OpShare:
 		return raw[in.Args[0]]
 	}

@@ -1,4 +1,4 @@
-package mir
+package ops
 
 type ResultABI uint8
 
@@ -64,4 +64,4 @@ func (id StdOpId) ResultABI() ResultABI {
 	return ResultBoxed
 }
 
-func (id StdOpId) directPrim() DirectPrim { return directResultOps[StdOpNames[id]] }
+func (id StdOpId) DirectPrimitive() DirectPrim { return directResultOps[StdOpNames[id]] }

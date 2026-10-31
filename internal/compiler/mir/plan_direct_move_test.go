@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/devkit/semfixture"
@@ -84,7 +85,7 @@ func TestPlanDirectMovesTheKeyOfASpecializedTrySet(t *testing.T) {
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(moveMapKeySrc)))
 	main.Files = []*syntax.Tree{main.Entry}
-	mod := sem.Module{RecoverableOnly: true, IsrContracts: mir.IsrContracts}
+	mod := sem.Module{RecoverableOnly: true, IsrContracts: opdef.IsrContracts}
 	mod.Packages = append(testkit.LoadStd(t, "../../../std"), main)
 	res := sem.CheckWith(&mod, schema.GenerateDerive)
 	if res.HasErrors() {

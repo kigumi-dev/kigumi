@@ -1,6 +1,7 @@
 package mir
 
 import (
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
@@ -13,7 +14,7 @@ type reachWalk struct {
 	rs        *Reachability
 	worklist  []sem.EntityID
 	seenTypes map[sem.TypeID]bool
-	opSeen    map[StdOpId]bool
+	opSeen    map[opdef.StdOpId]bool
 }
 
 func (w *reachWalk) root(id sem.EntityID, kind RootKind) {
@@ -53,7 +54,7 @@ func (w *reachWalk) walkType(t sem.TypeID) {
 	}
 }
 
-func (w *reachWalk) noteOp(op StdOpId, caller sem.EntityID, node syntax.NodeID) {
+func (w *reachWalk) noteOp(op opdef.StdOpId, caller sem.EntityID, node syntax.NodeID) {
 	w.rs.AllOpSites[op] = append(w.rs.AllOpSites[op], OpSite{Caller: caller, Node: node})
 	if w.opSeen[op] {
 		return
@@ -61,13 +62,13 @@ func (w *reachWalk) noteOp(op StdOpId, caller sem.EntityID, node syntax.NodeID) 
 	w.opSeen[op] = true
 	w.rs.Ops = append(w.rs.Ops, op)
 	w.rs.OpSites[op] = OpSite{Caller: caller, Node: node}
-	for _, ref := range nativeRecordTypesForOp[op] {
-		w.markType(w.r.PackageMember(w.r.PackageByPath(ref.pkg), ref.name))
+	for _, ref := range opdef.NativeTypes(op) {
+		w.markType(w.r.PackageMember(w.r.PackageByPath(ref.Package), ref.Name))
 	}
 }
 
 // A function value naming a bodiless std function still reaches its op.
-func (w *reachWalk) mentionedOp(ent sem.EntityID) (StdOpId, bool) {
+func (w *reachWalk) mentionedOp(ent sem.EntityID) (opdef.StdOpId, bool) {
 	if ent == 0 || w.hasBody(ent) {
 		return 0, false
 	}
@@ -75,7 +76,7 @@ func (w *reachWalk) mentionedOp(ent sem.EntityID) (StdOpId, bool) {
 	if e.Kind != sem.EntFn || !w.r.Packages[e.Pkg].Std {
 		return 0, false
 	}
-	return StdOpFor(StdKey(w.r, ent, true))
+	return opdef.StdOpFor(StdKey(w.r, ent, true))
 }
 
 func (w *reachWalk) visit(caller, target sem.EntityID, via string) {
@@ -87,7 +88,7 @@ func (w *reachWalk) visit(caller, target sem.EntityID, via string) {
 	}
 }
 
-func (w *reachWalk) stdOp(in *Inst) (StdOpId, bool) {
+func (w *reachWalk) stdOp(in *Inst) (opdef.StdOpId, bool) {
 	if w.lower != nil {
 		return stdOpOf(w.r, in)
 	}
@@ -135,8 +136,8 @@ func (w *reachWalk) inst(f *Func, id sem.EntityID, pkg sem.PackageID, in *Inst) 
 }
 
 func newReachWalk(p *Program) *reachWalk {
-	w := &reachWalk{p: p, r: p.R, seenTypes: map[sem.TypeID]bool{}, opSeen: map[StdOpId]bool{}}
-	w.rs = &Reachability{Funcs: map[sem.EntityID]bool{}, Reason: map[sem.EntityID]Reason{}, OpSites: map[StdOpId]OpSite{}, AllOpSites: map[StdOpId][]OpSite{}, Types: map[sem.EntityID]bool{}}
+	w := &reachWalk{p: p, r: p.R, seenTypes: map[sem.TypeID]bool{}, opSeen: map[opdef.StdOpId]bool{}}
+	w.rs = &Reachability{Funcs: map[sem.EntityID]bool{}, Reason: map[sem.EntityID]Reason{}, OpSites: map[opdef.StdOpId]OpSite{}, AllOpSites: map[opdef.StdOpId][]OpSite{}, Types: map[sem.EntityID]bool{}}
 	return w
 }
 

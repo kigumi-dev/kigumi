@@ -1,6 +1,9 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	opdef "kigumi/internal/compiler/mir/ops"
+	"kigumi/internal/compiler/sem"
+)
 
 // resolveStdOps caches each call-shaped instruction's Prim/Prov on Inst, resolved from its Ent once.
 func resolveStdOps(p *Program) {
@@ -28,7 +31,7 @@ func namesStdFn(r *sem.Result, in *Inst) bool {
 }
 
 // stdOpOf is in.StdOp, also for an instruction resolveStdOps has not reached yet.
-func stdOpOf(r *sem.Result, in *Inst) (StdOpId, bool) {
+func stdOpOf(r *sem.Result, in *Inst) (opdef.StdOpId, bool) {
 	if in.Prim != 0 || in.Prov != 0 || !namesStdFn(r, in) {
 		return in.StdOp()
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	buildconfig "kigumi/internal/toolchain/config"
 )
 
@@ -32,7 +33,7 @@ func targetLabel(t buildconfig.Target) string {
 
 func firstTaskSite(reach *mir.Reachability) (mir.OpSite, bool) {
 	for _, name := range []string{"TASK_SPAWN", "TASK_HANDOFF"} {
-		if op, ok := mir.StdOpIdOf(name); ok {
+		if op, ok := opdef.StdOpIdOf(name); ok {
 			if site, ok := reach.OpSites[op]; ok {
 				return site, true
 			}

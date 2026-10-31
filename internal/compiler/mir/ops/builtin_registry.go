@@ -1,4 +1,4 @@
-package mir
+package ops
 
 type BuiltinNative uint8
 

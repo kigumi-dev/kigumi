@@ -1,6 +1,7 @@
 package mir
 
 import (
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
@@ -38,10 +39,10 @@ type Reachability struct {
 	Funcs   map[sem.EntityID]bool
 	Reason  map[sem.EntityID]Reason
 	Order   []sem.EntityID
-	Ops     []StdOpId
-	OpSites map[StdOpId]OpSite
+	Ops     []opdef.StdOpId
+	OpSites map[opdef.StdOpId]OpSite
 	// AllOpSites lists every reachable call site per op, in discovery order; OpSites holds the first.
-	AllOpSites map[StdOpId][]OpSite
+	AllOpSites map[opdef.StdOpId][]OpSite
 	// Types are the named types data() must give a real descriptor: built,
 	// held or tested by reachable code, or built by name in rt_core.c.
 	Types map[sem.EntityID]bool

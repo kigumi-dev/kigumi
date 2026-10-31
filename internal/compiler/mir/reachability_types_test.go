@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/devkit/semfixture"
@@ -76,7 +77,7 @@ print "ok"
 	if !rs.KeepType(cstring) {
 		t.Error("CString: ffi.CString.new is reachable, CString should get a descriptor")
 	}
-	if id, ok := mir.StdOpIdOf("CSTRING_NEW"); !ok || mir.Capabilities([]mir.StdOpId{id})[0] != "ffi.cstring" {
+	if id, ok := opdef.StdOpIdOf("CSTRING_NEW"); !ok || opdef.Capabilities([]opdef.StdOpId{id})[0] != "ffi.cstring" {
 		t.Errorf("CSTRING_NEW should map to the ffi.cstring capability")
 	}
 }
@@ -95,7 +96,7 @@ print "ok"
 		t.Fatalf("check errors:\n%s", res.Render())
 	}
 	rs := mir.Reachable(mir.Build(res))
-	caps := mir.Capabilities(rs.Ops)
+	caps := opdef.Capabilities(rs.Ops)
 	if len(caps) != 1 || caps[0] != "ffi.cstring" {
 		t.Fatalf("a std function named as a value should still reach its capability, got %v", caps)
 	}

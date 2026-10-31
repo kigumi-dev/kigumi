@@ -1,6 +1,7 @@
 package mir
 
 import (
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/lang/diag"
@@ -9,7 +10,7 @@ import (
 // checkHandoff rejects an explicit cross-executor handoff of a future the
 // compiler pinned to one executor; one it cannot trace is left to run time.
 func checkHandoff(p *Program) {
-	want, ok := StdOpIdOf("TASK_HANDOFF")
+	want, ok := opdef.StdOpIdOf("TASK_HANDOFF")
 	if !ok {
 		return
 	}

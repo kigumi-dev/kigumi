@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 //go:generate env UPDATE=1 go test -run TestStdOpHeaderFresh .
 
 // StdOpHeader renders the registry as rt_std_ops.h: `enum std_op`, the retired case labels, the live ops' KIGUMI_OP_<NAME>
-// case guards (all on without KIGUMI_OP_SELECT) and rt_std_op_of, the key resolver that mirrors mir.StdOpFor.
-func StdOpHeader(reg *mir.StdOpRegistry) string {
+// case guards (all on without KIGUMI_OP_SELECT) and rt_std_op_of, the key resolver that mirrors ops.StdOpFor.
+func StdOpHeader(reg *opdef.StdOpRegistry) string {
 	var sb strings.Builder
-	sb.WriteString("// Generated from internal/compiler/mir/stdops.reg by TestStdOpHeaderFresh; do not edit.\n")
+	sb.WriteString("// Generated from internal/compiler/mir/ops/stdops.reg by TestStdOpHeaderFresh; do not edit.\n")
 	sb.WriteString("#ifndef KIGUMI_RT_STD_OPS_H\n#define KIGUMI_RT_STD_OPS_H\n")
 	sb.WriteString("enum std_op {\n")
 	for _, op := range reg.Ops {
@@ -47,7 +47,7 @@ func StdOpHeader(reg *mir.StdOpRegistry) string {
 }
 
 // writeRetiredCases defines the case labels of retired ops so rt_std_id keeps -Wswitch complete.
-func writeRetiredCases(sb *strings.Builder, reg *mir.StdOpRegistry) {
+func writeRetiredCases(sb *strings.Builder, reg *opdef.StdOpRegistry) {
 	var labels []string
 	for _, op := range reg.Ops {
 		if op.Retired {

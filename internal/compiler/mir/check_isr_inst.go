@@ -3,6 +3,7 @@ package mir
 import (
 	"strings"
 
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -143,7 +144,7 @@ func (p *Program) isrCallForbidden(f *Func, in Inst) string {
 	if cb, ok := p.isrCallbackArg(in); ok && p.isrValueTarget(f, in.Args[cb]) == nil {
 		return "passes `" + name + "` a callback the lowering cannot see"
 	}
-	if in.DPrim != DPNone {
+	if in.DPrim != opdef.DPNone {
 		return ""
 	}
 	if t := f.Locals[in.Dst].Type; t != sem.TyUnit {

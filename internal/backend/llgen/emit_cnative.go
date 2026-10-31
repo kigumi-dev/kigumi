@@ -5,12 +5,13 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
 // cForeign reports a call to a fixed-arity C function that takes no record by value.
 func (e *emitter) cForeign(in mir.Inst) bool {
-	if in.Op != mir.OpCall || in.DPrim != mir.DPNone || e.r.Entity(in.Ent).Kind != sem.EntFn {
+	if in.Op != mir.OpCall || in.DPrim != opdef.DPNone || e.r.Entity(in.Ent).Kind != sem.EntFn {
 		return false
 	}
 	if _, ok := e.p.ByEnt[in.Ent]; ok {
