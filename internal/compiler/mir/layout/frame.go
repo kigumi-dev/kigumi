@@ -1,4 +1,4 @@
-package mir
+package layout
 
 import (
 	midir "kigumi/internal/compiler/mir/ir"
@@ -12,14 +12,14 @@ const scalarSlotBytes = 8
 const ObjSlotBytes = 64
 
 // Slot offsets stay in words so the runtime's nslots keeps its meaning.
-func (p *Program) layoutFrame(f *midir.Func) {
-	word := wordBytes(p.R)
+func LayoutFrame(r *sem.Result, f *midir.Func) {
+	word := wordBytes(r)
 	next := int64(0)
 	for i := range f.Locals {
 		if f.Slot[i] < 0 {
 			continue
 		}
-		size, align := p.slotLayout(f, midir.LocalID(i))
+		size, align := slotLayout(r, f, midir.LocalID(i))
 		off := roundUp(next, max(align, word))
 		f.Slot[i] = int(off / word)
 		next = off + roundUp(size, word)
@@ -41,21 +41,21 @@ func (p *Program) layoutFrame(f *midir.Func) {
 	f.Frame = int(next / word)
 }
 
-func (p *Program) slotLayout(f *midir.Func, l midir.LocalID) (int64, int64) {
+func slotLayout(r *sem.Result, f *midir.Func, l midir.LocalID) (int64, int64) {
 	t := f.Locals[l].Type
 	switch {
 	case f.IsDirect(l):
-		return AggLayout(p.R, t)
-	case p.R.RegScalar(t):
+		return AggLayout(r, t)
+	case r.RegScalar(t):
 		return scalarSlotBytes, scalarSlotBytes
 	}
-	w := wordBytes(p.R)
+	w := wordBytes(r)
 	return w, w
 }
 
-func (p *Program) SlotBytes(f *midir.Func, l midir.LocalID) int64 {
-	size, _ := p.slotLayout(f, l)
-	return roundUp(size, wordBytes(p.R))
+func SlotBytes(r *sem.Result, f *midir.Func, l midir.LocalID) int64 {
+	size, _ := slotLayout(r, f, l)
+	return roundUp(size, wordBytes(r))
 }
 
 // The header is kgframe's desc, awaited, state, nargs and args, with slots[] 8-byte aligned.

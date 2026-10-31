@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"kigumi/internal/compiler/mir"
+	resbound "kigumi/internal/compiler/mir/resource"
 )
 
 // ResourceReport lines, one per stack root sorted by name: the summary a
@@ -15,7 +15,7 @@ func ResourceReport(a *Analysis) []string {
 	}
 	var lines []string
 	var static uint64
-	for _, ent := range mir.StackRoots(a.Res) {
+	for _, ent := range resbound.StackRoots(a.Res) {
 		f, s := a.Prog.ByEnt[ent], a.Prog.Resources[ent]
 		if f == nil || s == nil {
 			continue
@@ -31,11 +31,11 @@ func ResourceReport(a *Analysis) []string {
 	return lines
 }
 
-func describeStackBound(b mir.StackBound) string {
+func describeStackBound(b resbound.StackBound) string {
 	switch b.Kind {
-	case mir.Bounded:
+	case resbound.Bounded:
 		return fmt.Sprintf("bounded, %d bytes", b.Bytes)
-	case mir.Unbounded:
+	case resbound.Unbounded:
 		return "unbounded (" + b.Reason + ")"
 	default:
 		return "unknown (" + b.Reason + ")"
@@ -46,7 +46,7 @@ func asyncFrameLines(a *Analysis) []string {
 	var lines []string
 	for _, f := range a.Prog.Funcs {
 		s := a.Prog.Resources[f.Ent]
-		if !f.Async || s == nil || s.Async == nil || s.Async.Kind != mir.Bounded {
+		if !f.Async || s == nil || s.Async == nil || s.Async.Kind != resbound.Bounded {
 			continue
 		}
 		if p := a.Res.Packages[a.Res.Entity(f.Ent).Pkg]; p.Std || p.Module != "" {

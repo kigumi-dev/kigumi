@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
 	midir "kigumi/internal/compiler/mir/ir"
+	mirlayout "kigumi/internal/compiler/mir/layout"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -86,7 +86,7 @@ func (e *emitter) agg(t sem.TypeID) (*aggInfo, bool) {
 	default:
 		e.layoutRecord(t, a)
 	}
-	if size, align := mir.AggLayout(e.r, t); size != a.Size || align != a.Align {
+	if size, align := mirlayout.AggLayout(e.r, t); size != a.Size || align != a.Align {
 		panic(fmt.Sprintf("llgen: %s lays out as %d/%d bytes, MIR sized it %d/%d", a.Name, a.Size, a.Align, size, align))
 	}
 	e.aggOrder = append(e.aggOrder, t)

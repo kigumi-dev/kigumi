@@ -21,13 +21,19 @@ func TestRegistryTablesArePopulated(t *testing.T) {
 			directs++
 		}
 	}
+	callbacks := 0
+	for id := range opdef.Registry.Ops {
+		if _, ok := opdef.CallbackArg(opdef.StdOpId(id)); ok {
+			callbacks++
+		}
+	}
 	elems := 0
 	for _, isElem := range elemOps {
 		if isElem {
 			elems++
 		}
 	}
-	if directs != 37 || len(hoCallbackArg) != 12 || elems < 3 {
-		t.Errorf("tables hold %d direct ops, %d callbacks, %d element ops", directs, len(hoCallbackArg), elems)
+	if directs != 37 || callbacks != 12 || elems < 3 {
+		t.Errorf("tables hold %d direct ops, %d callbacks, %d element ops", directs, callbacks, elems)
 	}
 }

@@ -2,6 +2,7 @@ package mir
 
 import (
 	midir "kigumi/internal/compiler/mir/ir"
+	resbound "kigumi/internal/compiler/mir/resource"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -14,11 +15,11 @@ type Program struct {
 	// own that the driver evaluates and folds before anything runs.
 	Comptime []*ComptimeFunc
 	// Resources is every function's resource summary, set once ComputeResourceSummaries runs; nil before then.
-	Resources map[sem.EntityID]*ResourceSummary
+	Resources map[sem.EntityID]*resbound.Summary
 	unwind    unwindMemo
 	executor  executorMemo
 	verified  verificationHistory
-	Diags     []FileDiag
+	Diags     []midir.FileDiag
 	// Entries holds every Func.Entry; they are not in Funcs, so nothing keyed by entity sees them.
 	Entries []*midir.Func
 	// VerifyEach makes Apply verify before the passes and after each one, not only after the last.

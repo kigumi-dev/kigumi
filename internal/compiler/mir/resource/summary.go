@@ -1,4 +1,4 @@
-package mir
+package resource
 
 // BoundKind is a resource bound's three-state answer: a proven byte
 // ceiling, no finite ceiling (recursion), or not enough evidence to tell.
@@ -30,9 +30,9 @@ type StackBound struct {
 	Path   []string
 }
 
-// ResourceSummary holds one function's resource bounds; Async is nil for a
+// Summary holds one function's resource bounds; Async is nil for a
 // non-async function, and Static repeats the program's static-mut total (module-scoped).
-type ResourceSummary struct {
+type Summary struct {
 	FrameBytes uint64
 	Chain      StackBound
 	Async      *StackBound

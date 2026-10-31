@@ -3,6 +3,7 @@ package driver
 import (
 	"kigumi/internal/backend/llgen"
 	"kigumi/internal/compiler/mir"
+	resbound "kigumi/internal/compiler/mir/resource"
 	"kigumi/internal/compiler/sem"
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/contract/schema"
@@ -108,9 +109,9 @@ func buildProgram(res *sem.Result, o progOptions) (*mir.Program, error) {
 	if err := prog.Apply(planPasses(true)...); err != nil {
 		return prog, err
 	}
-	prog.Resources = mir.ComputeResourceSummaries(prog)
-	mir.SettleAsyncBounds(prog)
-	mir.CheckResourceBudget(prog, prog.Resources, mir.ResourceOptions{Strict: o.strict, BudgetKiB: o.budgetKiB})
+	prog.Resources = resbound.Compute(prog.R, prog.Funcs, prog.ByEnt)
+	resbound.SettleAsync(prog.R, prog.Funcs, prog.Resources)
+	prog.Diags = append(prog.Diags, resbound.CheckBudget(prog.R, prog.ByEnt, prog.Resources, resbound.Options{Strict: o.strict, BudgetKiB: o.budgetKiB})...)
 	for _, d := range prog.Diags {
 		res.Files[d.File].Diags = append(res.Files[d.File].Diags, d.Diag)
 	}

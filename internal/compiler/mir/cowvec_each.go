@@ -1,6 +1,8 @@
 package mir
 
-import midir "kigumi/internal/compiler/mir/ir"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
 // each visits the entries that are set.
 func (v *cowVec[T]) each(fn func(l midir.LocalID, x T)) {

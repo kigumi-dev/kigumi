@@ -6,8 +6,8 @@ import (
 	"slices"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
 	midir "kigumi/internal/compiler/mir/ir"
+	mirlayout "kigumi/internal/compiler/mir/layout"
 )
 
 // fnItem is one capture-free function value: the adapter it calls and
@@ -20,7 +20,7 @@ type fnItem struct {
 
 // objSlotBytes is the storage an immortal value is built in; RT_OBJ_SLOT
 // in runtime/rt.h must agree (TestObjSlotMatchesC).
-const objSlotBytes = mir.ObjSlotBytes
+const objSlotBytes = mirlayout.ObjSlotBytes
 
 func objSlotType() string { return fmt.Sprintf("[%d x i8]", objSlotBytes) }
 

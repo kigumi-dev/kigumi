@@ -2,6 +2,7 @@ package mir
 
 import (
 	midir "kigumi/internal/compiler/mir/ir"
+	mirlayout "kigumi/internal/compiler/mir/layout"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -62,7 +63,7 @@ func (p *Program) lendableParam(f *midir.Func, i int) bool {
 	if l.Cell || l.Borrowed || tt.Kind(l.Type) != sem.KRef || tt.RefMut(l.Type) || !p.R.DirectAgg(tt.Node(l.Type).Elem) {
 		return false
 	}
-	if size, _ := AggLayout(p.R, tt.Node(l.Type).Elem); size > maxLendBytes {
+	if size, _ := mirlayout.AggLayout(p.R, tt.Node(l.Type).Elem); size > maxLendBytes {
 		return false
 	}
 	return p.R.LendableParamSlot(f.Ent, l.Ent) && !p.pinnedByPanic(f, prm)

@@ -1,4 +1,4 @@
-package mir
+package resource
 
 import (
 	midir "kigumi/internal/compiler/mir/ir"
@@ -10,40 +10,26 @@ import (
 // bodiless std operation: a small constant, not a measured native frame.
 const trustedStdFrame = 2
 
-// hoCallbackArg maps a std op that natively calls a user closure
-// (invisible to the call graph otherwise) to that closure's Args index.
-var hoCallbackArg = func() map[string]int {
-	m := map[string]int{}
-	for _, op := range opdef.Registry.Ops {
-		if op.Callback >= 0 {
-			m[op.Name] = op.Callback
-		}
-	}
-	return m
-}()
-
-// ComputeResourceSummaries computes every lowered function's ResourceSummary
-// to a fixpoint over the program's static call graph.
-func ComputeResourceSummaries(prog *Program) map[sem.EntityID]*ResourceSummary {
-	r := prog.R
+// Compute estimates frames and the worst-case static call chain for each body.
+func Compute(r *sem.Result, funcs []*midir.Func, bodies map[sem.EntityID]*midir.Func) map[sem.EntityID]*Summary {
 	word := uint64(r.Types.PtrBits()) / 8
 	if word == 0 {
 		word = 8
 	}
 	cs := &chainState{
-		prog:    prog,
+		r: r, bodies: bodies,
 		word:    word,
 		frame:   map[sem.EntityID]uint64{},
 		bounds:  map[sem.EntityID]StackBound{},
 		onStack: map[sem.EntityID]bool{},
 	}
-	for _, f := range prog.Funcs {
+	for _, f := range funcs {
 		cs.frame[f.Ent] = frameBytes(r, f, word)
 	}
 	static := staticWritableBytes(r, word)
-	out := map[sem.EntityID]*ResourceSummary{}
-	for _, f := range prog.Funcs {
-		out[f.Ent] = &ResourceSummary{
+	out := map[sem.EntityID]*Summary{}
+	for _, f := range funcs {
+		out[f.Ent] = &Summary{
 			FrameBytes: cs.frame[f.Ent],
 			Chain:      cs.chain(f.Ent),
 			Async:      asyncBound(r, f),
@@ -54,7 +40,8 @@ func ComputeResourceSummaries(prog *Program) map[sem.EntityID]*ResourceSummary {
 }
 
 type chainState struct {
-	prog    *Program
+	r       *sem.Result
+	bodies  map[sem.EntityID]*midir.Func
 	word    uint64
 	frame   map[sem.EntityID]uint64
 	bounds  map[sem.EntityID]StackBound
@@ -71,10 +58,10 @@ func (cs *chainState) chain(ent sem.EntityID) StackBound {
 	if cs.onStack[ent] {
 		// Path is empty here: the caller's combineBound already prepends
 		// this same name as edgeName, so a non-empty Path would double it.
-		name := cs.prog.R.Entity(ent).Name
+		name := cs.r.Entity(ent).Name
 		return StackBound{Kind: Unbounded, Reason: "`" + name + "` calls back into its own call chain"}
 	}
-	f := cs.prog.ByEnt[ent]
+	f := cs.bodies[ent]
 	if f == nil {
 		return StackBound{Kind: Bounded, Bytes: own}
 	}
@@ -94,10 +81,10 @@ func (cs *chainState) chain(ent sem.EntityID) StackBound {
 	return acc
 }
 
-// A std primitive is trusted as a constant unless it routes through hoCallbackArg.
+// A std primitive is trusted as a constant unless it routes through a known callback.
 func (cs *chainState) edgeBound(f *midir.Func, inst midir.Inst) (string, StackBound) {
 	if id, ok := inst.StdOp(); ok {
-		if argIdx, isHO := hoCallbackArg[opdef.StdOpNames[id]]; isHO {
+		if argIdx, isHO := opdef.CallbackArg(id); isHO {
 			return cs.callbackEdgeBound(f, inst, argIdx)
 		}
 		return "<std>", StackBound{Kind: Bounded, Bytes: trustedStdFrame * cs.word}
@@ -105,9 +92,9 @@ func (cs *chainState) edgeBound(f *midir.Func, inst midir.Inst) (string, StackBo
 	if inst.Ent == 0 {
 		return "<value>", StackBound{Kind: Unknown, Reason: "calls through a function value whose target this build cannot resolve statically"}
 	}
-	name := cs.prog.R.Entity(inst.Ent).Name
-	if cs.prog.ByEnt[inst.Ent] == nil {
-		if trustedLeaf(cs.prog.R, inst.Ent) {
+	name := cs.r.Entity(inst.Ent).Name
+	if cs.bodies[inst.Ent] == nil {
+		if trustedLeaf(cs.r, inst.Ent) {
 			return name, StackBound{Kind: Bounded, Bytes: trustedStdFrame * cs.word}
 		}
 		reason := "calls `" + name + "`, which has no body this build can measure (an `extern` declaration, or an interface/witness dispatch not resolved to one implementation)"
@@ -119,7 +106,7 @@ func (cs *chainState) edgeBound(f *midir.Func, inst midir.Inst) (string, StackBo
 // callbackEdgeBound chains into a callback target resolved to exactly one
 // known function/closure literal; a stored or borrowed one stays Unknown.
 func (cs *chainState) callbackEdgeBound(f *midir.Func, inst midir.Inst, argIdx int) (string, StackBound) {
-	primName := cs.prog.R.Entity(inst.Ent).Name
+	primName := cs.r.Entity(inst.Ent).Name
 	if argIdx >= len(inst.Args) {
 		return primName, StackBound{Kind: Bounded, Bytes: trustedStdFrame * cs.word}
 	}
@@ -128,7 +115,7 @@ func (cs *chainState) callbackEdgeBound(f *midir.Func, inst midir.Inst, argIdx i
 		reason := "calls `" + primName + "`, whose callback argument this build cannot resolve to a fixed target"
 		return primName, StackBound{Kind: Unknown, Reason: reason}
 	}
-	if cs.prog.ByEnt[ent] == nil {
+	if cs.bodies[ent] == nil {
 		reason := "calls `" + primName + "`'s callback, which has no body this build can measure"
 		return primName, StackBound{Kind: Unknown, Reason: reason}
 	}

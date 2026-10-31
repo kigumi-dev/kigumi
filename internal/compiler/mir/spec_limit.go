@@ -94,7 +94,7 @@ func (s *specializer) report(sev diag.Severity, f *midir.Func, node syntax.NodeI
 		msg += "; " + c.Help
 	}
 	t := s.p.R.Tree(f.File)
-	s.p.Diags = append(s.p.Diags, FileDiag{File: f.File, Diag: diag.Diagnostic{Severity: sev, Loc: diag.At(t.File, t.Span(node)), Msg: msg, Code: c.Num}})
+	s.p.Diags = append(s.p.Diags, midir.FileDiag{File: f.File, Diag: diag.Diagnostic{Severity: sev, Loc: diag.At(t.File, t.Span(node)), Msg: msg, Code: c.Num}})
 }
 
 // reclaim reports whether a capped root held instantiations that went unused for another reason; each raises its limit.

@@ -1,4 +1,4 @@
-package mir
+package resource
 
 import (
 	midir "kigumi/internal/compiler/mir/ir"

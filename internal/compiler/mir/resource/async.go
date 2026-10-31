@@ -1,11 +1,12 @@
-package mir
+package resource
 
 import (
 	midir "kigumi/internal/compiler/mir/ir"
+	mirlayout "kigumi/internal/compiler/mir/layout"
 	"kigumi/internal/compiler/sem"
 )
 
-// asyncBound is Unknown until SettleAsyncBounds reads the frame PlanDirect lays out.
+// asyncBound is Unknown until SettleAsync reads the frame PlanDirect lays out.
 func asyncBound(r *sem.Result, f *midir.Func) *StackBound {
 	e := r.Entity(f.Ent)
 	async := false
@@ -20,10 +21,10 @@ func asyncBound(r *sem.Result, f *midir.Func) *StackBound {
 	return &b
 }
 
-func SettleAsyncBounds(prog *Program) {
-	for _, f := range prog.Funcs {
-		if s := prog.Resources[f.Ent]; s != nil && s.Async != nil && f.Async && f.Slot != nil {
-			s.Async = &StackBound{Kind: Bounded, Bytes: AsyncFrameBytes(prog.R, f)}
+func SettleAsync(r *sem.Result, funcs []*midir.Func, summaries map[sem.EntityID]*Summary) {
+	for _, f := range funcs {
+		if s := summaries[f.Ent]; s != nil && s.Async != nil && f.Async && f.Slot != nil {
+			s.Async = &StackBound{Kind: Bounded, Bytes: mirlayout.AsyncFrameBytes(r, f)}
 		}
 	}
 }

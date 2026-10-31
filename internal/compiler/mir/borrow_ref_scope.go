@@ -31,7 +31,7 @@ func (state *borrowAnalysis) checkRefScopes() {
 			t := p.R.Tree(u.File)
 			d := diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(u.Node)), Code: code.Num,
 				Msg: sem.FillTemplate(code.Template, name)}
-			p.Diags = append(p.Diags, FileDiag{File: u.File, Diag: d})
+			p.Diags = append(p.Diags, midir.FileDiag{File: u.File, Diag: d})
 		}
 	}
 }

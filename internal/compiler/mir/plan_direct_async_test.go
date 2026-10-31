@@ -4,8 +4,8 @@ import (
 	"slices"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
 	midir "kigumi/internal/compiler/mir/ir"
+	mirlayout "kigumi/internal/compiler/mir/layout"
 )
 
 const asyncFrameSrc = `
@@ -62,13 +62,13 @@ func TestPlanDirectKeepsAnAsyncLocalInline(t *testing.T) {
 		if direct := name != "label"; f.IsDirect(l) != direct {
 			t.Fatalf("%s: direct=%v, want %v", name, f.IsDirect(l), direct)
 		}
-		if got := prog.SlotBytes(f, l); got != bytes {
+		if got := mirlayout.SlotBytes(prog.R, f, l); got != bytes {
 			t.Fatalf("%s takes %d frame bytes, want %d", name, got, bytes)
 		}
 	}
 	for i := range f.Locals {
 		if f.Slot[i] >= 0 {
-			spans = append(spans, span{f.Slot[i], f.Slot[i] + int(prog.SlotBytes(f, midir.LocalID(i))/8)})
+			spans = append(spans, span{f.Slot[i], f.Slot[i] + int(mirlayout.SlotBytes(prog.R, f, midir.LocalID(i))/8)})
 		}
 	}
 	slices.SortFunc(spans, func(a, b span) int { return a.at - b.at })
@@ -83,7 +83,7 @@ func TestPlanDirectKeepsAnAsyncLocalInline(t *testing.T) {
 	if n := countOp(f, midir.OpBoxDirect); n != 0 {
 		t.Fatalf("walk boxes %d times, want none\n%s", n, prog.Dump())
 	}
-	if got, want := mir.AsyncFrameBytes(prog.R, f), uint64(32+(f.Frame+len(f.Params))*8); got != want {
+	if got, want := mirlayout.AsyncFrameBytes(prog.R, f), uint64(32+(f.Frame+len(f.Params))*8); got != want {
 		t.Fatalf("frame of %d bytes, want %d", got, want)
 	}
 }
@@ -121,7 +121,7 @@ fn main() -> Void! {}
 		if !prog.R.DirectAgg(ty) {
 			t.Fatalf("%s is not direct", prog.R.TypeString(ty))
 		}
-		size, align := mir.AggLayout(prog.R, ty)
+		size, align := mirlayout.AggLayout(prog.R, ty)
 		if size != want[i][0] || align != want[i][1] {
 			t.Errorf("%s lays out as %d/%d, want %d/%d", prog.R.TypeString(ty), size, align, want[i][0], want[i][1])
 		}

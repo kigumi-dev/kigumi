@@ -2,6 +2,7 @@ package mir
 
 import (
 	midir "kigumi/internal/compiler/mir/ir"
+	mirlayout "kigumi/internal/compiler/mir/layout"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -27,7 +28,7 @@ func PlanDirect(p *Program) error {
 		p.markFixed(f)
 		if f.Async {
 			p.slotHeldBoxes(f)
-			p.layoutFrame(f)
+			mirlayout.LayoutFrame(p.R, f)
 		}
 	}
 	p.buildEntries(fs)

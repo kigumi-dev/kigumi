@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	midir "kigumi/internal/compiler/mir/ir"
+	mirlayout "kigumi/internal/compiler/mir/layout"
 )
 
 func (e *emitter) frameLocal(sb *strings.Builder, l midir.LocalID) {
@@ -31,8 +32,8 @@ func (e *emitter) checkSlot(f *midir.Func, l midir.LocalID) {
 	if !ok {
 		return
 	}
-	if a.Size > e.p.SlotBytes(f, l) {
-		panic(fmt.Sprintf("llgen: %s: %s needs %d bytes, its frame slot has %d", f.Name, a.Name, a.Size, e.p.SlotBytes(f, l)))
+	if a.Size > mirlayout.SlotBytes(e.r, f, l) {
+		panic(fmt.Sprintf("llgen: %s: %s needs %d bytes, its frame slot has %d", f.Name, a.Name, a.Size, mirlayout.SlotBytes(e.r, f, l)))
 	}
 }
 

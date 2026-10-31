@@ -8,6 +8,8 @@ import (
 // Two leaves of at most 8 bytes always fit the native ABI's 16-byte by-value limit; past it a value is copied into the frame.
 const regLeaves = 2
 
+const maxLeafDepth = 8
+
 // The shared body holds a wide value in one boxed word per level.
 func (s *specializer) deepens(sp *spec) bool {
 	return sp.fn.Proto == "" && sp.held == nil && s.holdsWide(sp) && s.recursive(sp)
@@ -31,7 +33,7 @@ func (s *specializer) wide(t sem.TypeID) bool {
 func (s *specializer) leaves(t sem.TypeID, depth int) int {
 	r := s.p.R
 	switch {
-	case depth > maxAggregateDepth:
+	case depth > maxLeafDepth:
 		return -1
 	case t == sem.TyUnit:
 		return 0

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/toolchain/contract/schema"
 )
@@ -34,7 +35,7 @@ func CheckForEditorContext(ctx context.Context, m *Module) (*sem.Result, error) 
 }
 
 // A second check keeps the entities specialisation mints out of the result.
-func editorDiags(m *Module) (*sem.Result, []mir.FileDiag) {
+func editorDiags(m *Module) (*sem.Result, []midir.FileDiag) {
 	if m.lazyStd {
 		if res, out, ok := editorDiagsWith(m, true); ok {
 			m.unitStats.Lazy++
@@ -47,7 +48,7 @@ func editorDiags(m *Module) (*sem.Result, []mir.FileDiag) {
 }
 
 // editorDiagsWith is editorDiags; with lazy it skips the std bodies the module never names, and ok is false when one was needed.
-func editorDiagsWith(m *Module, lazy bool) (*sem.Result, []mir.FileDiag, bool) {
+func editorDiagsWith(m *Module, lazy bool) (*sem.Result, []midir.FileDiag, bool) {
 	mod, err := m.semModule()
 	if err != nil {
 		return nil, nil, true
@@ -77,14 +78,14 @@ func editorDiagsWith(m *Module, lazy bool) (*sem.Result, []mir.FileDiag, bool) {
 	if prog.Apply(planPasses(false)...) != nil {
 		return res, nil, true
 	}
-	out := append([]mir.FileDiag(nil), prog.Diags...)
+	out := append([]midir.FileDiag(nil), prog.Diags...)
 	for _, c := range append(mir.CheckAllocClaims(prog), mir.CheckInterruptLowering(prog)...) {
-		out = append(out, mir.FileDiag(c))
+		out = append(out, midir.FileDiag(c))
 	}
 	for id := range res.Files {
 		for _, d := range res.Files[id].Diags {
 			if !known[fmt.Sprint(id, d.Loc.Span, d.Code, d.Msg)] {
-				out = append(out, mir.FileDiag{File: sem.FileID(id), Diag: d})
+				out = append(out, midir.FileDiag{File: sem.FileID(id), Diag: d})
 			}
 		}
 	}
