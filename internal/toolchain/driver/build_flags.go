@@ -1,15 +1,19 @@
 package driver
 
-import "slices"
+import (
+	"slices"
+
+	buildconfig "kigumi/internal/toolchain/config"
+)
 
 var noUnwindTables = []string{"-fno-unwind-tables", "-fno-asynchronous-unwind-tables"}
 
 // lto reports a target whose link reads bitcode: an archive's embedder may not, and zig links Mach-O without LLD.
-func lto(t Target) bool { return !t.Bare() && t.OS != "darwin" }
+func lto(t buildconfig.Target) bool { return !t.Bare() && t.OS != "darwin" }
 
 // codegenFlags are the optimization flags of a build. -O1 keeps zig cc out of Debug mode, which instruments C with
 // UBSan calls freestanding has no runtime for.
-func codegenFlags(t Target, sizeMin bool) []string {
+func codegenFlags(t buildconfig.Target, sizeMin bool) []string {
 	switch {
 	case sizeMin && lto(t):
 		return append([]string{"-Os", "-flto"}, noUnwindTables...)
@@ -25,7 +29,7 @@ func codegenFlags(t Target, sizeMin bool) []string {
 var elfOS = []string{"linux", "freebsd", "netbsd", "openbsd"}
 
 // sectionGC reports a hosted executable whose linker drops the sections nothing references.
-func sectionGC(t Target) bool { return !t.Bare() && slices.Contains(elfOS, t.OS) }
+func sectionGC(t buildconfig.Target) bool { return !t.Bare() && slices.Contains(elfOS, t.OS) }
 
 // BuildReport is what a build resolved that the build summary shows: the C library form and the size settings.
 type BuildReport struct {

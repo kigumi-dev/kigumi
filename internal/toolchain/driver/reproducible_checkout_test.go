@@ -6,10 +6,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
-func buildFromCheckout(t *testing.T, checkout string, target driver.Target) []byte {
+func buildFromCheckout(t *testing.T, checkout string, target buildconfig.Target) []byte {
 	t.Helper()
 	std, _ := filepath.Abs("../../../std")
 	if err := os.MkdirAll(checkout, 0o755); err != nil {
@@ -43,11 +44,11 @@ func TestReproducibleAcrossCheckouts(t *testing.T) {
 	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
-	freestanding, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
+	freestanding, err := buildconfig.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	for name, target := range map[string]driver.Target{"hosted": {}, "freestanding": freestanding} {
+	for name, target := range map[string]buildconfig.Target{"hosted": {}, "freestanding": freestanding} {
 		t.Run(name, func(t *testing.T) {
 			root := t.TempDir()
 			a := buildFromCheckout(t, filepath.Join(root, "a", "proj"), target)

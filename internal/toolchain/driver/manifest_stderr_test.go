@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/devkit/testtool"
+	"kigumi/internal/devkit/fixture"
 )
 
 func TestManifestStderrMatchersAreAnchored(t *testing.T) {
@@ -32,5 +32,5 @@ func TestStackOverflowStderrMatcherRejectsExtraLines(t *testing.T) {
 }
 
 func checkStackOverflowStderr(got string) error {
-	return testtool.CheckStderr(&testtool.StderrMatch{Type: "regex", Pattern: stackOverflowStderr}, "", got)
+	return fixture.CheckStderr(&fixture.StderrMatch{Type: "regex", Pattern: stackOverflowStderr}, "", got)
 }

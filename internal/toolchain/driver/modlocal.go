@@ -7,6 +7,7 @@ import (
 
 	"kigumi/internal/lang/diag"
 	"kigumi/internal/lang/token"
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 // LocalName holds the developer's Replace records. It is looked up from
@@ -33,7 +34,7 @@ func (m *Module) LocalReplaceDir(name string) (string, bool) {
 }
 
 // ReadLocal finds the nearest mod.local.kg at or above dir.
-func ReadLocal(o CompilerOptions, dir string) (Local, error) {
+func ReadLocal(o buildconfig.CompilerOptions, dir string) (Local, error) {
 	// A relative dir would stop the walk at "." before reaching any parent.
 	if abs, err := o.Abs(dir); err == nil {
 		dir = abs

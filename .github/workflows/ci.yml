@@ -78,8 +78,8 @@ jobs:
       - run: go test -timeout 60m ./internal/toolchain/driver/
       - run: KIGUMI_CFLAGS=-DKIGUMI_RC_CHECK go test -timeout 60m ./internal/toolchain/driver/
       - run: KIGUMI_CFLAGS='-fsanitize=address,undefined -g' go test -timeout 60m -run 'TestAotCorpus|TestAotFFI|TestAotDL|TestAotAsm' ./internal/toolchain/driver/
-      # internal/cli and internal/devkit/testtool each have one native-toolchain test, skipped by the hermetic job above.
-      - run: go test -timeout 10m ./internal/cli/... ./internal/devkit/testtool/...
+      # internal/cli and internal/devkit/bench each have one native-toolchain test, skipped by the hermetic job above.
+      - run: go test -timeout 10m ./internal/cli/... ./internal/devkit/...
 
   benchmarks:
     name: benchmarks (observation only)

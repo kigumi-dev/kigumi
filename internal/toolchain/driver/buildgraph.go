@@ -5,25 +5,26 @@ import (
 	"strings"
 
 	"kigumi/internal/toolchain/buildgraph"
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 // ResolvedGraph is a build graph with targets parsed, frameworks and
 // tools matched against descriptors, and an execution order.
 type ResolvedGraph struct {
 	Graph      *buildgraph.Graph
-	Targets    []Target
+	Targets    []buildconfig.Target
 	Frameworks []FrameworkDescriptor
 	// Order interleaves artifacts ("a<i>") and tool steps ("t<j>").
 	Order   []string
-	options CompilerOptions
+	options buildconfig.CompilerOptions
 }
 
 // ResolveGraph validates a graph before anything runs: every target parses, every framework/tool is registered, and the edges form a DAG.
-func ResolveGraph(o CompilerOptions, g *buildgraph.Graph, descriptors []FrameworkDescriptor) (*ResolvedGraph, error) {
+func ResolveGraph(o buildconfig.CompilerOptions, g *buildgraph.Graph, descriptors []FrameworkDescriptor) (*ResolvedGraph, error) {
 	rg := &ResolvedGraph{Graph: g, options: o}
 	host := o.HostOrAmbient()
 	for _, a := range g.Artifacts {
-		t, err := ParseTarget(o, a.Target.Triple, a.Target.Sys)
+		t, err := buildconfig.ParseTarget(o, a.Target.Triple, a.Target.Sys)
 		if err != nil {
 			return nil, fmt.Errorf("artifact %s: %w", a.Name, err)
 		}

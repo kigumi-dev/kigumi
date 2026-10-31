@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -254,7 +255,7 @@ func TestWasi32PlatformFilesCheck(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	target, err := driver.ParseTarget(testCompiler(), "wasm32-wasi", "")
+	target, err := buildconfig.ParseTarget(testCompiler(), "wasm32-wasi", "")
 	if err != nil {
 		t.Fatal(err)
 	}

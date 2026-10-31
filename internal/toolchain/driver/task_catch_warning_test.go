@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/toolchain/driver"
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 const spawnSrc = `import task from std/task
@@ -52,7 +52,7 @@ func TestSpawnWarnsWhereTaskPanicIsFatal(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name, src string
-		target    driver.Target
+		target    buildconfig.Target
 		warn      bool
 	}{
 		{"wasi", spawnSrc, mustTarget(t, "wasm32-wasi", ""), true},

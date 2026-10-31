@@ -7,6 +7,7 @@ import (
 	"kigumi/internal/compiler/mir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/toolchain/buildgraph"
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/contract/schema"
 )
 
@@ -33,7 +34,7 @@ type planCache struct {
 	stats      PlanStats
 }
 
-func newPlanCache(o CompilerOptions) *planCache {
+func newPlanCache(o buildconfig.CompilerOptions) *planCache {
 	c := &planCache{facts: map[string]*planFacts{}, provisions: map[string][]CapabilityVerdict{}}
 	if dir, err := DeriveCacheDir(o); err == nil {
 		c.derive = &schema.DeriveCache{Dir: dir}
@@ -56,8 +57,8 @@ func (c *planCache) finish() PlanStats {
 }
 
 // provision shares the verdict table between targets whose platforms differ only in an OS the rules treat alike.
-func (c *planCache) provision(t Target) []CapabilityVerdict {
-	key := t.CapabilityPlatform().ProvisionKey()
+func (c *planCache) provision(t buildconfig.Target) []CapabilityVerdict {
+	key := capabilityPlatform(t).ProvisionKey()
 	if v, ok := c.provisions[key]; ok {
 		c.stats.ProvisionReused++
 		return v
@@ -69,7 +70,7 @@ func (c *planCache) provision(t Target) []CapabilityVerdict {
 }
 
 // artifactFacts scopes to a's own entry set so a sibling artifact's usage never leaks in.
-func (c *planCache) artifactFacts(p *BuildProgram, a *buildgraph.Artifact, t Target) *planFacts {
+func (c *planCache) artifactFacts(p *BuildProgram, a *buildgraph.Artifact, t buildconfig.Target) *planFacts {
 	m, err := LoadModule(p.Module.Root, LoadOptions{StdRoot: p.stdRoot, Target: t, Deny: a.Deny, Ceiling: a.Ceiling, ArtifactName: a.Name, VerifyPasses: p.Module.verifyPasses, Compiler: p.Module.compiler, RootDirs: []string{a.Dir}})
 	if err != nil {
 		return nil
@@ -102,11 +103,11 @@ func (c *planCache) artifactFacts(p *BuildProgram, a *buildgraph.Artifact, t Tar
 	return f
 }
 
-func (f *planFacts) reasons(t Target) []mir.CapabilityReason {
+func (f *planFacts) reasons(t buildconfig.Target) []mir.CapabilityReason {
 	if f == nil || f.reach == nil {
 		return nil
 	}
-	return f.reach.CapabilityReasons(f.res, t.CapabilityPlatform())
+	return f.reach.CapabilityReasons(f.res, capabilityPlatform(t))
 }
 
 // analysisKey omits the artifact's name, which only labels diagnostics.

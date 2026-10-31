@@ -6,11 +6,12 @@ import (
 
 	"kigumi/internal/toolchain/contract/schema"
 	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/policy"
 )
 
 func TestSummaryRender(t *testing.T) {
 	s := driver.Summary{
-		Policy:       driver.Development(),
+		Policy:       policy.Development(),
 		Dependencies: []string{"greet v1.0.0"},
 	}
 	out := s.Render()
@@ -30,7 +31,7 @@ func TestSummaryRender(t *testing.T) {
 		t.Fatalf("summary must never claim hermetic/sandboxed isolation:\n%s", out)
 	}
 
-	rel := driver.Summary{Policy: driver.Release(), ReproducibleChecked: true, Reproducible: true}
+	rel := driver.Summary{Policy: policy.Release(), ReproducibleChecked: true, Reproducible: true}
 	relOut := rel.Render()
 	if !strings.Contains(relOut, "policy: release-v1\n") {
 		t.Fatalf("missing release policy line:\n%s", relOut)
@@ -45,7 +46,7 @@ func TestSummaryRender(t *testing.T) {
 
 func TestSummaryRenderDeriveProvenance(t *testing.T) {
 	s := driver.Summary{
-		Policy: driver.Development(),
+		Policy: policy.Development(),
 		DeriveProvenance: []schema.GeneratedArtifact{
 			{Generator: "derive:Eq", Origin: &schema.DeclRef{Name: "Point"}, ContentHash: "abcdef0123456789"},
 		},

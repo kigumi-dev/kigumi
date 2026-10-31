@@ -10,6 +10,7 @@ import (
 	"kigumi/internal/cli/exit"
 	"kigumi/internal/cli/session"
 	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/policy"
 )
 
 func Cmd() *cobra.Command {
@@ -20,13 +21,13 @@ func Cmd() *cobra.Command {
 	}
 	shared.ReleaseFlag(cmd)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		policy := shared.Policy(cmd)
-		m, err := shared.LoadSettled(cmd, args[0], false, cmd.ErrOrStderr(), policy)
+		pol := shared.Policy(cmd)
+		m, err := shared.LoadSettled(cmd, args[0], false, cmd.ErrOrStderr(), pol)
 		if err != nil {
 			return err
 		}
 		extra := append(shared.ReleaseViolations(cmd, false), driver.LinkIdentityViolations(m, shared.CompilerOptions().Host)...)
-		report := driver.EvaluateRelease(m, policy, extra...)
+		report := policy.Evaluate(m.Violations, pol, extra...)
 		fmt.Fprint(cmd.ErrOrStderr(), report.Render())
 		if report.HasErrors() {
 			return cliutil.Exit(1)

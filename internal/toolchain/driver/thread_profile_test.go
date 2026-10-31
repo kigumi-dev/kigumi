@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -52,7 +53,7 @@ func indirectPoolModule(t *testing.T) string {
 	return root
 }
 
-func indirectPoolAnalysis(t *testing.T, target driver.Target) *driver.Analysis {
+func indirectPoolAnalysis(t *testing.T, target buildconfig.Target) *driver.Analysis {
 	t.Helper()
 	std, _ := filepath.Abs("../../../std")
 	m, err := driver.LoadModule(indirectPoolModule(t), driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
@@ -70,7 +71,7 @@ func indirectPoolAnalysis(t *testing.T, target driver.Target) *driver.Analysis {
 // target and profile gates must reject a bare mention, not only a call.
 func TestIndirectPoolMentionUsesThreads(t *testing.T) {
 	t.Parallel()
-	a := indirectPoolAnalysis(t, driver.Target{})
+	a := indirectPoolAnalysis(t, buildconfig.Target{})
 	if out := a.Res.Render(); out != "" {
 		t.Fatalf("a hosted build of an indirect pool should check clean:\n%s", out)
 	}
@@ -84,7 +85,7 @@ func TestIndirectPoolRejectedByProfile(t *testing.T) {
 	for _, profile := range []string{"isr", "alloc-free-executor", "single-thread-event-loop"} {
 		t.Run(profile, func(t *testing.T) {
 			t.Parallel()
-			target := driver.HostTarget()
+			target := buildconfig.HostTarget()
 			target.BlockingExecutor = profile
 			got := indirectPoolAnalysis(t, target).Res.Render()
 			if !strings.Contains(got, "E1461") || !strings.Contains(got, profile) {
@@ -96,7 +97,7 @@ func TestIndirectPoolRejectedByProfile(t *testing.T) {
 
 func TestIndirectPoolRejectedByTarget(t *testing.T) {
 	t.Parallel()
-	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
+	target, err := buildconfig.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}

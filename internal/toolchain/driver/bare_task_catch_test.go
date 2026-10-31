@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -33,7 +34,7 @@ func TestBareBuildContainsTaskPanic(t *testing.T) {
 	if cc == nil || runtime.GOOS != "linux" || runtime.GOARCH != "amd64" {
 		t.Skip("needs a C compiler on linux/amd64")
 	}
-	target, err := driver.ParseTarget(testCompiler(), "", "none")
+	target, err := buildconfig.ParseTarget(testCompiler(), "", "none")
 	if err != nil {
 		t.Fatal(err)
 	}

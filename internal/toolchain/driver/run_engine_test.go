@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"kigumi/internal/devkit/testtool"
+	"kigumi/internal/devkit/fixture"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -50,7 +50,7 @@ func TestRunCorpusEngines(t *testing.T) {
 			if out.String() != wantOut {
 				t.Errorf("stdout mismatch\n--- got ---\n%s--- want ---\n%s", out.String(), wantOut)
 			}
-			if err := testtool.CheckStderr(fx.Stderr, wantErr, errOut.String()); err != nil {
+			if err := fixture.CheckStderr(fx.Stderr, wantErr, errOut.String()); err != nil {
 				t.Error(err)
 			}
 			if code != wantExit {

@@ -5,12 +5,13 @@ import (
 	"strings"
 
 	"kigumi/internal/toolchain/contract/schema"
+	"kigumi/internal/toolchain/policy"
 )
 
 // Summary is the build summary `kigumi build` prints after a successful build:
 // the policy it ran under and what that policy let through.
 type Summary struct {
-	Policy         BuildPolicy
+	Policy         policy.BuildPolicy
 	Dependencies   []string
 	LocalOverrides []string
 	HostInputs     []string

@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -241,7 +242,7 @@ func TestCacheKeyCoversTargetAndFeatureFlags(t *testing.T) {
 	root, cache := t.TempDir(), t.TempDir()
 	writeGraph(t, root, graphFiles())
 	recordStatuses(t, root, cache, "cmd/app/main.kg")
-	other, err := driver.ParseTarget(testCompiler(), "aarch64-linux", "")
+	other, err := buildconfig.ParseTarget(testCompiler(), "aarch64-linux", "")
 	if err != nil {
 		t.Fatal(err)
 	}

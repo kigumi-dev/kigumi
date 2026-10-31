@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"kigumi/internal/interop/cheader"
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 // headerLibc is the C library the module's Header records were translated against; the build must link that one.
@@ -22,9 +23,9 @@ func (m *Module) headerTriple() string {
 	}
 	t, _, err := resolveLinkage(m, m.target, LinkAuto, true, compiled{}, nil, nil)
 	if err != nil {
-		return m.target.compileTriple()
+		return m.target.CompileTriple()
 	}
-	return t.compileTriple()
+	return t.CompileTriple()
 }
 
 // importHeader translates one Header record; one that fails against the static musl headers falls back to the
@@ -32,7 +33,7 @@ func (m *Module) headerTriple() string {
 func (m *Module) importHeader(opts cheader.Options, path string) (cheader.Result, error) {
 	opts.Target = m.headerTriple()
 	res, err := cheader.Import(opts)
-	if host := m.target.compileTriple(); err != nil && opts.Target != host && m.headers.opts.headerTriple == nil {
+	if host := m.target.CompileTriple(); err != nil && opts.Target != host && m.headers.opts.headerTriple == nil {
 		static := opts.Target
 		opts.Target = host
 		if res, err = cheader.Import(opts); err == nil {
@@ -45,8 +46,8 @@ func (m *Module) importHeader(opts cheader.Options, path string) (cheader.Result
 	return res, err
 }
 
-func (h headerLibc) match(t Target) bool {
-	want := t.compileTriple()
+func (h headerLibc) match(t buildconfig.Target) bool {
+	want := t.CompileTriple()
 	return !slices.ContainsFunc(h.triples, func(s string) bool { return s != want })
 }
 
@@ -58,8 +59,8 @@ func libcName(triple string) string {
 }
 
 // reloadForHeaders loads m again with its Header records translated for the C library t links.
-func reloadForHeaders(m *Module, t Target) (*Module, error) {
-	triple := t.compileTriple()
+func reloadForHeaders(m *Module, t buildconfig.Target) (*Module, error) {
+	triple := t.CompileTriple()
 	if pin := m.headers.opts.headerTriple; pin != nil {
 		return nil, fmt.Errorf("Header records were translated against %s's headers, but the build links %s", libcName(*pin), libcName(triple))
 	}

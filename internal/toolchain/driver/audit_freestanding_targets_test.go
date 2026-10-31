@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -61,7 +62,7 @@ func TestBuildFreestandingTargetsPassAudit(t *testing.T) {
 				root := t.TempDir()
 				os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"audit\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 				os.WriteFile(filepath.Join(root, "main.kg"), []byte(p.src), 0o644)
-				target, err := driver.ParseTarget(testCompiler(), triple, "")
+				target, err := buildconfig.ParseTarget(testCompiler(), triple, "")
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -80,7 +81,7 @@ func TestBuildFreestandingTargetsPassAudit(t *testing.T) {
 }
 
 func TestParseTargetRejectsWasmUEFI(t *testing.T) {
-	if _, err := driver.ParseTarget(testCompiler(), "wasm32-uefi", ""); err == nil || !strings.Contains(err.Error(), "wasm32 has no UEFI") {
+	if _, err := buildconfig.ParseTarget(testCompiler(), "wasm32-uefi", ""); err == nil || !strings.Contains(err.Error(), "wasm32 has no UEFI") {
 		t.Fatalf("want a wasm32 UEFI rejection, got %v", err)
 	}
 }
@@ -94,7 +95,7 @@ func TestAuditRejectsDisallowedSymbolOnObjectFormats(t *testing.T) {
 		t.Run(triple, func(t *testing.T) {
 			t.Parallel()
 			root := writeAuditModule(t, "leaky", "extern int printf(const char *fmt, ...);\nint leak(void) { return printf(\"hi\\n\"); }\n")
-			target, err := driver.ParseTarget(testCompiler(), triple, "")
+			target, err := buildconfig.ParseTarget(testCompiler(), triple, "")
 			if err != nil {
 				t.Fatal(err)
 			}

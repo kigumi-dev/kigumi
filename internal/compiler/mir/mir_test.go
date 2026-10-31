@@ -11,8 +11,8 @@ import (
 	"kigumi/internal/compiler/mir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
+	"kigumi/internal/devkit/fixture"
 	"kigumi/internal/devkit/semfixture"
-	"kigumi/internal/devkit/testtool"
 	"kigumi/internal/lang/token"
 	"kigumi/internal/toolchain/contract/schema"
 )
@@ -20,7 +20,7 @@ import (
 // Each testdata/mir fixture holds source sections and an `-- expect --`
 // section with the IR dump followed by ownership diagnostics.
 func TestMirCorpus(t *testing.T) {
-	manifest, err := testtool.Load("../../../testdata/manifest.json")
+	manifest, err := fixture.Load("../../../testdata/manifest.json")
 	if err != nil {
 		t.Fatalf("load testdata/manifest.json: %v", err)
 	}

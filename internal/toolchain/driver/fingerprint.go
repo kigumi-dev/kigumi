@@ -8,6 +8,7 @@ import (
 
 	"kigumi/internal/backend/llgen"
 	"kigumi/internal/compiler/mir"
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/contract/schema"
 	"kigumi/internal/toolchain/version"
 )
@@ -34,7 +35,7 @@ type ArtifactFingerprint struct {
 
 // targetIdentity falls back to OS/Arch/Sys because HostTarget leaves
 // Triple empty.
-func targetIdentity(t Target) string {
+func targetIdentity(t buildconfig.Target) string {
 	if t.Triple != "" {
 		return t.Triple
 	}
@@ -50,7 +51,7 @@ func targetIdentity(t Target) string {
 
 // CurrentFingerprint is this toolchain's own fingerprint for a build
 // targeting t; zigVersion comes from ZigVersionOf.
-func CurrentFingerprint(t Target, zigVersion string) ArtifactFingerprint {
+func CurrentFingerprint(t buildconfig.Target, zigVersion string) ArtifactFingerprint {
 	p := version.Current()
 	return ArtifactFingerprint{CompilerRelease: p.Release, CompilerCommit: p.Commit, CompilerDirty: p.Dirty, Target: targetIdentity(t), AbiRevision: version.AbiRevision, ZigVersion: zigVersion, AbiBase: llgen.CurrentAbiFingerprint(version.AbiRevision, nil)}
 }
@@ -143,7 +144,7 @@ func dirtySuffix(dirty bool) string {
 	return ""
 }
 
-func withProvenance(fp *ArtifactFingerprint, m *Module, t Target, code compiled) {
+func withProvenance(fp *ArtifactFingerprint, m *Module, t buildconfig.Target, code compiled) {
 	if a := m.LastAnalysis(); a != nil {
 		fp.DeriveProvenance = a.Provenance
 	}

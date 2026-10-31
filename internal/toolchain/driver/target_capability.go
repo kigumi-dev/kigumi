@@ -1,8 +1,11 @@
 package driver
 
-import "kigumi/internal/compiler/mir"
+import (
+	"kigumi/internal/compiler/mir"
+	buildconfig "kigumi/internal/toolchain/config"
+)
 
-func (t Target) CapabilityPlatform() mir.Platform {
+func capabilityPlatform(t buildconfig.Target) mir.Platform {
 	p := mir.Platform{OS: t.OS, Bare: t.Bare(), NoLibc: t.Freestanding(), Allocator: t.Allocator, RecoverableOnly: t.RecoverableOnly()}
 	if t.StrictBlocking() {
 		p.ThreadProfile = t.BlockingExecutor
@@ -16,8 +19,8 @@ type CapabilityVerdict struct {
 	Why        string `json:"why,omitempty"`
 }
 
-func ProvidedCapabilities(t Target) []CapabilityVerdict {
-	plat := t.CapabilityPlatform()
+func ProvidedCapabilities(t buildconfig.Target) []CapabilityVerdict {
+	plat := capabilityPlatform(t)
 	var out []CapabilityVerdict
 	for _, c := range mir.Vocabulary() {
 		got := plat.Provides(c)

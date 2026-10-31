@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -25,7 +26,7 @@ func TestPlanJSONPerArtifactProvenance(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("load: %v %v", ok, err)
 	}
-	g, err := p.Run(driver.HostTarget(), nil, out)
+	g, err := p.Run(buildconfig.HostTarget(), nil, out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +76,7 @@ func TestPlanJSONPerArtifactProvenanceScoped(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("load: %v %v", ok, err)
 	}
-	g, err := p.Run(driver.HostTarget(), nil, out)
+	g, err := p.Run(buildconfig.HostTarget(), nil, out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +124,7 @@ func TestPlanJSONProvenanceSurvivesAFailedArtifactCheck(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("load: %v %v", ok, err)
 	}
-	g, err := p.Run(driver.HostTarget(), nil, out)
+	g, err := p.Run(buildconfig.HostTarget(), nil, out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +171,7 @@ func TestPlanJSONProvenanceOfOneEntryForTwoTargets(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("load: %v %v", ok, err)
 	}
-	g, err := p.Run(driver.HostTarget(), nil, out)
+	g, err := p.Run(buildconfig.HostTarget(), nil, out)
 	if err != nil {
 		t.Fatal(err)
 	}

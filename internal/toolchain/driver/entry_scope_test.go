@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -35,7 +36,7 @@ func TestBuildIgnoresSiblingCmdEntry(t *testing.T) {
 		"cmd/app/main.kg":     "let out = host.args().get(1) || \"missing\"\nprint out\n",
 		"cmd/enclave/main.kg": "print \"hello from the enclave\"\n",
 	})
-	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
+	target, err := buildconfig.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +81,7 @@ func TestBuildIgnoresSiblingCmdEntryParseError(t *testing.T) {
 		"cmd/app/main.kg":     "let args = host.args(\n",
 		"cmd/enclave/main.kg": "print \"hello from the enclave\"\n",
 	})
-	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
+	target, err := buildconfig.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}

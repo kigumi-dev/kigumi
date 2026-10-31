@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -26,7 +27,7 @@ func TestToolCapabilitiesNamesToolchainUse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	g, err := p.Run(driver.HostTarget(), nil, out)
+	g, err := p.Run(buildconfig.HostTarget(), nil, out)
 	if err != nil {
 		t.Fatal(err)
 	}

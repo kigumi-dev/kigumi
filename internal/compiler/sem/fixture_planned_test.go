@@ -9,6 +9,7 @@ import (
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/lang/token"
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -37,7 +38,7 @@ func checkPlanned(t *testing.T, fx fixture) *sem.Result {
 			t.Fatalf("%s: a planned fixture holds a src section and std packages only", fx.path)
 		}
 	}
-	target := driver.HostTarget()
+	target := buildconfig.HostTarget()
 	target.Allocator = fx.opt("allocator", "")
 	target.Profile = fx.opt("profile", "")
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})

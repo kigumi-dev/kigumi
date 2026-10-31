@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -68,7 +69,7 @@ func TestSemDriverFixtures(t *testing.T) {
 		ran++
 		t.Run(strings.TrimSuffix(filepath.Base(path), ".txtar"), func(t *testing.T) {
 			t.Parallel()
-			target := driver.HostTarget()
+			target := buildconfig.HostTarget()
 			if triple := fx.opts["triple"]; triple != "" {
 				target = mustTarget(t, triple, fx.opts["sys"])
 			}

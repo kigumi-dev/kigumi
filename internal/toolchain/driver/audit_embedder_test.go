@@ -9,6 +9,7 @@ import (
 
 	"kigumi/internal/lang/diag"
 	"kigumi/internal/lang/token"
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -20,7 +21,7 @@ func buildFreestanding(t *testing.T, manifestExtra string) error {
 	root := writeAuditModule(t, "hal", "extern void hal_gpio_write(int pin, int level);\nvoid blink(void) { hal_gpio_write(3, 1); }\n")
 	mod, _ := os.ReadFile(filepath.Join(root, "mod.kg"))
 	os.WriteFile(filepath.Join(root, "mod.kg"), append(mod, manifestExtra...), 0o644)
-	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
+	target, err := buildconfig.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}

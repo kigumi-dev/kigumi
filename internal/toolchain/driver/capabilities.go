@@ -1,6 +1,9 @@
 package driver
 
-import "kigumi/internal/compiler/mir"
+import (
+	"kigumi/internal/compiler/mir"
+	buildconfig "kigumi/internal/toolchain/config"
+)
 
 type CapabilityReason = mir.CapabilityReason
 
@@ -13,9 +16,9 @@ func Capabilities(a *Analysis) []string {
 	return mir.Capabilities(mir.Reachable(a.Prog).Ops)
 }
 
-func CapabilityReasons(a *Analysis, t Target) []CapabilityReason {
+func CapabilityReasons(a *Analysis, t buildconfig.Target) []CapabilityReason {
 	if a == nil || a.Prog == nil {
 		return nil
 	}
-	return mir.Reachable(a.Prog).CapabilityReasons(a.Res, t.CapabilityPlatform())
+	return mir.Reachable(a.Prog).CapabilityReasons(a.Res, capabilityPlatform(t))
 }

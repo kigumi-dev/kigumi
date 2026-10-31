@@ -2,7 +2,6 @@ package driver
 
 import (
 	"fmt"
-	"kigumi/internal/toolchain/buildgraph"
 	"sort"
 	"strings"
 
@@ -10,6 +9,8 @@ import (
 	"kigumi/internal/compiler/mir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
+	"kigumi/internal/toolchain/buildgraph"
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 // BuildProgram is a checked build.kg: the module it configures, the checker
@@ -26,7 +27,7 @@ type BuildProgram struct {
 // LoadBuildProgram loads root's module and checks its build.kg as a package named
 // build; ok is false when the module has no build program.
 func LoadBuildProgram(root string, opts LoadOptions) (*BuildProgram, bool, error) {
-	root, err := opts.Compiler.resolveRoot(root)
+	root, err := resolveModuleRoot(opts.Compiler, root)
 	if err != nil {
 		return nil, false, nil
 	}
@@ -101,7 +102,7 @@ func configureEntity(res *sem.Result) (sem.EntityID, error) {
 
 // Run evaluates configure in the sandbox for a requested target and the flags
 // given after `--`, and returns the recorded graph.
-func (p *BuildProgram) Run(target Target, flags []string, outDir string) (*buildgraph.Graph, error) {
+func (p *BuildProgram) Run(target buildconfig.Target, flags []string, outDir string) (*buildgraph.Graph, error) {
 	roots, err := p.Roots(outDir)
 	if err != nil {
 		return nil, err

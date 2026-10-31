@@ -3,10 +3,12 @@ package driver
 import (
 	"path/filepath"
 	"strings"
+
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 // prefixMapFlag maps Cwd to "." in debug info, __FILE__ and the strings of the binary, so two checkouts of the same sources build to the same bytes.
-func prefixMapFlag(o CompilerOptions) []string {
+func prefixMapFlag(o buildconfig.CompilerOptions) []string {
 	if o.Cwd == "" {
 		return nil
 	}
@@ -18,7 +20,7 @@ func under(dir, p string) bool {
 }
 
 // pinnedInput names a compiler input for a command that runs in dir: files under the build dir are relative to it, files under Cwd stay absolute for prefixMapFlag to rewrite, anything else is relative to dir.
-func pinnedInput(o CompilerOptions, dir, in string) (string, error) {
+func pinnedInput(o buildconfig.CompilerOptions, dir, in string) (string, error) {
 	abs, err := o.Abs(in)
 	if err != nil {
 		return "", err

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -141,10 +142,10 @@ func emittedConsts(t *testing.T, root string, opts driver.BuildOptions) map[stri
 	return consts
 }
 
-func muslTarget(t *testing.T) driver.Target {
+func muslTarget(t *testing.T) buildconfig.Target {
 	t.Helper()
 	triple := map[string]string{"amd64": "x86_64-linux-musl", "arm64": "aarch64-linux-musl"}[runtime.GOARCH]
-	target, err := driver.ParseTarget(testCompiler(), triple, "")
+	target, err := buildconfig.ParseTarget(testCompiler(), triple, "")
 	if err != nil {
 		t.Fatal(err)
 	}

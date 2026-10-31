@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/exec"
 
-	"kigumi/internal/devkit/testtool"
+	"kigumi/internal/devkit/audit"
 )
 
 func main() {
@@ -15,7 +15,7 @@ func main() {
 	out := flag.String("out", "", "output file (default: stdout)")
 	flag.Parse()
 
-	a, err := testtool.BuildAudit(*root, exec.LookPath)
+	a, err := audit.BuildAudit(*root, exec.LookPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "testaudit:", err)
 		os.Exit(1)

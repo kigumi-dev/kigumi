@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -123,7 +124,7 @@ func loadSweepModule(t *testing.T, src, profile string) *driver.Module {
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"bindsweep\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
-	target := driver.HostTarget()
+	target := buildconfig.HostTarget()
 	target.Profile = profile
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../../std", Target: target})
 	if err != nil {

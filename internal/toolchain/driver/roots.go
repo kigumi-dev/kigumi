@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 // IsModuleRoot reports whether dir is a module: it holds a mod.kg manifest
@@ -31,7 +33,7 @@ func FindModuleRoot(dir string) (string, bool) {
 }
 
 // ModuleRoots lists workspace and every nested module root below it.
-func ModuleRoots(o CompilerOptions, workspace, stdRoot string) []string {
+func ModuleRoots(o buildconfig.CompilerOptions, workspace, stdRoot string) []string {
 	roots := []string{workspace}
 	filepath.WalkDir(workspace, func(path string, d fs.DirEntry, err error) error {
 		if err != nil || !d.IsDir() || path == workspace {
@@ -50,12 +52,12 @@ func ModuleRoots(o CompilerOptions, workspace, stdRoot string) []string {
 
 // skipDir excludes hidden directories, node_modules and the std root from
 // a module walk.
-func skipDir(o CompilerOptions, path, stdRoot string) bool {
+func skipDir(o buildconfig.CompilerOptions, path, stdRoot string) bool {
 	name := filepath.Base(path)
 	return strings.HasPrefix(name, ".") || name == "node_modules" || sameDir(o, path, stdRoot)
 }
 
-func sameDir(o CompilerOptions, a, b string) bool {
+func sameDir(o buildconfig.CompilerOptions, a, b string) bool {
 	if b == "" {
 		return false
 	}

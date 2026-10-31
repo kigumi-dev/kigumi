@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/exec"
 
-	"kigumi/internal/devkit/testtool"
+	"kigumi/internal/devkit/bench"
 )
 
 func main() {
@@ -41,7 +41,7 @@ func main() {
 		w = f
 	}
 
-	err := testtool.RunE2E(testtool.E2EOptions{RepoRoot: *repoRoot, Module: *module, StdRoot: *std, WorkDir: dir, Lookup: exec.LookPath}, w)
+	err := bench.RunE2E(bench.E2EOptions{RepoRoot: *repoRoot, Module: *module, StdRoot: *std, WorkDir: dir, Lookup: exec.LookPath}, w)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "e2ebench:", err)
 		os.Exit(1)

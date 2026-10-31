@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -23,7 +24,7 @@ func TestReproducibleFreestandingArchive(t *testing.T) {
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"repro\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hi\"\n"), 0o644)
-	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
+	target, err := buildconfig.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +202,7 @@ func TestReproducibleFreestandingSourceRelativeRoot(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"repro\"\n    kigumi: \"0.1\"\n}\nSource { c: \"native.c\" }\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hi from native\"\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "native.c"), []byte("int kigumi_repro_native(void) { return 0; }\n"), 0o644)
-	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
+	target, err := buildconfig.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}

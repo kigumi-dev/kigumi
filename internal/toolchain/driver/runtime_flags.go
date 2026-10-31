@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"kigumi/internal/backend/llgen"
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/version"
 )
 
@@ -17,7 +18,7 @@ const (
 
 // runtimeDefines are the -D macros passed to the runtime compile for a
 // build of code on t, in a fixed order.
-func runtimeDefines(t Target, code compiled) []string {
+func runtimeDefines(t buildconfig.Target, code compiled) []string {
 	var defs []string
 	if t.Freestanding() {
 		defs = append(defs, "KIGUMI_FREESTANDING")
@@ -43,7 +44,7 @@ func runtimeDefines(t Target, code compiled) []string {
 
 // runtimeFlagSet is every KIGUMI_ macro the runtime is compiled under: the driver's
 // defines, KIGUMI_THREADS (rt.h derives it from task.threads), the user's -D flags and any -fsanitize (TSan changes the atomic path).
-func runtimeFlagSet(t Target, code compiled, cflags []string) []string {
+func runtimeFlagSet(t buildconfig.Target, code compiled, cflags []string) []string {
 	flags := runtimeDefines(t, code)
 	if slices.Contains(flags, threadsCap) {
 		flags = append(flags, threadsMacro)
@@ -64,7 +65,7 @@ func runtimeFlagSet(t Target, code compiled, cflags []string) []string {
 func abiDefine(fp string) string { return "-D" + abiMacro + "=\"" + fp + "\"" }
 
 // withRuntimeABI binds the fingerprint for code built on t with cflags into its IR and records it on code.
-func withRuntimeABI(t Target, code compiled, cflags []string) compiled {
+func withRuntimeABI(t buildconfig.Target, code compiled, cflags []string) compiled {
 	code.Abi = llgen.CurrentAbiFingerprint(version.AbiRevision, runtimeFlagSet(t, code, cflags))
 	code.Output = code.Output.BindAbi(code.Abi)
 	return code
@@ -78,7 +79,7 @@ type RuntimeProfile struct {
 }
 
 // RuntimeProfileOf analyzes and lowers m for t without invoking a C compiler.
-func RuntimeProfileOf(m *Module, stderr io.Writer, t Target, cflags []string) (RuntimeProfile, bool, error) {
+func RuntimeProfileOf(m *Module, stderr io.Writer, t buildconfig.Target, cflags []string) (RuntimeProfile, bool, error) {
 	code, ok, err := compile(m, stderr, t, emitOptionsFor(t))
 	if err != nil || !ok {
 		return RuntimeProfile{}, ok, err

@@ -1,8 +1,10 @@
 package driver
 
+import buildconfig "kigumi/internal/toolchain/config"
+
 // linkInputs: with pinCompDir, out becomes absolute and inputs relative to
 // dir, because cc runs with cmd.Dir = dir while inputs may be cwd-relative.
-func linkInputs(o CompilerOptions, pinCompDir bool, dir, out string, inputs []string) (string, []string, error) {
+func linkInputs(o buildconfig.CompilerOptions, pinCompDir bool, dir, out string, inputs []string) (string, []string, error) {
 	if !pinCompDir {
 		return out, inputs, nil
 	}

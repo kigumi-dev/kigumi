@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -73,7 +74,7 @@ func TestBuildArchiveFunctionSections(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"fsects\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hello\"\n"), 0o644)
 	std, _ := filepath.Abs("../../../std")
-	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
+	target, err := buildconfig.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +118,7 @@ func TestBuildArchiveReachabilityPrunesUnusedImport(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"unused\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import json from std/json\nprint \"hello\"\n"), 0o644)
 	std, _ := filepath.Abs("../../../std")
-	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
+	target, err := buildconfig.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +185,7 @@ func TestBuildArchiveCFlagsLinkerFlagsIgnored(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"cflags\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hello\"\n"), 0o644)
 	std, _ := filepath.Abs("../../../std")
-	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
+	target, err := buildconfig.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}

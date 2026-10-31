@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 // PackageCacheStats counts package-cache traffic, so a test can pin that a no-op load writes nothing and a private edit rewrites one package.
@@ -36,8 +38,8 @@ func newPackageCache(dir string) *packageCache {
 }
 
 // DefaultPackageCache is where the CLI keeps the package cache, beside the fetched-module cache.
-func DefaultPackageCache(o CompilerOptions) (string, error) {
-	dir, err := o.cacheRoot()
+func DefaultPackageCache(o buildconfig.CompilerOptions) (string, error) {
+	dir, err := o.CacheRoot()
 	if err != nil {
 		return "", err
 	}

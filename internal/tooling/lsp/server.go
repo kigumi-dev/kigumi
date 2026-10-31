@@ -15,7 +15,7 @@ import (
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 
-	"kigumi/internal/toolchain/driver"
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 // Server protects documents and snapshots from background analysis with mu; Connect orders incoming messages.
@@ -26,7 +26,7 @@ type Server struct {
 	// them; roots[0] is where std auto-discovery looks.
 	roots       []string
 	stdRoot     string
-	target      driver.Target
+	target      buildconfig.Target
 	docs        map[uri.URI]string
 	docVersions map[uri.URI]int32
 	published   map[string]map[uri.URI]bool
@@ -47,7 +47,7 @@ type Server struct {
 	work     sync.WaitGroup
 	counts   counters
 	cache    string
-	compiler driver.CompilerOptions
+	compiler buildconfig.CompilerOptions
 	lazyStd  bool
 	docSyms  map[uri.URI]docSymbols
 	pkgSyms  map[string]pkgSymbols
@@ -71,7 +71,7 @@ func (s *Server) WithDebounce(d time.Duration) *Server {
 	return s
 }
 
-func (s *Server) WithPackageCache(dir string, o driver.CompilerOptions) *Server {
+func (s *Server) WithPackageCache(dir string, o buildconfig.CompilerOptions) *Server {
 	s.cache, s.compiler = dir, o
 	return s
 }
@@ -89,13 +89,13 @@ func (stdio) Write(p []byte) (int, error) { return os.Stdout.Write(p) }
 func (stdio) Close() error                { return os.Stdout.Close() }
 
 // WithTarget makes the editor enforce the allocation profiles of t like `kigumi check`.
-func (s *Server) WithTarget(t driver.Target) *Server {
+func (s *Server) WithTarget(t buildconfig.Target) *Server {
 	s.target = t
 	return s
 }
 
 // Serve speaks the protocol on stdin/stdout until the client hangs up.
-func Serve(stdRoot string, target driver.Target, cache string, o driver.CompilerOptions, lazyStd bool) error {
+func Serve(stdRoot string, target buildconfig.Target, cache string, o buildconfig.CompilerOptions, lazyStd bool) error {
 	if o.Cwd == "" {
 		return errors.New("lsp: CompilerOptions.Cwd is required; the caller fills it from the process")
 	}

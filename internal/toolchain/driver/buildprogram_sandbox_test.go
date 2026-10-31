@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -21,7 +22,7 @@ func buildWith(t *testing.T, root, out, program string) error {
 	if err != nil {
 		return err
 	}
-	g, err := p.Run(driver.HostTarget(), nil, out)
+	g, err := p.Run(buildconfig.HostTarget(), nil, out)
 	if err != nil {
 		return err
 	}

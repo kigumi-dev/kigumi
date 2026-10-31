@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -115,7 +116,7 @@ func TestWasiProvidedSetRuns(t *testing.T) {
 	}
 }
 
-func runWasiProbe(t *testing.T, node, runner string, target driver.Target, probe wasiProbe) {
+func runWasiProbe(t *testing.T, node, runner string, target buildconfig.Target, probe wasiProbe) {
 	root, want := t.TempDir(), probe.want
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"wasirun\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	if probe.fixture != "" {

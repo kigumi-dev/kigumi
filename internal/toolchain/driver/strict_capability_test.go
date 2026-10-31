@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -19,7 +20,7 @@ func TestStrictProfileAllowsFreestandingSafeProviderOp(t *testing.T) {
 		"test \"cstring under a strict profile\" {\n    let h = Arena.create().unwrap()\n    allocator h.scope() {\n        let s = \"hi\"\n        let _ = ffi.CString.new(&s).unwrap()\n    }\n}\n"
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
 	std, _ := filepath.Abs("../../../std")
-	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
+	target, err := buildconfig.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}

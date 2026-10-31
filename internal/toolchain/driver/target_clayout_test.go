@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"kigumi/internal/lang/target"
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -19,7 +20,7 @@ func compileTriple(t *testing.T, triple, src string) string {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"w\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
 	std, _ := filepath.Abs("../../../std")
-	tg, err := driver.ParseTarget(testCompiler(), triple, "")
+	tg, err := buildconfig.ParseTarget(testCompiler(), triple, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +97,7 @@ func TestTargetDataLayoutMatchesCompiler(t *testing.T) {
 		if m == nil {
 			t.Fatalf("no datalayout in the IR for %s", triple)
 		}
-		parsed, err := driver.ParseTarget(testCompiler(), triple, "")
+		parsed, err := buildconfig.ParseTarget(testCompiler(), triple, "")
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -16,7 +17,7 @@ func load386(t *testing.T, src string) *driver.Module {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"w\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
 	std, _ := filepath.Abs("../../../std")
-	target, err := driver.ParseTarget(testCompiler(), "x86-linux-musl", "")
+	target, err := buildconfig.ParseTarget(testCompiler(), "x86-linux-musl", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +32,7 @@ func load386(t *testing.T, src string) *driver.Module {
 // wide, and an extern signature uses i32 behind a range check.
 func TestTargetLayout(t *testing.T) {
 	t.Parallel()
-	if driver.HostTarget().Layout().PtrBits != 64 {
+	if buildconfig.HostTarget().Layout().PtrBits != 64 {
 		t.Skip("host is not 64 bit")
 	}
 	res, err := driver.Check(load386(t, "let x: usize = 4294967296\nprint \"${x}\"\n"))
@@ -59,7 +60,7 @@ func TestTargetLayout(t *testing.T) {
 // emit calloc sized to the target's usize width, not a hardcoded i64,
 // since libc's calloc takes size_t = i32 on a 32 bit target.
 func TestTargetLayoutCValueCalloc(t *testing.T) {
-	if driver.HostTarget().Layout().PtrBits != 64 {
+	if buildconfig.HostTarget().Layout().PtrBits != 64 {
 		t.Skip("host is not 64 bit")
 	}
 	m := load386(t, "import ffi from std/ffi\n\nlet cv = ffi.CValue.new[i64](7)\nprint \"${cv.get()}\"\n")

@@ -7,10 +7,12 @@ import (
 	"strings"
 
 	"kigumi/internal/backend/llgen"
+	buildconfig "kigumi/internal/toolchain/config"
+	"kigumi/internal/toolchain/native/audit"
 )
 
 // wasi-libc's setjmp.h needs exception handling and a wasm backend has no jump of its own, so wasm keeps task panics fatal.
-func wantsTaskCatch(t Target) bool {
+func wantsTaskCatch(t buildconfig.Target) bool {
 	if t.OS == "wasi" {
 		return false
 	}
@@ -18,7 +20,7 @@ func wantsTaskCatch(t Target) bool {
 }
 
 // Only the x86 backends lower __builtin_setjmp, the one jump that needs no libc.
-func bareJumpTarget(t Target) bool {
+func bareJumpTarget(t buildconfig.Target) bool {
 	return t.Bare() && (t.Arch == "amd64" || t.Arch == "386")
 }
 
@@ -61,8 +63,8 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 	}
 	inputs = append(inputs, m.Sources...)
 	args := append(append(cc[1:], "-Wno-override-module"), codegenFlags(t, opts.SizeMin)...)
-	if t.compileTriple() != "" {
-		args = append(args, "-target", t.compileTriple())
+	if t.CompileTriple() != "" {
+		args = append(args, "-target", t.CompileTriple())
 	}
 	if t.Freestanding() {
 		args = append(args, "-nostdlib")
@@ -93,7 +95,11 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 			if err != nil || !built {
 				return err
 			}
-			return auditBareArchive(m.compiler, cc, staged, out, m.Manifest.Embedder)
+			ar, err := arTool(m.compiler, cc)
+			if err != nil {
+				return err
+			}
+			return audit.Archive(m.compiler, ar, staged, out, llgen.FreestandingSymbols(), m.Manifest.Embedder)
 		})
 		if err != nil || !ok {
 			return ok, err

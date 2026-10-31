@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 // Selection is the result of minimal version selection: for every
@@ -31,7 +33,7 @@ type verKey struct{ name, version string }
 // every reachable (name, version) manifest so the maximum per name does not
 // depend on discovery order; pass 2 rebuilds the edges from the winning
 // manifests only, so dependencies reachable only through a loser drop out.
-func SelectVersions(o CompilerOptions, root ModFile, local Local) (*Selection, error) {
+func SelectVersions(o buildconfig.CompilerOptions, root ModFile, local Local) (*Selection, error) {
 	max := map[string]Require{}
 	by := map[string]string{}
 	manifests := map[verKey]ModFile{}

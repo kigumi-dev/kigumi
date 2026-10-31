@@ -6,10 +6,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
-func buildWithTarget(t *testing.T, target driver.Target, src string, opts driver.BuildOptions) (out string) {
+func buildWithTarget(t *testing.T, target buildconfig.Target, src string, opts driver.BuildOptions) (out string) {
 	t.Helper()
 	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
@@ -46,12 +47,12 @@ func requireReason(t *testing.T, out, capability, op string) {
 }
 
 func TestSidecarRecordsCapabilityReasonsForHostedBuild(t *testing.T) {
-	out := buildWithTarget(t, driver.HostTarget(), hostArgsSrc, driver.BuildOptions{})
+	out := buildWithTarget(t, buildconfig.HostTarget(), hostArgsSrc, driver.BuildOptions{})
 	requireReason(t, out, "host.args", "HOST_ARGS")
 }
 
 func TestSidecarRecordsCapabilityReasonsForReproducibleBuild(t *testing.T) {
-	out := buildWithTarget(t, driver.HostTarget(), hostArgsSrc, driver.BuildOptions{Reproducible: true})
+	out := buildWithTarget(t, buildconfig.HostTarget(), hostArgsSrc, driver.BuildOptions{Reproducible: true})
 	requireReason(t, out, "host.args", "HOST_ARGS")
 }
 

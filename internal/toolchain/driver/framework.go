@@ -6,6 +6,7 @@ import (
 
 	"kigumi/internal/lang/diag"
 	"kigumi/internal/lang/token"
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 // FrameworkDescriptor is a kigumi.framework.kg: the Framework a directory provides and the tools it registers; only listed tools may run.
@@ -26,7 +27,7 @@ type ToolProgram struct {
 const builtinToolchainName = "toolchain"
 
 // toolchainDescriptor exposes BuildWith's C compiler as tool "cc" and, for zig, its LLD wrapper as "ld"; its cache dir goes under the build's own output dir since the tool env allowlist has no HOME.
-func toolchainDescriptor(o CompilerOptions, cacheDir string) FrameworkDescriptor {
+func toolchainDescriptor(o buildconfig.CompilerOptions, cacheDir string) FrameworkDescriptor {
 	fd := FrameworkDescriptor{Name: builtinToolchainName, Tools: map[string]ToolProgram{}}
 	cc := o.CCompiler()
 	if len(cc) == 0 {

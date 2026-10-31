@@ -114,7 +114,7 @@ type RuntimeFile struct {
 }
 
 // freestandingOS have no bundled libc headers at all; a hosted "--sys
-// none" target keeps its real OS headers (driver.Target.Bare's doc).
+// none" target keeps its real OS headers (config.Target.Bare's doc).
 var freestandingOS = map[string]bool{"freestanding": true, "uefi": true}
 
 // RuntimeFiles includes rt_signal.c only for hosted POSIX OSes, which alone have <signal.h>.

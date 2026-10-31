@@ -3,11 +3,13 @@ package driver
 import (
 	"os"
 	"path/filepath"
+
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
-func internalTestCompiler() CompilerOptions {
+func internalTestCompiler() buildconfig.CompilerOptions {
 	cwd, _ := os.Getwd()
 	home, _ := os.UserHomeDir()
 	cache, _ := os.UserCacheDir()
-	return CompilerOptions{Host: HostTarget(), CacheDir: cache, Cwd: cwd, PathDirs: filepath.SplitList(os.Getenv("PATH")), Home: home}
+	return buildconfig.CompilerOptions{Host: buildconfig.HostTarget(), CacheDir: cache, Cwd: cwd, PathDirs: filepath.SplitList(os.Getenv("PATH")), Home: home}
 }

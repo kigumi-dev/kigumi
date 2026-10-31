@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/version"
 )
 
@@ -28,7 +29,7 @@ func TestPackageSCCsCollapseCyclesDependenciesFirst(t *testing.T) {
 }
 
 func TestCacheEnvCoversTargetAndFeatureFlags(t *testing.T) {
-	base := func() *Module { return &Module{target: HostTarget()} }
+	base := func() *Module { return &Module{target: buildconfig.HostTarget()} }
 	want := base().cacheEnv()
 	if base().cacheEnv() != want {
 		t.Fatal("the environment hash is deterministic")
@@ -56,7 +57,7 @@ func TestCacheEnvCoversTargetAndFeatureFlags(t *testing.T) {
 }
 
 func TestCacheEnvMovesWithCompilerAndRuntimeAbi(t *testing.T) {
-	m := &Module{target: HostTarget()}
+	m := &Module{target: buildconfig.HostTarget()}
 	base := m.cacheEnv()
 	defer func(c func() version.Provenance, a func() string, e func() (string, error)) {
 		compilerIdentity, runtimeAbi, executablePath = c, a, e

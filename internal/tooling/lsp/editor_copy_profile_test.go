@@ -9,14 +9,14 @@ import (
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 
-	"kigumi/internal/toolchain/driver"
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/tooling/lsp"
 )
 
 const profileCopySrc = "type Nm = {\n    pub name String\n    pub mut n Int\n}\n\nfn dup(o: Nm?) -> Int {\n    let mut b = o\n    match &mut b {\n        Some(x) -> { x.n = 2 }\n        None -> {}\n    }\n    if o is Some(_) { 1 } else { 0 }\n}\n\nfn main() -> Void! {\n    let o: Nm? = None\n    let n = dup(o)\n}\n"
 
-func withProfile(allocator, profile string) driver.Target {
-	t := driver.HostTarget()
+func withProfile(allocator, profile string) buildconfig.Target {
+	t := buildconfig.HostTarget()
 	t.Allocator, t.Profile = allocator, profile
 	return t
 }

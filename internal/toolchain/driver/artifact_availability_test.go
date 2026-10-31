@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -39,7 +40,7 @@ func runArtifactAvailability(t *testing.T, root, out string) (stderr string, err
 	if loadErr != nil {
 		t.Fatal(loadErr)
 	}
-	g, runErr := p.Run(driver.HostTarget(), nil, out)
+	g, runErr := p.Run(buildconfig.HostTarget(), nil, out)
 	if runErr != nil {
 		t.Fatal(runErr)
 	}
@@ -103,7 +104,7 @@ func TestArtifactAvailabilityDenyRejectsUnknownPath(t *testing.T) {
 	if loadErr != nil {
 		t.Fatal(loadErr)
 	}
-	_, runErr := p.Run(driver.HostTarget(), nil, out)
+	_, runErr := p.Run(buildconfig.HostTarget(), nil, out)
 	if runErr == nil {
 		t.Fatal("expected configure to abort on an unknown deny path")
 	}

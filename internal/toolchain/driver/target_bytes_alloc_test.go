@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -64,7 +65,7 @@ func TestBytesAllocationRefusesAboveSizeT(t *testing.T) {
 
 func runX86(t *testing.T, src string) (string, error) {
 	t.Helper()
-	target, err := driver.ParseTarget(testCompiler(), "x86-linux-musl", "")
+	target, err := buildconfig.ParseTarget(testCompiler(), "x86-linux-musl", "")
 	if err != nil {
 		t.Fatal(err)
 	}

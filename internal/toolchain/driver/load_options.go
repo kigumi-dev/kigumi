@@ -1,6 +1,11 @@
 package driver
 
-import "io"
+import (
+	"io"
+
+	buildconfig "kigumi/internal/toolchain/config"
+	"kigumi/internal/toolchain/policy"
+)
 
 // LoadOptions controls which files become part of the module.
 type LoadOptions struct {
@@ -16,7 +21,7 @@ type LoadOptions struct {
 	// before `kigumi get`).
 	NoDeps bool
 	// Target selects platform-suffixed files; the zero value is the host.
-	Target Target
+	Target buildconfig.Target
 	// NoLocal ignores mod.local.kg, so a build sees the same versions the
 	// module's users get.
 	NoLocal bool
@@ -32,7 +37,7 @@ type LoadOptions struct {
 	ExtraLinks   []Link
 	// Policy governs the release predicate: under Release a local replacement or
 	// unlocked dependency-bearing script fails the load instead of only warning.
-	Policy BuildPolicy
+	Policy policy.BuildPolicy
 	// ZigPath is $KIGUMI_ZIG; internal/cli reads the environment and passes
 	// it in here. "" resolves zig from PATH instead.
 	ZigPath string
@@ -72,7 +77,7 @@ type LoadOptions struct {
 	// FileOrder reorders each directory's files and the package list after the name sort; tests only.
 	FileOrder func(names []string)
 	// Compiler carries the process facts the compiler consults; internal/cli fills it in.
-	Compiler CompilerOptions
+	Compiler buildconfig.CompilerOptions
 	// headerTriple, when set, is the triple Header records translate against instead of the default link's.
 	headerTriple *string
 }

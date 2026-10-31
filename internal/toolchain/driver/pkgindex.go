@@ -1,6 +1,10 @@
 package driver
 
-import "time"
+import (
+	"time"
+
+	buildconfig "kigumi/internal/toolchain/config"
+)
 
 // indexedFile is one source file as the package index knows it: metadata first, content hash and imports only once a caller needs them.
 type indexedFile struct {
@@ -43,7 +47,7 @@ type IndexStats struct {
 	MemoHits        int
 }
 
-func newPkgIndex(cacheDir, root string, o CompilerOptions, now func() time.Time) *pkgIndex {
+func newPkgIndex(cacheDir, root string, o buildconfig.CompilerOptions, now func() time.Time) *pkgIndex {
 	return &pkgIndex{pkgs: map[string]*indexedPackage{}, memo: loadIndexMemo(cacheDir, root, o, now)}
 }
 

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -16,7 +17,7 @@ func checkStrict(t *testing.T, main string, strict bool, budgetKiB int) string {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"budget\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(main), 0o644)
 	std, _ := filepath.Abs("../../../std")
-	target := driver.HostTarget()
+	target := buildconfig.HostTarget()
 	target.StrictStack = strict
 	target.StackBudgetKiB = budgetKiB
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
@@ -142,7 +143,7 @@ func analyzeModule(t *testing.T, main string, strict bool, budgetKiB int) *drive
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"budget\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(main), 0o644)
 	std, _ := filepath.Abs("../../../std")
-	target := driver.HostTarget()
+	target := buildconfig.HostTarget()
 	target.StrictStack = strict
 	target.StackBudgetKiB = budgetKiB
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})

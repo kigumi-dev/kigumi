@@ -13,6 +13,7 @@ import (
 
 	"kigumi/internal/backend/llgen"
 	"kigumi/internal/compiler/mir"
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 	"kigumi/internal/toolchain/version"
 )
@@ -26,7 +27,7 @@ const (
 func profileOf(t *testing.T, src string, cflags ...string) driver.RuntimeProfile {
 	t.Helper()
 	var stderr bytes.Buffer
-	p, ok, err := driver.RuntimeProfileOf(loadTryConstructorModule(t, src), &stderr, driver.HostTarget(), cflags)
+	p, ok, err := driver.RuntimeProfileOf(loadTryConstructorModule(t, src), &stderr, buildconfig.HostTarget(), cflags)
 	if err != nil || !ok {
 		t.Fatalf("profile: ok=%v err=%v\n%s", ok, err, stderr.String())
 	}
@@ -159,7 +160,7 @@ func TestRegistryChangeInvalidatesRuntime(t *testing.T) {
 	archive := filepath.Join(t.TempDir(), "rt.a")
 	bareBuild := func() (string, driver.ArtifactFingerprint) {
 		t.Helper()
-		target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
+		target, err := buildconfig.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 		if err != nil {
 			t.Fatal(err)
 		}

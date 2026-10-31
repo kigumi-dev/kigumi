@@ -7,6 +7,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	buildconfig "kigumi/internal/toolchain/config"
+	"kigumi/internal/toolchain/native/object"
 )
 
 func isZig(cc []string) bool {
@@ -20,7 +23,7 @@ type hostLink struct {
 	inputs         []string
 	dir            string
 	opts           BuildOptions
-	t              Target
+	t              buildconfig.Target
 	link           Linkage
 	cflags, lflags []string
 	stderr         io.Writer
@@ -100,7 +103,7 @@ func (h hostLink) run(staged string) error {
 	}
 	if h.link.Static && !opts.SizeMin && isZig(cc) {
 		// zig cc turns --strip-debug into a full strip, and its static libc objects carry absolute build paths in DWARF.
-		return stripELFDebug(linkOut)
+		return object.StripDebug(linkOut)
 	}
 	return nil
 }

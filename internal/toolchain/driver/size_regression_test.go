@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -29,7 +30,7 @@ func TestExecutableSizeRegression(t *testing.T) {
 	if cc == nil || driver.ZigVersionOf(cc) != "0.17.0" {
 		t.Skip("the pinned sizes are zig 0.17.0's")
 	}
-	target, err := driver.ParseTarget(testCompiler(), "x86_64-linux-musl", "")
+	target, err := buildconfig.ParseTarget(testCompiler(), "x86_64-linux-musl", "")
 	if err != nil {
 		t.Fatal(err)
 	}

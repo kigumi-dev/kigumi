@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -44,7 +45,7 @@ func funcBody(t *testing.T, ir, name string) string {
 // runChild must size the execvp() argv array off the target's real pointer
 // width (4 bytes on a 32-bit target), not a hardcoded 8-byte stride.
 func TestShellArgvUsesTargetPointerWidth(t *testing.T) {
-	target, err := driver.ParseTarget(testCompiler(), "x86-linux-musl", "")
+	target, err := buildconfig.ParseTarget(testCompiler(), "x86-linux-musl", "")
 	if err != nil {
 		t.Fatal(err)
 	}

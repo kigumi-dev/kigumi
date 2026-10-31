@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -64,7 +65,7 @@ func TestMapSeedRaceKeepsOneSeed(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../../std", Target: driver.HostTarget()})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../../std", Target: buildconfig.HostTarget()})
 	if err != nil {
 		t.Fatal(err)
 	}

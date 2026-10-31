@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"kigumi/internal/toolchain/buildgraph"
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -38,7 +39,7 @@ func TestBuildProgramRunArtifact(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	g, err := p.Run(driver.HostTarget(), nil, out)
+	g, err := p.Run(buildconfig.HostTarget(), nil, out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +72,7 @@ func TestBuildProgramRunArtifact(t *testing.T) {
 // cross-compiled one.
 func TestRunArtifactValidation(t *testing.T) {
 	t.Parallel()
-	host := driver.HostTarget()
+	host := buildconfig.HostTarget()
 	crossArch := "aarch64"
 	if host.Arch == "arm64" {
 		crossArch = "x86_64"

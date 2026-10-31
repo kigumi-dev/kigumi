@@ -10,7 +10,7 @@ import (
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 
-	"kigumi/internal/toolchain/driver"
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 // recorder is the client side: it keeps every published diagnostic and
@@ -45,7 +45,7 @@ func TestServer(t *testing.T) {
 	rec := &recorder{}
 	ctx := protocol.WithClient(context.Background(), rec)
 	wd, _ := os.Getwd()
-	s := newServer("../../../std").WithPackageCache("", driver.CompilerOptions{Cwd: wd})
+	s := newServer("../../../std").WithPackageCache("", buildconfig.CompilerOptions{Cwd: wd})
 	doc := uri.File(path)
 	rootURI := uri.File(root)
 

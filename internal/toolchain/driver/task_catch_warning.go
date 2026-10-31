@@ -4,10 +4,11 @@ import (
 	"fmt"
 
 	"kigumi/internal/compiler/mir"
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 // The runtime keeps a task panic fatal there; this only says so.
-func (a *Analysis) warnTaskPanicFatal(t Target, reach *mir.Reachability) {
+func (a *Analysis) warnTaskPanicFatal(t buildconfig.Target, reach *mir.Reachability) {
 	if wantsTaskCatch(t) {
 		return
 	}
@@ -22,7 +23,7 @@ func (a *Analysis) warnTaskPanicFatal(t Target, reach *mir.Reachability) {
 	a.Res.WarnTaskPanicFatal(targetLabel(t), caller.File, site.Node)
 }
 
-func targetLabel(t Target) string {
+func targetLabel(t buildconfig.Target) string {
 	if t.Triple != "" {
 		return t.Triple
 	}

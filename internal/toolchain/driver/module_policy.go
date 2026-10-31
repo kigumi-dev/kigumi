@@ -3,6 +3,8 @@ package driver
 import (
 	"fmt"
 	"sort"
+
+	"kigumi/internal/toolchain/policy"
 )
 
 // LocalOverrides lists the mod.local.kg replacements in effect, sorted by
@@ -33,16 +35,16 @@ func (m *Module) Dependencies() []string {
 
 // checkLocalReplace records a release-local-replace violation for every
 // mod.local.kg entry; a policy that denies local overrides fails the load outright.
-func (m *Module) checkLocalReplace(policy BuildPolicy) error {
+func (m *Module) checkLocalReplace(pol policy.BuildPolicy) error {
 	names := make([]string, 0, len(m.local.Replaces))
 	for name := range m.local.Replaces {
 		names = append(names, name)
 	}
 	sort.Strings(names)
 	for _, name := range names {
-		v := localReplaceViolation(name, m.local.Replaces[name], m.local.Provenance[name])
-		if policy.LocalOverride == LocalOverrideDeny {
-			return releaseError(v)
+		v := policy.LocalReplaceViolation(name, m.local.Replaces[name], m.local.Provenance[name])
+		if pol.LocalOverride == policy.LocalOverrideDeny {
+			return policy.Error(v)
 		}
 		m.Violations = append(m.Violations, v)
 	}

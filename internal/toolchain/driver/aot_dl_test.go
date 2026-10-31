@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -67,7 +68,7 @@ func TestDLFreestanding(t *testing.T) {
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"bare\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import dl from std/dl\n\nfn f(loader: dl.Loader) {\n    _ = loader.open(\"x\")\n}\n"), 0o644)
-	target, _ := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
+	target, _ := buildconfig.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	std, _ := filepath.Abs("../../../std")
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {

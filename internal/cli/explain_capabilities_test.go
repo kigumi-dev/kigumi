@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/devkit/testtool"
+	"kigumi/internal/devkit/hosttool"
 )
 
 const capabilitySrc = "let args = host.args()\nprint \"${args.len()}\"\n"
@@ -36,7 +36,7 @@ func TestExplainCapabilitiesResolvesAgainstTarget(t *testing.T) {
 }
 
 func TestExplainCapabilitiesReadsBuiltArtifact(t *testing.T) {
-	if _, _, ok := testtool.CCompiler(exec.LookPath); !ok {
+	if _, _, ok := hosttool.CCompiler(exec.LookPath); !ok {
 		t.Skip("no C toolchain (zig or clang) on PATH")
 	}
 	std, _ := filepath.Abs("../../std")

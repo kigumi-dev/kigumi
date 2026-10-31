@@ -7,10 +7,11 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
-func compileFor(t *testing.T, target driver.Target, src string) (out string, ok bool) {
+func compileFor(t *testing.T, target buildconfig.Target, src string) (out string, ok bool) {
 	t.Helper()
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"prov\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
@@ -28,9 +29,9 @@ func compileFor(t *testing.T, target driver.Target, src string) (out string, ok 
 	return buf.String(), ok
 }
 
-func mustTarget(t *testing.T, triple, sys string) driver.Target {
+func mustTarget(t *testing.T, triple, sys string) buildconfig.Target {
 	t.Helper()
-	tgt, err := driver.ParseTarget(testCompiler(), triple, sys)
+	tgt, err := buildconfig.ParseTarget(testCompiler(), triple, sys)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +45,7 @@ func TestCapabilityProvisionRejectsOnEveryTarget(t *testing.T) {
 	const pool = "import task from std/task\n\nasync fn leaf(n: Int) -> Int {\n    n\n}\n\nlet pool = task.threadPoolExecutor(2)\nprint \"${pool.runToCompletion(leaf(1))}\"\n"
 	cases := []struct {
 		name, src string
-		target    driver.Target
+		target    buildconfig.Target
 		want      []string
 	}{
 		{"sys none, no strict profile", hostArgsSrc, mustTarget(t, "", "none"), []string{"E1370", "HOST_ARGS", "host.args", "--sys none", "main"}},
@@ -72,12 +73,12 @@ func TestCapabilityProvisionAcceptsWhatTheTargetProvides(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name, src string
-		target    driver.Target
+		target    buildconfig.Target
 	}{
-		{"hosted host.args", hostArgsSrc, driver.HostTarget()},
+		{"hosted host.args", hostArgsSrc, buildconfig.HostTarget()},
 		{"wasi host.args", hostArgsSrc, mustTarget(t, "wasm32-wasi", "")},
-		{"hosted signals", "let s = host.signals()\nprint \"x\"\n", driver.HostTarget()},
-		{"hosted net", "let c = host.net().http()\nprint \"x\"\n", driver.HostTarget()},
+		{"hosted signals", "let s = host.signals()\nprint \"x\"\n", buildconfig.HostTarget()},
+		{"hosted net", "let c = host.net().http()\nprint \"x\"\n", buildconfig.HostTarget()},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -87,7 +88,7 @@ func TestWindowsPlatformFilesCheck(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	target, err := driver.ParseTarget(testCompiler(), "x86_64-windows", "")
+	target, err := buildconfig.ParseTarget(testCompiler(), "x86_64-windows", "")
 	if err != nil {
 		t.Fatal(err)
 	}

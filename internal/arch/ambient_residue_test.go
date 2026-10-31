@@ -17,7 +17,7 @@ var residueSymbols = map[string]bool{
 
 // residueAllowed freezes the ambient reads still outside CompilerOptions; a new one must go through the options instead.
 var residueAllowed = map[string]bool{
-	"toolchain/driver/compiler_options.go runtime.GOOS": true, "toolchain/driver/compiler_options.go runtime.GOARCH": true,
+	"toolchain/config/compiler_options.go runtime.GOOS": true, "toolchain/config/compiler_options.go runtime.GOARCH": true,
 	"toolchain/zig/fetch/host_triple.go runtime.GOOS": true, "toolchain/zig/fetch/host_triple.go runtime.GOARCH": true,
 	"toolchain/zig/fetch/install_release.go runtime.GOOS": true, "toolchain/zig/fetch/install_release.go runtime.GOARCH": true,
 	"toolchain/zig/store/root_dir.go runtime.GOOS": true,
@@ -28,7 +28,7 @@ var residueAllowed = map[string]bool{
 
 func TestAmbientReadsOutsideOptionsAreFrozen(t *testing.T) {
 	seen := map[string]bool{}
-	for _, dir := range []string{"toolchain/driver", "toolchain/zig", "base/platform", "lang/target"} {
+	for _, dir := range []string{"toolchain/driver", "toolchain/config", "toolchain/zig", "base/platform", "lang/target"} {
 		root := filepath.Join("..", dir)
 		err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 			if err != nil || d.IsDir() || !strings.HasSuffix(p, ".go") || strings.HasSuffix(p, "_test.go") {

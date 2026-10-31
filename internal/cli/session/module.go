@@ -14,7 +14,9 @@ import (
 
 	"kigumi/internal/base/errors"
 	"kigumi/internal/cli/exit"
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/policy"
 )
 
 // StdRoot resolves the std stub directory: the --std flag, $KIGUMI_STD,
@@ -43,8 +45,8 @@ func StdRoot(cmd *cobra.Command) string {
 // Parse diagnostics go to errOut and end the command with exit code 1.
 // policy is Development when omitted; only `kigumi build`/`check` pass
 // Release, through the --release flag.
-func Load(cmd *cobra.Command, target string, test bool, errOut io.Writer, policy ...driver.BuildPolicy) (*driver.Module, error) {
-	return load(cmd, target, test, false, false, errOut, policy)
+func Load(cmd *cobra.Command, target string, test bool, errOut io.Writer, policies ...policy.BuildPolicy) (*driver.Module, error) {
+	return load(cmd, target, test, false, false, errOut, policies)
 }
 
 // LoadWhole is Load for a command that describes the whole module even when the target names one entry file (doc, schema).
@@ -53,11 +55,11 @@ func LoadWhole(cmd *cobra.Command, target string, test bool, errOut io.Writer) (
 }
 
 // LoadSettled is Load for a command that only needs the check outcome: an unchanged module answers from the package cache without parsing a source.
-func LoadSettled(cmd *cobra.Command, target string, test bool, errOut io.Writer, policy ...driver.BuildPolicy) (*driver.Module, error) {
-	return load(cmd, target, test, true, false, errOut, policy)
+func LoadSettled(cmd *cobra.Command, target string, test bool, errOut io.Writer, policies ...policy.BuildPolicy) (*driver.Module, error) {
+	return load(cmd, target, test, true, false, errOut, policies)
 }
 
-func load(cmd *cobra.Command, target string, test, deferParse, whole bool, errOut io.Writer, policy []driver.BuildPolicy) (*driver.Module, error) {
+func load(cmd *cobra.Command, target string, test, deferParse, whole bool, errOut io.Writer, policies []policy.BuildPolicy) (*driver.Module, error) {
 	root, entry := target, ""
 	if strings.HasSuffix(target, ".kg") {
 		if _, err := os.Stat(target); err != nil {
@@ -79,9 +81,9 @@ func load(cmd *cobra.Command, target string, test, deferParse, whole bool, errOu
 	if err != nil {
 		return nil, &cliutil.UsageError{Err: err}
 	}
-	pol := driver.Development()
-	if len(policy) > 0 {
-		pol = policy[0]
+	pol := policy.Development()
+	if len(policies) > 0 {
+		pol = policies[0]
 	}
 	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: StdRoot(cmd), Test: test, Entry: entry, NoLocal: noLocal || LocalOff(), Target: tgt, Policy: pol, ZigPath: ZigPath(), ZigHome: ZigHome(), Offline: Offline(cmd), VerifyPasses: VerifyPasses(), Compiler: CompilerOptions(), PackageCache: PackageCache(), DeferParse: deferParse, UnitCheck: deferParse && UnitCheck(), LazyStd: UnitCheck(), AllOwnPackages: whole})
 	if err != nil {
@@ -126,10 +128,10 @@ func moduleRoot(entry string) string {
 }
 
 // Target reads the --target and --sys flags.
-func Target(cmd *cobra.Command) (driver.Target, error) {
+func Target(cmd *cobra.Command) (buildconfig.Target, error) {
 	triple, _ := cmd.Flags().GetString("target")
 	sys, _ := cmd.Flags().GetString("sys")
-	t, err := driver.ParseTarget(CompilerOptions(), triple, sys)
+	t, err := buildconfig.ParseTarget(CompilerOptions(), triple, sys)
 	if err != nil {
 		return t, err
 	}

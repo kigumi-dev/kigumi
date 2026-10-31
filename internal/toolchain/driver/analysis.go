@@ -4,6 +4,7 @@ import (
 	"kigumi/internal/backend/llgen"
 	"kigumi/internal/compiler/mir"
 	"kigumi/internal/compiler/sem"
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/contract/schema"
 )
 
@@ -93,7 +94,7 @@ type progOptions struct {
 	// rootKeep limits the own packages lowered up front.
 	rootKeep func(path string) bool
 	// target is what the program is built for, which the native lowering's boxes depend on.
-	target Target
+	target buildconfig.Target
 }
 
 // buildProgram returns a program with diagnostics unverified.
@@ -119,7 +120,7 @@ func buildProgram(res *sem.Result, o progOptions) (*mir.Program, error) {
 	return prog, nil
 }
 
-func nativeBoxSites(t Target) func(*mir.Program) mir.NativeBoxSites {
+func nativeBoxSites(t buildconfig.Target) func(*mir.Program) mir.NativeBoxSites {
 	return func(p *mir.Program) mir.NativeBoxSites {
 		opts := emitOptionsFor(t)
 		opts.Reachable = mir.Reachable(p)

@@ -15,7 +15,7 @@ type Options struct {
 	// ZigPath is the zig binary to run (internal/toolchain/driver's own lookup).
 	ZigPath string
 	// Target is the compile triple translate-c should see, matching the
-	// current build (internal/toolchain/driver Target.compileTriple()); "" for host.
+	// current build (internal/toolchain/config Target.CompileTriple()); "" for host.
 	Target string
 	ABI    ABI
 	// HeaderPath is the header's absolute path.

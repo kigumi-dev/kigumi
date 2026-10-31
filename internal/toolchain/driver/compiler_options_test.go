@@ -5,12 +5,13 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
 func TestCompilerOptionsHostDecidesTheDefaultTarget(t *testing.T) {
-	darwin := driver.CompilerOptions{Host: driver.Target{OS: "darwin", Arch: "arm64", Sys: "posix"}}
-	got, err := driver.ParseTarget(darwin, "", "")
+	darwin := buildconfig.CompilerOptions{Host: buildconfig.Target{OS: "darwin", Arch: "arm64", Sys: "posix"}}
+	got, err := buildconfig.ParseTarget(darwin, "", "")
 	if err != nil || got.OS != "darwin" || got.Arch != "arm64" {
 		t.Fatalf("ParseTarget with a darwin host = %+v, %v", got, err)
 	}
@@ -36,14 +37,14 @@ func TestCompilerOptionsHostDecidesTheDefaultTarget(t *testing.T) {
 }
 
 func TestZeroCompilerOptionsReadsNothingFromTheProcess(t *testing.T) {
-	var zero driver.CompilerOptions
+	var zero buildconfig.CompilerOptions
 	if _, err := zero.Abs("rel"); err == nil {
 		t.Error("Abs of a relative path with an empty Cwd must fail")
 	}
 	if p, err := zero.Abs("/abs/x"); err != nil || p != "/abs/x" {
 		t.Errorf("Abs of an absolute path = %q, %v", p, err)
 	}
-	for _, o := range []driver.CompilerOptions{zero, {PathDirs: []string{}}} {
+	for _, o := range []buildconfig.CompilerOptions{zero, {PathDirs: []string{}}} {
 		if p, err := o.ToolLookup()("sh"); err == nil {
 			t.Errorf("an empty search path found sh at %s", p)
 		}
@@ -70,15 +71,15 @@ func TestZeroCompilerOptionsReadsNothingFromTheProcess(t *testing.T) {
 
 func TestCompilerOptionsCacheDirIsExplicit(t *testing.T) {
 	cache := t.TempDir()
-	got, err := driver.CacheDir(driver.CompilerOptions{CacheDir: cache}, driver.Require{Name: "example.com/a", Version: "v1.0.0"})
+	got, err := driver.CacheDir(buildconfig.CompilerOptions{CacheDir: cache}, driver.Require{Name: "example.com/a", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if want := filepath.Join(cache, "kigumi", "mod", "example.com", "a@v1.0.0"); got != want {
 		t.Errorf("CacheDir = %q, want %q", got, want)
 	}
-	header, _ := driver.HeaderCacheDir(driver.CompilerOptions{CacheDir: cache})
-	derive, _ := driver.DeriveCacheDir(driver.CompilerOptions{CacheDir: cache})
+	header, _ := driver.HeaderCacheDir(buildconfig.CompilerOptions{CacheDir: cache})
+	derive, _ := driver.DeriveCacheDir(buildconfig.CompilerOptions{CacheDir: cache})
 	if header != filepath.Join(cache, "kigumi", "cheader") || derive != filepath.Join(cache, "kigumi", "derive") {
 		t.Errorf("header cache %q, derive cache %q", header, derive)
 	}

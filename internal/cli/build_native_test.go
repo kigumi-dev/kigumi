@@ -7,12 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/devkit/testtool"
+	"kigumi/internal/devkit/hosttool"
 )
 
 // Split out from TestBuildRejectsBuildProgramFlagsWithoutOne so that one stays hermetic.
 func TestBuildPlainBuildNative(t *testing.T) {
-	name, version, ok := testtool.CCompiler(exec.LookPath)
+	name, version, ok := hosttool.CCompiler(exec.LookPath)
 	if !ok {
 		t.Skip("no C toolchain (zig or clang) on PATH")
 	}

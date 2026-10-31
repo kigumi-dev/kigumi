@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"kigumi/internal/toolchain/buildgraph"
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/contract/schema"
 	"kigumi/internal/toolchain/version"
 )
@@ -18,7 +19,7 @@ func PlanJSON(rg *ResolvedGraph, p *BuildProgram) string {
 func PlanJSONWithStats(rg *ResolvedGraph, p *BuildProgram) (string, PlanStats) {
 	type artifact struct {
 		*buildgraph.Artifact
-		Resolved         Target                     `json:"resolved"`
+		Resolved         buildconfig.Target         `json:"resolved"`
 		Fingerprint      ArtifactFingerprint        `json:"fingerprint"`
 		DeriveProvenance []schema.GeneratedArtifact `json:"deriveProvenance,omitempty"`
 	}

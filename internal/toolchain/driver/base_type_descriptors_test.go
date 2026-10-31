@@ -7,12 +7,13 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
 var baseDescriptorRe = regexp.MustCompile(`@"\.type\.[^"]*\.(Ordering|Range|AllocError|Map)" = global`)
 
-func irFor(t *testing.T, target driver.Target, src string) string {
+func irFor(t *testing.T, target buildconfig.Target, src string) string {
 	t.Helper()
 	root := t.TempDir()
 	writeBaseTypesModule(t, root, src)
@@ -32,8 +33,8 @@ func irFor(t *testing.T, target driver.Target, src string) string {
 func TestEmitDataOmitsUnreferencedBaseTypes(t *testing.T) {
 	t.Parallel()
 	const plain = "print \"hi\"\n"
-	for name, target := range map[string]driver.Target{
-		"hosted":       driver.HostTarget(),
+	for name, target := range map[string]buildconfig.Target{
+		"hosted":       buildconfig.HostTarget(),
 		"freestanding": mustTarget(t, "x86_64-freestanding", ""),
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -44,7 +45,7 @@ func TestEmitDataOmitsUnreferencedBaseTypes(t *testing.T) {
 			}
 		})
 	}
-	used := irFor(t, driver.HostTarget(), "let r = 0..3\nprint \"${r.end}\"\nlet o = \"a\".compareTo(&\"b\")\nprint \"${o is Ordering.Less}\"\n")
+	used := irFor(t, buildconfig.HostTarget(), "let r = 0..3\nprint \"${r.end}\"\nlet o = \"a\".compareTo(&\"b\")\nprint \"${o is Ordering.Less}\"\n")
 	if found := baseDescriptorRe.FindAllStringSubmatch(used, -1); len(found) != 2 {
 		t.Errorf("a program using Range and Ordering emits %v, want exactly those two descriptors", found)
 	}

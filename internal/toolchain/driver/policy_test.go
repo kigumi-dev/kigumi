@@ -7,27 +7,8 @@ import (
 	"testing"
 
 	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/policy"
 )
-
-// Development is BuildPolicy's zero value, so every pre-existing call
-// site that never mentions Policy keeps today's behavior.
-func TestDevelopmentIsZeroValue(t *testing.T) {
-	if driver.Development() != (driver.BuildPolicy{}) {
-		t.Fatal("Development() must equal the zero BuildPolicy")
-	}
-	if driver.Development().IsRelease() {
-		t.Fatal("Development must not be a release policy")
-	}
-	if !driver.Release().IsRelease() {
-		t.Fatal("Release must be a release policy")
-	}
-	if got := driver.Development().String(); got != "development" {
-		t.Fatalf("Development().String() = %q", got)
-	}
-	if got := driver.Release().String(); got != "release-v1" {
-		t.Fatalf("Release().String() = %q", got)
-	}
-}
 
 func writeDepModule(t *testing.T, dir, name string) {
 	t.Helper()
@@ -48,11 +29,11 @@ func TestLocalReplaceReleasePolicy(t *testing.T) {
 	os.WriteFile(filepath.Join(app, "mod.local.kg"), []byte("Replace { name: \"greet\", path: \""+filepath.ToSlash(dep)+"\" }\n"), 0o644)
 	os.WriteFile(filepath.Join(app, "main.kg"), []byte("import {greeting} from greet\nprint greeting()\n"), 0o644)
 
-	m, err := driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler(), Policy: driver.Development()})
+	m, err := driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler(), Policy: policy.Development()})
 	if err != nil {
 		t.Fatalf("development must still load from the replacement: %v", err)
 	}
-	report := driver.EvaluateRelease(m, driver.Development())
+	report := policy.Evaluate(m.Violations, policy.Development())
 	if len(report.Warnings) != 1 || report.Warnings[0].ID != "release-local-replace" {
 		t.Fatalf("want one release-local-replace warning, got %+v", report)
 	}
@@ -60,7 +41,7 @@ func TestLocalReplaceReleasePolicy(t *testing.T) {
 		t.Fatal("development must not error on a local replacement")
 	}
 
-	_, err = driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler(), Policy: driver.Release()})
+	_, err = driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler(), Policy: policy.Release()})
 	if err == nil {
 		t.Fatal("release must refuse a local replacement")
 	}
@@ -87,16 +68,16 @@ func TestUnlockedScriptReleasePolicy(t *testing.T) {
 	script := filepath.Join(root, "main.kg")
 	os.WriteFile(script, []byte("Kigumi { version: \"0.1\" }\nRequire { name: \"greet\", version: \"v1.0.0\" }\n\nimport {greeting} from greet\nprint greeting()\n"), 0o644)
 
-	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), Policy: driver.Development()})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), Policy: policy.Development()})
 	if err != nil {
 		t.Fatalf("development must load an unlocked script: %v", err)
 	}
-	report := driver.EvaluateRelease(m, driver.Development())
+	report := policy.Evaluate(m.Violations, policy.Development())
 	if len(report.Warnings) != 1 || report.Warnings[0].ID != "release-unlocked-script" {
 		t.Fatalf("want one release-unlocked-script warning, got %+v", report)
 	}
 
-	_, err = driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), Policy: driver.Release()})
+	_, err = driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), Policy: policy.Release()})
 	if err == nil {
 		t.Fatal("release must refuse a script with no sidecar lock")
 	}
@@ -116,53 +97,13 @@ func TestNativeLinkUnresolvedReleasePolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	devReport := driver.EvaluateRelease(m, driver.Development())
+	devReport := policy.Evaluate(m.Violations, policy.Development())
 	if len(devReport.Warnings) != 1 || devReport.Warnings[0].ID != "release-native-link-unresolved" {
 		t.Fatalf("want one release-native-link-unresolved warning, got %+v", devReport)
 	}
-	relReport := driver.EvaluateRelease(m, driver.Release())
+	relReport := policy.Evaluate(m.Violations, policy.Release())
 	if len(relReport.Errors) != 1 || relReport.Errors[0].ID != "release-native-link-unresolved" {
 		t.Fatalf("want one release-native-link-unresolved error, got %+v", relReport)
-	}
-}
-
-// TestReportRenderShape checks EvaluateRelease's rendering: a severity word, the
-// stable id, detail lines, a release-policy reason, a help line, and a summary.
-func TestReportRenderShape(t *testing.T) {
-	report := driver.EvaluateRelease(&driver.Module{Violations: []driver.Violation{{
-		ID:      "release-local-replace",
-		Subject: "github.com/acme/codec is resolved from a local directory",
-		Detail:  []driver.KV{{Key: "selected by", Value: "/work/mod.local.kg:3"}, {Key: "replacement", Value: "/work/codec"}},
-		Policy:  "rejected because the content is not the locked module tree",
-		Help:    "update and lock the dependency, or keep this as a development build",
-	}}}, driver.Development())
-	out := report.Render()
-	for _, want := range []string{
-		"warning[release-local-replace]: github.com/acme/codec is resolved from a local directory\n",
-		"  selected by: /work/mod.local.kg:3\n",
-		"  replacement: /work/codec\n",
-		"  release policy: rejected because the content is not the locked module tree\n",
-		"  help: update and lock the dependency, or keep this as a development build\n",
-		"release readiness: 1 warning(s); would fail with --release\n",
-	} {
-		if !strings.Contains(out, want) {
-			t.Fatalf("render missing %q in:\n%s", want, out)
-		}
-	}
-}
-
-// Ambient violations only the CLI can detect (KIGUMI_STD, KIGUMI_CFLAGS)
-// plug into EvaluateRelease the same way as load-time ones.
-func TestAmbientViolationsSeverity(t *testing.T) {
-	m := &driver.Module{}
-	extra := []driver.Violation{driver.AmbientStdViolation("/env/std"), driver.AmbientCFlagsViolation([]string{"-march=native"})}
-	dev := driver.EvaluateRelease(m, driver.Development(), extra...)
-	if len(dev.Warnings) != 2 || dev.HasErrors() {
-		t.Fatalf("development: want 2 warnings, 0 errors, got %+v", dev)
-	}
-	rel := driver.EvaluateRelease(m, driver.Release(), extra...)
-	if len(rel.Errors) != 2 || len(rel.Warnings) != 0 {
-		t.Fatalf("release: want 2 errors, 0 warnings, got %+v", rel)
 	}
 }
 
@@ -201,13 +142,13 @@ func TestLoadRejectsTamperedNativeDeclaration(t *testing.T) {
 	// updating the lock: the tree hash no longer matches.
 	os.WriteFile(filepath.Join(dir, "mod.kg"), []byte("Module {\n    name: \"greet\"\n    kigumi: \"0.1\"\n}\nLink { library: \"m\" }\n"), 0o644)
 
-	for _, policy := range []driver.BuildPolicy{driver.Development(), driver.Release()} {
-		_, err = driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler(), Policy: policy})
+	for _, pol := range []policy.BuildPolicy{policy.Development(), policy.Release()} {
+		_, err = driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler(), Policy: pol})
 		if err == nil {
-			t.Fatalf("%s: a tampered native declaration should be rejected", policy)
+			t.Fatalf("%s: a tampered native declaration should be rejected", pol)
 		}
 		if !strings.Contains(err.Error(), driver.LockName) {
-			t.Fatalf("%s: wrong diagnostic: %v", policy, err)
+			t.Fatalf("%s: wrong diagnostic: %v", pol, err)
 		}
 	}
 }

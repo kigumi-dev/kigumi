@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"kigumi/internal/backend/vm"
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -27,7 +28,7 @@ func TestRecoverableMapIntKeySurvivesSweep(t *testing.T) {
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"mapkey\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
-	target := driver.HostTarget()
+	target := buildconfig.HostTarget()
 	target.Profile = "recoverable-only"
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../../std", Target: target})
 	if err != nil {

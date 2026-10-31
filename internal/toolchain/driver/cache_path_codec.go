@@ -3,17 +3,19 @@ package driver
 import (
 	"path/filepath"
 	"strings"
+
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 // CacheDir is <cache>/kigumi/mod/<name>@<version> with uppercase letters escaped as !x, so names differing only by case stay apart on case-insensitive filesystems.
-func CacheDir(o CompilerOptions, r Require) (string, error) {
+func CacheDir(o buildconfig.CompilerOptions, r Require) (string, error) {
 	if err := ValidModuleName(r.Name); err != nil {
 		return "", err
 	}
 	if err := ValidVersion(r.Version); err != nil {
 		return "", err
 	}
-	cache, err := o.cacheRoot()
+	cache, err := o.CacheRoot()
 	if err != nil {
 		return "", err
 	}

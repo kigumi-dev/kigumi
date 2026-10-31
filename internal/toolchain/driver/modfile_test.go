@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"kigumi/internal/lang/token"
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -158,11 +159,11 @@ func TestManifestEdit(t *testing.T) {
 	if err := driver.AppendLocalReplace(root, "github.com/acme/b", "../b"); err != nil {
 		t.Fatal(err)
 	}
-	local, err := driver.ReadLocal(driver.CompilerOptions{Cwd: root}, filepath.Join(root, "deep", "er"))
+	local, err := driver.ReadLocal(buildconfig.CompilerOptions{Cwd: root}, filepath.Join(root, "deep", "er"))
 	if err != nil || local.Replaces["github.com/acme/b"] != filepath.Join(root, "../b") {
 		t.Fatalf("local override: %+v %v", local, err)
 	}
-	if local, err = driver.ReadLocal(driver.CompilerOptions{Cwd: root}, filepath.Join("deep", "er")); err != nil || local.Replaces["github.com/acme/b"] != filepath.Join(root, "../b") {
+	if local, err = driver.ReadLocal(buildconfig.CompilerOptions{Cwd: root}, filepath.Join("deep", "er")); err != nil || local.Replaces["github.com/acme/b"] != filepath.Join(root, "../b") {
 		t.Fatalf("local override from a relative dir: %+v %v", local, err)
 	}
 	if err := driver.RemoveRequires(root, map[string]bool{"a": true}); err != nil {

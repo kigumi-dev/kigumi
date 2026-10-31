@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"kigumi/internal/devkit/testtool"
+	"kigumi/internal/devkit/fixture"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -56,7 +56,7 @@ func TestAotCorpus(t *testing.T) {
 	}
 }
 
-func runAot(t *testing.T, path string, fx *testtool.Fixture, live map[string]int64) {
+func runAot(t *testing.T, path string, fx *fixture.Fixture, live map[string]int64) {
 	root, wantOut, wantErr, wantExit := loadRunFixture(t, path)
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../../std", Entry: "main/main.kg"})
 	if err != nil {
@@ -94,11 +94,11 @@ func runAot(t *testing.T, path string, fx *testtool.Fixture, live map[string]int
 	if out.String() != wantOut {
 		t.Errorf("stdout mismatch\n--- got ---\n%s--- want ---\n%s", out.String(), wantOut)
 	}
-	var stderrMatch *testtool.StderrMatch
+	var stderrMatch *fixture.StderrMatch
 	if fx != nil {
 		stderrMatch = fx.Stderr
 	}
-	if err := testtool.CheckStderr(stderrMatch, wantErr, stderr); err != nil {
+	if err := fixture.CheckStderr(stderrMatch, wantErr, stderr); err != nil {
 		t.Error(err)
 	}
 	if code != wantExit {

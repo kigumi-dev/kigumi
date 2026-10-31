@@ -10,14 +10,15 @@ import (
 	"kigumi/internal/cli/exit"
 	"kigumi/internal/cli/session"
 	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/policy"
 )
 
-func runProgram(cmd *cobra.Command, root string, flags []string, plan bool, outDir string, secretSpecs []string, reproducible bool, policy driver.BuildPolicy, form outputShape) error {
+func runProgram(cmd *cobra.Command, root string, flags []string, plan bool, outDir string, secretSpecs []string, reproducible bool, pol policy.BuildPolicy, form outputShape) error {
 	target, err := shared.Target(cmd)
 	if err != nil {
 		return &cliutil.UsageError{Err: err}
 	}
-	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: shared.StdRoot(cmd), Policy: policy, ZigPath: shared.ZigPath(), VerifyPasses: shared.VerifyPasses(), Compiler: shared.CompilerOptions()})
+	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: shared.StdRoot(cmd), Policy: pol, ZigPath: shared.ZigPath(), VerifyPasses: shared.VerifyPasses(), Compiler: shared.CompilerOptions()})
 	if err != nil {
 		cmd.PrintErr(err.Error())
 		if !strings.HasSuffix(err.Error(), "\n") {
@@ -28,7 +29,7 @@ func runProgram(cmd *cobra.Command, root string, flags []string, plan bool, outD
 	if !ok {
 		return errors.NewErrf("%s has no %s", root, driver.BuildFileName)
 	}
-	report := driver.EvaluateRelease(p.Module, policy, shared.ReleaseViolations(cmd, true)...)
+	report := policy.Evaluate(p.Module.Violations, pol, shared.ReleaseViolations(cmd, true)...)
 	fmt.Fprint(cmd.ErrOrStderr(), report.Render())
 	if report.HasErrors() {
 		return cliutil.Exit(1)
@@ -76,6 +77,6 @@ func runProgram(cmd *cobra.Command, root string, flags []string, plan bool, outD
 		cmd.PrintErrln("build: " + err.Error())
 		return cliutil.Exit(1)
 	}
-	fmt.Fprint(cmd.ErrOrStderr(), buildSummary(cmd, p.Module, policy, reproducible, driver.ToolCapabilities(rg.Graph), reports).Render())
+	fmt.Fprint(cmd.ErrOrStderr(), buildSummary(cmd, p.Module, pol, reproducible, driver.ToolCapabilities(rg.Graph), reports).Render())
 	return nil
 }

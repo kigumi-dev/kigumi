@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/policy"
 )
 
 // ReleaseFlag adds --release to cmd; Policy reads it back.
@@ -15,11 +15,11 @@ func ReleaseFlag(cmd *cobra.Command) {
 
 // Policy is the only place a bool decides between the two build policies;
 // everything downstream reads BuildPolicy's fields instead.
-func Policy(cmd *cobra.Command) driver.BuildPolicy {
+func Policy(cmd *cobra.Command) policy.BuildPolicy {
 	if release, _ := cmd.Flags().GetBool("release"); release {
-		return driver.Release()
+		return policy.Release()
 	}
-	return driver.Development()
+	return policy.Development()
 }
 
 // Offline reports --offline: stop a pinned zig build from fetching the pin
@@ -50,14 +50,14 @@ func AmbientCFlags() (flags []string, ambient bool) {
 
 // ReleaseViolations collects the ambient-environment violations only the
 // CLI can see, for EvaluateRelease's extra argument.
-func ReleaseViolations(cmd *cobra.Command, includeCFlags bool) []driver.Violation {
-	var vs []driver.Violation
+func ReleaseViolations(cmd *cobra.Command, includeCFlags bool) []policy.Violation {
+	var vs []policy.Violation
 	if path, ambient := AmbientStd(cmd); ambient {
-		vs = append(vs, driver.AmbientStdViolation(path))
+		vs = append(vs, policy.AmbientStdViolation(path))
 	}
 	if includeCFlags {
 		if flags, ambient := AmbientCFlags(); ambient {
-			vs = append(vs, driver.AmbientCFlagsViolation(flags))
+			vs = append(vs, policy.AmbientCFlagsViolation(flags))
 		}
 	}
 	return vs

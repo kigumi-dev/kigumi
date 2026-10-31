@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -25,7 +26,7 @@ func TestBuildProgramExample(t *testing.T) {
 		t.Fatalf("load: %v %v", ok, err)
 	}
 	out := t.TempDir()
-	g, err := p.Run(driver.HostTarget(), []string{"--big"}, out)
+	g, err := p.Run(buildconfig.HostTarget(), []string{"--big"}, out)
 	if err != nil {
 		t.Fatal(err)
 	}

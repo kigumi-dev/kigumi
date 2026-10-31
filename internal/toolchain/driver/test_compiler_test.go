@@ -4,18 +4,18 @@ import (
 	"os"
 	"path/filepath"
 
-	"kigumi/internal/toolchain/driver"
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
-func testCompilerAt(cwd string) driver.CompilerOptions {
+func testCompilerAt(cwd string) buildconfig.CompilerOptions {
 	o := testCompiler()
 	o.Cwd = cwd
 	return o
 }
 
-func testCompiler() driver.CompilerOptions {
+func testCompiler() buildconfig.CompilerOptions {
 	cwd, _ := os.Getwd()
 	home, _ := os.UserHomeDir()
 	cache, _ := os.UserCacheDir()
-	return driver.CompilerOptions{Host: driver.HostTarget(), CacheDir: cache, Cwd: cwd, PathDirs: filepath.SplitList(os.Getenv("PATH")), Home: home}
+	return buildconfig.CompilerOptions{Host: buildconfig.HostTarget(), CacheDir: cache, Cwd: cwd, PathDirs: filepath.SplitList(os.Getenv("PATH")), Home: home}
 }

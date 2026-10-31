@@ -6,10 +6,11 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
-func checkFor(t *testing.T, target driver.Target, src string) string {
+func checkFor(t *testing.T, target buildconfig.Target, src string) string {
 	t.Helper()
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"provcheck\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
@@ -34,7 +35,7 @@ func TestCheckReportsCapabilityNotProvided(t *testing.T) {
 	const shellSrc = "let sh = host.shell()\nprint \"x\"\n"
 	cases := []struct {
 		name, src string
-		target    driver.Target
+		target    buildconfig.Target
 		want      []string
 	}{
 		{"sys none shell", shellSrc, mustTarget(t, "", "none"), []string{"E1370", "host.shell", "no operating system services"}},
@@ -62,8 +63,8 @@ func TestCheckReportsCapabilityNotProvided(t *testing.T) {
 
 func TestCheckAcceptsWhatTheTargetProvides(t *testing.T) {
 	t.Parallel()
-	for name, target := range map[string]driver.Target{
-		"hosted": driver.HostTarget(),
+	for name, target := range map[string]buildconfig.Target{
+		"hosted": buildconfig.HostTarget(),
 		"wasi":   mustTarget(t, "wasm32-wasi", ""),
 	} {
 		if out := checkFor(t, target, hostArgsSrc); out != "" {

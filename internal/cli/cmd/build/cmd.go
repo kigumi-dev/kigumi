@@ -12,6 +12,7 @@ import (
 	"kigumi/internal/cli/exit"
 	"kigumi/internal/cli/session"
 	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/policy"
 )
 
 func Cmd() *cobra.Command {
@@ -32,7 +33,7 @@ func Cmd() *cobra.Command {
 		if *reproducible && *emit {
 			return &cliutil.UsageError{Err: errors.NewErr("--reproducible and --emit-llvm are incompatible")}
 		}
-		policy := shared.Policy(cmd)
+		pol := shared.Policy(cmd)
 		form, err := shape()
 		if err != nil {
 			return err
@@ -45,7 +46,7 @@ func Cmd() *cobra.Command {
 				if *exe != "" || *emit {
 					return &cliutil.UsageError{Err: errors.NewErr("a module with build.kg takes --out-dir and --plan, not -o or --emit-llvm")}
 				}
-				return runProgram(cmd, args[0], args[1:], *plan, *outDir, *secrets, *reproducible, policy, form)
+				return runProgram(cmd, args[0], args[1:], *plan, *outDir, *secrets, *reproducible, pol, form)
 			}
 		}
 		if cmd.Flags().Changed("plan") || cmd.Flags().Changed("out-dir") || cmd.Flags().Changed("secret") {
@@ -54,7 +55,7 @@ func Cmd() *cobra.Command {
 		if len(args) > 1 {
 			return &cliutil.UsageError{Err: errors.NewErrf("extra arguments after %s belong to a build.kg, which this module has none of", args[0])}
 		}
-		m, err := shared.Load(cmd, args[0], false, cmd.ErrOrStderr(), policy)
+		m, err := shared.Load(cmd, args[0], false, cmd.ErrOrStderr(), pol)
 		if err != nil {
 			return err
 		}
@@ -64,7 +65,7 @@ func Cmd() *cobra.Command {
 		if linkTarget, err := shared.Target(cmd); err == nil {
 			extra = append(extra, driver.LinkIdentityViolations(m, linkTarget)...)
 		}
-		report := driver.EvaluateRelease(m, policy, extra...)
+		report := policy.Evaluate(m.Violations, pol, extra...)
 		fmt.Fprint(cmd.ErrOrStderr(), report.Render())
 		if report.HasErrors() {
 			return cliutil.Exit(1)
@@ -83,7 +84,7 @@ func Cmd() *cobra.Command {
 				return cliutil.Exit(1)
 			}
 			fmt.Fprint(cmd.OutOrStdout(), ir)
-			fmt.Fprint(cmd.ErrOrStderr(), buildSummary(cmd, m, policy, false, nil, map[string]driver.BuildReport{"": emitted}).Render())
+			fmt.Fprint(cmd.ErrOrStderr(), buildSummary(cmd, m, pol, false, nil, map[string]driver.BuildReport{"": emitted}).Render())
 			return nil
 		}
 		out := *exe
@@ -101,7 +102,7 @@ func Cmd() *cobra.Command {
 		if !ok {
 			return cliutil.Exit(1)
 		}
-		fmt.Fprint(cmd.ErrOrStderr(), buildSummary(cmd, m, policy, *reproducible, nil, map[string]driver.BuildReport{"": built}).Render())
+		fmt.Fprint(cmd.ErrOrStderr(), buildSummary(cmd, m, pol, *reproducible, nil, map[string]driver.BuildReport{"": built}).Render())
 		return nil
 	}
 	return cmd

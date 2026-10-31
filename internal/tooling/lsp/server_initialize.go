@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"kigumi/internal/toolchain/driver"
-	"kigumi/internal/toolchain/version"
 
 	"go.lsp.dev/protocol"
+
+	buildconfig "kigumi/internal/toolchain/config"
+	"kigumi/internal/toolchain/version"
 )
 
 func (s *Server) Initialize(ctx context.Context, p *protocol.InitializeParams) (*protocol.InitializeResult, error) {
@@ -27,7 +28,7 @@ func (s *Server) Initialize(ctx context.Context, p *protocol.InitializeParams) (
 			s.stdRoot = opts.StdRoot
 		}
 		if s.target.OS == "" {
-			s.target = driver.HostTarget()
+			s.target = buildconfig.HostTarget()
 		}
 		if opts.Allocator == "none" {
 			s.target.Allocator = "none"

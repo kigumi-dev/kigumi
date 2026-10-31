@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 const memoVersion = 3
@@ -36,7 +38,7 @@ type memoFile struct {
 	Entries map[string]memoEntry `json:"entries"`
 }
 
-func loadIndexMemo(cacheDir, root string, o CompilerOptions, now func() time.Time) *indexMemo {
+func loadIndexMemo(cacheDir, root string, o buildconfig.CompilerOptions, now func() time.Time) *indexMemo {
 	if cacheDir == "" {
 		return nil
 	}

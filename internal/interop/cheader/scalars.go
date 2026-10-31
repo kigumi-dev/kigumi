@@ -17,7 +17,7 @@ type ABI struct {
 	Int128 bool
 }
 
-// ABIFor derives ABI facts from the same os/arch names internal/toolchain/driver.Target
+// ABIFor derives ABI facts from the same os/arch names internal/toolchain/config.Target
 // uses (amd64, arm64, riscv64, 386, arm; linux, darwin, windows, ...).
 func ABIFor(os, arch string) ABI {
 	return ABI{

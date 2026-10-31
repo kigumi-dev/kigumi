@@ -15,7 +15,7 @@ func (m *Module) unitEligible() bool {
 	if t.Bare() || t.NoDefaultAllocator() || t.RecoverableOnly() || t.StrictBlocking() || t.BlockingExecutor != "" || t.StrictStack || t.StackBudgetKiB != 0 || !wantsTaskCatch(t) {
 		return false
 	}
-	plat := t.CapabilityPlatform()
+	plat := capabilityPlatform(t)
 	for _, c := range mir.Vocabulary() {
 		if !plat.Provides(c).Provided {
 			return false

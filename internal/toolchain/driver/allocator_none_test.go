@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -16,7 +17,7 @@ func TestAllocatorNoneProfile(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"bare\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("let xs = Array.of(1)\n"), 0o644)
 	std, _ := filepath.Abs("../../../std")
-	target := driver.HostTarget()
+	target := buildconfig.HostTarget()
 	target.Allocator = "none"
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {

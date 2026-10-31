@@ -6,10 +6,12 @@ import (
 	"path/filepath"
 
 	"kigumi/internal/compiler/sem"
+	buildconfig "kigumi/internal/toolchain/config"
+	"kigumi/internal/toolchain/policy"
 )
 
 // DepDir resolves a required module's directory: a local override (root only) or the fetched cache copy; missing is true when uncached.
-func DepDir(o CompilerOptions, local Local, r Require, isRoot bool) (dir string, missing bool, err error) {
+func DepDir(o buildconfig.CompilerOptions, local Local, r Require, isRoot bool) (dir string, missing bool, err error) {
 	if p, ok := local.Replaces[r.Name]; ok && isRoot {
 		return p, false, nil
 	}
@@ -110,7 +112,7 @@ func (m *Module) addNative(dir string, mf ModFile) error {
 				return fmt.Errorf("%s: Link search path %q resolves outside the module", mf.Name, l.Search)
 			}
 			if _, err := os.Stat(l.Search); err != nil {
-				m.Violations = append(m.Violations, nativeLinkUnresolvedViolation(byName(mf), l.Search))
+				m.Violations = append(m.Violations, policy.NativeLinkUnresolvedViolation(byName(mf), l.Search))
 			}
 		}
 		m.Links = append(m.Links, l)

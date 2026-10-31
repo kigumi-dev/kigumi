@@ -4,11 +4,12 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/sem"
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 // A changed interrupt permission must re-key both the package cache and the analysis memo, so the handler is re-checked.
 func TestInterruptConfigEntersKeys(t *testing.T) {
-	m := &Module{target: HostTarget()}
+	m := &Module{target: buildconfig.HostTarget()}
 	mod := &sem.Module{}
 	env, analysis := m.cacheEnv(), analysisKey(m, mod)
 	m.Manifest.Interrupt = sem.InterruptConfig{Root: []string{"mmio uart.ack"}}
@@ -25,7 +26,7 @@ func TestInterruptConfigEntersKeys(t *testing.T) {
 }
 
 func TestDependencyInterruptEntersKeys(t *testing.T) {
-	m := &Module{target: HostTarget()}
+	m := &Module{target: buildconfig.HostTarget()}
 	mod := &sem.Module{}
 	env, analysis := m.cacheEnv(), analysisKey(m, mod)
 	m.depInterrupt = []sem.DepInterrupt{{Module: "lib", Config: sem.InterruptConfig{Handlers: map[string][]string{"lib.tick": nil}}}}

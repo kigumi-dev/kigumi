@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/toolchain/driver"
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 // A tool sees only the allowlisted environment and the target, not the
@@ -38,7 +38,7 @@ func TestToolEnvAllowlist(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(got) != "HOME= SECRET= TRIPLE="+driver.HostTarget().Triple {
+	if string(got) != "HOME= SECRET= TRIPLE="+buildconfig.HostTarget().Triple {
 		t.Errorf("tool environment: %q", got)
 	}
 }

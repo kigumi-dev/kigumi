@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 // LinkMode is the --link choice: how a hosted executable for the host target gets its C library.
@@ -101,7 +102,7 @@ func dynamicNeeds(m *Module, code compiled, cflags, lflags []string) []string {
 
 // resolveLinkage picks the C library of a hosted build. An explicit triple decides and --link may only agree with it;
 // the host default on Linux becomes static musl unless --link dynamic, a non-zig compiler, or dynamicNeeds keeps the host's.
-func resolveLinkage(m *Module, t Target, mode LinkMode, zig bool, code compiled, cflags, lflags []string) (Target, Linkage, error) {
+func resolveLinkage(m *Module, t buildconfig.Target, mode LinkMode, zig bool, code compiled, cflags, lflags []string) (buildconfig.Target, Linkage, error) {
 	if t.Bare() {
 		if mode != LinkAuto {
 			return t, Linkage{}, fmt.Errorf("--link %s applies to an executable; a freestanding or --sys none build is an archive", mode)
@@ -158,7 +159,7 @@ func artifactLink(rg *ResolvedGraph, idx int, mode LinkMode) (LinkMode, error) {
 	if mode == LinkAuto {
 		return mode, nil
 	}
-	host := func(t Target) bool { return !t.Bare() && t.Triple == "" }
+	host := func(t buildconfig.Target) bool { return !t.Bare() && t.Triple == "" }
 	if host(rg.Targets[idx]) {
 		return mode, nil
 	}

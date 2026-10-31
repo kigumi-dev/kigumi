@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -42,7 +43,7 @@ func TestPlatformAvailableHosted(t *testing.T) {
 func TestPlatformUnavailableFreestanding(t *testing.T) {
 	t.Parallel()
 	root := writePlatformModule(t, "bare")
-	target, _ := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
+	target, _ := buildconfig.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	std, _ := filepath.Abs("../../../std")
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
@@ -62,7 +63,7 @@ func TestPlatformUnavailableFreestanding(t *testing.T) {
 func TestPlatformUnavailableSysNone(t *testing.T) {
 	t.Parallel()
 	root := writePlatformModule(t, "sysnone")
-	target, err := driver.ParseTarget(testCompiler(), "", "none")
+	target, err := buildconfig.ParseTarget(testCompiler(), "", "none")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +93,7 @@ func TestPlatformUnavailableRandomFreestanding(t *testing.T) {
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"randbare\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import random from std/random\n\nfn seed(r: random.Rng) {}\n"), 0o644)
-	target, _ := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
+	target, _ := buildconfig.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	std, _ := filepath.Abs("../../../std")
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
@@ -119,7 +120,7 @@ func TestPlatformUnavailableTransitive(t *testing.T) {
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"transitive\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import crypto from std/crypto\n\nfn use() { crypto.touchClock() }\n"), 0o644)
-	target, _ := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
+	target, _ := buildconfig.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	std, _ := filepath.Abs("../../../std")
 	overlay := map[string][]byte{
 		filepath.Join(std, "crypto", "layer_probe.kg"): []byte("import time from std/time\n\npub fn touchClock() {\n    _ = time.now()\n}\n"),
@@ -152,7 +153,7 @@ func TestStdLayerDirectionFreestanding(t *testing.T) {
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"stdwalk\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("fn main() -> Void! {}\n"), 0o644)
-	target, _ := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
+	target, _ := buildconfig.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	std, _ := filepath.Abs("../../../std")
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {

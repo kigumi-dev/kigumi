@@ -3,6 +3,8 @@ package driver
 import (
 	"path/filepath"
 	"strings"
+
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 var pathValueFlags = map[string]bool{"-I": true, "-L": true, "-T": true, "-isystem": true, "-iquote": true, "-idirafter": true, "-isysroot": true, "-include": true, "--sysroot": true}
@@ -17,7 +19,7 @@ var pathFileSuffixes = []string{".c", ".o", ".a", ".ld"}
 
 // resolveFlagPaths makes the relative paths in C compiler flags absolute against Cwd, since the compile and link commands may run in another directory.
 // -rpath operands are runtime search paths (possibly $ORIGIN forms), not build inputs, so they are left as given.
-func resolveFlagPaths(o CompilerOptions, flags []string) ([]string, error) {
+func resolveFlagPaths(o buildconfig.CompilerOptions, flags []string) ([]string, error) {
 	r := flagResolver{o: o}
 	out := make([]string, 0, len(flags))
 	for i := 0; i < len(flags); i++ {
@@ -57,7 +59,7 @@ func resolveFlagPaths(o CompilerOptions, flags []string) ([]string, error) {
 }
 
 type flagResolver struct {
-	o          CompilerOptions
+	o          buildconfig.CompilerOptions
 	xlinkerOpt bool
 	rpathValue bool
 	wlOpt      bool

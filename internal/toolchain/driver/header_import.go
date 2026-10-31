@@ -8,6 +8,7 @@ import (
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/interop/cheader"
 	"kigumi/internal/lang/diag"
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 // HeaderImport is a `Header { path, package }` record: a C header, relative
@@ -18,8 +19,8 @@ type HeaderImport struct {
 
 // HeaderCacheDir is where imported headers' generated packages are cached
 // (cheader.Import), separate from CacheDir's fetched-module tree.
-func HeaderCacheDir(o CompilerOptions) (string, error) {
-	dir, err := o.cacheRoot()
+func HeaderCacheDir(o buildconfig.CompilerOptions) (string, error) {
+	dir, err := o.CacheRoot()
 	if err != nil {
 		return "", err
 	}

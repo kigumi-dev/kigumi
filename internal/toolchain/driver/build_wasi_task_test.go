@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -27,7 +28,7 @@ func TestBuildWasiTaskProgram(t *testing.T) {
 	if testCompiler().CCompiler() == nil {
 		t.Skip("needs a C compiler")
 	}
-	target, err := driver.ParseTarget(testCompiler(), "wasm32-wasi", "")
+	target, err := buildconfig.ParseTarget(testCompiler(), "wasm32-wasi", "")
 	if err != nil {
 		t.Fatal(err)
 	}

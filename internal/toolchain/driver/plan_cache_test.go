@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -24,7 +25,7 @@ func planModule(t *testing.T, root string, targets ...string) (string, driver.Pl
 	if err != nil || !ok {
 		t.Fatalf("load: %v %v", ok, err)
 	}
-	g, err := p.Run(driver.HostTarget(), nil, t.TempDir())
+	g, err := p.Run(buildconfig.HostTarget(), nil, t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

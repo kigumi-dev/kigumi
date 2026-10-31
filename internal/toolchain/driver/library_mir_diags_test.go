@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -31,7 +32,7 @@ func TestLibraryCheckKeepsMIRDiagnostics(t *testing.T) {
 				if c.test != "" {
 					os.WriteFile(filepath.Join(root, "lib", "lib_test.kg"), []byte(c.test), 0o644)
 				}
-				target := driver.HostTarget()
+				target := buildconfig.HostTarget()
 				target.Allocator = c.allocator
 				m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../../std", Target: target, Test: c.test != ""})
 				if err != nil {

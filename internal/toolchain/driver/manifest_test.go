@@ -7,12 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/devkit/testtool"
+	"kigumi/internal/devkit/fixture"
 )
 
 // TestManifestFresh regenerates the manifest from disk fixtures (probing the VM for engine modes) and diffs it against testdata/manifest.json; UPDATE=1 rewrites it.
 func TestManifestFresh(t *testing.T) {
-	var fixtures []testtool.Fixture
+	var fixtures []fixture.Fixture
 	fixtures = append(fixtures, staticFixtures(t, "parser", "parse")...)
 	fixtures = append(fixtures, staticFixtures(t, "sem", "check")...)
 	fixtures = append(fixtures, staticFixtures(t, "mir", "build")...)
@@ -24,20 +24,20 @@ func TestManifestFresh(t *testing.T) {
 	})
 }
 
-func compareManifest(t *testing.T, fixtures []testtool.Fixture) {
+func compareManifest(t *testing.T, fixtures []fixture.Fixture) {
 	if t.Failed() {
 		return
 	}
-	testtool.SortFixtures(fixtures)
-	m := &testtool.Manifest{Schema: testtool.SchemaVersion, Reasons: testtool.Reasons, Fixtures: fixtures}
+	fixture.SortFixtures(fixtures)
+	m := &fixture.Manifest{Schema: fixture.SchemaVersion, Reasons: fixture.Reasons, Fixtures: fixtures}
 
 	if os.Getenv("UPDATE") == "1" {
-		if err := testtool.Save("../../../testdata/manifest.json", m); err != nil {
+		if err := fixture.Save("../../../testdata/manifest.json", m); err != nil {
 			t.Error(err)
 		}
 		return
 	}
-	want, err := testtool.Load("../../../testdata/manifest.json")
+	want, err := fixture.Load("../../../testdata/manifest.json")
 	if err != nil {
 		t.Errorf("load testdata/manifest.json: %v (run with UPDATE=1 to generate it)", err)
 		return
@@ -50,16 +50,16 @@ func compareManifest(t *testing.T, fixtures []testtool.Fixture) {
 }
 
 // staticFixtures lists a single-mode kind's corpus: every file passes under one named mode and nothing is ever skipped.
-func staticFixtures(t *testing.T, kind, mode string) []testtool.Fixture {
+func staticFixtures(t *testing.T, kind, mode string) []fixture.Fixture {
 	t.Helper()
 	files, err := filepath.Glob(filepath.Join("../../../testdata", kind, "*.txtar"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := make([]testtool.Fixture, 0, len(files))
+	out := make([]fixture.Fixture, 0, len(files))
 	for _, f := range files {
 		base := strings.TrimSuffix(filepath.Base(f), ".txtar")
-		out = append(out, testtool.Fixture{
+		out = append(out, fixture.Fixture{
 			ID:       kind + "/" + base,
 			Kind:     kind,
 			Path:     "testdata/" + kind + "/" + base + ".txtar",
@@ -71,16 +71,16 @@ func staticFixtures(t *testing.T, kind, mode string) []testtool.Fixture {
 }
 
 // runFixtures classifies each run fixture's engine mode from the VM's static verdict; the slice is complete once the parallel subtests finish.
-func runFixtures(t *testing.T) []testtool.Fixture {
+func runFixtures(t *testing.T) []fixture.Fixture {
 	t.Helper()
 	files, err := filepath.Glob("../../../testdata/run/*.txtar")
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := make([]testtool.Fixture, len(files))
+	out := make([]fixture.Fixture, len(files))
 	for i, path := range files {
 		base := strings.TrimSuffix(filepath.Base(path), ".txtar")
-		fx := testtool.Fixture{
+		fx := fixture.Fixture{
 			ID:       "run/" + base,
 			Kind:     "run",
 			Path:     "testdata/run/" + base + ".txtar",
@@ -107,7 +107,7 @@ func runFixtures(t *testing.T) []testtool.Fixture {
 				t.Fatalf("vm: %v", c.refusal)
 			}
 			if strings.TrimSpace(c.wantErr) == "panic: stack overflow" {
-				fx.Stderr = &testtool.StderrMatch{Type: "regex", Pattern: stackOverflowStderr}
+				fx.Stderr = &fixture.StderrMatch{Type: "regex", Pattern: stackOverflowStderr}
 			}
 			out[i] = fx
 		})

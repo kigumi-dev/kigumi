@@ -3,13 +3,15 @@ package driver
 import (
 	"fmt"
 	"io"
+
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 // linked is a compiled module and the C library its build links.
 type linked struct {
 	m              *Module
 	code           compiled
-	t              Target
+	t              buildconfig.Target
 	link           Linkage
 	cc             []string
 	cflags, lflags []string

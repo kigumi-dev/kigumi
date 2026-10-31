@@ -35,9 +35,6 @@ func parseDriver(t *testing.T) map[string]*ast.File {
 
 func TestDriverReadsNoAmbientPlatform(t *testing.T) {
 	for name, f := range parseDriver(t) {
-		if name == "compiler_options.go" || name == "compiler_tools.go" {
-			continue
-		}
 		ast.Inspect(f, func(n ast.Node) bool {
 			switch x := n.(type) {
 			case *ast.SelectorExpr:
@@ -45,7 +42,16 @@ func TestDriverReadsNoAmbientPlatform(t *testing.T) {
 					t.Errorf("internal/toolchain/driver/%s: %s.%s を読んでいる。internal/cli が CompilerOptions に入れて渡せ", name, id.Name, x.Sel.Name)
 				}
 			case *ast.CallExpr:
-				if id, ok := x.Fun.(*ast.Ident); ok && id.Name == "HostTarget" {
+				name := ""
+				if id, ok := x.Fun.(*ast.Ident); ok {
+					name = id.Name
+				}
+				if sel, ok := x.Fun.(*ast.SelectorExpr); ok {
+					if owner, ok := sel.X.(*ast.Ident); ok && owner.Name == "buildconfig" {
+						name = sel.Sel.Name
+					}
+				}
+				if name == "HostTarget" {
 					t.Errorf("internal/toolchain/driver/%s: HostTarget() を呼んでいる。CompilerOptions.HostOrAmbient を使え", name)
 				}
 			}
@@ -57,7 +63,7 @@ func TestDriverReadsNoAmbientPlatform(t *testing.T) {
 func TestDriverEntryPointsTakeCompilerOptions(t *testing.T) {
 	files := parseDriver(t)
 	want := map[string]bool{
-		"ParseTarget": false, "CacheDir": false, "HeaderCacheDir": false, "DeriveCacheDir": false,
+		"CacheDir": false, "HeaderCacheDir": false, "DeriveCacheDir": false,
 		"DepDir": false, "ResolveGraph": false, "SelectVersions": false, "IsHostTarget": false, "ResolveLinkIdentity": false,
 	}
 	hasField := false
@@ -82,6 +88,17 @@ func TestDriverEntryPointsTakeCompilerOptions(t *testing.T) {
 			t.Errorf("driver.%s は最初の引数に CompilerOptions を取る必要がある", name)
 		}
 	}
+	targetParser := false
+	for _, f := range parseDir(t, "../toolchain/config", false) {
+		for _, d := range f.Decls {
+			if fn, ok := d.(*ast.FuncDecl); ok && fn.Name.Name == "ParseTarget" {
+				targetParser = firstParamIs(fn, "CompilerOptions")
+			}
+		}
+	}
+	if !targetParser {
+		t.Error("config.ParseTarget must take CompilerOptions first")
+	}
 	if !hasField {
 		t.Error("driver.LoadOptions に Compiler CompilerOptions がない")
 	}
@@ -89,11 +106,19 @@ func TestDriverEntryPointsTakeCompilerOptions(t *testing.T) {
 
 func firstParamIs(fn *ast.FuncDecl, typ string) bool {
 	params := fn.Type.Params.List
-	if len(params) == 0 {
+	return len(params) > 0 && optionType(params[0].Type, typ)
+}
+
+func optionType(expr ast.Expr, typ string) bool {
+	if id, ok := expr.(*ast.Ident); ok {
+		return id.Name == typ
+	}
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
 		return false
 	}
-	id, ok := params[0].Type.(*ast.Ident)
-	return ok && id.Name == typ
+	owner, ok := sel.X.(*ast.Ident)
+	return ok && owner.Name == "buildconfig" && sel.Sel.Name == typ
 }
 
 func structHasField(ts *ast.TypeSpec, name, typ string) bool {
@@ -102,9 +127,8 @@ func structHasField(ts *ast.TypeSpec, name, typ string) bool {
 		return false
 	}
 	for _, f := range st.Fields.List {
-		id, isIdent := f.Type.(*ast.Ident)
 		for _, n := range f.Names {
-			if n.Name == name && isIdent && id.Name == typ {
+			if n.Name == name && optionType(f.Type, typ) {
 				return true
 			}
 		}

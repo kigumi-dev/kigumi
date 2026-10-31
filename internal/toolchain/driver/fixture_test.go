@@ -7,14 +7,14 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/devkit/testtool"
+	"kigumi/internal/devkit/fixture"
 )
 
 // Fails loudly on a missing/stale manifest instead of treating an absent
 // entry as "nothing to check".
-func loadManifest(t testing.TB) *testtool.Manifest {
+func loadManifest(t testing.TB) *fixture.Manifest {
 	t.Helper()
-	m, err := testtool.Load("../../../testdata/manifest.json")
+	m, err := fixture.Load("../../../testdata/manifest.json")
 	if err != nil {
 		t.Fatalf("load testdata/manifest.json: %v (regenerate with UPDATE=1 go test -run TestManifestFresh ./internal/toolchain/driver/)", err)
 	}

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -17,7 +18,7 @@ func TestAotHeaderImportInt128Fields(t *testing.T) {
 	if _, err := exec.LookPath("zig"); err != nil {
 		t.Skip("no zig")
 	}
-	if driver.HostTarget().Arch != "amd64" && driver.HostTarget().Arch != "arm64" {
+	if buildconfig.HostTarget().Arch != "amd64" && buildconfig.HostTarget().Arch != "arm64" {
 		t.Skip("host C compiler may lack __int128")
 	}
 	root, err := filepath.Abs("../../../testdata/cheader_int128")

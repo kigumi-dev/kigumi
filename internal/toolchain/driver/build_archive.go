@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	buildconfig "kigumi/internal/toolchain/config"
 )
 
 // splitArchiveCFlags keeps linker-shaped flags out of buildArchive's compile-only step; zig cc corrupts objects when --gc-sections reaches a -c invocation.
@@ -22,7 +24,7 @@ func splitArchiveCFlags(flags []string) (compile, linkerLike []string) {
 
 // arTool is the archiver for cc: zig's own, since a plain system `ar`
 // cannot read object files zig cc produced for some targets.
-func arTool(o CompilerOptions, cc []string) ([]string, error) {
+func arTool(o buildconfig.CompilerOptions, cc []string) ([]string, error) {
 	if isZig(cc) {
 		return []string{cc[0], "ar"}, nil
 	}
@@ -34,7 +36,7 @@ func arTool(o CompilerOptions, cc []string) ([]string, error) {
 }
 
 // buildArchive compiles each input to an object for the embedder to link (freestanding has no libc); dir/comp-dir is pinned so two builds don't diverge, and -ffunction/data-sections keeps the embedder's --gc-sections effective.
-func buildArchive(o CompilerOptions, cc, args, inputs []string, dir, out string, env []string, stderr io.Writer) (bool, error) {
+func buildArchive(o buildconfig.CompilerOptions, cc, args, inputs []string, dir, out string, env []string, stderr io.Writer) (bool, error) {
 	var objs []string
 	for i, in := range inputs {
 		rel, err := pinnedInput(o, dir, in)

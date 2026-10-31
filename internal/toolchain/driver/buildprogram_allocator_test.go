@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -35,7 +36,7 @@ func TestBuildProgramAllocatorNoneRejected(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("load: %v %v", ok, err)
 	}
-	target := driver.HostTarget()
+	target := buildconfig.HostTarget()
 	target.Allocator = "none"
 	out := t.TempDir()
 	g, err := p.Run(target, nil, out)
@@ -80,7 +81,7 @@ func TestBuildProgramAllocatorNoneSurvivesHostTarget(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("load: %v %v", ok, err)
 	}
-	target := driver.HostTarget()
+	target := buildconfig.HostTarget()
 	target.Allocator = "none"
 	out := t.TempDir()
 	g, err := p.Run(target, nil, out)
@@ -122,7 +123,7 @@ func TestBuildProgramAllocatorNoneSurvivesExplicitTarget(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("load: %v %v", ok, err)
 	}
-	target := driver.HostTarget()
+	target := buildconfig.HostTarget()
 	target.Allocator = "none"
 	g, err := p.Run(target, nil, t.TempDir())
 	if err != nil {
