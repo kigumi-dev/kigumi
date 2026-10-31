@@ -1,6 +1,7 @@
 package sem
 
 import (
+	"kigumi/internal/compiler/sem/asmtable"
 	"kigumi/internal/compiler/syntax"
 )
 
@@ -10,7 +11,7 @@ func (c *checker) synthAsm(n syntax.NodeID, want TypeID) TypeID {
 	if c.unsafe == 0 && !c.naked {
 		c.errAt(n, cUnsafeRequired, "inline assembly")
 	}
-	arch, ok := asmArches[c.r.arch]
+	arch, ok := asmtable.Lookup(c.r.arch)
 	if !ok {
 		c.errAt(n, cAsmTarget, c.r.arch)
 		return TyPoison
@@ -98,14 +99,14 @@ func (c *checker) asmPlaceholders(templates []syntax.NodeID, info *AsmInfo) {
 			}
 			if info.Label(p.Text) < 0 {
 				c.errAt(templates[i], cAsmPlaceholder, p.Text)
-			} else if _, ok := asmModifiers[c.r.arch][p.Modifier]; p.Modifier != "" && !ok {
+			} else if _, ok := asmtable.Modifier(c.r.arch, p.Modifier); p.Modifier != "" && !ok {
 				c.errAt(templates[i], cAsmModifier, p.Modifier, c.r.arch)
 			}
 		}
 	}
 }
 
-func (c *checker) asmClobbers(line syntax.NodeID, arch *asmArch, info *AsmInfo) {
+func (c *checker) asmClobbers(line syntax.NodeID, arch *asmtable.Architecture, info *AsmInfo) {
 	for it := range c.t.View(line).AsAsmClobber().Names().IDs() {
 		name := c.t.View(it).Tok().Text()
 		if c.t.Kind(it) == syntax.AsmAbi {
@@ -115,7 +116,7 @@ func (c *checker) asmClobbers(line syntax.NodeID, arch *asmArch, info *AsmInfo) 
 			info.ClobberAbi = name
 			continue
 		}
-		if _, ok := arch.Regs[name]; !ok {
+		if _, ok := arch.Register(name); !ok {
 			c.errAt(it, cAsmClobber, name)
 			continue
 		}
@@ -175,7 +176,8 @@ func (c *checker) asmResult(n syntax.NodeID, want TypeID, info *AsmInfo, outputs
 			}
 		}
 		op.Type = c.vars.resolve(tt.Subst(c.r.Entities[fld].Type, subst))
-		c.asmOperandType(op, asmArches[c.r.arch])
+		arch, _ := asmtable.Lookup(c.r.arch)
+		c.asmOperandType(op, arch)
 		if op.Kind == AsmInOut && op.Expr != 0 {
 			c.check(op.Expr, op.Type)
 		}

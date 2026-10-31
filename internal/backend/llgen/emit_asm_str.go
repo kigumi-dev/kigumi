@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/sem"
+	"kigumi/internal/compiler/sem/asmtable"
 )
 
 func (e *emitter) asmTemplate(info *sem.AsmInfo, index map[int]int) string {
@@ -31,7 +32,7 @@ func (e *emitter) asmTemplate(info *sem.AsmInfo, index map[int]int) string {
 			// the bare name, which is what call and jmp need.
 			if mod == "" && info.Operands[op].Kind == sem.AsmSym && (info.Arch == "amd64" || info.Arch == "386") {
 				mod = "P"
-			} else if m, ok := sem.AsmModifier(info.Arch, mod); ok {
+			} else if m, ok := asmtable.Modifier(info.Arch, mod); ok {
 				mod = m
 			}
 			if mod != "" {

@@ -1,27 +1,24 @@
-package sem
+package asmtable
 
 import "fmt"
 
-// asmReg describes one register of a target: its operand width, whether
+// Register describes one register of a target: its operand width, whether
 // it belongs to the floating-point file, and why it cannot be an operand.
-type asmReg struct {
+type Register struct {
 	Bits     int
 	Float    bool
 	Reserved string
 }
 
-// asmArch is the inline-asm view of an architecture: the register table,
-// the LLVM constraint letters of the `reg` and `freg` classes and the
-// flag registers a block clobbers unless it preserves them.
-type asmArch struct {
-	PtrBits int
-	Regs    map[string]asmReg
-	GPR     string
-	FPR     string
-	Flags   []string
+type Architecture struct {
+	ptrBits int
+	regs    map[string]Register
+	gpr     string
+	fpr     string
+	flags   []string
 }
 
-var asmArches = map[string]*asmArch{
+var asmArches = map[string]*Architecture{
 	"amd64":   x86Arch(64),
 	"386":     x86Arch(32),
 	"arm64":   arm64Arch(),
@@ -37,27 +34,27 @@ var asmModifiers = map[string]map[string]string{
 	"arm64": {"w": "w", "x": "x"},
 }
 
-// AsmModifier translates a template modifier for the backend.
-func AsmModifier(arch, mod string) (string, bool) {
+// Modifier translates a template modifier for the backend.
+func Modifier(arch, mod string) (string, bool) {
 	m, ok := asmModifiers[arch][mod]
 	return m, ok
 }
 
-// AsmArch exposes the constraint letters and flag clobbers to the backend.
-func AsmArch(arch string) (gpr, fpr string, flags []string, ok bool) {
+// Constraints exposes the constraint letters and flag clobbers to the backend.
+func Constraints(arch string) (gpr, fpr string, flags []string, ok bool) {
 	a, ok := asmArches[arch]
 	if !ok {
 		return "", "", nil, false
 	}
-	return a.GPR, a.FPR, a.Flags, true
+	return a.gpr, a.fpr, append([]string(nil), a.flags...), true
 }
 
-func (a *asmArch) add(name string, bits int, float bool, reserved string) {
-	a.Regs[name] = asmReg{Bits: bits, Float: float, Reserved: reserved}
+func (a *Architecture) add(name string, bits int, float bool, reserved string) {
+	a.regs[name] = Register{Bits: bits, Float: float, Reserved: reserved}
 }
 
-func x86Arch(ptr int) *asmArch {
-	a := &asmArch{PtrBits: ptr, Regs: map[string]asmReg{}, GPR: "r", FPR: "x", Flags: []string{"dirflag", "fpsr", "flags"}}
+func x86Arch(ptr int) *Architecture {
+	a := &Architecture{ptrBits: ptr, regs: map[string]Register{}, gpr: "r", fpr: "x", flags: []string{"dirflag", "fpsr", "flags"}}
 	legacy := []struct{ q, d, w, b, res string }{
 		{"rax", "eax", "ax", "al", ""}, {"rcx", "ecx", "cx", "cl", ""}, {"rdx", "edx", "dx", "dl", ""},
 		{"rbx", "ebx", "bx", "bl", "rbx is used internally by the code generator"},
@@ -94,8 +91,8 @@ func x86Arch(ptr int) *asmArch {
 	return a
 }
 
-func arm64Arch() *asmArch {
-	a := &asmArch{PtrBits: 64, Regs: map[string]asmReg{}, GPR: "r", FPR: "w", Flags: []string{"cc"}}
+func arm64Arch() *Architecture {
+	a := &Architecture{ptrBits: 64, regs: map[string]Register{}, gpr: "r", fpr: "w", flags: []string{"cc"}}
 	reserved := map[int]string{18: "x18 is the platform register", 19: "x19 is used internally by the code generator", 29: "x29 is the frame pointer", 30: "x30 is the link register"}
 	for i := 0; i <= 30; i++ {
 		a.add(fmt.Sprintf("x%d", i), 64, false, reserved[i])
@@ -115,8 +112,8 @@ func arm64Arch() *asmArch {
 	return a
 }
 
-func armArch() *asmArch {
-	a := &asmArch{PtrBits: 32, Regs: map[string]asmReg{}, GPR: "r", FPR: "w", Flags: []string{"cc"}}
+func armArch() *Architecture {
+	a := &Architecture{ptrBits: 32, regs: map[string]Register{}, gpr: "r", fpr: "w", flags: []string{"cc"}}
 	reserved := map[int]string{6: "r6 is used internally by the code generator", 7: "r7 is the frame pointer in Thumb code", 9: "r9 is the platform register", 11: "r11 is the frame pointer", 13: "r13 is the stack pointer", 14: "r14 is the link register", 15: "r15 is the program counter"}
 	for i := 0; i <= 15; i++ {
 		a.add(fmt.Sprintf("r%d", i), 32, false, reserved[i])

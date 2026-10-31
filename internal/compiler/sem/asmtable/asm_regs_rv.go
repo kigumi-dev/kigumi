@@ -1,9 +1,9 @@
-package sem
+package asmtable
 
 import "fmt"
 
-func riscvArch() *asmArch {
-	a := &asmArch{PtrBits: 64, Regs: map[string]asmReg{}, GPR: "r", FPR: "f", Flags: []string{"fflags", "vtype", "vl", "vxsat", "vxrm"}}
+func riscvArch() *Architecture {
+	a := &Architecture{ptrBits: 64, regs: map[string]Register{}, gpr: "r", fpr: "f", flags: []string{"fflags", "vtype", "vl", "vxsat", "vxrm"}}
 	abi := map[int][]string{0: {"zero"}, 1: {"ra"}, 2: {"sp"}, 3: {"gp"}, 4: {"tp"}, 8: {"s0", "fp"}, 9: {"s1"}}
 	for i := 5; i <= 7; i++ {
 		abi[i] = []string{fmt.Sprintf("t%d", i-5)}

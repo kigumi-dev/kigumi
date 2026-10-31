@@ -1,9 +1,12 @@
 package sem
 
-import "kigumi/internal/compiler/syntax"
+import (
+	"kigumi/internal/compiler/sem/asmtable"
+	"kigumi/internal/compiler/syntax"
+)
 
 // Output types for out/inout/lateout operands are settled later, by asmResult.
-func (c *checker) asmOperand(line syntax.NodeID, arch *asmArch, labels map[string]syntax.NodeID) AsmOperand {
+func (c *checker) asmOperand(line syntax.NodeID, arch *asmtable.Architecture, labels map[string]syntax.NodeID) AsmOperand {
 	o := c.t.View(line).AsAsmOperand()
 	op := AsmOperand{Field: -1, Expr: o.Expr().ID(), Node: line}
 	if o.Label().Valid() {
@@ -40,7 +43,7 @@ func (c *checker) asmOperand(line syntax.NodeID, arch *asmArch, labels map[strin
 	}
 	if op.Reg == "reg" || op.Reg == "freg" {
 		op.Class = true
-	} else if r, ok := arch.Regs[op.Reg]; !ok {
+	} else if r, ok := arch.Register(op.Reg); !ok {
 		c.errAt(line, cAsmRegister, op.Reg, c.r.arch)
 	} else if r.Reserved != "" {
 		c.errAt(line, cAsmRegisterReserved, op.Reg, r.Reserved)
@@ -64,13 +67,13 @@ func (c *checker) asmOperand(line syntax.NodeID, arch *asmArch, labels map[strin
 }
 
 // An untyped literal takes the register's natural integer width.
-func (c *checker) asmInput(op *AsmOperand, arch *asmArch) TypeID {
+func (c *checker) asmInput(op *AsmOperand, arch *asmtable.Architecture) TypeID {
 	t := c.readThrough(c.vars.resolve(c.synthRead(op.Expr)))
 	if c.r.Types.Kind(t) != KUntyped {
 		return t
 	}
-	bits := arch.PtrBits
-	if r, ok := arch.Regs[op.Reg]; ok && !r.Float {
+	bits := arch.PointerBits()
+	if r, ok := arch.Register(op.Reg); ok && !r.Float {
 		bits = r.Bits
 	}
 	natural := map[int]TypeID{8: TyI8, 16: TyI16, 32: TyI32, 64: TyI64}[bits]
@@ -80,7 +83,7 @@ func (c *checker) asmInput(op *AsmOperand, arch *asmArch) TypeID {
 	return c.adopt(c.literalNode(op.Expr), natural)
 }
 
-func (c *checker) asmOperandType(op *AsmOperand, arch *asmArch) {
+func (c *checker) asmOperandType(op *AsmOperand, arch *asmtable.Architecture) {
 	tt := c.r.Types
 	t := op.Type
 	if t == TyPoison || t == 0 {
@@ -91,17 +94,17 @@ func (c *checker) asmOperandType(op *AsmOperand, arch *asmArch) {
 		c.errAt(op.Node, c.r.abiCode(t, cAsmOperandType), c.r.TypeString(t))
 		return
 	}
-	bits := arch.PtrBits
+	bits := arch.PointerBits()
 	if !isPtr {
-		bits = tt.Bits(t, arch.PtrBits)
+		bits = tt.Bits(t, arch.PointerBits())
 	}
-	r, explicit := arch.Regs[op.Reg]
+	r, explicit := arch.Register(op.Reg)
 	switch {
 	case op.Class && op.Reg == "freg" && !tt.IsFloat(t), explicit && r.Float && !tt.IsFloat(t):
 		c.errAt(op.Node, cAsmWidth, c.r.TypeString(t), "a floating-point register")
 	case op.Class && op.Reg == "reg" && tt.IsFloat(t):
 		c.errAt(op.Node, cAsmWidth, c.r.TypeString(t), "`reg`; use `freg`")
-	case op.Class && bits > arch.PtrBits:
+	case op.Class && bits > arch.PointerBits():
 		c.errAt(op.Node, cAsmWidth, c.r.TypeString(t), "a general register")
 	case explicit && !r.Float && bits != r.Bits:
 		c.errAt(op.Node, cAsmWidth, c.r.TypeString(t), "`"+op.Reg+"`, which is "+itoa(r.Bits)+" bits")
