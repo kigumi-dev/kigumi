@@ -4,11 +4,13 @@ import (
 	"slices"
 
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
+	borrowpass "kigumi/internal/compiler/mir/ownership/borrow"
 )
 
 // hoistRefDrops moves the scope-end releases of l to just after the last use of l or of a borrow read from it on each
 // path, else each into the earliest block that runs exactly when its own block does, so a later write to l's owner is free.
-func (g *ghostSet) hoistRefDrops(p *Program, f *midir.Func, l midir.LocalID, flow *blockFlow) {
+func (g *ghostSet) hoistRefDrops(p *ownquery.Input, f *midir.Func, l midir.LocalID, flow *blockFlow) {
 	defs, home := 0, -1
 	var drops []int
 	for bid, blk := range f.Blocks {
@@ -91,9 +93,9 @@ func touchesHeld(in midir.Inst, l midir.LocalID, held map[midir.LocalID]bool) bo
 
 // refDerived is l with what is read from it that may keep pointing into its referent: a borrow-carrying
 // value, or a temporary place a further projection or borrow starts from.
-func refDerived(p *Program, f *midir.Func, l midir.LocalID) map[midir.LocalID]bool {
+func refDerived(p *ownquery.Input, f *midir.Func, l midir.LocalID) map[midir.LocalID]bool {
 	held := map[midir.LocalID]bool{l: true}
-	bc := &borrowCheck{p: p, f: f}
+	bc := borrowpass.NewTypeFacts(p.R)
 	for grew := true; grew; {
 		grew = false
 		for _, blk := range f.Blocks {
@@ -103,7 +105,7 @@ func refDerived(p *Program, f *midir.Func, l midir.LocalID) map[midir.LocalID]bo
 				}
 				t := f.Locals[in.Dst].Type
 				place := f.Locals[in.Dst].Ent == 0 && placeStep(in.Op)
-				if bc.holdsBorrow(t) || bc.namesTypeParam(t) || place && !p.R.IsCopy(t) {
+				if bc.HoldsBorrow(t) || bc.NamesTypeParam(t) || place && !p.R.IsCopy(t) {
 					held[in.Dst], grew = true, true
 				}
 			}

@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	mirflow "kigumi/internal/compiler/mir/flow"
 	midir "kigumi/internal/compiler/mir/ir"
 )
 
@@ -59,7 +60,7 @@ func liveAtSuspends(f *midir.Func) []bitset {
 
 // backwardOrder lists unreachable blocks, then reachable ones in postorder, which settles a backward flow in few sweeps.
 func backwardOrder(f *midir.Func) []midir.BlockID {
-	rpo := reversePostorder(f)
+	rpo := mirflow.ReversePostorder(f)
 	reached := make([]bool, len(f.Blocks))
 	for _, bid := range rpo {
 		reached[bid] = true

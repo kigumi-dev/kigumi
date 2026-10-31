@@ -4,12 +4,13 @@ import (
 	"slices"
 
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 )
 
 // hoistRefReleases moves the scope-end release of a named reference used in one block up to its
 // last use there; releasing a borrow of a named local runs no destructor, so only the borrow's end moves.
-func (g *ghostSet) hoistRefReleases(p *Program, f *midir.Func) {
+func (g *ghostSet) hoistRefReleases(p *ownquery.Input, f *midir.Func) {
 	var defs map[midir.LocalID][]midir.Inst
 	var flow *blockFlow
 	for l := range f.Locals {
@@ -41,7 +42,7 @@ func resultDefs(f *midir.Func) map[midir.LocalID][]midir.Inst {
 	return defs
 }
 
-func namedReferent(p *Program, f *midir.Func, defs map[midir.LocalID][]midir.Inst, l midir.LocalID, seen map[midir.LocalID]bool) bool {
+func namedReferent(p *ownquery.Input, f *midir.Func, defs map[midir.LocalID][]midir.Inst, l midir.LocalID, seen map[midir.LocalID]bool) bool {
 	if seen[l] {
 		return true
 	}
@@ -72,7 +73,7 @@ func namedReferent(p *Program, f *midir.Func, defs map[midir.LocalID][]midir.Ins
 }
 
 // hoistRefRelease moves l's one release to its defining block when every use is there, false when it cannot.
-func (g *ghostSet) hoistRefRelease(p *Program, f *midir.Func, l midir.LocalID) bool {
+func (g *ghostSet) hoistRefRelease(p *ownquery.Input, f *midir.Func, l midir.LocalID) bool {
 	home, def, last := -1, -1, -1
 	dropBlk, drop := -1, -1
 	for bid := range f.Blocks {

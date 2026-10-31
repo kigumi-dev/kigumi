@@ -2,6 +2,7 @@ package mir
 
 import (
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -15,7 +16,7 @@ func (p *Program) lentJoins(f *midir.Func, defs map[midir.LocalID]int) map[midir
 			continue
 		}
 		if lent == nil {
-			lent = p.lentRefs(f)
+			lent = ownquery.LentRefs(p.R, f)
 		}
 		if lent[t] {
 			out[t] = true

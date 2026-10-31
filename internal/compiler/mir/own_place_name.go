@@ -4,12 +4,13 @@ import (
 	"strconv"
 
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
 
 // placeName spells a field read as the path it projects; a pattern's own text would name the binding instead.
-func (pl *places) placeName(p *Program, f *midir.Func, t *syntax.Tree, in midir.Inst) string {
+func (pl *places) placeName(p *ownquery.Input, f *midir.Func, t *syntax.Tree, in midir.Inst) string {
 	if in.Op == midir.OpPayload {
 		if n, ok := pl.name[pl.canon(in.Args[0])]; ok {
 			return n

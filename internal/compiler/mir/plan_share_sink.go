@@ -2,6 +2,7 @@ package mir
 
 import (
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -46,7 +47,7 @@ func (p *Program) callSink(in midir.Inst, i int, s *shareSummary) sinkKind {
 	}
 	info := p.R.Fn(in.Ent)
 	switch {
-	case p.IsStdPrimitive(in.Ent):
+	case ownquery.IsStdPrimitive(p.R, in.Ent):
 		return sinkIf(i > 0 || info.Recv == sem.RecvNone, keepsArg)
 	case info.Abi != "" || info.Naked:
 		return noSink

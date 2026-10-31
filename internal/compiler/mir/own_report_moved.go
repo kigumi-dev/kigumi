@@ -2,6 +2,7 @@ package mir
 
 import (
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/lang/diag"
 )
@@ -13,7 +14,7 @@ func (a *owner) reportMoved(n syntax.NodeID, l midir.LocalID, name string) {
 	}
 	a.reported[n] = true
 	t := a.p.R.Tree(a.f.File)
-	d := diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(n)), Code: diagCode("use-after-move"),
+	d := diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(n)), Code: ownquery.DiagnosticCode("use-after-move"),
 		Msg: "`" + name + "` was moved; it cannot be used again"}
 	if at := a.cur.at.get(l); at != 0 && at != n {
 		d = d.WithNote(diag.At(t.File, t.Span(at)), "`"+name+"` is moved here")
@@ -34,7 +35,7 @@ func (a *owner) reportLoopMove(n syntax.NodeID, name string) {
 	}
 	a.reported[n] = true
 	t := a.p.R.Tree(a.f.File)
-	d := diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(n)), Code: diagCode("use-after-move"),
+	d := diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(n)), Code: ownquery.DiagnosticCode("use-after-move"),
 		Msg: "`" + name + "` was moved in an earlier iteration of the loop; it cannot be moved again"}
 	d = d.WithHelp("create the value inside the loop, or leave the loop right after moving it")
 	a.f.Diags = append(a.f.Diags, d)

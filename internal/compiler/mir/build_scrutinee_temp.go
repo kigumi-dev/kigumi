@@ -3,6 +3,7 @@ package mir
 import (
 	"kigumi/internal/compiler/hir"
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/lang/diag"
@@ -65,7 +66,7 @@ func (b *builder) tempBorrowKept(bind sem.EntityID, at syntax.NodeID) {
 	code, _ := sem.CodeByName("temporary-borrow-kept")
 	msg := sem.FillTemplate(code.Template, b.r.Entity(bind).Name, "that the right side of `&&` creates only when the left side holds") + "; " + code.Help
 	t := b.r.Tree(b.fn.File)
-	b.fn.Diags = append(b.fn.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(at)), Code: diagCode(code.Num), Msg: msg})
+	b.fn.Diags = append(b.fn.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(at)), Code: ownquery.DiagnosticCode(code.Num), Msg: msg})
 }
 
 func (b *builder) countedRefTemp(v midir.LocalID) bool {

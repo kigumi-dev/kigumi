@@ -83,21 +83,6 @@ func (p *callVerifier) futureMismatch(f *midir.Func, in midir.Inst) string {
 	return ""
 }
 
-func soleDef(f *midir.Func, l midir.LocalID) *midir.Inst {
-	var def *midir.Inst
-	for _, blk := range f.Blocks {
-		for k := range blk.Insts {
-			if d := &blk.Insts[k]; d.Op.Yields() && d.Dst == l {
-				if def != nil {
-					return nil
-				}
-				def = d
-			}
-		}
-	}
-	return def
-}
-
 func (p *callVerifier) captureMismatch(f *midir.Func, in midir.Inst, callee *midir.Func) string {
 	if len(in.Args) > len(callee.Params) {
 		return "captures " + itoa(len(in.Args)) + " values for a body of " + itoa(len(callee.Params)) + " parameters"

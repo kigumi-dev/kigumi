@@ -2,6 +2,7 @@ package mir
 
 import (
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/lang/diag"
 )
@@ -76,7 +77,7 @@ func (p *Program) isrClaim(handler *midir.Func, c sem.Code, what string, hops []
 func (p *Program) isrCallees(f *midir.Func, in midir.Inst) []*midir.Func {
 	switch in.Op {
 	case midir.OpCall:
-		if g := p.ByEnt[in.Ent]; g != nil && !p.IsStdPrimitive(in.Ent) {
+		if g := p.ByEnt[in.Ent]; g != nil && !ownquery.IsStdPrimitive(p.R, in.Ent) {
 			return []*midir.Func{g}
 		}
 		if cb, ok := p.isrCallbackArg(in); ok {

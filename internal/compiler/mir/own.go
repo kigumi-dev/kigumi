@@ -1,7 +1,10 @@
 package mir
 
 import (
+	mirflow "kigumi/internal/compiler/mir/flow"
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
+	borrowpass "kigumi/internal/compiler/mir/ownership/borrow"
 	"kigumi/internal/compiler/syntax"
 )
 
@@ -11,7 +14,7 @@ import (
 // keeps its own presence state independent of the place that held it;
 // using that place as a whole while one of its fields is gone is also an
 // error, and a drop of it becomes a drop of the fields still there.
-func analyzeOwnership(p *Program, f *midir.Func, ghosts *ghostSet) {
+func analyzeOwnership(p *ownquery.Input, f *midir.Func, ghosts *ghostSet) {
 	defer clearGuardMarks(f)
 	moveOnly := func(l midir.Local) bool {
 		return !p.R.IsCopy(l.Type) && !l.Cell
@@ -32,7 +35,7 @@ func analyzeOwnership(p *Program, f *midir.Func, ghosts *ghostSet) {
 		return
 	}
 	a := &owner{p: p, f: f, ghosts: ghosts, pl: pl, tracked: tracked, in: make([]*dstate, len(f.Blocks)),
-		reported: map[syntax.NodeID]bool{}, defNode: map[midir.LocalID]syntax.NodeID{}, thread: &flagThread{f: f}}
+		reported: map[syntax.NodeID]bool{}, defNode: map[midir.LocalID]syntax.NodeID{}, thread: mirflow.NewFlagThread(f)}
 	entry := newDstate()
 	for _, prm := range f.Params {
 		if tracked[prm] {
@@ -47,7 +50,7 @@ func analyzeOwnership(p *Program, f *midir.Func, ghosts *ghostSet) {
 			a.transfer(midir.BlockID(bid), cloneD(a.in[bid]), true)
 		}
 	}
-	checkReadCaptures(p, f, a.moves)
+	borrowpass.CheckReadCaptures(p, f, a.moves)
 }
 
 func (a *owner) solve(start midir.BlockID) {
@@ -56,14 +59,14 @@ func (a *owner) solve(start midir.BlockID) {
 		bid := work[0]
 		work = work[1:]
 		out := a.transfer(bid, cloneD(a.in[bid]), false)
-		if a.thread.allThreaded(bid) {
+		if a.thread.AllThreaded(bid) {
 			continue
 		}
 		for _, succ := range a.f.Blocks[bid].Term.Targets {
 			if a.merge(succ, out) {
 				work = append(work, succ)
 			}
-			if to, ok := a.thread.target(bid, succ); ok && a.merge(to, a.transfer(succ, cloneD(out), false)) {
+			if to, ok := a.thread.Target(bid, succ); ok && a.merge(to, a.transfer(succ, cloneD(out), false)) {
 				work = append(work, to)
 			}
 		}
@@ -78,7 +81,7 @@ func (a *owner) transfer(bid midir.BlockID, st *dstate, report bool) *dstate {
 	a.cur = st
 	for i := range blk.Insts {
 		in := &blk.Insts[i]
-		a.pos = movePos{bid, i}
+		a.pos = ownquery.MovePosition{Bid: bid, Idx: i}
 		if in.Op.Yields() {
 			a.defNode[in.Dst] = in.Node
 		}

@@ -92,23 +92,3 @@ func (lv *liveness) after(l midir.LocalID, b, k int) bool {
 	}
 	return lv.out[b][l/64]&(1<<(l%64)) != 0
 }
-
-// blockReach[b][b] holds only through a loop.
-func blockReach(blocks []midir.Block) [][]bool {
-	out := make([][]bool, len(blocks))
-	for b := range blocks {
-		seen := make([]bool, len(blocks))
-		work := append([]midir.BlockID{}, blocks[b].Term.Targets...)
-		for len(work) > 0 {
-			c := work[len(work)-1]
-			work = work[:len(work)-1]
-			if seen[c] {
-				continue
-			}
-			seen[c] = true
-			work = append(work, blocks[c].Term.Targets...)
-		}
-		out[b] = seen
-	}
-	return out
-}

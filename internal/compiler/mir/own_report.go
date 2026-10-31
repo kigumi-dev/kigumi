@@ -1,14 +1,16 @@
 package mir
 
 import (
+	mirflow "kigumi/internal/compiler/mir/flow"
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/lang/diag"
 )
 
 type owner struct {
-	p        *Program
+	p        *ownquery.Input
 	ghosts   *ghostSet
 	f        *midir.Func
 	pl       *places
@@ -18,13 +20,13 @@ type owner struct {
 	defNode  map[midir.LocalID]syntax.NodeID
 	cur      *dstate
 	capSrc   map[midir.LocalID]midir.LocalID
-	pos      movePos
-	moves    []moveEvent
+	pos      ownquery.MovePosition
+	moves    []ownquery.MoveEvent
 	guardSrc map[midir.LocalID]midir.LocalID
 	fieldMv  map[midir.LocalID]bool
 	payLine  map[[2]int]bool
 	cellDefs map[midir.LocalID]*midir.Inst
-	thread   *flagThread
+	thread   *mirflow.FlagThread
 }
 
 // merge joins a predecessor's exit state into a block; it reports
@@ -146,7 +148,7 @@ func (a *owner) report(n syntax.NodeID, code, msg string) {
 	}
 	a.reported[n] = true
 	t := a.p.R.Tree(a.f.File)
-	a.f.Diags = append(a.f.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(n)), Msg: msg, Code: diagCode(code)})
+	a.f.Diags = append(a.f.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(n)), Msg: msg, Code: ownquery.DiagnosticCode(code)})
 }
 
 // HasErrors reports whether any function carries an ownership error.

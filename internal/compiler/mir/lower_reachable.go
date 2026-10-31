@@ -6,6 +6,8 @@ import (
 
 	"kigumi/internal/compiler/hir"
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
+	borrowpass "kigumi/internal/compiler/mir/ownership/borrow"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -17,7 +19,8 @@ type lowering struct {
 	top      map[*midir.Func]sem.EntityID
 	tried    map[sem.EntityID]bool
 	checks   []pendingCheck
-	borrow   *borrowAnalysis
+	borrow   *borrowpass.Analyzer
+	input    *ownquery.Input
 }
 
 func (p *lowering) lowerable(id sem.EntityID) bool {

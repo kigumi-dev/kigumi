@@ -2,6 +2,7 @@ package mir
 
 import (
 	"kigumi/internal/compiler/hir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/lang/diag"
 )
@@ -38,7 +39,7 @@ func (b *builder) rejectRecvWrite(e *hir.Expr, later []*hir.Expr) {
 				continue
 			}
 			// The callee holds this place and the receiver at once, so a place inside the receiver conflicts too.
-			hit = hit || fieldPathsOverlap(placeSteps(x.Args[0]), w.steps)
+			hit = hit || ownquery.FieldPathsOverlap(placeSteps(x.Args[0]), w.steps)
 		}
 		if !hit {
 			continue
@@ -46,7 +47,7 @@ func (b *builder) rejectRecvWrite(e *hir.Expr, later []*hir.Expr) {
 		code, _ := sem.CodeByName("borrow-conflict")
 		msg := sem.FillTemplate(code.Template, b.r.Entity(root).Name) + "; the method's receiver borrows it while this argument writes it"
 		tree := b.r.Tree(b.fn.File)
-		b.fn.Diags = append(b.fn.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(tree.File, tree.Span(x.Node)), Code: diagCode(code.Num), Msg: msg})
+		b.fn.Diags = append(b.fn.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(tree.File, tree.Span(x.Node)), Code: ownquery.DiagnosticCode(code.Num), Msg: msg})
 		return
 	}
 }

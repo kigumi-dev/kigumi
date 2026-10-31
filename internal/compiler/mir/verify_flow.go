@@ -1,41 +1,12 @@
 package mir
 
 import (
+	mirflow "kigumi/internal/compiler/mir/flow"
 	midir "kigumi/internal/compiler/mir/ir"
 )
 
-func reversePostorder(f *midir.Func) []midir.BlockID {
-	seen := make([]bool, len(f.Blocks))
-	var post []midir.BlockID
-	type frame struct {
-		bid  midir.BlockID
-		next int
-	}
-	stack := []frame{{0, 0}}
-	seen[0] = true
-	for len(stack) > 0 {
-		top := &stack[len(stack)-1]
-		targets := f.Blocks[top.bid].Term.Targets
-		if top.next < len(targets) {
-			succ := targets[top.next]
-			top.next++
-			if !seen[succ] {
-				seen[succ] = true
-				stack = append(stack, frame{succ, 0})
-			}
-			continue
-		}
-		post = append(post, top.bid)
-		stack = stack[:len(stack)-1]
-	}
-	for i, j := 0, len(post)-1; i < j; i, j = i+1, j-1 {
-		post[i], post[j] = post[j], post[i]
-	}
-	return post
-}
-
 func solveForward(f *midir.Func, visit func(bid midir.BlockID, wake func(midir.BlockID), final bool) bool) (acyclic bool) {
-	order := reversePostorder(f)
+	order := mirflow.ReversePostorder(f)
 	rank := make([]int, len(f.Blocks))
 	for i, bid := range order {
 		rank[bid] = i

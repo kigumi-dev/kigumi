@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -26,7 +27,7 @@ type places struct {
 // findPlaces keys each projection temporary and elects the first temporary of a
 // key as its representative. Blocks are revisited until stable because a chain
 // can cross a back edge.
-func findPlaces(p *Program, f *midir.Func) *places {
+func findPlaces(p *ownquery.Input, f *midir.Func) *places {
 	pl := &places{key: map[midir.LocalID]string{}, rep: map[string]midir.LocalID{}, name: map[midir.LocalID]string{},
 		children: map[midir.LocalID]map[int]midir.LocalID{}, parent: map[midir.LocalID]midir.LocalID{}, cellRoot: map[midir.LocalID]midir.LocalID{}}
 	// checkBorrowedMoves already rejects every move out of a closure's
@@ -110,64 +111,6 @@ func (pl *places) stored(f *midir.Func, in midir.Inst) (midir.LocalID, bool) {
 	}
 	l, ok := pl.rep[base+"."+strconv.Itoa(in.Index)]
 	return l, ok
-}
-
-// consumesArg reports whether argument i hands ownership over. It mirrors the
-// backends' lending rule: a `self`/`mut self` receiver, the callee of an
-// indirect call and every argument of a runtime primitive are lent, not
-// moved, except `await`'s future (it runs the future's body and discards it)
-// and a resource's own registered `drop`, which always consumes `self`.
-func (p *Program) consumesArg(in *midir.Inst, i int) bool {
-	switch in.Op {
-	case midir.OpCall:
-		e := p.R.Entity(in.Ent)
-		if e.Kind != sem.EntFn {
-			return false
-		}
-		info := p.R.Fn(in.Ent)
-		if i == 0 && p.isOwnDrop(in.Ent, info) {
-			return true
-		}
-		if info.Body == 0 && info.Abi == "" && e.Flags&sem.EfStd != 0 {
-			return false
-		}
-		// C code releases nothing: every argument of a foreign call is lent.
-		if info.Abi != "" || info.Naked {
-			return false
-		}
-		// A trailing hidden provider argument forwards a lease; it never
-		// changes hands.
-		if i >= len(in.Args)-ctxArgCount(info) {
-			return false
-		}
-		if g := p.ByEnt[in.Ent]; g != nil && i < len(g.Params) && g.Locals[g.Params[i]].Borrowed {
-			return false
-		}
-		return i != 0 || info.Recv == sem.RecvNone || info.Recv == sem.RecvMove
-	case midir.OpCallValue:
-		// A witness call names its requirement: a `self` / `mut self`
-		// receiver is lent, as in a direct method call.
-		if in.Ent != 0 && i == 1 {
-			recv := p.R.Fn(in.Ent).Recv
-			return recv == sem.RecvNone || recv == sem.RecvMove
-		}
-		return i != 0
-	case midir.OpAwait:
-		return i == 0
-	}
-	return false
-}
-
-// ctxArgCount is how many trailing hidden provider arguments a call to info
-// carries, the only ones with an actual parameter slot.
-func ctxArgCount(info *sem.FnInfo) int {
-	n := 0
-	for _, k := range info.CtxRequires {
-		if info.CtxReal[k] {
-			n++
-		}
-	}
-	return n
 }
 
 func (pl *places) resetFields(root midir.LocalID, st *dstate) {

@@ -2,6 +2,7 @@ package mir
 
 import (
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -42,16 +43,11 @@ func (p *Program) elideBlock(f *midir.Func, in []midir.Inst) []midir.Inst {
 	return out
 }
 
-// A copy of one of these is a retain: the value is immutable, so no one can tell the two apart.
-func (p *Program) retainOnly(t sem.TypeID) bool {
-	return p.R.Types.IsNumeric(t) || t == sem.TyBool || t == sem.TyChar || t == sem.TyString || t == sem.TyUnit
-}
-
 // elideShare cancels a retain the source's or its own release undoes, or hands the source's count to the
 // new reference when the source dies right after it. Only drops of other locals may lie between.
 func (p *Program) elideShare(f *midir.Func, run []midir.Inst) (keep []midir.Inst, gone int, ok bool) {
 	share := run[0]
-	if len(share.Args) != 1 || share.Copy && !p.retainOnly(f.Locals[share.Args[0]].Type) {
+	if len(share.Args) != 1 || share.Copy && !ownquery.RetainOnly(p.R, f.Locals[share.Args[0]].Type) {
 		return nil, 0, false
 	}
 	src, dst := share.Args[0], share.Dst

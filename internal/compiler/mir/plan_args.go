@@ -2,6 +2,7 @@ package mir
 
 import (
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -34,7 +35,7 @@ func (p *Program) inPlace(in midir.Inst, i int) bool {
 			return false
 		}
 		info := p.R.Fn(in.Ent)
-		if i == 0 && p.isOwnDrop(in.Ent, info) {
+		if i == 0 && ownquery.IsOwnDrop(p.R, in.Ent, info) {
 			return false
 		}
 		if info.Body == 0 && info.Abi == "" && p.R.Entity(in.Ent).Flags&sem.EfStd != 0 {
@@ -61,22 +62,6 @@ func (p *Program) ParamLent(fn sem.EntityID, i int) bool {
 // ParamBorrowed is ParamLent without the rule that a primitive lends every argument.
 func (p *Program) ParamBorrowed(fn sem.EntityID, i int) bool {
 	return p.lentParam(midir.Inst{Op: midir.OpCall, Ent: fn}, i)
-}
-
-// isOwnDrop reports whether fn is the registered `drop` of its own owner
-// type, the one case where a bodiless std primitive still consumes `self`.
-func (p *Program) isOwnDrop(fn sem.EntityID, info *sem.FnInfo) bool {
-	return info.Owner != 0 && p.R.TypeDecl(info.Owner).Drop == fn
-}
-
-// isStdPrimitive reports whether an entity is a bodiless std function, which
-// only the runtime implements.
-func (p *Program) IsStdPrimitive(fn sem.EntityID) bool {
-	if p.R.Entity(fn).Kind != sem.EntFn {
-		return false
-	}
-	info := p.R.Fn(fn)
-	return info.Body == 0 && info.Abi == "" && p.R.Entity(fn).Flags&sem.EfStd != 0
 }
 
 // copyable is what a consuming use duplicates instead of moving: Copy

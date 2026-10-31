@@ -20,11 +20,6 @@ func planAsync(p *Program) error {
 	return nil
 }
 
-func (p *Program) isAsyncBody(ent sem.EntityID) bool {
-	e := p.R.Entity(ent)
-	return e.Kind == sem.EntFn && p.R.Fn(ent).Declared&sem.EffAsync != 0
-}
-
 func planFrame(f *midir.Func, p *Program) {
 	r := p.R
 	live := liveAtSuspends(f)

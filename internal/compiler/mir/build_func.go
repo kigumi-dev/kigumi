@@ -3,11 +3,12 @@ package mir
 import (
 	"kigumi/internal/compiler/hir"
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 )
 
 func (p *lowering) build(hf *hir.Func) *midir.Func {
-	f := &midir.Func{Name: p.funcName(hf.Ent), Ent: hf.Ent, File: hf.File, Ret: hf.Ret, Async: p.isAsyncBody(hf.Ent)}
+	f := &midir.Func{Name: p.funcName(hf.Ent), Ent: hf.Ent, File: hf.File, Ret: hf.Ret, Async: ownquery.IsAsyncBody(p.R, hf.Ent)}
 	b := &builder{p: p, r: p.R, fn: f, locals: map[sem.EntityID]midir.LocalID{}, shared: map[midir.LocalID]bool{}, unowned: map[midir.LocalID]bool{}, ret: hf.Ret}
 	b.newBlock()
 	b.pushScope()
@@ -82,8 +83,8 @@ func (p *lowering) build(hf *hir.Func) *midir.Func {
 	p.ByEnt[hf.Ent] = f
 	p.top[f] = p.cur
 	b.lowerGhosts()
-	b.ghostRuns.hoistRefReleases(p.Program, f)
-	analyzeOwnership(p.Program, f, &b.ghostRuns)
+	b.ghostRuns.hoistRefReleases(p.input, f)
+	analyzeOwnership(p.input, f, &b.ghostRuns)
 	b.ghostRuns.drop(f)
 	p.checkBorrowsOf(f)
 	return f

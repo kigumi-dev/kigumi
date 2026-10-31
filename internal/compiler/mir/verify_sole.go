@@ -1,6 +1,7 @@
 package mir
 
 import (
+	mirflow "kigumi/internal/compiler/mir/flow"
 	midir "kigumi/internal/compiler/mir/ir"
 )
 
@@ -33,5 +34,5 @@ func (p *callVerifier) soleDefOf(f *midir.Func, l midir.LocalID) *midir.Inst {
 		}
 		return ix.defs[l]
 	}
-	return soleDef(f, l)
+	return mirflow.SoleDef(f, l)
 }

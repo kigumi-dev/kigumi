@@ -1,7 +1,9 @@
 package mir
 
 import (
+	mirflow "kigumi/internal/compiler/mir/flow"
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -45,7 +47,7 @@ func (p *verifier) verifyOwnership(f *midir.Func) *Error {
 	// The states settle first; the rules are checked once they have, so a
 	// join that a later predecessor widens is not reported early.
 	work := []midir.BlockID{0}
-	thread := &flagThread{f: f}
+	thread := mirflow.NewFlagThread(f)
 	for len(work) > 0 {
 		bid := work[0]
 		work = work[1:]
@@ -53,14 +55,14 @@ func (p *verifier) verifyOwnership(f *midir.Func) *Error {
 		if diverges(f, &f.Blocks[bid]) {
 			continue
 		}
-		if thread.allThreaded(bid) {
+		if thread.AllThreaded(bid) {
 			continue
 		}
 		for _, succ := range f.Blocks[bid].Term.Targets {
 			if joinVerifyInto(in, succ, out) {
 				work = append(work, succ)
 			}
-			if to, ok := thread.target(bid, succ); ok {
+			if to, ok := thread.Target(bid, succ); ok {
 				if thru, _ := p.transferOwn(f, succ, out, tracked, false); joinVerifyInto(in, to, thru) {
 					work = append(work, to)
 				}
@@ -151,7 +153,7 @@ func (p *verifier) transferOwn(f *midir.Func, bid midir.BlockID, entry *cowVec[o
 			if st.get(a) == ovNone && check {
 				return broken(i, "%s reads %%%s after it was consumed", in.Op, f.Locals[a].Name)
 			}
-			if !in.Rest && (in.Op == midir.OpMove || p.consumesArg(in, k)) {
+			if !in.Rest && (in.Op == midir.OpMove || ownquery.ConsumesArg(p.R, p.ByEnt, in, k)) {
 				st.set(a, ovNone)
 			}
 		}

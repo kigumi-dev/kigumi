@@ -6,6 +6,7 @@ import (
 
 	"kigumi/internal/compiler/mir"
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 )
 
 const isrCallbackSrc = `
@@ -94,7 +95,7 @@ func TestInterruptLoweringCallbackHasNoPositionalInertArgs(t *testing.T) {
 	f := funcNamed(t, prog, "main.withInert")
 	var call midir.Inst
 	for _, in := range f.Blocks[0].Insts {
-		if in.Op == midir.OpCall && prog.IsStdPrimitive(in.Ent) {
+		if in.Op == midir.OpCall && ownquery.IsStdPrimitive(prog.R, in.Ent) {
 			call = in
 		}
 	}

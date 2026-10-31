@@ -3,6 +3,7 @@ package mir
 import (
 	"kigumi/internal/compiler/hir"
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
@@ -47,7 +48,7 @@ func (b *builder) wantsRefCell(ent sem.EntityID, idx int) bool {
 		params = b.r.Closure(ent).Params
 	case sem.EntFn:
 		info := b.r.Fn(ent)
-		if info.Abi != "" || info.Naked || b.p.IsStdPrimitive(ent) {
+		if info.Abi != "" || info.Naked || ownquery.IsStdPrimitive(b.p.R, ent) {
 			return false
 		}
 		params = info.Params

@@ -3,6 +3,7 @@ package mir
 import (
 	midir "kigumi/internal/compiler/mir/ir"
 	mirlayout "kigumi/internal/compiler/mir/layout"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -144,7 +145,7 @@ func (p *Program) readsAt(f *midir.Func, in midir.Inst, k int, cands map[lendPar
 		return protoBuiltin(in)
 	case midir.OpCall:
 		g := p.ByEnt[in.Ent]
-		if g == nil || k >= len(g.Params) || p.IsStdPrimitive(in.Ent) {
+		if g == nil || k >= len(g.Params) || ownquery.IsStdPrimitive(p.R, in.Ent) {
 			return false
 		}
 		return cands[lendParam{g, k}] || !counted && p.takesValue(g, k, f.Locals[in.Args[k]].Type)

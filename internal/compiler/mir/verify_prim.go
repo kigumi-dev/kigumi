@@ -2,6 +2,7 @@ package mir
 
 import (
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -41,7 +42,7 @@ func (k primKind) String() string {
 func (p *verifier) verifyPrimCalls(f *midir.Func) *Error {
 	for bid, blk := range f.Blocks {
 		for i, in := range blk.Insts {
-			if in.Op != midir.OpCall || !p.IsStdPrimitive(in.Ent) {
+			if in.Op != midir.OpCall || !ownquery.IsStdPrimitive(p.R, in.Ent) {
 				continue
 			}
 			msg := p.primMismatch(f, in)

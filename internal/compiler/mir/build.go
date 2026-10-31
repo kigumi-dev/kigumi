@@ -5,6 +5,7 @@ import (
 
 	"kigumi/internal/compiler/hir"
 	midir "kigumi/internal/compiler/mir/ir"
+	borrowpass "kigumi/internal/compiler/mir/ownership/borrow"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
@@ -25,9 +26,9 @@ func build(r *sem.Result, all bool) *Program { return buildFor(r, all, nil) }
 
 func buildFor(r *sem.Result, all bool, keep func(path string) bool) *Program {
 	p := &Program{R: r, ByEnt: map[sem.EntityID]*midir.Func{}}
-	l := &lowering{Program: p, rootKeep: keep}
+	l := &lowering{Program: p, rootKeep: keep, input: newOwnershipInput(p)}
 	l.lowerReachable(all)
-	newBorrowAnalysis(p, p.bodyByEnt).checkRefScopes()
+	p.Diags = append(p.Diags, borrowpass.New(l.input, p.bodyByEnt).CheckRefScopes()...)
 	p.Entry = p.ByEnt[r.MainFn()]
 	resolveStdOps(p)
 	for _, f := range p.allFuncs() {

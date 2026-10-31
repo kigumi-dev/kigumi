@@ -4,7 +4,7 @@ import (
 	"sort"
 
 	midir "kigumi/internal/compiler/mir/ir"
-	"kigumi/internal/compiler/sem"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 )
 
 func (a *owner) movedFields(root midir.LocalID, st *dstate) []int {
@@ -82,7 +82,7 @@ func (a *owner) useArgs(in *midir.Inst, st *dstate, report bool) {
 		}
 		a.check(in, l, st.val.get(l), report)
 		switch {
-		case a.pl.isPlace(arg) && (a.p.consumesArg(in, argi) || a.p.primitiveTakes(in, argi) || constructs(in.Op)):
+		case a.pl.isPlace(arg) && (ownquery.ConsumesArg(a.p.R, a.p.ByEnt, in, argi) || ownquery.PrimitiveTakes(a.p.R, in, argi) || ownquery.Constructs(in.Op)):
 			a.checkWhole(in.Node, l, st, report)
 			a.checkDropOwner(in.Node, l, report)
 			a.checkGuardHeld(in, l, st, report && !a.fieldMoved(arg), 0)
@@ -98,20 +98,6 @@ func (a *owner) useArgs(in *midir.Inst, st *dstate, report bool) {
 
 func wholeUse(op midir.Opcode) bool {
 	return op == midir.OpCall || op == midir.OpCallValue || op == midir.OpBuiltin || op == midir.OpBorrow || op == midir.OpTag || op == midir.OpIsVariant
-}
-
-// primitiveTakes: a runtime primitive retains what it keeps, so a field place it gets by value is spent like a moved local.
-func (p *Program) primitiveTakes(in *midir.Inst, i int) bool {
-	if in.Op != midir.OpCall || !p.IsStdPrimitive(in.Ent) {
-		return false
-	}
-	recv := p.R.Fn(in.Ent).Recv
-	return i != 0 || recv == sem.RecvNone || recv == sem.RecvMove
-}
-
-// constructs is an aggregate literal: a field place among its elements moves into it.
-func constructs(op midir.Opcode) bool {
-	return op == midir.OpRecord || op == midir.OpVariant || op == midir.OpArray
 }
 
 func (a *owner) guardedMove(in *midir.Inst, st *dstate, report bool) {

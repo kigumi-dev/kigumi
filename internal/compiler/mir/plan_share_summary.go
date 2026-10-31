@@ -4,6 +4,7 @@ import (
 	"slices"
 
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -118,7 +119,7 @@ func (s *shareSummary) lendsResult(in midir.Inst, i int) bool {
 	if g := p.ByEnt[in.Ent]; g != nil {
 		return s.retView[g] && i < len(g.Params) && p.lentLocal(g, g.Params[i])
 	}
-	return !p.IsStdPrimitive(in.Ent) && (p.inPlace(in, i) || p.lentParam(in, i))
+	return !ownquery.IsStdPrimitive(p.R, in.Ent) && (p.inPlace(in, i) || p.lentParam(in, i))
 }
 
 func (w *shareFacts) noteTaken() bool {

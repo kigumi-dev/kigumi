@@ -1,0 +1,199 @@
+package borrow
+
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
+
+// collect finds the locals holding borrows (borrows, their copies and reads, reference and
+// named-lifetime params, containers of such values), widening containers until nothing grows.
+func (c *borrowCheck) collect() {
+	c.sinks = map[midir.LocalID]*borrowInfo{}
+	c.contents = map[midir.LocalID]*borrowInfo{}
+	c.caps = map[midir.LocalID]*borrowInfo{}
+	c.targets = c.storeTargets()
+	c.collectParams()
+	for changed := true; changed; {
+		changed = false
+		c.grew = false
+		c.contentsMemo = map[midir.LocalID]contentsResult{}
+		for bid, blk := range c.f.Blocks {
+			for i, in := range blk.Insts {
+				c.resets.at = carrySite{block: midir.BlockID(bid), idx: i}
+				if c.collectInst(in) {
+					changed = true
+				}
+				c.collectValue(in, midir.BlockID(bid), i)
+			}
+		}
+		c.refreshReborrows()
+		changed = changed || c.grew
+	}
+	c.contentsMemo = nil
+}
+
+func (c *borrowCheck) collectParams() {
+	fn := c.p.R.Entity(c.f.Ent).Kind == sem.EntFn
+	for _, prm := range c.f.Params {
+		typ := c.f.Locals[prm].Type
+		lt, node := c.paramLifetime(prm)
+		if lt == 0 && fn && c.p.R.Types.Kind(typ) != sem.KRef {
+			lt = c.soleLifetime(typ)
+		}
+		if c.p.R.Types.Kind(typ) != sem.KRef && lt == 0 {
+			continue
+		}
+		b := &borrowInfo{lifetime: lt, node: node}
+		if lt == 0 && c.multiLifetime(typ) {
+			b.multi = typ
+		}
+		if c.targets[prm] && !c.callerPlace(prm) {
+			c.merge(c.sink(prm, node), b)
+			continue
+		}
+		c.holders[prm] = b
+	}
+}
+
+func (c *borrowCheck) merge(dst, src *borrowInfo) {
+	if mergeInto(dst, src) {
+		c.grew = true
+	}
+}
+
+func (c *borrowCheck) collectInst(in midir.Inst) bool {
+	_, has := c.holders[in.Dst]
+	set := func(b *borrowInfo, ok bool) bool {
+		if !ok || has {
+			return false
+		}
+		c.holders[in.Dst] = b
+		return true
+	}
+	switch in.Op {
+	case midir.OpBorrow:
+		if has {
+			if root, path, exact, ok := c.heldPlace(in.Args[0]); ok {
+				c.merge(c.holders[in.Dst], c.throughRef(root, path, exact, in.Index == 1))
+			}
+			return false
+		}
+		root, path, exact, ok := c.patternPlace(in.Args[0])
+		if ok {
+			ref := ownerRef{owner: root, mut: in.Index == 1, path: path, exact: exact, lifetime: c.projectionLifetime(root, in.Args[0])}
+			b := &borrowInfo{owners: []ownerRef{ref}, hasOwner: true, node: in.Node}
+			mergeInto(b, c.throughRef(root, path, exact, in.Index == 1))
+			return set(b, true)
+		}
+		if b, ok := c.tempBorrow(in); ok {
+			return set(b, true)
+		}
+		if def := c.definition(in.Args[0]); def != nil && def.Op == midir.OpGlobalGet {
+			// A static-origin borrow has no local owner to touch-check
+			// against, but still has to reject escape like any other.
+			return set(&borrowInfo{node: in.Node, fromStatic: true}, true)
+		}
+	case midir.OpCopy, midir.OpMove:
+		src, ok := c.holders[in.Args[0]]
+		if ok && c.widens(in.Dst) {
+			c.widen(in.Dst, src)
+			c.retie(in.Dst, c.resets.at.idx, in.Args[0], src)
+			return false
+		}
+		return set(src, ok)
+	case midir.OpLendBox:
+		return set(c.lendBoxInfo(in), true)
+	case midir.OpArray:
+		c.collectArray(in)
+	case midir.OpSetIndex, midir.OpSetField:
+		c.collectFlows(in)
+	case midir.OpRecord, midir.OpVariant, midir.OpCall, midir.OpCallValue, midir.OpFutureNew:
+		c.collectFlows(in)
+		if _, ok := c.sinks[in.Dst]; ok || c.widens(in.Dst) {
+			if b, ok := c.lifetimeSource(in); ok {
+				c.widen(in.Dst, b)
+			}
+			return false
+		}
+		if !has {
+			return set(c.lifetimeSource(in))
+		}
+	case midir.OpBuiltin:
+		c.collectBuiltin(in)
+	case midir.OpField, midir.OpIndex, midir.OpPayload, midir.OpFieldMove:
+		if !c.collectRefRead(in) && !has && c.projectsHeld(in) {
+			return set(c.readInfo(in.Args[0]))
+		}
+	}
+	return false
+}
+
+// widen merges b into dst's sink; a sink created here blames b's borrow, as sharing b did.
+func (c *borrowCheck) widen(dst midir.LocalID, b *borrowInfo) {
+	c.merge(c.sink(dst, b.node), b)
+	c.noteResetSite(dst, b)
+}
+
+// widens reports whether dst keeps the union of every value written to it instead of the first one: a store
+// target, a temporary joining branches, or a named local of a type carrying a lifetime or a Future or Task.
+func (c *borrowCheck) widens(dst midir.LocalID) bool {
+	l := c.f.Locals[dst]
+	return c.targets[dst] || c.multiDefined(dst) || l.Ent != 0 && (c.elementHolder(l.Type) || c.holdsAsync(l.Type))
+}
+
+// collectArray makes an array literal a container of its elements' sources
+// when each borrow it holds is a value with a named lifetime, not a bare `&T`.
+func (c *borrowCheck) collectArray(in midir.Inst) {
+	var srcs []*borrowInfo
+	for _, a := range in.Args {
+		b, ok := c.holders[a]
+		if !ok {
+			continue
+		}
+		if t := c.f.Locals[a].Type; !c.elementHolder(t) && !c.facts().NamesTypeParam(t) {
+			return
+		}
+		srcs = append(srcs, b)
+	}
+	if len(srcs) == 0 {
+		return
+	}
+	s := c.sink(in.Dst, in.Node)
+	for _, b := range srcs {
+		c.merge(s, b)
+	}
+}
+
+// collectBuiltin ties a builtin's result (a loop's element) to what every
+// argument holds, and to the referent's elements for a reference argument.
+func (c *borrowCheck) collectBuiltin(in midir.Inst) {
+	if ret := c.f.Locals[in.Dst].Type; !c.resultMayCarryLifetime(ret) {
+		c.collectBuiltinCarry(in, ret)
+		return
+	}
+	for _, a := range in.Args {
+		if b, ok := c.holders[a]; ok {
+			c.merge(c.sink(in.Dst, in.Node), b)
+		}
+		if c.p.R.Types.Kind(c.f.Locals[a].Type) != sem.KRef {
+			continue
+		}
+		if b, ok := c.argContents(a); ok {
+			c.merge(c.sink(in.Dst, in.Node), b)
+		}
+	}
+}
+
+// collectBuiltinCarry passes an owned argument's untagged borrow on to a result that may take one
+// of its Futures, Tasks or closures, as a `for` element moved out of an owned container.
+func (c *borrowCheck) collectBuiltinCarry(in midir.Inst, ret sem.TypeID) {
+	for _, a := range in.Args {
+		t := c.f.Locals[a].Type
+		if c.p.R.Types.Kind(t) == sem.KRef || c.resultMayCarryLifetime(t) || !c.mayCarry(ret, t) {
+			continue
+		}
+		if b, ok := c.holders[a]; ok {
+			c.merge(c.sink(in.Dst, in.Node), b)
+		}
+	}
+}

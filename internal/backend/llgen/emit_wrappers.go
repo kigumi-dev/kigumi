@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -114,7 +115,7 @@ func (e *emitter) typeDrop(info *sem.TypeDeclInfo) string {
 	if fn, ok := e.p.ByEnt[info.Drop]; ok {
 		return e.useAdapter(fn)
 	}
-	if e.p.IsStdPrimitive(info.Drop) {
+	if ownquery.IsStdPrimitive(e.p.R, info.Drop) {
 		e.stdDrops[info.Drop] = true
 		return e.stdAdapterSym(info.Drop)
 	}

@@ -3,6 +3,7 @@ package mir
 import (
 	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
@@ -30,7 +31,7 @@ var elemOps = func() map[string]bool {
 }()
 
 func (p *Program) elemCopy(f *midir.Func, in midir.Inst) (sem.TypeID, bool) {
-	if in.Op != midir.OpCall || in.DPrim != opdef.DPNone || !f.DirectPlanned() || !p.IsStdPrimitive(in.Ent) {
+	if in.Op != midir.OpCall || in.DPrim != opdef.DPNone || !f.DirectPlanned() || !ownquery.IsStdPrimitive(p.R, in.Ent) {
 		return 0, false
 	}
 	if id, ok := in.StdOp(); !ok || !elemOps[opdef.StdOpNames[id]] {

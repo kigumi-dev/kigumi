@@ -3,11 +3,12 @@ package mir
 import (
 	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 )
 
 // isrCallbackArg is the index of the closure argument a std primitive call runs natively, if the op takes one.
 func (p *Program) isrCallbackArg(in midir.Inst) (int, bool) {
-	if !p.IsStdPrimitive(in.Ent) {
+	if !ownquery.IsStdPrimitive(p.R, in.Ent) {
 		return 0, false
 	}
 	id, ok := in.StdOp()

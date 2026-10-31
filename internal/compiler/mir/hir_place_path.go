@@ -4,6 +4,7 @@ import (
 	"slices"
 
 	"kigumi/internal/compiler/hir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 )
 
 // placePath is the field path from e's root local; an index drops what lies past it, since the element is not known.
@@ -67,7 +68,7 @@ func (w localWrites) covers(path, steps []int) bool {
 	if w.whole {
 		return len(steps) <= len(w.steps) && slices.Equal(steps, w.steps[:len(steps)])
 	}
-	return fieldPathsOverlap(path, w.path)
+	return ownquery.FieldPathsOverlap(path, w.path)
 }
 
 // above reports whether place e strictly contains the receiver's place, so a `mut self` call on it may replace the receiver.
@@ -78,7 +79,7 @@ func (w localWrites) above(e *hir.Expr) bool {
 // movesOut reports a move of place e that leaves the receiver without its value.
 func (w localWrites) movesOut(e *hir.Expr) bool {
 	if w.whole && w.deep {
-		return rootedAt(e, w.ent) && fieldPathsOverlap(placeSteps(e), w.steps)
+		return rootedAt(e, w.ent) && ownquery.FieldPathsOverlap(placeSteps(e), w.steps)
 	}
 	return w.hits(e)
 }

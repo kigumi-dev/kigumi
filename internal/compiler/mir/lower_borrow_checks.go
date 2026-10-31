@@ -2,6 +2,7 @@ package mir
 
 import (
 	midir "kigumi/internal/compiler/mir/ir"
+	borrowpass "kigumi/internal/compiler/mir/ownership/borrow"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -19,13 +20,9 @@ func (p *lowering) checkBorrowsOf(f *midir.Func) {
 
 func (p *lowering) runBorrowChecks(f *midir.Func) {
 	if p.borrow == nil {
-		p.borrow = newBorrowAnalysis(p.Program, p.calleeBody)
+		p.borrow = borrowpass.New(p.input, p.calleeBody)
 	}
-	state := p.borrow
-	analyzeBorrows(state, f)
-	checkBorrowedMoves(state, f)
-	prior := checkImmediateCaptures(state, f)
-	checkErasedReaders(state, f, prior)
+	p.borrow.Check(f)
 }
 
 // Each check sees the bodies available at its original lowering position.

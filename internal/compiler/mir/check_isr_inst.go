@@ -5,6 +5,7 @@ import (
 
 	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -136,7 +137,7 @@ func (p *Program) isrCallForbidden(f *midir.Func, in midir.Inst) string {
 	if p.R.Entity(in.Ent).Kind == sem.EntFn && p.R.Fn(in.Ent).Abi != "" {
 		return "calls the foreign function `" + name + "`"
 	}
-	if !p.IsStdPrimitive(in.Ent) {
+	if !ownquery.IsStdPrimitive(p.R, in.Ent) {
 		if p.ByEnt[in.Ent] == nil {
 			return "calls `" + name + "`, whose lowered body is not available to verify"
 		}

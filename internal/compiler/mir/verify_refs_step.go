@@ -2,6 +2,7 @@ package mir
 
 import (
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -112,7 +113,7 @@ func (rf *refFlow) read(s *refState, l midir.LocalID) int32 {
 func (p *verifier) takesForGood(f *midir.Func, in *midir.Inst, k int) bool {
 	switch in.Op {
 	case midir.OpCall, midir.OpCallValue:
-		return p.consumesArg(in, k) && !p.lentParam(*in, k) && !p.lentByType(f, in, k)
+		return ownquery.ConsumesArg(p.R, p.ByEnt, in, k) && !p.lentParam(*in, k) && !p.lentByType(f, in, k)
 	case midir.OpRecord:
 		return !p.borrowField(in.Ent, k)
 	case midir.OpVariant, midir.OpArray:

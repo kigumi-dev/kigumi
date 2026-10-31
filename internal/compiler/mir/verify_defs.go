@@ -1,6 +1,7 @@
 package mir
 
 import (
+	mirflow "kigumi/internal/compiler/mir/flow"
 	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
@@ -39,7 +40,7 @@ func (p *verifier) verifyDefs(f *midir.Func) *Error {
 	seen := make([]bool, len(f.Blocks))
 	pending := make([]bool, len(f.Blocks))
 	pending[0] = true
-	order := reversePostorder(f)
+	order := mirflow.ReversePostorder(f)
 	for again := true; again; {
 		again = false
 		for _, bid := range order {

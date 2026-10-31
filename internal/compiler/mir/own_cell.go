@@ -1,13 +1,15 @@
 package mir
 
 import (
+	mirflow "kigumi/internal/compiler/mir/flow"
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 )
 
 // cellOf is the cell local whose whole content the temporary l holds; field and payload reads of a cell are places of their own.
 func (a *owner) cellOf(l midir.LocalID) (midir.LocalID, bool) {
 	if a.cellDefs == nil {
-		a.cellDefs = soleDefs(a.f)
+		a.cellDefs = mirflow.SoleDefs(a.f)
 	}
 	for range 32 {
 		if a.f.Locals[l].Ent != 0 {
@@ -32,11 +34,11 @@ func (a *owner) cellOf(l midir.LocalID) (midir.LocalID, bool) {
 // cellTracked is a move-only local kept in a cell because an immediate lambda writes it; ownership analysis follows its content through st.field.
 func (a *owner) cellTracked(c midir.LocalID) bool { return trackedCell(a.p, a.f.Locals[c]) }
 
-func trackedCell(p *Program, loc midir.Local) bool {
+func trackedCell(p *ownquery.Input, loc midir.Local) bool {
 	return loc.Ent != 0 && loc.Cell && !loc.Borrowed && !p.R.IsCopy(loc.Type)
 }
 
-func hasTrackedCell(p *Program, f *midir.Func) bool {
+func hasTrackedCell(p *ownquery.Input, f *midir.Func) bool {
 	for _, l := range f.Locals {
 		if trackedCell(p, l) {
 			return true
@@ -79,7 +81,7 @@ func (a *owner) cellStep(in *midir.Inst, st *dstate, report bool) {
 		}
 	}
 	for i, arg := range in.Args {
-		if a.p.consumesArg(in, i) || a.p.primitiveTakes(in, i) || constructs(in.Op) {
+		if ownquery.ConsumesArg(a.p.R, a.p.ByEnt, in, i) || ownquery.PrimitiveTakes(a.p.R, in, i) || ownquery.Constructs(in.Op) {
 			a.cellConsume(in, arg, st, report)
 		}
 	}
@@ -129,7 +131,7 @@ func (a *owner) onlyAssigns(in *midir.Inst, i int) bool {
 // captureWhole: a closure captures a local whole, so creating it while a field or payload of that local is moved out is a whole use.
 func (a *owner) captureWhole(in *midir.Inst, st *dstate, report bool) {
 	if a.cellDefs == nil {
-		a.cellDefs = soleDefs(a.f)
+		a.cellDefs = mirflow.SoleDefs(a.f)
 	}
 	for _, arg := range in.Args {
 		l := arg

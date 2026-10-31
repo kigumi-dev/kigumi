@@ -5,6 +5,7 @@ import (
 
 	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -28,7 +29,7 @@ func (p *Program) markDirectPrims(f *midir.Func) {
 }
 
 func (p *Program) directPrimOf(f *midir.Func, in midir.Inst) opdef.DirectPrim {
-	if _, own := p.ByEnt[in.Ent]; own || !p.IsStdPrimitive(in.Ent) {
+	if _, own := p.ByEnt[in.Ent]; own || !ownquery.IsStdPrimitive(p.R, in.Ent) {
 		return opdef.DPNone
 	}
 	info := p.R.Fn(in.Ent)

@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	mirflow "kigumi/internal/compiler/mir/flow"
 	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
@@ -164,7 +165,7 @@ func (w *shareFacts) reachable(from Point, sites []Point) bool {
 			return true
 		}
 		if w.reach == nil {
-			w.reach = blockReach(w.blocks)
+			w.reach = mirflow.BlockReach(w.blocks)
 		}
 		if w.reach[from.Block][s.Block] {
 			return true

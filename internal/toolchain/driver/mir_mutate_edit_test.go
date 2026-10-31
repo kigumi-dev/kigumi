@@ -6,6 +6,7 @@ import (
 	"kigumi/internal/compiler/mir"
 	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -58,7 +59,7 @@ func newMutator(p *mir.Program) *mutator {
 	for i := range p.R.Entities {
 		e := sem.EntityID(i)
 		k := p.R.Entity(e).Kind
-		if k != sem.EntFn || p.ByEnt[e] != nil || p.IsStdPrimitive(e) {
+		if k != sem.EntFn || p.ByEnt[e] != nil || ownquery.IsStdPrimitive(p.R, e) {
 			m.ents[k] = append(m.ents[k], e)
 		}
 	}

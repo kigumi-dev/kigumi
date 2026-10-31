@@ -5,6 +5,7 @@ import (
 
 	"kigumi/internal/compiler/mir"
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -12,7 +13,7 @@ func primitiveOf(t *testing.T, p *mir.Program, arg, result sem.TypeID) sem.Entit
 	t.Helper()
 	for i := range p.R.Entities {
 		id := sem.EntityID(i)
-		if !p.IsStdPrimitive(id) {
+		if !ownquery.IsStdPrimitive(p.R, id) {
 			continue
 		}
 		if sig := p.R.Types.Node(p.R.Fn(id).Sig); len(sig.Args) == 1 && sig.Args[0] == arg && sig.Elem == result {
