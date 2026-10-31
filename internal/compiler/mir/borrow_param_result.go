@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -26,7 +27,7 @@ func (c *borrowCheck) frameBorrows(b *borrowInfo) *borrowInfo {
 
 // valueResultSource makes a value or witness call whose result names a type parameter, or holds a Future or Task that may
 // keep an argument (asyncKept), a carrier of the borrows those arguments take of this frame.
-func (c *borrowCheck) valueResultSource(in Inst) (*borrowInfo, bool) {
+func (c *borrowCheck) valueResultSource(in midir.Inst) (*borrowInfo, bool) {
 	generic, kept := c.namesTypeParam(c.f.Locals[in.Dst].Type), c.asyncKept(in)
 	if !generic && kept == nil {
 		return nil, false
@@ -64,7 +65,7 @@ func (c *borrowCheck) valueResultSource(in Inst) (*borrowInfo, bool) {
 }
 
 // projectsOwned reports whether a read of type t out of src keeps a borrow src takes of this frame through a type parameter.
-func (c *borrowCheck) projectsOwned(t sem.TypeID, src LocalID) bool {
+func (c *borrowCheck) projectsOwned(t sem.TypeID, src midir.LocalID) bool {
 	b, ok := c.holders[src]
 	return ok && c.namesTypeParam(t) && c.frameBorrows(b) != nil
 }
@@ -90,7 +91,7 @@ func (c *borrowCheck) storedInfo(fl storeFlow, v flowArg, caller bool) (*borrowI
 }
 
 // checkCallerStore rejects writing a value that borrows this frame through a `&mut` parameter or a receiver, which outlive the call.
-func (c *borrowCheck) checkCallerStore(in Inst) {
+func (c *borrowCheck) checkCallerStore(in midir.Inst) {
 	v := in.Args[len(in.Args)-1]
 	b, ok := c.holders[v]
 	if !ok || c.frameBorrows(b) == nil {
@@ -109,7 +110,7 @@ func (c *borrowCheck) carriedBorrows(b *borrowInfo) *borrowInfo {
 	}
 	var owners []ownerRef
 	for _, o := range b.owners {
-		var root []LocalID
+		var root []midir.LocalID
 		switch {
 		case !c.callerStorageFrom(o.owner, false, 0, &root):
 			owners = append(owners, o)
@@ -129,7 +130,7 @@ func (c *borrowCheck) carriedBorrows(b *borrowInfo) *borrowInfo {
 	return &kept
 }
 
-func (c *borrowCheck) writableCaller(l LocalID) bool {
+func (c *borrowCheck) writableCaller(l midir.LocalID) bool {
 	t := c.f.Locals[l].Type
 	return c.p.R.Types.Kind(t) == sem.KRef && c.p.R.Types.RefMut(t) || c.f.Locals[l].Ent != 0 && c.p.R.IsMutSelf(c.f.Locals[l].Ent)
 }

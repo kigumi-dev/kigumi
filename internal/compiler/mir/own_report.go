@@ -1,6 +1,7 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/lang/diag"
@@ -9,26 +10,26 @@ import (
 type owner struct {
 	p        *Program
 	ghosts   *ghostSet
-	f        *Func
+	f        *midir.Func
 	pl       *places
-	tracked  map[LocalID]bool
+	tracked  map[midir.LocalID]bool
 	in       []*dstate
 	reported map[syntax.NodeID]bool
-	defNode  map[LocalID]syntax.NodeID
+	defNode  map[midir.LocalID]syntax.NodeID
 	cur      *dstate
-	capSrc   map[LocalID]LocalID
+	capSrc   map[midir.LocalID]midir.LocalID
 	pos      movePos
 	moves    []moveEvent
-	guardSrc map[LocalID]LocalID
-	fieldMv  map[LocalID]bool
+	guardSrc map[midir.LocalID]midir.LocalID
+	fieldMv  map[midir.LocalID]bool
 	payLine  map[[2]int]bool
-	cellDefs map[LocalID]*Inst
+	cellDefs map[midir.LocalID]*midir.Inst
 	thread   *flagThread
 }
 
 // merge joins a predecessor's exit state into a block; it reports
 // whether the block's entry state changed.
-func (a *owner) merge(bid BlockID, out *dstate) bool {
+func (a *owner) merge(bid midir.BlockID, out *dstate) bool {
 	cur := a.in[bid]
 	if cur == nil {
 		a.in[bid] = cloneD(out)
@@ -43,7 +44,7 @@ func (a *owner) merge(bid BlockID, out *dstate) bool {
 	return c1 || c2 || c3 || c4
 }
 
-func (a *owner) check(in *Inst, l LocalID, s ownState, report bool) {
+func (a *owner) check(in *midir.Inst, l midir.LocalID, s ownState, report bool) {
 	if !report || in == nil {
 		return
 	}
@@ -74,7 +75,7 @@ func (a *owner) check(in *Inst, l LocalID, s ownState, report bool) {
 
 // checkWhole reports a use of l as a whole value while one of its own
 // fields is still moved out (E1025), naming that field.
-func (a *owner) checkWhole(n syntax.NodeID, l LocalID, st *dstate, report bool) {
+func (a *owner) checkWhole(n syntax.NodeID, l midir.LocalID, st *dstate, report bool) {
 	if !report {
 		return
 	}
@@ -94,12 +95,12 @@ func (a *owner) checkWhole(n syntax.NodeID, l LocalID, st *dstate, report bool) 
 		if gone(st.val.get(rep)) {
 			s = st.val.get(rep)
 		}
-		a.check(&Inst{Node: n}, l, s, true)
+		a.check(&midir.Inst{Node: n}, l, s, true)
 	}
 }
 
 // firstForMove keeps one diagnostic per taken payload: a match re-reads the tag in every arm and then the payload.
-func (a *owner) firstForMove(root LocalID, at syntax.NodeID) bool {
+func (a *owner) firstForMove(root midir.LocalID, at syntax.NodeID) bool {
 	k := [2]int{int(root), int(at)}
 	if a.payLine == nil {
 		a.payLine = map[[2]int]bool{}
@@ -124,7 +125,7 @@ func partialMoveDiag(field, owner string) (string, string) {
 }
 
 // fieldName renders root's field idx the way it was written at its move.
-func (a *owner) fieldName(root LocalID, idx int) string {
+func (a *owner) fieldName(root midir.LocalID, idx int) string {
 	rep := a.pl.children[root][idx]
 	if n, ok := a.pl.name[rep]; ok {
 		return n
@@ -132,7 +133,7 @@ func (a *owner) fieldName(root LocalID, idx int) string {
 	return a.f.Locals[rep].Name
 }
 
-func (a *owner) ownerName(l LocalID) string {
+func (a *owner) ownerName(l midir.LocalID) string {
 	if n, ok := a.pl.name[l]; ok {
 		return n
 	}

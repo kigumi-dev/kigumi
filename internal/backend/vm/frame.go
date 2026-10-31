@@ -1,21 +1,23 @@
 package vm
 
-import "kigumi/internal/compiler/mir"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
 // frame is one activation: its locals.
 type frame struct {
-	f       *mir.Func
+	f       *midir.Func
 	code    *funcCode
 	locals  []*obj
 	pending []crossing
-	blk     mir.BlockID
+	blk     midir.BlockID
 	pc      int
 	// A frame with no f stands for a call's references: a sweep releases them where the call sat on the stack.
 	held []*obj
 }
 
 // call runs a MIR function on arguments handed over (owned) or lent.
-func (m *Machine) call(f *mir.Func, args []*obj) *obj {
+func (m *Machine) call(f *midir.Func, args []*obj) *obj {
 	fr := m.newFrame(f, m.codeFor(f))
 	for i, p := range f.Params {
 		if i < len(args) {
@@ -26,7 +28,7 @@ func (m *Machine) call(f *mir.Func, args []*obj) *obj {
 }
 
 // callFrom is call with the arguments read straight from the caller's locals.
-func (m *Machine) callFrom(f *mir.Func, code *funcCode, caller []*obj, args []mir.LocalID) *obj {
+func (m *Machine) callFrom(f *midir.Func, code *funcCode, caller []*obj, args []midir.LocalID) *obj {
 	fr := m.newFrame(f, code)
 	for i, p := range f.Params {
 		if i < len(args) {
@@ -36,7 +38,7 @@ func (m *Machine) callFrom(f *mir.Func, code *funcCode, caller []*obj, args []mi
 	return m.run(fr)
 }
 
-func (m *Machine) newFrame(f *mir.Func, code *funcCode) *frame {
+func (m *Machine) newFrame(f *midir.Func, code *funcCode) *frame {
 	var fr *frame
 	if n := len(m.spare); n > 0 {
 		fr = m.spare[n-1]
@@ -71,7 +73,7 @@ func (m *Machine) run(fr *frame) *obj {
 		m.stack = m.stack[:len(m.stack)-1]
 	}()
 	m.checkDepth(f)
-	bid := mir.BlockID(0)
+	bid := midir.BlockID(0)
 	for {
 		blk := &f.Blocks[bid]
 		ics := fr.code.blocks[bid]
@@ -91,16 +93,16 @@ func (m *Machine) run(fr *frame) *obj {
 			}
 		}
 		switch blk.Term.Op {
-		case mir.TermJump:
+		case midir.TermJump:
 			bid = blk.Term.Targets[0]
-		case mir.TermBranch:
+		case midir.TermBranch:
 			c := truth(fr.locals[blk.Term.Args[0]])
 			if c {
 				bid = blk.Term.Targets[0]
 			} else {
 				bid = blk.Term.Targets[1]
 			}
-		case mir.TermReturn:
+		case midir.TermReturn:
 			if len(fr.pending) > 0 {
 				m.settleReturn(fr, blk.Term.Args[0])
 			}

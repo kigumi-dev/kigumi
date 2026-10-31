@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 var llvmOrder = []string{"monotonic", "acquire", "release", "acq_rel", "seq_cst"}
@@ -12,11 +12,11 @@ var llvmOrder = []string{"monotonic", "acquire", "release", "acq_rel", "seq_cst"
 // A cmpxchg failure order is never release and never stronger than the success order.
 var failOrder = []string{"monotonic", "acquire", "monotonic", "acquire", "seq_cst"}
 
-func isAtomicBuiltin(in mir.Inst) bool {
-	return in.Op == mir.OpBuiltin && strings.HasPrefix(in.Str, "atomic.")
+func isAtomicBuiltin(in midir.Inst) bool {
+	return in.Op == midir.OpBuiltin && strings.HasPrefix(in.Str, "atomic.")
 }
 
-func (e *emitter) tryAtomicInst(sb *strings.Builder, f *mir.Func, in mir.Inst) bool {
+func (e *emitter) tryAtomicInst(sb *strings.Builder, f *midir.Func, in midir.Inst) bool {
 	if !isAtomicBuiltin(in) {
 		return false
 	}

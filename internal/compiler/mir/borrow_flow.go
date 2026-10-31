@@ -3,11 +3,12 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 type callSlot struct {
-	arg    LocalID
+	arg    midir.LocalID
 	params []sem.EntityID
 	target bool
 	// holder marks an argument handed over by value whose type holds a `&mut`: the callee may store through it.
@@ -16,7 +17,7 @@ type callSlot struct {
 	exact    sem.TypeID
 }
 
-func (c *borrowCheck) callSlots(info *sem.FnInfo, args []LocalID, recvIdx int) []callSlot {
+func (c *borrowCheck) callSlots(info *sem.FnInfo, args []midir.LocalID, recvIdx int) []callSlot {
 	var out []callSlot
 	start := recvIdx
 	if info.Recv != sem.RecvNone {
@@ -48,7 +49,7 @@ func sharesParam(a, b []sem.EntityID) bool {
 
 // callFlows lists, for each `&mut` / `mut self` argument or by-value `&mut` holder whose place names a lifetime
 // or a type parameter, the other arguments whose declared types share a parameter with it.
-func (c *borrowCheck) callFlows(in Inst) []storeFlow {
+func (c *borrowCheck) callFlows(in midir.Inst) []storeFlow {
 	e, args := c.flowCallee(in)
 	if e == 0 {
 		return nil
@@ -56,7 +57,7 @@ func (c *borrowCheck) callFlows(in Inst) []storeFlow {
 	info := c.p.R.Fn(e)
 	if info.Recv != sem.RecvMut && !slices.ContainsFunc(info.Params, func(p sem.EntityID) bool {
 		return c.p.R.Types.RefMut(c.p.R.Entity(p).Type)
-	}) && !slices.ContainsFunc(args, func(a LocalID) bool { return c.holdsMutPlace(a) || c.capturesHolder(a) }) {
+	}) && !slices.ContainsFunc(args, func(a midir.LocalID) bool { return c.holdsMutPlace(a) || c.capturesHolder(a) }) {
 		return nil
 	}
 	slots := c.callSlots(info, args, 0)
@@ -94,7 +95,7 @@ func (c *borrowCheck) callFlows(in Inst) []storeFlow {
 	return out
 }
 
-func (c *borrowCheck) placeOf(l LocalID) sem.TypeID {
+func (c *borrowCheck) placeOf(l midir.LocalID) sem.TypeID {
 	if _, place, _, ok := c.storeRoot(storeFlow{target: l, ref: true}); ok {
 		return place
 	}
@@ -103,7 +104,7 @@ func (c *borrowCheck) placeOf(l LocalID) sem.TypeID {
 
 // genericFlowSource ties a generic call's result to every argument whose declared type names a type parameter the result
 // names, widened through callbacks returning one; a result named only by a type parameter keeps just this frame's borrows.
-func (c *borrowCheck) genericFlowSource(in Inst, recvIdx int) (*borrowInfo, bool) {
+func (c *borrowCheck) genericFlowSource(in midir.Inst, recvIdx int) (*borrowInfo, bool) {
 	info := c.p.R.Fn(in.Ent)
 	owned := !c.resultMayCarryLifetime(c.f.Locals[in.Dst].Type)
 	if c.fnRetLifetime(info) != 0 || owned && !c.namesTypeParam(c.f.Locals[in.Dst].Type) {

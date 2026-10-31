@@ -4,11 +4,12 @@ import (
 	"fmt"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
-func (e *emitter) primitiveScalarBox(f *mir.Func, in mir.Inst, at siteAt) (mir.OperationBox, bool) {
+func (e *emitter) primitiveScalarBox(f *midir.Func, in midir.Inst, at siteAt) (mir.OperationBox, bool) {
 	op, recorded := e.boxes.primitives[at]
 	actual, ok := in.StdOp()
 	if !recorded || !ok || actual != op {

@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -63,7 +64,7 @@ const (
 	targetDeferred
 )
 
-func (c *borrowCheck) targetKindOf(l LocalID) targetKind {
+func (c *borrowCheck) targetKindOf(l midir.LocalID) targetKind {
 	t, place := c.f.Locals[l].Type, c.placeOf(l)
 	switch {
 	case c.declaredLifetime(t) != 0 || c.declaredLifetime(place) != 0:

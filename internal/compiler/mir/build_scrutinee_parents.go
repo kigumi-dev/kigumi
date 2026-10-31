@@ -1,11 +1,15 @@
 package mir
 
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
 // projectedFrom lists, nearest first, the temporaries l was projected from that the scope must own before l, so l's count goes
 // first and the parent drops its fields in local order; a variant's payload moved into l and a partly defined temporary are skipped.
-func (b *builder) projectedFrom(l LocalID, seen map[LocalID]bool, out []LocalID) []LocalID {
+func (b *builder) projectedFrom(l midir.LocalID, seen map[midir.LocalID]bool, out []midir.LocalID) []midir.LocalID {
 	for _, blk := range b.fn.Blocks {
 		for _, in := range blk.Insts {
-			if !shapes[in.Op].result || in.Dst != l || len(in.Args) == 0 {
+			if !in.Op.Yields() || in.Dst != l || len(in.Args) == 0 {
 				continue
 			}
 			p := in.Args[0]
@@ -13,11 +17,11 @@ func (b *builder) projectedFrom(l LocalID, seen map[LocalID]bool, out []LocalID)
 				continue
 			}
 			switch in.Op {
-			case OpField, OpIndex, OpPayload:
+			case midir.OpField, midir.OpIndex, midir.OpPayload:
 				if b.definedOnEveryPath(p) {
 					out = append(out, p)
 				}
-			case OpVariant:
+			case midir.OpVariant:
 			default:
 				continue
 			}
@@ -29,20 +33,20 @@ func (b *builder) projectedFrom(l LocalID, seen map[LocalID]bool, out []LocalID)
 }
 
 // definedOnEveryPath reports whether every path from the entry to the current block passes a definition of l.
-func (b *builder) definedOnEveryPath(l LocalID) bool {
-	defs := map[BlockID]bool{}
+func (b *builder) definedOnEveryPath(l midir.LocalID) bool {
+	defs := map[midir.BlockID]bool{}
 	for id, blk := range b.fn.Blocks {
 		for _, in := range blk.Insts {
-			if shapes[in.Op].result && in.Dst == l {
-				defs[BlockID(id)] = true
+			if in.Op.Yields() && in.Dst == l {
+				defs[midir.BlockID(id)] = true
 			}
 		}
 	}
 	if defs[b.cur] || defs[0] {
 		return true
 	}
-	seen := map[BlockID]bool{0: true}
-	for work := []BlockID{0}; len(work) > 0; {
+	seen := map[midir.BlockID]bool{0: true}
+	for work := []midir.BlockID{0}; len(work) > 0; {
 		id := work[len(work)-1]
 		work = work[:len(work)-1]
 		if id == b.cur {

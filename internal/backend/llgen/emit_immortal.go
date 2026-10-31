@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 // fnItem is one capture-free function value: the adapter it calls and
@@ -32,7 +33,7 @@ func boolBit(b bool) int {
 
 // variant builds an ADT value, from a shared immortal when its content is
 // fixed: the descriptor's own slot with no payload, else a reserved one.
-func (e *emitter) variant(sb *strings.Builder, in mir.Inst, args []string) string {
+func (e *emitter) variant(sb *strings.Builder, in midir.Inst, args []string) string {
 	if len(args) == 0 {
 		return e.irb(sb).Call(rtNullary, vptr(e.vdesc(in.Ent))).Text
 	}

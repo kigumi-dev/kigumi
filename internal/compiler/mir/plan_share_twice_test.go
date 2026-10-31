@@ -3,7 +3,7 @@ package mir_test
 import (
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const twiceSrc = `
@@ -80,11 +80,11 @@ func TestPlanRCMovesAFieldStoredOver(t *testing.T) {
 	}
 }
 
-func ownCopies(f *mir.Func) int {
+func ownCopies(f *midir.Func) int {
 	n := 0
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == mir.OpShare && in.Own {
+			if in.Op == midir.OpShare && in.Own {
 				n++
 			}
 		}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/lang/diag"
 )
@@ -54,7 +55,7 @@ func StackRoots(r *sem.Result) []sem.EntityID {
 	return out
 }
 
-func reportRootViolation(prog *Program, f *Func, chain StackBound, budgetKiB int) {
+func reportRootViolation(prog *Program, f *midir.Func, chain StackBound, budgetKiB int) {
 	name := prog.R.Entity(f.Ent).Name
 	switch chain.Kind {
 	case Unbounded:
@@ -79,7 +80,7 @@ func pathDetail(b StackBound) string {
 	return b.Reason + " (via " + strings.Join(b.Path, " -> ") + ")"
 }
 
-func emitResourceDiag(prog *Program, f *Func, codeName string, args ...any) {
+func emitResourceDiag(prog *Program, f *midir.Func, codeName string, args ...any) {
 	c, ok := sem.CodeByName(codeName)
 	if !ok {
 		return

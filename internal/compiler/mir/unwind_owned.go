@@ -1,20 +1,23 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // A local that only holds a constant, the unit value or a never value owns nothing to release.
-func immortalLocals(f *Func, r *sem.Result) map[LocalID]bool {
-	imm := map[LocalID]bool{}
-	other := map[LocalID]bool{}
+func immortalLocals(f *midir.Func, r *sem.Result) map[midir.LocalID]bool {
+	imm := map[midir.LocalID]bool{}
+	other := map[midir.LocalID]bool{}
 	for _, prm := range f.Params {
 		other[prm] = true
 	}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if !shapes[in.Op].result {
+			if !in.Op.Yields() {
 				continue
 			}
-			if in.Op == OpConst || in.Op == OpUnit {
+			if in.Op == midir.OpConst || in.Op == midir.OpUnit {
 				imm[in.Dst] = true
 			} else {
 				other[in.Dst] = true
@@ -23,8 +26,8 @@ func immortalLocals(f *Func, r *sem.Result) map[LocalID]bool {
 	}
 	for l := range f.Locals {
 		if t := f.Locals[l].Type; t == sem.TyUnit || t == sem.TyNever {
-			imm[LocalID(l)] = true
-			delete(other, LocalID(l))
+			imm[midir.LocalID(l)] = true
+			delete(other, midir.LocalID(l))
 		}
 	}
 	for l := range other {
@@ -34,7 +37,7 @@ func immortalLocals(f *Func, r *sem.Result) map[LocalID]bool {
 }
 
 // An async body's named locals are swept from its frame, so the plan covers only temporaries held there.
-func unwindOwned(f *Func, r *sem.Result, candidates bool) map[LocalID]bool {
+func unwindOwned(f *midir.Func, r *sem.Result, candidates bool) map[midir.LocalID]bool {
 	owned := owningLocals(f, r)
 	for l := range immortalLocals(f, r) {
 		owned[l] = false
@@ -42,7 +45,7 @@ func unwindOwned(f *Func, r *sem.Result, candidates bool) map[LocalID]bool {
 	if !f.Async {
 		return owned
 	}
-	related := map[LocalID]bool{}
+	related := map[midir.LocalID]bool{}
 	for dst, src := range aliasParents(f) {
 		related[dst], related[src] = true, true
 	}
@@ -60,11 +63,11 @@ func unwindOwned(f *Func, r *sem.Result, candidates bool) map[LocalID]bool {
 }
 
 // A parameter the body only borrows stays with the caller, whose own frame releases it.
-func (p *Program) lentParamLocals(f *Func) map[LocalID]bool {
+func (p *Program) lentParamLocals(f *midir.Func) map[midir.LocalID]bool {
 	if f.Async {
 		return nil
 	}
-	lent := map[LocalID]bool{}
+	lent := map[midir.LocalID]bool{}
 	isFn := f.Ent != 0 && p.R.Entity(f.Ent).Kind == sem.EntFn
 	for i, prm := range f.Params {
 		if isFn && p.ParamLent(f.Ent, i) || p.CaptureLent(f, i) {

@@ -2,13 +2,14 @@ package mir
 
 import (
 	"kigumi/internal/compiler/hir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
 
 // snapshot copies operand v, read by src, out when a later operand writes the local it reads, so the read keeps its source order.
 // The copy is deep: a retain would still see a later in-place write such as a push.
-func (b *builder) snapshot(v LocalID, src *hir.Expr, n syntax.NodeID, later ...*hir.Expr) LocalID {
+func (b *builder) snapshot(v midir.LocalID, src *hir.Expr, n syntax.NodeID, later ...*hir.Expr) midir.LocalID {
 	l := b.fn.Locals[v]
 	if l.Ent == 0 {
 		return b.snapshotPath(v, src, n, later)
@@ -28,14 +29,14 @@ func (b *builder) snapshot(v LocalID, src *hir.Expr, n syntax.NodeID, later ...*
 		return v
 	}
 	if cell {
-		return b.emit(Inst{Op: OpCellGet, Dst: b.temp(t), Args: []LocalID{v}, Node: n})
+		return b.emit(midir.Inst{Op: midir.OpCellGet, Dst: b.temp(t), Args: []midir.LocalID{v}, Node: n})
 	}
-	return b.emit(Inst{Op: OpShare, Dst: b.temp(t), Args: []LocalID{v}, Copy: true, Node: n})
+	return b.emit(midir.Inst{Op: midir.OpShare, Dst: b.temp(t), Args: []midir.LocalID{v}, Copy: true, Node: n})
 }
 
 // snapshotRecv is snapshot for a `self` receiver, which also deep-copies a `&mut` referent other than a resource that a later
 // operand writes through, even one lent as a cell, since the cell shares a record a field store or push writes in place.
-func (b *builder) snapshotRecv(v LocalID, src *hir.Expr, n syntax.NodeID, later []*hir.Expr) LocalID {
+func (b *builder) snapshotRecv(v midir.LocalID, src *hir.Expr, n syntax.NodeID, later []*hir.Expr) midir.LocalID {
 	l := b.fn.Locals[v]
 	elem, mut := b.r.MutRefElem(l.Type)
 	if l.Ent == 0 || l.Cell || l.Borrowed || !mut || b.r.HoldsResource(elem) && !b.r.IsCopy(elem) {
@@ -45,14 +46,14 @@ func (b *builder) snapshotRecv(v LocalID, src *hir.Expr, n syntax.NodeID, later 
 		return v
 	}
 	if b.cellLocal(v) {
-		v = b.emit(Inst{Op: OpCellGet, Dst: b.temp(elem), Args: []LocalID{v}, Node: n})
+		v = b.emit(midir.Inst{Op: midir.OpCellGet, Dst: b.temp(elem), Args: []midir.LocalID{v}, Node: n})
 		if b.r.IsCopy(elem) && !b.copyRecord(elem) {
 			return v
 		}
 	} else {
 		v = b.retagTo(v, l.Type, elem, n)
 	}
-	return b.emit(Inst{Op: OpShare, Dst: b.temp(elem), Args: []LocalID{v}, Copy: true, Node: n})
+	return b.emit(midir.Inst{Op: midir.OpShare, Dst: b.temp(elem), Args: []midir.LocalID{v}, Copy: true, Node: n})
 }
 
 // passedAgain: the reference handed on as an argument of the same call is the borrow checker's exclusivity conflict.
@@ -67,7 +68,7 @@ func passedAgain(ent sem.EntityID, later []*hir.Expr) bool {
 
 // snapshotPath copies a field or element read, or a cell read, whose root local a later operand writes; a Copy read is already a value,
 // except a Copy record's, which shares the record a later field store writes in place, also from a closure a later call runs.
-func (b *builder) snapshotPath(v LocalID, src *hir.Expr, n syntax.NodeID, later []*hir.Expr) LocalID {
+func (b *builder) snapshotPath(v midir.LocalID, src *hir.Expr, n syntax.NodeID, later []*hir.Expr) midir.LocalID {
 	t := b.fn.Locals[v].Type
 	root := pathRoot(src)
 	if root == 0 && src != nil && src.Kind == hir.Local && b.copyRecord(t) {
@@ -81,7 +82,7 @@ func (b *builder) snapshotPath(v LocalID, src *hir.Expr, n syntax.NodeID, later 
 	if !b.writtenLater(localWrites{r: b.r, ent: root, moves: lends, lends: lends, calls: ok && b.fn.Locals[id].Cell}, later) {
 		return v
 	}
-	return b.emit(Inst{Op: OpShare, Dst: b.temp(t), Args: []LocalID{v}, Copy: true, Node: n})
+	return b.emit(midir.Inst{Op: midir.OpShare, Dst: b.temp(t), Args: []midir.LocalID{v}, Copy: true, Node: n})
 }
 
 func (b *builder) copyRecord(t sem.TypeID) bool {

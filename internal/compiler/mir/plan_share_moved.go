@@ -1,14 +1,18 @@
 package mir
 
-import "slices"
+import (
+	"slices"
 
-func (w *shareFacts) movedOut(in Inst, i int, at Point) bool {
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
+func (w *shareFacts) movedOut(in midir.Inst, i int, at Point) bool {
 	a := in.Args[i]
-	if in.Op != OpSetField || i != 1 || w.liveness().after(a, at.Block, at.Inst) {
+	if in.Op != midir.OpSetField || i != 1 || w.liveness().after(a, at.Block, at.Inst) {
 		return false
 	}
 	r, s, ok := w.placeOf(a)
-	if !ok || len(s) == 0 || s[len(s)-1].op != OpField || len(w.sets[r]) > 1 {
+	if !ok || len(s) == 0 || s[len(s)-1].op != midir.OpField || len(w.sets[r]) > 1 {
 		return false
 	}
 	if rs := w.rootsOf(a); rs.other || len(rs.refs) != 1 {
@@ -22,9 +26,9 @@ func (w *shareFacts) movedOut(in Inst, i int, at Point) bool {
 	blk := w.blocks[at.Block]
 	for k := at.Inst + 1; k < len(blk.Insts); k++ {
 		x := blk.Insts[k]
-		if x.Op == OpSetField {
+		if x.Op == midir.OpSetField {
 			b, p, ok := w.placeOf(x.Args[0])
-			t := append(slices.Clip(p), step{OpField, x.Index})
+			t := append(slices.Clip(p), step{midir.OpField, x.Index})
 			switch {
 			case slices.Contains(x.Args[1:], r):
 				return false
@@ -40,22 +44,22 @@ func (w *shareFacts) movedOut(in Inst, i int, at Point) bool {
 	return false
 }
 
-func (w *shareFacts) leaves(x Inst, r LocalID, s []step) bool {
+func (w *shareFacts) leaves(x midir.Inst, r midir.LocalID, s []step) bool {
 	switch x.Op {
-	case OpField:
+	case midir.OpField:
 		b, p, ok := w.placeOf(x.Dst)
 		if !ok || b != r {
 			return !slices.Contains(x.Args, r)
 		}
 		return !overlaps(p, wpath{s, true}) || len(p) < len(s) && w.onlyStoresInto(x.Dst)
-	case OpCopy, OpAlias, OpMove, OpConst, OpUnit, OpDrop, OpRelease:
+	case midir.OpCopy, midir.OpAlias, midir.OpMove, midir.OpConst, midir.OpUnit, midir.OpDrop, midir.OpRelease:
 		return !slices.Contains(x.Args, r)
 	}
 	return false
 }
 
-func (w *shareFacts) apart(v, r LocalID, s []step) bool {
-	srcs := []LocalID{v}
+func (w *shareFacts) apart(v, r midir.LocalID, s []step) bool {
+	srcs := []midir.LocalID{v}
 	if w.f.Locals[v].Ent != 0 {
 		if len(w.sets[v]) != len(w.binds[v]) {
 			return false
@@ -73,12 +77,12 @@ func (w *shareFacts) apart(v, r LocalID, s []step) bool {
 	return true
 }
 
-func (w *shareFacts) onlyStoresInto(d LocalID) bool {
+func (w *shareFacts) onlyStoresInto(d midir.LocalID) bool {
 	for _, u := range w.uses[d] {
 		if u.term {
 			return false
 		}
-		if x := w.inst(u.at); (x.Op != OpSetField || u.i != 0) && x.Op != OpDrop && x.Op != OpRelease {
+		if x := w.inst(u.at); (x.Op != midir.OpSetField || u.i != 0) && x.Op != midir.OpDrop && x.Op != midir.OpRelease {
 			return false
 		}
 	}
@@ -86,14 +90,14 @@ func (w *shareFacts) onlyStoresInto(d LocalID) bool {
 }
 
 // leftBehind: argument i is a named local whose source slot was stored over since, so the local alone holds the old box.
-func (w *shareFacts) leftBehind(in Inst, i int, at Point) bool {
+func (w *shareFacts) leftBehind(in midir.Inst, i int, at Point) bool {
 	o, ok := w.namedOrigin(in.Args[i])
 	if !ok || len(w.sets[o]) != 1 || len(w.binds[o]) != 1 || w.observed(o, at) {
 		return false
 	}
 	bp := w.binds[o][0]
 	r, s, ok := w.placeOf(w.inst(bp).Args[0])
-	if !ok || len(s) == 0 || s[len(s)-1].op != OpField || len(w.sets[r]) > 1 || bp.Block != at.Block || bp.Inst >= at.Inst {
+	if !ok || len(s) == 0 || s[len(s)-1].op != midir.OpField || len(w.sets[r]) > 1 || bp.Block != at.Block || bp.Inst >= at.Inst {
 		return false
 	}
 	if rs := w.rootsOf(o); rs.other || len(rs.refs) != 2 {
@@ -107,14 +111,14 @@ func (w *shareFacts) leftBehind(in Inst, i int, at Point) bool {
 	blk, over := w.blocks[at.Block], false
 	for k := bp.Inst + 1; k < at.Inst; k++ {
 		x := blk.Insts[k]
-		if x.Op != OpSetField {
+		if x.Op != midir.OpSetField {
 			if !w.leaves(x, r, s) {
 				return false
 			}
 			continue
 		}
 		b, p, ok := w.placeOf(x.Args[0])
-		t := append(slices.Clip(p), step{OpField, x.Index})
+		t := append(slices.Clip(p), step{midir.OpField, x.Index})
 		switch {
 		case !ok || b != r || !overlaps(t, wpath{s, true}):
 		case !slices.Equal(t, s) || slices.ContainsFunc(w.rootsOf(x.Args[1]).refs, func(y rootRef) bool { return y.l == o }):
@@ -126,13 +130,13 @@ func (w *shareFacts) leftBehind(in Inst, i int, at Point) bool {
 	return over
 }
 
-func (w *shareFacts) namedOrigin(v LocalID) (LocalID, bool) {
+func (w *shareFacts) namedOrigin(v midir.LocalID) (midir.LocalID, bool) {
 	for range w.nLocals {
 		if w.f.Locals[v].Ent != 0 {
 			return v, true
 		}
 		ds := w.defs[v]
-		if len(ds) != 1 || len(ds[0].Args) != 1 || ds[0].Op != OpAlias && (ds[0].Op != OpCopy || ds[0].Share) {
+		if len(ds) != 1 || len(ds[0].Args) != 1 || ds[0].Op != midir.OpAlias && (ds[0].Op != midir.OpCopy || ds[0].Share) {
 			return 0, false
 		}
 		v = ds[0].Args[0]

@@ -1,29 +1,33 @@
 package mir
 
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
 type calleeOrigin struct {
 	param    int
 	isParam  bool
-	body     *Func
-	captures []LocalID
+	body     *midir.Func
+	captures []midir.LocalID
 	known    bool
 }
 
-func (c *borrowCheck) calleeOrigin(g *Func, defs map[LocalID]*Inst, l LocalID) calleeOrigin {
+func (c *borrowCheck) calleeOrigin(g *midir.Func, defs map[midir.LocalID]*midir.Inst, l midir.LocalID) calleeOrigin {
 	if i := paramIndex(g, defs, l); i >= 0 {
 		return calleeOrigin{param: i, isParam: true}
 	}
 	d := defs[copiedFrom(defs, l)]
-	if d == nil || d.Op != OpClosure && d.Op != OpFnItem && d.Op != OpBind {
+	if d == nil || d.Op != midir.OpClosure && d.Op != midir.OpFnItem && d.Op != midir.OpBind {
 		return calleeOrigin{}
 	}
 	o := calleeOrigin{body: c.p.ByEnt[d.Ent], known: true}
-	if d.Op != OpFnItem {
+	if d.Op != midir.OpFnItem {
 		o.captures = d.Args
 	}
 	return o
 }
 
-func (c *borrowCheck) frameCallee(g *Func, defs map[LocalID]*Inst, l LocalID, depth int) bool {
+func (c *borrowCheck) frameCallee(g *midir.Func, defs map[midir.LocalID]*midir.Inst, l midir.LocalID, depth int) bool {
 	if !c.calleeKeepsBorrow(g.Locals[l].Type) {
 		return false
 	}

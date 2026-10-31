@@ -5,28 +5,28 @@ import (
 	"slices"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 // siteAt is the instruction being emitted.
 type siteAt struct {
-	blk mir.BlockID
+	blk midir.BlockID
 	pc  int
 }
 
 type outerDrops struct {
-	sets  map[int32][]mir.LocalID
+	sets  map[int32][]midir.LocalID
 	order []int32
 }
 
-func (e *emitter) outerDropsFor(f *mir.Func) *outerDrops {
+func (e *emitter) outerDropsFor(f *midir.Func) *outerDrops {
 	if !e.catch || f.Async {
 		return nil
 	}
-	return &outerDrops{sets: map[int32][]mir.LocalID{}}
+	return &outerDrops{sets: map[int32][]midir.LocalID{}}
 }
 
-func (e *emitter) dropCall(sb *strings.Builder, f *mir.Func, plain RuntimeFn, v string) {
+func (e *emitter) dropCall(sb *strings.Builder, f *midir.Func, plain RuntimeFn, v string) {
 	od := e.outer
 	if od == nil {
 		e.irb(sb).Call(plain, vptr(v))
@@ -49,8 +49,8 @@ func (e *emitter) dropCall(sb *strings.Builder, f *mir.Func, plain RuntimeFn, v 
 	fmt.Fprintf(sb, "  br i1 %s, label %%ufail%d, label %%ucont%s\nucont%s:\n", c, idx, ok[2:], ok[2:])
 }
 
-func (e *emitter) sweepLocals(set []mir.LocalID) []mir.LocalID {
-	var out []mir.LocalID
+func (e *emitter) sweepLocals(set []midir.LocalID) []midir.LocalID {
+	var out []midir.LocalID
 	for _, l := range set {
 		if !e.isDirect(l) && !e.isScalar(l) {
 			out = append(out, l)

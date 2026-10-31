@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -17,7 +18,7 @@ func wantRule(t *testing.T, p *mir.Program, rule, fragment string) {
 	}
 }
 
-func nth(t *testing.T, f *mir.Func, op mir.Opcode, n int) *mir.Inst {
+func nth(t *testing.T, f *midir.Func, op midir.Opcode, n int) *midir.Inst {
 	t.Helper()
 	for bi := range f.Blocks {
 		for k := range f.Blocks[bi].Insts {
@@ -141,42 +142,42 @@ let _ = add(1, 2)
 
 func TestVerifyStructureMore(t *testing.T) {
 	p := program(t)
-	unit := []mir.Local{{Name: "t0", Type: sem.TyUnit}}
-	one := mir.Block{Insts: []mir.Inst{{Op: mir.OpUnit, Dst: 0}}}
-	with := func(term mir.Term) *mir.Func {
+	unit := []midir.Local{{Name: "t0", Type: sem.TyUnit}}
+	one := midir.Block{Insts: []midir.Inst{{Op: midir.OpUnit, Dst: 0}}}
+	with := func(term midir.Term) *midir.Func {
 		b := one
 		b.Term = term
 		return fn("term", sem.TyUnit, unit, b)
 	}
 	f := with(ret(0))
-	f.Params = []mir.LocalID{4}
+	f.Params = []midir.LocalID{4}
 	expectRule(t, p, f, "structure", "parameter 4 out of range")
-	expectRule(t, p, with(mir.Term{Op: mir.TermJump, Args: []mir.LocalID{0}, Targets: []mir.BlockID{0}}), "structure", "jump takes one target")
-	expectRule(t, p, with(mir.Term{Op: mir.TermReturn}), "structure", "return takes one argument")
-	expectRule(t, p, with(mir.Term{Op: mir.TermUnreachable, Args: []mir.LocalID{0}}), "structure", "unreachable takes nothing")
-	expectRule(t, p, with(mir.Term{Op: mir.TermOp(9)}), "structure", "unknown terminator")
+	expectRule(t, p, with(midir.Term{Op: midir.TermJump, Args: []midir.LocalID{0}, Targets: []midir.BlockID{0}}), "structure", "jump takes one target")
+	expectRule(t, p, with(midir.Term{Op: midir.TermReturn}), "structure", "return takes one argument")
+	expectRule(t, p, with(midir.Term{Op: midir.TermUnreachable, Args: []midir.LocalID{0}}), "structure", "unreachable takes nothing")
+	expectRule(t, p, with(midir.Term{Op: midir.TermOp(9)}), "structure", "unknown terminator")
 	expectRule(t, p, with(ret(5)), "structure", "terminator argument 5 out of range")
-	dst := fn("dst", sem.TyUnit, unit, mir.Block{Insts: []mir.Inst{{Op: mir.OpUnit, Dst: 3}}, Term: ret(0)})
+	dst := fn("dst", sem.TyUnit, unit, midir.Block{Insts: []midir.Inst{{Op: midir.OpUnit, Dst: 3}}, Term: ret(0)})
 	expectRule(t, p, dst, "structure", "destination 3 out of range")
 }
 
 func TestVerifyShapeMore(t *testing.T) {
 	p := program(t)
-	locals := []mir.Local{{Name: "t0", Type: sem.TyI64}, {Name: "t1", Type: sem.TyString}}
-	body := func(in mir.Inst) *mir.Func {
-		return fn("shape", sem.TyI64, locals, mir.Block{Insts: []mir.Inst{in}, Term: ret(0)})
+	locals := []midir.Local{{Name: "t0", Type: sem.TyI64}, {Name: "t1", Type: sem.TyString}}
+	body := func(in midir.Inst) *midir.Func {
+		return fn("shape", sem.TyI64, locals, midir.Block{Insts: []midir.Inst{in}, Term: ret(0)})
 	}
-	expectRule(t, p, body(mir.Inst{Op: mir.OpBuiltin, Dst: 0}), "shape", "needs its text")
-	expectRule(t, p, body(mir.Inst{Op: mir.OpShell, Dst: 0, Strs: []string{"$"}}), "shape", "shell has 1 holes for 0 arguments")
-	expectRule(t, p, body(mir.Inst{Op: mir.OpBorrow, Dst: 0, Args: []mir.LocalID{1}, Index: 7}), "shape", "borrow index 7")
-	expectRule(t, p, body(mir.Inst{Op: mir.OpUnary, Dst: 0, Str: "cast", Args: []mir.LocalID{1}}), "shape", "cast needs its target type")
-	expectRule(t, p, body(mir.Inst{Op: mir.Opcode(200), Dst: 0}), "shape", "unknown opcode 200")
-	expectRule(t, p, body(mir.Inst{Op: mir.OpUnit, Dst: 0, Fixed: true}), "shape", "marked fixed")
-	expectRule(t, p, body(mir.Inst{Op: mir.OpUnit, Dst: 0, Copy: true}), "shape", "marked as a copy")
-	expectRule(t, p, body(mir.Inst{Op: mir.OpUnit, Dst: 0, Share: true}), "shape", "marked shared")
-	expectRule(t, p, body(mir.Inst{Op: mir.OpUnit, Dst: 0, Async: true}), "shape", "marked async")
-	expectRule(t, p, body(mir.Inst{Op: mir.OpUnit, Dst: 0, EndScope: true}), "shape", "scope exit")
-	expectRule(t, p, body(mir.Inst{Op: mir.OpUnit, Dst: 0, Scoped: true}), "shape", "marked scoped")
+	expectRule(t, p, body(midir.Inst{Op: midir.OpBuiltin, Dst: 0}), "shape", "needs its text")
+	expectRule(t, p, body(midir.Inst{Op: midir.OpShell, Dst: 0, Strs: []string{"$"}}), "shape", "shell has 1 holes for 0 arguments")
+	expectRule(t, p, body(midir.Inst{Op: midir.OpBorrow, Dst: 0, Args: []midir.LocalID{1}, Index: 7}), "shape", "borrow index 7")
+	expectRule(t, p, body(midir.Inst{Op: midir.OpUnary, Dst: 0, Str: "cast", Args: []midir.LocalID{1}}), "shape", "cast needs its target type")
+	expectRule(t, p, body(midir.Inst{Op: midir.Opcode(200), Dst: 0}), "shape", "unknown opcode 200")
+	expectRule(t, p, body(midir.Inst{Op: midir.OpUnit, Dst: 0, Fixed: true}), "shape", "marked fixed")
+	expectRule(t, p, body(midir.Inst{Op: midir.OpUnit, Dst: 0, Copy: true}), "shape", "marked as a copy")
+	expectRule(t, p, body(midir.Inst{Op: midir.OpUnit, Dst: 0, Share: true}), "shape", "marked shared")
+	expectRule(t, p, body(midir.Inst{Op: midir.OpUnit, Dst: 0, Async: true}), "shape", "marked async")
+	expectRule(t, p, body(midir.Inst{Op: midir.OpUnit, Dst: 0, EndScope: true}), "shape", "scope exit")
+	expectRule(t, p, body(midir.Inst{Op: midir.OpUnit, Dst: 0, Scoped: true}), "shape", "marked scoped")
 }
 
 func TestVerifyTypesMore(t *testing.T) {
@@ -184,43 +185,43 @@ func TestVerifyTypesMore(t *testing.T) {
 	tt := p.R.Types
 	area := funcNamed(t, p, "main.area")
 	shape := area.Locals[area.Params[0]].Type
-	one := mir.Inst{Op: mir.OpConst, Dst: 1, Type: sem.TyI64, Lit: sem.Literal{Kind: sem.LitInt}}
-	locals := func(ts ...sem.TypeID) []mir.Local {
-		var ls []mir.Local
+	one := midir.Inst{Op: midir.OpConst, Dst: 1, Type: sem.TyI64, Lit: sem.Literal{Kind: sem.LitInt}}
+	locals := func(ts ...sem.TypeID) []midir.Local {
+		var ls []midir.Local
 		for i, ty := range ts {
-			ls = append(ls, mir.Local{Name: "t" + string(rune('0'+i)), Type: ty})
+			ls = append(ls, midir.Local{Name: "t" + string(rune('0'+i)), Type: ty})
 		}
 		return ls
 	}
-	check := func(name string, ls []mir.Local, ret sem.TypeID, rule, fragment string, insts ...mir.Inst) {
+	check := func(name string, ls []midir.Local, ret sem.TypeID, rule, fragment string, insts ...midir.Inst) {
 		t.Run(name, func(t *testing.T) {
-			expectRule(t, p, fn(name, ret, ls, mir.Block{Insts: insts, Term: mir.Term{Op: mir.TermReturn, Args: []mir.LocalID{0}}}), rule, fragment)
+			expectRule(t, p, fn(name, ret, ls, midir.Block{Insts: insts, Term: midir.Term{Op: midir.TermReturn, Args: []midir.LocalID{0}}}), rule, fragment)
 		})
 	}
-	check("isvariant", locals(sem.TyI64, sem.TyI64), sem.TyI64, "types", "yields Bool", mir.Inst{Op: mir.OpConst, Dst: 1, Type: sem.TyI64, Lit: sem.Literal{Kind: sem.LitInt}}, mir.Inst{Op: mir.OpIsVariant, Dst: 0, Args: []mir.LocalID{1}, Ent: entityNamed(t, p, sem.EntVariant, "Dot")})
-	check("borrow", locals(sem.TyI64, sem.TyI64), sem.TyI64, "types", "borrow of Int yields Int", one, mir.Inst{Op: mir.OpBorrow, Dst: 0, Args: []mir.LocalID{1}})
-	check("variant", locals(sem.TyI64), sem.TyI64, "types", "variant of", mir.Inst{Op: mir.OpVariant, Dst: 0, Ent: entityNamed(t, p, sem.EntVariant, "Dot"), Type: shape})
-	check("newcell", locals(sem.TyI64, sem.TyString), sem.TyI64, "types", "cell of String into Int", mir.Inst{Op: mir.OpConst, Dst: 1, Type: sem.TyString, Lit: sem.Literal{Kind: sem.LitString}}, mir.Inst{Op: mir.OpNewCell, Dst: 0, Args: []mir.LocalID{1}})
-	check("box", locals(tt.Iface(tt.ErrorEnt(), nil), sem.TyI64), tt.Iface(tt.ErrorEnt(), nil), "types", "box of Int as", mir.Inst{Op: mir.OpConst, Dst: 1, Type: sem.TyI64, Lit: sem.Literal{Kind: sem.LitInt}}, mir.Inst{Op: mir.OpBox, Dst: 0, Args: []mir.LocalID{1}, Type: sem.TyString})
-	check("unit", locals(sem.TyI64), sem.TyI64, "types", "unit into Int", mir.Inst{Op: mir.OpUnit, Dst: 0})
-	check("comparison", locals(sem.TyI64, sem.TyI64), sem.TyI64, "types", "comparison == yields Int, not Bool", mir.Inst{Op: mir.OpBinary, Dst: 0, Str: "==", Args: []mir.LocalID{1, 1}})
-	check("operator", locals(sem.TyString, sem.TyI64), sem.TyString, "types", "operator + of Int and Int yields String", mir.Inst{Op: mir.OpBinary, Dst: 0, Str: "+", Args: []mir.LocalID{1, 1}})
-	check("cast", locals(sem.TyString, sem.TyI64), sem.TyString, "types", "cast to Int into String", mir.Inst{Op: mir.OpUnary, Dst: 0, Str: "cast", Type: sem.TyI64, Args: []mir.LocalID{1}})
-	check("fnitem", locals(sem.TyI64), sem.TyI64, "types", "fn item add of", mir.Inst{Op: mir.OpFnItem, Dst: 0, Ent: entityNamed(t, p, sem.EntFn, "add")})
+	check("isvariant", locals(sem.TyI64, sem.TyI64), sem.TyI64, "types", "yields Bool", midir.Inst{Op: midir.OpConst, Dst: 1, Type: sem.TyI64, Lit: sem.Literal{Kind: sem.LitInt}}, midir.Inst{Op: midir.OpIsVariant, Dst: 0, Args: []midir.LocalID{1}, Ent: entityNamed(t, p, sem.EntVariant, "Dot")})
+	check("borrow", locals(sem.TyI64, sem.TyI64), sem.TyI64, "types", "borrow of Int yields Int", one, midir.Inst{Op: midir.OpBorrow, Dst: 0, Args: []midir.LocalID{1}})
+	check("variant", locals(sem.TyI64), sem.TyI64, "types", "variant of", midir.Inst{Op: midir.OpVariant, Dst: 0, Ent: entityNamed(t, p, sem.EntVariant, "Dot"), Type: shape})
+	check("newcell", locals(sem.TyI64, sem.TyString), sem.TyI64, "types", "cell of String into Int", midir.Inst{Op: midir.OpConst, Dst: 1, Type: sem.TyString, Lit: sem.Literal{Kind: sem.LitString}}, midir.Inst{Op: midir.OpNewCell, Dst: 0, Args: []midir.LocalID{1}})
+	check("box", locals(tt.Iface(tt.ErrorEnt(), nil), sem.TyI64), tt.Iface(tt.ErrorEnt(), nil), "types", "box of Int as", midir.Inst{Op: midir.OpConst, Dst: 1, Type: sem.TyI64, Lit: sem.Literal{Kind: sem.LitInt}}, midir.Inst{Op: midir.OpBox, Dst: 0, Args: []midir.LocalID{1}, Type: sem.TyString})
+	check("unit", locals(sem.TyI64), sem.TyI64, "types", "unit into Int", midir.Inst{Op: midir.OpUnit, Dst: 0})
+	check("comparison", locals(sem.TyI64, sem.TyI64), sem.TyI64, "types", "comparison == yields Int, not Bool", midir.Inst{Op: midir.OpBinary, Dst: 0, Str: "==", Args: []midir.LocalID{1, 1}})
+	check("operator", locals(sem.TyString, sem.TyI64), sem.TyString, "types", "operator + of Int and Int yields String", midir.Inst{Op: midir.OpBinary, Dst: 0, Str: "+", Args: []midir.LocalID{1, 1}})
+	check("cast", locals(sem.TyString, sem.TyI64), sem.TyString, "types", "cast to Int into String", midir.Inst{Op: midir.OpUnary, Dst: 0, Str: "cast", Type: sem.TyI64, Args: []midir.LocalID{1}})
+	check("fnitem", locals(sem.TyI64), sem.TyI64, "types", "fn item add of", midir.Inst{Op: midir.OpFnItem, Dst: 0, Ent: entityNamed(t, p, sem.EntFn, "add")})
 }
 
-func addLocal(f *mir.Func, name string, t sem.TypeID) mir.LocalID {
-	f.Locals = append(f.Locals, mir.Local{Name: name, Type: t})
+func addLocal(f *midir.Func, name string, t sem.TypeID) midir.LocalID {
+	f.Locals = append(f.Locals, midir.Local{Name: name, Type: t})
 	if len(f.Direct) > 0 {
 		f.Direct = append(f.Direct, false)
 	}
 	if len(f.Slot) > 0 {
 		f.Slot = append(f.Slot, -1)
 	}
-	return mir.LocalID(len(f.Locals) - 1)
+	return midir.LocalID(len(f.Locals) - 1)
 }
 
-func appendInst(f *mir.Func, in mir.Inst) {
+func appendInst(f *midir.Func, in midir.Inst) {
 	f.Blocks[0].Insts = append(f.Blocks[0].Insts, in)
 }
 
@@ -235,4 +236,4 @@ func anyEntity(t *testing.T, p *mir.Program, kind sem.EntityKind, name string) s
 	return 0
 }
 
-func paramType(f *mir.Func, i int) sem.TypeID { return f.Locals[f.Params[i]].Type }
+func paramType(f *midir.Func, i int) sem.TypeID { return f.Locals[f.Params[i]].Type }

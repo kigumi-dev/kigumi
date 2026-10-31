@@ -1,12 +1,13 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/lang/diag"
 )
 
 // reportMoved is a use of a moved local with a note at the move.
-func (a *owner) reportMoved(n syntax.NodeID, l LocalID, name string) {
+func (a *owner) reportMoved(n syntax.NodeID, l midir.LocalID, name string) {
 	if n == 0 || a.reported[n] {
 		return
 	}
@@ -20,7 +21,7 @@ func (a *owner) reportMoved(n syntax.NodeID, l LocalID, name string) {
 	a.f.Diags = append(a.f.Diags, d.WithHelp(a.moveHelp(l)))
 }
 
-func (a *owner) moveHelp(l LocalID) string {
+func (a *owner) moveHelp(l midir.LocalID) string {
 	if a.p.R.HoldsResource(a.f.Locals[l].Type) {
 		return "borrow it with `&` where it is used before the move, or make the move its last use"
 	}

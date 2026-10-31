@@ -1,6 +1,9 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // An awaited operand parks in the awaiter's own frame until it is ready, so
 // whatever pins it pins the awaiter; the fixpoint follows that to a stop.
@@ -25,16 +28,16 @@ func refineMobility(p *Program) {
 
 // awaitedPin names what a resume on another worker would have to carry: the
 // callee's own reason where the body is known, the operand's type otherwise.
-func awaitedPin(p *Program, f *Func) (string, bool) {
+func awaitedPin(p *Program, f *midir.Func) (string, bool) {
 	t := newFutureTrace()
-	yields := map[LocalID]bool{}
+	yields := map[midir.LocalID]bool{}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			t.note(in)
-			if in.Op == OpCall && p.R.IsTaskYieldNow(in.Ent) {
+			if in.Op == midir.OpCall && p.R.IsTaskYieldNow(in.Ent) {
 				yields[in.Dst] = true
 			}
-			if in.Op != OpAwait || len(in.Args) != 1 || yields[t.origin(in.Args[0])] {
+			if in.Op != midir.OpAwait || len(in.Args) != 1 || yields[t.origin(in.Args[0])] {
 				continue
 			}
 			if ent := t.asyncBody(in.Args[0]); ent != 0 {

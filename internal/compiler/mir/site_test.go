@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/devkit/semfixture"
 )
 
@@ -42,7 +43,7 @@ func TestSiteAtResolvesFileAndLine(t *testing.T) {
 
 	for _, blk := range mainFn.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == mir.OpBinary {
+			if in.Op == midir.OpBinary {
 				s := prog.SiteAt(mainFn, in.Node)
 				if s.Line != 3 {
 					t.Errorf("division site line = %d, want 3", s.Line)

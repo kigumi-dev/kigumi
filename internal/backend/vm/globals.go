@@ -3,7 +3,7 @@ package vm
 import (
 	"sync/atomic"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -17,7 +17,7 @@ func (m *Machine) initGlobals() {
 		if !ok && m.r.StaticPending(ent) {
 			continue
 		}
-		v := m.constant(&mir.Inst{Lit: lit, Type: m.r.Entity(ent).Type})
+		v := m.constant(&midir.Inst{Lit: lit, Type: m.r.Entity(ent).Type})
 		m.immortalizeDeep(v)
 		m.sh.globals[ent] = v
 	}

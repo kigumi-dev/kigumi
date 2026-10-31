@@ -1,24 +1,28 @@
 package mir
 
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
 type verifiedFlow struct {
 	hash uint64
 	weak []bool
 }
 
-type verificationHistory map[*Func]verifiedFlow
+type verificationHistory map[*midir.Func]verifiedFlow
 
-func (p *verifier) rememberFlow(f *Func, hash uint64) {
+func (p *verifier) rememberFlow(f *midir.Func, hash uint64) {
 	if p.verified == nil {
 		p.verified = verificationHistory{}
 	}
 	p.verified[f] = verifiedFlow{hash: hash, weak: p.body(f).weakDefs}
 }
 
-func (p *verifier) pruneHistory(fs []*Func) {
+func (p *verifier) pruneHistory(fs []*midir.Func) {
 	if len(p.verified) == 0 {
 		return
 	}
-	live := make(map[*Func]bool, len(fs))
+	live := make(map[*midir.Func]bool, len(fs))
 	for _, f := range fs {
 		live[f] = true
 	}

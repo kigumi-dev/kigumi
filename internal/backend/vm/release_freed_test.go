@@ -3,16 +3,16 @@ package vm
 import (
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 func TestReleaseAndDropInstructionsCountAFreedUse(t *testing.T) {
-	for _, op := range []mir.Opcode{mir.OpRelease, mir.OpDrop} {
+	for _, op := range []midir.Opcode{midir.OpRelease, midir.OpDrop} {
 		t.Run(op.String(), func(t *testing.T) {
 			TrackLive(true)
 			defer TrackLive(false)
 			m := &Machine{sh: newShared(), opts: Options{Sandbox: true}}
-			f := &mir.Func{Locals: make([]mir.Local, 1), Blocks: []mir.Block{{Insts: []mir.Inst{{Op: op, Args: []mir.LocalID{0}}}}}}
+			f := &midir.Func{Locals: make([]midir.Local, 1), Blocks: []midir.Block{{Insts: []midir.Inst{{Op: op, Args: []midir.LocalID{0}}}}}}
 			fr := m.newFrame(f, m.codeFor(f))
 			v := mkInt(1<<20, 0)
 			m.release(v)

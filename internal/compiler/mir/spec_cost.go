@@ -1,7 +1,11 @@
 package mir
 
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
 // The shared body boxes a runtime argument (a constant's box is a free immortal) and returns a box.
-func (s *specializer) revertCostly(sp *spec, fixed map[*Func][]bool) bool {
+func (s *specializer) revertCostly(sp *spec, fixed map[*midir.Func][]bool) bool {
 	g := s.p.ByEnt[sp.gen]
 	changed := false
 	for _, site := range sp.sites {
@@ -20,7 +24,7 @@ func (s *specializer) revertCostly(sp *spec, fixed map[*Func][]bool) bool {
 			}
 		}
 		added := 0
-		if sp.fn.DSig.result() != 0 && g.DSig.result() == 0 {
+		if sp.fn.DSig.Result() != 0 && g.DSig.Result() == 0 {
 			added = s.reboxes(c, in)
 		}
 		if added > saved {
@@ -32,48 +36,48 @@ func (s *specializer) revertCostly(sp *spec, fixed map[*Func][]bool) bool {
 }
 
 type reboxFlow struct {
-	copies map[LocalID][]LocalID
-	boxed  map[LocalID]int
+	copies map[midir.LocalID][]midir.LocalID
+	boxed  map[midir.LocalID]int
 }
 
-func (s *specializer) reboxFlowOf(c *Func) *reboxFlow {
+func (s *specializer) reboxFlowOf(c *midir.Func) *reboxFlow {
 	if fl := s.reboxFlows[c]; fl != nil {
 		return fl
 	}
-	fl := &reboxFlow{copies: map[LocalID][]LocalID{}, boxed: map[LocalID]int{}}
+	fl := &reboxFlow{copies: map[midir.LocalID][]midir.LocalID{}, boxed: map[midir.LocalID]int{}}
 	for _, blk := range c.Blocks {
 		for _, in := range blk.Insts {
 			switch in.Op {
-			case OpCopy, OpAlias, OpMove, OpShare:
+			case midir.OpCopy, midir.OpAlias, midir.OpMove, midir.OpShare:
 				fl.copies[in.Args[0]] = append(fl.copies[in.Args[0]], in.Dst)
 			}
 			for i, a := range in.Args {
-				if cross, _, ok := s.p.argCross(c, in, i, a); ok && cross == OpBoxDirect {
+				if cross, _, ok := s.p.argCross(c, in, i, a); ok && cross == midir.OpBoxDirect {
 					fl.boxed[a]++
 				}
 			}
 		}
-		if blk.Term.Op == TermReturn {
-			if cross, _, ok := s.p.returnCross(c, blk.Term.Args[0]); ok && cross == OpBoxDirect {
+		if blk.Term.Op == midir.TermReturn {
+			if cross, _, ok := s.p.returnCross(c, blk.Term.Args[0]); ok && cross == midir.OpBoxDirect {
 				fl.boxed[blk.Term.Args[0]]++
 			}
 		}
 	}
 	if s.reboxFlows == nil {
-		s.reboxFlows = map[*Func]*reboxFlow{}
+		s.reboxFlows = map[*midir.Func]*reboxFlow{}
 	}
 	s.reboxFlows[c] = fl
 	return fl
 }
 
-func (s *specializer) reboxes(c *Func, call Inst) int {
+func (s *specializer) reboxes(c *midir.Func, call midir.Inst) int {
 	n := 0
-	if cross, _, ok := s.p.dstCross(c, call); ok && cross == OpBoxDirect {
+	if cross, _, ok := s.p.dstCross(c, call); ok && cross == midir.OpBoxDirect {
 		n++
 	}
 	fl := s.reboxFlowOf(c)
-	from := map[LocalID]bool{call.Dst: true}
-	for work := []LocalID{call.Dst}; len(work) > 0; {
+	from := map[midir.LocalID]bool{call.Dst: true}
+	for work := []midir.LocalID{call.Dst}; len(work) > 0; {
 		l := work[len(work)-1]
 		work = work[:len(work)-1]
 		n += fl.boxed[l]
@@ -97,11 +101,11 @@ func (s *specializer) devirtualizes(pairs []funcPair) bool {
 	return false
 }
 
-func (s *specializer) witnessBoxes(f *Func) int {
+func (s *specializer) witnessBoxes(f *midir.Func) int {
 	n := 0
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op != OpCallValue || in.Ent == 0 {
+			if in.Op != midir.OpCallValue || in.Ent == 0 {
 				continue
 			}
 			for _, a := range in.Args[1:] {

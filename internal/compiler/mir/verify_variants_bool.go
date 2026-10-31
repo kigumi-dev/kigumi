@@ -1,5 +1,9 @@
 package mir
 
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
 type implied struct {
 	never bool
 	facts map[vplace]variantSet
@@ -13,7 +17,7 @@ type boolFact struct {
 	yes, no *implied
 }
 
-func (b *boolFact) mentions(l LocalID) bool {
+func (b *boolFact) mentions(l midir.LocalID) bool {
 	for _, im := range []*implied{b.yes, b.no} {
 		for pl := range im.facts {
 			if pl.about(l) {
@@ -24,7 +28,7 @@ func (b *boolFact) mentions(l LocalID) bool {
 	return false
 }
 
-func (im *implied) without(l LocalID) *implied {
+func (im *implied) without(l midir.LocalID) *implied {
 	out := &implied{never: im.never, facts: map[vplace]variantSet{}}
 	for pl, set := range im.facts {
 		if !pl.about(l) {
@@ -34,7 +38,7 @@ func (im *implied) without(l LocalID) *implied {
 	return out
 }
 
-func (b *boolFact) without(l LocalID) *boolFact {
+func (b *boolFact) without(l midir.LocalID) *boolFact {
 	return &boolFact{yes: b.yes.without(l), no: b.no.without(l)}
 }
 

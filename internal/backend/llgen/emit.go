@@ -8,13 +8,14 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
 // prepareEmitter is the emitter EmitProgram lowers with, its scalar ABI planned.
 func prepareEmitter(p *mir.Program, opts EmitOptions) *emitter {
-	e := &emitter{p: p, r: p.R, strs: map[string]string{}, descs: map[sem.EntityID]string{}, vdescs: map[sem.EntityID]string{}, foreign: map[string]string{}, stdDrops: map[sem.EntityID]bool{}, cio: map[string]bool{}, fnItems: map[string]fnItem{}, stdBindOf: map[string]string{}, constVals: map[string]constVal{}, constShape: map[string]constVal{}, immortalStatics: map[sem.EntityID]bool{}, constIndex: map[string]int{}, aggs: map[sem.TypeID]*aggInfo{}, aggDone: map[sem.TypeID]bool{}, refDone: map[string]bool{}, sigs: map[*mir.Func]*aggSig{}, wrapNeed: map[wrapperKey]bool{}, wrapDone: map[wrapperKey]bool{}, freestanding: opts.Freestanding, entrySymbol: opts.EntrySymbol, symPrefix: opts.SymbolPrefix, reachable: opts.Reachable, shim: newCshim()}
+	e := &emitter{p: p, r: p.R, strs: map[string]string{}, descs: map[sem.EntityID]string{}, vdescs: map[sem.EntityID]string{}, foreign: map[string]string{}, stdDrops: map[sem.EntityID]bool{}, cio: map[string]bool{}, fnItems: map[string]fnItem{}, stdBindOf: map[string]string{}, constVals: map[string]constVal{}, constShape: map[string]constVal{}, immortalStatics: map[sem.EntityID]bool{}, constIndex: map[string]int{}, aggs: map[sem.TypeID]*aggInfo{}, aggDone: map[sem.TypeID]bool{}, refDone: map[string]bool{}, sigs: map[*midir.Func]*aggSig{}, wrapNeed: map[wrapperKey]bool{}, wrapDone: map[wrapperKey]bool{}, freestanding: opts.Freestanding, entrySymbol: opts.EntrySymbol, symPrefix: opts.SymbolPrefix, reachable: opts.Reachable, shim: newCshim()}
 	e.catch = e.wantsCatch(opts)
 	e.cabi = cIntABIFor(opts.Arch, opts.OS)
 	if opts.AbiCheck {
@@ -24,9 +25,9 @@ func prepareEmitter(p *mir.Program, opts EmitOptions) *emitter {
 	return e
 }
 
-func (e *emitter) keeps(f *mir.Func) bool { return e.reachable == nil || e.reachable.Keep(f.Ent) }
+func (e *emitter) keeps(f *midir.Func) bool { return e.reachable == nil || e.reachable.Keep(f.Ent) }
 
-func (e *emitter) naked(f *mir.Func) bool {
+func (e *emitter) naked(f *midir.Func) bool {
 	return e.r.Entity(f.Ent).Kind == sem.EntFn && e.r.Fn(f.Ent).Naked
 }
 
@@ -100,7 +101,7 @@ func (e *emitter) newTmp() string {
 }
 
 // classifyBody fixes how f's locals are held; function and asyncFunction lower on it.
-func (e *emitter) classifyBody(f *mir.Func) {
+func (e *emitter) classifyBody(f *midir.Func) {
 	e.direct = e.classifyDirect(f)
 	e.boxTmp = boxTemps(f)
 	e.crossSrc = e.crossSources(f)
@@ -109,11 +110,11 @@ func (e *emitter) classifyBody(f *mir.Func) {
 	e.nameAlias = nameAliases(f)
 	e.lentCells = nil
 	e.scalarAliasBoxes(f)
-	e.constOwned = map[mir.LocalID]bool{}
+	e.constOwned = map[midir.LocalID]bool{}
 	e.constKey = e.constLocals(f)
 }
 
-func (e *emitter) function(f *mir.Func) string {
+func (e *emitter) function(f *midir.Func) string {
 	var sb strings.Builder
 	e.tmp = 0
 	e.sig, e.ssig = e.directSig(f), e.ssigs[f]
@@ -129,7 +130,7 @@ func (e *emitter) function(f *mir.Func) string {
 	sb.WriteString(" {\nentry:\n")
 	e.unwindAllocas(&sb)
 	for i := range f.Locals {
-		e.frameLocal(&sb, mir.LocalID(i))
+		e.frameLocal(&sb, midir.LocalID(i))
 	}
 	var body strings.Builder
 	e.entryAllocas, e.hoisting = nil, true
@@ -138,7 +139,7 @@ func (e *emitter) function(f *mir.Func) string {
 		fmt.Fprintf(&body, "b%d:\n", bid)
 		e.unwindBlock()
 		for pc, in := range copyStoreInsts(&blk, bid, stores) {
-			e.at = siteAt{mir.BlockID(bid), pc}
+			e.at = siteAt{midir.BlockID(bid), pc}
 			e.unwindSite(&body, e.at.blk, pc)
 			e.inst(&body, f, in)
 		}

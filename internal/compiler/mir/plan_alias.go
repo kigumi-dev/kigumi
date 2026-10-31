@@ -1,18 +1,22 @@
 package mir
 
-import "slices"
+import (
+	"slices"
+
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
 // planAliases finds the alias temporaries (single-definition copies of a
 // named local) that are still read after the local itself, or another
 // alias of it, has been dropped: those must take their own reference when
 // they are created instead of standing for the local.
-func (p *Program) planAliases(f *Func, isTemp func(LocalID) bool, defs map[LocalID]int) map[LocalID]bool {
-	origin := map[LocalID]LocalID{}
-	defBlock := map[LocalID]int{}
-	defIdx := map[LocalID]int{}
+func (p *Program) planAliases(f *midir.Func, isTemp func(midir.LocalID) bool, defs map[midir.LocalID]int) map[midir.LocalID]bool {
+	origin := map[midir.LocalID]midir.LocalID{}
+	defBlock := map[midir.LocalID]int{}
+	defIdx := map[midir.LocalID]int{}
 	for b, blk := range f.Blocks {
 		for k, in := range blk.Insts {
-			if in.Op != OpCopy || !isTemp(in.Dst) || len(in.Args) != 1 {
+			if in.Op != midir.OpCopy || !isTemp(in.Dst) || len(in.Args) != 1 {
 				continue
 			}
 			src := in.Args[0]
@@ -28,11 +32,11 @@ func (p *Program) planAliases(f *Func, isTemp func(LocalID) bool, defs map[Local
 		}
 	}
 	type site struct{ b, k int }
-	dropsOf := map[LocalID][]site{}
-	usesOf := map[LocalID][]site{}
+	dropsOf := map[midir.LocalID][]site{}
+	usesOf := map[midir.LocalID][]site{}
 	for b, blk := range f.Blocks {
 		for k, in := range blk.Insts {
-			if in.Op == OpDrop && len(in.Args) == 1 {
+			if in.Op == midir.OpDrop && len(in.Args) == 1 {
 				a := in.Args[0]
 				dropsOf[a] = append(dropsOf[a], site{b, k})
 				if o := origin[a]; o != a {
@@ -51,7 +55,7 @@ func (p *Program) planAliases(f *Func, isTemp func(LocalID) bool, defs map[Local
 			}
 		}
 	}
-	out := map[LocalID]bool{}
+	out := map[midir.LocalID]bool{}
 	for t, o := range origin {
 		if defs[t] != 1 {
 			continue

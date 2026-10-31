@@ -3,12 +3,13 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // refPlaces are where a write into l's place lands when l is read through a `&mut` local or call result (`h.futs`,
 // `fa.me().futs`): the places that reference borrows, extended by l's path.
-func (c *borrowCheck) refPlaces(l LocalID) []lentPlace {
+func (c *borrowCheck) refPlaces(l midir.LocalID) []lentPlace {
 	r, path, exact, ok := c.refBase(l)
 	if !ok {
 		return nil
@@ -21,7 +22,7 @@ func (c *borrowCheck) refPlaces(l LocalID) []lentPlace {
 }
 
 // referents resolves each holder a stored `&mut` was read through to what that holder keeps.
-func (c *borrowCheck) referents(l LocalID) []ownerRef {
+func (c *borrowCheck) referents(l midir.LocalID) []ownerRef {
 	refs := c.storedReferents(l)
 	if len(refs) == 0 {
 		return nil
@@ -38,10 +39,10 @@ func (c *borrowCheck) referents(l LocalID) []ownerRef {
 
 // heldReferents follows r back through each read of a field below another reference (`k.fb` with `k = &mut hr`):
 // the holder of such a read lists what the outer reference points at, so each owner gives way to what it holds there.
-func (c *borrowCheck) heldReferents(r LocalID, owners []ownerRef) []ownerRef {
+func (c *borrowCheck) heldReferents(r midir.LocalID, owners []ownerRef) []ownerRef {
 	var hops []readHop
 	looped := false
-	for seen := map[LocalID]bool{}; ; {
+	for seen := map[midir.LocalID]bool{}; ; {
 		if looped = seen[r]; looped {
 			break
 		}
@@ -96,8 +97,8 @@ func (c *borrowCheck) derefOwners(owners []ownerRef) []ownerRef {
 }
 
 // outerRef is the reference r was read out of a field below, through copies of the read, with the path of that read.
-func (c *borrowCheck) outerRef(r LocalID) (LocalID, readHop, bool) {
-	for seen := map[LocalID]bool{}; !seen[r]; {
+func (c *borrowCheck) outerRef(r midir.LocalID) (midir.LocalID, readHop, bool) {
+	for seen := map[midir.LocalID]bool{}; !seen[r]; {
 		seen[r] = true
 		d := c.definition(r)
 		if c.f.Locals[r].Ent != 0 {
@@ -107,9 +108,9 @@ func (c *borrowCheck) outerRef(r LocalID) (LocalID, readHop, bool) {
 			return 0, readHop{}, false
 		}
 		switch d.Op {
-		case OpCopy, OpMove, OpAlias:
+		case midir.OpCopy, midir.OpMove, midir.OpAlias:
 			r = d.Args[0]
-		case OpField, OpPayload, OpIndex, OpUnbox:
+		case midir.OpField, midir.OpPayload, midir.OpIndex, midir.OpUnbox:
 			base, hop, ok := c.readHopOf(d)
 			return base, hop, ok && !slices.Contains(c.f.Params, base)
 		default:
@@ -121,10 +122,10 @@ func (c *borrowCheck) outerRef(r LocalID) (LocalID, readHop, bool) {
 
 // heldMutOwners are the locals l keeps a `&mut` of, directly or through holders it keeps, so a callee lent l may
 // write into them (`viaHR(&mut hr, ..)` pushing through `hr.fb`).
-func (c *borrowCheck) heldMutOwners(l LocalID) []LocalID {
-	var out []LocalID
-	seen := map[LocalID]bool{l: true}
-	for stack := []LocalID{l}; len(stack) > 0; {
+func (c *borrowCheck) heldMutOwners(l midir.LocalID) []midir.LocalID {
+	var out []midir.LocalID
+	seen := map[midir.LocalID]bool{l: true}
+	for stack := []midir.LocalID{l}; len(stack) > 0; {
 		u := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
 		h, ok := c.holders[u]

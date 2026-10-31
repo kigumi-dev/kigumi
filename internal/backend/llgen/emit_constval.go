@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -35,12 +35,12 @@ func (e *emitter) constPayloadName(key string) string {
 	return fmt.Sprintf("@\".constval.%d.payload\"", e.constIndex[key])
 }
 
-func definesDst(op mir.Opcode) bool { return op.Yields() }
+func definesDst(op midir.Opcode) bool { return op.Yields() }
 
 // constLocals keys the locals of f holding a value fixed at compile time; a
 // local written more than once is left out, since a key has to name one value.
-func (e *emitter) constLocals(f *mir.Func) map[mir.LocalID]string {
-	defs := map[mir.LocalID]int{}
+func (e *emitter) constLocals(f *midir.Func) map[midir.LocalID]string {
+	defs := map[midir.LocalID]int{}
 	for _, p := range f.Params {
 		defs[p]++
 	}
@@ -51,28 +51,28 @@ func (e *emitter) constLocals(f *mir.Func) map[mir.LocalID]string {
 			}
 		}
 	}
-	out, shape := map[mir.LocalID]string{}, map[mir.LocalID]string{}
+	out, shape := map[midir.LocalID]string{}, map[midir.LocalID]string{}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			if !definesDst(in.Op) || defs[in.Dst] != 1 || f.Locals[in.Dst].Cell {
 				continue
 			}
 			switch in.Op {
-			case mir.OpUnit:
+			case midir.OpUnit:
 				e.registerConst(constUnitKey, constVal{})
 				out[in.Dst], shape[in.Dst] = constUnitKey, constUnitKey
-			case mir.OpConst:
+			case midir.OpConst:
 				if k, ok := e.litKey(in); ok {
 					out[in.Dst], shape[in.Dst] = k, k
 				}
-			case mir.OpAlias, mir.OpMove, mir.OpCopy, mir.OpShare:
+			case midir.OpAlias, midir.OpMove, midir.OpCopy, midir.OpShare:
 				if k, ok := shape[in.Args[0]]; ok {
 					shape[in.Dst] = k
 					if _, boxed := out[in.Args[0]]; boxed {
 						out[in.Dst] = k
 					}
 				}
-			case mir.OpVariant:
+			case midir.OpVariant:
 				if k, ok := e.variantShape(in, shape); ok {
 					shape[in.Dst] = k
 					if !e.isDirect(in.Dst) {
@@ -80,7 +80,7 @@ func (e *emitter) constLocals(f *mir.Func) map[mir.LocalID]string {
 						out[in.Dst] = k
 					}
 				}
-			case mir.OpBoxDirect:
+			case midir.OpBoxDirect:
 				// The VM counts no allocation where mir marks a crossing fixed, so mir alone decides.
 				if in.Fixed {
 					k := fixedShape(shape, in.Args[0])

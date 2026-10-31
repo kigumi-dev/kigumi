@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
-func (e *emitter) asyncUnwindFor(f *mir.Func) *unwindFrame {
+func (e *emitter) asyncUnwindFor(f *midir.Func) *unwindFrame {
 	if !e.catch {
 		return nil
 	}
 	plan := e.p.UnwindPlanOf(f)
-	slot := map[mir.LocalID]int{}
+	slot := map[midir.LocalID]int{}
 	for _, set := range plan.Sets[1:] {
 		for _, l := range e.sweepLocals(set) {
 			if f.Slot[l] >= 0 {
@@ -35,7 +35,7 @@ func (e *emitter) asyncUnwindAllocas(sb *strings.Builder) {
 
 // A resume enters with a clear mask, and the awaited child can fault before the next site writes one.
 func (e *emitter) unwindResume(sb *strings.Builder) {
-	if e.unwind == nil || e.at.blk >= mir.BlockID(len(e.unwind.plan.At)) {
+	if e.unwind == nil || e.at.blk >= midir.BlockID(len(e.unwind.plan.At)) {
 		return
 	}
 	e.unwind.known = false

@@ -5,10 +5,11 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func (e *emitter) callEntity(sb *strings.Builder, f *mir.Func, in mir.Inst, args []string, dst sem.TypeID) string {
+func (e *emitter) callEntity(sb *strings.Builder, f *midir.Func, in midir.Inst, args []string, dst sem.TypeID) string {
 	ent := in.Ent
 	if e.r.Fn(ent).Naked {
 		var types []sem.TypeID

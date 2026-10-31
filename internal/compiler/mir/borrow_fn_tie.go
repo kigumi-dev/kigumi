@@ -3,11 +3,12 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // tiedCallSource adds to what a call's result borrows the reference arguments a passed function value can borrow from.
-func (c *borrowCheck) tiedCallSource(in Inst) (*borrowInfo, bool) {
+func (c *borrowCheck) tiedCallSource(in midir.Inst) (*borrowInfo, bool) {
 	b, ok := c.calleeSource(in)
 	tie, done := c.fnTie(in)
 	tie = append(tie, c.summaryTie(in, done)...)
@@ -26,7 +27,7 @@ func (c *borrowCheck) tiedCallSource(in Inst) (*borrowInfo, bool) {
 
 // fnTie: a passed fn value whose result may borrow its arguments lets the callee build its result from them; args are
 // the arguments it judged.
-func (c *borrowCheck) fnTie(in Inst) (out []*borrowInfo, args []LocalID) {
+func (c *borrowCheck) fnTie(in midir.Inst) (out []*borrowInfo, args []midir.LocalID) {
 	info := c.p.R.Fn(in.Ent)
 	want := c.wantOf(c.p.R.Types.Node(info.Sig).Elem)
 	dst := c.f.Locals[in.Dst].Type
@@ -105,7 +106,7 @@ func (c *borrowCheck) mayBorrowResult(r sem.TypeID) bool {
 
 // makesOwnBorrow reports whether the function value a returns a reference, names a lifetime of its own declaration (a
 // closure's belongs to the enclosing function) or keeps an argument's Future or capture. An unknown value is judged by its type.
-func (c *borrowCheck) makesOwnBorrow(a LocalID) bool {
+func (c *borrowCheck) makesOwnBorrow(a midir.LocalID) bool {
 	switch fn := c.fnEntityOf(a); {
 	case fn != 0 && c.p.isAsyncBody(fn):
 		return c.asyncKeepsBorrow(c.p.R.Fn(fn))
@@ -124,15 +125,15 @@ func (c *borrowCheck) makesOwnBorrow(a LocalID) bool {
 }
 
 // fnEntityOf follows a's single definitions through copies to the function item or closure it names.
-func (c *borrowCheck) fnEntityOf(a LocalID) sem.EntityID {
+func (c *borrowCheck) fnEntityOf(a midir.LocalID) sem.EntityID {
 	for range len(c.f.Locals) {
 		d := c.soleDef(a)
 		switch {
 		case d == nil:
 			return 0
-		case d.Op == OpFnItem || d.Op == OpClosure:
+		case d.Op == midir.OpFnItem || d.Op == midir.OpClosure:
 			return d.Ent
-		case (d.Op == OpCopy || d.Op == OpMove || d.Op == OpAlias) && len(d.Args) > 0:
+		case (d.Op == midir.OpCopy || d.Op == midir.OpMove || d.Op == midir.OpAlias) && len(d.Args) > 0:
 			a = d.Args[0]
 		default:
 			return 0

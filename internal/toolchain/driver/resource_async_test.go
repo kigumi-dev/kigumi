@@ -5,7 +5,7 @@ import (
 	"slices"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -17,7 +17,7 @@ func TestResourceReportAsyncFrame(t *testing.T) {
 		t.Skip("the expected frame is the 64-bit kgframe")
 	}
 	report := driver.ResourceReport(a)
-	var walk *mir.Func
+	var walk *midir.Func
 	for _, f := range a.Prog.Funcs {
 		if f.Ent != 0 && a.Res.Entity(f.Ent).Name == "walk" {
 			walk = f
@@ -29,14 +29,14 @@ func TestResourceReportAsyncFrame(t *testing.T) {
 			box = i
 		}
 	}
-	if box < 0 || walk.Slot[box] < 0 || !walk.IsDirect(mir.LocalID(box)) || a.Prog.SlotBytes(walk, mir.LocalID(box)) != 32 {
+	if box < 0 || walk.Slot[box] < 0 || !walk.IsDirect(midir.LocalID(box)) || a.Prog.SlotBytes(walk, midir.LocalID(box)) != 32 {
 		t.Fatalf("box should sit in the frame as 32 inline bytes")
 	}
 	// kgframe's header is desc, awaited, state, nargs and args: 32 bytes before slots[].
 	slots := int64(0)
 	for i := range walk.Locals {
 		if walk.Slot[i] >= 0 {
-			slots += a.Prog.SlotBytes(walk, mir.LocalID(i))
+			slots += a.Prog.SlotBytes(walk, midir.LocalID(i))
 		}
 	}
 	want := fmt.Sprintf("walk: async frame, %d bytes", 32+slots+8*int64(len(walk.Params)))

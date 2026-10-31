@@ -2,12 +2,13 @@ package mir
 
 import (
 	"kigumi/internal/compiler/hir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // expr lowers an expression to a local holding its value, with the
 // checker's coercion steps applied.
-func (b *builder) expr(e *hir.Expr) LocalID {
+func (b *builder) expr(e *hir.Expr) midir.LocalID {
 	v := b.exprRaw(e)
 	// A fallback lifts only its hit value (build_ops.go); the miss arm is
 	// already at the lifted type.
@@ -15,7 +16,7 @@ func (b *builder) expr(e *hir.Expr) LocalID {
 		return v
 	}
 	if isDefinedView(e) {
-		v = b.emit(Inst{Op: OpAlias, Dst: b.temp(e.Type), Args: []LocalID{v}, Node: e.Node})
+		v = b.emit(midir.Inst{Op: midir.OpAlias, Dst: b.temp(e.Type), Args: []midir.LocalID{v}, Node: e.Node})
 	}
 	return b.coerce(e.Coercion, e.Node, v)
 }
@@ -33,33 +34,33 @@ func definedBase(e *hir.Expr) *hir.Expr {
 	return e
 }
 
-func (b *builder) exprRaw(e *hir.Expr) LocalID {
+func (b *builder) exprRaw(e *hir.Expr) midir.LocalID {
 	n, t := e.Node, e.Type
 	switch e.Kind {
 	case hir.Local:
 		id := b.local(e.Ent)
 		if b.fn.Locals[id].Cell {
-			return b.emit(Inst{Op: OpCellGet, Dst: b.temp(b.r.Entity(e.Ent).Type), Args: []LocalID{id}, Node: n})
+			return b.emit(midir.Inst{Op: midir.OpCellGet, Dst: b.temp(b.r.Entity(e.Ent).Type), Args: []midir.LocalID{id}, Node: n})
 		}
 		return id
 	case hir.Lit:
-		return b.emit(Inst{Op: OpConst, Dst: b.temp(t), Lit: e.Lit, Type: t, Node: n})
+		return b.emit(midir.Inst{Op: midir.OpConst, Dst: b.temp(t), Lit: e.Lit, Type: t, Node: n})
 	case hir.ArgRef:
 		v := b.argRef(e.Index)
 		if e.Index >= 0 && b.r.IsCopy(t) {
-			return b.emit(Inst{Op: OpShare, Dst: b.temp(t), Args: []LocalID{v}, Copy: true, Node: n})
+			return b.emit(midir.Inst{Op: midir.OpShare, Dst: b.temp(t), Args: []midir.LocalID{v}, Copy: true, Node: n})
 		}
 		return v
 	case hir.Global:
-		return b.emit(Inst{Op: OpGlobalGet, Dst: b.temp(t), Ent: e.Ent, Node: n})
+		return b.emit(midir.Inst{Op: midir.OpGlobalGet, Dst: b.temp(t), Ent: e.Ent, Node: n})
 	case hir.FnItem:
 		async := b.r.Fn(e.Ent).Declared&sem.EffAsync != 0
 		if len(e.Passes) > 0 {
-			return b.emit(Inst{Op: OpBind, Dst: b.temp(t), Ent: e.Ent, Args: b.witnessArgs(e.Passes, n), Async: async, Node: n})
+			return b.emit(midir.Inst{Op: midir.OpBind, Dst: b.temp(t), Ent: e.Ent, Args: b.witnessArgs(e.Passes, n), Async: async, Node: n})
 		}
-		return b.emit(Inst{Op: OpFnItem, Dst: b.temp(t), Ent: e.Ent, Async: async, Node: n})
+		return b.emit(midir.Inst{Op: midir.OpFnItem, Dst: b.temp(t), Ent: e.Ent, Async: async, Node: n})
 	case hir.Host:
-		return b.emit(Inst{Op: OpBuiltin, Dst: b.temp(t), Str: "host", Node: n})
+		return b.emit(midir.Inst{Op: midir.OpBuiltin, Dst: b.temp(t), Str: "host", Node: n})
 	case hir.Wrap:
 		return b.expr(e.Args[0])
 	case hir.DefinedWrap, hir.DefinedUnwrap:
@@ -67,16 +68,16 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 	case hir.Unary:
 		v := b.expr(e.Args[0])
 		if e.Ent != 0 {
-			return b.emit(Inst{Op: OpCall, Dst: b.temp(t), Ent: e.Ent, Args: []LocalID{v}, Node: n})
+			return b.emit(midir.Inst{Op: midir.OpCall, Dst: b.temp(t), Ent: e.Ent, Args: []midir.LocalID{v}, Node: n})
 		}
-		return b.emit(Inst{Op: OpUnary, Dst: b.temp(t), Str: e.Name, Args: []LocalID{v}, Node: n})
+		return b.emit(midir.Inst{Op: midir.OpUnary, Dst: b.temp(t), Str: e.Name, Args: []midir.LocalID{v}, Node: n})
 	case hir.Binary:
 		l := b.snapshot(b.expr(e.Args[0]), e.Args[0], e.Args[0].Node, e.Args[1])
 		r := b.expr(e.Args[1])
 		if e.Ent != 0 {
-			return b.emit(Inst{Op: OpCall, Dst: b.temp(t), Ent: e.Ent, Args: []LocalID{l, r}, Node: n})
+			return b.emit(midir.Inst{Op: midir.OpCall, Dst: b.temp(t), Ent: e.Ent, Args: []midir.LocalID{l, r}, Node: n})
 		}
-		return b.emit(Inst{Op: OpBinary, Dst: b.temp(t), Str: e.Name, Args: []LocalID{l, r}, Node: n})
+		return b.emit(midir.Inst{Op: midir.OpBinary, Dst: b.temp(t), Str: e.Name, Args: []midir.LocalID{l, r}, Node: n})
 	case hir.And:
 		return b.valueAnd(e)
 	case hir.Fallback:
@@ -91,16 +92,16 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 	case hir.Index:
 		base := b.expr(e.Args[0])
 		idx := b.expr(e.Args[1])
-		return b.emit(Inst{Op: OpIndex, Dst: b.temp(t), Args: []LocalID{base, idx}, Node: n})
+		return b.emit(midir.Inst{Op: midir.OpIndex, Dst: b.temp(t), Args: []midir.LocalID{base, idx}, Node: n})
 	case hir.Field:
 		base := b.expr(e.Args[0])
-		return b.emit(Inst{Op: OpField, Dst: b.temp(t), Args: []LocalID{base}, Index: e.Index, Node: n})
+		return b.emit(midir.Inst{Op: midir.OpField, Dst: b.temp(t), Args: []midir.LocalID{base}, Index: e.Index, Node: n})
 	case hir.FieldMove:
 		base := b.expr(e.Args[0])
 		if b.r.Types.RefMut(t) {
 			return b.refFieldMove(base, t, e.Index, n)
 		}
-		return b.emit(Inst{Op: OpFieldMove, Dst: b.temp(t), Args: []LocalID{base}, Index: e.Index, Node: n})
+		return b.emit(midir.Inst{Op: midir.OpFieldMove, Dst: b.temp(t), Args: []midir.LocalID{base}, Index: e.Index, Node: n})
 	case hir.MethodValue:
 		return b.methodValue(e, b.methodReceiver(e, e.Type), t)
 	case hir.OptField:
@@ -123,31 +124,31 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 		return b.forExpr(e)
 	case hir.Return:
 		b.markExit(0)
-		var v LocalID
+		var v midir.LocalID
 		if len(e.Args) == 0 {
 			v = b.unit(n)
 			// A checker coercion has no value node to attach to here, so a
 			// bare `return` in a fallible-Void function is Ok-wrapped
 			// directly against the function's own return type.
 			if val, _, ok := b.r.Types.IsResult(b.ret); ok && val == sem.TyUnit {
-				v = b.emit(Inst{Op: OpVariant, Dst: b.temp(b.ret), Ent: b.variantNamed(b.r.Types.ResultEnt(), "Ok"), Type: b.ret, Args: []LocalID{v}, Node: n})
+				v = b.emit(midir.Inst{Op: midir.OpVariant, Dst: b.temp(b.ret), Ent: b.variantNamed(b.r.Types.ResultEnt(), "Ok"), Type: b.ret, Args: []midir.LocalID{v}, Node: n})
 			}
 			b.returnUnwinding(v, nil, n)
 		} else {
-			v = b.fullValue(func() LocalID { return b.exprMoved(e.Args[0]) })
+			v = b.fullValue(func() midir.LocalID { return b.exprMoved(e.Args[0]) })
 			b.returnUnwinding(v, e.Args[0], n)
 		}
 		return b.never(n)
 	case hir.Fail:
 		// The error leaves every scope, so a named local travels in a
 		// temporary before the scopes drop it.
-		v := b.fullValue(func() LocalID { return b.exprMoved(e.Args[0]) })
+		v := b.fullValue(func() midir.LocalID { return b.exprMoved(e.Args[0]) })
 		b.failWith(n, v)
 		return b.never(n)
 	case hir.Break, hir.Continue:
 		l := b.loops[len(b.loops)-1]
 		b.markExit(l.depth)
-		var v LocalID
+		var v midir.LocalID
 		if e.Kind == hir.Break && len(e.Args) > 0 {
 			v = b.exprMoved(e.Args[0])
 		}
@@ -170,7 +171,7 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 		// from the block, structured or not, restores the previous one.
 		scope := b.expr(e.Args[0])
 		b.pushScope()
-		b.own(b.emit(Inst{Op: OpBuiltin, Dst: b.temp(e.Args[0].Type), Str: "alloc.push", Args: []LocalID{scope}, Node: n}))
+		b.own(b.emit(midir.Inst{Op: midir.OpBuiltin, Dst: b.temp(e.Args[0].Type), Str: "alloc.push", Args: []midir.LocalID{scope}, Node: n}))
 		result := b.detach(b.blockExpr(e.Block))
 		b.exitScope()
 		return result
@@ -178,13 +179,13 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 		return b.borrowExpr(e, n, t)
 	case hir.Interp:
 		// The result temporary is numbered before the pieces it interpolates.
-		in := Inst{Op: OpInterp, Dst: b.temp(sem.TyString), Strs: e.Strs, Node: n}
+		in := midir.Inst{Op: midir.OpInterp, Dst: b.temp(sem.TyString), Strs: e.Strs, Node: n}
 		for i, a := range e.Args {
 			in.Args = append(in.Args, b.snapshot(b.expr(a), a, a.Node, e.Args[i+1:]...))
 		}
 		return b.emit(in)
 	case hir.Shell:
-		in := Inst{Op: OpShell, Dst: b.temp(t), Strs: e.Strs, Node: n}
+		in := midir.Inst{Op: midir.OpShell, Dst: b.temp(t), Strs: e.Strs, Node: n}
 		for i, a := range e.Args {
 			in.Args = append(in.Args, b.snapshot(b.expr(a), a, a.Node, e.Args[i+1:]...))
 		}
@@ -194,5 +195,5 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 	case hir.Unit:
 		return b.unit(n)
 	}
-	return b.emit(Inst{Op: OpPanic, Dst: b.temp(t), Str: e.Name, Node: n})
+	return b.emit(midir.Inst{Op: midir.OpPanic, Dst: b.temp(t), Str: e.Name, Node: n})
 }

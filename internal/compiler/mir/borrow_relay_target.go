@@ -1,5 +1,9 @@
 package mir
 
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
 type relayKind uint8
 
 const (
@@ -13,7 +17,7 @@ type relayTarget struct {
 	param int
 }
 
-func (c *borrowCheck) relaySite(g *Func, defs map[LocalID]*Inst, s paramStore, args []LocalID, kind siteKind, depth int) []paramStore {
+func (c *borrowCheck) relaySite(g *midir.Func, defs map[midir.LocalID]*midir.Inst, s paramStore, args []midir.LocalID, kind siteKind, depth int) []paramStore {
 	if s.callee.kind != relayParam {
 		return []paramStore{s}
 	}
@@ -30,7 +34,7 @@ func (c *borrowCheck) relaySite(g *Func, defs map[LocalID]*Inst, s paramStore, a
 	return out
 }
 
-func (c *borrowCheck) frameTarget(g *Func, defs map[LocalID]*Inst, target relayTarget, args []LocalID, depth int) bool {
+func (c *borrowCheck) frameTarget(g *midir.Func, defs map[midir.LocalID]*midir.Inst, target relayTarget, args []midir.LocalID, depth int) bool {
 	switch target.kind {
 	case relayNone:
 		return false

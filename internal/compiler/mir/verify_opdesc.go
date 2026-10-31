@@ -1,12 +1,13 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 // opDescMismatch holds a std primitive call to its registry descriptor: the
 // classes the runtime reads for each argument and the result.
-func (p *verifier) opDescMismatch(f *Func, in Inst) string {
+func (p *verifier) opDescMismatch(f *midir.Func, in midir.Inst) string {
 	id, ok := in.StdOp()
 	if !ok {
 		return ""

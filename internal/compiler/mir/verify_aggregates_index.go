@@ -1,8 +1,11 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
-func (p *verifier) indexMismatch(f *Func, in Inst) string {
+func (p *verifier) indexMismatch(f *midir.Func, in midir.Inst) string {
 	tt := p.R.Types
 	base := p.R.UnderlyingRepr(p.derefAll(f.Locals[in.Args[0]].Type))
 	if p.looseType(base) {
@@ -19,14 +22,14 @@ func (p *verifier) indexMismatch(f *Func, in Inst) string {
 	default:
 		return "indexes " + p.R.TypeString(f.Locals[in.Args[0]].Type) + ", which is no array, string or bytes"
 	}
-	if textual && in.Op == OpSetIndex {
+	if textual && in.Op == midir.OpSetIndex {
 		return "writes into " + p.R.TypeString(base) + ", which has no slots to set"
 	}
 	idx := p.derefAll(f.Locals[in.Args[1]].Type)
-	if !p.looseType(idx) && idx != sem.TyUsize && !(in.Op == OpIndex && p.rangeOfUsize(idx)) {
+	if !p.looseType(idx) && idx != sem.TyUsize && !(in.Op == midir.OpIndex && p.rangeOfUsize(idx)) {
 		return "indexes by " + p.R.TypeString(idx) + ", not a usize"
 	}
-	if in.Op == OpSetIndex && elem != 0 && !p.compatible(elem, f.Locals[in.Args[2]].Type) {
+	if in.Op == midir.OpSetIndex && elem != 0 && !p.compatible(elem, f.Locals[in.Args[2]].Type) {
 		return "stores " + p.R.TypeString(f.Locals[in.Args[2]].Type) + " in an array of " + p.R.TypeString(elem)
 	}
 	return ""

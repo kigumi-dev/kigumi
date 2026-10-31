@@ -1,17 +1,20 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // verifyCellCaptures checks that a closure capturing a local as a cell
 // actually receives one: build_scope.go's param() and bindPattern always
 // back a Cell local with an OpNewCell before it is used, so a mismatch
 // would hand the closure a plain value where it expects a cell, crashing
 // OpCellGet/OpCellSet on the other side.
-func (p *verifier) verifyCellCaptures(f *Func) *Error {
+func (p *verifier) verifyCellCaptures(f *midir.Func) *Error {
 	for bid, blk := range f.Blocks {
-		bid := BlockID(bid)
+		bid := midir.BlockID(bid)
 		for i, in := range blk.Insts {
-			if in.Op != OpClosure || in.Str == "applied" {
+			if in.Op != midir.OpClosure || in.Str == "applied" {
 				continue
 			}
 			callee := p.ByEnt[in.Ent]
@@ -33,8 +36,8 @@ func (p *verifier) verifyCellCaptures(f *Func) *Error {
 
 // definedByNewCell traces l back through plan_rc.go's alias/share/copy chain to
 // the OpNewCell it must come from; a Cell-flagged parameter ends the trace.
-func definedByNewCell(f *Func, l LocalID) bool {
-	seen := map[LocalID]bool{}
+func definedByNewCell(f *midir.Func, l midir.LocalID) bool {
+	seen := map[midir.LocalID]bool{}
 	for {
 		if seen[l] {
 			return false
@@ -53,9 +56,9 @@ func definedByNewCell(f *Func, l LocalID) bool {
 					continue
 				}
 				switch in.Op {
-				case OpNewCell:
+				case midir.OpNewCell:
 					return true
-				case OpAlias, OpShare, OpCopy, OpMove, OpBorrow:
+				case midir.OpAlias, midir.OpShare, midir.OpCopy, midir.OpMove, midir.OpBorrow:
 					l, found = in.Args[0], true
 				default:
 					return false
@@ -69,7 +72,7 @@ func definedByNewCell(f *Func, l LocalID) bool {
 	}
 }
 
-func isParam(f *Func, l LocalID) bool {
+func isParam(f *midir.Func, l midir.LocalID) bool {
 	for _, prm := range f.Params {
 		if prm == l {
 			return true
@@ -78,21 +81,21 @@ func isParam(f *Func, l LocalID) bool {
 	return false
 }
 
-func (p *verifier) verifyCellOps(f *Func) *Error {
+func (p *verifier) verifyCellOps(f *midir.Func) *Error {
 	for bid, blk := range f.Blocks {
 		for i, in := range blk.Insts {
-			if (in.Op == OpCellGet || in.Op == OpCellTake || in.Op == OpCellSet) && !p.canBeCell(f, in.Args[0], map[LocalID]bool{}) {
-				return fail("cellops", BlockID(bid), i, "%s through %%%s, which is no cell", in.Op, f.Locals[in.Args[0]].Name)
+			if (in.Op == midir.OpCellGet || in.Op == midir.OpCellTake || in.Op == midir.OpCellSet) && !p.canBeCell(f, in.Args[0], map[midir.LocalID]bool{}) {
+				return fail("cellops", midir.BlockID(bid), i, "%s through %%%s, which is no cell", in.Op, f.Locals[in.Args[0]].Name)
 			}
 		}
 	}
 	return nil
 }
 
-func (p *verifier) yielders(f *Func) map[LocalID][]Inst {
+func (p *verifier) yielders(f *midir.Func) map[midir.LocalID][]midir.Inst {
 	body := p.body(f)
 	if body.yielders == nil {
-		body.yielders = map[LocalID][]Inst{}
+		body.yielders = map[midir.LocalID][]midir.Inst{}
 		for _, blk := range f.Blocks {
 			for _, in := range blk.Insts {
 				if in.Op.Yields() {
@@ -104,7 +107,7 @@ func (p *verifier) yielders(f *Func) map[LocalID][]Inst {
 	return body.yielders
 }
 
-func (p *verifier) canBeCell(f *Func, l LocalID, seen map[LocalID]bool) bool {
+func (p *verifier) canBeCell(f *midir.Func, l midir.LocalID, seen map[midir.LocalID]bool) bool {
 	if seen[l] || f.Locals[l].Cell || (isParam(f, l) && p.refCellParam(f, l)) {
 		return true
 	}
@@ -113,10 +116,10 @@ func (p *verifier) canBeCell(f *Func, l LocalID, seen map[LocalID]bool) bool {
 	for _, in := range p.yielders(f)[l] {
 		defined = true
 		switch in.Op {
-		case OpConst, OpUnit, OpBinary, OpUnary, OpInterp, OpShell, OpTag, OpIsVariant, OpIsType, OpRecord, OpVariant, OpArray, OpClosure, OpFnItem, OpBind, OpCFnPtr, OpBox, OpLendBox, OpBoxDirect, OpUnboxDirect,
-			OpCall, OpCallValue, OpCallC, OpBuiltin, OpAwait, OpFutureNew, OpCellGet, OpCellTake, OpAsm,
-			OpField, OpFieldMove, OpPayload, OpIndex, OpUnbox, OpGlobalGet:
-		case OpAlias, OpShare, OpCopy, OpMove, OpBorrow:
+		case midir.OpConst, midir.OpUnit, midir.OpBinary, midir.OpUnary, midir.OpInterp, midir.OpShell, midir.OpTag, midir.OpIsVariant, midir.OpIsType, midir.OpRecord, midir.OpVariant, midir.OpArray, midir.OpClosure, midir.OpFnItem, midir.OpBind, midir.OpCFnPtr, midir.OpBox, midir.OpLendBox, midir.OpBoxDirect, midir.OpUnboxDirect,
+			midir.OpCall, midir.OpCallValue, midir.OpCallC, midir.OpBuiltin, midir.OpAwait, midir.OpFutureNew, midir.OpCellGet, midir.OpCellTake, midir.OpAsm,
+			midir.OpField, midir.OpFieldMove, midir.OpPayload, midir.OpIndex, midir.OpUnbox, midir.OpGlobalGet:
+		case midir.OpAlias, midir.OpShare, midir.OpCopy, midir.OpMove, midir.OpBorrow:
 			if p.canBeCell(f, in.Args[0], seen) {
 				return true
 			}
@@ -130,7 +133,7 @@ func (p *verifier) canBeCell(f *Func, l LocalID, seen map[LocalID]bool) bool {
 	return !defined
 }
 
-func (p *verifier) cellContent(f *Func, defs cellDefs, l LocalID, seen map[LocalID]bool) []sem.TypeID {
+func (p *verifier) cellContent(f *midir.Func, defs cellDefs, l midir.LocalID, seen map[midir.LocalID]bool) []sem.TypeID {
 	if seen[l] {
 		return nil
 	}
@@ -152,12 +155,12 @@ func (p *verifier) cellContent(f *Func, defs cellDefs, l LocalID, seen map[Local
 	for _, in := range defs[l] {
 		var c []sem.TypeID
 		switch in.Op {
-		case OpNewCell:
+		case midir.OpNewCell:
 			c = []sem.TypeID{t}
 			if tt.Kind(t) == sem.KRef {
 				c = append(c, tt.Node(t).Elem)
 			}
-		case OpAlias, OpShare, OpCopy, OpMove, OpBorrow:
+		case midir.OpAlias, midir.OpShare, midir.OpCopy, midir.OpMove, midir.OpBorrow:
 			c = p.cellContent(f, defs, in.Args[0], seen)
 		}
 		if len(c) == 0 {
@@ -168,8 +171,8 @@ func (p *verifier) cellContent(f *Func, defs cellDefs, l LocalID, seen map[Local
 	return found
 }
 
-func (p *verifier) cellFits(f *Func, defs cellDefs, l LocalID, v sem.TypeID) (bool, sem.TypeID) {
-	content := p.cellContent(f, defs, l, map[LocalID]bool{})
+func (p *verifier) cellFits(f *midir.Func, defs cellDefs, l midir.LocalID, v sem.TypeID) (bool, sem.TypeID) {
+	content := p.cellContent(f, defs, l, map[midir.LocalID]bool{})
 	for _, c := range content {
 		if p.fits(c, v) {
 			return true, 0
@@ -181,7 +184,7 @@ func (p *verifier) cellFits(f *Func, defs cellDefs, l LocalID, v sem.TypeID) (bo
 	return false, content[0]
 }
 
-func (p *verifier) refCellParam(f *Func, l LocalID) bool {
+func (p *verifier) refCellParam(f *midir.Func, l midir.LocalID) bool {
 	t := f.Locals[l].Type
 	if _, scalar := p.R.ScalarRefElem(t); scalar {
 		return true

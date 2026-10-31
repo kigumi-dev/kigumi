@@ -5,12 +5,13 @@ import (
 	"slices"
 	"strings"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // keptCall is what call in hands its result and, per operand i, that operand's place: by keptCallees' summaries, for a
 // body-less primitive only what moved hands on from a lent operand unless the result can hold a reference, else all.
-func (c *borrowCheck) keptCall(k *keptCtx, in Inst) (uint64, func(int) uint64) {
+func (c *borrowCheck) keptCall(k *keptCtx, in midir.Inst) (uint64, func(int) uint64) {
 	var from uint64
 	for _, a := range in.Args {
 		from |= k.facts[a]
@@ -21,7 +22,7 @@ func (c *borrowCheck) keptCall(k *keptCtx, in Inst) (uint64, func(int) uint64) {
 	plainResult := c.ifaceRequirement(in.Ent) && !c.holdsBorrow(k.g.Locals[in.Dst].Type) && !c.holdsDeferred(k.g.Locals[in.Dst].Type)
 	type callee struct {
 		s *keptSummary
-		h *Func
+		h *midir.Func
 		n int
 	}
 	var cs []callee
@@ -81,15 +82,15 @@ func (c *borrowCheck) keptCall(k *keptCtx, in Inst) (uint64, func(int) uint64) {
 }
 
 // keptCallees are the sync fn items call in runs and the index of its first argument; nil for an async or unknown callee.
-func (c *borrowCheck) keptCallees(k *keptCtx, in Inst) ([]sem.EntityID, int) {
+func (c *borrowCheck) keptCallees(k *keptCtx, in midir.Inst) ([]sem.EntityID, int) {
 	var ents []sem.EntityID
 	off := 0
 	switch {
-	case in.Op == OpCall && in.Ent != 0:
+	case in.Op == midir.OpCall && in.Ent != 0:
 		ents = []sem.EntityID{in.Ent}
-	case in.Op == OpCallValue && in.Ent != 0:
+	case in.Op == midir.OpCallValue && in.Ent != 0:
 		ents, off = []sem.EntityID{in.Ent}, 1
-	case in.Op == OpCallValue && in.Ent == 0 && len(in.Args) > 0:
+	case in.Op == midir.OpCallValue && in.Ent == 0 && len(in.Args) > 0:
 		ents, off = c.itemsIn(k, in.Args[0], 8), 1
 	}
 	ents = c.resolveKeptCallees(ents)
@@ -101,7 +102,7 @@ func (c *borrowCheck) keptCallees(k *keptCtx, in Inst) ([]sem.EntityID, int) {
 
 // itemsIn are the fn items local l of k's body holds: through copies, or bound to the parameter it is; nil if any
 // value it can hold is something else.
-func (c *borrowCheck) itemsIn(k *keptCtx, l LocalID, depth int) []sem.EntityID {
+func (c *borrowCheck) itemsIn(k *keptCtx, l midir.LocalID, depth int) []sem.EntityID {
 	defs := k.defs[l]
 	if i := k.index(l); len(defs) == 0 && i >= 0 {
 		return k.bind[i]
@@ -113,9 +114,9 @@ func (c *borrowCheck) itemsIn(k *keptCtx, l LocalID, depth int) []sem.EntityID {
 	for _, d := range defs {
 		var ents []sem.EntityID
 		switch {
-		case d.Op == OpFnItem:
+		case d.Op == midir.OpFnItem:
 			ents = []sem.EntityID{d.Ent}
-		case (d.Op == OpCopy || d.Op == OpMove || d.Op == OpAlias) && len(d.Args) > 0:
+		case (d.Op == midir.OpCopy || d.Op == midir.OpMove || d.Op == midir.OpAlias) && len(d.Args) > 0:
 			ents = c.itemsIn(k, d.Args[0], depth-1)
 		}
 		if ents == nil {
@@ -127,7 +128,7 @@ func (c *borrowCheck) itemsIn(k *keptCtx, l LocalID, depth int) []sem.EntityID {
 }
 
 // argBind binds each parameter of e whose argument in k's body is known fn items to them.
-func (c *borrowCheck) argBind(k *keptCtx, e sem.EntityID, args []LocalID) map[int][]sem.EntityID {
+func (c *borrowCheck) argBind(k *keptCtx, e sem.EntityID, args []midir.LocalID) map[int][]sem.EntityID {
 	var out map[int][]sem.EntityID
 	for j, a := range args {
 		if j >= len(c.declaredParams(e)) || c.fnResult(k.g.Locals[a].Type) == 0 {
@@ -144,7 +145,7 @@ func (c *borrowCheck) argBind(k *keptCtx, e sem.EntityID, args []LocalID) map[in
 }
 
 // siteBind is argBind for a call in the body being checked, args being the callee's arguments.
-func (c *borrowCheck) siteBind(e sem.EntityID, args []LocalID) map[int][]sem.EntityID {
+func (c *borrowCheck) siteBind(e sem.EntityID, args []midir.LocalID) map[int][]sem.EntityID {
 	var out map[int][]sem.EntityID
 	for j, a := range args {
 		if j >= len(c.declaredParams(e)) || c.fnResult(c.f.Locals[a].Type) == 0 {

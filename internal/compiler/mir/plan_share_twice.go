@@ -3,10 +3,11 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func (w *shareFacts) sinkShared(in Inst, i int, at Point) bool {
+func (w *shareFacts) sinkShared(in midir.Inst, i int, at Point) bool {
 	a := in.Args[i]
 	if w.shared(a, at) {
 		return !w.movedOut(in, i, at) && !w.leftBehind(in, i, at)
@@ -26,7 +27,7 @@ func (w *shareFacts) sinkShared(in Inst, i int, at Point) bool {
 }
 
 // overlap compares b's depth with a's, so the outermost read keeps the storage and the others copy.
-func (w *shareFacts) overlap(a, b LocalID, at Point) (int, bool) {
+func (w *shareFacts) overlap(a, b midir.LocalID, at Point) (int, bool) {
 	if a == b {
 		return 0, true
 	}
@@ -46,7 +47,7 @@ func (w *shareFacts) overlap(a, b LocalID, at Point) (int, bool) {
 	return 0, false
 }
 
-func (w *shareFacts) readSince(v, r LocalID, at Point) bool {
+func (w *shareFacts) readSince(v, r midir.LocalID, at Point) bool {
 	head := v
 	for head != r {
 		next := w.defs[head][0].Args[0]
@@ -70,7 +71,7 @@ func (w *shareFacts) readSince(v, r LocalID, at Point) bool {
 	return false
 }
 
-func (w *shareFacts) copiedAnyway(in Inst, j int, at Point) bool {
+func (w *shareFacts) copiedAnyway(in midir.Inst, j int, at Point) bool {
 	o, ok := w.namedOrigin(in.Args[j])
 	if !ok || w.p.inPlace(in, j) || !w.p.mustCopy(w.f, in, o) {
 		return false

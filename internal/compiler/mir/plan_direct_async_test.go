@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const asyncFrameSrc = `
@@ -36,11 +37,11 @@ async fn walk(n: Int) -> Int {
 fn main() -> Void! {}
 `
 
-func localNamed(t *testing.T, f *mir.Func, name string) mir.LocalID {
+func localNamed(t *testing.T, f *midir.Func, name string) midir.LocalID {
 	t.Helper()
 	for i, l := range f.Locals {
 		if l.Name == name && l.Ent != 0 {
-			return mir.LocalID(i)
+			return midir.LocalID(i)
 		}
 	}
 	t.Fatalf("%s has no local %s", f.Name, name)
@@ -67,7 +68,7 @@ func TestPlanDirectKeepsAnAsyncLocalInline(t *testing.T) {
 	}
 	for i := range f.Locals {
 		if f.Slot[i] >= 0 {
-			spans = append(spans, span{f.Slot[i], f.Slot[i] + int(prog.SlotBytes(f, mir.LocalID(i))/8)})
+			spans = append(spans, span{f.Slot[i], f.Slot[i] + int(prog.SlotBytes(f, midir.LocalID(i))/8)})
 		}
 	}
 	slices.SortFunc(spans, func(a, b span) int { return a.at - b.at })
@@ -79,7 +80,7 @@ func TestPlanDirectKeepsAnAsyncLocalInline(t *testing.T) {
 	if end := spans[len(spans)-1].end; end != f.Frame {
 		t.Fatalf("frame is %d words, the slots end at %d", f.Frame, end)
 	}
-	if n := countOp(f, mir.OpBoxDirect); n != 0 {
+	if n := countOp(f, midir.OpBoxDirect); n != 0 {
 		t.Fatalf("walk boxes %d times, want none\n%s", n, prog.Dump())
 	}
 	if got, want := mir.AsyncFrameBytes(prog.R, f), uint64(32+(f.Frame+len(f.Params))*8); got != want {

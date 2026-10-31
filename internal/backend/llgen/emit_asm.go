@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/sem/asmtable"
 )
 
 // asm lowers an asm block to an LLVM inline-asm call.
-func (e *emitter) asm(sb *strings.Builder, f *mir.Func, in mir.Inst, args []string) string {
+func (e *emitter) asm(sb *strings.Builder, f *midir.Func, in midir.Inst, args []string) string {
 	info := e.r.AsmOf(f.File, in.Node)
 	gpr, fpr, flags, _ := asmtable.Constraints(info.Arch)
 	var outs, cons, vals []string

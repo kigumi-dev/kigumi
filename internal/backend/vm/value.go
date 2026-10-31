@@ -7,7 +7,7 @@ package vm
 import (
 	"sync/atomic"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
@@ -69,7 +69,7 @@ type strObj struct {
 
 type closureObj struct {
 	obj
-	fn     *mir.Func
+	fn     *midir.Func
 	stdKey string
 	env    *obj
 	req    *reqCall

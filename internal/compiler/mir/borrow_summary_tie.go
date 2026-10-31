@@ -3,12 +3,13 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // summaryTie ties a direct call's Future or Task result to each reference or lent receiver argument, besides those
 // fnTie judged, whose parameter the callee's keptSummary shows its result keeping.
-func (c *borrowCheck) summaryTie(in Inst, done []LocalID) []*borrowInfo {
+func (c *borrowCheck) summaryTie(in midir.Inst, done []midir.LocalID) []*borrowInfo {
 	info := c.p.R.Fn(in.Ent)
 	ret := c.p.R.Types.Node(info.Sig).Elem
 	if c.p.isAsyncBody(in.Ent) || c.fnRetLifetime(info) != 0 || c.resultMayCarryLifetime(ret) || !c.holdsAsync(c.f.Locals[in.Dst].Type) {
@@ -39,7 +40,7 @@ func (c *borrowCheck) unsummarized(e sem.EntityID) bool {
 
 // asyncPlace reports whether the place a `&mut` argument a lends, of a type no lifetime or type parameter names (those
 // callFlows follows), can come to hold a Future or Task: in its type, or behind an interface whose layout is unknown.
-func (c *borrowCheck) asyncPlace(a LocalID) bool {
+func (c *borrowCheck) asyncPlace(a midir.LocalID) bool {
 	if c.targetKindOf(a) != targetDeferred {
 		return false
 	}
@@ -58,7 +59,7 @@ func (c *borrowCheck) asyncType(t sem.TypeID) bool {
 }
 
 // heldAsync uses the argument type: a generic or interface parameter can hide the holder's mutable destinations.
-func (c *borrowCheck) heldAsync(a LocalID) bool {
+func (c *borrowCheck) heldAsync(a midir.LocalID) bool {
 	return c.heldAsyncType(c.f.Locals[a].Type)
 }
 
@@ -72,7 +73,7 @@ func (c *borrowCheck) heldAsyncType(t sem.TypeID) bool {
 	})
 }
 
-func (c *borrowCheck) keptPlace(a LocalID) bool {
+func (c *borrowCheck) keptPlace(a midir.LocalID) bool {
 	if c.asyncPlace(a) {
 		return true
 	}

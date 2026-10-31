@@ -3,11 +3,12 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/syntax"
 )
 
 // reportTouch reports in touching o.owner while holder still borrows it.
-func (c *borrowCheck) reportTouch(in Inst, holder LocalID, b *borrowInfo, o ownerRef) {
+func (c *borrowCheck) reportTouch(in midir.Inst, holder midir.LocalID, b *borrowInfo, o ownerRef) {
 	// A `&mut` argument's write-back reports at the borrow that lent it, so the argument gets one diagnostic.
 	if site, ok := c.writeBackSite(in); ok {
 		in.Node = site
@@ -21,7 +22,7 @@ func (c *borrowCheck) reportTouch(in Inst, holder LocalID, b *borrowInfo, o owne
 	case runs && c.replacesDropping(in) && !c.touchesDirect(in, o.owner):
 		c.reportHelped(in.Node, o.owner, "borrow-conflict", "`"+name+"` is borrowed and cannot be mutated here", o.at(b), "`"+name+"` is borrowed here",
 			"this store drops the value it replaces, whose `drop` may call a closure writing `"+name+"`; end the borrow before the store")
-	case runs && in.Op == OpDrop && in.Args[0] != o.owner:
+	case runs && in.Op == midir.OpDrop && in.Args[0] != o.owner:
 		dropped := c.f.Locals[in.Args[0]].Name
 		if dropped == "" {
 			dropped = "a value"
@@ -31,7 +32,7 @@ func (c *borrowCheck) reportTouch(in Inst, holder LocalID, b *borrowInfo, o owne
 		c.reportHelped(in.Node, o.owner, "borrow-conflict", "`"+name+"` is borrowed and cannot be mutated here", o.at(b), "`"+name+"` is borrowed here",
 			"dropping "+dropped+" here runs a `drop` that may call a closure writing `"+name+"`; end the borrow before it is dropped")
 	case c.tempScopeEnd(in, holder, b, o):
-	case in.Op == OpDrop && in.EndScope:
+	case in.Op == midir.OpDrop && in.EndScope:
 		c.report(in.Node, o.owner, "move-while-borrowed", "`"+name+"` is still borrowed when its scope ends here")
 	case moves:
 		c.report(c.takeNode(in), o.owner, "move-while-borrowed", "`"+name+"` is borrowed and cannot be moved or dropped here")
@@ -52,18 +53,18 @@ func (c *borrowCheck) reportTouch(in Inst, holder LocalID, b *borrowInfo, o owne
 	}
 }
 
-func (c *borrowCheck) movesAway(in Inst) bool {
-	return in.Op == OpMove || in.Op == OpDrop || in.Op == OpFieldMove || in.Op == OpCellTake || c.takesPayload(in)
+func (c *borrowCheck) movesAway(in midir.Inst) bool {
+	return in.Op == midir.OpMove || in.Op == midir.OpDrop || in.Op == midir.OpFieldMove || in.Op == midir.OpCellTake || c.takesPayload(in)
 }
 
 // writesOwner reports whether in, touching owner, moves, replaces, drops or lends it exclusively.
-func (c *borrowCheck) writesOwner(in Inst, owner LocalID) bool {
-	return c.movesAway(in) || in.Op == OpBorrow && in.Index == 1 || in.Op == OpSetField || in.Op == OpSetIndex || in.Op == OpCellSet ||
+func (c *borrowCheck) writesOwner(in midir.Inst, owner midir.LocalID) bool {
+	return c.movesAway(in) || in.Op == midir.OpBorrow && in.Index == 1 || in.Op == midir.OpSetField || in.Op == midir.OpSetIndex || in.Op == midir.OpCellSet ||
 		c.passesMutRef(in, owner)
 }
 
 // dropHeldHelp names a holder nothing reads, whose release at the end of its scope, which may run its drop, keeps the borrow.
-func (c *borrowCheck) dropHeldHelp(holder LocalID) string {
+func (c *borrowCheck) dropHeldHelp(holder midir.LocalID) string {
 	h := c.f.Locals[holder]
 	if h.Ent == 0 || h.Name == "" || !c.onlyDropped(holder) {
 		return ""
@@ -71,13 +72,13 @@ func (c *borrowCheck) dropHeldHelp(holder LocalID) string {
 	return "`" + h.Name + "` keeps this borrow until its scope ends, since dropping it may run code; move `" + h.Name + "` into a block or pass it to a consuming call"
 }
 
-func (c *borrowCheck) onlyDropped(l LocalID) bool {
+func (c *borrowCheck) onlyDropped(l midir.LocalID) bool {
 	for _, blk := range c.f.Blocks {
 		if slices.Contains(blk.Term.Args, l) {
 			return false
 		}
 		for _, in := range blk.Insts {
-			if in.Op != OpDrop && slices.Contains(in.Args, l) {
+			if in.Op != midir.OpDrop && slices.Contains(in.Args, l) {
 				return false
 			}
 		}
@@ -85,28 +86,28 @@ func (c *borrowCheck) onlyDropped(l LocalID) bool {
 	return true
 }
 
-func (c *borrowCheck) touchesDirect(in Inst, owner LocalID) bool {
+func (c *borrowCheck) touchesDirect(in midir.Inst, owner midir.LocalID) bool {
 	touched, _, _ := c.touch(in, owner)
 	return touched
 }
 
 // writeBackSite is the node of the borrow whose `&mut` cell in stores back into its place, if in is such a store.
-func (c *borrowCheck) writeBackSite(in Inst) (syntax.NodeID, bool) {
+func (c *borrowCheck) writeBackSite(in midir.Inst) (syntax.NodeID, bool) {
 	switch in.Op {
-	case OpCopy, OpCellSet, OpSetField, OpSetIndex, OpGlobalSet:
+	case midir.OpCopy, midir.OpCellSet, midir.OpSetField, midir.OpSetIndex, midir.OpGlobalSet:
 	default:
 		return 0, false
 	}
 	v := in.Args[len(in.Args)-1]
 	d := c.definition(v)
-	for d != nil && d.Op == OpAlias {
+	for d != nil && d.Op == midir.OpAlias {
 		d = c.definition(d.Args[0])
 	}
-	if d == nil || d.Op != OpCellTake && d.Op != OpCellGet {
+	if d == nil || d.Op != midir.OpCellTake && d.Op != midir.OpCellGet {
 		return 0, false
 	}
 	cell := c.definition(d.Args[0])
-	if cell == nil || cell.Op != OpNewCell {
+	if cell == nil || cell.Op != midir.OpNewCell {
 		return 0, false
 	}
 	return cell.Node, true

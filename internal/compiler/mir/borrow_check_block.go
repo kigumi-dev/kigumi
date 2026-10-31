@@ -1,8 +1,12 @@
 package mir
 
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
 // checkBlock walks a block backward, tracking the holders live after each
 // instruction, and reports the conflicts and escapes.
-func (c *borrowCheck) checkBlock(bid BlockID) {
+func (c *borrowCheck) checkBlock(bid midir.BlockID) {
 	blk := &c.f.Blocks[bid]
 	live, real := copySet(c.liveOut[bid]), copySet(c.realOut[bid])
 	for _, a := range blk.Term.Args {

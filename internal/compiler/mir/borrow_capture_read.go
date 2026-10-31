@@ -4,25 +4,26 @@ import (
 	"strconv"
 	"strings"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/lang/diag"
 )
 
 type movePos struct {
-	bid BlockID
+	bid midir.BlockID
 	idx int
 }
 
 // moveEvent is a move, consume or in-place change of root's value; field marks a field move checkCapturedFieldMoves already sees while live.
 type moveEvent struct {
 	at    movePos
-	root  LocalID
+	root  midir.LocalID
 	node  syntax.NodeID
 	field bool
 }
 
-func (a *owner) noteMove(in *Inst, l LocalID, report bool) {
+func (a *owner) noteMove(in *midir.Inst, l midir.LocalID, report bool) {
 	if !report {
 		return
 	}
@@ -32,18 +33,18 @@ func (a *owner) noteMove(in *Inst, l LocalID, report bool) {
 		if err != nil {
 			return
 		}
-		root = LocalID(id)
+		root = midir.LocalID(id)
 	}
 	a.moves = append(a.moves, moveEvent{at: a.pos, root: root, node: in.Node})
 }
 
 // fieldMoved: binding a `move` of a field is the field move itself, already its own event.
-func (a *owner) fieldMoved(l LocalID) bool {
+func (a *owner) fieldMoved(l midir.LocalID) bool {
 	if a.fieldMv == nil {
-		a.fieldMv = map[LocalID]bool{}
+		a.fieldMv = map[midir.LocalID]bool{}
 		for _, blk := range a.f.Blocks {
 			for _, in := range blk.Insts {
-				if in.Op == OpFieldMove {
+				if in.Op == midir.OpFieldMove {
 					a.fieldMv[in.Dst] = true
 				}
 			}
@@ -54,23 +55,23 @@ func (a *owner) fieldMoved(l LocalID) bool {
 
 type readCheck struct {
 	p      *Program
-	f      *Func
-	defs   map[LocalID]*Inst
-	events map[BlockID][]moveEvent
+	f      *midir.Func
+	defs   map[midir.LocalID]*midir.Inst
+	events map[midir.BlockID][]moveEvent
 	seen   map[syntax.NodeID]bool
 	// emit reports an event on root while holder may still run; dropUse names holders whose drop may run them.
-	emit    func(n syntax.NodeID, root, holder LocalID)
-	dropUse func(LocalID) bool
+	emit    func(n syntax.NodeID, root, holder midir.LocalID)
+	dropUse func(midir.LocalID) bool
 	// escapeFn replaces escapes for a check that follows more flows itself.
-	escapeFn func(Inst, map[LocalID][]capturedPlace) []LocalID
+	escapeFn func(midir.Inst, map[midir.LocalID][]capturedPlace) []midir.LocalID
 }
 
-func newReadCheck(p *Program, f *Func) *readCheck {
-	return &readCheck{p: p, f: f, defs: soleDefs(f), events: map[BlockID][]moveEvent{}, seen: map[syntax.NodeID]bool{}}
+func newReadCheck(p *Program, f *midir.Func) *readCheck {
+	return &readCheck{p: p, f: f, defs: soleDefs(f), events: map[midir.BlockID][]moveEvent{}, seen: map[syntax.NodeID]bool{}}
 }
 
 // checkReadCaptures: a closure that only reads a move-only local shares it, so the local is neither moved nor changed while the closure may run.
-func checkReadCaptures(p *Program, f *Func, moves []moveEvent) {
+func checkReadCaptures(p *Program, f *midir.Func, moves []moveEvent) {
 	c := newReadCheck(p, f)
 	c.emit = c.report
 	caps := holdersFrom(p, f, c.readCaptures)
@@ -81,26 +82,26 @@ func checkReadCaptures(p *Program, f *Func, moves []moveEvent) {
 }
 
 // scan reports each event on a place a holder shares while the holder is live, or at any point after it escaped.
-func (c *readCheck) scan(caps map[LocalID][]capturedPlace, events []moveEvent) {
+func (c *readCheck) scan(caps map[midir.LocalID][]capturedPlace, events []moveEvent) {
 	for _, m := range events {
 		c.events[m.at.bid] = append(c.events[m.at.bid], m)
 	}
 	liveOut := capturedLiveness(c.f, caps, c.dropUse)
 	for bi := range c.f.Blocks {
 		blk := &c.f.Blocks[bi]
-		live := map[LocalID]bool{}
+		live := map[midir.LocalID]bool{}
 		for l := range liveOut[bi] {
 			live[l] = true
 		}
 		markCapturedUses(blk.Term.Args, caps, live)
 		for i := len(blk.Insts) - 1; i >= 0; i-- {
 			in := &blk.Insts[i]
-			for _, m := range c.events[BlockID(bi)] {
+			for _, m := range c.events[midir.BlockID(bi)] {
 				if h, ok := sharerOf(capturedPlace{root: m.root}, caps, live); m.at.idx == i && !m.field && ok {
 					c.emit(m.node, m.root, h)
 				}
 			}
-			if in.Op == OpDrop {
+			if in.Op == midir.OpDrop {
 				markDropUse(*in, caps, live, c.dropUse)
 				continue
 			}
@@ -109,7 +110,7 @@ func (c *readCheck) scan(caps map[LocalID][]capturedPlace, events []moveEvent) {
 				escapes = c.escapeFn
 			}
 			for _, h := range escapes(*in, caps) {
-				c.walkAfter(movePos{BlockID(bi), i}, h, caps[h])
+				c.walkAfter(movePos{midir.BlockID(bi), i}, h, caps[h])
 			}
 			if in.Op.Yields() {
 				delete(live, in.Dst)
@@ -119,8 +120,8 @@ func (c *readCheck) scan(caps map[LocalID][]capturedPlace, events []moveEvent) {
 	}
 }
 
-func (c *readCheck) readCaptures(in Inst) []capturedPlace {
-	if in.Op != OpClosure || c.p.R.Entity(in.Ent).Kind != sem.EntClosure {
+func (c *readCheck) readCaptures(in midir.Inst) []capturedPlace {
+	if in.Op != midir.OpClosure || c.p.R.Entity(in.Ent).Kind != sem.EntClosure {
 		return nil
 	}
 	var out []capturedPlace
@@ -136,10 +137,10 @@ func (c *readCheck) readCaptures(in Inst) []capturedPlace {
 }
 
 // walkAfter checks everything reachable after an escape, where the closure may run at any time.
-func (c *readCheck) walkAfter(from movePos, holder LocalID, held []capturedPlace) {
-	visited := map[BlockID]bool{}
-	var walk func(bid BlockID, after int)
-	walk = func(bid BlockID, after int) {
+func (c *readCheck) walkAfter(from movePos, holder midir.LocalID, held []capturedPlace) {
+	visited := map[midir.BlockID]bool{}
+	var walk func(bid midir.BlockID, after int)
+	walk = func(bid midir.BlockID, after int) {
 		for _, m := range c.events[bid] {
 			if m.at.idx > after && hasCapturedPlace(held, capturedPlace{root: m.root}) {
 				c.emit(m.node, m.root, holder)
@@ -155,7 +156,7 @@ func (c *readCheck) walkAfter(from movePos, holder LocalID, held []capturedPlace
 	walk(from.bid, from.idx)
 }
 
-func (c *readCheck) report(n syntax.NodeID, root, _ LocalID) {
+func (c *readCheck) report(n syntax.NodeID, root, _ midir.LocalID) {
 	if n == 0 || c.seen[n] {
 		return
 	}

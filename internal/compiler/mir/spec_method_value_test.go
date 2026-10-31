@@ -3,7 +3,7 @@ package mir_test
 import (
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -43,7 +43,7 @@ fn main() -> Void! {}
 func TestSpecializeMintsAMethodValueOverATypeParameter(t *testing.T) {
 	p := specialized(t, specMethodValueSrc)
 	body := funcNamed(t, p, "main.viaParam[main.Res,main.Point]")
-	built, ok := firstOp(body, mir.OpClosure)
+	built, ok := firstOp(body, midir.OpClosure)
 	if !ok || built.Str != "witness" {
 		t.Fatalf("no method value in the instantiation:\n%s", p.Dump())
 	}

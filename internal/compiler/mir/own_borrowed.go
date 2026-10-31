@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/lang/diag"
@@ -13,7 +14,7 @@ import (
 // that borrows it: the caller keeps its value, so handing it on would alias
 // two owners. A borrow is a `self` receiver or a `&T` local, and anything
 // projected out of one (a field, an element, a payload) stays borrowed.
-func checkBorrowedMoves(state *borrowAnalysis, f *Func) {
+func checkBorrowedMoves(state *borrowAnalysis, f *midir.Func) {
 	p := state.Program
 	checkCapturedFieldMoves(p, f)
 	unowned := state.unownedRefs(f)
@@ -36,23 +37,23 @@ func checkBorrowedMoves(state *borrowAnalysis, f *Func) {
 		for _, in := range blk.Insts {
 			if in.Op.Yields() {
 				defNode[in.Dst] = in.Node
-				if in.Op == OpField {
+				if in.Op == midir.OpField {
 					fieldRead[in.Dst] = in.Node
 				}
 			}
 			propagates := len(in.Args) > 0 && borrowed[in.Args[0]] && !in.Share && f.Locals[in.Dst].Ent == 0
 			switch in.Op {
-			case OpField, OpIndex, OpPayload, OpUnbox, OpCopy:
+			case midir.OpField, midir.OpIndex, midir.OpPayload, midir.OpUnbox, midir.OpCopy:
 				if propagates {
 					borrowed[in.Dst] = true
 				}
 			// A field taken out of a receiver is meant to escape its own
 			// method; a closure only lends a captured self, so it stays tainted.
-			case OpFieldMove:
+			case midir.OpFieldMove:
 				if propagates && isClosure {
 					borrowed[in.Dst] = true
 				}
-			case OpCellGet:
+			case midir.OpCellGet:
 				if propagates && f.Locals[in.Args[0]].Ent != 0 {
 					borrowed[in.Dst] = true
 				}
@@ -60,7 +61,7 @@ func checkBorrowedMoves(state *borrowAnalysis, f *Func) {
 		}
 	}
 	reported := map[syntax.NodeID]bool{}
-	report := func(n syntax.NodeID, l LocalID) {
+	report := func(n syntax.NodeID, l midir.LocalID) {
 		if n == 0 || reported[n] {
 			return
 		}
@@ -86,18 +87,18 @@ func checkBorrowedMoves(state *borrowAnalysis, f *Func) {
 		})
 		f.Diags = append(f.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, span), Code: "move-from-borrow", Msg: msg})
 	}
-	mutRef := func(l LocalID) bool {
+	mutRef := func(l midir.LocalID) bool {
 		t := f.Locals[l].Type
 		return p.R.Types.Kind(t) == sem.KRef && !p.R.IsCopy(t)
 	}
 	// checkAliasedMutArgs rejects a reborrowed `&mut T` (own_borrowed no
 	// longer moves it) handed to the same call twice: the callee
 	// would see two exclusive borrows of the one referent.
-	checkAliasedMutArgs := func(n syntax.NodeID, args []LocalID) {
+	checkAliasedMutArgs := func(n syntax.NodeID, args []midir.LocalID) {
 		if n == 0 || reported[n] {
 			return
 		}
-		seen := map[LocalID]bool{}
+		seen := map[midir.LocalID]bool{}
 		for _, a := range args {
 			if !mutRef(a) {
 				continue
@@ -112,34 +113,34 @@ func checkBorrowedMoves(state *borrowAnalysis, f *Func) {
 			seen[a] = true
 		}
 	}
-	moveOnly := func(l LocalID) bool {
+	moveOnly := func(l midir.LocalID) bool {
 		t := f.Locals[l].Type
 		return borrowed[l] && !p.R.IsCopy(t) && p.R.Types.Kind(t) != sem.KRef
 	}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			switch in.Op {
-			case OpMove:
+			case midir.OpMove:
 				// refFieldMove's move out of `mut self` is a partial move, as OpFieldMove is.
 				if borrowed[in.Args[0]] && (isClosure || in.Node == 0 || fieldRead[in.Args[0]] != in.Node) {
 					report(in.Node, in.Args[0])
 				}
-			case OpCopy:
+			case midir.OpCopy:
 				if f.Locals[in.Dst].Ent != 0 && !in.Share && moveOnly(in.Args[0]) {
 					report(in.Node, in.Args[0])
 				}
-			case OpSetField, OpSetIndex, OpNewCell:
+			case midir.OpSetField, midir.OpSetIndex, midir.OpNewCell:
 				if v := in.Args[len(in.Args)-1]; moveOnly(v) && !in.Lent {
 					report(in.Node, v)
 				}
-			case OpCall, OpCallValue, OpBuiltin, OpFutureNew:
+			case midir.OpCall, midir.OpCallValue, midir.OpBuiltin, midir.OpFutureNew:
 				for i, a := range in.Args {
 					if moveOnly(a) && p.consumesArg(&in, i) {
 						report(in.Node, a)
 					}
 				}
 				checkAliasedMutArgs(in.Node, in.Args)
-			case OpRecord, OpVariant:
+			case midir.OpRecord, midir.OpVariant:
 				for _, a := range in.Args {
 					// A spread's projections were already reported at the spread itself.
 					if moveOnly(a) && !reported[defNode[a]] {
@@ -148,7 +149,7 @@ func checkBorrowedMoves(state *borrowAnalysis, f *Func) {
 				}
 			}
 		}
-		if blk.Term.Op == TermReturn {
+		if blk.Term.Op == midir.TermReturn {
 			for _, a := range blk.Term.Args {
 				if moveOnly(a) {
 					report(defNode[a], a)

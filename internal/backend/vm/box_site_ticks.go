@@ -1,14 +1,14 @@
 package vm
 
 import (
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
 // A local is computed when native keeps it in a register: every definition is a computation, a register read, or a copy of one.
-func (m *Machine) computedLocals(f *mir.Func, fixed, param, boxed []bool) []bool {
-	defs := make([][]*mir.Inst, len(f.Locals))
+func (m *Machine) computedLocals(f *midir.Func, fixed, param, boxed []bool) []bool {
+	defs := make([][]*midir.Inst, len(f.Locals))
 	for _, blk := range f.Blocks {
 		for i := range blk.Insts {
 			if in := &blk.Insts[i]; in.Op.Yields() {
@@ -17,7 +17,7 @@ func (m *Machine) computedLocals(f *mir.Func, fixed, param, boxed []bool) []bool
 		}
 	}
 	out := make([]bool, len(f.Locals))
-	register := func(l mir.LocalID) bool { return fixed[l] || out[l] || param[l] && !boxed[l] }
+	register := func(l midir.LocalID) bool { return fixed[l] || out[l] || param[l] && !boxed[l] }
 	for grew := true; grew; {
 		grew = false
 		for l, ds := range defs {
@@ -29,8 +29,8 @@ func (m *Machine) computedLocals(f *mir.Func, fixed, param, boxed []bool) []bool
 				switch {
 				case m.computes(f, in):
 					computes = true
-				case in.Op == mir.OpConst:
-				case (in.Op == mir.OpAlias || in.Op == mir.OpShare || in.Op == mir.OpMove || in.Op == mir.OpCopy) && register(in.Args[0]):
+				case in.Op == midir.OpConst:
+				case (in.Op == midir.OpAlias || in.Op == midir.OpShare || in.Op == midir.OpMove || in.Op == midir.OpCopy) && register(in.Args[0]):
 					computes = computes || !fixed[in.Args[0]]
 				default:
 					ok = false
@@ -44,16 +44,16 @@ func (m *Machine) computedLocals(f *mir.Func, fixed, param, boxed []bool) []bool
 	return out
 }
 
-func (m *Machine) computes(f *mir.Func, in *mir.Inst) bool {
+func (m *Machine) computes(f *midir.Func, in *midir.Inst) bool {
 	switch in.Op {
-	case mir.OpBinary, mir.OpUnary:
+	case midir.OpBinary, midir.OpUnary:
 		return true
-	case mir.OpField:
+	case midir.OpField:
 		return f.IsDirect(in.Args[0])
-	case mir.OpBuiltin:
+	case midir.OpBuiltin:
 		t := f.Locals[in.Dst].Type
 		return in.Str == "iter.at" && !f.IsDirect(in.Args[0]) && m.r.Types.IsInteger(t) && t != sem.TyI128 && t != sem.TyU128
-	case mir.OpCall:
+	case midir.OpCall:
 		g := m.p.ByEnt[in.Ent]
 		return in.DPrim != opdef.DPNone || m.p.FloatConversion(f, *in) || g != nil && len(g.Blocks) > 0 && !g.Async
 	}
@@ -61,9 +61,9 @@ func (m *Machine) computes(f *mir.Func, in *mir.Inst) bool {
 }
 
 // Native boxes a computed scalar at the call when the callee keeps that parameter boxed.
-func (m *Machine) callTicks(f *mir.Func, in *mir.Inst, loc []*obj) {
+func (m *Machine) callTicks(f *midir.Func, in *midir.Inst, loc []*obj) {
 	g := m.p.ByEnt[in.Ent]
-	if m.opts.FaultInjectAt <= 0 || in.Op != mir.OpCall || in.DPrim != opdef.DPNone || g == nil || f.Wraps != nil {
+	if m.opts.FaultInjectAt <= 0 || in.Op != midir.OpCall || in.DPrim != opdef.DPNone || g == nil || f.Wraps != nil {
 		return
 	}
 	lf := m.factsOf(f)
@@ -77,7 +77,7 @@ func (m *Machine) callTicks(f *mir.Func, in *mir.Inst, loc []*obj) {
 }
 
 // Native allocates a header and a slot array, plus a box per computed scalar leaf.
-func (m *Machine) aggTicks(f *mir.Func, in *mir.Inst, args []*obj, n int) {
+func (m *Machine) aggTicks(f *midir.Func, in *midir.Inst, args []*obj, n int) {
 	if m.opts.FaultInjectAt <= 0 || f.IsDirect(in.Dst) {
 		return
 	}

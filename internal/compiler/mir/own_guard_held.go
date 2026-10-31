@@ -4,15 +4,16 @@ import (
 	"maps"
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/lang/diag"
 )
 
-func (a *owner) guardSources() map[LocalID]LocalID {
+func (a *owner) guardSources() map[midir.LocalID]midir.LocalID {
 	if a.guardSrc == nil {
-		a.guardSrc = map[LocalID]LocalID{}
+		a.guardSrc = map[midir.LocalID]midir.LocalID{}
 		for _, blk := range a.f.Blocks {
 			for _, g := range blk.Insts {
-				if g.Op != OpCopy || !g.Guarded || a.f.Locals[g.Dst].Ent == 0 {
+				if g.Op != midir.OpCopy || !g.Guarded || a.f.Locals[g.Dst].Ent == 0 {
 					continue
 				}
 				if l := a.pl.canon(g.Args[0]); a.cellTracked(l) || a.holdable(g.Args[0]) && a.tracked[l] {
@@ -25,7 +26,7 @@ func (a *owner) guardSources() map[LocalID]LocalID {
 }
 
 // checkGuardHeld rejects taking or changing l while a guarded binding other than own holds a place overlapping it: its guard has neither passed nor failed (st.rel).
-func (a *owner) checkGuardHeld(in *Inst, l LocalID, st *dstate, report bool, own LocalID) {
+func (a *owner) checkGuardHeld(in *midir.Inst, l midir.LocalID, st *dstate, report bool, own midir.LocalID) {
 	if !report || in.Node == 0 {
 		return
 	}
@@ -41,7 +42,7 @@ func (a *owner) checkGuardHeld(in *Inst, l LocalID, st *dstate, report bool, own
 		a.reported[in.Node] = true
 		t := a.p.R.Tree(a.f.File)
 		verb := "moved"
-		if in.Op == OpBorrow || in.Op == OpSetField || in.Op == OpSetIndex || in.Op == OpCellSet || in.Op.Yields() && in.Dst == l {
+		if in.Op == midir.OpBorrow || in.Op == midir.OpSetField || in.Op == midir.OpSetIndex || in.Op == midir.OpCellSet || in.Op.Yields() && in.Dst == l {
 			verb = "changed"
 		}
 		msg := "`" + a.ownerName(l) + "` is held by the pattern binding `" + a.f.Locals[bind].Name + "` until its guard passes, so it cannot be " + verb + " here"
@@ -50,7 +51,7 @@ func (a *owner) checkGuardHeld(in *Inst, l LocalID, st *dstate, report bool, own
 	}
 }
 
-func (a *owner) within(p, root LocalID) bool {
+func (a *owner) within(p, root midir.LocalID) bool {
 	for {
 		if p == root {
 			return true
@@ -64,14 +65,14 @@ func (a *owner) within(p, root LocalID) bool {
 }
 
 // heldOverlap: a store into a field of a container overlaps only the field it names, so a sibling of the held place stays writable.
-func (a *owner) heldOverlap(in *Inst, src, l LocalID) bool {
+func (a *owner) heldOverlap(in *midir.Inst, src, l midir.LocalID) bool {
 	if a.within(l, src) {
 		return true
 	}
 	if !a.within(src, l) {
 		return false
 	}
-	if in.Op != OpSetField || src == l {
+	if in.Op != midir.OpSetField || src == l {
 		return true
 	}
 	c := src
@@ -81,7 +82,7 @@ func (a *owner) heldOverlap(in *Inst, src, l LocalID) bool {
 	return a.pl.children[l][in.Index] == c
 }
 
-func (a *owner) assignHeld(in *Inst, st *dstate, report bool) {
+func (a *owner) assignHeld(in *midir.Inst, st *dstate, report bool) {
 	if in.Op.Yields() && a.f.Locals[in.Dst].Ent != 0 && !in.Guarded {
 		a.checkGuardHeld(in, in.Dst, st, report, 0)
 	}

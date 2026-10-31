@@ -1,6 +1,7 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
@@ -19,9 +20,9 @@ func resolveStdOps(p *Program) {
 	}
 }
 
-func namesStdFn(r *sem.Result, in *Inst) bool {
+func namesStdFn(r *sem.Result, in *midir.Inst) bool {
 	switch in.Op {
-	case OpCall, OpClosure, OpFnItem, OpBind:
+	case midir.OpCall, midir.OpClosure, midir.OpFnItem, midir.OpBind:
 	default:
 		return false
 	}
@@ -31,11 +32,11 @@ func namesStdFn(r *sem.Result, in *Inst) bool {
 }
 
 // stdOpOf is in.StdOp, also for an instruction resolveStdOps has not reached yet.
-func stdOpOf(r *sem.Result, in *Inst) (opdef.StdOpId, bool) {
+func stdOpOf(r *sem.Result, in *midir.Inst) (opdef.StdOpId, bool) {
 	if in.Prim != 0 || in.Prov != 0 || !namesStdFn(r, in) {
 		return in.StdOp()
 	}
-	resolved := Inst{}
+	resolved := midir.Inst{}
 	resolved.Prim, resolved.Prov, _ = ResolveStdOp(r, in.Ent)
 	return resolved.StdOp()
 }

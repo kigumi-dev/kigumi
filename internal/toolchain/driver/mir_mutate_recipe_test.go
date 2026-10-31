@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
@@ -27,8 +28,8 @@ type step struct {
 
 type recipe []step
 
-func allFuncs(p *mir.Program) []*mir.Func {
-	fs := append([]*mir.Func{}, p.Funcs...)
+func allFuncs(p *mir.Program) []*midir.Func {
+	fs := append([]*midir.Func{}, p.Funcs...)
 	for _, cf := range p.Comptime {
 		fs = append(fs, cf.Func)
 	}
@@ -170,7 +171,7 @@ func quoteNth(text string, nth int) string {
 	return strconv.Quote(text) + "#" + strconv.Itoa(nth)
 }
 
-func (pk pick) format(p *mir.Program, f *mir.Func) string {
+func (pk pick) format(p *mir.Program, f *midir.Func) string {
 	switch pk.kind {
 	case 'i':
 		return "i" + strconv.Itoa(pk.n)

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 )
 
@@ -14,7 +14,7 @@ var (
 )
 
 // tryRefCall runs a try op that hands back its Ok payload bare, or null for AllocError, and builds the Result in place.
-func (e *emitter) tryRefCall(sb *strings.Builder, f *mir.Func, in mir.Inst) {
+func (e *emitter) tryRefCall(sb *strings.Builder, f *midir.Func, in midir.Inst) {
 	args, boxed := e.instArgs(sb, in)
 	arr := e.argArray(sb, args)
 	op, _ := in.StdOp()

@@ -3,22 +3,23 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // argRunnable reports whether in may run a closure handed to it as argument i: the callee of a value call, an
 // awaited future, or a parameter whose declared type can hold something callable or awaitable of a fn that may run.
-func (c *borrowCheck) argRunnable(in Inst, i int) bool {
+func (c *borrowCheck) argRunnable(in midir.Inst, i int) bool {
 	switch in.Op {
-	case OpAwait:
+	case midir.OpAwait:
 		return true
-	case OpCallValue:
+	case midir.OpCallValue:
 		if i == 0 {
 			return true
 		}
 		t, known := c.callParam(c.f, in, i)
 		return !known || c.typeRuns(t, runsCall)
-	case OpCall:
+	case midir.OpCall:
 		if in.Ent == 0 || c.p.R.Entity(in.Ent).Kind != sem.EntFn {
 			return true
 		}

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
@@ -38,7 +39,7 @@ func (e *emitter) noteHanded(i int) {
 	}
 }
 
-func (e *emitter) argBoxOnDemand(sb *strings.Builder, i int, l mir.LocalID) string {
+func (e *emitter) argBoxOnDemand(sb *strings.Builder, i int, l midir.LocalID) string {
 	if e.boxes == nil {
 		return e.scalarBoxOnDemand(sb, l)
 	}
@@ -51,7 +52,7 @@ func (e *emitter) argBoxOnDemand(sb *strings.Builder, i int, l mir.LocalID) stri
 func ScalarBoxSites(p *mir.Program, opts EmitOptions) mir.NativeBoxSites {
 	e := prepareEmitter(p, opts)
 	defer func() { e.boxes = nil }()
-	out := mir.NativeBoxSites{Arguments: map[*mir.Func][]mir.ArgBox{}, Results: map[*mir.Func][]mir.ResultBox{}, Operations: map[*mir.Func][]mir.OperationBox{}}
+	out := mir.NativeBoxSites{Arguments: map[*midir.Func][]mir.ArgBox{}, Results: map[*midir.Func][]mir.ResultBox{}, Operations: map[*midir.Func][]mir.OperationBox{}}
 	for _, f := range p.Funcs {
 		if !e.keeps(f) || e.naked(f) {
 			continue
@@ -67,7 +68,7 @@ func ScalarBoxSites(p *mir.Program, opts EmitOptions) mir.NativeBoxSites {
 		}
 		for bid, blk := range f.Blocks {
 			for pc, in := range blk.Insts {
-				at := siteAt{mir.BlockID(bid), pc}
+				at := siteAt{midir.BlockID(bid), pc}
 				if box, ok := e.primitiveScalarBox(f, in, at); ok {
 					out.Operations[f] = append(out.Operations[f], box)
 				}
@@ -76,7 +77,7 @@ func ScalarBoxSites(p *mir.Program, opts EmitOptions) mir.NativeBoxSites {
 				}
 				t := f.Locals[in.Dst].Type
 				if e.r.Types.Kind(t) == sem.KPtr || e.r.Types.IsCFn(t) {
-					out.Results[f] = append(out.Results[f], mir.ResultBox{Block: mir.BlockID(bid), Inst: pc})
+					out.Results[f] = append(out.Results[f], mir.ResultBox{Block: midir.BlockID(bid), Inst: pc})
 				}
 			}
 		}
@@ -84,19 +85,19 @@ func ScalarBoxSites(p *mir.Program, opts EmitOptions) mir.NativeBoxSites {
 	return out
 }
 
-func (r *boxRecord) argBoxes(e *emitter, f *mir.Func) []mir.ArgBox {
-	defs := map[mir.LocalID][]siteAt{}
+func (r *boxRecord) argBoxes(e *emitter, f *midir.Func) []mir.ArgBox {
+	defs := map[midir.LocalID][]siteAt{}
 	for bid, blk := range f.Blocks {
 		for pc, in := range blk.Insts {
 			if in.Op.Yields() {
-				defs[in.Dst] = append(defs[in.Dst], siteAt{mir.BlockID(bid), pc})
+				defs[in.Dst] = append(defs[in.Dst], siteAt{midir.BlockID(bid), pc})
 			}
 		}
 	}
 	var out []mir.ArgBox
 	for s := range r.handed {
 		a := f.Blocks[s.at.blk].Insts[s.at.pc].Args[s.arg]
-		if e.r.ScalarBoxes(f.Locals[a].Type) && (r.made[s] || r.madeFor(f, defs, a, map[mir.LocalID]bool{})) {
+		if e.r.ScalarBoxes(f.Locals[a].Type) && (r.made[s] || r.madeFor(f, defs, a, map[midir.LocalID]bool{})) {
 			out = append(out, mir.ArgBox{Block: s.at.blk, Inst: s.at.pc, Arg: s.arg})
 		}
 	}
@@ -107,7 +108,7 @@ func (r *boxRecord) argBoxes(e *emitter, f *mir.Func) []mir.ArgBox {
 }
 
 // madeFor follows l back through the copies that pass a box on unchanged to the instructions that created it.
-func (r *boxRecord) madeFor(f *mir.Func, defs map[mir.LocalID][]siteAt, l mir.LocalID, seen map[mir.LocalID]bool) bool {
+func (r *boxRecord) madeFor(f *midir.Func, defs map[midir.LocalID][]siteAt, l midir.LocalID, seen map[midir.LocalID]bool) bool {
 	seen[l] = true
 	made := false
 	for _, at := range defs[l] {
@@ -118,7 +119,7 @@ func (r *boxRecord) madeFor(f *mir.Func, defs map[mir.LocalID][]siteAt, l mir.Lo
 		}
 		in := f.Blocks[at.blk].Insts[at.pc]
 		switch in.Op {
-		case mir.OpAlias, mir.OpShare, mir.OpMove, mir.OpCopy:
+		case midir.OpAlias, midir.OpShare, midir.OpMove, midir.OpCopy:
 			if !seen[in.Args[0]] && r.madeFor(f, defs, in.Args[0], seen) {
 				made = true
 			}

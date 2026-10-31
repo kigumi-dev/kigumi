@@ -3,40 +3,41 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 type useSite struct {
-	in  *Inst // nil for a terminator
+	in  *midir.Inst // nil for a terminator
 	arg int
 }
 
 type fieldState struct {
-	stable map[LocalID]bool
-	uses   map[LocalID][]useSite
+	stable map[midir.LocalID]bool
+	uses   map[midir.LocalID][]useSite
 }
 
 // Lending l by `&mut` keeps it stable only when the callee stores past the references l holds.
-func (c *borrowCheck) fieldStable(l LocalID) bool {
+func (c *borrowCheck) fieldStable(l midir.LocalID) bool {
 	if v, ok := c.fields.stable[l]; ok {
 		return v
 	}
 	loc := c.f.Locals[l]
-	v := loc.Ent != 0 && !loc.Cell && !loc.Borrowed && !slices.Contains(c.f.Params, l) && c.literalOf(l) != nil && !c.writesPlace(l, map[LocalID]bool{})
+	v := loc.Ent != 0 && !loc.Cell && !loc.Borrowed && !slices.Contains(c.f.Params, l) && c.literalOf(l) != nil && !c.writesPlace(l, map[midir.LocalID]bool{})
 	if c.fields.stable == nil {
-		c.fields.stable = map[LocalID]bool{}
+		c.fields.stable = map[midir.LocalID]bool{}
 	}
 	c.fields.stable[l] = v
 	return v
 }
 
 // t names a place in a holder: the holder, a `&mut` to it, or a non-reference read below either.
-func (c *borrowCheck) writesPlace(t LocalID, seen map[LocalID]bool) bool {
+func (c *borrowCheck) writesPlace(t midir.LocalID, seen map[midir.LocalID]bool) bool {
 	if seen[t] {
 		return false
 	}
 	seen[t] = true
-	isRef := func(l LocalID) bool { return c.p.R.Types.Kind(c.f.Locals[l].Type) == sem.KRef }
+	isRef := func(l midir.LocalID) bool { return c.p.R.Types.Kind(c.f.Locals[l].Type) == sem.KRef }
 	ref := isRef(t)
 	for _, u := range c.usesOf(t) {
 		in := u.in
@@ -45,18 +46,18 @@ func (c *borrowCheck) writesPlace(t LocalID, seen map[LocalID]bool) bool {
 			if ref {
 				return true
 			}
-		case in.Op == OpDrop || in.Op == OpRelease || in.Op == OpIsVariant || in.Op == OpTag || in.Op == OpIsType || in.Op == OpBorrow && in.Index == 0:
-		case (in.Op == OpSetField || in.Op == OpSetIndex || in.Op == OpCellSet) && u.arg == 0:
+		case in.Op == midir.OpDrop || in.Op == midir.OpRelease || in.Op == midir.OpIsVariant || in.Op == midir.OpTag || in.Op == midir.OpIsType || in.Op == midir.OpBorrow && in.Index == 0:
+		case (in.Op == midir.OpSetField || in.Op == midir.OpSetIndex || in.Op == midir.OpCellSet) && u.arg == 0:
 			return true
-		case in.Op == OpBorrow:
+		case in.Op == midir.OpBorrow:
 			if c.writesPlace(in.Dst, seen) {
 				return true
 			}
-		case (in.Op == OpField || in.Op == OpPayload || in.Op == OpIndex || in.Op == OpUnbox) && u.arg == 0:
+		case (in.Op == midir.OpField || in.Op == midir.OpPayload || in.Op == midir.OpIndex || in.Op == midir.OpUnbox) && u.arg == 0:
 			if !isRef(in.Dst) && c.writesPlace(in.Dst, seen) {
 				return true
 			}
-		case in.Op == OpCopy || in.Op == OpMove || in.Op == OpAlias || in.Op == OpShare:
+		case in.Op == midir.OpCopy || in.Op == midir.OpMove || in.Op == midir.OpAlias || in.Op == midir.OpShare:
 			if ref && c.writesPlace(in.Dst, seen) {
 				return true
 			}
@@ -70,17 +71,17 @@ func (c *borrowCheck) writesPlace(t LocalID, seen map[LocalID]bool) bool {
 }
 
 // A store past a reference the place holds leaves the place's own fields as they were.
-func (c *borrowCheck) lendWritesPlace(in *Inst, k int) bool {
+func (c *borrowCheck) lendWritesPlace(in *midir.Inst, k int) bool {
 	h := c.p.ByEnt[in.Ent]
-	if h == nil || in.Op != OpClosure && (in.Op != OpCall || c.p.R.Entity(in.Ent).Kind != sem.EntFn) {
+	if h == nil || in.Op != midir.OpClosure && (in.Op != midir.OpCall || c.p.R.Entity(in.Ent).Kind != sem.EntFn) {
 		return true
 	}
 	return slices.ContainsFunc(c.paramStoreSites(h, k), func(s paramStore) bool { return !s.beyond })
 }
 
-func (c *borrowCheck) usesOf(l LocalID) []useSite {
+func (c *borrowCheck) usesOf(l midir.LocalID) []useSite {
 	if c.fields.uses == nil {
-		c.fields.uses = map[LocalID][]useSite{}
+		c.fields.uses = map[midir.LocalID][]useSite{}
 		for b := range c.f.Blocks {
 			blk := &c.f.Blocks[b]
 			for i := range blk.Insts {

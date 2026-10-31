@@ -1,9 +1,12 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // asyncBound is Unknown until SettleAsyncBounds reads the frame PlanDirect lays out.
-func asyncBound(r *sem.Result, f *Func) *StackBound {
+func asyncBound(r *sem.Result, f *midir.Func) *StackBound {
 	e := r.Entity(f.Ent)
 	async := false
 	switch e.Kind {

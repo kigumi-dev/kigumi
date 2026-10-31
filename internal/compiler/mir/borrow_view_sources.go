@@ -4,16 +4,17 @@ import (
 	"fmt"
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 type viewSourceSet struct {
-	locals   []LocalID
+	locals   []midir.LocalID
 	complete bool
 }
 
 type viewHop struct {
-	local LocalID
+	local midir.LocalID
 	path  []int
 }
 
@@ -24,9 +25,9 @@ func (c *borrowCheck) viewType(t sem.TypeID) bool {
 	return c.p.R.Types.Kind(t) == sem.KIface
 }
 
-func (c *borrowCheck) viewSources(a LocalID) viewSourceSet {
+func (c *borrowCheck) viewSources(a midir.LocalID) viewSourceSet {
 	if !c.viewType(c.f.Locals[a].Type) {
-		return viewSourceSet{locals: []LocalID{a}, complete: true}
+		return viewSourceSet{locals: []midir.LocalID{a}, complete: true}
 	}
 	if s, ok := c.viewSets[a]; ok {
 		return s
@@ -36,21 +37,21 @@ func (c *borrowCheck) viewSources(a LocalID) viewSourceSet {
 		for bi := range c.f.Blocks {
 			for ii := range c.f.Blocks[bi].Insts {
 				in := &c.f.Blocks[bi].Insts[ii]
-				if in.Op == OpCellSet || in.Op == OpSetField {
+				if in.Op == midir.OpCellSet || in.Op == midir.OpSetField {
 					c.viewDefs[in.Args[0]] = append(c.viewDefs[in.Args[0]], in)
 				}
 			}
 		}
-		c.viewSets = map[LocalID]viewSourceSet{}
+		c.viewSets = map[midir.LocalID]viewSourceSet{}
 	}
 	s := viewSourceSet{complete: true}
-	add := func(l LocalID) {
+	add := func(l midir.LocalID) {
 		if !slices.Contains(s.locals, l) {
 			s.locals = append(s.locals, l)
 		}
 	}
 	type visit struct {
-		local LocalID
+		local midir.LocalID
 		path  string
 	}
 	seen, work := map[visit]bool{}, []viewHop{{local: a}}
@@ -75,7 +76,7 @@ func (c *borrowCheck) viewSources(a LocalID) viewSourceSet {
 			}
 		}
 		for _, d := range defs {
-			if d.Op == OpVariant && len(d.Args) == 0 {
+			if d.Op == midir.OpVariant && len(d.Args) == 0 {
 				continue
 			}
 			if len(d.Args) == 0 {
@@ -84,33 +85,33 @@ func (c *borrowCheck) viewSources(a LocalID) viewSourceSet {
 			}
 			next := viewHop{local: d.Args[0], path: h.path}
 			switch d.Op {
-			case OpLendBox:
+			case midir.OpLendBox:
 				if len(h.path) == 0 {
 					add(d.Args[0])
 				} else {
 					s.complete = false
 				}
 				continue
-			case OpField, OpPayload:
+			case midir.OpField, midir.OpPayload:
 				next.path = append([]int{d.Index}, h.path...)
-			case OpRecord, OpVariant:
+			case midir.OpRecord, midir.OpVariant:
 				if len(h.path) == 0 || h.path[0] < 0 {
 					s.complete = false
 					continue
 				}
 				if h.path[0] >= len(d.Args) {
-					s.complete = s.complete && d.Op == OpVariant
+					s.complete = s.complete && d.Op == midir.OpVariant
 					continue
 				}
 				next.local, next.path = d.Args[h.path[0]], h.path[1:]
-			case OpSetField:
+			case midir.OpSetField:
 				if len(h.path) == 0 || h.path[0] != d.Index {
 					continue
 				}
 				next.local, next.path = d.Args[len(d.Args)-1], h.path[1:]
-			case OpCellSet:
+			case midir.OpCellSet:
 				next.local = d.Args[len(d.Args)-1]
-			case OpCopy, OpMove, OpAlias, OpBorrow, OpShare, OpNewCell, OpCellGet, OpCellTake:
+			case midir.OpCopy, midir.OpMove, midir.OpAlias, midir.OpBorrow, midir.OpShare, midir.OpNewCell, midir.OpCellGet, midir.OpCellTake:
 			default:
 				s.complete = false
 				continue
@@ -126,7 +127,7 @@ func (c *borrowCheck) viewSources(a LocalID) viewSourceSet {
 	return s
 }
 
-func (c *borrowCheck) keptMutTargets(a LocalID) []storeFlow {
+func (c *borrowCheck) keptMutTargets(a midir.LocalID) []storeFlow {
 	s := c.viewSources(a)
 	var out []storeFlow
 	for _, l := range s.locals {

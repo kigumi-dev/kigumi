@@ -1,8 +1,12 @@
 package mir
 
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
 // ReferentParams marks the parameters of an async body its Future takes as the referent itself when a call through its
 // value lends a `&mut` write-back cell: a whole `&mut T` the body never replaces (sem rejects the replacing kind).
-func (p *Program) ReferentParams(f *Func) []bool {
+func (p *Program) ReferentParams(f *midir.Func) []bool {
 	out := make([]bool, len(f.Params))
 	for i, prm := range f.Params {
 		l := f.Locals[prm]

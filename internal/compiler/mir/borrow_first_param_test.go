@@ -3,6 +3,8 @@ package mir
 import (
 	"slices"
 	"testing"
+
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const sweepSrc = `
@@ -40,7 +42,7 @@ func TestReplayFlowSeedsOnlyResults(t *testing.T) {
 	p, body := srcProgram(t, sweepSrc)
 	g := body("seeds")
 	c := collected(p, g)
-	fl := c.solveFlow(func(Inst) []uint32 { return []uint32{7} }, nil)
+	fl := c.solveFlow(func(midir.Inst) []uint32 { return []uint32{7} }, nil)
 	if fl.ever[g.Params[0]][7] {
 		t.Errorf("an instruction without a result seeded the first parameter")
 	}

@@ -1,12 +1,16 @@
 package mir
 
-func (a *owner) stateAt(bid BlockID, idx int) *dstate {
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
+func (a *owner) stateAt(bid midir.BlockID, idx int) *dstate {
 	if a.in[bid] == nil {
 		return nil
 	}
 	blk := &a.f.Blocks[bid]
 	saved := *blk
-	blk.Insts, blk.Term = saved.Insts[:idx:idx], Term{}
+	blk.Insts, blk.Term = saved.Insts[:idx:idx], midir.Term{}
 	st := a.transfer(bid, cloneD(a.in[bid]), false)
 	*blk = saved
 	return st

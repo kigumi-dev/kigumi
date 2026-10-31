@@ -3,14 +3,14 @@ package mir_test
 import (
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 func TestCountlessRefsFollowWhereTheReferenceWasMade(t *testing.T) {
 	p := program(t)
 	ref := p.R.Types.Ref(sem.TyI64, false)
-	locals := []mir.Local{
+	locals := []midir.Local{
 		{Name: "r", Type: ref, Ent: 1},
 		{Name: "n", Type: sem.TyI64, Ent: 2},
 		{Name: "call", Type: ref},
@@ -25,20 +25,20 @@ func TestCountlessRefsFollowWhereTheReferenceWasMade(t *testing.T) {
 		{Name: "sharedCopy", Type: ref},
 		{Name: "value", Type: sem.TyI64},
 	}
-	insts := []mir.Inst{
-		{Op: mir.OpCall, Dst: 2, Args: []mir.LocalID{0}},
-		{Op: mir.OpField, Dst: 3, Args: []mir.LocalID{0}},
-		{Op: mir.OpShare, Dst: 4, Args: []mir.LocalID{0}},
-		{Op: mir.OpBorrow, Dst: 5, Args: []mir.LocalID{1}},
-		{Op: mir.OpLendBox, Dst: 6, Args: []mir.LocalID{0}},
-		{Op: mir.OpBuiltin, Dst: 7, Str: "iter.at_ref", Args: []mir.LocalID{0, 1}},
-		{Op: mir.OpAlias, Dst: 8, Args: []mir.LocalID{0}},
-		{Op: mir.OpAlias, Dst: 9, Args: []mir.LocalID{2}},
-		{Op: mir.OpCopy, Dst: 10, Args: []mir.LocalID{7}},
-		{Op: mir.OpCopy, Dst: 11, Args: []mir.LocalID{7}, Share: true},
-		{Op: mir.OpCall, Dst: 12, Args: []mir.LocalID{0}},
+	insts := []midir.Inst{
+		{Op: midir.OpCall, Dst: 2, Args: []midir.LocalID{0}},
+		{Op: midir.OpField, Dst: 3, Args: []midir.LocalID{0}},
+		{Op: midir.OpShare, Dst: 4, Args: []midir.LocalID{0}},
+		{Op: midir.OpBorrow, Dst: 5, Args: []midir.LocalID{1}},
+		{Op: midir.OpLendBox, Dst: 6, Args: []midir.LocalID{0}},
+		{Op: midir.OpBuiltin, Dst: 7, Str: "iter.at_ref", Args: []midir.LocalID{0, 1}},
+		{Op: midir.OpAlias, Dst: 8, Args: []midir.LocalID{0}},
+		{Op: midir.OpAlias, Dst: 9, Args: []midir.LocalID{2}},
+		{Op: midir.OpCopy, Dst: 10, Args: []midir.LocalID{7}},
+		{Op: midir.OpCopy, Dst: 11, Args: []midir.LocalID{7}, Share: true},
+		{Op: midir.OpCall, Dst: 12, Args: []midir.LocalID{0}},
 	}
-	f := fn("refs", sem.TyI64, locals, mir.Block{Insts: insts, Term: ret(12)})
+	f := fn("refs", sem.TyI64, locals, midir.Block{Insts: insts, Term: ret(12)})
 	want := map[string]bool{"borrow": true, "lendbox": true, "atref": true, "aliasNamed": true, "copyAtRef": true}
 	for l, got := range p.CountlessRefs(f) {
 		if name := locals[l].Name; got != want[name] {

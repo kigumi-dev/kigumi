@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 )
 
@@ -12,7 +12,7 @@ var mathIntrinsics = map[opdef.DirectPrim]string{
 	opdef.DPSqrt: "sqrt.f64", opdef.DPFloor: "floor.f64", opdef.DPCeil: "ceil.f64", opdef.DPRound: "round.f64",
 }
 
-func (e *emitter) scalarPrimCall(sb *strings.Builder, f *mir.Func, in mir.Inst, args []Value) bool {
+func (e *emitter) scalarPrimCall(sb *strings.Builder, f *midir.Func, in midir.Inst, args []Value) bool {
 	if in.DPrim >= opdef.DPWrapAdd && in.DPrim <= opdef.DPRotr {
 		nk := e.numKind(f.Locals[in.Dst].Type)
 		e.storeScalarResult(sb, f, in.Dst, e.wrappingOp(sb, in.DPrim, nk, args[0], args[1]))

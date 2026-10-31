@@ -3,7 +3,7 @@ package vm
 import (
 	"sync/atomic"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 )
 
@@ -16,7 +16,7 @@ type copier struct {
 
 func (m *Machine) copyTry(v *obj) (*obj, bool) { return copier{m, true}.value(v) }
 
-func (m *Machine) copyShared(f *mir.Func, in *mir.Inst, ic *instCode, v *obj) *obj {
+func (m *Machine) copyShared(f *midir.Func, in *midir.Inst, ic *instCode, v *obj) *obj {
 	if m.opts.FaultInjectAt <= 0 || f.IsDirect(in.Dst) || ic.inlineCopy {
 		return m.copy(v)
 	}

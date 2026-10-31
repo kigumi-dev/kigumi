@@ -1,9 +1,12 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // emptied reports whether every field of root's record that owns anything was moved out on every path.
-func (a *owner) emptied(root LocalID, st *dstate) bool {
+func (a *owner) emptied(root midir.LocalID, st *dstate) bool {
 	kids := a.pl.children[root]
 	t := a.f.Locals[root].Type
 	if len(kids) == 0 || a.p.R.Types.Kind(t) != sem.KNamed {

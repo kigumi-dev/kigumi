@@ -1,6 +1,9 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // An unbox step leaves a readHop inexact.
 type readHop struct {
@@ -21,21 +24,21 @@ func (c *borrowCheck) heldAt(o ownerRef, all []ownerRef, hop readHop) []ownerRef
 }
 
 // partHeld returns nil when a step does not fit lit.
-func (c *borrowCheck) partHeld(lit *Inst, path stepPath) []ownerRef {
+func (c *borrowCheck) partHeld(lit *midir.Inst, path stepPath) []ownerRef {
 	if lit == nil || len(path) == 0 {
 		return nil
 	}
-	var args []LocalID
+	var args []midir.LocalID
 	idx := path[0]
 	elem, constElem := elemIndex(idx)
 	switch {
-	case idx == anyElem && lit.Op == OpArray:
+	case idx == anyElem && lit.Op == midir.OpArray:
 		args = lit.Args
-	case constElem && lit.Op == OpArray && elem < len(lit.Args):
+	case constElem && lit.Op == midir.OpArray && elem < len(lit.Args):
 		args = lit.Args[elem : elem+1]
-	case idx >= 0 && lit.Op == OpRecord && idx < len(lit.Args):
+	case idx >= 0 && lit.Op == midir.OpRecord && idx < len(lit.Args):
 		args = lit.Args[idx : idx+1]
-	case idx < 0 && idx > anyElem && !constElem && lit.Op == OpVariant && -1-idx < len(lit.Args):
+	case idx < 0 && idx > anyElem && !constElem && lit.Op == midir.OpVariant && -1-idx < len(lit.Args):
 		args = lit.Args[-1-idx : -idx]
 	default:
 		return nil
@@ -53,22 +56,24 @@ func (c *borrowCheck) partHeld(lit *Inst, path stepPath) []ownerRef {
 	return out
 }
 
-func (c *borrowCheck) literalOf(l LocalID) *Inst {
+func (c *borrowCheck) literalOf(l midir.LocalID) *midir.Inst {
 	d := c.soleDef(l)
 	switch {
 	case d == nil:
 		return nil
 	case literalOp(d.Op):
 		return d
-	case (d.Op == OpCopy || d.Op == OpMove) && len(d.Args) > 0:
+	case (d.Op == midir.OpCopy || d.Op == midir.OpMove) && len(d.Args) > 0:
 		return c.tempLiteral(d.Args[0])
 	}
 	return c.arrayOfLiteral(d)
 }
 
-func literalOp(op Opcode) bool { return op == OpRecord || op == OpVariant || op == OpArray }
+func literalOp(op midir.Opcode) bool {
+	return op == midir.OpRecord || op == midir.OpVariant || op == midir.OpArray
+}
 
-func (c *borrowCheck) tempLiteral(l LocalID) *Inst {
+func (c *borrowCheck) tempLiteral(l midir.LocalID) *midir.Inst {
 	for range 8 {
 		d := c.definition(l)
 		if c.f.Locals[l].Ent != 0 || d == nil {
@@ -77,7 +82,7 @@ func (c *borrowCheck) tempLiteral(l LocalID) *Inst {
 		switch {
 		case literalOp(d.Op):
 			return d
-		case d.Op == OpCopy || d.Op == OpMove || d.Op == OpAlias:
+		case d.Op == midir.OpCopy || d.Op == midir.OpMove || d.Op == midir.OpAlias:
 			l = d.Args[0]
 		default:
 			return c.arrayOfLiteral(d)
@@ -87,14 +92,14 @@ func (c *borrowCheck) tempLiteral(l LocalID) *Inst {
 }
 
 // `Array.of(..)` keeps its literal's elements in order.
-func (c *borrowCheck) arrayOfLiteral(d *Inst) *Inst {
-	if d.Op != OpCall || d.Ent == 0 || len(d.Args) != 1 {
+func (c *borrowCheck) arrayOfLiteral(d *midir.Inst) *midir.Inst {
+	if d.Op != midir.OpCall || d.Ent == 0 || len(d.Args) != 1 {
 		return nil
 	}
 	if e := c.p.R.Entity(d.Ent); e.Kind != sem.EntFn || e.Name != "of" || c.p.R.Fn(d.Ent).Owner != c.p.R.Types.ArrayEnt() {
 		return nil
 	}
-	if a := c.definition(d.Args[0]); a != nil && a.Op == OpArray && c.f.Locals[d.Args[0]].Ent == 0 {
+	if a := c.definition(d.Args[0]); a != nil && a.Op == midir.OpArray && c.f.Locals[d.Args[0]].Ent == 0 {
 		return a
 	}
 	return nil

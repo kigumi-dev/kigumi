@@ -3,23 +3,24 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
 
 // cancelEdge unwinds like an early return, so failure-only cleanups stay skipped.
 func (b *builder) cancelEdge(n syntax.NodeID) {
-	cancelled := b.emit(Inst{Op: OpCancelled, Dst: b.temp(sem.TyBool), Node: n})
+	cancelled := b.emit(midir.Inst{Op: midir.OpCancelled, Dst: b.temp(sem.TyBool), Node: n})
 	cancel, cont := b.newBlockAt(), b.newBlockAt()
-	b.term(Term{Op: TermBranch, Args: []LocalID{cancelled}, Targets: []BlockID{cancel, cont}})
+	b.term(midir.Term{Op: midir.TermBranch, Args: []midir.LocalID{cancelled}, Targets: []midir.BlockID{cancel, cont}})
 	b.cur = cancel
 	if prev := b.reusableCancel(); prev != nil {
 		b.dropOwnedFrom(b.scopes[len(b.scopes)-1], prev.owned[len(prev.owned)-1], nil)
 		b.jump(prev.entry)
 	} else {
 		b.unwindTo(0, false)
-		b.emit(Inst{Op: OpCancelDone, Node: n})
-		b.term(Term{Op: TermUnreachable})
+		b.emit(midir.Inst{Op: midir.OpCancelDone, Node: n})
+		b.term(midir.Term{Op: midir.TermUnreachable})
 	}
 	b.noteCancel(cancel)
 	b.cur = cont
@@ -27,10 +28,10 @@ func (b *builder) cancelEdge(n syntax.NodeID) {
 
 // cancelPath is the cleanup of the last cancel edge: a later edge in the same scopes that only owns more locals drops those and joins it instead of repeating every drop.
 type cancelPath struct {
-	fn     *Func
+	fn     *midir.Func
 	scopes []*scope
 	owned  []int
-	entry  BlockID
+	entry  midir.BlockID
 }
 
 func (b *builder) cancelShape() (scopes []*scope, owned []int, ok bool) {
@@ -62,7 +63,7 @@ func (b *builder) reusableCancel() *cancelPath {
 	return prev
 }
 
-func (b *builder) noteCancel(entry BlockID) {
+func (b *builder) noteCancel(entry midir.BlockID) {
 	scopes, owned, ok := b.cancelShape()
 	if !ok {
 		b.cancelled = nil

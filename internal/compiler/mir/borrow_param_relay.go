@@ -1,17 +1,21 @@
 package mir
 
-import "slices"
+import (
+	"slices"
+
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
 // paramIndex is the parameter of g that l is a copy of, or -1.
-func paramIndex(g *Func, defs map[LocalID]*Inst, l LocalID) int {
+func paramIndex(g *midir.Func, defs map[midir.LocalID]*midir.Inst, l midir.LocalID) int {
 	l = copiedFrom(defs, l)
 	return slices.Index(g.Params, l)
 }
 
-func copiedFrom(defs map[LocalID]*Inst, l LocalID) LocalID {
+func copiedFrom(defs map[midir.LocalID]*midir.Inst, l midir.LocalID) midir.LocalID {
 	for range 8 {
 		d := defs[l]
-		if d == nil || len(d.Args) == 0 || d.Op != OpCopy && d.Op != OpMove && d.Op != OpAlias {
+		if d == nil || len(d.Args) == 0 || d.Op != midir.OpCopy && d.Op != midir.OpMove && d.Op != midir.OpAlias {
 			break
 		}
 		l = d.Args[0]
@@ -19,11 +23,11 @@ func copiedFrom(defs map[LocalID]*Inst, l LocalID) LocalID {
 	return l
 }
 
-func (c *borrowCheck) relayCallee(g *Func, defs map[LocalID]*Inst, l LocalID, kind siteKind) []relayTarget {
+func (c *borrowCheck) relayCallee(g *midir.Func, defs map[midir.LocalID]*midir.Inst, l midir.LocalID, kind siteKind) []relayTarget {
 	return c.relayTargets(g, defs, l, kind, 8)
 }
 
-func (c *borrowCheck) relayTargets(g *Func, defs map[LocalID]*Inst, l LocalID, kind siteKind, depth int) []relayTarget {
+func (c *borrowCheck) relayTargets(g *midir.Func, defs map[midir.LocalID]*midir.Inst, l midir.LocalID, kind siteKind, depth int) []relayTarget {
 	if kind == siteOut && !c.calleeKeepsBorrow(g.Locals[l].Type) {
 		return nil
 	}
@@ -45,7 +49,7 @@ func (c *borrowCheck) relayTargets(g *Func, defs map[LocalID]*Inst, l LocalID, k
 	return out
 }
 
-func (c *borrowCheck) callableSites(h *Func, skip int, kind siteKind) []paramStore {
+func (c *borrowCheck) callableSites(h *midir.Func, skip int, kind siteKind) []paramStore {
 	if h == nil || skip > len(h.Params) {
 		return wholeParam
 	}
@@ -64,7 +68,7 @@ func (c *borrowCheck) callableSites(h *Func, skip int, kind siteKind) []paramSto
 
 // closureFed keeps, of the values a call may hand to the closure in slot i, those the callee passes on to a parameter
 // of the closure that its body may put somewhere; all of them when the callee's use of the closure is not plain calls.
-func (c *borrowCheck) closureFed(callee *Func, i int, lit *Inst, values []flowArg) []flowArg {
+func (c *borrowCheck) closureFed(callee *midir.Func, i int, lit *midir.Inst, values []flowArg) []flowArg {
 	h := c.p.ByEnt[lit.Ent]
 	if callee == nil || h == nil {
 		return values
@@ -85,21 +89,21 @@ func (c *borrowCheck) closureFed(callee *Func, i int, lit *Inst, values []flowAr
 
 // callableFeeds lists, for each argument position of the calls g makes through its parameter f, the parameters of g
 // passed there; false when f is used otherwise or an argument does not come from a parameter.
-func (c *borrowCheck) callableFeeds(g *Func, f int) ([][]int, bool) {
+func (c *borrowCheck) callableFeeds(g *midir.Func, f int) ([][]int, bool) {
 	if f >= len(g.Params) {
 		return nil, false
 	}
 	defs := soleDefs(g)
 	var feeds [][]int
 	for _, blk := range g.Blocks {
-		if slices.ContainsFunc(blk.Term.Args, func(a LocalID) bool { return paramIndex(g, defs, a) == f }) {
+		if slices.ContainsFunc(blk.Term.Args, func(a midir.LocalID) bool { return paramIndex(g, defs, a) == f }) {
 			return nil, false
 		}
 		for _, in := range blk.Insts {
-			uses := slices.ContainsFunc(in.Args, func(a LocalID) bool { return paramIndex(g, defs, a) == f })
+			uses := slices.ContainsFunc(in.Args, func(a midir.LocalID) bool { return paramIndex(g, defs, a) == f })
 			switch {
-			case !uses || in.Op == OpCopy || in.Op == OpMove || in.Op == OpAlias || in.Op == OpDrop || in.Op == OpRelease:
-			case in.Op == OpCallValue && paramIndex(g, defs, in.Args[0]) == f && !slices.ContainsFunc(in.Args[1:], func(a LocalID) bool { return paramIndex(g, defs, a) == f }):
+			case !uses || in.Op == midir.OpCopy || in.Op == midir.OpMove || in.Op == midir.OpAlias || in.Op == midir.OpDrop || in.Op == midir.OpRelease:
+			case in.Op == midir.OpCallValue && paramIndex(g, defs, in.Args[0]) == f && !slices.ContainsFunc(in.Args[1:], func(a midir.LocalID) bool { return paramIndex(g, defs, a) == f }):
 				for p, a := range in.Args[1:] {
 					j := paramIndex(g, defs, a)
 					if j < 0 {

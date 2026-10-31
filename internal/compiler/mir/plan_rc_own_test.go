@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const ownSrc = `
@@ -87,12 +88,12 @@ func rcPlanned(t *testing.T, src string) *mir.Program {
 	return prog
 }
 
-func copies(f *mir.Func) [][2]mir.Inst {
-	var out [][2]mir.Inst
+func copies(f *midir.Func) [][2]midir.Inst {
+	var out [][2]midir.Inst
 	for _, blk := range f.Blocks {
 		for i, in := range blk.Insts {
-			if in.Op == mir.OpShare && in.Copy && f.Locals[in.Args[0]].Ent == 0 && i+1 < len(blk.Insts) {
-				out = append(out, [2]mir.Inst{in, blk.Insts[i+1]})
+			if in.Op == midir.OpShare && in.Copy && f.Locals[in.Args[0]].Ent == 0 && i+1 < len(blk.Insts) {
+				out = append(out, [2]midir.Inst{in, blk.Insts[i+1]})
 			}
 		}
 	}
@@ -108,7 +109,7 @@ func TestPlanRCCopiesABindingAWriteCanReach(t *testing.T) {
 			t.Fatalf("%s: %d deep copies of a read, want %d\n%s", name, len(cs), want, prog.Dump())
 		}
 		for _, c := range cs {
-			if f.Locals[c[0].Dst].Ent == 0 || c[1].Op != mir.OpRelease || c[1].Args[0] != c[0].Args[0] {
+			if f.Locals[c[0].Dst].Ent == 0 || c[1].Op != midir.OpRelease || c[1].Args[0] != c[0].Args[0] {
 				t.Fatalf("%s: the copy must bind the named local and hand the read's reference back at once, got %v then %v", name, c[0], c[1])
 			}
 		}
@@ -122,14 +123,14 @@ func TestPlanRCCopiesAValueAPrimitiveMayKeep(t *testing.T) {
 		n := 0
 		for _, blk := range f.Blocks {
 			for i, in := range blk.Insts {
-				if in.Op != mir.OpCall || prog.R.Entity(in.Ent).Name != "push" {
+				if in.Op != midir.OpCall || prog.R.Entity(in.Ent).Name != "push" {
 					continue
 				}
 				arg := in.Args[len(in.Args)-1]
 				prev, next := blk.Insts[i-1], blk.Insts[i+1]
-				if prev.Op == mir.OpShare && prev.Copy && prev.Dst == arg {
+				if prev.Op == midir.OpShare && prev.Copy && prev.Dst == arg {
 					n++
-					if next.Op != mir.OpRelease || next.Args[0] != arg {
+					if next.Op != midir.OpRelease || next.Args[0] != arg {
 						t.Fatalf("%s: the copy handed to push must be released after it, got %v", name, next)
 					}
 				}
@@ -147,11 +148,11 @@ func TestPlanRCCopiesAnArgumentTheCalleeWrites(t *testing.T) {
 	got := map[string]bool{}
 	for _, blk := range f.Blocks {
 		for i, in := range blk.Insts {
-			if in.Op != mir.OpCall {
+			if in.Op != midir.OpCall {
 				continue
 			}
 			prev := blk.Insts[i-1]
-			got[prog.R.Entity(in.Ent).Name] = prev.Op == mir.OpShare && prev.Copy && prev.Dst == in.Args[0]
+			got[prog.R.Entity(in.Ent).Name] = prev.Op == midir.OpShare && prev.Copy && prev.Dst == in.Args[0]
 		}
 	}
 	if !got["setN"] || got["readN"] {
@@ -178,11 +179,11 @@ func TestPlanRCCopiesATypeParameterOnlyIfWritable(t *testing.T) {
 	f := funcNamed(t, prog, "main.repeat")
 	for _, blk := range f.Blocks {
 		for i, in := range blk.Insts {
-			if in.Op != mir.OpCall || prog.R.Entity(in.Ent).Name != "push" {
+			if in.Op != midir.OpCall || prog.R.Entity(in.Ent).Name != "push" {
 				continue
 			}
 			prev := blk.Insts[i-1]
-			if prev.Op != mir.OpShare || !prev.Copy || !prev.IfWritable || prev.Dst != in.Args[1] {
+			if prev.Op != midir.OpShare || !prev.Copy || !prev.IfWritable || prev.Dst != in.Args[1] {
 				t.Fatalf("push must take a copy-mut of the type parameter, got %v\n%s", prev, prog.Dump())
 			}
 			return
@@ -220,11 +221,11 @@ func TestPlanRCCopiesAnOptionHoldingAWritableRecord(t *testing.T) {
 	prog := rcPlanned(t, insideSrc)
 	for name, want := range map[string]bool{"main.kept": true, "main.dead": false} {
 		f := funcNamed(t, prog, name)
-		var first *mir.Inst
-		var prev mir.Inst
+		var first *midir.Inst
+		var prev midir.Inst
 		for _, blk := range f.Blocks {
 			for i, in := range blk.Insts {
-				if in.Op == mir.OpCall && prog.R.Entity(in.Ent).Name == "unwrapOr" && first == nil {
+				if in.Op == midir.OpCall && prog.R.Entity(in.Ent).Name == "unwrapOr" && first == nil {
 					first, prev = &blk.Insts[i], blk.Insts[i-1]
 				}
 			}
@@ -232,7 +233,7 @@ func TestPlanRCCopiesAnOptionHoldingAWritableRecord(t *testing.T) {
 		if first == nil {
 			t.Fatalf("%s: no unwrapOr call\n%s", name, prog.Dump())
 		}
-		got := prev.Op == mir.OpShare && prev.Copy && !prev.IfWritable && prev.Dst == first.Args[0]
+		got := prev.Op == midir.OpShare && prev.Copy && !prev.IfWritable && prev.Dst == first.Args[0]
 		if got != want {
 			t.Fatalf("%s: unwrapOr takes a copy = %v, want %v\n%s", name, got, want, prog.Dump())
 		}

@@ -1,8 +1,11 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
-type bodyLookup func(sem.EntityID) (*Func, bool)
+type bodyLookup func(sem.EntityID) (*midir.Func, bool)
 
 type borrowAnalysis struct {
 	ownershipFacts
@@ -23,7 +26,7 @@ func (c *borrowCheck) analysis() *borrowAnalysis {
 }
 
 // Without a lookup, an unseen body cannot prove which argument supplies the result.
-func (c *borrowCheck) calleeBody(ent sem.EntityID) (*Func, bool) {
+func (c *borrowCheck) calleeBody(ent sem.EntityID) (*midir.Func, bool) {
 	lookup := c.analysis().lookup
 	if lookup == nil {
 		return nil, false

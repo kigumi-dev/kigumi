@@ -3,13 +3,13 @@ package llgen
 import (
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 // wideCallOp names the 128-bit prelude primitive in a call computed on registers, or "".
-func (e *emitter) wideCallOp(f *mir.Func, in mir.Inst) string {
-	if in.Op != mir.OpCall || len(in.Args) != 2 || !e.wideType(f.Locals[in.Dst].Type) {
+func (e *emitter) wideCallOp(f *midir.Func, in midir.Inst) string {
+	if in.Op != midir.OpCall || len(in.Args) != 2 || !e.wideType(f.Locals[in.Dst].Type) {
 		return ""
 	}
 	for _, a := range in.Args {
@@ -28,7 +28,7 @@ func (e *emitter) wideCallOp(f *mir.Func, in mir.Inst) string {
 	return ""
 }
 
-func (e *emitter) wideCall(sb *strings.Builder, f *mir.Func, in mir.Inst, op string) bool {
+func (e *emitter) wideCall(sb *strings.Builder, f *midir.Func, in midir.Inst, op string) bool {
 	l, _ := e.scalarOperand(sb, f, in.Args[0])
 	r, _ := e.scalarOperand(sb, f, in.Args[1])
 	nk := e.numKind(f.Locals[in.Dst].Type)

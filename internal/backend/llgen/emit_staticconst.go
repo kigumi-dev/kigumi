@@ -3,7 +3,7 @@ package llgen
 import (
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -49,7 +49,7 @@ func (e *emitter) recordKey(lit sem.Literal, typ sem.TypeID) string {
 		case fl.Kind == sem.LitBool:
 			keys[i] = constFalseKey
 		default:
-			keys[i], _ = e.litKey(mir.Inst{Lit: fl, Type: ft})
+			keys[i], _ = e.litKey(midir.Inst{Lit: fl, Type: ft})
 		}
 	}
 	key := "rec:" + e.desc(ent) + "(" + strings.Join(keys, ",") + ")"

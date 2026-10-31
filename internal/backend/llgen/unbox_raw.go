@@ -1,14 +1,14 @@
 package llgen
 
 import (
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 // rawScalars are the locals whose value no box holds yet: boxing one costs an allocation wherever it
 // happens, so a reader that never keeps it can format it from the frame instead.
-func (e *emitter) rawScalars(f *mir.Func) map[mir.LocalID]bool {
-	out := map[mir.LocalID]bool{}
+func (e *emitter) rawScalars(f *midir.Func) map[midir.LocalID]bool {
+	out := map[midir.LocalID]bool{}
 	for i, prm := range f.Params {
 		if _, ok := e.ssigs[f].param(i); ok {
 			out[prm] = true
@@ -28,26 +28,26 @@ func (e *emitter) rawScalars(f *mir.Func) map[mir.LocalID]bool {
 	return out
 }
 
-func (e *emitter) rawDef(f *mir.Func, in mir.Inst, raw map[mir.LocalID]bool) bool {
+func (e *emitter) rawDef(f *midir.Func, in midir.Inst, raw map[midir.LocalID]bool) bool {
 	switch in.Op {
-	case mir.OpPayload, mir.OpField, mir.OpFieldMove, mir.OpIndex:
+	case midir.OpPayload, midir.OpField, midir.OpFieldMove, midir.OpIndex:
 		return e.isDirect(in.Args[0])
-	case mir.OpBinary, mir.OpUnary:
+	case midir.OpBinary, midir.OpUnary:
 		return true
-	case mir.OpBuiltin:
+	case midir.OpBuiltin:
 		return in.Str == "direct.hash" || in.Str == "direct.eq"
-	case mir.OpCallValue:
+	case midir.OpCallValue:
 		return e.callvI64(f, in)
-	case mir.OpCall:
+	case midir.OpCall:
 		_, native := e.calleeScalarSig(in).ret()
 		return in.DPrim != opdef.DPNone || native || e.wideCallOp(f, in) != "" || e.rawConvert(f, in) || e.cNative(in) && e.cDstInReg(f, in)
-	case mir.OpAlias, mir.OpMove, mir.OpShare:
+	case midir.OpAlias, midir.OpMove, midir.OpShare:
 		return raw[in.Args[0]]
 	}
 	return false
 }
 
-func (e *emitter) callvI64(f *mir.Func, in mir.Inst) bool {
+func (e *emitter) callvI64(f *midir.Func, in midir.Inst) bool {
 	if _, ok := e.direct[in.Args[0]]; ok {
 		return false
 	}

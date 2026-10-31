@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"strconv"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
@@ -69,28 +69,28 @@ type staleRecipe string
 
 func (s staleRecipe) Error() string { return "stale recipe: " + string(s) }
 
-func (s *site) local() mir.LocalID {
+func (s *site) local() midir.LocalID {
 	if s.r.replaying() {
 		p := s.r.take('l')
 		if p.oob {
-			return mir.LocalID(len(s.f.Locals) + p.nth)
+			return midir.LocalID(len(s.f.Locals) + p.nth)
 		}
 		seen := 0
 		for i, l := range s.f.Locals {
 			if l.Name == p.text {
 				if seen == p.nth {
-					return mir.LocalID(i)
+					return midir.LocalID(i)
 				}
 				seen++
 			}
 		}
 		panic(staleRecipe(fmt.Sprintf("%s has no local %s#%d", s.f.Name, strconv.Quote(p.text), p.nth)))
 	}
-	var l mir.LocalID
+	var l midir.LocalID
 	if len(s.f.Locals) == 0 || s.r.draw(24) == 0 {
-		l = mir.LocalID(len(s.f.Locals) + s.r.draw(2))
+		l = midir.LocalID(len(s.f.Locals) + s.r.draw(2))
 	} else {
-		l = mir.LocalID(s.r.draw(len(s.f.Locals)))
+		l = midir.LocalID(s.r.draw(len(s.f.Locals)))
 	}
 	s.r.note(pick{kind: 'l', n: int(l)})
 	return l

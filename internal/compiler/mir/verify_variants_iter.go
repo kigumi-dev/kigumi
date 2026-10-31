@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
@@ -12,16 +13,16 @@ func iterAt(name string) bool {
 	return ok && s.Iter && len(s.Args) == 2
 }
 
-func iterLengths(f *Func) map[LocalID]LocalID {
-	defs := map[LocalID]int{}
-	lens := map[LocalID]LocalID{}
+func iterLengths(f *midir.Func) map[midir.LocalID]midir.LocalID {
+	defs := map[midir.LocalID]int{}
+	lens := map[midir.LocalID]midir.LocalID{}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			if !in.Op.Yields() {
 				continue
 			}
 			defs[in.Dst]++
-			if in.Op == OpBuiltin && in.Str == "iter.len" && len(in.Args) == 1 {
+			if in.Op == midir.OpBuiltin && in.Str == "iter.len" && len(in.Args) == 1 {
 				lens[in.Dst] = in.Args[0]
 			}
 		}
@@ -34,9 +35,9 @@ func iterLengths(f *Func) map[LocalID]LocalID {
 	return lens
 }
 
-func lessPlace(a, b LocalID) vplace { return vplace{root: a, rel: b, tag: tagBelow} }
+func lessPlace(a, b midir.LocalID) vplace { return vplace{root: a, rel: b, tag: tagBelow} }
 
-func (vf *variantFlow) inBounds(s *variantFacts, in Inst) bool {
+func (vf *variantFlow) inBounds(s *variantFacts, in midir.Inst) bool {
 	for pl := range s.known {
 		if pl.tag == tagBelow && pl.root == in.Args[1] && vf.lenOf[pl.rel] == in.Args[0] {
 			return true
@@ -49,12 +50,12 @@ var emptyCell = variantSet{list: []sem.EntityID{1}, all: 2}
 
 func cellPlace(pl vplace) vplace { return vplace{root: pl.root, path: pl.path, tag: tagEmptied} }
 
-func (s *variantFacts) emptied(in Inst) (LocalID, bool) {
+func (s *variantFacts) emptied(in midir.Inst) (midir.LocalID, bool) {
 	if len(s.known) == 0 {
 		return 0, false
 	}
 	switch in.Op {
-	case OpCellGet, OpCellTake, OpCall, OpCallValue:
+	case midir.OpCellGet, midir.OpCellTake, midir.OpCall, midir.OpCallValue:
 		for _, a := range in.Args {
 			if _, ok := s.known[cellPlace(s.where(a))]; ok {
 				return a, true
@@ -64,7 +65,7 @@ func (s *variantFacts) emptied(in Inst) (LocalID, bool) {
 	return 0, false
 }
 
-func carriedBools(f *Func, cond []bool) []bool {
+func carriedBools(f *midir.Func, cond []bool) []bool {
 	carried := make([]bool, len(f.Locals))
 	defs := make([]int, len(f.Locals))
 	where := make([]int, len(f.Locals))
@@ -98,10 +99,10 @@ func carriedBools(f *Func, cond []bool) []bool {
 
 // cellReadAfterTake finds a cell read after, or in another block than, a
 // celltake of it; the usual plumbing takes the cell back last.
-func cellReadAfterTake(f *Func) bool {
+func cellReadAfterTake(f *midir.Func) bool {
 	for bid, blk := range f.Blocks {
 		for k, in := range blk.Insts {
-			if in.Op != OpCellTake {
+			if in.Op != midir.OpCellTake {
 				continue
 			}
 			c := in.Args[0]
@@ -109,7 +110,7 @@ func cellReadAfterTake(f *Func) bool {
 				if j > k && readsCell(later, c) {
 					return true
 				}
-				if j > k && later.Op == OpCellSet && later.Args[0] == c {
+				if j > k && later.Op == midir.OpCellSet && later.Args[0] == c {
 					break
 				}
 			}
@@ -128,9 +129,9 @@ func cellReadAfterTake(f *Func) bool {
 	return false
 }
 
-func readsCell(in Inst, c LocalID) bool {
+func readsCell(in midir.Inst, c midir.LocalID) bool {
 	switch in.Op {
-	case OpCellGet, OpCellTake, OpCall, OpCallValue:
+	case midir.OpCellGet, midir.OpCellTake, midir.OpCall, midir.OpCallValue:
 		return slices.Contains(in.Args, c)
 	}
 	return false

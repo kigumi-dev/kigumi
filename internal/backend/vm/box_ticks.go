@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -80,8 +81,8 @@ func (m *Machine) resultTick(v *obj, args []*obj) {
 }
 
 // closureCall reports a call native makes straight into an unboxed closure, which still takes and returns scalars boxed; an entry body passes its own boxes on.
-func (m *Machine) closureCall(f *mir.Func, in *mir.Inst) bool {
-	return f.Wraps == nil && in.Op == mir.OpCallValue && m.r.Types.Kind(f.Locals[in.Args[0]].Type) == sem.KClosure
+func (m *Machine) closureCall(f *midir.Func, in *midir.Inst) bool {
+	return f.Wraps == nil && in.Op == midir.OpCallValue && m.r.Types.Kind(f.Locals[in.Args[0]].Type) == sem.KClosure
 }
 
 // A local computed here is boxed by native on its way into a boxed slot; a compile-time value is an immortal on both backends.
@@ -89,13 +90,13 @@ type localFacts struct {
 	fixed, computed, boxed, param []bool
 }
 
-func (m *Machine) factsOf(f *mir.Func) localFacts {
+func (m *Machine) factsOf(f *midir.Func) localFacts {
 	lf, ok := m.boxFacts[f]
 	if ok {
 		return lf
 	}
 	if m.boxFacts == nil {
-		m.boxFacts = map[*mir.Func]localFacts{}
+		m.boxFacts = map[*midir.Func]localFacts{}
 	}
 	if m.boxParams == nil {
 		m.boxParams = mir.NewBoxedParams(m.p)
@@ -111,8 +112,8 @@ func (m *Machine) factsOf(f *mir.Func) localFacts {
 }
 
 // A literal argument is an immortal on native, and a boxed parameter is passed on in the box it arrived in, so neither takes a tick.
-func (m *Machine) argTicks(f *mir.Func, in *mir.Inst, args []*obj) {
-	if m.opts.FaultInjectAt <= 0 || in.Op != mir.OpCallValue || in.Ent != 0 {
+func (m *Machine) argTicks(f *midir.Func, in *midir.Inst, args []*obj) {
+	if m.opts.FaultInjectAt <= 0 || in.Op != midir.OpCallValue || in.Ent != 0 {
 		return
 	}
 	lf := m.factsOf(f)
@@ -126,8 +127,8 @@ func (m *Machine) argTicks(f *mir.Func, in *mir.Inst, args []*obj) {
 	}
 }
 
-func (m *Machine) storeTick(f *mir.Func, in *mir.Inst, l mir.LocalID, v *obj) {
-	if m.opts.FaultInjectAt <= 0 || in.Op != mir.OpCellSet && f.IsDirect(in.Args[0]) || !m.factsOf(f).computed[l] {
+func (m *Machine) storeTick(f *midir.Func, in *midir.Inst, l midir.LocalID, v *obj) {
+	if m.opts.FaultInjectAt <= 0 || in.Op != midir.OpCellSet && f.IsDirect(in.Args[0]) || !m.factsOf(f).computed[l] {
 		return
 	}
 	m.scalarTick(v)

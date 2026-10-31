@@ -1,20 +1,23 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // pendingCheck is a body whose borrow checks wait for the end of lowering, with the top-level body it was lowered under.
 type pendingCheck struct {
-	f   *Func
+	f   *midir.Func
 	cur sem.EntityID
 }
 
 // checkBorrowsOf defers f's borrow checks to the end of lowering, so storesParam, which reads p.ByEnt, sees every
 // lowered body; what goes through calleeBody still depends on entity order, as runPendingChecks keeps it.
-func (p *lowering) checkBorrowsOf(f *Func) {
+func (p *lowering) checkBorrowsOf(f *midir.Func) {
 	p.checks = append(p.checks, pendingCheck{f: f, cur: p.cur})
 }
 
-func (p *lowering) runBorrowChecks(f *Func) {
+func (p *lowering) runBorrowChecks(f *midir.Func) {
 	if p.borrow == nil {
 		p.borrow = newBorrowAnalysis(p.Program, p.calleeBody)
 	}

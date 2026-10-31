@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/devkit/semfixture"
@@ -53,10 +54,10 @@ fn byField(st: Store, f: Future[Int]) { st.s.set(Some(f)) }
 fn Store.bySelf(self, f: Future[Int]) { self.s.set(Some(f)) }
 `
 
-func keepProgram(t *testing.T) (*Program, func(string) *Func) { return srcProgram(t, keepSrc) }
+func keepProgram(t *testing.T) (*Program, func(string) *midir.Func) { return srcProgram(t, keepSrc) }
 
 // srcProgram builds src as package main and finds a body by name, a method's too.
-func srcProgram(t *testing.T, src string) (*Program, func(string) *Func) {
+func srcProgram(t *testing.T, src string) (*Program, func(string) *midir.Func) {
 	t.Helper()
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
@@ -66,7 +67,7 @@ func srcProgram(t *testing.T, src string) (*Program, func(string) *Func) {
 		t.Fatal(res.Render())
 	}
 	p := Build(res)
-	return p, func(name string) *Func {
+	return p, func(name string) *midir.Func {
 		if g := p.ByEnt[res.PackageMember(res.PackageByPath("main"), name)]; g != nil {
 			return g
 		}
@@ -80,22 +81,22 @@ func srcProgram(t *testing.T, src string) (*Program, func(string) *Func) {
 	}
 }
 
-func localNamed(t *testing.T, g *Func, name string) LocalID {
+func localNamed(t *testing.T, g *midir.Func, name string) midir.LocalID {
 	t.Helper()
 	for l, loc := range g.Locals {
 		if loc.Name == name {
-			return LocalID(l)
+			return midir.LocalID(l)
 		}
 	}
 	t.Fatalf("no local %s", name)
 	return 0
 }
 
-func calls(p *Program, g *Func, name string) []Inst {
-	var out []Inst
+func calls(p *Program, g *midir.Func, name string) []midir.Inst {
+	var out []midir.Inst
 	for _, blk := range g.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == OpCall && in.Ent != 0 && p.R.Entity(in.Ent).Name == name {
+			if in.Op == midir.OpCall && in.Ent != 0 && p.R.Entity(in.Ent).Name == name {
 				out = append(out, in)
 			}
 		}

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 )
 
@@ -21,7 +22,7 @@ func TestVerifyDirectRejectsAMissingPart(t *testing.T) {
 	f := funcNamed(t, p, "main.local")
 	for bi := range f.Blocks {
 		for k, in := range f.Blocks[bi].Insts {
-			if in.Op == mir.OpField && f.IsDirect(in.Args[0]) {
+			if in.Op == midir.OpField && f.IsDirect(in.Args[0]) {
 				f.Blocks[bi].Insts[k].Index = 9
 				if ve, ok := p.Verify().(*mir.Error); !ok || ve.Rule != "aggregates" || !strings.Contains(ve.Msg, "names field 9") {
 					t.Fatalf("got %v, want an aggregates error naming field 9", ve)
@@ -36,16 +37,16 @@ func TestVerifyDirectRejectsAMissingPart(t *testing.T) {
 func TestVerifyDirectRejectsCallingARecord(t *testing.T) {
 	p := planned(t, closureEnvSrc)
 	f := funcNamed(t, p, "main.local")
-	call, ok := firstOp(f, mir.OpCallValue)
+	call, ok := firstOp(f, midir.OpCallValue)
 	if !ok {
 		t.Fatalf("no value call:\n%s", p.Dump())
 	}
 	for i := range f.Locals {
-		if l := mir.LocalID(i); f.IsDirect(l) && p.R.DirectAgg(f.Locals[l].Type) && !p.R.DirectClosure(f.Locals[l].Type) {
+		if l := midir.LocalID(i); f.IsDirect(l) && p.R.DirectAgg(f.Locals[l].Type) && !p.R.DirectClosure(f.Locals[l].Type) {
 			for bi := range f.Blocks {
 				for k, in := range f.Blocks[bi].Insts {
-					if in.Op == mir.OpCallValue && in.Dst == call.Dst {
-						f.Blocks[bi].Insts[k].Args = append([]mir.LocalID{l}, in.Args[1:]...)
+					if in.Op == midir.OpCallValue && in.Dst == call.Dst {
+						f.Blocks[bi].Insts[k].Args = append([]midir.LocalID{l}, in.Args[1:]...)
 					}
 				}
 			}
@@ -68,8 +69,8 @@ fn main() -> Void! {}
 	f := funcNamed(t, p, "main.widen")
 	for bi := range f.Blocks {
 		for k, in := range f.Blocks[bi].Insts {
-			if in.Op == mir.OpCall && in.DPrim == opdef.DPConvert {
-				f.Blocks[bi].Insts[k].Args = []mir.LocalID{f.Params[1]}
+			if in.Op == midir.OpCall && in.DPrim == opdef.DPConvert {
+				f.Blocks[bi].Insts[k].Args = []midir.LocalID{f.Params[1]}
 				f.Blocks[bi].Insts[k].DPrim = opdef.DPNone
 				ve, ok := p.Verify().(*mir.Error)
 				if !ok || (ve.Rule != "types" && ve.Rule != "direct") || !strings.Contains(ve.Msg, "String") {
@@ -128,10 +129,10 @@ func TestVerifyDirectRejectsAResultInTheWrongForm(t *testing.T) {
 func TestVerifyDirectRejectsAnArgumentInTheWrongForm(t *testing.T) {
 	p := planned(t, crossingSrc)
 	f := funcNamed(t, p, "main.use")
-	call, ok := firstOp(f, mir.OpCall)
+	call, ok := firstOp(f, midir.OpCall)
 	for bi := range f.Blocks {
 		for _, in := range f.Blocks[bi].Insts {
-			if in.Op == mir.OpCall && p.R.Entity(in.Ent).Name == "take" {
+			if in.Op == midir.OpCall && p.R.Entity(in.Ent).Name == "take" {
 				call, ok = in, true
 			}
 		}

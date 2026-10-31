@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -16,7 +17,7 @@ func (p *Program) Dump() string {
 	return sb.String()
 }
 
-func (p *Program) dumpFunc(sb *strings.Builder, f *Func) {
+func (p *Program) dumpFunc(sb *strings.Builder, f *midir.Func) {
 	if f.Async {
 		sb.WriteString("async ")
 	}
@@ -46,29 +47,29 @@ func (p *Program) dumpFunc(sb *strings.Builder, f *Func) {
 	sb.WriteString("}\n")
 }
 
-func (p *Program) local(f *Func, l LocalID) string {
+func (p *Program) local(f *midir.Func, l midir.LocalID) string {
 	if int(l) >= len(f.Locals) {
 		return fmt.Sprintf("%%?%d", l)
 	}
 	return "%" + f.Locals[l].Name
 }
 
-func (p *Program) inst(f *Func, in Inst) string {
+func (p *Program) inst(f *midir.Func, in midir.Inst) string {
 	var args []string
 	for _, a := range in.Args {
 		args = append(args, p.local(f, a))
 	}
 	head := ""
 	switch in.Op {
-	case OpDrop, OpSetField, OpSetIndex, OpCellSet, OpGlobalSet, OpPanic, OpNop, OpCancelDone:
+	case midir.OpDrop, midir.OpSetField, midir.OpSetIndex, midir.OpCellSet, midir.OpGlobalSet, midir.OpPanic, midir.OpNop, midir.OpCancelDone:
 	default:
 		head = p.local(f, in.Dst) + " = "
 	}
 	body := in.Op.String()
 	switch in.Op {
-	case OpConst:
+	case midir.OpConst:
 		body += " " + litText(in) + ": " + p.R.TypeString(in.Type)
-	case OpCall, OpVariant, OpRecord, OpClosure, OpFnItem, OpBind, OpCFnPtr, OpIsVariant, OpIsType, OpGlobalGet, OpGlobalSet:
+	case midir.OpCall, midir.OpVariant, midir.OpRecord, midir.OpClosure, midir.OpFnItem, midir.OpBind, midir.OpCFnPtr, midir.OpIsVariant, midir.OpIsType, midir.OpGlobalGet, midir.OpGlobalSet:
 		body += " " + p.declName(in.Ent)
 		if in.Str != "" {
 			body += " " + in.Str
@@ -76,13 +77,13 @@ func (p *Program) inst(f *Func, in Inst) string {
 		if in.Async {
 			body += " async"
 		}
-	case OpBinary, OpUnary, OpBuiltin:
+	case midir.OpBinary, midir.OpUnary, midir.OpBuiltin:
 		body += " " + in.Str
-	case OpField, OpFieldMove, OpPayload, OpSetField, OpBorrow:
+	case midir.OpField, midir.OpFieldMove, midir.OpPayload, midir.OpSetField, midir.OpBorrow:
 		body += fmt.Sprintf(" %d", in.Index)
-	case OpBox:
+	case midir.OpBox:
 		body += " " + p.R.TypeString(in.Type)
-	case OpShare:
+	case midir.OpShare:
 		if in.Copy && in.IfWritable {
 			body += " copy-mut"
 		} else if in.Copy {
@@ -90,13 +91,13 @@ func (p *Program) inst(f *Func, in Inst) string {
 		} else {
 			body += " retain"
 		}
-	case OpBoxDirect:
+	case midir.OpBoxDirect:
 		if in.Fixed {
 			body += " fixed"
 		}
-	case OpInterp, OpShell:
+	case midir.OpInterp, midir.OpShell:
 		body += fmt.Sprintf(" %q", strings.Join(in.Strs, "\x00"))
-	case OpPanic:
+	case midir.OpPanic:
 		body += " " + fmt.Sprintf("%q", in.Str)
 	}
 	if len(args) > 0 {
@@ -105,7 +106,7 @@ func (p *Program) inst(f *Func, in Inst) string {
 	return head + body
 }
 
-func litText(in Inst) string {
+func litText(in midir.Inst) string {
 	if in.Str != "" {
 		return in.Str
 	}
@@ -130,22 +131,22 @@ func litText(in Inst) string {
 	return "0"
 }
 
-func (p *Program) term(f *Func, t Term) string {
+func (p *Program) term(f *midir.Func, t midir.Term) string {
 	switch t.Op {
-	case TermJump:
+	case midir.TermJump:
 		return fmt.Sprintf("jump b%d", t.Targets[0])
-	case TermBranch:
+	case midir.TermBranch:
 		return fmt.Sprintf("branch %s ? b%d : b%d", p.local(f, t.Args[0]), t.Targets[0], t.Targets[1])
-	case TermReturn:
+	case midir.TermReturn:
 		return "return " + p.local(f, t.Args[0])
-	case TermUnreachable:
+	case midir.TermUnreachable:
 		return "unreachable"
 	}
 	return "<no terminator>"
 }
 
 // mobility names how a Future's state may move, as classifyMobility left it.
-func (p *Program) mobility(f *Func) string {
+func (p *Program) mobility(f *midir.Func) string {
 	if e := p.R.Entity(f.Ent); e.Kind != sem.EntFn {
 		return "unknown"
 	}

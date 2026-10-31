@@ -1,8 +1,11 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
-func (s *specializer) instance(f *Func, ctx *spec, in Inst) ([]sem.TypeID, []sem.WitnessArg, bool) {
+func (s *specializer) instance(f *midir.Func, ctx *spec, in midir.Inst) ([]sem.TypeID, []sem.WitnessArg, bool) {
 	r := s.p.R
 	gen := in.Ent
 	if s.p.ByEnt[gen] == nil || !r.Specializable(gen) || s.noSpec[gen] {
@@ -24,14 +27,14 @@ func (s *specializer) instance(f *Func, ctx *spec, in Inst) ([]sem.TypeID, []sem
 	if !r.SpecializeArgs(args) && !s.protoInstance(gen, args) && !s.scalarArgs(args) || s.grows(ctx, args) {
 		return nil, nil, false
 	}
-	if in.Op == OpFnItem {
+	if in.Op == midir.OpFnItem {
 		// A function value reaches a scalar instance through an adapter that boxes the result again.
 		return args, nil, r.SpecializeArgs(args) || s.protoInstance(gen, args)
 	}
 	return args, s.witnesses(ctx, gen, r.Files[f.File].Calls[in.Node]), true
 }
 
-func (p *Program) bindTypeArgs(f *Func, in Inst, subst func(sem.TypeID) sem.TypeID) ([]sem.TypeID, bool) {
+func (p *Program) bindTypeArgs(f *midir.Func, in midir.Inst, subst func(sem.TypeID) sem.TypeID) ([]sem.TypeID, bool) {
 	r := p.R
 	gen := in.Ent
 	info := r.Fn(gen)
@@ -40,7 +43,7 @@ func (p *Program) bindTypeArgs(f *Func, in Inst, subst func(sem.TypeID) sem.Type
 		want[tp] = !r.IsLifetimeParam(tp)
 	}
 	bound := map[sem.EntityID]sem.TypeID{}
-	if in.Op == OpFnItem {
+	if in.Op == midir.OpFnItem {
 		if in.Async || info.Recv != sem.RecvNone || len(info.Witnesses) > 0 {
 			return nil, false
 		}

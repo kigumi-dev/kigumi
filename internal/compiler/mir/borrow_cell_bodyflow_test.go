@@ -3,6 +3,7 @@ package mir
 import (
 	"testing"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/devkit/semfixture"
@@ -11,12 +12,17 @@ import (
 )
 
 func TestBodyRolesCoverEveryOpcode(t *testing.T) {
-	for op, s := range shapes {
+	for n := range 256 {
+		op := midir.Opcode(n)
+		s, exists := op.Shape()
+		if !exists {
+			continue
+		}
 		role, ok := bodyRoles[op]
 		switch {
 		case !ok:
 			t.Errorf("%s has no bodyFacts role", op)
-		case (role == roleCarry || role == roleFresh) && !s.result:
+		case (role == roleCarry || role == roleFresh) && !s.Result:
 			t.Errorf("%s is given a result role but defines no result", op)
 		}
 	}
@@ -143,7 +149,7 @@ func TestBodyFactsFollowsEveryRole(t *testing.T) {
 			fs := c.bodyFacts(f)
 			for l, loc := range f.Locals {
 				if loc.Name == local {
-					return fs[LocalID(l)][fact]
+					return fs[midir.LocalID(l)][fact]
 				}
 			}
 			t.Fatalf("%s has no local %s", fn, local)

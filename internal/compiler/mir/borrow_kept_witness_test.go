@@ -1,6 +1,10 @@
 package mir
 
-import "testing"
+import (
+	"testing"
+
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
 func TestKeptWitnessSummaries(t *testing.T) {
 	p, body := srcProgram(t, `
@@ -57,7 +61,7 @@ fn out(h: &mut Sink, f: Future[usize]) { h.put(f) }
 	c := collected(p, g)
 	for _, blk := range g.Blocks {
 		for _, in := range blk.Insts {
-			if (in.Op != OpCall && in.Op != OpCallValue) || !c.ifaceRequirement(in.Ent) {
+			if (in.Op != midir.OpCall && in.Op != midir.OpCallValue) || !c.ifaceRequirement(in.Ent) {
 				continue
 			}
 			fls := c.keptFlows(in)

@@ -7,6 +7,7 @@ import (
 
 	"kigumi/internal/backend/llgen"
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const argBoxSrc = `
@@ -50,7 +51,7 @@ fn main() {
 
 var scalarBoxCall = regexp.MustCompile(`call ptr @rt_(int|float|char|box_int128|binop|unop|cast)\(`)
 
-func paramOf(p *mir.Program, ent mir.Inst, i int) string {
+func paramOf(p *mir.Program, ent midir.Inst, i int) string {
 	if g := p.ByEnt[ent.Ent]; g != nil {
 		return g.Locals[g.Params[i]].Name
 	}
@@ -62,7 +63,7 @@ func paramOf(p *mir.Program, ent mir.Inst, i int) string {
 func TestScalarBoxSitesMatchTheEmittedBoxes(t *testing.T) {
 	p := plannedProgram(t, argBoxSrc)
 	opts := llgen.EmitOptions{Reachable: mir.Reachable(p)}
-	var fill *mir.Func
+	var fill *midir.Func
 	for _, f := range p.Funcs {
 		if f.Name == "main.fill" {
 			fill = f

@@ -6,17 +6,18 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func cloneFunc(f *mir.Func) *mir.Func {
+func cloneFunc(f *midir.Func) *midir.Func {
 	nf := *f
 	nf.Params = slices.Clone(f.Params)
 	nf.Locals = slices.Clone(f.Locals)
 	nf.Direct = slices.Clone(f.Direct)
 	nf.Slot = slices.Clone(f.Slot)
 	nf.PanicDrop = slices.Clone(f.PanicDrop)
-	nf.Cleanup = make([][]mir.LocalID, len(f.Cleanup))
+	nf.Cleanup = make([][]midir.LocalID, len(f.Cleanup))
 	for i, c := range f.Cleanup {
 		nf.Cleanup[i] = slices.Clone(c)
 	}
@@ -25,9 +26,9 @@ func cloneFunc(f *mir.Func) *mir.Func {
 		s.Params = slices.Clone(s.Params)
 		nf.DSig = &s
 	}
-	nf.Blocks = make([]mir.Block, len(f.Blocks))
+	nf.Blocks = make([]midir.Block, len(f.Blocks))
 	for i, b := range f.Blocks {
-		nb := mir.Block{Insts: make([]mir.Inst, len(b.Insts)), Term: b.Term}
+		nb := midir.Block{Insts: make([]midir.Inst, len(b.Insts)), Term: b.Term}
 		for k, in := range b.Insts {
 			in.Args = slices.Clone(in.Args)
 			in.Strs = slices.Clone(in.Strs)
@@ -41,8 +42,8 @@ func cloneFunc(f *mir.Func) *mir.Func {
 }
 
 func cloneProgram(p *mir.Program) *mir.Program {
-	c := &mir.Program{R: p.R, ByEnt: map[sem.EntityID]*mir.Func{}, Resources: p.Resources}
-	mapped := map[*mir.Func]*mir.Func{}
+	c := &mir.Program{R: p.R, ByEnt: map[sem.EntityID]*midir.Func{}, Resources: p.Resources}
+	mapped := map[*midir.Func]*midir.Func{}
 	for _, f := range p.Funcs {
 		nf := cloneFunc(f)
 		mapped[f] = nf

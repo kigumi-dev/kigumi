@@ -3,6 +3,7 @@ package mir
 import (
 	"strings"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
@@ -14,8 +15,8 @@ var isrCheckedOps = map[string]bool{"+": true, "-": true, "*": true, "/": true, 
 var isrPureBuiltins = map[string]bool{"direct.eq": true, "direct.hash": true, builtinCmpUnordered: true, builtinCmpGuard: true}
 
 // isrForbidden names what in does that no interrupt handler may, "" when it is fine; releases selects the release pass.
-func (p *Program) isrForbidden(f *Func, in Inst, inert []bool, releases bool) string {
-	if in.Op == OpDrop || in.Op == OpRelease {
+func (p *Program) isrForbidden(f *midir.Func, in midir.Inst, inert []bool, releases bool) string {
+	if in.Op == midir.OpDrop || in.Op == midir.OpRelease {
 		if l := in.Args[0]; releases && !p.isrInertDrop(f, l, inert) {
 			return "releases a `" + p.R.TypeString(f.Locals[l].Type) + "` that may free memory"
 		}
@@ -33,43 +34,43 @@ func (p *Program) isrForbidden(f *Func, in Inst, inert []bool, releases bool) st
 	if p.allocCopy(f, in) {
 		return "copies a value into a fresh allocation"
 	}
-	if in.NoTrap && (in.Op == OpPanic || in.Op == OpBinary || in.Op == OpIndex || in.Op == OpSetIndex) {
+	if in.NoTrap && (in.Op == midir.OpPanic || in.Op == midir.OpBinary || in.Op == midir.OpIndex || in.Op == midir.OpSetIndex) {
 		return ""
 	}
 	switch in.Op {
-	case OpPanic:
+	case midir.OpPanic:
 		return "may panic"
-	case OpIndex, OpSetIndex:
+	case midir.OpIndex, midir.OpSetIndex:
 		return "may panic on an out-of-bounds index"
-	case OpBinary, OpUnary:
+	case midir.OpBinary, midir.OpUnary:
 		if isrCheckedOps[in.Str] && p.R.Types.IsInteger(f.Locals[in.Dst].Type) {
 			return "may panic on integer overflow or a zero divisor"
 		}
-	case OpBuiltin:
+	case midir.OpBuiltin:
 		if !isrPureBuiltins[in.Str] && !strings.HasPrefix(in.Str, "atomic.") && !strings.HasPrefix(in.Str, "volatile.") {
 			return "calls the runtime helper `" + in.Str + "`"
 		}
-	case OpShell, OpInterp:
+	case midir.OpShell, midir.OpInterp:
 		return "allocates a new value"
-	case OpAwait, OpFutureNew, OpFutureDone, OpCancelled, OpCancelDone:
+	case midir.OpAwait, midir.OpFutureNew, midir.OpFutureDone, midir.OpCancelled, midir.OpCancelDone:
 		return "suspends or builds a future"
-	case OpCallC:
+	case midir.OpCallC:
 		return "calls through a C function pointer no contract covers"
-	case OpRecord, OpArray, OpBox:
+	case midir.OpRecord, midir.OpArray, midir.OpBox:
 		if !f.IsDirect(in.Dst) {
 			return "allocates a new `" + p.R.TypeString(f.Locals[in.Dst].Type) + "`"
 		}
-	case OpVariant, OpClosure:
+	case midir.OpVariant, midir.OpClosure:
 		if len(in.Args) > 0 && !f.IsDirect(in.Dst) {
 			return "allocates a new `" + p.R.TypeString(f.Locals[in.Dst].Type) + "`"
 		}
-	case OpNewCell:
+	case midir.OpNewCell:
 		if !in.Scoped && !in.Lent {
 			return "allocates a cell"
 		}
-	case OpCall:
+	case midir.OpCall:
 		return p.isrCallForbidden(f, in)
-	case OpCallValue:
+	case midir.OpCallValue:
 		if p.isrValueTarget(f, in.Args[0]) == nil {
 			return "calls a function value whose target the lowering cannot see"
 		}
@@ -77,14 +78,14 @@ func (p *Program) isrForbidden(f *Func, in Inst, inert []bool, releases bool) st
 	return ""
 }
 
-func (p *Program) isrInertDrop(f *Func, l LocalID, inert []bool) bool {
+func (p *Program) isrInertDrop(f *midir.Func, l midir.LocalID, inert []bool) bool {
 	t := f.Locals[l].Type
 	return p.R.CannotOwn(t) || f.IsDirect(l) && !p.R.CountedAdt(t) || p.isrImmortal(f, l, inert)
 }
 
 // isrInertArgs marks the parameters of g that the call in passes an immortal value; a callback reached through a primitive has no positional mapping.
-func (p *Program) isrInertArgs(f *Func, in Inst, g *Func, inert []bool) []bool {
-	if in.Op != OpCall || p.ByEnt[in.Ent] != g || len(in.Args) != len(g.Params) {
+func (p *Program) isrInertArgs(f *midir.Func, in midir.Inst, g *midir.Func, inert []bool) []bool {
+	if in.Op != midir.OpCall || p.ByEnt[in.Ent] != g || len(in.Args) != len(g.Params) {
 		return nil
 	}
 	var out []bool
@@ -99,12 +100,12 @@ func (p *Program) isrInertArgs(f *Func, in Inst, g *Func, inert []bool) []bool {
 	return out
 }
 
-func isrInertParam(f *Func, l LocalID, inert []bool) bool {
+func isrInertParam(f *midir.Func, l midir.LocalID, inert []bool) bool {
 	i := isrParamIndex(f, l)
 	return i >= 0 && i < len(inert) && inert[i]
 }
 
-func isrParamIndex(f *Func, l LocalID) int {
+func isrParamIndex(f *midir.Func, l midir.LocalID) int {
 	for i, q := range f.Params {
 		if q == l {
 			return i
@@ -114,11 +115,11 @@ func isrParamIndex(f *Func, l LocalID) int {
 }
 
 type isrVisit struct {
-	f     *Func
+	f     *midir.Func
 	inert string
 }
 
-func isrVisitKey(f *Func, inert []bool) isrVisit {
+func isrVisitKey(f *midir.Func, inert []bool) isrVisit {
 	b := make([]byte, len(inert))
 	for i, v := range inert {
 		b[i] = '0'
@@ -130,7 +131,7 @@ func isrVisitKey(f *Func, inert []bool) isrVisit {
 }
 
 // isrCallForbidden rejects a call the backend runs through a boxing runtime path or a foreign symbol.
-func (p *Program) isrCallForbidden(f *Func, in Inst) string {
+func (p *Program) isrCallForbidden(f *midir.Func, in midir.Inst) string {
 	name := p.R.Entity(in.Ent).Name
 	if p.R.Entity(in.Ent).Kind == sem.EntFn && p.R.Fn(in.Ent).Abi != "" {
 		return "calls the foreign function `" + name + "`"

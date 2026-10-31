@@ -3,6 +3,7 @@ package mir
 import (
 	"testing"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -28,17 +29,17 @@ fn caller(w: fn(Int) -> Int, f: Future[usize]) {
 func TestCallFlowsResolveCallee(t *testing.T) {
 	p, body := srcProgram(t, flowCalleeSrc)
 	g := body("caller")
-	c := &borrowCheck{p: p, f: g, holders: map[LocalID]*borrowInfo{}}
+	c := &borrowCheck{p: p, f: g, holders: map[midir.LocalID]*borrowInfo{}}
 	seen := map[string]bool{}
 	for _, blk := range g.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == OpCallValue && in.Ent == 0 {
+			if in.Op == midir.OpCallValue && in.Ent == 0 {
 				if e, _ := c.flowCallee(in); e != 0 {
 					t.Errorf("unknown function parameter resolved to %d", e)
 				}
 				seen["unknown"] = true
 			}
-			if in.Op != OpFutureNew {
+			if in.Op != midir.OpFutureNew {
 				continue
 			}
 			e, args := c.flowCallee(in)
@@ -46,11 +47,11 @@ func TestCallFlowsResolveCallee(t *testing.T) {
 				t.Fatalf("direct future callee = %d, args = %v, instruction = %+v", e, args, in)
 			}
 			name := p.R.Entity(e).Name
-			for _, call := range []Inst{
+			for _, call := range []midir.Inst{
 				in,
-				{Op: OpCall, Ent: e, Args: args},
-				{Op: OpCallValue, Ent: e, Args: in.Args},
-				{Op: OpCallValue, Args: in.Args},
+				{Op: midir.OpCall, Ent: e, Args: args},
+				{Op: midir.OpCallValue, Ent: e, Args: in.Args},
+				{Op: midir.OpCallValue, Args: in.Args},
 			} {
 				if name == "putA" {
 					assertSignatureFlow(t, c.callFlows(call), e, args)
@@ -74,7 +75,7 @@ func TestCallFlowsResolveCallee(t *testing.T) {
 	}
 }
 
-func assertSignatureFlow(t *testing.T, flows []storeFlow, e sem.EntityID, args []LocalID) {
+func assertSignatureFlow(t *testing.T, flows []storeFlow, e sem.EntityID, args []midir.LocalID) {
 	t.Helper()
 	if len(flows) != 1 {
 		t.Fatalf("flows = %+v, want one", flows)

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 // TestRunOptions configures `kigumi test`'s surface over RunTests: stable ids, --list, one filter, per-test/suite deadlines and a JSON event stream.
@@ -30,7 +31,7 @@ type TestRunOptions struct {
 }
 
 type testCase struct {
-	f    *mir.Func
+	f    *midir.Func
 	id   TestID
 	site mir.Site
 }

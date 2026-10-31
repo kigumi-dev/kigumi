@@ -3,19 +3,20 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // closureLiteral is the closure literal l is a copy of.
-func (c *borrowCheck) closureLiteral(l LocalID) *Inst {
-	if d := c.defThrough(l, OpClosure); d != nil && c.p.R.Entity(d.Ent).Kind == sem.EntClosure {
+func (c *borrowCheck) closureLiteral(l midir.LocalID) *midir.Inst {
+	if d := c.defThrough(l, midir.OpClosure); d != nil && c.p.R.Entity(d.Ent).Kind == sem.EntClosure {
 		return d
 	}
 	return nil
 }
 
 // defThrough is the instruction of opcode op that l is a copy of.
-func (c *borrowCheck) defThrough(l LocalID, op Opcode) *Inst {
+func (c *borrowCheck) defThrough(l midir.LocalID, op midir.Opcode) *midir.Inst {
 	for range 8 {
 		d := c.soleDef(l)
 		switch {
@@ -23,7 +24,7 @@ func (c *borrowCheck) defThrough(l LocalID, op Opcode) *Inst {
 			return nil
 		case d.Op == op:
 			return d
-		case len(d.Args) == 0 || d.Op != OpCopy && d.Op != OpMove && d.Op != OpAlias:
+		case len(d.Args) == 0 || d.Op != midir.OpCopy && d.Op != midir.OpMove && d.Op != midir.OpAlias:
 			return nil
 		}
 		l = d.Args[0]
@@ -32,14 +33,14 @@ func (c *borrowCheck) defThrough(l LocalID, op Opcode) *Inst {
 }
 
 // capturesHolder reports a closure that captures a `&mut`, or a value keeping one, so running it may store there.
-func (c *borrowCheck) capturesHolder(l LocalID) bool {
+func (c *borrowCheck) capturesHolder(l midir.LocalID) bool {
 	lit := c.closureLiteral(l)
-	return lit != nil && slices.ContainsFunc(lit.Args, func(a LocalID) bool { return c.storesMutRef(c.f.Locals[a].Type) })
+	return lit != nil && slices.ContainsFunc(lit.Args, func(a midir.LocalID) bool { return c.storesMutRef(c.f.Locals[a].Type) })
 }
 
 // captureReach adds, for a closure the callee may run, the places its body may store into through each capture; a
 // holder this frame took as a parameter reaches its caller's places, which addCaller checks as such.
-func (c *borrowCheck) captureReach(lit *Inst, add, addCaller func(LocalID)) {
+func (c *borrowCheck) captureReach(lit *midir.Inst, add, addCaller func(midir.LocalID)) {
 	h := c.p.ByEnt[lit.Ent]
 	for j, a := range lit.Args {
 		sites := c.paramStoreSites(h, j)
@@ -62,7 +63,7 @@ func (c *borrowCheck) captureReach(lit *Inst, add, addCaller func(LocalID)) {
 	}
 }
 
-func (c *borrowCheck) captureRefReach(lit *Inst, j int, add, addCaller func(LocalID)) {
+func (c *borrowCheck) captureRefReach(lit *midir.Inst, j int, add, addCaller func(midir.LocalID)) {
 	a := lit.Args[j]
 	if p, ok := c.heldRead(a); ok {
 		addCaller(p)
@@ -84,14 +85,14 @@ func (c *borrowCheck) captureRefReach(lit *Inst, j int, add, addCaller func(Loca
 
 // callableMayStore reports whether code passed as l may store through what it is called with: a closure literal, fn
 // item or bound method (an interface witness) answers by its body's summaries, anything else may.
-func (c *borrowCheck) callableMayStore(l LocalID) bool {
-	var h *Func
+func (c *borrowCheck) callableMayStore(l midir.LocalID) bool {
+	var h *midir.Func
 	skip := 0
 	if lit := c.closureLiteral(l); lit != nil {
 		h, skip = c.p.ByEnt[lit.Ent], len(lit.Args)
-	} else if d := c.defThrough(l, OpFnItem); d != nil {
+	} else if d := c.defThrough(l, midir.OpFnItem); d != nil {
 		h = c.p.ByEnt[d.Ent]
-	} else if d := c.defThrough(l, OpBind); d != nil {
+	} else if d := c.defThrough(l, midir.OpBind); d != nil {
 		h, skip = c.p.ByEnt[d.Ent], len(d.Args)
 	}
 	return len(c.callableSites(h, skip, siteStores)) > 0
@@ -99,7 +100,7 @@ func (c *borrowCheck) callableMayStore(l LocalID) bool {
 
 // captureValues are the captures a closure's body may store under another capture, and the parts of a capture it may
 // store back under the same one; param -1 keeps the callee's own summaries off them.
-func (c *borrowCheck) captureValues(lit *Inst) []flowArg {
+func (c *borrowCheck) captureValues(lit *midir.Inst) []flowArg {
 	h := c.p.ByEnt[lit.Ent]
 	var out []flowArg
 	for i, a := range lit.Args {

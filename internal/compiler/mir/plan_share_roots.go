@@ -3,11 +3,12 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 type rootRef struct {
-	l          LocalID
+	l          midir.LocalID
 	own, inner bool
 }
 
@@ -36,24 +37,24 @@ func (s *rootSet) merge(o rootSet) {
 }
 
 type rootKey struct {
-	l     LocalID
+	l     midir.LocalID
 	inner bool
 }
 
 // Until the bindings are decided, every binding counts as sharing its source.
-func (w *shareFacts) rootsOf(v LocalID) rootSet {
+func (w *shareFacts) rootsOf(v midir.LocalID) rootSet {
 	if rs, ok := w.memo[v]; ok {
 		return rs
 	}
 	rs := w.collect(v, false, map[rootKey]bool{})
 	if w.memo == nil {
-		w.memo = map[LocalID]rootSet{}
+		w.memo = map[midir.LocalID]rootSet{}
 	}
 	w.memo[v] = rs
 	return rs
 }
 
-func (w *shareFacts) collect(v LocalID, inner bool, seen map[rootKey]bool) rootSet {
+func (w *shareFacts) collect(v midir.LocalID, inner bool, seen map[rootKey]bool) rootSet {
 	var rs rootSet
 	if seen[rootKey{v, inner}] {
 		return rs
@@ -73,12 +74,12 @@ func (w *shareFacts) collect(v LocalID, inner bool, seen map[rootKey]bool) rootS
 		switch {
 		case projects(*in):
 			rs.merge(w.collect(in.Args[0], true, seen))
-		case in.Op == OpShare && in.Copy, in.Op == OpCopy && in.Share:
+		case in.Op == midir.OpShare && in.Copy, in.Op == midir.OpCopy && in.Share:
 		case passesOn(in.Op):
 			rs.merge(w.collect(in.Args[0], inner, seen))
-		case in.Op == OpGlobalGet:
+		case in.Op == midir.OpGlobalGet:
 			rs.other = true
-		case in.Op == OpCall, in.Op == OpCallValue:
+		case in.Op == midir.OpCall, in.Op == midir.OpCallValue:
 			rs.merge(w.callRoots(*in, seen))
 		}
 	}
@@ -86,10 +87,10 @@ func (w *shareFacts) collect(v LocalID, inner bool, seen map[rootKey]bool) rootS
 }
 
 // A value call's callee is unknown, so every reference it is handed counts.
-func (w *shareFacts) callRoots(in Inst, seen map[rootKey]bool) rootSet {
+func (w *shareFacts) callRoots(in midir.Inst, seen map[rootKey]bool) rootSet {
 	var rs rootSet
 	for i, a := range in.Args {
-		byRef := in.Op == OpCallValue && i > 0 && w.p.R.Types.Kind(w.f.Locals[a].Type) == sem.KRef
+		byRef := in.Op == midir.OpCallValue && i > 0 && w.p.R.Types.Kind(w.f.Locals[a].Type) == sem.KRef
 		if byRef || w.sum.lendsResult(in, i) {
 			rs.merge(w.collect(a, true, seen))
 		}
@@ -98,7 +99,7 @@ func (w *shareFacts) callRoots(in Inst, seen map[rootKey]bool) rootSet {
 }
 
 // A closure's captures stay in its environment for the next call.
-func (p *Program) lentLocal(f *Func, v LocalID) bool {
+func (p *Program) lentLocal(f *midir.Func, v midir.LocalID) bool {
 	i := slices.Index(f.Params, v)
 	if i < 0 {
 		return false
@@ -107,20 +108,20 @@ func (p *Program) lentLocal(f *Func, v LocalID) bool {
 	return l.Borrowed || l.Cell || p.R.Types.Kind(l.Type) == sem.KRef || i < p.captures(f)
 }
 
-func (p *Program) captures(f *Func) int {
+func (p *Program) captures(f *midir.Func) int {
 	if f.Ent == 0 || p.R.Entity(f.Ent).Kind != sem.EntClosure {
 		return 0
 	}
 	return len(p.R.AggFields(p.R.Types.Closure(f.Ent)))
 }
 
-func (w *shareFacts) untracked(v LocalID) bool {
+func (w *shareFacts) untracked(v midir.LocalID) bool {
 	l := w.f.Locals[v]
 	return l.Cell && !l.Borrowed && w.p.R.Types.Kind(l.Type) != sem.KRef
 }
 
 // PlanRC already copies a named local's own value wherever it is taken over or returned.
-func (w *shareFacts) aliasOfNamed(v LocalID) bool {
+func (w *shareFacts) aliasOfNamed(v midir.LocalID) bool {
 	for range w.nLocals {
 		if w.f.Locals[v].Ent != 0 {
 			return true
@@ -129,7 +130,7 @@ func (w *shareFacts) aliasOfNamed(v LocalID) bool {
 		if len(ds) != 1 || len(ds[0].Args) != 1 {
 			return false
 		}
-		if in := ds[0]; in.Op != OpAlias && (in.Op != OpCopy || in.Share) {
+		if in := ds[0]; in.Op != midir.OpAlias && (in.Op != midir.OpCopy || in.Share) {
 			return false
 		}
 		v = ds[0].Args[0]
@@ -137,11 +138,11 @@ func (w *shareFacts) aliasOfNamed(v LocalID) bool {
 	return false
 }
 
-func (w *shareFacts) viewersOf(l LocalID) []LocalID {
+func (w *shareFacts) viewersOf(l midir.LocalID) []midir.LocalID {
 	if w.viewers == nil {
-		w.viewers = map[LocalID][]LocalID{}
+		w.viewers = map[midir.LocalID][]midir.LocalID{}
 		for i := range w.nLocals {
-			v := LocalID(i)
+			v := midir.LocalID(i)
 			if w.p.R.Types.Kind(w.f.Locals[v].Type) == sem.KPrim {
 				continue
 			}

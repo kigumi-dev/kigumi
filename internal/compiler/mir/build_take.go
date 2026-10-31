@@ -2,13 +2,14 @@ package mir
 
 import (
 	"kigumi/internal/compiler/hir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
 
 // takesScrutinee: the pattern moved a resource out of a named scrutinee and left only Copy parts,
 // so emptying the scrutinee leaves the bindings as the only owners.
-func (b *builder) takesScrutinee(p *hir.Pat, v LocalID) bool {
+func (b *builder) takesScrutinee(p *hir.Pat, v midir.LocalID) bool {
 	if p == nil || p.Borrow || p.Kind == hir.PatBind || !b.wholeLocal(v) {
 		return false
 	}
@@ -90,10 +91,10 @@ func (b *builder) patFieldCount(p *hir.Pat) int {
 }
 
 // takeScrutinee sits at the first moving binding, so a borrow conflict reports there only once.
-func (b *builder) takeScrutinee(v LocalID, p *hir.Pat, guarded bool) {
+func (b *builder) takeScrutinee(v midir.LocalID, p *hir.Pat, guarded bool) {
 	n := b.movingBind(p)
-	t := b.emit(Inst{Op: OpMove, Dst: b.temp(b.fn.Locals[v].Type), Args: []LocalID{v}, Node: n, Guarded: guarded, Rest: true})
-	b.emit(Inst{Op: OpDrop, Args: []LocalID{t}, Node: n, Rest: true})
+	t := b.emit(midir.Inst{Op: midir.OpMove, Dst: b.temp(b.fn.Locals[v].Type), Args: []midir.LocalID{v}, Node: n, Guarded: guarded, Rest: true})
+	b.emit(midir.Inst{Op: midir.OpDrop, Args: []midir.LocalID{t}, Node: n, Rest: true})
 }
 
 func (b *builder) movingBind(p *hir.Pat) syntax.NodeID {
@@ -123,7 +124,7 @@ func (b *builder) movingBind(p *hir.Pat) syntax.NodeID {
 }
 
 // takesField moves a bound resource field out of a named record, leaving the rest to drop with the record's scope.
-func (b *builder) takesField(p *hir.Pat, f *hir.PatField, v LocalID) bool {
+func (b *builder) takesField(p *hir.Pat, f *hir.PatField, v midir.LocalID) bool {
 	if b.guardedArm || f.Payload || p.Variant || p.Borrow || !b.wholeLocal(v) || !b.r.HoldsResource(f.Type) || b.recordTaken(p) {
 		return false
 	}

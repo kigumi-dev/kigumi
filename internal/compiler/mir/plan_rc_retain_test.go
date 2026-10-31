@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const retainSrc = `
@@ -63,10 +64,10 @@ fn writesLoop(xs: FixedArray[Named, 2]) -> Int {
 fn main() -> Void! {}
 `
 
-func retainsOf(p *mir.Program, f *mir.Func) (retains, copies int) {
+func retainsOf(p *mir.Program, f *midir.Func) (retains, copies int) {
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op != mir.OpShare {
+			if in.Op != midir.OpShare {
 				continue
 			}
 			switch {

@@ -3,14 +3,15 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // captureStep follows work closures keep by themselves: one built with a body that may detach sends what it captures to
 // the task scope, and what a closure that may keep values is built with or run on goes to whatever keeps that closure.
-func (c *borrowCheck) captureStep(in Inst, s flowSets, put func(LocalID, uint32)) {
+func (c *borrowCheck) captureStep(in midir.Inst, s flowSets, put func(midir.LocalID, uint32)) {
 	switch in.Op {
-	case OpClosure:
+	case midir.OpClosure:
 		if c.p.R.Entity(in.Ent).Kind != sem.EntClosure {
 			return
 		}
@@ -28,10 +29,10 @@ func (c *borrowCheck) captureStep(in Inst, s flowSets, put func(LocalID, uint32)
 		if c.mayKeep(in.Ent) {
 			c.keepInto([]sem.EntityID{in.Ent}, in.Args, s, put)
 		}
-	case OpCall, OpCallValue, OpAwait:
+	case midir.OpCall, midir.OpCallValue, midir.OpAwait:
 		var run []sem.EntityID
 		for k, a := range in.Args {
-			if in.Op == OpCallValue && k == 0 || c.argRunnable(in, k) {
+			if in.Op == midir.OpCallValue && k == 0 || c.argRunnable(in, k) {
 				held, _ := c.splitOffloadFacts(s[a], a)
 				for _, cl := range held {
 					if c.p.R.Entity(cl).Kind != sem.EntClosure {
@@ -55,8 +56,8 @@ func (c *borrowCheck) captureStep(in Inst, s flowSets, put func(LocalID, uint32)
 
 // keepInto puts what the given values carry into every value holding one of the closures, and into the cells,
 // borrowed locals and shared storage their literals here capture.
-func (c *borrowCheck) keepInto(cls []sem.EntityID, from []LocalID, s flowSets, put func(LocalID, uint32)) {
-	var dsts []LocalID
+func (c *borrowCheck) keepInto(cls []sem.EntityID, from []midir.LocalID, s flowSets, put func(midir.LocalID, uint32)) {
+	var dsts []midir.LocalID
 	for l, fs := range s {
 		if slices.ContainsFunc(cls, func(cl sem.EntityID) bool { return fs[uint32(cl)] }) {
 			dsts = append(dsts, l)
@@ -105,10 +106,10 @@ func (c *borrowCheck) mayKeep(cl sem.EntityID) bool {
 		var out []sem.EntityID
 		for _, blk := range g.Blocks {
 			for _, in := range blk.Insts {
-				if in.Op == OpCallValue && c.calleeClosure(g, in) == 0 && len(in.Args) > 1 && c.p.R.Types.Kind(g.Locals[in.Args[0]].Type) != sem.KFn {
+				if in.Op == midir.OpCallValue && c.calleeClosure(g, in) == 0 && len(in.Args) > 1 && c.p.R.Types.Kind(g.Locals[in.Args[0]].Type) != sem.KFn {
 					direct = true
 				}
-				if in.Op == OpCall || in.Op == OpCallValue || in.Op == OpClosure {
+				if in.Op == midir.OpCall || in.Op == midir.OpCallValue || in.Op == midir.OpClosure {
 					for _, a := range in.Args {
 						out = append(out, c.typeClosures(g.Locals[a].Type)...)
 					}
@@ -120,11 +121,11 @@ func (c *borrowCheck) mayKeep(cl sem.EntityID) bool {
 }
 
 // closureSites are the captured locals of each literal of closure cl in this body.
-func (c *borrowCheck) closureSites(cl sem.EntityID) [][]LocalID {
-	var out [][]LocalID
+func (c *borrowCheck) closureSites(cl sem.EntityID) [][]midir.LocalID {
+	var out [][]midir.LocalID
 	for _, blk := range c.f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == OpClosure && in.Ent == cl {
+			if in.Op == midir.OpClosure && in.Ent == cl {
 				out = append(out, in.Args)
 			}
 		}

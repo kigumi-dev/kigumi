@@ -3,10 +3,11 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func (c *borrowCheck) boundCalleeQuiet(g *Func, param, slot int) bool {
+func (c *borrowCheck) boundCalleeQuiet(g *midir.Func, param, slot int) bool {
 	e := c.p.R.Entity(g.Ent)
 	if e.Kind != sem.EntFn || e.Vis.Level != sem.VisPrivate || c.p.R.Fn(g.Ent).Export != "" {
 		return false
@@ -22,7 +23,7 @@ func (c *borrowCheck) boundCalleeQuiet(g *Func, param, slot int) bool {
 				if in.Ent != g.Ent {
 					continue
 				}
-				if in.Op != OpCall || param >= len(in.Args) {
+				if in.Op != midir.OpCall || param >= len(in.Args) {
 					return false
 				}
 				seen = true

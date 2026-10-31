@@ -3,11 +3,11 @@ package llgen
 import (
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 // Records the shape without reserving storage: an inline ADT needs none unless it crosses.
-func (e *emitter) variantShape(in mir.Inst, keys map[mir.LocalID]string) (string, bool) {
+func (e *emitter) variantShape(in midir.Inst, keys map[midir.LocalID]string) (string, bool) {
 	d := e.vdesc(in.Ent)
 	if len(in.Args) == 0 {
 		e.constShape[d] = constVal{vdesc: d}
@@ -37,7 +37,7 @@ func (e *emitter) commitConst(key string) {
 	e.registerConst(key, cv)
 }
 
-func fixedShape(shape map[mir.LocalID]string, l mir.LocalID) string {
+func fixedShape(shape map[midir.LocalID]string, l midir.LocalID) string {
 	k, ok := shape[l]
 	if !ok {
 		panic("llgen: mir marks a crossing fixed whose value has no immortal shape")

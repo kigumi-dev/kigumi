@@ -3,13 +3,14 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
 
 // projectionLifetime is the parameter lifetime a borrow of place l under root lives for: all of a
 // reference's (or elided receiver's) referent, or only what a lifetime-typed value reaches through a reference.
-func (c *borrowCheck) projectionLifetime(root, l LocalID) sem.EntityID {
+func (c *borrowCheck) projectionLifetime(root, l midir.LocalID) sem.EntityID {
 	isRef := c.p.R.Types.Kind(c.f.Locals[root].Type) == sem.KRef
 	if !isRef && !slices.Contains(c.f.Params, root) {
 		return 0
@@ -52,22 +53,22 @@ func referentLifetime(b *borrowInfo) sem.EntityID {
 }
 
 type recvBorrowKey struct {
-	arg  LocalID
+	arg  midir.LocalID
 	mut  bool
 	node syntax.NodeID
 }
 
 // receiverPlaceInfo is the borrow a call whose result takes its receiver's elided lifetime makes of the
 // receiver's place, and through a reference place also of what it borrows, cached per argument.
-func (c *borrowCheck) receiverPlaceInfo(a LocalID, mut bool) (*borrowInfo, bool) {
+func (c *borrowCheck) receiverPlaceInfo(a midir.LocalID, mut bool) (*borrowInfo, bool) {
 	key := recvBorrowKey{a, mut, c.callNode}
 	if b, ok := c.recvBorrows[key]; ok {
 		return b, true
 	}
-	if d := c.definition(a); d != nil && d.Op == OpNewCell {
+	if d := c.definition(a); d != nil && d.Op == midir.OpNewCell {
 		a = d.Args[0]
 	}
-	if d := c.definition(a); d != nil && d.Op == OpShare {
+	if d := c.definition(a); d != nil && d.Op == midir.OpShare {
 		a = d.Args[0]
 	}
 	root, path, exact, ok := c.patternPlace(a)

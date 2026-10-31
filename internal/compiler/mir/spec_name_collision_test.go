@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/devkit/semfixture"
@@ -14,11 +15,11 @@ import (
 func nameSpecs(res *sem.Result, order []string) []string {
 	pkg := res.PackageByPath("main")
 	s := &specializer{p: &Program{R: res}, names: map[string]*nameHolder{}}
-	var funcs []*Func
+	var funcs []*midir.Func
 	for _, name := range order {
 		wit := []sem.WitnessArg{{Kind: sem.WitnessFn, Ent: res.PackageMember(pkg, name)}}
 		n, h := s.instanceName("main.id", nil, wit)
-		h.fn = &Func{Name: n}
+		h.fn = &midir.Func{Name: n}
 		funcs = append(funcs, h.fn)
 	}
 	var out []string

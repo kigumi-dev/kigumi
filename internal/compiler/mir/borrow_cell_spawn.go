@@ -3,21 +3,22 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // argSpawns reports whether in may start a task from argument i, which then runs until the body ends: an awaited
 // future, which may spawn into the running task, or a callee that takes or reaches a Future or Task.
-func (c *borrowCheck) argSpawns(in Inst, i int) bool {
+func (c *borrowCheck) argSpawns(in midir.Inst, i int) bool {
 	switch in.Op {
-	case OpAwait:
+	case midir.OpAwait:
 		return true
-	case OpCallValue:
+	case midir.OpCallValue:
 		if t := c.p.R.Types.Node(c.f.Locals[in.Args[0]].Type); t.Kind == sem.KClosure && t.Ent != 0 && c.p.R.Entity(t.Ent).Kind == sem.EntClosure {
 			return i > 0 && c.argRunnable(in, i) && c.maySpawn(t.Ent)
 		}
 		return i > 0 && c.argRunnable(in, i)
-	case OpCall:
+	case midir.OpCall:
 		if in.Ent == 0 || c.p.R.Entity(in.Ent).Kind != sem.EntFn {
 			return true
 		}
@@ -27,8 +28,8 @@ func (c *borrowCheck) argSpawns(in Inst, i int) bool {
 }
 
 // spawnStep leaves every closure a value holds in the task scope when the call may spawn it, or run it while it spawns.
-func (c *borrowCheck) spawnStep(in Inst, s flowSets, put func(LocalID, uint32)) {
-	if in.Op != OpCall && in.Op != OpCallValue && in.Op != OpAwait {
+func (c *borrowCheck) spawnStep(in midir.Inst, s flowSets, put func(midir.LocalID, uint32)) {
+	if in.Op != midir.OpCall && in.Op != midir.OpCallValue && in.Op != midir.OpAwait {
 		return
 	}
 	for k, a := range in.Args {

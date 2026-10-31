@@ -3,15 +3,16 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // emptyHandles is, per block and instruction, the handles known to hold nothing running there: on every path their
 // content was moved out or its sole payload awaited, or a branch found them a variant whose payload keeps no handle.
-func (c *borrowCheck) emptyHandles(handles map[LocalID]bool) [][]map[LocalID]bool {
+func (c *borrowCheck) emptyHandles(handles map[midir.LocalID]bool) [][]map[midir.LocalID]bool {
 	n := len(c.f.Blocks)
-	in := make([]map[LocalID]bool, n)
-	in[0] = map[LocalID]bool{}
+	in := make([]map[midir.LocalID]bool, n)
+	in[0] = map[midir.LocalID]bool{}
 	for changed := true; changed; {
 		changed = false
 		for _, b := range reversePostorder(c.f) {
@@ -34,11 +35,11 @@ func (c *borrowCheck) emptyHandles(handles map[LocalID]bool) [][]map[LocalID]boo
 			}
 		}
 	}
-	at := make([][]map[LocalID]bool, n)
+	at := make([][]map[midir.LocalID]bool, n)
 	for b := range c.f.Blocks {
-		at[b] = make([]map[LocalID]bool, len(c.f.Blocks[b].Insts)+1)
+		at[b] = make([]map[midir.LocalID]bool, len(c.f.Blocks[b].Insts)+1)
 		if in[b] != nil {
-			end := c.emptyThrough(BlockID(b), copySet(in[b]), handles, func(i int, s map[LocalID]bool) { at[b][i] = copySet(s) })
+			end := c.emptyThrough(midir.BlockID(b), copySet(in[b]), handles, func(i int, s map[midir.LocalID]bool) { at[b][i] = copySet(s) })
 			at[b][len(at[b])-1] = end
 		}
 	}
@@ -46,15 +47,15 @@ func (c *borrowCheck) emptyHandles(handles map[LocalID]bool) [][]map[LocalID]boo
 }
 
 // emptyThrough applies a block to s, passing each instruction the handles empty just before it.
-func (c *borrowCheck) emptyThrough(b BlockID, s, handles map[LocalID]bool, before func(int, map[LocalID]bool)) map[LocalID]bool {
+func (c *borrowCheck) emptyThrough(b midir.BlockID, s, handles map[midir.LocalID]bool, before func(int, map[midir.LocalID]bool)) map[midir.LocalID]bool {
 	for i, in := range c.f.Blocks[b].Insts {
 		if before != nil {
 			before(i, s)
 		}
-		if in.Op == OpMove && handles[in.Args[0]] {
+		if in.Op == midir.OpMove && handles[in.Args[0]] {
 			s[in.Args[0]] = true
 		}
-		if in.Op == OpAwait {
+		if in.Op == midir.OpAwait {
 			if o, ok := c.awaitedPayloadOf(in.Args[0], handles); ok {
 				s[o] = true
 			}
@@ -67,19 +68,19 @@ func (c *borrowCheck) emptyThrough(b BlockID, s, handles map[LocalID]bool, befor
 }
 
 // emptyOnEdge marks a handle a branch on its variant leaves holding nothing able to keep a Future or Task along target k.
-func (c *borrowCheck) emptyOnEdge(b BlockID, k int, s, handles map[LocalID]bool) map[LocalID]bool {
+func (c *borrowCheck) emptyOnEdge(b midir.BlockID, k int, s, handles map[midir.LocalID]bool) map[midir.LocalID]bool {
 	blk := &c.f.Blocks[b]
-	if blk.Term.Op != TermBranch || len(blk.Term.Args) == 0 {
+	if blk.Term.Op != midir.TermBranch || len(blk.Term.Args) == 0 {
 		return s
 	}
-	var test *Inst
+	var test *midir.Inst
 	for i := range blk.Insts {
 		in := &blk.Insts[i]
 		switch {
 		case !in.Op.Yields():
 		case in.Dst == blk.Term.Args[0]:
 			test = nil
-			if in.Op == OpIsVariant && handles[in.Args[0]] {
+			if in.Op == midir.OpIsVariant && handles[in.Args[0]] {
 				test = in
 			}
 		case test != nil && in.Dst == test.Args[0]:
@@ -102,15 +103,15 @@ func (c *borrowCheck) emptyOnEdge(b BlockID, k int, s, handles map[LocalID]bool)
 
 // awaitedPayloadOf is the handle an await of l finishes, l being through moves and copies the sole payload taken out
 // of it; a taken payload only shares the handle's work, and a parameter may still hold its caller's value.
-func (c *borrowCheck) awaitedPayloadOf(l LocalID, handles map[LocalID]bool) (LocalID, bool) {
+func (c *borrowCheck) awaitedPayloadOf(l midir.LocalID, handles map[midir.LocalID]bool) (midir.LocalID, bool) {
 	for range len(c.f.Locals) {
 		d := c.soleDef(l)
 		switch {
 		case d == nil || len(d.Args) == 0 || slices.Contains(c.f.Params, l):
 			return 0, false
-		case d.Op == OpPayload && handles[d.Args[0]] && c.onePayloadEach(d.Args[0]):
+		case d.Op == midir.OpPayload && handles[d.Args[0]] && c.onePayloadEach(d.Args[0]):
 			return d.Args[0], true
-		case d.Op != OpMove && d.Op != OpCopy && d.Op != OpAlias:
+		case d.Op != midir.OpMove && d.Op != midir.OpCopy && d.Op != midir.OpAlias:
 			return 0, false
 		}
 		l = d.Args[0]
@@ -119,7 +120,7 @@ func (c *borrowCheck) awaitedPayloadOf(l LocalID, handles map[LocalID]bool) (Loc
 }
 
 // onePayloadEach reports a value whose variants carry at most one payload each, so moving one out leaves it empty.
-func (c *borrowCheck) onePayloadEach(l LocalID) bool {
+func (c *borrowCheck) onePayloadEach(l midir.LocalID) bool {
 	n := c.p.R.Types.Node(c.f.Locals[l].Type)
 	if n.Kind != sem.KNamed || c.p.R.Entity(n.Ent).Kind != sem.EntType || c.p.R.TypeDecl(n.Ent).Form != sem.FormAdt {
 		return false

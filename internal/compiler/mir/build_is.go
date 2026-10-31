@@ -2,13 +2,14 @@ package mir
 
 import (
 	"kigumi/internal/compiler/hir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // ownTemp hands a scrutinee temporary to the innermost scope, which must
 // open after the temporary is assigned: pattern bindings copy out of it,
 // so it is released with that scope on every exit.
-func (b *builder) ownTemp(v LocalID) {
+func (b *builder) ownTemp(v midir.LocalID) {
 	if b.fn.Locals[v].Ent == 0 {
 		b.own(v)
 		b.shared[v] = true
@@ -17,10 +18,10 @@ func (b *builder) ownTemp(v LocalID) {
 
 // isExpr lowers `v is pat`; an `is` may sit behind `&&`, so a temporary scrutinee dies at the join
 // after the bindings copy out of it, unless kept says the enclosing scope already owns it.
-func (b *builder) isExpr(p *hir.Pat, v LocalID, kept bool) LocalID {
+func (b *builder) isExpr(p *hir.Pat, v midir.LocalID, kept bool) midir.LocalID {
 	cond := b.testPattern(p, v)
 	yes, join := b.newBlockAt(), b.newBlockAt()
-	b.term(Term{Op: TermBranch, Args: []LocalID{cond}, Targets: []BlockID{yes, join}})
+	b.term(midir.Term{Op: midir.TermBranch, Args: []midir.LocalID{cond}, Targets: []midir.BlockID{yes, join}})
 	b.cur = yes
 	if b.fn.Locals[v].Ent == 0 {
 		b.shared[v] = true
@@ -34,12 +35,12 @@ func (b *builder) isExpr(p *hir.Pat, v LocalID, kept bool) LocalID {
 	b.jump(join)
 	b.cur = join
 	if b.fn.Locals[v].Ent == 0 && !kept {
-		b.emit(Inst{Op: OpDrop, Args: []LocalID{v}, Node: p.Node})
+		b.emit(midir.Inst{Op: midir.OpDrop, Args: []midir.LocalID{v}, Node: p.Node})
 	}
 	return cond
 }
 
-func (b *builder) cond(e *hir.Expr) (LocalID, []guardMove) {
+func (b *builder) cond(e *hir.Expr) (midir.LocalID, []guardMove) {
 	pats := map[*hir.Pat]bool{}
 	condTests(e, pats)
 	if len(pats) == 0 {
@@ -55,7 +56,7 @@ func (b *builder) cond(e *hir.Expr) (LocalID, []guardMove) {
 
 // valueAnd opens a scope for an `&&` chain outside a condition that drops its `is` bindings and the temporaries they borrow where the chain ends;
 // a chain nested on a right side gets its own scope when the enclosing chain does not read its bindings.
-func (b *builder) valueAnd(e *hir.Expr) LocalID {
+func (b *builder) valueAnd(e *hir.Expr) midir.LocalID {
 	pats := map[*hir.Pat]bool{}
 	condTests(e, pats)
 	if len(pats) == 0 {

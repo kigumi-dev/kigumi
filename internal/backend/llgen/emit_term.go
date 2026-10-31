@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
-func (e *emitter) term(sb *strings.Builder, t mir.Term) {
+func (e *emitter) term(sb *strings.Builder, t midir.Term) {
 	switch t.Op {
-	case mir.TermJump:
+	case midir.TermJump:
 		fmt.Fprintf(sb, "  br label %%b%d\n", t.Targets[0])
-	case mir.TermBranch:
+	case midir.TermBranch:
 		if info, ok := e.scalar[t.Args[0]]; ok && info.Ty == TI1 {
 			c := e.loadNative(sb, t.Args[0])
 			fmt.Fprintf(sb, "  br i1 %s, label %%b%d, label %%b%d\n", c.Text, t.Targets[0], t.Targets[1])
@@ -20,7 +20,7 @@ func (e *emitter) term(sb *strings.Builder, t mir.Term) {
 		v := e.load(sb, t.Args[0])
 		c := e.irb(sb).Call(rtTruth, vptr(v)).Text
 		fmt.Fprintf(sb, "  br i1 %s, label %%b%d, label %%b%d\n", c, t.Targets[0], t.Targets[1])
-	case mir.TermReturn:
+	case midir.TermReturn:
 		e.unwindLeave(sb)
 		if src, ok := e.crossSrc[t.Args[0]]; ok {
 			e.irb(sb).Call(rtRelease, vptr(e.load(sb, src)))

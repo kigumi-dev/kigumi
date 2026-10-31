@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 type protoKey struct {
@@ -19,7 +19,7 @@ func (e *emitter) protoSym(a *aggInfo, hash bool) string {
 	return "@\"kg.eq." + a.Label + "\""
 }
 
-func (e *emitter) protoBuiltin(sb *strings.Builder, f *mir.Func, in mir.Inst) {
+func (e *emitter) protoBuiltin(sb *strings.Builder, f *midir.Func, in midir.Inst) {
 	a, ok := e.direct[in.Args[0]]
 	if !ok {
 		panic("llgen: " + in.Str + " over a boxed operand")

@@ -1,22 +1,25 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
-func (c *borrowCheck) collectValue(in Inst, bid BlockID, idx int) {
+func (c *borrowCheck) collectValue(in midir.Inst, bid midir.BlockID, idx int) {
 	c.collectCarry(in, bid, idx)
 	c.collectFnCaps(in)
 }
 
 // collectFnCaps follows a closure's captured borrows along every value that may hold it, so the tie sees them whatever the spelling.
-func (c *borrowCheck) collectFnCaps(in Inst) {
+func (c *borrowCheck) collectFnCaps(in midir.Inst) {
 	dst, srcs := in.Dst, in.Args
 	switch {
-	case in.Op == OpClosure && c.p.R.Entity(in.Ent).Kind == sem.EntClosure:
+	case in.Op == midir.OpClosure && c.p.R.Entity(in.Ent).Kind == sem.EntClosure:
 		if !c.resultMayBorrow(c.p.R.Closure(in.Ent).Ret) {
 			return
 		}
 		c.addFnCaps(dst, c.returnedCaptures(&in), in)
-	case in.Op == OpSetField || in.Op == OpSetIndex || in.Op == OpCellSet:
+	case in.Op == midir.OpSetField || in.Op == midir.OpSetIndex || in.Op == midir.OpCellSet:
 		root, _, _, ok := c.projectionPlace(in.Args[0])
 		if !ok {
 			return
@@ -31,8 +34,8 @@ func (c *borrowCheck) collectFnCaps(in Inst) {
 }
 
 // freshValue lists the opcodes whose result cannot carry a fn value from an operand; everything else unions its operands.
-var freshValue = map[Opcode]bool{OpConst: true, OpUnit: true, OpBinary: true, OpUnary: true, OpTag: true, OpIsVariant: true,
-	OpIsType: true, OpInterp: true, OpShell: true, OpFnItem: true, OpCFnPtr: true, OpGlobalGet: true, OpCancelled: true}
+var freshValue = map[midir.Opcode]bool{midir.OpConst: true, midir.OpUnit: true, midir.OpBinary: true, midir.OpUnary: true, midir.OpTag: true, midir.OpIsVariant: true,
+	midir.OpIsType: true, midir.OpInterp: true, midir.OpShell: true, midir.OpFnItem: true, midir.OpCFnPtr: true, midir.OpGlobalGet: true, midir.OpCancelled: true}
 
 func (c *borrowCheck) mayHoldFn(t sem.TypeID) bool {
 	return c.typeHolds(t, func(t sem.TypeID) bool {
@@ -50,12 +53,12 @@ func (c *borrowCheck) mayHoldFn(t sem.TypeID) bool {
 	})
 }
 
-func (c *borrowCheck) addFnCaps(dst LocalID, b *borrowInfo, in Inst) {
+func (c *borrowCheck) addFnCaps(dst midir.LocalID, b *borrowInfo, in midir.Inst) {
 	if b == nil || b.empty {
 		return
 	}
 	if c.ties.caps == nil {
-		c.ties.caps = map[LocalID]*borrowInfo{}
+		c.ties.caps = map[midir.LocalID]*borrowInfo{}
 	}
 	s, ok := c.ties.caps[dst]
 	if !ok {

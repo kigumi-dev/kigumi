@@ -1,12 +1,15 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 func (c *borrowCheck) untrackedPlace(fl storeFlow) string {
 	l := fl.target
 	for c.f.Locals[l].Ent == 0 {
 		in := c.definition(l)
-		if in == nil || len(in.Args) == 0 || in.Op != OpBorrow && in.Op != OpNewCell && in.Op != OpShare && in.Op != OpCopy && in.Op != OpMove && in.Op != OpAlias {
+		if in == nil || len(in.Args) == 0 || in.Op != midir.OpBorrow && in.Op != midir.OpNewCell && in.Op != midir.OpShare && in.Op != midir.OpCopy && in.Op != midir.OpMove && in.Op != midir.OpAlias {
 			break
 		}
 		l = in.Args[0]

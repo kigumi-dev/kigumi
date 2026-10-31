@@ -1,8 +1,11 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
-func (p *callVerifier) boundMismatch(f *Func, in Inst) string {
+func (p *callVerifier) boundMismatch(f *midir.Func, in midir.Inst) string {
 	if in.Ent == 0 || int(in.Ent) >= len(p.R.Entities) || p.R.Entity(in.Ent).Kind != sem.EntFn {
 		return ""
 	}
@@ -33,7 +36,7 @@ func (p *callVerifier) boundMismatch(f *Func, in Inst) string {
 	return ""
 }
 
-func (p *callVerifier) boundArg(f *Func, witness, val LocalID) string {
+func (p *callVerifier) boundArg(f *midir.Func, witness, val midir.LocalID) string {
 	tt := p.R.Types
 	got := p.derefAll(f.Locals[val].Type)
 	if p.looseType(got) {
@@ -46,7 +49,7 @@ func (p *callVerifier) boundArg(f *Func, witness, val LocalID) string {
 		return "for " + name + ", not of type " + p.R.TypeString(got)
 	}
 	def := p.witnessDef(f, witness)
-	if def == nil || def.Op != OpBind || int(def.Ent) >= len(p.R.Entities) || p.R.Entity(def.Ent).Kind != sem.EntFn {
+	if def == nil || def.Op != midir.OpBind || int(def.Ent) >= len(p.R.Entities) || p.R.Entity(def.Ent).Kind != sem.EntFn {
 		return ""
 	}
 	info := p.R.Fn(def.Ent)
@@ -60,14 +63,14 @@ func (p *callVerifier) boundArg(f *Func, witness, val LocalID) string {
 	return ""
 }
 
-func (p *callVerifier) witnessDef(f *Func, l LocalID) *Inst {
+func (p *callVerifier) witnessDef(f *midir.Func, l midir.LocalID) *midir.Inst {
 	for range 5 {
 		def := p.soleDefOf(f, l)
 		if def == nil {
 			return nil
 		}
 		switch def.Op {
-		case OpAlias, OpCopy, OpShare, OpMove:
+		case midir.OpAlias, midir.OpCopy, midir.OpShare, midir.OpMove:
 			l = def.Args[0]
 		default:
 			return def
@@ -76,7 +79,7 @@ func (p *callVerifier) witnessDef(f *Func, l LocalID) *Inst {
 	return nil
 }
 
-func (p *callVerifier) closureSigMismatch(f *Func, in Inst, callee *Func) string {
+func (p *callVerifier) closureSigMismatch(f *midir.Func, in midir.Inst, callee *midir.Func) string {
 	dst := f.Locals[in.Dst].Type
 	node := p.R.Types.Node(p.fnType(p.derefAll(dst)))
 	if p.looseType(dst) || node.Kind != sem.KFn {
@@ -97,8 +100,8 @@ func (p *callVerifier) closureSigMismatch(f *Func, in Inst, callee *Func) string
 	return ""
 }
 
-func (p *callVerifier) cellArgMismatch(f *Func, in Inst, callee *Func, k int, arg LocalID) string {
-	if !callee.Locals[callee.Params[k]].Cell || p.mutReceiver(in) == k || p.canBeCell(f, arg, map[LocalID]bool{}) {
+func (p *callVerifier) cellArgMismatch(f *midir.Func, in midir.Inst, callee *midir.Func, k int, arg midir.LocalID) string {
+	if !callee.Locals[callee.Params[k]].Cell || p.mutReceiver(in) == k || p.canBeCell(f, arg, map[midir.LocalID]bool{}) {
 		return ""
 	}
 	return "passes %" + f.Locals[arg].Name + ", which is no cell, as argument " + itoa(k) + " of " + callee.Name + ", which takes a cell"

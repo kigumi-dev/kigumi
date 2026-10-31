@@ -4,10 +4,11 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func asyncFunc(t *testing.T, p *mir.Program, name string) *mir.Func {
+func asyncFunc(t *testing.T, p *mir.Program, name string) *midir.Func {
 	t.Helper()
 	for _, f := range p.Funcs {
 		if f.Name == name {

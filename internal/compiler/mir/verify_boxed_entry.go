@@ -1,8 +1,12 @@
 package mir
 
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
 // verifyBoxedEntry checks that a boxed caller of a direct signature has an
 // entry to call, and that the entry takes and returns everything boxed.
-func (p *verifier) verifyBoxedEntry(f *Func) *Error {
+func (p *verifier) verifyBoxedEntry(f *midir.Func) *Error {
 	if f.Wraps == nil {
 		if f.DSig != nil && f.Ent != 0 && f.Entry == nil {
 			return &Error{Rule: "direct", Msg: "a direct signature with no boxed entry"}
@@ -24,8 +28,8 @@ func (p *verifier) verifyBoxedEntry(f *Func) *Error {
 		}
 	}
 	for bid, blk := range f.Blocks {
-		if blk.Term.Op == TermReturn && f.IsDirect(blk.Term.Args[0]) {
-			return fail("direct", BlockID(bid), len(blk.Insts), "a boxed entry returns its result unboxed")
+		if blk.Term.Op == midir.TermReturn && f.IsDirect(blk.Term.Args[0]) {
+			return fail("direct", midir.BlockID(bid), len(blk.Insts), "a boxed entry returns its result unboxed")
 		}
 	}
 	return nil

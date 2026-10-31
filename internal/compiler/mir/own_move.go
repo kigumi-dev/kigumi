@@ -1,8 +1,12 @@
 package mir
 
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
 // A Rest move empties a scrutinee whose parts the pattern already took; the
 // payload moves before it carry the state, so it changes nothing here.
-func (a *owner) moveInst(in *Inst, st *dstate, report bool) {
+func (a *owner) moveInst(in *midir.Inst, st *dstate, report bool) {
 	if in.Rest {
 		return
 	}

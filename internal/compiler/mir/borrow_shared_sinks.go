@@ -4,6 +4,7 @@ import (
 	"math"
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -89,7 +90,7 @@ func (c *borrowCheck) sharedSinks(e sem.EntityID, bind map[int][]sem.EntityID) [
 }
 
 // bodySinks adds to from g's declared parameters some call of g may store into shared storage.
-func (c *borrowCheck) bodySinks(g *Func, bind map[int][]sem.EntityID, from []sem.EntityID) []sem.EntityID {
+func (c *borrowCheck) bodySinks(g *midir.Func, bind map[int][]sem.EntityID, from []sem.EntityID) []sem.EntityID {
 	declared := c.declaredParams(g.Ent)
 	fs := c.bodyFacts(g)
 	if fs == nil {

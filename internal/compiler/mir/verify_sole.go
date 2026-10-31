@@ -1,14 +1,18 @@
 package mir
 
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
 // soleIndex answers soleDef for a whole function in one pass; valid only while the function is not rewritten.
 type soleIndex struct {
-	f     *Func
-	defs  []*Inst
+	f     *midir.Func
+	defs  []*midir.Inst
 	multi []bool
 }
 
-func newSoleIndex(f *Func) *soleIndex {
-	ix := &soleIndex{f: f, defs: make([]*Inst, len(f.Locals)), multi: make([]bool, len(f.Locals))}
+func newSoleIndex(f *midir.Func) *soleIndex {
+	ix := &soleIndex{f: f, defs: make([]*midir.Inst, len(f.Locals)), multi: make([]bool, len(f.Locals))}
 	for _, blk := range f.Blocks {
 		for k := range blk.Insts {
 			if d := &blk.Insts[k]; d.Op.Yields() {
@@ -22,7 +26,7 @@ func newSoleIndex(f *Func) *soleIndex {
 	return ix
 }
 
-func (p *callVerifier) soleDefOf(f *Func, l LocalID) *Inst {
+func (p *callVerifier) soleDefOf(f *midir.Func, l midir.LocalID) *midir.Inst {
 	if ix := p.sole; ix != nil && ix.f == f {
 		if ix.multi[l] {
 			return nil

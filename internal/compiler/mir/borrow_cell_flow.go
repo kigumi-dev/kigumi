@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
@@ -11,7 +12,7 @@ import (
 type cellState struct {
 	closures        *valueFlow
 	borrowFlow      *valueFlow
-	aliasMemo       map[LocalID]bool
+	aliasMemo       map[midir.LocalID]bool
 	typeRunMemo     map[typeRunKey]bool
 	spawnMemo       map[sem.EntityID]bool
 	runMemo         map[sem.EntityID]bool
@@ -21,25 +22,25 @@ type cellState struct {
 	siteSCC         sccStack[paramKey]
 	siteLow         int
 	siteRuns        int
-	contentsMemo    map[LocalID]contentsResult
+	contentsMemo    map[midir.LocalID]contentsResult
 	plainTypes      map[sem.TypeID]bool
 	mutHolders      map[sem.TypeID]bool
 	storeThrough    map[sem.TypeID]bool
 	callableTypes   map[sem.TypeID]bool
 	offloadNode     map[sem.EntityID]syntax.NodeID
 	keeperState     *keeperGraph
-	origins         map[LocalID]LocalID
+	origins         map[midir.LocalID]midir.LocalID
 }
 
 // dropFact marks, among the closure facts, a value that may hold a resource whose user `drop` runs when it is dropped.
 const dropFact uint32 = 0
 
 // heldClosures are the closure literals a may hold just before the instruction being checked, and dropFact.
-func (c *borrowCheck) heldClosures(a LocalID) map[uint32]bool {
+func (c *borrowCheck) heldClosures(a midir.LocalID) map[uint32]bool {
 	if c.closures == nil {
-		c.closures = c.solveFlow(func(in Inst) []uint32 {
+		c.closures = c.solveFlow(func(in midir.Inst) []uint32 {
 			var out []uint32
-			if in.Op == OpClosure && c.p.R.Entity(in.Ent).Kind == sem.EntClosure {
+			if in.Op == midir.OpClosure && c.p.R.Entity(in.Ent).Kind == sem.EntClosure {
 				out = append(out, uint32(in.Ent))
 			}
 			if in.Op.Yields() && c.typeRuns(c.f.Locals[in.Dst].Type, runsDrop) {
@@ -53,13 +54,13 @@ func (c *borrowCheck) heldClosures(a LocalID) map[uint32]bool {
 
 // dropRuns reports whether dropping a may run a user `drop`: by its type, or by a value it was built from (a Future
 // holding a call's argument, a closure that moved one in).
-func (c *borrowCheck) dropRuns(a LocalID) bool {
+func (c *borrowCheck) dropRuns(a midir.LocalID) bool {
 	return c.typeRuns(c.f.Locals[a].Type, runsDrop) || c.heldClosures(a)[dropFact]
 }
 
 // ownerMayBeHeld reports whether holder may hold a borrow of owner here: a widening container only once a borrow
 // of owner has flowed into it, so an earlier borrow that ended elsewhere does not count; any other holder as before.
-func (c *borrowCheck) ownerMayBeHeld(holder, owner LocalID) bool {
+func (c *borrowCheck) ownerMayBeHeld(holder, owner midir.LocalID) bool {
 	if _, sink := c.sinks[holder]; !sink || !c.mayBeBorrowed(owner, c.curIdx) {
 		return c.mayBeBorrowed(owner, c.curIdx)
 	}
@@ -73,17 +74,17 @@ func (c *borrowCheck) ownerMayBeHeld(holder, owner LocalID) bool {
 }
 
 // mutAliased reports a local some `&mut` of it outlives the call it is lent to: kept in a record, a binding or a future.
-func (c *borrowCheck) mutAliased(l LocalID) bool {
+func (c *borrowCheck) mutAliased(l midir.LocalID) bool {
 	if v, ok := c.aliasMemo[l]; ok {
 		return v
 	}
 	if c.aliasMemo == nil {
-		c.aliasMemo = map[LocalID]bool{}
+		c.aliasMemo = map[midir.LocalID]bool{}
 	}
 	aliased := false
 	for _, blk := range c.f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op != OpBorrow || in.Index != 1 {
+			if in.Op != midir.OpBorrow || in.Index != 1 {
 				continue
 			}
 			if root, _, _, ok := c.projectionPlace(in.Args[0]); ok && root == l && !c.lentToCall(in.Dst, 0) {
@@ -96,7 +97,7 @@ func (c *borrowCheck) mutAliased(l LocalID) bool {
 }
 
 // lentToCall reports a reference whose every use is an argument of a call, directly or through a write-back cell.
-func (c *borrowCheck) lentToCall(l LocalID, depth int) bool {
+func (c *borrowCheck) lentToCall(l midir.LocalID, depth int) bool {
 	if depth > 8 || c.f.Locals[l].Ent != 0 {
 		return false
 	}
@@ -109,8 +110,8 @@ func (c *borrowCheck) lentToCall(l LocalID, depth int) bool {
 				continue
 			}
 			switch in.Op {
-			case OpCall, OpCallValue, OpBuiltin, OpCellTake, OpCellGet, OpDrop, OpRelease:
-			case OpShare, OpNewCell, OpAlias, OpCopy:
+			case midir.OpCall, midir.OpCallValue, midir.OpBuiltin, midir.OpCellTake, midir.OpCellGet, midir.OpDrop, midir.OpRelease:
+			case midir.OpShare, midir.OpNewCell, midir.OpAlias, midir.OpCopy:
 				if !c.lentToCall(in.Dst, depth+1) {
 					return false
 				}
@@ -123,7 +124,7 @@ func (c *borrowCheck) lentToCall(l LocalID, depth int) bool {
 }
 
 // flowBorrowRoots is borrowRoots as a flow seed.
-func (c *borrowCheck) flowBorrowRoots(in Inst) []uint32 {
+func (c *borrowCheck) flowBorrowRoots(in midir.Inst) []uint32 {
 	var out []uint32
 	for _, root := range c.borrowRoots(in) {
 		out = append(out, uint32(root))

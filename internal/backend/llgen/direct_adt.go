@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -74,7 +74,7 @@ func (e *emitter) slotPtr(sb *strings.Builder, a *aggInfo, base string, j int) s
 	return t
 }
 
-func (e *emitter) buildVariant(sb *strings.Builder, a *aggInfo, in mir.Inst) {
+func (e *emitter) buildVariant(sb *strings.Builder, a *aggInfo, in midir.Inst) {
 	base := aggPtr(in.Dst)
 	zeroAgg(sb, a, base)
 	fmt.Fprintf(sb, "  store %s %d, ptr %s\n", adtTag, a.tagOf(in.Ent), e.tagPtr(sb, a, base))
@@ -83,7 +83,7 @@ func (e *emitter) buildVariant(sb *strings.Builder, a *aggInfo, in mir.Inst) {
 	}
 }
 
-func (e *emitter) readPayload(sb *strings.Builder, f *mir.Func, a *aggInfo, in mir.Inst) {
+func (e *emitter) readPayload(sb *strings.Builder, f *midir.Func, a *aggInfo, in midir.Inst) {
 	if f.Locals[in.Dst].Type == sem.TyUnit {
 		e.store(sb, in.Dst, e.irb(sb).Call(rtUnit).Text)
 		return
@@ -98,7 +98,7 @@ func (e *emitter) readPayload(sb *strings.Builder, f *mir.Func, a *aggInfo, in m
 	e.loadLeaf(sb, f, fld, e.slotPtr(sb, a, aggPtr(in.Args[0]), in.Index), in.Dst)
 }
 
-func (e *emitter) testVariant(sb *strings.Builder, f *mir.Func, a *aggInfo, in mir.Inst) {
+func (e *emitter) testVariant(sb *strings.Builder, f *midir.Func, a *aggInfo, in midir.Inst) {
 	tag := e.newTmp()
 	fmt.Fprintf(sb, "  %s = load %s, ptr %s\n", tag, adtTag, e.tagPtr(sb, a, fmt.Sprintf("%%l%d", in.Args[0])))
 	c := e.newTmp()

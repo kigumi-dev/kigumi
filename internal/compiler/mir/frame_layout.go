@@ -1,6 +1,9 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // scalarSlotBytes holds any register scalar unboxed, an i64 included on a 32-bit target.
 const scalarSlotBytes = 8
@@ -9,14 +12,14 @@ const scalarSlotBytes = 8
 const ObjSlotBytes = 64
 
 // Slot offsets stay in words so the runtime's nslots keeps its meaning.
-func (p *Program) layoutFrame(f *Func) {
+func (p *Program) layoutFrame(f *midir.Func) {
 	word := wordBytes(p.R)
 	next := int64(0)
 	for i := range f.Locals {
 		if f.Slot[i] < 0 {
 			continue
 		}
-		size, align := p.slotLayout(f, LocalID(i))
+		size, align := p.slotLayout(f, midir.LocalID(i))
 		off := roundUp(next, max(align, word))
 		f.Slot[i] = int(off / word)
 		next = off + roundUp(size, word)
@@ -24,11 +27,11 @@ func (p *Program) layoutFrame(f *Func) {
 	f.ViewSlot = nil
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op != OpLendBox {
+			if in.Op != midir.OpLendBox {
 				continue
 			}
 			if f.ViewSlot == nil {
-				f.ViewSlot = map[LocalID]int{}
+				f.ViewSlot = map[midir.LocalID]int{}
 			}
 			off := roundUp(next, max(scalarSlotBytes, word))
 			f.ViewSlot[in.Dst] = int(off / word)
@@ -38,7 +41,7 @@ func (p *Program) layoutFrame(f *Func) {
 	f.Frame = int(next / word)
 }
 
-func (p *Program) slotLayout(f *Func, l LocalID) (int64, int64) {
+func (p *Program) slotLayout(f *midir.Func, l midir.LocalID) (int64, int64) {
 	t := f.Locals[l].Type
 	switch {
 	case f.IsDirect(l):
@@ -50,13 +53,13 @@ func (p *Program) slotLayout(f *Func, l LocalID) (int64, int64) {
 	return w, w
 }
 
-func (p *Program) SlotBytes(f *Func, l LocalID) int64 {
+func (p *Program) SlotBytes(f *midir.Func, l midir.LocalID) int64 {
 	size, _ := p.slotLayout(f, l)
 	return roundUp(size, wordBytes(p.R))
 }
 
 // The header is kgframe's desc, awaited, state, nargs and args, with slots[] 8-byte aligned.
-func AsyncFrameBytes(r *sem.Result, f *Func) uint64 {
+func AsyncFrameBytes(r *sem.Result, f *midir.Func) uint64 {
 	word := wordBytes(r)
 	header := roundUp(3*word+8, scalarSlotBytes)
 	return uint64(header + (int64(f.Frame)+int64(len(f.Params)))*word)

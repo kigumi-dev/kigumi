@@ -3,14 +3,15 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // For moves, a value counts once it may keep an exclusive borrow, and a write back under the parameter does not.
-func (c *borrowCheck) collectStoreSites(k paramKey, from map[LocalID]derivation) []paramStore {
+func (c *borrowCheck) collectStoreSites(k paramKey, from map[midir.LocalID]derivation) []paramStore {
 	c.siteRuns++
 	g := k.g
-	holdsMut := func(l LocalID) bool {
+	holdsMut := func(l midir.LocalID) bool {
 		if _, ok := from[l]; !ok {
 			return false
 		}
@@ -58,10 +59,10 @@ func sameSites(a, b []paramStore) bool {
 
 // instStoreSites adds the stores in may make through a value reached from the parameter: a write of a tracked value
 // under it, or a `&mut` from it handed on to code that may store, or put anywhere else.
-func (c *borrowCheck) instStoreSites(key paramKey, in Inst, from map[LocalID]derivation, defs map[LocalID]*Inst, holdsMut func(LocalID) bool, add func(derivation, paramStore)) {
+func (c *borrowCheck) instStoreSites(key paramKey, in midir.Inst, from map[midir.LocalID]derivation, defs map[midir.LocalID]*midir.Inst, holdsMut func(midir.LocalID) bool, add func(derivation, paramStore)) {
 	g, moves := key.g, key.kind == siteMoves || key.kind == siteOut
 	switch {
-	case in.Op == OpSetField || in.Op == OpSetIndex || in.Op == OpCellSet:
+	case in.Op == midir.OpSetField || in.Op == midir.OpSetIndex || in.Op == midir.OpCellSet:
 		v := in.Args[len(in.Args)-1]
 		_, under := from[in.Args[0]]
 		if under && !moves && c.carries(g.Locals[v].Type) {
@@ -79,7 +80,7 @@ func (c *borrowCheck) instStoreSites(key paramKey, in Inst, from map[LocalID]der
 			continue
 		}
 		// Calling a closure runs its body on what it captured.
-		if in.Op == OpCallValue && k == 0 {
+		if in.Op == midir.OpCallValue && k == 0 {
 			add(from[a], paramStore{via: true})
 			continue
 		}
@@ -92,14 +93,14 @@ func (c *borrowCheck) instStoreSites(key paramKey, in Inst, from map[LocalID]der
 			continue
 		}
 		// A callee without a body here can only store what it is handed, and an index cannot hold a closure.
-		other := func(b LocalID) bool {
+		other := func(b midir.LocalID) bool {
 			_, same := from[b]
 			return b != a && c.carries(g.Locals[b].Type) && !(moves && same)
 		}
-		if in.Op != OpCall && in.Op != OpCallValue && in.Op != OpBuiltin || slices.ContainsFunc(in.Args, other) {
-			callback := slices.ContainsFunc(in.Args, func(b LocalID) bool { return b != a && c.typeHolds(g.Locals[b].Type, c.callableNode) })
-			site := paramStore{via: in.Op != OpCall || callback || c.seesThrough(in.Ent, k) || c.viewType(g.Locals[a].Type)}
-			if in.Op == OpCallValue {
+		if in.Op != midir.OpCall && in.Op != midir.OpCallValue && in.Op != midir.OpBuiltin || slices.ContainsFunc(in.Args, other) {
+			callback := slices.ContainsFunc(in.Args, func(b midir.LocalID) bool { return b != a && c.typeHolds(g.Locals[b].Type, c.callableNode) })
+			site := paramStore{via: in.Op != midir.OpCall || callback || c.seesThrough(in.Ent, k) || c.viewType(g.Locals[a].Type)}
+			if in.Op == midir.OpCallValue {
 				for _, target := range c.relayCallee(g, defs, in.Args[0], key.kind) {
 					site.callee = target
 					add(from[a], site)
@@ -113,13 +114,13 @@ func (c *borrowCheck) instStoreSites(key paramKey, in Inst, from map[LocalID]der
 
 // instSelfSources adds where a part of the parameter that in may store back under the parameter is read from: a write
 // of it under the parameter (not a cell's write-back), or a hand-off of it beside a place from the parameter.
-func (c *borrowCheck) instSelfSources(g *Func, in Inst, from map[LocalID]derivation, defs map[LocalID]*Inst, holdsMut func(LocalID) bool, add func(derivation, paramStore)) {
-	derived := func(l LocalID) bool { _, ok := from[l]; return ok }
-	part := func(l LocalID) bool { return derived(l) && c.carries(g.Locals[l].Type) }
+func (c *borrowCheck) instSelfSources(g *midir.Func, in midir.Inst, from map[midir.LocalID]derivation, defs map[midir.LocalID]*midir.Inst, holdsMut func(midir.LocalID) bool, add func(derivation, paramStore)) {
+	derived := func(l midir.LocalID) bool { _, ok := from[l]; return ok }
+	part := func(l midir.LocalID) bool { return derived(l) && c.carries(g.Locals[l].Type) }
 	switch {
-	case in.Op == OpSetField || in.Op == OpSetIndex || in.Op == OpCellSet:
+	case in.Op == midir.OpSetField || in.Op == midir.OpSetIndex || in.Op == midir.OpCellSet:
 		v := in.Args[len(in.Args)-1]
-		if d := defs[v]; derived(in.Args[0]) && part(v) && (d == nil || d.Op != OpCellTake && d.Op != OpCellGet) {
+		if d := defs[v]; derived(in.Args[0]) && part(v) && (d == nil || d.Op != midir.OpCellTake && d.Op != midir.OpCellGet) {
 			add(from[v], paramStore{})
 		}
 		return
@@ -146,8 +147,8 @@ func (c *borrowCheck) instSelfSources(g *Func, in Inst, from map[LocalID]derivat
 }
 
 // bodyCallee is the body a call or closure literal runs, when the summaries can read it.
-func (c *borrowCheck) bodyCallee(in Inst) *Func {
-	if h := c.p.ByEnt[in.Ent]; in.Op == OpClosure || in.Op == OpCall && h != nil && c.p.R.Entity(in.Ent).Kind == sem.EntFn {
+func (c *borrowCheck) bodyCallee(in midir.Inst) *midir.Func {
+	if h := c.p.ByEnt[in.Ent]; in.Op == midir.OpClosure || in.Op == midir.OpCall && h != nil && c.p.R.Entity(in.Ent).Kind == sem.EntFn {
 		return h
 	}
 	return nil

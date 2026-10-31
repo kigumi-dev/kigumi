@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -85,7 +86,7 @@ func findType(p *mir.Program, pk pick) sem.TypeID {
 	panic(staleRecipe(fmt.Sprintf("no type %q#%d", pk.text, pk.nth)))
 }
 
-func nameOfLocal(f *mir.Func, id int) pick {
+func nameOfLocal(f *midir.Func, id int) pick {
 	if id >= len(f.Locals) {
 		return pick{kind: 'l', oob: true, nth: id - len(f.Locals)}
 	}

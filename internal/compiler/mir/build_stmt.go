@@ -2,6 +2,7 @@ package mir
 
 import (
 	"kigumi/internal/compiler/hir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/syntax"
 )
 
@@ -31,7 +32,7 @@ func (b *builder) fullStmt(s *hir.Stmt) {
 			return
 		}
 		v := b.expr(s.Expr)
-		b.emit(Inst{Op: OpDrop, Args: []LocalID{v}, Node: s.Node})
+		b.emit(midir.Inst{Op: midir.OpDrop, Args: []midir.LocalID{v}, Node: s.Node})
 	case hir.EvalStmt:
 		b.expr(s.Expr)
 	}
@@ -41,7 +42,7 @@ func (b *builder) letStmt(s *hir.Stmt) {
 	if s.Else == nil && s.Pat.Kind == hir.PatWild && !s.Pat.Borrow && b.settles(s.Expr) {
 		return
 	}
-	var v LocalID
+	var v midir.LocalID
 	if s.Pat.Borrow {
 		v = b.expr(s.Expr)
 		b.ownTemp(v)
@@ -54,10 +55,10 @@ func (b *builder) letStmt(s *hir.Stmt) {
 	}
 	okBlock, elseBlock := b.newBlockAt(), b.newBlockAt()
 	cond := b.testPattern(s.Pat, v)
-	b.term(Term{Op: TermBranch, Args: []LocalID{cond}, Targets: []BlockID{okBlock, elseBlock}})
+	b.term(midir.Term{Op: midir.TermBranch, Args: []midir.LocalID{cond}, Targets: []midir.BlockID{okBlock, elseBlock}})
 	b.cur = elseBlock
 	b.blockExpr(s.Else)
-	b.term(Term{Op: TermUnreachable})
+	b.term(midir.Term{Op: midir.TermUnreachable})
 	b.cur = okBlock
 	b.bindPattern(s.Pat, v)
 }
@@ -80,7 +81,7 @@ func (b *builder) unparen(e *hir.Expr) *hir.Expr {
 // exprMoved lowers an expression whose value leaves the current scope: a
 // named local is copied or moved into a temporary before any coercion
 // wraps it, so the scope's drop of the local stays balanced.
-func (b *builder) exprMoved(e *hir.Expr) LocalID {
+func (b *builder) exprMoved(e *hir.Expr) midir.LocalID {
 	if b.isParen(e) || b.isSpread(e) {
 		return b.coerce(e.Coercion, e.Node, b.exprMoved(e.Args[0]))
 	}
@@ -93,21 +94,21 @@ func (b *builder) exprMoved(e *hir.Expr) LocalID {
 
 // transfer moves a move-only source local or copies a structural value,
 // seeing through a wrap/unwrap to its receiver and retagging the result back.
-func (b *builder) transfer(outer *hir.Expr, v LocalID) LocalID {
+func (b *builder) transfer(outer *hir.Expr, v midir.LocalID) midir.LocalID {
 	src := outer
 	for src.Kind == hir.DefinedWrap || src.Kind == hir.DefinedUnwrap {
 		src = src.Args[0]
 	}
 	wrapped := src != outer
-	retag := func(out LocalID) LocalID {
+	retag := func(out midir.LocalID) midir.LocalID {
 		if !wrapped {
 			return out
 		}
-		return b.emit(Inst{Op: OpAlias, Dst: b.temp(outer.Type), Args: []LocalID{out}, Node: outer.Node})
+		return b.emit(midir.Inst{Op: midir.OpAlias, Dst: b.temp(outer.Type), Args: []midir.LocalID{out}, Node: outer.Node})
 	}
 	if wrapped && b.derefsRef(src.Type, outer.Type) {
 		// What leaves is a copy of the referent, so the reference itself is neither copied nor moved.
-		return b.emit(Inst{Op: OpShare, Dst: b.temp(outer.Type), Args: []LocalID{retag(v)}, Copy: true, Node: outer.Node})
+		return b.emit(midir.Inst{Op: midir.OpShare, Dst: b.temp(outer.Type), Args: []midir.LocalID{retag(v)}, Copy: true, Node: outer.Node})
 	}
 	if src.Kind != hir.Local {
 		return retag(v)
@@ -123,11 +124,11 @@ func (b *builder) transfer(outer *hir.Expr, v LocalID) LocalID {
 	case b.r.IsCopy(t) && b.fn.Locals[id].Cell:
 		// v is an OpCellGet read; PlanRC would alias an Ent-less OpCopy
 		// source, drifting with the cell's later in-place field writes.
-		return retag(b.emit(Inst{Op: OpShare, Dst: b.temp(t), Args: []LocalID{v}, Copy: true, Node: src.Node}))
+		return retag(b.emit(midir.Inst{Op: midir.OpShare, Dst: b.temp(t), Args: []midir.LocalID{v}, Copy: true, Node: src.Node}))
 	case b.r.IsCopy(t):
-		return retag(b.emit(Inst{Op: OpCopy, Dst: b.temp(t), Args: []LocalID{v}, Node: src.Node}))
+		return retag(b.emit(midir.Inst{Op: midir.OpCopy, Dst: b.temp(t), Args: []midir.LocalID{v}, Node: src.Node}))
 	}
-	return retag(b.emit(Inst{Op: OpMove, Dst: b.temp(t), Args: []LocalID{v}, Node: src.Node}))
+	return retag(b.emit(midir.Inst{Op: midir.OpMove, Dst: b.temp(t), Args: []midir.LocalID{v}, Node: src.Node}))
 }
 
 // discard lowers `_ = value`. Discarding a binding changes nothing unless
@@ -145,7 +146,7 @@ func (b *builder) discard(s *hir.Stmt) {
 		}
 	}
 	v := b.exprMoved(rhs)
-	b.emit(Inst{Op: OpDrop, Args: []LocalID{v}, Node: s.Node})
+	b.emit(midir.Inst{Op: midir.OpDrop, Args: []midir.LocalID{v}, Node: s.Node})
 }
 
 func (b *builder) assignStmt(s *hir.Stmt) {
@@ -160,11 +161,11 @@ func (b *builder) assignStmt(s *hir.Stmt) {
 		if elem, ok := b.r.MutRefElem(t); ok {
 			t = elem
 		}
-		var out LocalID
+		var out midir.LocalID
 		if s.OpEnt != 0 {
-			out = b.emit(Inst{Op: OpCall, Dst: b.temp(t), Ent: s.OpEnt, Args: []LocalID{cur, r}, Node: s.Node})
+			out = b.emit(midir.Inst{Op: midir.OpCall, Dst: b.temp(t), Ent: s.OpEnt, Args: []midir.LocalID{cur, r}, Node: s.Node})
 		} else {
-			out = b.emit(Inst{Op: OpBinary, Dst: b.temp(t), Str: s.OpText, Args: []LocalID{cur, r}, Node: s.Node})
+			out = b.emit(midir.Inst{Op: midir.OpBinary, Dst: b.temp(t), Str: s.OpText, Args: []midir.LocalID{cur, r}, Node: s.Node})
 		}
 		b.storePlace(p, out)
 		return

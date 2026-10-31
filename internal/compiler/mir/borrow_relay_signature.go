@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -19,7 +20,7 @@ func (c *borrowCheck) calleeKeepsBorrow(t sem.TypeID) bool {
 	return false
 }
 
-func (c *borrowCheck) paramKeepsRef(g *Func, i int) bool {
+func (c *borrowCheck) paramKeepsRef(g *midir.Func, i int) bool {
 	prm := g.Locals[g.Params[i]]
 	return c.p.R.Types.Kind(prm.Type) == sem.KRef && (prm.Ent == 0 || c.p.R.Local(prm.Ent).Lifetime != 0)
 }

@@ -3,7 +3,7 @@ package vm
 import (
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 func TestSmallIntsAreSharedImmortals(t *testing.T) {
@@ -79,4 +79,4 @@ func TestFramesRecycleWithClearedLocals(t *testing.T) {
 	}
 }
 
-func testFunc(locals int) *mir.Func { return &mir.Func{Locals: make([]mir.Local, locals)} }
+func testFunc(locals int) *midir.Func { return &midir.Func{Locals: make([]midir.Local, locals)} }

@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -60,8 +61,8 @@ func stepsMeet(a, b int) bool {
 }
 
 // under puts the step of read in in front of p; an index (unless def finds a constant one) or unbox cuts the path.
-func (p stepPath) under(in *Inst, exact bool, def func(LocalID) *Inst) (stepPath, bool) {
-	if in.Op == OpIndex && def == nil || in.Op == OpUnbox {
+func (p stepPath) under(in *midir.Inst, exact bool, def func(midir.LocalID) *midir.Inst) (stepPath, bool) {
+	if in.Op == midir.OpIndex && def == nil || in.Op == midir.OpUnbox {
 		return nil, false
 	}
 	step, ok := pathStep(in, def)
@@ -72,17 +73,17 @@ func (p stepPath) under(in *Inst, exact bool, def func(LocalID) *Inst) (stepPath
 }
 
 // An unbox has no step; def finds an index operand's definition.
-func pathStep(in *Inst, def func(LocalID) *Inst) (int, bool) {
+func pathStep(in *midir.Inst, def func(midir.LocalID) *midir.Inst) (int, bool) {
 	switch in.Op {
-	case OpField, OpFieldMove:
+	case midir.OpField, midir.OpFieldMove:
 		return in.Index, true
-	case OpPayload:
+	case midir.OpPayload:
 		return payloadStep(in.Index), true
-	case OpIndex:
+	case midir.OpIndex:
 		if def == nil {
 			return anyElem, true
 		}
-		if d := def(in.Args[1]); d != nil && d.Op == OpConst && d.Lit.Kind == sem.LitInt && d.Lit.Int != nil && d.Lit.Int.IsInt64() && d.Lit.Int.Sign() >= 0 && d.Lit.Int.Int64() < 1<<29 {
+		if d := def(in.Args[1]); d != nil && d.Op == midir.OpConst && d.Lit.Kind == sem.LitInt && d.Lit.Int != nil && d.Lit.Int.IsInt64() && d.Lit.Int.Sign() >= 0 && d.Lit.Int.Int64() < 1<<29 {
 			return elemAt(int(d.Lit.Int.Int64())), true
 		}
 		return anyElem, true

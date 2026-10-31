@@ -4,20 +4,20 @@ import (
 	"fmt"
 	"slices"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
-var sameArity = [][]mir.Opcode{
-	{mir.OpCopy, mir.OpMove, mir.OpField, mir.OpFieldMove, mir.OpTag, mir.OpPayload, mir.OpIsVariant, mir.OpIsType, mir.OpUnbox, mir.OpBox, mir.OpBorrow, mir.OpNewCell, mir.OpCellGet, mir.OpCellTake, mir.OpAlias, mir.OpShare, mir.OpBoxDirect, mir.OpUnboxDirect, mir.OpAwait, mir.OpUnary},
-	{mir.OpBinary, mir.OpIndex},
-	{mir.OpSetField, mir.OpCellSet},
-	{mir.OpDrop, mir.OpRelease, mir.OpFutureDone, mir.OpGlobalSet},
-	{mir.OpConst, mir.OpUnit, mir.OpFnItem, mir.OpCFnPtr, mir.OpGlobalGet},
-	{mir.OpPanic, mir.OpNop},
-	{mir.OpCall, mir.OpCallValue, mir.OpBuiltin, mir.OpRecord, mir.OpVariant, mir.OpArray, mir.OpClosure, mir.OpBind, mir.OpCallC, mir.OpAsm, mir.OpInterp, mir.OpShell, mir.OpFutureNew},
-	{mir.OpSetIndex},
+var sameArity = [][]midir.Opcode{
+	{midir.OpCopy, midir.OpMove, midir.OpField, midir.OpFieldMove, midir.OpTag, midir.OpPayload, midir.OpIsVariant, midir.OpIsType, midir.OpUnbox, midir.OpBox, midir.OpBorrow, midir.OpNewCell, midir.OpCellGet, midir.OpCellTake, midir.OpAlias, midir.OpShare, midir.OpBoxDirect, midir.OpUnboxDirect, midir.OpAwait, midir.OpUnary},
+	{midir.OpBinary, midir.OpIndex},
+	{midir.OpSetField, midir.OpCellSet},
+	{midir.OpDrop, midir.OpRelease, midir.OpFutureDone, midir.OpGlobalSet},
+	{midir.OpConst, midir.OpUnit, midir.OpFnItem, midir.OpCFnPtr, midir.OpGlobalGet},
+	{midir.OpPanic, midir.OpNop},
+	{midir.OpCall, midir.OpCallValue, midir.OpBuiltin, midir.OpRecord, midir.OpVariant, midir.OpArray, midir.OpClosure, midir.OpBind, midir.OpCallC, midir.OpAsm, midir.OpInterp, midir.OpShell, midir.OpFutureNew},
+	{midir.OpSetIndex},
 }
 
 var allEdits = []edit{
@@ -73,7 +73,7 @@ func editDst(s *site) string {
 func editOpcodeAny(s *site) string {
 	in := s.inst()
 	old := in.Op
-	in.Op = mir.Opcode(s.r.Intn(int(mir.OpUnboxDirect)) + 1)
+	in.Op = midir.Opcode(s.r.Intn(int(midir.OpUnboxDirect)) + 1)
 	return fmt.Sprintf("%s %s to %s", s.where(), old, in.Op)
 }
 
@@ -125,20 +125,20 @@ func editSwapInsts(s *site) string {
 
 func editInsert(s *site) string {
 	b := s.blk()
-	var in mir.Inst
+	var in midir.Inst
 	switch s.r.Intn(6) {
 	case 0:
-		in = mir.Inst{Op: mir.OpDrop, Args: []mir.LocalID{s.local()}}
+		in = midir.Inst{Op: midir.OpDrop, Args: []midir.LocalID{s.local()}}
 	case 1:
-		in = mir.Inst{Op: mir.OpRelease, Args: []mir.LocalID{s.local()}}
+		in = midir.Inst{Op: midir.OpRelease, Args: []midir.LocalID{s.local()}}
 	case 2:
-		in = mir.Inst{Op: mir.OpMove, Dst: s.local(), Args: []mir.LocalID{s.local()}}
+		in = midir.Inst{Op: midir.OpMove, Dst: s.local(), Args: []midir.LocalID{s.local()}}
 	case 3:
-		in = mir.Inst{Op: mir.OpCopy, Dst: s.local(), Args: []mir.LocalID{s.local()}}
+		in = midir.Inst{Op: midir.OpCopy, Dst: s.local(), Args: []midir.LocalID{s.local()}}
 	case 4:
-		in = mir.Inst{Op: mir.OpUnit, Dst: s.local()}
+		in = midir.Inst{Op: midir.OpUnit, Dst: s.local()}
 	default:
-		in = mir.Inst{Op: mir.OpNop}
+		in = midir.Inst{Op: midir.OpNop}
 	}
 	b.Insts = slices.Insert(b.Insts, s.ii, in)
 	return fmt.Sprintf("%s inserted %s", s.where(), in.Op)
@@ -195,7 +195,7 @@ func editInstType(s *site) string {
 
 func editConstType(s *site) string {
 	in := s.inst()
-	if in.Op != mir.OpConst {
+	if in.Op != midir.OpConst {
 		return ""
 	}
 	in.Type = s.typ()
@@ -219,7 +219,7 @@ func editEntity(s *site) string {
 
 func editRedirectCall(s *site) string {
 	in := s.inst()
-	if in.Op != mir.OpCall && in.Op != mir.OpClosure && in.Op != mir.OpFnItem && in.Op != mir.OpBind {
+	if in.Op != midir.OpCall && in.Op != midir.OpClosure && in.Op != midir.OpFnItem && in.Op != midir.OpBind {
 		return ""
 	}
 	e, ok := s.ent(sem.EntFn)
@@ -286,7 +286,7 @@ func editPrim(s *site) string {
 
 func editLiteral(s *site) string {
 	in := s.inst()
-	if in.Op != mir.OpConst {
+	if in.Op != midir.OpConst {
 		return ""
 	}
 	in.Lit.Kind = sem.LitKind(s.r.Intn(8))
@@ -302,7 +302,7 @@ func editLocalType(s *site) string {
 		return ""
 	}
 	if s.r.Intn(2) == 0 {
-		s.f.Locals[l].Type = s.f.Locals[s.local()%mir.LocalID(len(s.f.Locals))].Type
+		s.f.Locals[l].Type = s.f.Locals[s.local()%midir.LocalID(len(s.f.Locals))].Type
 	} else {
 		s.f.Locals[l].Type = s.typ()
 	}
@@ -348,7 +348,7 @@ func editDirectFlag(s *site) string {
 func editDirectSig(s *site) string {
 	switch {
 	case s.f.DSig == nil:
-		s.f.DSig = &mir.DirectSig{Params: make([]sem.TypeID, len(s.f.Params)), Ret: s.typ()}
+		s.f.DSig = &midir.DirectSig{Params: make([]sem.TypeID, len(s.f.Params)), Ret: s.typ()}
 	case s.r.Intn(3) == 0:
 		s.f.DSig = nil
 	case s.r.Intn(2) == 0:
@@ -362,7 +362,7 @@ func editDirectSig(s *site) string {
 }
 
 func editTermRemove(s *site) string {
-	s.blk().Term = mir.Term{}
+	s.blk().Term = midir.Term{}
 	return s.where() + " terminator removed"
 }
 
@@ -386,7 +386,7 @@ func editTermSwapEdge(s *site) string {
 
 func editTermKind(s *site) string {
 	t := &s.blk().Term
-	t.Op = mir.TermOp(s.r.Intn(5))
+	t.Op = midir.TermOp(s.r.Intn(5))
 	return s.where() + " terminator kind changed"
 }
 

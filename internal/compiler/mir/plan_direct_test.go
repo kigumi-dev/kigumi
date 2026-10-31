@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/devkit/semfixture"
 )
 
@@ -26,7 +27,7 @@ func planned(t *testing.T, src string) *mir.Program {
 	return prog
 }
 
-func funcNamed(t *testing.T, p *mir.Program, name string) *mir.Func {
+func funcNamed(t *testing.T, p *mir.Program, name string) *midir.Func {
 	t.Helper()
 	for _, f := range p.Funcs {
 		if f.Name == name {
@@ -37,7 +38,7 @@ func funcNamed(t *testing.T, p *mir.Program, name string) *mir.Func {
 	return nil
 }
 
-func countOp(f *mir.Func, op mir.Opcode) int {
+func countOp(f *midir.Func, op midir.Opcode) int {
 	n := 0
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
@@ -71,12 +72,12 @@ fn main() -> Void! {}
 // model, so the plan has no crossing to make explicit.
 func TestPlanDirectLeavesLocalUseAlone(t *testing.T) {
 	f := funcNamed(t, planned(t, directPointSrc), "main.local")
-	if n := countOp(f, mir.OpBoxDirect); n != 0 {
+	if n := countOp(f, midir.OpBoxDirect); n != 0 {
 		t.Errorf("a record built and read locally boxes %d times:\n%s", n, f.Name)
 	}
 	direct := 0
 	for i := range f.Locals {
-		if f.IsDirect(mir.LocalID(i)) {
+		if f.IsDirect(midir.LocalID(i)) {
 			direct++
 		}
 	}
@@ -89,12 +90,12 @@ func TestPlanDirectLeavesLocalUseAlone(t *testing.T) {
 func TestPlanDirectBoxesAtTheCarrier(t *testing.T) {
 	p := planned(t, directPointSrc)
 	f := funcNamed(t, p, "main.intoArray")
-	if countOp(f, mir.OpBoxDirect) == 0 {
+	if countOp(f, midir.OpBoxDirect) == 0 {
 		t.Errorf("storing a direct aggregate into an Array has no explicit box:\n%s", p.Dump())
 	}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op != mir.OpBoxDirect {
+			if in.Op != midir.OpBoxDirect {
 				continue
 			}
 			if !f.IsDirect(in.Args[0]) || f.IsDirect(in.Dst) {
@@ -128,12 +129,12 @@ fn main() -> Void! {
 	if f.DSig == nil || f.DSig.Ret == 0 {
 		t.Fatal("a direct-aggregate result is not in the signature")
 	}
-	if countOp(f, mir.OpBoxDirect) != 0 {
+	if countOp(f, midir.OpBoxDirect) != 0 {
 		t.Error("a signature that carries the aggregate still boxes on return")
 	}
 	lambda := ""
 	for _, g := range p.Funcs {
-		if g.DSig == nil && countOp(g, mir.OpBoxDirect) > 0 {
+		if g.DSig == nil && countOp(g, midir.OpBoxDirect) > 0 {
 			lambda = g.Name
 		}
 	}
@@ -183,11 +184,11 @@ func TestPlanDirectCorpus(t *testing.T) {
 			checkNoallocBodies(t, res, prog)
 			for _, f := range prog.Funcs {
 				for i := range f.Locals {
-					if f.IsDirect(mir.LocalID(i)) {
+					if f.IsDirect(midir.LocalID(i)) {
 						sawDirect.Store(true)
 					}
 				}
-				if countOp(f, mir.OpBoxDirect) > 0 {
+				if countOp(f, midir.OpBoxDirect) > 0 {
 					sawBox.Store(true)
 				}
 			}
@@ -230,7 +231,7 @@ fn main() -> Void! {
 }
 `)
 	f := funcNamed(t, p, "main.count")
-	if n := countOp(f, mir.OpBoxDirect); n != 0 {
+	if n := countOp(f, midir.OpBoxDirect); n != 0 {
 		t.Errorf("a range read only through the iterator builtins boxes %d times:\n%s", n, p.Dump())
 	}
 }
@@ -260,7 +261,7 @@ fn main() -> Void! {
 		t.Fatalf("the signature leaves a by-value position out:\n%s", p.Dump())
 	}
 	f := funcNamed(t, p, "main.touch")
-	if n := countOp(f, mir.OpBoxDirect); n != 0 {
+	if n := countOp(f, midir.OpBoxDirect); n != 0 {
 		t.Errorf("a call that crosses nothing boxes %d times:\n%s", n, p.Dump())
 	}
 }
@@ -294,15 +295,15 @@ fn main() -> Void! {
 	if countDirect(f) != 0 {
 		t.Errorf("a value lent for a write-back is kept unboxed:\n%s", p.Dump())
 	}
-	if n := countOp(f, mir.OpBoxDirect); n != 0 {
+	if n := countOp(f, midir.OpBoxDirect); n != 0 {
 		t.Errorf("a value boxed from the start crosses %d more times:\n%s", n, p.Dump())
 	}
 }
 
-func countDirect(f *mir.Func) int {
+func countDirect(f *midir.Func) int {
 	n := 0
 	for i := range f.Locals {
-		if f.IsDirect(mir.LocalID(i)) {
+		if f.IsDirect(midir.LocalID(i)) {
 			n++
 		}
 	}
@@ -329,12 +330,12 @@ fn store(n: Int, mut xs: Array[Shape]) {
 func TestPlanDirectBuildsAndMatchesAnAdtInPlace(t *testing.T) {
 	p := planned(t, directAdtSrc)
 	f := funcNamed(t, p, "main.area")
-	if n := countOp(f, mir.OpBoxDirect) + countOp(f, mir.OpUnboxDirect); n != 0 {
+	if n := countOp(f, midir.OpBoxDirect) + countOp(f, midir.OpUnboxDirect); n != 0 {
 		t.Errorf("building and matching an ADT in one body crossed %d times:\n%s", n, p.Dump())
 	}
 	direct := 0
 	for i := range f.Locals {
-		if f.IsDirect(mir.LocalID(i)) {
+		if f.IsDirect(midir.LocalID(i)) {
 			direct++
 		}
 	}
@@ -346,7 +347,7 @@ func TestPlanDirectBuildsAndMatchesAnAdtInPlace(t *testing.T) {
 func TestPlanDirectBoxesAnAdtAtTheCarrier(t *testing.T) {
 	p := planned(t, directAdtSrc)
 	f := funcNamed(t, p, "main.store")
-	if n := countOp(f, mir.OpBoxDirect); n != 1 {
+	if n := countOp(f, midir.OpBoxDirect); n != 1 {
 		t.Errorf("an ADT handed to an Array crossed %d times, want 1:\n%s", n, p.Dump())
 	}
 }
@@ -377,14 +378,14 @@ fn sumAll(xs: &Array[Point]) -> Int {
 func TestPlanDirectMatchesACarrierInPlace(t *testing.T) {
 	p := planned(t, carrierMatchSrc)
 	f := funcNamed(t, p, "main.copyAll")
-	if n := countOp(f, mir.OpBoxDirect) + countOp(f, mir.OpUnboxDirect); n != 0 {
+	if n := countOp(f, midir.OpBoxDirect) + countOp(f, midir.OpUnboxDirect); n != 0 {
 		t.Errorf("matching a carrier and handing its payload on crossed %d times:\n%s", n, p.Dump())
 	}
 	f = funcNamed(t, p, "main.sumAll")
-	if n := countOp(f, mir.OpBoxDirect); n != 0 {
+	if n := countOp(f, midir.OpBoxDirect); n != 0 {
 		t.Errorf("reading a field of a matched payload boxed %d times:\n%s", n, p.Dump())
 	}
-	if n := countOp(f, mir.OpUnboxDirect); n != 1 {
+	if n := countOp(f, midir.OpUnboxDirect); n != 1 {
 		t.Errorf("reading a field of a matched payload unboxed %d times, want 1:\n%s", n, p.Dump())
 	}
 }
@@ -407,11 +408,11 @@ fn fresh(n: Int) -> Int {
 }
 `
 
-func boxFlags(f *mir.Func) (fixed, fresh int) {
+func boxFlags(f *midir.Func) (fixed, fresh int) {
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			switch {
-			case in.Op != mir.OpBoxDirect:
+			case in.Op != midir.OpBoxDirect:
 			case in.Fixed:
 				fixed++
 			default:
@@ -458,7 +459,7 @@ fn marked(n: Int) -> Int {
 func TestPlanDirectChargesADefinedWrapAndAMutStore(t *testing.T) {
 	p := planned(t, definedOverRecordSrc)
 	for _, name := range []string{"main.marked", "main.bump"} {
-		if n := countOp(funcNamed(t, p, name), mir.OpBoxDirect); n != 1 {
+		if n := countOp(funcNamed(t, p, name), midir.OpBoxDirect); n != 1 {
 			t.Errorf("%s boxes %d times, want 1:\n%s", name, n, p.Dump())
 		}
 	}

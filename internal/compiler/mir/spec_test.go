@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/lang/diag"
 )
 
@@ -37,11 +38,11 @@ func instances(p *mir.Program) []string {
 	return out
 }
 
-func calleeOf(t *testing.T, p *mir.Program, f *mir.Func, name string) *mir.Func {
+func calleeOf(t *testing.T, p *mir.Program, f *midir.Func, name string) *midir.Func {
 	t.Helper()
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == mir.OpCall && p.R.Entity(in.Ent).Name == name {
+			if in.Op == midir.OpCall && p.R.Entity(in.Ent).Name == name {
 				return p.ByEnt[in.Ent]
 			}
 		}
@@ -83,10 +84,10 @@ func TestSpecializeGivesADirectRecordItsOwnBody(t *testing.T) {
 		t.Errorf("the instantiation does not carry the record unboxed: %+v", spec.DSig)
 	}
 	run := funcNamed(t, p, "main.run")
-	if n := countOp(run, mir.OpBoxDirect) + countOp(run, mir.OpUnboxDirect); n != 0 {
+	if n := countOp(run, midir.OpBoxDirect) + countOp(run, midir.OpUnboxDirect); n != 0 {
 		t.Errorf("the caller still crosses %d times:\n%s", n, p.Dump())
 	}
-	if n := countOp(spec, mir.OpBoxDirect) + countOp(spec, mir.OpUnboxDirect); n != 0 {
+	if n := countOp(spec, midir.OpBoxDirect) + countOp(spec, midir.OpUnboxDirect); n != 0 {
 		t.Errorf("the instantiation crosses %d times", n)
 	}
 }
@@ -107,7 +108,7 @@ func TestSpecializeKeepsTheSharedBodyWhereTheBoxWouldMoveIn(t *testing.T) {
 	if f := calleeOf(t, p, keep, "store"); f.Name != "main.store" {
 		t.Errorf("store is called through %s, want the shared body", f.Name)
 	}
-	if countOp(keep, mir.OpBoxDirect) != 1 {
+	if countOp(keep, midir.OpBoxDirect) != 1 {
 		t.Errorf("want the one box at the call:\n%s", p.Dump())
 	}
 }
@@ -132,13 +133,13 @@ fn run(x: Int) -> Int { measure(Point { x: x, y: 1 }) }
 fn main() -> Void! {}
 `)
 	spec := funcNamed(t, p, "main.measure[main.Point]")
-	if countOp(spec, mir.OpCallValue) != 0 {
+	if countOp(spec, midir.OpCallValue) != 0 {
 		t.Errorf("the witness is still called through its value:\n%s", p.Dump())
 	}
 	if f := calleeOf(t, p, spec, "size"); f.Name != "main.Point.size" {
 		t.Errorf("size resolves to %s", f.Name)
 	}
-	if n := countOp(spec, mir.OpBoxDirect); n != 0 {
+	if n := countOp(spec, midir.OpBoxDirect); n != 0 {
 		t.Errorf("the receiver is boxed %d times", n)
 	}
 }
@@ -221,7 +222,7 @@ func TestSpecializeFollowsALongChainOfGenerics(t *testing.T) {
 		t.Fatalf("diagnostics = %+v, want none", p.Diags)
 	}
 	last := funcNamed(t, p, fmt.Sprintf("main.step%d[main.Point]", steps))
-	if n := countOp(last, mir.OpBoxDirect) + countOp(last, mir.OpUnboxDirect); n != 0 {
+	if n := countOp(last, midir.OpBoxDirect) + countOp(last, midir.OpUnboxDirect); n != 0 {
 		t.Errorf("the last step crosses %d times", n)
 	}
 }
@@ -351,17 +352,17 @@ fn main() -> Void! {}
 		t.Errorf("instantiations = %q, want %q", strings.Join(got, " "), want)
 	}
 	for _, name := range []string{"main.run", "main.nested", "main.parity"} {
-		if f := funcNamed(t, p, name); countOp(f, mir.OpBoxDirect) != 0 {
+		if f := funcNamed(t, p, name); countOp(f, midir.OpBoxDirect) != 0 {
 			t.Errorf("%s still boxes:\n%s", name, p.Dump())
 		}
 	}
 }
 
-func fnItemTargets(p *mir.Program, f *mir.Func) []string {
+func fnItemTargets(p *mir.Program, f *midir.Func) []string {
 	var out []string
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == mir.OpFnItem {
+			if in.Op == midir.OpFnItem {
 				out = append(out, p.ByEnt[in.Ent].Name)
 			}
 		}

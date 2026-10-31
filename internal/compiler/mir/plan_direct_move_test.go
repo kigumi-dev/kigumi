@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
@@ -47,21 +48,21 @@ fn main() {
 `
 
 // movesBeforeCrossing wants each move out of the named local in the local's own form, with only its result crossing.
-func movesBeforeCrossing(t *testing.T, p *mir.Program, f *mir.Func, name string) {
+func movesBeforeCrossing(t *testing.T, p *mir.Program, f *midir.Func, name string) {
 	t.Helper()
-	views, moved := map[mir.LocalID]bool{}, map[mir.LocalID]bool{}
+	views, moved := map[midir.LocalID]bool{}, map[midir.LocalID]bool{}
 	crossed := false
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			cross := in.Op == mir.OpUnboxDirect || in.Op == mir.OpBoxDirect
+			cross := in.Op == midir.OpUnboxDirect || in.Op == midir.OpBoxDirect
 			switch {
 			case cross && f.Locals[in.Args[0]].Name == name:
 				views[in.Dst] = true
 			case cross && moved[in.Args[0]]:
 				crossed = true
-			case in.Op == mir.OpMove && views[in.Args[0]]:
+			case in.Op == midir.OpMove && views[in.Args[0]]:
 				t.Errorf("%s moves a crossing of %%%s, which leaves the local holding its count:\n%s", f.Name, name, p.Dump())
-			case in.Op == mir.OpMove && f.Locals[in.Args[0]].Name == name:
+			case in.Op == midir.OpMove && f.Locals[in.Args[0]].Name == name:
 				if f.IsDirect(in.Args[0]) != f.IsDirect(in.Dst) {
 					t.Errorf("%s moves %%%s into the other form", f.Name, name)
 				}

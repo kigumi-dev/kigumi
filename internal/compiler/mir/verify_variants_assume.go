@@ -1,11 +1,15 @@
 package mir
 
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
 func (s *variantFacts) fold() {
 	if len(s.bools) == 0 {
 		return
 	}
 	memo := map[*boolFact]*boolFact{}
-	updates := map[LocalID]*boolFact{}
+	updates := map[midir.LocalID]*boolFact{}
 	for c, b := range s.bools {
 		nb, ok := memo[b]
 		if !ok {
@@ -52,7 +56,7 @@ func (s *variantFacts) foldSide(im *implied) *implied {
 	return &implied{facts: facts}
 }
 
-func (s *variantFacts) assume(c LocalID, value bool) bool {
+func (s *variantFacts) assume(c midir.LocalID, value bool) bool {
 	b := s.bools[c]
 	if b == nil {
 		return true
@@ -82,7 +86,7 @@ func (s *variantFacts) assume(c LocalID, value bool) bool {
 		nb = &boolFact{yes: im, no: neverImplied}
 	}
 	s.markFacts(nb)
-	var same []LocalID
+	var same []midir.LocalID
 	for l, x := range s.bools {
 		if x == b {
 			same = append(same, l)

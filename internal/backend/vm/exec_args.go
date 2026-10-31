@@ -3,26 +3,26 @@ package vm
 import (
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 )
 
-func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
+func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 	f := fr.f
 	args := m.gather(fr.locals, in.Args)
 	var res *obj
 	switch in.Op {
-	case mir.OpConst:
+	case midir.OpConst:
 		res = m.constant(in)
 		m.chargeMemory(res)
-	case mir.OpGlobalGet:
+	case midir.OpGlobalGet:
 		res = m.loadGlobal(in.Ent)
-	case mir.OpGlobalSet:
+	case midir.OpGlobalSet:
 		m.storeGlobal(in.Ent, args[0])
 		return
-	case mir.OpBoxDirect, mir.OpUnboxDirect:
+	case midir.OpBoxDirect, midir.OpUnboxDirect:
 		res = m.cross(fr, in, args[0])
-	case mir.OpCall:
+	case midir.OpCall:
 		m.callTicks(f, in, fr.locals)
 		m.tryBare = in.DPrim == opdef.DPTryRef || in.DPrim == opdef.DPTryOpt
 		res = m.callPlanned(in, ic, args)
@@ -30,7 +30,7 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 		if m.p.ResultBoxed(f, *in) {
 			m.scalarTick(res)
 		}
-	case mir.OpCallValue, mir.OpCallC:
+	case midir.OpCallValue, midir.OpCallC:
 		if f.IsDirect(in.Args[0]) {
 			closure := m.closureCall(f, in)
 			if closure {
@@ -44,7 +44,7 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 		}
 		m.argTicks(f, in, args)
 		res = m.callSite(in, args)
-	case mir.OpBuiltin:
+	case midir.OpBuiltin:
 		if in.Str == "task.close" {
 			m.closeScopeAt(fr)
 			res = unitObj
@@ -53,26 +53,26 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 		m.site, m.siteFn = in, f
 		res = m.builtin(in.Str, args)
 		m.chargeMemory(res)
-	case mir.OpFutureNew:
+	case midir.OpFutureNew:
 		res = m.newFuture(args)
 		m.chargeMemory(res)
-	case mir.OpAwait, mir.OpCancelled, mir.OpCancelDone:
+	case midir.OpAwait, midir.OpCancelled, midir.OpCancelDone:
 		m.abort("`await` outside an async body")
-	case mir.OpFutureDone:
+	case midir.OpFutureDone:
 		return
-	case mir.OpRecord:
+	case midir.OpRecord:
 		m.aggTicks(f, in, args, 2)
 		res = mkRecord(in.Ent, args)
 		m.chargeMemory(res)
-	case mir.OpVariant:
+	case midir.OpVariant:
 		if len(args) > 0 {
 			m.aggTicks(f, in, args, 2)
 		}
 		res = mkVariant(in.Ent, args)
 		m.chargeMemory(res)
-	case mir.OpFieldMove:
+	case midir.OpFieldMove:
 		res = m.fieldMove(args[0], in.Index)
-	case mir.OpSetField:
+	case midir.OpSetField:
 		m.storeTick(f, in, in.Args[1], args[1])
 		r := deref(m.ownDirect(fr, in.Args[0], args[0]))
 		old := r.fields[in.Index]
@@ -81,24 +81,24 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 			m.dropChecked(fr, old)
 		}
 		return
-	case mir.OpArray:
+	case midir.OpArray:
 		m.aggTicks(f, in, args, min(2, 1+len(args)))
 		res = mkArray(args)
 		m.chargeMemory(res)
-	case mir.OpSetIndex:
+	case midir.OpSetIndex:
 		m.storeTick(f, in, in.Args[2], args[2])
 		m.dropChecked(fr, m.setIndex(m.ownDirect(fr, in.Args[0], args[0]), args[1], args[2]))
 		return
-	case mir.OpIsType:
+	case midir.OpIsType:
 		v := deref(args[0])
 		res = mkBool(v.k == kBox && m.typeEnt(v.dynType()) == in.Ent)
-	case mir.OpUnbox:
+	case midir.OpUnbox:
 		v := args[0]
 		if v.k == kBox {
 			v = retain(v.inner)
 		}
 		res = v
-	case mir.OpBox:
+	case midir.OpBox:
 		v := args[0]
 		if v.k != kBox {
 			b := newObj(kBox)
@@ -107,31 +107,31 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 			m.chargeMemory(b)
 		}
 		res = v
-	case mir.OpLendBox:
+	case midir.OpLendBox:
 		res = &obj{k: kBox, rc: -1, i: int64(in.Type), inner: deref(args[0]), b: true}
 		if args[0].k == kCell {
 			res.fields = []*obj{args[0]}
 		}
-	case mir.OpClosure, mir.OpFnItem, mir.OpBind, mir.OpCFnPtr:
-		if len(args) > 0 && (in.Op == mir.OpBind || in.Op == mir.OpClosure && in.Str == "method") {
+	case midir.OpClosure, midir.OpFnItem, midir.OpBind, midir.OpCFnPtr:
+		if len(args) > 0 && (in.Op == midir.OpBind || in.Op == midir.OpClosure && in.Str == "method") {
 			m.tick(bindAllocs)
 		}
 		res = m.closure(in, ic, args)
 		m.chargeMemory(res)
-	case mir.OpNewCell:
+	case midir.OpNewCell:
 		res = mkCell(args[0])
 		res.b = in.Lent
 		m.chargeMemory(res)
-	case mir.OpCellTake:
+	case midir.OpCellTake:
 		res = args[0].inner
 		args[0].inner = nil
-	case mir.OpCellSet:
+	case midir.OpCellSet:
 		m.storeTick(f, in, in.Args[1], args[1])
 		old := args[0].inner
 		args[0].inner = args[1]
 		m.dropChecked(fr, old)
 		return
-	case mir.OpInterp:
+	case midir.OpInterp:
 		var sb strings.Builder
 		ai := 0
 		for _, piece := range in.Strs {
@@ -145,9 +145,9 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 		m.tick(1)
 		res = mkStr([]byte(sb.String()))
 		m.chargeMemory(res)
-	case mir.OpShell:
+	case midir.OpShell:
 		res = m.shellPlan(in, args)
-	case mir.OpPanic:
+	case midir.OpPanic:
 		m.abort(in.Str)
 	default:
 		panic(&Unsupported{What: in.Op.String()})

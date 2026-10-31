@@ -3,10 +3,11 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func (c *borrowCheck) keptStoreFlows(e sem.EntityID, args []LocalID, s *keptSummary, t int) []storeFlow {
+func (c *borrowCheck) keptStoreFlows(e sem.EntityID, args []midir.LocalID, s *keptSummary, t int) []storeFlow {
 	info, params := c.p.R.Fn(e), c.declaredParams(e)
 	if t >= len(params) {
 		return nil
@@ -37,8 +38,8 @@ func (c *borrowCheck) keptStoreFlows(e sem.EntityID, args []LocalID, s *keptSumm
 	return targets
 }
 
-func (c *borrowCheck) unknownKeptValues(e sem.EntityID, args []LocalID, values []flowArg) []flowArg {
-	callback := slices.ContainsFunc(args, func(a LocalID) bool {
+func (c *borrowCheck) unknownKeptValues(e sem.EntityID, args []midir.LocalID, values []flowArg) []flowArg {
+	callback := slices.ContainsFunc(args, func(a midir.LocalID) bool {
 		return c.carriesMaker(c.f.Locals[a].Type, map[sem.TypeID]bool{}, c.holdsAsync)
 	})
 	if callback {

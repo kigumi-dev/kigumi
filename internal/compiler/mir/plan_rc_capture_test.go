@@ -3,7 +3,7 @@ package mir_test
 import (
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const captureSrc = `
@@ -25,14 +25,14 @@ fn main() -> Void! {}
 func TestPlanReleasesTheCopyAClosureRetains(t *testing.T) {
 	p := planned(t, captureSrc)
 	f := funcNamed(t, p, "main.nested")
-	released := map[mir.LocalID]bool{}
-	var shares []mir.LocalID
+	released := map[midir.LocalID]bool{}
+	var shares []midir.LocalID
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			switch in.Op {
-			case mir.OpRelease:
+			case midir.OpRelease:
 				released[in.Args[0]] = true
-			case mir.OpShare:
+			case midir.OpShare:
 				shares = append(shares, in.Dst)
 			}
 		}

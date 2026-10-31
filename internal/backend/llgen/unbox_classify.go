@@ -1,7 +1,7 @@
 package llgen
 
 import (
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
@@ -41,8 +41,8 @@ func (e *emitter) scalarBoxed(t sem.TypeID) bool {
 	return t == sem.TyBool || t == sem.TyChar || tt.IsInteger(t) || tt.IsFloat(t)
 }
 
-func (e *emitter) classifyScalars(f *mir.Func) map[mir.LocalID]scalarInfo {
-	out := map[mir.LocalID]scalarInfo{}
+func (e *emitter) classifyScalars(f *midir.Func) map[midir.LocalID]scalarInfo {
+	out := map[midir.LocalID]scalarInfo{}
 	isParam := make([]bool, len(f.Locals))
 	inReg := make([]bool, len(f.Locals))
 	ncaps := 0
@@ -59,11 +59,11 @@ func (e *emitter) classifyScalars(f *mir.Func) map[mir.LocalID]scalarInfo {
 		if isParam[i] || l.Cell || (l.Borrowed && !inReg[i]) {
 			continue
 		}
-		if ty, ok := e.scalarType(l.Type); ok && (ty != TI128 || !framed(f, mir.LocalID(i))) {
-			out[mir.LocalID(i)] = scalarInfo{Ty: ty, Nk: e.numKind(l.Type)}
+		if ty, ok := e.scalarType(l.Type); ok && (ty != TI128 || !framed(f, midir.LocalID(i))) {
+			out[midir.LocalID(i)] = scalarInfo{Ty: ty, Nk: e.numKind(l.Type)}
 		}
 	}
-	disqualify := func(l mir.LocalID) { delete(out, l) }
+	disqualify := func(l midir.LocalID) { delete(out, l) }
 	e.raw = e.rawScalars(f)
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
@@ -71,7 +71,7 @@ func (e *emitter) classifyScalars(f *mir.Func) map[mir.LocalID]scalarInfo {
 			e.classifyArgs(f, in, disqualify)
 			// A wrap/unwrap alias from a reference keeps its source's boxed
 			// pointer bits, so its result can't live in a native register.
-			if in.Op == mir.OpAlias && e.r.Types.Kind(f.Locals[in.Args[0]].Type) == sem.KRef {
+			if in.Op == midir.OpAlias && e.r.Types.Kind(f.Locals[in.Args[0]].Type) == sem.KRef {
 				disqualify(in.Dst)
 			}
 		}
@@ -84,37 +84,37 @@ func (e *emitter) classifyScalars(f *mir.Func) map[mir.LocalID]scalarInfo {
 
 // classifyDst disqualifies in.Dst unless in.Op is one the scalar codegen
 // computes without ever creating a box for its result.
-func (e *emitter) classifyDst(f *mir.Func, in mir.Inst, disqualify func(mir.LocalID)) {
+func (e *emitter) classifyDst(f *midir.Func, in midir.Inst, disqualify func(midir.LocalID)) {
 	if !in.Op.Yields() {
 		return
 	}
 	switch in.Op {
-	case mir.OpField, mir.OpFieldMove, mir.OpPayload, mir.OpIsVariant, mir.OpIndex:
+	case midir.OpField, midir.OpFieldMove, midir.OpPayload, midir.OpIsVariant, midir.OpIndex:
 		if !e.isDirect(in.Args[0]) {
 			disqualify(in.Dst)
 		}
-	case mir.OpBuiltin:
+	case midir.OpBuiltin:
 		if (!e.inPlaceBuiltin(in) || in.Str == "fixed.fill") && !e.iterRaw(f, in) {
 			disqualify(in.Dst)
 		}
-	case mir.OpConst:
+	case midir.OpConst:
 		if t, _ := e.scalarType(f.Locals[in.Dst].Type); t == TCPtr {
 			disqualify(in.Dst)
 		}
-	case mir.OpBinary, mir.OpAlias, mir.OpShare, mir.OpMove:
-	case mir.OpGlobalGet:
+	case midir.OpBinary, midir.OpAlias, midir.OpShare, midir.OpMove:
+	case midir.OpGlobalGet:
 		if _, ok := e.directStatic(in.Ent); !ok {
 			disqualify(in.Dst)
 		}
-	case mir.OpUnary:
+	case midir.OpUnary:
 		if in.Str == "cast" {
 			disqualify(in.Dst)
 		}
-	case mir.OpCall:
+	case midir.OpCall:
 		if _, ok := e.calleeScalarSig(in).ret(); in.DPrim == opdef.DPNone && !ok && e.wideCallOp(f, in) == "" && !e.rawConvert(f, in) && !(e.cNative(in) && e.cDstInReg(f, in)) {
 			disqualify(in.Dst)
 		}
-	case mir.OpCallValue:
+	case midir.OpCallValue:
 		if !e.callvI64(f, in) {
 			disqualify(in.Dst)
 		}
@@ -126,21 +126,21 @@ func (e *emitter) classifyDst(f *mir.Func, in mir.Inst, disqualify func(mir.Loca
 // classifyArgs disqualifies locals an instruction can't read natively.
 // OpIndex/OpSetIndex allow the index arg boxed-on-demand; OpDrop/OpRelease
 // become no-ops instead of disqualifying; everything else needs a real box.
-func (e *emitter) classifyArgs(f *mir.Func, in mir.Inst, disqualify func(mir.LocalID)) {
+func (e *emitter) classifyArgs(f *midir.Func, in midir.Inst, disqualify func(midir.LocalID)) {
 	switch in.Op {
-	case mir.OpRecord, mir.OpVariant, mir.OpClosure:
+	case midir.OpRecord, midir.OpVariant, midir.OpClosure:
 		if !e.isDirect(in.Dst) {
 			for _, a := range in.Args {
 				disqualify(a)
 			}
 		}
-	case mir.OpSetField:
+	case midir.OpSetField:
 		if !e.isDirect(in.Args[0]) {
 			for _, a := range in.Args {
 				disqualify(a)
 			}
 		}
-	case mir.OpBuiltin:
+	case midir.OpBuiltin:
 		if !e.inPlaceBuiltin(in) {
 			for i, a := range in.Args {
 				if i != 1 || iterModes[in.Str] == 0 {
@@ -148,32 +148,32 @@ func (e *emitter) classifyArgs(f *mir.Func, in mir.Inst, disqualify func(mir.Loc
 				}
 			}
 		}
-	case mir.OpBorrow:
+	case midir.OpBorrow:
 		disqualify(in.Args[0])
-	case mir.OpAlias, mir.OpShare, mir.OpMove:
-	case mir.OpUnary:
+	case midir.OpAlias, midir.OpShare, midir.OpMove:
+	case midir.OpUnary:
 		if in.Str == "cast" {
 			disqualify(in.Args[0])
 		}
-	case mir.OpBinary:
-	case mir.OpInterp:
+	case midir.OpBinary:
+	case midir.OpInterp:
 		for _, a := range in.Args {
 			if t, _ := e.scalarType(f.Locals[a].Type); !e.raw[a] || t == TCPtr {
 				disqualify(a)
 			}
 		}
-	case mir.OpIndex, mir.OpSetIndex:
+	case midir.OpIndex, midir.OpSetIndex:
 		for i, a := range in.Args {
 			if i != 1 && !(i == 2 && e.isDirect(in.Args[0])) {
 				disqualify(a)
 			}
 		}
-	case mir.OpDrop, mir.OpRelease:
-	case mir.OpGlobalSet:
+	case midir.OpDrop, midir.OpRelease:
+	case midir.OpGlobalSet:
 		if _, ok := e.directStatic(in.Ent); !ok {
 			disqualify(in.Args[0])
 		}
-	case mir.OpCall:
+	case midir.OpCall:
 		if in.DPrim == opdef.DPNone && e.wideCallOp(f, in) == "" && !e.rawConvert(f, in) {
 			sig, c := e.calleeScalarSig(in), e.cNative(in)
 			for i, a := range in.Args {

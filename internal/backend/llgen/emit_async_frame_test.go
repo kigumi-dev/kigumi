@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"kigumi/internal/backend/llgen"
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const asyncFrameSrc = `
@@ -35,7 +35,7 @@ fn main() -> Void! {}
 
 func TestAsyncFrameKeepsADirectLocalInline(t *testing.T) {
 	prog := plannedProgram(t, asyncFrameSrc)
-	var walk *mir.Func
+	var walk *midir.Func
 	for _, f := range prog.Funcs {
 		if f.Name == "main.walk" {
 			walk = f

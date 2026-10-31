@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 )
 
@@ -21,7 +21,7 @@ var (
 	rtDHashFloat  = RuntimeFn{"rt_d_hash_float", []Type{TDouble, TI32}, TI64}
 )
 
-func (e *emitter) directPrimCall(sb *strings.Builder, f *mir.Func, in mir.Inst) {
+func (e *emitter) directPrimCall(sb *strings.Builder, f *midir.Func, in midir.Inst) {
 	if in.DPrim == opdef.DPTryRef || in.DPrim == opdef.DPTryOpt {
 		e.tryRefCall(sb, f, in)
 		return
@@ -75,7 +75,7 @@ func (e *emitter) directPrimCall(sb *strings.Builder, f *mir.Func, in mir.Inst) 
 }
 
 // A Bool widens: an i1 argument leaves the rest of a C int undefined.
-func (e *emitter) primArg(sb *strings.Builder, f *mir.Func, l mir.LocalID) Value {
+func (e *emitter) primArg(sb *strings.Builder, f *midir.Func, l midir.LocalID) Value {
 	if _, ok := e.scalarType(f.Locals[l].Type); !ok {
 		return vptr(e.load(sb, l))
 	}
@@ -106,13 +106,13 @@ func (e *emitter) fromBits(sb *strings.Builder, ty Type, bits string) string {
 	return t
 }
 
-func (e *emitter) storeScalarBits(sb *strings.Builder, f *mir.Func, dst mir.LocalID, bits string) {
+func (e *emitter) storeScalarBits(sb *strings.Builder, f *midir.Func, dst midir.LocalID, bits string) {
 	ty, _ := e.scalarType(f.Locals[dst].Type)
 	e.storeScalarResult(sb, f, dst, Value{ty, e.fromBits(sb, ty, bits)})
 }
 
 // The payload slot is written for None too, where the runtime left the bits zero.
-func (e *emitter) storeOptionBits(sb *strings.Builder, dst mir.LocalID, present, bits string) {
+func (e *emitter) storeOptionBits(sb *strings.Builder, dst midir.LocalID, present, bits string) {
 	a := e.direct[dst]
 	some, none := 0, 0
 	for i, v := range a.Variants {

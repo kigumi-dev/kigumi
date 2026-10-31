@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
@@ -10,23 +11,23 @@ import (
 // shareFacts reads a body as it was before PlanRC rewrote it; Points name instructions of that snapshot.
 type shareFacts struct {
 	p       *Program
-	f       *Func
+	f       *midir.Func
 	sum     *shareSummary
-	blocks  []Block
+	blocks  []midir.Block
 	nLocals int
-	defs    [][]*Inst
-	binds   map[LocalID][]Point
-	sets    map[LocalID][]Point
-	uses    map[LocalID][]argUse
-	own     map[LocalID][]Point
-	inner   map[LocalID][]Point
+	defs    [][]*midir.Inst
+	binds   map[midir.LocalID][]Point
+	sets    map[midir.LocalID][]Point
+	uses    map[midir.LocalID][]argUse
+	own     map[midir.LocalID][]Point
+	inner   map[midir.LocalID][]Point
 	paths   map[rootAt][]wpath
 	blind   []Point
 	lent    []lentSite
 	copyAt  map[Point]bool
 	decided bool
-	memo    map[LocalID]rootSet
-	viewers map[LocalID][]LocalID
+	memo    map[midir.LocalID]rootSet
+	viewers map[midir.LocalID][]midir.LocalID
 	reach   [][]bool
 	live    *liveness
 	foreign []bool
@@ -38,9 +39,9 @@ type argUse struct {
 	term bool
 }
 
-func newShareFacts(p *Program, f *Func, sum *shareSummary) *shareFacts {
-	w := &shareFacts{p: p, f: f, sum: sum, blocks: slices.Clone(f.Blocks), nLocals: len(f.Locals), defs: make([][]*Inst, len(f.Locals)),
-		binds: map[LocalID][]Point{}, sets: map[LocalID][]Point{}, uses: map[LocalID][]argUse{}, own: map[LocalID][]Point{}, inner: map[LocalID][]Point{},
+func newShareFacts(p *Program, f *midir.Func, sum *shareSummary) *shareFacts {
+	w := &shareFacts{p: p, f: f, sum: sum, blocks: slices.Clone(f.Blocks), nLocals: len(f.Locals), defs: make([][]*midir.Inst, len(f.Locals)),
+		binds: map[midir.LocalID][]Point{}, sets: map[midir.LocalID][]Point{}, uses: map[midir.LocalID][]argUse{}, own: map[midir.LocalID][]Point{}, inner: map[midir.LocalID][]Point{},
 		paths: map[rootAt][]wpath{}, copyAt: map[Point]bool{}}
 	for b, blk := range w.blocks {
 		for k := range blk.Insts {
@@ -71,9 +72,9 @@ func newShareFacts(p *Program, f *Func, sum *shareSummary) *shareFacts {
 	return w
 }
 
-func (w *shareFacts) inst(at Point) Inst { return w.blocks[at.Block].Insts[at.Inst] }
+func (w *shareFacts) inst(at Point) midir.Inst { return w.blocks[at.Block].Insts[at.Inst] }
 
-func (w *shareFacts) defNode(v LocalID) syntax.NodeID {
+func (w *shareFacts) defNode(v midir.LocalID) syntax.NodeID {
 	for _, in := range w.defs[v] {
 		if in.Node != 0 {
 			return in.Node
@@ -82,26 +83,26 @@ func (w *shareFacts) defNode(v LocalID) syntax.NodeID {
 	return 0
 }
 
-func bindsFrom(in Inst) bool {
+func bindsFrom(in midir.Inst) bool {
 	switch in.Op {
-	case OpCopy:
+	case midir.OpCopy:
 		return !in.Share && len(in.Args) == 1
-	case OpMove, OpAlias:
+	case midir.OpMove, midir.OpAlias:
 		return len(in.Args) == 1
 	}
 	return false
 }
 
-func (w *shareFacts) noteWrites(in Inst, at Point) {
+func (w *shareFacts) noteWrites(in midir.Inst, at Point) {
 	switch in.Op {
-	case OpSetField, OpSetIndex:
+	case midir.OpSetField, midir.OpSetIndex:
 		w.noteWrite(in.Args[0], at, false)
-	case OpBorrow:
+	case midir.OpBorrow:
 		if in.Index == 1 {
 			to, ok := w.lentTo(in.Dst)
 			w.lendOrWrite(in.Args[0], at, to, ok)
 		}
-	case OpCall, OpCallValue, OpCallC, OpFutureNew:
+	case midir.OpCall, midir.OpCallValue, midir.OpCallC, midir.OpFutureNew:
 		for i, a := range in.Args {
 			if w.passesPlace(a) {
 				to, ok := w.calleeParam(in, i)
@@ -111,13 +112,13 @@ func (w *shareFacts) noteWrites(in Inst, at Point) {
 	}
 }
 
-func (w *shareFacts) passesPlace(a LocalID) bool {
+func (w *shareFacts) passesPlace(a midir.LocalID) bool {
 	l := w.f.Locals[a]
 	return l.Ent != 0 && (l.Cell || w.mutRef(a))
 }
 
 // A callee handed a place may write anything inside it, so whole files the write under both.
-func (w *shareFacts) noteWrite(base LocalID, at Point, whole bool) {
+func (w *shareFacts) noteWrite(base midir.LocalID, at Point, whole bool) {
 	r, path, ok := w.placeOf(base)
 	if !ok {
 		w.blind = append(w.blind, at)
@@ -132,19 +133,19 @@ func (w *shareFacts) noteWrite(base LocalID, at Point, whole bool) {
 	}
 }
 
-func projects(in Inst) bool {
+func projects(in midir.Inst) bool {
 	switch in.Op {
-	case OpField, OpFieldMove, OpIndex, OpPayload, OpUnbox:
+	case midir.OpField, midir.OpFieldMove, midir.OpIndex, midir.OpPayload, midir.OpUnbox:
 		return true
-	case OpBuiltin:
+	case midir.OpBuiltin:
 		return in.Str == "iter.at" || in.Str == "iter.at_ref"
 	}
 	return false
 }
 
-func passesOn(op Opcode) bool {
+func passesOn(op midir.Opcode) bool {
 	switch op {
-	case OpCopy, OpAlias, OpMove, OpBorrow, OpLendBox, OpCellGet, OpNewCell, OpShare:
+	case midir.OpCopy, midir.OpAlias, midir.OpMove, midir.OpBorrow, midir.OpLendBox, midir.OpCellGet, midir.OpNewCell, midir.OpShare:
 		return true
 	}
 	return false

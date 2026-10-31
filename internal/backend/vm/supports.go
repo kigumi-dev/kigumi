@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
@@ -32,8 +33,8 @@ func SupportsTests(prog *mir.Program) (bool, string) {
 	return supportsFrom(prog, testFuncs(prog)...)
 }
 
-func testFuncs(prog *mir.Program) []*mir.Func {
-	var fs []*mir.Func
+func testFuncs(prog *mir.Program) []*midir.Func {
+	var fs []*midir.Func
 	for _, f := range prog.Funcs {
 		if prog.R.Entity(f.Ent).Kind == sem.EntTest {
 			fs = append(fs, f)
@@ -42,15 +43,15 @@ func testFuncs(prog *mir.Program) []*mir.Func {
 	return fs
 }
 
-func supportsFrom(prog *mir.Program, roots ...*mir.Func) (bool, string) {
+func supportsFrom(prog *mir.Program, roots ...*midir.Func) (bool, string) {
 	return newSupportIndex(prog).check(roots...)
 }
 
 // callees lists the functions an instruction can enter: the named function,
 // or every method of that name when the call goes through an interface.
-func (m *Machine) callees(in *mir.Inst) []*mir.Func {
+func (m *Machine) callees(in *midir.Inst) []*midir.Func {
 	switch in.Op {
-	case mir.OpCall, mir.OpClosure, mir.OpFnItem, mir.OpBind, mir.OpCFnPtr:
+	case midir.OpCall, midir.OpClosure, midir.OpFnItem, midir.OpBind, midir.OpCFnPtr:
 	default:
 		return nil
 	}
@@ -60,13 +61,13 @@ func (m *Machine) callees(in *mir.Inst) []*mir.Func {
 		if _, hosted := m.hostFor(in.Prov, m.stdKey(in.Ent)); hosted {
 			return nil
 		}
-		return []*mir.Func{f}
+		return []*midir.Func{f}
 	}
 	e := m.r.Entity(in.Ent)
-	if e.Kind != sem.EntFn || m.r.Entity(e.Parent).Kind != sem.EntInterface || in.Op == mir.OpClosure && in.Str == "witness" {
+	if e.Kind != sem.EntFn || m.r.Entity(e.Parent).Kind != sem.EntInterface || in.Op == midir.OpClosure && in.Str == "witness" {
 		return nil
 	}
-	var fs []*mir.Func
+	var fs []*midir.Func
 	for ent, f := range m.p.ByEnt {
 		if m.r.Entity(ent).Name != e.Name {
 			continue
@@ -82,19 +83,19 @@ func (m *Machine) callees(in *mir.Inst) []*mir.Func {
 	return fs
 }
 
-func (m *Machine) supportsInst(in *mir.Inst) string {
+func (m *Machine) supportsInst(in *midir.Inst) string {
 	switch in.Op {
-	case mir.OpAsm:
+	case midir.OpAsm:
 		return in.Op.String()
-	case mir.OpCallC:
+	case midir.OpCallC:
 		return ""
-	case mir.OpCFnPtr, mir.OpFnItem:
+	case midir.OpCFnPtr, midir.OpFnItem:
 		e := m.r.Entity(in.Ent)
 		if _, lowered := m.p.ByEnt[in.Ent]; !lowered && e.Kind == sem.EntFn && m.r.Fn(in.Ent).Abi != "" {
 			return "foreign function " + e.Name
 		}
 		return ""
-	case mir.OpCall:
+	case midir.OpCall:
 		e := m.r.Entity(in.Ent)
 		if e.Kind != sem.EntFn {
 			return ""
@@ -111,9 +112,9 @@ func (m *Machine) supportsInst(in *mir.Inst) string {
 			return ""
 		}
 		return "primitive " + key
-	case mir.OpFutureNew, mir.OpAwait, mir.OpFutureDone, mir.OpCancelled, mir.OpCancelDone:
+	case midir.OpFutureNew, midir.OpAwait, midir.OpFutureDone, midir.OpCancelled, midir.OpCancelDone:
 		return ""
-	case mir.OpBuiltin:
+	case midir.OpBuiltin:
 		if spec, ok := opdef.BuiltinFor(in.Str); ok && spec.VM {
 			return ""
 		}

@@ -1,26 +1,29 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // collect finds the locals holding borrows (borrows, their copies and reads, reference and
 // named-lifetime params, containers of such values), widening containers until nothing grows.
 func (c *borrowCheck) collect() {
-	c.sinks = map[LocalID]*borrowInfo{}
-	c.contents = map[LocalID]*borrowInfo{}
-	c.caps = map[LocalID]*borrowInfo{}
+	c.sinks = map[midir.LocalID]*borrowInfo{}
+	c.contents = map[midir.LocalID]*borrowInfo{}
+	c.caps = map[midir.LocalID]*borrowInfo{}
 	c.targets = c.storeTargets()
 	c.collectParams()
 	for changed := true; changed; {
 		changed = false
 		c.grew = false
-		c.contentsMemo = map[LocalID]contentsResult{}
+		c.contentsMemo = map[midir.LocalID]contentsResult{}
 		for bid, blk := range c.f.Blocks {
 			for i, in := range blk.Insts {
-				c.resets.at = carrySite{block: BlockID(bid), idx: i}
+				c.resets.at = carrySite{block: midir.BlockID(bid), idx: i}
 				if c.collectInst(in) {
 					changed = true
 				}
-				c.collectValue(in, BlockID(bid), i)
+				c.collectValue(in, midir.BlockID(bid), i)
 			}
 		}
 		c.refreshReborrows()
@@ -58,7 +61,7 @@ func (c *borrowCheck) merge(dst, src *borrowInfo) {
 	}
 }
 
-func (c *borrowCheck) collectInst(in Inst) bool {
+func (c *borrowCheck) collectInst(in midir.Inst) bool {
 	_, has := c.holders[in.Dst]
 	set := func(b *borrowInfo, ok bool) bool {
 		if !ok || has {
@@ -68,7 +71,7 @@ func (c *borrowCheck) collectInst(in Inst) bool {
 		return true
 	}
 	switch in.Op {
-	case OpBorrow:
+	case midir.OpBorrow:
 		if has {
 			if root, path, exact, ok := c.heldPlace(in.Args[0]); ok {
 				c.merge(c.holders[in.Dst], c.throughRef(root, path, exact, in.Index == 1))
@@ -85,12 +88,12 @@ func (c *borrowCheck) collectInst(in Inst) bool {
 		if b, ok := c.tempBorrow(in); ok {
 			return set(b, true)
 		}
-		if def := c.definition(in.Args[0]); def != nil && def.Op == OpGlobalGet {
+		if def := c.definition(in.Args[0]); def != nil && def.Op == midir.OpGlobalGet {
 			// A static-origin borrow has no local owner to touch-check
 			// against, but still has to reject escape like any other.
 			return set(&borrowInfo{node: in.Node, fromStatic: true}, true)
 		}
-	case OpCopy, OpMove:
+	case midir.OpCopy, midir.OpMove:
 		src, ok := c.holders[in.Args[0]]
 		if ok && c.widens(in.Dst) {
 			c.widen(in.Dst, src)
@@ -98,13 +101,13 @@ func (c *borrowCheck) collectInst(in Inst) bool {
 			return false
 		}
 		return set(src, ok)
-	case OpLendBox:
+	case midir.OpLendBox:
 		return set(c.lendBoxInfo(in), true)
-	case OpArray:
+	case midir.OpArray:
 		c.collectArray(in)
-	case OpSetIndex, OpSetField:
+	case midir.OpSetIndex, midir.OpSetField:
 		c.collectFlows(in)
-	case OpRecord, OpVariant, OpCall, OpCallValue, OpFutureNew:
+	case midir.OpRecord, midir.OpVariant, midir.OpCall, midir.OpCallValue, midir.OpFutureNew:
 		c.collectFlows(in)
 		if _, ok := c.sinks[in.Dst]; ok || c.widens(in.Dst) {
 			if b, ok := c.lifetimeSource(in); ok {
@@ -115,9 +118,9 @@ func (c *borrowCheck) collectInst(in Inst) bool {
 		if !has {
 			return set(c.lifetimeSource(in))
 		}
-	case OpBuiltin:
+	case midir.OpBuiltin:
 		c.collectBuiltin(in)
-	case OpField, OpIndex, OpPayload, OpFieldMove:
+	case midir.OpField, midir.OpIndex, midir.OpPayload, midir.OpFieldMove:
 		if !c.collectRefRead(in) && !has && c.projectsHeld(in) {
 			return set(c.readInfo(in.Args[0]))
 		}
@@ -126,21 +129,21 @@ func (c *borrowCheck) collectInst(in Inst) bool {
 }
 
 // widen merges b into dst's sink; a sink created here blames b's borrow, as sharing b did.
-func (c *borrowCheck) widen(dst LocalID, b *borrowInfo) {
+func (c *borrowCheck) widen(dst midir.LocalID, b *borrowInfo) {
 	c.merge(c.sink(dst, b.node), b)
 	c.noteResetSite(dst, b)
 }
 
 // widens reports whether dst keeps the union of every value written to it instead of the first one: a store
 // target, a temporary joining branches, or a named local of a type carrying a lifetime or a Future or Task.
-func (c *borrowCheck) widens(dst LocalID) bool {
+func (c *borrowCheck) widens(dst midir.LocalID) bool {
 	l := c.f.Locals[dst]
 	return c.targets[dst] || c.multiDefined(dst) || l.Ent != 0 && (c.elementHolder(l.Type) || c.holdsAsync(l.Type))
 }
 
 // collectArray makes an array literal a container of its elements' sources
 // when each borrow it holds is a value with a named lifetime, not a bare `&T`.
-func (c *borrowCheck) collectArray(in Inst) {
+func (c *borrowCheck) collectArray(in midir.Inst) {
 	var srcs []*borrowInfo
 	for _, a := range in.Args {
 		b, ok := c.holders[a]
@@ -163,7 +166,7 @@ func (c *borrowCheck) collectArray(in Inst) {
 
 // collectBuiltin ties a builtin's result (a loop's element) to what every
 // argument holds, and to the referent's elements for a reference argument.
-func (c *borrowCheck) collectBuiltin(in Inst) {
+func (c *borrowCheck) collectBuiltin(in midir.Inst) {
 	if ret := c.f.Locals[in.Dst].Type; !c.resultMayCarryLifetime(ret) {
 		c.collectBuiltinCarry(in, ret)
 		return
@@ -183,7 +186,7 @@ func (c *borrowCheck) collectBuiltin(in Inst) {
 
 // collectBuiltinCarry passes an owned argument's untagged borrow on to a result that may take one
 // of its Futures, Tasks or closures, as a `for` element moved out of an owned container.
-func (c *borrowCheck) collectBuiltinCarry(in Inst, ret sem.TypeID) {
+func (c *borrowCheck) collectBuiltinCarry(in midir.Inst, ret sem.TypeID) {
 	for _, a := range in.Args {
 		t := c.f.Locals[a].Type
 		if c.p.R.Types.Kind(t) == sem.KRef || c.resultMayCarryLifetime(t) || !c.mayCarry(ret, t) {

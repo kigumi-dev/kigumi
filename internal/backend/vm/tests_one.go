@@ -6,12 +6,13 @@ import (
 	"time"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/lang/diag"
 )
 
 // runOneTest buffers m.out/m.err so a timed-out test's abandoned goroutine can't race the next test; a timeout returns a fresh Machine.
 // sink receives what the test printed per stream; jsonMode drops the stderr copy of a failure text the event message already carries.
-func runOneTest(m *Machine, f *mir.Func, name string, timeout time.Duration, jsonMode bool, sink func(stream string, data []byte)) (outcome, message string, site mir.Site, took time.Duration, fresh *Machine, hardErr error) {
+func runOneTest(m *Machine, f *midir.Func, name string, timeout time.Duration, jsonMode bool, sink func(stream string, data []byte)) (outcome, message string, site mir.Site, took time.Duration, fresh *Machine, hardErr error) {
 	realOut, realErr := m.out, m.err
 	var outBuf, errBuf bytes.Buffer
 	m.out, m.err = &outBuf, &errBuf

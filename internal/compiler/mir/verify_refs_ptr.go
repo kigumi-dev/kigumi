@@ -1,6 +1,10 @@
 package mir
 
-import "slices"
+import (
+	"slices"
+
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
 const (
 	ptrChunkSize = 64
@@ -41,11 +45,11 @@ func newPtrVec(n int, sets *objSets, fill int32) ptrVec {
 	return v
 }
 
-func (v *ptrVec) get(l LocalID) int32 {
+func (v *ptrVec) get(l midir.LocalID) int32 {
 	return v.top[l/ptrMidSpan].chunks[l/ptrChunkSize%ptrMidSize].v[l%ptrChunkSize]
 }
 
-func (v *ptrVec) set(l LocalID, p int32) {
+func (v *ptrVec) set(l midir.LocalID, p int32) {
 	if v.get(l) == p {
 		return
 	}
@@ -81,7 +85,7 @@ func (v *ptrVec) join(o *ptrVec) bool {
 				continue
 			}
 			for i, p := range o.top[t].chunks[c].v {
-				l := LocalID(t*ptrMidSpan + c*ptrChunkSize + i)
+				l := midir.LocalID(t*ptrMidSpan + c*ptrChunkSize + i)
 				if cur := v.get(l); cur != p {
 					if u := v.sets.union(cur, p); u != cur {
 						v.set(l, u)

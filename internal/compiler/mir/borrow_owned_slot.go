@@ -1,6 +1,7 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
@@ -11,7 +12,7 @@ const borrowOwnedTupleElem = "a borrow cannot go in `{name}`, an element of `{ty
 
 // Only a field declared `&'a T`, or one routing a borrow through its own `'a`,
 // is skipped by the destructor and by rt_copy; a type parameter is not.
-func (c *borrowCheck) checkHolderFields(in Inst) {
+func (c *borrowCheck) checkHolderFields(in midir.Inst) {
 	if in.Ent == 0 || c.p.R.Entity(in.Ent).Kind != sem.EntType {
 		return
 	}
@@ -35,7 +36,7 @@ func (c *borrowCheck) checkHolderFields(in Inst) {
 
 // A parameter declared as a type parameter is dropped by the callee, however
 // that parameter is later instantiated.
-func (c *borrowCheck) checkOwningArgs(in Inst) {
+func (c *borrowCheck) checkOwningArgs(in midir.Inst) {
 	for i, a := range in.Args {
 		if !c.unownedRef(a) {
 			continue
@@ -57,7 +58,7 @@ func (c *borrowCheck) declaredAsBorrow(t sem.TypeID) bool {
 }
 
 // A field read retains, so only a borrow and a lent parameter are unowned.
-func (c *borrowCheck) unownedRef(l LocalID) bool {
+func (c *borrowCheck) unownedRef(l midir.LocalID) bool {
 	if c.unowned == nil {
 		c.unowned = c.analysis().unownedRefs(c.f)
 	}
@@ -65,7 +66,7 @@ func (c *borrowCheck) unownedRef(l LocalID) bool {
 }
 
 // The help is folded into the message, the way the lifetime rules render theirs.
-func (c *borrowCheck) reportCode(n syntax.NodeID, local LocalID, name string, args ...any) {
+func (c *borrowCheck) reportCode(n syntax.NodeID, local midir.LocalID, name string, args ...any) {
 	code, ok := sem.CodeByName(name)
 	if !ok {
 		return
@@ -78,7 +79,7 @@ func (c *borrowCheck) reportCode(n syntax.NodeID, local LocalID, name string, ar
 }
 
 // reportCatalog is reportCode with the help on a line of its own, split by sem.FillCode as sem reports the code.
-func (c *borrowCheck) reportCatalog(n syntax.NodeID, local LocalID, name string, args ...any) {
+func (c *borrowCheck) reportCatalog(n syntax.NodeID, local midir.LocalID, name string, args ...any) {
 	code, ok := sem.CodeByName(name)
 	if !ok {
 		return
@@ -89,6 +90,6 @@ func (c *borrowCheck) reportCatalog(n syntax.NodeID, local LocalID, name string,
 
 // reportTemplate is reportCode for a message that varies by shape (E1531's
 // tuple element vs. record field): template already carries its help text.
-func (c *borrowCheck) reportTemplate(n syntax.NodeID, local LocalID, num, template string, args ...any) {
+func (c *borrowCheck) reportTemplate(n syntax.NodeID, local midir.LocalID, num, template string, args ...any) {
 	c.report(n, local, num, sem.FillTemplate(template, args...))
 }

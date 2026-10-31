@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -33,8 +34,8 @@ type emitter struct {
 	shim         *cshim
 	modAsm       strings.Builder
 	symPrefix    string
-	scalar       map[mir.LocalID]scalarInfo
-	raw          map[mir.LocalID]bool
+	scalar       map[midir.LocalID]scalarInfo
+	raw          map[midir.LocalID]bool
 	fnItems      map[string]fnItem
 	stdBinds     []stdBind
 	stdBindOf    map[string]string
@@ -43,22 +44,22 @@ type emitter struct {
 	aggLabels    map[string]bool
 	constIndex   map[string]int
 	constOrder   []string
-	constKey     map[mir.LocalID]string
-	constOwned   map[mir.LocalID]bool
+	constKey     map[midir.LocalID]string
+	constOwned   map[midir.LocalID]bool
 	aggs         map[sem.TypeID]*aggInfo
 	aggOrder     []sem.TypeID
 	aggDone      map[sem.TypeID]bool
 	protoDone    map[protoKey]bool
-	direct       map[mir.LocalID]*aggInfo
-	boxTmp       map[mir.LocalID]bool
-	crossSrc     map[mir.LocalID]mir.LocalID
-	countedX     map[mir.LocalID]countedCross
+	direct       map[midir.LocalID]*aggInfo
+	boxTmp       map[midir.LocalID]bool
+	crossSrc     map[midir.LocalID]midir.LocalID
+	countedX     map[midir.LocalID]countedCross
 	refDone      map[string]bool
-	nameAlias    map[mir.LocalID]bool
-	lentCells    map[mir.LocalID]bool
-	sigs         map[*mir.Func]*aggSig
+	nameAlias    map[midir.LocalID]bool
+	lentCells    map[midir.LocalID]bool
+	sigs         map[*midir.Func]*aggSig
 	sig          *aggSig
-	ssigs        map[*mir.Func]*scalarSig
+	ssigs        map[*midir.Func]*scalarSig
 	ssig         *scalarSig
 	wrapNeed     map[wrapperKey]bool
 	wrapDone     map[wrapperKey]bool

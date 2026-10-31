@@ -1,6 +1,9 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // Ownership states of a move-only named local for the verifier: it holds
 // nothing, holds a value, or holds a value on some paths only (a pattern
@@ -19,12 +22,12 @@ const (
 // consumed, no live value is overwritten, and nothing is still owned when
 // the function returns. Cells, borrows, lent receivers and a destructor's
 // own `self` are outside the rule; temporaries follow the runtime plan.
-func (p *verifier) verifyOwnership(f *Func) *Error {
+func (p *verifier) verifyOwnership(f *midir.Func) *Error {
 	tracked := make([]bool, len(f.Locals))
 	any := false
 	dtorSelf, isDtor := p.destructorSelf(f)
 	for i, l := range f.Locals {
-		if l.Ent != 0 && !l.Cell && !l.Borrowed && !(isDtor && LocalID(i) == dtorSelf) && !p.R.IsCopy(l.Type) && p.R.Types.Kind(l.Type) != sem.KRef {
+		if l.Ent != 0 && !l.Cell && !l.Borrowed && !(isDtor && midir.LocalID(i) == dtorSelf) && !p.R.IsCopy(l.Type) && p.R.Types.Kind(l.Type) != sem.KRef {
 			tracked[i], any = true, true
 		}
 	}
@@ -41,7 +44,7 @@ func (p *verifier) verifyOwnership(f *Func) *Error {
 	in[0] = entry
 	// The states settle first; the rules are checked once they have, so a
 	// join that a later predecessor widens is not reported early.
-	work := []BlockID{0}
+	work := []midir.BlockID{0}
 	thread := &flagThread{f: f}
 	for len(work) > 0 {
 		bid := work[0]
@@ -68,7 +71,7 @@ func (p *verifier) verifyOwnership(f *Func) *Error {
 		if in[bid] == nil {
 			continue
 		}
-		if _, err := p.transferOwn(f, BlockID(bid), in[bid], tracked, true); err != nil {
+		if _, err := p.transferOwn(f, midir.BlockID(bid), in[bid], tracked, true); err != nil {
 			return err
 		}
 	}
@@ -77,7 +80,7 @@ func (p *verifier) verifyOwnership(f *Func) *Error {
 
 // destructorSelf is the `move self` of a destructor, which the runtime is
 // already destroying: the body neither drops nor moves it.
-func (p *verifier) destructorSelf(f *Func) (LocalID, bool) {
+func (p *verifier) destructorSelf(f *midir.Func) (midir.LocalID, bool) {
 	if f.Ent == 0 || p.R.Entity(f.Ent).Kind != sem.EntFn {
 		return 0, false
 	}
@@ -88,7 +91,7 @@ func (p *verifier) destructorSelf(f *Func) (LocalID, bool) {
 	return f.Params[0], true
 }
 
-func joinVerifyInto(in []*cowVec[ownVerify], b BlockID, out *cowVec[ownVerify]) bool {
+func joinVerifyInto(in []*cowVec[ownVerify], b midir.BlockID, out *cowVec[ownVerify]) bool {
 	if in[b] == nil {
 		cp := out.clone()
 		in[b] = &cp
@@ -108,13 +111,13 @@ func joinVerify(a, b ownVerify) ownVerify {
 
 // transferOwn walks a block from its entry state; in check mode it also
 // reports the first broken rule.
-func (p *verifier) transferOwn(f *Func, bid BlockID, entry *cowVec[ownVerify], tracked []bool, check bool) (*cowVec[ownVerify], *Error) {
+func (p *verifier) transferOwn(f *midir.Func, bid midir.BlockID, entry *cowVec[ownVerify], tracked []bool, check bool) (*cowVec[ownVerify], *Error) {
 	cp := entry.clone()
 	st := &cp
 	// A plain copy of a named local into a temporary aliases it (the plan
 	// takes no reference); dropping that temporary releases the local.
-	alias := map[LocalID]LocalID{}
-	crossed := map[LocalID]LocalID{}
+	alias := map[midir.LocalID]midir.LocalID{}
+	crossed := map[midir.LocalID]midir.LocalID{}
 	blk := &f.Blocks[bid]
 	broken := func(i int, format string, args ...any) (*cowVec[ownVerify], *Error) {
 		if check {
@@ -125,9 +128,9 @@ func (p *verifier) transferOwn(f *Func, bid BlockID, entry *cowVec[ownVerify], t
 	for i := range blk.Insts {
 		in := &blk.Insts[i]
 		switch in.Op {
-		case OpNop:
+		case midir.OpNop:
 			continue
-		case OpDrop:
+		case midir.OpDrop:
 			l := in.Args[0]
 			if src, ok := alias[l]; ok {
 				l = src
@@ -148,7 +151,7 @@ func (p *verifier) transferOwn(f *Func, bid BlockID, entry *cowVec[ownVerify], t
 			if st.get(a) == ovNone && check {
 				return broken(i, "%s reads %%%s after it was consumed", in.Op, f.Locals[a].Name)
 			}
-			if !in.Rest && (in.Op == OpMove || p.consumesArg(in, k)) {
+			if !in.Rest && (in.Op == midir.OpMove || p.consumesArg(in, k)) {
 				st.set(a, ovNone)
 			}
 		}
@@ -158,10 +161,10 @@ func (p *verifier) transferOwn(f *Func, bid BlockID, entry *cowVec[ownVerify], t
 		if src, ok := p.countedCrossSource(f, in, tracked); ok {
 			crossed[in.Dst] = src
 		}
-		if in.Op == OpCopy && !in.Share && f.Locals[in.Dst].Ent == 0 && tracked[in.Args[0]] {
+		if in.Op == midir.OpCopy && !in.Share && f.Locals[in.Dst].Ent == 0 && tracked[in.Args[0]] {
 			alias[in.Dst] = in.Args[0]
 		}
-		if in.Op == OpAlias && f.Locals[in.Dst].Ent == 0 && tracked[in.Args[0]] {
+		if in.Op == midir.OpAlias && f.Locals[in.Dst].Ent == 0 && tracked[in.Args[0]] {
 			alias[in.Dst] = in.Args[0]
 		}
 		if in.Op.Yields() && tracked[in.Dst] {
@@ -179,10 +182,10 @@ func (p *verifier) transferOwn(f *Func, bid BlockID, entry *cowVec[ownVerify], t
 			return broken(len(blk.Insts), "terminator reads %%%s after it was consumed", f.Locals[a].Name)
 		}
 	}
-	if blk.Term.Op == TermReturn && !diverges(f, blk) {
-		var left LocalID
+	if blk.Term.Op == midir.TermReturn && !diverges(f, blk) {
+		var left midir.LocalID
 		found := false
-		st.each(func(l LocalID, _ ownVerify) {
+		st.each(func(l midir.LocalID, _ ownVerify) {
 			if tracked[l] && !found {
 				left, found = l, true
 			}

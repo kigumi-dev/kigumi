@@ -3,6 +3,8 @@ package mir
 import (
 	"slices"
 	"testing"
+
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 func TestKeptViewIncomingSources(t *testing.T) {
@@ -19,7 +21,7 @@ fn choose['a](h: &mut Hold['a], j: &mut Hold['a], b: Bool, f: Future[usize]) {
 	v := localNamed(t, g, "v")
 	c := &borrowCheck{p: p, f: g}
 	s := c.viewSources(v)
-	var roots []LocalID
+	var roots []midir.LocalID
 	for _, l := range s.locals {
 		if r, ok := c.refRoot(l); ok && !slices.Contains(roots, r) {
 			roots = append(roots, r)
@@ -30,15 +32,15 @@ fn choose['a](h: &mut Hold['a], j: &mut Hold['a], b: Bool, f: Future[usize]) {
 		t.Fatalf("incoming holders = %v, complete %v; want %v", roots, s.complete, g.Params[:2])
 	}
 	h := *g
-	h.Locals = append(slices.Clone(g.Locals), Local{Type: g.Locals[v].Type})
-	unknown := LocalID(len(g.Locals))
-	c = &borrowCheck{p: p, f: &h, viewDefs: allDefs(&h), viewSets: map[LocalID]viewSourceSet{}}
-	c.viewDefs[v] = append(c.viewDefs[v], &Inst{Op: OpCopy, Dst: v, Args: []LocalID{v}})
+	h.Locals = append(slices.Clone(g.Locals), midir.Local{Type: g.Locals[v].Type})
+	unknown := midir.LocalID(len(g.Locals))
+	c = &borrowCheck{p: p, f: &h, viewDefs: allDefs(&h), viewSets: map[midir.LocalID]viewSourceSet{}}
+	c.viewDefs[v] = append(c.viewDefs[v], &midir.Inst{Op: midir.OpCopy, Dst: v, Args: []midir.LocalID{v}})
 	if s = c.viewSources(v); !s.complete || len(s.locals) != 2 {
 		t.Fatalf("a loop edge lost its incoming holders: %+v", s)
 	}
-	c.viewSets = map[LocalID]viewSourceSet{}
-	c.viewDefs[v] = append(c.viewDefs[v], &Inst{Op: OpCopy, Dst: v, Args: []LocalID{unknown}})
+	c.viewSets = map[midir.LocalID]viewSourceSet{}
+	c.viewDefs[v] = append(c.viewDefs[v], &midir.Inst{Op: midir.OpCopy, Dst: v, Args: []midir.LocalID{unknown}})
 	if s = c.viewSources(v); s.complete || !slices.Contains(s.locals, v) || len(c.keptMutTargets(v)) < 3 {
 		t.Fatalf("untraced incoming view lost its conservative destination: %+v", s)
 	}

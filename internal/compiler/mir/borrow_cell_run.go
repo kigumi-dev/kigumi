@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -19,21 +20,21 @@ type closureUseKey struct {
 
 // cellRunHit reports whether in may run a closure reaching o's place in a way the borrow forbids, and whether it writes:
 // a call or await that can run or drop an argument holding it, a drop that may run a user `drop`, or an async body's end.
-func (c *borrowCheck) cellRunHit(in Inst, o ownerRef) (hit, writes bool) {
+func (c *borrowCheck) cellRunHit(in midir.Inst, o ownerRef) (hit, writes bool) {
 	return c.cellRunHitExcept(in, o, nil)
 }
 
 // cellRunHitExcept is cellRunHit leaving out each closure skip names for the value in would run it through.
-func (c *borrowCheck) cellRunHitExcept(in Inst, o ownerRef, skip func(LocalID, sem.EntityID) bool) (hit, writes bool) {
+func (c *borrowCheck) cellRunHitExcept(in midir.Inst, o ownerRef, skip func(midir.LocalID, sem.EntityID) bool) (hit, writes bool) {
 	return c.runHitVia(in, o, skip, cellReach)
 }
 
-func (c *borrowCheck) runHitVia(in Inst, o ownerRef, skip func(LocalID, sem.EntityID) bool, reach capReach) (hit, writes bool) {
+func (c *borrowCheck) runHitVia(in midir.Inst, o ownerRef, skip func(midir.LocalID, sem.EntityID) bool, reach capReach) (hit, writes bool) {
 	loc := c.f.Locals[o.owner]
 	if !loc.Cell || loc.Ent == 0 {
 		return false, false
 	}
-	check := func(a LocalID) {
+	check := func(a midir.LocalID) {
 		for _, cl := range c.argClosures(a) {
 			if skip != nil && skip(a, cl) {
 				continue
@@ -53,22 +54,22 @@ func (c *borrowCheck) runHitVia(in Inst, o ownerRef, skip func(LocalID, sem.Enti
 	if taskClose(in) {
 		check(c.spawnScope())
 	}
-	if in.Op == OpDrop && c.dropRuns(in.Args[0]) || c.replacesDropping(in) {
+	if in.Op == midir.OpDrop && c.dropRuns(in.Args[0]) || c.replacesDropping(in) {
 		check(in.Args[0])
 	}
 	for i, a := range in.Args {
-		if c.argRunnable(in, i) || (in.Op == OpCall || in.Op == OpCallValue) && c.dropRuns(a) {
+		if c.argRunnable(in, i) || (in.Op == midir.OpCall || in.Op == midir.OpCallValue) && c.dropRuns(a) {
 			check(a)
 		}
 	}
 	return hit, writes
 }
 
-func taskClose(in Inst) bool { return in.Op == OpBuiltin && in.Str == "task.close" }
+func taskClose(in midir.Inst) bool { return in.Op == midir.OpBuiltin && in.Str == "task.close" }
 
 // replacesDropping reports a store that replaces a value whose user `drop` may run: the old element, field or cell content.
-func (c *borrowCheck) replacesDropping(in Inst) bool {
-	if in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet {
+func (c *borrowCheck) replacesDropping(in midir.Inst) bool {
+	if in.Op != midir.OpSetField && in.Op != midir.OpSetIndex && in.Op != midir.OpCellSet {
 		return false
 	}
 	return c.typeRuns(c.f.Locals[in.Args[len(in.Args)-1]].Type, runsDrop) || c.dropRuns(in.Args[0])
@@ -76,20 +77,20 @@ func (c *borrowCheck) replacesDropping(in Inst) bool {
 
 // checkCellRunArgs reports a borrow handed to a call that also runs a closure reaching the borrowed place: a
 // borrow the loop over holders live after the call cannot see, or a `&mut` passed through a write-back cell.
-func (c *borrowCheck) checkCellRunArgs(in Inst, liveAfter map[LocalID]bool) {
+func (c *borrowCheck) checkCellRunArgs(in midir.Inst, liveAfter map[midir.LocalID]bool) {
 	c.checkLentTwice(in)
 	for _, a := range in.Args {
 		b, ok := c.holders[a]
 		if ps := c.lentMutPlaces(a); !ok && len(ps) > 0 {
 			for _, p := range ps {
 				o := ownerRef{owner: p.root, mut: true, path: p.path, exact: true}
-				if hit, _ := c.cellRunHit(in, o); hit && c.placeCell(p.root) && in.Op != OpAwait {
+				if hit, _ := c.cellRunHit(in, o); hit && c.placeCell(p.root) && in.Op != midir.OpAwait {
 					c.reportTouch(in, a, &borrowInfo{owners: []ownerRef{o}, hasOwner: true, node: p.node}, o)
 				}
 			}
 			continue
 		}
-		if !ok || !b.hasOwner || liveAfter[a] || in.Op == OpAwait {
+		if !ok || !b.hasOwner || liveAfter[a] || in.Op == midir.OpAwait {
 			continue
 		}
 		for _, o := range b.owners {
@@ -102,12 +103,12 @@ func (c *borrowCheck) checkCellRunArgs(in Inst, liveAfter map[LocalID]bool) {
 
 // checkLentTwice reports two `&mut` write-back cells of overlapping field places among one call's arguments; a scalar
 // `&mut` is a holder the holder loop checks, the receiver is checkRecvArgs', and places through an index may be disjoint.
-func (c *borrowCheck) checkLentTwice(in Inst) {
-	if in.Op != OpCall && in.Op != OpCallValue {
+func (c *borrowCheck) checkLentTwice(in midir.Inst) {
+	if in.Op != midir.OpCall && in.Op != midir.OpCallValue {
 		return
 	}
 	first := 0
-	if in.Op == OpCall && in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn && c.p.R.Fn(in.Ent).Recv != sem.RecvNone {
+	if in.Op == midir.OpCall && in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn && c.p.R.Fn(in.Ent).Recv != sem.RecvNone {
 		first = 1
 	}
 	var seen []lentPlace
@@ -133,7 +134,7 @@ func (c *borrowCheck) checkLentTwice(in Inst) {
 }
 
 // argClosures are the closures a value may hold: those its type names, and those it was built from here.
-func (c *borrowCheck) argClosures(a LocalID) []sem.EntityID {
+func (c *borrowCheck) argClosures(a midir.LocalID) []sem.EntityID {
 	var out []sem.EntityID
 	if a != c.spawnScope() {
 		out = c.typeClosures(c.f.Locals[a].Type)

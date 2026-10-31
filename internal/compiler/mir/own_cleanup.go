@@ -1,6 +1,7 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/lang/diag"
@@ -27,7 +28,7 @@ func (a *owner) cleanupAround(n syntax.NodeID) syntax.NodeID {
 
 func (a *owner) inCleanup(n syntax.NodeID) bool { return a.cleanupAround(n) != 0 }
 
-func (a *owner) reportCleanupRead(n syntax.NodeID, l LocalID, name string) bool {
+func (a *owner) reportCleanupRead(n syntax.NodeID, l midir.LocalID, name string) bool {
 	if !a.inCleanup(n) {
 		return false
 	}

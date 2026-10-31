@@ -1,36 +1,40 @@
 package mir
 
-import "slices"
+import (
+	"slices"
+
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
 type Edge struct{ From, Slot int }
 
 // liveCtx releases a temporary once on every path: after its last read, or on the edge to a block that no longer needs it.
 type liveCtx struct {
 	g      *flowGraph
-	isTemp func(LocalID) bool
+	isTemp func(midir.LocalID) bool
 	life   *borrowLife
-	points map[Point][]LocalID
-	edges  map[Edge][]LocalID
+	points map[Point][]midir.LocalID
+	edges  map[Edge][]midir.LocalID
 }
 
-func newLiveCtx(f *Func, isTemp func(LocalID) bool, life *borrowLife, points map[Point][]LocalID) *liveCtx {
-	return &liveCtx{g: newFlowGraph(f), isTemp: isTemp, life: life, points: points, edges: map[Edge][]LocalID{}}
+func newLiveCtx(f *midir.Func, isTemp func(midir.LocalID) bool, life *borrowLife, points map[Point][]midir.LocalID) *liveCtx {
+	return &liveCtx{g: newFlowGraph(f), isTemp: isTemp, life: life, points: points, edges: map[Edge][]midir.LocalID{}}
 }
 
-func noteBlock(m map[LocalID]map[int]bool, t LocalID, b int) {
+func noteBlock(m map[midir.LocalID]map[int]bool, t midir.LocalID, b int) {
 	if m[t] == nil {
 		m[t] = map[int]bool{}
 	}
 	m[t][b] = true
 }
 
-func (c *liveCtx) reads(args []LocalID, t LocalID) bool { return c.life.reads(args, t) }
+func (c *liveCtx) reads(args []midir.LocalID, t midir.LocalID) bool { return c.life.reads(args, t) }
 
-func (c *liveCtx) defines(in Inst, t LocalID) bool {
+func (c *liveCtx) defines(in midir.Inst, t midir.LocalID) bool {
 	return in.Dst == t && definesTemp(in, c.isTemp)
 }
 
-func (c *liveCtx) summary(b int, t LocalID) (exposed, defined bool) {
+func (c *liveCtx) summary(b int, t midir.LocalID) (exposed, defined bool) {
 	blk := c.g.f.Blocks[b]
 	for _, in := range blk.Insts {
 		if !defined && c.reads(in.Args, t) {
@@ -44,7 +48,7 @@ func (c *liveCtx) summary(b int, t LocalID) (exposed, defined bool) {
 }
 
 // solve reports false when a read is reachable without a definition.
-func (c *liveCtx) solve(t LocalID, touch map[int]bool) (liveIn, liveOut map[int]bool, ok bool) {
+func (c *liveCtx) solve(t midir.LocalID, touch map[int]bool) (liveIn, liveOut map[int]bool, ok bool) {
 	exposed, defined := map[int]bool{}, map[int]bool{}
 	var work []int
 	liveIn, liveOut = map[int]bool{}, map[int]bool{}
@@ -70,7 +74,7 @@ func (c *liveCtx) solve(t LocalID, touch map[int]bool) (liveIn, liveOut map[int]
 	return liveIn, liveOut, !liveIn[0]
 }
 
-func (c *liveCtx) leaveEdges(t LocalID, liveIn, liveOut map[int]bool) {
+func (c *liveCtx) leaveEdges(t midir.LocalID, liveIn, liveOut map[int]bool) {
 	for x := range liveOut {
 		for slot, y := range c.g.succ(x) {
 			if !liveIn[int(y)] {
@@ -82,7 +86,7 @@ func (c *liveCtx) leaveEdges(t LocalID, liveIn, liveOut map[int]bool) {
 }
 
 // place reports false, recording nothing, when a read is reachable without a definition.
-func (c *liveCtx) place(t LocalID, touch map[int]bool) bool {
+func (c *liveCtx) place(t midir.LocalID, touch map[int]bool) bool {
 	liveIn, liveOut, ok := c.solve(t, touch)
 	if !ok {
 		return false
@@ -95,13 +99,13 @@ func (c *liveCtx) place(t LocalID, touch map[int]bool) bool {
 }
 
 // placeAbandoned releases a temporary a later read consumes on the edges that leave its live range early; the consuming read itself releases nothing.
-func (c *liveCtx) placeAbandoned(t LocalID, touch map[int]bool) {
+func (c *liveCtx) placeAbandoned(t midir.LocalID, touch map[int]bool) {
 	if liveIn, liveOut, ok := c.solve(t, touch); ok {
 		c.leaveEdges(t, liveIn, liveOut)
 	}
 }
 
-func (c *liveCtx) inBlock(t LocalID, b int, live bool) {
+func (c *liveCtx) inBlock(t midir.LocalID, b int, live bool) {
 	blk := c.g.f.Blocks[b]
 	if c.reads(blk.Term.Args, t) && !live {
 		c.release(Point{b, len(blk.Insts)}, t)
@@ -122,15 +126,15 @@ func (c *liveCtx) inBlock(t LocalID, b int, live bool) {
 	}
 }
 
-func (c *liveCtx) release(at Point, t LocalID) {
+func (c *liveCtx) release(at Point, t midir.LocalID) {
 	if !slices.Contains(c.points[at], t) {
 		c.points[at] = append(c.points[at], t)
 	}
 }
 
 // edgePoints returns the edge releases that need a block of their own.
-func (c *liveCtx) edgePoints() map[Edge][]LocalID {
-	split := map[Edge][]LocalID{}
+func (c *liveCtx) edgePoints() map[Edge][]midir.LocalID {
+	split := map[Edge][]midir.LocalID{}
 	for e, ts := range c.edges {
 		slices.Sort(ts)
 		blk := c.g.f.Blocks[e.From]

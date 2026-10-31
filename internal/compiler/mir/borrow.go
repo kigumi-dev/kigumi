@@ -1,6 +1,7 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
@@ -11,7 +12,7 @@ import (
 // ownerRef is one local a borrow may actually alias, with the field chain
 // (see projectionPlace) it was taken through.
 type ownerRef struct {
-	owner LocalID
+	owner midir.LocalID
 	mut   bool
 	path  stepPath
 	exact bool
@@ -52,44 +53,44 @@ type borrowInfo struct {
 type borrowCheck struct {
 	p        *Program
 	state    *borrowAnalysis
-	f        *Func
-	holders  map[LocalID]*borrowInfo
-	liveOut  []map[LocalID]bool
-	liveIn   []map[LocalID]bool
-	firstDef map[LocalID]int
+	f        *midir.Func
+	holders  map[midir.LocalID]*borrowInfo
+	liveOut  []map[midir.LocalID]bool
+	liveIn   []map[midir.LocalID]bool
+	firstDef map[midir.LocalID]int
 	// realOut is liveOut without the scope-end release of a reference, which only ends or replaces nothing.
-	realOut []map[LocalID]bool
+	realOut []map[midir.LocalID]bool
 	// definedIn: holders assigned on some path into a block, since an `is` binding is live at the join before it is defined.
-	definedIn []map[LocalID]bool
+	definedIn []map[midir.LocalID]bool
 	reported  map[reportKey]int
 	quiet     bool
 	typeMemo  borrowTypeMemo
 	// defs maps a temporary to its defining instruction (nil when defined
 	// more than once), built on first use.
-	defs map[LocalID]*Inst
+	defs map[midir.LocalID]*midir.Inst
 	// sole caches soleDefs for soleDef, built on first use; defsAll caches defsOf.
-	sole    map[LocalID]*Inst
-	defsAll map[LocalID][]*Inst
+	sole    map[midir.LocalID]*midir.Inst
+	defsAll map[midir.LocalID][]*midir.Inst
 	// chainOnly caches chainedOnly's result per local.
-	chainOnly map[LocalID]bool
+	chainOnly map[midir.LocalID]bool
 	// unowned caches unownedRefs, built on first use.
 	unowned []bool
 	// sinks are the holders collect re-merges on every round: containers
 	// whose element sources are the union of every write.
-	sinks       map[LocalID]*borrowInfo
-	targets     map[LocalID]bool
-	contents    map[LocalID]*borrowInfo
-	caps        map[LocalID]*borrowInfo
+	sinks       map[midir.LocalID]*borrowInfo
+	targets     map[midir.LocalID]bool
+	contents    map[midir.LocalID]*borrowInfo
+	caps        map[midir.LocalID]*borrowInfo
 	grew        bool
-	borrowedIn  []map[LocalID]bool
-	firstBorrow map[LocalID]int
-	curBlock    BlockID
+	borrowedIn  []map[midir.LocalID]bool
+	firstBorrow map[midir.LocalID]int
+	curBlock    midir.BlockID
 	loopReach   [][]bool
 	curIdx      int
-	keptTemp    map[LocalID]bool
-	keptOwners  map[LocalID]bool
-	carry       map[LocalID][]carrySite
-	carryIn     map[[2]LocalID][]bool
+	keptTemp    map[midir.LocalID]bool
+	keptOwners  map[midir.LocalID]bool
+	carry       map[midir.LocalID][]carrySite
+	carryIn     map[[2]midir.LocalID][]bool
 	ties        tieState
 	held        *heldState
 	resets      resetState
@@ -97,20 +98,20 @@ type borrowCheck struct {
 	recvBorrows map[recvBorrowKey]*borrowInfo
 	callNode    syntax.NodeID
 	thread      *flagThread
-	callRefs    map[LocalID]bool
+	callRefs    map[midir.LocalID]bool
 	reborrows   []reborrowSite
 	unions      []unionSite
-	mixed       map[syntax.NodeID]LocalID
-	viewDefs    map[LocalID][]*Inst
-	viewSets    map[LocalID]viewSourceSet
+	mixed       map[syntax.NodeID]midir.LocalID
+	viewDefs    map[midir.LocalID][]*midir.Inst
+	viewSets    map[midir.LocalID]viewSourceSet
 
 	cellState
 	fields fieldState
 }
 
-func analyzeBorrows(state *borrowAnalysis, f *Func) {
+func analyzeBorrows(state *borrowAnalysis, f *midir.Func) {
 	p := state.Program
-	c := &borrowCheck{p: p, f: f, state: state, holders: map[LocalID]*borrowInfo{}, reported: map[reportKey]int{}, keptTemp: map[LocalID]bool{}}
+	c := &borrowCheck{p: p, f: f, state: state, holders: map[midir.LocalID]*borrowInfo{}, reported: map[reportKey]int{}, keptTemp: map[midir.LocalID]bool{}}
 	c.collect()
 	c.checkOffloads()
 	if len(c.holders) == 0 {
@@ -121,14 +122,14 @@ func analyzeBorrows(state *borrowAnalysis, f *Func) {
 	c.held = &heldState{borrows: c.heldBorrows(), in: map[heldBorrow][]bool{}}
 	c.borrowReach()
 	for bid := range f.Blocks {
-		c.checkBlock(BlockID(bid))
+		c.checkBlock(midir.BlockID(bid))
 	}
 	c.checkTempLeaves()
 }
 
 // checkInst sees the holders live after in; a conflict is a touch of an owner whose borrow outlives in,
 // and a holder outside realAfter waits only on its own release, so only what may drop a value conflicts.
-func (c *borrowCheck) checkInst(in Inst, liveAfter, realAfter map[LocalID]bool) {
+func (c *borrowCheck) checkInst(in midir.Inst, liveAfter, realAfter map[midir.LocalID]bool) {
 	c.checkCapture(in)
 	c.checkTempKept(in)
 	c.checkRecvArgs(in)
@@ -138,7 +139,7 @@ func (c *borrowCheck) checkInst(in Inst, liveAfter, realAfter map[LocalID]bool) 
 	c.checkCellRunArgs(in, liveAfter)
 	// A receiver cell's write-back releases the place's old value; the
 	// exclusive borrow the call took of that place already reported.
-	if in.Op == OpDrop && in.Scoped || in.Op == OpNop {
+	if in.Op == midir.OpDrop && in.Scoped || in.Op == midir.OpNop {
 		return
 	}
 	c.checkHeld(in)
@@ -148,7 +149,7 @@ func (c *borrowCheck) checkInst(in Inst, liveAfter, realAfter map[LocalID]bool) 
 			continue
 		}
 		for _, o := range b.owners {
-			if o.view || o.through && in.Op == OpDrop && in.EndScope || !c.ownerMayBeHeld(holder, o.owner) || o.carried && !c.carryReaches(holder, o.owner, c.curIdx) || o.tied && !c.tieReaches(holder, o.owner, c.curIdx) || !c.resetReaches(holder, o.owner, c.curIdx) {
+			if o.view || o.through && in.Op == midir.OpDrop && in.EndScope || !c.ownerMayBeHeld(holder, o.owner) || o.carried && !c.carryReaches(holder, o.owner, c.curIdx) || o.tied && !c.tieReaches(holder, o.owner, c.curIdx) || !c.resetReaches(holder, o.owner, c.curIdx) {
 				continue
 			}
 			touched, path, _ := c.touch(in, o.owner)

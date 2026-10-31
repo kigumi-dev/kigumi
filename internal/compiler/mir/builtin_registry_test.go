@@ -9,7 +9,7 @@ import (
 	opdef "kigumi/internal/compiler/mir/ops"
 )
 
-var builtinEmit = regexp.MustCompile(`Op:\s*OpBuiltin[^}]*Str:\s*"([^"]+)"`)
+var builtinEmit = regexp.MustCompile(`Op:\s*(?:[A-Za-z_][A-Za-z0-9_]*\.)?OpBuiltin[^}]*Str:\s*"([^"]+)"`)
 
 var builtinFamily = regexp.MustCompile(`"((?:atomic|volatile)\.[A-Za-z]+)"`)
 

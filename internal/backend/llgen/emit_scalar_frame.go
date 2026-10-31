@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 // scalarFrameBox boxes a scalar for a reader that never keeps it, in an immortal the frame holds.
-func (e *emitter) scalarFrameBox(sb *strings.Builder, l mir.LocalID) string {
+func (e *emitter) scalarFrameBox(sb *strings.Builder, l midir.LocalID) string {
 	if slot, ok := e.litSlot(l); ok {
 		return slot
 	}

@@ -3,13 +3,14 @@ package mir
 import (
 	"strconv"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
 
 // placeName spells a field read as the path it projects; a pattern's own text would name the binding instead.
-func (pl *places) placeName(p *Program, f *Func, t *syntax.Tree, in Inst) string {
-	if in.Op == OpPayload {
+func (pl *places) placeName(p *Program, f *midir.Func, t *syntax.Tree, in midir.Inst) string {
+	if in.Op == midir.OpPayload {
 		if n, ok := pl.name[pl.canon(in.Args[0])]; ok {
 			return n
 		}
@@ -35,18 +36,18 @@ func (pl *places) placeName(p *Program, f *Func, t *syntax.Tree, in Inst) string
 	return base + "." + p.R.Entity(fields[in.Index]).Name
 }
 
-func (pl *places) projects(t *syntax.Tree, in Inst) bool {
+func (pl *places) projects(t *syntax.Tree, in midir.Inst) bool {
 	switch in.Op {
-	case OpField, OpFieldMove:
+	case midir.OpField, midir.OpFieldMove:
 		return true
-	case OpPayload:
+	case midir.OpPayload:
 		return in.Place || in.Node != 0 && t.Kind(in.Node).IsPattern()
 	}
 	return false
 }
 
-func (pl *places) step(in Inst) string {
-	if in.Op == OpPayload {
+func (pl *places) step(in midir.Inst) string {
+	if in.Op == midir.OpPayload {
 		return "p" + strconv.Itoa(in.Index)
 	}
 	return strconv.Itoa(in.Index)

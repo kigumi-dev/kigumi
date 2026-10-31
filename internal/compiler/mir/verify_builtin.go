@@ -3,15 +3,16 @@ package mir
 import (
 	"strings"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
-func (p *verifier) verifyBuiltins(f *Func) *Error {
+func (p *verifier) verifyBuiltins(f *midir.Func) *Error {
 	for bid, blk := range f.Blocks {
-		bid := BlockID(bid)
+		bid := midir.BlockID(bid)
 		for i, in := range blk.Insts {
-			if in.Op != OpBuiltin {
+			if in.Op != midir.OpBuiltin {
 				continue
 			}
 			if msg := p.builtinMismatch(f, in); msg != "" {
@@ -22,7 +23,7 @@ func (p *verifier) verifyBuiltins(f *Func) *Error {
 	return nil
 }
 
-func (p *verifier) builtinMismatch(f *Func, in Inst) string {
+func (p *verifier) builtinMismatch(f *midir.Func, in midir.Inst) string {
 	spec, ok := opdef.BuiltinFor(in.Str)
 	if !ok {
 		return "no runtime entry \"" + in.Str + "\""
@@ -77,7 +78,7 @@ func (p *verifier) builtinResultMismatch(spec opdef.BuiltinSpec, got sem.TypeID)
 	return ""
 }
 
-func (p *verifier) iterMismatch(f *Func, in Inst) string {
+func (p *verifier) iterMismatch(f *midir.Func, in midir.Inst) string {
 	if !strings.HasPrefix(in.Str, "iter.") || len(in.Args) == 0 {
 		return ""
 	}

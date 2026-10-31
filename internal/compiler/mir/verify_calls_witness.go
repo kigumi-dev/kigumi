@@ -3,10 +3,11 @@ package mir
 import (
 	"strings"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func (p *callVerifier) witnessCallMismatch(f *Func, in Inst, recv bool) string {
+func (p *callVerifier) witnessCallMismatch(f *midir.Func, in midir.Inst, recv bool) string {
 	tt := p.R.Types
 	t := p.fnType(p.derefAll(f.Locals[in.Args[0]].Type))
 	args := in.Args[1:]
@@ -45,7 +46,7 @@ func (p *callVerifier) witnessCallMismatch(f *Func, in Inst, recv bool) string {
 	return ""
 }
 
-func (p *callVerifier) witnessParam(f *Func, l LocalID, depth int) (string, bool) {
+func (p *callVerifier) witnessParam(f *midir.Func, l midir.LocalID, depth int) (string, bool) {
 	if name := f.Locals[l].Name; strings.HasPrefix(name, "$w:") && isParam(f, l) {
 		rest := strings.TrimPrefix(name, "$w:")
 		if i := strings.IndexByte(rest, ':'); i > 0 {
@@ -56,14 +57,14 @@ func (p *callVerifier) witnessParam(f *Func, l LocalID, depth int) (string, bool
 	if depth > 4 {
 		return "", false
 	}
-	src, found := LocalID(0), false
+	src, found := midir.LocalID(0), false
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			if !in.Op.Yields() || in.Dst != l {
 				continue
 			}
 			switch in.Op {
-			case OpAlias, OpCopy, OpShare, OpMove:
+			case midir.OpAlias, midir.OpCopy, midir.OpShare, midir.OpMove:
 				if found && src != in.Args[0] {
 					return "", false
 				}
@@ -79,7 +80,7 @@ func (p *callVerifier) witnessParam(f *Func, l LocalID, depth int) (string, bool
 	return p.witnessParam(f, src, depth+1)
 }
 
-func (p *callVerifier) mentionsParam(f *Func, name string) bool {
+func (p *callVerifier) mentionsParam(f *midir.Func, name string) bool {
 	tt := p.R.Types
 	for _, l := range f.Locals {
 		t := p.derefAll(l.Type)

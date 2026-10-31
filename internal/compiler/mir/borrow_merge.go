@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
@@ -68,7 +69,7 @@ func (o ownerRef) same(p ownerRef) bool {
 }
 
 // sink is l's re-merged holder, created on first use from what l already holds.
-func (c *borrowCheck) sink(l LocalID, node syntax.NodeID) *borrowInfo {
+func (c *borrowCheck) sink(l midir.LocalID, node syntax.NodeID) *borrowInfo {
 	if s, ok := c.sinks[l]; ok {
 		return s
 	}
@@ -141,7 +142,7 @@ func (c *borrowCheck) trackedContainer(t sem.TypeID) bool {
 	return false
 }
 
-func (c *borrowCheck) multiDefined(l LocalID) bool {
+func (c *borrowCheck) multiDefined(l midir.LocalID) bool {
 	c.definition(l)
 	d, ok := c.defs[l]
 	return ok && d == nil

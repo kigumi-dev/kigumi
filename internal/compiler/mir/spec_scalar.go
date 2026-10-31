@@ -1,6 +1,9 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 func (s *specializer) drain() {
 	for len(s.work) > 0 {
@@ -16,7 +19,7 @@ func (s *specializer) drain() {
 // Shared bodies name their aggregate instances first, so a scalar instance copies them rather than re-deciding.
 func (s *specializer) scalarPhase() {
 	s.scalars = true
-	for _, f := range append([]*Func(nil), s.p.Funcs...) {
+	for _, f := range append([]*midir.Func(nil), s.p.Funcs...) {
 		s.scan(f, s.byFunc[f])
 	}
 	s.drain()

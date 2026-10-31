@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
-func (e *emitter) envOf(f *mir.Func) (*aggInfo, bool) {
+func (e *emitter) envOf(f *midir.Func) (*aggInfo, bool) {
 	if !e.p.EnvABI(f) {
 		return nil, false
 	}
 	return e.agg(e.r.Types.Closure(f.Ent))
 }
 
-func (e *emitter) closureCall(sb *strings.Builder, in mir.Inst, a *aggInfo) {
+func (e *emitter) closureCall(sb *strings.Builder, in midir.Inst, a *aggInfo) {
 	s := e.directSig(a.Clo)
 	args, out := e.retSlot(sb, s)
 	args = append(args, "ptr "+aggPtr(in.Args[0]))

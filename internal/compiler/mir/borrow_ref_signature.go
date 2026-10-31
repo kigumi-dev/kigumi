@@ -1,8 +1,11 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
-func (c *borrowCheck) signatureLifetimeSource(in Inst) (*borrowInfo, bool) {
+func (c *borrowCheck) signatureLifetimeSource(in midir.Inst) (*borrowInfo, bool) {
 	sig := c.slotFnType(c.f.Locals[in.Args[0]].Type)
 	if e := c.fnEntityOf(in.Args[0]); e != 0 {
 		switch c.p.R.Entity(e).Kind {

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
@@ -62,7 +63,7 @@ func rotationSource(k int) string {
 			strings.Join(decls, ""), strings.Join(args, ", "))
 }
 
-func buildSites(t *testing.T, src string, budget time.Duration) (*Program, *Func) {
+func buildSites(t *testing.T, src string, budget time.Duration) (*Program, *midir.Func) {
 	t.Helper()
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))

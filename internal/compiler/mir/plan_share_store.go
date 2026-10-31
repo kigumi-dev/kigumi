@@ -1,12 +1,16 @@
 package mir
 
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
 // storesPlaceCopy: a slot or field store into storage the function does not own takes a copy the store merges into the destination box.
-func (w *shareFacts) storesPlaceCopy(in Inst, i int) bool {
+func (w *shareFacts) storesPlaceCopy(in midir.Inst, i int) bool {
 	v, ok := storedValue(in)
 	if !ok || in.Args[i] != v || len(w.defs[v]) != 1 || len(w.uses[v]) != 1 {
 		return false
 	}
-	if op := w.defs[v][0].Op; op != OpIndex && op != OpField {
+	if op := w.defs[v][0].Op; op != midir.OpIndex && op != midir.OpField {
 		return false
 	}
 	if w.foreign == nil {

@@ -3,25 +3,26 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
 
 // projectionPlace follows a temporary read out of a value back to its named local, with the field chain
 // (root-first); an index or unbox step cuts the chain there, marking it inexact.
-func (c *borrowCheck) projectionPlace(l LocalID) (root LocalID, path stepPath, exact bool, ok bool) {
+func (c *borrowCheck) projectionPlace(l midir.LocalID) (root midir.LocalID, path stepPath, exact bool, ok bool) {
 	return c.walkPlace(l, false)
 }
 
 // patternPlace is projectionPlace also crossing a temporary borrow and a borrowed loop's element,
 // so a binding destructured from `&e` or `&mut e`, or bound by `for x in &e`, holds e itself.
-func (c *borrowCheck) patternPlace(l LocalID) (root LocalID, path stepPath, exact bool, ok bool) {
+func (c *borrowCheck) patternPlace(l midir.LocalID) (root midir.LocalID, path stepPath, exact bool, ok bool) {
 	return c.walkPlace(l, true)
 }
 
 // throughRef is what a borrow of root's referent at path holds when root is a reference
 // local: the places root borrows, extended by path, so they stay borrowed while it lives.
-func (c *borrowCheck) throughRef(root LocalID, path stepPath, exact, mut bool) *borrowInfo {
+func (c *borrowCheck) throughRef(root midir.LocalID, path stepPath, exact, mut bool) *borrowInfo {
 	b, ok := c.holders[root]
 	if !ok || !b.hasOwner || c.p.R.Types.Kind(c.f.Locals[root].Type) != sem.KRef {
 		return nil
@@ -44,7 +45,7 @@ func (c *borrowCheck) throughRef(root LocalID, path stepPath, exact, mut bool) *
 	return out
 }
 
-func (c *borrowCheck) walkPlace(l LocalID, throughBorrow bool) (root LocalID, path stepPath, exact bool, ok bool) {
+func (c *borrowCheck) walkPlace(l midir.LocalID, throughBorrow bool) (root midir.LocalID, path stepPath, exact bool, ok bool) {
 	exact = true
 	for {
 		if c.f.Locals[l].Ent != 0 {
@@ -55,23 +56,23 @@ func (c *borrowCheck) walkPlace(l LocalID, throughBorrow bool) (root LocalID, pa
 			return 0, nil, false, false
 		}
 		switch in.Op {
-		case OpField, OpPayload, OpIndex, OpUnbox:
+		case midir.OpField, midir.OpPayload, midir.OpIndex, midir.OpUnbox:
 			path, exact = path.under(in, exact, nil)
 			l = in.Args[0]
-		case OpCopy:
+		case midir.OpCopy:
 			l = in.Args[0]
-		case OpBorrow:
+		case midir.OpBorrow:
 			if !throughBorrow {
 				return 0, nil, false, false
 			}
 			l = in.Args[0]
-		case OpBuiltin:
+		case midir.OpBuiltin:
 			if !throughBorrow || !iterElement(in) {
 				return 0, nil, false, false
 			}
 			path, exact = nil, false
 			l = in.Args[0]
-		case OpCellGet:
+		case midir.OpCellGet:
 			if !c.f.Locals[in.Args[0]].Borrowed && !c.placeCell(in.Args[0]) {
 				return 0, nil, false, false
 			}
@@ -90,18 +91,18 @@ func (c *borrowCheck) walkPlace(l LocalID, throughBorrow bool) (root LocalID, pa
 // own OpBorrow case for a direct borrow), and a prefix of an overlapping
 // path always overlaps too, so checking only the deepest step is
 // equivalent and avoids double-reporting one borrow.
-func (c *borrowCheck) chainedOnly(l LocalID) bool {
+func (c *borrowCheck) chainedOnly(l midir.LocalID) bool {
 	if c.chainOnly == nil {
-		c.chainOnly = map[LocalID]bool{}
-		total, chained := map[LocalID]int{}, map[LocalID]int{}
-		count := func(a LocalID) { total[a]++ }
+		c.chainOnly = map[midir.LocalID]bool{}
+		total, chained := map[midir.LocalID]int{}, map[midir.LocalID]int{}
+		count := func(a midir.LocalID) { total[a]++ }
 		for b := range c.f.Blocks {
 			for _, in := range c.f.Blocks[b].Insts {
 				for _, a := range in.Args {
 					count(a)
 				}
 				switch in.Op {
-				case OpField, OpSetField, OpIndex, OpPayload, OpUnbox, OpBorrow:
+				case midir.OpField, midir.OpSetField, midir.OpIndex, midir.OpPayload, midir.OpUnbox, midir.OpBorrow:
 					if len(in.Args) > 0 {
 						chained[in.Args[0]]++
 					}
@@ -122,13 +123,13 @@ func (c *borrowCheck) chainedOnly(l LocalID) bool {
 
 // definition finds the single instruction defining a temporary; nil when
 // it has none or several.
-func (c *borrowCheck) definition(l LocalID) *Inst {
+func (c *borrowCheck) definition(l midir.LocalID) *midir.Inst {
 	if c.defs == nil {
-		c.defs = map[LocalID]*Inst{}
+		c.defs = map[midir.LocalID]*midir.Inst{}
 		for b := range c.f.Blocks {
 			for i := range c.f.Blocks[b].Insts {
 				in := &c.f.Blocks[b].Insts[i]
-				if !shapes[in.Op].result || c.f.Locals[in.Dst].Ent != 0 {
+				if !in.Op.Yields() || c.f.Locals[in.Dst].Ent != 0 {
 					continue
 				}
 				if _, dup := c.defs[in.Dst]; dup {
@@ -142,8 +143,8 @@ func (c *borrowCheck) definition(l LocalID) *Inst {
 	return c.defs[l]
 }
 
-func (c *borrowCheck) takesPayload(in Inst) bool {
-	if in.Op != OpCopy || c.p.R.IsCopy(c.f.Locals[in.Dst].Type) {
+func (c *borrowCheck) takesPayload(in midir.Inst) bool {
+	if in.Op != midir.OpCopy || c.p.R.IsCopy(c.f.Locals[in.Dst].Type) {
 		return false
 	}
 	if src := c.f.Locals[in.Args[0]]; src.Ent != 0 {
@@ -154,16 +155,16 @@ func (c *borrowCheck) takesPayload(in Inst) bool {
 		return false
 	}
 	switch d.Op {
-	case OpPayload:
+	case midir.OpPayload:
 		return d.Place || c.f.Locals[in.Dst].Ent != 0
-	case OpField:
+	case midir.OpField:
 		return c.f.Locals[in.Dst].Ent != 0
 	}
 	return false
 }
 
 // takeNode: the copy out of a `||` hit carries no node of its own, so it reports at the payload read.
-func (c *borrowCheck) takeNode(in Inst) syntax.NodeID {
+func (c *borrowCheck) takeNode(in midir.Inst) syntax.NodeID {
 	if in.Node == 0 && c.takesPayload(in) && c.f.Locals[in.Args[0]].Ent == 0 {
 		return c.definition(in.Args[0]).Node
 	}

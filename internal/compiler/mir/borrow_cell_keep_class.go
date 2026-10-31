@@ -3,32 +3,33 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // keeperClass is what a store into by-value shared storage reaches here: every local the value flow links to it
 // through a common origin, and whether that origin is a parameter, whose storage outlives the body.
 type keeperClass struct {
-	locals  []LocalID
+	locals  []midir.LocalID
 	escapes bool
 }
 
 // keeperGraph is the value flow's edges between locals able to hold or reach a keepable value, flow-insensitively.
 type keeperGraph struct {
-	succ, pred map[LocalID][]LocalID
-	memo       map[LocalID]keeperClass
+	succ, pred map[midir.LocalID][]midir.LocalID
+	memo       map[midir.LocalID]keeperClass
 }
 
 // keeperOf links a to its origins and from them to everything derived from them, so a copy taken before the store
 // sees it too.
-func (c *borrowCheck) keeperOf(a LocalID) keeperClass {
+func (c *borrowCheck) keeperOf(a midir.LocalID) keeperClass {
 	g := c.keepers()
 	if k, ok := g.memo[a]; ok {
 		return k
 	}
-	back := reachLocals([]LocalID{a}, g.pred)
+	back := reachLocals([]midir.LocalID{a}, g.pred)
 	k := keeperClass{locals: reachLocals(back, g.succ)}
-	k.escapes = slices.ContainsFunc(back, func(l LocalID) bool { return slices.Contains(c.f.Params, l) })
+	k.escapes = slices.ContainsFunc(back, func(l midir.LocalID) bool { return slices.Contains(c.f.Params, l) })
 	g.memo[a] = k
 	return k
 }
@@ -37,8 +38,8 @@ func (c *borrowCheck) keepers() *keeperGraph {
 	if c.keeperState != nil {
 		return c.keeperState
 	}
-	g := &keeperGraph{succ: map[LocalID][]LocalID{}, pred: map[LocalID][]LocalID{}, memo: map[LocalID]keeperClass{}}
-	node := func(l LocalID) bool {
+	g := &keeperGraph{succ: map[midir.LocalID][]midir.LocalID{}, pred: map[midir.LocalID][]midir.LocalID{}, memo: map[midir.LocalID]keeperClass{}}
+	node := func(l midir.LocalID) bool {
 		t := c.f.Locals[l].Type
 		if c.p.R.Types.Kind(t) == sem.KRef {
 			t = c.p.R.Types.Node(t).Elem
@@ -61,7 +62,7 @@ func (c *borrowCheck) keepers() *keeperGraph {
 	return g
 }
 
-func reachLocals(from []LocalID, edges map[LocalID][]LocalID) []LocalID {
+func reachLocals(from []midir.LocalID, edges map[midir.LocalID][]midir.LocalID) []midir.LocalID {
 	out := slices.Clone(from)
 	for i := 0; i < len(out); i++ {
 		for _, n := range edges[out[i]] {
@@ -75,8 +76,8 @@ func reachLocals(from []LocalID, edges map[LocalID][]LocalID) []LocalID {
 
 // storePlaces are the locals a callee's store into argument a reaches: what a lent `&mut` points into and, for shared
 // storage, its keeper class and, when that storage outlives the body, the task scope.
-func (c *borrowCheck) storePlaces(a LocalID) []LocalID {
-	var out []LocalID
+func (c *borrowCheck) storePlaces(a midir.LocalID) []midir.LocalID {
+	var out []midir.LocalID
 	for _, p := range c.lentMutPlaces(a) {
 		out = append(out, p.locals()...)
 	}
@@ -84,7 +85,7 @@ func (c *borrowCheck) storePlaces(a LocalID) []LocalID {
 }
 
 // sharedPlaces is a's keeper class when it reaches shared storage, with the task scope when that outlives the body.
-func (c *borrowCheck) sharedPlaces(a LocalID) []LocalID {
+func (c *borrowCheck) sharedPlaces(a midir.LocalID) []midir.LocalID {
 	if !c.sharedStorage(c.f.Locals[a].Type) {
 		return nil
 	}
@@ -97,7 +98,7 @@ func (c *borrowCheck) sharedPlaces(a LocalID) []LocalID {
 
 // keptArgs are the arguments of call in holding shared storage its callee may store into: by its summary, or every
 // one for a callee this body cannot see.
-func (c *borrowCheck) keptArgs(in Inst, s flowSets) []int {
+func (c *borrowCheck) keptArgs(in midir.Inst, s flowSets) []int {
 	ents := c.knownCallees(c.f, s, in)
 	var out []int
 	for k, a := range in.Args {

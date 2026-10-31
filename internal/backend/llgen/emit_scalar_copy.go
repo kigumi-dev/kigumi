@@ -3,14 +3,14 @@ package llgen
 import (
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 // scalarCopyLike handles OpAlias/OpShare/OpMove when at least one side is
 // natively stored. Retain-then-release around a register read is a no-op
 // here and is skipped: these types have no identity beyond their value,
 // and classifyScalars refuses any local ever borrowed from.
-func (e *emitter) scalarCopyLike(sb *strings.Builder, f *mir.Func, in mir.Inst) bool {
+func (e *emitter) scalarCopyLike(sb *strings.Builder, f *midir.Func, in midir.Inst) bool {
 	_, dstNative := e.scalar[in.Dst]
 	srcInfo, srcNative := e.scalar[in.Args[0]]
 	if !dstNative && !srcNative {
@@ -27,9 +27,9 @@ func (e *emitter) scalarCopyLike(sb *strings.Builder, f *mir.Func, in mir.Inst) 
 		p := e.load(sb, in.Args[0])
 		v := e.unboxScalar(sb, srcTy, p)
 		// An alias of a temporary takes its reference over, which the native destination does not hold.
-		if in.Op == mir.OpMove || in.Op == mir.OpAlias && f.Locals[in.Args[0]].Ent == 0 && !e.nameAlias[in.Args[0]] {
+		if in.Op == midir.OpMove || in.Op == midir.OpAlias && f.Locals[in.Args[0]].Ent == 0 && !e.nameAlias[in.Args[0]] {
 			e.releaseScalarBox(sb, srcTy, p)
-			if in.Op == mir.OpMove && f.Locals[in.Args[0]].Ent != 0 {
+			if in.Op == midir.OpMove && f.Locals[in.Args[0]].Ent != 0 {
 				e.store(sb, in.Args[0], "null")
 			}
 		}

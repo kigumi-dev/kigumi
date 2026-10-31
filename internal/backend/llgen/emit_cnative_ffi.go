@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
@@ -71,8 +71,8 @@ func ffiWrite(e *emitter, sb *strings.Builder, a ffiArgs, _ sem.TypeID) Value {
 	return Value{}
 }
 
-func (e *emitter) ffiRegOp(in mir.Inst) string {
-	if in.Op != mir.OpCall || in.DPrim != opdef.DPNone || e.r.Entity(in.Ent).Kind != sem.EntFn || e.r.Fn(in.Ent).Body != 0 {
+func (e *emitter) ffiRegOp(in midir.Inst) string {
+	if in.Op != midir.OpCall || in.DPrim != opdef.DPNone || e.r.Entity(in.Ent).Kind != sem.EntFn || e.r.Fn(in.Ent).Body != 0 {
 		return ""
 	}
 	if key := e.stdKey(in.Ent); ffiPrims[key] != nil {
@@ -82,7 +82,7 @@ func (e *emitter) ffiRegOp(in mir.Inst) string {
 }
 
 // ffiRegCall reads a register argument in place and boxes the result only for a boxed destination.
-func (e *emitter) ffiRegCall(sb *strings.Builder, f *mir.Func, in mir.Inst, key string) {
+func (e *emitter) ffiRegCall(sb *strings.Builder, f *midir.Func, in midir.Inst, key string) {
 	ops := newCOperands(in)
 	a := ffiArgs{
 		reg: func(i int, ty Type) Value { return ops.reg(e, sb, i, ty) },

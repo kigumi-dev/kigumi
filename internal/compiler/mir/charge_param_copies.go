@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -23,7 +24,7 @@ func (c paramCopies) add(ent sem.EntityID, fact paramCopyFact) bool {
 	return true
 }
 
-func (p *Program) paramCopy(f *Func, in Inst) (paramCopyFact, bool) {
+func (p *Program) paramCopy(f *midir.Func, in midir.Inst) (paramCopyFact, bool) {
 	if !p.declaredNoalloc(f) {
 		return paramCopyFact{}, false
 	}
@@ -31,14 +32,14 @@ func (p *Program) paramCopy(f *Func, in Inst) (paramCopyFact, bool) {
 		k, own := p.ownParamIndex(f, elem)
 		return paramCopyFact{k: k, elem: true}, own
 	}
-	if in.Op != OpShare {
+	if in.Op != midir.OpShare {
 		return paramCopyFact{}, false
 	}
 	k, own := p.ownParamIndex(f, f.Locals[in.Args[0]].Type)
 	return paramCopyFact{k: k}, own
 }
 
-func (p *Program) ownParamIndex(f *Func, t sem.TypeID) (int, bool) {
+func (p *Program) ownParamIndex(f *midir.Func, t sem.TypeID) (int, bool) {
 	if f.Ent == 0 || p.R.Types.Kind(t) != sem.KParam {
 		return 0, false
 	}
@@ -67,7 +68,7 @@ func (p *Program) chargeCalls(facts paramCopies) []sem.CopySite {
 			}
 			for _, blk := range f.Blocks {
 				for _, in := range blk.Insts {
-					if len(facts[in.Ent]) == 0 || in.Op != OpCall && !p.erasesToNoalloc(f, in) {
+					if len(facts[in.Ent]) == 0 || in.Op != midir.OpCall && !p.erasesToNoalloc(f, in) {
 						continue
 					}
 					more, grown := p.chargeCall(f, in, facts)
@@ -80,18 +81,18 @@ func (p *Program) chargeCalls(facts paramCopies) []sem.CopySite {
 }
 
 // erasesToNoalloc reads sem's coercion target, since a fn item value keeps the item's own effects.
-func (p *Program) erasesToNoalloc(f *Func, in Inst) bool {
-	return (in.Op == OpFnItem || in.Op == OpBind) && p.R.ErasesToNoalloc(f.File, in.Node)
+func (p *Program) erasesToNoalloc(f *midir.Func, in midir.Inst) bool {
+	return (in.Op == midir.OpFnItem || in.Op == midir.OpBind) && p.R.ErasesToNoalloc(f.File, in.Node)
 }
 
 // A specialized f reuses its generic's call info, so its own substitution binds in's type arguments.
-func (p *Program) chargeArgs(f *Func, in Inst) ([]sem.TypeID, bool) {
+func (p *Program) chargeArgs(f *midir.Func, in midir.Inst) ([]sem.TypeID, bool) {
 	subst := func(t sem.TypeID) sem.TypeID { return t }
 	if inst, ok := p.R.InstanceOf(f.Ent); ok {
 		sub := p.R.InstanceSubst(inst.Gen, inst.Args)
 		subst = func(t sem.TypeID) sem.TypeID { return p.R.Types.Subst(t, sub) }
 	}
-	if in.Op != OpBind {
+	if in.Op != midir.OpBind {
 		return p.bindTypeArgs(f, in, subst)
 	}
 	info := p.R.Fn(in.Ent)
@@ -105,7 +106,7 @@ func (p *Program) chargeArgs(f *Func, in Inst) ([]sem.TypeID, bool) {
 	return p.boundArgs(in.Ent, want, bound)
 }
 
-func (p *Program) chargeCall(f *Func, in Inst, facts paramCopies) (sites []sem.CopySite, grown bool) {
+func (p *Program) chargeCall(f *midir.Func, in midir.Inst, facts paramCopies) (sites []sem.CopySite, grown bool) {
 	args, bound := p.chargeArgs(f, in)
 	tps := p.R.Fn(in.Ent).TypeParams
 	for _, fact := range facts[in.Ent] {
@@ -123,7 +124,7 @@ func (p *Program) chargeCall(f *Func, in Inst, facts paramCopies) (sites []sem.C
 			}
 		}
 		site := sem.CopySite{Owner: f.Ent, File: f.File, Node: p.siteNode(f, in), Type: t, Inst: true}
-		if in.Op != OpCall {
+		if in.Op != midir.OpCall {
 			site.Inst, site.Erased = false, in.Ent
 		}
 		sites = append(sites, site)

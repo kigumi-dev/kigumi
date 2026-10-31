@@ -1,17 +1,20 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // passesMutRef reports whether in hands owner, a `&mut` reference, to a callee's `&mut` parameter, which may replace
 // the referent the way an assignment through owner does.
-func (c *borrowCheck) passesMutRef(in Inst, owner LocalID) bool {
+func (c *borrowCheck) passesMutRef(in midir.Inst, owner midir.LocalID) bool {
 	tt := c.p.R.Types
-	if in.Op != OpCall && in.Op != OpCallValue || tt.Kind(c.f.Locals[owner].Type) != sem.KRef || !tt.RefMut(c.f.Locals[owner].Type) {
+	if in.Op != midir.OpCall && in.Op != midir.OpCallValue || tt.Kind(c.f.Locals[owner].Type) != sem.KRef || !tt.RefMut(c.f.Locals[owner].Type) {
 		return false
 	}
 	if in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn {
 		recvIdx := 0
-		if in.Op == OpCallValue {
+		if in.Op == midir.OpCallValue {
 			recvIdx = 1
 		}
 		for _, s := range c.callSlots(c.p.R.Fn(in.Ent), in.Args, recvIdx) {
@@ -53,10 +56,10 @@ func (c *borrowCheck) calleeParams(t sem.TypeID) (params []sem.TypeID, known boo
 }
 
 // refOf follows a reference argument's single definitions through copies to the local it reborrows.
-func (c *borrowCheck) refOf(l LocalID) LocalID {
+func (c *borrowCheck) refOf(l midir.LocalID) midir.LocalID {
 	for range len(c.f.Locals) {
 		d := c.soleDef(l)
-		if d == nil || len(d.Args) == 0 || d.Op != OpCopy && d.Op != OpMove && d.Op != OpAlias && d.Op != OpShare && d.Op != OpNewCell {
+		if d == nil || len(d.Args) == 0 || d.Op != midir.OpCopy && d.Op != midir.OpMove && d.Op != midir.OpAlias && d.Op != midir.OpShare && d.Op != midir.OpNewCell {
 			return l
 		}
 		l = d.Args[0]

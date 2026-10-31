@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 // exportShim defines the C symbol of an export(C) function whose records
 // move by value, forwarding to kg_export_<name> (exportByval).
-func (e *emitter) exportShim(f *mir.Func) {
+func (e *emitter) exportShim(f *midir.Func) {
 	name := e.cName(f.Ent)
 	sn := e.r.Types.Node(e.r.Fn(f.Ent).Sig)
 	ret := e.cLang(sn.Elem)
@@ -43,7 +43,7 @@ func (e *emitter) exportShim(f *mir.Func) {
 }
 
 // exportInterruptWrapper is export(interrupt)'s non-naked wrapper; sem (decl_interrupt.go) already forces Void-in, Void-out.
-func (e *emitter) exportInterruptWrapper(f *mir.Func) string {
+func (e *emitter) exportInterruptWrapper(f *midir.Func) string {
 	return fmt.Sprintf("define void @%s() {\nentry:\n  call ptr %s()\n  ret void\n}\n\n", e.cName(f.Ent), e.sym(f))
 }
 

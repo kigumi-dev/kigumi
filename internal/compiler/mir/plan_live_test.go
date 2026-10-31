@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -49,14 +50,14 @@ fn main() -> Void! {}
 `
 
 // ownedTemps are the temporaries a path must give up exactly once: fresh values nothing else adopts.
-func ownedTemps(p *mir.Program, f *mir.Func) map[mir.LocalID]bool {
-	out := map[mir.LocalID]bool{}
+func ownedTemps(p *mir.Program, f *midir.Func) map[midir.LocalID]bool {
+	out := map[midir.LocalID]bool{}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			if f.Locals[in.Dst].Ent != 0 || !in.Op.Yields() {
 				continue
 			}
-			if in.Op == mir.OpPayload {
+			if in.Op == midir.OpPayload {
 				out[in.Dst] = true
 			}
 		}
@@ -66,22 +67,22 @@ func ownedTemps(p *mir.Program, f *mir.Func) map[mir.LocalID]bool {
 
 type walk struct {
 	p     *mir.Program
-	f     *mir.Func
-	temps map[mir.LocalID]bool
+	f     *midir.Func
+	temps map[midir.LocalID]bool
 	seen  map[string]bool
 	errs  []string
 }
 
 func (w *walk) diverges(b int) bool {
 	for _, in := range w.f.Blocks[b].Insts {
-		if in.Op == mir.OpPanic || in.Op.Yields() && w.f.Locals[in.Dst].Type == sem.TyNever {
+		if in.Op == midir.OpPanic || in.Op.Yields() && w.f.Locals[in.Dst].Type == sem.TyNever {
 			return true
 		}
 	}
 	return false
 }
 
-func (w *walk) run(b int, owned map[mir.LocalID]bool) {
+func (w *walk) run(b int, owned map[midir.LocalID]bool) {
 	key := fmt.Sprint(b, owned)
 	if w.seen[key] {
 		return
@@ -97,11 +98,11 @@ func (w *walk) run(b int, owned map[mir.LocalID]bool) {
 			if !owned[a] {
 				w.errs = append(w.errs, fmt.Sprintf("b%d/%d reads %%%s while it is not owned", b, k, w.f.Locals[a].Name))
 			}
-			if in.Op == mir.OpRelease || w.p.ArgConsumed(w.f, in, i) {
+			if in.Op == midir.OpRelease || w.p.ArgConsumed(w.f, in, i) {
 				delete(owned, a)
 			}
 		}
-		if w.temps[in.Dst] && in.Op.Yields() && in.Op != mir.OpRelease {
+		if w.temps[in.Dst] && in.Op.Yields() && in.Op != midir.OpRelease {
 			if owned[in.Dst] {
 				w.errs = append(w.errs, fmt.Sprintf("b%d/%d redefines %%%s while it is owned", b, k, w.f.Locals[in.Dst].Name))
 			}
@@ -114,7 +115,7 @@ func (w *walk) run(b int, owned map[mir.LocalID]bool) {
 	for _, a := range blk.Term.Args {
 		delete(owned, a)
 	}
-	if blk.Term.Op == mir.TermReturn {
+	if blk.Term.Op == midir.TermReturn {
 		for t := range owned {
 			w.errs = append(w.errs, fmt.Sprintf("returns from b%d still owning %%%s", b, w.f.Locals[t].Name))
 		}
@@ -124,8 +125,8 @@ func (w *walk) run(b int, owned map[mir.LocalID]bool) {
 	}
 }
 
-func cloneSet(s map[mir.LocalID]bool) map[mir.LocalID]bool {
-	out := make(map[mir.LocalID]bool, len(s))
+func cloneSet(s map[midir.LocalID]bool) map[midir.LocalID]bool {
+	out := make(map[midir.LocalID]bool, len(s))
 	for k, v := range s {
 		out[k] = v
 	}
@@ -141,7 +142,7 @@ func TestPlanReleasesEveryPathExactlyOnce(t *testing.T) {
 			t.Fatalf("%s: no payload temporaries to follow", name)
 		}
 		w := &walk{p: p, f: f, temps: temps, seen: map[string]bool{}}
-		w.run(0, map[mir.LocalID]bool{})
+		w.run(0, map[midir.LocalID]bool{})
 		for _, e := range w.errs {
 			t.Errorf("%s: %s\n%s", name, e, p.Dump())
 		}

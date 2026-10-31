@@ -1,7 +1,7 @@
 package vm
 
 import (
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -58,7 +58,7 @@ func (m *Machine) hostDrop(ent sem.EntityID) (hostFn, sem.EntityID) {
 
 // dropFn is the destructor a resource type declares, lowered; nil for a
 // type without one or with a runtime-only one.
-func (m *Machine) dropFn(ent sem.EntityID) *mir.Func {
+func (m *Machine) dropFn(ent sem.EntityID) *midir.Func {
 	m.sh.derived.Lock()
 	f, ok := m.sh.drops[ent]
 	m.sh.derived.Unlock()

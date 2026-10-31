@@ -3,6 +3,7 @@ package mir
 import (
 	"strings"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
@@ -15,18 +16,18 @@ const (
 	shapeOption
 )
 
-func (p *Program) markDirectPrims(f *Func) {
+func (p *Program) markDirectPrims(f *midir.Func) {
 	for bid := range f.Blocks {
 		insts := f.Blocks[bid].Insts
 		for i := range insts {
-			if insts[i].Op == OpCall {
+			if insts[i].Op == midir.OpCall {
 				insts[i].DPrim = p.directPrimOf(f, insts[i])
 			}
 		}
 	}
 }
 
-func (p *Program) directPrimOf(f *Func, in Inst) opdef.DirectPrim {
+func (p *Program) directPrimOf(f *midir.Func, in midir.Inst) opdef.DirectPrim {
 	if _, own := p.ByEnt[in.Ent]; own || !p.IsStdPrimitive(in.Ent) {
 		return opdef.DPNone
 	}
@@ -56,7 +57,7 @@ func (p *Program) resultShape(t sem.TypeID) primShape {
 	return shapeNone
 }
 
-func (p *Program) primTypesFit(f *Func, in Inst, kind opdef.DirectPrim) bool {
+func (p *Program) primTypesFit(f *midir.Func, in midir.Inst, kind opdef.DirectPrim) bool {
 	arg := func(i int) sem.TypeID { return f.Locals[in.Args[i]].Type }
 	shape := p.resultShape(f.Locals[in.Dst].Type)
 	switch kind {
@@ -114,13 +115,13 @@ func (p *Program) isConversion(fn sem.EntityID) bool {
 	return p.R.Types.IsNumeric(self) || self == sem.TyChar
 }
 
-func (p *Program) markPrimResult(f *Func, in Inst, out []bool) {
-	if in.Op == OpCall && in.DPrim != opdef.DPNone && p.R.DirectAgg(f.Locals[in.Dst].Type) {
+func (p *Program) markPrimResult(f *midir.Func, in midir.Inst, out []bool) {
+	if in.Op == midir.OpCall && in.DPrim != opdef.DPNone && p.R.DirectAgg(f.Locals[in.Dst].Type) {
 		out[in.Dst] = true
 	}
 }
 
-func (p *Program) primResult(f *Func, in Inst) sem.TypeID {
+func (p *Program) primResult(f *midir.Func, in midir.Inst) sem.TypeID {
 	if t := f.Locals[in.Dst].Type; in.DPrim != opdef.DPNone && p.R.DirectAgg(t) {
 		return t
 	}

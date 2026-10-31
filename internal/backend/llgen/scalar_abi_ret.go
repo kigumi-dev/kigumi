@@ -3,18 +3,18 @@ package llgen
 import (
 	"slices"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 // A literal returns in a register only beside a computed value: literals alone are free as immortal boxes.
-func (e *emitter) returnsInRegister(f *mir.Func, regs map[mir.LocalID]scalarInfo) bool {
+func (e *emitter) returnsInRegister(f *midir.Func, regs map[midir.LocalID]scalarInfo) bool {
 	computed := false
 	for _, blk := range f.Blocks {
-		if blk.Term.Op != mir.TermReturn {
+		if blk.Term.Op != midir.TermReturn {
 			continue
 		}
 		l := blk.Term.Args[0]
-		if _, ok := regs[l]; !ok || !e.rawOrLiteral(f, l, map[mir.LocalID]bool{}) {
+		if _, ok := regs[l]; !ok || !e.rawOrLiteral(f, l, map[midir.LocalID]bool{}) {
 			return false
 		}
 		computed = computed || e.raw[l]
@@ -22,7 +22,7 @@ func (e *emitter) returnsInRegister(f *mir.Func, regs map[mir.LocalID]scalarInfo
 	return computed
 }
 
-func (e *emitter) rawOrLiteral(f *mir.Func, l mir.LocalID, seen map[mir.LocalID]bool) bool {
+func (e *emitter) rawOrLiteral(f *midir.Func, l midir.LocalID, seen map[midir.LocalID]bool) bool {
 	if seen[l] {
 		return true
 	}
@@ -32,7 +32,7 @@ func (e *emitter) rawOrLiteral(f *mir.Func, l mir.LocalID, seen map[mir.LocalID]
 	}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if !in.Op.Yields() || in.Dst != l || in.Op == mir.OpConst || e.rawDef(f, in, e.raw) {
+			if !in.Op.Yields() || in.Dst != l || in.Op == midir.OpConst || e.rawDef(f, in, e.raw) {
 				continue
 			}
 			if !copyLike(in.Op) || !e.rawOrLiteral(f, in.Args[0], seen) {

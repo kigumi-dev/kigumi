@@ -2,13 +2,14 @@ package mir
 
 import (
 	"kigumi/internal/compiler/hir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
 
 // returnUnwinding returns v, the value of ex, after unwinding every scope; a returned
 // Result that is not statically Ok runs the defer(fail) cleanups when it holds Err.
-func (b *builder) returnUnwinding(v LocalID, ex *hir.Expr, n syntax.NodeID) {
+func (b *builder) returnUnwinding(v midir.LocalID, ex *hir.Expr, n syntax.NodeID) {
 	b.splitOnErr(v, n, b.dynamicErr(v, ex), func(failing bool) {
 		b.closeTaskScope(n)
 		b.unwindTo(0, failing)
@@ -17,7 +18,7 @@ func (b *builder) returnUnwinding(v LocalID, ex *hir.Expr, n syntax.NodeID) {
 }
 
 // exitBodyScope is exitScope for a function body whose tail value is returned.
-func (b *builder) exitBodyScope(v LocalID, ex *hir.Expr, n syntax.NodeID) {
+func (b *builder) exitBodyScope(v midir.LocalID, ex *hir.Expr, n syntax.NodeID) {
 	if !b.dynamicErr(v, ex) {
 		b.exitScope()
 		return
@@ -32,21 +33,21 @@ func (b *builder) exitBodyScope(v LocalID, ex *hir.Expr, n syntax.NodeID) {
 	b.cur = join
 }
 
-func (b *builder) splitOnErr(v LocalID, n syntax.NodeID, dynamic bool, exit func(failing bool)) {
+func (b *builder) splitOnErr(v midir.LocalID, n syntax.NodeID, dynamic bool, exit func(failing bool)) {
 	if !dynamic {
 		exit(false)
 		return
 	}
-	ok := b.emit(Inst{Op: OpIsVariant, Dst: b.temp(sem.TyBool), Ent: b.variantNamed(b.r.Types.ResultEnt(), "Ok"), Args: []LocalID{v}, Node: n})
+	ok := b.emit(midir.Inst{Op: midir.OpIsVariant, Dst: b.temp(sem.TyBool), Ent: b.variantNamed(b.r.Types.ResultEnt(), "Ok"), Args: []midir.LocalID{v}, Node: n})
 	yes, no := b.newBlockAt(), b.newBlockAt()
-	b.term(Term{Op: TermBranch, Args: []LocalID{ok}, Targets: []BlockID{yes, no}})
+	b.term(midir.Term{Op: midir.TermBranch, Args: []midir.LocalID{ok}, Targets: []midir.BlockID{yes, no}})
 	b.cur = no
 	exit(true)
 	b.cur = yes
 	exit(false)
 }
 
-func (b *builder) dynamicErr(v LocalID, ex *hir.Expr) bool {
+func (b *builder) dynamicErr(v midir.LocalID, ex *hir.Expr) bool {
 	if _, _, ok := b.r.Types.IsResult(b.fn.Locals[v].Type); !ok || !b.hasFailDefers() {
 		return false
 	}

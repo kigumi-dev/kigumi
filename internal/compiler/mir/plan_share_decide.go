@@ -1,11 +1,15 @@
 package mir
 
-import "slices"
+import (
+	"slices"
 
-func (w *shareFacts) writable(v LocalID) bool { return w.p.R.WritableInside(w.f.Locals[v].Type) }
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
+func (w *shareFacts) writable(v midir.LocalID) bool { return w.p.R.WritableInside(w.f.Locals[v].Type) }
 
 // WritableInside is false for a T without Copy, yet its instance may be a writable record.
-func (w *shareFacts) sealed(v LocalID) bool {
+func (w *shareFacts) sealed(v midir.LocalID) bool {
 	t := w.f.Locals[v].Type
 	m, ok := w.sum.sealed[t]
 	if !ok {
@@ -16,7 +20,7 @@ func (w *shareFacts) sealed(v LocalID) bool {
 }
 
 // shared does not ask whether anything writes: the place a value is stored can be written anywhere later.
-func (w *shareFacts) shared(v LocalID, at Point) bool {
+func (w *shareFacts) shared(v midir.LocalID, at Point) bool {
 	if !w.writable(v) {
 		return false
 	}
@@ -32,7 +36,7 @@ func (w *shareFacts) shared(v LocalID, at Point) bool {
 	return false
 }
 
-func (w *shareFacts) observed(l LocalID, at Point) bool {
+func (w *shareFacts) observed(l midir.LocalID, at Point) bool {
 	lv := w.liveness()
 	if lv.after(l, at.Block, at.Inst) {
 		return true
@@ -48,7 +52,7 @@ func (w *shareFacts) observed(l LocalID, at Point) bool {
 func (w *shareFacts) decideBindings() {
 	for _, sites := range w.binds {
 		for _, at := range sites {
-			if w.inst(at).Op == OpCopy && w.copyBinding(at, w.inst(at)) {
+			if w.inst(at).Op == midir.OpCopy && w.copyBinding(at, w.inst(at)) {
 				w.copyAt[at] = true
 			}
 		}
@@ -56,7 +60,7 @@ func (w *shareFacts) decideBindings() {
 	w.decided, w.memo, w.viewers = true, nil, nil
 }
 
-func (w *shareFacts) copyBinding(at Point, in Inst) bool {
+func (w *shareFacts) copyBinding(at Point, in midir.Inst) bool {
 	b := in.Dst
 	rs := w.rootsOf(in.Args[0])
 	if len(rs.refs) == 0 && !rs.other || !w.writable(b) {
@@ -79,14 +83,14 @@ func (w *shareFacts) copyBinding(at Point, in Inst) bool {
 
 func (w *shareFacts) bindingShares(at Point) bool {
 	in := w.inst(at)
-	return in.Op == OpCopy && w.writable(in.Dst) && slices.Contains(w.binds[in.Dst], at) && !w.copyAt[at]
+	return in.Op == midir.OpCopy && w.writable(in.Dst) && slices.Contains(w.binds[in.Dst], at) && !w.copyAt[at]
 }
 
-func (w *shareFacts) writtenAfter(r LocalID, at Point) bool {
+func (w *shareFacts) writtenAfter(r midir.LocalID, at Point) bool {
 	return w.reachable(at, w.own[r]) || w.reachable(at, w.inner[r]) || w.reachable(at, w.blind)
 }
 
-func (w *shareFacts) interferes(r, b LocalID, at Point, src LocalID) bool {
+func (w *shareFacts) interferes(r, b midir.LocalID, at Point, src midir.LocalID) bool {
 	lv := w.liveness()
 	s, exact := w.exactRoot(src, r, at)
 	for _, x := range w.inner[r] {
@@ -103,7 +107,7 @@ func (w *shareFacts) interferes(r, b LocalID, at Point, src LocalID) bool {
 }
 
 // A lent parameter's storage is left to the callers when they read this body's summary.
-func (w *shareFacts) returnCopies(a LocalID) bool {
+func (w *shareFacts) returnCopies(a midir.LocalID) bool {
 	if w.aliasOfNamed(a) || !w.writable(a) {
 		return false
 	}

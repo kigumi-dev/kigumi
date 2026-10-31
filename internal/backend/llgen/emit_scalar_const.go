@@ -7,13 +7,13 @@ import (
 	"strconv"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // scalarConst stores OpConst's literal straight into the register instead
 // of round-tripping through rt_int/rt_float/rt_bool/rt_char.
-func (e *emitter) scalarConst(sb *strings.Builder, in mir.Inst) bool {
+func (e *emitter) scalarConst(sb *strings.Builder, in midir.Inst) bool {
 	info, ok := e.scalar[in.Dst]
 	if !ok {
 		return false
@@ -26,7 +26,7 @@ func (e *emitter) scalarConst(sb *strings.Builder, in mir.Inst) bool {
 	return true
 }
 
-func scalarConstText(tt *sem.TypeTable, in mir.Inst) string {
+func scalarConstText(tt *sem.TypeTable, in midir.Inst) string {
 	lit := in.Lit
 	switch {
 	case in.Str != "" && tt.IsInteger(in.Type):

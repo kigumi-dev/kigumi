@@ -1,8 +1,11 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
-func (p *verifier) verifyParams(f *Func) *Error {
+func (p *verifier) verifyParams(f *midir.Func) *Error {
 	if f.Ent == 0 || p.R.Entity(f.Ent).Kind != sem.EntFn {
 		return nil
 	}
@@ -23,7 +26,7 @@ func (p *verifier) verifyParams(f *Func) *Error {
 	return nil
 }
 
-func declaresParam(f *Func, prm LocalID, ent sem.EntityID) bool {
+func declaresParam(f *midir.Func, prm midir.LocalID, ent sem.EntityID) bool {
 	if f.Locals[prm].Ent == ent {
 		return true
 	}
@@ -31,7 +34,7 @@ func declaresParam(f *Func, prm LocalID, ent sem.EntityID) bool {
 		return false
 	}
 	for _, in := range f.Blocks[0].Insts {
-		if in.Op == OpNewCell && len(in.Args) == 1 && in.Args[0] == prm && f.Locals[in.Dst].Ent == ent {
+		if in.Op == midir.OpNewCell && len(in.Args) == 1 && in.Args[0] == prm && f.Locals[in.Dst].Ent == ent {
 			return true
 		}
 	}

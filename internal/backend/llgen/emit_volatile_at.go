@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func (e *emitter) tryVolatileAt(sb *strings.Builder, f *mir.Func, in mir.Inst) bool {
-	if in.Op != mir.OpBuiltin || in.Str != "volatile.read" && in.Str != "volatile.write" {
+func (e *emitter) tryVolatileAt(sb *strings.Builder, f *midir.Func, in midir.Inst) bool {
+	if in.Op != midir.OpBuiltin || in.Str != "volatile.read" && in.Str != "volatile.write" {
 		return false
 	}
 	addr, _ := e.scalarOperand(sb, f, in.Args[0])

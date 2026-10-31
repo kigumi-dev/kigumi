@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
@@ -73,19 +74,19 @@ type Machine struct {
 	sh       *shared
 	// site is the call being dispatched, for primitives whose meaning
 	// depends on the argument types at the call (ffi.sizeOf).
-	site *mir.Inst
+	site *midir.Inst
 	// tryBare: the call being dispatched returns its Ok payload without the Result variant (rt_d_try).
 	tryBare    bool
-	siteFn     *mir.Func
+	siteFn     *midir.Func
 	valueSites map[valueSiteKey]valueSite
-	boxFacts   map[*mir.Func]localFacts
+	boxFacts   map[*midir.Func]localFacts
 	boxParams  *mir.BoxedParams
 	// curFn/curInst track every instruction (not just calls, unlike site/siteFn), for Panic's Site.
-	curFn   *mir.Func
-	curInst *mir.Inst
+	curFn   *midir.Func
+	curInst *midir.Inst
 	// stack is the active calls, innermost last; std/build reads the
 	// nearest non-std caller from it as a step's provenance.
-	stack []*mir.Func
+	stack []*midir.Func
 	// frames stay on a panic, for the task boundary to sweep.
 	frames           []*frame
 	spare            []*frame

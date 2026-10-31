@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const chargeSrc = `
@@ -65,10 +66,10 @@ func TestVerifyAllocClaimRejectsAnUnchargedCopy(t *testing.T) {
 	}
 	for bi := range f.Blocks {
 		for k, in := range f.Blocks[bi].Insts {
-			if in.Op != mir.OpAlias || f.Locals[in.Dst].Name != "b" {
+			if in.Op != midir.OpAlias || f.Locals[in.Dst].Name != "b" {
 				continue
 			}
-			f.Blocks[bi].Insts[k].Op, f.Blocks[bi].Insts[k].Copy = mir.OpShare, true
+			f.Blocks[bi].Insts[k].Op, f.Blocks[bi].Insts[k].Copy = midir.OpShare, true
 			ve, ok := p.Verify().(*mir.Error)
 			if !ok || ve.Rule != "alloc-claim" || !strings.Contains(ve.Msg, "copies Named") {
 				t.Fatalf("got %v, want an alloc-claim error naming the copy", ve)

@@ -1,9 +1,12 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // A holder keeps no count of its reference fields, so a drop that runs no drop code does not use the borrow.
-func (c *borrowCheck) inertDrop(l LocalID) bool {
+func (c *borrowCheck) inertDrop(l midir.LocalID) bool {
 	if _, ok := c.holders[l]; !ok || c.f.Locals[l].Ent == 0 || c.p.R.Types.Kind(c.f.Locals[l].Type) == sem.KRef {
 		return false
 	}

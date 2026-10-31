@@ -3,9 +3,10 @@ package vm
 import (
 	"fmt"
 	"io"
-	"kigumi/internal/lang/diag"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/lang/diag"
 )
 
 // RunTests runs every test block in entity order and reports each as
@@ -33,7 +34,7 @@ func RunTests(prog *mir.Program, opts Options, out, errOut io.Writer) (failed in
 	return failed, nil
 }
 
-func (m *Machine) runTest(f *mir.Func, name string) bool {
+func (m *Machine) runTest(f *midir.Func, name string) bool {
 	res := deref(m.call(f, nil))
 	if res != nil && res.k == kVariant && res.ent == m.variantOf(m.r.Types.ResultEnt(), "Err") {
 		m.writeErr([]byte(fmt.Sprintf("%s: %s\n", name, m.display(m.errorMessage(res.fields[0])))))

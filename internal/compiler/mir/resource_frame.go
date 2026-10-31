@@ -1,6 +1,9 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // maxAggregateDepth stops recursion into a pathological type graph; by-value
 // recursive types are already rejected elsewhere, so this is a backstop.
@@ -8,10 +11,10 @@ const maxAggregateDepth = 8
 
 // frameBytes is a conservative per-function stack estimate: its own
 // locals' sizes summed, not a real backend-measured frame size.
-func frameBytes(r *sem.Result, f *Func, word uint64) uint64 {
+func frameBytes(r *sem.Result, f *midir.Func, word uint64) uint64 {
 	locals := f.Locals
-	if f.rcBase > 0 {
-		locals = locals[:f.rcBase]
+	if f.RCBase > 0 {
+		locals = locals[:f.RCBase]
 	}
 	var total uint64
 	for _, l := range locals {

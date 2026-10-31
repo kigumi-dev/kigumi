@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
@@ -12,9 +12,9 @@ import (
 func TestOpDescriptorChecksOperandsAndResult(t *testing.T) {
 	p := program(t)
 	id, _ := opdef.StdOpIdOf("ARRAY_LEN")
-	locals := []mir.Local{{Name: "s", Type: sem.TyString}, {Name: "f", Type: sem.TyF64}}
+	locals := []midir.Local{{Name: "s", Type: sem.TyString}, {Name: "f", Type: sem.TyF64}}
 	f := fn("desc", sem.TyUnit, locals)
-	call := mir.Inst{Op: mir.OpCall, Dst: 1, Args: []mir.LocalID{0}, Prim: opdef.PrimitiveId(id) + 1}
+	call := midir.Inst{Op: midir.OpCall, Dst: 1, Args: []midir.LocalID{0}, Prim: opdef.PrimitiveId(id) + 1}
 	if msg := p.OpDescMismatch(f, call); !strings.Contains(msg, "argument 0 is a string") {
 		t.Errorf("a String receiver for ARRAY_LEN: %q", msg)
 	}
@@ -25,7 +25,7 @@ func TestOpDescriptorChecksOperandsAndResult(t *testing.T) {
 	f.Locals[0].Type = sem.TyUsize
 	f.Locals[1].Type = sem.TyBool
 	sqrt, _ := opdef.StdOpIdOf("MATH_SQRT")
-	call = mir.Inst{Op: mir.OpCall, Dst: 1, Args: []mir.LocalID{0}, Prim: opdef.PrimitiveId(sqrt) + 1}
+	call = midir.Inst{Op: midir.OpCall, Dst: 1, Args: []midir.LocalID{0}, Prim: opdef.PrimitiveId(sqrt) + 1}
 	if msg := p.OpDescMismatch(f, call); !strings.Contains(msg, "argument 0 is a int") {
 		t.Errorf("an integer for MATH_SQRT: %q", msg)
 	}

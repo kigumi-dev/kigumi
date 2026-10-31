@@ -1,6 +1,10 @@
 package mir
 
-import "slices"
+import (
+	"slices"
+
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
 // A local's slot holds objects, one per reference the frame took, or a marker:
 // never assigned, nulled by a move or a drop, or a view of another's value.
@@ -30,7 +34,7 @@ func (s *refState) clone() *refState {
 	return &refState{sets: s.sets, ptr: s.ptr.clone()}
 }
 
-func (s *refState) holds(l LocalID) []int32 { return s.sets.sets[s.ptr.get(l)] }
+func (s *refState) holds(l midir.LocalID) []int32 { return s.sets.sets[s.ptr.get(l)] }
 
 func (s *refState) join(o *refState) bool {
 	return s.ptr.join(&o.ptr)
@@ -38,7 +42,7 @@ func (s *refState) join(o *refState) bool {
 
 // gone says a read may see a value with no reference left, on some path. A
 // local that may be unassigned is spared: a pattern binding is only set on a match.
-func (s *refState) gone(l LocalID) bool {
+func (s *refState) gone(l midir.LocalID) bool {
 	dead := false
 	for _, o := range s.holds(l) {
 		switch {
@@ -51,7 +55,7 @@ func (s *refState) gone(l LocalID) bool {
 	return dead
 }
 
-func (s *refState) spent(l LocalID) bool {
+func (s *refState) spent(l midir.LocalID) bool {
 	for _, o := range s.holds(l) {
 		if o == refUndef || o == refLent || (o >= 0 && objState(o) != objDead) {
 			return false
@@ -79,7 +83,7 @@ func (s *refState) retag(obj, to int32) {
 	}
 }
 
-func (s *refState) retagOthers(l LocalID, obj int32) {
+func (s *refState) retagOthers(l midir.LocalID, obj int32) {
 	site := objSite(obj)
 	for i := 0; i < len(s.sets.holders[site]); i++ {
 		m := s.sets.holders[site][i]
@@ -96,7 +100,7 @@ func (s *refState) retagOthers(l LocalID, obj int32) {
 	}
 }
 
-func (s *refState) release(l LocalID) bool {
+func (s *refState) release(l midir.LocalID) bool {
 	objs := slices.Clone(s.holds(l))
 	if len(objs) == 1 && objs[0] >= 0 {
 		switch objState(objs[0]) {
@@ -122,7 +126,7 @@ func (s *refState) release(l LocalID) bool {
 	return false
 }
 
-func (s *refState) fresh(l LocalID, site int32, loop bool) {
+func (s *refState) fresh(l midir.LocalID, site int32, loop bool) {
 	if loop {
 		for i := 0; i < len(s.sets.holders[site]); i++ {
 			for _, o := range s.holds(s.sets.holders[site][i]) {

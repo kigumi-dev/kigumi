@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const paramRulesSrc = `
@@ -29,21 +30,21 @@ func TestVerifyParamsOfCapturedMut(t *testing.T) {
 		t.Fatalf("a captured mut parameter is rejected: %v", err)
 	}
 	runRuleCases(t, paramRulesSrc, true, []ruleCase{
-		{"parameter of another entity", "main.plain", "calls", "that plain declares there", func(t *testing.T, p *mir.Program, f *mir.Func) {
+		{"parameter of another entity", "main.plain", "calls", "that plain declares there", func(t *testing.T, p *mir.Program, f *midir.Func) {
 			f.Locals[f.Params[0]].Ent = f.Ent
 		}},
-		{"boxed parameter whose cell is another entity", "main.bump", "calls", "that bump declares there", func(t *testing.T, p *mir.Program, f *mir.Func) {
+		{"boxed parameter whose cell is another entity", "main.bump", "calls", "that bump declares there", func(t *testing.T, p *mir.Program, f *midir.Func) {
 			for _, in := range f.Blocks[0].Insts {
-				if in.Op == mir.OpNewCell && in.Args[0] == f.Params[0] {
+				if in.Op == midir.OpNewCell && in.Args[0] == f.Params[0] {
 					f.Locals[in.Dst].Ent = f.Ent
 					return
 				}
 			}
 			t.Fatal("no cell boxes the parameter")
 		}},
-		{"raw parameter that nothing boxes", "main.bump", "calls", "that bump declares there", func(t *testing.T, p *mir.Program, f *mir.Func) {
+		{"raw parameter that nothing boxes", "main.bump", "calls", "that bump declares there", func(t *testing.T, p *mir.Program, f *midir.Func) {
 			for i := range f.Blocks[0].Insts {
-				if in := &f.Blocks[0].Insts[i]; in.Op == mir.OpNewCell && in.Args[0] == f.Params[0] {
+				if in := &f.Blocks[0].Insts[i]; in.Op == midir.OpNewCell && in.Args[0] == f.Params[0] {
 					in.Args[0] = in.Dst
 					return
 				}

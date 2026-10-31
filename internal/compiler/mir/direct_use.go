@@ -1,6 +1,10 @@
 package mir
 
-func (p *Program) directUses(f *Func, cand []bool) []bool {
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
+func (p *Program) directUses(f *midir.Func, cand []bool) []bool {
 	out := make([]bool, len(f.Locals))
 	for i, prm := range f.Params {
 		if f.DSig.Param(i) != 0 {
@@ -14,7 +18,7 @@ func (p *Program) directUses(f *Func, cand []bool) []bool {
 			p.markPrimResult(f, in, out)
 			markInlineArgs(in, out, cand, nullary)
 		}
-		if blk.Term.Op == TermReturn && f.DSig.result() != 0 {
+		if blk.Term.Op == midir.TermReturn && f.DSig.Result() != 0 {
 			out[blk.Term.Args[0]] = true
 		}
 	}
@@ -23,19 +27,19 @@ func (p *Program) directUses(f *Func, cand []bool) []bool {
 }
 
 // Building a payload-free variant or matching a carrier keeps nothing unboxed: unboxing to match would box the payload again.
-func (p *Program) markDirectUse(f *Func, in Inst, out []bool) {
+func (p *Program) markDirectUse(f *midir.Func, in midir.Inst, out []bool) {
 	p.fixedUse(f, in, out)
 	switch in.Op {
-	case OpRecord, OpClosure:
+	case midir.OpRecord, midir.OpClosure:
 		out[in.Dst] = true
-	case OpCallValue:
+	case midir.OpCallValue:
 		out[in.Args[0]] = true
 		p.markValueCall(f, in, out)
-	case OpVariant:
+	case midir.OpVariant:
 		out[in.Dst] = len(in.Args) > 0 || out[in.Dst]
-	case OpField, OpFieldMove, OpSetField:
+	case midir.OpField, midir.OpFieldMove, midir.OpSetField:
 		out[in.Args[0]] = true
-	case OpCall:
+	case midir.OpCall:
 		fn, ok := p.ByEnt[in.Ent]
 		if !ok || fn.DSig == nil {
 			return
@@ -51,10 +55,10 @@ func (p *Program) markDirectUse(f *Func, in Inst, out []bool) {
 	}
 }
 
-func (p *Program) spreadDirectUse(f *Func, out, cand []bool) {
+func (p *Program) spreadDirectUse(f *midir.Func, out, cand []bool) {
 	for changed := true; changed; {
 		changed = false
-		join := func(a, b LocalID) {
+		join := func(a, b midir.LocalID) {
 			if out[a] != out[b] {
 				out[a], out[b], changed = true, true, true
 			}
@@ -62,15 +66,15 @@ func (p *Program) spreadDirectUse(f *Func, out, cand []bool) {
 		for _, blk := range f.Blocks {
 			for _, in := range blk.Insts {
 				switch in.Op {
-				case OpField, OpFieldMove, OpPayload:
+				case midir.OpField, midir.OpFieldMove, midir.OpPayload:
 					if cand[in.Dst] {
 						join(in.Dst, in.Args[0])
 					}
-				case OpIndex, OpBuiltin:
-					if (in.Op == OpIndex || iterBuiltin(in)) && cand[in.Dst] && p.R.IsFixedArray(f.Locals[in.Args[0]].Type) {
+				case midir.OpIndex, midir.OpBuiltin:
+					if (in.Op == midir.OpIndex || iterBuiltin(in)) && cand[in.Dst] && p.R.IsFixedArray(f.Locals[in.Args[0]].Type) {
 						join(in.Dst, in.Args[0])
 					}
-				case OpMove, OpCopy, OpShare, OpAlias:
+				case midir.OpMove, midir.OpCopy, midir.OpShare, midir.OpAlias:
 					if cand[in.Dst] || cand[in.Args[0]] {
 						join(in.Dst, in.Args[0])
 					}
@@ -80,11 +84,11 @@ func (p *Program) spreadDirectUse(f *Func, out, cand []bool) {
 	}
 }
 
-func markInlineArgs(in Inst, out, cand, nullary []bool) {
+func markInlineArgs(in midir.Inst, out, cand, nullary []bool) {
 	args := in.Args
 	switch {
-	case (in.Op == OpRecord || in.Op == OpVariant || in.Op == OpClosure) && cand[in.Dst]:
-	case in.Op == OpSetField && cand[in.Args[0]]:
+	case (in.Op == midir.OpRecord || in.Op == midir.OpVariant || in.Op == midir.OpClosure) && cand[in.Dst]:
+	case in.Op == midir.OpSetField && cand[in.Args[0]]:
 		args = in.Args[1:]
 	default:
 		return
@@ -96,11 +100,11 @@ func markInlineArgs(in Inst, out, cand, nullary []bool) {
 	}
 }
 
-func nullaryLocals(f *Func) []bool {
+func nullaryLocals(f *midir.Func) []bool {
 	out := make([]bool, len(f.Locals))
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == OpVariant && len(in.Args) == 0 {
+			if in.Op == midir.OpVariant && len(in.Args) == 0 {
 				out[in.Dst] = true
 			}
 		}

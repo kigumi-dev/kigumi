@@ -1,9 +1,13 @@
 package mir
 
-import "slices"
+import (
+	"slices"
+
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
 type resultKey struct {
-	g   *Func
+	g   *midir.Func
 	idx int
 }
 
@@ -23,10 +27,10 @@ type fateMemo struct {
 	results map[resultKey]paramFate
 	open    []resultKey
 	depth   int
-	checks  map[*Func]*borrowCheck
+	checks  map[*midir.Func]*borrowCheck
 }
 
-func (e *erasedReaders) fate(g *Func, idx int) paramFate {
+func (e *erasedReaders) fate(g *midir.Func, idx int) paramFate {
 	key := resultKey{g, idx}
 	m := &e.fates
 	if v, ok := m.results[key]; ok {
@@ -57,19 +61,19 @@ func (e *erasedReaders) fate(g *Func, idx int) paramFate {
 }
 
 // fateOnce follows g's parameter idx through g's body once, reading the callees' summaries as they stand.
-func (e *erasedReaders) fateOnce(g *Func, idx int) paramFate {
+func (e *erasedReaders) fateOnce(g *midir.Func, idx int) paramFate {
 	bc := e.fates.checks[g]
 	if bc == nil {
 		bc = quietBorrowCheck(e.bc.analysis(), g)
 		e.fates.checks[g] = bc
 	}
-	reach := map[LocalID]bool{g.Params[idx]: true}
+	reach := map[midir.LocalID]bool{g.Params[idx]: true}
 	for changed := true; changed; {
 		changed = false
 		for _, blk := range g.Blocks {
 			for _, in := range blk.Insts {
 				dsts, srcs := bc.flowEdges(in)
-				if in.Op == OpDrop || !slices.ContainsFunc(srcs, func(s LocalID) bool { return reach[s] }) {
+				if in.Op == midir.OpDrop || !slices.ContainsFunc(srcs, func(s midir.LocalID) bool { return reach[s] }) {
 					continue
 				}
 				for _, d := range dsts {
@@ -84,13 +88,13 @@ func (e *erasedReaders) fateOnce(g *Func, idx int) paramFate {
 	for l := range reach {
 		v.stores = v.stores || l != g.Params[idx] && callerParam(e.p, g, l)
 	}
-	defs, held := soleDefs(g), func(l LocalID) bool { return reach[l] }
+	defs, held := soleDefs(g), func(l midir.LocalID) bool { return reach[l] }
 	for _, blk := range g.Blocks {
-		v.result = v.result || blk.Term.Op == TermReturn && slices.ContainsFunc(blk.Term.Args, held)
+		v.result = v.result || blk.Term.Op == midir.TermReturn && slices.ContainsFunc(blk.Term.Args, held)
 		for _, in := range blk.Insts {
-			v.stores = v.stores || in.Op != OpDrop && slices.ContainsFunc(e.callerStores(g, defs, in, held), func(a LocalID) bool { return a != g.Params[idx] || !callerParam(e.p, g, a) })
+			v.stores = v.stores || in.Op != midir.OpDrop && slices.ContainsFunc(e.callerStores(g, defs, in, held), func(a midir.LocalID) bool { return a != g.Params[idx] || !callerParam(e.p, g, a) })
 			for i, a := range in.Args {
-				v.escapes = v.escapes || reach[a] && in.Op != OpDrop && e.escapesAt(g, in, i)
+				v.escapes = v.escapes || reach[a] && in.Op != midir.OpDrop && e.escapesAt(g, in, i)
 			}
 		}
 	}

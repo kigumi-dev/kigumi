@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
-func (e *emitter) aggArg(sb *strings.Builder, a *aggInfo, l mir.LocalID) string {
+func (e *emitter) aggArg(sb *strings.Builder, a *aggInfo, l midir.LocalID) string {
 	e.requireDirect(l, "argument")
 	if byValueAgg(a) {
 		return a.Name + " " + e.aggValue(sb, a, aggPtr(l))
@@ -15,7 +15,7 @@ func (e *emitter) aggArg(sb *strings.Builder, a *aggInfo, l mir.LocalID) string 
 	return "ptr " + aggPtr(l)
 }
 
-func (e *emitter) directCall(sb *strings.Builder, f *mir.Func, in mir.Inst, fn *mir.Func, s *aggSig) {
+func (e *emitter) directCall(sb *strings.Builder, f *midir.Func, in midir.Inst, fn *midir.Func, s *aggSig) {
 	ss := e.ssigs[fn]
 	args, lent, out := e.directCallArgs(sb, in, s, ss)
 	if r, ok := ss.ret(); ok {
@@ -43,7 +43,7 @@ func (e *emitter) retSlot(sb *strings.Builder, s *aggSig) (args []string, out st
 	return args, out
 }
 
-func (e *emitter) callInto(sb *strings.Builder, dst mir.LocalID, sym string, args []string, ret *aggInfo, out string) {
+func (e *emitter) callInto(sb *strings.Builder, dst midir.LocalID, sym string, args []string, ret *aggInfo, out string) {
 	switch {
 	case ret == nil:
 		t := e.newTmp()
@@ -61,7 +61,7 @@ func (e *emitter) callInto(sb *strings.Builder, dst mir.LocalID, sym string, arg
 
 // lent names the box a crossing made for a position the callee only
 // borrows: nothing else owns it, so the call site gives it back.
-func (e *emitter) directCallArgs(sb *strings.Builder, in mir.Inst, s *aggSig, ss *scalarSig) (args, lent []string, out string) {
+func (e *emitter) directCallArgs(sb *strings.Builder, in midir.Inst, s *aggSig, ss *scalarSig) (args, lent []string, out string) {
 	args, out = e.retSlot(sb, s)
 	lent = make([]string, len(in.Args))
 	for i, l := range in.Args {
@@ -95,7 +95,7 @@ func (e *emitter) releaseBoxed(sb *strings.Builder, ptrs []string) {
 	}
 }
 
-func (e *emitter) returnAgg(sb *strings.Builder, a *aggInfo, l mir.LocalID) {
+func (e *emitter) returnAgg(sb *strings.Builder, a *aggInfo, l midir.LocalID) {
 	e.requireDirect(l, "result")
 	if byValueAgg(a) {
 		fmt.Fprintf(sb, "  ret %s %s\n", a.Name, e.aggValue(sb, a, aggPtr(l)))
@@ -106,7 +106,7 @@ func (e *emitter) returnAgg(sb *strings.Builder, a *aggInfo, l mir.LocalID) {
 }
 
 // A crossing is an explicit MIR op, so a position that takes an aggregate never sees a box here.
-func (e *emitter) requireDirect(l mir.LocalID, what string) {
+func (e *emitter) requireDirect(l midir.LocalID, what string) {
 	if !e.isDirect(l) {
 		panic(fmt.Sprintf("llgen: the %s %%l%d reaches a direct position boxed", what, l))
 	}

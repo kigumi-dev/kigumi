@@ -1,8 +1,11 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
-func (p *verifier) asmMismatch(f *Func, in Inst) string {
+func (p *verifier) asmMismatch(f *midir.Func, in midir.Inst) string {
 	info := p.R.AsmOf(f.File, in.Node)
 	if info == nil {
 		return ""

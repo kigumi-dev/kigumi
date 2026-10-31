@@ -2,10 +2,11 @@ package mir
 
 import (
 	"kigumi/internal/compiler/hir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func (b *builder) call(e *hir.Expr) LocalID {
+func (b *builder) call(e *hir.Expr) midir.LocalID {
 	n, t := e.Node, e.Type
 	// A nested call inside an argument flushes only its own write-backs,
 	// leaving this call's pending until after it returns.
@@ -16,10 +17,10 @@ func (b *builder) call(e *hir.Expr) LocalID {
 	switch e.Kind {
 	case hir.Intrinsic:
 		args := b.args(e, e.Args, e.EvalOrder, true, false, 0)
-		return b.emit(Inst{Op: OpBuiltin, Dst: b.temp(t), Str: e.Name, Args: args, Node: n})
+		return b.emit(midir.Inst{Op: midir.OpBuiltin, Dst: b.temp(t), Str: e.Name, Args: args, Node: n})
 	case hir.Variant:
 		args := b.args(e, e.Args, e.EvalOrder, true, false, 0)
-		return b.emit(Inst{Op: OpVariant, Dst: b.temp(t), Ent: e.Ent, Type: t, Args: args, Node: n})
+		return b.emit(midir.Inst{Op: midir.OpVariant, Dst: b.temp(t), Ent: e.Ent, Type: t, Args: args, Node: n})
 	case hir.MethodCall:
 		if e.Cmp != "" {
 			return b.witnessCompare(e, mark)
@@ -28,30 +29,30 @@ func (b *builder) call(e *hir.Expr) LocalID {
 		if v, ok := b.explicitDrop(e, recv, rest); ok {
 			return v
 		}
-		args := append([]LocalID{recv}, rest...)
+		args := append([]midir.LocalID{recv}, rest...)
 		if e.Async {
 			args = append(args, b.witnessArgs(e.Passes, n)...)
 			args = append(args, b.constArgs(e.ConstArgs, n)...)
 			args = append(args, b.ctxArgs(e)...)
-			fnv := b.emit(Inst{Op: OpFnItem, Dst: b.temp(b.r.Fn(e.Ent).Sig), Ent: e.Ent, Async: true, Node: n})
-			return b.emit(Inst{Op: OpFutureNew, Dst: b.temp(t), Args: append([]LocalID{fnv}, args...), Node: n})
+			fnv := b.emit(midir.Inst{Op: midir.OpFnItem, Dst: b.temp(b.r.Fn(e.Ent).Sig), Ent: e.Ent, Async: true, Node: n})
+			return b.emit(midir.Inst{Op: midir.OpFutureNew, Dst: b.temp(t), Args: append([]midir.LocalID{fnv}, args...), Node: n})
 		}
 		if e.Witness != 0 {
 			args = append(args, b.ctxArgs(e)...)
-			dst := b.emit(Inst{Op: OpCallValue, Dst: b.temp(t), Ent: e.Ent, Args: append([]LocalID{b.witnessLocal(e.Witness)}, args...), Node: n})
+			dst := b.emit(midir.Inst{Op: midir.OpCallValue, Dst: b.temp(t), Ent: e.Ent, Args: append([]midir.LocalID{b.witnessLocal(e.Witness)}, args...), Node: n})
 			b.applyArgFixups(mark)
 			return dst
 		}
 		args = append(args, b.witnessArgs(e.Passes, n)...)
 		args = append(args, b.constArgs(e.ConstArgs, n)...)
 		args = append(args, b.ctxArgs(e)...)
-		dst := b.emit(Inst{Op: OpCall, Dst: b.temp(t), Ent: e.Ent, Args: args, Node: n})
+		dst := b.emit(midir.Inst{Op: midir.OpCall, Dst: b.temp(t), Ent: e.Ent, Args: args, Node: n})
 		b.applyArgFixups(mark)
 		return dst
 	case hir.StaticCall:
 		args := b.args(e, e.Args, e.EvalOrder, true, true, e.Ent)
 		args = append(args, b.ctxArgs(e)...)
-		dst := b.emit(Inst{Op: OpCallValue, Dst: b.temp(t), Ent: e.Ent, Args: append([]LocalID{b.witnessLocal(e.Witness)}, args...), Node: n})
+		dst := b.emit(midir.Inst{Op: midir.OpCallValue, Dst: b.temp(t), Ent: e.Ent, Args: append([]midir.LocalID{b.witnessLocal(e.Witness)}, args...), Node: n})
 		b.applyArgFixups(mark)
 		return dst
 	case hir.Call:
@@ -64,32 +65,32 @@ func (b *builder) call(e *hir.Expr) LocalID {
 			args = append(args, b.witnessArgs(e.Passes, n)...)
 			args = append(args, b.constArgs(e.ConstArgs, n)...)
 			args = append(args, b.ctxArgs(e)...)
-			fnv := b.emit(Inst{Op: OpFnItem, Dst: b.temp(b.r.Fn(e.Ent).Sig), Ent: e.Ent, Async: true, Node: n})
-			return b.emit(Inst{Op: OpFutureNew, Dst: b.temp(t), Args: append([]LocalID{fnv}, args...), Node: n})
+			fnv := b.emit(midir.Inst{Op: midir.OpFnItem, Dst: b.temp(b.r.Fn(e.Ent).Sig), Ent: e.Ent, Async: true, Node: n})
+			return b.emit(midir.Inst{Op: midir.OpFutureNew, Dst: b.temp(t), Args: append([]midir.LocalID{fnv}, args...), Node: n})
 		}
 		args = append(args, b.witnessArgs(e.Passes, n)...)
 		args = append(args, b.constArgs(e.ConstArgs, n)...)
 		args = append(args, b.ctxArgs(e)...)
-		dst := b.emit(Inst{Op: OpCall, Dst: b.temp(t), Ent: e.Ent, Args: args, Node: n})
+		dst := b.emit(midir.Inst{Op: midir.OpCall, Dst: b.temp(t), Ent: e.Ent, Args: args, Node: n})
 		b.applyArgFixups(mark)
 		return dst
 	}
 	fv, rest := b.valueCallArgs(e)
-	args := append([]LocalID{fv}, rest...)
+	args := append([]midir.LocalID{fv}, rest...)
 	if ct := b.fn.Locals[fv].Type; b.r.Types.IsCFn(ct) {
-		dst := b.emit(Inst{Op: OpCallC, Dst: b.temp(t), Type: ct, Args: args, Node: n})
+		dst := b.emit(midir.Inst{Op: midir.OpCallC, Dst: b.temp(t), Type: ct, Args: args, Node: n})
 		b.applyArgFixups(mark)
 		return dst
 	}
-	dst := b.emit(Inst{Op: OpCallValue, Dst: b.temp(t), Args: args, Node: n})
+	dst := b.emit(midir.Inst{Op: midir.OpCallValue, Dst: b.temp(t), Args: args, Node: n})
 	b.applyArgFixups(mark)
 	return dst
 }
 
 // ctxArgs evaluates a call's hidden provider arguments: plain reads, so
 // unlike witnessArgs/constArgs they need no closure construction.
-func (b *builder) ctxArgs(e *hir.Expr) []LocalID {
-	var out []LocalID
+func (b *builder) ctxArgs(e *hir.Expr) []midir.LocalID {
+	var out []midir.LocalID
 	for _, a := range e.CtxArgs {
 		out = append(out, b.expr(a))
 	}
@@ -97,8 +98,8 @@ func (b *builder) ctxArgs(e *hir.Expr) []LocalID {
 }
 
 // evalOrder calls eval(i) for i in 0..n in the order sequence gives (nil: ascending), results indexed by i.
-func evalOrder(n int, order []int, eval func(i int) LocalID) []LocalID {
-	out := make([]LocalID, n)
+func evalOrder(n int, order []int, eval func(i int) midir.LocalID) []midir.LocalID {
+	out := make([]midir.LocalID, n)
 	if order == nil {
 		for i := 0; i < n; i++ {
 			out[i] = eval(i)
@@ -112,8 +113,8 @@ func evalOrder(n int, order []int, eval func(i int) LocalID) []LocalID {
 }
 
 // methodArgs evaluates a MethodCall's receiver (Args[0]) and explicit arguments (Args[1:]) in e.EvalOrder's sequence.
-func (b *builder) methodArgs(e *hir.Expr) (LocalID, []LocalID) {
-	full := b.evalArgs(1, len(e.Args), e.EvalOrder, func(i int) LocalID {
+func (b *builder) methodArgs(e *hir.Expr) (midir.LocalID, []midir.LocalID) {
+	full := b.evalArgs(1, len(e.Args), e.EvalOrder, func(i int) midir.LocalID {
 		if i == 0 {
 			recv := b.receiver(e.Args[0], e.Ent, !e.Async, e.Witness == 0 && !b.r.ReplacesSelf(e.Ent))
 			later := laterArgs(e.Args, e.EvalOrder, 0)
@@ -133,8 +134,8 @@ func (b *builder) methodArgs(e *hir.Expr) (LocalID, []LocalID) {
 }
 
 // valueCallArgs is methodArgs' counterpart for a call through a fn-typed value: the callee expression (Args[0]) stands in for the receiver.
-func (b *builder) valueCallArgs(e *hir.Expr) (LocalID, []LocalID) {
-	full := evalOrder(len(e.Args), e.EvalOrder, func(i int) LocalID {
+func (b *builder) valueCallArgs(e *hir.Expr) (midir.LocalID, []midir.LocalID) {
+	full := evalOrder(len(e.Args), e.EvalOrder, func(i int) midir.LocalID {
 		if i == 0 {
 			return b.expr(e.Args[0])
 		}
@@ -149,7 +150,7 @@ func (b *builder) valueCallArgs(e *hir.Expr) (LocalID, []LocalID) {
 
 // A bare `&mut T` local reborrows instead of moving since the callee's borrow ends when the call returns.
 // reborrow is false for async calls, whose future can outlive the call; sync false also skips placeArg's write-back.
-func (b *builder) argValue(a *hir.Expr, idx int, ent sem.EntityID, reborrow, sync bool) LocalID {
+func (b *builder) argValue(a *hir.Expr, idx int, ent sem.EntityID, reborrow, sync bool) midir.LocalID {
 	if v, ok := b.placeArg(a, sync); ok {
 		return v
 	}
@@ -179,7 +180,7 @@ func (b *builder) declaredRef(ent sem.EntityID, idx int) bool {
 }
 
 // `mut self` takes a cell over the place, `move self` moves the value, `self` shares it; inPlace says the callee leaves the cell's content as it found it.
-func (b *builder) receiver(base *hir.Expr, m sem.EntityID, sync, inPlace bool) LocalID {
+func (b *builder) receiver(base *hir.Expr, m sem.EntityID, sync, inPlace bool) midir.LocalID {
 	switch b.r.Fn(m).Recv {
 	case sem.RecvMove:
 		return b.exprMoved(base)
@@ -189,8 +190,8 @@ func (b *builder) receiver(base *hir.Expr, m sem.EntityID, sync, inPlace bool) L
 	return b.expr(base)
 }
 
-func (b *builder) args(call *hir.Expr, exprs []*hir.Expr, order []int, reborrow, sync bool, ent sem.EntityID) []LocalID {
-	out := b.evalArgs(0, len(exprs), order, func(i int) LocalID { return b.argValue(exprs[i], i, ent, reborrow, sync) })
+func (b *builder) args(call *hir.Expr, exprs []*hir.Expr, order []int, reborrow, sync bool, ent sem.EntityID) []midir.LocalID {
+	out := b.evalArgs(0, len(exprs), order, func(i int) midir.LocalID { return b.argValue(exprs[i], i, ent, reborrow, sync) })
 	if call.Variadic {
 		out = b.packVariadic(call, out, b.r.Fn(call.Ent).Sig)
 	}

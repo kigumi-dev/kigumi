@@ -3,14 +3,15 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // flowMemo holds ruledOut per local; a local met again on a cycle rules out nothing.
-type flowMemo map[LocalID][]LocalID
+type flowMemo map[midir.LocalID][]midir.LocalID
 
 // flowOwners are the owners of a's holder its value flow does not rule out (ruledOut).
-func (c *borrowCheck) flowOwners(a LocalID, memo flowMemo) []ownerRef {
+func (c *borrowCheck) flowOwners(a midir.LocalID, memo flowMemo) []ownerRef {
 	b, ok := c.holders[a]
 	if !ok {
 		return nil
@@ -21,7 +22,7 @@ func (c *borrowCheck) flowOwners(a LocalID, memo flowMemo) []ownerRef {
 
 // ruledOut are the owners of a's holder its value flow proves never reach it: only a call whose result cannot carry them
 // proves it (callRuledOut), copies and builders pass that on, and a local the walk cannot follow rules out nothing.
-func (c *borrowCheck) ruledOut(a LocalID, memo flowMemo) []LocalID {
+func (c *borrowCheck) ruledOut(a midir.LocalID, memo flowMemo) []midir.LocalID {
 	if out, done := memo[a]; done {
 		return out
 	}
@@ -30,11 +31,11 @@ func (c *borrowCheck) ruledOut(a LocalID, memo flowMemo) []LocalID {
 	if _, ok := c.holders[a]; !ok || len(defs) == 0 || c.f.Locals[a].Ent != 0 && (c.targets[a] || c.writtenThrough(a)) {
 		return nil
 	}
-	var out []LocalID
+	var out []midir.LocalID
 	for i, d := range defs {
 		r := c.defRuledOut(*d, memo)
 		if i > 0 {
-			r = slices.DeleteFunc(r, func(o LocalID) bool { return !slices.Contains(out, o) })
+			r = slices.DeleteFunc(r, func(o midir.LocalID) bool { return !slices.Contains(out, o) })
 		}
 		out = r
 	}
@@ -44,11 +45,11 @@ func (c *borrowCheck) ruledOut(a LocalID, memo flowMemo) []LocalID {
 
 // defRuledOut is what definition d rules out: an instruction whose result holds only what its operands hold (bodyRoles'
 // roleCarry: copies, builders, projections, cells, boxes) passes on what they rule out, as a future does its captures.
-func (c *borrowCheck) defRuledOut(d Inst, memo flowMemo) []LocalID {
+func (c *borrowCheck) defRuledOut(d midir.Inst, memo flowMemo) []midir.LocalID {
 	switch {
-	case d.Op == OpCall || d.Op == OpCallValue:
+	case d.Op == midir.OpCall || d.Op == midir.OpCallValue:
 		return c.callRuledOut(d, memo)
-	case d.Op == OpFutureNew:
+	case d.Op == midir.OpFutureNew:
 		return c.partsRuledOut(d.Args[1:], memo)
 	case bodyRoles[d.Op] == roleCarry:
 		return c.partsRuledOut(d.Args, memo)
@@ -57,8 +58,8 @@ func (c *borrowCheck) defRuledOut(d Inst, memo flowMemo) []LocalID {
 }
 
 // partsRuledOut rules out an owner some part lists only when every part listing it rules it out.
-func (c *borrowCheck) partsRuledOut(parts []LocalID, memo flowMemo) []LocalID {
-	var listed, kept []LocalID
+func (c *borrowCheck) partsRuledOut(parts []midir.LocalID, memo flowMemo) []midir.LocalID {
+	var listed, kept []midir.LocalID
 	for _, x := range parts {
 		r := c.ruledOut(x, memo)
 		for _, o := range c.holderOwners(x) {
@@ -68,17 +69,17 @@ func (c *borrowCheck) partsRuledOut(parts []LocalID, memo flowMemo) []LocalID {
 			}
 		}
 	}
-	return slices.DeleteFunc(listed, func(o LocalID) bool { return slices.Contains(kept, o) })
+	return slices.DeleteFunc(listed, func(o midir.LocalID) bool { return slices.Contains(kept, o) })
 }
 
 // callRuledOut are the owners of call in's result that no operand the result may carry (resultCarries) explains; none
 // when the callee or a lent operand's places are unknown.
-func (c *borrowCheck) callRuledOut(in Inst, memo flowMemo) []LocalID {
+func (c *borrowCheck) callRuledOut(in midir.Inst, memo flowMemo) []midir.LocalID {
 	carry, ok := c.resultCarries(in)
 	if !ok {
 		return nil
 	}
-	var explained []LocalID
+	var explained []midir.LocalID
 	for k, a := range in.Args {
 		m := carry(k)
 		if m&carryValue != 0 {
@@ -104,7 +105,7 @@ func (c *borrowCheck) callRuledOut(in Inst, memo flowMemo) []LocalID {
 			}
 		}
 	}
-	var out []LocalID
+	var out []midir.LocalID
 	for _, o := range c.holderOwners(in.Dst) {
 		if !slices.Contains(explained, o.owner) {
 			out = append(out, o.owner)
@@ -115,10 +116,10 @@ func (c *borrowCheck) callRuledOut(in Inst, memo flowMemo) []LocalID {
 
 // lentPlaces are the places operand a lends a call: back through a write-back cell, a retain, copies and the borrow or
 // view that made it, a by-value operand being its own place; false when the chain leads anywhere else.
-func (c *borrowCheck) lentPlaces(a LocalID) ([]LocalID, bool) {
+func (c *borrowCheck) lentPlaces(a midir.LocalID) ([]midir.LocalID, bool) {
 	for range 16 {
 		if c.p.R.Types.Kind(c.f.Locals[a].Type) != sem.KRef && !c.f.Locals[a].Cell || slices.Contains(c.f.Params, a) {
-			out := []LocalID{a}
+			out := []midir.LocalID{a}
 			if root, _, _, ok := c.projectionPlace(a); ok && root != a {
 				out = append(out, root)
 			}
@@ -129,11 +130,11 @@ func (c *borrowCheck) lentPlaces(a LocalID) ([]LocalID, bool) {
 			return nil, false
 		}
 		switch d.Op {
-		case OpNewCell, OpShare, OpCopy, OpMove, OpAlias, OpLendBox:
+		case midir.OpNewCell, midir.OpShare, midir.OpCopy, midir.OpMove, midir.OpAlias, midir.OpLendBox:
 			a = d.Args[0]
-		case OpBorrow:
+		case midir.OpBorrow:
 			root, _, _, ok := c.patternPlace(d.Args[0])
-			return []LocalID{root}, ok
+			return []midir.LocalID{root}, ok
 		default:
 			return nil, false
 		}

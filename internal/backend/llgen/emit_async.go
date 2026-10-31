@@ -5,16 +5,16 @@ import (
 	"strconv"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func (e *emitter) asyncDescSym(f *mir.Func) string { return "@\"" + e.symName(f) + "$async\"" }
-func (e *emitter) frameDropSym(f *mir.Func) string { return "@\"" + e.symName(f) + "$framedrop\"" }
+func (e *emitter) asyncDescSym(f *midir.Func) string { return "@\"" + e.symName(f) + "$async\"" }
+func (e *emitter) frameDropSym(f *midir.Func) string { return "@\"" + e.symName(f) + "$framedrop\"" }
 
 // asyncFunction emits an async body as a poll function over its Future's
 // frame: the entry switch resumes where it stopped, a null return is Pending.
-func (e *emitter) asyncFunction(f *mir.Func) string {
+func (e *emitter) asyncFunction(f *midir.Func) string {
 	var sb strings.Builder
 	e.tmp = 0
 	e.classifyBody(f)
@@ -25,7 +25,7 @@ func (e *emitter) asyncFunction(f *mir.Func) string {
 	sb.WriteString("  %slots = call ptr @rt_future_slots(ptr %fut)\n")
 	e.unwindAllocas(&sb)
 	for i := range f.Locals {
-		l := mir.LocalID(i)
+		l := midir.LocalID(i)
 		if slot := f.Slot[i]; slot >= 0 {
 			e.checkSlot(f, l)
 			fmt.Fprintf(&sb, "  %%l%d = getelementptr ptr, ptr %%slots, i64 %d\n", i, slot)
@@ -40,7 +40,7 @@ func (e *emitter) asyncFunction(f *mir.Func) string {
 		fmt.Fprintf(&body, "b%d:\n", bid)
 		e.unwindBlock()
 		for pc, in := range copyStoreInsts(&blk, bid, stores) {
-			e.at = siteAt{mir.BlockID(bid), pc}
+			e.at = siteAt{midir.BlockID(bid), pc}
 			e.unwindSite(&body, e.at.blk, pc)
 			e.inst(&body, f, in)
 		}
@@ -78,7 +78,7 @@ func (e *emitter) asyncFunction(f *mir.Func) string {
 
 // await is one suspension point: the operand moves into the frame and the
 // resume label re-polls it, returning Pending or Cancelled to the executor.
-func (e *emitter) await(sb *strings.Builder, in mir.Inst, operand string) {
+func (e *emitter) await(sb *strings.Builder, in midir.Inst, operand string) {
 	k := in.Index
 	e.irb(sb).Call(rtFutureSuspend, vptr("%fut"), vi32(k), vptr(operand))
 	fmt.Fprintf(sb, "  br label %%rs%d\nrs%d:\n", k, k)
@@ -105,11 +105,11 @@ func (e *emitter) await(sb *strings.Builder, in mir.Inst, operand string) {
 	fmt.Fprintf(sb, "  %s = phi i1 [ true, %%can%d ], [ false, %%cont%d ]\n", e.cancelFlag, k, k)
 }
 
-func (e *emitter) asyncOp(sb *strings.Builder, in mir.Inst, args []string) {
+func (e *emitter) asyncOp(sb *strings.Builder, in midir.Inst, args []string) {
 	switch in.Op {
-	case mir.OpAwait:
+	case midir.OpAwait:
 		e.await(sb, in, args[0])
-	case mir.OpCancelled:
+	case midir.OpCancelled:
 		e.store(sb, in.Dst, e.boolBox(sb, e.cancelFlag))
 	}
 }
@@ -123,7 +123,7 @@ func (e *emitter) cancelExit(sb *strings.Builder) {
 // framePanicked must match KG_FRAME_PANICKED in rt_core.c.
 const framePanicked = 1 << 30
 
-func (e *emitter) frameDrop(f *mir.Func) string {
+func (e *emitter) frameDrop(f *midir.Func) string {
 	var sb strings.Builder
 	e.tmp = 0
 	fmt.Fprintf(&sb, "define internal void %s(ptr %%fut) {\nentry:\n", e.frameDropSym(f))
@@ -155,7 +155,7 @@ func (e *emitter) frameDrop(f *mir.Func) string {
 	return sb.String()
 }
 
-func (e *emitter) releaseSlots(sb *strings.Builder, f *mir.Func, locals []mir.LocalID) {
+func (e *emitter) releaseSlots(sb *strings.Builder, f *midir.Func, locals []midir.LocalID) {
 	for _, l := range e.carrierSlots(locals) {
 		p, v := e.newTmp(), e.newTmp()
 		fmt.Fprintf(sb, "  %s = getelementptr ptr, ptr %%slots, i64 %d\n", p, f.Slot[l])
@@ -168,7 +168,7 @@ func (e *emitter) releaseSlots(sb *strings.Builder, f *mir.Func, locals []mir.Lo
 
 // asyncDesc is what a Future is built from: the poll and drop functions, the frame's slot count, whether a pool may
 // move it between workers, and which parameters take a `&mut` write-back cell's referent (mir.ReferentParams).
-func (e *emitter) asyncDesc(f *mir.Func) string {
+func (e *emitter) asyncDesc(f *midir.Func) string {
 	mobile := 0
 	if e.r.Entity(f.Ent).Kind == sem.EntFn && e.r.Fn(f.Ent).Mobility == sem.MobilityMigratable {
 		mobile = 1
@@ -188,7 +188,7 @@ func (e *emitter) asyncDesc(f *mir.Func) string {
 		refSym, len(refs), init, sym, e.sym(f), e.frameDropSym(f), f.Frame, mobile, len(refs), refSym)
 }
 
-func endsCancelled(blk mir.Block) bool {
+func endsCancelled(blk midir.Block) bool {
 	n := len(blk.Insts)
-	return n > 0 && blk.Insts[n-1].Op == mir.OpCancelDone
+	return n > 0 && blk.Insts[n-1].Op == midir.OpCancelDone
 }

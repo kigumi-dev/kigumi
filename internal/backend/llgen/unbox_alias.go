@@ -1,10 +1,12 @@
 package llgen
 
-import "kigumi/internal/compiler/mir"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
 // nameAliases hold no reference of their own: each aliases a named local or another such alias.
-func nameAliases(f *mir.Func) map[mir.LocalID]bool {
-	defs := map[mir.LocalID]int{}
+func nameAliases(f *midir.Func) map[midir.LocalID]bool {
+	defs := map[midir.LocalID]int{}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			if definesDst(in.Op) {
@@ -12,12 +14,12 @@ func nameAliases(f *mir.Func) map[mir.LocalID]bool {
 			}
 		}
 	}
-	out := map[mir.LocalID]bool{}
+	out := map[midir.LocalID]bool{}
 	for changed := true; changed; {
 		changed = false
 		for _, blk := range f.Blocks {
 			for _, in := range blk.Insts {
-				if in.Op != mir.OpAlias || len(in.Args) != 1 || out[in.Dst] || f.Locals[in.Dst].Ent != 0 || defs[in.Dst] != 1 {
+				if in.Op != midir.OpAlias || len(in.Args) != 1 || out[in.Dst] || f.Locals[in.Dst].Ent != 0 || defs[in.Dst] != 1 {
 					continue
 				}
 				if src := in.Args[0]; f.Locals[src].Ent != 0 || out[src] {
@@ -30,15 +32,15 @@ func nameAliases(f *mir.Func) map[mir.LocalID]bool {
 }
 
 // No plan releases the box a native value gets on its way into a name alias, so its one reader does.
-func (e *emitter) scalarAliasBoxes(f *mir.Func) {
-	uses := map[mir.LocalID]int{}
-	borrowOf := map[mir.LocalID]mir.LocalID{}
+func (e *emitter) scalarAliasBoxes(f *midir.Func) {
+	uses := map[midir.LocalID]int{}
+	borrowOf := map[midir.LocalID]midir.LocalID{}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			for _, a := range in.Args {
 				uses[a]++
 			}
-			if in.Op == mir.OpBorrow {
+			if in.Op == midir.OpBorrow {
 				borrowOf[in.Args[0]] = in.Dst
 			}
 		}
@@ -48,7 +50,7 @@ func (e *emitter) scalarAliasBoxes(f *mir.Func) {
 	}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == mir.OpAlias && e.nameAlias[in.Dst] && !e.isScalar(in.Dst) && e.isScalar(in.Args[0]) && uses[in.Dst] == 1 {
+			if in.Op == midir.OpAlias && e.nameAlias[in.Dst] && !e.isScalar(in.Dst) && e.isScalar(in.Args[0]) && uses[in.Dst] == 1 {
 				if h, ok := boxHolder(in.Dst, borrowOf, uses); ok {
 					e.boxTmp[h] = true
 				}
@@ -58,7 +60,7 @@ func (e *emitter) scalarAliasBoxes(f *mir.Func) {
 }
 
 // A borrow's reader still reads the box, so the release moves there; a borrow read twice leaks the box instead.
-func boxHolder(l mir.LocalID, borrowOf map[mir.LocalID]mir.LocalID, uses map[mir.LocalID]int) (mir.LocalID, bool) {
+func boxHolder(l midir.LocalID, borrowOf map[midir.LocalID]midir.LocalID, uses map[midir.LocalID]int) (midir.LocalID, bool) {
 	for {
 		b, ok := borrowOf[l]
 		if !ok {

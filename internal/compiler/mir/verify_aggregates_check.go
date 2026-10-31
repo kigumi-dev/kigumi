@@ -3,10 +3,11 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func (p *verifier) fieldMismatch(in Inst, base, last, dst sem.TypeID) string {
+func (p *verifier) fieldMismatch(in midir.Inst, base, last, dst sem.TypeID) string {
 	kind, t := p.aggOf(base)
 	switch kind {
 	case aggLoose:
@@ -23,16 +24,16 @@ func (p *verifier) fieldMismatch(in Inst, base, last, dst sem.TypeID) string {
 	if in.Index < 0 || in.Index >= len(fields) {
 		return "names field " + itoa(in.Index) + " of " + p.R.TypeString(base) + ", which has " + itoa(len(fields))
 	}
-	if in.Op == OpSetField && !p.compatible(fields[in.Index], last) {
+	if in.Op == midir.OpSetField && !p.compatible(fields[in.Index], last) {
 		return "stores " + p.R.TypeString(last) + " in a field of " + p.R.TypeString(fields[in.Index])
 	}
-	if in.Op != OpSetField && (!p.compatible(fields[in.Index], dst) || p.scalarAsRef(fields[in.Index], dst)) {
+	if in.Op != midir.OpSetField && (!p.compatible(fields[in.Index], dst) || p.scalarAsRef(fields[in.Index], dst)) {
 		return "reads a field of " + p.R.TypeString(fields[in.Index]) + " into " + p.R.TypeString(dst)
 	}
 	return ""
 }
 
-func (p *verifier) adtMismatch(in Inst, base, dst sem.TypeID) string {
+func (p *verifier) adtMismatch(in midir.Inst, base, dst sem.TypeID) string {
 	kind, t := p.aggOf(base)
 	if kind == aggLoose {
 		return ""
@@ -42,21 +43,21 @@ func (p *verifier) adtMismatch(in Inst, base, dst sem.TypeID) string {
 	}
 	variants := p.R.AggVariants(t)
 	switch in.Op {
-	case OpIsVariant:
+	case midir.OpIsVariant:
 		if !slices.Contains(variants, in.Ent) {
 			return "tests a variant " + p.R.Entity(in.Ent).Name + " that " + p.R.TypeString(base) + " does not have"
 		}
-	case OpTag:
+	case midir.OpTag:
 		if !p.R.Types.IsInteger(dst) && !p.looseType(dst) {
 			return "yields " + p.R.TypeString(dst) + ", not an integer"
 		}
-	case OpPayload:
+	case midir.OpPayload:
 		return p.payloadMismatch(in, t, dst)
 	}
 	return ""
 }
 
-func (p *verifier) payloadMismatch(in Inst, t, dst sem.TypeID) string {
+func (p *verifier) payloadMismatch(in midir.Inst, t, dst sem.TypeID) string {
 	if n := p.R.Types.Node(t); len(n.Args) != len(p.R.TypeDecl(n.Ent).Params) {
 		return ""
 	}
@@ -77,7 +78,7 @@ func (p *verifier) payloadMismatch(in Inst, t, dst sem.TypeID) string {
 	return "reads a payload of " + p.R.TypeString(t) + " into " + p.R.TypeString(dst)
 }
 
-func (p *verifier) variantMismatch(f *Func, in Inst) string {
+func (p *verifier) variantMismatch(f *midir.Func, in midir.Inst) string {
 	kind, t := p.aggOf(in.Type)
 	if kind == aggLoose {
 		return ""
@@ -100,7 +101,7 @@ func (p *verifier) variantMismatch(f *Func, in Inst) string {
 	return ""
 }
 
-func (p *verifier) recordMismatch(f *Func, in Inst) string {
+func (p *verifier) recordMismatch(f *midir.Func, in midir.Inst) string {
 	kind, t := p.aggOf(f.Locals[in.Dst].Type)
 	if kind == aggLoose || kind == aggBox {
 		return ""
@@ -120,7 +121,7 @@ func (p *verifier) recordMismatch(f *Func, in Inst) string {
 	return ""
 }
 
-func (p *verifier) arrayMismatch(f *Func, in Inst) string {
+func (p *verifier) arrayMismatch(f *midir.Func, in midir.Inst) string {
 	tt := p.R.Types
 	t := p.R.UnderlyingRepr(f.Locals[in.Dst].Type)
 	if p.looseType(t) {

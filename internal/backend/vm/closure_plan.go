@@ -2,6 +2,7 @@ package vm
 
 import (
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -10,13 +11,13 @@ type closurePlan struct {
 	req        *reqCall
 	deny       string
 	useLowered bool
-	f          *mir.Func
+	f          *midir.Func
 	key        string
 	lent       int
 	dyn        sem.TypeID
 }
 
-func (m *Machine) closurePlanFor(in *mir.Inst, ic *instCode, ncaps int) *closurePlan {
+func (m *Machine) closurePlanFor(in *midir.Inst, ic *instCode, ncaps int) *closurePlan {
 	if p := ic.clo.Load(); p != nil {
 		return p
 	}
@@ -25,9 +26,9 @@ func (m *Machine) closurePlanFor(in *mir.Inst, ic *instCode, ncaps int) *closure
 	return p
 }
 
-func (m *Machine) planClosure(in *mir.Inst, ncaps int) *closurePlan {
+func (m *Machine) planClosure(in *midir.Inst, ncaps int) *closurePlan {
 	e := m.r.Entity(in.Ent)
-	if in.Op == mir.OpClosure && e.Kind == sem.EntFn && (m.r.Entity(e.Parent).Kind == sem.EntInterface || in.Str == "applied") {
+	if in.Op == midir.OpClosure && e.Kind == sem.EntFn && (m.r.Entity(e.Parent).Kind == sem.EntInterface || in.Str == "applied") {
 		return &closurePlan{req: &reqCall{name: e.Name, witness: in.Str == "witness" || in.Str == "applied", move: m.r.Fn(in.Ent).Recv == sem.RecvMove}}
 	}
 	f, lowered := m.lowered(in.Ent)
@@ -47,7 +48,7 @@ func (m *Machine) planClosure(in *mir.Inst, ncaps int) *closurePlan {
 	}
 	p.key = m.stdKey(in.Ent)
 	p.lent = mir.LentMask(m.r, in.Ent)
-	if in.Op == mir.OpClosure {
+	if in.Op == midir.OpClosure {
 		p.lent >>= ncaps
 	}
 	p.dyn = m.curFn.Locals[in.Dst].Type

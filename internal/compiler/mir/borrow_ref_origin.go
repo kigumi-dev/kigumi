@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -21,11 +22,11 @@ func (state *borrowAnalysis) refScopeOrigins(u sem.RefScopeUse) ([]refScopeKey, 
 		return nil, name, false
 	}
 	c := &borrowCheck{p: p, f: g, state: state}
-	var locals []LocalID
+	var locals []midir.LocalID
 	if ent := p.R.Files[u.File].Uses[u.Node]; ent != 0 {
 		for l, local := range g.Locals {
 			if local.Ent == ent {
-				locals = append(locals, LocalID(l))
+				locals = append(locals, midir.LocalID(l))
 			}
 		}
 	}

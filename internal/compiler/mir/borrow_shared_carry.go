@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -18,9 +19,9 @@ const (
 
 // resultCarries says per operand what call in's result may take, by the callee's keptSummary or, for a bodiless fn, by
 // its declared shape: an owned result naming no lifetime and holding nothing deferred takes nothing; false when unknown.
-func (c *borrowCheck) resultCarries(in Inst) (func(int) carryMode, bool) {
+func (c *borrowCheck) resultCarries(in midir.Inst) (func(int) carryMode, bool) {
 	e := in.Ent
-	if in.Op == OpCallValue {
+	if in.Op == midir.OpCallValue {
 		e = c.calleeClosure(c.f, in)
 	}
 	fn := e
@@ -58,7 +59,7 @@ func (c *borrowCheck) resultCarries(in Inst) (func(int) carryMode, bool) {
 
 // primitiveCarries is resultCarries for bodiless fn: a reference result may borrow a lent operand's place, a result that
 // can hold a deferred value takes by-value operands and lent contents, and a callback keeping its argument borrows the rest.
-func (c *borrowCheck) primitiveCarries(in Inst, fn sem.EntityID, param func(int) int) func(int) carryMode {
+func (c *borrowCheck) primitiveCarries(in midir.Inst, fn sem.EntityID, param func(int) int) func(int) carryMode {
 	t := c.f.Locals[in.Dst].Type
 	refs, holds := c.holdsBorrow(t), c.holdsBorrow(t) || c.holdsDeferred(t) || c.namesTypeParam(t)
 	params := c.declaredParams(fn)
@@ -67,7 +68,7 @@ func (c *borrowCheck) primitiveCarries(in Inst, fn sem.EntityID, param func(int)
 		return c.p.R.Types.Kind(c.f.Locals[in.Args[k]].Type) == sem.KRef || c.f.Locals[in.Args[k]].Cell ||
 			j == 0 && c.p.R.Fn(fn).Recv != sem.RecvNone && c.p.R.Fn(fn).Recv != sem.RecvMove
 	}
-	kept := slices.ContainsFunc(in.Args, func(a LocalID) bool { return c.callableKeeps(a) })
+	kept := slices.ContainsFunc(in.Args, func(a midir.LocalID) bool { return c.callableKeeps(a) })
 	return func(k int) carryMode {
 		if !holds || param(k) < 0 || param(k) >= len(params) {
 			return 0
@@ -85,7 +86,7 @@ func (c *borrowCheck) primitiveCarries(in Inst, fn sem.EntityID, param func(int)
 
 // callableKeeps reports a callable operand whose result may keep an argument it is given: an async fn, or a fn or closure
 // whose keptSummary says so; an unknown one is taken to.
-func (c *borrowCheck) callableKeeps(a LocalID) bool {
+func (c *borrowCheck) callableKeeps(a midir.LocalID) bool {
 	t := c.f.Locals[a].Type
 	if !c.callableNode(t) {
 		return false

@@ -2,11 +2,12 @@ package vm
 
 import (
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // callPlanned runs an OpCall through its cached plan; a call with no plan resolves in callEntity each time.
-func (m *Machine) callPlanned(in *mir.Inst, ic *instCode, args []*obj) *obj {
+func (m *Machine) callPlanned(in *midir.Inst, ic *instCode, args []*obj) *obj {
 	p := m.planFor(in, ic)
 	switch p.kind {
 	case planHost:
@@ -26,7 +27,7 @@ func (m *Machine) callPlanned(in *mir.Inst, ic *instCode, args []*obj) *obj {
 
 // callEntity runs a named callee: a lowered body, a std primitive, or an
 // interface requirement dispatched on the receiver's dynamic type.
-func (m *Machine) callEntity(in *mir.Inst, args []*obj) *obj {
+func (m *Machine) callEntity(in *midir.Inst, args []*obj) *obj {
 	ent := in.Ent
 	e := m.r.Entity(ent)
 	if e.Kind == sem.EntFn {
@@ -77,7 +78,7 @@ func (m *Machine) stdKey(fn sem.EntityID) string { return mir.StdKey(m.r, fn, tr
 // bound witnesses) in the environment, or a std primitive by key. A witness
 // bound to a std function (rt_std_bind) follows callEntity's priority: the
 // host accelerator wins over a real body when both exist.
-func (m *Machine) closure(in *mir.Inst, ic *instCode, caps []*obj) *obj {
+func (m *Machine) closure(in *midir.Inst, ic *instCode, caps []*obj) *obj {
 	c := newObj(kClosure)
 	cl := c.clo()
 	c.async = in.Async
@@ -94,7 +95,7 @@ func (m *Machine) closure(in *mir.Inst, ic *instCode, caps []*obj) *obj {
 	}
 	if p.useLowered {
 		cl.fn = p.f
-		c.bind = in.Op == mir.OpBind
+		c.bind = in.Op == midir.OpBind
 	} else {
 		cl.stdKey, c.ent, cl.prov, cl.lent, cl.dyn = p.key, in.Ent, in.Prov, p.lent, p.dyn
 	}

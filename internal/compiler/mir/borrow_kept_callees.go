@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -20,9 +21,9 @@ func (c *borrowCheck) resolveKeptCallees(ents []sem.EntityID) []sem.EntityID {
 	return out
 }
 
-func (c *borrowCheck) keptFlowCallees(in Inst) ([]sem.EntityID, []LocalID) {
+func (c *borrowCheck) keptFlowCallees(in midir.Inst) ([]sem.EntityID, []midir.LocalID) {
 	ents, args := []sem.EntityID{in.Ent}, in.Args
-	if in.Op == OpCallValue || in.Op == OpFutureNew {
+	if in.Op == midir.OpCallValue || in.Op == midir.OpFutureNew {
 		args = in.Args[1:]
 		if in.Ent == 0 {
 			var ok bool
@@ -34,8 +35,8 @@ func (c *borrowCheck) keptFlowCallees(in Inst) ([]sem.EntityID, []LocalID) {
 	return c.resolveKeptCallees(ents), args
 }
 
-func (c *borrowCheck) summarizedValueCallees(in Inst) []sem.EntityID {
-	if in.Op != OpCallValue || in.Ent != 0 {
+func (c *borrowCheck) summarizedValueCallees(in midir.Inst) []sem.EntityID {
+	if in.Op != midir.OpCallValue || in.Ent != 0 {
 		return nil
 	}
 	ents, _ := c.keptFlowCallees(in)

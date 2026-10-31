@@ -3,23 +3,24 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 type shareSummary struct {
 	p       *Program
 	valued  map[sem.EntityID]bool
-	retView map[*Func]bool
-	taken   map[*Func][]bool
-	mutates map[*Func][]bool
-	facts   map[*Func]*shareFacts
+	retView map[*midir.Func]bool
+	taken   map[*midir.Func][]bool
+	mutates map[*midir.Func][]bool
+	facts   map[*midir.Func]*shareFacts
 	sealed  map[sem.TypeID]bool
 }
 
-func (p *Program) planShares(fs []*Func) *shareSummary {
-	s := &shareSummary{p: p, valued: map[sem.EntityID]bool{}, retView: map[*Func]bool{}, taken: map[*Func][]bool{},
-		mutates: map[*Func][]bool{}, facts: map[*Func]*shareFacts{}, sealed: map[sem.TypeID]bool{}}
-	callers := map[*Func][]*Func{}
+func (p *Program) planShares(fs []*midir.Func) *shareSummary {
+	s := &shareSummary{p: p, valued: map[sem.EntityID]bool{}, retView: map[*midir.Func]bool{}, taken: map[*midir.Func][]bool{},
+		mutates: map[*midir.Func][]bool{}, facts: map[*midir.Func]*shareFacts{}, sealed: map[sem.TypeID]bool{}}
+	callers := map[*midir.Func][]*midir.Func{}
 	for _, f := range fs {
 		s.facts[f] = newShareFacts(p, f, s)
 		s.taken[f] = make([]bool, len(f.Params))
@@ -29,17 +30,17 @@ func (p *Program) planShares(fs []*Func) *shareSummary {
 		}
 		for _, blk := range f.Blocks {
 			for _, in := range blk.Insts {
-				if in.Op == OpFnItem || in.Op == OpBind || in.Op == OpClosure {
+				if in.Op == midir.OpFnItem || in.Op == midir.OpBind || in.Op == midir.OpClosure {
 					s.valued[in.Ent] = true
 				}
 			}
 		}
 	}
-	settle(fs, callers, func(f *Func) bool { return s.facts[f].noteMutates() })
+	settle(fs, callers, func(f *midir.Func) bool { return s.facts[f].noteMutates() })
 	for _, f := range fs {
 		s.facts[f].settleLent()
 	}
-	settle(fs, callers, func(f *Func) bool {
+	settle(fs, callers, func(f *midir.Func) bool {
 		w := s.facts[f]
 		w.memo, w.viewers = nil, nil
 		if s.retView[f] || !w.returnsView() {
@@ -51,14 +52,14 @@ func (p *Program) planShares(fs []*Func) *shareSummary {
 	for _, f := range fs {
 		s.facts[f].decideBindings()
 	}
-	settle(fs, callers, func(f *Func) bool { return s.facts[f].noteTaken() })
+	settle(fs, callers, func(f *midir.Func) bool { return s.facts[f].noteTaken() })
 	return s
 }
 
 // A summary only grows, so a body is revisited only when one of its callees' changed.
-func settle(fs []*Func, callers map[*Func][]*Func, step func(*Func) bool) {
+func settle(fs []*midir.Func, callers map[*midir.Func][]*midir.Func, step func(*midir.Func) bool) {
 	work := slices.Clone(fs)
-	queued := map[*Func]bool{}
+	queued := map[*midir.Func]bool{}
 	for _, f := range fs {
 		queued[f] = true
 	}
@@ -78,11 +79,11 @@ func settle(fs []*Func, callers map[*Func][]*Func, step func(*Func) bool) {
 	}
 }
 
-func (p *Program) callees(f *Func) []*Func {
-	var out []*Func
+func (p *Program) callees(f *midir.Func) []*midir.Func {
+	var out []*midir.Func
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if g := p.ByEnt[in.Ent]; in.Op == OpCall && g != nil && !slices.Contains(out, g) {
+			if g := p.ByEnt[in.Ent]; in.Op == midir.OpCall && g != nil && !slices.Contains(out, g) {
 				out = append(out, g)
 			}
 		}
@@ -97,7 +98,7 @@ func (w *shareFacts) returnsView() bool {
 		return false
 	}
 	for _, blk := range w.blocks {
-		if blk.Term.Op != TermReturn || len(blk.Term.Args) == 0 || w.aliasOfNamed(blk.Term.Args[0]) {
+		if blk.Term.Op != midir.TermReturn || len(blk.Term.Args) == 0 || w.aliasOfNamed(blk.Term.Args[0]) {
 			continue
 		}
 		for _, r := range w.rootsOf(blk.Term.Args[0]).refs {
@@ -109,9 +110,9 @@ func (w *shareFacts) returnsView() bool {
 	return false
 }
 
-func (s *shareSummary) lendsResult(in Inst, i int) bool {
+func (s *shareSummary) lendsResult(in midir.Inst, i int) bool {
 	p := s.p
-	if in.Op == OpCallValue {
+	if in.Op == midir.OpCallValue {
 		return in.Ent != 0 && i == 1 && p.inPlace(in, i)
 	}
 	if g := p.ByEnt[in.Ent]; g != nil {
@@ -137,10 +138,10 @@ func (w *shareFacts) noteTaken() bool {
 			}
 		}
 	}
-	if !slices.ContainsFunc(f.Params, func(prm LocalID) bool { return open(rootSet{refs: []rootRef{{l: prm}}}) }) {
+	if !slices.ContainsFunc(f.Params, func(prm midir.LocalID) bool { return open(rootSet{refs: []rootRef{{l: prm}}}) }) {
 		return false
 	}
-	for _, writes := range []map[LocalID][]Point{w.own, w.inner} {
+	for _, writes := range []map[midir.LocalID][]Point{w.own, w.inner} {
 		for l := range writes {
 			if !w.sealed(l) {
 				mark(w.rootsOf(l))
@@ -157,7 +158,7 @@ func (w *shareFacts) noteTaken() bool {
 				mark(w.rootsOf(a))
 			}
 		}
-		if blk.Term.Op == TermReturn && len(blk.Term.Args) > 0 {
+		if blk.Term.Op == midir.TermReturn && len(blk.Term.Args) > 0 {
 			if a := blk.Term.Args[0]; !w.sealed(a) && open(w.rootsOf(a)) && !w.aliasOfNamed(a) && !w.returnCopies(a) {
 				mark(w.rootsOf(a))
 			}

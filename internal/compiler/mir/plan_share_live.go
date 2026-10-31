@@ -1,15 +1,19 @@
 package mir
 
-import "slices"
+import (
+	"slices"
+
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
 // A drop, a move or a new definition ends a local's value; a release reads nothing.
 type liveness struct {
-	blocks []Block
+	blocks []midir.Block
 	n      int
 	out    [][]uint64
 }
 
-func newLiveness(blocks []Block, n int) *liveness {
+func newLiveness(blocks []midir.Block, n int) *liveness {
 	words := (n + 63) / 64
 	lv := &liveness{blocks: blocks, n: n, out: make([][]uint64, len(blocks))}
 	in := make([][]uint64, len(blocks))
@@ -25,7 +29,7 @@ func newLiveness(blocks []Block, n int) *liveness {
 				}
 			}
 			live := append([]uint64(nil), lv.out[b]...)
-			lv.blockIn(BlockID(b), live)
+			lv.blockIn(midir.BlockID(b), live)
 			for i := range live {
 				if live[i] != in[b][i] {
 					in[b], changed = live, true
@@ -37,7 +41,7 @@ func newLiveness(blocks []Block, n int) *liveness {
 	return lv
 }
 
-func (lv *liveness) blockIn(b BlockID, live []uint64) {
+func (lv *liveness) blockIn(b midir.BlockID, live []uint64) {
 	blk := &lv.blocks[b]
 	for _, a := range blk.Term.Args {
 		live[a/64] |= 1 << (a % 64)
@@ -55,21 +59,21 @@ func (lv *liveness) blockIn(b BlockID, live []uint64) {
 	}
 }
 
-func reads(op Opcode) bool { return op != OpDrop && op != OpRelease }
+func reads(op midir.Opcode) bool { return op != midir.OpDrop && op != midir.OpRelease }
 
-func ends(in Inst) []LocalID {
-	var out []LocalID
+func ends(in midir.Inst) []midir.LocalID {
+	var out []midir.LocalID
 	if in.Op.Yields() {
 		out = append(out, in.Dst)
 	}
 	switch in.Op {
-	case OpDrop, OpRelease, OpMove:
+	case midir.OpDrop, midir.OpRelease, midir.OpMove:
 		out = append(out, in.Args...)
 	}
 	return out
 }
 
-func (lv *liveness) after(l LocalID, b, k int) bool {
+func (lv *liveness) after(l midir.LocalID, b, k int) bool {
 	if int(l) >= lv.n {
 		return false
 	}
@@ -90,11 +94,11 @@ func (lv *liveness) after(l LocalID, b, k int) bool {
 }
 
 // blockReach[b][b] holds only through a loop.
-func blockReach(blocks []Block) [][]bool {
+func blockReach(blocks []midir.Block) [][]bool {
 	out := make([][]bool, len(blocks))
 	for b := range blocks {
 		seen := make([]bool, len(blocks))
-		work := append([]BlockID{}, blocks[b].Term.Targets...)
+		work := append([]midir.BlockID{}, blocks[b].Term.Targets...)
 		for len(work) > 0 {
 			c := work[len(work)-1]
 			work = work[:len(work)-1]

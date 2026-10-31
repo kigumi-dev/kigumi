@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -16,7 +17,7 @@ type sharedStore struct {
 // sinkCtx is one body read for its stores into shared storage: its value flow, and the callables a call site binds its
 // callable parameters to.
 type sinkCtx struct {
-	g    *Func
+	g    *midir.Func
 	fs   flowSets
 	bind map[int][]sem.EntityID
 }
@@ -36,8 +37,8 @@ func (c *borrowCheck) interiorParam(e, q sem.EntityID) bool {
 
 // sharedStoreArgs are the operands call in may store into shared storage: by the callee's keptParams, or unknownStores
 // for a callee x cannot name.
-func (c *borrowCheck) sharedStoreArgs(x *sinkCtx, in Inst) []sharedStore {
-	if in.Op != OpCall && in.Op != OpCallValue && in.Op != OpFutureNew {
+func (c *borrowCheck) sharedStoreArgs(x *sinkCtx, in midir.Inst) []sharedStore {
+	if in.Op != midir.OpCall && in.Op != midir.OpCallValue && in.Op != midir.OpFutureNew {
 		return nil
 	}
 	ents, known := c.sinkCallees(x, in)
@@ -60,7 +61,7 @@ func (c *borrowCheck) sharedStoreArgs(x *sinkCtx, in Inst) []sharedStore {
 
 // keptParams are the parameters of e that call in may store into shared storage: a body's sharedSinks, or for a bodiless
 // fn every keepable parameter beside an interiorParam that call in binds to shared storage.
-func (c *borrowCheck) keptParams(x *sinkCtx, in Inst, e sem.EntityID) []sem.EntityID {
+func (c *borrowCheck) keptParams(x *sinkCtx, in midir.Inst, e sem.EntityID) []sem.EntityID {
 	fn := e
 	if m := c.methodOf(e); m != 0 {
 		fn = m
@@ -87,7 +88,7 @@ func (c *borrowCheck) keptParams(x *sinkCtx, in Inst, e sem.EntityID) []sem.Enti
 
 // sinkCallees are what call in may run, false when x cannot name them all: an interface requirement's implementers, on a
 // view or through a bound, else fn items and closures by the flow and a parameter by its binding.
-func (c *borrowCheck) sinkCallees(x *sinkCtx, in Inst) ([]sem.EntityID, bool) {
+func (c *borrowCheck) sinkCallees(x *sinkCtx, in midir.Inst) ([]sem.EntityID, bool) {
 	if in.Ent != 0 && c.ifaceRequirement(in.Ent) {
 		impls := c.implementers(in.Ent)
 		return impls, len(impls) > 0
@@ -117,7 +118,7 @@ func (c *borrowCheck) sinkCallees(x *sinkCtx, in Inst) ([]sem.EntityID, bool) {
 }
 
 // bindAt binds each callable parameter of e that call in passes only fn items and closures x can name.
-func (c *borrowCheck) bindAt(x *sinkCtx, in Inst, e sem.EntityID) map[int][]sem.EntityID {
+func (c *borrowCheck) bindAt(x *sinkCtx, in midir.Inst, e sem.EntityID) map[int][]sem.EntityID {
 	var out map[int][]sem.EntityID
 	declared := c.declaredParams(e)
 	for k, a := range in.Args {
@@ -138,7 +139,7 @@ func (c *borrowCheck) bindAt(x *sinkCtx, in Inst, e sem.EntityID) map[int][]sem.
 
 // callablesIn are the fn items and closures a may hold: one closure by its type, else by the flow through x's binding
 // of its own parameters; false if some value it may hold is neither.
-func (c *borrowCheck) callablesIn(x *sinkCtx, a LocalID) ([]sem.EntityID, bool) {
+func (c *borrowCheck) callablesIn(x *sinkCtx, a midir.LocalID) ([]sem.EntityID, bool) {
 	if n := c.p.R.Types.Node(x.g.Locals[a].Type); n.Kind == sem.KClosure && n.Ent != 0 && c.p.R.Entity(n.Ent).Kind == sem.EntClosure {
 		return []sem.EntityID{n.Ent}, true
 	}
@@ -165,10 +166,10 @@ func (c *borrowCheck) callablesIn(x *sinkCtx, a LocalID) ([]sem.EntityID, bool) 
 
 // unknownStores is every operand of a call to an unknown closure or interface method, which keeps storage of its own;
 // else each operand but a plain fn callee and one that alone may be shared storage (by its type or a type parameter).
-func (c *borrowCheck) unknownStores(x *sinkCtx, in Inst) []sharedStore {
+func (c *borrowCheck) unknownStores(x *sinkCtx, in midir.Inst) []sharedStore {
 	var cells []int
 	for k, a := range in.Args {
-		if k == 0 && in.Op != OpCall {
+		if k == 0 && in.Op != midir.OpCall {
 			continue
 		}
 		if t := x.g.Locals[a].Type; c.sharedStorage(t) || c.namesTypeParam(t) {
@@ -181,7 +182,7 @@ func (c *borrowCheck) unknownStores(x *sinkCtx, in Inst) []sharedStore {
 	}
 	var out []sharedStore
 	for k := range in.Args {
-		plainFn := k == 0 && in.Op != OpCall
+		plainFn := k == 0 && in.Op != midir.OpCall
 		if whole || !plainFn && (len(cells) > 1 || cells[0] != k) {
 			out = append(out, sharedStore{arg: k})
 		}
@@ -190,7 +191,7 @@ func (c *borrowCheck) unknownStores(x *sinkCtx, in Inst) []sharedStore {
 }
 
 // capturingCallee reports a value call whose callee may be a closure, which can keep what it is given in a capture.
-func (c *borrowCheck) capturingCallee(g *Func, in Inst) bool {
+func (c *borrowCheck) capturingCallee(g *midir.Func, in midir.Inst) bool {
 	t := g.Locals[in.Args[0]].Type
-	return in.Op != OpCall && c.p.R.Types.Kind(t) != sem.KFn && c.callableNode(t)
+	return in.Op != midir.OpCall && c.p.R.Types.Kind(t) != sem.KFn && c.callableNode(t)
 }

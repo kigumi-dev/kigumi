@@ -3,131 +3,57 @@ package mir
 import (
 	"math/big"
 	"strconv"
+
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
-// shape is the operand contract of one opcode: how many arguments it
-// takes (max -1 for any number), whether it yields a value, and which
-// fields it must carry.
-type shape struct {
-	min, max int
-	result   bool
-	ent      bool
-	typ      bool
-	str      bool
-}
-
-var shapes = map[Opcode]shape{
-	OpConst:       {0, 0, true, false, true, false},
-	OpUnit:        {0, 0, true, false, false, false},
-	OpCopy:        {1, 1, true, false, false, false},
-	OpMove:        {1, 1, true, false, false, false},
-	OpCall:        {0, -1, true, true, false, false},
-	OpCallValue:   {1, -1, true, false, false, false},
-	OpBuiltin:     {0, -1, true, false, false, true},
-	OpBinary:      {2, 2, true, false, false, true},
-	OpUnary:       {1, 1, true, false, false, true},
-	OpRecord:      {0, -1, true, true, false, false},
-	OpVariant:     {0, -1, true, true, true, false},
-	OpField:       {1, 1, true, false, false, false},
-	OpFieldMove:   {1, 1, true, false, false, false},
-	OpSetField:    {2, 2, false, false, false, false},
-	OpArray:       {0, -1, true, false, false, false},
-	OpIndex:       {2, 2, true, false, false, false},
-	OpSetIndex:    {3, 3, false, false, false, false},
-	OpTag:         {1, 1, true, false, false, false},
-	OpPayload:     {1, 1, true, false, false, false},
-	OpIsVariant:   {1, 1, true, true, false, false},
-	OpIsType:      {1, 1, true, true, false, false},
-	OpUnbox:       {1, 1, true, false, false, false},
-	OpBox:         {1, 1, true, false, true, false},
-	OpLendBox:     {1, 1, true, false, true, false},
-	OpClosure:     {0, -1, true, true, false, false},
-	OpFnItem:      {0, 0, true, true, false, false},
-	OpBind:        {0, -1, true, true, false, false},
-	OpCFnPtr:      {0, 0, true, true, true, false},
-	OpCallC:       {1, -1, true, false, true, false},
-	OpAsm:         {0, -1, true, false, true, false},
-	OpBorrow:      {1, 1, true, false, false, false},
-	OpNewCell:     {1, 1, true, false, false, false},
-	OpCellGet:     {1, 1, true, false, false, false},
-	OpCellTake:    {1, 1, true, false, false, false},
-	OpCellSet:     {2, 2, false, false, false, false},
-	OpInterp:      {0, -1, true, false, false, false},
-	OpShell:       {0, -1, true, false, false, false},
-	OpDrop:        {1, 1, false, false, false, false},
-	OpAlias:       {1, 1, true, false, false, false},
-	OpShare:       {1, 1, true, false, false, false},
-	OpRelease:     {1, 1, false, false, false, false},
-	OpPanic:       {0, 0, false, false, false, true},
-	OpNop:         {0, 0, false, false, false, false},
-	OpGlobalGet:   {0, 0, true, true, false, false},
-	OpGlobalSet:   {1, 1, false, true, false, false},
-	OpFutureNew:   {1, -1, true, false, false, false},
-	OpAwait:       {1, 1, true, false, false, false},
-	OpFutureDone:  {1, 1, false, false, false, false},
-	OpCancelled:   {0, 0, true, false, false, false},
-	OpCancelDone:  {0, 0, false, false, false, false},
-	OpBoxDirect:   {1, 1, true, false, true, false},
-	OpUnboxDirect: {1, 1, true, false, true, false},
-}
-
-var yielding = func() (out [256]bool) {
-	for op, s := range shapes {
-		out[op] = s.result
-	}
-	return out
-}()
-
-// Yields reports whether an opcode defines its destination.
-func (o Opcode) Yields() bool { return yielding[o] }
-
 // verifyShape checks each instruction against its opcode's contract.
-func verifyShape(f *Func) *Error {
+func verifyShape(f *midir.Func) *Error {
 	for bid, blk := range f.Blocks {
-		bid := BlockID(bid)
+		bid := midir.BlockID(bid)
 		for i, in := range blk.Insts {
-			s, ok := shapes[in.Op]
+			s, ok := in.Op.Shape()
 			if !ok {
 				return fail("shape", bid, i, "unknown opcode %d", in.Op)
 			}
-			if len(in.Args) < s.min || (s.max >= 0 && len(in.Args) > s.max) {
+			if len(in.Args) < s.Min || (s.Max >= 0 && len(in.Args) > s.Max) {
 				return fail("shape", bid, i, "%s takes %s, got %d", in.Op, arity(s), len(in.Args))
 			}
-			if s.ent && in.Ent == 0 {
+			if s.Entity && in.Ent == 0 {
 				return fail("shape", bid, i, "%s needs an entity", in.Op)
 			}
-			if s.typ && in.Type == 0 {
+			if s.Type && in.Type == 0 {
 				return fail("shape", bid, i, "%s needs a type", in.Op)
 			}
-			if s.str && in.Str == "" {
+			if s.Text && in.Str == "" {
 				return fail("shape", bid, i, "%s needs its text", in.Op)
 			}
-			if in.Op == OpAwait && in.Str != "" && in.Str != "settle" {
+			if in.Op == midir.OpAwait && in.Str != "" && in.Str != "settle" {
 				return fail("shape", bid, i, "await carries the text %q, which is not a mode", in.Str)
 			}
-			if !s.str && in.Str != "" && in.Op != OpClosure && in.Op != OpNop && in.Op != OpConst && in.Op != OpAwait {
+			if !s.Text && in.Str != "" && in.Op != midir.OpClosure && in.Op != midir.OpNop && in.Op != midir.OpConst && in.Op != midir.OpAwait {
 				return fail("shape", bid, i, "%s carries the text %q it never reads", in.Op, in.Str)
 			}
-			if in.Op == OpConst && in.Str != "" && !numberText(in) {
+			if in.Op == midir.OpConst && in.Str != "" && !numberText(in) {
 				return fail("shape", bid, i, "const carries the text %q, which is not its number", in.Str)
 			}
 			if msg := flagMisplaced(in); msg != "" {
 				return fail("shape", bid, i, "%s %s", in.Op, msg)
 			}
 			switch in.Op {
-			case OpInterp:
+			case midir.OpInterp:
 				if n := countStr(in.Strs, ""); n != len(in.Args) {
 					return fail("shape", bid, i, "interp has %d holes for %d arguments", n, len(in.Args))
 				}
-			case OpShell:
+			case midir.OpShell:
 				if n := countStr(in.Strs, "$"); n != len(in.Args) {
 					return fail("shape", bid, i, "shell has %d holes for %d arguments", n, len(in.Args))
 				}
-			case OpBorrow:
+			case midir.OpBorrow:
 				if in.Index != 0 && in.Index != 1 {
 					return fail("shape", bid, i, "borrow index %d is neither shared nor mut", in.Index)
 				}
-			case OpUnary:
+			case midir.OpUnary:
 				if in.Str == "cast" && in.Type == 0 {
 					return fail("shape", bid, i, "cast needs its target type")
 				}
@@ -137,39 +63,39 @@ func verifyShape(f *Func) *Error {
 	return nil
 }
 
-func flagMisplaced(in Inst) string {
+func flagMisplaced(in midir.Inst) string {
 	switch {
-	case in.Op == OpNop:
+	case in.Op == midir.OpNop:
 		return ""
-	case in.Fixed && in.Op != OpBoxDirect:
+	case in.Fixed && in.Op != midir.OpBoxDirect:
 		return "is marked fixed, which only a box of a constant is"
-	case in.Copy && in.Op != OpShare:
+	case in.Copy && in.Op != midir.OpShare:
 		return "is marked as a copy, which only a share is"
-	case in.Share && in.Op != OpCopy:
+	case in.Share && in.Op != midir.OpCopy:
 		return "is marked shared, which only a copy is"
-	case in.Async && in.Op != OpFnItem && in.Op != OpClosure && in.Op != OpBind:
+	case in.Async && in.Op != midir.OpFnItem && in.Op != midir.OpClosure && in.Op != midir.OpBind:
 		return "is marked async, which only a function item, bind or closure is"
-	case in.EndScope && in.Op != OpDrop:
+	case in.EndScope && in.Op != midir.OpDrop:
 		return "is marked as a scope exit, which only a drop is"
-	case in.Scoped && in.Op != OpNewCell && in.Op != OpDrop:
+	case in.Scoped && in.Op != midir.OpNewCell && in.Op != midir.OpDrop:
 		return "is marked scoped, which only a cell or its drop is"
 	}
 	return ""
 }
 
-func numberText(in Inst) bool {
+func numberText(in midir.Inst) bool {
 	v, ok := new(big.Int).SetString(in.Str, 10)
 	return ok && (in.Lit.Int == nil || in.Lit.Int.Cmp(v) == 0)
 }
 
-func arity(s shape) string {
+func arity(s midir.Shape) string {
 	switch {
-	case s.max < 0:
-		return "at least " + itoa(s.min) + " arguments"
-	case s.min == s.max:
-		return itoa(s.min) + " arguments"
+	case s.Max < 0:
+		return "at least " + itoa(s.Min) + " arguments"
+	case s.Min == s.Max:
+		return itoa(s.Min) + " arguments"
 	}
-	return itoa(s.min) + " to " + itoa(s.max) + " arguments"
+	return itoa(s.Min) + " to " + itoa(s.Max) + " arguments"
 }
 
 func itoa(n int) string { return strconv.Itoa(n) }

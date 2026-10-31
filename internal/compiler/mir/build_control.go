@@ -2,11 +2,12 @@ package mir
 
 import (
 	"kigumi/internal/compiler/hir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
 
-func (b *builder) blockExpr(blk *hir.Block) LocalID {
+func (b *builder) blockExpr(blk *hir.Block) midir.LocalID {
 	b.pushScope()
 	dead := false
 	for i, s := range blk.Stmts {
@@ -17,11 +18,11 @@ func (b *builder) blockExpr(blk *hir.Block) LocalID {
 		}
 	}
 	b.markExit(len(b.scopes) - 1)
-	var result LocalID
+	var result midir.LocalID
 	if dead && blk.Tail != nil {
 		result = b.unreached(blk.Node)
 	} else if blk.Tail != nil {
-		result = b.fullValue(func() LocalID { return b.detach(b.exprMoved(blk.Tail)) })
+		result = b.fullValue(func() midir.LocalID { return b.detach(b.exprMoved(blk.Tail)) })
 	}
 	if blk == b.body {
 		b.closeTaskScope(blk.Node)
@@ -41,8 +42,8 @@ func (b *builder) blockExpr(blk *hir.Block) LocalID {
 	return b.coerce(blk.Coercion, blk.Node, result)
 }
 
-func (b *builder) ifExpr(e *hir.Expr) LocalID {
-	var cond LocalID
+func (b *builder) ifExpr(e *hir.Expr) midir.LocalID {
+	var cond midir.LocalID
 	var moves []guardMove
 	// The bindings of the condition's `is` tests end with the then branch;
 	// one a later `&&` test turned down stays with the enclosing scope.
@@ -51,7 +52,7 @@ func (b *builder) ifExpr(e *hir.Expr) LocalID {
 	b.fullExpr(func() { cond, moves = b.cond(e.Cond) })
 	result := b.temp(e.Type)
 	then, els, join := b.newBlockAt(), b.newBlockAt(), b.newBlockAt()
-	b.term(Term{Op: TermBranch, Args: []LocalID{cond}, Targets: []BlockID{then, els}})
+	b.term(midir.Term{Op: midir.TermBranch, Args: []midir.LocalID{cond}, Targets: []midir.BlockID{then, els}})
 	b.cur = then
 	b.markGuardMoves(moves)
 	b.assignValue(result, b.blockExpr(e.Then), e.Node)
@@ -75,10 +76,10 @@ func (b *builder) ifExpr(e *hir.Expr) LocalID {
 // assignValue stores a branch's value into the result of an `if`. A branch
 // of an `if` used as a statement may still produce a value (a foreign call
 // whose pointer nobody reads); it is dropped, and the result stays Void.
-func (b *builder) assignValue(dst, src LocalID, n syntax.NodeID) {
+func (b *builder) assignValue(dst, src midir.LocalID, n syntax.NodeID) {
 	if b.fn.Locals[dst].Type == sem.TyUnit && b.fn.Locals[src].Type != sem.TyUnit && b.fn.Locals[src].Type != sem.TyNever {
 		if b.r.Types.Kind(b.fn.Locals[src].Type) != sem.KRef {
-			b.emit(Inst{Op: OpDrop, Args: []LocalID{src}, Node: n})
+			b.emit(midir.Inst{Op: midir.OpDrop, Args: []midir.LocalID{src}, Node: n})
 		}
 		b.assign(dst, b.unit(n))
 		return
@@ -86,11 +87,11 @@ func (b *builder) assignValue(dst, src LocalID, n syntax.NodeID) {
 	b.assign(dst, src)
 }
 
-func (b *builder) forExpr(e *hir.Expr) LocalID {
+func (b *builder) forExpr(e *hir.Expr) midir.LocalID {
 	n := e.Node
 	pattern, head := e.Pat, e.Cond
 	valued := e.Type != sem.TyUnit && e.Type != sem.TyNever
-	var result LocalID
+	var result midir.LocalID
 	if valued {
 		result = b.temp(e.Type)
 	}
@@ -100,7 +101,7 @@ func (b *builder) forExpr(e *hir.Expr) LocalID {
 	// exit all release them.
 	b.pushScope()
 	var cur forCursor
-	var headBound []LocalID
+	var headBound []midir.LocalID
 	var headMoves []guardMove
 	if pattern != nil {
 		cur = b.forCursorFor(e)
@@ -109,11 +110,11 @@ func (b *builder) forExpr(e *hir.Expr) LocalID {
 	b.cur = cond
 	switch {
 	case pattern != nil:
-		b.term(Term{Op: TermBranch, Args: []LocalID{cur.test(n)}, Targets: []BlockID{loop, exit}})
+		b.term(midir.Term{Op: midir.TermBranch, Args: []midir.LocalID{cur.test(n)}, Targets: []midir.BlockID{loop, exit}})
 	case head != nil:
-		var c LocalID
+		var c midir.LocalID
 		b.fullExpr(func() { c, headBound, headMoves = b.loopHead(head) })
-		b.term(Term{Op: TermBranch, Args: []LocalID{c}, Targets: []BlockID{loop, exit}})
+		b.term(midir.Term{Op: midir.TermBranch, Args: []midir.LocalID{c}, Targets: []midir.BlockID{loop, exit}})
 	default:
 		b.jump(loop)
 	}
@@ -139,7 +140,7 @@ func (b *builder) forExpr(e *hir.Expr) LocalID {
 	b.exitScope()
 	if e.Type == sem.TyNever {
 		// Nothing breaks out of this loop; what follows never runs.
-		b.term(Term{Op: TermUnreachable})
+		b.term(midir.Term{Op: midir.TermUnreachable})
 		return b.never(n)
 	}
 	if valued {
@@ -148,14 +149,14 @@ func (b *builder) forExpr(e *hir.Expr) LocalID {
 	return b.unit(n)
 }
 
-func (b *builder) markRetain(v LocalID) {
+func (b *builder) markRetain(v midir.LocalID) {
 	insts := b.block().Insts
-	if n := len(insts); n > 0 && insts[n-1].Op == OpCopy && insts[n-1].Dst == v {
+	if n := len(insts); n > 0 && insts[n-1].Op == midir.OpCopy && insts[n-1].Dst == v {
 		insts[n-1].Retain = true
 	}
 }
 
 // unreached stands for the value of a block whose later code is dead, in the orphan block the diverging statement left.
-func (b *builder) unreached(n syntax.NodeID) LocalID {
-	return b.emit(Inst{Op: OpUnit, Dst: b.temp(sem.TyNever), Node: n})
+func (b *builder) unreached(n syntax.NodeID) midir.LocalID {
+	return b.emit(midir.Inst{Op: midir.OpUnit, Dst: b.temp(sem.TyNever), Node: n})
 }

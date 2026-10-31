@@ -4,20 +4,22 @@ import (
 	"cmp"
 	"math/bits"
 	"slices"
+
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 // unwindFill walks the blocks backward keeping the live owned locals as a descending list, so a panic point costs one pass over that list instead of over every word of the live bitset.
 type unwindFill struct {
-	f        *Func
+	f        *midir.Func
 	plan     *UnwindPlan
-	owned    map[LocalID]bool
-	parent   map[LocalID]LocalID
+	owned    map[midir.LocalID]bool
+	parent   map[midir.LocalID]midir.LocalID
 	aliased  []bool
-	held     func(in *Inst, i int) bool
+	held     func(in *midir.Inst, i int) bool
 	words    int
 	interned map[uint64][]int32
-	cur      []LocalID
-	scratch  []LocalID
+	cur      []midir.LocalID
+	scratch  []midir.LocalID
 }
 
 func (u *unwindFill) block(bid int, liveIn []bitset) {
@@ -38,13 +40,13 @@ func (u *unwindFill) block(bid int, liveIn []bitset) {
 		for x := live[w]; x != 0; {
 			b := bits.Len64(x) - 1
 			x &^= 1 << b
-			u.cur = append(u.cur, LocalID(w*64+b))
+			u.cur = append(u.cur, midir.LocalID(w*64+b))
 		}
 	}
 	for i := len(blk.Insts) - 1; i >= 0; i-- {
 		in := &blk.Insts[i]
 		u.visit(bid, i, in, live)
-		if shapes[in.Op].result && live.has(in.Dst) {
+		if in.Op.Yields() && live.has(in.Dst) {
 			live.clear(in.Dst)
 			u.remove(in.Dst)
 		}
@@ -57,21 +59,21 @@ func (u *unwindFill) block(bid int, liveIn []bitset) {
 	}
 }
 
-func descending(e, t LocalID) int { return cmp.Compare(t, e) }
+func descending(e, t midir.LocalID) int { return cmp.Compare(t, e) }
 
-func (u *unwindFill) insert(l LocalID) {
+func (u *unwindFill) insert(l midir.LocalID) {
 	if i, found := slices.BinarySearchFunc(u.cur, l, descending); !found {
 		u.cur = slices.Insert(u.cur, i, l)
 	}
 }
 
-func (u *unwindFill) remove(l LocalID) {
+func (u *unwindFill) remove(l midir.LocalID) {
 	if i, found := slices.BinarySearchFunc(u.cur, l, descending); found {
 		u.cur = slices.Delete(u.cur, i, i+1)
 	}
 }
 
-func (u *unwindFill) visit(bid, i int, in *Inst, live bitset) {
+func (u *unwindFill) visit(bid, i int, in *midir.Inst, live bitset) {
 	if cannotPanic(in.Op) {
 		return
 	}
@@ -81,7 +83,7 @@ func (u *unwindFill) visit(bid, i int, in *Inst, live bitset) {
 		src, lv = u.withHeld(in, live)
 	}
 	set := u.scratch[:0]
-	result := shapes[in.Op].result
+	result := in.Op.Yields()
 	for _, id := range src {
 		if result && in.Dst == id || u.aliased[id] && sharesOwner(id, u.parent, u.owned, lv, in) {
 			continue
@@ -109,7 +111,7 @@ func (u *unwindFill) visit(bid, i int, in *Inst, live bitset) {
 }
 
 // withHeld adds the boxes in's call site still releases, which the walk counted as handed over.
-func (u *unwindFill) withHeld(in *Inst, live bitset) ([]LocalID, bitset) {
+func (u *unwindFill) withHeld(in *midir.Inst, live bitset) ([]midir.LocalID, bitset) {
 	src, lv := u.cur, live
 	for i, a := range in.Args {
 		if u.owned[a] && !lv.has(a) && u.held(in, i) {

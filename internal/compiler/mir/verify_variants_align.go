@@ -1,8 +1,12 @@
 package mir
 
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
 func (s *variantFacts) alignAliases(o *variantFacts) bool {
 	type pair struct {
-		l    LocalID
+		l    midir.LocalID
 		a, b vplace
 	}
 	var diff []pair
@@ -37,7 +41,7 @@ func (s *variantFacts) alignAliases(o *variantFacts) bool {
 
 func aliasable(pl vplace) bool { return pl.tag == tagValue || pl.tag == tagEmptied }
 
-func (s *variantFacts) rebase(from vplace, l LocalID) {
+func (s *variantFacts) rebase(from vplace, l midir.LocalID) {
 	own := vplace{root: l}
 	if from == own {
 		return
@@ -74,7 +78,7 @@ func (s *variantFacts) rebase(from vplace, l LocalID) {
 	}
 }
 
-func (im *implied) rebased(from vplace, l LocalID) *implied {
+func (im *implied) rebased(from vplace, l midir.LocalID) *implied {
 	var out *implied
 	for pl, set := range im.facts {
 		if !aliasable(pl) || pl.root != from.root || pl.path != from.path {

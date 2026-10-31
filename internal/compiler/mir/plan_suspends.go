@@ -1,10 +1,14 @@
 package mir
 
-import "slices"
+import (
+	"slices"
+
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
 // liveAtSuspends is a backward liveness over every local; entry k holds
 // what is live right after the suspension point numbered k.
-func liveAtSuspends(f *Func) []bitset {
+func liveAtSuspends(f *midir.Func) []bitset {
 	n := len(f.Blocks)
 	words := (len(f.Locals) + 63) / 64
 	liveIn := make([]bitset, n)
@@ -32,12 +36,12 @@ func liveAtSuspends(f *Func) []bitset {
 			}
 			for i := len(blk.Insts) - 1; i >= 0; i-- {
 				in := &blk.Insts[i]
-				if in.Op == OpAwait && in.Index < len(suspended) {
+				if in.Op == midir.OpAwait && in.Index < len(suspended) {
 					for w, x := range live {
 						suspended[in.Index][w] |= x
 					}
 				}
-				if shapes[in.Op].result {
+				if in.Op.Yields() {
 					live.clear(in.Dst)
 				}
 				for _, a := range in.Args {
@@ -54,16 +58,16 @@ func liveAtSuspends(f *Func) []bitset {
 }
 
 // backwardOrder lists unreachable blocks, then reachable ones in postorder, which settles a backward flow in few sweeps.
-func backwardOrder(f *Func) []BlockID {
+func backwardOrder(f *midir.Func) []midir.BlockID {
 	rpo := reversePostorder(f)
 	reached := make([]bool, len(f.Blocks))
 	for _, bid := range rpo {
 		reached[bid] = true
 	}
-	var order []BlockID
+	var order []midir.BlockID
 	for bid := range f.Blocks {
 		if !reached[bid] {
-			order = append(order, BlockID(bid))
+			order = append(order, midir.BlockID(bid))
 		}
 	}
 	for i := len(rpo) - 1; i >= 0; i-- {

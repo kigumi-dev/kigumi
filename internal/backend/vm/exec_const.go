@@ -2,10 +2,11 @@ package vm
 
 import (
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func (m *Machine) constant(in *mir.Inst) *obj {
+func (m *Machine) constant(in *midir.Inst) *obj {
 	lit := in.Lit
 	tt := m.r.Types
 	switch {
@@ -47,7 +48,7 @@ func (m *Machine) constant(in *mir.Inst) *obj {
 		ent := m.typeEnt(in.Type)
 		fields := make([]*obj, len(lit.Fields))
 		for i, f := range m.r.TypeDecl(ent).Fields {
-			fields[i] = m.constant(&mir.Inst{Lit: lit.Fields[i], Type: m.r.Entity(f).Type})
+			fields[i] = m.constant(&midir.Inst{Lit: lit.Fields[i], Type: m.r.Entity(f).Type})
 		}
 		return mkRecord(ent, fields)
 	}

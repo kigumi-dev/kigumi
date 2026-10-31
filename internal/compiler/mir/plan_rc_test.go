@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/devkit/semfixture"
 )
@@ -39,7 +40,7 @@ func TestPlanRCCorpus(t *testing.T) {
 			if err := prog.Apply(mir.Transform{Name: "plan-rc", Run: mir.PlanRC}); err != nil {
 				t.Fatalf("plan-rc: %v\n%s", err, prog.Dump())
 			}
-			var funcs []*mir.Func
+			var funcs []*midir.Func
 			funcs = append(funcs, prog.Funcs...)
 			for _, cf := range prog.Comptime {
 				funcs = append(funcs, cf.Func)
@@ -47,10 +48,10 @@ func TestPlanRCCorpus(t *testing.T) {
 			for _, f := range funcs {
 				for _, blk := range f.Blocks {
 					for _, in := range blk.Insts {
-						if in.Op == mir.OpCopy {
+						if in.Op == midir.OpCopy {
 							t.Errorf("%s: OpCopy survived plan-rc", f.Name)
 						}
-						if in.Op == mir.OpRelease {
+						if in.Op == midir.OpRelease {
 							sawRelease.Store(true)
 						}
 					}
@@ -62,10 +63,10 @@ func TestPlanRCCorpus(t *testing.T) {
 
 // rcLocals builds a locals slice where isNamed marks which indices carry a
 // nonzero Ent (as if a real declared local), the rest being temporaries.
-func rcLocals(t sem.TypeID, ent sem.EntityID, named ...bool) []mir.Local {
-	ls := make([]mir.Local, len(named))
+func rcLocals(t sem.TypeID, ent sem.EntityID, named ...bool) []midir.Local {
+	ls := make([]midir.Local, len(named))
 	for i, n := range named {
-		ls[i] = mir.Local{Name: "t", Type: t}
+		ls[i] = midir.Local{Name: "t", Type: t}
 		if n {
 			ls[i].Ent = ent
 		}
@@ -74,9 +75,9 @@ func rcLocals(t sem.TypeID, ent sem.EntityID, named ...bool) []mir.Local {
 }
 
 // planRC skips the Verify calls Apply makes: these fixtures isolate one decision and are not valid functions.
-func planRC(t *testing.T, f *mir.Func, p *mir.Program) {
+func planRC(t *testing.T, f *midir.Func, p *mir.Program) {
 	t.Helper()
-	p.Funcs = []*mir.Func{f}
+	p.Funcs = []*midir.Func{f}
 	if err := mir.PlanRC(p); err != nil {
 		t.Fatalf("plan-rc: %v", err)
 	}
@@ -88,12 +89,12 @@ func TestPlanRCAlias(t *testing.T) {
 	p := program(t)
 	locals := rcLocals(sem.TyI64, 0, false, false)
 	f := fn("alias", sem.TyI64, locals,
-		mir.Block{Insts: []mir.Inst{
-			{Op: mir.OpConst, Dst: 0, Type: sem.TyI64, Lit: sem.Literal{Kind: sem.LitInt}},
-			{Op: mir.OpCopy, Dst: 1, Args: []mir.LocalID{0}},
+		midir.Block{Insts: []midir.Inst{
+			{Op: midir.OpConst, Dst: 0, Type: sem.TyI64, Lit: sem.Literal{Kind: sem.LitInt}},
+			{Op: midir.OpCopy, Dst: 1, Args: []midir.LocalID{0}},
 		}, Term: ret(1)})
 	planRC(t, f, p)
-	if op := f.Blocks[0].Insts[1].Op; op != mir.OpAlias {
+	if op := f.Blocks[0].Insts[1].Op; op != midir.OpAlias {
 		t.Fatalf("got %s, want alias", op)
 	}
 }
@@ -104,13 +105,13 @@ func TestPlanRCShareFlag(t *testing.T) {
 	p := program(t)
 	locals := rcLocals(sem.TyI64, 0, false, false)
 	f := fn("shareflag", sem.TyI64, locals,
-		mir.Block{Insts: []mir.Inst{
-			{Op: mir.OpConst, Dst: 0, Type: sem.TyI64, Lit: sem.Literal{Kind: sem.LitInt}},
-			{Op: mir.OpCopy, Dst: 1, Args: []mir.LocalID{0}, Share: true},
+		midir.Block{Insts: []midir.Inst{
+			{Op: midir.OpConst, Dst: 0, Type: sem.TyI64, Lit: sem.Literal{Kind: sem.LitInt}},
+			{Op: midir.OpCopy, Dst: 1, Args: []midir.LocalID{0}, Share: true},
 		}, Term: ret(1)})
 	planRC(t, f, p)
 	in := f.Blocks[0].Insts[1]
-	if in.Op != mir.OpShare || !in.Copy {
+	if in.Op != midir.OpShare || !in.Copy {
 		t.Fatalf("got %s copy=%v, want share copy=true", in.Op, in.Copy)
 	}
 }
@@ -123,11 +124,11 @@ func TestPlanRCShareDefault(t *testing.T) {
 	ent := p.R.Types.ErrorEnt()
 	locals := rcLocals(res, ent, true, true)
 	f := fn("sharedefault", res, locals,
-		mir.Block{Insts: []mir.Inst{{Op: mir.OpCopy, Dst: 1, Args: []mir.LocalID{0}}}, Term: mir.Term{Op: mir.TermReturn, Args: []mir.LocalID{0}}})
-	f.Params = []mir.LocalID{0}
+		midir.Block{Insts: []midir.Inst{{Op: midir.OpCopy, Dst: 1, Args: []midir.LocalID{0}}}, Term: midir.Term{Op: midir.TermReturn, Args: []midir.LocalID{0}}})
+	f.Params = []midir.LocalID{0}
 	planRC(t, f, p)
 	in := f.Blocks[0].Insts[0]
-	if in.Op != mir.OpShare || in.Copy {
+	if in.Op != midir.OpShare || in.Copy {
 		t.Fatalf("got %s copy=%v, want share copy=false (retain)", in.Op, in.Copy)
 	}
 }
@@ -138,14 +139,14 @@ func TestPlanRCBorrowNoShare(t *testing.T) {
 	p := program(t)
 	ent := p.R.Types.ErrorEnt()
 	ref := p.R.Types.Ref(sem.TyI64, false)
-	locals := []mir.Local{{Name: "x", Type: sem.TyI64, Ent: ent}, {Name: "r", Type: ref, Ent: ent}, {Name: "r2", Type: ref, Ent: ent}}
+	locals := []midir.Local{{Name: "x", Type: sem.TyI64, Ent: ent}, {Name: "r", Type: ref, Ent: ent}, {Name: "r2", Type: ref, Ent: ent}}
 	f := fn("borrownoshare", sem.TyUnit, locals,
-		mir.Block{Insts: []mir.Inst{
-			{Op: mir.OpBorrow, Dst: 1, Args: []mir.LocalID{0}},
-			{Op: mir.OpCopy, Dst: 2, Args: []mir.LocalID{1}},
+		midir.Block{Insts: []midir.Inst{
+			{Op: midir.OpBorrow, Dst: 1, Args: []midir.LocalID{0}},
+			{Op: midir.OpCopy, Dst: 2, Args: []midir.LocalID{1}},
 		}, Term: ret(2)})
 	planRC(t, f, p)
-	if op := f.Blocks[0].Insts[1].Op; op != mir.OpAlias {
+	if op := f.Blocks[0].Insts[1].Op; op != midir.OpAlias {
 		t.Fatalf("got %s, want alias (a reference is never shared)", op)
 	}
 }
@@ -155,23 +156,23 @@ func TestPlanRCArgShare(t *testing.T) {
 	ent := p.R.Types.ErrorEnt()
 	locals := rcLocals(sem.TyI64, ent, true, false, false)
 	f := fn("argshare", sem.TyI64, locals,
-		mir.Block{Insts: []mir.Inst{
-			{Op: mir.OpCopy, Dst: 1, Args: []mir.LocalID{0}},
-			{Op: mir.OpTag, Dst: 2, Args: []mir.LocalID{1}},
+		midir.Block{Insts: []midir.Inst{
+			{Op: midir.OpCopy, Dst: 1, Args: []midir.LocalID{0}},
+			{Op: midir.OpTag, Dst: 2, Args: []midir.LocalID{1}},
 		}, Term: ret(2)})
-	f.Params = []mir.LocalID{0}
+	f.Params = []midir.LocalID{0}
 	planRC(t, f, p)
 	insts := f.Blocks[0].Insts
 	if len(insts) != 3 {
 		t.Fatalf("got %d instructions, want 3 (alias, share, tag): %s", len(insts), p.Dump())
 	}
-	if insts[0].Op != mir.OpAlias {
+	if insts[0].Op != midir.OpAlias {
 		t.Fatalf("insts[0] = %s, want alias", insts[0].Op)
 	}
-	if insts[1].Op != mir.OpShare || !insts[1].Copy || insts[1].Args[0] != 1 {
+	if insts[1].Op != midir.OpShare || !insts[1].Copy || insts[1].Args[0] != 1 {
 		t.Fatalf("insts[1] = %+v, want an eager copy-share of local 1", insts[1])
 	}
-	if insts[2].Op != mir.OpTag || insts[2].Args[0] != insts[1].Dst {
+	if insts[2].Op != midir.OpTag || insts[2].Args[0] != insts[1].Dst {
 		t.Fatalf("insts[2] = %+v, want tag of the shared value", insts[2])
 	}
 }
@@ -182,11 +183,11 @@ func TestPlanRCReturnShare(t *testing.T) {
 	p := program(t)
 	ent := p.R.Types.ErrorEnt()
 	locals := rcLocals(sem.TyI64, ent, true)
-	f := fn("returnshare", sem.TyI64, locals, mir.Block{Term: ret(0)})
-	f.Params = []mir.LocalID{0}
+	f := fn("returnshare", sem.TyI64, locals, midir.Block{Term: ret(0)})
+	f.Params = []midir.LocalID{0}
 	planRC(t, f, p)
 	insts := f.Blocks[0].Insts
-	if len(insts) != 1 || insts[0].Op != mir.OpShare {
+	if len(insts) != 1 || insts[0].Op != midir.OpShare {
 		t.Fatalf("got %v, want one share before the return", insts)
 	}
 	if got := f.Blocks[0].Term.Args[0]; got != insts[0].Dst {
@@ -194,8 +195,8 @@ func TestPlanRCReturnShare(t *testing.T) {
 	}
 
 	locals2 := rcLocals(sem.TyI64, 0, false)
-	f2 := fn("returntemp", sem.TyI64, locals2, mir.Block{Insts: []mir.Inst{
-		{Op: mir.OpConst, Dst: 0, Type: sem.TyI64, Lit: sem.Literal{Kind: sem.LitInt}},
+	f2 := fn("returntemp", sem.TyI64, locals2, midir.Block{Insts: []midir.Inst{
+		{Op: midir.OpConst, Dst: 0, Type: sem.TyI64, Lit: sem.Literal{Kind: sem.LitInt}},
 	}, Term: ret(0)})
 	planRC(t, f2, p)
 	if insts := f2.Blocks[0].Insts; len(insts) != 1 {
@@ -208,16 +209,16 @@ func TestPlanRCAliasChainReturnShare(t *testing.T) {
 	p := program(t)
 	ent := p.R.Types.ErrorEnt()
 	ref := p.R.Types.Ref(sem.TyF64, false)
-	locals := []mir.Local{{Name: "x", Type: ref, Ent: ent}, {Name: "t1", Type: sem.TyF64}, {Name: "t2", Type: sem.TyF64}}
+	locals := []midir.Local{{Name: "x", Type: ref, Ent: ent}, {Name: "t1", Type: sem.TyF64}, {Name: "t2", Type: sem.TyF64}}
 	f := fn("aliaschain", sem.TyF64, locals,
-		mir.Block{Insts: []mir.Inst{
-			{Op: mir.OpAlias, Dst: 1, Args: []mir.LocalID{0}},
-			{Op: mir.OpAlias, Dst: 2, Args: []mir.LocalID{1}},
+		midir.Block{Insts: []midir.Inst{
+			{Op: midir.OpAlias, Dst: 1, Args: []midir.LocalID{0}},
+			{Op: midir.OpAlias, Dst: 2, Args: []midir.LocalID{1}},
 		}, Term: ret(2)})
-	f.Params = []mir.LocalID{0}
+	f.Params = []midir.LocalID{0}
 	planRC(t, f, p)
 	insts := f.Blocks[0].Insts
-	if len(insts) != 3 || insts[2].Op != mir.OpShare {
+	if len(insts) != 3 || insts[2].Op != midir.OpShare {
 		t.Fatalf("got %v, want the two aliases plus one share before the return", insts)
 	}
 	if got := f.Blocks[0].Term.Args[0]; got != insts[2].Dst {
@@ -248,24 +249,24 @@ fn main() -> Void! {}
 	}
 	run := funcNamed(t, prog, "main.run")
 	for _, blk := range run.Blocks {
-		released := map[mir.LocalID]bool{}
+		released := map[midir.LocalID]bool{}
 		for _, in := range blk.Insts {
-			if in.Op == mir.OpRelease {
+			if in.Op == midir.OpRelease {
 				released[in.Args[0]] = true
 			}
 		}
-		cellRead := map[mir.LocalID]bool{}
-		shared := map[mir.LocalID]bool{}
+		cellRead := map[midir.LocalID]bool{}
+		shared := map[midir.LocalID]bool{}
 		for _, in := range blk.Insts {
 			switch in.Op {
-			case mir.OpCellGet:
+			case midir.OpCellGet:
 				cellRead[in.Dst] = true
-			case mir.OpShare:
+			case midir.OpShare:
 				shared[in.Dst] = true
 				if cellRead[in.Args[0]] && !released[in.Args[0]] {
 					t.Errorf("the read %%t%d a share copies is never released:\n%s", in.Args[0], prog.Dump())
 				}
-			case mir.OpClosure:
+			case midir.OpClosure:
 				for _, a := range in.Args {
 					if shared[a] && !released[a] {
 						t.Errorf("the share %%t%d a closure retains again is never released:\n%s", a, prog.Dump())

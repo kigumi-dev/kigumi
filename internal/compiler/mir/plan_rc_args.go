@@ -3,15 +3,16 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func (p *Program) shareArgs(f *Func, in *Inst, st *rcState, out *[]Inst, w *shareFacts, at Point) []LocalID {
+func (p *Program) shareArgs(f *midir.Func, in *midir.Inst, st *rcState, out *[]midir.Inst, w *shareFacts, at Point) []midir.LocalID {
 	if len(in.Args) == 0 {
 		return nil
 	}
-	var back []LocalID
-	args := append([]LocalID(nil), in.Args...)
+	var back []midir.LocalID
+	args := append([]midir.LocalID(nil), in.Args...)
 	for i, a := range args {
 		kind := p.sinkAt(f, *in, i, w.sum)
 		switch {
@@ -37,28 +38,28 @@ func (p *Program) shareArgs(f *Func, in *Inst, st *rcState, out *[]Inst, w *shar
 	return back
 }
 
-func (p *Program) copyArg(f *Func, in *Inst, a LocalID, slot *LocalID, out *[]Inst) LocalID {
-	t := f.newTemp(f.Locals[a].Type)
-	*out = append(*out, Inst{Op: OpShare, Dst: t, Args: []LocalID{a}, Copy: true, IfWritable: p.R.WritableByParam(f.Locals[a].Type), Own: true, Node: in.Node})
+func (p *Program) copyArg(f *midir.Func, in *midir.Inst, a midir.LocalID, slot *midir.LocalID, out *[]midir.Inst) midir.LocalID {
+	t := newTemp(f, f.Locals[a].Type)
+	*out = append(*out, midir.Inst{Op: midir.OpShare, Dst: t, Args: []midir.LocalID{a}, Copy: true, IfWritable: p.R.WritableByParam(f.Locals[a].Type), Own: true, Node: in.Node})
 	*slot = t
 	return t
 }
 
-func (p *Program) holdArg(f *Func, in Inst, i int, kind sinkKind, st *rcState, out *[]Inst, w *shareFacts, at Point) LocalID {
+func (p *Program) holdArg(f *midir.Func, in midir.Inst, i int, kind sinkKind, st *rcState, out *[]midir.Inst, w *shareFacts, at Point) midir.LocalID {
 	a := in.Args[i]
 	o := st.origin(a)
-	t := f.newTemp(f.Locals[a].Type)
+	t := newTemp(f, f.Locals[a].Type)
 	last := p.handsOver(f, in, i, kind, st, w, at)
 	src := a
 	if last {
 		src = o
 	}
 	retain := !last && kind == noSink && p.retainsArg(f, in, i, o, w)
-	*out = append(*out, Inst{Op: OpShare, Dst: t, Args: []LocalID{src}, Copy: p.copyable(f.Locals[o].Type), Node: in.Node, Last: last, Retain: retain})
+	*out = append(*out, midir.Inst{Op: midir.OpShare, Dst: t, Args: []midir.LocalID{src}, Copy: p.copyable(f.Locals[o].Type), Node: in.Node, Last: last, Retain: retain})
 	return t
 }
 
-func (p *Program) handsOver(f *Func, in Inst, i int, kind sinkKind, st *rcState, w *shareFacts, at Point) bool {
+func (p *Program) handsOver(f *midir.Func, in midir.Inst, i int, kind sinkKind, st *rcState, w *shareFacts, at Point) bool {
 	a := in.Args[i]
 	o := st.origin(a)
 	if !p.movable(f, o) || w.observed(o, at) || w.liveness().after(a, at.Block, at.Inst) {
@@ -79,7 +80,7 @@ func (p *Program) handsOver(f *Func, in Inst, i int, kind sinkKind, st *rcState,
 	return (w.ownsBox(o) || w.leftBehind(in, i, at)) && w.freshAlias(a, o, at)
 }
 
-func (w *shareFacts) freshAlias(a, o LocalID, at Point) bool {
+func (w *shareFacts) freshAlias(a, o midir.LocalID, at Point) bool {
 	blk := w.blocks[at.Block]
 	v := a
 	for k := at.Inst - 1; k >= 0 && v != o; k-- {
@@ -89,7 +90,7 @@ func (w *shareFacts) freshAlias(a, o LocalID, at Point) bool {
 		case x.Dst == o:
 			return false
 		case x.Dst == v:
-			if x.Op != OpAlias && (x.Op != OpCopy || x.Share) || len(x.Args) != 1 {
+			if x.Op != midir.OpAlias && (x.Op != midir.OpCopy || x.Share) || len(x.Args) != 1 {
 				return false
 			}
 			v = x.Args[0]
@@ -98,9 +99,9 @@ func (w *shareFacts) freshAlias(a, o LocalID, at Point) bool {
 	return v == o
 }
 
-func returned(f *Func, l LocalID) bool {
+func returned(f *midir.Func, l midir.LocalID) bool {
 	for _, b := range f.Blocks {
-		if b.Term.Op == TermReturn && len(b.Term.Args) > 0 && b.Term.Args[0] == l {
+		if b.Term.Op == midir.TermReturn && len(b.Term.Args) > 0 && b.Term.Args[0] == l {
 			return true
 		}
 	}
@@ -108,7 +109,7 @@ func returned(f *Func, l LocalID) bool {
 }
 
 // countless reports whether l holds no count: a borrow, an alias of one, or a lent reference parameter.
-func (p *Program) countless(f *Func, st *rcState, l LocalID) bool {
+func (p *Program) countless(f *midir.Func, st *rcState, l midir.LocalID) bool {
 	if st.borrowed[l] || st.viaBorrow[l] {
 		return true
 	}

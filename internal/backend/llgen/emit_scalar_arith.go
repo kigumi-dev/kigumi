@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 // scalarBinary checks both operands are scalar-eligible; the MIR type
 // checker never mixes register kinds within one binary op.
-func (e *emitter) scalarBinary(sb *strings.Builder, f *mir.Func, in mir.Inst) bool {
+func (e *emitter) scalarBinary(sb *strings.Builder, f *midir.Func, in midir.Inst) bool {
 	lt := e.operandType(f.Locals[in.Args[0]].Type)
 	lty, lok := e.scalarType(lt)
 	rty, rok := e.scalarType(e.operandType(f.Locals[in.Args[1]].Type))
@@ -28,7 +28,7 @@ func (e *emitter) scalarBinary(sb *strings.Builder, f *mir.Func, in mir.Inst) bo
 
 // scalarUnary computes OpUnary's non-"cast" operators (!, -, ~) natively;
 // cast is excluded upstream (classifyArgs and tryScalarInst).
-func (e *emitter) scalarUnary(sb *strings.Builder, f *mir.Func, in mir.Inst) bool {
+func (e *emitter) scalarUnary(sb *strings.Builder, f *midir.Func, in midir.Inst) bool {
 	t := e.operandType(f.Locals[in.Args[0]].Type)
 	ty, ok := e.scalarType(t)
 	if !ok {

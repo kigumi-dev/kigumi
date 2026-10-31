@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const specProtoSrc = `
@@ -29,28 +29,28 @@ fn sameNamed(a: Named, b: Named) -> Bool { a == b }
 fn main() -> Void! {}
 `
 
-func builtinNamed(f *mir.Func, name string) (mir.Inst, bool) {
+func builtinNamed(f *midir.Func, name string) (midir.Inst, bool) {
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == mir.OpBuiltin && in.Str == name {
+			if in.Op == midir.OpBuiltin && in.Str == name {
 				return in, true
 			}
 		}
 	}
-	return mir.Inst{}, false
+	return midir.Inst{}, false
 }
 
 func TestSpecializeTurnsADerivedEqualsIntoTheDirectComparison(t *testing.T) {
 	p := specialized(t, specProtoSrc)
 	same := funcNamed(t, p, "main.same")
 	in, ok := builtinNamed(same, "direct.eq")
-	if !ok || countOp(same, mir.OpCall) != 0 || countOp(same, mir.OpBorrow) != 0 {
+	if !ok || countOp(same, midir.OpCall) != 0 || countOp(same, midir.OpBorrow) != 0 {
 		t.Fatalf("the comparison is still a call over a borrow:\n%s", p.Dump())
 	}
 	if f := same; !f.IsDirect(in.Args[0]) || !f.IsDirect(in.Args[1]) {
 		t.Errorf("an operand of the comparison is boxed:\n%s", p.Dump())
 	}
-	if n := countOp(same, mir.OpBoxDirect) + countOp(same, mir.OpUnboxDirect); n != 0 {
+	if n := countOp(same, midir.OpBoxDirect) + countOp(same, midir.OpUnboxDirect); n != 0 {
 		t.Errorf("the comparison crosses %d times", n)
 	}
 	body := funcNamed(t, p, "main.Point.equals")
@@ -65,7 +65,7 @@ func TestSpecializeTurnsADerivedEqualsIntoTheDirectComparison(t *testing.T) {
 func TestSpecializeTurnsTheHashOfARecordIntoTheDirectHash(t *testing.T) {
 	p := specialized(t, specProtoSrc)
 	f := funcNamed(t, p, "main.fingerprint")
-	if _, ok := builtinNamed(f, "direct.hash"); !ok || countOp(f, mir.OpCall) != 0 || countOp(f, mir.OpBoxDirect) != 0 {
+	if _, ok := builtinNamed(f, "direct.hash"); !ok || countOp(f, midir.OpCall) != 0 || countOp(f, midir.OpBoxDirect) != 0 {
 		t.Errorf("the hash is still a call or a box:\n%s", p.Dump())
 	}
 }
@@ -73,7 +73,7 @@ func TestSpecializeTurnsTheHashOfARecordIntoTheDirectHash(t *testing.T) {
 func TestSpecializeGivesATupleOfScalarsItsOwnComparison(t *testing.T) {
 	p := specialized(t, specProtoSrc)
 	f := funcNamed(t, p, "main.sameTuple")
-	if _, ok := builtinNamed(f, "direct.eq"); !ok || countOp(f, mir.OpCall) != 0 {
+	if _, ok := builtinNamed(f, "direct.eq"); !ok || countOp(f, midir.OpCall) != 0 {
 		t.Errorf("the tuple comparison is still a call:\n%s", p.Dump())
 	}
 	found := false
@@ -88,7 +88,7 @@ func TestSpecializeGivesATupleOfScalarsItsOwnComparison(t *testing.T) {
 func TestSpecializeLeavesARecordWithAStringAlone(t *testing.T) {
 	p := specialized(t, specProtoSrc)
 	f := funcNamed(t, p, "main.sameNamed")
-	if _, ok := builtinNamed(f, "direct.eq"); ok || countOp(f, mir.OpCall) == 0 {
+	if _, ok := builtinNamed(f, "direct.eq"); ok || countOp(f, midir.OpCall) == 0 {
 		t.Errorf("a record that is not direct was compared in place:\n%s", p.Dump())
 	}
 	if funcNamed(t, p, "main.Named.equals").Proto != "" {
@@ -101,8 +101,8 @@ func TestVerifyRejectsAComparisonOfAnotherType(t *testing.T) {
 	same := funcNamed(t, p, "main.same")
 	for bi := range same.Blocks {
 		for k, in := range same.Blocks[bi].Insts {
-			if in.Op == mir.OpBuiltin && in.Str == "direct.eq" {
-				same.Blocks[bi].Insts[k].Args = []mir.LocalID{in.Args[0]}
+			if in.Op == midir.OpBuiltin && in.Str == "direct.eq" {
+				same.Blocks[bi].Insts[k].Args = []midir.LocalID{in.Args[0]}
 			}
 		}
 	}

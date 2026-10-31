@@ -1,13 +1,14 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
 
 // paramLifetime is prm's own named lifetime (an explicit `'a` tag, self's sole
 // lifetime parameter, or a `T: Peek['a]` bound) and the node to blame on escape.
-func (c *borrowCheck) paramLifetime(prm LocalID) (sem.EntityID, syntax.NodeID) {
+func (c *borrowCheck) paramLifetime(prm midir.LocalID) (sem.EntityID, syntax.NodeID) {
 	ent := c.f.Locals[prm].Ent
 	if ent == 0 || c.p.R.Entity(ent).Kind != sem.EntParam {
 		return 0, 0
@@ -76,7 +77,7 @@ func (c *borrowCheck) selfLifetime() sem.EntityID {
 
 // checkLifetimeEscape rejects returning a param-inherited holder under a lifetime
 // it cannot prove matches the function's own declared return lifetime.
-func (c *borrowCheck) checkLifetimeEscape(a LocalID, b *borrowInfo) {
+func (c *borrowCheck) checkLifetimeEscape(a midir.LocalID, b *borrowInfo) {
 	if b.empty || c.closureLifetime(b) && c.retLifetime() != 0 {
 		return
 	}

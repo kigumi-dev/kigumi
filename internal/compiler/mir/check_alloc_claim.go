@@ -1,6 +1,7 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/lang/diag"
@@ -46,14 +47,14 @@ func CheckAllocClaims(p *Program) []AllocClaim {
 	return out
 }
 
-func (p *Program) declaredNoalloc(f *Func) bool {
+func (p *Program) declaredNoalloc(f *midir.Func) bool {
 	if f.Ent == 0 || p.R.Entity(f.Ent).Kind != sem.EntFn {
 		return false
 	}
 	return p.R.Fn(f.Ent).Declared&sem.EffNoalloc != 0
 }
 
-func (p *Program) boxClaims(f *Func, code string) []AllocClaim {
+func (p *Program) boxClaims(f *midir.Func, code string) []AllocClaim {
 	declared := p.declaredNoalloc(f)
 	c, ok := sem.CodeByName(code)
 	if !ok {
@@ -62,7 +63,7 @@ func (p *Program) boxClaims(f *Func, code string) []AllocClaim {
 	var out []AllocClaim
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if typ := p.boxedType(f, in); typ != 0 && (declared || in.Op != OpBorrow) {
+			if typ := p.boxedType(f, in); typ != 0 && (declared || in.Op != midir.OpBorrow) {
 				out = append(out, p.claimAt(f, c, in.Node, typ))
 			}
 		}
@@ -70,11 +71,11 @@ func (p *Program) boxClaims(f *Func, code string) []AllocClaim {
 	return out
 }
 
-func (p *Program) claimAt(f *Func, c sem.Code, n syntax.NodeID, typ sem.TypeID) AllocClaim {
+func (p *Program) claimAt(f *midir.Func, c sem.Code, n syntax.NodeID, typ sem.TypeID) AllocClaim {
 	return p.claimWith(f, c, n, typ, c.Help)
 }
 
-func (p *Program) claimWith(f *Func, c sem.Code, n syntax.NodeID, typ sem.TypeID, help string) AllocClaim {
+func (p *Program) claimWith(f *midir.Func, c sem.Code, n syntax.NodeID, typ sem.TypeID, help string) AllocClaim {
 	t := p.R.Tree(f.File)
 	msg := sem.FillTemplate(c.Template, p.R.Entity(f.Ent).Name, p.R.TypeString(typ))
 	if help != "" {
@@ -86,7 +87,7 @@ func (p *Program) claimWith(f *Func, c sem.Code, n syntax.NodeID, typ sem.TypeID
 }
 
 // A box is reported as a diagnostic; a copy in a `noalloc` body is a compiler fault unless sem charged it, where a declaration already rejected it.
-func (p *Program) verifyAllocClaim(f *Func) *Error {
+func (p *Program) verifyAllocClaim(f *midir.Func) *Error {
 	if f.Ent == 0 {
 		return nil
 	}
@@ -102,13 +103,13 @@ func (p *Program) verifyAllocClaim(f *Func) *Error {
 			if declared && p.copyAccounted(f, in) {
 				continue
 			}
-			return fail("alloc-claim", BlockID(bid), i, "copies %s where the summary claims no allocation", p.R.TypeString(p.copiedType(f, in)))
+			return fail("alloc-claim", midir.BlockID(bid), i, "copies %s where the summary claims no allocation", p.R.TypeString(p.copiedType(f, in)))
 		}
 	}
 	return nil
 }
 
-func (p *Program) copyAccounted(f *Func, in Inst) bool {
+func (p *Program) copyAccounted(f *midir.Func, in midir.Inst) bool {
 	if _, deferred := p.paramCopy(f, in); deferred {
 		return true
 	}

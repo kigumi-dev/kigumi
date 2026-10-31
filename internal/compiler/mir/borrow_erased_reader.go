@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
@@ -11,37 +12,37 @@ import (
 type erasedReaders struct {
 	bc *borrowCheck
 	p  *Program
-	f  *Func
+	f  *midir.Func
 	// closures carry cell places as closure values; caps carry them as plain `fn` values, the holders the check follows.
-	closures map[LocalID][]capturedPlace
-	caps     map[LocalID][]capturedPlace
+	closures map[midir.LocalID][]capturedPlace
+	caps     map[midir.LocalID][]capturedPlace
 	// site is where the closure a holder runs became a plain `fn`; found keeps the earliest write seen for each site.
-	site  map[LocalID]syntax.NodeID
+	site  map[midir.LocalID]syntax.NodeID
 	found map[syntax.NodeID]erasedWrite
 	prior map[reportKey]int
 	fates fateMemo
-	defs  map[LocalID]*Inst
+	defs  map[midir.LocalID]*midir.Inst
 	win   erasedWindow
 }
 
 type erasedWrite struct {
 	write syntax.NodeID
-	root  LocalID
+	root  midir.LocalID
 	how   erasedHow
 }
 
 // checkErasedReaders: a plain `fn` cannot share a cell, so the local is not written between the making of a closure reading
 // it and the last run of the plain `fn` made from it; sem judges writes made inside closures.
-func checkErasedReaders(state *borrowAnalysis, f *Func, prior map[reportKey]int) {
+func checkErasedReaders(state *borrowAnalysis, f *midir.Func, prior map[reportKey]int) {
 	p := state.Program
-	if !slices.ContainsFunc(f.Blocks, func(b Block) bool {
-		return slices.ContainsFunc(b.Insts, func(in Inst) bool { return storageClosure(p, in, lentReach) })
+	if !slices.ContainsFunc(f.Blocks, func(b midir.Block) bool {
+		return slices.ContainsFunc(b.Insts, func(in midir.Inst) bool { return storageClosure(p, in, lentReach) })
 	}) {
 		return
 	}
-	e := &erasedReaders{bc: quietBorrowCheck(state, f), p: p, f: f, closures: map[LocalID][]capturedPlace{}, caps: map[LocalID][]capturedPlace{},
-		site: map[LocalID]syntax.NodeID{}, found: map[syntax.NodeID]erasedWrite{}, prior: prior,
-		fates: fateMemo{results: map[resultKey]paramFate{}, checks: map[*Func]*borrowCheck{}}, defs: soleDefs(f)}
+	e := &erasedReaders{bc: quietBorrowCheck(state, f), p: p, f: f, closures: map[midir.LocalID][]capturedPlace{}, caps: map[midir.LocalID][]capturedPlace{},
+		site: map[midir.LocalID]syntax.NodeID{}, found: map[syntax.NodeID]erasedWrite{}, prior: prior,
+		fates: fateMemo{results: map[resultKey]paramFate{}, checks: map[*midir.Func]*borrowCheck{}}, defs: soleDefs(f)}
 	e.solve()
 	if len(e.caps) > 0 {
 		c := newReadCheck(p, f)
@@ -55,8 +56,8 @@ func checkErasedReaders(state *borrowAnalysis, f *Func, prior map[reportKey]int)
 	e.flush()
 }
 
-func storageClosure(p *Program, in Inst, reach capReach) bool {
-	return in.Op == OpClosure && p.R.Entity(in.Ent).Kind == sem.EntClosure &&
+func storageClosure(p *Program, in midir.Inst, reach capReach) bool {
+	return in.Op == midir.OpClosure && p.R.Entity(in.Ent).Kind == sem.EntClosure &&
 		slices.ContainsFunc(p.R.Closure(in.Ent).Captures, func(cp sem.Capture) bool { return reach(cp.Mode) })
 }
 
@@ -66,7 +67,7 @@ func (e *erasedReaders) solve() {
 		changed = false
 		for bi := range e.f.Blocks {
 			for _, in := range e.f.Blocks[bi].Insts {
-				if in.Op == OpDrop {
+				if in.Op == midir.OpDrop {
 					continue
 				}
 				if storageClosure(e.p, in, cellReach) && addPlaces(e.closures, in.Dst, e.cellCaptures(in)) {
@@ -87,7 +88,7 @@ func (e *erasedReaders) solve() {
 
 // flow moves what src carries into dst: a closure value stays one while dst's type still names a closure type or a
 // type parameter and becomes a plain `fn` otherwise; a plain `fn` stays one wherever it goes.
-func (e *erasedReaders) flow(in Inst, dst, src LocalID) bool {
+func (e *erasedReaders) flow(in midir.Inst, dst, src midir.LocalID) bool {
 	if dst == src || int(dst) >= len(e.f.Locals) || !holdsCallable(e.bc, e.f.Locals[dst].Type) {
 		return false
 	}
@@ -110,13 +111,13 @@ func (e *erasedReaders) flow(in Inst, dst, src LocalID) bool {
 	return grew
 }
 
-func (e *erasedReaders) siteOf(l LocalID, n syntax.NodeID) {
+func (e *erasedReaders) siteOf(l midir.LocalID, n syntax.NodeID) {
 	if _, ok := e.site[l]; !ok && n != 0 {
 		e.site[l] = n
 	}
 }
 
-func (e *erasedReaders) cellCaptures(in Inst) []capturedPlace {
+func (e *erasedReaders) cellCaptures(in midir.Inst) []capturedPlace {
 	var out []capturedPlace
 	for ci, cp := range e.p.R.Closure(in.Ent).Captures {
 		if cp.Mode != sem.CapCell || ci >= len(in.Args) {
@@ -129,7 +130,7 @@ func (e *erasedReaders) cellCaptures(in Inst) []capturedPlace {
 	return out
 }
 
-func addPlaces(m map[LocalID][]capturedPlace, l LocalID, cps []capturedPlace) bool {
+func addPlaces(m map[midir.LocalID][]capturedPlace, l midir.LocalID, cps []capturedPlace) bool {
 	grew := false
 	for _, cp := range cps {
 		if !hasCapturedPlace(m[l], cp) {
@@ -142,7 +143,7 @@ func addPlaces(m map[LocalID][]capturedPlace, l LocalID, cps []capturedPlace) bo
 
 // writes are the direct writes of a shared cell: a store into it or into a part of its content, or a `&mut` of either.
 func (e *erasedReaders) writes() []moveEvent {
-	roots := map[LocalID]bool{}
+	roots := map[midir.LocalID]bool{}
 	for _, cps := range e.caps {
 		for _, cp := range cps {
 			roots[cp.root] = true
@@ -154,12 +155,12 @@ func (e *erasedReaders) writes() []moveEvent {
 			switch {
 			case len(in.Args) == 0:
 				continue
-			case in.Op == OpCellSet, in.Op == OpBorrow && in.Index == 1, in.Op == OpSetField, in.Op == OpSetIndex:
+			case in.Op == midir.OpCellSet, in.Op == midir.OpBorrow && in.Index == 1, in.Op == midir.OpSetField, in.Op == midir.OpSetIndex:
 			default:
 				continue
 			}
 			if r := cellRoot(e.defs, in.Args[0]); roots[r] {
-				out = append(out, moveEvent{at: movePos{BlockID(bi), i}, root: r, node: in.Node})
+				out = append(out, moveEvent{at: movePos{midir.BlockID(bi), i}, root: r, node: in.Node})
 			}
 		}
 	}
@@ -167,13 +168,13 @@ func (e *erasedReaders) writes() []moveEvent {
 }
 
 // cellRoot is the cell local whose content l is, or a part of, else l itself.
-func cellRoot(defs map[LocalID]*Inst, l LocalID) LocalID {
+func cellRoot(defs map[midir.LocalID]*midir.Inst, l midir.LocalID) midir.LocalID {
 	for d := defs[l]; d != nil; d = defs[l] {
 		switch d.Op {
-		case OpField, OpIndex, OpPayload:
+		case midir.OpField, midir.OpIndex, midir.OpPayload:
 			l = d.Args[0]
 			continue
-		case OpCellGet:
+		case midir.OpCellGet:
 			return d.Args[0]
 		}
 		break

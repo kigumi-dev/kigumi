@@ -1,6 +1,10 @@
 package mir
 
-func flowHash(f *Func) uint64 {
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
+func flowHash(f *midir.Func) uint64 {
 	h := uint64(14695981039346656037)
 	mix := func(x uint64) {
 		h ^= x
@@ -12,7 +16,7 @@ func flowHash(f *Func) uint64 {
 		}
 		return 0
 	}
-	mix(uint64(f.rcBase)<<1 | flag(f.Async))
+	mix(uint64(f.RCBase)<<1 | flag(f.Async))
 	mix(uint64(f.Ret))
 	for _, prm := range f.Params {
 		mix(uint64(prm))

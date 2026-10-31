@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const resultClaimSrc = `
@@ -26,10 +27,10 @@ fn main() -> Void! {}
 func withValueOf(t *testing.T, p *mir.Program, name, fn string) {
 	t.Helper()
 	f, g := funcNamed(t, p, name), funcNamed(t, p, fn)
-	f.Locals = append(f.Locals, mir.Local{Type: p.R.Fn(g.Ent).Sig})
+	f.Locals = append(f.Locals, midir.Local{Type: p.R.Fn(g.Ent).Sig})
 	f.Direct = append(f.Direct, false)
-	item := mir.Inst{Op: mir.OpFnItem, Dst: mir.LocalID(len(f.Locals) - 1), Ent: g.Ent, Node: f.Blocks[0].Insts[0].Node}
-	f.Blocks[0].Insts = append([]mir.Inst{item}, f.Blocks[0].Insts...)
+	item := midir.Inst{Op: midir.OpFnItem, Dst: midir.LocalID(len(f.Locals) - 1), Ent: g.Ent, Node: f.Blocks[0].Insts[0].Node}
+	f.Blocks[0].Insts = append([]midir.Inst{item}, f.Blocks[0].Insts...)
 }
 
 func TestAllocClaimsReportAValueWhoseEntryBoxes(t *testing.T) {

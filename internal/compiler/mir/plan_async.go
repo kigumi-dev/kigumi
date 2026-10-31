@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -24,7 +25,7 @@ func (p *Program) isAsyncBody(ent sem.EntityID) bool {
 	return e.Kind == sem.EntFn && p.R.Fn(ent).Declared&sem.EffAsync != 0
 }
 
-func planFrame(f *Func, p *Program) {
+func planFrame(f *midir.Func, p *Program) {
 	r := p.R
 	live := liveAtSuspends(f)
 	owned := owningLocals(f, r)
@@ -34,11 +35,11 @@ func planFrame(f *Func, p *Program) {
 		f.Slot[i] = -1
 	}
 	f.Frame = 0
-	f.Cleanup = make([][]LocalID, f.Suspends+1)
-	inFrame := map[LocalID]bool{}
+	f.Cleanup = make([][]midir.LocalID, f.Suspends+1)
+	inFrame := map[midir.LocalID]bool{}
 	for k, at := range live {
-		var clean []LocalID
-		at.each(func(l LocalID) {
+		var clean []midir.LocalID
+		at.each(func(l midir.LocalID) {
 			inFrame[l] = true
 			if src, ok := parent[l]; ok && at.has(src) {
 				return
@@ -58,7 +59,7 @@ func planFrame(f *Func, p *Program) {
 	}
 	f.PanicDrop = nil
 	for i, l := range f.Locals {
-		id := LocalID(i)
+		id := midir.LocalID(i)
 		named := owned[id] && l.Ent != 0
 		if named {
 			inFrame[id] = true
@@ -78,25 +79,25 @@ func planFrame(f *Func, p *Program) {
 
 // owningLocals marks the locals whose slot carries a reference: not a lent
 // receiver, not a lease, and not a borrow of something else.
-func owningLocals(f *Func, r *sem.Result) map[LocalID]bool {
-	owned := map[LocalID]bool{}
+func owningLocals(f *midir.Func, r *sem.Result) map[midir.LocalID]bool {
+	owned := map[midir.LocalID]bool{}
 	for i, l := range f.Locals {
-		owned[LocalID(i)] = !l.Borrowed && r.Types.Kind(l.Type) != sem.KRef
+		owned[midir.LocalID(i)] = !l.Borrowed && r.Types.Kind(l.Type) != sem.KRef
 	}
 	for _, prm := range f.Params {
 		owned[prm] = true
 	}
-	defined := map[LocalID]bool{}
+	defined := map[midir.LocalID]bool{}
 	for _, prm := range f.Params {
 		defined[prm] = true
 	}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if !shapes[in.Op].result {
+			if !in.Op.Yields() {
 				continue
 			}
 			defined[in.Dst] = true
-			if in.Op == OpBorrow || in.Op == OpLendBox || (in.Op == OpBuiltin && in.Str == "iter.at_ref") {
+			if in.Op == midir.OpBorrow || in.Op == midir.OpLendBox || (in.Op == midir.OpBuiltin && in.Str == "iter.at_ref") {
 				owned[in.Dst] = false
 			}
 		}
@@ -111,16 +112,16 @@ func owningLocals(f *Func, r *sem.Result) map[LocalID]bool {
 
 // aliasParents maps a local to the one whose reference it stands for; the
 // two share a reference, so an abandoned frame releases it once.
-func aliasParents(f *Func) map[LocalID]LocalID {
-	parent := map[LocalID]LocalID{}
-	defs := map[LocalID]int{}
+func aliasParents(f *midir.Func) map[midir.LocalID]midir.LocalID {
+	parent := map[midir.LocalID]midir.LocalID{}
+	defs := map[midir.LocalID]int{}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if !shapes[in.Op].result {
+			if !in.Op.Yields() {
 				continue
 			}
 			defs[in.Dst]++
-			if (in.Op == OpAlias || in.Op == OpBorrow) && len(in.Args) == 1 {
+			if (in.Op == midir.OpAlias || in.Op == midir.OpBorrow) && len(in.Args) == 1 {
 				parent[in.Dst] = in.Args[0]
 			}
 		}

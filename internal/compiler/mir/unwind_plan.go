@@ -4,37 +4,38 @@ import (
 	"slices"
 	"sync"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 type unwindMemo struct {
 	mu    sync.Mutex
-	plans map[*Func]*UnwindPlan
+	plans map[*midir.Func]*UnwindPlan
 }
 
 // UnwindPlan lists, per instruction, the owned locals a panic there must release: those used or dropped after it, bar its own result.
 type UnwindPlan struct {
 	// Sets[0] is empty; each set runs from the last declared local to the first.
-	Sets [][]LocalID
+	Sets [][]midir.LocalID
 	// At is -1 where the instruction cannot panic.
 	At [][]int32
 }
 
-func (u *UnwindPlan) SetAt(b BlockID, pc int) []LocalID {
+func (u *UnwindPlan) SetAt(b midir.BlockID, pc int) []midir.LocalID {
 	if int(b) >= len(u.At) || pc >= len(u.At[b]) || u.At[b][pc] < 0 {
 		return nil
 	}
 	return u.Sets[u.At[b][pc]]
 }
 
-func (p *Program) UnwindPlanOf(f *Func) *UnwindPlan {
+func (p *Program) UnwindPlanOf(f *midir.Func) *UnwindPlan {
 	p.unwind.mu.Lock()
 	defer p.unwind.mu.Unlock()
 	if plan, ok := p.unwind.plans[f]; ok {
 		return plan
 	}
 	if p.unwind.plans == nil {
-		p.unwind.plans = map[*Func]*UnwindPlan{}
+		p.unwind.plans = map[*midir.Func]*UnwindPlan{}
 	}
 	plan := planUnwind(f, p.R, false, p.lentParamLocals(f), p.heldBoxes(f))
 	p.unwind.plans[f] = plan
@@ -42,18 +43,18 @@ func (p *Program) UnwindPlanOf(f *Func) *UnwindPlan {
 }
 
 // Nothing here allocates, charges, runs a drop hook or checks a bound.
-func cannotPanic(op Opcode) bool {
+func cannotPanic(op midir.Opcode) bool {
 	switch op {
-	case OpConst, OpUnit, OpAlias, OpMove, OpCopy, OpNop, OpFnItem, OpShare,
-		OpField, OpFieldMove, OpPayload, OpTag, OpIsVariant, OpIsType, OpUnbox, OpBorrow, OpCellGet, OpCellTake:
+	case midir.OpConst, midir.OpUnit, midir.OpAlias, midir.OpMove, midir.OpCopy, midir.OpNop, midir.OpFnItem, midir.OpShare,
+		midir.OpField, midir.OpFieldMove, midir.OpPayload, midir.OpTag, midir.OpIsVariant, midir.OpIsType, midir.OpUnbox, midir.OpBorrow, midir.OpCellGet, midir.OpCellTake:
 		return true
 	}
 	return false
 }
 
 // candidates ignores frame slots, since the plan decides which temporaries get one.
-func planUnwind(f *Func, r *sem.Result, candidates bool, lent map[LocalID]bool, held func(in *Inst, i int) bool) *UnwindPlan {
-	plan := &UnwindPlan{Sets: [][]LocalID{nil}, At: make([][]int32, len(f.Blocks))}
+func planUnwind(f *midir.Func, r *sem.Result, candidates bool, lent map[midir.LocalID]bool, held func(in *midir.Inst, i int) bool) *UnwindPlan {
+	plan := &UnwindPlan{Sets: [][]midir.LocalID{nil}, At: make([][]int32, len(f.Blocks))}
 	for i := range f.Blocks {
 		plan.At[i] = make([]int32, len(f.Blocks[i].Insts))
 		for j := range plan.At[i] {
@@ -84,7 +85,7 @@ func planUnwind(f *Func, r *sem.Result, candidates bool, lent map[LocalID]bool, 
 		}
 		for i := len(blk.Insts) - 1; i >= 0; i-- {
 			in := &blk.Insts[i]
-			if shapes[in.Op].result {
+			if in.Op.Yields() {
 				live.clear(in.Dst)
 			}
 			for _, a := range in.Args {
@@ -116,7 +117,7 @@ func planUnwind(f *Func, r *sem.Result, candidates bool, lent map[LocalID]bool, 
 }
 
 // An alias holds the reference of the local it copies: an unowned source means nothing to release, a live one releases it once.
-func sharesOwner(id LocalID, parent map[LocalID]LocalID, owned map[LocalID]bool, live bitset, in *Inst) bool {
+func sharesOwner(id midir.LocalID, parent map[midir.LocalID]midir.LocalID, owned map[midir.LocalID]bool, live bitset, in *midir.Inst) bool {
 	src := id
 	for range len(parent) + 1 {
 		next, ok := parent[src]
@@ -124,7 +125,7 @@ func sharesOwner(id LocalID, parent map[LocalID]LocalID, owned map[LocalID]bool,
 			return false
 		}
 		src = next
-		if !owned[src] || live.has(src) && !(shapes[in.Op].result && in.Dst == src) {
+		if !owned[src] || live.has(src) && !(in.Op.Yields() && in.Dst == src) {
 			return true
 		}
 	}

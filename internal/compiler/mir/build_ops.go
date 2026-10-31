@@ -2,18 +2,19 @@ package mir
 
 import (
 	"kigumi/internal/compiler/hir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
 
 // shortAnd gives the false exit its own constant, so what the right operand binds stays tied to a true result.
-func (b *builder) shortAnd(e *hir.Expr) LocalID {
+func (b *builder) shortAnd(e *hir.Expr) midir.LocalID {
 	result := b.temp(sem.TyBool)
 	l := b.expr(e.Args[0])
 	right, no, join := b.newBlockAt(), b.newBlockAt(), b.newBlockAt()
-	b.term(Term{Op: TermBranch, Args: []LocalID{l}, Targets: []BlockID{right, no}})
+	b.term(midir.Term{Op: midir.TermBranch, Args: []midir.LocalID{l}, Targets: []midir.BlockID{right, no}})
 	b.cur = no
-	b.assign(result, b.emit(Inst{Op: OpConst, Dst: b.temp(sem.TyBool), Lit: sem.Literal{Kind: sem.LitBool}, Type: sem.TyBool, Node: e.Node}))
+	b.assign(result, b.emit(midir.Inst{Op: midir.OpConst, Dst: b.temp(sem.TyBool), Lit: sem.Literal{Kind: sem.LitBool}, Type: sem.TyBool, Node: e.Node}))
 	b.jump(join)
 	b.cur = right
 	b.shortRHS++
@@ -45,12 +46,12 @@ func (b *builder) closeOperandScope() {
 
 // fallback lowers `a || b`: Bool, Option and Result are split inline,
 // other types through their `branch` witness.
-func (b *builder) fallback(e *hir.Expr) LocalID {
+func (b *builder) fallback(e *hir.Expr) midir.LocalID {
 	n := e.Node
 	l := b.expr(e.Args[0])
 	lt := e.Args[0].Type
 	if e.Ent != 0 {
-		l = b.emit(Inst{Op: OpCall, Dst: b.temp(b.r.Types.Node(b.r.Fn(e.Ent).Sig).Elem), Ent: e.Ent, Args: []LocalID{l}, Node: n})
+		l = b.emit(midir.Inst{Op: midir.OpCall, Dst: b.temp(b.r.Types.Node(b.r.Fn(e.Ent).Sig).Elem), Ent: e.Ent, Args: []midir.LocalID{l}, Node: n})
 		lt = b.fn.Locals[l].Type
 	}
 	result := b.temp(e.Type)
@@ -61,8 +62,8 @@ func (b *builder) fallback(e *hir.Expr) LocalID {
 		b.ownTemp(l)
 	}
 	hitBlock, missBlock, join := b.newBlockAt(), b.newBlockAt(), b.newBlockAt()
-	var hit, miss LocalID
-	var isHit LocalID
+	var hit, miss midir.LocalID
+	var isHit midir.LocalID
 	ltn := b.r.Types.Node(lt)
 	switch {
 	case lt == sem.TyBool:
@@ -74,16 +75,16 @@ func (b *builder) fallback(e *hir.Expr) LocalID {
 		} else if ltn.Ent == b.r.LangItem("Branch") {
 			hitName = "Hit"
 		}
-		isHit = b.emit(Inst{Op: OpIsVariant, Dst: b.temp(sem.TyBool), Ent: b.variantNamed(ltn.Ent, hitName), Args: []LocalID{l}, Node: n})
+		isHit = b.emit(midir.Inst{Op: midir.OpIsVariant, Dst: b.temp(sem.TyBool), Ent: b.variantNamed(ltn.Ent, hitName), Args: []midir.LocalID{l}, Node: n})
 	}
-	b.term(Term{Op: TermBranch, Args: []LocalID{isHit}, Targets: []BlockID{hitBlock, missBlock}})
+	b.term(midir.Term{Op: midir.TermBranch, Args: []midir.LocalID{isHit}, Targets: []midir.BlockID{hitBlock, missBlock}})
 	b.cur = hitBlock
 	if lt == sem.TyBool {
 		hit = l
 	} else {
-		hit = b.emit(Inst{Op: OpPayload, Dst: b.temp(ltn.Args[0]), Args: []LocalID{l}, Node: n, Place: true})
+		hit = b.emit(midir.Inst{Op: midir.OpPayload, Dst: b.temp(ltn.Args[0]), Args: []midir.LocalID{l}, Node: n, Place: true})
 		if !b.r.IsCopy(ltn.Args[0]) {
-			b.emit(Inst{Op: OpNop, Args: []LocalID{hit}, Node: n, Guarded: true})
+			b.emit(midir.Inst{Op: midir.OpNop, Args: []midir.LocalID{hit}, Node: n, Guarded: true})
 		}
 	}
 	if e.HitLift {
@@ -93,7 +94,7 @@ func (b *builder) fallback(e *hir.Expr) LocalID {
 	b.jump(join)
 	b.cur = missBlock
 	if ltn.Kind == sem.KNamed && len(ltn.Args) > 1 {
-		miss = b.emit(Inst{Op: OpPayload, Dst: b.temp(ltn.Args[1]), Args: []LocalID{l}, Node: n})
+		miss = b.emit(midir.Inst{Op: midir.OpPayload, Dst: b.temp(ltn.Args[1]), Args: []midir.LocalID{l}, Node: n})
 	} else {
 		miss = b.unit(n)
 	}
@@ -104,7 +105,7 @@ func (b *builder) fallback(e *hir.Expr) LocalID {
 		pl := b.declare(e.Param.Ent)
 		b.assign(pl, miss)
 	}
-	b.assign(result, b.fullValue(func() LocalID { return b.expr(e.Args[1]) }))
+	b.assign(result, b.fullValue(func() midir.LocalID { return b.expr(e.Args[1]) }))
 	b.exitScope()
 	b.jump(join)
 	b.cur = join
@@ -117,13 +118,13 @@ func (b *builder) fallback(e *hir.Expr) LocalID {
 // pipe lowers `a |> (v) => body`: the lambda applied to a. Calls on the
 // right of `|>` take the left operand as an ordinary first argument and
 // never reach here.
-func (b *builder) pipe(e *hir.Expr) LocalID {
+func (b *builder) pipe(e *hir.Expr) midir.LocalID {
 	a := b.exprMoved(e.Args[0])
 	fn := b.expr(e.Args[1])
-	return b.emit(Inst{Op: OpCallValue, Dst: b.temp(e.Type), Args: []LocalID{fn, a}, Node: e.Node})
+	return b.emit(midir.Inst{Op: midir.OpCallValue, Dst: b.temp(e.Type), Args: []midir.LocalID{fn, a}, Node: e.Node})
 }
 
-func (b *builder) try(e *hir.Expr) LocalID {
+func (b *builder) try(e *hir.Expr) midir.LocalID {
 	n := e.Node
 	v := b.expr(e.Args[0])
 	rt := e.Args[0].Type
@@ -131,31 +132,31 @@ func (b *builder) try(e *hir.Expr) LocalID {
 		rt = b.r.Types.Node(rt).Elem
 	}
 	val, errT, _ := b.r.Types.IsResult(rt)
-	ok := b.emit(Inst{Op: OpIsVariant, Dst: b.temp(sem.TyBool), Ent: b.variantNamed(b.r.Types.ResultEnt(), "Ok"), Args: []LocalID{v}, Node: n})
+	ok := b.emit(midir.Inst{Op: midir.OpIsVariant, Dst: b.temp(sem.TyBool), Ent: b.variantNamed(b.r.Types.ResultEnt(), "Ok"), Args: []midir.LocalID{v}, Node: n})
 	yes, no := b.newBlockAt(), b.newBlockAt()
-	b.term(Term{Op: TermBranch, Args: []LocalID{ok}, Targets: []BlockID{yes, no}})
+	b.term(midir.Term{Op: midir.TermBranch, Args: []midir.LocalID{ok}, Targets: []midir.BlockID{yes, no}})
 	b.cur = no
 	if b.forwardErr(e, v, rt) {
 		b.cur = yes
-		p := b.emit(Inst{Op: OpPayload, Dst: b.temp(val), Args: []LocalID{v}, Node: n, Place: true})
+		p := b.emit(midir.Inst{Op: midir.OpPayload, Dst: b.temp(val), Args: []midir.LocalID{v}, Node: n, Place: true})
 		b.dropUnwrapped(v, n)
 		return p
 	}
-	err := b.emit(Inst{Op: OpPayload, Dst: b.temp(errT), Args: []LocalID{v}, Node: n})
+	err := b.emit(midir.Inst{Op: midir.OpPayload, Dst: b.temp(errT), Args: []midir.LocalID{v}, Node: n})
 	if e.BoxType != 0 {
-		err = b.emit(Inst{Op: OpBox, Dst: b.temp(b.r.Types.Iface(b.r.Types.ErrorEnt(), nil)), Type: e.BoxType, Args: []LocalID{err}, Node: n})
+		err = b.emit(midir.Inst{Op: midir.OpBox, Dst: b.temp(b.r.Types.Iface(b.r.Types.ErrorEnt(), nil)), Type: e.BoxType, Args: []midir.LocalID{err}, Node: n})
 	}
 	b.dropUnwrapped(v, n)
 	b.failWith(n, err)
 	b.cur = yes
-	p := b.emit(Inst{Op: OpPayload, Dst: b.temp(val), Args: []LocalID{v}, Node: n, Place: true})
+	p := b.emit(midir.Inst{Op: midir.OpPayload, Dst: b.temp(val), Args: []midir.LocalID{v}, Node: n, Place: true})
 	b.dropUnwrapped(v, n)
 	return p
 }
 
 // forwardErr returns the Result a `?` took apart instead of rebuilding Err,
 // which allocates; it needs one Result type and an owned temporary.
-func (b *builder) forwardErr(e *hir.Expr, v LocalID, rt sem.TypeID) bool {
+func (b *builder) forwardErr(e *hir.Expr, v midir.LocalID, rt sem.TypeID) bool {
 	ret := b.ret
 	if ret == 0 {
 		ret = b.fn.Ret
@@ -176,8 +177,8 @@ func (b *builder) forwardErr(e *hir.Expr, v LocalID, rt sem.TypeID) bool {
 // gives it its own reference, and the Result temporary is read from both the
 // Ok and the Err block, which is exactly the shape the back end refuses to
 // release on its own.
-func (b *builder) dropUnwrapped(v LocalID, n syntax.NodeID) {
+func (b *builder) dropUnwrapped(v midir.LocalID, n syntax.NodeID) {
 	if b.fn.Locals[v].Ent == 0 {
-		b.emit(Inst{Op: OpDrop, Args: []LocalID{v}, Node: n})
+		b.emit(midir.Inst{Op: midir.OpDrop, Args: []midir.LocalID{v}, Node: n})
 	}
 }

@@ -5,11 +5,11 @@ import (
 	"math"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func (e *emitter) requirementValue(sb *strings.Builder, in mir.Inst, args []string) string {
+func (e *emitter) requirementValue(sb *strings.Builder, in midir.Inst, args []string) string {
 	if in.Str == "applied" {
 		return e.appliedValue(sb, in, args)
 	}
@@ -18,7 +18,7 @@ func (e *emitter) requirementValue(sb *strings.Builder, in mir.Inst, args []stri
 }
 
 // appliedValue is a method bound to its witnesses, called with the captured receiver in front.
-func (e *emitter) appliedValue(sb *strings.Builder, in mir.Inst, args []string) string {
+func (e *emitter) appliedValue(sb *strings.Builder, in midir.Inst, args []string) string {
 	info := e.r.Fn(in.Ent)
 	n := len(e.r.Types.Node(info.Sig).Args)
 	move := info.Recv == sem.RecvMove

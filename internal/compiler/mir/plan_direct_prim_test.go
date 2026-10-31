@@ -3,15 +3,15 @@ package mir_test
 import (
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 )
 
-func dprims(f *mir.Func) map[opdef.DirectPrim]int {
+func dprims(f *midir.Func) map[opdef.DirectPrim]int {
 	out := map[opdef.DirectPrim]int{}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == mir.OpCall && in.DPrim != opdef.DPNone {
+			if in.Op == midir.OpCall && in.DPrim != opdef.DPNone {
 				out[in.DPrim]++
 			}
 		}
@@ -72,7 +72,7 @@ func TestPlanDirectTakesADirectResultFromAPrimitive(t *testing.T) {
 			t.Errorf("%s: %d direct-result calls of kind %d, want 1", c.fn, got, c.kind)
 		}
 	}
-	if n := countOp(funcNamed(t, p, "main.narrow"), mir.OpUnboxDirect); n != 0 {
+	if n := countOp(funcNamed(t, p, "main.narrow"), midir.OpUnboxDirect); n != 0 {
 		t.Errorf("main.narrow unboxes %d times; the primitive's Option arrives direct", n)
 	}
 }
@@ -134,7 +134,7 @@ func TestPlanDirectKeepsABoxedResultWhereTheOptionWouldBeBoxedAgain(t *testing.T
 		if got := dprims(f); len(got) != 0 {
 			t.Errorf("%s: a result that is boxed again took a direct result: %v", name, got)
 		}
-		if n := countOp(f, mir.OpBoxDirect); n != 0 {
+		if n := countOp(f, midir.OpBoxDirect); n != 0 {
 			t.Errorf("%s: %d box crossings, want none", name, n)
 		}
 	}

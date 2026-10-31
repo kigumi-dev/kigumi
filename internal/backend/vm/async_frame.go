@@ -1,11 +1,13 @@
 package vm
 
-import "kigumi/internal/compiler/mir"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
-func (m *Machine) stepAsync(fu *future, in *mir.Inst) (st polled, stop bool) {
+func (m *Machine) stepAsync(fu *future, in *midir.Inst) (st polled, stop bool) {
 	co := fu.co
 	switch in.Op {
-	case mir.OpAwait:
+	case midir.OpAwait:
 		co.fr.blk, co.fr.pc = co.bid, co.pc
 		v, st := m.suspendPoint(fu, in)
 		if st == pending {
@@ -13,7 +15,7 @@ func (m *Machine) stepAsync(fu *future, in *mir.Inst) (st polled, stop bool) {
 		}
 		co.fr.locals[in.Dst] = v
 		co.cancelled = st == cancelled
-	case mir.OpCancelled:
+	case midir.OpCancelled:
 		co.fr.locals[in.Dst] = mkBool(co.cancelled)
 		co.cancelled = false
 	default:
@@ -26,7 +28,7 @@ func (m *Machine) stepAsync(fu *future, in *mir.Inst) (st polled, stop bool) {
 
 // suspendPoint is one `await`: the operand moves into the frame so a
 // resume re-polls it, and a cancellation request is observed first.
-func (m *Machine) suspendPoint(fu *future, in *mir.Inst) (*obj, polled) {
+func (m *Machine) suspendPoint(fu *future, in *midir.Inst) (*obj, polled) {
 	if fu.awaited == nil {
 		fu.awaited = fu.co.fr.locals[in.Args[0]]
 		fu.co.fr.locals[in.Args[0]] = nil

@@ -3,10 +3,11 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func (c *borrowCheck) checkRelayStores(in Inst) {
+func (c *borrowCheck) checkRelayStores(in midir.Inst) {
 	for _, v := range c.relayStoreValues(in) {
 		b := c.flowBorrow(v.arg, !v.contents)
 		if b == nil {
@@ -28,13 +29,13 @@ func (c *borrowCheck) checkRelayStores(in Inst) {
 	}
 }
 
-func (c *borrowCheck) relayStoreValues(in Inst) []flowArg {
-	if in.Op != OpCall && in.Op != OpCallValue {
+func (c *borrowCheck) relayStoreValues(in midir.Inst) []flowArg {
+	if in.Op != midir.OpCall && in.Op != midir.OpCallValue {
 		return nil
 	}
 	defs := c.soleDefMap()
 	h, args := c.bodyCallee(in), in.Args
-	if in.Op == OpCallValue {
+	if in.Op == midir.OpCallValue {
 		o := c.calleeOrigin(c.f, defs, in.Args[0])
 		h, args = o.body, slices.Concat(o.captures, in.Args[1:])
 		if h == nil {
@@ -70,7 +71,7 @@ func (c *borrowCheck) relayStoreValues(in Inst) []flowArg {
 	return out
 }
 
-func (c *borrowCheck) relayValue(a LocalID, decl sem.TypeID, keepsRef bool, path stepPath) (flowArg, bool) {
+func (c *borrowCheck) relayValue(a midir.LocalID, decl sem.TypeID, keepsRef bool, path stepPath) (flowArg, bool) {
 	tt := c.p.R.Types
 	if decl != 0 && !keepsRef && !c.paramKeepsBorrow(decl) {
 		return flowArg{}, false

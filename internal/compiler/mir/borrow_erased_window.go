@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
@@ -10,9 +11,9 @@ import (
 // erasedWindow finds what runs between the making of a closure and the call it is lent to as a plain `fn`.
 type erasedWindow struct {
 	made    map[sem.EntityID][]movePos
-	uses    map[LocalID][]movePos
-	preds   [][]BlockID
-	chained map[LocalID]bool
+	uses    map[midir.LocalID][]movePos
+	preds   [][]midir.BlockID
+	chained map[midir.LocalID]bool
 }
 
 // earlierWriter is an instruction run after r's closure was made and before the call at writes r's place: a store, a
@@ -23,8 +24,8 @@ func (e *erasedReaders) earlierWriter(at movePos, r lentRead) (syntax.NodeID, bo
 		win := e.window(from, at)
 		for bi := range e.f.Blocks {
 			for i, w := range e.f.Blocks[bi].Insts {
-				p := movePos{BlockID(bi), i}
-				if !win[p] || w.Op == OpClosure || e.roundTrip(w, r.o.owner, win) {
+				p := movePos{midir.BlockID(bi), i}
+				if !win[p] || w.Op == midir.OpClosure || e.roundTrip(w, r.o.owner, win) {
 					continue
 				}
 				if u, ok := cellAccess(e.f, e.defs, e.win.chained, r.o.owner, w); ok && u.writes && fieldPathsOverlap(u.path, r.o.path) {
@@ -47,11 +48,11 @@ func (e *erasedReaders) windowInit() {
 	if e.win.made != nil {
 		return
 	}
-	e.win = erasedWindow{made: map[sem.EntityID][]movePos{}, uses: map[LocalID][]movePos{}, preds: make([][]BlockID, len(e.f.Blocks)), chained: chainedTemps(e.f)}
+	e.win = erasedWindow{made: map[sem.EntityID][]movePos{}, uses: map[midir.LocalID][]movePos{}, preds: make([][]midir.BlockID, len(e.f.Blocks)), chained: chainedTemps(e.f)}
 	for bi, blk := range e.f.Blocks {
 		for i, in := range blk.Insts {
-			p := movePos{BlockID(bi), i}
-			if in.Op == OpClosure {
+			p := movePos{midir.BlockID(bi), i}
+			if in.Op == midir.OpClosure {
 				e.win.made[in.Ent] = append(e.win.made[in.Ent], p)
 			}
 			for _, a := range in.Args {
@@ -59,10 +60,10 @@ func (e *erasedReaders) windowInit() {
 			}
 		}
 		for _, a := range blk.Term.Args {
-			e.win.uses[a] = append(e.win.uses[a], movePos{BlockID(bi), -1})
+			e.win.uses[a] = append(e.win.uses[a], movePos{midir.BlockID(bi), -1})
 		}
 		for _, t := range blk.Term.Targets {
-			e.win.preds[t] = append(e.win.preds[t], BlockID(bi))
+			e.win.preds[t] = append(e.win.preds[t], midir.BlockID(bi))
 		}
 	}
 }
@@ -80,9 +81,9 @@ func (e *erasedReaders) window(from, to movePos) map[movePos]bool {
 }
 
 func (e *erasedReaders) walk(from movePos, stop func(movePos) bool, step int) map[movePos]bool {
-	seen, entered := map[movePos]bool{}, map[BlockID]bool{}
-	var run func(b BlockID, i int)
-	run = func(b BlockID, i int) {
+	seen, entered := map[movePos]bool{}, map[midir.BlockID]bool{}
+	var run func(b midir.BlockID, i int)
+	run = func(b midir.BlockID, i int) {
 		for ; i >= 0 && i < len(e.f.Blocks[b].Insts); i += step {
 			p := movePos{b, i}
 			if stop(p) || seen[p] {

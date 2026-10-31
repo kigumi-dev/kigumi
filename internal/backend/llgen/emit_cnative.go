@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
 // cForeign reports a call to a fixed-arity C function that takes no record by value.
-func (e *emitter) cForeign(in mir.Inst) bool {
-	if in.Op != mir.OpCall || in.DPrim != opdef.DPNone || e.r.Entity(in.Ent).Kind != sem.EntFn {
+func (e *emitter) cForeign(in midir.Inst) bool {
+	if in.Op != midir.OpCall || in.DPrim != opdef.DPNone || e.r.Entity(in.Ent).Kind != sem.EntFn {
 		return false
 	}
 	if _, ok := e.p.ByEnt[in.Ent]; ok {
@@ -22,9 +22,9 @@ func (e *emitter) cForeign(in mir.Inst) bool {
 }
 
 // cNative reports a call whose C scalar arguments and result stay in registers.
-func (e *emitter) cNative(in mir.Inst) bool { return e.cForeign(in) || e.ffiRegOp(in) != "" }
+func (e *emitter) cNative(in midir.Inst) bool { return e.cForeign(in) || e.ffiRegOp(in) != "" }
 
-func (e *emitter) cArgInReg(in mir.Inst, i int) bool {
+func (e *emitter) cArgInReg(in midir.Inst, i int) bool {
 	if e.ffiRegOp(in) != "" {
 		return true
 	}
@@ -32,7 +32,7 @@ func (e *emitter) cArgInReg(in mir.Inst, i int) bool {
 	return i < len(args) && e.cRegister(args[i])
 }
 
-func (e *emitter) cDstInReg(f *mir.Func, in mir.Inst) bool {
+func (e *emitter) cDstInReg(f *midir.Func, in midir.Inst) bool {
 	if e.ffiRegOp(in) != "" {
 		_, ok := e.scalarType(f.Locals[in.Dst].Type)
 		return ok
@@ -40,7 +40,7 @@ func (e *emitter) cDstInReg(f *mir.Func, in mir.Inst) bool {
 	return e.cRegister(e.r.Types.Node(e.r.Fn(in.Ent).Sig).Elem)
 }
 
-func (e *emitter) tryCNativeCall(sb *strings.Builder, f *mir.Func, in mir.Inst) bool {
+func (e *emitter) tryCNativeCall(sb *strings.Builder, f *midir.Func, in midir.Inst) bool {
 	if key := e.ffiRegOp(in); key != "" {
 		e.ffiRegCall(sb, f, in, key)
 		return true
@@ -73,7 +73,7 @@ func (e *emitter) tryCNativeCall(sb *strings.Builder, f *mir.Func, in mir.Inst) 
 	return true
 }
 
-func (e *emitter) storeCResult(sb *strings.Builder, dst mir.LocalID, raw string, t sem.TypeID, ct string) {
+func (e *emitter) storeCResult(sb *strings.Builder, dst midir.LocalID, raw string, t sem.TypeID, ct string) {
 	if e.isScalar(dst) {
 		e.storeNative(sb, dst, e.cWiden(sb, raw, t, ct))
 		return
@@ -83,12 +83,12 @@ func (e *emitter) storeCResult(sb *strings.Builder, dst mir.LocalID, raw string,
 
 // cOperands reads a C call's arguments, remembering the boxes it loaded so a crossing's temporary is released as the boxed path would.
 type cOperands struct {
-	in     mir.Inst
+	in     midir.Inst
 	loaded []string
 	boxed  []bool
 }
 
-func newCOperands(in mir.Inst) *cOperands {
+func newCOperands(in midir.Inst) *cOperands {
 	return &cOperands{in: in, loaded: make([]string, len(in.Args)), boxed: make([]bool, len(in.Args))}
 }
 

@@ -1,8 +1,11 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
-func (p *verifier) binaryMismatch(in Inst, l, r, dst sem.TypeID) string {
+func (p *verifier) binaryMismatch(in midir.Inst, l, r, dst sem.TypeID) string {
 	switch in.Str {
 	case "==", "!=", "<", "<=", ">", ">=":
 		if dst != sem.TyBool {
@@ -24,11 +27,11 @@ func (p *verifier) binaryMismatch(in Inst, l, r, dst sem.TypeID) string {
 	return ""
 }
 
-func yieldsData(op Opcode) bool {
+func yieldsData(op midir.Opcode) bool {
 	switch op {
-	case OpConst, OpBinary, OpUnary, OpRecord, OpVariant, OpArray, OpField, OpFieldMove, OpIndex, OpTag, OpPayload,
-		OpIsVariant, OpIsType, OpUnbox, OpBox, OpClosure, OpFnItem, OpBind, OpBorrow, OpNewCell, OpCellGet, OpCellTake,
-		OpInterp, OpBoxDirect, OpUnboxDirect, OpLendBox:
+	case midir.OpConst, midir.OpBinary, midir.OpUnary, midir.OpRecord, midir.OpVariant, midir.OpArray, midir.OpField, midir.OpFieldMove, midir.OpIndex, midir.OpTag, midir.OpPayload,
+		midir.OpIsVariant, midir.OpIsType, midir.OpUnbox, midir.OpBox, midir.OpClosure, midir.OpFnItem, midir.OpBind, midir.OpBorrow, midir.OpNewCell, midir.OpCellGet, midir.OpCellTake,
+		midir.OpInterp, midir.OpBoxDirect, midir.OpUnboxDirect, midir.OpLendBox:
 		return true
 	}
 	return false

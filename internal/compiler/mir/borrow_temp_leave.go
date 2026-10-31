@@ -3,19 +3,20 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/syntax"
 )
 
 // checkTempLeaves rejects a borrow of a temporary that leaves the `if` or `match` arm whose full expression made it:
 // the temporary is released on its own path, while the join of the arms still holds the borrow.
 func (c *borrowCheck) checkTempLeaves() {
-	dropped, borrowAt := map[LocalID]bool{}, map[LocalID]syntax.NodeID{}
+	dropped, borrowAt := map[midir.LocalID]bool{}, map[midir.LocalID]syntax.NodeID{}
 	for _, blk := range c.f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == OpDrop {
+			if in.Op == midir.OpDrop {
 				dropped[in.Args[0]] = true
 			}
-			if b, ok := c.holders[in.Dst]; ok && in.Op == OpBorrow {
+			if b, ok := c.holders[in.Dst]; ok && in.Op == midir.OpBorrow {
 				for _, o := range b.owners {
 					if _, seen := borrowAt[o.owner]; o.temp && !seen {
 						borrowAt[o.owner] = in.Node
@@ -24,7 +25,7 @@ func (c *borrowCheck) checkTempLeaves() {
 			}
 		}
 	}
-	var held []LocalID
+	var held []midir.LocalID
 	for h := range c.holders {
 		held = append(held, h)
 	}
@@ -51,7 +52,7 @@ func (c *borrowCheck) checkTempLeaves() {
 // noteKept records the temporaries b borrows once a kept borrow of them is reported.
 func (c *borrowCheck) noteKept(b *borrowInfo) {
 	if c.keptOwners == nil {
-		c.keptOwners = map[LocalID]bool{}
+		c.keptOwners = map[midir.LocalID]bool{}
 	}
 	for _, o := range b.owners {
 		if o.temp {

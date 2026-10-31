@@ -1,10 +1,13 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 type refFlow struct {
 	weak                []bool
-	f                   *Func
+	f                   *midir.Func
 	site                []int32
 	siteBase            []int
 	nobj                int
@@ -15,15 +18,15 @@ type refFlow struct {
 	undef, nulled, lent int32
 }
 
-func (p *verifier) verifyRefs(f *Func) *Error {
-	if f.rcBase == 0 || len(f.Blocks) == 0 || !hasRelease(f) {
+func (p *verifier) verifyRefs(f *midir.Func) *Error {
+	if f.RCBase == 0 || len(f.Blocks) == 0 || !hasRelease(f) {
 		return nil
 	}
 	rf := p.newRefFlow(f)
 	in := make([]*refState, len(f.Blocks))
 	in[0] = rf.entry(p)
 	var found *Error
-	acyclic := solveForward(f, func(bid BlockID, wake func(BlockID), final bool) bool {
+	acyclic := solveForward(f, func(bid midir.BlockID, wake func(midir.BlockID), final bool) bool {
 		out, err := rf.block(p, bid, in[bid], final)
 		if err != nil {
 			found = err
@@ -32,7 +35,7 @@ func (p *verifier) verifyRefs(f *Func) *Error {
 		if diverges(f, &f.Blocks[bid]) {
 			return true
 		}
-		rf.live.dead(f, bid, func(l LocalID) { out.ptr.set(l, rf.undef) })
+		rf.live.dead(f, bid, func(l midir.LocalID) { out.ptr.set(l, rf.undef) })
 		targets := f.Blocks[bid].Term.Targets
 		for k, succ := range targets {
 			switch {
@@ -59,17 +62,17 @@ func (p *verifier) verifyRefs(f *Func) *Error {
 		if in[bid] == nil {
 			continue
 		}
-		if _, err := rf.block(p, BlockID(bid), in[bid], true); err != nil {
+		if _, err := rf.block(p, midir.BlockID(bid), in[bid], true); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func hasRelease(f *Func) bool {
+func hasRelease(f *midir.Func) bool {
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == OpDrop || in.Op == OpRelease || in.Op == OpMove {
+			if in.Op == midir.OpDrop || in.Op == midir.OpRelease || in.Op == midir.OpMove {
 				return true
 			}
 		}
@@ -77,7 +80,7 @@ func hasRelease(f *Func) bool {
 	return false
 }
 
-func (p *verifier) newRefFlow(f *Func) *refFlow {
+func (p *verifier) newRefFlow(f *midir.Func) *refFlow {
 	rf := &refFlow{f: f, weak: p.body(f).weakDefs, loop: cyclicBlocks(f), nobj: len(f.Params), siteBase: make([]int, len(f.Blocks)), track: make([]bool, len(f.Locals)), counted: make([]bool, len(f.Locals))}
 	rf.live = p.edgeLive(f)
 	lent := p.unownedRefs(f)

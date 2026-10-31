@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -21,13 +22,13 @@ func (c *borrowCheck) detaches(ent sem.EntityID) bool {
 
 // argDetaches reports whether in may leave argument k in a task that outlives it: a callee that detaches and takes it
 // in a slot that can keep a Future or Task, a callee it cannot see, or, for an await, the body of a future it holds.
-func (c *borrowCheck) argDetaches(in Inst, k int, held []sem.EntityID) bool {
+func (c *borrowCheck) argDetaches(in midir.Inst, k int, held []sem.EntityID) bool {
 	switch {
-	case in.Op == OpAwait:
+	case in.Op == midir.OpAwait:
 		return slices.ContainsFunc(held, c.detaches)
-	case in.Op == OpCall && in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn:
+	case in.Op == midir.OpCall && in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn:
 		return c.slotKeepsHandle(c.f, in, k) && c.detaches(in.Ent)
-	case in.Op == OpCallValue && c.calleeClosure(c.f, in) != 0:
+	case in.Op == midir.OpCallValue && c.calleeClosure(c.f, in) != 0:
 		return c.slotKeepsHandle(c.f, in, k) && c.detaches(c.calleeClosure(c.f, in))
 	}
 	return c.slotKeepsHandle(c.f, in, k)
@@ -35,7 +36,7 @@ func (c *borrowCheck) argDetaches(in Inst, k int, held []sem.EntityID) bool {
 
 // handsToUnknown reports g calling a value from elsewhere with a Future or Task (its own parameters are its callers'),
 // and lists what else may run what g holds: fns and closures its value calls reach, closures it builds around one.
-func (c *borrowCheck) handsToUnknown(g *Func) (bool, []sem.EntityID) {
+func (c *borrowCheck) handsToUnknown(g *midir.Func) (bool, []sem.EntityID) {
 	if g == nil {
 		return false, nil
 	}
@@ -43,10 +44,10 @@ func (c *borrowCheck) handsToUnknown(g *Func) (bool, []sem.EntityID) {
 	var held []sem.EntityID
 	for _, blk := range g.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == OpClosure && slices.ContainsFunc(in.Args, func(a LocalID) bool { return c.typeRuns(g.Locals[a].Type, runsHandle) }) {
+			if in.Op == midir.OpClosure && slices.ContainsFunc(in.Args, func(a midir.LocalID) bool { return c.typeRuns(g.Locals[a].Type, runsHandle) }) {
 				held = append(held, in.Ent)
 			}
-			if in.Op != OpCall && in.Op != OpCallValue {
+			if in.Op != midir.OpCall && in.Op != midir.OpCallValue {
 				continue
 			}
 			ents, _, unseen := c.calleeOf(g, fs, in)
@@ -63,8 +64,8 @@ func (c *borrowCheck) handsToUnknown(g *Func) (bool, []sem.EntityID) {
 
 // slotKeepsHandle reports whether argument k of call in, in body g, goes to a parameter whose declared type can keep a
 // Future or Task, by the argument's own type where the parameter is unknown; the callee value itself is not handed on.
-func (c *borrowCheck) slotKeepsHandle(g *Func, in Inst, k int) bool {
-	if in.Op == OpCallValue && k == 0 || in.Op != OpCall && in.Op != OpCallValue {
+func (c *borrowCheck) slotKeepsHandle(g *midir.Func, in midir.Inst, k int) bool {
+	if in.Op == midir.OpCallValue && k == 0 || in.Op != midir.OpCall && in.Op != midir.OpCallValue {
 		return false
 	}
 	t, known := c.callParam(g, in, k)
@@ -74,7 +75,7 @@ func (c *borrowCheck) slotKeepsHandle(g *Func, in Inst, k int) bool {
 	return c.typeRuns(t, runsHandle)
 }
 
-func (c *borrowCheck) calleeClosure(g *Func, in Inst) sem.EntityID {
+func (c *borrowCheck) calleeClosure(g *midir.Func, in midir.Inst) sem.EntityID {
 	if t := c.p.R.Types.Node(g.Locals[in.Args[0]].Type); t.Kind == sem.KClosure && t.Ent != 0 && c.p.R.Entity(t.Ent).Kind == sem.EntClosure {
 		return t.Ent
 	}

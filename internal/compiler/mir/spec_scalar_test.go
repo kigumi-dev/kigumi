@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const specScalarSrc = `
@@ -52,7 +52,7 @@ func TestSpecializeAScalarInstanceThatGains(t *testing.T) {
 		}
 	}
 	wrap := funcNamed(t, p, "main.wrap[Int]")
-	if wrap.DSig.Ret == 0 || countOp(wrap, mir.OpBoxDirect) != 0 {
+	if wrap.DSig.Ret == 0 || countOp(wrap, midir.OpBoxDirect) != 0 {
 		t.Errorf("wrap[Int] does not return its Option unboxed:\n%s", p.Dump())
 	}
 }

@@ -1,13 +1,16 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
-func (p *Program) markFixed(f *Func) {
+func (p *Program) markFixed(f *midir.Func) {
 	fixed := p.fixedLocals(f)
 	for bid := range f.Blocks {
 		insts := f.Blocks[bid].Insts
 		for i := range insts {
-			if insts[i].Op == OpBoxDirect && fixed[insts[i].Args[0]] {
+			if insts[i].Op == midir.OpBoxDirect && fixed[insts[i].Args[0]] {
 				insts[i].Fixed = true
 			}
 		}
@@ -15,9 +18,9 @@ func (p *Program) markFixed(f *Func) {
 }
 
 // FixedLocals marks the locals holding a compile-time value, which both backends hand over as one immortal.
-func (p *Program) FixedLocals(f *Func) []bool { return p.fixedLocals(f) }
+func (p *Program) FixedLocals(f *midir.Func) []bool { return p.fixedLocals(f) }
 
-func (p *Program) fixedLocals(f *Func) []bool {
+func (p *Program) fixedLocals(f *midir.Func) []bool {
 	defs := make([]int, len(f.Locals))
 	for _, prm := range f.Params {
 		defs[prm]++
@@ -36,13 +39,13 @@ func (p *Program) fixedLocals(f *Func) []bool {
 				continue
 			}
 			switch in.Op {
-			case OpUnit:
+			case midir.OpUnit:
 				out[in.Dst] = true
-			case OpConst:
+			case midir.OpConst:
 				out[in.Dst] = p.fixedLit(in)
-			case OpAlias, OpMove, OpCopy, OpShare, OpBoxDirect:
+			case midir.OpAlias, midir.OpMove, midir.OpCopy, midir.OpShare, midir.OpBoxDirect:
 				out[in.Dst] = out[in.Args[0]]
-			case OpVariant:
+			case midir.OpVariant:
 				out[in.Dst] = allFixed(in.Args, out)
 			}
 			out[in.Dst] = out[in.Dst] || f.Locals[in.Dst].Type == sem.TyUnit
@@ -51,7 +54,7 @@ func (p *Program) fixedLocals(f *Func) []bool {
 	return out
 }
 
-func allFixed(args []LocalID, fixed []bool) bool {
+func allFixed(args []midir.LocalID, fixed []bool) bool {
 	for _, a := range args {
 		if !fixed[a] {
 			return false
@@ -60,7 +63,7 @@ func allFixed(args []LocalID, fixed []bool) bool {
 	return true
 }
 
-func (p *Program) fixedLit(in Inst) bool {
+func (p *Program) fixedLit(in midir.Inst) bool {
 	switch in.Lit.Kind {
 	case sem.LitInt, sem.LitChar, sem.LitString:
 		return true

@@ -2,6 +2,7 @@ package mir
 
 import (
 	"kigumi/internal/compiler/hir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/lang/diag"
@@ -9,15 +10,15 @@ import (
 
 // ownBorrowedTemp hands the temporary a `&mk()` scrutinee points into to the current scope,
 // so the pattern's bindings into it stay valid until the scope ends.
-func (b *builder) ownBorrowedTemp(e *hir.Expr, ref LocalID) {
+func (b *builder) ownBorrowedTemp(e *hir.Expr, ref midir.LocalID) {
 	if !borrowsTemporary(e) {
 		return
 	}
 	insts := b.block().Insts
 	for i := len(insts) - 1; i >= 0; i-- {
-		if in := insts[i]; shapes[in.Op].result && in.Dst == ref {
-			if in.Op == OpBorrow && b.fn.Locals[in.Args[0]].Ent == 0 {
-				parents := b.projectedFrom(in.Args[0], map[LocalID]bool{}, nil)
+		if in := insts[i]; in.Op.Yields() && in.Dst == ref {
+			if in.Op == midir.OpBorrow && b.fn.Locals[in.Args[0]].Ent == 0 {
+				parents := b.projectedFrom(in.Args[0], map[midir.LocalID]bool{}, nil)
 				for k := len(parents) - 1; k >= 0; k-- {
 					b.own(parents[k])
 				}
@@ -29,7 +30,7 @@ func (b *builder) ownBorrowedTemp(e *hir.Expr, ref LocalID) {
 }
 
 // borrowedIsTemp keeps a temporary an `is` binding borrows through; behind `&&` it may never be created, so such a binding is rejected.
-func (b *builder) borrowedIsTemp(e *hir.Expr, v LocalID) bool {
+func (b *builder) borrowedIsTemp(e *hir.Expr, v midir.LocalID) bool {
 	if !b.condIs[e.Pat] && !b.valueIs[e.Pat] {
 		return false
 	}
@@ -67,7 +68,7 @@ func (b *builder) tempBorrowKept(bind sem.EntityID, at syntax.NodeID) {
 	b.fn.Diags = append(b.fn.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(at)), Code: diagCode(code.Num), Msg: msg})
 }
 
-func (b *builder) countedRefTemp(v LocalID) bool {
+func (b *builder) countedRefTemp(v midir.LocalID) bool {
 	l := b.fn.Locals[v]
 	return l.Ent == 0 && !l.Borrowed && !b.unowned[v] && b.r.Types.Kind(l.Type) == sem.KRef
 }
@@ -122,7 +123,7 @@ func borrowsTemporary(e *hir.Expr) bool {
 func (b *builder) handOverBindings(outer, bindings *scope) {
 	for _, l := range bindings.owned {
 		if b.fn.Locals[l].Ent == 0 {
-			b.emit(Inst{Op: OpDrop, Args: []LocalID{l}, Node: b.dropNode(l), EndScope: true})
+			b.emit(midir.Inst{Op: midir.OpDrop, Args: []midir.LocalID{l}, Node: b.dropNode(l), EndScope: true})
 			continue
 		}
 		outer.owned = append(outer.owned, l)

@@ -3,15 +3,16 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // checkSharedStores rejects a call storing into shared storage a value that borrows a place this frame owns; a borrow a
 // parameter brought in is left to the caller, which sees it through this body's sharedSinks.
-func (c *borrowCheck) checkSharedStores(in Inst) {
+func (c *borrowCheck) checkSharedStores(in midir.Inst) {
 	gate := false
 	for k, a := range in.Args {
-		gate = gate || c.ownedBorrow(a, in.Op == OpCall && in.Ent != 0 && slices.ContainsFunc(c.boundParams([]sem.EntityID{in.Ent}, in, k), c.keepsRef)) != nil
+		gate = gate || c.ownedBorrow(a, in.Op == midir.OpCall && in.Ent != 0 && slices.ContainsFunc(c.boundParams([]sem.EntityID{in.Ent}, in, k), c.keepsRef)) != nil
 	}
 	if !gate {
 		return
@@ -31,7 +32,7 @@ func (c *borrowCheck) keepsRef(q sem.EntityID) bool {
 }
 
 // ownedBorrow is a borrow of a place this frame owns that a's value carries, nil for none.
-func (c *borrowCheck) ownedBorrow(a LocalID, keepsRef bool) *borrowInfo {
+func (c *borrowCheck) ownedBorrow(a midir.LocalID, keepsRef bool) *borrowInfo {
 	for _, l := range c.carriedLocals(a, keepsRef) {
 		if b := c.holders[l]; b.hasOwner && !b.empty {
 			return b
@@ -41,7 +42,7 @@ func (c *borrowCheck) ownedBorrow(a LocalID, keepsRef bool) *borrowInfo {
 }
 
 // flowBorrow is ownedBorrow narrowed to the owners the value flow into each carried local confirms (flowOwners).
-func (c *borrowCheck) flowBorrow(a LocalID, keepsRef bool) *borrowInfo {
+func (c *borrowCheck) flowBorrow(a midir.LocalID, keepsRef bool) *borrowInfo {
 	b := c.ownedBorrow(a, keepsRef)
 	if b == nil {
 		return nil
@@ -61,16 +62,16 @@ func (c *borrowCheck) flowBorrow(a LocalID, keepsRef bool) *borrowInfo {
 
 // carriedLocals are the holders whose borrows a's value carries: a itself, or for a reference the places it points at,
 // and the reference too when the parameter it binds names a lifetime, so the callee may keep it.
-func (c *borrowCheck) carriedLocals(a LocalID, keepsRef bool) []LocalID {
-	return c.carriedFrom(a, keepsRef, map[LocalID]bool{})
+func (c *borrowCheck) carriedLocals(a midir.LocalID, keepsRef bool) []midir.LocalID {
+	return c.carriedFrom(a, keepsRef, map[midir.LocalID]bool{})
 }
 
-func (c *borrowCheck) carriedFrom(a LocalID, keepsRef bool, seen map[LocalID]bool) []LocalID {
+func (c *borrowCheck) carriedFrom(a midir.LocalID, keepsRef bool, seen map[midir.LocalID]bool) []midir.LocalID {
 	if seen[a] {
 		return nil
 	}
 	seen[a] = true
-	if d := c.definition(a); c.f.Locals[a].Cell && d != nil && d.Op == OpNewCell && len(d.Args) > 0 {
+	if d := c.definition(a); c.f.Locals[a].Cell && d != nil && d.Op == midir.OpNewCell && len(d.Args) > 0 {
 		return c.carriedFrom(d.Args[0], keepsRef, seen)
 	}
 	b, ok := c.holders[a]
@@ -78,9 +79,9 @@ func (c *borrowCheck) carriedFrom(a LocalID, keepsRef bool, seen map[LocalID]boo
 		return nil
 	}
 	if c.p.R.Types.Kind(c.f.Locals[a].Type) != sem.KRef {
-		return []LocalID{a}
+		return []midir.LocalID{a}
 	}
-	var out []LocalID
+	var out []midir.LocalID
 	if keepsRef {
 		out = append(out, a)
 	}
@@ -96,7 +97,7 @@ func (c *borrowCheck) carriedFrom(a LocalID, keepsRef bool, seen map[LocalID]boo
 	return out
 }
 
-func (c *borrowCheck) reportShared(in Inst, a LocalID, b *borrowInfo) {
+func (c *borrowCheck) reportShared(in midir.Inst, a midir.LocalID, b *borrowInfo) {
 	code, _ := sem.CodeByName("borrow-store-shared")
 	name := c.carriedName(b)
 	msg, help := sem.FillCode(code, name)

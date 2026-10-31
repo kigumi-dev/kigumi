@@ -5,19 +5,20 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func callSets(p *mir.Program, f *mir.Func) map[string][]string {
+func callSets(p *mir.Program, f *midir.Func) map[string][]string {
 	plan := p.UnwindPlanOf(f)
 	out := map[string][]string{}
 	for bid, blk := range f.Blocks {
 		for pc, in := range blk.Insts {
-			if in.Op != mir.OpCall {
+			if in.Op != midir.OpCall {
 				continue
 			}
 			var names []string
-			for _, l := range plan.SetAt(mir.BlockID(bid), pc) {
+			for _, l := range plan.SetAt(midir.BlockID(bid), pc) {
 				name := f.Locals[l].Name
 				if f.Locals[l].Ent == 0 {
 					name = ""
@@ -50,7 +51,7 @@ func TestUnwindPlanOfAsyncBodiesNamesFrameTemporaries(t *testing.T) {
 	checkAsyncTemporaries(t, p, asyncFunc(t, p, "main.sib"), false)
 }
 
-func checkAsyncTemporaries(t *testing.T, p *mir.Program, f *mir.Func, want bool) {
+func checkAsyncTemporaries(t *testing.T, p *mir.Program, f *midir.Func, want bool) {
 	t.Helper()
 	plan := p.UnwindPlanOf(f)
 	temps := 0

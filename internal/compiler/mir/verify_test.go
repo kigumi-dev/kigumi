@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
@@ -18,7 +19,7 @@ import (
 func program(t *testing.T) *mir.Program {
 	t.Helper()
 	res := checkSourceMir(t, "print \"x\"\n")
-	return &mir.Program{R: res, ByEnt: map[sem.EntityID]*mir.Func{}}
+	return &mir.Program{R: res, ByEnt: map[sem.EntityID]*midir.Func{}}
 }
 
 func checkSourceMir(t *testing.T, src string) *sem.Result {
@@ -38,16 +39,16 @@ func resource(p *mir.Program) sem.TypeID {
 	return p.R.Types.Iface(p.R.Types.ErrorEnt(), nil)
 }
 
-func ret(args ...mir.LocalID) mir.Term { return mir.Term{Op: mir.TermReturn, Args: args} }
+func ret(args ...midir.LocalID) midir.Term { return midir.Term{Op: midir.TermReturn, Args: args} }
 
-func fn(name string, ret sem.TypeID, locals []mir.Local, blocks ...mir.Block) *mir.Func {
-	return &mir.Func{Name: name, Ret: ret, Locals: locals, Blocks: blocks}
+func fn(name string, ret sem.TypeID, locals []midir.Local, blocks ...midir.Block) *midir.Func {
+	return &midir.Func{Name: name, Ret: ret, Locals: locals, Blocks: blocks}
 }
 
 // expectRule verifies one function and wants the named rule to fire.
-func expectRule(t *testing.T, p *mir.Program, f *mir.Func, rule, fragment string) {
+func expectRule(t *testing.T, p *mir.Program, f *midir.Func, rule, fragment string) {
 	t.Helper()
-	p.Funcs = []*mir.Func{f}
+	p.Funcs = []*midir.Func{f}
 	err := p.Verify()
 	if err == nil {
 		t.Fatalf("%s: verified, want a %s error", f.Name, rule)
@@ -60,39 +61,39 @@ func expectRule(t *testing.T, p *mir.Program, f *mir.Func, rule, fragment string
 
 func TestVerifyStructure(t *testing.T) {
 	p := program(t)
-	unit := []mir.Local{{Name: "t0", Type: sem.TyUnit}}
-	expectRule(t, p, fn("noterm", sem.TyUnit, unit, mir.Block{Insts: []mir.Inst{{Op: mir.OpUnit, Dst: 0}}}), "structure", "missing terminator")
-	expectRule(t, p, fn("range", sem.TyUnit, unit, mir.Block{Insts: []mir.Inst{{Op: mir.OpCopy, Dst: 0, Args: []mir.LocalID{7}}}, Term: ret(0)}), "structure", "out of range")
-	expectRule(t, p, fn("target", sem.TyUnit, unit, mir.Block{Insts: []mir.Inst{{Op: mir.OpUnit, Dst: 0}}, Term: mir.Term{Op: mir.TermJump, Targets: []mir.BlockID{3}}}), "structure", "target b3 out of range")
-	expectRule(t, p, fn("branch", sem.TyUnit, unit, mir.Block{Insts: []mir.Inst{{Op: mir.OpUnit, Dst: 0}}, Term: mir.Term{Op: mir.TermBranch, Args: []mir.LocalID{0}, Targets: []mir.BlockID{0}}}), "structure", "two targets")
+	unit := []midir.Local{{Name: "t0", Type: sem.TyUnit}}
+	expectRule(t, p, fn("noterm", sem.TyUnit, unit, midir.Block{Insts: []midir.Inst{{Op: midir.OpUnit, Dst: 0}}}), "structure", "missing terminator")
+	expectRule(t, p, fn("range", sem.TyUnit, unit, midir.Block{Insts: []midir.Inst{{Op: midir.OpCopy, Dst: 0, Args: []midir.LocalID{7}}}, Term: ret(0)}), "structure", "out of range")
+	expectRule(t, p, fn("target", sem.TyUnit, unit, midir.Block{Insts: []midir.Inst{{Op: midir.OpUnit, Dst: 0}}, Term: midir.Term{Op: midir.TermJump, Targets: []midir.BlockID{3}}}), "structure", "target b3 out of range")
+	expectRule(t, p, fn("branch", sem.TyUnit, unit, midir.Block{Insts: []midir.Inst{{Op: midir.OpUnit, Dst: 0}}, Term: midir.Term{Op: midir.TermBranch, Args: []midir.LocalID{0}, Targets: []midir.BlockID{0}}}), "structure", "two targets")
 }
 
 func TestVerifyShape(t *testing.T) {
 	p := program(t)
-	locals := []mir.Local{{Name: "t0", Type: sem.TyI64}, {Name: "t1", Type: sem.TyI64}}
-	expectRule(t, p, fn("arity", sem.TyI64, locals, mir.Block{Insts: []mir.Inst{{Op: mir.OpBinary, Dst: 0, Str: "+", Args: []mir.LocalID{1}}}, Term: ret(0)}), "shape", "takes 2 arguments")
-	expectRule(t, p, fn("notype", sem.TyI64, locals, mir.Block{Insts: []mir.Inst{{Op: mir.OpConst, Dst: 0}}, Term: ret(0)}), "shape", "needs a type")
-	expectRule(t, p, fn("noent", sem.TyI64, locals, mir.Block{Insts: []mir.Inst{{Op: mir.OpFnItem, Dst: 0}}, Term: ret(0)}), "shape", "needs an entity")
-	expectRule(t, p, fn("holes", sem.TyString, []mir.Local{{Name: "t0", Type: sem.TyString}, {Name: "t1", Type: sem.TyI64}}, mir.Block{Insts: []mir.Inst{{Op: mir.OpConst, Dst: 1, Type: sem.TyI64, Lit: sem.Literal{Kind: sem.LitInt}}, {Op: mir.OpInterp, Dst: 0, Strs: []string{"a"}, Args: []mir.LocalID{1}}}, Term: ret(0)}), "shape", "holes")
+	locals := []midir.Local{{Name: "t0", Type: sem.TyI64}, {Name: "t1", Type: sem.TyI64}}
+	expectRule(t, p, fn("arity", sem.TyI64, locals, midir.Block{Insts: []midir.Inst{{Op: midir.OpBinary, Dst: 0, Str: "+", Args: []midir.LocalID{1}}}, Term: ret(0)}), "shape", "takes 2 arguments")
+	expectRule(t, p, fn("notype", sem.TyI64, locals, midir.Block{Insts: []midir.Inst{{Op: midir.OpConst, Dst: 0}}, Term: ret(0)}), "shape", "needs a type")
+	expectRule(t, p, fn("noent", sem.TyI64, locals, midir.Block{Insts: []midir.Inst{{Op: midir.OpFnItem, Dst: 0}}, Term: ret(0)}), "shape", "needs an entity")
+	expectRule(t, p, fn("holes", sem.TyString, []midir.Local{{Name: "t0", Type: sem.TyString}, {Name: "t1", Type: sem.TyI64}}, midir.Block{Insts: []midir.Inst{{Op: midir.OpConst, Dst: 1, Type: sem.TyI64, Lit: sem.Literal{Kind: sem.LitInt}}, {Op: midir.OpInterp, Dst: 0, Strs: []string{"a"}, Args: []midir.LocalID{1}}}, Term: ret(0)}), "shape", "holes")
 }
 
 func TestVerifyTypes(t *testing.T) {
 	p := program(t)
-	locals := []mir.Local{{Name: "t0", Type: sem.TyI64}, {Name: "t1", Type: sem.TyBool}, {Name: "t2", Type: sem.TyString}}
-	boolConst := mir.Inst{Op: mir.OpConst, Dst: 1, Type: sem.TyBool, Lit: sem.Literal{Kind: sem.LitBool}}
-	expectRule(t, p, fn("copy", sem.TyI64, locals, mir.Block{Insts: []mir.Inst{boolConst, {Op: mir.OpCopy, Dst: 0, Args: []mir.LocalID{1}}}, Term: ret(0)}), "types", "copy from Bool into Int")
-	expectRule(t, p, fn("const", sem.TyI64, locals, mir.Block{Insts: []mir.Inst{{Op: mir.OpConst, Dst: 0, Type: sem.TyBool, Lit: sem.Literal{Kind: sem.LitBool}}}, Term: ret(0)}), "types", "constant of Bool into Int")
-	expectRule(t, p, fn("cond", sem.TyI64, locals, mir.Block{Insts: []mir.Inst{{Op: mir.OpConst, Dst: 0, Type: sem.TyI64, Lit: sem.Literal{Kind: sem.LitInt}}}, Term: mir.Term{Op: mir.TermBranch, Args: []mir.LocalID{0}, Targets: []mir.BlockID{1, 1}}}, mir.Block{Term: ret(0)}), "types", "branch on Int")
-	expectRule(t, p, fn("ret", sem.TyI64, locals, mir.Block{Insts: []mir.Inst{boolConst}, Term: ret(1)}), "types", "return of Bool")
-	expectRule(t, p, fn("interp", sem.TyI64, locals, mir.Block{Insts: []mir.Inst{{Op: mir.OpInterp, Dst: 0, Strs: []string{"x"}}}, Term: ret(0)}), "types", "yields String")
+	locals := []midir.Local{{Name: "t0", Type: sem.TyI64}, {Name: "t1", Type: sem.TyBool}, {Name: "t2", Type: sem.TyString}}
+	boolConst := midir.Inst{Op: midir.OpConst, Dst: 1, Type: sem.TyBool, Lit: sem.Literal{Kind: sem.LitBool}}
+	expectRule(t, p, fn("copy", sem.TyI64, locals, midir.Block{Insts: []midir.Inst{boolConst, {Op: midir.OpCopy, Dst: 0, Args: []midir.LocalID{1}}}, Term: ret(0)}), "types", "copy from Bool into Int")
+	expectRule(t, p, fn("const", sem.TyI64, locals, midir.Block{Insts: []midir.Inst{{Op: midir.OpConst, Dst: 0, Type: sem.TyBool, Lit: sem.Literal{Kind: sem.LitBool}}}, Term: ret(0)}), "types", "constant of Bool into Int")
+	expectRule(t, p, fn("cond", sem.TyI64, locals, midir.Block{Insts: []midir.Inst{{Op: midir.OpConst, Dst: 0, Type: sem.TyI64, Lit: sem.Literal{Kind: sem.LitInt}}}, Term: midir.Term{Op: midir.TermBranch, Args: []midir.LocalID{0}, Targets: []midir.BlockID{1, 1}}}, midir.Block{Term: ret(0)}), "types", "branch on Int")
+	expectRule(t, p, fn("ret", sem.TyI64, locals, midir.Block{Insts: []midir.Inst{boolConst}, Term: ret(1)}), "types", "return of Bool")
+	expectRule(t, p, fn("interp", sem.TyI64, locals, midir.Block{Insts: []midir.Inst{{Op: midir.OpInterp, Dst: 0, Strs: []string{"x"}}}, Term: ret(0)}), "types", "yields String")
 	// A bare Void only stands for Ok(()) on the ImplicitOk script exit
 	// (build.go); an ordinary fallible-Void function must return an Ok.
 	unitRet := p.R.Types.Result(sem.TyUnit, resource(p))
-	unitLocals := []mir.Local{{Name: "t0", Type: sem.TyUnit}}
-	expectRule(t, p, fn("bareunit", unitRet, unitLocals, mir.Block{Insts: []mir.Inst{{Op: mir.OpUnit, Dst: 0}}, Term: ret(0)}), "types", "return of Void")
-	implicitOk := fn("main", unitRet, unitLocals, mir.Block{Insts: []mir.Inst{{Op: mir.OpUnit, Dst: 0}}, Term: ret(0)})
+	unitLocals := []midir.Local{{Name: "t0", Type: sem.TyUnit}}
+	expectRule(t, p, fn("bareunit", unitRet, unitLocals, midir.Block{Insts: []midir.Inst{{Op: midir.OpUnit, Dst: 0}}, Term: ret(0)}), "types", "return of Void")
+	implicitOk := fn("main", unitRet, unitLocals, midir.Block{Insts: []midir.Inst{{Op: midir.OpUnit, Dst: 0}}, Term: ret(0)})
 	implicitOk.ImplicitOk = true
-	p.Funcs = []*mir.Func{implicitOk}
+	p.Funcs = []*midir.Func{implicitOk}
 	if err := p.Verify(); err != nil {
 		t.Fatalf("ImplicitOk bare Void return: got %v, want no error", err)
 	}
@@ -107,10 +108,10 @@ func TestVerifyFnPurityErasure(t *testing.T) {
 	tt := p.R.Types
 	plain := tt.Fn([]sem.TypeID{sem.TyI64}, sem.TyI64, 0, false)
 	pure := tt.Fn([]sem.TypeID{sem.TyI64}, sem.TyI64, sem.EffPure, false)
-	locals := []mir.Local{{Name: "t0", Type: pure}, {Name: "t1", Type: plain}}
-	f := fn("erase", pure, locals, mir.Block{Insts: []mir.Inst{{Op: mir.OpCopy, Dst: 0, Args: []mir.LocalID{1}}}, Term: ret(0)})
-	f.Params = []mir.LocalID{1}
-	p.Funcs = []*mir.Func{f}
+	locals := []midir.Local{{Name: "t0", Type: pure}, {Name: "t1", Type: plain}}
+	f := fn("erase", pure, locals, midir.Block{Insts: []midir.Inst{{Op: midir.OpCopy, Dst: 0, Args: []midir.LocalID{1}}}, Term: ret(0)})
+	f.Params = []midir.LocalID{1}
+	p.Funcs = []*midir.Func{f}
 	if err := p.Verify(); err != nil {
 		t.Fatalf("erase: got %v, want no error", err)
 	}
@@ -118,12 +119,12 @@ func TestVerifyFnPurityErasure(t *testing.T) {
 
 func TestVerifyDefs(t *testing.T) {
 	p := program(t)
-	locals := []mir.Local{{Name: "t0", Type: sem.TyBool}, {Name: "t1", Type: sem.TyI64}, {Name: "t2", Type: sem.TyI64}}
+	locals := []midir.Local{{Name: "t0", Type: sem.TyBool}, {Name: "t1", Type: sem.TyI64}, {Name: "t2", Type: sem.TyI64}}
 	// t1 is assigned on one branch only, then read at the join.
 	f := fn("halfdef", sem.TyI64, locals,
-		mir.Block{Insts: []mir.Inst{{Op: mir.OpConst, Dst: 0, Type: sem.TyBool, Lit: sem.Literal{Kind: sem.LitBool}}}, Term: mir.Term{Op: mir.TermBranch, Args: []mir.LocalID{0}, Targets: []mir.BlockID{1, 2}}},
-		mir.Block{Insts: []mir.Inst{{Op: mir.OpConst, Dst: 1, Type: sem.TyI64, Lit: sem.Literal{Kind: sem.LitInt}}}, Term: mir.Term{Op: mir.TermJump, Targets: []mir.BlockID{2}}},
-		mir.Block{Insts: []mir.Inst{{Op: mir.OpCopy, Dst: 2, Args: []mir.LocalID{1}}}, Term: ret(2)})
+		midir.Block{Insts: []midir.Inst{{Op: midir.OpConst, Dst: 0, Type: sem.TyBool, Lit: sem.Literal{Kind: sem.LitBool}}}, Term: midir.Term{Op: midir.TermBranch, Args: []midir.LocalID{0}, Targets: []midir.BlockID{1, 2}}},
+		midir.Block{Insts: []midir.Inst{{Op: midir.OpConst, Dst: 1, Type: sem.TyI64, Lit: sem.Literal{Kind: sem.LitInt}}}, Term: midir.Term{Op: midir.TermJump, Targets: []midir.BlockID{2}}},
+		midir.Block{Insts: []midir.Inst{{Op: midir.OpCopy, Dst: 2, Args: []midir.LocalID{1}}}, Term: ret(2)})
 	expectRule(t, p, f, "defs", "reads %t1 before any definition")
 }
 
@@ -131,34 +132,34 @@ func TestVerifyOwnership(t *testing.T) {
 	p := program(t)
 	res := resource(p)
 	ent := p.R.Types.ErrorEnt()
-	locals := []mir.Local{{Name: "r", Type: res, Ent: ent}, {Name: "t1", Type: res}, {Name: "t2", Type: sem.TyUnit}}
-	unit := mir.Inst{Op: mir.OpUnit, Dst: 2}
-	leak := fn("leak", sem.TyUnit, locals, mir.Block{Insts: []mir.Inst{unit}, Term: ret(2)})
-	leak.Params = []mir.LocalID{0}
+	locals := []midir.Local{{Name: "r", Type: res, Ent: ent}, {Name: "t1", Type: res}, {Name: "t2", Type: sem.TyUnit}}
+	unit := midir.Inst{Op: midir.OpUnit, Dst: 2}
+	leak := fn("leak", sem.TyUnit, locals, midir.Block{Insts: []midir.Inst{unit}, Term: ret(2)})
+	leak.Params = []midir.LocalID{0}
 	expectRule(t, p, leak, "ownership", "still owned at return")
-	twice := fn("twice", sem.TyUnit, locals, mir.Block{Insts: []mir.Inst{{Op: mir.OpDrop, Args: []mir.LocalID{0}}, {Op: mir.OpDrop, Args: []mir.LocalID{0}}, unit}, Term: ret(2)})
-	twice.Params = []mir.LocalID{0}
+	twice := fn("twice", sem.TyUnit, locals, midir.Block{Insts: []midir.Inst{{Op: midir.OpDrop, Args: []midir.LocalID{0}}, {Op: midir.OpDrop, Args: []midir.LocalID{0}}, unit}, Term: ret(2)})
+	twice.Params = []midir.LocalID{0}
 	expectRule(t, p, twice, "ownership", "holds nothing")
-	after := fn("after", sem.TyUnit, locals, mir.Block{Insts: []mir.Inst{{Op: mir.OpMove, Dst: 1, Args: []mir.LocalID{0}}, {Op: mir.OpCopy, Dst: 1, Args: []mir.LocalID{0}}, unit}, Term: ret(2)})
-	after.Params = []mir.LocalID{0}
+	after := fn("after", sem.TyUnit, locals, midir.Block{Insts: []midir.Inst{{Op: midir.OpMove, Dst: 1, Args: []midir.LocalID{0}}, {Op: midir.OpCopy, Dst: 1, Args: []midir.LocalID{0}}, unit}, Term: ret(2)})
+	after.Params = []midir.LocalID{0}
 	expectRule(t, p, after, "ownership", "after it was consumed")
-	over := fn("over", sem.TyUnit, locals, mir.Block{Insts: []mir.Inst{{Op: mir.OpMove, Dst: 1, Args: []mir.LocalID{0}}, {Op: mir.OpMove, Dst: 0, Args: []mir.LocalID{1}}, {Op: mir.OpMove, Dst: 0, Args: []mir.LocalID{1}}, unit}, Term: ret(2)})
-	over.Params = []mir.LocalID{0}
+	over := fn("over", sem.TyUnit, locals, midir.Block{Insts: []midir.Inst{{Op: midir.OpMove, Dst: 1, Args: []midir.LocalID{0}}, {Op: midir.OpMove, Dst: 0, Args: []midir.LocalID{1}}, {Op: midir.OpMove, Dst: 0, Args: []midir.LocalID{1}}, unit}, Term: ret(2)})
+	over.Params = []midir.LocalID{0}
 	expectRule(t, p, over, "ownership", "still holds a value")
 }
 
 func TestVerifyDropOwned(t *testing.T) {
 	p := program(t)
 	ref := p.R.Types.Ref(resource(p), true)
-	locals := []mir.Local{{Name: "b", Type: resource(p), Ent: p.R.Types.ErrorEnt()}, {Name: "t1", Type: ref}, {Name: "t2", Type: sem.TyUnit}}
-	unit := mir.Inst{Op: mir.OpUnit, Dst: 2}
-	f := fn("droplent", sem.TyUnit, locals, mir.Block{Insts: []mir.Inst{
-		{Op: mir.OpBorrow, Dst: 1, Args: []mir.LocalID{0}, Index: 1},
-		{Op: mir.OpDrop, Args: []mir.LocalID{1}},
-		{Op: mir.OpDrop, Args: []mir.LocalID{0}},
+	locals := []midir.Local{{Name: "b", Type: resource(p), Ent: p.R.Types.ErrorEnt()}, {Name: "t1", Type: ref}, {Name: "t2", Type: sem.TyUnit}}
+	unit := midir.Inst{Op: midir.OpUnit, Dst: 2}
+	f := fn("droplent", sem.TyUnit, locals, midir.Block{Insts: []midir.Inst{
+		{Op: midir.OpBorrow, Dst: 1, Args: []midir.LocalID{0}, Index: 1},
+		{Op: midir.OpDrop, Args: []midir.LocalID{1}},
+		{Op: midir.OpDrop, Args: []midir.LocalID{0}},
 		unit,
 	}, Term: ret(2)})
-	f.Params = []mir.LocalID{0}
+	f.Params = []midir.LocalID{0}
 	expectRule(t, p, f, "droplent", "a reference this frame does not own")
 }
 
@@ -166,20 +167,20 @@ func TestVerifyDropOwned(t *testing.T) {
 func TestVerifyDropOwnedAfterDirectMutation(t *testing.T) {
 	p := program(t)
 	ref := p.R.Types.Ref(resource(p), true)
-	locals := []mir.Local{{Name: "b", Type: resource(p), Ent: p.R.Types.ErrorEnt()}, {Name: "t1", Type: ref, Ent: p.R.Types.ErrorEnt()}, {Name: "t2", Type: sem.TyUnit}}
-	unit := mir.Inst{Op: mir.OpUnit, Dst: 2}
-	f := fn("recompute", sem.TyUnit, locals, mir.Block{Insts: []mir.Inst{
-		{Op: mir.OpAlias, Dst: 1, Args: []mir.LocalID{0}},
-		{Op: mir.OpDrop, Args: []mir.LocalID{1}},
-		{Op: mir.OpDrop, Args: []mir.LocalID{0}},
+	locals := []midir.Local{{Name: "b", Type: resource(p), Ent: p.R.Types.ErrorEnt()}, {Name: "t1", Type: ref, Ent: p.R.Types.ErrorEnt()}, {Name: "t2", Type: sem.TyUnit}}
+	unit := midir.Inst{Op: midir.OpUnit, Dst: 2}
+	f := fn("recompute", sem.TyUnit, locals, midir.Block{Insts: []midir.Inst{
+		{Op: midir.OpAlias, Dst: 1, Args: []midir.LocalID{0}},
+		{Op: midir.OpDrop, Args: []midir.LocalID{1}},
+		{Op: midir.OpDrop, Args: []midir.LocalID{0}},
 		unit,
 	}, Term: ret(2)})
-	f.Params = []mir.LocalID{0}
-	p.Funcs = []*mir.Func{f}
+	f.Params = []midir.LocalID{0}
+	p.Funcs = []*midir.Func{f}
 	if err := p.Verify(); err != nil {
 		t.Fatalf("verify before mutation: %v", err)
 	}
-	f.Blocks[0].Insts[0].Op, f.Blocks[0].Insts[0].Index = mir.OpBorrow, 1
+	f.Blocks[0].Insts[0].Op, f.Blocks[0].Insts[0].Index = midir.OpBorrow, 1
 	err := p.Verify()
 	ve, ok := err.(*mir.Error)
 	if !ok || ve.Rule != "droplent" {
@@ -201,7 +202,7 @@ let _ = bump()
 	if err := prog.Verify(); err != nil {
 		t.Fatalf("verify: %v", err)
 	}
-	var target *mir.Func
+	var target *midir.Func
 	for _, f := range prog.Funcs {
 		if strings.HasSuffix(f.Name, ".bump") {
 			target = f
@@ -213,8 +214,8 @@ let _ = bump()
 	patched := false
 	for bi := range target.Blocks {
 		for ii := range target.Blocks[bi].Insts {
-			if target.Blocks[bi].Insts[ii].Op == mir.OpNewCell {
-				target.Blocks[bi].Insts[ii].Op = mir.OpCopy
+			if target.Blocks[bi].Insts[ii].Op == midir.OpNewCell {
+				target.Blocks[bi].Insts[ii].Op = midir.OpCopy
 				patched = true
 			}
 		}

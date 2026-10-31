@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const declaredCopySrc = `
@@ -23,9 +24,9 @@ fn main() -> Void! {}
 func withCopy(t *testing.T, p *mir.Program, name string) {
 	t.Helper()
 	f := funcNamed(t, p, name)
-	f.Locals = append(f.Locals, mir.Local{Name: "dup", Type: f.Locals[f.Params[0]].Type})
-	cp := mir.Inst{Op: mir.OpShare, Copy: true, Dst: mir.LocalID(len(f.Locals) - 1), Args: []mir.LocalID{f.Params[0]}, Node: f.Blocks[0].Insts[0].Node}
-	f.Blocks[0].Insts = append([]mir.Inst{cp}, f.Blocks[0].Insts...)
+	f.Locals = append(f.Locals, midir.Local{Name: "dup", Type: f.Locals[f.Params[0]].Type})
+	cp := midir.Inst{Op: midir.OpShare, Copy: true, Dst: midir.LocalID(len(f.Locals) - 1), Args: []midir.LocalID{f.Params[0]}, Node: f.Blocks[0].Insts[0].Node}
+	f.Blocks[0].Insts = append([]midir.Inst{cp}, f.Blocks[0].Insts...)
 	if len(f.Direct) > 0 {
 		f.Direct = append(f.Direct, false)
 	}

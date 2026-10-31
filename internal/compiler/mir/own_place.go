@@ -3,6 +3,7 @@ package mir
 import (
 	"strconv"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -10,30 +11,30 @@ import (
 // so that two reads of the same field are one place to ownership analysis
 // rather than two unrelated temporaries.
 type places struct {
-	key  map[LocalID]string
-	rep  map[string]LocalID
-	name map[LocalID]string
+	key  map[midir.LocalID]string
+	rep  map[string]midir.LocalID
+	name map[midir.LocalID]string
 	// children lists a root's own direct field-place representatives, by
 	// field index, so own.go can tell which of its fields are still valid.
-	children map[LocalID]map[int]LocalID
-	parent   map[LocalID]LocalID
+	children map[midir.LocalID]map[int]midir.LocalID
+	parent   map[midir.LocalID]midir.LocalID
 	// cellRoot maps a read of a lent receiver's write-back cell back to the
 	// receiver, so `self.a` keys the same place a plain receiver's would.
-	cellRoot map[LocalID]LocalID
+	cellRoot map[midir.LocalID]midir.LocalID
 }
 
 // findPlaces keys each projection temporary and elects the first temporary of a
 // key as its representative. Blocks are revisited until stable because a chain
 // can cross a back edge.
-func findPlaces(p *Program, f *Func) *places {
-	pl := &places{key: map[LocalID]string{}, rep: map[string]LocalID{}, name: map[LocalID]string{},
-		children: map[LocalID]map[int]LocalID{}, parent: map[LocalID]LocalID{}, cellRoot: map[LocalID]LocalID{}}
+func findPlaces(p *Program, f *midir.Func) *places {
+	pl := &places{key: map[midir.LocalID]string{}, rep: map[string]midir.LocalID{}, name: map[midir.LocalID]string{},
+		children: map[midir.LocalID]map[int]midir.LocalID{}, parent: map[midir.LocalID]midir.LocalID{}, cellRoot: map[midir.LocalID]midir.LocalID{}}
 	// checkBorrowedMoves already rejects every move out of a closure's
 	// captured receiver; keying places there reports the same move twice.
 	lentOK := p.R.Entity(f.Ent).Kind != sem.EntClosure
 	for bi := range f.Blocks {
 		for _, in := range f.Blocks[bi].Insts {
-			if in.Op == OpCellGet && (lentOK && f.Locals[in.Args[0]].Borrowed || trackedCell(p, f.Locals[in.Args[0]])) {
+			if in.Op == midir.OpCellGet && (lentOK && f.Locals[in.Args[0]].Borrowed || trackedCell(p, f.Locals[in.Args[0]])) {
 				pl.cellRoot[in.Dst] = in.Args[0]
 			}
 		}
@@ -67,7 +68,7 @@ func findPlaces(p *Program, f *Func) *places {
 			}
 			root := pl.canon(in.Args[0])
 			if pl.children[root] == nil {
-				pl.children[root] = map[int]LocalID{}
+				pl.children[root] = map[int]midir.LocalID{}
 			}
 			pl.children[root][in.Index] = in.Dst
 			pl.parent[in.Dst] = root
@@ -78,7 +79,7 @@ func findPlaces(p *Program, f *Func) *places {
 
 // base names the container a field instruction reads from: another projection,
 // or a named local. Temporaries of unknown provenance have no place.
-func (pl *places) base(f *Func, in Inst) (string, bool) {
+func (pl *places) base(f *midir.Func, in midir.Inst) (string, bool) {
 	if k := pl.key[in.Args[0]]; k != "" {
 		return k, true
 	}
@@ -89,9 +90,9 @@ func (pl *places) base(f *Func, in Inst) (string, bool) {
 	return strconv.Itoa(int(a)), true
 }
 
-func (pl *places) isPlace(l LocalID) bool { return pl.key[l] != "" }
+func (pl *places) isPlace(l midir.LocalID) bool { return pl.key[l] != "" }
 
-func (pl *places) canon(l LocalID) LocalID {
+func (pl *places) canon(l midir.LocalID) midir.LocalID {
 	if k := pl.key[l]; k != "" {
 		return pl.rep[k]
 	}
@@ -102,7 +103,7 @@ func (pl *places) canon(l LocalID) LocalID {
 }
 
 // stored names the place a field store writes back, which owns a value again.
-func (pl *places) stored(f *Func, in Inst) (LocalID, bool) {
+func (pl *places) stored(f *midir.Func, in midir.Inst) (midir.LocalID, bool) {
 	base, ok := pl.base(f, in)
 	if !ok {
 		return 0, false
@@ -116,9 +117,9 @@ func (pl *places) stored(f *Func, in Inst) (LocalID, bool) {
 // indirect call and every argument of a runtime primitive are lent, not
 // moved, except `await`'s future (it runs the future's body and discards it)
 // and a resource's own registered `drop`, which always consumes `self`.
-func (p *Program) consumesArg(in *Inst, i int) bool {
+func (p *Program) consumesArg(in *midir.Inst, i int) bool {
 	switch in.Op {
-	case OpCall:
+	case midir.OpCall:
 		e := p.R.Entity(in.Ent)
 		if e.Kind != sem.EntFn {
 			return false
@@ -143,7 +144,7 @@ func (p *Program) consumesArg(in *Inst, i int) bool {
 			return false
 		}
 		return i != 0 || info.Recv == sem.RecvNone || info.Recv == sem.RecvMove
-	case OpCallValue:
+	case midir.OpCallValue:
 		// A witness call names its requirement: a `self` / `mut self`
 		// receiver is lent, as in a direct method call.
 		if in.Ent != 0 && i == 1 {
@@ -151,7 +152,7 @@ func (p *Program) consumesArg(in *Inst, i int) bool {
 			return recv == sem.RecvNone || recv == sem.RecvMove
 		}
 		return i != 0
-	case OpAwait:
+	case midir.OpAwait:
 		return i == 0
 	}
 	return false
@@ -169,7 +170,7 @@ func ctxArgCount(info *sem.FnInfo) int {
 	return n
 }
 
-func (pl *places) resetFields(root LocalID, st *dstate) {
+func (pl *places) resetFields(root midir.LocalID, st *dstate) {
 	for _, rep := range pl.children[root] {
 		st.val.del(rep)
 		st.field.del(rep)

@@ -1,10 +1,13 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // lendBoxInfo makes an `&Interface` view a borrow of its source local as well: the view
 // lives in this frame, so it may not be returned or stored past it.
-func (c *borrowCheck) lendBoxInfo(in Inst) *borrowInfo {
+func (c *borrowCheck) lendBoxInfo(in midir.Inst) *borrowInfo {
 	out := &borrowInfo{hasOwner: true, node: in.Node}
 	if b, ok := c.holders[in.Args[0]]; ok && b.hasOwner {
 		out.owners = append(out.owners, b.owners...)
@@ -15,8 +18,8 @@ func (c *borrowCheck) lendBoxInfo(in Inst) *borrowInfo {
 
 // checkViewReuse rejects a `lendbox` run again while a view it made on an earlier pass
 // is still live: each run reuses one frame slot.
-func (c *borrowCheck) checkViewReuse(in Inst, liveAfter map[LocalID]bool) {
-	if in.Op != OpLendBox {
+func (c *borrowCheck) checkViewReuse(in midir.Inst, liveAfter map[midir.LocalID]bool) {
+	if in.Op != midir.OpLendBox {
 		return
 	}
 	if c.loopReach == nil {
@@ -49,13 +52,13 @@ func returnEscapeMessage(b *borrowInfo) string {
 
 // checkViewSpawn rejects handing a future that holds an `&Interface` view to a call that sees it as a future:
 // the call may spawn it, and the task may outlive the frame holding the view.
-func (c *borrowCheck) checkViewSpawn(in Inst) {
-	if in.Op != OpCall && in.Op != OpCallValue && in.Op != OpFutureNew || in.Ent != 0 && c.p.R.IsTaskRunToCompletion(in.Ent) {
+func (c *borrowCheck) checkViewSpawn(in midir.Inst) {
+	if in.Op != midir.OpCall && in.Op != midir.OpCallValue && in.Op != midir.OpFutureNew || in.Ent != 0 && c.p.R.IsTaskRunToCompletion(in.Ent) {
 		return
 	}
 	decl := c.declaredArgTypes(in)
 	args := in.Args
-	if in.Op != OpCall {
+	if in.Op != midir.OpCall {
 		args = args[1:]
 	}
 	for _, a := range args {
@@ -76,15 +79,15 @@ func (c *borrowCheck) checkViewSpawn(in Inst) {
 }
 
 // declaredArgTypes maps a call's arguments to their declared parameter types; a bare type parameter cannot be spawned.
-func (c *borrowCheck) declaredArgTypes(in Inst) map[LocalID]sem.TypeID {
-	if in.Op == OpFutureNew || in.Ent == 0 || c.p.R.Entity(in.Ent).Kind != sem.EntFn {
+func (c *borrowCheck) declaredArgTypes(in midir.Inst) map[midir.LocalID]sem.TypeID {
+	if in.Op == midir.OpFutureNew || in.Ent == 0 || c.p.R.Entity(in.Ent).Kind != sem.EntFn {
 		return nil
 	}
 	recvIdx := 0
-	if in.Op == OpCallValue {
+	if in.Op == midir.OpCallValue {
 		recvIdx = 1
 	}
-	out := map[LocalID]sem.TypeID{}
+	out := map[midir.LocalID]sem.TypeID{}
 	for _, s := range c.callSlots(c.p.R.Fn(in.Ent), in.Args, recvIdx) {
 		if s.exact != 0 {
 			out[s.arg] = s.exact
@@ -93,7 +96,7 @@ func (c *borrowCheck) declaredArgTypes(in Inst) map[LocalID]sem.TypeID {
 	return out
 }
 
-func (c *borrowCheck) holderOwners(l LocalID) []ownerRef {
+func (c *borrowCheck) holderOwners(l midir.LocalID) []ownerRef {
 	if b, ok := c.holders[l]; ok {
 		return b.owners
 	}

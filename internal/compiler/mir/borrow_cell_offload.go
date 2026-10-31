@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -17,9 +18,9 @@ const opaqueFact uint32 = 0
 type offloadMemo struct {
 	gate                     int8
 	may, detach, keep, calls map[sem.EntityID]bool
-	body, kept               map[*Func]flowSets
+	body, kept               map[*midir.Func]flowSets
 	keeps                    map[keptKey]*keptSummary
-	busy                     map[*Func]bool
+	busy                     map[*midir.Func]bool
 	shared                   *sinkMemo
 }
 
@@ -27,7 +28,7 @@ func (c *borrowCheck) offloads() *offloadMemo {
 	m := &c.analysis().offloads
 	if m.gate == 0 {
 		m.gate, m.may, m.detach, m.keep, m.calls = -1, map[sem.EntityID]bool{}, map[sem.EntityID]bool{}, map[sem.EntityID]bool{}, map[sem.EntityID]bool{}
-		m.body, m.kept, m.keeps, m.busy = map[*Func]flowSets{}, map[*Func]flowSets{}, map[keptKey]*keptSummary{}, map[*Func]bool{}
+		m.body, m.kept, m.keeps, m.busy = map[*midir.Func]flowSets{}, map[*midir.Func]flowSets{}, map[keptKey]*keptSummary{}, map[*midir.Func]bool{}
 		for id := 1; id < len(c.p.R.Entities); id++ {
 			if c.offloadPrim(sem.EntityID(id)) {
 				m.gate = 1
@@ -82,13 +83,13 @@ func (c *borrowCheck) entityEdges(ent sem.EntityID) []sem.EffectEdge {
 
 // offloadsAt reports whether call in may return while work it was handed still runs on another thread: its callee
 // may offload, or is unknown and returns a Future or Task.
-func (c *borrowCheck) offloadsAt(in Inst) bool {
+func (c *borrowCheck) offloadsAt(in midir.Inst) bool {
 	switch in.Op {
-	case OpCall:
+	case midir.OpCall:
 		if in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn {
 			return c.mayOffload(in.Ent)
 		}
-	case OpCallValue:
+	case midir.OpCallValue:
 		if cl := c.calleeClosure(c.f, in); cl != 0 {
 			return c.mayOffload(cl)
 		}
@@ -98,8 +99,8 @@ func (c *borrowCheck) offloadsAt(in Inst) bool {
 	return c.offloadPossible() && c.typeRuns(c.f.Locals[in.Dst].Type, runsSpawn)
 }
 
-func (c *borrowCheck) offloadSeed(in Inst) []uint32 {
-	if in.Op == OpClosure && c.p.R.Entity(in.Ent).Kind == sem.EntClosure || in.Op == OpFnItem {
+func (c *borrowCheck) offloadSeed(in midir.Inst) []uint32 {
+	if in.Op == midir.OpClosure && c.p.R.Entity(in.Ent).Kind == sem.EntClosure || in.Op == midir.OpFnItem {
 		return []uint32{uint32(in.Ent)}
 	}
 	return nil
@@ -107,14 +108,14 @@ func (c *borrowCheck) offloadSeed(in Inst) []uint32 {
 
 // offloadStep hands an offloading call's runnable arguments to its result and lent places; what a call or await may
 // detach, handed off or offloadable later, goes to the task scope and to the result, so awaiting that Task is no rerun.
-func (c *borrowCheck) offloadStep(in Inst, s flowSets, put func(LocalID, uint32)) {
+func (c *borrowCheck) offloadStep(in midir.Inst, s flowSets, put func(midir.LocalID, uint32)) {
 	c.captureStep(in, s, put)
 	c.opaqueStep(in, s, put)
-	if in.Op != OpCall && in.Op != OpCallValue && in.Op != OpAwait && in.Op != OpFutureNew {
+	if in.Op != midir.OpCall && in.Op != midir.OpCallValue && in.Op != midir.OpAwait && in.Op != midir.OpFutureNew {
 		return
 	}
-	off := (in.Op == OpCall || in.Op == OpCallValue) && c.offloadsAt(in)
-	fwd := in.Op != OpAwait && c.forwardDetaches(in, s)
+	off := (in.Op == midir.OpCall || in.Op == midir.OpCallValue) && c.offloadsAt(in)
+	fwd := in.Op != midir.OpAwait && c.forwardDetaches(in, s)
 	for k, a := range in.Args {
 		held, handed := c.splitOffloadFacts(s[a], a)
 		hands := off && c.argRunnable(in, k)
@@ -123,8 +124,8 @@ func (c *borrowCheck) offloadStep(in Inst, s flowSets, put func(LocalID, uint32)
 				c.handOff(in, held, d, put)
 			}
 		}
-		byCallee := in.Op != OpFutureNew && c.argDetaches(in, k, held)
-		if !byCallee && !(fwd && (in.Op == OpFutureNew || c.slotKeepsHandle(c.f, in, k))) {
+		byCallee := in.Op != midir.OpFutureNew && c.argDetaches(in, k, held)
+		if !byCallee && !(fwd && (in.Op == midir.OpFutureNew || c.slotKeepsHandle(c.f, in, k))) {
 			continue
 		}
 		for _, f := range handed {
@@ -137,7 +138,7 @@ func (c *borrowCheck) offloadStep(in Inst, s flowSets, put func(LocalID, uint32)
 	}
 }
 
-func (c *borrowCheck) handOff(in Inst, held []sem.EntityID, d LocalID, put func(LocalID, uint32)) {
+func (c *borrowCheck) handOff(in midir.Inst, held []sem.EntityID, d midir.LocalID, put func(midir.LocalID, uint32)) {
 	for _, cl := range held {
 		if c.p.R.Entity(cl).Kind != sem.EntClosure {
 			continue
@@ -150,7 +151,7 @@ func (c *borrowCheck) handOff(in Inst, held []sem.EntityID, d LocalID, put func(
 }
 
 // splitOffloadFacts parts what a value carries into the closures and async fns it holds and the closures it handed off.
-func (c *borrowCheck) splitOffloadFacts(facts map[uint32]bool, a LocalID) (held []sem.EntityID, handed []uint32) {
+func (c *borrowCheck) splitOffloadFacts(facts map[uint32]bool, a midir.LocalID) (held []sem.EntityID, handed []uint32) {
 	for f := range facts {
 		switch {
 		case f&offBit != 0:
@@ -169,8 +170,8 @@ func (c *borrowCheck) splitOffloadFacts(facts map[uint32]bool, a LocalID) (held 
 
 // offloadDsts are where an offloading call may leave the handle of the work it hands off: its result, what it lends
 // `&mut`, and the shared storage it may store into.
-func (c *borrowCheck) offloadDsts(in Inst, s flowSets) []LocalID {
-	dsts := []LocalID{in.Dst}
+func (c *borrowCheck) offloadDsts(in midir.Inst, s flowSets) []midir.LocalID {
+	dsts := []midir.LocalID{in.Dst}
 	for _, a := range in.Args {
 		for _, p := range c.lentMutPlaces(a) {
 			dsts = append(append(dsts, p.locals()...), c.heldMutOwners(p.root)...)

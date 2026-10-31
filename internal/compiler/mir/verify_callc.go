@@ -1,8 +1,11 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
-func (p *verifier) cCallMismatch(f *Func, in Inst) string {
+func (p *verifier) cCallMismatch(f *midir.Func, in midir.Inst) string {
 	tt := p.R.Types
 	if !p.looseType(in.Type) && !tt.IsCFn(in.Type) {
 		return "calls through " + p.R.TypeString(in.Type) + ", which is no C function pointer"

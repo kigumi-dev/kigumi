@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
-func (e *emitter) share(sb *strings.Builder, f *mir.Func, in mir.Inst, v string) string {
+func (e *emitter) share(sb *strings.Builder, f *midir.Func, in midir.Inst, v string) string {
 	switch {
 	case in.Copy && e.scalarBoxed(f.Locals[in.Args[0]].Type):
 		// rt_copy retains a scalar box, and a retain says so to an IR audit.
@@ -22,7 +22,7 @@ func (e *emitter) share(sb *strings.Builder, f *mir.Func, in mir.Inst, v string)
 
 // lendBox builds an `&Interface` view in this frame: no allocation, and no count of v taken.
 // An async body builds it in the Future's frame, since a callee may hold it across a Pending.
-func (e *emitter) lendBox(sb *strings.Builder, f *mir.Func, in mir.Inst, v string) string {
+func (e *emitter) lendBox(sb *strings.Builder, f *midir.Func, in midir.Inst, v string) string {
 	var slot string
 	if off, ok := f.ViewSlot[in.Dst]; ok {
 		slot = e.newTmp()

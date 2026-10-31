@@ -3,12 +3,13 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // genericParamLifetimeSource matches a bare-type-parameter return against the
 // same parameter on info's own params (no per-call-site lifetime substitution).
-func (c *borrowCheck) genericParamLifetimeSource(ent sem.EntityID, info *sem.FnInfo, args []LocalID, start, calleeBase int) (*borrowInfo, bool) {
+func (c *borrowCheck) genericParamLifetimeSource(ent sem.EntityID, info *sem.FnInfo, args []midir.LocalID, start, calleeBase int) (*borrowInfo, bool) {
 	sig := c.p.R.Types.Node(info.Sig)
 	if c.p.R.Types.Kind(sig.Elem) != sem.KParam {
 		return nil, false
@@ -33,7 +34,7 @@ type lifetimeCandidate struct {
 	recv sem.RecvKind
 }
 
-func (c *borrowCheck) candidateInfo(args []LocalID, cand lifetimeCandidate) (*borrowInfo, bool) {
+func (c *borrowCheck) candidateInfo(args []midir.LocalID, cand lifetimeCandidate) (*borrowInfo, bool) {
 	if cand.arg >= len(args) {
 		return nil, false
 	}
@@ -45,7 +46,7 @@ func (c *borrowCheck) candidateInfo(args []LocalID, cand lifetimeCandidate) (*bo
 
 // resolveLifetimeHolder drops candidates whose argument is a phantom lifetime
 // with no tracked holder (e.g. a `['a]` tagging no actual `&'a` field).
-func (c *borrowCheck) resolveLifetimeHolder(ent sem.EntityID, args []LocalID, candidates []lifetimeCandidate) (*borrowInfo, bool) {
+func (c *borrowCheck) resolveLifetimeHolder(ent sem.EntityID, args []midir.LocalID, candidates []lifetimeCandidate) (*borrowInfo, bool) {
 	var tracked []lifetimeCandidate
 	for _, cand := range candidates {
 		if _, ok := c.candidateInfo(args, cand); ok {
@@ -89,7 +90,7 @@ func (c *borrowCheck) resolveLifetimeCandidate(ent sem.EntityID, candidates []li
 
 // sameKindCandidate is the untraceable-body fallback: it unions every candidate's owners, since the callee could
 // return any of them; borrows a parameter lends join only borrows held under that same parameter lifetime.
-func (c *borrowCheck) sameKindCandidate(args []LocalID, candidates []lifetimeCandidate) (*borrowInfo, bool) {
+func (c *borrowCheck) sameKindCandidate(args []midir.LocalID, candidates []lifetimeCandidate) (*borrowInfo, bool) {
 	var owned, lent []*borrowInfo
 	for _, cand := range candidates {
 		b, ok := c.tiedInfo(args, cand)
@@ -126,11 +127,11 @@ func (c *borrowCheck) sameKindCandidate(args []LocalID, candidates []lifetimeCan
 
 // calleeReturnsParam reports whether every return point traces back to
 // param through copies and moves only, so it can't loop through recursion.
-func calleeReturnsParam(callee *Func, param LocalID) bool {
+func calleeReturnsParam(callee *midir.Func, param midir.LocalID) bool {
 	found := false
 	for b := range callee.Blocks {
 		term := &callee.Blocks[b].Term
-		if term.Op != TermReturn {
+		if term.Op != midir.TermReturn {
 			continue
 		}
 		found = true
@@ -141,8 +142,8 @@ func calleeReturnsParam(callee *Func, param LocalID) bool {
 	return found
 }
 
-func calleeTracesToParam(callee *Func, from, param LocalID) bool {
-	seen := map[LocalID]bool{}
+func calleeTracesToParam(callee *midir.Func, from, param midir.LocalID) bool {
+	seen := map[midir.LocalID]bool{}
 	for {
 		if from == param {
 			return true
@@ -152,7 +153,7 @@ func calleeTracesToParam(callee *Func, from, param LocalID) bool {
 		}
 		seen[from] = true
 		in := calleeDefinition(callee, from)
-		if in == nil || (in.Op != OpCopy && in.Op != OpMove) {
+		if in == nil || (in.Op != midir.OpCopy && in.Op != midir.OpMove) {
 			return false
 		}
 		from = in.Args[0]
@@ -161,15 +162,15 @@ func calleeTracesToParam(callee *Func, from, param LocalID) bool {
 
 // calleeDefinition is definition's standalone counterpart for a Func other than
 // the one being checked; no per-call cache since this only hits the rare multi-candidate callee.
-func calleeDefinition(f *Func, l LocalID) *Inst {
-	var found *Inst
+func calleeDefinition(f *midir.Func, l midir.LocalID) *midir.Inst {
+	var found *midir.Inst
 	for b := range f.Blocks {
 		for i := range f.Blocks[b].Insts {
 			in := &f.Blocks[b].Insts[i]
 			if in.Dst != l {
 				continue
 			}
-			if !shapes[in.Op].result || f.Locals[in.Dst].Ent != 0 || found != nil {
+			if !in.Op.Yields() || f.Locals[in.Dst].Ent != 0 || found != nil {
 				return nil
 			}
 			found = in
@@ -178,7 +179,7 @@ func calleeDefinition(f *Func, l LocalID) *Inst {
 	return found
 }
 
-func (c *borrowCheck) writableParam(prm LocalID, callee *Func) bool {
+func (c *borrowCheck) writableParam(prm midir.LocalID, callee *midir.Func) bool {
 	ent := callee.Locals[prm].Ent
 	return ent != 0 && c.p.R.Entity(ent).Flags&(sem.EfMut|sem.EfMove) != 0
 }

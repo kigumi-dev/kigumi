@@ -3,36 +3,36 @@ package vm
 import (
 	"sync/atomic"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 // exec runs one instruction the way llgen lowers it; the forms below read their locals directly and the rest go through execArgs.
-func (m *Machine) exec(fr *frame, in *mir.Inst, ic *instCode) {
+func (m *Machine) exec(fr *frame, in *midir.Inst, ic *instCode) {
 	f := fr.f
 	m.curFn, m.curInst = f, in
 	loc := fr.locals
 	switch in.Op {
-	case mir.OpNop:
+	case midir.OpNop:
 		return
-	case mir.OpConst:
+	case midir.OpConst:
 		if ic.konst != nil {
 			loc[in.Dst] = ic.konst
 			return
 		}
-	case mir.OpUnit:
+	case midir.OpUnit:
 		loc[in.Dst] = unitObj
 		return
-	case mir.OpAlias, mir.OpBorrow:
+	case midir.OpAlias, midir.OpBorrow:
 		loc[in.Dst] = loc[in.Args[0]]
 		return
-	case mir.OpMove:
+	case midir.OpMove:
 		res := loc[in.Args[0]]
 		if f.Locals[in.Args[0]].Ent != 0 {
 			loc[in.Args[0]] = nil
 		}
 		loc[in.Dst] = res
 		return
-	case mir.OpShare:
+	case midir.OpShare:
 		v := loc[in.Args[0]]
 		if in.Copy && (!in.IfWritable || m.writableInside(v)) {
 			v = m.copyShared(f, in, ic, v)
@@ -42,12 +42,12 @@ func (m *Machine) exec(fr *frame, in *mir.Inst, ic *instCode) {
 		}
 		loc[in.Dst] = v
 		return
-	case mir.OpRelease:
+	case midir.OpRelease:
 		if v := loc[in.Args[0]]; v != nil && atomic.LoadInt32(&v.rc) >= 0 {
 			m.dropChecked(fr, v)
 		}
 		return
-	case mir.OpDrop:
+	case midir.OpDrop:
 		v := loc[in.Args[0]]
 		if f.Locals[in.Args[0]].Ent != 0 {
 			loc[in.Args[0]] = nil
@@ -56,33 +56,33 @@ func (m *Machine) exec(fr *frame, in *mir.Inst, ic *instCode) {
 			m.dropChecked(fr, v)
 		}
 		return
-	case mir.OpBinary:
+	case midir.OpBinary:
 		loc[in.Dst] = m.binopAs(ic.bin, in.Str, loc[in.Args[0]], loc[in.Args[1]])
 		return
-	case mir.OpUnary:
+	case midir.OpUnary:
 		if in.Str == "cast" {
 			loc[in.Dst] = m.cast(loc[in.Args[0]], ic.nk)
 			return
 		}
 		loc[in.Dst] = m.unop(in.Str, loc[in.Args[0]])
 		return
-	case mir.OpField:
+	case midir.OpField:
 		loc[in.Dst] = m.field(loc[in.Args[0]], in.Index)
 		return
-	case mir.OpIsVariant:
+	case midir.OpIsVariant:
 		v := deref(loc[in.Args[0]])
 		loc[in.Dst] = mkBool(v.k == kVariant && v.ent == in.Ent)
 		return
-	case mir.OpPayload:
+	case midir.OpPayload:
 		loc[in.Dst] = retain(deref(loc[in.Args[0]]).fields[in.Index])
 		return
-	case mir.OpIndex:
+	case midir.OpIndex:
 		loc[in.Dst] = m.index(loc[in.Args[0]], loc[in.Args[1]])
 		return
-	case mir.OpCellGet:
+	case midir.OpCellGet:
 		loc[in.Dst] = retain(loc[in.Args[0]].inner)
 		return
-	case mir.OpCall:
+	case midir.OpCall:
 		m.site, m.siteFn = in, f
 		if p := m.planFor(in, ic); p.kind == planLowered {
 			if m.opts.FaultInjectAt > 0 {

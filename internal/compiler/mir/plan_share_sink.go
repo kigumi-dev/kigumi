@@ -1,6 +1,9 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 type sinkKind uint8
 
@@ -10,21 +13,21 @@ const (
 	keepsArg          // it borrows it and may keep a reference of its own
 )
 
-func (p *Program) sinkAt(f *Func, in Inst, i int, s *shareSummary) sinkKind {
+func (p *Program) sinkAt(f *midir.Func, in midir.Inst, i int, s *shareSummary) sinkKind {
 	switch in.Op {
-	case OpRecord, OpVariant, OpArray, OpClosure, OpBox, OpBind, OpGlobalSet:
+	case midir.OpRecord, midir.OpVariant, midir.OpArray, midir.OpClosure, midir.OpBox, midir.OpBind, midir.OpGlobalSet:
 		return takesArg
-	case OpFutureNew:
+	case midir.OpFutureNew:
 		return sinkIf(i > 0, keepsArg)
-	case OpSetField, OpCellSet:
+	case midir.OpSetField, midir.OpCellSet:
 		return sinkIf(i == 1, takesArg)
-	case OpSetIndex:
+	case midir.OpSetIndex:
 		return sinkIf(i == 2, takesArg)
-	case OpNewCell:
+	case midir.OpNewCell:
 		return sinkIf(f.Locals[in.Dst].Ent != 0, takesArg)
-	case OpCallValue:
+	case midir.OpCallValue:
 		return sinkIf(i > 0 && !p.inPlace(in, i), takesArg)
-	case OpCall:
+	case midir.OpCall:
 		return p.callSink(in, i, s)
 	}
 	return noSink
@@ -37,7 +40,7 @@ func sinkIf(ok bool, k sinkKind) sinkKind {
 	return noSink
 }
 
-func (p *Program) callSink(in Inst, i int, s *shareSummary) sinkKind {
+func (p *Program) callSink(in midir.Inst, i int, s *shareSummary) sinkKind {
 	if p.R.Entity(in.Ent).Kind != sem.EntFn {
 		return noSink
 	}

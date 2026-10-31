@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func (e *emitter) constant(sb *strings.Builder, in mir.Inst) string {
+func (e *emitter) constant(sb *strings.Builder, in midir.Inst) string {
 	if key, ok := e.litKey(in); ok {
 		return e.constSlotName(key)
 	}
@@ -31,12 +31,12 @@ func (e *emitter) constant(sb *strings.Builder, in mir.Inst) string {
 	return e.irb(sb).Call(rtUnit).Text
 }
 
-func (e *emitter) recordConstant(sb *strings.Builder, in mir.Inst) string {
+func (e *emitter) recordConstant(sb *strings.Builder, in midir.Inst) string {
 	ent := e.r.Types.Node(in.Type).Ent
 	fields := e.r.TypeDecl(ent).Fields
 	vals := make([]string, len(fields))
 	for i, f := range fields {
-		vals[i] = e.constant(sb, mir.Inst{Lit: in.Lit.Fields[i], Type: e.r.Entity(f).Type})
+		vals[i] = e.constant(sb, midir.Inst{Lit: in.Lit.Fields[i], Type: e.r.Entity(f).Type})
 	}
 	arr := e.argArray(sb, vals)
 	return e.irb(sb).Call(rtRecord, vptr(e.desc(ent)), vi64(len(vals)), vptr(arr)).Text
@@ -44,7 +44,7 @@ func (e *emitter) recordConstant(sb *strings.Builder, in mir.Inst) string {
 
 // litKey registers in's literal as an immortal and names its slot key;
 // Bool and Void have one static object each already, so they stay out.
-func (e *emitter) litKey(in mir.Inst) (string, bool) {
+func (e *emitter) litKey(in midir.Inst) (string, bool) {
 	lit := in.Lit
 	tt := e.r.Types
 	switch {
@@ -78,7 +78,7 @@ func (e *emitter) litKey(in mir.Inst) (string, bool) {
 	return "", false
 }
 
-func (e *emitter) interp(sb *strings.Builder, in mir.Inst, args []string) string {
+func (e *emitter) interp(sb *strings.Builder, in midir.Inst, args []string) string {
 	var items []string
 	ai := 0
 	for _, s := range in.Strs {
@@ -95,7 +95,7 @@ func (e *emitter) interp(sb *strings.Builder, in mir.Inst, args []string) string
 
 // shell turns a `$"..."` literal into a std/shell.Plan, one
 // std/shell.Item builder call per piece, in source order.
-func (e *emitter) shell(sb *strings.Builder, in mir.Inst, args []string) string {
+func (e *emitter) shell(sb *strings.Builder, in midir.Inst, args []string) string {
 	plan := e.callStd(sb, "std/shell", "planNew", nil)
 	ai := 0
 	push := func(item string) { plan = e.callStd(sb, "std/shell", "planPush", []string{plan, item}) }

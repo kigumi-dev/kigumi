@@ -3,10 +3,11 @@ package mir
 import (
 	"sort"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func (a *owner) movedFields(root LocalID, st *dstate) []int {
+func (a *owner) movedFields(root midir.LocalID, st *dstate) []int {
 	var out []int
 	for idx, rep := range a.pl.children[root] {
 		if gone(st.field.get(rep)) || a.tracked[rep] && gone(st.val.get(rep)) || len(a.movedFields(rep, st)) > 0 {
@@ -40,13 +41,13 @@ func (a *owner) checkBorrowedWhole(st *dstate, report bool) {
 	}
 }
 
-func (a *owner) useArgs(in *Inst, st *dstate, report bool) {
+func (a *owner) useArgs(in *midir.Inst, st *dstate, report bool) {
 	a.cellStep(in, st, report)
 	a.assignHeld(in, st, report)
-	if in.Op == OpClosure {
+	if in.Op == midir.OpClosure {
 		a.captureWhole(in, st, report)
 	}
-	if in.Op == OpCopy && in.Guarded {
+	if in.Op == midir.OpCopy && in.Guarded {
 		st.rel.del(a.pl.canon(in.Args[0]))
 	}
 	a.checkArmTake(in, report)
@@ -69,7 +70,7 @@ func (a *owner) useArgs(in *Inst, st *dstate, report bool) {
 	}
 	for argi, arg := range in.Args {
 		l := a.pl.canon(arg)
-		if in.Op == OpBorrow && in.Index == 1 || (in.Op == OpSetField || in.Op == OpSetIndex) && argi == 0 {
+		if in.Op == midir.OpBorrow && in.Index == 1 || (in.Op == midir.OpSetField || in.Op == midir.OpSetIndex) && argi == 0 {
 			a.checkGuardHeld(in, l, st, report, 0)
 		}
 		if !a.tracked[l] {
@@ -95,13 +96,13 @@ func (a *owner) useArgs(in *Inst, st *dstate, report bool) {
 	}
 }
 
-func wholeUse(op Opcode) bool {
-	return op == OpCall || op == OpCallValue || op == OpBuiltin || op == OpBorrow || op == OpTag || op == OpIsVariant
+func wholeUse(op midir.Opcode) bool {
+	return op == midir.OpCall || op == midir.OpCallValue || op == midir.OpBuiltin || op == midir.OpBorrow || op == midir.OpTag || op == midir.OpIsVariant
 }
 
 // primitiveTakes: a runtime primitive retains what it keeps, so a field place it gets by value is spent like a moved local.
-func (p *Program) primitiveTakes(in *Inst, i int) bool {
-	if in.Op != OpCall || !p.IsStdPrimitive(in.Ent) {
+func (p *Program) primitiveTakes(in *midir.Inst, i int) bool {
+	if in.Op != midir.OpCall || !p.IsStdPrimitive(in.Ent) {
 		return false
 	}
 	recv := p.R.Fn(in.Ent).Recv
@@ -109,11 +110,11 @@ func (p *Program) primitiveTakes(in *Inst, i int) bool {
 }
 
 // constructs is an aggregate literal: a field place among its elements moves into it.
-func constructs(op Opcode) bool {
-	return op == OpRecord || op == OpVariant || op == OpArray
+func constructs(op midir.Opcode) bool {
+	return op == midir.OpRecord || op == midir.OpVariant || op == midir.OpArray
 }
 
-func (a *owner) guardedMove(in *Inst, st *dstate, report bool) {
+func (a *owner) guardedMove(in *midir.Inst, st *dstate, report bool) {
 	if !in.Guarded || len(in.Args) == 0 {
 		return
 	}
@@ -126,7 +127,7 @@ func (a *owner) guardedMove(in *Inst, st *dstate, report bool) {
 	if l := a.pl.canon(arg); a.holdable(arg) && a.tracked[l] {
 		a.checkWhole(in.Node, l, st, report)
 		a.checkDropOwner(in.Node, l, report)
-		var own LocalID
+		var own midir.LocalID
 		if len(in.Args) > 1 {
 			own = in.Args[1]
 		}
@@ -138,7 +139,7 @@ func (a *owner) guardedMove(in *Inst, st *dstate, report bool) {
 	}
 }
 
-func (a *owner) moveGuardSource(in *Inst, l LocalID, st *dstate, report bool) {
+func (a *owner) moveGuardSource(in *midir.Inst, l midir.LocalID, st *dstate, report bool) {
 	for up, ok := a.pl.parent[l]; ok; up, ok = a.pl.parent[l] {
 		l = up
 	}
@@ -151,14 +152,14 @@ func (a *owner) moveGuardSource(in *Inst, l LocalID, st *dstate, report bool) {
 	}
 }
 
-func clearGuardMarks(f *Func) {
+func clearGuardMarks(f *midir.Func) {
 	for bi := range f.Blocks {
 		for i := range f.Blocks[bi].Insts {
 			in := &f.Blocks[bi].Insts[i]
-			if in.Op == OpNop && in.Guarded {
+			if in.Op == midir.OpNop && in.Guarded {
 				in.Args, in.Guarded, in.Str = nil, false, ""
 			}
-			if in.Op == OpMove {
+			if in.Op == midir.OpMove {
 				in.Guarded = false
 			}
 		}
@@ -166,19 +167,19 @@ func clearGuardMarks(f *Func) {
 }
 
 // movesIntoBinding is a named binding taking a field place by value; the field read just before it already checked the place.
-func (a *owner) movesIntoBinding(in *Inst) bool {
-	return in.Op == OpCopy && !in.Guarded && a.f.Locals[in.Dst].Ent != 0 && a.tracked[in.Dst] &&
+func (a *owner) movesIntoBinding(in *midir.Inst) bool {
+	return in.Op == midir.OpCopy && !in.Guarded && a.f.Locals[in.Dst].Ent != 0 && a.tracked[in.Dst] &&
 		a.pl.isPlace(in.Args[0]) && a.tracked[a.pl.canon(in.Args[0])]
 }
 
-func (a *owner) fieldMove(in *Inst, l LocalID, st *dstate, report bool) {
+func (a *owner) fieldMove(in *midir.Inst, l midir.LocalID, st *dstate, report bool) {
 	a.checkDropOwner(in.Node, l, report)
 	a.checkGuardHeld(in, l, st, report, 0)
 	a.moveGuardSource(in, l, st, report)
 	st.field.set(l, ownMoved)
 }
 
-func (a *owner) holdable(l LocalID) bool {
+func (a *owner) holdable(l midir.LocalID) bool {
 	if a.pl.isPlace(l) {
 		return true
 	}

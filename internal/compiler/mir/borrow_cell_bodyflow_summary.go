@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -14,7 +15,7 @@ type calleeSummary struct {
 
 // finishedFlow is h's bodyFlow; ok is false for no body here or one still being computed (a recursion), which its
 // users take as storing and returning a value from elsewhere.
-func (c *borrowCheck) finishedFlow(h *Func) (fs, kept flowSets, ok bool) {
+func (c *borrowCheck) finishedFlow(h *midir.Func) (fs, kept flowSets, ok bool) {
 	if h == nil {
 		return nil, nil, false
 	}
@@ -43,7 +44,7 @@ func (c *borrowCheck) summaryOf(e sem.EntityID) (calleeSummary, bool) {
 		}
 	}
 	for _, blk := range g.Blocks {
-		if blk.Term.Op == TermReturn {
+		if blk.Term.Op == midir.TermReturn {
 			for _, a := range blk.Term.Args {
 				for f := range fs[a] {
 					sum.result = append(sum.result, f)
@@ -72,21 +73,21 @@ func (c *borrowCheck) intoCaller(e sem.EntityID, facts []uint32, arg func(sem.En
 }
 
 // lendsPlace reports an argument a callee may store through: a `&mut` or a write-back cell.
-func (c *borrowCheck) lendsPlace(g *Func, a LocalID) bool {
+func (c *borrowCheck) lendsPlace(g *midir.Func, a midir.LocalID) bool {
 	_, mut := c.p.R.MutRefElem(g.Locals[a].Type)
 	return mut || g.Locals[a].Cell
 }
 
 // keepsThrough is lendsPlace or an argument reaching shared storage, which a callee may store into by value.
-func (c *borrowCheck) keepsThrough(g *Func, a LocalID) bool {
+func (c *borrowCheck) keepsThrough(g *midir.Func, a midir.LocalID) bool {
 	return c.lendsPlace(g, a) || c.sharedStorage(g.Locals[a].Type)
 }
 
 // knownCallees are the callees of in this body can name: a fn item, a closure by type, or an async fn's future; nil for
 // a call it cannot see into.
-func (c *borrowCheck) knownCallees(g *Func, fs flowSets, in Inst) []sem.EntityID {
+func (c *borrowCheck) knownCallees(g *midir.Func, fs flowSets, in midir.Inst) []sem.EntityID {
 	switch in.Op {
-	case OpCall, OpCallValue, OpFutureNew:
+	case midir.OpCall, midir.OpCallValue, midir.OpFutureNew:
 		if ents, params, unseen := c.calleeOf(g, fs, in); !unseen && len(params) == 0 {
 			return ents
 		}
@@ -96,8 +97,8 @@ func (c *borrowCheck) knownCallees(g *Func, fs flowSets, in Inst) []sem.EntityID
 
 // calleeStores gives the facts each lent argument and the result of call in take from the callee's stores and return,
 // in g's facts via argFacts; an unseen or still-computing callee stores the unknown into each lent callable place.
-func (c *borrowCheck) calleeStores(g *Func, fs flowSets, in Inst, argFacts func(LocalID) []uint32, lent func(int, []uint32), result func([]uint32)) {
-	if in.Op != OpCall && in.Op != OpCallValue && in.Op != OpFutureNew {
+func (c *borrowCheck) calleeStores(g *midir.Func, fs flowSets, in midir.Inst, argFacts func(midir.LocalID) []uint32, lent func(int, []uint32), result func([]uint32)) {
+	if in.Op != midir.OpCall && in.Op != midir.OpCallValue && in.Op != midir.OpFutureNew {
 		return
 	}
 	opaqueAll := func() {
@@ -140,8 +141,8 @@ func (c *borrowCheck) calleeStores(g *Func, fs flowSets, in Inst, argFacts func(
 }
 
 // bodyCallStores applies calleeStores inside bodyFacts: a lent argument's places, through placeRoots, and the result.
-func (c *borrowCheck) bodyCallStores(g *Func, defs map[LocalID][]*Inst, in Inst, fs flowSets, into func([]LocalID, bool, []uint32), put func(LocalID, uint32, bool)) {
-	argFacts := func(a LocalID) []uint32 {
+func (c *borrowCheck) bodyCallStores(g *midir.Func, defs map[midir.LocalID][]*midir.Inst, in midir.Inst, fs flowSets, into func([]midir.LocalID, bool, []uint32), put func(midir.LocalID, uint32, bool)) {
+	argFacts := func(a midir.LocalID) []uint32 {
 		var out []uint32
 		for f := range fs[a] {
 			out = append(out, f)

@@ -1,6 +1,9 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // primKind is how a runtime primitive sees a value: raw leaf bits of one
 // scalar type, a reference, or a boxed object.
@@ -35,10 +38,10 @@ func (k primKind) String() string {
 }
 
 // A mismatch is rejected for the boxed and the direct result form alike: the back end picks the runtime entry from the declared signature.
-func (p *verifier) verifyPrimCalls(f *Func) *Error {
+func (p *verifier) verifyPrimCalls(f *midir.Func) *Error {
 	for bid, blk := range f.Blocks {
 		for i, in := range blk.Insts {
-			if in.Op != OpCall || !p.IsStdPrimitive(in.Ent) {
+			if in.Op != midir.OpCall || !p.IsStdPrimitive(in.Ent) {
 				continue
 			}
 			msg := p.primMismatch(f, in)
@@ -46,14 +49,14 @@ func (p *verifier) verifyPrimCalls(f *Func) *Error {
 				msg = p.opDescMismatch(f, in)
 			}
 			if msg != "" {
-				return fail("types", BlockID(bid), i, "call of %s: %s", p.R.Entity(in.Ent).Name, msg)
+				return fail("types", midir.BlockID(bid), i, "call of %s: %s", p.R.Entity(in.Ent).Name, msg)
 			}
 		}
 	}
 	return nil
 }
 
-func (p *verifier) primMismatch(f *Func, in Inst) string {
+func (p *verifier) primMismatch(f *midir.Func, in midir.Inst) string {
 	info := p.R.Fn(in.Ent)
 	sig := p.R.Types.Node(info.Sig)
 	skip := len(in.Args) - len(sig.Args)

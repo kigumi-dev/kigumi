@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"kigumi/internal/backend/vm/host/shell"
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -24,7 +24,7 @@ func (m *Machine) callStd(pkg, name string, args []*obj) *obj {
 
 // shellPlan lowers a shell literal the way llgen does: std/shell.planNew
 // and planPush build the Plan from Item variants.
-func (m *Machine) shellPlan(in *mir.Inst, args []*obj) *obj {
+func (m *Machine) shellPlan(in *midir.Inst, args []*obj) *obj {
 	item := m.r.PackageMember(m.r.PackageByPath("std/shell"), "Item")
 	variant := func(name string, payload []*obj) *obj {
 		return mkVariant(m.variantOf(item, name), payload)

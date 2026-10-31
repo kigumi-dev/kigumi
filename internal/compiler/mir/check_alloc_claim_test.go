@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const inferredNoallocSrc = `
@@ -27,7 +28,7 @@ fn main() -> Void! {}
 func withBox(t *testing.T, p *mir.Program, name string) {
 	t.Helper()
 	f := funcNamed(t, p, name)
-	var typ mir.Local
+	var typ midir.Local
 	for _, l := range f.Locals {
 		if p.R.DirectAgg(l.Type) {
 			typ = l
@@ -37,9 +38,9 @@ func withBox(t *testing.T, p *mir.Program, name string) {
 	if typ.Type == 0 {
 		t.Fatalf("%s has no direct local", name)
 	}
-	f.Locals = append(f.Locals, mir.Local{Type: typ.Type})
-	box := mir.Inst{Op: mir.OpBoxDirect, Dst: mir.LocalID(len(f.Locals) - 1), Type: typ.Type, Args: []mir.LocalID{f.Params[0]}, Node: f.Blocks[0].Insts[0].Node}
-	f.Blocks[0].Insts = append([]mir.Inst{box}, f.Blocks[0].Insts...)
+	f.Locals = append(f.Locals, midir.Local{Type: typ.Type})
+	box := midir.Inst{Op: midir.OpBoxDirect, Dst: midir.LocalID(len(f.Locals) - 1), Type: typ.Type, Args: []midir.LocalID{f.Params[0]}, Node: f.Blocks[0].Insts[0].Node}
+	f.Blocks[0].Insts = append([]midir.Inst{box}, f.Blocks[0].Insts...)
 }
 
 func TestAllocClaimsReportABoxInAnInferredNoallocBody(t *testing.T) {

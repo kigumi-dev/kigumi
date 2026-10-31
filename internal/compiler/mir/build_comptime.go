@@ -4,13 +4,14 @@ import (
 	"fmt"
 
 	"kigumi/internal/compiler/hir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // comptime lowers a block's body as a function of its own and leaves a
 // placeholder in the enclosing body; the driver evaluates the function in
 // the VM's sandbox and folds the result in with Program.Fold.
-func (b *builder) comptime(e *hir.Expr) LocalID {
+func (b *builder) comptime(e *hir.Expr) midir.LocalID {
 	inner := e.Args[0]
 	ret := inner.Type
 	if b.r.Types.Kind(ret) == sem.KUntyped {
@@ -19,8 +20,8 @@ func (b *builder) comptime(e *hir.Expr) LocalID {
 			ret = sem.TyF64
 		}
 	}
-	f := &Func{Name: fmt.Sprintf("%s.comptime%d", b.fn.Name, len(b.p.Comptime)), File: b.fn.File, Ret: ret}
-	cb := &builder{p: b.p, r: b.r, fn: f, locals: map[sem.EntityID]LocalID{}, shared: map[LocalID]bool{}, unowned: map[LocalID]bool{}, ret: ret}
+	f := &midir.Func{Name: fmt.Sprintf("%s.comptime%d", b.fn.Name, len(b.p.Comptime)), File: b.fn.File, Ret: ret}
+	cb := &builder{p: b.p, r: b.r, fn: f, locals: map[sem.EntityID]midir.LocalID{}, shared: map[midir.LocalID]bool{}, unowned: map[midir.LocalID]bool{}, ret: ret}
 	cb.newBlock()
 	cb.pushScope()
 	v := cb.detach(cb.expr(inner))
@@ -29,7 +30,7 @@ func (b *builder) comptime(e *hir.Expr) LocalID {
 	analyzeOwnership(b.p.Program, f, &cb.ghostRuns)
 	b.p.checkBorrowsOf(f)
 	slot := len(b.p.Comptime)
-	dst := b.emit(Inst{Op: OpBuiltin, Dst: b.temp(e.Type), Str: "comptime", Index: slot, Node: e.Node})
+	dst := b.emit(midir.Inst{Op: midir.OpBuiltin, Dst: b.temp(e.Type), Str: "comptime", Index: slot, Node: e.Node})
 	b.p.Comptime = append(b.p.Comptime, &ComptimeFunc{
 		Site:  sem.ComptimeSite{File: b.fn.File, Node: e.Node, Fn: b.fn.Ent},
 		Func:  f,

@@ -3,12 +3,13 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // callReplaces reports whether in is a call that replaces what its `&mut` or `mut self` argument target holds on every path.
-func (c *borrowCheck) callReplaces(in Inst, target LocalID) bool {
-	if in.Op != OpCall || in.Ent == 0 || c.p.R.Entity(in.Ent).Kind != sem.EntFn {
+func (c *borrowCheck) callReplaces(in midir.Inst, target midir.LocalID) bool {
+	if in.Op != midir.OpCall || in.Ent == 0 || c.p.R.Entity(in.Ent).Kind != sem.EntFn {
 		return false
 	}
 	k := slices.Index(in.Args, target)
@@ -16,17 +17,17 @@ func (c *borrowCheck) callReplaces(in Inst, target LocalID) bool {
 }
 
 // callResets reports whether in replaces on every path all of root, the named local fl's target borrows.
-func (c *borrowCheck) callResets(in Inst, fl storeFlow, root LocalID) bool {
+func (c *borrowCheck) callResets(in midir.Inst, fl storeFlow, root midir.LocalID) bool {
 	l := fl.target
 	for c.f.Locals[l].Ent == 0 {
 		d := c.definition(l)
 		switch {
 		case d == nil || len(d.Args) == 0:
 			return false
-		case d.Op == OpBorrow:
+		case d.Op == midir.OpBorrow:
 			r, path, exact, ok := c.projectionPlace(d.Args[0])
 			return ok && r == root && exact && len(path) == 0 && len(c.storeDests(fl)) == 1 && c.callReplaces(in, fl.target)
-		case d.Op != OpNewCell && d.Op != OpShare && d.Op != OpCopy && d.Op != OpMove && d.Op != OpAlias:
+		case d.Op != midir.OpNewCell && d.Op != midir.OpShare && d.Op != midir.OpCopy && d.Op != midir.OpMove && d.Op != midir.OpAlias:
 			return false
 		}
 		l = d.Args[0]
@@ -35,7 +36,7 @@ func (c *borrowCheck) callResets(in Inst, fl storeFlow, root LocalID) bool {
 }
 
 // noteCallReset makes a replacing call a reset of the root it stores into, at its write-back when there is one.
-func (c *borrowCheck) noteCallReset(in Inst, fl storeFlow, root LocalID, b *borrowInfo) {
+func (c *borrowCheck) noteCallReset(in midir.Inst, fl storeFlow, root midir.LocalID, b *borrowInfo) {
 	if c.f.Locals[root].Ent == 0 || !c.callResets(in, fl, root) {
 		return
 	}
@@ -54,6 +55,6 @@ func (c *borrowCheck) noteCallReset(in Inst, fl storeFlow, root LocalID, b *borr
 }
 
 // resetsAt reports whether insts[i] of block bid ends every borrow holder had: a replacing field store or call.
-func (c *borrowCheck) resetsAt(bid BlockID, i int, holder LocalID) bool {
+func (c *borrowCheck) resetsAt(bid midir.BlockID, i int, holder midir.LocalID) bool {
 	return c.replacesHolder(c.f.Blocks[bid].Insts[i], holder) || c.resets.ends[carrySite{block: bid, idx: i, owner: holder}]
 }

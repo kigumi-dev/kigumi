@@ -3,7 +3,7 @@ package mir_test
 import (
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 )
 
@@ -39,7 +39,7 @@ func TestPlanDirectKeepsCountedResultsInline(t *testing.T) {
 	p := specialized(t, countedSrc)
 	for _, name := range []string{"main.grab", "main.take", "main.half", "main.quarter", "std/alloc.Box.new"} {
 		f := funcNamed(t, p, name)
-		if n := countOp(f, mir.OpBoxDirect) + countOp(f, mir.OpUnboxDirect); n != 0 {
+		if n := countOp(f, midir.OpBoxDirect) + countOp(f, midir.OpUnboxDirect); n != 0 {
 			t.Errorf("%s crosses a counted Result %d times:\n%s", name, n, p.Dump())
 		}
 	}
@@ -47,7 +47,7 @@ func TestPlanDirectKeepsCountedResultsInline(t *testing.T) {
 		tryRef := 0
 		for _, blk := range funcNamed(t, p, name).Blocks {
 			for _, in := range blk.Insts {
-				if in.Op == mir.OpCall && in.DPrim == opdef.DPTryRef {
+				if in.Op == midir.OpCall && in.DPrim == opdef.DPTryRef {
 					tryRef++
 				}
 			}
@@ -79,7 +79,7 @@ func TestPlanDirectBoxesCountedValuesInAsyncFrames(t *testing.T) {
 	p := specialized(t, countedAsyncSrc)
 	f := funcNamed(t, p, "main.later")
 	for i := range f.Locals {
-		if f.IsDirect(mir.LocalID(i)) && p.R.CountedAdt(f.Locals[i].Type) && !f.Locals[i].Cross {
+		if f.IsDirect(midir.LocalID(i)) && p.R.CountedAdt(f.Locals[i].Type) && !f.Locals[i].Cross {
 			t.Errorf("async body keeps %s unboxed:\n%s", f.Locals[i].Name, p.Dump())
 		}
 	}
@@ -104,7 +104,7 @@ fn main() {
 func TestPlanDirectMovesCountedClosureParamsOut(t *testing.T) {
 	p := specialized(t, countedClosureSrc)
 	for _, name := range []string{"main.main.closure1", "main.main.closure2"} {
-		if n := countOp(funcNamed(t, p, name), mir.OpUnboxDirect); n != 1 {
+		if n := countOp(funcNamed(t, p, name), midir.OpUnboxDirect); n != 1 {
 			t.Errorf("%s unboxes its counted parameter %d times, want once:\n%s", name, n, p.Dump())
 		}
 	}

@@ -1,13 +1,17 @@
 package mir
 
-import "slices"
+import (
+	"slices"
+
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
 type boundSlot struct {
-	g *Func
+	g *midir.Func
 	i int
 }
 
-func (c *borrowCheck) boundOpaqueStores(g *Func, i int, seen map[boundSlot]bool) bool {
+func (c *borrowCheck) boundOpaqueStores(g *midir.Func, i int, seen map[boundSlot]bool) bool {
 	key := boundSlot{g, i}
 	if seen[key] {
 		return false
@@ -20,11 +24,11 @@ func (c *borrowCheck) boundOpaqueStores(g *Func, i int, seen map[boundSlot]bool)
 	source, defs := uint32(params[i]), soleDefs(g)
 	for _, blk := range g.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op != OpCall && in.Op != OpCallValue {
+			if in.Op != midir.OpCall && in.Op != midir.OpCallValue {
 				continue
 			}
 			h, args := c.bodyCallee(in), in.Args
-			if in.Op == OpCallValue {
+			if in.Op == midir.OpCallValue {
 				o := c.calleeOrigin(g, defs, in.Args[0])
 				h, args = o.body, slices.Concat(o.captures, in.Args[1:])
 				if h == nil && !o.known {

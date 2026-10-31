@@ -1,9 +1,12 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
-func (w *shareFacts) heldAcrossWrite(in Inst, i int) bool {
-	if in.Op != OpCall && in.Op != OpCallValue || !w.writable(in.Args[i]) {
+func (w *shareFacts) heldAcrossWrite(in midir.Inst, i int) bool {
+	if in.Op != midir.OpCall && in.Op != midir.OpCallValue || !w.writable(in.Args[i]) {
 		return false
 	}
 	rs := w.rootsOf(in.Args[i])
@@ -21,7 +24,7 @@ func (w *shareFacts) heldAcrossWrite(in Inst, i int) bool {
 	return false
 }
 
-func (w *shareFacts) lendsPlace(in Inst, j int) bool {
+func (w *shareFacts) lendsPlace(in midir.Inst, j int) bool {
 	b := in.Args[j]
 	if !w.passesPlace(b) && !w.mutRef(b) {
 		return false
@@ -31,11 +34,11 @@ func (w *shareFacts) lendsPlace(in Inst, j int) bool {
 }
 
 // A value of unknown origin may have captured a cell or any place this body only borrows, but nothing it owns.
-func (w *shareFacts) closureWrites(b LocalID, rs rootSet) bool {
-	return w.codeWrites(b, rs, map[LocalID]bool{})
+func (w *shareFacts) closureWrites(b midir.LocalID, rs rootSet) bool {
+	return w.codeWrites(b, rs, map[midir.LocalID]bool{})
 }
 
-func (w *shareFacts) codeWrites(v LocalID, rs rootSet, seen map[LocalID]bool) bool {
+func (w *shareFacts) codeWrites(v midir.LocalID, rs rootSet, seen map[midir.LocalID]bool) bool {
 	if seen[v] || !w.runsCode(v) {
 		return false
 	}
@@ -56,7 +59,7 @@ func (w *shareFacts) codeWrites(v LocalID, rs rootSet, seen map[LocalID]bool) bo
 	}
 	for _, d := range w.defs[v] {
 		switch {
-		case d.Op == OpClosure:
+		case d.Op == midir.OpClosure:
 			for _, c := range d.Args {
 				if meets(rs, w.rootsOf(c)) || w.codeWrites(c, rs, seen) {
 					return true
@@ -91,14 +94,14 @@ func (w *shareFacts) unseenWrite(rs rootSet) bool {
 	return false
 }
 
-func (w *shareFacts) runsCode(v LocalID) bool {
+func (w *shareFacts) runsCode(v midir.LocalID) bool {
 	t := w.f.Locals[v].Type
 	return w.p.R.Types.Kind(t) == sem.KParam || w.p.R.MayHoldFn(t)
 }
 
-func holdsFields(op Opcode) bool {
+func holdsFields(op midir.Opcode) bool {
 	switch op {
-	case OpRecord, OpVariant, OpArray, OpBox, OpBind:
+	case midir.OpRecord, midir.OpVariant, midir.OpArray, midir.OpBox, midir.OpBind:
 		return true
 	}
 	return false

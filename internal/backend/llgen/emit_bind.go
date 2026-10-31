@@ -4,9 +4,10 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
-func (e *emitter) bindValue(sb *strings.Builder, in mir.Inst, args []string) string {
+func (e *emitter) bindValue(sb *strings.Builder, in midir.Inst, args []string) string {
 	fn, own := e.p.ByEnt[in.Ent]
 	if !own && len(args) == 0 {
 		return e.stdBindSlot(e.stdKey(in.Ent), mir.LentMask(e.r, in.Ent))

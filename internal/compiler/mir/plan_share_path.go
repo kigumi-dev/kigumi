@@ -3,12 +3,13 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // Every element access is one step, so two element paths always overlap.
 type step struct {
-	op  Opcode
+	op  midir.Opcode
 	idx int
 }
 
@@ -18,12 +19,12 @@ type wpath struct {
 }
 
 type rootAt struct {
-	l  LocalID
+	l  midir.LocalID
 	at Point
 }
 
 // A reference read out of a field points at storage elsewhere, so the walk stops there.
-func (w *shareFacts) placeOf(v LocalID) (LocalID, []step, bool) {
+func (w *shareFacts) placeOf(v midir.LocalID) (midir.LocalID, []step, bool) {
 	var rev []step
 	for range w.nLocals {
 		if w.f.Locals[v].Ent != 0 {
@@ -40,7 +41,7 @@ func (w *shareFacts) placeOf(v LocalID) (LocalID, []step, bool) {
 				return 0, nil, false
 			}
 			rev = append(rev, stepOf(in))
-		case in.Op == OpShare && in.Copy, in.Op == OpCopy && in.Share, !passesOn(in.Op):
+		case in.Op == midir.OpShare && in.Copy, in.Op == midir.OpCopy && in.Share, !passesOn(in.Op):
 			return 0, nil, false
 		}
 		v = ds[0].Args[0]
@@ -48,14 +49,14 @@ func (w *shareFacts) placeOf(v LocalID) (LocalID, []step, bool) {
 	return 0, nil, false
 }
 
-func stepOf(in Inst) step {
+func stepOf(in midir.Inst) step {
 	switch in.Op {
-	case OpField, OpPayload:
+	case midir.OpField, midir.OpPayload:
 		return step{in.Op, in.Index}
-	case OpFieldMove:
-		return step{OpField, in.Index}
-	case OpBuiltin:
-		return step{op: OpIndex}
+	case midir.OpFieldMove:
+		return step{midir.OpField, in.Index}
+	case midir.OpBuiltin:
+		return step{op: midir.OpIndex}
 	}
 	return step{op: in.Op}
 }
@@ -66,7 +67,7 @@ func overlaps(s []step, p wpath) bool {
 }
 
 // A root bound again after at may hold other boxes, so its paths no longer compare.
-func (w *shareFacts) exactRoot(src LocalID, r LocalID, at Point) ([]step, bool) {
+func (w *shareFacts) exactRoot(src midir.LocalID, r midir.LocalID, at Point) ([]step, bool) {
 	l, s, ok := w.placeOf(src)
 	if !ok || l != r || w.reachable(at, w.sets[r]) {
 		return nil, false
@@ -74,7 +75,7 @@ func (w *shareFacts) exactRoot(src LocalID, r LocalID, at Point) ([]step, bool) 
 	return s, true
 }
 
-func (w *shareFacts) touches(r LocalID, x Point, s []step) bool {
+func (w *shareFacts) touches(r midir.LocalID, x Point, s []step) bool {
 	for _, p := range w.paths[rootAt{r, x}] {
 		if overlaps(s, p) {
 			return true

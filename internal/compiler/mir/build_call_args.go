@@ -2,17 +2,18 @@ package mir
 
 import (
 	"kigumi/internal/compiler/hir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // argFrame is a call's evaluated argument locals; off is 1 when the receiver leads them.
 type argFrame struct {
-	locals []LocalID
+	locals []midir.LocalID
 	off    int
 }
 
-func (b *builder) evalArgs(off, n int, order []int, eval func(i int) LocalID) []LocalID {
-	out := make([]LocalID, n)
+func (b *builder) evalArgs(off, n int, order []int, eval func(i int) midir.LocalID) []midir.LocalID {
+	out := make([]midir.LocalID, n)
 	b.argFrames = append(b.argFrames, argFrame{out, off})
 	defer func() { b.argFrames = b.argFrames[:len(b.argFrames)-1] }()
 	if order == nil {
@@ -28,7 +29,7 @@ func (b *builder) evalArgs(off, n int, order []int, eval func(i int) LocalID) []
 }
 
 // argRef runs inside the thunk call's own frame, so the call it reads is the one below.
-func (b *builder) argRef(index int) LocalID {
+func (b *builder) argRef(index int) midir.LocalID {
 	f := b.argFrames[len(b.argFrames)-2]
 	if index < 0 {
 		return f.locals[0]
@@ -52,7 +53,7 @@ func (b *builder) valueSig(t sem.TypeID) sem.TypeID {
 }
 
 // packVariadic groups a variadic call's trailing arguments into one array, per sig's fixed arity.
-func (b *builder) packVariadic(call *hir.Expr, out []LocalID, sig sem.TypeID) []LocalID {
+func (b *builder) packVariadic(call *hir.Expr, out []midir.LocalID, sig sem.TypeID) []midir.LocalID {
 	params := b.r.Types.Node(sig).Args
 	fixed := len(params) - 1
 	if fixed < 0 {
@@ -61,6 +62,6 @@ func (b *builder) packVariadic(call *hir.Expr, out []LocalID, sig sem.TypeID) []
 	if fixed > len(out) {
 		fixed = len(out)
 	}
-	arr := b.emit(Inst{Op: OpArray, Dst: b.temp(params[len(params)-1]), Args: append([]LocalID{}, out[fixed:]...), Node: call.Node})
+	arr := b.emit(midir.Inst{Op: midir.OpArray, Dst: b.temp(params[len(params)-1]), Args: append([]midir.LocalID{}, out[fixed:]...), Node: call.Node})
 	return append(out[:fixed], arr)
 }

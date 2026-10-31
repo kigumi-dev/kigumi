@@ -1,17 +1,21 @@
 package mir
 
-import "slices"
+import (
+	"slices"
+
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
 // blockFlow holds a function's dominator and post-dominator sets; dom[b][a] says a dominates b.
 // A block ending in `unreachable` constrains no post-dominator: a panic leaves through unwinding.
 type blockFlow struct {
-	f     *Func
+	f     *midir.Func
 	preds [][]int
 	dom   [][]bool
 	pdom  [][]bool
 }
 
-func newBlockFlow(f *Func) *blockFlow {
+func newBlockFlow(f *midir.Func) *blockFlow {
 	n := len(f.Blocks)
 	preds := make([][]int, n)
 	for b, blk := range f.Blocks {
@@ -28,7 +32,7 @@ func newBlockFlow(f *Func) *blockFlow {
 	}
 	fl := &blockFlow{f: f, preds: preds}
 	fl.dom = solveDominators(n, func(b int) bool { return b == 0 }, func(b int) []int { return preds[b] })
-	fl.pdom = solveDominators(n, func(b int) bool { return f.Blocks[b].Term.Op == TermReturn }, succs)
+	fl.pdom = solveDominators(n, func(b int) bool { return f.Blocks[b].Term.Op == midir.TermReturn }, succs)
 	return fl
 }
 
@@ -85,5 +89,5 @@ func count(s []bool) int {
 func (fl *blockFlow) postDominates(a, b int) bool { return fl.pdom[b][a] }
 
 func (fl *blockFlow) liveOut(b int, live []bool) bool {
-	return slices.ContainsFunc(fl.f.Blocks[b].Term.Targets, func(t BlockID) bool { return live[t] })
+	return slices.ContainsFunc(fl.f.Blocks[b].Term.Targets, func(t midir.BlockID) bool { return live[t] })
 }

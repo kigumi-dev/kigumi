@@ -1,14 +1,15 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
 
 // replacesHolder reports whether in stores into the named holder's only field that may carry a borrow, so the store
 // ends every borrow the holder had.
-func (c *borrowCheck) replacesHolder(in Inst, holder LocalID) bool {
-	return in.Op == OpSetField && len(in.Args) > 0 && in.Args[0] == holder && c.f.Locals[holder].Ent != 0 && c.analysis().replacingField(c.f.Locals[holder].Type, in.Index)
+func (c *borrowCheck) replacesHolder(in midir.Inst, holder midir.LocalID) bool {
+	return in.Op == midir.OpSetField && len(in.Args) > 0 && in.Args[0] == holder && c.f.Locals[holder].Ent != 0 && c.analysis().replacingField(c.f.Locals[holder].Type, in.Index)
 }
 
 // replacingField reports whether field index of record type t is a bare reference and its only field that may carry a borrow.
@@ -41,9 +42,9 @@ func (p *borrowAnalysis) replacingField(t sem.TypeID, index int) bool {
 
 // storesOnlyReplace reports whether every store or carried value written into holder is a replacing field store;
 // it is asked once holders are final, so one pass over the stores answers it for every holder.
-func (c *borrowCheck) storesOnlyReplace(holder LocalID) bool {
+func (c *borrowCheck) storesOnlyReplace(holder midir.LocalID) bool {
 	if c.resets.stored == nil {
-		c.resets.stored = map[LocalID]bool{}
+		c.resets.stored = map[midir.LocalID]bool{}
 		for _, blk := range c.f.Blocks {
 			for _, in := range blk.Insts {
 				for _, fl := range c.storeFlows(in) {

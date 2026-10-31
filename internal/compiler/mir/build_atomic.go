@@ -4,11 +4,12 @@ import (
 	"slices"
 
 	"kigumi/internal/compiler/hir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // The builtin names the static in Ent and the memory order in Index.
-func (b *builder) atomicStatic(e *hir.Expr) (LocalID, bool) {
+func (b *builder) atomicStatic(e *hir.Expr) (midir.LocalID, bool) {
 	op, ok := b.r.MemOpOf(e.Ent)
 	if ok && op.Addr {
 		return b.volatileAt(e, op), true
@@ -35,16 +36,16 @@ func (b *builder) atomicStatic(e *hir.Expr) (LocalID, bool) {
 		return 0, false
 	}
 	args := b.args(e, e.Args[1:len(e.Args)-1], nil, true, false, 0)
-	return b.emit(Inst{Op: OpBuiltin, Dst: b.temp(e.Type), Str: name, Ent: place.Args[0].Ent, Index: slices.Index(sem.AtomicOrders, b.r.Entity(order.Ent).Name), Args: args, Node: e.Node}), true
+	return b.emit(midir.Inst{Op: midir.OpBuiltin, Dst: b.temp(e.Type), Str: name, Ent: place.Args[0].Ent, Index: slices.Index(sem.AtomicOrders, b.r.Entity(order.Ent).Name), Args: args, Node: e.Node}), true
 }
 
-func (b *builder) volatileAt(e *hir.Expr, op sem.MemOp) LocalID {
+func (b *builder) volatileAt(e *hir.Expr, op sem.MemOp) midir.LocalID {
 	name := "volatile.read"
 	if op.Op == "volatileWriteAt" {
 		name = "volatile.write"
 	}
 	args := b.args(e, e.Args, nil, true, false, 0)
-	return b.emit(Inst{Op: OpBuiltin, Dst: b.temp(e.Type), Str: name, Args: args, Node: e.Node})
+	return b.emit(midir.Inst{Op: midir.OpBuiltin, Dst: b.temp(e.Type), Str: name, Args: args, Node: e.Node})
 }
 
 var atomicBuiltins = map[string]string{

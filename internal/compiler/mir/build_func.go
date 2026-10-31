@@ -2,12 +2,13 @@ package mir
 
 import (
 	"kigumi/internal/compiler/hir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func (p *lowering) build(hf *hir.Func) *Func {
-	f := &Func{Name: p.funcName(hf.Ent), Ent: hf.Ent, File: hf.File, Ret: hf.Ret, Async: p.isAsyncBody(hf.Ent)}
-	b := &builder{p: p, r: p.R, fn: f, locals: map[sem.EntityID]LocalID{}, shared: map[LocalID]bool{}, unowned: map[LocalID]bool{}, ret: hf.Ret}
+func (p *lowering) build(hf *hir.Func) *midir.Func {
+	f := &midir.Func{Name: p.funcName(hf.Ent), Ent: hf.Ent, File: hf.File, Ret: hf.Ret, Async: p.isAsyncBody(hf.Ent)}
+	b := &builder{p: p, r: p.R, fn: f, locals: map[sem.EntityID]midir.LocalID{}, shared: map[midir.LocalID]bool{}, unowned: map[midir.LocalID]bool{}, ret: hf.Ret}
 	b.newBlock()
 	b.pushScope()
 	if hf.Self != nil {
@@ -64,12 +65,12 @@ func (p *lowering) build(hf *hir.Func) *Func {
 		f.ImplicitOk = true
 		b.returnValue(b.unit(hf.Main.Node))
 	} else {
-		var v LocalID
+		var v midir.LocalID
 		if hf.Body.Kind == hir.BlockExpr {
 			b.body = hf.Body.Block
 			v = b.detach(b.expr(hf.Body))
 		} else {
-			v = b.fullValue(func() LocalID { return b.detach(b.expr(hf.Body)) })
+			v = b.fullValue(func() midir.LocalID { return b.detach(b.expr(hf.Body)) })
 		}
 		if b.body == nil {
 			b.closeTaskScope(hf.Body.Node)

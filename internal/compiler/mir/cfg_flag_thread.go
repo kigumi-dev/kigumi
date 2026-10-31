@@ -1,20 +1,24 @@
 package mir
 
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
 // flagThread resolves a branch that re-tests a flag an earlier branch already decided.
 type flagThread struct {
-	f        *Func
-	soleFrom map[BlockID]BlockID
-	preds    map[BlockID][]BlockID
+	f        *midir.Func
+	soleFrom map[midir.BlockID]midir.BlockID
+	preds    map[midir.BlockID][]midir.BlockID
 }
 
 // allThreaded reports whether every edge into t decides the flag t re-tests, so the state
 // joined at t never reaches t's targets as such.
-func (c *flagThread) allThreaded(t BlockID) bool {
+func (c *flagThread) allThreaded(t midir.BlockID) bool {
 	if c.preds == nil {
-		c.preds = map[BlockID][]BlockID{}
+		c.preds = map[midir.BlockID][]midir.BlockID{}
 		for i := range c.f.Blocks {
 			for _, s := range c.f.Blocks[i].Term.Targets {
-				c.preds[s] = append(c.preds[s], BlockID(i))
+				c.preds[s] = append(c.preds[s], midir.BlockID(i))
 			}
 		}
 	}
@@ -31,9 +35,9 @@ func (c *flagThread) allThreaded(t BlockID) bool {
 
 // target resolves the branch ending t when the edge from bid already decided its
 // condition, as an `if v is P(x)` join re-tests the flag the test set.
-func (c *flagThread) target(bid, t BlockID) (BlockID, bool) {
+func (c *flagThread) target(bid, t midir.BlockID) (midir.BlockID, bool) {
 	tt := c.f.Blocks[t].Term
-	if tt.Op != TermBranch || len(tt.Args) != 1 || len(tt.Targets) != 2 || tt.Targets[0] == tt.Targets[1] {
+	if tt.Op != midir.TermBranch || len(tt.Args) != 1 || len(tt.Targets) != 2 || tt.Targets[0] == tt.Targets[1] {
 		return 0, false
 	}
 	cond := tt.Args[0]
@@ -49,11 +53,11 @@ func (c *flagThread) target(bid, t BlockID) (BlockID, bool) {
 
 // edgeCond is cond's value on the edge from bid to t: bid branches on it, or bid has one
 // predecessor that does and bid does not assign it.
-func (c *flagThread) edgeCond(bid, t BlockID, cond LocalID) (bool, bool) {
+func (c *flagThread) edgeCond(bid, t midir.BlockID, cond midir.LocalID) (bool, bool) {
 	if v, ok := branchValue(c.f.Blocks[bid].Term, t, cond); ok {
 		return v, true
 	}
-	if c.f.Blocks[bid].Term.Op != TermJump || c.definesIn(bid, cond) {
+	if c.f.Blocks[bid].Term.Op != midir.TermJump || c.definesIn(bid, cond) {
 		return false, false
 	}
 	pred, ok := c.solePred(bid)
@@ -63,8 +67,8 @@ func (c *flagThread) edgeCond(bid, t BlockID, cond LocalID) (bool, bool) {
 	return branchValue(c.f.Blocks[pred].Term, bid, cond)
 }
 
-func branchValue(term Term, to BlockID, cond LocalID) (bool, bool) {
-	if term.Op != TermBranch || len(term.Args) != 1 || term.Args[0] != cond || len(term.Targets) != 2 || term.Targets[0] == term.Targets[1] {
+func branchValue(term midir.Term, to midir.BlockID, cond midir.LocalID) (bool, bool) {
+	if term.Op != midir.TermBranch || len(term.Args) != 1 || term.Args[0] != cond || len(term.Targets) != 2 || term.Targets[0] == term.Targets[1] {
 		return false, false
 	}
 	switch to {
@@ -76,23 +80,23 @@ func branchValue(term Term, to BlockID, cond LocalID) (bool, bool) {
 	return false, false
 }
 
-func (c *flagThread) definesIn(bid BlockID, l LocalID) bool {
+func (c *flagThread) definesIn(bid midir.BlockID, l midir.LocalID) bool {
 	for _, in := range c.f.Blocks[bid].Insts {
-		if shapes[in.Op].result && in.Dst == l {
+		if in.Op.Yields() && in.Dst == l {
 			return true
 		}
 	}
 	return false
 }
 
-func (c *flagThread) solePred(bid BlockID) (BlockID, bool) {
+func (c *flagThread) solePred(bid midir.BlockID) (midir.BlockID, bool) {
 	if c.soleFrom == nil {
-		c.soleFrom = map[BlockID]BlockID{}
-		count := map[BlockID]int{}
+		c.soleFrom = map[midir.BlockID]midir.BlockID{}
+		count := map[midir.BlockID]int{}
 		for i := range c.f.Blocks {
 			for _, t := range c.f.Blocks[i].Term.Targets {
 				count[t]++
-				c.soleFrom[t] = BlockID(i)
+				c.soleFrom[t] = midir.BlockID(i)
 			}
 		}
 		for t, n := range count {

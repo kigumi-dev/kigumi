@@ -1,6 +1,7 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
@@ -81,7 +82,7 @@ func (cs *chainState) chain(ent sem.EntityID) StackBound {
 	acc := StackBound{Kind: Bounded, Bytes: own}
 	for _, b := range f.Blocks {
 		for _, inst := range b.Insts {
-			if inst.Op != OpCall && inst.Op != OpCallValue {
+			if inst.Op != midir.OpCall && inst.Op != midir.OpCallValue {
 				continue
 			}
 			name, edge := cs.edgeBound(f, inst)
@@ -94,7 +95,7 @@ func (cs *chainState) chain(ent sem.EntityID) StackBound {
 }
 
 // A std primitive is trusted as a constant unless it routes through hoCallbackArg.
-func (cs *chainState) edgeBound(f *Func, inst Inst) (string, StackBound) {
+func (cs *chainState) edgeBound(f *midir.Func, inst midir.Inst) (string, StackBound) {
 	if id, ok := inst.StdOp(); ok {
 		if argIdx, isHO := hoCallbackArg[opdef.StdOpNames[id]]; isHO {
 			return cs.callbackEdgeBound(f, inst, argIdx)
@@ -117,7 +118,7 @@ func (cs *chainState) edgeBound(f *Func, inst Inst) (string, StackBound) {
 
 // callbackEdgeBound chains into a callback target resolved to exactly one
 // known function/closure literal; a stored or borrowed one stays Unknown.
-func (cs *chainState) callbackEdgeBound(f *Func, inst Inst, argIdx int) (string, StackBound) {
+func (cs *chainState) callbackEdgeBound(f *midir.Func, inst midir.Inst, argIdx int) (string, StackBound) {
 	primName := cs.prog.R.Entity(inst.Ent).Name
 	if argIdx >= len(inst.Args) {
 		return primName, StackBound{Kind: Bounded, Bytes: trustedStdFrame * cs.word}
@@ -135,9 +136,9 @@ func (cs *chainState) callbackEdgeBound(f *Func, inst Inst, argIdx int) (string,
 }
 
 // calleeConst resolves local through plan-made copies; any other or repeated write is unresolvable.
-func calleeConst(f *Func, local LocalID) (sem.EntityID, bool) {
+func calleeConst(f *midir.Func, local midir.LocalID) (sem.EntityID, bool) {
 	for range f.Locals {
-		var def *Inst
+		var def *midir.Inst
 		for bid := range f.Blocks {
 			for i := range f.Blocks[bid].Insts {
 				inst := &f.Blocks[bid].Insts[i]
@@ -153,9 +154,9 @@ func calleeConst(f *Func, local LocalID) (sem.EntityID, bool) {
 		switch {
 		case def == nil:
 			return 0, false
-		case def.Op == OpClosure || def.Op == OpFnItem:
+		case def.Op == midir.OpClosure || def.Op == midir.OpFnItem:
 			return def.Ent, true
-		case def.Op == OpCopy || def.Op == OpAlias || def.Op == OpShare || def.Op == OpMove || def.Op == OpBoxDirect || def.Op == OpUnboxDirect:
+		case def.Op == midir.OpCopy || def.Op == midir.OpAlias || def.Op == midir.OpShare || def.Op == midir.OpMove || def.Op == midir.OpBoxDirect || def.Op == midir.OpUnboxDirect:
 			local = def.Args[0]
 		default:
 			return 0, false

@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
@@ -11,46 +12,46 @@ func (p *verifier) directRecord(t sem.TypeID) bool {
 	return p.R.DirectAgg(t) && !p.R.DirectAdt(t) && !p.R.DirectClosure(t) && !p.R.DirectFixed(t)
 }
 
-func (p *verifier) directShape(f *Func, in Inst) string {
+func (p *verifier) directShape(f *midir.Func, in midir.Inst) string {
 	switch in.Op {
-	case OpRecord, OpClosure:
+	case midir.OpRecord, midir.OpClosure:
 		t := p.wholePos(f, in.Dst)
 		kind := p.directRecord(t)
-		if in.Op == OpClosure {
+		if in.Op == midir.OpClosure {
 			kind = p.R.DirectClosure(t)
 		}
 		if t != 0 && (!kind || len(in.Args) != len(p.R.AggFields(t))) {
 			return "builds a value its type does not lay out"
 		}
-	case OpVariant:
+	case midir.OpVariant:
 		t := p.wholePos(f, in.Dst)
 		if t != 0 && (!p.R.DirectAdt(t) || !slices.Contains(p.R.AggVariants(t), in.Ent) || len(in.Args) != len(p.R.AggPayload(t, in.Ent))) {
 			return "builds a variant its type does not have"
 		}
-	case OpField, OpFieldMove, OpSetField:
+	case midir.OpField, midir.OpFieldMove, midir.OpSetField:
 		t := p.wholePos(f, in.Args[0])
 		if t != 0 && (!p.directRecord(t) || in.Index < 0 || in.Index >= len(p.R.AggFields(t))) {
 			return "names a field its base does not have"
 		}
-	case OpPayload:
+	case midir.OpPayload:
 		t := p.wholePos(f, in.Args[0])
 		if t != 0 && (!p.R.DirectAdt(t) || in.Index < 0 || in.Index >= p.payloadSlots(t)) {
 			return "reads a payload slot its base does not have"
 		}
-	case OpIsVariant:
+	case midir.OpIsVariant:
 		t := p.wholePos(f, in.Args[0])
 		if t != 0 && (!p.R.DirectAdt(t) || !slices.Contains(p.R.AggVariants(t), in.Ent)) {
 			return "tests a variant its base does not have"
 		}
-	case OpCallValue:
+	case midir.OpCallValue:
 		if t := p.wholePos(f, in.Args[0]); t != 0 && !p.R.DirectClosure(t) {
 			return "calls a value that is not a closure"
 		}
-	case OpCall:
+	case midir.OpCall:
 		if in.DPrim != opdef.DPNone && !p.primTypesFit(f, in, in.DPrim) {
 			return "hands a direct primitive operands it does not take"
 		}
-	case OpBuiltin:
+	case midir.OpBuiltin:
 		if protoBuiltin(in) {
 			return p.protoShape(f, in)
 		}

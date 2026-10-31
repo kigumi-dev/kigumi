@@ -1,21 +1,25 @@
 package mir
 
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
 // definesTemp: stores, drops and panics leave Dst without defining it.
-func definesTemp(in Inst, isTemp func(LocalID) bool) bool {
+func definesTemp(in midir.Inst, isTemp func(midir.LocalID) bool) bool {
 	if !isTemp(in.Dst) {
 		return false
 	}
 	switch in.Op {
-	case OpNop, OpPanic, OpDrop, OpSetField, OpSetIndex, OpCellSet, OpGlobalSet, OpFutureDone, OpCancelDone:
+	case midir.OpNop, midir.OpPanic, midir.OpDrop, midir.OpSetField, midir.OpSetIndex, midir.OpCellSet, midir.OpGlobalSet, midir.OpFutureDone, midir.OpCancelDone:
 		return false
 	}
 	return true
 }
 
-func tempDefs(f *Func, isTemp func(LocalID) bool) (map[LocalID]int, map[LocalID]map[int]bool, map[LocalID]int) {
-	defs := map[LocalID]int{}
-	blocks := map[LocalID]map[int]bool{}
-	last := map[LocalID]int{}
+func tempDefs(f *midir.Func, isTemp func(midir.LocalID) bool) (map[midir.LocalID]int, map[midir.LocalID]map[int]bool, map[midir.LocalID]int) {
+	defs := map[midir.LocalID]int{}
+	blocks := map[midir.LocalID]map[int]bool{}
+	last := map[midir.LocalID]int{}
 	for b, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			if !definesTemp(in, isTemp) {
@@ -33,6 +37,6 @@ func tempDefs(f *Func, isTemp func(LocalID) bool) (map[LocalID]int, map[LocalID]
 }
 
 // aliasesLocal is true when rewriteCopy leaves the copy a plain alias.
-func aliasesLocal(in Inst, defs map[LocalID]int, materialize map[LocalID]bool) bool {
-	return !materialize[in.Dst] && (in.Op == OpAlias || !in.Share && defs[in.Dst] <= 1)
+func aliasesLocal(in midir.Inst, defs map[midir.LocalID]int, materialize map[midir.LocalID]bool) bool {
+	return !materialize[in.Dst] && (in.Op == midir.OpAlias || !in.Share && defs[in.Dst] <= 1)
 }

@@ -1,14 +1,15 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 // A position and the local reaching it always agree on the form, so every
 // crossing is an OpBoxDirect/OpUnboxDirect and no backend picks for itself.
-func (p *verifier) verifyDirect(f *Func) *Error {
+func (p *verifier) verifyDirect(f *midir.Func) *Error {
 	for bid, blk := range f.Blocks {
-		bid := BlockID(bid)
+		bid := midir.BlockID(bid)
 		for i, in := range blk.Insts {
 			if err := p.verifyDirectInst(f, bid, i, in); err != nil {
 				return err
@@ -21,7 +22,7 @@ func (p *verifier) verifyDirect(f *Func) *Error {
 	return nil
 }
 
-func (p *verifier) verifyDirectForms(f *Func) *Error {
+func (p *verifier) verifyDirectForms(f *midir.Func) *Error {
 	for i, prm := range f.Params {
 		if f.IsDirect(prm) != (f.DSig.Param(i) != 0) {
 			return fail("direct", 0, 0, "parameter %s is in the form the signature does not carry", p.local(f, prm))
@@ -30,20 +31,20 @@ func (p *verifier) verifyDirectForms(f *Func) *Error {
 	return nil
 }
 
-func (p *verifier) verifyDirectReturn(f *Func, bid BlockID, blk Block) *Error {
+func (p *verifier) verifyDirectReturn(f *midir.Func, bid midir.BlockID, blk midir.Block) *Error {
 	a := blk.Term.Args
-	if blk.Term.Op != TermReturn {
+	if blk.Term.Op != midir.TermReturn {
 		return nil
 	}
-	if f.IsDirect(a[0]) != (f.DSig.result() != 0) {
+	if f.IsDirect(a[0]) != (f.DSig.Result() != 0) {
 		return fail("direct", bid, len(blk.Insts), "returns %s in the form the signature does not carry", p.local(f, a[0]))
 	}
 	return nil
 }
 
-func (p *verifier) verifyDirectInst(f *Func, bid BlockID, i int, in Inst) *Error {
-	if in.Op == OpBoxDirect || in.Op == OpUnboxDirect {
-		boxing := in.Op == OpBoxDirect
+func (p *verifier) verifyDirectInst(f *midir.Func, bid midir.BlockID, i int, in midir.Inst) *Error {
+	if in.Op == midir.OpBoxDirect || in.Op == midir.OpUnboxDirect {
+		boxing := in.Op == midir.OpBoxDirect
 		if f.IsDirect(in.Args[0]) != boxing || f.IsDirect(in.Dst) == boxing {
 			return fail("direct", bid, i, "%s must read the one form and yield the other", in.Op)
 		}
@@ -57,7 +58,7 @@ func (p *verifier) verifyDirectInst(f *Func, bid BlockID, i int, in Inst) *Error
 	if in.Op.Yields() && f.IsDirect(in.Dst) != (p.dstPos(f, in) != 0) {
 		return fail("direct", bid, i, "%s writes %s in the form this position does not yield", in.Op, p.local(f, in.Dst))
 	}
-	if in.Op == OpCall && in.DPrim != opdef.DPNone && !p.primTypesFit(f, in, in.DPrim) {
+	if in.Op == midir.OpCall && in.DPrim != opdef.DPNone && !p.primTypesFit(f, in, in.DPrim) {
 		return fail("direct", bid, i, "call hands its direct primitive operands of other types")
 	}
 	if msg := p.directShape(f, in); msg != "" {
@@ -66,18 +67,18 @@ func (p *verifier) verifyDirectInst(f *Func, bid BlockID, i int, in Inst) *Error
 	return nil
 }
 
-func (p *verifier) verifyFixedBoxes(f *Func) *Error {
+func (p *verifier) verifyFixedBoxes(f *midir.Func) *Error {
 	var fixed []bool
 	for bid, blk := range f.Blocks {
 		for i, in := range blk.Insts {
-			if in.Op != OpBoxDirect || !in.Fixed {
+			if in.Op != midir.OpBoxDirect || !in.Fixed {
 				continue
 			}
 			if fixed == nil {
 				fixed = p.fixedLocals(f)
 			}
 			if !fixed[in.Args[0]] {
-				return fail("direct", BlockID(bid), i, "boxes %s as fixed, but it is not a constant", p.local(f, in.Args[0]))
+				return fail("direct", midir.BlockID(bid), i, "boxes %s as fixed, but it is not a constant", p.local(f, in.Args[0]))
 			}
 		}
 	}

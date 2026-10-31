@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
@@ -34,14 +35,14 @@ async fn awaitsParam(mut x: Future[Int], o: Future[Int]?, b: Bool) -> Int {
 }
 `
 
-func collected(p *Program, g *Func) *borrowCheck {
-	c := &borrowCheck{p: p, f: g, holders: map[LocalID]*borrowInfo{}, reported: map[reportKey]int{}, keptTemp: map[LocalID]bool{}}
+func collected(p *Program, g *midir.Func) *borrowCheck {
+	c := &borrowCheck{p: p, f: g, holders: map[midir.LocalID]*borrowInfo{}, reported: map[reportKey]int{}, keptTemp: map[midir.LocalID]bool{}}
 	c.collect()
 	c.offloadNode = map[sem.EntityID]syntax.NodeID{}
 	return c
 }
 
-func firstOp(g *Func, op Opcode) Inst {
+func firstOp(g *midir.Func, op midir.Opcode) midir.Inst {
 	for _, blk := range g.Blocks {
 		for _, in := range blk.Insts {
 			if in.Op == op {
@@ -49,7 +50,7 @@ func firstOp(g *Func, op Opcode) Inst {
 			}
 		}
 	}
-	return Inst{}
+	return midir.Inst{}
 }
 
 func TestLentPlaceWithoutHolderLeavesFirstParam(t *testing.T) {
@@ -71,7 +72,7 @@ func TestOffloadFlowReachesFirstParam(t *testing.T) {
 	if !handsOff(c.solveFlow(c.offloadSeed, c.offloadStep).ever[g.Params[0]]) {
 		t.Errorf("h, the first parameter, does not hold the handle stored in it")
 	}
-	if o, ok := c.awaitedPayloadOf(firstOp(g, OpAwait).Args[0], map[LocalID]bool{g.Params[0]: true}); !ok || o != g.Params[0] {
+	if o, ok := c.awaitedPayloadOf(firstOp(g, midir.OpAwait).Args[0], map[midir.LocalID]bool{g.Params[0]: true}); !ok || o != g.Params[0] {
 		t.Errorf("awaiting h's payload finishes %v (%v), want h", o, ok)
 	}
 }
@@ -80,7 +81,7 @@ func TestAwaitedParamKeepsItsCallersValue(t *testing.T) {
 	p, body := srcProgram(t, firstParamSrc)
 	g := body("awaitsParam")
 	c := collected(p, g)
-	if o, ok := c.awaitedPayloadOf(firstOp(g, OpAwait).Args[0], map[LocalID]bool{localNamed(t, g, "o"): true}); ok {
+	if o, ok := c.awaitedPayloadOf(firstOp(g, midir.OpAwait).Args[0], map[midir.LocalID]bool{localNamed(t, g, "o"): true}); ok {
 		t.Errorf("awaiting x finishes %v, want none: x may still be the caller's", o)
 	}
 }
@@ -89,7 +90,7 @@ func TestInFlightTouchOfFirstParamNeedsAResult(t *testing.T) {
 	p, body := srcProgram(t, firstParamSrc)
 	g := body("reassigned")
 	c := collected(p, g)
-	if c.touchesInFlight(Inst{Op: OpRelease, Args: []LocalID{g.Params[0]}}, ownerRef{owner: g.Params[0]}) {
+	if c.touchesInFlight(midir.Inst{Op: midir.OpRelease, Args: []midir.LocalID{g.Params[0]}}, ownerRef{owner: g.Params[0]}) {
 		t.Errorf("releasing the first parameter counts as writing it, though a release defines no local")
 	}
 }

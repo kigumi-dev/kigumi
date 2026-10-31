@@ -1,9 +1,12 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // lentRefs computes which references hold no count in the current body.
-func (p *Program) lentRefs(f *Func) []bool {
+func (p *Program) lentRefs(f *midir.Func) []bool {
 	out := make([]bool, len(f.Locals))
 	for _, prm := range f.Params {
 		out[prm] = p.R.Types.Kind(f.Locals[prm].Type) == sem.KRef
@@ -22,15 +25,15 @@ func (p *Program) lentRefs(f *Func) []bool {
 	return out
 }
 
-func lendsOn(in Inst, out []bool) bool {
+func lendsOn(in midir.Inst, out []bool) bool {
 	switch in.Op {
-	case OpBorrow, OpLendBox:
+	case midir.OpBorrow, midir.OpLendBox:
 		return true
-	case OpAlias, OpMove:
+	case midir.OpAlias, midir.OpMove:
 		return len(in.Args) == 1 && out[in.Args[0]]
-	case OpCopy:
+	case midir.OpCopy:
 		return !in.Share && len(in.Args) == 1 && out[in.Args[0]]
-	case OpUnboxDirect:
+	case midir.OpUnboxDirect:
 		return in.Lent && out[in.Args[0]]
 	}
 	return false
@@ -38,11 +41,11 @@ func lendsOn(in Inst, out []bool) bool {
 
 // build.go's emit drops no reference, so a declared reference parameter keeps
 // the caller's count; a type parameter unified to one is owned like any value.
-func (p *Program) lentParam(in Inst, i int) bool {
-	if in.Op == OpRecord {
+func (p *Program) lentParam(in midir.Inst, i int) bool {
+	if in.Op == midir.OpRecord {
 		return p.borrowField(in.Ent, i)
 	}
-	if in.Op == OpCall {
+	if in.Op == midir.OpCall {
 		if g := p.ByEnt[in.Ent]; g != nil && i < len(g.Params) && g.Locals[g.Params[i]].Borrowed {
 			return true
 		}
@@ -52,8 +55,8 @@ func (p *Program) lentParam(in Inst, i int) bool {
 }
 
 // A holder keeps no count of a reference stored in it, as borrowField says of records.
-func (p *Program) lentStore(f *Func, in Inst, i int) bool {
-	return in.Op == OpSetField && i == 1 && p.R.Types.Kind(f.Locals[in.Args[1]].Type) == sem.KRef
+func (p *Program) lentStore(f *midir.Func, in midir.Inst, i int) bool {
+	return in.Op == midir.OpSetField && i == 1 && p.R.Types.Kind(f.Locals[in.Args[1]].Type) == sem.KRef
 }
 
 // A record does not own what a reference-typed field holds, so building one leaves the count with the caller.
@@ -67,7 +70,7 @@ func (p *Program) borrowField(rec sem.EntityID, i int) bool {
 
 // declaredParam is the type before instantiation, not the argument's actual type.
 // A receiver yields false; its convention comes from RecvKind, not a type.
-func (p *Program) declaredParam(in Inst, i int) (sem.TypeID, bool) {
+func (p *Program) declaredParam(in midir.Inst, i int) (sem.TypeID, bool) {
 	prm, ok := p.declaredParamEnt(in, i)
 	if !ok {
 		return 0, false
@@ -76,10 +79,10 @@ func (p *Program) declaredParam(in Inst, i int) (sem.TypeID, bool) {
 }
 
 // declaredParamEnt is declaredParam's parameter itself, for a diagnostic naming it.
-func (p *Program) declaredParamEnt(in Inst, i int) (sem.EntityID, bool) {
+func (p *Program) declaredParamEnt(in midir.Inst, i int) (sem.EntityID, bool) {
 	switch in.Op {
-	case OpCall:
-	case OpCallValue:
+	case midir.OpCall:
+	case midir.OpCallValue:
 		i--
 	default:
 		return 0, false

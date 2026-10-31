@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -22,35 +23,35 @@ const (
 	roleVoid
 )
 
-var bodyRoles = map[Opcode]bodyRole{
-	OpConst: roleFresh, OpUnit: roleFresh, OpBinary: roleFresh, OpUnary: roleFresh, OpTag: roleFresh, OpIsVariant: roleFresh,
-	OpIsType: roleFresh, OpInterp: roleFresh, OpShell: roleFresh, OpCancelled: roleFresh, OpCFnPtr: roleFresh,
-	OpFnItem: roleFresh, OpGlobalGet: roleFresh,
-	OpCopy: roleCarry, OpMove: roleCarry, OpRecord: roleCarry, OpVariant: roleCarry, OpField: roleCarry, OpFieldMove: roleCarry,
-	OpArray: roleCarry, OpIndex: roleCarry, OpPayload: roleCarry, OpUnbox: roleCarry, OpBox: roleCarry, OpClosure: roleCarry,
-	OpBind: roleCarry, OpBorrow: roleCarry, OpNewCell: roleCarry, OpCellGet: roleCarry, OpCellTake: roleCarry, OpAlias: roleCarry,
-	OpShare: roleCarry, OpBoxDirect: roleCarry, OpUnboxDirect: roleCarry, OpLendBox: roleCarry,
-	OpSetField: roleStore, OpSetIndex: roleStore, OpCellSet: roleStore, OpGlobalSet: roleStore,
-	OpCall: roleCall, OpCallValue: roleCall, OpCallC: roleCall, OpBuiltin: roleCall, OpAwait: roleCall, OpAsm: roleCall, OpFutureNew: roleCall,
-	OpDrop: roleVoid, OpRelease: roleVoid, OpPanic: roleVoid, OpNop: roleVoid, OpFutureDone: roleVoid, OpCancelDone: roleVoid,
+var bodyRoles = map[midir.Opcode]bodyRole{
+	midir.OpConst: roleFresh, midir.OpUnit: roleFresh, midir.OpBinary: roleFresh, midir.OpUnary: roleFresh, midir.OpTag: roleFresh, midir.OpIsVariant: roleFresh,
+	midir.OpIsType: roleFresh, midir.OpInterp: roleFresh, midir.OpShell: roleFresh, midir.OpCancelled: roleFresh, midir.OpCFnPtr: roleFresh,
+	midir.OpFnItem: roleFresh, midir.OpGlobalGet: roleFresh,
+	midir.OpCopy: roleCarry, midir.OpMove: roleCarry, midir.OpRecord: roleCarry, midir.OpVariant: roleCarry, midir.OpField: roleCarry, midir.OpFieldMove: roleCarry,
+	midir.OpArray: roleCarry, midir.OpIndex: roleCarry, midir.OpPayload: roleCarry, midir.OpUnbox: roleCarry, midir.OpBox: roleCarry, midir.OpClosure: roleCarry,
+	midir.OpBind: roleCarry, midir.OpBorrow: roleCarry, midir.OpNewCell: roleCarry, midir.OpCellGet: roleCarry, midir.OpCellTake: roleCarry, midir.OpAlias: roleCarry,
+	midir.OpShare: roleCarry, midir.OpBoxDirect: roleCarry, midir.OpUnboxDirect: roleCarry, midir.OpLendBox: roleCarry,
+	midir.OpSetField: roleStore, midir.OpSetIndex: roleStore, midir.OpCellSet: roleStore, midir.OpGlobalSet: roleStore,
+	midir.OpCall: roleCall, midir.OpCallValue: roleCall, midir.OpCallC: roleCall, midir.OpBuiltin: roleCall, midir.OpAwait: roleCall, midir.OpAsm: roleCall, midir.OpFutureNew: roleCall,
+	midir.OpDrop: roleVoid, midir.OpRelease: roleVoid, midir.OpPanic: roleVoid, midir.OpNop: roleVoid, midir.OpFutureDone: roleVoid, midir.OpCancelDone: roleVoid,
 }
 
 // inertOp reports an opcode that hands none of its operands on: its result is fresh, or it has none.
-func inertOp(op Opcode) bool {
+func inertOp(op midir.Opcode) bool {
 	r, ok := bodyRoles[op]
 	return ok && (r == roleFresh || r == roleVoid)
 }
 
 // bodyFacts says, flow-insensitively, what each local of g may hold: g's declared parameters and the fn items and
 // closure literals it may be made from, by entity, and opaqueFact for a value from anywhere else.
-func (c *borrowCheck) bodyFacts(g *Func) flowSets {
+func (c *borrowCheck) bodyFacts(g *midir.Func) flowSets {
 	fs, _ := c.bodyFlow(g)
 	return fs
 }
 
 // bodyFlow is bodyFacts with kept: what stores and calls put into each local, without what it starts with; a body
 // asked for again while it is being computed (a recursion) answers nil.
-func (c *borrowCheck) bodyFlow(g *Func) (flowSets, flowSets) {
+func (c *borrowCheck) bodyFlow(g *midir.Func) (flowSets, flowSets) {
 	m := c.offloads()
 	if fs, ok := m.body[g]; ok || m.busy[g] {
 		return fs, m.kept[g]
@@ -58,7 +59,7 @@ func (c *borrowCheck) bodyFlow(g *Func) (flowSets, flowSets) {
 	m.busy[g] = true
 	defer delete(m.busy, g)
 	fs, kept, escaped := flowSets{}, flowSets{}, map[uint32]bool{}
-	add := func(s flowSets, l LocalID, f uint32) bool {
+	add := func(s flowSets, l midir.LocalID, f uint32) bool {
 		if s[l][f] {
 			return false
 		}
@@ -79,7 +80,7 @@ func (c *borrowCheck) bodyFlow(g *Func) (flowSets, flowSets) {
 	defs := allDefs(g)
 	for changed := true; changed; {
 		changed = false
-		put := func(l LocalID, f uint32, store bool) {
+		put := func(l midir.LocalID, f uint32, store bool) {
 			changed = add(fs, l, f) || changed
 			if store {
 				add(kept, l, f)
@@ -93,7 +94,7 @@ func (c *borrowCheck) bodyFlow(g *Func) (flowSets, flowSets) {
 		for f := range escaped {
 			for l := range g.Locals {
 				if t := g.Locals[l].Type; c.typeRuns(t, runsCallable) || c.typeRuns(t, runsHandle) {
-					put(LocalID(l), f, true)
+					put(midir.LocalID(l), f, true)
 				}
 			}
 		}
@@ -103,14 +104,14 @@ func (c *borrowCheck) bodyFlow(g *Func) (flowSets, flowSets) {
 }
 
 // bodyStep applies in's role; a store whose place is not pinned to locals here escapes to every local able to hold it.
-func (c *borrowCheck) bodyStep(g *Func, defs map[LocalID][]*Inst, in Inst, fs flowSets, escaped map[uint32]bool, put func(LocalID, uint32, bool)) {
+func (c *borrowCheck) bodyStep(g *midir.Func, defs map[midir.LocalID][]*midir.Inst, in midir.Inst, fs flowSets, escaped map[uint32]bool, put func(midir.LocalID, uint32, bool)) {
 	var from []uint32
 	for _, a := range in.Args {
 		for f := range fs[a] {
 			from = append(from, f)
 		}
 	}
-	into := func(roots []LocalID, ok bool, facts []uint32) {
+	into := func(roots []midir.LocalID, ok bool, facts []uint32) {
 		for _, f := range facts {
 			if !ok {
 				escaped[f] = true
@@ -128,7 +129,7 @@ func (c *borrowCheck) bodyStep(g *Func, defs map[LocalID][]*Inst, in Inst, fs fl
 		for _, f := range from {
 			put(in.Dst, f, false)
 		}
-		if in.Op == OpClosure {
+		if in.Op == midir.OpClosure {
 			c.captureStores(g, defs, in, into)
 		}
 	case roleStore:
@@ -136,7 +137,7 @@ func (c *borrowCheck) bodyStep(g *Func, defs map[LocalID][]*Inst, in Inst, fs fl
 		for f := range fs[in.Args[len(in.Args)-1]] {
 			stored = append(stored, f)
 		}
-		if in.Op == OpGlobalSet {
+		if in.Op == midir.OpGlobalSet {
 			into(nil, false, stored)
 			break
 		}
@@ -158,7 +159,7 @@ func (c *borrowCheck) bodyStep(g *Func, defs map[LocalID][]*Inst, in Inst, fs fl
 
 // captureStores merges into each local closure in captures what the closure's body may store into that capture; a
 // parameter of the closure stored there is a value from elsewhere here.
-func (c *borrowCheck) captureStores(g *Func, defs map[LocalID][]*Inst, in Inst, into func([]LocalID, bool, []uint32)) {
+func (c *borrowCheck) captureStores(g *midir.Func, defs map[midir.LocalID][]*midir.Inst, in midir.Inst, into func([]midir.LocalID, bool, []uint32)) {
 	if c.p.R.Entity(in.Ent).Kind != sem.EntClosure {
 		return
 	}
@@ -183,11 +184,11 @@ func (c *borrowCheck) captureStores(g *Func, defs map[LocalID][]*Inst, in Inst, 
 
 // bodySeeds are the facts in itself gives its result: a fn item, bound fn or closure literal, and opaqueFact for a
 // global or a callable a call hands back by value, which may be one its callee made.
-func (c *borrowCheck) bodySeeds(g *Func, in Inst) []uint32 {
+func (c *borrowCheck) bodySeeds(g *midir.Func, in midir.Inst) []uint32 {
 	switch {
-	case in.Op == OpFnItem, in.Op == OpBind, in.Op == OpClosure && c.p.R.Entity(in.Ent).Kind == sem.EntClosure:
+	case in.Op == midir.OpFnItem, in.Op == midir.OpBind, in.Op == midir.OpClosure && c.p.R.Entity(in.Ent).Kind == sem.EntClosure:
 		return []uint32{uint32(in.Ent)}
-	case in.Op == OpGlobalGet:
+	case in.Op == midir.OpGlobalGet:
 		return []uint32{opaqueFact}
 	case bodyRoles[in.Op] == roleCall && in.Op.Yields() && c.p.R.Types.Kind(g.Locals[in.Dst].Type) != sem.KRef &&
 		c.typeRuns(g.Locals[in.Dst].Type, runsCallable):

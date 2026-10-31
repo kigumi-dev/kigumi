@@ -1,8 +1,11 @@
 package mir
 
-import "kigumi/internal/compiler/hir"
+import (
+	"kigumi/internal/compiler/hir"
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
-func (b *builder) ifLet(e *hir.Expr) LocalID {
+func (b *builder) ifLet(e *hir.Expr) midir.LocalID {
 	init := b.expr(e.Cond)
 	b.pushScope()
 	b.ownTemp(init)
@@ -11,7 +14,7 @@ func (b *builder) ifLet(e *hir.Expr) LocalID {
 	then, els, join := b.newBlockAt(), b.newBlockAt(), b.newBlockAt()
 	matched := b.newBlockAt()
 	cond := b.testPattern(e.Pat, init)
-	b.term(Term{Op: TermBranch, Args: []LocalID{cond}, Targets: []BlockID{matched, els}})
+	b.term(midir.Term{Op: midir.TermBranch, Args: []midir.LocalID{cond}, Targets: []midir.BlockID{matched, els}})
 	b.cur = matched
 	b.pushScope()
 	moves := b.bindGuarded(e.Pat, init, e.Guard != nil)

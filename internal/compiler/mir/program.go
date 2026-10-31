@@ -1,12 +1,15 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 type Program struct {
 	R     *sem.Result
-	Funcs []*Func
-	ByEnt map[sem.EntityID]*Func
-	Entry *Func
+	Funcs []*midir.Func
+	ByEnt map[sem.EntityID]*midir.Func
+	Entry *midir.Func
 	// Comptime lists the comptime blocks, each lowered as a function of its
 	// own that the driver evaluates and folds before anything runs.
 	Comptime []*ComptimeFunc
@@ -17,7 +20,7 @@ type Program struct {
 	verified  verificationHistory
 	Diags     []FileDiag
 	// Entries holds every Func.Entry; they are not in Funcs, so nothing keyed by entity sees them.
-	Entries []*Func
+	Entries []*midir.Func
 	// VerifyEach makes Apply verify before the passes and after each one, not only after the last.
 	VerifyEach bool
 	unlowered  []bool

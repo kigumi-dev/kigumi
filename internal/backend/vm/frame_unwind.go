@@ -1,11 +1,11 @@
 package vm
 
 import (
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func (m *Machine) dropOwnedLocals(f *mir.Func, locals []*obj) {
+func (m *Machine) dropOwnedLocals(f *midir.Func, locals []*obj) {
 	for i := len(locals) - 1; i >= 0; i-- {
 		v := locals[i]
 		if v == nil {
@@ -71,7 +71,7 @@ func (m *Machine) sweepFrames(base int) {
 }
 
 // The plan reads the checker's shared type table, which IsCopy writes under derived.
-func (m *Machine) unwindSet(fr *frame) []mir.LocalID {
+func (m *Machine) unwindSet(fr *frame) []midir.LocalID {
 	m.sh.derived.Lock()
 	defer m.sh.derived.Unlock()
 	return m.p.UnwindPlanOf(fr.f).SetAt(fr.blk, fr.pc)

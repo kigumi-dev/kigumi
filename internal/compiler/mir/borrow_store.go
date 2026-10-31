@@ -3,11 +3,12 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 type storeFlow struct {
-	target     LocalID
+	target     midir.LocalID
 	values     []flowArg
 	ref        bool
 	unresolved bool
@@ -23,13 +24,13 @@ type storeFlow struct {
 	// byValue marks a holder handed over by value: what is stored lands in the places its `&mut`s reach.
 	byValue bool
 	// args are a named call's arguments by parameter, for the callee's sites that hand on to code an argument gives.
-	args []LocalID
+	args []midir.LocalID
 }
 
 // storeTargets finds, before any holder is known, the locals some store may
 // write a borrow-carrying value into, so collect keeps their sources widening.
-func (c *borrowCheck) storeTargets() map[LocalID]bool {
-	out := map[LocalID]bool{}
+func (c *borrowCheck) storeTargets() map[midir.LocalID]bool {
+	out := map[midir.LocalID]bool{}
 	for _, blk := range c.f.Blocks {
 		for _, in := range blk.Insts {
 			for _, fl := range c.storeFlows(in) {
@@ -42,25 +43,25 @@ func (c *borrowCheck) storeTargets() map[LocalID]bool {
 	return out
 }
 
-func (c *borrowCheck) storeFlows(in Inst) []storeFlow {
+func (c *borrowCheck) storeFlows(in midir.Inst) []storeFlow {
 	switch in.Op {
-	case OpSetIndex, OpSetField:
+	case midir.OpSetIndex, midir.OpSetField:
 		v := in.Args[len(in.Args)-1]
 		lifetime := c.elementHolder(c.f.Locals[v].Type) || c.borrowIntoHolderField(in, v)
 		if !lifetime && !c.namesTypeParam(c.f.Locals[v].Type) {
 			return nil
 		}
 		return []storeFlow{{target: in.Args[0], values: []flowArg{{arg: v}}, generic: !lifetime}}
-	case OpCall, OpCallValue, OpFutureNew:
+	case midir.OpCall, midir.OpCallValue, midir.OpFutureNew:
 		return c.withKeptFlows(in, append(c.callFlows(in), c.opaqueFlows(in)...))
 	}
 	return nil
 }
 
 // borrowIntoHolderField reports a plain borrow (not an `&Interface` view, which lives in its frame) assigned to a field of a record that names a lifetime.
-func (c *borrowCheck) borrowIntoHolderField(in Inst, v LocalID) bool {
+func (c *borrowCheck) borrowIntoHolderField(in midir.Inst, v midir.LocalID) bool {
 	tt := c.p.R.Types
-	if in.Op != OpSetField || tt.Kind(c.f.Locals[v].Type) != sem.KRef {
+	if in.Op != midir.OpSetField || tt.Kind(c.f.Locals[v].Type) != sem.KRef {
 		return false
 	}
 	if tt.Kind(tt.Node(c.f.Locals[v].Type).Elem) == sem.KIface {
@@ -75,7 +76,7 @@ func (c *borrowCheck) borrowIntoHolderField(in Inst, v LocalID) bool {
 
 // storeRoot resolves where a flow writes: the named local owning the place, the place's type, and whether it is the
 // caller's: a lent parameter, or the parameter whose `&mut`s the holder written through may keep.
-func (c *borrowCheck) storeRoot(fl storeFlow) (root LocalID, place sem.TypeID, caller, ok bool) {
+func (c *borrowCheck) storeRoot(fl storeFlow) (root midir.LocalID, place sem.TypeID, caller, ok bool) {
 	if fl.unresolved {
 		return 0, 0, false, false
 	}
@@ -94,12 +95,12 @@ func (c *borrowCheck) storeRoot(fl storeFlow) (root LocalID, place sem.TypeID, c
 			if in == nil || len(in.Args) == 0 {
 				return 0, 0, false, false
 			}
-			if in.Op == OpBorrow {
+			if in.Op == midir.OpBorrow {
 				l = in.Args[0]
 				place = c.f.Locals[l].Type
 				break
 			}
-			if in.Op != OpNewCell && in.Op != OpShare && in.Op != OpCopy && in.Op != OpMove && in.Op != OpAlias {
+			if in.Op != midir.OpNewCell && in.Op != midir.OpShare && in.Op != midir.OpCopy && in.Op != midir.OpMove && in.Op != midir.OpAlias {
 				return 0, 0, false, false
 			}
 			l = in.Args[0]
@@ -132,7 +133,7 @@ func (c *borrowCheck) storeRoot(fl storeFlow) (root LocalID, place sem.TypeID, c
 
 // callerPlace reports whether l is a parameter aliasing the caller's value:
 // a reference, or a `self` / `mut self` receiver.
-func (c *borrowCheck) callerPlace(l LocalID) bool {
+func (c *borrowCheck) callerPlace(l midir.LocalID) bool {
 	if !slices.Contains(c.f.Params, l) {
 		return false
 	}
@@ -141,7 +142,7 @@ func (c *borrowCheck) callerPlace(l LocalID) bool {
 
 // checkFlow rejects a write into a place whose type keeps no sources, or into the caller's
 // place unless the value carries this function's own lifetime that the place names.
-func (c *borrowCheck) checkFlow(fl storeFlow, in Inst) {
+func (c *borrowCheck) checkFlow(fl storeFlow, in midir.Inst) {
 	c.callNode = in.Node
 	root, place, caller, ok := c.storeRoot(fl)
 	for _, v := range fl.values {

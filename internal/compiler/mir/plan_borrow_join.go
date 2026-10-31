@@ -3,13 +3,15 @@ package mir
 import (
 	"maps"
 	"slices"
+
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 // pruneJoins keeps a join's operand only when every source it carries is made before each definition of the join:
 // a source made on one arm has no definition, and so no release, on the other arm's path.
-func (b *borrowLife) pruneJoins(f *Func, defs map[LocalID]int, defBlocks map[LocalID]map[int]bool) {
+func (b *borrowLife) pruneJoins(f *midir.Func, defs map[midir.LocalID]int, defBlocks map[midir.LocalID]map[int]bool) {
 	var g *flowGraph
-	keep := map[LocalID][]LocalID{}
+	keep := map[midir.LocalID][]midir.LocalID{}
 	for _, j := range slices.Sorted(maps.Keys(b.carried)) {
 		if defs[j] < 2 {
 			continue
@@ -17,8 +19,8 @@ func (b *borrowLife) pruneJoins(f *Func, defs map[LocalID]int, defBlocks map[Loc
 		if g == nil {
 			g = newFlowGraph(f)
 		}
-		keep[j] = slices.DeleteFunc(slices.Clone(b.carried[j]), func(c LocalID) bool {
-			return slices.ContainsFunc(b.through(c), func(s LocalID) bool {
+		keep[j] = slices.DeleteFunc(slices.Clone(b.carried[j]), func(c midir.LocalID) bool {
+			return slices.ContainsFunc(b.through(c), func(s midir.LocalID) bool {
 				return defs[s] != 1 || !madeBefore(g, defBlocks[s], defBlocks[j])
 			})
 		})

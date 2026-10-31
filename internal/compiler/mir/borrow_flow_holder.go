@@ -3,14 +3,15 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // holdsMutPlace reports a value, not a reference, whose type keeps a `&mut` of some place.
-func (c *borrowCheck) holdsMutPlace(l LocalID) bool { return c.mutHolder(c.f.Locals[l].Type) }
+func (c *borrowCheck) holdsMutPlace(l midir.LocalID) bool { return c.mutHolder(c.f.Locals[l].Type) }
 
 // mayHoldPlace reports a local a of g that keeps a `&mut`, or whose layout a type parameter or interface hides.
-func (c *borrowCheck) mayHoldPlace(g *Func, a LocalID) bool {
+func (c *borrowCheck) mayHoldPlace(g *midir.Func, a midir.LocalID) bool {
 	return c.mutHolder(g.Locals[a].Type) || c.hidesLayout(g.Locals[a].Type)
 }
 
@@ -104,7 +105,7 @@ func (c *borrowCheck) selfSources(callee sem.EntityID, slot int, slots []callSlo
 }
 
 // callableArg reports an argument that may be code the callee runs: a fn, closure or interface value, or one inside it.
-func (c *borrowCheck) callableArg(l LocalID) bool {
+func (c *borrowCheck) callableArg(l midir.LocalID) bool {
 	t := c.f.Locals[l].Type
 	v, ok := c.callableTypes[t]
 	if !ok {
@@ -141,8 +142,8 @@ func (c *borrowCheck) partInfo(v flowArg) (*borrowInfo, bool) {
 	return c.withHeld(out), true
 }
 
-func slotArgs(slots []callSlot) []LocalID {
-	out := make([]LocalID, len(slots))
+func slotArgs(slots []callSlot) []midir.LocalID {
+	out := make([]midir.LocalID, len(slots))
 	for i, s := range slots {
 		out[i] = s.arg
 	}

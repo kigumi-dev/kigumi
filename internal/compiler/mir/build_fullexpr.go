@@ -2,6 +2,7 @@ package mir
 
 import (
 	"kigumi/internal/compiler/hir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -44,24 +45,24 @@ func (b *builder) markFullEnd(id int32) {
 	blk := b.block()
 	n := len(blk.Insts)
 	switch {
-	case n == 0 || blk.Term.Op != TermNone:
+	case n == 0 || blk.Term.Op != midir.TermNone:
 	case blk.Insts[n-1].FullEnd == 0:
 		blk.Insts[n-1].FullEnd = id
 	default:
-		b.emit(Inst{Op: OpNop, FullEnd: id})
+		b.emit(midir.Inst{Op: midir.OpNop, FullEnd: id})
 	}
 }
 
-func (b *builder) fullValue(eval func() LocalID) LocalID {
-	var v LocalID
+func (b *builder) fullValue(eval func() midir.LocalID) midir.LocalID {
+	var v midir.LocalID
 	b.fullExpr(func() { v = eval() })
 	return v
 }
 
 // armBody: a braced body already ends its own full expressions.
-func (b *builder) armBody(e *hir.Expr) LocalID {
+func (b *builder) armBody(e *hir.Expr) midir.LocalID {
 	if e.Kind == hir.BlockExpr {
 		return b.exprMoved(e)
 	}
-	return b.fullValue(func() LocalID { return b.exprMoved(e) })
+	return b.fullValue(func() midir.LocalID { return b.exprMoved(e) })
 }

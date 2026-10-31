@@ -1,16 +1,16 @@
 package llgen
 
 import (
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 // keepsUnboxed: a boxed parameter is reused for free, so a register one pays only if no copy of it is ever boxed.
-func (e *emitter) keepsUnboxed(f *mir.Func, prm mir.LocalID, regs map[mir.LocalID]scalarInfo, retNative bool) bool {
+func (e *emitter) keepsUnboxed(f *midir.Func, prm midir.LocalID, regs map[midir.LocalID]scalarInfo, retNative bool) bool {
 	if _, ok := regs[prm]; !ok {
 		return false
 	}
-	fam := map[mir.LocalID]bool{prm: true}
+	fam := map[midir.LocalID]bool{prm: true}
 	for grew := true; grew; {
 		grew = false
 		for _, blk := range f.Blocks {
@@ -36,7 +36,7 @@ func (e *emitter) keepsUnboxed(f *mir.Func, prm mir.LocalID, regs map[mir.LocalI
 			if !fam[a] {
 				continue
 			}
-			if blk.Term.Op != mir.TermBranch && (blk.Term.Op != mir.TermReturn || !retNative) {
+			if blk.Term.Op != midir.TermBranch && (blk.Term.Op != midir.TermReturn || !retNative) {
 				return false
 			}
 		}
@@ -44,27 +44,29 @@ func (e *emitter) keepsUnboxed(f *mir.Func, prm mir.LocalID, regs map[mir.LocalI
 	return true
 }
 
-func copyLike(op mir.Opcode) bool { return op == mir.OpAlias || op == mir.OpShare || op == mir.OpMove }
+func copyLike(op midir.Opcode) bool {
+	return op == midir.OpAlias || op == midir.OpShare || op == midir.OpMove
+}
 
-func (e *emitter) unboxedUse(f *mir.Func, in mir.Inst, i int) bool {
+func (e *emitter) unboxedUse(f *midir.Func, in midir.Inst, i int) bool {
 	switch in.Op {
-	case mir.OpAlias, mir.OpShare, mir.OpMove, mir.OpDrop, mir.OpRelease, mir.OpInterp:
+	case midir.OpAlias, midir.OpShare, midir.OpMove, midir.OpDrop, midir.OpRelease, midir.OpInterp:
 		return true
-	case mir.OpBinary:
+	case midir.OpBinary:
 		ty, _ := e.scalarType(f.Locals[in.Args[0]].Type)
 		rty, _ := e.scalarType(f.Locals[in.Args[1]].Type)
 		return (ty == rty || wideShiftOperands(in.Str, ty, rty)) && nativeBinary(in.Str, ty)
-	case mir.OpUnary:
+	case midir.OpUnary:
 		ty, _ := e.scalarType(f.Locals[in.Args[0]].Type)
 		return in.Str == "!" && ty == TI1 || in.Str == "-" && (ty == TI64 || ty == TI128 || ty == TDouble || ty == TFloat) || in.Str == "~" && (ty == TI64 || ty == TI128)
-	case mir.OpCall:
+	case midir.OpCall:
 		_, ok := e.calleeScalarSig(in).param(i)
 		return in.DPrim != opdef.DPNone || ok || e.wideCallOp(f, in) != "" || e.rawConvert(f, in) || e.cNative(in) && e.cArgInReg(in, i)
-	case mir.OpRecord, mir.OpVariant, mir.OpClosure:
+	case midir.OpRecord, midir.OpVariant, midir.OpClosure:
 		return e.isDirect(in.Dst)
-	case mir.OpSetField, mir.OpIndex, mir.OpSetIndex:
+	case midir.OpSetField, midir.OpIndex, midir.OpSetIndex:
 		return i > 0 && e.isDirect(in.Args[0])
-	case mir.OpBuiltin:
+	case midir.OpBuiltin:
 		return e.inPlaceBuiltin(in)
 	}
 	return false

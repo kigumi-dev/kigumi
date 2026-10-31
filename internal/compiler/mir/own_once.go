@@ -4,17 +4,18 @@ import (
 	"strconv"
 	"strings"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/lang/diag"
 )
 
 // onceCall tracks calls of a callable that may run only once; the callable keeps its value, so its drop stays.
-func (a *owner) onceCall(in *Inst, st *dstate, report bool) {
-	if in.Op == OpClosure {
+func (a *owner) onceCall(in *midir.Inst, st *dstate, report bool) {
+	if in.Op == midir.OpClosure {
 		a.onceCapture(in, st, report)
 		return
 	}
-	if in.Op != OpCallValue || in.Ent != 0 || len(in.Args) == 0 {
+	if in.Op != midir.OpCallValue || in.Ent != 0 || len(in.Args) == 0 {
 		return
 	}
 	callee := in.Args[0]
@@ -42,7 +43,7 @@ func (a *owner) onceCall(in *Inst, st *dstate, report bool) {
 	st.callAt.set(l, in.Node)
 }
 
-func (a *owner) onceCallee(l LocalID) (name, place string, ok bool) {
+func (a *owner) onceCallee(l midir.LocalID) (name, place string, ok bool) {
 	tt := a.p.R.Types
 	t := a.f.Locals[l].Type
 	name = a.f.Locals[l].Name
@@ -60,7 +61,7 @@ func (a *owner) onceCallee(l LocalID) (name, place string, ok bool) {
 	return "", "", false
 }
 
-func (a *owner) reportOnce(in *Inst, l LocalID, name, place string) {
+func (a *owner) reportOnce(in *midir.Inst, l midir.LocalID, name, place string) {
 	if a.reported[in.Node] {
 		return
 	}
@@ -86,7 +87,7 @@ func (a *owner) reportOnce(in *Inst, l LocalID, name, place string) {
 }
 
 // borrowedRoot reports a place reached through a borrow: every call of the borrowing function may call it again.
-func (a *owner) borrowedRoot(l LocalID) bool {
+func (a *owner) borrowedRoot(l midir.LocalID) bool {
 	k := a.pl.key[l]
 	if k == "" {
 		return false
@@ -99,7 +100,7 @@ func (a *owner) borrowedRoot(l LocalID) bool {
 	return root.Borrowed || a.p.R.Types.Kind(root.Type) == sem.KRef
 }
 
-func (a *owner) reportBorrowedOnce(in *Inst, name string) {
+func (a *owner) reportBorrowedOnce(in *midir.Inst, name string) {
 	if a.reported[in.Node] {
 		return
 	}
@@ -115,7 +116,7 @@ func (a *owner) reportBorrowedOnce(in *Inst, name string) {
 }
 
 // Making a once-only closure counts as a call of each once-only callable it captures.
-func (a *owner) onceCapture(in *Inst, st *dstate, report bool) {
+func (a *owner) onceCapture(in *midir.Inst, st *dstate, report bool) {
 	if _, place, ok := a.onceCallee(in.Dst); !ok || place == "" {
 		return
 	}
@@ -133,13 +134,13 @@ func (a *owner) onceCapture(in *Inst, st *dstate, report bool) {
 	}
 }
 
-func (a *owner) captureSource(arg LocalID) LocalID {
+func (a *owner) captureSource(arg midir.LocalID) midir.LocalID {
 	if a.capSrc == nil {
-		a.capSrc = map[LocalID]LocalID{}
-		caps := map[LocalID]bool{}
+		a.capSrc = map[midir.LocalID]midir.LocalID{}
+		caps := map[midir.LocalID]bool{}
 		for _, b := range a.f.Blocks {
 			for _, in := range b.Insts {
-				if in.Op == OpClosure {
+				if in.Op == midir.OpClosure {
 					for _, x := range in.Args {
 						caps[x] = true
 					}
@@ -148,7 +149,7 @@ func (a *owner) captureSource(arg LocalID) LocalID {
 		}
 		for _, b := range a.f.Blocks {
 			for _, in := range b.Insts {
-				if (in.Op == OpCopy || in.Op == OpMove) && caps[in.Dst] && a.f.Locals[in.Dst].Ent == 0 {
+				if (in.Op == midir.OpCopy || in.Op == midir.OpMove) && caps[in.Dst] && a.f.Locals[in.Dst].Ent == 0 {
 					a.capSrc[in.Dst] = in.Args[0]
 				}
 			}

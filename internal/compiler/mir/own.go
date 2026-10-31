@@ -1,47 +1,9 @@
 package mir
 
-import "kigumi/internal/compiler/syntax"
-
-// Ownership states of a move-only local along a path.
-type ownState uint8
-
-const (
-	ownUninit ownState = iota
-	ownValid
-	ownMoved
-	ownConflict
-	// ownMaybe joins assigned and never-assigned paths: a pattern binding
-	// behind `&&`, which the checker only lets the matched path read.
-	ownMaybe
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/syntax"
 )
-
-// joinOwn merges two states at a block entry: a move against a value is a
-// conflict, an unassigned side only makes the value conditional.
-func joinOwn(a, b ownState) ownState {
-	if a == b {
-		return a
-	}
-	if a == ownUninit && b == ownMoved || a == ownMoved && b == ownUninit {
-		return ownMoved
-	}
-	if a == ownMoved || b == ownMoved || a == ownConflict || b == ownConflict {
-		return ownConflict
-	}
-	return ownMaybe
-}
-
-// val and field are independent: a moved-out field's temporary stays valid in val until consumed.
-// called is whether a once-only callable has run; callAt is where, apart from at so a move cannot hide the call.
-type dstate struct {
-	val, field, called, rel ownVec
-	at, callAt              nodeVec
-}
-
-func newDstate() *dstate { return &dstate{} }
-
-func cloneD(s *dstate) *dstate {
-	return &dstate{val: s.val.clone(), field: s.field.clone(), called: s.called.clone(), rel: s.rel.clone(), at: s.at.clone(), callAt: s.callAt.clone()}
-}
 
 // analyzeOwnership runs a forward dataflow over the CFG: every use needs a
 // valid local, moves consume, drops of moved locals are removed, and
@@ -49,15 +11,15 @@ func cloneD(s *dstate) *dstate {
 // keeps its own presence state independent of the place that held it;
 // using that place as a whole while one of its fields is gone is also an
 // error, and a drop of it becomes a drop of the fields still there.
-func analyzeOwnership(p *Program, f *Func, ghosts *ghostSet) {
+func analyzeOwnership(p *Program, f *midir.Func, ghosts *ghostSet) {
 	defer clearGuardMarks(f)
-	moveOnly := func(l Local) bool {
+	moveOnly := func(l midir.Local) bool {
 		return !p.R.IsCopy(l.Type) && !l.Cell
 	}
-	tracked := map[LocalID]bool{}
+	tracked := map[midir.LocalID]bool{}
 	for i, l := range f.Locals {
 		if l.Ent != 0 && moveOnly(l) {
-			tracked[LocalID(i)] = true
+			tracked[midir.LocalID(i)] = true
 		}
 	}
 	pl := findPlaces(p, f)
@@ -70,7 +32,7 @@ func analyzeOwnership(p *Program, f *Func, ghosts *ghostSet) {
 		return
 	}
 	a := &owner{p: p, f: f, ghosts: ghosts, pl: pl, tracked: tracked, in: make([]*dstate, len(f.Blocks)),
-		reported: map[syntax.NodeID]bool{}, defNode: map[LocalID]syntax.NodeID{}, thread: &flagThread{f: f}}
+		reported: map[syntax.NodeID]bool{}, defNode: map[midir.LocalID]syntax.NodeID{}, thread: &flagThread{f: f}}
 	entry := newDstate()
 	for _, prm := range f.Params {
 		if tracked[prm] {
@@ -82,14 +44,14 @@ func analyzeOwnership(p *Program, f *Func, ghosts *ghostSet) {
 	a.solveGhosts()
 	for bid := range f.Blocks {
 		if a.in[bid] != nil {
-			a.transfer(BlockID(bid), cloneD(a.in[bid]), true)
+			a.transfer(midir.BlockID(bid), cloneD(a.in[bid]), true)
 		}
 	}
 	checkReadCaptures(p, f, a.moves)
 }
 
-func (a *owner) solve(start BlockID) {
-	work := []BlockID{start}
+func (a *owner) solve(start midir.BlockID) {
+	work := []midir.BlockID{start}
 	for len(work) > 0 {
 		bid := work[0]
 		work = work[1:]
@@ -111,7 +73,7 @@ func (a *owner) solve(start BlockID) {
 // transfer walks a block; in report mode it emits diagnostics and rewrites
 // drops of consumed locals into no-ops or, of a partially moved place,
 // into drops of the fields still there.
-func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
+func (a *owner) transfer(bid midir.BlockID, st *dstate, report bool) *dstate {
 	blk := &a.f.Blocks[bid]
 	a.cur = st
 	for i := range blk.Insts {
@@ -121,7 +83,7 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 			a.defNode[in.Dst] = in.Node
 		}
 		switch in.Op {
-		case OpDrop:
+		case midir.OpDrop:
 			l := a.pl.canon(in.Args[0])
 			if !a.tracked[l] {
 				continue
@@ -132,7 +94,7 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 			// drop that can never find a value goes.
 			if st.val.get(l) == ownUninit || st.val.get(l) == ownMoved {
 				if report {
-					in.Op = OpNop
+					in.Op = midir.OpNop
 					in.Args = nil
 				}
 				continue
@@ -144,25 +106,25 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 			in.Emptied = report && a.emptied(l, st)
 			st.val.set(l, ownUninit)
 			continue
-		case OpMove:
+		case midir.OpMove:
 			a.moveInst(in, st, report)
-		case OpNop:
+		case midir.OpNop:
 			a.guardedMove(in, st, report)
 			continue
 		default:
 			a.onceCall(in, st, report)
 			a.useArgs(in, st, report)
 		}
-		if in.Op == OpField || in.Op == OpFieldMove || in.Op == OpPayload {
+		if in.Op == midir.OpField || in.Op == midir.OpFieldMove || in.Op == midir.OpPayload {
 			if l := a.pl.canon(in.Dst); a.tracked[l] {
 				a.check(in, l, st.val.get(l), report)
 				a.check(in, l, st.field.get(l), report)
-				if in.Op == OpFieldMove {
+				if in.Op == midir.OpFieldMove {
 					a.fieldMove(in, l, st, report)
 				}
 			}
 		}
-		if in.Op == OpSetField {
+		if in.Op == midir.OpSetField {
 			if l, ok := a.pl.stored(a.f, *in); ok {
 				st.val.set(l, ownValid)
 				st.field.set(l, ownValid)
@@ -176,13 +138,13 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 			}
 			continue
 		}
-		if in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpGlobalSet && in.Op != OpFutureDone && in.Op != OpCancelDone && a.tracked[in.Dst] {
+		if in.Op != midir.OpDrop && in.Op != midir.OpSetField && in.Op != midir.OpSetIndex && in.Op != midir.OpCellSet && in.Op != midir.OpGlobalSet && in.Op != midir.OpFutureDone && in.Op != midir.OpCancelDone && a.tracked[in.Dst] {
 			st.val.set(in.Dst, ownValid)
 			st.called.del(in.Dst)
 			a.pl.resetFields(in.Dst, st)
 		}
 	}
-	if blk.Term.Op == TermReturn {
+	if blk.Term.Op == midir.TermReturn {
 		for _, arg := range blk.Term.Args {
 			l := a.pl.canon(arg)
 			if a.tracked[l] {

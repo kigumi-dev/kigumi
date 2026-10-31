@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/lang/diag"
@@ -11,34 +12,34 @@ import (
 // touch reports whether in touches owner, and its field path if so.
 // OpField/OpSetField/OpBorrow resolve the full projection so a
 // field-chain borrow is checked by field, not by the temp it borrows.
-func (c *borrowCheck) touch(in Inst, owner LocalID) (touched bool, path stepPath, exact bool) {
+func (c *borrowCheck) touch(in midir.Inst, owner midir.LocalID) (touched bool, path stepPath, exact bool) {
 	switch in.Op {
-	case OpField, OpPayload:
+	case midir.OpField, midir.OpPayload:
 		if c.chainedOnly(in.Dst) {
 			return false, nil, true
 		}
 		if root, p, ex, ok := c.projectionPlace(in.Dst); ok && root == owner {
 			return true, p, ex
 		}
-	case OpSetField, OpFieldMove:
+	case midir.OpSetField, midir.OpFieldMove:
 		if root, p, ex, ok := c.projectionPlace(in.Args[0]); ok && root == owner {
 			if ex {
 				p = append(p, in.Index)
 			}
 			return true, p, ex
 		}
-	case OpBorrow:
+	case midir.OpBorrow:
 		if root, p, ex, ok := c.projectionPlace(in.Args[0]); ok && root == owner {
 			return true, p, ex
 		}
-	case OpSetIndex:
+	case midir.OpSetIndex:
 		if root, p, ex, ok := c.projectionPlace(in.Args[0]); ok && root == owner {
 			return true, p, ex
 		}
 		return touchesLocal(in, owner), nil, true
 	// Reading a lent receiver's write-back cell, or the cell a local lives in, stands for the
 	// local itself, so a field chain through it resolves like a plain one.
-	case OpCellGet:
+	case midir.OpCellGet:
 		if !c.f.Locals[in.Args[0]].Borrowed && !c.placeCell(in.Args[0]) {
 			return in.Dst == owner || in.Args[0] == owner, nil, true
 		}
@@ -50,19 +51,19 @@ func (c *borrowCheck) touch(in Inst, owner LocalID) (touched bool, path stepPath
 		}
 		return false, nil, true
 	// A closure literal shares a cell it captures without reading it; running the closure is the touch (cellRunHit).
-	case OpClosure:
+	case midir.OpClosure:
 		return touchesLocal(in, owner) && !c.f.Locals[owner].Cell, nil, true
 	// Dropping a cell the caller handed in releases only this body's handle; the frame owning the cell keeps the content.
-	case OpDrop:
+	case midir.OpDrop:
 		return in.Args[0] == owner && !c.paramCell(owner), nil, true
-	case OpCopy:
+	case midir.OpCopy:
 		if c.takesPayload(in) && c.f.Locals[in.Args[0]].Ent != 0 {
 			if in.Args[0] == owner {
 				return true, nil, true
 			}
 		} else if c.takesPayload(in) {
 			if root, p, ex, ok := c.projectionPlace(c.definition(in.Args[0]).Args[0]); ok && root == owner {
-				if d := c.definition(in.Args[0]); d.Op == OpField && ex {
+				if d := c.definition(in.Args[0]); d.Op == midir.OpField && ex {
 					p = append(p, d.Index)
 				}
 				return true, p, ex
@@ -76,8 +77,8 @@ func (c *borrowCheck) touch(in Inst, owner LocalID) (touched bool, path stepPath
 }
 
 // An instruction with no result keeps Dst at 0, which is also the first parameter's local.
-func touchesLocal(in Inst, l LocalID) bool {
-	return in.Op.Yields() && in.Dst == l && in.Op != OpDrop || slices.Contains(in.Args, l)
+func touchesLocal(in midir.Inst, l midir.LocalID) bool {
+	return in.Op.Yields() && in.Dst == l && in.Op != midir.OpDrop || slices.Contains(in.Args, l)
 }
 
 // reportKey dedups one diagnostic at one node; local is needed too since an unnamed
@@ -85,19 +86,19 @@ func touchesLocal(in Inst, l LocalID) bool {
 type reportKey struct {
 	node  syntax.NodeID
 	code  string
-	local LocalID
+	local midir.LocalID
 }
 
-func (c *borrowCheck) report(n syntax.NodeID, local LocalID, code, msg string) {
+func (c *borrowCheck) report(n syntax.NodeID, local midir.LocalID, code, msg string) {
 	c.reportNoted(n, local, code, msg, 0, "")
 }
 
-func (c *borrowCheck) reportNoted(n syntax.NodeID, local LocalID, code, msg string, note syntax.NodeID, noteMsg string) {
+func (c *borrowCheck) reportNoted(n syntax.NodeID, local midir.LocalID, code, msg string, note syntax.NodeID, noteMsg string) {
 	c.reportHelped(n, local, code, msg, note, noteMsg, "")
 }
 
 // reportHelped is reportNoted with a help line of its own in place of the catalog's, when help is not empty.
-func (c *borrowCheck) reportHelped(n syntax.NodeID, local LocalID, code, msg string, note syntax.NodeID, noteMsg, help string) {
+func (c *borrowCheck) reportHelped(n syntax.NodeID, local midir.LocalID, code, msg string, note syntax.NodeID, noteMsg, help string) {
 	if c.quiet {
 		return
 	}

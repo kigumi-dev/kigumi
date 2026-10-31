@@ -1,11 +1,14 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
-type funcPair struct{ fn, gen *Func }
+type funcPair struct{ fn, gen *midir.Func }
 
 // The copies' closure types join sub, which the copy of the outer body reads.
-func (s *specializer) closureClones(g *Func, sub map[sem.EntityID]sem.TypeID) ([]funcPair, map[sem.EntityID]sem.EntityID, bool) {
+func (s *specializer) closureClones(g *midir.Func, sub map[sem.EntityID]sem.TypeID) ([]funcPair, map[sem.EntityID]sem.EntityID, bool) {
 	all := s.withMethodValues(s.closuresBuilt(g), g)
 	needs := map[sem.EntityID]bool{}
 	for changed := true; changed; {
@@ -44,14 +47,14 @@ func (s *specializer) closureClones(g *Func, sub map[sem.EntityID]sem.TypeID) ([
 	return out, ents, true
 }
 
-func (s *specializer) closuresBuilt(g *Func) []sem.EntityID {
+func (s *specializer) closuresBuilt(g *midir.Func) []sem.EntityID {
 	var out []sem.EntityID
 	seen := map[sem.EntityID]bool{}
-	var walk func(f *Func)
-	walk = func(f *Func) {
+	var walk func(f *midir.Func)
+	walk = func(f *midir.Func) {
 		for _, blk := range f.Blocks {
 			for _, in := range blk.Insts {
-				if in.Op != OpClosure || s.p.R.Entity(in.Ent).Kind != sem.EntClosure || seen[in.Ent] {
+				if in.Op != midir.OpClosure || s.p.R.Entity(in.Ent).Kind != sem.EntClosure || seen[in.Ent] {
 					continue
 				}
 				seen[in.Ent] = true
@@ -132,7 +135,7 @@ func (s *specializer) closureTypes(t sem.TypeID, out []sem.EntityID, depth int) 
 }
 
 // A closure still generic would box a type parameter's value in its body.
-func (s *specializer) leftGeneric(fs []*Func) bool {
+func (s *specializer) leftGeneric(fs []*midir.Func) bool {
 	seen := map[sem.TypeID]bool{}
 	for _, f := range fs {
 		for _, l := range f.Locals {

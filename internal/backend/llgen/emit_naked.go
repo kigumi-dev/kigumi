@@ -5,17 +5,17 @@ import (
 	"strconv"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // nakedFn emits an export(C, naked) function as module-level assembly text;
 // no LLVM function exists for it.
-func (e *emitter) nakedFn(f *mir.Func) {
+func (e *emitter) nakedFn(f *midir.Func) {
 	var info *sem.AsmInfo
 	for _, b := range f.Blocks {
 		for _, in := range b.Insts {
-			if in.Op == mir.OpAsm {
+			if in.Op == midir.OpAsm {
 				info = e.r.AsmOf(f.File, in.Node)
 			}
 		}

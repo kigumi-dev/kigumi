@@ -1,12 +1,15 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // checkOpaqueStores rejects handing a borrow to a function value next to a
 // `&mut` place that names a lifetime: the callee's writes cannot be followed.
-func (c *borrowCheck) checkOpaqueStores(in Inst) {
+func (c *borrowCheck) checkOpaqueStores(in midir.Inst) {
 	c.checkRelayStores(in)
-	if in.Op != OpCallValue || in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn || len(in.Args) < 2 {
+	if in.Op != midir.OpCallValue || in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn || len(in.Args) < 2 {
 		return
 	}
 	known := len(c.summarizedValueCallees(in)) > 0
@@ -36,8 +39,8 @@ func (c *borrowCheck) checkOpaqueStores(in Inst) {
 
 // opaqueFlows let a call through a function value store what each argument holds into every `&mut` argument and
 // every `&mut` holder handed over by value.
-func (c *borrowCheck) opaqueFlows(in Inst) []storeFlow {
-	if in.Op != OpCallValue || in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn || len(in.Args) < 2 {
+func (c *borrowCheck) opaqueFlows(in midir.Inst) []storeFlow {
+	if in.Op != midir.OpCallValue || in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn || len(in.Args) < 2 {
 		return nil
 	}
 	args := in.Args[1:]

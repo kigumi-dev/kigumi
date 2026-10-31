@@ -1,6 +1,7 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 )
 
@@ -11,7 +12,7 @@ func (s *specializer) settle() {
 		return
 	}
 	fs := s.p.allFuncs()
-	pins := make(map[*Func][]bool, len(fs))
+	pins := make(map[*midir.Func][]bool, len(fs))
 	for _, f := range fs {
 		pins[f] = s.p.pinned(f)
 		f.DSig = s.p.directSig(f, pins[f])
@@ -31,7 +32,7 @@ func (s *specializer) settle() {
 }
 
 // dryRun classifies like plan-direct without writing a crossing.
-func (s *specializer) dryRun(live []*spec, pins map[*Func][]bool) bool {
+func (s *specializer) dryRun(live []*spec, pins map[*midir.Func][]bool) bool {
 	for _, f := range s.callers(live) {
 		s.p.markDirectPrims(f)
 		f.Direct = s.p.classifyDirect(f, pins[f])
@@ -39,7 +40,7 @@ func (s *specializer) dryRun(live []*spec, pins map[*Func][]bool) bool {
 	}
 	changed := false
 	s.reboxFlows = nil
-	fixed := map[*Func][]bool{}
+	fixed := map[*midir.Func][]bool{}
 	for _, sp := range live {
 		changed = s.revertCostly(sp, fixed) || changed
 		if !s.pays(sp) || s.deepens(sp) {
@@ -50,10 +51,10 @@ func (s *specializer) dryRun(live []*spec, pins map[*Func][]bool) bool {
 	return changed
 }
 
-func (s *specializer) callers(live []*spec) []*Func {
-	seen := map[*Func]bool{}
-	var out []*Func
-	add := func(f *Func) {
+func (s *specializer) callers(live []*spec) []*midir.Func {
+	seen := map[*midir.Func]bool{}
+	var out []*midir.Func
+	add := func(f *midir.Func) {
 		if !seen[f] {
 			seen[f] = true
 			out = append(out, f)
@@ -116,7 +117,7 @@ func (s *specializer) called(sp *spec, reached map[*spec]bool) bool {
 }
 
 func (s *specializer) prune() {
-	keep := map[*Func]bool{}
+	keep := map[*midir.Func]bool{}
 	for _, sp := range s.live() {
 		for _, f := range sp.funcs() {
 			keep[f] = true
@@ -133,11 +134,11 @@ func (s *specializer) prune() {
 	s.p.Funcs = out
 }
 
-func builds(in Inst) bool {
+func builds(in midir.Inst) bool {
 	switch in.Op {
-	case OpRecord, OpClosure, OpCall:
+	case midir.OpRecord, midir.OpClosure, midir.OpCall:
 		return true
-	case OpVariant:
+	case midir.OpVariant:
 		return len(in.Args) > 0
 	}
 	return false

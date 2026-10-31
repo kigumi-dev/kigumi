@@ -5,12 +5,12 @@ import (
 	"math/big"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // wideConstText is the literal as the signed decimal LLVM reads back as the same 128 bits.
-func wideConstText(in mir.Inst) string {
+func wideConstText(in midir.Inst) string {
 	x := new(big.Int)
 	if in.Str != "" {
 		x.SetString(in.Str, 10)

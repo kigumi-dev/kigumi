@@ -1,10 +1,14 @@
 package mir
 
-import "testing"
+import (
+	"testing"
+
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
 func TestCowVecCloneIsIndependent(t *testing.T) {
 	var a cowVec[uint8]
-	for l := range LocalID(10000) {
+	for l := range midir.LocalID(10000) {
 		a.set(l, uint8(l%7))
 	}
 	b := a.clone()
@@ -46,7 +50,7 @@ func TestCowVecJoinSharedPartsStayIndependent(t *testing.T) {
 		return x
 	}
 	var a, b cowVec[uint8]
-	for l := range LocalID(10000) {
+	for l := range midir.LocalID(10000) {
 		a.set(l, 1+uint8(l%7))
 	}
 	b.set(9999, 50)
@@ -73,12 +77,12 @@ func TestCowVecJoinSharedPartsStayIndependent(t *testing.T) {
 
 func TestCowVecEachVisitsSetEntriesInOrder(t *testing.T) {
 	var v cowVec[uint8]
-	for _, l := range []LocalID{9000, 3, 64, 4096} {
+	for _, l := range []midir.LocalID{9000, 3, 64, 4096} {
 		v.set(l, 1)
 	}
-	var got []LocalID
-	v.each(func(l LocalID, _ uint8) { got = append(got, l) })
-	want := []LocalID{3, 64, 4096, 9000}
+	var got []midir.LocalID
+	v.each(func(l midir.LocalID, _ uint8) { got = append(got, l) })
+	want := []midir.LocalID{3, 64, 4096, 9000}
 	if len(got) != len(want) {
 		t.Fatalf("got %v", got)
 	}

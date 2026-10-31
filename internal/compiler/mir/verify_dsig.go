@@ -1,8 +1,11 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
-func (p *verifier) verifyDirectSig(f *Func) *Error {
+func (p *verifier) verifyDirectSig(f *midir.Func) *Error {
 	if f.Direct == nil {
 		return nil
 	}
@@ -41,7 +44,7 @@ func (p *verifier) verifyDirectSig(f *Func) *Error {
 	return nil
 }
 
-func (p *verifier) expectedResult(f *Func) sem.TypeID {
+func (p *verifier) expectedResult(f *midir.Func) sem.TypeID {
 	switch {
 	case f.Async:
 		return 0
@@ -58,7 +61,7 @@ func (p *verifier) expectedResult(f *Func) sem.TypeID {
 
 // verifyCrossLocals checks that a crossing's own local is unnamed, set once and
 // read right after, as plan-direct makes it; the flag decides who releases it.
-func (p *verifier) verifyCrossLocals(f *Func) *Error {
+func (p *verifier) verifyCrossLocals(f *midir.Func) *Error {
 	any := false
 	for _, l := range f.Locals {
 		any = any || l.Cross
@@ -77,13 +80,13 @@ func (p *verifier) verifyCrossLocals(f *Func) *Error {
 					continue
 				}
 				if adjacentDef(f, blk, i, a) < 0 {
-					return fail("direct", BlockID(bid), i, "%s reads the crossing local %%%s other than just after it is set", in.Op, f.Locals[a].Name)
+					return fail("direct", midir.BlockID(bid), i, "%s reads the crossing local %%%s other than just after it is set", in.Op, f.Locals[a].Name)
 				}
 			}
 		}
 		for _, a := range blk.Term.Args {
 			if f.Locals[a].Cross && adjacentDef(f, blk, len(blk.Insts), a) < 0 {
-				return fail("direct", BlockID(bid), len(blk.Insts), "terminator reads the crossing local %%%s other than just after it is set", f.Locals[a].Name)
+				return fail("direct", midir.BlockID(bid), len(blk.Insts), "terminator reads the crossing local %%%s other than just after it is set", f.Locals[a].Name)
 			}
 		}
 	}
@@ -95,7 +98,7 @@ func (p *verifier) verifyCrossLocals(f *Func) *Error {
 	return nil
 }
 
-func adjacentDef(f *Func, blk Block, use int, l LocalID) int {
+func adjacentDef(f *midir.Func, blk midir.Block, use int, l midir.LocalID) int {
 	for j := use - 1; j >= 0 && blk.Insts[j].Op.Yields() && f.Locals[blk.Insts[j].Dst].Cross; j-- {
 		if blk.Insts[j].Dst == l {
 			return j

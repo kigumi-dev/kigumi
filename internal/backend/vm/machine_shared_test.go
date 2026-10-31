@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 // Several lanes hand the same value around, so the count has to survive
@@ -41,10 +42,10 @@ func TestConcurrentRetainAndReleaseFreeOnce(t *testing.T) {
 // the shared tables stay the same ones.
 func TestLaneStartsCleanAndKeepsSharedState(t *testing.T) {
 	m := &Machine{sh: newShared(), host: map[string]hostFn{}}
-	m.stack = []*mir.Func{{Name: "caller"}}
+	m.stack = []*midir.Func{{Name: "caller"}}
 	m.depth, m.stepsLeft = 3, 9
 	m.cur, m.curLane = &task{}, 2
-	m.valueSites, m.boxFacts, m.boxParams = map[valueSiteKey]valueSite{}, map[*mir.Func]localFacts{}, mir.NewBoxedParams(nil)
+	m.valueSites, m.boxFacts, m.boxParams = map[valueSiteKey]valueSite{}, map[*midir.Func]localFacts{}, mir.NewBoxedParams(nil)
 
 	w := m.lane()
 	if w.stack != nil || w.depth != 0 || w.stepsLeft != 0 || w.cur != nil || w.curLane != 0 || w.valueSites != nil || w.boxFacts != nil || w.boxParams != nil {

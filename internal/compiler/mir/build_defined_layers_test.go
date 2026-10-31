@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -65,12 +66,12 @@ func TestDefinedLayersStoreIntoTheNamedLocal(t *testing.T) {
 	}
 }
 
-func storesIntoNamedLocal(t *testing.T, p *mir.Program, f *mir.Func) {
+func storesIntoNamedLocal(t *testing.T, p *mir.Program, f *midir.Func) {
 	t.Helper()
 	found := false
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op != mir.OpSetField && in.Op != mir.OpSetIndex {
+			if in.Op != midir.OpSetField && in.Op != midir.OpSetIndex {
 				continue
 			}
 			found = true
@@ -85,10 +86,10 @@ func storesIntoNamedLocal(t *testing.T, p *mir.Program, f *mir.Func) {
 }
 
 // projectedRoot follows field and index reads back to the local they project from.
-func projectedRoot(f *mir.Func, l mir.LocalID) mir.LocalID {
+func projectedRoot(f *midir.Func, l midir.LocalID) midir.LocalID {
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Dst == l && f.Locals[l].Ent == 0 && (in.Op == mir.OpField || in.Op == mir.OpIndex) {
+			if in.Dst == l && f.Locals[l].Ent == 0 && (in.Op == midir.OpField || in.Op == midir.OpIndex) {
 				return projectedRoot(f, in.Args[0])
 			}
 		}
@@ -99,7 +100,7 @@ func projectedRoot(f *mir.Func, l mir.LocalID) mir.LocalID {
 func TestDefinedLayersBehindAReferenceShareOneRetag(t *testing.T) {
 	p := planned(t, definedLayersSrc)
 	for _, name := range []string{"main.read", "main.write"} {
-		if got := countOp(funcNamed(t, p, name), mir.OpAlias); got > 1 {
+		if got := countOp(funcNamed(t, p, name), midir.OpAlias); got > 1 {
 			t.Errorf("%s retags %d times:\n%s", name, got, p.Dump())
 		}
 	}
@@ -149,11 +150,11 @@ func TestDefinedReadThroughAReferenceKeepsTheReferent(t *testing.T) {
 		crossed := 0
 		for _, blk := range f.Blocks {
 			for i, in := range blk.Insts {
-				if in.Op != mir.OpUnboxDirect || p.R.Types.Kind(f.Locals[in.Args[0]].Type) != sem.KRef {
+				if in.Op != midir.OpUnboxDirect || p.R.Types.Kind(f.Locals[in.Args[0]].Type) != sem.KRef {
 					continue
 				}
 				crossed++
-				if use := nextUse(blk.Insts[i+1:], in.Dst); use == nil || use.Op != mir.OpAlias {
+				if use := nextUse(blk.Insts[i+1:], in.Dst); use == nil || use.Op != midir.OpAlias {
 					t.Errorf("%s: the crossing out of %s is not read through an alias:\n%s", name, f.Locals[in.Args[0]].Name, p.Dump())
 				}
 				if got := p.CrossHandsOver(f, &blk.Insts[i]); got != want {
@@ -170,7 +171,7 @@ func TestDefinedReadThroughAReferenceKeepsTheReferent(t *testing.T) {
 	}
 }
 
-func nextUse(insts []mir.Inst, l mir.LocalID) *mir.Inst {
+func nextUse(insts []midir.Inst, l midir.LocalID) *midir.Inst {
 	for i := range insts {
 		if slices.Contains(insts[i].Args, l) {
 			return &insts[i]

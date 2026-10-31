@@ -7,7 +7,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/toolchain/buildgraph"
 )
@@ -29,7 +29,7 @@ type shared struct {
 	// derived covers the tables the lanes fill in lazily from the program.
 	derived    sync.Mutex
 	codes      sync.Map
-	drops      map[sem.EntityID]*mir.Func
+	drops      map[sem.EntityID]*midir.Func
 	named      map[string]sem.EntityID
 	borrowMask map[sem.EntityID]uint64
 	underlying map[sem.TypeID]sem.TypeID
@@ -52,7 +52,7 @@ type shared struct {
 
 func newShared() *shared {
 	return &shared{
-		drops:      map[sem.EntityID]*mir.Func{},
+		drops:      map[sem.EntityID]*midir.Func{},
 		named:      map[string]sem.EntityID{},
 		borrowMask: map[sem.EntityID]uint64{},
 		underlying: map[sem.TypeID]sem.TypeID{},

@@ -3,32 +3,33 @@ package mir
 import (
 	"fmt"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
 
 // ArgBox is a call argument whose box the native lowering makes in the caller, at the call or where the value is made.
 type ArgBox struct {
-	Block BlockID
+	Block midir.BlockID
 	Inst  int
 	Arg   int
 }
 
 type ResultBox struct {
-	Block BlockID
+	Block midir.BlockID
 	Inst  int
 }
 
 type OperationBox struct {
-	Block BlockID
+	Block midir.BlockID
 	Inst  int
 	Type  sem.TypeID
 }
 
 type NativeBoxSites struct {
-	Arguments  map[*Func][]ArgBox
-	Results    map[*Func][]ResultBox
-	Operations map[*Func][]OperationBox
+	Arguments  map[*midir.Func][]ArgBox
+	Results    map[*midir.Func][]ResultBox
+	Operations map[*midir.Func][]OperationBox
 }
 
 func (p *Program) scalarBoxClaims(out []AllocClaim, reached []profileReach, c sem.Code) []AllocClaim {
@@ -97,7 +98,7 @@ func (p *Program) paramName(ent sem.EntityID, i int) string {
 }
 
 // argNode is the expression that made the argument, through the copies the call itself made, or the call when its block holds none.
-func argNode(f *Func, ab ArgBox, call syntax.NodeID) syntax.NodeID {
+func argNode(f *midir.Func, ab ArgBox, call syntax.NodeID) syntax.NodeID {
 	insts := f.Blocks[ab.Block].Insts
 	a := insts[ab.Inst].Args[ab.Arg]
 	for i := ab.Inst - 1; i >= 0; i-- {
@@ -108,7 +109,7 @@ func argNode(f *Func, ab ArgBox, call syntax.NodeID) syntax.NodeID {
 		if in.Node != 0 && in.Node != call {
 			return in.Node
 		}
-		if !copyLike(in.Op) && in.Op != OpCopy {
+		if !copyLike(in.Op) && in.Op != midir.OpCopy {
 			break
 		}
 		a = in.Args[0]

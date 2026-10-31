@@ -3,12 +3,13 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // collectRefRead gives a value read below a reference what the referent holds at the read's path, and the reference's
 // own borrow only if the value could be such a reference; a component holding a `&mut` is left to heldReferents.
-func (c *borrowCheck) collectRefRead(in Inst) bool {
+func (c *borrowCheck) collectRefRead(in midir.Inst) bool {
 	t := c.f.Locals[in.Dst].Type
 	if !c.projectsHeld(in) || c.mutRefInside(t) {
 		return false
@@ -38,7 +39,7 @@ func (c *borrowCheck) collectRefRead(in Inst) bool {
 }
 
 // refReadContents is what the places r points at hold under hop, with what their `&mut`s lead to.
-func (c *borrowCheck) refReadContents(r LocalID, hop readHop) (*borrowInfo, bool) {
+func (c *borrowCheck) refReadContents(r midir.LocalID, hop readHop) (*borrowInfo, bool) {
 	if b, ok := c.paramContents(r); ok {
 		return b, true
 	}

@@ -1,7 +1,11 @@
 package mir
 
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
 // borrowsFrom reports whether b may alias root, directly or through a holder it borrows (`r` in `&r.src` for `r = &d`).
-func (c *borrowCheck) borrowsFrom(b *borrowInfo, root LocalID) bool {
+func (c *borrowCheck) borrowsFrom(b *borrowInfo, root midir.LocalID) bool {
 	seen := map[*borrowInfo]bool{}
 	var walk func(b *borrowInfo) bool
 	walk = func(b *borrowInfo) bool {

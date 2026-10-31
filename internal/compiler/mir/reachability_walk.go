@@ -1,6 +1,7 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
@@ -88,7 +89,7 @@ func (w *reachWalk) visit(caller, target sem.EntityID, via string) {
 	}
 }
 
-func (w *reachWalk) stdOp(in *Inst) (opdef.StdOpId, bool) {
+func (w *reachWalk) stdOp(in *midir.Inst) (opdef.StdOpId, bool) {
 	if w.lower != nil {
 		return stdOpOf(w.r, in)
 	}
@@ -100,25 +101,25 @@ func (w *reachWalk) hasBody(ent sem.EntityID) bool {
 }
 
 // inst follows one instruction of f; pkg is the package f's code belongs to.
-func (w *reachWalk) inst(f *Func, id sem.EntityID, pkg sem.PackageID, in *Inst) {
+func (w *reachWalk) inst(f *midir.Func, id sem.EntityID, pkg sem.PackageID, in *midir.Inst) {
 	w.visit(id, in.Ent, "call")
 	w.keepErrorContext(in.Ent)
 	w.walkType(in.Type)
 	switch in.Op {
-	case OpRecord, OpIsType:
+	case midir.OpRecord, midir.OpIsType:
 		w.markType(in.Ent)
-	case OpVariant, OpIsVariant:
+	case midir.OpVariant, midir.OpIsVariant:
 		if parent := w.r.Entity(in.Ent).Parent; parent != 0 {
 			w.markType(parent)
 		}
 	}
-	if in.Op == OpShell {
+	if in.Op == midir.OpShell {
 		w.visit(id, shellRuntimeFn(w.r, "planNew"), "call")
 		w.visit(id, shellRuntimeFn(w.r, "planPush"), "call")
 	}
-	if in.Op == OpBox || in.Op == OpLendBox {
+	if in.Op == midir.OpBox || in.Op == midir.OpLendBox {
 		dstT := f.Locals[in.Dst].Type
-		if in.Op == OpLendBox {
+		if in.Op == midir.OpLendBox {
 			dstT = w.r.Types.Node(dstT).Elem
 		}
 		for _, wit := range w.r.Witnesses(in.Type, dstT, pkg) {
@@ -172,7 +173,7 @@ func (w *reachWalk) drain() {
 	}
 }
 
-func (w *reachWalk) scan(f *Func, id sem.EntityID, pkg sem.PackageID) {
+func (w *reachWalk) scan(f *midir.Func, id sem.EntityID, pkg sem.PackageID) {
 	w.walkType(f.Ret)
 	for _, l := range f.Locals {
 		w.walkType(l.Type)

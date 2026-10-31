@@ -1,22 +1,25 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
-func (p *Program) boxedType(f *Func, in Inst) sem.TypeID {
+func (p *Program) boxedType(f *midir.Func, in midir.Inst) sem.TypeID {
 	switch in.Op {
-	case OpBoxDirect:
+	case midir.OpBoxDirect:
 		if in.Fixed {
 			return 0
 		}
 		return in.Type
-	case OpBorrow:
+	case midir.OpBorrow:
 		return p.boxedLend(f, in)
 	}
 	return 0
 }
 
-func (p *Program) boxedLend(f *Func, in Inst) sem.TypeID {
-	if in.Op != OpBorrow || in.Index != 0 || !p.R.LendSite(f.File, in.Node) {
+func (p *Program) boxedLend(f *midir.Func, in midir.Inst) sem.TypeID {
+	if in.Op != midir.OpBorrow || in.Index != 0 || !p.R.LendSite(f.File, in.Node) {
 		return 0
 	}
 	if t := f.Locals[in.Args[0]].Type; p.R.DirectAgg(t) && !p.nullaryDef(f, in.Args[0]) {
@@ -44,16 +47,16 @@ func (p *Program) demoteBoxedLends(reached map[sem.EntityID]bool) {
 	p.R.SettleLendDemotions()
 }
 
-func (p *Program) keptWitnessBind(f *Func, in Inst) bool {
-	return in.Op == OpBind && len(in.Args) > 0 && p.R.LendSite(f.File, in.Node)
+func (p *Program) keptWitnessBind(f *midir.Func, in midir.Inst) bool {
+	return in.Op == midir.OpBind && len(in.Args) > 0 && p.R.LendSite(f.File, in.Node)
 }
 
 // A payload-free variant is one immortal every site shares, so borrowing it costs nothing.
-func (p *Program) nullaryDef(f *Func, l LocalID) bool {
+func (p *Program) nullaryDef(f *midir.Func, l midir.LocalID) bool {
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			if in.Op.Yields() && in.Dst == l {
-				return in.Op == OpVariant && len(in.Args) == 0
+				return in.Op == midir.OpVariant && len(in.Args) == 0
 			}
 		}
 	}

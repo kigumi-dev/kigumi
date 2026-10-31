@@ -1,18 +1,19 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/lang/diag"
 )
 
 type capturedPlace struct {
-	root LocalID
+	root midir.LocalID
 	path stepPath
 }
 
-func checkCapturedFieldMoves(p *Program, f *Func) {
-	defs := map[LocalID]*Inst{}
-	multi := map[LocalID]bool{}
+func checkCapturedFieldMoves(p *Program, f *midir.Func) {
+	defs := map[midir.LocalID]*midir.Inst{}
+	multi := map[midir.LocalID]bool{}
 	for bi := range f.Blocks {
 		for ii := range f.Blocks[bi].Insts {
 			in := &f.Blocks[bi].Insts[ii]
@@ -25,14 +26,14 @@ func checkCapturedFieldMoves(p *Program, f *Func) {
 			defs[in.Dst] = in
 		}
 	}
-	place := func(l LocalID) capturedPlace {
+	place := func(l midir.LocalID) capturedPlace {
 		var path stepPath
 		for !multi[l] && defs[l] != nil {
 			d := defs[l]
 			switch {
-			case d.Op == OpField:
+			case d.Op == midir.OpField:
 				path, _ = path.under(d, true, nil)
-			case d.Op == OpCopy && f.Locals[l].Ent == 0:
+			case d.Op == midir.OpCopy && f.Locals[l].Ent == 0:
 			default:
 				return capturedPlace{l, path}
 			}
@@ -47,21 +48,21 @@ func checkCapturedFieldMoves(p *Program, f *Func) {
 	liveOut := capturedLiveness(f, caps, nil)
 	for bi := range f.Blocks {
 		blk := &f.Blocks[bi]
-		live := map[LocalID]bool{}
+		live := map[midir.LocalID]bool{}
 		for l := range liveOut[bi] {
 			live[l] = true
 		}
 		markCapturedUses(blk.Term.Args, caps, live)
 		for i := len(blk.Insts) - 1; i >= 0; i-- {
 			in := &blk.Insts[i]
-			if in.Op == OpFieldMove {
+			if in.Op == midir.OpFieldMove {
 				moved := place(in.Args[0])
 				moved.path = append(moved.path, in.Index)
 				if sharedBy(moved, caps, live) {
 					reportCapturedMove(p, f, in.Node, moved.root)
 				}
 			}
-			if in.Op == OpDrop {
+			if in.Op == midir.OpDrop {
 				continue
 			}
 			delete(live, in.Dst)
@@ -70,14 +71,14 @@ func checkCapturedFieldMoves(p *Program, f *Func) {
 	}
 }
 
-func sharedBy(moved capturedPlace, caps map[LocalID][]capturedPlace, live map[LocalID]bool) bool {
+func sharedBy(moved capturedPlace, caps map[midir.LocalID][]capturedPlace, live map[midir.LocalID]bool) bool {
 	_, ok := sharerOf(moved, caps, live)
 	return ok
 }
 
 // sharerOf is a live holder of a place overlapping moved; the lowest id keeps the choice stable.
-func sharerOf(moved capturedPlace, caps map[LocalID][]capturedPlace, live map[LocalID]bool) (LocalID, bool) {
-	var out LocalID
+func sharerOf(moved capturedPlace, caps map[midir.LocalID][]capturedPlace, live map[midir.LocalID]bool) (midir.LocalID, bool) {
+	var out midir.LocalID
 	found := false
 	for l := range live {
 		for _, cp := range caps[l] {
@@ -89,7 +90,7 @@ func sharerOf(moved capturedPlace, caps map[LocalID][]capturedPlace, live map[Lo
 	return out, found
 }
 
-func markCapturedUses(args []LocalID, caps map[LocalID][]capturedPlace, live map[LocalID]bool) {
+func markCapturedUses(args []midir.LocalID, caps map[midir.LocalID][]capturedPlace, live map[midir.LocalID]bool) {
 	for _, a := range args {
 		if _, ok := caps[a]; ok {
 			live[a] = true
@@ -97,7 +98,7 @@ func markCapturedUses(args []LocalID, caps map[LocalID][]capturedPlace, live map
 	}
 }
 
-func reportCapturedMove(p *Program, f *Func, n syntax.NodeID, root LocalID) {
+func reportCapturedMove(p *Program, f *midir.Func, n syntax.NodeID, root midir.LocalID) {
 	if n == 0 {
 		return
 	}

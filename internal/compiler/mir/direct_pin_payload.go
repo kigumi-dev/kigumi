@@ -1,7 +1,11 @@
 package mir
 
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
 // detachedPayload reports whether a write through root lands in a payload nobody else reads again: the Result or variant is a call's fresh temporary that only tests and unwraps.
-func detachedPayload(f *Func, defs map[LocalID]Inst, count map[LocalID]int, root LocalID) bool {
+func detachedPayload(f *midir.Func, defs map[midir.LocalID]midir.Inst, count map[midir.LocalID]int, root midir.LocalID) bool {
 	l := root
 	for {
 		def, ok := defs[l]
@@ -9,23 +13,23 @@ func detachedPayload(f *Func, defs map[LocalID]Inst, count map[LocalID]int, root
 			return false
 		}
 		switch {
-		case def.Op == OpAlias || def.Op == OpMove || (def.Op == OpShare && !def.Copy):
+		case def.Op == midir.OpAlias || def.Op == midir.OpMove || (def.Op == midir.OpShare && !def.Copy):
 			l = def.Args[0]
 			continue
-		case def.Op != OpPayload:
+		case def.Op != midir.OpPayload:
 			return false
 		}
 		return freshUnwrapped(f, defs, count, def)
 	}
 }
 
-func freshUnwrapped(f *Func, defs map[LocalID]Inst, count map[LocalID]int, payload Inst) bool {
+func freshUnwrapped(f *midir.Func, defs map[midir.LocalID]midir.Inst, count map[midir.LocalID]int, payload midir.Inst) bool {
 	holder := payload.Args[0]
 	src, ok := defs[holder]
 	if !ok || count[holder] != 1 || f.Locals[holder].Ent != 0 || f.Locals[holder].Cell {
 		return false
 	}
-	if src.Op != OpCall && src.Op != OpCallValue {
+	if src.Op != midir.OpCall && src.Op != midir.OpCallValue {
 		return false
 	}
 	var reads []blockAt
@@ -35,16 +39,16 @@ func freshUnwrapped(f *Func, defs map[LocalID]Inst, count map[LocalID]int, paylo
 				continue
 			}
 			switch in.Op {
-			case OpIsVariant, OpDrop, OpRelease:
-			case OpPayload:
+			case midir.OpIsVariant, midir.OpDrop, midir.OpRelease:
+			case midir.OpPayload:
 				if in.Index == payload.Index && in.Dst != payload.Dst {
-					reads = append(reads, blockAt{BlockID(bid), i})
+					reads = append(reads, blockAt{midir.BlockID(bid), i})
 				}
 			default:
 				return false
 			}
 		}
-		if blk.Term.Op == TermReturn && usesLocal(blk.Term.Args, holder) {
+		if blk.Term.Op == midir.TermReturn && usesLocal(blk.Term.Args, holder) {
 			return false
 		}
 	}
@@ -52,13 +56,13 @@ func freshUnwrapped(f *Func, defs map[LocalID]Inst, count map[LocalID]int, paylo
 }
 
 type blockAt struct {
-	blk BlockID
+	blk midir.BlockID
 	idx int
 }
 
-func usesArg(in Inst, l LocalID) bool { return usesLocal(in.Args, l) }
+func usesArg(in midir.Inst, l midir.LocalID) bool { return usesLocal(in.Args, l) }
 
-func usesLocal(args []LocalID, l LocalID) bool {
+func usesLocal(args []midir.LocalID, l midir.LocalID) bool {
 	for _, a := range args {
 		if a == l {
 			return true
@@ -68,13 +72,13 @@ func usesLocal(args []LocalID, l LocalID) bool {
 }
 
 // A second read of the same slot that can run after the write would see the unwritten copy once the payload is unboxed.
-func anyReachable(f *Func, payload Inst, reads []blockAt) bool {
+func anyReachable(f *midir.Func, payload midir.Inst, reads []blockAt) bool {
 	if len(reads) == 0 {
 		return false
 	}
 	at := locate(f, payload)
 	seen := make([]bool, len(f.Blocks))
-	stack := []BlockID{at.blk}
+	stack := []midir.BlockID{at.blk}
 	for len(stack) > 0 {
 		b := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
@@ -98,11 +102,11 @@ func anyReachable(f *Func, payload Inst, reads []blockAt) bool {
 	return false
 }
 
-func locate(f *Func, payload Inst) blockAt {
+func locate(f *midir.Func, payload midir.Inst) blockAt {
 	for bid, blk := range f.Blocks {
 		for i, in := range blk.Insts {
-			if in.Op == OpPayload && in.Dst == payload.Dst {
-				return blockAt{BlockID(bid), i}
+			if in.Op == midir.OpPayload && in.Dst == payload.Dst {
+				return blockAt{midir.BlockID(bid), i}
 			}
 		}
 	}

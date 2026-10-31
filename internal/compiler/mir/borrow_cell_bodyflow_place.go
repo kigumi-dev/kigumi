@@ -4,12 +4,13 @@ import (
 	"maps"
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // allDefs lists every instruction that defines each local of g.
-func allDefs(g *Func) map[LocalID][]*Inst {
-	out := map[LocalID][]*Inst{}
+func allDefs(g *midir.Func) map[midir.LocalID][]*midir.Inst {
+	out := map[midir.LocalID][]*midir.Inst{}
 	for bi := range g.Blocks {
 		for ii := range g.Blocks[bi].Insts {
 			if in := &g.Blocks[bi].Insts[ii]; in.Op.Yields() && definesDst(*in) {
@@ -22,20 +23,20 @@ func allDefs(g *Func) map[LocalID][]*Inst {
 
 // placeRoots are the locals a write through l may reach, following every definition back through projections, borrows,
 // cells, copies and, for a returned reference, the call's operands; not ok when a reference comes from anywhere else.
-func (c *borrowCheck) placeRoots(g *Func, defs map[LocalID][]*Inst, l LocalID) ([]LocalID, bool) {
-	out, ok := []LocalID{l}, true
+func (c *borrowCheck) placeRoots(g *midir.Func, defs map[midir.LocalID][]*midir.Inst, l midir.LocalID) ([]midir.LocalID, bool) {
+	out, ok := []midir.LocalID{l}, true
 	for i := 0; i < len(out); i++ {
 		x := out[i]
 		isRef := c.p.R.Types.Kind(g.Locals[x].Type) == sem.KRef
 		for _, d := range defs[x] {
-			var next []LocalID
+			var next []midir.LocalID
 			switch {
 			case len(d.Args) == 0:
 				ok = ok && !isRef
 			case bodyRoles[d.Op] == roleCarry:
 				next = d.Args[:1]
 				switch d.Op {
-				case OpCopy, OpMove, OpAlias, OpShare, OpRecord, OpVariant, OpArray:
+				case midir.OpCopy, midir.OpMove, midir.OpAlias, midir.OpShare, midir.OpRecord, midir.OpVariant, midir.OpArray:
 					next = d.Args
 				}
 			case bodyRoles[d.Op] == roleCall:
@@ -55,15 +56,15 @@ func (c *borrowCheck) placeRoots(g *Func, defs map[LocalID][]*Inst, l LocalID) (
 
 // calleeOf sorts what call in of g may run: fn items and closures by entity, g's own declared parameters, and whether
 // a callee from anywhere else is possible.
-func (c *borrowCheck) calleeOf(g *Func, fs flowSets, in Inst) (ents, params []sem.EntityID, unseen bool) {
+func (c *borrowCheck) calleeOf(g *midir.Func, fs flowSets, in midir.Inst) (ents, params []sem.EntityID, unseen bool) {
 	switch {
-	case in.Op == OpCall && in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn:
+	case in.Op == midir.OpCall && in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn:
 		return []sem.EntityID{in.Ent}, nil, false
-	case in.Op == OpCall:
+	case in.Op == midir.OpCall:
 		return nil, nil, true
-	case in.Op == OpCallValue && c.calleeClosure(g, in) != 0:
+	case in.Op == midir.OpCallValue && c.calleeClosure(g, in) != 0:
 		return []sem.EntityID{c.calleeClosure(g, in)}, nil, false
-	case in.Op != OpCallValue && in.Op != OpFutureNew:
+	case in.Op != midir.OpCallValue && in.Op != midir.OpFutureNew:
 		return nil, nil, false
 	}
 	held := fs[in.Args[0]]
@@ -87,11 +88,11 @@ func (c *borrowCheck) calleeOf(g *Func, fs flowSets, in Inst) (ents, params []se
 
 // boundParams are the parameters of the given callees that argument k of in binds: a value call's callee is no
 // argument of its own, except a method value's, which is its receiver.
-func (c *borrowCheck) boundParams(ents []sem.EntityID, in Inst, k int) []sem.EntityID {
+func (c *borrowCheck) boundParams(ents []sem.EntityID, in midir.Inst, k int) []sem.EntityID {
 	var out []sem.EntityID
 	for _, e := range ents {
 		j := k
-		if in.Op != OpCall && c.methodOf(e) == 0 {
+		if in.Op != midir.OpCall && c.methodOf(e) == 0 {
 			j--
 		}
 		if params := c.declaredParams(e); j >= 0 && j < len(params) {

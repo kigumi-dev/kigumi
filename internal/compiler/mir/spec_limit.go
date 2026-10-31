@@ -1,6 +1,7 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/lang/diag"
@@ -79,11 +80,11 @@ func (s *specializer) overBudget(ctx *spec) bool {
 	return true
 }
 
-func (s *specializer) warn(f *Func, node syntax.NodeID, code string, args ...any) {
+func (s *specializer) warn(f *midir.Func, node syntax.NodeID, code string, args ...any) {
 	s.report(diag.Warning, f, node, code, args...)
 }
 
-func (s *specializer) report(sev diag.Severity, f *Func, node syntax.NodeID, code string, args ...any) {
+func (s *specializer) report(sev diag.Severity, f *midir.Func, node syntax.NodeID, code string, args ...any) {
 	c, ok := sem.CodeByName(code)
 	if !ok {
 		return

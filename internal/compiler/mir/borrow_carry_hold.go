@@ -1,6 +1,9 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // mayCarry reports whether a result of type ret can keep an argument of type arg inside it.
 func (c *borrowCheck) mayCarry(ret, arg sem.TypeID) bool {
@@ -31,7 +34,7 @@ func (c *borrowCheck) slotCarry(s callSlot, ret sem.TypeID) []*borrowInfo {
 
 // referentHolders are the holders of what a receiver or reference argument reaches; a
 // reference parameter's referent belongs to the caller, which tracks it at its own call.
-func (c *borrowCheck) referentHolders(a LocalID) []*borrowInfo {
+func (c *borrowCheck) referentHolders(a midir.LocalID) []*borrowInfo {
 	l := c.f.Locals[a]
 	if c.p.R.Types.Kind(l.Type) != sem.KRef {
 		if b, ok := c.holders[a]; ok {
@@ -60,12 +63,12 @@ func (c *borrowCheck) referentHolders(a LocalID) []*borrowInfo {
 		return nil
 	}
 	switch in.Op {
-	case OpBorrow:
+	case midir.OpBorrow:
 		if root, _, _, ok := c.projectionPlace(in.Args[0]); ok {
 			return c.referentHolders(root)
 		}
 		return c.referentHolders(in.Args[0])
-	case OpNewCell, OpShare, OpCopy, OpMove, OpAlias:
+	case midir.OpNewCell, midir.OpShare, midir.OpCopy, midir.OpMove, midir.OpAlias:
 		return c.referentHolders(in.Args[0])
 	}
 	return nil
@@ -73,12 +76,12 @@ func (c *borrowCheck) referentHolders(a LocalID) []*borrowInfo {
 
 // projectsHeld reports whether a value read out of in's source keeps what the source holds: it names a lifetime,
 // a type parameter while the source borrows this frame, or a Future, Task or closure that may move out of an owned source.
-func (c *borrowCheck) projectsHeld(in Inst) bool {
+func (c *borrowCheck) projectsHeld(in midir.Inst) bool {
 	t := c.f.Locals[in.Dst].Type
 	if c.resultMayCarryLifetime(t) || c.projectsOwned(t, in.Args[0]) {
 		return true
 	}
-	return c.holdsDeferred(t) && (in.Op == OpFieldMove || c.p.R.Types.Kind(c.f.Locals[in.Args[0]].Type) != sem.KRef)
+	return c.holdsDeferred(t) && (in.Op == midir.OpFieldMove || c.p.R.Types.Kind(c.f.Locals[in.Args[0]].Type) != sem.KRef)
 }
 
 // holdsDeferred reports whether a value of type t can keep a Future, a Task or a capture
@@ -99,7 +102,7 @@ func (c *borrowCheck) holdsAsync(t sem.TypeID) bool {
 
 // releaseOnly reports whether dropping a holder named l runs nothing that reaches what it borrows:
 // it only carries borrows inside values that run solely when called or awaited, never a Task.
-func (c *borrowCheck) releaseOnly(l LocalID) bool {
+func (c *borrowCheck) releaseOnly(l midir.LocalID) bool {
 	b, ok := c.holders[l]
 	if !ok || len(b.owners) == 0 || c.f.Locals[l].Ent == 0 {
 		return false

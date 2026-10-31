@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -29,14 +30,14 @@ func TestInterruptLoweringCatchesReintroducedBox(t *testing.T) {
 		t.Fatalf("the clean handler must pass: %v", claims[0].Diag.Msg)
 	}
 	tick := funcNamed(t, prog, "main.tick")
-	var p mir.LocalID
+	var p midir.LocalID
 	for i, l := range tick.Locals {
 		if l.Name == "p" {
-			p = mir.LocalID(i)
+			p = midir.LocalID(i)
 		}
 	}
 	blk := &tick.Blocks[0]
-	blk.Insts = append(blk.Insts, mir.Inst{Op: mir.OpBoxDirect, Dst: p, Type: tick.Locals[p].Type, Args: []mir.LocalID{p}})
+	blk.Insts = append(blk.Insts, midir.Inst{Op: midir.OpBoxDirect, Dst: p, Type: tick.Locals[p].Type, Args: []midir.LocalID{p}})
 	claims := mir.CheckInterruptLowering(prog)
 	if len(claims) != 1 || claims[0].Diag.Code != "E1090" || !strings.Contains(claims[0].Diag.Msg, "boxes a `Pair` value") {
 		t.Fatalf("a reintroduced box must be rejected: %+v", claims)
@@ -46,7 +47,7 @@ func TestInterruptLoweringCatchesReintroducedBox(t *testing.T) {
 func TestInterruptLoweringFollowsCallees(t *testing.T) {
 	prog := planned(t, isrPairSrc)
 	poke := funcNamed(t, prog, "main.poke")
-	poke.Blocks[0].Insts = append(poke.Blocks[0].Insts, mir.Inst{Op: mir.OpPanic, Str: "lowered trap"})
+	poke.Blocks[0].Insts = append(poke.Blocks[0].Insts, midir.Inst{Op: midir.OpPanic, Str: "lowered trap"})
 	claims := mir.CheckInterruptLowering(prog)
 	if len(claims) != 1 || !strings.Contains(claims[0].Diag.Msg, "may panic") || len(claims[0].Diag.Notes) != 2 || !strings.Contains(claims[0].Diag.Notes[0].Msg, "calls `poke`") {
 		t.Fatalf("a panic a callee's lowering introduced must be traced from the handler: %+v", claims)
@@ -76,8 +77,8 @@ func TestInterruptLoweringParamFromCaller(t *testing.T) {
 	replaced := false
 	for b := range tick.Blocks {
 		for i, in := range tick.Blocks[b].Insts {
-			if in.Op == mir.OpConst && prog.R.TypeString(tick.Locals[in.Dst].Type) == "String" {
-				tick.Blocks[b].Insts[i].Op = mir.OpGlobalGet
+			if in.Op == midir.OpConst && prog.R.TypeString(tick.Locals[in.Dst].Type) == "String" {
+				tick.Blocks[b].Insts[i].Op = midir.OpGlobalGet
 				replaced = true
 			}
 		}
@@ -128,10 +129,10 @@ func TestInterruptLoweringReleaseByType(t *testing.T) {
 		if typ == 0 {
 			t.Fatalf("no parameter %s in probe", c.param)
 		}
-		tick.Locals = append(tick.Locals, mir.Local{Name: "held", Type: typ})
-		held := mir.LocalID(len(tick.Locals) - 1)
+		tick.Locals = append(tick.Locals, midir.Local{Name: "held", Type: typ})
+		held := midir.LocalID(len(tick.Locals) - 1)
 		blk := &tick.Blocks[0]
-		blk.Insts = append(blk.Insts, mir.Inst{Op: mir.OpDrop, Args: []mir.LocalID{held}})
+		blk.Insts = append(blk.Insts, midir.Inst{Op: midir.OpDrop, Args: []midir.LocalID{held}})
 		claims := mir.CheckInterruptLowering(prog)
 		switch {
 		case c.reject && (len(claims) != 1 || !strings.Contains(claims[0].Diag.Msg, "releases a `"+prog.R.TypeString(typ)+"`")):

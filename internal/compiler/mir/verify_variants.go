@@ -3,15 +3,16 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 type variantFlow struct {
 	weak    []bool
 	p       *verifier
-	f       *Func
+	f       *midir.Func
 	cond    []bool
-	lenOf   map[LocalID]LocalID
+	lenOf   map[midir.LocalID]midir.LocalID
 	carried []bool
 	multi   []bool
 	live    *edgeLive
@@ -19,7 +20,7 @@ type variantFlow struct {
 	inert []bool
 }
 
-func (p *verifier) verifyVariants(f *Func) *Error {
+func (p *verifier) verifyVariants(f *midir.Func) *Error {
 	if !p.needsFacts(f) {
 		return nil
 	}
@@ -28,7 +29,7 @@ func (p *verifier) verifyVariants(f *Func) *Error {
 	in := make([]*variantFacts, len(f.Blocks))
 	in[0] = newFacts(len(f.Locals))
 	var found *Error
-	acyclic := solveForward(f, func(bid BlockID, wake func(BlockID), final bool) bool {
+	acyclic := solveForward(f, func(bid midir.BlockID, wake func(midir.BlockID), final bool) bool {
 		out, err := vf.block(bid, in[bid], final)
 		if err != nil {
 			found = err
@@ -43,7 +44,7 @@ func (p *verifier) verifyVariants(f *Func) *Error {
 			if k < len(term.Targets)-1 {
 				edge = out.clone()
 			}
-			if term.Op == TermBranch && !edge.assume(term.Args[0], k == 0) {
+			if term.Op == midir.TermBranch && !edge.assume(term.Args[0], k == 0) {
 				continue
 			}
 			vf.live.dead(f, bid, edge.retire)
@@ -66,14 +67,14 @@ func (p *verifier) verifyVariants(f *Func) *Error {
 		if in[bid] == nil {
 			continue
 		}
-		if _, err := vf.block(BlockID(bid), in[bid], true); err != nil {
+		if _, err := vf.block(midir.BlockID(bid), in[bid], true); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (p *verifier) needsFacts(f *Func) bool {
+func (p *verifier) needsFacts(f *midir.Func) bool {
 	if slices.Contains(p.body(f).weakDefs, true) {
 		return true
 	}
@@ -82,10 +83,10 @@ func (p *verifier) needsFacts(f *Func) bool {
 	}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == OpBuiltin && iterAt(in.Str) {
+			if in.Op == midir.OpBuiltin && iterAt(in.Str) {
 				return true
 			}
-			if in.Op != OpPayload {
+			if in.Op != midir.OpPayload {
 				continue
 			}
 			kind, t := p.aggOf(f.Locals[in.Args[0]].Type)
@@ -102,10 +103,10 @@ func (p *verifier) needsFacts(f *Func) bool {
 	return false
 }
 
-func condLocals(f *Func) []bool {
+func condLocals(f *midir.Func) []bool {
 	cond := make([]bool, len(f.Locals))
 	for _, blk := range f.Blocks {
-		if blk.Term.Op == TermBranch {
+		if blk.Term.Op == midir.TermBranch {
 			cond[blk.Term.Args[0]] = true
 		}
 	}
@@ -122,18 +123,18 @@ func condLocals(f *Func) []bool {
 	return cond
 }
 
-func copiesBool(in Inst) bool {
+func copiesBool(in midir.Inst) bool {
 	switch in.Op {
-	case OpAlias, OpCopy, OpMove, OpShare:
+	case midir.OpAlias, midir.OpCopy, midir.OpMove, midir.OpShare:
 		return len(in.Args) == 1 && in.Args[0] != in.Dst
-	case OpUnary:
+	case midir.OpUnary:
 		return in.Str == "!" && in.Args[0] != in.Dst
 	}
 	return false
 }
 
 // A place named through a local that several instructions define would change root between passes of the solver.
-func multiDefs(f *Func) []bool {
+func multiDefs(f *midir.Func) []bool {
 	count := make([]int, len(f.Locals))
 	for _, prm := range f.Params {
 		count[prm]++
@@ -152,7 +153,7 @@ func multiDefs(f *Func) []bool {
 	return multi
 }
 
-func (p *verifier) inertLocals(f *Func) []bool {
+func (p *verifier) inertLocals(f *midir.Func) []bool {
 	inert := make([]bool, len(f.Locals))
 	for i, l := range f.Locals {
 		inert[i] = !l.Cell && p.opaqueValue(l.Type)

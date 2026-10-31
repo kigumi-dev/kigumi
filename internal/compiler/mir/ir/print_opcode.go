@@ -1,4 +1,4 @@
-package mir
+package ir
 
 var opNames = [...]string{
 	OpConst: "const", OpUnit: "unit", OpCopy: "copy", OpMove: "move", OpCall: "call",

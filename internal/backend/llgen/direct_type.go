@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -44,7 +45,7 @@ type aggInfo struct {
 	Pay      string
 	Size     int64
 	Align    int64
-	Clo      *mir.Func
+	Clo      *midir.Func
 	Arr      *aggField
 	Len      int64
 }

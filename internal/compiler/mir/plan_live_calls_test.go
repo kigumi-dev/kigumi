@@ -3,7 +3,7 @@ package mir_test
 import (
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -29,14 +29,14 @@ fn main() -> Void! {}
 `
 
 // freshStrings are the String temporaries a call or a temp-to-temp alias hands over.
-func freshStrings(f *mir.Func) map[mir.LocalID]bool {
-	out := map[mir.LocalID]bool{}
+func freshStrings(f *midir.Func) map[midir.LocalID]bool {
+	out := map[midir.LocalID]bool{}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			if f.Locals[in.Dst].Ent != 0 || f.Locals[in.Dst].Type != sem.TyString {
 				continue
 			}
-			if in.Op == mir.OpCall || in.Op == mir.OpAlias && f.Locals[in.Args[0]].Ent == 0 {
+			if in.Op == midir.OpCall || in.Op == midir.OpAlias && f.Locals[in.Args[0]].Ent == 0 {
 				out[in.Dst] = true
 			}
 		}
@@ -53,7 +53,7 @@ func TestPlanReleasesCallResultsOnEveryPath(t *testing.T) {
 			t.Fatalf("%s: no String temporaries to follow", name)
 		}
 		w := &walk{p: p, f: f, temps: temps, seen: map[string]bool{}}
-		w.run(0, map[mir.LocalID]bool{})
+		w.run(0, map[midir.LocalID]bool{})
 		for _, e := range w.errs {
 			t.Errorf("%s: %s\n%s", name, e, p.Dump())
 		}

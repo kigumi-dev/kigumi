@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -42,7 +42,7 @@ func TestCopyStoreThroughAPlaceFillsTheSlotInPlace(t *testing.T) {
 	p := planned(t, copyStorePlaceSrc)
 	for _, name := range []string{"main.viaField", "main.Wrap.shift"} {
 		f := funcNamed(t, p, name)
-		if got := countOp(f, mir.OpBoxDirect); got != 0 {
+		if got := countOp(f, midir.OpBoxDirect); got != 0 {
 			t.Errorf("%s boxes %d times:\n%s", name, got, p.Dump())
 		}
 		if got := len(p.CopyStores(f)); got != 1 {
@@ -55,8 +55,8 @@ func TestCopyStoreThroughAPlaceFillsTheSlotInPlace(t *testing.T) {
 			continue
 		}
 		found = true
-		if got := len(p.CopyStores(f)); got != 1 || countOp(f, mir.OpBoxDirect) != 0 {
-			t.Errorf("%s: %d in-place copy stores, %d boxings:\n%s", f.Name, got, countOp(f, mir.OpBoxDirect), p.Dump())
+		if got := len(p.CopyStores(f)); got != 1 || countOp(f, midir.OpBoxDirect) != 0 {
+			t.Errorf("%s: %d in-place copy stores, %d boxings:\n%s", f.Name, got, countOp(f, midir.OpBoxDirect), p.Dump())
 		}
 	}
 	if !found {
@@ -111,7 +111,7 @@ func TestCopyStoreBetweenFieldsFillsTheDestinationInPlace(t *testing.T) {
 	p := planned(t, copyStoreFieldSrc)
 	for _, name := range []string{"main.fieldFromField", "main.slotFromField", "main.Outer.shift", "main.byValueFields", "main.byValueSlots"} {
 		f := funcNamed(t, p, name)
-		if got := countOp(f, mir.OpBoxDirect); got != 0 {
+		if got := countOp(f, midir.OpBoxDirect); got != 0 {
 			t.Errorf("%s boxes %d times:\n%s", name, got, p.Dump())
 		}
 		if got := len(p.CopyStores(f)); got != 1 {

@@ -6,7 +6,7 @@ import (
 	"math/big"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -30,7 +30,7 @@ func (e *emitter) staticGlobals() (decls, initFn string) {
 		default:
 			if ty, ok := e.directStatic(ent); ok {
 				lit, _ := e.r.StaticValueOf(ent)
-				fmt.Fprintf(&g, "%s = internal global %s %s%s, align %d\n", e.globalSym(ent), ty, scalarConstText(e.r.Types, mir.Inst{Lit: lit, Type: typ}), sectionClause(e.r.StaticSectionOf(ent)), alignOf(ty.String()))
+				fmt.Fprintf(&g, "%s = internal global %s %s%s, align %d\n", e.globalSym(ent), ty, scalarConstText(e.r.Types, midir.Inst{Lit: lit, Type: typ}), sectionClause(e.r.StaticSectionOf(ent)), alignOf(ty.String()))
 				continue
 			}
 			lit, _ := e.r.StaticValueOf(ent)
@@ -40,7 +40,7 @@ func (e *emitter) staticGlobals() (decls, initFn string) {
 				continue
 			}
 			fmt.Fprintf(&g, "%s = internal global ptr null%s\n", e.globalSym(ent), sectionClause(e.r.StaticSectionOf(ent)))
-			v := e.constant(&init, mir.Inst{Lit: lit, Type: typ})
+			v := e.constant(&init, midir.Inst{Lit: lit, Type: typ})
 			fmt.Fprintf(&init, "  store ptr %s, ptr %s\n", v, e.globalSym(ent))
 		}
 	}

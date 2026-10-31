@@ -3,11 +3,11 @@ package llgen
 import (
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 // builtinCall lowers an OpBuiltin; `task.close` needs the running body's own Future, which only an async body has.
-func (e *emitter) builtinCall(sb *strings.Builder, in mir.Inst, args []string) string {
+func (e *emitter) builtinCall(sb *strings.Builder, in midir.Inst, args []string) string {
 	if in.Str == "task.close" {
 		return e.irb(sb).Call(rtTaskClose, vptr("%fut")).Text
 	}

@@ -1,6 +1,7 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/lang/diag"
 )
@@ -30,9 +31,9 @@ func CheckInterruptLowering(p *Program) []AllocClaim {
 	return out
 }
 
-func (p *Program) isrLoweringPath(handler *Func, c sem.Code, releases bool) (AllocClaim, bool) {
+func (p *Program) isrLoweringPath(handler *midir.Func, c sem.Code, releases bool) (AllocClaim, bool) {
 	type frame struct {
-		f     *Func
+		f     *midir.Func
 		inert []bool
 		via   []diag.Diagnostic
 	}
@@ -61,7 +62,7 @@ func (p *Program) isrLoweringPath(handler *Func, c sem.Code, releases bool) (All
 	return AllocClaim{}, false
 }
 
-func (p *Program) isrClaim(handler *Func, c sem.Code, what string, hops []diag.Diagnostic) AllocClaim {
+func (p *Program) isrClaim(handler *midir.Func, c sem.Code, what string, hops []diag.Diagnostic) AllocClaim {
 	e := p.R.Entity(handler.Ent)
 	t := p.R.Tree(e.File)
 	d := diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(e.Node)), Msg: sem.FillTemplate(c.Template, e.Name, what), Code: c.Num, Help: []string{c.Help}}
@@ -72,23 +73,23 @@ func (p *Program) isrClaim(handler *Func, c sem.Code, what string, hops []diag.D
 }
 
 // isrCallees are the lowered bodies one instruction runs in the same frame chain: named calls, known function values, asm `sym` targets.
-func (p *Program) isrCallees(f *Func, in Inst) []*Func {
+func (p *Program) isrCallees(f *midir.Func, in midir.Inst) []*midir.Func {
 	switch in.Op {
-	case OpCall:
+	case midir.OpCall:
 		if g := p.ByEnt[in.Ent]; g != nil && !p.IsStdPrimitive(in.Ent) {
-			return []*Func{g}
+			return []*midir.Func{g}
 		}
 		if cb, ok := p.isrCallbackArg(in); ok {
 			if g := p.isrValueTarget(f, in.Args[cb]); g != nil {
-				return []*Func{g}
+				return []*midir.Func{g}
 			}
 		}
-	case OpCallValue:
+	case midir.OpCallValue:
 		if g := p.isrValueTarget(f, in.Args[0]); g != nil {
-			return []*Func{g}
+			return []*midir.Func{g}
 		}
-	case OpAsm:
-		var out []*Func
+	case midir.OpAsm:
+		var out []*midir.Func
 		if info := p.R.AsmOf(f.File, in.Node); info != nil {
 			for _, op := range info.Operands {
 				if g := p.ByEnt[op.Sym]; op.Kind == sem.AsmSym && g != nil {
@@ -103,11 +104,11 @@ func (p *Program) isrCallees(f *Func, in Inst) []*Func {
 
 // isrImmortal reports a value whose release never frees: a literal, a unit, a payload-free variant,
 // a captureless closure or a parameter every caller on this path fed one of those.
-func (p *Program) isrImmortal(f *Func, l LocalID, inert []bool) bool {
+func (p *Program) isrImmortal(f *midir.Func, l midir.LocalID, inert []bool) bool {
 	return p.isrImmortalAt(f, l, inert, 16)
 }
 
-func (p *Program) isrImmortalAt(f *Func, l LocalID, inert []bool, depth int) bool {
+func (p *Program) isrImmortalAt(f *midir.Func, l midir.LocalID, inert []bool, depth int) bool {
 	if depth == 0 {
 		return false
 	}
@@ -121,16 +122,16 @@ func (p *Program) isrImmortalAt(f *Func, l LocalID, inert []bool, depth int) boo
 	}
 	for _, def := range defs {
 		switch def.Op {
-		case OpAlias, OpCopy, OpMove, OpShare:
+		case midir.OpAlias, midir.OpCopy, midir.OpMove, midir.OpShare:
 			if !p.isrImmortalAt(f, def.Args[0], inert, depth-1) {
 				return false
 			}
-		case OpConst, OpUnit, OpFnItem:
-		case OpVariant, OpClosure:
+		case midir.OpConst, midir.OpUnit, midir.OpFnItem:
+		case midir.OpVariant, midir.OpClosure:
 			if len(def.Args) != 0 {
 				return false
 			}
-		case OpBoxDirect:
+		case midir.OpBoxDirect:
 			if !def.Fixed {
 				return false
 			}
@@ -141,7 +142,7 @@ func (p *Program) isrImmortalAt(f *Func, l LocalID, inert []bool, depth int) boo
 	return true
 }
 
-func (p *Program) isrFuncName(g *Func) string {
+func (p *Program) isrFuncName(g *midir.Func) string {
 	if g.Ent != 0 {
 		return p.R.Entity(g.Ent).Name
 	}

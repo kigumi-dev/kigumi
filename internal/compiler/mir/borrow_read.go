@@ -3,12 +3,13 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // readInfo is the holder a value read out of src (a field, element or
 // payload) shares: what src holds, or a lent parameter's contents.
-func (c *borrowCheck) readInfo(src LocalID) (*borrowInfo, bool) {
+func (c *borrowCheck) readInfo(src midir.LocalID) (*borrowInfo, bool) {
 	if b, ok := c.paramContents(src); ok {
 		return b, true
 	}
@@ -18,7 +19,7 @@ func (c *borrowCheck) readInfo(src LocalID) (*borrowInfo, bool) {
 
 // paramContents is what an untagged `&X` parameter's referent holds when X names a lifetime:
 // the reference stays function-scoped, but a value read through it carries X's lifetime.
-func (c *borrowCheck) paramContents(l LocalID) (*borrowInfo, bool) {
+func (c *borrowCheck) paramContents(l midir.LocalID) (*borrowInfo, bool) {
 	if b, ok := c.contents[l]; ok {
 		return b, true
 	}
@@ -42,7 +43,7 @@ func (c *borrowCheck) paramContents(l LocalID) (*borrowInfo, bool) {
 // flowArg is one argument whose value may flow into a call's result or a
 // store target; contents means the value is behind the argument's reference.
 type flowArg struct {
-	arg      LocalID
+	arg      midir.LocalID
 	contents bool
 	tie      tieKind
 	shared   bool
@@ -55,7 +56,7 @@ type flowArg struct {
 // flowInfoOf is what one flowing argument contributes: an immediate closure
 // contributes what it captured, since its results can only come from there.
 func (c *borrowCheck) flowInfoOf(f flowArg) (*borrowInfo, bool) {
-	if def := c.definition(f.arg); def != nil && def.Op == OpClosure && c.p.R.Entity(def.Ent).Kind == sem.EntClosure {
+	if def := c.definition(f.arg); def != nil && def.Op == midir.OpClosure && c.p.R.Entity(def.Ent).Kind == sem.EntClosure {
 		s := c.captureInfo(f.arg, def)
 		return s, !s.empty
 	}
@@ -66,7 +67,7 @@ func (c *borrowCheck) flowInfoOf(f flowArg) (*borrowInfo, bool) {
 	return b, ok
 }
 
-func (c *borrowCheck) captureInfo(l LocalID, def *Inst) *borrowInfo {
+func (c *borrowCheck) captureInfo(l midir.LocalID, def *midir.Inst) *borrowInfo {
 	s, ok := c.caps[l]
 	if !ok {
 		s = &borrowInfo{empty: true, node: def.Node}
@@ -90,7 +91,7 @@ func (c *borrowCheck) captureInfo(l LocalID, def *Inst) *borrowInfo {
 
 // deferredCaptures is what a closure returning a Future or a Task keeps borrowed:
 // the locals it captures without owning, which the value it returns may still reach.
-func (c *borrowCheck) deferredCaptures(def *Inst) *borrowInfo {
+func (c *borrowCheck) deferredCaptures(def *midir.Inst) *borrowInfo {
 	info := c.p.R.Closure(def.Ent)
 	if !c.holdsAsync(info.Ret) || len(info.Captures) != len(def.Args) {
 		return nil

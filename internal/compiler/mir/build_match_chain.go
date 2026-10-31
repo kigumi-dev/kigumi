@@ -1,13 +1,16 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // andThen evaluates the next test only when the previous one succeeded.
-func (b *builder) andThen(cond LocalID, next func() LocalID) LocalID {
+func (b *builder) andThen(cond midir.LocalID, next func() midir.LocalID) midir.LocalID {
 	result := b.temp(sem.TyBool)
 	b.assign(result, cond)
 	more, join := b.newBlockAt(), b.newBlockAt()
-	b.term(Term{Op: TermBranch, Args: []LocalID{cond}, Targets: []BlockID{more, join}})
+	b.term(midir.Term{Op: midir.TermBranch, Args: []midir.LocalID{cond}, Targets: []midir.BlockID{more, join}})
 	b.cur = more
 	b.assign(result, next())
 	b.jump(join)
@@ -16,11 +19,11 @@ func (b *builder) andThen(cond LocalID, next func() LocalID) LocalID {
 }
 
 // orElse evaluates the next test only when the previous one failed.
-func (b *builder) orElse(cond LocalID, next func() LocalID) LocalID {
+func (b *builder) orElse(cond midir.LocalID, next func() midir.LocalID) midir.LocalID {
 	result := b.temp(sem.TyBool)
 	b.assign(result, cond)
 	more, join := b.newBlockAt(), b.newBlockAt()
-	b.term(Term{Op: TermBranch, Args: []LocalID{cond}, Targets: []BlockID{join, more}})
+	b.term(midir.Term{Op: midir.TermBranch, Args: []midir.LocalID{cond}, Targets: []midir.BlockID{join, more}})
 	b.cur = more
 	b.assign(result, next())
 	b.jump(join)

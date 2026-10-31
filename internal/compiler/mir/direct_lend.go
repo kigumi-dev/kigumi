@@ -1,12 +1,15 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // Past this a by-value copy per call costs more than the box it saves.
 const maxLendBytes = 128
 
 type lendParam struct {
-	f *Func
+	f *midir.Func
 	i int
 }
 
@@ -49,7 +52,7 @@ func (p *Program) lendCandidates() map[lendParam]bool {
 	return cands
 }
 
-func (p *Program) lendableParam(f *Func, i int) bool {
+func (p *Program) lendableParam(f *midir.Func, i int) bool {
 	if f.Async || f.Ent == 0 {
 		return false
 	}
@@ -65,7 +68,7 @@ func (p *Program) lendableParam(f *Func, i int) bool {
 	return p.R.LendableParamSlot(f.Ent, l.Ent) && !p.pinnedByPanic(f, prm)
 }
 
-func (p *Program) pinnedByPanic(f *Func, l LocalID) bool {
+func (p *Program) pinnedByPanic(f *midir.Func, l midir.LocalID) bool {
 	for _, d := range f.PanicDrop {
 		if d == l {
 			return true
@@ -75,13 +78,13 @@ func (p *Program) pinnedByPanic(f *Func, l LocalID) bool {
 }
 
 // refAliases names the parameter and the locals that only rename it.
-func (p *Program) refAliases(f *Func, prm LocalID) map[LocalID]bool {
-	set := map[LocalID]bool{prm: true}
+func (p *Program) refAliases(f *midir.Func, prm midir.LocalID) map[midir.LocalID]bool {
+	set := map[midir.LocalID]bool{prm: true}
 	for changed := true; changed; {
 		changed = false
 		for _, blk := range f.Blocks {
 			for _, in := range blk.Insts {
-				if in.Op == OpAlias && set[in.Args[0]] && !set[in.Dst] {
+				if in.Op == midir.OpAlias && set[in.Args[0]] && !set[in.Dst] {
 					set[in.Dst], changed = true, true
 				}
 			}
@@ -94,7 +97,7 @@ func (p *Program) refAliases(f *Func, prm LocalID) map[LocalID]bool {
 func (p *Program) readsOnly(c lendParam, cands map[lendParam]bool) bool {
 	f, prm := c.f, c.f.Params[c.i]
 	set := p.refAliases(f, prm)
-	defs := map[LocalID]int{}
+	defs := map[midir.LocalID]int{}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			if in.Op.Yields() && set[in.Dst] {
@@ -110,7 +113,7 @@ func (p *Program) readsOnly(c lendParam, cands map[lendParam]bool) bool {
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			for k, a := range in.Args {
-				if set[a] && !(in.Op == OpAlias && set[in.Dst]) && !p.readsAt(f, in, k, cands) {
+				if set[a] && !(in.Op == midir.OpAlias && set[in.Dst]) && !p.readsAt(f, in, k, cands) {
 					return false
 				}
 			}
@@ -125,20 +128,20 @@ func (p *Program) readsOnly(c lendParam, cands map[lendParam]bool) bool {
 }
 
 // A counted value lent by its bits holds none of its counts, so nothing may drop it or take it by value.
-func (p *Program) readsAt(f *Func, in Inst, k int, cands map[lendParam]bool) bool {
+func (p *Program) readsAt(f *midir.Func, in midir.Inst, k int, cands map[lendParam]bool) bool {
 	t := f.Locals[in.Args[k]].Type
 	if p.R.Types.Kind(t) == sem.KRef {
 		t = p.R.Types.Node(t).Elem
 	}
 	counted := p.R.CountedAdt(t)
 	switch in.Op {
-	case OpDrop, OpRelease:
+	case midir.OpDrop, midir.OpRelease:
 		return k == 0 && !counted
-	case OpField, OpPayload, OpIsVariant, OpTag, OpNop:
+	case midir.OpField, midir.OpPayload, midir.OpIsVariant, midir.OpTag, midir.OpNop:
 		return k == 0
-	case OpBuiltin:
+	case midir.OpBuiltin:
 		return protoBuiltin(in)
-	case OpCall:
+	case midir.OpCall:
 		g := p.ByEnt[in.Ent]
 		if g == nil || k >= len(g.Params) || p.IsStdPrimitive(in.Ent) {
 			return false
@@ -149,19 +152,19 @@ func (p *Program) readsAt(f *Func, in Inst, k int, cands map[lendParam]bool) boo
 }
 
 // takesValue reports whether g's parameter k is the direct aggregate the reference points at.
-func (p *Program) takesValue(g *Func, k int, ref sem.TypeID) bool {
+func (p *Program) takesValue(g *midir.Func, k int, ref sem.TypeID) bool {
 	prm := g.Params[k]
 	t := g.Locals[prm].Type
 	return p.R.Types.Kind(ref) == sem.KRef && t == p.R.Types.Node(ref).Elem && p.R.DirectAgg(t) && p.R.DirectParamSlot(g.Ent, g.Locals[prm].Ent) && !g.Async && !p.EnvABI(g)
 }
 
-func (p *Program) passBorrowedLocals(f *Func, cands map[lendParam]bool) {
-	defs, uses := map[LocalID]*Inst{}, map[LocalID]int{}
+func (p *Program) passBorrowedLocals(f *midir.Func, cands map[lendParam]bool) {
+	defs, uses := map[midir.LocalID]*midir.Inst{}, map[midir.LocalID]int{}
 	for bid := range f.Blocks {
 		blk := &f.Blocks[bid]
 		for i := range blk.Insts {
 			in := &blk.Insts[i]
-			if in.Op == OpBorrow && in.Index == 0 {
+			if in.Op == midir.OpBorrow && in.Index == 0 {
 				defs[in.Dst] = in
 			}
 			for _, a := range in.Args {
@@ -175,7 +178,7 @@ func (p *Program) passBorrowedLocals(f *Func, cands map[lendParam]bool) {
 	for bid := range f.Blocks {
 		for i := range f.Blocks[bid].Insts {
 			in := &f.Blocks[bid].Insts[i]
-			if in.Op != OpCall {
+			if in.Op != midir.OpCall {
 				continue
 			}
 			g := p.ByEnt[in.Ent]
@@ -186,7 +189,7 @@ func (p *Program) passBorrowedLocals(f *Func, cands map[lendParam]bool) {
 				}
 				if src := d.Args[0]; !f.Locals[src].Cell && p.R.DirectAgg(f.Locals[src].Type) {
 					in.Args = replaceArg(in.Args, k, src)
-					*d = Inst{Op: OpNop, Node: d.Node}
+					*d = midir.Inst{Op: midir.OpNop, Node: d.Node}
 				}
 			}
 		}

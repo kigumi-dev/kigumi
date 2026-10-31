@@ -3,12 +3,12 @@ package llgen_test
 import (
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 func TestEntropyScratchBufferErasedBeforeFree(t *testing.T) {
 	prog := plannedProgram(t, "import entropy from std/entropy\nlet e = host.entropy()\nprint \"${e.bytes(4).unwrap().len()} ${e.u64().unwrap() >= 0}\"\n")
-	var body *mir.Func
+	var body *midir.Func
 	for _, f := range prog.Funcs {
 		if f.Ent != 0 && prog.R.Entity(f.Ent).Name == "bytes" && prog.R.Fn(f.Ent).Owner != 0 && prog.R.Entity(prog.R.Fn(f.Ent).Owner).Name == "Entropy" {
 			body = f
@@ -21,7 +21,7 @@ func TestEntropyScratchBufferErasedBeforeFree(t *testing.T) {
 	for _, blk := range body.Blocks {
 		pending := false
 		for _, in := range blk.Insts {
-			if in.Op != mir.OpCall {
+			if in.Op != midir.OpCall {
 				continue
 			}
 			switch prog.R.Entity(in.Ent).Name {
@@ -44,7 +44,7 @@ func TestEntropyScratchBufferErasedBeforeFree(t *testing.T) {
 
 func TestEntropyU64ErasesItsIntermediateBytes(t *testing.T) {
 	prog := plannedProgram(t, "import entropy from std/entropy\nlet e = host.entropy()\nprint \"${e.u64().unwrap() >= 0}\"\n")
-	var body *mir.Func
+	var body *midir.Func
 	for _, f := range prog.Funcs {
 		if f.Ent != 0 && prog.R.Entity(f.Ent).Name == "u64" && prog.R.Fn(f.Ent).Owner != 0 && prog.R.Entity(prog.R.Fn(f.Ent).Owner).Name == "Entropy" {
 			body = f
@@ -55,7 +55,7 @@ func TestEntropyU64ErasesItsIntermediateBytes(t *testing.T) {
 	}
 	for _, blk := range body.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == mir.OpCall && prog.R.Entity(in.Ent).Name == "secureErase" {
+			if in.Op == midir.OpCall && prog.R.Entity(in.Ent).Name == "secureErase" {
 				return
 			}
 		}

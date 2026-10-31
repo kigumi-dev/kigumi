@@ -5,12 +5,12 @@ import (
 	"math"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // convertRaw is the prelude's numeric `toX` on registers: it stores the result bits to out and returns whether there is one.
-func (e *emitter) convertRaw(sb *strings.Builder, f *mir.Func, in mir.Inst, src Value, out string) Value {
+func (e *emitter) convertRaw(sb *strings.Builder, f *midir.Func, in midir.Inst, src Value, out string) Value {
 	dst := f.Locals[in.Dst].Type
 	checked := false
 	if elem, ok := e.r.Types.IsOption(dst); ok {

@@ -3,10 +3,11 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func (c *borrowCheck) futureLifetimeSource(in Inst) (*borrowInfo, bool) {
+func (c *borrowCheck) futureLifetimeSource(in midir.Inst) (*borrowInfo, bool) {
 	var slots []callSlot
 	if e, args := c.flowCallee(in); e != 0 {
 		slots = c.callSlots(c.p.R.Fn(e), args, 0)

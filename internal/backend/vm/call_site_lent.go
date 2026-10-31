@@ -1,7 +1,7 @@
 package vm
 
 import (
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -31,7 +31,7 @@ func (m *Machine) callValueLent(fv *obj, args []*obj) *obj {
 	return m.callValueAs(fv, args, 1<<31-1, 0)
 }
 
-func (m *Machine) callSite(in *mir.Inst, args []*obj) *obj {
+func (m *Machine) callSite(in *midir.Inst, args []*obj) *obj {
 	return m.callValueAs(args[0], args[1:], in.LendArgs, in.GiveArgs)
 }
 

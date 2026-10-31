@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -42,13 +43,13 @@ func (c *borrowCheck) callsParam(p sem.EntityID) bool {
 				for k, a := range in.Args {
 					switch {
 					case !fs[a][pf]:
-					case in.Op == OpClosure:
+					case in.Op == midir.OpClosure:
 						direct = true
-					case in.Op == OpCallValue && k == 0:
+					case in.Op == midir.OpCallValue && k == 0:
 						for j := 1; j < len(in.Args); j++ {
 							direct = direct || c.slotKeepsHandle(g, in, j)
 						}
-					case in.Op == OpCall || in.Op == OpCallValue || in.Op == OpFutureNew:
+					case in.Op == midir.OpCall || in.Op == midir.OpCallValue || in.Op == midir.OpFutureNew:
 						out = append(out, c.boundParams(ents, in, k)...)
 						direct = direct || unseen || len(params) > 0
 					}
@@ -60,15 +61,15 @@ func (c *borrowCheck) callsParam(p sem.EntityID) bool {
 }
 
 // calleeParam is the parameter of a known callee that argument k of in, in body g with sole definitions defs, binds, or 0.
-func (c *borrowCheck) calleeParam(g *Func, defs map[LocalID]*Inst, in Inst, k int) sem.EntityID {
+func (c *borrowCheck) calleeParam(g *midir.Func, defs map[midir.LocalID]*midir.Inst, in midir.Inst, k int) sem.EntityID {
 	var ents []sem.EntityID
 	switch {
-	case in.Op == OpCall && in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn:
+	case in.Op == midir.OpCall && in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn:
 		ents = []sem.EntityID{in.Ent}
-	case in.Op == OpCallValue && c.calleeClosure(g, in) != 0:
+	case in.Op == midir.OpCallValue && c.calleeClosure(g, in) != 0:
 		ents = []sem.EntityID{c.calleeClosure(g, in)}
-	case in.Op == OpFutureNew:
-		if d := defs[in.Args[0]]; d != nil && d.Op == OpFnItem {
+	case in.Op == midir.OpFutureNew:
+		if d := defs[in.Args[0]]; d != nil && d.Op == midir.OpFnItem {
 			ents = []sem.EntityID{d.Ent}
 		}
 	}
@@ -80,9 +81,9 @@ func (c *borrowCheck) calleeParam(g *Func, defs map[LocalID]*Inst, in Inst, k in
 
 // forwardDetaches reports whether a known callee of in may call one of its parameters with a handle while the argument
 // bound there is a callable that detaches, or one this body cannot see into.
-func (c *borrowCheck) forwardDetaches(in Inst, s flowSets) bool {
-	defs := map[LocalID]*Inst{}
-	if in.Op == OpFutureNew {
+func (c *borrowCheck) forwardDetaches(in midir.Inst, s flowSets) bool {
+	defs := map[midir.LocalID]*midir.Inst{}
+	if in.Op == midir.OpFutureNew {
 		defs[in.Args[0]] = c.definition(in.Args[0])
 	}
 	for k, a := range in.Args {
@@ -99,12 +100,12 @@ func (c *borrowCheck) forwardDetaches(in Inst, s flowSets) bool {
 
 // opaqueStep gives what a call may hand back or store into a lent place: a callable result by value is from elsewhere,
 // and a known callee's stores and result come from its summary (calleeStores); one it cannot see stores the unknown.
-func (c *borrowCheck) opaqueStep(in Inst, s flowSets, put func(LocalID, uint32)) {
-	if in.Op != OpCall && in.Op != OpCallValue && in.Op != OpAwait && in.Op != OpFutureNew {
+func (c *borrowCheck) opaqueStep(in midir.Inst, s flowSets, put func(midir.LocalID, uint32)) {
+	if in.Op != midir.OpCall && in.Op != midir.OpCallValue && in.Op != midir.OpAwait && in.Op != midir.OpFutureNew {
 		return
 	}
 	dst := c.f.Locals[in.Dst].Type
-	if in.Op != OpFutureNew && c.p.R.Types.Kind(dst) != sem.KRef && c.typeRuns(dst, runsCallable) {
+	if in.Op != midir.OpFutureNew && c.p.R.Types.Kind(dst) != sem.KRef && c.typeRuns(dst, runsCallable) {
 		put(in.Dst, opaqueFact)
 	}
 	lent := func(k int, facts []uint32) {
@@ -119,7 +120,7 @@ func (c *borrowCheck) opaqueStep(in Inst, s flowSets, put func(LocalID, uint32))
 			put(in.Dst, f)
 		}
 	}
-	if in.Op == OpAwait || c.knownCallees(c.f, s, in) == nil {
+	if in.Op == midir.OpAwait || c.knownCallees(c.f, s, in) == nil {
 		for k, a := range in.Args {
 			if c.keepsThrough(c.f, a) && c.typeRuns(c.f.Locals[a].Type, runsCallable) {
 				lent(k, []uint32{opaqueFact})
@@ -130,7 +131,7 @@ func (c *borrowCheck) opaqueStep(in Inst, s flowSets, put func(LocalID, uint32))
 		}
 		return
 	}
-	argFacts := func(a LocalID) []uint32 {
+	argFacts := func(a midir.LocalID) []uint32 {
 		var out []uint32
 		for f := range s[a] {
 			out = append(out, f)
@@ -142,7 +143,7 @@ func (c *borrowCheck) opaqueStep(in Inst, s flowSets, put func(LocalID, uint32))
 
 // forwardsIn applies forwardDetaches to g's own calls by g's body facts: a fn or closure bound to a parameter its callee
 // calls with a handle is an edge, one from elsewhere makes g detach, and g's own parameter is left to g's callers.
-func (c *borrowCheck) forwardsIn(g *Func) (bool, []sem.EntityID) {
+func (c *borrowCheck) forwardsIn(g *midir.Func) (bool, []sem.EntityID) {
 	if g == nil {
 		return false, nil
 	}

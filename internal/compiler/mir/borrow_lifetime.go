@@ -3,20 +3,21 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // lifetimeSource finds the existing holder a value that may carry a named lifetime
 // should alias, matched by entity identity (no per-call-site lifetime substitution).
-func (c *borrowCheck) lifetimeSource(in Inst) (*borrowInfo, bool) {
+func (c *borrowCheck) lifetimeSource(in midir.Inst) (*borrowInfo, bool) {
 	switch in.Op {
-	case OpRecord, OpVariant:
+	case midir.OpRecord, midir.OpVariant:
 		return c.recordLifetimeSource(in)
-	case OpCall:
+	case midir.OpCall:
 		return c.callLifetimeSource(in)
-	case OpCallValue:
+	case midir.OpCallValue:
 		return c.callValueLifetimeSource(in)
-	case OpFutureNew:
+	case midir.OpFutureNew:
 		return c.futureLifetimeSource(in)
 	}
 	return nil, false
@@ -24,7 +25,7 @@ func (c *borrowCheck) lifetimeSource(in Inst) (*borrowInfo, bool) {
 
 // recordLifetimeSource shares the one holder the borrow arguments name; a record or variant
 // built from several merges them, unless one is a parameter's borrow under a lifetime the type lacks.
-func (c *borrowCheck) recordLifetimeSource(in Inst) (*borrowInfo, bool) {
+func (c *borrowCheck) recordLifetimeSource(in midir.Inst) (*borrowInfo, bool) {
 	var found []*borrowInfo
 	for _, a := range in.Args {
 		if b, ok := c.holders[a]; ok && !slices.Contains(found, b) {
@@ -49,7 +50,7 @@ func (c *borrowCheck) recordLifetimeSource(in Inst) (*borrowInfo, bool) {
 	return s, true
 }
 
-func (c *borrowCheck) fitsDeclared(b *borrowInfo, dst LocalID) bool {
+func (c *borrowCheck) fitsDeclared(b *borrowInfo, dst midir.LocalID) bool {
 	if b.hasOwner || b.empty || c.closureLifetime(b) {
 		return true
 	}
@@ -59,7 +60,7 @@ func (c *borrowCheck) fitsDeclared(b *borrowInfo, dst LocalID) bool {
 
 // callLifetimeSource matches the callee's return lifetime against its
 // receiver and params, which OpCall always lowers as args[0] and args[1:].
-func (c *borrowCheck) callLifetimeSource(in Inst) (*borrowInfo, bool) {
+func (c *borrowCheck) callLifetimeSource(in midir.Inst) (*borrowInfo, bool) {
 	c.callNode = in.Node
 	if in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn {
 		if b, ok := c.tiedCallSource(in); ok {
@@ -69,7 +70,7 @@ func (c *borrowCheck) callLifetimeSource(in Inst) (*borrowInfo, bool) {
 	return c.rejectUntrackedResult(in)
 }
 
-func (c *borrowCheck) calleeSource(in Inst) (*borrowInfo, bool) {
+func (c *borrowCheck) calleeSource(in midir.Inst) (*borrowInfo, bool) {
 	if b, ok := c.genericFlowSource(in, 0); ok {
 		return b, true
 	}
@@ -84,7 +85,7 @@ func (c *borrowCheck) calleeSource(in Inst) (*borrowInfo, bool) {
 
 // futureHandleSource keeps a future's borrows in the handle a call builds around it
 // (`spawn(f) -> Task[T]`); a bare `T` result is the future's output, not the future.
-func (c *borrowCheck) futureHandleSource(in Inst) (*borrowInfo, bool) {
+func (c *borrowCheck) futureHandleSource(in midir.Inst) (*borrowInfo, bool) {
 	info := c.p.R.Fn(in.Ent)
 	ret := c.p.R.Types.Node(info.Sig).Elem
 	if c.p.R.Types.Kind(ret) == sem.KParam {
@@ -105,7 +106,7 @@ func (c *borrowCheck) futureHandleSource(in Inst) (*borrowInfo, bool) {
 
 // callValueLifetimeSource handles OpCallValue: a witnessed interface requirement keeps Ent and lowers
 // args[0] as the witness; a closure or fn pointer only reaches valueResultSource and rejectUntrackedResult.
-func (c *borrowCheck) callValueLifetimeSource(in Inst) (*borrowInfo, bool) {
+func (c *borrowCheck) callValueLifetimeSource(in midir.Inst) (*borrowInfo, bool) {
 	c.callNode = in.Node
 	if b, ok := c.signatureLifetimeSource(in); ok {
 		return b, true
@@ -126,7 +127,7 @@ func (c *borrowCheck) callValueLifetimeSource(in Inst) (*borrowInfo, bool) {
 
 // rejectUntrackedResult is the shared fallback for a call whose result could not
 // be traced to an owner: silence is only safe when it could never carry a lifetime.
-func (c *borrowCheck) rejectUntrackedResult(in Inst) (*borrowInfo, bool) {
+func (c *borrowCheck) rejectUntrackedResult(in midir.Inst) (*borrowInfo, bool) {
 	if c.resultMayCarryLifetime(c.f.Locals[in.Dst].Type) {
 		if t := c.multiLifetimeArg(in); t != 0 {
 			c.reportCode(in.Node, in.Dst, "borrow-multi-lifetime", c.p.R.TypeString(t))
@@ -145,7 +146,7 @@ func (c *borrowCheck) resultMayCarryLifetime(t sem.TypeID) bool {
 
 // entityLifetimeSource matches info's declared return lifetime against its receiver
 // at args[recvIdx] and its own params after; recvIdx is 1 for OpCallValue, else 0.
-func (c *borrowCheck) entityLifetimeSource(ent sem.EntityID, info *sem.FnInfo, args []LocalID, recvIdx int) (*borrowInfo, bool) {
+func (c *borrowCheck) entityLifetimeSource(ent sem.EntityID, info *sem.FnInfo, args []midir.LocalID, recvIdx int) (*borrowInfo, bool) {
 	start := recvIdx
 	calleeBase := 0
 	if info.Recv != sem.RecvNone {

@@ -1,13 +1,14 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
 
 // referentBorrow is what a call result tied to a borrows when a is a named reference (a parameter, binding or
 // loop variable): a reborrow of a's referent, keeping a and what a borrows borrowed.
-func (c *borrowCheck) referentBorrow(a LocalID, b *borrowInfo, recv sem.RecvKind) (*borrowInfo, bool) {
+func (c *borrowCheck) referentBorrow(a midir.LocalID, b *borrowInfo, recv sem.RecvKind) (*borrowInfo, bool) {
 	t := c.f.Locals[a].Type
 	if b.empty || b.fromStatic || b.multi != 0 || c.p.R.Types.Kind(t) != sem.KRef {
 		return nil, false
@@ -23,7 +24,7 @@ func (c *borrowCheck) referentBorrow(a LocalID, b *borrowInfo, recv sem.RecvKind
 }
 
 // tiedInfo is what cand's argument lends a call result: a reborrow of a named reference, else its own borrows.
-func (c *borrowCheck) tiedInfo(args []LocalID, cand lifetimeCandidate) (*borrowInfo, bool) {
+func (c *borrowCheck) tiedInfo(args []midir.LocalID, cand lifetimeCandidate) (*borrowInfo, bool) {
 	b, ok := c.candidateInfo(args, cand)
 	if !ok || cand.contents {
 		return b, ok
@@ -41,7 +42,7 @@ func (c *borrowCheck) noteMixed(owned []*borrowInfo) {
 		for _, o := range b.owners {
 			if o.lifetime == 0 && !o.through && c.f.Locals[o.owner].Ent != 0 && !c.callerStorage(o.owner) {
 				if c.mixed == nil {
-					c.mixed = map[syntax.NodeID]LocalID{}
+					c.mixed = map[syntax.NodeID]midir.LocalID{}
 				}
 				c.mixed[c.callNode] = o.owner
 				return
@@ -50,7 +51,7 @@ func (c *borrowCheck) noteMixed(owned []*borrowInfo) {
 	}
 }
 
-func (c *borrowCheck) reportUntrackedCall(in Inst) {
+func (c *borrowCheck) reportUntrackedCall(in midir.Inst) {
 	if l, ok := c.mixed[in.Node]; ok {
 		c.reportCode(in.Node, in.Dst, "lifetime-mixed-call", c.f.Locals[l].Name)
 		return
@@ -68,7 +69,7 @@ type unionSite struct {
 // reborrowSite is a cached borrow of a place under root, which takes in what root borrows as that grows.
 type reborrowSite struct {
 	info  *borrowInfo
-	root  LocalID
+	root  midir.LocalID
 	path  stepPath
 	exact bool
 	mut   bool
@@ -91,7 +92,7 @@ func (c *borrowCheck) refreshReborrows() {
 	}
 }
 
-func (c *borrowCheck) referentOr(a LocalID, b *borrowInfo) *borrowInfo {
+func (c *borrowCheck) referentOr(a midir.LocalID, b *borrowInfo) *borrowInfo {
 	if r, ok := c.referentBorrow(a, b, sem.RecvNone); ok {
 		return r
 	}
@@ -100,13 +101,13 @@ func (c *borrowCheck) referentOr(a LocalID, b *borrowInfo) *borrowInfo {
 
 // fromCall reports whether reference l may hold a call's result, which points somewhere inside what its
 // arguments reach rather than at their own place, so a path taken below l cannot extend theirs.
-func (c *borrowCheck) fromCall(l LocalID) bool {
+func (c *borrowCheck) fromCall(l midir.LocalID) bool {
 	if c.callRefs == nil {
-		c.callRefs = map[LocalID]bool{}
-		defs := map[LocalID][]*Inst{}
+		c.callRefs = map[midir.LocalID]bool{}
+		defs := map[midir.LocalID][]*midir.Inst{}
 		for b := range c.f.Blocks {
 			for i := range c.f.Blocks[b].Insts {
-				if in := &c.f.Blocks[b].Insts[i]; shapes[in.Op].result {
+				if in := &c.f.Blocks[b].Insts[i]; in.Op.Yields() {
 					defs[in.Dst] = append(defs[in.Dst], in)
 				}
 			}
@@ -118,7 +119,7 @@ func (c *borrowCheck) fromCall(l LocalID) bool {
 					continue
 				}
 				for _, d := range ds {
-					if d.Op == OpCall || d.Op == OpCallValue || (d.Op == OpCopy || d.Op == OpMove || d.Op == OpAlias) && c.callRefs[d.Args[0]] {
+					if d.Op == midir.OpCall || d.Op == midir.OpCallValue || (d.Op == midir.OpCopy || d.Op == midir.OpMove || d.Op == midir.OpAlias) && c.callRefs[d.Args[0]] {
 						c.callRefs[dst], changed = true, true
 						break
 					}

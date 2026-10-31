@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -33,7 +34,7 @@ func joinSets(a, b variantSet) variantSet {
 func (a variantSet) equal(b variantSet) bool { return slices.Equal(a.list, b.list) }
 
 type vplace struct {
-	root, rel LocalID
+	root, rel midir.LocalID
 	path      uint32
 	tag       uint8
 }
@@ -45,7 +46,7 @@ const (
 	tagBelow
 )
 
-func (pl vplace) about(l LocalID) bool {
+func (pl vplace) about(l midir.LocalID) bool {
 	return pl.root == l || (pl.tag == tagBelow && pl.rel == l)
 }
 

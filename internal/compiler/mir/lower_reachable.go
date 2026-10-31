@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"kigumi/internal/compiler/hir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -13,7 +14,7 @@ type lowering struct {
 	*Program
 	rootKeep func(string) bool
 	cur      sem.EntityID
-	top      map[*Func]sem.EntityID
+	top      map[*midir.Func]sem.EntityID
 	tried    map[sem.EntityID]bool
 	checks   []pendingCheck
 	borrow   *borrowAnalysis
@@ -39,7 +40,7 @@ func (p *Program) hasLowerableBody(id sem.EntityID) bool {
 
 // lowerReachable lowers the roots in entity order, then whatever the reachability walk finds from them.
 func (p *lowering) lowerReachable(all bool) {
-	p.top, p.tried = map[*Func]sem.EntityID{}, map[sem.EntityID]bool{}
+	p.top, p.tried = map[*midir.Func]sem.EntityID{}, map[sem.EntityID]bool{}
 	roots := p.lowerRoots(all)
 	for _, id := range roots {
 		p.lowerTop(id)
@@ -59,7 +60,7 @@ func (p *lowering) lowerReachable(all bool) {
 	}
 	p.runPendingChecks()
 	top := p.top
-	slices.SortStableFunc(p.Funcs, func(a, b *Func) int { return cmp.Compare(top[a], top[b]) })
+	slices.SortStableFunc(p.Funcs, func(a, b *midir.Func) int { return cmp.Compare(top[a], top[b]) })
 	if !all {
 		p.unlowered = make([]bool, len(p.R.Entities))
 		for i := 1; i < len(p.unlowered); i++ {
@@ -124,7 +125,7 @@ func (p *lowering) lowerTop(id sem.EntityID) {
 
 // calleeBody is ent's MIR only if lowering every body in entity order would have built it before the current one,
 // so a borrow check decides the same however much of the program is lowered.
-func (p *lowering) calleeBody(ent sem.EntityID) (*Func, bool) {
+func (p *lowering) calleeBody(ent sem.EntityID) (*midir.Func, bool) {
 	if ent >= p.cur || !p.lowerable(ent) {
 		return nil, false
 	}
@@ -132,7 +133,7 @@ func (p *lowering) calleeBody(ent sem.EntityID) (*Func, bool) {
 	return p.bodyByEnt(ent)
 }
 
-func (p *Program) bodyByEnt(ent sem.EntityID) (*Func, bool) {
+func (p *Program) bodyByEnt(ent sem.EntityID) (*midir.Func, bool) {
 	f, ok := p.ByEnt[ent]
 	return f, ok
 }

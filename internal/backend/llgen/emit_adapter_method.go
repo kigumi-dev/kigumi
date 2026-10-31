@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
-func (e *emitter) methodAdapterSym(f *mir.Func) string {
+func (e *emitter) methodAdapterSym(f *midir.Func) string {
 	return "@\"" + e.symName(f) + "$methodvalue\""
 }
 
-func (e *emitter) methodAdapter(f *mir.Func) string {
+func (e *emitter) methodAdapter(f *midir.Func) string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "define ptr %s(ptr %%env, ptr %%args) {\n", e.methodAdapterSym(f))
 	var vals []string

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -26,19 +26,19 @@ func (e *emitter) storeDirectStatic(sb *strings.Builder, ent sem.EntityID, v Val
 }
 
 // tryDirectStaticInst reads or writes a direct static on registers, so a store allocates no box.
-func (e *emitter) tryDirectStaticInst(sb *strings.Builder, f *mir.Func, in mir.Inst) bool {
+func (e *emitter) tryDirectStaticInst(sb *strings.Builder, f *midir.Func, in midir.Inst) bool {
 	ty, ok := e.directStatic(in.Ent)
 	if !ok {
 		return false
 	}
 	switch in.Op {
-	case mir.OpGlobalGet:
+	case midir.OpGlobalGet:
 		if !e.isScalar(in.Dst) {
 			return false
 		}
 		e.storeNative(sb, in.Dst, e.loadDirectStatic(sb, in.Ent, ty))
 		return true
-	case mir.OpGlobalSet:
+	case midir.OpGlobalSet:
 		v, ok := e.scalarOperand(sb, f, in.Args[0])
 		if !ok {
 			return false

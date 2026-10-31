@@ -3,7 +3,7 @@ package mir_test
 import (
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const unwrapSrc = `
@@ -27,7 +27,7 @@ fn main() -> Void! {}
 
 func TestPlanDirectKeepsAMutatedUnwrappedPayloadUnboxed(t *testing.T) {
 	p := specialized(t, unwrapSrc)
-	if n := countOp(funcNamed(t, p, "main.fresh"), mir.OpBoxDirect); n != 0 {
+	if n := countOp(funcNamed(t, p, "main.fresh"), midir.OpBoxDirect); n != 0 {
 		t.Errorf("unwrapping a call's Result into a mutable local boxes %d times:\n%s", n, p.Dump())
 	}
 }

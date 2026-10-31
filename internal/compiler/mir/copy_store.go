@@ -1,19 +1,23 @@
 package mir
 
-import "slices"
+import (
+	"slices"
+
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
 // CopyStore is a `t = share copy s` whose only use is the `setindex` or `setfield` after it in the same block.
 type CopyStore struct {
-	Block      BlockID
+	Block      midir.BlockID
 	Share, Set int
 }
 
 // CopyStores finds the copies a boxed array slot takes in place: it keeps its box and no box is built for t.
-func (p *Program) CopyStores(f *Func) []CopyStore {
+func (p *Program) CopyStores(f *midir.Func) []CopyStore {
 	if !f.DirectPlanned() {
 		return nil
 	}
-	uses, defs := map[LocalID]int{}, map[LocalID]int{}
+	uses, defs := map[midir.LocalID]int{}, map[midir.LocalID]int{}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			for _, a := range in.Args {
@@ -30,21 +34,21 @@ func (p *Program) CopyStores(f *Func) []CopyStore {
 	var out []CopyStore
 	for bid, blk := range f.Blocks {
 		for i, in := range blk.Insts {
-			if in.Op != OpShare || !in.Copy || in.IfWritable || f.IsDirect(in.Args[0]) || !p.R.InPlaceCopy(f.Locals[in.Args[0]].Type) {
+			if in.Op != midir.OpShare || !in.Copy || in.IfWritable || f.IsDirect(in.Args[0]) || !p.R.InPlaceCopy(f.Locals[in.Args[0]].Type) {
 				continue
 			}
 			if uses[in.Dst] != 1 || defs[in.Dst] != 1 || f.Locals[in.Dst].Cell {
 				continue
 			}
 			if j := p.storeAfter(f, blk.Insts, i); j > 0 {
-				out = append(out, CopyStore{Block: BlockID(bid), Share: i, Set: j})
+				out = append(out, CopyStore{Block: midir.BlockID(bid), Share: i, Set: j})
 			}
 		}
 	}
 	return out
 }
 
-func (p *Program) storeAfter(f *Func, insts []Inst, i int) int {
+func (p *Program) storeAfter(f *midir.Func, insts []midir.Inst, i int) int {
 	src, dst := insts[i].Args[0], insts[i].Dst
 	for j := i + 1; j < len(insts); j++ {
 		in := insts[j]
@@ -62,18 +66,18 @@ func (p *Program) storeAfter(f *Func, insts []Inst, i int) int {
 }
 
 // storedValue is the value a setindex or setfield stores.
-func storedValue(in Inst) (LocalID, bool) {
+func storedValue(in midir.Inst) (midir.LocalID, bool) {
 	switch in.Op {
-	case OpSetIndex:
+	case midir.OpSetIndex:
 		return in.Args[2], true
-	case OpSetField:
+	case midir.OpSetField:
 		return in.Args[1], true
 	}
 	return 0, false
 }
 
-func (p *Program) copiesInPlace(f *Func, in Inst) bool {
-	if in.Op != OpShare || !in.Copy || !f.DirectPlanned() || !p.R.InPlaceCopy(f.Locals[in.Args[0]].Type) {
+func (p *Program) copiesInPlace(f *midir.Func, in midir.Inst) bool {
+	if in.Op != midir.OpShare || !in.Copy || !f.DirectPlanned() || !p.R.InPlaceCopy(f.Locals[in.Args[0]].Type) {
 		return false
 	}
 	for _, cs := range p.CopyStores(f) {

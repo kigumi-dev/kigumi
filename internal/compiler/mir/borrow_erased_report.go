@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/lang/diag"
 )
@@ -12,7 +13,7 @@ import (
 // leaving reports a holder of a captured cell that leaves this closure body (returned, stored, passed on to keep), where
 // the enclosing body's writes, which this body cannot see, may reach it.
 func (e *erasedReaders) leaving() {
-	outer := func(l LocalID) (LocalID, bool) {
+	outer := func(l midir.LocalID) (midir.LocalID, bool) {
 		for _, cp := range e.caps[l] {
 			if slices.Contains(e.f.Params, cp.root) {
 				return cp.root, true
@@ -22,7 +23,7 @@ func (e *erasedReaders) leaving() {
 	}
 	for _, blk := range e.f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == OpDrop {
+			if in.Op == midir.OpDrop {
 				continue
 			}
 			for _, h := range e.escapes(in, e.caps) {
@@ -31,7 +32,7 @@ func (e *erasedReaders) leaving() {
 				}
 			}
 		}
-		if blk.Term.Op != TermReturn {
+		if blk.Term.Op != midir.TermReturn {
 			continue
 		}
 		for _, a := range blk.Term.Args {
@@ -43,15 +44,15 @@ func (e *erasedReaders) leaving() {
 }
 
 // storeValue is the value a store puts into its place.
-func storeValue(in Inst) (LocalID, bool) {
-	if in.Op != OpCellSet && in.Op != OpSetField && in.Op != OpSetIndex || len(in.Args) < 2 {
+func storeValue(in midir.Inst) (midir.LocalID, bool) {
+	if in.Op != midir.OpCellSet && in.Op != midir.OpSetField && in.Op != midir.OpSetIndex || len(in.Args) < 2 {
 		return 0, false
 	}
 	return in.Args[len(in.Args)-1], true
 }
 
 // definedAt is the node of the last instruction in blk that writes l, else fallback.
-func definedAt(blk Block, l LocalID, fallback syntax.NodeID) syntax.NodeID {
+func definedAt(blk midir.Block, l midir.LocalID, fallback syntax.NodeID) syntax.NodeID {
 	for i := len(blk.Insts) - 1; i >= 0; i-- {
 		if in := blk.Insts[i]; in.Op.Yields() && in.Dst == l && in.Node != 0 {
 			return in.Node
@@ -60,7 +61,7 @@ func definedAt(blk Block, l LocalID, fallback syntax.NodeID) syntax.NodeID {
 	return fallback
 }
 
-func (e *erasedReaders) noteLeave(n syntax.NodeID, root, holder LocalID) {
+func (e *erasedReaders) noteLeave(n syntax.NodeID, root, holder midir.LocalID) {
 	if at := e.site[holder]; at != 0 && n != 0 {
 		if _, ok := e.found[at]; !ok {
 			e.found[at] = erasedWrite{write: n, root: root, how: leavesBody}
@@ -68,7 +69,7 @@ func (e *erasedReaders) noteLeave(n syntax.NodeID, root, holder LocalID) {
 	}
 }
 
-func (e *erasedReaders) note(n syntax.NodeID, root, holder LocalID) {
+func (e *erasedReaders) note(n syntax.NodeID, root, holder midir.LocalID) {
 	at := e.site[holder]
 	if at == 0 {
 		at = n

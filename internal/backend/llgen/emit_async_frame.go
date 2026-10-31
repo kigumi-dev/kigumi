@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
-func (e *emitter) frameLocal(sb *strings.Builder, l mir.LocalID) {
+func (e *emitter) frameLocal(sb *strings.Builder, l midir.LocalID) {
 	if e.slotAddr(sb, l) {
 		fmt.Fprintf(sb, "  store ptr null, ptr %%l%d\n", l)
 		return
@@ -26,7 +26,7 @@ func (e *emitter) frameLocal(sb *strings.Builder, l mir.LocalID) {
 	fmt.Fprintf(sb, "  store ptr null, ptr %%l%d\n", l)
 }
 
-func (e *emitter) checkSlot(f *mir.Func, l mir.LocalID) {
+func (e *emitter) checkSlot(f *midir.Func, l midir.LocalID) {
 	a, ok := e.direct[l]
 	if !ok {
 		return
@@ -37,8 +37,8 @@ func (e *emitter) checkSlot(f *mir.Func, l mir.LocalID) {
 }
 
 // Inline bytes and raw scalars own no reference.
-func (e *emitter) carrierSlots(locals []mir.LocalID) []mir.LocalID {
-	var out []mir.LocalID
+func (e *emitter) carrierSlots(locals []midir.LocalID) []midir.LocalID {
+	var out []midir.LocalID
 	for _, l := range locals {
 		if !e.isDirect(l) && !e.isScalar(l) {
 			out = append(out, l)

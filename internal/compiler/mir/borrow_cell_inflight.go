@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
@@ -15,7 +16,7 @@ func (c *borrowCheck) checkOffloads() {
 	}
 	c.offloadNode = map[sem.EntityID]syntax.NodeID{}
 	fl := c.solveFlow(c.offloadSeed, c.offloadStep)
-	handles := map[LocalID]bool{}
+	handles := map[midir.LocalID]bool{}
 	for l, fs := range fl.ever {
 		if l != c.spawnScope() && handsOff(fs) && c.holdsDeferred(c.f.Locals[l].Type) {
 			handles[l] = true
@@ -24,19 +25,19 @@ func (c *borrowCheck) checkOffloads() {
 	if len(handles) == 0 && !handsOff(fl.ever[c.spawnScope()]) {
 		return
 	}
-	cells := map[sem.EntityID][]LocalID{}
+	cells := map[sem.EntityID][]midir.LocalID{}
 	for l, loc := range c.f.Locals {
 		if loc.Cell && loc.Ent != 0 {
-			cells[loc.Ent] = append(cells[loc.Ent], LocalID(l))
+			cells[loc.Ent] = append(cells[loc.Ent], midir.LocalID(l))
 		}
 	}
 	same := c.sameCellSince(fl)
 	h := handleSet{is: handles, empty: c.emptyHandles(handles)}
 	liveOut := c.handleLiveOut(h)
 	for bid := range c.f.Blocks {
-		c.enterBlock(BlockID(bid))
-		after := make([][]LocalID, len(c.f.Blocks[bid].Insts))
-		c.handleWalk(BlockID(bid), liveOut[bid], h, func(i int, live map[LocalID]bool) {
+		c.enterBlock(midir.BlockID(bid))
+		after := make([][]midir.LocalID, len(c.f.Blocks[bid].Insts))
+		c.handleWalk(midir.BlockID(bid), liveOut[bid], h, func(i int, live map[midir.LocalID]bool) {
 			for l := range live {
 				after[i] = append(after[i], l)
 			}
@@ -45,7 +46,7 @@ func (c *borrowCheck) checkOffloads() {
 			c.curIdx = i
 			cls := c.inFlight(fl, append(after[i], c.spawnScope()))
 			// The task scope lists an in-flight closure only because the await or spawn that took its handle put it there.
-			handed := func(a LocalID, cl sem.EntityID) bool {
+			handed := func(a midir.LocalID, cl sem.EntityID) bool {
 				return c.flowHas(fl, a, uint32(cl)|offBit) || a == c.spawnScope() && slices.Contains(cls, cl)
 			}
 			for _, cl := range cls {
@@ -70,9 +71,9 @@ func (c *borrowCheck) offloadsHere() bool {
 	for _, blk := range c.f.Blocks {
 		for _, in := range blk.Insts {
 			switch {
-			case (in.Op == OpCall || in.Op == OpCallValue) && c.offloadsAt(in):
+			case (in.Op == midir.OpCall || in.Op == midir.OpCallValue) && c.offloadsAt(in):
 				return true
-			case in.Op == OpClosure && c.p.R.Entity(in.Ent).Kind == sem.EntClosure, in.Op == OpFnItem && in.Async:
+			case in.Op == midir.OpClosure && c.p.R.Entity(in.Ent).Kind == sem.EntClosure, in.Op == midir.OpFnItem && in.Async:
 				if c.mayOffload(in.Ent) {
 					return true
 				}
@@ -83,7 +84,7 @@ func (c *borrowCheck) offloadsHere() bool {
 }
 
 // inFlight are the closures handed off that the given values, live after the instruction being checked, keep running.
-func (c *borrowCheck) inFlight(fl *valueFlow, live []LocalID) []sem.EntityID {
+func (c *borrowCheck) inFlight(fl *valueFlow, live []midir.LocalID) []sem.EntityID {
 	var out []sem.EntityID
 	for _, l := range live {
 		for f := range c.flowAt(fl, l) {
@@ -98,7 +99,7 @@ func (c *borrowCheck) inFlight(fl *valueFlow, live []LocalID) []sem.EntityID {
 
 // checkInFlight reports in touching a cell place in-flight closure cl reaches, or running another closure that does,
 // when either writes it; releasing the cell itself leaves its content to the closure.
-func (c *borrowCheck) checkInFlight(in Inst, cl sem.EntityID, cells map[sem.EntityID][]LocalID, handed func(LocalID, sem.EntityID) bool, same func(sem.EntityID, LocalID) bool) {
+func (c *borrowCheck) checkInFlight(in midir.Inst, cl sem.EntityID, cells map[sem.EntityID][]midir.LocalID, handed func(midir.LocalID, sem.EntityID) bool, same func(sem.EntityID, midir.LocalID) bool) {
 	for i, cp := range c.p.R.Closure(cl).Captures {
 		if cp.Mode != sem.CapCell {
 			continue
@@ -121,15 +122,15 @@ func (c *borrowCheck) checkInFlight(in Inst, cl sem.EntityID, cells map[sem.Enti
 	}
 }
 
-func (c *borrowCheck) touchesInFlight(in Inst, o ownerRef) bool {
-	if in.Op == OpDrop && in.Args[0] == o.owner {
+func (c *borrowCheck) touchesInFlight(in midir.Inst, o ownerRef) bool {
+	if in.Op == midir.OpDrop && in.Args[0] == o.owner {
 		return false
 	}
 	touched, path, _ := c.touch(in, o.owner)
 	return touched && fieldPathsOverlap(path, o.path) && (o.mut || c.writesOwner(in, o.owner) || in.Op.Yields() && in.Dst == o.owner)
 }
 
-func (c *borrowCheck) reportInFlight(in Inst, owner LocalID, cl sem.EntityID, writes bool) {
+func (c *borrowCheck) reportInFlight(in midir.Inst, owner midir.LocalID, cl sem.EntityID, writes bool) {
 	name := "`" + c.f.Locals[owner].Name + "`"
 	msg := name + " is read by a closure that may still be running on another thread, and cannot be mutated here"
 	if writes {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 // stackSlot hoists to the entry block in a lowered function, since an
@@ -36,17 +36,17 @@ func (e *emitter) argArray(sb *strings.Builder, vals []string) string {
 }
 
 // A cell for l must be heap-allocated once framed: resume re-enters on a fresh stack frame.
-func framed(f *mir.Func, l mir.LocalID) bool {
+func framed(f *midir.Func, l midir.LocalID) bool {
 	return int(l) < len(f.Slot) && f.Slot[l] >= 0
 }
 
 // A lent receiver cell in frame storage owns nothing and is never freed, so dropping it does nothing.
-func (e *emitter) lentFrameCell(f *mir.Func, l mir.LocalID) bool {
+func (e *emitter) lentFrameCell(f *midir.Func, l midir.LocalID) bool {
 	if e.lentCells == nil {
-		e.lentCells = map[mir.LocalID]bool{}
+		e.lentCells = map[midir.LocalID]bool{}
 		for _, blk := range f.Blocks {
 			for _, in := range blk.Insts {
-				if in.Op == mir.OpNewCell && in.Lent && in.Scoped && !framed(f, in.Dst) {
+				if in.Op == midir.OpNewCell && in.Lent && in.Scoped && !framed(f, in.Dst) {
 					e.lentCells[in.Dst] = true
 				}
 			}

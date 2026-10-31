@@ -1,11 +1,11 @@
 package vm
 
 import (
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 // entryOf is what a boxed call runs: the all-boxed entry of a function with a direct signature.
-func entryOf(f *mir.Func) *mir.Func {
+func entryOf(f *midir.Func) *midir.Func {
 	if f.Entry != nil {
 		return f.Entry
 	}
@@ -25,12 +25,12 @@ func (m *Machine) callDirectValue(fv *obj, args []*obj) *obj {
 // to every argument, the environment supplies the captured leading
 // parameters (or the bound trailing ones), and the argument array is
 // released afterwards.
-func (m *Machine) invoke(f *mir.Func, env *obj, bind bool, args []*obj) *obj {
+func (m *Machine) invoke(f *midir.Func, env *obj, bind bool, args []*obj) *obj {
 	return m.invokeAs(f, entryOf(f), env, bind, args)
 }
 
 // invokeAs runs body, f itself or f's entry, under invoke's convention.
-func (m *Machine) invokeAs(f, body *mir.Func, env *obj, bind bool, args []*obj) *obj {
+func (m *Machine) invokeAs(f, body *midir.Func, env *obj, bind bool, args []*obj) *obj {
 	nenv := 0
 	if env != nil {
 		nenv = len(env.fields)

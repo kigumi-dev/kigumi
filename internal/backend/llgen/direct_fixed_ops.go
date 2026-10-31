@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 func (e *emitter) label(kind string) string {
@@ -12,8 +12,8 @@ func (e *emitter) label(kind string) string {
 	return fmt.Sprintf("%s%d", kind, e.tmp)
 }
 
-func (e *emitter) tryFixedInst(sb *strings.Builder, f *mir.Func, in mir.Inst) bool {
-	if in.Op == mir.OpBuiltin && in.Str == "fixed.fill" {
+func (e *emitter) tryFixedInst(sb *strings.Builder, f *midir.Func, in midir.Inst) bool {
+	if in.Op == midir.OpBuiltin && in.Str == "fixed.fill" {
 		a, ok := e.direct[in.Dst]
 		if ok {
 			e.fixedFill(sb, f, a, in)
@@ -28,13 +28,13 @@ func (e *emitter) tryFixedInst(sb *strings.Builder, f *mir.Func, in mir.Inst) bo
 		return false
 	}
 	switch {
-	case in.Op == mir.OpIndex:
+	case in.Op == midir.OpIndex:
 		e.loadLeaf(sb, f, *a.Arr, e.elemPtr(sb, f, in, a, in.Args[0], in.Args[1], !in.NoTrap), in.Dst)
-	case in.Op == mir.OpSetIndex:
+	case in.Op == midir.OpSetIndex:
 		e.storeLeaf(sb, *a.Arr, e.elemPtr(sb, f, in, a, in.Args[0], in.Args[1], !in.NoTrap), in.Args[2])
-	case in.Op == mir.OpBuiltin && in.Str == "iter.len":
+	case in.Op == midir.OpBuiltin && in.Str == "iter.len":
 		e.storeScalarResult(sb, f, in.Dst, Value{TI64, fmt.Sprint(a.Len)})
-	case in.Op == mir.OpBuiltin && strings.HasPrefix(in.Str, "iter.at"):
+	case in.Op == midir.OpBuiltin && strings.HasPrefix(in.Str, "iter.at"):
 		e.loadLeaf(sb, f, *a.Arr, e.elemPtr(sb, f, in, a, in.Args[0], in.Args[1], false), in.Dst)
 	default:
 		return false
@@ -42,7 +42,7 @@ func (e *emitter) tryFixedInst(sb *strings.Builder, f *mir.Func, in mir.Inst) bo
 	return true
 }
 
-func (e *emitter) elemPtr(sb *strings.Builder, f *mir.Func, in mir.Inst, a *aggInfo, base, idx mir.LocalID, checked bool) string {
+func (e *emitter) elemPtr(sb *strings.Builder, f *midir.Func, in midir.Inst, a *aggInfo, base, idx midir.LocalID, checked bool) string {
 	iv, _ := e.scalarOperand(sb, f, idx)
 	if checked {
 		bad, ok, c := e.label("oob"), e.label("inb"), e.newTmp()
@@ -53,7 +53,7 @@ func (e *emitter) elemPtr(sb *strings.Builder, f *mir.Func, in mir.Inst, a *aggI
 	return e.elemAt(sb, a, aggPtr(base), iv.Text)
 }
 
-func (e *emitter) fixedFill(sb *strings.Builder, f *mir.Func, a *aggInfo, in mir.Inst) {
+func (e *emitter) fixedFill(sb *strings.Builder, f *midir.Func, a *aggInfo, in midir.Inst) {
 	fld := *a.Arr
 	if fld.Unit || a.Len == 0 {
 		return

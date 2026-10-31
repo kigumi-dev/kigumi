@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -153,7 +154,7 @@ func (m *Machine) userSite(site mir.Site) mir.Site {
 		if i == len(m.frames)-1 {
 			return site
 		}
-		if fr.blk < mir.BlockID(len(fr.f.Blocks)) && fr.pc < len(fr.f.Blocks[fr.blk].Insts) {
+		if fr.blk < midir.BlockID(len(fr.f.Blocks)) && fr.pc < len(fr.f.Blocks[fr.blk].Insts) {
 			return m.p.SiteAt(fr.f, fr.f.Blocks[fr.blk].Insts[fr.pc].Node)
 		}
 		return mir.Site{}

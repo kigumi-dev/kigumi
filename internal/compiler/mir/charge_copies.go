@@ -1,19 +1,20 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
 
-func (p *Program) allocCopy(f *Func, in Inst) bool {
+func (p *Program) allocCopy(f *midir.Func, in midir.Inst) bool {
 	if _, ok := p.elemCopy(f, in); ok {
 		return true
 	}
 	if _, ok := p.contentCopy(f, in); ok {
 		return true
 	}
-	if in.Op != OpShare || !in.Copy || !f.DirectPlanned() || f.IsDirect(in.Args[0]) || p.copiesInPlace(f, in) {
+	if in.Op != midir.OpShare || !in.Copy || !f.DirectPlanned() || f.IsDirect(in.Args[0]) || p.copiesInPlace(f, in) {
 		return false
 	}
 	return in.Own || !f.Locals[in.Args[0]].Cell && p.R.CopyAllocates(f.Locals[in.Args[0]].Type)
@@ -28,8 +29,8 @@ var elemOps = func() map[string]bool {
 	return m
 }()
 
-func (p *Program) elemCopy(f *Func, in Inst) (sem.TypeID, bool) {
-	if in.Op != OpCall || in.DPrim != opdef.DPNone || !f.DirectPlanned() || !p.IsStdPrimitive(in.Ent) {
+func (p *Program) elemCopy(f *midir.Func, in midir.Inst) (sem.TypeID, bool) {
+	if in.Op != midir.OpCall || in.DPrim != opdef.DPNone || !f.DirectPlanned() || !p.IsStdPrimitive(in.Ent) {
 		return 0, false
 	}
 	if id, ok := in.StdOp(); !ok || !elemOps[opdef.StdOpNames[id]] {
@@ -39,7 +40,7 @@ func (p *Program) elemCopy(f *Func, in Inst) (sem.TypeID, bool) {
 	return elem, ok
 }
 
-func (p *Program) copiedType(f *Func, in Inst) sem.TypeID {
+func (p *Program) copiedType(f *midir.Func, in midir.Inst) sem.TypeID {
 	if t, ok := p.contentCopy(f, in); ok {
 		return t
 	}
@@ -52,8 +53,8 @@ func (p *Program) copiedType(f *Func, in Inst) sem.TypeID {
 	return f.Locals[in.Args[0]].Type
 }
 
-func (p *Program) InstAllocates(f *Func, in Inst) bool {
-	if in.Op == OpBoxDirect && !in.Fixed || p.boxedResult(f, in) != 0 {
+func (p *Program) InstAllocates(f *midir.Func, in midir.Inst) bool {
+	if in.Op == midir.OpBoxDirect && !in.Fixed || p.boxedResult(f, in) != 0 {
 		return true
 	}
 	_, deferred := p.paramCopy(f, in)
@@ -85,7 +86,7 @@ func (p *Program) chargeCopies() {
 	p.R.ChargeCopies(sites)
 }
 
-func (p *Program) copySite(f *Func, in Inst) sem.CopySite {
+func (p *Program) copySite(f *midir.Func, in midir.Inst) sem.CopySite {
 	if t, ok := p.contentCopy(f, in); ok {
 		return sem.CopySite{Owner: f.Ent, File: f.File, Node: p.siteNode(f, in), Type: t, Content: true}
 	}
@@ -94,7 +95,7 @@ func (p *Program) copySite(f *Func, in Inst) sem.CopySite {
 	return sem.CopySite{Owner: f.Ent, File: f.File, Node: p.siteNode(f, in), Type: p.copiedType(f, in), Held: !in.Own && !isElem, Elem: isElem && copies, Boxed: isElem && !copies}
 }
 
-func (p *Program) siteNode(f *Func, in Inst) syntax.NodeID {
+func (p *Program) siteNode(f *midir.Func, in midir.Inst) syntax.NodeID {
 	if in.Node != 0 {
 		return in.Node
 	}

@@ -1,14 +1,18 @@
 package mir
 
-import "testing"
+import (
+	"testing"
+
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
 // TestPlaceRootsWidensAReferenceFromElsewhere checks that a reference defined by anything but a projection, borrow,
 // cell, copy or call is not pinned to locals.
 func TestPlaceRootsWidensAReferenceFromElsewhere(t *testing.T) {
 	p, member := bodyFlowProgram(t)
 	refType := p.R.Entity(p.R.Fn(member("setF")).Params[0]).Type
-	g := &Func{Locals: []Local{{}, {Type: refType}}}
-	g.Blocks = []Block{{Insts: []Inst{{Op: OpGlobalGet, Dst: 1}}}}
+	g := &midir.Func{Locals: []midir.Local{{}, {Type: refType}}}
+	g.Blocks = []midir.Block{{Insts: []midir.Inst{{Op: midir.OpGlobalGet, Dst: 1}}}}
 	c := &borrowCheck{p: p, f: g}
 	if _, ok := c.placeRoots(g, allDefs(g), 1); ok {
 		t.Fatal("a reference read from a global was pinned to this body's locals")
@@ -20,10 +24,10 @@ func TestPlaceRootsWidensAReferenceFromElsewhere(t *testing.T) {
 func TestCaptureStoresOfABusyClosureAreOpaque(t *testing.T) {
 	p, member := bodyFlowProgram(t)
 	outer := p.ByEnt[member("recursingCapture")]
-	var closure *Func
+	var closure *midir.Func
 	for _, blk := range outer.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == OpClosure {
+			if in.Op == midir.OpClosure {
 				closure = p.ByEnt[in.Ent]
 			}
 		}
@@ -32,7 +36,7 @@ func TestCaptureStoresOfABusyClosureAreOpaque(t *testing.T) {
 	c.bodyFacts(closure)
 	fs := c.bodyFacts(outer)
 	for l, loc := range outer.Locals {
-		if loc.Name == "g" && !fs[LocalID(l)][opaqueFact] {
+		if loc.Name == "g" && !fs[midir.LocalID(l)][opaqueFact] {
 			t.Fatal("g in the fn building a closure still being computed does not hold a value from elsewhere")
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -33,7 +34,7 @@ func (s *specializer) name(gen sem.EntityID, args []sem.TypeID, wit []sem.Witnes
 
 // nameHolder remembers who took a name so a later witness-only twin can rename both.
 type nameHolder struct {
-	fn  *Func
+	fn  *midir.Func
 	wit []sem.WitnessArg
 }
 

@@ -1,7 +1,5 @@
-// Package mir lowers checked trees to a block-structured IR with mutable
-// locals (SSA is left to LLVM's mem2reg), runs the ownership analysis and
-// inserts drops.
-package mir
+// Package ir holds block-structured instructions, mutable locals and body annotations.
+package ir
 
 import (
 	opdef "kigumi/internal/compiler/mir/ops"
@@ -120,8 +118,9 @@ type Inst struct {
 	// GiveArgs marks the value-call arguments a site hands over at a type-parameter slot, declared to the call (see rt_callv_m).
 	GiveArgs uint32
 	// LendArgs marks the value-call arguments a site only lends, declared to the call the same way.
-	LendArgs     uint32
-	argsDeclared bool
+	LendArgs uint32
+	// ArgsDeclared preserves the call masks chosen before specialization.
+	ArgsDeclared bool
 	// Prim/Prov are zero unless Ent is a registry-covered std call.
 	Prim  opdef.PrimitiveId
 	Prov  opdef.ProviderOpId
@@ -181,8 +180,8 @@ type Func struct {
 	// DSig does the same for the parameters and the result; PlanDirect sets both.
 	Direct []bool
 	DSig   *DirectSig
-	// rcBase is the local count before plan-rc added its temporaries.
-	rcBase int
+	// RCBase is the local count before plan-rc added its temporaries.
+	RCBase int
 	// Proto is "equals" or "hash" for a body specialization replaced by the direct comparison or hash.
 	Proto string
 	// Entry is the all-boxed body a function value, method table or adapter runs; Wraps points back.

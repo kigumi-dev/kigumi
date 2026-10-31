@@ -4,6 +4,7 @@ import (
 	"slices"
 
 	"kigumi/internal/compiler/hir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 // exitMark is a place in a scope where a success exit starts, before the exit's value moves anything; defers is how many cleanups were registered by then.
@@ -13,7 +14,7 @@ type exitMark struct {
 }
 
 type markPos struct {
-	blk BlockID
+	blk midir.BlockID
 	idx int
 }
 
@@ -25,7 +26,7 @@ type pendingGhost struct {
 
 // ghostRun is a lowered pendingGhost: blocks [entry, end) hold the body, reachable only through the analysis.
 type ghostRun struct {
-	entry, end BlockID
+	entry, end midir.BlockID
 	marks      []markPos
 }
 
@@ -45,7 +46,7 @@ func (s *scope) hasFailDefer() bool {
 }
 
 func (b *builder) markExit(depth int) {
-	if b.block().Term.Op != TermNone {
+	if b.block().Term.Op != midir.TermNone {
 		return
 	}
 	for _, s := range b.scopes[depth:] {
@@ -72,7 +73,7 @@ func (b *builder) queueGhosts(s *scope) {
 	}
 }
 
-// lowerGhosts appends each queued body after the real blocks and ends it unreachable, so the ownership analysis checks it and dropGhosts removes it.
+// lowerGhosts appends each queued body after the real blocks and ends it unreachable, so the ownership analysis checks it and drop removes it.
 func (b *builder) lowerGhosts() {
 	if len(b.ghosts) == 0 {
 		return
@@ -88,14 +89,14 @@ func (b *builder) lowerGhosts() {
 			b.stmt(g.stmt.Body)
 		}
 		b.scopes = b.scopes[:len(b.scopes)-1]
-		b.term(Term{Op: TermUnreachable})
-		run.end = BlockID(len(b.fn.Blocks))
+		b.term(midir.Term{Op: midir.TermUnreachable})
+		run.end = midir.BlockID(len(b.fn.Blocks))
 		b.ghostRuns.runs = append(b.ghostRuns.runs, run)
 	}
 }
 
-// dropGhosts removes the ghost runs' blocks and locals; a block appended after them, as an edge split, stays.
-func (g *ghostSet) drop(f *Func) {
+// drop removes the ghost runs' blocks and locals; a block appended after them, as an edge split, stays.
+func (g *ghostSet) drop(f *midir.Func) {
 	if len(g.runs) == 0 {
 		return
 	}
@@ -104,7 +105,7 @@ func (g *ghostSet) drop(f *Func) {
 	for b := range f.Blocks {
 		for i, t := range f.Blocks[b].Term.Targets {
 			if int(t) >= end {
-				f.Blocks[b].Term.Targets[i] = t - BlockID(end-start)
+				f.Blocks[b].Term.Targets[i] = t - midir.BlockID(end-start)
 			}
 		}
 	}

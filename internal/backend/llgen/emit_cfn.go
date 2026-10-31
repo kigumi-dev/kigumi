@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -75,7 +75,7 @@ func (e *emitter) cPtrCall(sb *strings.Builder, fv string, sig sem.TypeID, args 
 	return e.cCall(sb, p, sig, args, types)
 }
 
-func (e *emitter) dlCall(sb *strings.Builder, f *mir.Func, in mir.Inst, args []string) string {
+func (e *emitter) dlCall(sb *strings.Builder, f *midir.Func, in midir.Inst, args []string) string {
 	recv := e.r.Types.Node(f.Locals[in.Args[0]].Type)
 	if recv.Kind == sem.KRef {
 		recv = e.r.Types.Node(recv.Elem)

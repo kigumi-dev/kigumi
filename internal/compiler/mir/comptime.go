@@ -1,14 +1,17 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // ComptimeFunc is one `comptime { ... }` block: its body as a function, and
 // the placeholder instruction in Owner that Fold turns into the constant.
 type ComptimeFunc struct {
 	Site  sem.ComptimeSite
-	Func  *Func
-	Owner *Func
-	Block BlockID
+	Func  *midir.Func
+	Owner *midir.Func
+	Block midir.BlockID
 	// Slot is the placeholder's Inst.Index; passes before Fold shift plain indices, so Fold finds it by identity.
 	Slot int
 	// Type is the block's type at the use site, which the constant takes.
@@ -24,8 +27,8 @@ func (p *Program) Fold(cf *ComptimeFunc, lit sem.Literal) {
 	insts := cf.Owner.Blocks[cf.Block].Insts
 	for i := range insts {
 		in := &insts[i]
-		if in.Op == OpBuiltin && in.Str == "comptime" && in.Index == cf.Slot {
-			*in = Inst{Op: OpConst, Dst: in.Dst, Lit: lit, Type: cf.Type, Node: in.Node}
+		if in.Op == midir.OpBuiltin && in.Str == "comptime" && in.Index == cf.Slot {
+			*in = midir.Inst{Op: midir.OpConst, Dst: in.Dst, Lit: lit, Type: cf.Type, Node: in.Node}
 			return
 		}
 	}

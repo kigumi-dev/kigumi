@@ -3,7 +3,7 @@ package vm
 import (
 	"slices"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 // A crossing is settled when its consumer runs, so a panic leaves the reference the consumer would have dropped: the source when it keeps the copy, the copy when it only reads it.
@@ -17,7 +17,7 @@ func (m *Machine) sweepCrossings(fr *frame) {
 				continue
 			}
 			switch {
-			case in.Op == mir.OpShare:
+			case in.Op == midir.OpShare:
 				m.sweepCrossed(fr, c.dst, c.copy)
 			case m.p.ArgConsumed(fr.f, *in, i):
 				m.sweepCrossed(fr, c.src, c.from)
@@ -31,7 +31,7 @@ func (m *Machine) sweepCrossings(fr *frame) {
 }
 
 // A local the set sweep already released no longer holds v.
-func (m *Machine) sweepCrossed(fr *frame, l mir.LocalID, v *obj) {
+func (m *Machine) sweepCrossed(fr *frame, l midir.LocalID, v *obj) {
 	if fr.locals[l] != v {
 		return
 	}

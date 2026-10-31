@@ -1,12 +1,16 @@
 package mir
 
-import "slices"
+import (
+	"slices"
+
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
 type releasePoint struct{ block, at int }
 
 // releaseAtExits puts one release of l on each way out of the blocks still using l or a borrow read from it: after
 // the last use, at the start of a block entered only from them, or in a new block on an edge into a join.
-func (g *ghostSet) releaseAtExits(f *Func, l LocalID, held map[LocalID]bool, live []bool, home int, flow *blockFlow) bool {
+func (g *ghostSet) releaseAtExits(f *midir.Func, l midir.LocalID, held map[midir.LocalID]bool, live []bool, home int, flow *blockFlow) bool {
 	in := func(b int) bool { return live[b] || b == home }
 	var points []releasePoint
 	var edges []Edge
@@ -14,7 +18,7 @@ func (g *ghostSet) releaseAtExits(f *Func, l LocalID, held map[LocalID]bool, liv
 		if !in(b) {
 			continue
 		}
-		drop := slices.IndexFunc(blk.Insts, func(x Inst) bool { return releasesRef(x, l) })
+		drop := slices.IndexFunc(blk.Insts, func(x midir.Inst) bool { return releasesRef(x, l) })
 		if !flow.liveOut(b, live) {
 			at := lastTouch(blk.Insts, l, held)
 			switch {
@@ -22,7 +26,7 @@ func (g *ghostSet) releaseAtExits(f *Func, l LocalID, held map[LocalID]bool, liv
 				return false
 			case len(blk.Term.Targets) > 0 || drop >= 0:
 				points = append(points, releasePoint{b, at})
-			case blk.Term.Op == TermReturn:
+			case blk.Term.Op == midir.TermReturn:
 				return false
 			}
 			continue
@@ -42,9 +46,9 @@ func (g *ghostSet) releaseAtExits(f *Func, l LocalID, held map[LocalID]bool, liv
 			}
 		}
 	}
-	var tmpl Inst
+	var tmpl midir.Inst
 	for b := range f.Blocks {
-		if i := slices.IndexFunc(f.Blocks[b].Insts, func(x Inst) bool { return releasesRef(x, l) }); i >= 0 {
+		if i := slices.IndexFunc(f.Blocks[b].Insts, func(x midir.Inst) bool { return releasesRef(x, l) }); i >= 0 {
 			tmpl = g.deleteInst(f, b, i)
 		}
 	}
@@ -57,8 +61,8 @@ func (g *ghostSet) releaseAtExits(f *Func, l LocalID, held map[LocalID]bool, liv
 	}
 	for _, e := range edges {
 		to := f.Blocks[e.From].Term.Targets[e.Slot]
-		f.Blocks = append(f.Blocks, Block{Insts: []Inst{tmpl}, Term: Term{Op: TermJump, Targets: []BlockID{to}}})
-		f.Blocks[e.From].Term.Targets[e.Slot] = BlockID(len(f.Blocks) - 1)
+		f.Blocks = append(f.Blocks, midir.Block{Insts: []midir.Inst{tmpl}, Term: midir.Term{Op: midir.TermJump, Targets: []midir.BlockID{to}}})
+		f.Blocks[e.From].Term.Targets[e.Slot] = midir.BlockID(len(f.Blocks) - 1)
 	}
 	return true
 }

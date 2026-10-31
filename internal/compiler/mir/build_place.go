@@ -2,6 +2,7 @@ package mir
 
 import (
 	"kigumi/internal/compiler/hir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/lang/diag"
 )
@@ -11,9 +12,9 @@ import (
 // what orders base and index before the right-hand side.
 type place struct {
 	src  *hir.Place
-	id   LocalID
-	base LocalID
-	idx  LocalID
+	id   midir.LocalID
+	base midir.LocalID
+	idx  midir.LocalID
 	// wb marks a store that returns a receiver cell's content to the place
 	// the call borrowed it from, not a write the source wrote.
 	wb bool
@@ -34,7 +35,7 @@ func (b *builder) resolvePlace(pl *hir.Place) place {
 }
 
 // storeBase projects a stored-through base from its root, skipping the defined-type layers at every step, since a retagged layer would read a copy.
-func (b *builder) storeBase(e *hir.Expr) LocalID {
+func (b *builder) storeBase(e *hir.Expr) midir.LocalID {
 	e = definedBase(e)
 	if len(e.Coerce) > 0 {
 		return b.expr(e)
@@ -42,23 +43,23 @@ func (b *builder) storeBase(e *hir.Expr) LocalID {
 	switch e.Kind {
 	case hir.Field:
 		base := b.storeBase(e.Args[0])
-		return b.emit(Inst{Op: OpField, Dst: b.temp(e.Type), Args: []LocalID{base}, Index: e.Index, Node: e.Node})
+		return b.emit(midir.Inst{Op: midir.OpField, Dst: b.temp(e.Type), Args: []midir.LocalID{base}, Index: e.Index, Node: e.Node})
 	case hir.Index:
 		base := b.storeBase(e.Args[0])
 		idx := b.expr(e.Args[1])
-		return b.emit(Inst{Op: OpIndex, Dst: b.temp(e.Type), Args: []LocalID{base, idx}, Node: e.Node})
+		return b.emit(midir.Inst{Op: midir.OpIndex, Dst: b.temp(e.Type), Args: []midir.LocalID{base, idx}, Node: e.Node})
 	}
 	return b.expr(e)
 }
 
-func (b *builder) loadPlace(p place) LocalID {
+func (b *builder) loadPlace(p place) midir.LocalID {
 	switch p.src.Kind {
 	case hir.PlaceField:
-		return b.emit(Inst{Op: OpField, Dst: b.temp(p.src.Type), Args: []LocalID{p.base}, Index: p.src.Index, Node: p.src.Node})
+		return b.emit(midir.Inst{Op: midir.OpField, Dst: b.temp(p.src.Type), Args: []midir.LocalID{p.base}, Index: p.src.Index, Node: p.src.Node})
 	case hir.PlaceIndex:
-		return b.emit(Inst{Op: OpIndex, Dst: b.temp(p.src.Type), Args: []LocalID{p.base, p.idx}, Node: p.src.Node})
+		return b.emit(midir.Inst{Op: midir.OpIndex, Dst: b.temp(p.src.Type), Args: []midir.LocalID{p.base, p.idx}, Node: p.src.Node})
 	case hir.PlaceGlobal:
-		return b.emit(Inst{Op: OpGlobalGet, Dst: b.temp(p.src.Type), Ent: p.src.Ent, Node: p.src.Node})
+		return b.emit(midir.Inst{Op: midir.OpGlobalGet, Dst: b.temp(p.src.Type), Ent: p.src.Ent, Node: p.src.Node})
 	}
 	return b.expr(p.src.Expr)
 }
@@ -68,17 +69,17 @@ func (b *builder) loadPlace(p place) LocalID {
 // a named local is dropped through the local, not a copy, so the ownership
 // pass sees a drop, not a read; a borrow rebinds the reference and owns
 // nothing to drop.
-func (b *builder) storePlace(p place, v LocalID) {
+func (b *builder) storePlace(p place, v midir.LocalID) {
 	switch p.src.Kind {
 	case hir.PlaceField:
-		b.emit(Inst{Op: OpSetField, Args: []LocalID{p.base, v}, Index: p.src.Index, Node: p.src.Node})
+		b.emit(midir.Inst{Op: midir.OpSetField, Args: []midir.LocalID{p.base, v}, Index: p.src.Index, Node: p.src.Node})
 	case hir.PlaceIndex:
-		b.emit(Inst{Op: OpSetIndex, Args: []LocalID{p.base, p.idx, v}, Node: p.src.Node})
+		b.emit(midir.Inst{Op: midir.OpSetIndex, Args: []midir.LocalID{p.base, p.idx, v}, Node: p.src.Node})
 	case hir.PlaceGlobal:
-		b.emit(Inst{Op: OpGlobalSet, Args: []LocalID{v}, Ent: p.src.Ent, Node: p.src.Node})
+		b.emit(midir.Inst{Op: midir.OpGlobalSet, Args: []midir.LocalID{v}, Ent: p.src.Ent, Node: p.src.Node})
 	default:
 		if b.cellLocal(p.id) {
-			b.emit(Inst{Op: OpCellSet, Args: []LocalID{p.id, v}, Node: p.src.Node})
+			b.emit(midir.Inst{Op: midir.OpCellSet, Args: []midir.LocalID{p.id, v}, Node: p.src.Node})
 			return
 		}
 		if b.fn.Locals[p.id].Borrowed {
@@ -86,9 +87,9 @@ func (b *builder) storePlace(p place, v LocalID) {
 			return
 		}
 		if b.r.Types.Kind(b.fn.Locals[p.id].Type) != sem.KRef {
-			b.emit(Inst{Op: OpDrop, Args: []LocalID{p.id}, Scoped: p.wb, Node: p.src.Node})
+			b.emit(midir.Inst{Op: midir.OpDrop, Args: []midir.LocalID{p.id}, Scoped: p.wb, Node: p.src.Node})
 		}
-		b.emit(Inst{Op: OpCopy, Dst: p.id, Args: []LocalID{v}, Node: p.src.Node})
+		b.emit(midir.Inst{Op: midir.OpCopy, Dst: p.id, Args: []midir.LocalID{v}, Node: p.src.Node})
 	}
 }
 

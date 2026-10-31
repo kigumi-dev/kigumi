@@ -3,6 +3,8 @@ package mir
 import (
 	"slices"
 	"sync/atomic"
+
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const (
@@ -29,7 +31,7 @@ type cowVec[T comparable] struct {
 	id  int32
 }
 
-func (v *cowVec[T]) get(l LocalID) T {
+func (v *cowVec[T]) get(l midir.LocalID) T {
 	var zero T
 	t := int(l) / cowSpan
 	if t >= len(v.top) || v.top[t] == nil {
@@ -42,7 +44,7 @@ func (v *cowVec[T]) get(l LocalID) T {
 	return lf.v[int(l)%cowLeafSize]
 }
 
-func (v *cowVec[T]) set(l LocalID, x T) {
+func (v *cowVec[T]) set(l midir.LocalID, x T) {
 	if v.get(l) == x {
 		return
 	}
@@ -177,24 +179,4 @@ func (l *cowLeaf[T]) values() [cowLeafSize]T {
 		return [cowLeafSize]T{}
 	}
 	return l.v
-}
-
-// each visits the entries that are set.
-func (v *cowVec[T]) each(fn func(l LocalID, x T)) {
-	var zero T
-	for t, nd := range v.top {
-		if nd == nil {
-			continue
-		}
-		for c, lf := range nd.leaf {
-			if lf == nil {
-				continue
-			}
-			for i, x := range lf.v {
-				if x != zero {
-					fn(LocalID(t*cowSpan+c*cowLeafSize+i), x)
-				}
-			}
-		}
-	}
 }

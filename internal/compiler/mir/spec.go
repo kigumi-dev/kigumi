@@ -1,13 +1,16 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 type spec struct {
 	ent     sem.EntityID
 	gen     sem.EntityID
 	args    []sem.TypeID
 	wit     []sem.WitnessArg
-	fn      *Func
+	fn      *midir.Func
 	sub     map[sem.EntityID]sem.TypeID
 	clones  []funcPair
 	parent  *spec
@@ -23,7 +26,7 @@ type spec struct {
 }
 
 type callSite struct {
-	f        *Func
+	f        *midir.Func
 	blk, idx int
 	gone     bool
 }
@@ -32,24 +35,24 @@ type specializer struct {
 	p        *Program
 	byKey    map[string]*spec
 	byEnt    map[sem.EntityID]*spec
-	byFunc   map[*Func]*spec
+	byFunc   map[*midir.Func]*spec
 	all      []*spec
 	work     []*spec
 	names    map[string]*nameHolder
 	noSpec   map[sem.EntityID]bool
 	reported map[string]bool
-	scanned  map[*Func]bool
-	rooted   map[*Func]*heldRoot
+	scanned  map[*midir.Func]bool
+	rooted   map[*midir.Func]*heldRoot
 	scalars  bool
 	bonus    map[string]int
 	lent     map[lendParam]bool
 	edits    []siteEdit
 	// Rebuilt per dry run; a revert drops its caller's entry.
-	reboxFlows map[*Func]*reboxFlow
+	reboxFlows map[*midir.Func]*reboxFlow
 }
 
 type siteEdit struct {
-	f        *Func
+	f        *midir.Func
 	blk, idx int
 	was      sem.EntityID
 }
@@ -73,7 +76,7 @@ func Specialize(p *Program) error {
 }
 
 func newSpecializer(p *Program, bonus map[string]int) *specializer {
-	s := &specializer{p: p, byKey: map[string]*spec{}, byEnt: map[sem.EntityID]*spec{}, byFunc: map[*Func]*spec{}, names: map[string]*nameHolder{}, noSpec: map[sem.EntityID]bool{}, reported: map[string]bool{}, scanned: map[*Func]bool{}, bonus: bonus}
+	s := &specializer{p: p, byKey: map[string]*spec{}, byEnt: map[sem.EntityID]*spec{}, byFunc: map[*midir.Func]*spec{}, names: map[string]*nameHolder{}, noSpec: map[sem.EntityID]bool{}, reported: map[string]bool{}, scanned: map[*midir.Func]bool{}, bonus: bonus}
 	for _, f := range p.Funcs {
 		s.names[f.Name] = nil
 	}
@@ -82,7 +85,7 @@ func newSpecializer(p *Program, bonus map[string]int) *specializer {
 
 func (s *specializer) run() {
 	s.markRooted()
-	for _, f := range append([]*Func(nil), s.p.Funcs...) {
+	for _, f := range append([]*midir.Func(nil), s.p.Funcs...) {
 		s.scan(f, nil)
 	}
 	s.drain()
@@ -91,11 +94,11 @@ func (s *specializer) run() {
 	s.prune()
 }
 
-func (s *specializer) scan(f *Func, ctx *spec) {
+func (s *specializer) scan(f *midir.Func, ctx *spec) {
 	for bid := range f.Blocks {
 		insts := f.Blocks[bid].Insts
 		for i := range insts {
-			if insts[i].Op != OpCall && insts[i].Op != OpFnItem {
+			if insts[i].Op != midir.OpCall && insts[i].Op != midir.OpFnItem {
 				continue
 			}
 			// A copy of a body scanned before it was copied already names the instantiation.
@@ -120,7 +123,7 @@ func (s *specializer) scan(f *Func, ctx *spec) {
 	s.scanned[f] = true
 }
 
-func (s *specializer) get(f *Func, ctx *spec, in Inst, args []sem.TypeID, wit []sem.WitnessArg) *spec {
+func (s *specializer) get(f *midir.Func, ctx *spec, in midir.Inst, args []sem.TypeID, wit []sem.WitnessArg) *spec {
 	gen := in.Ent
 	key := s.key(gen, args, wit)
 	held := s.heldIn(f, ctx)
@@ -154,7 +157,7 @@ func (s *specializer) get(f *Func, ctx *spec, in Inst, args []sem.TypeID, wit []
 			s.p.intrinsify(fn, kind, t)
 		}
 	}
-	if s.leftGeneric(append([]*Func{fn}, funcsOf(clones)...)) {
+	if s.leftGeneric(append([]*midir.Func{fn}, funcsOf(clones)...)) {
 		s.noSpec[gen] = true
 		return nil
 	}
@@ -176,10 +179,10 @@ func (s *specializer) get(f *Func, ctx *spec, in Inst, args []sem.TypeID, wit []
 	return sp
 }
 
-func (sp *spec) funcs() []*Func { return append([]*Func{sp.fn}, funcsOf(sp.clones)...) }
+func (sp *spec) funcs() []*midir.Func { return append([]*midir.Func{sp.fn}, funcsOf(sp.clones)...) }
 
-func funcsOf(ps []funcPair) []*Func {
-	out := make([]*Func, len(ps))
+func funcsOf(ps []funcPair) []*midir.Func {
+	out := make([]*midir.Func, len(ps))
 	for i, p := range ps {
 		out[i] = p.fn
 	}

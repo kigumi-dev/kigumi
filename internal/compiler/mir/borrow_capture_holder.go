@@ -3,10 +3,11 @@ package mir
 import (
 	"fmt"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func (c *borrowCheck) checkPayloadBorrows(in Inst) {
+func (c *borrowCheck) checkPayloadBorrows(in midir.Inst) {
 	vi := c.p.R.Variant(in.Ent)
 	owner := c.p.R.Entity(in.Ent).Parent
 	for i, a := range in.Args {
@@ -19,7 +20,7 @@ func (c *borrowCheck) checkPayloadBorrows(in Inst) {
 
 // checkElementBorrows is checkPayloadBorrows for OpArray: an element has no
 // declared name, so it names the array's own type instead.
-func (c *borrowCheck) checkElementBorrows(in Inst) {
+func (c *borrowCheck) checkElementBorrows(in midir.Inst) {
 	t := c.p.R.TypeString(c.f.Locals[in.Dst].Type)
 	for i, a := range in.Args {
 		if _, ok := c.holders[a]; !ok {
@@ -31,7 +32,7 @@ func (c *borrowCheck) checkElementBorrows(in Inst) {
 
 // checkHolderPayloads is checkHolderFields for a variant: only a payload
 // declared as a borrow, or routing one through its own ['a], is skipped.
-func (c *borrowCheck) checkHolderPayloads(in Inst) {
+func (c *borrowCheck) checkHolderPayloads(in midir.Inst) {
 	vi := c.p.R.Variant(in.Ent)
 	if len(vi.Payload) != len(in.Args) {
 		return

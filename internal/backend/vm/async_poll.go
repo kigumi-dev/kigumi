@@ -1,7 +1,7 @@
 package vm
 
 import (
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -32,7 +32,7 @@ type future struct {
 
 type coro struct {
 	fr        frame
-	bid       mir.BlockID
+	bid       midir.BlockID
 	pc        int
 	cancelled bool
 }
@@ -153,7 +153,7 @@ func (m *Machine) resume(fu *future) (*obj, polled) {
 		for co.pc < len(blk.Insts) {
 			in := &blk.Insts[co.pc]
 			switch in.Op {
-			case mir.OpAwait, mir.OpCancelled, mir.OpCancelDone:
+			case midir.OpAwait, midir.OpCancelled, midir.OpCancelDone:
 				if st, stop := m.stepAsync(fu, in); stop {
 					leave()
 					return nil, st
@@ -172,16 +172,16 @@ func (m *Machine) resume(fu *future) (*obj, polled) {
 			co.pc++
 		}
 		switch blk.Term.Op {
-		case mir.TermJump:
+		case midir.TermJump:
 			co.bid, co.pc = blk.Term.Targets[0], 0
-		case mir.TermBranch:
+		case midir.TermBranch:
 			if truth(co.fr.locals[blk.Term.Args[0]]) {
 				co.bid = blk.Term.Targets[0]
 			} else {
 				co.bid = blk.Term.Targets[1]
 			}
 			co.pc = 0
-		case mir.TermReturn:
+		case midir.TermReturn:
 			if len(co.fr.pending) > 0 {
 				m.settleReturn(&co.fr, blk.Term.Args[0])
 			}

@@ -3,13 +3,13 @@ package llgen
 import (
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // markLent gives a user function value its lent mask, the call arguments after off its parameters only borrow;
 // a capture-free value gets it when its immortal is filled.
-func (e *emitter) markLent(sb *strings.Builder, in mir.Inst, off int, captureFree bool, v string) string {
+func (e *emitter) markLent(sb *strings.Builder, in midir.Inst, off int, captureFree bool, v string) string {
 	k := e.r.Entity(in.Ent).Kind
 	if in.Async || k != sem.EntFn && k != sem.EntClosure {
 		return v
@@ -56,7 +56,7 @@ func (e *emitter) paramCount(fn sem.EntityID) int {
 
 // callValue calls a function value declaring how the site passes each argument (mir.Inst.LendArgs / GiveArgs), so that
 // rt_callv_m can square it with the value's own parameters; a site with nothing to declare keeps the plain call.
-func (e *emitter) callValue(sb *strings.Builder, in mir.Inst, args []string, arr string, scalar bool) Value {
+func (e *emitter) callValue(sb *strings.Builder, in midir.Inst, args []string, arr string, scalar bool) Value {
 	n := vi32(len(args) - 1)
 	switch {
 	case in.LendArgs == 0 && in.GiveArgs == 0 && scalar:

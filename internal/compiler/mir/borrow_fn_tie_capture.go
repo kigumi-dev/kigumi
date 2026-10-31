@@ -1,9 +1,12 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // returnedCaptures: a closure returning a borrow keeps its non-owned captures that can build the result borrowed.
-func (c *borrowCheck) returnedCaptures(def *Inst) *borrowInfo {
+func (c *borrowCheck) returnedCaptures(def *midir.Inst) *borrowInfo {
 	info := c.p.R.Closure(def.Ent)
 	if !c.resultMayBorrow(info.Ret) || len(info.Captures) != len(def.Args) {
 		return nil
@@ -47,18 +50,18 @@ func (c *borrowCheck) resultMayBorrow(t sem.TypeID) bool {
 }
 
 // borrowRoots adds the locals a closure captures without owning to borrowRoot's owners.
-func (c *borrowCheck) borrowRoots(in Inst) []LocalID {
+func (c *borrowCheck) borrowRoots(in midir.Inst) []midir.LocalID {
 	if root, ok := c.borrowRoot(in); ok {
-		return []LocalID{root}
+		return []midir.LocalID{root}
 	}
-	if in.Op != OpClosure || c.p.R.Entity(in.Ent).Kind != sem.EntClosure {
+	if in.Op != midir.OpClosure || c.p.R.Entity(in.Ent).Kind != sem.EntClosure {
 		return nil
 	}
 	info := c.p.R.Closure(in.Ent)
 	if len(info.Captures) != len(in.Args) {
 		return nil
 	}
-	var out []LocalID
+	var out []midir.LocalID
 	for i, cp := range info.Captures {
 		if cp.Mode == sem.CapCopy || cp.Mode == sem.CapMove || cp.Mode == sem.CapRetain {
 			continue

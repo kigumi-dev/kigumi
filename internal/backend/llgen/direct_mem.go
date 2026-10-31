@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const memIntrinsics = "declare void @llvm.memcpy.p0.p0.i64(ptr, ptr, i64, i1)\ndeclare void @llvm.memset.p0.i64(ptr, i8, i64, i1)\n\n"
@@ -12,7 +12,7 @@ const memIntrinsics = "declare void @llvm.memcpy.p0.p0.i64(ptr, ptr, i64, i1)\nd
 // The slot is two i64 words, which no supported target aligns below 4.
 const wideAccessAlign = 4
 
-func aggPtr(l mir.LocalID) string { return fmt.Sprintf("%%l%d", l) }
+func aggPtr(l midir.LocalID) string { return fmt.Sprintf("%%l%d", l) }
 
 // LLVM's own size for the type, folded to a constant, never a second layout to keep in step.
 func sizeOf(a *aggInfo) string {
@@ -34,7 +34,7 @@ func (e *emitter) fieldPtr(sb *strings.Builder, a *aggInfo, base string, i int) 
 	return g
 }
 
-func (e *emitter) storeLeaf(sb *strings.Builder, fld aggField, p string, l mir.LocalID) {
+func (e *emitter) storeLeaf(sb *strings.Builder, fld aggField, p string, l midir.LocalID) {
 	switch {
 	case fld.Unit:
 	case fld.Agg != nil:
@@ -46,7 +46,7 @@ func (e *emitter) storeLeaf(sb *strings.Builder, fld aggField, p string, l mir.L
 	}
 }
 
-func (e *emitter) loadLeaf(sb *strings.Builder, f *mir.Func, fld aggField, p string, dst mir.LocalID) {
+func (e *emitter) loadLeaf(sb *strings.Builder, f *midir.Func, fld aggField, p string, dst midir.LocalID) {
 	switch {
 	case fld.Unit:
 		e.store(sb, dst, e.irb(sb).Call(rtUnit).Text)
@@ -62,7 +62,7 @@ func (e *emitter) loadLeaf(sb *strings.Builder, f *mir.Func, fld aggField, p str
 	}
 }
 
-func (e *emitter) leafScalar(sb *strings.Builder, fld aggField, l mir.LocalID) string {
+func (e *emitter) leafScalar(sb *strings.Builder, fld aggField, l midir.LocalID) string {
 	if _, ok := e.scalar[l]; ok {
 		return e.loadNative(sb, l).Text
 	}

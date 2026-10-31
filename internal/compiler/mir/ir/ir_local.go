@@ -1,4 +1,4 @@
-package mir
+package ir
 
 import "kigumi/internal/compiler/sem"
 

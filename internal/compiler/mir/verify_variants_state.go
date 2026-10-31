@@ -1,11 +1,15 @@
 package mir
 
-import "maps"
+import (
+	"maps"
+
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
 type variantFacts struct {
 	known map[vplace]variantSet
-	at    map[LocalID]vplace
-	bools map[LocalID]*boolFact
+	at    map[midir.LocalID]vplace
+	bools map[midir.LocalID]*boolFact
 	roots []bool
 	paths *pathIDs
 	// shared says the maps are also another state's, so the first write copies them.
@@ -39,19 +43,19 @@ func (s *variantFacts) setKnown(pl vplace, set variantSet) {
 	s.roots[pl.root] = true
 }
 
-func (s *variantFacts) setAt(l LocalID, pl vplace) {
+func (s *variantFacts) setAt(l midir.LocalID, pl vplace) {
 	s.own()
 	if s.at == nil {
-		s.at = map[LocalID]vplace{}
+		s.at = map[midir.LocalID]vplace{}
 	}
 	s.at[l] = pl
 	s.roots[pl.root] = true
 }
 
-func (s *variantFacts) setBool(l LocalID, b *boolFact) {
+func (s *variantFacts) setBool(l midir.LocalID, b *boolFact) {
 	s.own()
 	if s.bools == nil {
-		s.bools = map[LocalID]*boolFact{}
+		s.bools = map[midir.LocalID]*boolFact{}
 	}
 	s.bools[l] = b
 	s.roots[l] = true
@@ -62,7 +66,7 @@ func (s *variantFacts) setBool(l LocalID, b *boolFact) {
 	}
 }
 
-func (s *variantFacts) where(l LocalID) vplace {
+func (s *variantFacts) where(l midir.LocalID) vplace {
 	if pl, ok := s.at[l]; ok {
 		return pl
 	}
@@ -103,7 +107,7 @@ func (s *variantFacts) join(o *variantFacts) bool {
 	return changed
 }
 
-func (s *variantFacts) forget(l LocalID) {
+func (s *variantFacts) forget(l midir.LocalID) {
 	if !s.roots[l] {
 		return
 	}
@@ -132,7 +136,7 @@ func (s *variantFacts) forget(l LocalID) {
 	}
 }
 
-func (s *variantFacts) forgetBelow(root LocalID) {
+func (s *variantFacts) forgetBelow(root midir.LocalID) {
 	var gone []vplace
 	for pl := range s.known {
 		if pl.root == root && pl.path != 0 {
@@ -153,7 +157,7 @@ func (s *variantFacts) drop(places []vplace) {
 }
 
 // retire drops what a local that is never read again owns; facts about its place stay while a live alias still points there.
-func (s *variantFacts) retire(l LocalID) {
+func (s *variantFacts) retire(l midir.LocalID) {
 	if !s.roots[l] {
 		return
 	}
@@ -179,7 +183,7 @@ func (s *variantFacts) retire(l LocalID) {
 }
 
 func (s *variantFacts) keepOnly(keep []bool) {
-	var gone []LocalID
+	var gone []midir.LocalID
 	for c := range s.bools {
 		if !keep[c] {
 			gone = append(gone, c)

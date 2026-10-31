@@ -3,7 +3,7 @@ package vm
 import (
 	"sync/atomic"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -32,7 +32,7 @@ const (
 
 type callPlan struct {
 	kind    planKind
-	f       *mir.Func
+	f       *midir.Func
 	code    *funcCode
 	host    hostFn
 	ent     sem.EntityID
@@ -42,7 +42,7 @@ type callPlan struct {
 
 var slowPlan = &callPlan{kind: planSlow}
 
-func (m *Machine) codeFor(f *mir.Func) *funcCode {
+func (m *Machine) codeFor(f *midir.Func) *funcCode {
 	if c, ok := m.sh.codes.Load(f); ok {
 		return c.(*funcCode)
 	}
@@ -50,7 +50,7 @@ func (m *Machine) codeFor(f *mir.Func) *funcCode {
 	return c.(*funcCode)
 }
 
-func (m *Machine) decode(f *mir.Func) *funcCode {
+func (m *Machine) decode(f *midir.Func) *funcCode {
 	c := &funcCode{blocks: make([][]instCode, len(f.Blocks))}
 	for b := range f.Blocks {
 		insts := f.Blocks[b].Insts
@@ -58,13 +58,13 @@ func (m *Machine) decode(f *mir.Func) *funcCode {
 		for k := range insts {
 			in, ic := &insts[k], &ics[k]
 			switch in.Op {
-			case mir.OpBinary:
+			case midir.OpBinary:
 				ic.bin = bopOf(in.Str)
-			case mir.OpUnary:
+			case midir.OpUnary:
 				if in.Str == "cast" {
 					ic.nk = m.numKind(in.Type)
 				}
-			case mir.OpConst:
+			case midir.OpConst:
 				ic.konst = m.scalarConst(in)
 			}
 		}
@@ -77,7 +77,7 @@ func (m *Machine) decode(f *mir.Func) *funcCode {
 }
 
 // scalarConst is the shared immortal a scalar literal evaluates to; strings and bytes stay fresh.
-func (m *Machine) scalarConst(in *mir.Inst) *obj {
+func (m *Machine) scalarConst(in *midir.Inst) *obj {
 	v := m.constant(in)
 	switch v.k {
 	case kInt, kFloat, kChar:
@@ -90,7 +90,7 @@ func (m *Machine) scalarConst(in *mir.Inst) *obj {
 	return nil
 }
 
-func (m *Machine) planFor(in *mir.Inst, ic *instCode) *callPlan {
+func (m *Machine) planFor(in *midir.Inst, ic *instCode) *callPlan {
 	if p := ic.call.Load(); p != nil {
 		return p
 	}
@@ -103,7 +103,7 @@ func (m *Machine) planFor(in *mir.Inst, ic *instCode) *callPlan {
 }
 
 // planCall mirrors callEntity's choice; nil leaves the call to callEntity.
-func (m *Machine) planCall(in *mir.Inst) *callPlan {
+func (m *Machine) planCall(in *midir.Inst) *callPlan {
 	ent := in.Ent
 	e := m.r.Entity(ent)
 	isFn := e.Kind == sem.EntFn
@@ -129,7 +129,7 @@ func (m *Machine) planCall(in *mir.Inst) *callPlan {
 	return &callPlan{kind: planStd, key: m.stdKey(ent)}
 }
 
-func (m *Machine) gather(loc []*obj, ids []mir.LocalID) []*obj {
+func (m *Machine) gather(loc []*obj, ids []midir.LocalID) []*obj {
 	out := m.argSlice(len(ids))
 	for i, a := range ids {
 		out[i] = loc[a]

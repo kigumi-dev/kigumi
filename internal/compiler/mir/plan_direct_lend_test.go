@@ -3,7 +3,7 @@ package mir_test
 import (
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const lendSrc = `
@@ -54,21 +54,21 @@ func TestPlanDirectLendsAReadOnlyReferenceByValue(t *testing.T) {
 		}
 	}
 	lends := funcNamed(t, p, "main.lends")
-	if n := countOp(lends, mir.OpBorrow) + countOp(lends, mir.OpBoxDirect); n != 0 {
+	if n := countOp(lends, midir.OpBorrow) + countOp(lends, midir.OpBoxDirect); n != 0 {
 		t.Errorf("lending locals still borrows or boxes %d times:\n%s", n, p.Dump())
 	}
 	hashes := funcNamed(t, p, "main.hashes")
 	if f := calleeOf(t, p, hashes, "fingerprint"); f.Name != "main.fingerprint[main.Point]" || f.DSig.Param(0) == 0 {
 		t.Errorf("the generic helper does not take the record by value: %s %+v", f.Name, f.DSig)
 	}
-	if n := countOp(hashes, mir.OpBorrow) + countOp(hashes, mir.OpBoxDirect); n != 0 {
+	if n := countOp(hashes, midir.OpBorrow) + countOp(hashes, midir.OpBoxDirect); n != 0 {
 		t.Errorf("hashes still borrows or boxes %d times:\n%s", n, p.Dump())
 	}
 	if f := funcNamed(t, p, "main.show"); f.DSig.Param(0) != 0 {
 		t.Errorf("a reference that a std primitive reads must stay a carrier: %+v", f.DSig)
 	}
 	keeps := funcNamed(t, p, "main.keeps")
-	if countOp(keeps, mir.OpBorrow) != 1 {
+	if countOp(keeps, midir.OpBorrow) != 1 {
 		t.Errorf("a borrow the callee needs as an object must stay:\n%s", p.Dump())
 	}
 	if err := p.Verify(); err != nil {

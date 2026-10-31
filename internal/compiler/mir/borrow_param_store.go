@@ -1,9 +1,13 @@
 package mir
 
-import "slices"
+import (
+	"slices"
+
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
 type paramKey struct {
-	g    *Func
+	g    *midir.Func
 	i    int
 	kind siteKind
 }
@@ -41,32 +45,32 @@ func (s paramStore) same(o paramStore) bool {
 // siteEntry is a callee summary; from is kept while its call-graph component is open in siteSCC.
 type siteEntry struct {
 	sites []paramStore
-	from  map[LocalID]derivation
+	from  map[midir.LocalID]derivation
 }
 
 // derives lists the opcodes whose result reaches what an operand points at: copies, cells, borrows and projections.
-var derives = map[Opcode]bool{OpCopy: true, OpMove: true, OpAlias: true, OpShare: true, OpNewCell: true, OpCellGet: true, OpCellTake: true,
-	OpBorrow: true, OpField: true, OpFieldMove: true, OpPayload: true, OpIndex: true, OpUnbox: true}
+var derives = map[midir.Opcode]bool{midir.OpCopy: true, midir.OpMove: true, midir.OpAlias: true, midir.OpShare: true, midir.OpNewCell: true, midir.OpCellGet: true, midir.OpCellTake: true,
+	midir.OpBorrow: true, midir.OpField: true, midir.OpFieldMove: true, midir.OpPayload: true, midir.OpIndex: true, midir.OpUnbox: true}
 
-func (c *borrowCheck) paramStores(g *Func, i int) bool {
+func (c *borrowCheck) paramStores(g *midir.Func, i int) bool {
 	return len(c.paramStoreSites(g, i)) > 0
 }
 
 // paramStoreSites: a write into a place under the parameter, or a hand-off of a `&mut` from it to code that may store.
-func (c *borrowCheck) paramStoreSites(g *Func, i int) []paramStore {
+func (c *borrowCheck) paramStoreSites(g *midir.Func, i int) []paramStore {
 	return c.paramSites(paramKey{g: g, i: i})
 }
 
 // paramMoves reports whether g may put something taken out of parameter i into another place or return it.
-func (c *borrowCheck) paramMoves(g *Func, i int) bool {
+func (c *borrowCheck) paramMoves(g *midir.Func, i int) bool {
 	return len(c.paramSites(paramKey{g: g, i: i, kind: siteMoves})) > 0
 }
 
-func (c *borrowCheck) paramOut(g *Func, i int) bool {
+func (c *borrowCheck) paramOut(g *midir.Func, i int) bool {
 	return len(c.paramSites(paramKey{g: g, i: i, kind: siteOut})) > 0
 }
 
-func (c *borrowCheck) paramSelfSources(g *Func, i int) []stepPath {
+func (c *borrowCheck) paramSelfSources(g *midir.Func, i int) []stepPath {
 	var out []stepPath
 	for _, s := range c.paramSites(paramKey{g: g, i: i, kind: siteSelf}) {
 		out = append(out, s.path)

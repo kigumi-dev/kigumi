@@ -1,7 +1,7 @@
 package vm
 
 import (
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -22,7 +22,7 @@ func (m *Machine) heldFrame() *frame {
 	return fr
 }
 
-func (m *Machine) holdInflight(f, body *mir.Func, params, args []*obj, bind bool) *frame {
+func (m *Machine) holdInflight(f, body *midir.Func, params, args []*obj, bind bool) *frame {
 	fr := m.heldFrame()
 	if m.ownsLentEnv(f, body) {
 		first, end := m.envSpan(f, len(params), len(args), bind)
@@ -58,7 +58,7 @@ func (m *Machine) sweepHeld(fr *frame) {
 	fr.held = fr.held[:0]
 }
 
-func (m *Machine) releaseInvoke(f, body *mir.Func, params, args []*obj, bind bool) {
+func (m *Machine) releaseInvoke(f, body *midir.Func, params, args []*obj, bind bool) {
 	if m.ownsLentEnv(f, body) {
 		first, end := m.envSpan(f, len(params), len(args), bind)
 		for i := first; i < end; i++ {
@@ -72,16 +72,16 @@ func (m *Machine) releaseInvoke(f, body *mir.Func, params, args []*obj, bind boo
 	}
 }
 
-func (m *Machine) ownsLentEnv(f, body *mir.Func) bool {
+func (m *Machine) ownsLentEnv(f, body *midir.Func) bool {
 	return body == f || m.r.Entity(f.Ent).Kind != sem.EntClosure
 }
 
-func (m *Machine) lentEnv(f *mir.Func, i int) bool {
+func (m *Machine) lentEnv(f *midir.Func, i int) bool {
 	kind := m.r.Entity(f.Ent).Kind
 	return kind == sem.EntClosure && m.p.CaptureLent(f, i) || kind == sem.EntFn && m.p.ParamLent(f.Ent, i)
 }
 
-func (m *Machine) envSpan(f *mir.Func, nparams, nargs int, bind bool) (first, end int) {
+func (m *Machine) envSpan(f *midir.Func, nparams, nargs int, bind bool) (first, end int) {
 	kind := m.r.Entity(f.Ent).Kind
 	if nparams == nargs || kind != sem.EntFn && kind != sem.EntClosure {
 		return 0, 0

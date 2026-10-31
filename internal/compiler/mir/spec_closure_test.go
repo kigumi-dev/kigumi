@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -37,8 +38,8 @@ fn run(x: Int) -> Int {
 fn main() -> Void! {}
 `
 
-func closureFuncs(p *mir.Program, prefix string) []*mir.Func {
-	var out []*mir.Func
+func closureFuncs(p *mir.Program, prefix string) []*midir.Func {
+	var out []*midir.Func
 	for _, f := range p.Funcs {
 		if strings.HasPrefix(f.Name, prefix) && p.R.Entity(f.Ent).Kind == sem.EntClosure {
 			out = append(out, f)
@@ -51,7 +52,7 @@ func TestSpecializeCopiesAClosureBuiltInTheBody(t *testing.T) {
 	p := specialized(t, specClosureSrc)
 	body := funcNamed(t, p, "main.hold[main.Point]")
 	clo := funcNamed(t, p, "main.hold.closure1[main.Point]")
-	built, ok := firstOp(body, mir.OpClosure)
+	built, ok := firstOp(body, midir.OpClosure)
 	if !ok || built.Ent != clo.Ent {
 		t.Fatalf("the instantiation builds %d, want the copy %d:\n%s", built.Ent, clo.Ent, p.Dump())
 	}
@@ -65,8 +66,8 @@ func TestSpecializeCopiesAClosureBuiltInTheBody(t *testing.T) {
 	if !body.IsDirect(built.Dst) {
 		t.Errorf("the closure is boxed in the instantiation:\n%s", p.Dump())
 	}
-	for _, f := range []*mir.Func{body, clo} {
-		if n := countOp(f, mir.OpBoxDirect) + countOp(f, mir.OpUnboxDirect); n != 0 {
+	for _, f := range []*midir.Func{body, clo} {
+		if n := countOp(f, midir.OpBoxDirect) + countOp(f, midir.OpUnboxDirect); n != 0 {
 			t.Errorf("%s crosses %d times:\n%s", f.Name, n, p.Dump())
 		}
 	}
@@ -77,11 +78,11 @@ func TestSpecializeCopiesAClosureBuiltInTheBody(t *testing.T) {
 
 func TestSpecializeKeepsTheSharedClosureBody(t *testing.T) {
 	p := specialized(t, specClosureSrc)
-	if shared := funcNamed(t, p, "main.hold.closure1"); countOp(shared, mir.OpBoxDirect) != 0 {
+	if shared := funcNamed(t, p, "main.hold.closure1"); countOp(shared, midir.OpBoxDirect) != 0 {
 		t.Errorf("the shared closure body changed:\n%s", p.Dump())
 	}
 	generic := funcNamed(t, p, "main.hold")
-	built, _ := firstOp(generic, mir.OpClosure)
+	built, _ := firstOp(generic, midir.OpClosure)
 	if p.R.ClosureOrigin(built.Ent) != built.Ent {
 		t.Errorf("the shared body builds a copy")
 	}

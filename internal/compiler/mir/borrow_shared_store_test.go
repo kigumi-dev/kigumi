@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/devkit/semfixture"
@@ -50,7 +51,7 @@ interface Lone { fn put(self, f: Future[Int]) }
 fn viaLone(o: &Lone, f: Future[Int]) { o.put(f) }
 `
 
-func sharedStoreProgram(t *testing.T) (*Program, func(string) *Func) {
+func sharedStoreProgram(t *testing.T) (*Program, func(string) *midir.Func) {
 	t.Helper()
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(sharedStoreSrc)))
@@ -60,7 +61,7 @@ func sharedStoreProgram(t *testing.T) (*Program, func(string) *Func) {
 		t.Fatal(res.Render())
 	}
 	p := Build(res)
-	return p, func(name string) *Func {
+	return p, func(name string) *midir.Func {
 		g := p.ByEnt[res.PackageMember(res.PackageByPath("main"), name)]
 		if g == nil {
 			t.Fatalf("no body %s", name)
@@ -70,13 +71,13 @@ func sharedStoreProgram(t *testing.T) (*Program, func(string) *Func) {
 }
 
 // storedArgs names the callee parameters each call of g to name may store into shared storage, `?` for an unknown one.
-func storedArgs(p *Program, g *Func, name string) [][]string {
+func storedArgs(p *Program, g *midir.Func, name string) [][]string {
 	c := &borrowCheck{p: p, f: g}
 	x := &sinkCtx{g: g, fs: c.bodyFacts(g)}
 	var out [][]string
 	for _, blk := range g.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op != OpCall && in.Op != OpCallValue || in.Ent == 0 || p.R.Entity(in.Ent).Name != name {
+			if in.Op != midir.OpCall && in.Op != midir.OpCallValue || in.Ent == 0 || p.R.Entity(in.Ent).Name != name {
 				continue
 			}
 			names := []string{}
@@ -110,7 +111,7 @@ func TestSharedStoresFollowReceiverMode(t *testing.T) {
 	}
 }
 
-func sinkNames(p *Program, g *Func, bind map[int][]sem.EntityID) []string {
+func sinkNames(p *Program, g *midir.Func, bind map[int][]sem.EntityID) []string {
 	c := &borrowCheck{p: p, f: g}
 	names := []string{}
 	for _, q := range c.sharedSinks(g.Ent, bind) {

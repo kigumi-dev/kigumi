@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -103,7 +103,7 @@ func (e *emitter) shimCall(sb *strings.Builder, shim string, sig sem.TypeID, ext
 
 // exportByval defines kg_export_<name>, the LLVM side of the C symbol the
 // shim defines for an export(C) function whose records move by value.
-func (e *emitter) exportByval(f *mir.Func) string {
+func (e *emitter) exportByval(f *midir.Func) string {
 	var sb strings.Builder
 	sn := e.r.Types.Node(e.r.Fn(f.Ent).Sig)
 	name := e.cName(f.Ent)

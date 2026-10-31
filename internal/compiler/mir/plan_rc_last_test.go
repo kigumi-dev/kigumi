@@ -3,7 +3,7 @@ package mir_test
 import (
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const lastSrc = `
@@ -113,11 +113,11 @@ fn viaWriter(w: &mut W) -> Int {
 fn main() -> Void! {}
 `
 
-func sharesOf(f *mir.Func, op mir.Opcode, own bool) int {
+func sharesOf(f *midir.Func, op midir.Opcode, own bool) int {
 	n := 0
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == op && (op != mir.OpShare || in.Copy && in.Own == own) {
+			if in.Op == op && (op != midir.OpShare || in.Copy && in.Own == own) {
 				n++
 			}
 		}
@@ -128,15 +128,15 @@ func sharesOf(f *mir.Func, op mir.Opcode, own bool) int {
 func TestPlanDirectMovesAValueLeftBehind(t *testing.T) {
 	p := planned(t, lastSrc)
 	swap := funcNamed(t, p, "main.swap")
-	if n := sharesOf(swap, mir.OpShare, false) + sharesOf(swap, mir.OpShare, true); n != 0 {
+	if n := sharesOf(swap, midir.OpShare, false) + sharesOf(swap, midir.OpShare, true); n != 0 {
 		t.Errorf("swap copies %d times:\n%s", n, p.Dump())
 	}
-	if n := sharesOf(swap, mir.OpMove, false); n != 1 {
+	if n := sharesOf(swap, midir.OpMove, false); n != 1 {
 		t.Errorf("swap moves %d times, want 1:\n%s", n, p.Dump())
 	}
 	for _, name := range []string{"main.keep", "main.retLent", "main.pass"} {
 		f := funcNamed(t, p, name)
-		if sharesOf(f, mir.OpShare, true)+sharesOf(f, mir.OpShare, false) == 0 {
+		if sharesOf(f, midir.OpShare, true)+sharesOf(f, midir.OpShare, false) == 0 {
 			t.Errorf("%s hands over a box something else still holds:\n%s", name, p.Dump())
 		}
 	}
@@ -145,7 +145,7 @@ func TestPlanDirectMovesAValueLeftBehind(t *testing.T) {
 func TestPlanRCCopiesWhatACallWrites(t *testing.T) {
 	p := planned(t, lastSrc)
 	for name, want := range map[string]int{"main.viaClosure": 1, "main.viaNested": 1, "main.viaHolder": 1, "main.viaOtherRoot": 0, "main.viaShared": 1, "main.viaMut": 1, "main.viaOwned": 0, "main.viaReader": 0, "main.viaWriter": 1} {
-		if got := sharesOf(funcNamed(t, p, name), mir.OpShare, true); got != want {
+		if got := sharesOf(funcNamed(t, p, name), midir.OpShare, true); got != want {
 			t.Errorf("%s: %d planned copies, want %d:\n%s", name, got, want, p.Dump())
 		}
 	}

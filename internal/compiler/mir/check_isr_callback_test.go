@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const isrCallbackSrc = `
@@ -54,14 +55,14 @@ export(interrupt) {
 func callFromTick(t *testing.T, prog *mir.Program, callee string) {
 	t.Helper()
 	tick, g := funcNamed(t, prog, "main.tick"), funcNamed(t, prog, "main."+callee)
-	var args []mir.LocalID
+	var args []midir.LocalID
 	for _, p := range g.Params {
-		tick.Locals = append(tick.Locals, mir.Local{Name: "held", Type: g.Locals[p].Type})
-		args = append(args, mir.LocalID(len(tick.Locals)-1))
+		tick.Locals = append(tick.Locals, midir.Local{Name: "held", Type: g.Locals[p].Type})
+		args = append(args, midir.LocalID(len(tick.Locals)-1))
 	}
-	tick.Locals = append(tick.Locals, mir.Local{Name: "out", Type: g.Ret})
+	tick.Locals = append(tick.Locals, midir.Local{Name: "out", Type: g.Ret})
 	blk := &tick.Blocks[0]
-	blk.Insts = append(blk.Insts, mir.Inst{Op: mir.OpCall, Ent: g.Ent, Dst: mir.LocalID(len(tick.Locals) - 1), Args: args})
+	blk.Insts = append(blk.Insts, midir.Inst{Op: midir.OpCall, Ent: g.Ent, Dst: midir.LocalID(len(tick.Locals) - 1), Args: args})
 }
 
 func TestInterruptLoweringCallbackPrimitives(t *testing.T) {
@@ -91,16 +92,16 @@ func TestInterruptLoweringCallbackPrimitives(t *testing.T) {
 func TestInterruptLoweringCallbackHasNoPositionalInertArgs(t *testing.T) {
 	prog := planned(t, isrCallbackSrc)
 	f := funcNamed(t, prog, "main.withInert")
-	var call mir.Inst
+	var call midir.Inst
 	for _, in := range f.Blocks[0].Insts {
-		if in.Op == mir.OpCall && prog.IsStdPrimitive(in.Ent) {
+		if in.Op == midir.OpCall && prog.IsStdPrimitive(in.Ent) {
 			call = in
 		}
 	}
-	if call.Op != mir.OpCall || len(call.Args) != 2 {
+	if call.Op != midir.OpCall || len(call.Args) != 2 {
 		t.Fatalf("withInert must call a two-argument primitive: %+v", call)
 	}
-	callback := &mir.Func{Params: []mir.LocalID{0, 1}}
+	callback := &midir.Func{Params: []midir.LocalID{0, 1}}
 	if got := prog.IsrInertArgs(f, call, callback); got != nil {
 		t.Errorf("a callback reached through a primitive must not take positional inert marks: %v", got)
 	}

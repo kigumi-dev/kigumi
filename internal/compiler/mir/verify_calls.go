@@ -1,10 +1,13 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
-func (p *callVerifier) check(f *Func) *Error {
+func (p *callVerifier) check(f *midir.Func) *Error {
 	for bid, blk := range f.Blocks {
-		bid := BlockID(bid)
+		bid := midir.BlockID(bid)
 		for i, in := range blk.Insts {
 			if msg := p.callMismatch(f, in); msg != "" {
 				return fail("calls", bid, i, "%s %s", in.Op, msg)
@@ -14,9 +17,9 @@ func (p *callVerifier) check(f *Func) *Error {
 	return nil
 }
 
-func (p *callVerifier) callMismatch(f *Func, in Inst) string {
+func (p *callVerifier) callMismatch(f *midir.Func, in midir.Inst) string {
 	switch in.Op {
-	case OpCall:
+	case midir.OpCall:
 		var msg string
 		if callee := p.ByEnt[in.Ent]; callee != nil {
 			msg = p.bodyCallMismatch(f, in, callee)
@@ -27,30 +30,30 @@ func (p *callVerifier) callMismatch(f *Func, in Inst) string {
 			msg = p.boundMismatch(f, in)
 		}
 		return msg
-	case OpCallValue:
+	case midir.OpCallValue:
 		return p.valueCallMismatch(f, in)
-	case OpCallC:
+	case midir.OpCallC:
 		return p.cCallMismatch(f, in)
-	case OpAsm:
+	case midir.OpAsm:
 		return p.asmMismatch(f, in)
-	case OpClosure:
+	case midir.OpClosure:
 		if callee := p.ByEnt[in.Ent]; callee != nil && in.Str != "applied" {
 			if msg := p.captureMismatch(f, in, callee); msg != "" {
 				return msg
 			}
 			return p.closureSigMismatch(f, in, callee)
 		}
-	case OpBind:
+	case midir.OpBind:
 		return p.bindMismatch(f, in)
-	case OpFutureNew:
+	case midir.OpFutureNew:
 		return p.futureMismatch(f, in)
 	}
 	return ""
 }
 
-func (p *callVerifier) futureMismatch(f *Func, in Inst) string {
+func (p *callVerifier) futureMismatch(f *midir.Func, in midir.Inst) string {
 	item := p.soleDefOf(f, in.Args[0])
-	if item == nil || item.Op != OpFnItem || !item.Async {
+	if item == nil || item.Op != midir.OpFnItem || !item.Async {
 		return "runs %" + f.Locals[in.Args[0]].Name + ", which is not an async function item"
 	}
 	tt := p.R.Types
@@ -80,8 +83,8 @@ func (p *callVerifier) futureMismatch(f *Func, in Inst) string {
 	return ""
 }
 
-func soleDef(f *Func, l LocalID) *Inst {
-	var def *Inst
+func soleDef(f *midir.Func, l midir.LocalID) *midir.Inst {
+	var def *midir.Inst
 	for _, blk := range f.Blocks {
 		for k := range blk.Insts {
 			if d := &blk.Insts[k]; d.Op.Yields() && d.Dst == l {
@@ -95,20 +98,20 @@ func soleDef(f *Func, l LocalID) *Inst {
 	return def
 }
 
-func (p *callVerifier) captureMismatch(f *Func, in Inst, callee *Func) string {
+func (p *callVerifier) captureMismatch(f *midir.Func, in midir.Inst, callee *midir.Func) string {
 	if len(in.Args) > len(callee.Params) {
 		return "captures " + itoa(len(in.Args)) + " values for a body of " + itoa(len(callee.Params)) + " parameters"
 	}
-	if in.Op == OpClosure && p.R.Entity(in.Ent).Kind == sem.EntClosure {
+	if in.Op == midir.OpClosure && p.R.Entity(in.Ent).Kind == sem.EntClosure {
 		if n := len(p.R.Closure(in.Ent).Captures); n != len(in.Args) {
 			return "captures " + itoa(len(in.Args)) + " values for a closure of " + itoa(n) + " captures"
 		}
 	}
 	first := 0
-	if in.Op == OpBind {
+	if in.Op == midir.OpBind {
 		first = len(callee.Params) - len(in.Args)
 	}
-	open := in.Op == OpBind || in.Str == "method"
+	open := in.Op == midir.OpBind || in.Str == "method"
 	for k, a := range in.Args {
 		if want := callee.Locals[callee.Params[first+k]].Type; !p.compat(want, f.Locals[a].Type, open) {
 			return "captures " + p.R.TypeString(f.Locals[a].Type) + " for a parameter of " + p.R.TypeString(want) + " of " + callee.Name
@@ -117,7 +120,7 @@ func (p *callVerifier) captureMismatch(f *Func, in Inst, callee *Func) string {
 	return ""
 }
 
-func (p *callVerifier) bodyCallMismatch(f *Func, in Inst, callee *Func) string {
+func (p *callVerifier) bodyCallMismatch(f *midir.Func, in midir.Inst, callee *midir.Func) string {
 	if len(in.Args) != len(callee.Params) {
 		return "passes " + itoa(len(in.Args)) + " values to " + callee.Name + ", which takes " + itoa(len(callee.Params))
 	}
@@ -135,7 +138,7 @@ func (p *callVerifier) bodyCallMismatch(f *Func, in Inst, callee *Func) string {
 	return ""
 }
 
-func (p *callVerifier) valueCallMismatch(f *Func, in Inst) string {
+func (p *callVerifier) valueCallMismatch(f *midir.Func, in midir.Inst) string {
 	args := in.Args[1:]
 	if in.Ent != 0 {
 		info := p.R.Fn(in.Ent)

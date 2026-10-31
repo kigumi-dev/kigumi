@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -15,10 +16,10 @@ type derivation struct {
 }
 
 // Two ways to one local keep their common prefix.
-func (c *borrowCheck) paramDerivations(g *Func, p LocalID) map[LocalID]derivation {
-	from := map[LocalID]derivation{p: {}}
+func (c *borrowCheck) paramDerivations(g *midir.Func, p midir.LocalID) map[midir.LocalID]derivation {
+	from := map[midir.LocalID]derivation{p: {}}
 	defs := soleDefs(g)
-	def := func(l LocalID) *Inst { return defs[l] }
+	def := func(l midir.LocalID) *midir.Inst { return defs[l] }
 	for changed := true; changed; {
 		changed = false
 		for _, blk := range g.Blocks {
@@ -26,7 +27,7 @@ func (c *borrowCheck) paramDerivations(g *Func, p LocalID) map[LocalID]derivatio
 				if !derives[in.Op] && !c.opaqueResult(&in) {
 					continue
 				}
-				k := slices.IndexFunc(in.Args, func(a LocalID) bool { _, ok := from[a]; return ok })
+				k := slices.IndexFunc(in.Args, func(a midir.LocalID) bool { _, ok := from[a]; return ok })
 				if k < 0 {
 					continue
 				}
@@ -43,10 +44,10 @@ func (c *borrowCheck) paramDerivations(g *Func, p LocalID) map[LocalID]derivatio
 }
 
 // A loop element lies at some element of its collection, and another opaque result anywhere below its argument.
-func (c *borrowCheck) deriveStep(g *Func, in *Inst, d derivation, base bool, def func(LocalID) *Inst) derivation {
+func (c *borrowCheck) deriveStep(g *midir.Func, in *midir.Inst, d derivation, base bool, def func(midir.LocalID) *midir.Inst) derivation {
 	out := derivation{path: d.path, cut: d.cut || !base, beyond: d.beyond, via: d.via}
 	step, read := pathStep(in, def)
-	if in.Op == OpUnbox {
+	if in.Op == midir.OpUnbox {
 		out.cut, read = true, true
 	}
 	held := read && c.p.R.Types.Kind(g.Locals[in.Dst].Type) == sem.KRef
@@ -65,11 +66,11 @@ func (c *borrowCheck) deriveStep(g *Func, in *Inst, d derivation, base bool, def
 }
 
 // opaqueResult reports a call whose body the summaries do not read, so its result may be or point into an argument.
-func (c *borrowCheck) opaqueResult(in *Inst) bool {
+func (c *borrowCheck) opaqueResult(in *midir.Inst) bool {
 	switch in.Op {
-	case OpBuiltin, OpCallValue:
+	case midir.OpBuiltin, midir.OpCallValue:
 		return true
-	case OpCall:
+	case midir.OpCall:
 		return c.p.ByEnt[in.Ent] == nil
 	}
 	return false

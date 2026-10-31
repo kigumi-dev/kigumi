@@ -1,9 +1,13 @@
 package mir
 
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
 // checkSuspend rejects a borrow still live after a suspension point: the
 // frame outlives the call that lent the value.
-func (c *borrowCheck) checkSuspend(in Inst, liveAfter map[LocalID]bool) {
-	if in.Op != OpAwait {
+func (c *borrowCheck) checkSuspend(in midir.Inst, liveAfter map[midir.LocalID]bool) {
+	if in.Op != midir.OpAwait {
 		return
 	}
 	for holder := range liveAfter {

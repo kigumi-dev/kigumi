@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
@@ -68,18 +69,18 @@ type site struct {
 	m     *mutator
 	p     *mir.Program
 	r     *chooser
-	f     *mir.Func
+	f     *midir.Func
 	fnIdx int
 	bi    int
 	ii    int
 }
 
-func (s *site) blk() *mir.Block { return &s.f.Blocks[s.bi] }
-func (s *site) inst() *mir.Inst { return &s.f.Blocks[s.bi].Insts[s.ii] }
-func (s *site) hasInst() bool   { return s.ii >= 0 }
+func (s *site) blk() *midir.Block { return &s.f.Blocks[s.bi] }
+func (s *site) inst() *midir.Inst { return &s.f.Blocks[s.bi].Insts[s.ii] }
+func (s *site) hasInst() bool     { return s.ii >= 0 }
 
-func (s *site) block() mir.BlockID {
-	return mir.BlockID(s.r.Intn(len(s.f.Blocks) + 1))
+func (s *site) block() midir.BlockID {
+	return midir.BlockID(s.r.Intn(len(s.f.Blocks) + 1))
 }
 
 func (s *site) where() string {

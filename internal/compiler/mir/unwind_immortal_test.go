@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -47,13 +48,13 @@ func TestImmortalLocalsAreConstantsAndNever(t *testing.T) {
 		t.Error("no never-typed local is immortal")
 	}
 	for l := range f.Params {
-		if imm[mir.LocalID(l)] {
+		if imm[midir.LocalID(l)] {
 			t.Errorf("parameter %d is immortal", l)
 		}
 	}
 }
 
-func definedOnlyByConst(f *mir.Func, l mir.LocalID) bool {
+func definedOnlyByConst(f *midir.Func, l midir.LocalID) bool {
 	seen := false
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
@@ -61,9 +62,9 @@ func definedOnlyByConst(f *mir.Func, l mir.LocalID) bool {
 				continue
 			}
 			switch in.Op {
-			case mir.OpConst, mir.OpUnit:
+			case midir.OpConst, midir.OpUnit:
 				seen = true
-			case mir.OpDrop, mir.OpRelease, mir.OpPanic, mir.OpNop, mir.OpSetField, mir.OpSetIndex, mir.OpCellSet:
+			case midir.OpDrop, midir.OpRelease, midir.OpPanic, midir.OpNop, midir.OpSetField, midir.OpSetIndex, midir.OpCellSet:
 			default:
 				return false
 			}

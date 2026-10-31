@@ -3,7 +3,7 @@ package llgen
 import (
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -18,31 +18,31 @@ const (
 )
 
 type wrapperKey struct {
-	f    *mir.Func
+	f    *midir.Func
 	kind wrapperKind
 }
 
-func (e *emitter) useAdapter(f *mir.Func) string {
+func (e *emitter) useAdapter(f *midir.Func) string {
 	e.wrapNeed[wrapperKey{f, wrapAdapter}] = true
 	return e.adapterSym(f)
 }
 
-func (e *emitter) useBind(f *mir.Func) string {
+func (e *emitter) useBind(f *midir.Func) string {
 	e.wrapNeed[wrapperKey{f, wrapBind}] = true
 	return e.bindSym(f)
 }
 
-func (e *emitter) useEntry(f *mir.Func) string {
+func (e *emitter) useEntry(f *midir.Func) string {
 	e.wrapNeed[wrapperKey{f, wrapEntry}] = true
 	return e.sym(f.Entry)
 }
 
-func (e *emitter) useMethodAdapter(f *mir.Func) string {
+func (e *emitter) useMethodAdapter(f *midir.Func) string {
 	e.wrapNeed[wrapperKey{f, wrapMethod}] = true
 	return e.methodAdapterSym(f)
 }
 
-func (e *emitter) wrappable(f *mir.Func, k wrapperKind) bool {
+func (e *emitter) wrappable(f *midir.Func, k wrapperKind) bool {
 	isFn := e.r.Entity(f.Ent).Kind == sem.EntFn
 	if f.Async || isFn && e.r.Fn(f.Ent).Naked {
 		return false

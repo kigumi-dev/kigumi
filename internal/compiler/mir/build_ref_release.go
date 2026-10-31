@@ -3,13 +3,14 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // hoistRefReleases moves the scope-end release of a named reference used in one block up to its
 // last use there; releasing a borrow of a named local runs no destructor, so only the borrow's end moves.
-func (g *ghostSet) hoistRefReleases(p *Program, f *Func) {
-	var defs map[LocalID][]Inst
+func (g *ghostSet) hoistRefReleases(p *Program, f *midir.Func) {
+	var defs map[midir.LocalID][]midir.Inst
 	var flow *blockFlow
 	for l := range f.Locals {
 		loc := f.Locals[l]
@@ -19,20 +20,20 @@ func (g *ghostSet) hoistRefReleases(p *Program, f *Func) {
 		if defs == nil {
 			defs = resultDefs(f)
 		}
-		if namedReferent(p, f, defs, LocalID(l), map[LocalID]bool{}) && !g.hoistRefRelease(p, f, LocalID(l)) && callResult(defs, LocalID(l)) {
+		if namedReferent(p, f, defs, midir.LocalID(l), map[midir.LocalID]bool{}) && !g.hoistRefRelease(p, f, midir.LocalID(l)) && callResult(defs, midir.LocalID(l)) {
 			if flow == nil || len(flow.preds) != len(f.Blocks) {
 				flow = newBlockFlow(f)
 			}
-			g.hoistRefDrops(p, f, LocalID(l), flow)
+			g.hoistRefDrops(p, f, midir.LocalID(l), flow)
 		}
 	}
 }
 
-func resultDefs(f *Func) map[LocalID][]Inst {
-	defs := map[LocalID][]Inst{}
+func resultDefs(f *midir.Func) map[midir.LocalID][]midir.Inst {
+	defs := map[midir.LocalID][]midir.Inst{}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if shapes[in.Op].result {
+			if in.Op.Yields() {
 				defs[in.Dst] = append(defs[in.Dst], in)
 			}
 		}
@@ -40,7 +41,7 @@ func resultDefs(f *Func) map[LocalID][]Inst {
 	return defs
 }
 
-func namedReferent(p *Program, f *Func, defs map[LocalID][]Inst, l LocalID, seen map[LocalID]bool) bool {
+func namedReferent(p *Program, f *midir.Func, defs map[midir.LocalID][]midir.Inst, l midir.LocalID, seen map[midir.LocalID]bool) bool {
 	if seen[l] {
 		return true
 	}
@@ -50,11 +51,11 @@ func namedReferent(p *Program, f *Func, defs map[LocalID][]Inst, l LocalID, seen
 	}
 	for _, d := range defs[l] {
 		switch d.Op {
-		case OpCopy, OpMove, OpAlias, OpShare, OpBorrow, OpField, OpIndex, OpPayload, OpCellGet, OpNewCell:
+		case midir.OpCopy, midir.OpMove, midir.OpAlias, midir.OpShare, midir.OpBorrow, midir.OpField, midir.OpIndex, midir.OpPayload, midir.OpCellGet, midir.OpNewCell:
 			if a := d.Args[0]; f.Locals[a].Ent == 0 && !namedReferent(p, f, defs, a, seen) {
 				return false
 			}
-		case OpCall, OpCallValue:
+		case midir.OpCall, midir.OpCallValue:
 			if p.R.Types.Kind(f.Locals[l].Type) != sem.KRef {
 				return false
 			}
@@ -71,25 +72,25 @@ func namedReferent(p *Program, f *Func, defs map[LocalID][]Inst, l LocalID, seen
 }
 
 // hoistRefRelease moves l's one release to its defining block when every use is there, false when it cannot.
-func (g *ghostSet) hoistRefRelease(p *Program, f *Func, l LocalID) bool {
+func (g *ghostSet) hoistRefRelease(p *Program, f *midir.Func, l midir.LocalID) bool {
 	home, def, last := -1, -1, -1
 	dropBlk, drop := -1, -1
 	for bid := range f.Blocks {
 		blk := &f.Blocks[bid]
 		for i, in := range blk.Insts {
 			switch {
-			case shapes[in.Op].result && in.Dst == l:
+			case in.Op.Yields() && in.Dst == l:
 				if home != -1 {
 					return false
 				}
 				home, def = bid, i
-			case in.Op == OpDrop && len(in.Args) == 1 && in.Args[0] == l:
+			case in.Op == midir.OpDrop && len(in.Args) == 1 && in.Args[0] == l:
 				if !in.EndScope || drop != -1 {
 					return false
 				}
 				dropBlk, drop = bid, i
 			case slices.Contains(in.Args, l):
-				if bid != home || shapes[in.Op].result && !p.R.IsCopy(f.Locals[in.Dst].Type) {
+				if bid != home || in.Op.Yields() && !p.R.IsCopy(f.Locals[in.Dst].Type) {
 					return false
 				}
 				last = i

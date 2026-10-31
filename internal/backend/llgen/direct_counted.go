@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 func (a *aggInfo) counted() bool {
@@ -18,7 +18,7 @@ func (a *aggInfo) counted() bool {
 
 func (f aggField) counts() bool { return f.Ref || f.Agg != nil && f.Agg.counted() }
 
-func (e *emitter) countedLocal(l mir.LocalID) (*aggInfo, bool) {
+func (e *emitter) countedLocal(l midir.LocalID) (*aggInfo, bool) {
 	a, ok := e.direct[l]
 	return a, ok && a.counted()
 }
@@ -118,50 +118,50 @@ func refSlots(v aggVariant) []int {
 }
 
 // shareRefs gives a copied value its own counts the way the boxed share would: rt_copy, rt_copy_mut or rt_retain per reference.
-func (e *emitter) shareRefs(sb *strings.Builder, a *aggInfo, in mir.Inst) {
+func (e *emitter) shareRefs(sb *strings.Builder, a *aggInfo, in midir.Inst) {
 	op := refRetain
 	switch {
-	case (in.Op == mir.OpShare || in.Op == mir.OpCopy) && in.Copy && in.IfWritable:
+	case (in.Op == midir.OpShare || in.Op == midir.OpCopy) && in.Copy && in.IfWritable:
 		op = refCopyMut
-	case (in.Op == mir.OpShare || in.Op == mir.OpCopy) && in.Copy:
+	case (in.Op == midir.OpShare || in.Op == midir.OpCopy) && in.Copy:
 		op = refCopy
 	}
 	e.refCall(sb, a, op, aggPtr(in.Dst))
 }
 
-func (e *emitter) countedCopyInst(sb *strings.Builder, f *mir.Func, a *aggInfo, in mir.Inst) {
+func (e *emitter) countedCopyInst(sb *strings.Builder, f *midir.Func, a *aggInfo, in midir.Inst) {
 	copyAgg(sb, a, aggPtr(in.Dst), aggPtr(in.Args[0]))
 	switch {
-	case in.Op == mir.OpShare || in.Op == mir.OpCopy:
+	case in.Op == midir.OpShare || in.Op == midir.OpCopy:
 		e.shareRefs(sb, a, in)
-	case in.Op == mir.OpMove && f.Locals[in.Args[0]].Ent != 0:
+	case in.Op == midir.OpMove && f.Locals[in.Args[0]].Ent != 0:
 		zeroAgg(sb, a, aggPtr(in.Args[0]))
 	}
 }
 
 type countedCross struct {
-	src                 mir.LocalID
+	src                 midir.LocalID
 	agg                 *aggInfo
 	unbox, hands, named bool
 }
 
 // countedCrosses names the crossing temporaries of a counted value; each holds counts of its own until its one reader settles them.
-func (e *emitter) countedCrosses(f *mir.Func) map[mir.LocalID]countedCross {
-	out := map[mir.LocalID]countedCross{}
+func (e *emitter) countedCrosses(f *midir.Func) map[midir.LocalID]countedCross {
+	out := map[midir.LocalID]countedCross{}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if (in.Op != mir.OpBoxDirect && in.Op != mir.OpUnboxDirect) || !f.Locals[in.Dst].Cross || f.Locals[in.Args[0]].Cross {
+			if (in.Op != midir.OpBoxDirect && in.Op != midir.OpUnboxDirect) || !f.Locals[in.Dst].Cross || f.Locals[in.Args[0]].Cross {
 				continue
 			}
 			if a, ok := e.agg(in.Type); ok && a.counted() {
-				out[in.Dst] = countedCross{src: in.Args[0], agg: a, unbox: in.Op == mir.OpUnboxDirect, hands: e.p.CrossHandsOver(f, &in), named: f.Locals[in.Args[0]].Ent != 0}
+				out[in.Dst] = countedCross{src: in.Args[0], agg: a, unbox: in.Op == midir.OpUnboxDirect, hands: e.p.CrossHandsOver(f, &in), named: f.Locals[in.Args[0]].Ent != 0}
 			}
 		}
 	}
 	return out
 }
 
-func (e *emitter) settleCountedCross(sb *strings.Builder, f *mir.Func, in mir.Inst) {
+func (e *emitter) settleCountedCross(sb *strings.Builder, f *midir.Func, in midir.Inst) {
 	for i, a := range in.Args {
 		if x, ok := e.countedX[a]; ok && x.unbox && e.keepsCrossTemp(f, in, i, x) {
 			e.refCall(sb, e.direct[a], refDrop, aggPtr(a))
@@ -170,21 +170,21 @@ func (e *emitter) settleCountedCross(sb *strings.Builder, f *mir.Func, in mir.In
 }
 
 // An alias of a crossing out of a named local is a view the local keeps counted, and a move of it takes the local.
-func (e *emitter) keepsCrossTemp(f *mir.Func, in mir.Inst, i int, x countedCross) bool {
-	return in.Op == mir.OpShare || !e.p.ArgConsumed(f, in, i) || in.Op == mir.OpAlias && !x.hands
+func (e *emitter) keepsCrossTemp(f *midir.Func, in midir.Inst, i int, x countedCross) bool {
+	return in.Op == midir.OpShare || !e.p.ArgConsumed(f, in, i) || in.Op == midir.OpAlias && !x.hands
 }
 
-func (e *emitter) settleCountedSources(sb *strings.Builder, f *mir.Func, in mir.Inst) {
+func (e *emitter) settleCountedSources(sb *strings.Builder, f *midir.Func, in midir.Inst) {
 	for i, a := range in.Args {
 		x, ok := e.countedX[a]
 		switch {
 		case !ok:
 		case x.unbox:
-			if in.Op == mir.OpMove && x.named && !e.keepsCrossTemp(f, in, i, x) {
+			if in.Op == midir.OpMove && x.named && !e.keepsCrossTemp(f, in, i, x) {
 				e.irb(sb).Call(rtRelease, vptr(e.load(sb, x.src)))
 			}
 		case e.p.BoxConsumed(in, i):
-			e.dropCrossSource(sb, x, in.Op == mir.OpMove)
+			e.dropCrossSource(sb, x, in.Op == midir.OpMove)
 		}
 	}
 }

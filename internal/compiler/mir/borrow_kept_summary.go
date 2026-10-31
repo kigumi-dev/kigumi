@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -25,7 +26,7 @@ func (s *keptSummary) movesInto(t, i int) bool {
 
 // keptKey names a summary of g with its callable parameters bound to the fn items a call site passes.
 type keptKey struct {
-	g    *Func
+	g    *midir.Func
 	bind string
 }
 
@@ -55,28 +56,28 @@ func (c *borrowCheck) keptStoreSummary(e sem.EntityID, bind map[int][]sem.Entity
 
 // keptCtx is one keptBody run over g: the facts so far, and index, a local's declared parameter index or -1.
 type keptCtx struct {
-	g     *Func
-	defs  map[LocalID][]*Inst
-	facts map[LocalID]uint64
+	g     *midir.Func
+	defs  map[midir.LocalID][]*midir.Inst
+	facts map[midir.LocalID]uint64
 	bind  map[int][]sem.EntityID
-	index func(LocalID) int
-	put   func(LocalID, uint64)
+	index func(midir.LocalID) int
+	put   func(midir.LocalID, uint64)
 }
 
 // keptBody follows each parameter through g only into locals that can keep a borrow or are a place g borrows, so a value
 // computed off it (a length) or moved out of its referent (keptCall) does not count as keeping it.
-func (c *borrowCheck) keptBody(g *Func, bind map[int][]sem.EntityID) *keptSummary {
+func (c *borrowCheck) keptBody(g *midir.Func, bind map[int][]sem.EntityID) *keptSummary {
 	declared := c.declaredParams(g.Ent)
 	if len(declared) > contentShift {
 		return &keptSummary{all: true}
 	}
-	index := func(l LocalID) int {
+	index := func(l midir.LocalID) int {
 		if e := g.Locals[l].Ent; e != 0 && slices.Contains(g.Params, l) {
 			return slices.Index(declared, e)
 		}
 		return -1
 	}
-	facts := map[LocalID]uint64{}
+	facts := map[midir.LocalID]uint64{}
 	for _, l := range g.Params {
 		if i := index(l); i >= 0 {
 			facts[l] |= 1 << i
@@ -86,7 +87,7 @@ func (c *borrowCheck) keptBody(g *Func, bind map[int][]sem.EntityID) *keptSummar
 	places := borrowedPlaces(g, k.defs)
 	for changed := true; changed; {
 		changed = false
-		k.put = func(l LocalID, f uint64) {
+		k.put = func(l midir.LocalID, f uint64) {
 			t := g.Locals[l].Type
 			if facts[l]|f == facts[l] || !places[l] && !g.Locals[l].Cell && !c.holdsBorrow(t) && !c.holdsDeferred(t) && !c.namesTypeParam(t) {
 				return
@@ -103,7 +104,7 @@ func (c *borrowCheck) keptBody(g *Func, bind map[int][]sem.EntityID) *keptSummar
 	s := &keptSummary{stores: map[int]uint64{}}
 	for _, blk := range g.Blocks {
 		for _, a := range blk.Term.Args {
-			if blk.Term.Op == TermReturn {
+			if blk.Term.Op == midir.TermReturn {
 				s.result |= facts[a]
 			}
 		}
@@ -116,7 +117,7 @@ func (c *borrowCheck) keptBody(g *Func, bind map[int][]sem.EntityID) *keptSummar
 	return s
 }
 
-func (c *borrowCheck) own(k *keptCtx, a LocalID) uint64 {
+func (c *borrowCheck) own(k *keptCtx, a midir.LocalID) uint64 {
 	var bits uint64
 	for _, r := range c.refRoots(k.g, k.defs, a) {
 		if i := k.index(r); i >= 0 {
@@ -128,7 +129,7 @@ func (c *borrowCheck) own(k *keptCtx, a LocalID) uint64 {
 
 // moved is what a callee taking something out of lent operand a may hand on: what a's place was given in this body and
 // what the referents of the parameters a names (own) held at the call, not those parameters themselves.
-func (c *borrowCheck) moved(k *keptCtx, a LocalID) uint64 {
+func (c *borrowCheck) moved(k *keptCtx, a midir.LocalID) uint64 {
 	t := k.g.Locals[a].Type
 	if c.p.R.Types.Kind(t) == sem.KRef {
 		t = c.p.R.Types.Node(t).Elem
@@ -140,12 +141,12 @@ func (c *borrowCheck) moved(k *keptCtx, a LocalID) uint64 {
 	return k.facts[a]&^own | own<<contentShift
 }
 
-func (c *borrowCheck) keptStep(k *keptCtx, in Inst) {
+func (c *borrowCheck) keptStep(k *keptCtx, in midir.Inst) {
 	g := k.g
-	into := func(a LocalID, f uint64) {
+	into := func(a midir.LocalID, f uint64) {
 		roots, ok := c.placeRoots(g, k.defs, a)
 		if !ok {
-			roots = slices.DeleteFunc(slices.Clone(g.Params), func(p LocalID) bool { return !c.lendsPlace(g, p) })
+			roots = slices.DeleteFunc(slices.Clone(g.Params), func(p midir.LocalID) bool { return !c.lendsPlace(g, p) })
 		}
 		for _, r := range roots {
 			k.put(r, f)
@@ -159,7 +160,7 @@ func (c *borrowCheck) keptStep(k *keptCtx, in Inst) {
 		}
 		k.put(in.Dst, from)
 	case roleStore:
-		if in.Op != OpGlobalSet {
+		if in.Op != midir.OpGlobalSet {
 			into(in.Args[0], k.facts[in.Args[len(in.Args)-1]])
 		}
 	case roleCall:

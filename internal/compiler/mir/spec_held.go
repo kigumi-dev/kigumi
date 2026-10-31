@@ -1,6 +1,7 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/lang/diag"
 )
@@ -17,9 +18,9 @@ type heldRoot struct {
 
 // markRooted finds the bodies a held root reaches through the calls, values and closures that name them.
 func (s *specializer) markRooted() {
-	s.rooted = map[*Func]*heldRoot{}
-	var work []*Func
-	add := func(f *Func, root *heldRoot) {
+	s.rooted = map[*midir.Func]*heldRoot{}
+	var work []*midir.Func
+	add := func(f *midir.Func, root *heldRoot) {
 		if f != nil && s.rooted[f] == nil {
 			s.rooted[f] = root
 			work = append(work, f)
@@ -52,7 +53,7 @@ func (s *specializer) markRooted() {
 	}
 }
 
-func (s *specializer) heldIn(f *Func, ctx *spec) *heldRoot {
+func (s *specializer) heldIn(f *midir.Func, ctx *spec) *heldRoot {
 	if ctx != nil {
 		return ctx.held
 	}
@@ -73,7 +74,7 @@ func (s *specializer) hold(sp *spec, root *heldRoot) {
 	}
 }
 
-func (s *specializer) overHeldLimit(f *Func, in Inst, root *heldRoot, gen sem.EntityID, args []sem.TypeID) bool {
+func (s *specializer) overHeldLimit(f *midir.Func, in midir.Inst, root *heldRoot, gen sem.EntityID, args []sem.TypeID) bool {
 	if root.count < heldSpecsPerRoot {
 		return false
 	}

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 // callBoxed calls f under the boxed convention; a direct signature's crossings live in f's MIR entry.
-func (e *emitter) callBoxed(sb *strings.Builder, f *mir.Func, vals []string) string {
+func (e *emitter) callBoxed(sb *strings.Builder, f *midir.Func, vals []string) string {
 	sym := e.sym(f)
 	if f.Entry != nil {
 		sym = e.useEntry(f)

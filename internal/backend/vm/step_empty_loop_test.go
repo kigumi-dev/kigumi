@@ -8,6 +8,7 @@ import (
 
 	"kigumi/internal/backend/vm"
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 func TestSandboxStepBudgetStopsAnEmptyLoop(t *testing.T) {
@@ -21,7 +22,7 @@ func TestSandboxStepBudgetStopsAnEmptyLoop(t *testing.T) {
 			entry = f
 		}
 	}
-	entry.Blocks = []mir.Block{{Term: mir.Term{Op: mir.TermJump, Targets: []mir.BlockID{0}}}}
+	entry.Blocks = []midir.Block{{Term: midir.Term{Op: midir.TermJump, Targets: []midir.BlockID{0}}}}
 	done := make(chan int, 1)
 	go func() {
 		code, _ := vm.Run(prog, vm.Options{Sandbox: true, StepLimit: 1000, DepthLimit: 100}, io.Discard, io.Discard)
@@ -46,7 +47,7 @@ func TestSandboxStepBudgetStopsAnEmptyAsyncLoop(t *testing.T) {
 	spun := false
 	for _, f := range prog.Funcs {
 		if f.Name == "spin" || strings.HasSuffix(f.Name, ".spin") {
-			f.Blocks = []mir.Block{{Term: mir.Term{Op: mir.TermJump, Targets: []mir.BlockID{0}}}}
+			f.Blocks = []midir.Block{{Term: midir.Term{Op: midir.TermJump, Targets: []midir.BlockID{0}}}}
 			spun = true
 		}
 	}

@@ -4,49 +4,50 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
+func (e *emitter) instBody(sb *strings.Builder, f *midir.Func, in midir.Inst) {
 	if e.tryScalarInst(sb, f, in) {
 		return
 	}
 	if e.tryDirectInst(sb, f, in) || e.iterBuiltin(sb, f, in) {
 		return
 	}
-	if in.Op == mir.OpNop {
+	if in.Op == midir.OpNop {
 		return
 	}
 	args, boxed := e.instArgs(sb, in)
 	defer e.releaseAggArgs(sb, in, args, boxed)
 	res := ""
 	switch in.Op {
-	case mir.OpConst:
+	case midir.OpConst:
 		res = e.constant(sb, in)
-	case mir.OpUnit:
+	case midir.OpUnit:
 		res = e.irb(sb).Call(rtUnit).Text
-	case mir.OpGlobalGet:
+	case midir.OpGlobalGet:
 		res = e.loadGlobal(sb, in.Ent)
-	case mir.OpGlobalSet:
+	case midir.OpGlobalSet:
 		e.storeGlobal(sb, in.Ent, args[0])
 		return
-	case mir.OpAlias:
+	case midir.OpAlias:
 		res = args[0]
-	case mir.OpShare:
+	case midir.OpShare:
 		res = e.share(sb, f, in, args[0])
-	case mir.OpRelease:
+	case midir.OpRelease:
 		e.dropCall(sb, f, rtRelease, args[0])
 		return
-	case mir.OpMove:
+	case midir.OpMove:
 		res = args[0]
 		// A moved-out binding may still be dropped on a path that did not
 		// move it; a null slot makes that release a no-op.
 		if f.Locals[in.Args[0]].Ent != 0 {
 			e.store(sb, in.Args[0], "null")
 		}
-	case mir.OpCall:
+	case midir.OpCall:
 		res = e.callEntity(sb, f, in, args, f.Locals[in.Dst].Type)
-	case mir.OpCallValue:
+	case midir.OpCallValue:
 		arr := e.argArray(sb, args[1:])
 		if e.isScalar(in.Dst) {
 			e.storeNative(sb, in.Dst, e.callValue(sb, in, args, arr, true))
@@ -54,76 +55,76 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 			return
 		}
 		res = e.callValue(sb, in, args, arr, false).Text
-	case mir.OpBuiltin:
+	case midir.OpBuiltin:
 		res = e.builtinCall(sb, in, args)
-	case mir.OpFutureNew:
+	case midir.OpFutureNew:
 		arr := e.argArray(sb, args[1:])
 		res = e.irb(sb).Call(rtFutureNew, vptr(args[0]), vi32(len(args)-1), vptr(arr)).Text
-	case mir.OpAwait, mir.OpCancelled, mir.OpCancelDone:
+	case midir.OpAwait, midir.OpCancelled, midir.OpCancelDone:
 		e.asyncOp(sb, in, args)
 		return
-	case mir.OpFutureDone:
+	case midir.OpFutureDone:
 		e.irb(sb).Call(rtFutureComplete, vptr("%fut"), vptr(args[0]))
 		return
-	case mir.OpBinary:
+	case midir.OpBinary:
 		res = e.irb(sb).Call(rtBinop, vptr(e.cstr(in.Str)), vptr(args[0]), vptr(args[1])).Text
-	case mir.OpUnary:
+	case midir.OpUnary:
 		if in.Str == "cast" {
 			res = e.irb(sb).Call(rtCast, vptr(args[0]), vi32(e.numKind(in.Type))).Text
 		} else {
 			res = e.irb(sb).Call(rtUnop, vptr(e.cstr(in.Str)), vptr(args[0])).Text
 		}
-	case mir.OpRecord:
+	case midir.OpRecord:
 		arr := e.argArray(sb, args)
 		res = e.irb(sb).Call(rtRecord, vptr(e.desc(in.Ent)), vi64(len(args)), vptr(arr)).Text
-	case mir.OpVariant:
+	case midir.OpVariant:
 		res = e.variant(sb, in, args)
-	case mir.OpField:
+	case midir.OpField:
 		res = e.irb(sb).Call(rtField, vptr(args[0]), vi64(in.Index)).Text
-	case mir.OpFieldMove:
+	case midir.OpFieldMove:
 		res = e.irb(sb).Call(rtFieldMove, vptr(args[0]), vi64(in.Index)).Text
-	case mir.OpSetField:
+	case midir.OpSetField:
 		e.setField(sb, f, in, args)
 		return
-	case mir.OpArray:
+	case midir.OpArray:
 		arr := e.argArray(sb, args)
 		res = e.irb(sb).Call(rtArray, vi64(len(args)), vptr(arr)).Text
-	case mir.OpIndex:
+	case midir.OpIndex:
 		res = e.irb(sb).Call(rtIndex, vptr(args[0]), vptr(args[1]), vptr(e.siteText(f, in))).Text
-	case mir.OpSetIndex:
+	case midir.OpSetIndex:
 		e.setIndex(sb, f, in, args)
 		e.releaseScalarArgs(sb, in, args)
 		return
-	case mir.OpPayload:
+	case midir.OpPayload:
 		res = e.irb(sb).Call(rtPayload, vptr(args[0]), vi64(in.Index)).Text
-	case mir.OpIsVariant:
+	case midir.OpIsVariant:
 		res = e.irb(sb).Call(rtIsvariant, vptr(args[0]), vptr(e.vdesc(in.Ent))).Text
-	case mir.OpIsType:
+	case midir.OpIsType:
 		res = e.irb(sb).Call(rtIstype, vptr(args[0]), vptr(e.desc(in.Ent))).Text
-	case mir.OpUnbox:
+	case midir.OpUnbox:
 		res = e.irb(sb).Call(rtUnbox, vptr(args[0])).Text
-	case mir.OpBox:
+	case midir.OpBox:
 		res = e.irb(sb).Call(rtBox, vptr(args[0]), vptr(e.descOfType(in.Type)), vptr(e.vtable(in.Type, f.Locals[in.Dst].Type, e.r.Entity(f.Ent).Pkg))).Text
-	case mir.OpLendBox:
+	case midir.OpLendBox:
 		res = e.lendBox(sb, f, in, args[0])
-	case mir.OpAsm:
+	case midir.OpAsm:
 		res = e.asm(sb, f, in, args)
-	case mir.OpCFnPtr:
+	case midir.OpCFnPtr:
 		res = e.cFnPtr(sb, in.Ent)
-	case mir.OpCallC:
+	case midir.OpCallC:
 		var types []sem.TypeID
 		for _, a := range in.Args[1:] {
 			types = append(types, f.Locals[a].Type)
 		}
 		res = e.cPtrCall(sb, args[0], in.Type, args[1:], types)
-	case mir.OpBind:
+	case midir.OpBind:
 		res = e.bindValue(sb, in, args)
-	case mir.OpClosure, mir.OpFnItem:
-		if in.Op == mir.OpFnItem && (e.r.Fn(in.Ent).Abi != "" || e.r.Fn(in.Ent).Naked) {
+	case midir.OpClosure, midir.OpFnItem:
+		if in.Op == midir.OpFnItem && (e.r.Fn(in.Ent).Abi != "" || e.r.Fn(in.Ent).Naked) {
 			res = e.cFnPtr(sb, in.Ent)
 			break
 		}
-		if in.Op == mir.OpClosure && (in.Str == "applied" || e.r.Entity(e.r.Entity(in.Ent).Parent).Kind == sem.EntInterface) {
+		if in.Op == midir.OpClosure && (in.Str == "applied" || e.r.Entity(e.r.Entity(in.Ent).Parent).Kind == sem.EntInterface) {
 			res = e.requirementValue(sb, in, args)
 			break
 		}
@@ -136,7 +137,7 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 			case in.Async:
 				sym = e.asyncDescSym(fn)
 			// A method value carries its receiver in the environment, not in the arguments.
-			case in.Op == mir.OpClosure && in.Str == "method":
+			case in.Op == midir.OpClosure && in.Str == "method":
 				sym = e.useMethodAdapter(fn)
 			default:
 				sym = e.useAdapter(fn)
@@ -147,9 +148,9 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 		} else {
 			res = e.irb(sb).Call(rtStdBind, vptr(e.stdKeyStr(e.stdKey(in.Ent))), vi32(mir.LentMask(e.r, in.Ent)>>len(args)), vi32(len(args)), vptr(arr)).Text
 		}
-	case mir.OpBorrow:
+	case midir.OpBorrow:
 		res = args[0]
-	case mir.OpNewCell:
+	case midir.OpNewCell:
 		if in.Scoped && !framed(f, in.Dst) {
 			slot := e.stackSlot(sb, objSlotType()+", align 16")
 			e.irb(sb).Call(rtCellInit, vptr(slot), vptr(args[0]))
@@ -160,18 +161,18 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 			e.irb(sb).Call(rtRetain, vptr(args[0]))
 		}
 		res = e.irb(sb).Call(rtCell, vptr(args[0])).Text
-	case mir.OpCellGet:
+	case midir.OpCellGet:
 		res = e.irb(sb).Call(rtCellget, vptr(args[0])).Text
-	case mir.OpCellTake:
+	case midir.OpCellTake:
 		res = e.irb(sb).Call(rtCellTake, vptr(args[0])).Text
-	case mir.OpCellSet:
+	case midir.OpCellSet:
 		e.cellSet(sb, f, args)
 		return
-	case mir.OpInterp:
+	case midir.OpInterp:
 		res = e.interp(sb, in, args)
-	case mir.OpShell:
+	case midir.OpShell:
 		res = e.shell(sb, in, args)
-	case mir.OpDrop:
+	case midir.OpDrop:
 		if e.lentFrameCell(f, in.Args[0]) {
 			return
 		}
@@ -181,7 +182,7 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 		}
 		e.dropCall(sb, f, rtDrop, args[0])
 		return
-	case mir.OpPanic:
+	case midir.OpPanic:
 		e.emitPanic(sb, in)
 		return
 	default:

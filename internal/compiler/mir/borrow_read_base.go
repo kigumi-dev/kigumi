@@ -3,24 +3,25 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
 // readRoot is where a chain of field, payload and index reads starts: a reference, or with elems a named holder.
 type readRoot struct {
-	base  LocalID
+	base  midir.LocalID
 	path  stepPath
 	exact bool
 	ref   bool
 }
 
 // refBase walks l's field, payload and index reads down to the reference they read through, with l's path below it.
-func (c *borrowCheck) refBase(l LocalID) (LocalID, stepPath, bool, bool) {
+func (c *borrowCheck) refBase(l midir.LocalID) (midir.LocalID, stepPath, bool, bool) {
 	r, ok := c.readBase(l, false)
 	return r.base, r.path, r.exact, ok && r.ref && !slices.Contains(c.f.Params, r.base)
 }
 
-func (c *borrowCheck) readHopOf(d *Inst) (LocalID, readHop, bool) {
+func (c *borrowCheck) readHopOf(d *midir.Inst) (midir.LocalID, readHop, bool) {
 	r, ok := c.readBase(d.Args[0], true)
 	step, has := pathStep(d, c.definition)
 	if !ok || !r.ref || !has {
@@ -30,9 +31,9 @@ func (c *borrowCheck) readHopOf(d *Inst) (LocalID, readHop, bool) {
 }
 
 // readBase is refBase that, with elems, keeps an index step as an element step and also stops at a named holder.
-func (c *borrowCheck) readBase(l LocalID, elems bool) (readRoot, bool) {
+func (c *borrowCheck) readBase(l midir.LocalID, elems bool) (readRoot, bool) {
 	r := readRoot{exact: true}
-	for seen := map[LocalID]bool{}; !seen[l]; {
+	for seen := map[midir.LocalID]bool{}; !seen[l]; {
 		seen[l] = true
 		if c.p.R.Types.Kind(c.f.Locals[l].Type) == sem.KRef {
 			r.base, r.ref = l, true
@@ -47,8 +48,8 @@ func (c *borrowCheck) readBase(l LocalID, elems bool) (readRoot, bool) {
 			return readRoot{}, false
 		}
 		switch in.Op {
-		case OpCopy:
-		case OpField, OpPayload, OpIndex, OpUnbox:
+		case midir.OpCopy:
+		case midir.OpField, midir.OpPayload, midir.OpIndex, midir.OpUnbox:
 			def := c.definition
 			if !elems {
 				def = nil

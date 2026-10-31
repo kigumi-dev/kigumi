@@ -5,13 +5,14 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 func TestApplyVerifiesOnceUnlessAskedPerPass(t *testing.T) {
 	mir.SetVerifyEachPass(false)
 	t.Cleanup(func() { mir.SetVerifyEachPass(true) })
 	breakEntry := mir.Transform{Name: "break", Run: func(p *mir.Program) error {
-		p.Entry.Blocks[0].Term = mir.Term{}
+		p.Entry.Blocks[0].Term = midir.Term{}
 		return nil
 	}}
 	keep := mir.Transform{Name: "keep", Run: func(*mir.Program) error { return nil }}

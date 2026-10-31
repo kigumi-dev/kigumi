@@ -3,11 +3,11 @@ package mir_test
 import (
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
-func entryOps(f *mir.Func) []mir.Opcode {
-	var out []mir.Opcode
+func entryOps(f *midir.Func) []midir.Opcode {
+	var out []midir.Opcode
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			out = append(out, in.Op)
@@ -22,10 +22,10 @@ func TestPlanDirectWritesTheBoxedEntryCrossings(t *testing.T) {
 	if take.Entry == nil || mk.Entry == nil || take.Entry.Wraps != take {
 		t.Fatalf("a direct signature has no boxed entry:\n%s", p.Dump())
 	}
-	if got := entryOps(take.Entry); len(got) != 2 || got[0] != mir.OpUnboxDirect || got[1] != mir.OpCall {
+	if got := entryOps(take.Entry); len(got) != 2 || got[0] != midir.OpUnboxDirect || got[1] != midir.OpCall {
 		t.Errorf("take's entry is %v, want an unbox then the call", got)
 	}
-	if got := entryOps(mk.Entry); len(got) != 2 || got[0] != mir.OpCall || got[1] != mir.OpBoxDirect {
+	if got := entryOps(mk.Entry); len(got) != 2 || got[0] != midir.OpCall || got[1] != midir.OpBoxDirect {
 		t.Errorf("mk's entry is %v, want the call then a box", got)
 	}
 	if err := p.Verify(); err != nil {
@@ -42,8 +42,8 @@ func TestPlanDirectRebuildsAClosureEnvironmentInItsEntry(t *testing.T) {
 		if f.Entry == nil {
 			t.Fatalf("%s has no boxed entry", f.Name)
 		}
-		clo, ok := firstOp(f.Entry, mir.OpClosure)
-		call, called := firstOp(f.Entry, mir.OpCallValue)
+		clo, ok := firstOp(f.Entry, midir.OpClosure)
+		call, called := firstOp(f.Entry, midir.OpCallValue)
 		if !ok || !called || !f.Entry.IsDirect(clo.Dst) || call.Args[0] != clo.Dst {
 			t.Fatalf("%s's entry does not call an unboxed closure it built:\n%s", f.Name, p.Dump())
 		}

@@ -1,6 +1,10 @@
 package mir
 
-import "slices"
+import (
+	"slices"
+
+	midir "kigumi/internal/compiler/mir/ir"
+)
 
 type objSets struct {
 	sets  [][]int32
@@ -8,14 +12,14 @@ type objSets struct {
 	merge map[[2]int32]int32
 	one   []int32
 	// holders[site] lists every local any state ever gave an object of the site, so a retag visits those rather than all locals.
-	holders [][]LocalID
+	holders [][]midir.LocalID
 	seen    map[uint64]struct{}
 	noted   []int32
 	owners  int32
 }
 
 func newObjSets(objects, locals int) *objSets {
-	return &objSets{one: make([]int32, objects), holders: make([][]LocalID, objects/3+1), seen: map[uint64]struct{}{}, noted: make([]int32, locals)}
+	return &objSets{one: make([]int32, objects), holders: make([][]midir.LocalID, objects/3+1), seen: map[uint64]struct{}{}, noted: make([]int32, locals)}
 }
 
 func (o *objSets) owner() int32 {
@@ -23,7 +27,7 @@ func (o *objSets) owner() int32 {
 	return o.owners
 }
 
-func (o *objSets) note(l LocalID, set int32) {
+func (o *objSets) note(l midir.LocalID, set int32) {
 	if o.noted[l] == set+1 {
 		return
 	}

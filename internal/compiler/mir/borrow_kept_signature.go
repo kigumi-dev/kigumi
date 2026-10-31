@@ -1,8 +1,11 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
-func (c *borrowCheck) keptSignature(k *keptCtx, in Inst, e sem.EntityID, args []LocalID, off int) (uint64, func(int) uint64) {
+func (c *borrowCheck) keptSignature(k *keptCtx, in midir.Inst, e sem.EntityID, args []midir.LocalID, off int) (uint64, func(int) uint64) {
 	g := k.g
 	var from uint64
 	for _, a := range in.Args {

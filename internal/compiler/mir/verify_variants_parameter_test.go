@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const reassignedParameterSrc = `
@@ -48,10 +49,10 @@ func TestVerifyVariantsReassignedParameter(t *testing.T) {
 
 func TestVerifyVariantsReassignedParameterWrongEdge(t *testing.T) {
 	runRuleCases(t, reassignedParameterSrc, false, []ruleCase{
-		{"payload on the wrong parameter edge", "main.fromValue", "variants", "which may hold None with 0", func(t *testing.T, p *mir.Program, f *mir.Func) {
+		{"payload on the wrong parameter edge", "main.fromValue", "variants", "which may hold None with 0", func(t *testing.T, p *mir.Program, f *midir.Func) {
 			for i := range f.Blocks {
 				term := &f.Blocks[i].Term
-				if term.Op == mir.TermBranch {
+				if term.Op == midir.TermBranch {
 					term.Targets[0], term.Targets[1] = term.Targets[1], term.Targets[0]
 					return
 				}

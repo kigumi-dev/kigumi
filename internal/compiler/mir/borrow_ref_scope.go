@@ -1,6 +1,7 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/lang/diag"
 )
@@ -66,14 +67,14 @@ func (c *borrowCheck) refResultOnly(key refScopeKey, memo, active map[refScopeKe
 	}
 	for _, blk := range g.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == OpDrop || in.Op == OpRelease {
+			if in.Op == midir.OpDrop || in.Op == midir.OpRelease {
 				for _, a := range in.Args {
 					if fs[a][uint32(key.param)] && (c.typeRuns(g.Locals[a].Type, runsDrop) || c.holdsDeferred(g.Locals[a].Type)) {
 						return false
 					}
 				}
 			}
-			if in.Op == OpGlobalSet && fs[in.Args[0]][uint32(key.param)] {
+			if in.Op == midir.OpGlobalSet && fs[in.Args[0]][uint32(key.param)] {
 				return false
 			}
 			if bodyRoles[in.Op] != roleCall {

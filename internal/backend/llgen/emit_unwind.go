@@ -6,14 +6,15 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
 type unwindFrame struct {
-	slot map[mir.LocalID]int
+	slot map[midir.LocalID]int
 	// agg holds the counted direct locals: slot k is the local's address with bit 0 set, slot k+1 its drop helper.
-	agg  map[mir.LocalID]*aggInfo
+	agg  map[midir.LocalID]*aggInfo
 	n    int
 	plan *mir.UnwindPlan
 	// inFrame: the slots are the Future's frame words, not an array beside the record.
@@ -33,7 +34,7 @@ func (e *emitter) wantsCatch(opts EmitOptions) bool {
 }
 
 // Exports and section-placed bodies are entered from outside the Kigumi call tree.
-func (e *emitter) unwindFor(f *mir.Func) *unwindFrame {
+func (e *emitter) unwindFor(f *midir.Func) *unwindFrame {
 	if !e.catch || f.Async {
 		return nil
 	}
@@ -41,9 +42,9 @@ func (e *emitter) unwindFor(f *mir.Func) *unwindFrame {
 		return nil
 	}
 	plan := e.p.UnwindPlanOf(f)
-	slot := map[mir.LocalID]int{}
-	agg := map[mir.LocalID]*aggInfo{}
-	var ids []mir.LocalID
+	slot := map[midir.LocalID]int{}
+	agg := map[midir.LocalID]*aggInfo{}
+	var ids []midir.LocalID
 	for _, set := range plan.Sets[1:] {
 		for _, l := range set {
 			a, direct := e.direct[l]
@@ -98,7 +99,7 @@ func (e *emitter) unwindAllocas(sb *strings.Builder) {
 	fmt.Fprintf(sb, "  call void @llvm.memset.p0.i64(ptr %%umask, i8 0, i64 %d, i1 false)\n", 8*u.words())
 }
 
-func (e *emitter) slotAddr(sb *strings.Builder, l mir.LocalID) bool {
+func (e *emitter) slotAddr(sb *strings.Builder, l midir.LocalID) bool {
 	if e.unwind == nil {
 		return false
 	}
@@ -111,7 +112,7 @@ func (e *emitter) slotAddr(sb *strings.Builder, l mir.LocalID) bool {
 }
 
 // A box the call site is about to release stops being a sweep's to release, in case its drop hook panics.
-func (e *emitter) unslot(sb *strings.Builder, l mir.LocalID) {
+func (e *emitter) unslot(sb *strings.Builder, l midir.LocalID) {
 	if e.unwind == nil {
 		return
 	}
@@ -143,7 +144,7 @@ func (e *emitter) unwindBlock() {
 	}
 }
 
-func (e *emitter) unwindSite(sb *strings.Builder, bid mir.BlockID, pc int) {
+func (e *emitter) unwindSite(sb *strings.Builder, bid midir.BlockID, pc int) {
 	u := e.unwind
 	if u == nil || int(bid) >= len(u.plan.At) || u.plan.At[bid][pc] < 0 {
 		return
@@ -151,7 +152,7 @@ func (e *emitter) unwindSite(sb *strings.Builder, bid mir.BlockID, pc int) {
 	e.storeMask(sb, bid, pc)
 }
 
-func (e *emitter) storeMask(sb *strings.Builder, bid mir.BlockID, pc int) {
+func (e *emitter) storeMask(sb *strings.Builder, bid midir.BlockID, pc int) {
 	u := e.unwind
 	want := make([]uint64, u.words())
 	for _, l := range u.plan.SetAt(bid, pc) {

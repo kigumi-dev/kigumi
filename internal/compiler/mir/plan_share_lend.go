@@ -1,35 +1,38 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 type calleeRef struct {
-	g *Func
+	g *midir.Func
 	i int
 }
 
 // A lending is a write only if a callee writes through it, known once the summaries settle.
 type lentSite struct {
 	at   Point
-	base LocalID
+	base midir.LocalID
 	to   []calleeRef
 }
 
-func (w *shareFacts) calleeParam(in Inst, i int) ([]calleeRef, bool) {
+func (w *shareFacts) calleeParam(in midir.Inst, i int) ([]calleeRef, bool) {
 	g := w.p.ByEnt[in.Ent]
-	if in.Op != OpCall || g == nil || i >= len(g.Params) || w.p.R.Types.Kind(g.Locals[g.Params[i]].Type) != sem.KRef {
+	if in.Op != midir.OpCall || g == nil || i >= len(g.Params) || w.p.R.Types.Kind(g.Locals[g.Params[i]].Type) != sem.KRef {
 		return nil, false
 	}
 	return []calleeRef{{g, i}}, true
 }
 
-func (w *shareFacts) lentTo(d LocalID) ([]calleeRef, bool) {
+func (w *shareFacts) lentTo(d midir.LocalID) ([]calleeRef, bool) {
 	var out []calleeRef
 	for _, u := range w.uses[d] {
 		if u.term {
 			return nil, false
 		}
 		in := w.inst(u.at)
-		if in.Op == OpDrop || in.Op == OpRelease {
+		if in.Op == midir.OpDrop || in.Op == midir.OpRelease {
 			continue
 		}
 		to, ok := w.calleeParam(in, u.i)
@@ -41,7 +44,7 @@ func (w *shareFacts) lentTo(d LocalID) ([]calleeRef, bool) {
 	return out, true
 }
 
-func (w *shareFacts) lendOrWrite(base LocalID, at Point, to []calleeRef, lent bool) {
+func (w *shareFacts) lendOrWrite(base midir.LocalID, at Point, to []calleeRef, lent bool) {
 	if !lent {
 		w.noteWrite(base, at, true)
 		return
@@ -68,7 +71,7 @@ func (w *shareFacts) noteMutates() bool {
 	return changed
 }
 
-func (w *shareFacts) mutatesParam(prm LocalID) bool {
+func (w *shareFacts) mutatesParam(prm midir.LocalID) bool {
 	if len(w.own[prm])+len(w.inner[prm])+len(w.blind) > 0 || w.escapes(prm) {
 		return true
 	}
@@ -81,14 +84,14 @@ func (w *shareFacts) mutatesParam(prm LocalID) bool {
 }
 
 // A reference that leaves the call can be written through later, outside this body's writes.
-func (w *shareFacts) escapes(prm LocalID) bool {
+func (w *shareFacts) escapes(prm midir.LocalID) bool {
 	for _, u := range w.uses[prm] {
 		if u.term {
 			return true
 		}
 		switch in := w.inst(u.at); {
-		case projects(in) && u.i == 0 && !w.mutRef(in.Dst), (in.Op == OpSetField || in.Op == OpSetIndex) && u.i == 0:
-		case in.Op == OpBorrow, in.Op == OpCall, in.Op == OpDrop, in.Op == OpRelease, in.Op == OpBuiltin && in.Str == "iter.len":
+		case projects(in) && u.i == 0 && !w.mutRef(in.Dst), (in.Op == midir.OpSetField || in.Op == midir.OpSetIndex) && u.i == 0:
+		case in.Op == midir.OpBorrow, in.Op == midir.OpCall, in.Op == midir.OpDrop, in.Op == midir.OpRelease, in.Op == midir.OpBuiltin && in.Str == "iter.len":
 		default:
 			return true
 		}
@@ -96,7 +99,7 @@ func (w *shareFacts) escapes(prm LocalID) bool {
 	return false
 }
 
-func (w *shareFacts) mutRef(v LocalID) bool {
+func (w *shareFacts) mutRef(v midir.LocalID) bool {
 	_, mut := w.p.R.MutRefElem(w.f.Locals[v].Type)
 	return mut
 }

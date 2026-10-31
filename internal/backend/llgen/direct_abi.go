@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 // aggByValueBytes: up to two machine words travels as a first-class value,
@@ -26,7 +26,7 @@ func (s *aggSig) param(i int) *aggInfo {
 	return s.Params[i]
 }
 
-func (e *emitter) directSig(f *mir.Func) *aggSig {
+func (e *emitter) directSig(f *midir.Func) *aggSig {
 	if s, ok := e.sigs[f]; ok {
 		return s
 	}
@@ -37,7 +37,7 @@ func (e *emitter) directSig(f *mir.Func) *aggSig {
 
 // computeSig reads the signature MIR fixed, so a call site and the
 // definition always agree.
-func (e *emitter) computeSig(f *mir.Func) *aggSig {
+func (e *emitter) computeSig(f *midir.Func) *aggSig {
 	d := f.DSig
 	if d == nil {
 		return nil
@@ -54,7 +54,7 @@ func (e *emitter) computeSig(f *mir.Func) *aggSig {
 	return s
 }
 
-func (e *emitter) sigHeader(f *mir.Func, s *aggSig) string {
+func (e *emitter) sigHeader(f *midir.Func, s *aggSig) string {
 	ret, params := "ptr", []string{}
 	ss := e.ssigs[f]
 	if r, ok := ss.ret(); ok {
@@ -85,7 +85,7 @@ func (e *emitter) sigHeader(f *mir.Func, s *aggSig) string {
 	return fmt.Sprintf("define %s %s(%s)", ret, e.sym(f), strings.Join(params, ", "))
 }
 
-func (e *emitter) storeParams(sb *strings.Builder, f *mir.Func, s *aggSig) {
+func (e *emitter) storeParams(sb *strings.Builder, f *midir.Func, s *aggSig) {
 	from := 0
 	if env, ok := e.envOf(f); ok {
 		for i, fld := range env.Fields {

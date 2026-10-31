@@ -1,9 +1,12 @@
 package mir
 
-import "kigumi/internal/compiler/sem"
+import (
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
 
 // checkImmediateCaptures: a capBorrow closure's owners must stay untouched from its creation to the call it feeds.
-func checkImmediateCaptures(state *borrowAnalysis, f *Func) map[reportKey]int {
+func checkImmediateCaptures(state *borrowAnalysis, f *midir.Func) map[reportKey]int {
 	p := state.Program
 	c := quietBorrowCheck(state, f)
 	memo := flowMemo{}
@@ -11,14 +14,14 @@ func checkImmediateCaptures(state *borrowAnalysis, f *Func) map[reportKey]int {
 		blk := &f.Blocks[bi]
 		for i, in := range blk.Insts {
 			// OpClosure also forms a bound-method value whose Ent names the method.
-			if in.Op != OpClosure || p.R.Entity(in.Ent).Kind != sem.EntClosure {
+			if in.Op != midir.OpClosure || p.R.Entity(in.Ent).Kind != sem.EntClosure {
 				continue
 			}
 			info := p.R.Closure(in.Ent)
 			if !info.Immediate {
 				continue
 			}
-			var owners []LocalID
+			var owners []midir.LocalID
 			for ci, cap := range info.Captures {
 				if h, ok := c.holders[in.Args[ci]]; ok {
 					if h.hasOwner {
@@ -38,7 +41,7 @@ func checkImmediateCaptures(state *borrowAnalysis, f *Func) map[reportKey]int {
 				}
 			}
 			if len(owners) > 0 {
-				c.checkImmediateSpan(BlockID(bi), i, in.Dst, owners)
+				c.checkImmediateSpan(midir.BlockID(bi), i, in.Dst, owners)
 			}
 		}
 	}
@@ -46,9 +49,9 @@ func checkImmediateCaptures(state *borrowAnalysis, f *Func) map[reportKey]int {
 }
 
 // quietBorrowCheck collects f's holders without reporting, for a check after the main pass already reported them.
-func quietBorrowCheck(state *borrowAnalysis, f *Func) *borrowCheck {
+func quietBorrowCheck(state *borrowAnalysis, f *midir.Func) *borrowCheck {
 	p := state.Program
-	c := &borrowCheck{p: p, f: f, state: state, holders: map[LocalID]*borrowInfo{}, reported: map[reportKey]int{}, keptTemp: map[LocalID]bool{}}
+	c := &borrowCheck{p: p, f: f, state: state, holders: map[midir.LocalID]*borrowInfo{}, reported: map[reportKey]int{}, keptTemp: map[midir.LocalID]bool{}}
 	c.quiet = true
 	c.collect()
 	c.quiet = false
@@ -56,10 +59,10 @@ func quietBorrowCheck(state *borrowAnalysis, f *Func) *borrowCheck {
 }
 
 // checkImmediateSpan walks every block reachable before the closure is consumed: a branching sibling argument can move the call to a later block.
-func (c *borrowCheck) checkImmediateSpan(bid BlockID, at int, closure LocalID, owners []LocalID) {
-	visited := map[BlockID]bool{}
-	var walk func(bid BlockID, from int)
-	walk = func(bid BlockID, from int) {
+func (c *borrowCheck) checkImmediateSpan(bid midir.BlockID, at int, closure midir.LocalID, owners []midir.LocalID) {
+	visited := map[midir.BlockID]bool{}
+	var walk func(bid midir.BlockID, from int)
+	walk = func(bid midir.BlockID, from int) {
 		if visited[bid] {
 			return
 		}

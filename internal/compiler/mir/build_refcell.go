@@ -2,12 +2,13 @@ package mir
 
 import (
 	"kigumi/internal/compiler/hir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
 
 // Only a `&mut T` local ever holds a write-back cell over its referent rather than the value itself.
-func (b *builder) cellLocal(id LocalID) bool {
+func (b *builder) cellLocal(id midir.LocalID) bool {
 	l := &b.fn.Locals[id]
 	if l.Cell {
 		return true
@@ -20,7 +21,7 @@ func (b *builder) cellLocal(id LocalID) bool {
 }
 
 // A `&mut` binding already lent as a cell is handed on as is: wrapping it again would send the new value to a temporary.
-func (b *builder) refCellBase(e *hir.Expr) (LocalID, bool) {
+func (b *builder) refCellBase(e *hir.Expr) (midir.LocalID, bool) {
 	if len(e.Coerce) > 0 {
 		return 0, false
 	}
@@ -60,7 +61,7 @@ func (b *builder) wantsRefCell(ent sem.EntityID, idx int) bool {
 }
 
 // applyArgFixups stores the cell back into the place afterwards.
-func (b *builder) mutRefArg(a *hir.Expr, idx int, ent sem.EntityID, sync bool) (LocalID, bool) {
+func (b *builder) mutRefArg(a *hir.Expr, idx int, ent sem.EntityID, sync bool) (midir.LocalID, bool) {
 	if !sync || !b.wantsRefCell(ent, idx) {
 		return 0, false
 	}
@@ -74,7 +75,7 @@ func (b *builder) mutRefArg(a *hir.Expr, idx int, ent sem.EntityID, sync bool) (
 	base, n := borrow.Args[0], borrow.Node
 	inner := peelNoOp(base)
 	p, hasPlace := b.exprPlace(base, inner, sync)
-	var v LocalID
+	var v midir.LocalID
 	if hasPlace {
 		v = b.retagTo(b.loadPlace(p), inner.Type, base.Type, n)
 	} else {
@@ -86,7 +87,7 @@ func (b *builder) mutRefArg(a *hir.Expr, idx int, ent sem.EntityID, sync bool) (
 }
 
 // Any other `&mut` value names no place of this frame's, so sem rejects it (E1503); the cell here only keeps the callee's store well formed.
-func (b *builder) lentRefArg(a *hir.Expr) (LocalID, bool) {
+func (b *builder) lentRefArg(a *hir.Expr) (midir.LocalID, bool) {
 	elem, ok := b.r.MutRefElem(a.Type)
 	if !ok {
 		return 0, false
@@ -115,14 +116,14 @@ func lendsExistential(co hir.Coercion) bool {
 	return false
 }
 
-func (b *builder) lendCell(v LocalID, t sem.TypeID, n syntax.NodeID, scoped bool) LocalID {
-	return b.cellOver(b.emit(Inst{Op: OpBorrow, Dst: b.temp(t), Args: []LocalID{v}, Index: 1, Node: n}), t, n, scoped)
+func (b *builder) lendCell(v midir.LocalID, t sem.TypeID, n syntax.NodeID, scoped bool) midir.LocalID {
+	return b.cellOver(b.emit(midir.Inst{Op: midir.OpBorrow, Dst: b.temp(t), Args: []midir.LocalID{v}, Index: 1, Node: n}), t, n, scoped)
 }
 
 // The cell takes its own refcount; the borrow passed in owns none.
-func (b *builder) cellOver(ref LocalID, t sem.TypeID, n syntax.NodeID, scoped bool) LocalID {
-	owned := b.emit(Inst{Op: OpShare, Dst: b.temp(t), Args: []LocalID{ref}, Node: n})
-	return b.emit(Inst{Op: OpNewCell, Dst: b.temp(t), Args: []LocalID{owned}, Node: n, Scoped: scoped})
+func (b *builder) cellOver(ref midir.LocalID, t sem.TypeID, n syntax.NodeID, scoped bool) midir.LocalID {
+	owned := b.emit(midir.Inst{Op: midir.OpShare, Dst: b.temp(t), Args: []midir.LocalID{ref}, Node: n})
+	return b.emit(midir.Inst{Op: midir.OpNewCell, Dst: b.temp(t), Args: []midir.LocalID{owned}, Node: n, Scoped: scoped})
 }
 
 // A coerced layer stops the peel: its steps belong to the value as a whole.

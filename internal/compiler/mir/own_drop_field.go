@@ -3,12 +3,13 @@ package mir
 import (
 	"strings"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
 
 // checkDropOwner rejects taking place l when it lies in a field of a type with a custom drop, which would later see the taken value.
-func (a *owner) checkDropOwner(n syntax.NodeID, l LocalID, report bool) {
+func (a *owner) checkDropOwner(n syntax.NodeID, l midir.LocalID, report bool) {
 	if !report {
 		return
 	}
@@ -37,8 +38,8 @@ func (a *owner) checkDropOwner(n syntax.NodeID, l LocalID, report bool) {
 }
 
 // checkArmTake applies checkDropOwner to a field place copied out as the value of an `if` or `match` arm.
-func (a *owner) checkArmTake(in *Inst, report bool) {
-	if in.Op != OpCopy || in.Guarded || in.Share || a.f.Locals[in.Dst].Ent != 0 || !a.pl.isPlace(in.Args[0]) {
+func (a *owner) checkArmTake(in *midir.Inst, report bool) {
+	if in.Op != midir.OpCopy || in.Guarded || in.Share || a.f.Locals[in.Dst].Ent != 0 || !a.pl.isPlace(in.Args[0]) {
 		return
 	}
 	if l := a.pl.canon(in.Args[0]); a.tracked[l] {
@@ -46,7 +47,7 @@ func (a *owner) checkArmTake(in *Inst, report bool) {
 	}
 }
 
-func (pl *places) payloadStep(l LocalID) bool {
+func (pl *places) payloadStep(l midir.LocalID) bool {
 	k := pl.key[l]
 	i := strings.LastIndexByte(k, '.')
 	return i >= 0 && strings.HasPrefix(k[i+1:], "p")

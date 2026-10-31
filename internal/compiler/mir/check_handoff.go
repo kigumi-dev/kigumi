@@ -1,6 +1,7 @@
 package mir
 
 import (
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
@@ -36,31 +37,31 @@ func checkHandoff(p *Program) {
 // futureTrace follows a future local back to the async body it runs, across
 // the alias and share temporaries the ownership plan inserts.
 type futureTrace struct {
-	item  map[LocalID]sem.EntityID
-	made  map[LocalID]sem.EntityID
-	alias map[LocalID]LocalID
+	item  map[midir.LocalID]sem.EntityID
+	made  map[midir.LocalID]sem.EntityID
+	alias map[midir.LocalID]midir.LocalID
 }
 
 func newFutureTrace() *futureTrace {
-	return &futureTrace{item: map[LocalID]sem.EntityID{}, made: map[LocalID]sem.EntityID{}, alias: map[LocalID]LocalID{}}
+	return &futureTrace{item: map[midir.LocalID]sem.EntityID{}, made: map[midir.LocalID]sem.EntityID{}, alias: map[midir.LocalID]midir.LocalID{}}
 }
 
-func (t *futureTrace) note(in Inst) {
+func (t *futureTrace) note(in midir.Inst) {
 	switch in.Op {
-	case OpFnItem:
+	case midir.OpFnItem:
 		t.item[in.Dst] = in.Ent
-	case OpFutureNew:
+	case midir.OpFutureNew:
 		if len(in.Args) > 0 {
 			t.made[in.Dst] = t.item[in.Args[0]]
 		}
-	case OpAlias, OpShare, OpMove, OpCopy:
+	case midir.OpAlias, midir.OpShare, midir.OpMove, midir.OpCopy:
 		if len(in.Args) == 1 {
 			t.alias[in.Dst] = in.Args[0]
 		}
 	}
 }
 
-func (t *futureTrace) asyncBody(l LocalID) sem.EntityID {
+func (t *futureTrace) asyncBody(l midir.LocalID) sem.EntityID {
 	for i := 0; i < len(t.alias)+1; i++ {
 		if ent, ok := t.made[l]; ok {
 			return ent
@@ -74,7 +75,7 @@ func (t *futureTrace) asyncBody(l LocalID) sem.EntityID {
 	return 0
 }
 
-func (t *futureTrace) origin(l LocalID) LocalID {
+func (t *futureTrace) origin(l midir.LocalID) midir.LocalID {
 	for i := 0; i < len(t.alias)+1; i++ {
 		next, ok := t.alias[l]
 		if !ok {
@@ -85,7 +86,7 @@ func (t *futureTrace) origin(l LocalID) LocalID {
 	return l
 }
 
-func emitHandoffDiag(p *Program, f *Func, node syntax.NodeID, boundBy string) {
+func emitHandoffDiag(p *Program, f *midir.Func, node syntax.NodeID, boundBy string) {
 	c, ok := sem.CodeByName("handoff-executor-bound")
 	if !ok {
 		return

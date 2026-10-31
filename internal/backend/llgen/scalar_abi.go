@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
@@ -39,7 +39,7 @@ func (s *scalarSig) empty() bool {
 }
 
 // Sections and the entry are entered from C, and an async body from its Future; an export's wrapper converts for it.
-func (e *emitter) scalarCarried(f *mir.Func) bool {
+func (e *emitter) scalarCarried(f *midir.Func) bool {
 	if f.Ent == 0 || f.Async || f == e.p.Entry || !e.r.DirectCarried(f.Ent) && !e.cExport(f) || e.r.FnSectionOf(f.Ent) != "" {
 		return false
 	}
@@ -47,14 +47,14 @@ func (e *emitter) scalarCarried(f *mir.Func) bool {
 }
 
 // regSlot reports whether parameter or result type t may take a register; an export's wrapper converts only C register types.
-func (e *emitter) regSlot(f *mir.Func, p sem.EntityID, t sem.TypeID) bool {
+func (e *emitter) regSlot(f *midir.Func, p sem.EntityID, t sem.TypeID) bool {
 	if e.cExport(f) {
 		return e.cRegister(t)
 	}
 	return p == 0 || e.r.DirectParamSlot(f.Ent, p)
 }
 
-func (e *emitter) scalarSigOf(f *mir.Func) *scalarSig {
+func (e *emitter) scalarSigOf(f *midir.Func) *scalarSig {
 	if !e.scalarCarried(f) {
 		return nil
 	}
@@ -76,8 +76,8 @@ func (e *emitter) scalarSigOf(f *mir.Func) *scalarSig {
 
 // planScalarABI keeps a position native only while the body holds it in a register; dropping one can drop more.
 func (e *emitter) planScalarABI() {
-	e.ssigs = map[*mir.Func]*scalarSig{}
-	var fs []*mir.Func
+	e.ssigs = map[*midir.Func]*scalarSig{}
+	var fs []*midir.Func
 	for _, f := range e.p.Funcs {
 		if s := e.scalarSigOf(f); s != nil {
 			e.ssigs[f] = s
@@ -97,7 +97,7 @@ func (e *emitter) planScalarABI() {
 	}
 }
 
-func (e *emitter) narrowScalarSig(f *mir.Func) bool {
+func (e *emitter) narrowScalarSig(f *midir.Func) bool {
 	s := e.ssigs[f]
 	e.direct = e.classifyDirect(f)
 	regs := e.classifyScalars(f)
@@ -113,8 +113,8 @@ func (e *emitter) narrowScalarSig(f *mir.Func) bool {
 	return changed
 }
 
-func (e *emitter) calleeScalarSig(in mir.Inst) *scalarSig {
-	if in.Op != mir.OpCall || in.DPrim != opdef.DPNone {
+func (e *emitter) calleeScalarSig(in midir.Inst) *scalarSig {
+	if in.Op != midir.OpCall || in.DPrim != opdef.DPNone {
 		return nil
 	}
 	if fn, ok := e.p.ByEnt[in.Ent]; ok {
@@ -124,7 +124,7 @@ func (e *emitter) calleeScalarSig(in mir.Inst) *scalarSig {
 }
 
 // nativeArg hands a boxed argument over unboxed, releasing the box where the callee or the call site would have.
-func (e *emitter) nativeArg(sb *strings.Builder, in mir.Inst, i int, l mir.LocalID, info scalarInfo) string {
+func (e *emitter) nativeArg(sb *strings.Builder, in midir.Inst, i int, l midir.LocalID, info scalarInfo) string {
 	if e.isScalar(l) {
 		return e.loadNative(sb, l).render()
 	}
@@ -136,7 +136,7 @@ func (e *emitter) nativeArg(sb *strings.Builder, in mir.Inst, i int, l mir.Local
 	return v.render()
 }
 
-func (e *emitter) nativeCallInto(sb *strings.Builder, dst mir.LocalID, sym string, args []string, r scalarInfo) {
+func (e *emitter) nativeCallInto(sb *strings.Builder, dst midir.LocalID, sym string, args []string, r scalarInfo) {
 	t := e.newTmp()
 	fmt.Fprintf(sb, "  %s = call %s %s(%s)\n", t, r.Ty, sym, strings.Join(args, ", "))
 	v := Value{r.Ty, t}
@@ -148,7 +148,7 @@ func (e *emitter) nativeCallInto(sb *strings.Builder, dst mir.LocalID, sym strin
 }
 
 // callNativeBoxed is callBoxed for a callee with register positions: the adapter unboxes and boxes for it.
-func (e *emitter) callNativeBoxed(sb *strings.Builder, f *mir.Func, s *scalarSig, vals []string) string {
+func (e *emitter) callNativeBoxed(sb *strings.Builder, f *midir.Func, s *scalarSig, vals []string) string {
 	args := make([]string, len(vals))
 	for i, v := range vals {
 		info, ok := s.param(i)

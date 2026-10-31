@@ -3,13 +3,13 @@ package llgen
 import (
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 // iterModes is rt_iter_at's mode per builtin, plus one so the zero value means none.
 var iterModes = map[string]int{"iter.at": 1, "iter.at_ref": 2, "iter.at_move": 3}
 
-func (e *emitter) iterRaw(f *mir.Func, in mir.Inst) bool {
+func (e *emitter) iterRaw(f *midir.Func, in midir.Inst) bool {
 	if in.Str != "iter.len" && iterModes[in.Str] == 0 || e.isDirect(in.Args[0]) {
 		return false
 	}
@@ -18,9 +18,9 @@ func (e *emitter) iterRaw(f *mir.Func, in mir.Inst) bool {
 }
 
 // iterBuiltin reads a loop's length and elements with a raw index, so the counter never takes a box.
-func (e *emitter) iterBuiltin(sb *strings.Builder, f *mir.Func, in mir.Inst) bool {
+func (e *emitter) iterBuiltin(sb *strings.Builder, f *midir.Func, in midir.Inst) bool {
 	mode := iterModes[in.Str]
-	if in.Op != mir.OpBuiltin || in.Str != "iter.len" && mode == 0 || e.isDirect(in.Args[0]) {
+	if in.Op != midir.OpBuiltin || in.Str != "iter.len" && mode == 0 || e.isDirect(in.Args[0]) {
 		return false
 	}
 	if in.Str == "iter.len" {

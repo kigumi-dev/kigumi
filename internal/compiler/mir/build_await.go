@@ -2,15 +2,16 @@ package mir
 
 import (
 	"kigumi/internal/compiler/hir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
 
 // await consumes the future, so it moves like Fail; mode "settle" discards the result and continues past a cancelled Task.
-func (b *builder) await(e *hir.Expr, n syntax.NodeID, t sem.TypeID, mode string) LocalID {
+func (b *builder) await(e *hir.Expr, n syntax.NodeID, t sem.TypeID, mode string) midir.LocalID {
 	fut := b.exprMoved(e.Args[0])
 	b.fn.Suspends++
-	v := b.emit(Inst{Op: OpAwait, Dst: b.temp(t), Args: []LocalID{fut}, Index: b.fn.Suspends, Str: mode, Node: n})
+	v := b.emit(midir.Inst{Op: midir.OpAwait, Dst: b.temp(t), Args: []midir.LocalID{fut}, Index: b.fn.Suspends, Str: mode, Node: n})
 	b.cancelEdge(n)
 	return v
 }
@@ -18,7 +19,7 @@ func (b *builder) await(e *hir.Expr, n syntax.NodeID, t sem.TypeID, mode string)
 // closeTaskScope marks where an async body starts to leave; the runtime closes the task's scope there when the body is the task's own.
 func (b *builder) closeTaskScope(n syntax.NodeID) {
 	if b.fn.Async {
-		b.emit(Inst{Op: OpBuiltin, Dst: b.temp(sem.TyUnit), Str: "task.close", Node: n})
+		b.emit(midir.Inst{Op: midir.OpBuiltin, Dst: b.temp(sem.TyUnit), Str: "task.close", Node: n})
 	}
 }
 

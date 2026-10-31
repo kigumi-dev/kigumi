@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -149,7 +150,7 @@ func (c *borrowCheck) makerFeeds(slots []callSlot, want tieWant) (feeds []sem.Ty
 }
 
 // feedingParams narrows to the parameters naming a lifetime or type parameter the result names when the fn item is known.
-func (c *borrowCheck) feedingParams(a LocalID, n int) []int {
+func (c *borrowCheck) feedingParams(a midir.LocalID, n int) []int {
 	every := make([]int, n)
 	for i := range every {
 		every[i] = i

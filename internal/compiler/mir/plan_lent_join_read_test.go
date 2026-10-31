@@ -3,7 +3,7 @@ package mir_test
 import (
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 )
 
 const lentJoinReadSrc = `
@@ -39,11 +39,11 @@ fn main() -> Void! {}
 `
 
 // aliasReleases counts the releases of a value read through an alias, as a defined type's .value is.
-func aliasReleases(f *mir.Func) int {
-	aliased := map[mir.LocalID]bool{}
+func aliasReleases(f *midir.Func) int {
+	aliased := map[midir.LocalID]bool{}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == mir.OpAlias {
+			if in.Op == midir.OpAlias {
 				aliased[in.Dst] = true
 			}
 		}
@@ -75,10 +75,10 @@ func TestVerifyReleaseReadThroughALentCrossing(t *testing.T) {
 	for bi := range f.Blocks {
 		blk := &f.Blocks[bi]
 		for k, in := range blk.Insts {
-			if in.Op != mir.OpUnboxDirect || !in.Lent || k+1 >= len(blk.Insts) || blk.Insts[k+1].Op != mir.OpAlias {
+			if in.Op != midir.OpUnboxDirect || !in.Lent || k+1 >= len(blk.Insts) || blk.Insts[k+1].Op != midir.OpAlias {
 				continue
 			}
-			blk.Insts = append(blk.Insts, mir.Inst{Op: mir.OpRelease, Args: []mir.LocalID{blk.Insts[k+1].Dst}})
+			blk.Insts = append(blk.Insts, midir.Inst{Op: midir.OpRelease, Args: []midir.LocalID{blk.Insts[k+1].Dst}})
 			wantRule(t, p, "droplent", "a reference this frame does not own")
 			return
 		}

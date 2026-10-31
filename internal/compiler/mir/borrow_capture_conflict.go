@@ -3,6 +3,7 @@ package mir
 import (
 	"slices"
 
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -13,41 +14,41 @@ func (c *readCheck) changes() []moveEvent {
 		for i, in := range c.f.Blocks[bi].Insts {
 			changed, field := false, false
 			switch in.Op {
-			case OpSetField, OpSetIndex:
+			case midir.OpSetField, midir.OpSetIndex:
 				changed = true
-			case OpFieldMove:
+			case midir.OpFieldMove:
 				changed, field = true, true
-			case OpBorrow:
+			case midir.OpBorrow:
 				changed = in.Index == 1
 			}
 			if changed {
 				if r := c.root(in.Args[0]); c.f.Locals[r].Ent != 0 {
-					out = append(out, moveEvent{at: movePos{BlockID(bi), i}, root: r, node: in.Node, field: field})
+					out = append(out, moveEvent{at: movePos{midir.BlockID(bi), i}, root: r, node: in.Node, field: field})
 				}
 			}
 			if r, ok := c.cellTaken(in); ok {
-				out = append(out, moveEvent{at: movePos{BlockID(bi), i}, root: r, node: in.Node})
+				out = append(out, moveEvent{at: movePos{midir.BlockID(bi), i}, root: r, node: in.Node})
 			}
 		}
 	}
 	return out
 }
 
-func (c *readCheck) cellTaken(in Inst) (LocalID, bool) {
+func (c *readCheck) cellTaken(in midir.Inst) (midir.LocalID, bool) {
 	for i, a := range in.Args {
 		d := c.defs[a]
-		if d == nil || d.Op != OpCellGet || c.f.Locals[d.Args[0]].Ent == 0 {
+		if d == nil || d.Op != midir.OpCellGet || c.f.Locals[d.Args[0]].Ent == 0 {
 			continue
 		}
-		if in.Op == OpMove || constructs(in.Op) || c.p.consumesArg(&in, i) || c.p.primitiveTakes(&in, i) {
+		if in.Op == midir.OpMove || constructs(in.Op) || c.p.consumesArg(&in, i) || c.p.primitiveTakes(&in, i) {
 			return d.Args[0], true
 		}
 	}
 	return 0, false
 }
 
-func (c *readCheck) escapes(in Inst, caps map[LocalID][]capturedPlace) []LocalID {
-	var out []LocalID
+func (c *readCheck) escapes(in midir.Inst, caps map[midir.LocalID][]capturedPlace) []midir.LocalID {
+	var out []midir.LocalID
 	for i, a := range in.Args {
 		if _, ok := caps[a]; ok && c.escapesAt(in, i) {
 			out = append(out, a)
@@ -56,9 +57,9 @@ func (c *readCheck) escapes(in Inst, caps map[LocalID][]capturedPlace) []LocalID
 	return out
 }
 
-func (c *readCheck) escapesAt(in Inst, i int) bool {
+func (c *readCheck) escapesAt(in midir.Inst, i int) bool {
 	switch in.Op {
-	case OpCall:
+	case midir.OpCall:
 		if c.p.R.Entity(in.Ent).Kind != sem.EntFn {
 			return true
 		}
@@ -71,9 +72,9 @@ func (c *readCheck) escapesAt(in Inst, i int) bool {
 			idx--
 		}
 		return idx >= len(info.Params) || !c.p.R.NonEscapingParam(info.Params[idx]) && !c.lentParam(info.Params[idx])
-	case OpCallValue:
+	case midir.OpCallValue:
 		return i != 0
-	case OpSetField, OpSetIndex, OpCellSet, OpGlobalSet, OpNewCell, OpCallC, OpBuiltin, OpAsm, OpShell:
+	case midir.OpSetField, midir.OpSetIndex, midir.OpCellSet, midir.OpGlobalSet, midir.OpNewCell, midir.OpCallC, midir.OpBuiltin, midir.OpAsm, midir.OpShell:
 		return true
 	}
 	return false
@@ -88,11 +89,11 @@ func (c *readCheck) lentParam(prm sem.EntityID) bool {
 	return !slices.ContainsFunc(c.p.R.Types.Params(t), func(p sem.EntityID) bool { return c.p.R.TypeParam(p).IsLifetime })
 }
 
-func (c *readCheck) root(l LocalID) LocalID {
+func (c *readCheck) root(l midir.LocalID) midir.LocalID {
 	for d := c.defs[l]; d != nil; d = c.defs[l] {
 		switch {
-		case d.Op == OpField || d.Op == OpIndex || d.Op == OpPayload:
-		case d.Op == OpCopy && c.f.Locals[l].Ent == 0:
+		case d.Op == midir.OpField || d.Op == midir.OpIndex || d.Op == midir.OpPayload:
+		case d.Op == midir.OpCopy && c.f.Locals[l].Ent == 0:
 		default:
 			return l
 		}
@@ -101,18 +102,18 @@ func (c *readCheck) root(l LocalID) LocalID {
 	return l
 }
 
-func (c *borrowCheck) soleDef(l LocalID) *Inst { return c.soleDefMap()[l] }
+func (c *borrowCheck) soleDef(l midir.LocalID) *midir.Inst { return c.soleDefMap()[l] }
 
-func (c *borrowCheck) soleDefMap() map[LocalID]*Inst {
+func (c *borrowCheck) soleDefMap() map[midir.LocalID]*midir.Inst {
 	if c.sole == nil {
 		c.sole = soleDefs(c.f)
 	}
 	return c.sole
 }
 
-func soleDefs(f *Func) map[LocalID]*Inst {
-	defs := map[LocalID]*Inst{}
-	multi := map[LocalID]bool{}
+func soleDefs(f *midir.Func) map[midir.LocalID]*midir.Inst {
+	defs := map[midir.LocalID]*midir.Inst{}
+	multi := map[midir.LocalID]bool{}
 	for bi := range f.Blocks {
 		for ii := range f.Blocks[bi].Insts {
 			in := &f.Blocks[bi].Insts[ii]

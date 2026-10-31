@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
 
-func (e *emitter) exportWrapper(f *mir.Func) string {
+func (e *emitter) exportWrapper(f *midir.Func) string {
 	var sb strings.Builder
 	sig := e.r.Types.Node(e.r.Fn(f.Ent).Sig)
 	var params, vals []string
@@ -29,7 +29,7 @@ func (e *emitter) exportWrapper(f *mir.Func) string {
 }
 
 // exportArg hands C argument i, raw of type pt, to the body: in a register where its signature takes one, else boxed.
-func (e *emitter) exportArg(sb *strings.Builder, f *mir.Func, i int, pt sem.TypeID, raw, ct string) string {
+func (e *emitter) exportArg(sb *strings.Builder, f *midir.Func, i int, pt sem.TypeID, raw, ct string) string {
 	if _, ok := e.ssigs[f].param(i); ok {
 		return e.cWiden(sb, raw, pt, ct).render()
 	}
@@ -42,7 +42,7 @@ func (e *emitter) exportArg(sb *strings.Builder, f *mir.Func, i int, pt sem.Type
 }
 
 // exportCall calls the body and returns its result as the C type ct, "" for void.
-func (e *emitter) exportCall(sb *strings.Builder, f *mir.Func, vals []string, rt sem.TypeID, ct string) string {
+func (e *emitter) exportCall(sb *strings.Builder, f *midir.Func, vals []string, rt sem.TypeID, ct string) string {
 	r := e.newTmp()
 	if info, ok := e.ssigs[f].ret(); ok {
 		fmt.Fprintf(sb, "  %s = call %s %s(%s)\n", r, info.Ty, e.sym(f), strings.Join(vals, ", "))
@@ -58,7 +58,7 @@ func (e *emitter) exportCall(sb *strings.Builder, f *mir.Func, vals []string, rt
 }
 
 // cExport is an export(C) body: its wrapper passes the register positions of its signature unboxed.
-func (e *emitter) cExport(f *mir.Func) bool {
+func (e *emitter) cExport(f *midir.Func) bool {
 	if e.r.Entity(f.Ent).Kind != sem.EntFn {
 		return false
 	}
@@ -68,14 +68,14 @@ func (e *emitter) cExport(f *mir.Func) bool {
 
 // deadParam reports whether f's body never reads parameter i: only MIR's own
 // scope-exit drop is not a use, and any other reference counts as one.
-func deadParam(f *mir.Func, i int) bool {
+func deadParam(f *midir.Func, i int) bool {
 	if i >= len(f.Params) {
 		return false
 	}
 	id := f.Params[i]
 	for _, b := range f.Blocks {
 		for _, in := range b.Insts {
-			trailing := in.Op == mir.OpDrop || in.Op == mir.OpRelease
+			trailing := in.Op == midir.OpDrop || in.Op == midir.OpRelease
 			if in.Dst == id && !trailing {
 				return false
 			}

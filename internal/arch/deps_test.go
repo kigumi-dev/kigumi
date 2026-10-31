@@ -12,6 +12,7 @@ import (
 const mod = "kigumi/internal/"
 
 var allowed = map[string][]string{
+	"compiler/mir/ir":           {"compiler/mir/ops", "compiler/sem", "compiler/syntax", "lang/diag"},
 	"compiler/mir/ops":          {"compiler/sem"},
 	"arch":                      {},
 	"toolchain/native/object":   {},
@@ -32,8 +33,8 @@ var allowed = map[string][]string{
 	"compiler/sem/asmtable":     {},
 	"compiler/sem":              {"lang/token", "lang/diag", "compiler/syntax", "compiler/sem/asmtable"},
 	"compiler/hir":              {"lang/token", "lang/diag", "compiler/syntax", "compiler/sem"},
-	"compiler/mir":              {"lang/token", "lang/diag", "compiler/syntax", "compiler/sem", "compiler/hir", "compiler/mir/ops"},
-	"backend/llgen":             {"lang/token", "lang/diag", "compiler/syntax", "compiler/sem", "compiler/mir", "compiler/sem/asmtable", "compiler/mir/ops"},
+	"compiler/mir":              {"lang/token", "lang/diag", "compiler/syntax", "compiler/sem", "compiler/hir", "compiler/mir/ops", "compiler/mir/ir"},
+	"backend/llgen":             {"lang/token", "lang/diag", "compiler/syntax", "compiler/sem", "compiler/mir", "compiler/sem/asmtable", "compiler/mir/ops", "compiler/mir/ir"},
 	"base/hashkey":              {},
 	"toolchain/zig":             {"toolchain/zig/store"},
 	"toolchain/zig/store":       {},
@@ -45,7 +46,7 @@ var allowed = map[string][]string{
 	"devkit/hosttool":           {},
 	"devkit/audit":              {"devkit/fixture", "devkit/hosttool"},
 	"devkit/bench":              {"toolchain/version", "devkit/hosttool"},
-	"backend/vm":                {"lang/token", "lang/diag", "compiler/syntax", "compiler/sem", "compiler/mir", "backend/vm/host/shell", "toolchain/buildgraph", "backend/vm/host/net", "base/hashkey", "compiler/mir/ops"},
+	"backend/vm":                {"lang/token", "lang/diag", "compiler/syntax", "compiler/sem", "compiler/mir", "backend/vm/host/shell", "toolchain/buildgraph", "backend/vm/host/net", "base/hashkey", "compiler/mir/ops", "compiler/mir/ir"},
 	"toolchain/driver":          {"lang/token", "lang/diag", "compiler/syntax", "compiler/printer", "compiler/sem", "compiler/mir", "backend/llgen", "backend/vm", "toolchain/buildgraph", "toolchain/version", "base/platform", "lang/target", "interop/cheader", "toolchain/contract/schema", "toolchain/zig", "toolchain/zig/store", "toolchain/zig/fetch", "toolchain/policy", "toolchain/config", "toolchain/native/audit", "toolchain/native/object", "compiler/mir/ops"},
 	"tooling/lsp":               {"lang/token", "lang/diag", "compiler/syntax", "compiler/printer", "compiler/sem", "toolchain/driver", "base/errors", "toolchain/version", "toolchain/config"},
 	"base/errors":               {},
