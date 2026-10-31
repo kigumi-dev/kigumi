@@ -11,14 +11,14 @@ import (
 // envAllowed lists where a process environment may be read: the CLI
 // boundary, which turns KIGUMI_* into explicit options, and the host
 // intrinsic (the VM) that exposes the environment to Kigumi programs.
-var envAllowed = []string{"internal/cli/", "internal/vm/std_host.go"}
+var envAllowed = []string{"internal/cli/", "internal/backend/vm/std_host.go"}
 
 // processAllowed lists the files that may resolve a path against the process cwd, search PATH or ask for the home directory.
 // The rule: a main package, or the CLI's one reader (shared/compiler_options.go), reads the process once and passes the facts down; no library file falls back to the process.
 var processAllowed = map[string]bool{
-	"internal/cli/shared/compiler_options.go": true,
-	"cmd/testaudit/main.go":                   true,
-	"cmd/e2ebench/main.go":                    true,
+	"internal/cli/session/compiler_options.go": true,
+	"cmd/testaudit/main.go":                    true,
+	"cmd/e2ebench/main.go":                     true,
 }
 
 var processCalls = []string{"filepath.Abs", "os.Getwd", "exec.LookPath", "os.UserHomeDir"}
@@ -42,7 +42,7 @@ func TestNoEnvReads(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if !processAllowed[rel] && rel != "internal/vm/std_host.go" {
+		if !processAllowed[rel] && rel != "internal/backend/vm/std_host.go" {
 			for _, call := range processCalls {
 				if strings.Contains(string(b), call) {
 					t.Errorf("%s: %s を参照している (関数値も含む)。cwd・PATH・home は CompilerOptions 経由で受け取れ", rel, call)

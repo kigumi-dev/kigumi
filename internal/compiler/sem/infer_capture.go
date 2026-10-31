@@ -1,0 +1,176 @@
+package sem
+
+import "kigumi/internal/compiler/syntax"
+
+// captureSite keeps ctx and idx valid even after ctx.list is copied into
+// ClosureInfo.Captures, so a write discovered later can still find the entry.
+type captureSite struct {
+	ctx *lambdaCtx
+	idx int
+}
+
+func (c *checker) noteCapture(n syntax.NodeID, ent EntityID, found ScopeID) {
+	for i := len(c.lambdas) - 1; i >= 0; i-- {
+		ctx := c.lambdas[i]
+		if c.scopeWithin(found, ctx.scope) {
+			return
+		}
+		if _, ok := ctx.captured[ent]; ok {
+			c.deferCaptureReserve(ctx, n, ent)
+			continue
+		}
+		e := &c.r.Entities[ent]
+		mode := capMove
+		if c.copyNow(e.Type) {
+			mode = capCopy
+		}
+		switch {
+		case ctx.immediate:
+			if mode == capMove {
+				mode = capBorrow
+			}
+		// A plain `self` has no write-back cell, so it is lent like a `&T` param.
+		case c.r.Types.Kind(e.Type) == KRef, mode == capMove && plainSelfReceiver(e):
+			c.errAt(n, cClosureCapturesRef, e.Name)
+			ctx.refCapture = true
+		case c.r.typeHasLifetime(e.Type):
+			// A non-immediate closure can escape its call, so a captured
+			// borrow-carrying value would outlive its owner.
+			c.errAt(n, cLifetimeEscapes, c.r.TypeString(e.Type), "a closure")
+		case c.r.typeHasTask(e.Type, map[TypeID]bool{}):
+			c.errAt(n, cTaskHandleCaptured, e.Name)
+		case c.restrictedEntity(ent):
+			c.errAt(n, cEscapingCaptured, c.r.Entities[c.aliasChase(ent)].Name, c.r.escapingForm(c.aliasChase(ent)))
+		}
+		if mode == capMove {
+			c.deferCaptureReserve(ctx, n, ent)
+		}
+		// A write checked before this capture never promotes it, so the capture starts shared.
+		if mode == capCopy && c.startsShared(ctx, n, ent) {
+			mode = capCell
+			e.Flags |= EfCapturedMut
+		}
+		// A `mut self` receiver is the caller's write-back cell, so a closure over it shares that cell.
+		if lentReceiver(e) {
+			mode = capCell
+		}
+		if mode == capMove && e.Flags&EfCapturedMut != 0 {
+			if ctx.keptMut == nil {
+				ctx.keptMut = map[EntityID]syntax.NodeID{}
+			}
+			ctx.keptMut[ent] = n
+		}
+		ctx.captured[ent] = len(ctx.list)
+		ctx.list = append(ctx.list, Capture{Local: ent, Mode: mode, OwnCell: mode == capMove && c.ownCellAbove(i, ent)})
+		c.captureSites[ent] = append(c.captureSites[ent], captureSite{ctx: ctx, idx: len(ctx.list) - 1})
+		c.noteOpenCapture(ctx, n, ent)
+	}
+}
+
+func (c *checker) capturedHere(ent EntityID) bool {
+	if len(c.lambdas) == 0 {
+		return false
+	}
+	_, ok := c.lambdas[len(c.lambdas)-1].captured[ent]
+	return ok
+}
+
+func (c *checker) noteCaptureWrite(n syntax.NodeID, ent EntityID) {
+	// A write through a borrow changes the referent, not the local.
+	if c.r.Types.Kind(c.r.Entities[ent].Type) == KRef {
+		return
+	}
+	c.noteLambdaWrite(ent)
+	c.noteLocalWrite(n, ent)
+	if c.capturedHere(ent) {
+		c.edge(EffectEdge{Kind: EdgeMutateCaller, Target: ent, Node: n})
+	}
+	c.promoteCaptures(n, ent)
+}
+
+// markImmediate records a lambda passed to a verified non-escaping parameter; only then may its
+// captures borrow instead of move, since the callee's contract guarantees it won't outlive the call.
+func (c *checker) markImmediate(lambda syntax.NodeID, nonEscaping bool) {
+	if !nonEscaping {
+		return
+	}
+	if c.argLambda == nil {
+		c.argLambda = map[syntax.NodeID]bool{}
+	}
+	c.argLambda[lambda] = true
+}
+
+func (c *checker) scopeWithin(s, root ScopeID) bool {
+	for ; s != 0; s = c.r.Scopes[s].Parent {
+		if s == root {
+			return true
+		}
+	}
+	return false
+}
+
+func closureCopy(caps []Capture) bool {
+	for _, cap := range caps {
+		if cap.Mode == capMove || cap.Mode == capRetain || cap.Mode == capBorrow || cap.Mode == capRead {
+			return false
+		}
+	}
+	return true
+}
+
+// closureErase coerces a closure to a plain fn type; recheckErasures judges the captures again once the body is done.
+func (c *checker) closureErase(n syntax.NodeID, closure EntityID, want TypeID) ([]CoStep, bool) {
+	info := c.r.closure(closure)
+	if !c.sameFnShape(info.Sig, want) {
+		return nil, false
+	}
+	c.refScopeContract(n, c.r.Types.Closure(closure), want)
+	if i, ok := c.firstEscapeMismatch(info.Sig, want); ok {
+		c.errAt(n, cEscapingCoerce, c.typeText(info.Sig), i+1, c.typeText(want))
+		return nil, true
+	}
+	c.settleOpenCaptures()
+	if !c.eraseCaptures(n, closure, want, ruleFull) {
+		return nil, true
+	}
+	c.noteErasure(n, closure, want)
+	need := Effects(c.r.Types.Node(want).Flags) & (EffPure | EffNoalloc)
+	if need != 0 {
+		c.edge(EffectEdge{Kind: EdgeContract, Target: closure, Mods: need, Node: n})
+	}
+	if len(info.Captures) > 0 {
+		c.edge(EffectEdge{Kind: EdgeAlloc, Type: want, From: c.r.Types.Closure(closure), Node: n})
+	}
+	return []CoStep{{CoClosureErase, want}}, true
+}
+
+// sameFnShape judges two fn signatures interchangeable for closure erasure and Fn/FnMut/
+// FnOnce satisfaction, ignoring escaping-vs-plain mismatches: enforced separately at call sites.
+func (c *checker) sameFnShape(got, want TypeID) bool {
+	tt := c.r.Types
+	g, w := tt.Node(c.vars.resolve(got)), tt.Node(c.vars.resolve(want))
+	if len(g.Args) != len(w.Args) || g.Flags&fnVariadic != w.Flags&fnVariadic {
+		return false
+	}
+	mark := c.vars.mark()
+	for i := range g.Args {
+		if !c.vars.unifyIgnoringEscaping(g.Args[i], w.Args[i]) {
+			c.vars.rollback(mark)
+			return false
+		}
+	}
+	if !c.vars.unifyIgnoringEscaping(g.Elem, w.Elem) {
+		c.vars.rollback(mark)
+		return false
+	}
+	return true
+}
+
+func lentReceiver(e *Entity) bool {
+	const want = EfSelf | EfMut
+	return e.Flags&want == want && e.Flags&EfMove == 0
+}
+
+func plainSelfReceiver(e *Entity) bool {
+	return e.Flags&(EfSelf|EfMut|EfMove) == EfSelf
+}

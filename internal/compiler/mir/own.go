@@ -1,0 +1,199 @@
+package mir
+
+import "kigumi/internal/compiler/syntax"
+
+// Ownership states of a move-only local along a path.
+type ownState uint8
+
+const (
+	ownUninit ownState = iota
+	ownValid
+	ownMoved
+	ownConflict
+	// ownMaybe joins assigned and never-assigned paths: a pattern binding
+	// behind `&&`, which the checker only lets the matched path read.
+	ownMaybe
+)
+
+// joinOwn merges two states at a block entry: a move against a value is a
+// conflict, an unassigned side only makes the value conditional.
+func joinOwn(a, b ownState) ownState {
+	if a == b {
+		return a
+	}
+	if a == ownUninit && b == ownMoved || a == ownMoved && b == ownUninit {
+		return ownMoved
+	}
+	if a == ownMoved || b == ownMoved || a == ownConflict || b == ownConflict {
+		return ownConflict
+	}
+	return ownMaybe
+}
+
+// val and field are independent: a moved-out field's temporary stays valid in val until consumed.
+// called is whether a once-only callable has run; callAt is where, apart from at so a move cannot hide the call.
+type dstate struct {
+	val, field, called, rel ownVec
+	at, callAt              nodeVec
+}
+
+func newDstate() *dstate { return &dstate{} }
+
+func cloneD(s *dstate) *dstate {
+	return &dstate{val: s.val.clone(), field: s.field.clone(), called: s.called.clone(), rel: s.rel.clone(), at: s.at.clone(), callAt: s.callAt.clone()}
+}
+
+// analyzeOwnership runs a forward dataflow over the CFG: every use needs a
+// valid local, moves consume, drops of moved locals are removed, and
+// joins must agree. A field moved out of an owned place
+// keeps its own presence state independent of the place that held it;
+// using that place as a whole while one of its fields is gone is also an
+// error, and a drop of it becomes a drop of the fields still there.
+func analyzeOwnership(p *Program, f *Func) {
+	defer clearGuardMarks(f)
+	moveOnly := func(l Local) bool {
+		return !p.R.IsCopy(l.Type) && !l.Cell
+	}
+	tracked := map[LocalID]bool{}
+	for i, l := range f.Locals {
+		if l.Ent != 0 && moveOnly(l) {
+			tracked[LocalID(i)] = true
+		}
+	}
+	pl := findPlaces(p, f)
+	for l := range pl.key {
+		if moveOnly(f.Locals[l]) {
+			tracked[l] = true
+		}
+	}
+	if len(tracked) == 0 && !hasTrackedCell(p, f) {
+		return
+	}
+	a := &owner{p: p, f: f, pl: pl, tracked: tracked, in: make([]*dstate, len(f.Blocks)),
+		reported: map[syntax.NodeID]bool{}, defNode: map[LocalID]syntax.NodeID{}, thread: &flagThread{f: f}}
+	entry := newDstate()
+	for _, prm := range f.Params {
+		if tracked[prm] {
+			entry.val.set(prm, ownValid)
+		}
+	}
+	a.in[0] = entry
+	a.solve(0)
+	a.solveGhosts()
+	for bid := range f.Blocks {
+		if a.in[bid] != nil {
+			a.transfer(BlockID(bid), cloneD(a.in[bid]), true)
+		}
+	}
+	checkReadCaptures(p, f, a.moves)
+}
+
+func (a *owner) solve(start BlockID) {
+	work := []BlockID{start}
+	for len(work) > 0 {
+		bid := work[0]
+		work = work[1:]
+		out := a.transfer(bid, cloneD(a.in[bid]), false)
+		if a.thread.allThreaded(bid) {
+			continue
+		}
+		for _, succ := range a.f.Blocks[bid].Term.Targets {
+			if a.merge(succ, out) {
+				work = append(work, succ)
+			}
+			if to, ok := a.thread.target(bid, succ); ok && a.merge(to, a.transfer(succ, cloneD(out), false)) {
+				work = append(work, to)
+			}
+		}
+	}
+}
+
+// transfer walks a block; in report mode it emits diagnostics and rewrites
+// drops of consumed locals into no-ops or, of a partially moved place,
+// into drops of the fields still there.
+func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
+	blk := &a.f.Blocks[bid]
+	a.cur = st
+	for i := range blk.Insts {
+		in := &blk.Insts[i]
+		a.pos = movePos{bid, i}
+		if in.Op.Yields() {
+			a.defNode[in.Dst] = in.Node
+		}
+		switch in.Op {
+		case OpDrop:
+			l := a.pl.canon(in.Args[0])
+			if !a.tracked[l] {
+				continue
+			}
+			// A value the local may or may not hold keeps its drop: the
+			// backends store null into every local first and into a local a
+			// move emptied, so dropping an absent value is a no-op. Only a
+			// drop that can never find a value goes.
+			if st.val.get(l) == ownUninit || st.val.get(l) == ownMoved {
+				if report {
+					in.Op = OpNop
+					in.Args = nil
+				}
+				continue
+			}
+			// A partially moved place still gets a plain drop: every
+			// backend's free already walks an aggregate's fields and skips
+			// a moved-out (null) one, so the fields still there are
+			// released the same way a whole value's would be.
+			in.Emptied = report && a.emptied(l, st)
+			st.val.set(l, ownUninit)
+			continue
+		case OpMove:
+			a.moveInst(in, st, report)
+		case OpNop:
+			a.guardedMove(in, st, report)
+			continue
+		default:
+			a.onceCall(in, st, report)
+			a.useArgs(in, st, report)
+		}
+		if in.Op == OpField || in.Op == OpFieldMove || in.Op == OpPayload {
+			if l := a.pl.canon(in.Dst); a.tracked[l] {
+				a.check(in, l, st.val.get(l), report)
+				a.check(in, l, st.field.get(l), report)
+				if in.Op == OpFieldMove {
+					a.fieldMove(in, l, st, report)
+				}
+			}
+		}
+		if in.Op == OpSetField {
+			if l, ok := a.pl.stored(a.f, *in); ok {
+				st.val.set(l, ownValid)
+				st.field.set(l, ownValid)
+				st.called.del(l)
+				a.pl.resetFields(l, st)
+			}
+		}
+		if a.pl.isPlace(in.Dst) {
+			if l := a.pl.canon(in.Dst); st.val.get(l) == ownUninit {
+				st.val.set(l, ownValid)
+			}
+			continue
+		}
+		if in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpGlobalSet && in.Op != OpFutureDone && in.Op != OpCancelDone && a.tracked[in.Dst] {
+			st.val.set(in.Dst, ownValid)
+			st.called.del(in.Dst)
+			a.pl.resetFields(in.Dst, st)
+		}
+	}
+	if blk.Term.Op == TermReturn {
+		for _, arg := range blk.Term.Args {
+			l := a.pl.canon(arg)
+			if a.tracked[l] {
+				a.check(nil, l, st.val.get(l), report)
+				a.checkWhole(a.defNode[arg], l, st, report)
+				if a.pl.isPlace(arg) {
+					a.checkDropOwner(a.defNode[arg], l, report)
+				}
+			}
+		}
+		a.checkBorrowedWhole(st, report)
+	}
+	return st
+}

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/vm"
+	"kigumi/internal/backend/vm"
 )
 
 // TestDoctor checks both output formats report the std root and the JSON form carries a formatVersion.

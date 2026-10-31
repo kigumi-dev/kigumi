@@ -14,9 +14,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - pkg: ./internal/syntax/
+          - pkg: ./internal/compiler/syntax/
             func: FuzzParse
-          - pkg: ./internal/driver/
+          - pkg: ./internal/toolchain/driver/
             func: FuzzMutatedMIR
     steps:
       - uses: actions/checkout@v4

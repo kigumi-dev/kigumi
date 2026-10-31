@@ -19,7 +19,7 @@ func parseDriver(t *testing.T) map[string]*ast.File {
 	t.Helper()
 	fset := token.NewFileSet()
 	files := map[string]*ast.File{}
-	paths, _ := filepath.Glob("../driver/*.go")
+	paths, _ := filepath.Glob("../toolchain/driver/*.go")
 	for _, p := range paths {
 		if strings.HasSuffix(p, "_test.go") {
 			continue
@@ -42,11 +42,11 @@ func TestDriverReadsNoAmbientPlatform(t *testing.T) {
 			switch x := n.(type) {
 			case *ast.SelectorExpr:
 				if id, ok := x.X.(*ast.Ident); ok && ambientGlobals[id.Name+"."+x.Sel.Name] {
-					t.Errorf("internal/driver/%s: %s.%s を読んでいる。internal/cli が CompilerOptions に入れて渡せ", name, id.Name, x.Sel.Name)
+					t.Errorf("internal/toolchain/driver/%s: %s.%s を読んでいる。internal/cli が CompilerOptions に入れて渡せ", name, id.Name, x.Sel.Name)
 				}
 			case *ast.CallExpr:
 				if id, ok := x.Fun.(*ast.Ident); ok && id.Name == "HostTarget" {
-					t.Errorf("internal/driver/%s: HostTarget() を呼んでいる。CompilerOptions.HostOrAmbient を使え", name)
+					t.Errorf("internal/toolchain/driver/%s: HostTarget() を呼んでいる。CompilerOptions.HostOrAmbient を使え", name)
 				}
 			}
 			return true

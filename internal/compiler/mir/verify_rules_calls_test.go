@@ -1,0 +1,188 @@
+package mir_test
+
+import (
+	"testing"
+
+	"kigumi/internal/compiler/mir"
+	"kigumi/internal/compiler/sem"
+)
+
+const asyncRulesSrc = `
+async fn twice(x: Int) -> Int { x * 2 }
+
+async fn total(a: Int, b: Int) -> Int {
+    let x = await twice(a)
+    let y = await twice(b)
+    x + y
+}
+
+let _ = total(1, 2)
+`
+
+func TestVerifyAsync(t *testing.T) {
+	cases := []struct {
+		name, fragment string
+		edit           func(t *testing.T, p *mir.Program, f *mir.Func)
+	}{
+		{"await outside async", "await in a function that is not async", func(t *testing.T, p *mir.Program, f *mir.Func) { f.Async = false }},
+		{"suspension out of range", "suspension point 9 outside 1..2", func(t *testing.T, p *mir.Program, f *mir.Func) { nth(t, f, mir.OpAwait, 0).Index = 9 }},
+		{"suspension twice", "awaited twice", func(t *testing.T, p *mir.Program, f *mir.Func) { nth(t, f, mir.OpAwait, 1).Index = 1 }},
+		{"suspension count", "5 suspension points but 2 awaits", func(t *testing.T, p *mir.Program, f *mir.Func) { f.Suspends = 5 }},
+		{"frame slots", "frame slots for", func(t *testing.T, p *mir.Program, f *mir.Func) { f.Slot = f.Slot[:1] }},
+		{"slot out of the frame", "in slot", func(t *testing.T, p *mir.Program, f *mir.Func) { f.Slot[0] = f.Frame + 3 }},
+		{"slot shared", "holds two locals", func(t *testing.T, p *mir.Program, f *mir.Func) {
+			first := -1
+			for i, s := range f.Slot {
+				if s < 0 {
+					continue
+				}
+				if first < 0 {
+					first = i
+				} else {
+					f.Slot[i] = f.Slot[first]
+					return
+				}
+			}
+			t.Fatal("fewer than two frame locals")
+		}},
+		{"cleanup lists", "cleanup lists for", func(t *testing.T, p *mir.Program, f *mir.Func) { f.Cleanup = f.Cleanup[:1] }},
+		{"cleanup of a local with no slot", "has no frame slot", func(t *testing.T, p *mir.Program, f *mir.Func) {
+			for i, s := range f.Slot {
+				if s < 0 {
+					f.Cleanup[1] = append(f.Cleanup[1], mir.LocalID(i))
+					return
+				}
+			}
+			t.Fatal("every local has a slot")
+		}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			p := planned(t, asyncRulesSrc)
+			c.edit(t, p, funcNamed(t, p, "main.total"))
+			wantRule(t, p, "async", c.fragment)
+		})
+	}
+	t.Run("completion outside async", func(t *testing.T) {
+		p := built(t, rulesSrc)
+		f := funcNamed(t, p, "main.add")
+		appendInst(f, mir.Inst{Op: mir.OpFutureDone, Args: []mir.LocalID{0}})
+		wantRule(t, p, "async", "completion of a function that is not async")
+	})
+}
+
+func TestVerifyParams(t *testing.T) {
+	p := built(t, rulesSrc)
+	f := funcNamed(t, p, "main.add")
+	f.Params[0], f.Params[1] = f.Params[1], f.Params[0]
+	wantRule(t, p, "calls", "parameter 0 is %b, not the a")
+	f.Params[0], f.Params[1] = f.Params[1], f.Params[0]
+	f.Params = f.Params[:1]
+	wantRule(t, p, "calls", "takes 1 parameters, but add declares 2")
+}
+
+func TestVerifyEntities(t *testing.T) {
+	cases := []struct {
+		name, fragment string
+		edit           func(t *testing.T, p *mir.Program, f *mir.Func)
+	}{
+		{"call of a type", "which is not a function", func(t *testing.T, p *mir.Program, f *mir.Func) {
+			nth(t, f, mir.OpCall, 0).Ent = entityNamed(t, p, sem.EntType, "Point")
+		}},
+		{"variant test of a type", "which is not a variant", func(t *testing.T, p *mir.Program, f *mir.Func) {
+			nth(t, f, mir.OpIsVariant, 0).Ent = entityNamed(t, p, sem.EntType, "Point")
+		}},
+		{"record of too few fields", "record of 2 fields built from 1 values", func(t *testing.T, p *mir.Program, f *mir.Func) {
+			in := nth(t, f, mir.OpRecord, 0)
+			in.Args = in.Args[:1]
+		}},
+		{"closure of a function", "a lowered closure, or a method for a method value", func(t *testing.T, p *mir.Program, f *mir.Func) {
+			nth(t, f, mir.OpClosure, 0).Ent = entityNamed(t, p, sem.EntFn, "add")
+		}},
+		{"static of a function", "which is not a static", func(t *testing.T, p *mir.Program, f *mir.Func) {
+			appendInst(f, mir.Inst{Op: mir.OpGlobalGet, Dst: addLocal(f, "g", sem.TyI64), Ent: entityNamed(t, p, sem.EntFn, "add")})
+		}},
+		{"negative field", "field index -1", func(t *testing.T, p *mir.Program, f *mir.Func) {
+			nth(t, f, mir.OpField, 0).Index = -1
+		}},
+		{"asm without a table", "asm without its operand table", func(t *testing.T, p *mir.Program, f *mir.Func) {
+			appendInst(f, mir.Inst{Op: mir.OpAsm, Dst: addLocal(f, "a", sem.TyI64), Type: sem.TyI64})
+		}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			p := built(t, rulesSrc)
+			name := map[string]string{"call of a type": "main", "variant test of a type": "main.area", "record of too few fields": "main.shift", "closure of a function": "main.counter", "negative field": "main.shift"}[c.name]
+			if name == "" {
+				name = "main.add"
+			}
+			c.edit(t, p, funcNamed(t, p, name))
+			wantRule(t, p, "entities", c.fragment)
+		})
+	}
+}
+
+func TestVerifyCalls(t *testing.T) {
+	str := func(f *mir.Func) mir.LocalID {
+		s := addLocal(f, "s", sem.TyString)
+		f.Blocks[0].Insts = append([]mir.Inst{{Op: mir.OpConst, Dst: s, Type: sem.TyString, Lit: sem.Literal{Kind: sem.LitString}}}, f.Blocks[0].Insts...)
+		return s
+	}
+	cases := []struct {
+		name, fn, fragment string
+		edit               func(t *testing.T, p *mir.Program, f *mir.Func)
+	}{
+		{"too few arguments", "main", "passes 1 values to main.add, which takes 2", func(t *testing.T, p *mir.Program, f *mir.Func) {
+			in := nth(t, f, mir.OpCall, 0)
+			in.Args = in.Args[:1]
+		}},
+		{"argument of another type", "main", "passes String as argument 0 of main.add", func(t *testing.T, p *mir.Program, f *mir.Func) {
+			nth(t, f, mir.OpCall, 0).Args[0] = str(f)
+		}},
+		{"result of another type", "main", "takes String from main.add, which returns Int", func(t *testing.T, p *mir.Program, f *mir.Func) {
+			f.Locals[nth(t, f, mir.OpCall, 0).Dst].Type = sem.TyString
+		}},
+		{"function value of too few arguments", "main.run", "passes 0 values to a function of 1", func(t *testing.T, p *mir.Program, f *mir.Func) {
+			in := nth(t, f, mir.OpCallValue, 0)
+			in.Args = in.Args[:1]
+		}},
+		{"function value argument of another type", "main.run", "passes String as argument 0 of", func(t *testing.T, p *mir.Program, f *mir.Func) {
+			nth(t, f, mir.OpCallValue, 0).Args[1] = str(f)
+		}},
+		{"witness of too few arguments", "main.both", "values to the witness of show", func(t *testing.T, p *mir.Program, f *mir.Func) {
+			in := nth(t, f, mir.OpCallValue, 0)
+			in.Args = in.Args[:1]
+		}},
+		{"witness handed the witness", "main.both", "hands the witness for T a", func(t *testing.T, p *mir.Program, f *mir.Func) {
+			in := nth(t, f, mir.OpCallValue, 0)
+			in.Args[1] = in.Args[0]
+		}},
+		{"closure of too many captures", "main.counter", "captures 2 values for a body of 1 parameters", func(t *testing.T, p *mir.Program, f *mir.Func) {
+			in := nth(t, f, mir.OpClosure, 0)
+			in.Args = append(in.Args, in.Args[0])
+		}},
+		{"closure capture of another type", "main.counter", "captures String for a parameter of Int", func(t *testing.T, p *mir.Program, f *mir.Func) {
+			nth(t, f, mir.OpClosure, 0).Args[0] = str(f)
+		}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			p := built(t, rulesSrc)
+			c.edit(t, p, funcNamed(t, p, c.fn))
+			wantRule(t, p, "calls", c.fragment)
+		})
+	}
+	t.Run("primitive of too few arguments", func(t *testing.T) {
+		p := program(t)
+		sqrt := primitiveOf(t, p, sem.TyF64, sem.TyF64)
+		f := fn("prim", sem.TyF64, []mir.Local{{Name: "t0", Type: sem.TyF64}}, mir.Block{Insts: []mir.Inst{{Op: mir.OpCall, Ent: sqrt, Dst: 0}}, Term: ret(0)})
+		expectRule(t, p, f, "calls", "passes 0 values to sqrt, which takes 1")
+	})
+	t.Run("future of the wrong arity", func(t *testing.T) {
+		p := planned(t, asyncRulesSrc)
+		f := funcNamed(t, p, "main")
+		in := nth(t, f, mir.OpFutureNew, 0)
+		in.Args = in.Args[:1]
+		wantRule(t, p, "calls", "values to main.total, which takes 2")
+	})
+}

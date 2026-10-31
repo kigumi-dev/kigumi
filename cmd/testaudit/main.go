@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/exec"
 
-	"kigumi/internal/testtool"
+	"kigumi/internal/devkit/testtool"
 )
 
 func main() {

@@ -15,7 +15,7 @@ func TestNoStaleEngineGuidance(t *testing.T) {
 			t.Errorf("%v mentions a removed engine:\n%s", args, s)
 		}
 	}
-	for _, dir := range []string{"../driver", ".", "../../cmd"} {
+	for _, dir := range []string{"../toolchain/driver", ".", "../../cmd"} {
 		filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 			if err != nil || d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
 				return nil

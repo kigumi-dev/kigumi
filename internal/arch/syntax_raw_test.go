@@ -59,7 +59,7 @@ func onTree(d *ast.FuncDecl) bool {
 }
 
 func TestSyntaxExportsNoRawTreeAPI(t *testing.T) {
-	for path, f := range parseDir(t, "../syntax", false) {
+	for path, f := range parseDir(t, "../compiler/syntax", false) {
 		if strings.Contains(path, "/syntax/testdata/") {
 			continue
 		}
@@ -98,7 +98,7 @@ func TestSyntaxExportsNoRawTreeAPI(t *testing.T) {
 func TestNoRawTreeAccessOutsideSyntax(t *testing.T) {
 	selectors := []string{"Nodes", "Extra", "Slot", "Slots", "SlotNames", "PathToks"}
 	for path, f := range parseDir(t, "..", true) {
-		if strings.HasPrefix(path, "../syntax/") || !importsSyntax(f) {
+		if strings.HasPrefix(path, "../compiler/syntax/") || !importsSyntax(f) {
 			continue
 		}
 		ast.Inspect(f, func(n ast.Node) bool {
@@ -110,7 +110,7 @@ func TestNoRawTreeAccessOutsideSyntax(t *testing.T) {
 				t.Errorf("%s: syntax.Node is gone; read the tree through syntax views", path)
 			}
 			if slices.Contains(selectors, sel.Sel.Name) {
-				t.Errorf("%s: .%s reads the raw syntax tree; use the typed views in internal/syntax", path, sel.Sel.Name)
+				t.Errorf("%s: .%s reads the raw syntax tree; use the typed views in internal/compiler/syntax", path, sel.Sel.Name)
 			}
 			return true
 		})
@@ -119,7 +119,7 @@ func TestNoRawTreeAccessOutsideSyntax(t *testing.T) {
 
 func importsSyntax(f *ast.File) bool {
 	for _, imp := range f.Imports {
-		if imp.Path.Value == `"kigumi/internal/syntax"` {
+		if imp.Path.Value == `"kigumi/internal/compiler/syntax"` {
 			return true
 		}
 	}

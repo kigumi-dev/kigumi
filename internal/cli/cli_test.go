@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"kigumi/internal/cli"
-	"kigumi/internal/cliutil"
+	"kigumi/internal/cli/exit"
 )
 
 func execute(t *testing.T, args ...string) (int, string, string) {

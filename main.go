@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"kigumi/internal/cli"
-	"kigumi/internal/cli/shared"
-	"kigumi/internal/cliutil"
+	"kigumi/internal/cli/exit"
+	"kigumi/internal/cli/session"
 )
 
 // The std stubs ship inside the executable so an installed kigumi works

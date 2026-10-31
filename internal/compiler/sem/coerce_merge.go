@@ -1,0 +1,63 @@
+package sem
+
+import "kigumi/internal/compiler/syntax"
+
+// merge joins branch types without an expected type: Never drops
+// out, and T merges with T? by lifting.
+func (c *checker) merge(nodes []syntax.NodeID, types []TypeID) TypeID {
+	tt := c.r.Types
+	best := TypeID(0)
+	depth := -1
+	for _, t := range types {
+		t = c.vars.resolve(t)
+		if t == TyNever || t == TyPoison {
+			continue
+		}
+		d := 0
+		for e, ok := tt.IsOption(t); ok; e, ok = tt.IsOption(e) {
+			d++
+		}
+		if d > depth || d == depth && tt.Kind(best) == KUntyped && tt.Kind(t) != KUntyped {
+			best, depth = t, d
+		}
+	}
+	if best == 0 {
+		return TyNever
+	}
+	for i, t := range types {
+		t = c.vars.resolve(t)
+		if t == TyNever || t == TyPoison {
+			continue
+		}
+		if tt.ContainsVar(t) && !c.vars.pendingLiteral(t) && c.vars.unifiable(t, best) {
+			c.vars.unify(t, best)
+			t = c.vars.resolve(t)
+		}
+		steps, ok := c.coerceSteps(nodes[i], t, best)
+		if !ok || !optionOnly(steps) {
+			if !c.closureMismatch(nodes[i], cBranchTypeMismatch, best, t) {
+				a, b := c.r.mismatchLabels(defaultOf(best), defaultOf(t))
+				c.errAt(nodes[i], cBranchTypeMismatch, a, b)
+			}
+			continue
+		}
+		if len(steps) > 0 {
+			c.info.Coerce[nodes[i]] = Coercion{From: t, Steps: steps}
+			c.chargeCoercion(nodes[i], c.info.Coerce[nodes[i]])
+			if steps[0].Kind == CoLiteral {
+				c.adoptTails(c.literalNode(nodes[i]), steps[0].To)
+				c.setType(c.literalNode(nodes[i]), steps[0].To)
+			}
+		}
+	}
+	return best
+}
+
+func optionOnly(steps []CoStep) bool {
+	for _, s := range steps {
+		if s.Kind != CoSome && s.Kind != CoLiteral && s.Kind != CoNever {
+			return false
+		}
+	}
+	return true
+}

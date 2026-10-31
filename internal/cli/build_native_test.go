@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/testtool"
+	"kigumi/internal/devkit/testtool"
 )
 
 // Split out from TestBuildRejectsBuildProgramFlagsWithoutOne so that one stays hermetic.

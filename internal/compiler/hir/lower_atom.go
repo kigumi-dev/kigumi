@@ -1,0 +1,187 @@
+package hir
+
+import (
+	"kigumi/internal/compiler/sem"
+	"kigumi/internal/compiler/syntax"
+)
+
+// move lowers `move place`; a Copy field stays Field, not
+// FieldMove, since the ownership analysis never tracks that slot, and
+// clearing it would lose a value still readable through it.
+func (l *lowerer) move(n, target syntax.NodeID) *Expr {
+	for l.t.Kind(target) == syntax.Paren {
+		target = l.t.View(target).AsParen().Inner().ID()
+	}
+	if l.t.Kind(target) != syntax.MemberExpr {
+		return l.expr(target)
+	}
+	if call, ok := l.info.Calls[target]; ok && call.Kind == sem.CallMethodValue {
+		return l.expr(target)
+	}
+	if l.r.IsCopy(l.typeOf(target)) {
+		return l.expr(target)
+	}
+	fld := l.r.Field(l.info.Uses[target])
+	base := l.expr(l.t.View(target).AsMember().Base().ID())
+	out := l.node(target, FieldMove)
+	out.Args, out.Index = []*Expr{base}, fld.Index
+	return out
+}
+
+func (l *lowerer) literal(n syntax.NodeID) *Expr {
+	lit, _ := l.r.LiteralOf(l.t, n)
+	out := l.node(n, Lit)
+	out.Lit = lit
+	if out.Type == 0 || l.r.Types.Kind(out.Type) == sem.KUntyped {
+		out.Type = sem.TyI64
+		if lit.Kind == sem.LitFloat {
+			out.Type = sem.TyF64
+		}
+	}
+	return out
+}
+
+func (l *lowerer) ident(n syntax.NodeID) *Expr {
+	ent := l.info.Uses[n]
+	e := l.r.Entity(ent)
+	switch e.Kind {
+	case sem.EntLocal, sem.EntParam:
+		out := l.node(n, Local)
+		out.Ent = ent
+		return out
+	case sem.EntConst:
+		if th := l.r.ConstThunk(ent); th != 0 {
+			return l.thunkCall(n, th, e.Type)
+		}
+		out := l.node(n, Lit)
+		out.Lit, _ = l.r.ConstValueOf(ent)
+		if out.Type == 0 || l.r.Types.Kind(out.Type) == sem.KUntyped {
+			out.Type = e.Type
+		}
+		return out
+	case sem.EntStatic:
+		out := l.node(n, Global)
+		out.Ent = ent
+		return out
+	case sem.EntFn:
+		return l.fnItem(n, ent)
+	case sem.EntVariant:
+		out := l.node(n, Variant)
+		out.Ent = ent
+		return out
+	case sem.EntIntrinsic:
+		return l.node(n, Host)
+	case sem.EntContextKey:
+		return l.ctxUse(n)
+	}
+	out := l.node(n, Panic)
+	out.Name = "not a value"
+	return out
+}
+
+// ctxUse reads a resolved context-key reference: a bound provider field, or
+// the current function's own hidden parameter.
+func (l *lowerer) ctxUse(n syntax.NodeID) *Expr {
+	return l.ctxBindExpr(n, l.info.CtxUse[n])
+}
+
+// ctxBindExpr: if neither Local nor Param is set, b is std/task's phantom `cancellation` key.
+func (l *lowerer) ctxBindExpr(n syntax.NodeID, b sem.CtxBind) *Expr {
+	if b.Local != 0 {
+		fld := l.r.Field(b.Field)
+		base := &Expr{Kind: Local, Type: l.r.Entity(b.Local).Type, Loc: l.loc(n), Node: n, Ent: b.Local}
+		return &Expr{Kind: Field, Type: fld.Type, Loc: l.loc(n), Node: n, Args: []*Expr{base}, Index: fld.Index}
+	}
+	if b.Param != 0 {
+		return &Expr{Kind: Local, Type: l.r.Entity(b.Param).Type, Loc: l.loc(n), Node: n, Ent: b.Param}
+	}
+	return &Expr{Kind: Call, Type: l.r.Entity(b.Key).Type, Loc: l.loc(n), Node: n, Ent: l.r.CancelRequestedFn()}
+}
+
+func (l *lowerer) member(n syntax.NodeID) *Expr {
+	base := l.t.View(n).AsMember().Base().ID()
+	ent := l.info.Uses[n]
+	if call, ok := l.info.Calls[n]; ok && call.Kind == sem.CallMethodValue {
+		out := l.node(n, MethodValue)
+		out.Ent, out.Witness, out.Passes, out.Args = call.Callee, call.Witness, call.Passes, []*Expr{l.expr(base)}
+		return out
+	}
+	switch l.r.Entity(ent).Kind {
+	case sem.EntField:
+		kind := Field
+		if l.info.FieldMoves[n] {
+			kind = FieldMove
+		}
+		out := l.node(n, kind)
+		out.Args, out.Index = []*Expr{l.expr(base)}, l.r.Field(ent).Index
+		return out
+	case sem.EntType:
+		out := l.node(n, DefinedUnwrap)
+		out.Args = []*Expr{l.expr(base)}
+		return out
+	case sem.EntFn:
+		return l.fnItem(n, ent)
+	case sem.EntConst:
+		if th := l.r.ConstThunk(ent); th != 0 {
+			return l.thunkCall(n, th, l.r.Entity(ent).Type)
+		}
+		out := l.node(n, Lit)
+		out.Lit, _ = l.r.ConstValueOf(ent)
+		return out
+	case sem.EntStatic:
+		out := l.node(n, Global)
+		out.Ent = ent
+		return out
+	case sem.EntVariant:
+		out := l.node(n, Variant)
+		out.Ent = ent
+		return out
+	case sem.EntContextKey:
+		return l.ctxUse(n)
+	}
+	out := l.node(n, Panic)
+	out.Name = "not a value"
+	return out
+}
+
+func (l *lowerer) stringLit(n syntax.NodeID) *Expr {
+	src := l.t.File.Src
+	out := l.node(n, Interp)
+	text := ""
+	for _, p := range l.t.StringParts(n) {
+		if p.Expr == 0 {
+			piece := syntax.DecodeString(string(src[p.Text.Start:p.Text.End]))
+			out.Strs = append(out.Strs, piece)
+			text += piece
+			continue
+		}
+		out.Strs = append(out.Strs, "")
+		out.Args = append(out.Args, l.expr(p.Expr))
+	}
+	if len(out.Args) == 0 {
+		out.Kind, out.Type, out.Lit, out.Strs = Lit, sem.TyString, sem.Literal{Kind: sem.LitString, Str: text}, nil
+	}
+	return out
+}
+
+func (l *lowerer) byteStringLit(n syntax.NodeID) *Expr {
+	out := l.node(n, Lit)
+	out.Type, out.Lit = sem.TyBytes, sem.Literal{Kind: sem.LitBytes, Str: string(syntax.DecodeByteString(l.t.View(n).Tok().Text()))}
+	return out
+}
+
+// A function value over a constrained generic carries the witnesses sem resolved for its instantiation.
+func (l *lowerer) fnItem(n syntax.NodeID, ent sem.EntityID) *Expr {
+	out := l.node(n, FnItem)
+	out.Ent = ent
+	if call, ok := l.info.Calls[n]; ok && call.Kind == sem.CallFnItem {
+		out.Passes = call.Passes
+	}
+	return out
+}
+
+func (l *lowerer) thunkCall(n syntax.NodeID, thunk sem.EntityID, t sem.TypeID) *Expr {
+	out := l.node(n, Call)
+	out.Ent, out.Type = thunk, t
+	return out
+}

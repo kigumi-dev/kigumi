@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"kigumi/internal/zigtool/store"
+	"kigumi/internal/toolchain/zig/store"
 )
 
 // seedZigStore stands in for a real download; signature verification is
-// fetch's job (internal/zigtool/fetch), not tested here.
+// fetch's job (internal/toolchain/zig/fetch), not tested here.
 func seedZigStore(t *testing.T, root, version string) {
 	t.Helper()
 	st, err := store.Stage(root, version)

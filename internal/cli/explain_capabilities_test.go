@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/testtool"
+	"kigumi/internal/devkit/testtool"
 )
 
 const capabilitySrc = "let args = host.args()\nprint \"${args.len()}\"\n"

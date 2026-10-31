@@ -17,18 +17,18 @@ var residueSymbols = map[string]bool{
 
 // residueAllowed freezes the ambient reads still outside CompilerOptions; a new one must go through the options instead.
 var residueAllowed = map[string]bool{
-	"driver/compiler_options.go runtime.GOOS": true, "driver/compiler_options.go runtime.GOARCH": true,
-	"zigtool/fetch/host_triple.go runtime.GOOS": true, "zigtool/fetch/host_triple.go runtime.GOARCH": true,
-	"zigtool/fetch/install_release.go runtime.GOOS": true, "zigtool/fetch/install_release.go runtime.GOARCH": true,
-	"zigtool/store/root_dir.go runtime.GOOS": true,
-	"zigtool/source/build.go runtime.GOOS":   true, "zigtool/source/build.go runtime.GOARCH": true,
-	"platform/platform.go runtime.GOOS": true, "platform/platform.go runtime.GOARCH": true,
-	"target/target.go runtime.GOOS": true, "target/target.go runtime.GOARCH": true,
+	"toolchain/driver/compiler_options.go runtime.GOOS": true, "toolchain/driver/compiler_options.go runtime.GOARCH": true,
+	"toolchain/zig/fetch/host_triple.go runtime.GOOS": true, "toolchain/zig/fetch/host_triple.go runtime.GOARCH": true,
+	"toolchain/zig/fetch/install_release.go runtime.GOOS": true, "toolchain/zig/fetch/install_release.go runtime.GOARCH": true,
+	"toolchain/zig/store/root_dir.go runtime.GOOS": true,
+	"toolchain/zig/source/build.go runtime.GOOS":   true, "toolchain/zig/source/build.go runtime.GOARCH": true,
+	"base/platform/platform.go runtime.GOOS": true, "base/platform/platform.go runtime.GOARCH": true,
+	"lang/target/target.go runtime.GOOS": true, "lang/target/target.go runtime.GOARCH": true,
 }
 
 func TestAmbientReadsOutsideOptionsAreFrozen(t *testing.T) {
 	seen := map[string]bool{}
-	for _, dir := range []string{"driver", "zigtool", "platform", "target"} {
+	for _, dir := range []string{"toolchain/driver", "toolchain/zig", "base/platform", "lang/target"} {
 		root := filepath.Join("..", dir)
 		err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 			if err != nil || d.IsDir() || !strings.HasSuffix(p, ".go") || strings.HasSuffix(p, "_test.go") {
