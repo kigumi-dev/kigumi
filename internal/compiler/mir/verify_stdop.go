@@ -2,7 +2,7 @@ package mir
 
 import "kigumi/internal/compiler/sem"
 
-func (p *Program) verifyStdOpTags(f *Func) *Error {
+func (p *verifier) verifyStdOpTags(f *Func) *Error {
 	for bid, blk := range f.Blocks {
 		for i, in := range blk.Insts {
 			if in.Prim != 0 || in.Prov != 0 {
@@ -19,7 +19,7 @@ func (p *Program) verifyStdOpTags(f *Func) *Error {
 	return nil
 }
 
-func (p *Program) resolvedTags(in Inst) (PrimitiveId, ProviderOpId) {
+func (p *verifier) resolvedTags(in Inst) (PrimitiveId, ProviderOpId) {
 	switch in.Op {
 	case OpCall, OpClosure, OpFnItem, OpBind:
 	default:

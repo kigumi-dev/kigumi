@@ -13,7 +13,7 @@ const (
 	kindObject
 )
 
-func (p *Program) primKindOf(t sem.TypeID) primKind {
+func (p *verifier) primKindOf(t sem.TypeID) primKind {
 	tt := p.R.Types
 	if t == 0 || t == sem.TyNever {
 		return kindUnknown
@@ -35,7 +35,7 @@ func (k primKind) String() string {
 }
 
 // A mismatch is rejected for the boxed and the direct result form alike: the back end picks the runtime entry from the declared signature.
-func (p *Program) verifyPrimCalls(f *Func) *Error {
+func (p *verifier) verifyPrimCalls(f *Func) *Error {
 	for bid, blk := range f.Blocks {
 		for i, in := range blk.Insts {
 			if in.Op != OpCall || !p.IsStdPrimitive(in.Ent) {
@@ -53,7 +53,7 @@ func (p *Program) verifyPrimCalls(f *Func) *Error {
 	return nil
 }
 
-func (p *Program) primMismatch(f *Func, in Inst) string {
+func (p *verifier) primMismatch(f *Func, in Inst) string {
 	info := p.R.Fn(in.Ent)
 	sig := p.R.Types.Node(info.Sig)
 	skip := len(in.Args) - len(sig.Args)
@@ -79,7 +79,7 @@ func (p *Program) primMismatch(f *Func, in Inst) string {
 	return ""
 }
 
-func (p *Program) primSlot(want, got sem.TypeID) string {
+func (p *verifier) primSlot(want, got sem.TypeID) string {
 	wk, gk := p.primKindOf(want), p.primKindOf(got)
 	if wk == kindUnknown || gk == kindUnknown {
 		return ""
@@ -98,14 +98,14 @@ func (p *Program) derefAll(t sem.TypeID) sem.TypeID {
 }
 
 // A generic type's entity has no type of its own, so its methods are held to their declared receiver.
-func (p *Program) receiverOwner(info *sem.FnInfo) sem.TypeID {
+func (p *verifier) receiverOwner(info *sem.FnInfo) sem.TypeID {
 	if info.SelfParam != 0 {
 		return p.R.Entity(info.SelfParam).Type
 	}
 	return p.R.Entity(info.Owner).Type
 }
 
-func (p *Program) receiverMismatch(owner, got sem.TypeID) string {
+func (p *verifier) receiverMismatch(owner, got sem.TypeID) string {
 	owner, got = p.derefAll(owner), p.derefAll(got)
 	if msg := p.primSlot(owner, got); msg != "" {
 		return msg

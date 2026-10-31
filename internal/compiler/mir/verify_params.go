@@ -2,7 +2,7 @@ package mir
 
 import "kigumi/internal/compiler/sem"
 
-func (p *Program) verifyParams(f *Func) *Error {
+func (p *verifier) verifyParams(f *Func) *Error {
 	if f.Ent == 0 || p.R.Entity(f.Ent).Kind != sem.EntFn {
 		return nil
 	}

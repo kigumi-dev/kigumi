@@ -32,13 +32,14 @@ type erasedWrite struct {
 
 // checkErasedReaders: a plain `fn` cannot share a cell, so the local is not written between the making of a closure reading
 // it and the last run of the plain `fn` made from it; sem judges writes made inside closures.
-func checkErasedReaders(p *Program, f *Func, prior map[reportKey]int) {
+func checkErasedReaders(state *borrowAnalysis, f *Func, prior map[reportKey]int) {
+	p := state.Program
 	if !slices.ContainsFunc(f.Blocks, func(b Block) bool {
 		return slices.ContainsFunc(b.Insts, func(in Inst) bool { return storageClosure(p, in, lentReach) })
 	}) {
 		return
 	}
-	e := &erasedReaders{bc: quietBorrowCheck(p, f), p: p, f: f, closures: map[LocalID][]capturedPlace{}, caps: map[LocalID][]capturedPlace{},
+	e := &erasedReaders{bc: quietBorrowCheck(state, f), p: p, f: f, closures: map[LocalID][]capturedPlace{}, caps: map[LocalID][]capturedPlace{},
 		site: map[LocalID]syntax.NodeID{}, found: map[syntax.NodeID]erasedWrite{}, prior: prior,
 		fates: fateMemo{results: map[resultKey]paramFate{}, checks: map[*Func]*borrowCheck{}}, defs: soleDefs(f)}
 	e.solve()

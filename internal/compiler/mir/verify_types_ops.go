@@ -2,7 +2,7 @@ package mir
 
 import "kigumi/internal/compiler/sem"
 
-func (p *Program) binaryMismatch(in Inst, l, r, dst sem.TypeID) string {
+func (p *verifier) binaryMismatch(in Inst, l, r, dst sem.TypeID) string {
 	switch in.Str {
 	case "==", "!=", "<", "<=", ">", ">=":
 		if dst != sem.TyBool {

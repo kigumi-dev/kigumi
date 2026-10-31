@@ -7,7 +7,8 @@ import (
 )
 
 type variantFlow struct {
-	p       *Program
+	weak    []bool
+	p       *verifier
 	f       *Func
 	cond    []bool
 	lenOf   map[LocalID]LocalID
@@ -18,12 +19,12 @@ type variantFlow struct {
 	inert []bool
 }
 
-func (p *Program) verifyVariants(f *Func) *Error {
+func (p *verifier) verifyVariants(f *Func) *Error {
 	if !p.needsFacts(f) {
 		return nil
 	}
 	cond := condLocals(f)
-	vf := &variantFlow{p: p, f: f, cond: cond, lenOf: iterLengths(f), carried: carriedBools(f, cond), multi: multiDefs(f), live: f.edgeLive(), inert: p.inertLocals(f)}
+	vf := &variantFlow{p: p, f: f, weak: p.body(f).weakDefs, cond: cond, lenOf: iterLengths(f), carried: carriedBools(f, cond), multi: multiDefs(f), live: p.edgeLive(f), inert: p.inertLocals(f)}
 	in := make([]*variantFacts, len(f.Blocks))
 	in[0] = newFacts(len(f.Locals))
 	var found *Error
@@ -72,8 +73,8 @@ func (p *Program) verifyVariants(f *Func) *Error {
 	return nil
 }
 
-func (p *Program) needsFacts(f *Func) bool {
-	if slices.Contains(f.weakDefs, true) {
+func (p *verifier) needsFacts(f *Func) bool {
+	if slices.Contains(p.body(f).weakDefs, true) {
 		return true
 	}
 	if cellReadAfterTake(f) {
@@ -151,7 +152,7 @@ func multiDefs(f *Func) []bool {
 	return multi
 }
 
-func (p *Program) inertLocals(f *Func) []bool {
+func (p *verifier) inertLocals(f *Func) []bool {
 	inert := make([]bool, len(f.Locals))
 	for i, l := range f.Locals {
 		inert[i] = !l.Cell && p.opaqueValue(l.Type)
@@ -159,7 +160,7 @@ func (p *Program) inertLocals(f *Func) []bool {
 	return inert
 }
 
-func (p *Program) opaqueValue(t sem.TypeID) bool {
+func (p *verifier) opaqueValue(t sem.TypeID) bool {
 	t = p.R.UnderlyingRepr(p.derefAll(t))
 	if t == sem.TyString {
 		return true

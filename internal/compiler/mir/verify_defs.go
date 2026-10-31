@@ -6,6 +6,7 @@ import "kigumi/internal/compiler/sem"
 // The sets at block entry keep only locals live there, so they stay small however long the function is.
 type defFlow struct {
 	f         *Func
+	body      *verifiedBody
 	live      *edgeLive
 	stamp     []int32
 	cur       int32
@@ -22,13 +23,14 @@ func (d *defFlow) define(in *Inst) {
 // on every path to each of its uses; a named local must be assigned on at
 // least one, because the checker narrows the reads of a pattern binding
 // behind `&&` to the matched path, which the CFG cannot see.
-func verifyDefs(f *Func) *Error {
-	f.weakDefs = nil
-	if f.live == nil {
-		defer func() { f.live = nil }()
+func (p *verifier) verifyDefs(f *Func) *Error {
+	body := p.body(f)
+	body.weakDefs = nil
+	if body.live == nil {
+		defer func() { body.live = nil }()
 	}
-	live := f.edgeLive()
-	d := &defFlow{f: f, live: live, stamp: make([]int32, len(live.locals))}
+	live := p.edgeLive(f)
+	d := &defFlow{f: f, body: body, live: live, stamp: make([]int32, len(live.locals))}
 	must := make([]wordSet, len(f.Blocks))
 	may := make([]wordSet, len(f.Blocks))
 	seen := make([]bool, len(f.Blocks))
@@ -98,10 +100,10 @@ func (d *defFlow) defined(l LocalID) bool {
 	must, may := added || d.must.has(i), added || d.may.has(i)
 	if d.f.Locals[l].Ent != 0 {
 		if may && !must {
-			if d.f.weakDefs == nil {
-				d.f.weakDefs = make([]bool, len(d.f.Locals))
+			if d.body.weakDefs == nil {
+				d.body.weakDefs = make([]bool, len(d.f.Locals))
 			}
-			d.f.weakDefs[l] = true
+			d.body.weakDefs[l] = true
 		}
 		return may
 	}

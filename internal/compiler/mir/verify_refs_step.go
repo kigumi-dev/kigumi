@@ -2,7 +2,7 @@ package mir
 
 import "kigumi/internal/compiler/sem"
 
-func (rf *refFlow) block(p *Program, bid BlockID, entry *refState, check bool) (*refState, *Error) {
+func (rf *refFlow) block(p *verifier, bid BlockID, entry *refState, check bool) (*refState, *Error) {
 	s := entry
 	if !check {
 		s = entry.clone()
@@ -40,7 +40,7 @@ func (rf *refFlow) block(p *Program, bid BlockID, entry *refState, check bool) (
 	return s, nil
 }
 
-func (rf *refFlow) step(p *Program, s *refState, bid BlockID, i int, in *Inst, broken func(int, string, ...any) *Error) *Error {
+func (rf *refFlow) step(p *verifier, s *refState, bid BlockID, i int, in *Inst, broken func(int, string, ...any) *Error) *Error {
 	f := rf.f
 	switch in.Op {
 	case OpDrop, OpRelease:
@@ -100,13 +100,13 @@ func (rf *refFlow) step(p *Program, s *refState, bid BlockID, i int, in *Inst, b
 // read is what a value copied out of the local holds: for a binding that is only
 // assigned on some paths, the read is on the assigning one, so only live objects.
 func (rf *refFlow) read(s *refState, l LocalID) int32 {
-	if rf.f.weakDefs != nil && rf.f.weakDefs[l] {
+	if rf.weak != nil && rf.weak[l] {
 		return s.sets.held(s.ptr.get(l))
 	}
 	return s.ptr.get(l)
 }
 
-func (p *Program) takesForGood(f *Func, in *Inst, k int) bool {
+func (p *verifier) takesForGood(f *Func, in *Inst, k int) bool {
 	switch in.Op {
 	case OpCall, OpCallValue:
 		return p.consumesArg(in, k) && !p.lentParam(*in, k) && !p.lentByType(f, in, k)

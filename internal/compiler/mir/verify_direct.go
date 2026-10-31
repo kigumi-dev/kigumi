@@ -2,7 +2,7 @@ package mir
 
 // A position and the local reaching it always agree on the form, so every
 // crossing is an OpBoxDirect/OpUnboxDirect and no backend picks for itself.
-func (p *Program) verifyDirect(f *Func) *Error {
+func (p *verifier) verifyDirect(f *Func) *Error {
 	for bid, blk := range f.Blocks {
 		bid := BlockID(bid)
 		for i, in := range blk.Insts {
@@ -17,7 +17,7 @@ func (p *Program) verifyDirect(f *Func) *Error {
 	return nil
 }
 
-func (p *Program) verifyDirectForms(f *Func) *Error {
+func (p *verifier) verifyDirectForms(f *Func) *Error {
 	for i, prm := range f.Params {
 		if f.IsDirect(prm) != (f.DSig.Param(i) != 0) {
 			return fail("direct", 0, 0, "parameter %s is in the form the signature does not carry", p.local(f, prm))
@@ -26,7 +26,7 @@ func (p *Program) verifyDirectForms(f *Func) *Error {
 	return nil
 }
 
-func (p *Program) verifyDirectReturn(f *Func, bid BlockID, blk Block) *Error {
+func (p *verifier) verifyDirectReturn(f *Func, bid BlockID, blk Block) *Error {
 	a := blk.Term.Args
 	if blk.Term.Op != TermReturn {
 		return nil
@@ -37,7 +37,7 @@ func (p *Program) verifyDirectReturn(f *Func, bid BlockID, blk Block) *Error {
 	return nil
 }
 
-func (p *Program) verifyDirectInst(f *Func, bid BlockID, i int, in Inst) *Error {
+func (p *verifier) verifyDirectInst(f *Func, bid BlockID, i int, in Inst) *Error {
 	if in.Op == OpBoxDirect || in.Op == OpUnboxDirect {
 		boxing := in.Op == OpBoxDirect
 		if f.IsDirect(in.Args[0]) != boxing || f.IsDirect(in.Dst) == boxing {
@@ -62,7 +62,7 @@ func (p *Program) verifyDirectInst(f *Func, bid BlockID, i int, in Inst) *Error 
 	return nil
 }
 
-func (p *Program) verifyFixedBoxes(f *Func) *Error {
+func (p *verifier) verifyFixedBoxes(f *Func) *Error {
 	var fixed []bool
 	for bid, blk := range f.Blocks {
 		for i, in := range blk.Insts {

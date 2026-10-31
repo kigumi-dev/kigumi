@@ -60,7 +60,7 @@ func (e *erasedReaders) fate(g *Func, idx int) paramFate {
 func (e *erasedReaders) fateOnce(g *Func, idx int) paramFate {
 	bc := e.fates.checks[g]
 	if bc == nil {
-		bc = quietBorrowCheck(e.p, g)
+		bc = quietBorrowCheck(e.bc.analysis(), g)
 		e.fates.checks[g] = bc
 	}
 	reach := map[LocalID]bool{g.Params[idx]: true}

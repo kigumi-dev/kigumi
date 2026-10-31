@@ -26,7 +26,7 @@ func (b *builder) comptime(e *hir.Expr) LocalID {
 	v := cb.detach(cb.expr(inner))
 	cb.exitScope()
 	cb.returnValue(v)
-	analyzeOwnership(b.p, f)
+	analyzeOwnership(b.p.Program, f)
 	b.p.checkBorrowsOf(f)
 	slot := len(b.p.Comptime)
 	dst := b.emit(Inst{Op: OpBuiltin, Dst: b.temp(e.Type), Str: "comptime", Index: slot, Node: e.Node})

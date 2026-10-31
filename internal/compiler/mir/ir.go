@@ -181,18 +181,11 @@ type Func struct {
 	// DSig does the same for the parameters and the result; PlanDirect sets both.
 	Direct []bool
 	DSig   *DirectSig
-	// unownedCache memoizes unownedRefs for one build-then-verify round; Verify drops it on return.
-	unownedCache  []bool
-	unownedCached bool
 	// rcBase is the local count before plan-rc added its temporaries.
 	rcBase int
 	// Proto is "equals" or "hash" for a body specialization replaced by the direct comparison or hash.
 	Proto string
 	// Entry is the all-boxed body a function value, method table or adapter runs; Wraps points back.
-	Entry    *Func
-	Wraps    *Func
-	weakDefs []bool
-	flowOK   uint64
-	live     *edgeLive
-	yielders map[LocalID][]Inst
+	Entry *Func
+	Wraps *Func
 }

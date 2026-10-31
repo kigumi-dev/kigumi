@@ -6,7 +6,8 @@ import (
 	"kigumi/internal/compiler/sem"
 )
 
-func (p *Program) refScopeOrigins(u sem.RefScopeUse) ([]refScopeKey, string, bool) {
+func (state *borrowAnalysis) refScopeOrigins(u sem.RefScopeUse) ([]refScopeKey, string, bool) {
+	p := state.Program
 	var out []refScopeKey
 	if u.Target != 0 {
 		for _, q := range u.Params {
@@ -19,7 +20,7 @@ func (p *Program) refScopeOrigins(u sem.RefScopeUse) ([]refScopeKey, string, boo
 	if g == nil {
 		return nil, name, false
 	}
-	c := &borrowCheck{p: p, f: g}
+	c := &borrowCheck{p: p, f: g, state: state}
 	var locals []LocalID
 	if ent := p.R.Files[u.File].Uses[u.Node]; ent != 0 {
 		for l, local := range g.Locals {

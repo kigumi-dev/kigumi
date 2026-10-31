@@ -6,7 +6,7 @@ import "kigumi/internal/compiler/sem"
 // copies keep their type, conditions are Bool, borrows are references to
 // what they borrow, constants and interpolations carry their literal type,
 // and a return yields the function's type.
-func (p *Program) verifyTypes(f *Func) *Error {
+func (p *verifier) verifyTypes(f *Func) *Error {
 	tt := p.R.Types
 	ty := func(l LocalID) sem.TypeID { return f.Locals[l].Type }
 	for bid, blk := range f.Blocks {
@@ -111,7 +111,7 @@ func (p *Program) verifyTypes(f *Func) *Error {
 // script's implicit main, Void standing for the `Ok(())` of falling off
 // its statement list. Every other return of a fallible-Void function must
 // carry an actual Ok, not a bare Void (see ImplicitOk).
-func (p *Program) returnable(f *Func, t sem.TypeID) bool {
+func (p *verifier) returnable(f *Func, t sem.TypeID) bool {
 	if p.sameType(t, f.Ret) || t == sem.TyNever || f.Ret == 0 {
 		return true
 	}
@@ -138,11 +138,11 @@ func (p *Program) sameType(a, b sem.TypeID) bool {
 
 // sameTypeAcrossRef is sameType after peeling one reference layer off each
 // side: a wrap/unwrap aliases its receiver's own bits even through a borrow.
-func (p *Program) sameTypeAcrossRef(a, b sem.TypeID) bool {
+func (p *verifier) sameTypeAcrossRef(a, b sem.TypeID) bool {
 	return p.sameType(p.derefOnce(a), p.derefOnce(b))
 }
 
-func (p *Program) derefOnce(t sem.TypeID) sem.TypeID {
+func (p *verifier) derefOnce(t sem.TypeID) sem.TypeID {
 	if p.R.Types.Kind(t) == sem.KRef {
 		return p.R.Types.Node(t).Elem
 	}

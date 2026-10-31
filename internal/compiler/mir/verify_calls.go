@@ -2,9 +2,7 @@ package mir
 
 import "kigumi/internal/compiler/sem"
 
-func (p *Program) verifyCalls(f *Func) *Error {
-	p.sole = newSoleIndex(f)
-	defer func() { p.sole = nil }()
+func (p *callVerifier) check(f *Func) *Error {
 	for bid, blk := range f.Blocks {
 		bid := BlockID(bid)
 		for i, in := range blk.Insts {
@@ -16,7 +14,7 @@ func (p *Program) verifyCalls(f *Func) *Error {
 	return nil
 }
 
-func (p *Program) callMismatch(f *Func, in Inst) string {
+func (p *callVerifier) callMismatch(f *Func, in Inst) string {
 	switch in.Op {
 	case OpCall:
 		var msg string
@@ -50,7 +48,7 @@ func (p *Program) callMismatch(f *Func, in Inst) string {
 	return ""
 }
 
-func (p *Program) futureMismatch(f *Func, in Inst) string {
+func (p *callVerifier) futureMismatch(f *Func, in Inst) string {
 	item := p.soleDefOf(f, in.Args[0])
 	if item == nil || item.Op != OpFnItem || !item.Async {
 		return "runs %" + f.Locals[in.Args[0]].Name + ", which is not an async function item"
@@ -97,7 +95,7 @@ func soleDef(f *Func, l LocalID) *Inst {
 	return def
 }
 
-func (p *Program) captureMismatch(f *Func, in Inst, callee *Func) string {
+func (p *callVerifier) captureMismatch(f *Func, in Inst, callee *Func) string {
 	if len(in.Args) > len(callee.Params) {
 		return "captures " + itoa(len(in.Args)) + " values for a body of " + itoa(len(callee.Params)) + " parameters"
 	}
@@ -119,7 +117,7 @@ func (p *Program) captureMismatch(f *Func, in Inst, callee *Func) string {
 	return ""
 }
 
-func (p *Program) bodyCallMismatch(f *Func, in Inst, callee *Func) string {
+func (p *callVerifier) bodyCallMismatch(f *Func, in Inst, callee *Func) string {
 	if len(in.Args) != len(callee.Params) {
 		return "passes " + itoa(len(in.Args)) + " values to " + callee.Name + ", which takes " + itoa(len(callee.Params))
 	}
@@ -137,7 +135,7 @@ func (p *Program) bodyCallMismatch(f *Func, in Inst, callee *Func) string {
 	return ""
 }
 
-func (p *Program) valueCallMismatch(f *Func, in Inst) string {
+func (p *callVerifier) valueCallMismatch(f *Func, in Inst) string {
 	args := in.Args[1:]
 	if in.Ent != 0 {
 		info := p.R.Fn(in.Ent)

@@ -52,7 +52,7 @@ func (b *builder) readsCell(v LocalID) bool {
 	for _, blk := range b.fn.Blocks {
 		for _, in := range blk.Insts {
 			if in.Op == OpCellGet && in.Dst == v {
-				return trackedCell(b.p, b.fn.Locals[in.Args[0]])
+				return trackedCell(b.p.Program, b.fn.Locals[in.Args[0]])
 			}
 		}
 	}

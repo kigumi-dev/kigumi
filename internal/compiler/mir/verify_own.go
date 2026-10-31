@@ -19,7 +19,7 @@ const (
 // consumed, no live value is overwritten, and nothing is still owned when
 // the function returns. Cells, borrows, lent receivers and a destructor's
 // own `self` are outside the rule; temporaries follow the runtime plan.
-func (p *Program) verifyOwnership(f *Func) *Error {
+func (p *verifier) verifyOwnership(f *Func) *Error {
 	tracked := make([]bool, len(f.Locals))
 	any := false
 	dtorSelf, isDtor := p.destructorSelf(f)
@@ -77,7 +77,7 @@ func (p *Program) verifyOwnership(f *Func) *Error {
 
 // destructorSelf is the `move self` of a destructor, which the runtime is
 // already destroying: the body neither drops nor moves it.
-func (p *Program) destructorSelf(f *Func) (LocalID, bool) {
+func (p *verifier) destructorSelf(f *Func) (LocalID, bool) {
 	if f.Ent == 0 || p.R.Entity(f.Ent).Kind != sem.EntFn {
 		return 0, false
 	}
@@ -108,7 +108,7 @@ func joinVerify(a, b ownVerify) ownVerify {
 
 // transferOwn walks a block from its entry state; in check mode it also
 // reports the first broken rule.
-func (p *Program) transferOwn(f *Func, bid BlockID, entry *cowVec[ownVerify], tracked []bool, check bool) (*cowVec[ownVerify], *Error) {
+func (p *verifier) transferOwn(f *Func, bid BlockID, entry *cowVec[ownVerify], tracked []bool, check bool) (*cowVec[ownVerify], *Error) {
 	cp := entry.clone()
 	st := &cp
 	// A plain copy of a named local into a temporary aliases it (the plan

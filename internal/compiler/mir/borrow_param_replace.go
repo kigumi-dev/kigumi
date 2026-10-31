@@ -3,12 +3,12 @@ package mir
 import "kigumi/internal/compiler/sem"
 
 // replacingUse reports whether in, given cell first, only replaces what it holds or reads it for a fieldStore.
-func (p *Program) replacingUse(f *Func, in Inst, cell LocalID) bool {
+func (p *borrowAnalysis) replacingUse(f *Func, in Inst, cell LocalID) bool {
 	return in.Op == OpCellSet || p.fieldStore(f, in, cell) || in.Op == OpCellGet && p.onlyFieldStores(f, in.Dst, cell)
 }
 
 // fieldStore reports whether in replaces the only borrow-carrying field of what cell holds, directly or through a `cellget` of it.
-func (p *Program) fieldStore(f *Func, in Inst, cell LocalID) bool {
+func (p *borrowAnalysis) fieldStore(f *Func, in Inst, cell LocalID) bool {
 	if in.Op != OpSetField || len(in.Args) == 0 {
 		return false
 	}
@@ -26,7 +26,7 @@ func (p *Program) fieldStore(f *Func, in Inst, cell LocalID) bool {
 }
 
 // onlyFieldStores reports whether every use of the `cellget` result v is a fieldStore through it.
-func (p *Program) onlyFieldStores(f *Func, v, cell LocalID) bool {
+func (p *borrowAnalysis) onlyFieldStores(f *Func, v, cell LocalID) bool {
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			for k, a := range in.Args {

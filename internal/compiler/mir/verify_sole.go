@@ -22,7 +22,7 @@ func newSoleIndex(f *Func) *soleIndex {
 	return ix
 }
 
-func (p *Program) soleDefOf(f *Func, l LocalID) *Inst {
+func (p *callVerifier) soleDefOf(f *Func, l LocalID) *Inst {
 	if ix := p.sole; ix != nil && ix.f == f {
 		if ix.multi[l] {
 			return nil

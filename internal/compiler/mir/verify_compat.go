@@ -2,7 +2,7 @@ package mir
 
 import "kigumi/internal/compiler/sem"
 
-func (p *Program) looseType(t sem.TypeID) bool {
+func (p *verifier) looseType(t sem.TypeID) bool {
 	if t == 0 || t == sem.TyNever {
 		return true
 	}
@@ -13,15 +13,15 @@ func (p *Program) looseType(t sem.TypeID) bool {
 	return false
 }
 
-func (p *Program) compatible(want, got sem.TypeID) bool { return p.compat(want, got, false) }
+func (p *verifier) compatible(want, got sem.TypeID) bool { return p.compat(want, got, false) }
 
-func (p *Program) compatibleGeneric(want, got sem.TypeID) bool { return p.compat(want, got, true) }
+func (p *verifier) compatibleGeneric(want, got sem.TypeID) bool { return p.compat(want, got, true) }
 
-func (p *Program) compat(want, got sem.TypeID, open bool) bool {
+func (p *verifier) compat(want, got sem.TypeID, open bool) bool {
 	return p.compatAt(want, got, open, false)
 }
 
-func (p *Program) compatAt(want, got sem.TypeID, open, nested bool) bool {
+func (p *verifier) compatAt(want, got sem.TypeID, open, nested bool) bool {
 	tt := p.R.Types
 	want, got = p.fnType(p.derefAll(want)), p.fnType(p.derefAll(got))
 	if want == got || p.looseType(want) || p.looseType(got) || p.sameType(want, got) {
@@ -63,7 +63,7 @@ func (p *Program) compatAt(want, got sem.TypeID, open, nested bool) bool {
 	return false
 }
 
-func (p *Program) fnItemFits(sig, got sem.TypeID, async bool) bool {
+func (p *verifier) fnItemFits(sig, got sem.TypeID, async bool) bool {
 	tt := p.R.Types
 	if !async || p.looseType(got) {
 		return p.compatibleGeneric(sig, got)
@@ -80,7 +80,7 @@ func (p *Program) fnItemFits(sig, got sem.TypeID, async bool) bool {
 	return true
 }
 
-func (p *Program) fits(want, got sem.TypeID) bool {
+func (p *verifier) fits(want, got sem.TypeID) bool {
 	if p.looseType(want) || p.looseType(got) {
 		return true
 	}

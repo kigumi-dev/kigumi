@@ -36,12 +36,13 @@ func exposedLocals(f *Func) (idx []int32, locals []LocalID) {
 	return idx, locals
 }
 
-func (f *Func) edgeLive() *edgeLive {
-	if f.live == nil {
+func (p *verifier) edgeLive(f *Func) *edgeLive {
+	body := p.body(f)
+	if body.live == nil {
 		idx, locals := exposedLocals(f)
-		f.live = newEdgeLive(f, idx, locals)
+		body.live = newEdgeLive(f, idx, locals)
 	}
-	return f.live
+	return body.live
 }
 
 type edgeLive struct {

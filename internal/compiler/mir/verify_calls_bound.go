@@ -2,7 +2,7 @@ package mir
 
 import "kigumi/internal/compiler/sem"
 
-func (p *Program) boundMismatch(f *Func, in Inst) string {
+func (p *callVerifier) boundMismatch(f *Func, in Inst) string {
 	if in.Ent == 0 || int(in.Ent) >= len(p.R.Entities) || p.R.Entity(in.Ent).Kind != sem.EntFn {
 		return ""
 	}
@@ -33,7 +33,7 @@ func (p *Program) boundMismatch(f *Func, in Inst) string {
 	return ""
 }
 
-func (p *Program) boundArg(f *Func, witness, val LocalID) string {
+func (p *callVerifier) boundArg(f *Func, witness, val LocalID) string {
 	tt := p.R.Types
 	got := p.derefAll(f.Locals[val].Type)
 	if p.looseType(got) {
@@ -60,7 +60,7 @@ func (p *Program) boundArg(f *Func, witness, val LocalID) string {
 	return ""
 }
 
-func (p *Program) witnessDef(f *Func, l LocalID) *Inst {
+func (p *callVerifier) witnessDef(f *Func, l LocalID) *Inst {
 	for range 5 {
 		def := p.soleDefOf(f, l)
 		if def == nil {
@@ -76,7 +76,7 @@ func (p *Program) witnessDef(f *Func, l LocalID) *Inst {
 	return nil
 }
 
-func (p *Program) closureSigMismatch(f *Func, in Inst, callee *Func) string {
+func (p *callVerifier) closureSigMismatch(f *Func, in Inst, callee *Func) string {
 	dst := f.Locals[in.Dst].Type
 	node := p.R.Types.Node(p.fnType(p.derefAll(dst)))
 	if p.looseType(dst) || node.Kind != sem.KFn {
@@ -97,7 +97,7 @@ func (p *Program) closureSigMismatch(f *Func, in Inst, callee *Func) string {
 	return ""
 }
 
-func (p *Program) cellArgMismatch(f *Func, in Inst, callee *Func, k int, arg LocalID) string {
+func (p *callVerifier) cellArgMismatch(f *Func, in Inst, callee *Func, k int, arg LocalID) string {
 	if !callee.Locals[callee.Params[k]].Cell || p.mutReceiver(in) == k || p.canBeCell(f, arg, map[LocalID]bool{}) {
 		return ""
 	}

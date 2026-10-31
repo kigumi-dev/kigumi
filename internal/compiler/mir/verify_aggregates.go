@@ -12,7 +12,7 @@ const (
 	aggBox
 )
 
-func (p *Program) aggOf(t sem.TypeID) (aggKind, sem.TypeID) {
+func (p *verifier) aggOf(t sem.TypeID) (aggKind, sem.TypeID) {
 	tt := p.R.Types
 	t = p.R.UnderlyingRepr(p.derefAll(t))
 	if p.looseType(t) {
@@ -34,7 +34,7 @@ func (p *Program) aggOf(t sem.TypeID) (aggKind, sem.TypeID) {
 	return aggNone, t
 }
 
-func (p *Program) fieldTypes(t sem.TypeID) ([]sem.TypeID, bool) {
+func (p *verifier) fieldTypes(t sem.TypeID) ([]sem.TypeID, bool) {
 	n := p.R.Types.Node(t)
 	if n.Kind == sem.KNamed && len(n.Args) != len(p.R.TypeDecl(n.Ent).Params) {
 		return nil, false
@@ -42,7 +42,7 @@ func (p *Program) fieldTypes(t sem.TypeID) ([]sem.TypeID, bool) {
 	return p.R.AggFields(t), true
 }
 
-func (p *Program) verifyAggregates(f *Func) *Error {
+func (p *verifier) verifyAggregates(f *Func) *Error {
 	defs := yieldDefs(f)
 	for bid, blk := range f.Blocks {
 		bid := BlockID(bid)
@@ -55,7 +55,7 @@ func (p *Program) verifyAggregates(f *Func) *Error {
 	return nil
 }
 
-func (p *Program) aggMismatch(f *Func, defs cellDefs, in Inst) string {
+func (p *verifier) aggMismatch(f *Func, defs cellDefs, in Inst) string {
 	ty := func(l LocalID) sem.TypeID { return f.Locals[l].Type }
 	switch in.Op {
 	case OpField, OpFieldMove, OpSetField:

@@ -6,11 +6,11 @@ import (
 	"kigumi/internal/compiler/sem"
 )
 
-func (p *Program) directRecord(t sem.TypeID) bool {
+func (p *verifier) directRecord(t sem.TypeID) bool {
 	return p.R.DirectAgg(t) && !p.R.DirectAdt(t) && !p.R.DirectClosure(t) && !p.R.DirectFixed(t)
 }
 
-func (p *Program) directShape(f *Func, in Inst) string {
+func (p *verifier) directShape(f *Func, in Inst) string {
 	switch in.Op {
 	case OpRecord, OpClosure:
 		t := p.wholePos(f, in.Dst)
@@ -63,7 +63,7 @@ func (p *Program) directShape(f *Func, in Inst) string {
 	return ""
 }
 
-func (p *Program) payloadSlots(t sem.TypeID) int {
+func (p *verifier) payloadSlots(t sem.TypeID) int {
 	n := 0
 	for _, v := range p.R.AggVariants(t) {
 		n = max(n, len(p.R.AggPayload(t, v)))

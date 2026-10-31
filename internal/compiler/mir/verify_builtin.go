@@ -6,7 +6,7 @@ import (
 	"kigumi/internal/compiler/sem"
 )
 
-func (p *Program) verifyBuiltins(f *Func) *Error {
+func (p *verifier) verifyBuiltins(f *Func) *Error {
 	for bid, blk := range f.Blocks {
 		bid := BlockID(bid)
 		for i, in := range blk.Insts {
@@ -21,7 +21,7 @@ func (p *Program) verifyBuiltins(f *Func) *Error {
 	return nil
 }
 
-func (p *Program) builtinMismatch(f *Func, in Inst) string {
+func (p *verifier) builtinMismatch(f *Func, in Inst) string {
 	spec, ok := builtinByName[in.Str]
 	if !ok {
 		return "no runtime entry \"" + in.Str + "\""
@@ -43,7 +43,7 @@ func (p *Program) builtinMismatch(f *Func, in Inst) string {
 	return ""
 }
 
-func (p *Program) builtinArgMismatch(name string, k int, want ClassSet, got sem.TypeID) string {
+func (p *verifier) builtinArgMismatch(name string, k int, want ClassSet, got sem.TypeID) string {
 	got = p.R.UnderlyingRepr(p.derefAll(got))
 	switch {
 	case p.looseType(got):
@@ -55,7 +55,7 @@ func (p *Program) builtinArgMismatch(name string, k int, want ClassSet, got sem.
 	return ""
 }
 
-func (p *Program) builtinResultMismatch(spec *BuiltinSpec, got sem.TypeID) string {
+func (p *verifier) builtinResultMismatch(spec *BuiltinSpec, got sem.TypeID) string {
 	var want sem.TypeID
 	switch spec.Result {
 	case classBit(ClassUnit):
@@ -76,7 +76,7 @@ func (p *Program) builtinResultMismatch(spec *BuiltinSpec, got sem.TypeID) strin
 	return ""
 }
 
-func (p *Program) iterMismatch(f *Func, in Inst) string {
+func (p *verifier) iterMismatch(f *Func, in Inst) string {
 	if !strings.HasPrefix(in.Str, "iter.") || len(in.Args) == 0 {
 		return ""
 	}

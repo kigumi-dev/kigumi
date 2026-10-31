@@ -6,7 +6,7 @@ import (
 	"kigumi/internal/compiler/sem"
 )
 
-func (p *Program) verifyDropOwned(f *Func) *Error {
+func (p *verifier) verifyDropOwned(f *Func) *Error {
 	lent := p.unownedRefs(f)
 	var origin []bool
 	if f.rcBase != 0 {
@@ -33,7 +33,7 @@ func (p *Program) verifyDropOwned(f *Func) *Error {
 
 // verifyReturnOwned rejects returning a lent reference as an owned result. Only
 // planned bodies are held to it; before plan-rc a copy stands for a later share.
-func (p *Program) verifyReturnOwned(f *Func) *Error {
+func (p *verifier) verifyReturnOwned(f *Func) *Error {
 	if f.rcBase == 0 || p.R.Types.Kind(f.Ret) == sem.KRef {
 		return nil
 	}
@@ -46,7 +46,7 @@ func (p *Program) verifyReturnOwned(f *Func) *Error {
 	return nil
 }
 
-func (p *Program) lentOrigins(f *Func, lent []bool) []bool {
+func (p *verifier) lentOrigins(f *Func, lent []bool) []bool {
 	out := make([]bool, len(f.Locals))
 	for l := range out {
 		out[l] = f.Locals[l].Borrowed || lent[l]
@@ -64,6 +64,6 @@ func (p *Program) lentOrigins(f *Func, lent []bool) []bool {
 	return out
 }
 
-func (p *Program) directlyLent(f *Func, l LocalID) bool {
+func (p *verifier) directlyLent(f *Func, l LocalID) bool {
 	return f.Locals[l].Borrowed || p.unownedRefs(f)[l]
 }

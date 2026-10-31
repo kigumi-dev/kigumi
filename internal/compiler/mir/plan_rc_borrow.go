@@ -2,18 +2,7 @@ package mir
 
 import "kigumi/internal/compiler/sem"
 
-// unownedRefs marks the references this frame holds no count of: a borrow of a
-// value it has, and one a caller lent it. A field read takes its own count.
-func (p *Program) unownedRefs(f *Func) []bool {
-	if f.unownedCached {
-		return f.unownedCache
-	}
-	out := p.lentRefs(f)
-	f.unownedCache, f.unownedCached = out, true
-	return out
-}
-
-// lentRefs computes unownedRefs without the cache, for a pass that runs between two Verify rounds.
+// lentRefs computes which references hold no count in the current body.
 func (p *Program) lentRefs(f *Func) []bool {
 	out := make([]bool, len(f.Locals))
 	for _, prm := range f.Params {
@@ -31,14 +20,6 @@ func (p *Program) lentRefs(f *Func) []bool {
 		}
 	}
 	return out
-}
-
-// invalidateUnowned drops every function's cached unownedRefs; Verify defers
-// this call so the cache never survives past the round that filled it.
-func (p *Program) invalidateUnowned() {
-	for _, f := range p.allFuncs() {
-		f.unownedCache, f.unownedCached = nil, false
-	}
 }
 
 func lendsOn(in Inst, out []bool) bool {

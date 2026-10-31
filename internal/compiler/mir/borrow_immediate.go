@@ -3,8 +3,9 @@ package mir
 import "kigumi/internal/compiler/sem"
 
 // checkImmediateCaptures: a capBorrow closure's owners must stay untouched from its creation to the call it feeds.
-func checkImmediateCaptures(p *Program, f *Func) map[reportKey]int {
-	c := quietBorrowCheck(p, f)
+func checkImmediateCaptures(state *borrowAnalysis, f *Func) map[reportKey]int {
+	p := state.Program
+	c := quietBorrowCheck(state, f)
 	memo := flowMemo{}
 	for bi := range f.Blocks {
 		blk := &f.Blocks[bi]
@@ -45,8 +46,9 @@ func checkImmediateCaptures(p *Program, f *Func) map[reportKey]int {
 }
 
 // quietBorrowCheck collects f's holders without reporting, for a check after the main pass already reported them.
-func quietBorrowCheck(p *Program, f *Func) *borrowCheck {
-	c := &borrowCheck{p: p, f: f, holders: map[LocalID]*borrowInfo{}, reported: map[reportKey]int{}, keptTemp: map[LocalID]bool{}}
+func quietBorrowCheck(state *borrowAnalysis, f *Func) *borrowCheck {
+	p := state.Program
+	c := &borrowCheck{p: p, f: f, state: state, holders: map[LocalID]*borrowInfo{}, reported: map[reportKey]int{}, keptTemp: map[LocalID]bool{}}
 	c.quiet = true
 	c.collect()
 	c.quiet = false

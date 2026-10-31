@@ -6,7 +6,7 @@ import (
 	"kigumi/internal/compiler/sem"
 )
 
-func (p *Program) fieldMismatch(in Inst, base, last, dst sem.TypeID) string {
+func (p *verifier) fieldMismatch(in Inst, base, last, dst sem.TypeID) string {
 	kind, t := p.aggOf(base)
 	switch kind {
 	case aggLoose:
@@ -32,7 +32,7 @@ func (p *Program) fieldMismatch(in Inst, base, last, dst sem.TypeID) string {
 	return ""
 }
 
-func (p *Program) adtMismatch(in Inst, base, dst sem.TypeID) string {
+func (p *verifier) adtMismatch(in Inst, base, dst sem.TypeID) string {
 	kind, t := p.aggOf(base)
 	if kind == aggLoose {
 		return ""
@@ -56,7 +56,7 @@ func (p *Program) adtMismatch(in Inst, base, dst sem.TypeID) string {
 	return ""
 }
 
-func (p *Program) payloadMismatch(in Inst, t, dst sem.TypeID) string {
+func (p *verifier) payloadMismatch(in Inst, t, dst sem.TypeID) string {
 	if n := p.R.Types.Node(t); len(n.Args) != len(p.R.TypeDecl(n.Ent).Params) {
 		return ""
 	}
@@ -77,7 +77,7 @@ func (p *Program) payloadMismatch(in Inst, t, dst sem.TypeID) string {
 	return "reads a payload of " + p.R.TypeString(t) + " into " + p.R.TypeString(dst)
 }
 
-func (p *Program) variantMismatch(f *Func, in Inst) string {
+func (p *verifier) variantMismatch(f *Func, in Inst) string {
 	kind, t := p.aggOf(in.Type)
 	if kind == aggLoose {
 		return ""
@@ -100,7 +100,7 @@ func (p *Program) variantMismatch(f *Func, in Inst) string {
 	return ""
 }
 
-func (p *Program) recordMismatch(f *Func, in Inst) string {
+func (p *verifier) recordMismatch(f *Func, in Inst) string {
 	kind, t := p.aggOf(f.Locals[in.Dst].Type)
 	if kind == aggLoose || kind == aggBox {
 		return ""
@@ -120,7 +120,7 @@ func (p *Program) recordMismatch(f *Func, in Inst) string {
 	return ""
 }
 
-func (p *Program) arrayMismatch(f *Func, in Inst) string {
+func (p *verifier) arrayMismatch(f *Func, in Inst) string {
 	tt := p.R.Types
 	t := p.R.UnderlyingRepr(f.Locals[in.Dst].Type)
 	if p.looseType(t) {
@@ -147,6 +147,6 @@ func (p *Program) arrayMismatch(f *Func, in Inst) string {
 	return ""
 }
 
-func (p *Program) scalarAsRef(want, got sem.TypeID) bool {
+func (p *verifier) scalarAsRef(want, got sem.TypeID) bool {
 	return p.R.Types.Kind(got) == sem.KRef && p.R.Types.Kind(want) != sem.KRef && p.R.RegScalar(want)
 }

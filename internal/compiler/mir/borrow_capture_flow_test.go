@@ -35,7 +35,7 @@ func TestImmediateCaptureFollowsValue(t *testing.T) {
 			if !slices.ContainsFunc(c.holderOwners(dst), func(o ownerRef) bool { return o.owner == loc }) {
 				t.Error("destination lost the stored borrow")
 			}
-			if got := checkImmediateCaptures(p, g); len(got) != 0 {
+			if got := checkImmediateCaptures(newBorrowAnalysis(p, p.bodyByEnt), g); len(got) != 0 {
 				t.Errorf("stored borrow conflicts with immediate capture: %v", got)
 			}
 		})
@@ -46,7 +46,7 @@ func TestImmediateCaptureKeepsBorrowedOwner(t *testing.T) {
 	src := strings.ReplaceAll(captureFlowSrc, "BODY", "let r = &mut loc; apply((y: V['a]) => { _ = r.len() }, V { s: &loc })")
 	src = strings.ReplaceAll(src, "let loc", "let mut loc")
 	p, body := srcProgram(t, src)
-	if got := checkImmediateCaptures(p, body("f")); len(got) == 0 {
+	if got := checkImmediateCaptures(newBorrowAnalysis(p, p.bodyByEnt), body("f")); len(got) == 0 {
 		t.Error("capture lost the reference's actual owner")
 	}
 }

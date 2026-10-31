@@ -2,7 +2,7 @@ package mir
 
 import "kigumi/internal/compiler/sem"
 
-func (p *Program) asmMismatch(f *Func, in Inst) string {
+func (p *verifier) asmMismatch(f *Func, in Inst) string {
 	info := p.R.AsmOf(f.File, in.Node)
 	if info == nil {
 		return ""

@@ -2,7 +2,7 @@ package mir
 
 import "kigumi/internal/compiler/sem"
 
-func (p *Program) declaredSig(ent sem.EntityID) (params []sem.TypeID, ret sem.TypeID, hidden int, variadic bool) {
+func (p *callVerifier) declaredSig(ent sem.EntityID) (params []sem.TypeID, ret sem.TypeID, hidden int, variadic bool) {
 	info := p.R.Fn(ent)
 	sig := p.R.Types.Node(info.Sig)
 	if info.Recv != sem.RecvNone {
@@ -11,7 +11,7 @@ func (p *Program) declaredSig(ent sem.EntityID) (params []sem.TypeID, ret sem.Ty
 	return append(params, sig.Args...), sig.Elem, len(info.Witnesses) + len(info.ConstParams), sig.Flags&sem.FnCVariadic != 0
 }
 
-func (p *Program) declaredCallMismatch(f *Func, in Inst) string {
+func (p *callVerifier) declaredCallMismatch(f *Func, in Inst) string {
 	params, ret, hidden, variadic := p.declaredSig(in.Ent)
 	name := p.R.Entity(in.Ent).Name
 	// A foreign symbol call is declared with only its receiver; its arguments and result come from a type argument.
@@ -30,7 +30,7 @@ func (p *Program) declaredCallMismatch(f *Func, in Inst) string {
 	return ""
 }
 
-func (p *Program) bindMismatch(f *Func, in Inst) string {
+func (p *callVerifier) bindMismatch(f *Func, in Inst) string {
 	callee := p.ByEnt[in.Ent]
 	var params []sem.TypeID
 	var ret sem.TypeID

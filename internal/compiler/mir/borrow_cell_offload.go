@@ -24,7 +24,7 @@ type offloadMemo struct {
 }
 
 func (c *borrowCheck) offloads() *offloadMemo {
-	m := &c.p.offloads
+	m := &c.analysis().offloads
 	if m.gate == 0 {
 		m.gate, m.may, m.detach, m.keep, m.calls = -1, map[sem.EntityID]bool{}, map[sem.EntityID]bool{}, map[sem.EntityID]bool{}, map[sem.EntityID]bool{}
 		m.body, m.kept, m.keeps, m.busy = map[*Func]flowSets{}, map[*Func]flowSets{}, map[keptKey]*keptSummary{}, map[*Func]bool{}

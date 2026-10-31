@@ -6,7 +6,7 @@ import "kigumi/internal/compiler/sem"
 // the kind the opcode reads: a function to call, a variant to build or
 // test, a record type to build, a closure to capture, asm info at the
 // asm node. A back end indexes these without checking.
-func (p *Program) verifyEntities(f *Func) *Error {
+func (p *verifier) verifyEntities(f *Func) *Error {
 	kindOf := func(ent sem.EntityID) sem.EntityKind {
 		if int(ent) >= len(p.R.Entities) {
 			return sem.EntNone
@@ -80,6 +80,6 @@ func (p *Program) verifyEntities(f *Func) *Error {
 	return nil
 }
 
-func (p *Program) asyncValue(ent sem.EntityID) bool {
+func (p *verifier) asyncValue(ent sem.EntityID) bool {
 	return p.R.Entity(ent).Kind == sem.EntFn && p.R.Fn(ent).Declared&sem.EffAsync != 0
 }

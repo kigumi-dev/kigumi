@@ -6,9 +6,9 @@ import (
 )
 
 type reachWalk struct {
-	p *Program
-	// lower makes the walk lower each body it reaches instead of only following lowered ones.
-	lower     bool
+	p         *Program
+	lower     func(sem.EntityID)
+	lowerable func(sem.EntityID) bool
 	r         *sem.Result
 	rs        *Reachability
 	worklist  []sem.EntityID
@@ -88,14 +88,14 @@ func (w *reachWalk) visit(caller, target sem.EntityID, via string) {
 }
 
 func (w *reachWalk) stdOp(in *Inst) (StdOpId, bool) {
-	if w.lower {
+	if w.lower != nil {
 		return stdOpOf(w.r, in)
 	}
 	return in.StdOp()
 }
 
 func (w *reachWalk) hasBody(ent sem.EntityID) bool {
-	return w.p.ByEnt[ent] != nil || w.lower && w.p.lowerable(ent)
+	return w.p.ByEnt[ent] != nil || w.lowerable != nil && w.lowerable(ent)
 }
 
 // inst follows one instruction of f; pkg is the package f's code belongs to.
@@ -134,14 +134,14 @@ func (w *reachWalk) inst(f *Func, id sem.EntityID, pkg sem.PackageID, in *Inst) 
 	}
 }
 
-func newReachWalk(p *Program, lower bool) *reachWalk {
-	w := &reachWalk{p: p, r: p.R, lower: lower, seenTypes: map[sem.TypeID]bool{}, opSeen: map[StdOpId]bool{}}
+func newReachWalk(p *Program) *reachWalk {
+	w := &reachWalk{p: p, r: p.R, seenTypes: map[sem.TypeID]bool{}, opSeen: map[StdOpId]bool{}}
 	w.rs = &Reachability{Funcs: map[sem.EntityID]bool{}, Reason: map[sem.EntityID]Reason{}, OpSites: map[StdOpId]OpSite{}, AllOpSites: map[StdOpId][]OpSite{}, Types: map[sem.EntityID]bool{}}
 	return w
 }
 
 func Reachable(p *Program) *Reachability {
-	w := newReachWalk(p, false)
+	w := newReachWalk(p)
 	if p.Entry != nil {
 		w.root(p.Entry.Ent, RootEntry)
 	}
@@ -162,8 +162,8 @@ func (w *reachWalk) drain() {
 	for len(w.worklist) > 0 {
 		id := w.worklist[len(w.worklist)-1]
 		w.worklist = w.worklist[:len(w.worklist)-1]
-		if w.lower {
-			w.p.lowerTop(id)
+		if w.lower != nil {
+			w.lower(id)
 		}
 		if f := w.p.ByEnt[id]; f != nil {
 			w.scan(f, id, w.r.Entity(id).Pkg)

@@ -21,8 +21,6 @@ func SetVerifyEachPass(on bool) { verifyEachPass.Store(on) }
 // also verifies before the passes and after every one of them.
 func (p *Program) Apply(passes ...Transform) error {
 	each := p.VerifyEach || verifyEachPass.Load()
-	// The builder's borrow checks fill this cache from MIR the passes then rewrite.
-	p.invalidateUnowned()
 	if each {
 		if err := p.Verify(); err != nil {
 			return fmt.Errorf("before passes: %w", err)

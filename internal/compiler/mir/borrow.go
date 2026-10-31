@@ -51,6 +51,7 @@ type borrowInfo struct {
 
 type borrowCheck struct {
 	p        *Program
+	state    *borrowAnalysis
 	f        *Func
 	holders  map[LocalID]*borrowInfo
 	liveOut  []map[LocalID]bool
@@ -107,8 +108,9 @@ type borrowCheck struct {
 	fields fieldState
 }
 
-func analyzeBorrows(p *Program, f *Func) {
-	c := &borrowCheck{p: p, f: f, holders: map[LocalID]*borrowInfo{}, reported: map[reportKey]int{}, keptTemp: map[LocalID]bool{}}
+func analyzeBorrows(state *borrowAnalysis, f *Func) {
+	p := state.Program
+	c := &borrowCheck{p: p, f: f, state: state, holders: map[LocalID]*borrowInfo{}, reported: map[reportKey]int{}, keptTemp: map[LocalID]bool{}}
 	c.collect()
 	c.checkOffloads()
 	if len(c.holders) == 0 {

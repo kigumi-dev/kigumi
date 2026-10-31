@@ -7,8 +7,9 @@ import (
 
 type refScopeKey struct{ fn, param sem.EntityID }
 
-func (p *Program) checkRefScopes() {
-	c := &borrowCheck{p: p}
+func (state *borrowAnalysis) checkRefScopes() {
+	p := state.Program
+	c := &borrowCheck{p: p, state: state}
 	memo, active := map[refScopeKey]bool{}, map[refScopeKey]bool{}
 	seen := map[[3]uint32]bool{}
 	for _, u := range p.R.RefScopeUses() {
@@ -19,7 +20,7 @@ func (p *Program) checkRefScopes() {
 		if seen[key] {
 			continue
 		}
-		keys, name, safe := p.refScopeOrigins(u)
+		keys, name, safe := state.refScopeOrigins(u)
 		for _, key := range keys {
 			safe = safe && c.refStaysInResult(key, memo, active)
 		}

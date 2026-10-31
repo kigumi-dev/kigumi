@@ -12,7 +12,7 @@ func (c *borrowCheck) callReplaces(in Inst, target LocalID) bool {
 		return false
 	}
 	k := slices.Index(in.Args, target)
-	return k >= 0 && c.p.storesParam(in.Ent, k)
+	return k >= 0 && c.analysis().storesParam(in.Ent, k)
 }
 
 // callResets reports whether in replaces on every path all of root, the named local fl's target borrows.

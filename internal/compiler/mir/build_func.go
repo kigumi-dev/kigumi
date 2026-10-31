@@ -5,7 +5,7 @@ import (
 	"kigumi/internal/compiler/sem"
 )
 
-func (p *Program) build(hf *hir.Func) *Func {
+func (p *lowering) build(hf *hir.Func) *Func {
 	f := &Func{Name: p.funcName(hf.Ent), Ent: hf.Ent, File: hf.File, Ret: hf.Ret, Async: p.isAsyncBody(hf.Ent)}
 	b := &builder{p: p, r: p.R, fn: f, locals: map[sem.EntityID]LocalID{}, shared: map[LocalID]bool{}, unowned: map[LocalID]bool{}, ret: hf.Ret}
 	b.newBlock()
@@ -79,12 +79,10 @@ func (p *Program) build(hf *hir.Func) *Func {
 	}
 	p.Funcs = append(p.Funcs, f)
 	p.ByEnt[hf.Ent] = f
-	if p.lowering != nil {
-		p.lowering.top[f] = p.lowering.cur
-	}
+	p.top[f] = p.cur
 	b.lowerGhosts()
-	hoistRefReleases(p, f)
-	analyzeOwnership(p, f)
+	hoistRefReleases(p.Program, f)
+	analyzeOwnership(p.Program, f)
 	f.dropGhosts()
 	p.checkBorrowsOf(f)
 	return f

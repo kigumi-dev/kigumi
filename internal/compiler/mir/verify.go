@@ -17,9 +17,10 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("%s: %s: %s: %s", e.Func, e.Rule, e.At, e.Msg)
 }
 
-func (p *Program) Verify() error {
-	defer p.invalidateUnowned()
-	for _, f := range p.allFuncs() {
+func (p *verifier) check() error {
+	fs := p.allFuncs()
+	p.pruneHistory(fs)
+	for _, f := range fs {
 		if err := verifyStructure(f); err != nil {
 			err.Func = f.Name
 			return err
@@ -28,7 +29,7 @@ func (p *Program) Verify() error {
 	if err := p.verifyEntry(); err != nil {
 		return err
 	}
-	for _, f := range p.allFuncs() {
+	for _, f := range fs {
 		if err := p.verifyFunc(f); err != nil {
 			return err
 		}
@@ -44,17 +45,21 @@ func (p *Program) allFuncs() []*Func {
 	return append(fs, p.Entries...)
 }
 
-func (p *Program) verifyFunc(f *Func) error {
-	defer func() { f.live, f.yielders = nil, nil }()
+func (p *verifier) verifyFunc(f *Func) error {
+	defer func() { delete(p.bodies, f) }()
 	if err := runRules(f, []func(*Func) *Error{verifyShape, verifyAsync, p.verifyParams, p.verifyEntities, p.verifyTypes, p.verifyStdOpTags, p.verifyPrimCalls, p.verifyCalls, p.verifyAggregates}); err != nil {
 		return err
 	}
 	// Definitions and the flow analyses read only this function and the checked
 	// tree, so a body that passed them before and has not changed is not walked again.
 	hash := flowHash(f)
-	changed := f.flowOK != hash
+	memo, known := p.verified[f]
+	changed := !known || memo.hash != hash
+	if !changed {
+		p.body(f).weakDefs = memo.weak
+	}
 	if changed {
-		if err := verifyDefs(f); err != nil {
+		if err := p.verifyDefs(f); err != nil {
 			err.Func = f.Name
 			return err
 		}
@@ -70,7 +75,7 @@ func (p *Program) verifyFunc(f *Func) error {
 	if err := runRules(f, []func(*Func) *Error{p.verifyDirect, p.verifyDirectSig, p.verifyBoxedEntry, p.verifyDirectForms, p.verifyCrossLocals, p.verifyCounted, p.verifyFixedBoxes, p.verifyAllocClaim}); err != nil {
 		return err
 	}
-	f.flowOK = hash
+	p.rememberFlow(f, hash)
 	return nil
 }
 

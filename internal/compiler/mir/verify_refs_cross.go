@@ -1,6 +1,6 @@
 package mir
 
-func (rf *refFlow) crossedFromTemp(p *Program, bid BlockID, i int, l LocalID) bool {
+func (rf *refFlow) crossedFromTemp(p *verifier, bid BlockID, i int, l LocalID) bool {
 	f := rf.f
 	if !f.Locals[l].Cross {
 		return false

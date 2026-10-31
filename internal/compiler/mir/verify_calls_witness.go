@@ -6,7 +6,7 @@ import (
 	"kigumi/internal/compiler/sem"
 )
 
-func (p *Program) witnessCallMismatch(f *Func, in Inst, recv bool) string {
+func (p *callVerifier) witnessCallMismatch(f *Func, in Inst, recv bool) string {
 	tt := p.R.Types
 	t := p.fnType(p.derefAll(f.Locals[in.Args[0]].Type))
 	args := in.Args[1:]
@@ -45,7 +45,7 @@ func (p *Program) witnessCallMismatch(f *Func, in Inst, recv bool) string {
 	return ""
 }
 
-func (p *Program) witnessParam(f *Func, l LocalID, depth int) (string, bool) {
+func (p *callVerifier) witnessParam(f *Func, l LocalID, depth int) (string, bool) {
 	if name := f.Locals[l].Name; strings.HasPrefix(name, "$w:") && isParam(f, l) {
 		rest := strings.TrimPrefix(name, "$w:")
 		if i := strings.IndexByte(rest, ':'); i > 0 {
@@ -79,7 +79,7 @@ func (p *Program) witnessParam(f *Func, l LocalID, depth int) (string, bool) {
 	return p.witnessParam(f, src, depth+1)
 }
 
-func (p *Program) mentionsParam(f *Func, name string) bool {
+func (p *callVerifier) mentionsParam(f *Func, name string) bool {
 	tt := p.R.Types
 	for _, l := range f.Locals {
 		t := p.derefAll(l.Type)

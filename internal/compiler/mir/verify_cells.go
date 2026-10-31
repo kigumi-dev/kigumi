@@ -7,7 +7,7 @@ import "kigumi/internal/compiler/sem"
 // back a Cell local with an OpNewCell before it is used, so a mismatch
 // would hand the closure a plain value where it expects a cell, crashing
 // OpCellGet/OpCellSet on the other side.
-func (p *Program) verifyCellCaptures(f *Func) *Error {
+func (p *verifier) verifyCellCaptures(f *Func) *Error {
 	for bid, blk := range f.Blocks {
 		bid := BlockID(bid)
 		for i, in := range blk.Insts {
@@ -78,7 +78,7 @@ func isParam(f *Func, l LocalID) bool {
 	return false
 }
 
-func (p *Program) verifyCellOps(f *Func) *Error {
+func (p *verifier) verifyCellOps(f *Func) *Error {
 	for bid, blk := range f.Blocks {
 		for i, in := range blk.Insts {
 			if (in.Op == OpCellGet || in.Op == OpCellTake || in.Op == OpCellSet) && !p.canBeCell(f, in.Args[0], map[LocalID]bool{}) {
@@ -89,27 +89,28 @@ func (p *Program) verifyCellOps(f *Func) *Error {
 	return nil
 }
 
-func yielders(f *Func) map[LocalID][]Inst {
-	if f.yielders == nil {
-		f.yielders = map[LocalID][]Inst{}
+func (p *verifier) yielders(f *Func) map[LocalID][]Inst {
+	body := p.body(f)
+	if body.yielders == nil {
+		body.yielders = map[LocalID][]Inst{}
 		for _, blk := range f.Blocks {
 			for _, in := range blk.Insts {
 				if in.Op.Yields() {
-					f.yielders[in.Dst] = append(f.yielders[in.Dst], in)
+					body.yielders[in.Dst] = append(body.yielders[in.Dst], in)
 				}
 			}
 		}
 	}
-	return f.yielders
+	return body.yielders
 }
 
-func (p *Program) canBeCell(f *Func, l LocalID, seen map[LocalID]bool) bool {
+func (p *verifier) canBeCell(f *Func, l LocalID, seen map[LocalID]bool) bool {
 	if seen[l] || f.Locals[l].Cell || (isParam(f, l) && p.refCellParam(f, l)) {
 		return true
 	}
 	seen[l] = true
 	defined := false
-	for _, in := range yielders(f)[l] {
+	for _, in := range p.yielders(f)[l] {
 		defined = true
 		switch in.Op {
 		case OpConst, OpUnit, OpBinary, OpUnary, OpInterp, OpShell, OpTag, OpIsVariant, OpIsType, OpRecord, OpVariant, OpArray, OpClosure, OpFnItem, OpBind, OpCFnPtr, OpBox, OpLendBox, OpBoxDirect, OpUnboxDirect,
@@ -129,7 +130,7 @@ func (p *Program) canBeCell(f *Func, l LocalID, seen map[LocalID]bool) bool {
 	return !defined
 }
 
-func (p *Program) cellContent(f *Func, defs cellDefs, l LocalID, seen map[LocalID]bool) []sem.TypeID {
+func (p *verifier) cellContent(f *Func, defs cellDefs, l LocalID, seen map[LocalID]bool) []sem.TypeID {
 	if seen[l] {
 		return nil
 	}
@@ -167,7 +168,7 @@ func (p *Program) cellContent(f *Func, defs cellDefs, l LocalID, seen map[LocalI
 	return found
 }
 
-func (p *Program) cellFits(f *Func, defs cellDefs, l LocalID, v sem.TypeID) (bool, sem.TypeID) {
+func (p *verifier) cellFits(f *Func, defs cellDefs, l LocalID, v sem.TypeID) (bool, sem.TypeID) {
 	content := p.cellContent(f, defs, l, map[LocalID]bool{})
 	for _, c := range content {
 		if p.fits(c, v) {
@@ -180,7 +181,7 @@ func (p *Program) cellFits(f *Func, defs cellDefs, l LocalID, v sem.TypeID) (boo
 	return false, content[0]
 }
 
-func (p *Program) refCellParam(f *Func, l LocalID) bool {
+func (p *verifier) refCellParam(f *Func, l LocalID) bool {
 	t := f.Locals[l].Type
 	if _, scalar := p.R.ScalarRefElem(t); scalar {
 		return true

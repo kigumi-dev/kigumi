@@ -11,7 +11,7 @@ func (vf *variantFlow) block(bid BlockID, entry *variantFacts, check bool) (*var
 	blk := &f.Blocks[bid]
 	for i, in := range blk.Insts {
 		if check {
-			if a, bad := s.unassigned(f, in); bad {
+			if a, bad := s.unassigned(vf.weak, in); bad {
 				return nil, fail("variants", bid, i, "%s reads %%%s, which is not assigned on every path that reaches it", in.Op, f.Locals[a].Name)
 			}
 			if in.Op == OpPayload {
@@ -34,15 +34,15 @@ func (vf *variantFlow) block(bid BlockID, entry *variantFacts, check bool) (*var
 		}
 		if in.Op.Yields() {
 			vf.step(s, in)
-			if f.weakDefs != nil && f.weakDefs[in.Dst] {
+			if vf.weak != nil && vf.weak[in.Dst] {
 				s.setKnown(assignedPlace(in.Dst), assigned)
 			}
 		}
-		if gone, ok := leavesSlot(in); ok && f.weakDefs != nil && f.weakDefs[gone] {
+		if gone, ok := leavesSlot(in); ok && vf.weak != nil && vf.weak[gone] {
 			s.forget(gone)
 		}
 	}
-	if a, bad := s.unassigned(f, Inst{Op: OpNop, Args: blk.Term.Args}); bad && check {
+	if a, bad := s.unassigned(vf.weak, Inst{Op: OpNop, Args: blk.Term.Args}); bad && check {
 		return nil, fail("variants", bid, len(blk.Insts), "terminator reads %%%s, which is not assigned on every path that reaches it", f.Locals[a].Name)
 	}
 	return s, nil
@@ -64,12 +64,12 @@ func assignedPlace(l LocalID) vplace { return vplace{root: l, tag: tagAssigned} 
 
 // unassigned finds a read of a local not known to be assigned here; dropping a
 // never-assigned local drops a nulled slot, which is nothing.
-func (s *variantFacts) unassigned(f *Func, in Inst) (LocalID, bool) {
-	if f.weakDefs == nil || in.Op == OpDrop || in.Op == OpRelease {
+func (s *variantFacts) unassigned(weak []bool, in Inst) (LocalID, bool) {
+	if weak == nil || in.Op == OpDrop || in.Op == OpRelease {
 		return 0, false
 	}
 	for _, a := range in.Args {
-		if f.weakDefs[a] {
+		if weak[a] {
 			if set, ok := s.known[assignedPlace(a)]; !ok || len(set.list) != 1 {
 				return a, true
 			}

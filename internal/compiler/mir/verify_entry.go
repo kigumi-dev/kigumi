@@ -2,7 +2,7 @@ package mir
 
 import "kigumi/internal/compiler/sem"
 
-func (p *Program) verifyEntry() *Error {
+func (p *verifier) verifyEntry() *Error {
 	f := p.Entry
 	if f == nil {
 		return nil

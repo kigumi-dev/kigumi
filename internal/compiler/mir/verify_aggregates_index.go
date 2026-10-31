@@ -2,7 +2,7 @@ package mir
 
 import "kigumi/internal/compiler/sem"
 
-func (p *Program) indexMismatch(f *Func, in Inst) string {
+func (p *verifier) indexMismatch(f *Func, in Inst) string {
 	tt := p.R.Types
 	base := p.R.UnderlyingRepr(p.derefAll(f.Locals[in.Args[0]].Type))
 	if p.looseType(base) {
@@ -32,7 +32,7 @@ func (p *Program) indexMismatch(f *Func, in Inst) string {
 	return ""
 }
 
-func (p *Program) rangeOfUsize(t sem.TypeID) bool {
+func (p *verifier) rangeOfUsize(t sem.TypeID) bool {
 	n := p.R.Types.Node(t)
 	rng := p.R.LangItem("Range")
 	return n.Kind == sem.KNamed && rng != 0 && n.Ent == rng && len(n.Args) == 1 && n.Args[0] == sem.TyUsize

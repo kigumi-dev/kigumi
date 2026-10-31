@@ -2,7 +2,7 @@ package mir
 
 // opDescMismatch holds a std primitive call to its registry descriptor: the
 // classes the runtime reads for each argument and the result.
-func (p *Program) opDescMismatch(f *Func, in Inst) string {
+func (p *verifier) opDescMismatch(f *Func, in Inst) string {
 	id, ok := in.StdOp()
 	if !ok {
 		return ""

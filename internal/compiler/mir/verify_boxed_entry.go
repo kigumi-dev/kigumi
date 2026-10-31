@@ -2,7 +2,7 @@ package mir
 
 // verifyBoxedEntry checks that a boxed caller of a direct signature has an
 // entry to call, and that the entry takes and returns everything boxed.
-func (p *Program) verifyBoxedEntry(f *Func) *Error {
+func (p *verifier) verifyBoxedEntry(f *Func) *Error {
 	if f.Wraps == nil {
 		if f.DSig != nil && f.Ent != 0 && f.Entry == nil {
 			return &Error{Rule: "direct", Msg: "a direct signature with no boxed entry"}

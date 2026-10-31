@@ -3,6 +3,7 @@ package mir
 import "kigumi/internal/compiler/sem"
 
 type refFlow struct {
+	weak                []bool
 	f                   *Func
 	site                []int32
 	siteBase            []int
@@ -14,7 +15,7 @@ type refFlow struct {
 	undef, nulled, lent int32
 }
 
-func (p *Program) verifyRefs(f *Func) *Error {
+func (p *verifier) verifyRefs(f *Func) *Error {
 	if f.rcBase == 0 || len(f.Blocks) == 0 || !hasRelease(f) {
 		return nil
 	}
@@ -76,9 +77,9 @@ func hasRelease(f *Func) bool {
 	return false
 }
 
-func (p *Program) newRefFlow(f *Func) *refFlow {
-	rf := &refFlow{f: f, loop: cyclicBlocks(f), nobj: len(f.Params), siteBase: make([]int, len(f.Blocks)), track: make([]bool, len(f.Locals)), counted: make([]bool, len(f.Locals))}
-	rf.live = f.edgeLive()
+func (p *verifier) newRefFlow(f *Func) *refFlow {
+	rf := &refFlow{f: f, weak: p.body(f).weakDefs, loop: cyclicBlocks(f), nobj: len(f.Params), siteBase: make([]int, len(f.Blocks)), track: make([]bool, len(f.Locals)), counted: make([]bool, len(f.Locals))}
+	rf.live = p.edgeLive(f)
 	lent := p.unownedRefs(f)
 	for l := range f.Locals {
 		t := f.Locals[l].Type
@@ -103,7 +104,7 @@ func (p *Program) newRefFlow(f *Func) *refFlow {
 	return rf
 }
 
-func (rf *refFlow) entry(p *Program) *refState {
+func (rf *refFlow) entry(p *verifier) *refState {
 	f := rf.f
 	sets := newObjSets(3*rf.nobj, len(f.Locals))
 	rf.undef, rf.nulled, rf.lent = sets.of(refUndef), sets.of(refNulled), sets.of(refLent)

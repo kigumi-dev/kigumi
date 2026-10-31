@@ -13,9 +13,10 @@ import (
 // that borrows it: the caller keeps its value, so handing it on would alias
 // two owners. A borrow is a `self` receiver or a `&T` local, and anything
 // projected out of one (a field, an element, a payload) stays borrowed.
-func checkBorrowedMoves(p *Program, f *Func) {
+func checkBorrowedMoves(state *borrowAnalysis, f *Func) {
+	p := state.Program
 	checkCapturedFieldMoves(p, f)
-	unowned := p.unownedRefs(f)
+	unowned := state.unownedRefs(f)
 	borrowed := make([]bool, len(f.Locals))
 	defNode := make([]syntax.NodeID, len(f.Locals))
 	for i, l := range f.Locals {

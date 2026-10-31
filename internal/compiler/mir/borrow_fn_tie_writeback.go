@@ -38,7 +38,7 @@ func (c *borrowCheck) callStores(before []Inst, cell LocalID) bool {
 		case in.Op == OpCallValue || in.Ent == 0 || c.p.R.Entity(in.Ent).Kind != sem.EntFn:
 			return false
 		}
-		return c.p.storesParam(in.Ent, k)
+		return c.analysis().storesParam(in.Ent, k)
 	}
 	return false
 }
@@ -49,7 +49,7 @@ type paramSlot struct {
 }
 
 // storesParam reports whether fn replaces what its `&mut` parameter k holds on every path to return; a cycle of forwards counts as no.
-func (p *Program) storesParam(fn sem.EntityID, k int) bool {
+func (p *borrowAnalysis) storesParam(fn sem.EntityID, k int) bool {
 	key := paramSlot{fn: fn, k: k}
 	if s, ok := p.paramStores[key]; ok {
 		return s
@@ -65,7 +65,7 @@ func (p *Program) storesParam(fn sem.EntityID, k int) bool {
 }
 
 // storedOnEveryPath: every return of f follows a `cellset` of cell, a fieldStore or a call that stores into it, and f never reads it.
-func (p *Program) storedOnEveryPath(f *Func, cell LocalID) bool {
+func (p *borrowAnalysis) storedOnEveryPath(f *Func, cell LocalID) bool {
 	stored := make([]bool, len(f.Blocks))
 	for b, blk := range f.Blocks {
 		for _, in := range blk.Insts {

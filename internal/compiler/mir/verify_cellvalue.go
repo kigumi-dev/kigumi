@@ -2,7 +2,7 @@ package mir
 
 import "kigumi/internal/compiler/sem"
 
-func (p *Program) verifyCellValues(f *Func) *Error {
+func (p *verifier) verifyCellValues(f *Func) *Error {
 	if !p.hasCells(f) {
 		return nil
 	}
@@ -32,7 +32,7 @@ func (p *Program) verifyCellValues(f *Func) *Error {
 	return nil
 }
 
-func (p *Program) cellDef(f *Func, in Inst) bool {
+func (p *verifier) cellDef(f *Func, in Inst) bool {
 	switch in.Op {
 	case OpNewCell:
 		return true
@@ -42,7 +42,7 @@ func (p *Program) cellDef(f *Func, in Inst) bool {
 	return false
 }
 
-func (p *Program) mutReceiver(in Inst) int {
+func (p *verifier) mutReceiver(in Inst) int {
 	if (in.Op != OpCall && in.Op != OpCallValue) || in.Ent == 0 || int(in.Ent) >= len(p.R.Entities) || p.R.Entity(in.Ent).Kind != sem.EntFn || p.R.Fn(in.Ent).Recv != sem.RecvMut {
 		return -1
 	}
@@ -52,7 +52,7 @@ func (p *Program) mutReceiver(in Inst) int {
 	return 0
 }
 
-func (p *Program) hasCells(f *Func) bool {
+func (p *verifier) hasCells(f *Func) bool {
 	for _, l := range f.Locals {
 		if l.Cell {
 			return true

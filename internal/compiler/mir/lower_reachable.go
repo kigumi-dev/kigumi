@@ -10,13 +10,16 @@ import (
 
 // lowering is Build's state: which top-level body is being lowered, and which body each Func came from.
 type lowering struct {
-	cur    sem.EntityID
-	top    map[*Func]sem.EntityID
-	tried  map[sem.EntityID]bool
-	checks []pendingCheck
+	*Program
+	rootKeep func(string) bool
+	cur      sem.EntityID
+	top      map[*Func]sem.EntityID
+	tried    map[sem.EntityID]bool
+	checks   []pendingCheck
+	borrow   *borrowAnalysis
 }
 
-func (p *Program) lowerable(id sem.EntityID) bool {
+func (p *lowering) lowerable(id sem.EntityID) bool {
 	if !p.hasLowerableBody(id) {
 		return false
 	}
@@ -35,14 +38,15 @@ func (p *Program) hasLowerableBody(id sem.EntityID) bool {
 }
 
 // lowerReachable lowers the roots in entity order, then whatever the reachability walk finds from them.
-func (p *Program) lowerReachable(all bool) {
-	p.lowering = &lowering{top: map[*Func]sem.EntityID{}, tried: map[sem.EntityID]bool{}}
+func (p *lowering) lowerReachable(all bool) {
+	p.top, p.tried = map[*Func]sem.EntityID{}, map[sem.EntityID]bool{}
 	roots := p.lowerRoots(all)
 	for _, id := range roots {
 		p.lowerTop(id)
 	}
 	if !all {
-		w := newReachWalk(p, true)
+		w := newReachWalk(p.Program)
+		w.lower, w.lowerable = p.lowerTop, p.lowerable
 		for _, id := range roots {
 			if w.rs.add(id, Reason{}) {
 				w.worklist = append(w.worklist, id)
@@ -54,9 +58,8 @@ func (p *Program) lowerReachable(all bool) {
 		w.drain()
 	}
 	p.runPendingChecks()
-	top := p.lowering.top
+	top := p.top
 	slices.SortStableFunc(p.Funcs, func(a, b *Func) int { return cmp.Compare(top[a], top[b]) })
-	p.lowering = nil
 	if !all {
 		p.unlowered = make([]bool, len(p.R.Entities))
 		for i := 1; i < len(p.unlowered); i++ {
@@ -66,7 +69,7 @@ func (p *Program) lowerReachable(all bool) {
 }
 
 // lowerRoots lists, in entity order, the bodies lowered whether or not anything reaches them.
-func (p *Program) lowerRoots(all bool) []sem.EntityID {
+func (p *lowering) lowerRoots(all bool) []sem.EntityID {
 	r := p.R
 	comptime := map[sem.EntityID]bool{}
 	for _, site := range r.Comptime {
@@ -83,11 +86,11 @@ func (p *Program) lowerRoots(all bool) []sem.EntityID {
 	return roots
 }
 
-func (p *Program) keepsRoot(id sem.EntityID) bool {
+func (p *lowering) keepsRoot(id sem.EntityID) bool {
 	return p.rootKeep == nil || p.rootKeep(p.R.Packages[p.R.Entity(id).Pkg].Path)
 }
 
-func (p *Program) alwaysLowered(id, main sem.EntityID) bool {
+func (p *lowering) alwaysLowered(id, main sem.EntityID) bool {
 	r := p.R
 	e := r.Entity(id)
 	if pkg := r.Packages[e.Pkg]; !pkg.Std && pkg.Module == "" {
@@ -100,15 +103,15 @@ func (p *Program) alwaysLowered(id, main sem.EntityID) bool {
 	return id == main || r.Fn(id).Export != ""
 }
 
-func (p *Program) topOf(id sem.EntityID) sem.EntityID {
+func (p *lowering) topOf(id sem.EntityID) sem.EntityID {
 	for id != 0 && p.R.Entity(id).Kind == sem.EntClosure {
 		id = p.R.Entity(id).Parent
 	}
 	return id
 }
 
-func (p *Program) lowerTop(id sem.EntityID) {
-	l := p.lowering
+func (p *lowering) lowerTop(id sem.EntityID) {
+	l := p
 	if l.tried[id] || !p.lowerable(id) {
 		return
 	}
@@ -121,14 +124,15 @@ func (p *Program) lowerTop(id sem.EntityID) {
 
 // calleeBody is ent's MIR only if lowering every body in entity order would have built it before the current one,
 // so a borrow check decides the same however much of the program is lowered.
-func (p *Program) calleeBody(ent sem.EntityID) (*Func, bool) {
-	l := p.lowering
-	if l != nil {
-		if ent >= l.cur || !p.lowerable(ent) {
-			return nil, false
-		}
-		p.lowerTop(ent)
+func (p *lowering) calleeBody(ent sem.EntityID) (*Func, bool) {
+	if ent >= p.cur || !p.lowerable(ent) {
+		return nil, false
 	}
+	p.lowerTop(ent)
+	return p.bodyByEnt(ent)
+}
+
+func (p *Program) bodyByEnt(ent sem.EntityID) (*Func, bool) {
 	f, ok := p.ByEnt[ent]
 	return f, ok
 }

@@ -2,7 +2,7 @@ package mir
 
 import "kigumi/internal/compiler/sem"
 
-func (p *Program) verifyDirectSig(f *Func) *Error {
+func (p *verifier) verifyDirectSig(f *Func) *Error {
 	if f.Direct == nil {
 		return nil
 	}
@@ -41,7 +41,7 @@ func (p *Program) verifyDirectSig(f *Func) *Error {
 	return nil
 }
 
-func (p *Program) expectedResult(f *Func) sem.TypeID {
+func (p *verifier) expectedResult(f *Func) sem.TypeID {
 	switch {
 	case f.Async:
 		return 0
@@ -58,7 +58,7 @@ func (p *Program) expectedResult(f *Func) sem.TypeID {
 
 // verifyCrossLocals checks that a crossing's own local is unnamed, set once and
 // read right after, as plan-direct makes it; the flag decides who releases it.
-func (p *Program) verifyCrossLocals(f *Func) *Error {
+func (p *verifier) verifyCrossLocals(f *Func) *Error {
 	any := false
 	for _, l := range f.Locals {
 		any = any || l.Cross
