@@ -3,11 +3,12 @@ package driver
 import (
 	"kigumi/internal/compiler/mir"
 	opdef "kigumi/internal/compiler/mir/ops"
+	mirreach "kigumi/internal/compiler/mir/reach"
 	"kigumi/internal/compiler/sem"
 	buildconfig "kigumi/internal/toolchain/config"
 )
 
-func capabilityUses(p *mir.Program, reach *mir.Reachability, plat mir.Platform) []sem.CapabilityUse {
+func capabilityUses(p *mir.Program, reach *mirreach.Reachability, plat mirreach.Platform) []sem.CapabilityUse {
 	var out []sem.CapabilityUse
 	reported := map[opdef.Capability]bool{}
 	for _, op := range reach.Ops {
@@ -30,8 +31,8 @@ func capabilityUses(p *mir.Program, reach *mir.Reachability, plat mir.Platform) 
 	return out
 }
 
-func (a *Analysis) checkProvision(t buildconfig.Target) *mir.Reachability {
-	reach := mir.Reachable(a.Prog)
+func (a *Analysis) checkProvision(t buildconfig.Target) *mirreach.Reachability {
+	reach := mirreach.Reachable(a.Prog.R, a.Prog.Entry, a.Prog.Funcs, a.Prog.ByEnt)
 	a.Res.CheckCapabilityProvision(capabilityUses(a.Prog, reach, capabilityPlatform(t)))
 	a.warnTaskPanicFatal(t, reach)
 	return reach

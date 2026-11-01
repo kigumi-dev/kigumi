@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	mirreach "kigumi/internal/compiler/mir/reach"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -47,7 +47,7 @@ func prunedOrWhole(t *testing.T, name string, whole bool) (reach, ir string) {
 	if err != nil || a.Res.HasErrors() {
 		t.Fatalf("analyze: %v", err)
 	}
-	rs := mir.Reachable(a.Prog)
+	rs := mirreach.Reachable(a.Prog.R, a.Prog.Entry, a.Prog.Funcs, a.Prog.ByEnt)
 	var sites strings.Builder
 	for _, op := range rs.Ops {
 		for _, s := range rs.AllOpSites[op] {

@@ -17,18 +17,7 @@ const (
 	shapeOption
 )
 
-func (p *Program) markDirectPrims(f *midir.Func) {
-	for bid := range f.Blocks {
-		insts := f.Blocks[bid].Insts
-		for i := range insts {
-			if insts[i].Op == midir.OpCall {
-				insts[i].DPrim = p.directPrimOf(f, insts[i])
-			}
-		}
-	}
-}
-
-func (p *Program) directPrimOf(f *midir.Func, in midir.Inst) opdef.DirectPrim {
+func (p *Program) DirectPrimOf(f *midir.Func, in midir.Inst) opdef.DirectPrim {
 	if _, own := p.ByEnt[in.Ent]; own || !ownquery.IsStdPrimitive(p.R, in.Ent) {
 		return opdef.DPNone
 	}
@@ -42,7 +31,7 @@ func (p *Program) directPrimOf(f *midir.Func, in midir.Inst) opdef.DirectPrim {
 	} else if p.isConversion(in.Ent) {
 		kind, ok = opdef.DPConvert, true
 	}
-	if !ok || !p.primTypesFit(f, in, kind) {
+	if !ok || !p.PrimTypesFit(f, in, kind) {
 		return opdef.DPNone
 	}
 	return kind
@@ -58,7 +47,7 @@ func (p *Program) resultShape(t sem.TypeID) primShape {
 	return shapeNone
 }
 
-func (p *Program) primTypesFit(f *midir.Func, in midir.Inst, kind opdef.DirectPrim) bool {
+func (p *Program) PrimTypesFit(f *midir.Func, in midir.Inst, kind opdef.DirectPrim) bool {
 	arg := func(i int) sem.TypeID { return f.Locals[in.Args[i]].Type }
 	shape := p.resultShape(f.Locals[in.Dst].Type)
 	switch kind {
@@ -109,17 +98,11 @@ func (p *Program) numericOrChar(t sem.TypeID) bool {
 
 func (p *Program) isConversion(fn sem.EntityID) bool {
 	info := p.R.Fn(fn)
-	if info.Owner == 0 || !p.R.IsConversion(fn) || !strings.HasPrefix(StdKey(p.R, fn, false), "std/prelude.") {
+	if info.Owner == 0 || !p.R.IsConversion(fn) || !strings.HasPrefix(opdef.StdKey(p.R, fn, false), "std/prelude.") {
 		return false
 	}
 	self := p.R.Entity(info.Owner).Type
 	return p.R.Types.IsNumeric(self) || self == sem.TyChar
-}
-
-func (p *Program) markPrimResult(f *midir.Func, in midir.Inst, out []bool) {
-	if in.Op == midir.OpCall && in.DPrim != opdef.DPNone && p.R.DirectAgg(f.Locals[in.Dst].Type) {
-		out[in.Dst] = true
-	}
 }
 
 func (p *Program) primResult(f *midir.Func, in midir.Inst) sem.TypeID {

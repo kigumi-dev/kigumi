@@ -1,8 +1,6 @@
 package mir
 
-import (
-	midir "kigumi/internal/compiler/mir/ir"
-)
+import midir "kigumi/internal/compiler/mir/ir"
 
 // BoxConsumed reports that in takes over argument i of a box a crossing made; otherwise the call site releases it.
 func (p *Program) BoxConsumed(in midir.Inst, i int) bool {
@@ -21,8 +19,8 @@ func (p *Program) BoxConsumed(in midir.Inst, i int) bool {
 	return false
 }
 
-// heldBoxes finds the arguments that are a crossing's box still owed a release by the call site after in.
-func (p *Program) heldBoxes(f *midir.Func) func(in *midir.Inst, i int) bool {
+// HeldBoxes finds the arguments that are a crossing's box still owed a release by the call site after in.
+func (p *Program) HeldBoxes(f *midir.Func) func(in *midir.Inst, i int) bool {
 	boxes := map[midir.LocalID]bool{}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
@@ -36,23 +34,5 @@ func (p *Program) heldBoxes(f *midir.Func) func(in *midir.Inst, i int) bool {
 	}
 	return func(in *midir.Inst, i int) bool {
 		return in.Op != midir.OpBoxDirect && in.Op != midir.OpUnboxDirect && boxes[in.Args[i]] && !p.BoxConsumed(*in, i)
-	}
-}
-
-// slotHeldBoxes gives an async body's held boxes a frame slot, so a panic in the call sweeps them like any temporary.
-func (p *Program) slotHeldBoxes(f *midir.Func) {
-	held := p.heldBoxes(f)
-	if held == nil {
-		return
-	}
-	for _, blk := range f.Blocks {
-		for k := range blk.Insts {
-			in := &blk.Insts[k]
-			for i, a := range in.Args {
-				if held(in, i) {
-					f.Slot[a] = 0
-				}
-			}
-		}
 	}
 }

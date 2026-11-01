@@ -1,5 +1,5 @@
 package llgen_test
 
-import "kigumi/internal/compiler/mir"
+import mirplan "kigumi/internal/compiler/mir/plan"
 
-func init() { mir.SetVerifyEachPass(true) }
+func init() { mirplan.SetVerifyEachPass(true) }

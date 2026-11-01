@@ -1,8 +1,8 @@
 package vm
 
 import (
-	"kigumi/internal/compiler/mir"
 	midir "kigumi/internal/compiler/mir/ir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -72,7 +72,7 @@ func (m *Machine) releaseOwned(fn sem.EntityID, args []*obj) {
 }
 
 // stdKey names a bodiless std function the way the runtime's table does.
-func (m *Machine) stdKey(fn sem.EntityID) string { return mir.StdKey(m.r, fn, true) }
+func (m *Machine) stdKey(fn sem.EntityID) string { return opdef.StdKey(m.r, fn, true) }
 
 // closure builds a function value: a lowered body with its captures (or
 // bound witnesses) in the environment, or a std primitive by key. A witness

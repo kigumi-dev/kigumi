@@ -1,3 +1,5 @@
-package mir
+package mir_test
 
-func init() { SetVerifyEachPass(true) }
+import mirplan "kigumi/internal/compiler/mir/plan"
+
+func init() { mirplan.SetVerifyEachPass(true) }

@@ -1,6 +1,9 @@
 package llgen
 
-import "kigumi/internal/compiler/mir"
+import (
+	"kigumi/internal/compiler/mir"
+	mirreach "kigumi/internal/compiler/mir/reach"
+)
 
 // Emit renders the whole program as one LLVM module.
 func Emit(p *mir.Program) string { return EmitWith(p, EmitOptions{}) }
@@ -34,7 +37,7 @@ type EmitOptions struct {
 	SymbolPrefix string
 	// Reachable, when set, skips a Func this reachability result does not
 	// keep; nil emits every lowered function, as every direct llgen test does.
-	Reachable *mir.Reachability
+	Reachable *mirreach.Reachability
 	// AbiCheck makes the entry verify, before anything else runs, that the linked runtime reports the fingerprint BindAbi installs.
 	AbiCheck bool
 	// Catch lets the build unwind on a panic; it also needs the runtime built with KIGUMI_TASK_CATCH.

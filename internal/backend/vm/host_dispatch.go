@@ -3,7 +3,6 @@ package vm
 import (
 	"strings"
 
-	"kigumi/internal/compiler/mir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
@@ -34,6 +33,6 @@ func (m *Machine) hostFor(prov opdef.ProviderOpId, key string) (hostFn, bool) {
 
 // hostForEnt is hostFor for a callee only known at runtime (interface dispatch, resource drop).
 func (m *Machine) hostForEnt(ent sem.EntityID, key string) (hostFn, bool) {
-	_, prov, _ := mir.ResolveStdOp(m.r, ent)
+	_, prov, _ := opdef.ResolveStdOp(m.r, ent)
 	return m.hostFor(prov, key)
 }

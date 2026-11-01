@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"kigumi/internal/backend/llgen"
-	"kigumi/internal/compiler/mir"
+	mirreach "kigumi/internal/compiler/mir/reach"
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/contract/schema"
 	"kigumi/internal/toolchain/version"
@@ -28,9 +28,9 @@ type ArtifactFingerprint struct {
 	// RuntimeAbi adds the runtime flag set (thread profile, unwind, capabilities, user -D); empty where no build ran, as in a plan.
 	RuntimeAbi string `json:"runtimeAbi,omitempty"`
 	// FingerprintMismatch never compares DeriveProvenance, CapabilityProvision or CapabilityReasons.
-	DeriveProvenance    []schema.GeneratedArtifact `json:"deriveProvenance,omitempty"`
-	CapabilityProvision []CapabilityVerdict        `json:"capabilityProvision,omitempty"`
-	CapabilityReasons   []mir.CapabilityReason     `json:"capabilityReasons,omitempty"`
+	DeriveProvenance    []schema.GeneratedArtifact  `json:"deriveProvenance,omitempty"`
+	CapabilityProvision []CapabilityVerdict         `json:"capabilityProvision,omitempty"`
+	CapabilityReasons   []mirreach.CapabilityReason `json:"capabilityReasons,omitempty"`
 }
 
 // targetIdentity falls back to OS/Arch/Sys because HostTarget leaves

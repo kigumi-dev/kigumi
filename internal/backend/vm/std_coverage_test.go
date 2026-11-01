@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"kigumi/internal/backend/vm"
-	"kigumi/internal/compiler/mir"
+	mirbuild "kigumi/internal/compiler/mir/build"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -24,7 +24,7 @@ func TestStdPrimitives(t *testing.T) {
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}
-	prog := mir.Build(res)
+	prog := mirbuild.Program(res)
 	n := 0
 	for id := range res.Entities {
 		fn := sem.EntityID(id)

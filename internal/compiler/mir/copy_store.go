@@ -52,7 +52,7 @@ func (p *Program) storeAfter(f *midir.Func, insts []midir.Inst, i int) int {
 	src, dst := insts[i].Args[0], insts[i].Dst
 	for j := i + 1; j < len(insts); j++ {
 		in := insts[j]
-		if v, ok := storedValue(in); ok && v == dst {
+		if v, ok := StoredValue(in); ok && v == dst {
 			if f.IsDirect(in.Args[0]) || in.Args[0] == dst || in.Args[0] == src {
 				return 0
 			}
@@ -65,8 +65,8 @@ func (p *Program) storeAfter(f *midir.Func, insts []midir.Inst, i int) int {
 	return 0
 }
 
-// storedValue is the value a setindex or setfield stores.
-func storedValue(in midir.Inst) (midir.LocalID, bool) {
+// StoredValue is the value a setindex or setfield stores.
+func StoredValue(in midir.Inst) (midir.LocalID, bool) {
 	switch in.Op {
 	case midir.OpSetIndex:
 		return in.Args[2], true

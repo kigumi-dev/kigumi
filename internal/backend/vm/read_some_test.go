@@ -7,7 +7,8 @@ import (
 	"time"
 
 	"kigumi/internal/backend/vm"
-	"kigumi/internal/compiler/mir"
+	mirbuild "kigumi/internal/compiler/mir/build"
+	mirplan "kigumi/internal/compiler/mir/plan"
 )
 
 // TestStdinReadSomeReceivesData feeds a real pipe after a short delay and
@@ -24,11 +25,11 @@ func TestStdinReadSomeReceivesData(t *testing.T) {
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}
-	prog := mir.Build(res)
+	prog := mirbuild.Program(res)
 	if prog.HasErrors() {
 		t.Fatal("ownership errors")
 	}
-	if err := prog.Apply(mir.Transform{Name: "plan-rc", Run: mir.PlanRC}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
 		t.Fatalf("plan-rc: %v", err)
 	}
 
@@ -74,11 +75,11 @@ func TestStdinReadSomeTimesOut(t *testing.T) {
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}
-	prog := mir.Build(res)
+	prog := mirbuild.Program(res)
 	if prog.HasErrors() {
 		t.Fatal("ownership errors")
 	}
-	if err := prog.Apply(mir.Transform{Name: "plan-rc", Run: mir.PlanRC}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
 		t.Fatalf("plan-rc: %v", err)
 	}
 
@@ -118,11 +119,11 @@ func TestStdinReadSomeClosed(t *testing.T) {
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}
-	prog := mir.Build(res)
+	prog := mirbuild.Program(res)
 	if prog.HasErrors() {
 		t.Fatal("ownership errors")
 	}
-	if err := prog.Apply(mir.Transform{Name: "plan-rc", Run: mir.PlanRC}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
 		t.Fatalf("plan-rc: %v", err)
 	}
 

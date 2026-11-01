@@ -5,6 +5,7 @@ import (
 
 	"kigumi/internal/compiler/mir"
 	midir "kigumi/internal/compiler/mir/ir"
+	mirreach "kigumi/internal/compiler/mir/reach"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -16,7 +17,7 @@ type emitter struct {
 	freestanding bool
 	cabi         cIntABI
 	entrySymbol  string
-	reachable    *mir.Reachability
+	reachable    *mirreach.Reachability
 	r            *sem.Result
 	out          strings.Builder
 	strs         map[string]string

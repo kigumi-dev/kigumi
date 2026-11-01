@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"kigumi/internal/compiler/mir"
 	midir "kigumi/internal/compiler/mir/ir"
+	mirplan "kigumi/internal/compiler/mir/plan"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/toolchain/contract/schema"
 )
@@ -75,11 +75,11 @@ func editorDiagsWith(m *Module, lazy bool) (*sem.Result, []midir.FileDiag, bool)
 	}
 	known := diagKeys(res)
 	prog.NativeBoxes = nativeBoxSites(m.target)
-	if prog.Apply(planPasses(false)...) != nil {
+	if mirplan.Apply(prog, planPasses(false)...) != nil {
 		return res, nil, true
 	}
 	out := append([]midir.FileDiag(nil), prog.Diags...)
-	for _, c := range append(mir.CheckAllocClaims(prog), mir.CheckInterruptLowering(prog)...) {
+	for _, c := range claimDiags(prog) {
 		out = append(out, midir.FileDiag(c))
 	}
 	for id := range res.Files {

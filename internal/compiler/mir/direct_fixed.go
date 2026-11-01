@@ -5,18 +5,6 @@ import (
 	"kigumi/internal/compiler/sem"
 )
 
-func (p *Program) markFixed(f *midir.Func) {
-	fixed := p.fixedLocals(f)
-	for bid := range f.Blocks {
-		insts := f.Blocks[bid].Insts
-		for i := range insts {
-			if insts[i].Op == midir.OpBoxDirect && fixed[insts[i].Args[0]] {
-				insts[i].Fixed = true
-			}
-		}
-	}
-}
-
 // FixedLocals marks the locals holding a compile-time value, which both backends hand over as one immortal.
 func (p *Program) FixedLocals(f *midir.Func) []bool { return p.fixedLocals(f) }
 

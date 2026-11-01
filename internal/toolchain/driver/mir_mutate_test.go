@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"kigumi/internal/compiler/mir"
+	mirverify "kigumi/internal/compiler/mir/verify"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -76,12 +77,12 @@ func mutantOf(base *mir.Program, mu *mutator, seed int64) (*mir.Program, string,
 func checkProgram(p *mir.Program, st *sweepStats, verbose func(string, ...any)) (finding string) {
 	st.mutants++
 	var err error
-	if f := guard("verifier", func() { err = p.Verify() }); f != "" {
+	if f := guard("verifier", func() { err = mirverify.Program(p) }); f != "" {
 		return f
 	}
 	if err != nil {
 		rule := "?"
-		if ve, ok := err.(*mir.Error); ok {
+		if ve, ok := err.(*mirverify.Error); ok {
 			rule = ve.Rule
 		}
 		st.rejected[rule]++

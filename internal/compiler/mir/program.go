@@ -18,7 +18,6 @@ type Program struct {
 	Resources map[sem.EntityID]*resbound.Summary
 	unwind    unwindMemo
 	executor  executorMemo
-	verified  verificationHistory
 	Diags     []midir.FileDiag
 	// Entries holds every Func.Entry; they are not in Funcs, so nothing keyed by entity sees them.
 	Entries []*midir.Func
@@ -31,7 +30,18 @@ type Program struct {
 	NativeBoxes func(*Program) NativeBoxSites
 }
 
-// Unlowered reports whether ent has a body Build left out because nothing reaches it.
+// Unlowered reports whether ent has a body the builder left out because nothing reaches it.
 func (p *Program) Unlowered(ent sem.EntityID) bool {
 	return int(ent) < len(p.unlowered) && p.unlowered[ent]
 }
+
+func (p *Program) AllFuncs() []*midir.Func {
+	fs := append([]*midir.Func{}, p.Funcs...)
+	for _, cf := range p.Comptime {
+		fs = append(fs, cf.Func)
+	}
+	return append(fs, p.Entries...)
+}
+
+// SetUnlowered records, by entity, the bodies the builder left out.
+func (p *Program) SetUnlowered(left []bool) { p.unlowered = left }

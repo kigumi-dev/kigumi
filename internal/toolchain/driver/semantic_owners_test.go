@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"kigumi/internal/backend/vm"
-	"kigumi/internal/compiler/mir"
+	mirbuild "kigumi/internal/compiler/mir/build"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/devkit/semfixture"
@@ -60,7 +60,7 @@ func TestSemanticOwnersFresh(t *testing.T) {
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}
-	prog := mir.Build(res)
+	prog := mirbuild.Program(res)
 
 	var entries []ownerEntry
 	for id := 1; id < len(res.Entities); id++ {
@@ -73,10 +73,10 @@ func TestSemanticOwnersFresh(t *testing.T) {
 		if info.Abi != "" || res.Entity(e.Parent).Kind == sem.EntInterface {
 			continue
 		}
-		key := mir.StdKey(res, fn, true)
+		key := opdef.StdKey(res, fn, true)
 		hasBody := info.Body != 0
 		kind := ""
-		if _, prov, ok := mir.ResolveStdOp(res, fn); ok {
+		if _, prov, ok := opdef.ResolveStdOp(res, fn); ok {
 			kind = "primitive"
 			if prov != 0 {
 				kind = "provider"

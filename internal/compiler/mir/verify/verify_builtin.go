@@ -1,0 +1,94 @@
+package verify
+
+import (
+	"strings"
+
+	midir "kigumi/internal/compiler/mir/ir"
+	opdef "kigumi/internal/compiler/mir/ops"
+	"kigumi/internal/compiler/sem"
+)
+
+func (p *verifier) verifyBuiltins(f *midir.Func) *Error {
+	for bid, blk := range f.Blocks {
+		bid := midir.BlockID(bid)
+		for i, in := range blk.Insts {
+			if in.Op != midir.OpBuiltin {
+				continue
+			}
+			if msg := p.builtinMismatch(f, in); msg != "" {
+				return fail("builtins", bid, i, "%s", msg)
+			}
+		}
+	}
+	return nil
+}
+
+func (p *verifier) builtinMismatch(f *midir.Func, in midir.Inst) string {
+	spec, ok := opdef.BuiltinFor(in.Str)
+	if !ok {
+		return "no runtime entry \"" + in.Str + "\""
+	}
+	if len(in.Args) < spec.Min || len(in.Args) > len(spec.Args) {
+		return in.Str + " takes " + itoa(spec.Min) + " to " + itoa(len(spec.Args)) + " arguments, got " + itoa(len(in.Args))
+	}
+	if msg := p.iterMismatch(f, in); msg != "" {
+		return msg
+	}
+	for k, a := range in.Args {
+		if msg := p.builtinArgMismatch(in.Str, k, spec.Args[k], f.Locals[a].Type); msg != "" {
+			return msg
+		}
+	}
+	if msg := p.builtinResultMismatch(spec, f.Locals[in.Dst].Type); msg != "" && in.Op.Yields() {
+		return in.Str + " " + msg
+	}
+	return ""
+}
+
+func (p *verifier) builtinArgMismatch(name string, k int, want opdef.ClassSet, got sem.TypeID) string {
+	got = p.R.UnderlyingRepr(p.DerefAll(got))
+	switch {
+	case p.looseType(got):
+	case want == opdef.ClassString.Set() && !p.compatible(sem.TyString, got):
+		return name + " takes " + p.R.TypeString(got) + " as argument " + itoa(k) + ", not a String"
+	case want == opdef.ClassInt.Set() && !p.R.Types.IsInteger(got) && got != sem.TyUntypedInt:
+		return name + " indexes with " + p.R.TypeString(got)
+	}
+	return ""
+}
+
+func (p *verifier) builtinResultMismatch(spec opdef.BuiltinSpec, got sem.TypeID) string {
+	var want sem.TypeID
+	switch spec.Result {
+	case opdef.ClassUnit.Set():
+		want = sem.TyUnit
+	case opdef.ClassBool.Set():
+		want = sem.TyBool
+	case opdef.ClassInt.Set():
+		if t := p.R.UnderlyingRepr(p.DerefAll(got)); !p.looseType(t) && !p.R.Types.IsInteger(t) {
+			return "yields " + p.R.TypeString(got) + ", not an integer"
+		}
+		return ""
+	default:
+		return ""
+	}
+	if !p.looseType(got) && !p.compatible(want, got) {
+		return "yields " + p.R.TypeString(got) + ", not " + p.R.TypeString(want)
+	}
+	return ""
+}
+
+func (p *verifier) iterMismatch(f *midir.Func, in midir.Inst) string {
+	if !strings.HasPrefix(in.Str, "iter.") || len(in.Args) == 0 {
+		return ""
+	}
+	t := p.R.UnderlyingRepr(p.DerefAll(f.Locals[in.Args[0]].Type))
+	switch p.R.Types.Kind(t) {
+	case sem.KNamed, sem.KParam, sem.KVar, sem.KUntyped, sem.KPoison, sem.KIface:
+		return ""
+	}
+	if t == sem.TyString || t == sem.TyBytes || p.looseType(t) {
+		return ""
+	}
+	return in.Str + " walks " + p.R.TypeString(t)
+}

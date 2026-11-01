@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/backend/llgen"
-	"kigumi/internal/compiler/mir"
+	mirreach "kigumi/internal/compiler/mir/reach"
 )
 
 const wideLoop = `
@@ -47,12 +47,12 @@ func TestWideIntegersStayInRegisters(t *testing.T) {
 
 func TestInt128RuntimeIsAskedForOnlyWhenUsed(t *testing.T) {
 	prog := plannedProgram(t, "fn main() -> Void! {\n    let x: u64 = 5\n    print \"${x * 2}\"\n}\n")
-	plain := llgen.EmitProgram(prog, llgen.EmitOptions{Reachable: mir.Reachable(prog)})
+	plain := llgen.EmitProgram(prog, llgen.EmitOptions{Reachable: mirreach.Reachable(prog.R, prog.Entry, prog.Funcs, prog.ByEnt)})
 	if plain.Int128 {
 		t.Error("a program without 128-bit integers asks for the 128-bit runtime")
 	}
 	wp := plannedProgram(t, wideLoop)
-	wide := llgen.EmitProgram(wp, llgen.EmitOptions{Reachable: mir.Reachable(wp)})
+	wide := llgen.EmitProgram(wp, llgen.EmitOptions{Reachable: mirreach.Reachable(wp.R, wp.Entry, wp.Funcs, wp.ByEnt)})
 	if !wide.Int128 {
 		t.Error("a program with a u128 does not ask for the 128-bit runtime")
 	}

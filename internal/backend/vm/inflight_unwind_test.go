@@ -7,7 +7,8 @@ import (
 	"testing"
 
 	"kigumi/internal/backend/vm"
-	"kigumi/internal/compiler/mir"
+	mirbuild "kigumi/internal/compiler/mir/build"
+	mirplan "kigumi/internal/compiler/mir/plan"
 )
 
 // Sorts before tests_report_test.go, whose abandoned timed-out test keeps freeing into the live counters.
@@ -17,9 +18,9 @@ func runTracked(t *testing.T, src string) (stdout string, live, freedUses, stray
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}
-	prog := mir.Build(res)
-	plans := []mir.Transform{{Name: "plan-rc", Run: mir.PlanRC}, {Name: "specialize", Run: mir.Specialize}, {Name: "elide-rc", Run: mir.ElideRC}, {Name: "plan-direct", Run: mir.PlanDirect}}
-	if err := prog.Apply(plans...); err != nil {
+	prog := mirbuild.Program(res)
+	plans := []mirplan.Transform{{Name: "plan-rc", Run: mirplan.PlanRC}, {Name: "specialize", Run: mirplan.Specialize}, {Name: "elide-rc", Run: mirplan.ElideRC}, {Name: "plan-direct", Run: mirplan.PlanDirect}}
+	if err := mirplan.Apply(prog, plans...); err != nil {
 		t.Fatal(err)
 	}
 	var out, errOut bytes.Buffer

@@ -8,7 +8,8 @@ import (
 	"testing"
 
 	"kigumi/internal/backend/vm"
-	"kigumi/internal/compiler/mir"
+	mirbuild "kigumi/internal/compiler/mir/build"
+	mirplan "kigumi/internal/compiler/mir/plan"
 )
 
 // A refused allocation inside a try* call returns Err, and the Err run frees everything the unfaulted run does: the same live-object count at exit.
@@ -30,9 +31,9 @@ func TestFaultInjectionTryFamilyLeavesNothingLive(t *testing.T) {
 			if res.HasErrors() {
 				t.Fatal(res.Render())
 			}
-			prog := mir.Build(res)
-			plans := []mir.Transform{{Name: "plan-rc", Run: mir.PlanRC}, {Name: "specialize", Run: mir.Specialize}, {Name: "elide-rc", Run: mir.ElideRC}, {Name: "plan-direct", Run: mir.PlanDirect}}
-			if err := prog.Apply(plans...); err != nil {
+			prog := mirbuild.Program(res)
+			plans := []mirplan.Transform{{Name: "plan-rc", Run: mirplan.PlanRC}, {Name: "specialize", Run: mirplan.Specialize}, {Name: "elide-rc", Run: mirplan.ElideRC}, {Name: "plan-direct", Run: mirplan.PlanDirect}}
+			if err := mirplan.Apply(prog, plans...); err != nil {
 				t.Fatal(err)
 			}
 			run := func(failAt int64) (stdout string, live int64) {

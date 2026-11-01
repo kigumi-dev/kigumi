@@ -9,6 +9,8 @@ import (
 
 	"kigumi/internal/backend/vm"
 	"kigumi/internal/compiler/mir"
+	mirbuild "kigumi/internal/compiler/mir/build"
+	mirplan "kigumi/internal/compiler/mir/plan"
 )
 
 const testsReportSrc = `import test from std/test
@@ -24,15 +26,16 @@ test "second fails" {
 }
 `
 
-// buildRunnableProgram also runs plan-rc: mir.Build alone leaves OpShare's Copy/retain choice unresolved, unlike checkSource's scalar-only callers.
+// buildRunnableProgram also runs plan-rc: mirbuild.Program alone leaves OpShare's Copy/retain choice
+// unresolved, unlike checkSource's scalar-only callers.
 func buildRunnableProgram(t *testing.T, src string) *mir.Program {
 	t.Helper()
 	res := checkSource(t, src)
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}
-	prog := mir.Build(res)
-	if err := prog.Apply(mir.Transform{Name: "plan-rc", Run: mir.PlanRC}); err != nil {
+	prog := mirbuild.Program(res)
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
 		t.Fatalf("plan-rc: %v", err)
 	}
 	return prog

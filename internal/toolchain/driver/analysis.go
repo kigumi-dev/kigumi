@@ -3,7 +3,11 @@ package driver
 import (
 	"kigumi/internal/backend/llgen"
 	"kigumi/internal/compiler/mir"
+	mirbuild "kigumi/internal/compiler/mir/build"
+	mirplan "kigumi/internal/compiler/mir/plan"
+	mirreach "kigumi/internal/compiler/mir/reach"
 	resbound "kigumi/internal/compiler/mir/resource"
+	mirverify "kigumi/internal/compiler/mir/verify"
 	"kigumi/internal/compiler/sem"
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/contract/schema"
@@ -25,7 +29,7 @@ type Stats struct {
 
 // Analyze checks a loaded module and lowers it to MIR once. The error is
 // a compiler fault: the MIR the builder or a pass produced broke the MIR
-// contract (mir.Program.Verify), never a diagnostic of the program.
+// contract (verify.Program), never a diagnostic of the program.
 func Analyze(m *Module) (*Analysis, error) {
 	return AnalyzeWith(m, nil)
 }
@@ -106,7 +110,7 @@ func buildProgram(res *sem.Result, o progOptions) (*mir.Program, error) {
 	}
 	prog.VerifyEach = o.verifyEach
 	prog.NativeBoxes = nativeBoxSites(o.target)
-	if err := prog.Apply(planPasses(true)...); err != nil {
+	if err := mirplan.Apply(prog, planPasses(true)...); err != nil {
 		return prog, err
 	}
 	prog.Resources = resbound.Compute(prog.R, prog.Funcs, prog.ByEnt)
@@ -115,16 +119,22 @@ func buildProgram(res *sem.Result, o progOptions) (*mir.Program, error) {
 	for _, d := range prog.Diags {
 		res.Files[d.File].Diags = append(res.Files[d.File].Diags, d.Diag)
 	}
-	for _, c := range append(mir.CheckAllocClaims(prog), mir.CheckInterruptLowering(prog)...) {
+	for _, c := range claimDiags(prog) {
 		res.Files[c.File].Diags = append(res.Files[c.File].Diags, c.Diag)
 	}
 	return prog, nil
 }
 
+// claimDiags runs the lend demotion first because the claim check reads sem after it.
+func claimDiags(prog *mir.Program) []mirverify.AllocClaim {
+	reached := mir.DemoteBoxedLends(prog)
+	return append(mirverify.CheckAllocClaims(prog, reached), mirverify.CheckInterruptLowering(prog)...)
+}
+
 func nativeBoxSites(t buildconfig.Target) func(*mir.Program) mir.NativeBoxSites {
 	return func(p *mir.Program) mir.NativeBoxSites {
 		opts := emitOptionsFor(t)
-		opts.Reachable = mir.Reachable(p)
+		opts.Reachable = mirreach.Reachable(p.R, p.Entry, p.Funcs, p.ByEnt)
 		return llgen.ScalarBoxSites(p, opts)
 	}
 }
@@ -133,11 +143,11 @@ func lowerProgram(res *sem.Result, all bool, keep func(path string) bool) *mir.P
 	var prog *mir.Program
 	switch {
 	case all:
-		prog = mir.BuildAll(res)
+		prog = mirbuild.All(res)
 	case keep != nil:
-		prog = mir.BuildFor(res, keep)
+		prog = mirbuild.For(res, keep)
 	default:
-		prog = mir.Build(res)
+		prog = mirbuild.Program(res)
 	}
 	for _, f := range prog.Funcs {
 		res.Files[f.File].Diags = append(res.Files[f.File].Diags, f.Diags...)
@@ -149,15 +159,15 @@ func lowerProgram(res *sem.Result, all bool, keep func(path string) bool) *mir.P
 }
 
 // fold-comptime runs last so a comptime block runs the planned MIR.
-func planPasses(comptime bool) []mir.Transform {
-	out := []mir.Transform{
-		{Name: "plan-rc", Run: mir.PlanRC},
-		{Name: "specialize", Run: mir.Specialize},
-		{Name: "elide-rc", Run: mir.ElideRC},
-		{Name: "plan-direct", Run: mir.PlanDirect},
+func planPasses(comptime bool) []mirplan.Transform {
+	out := []mirplan.Transform{
+		{Name: "plan-rc", Run: mirplan.PlanRC},
+		{Name: "specialize", Run: mirplan.Specialize},
+		{Name: "elide-rc", Run: mirplan.ElideRC},
+		{Name: "plan-direct", Run: mirplan.PlanDirect},
 	}
 	if comptime {
-		out = append(out, mir.Transform{Name: "fold-comptime", Run: foldComptime})
+		out = append(out, mirplan.Transform{Name: "fold-comptime", Run: foldComptime})
 	}
 	return out
 }

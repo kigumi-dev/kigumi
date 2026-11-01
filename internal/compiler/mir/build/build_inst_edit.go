@@ -1,0 +1,38 @@
+package build
+
+import (
+	"slices"
+
+	midir "kigumi/internal/compiler/mir/ir"
+)
+
+// deleteInst removes block b's instruction i; a ghost mark keeps standing before the instruction it stood before.
+func (g *ghostSet) deleteInst(f *midir.Func, b, i int) midir.Inst {
+	in := f.Blocks[b].Insts[i]
+	f.Blocks[b].Insts = slices.Delete(f.Blocks[b].Insts, i, i+1)
+	g.shiftMarks(b, i+1, -1)
+	return in
+}
+
+func (g *ghostSet) insertInst(f *midir.Func, b, i int, in midir.Inst) {
+	f.Blocks[b].Insts = slices.Insert(f.Blocks[b].Insts, i, in)
+	g.shiftMarks(b, i, 1)
+}
+
+func (g *ghostSet) shiftMarks(b, from, d int) {
+	for r := range g.runs {
+		for k, m := range g.runs[r].Marks {
+			if int(m.Blk) == b && m.Idx >= from {
+				g.runs[r].Marks[k].Idx += d
+			}
+		}
+	}
+}
+
+// ghostRange is the blocks [start, end) holding the ghost runs, empty when there are none.
+func (g *ghostSet) ghostRange(f *midir.Func) (int, int) {
+	if len(g.runs) == 0 {
+		return len(f.Blocks), len(f.Blocks)
+	}
+	return g.blocks, int(g.runs[len(g.runs)-1].End)
+}

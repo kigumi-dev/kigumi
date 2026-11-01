@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	"kigumi/internal/compiler/mir"
+	mirreach "kigumi/internal/compiler/mir/reach"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/toolchain/buildgraph"
 	buildconfig "kigumi/internal/toolchain/config"
@@ -24,7 +24,7 @@ type PlanStats struct {
 type planFacts struct {
 	provenance []schema.GeneratedArtifact
 	res        *sem.Result
-	reach      *mir.Reachability
+	reach      *mirreach.Reachability
 }
 
 type planCache struct {
@@ -97,13 +97,13 @@ func (c *planCache) artifactFacts(p *BuildProgram, a *buildgraph.Artifact, t bui
 	}
 	f := &planFacts{provenance: an.Provenance, res: an.Res}
 	if an.Prog != nil {
-		f.reach = mir.Reachable(an.Prog)
+		f.reach = mirreach.Reachable(an.Prog.R, an.Prog.Entry, an.Prog.Funcs, an.Prog.ByEnt)
 	}
 	c.facts[key] = f
 	return f
 }
 
-func (f *planFacts) reasons(t buildconfig.Target) []mir.CapabilityReason {
+func (f *planFacts) reasons(t buildconfig.Target) []mirreach.CapabilityReason {
 	if f == nil || f.reach == nil {
 		return nil
 	}

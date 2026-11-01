@@ -8,6 +8,7 @@ import (
 	"kigumi/internal/backend/llgen"
 	"kigumi/internal/compiler/mir"
 	midir "kigumi/internal/compiler/mir/ir"
+	mirreach "kigumi/internal/compiler/mir/reach"
 )
 
 const argBoxSrc = `
@@ -62,7 +63,7 @@ func paramOf(p *mir.Program, ent midir.Inst, i int) string {
 // constants, a reassigned local and a loop-carried one, into bodies and a bodiless primitive alike.
 func TestScalarBoxSitesMatchTheEmittedBoxes(t *testing.T) {
 	p := plannedProgram(t, argBoxSrc)
-	opts := llgen.EmitOptions{Reachable: mir.Reachable(p)}
+	opts := llgen.EmitOptions{Reachable: mirreach.Reachable(p.R, p.Entry, p.Funcs, p.ByEnt)}
 	var fill *midir.Func
 	for _, f := range p.Funcs {
 		if f.Name == "main.fill" {

@@ -5,7 +5,9 @@ import (
 	"testing"
 
 	"kigumi/internal/backend/llgen"
-	"kigumi/internal/compiler/mir"
+	mirbuild "kigumi/internal/compiler/mir/build"
+	mirplan "kigumi/internal/compiler/mir/plan"
+	mirreach "kigumi/internal/compiler/mir/reach"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/devkit/semfixture"
@@ -22,16 +24,16 @@ func specializedIR(t *testing.T, src string) string {
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}
-	prog := mir.Build(res)
-	passes := []mir.Transform{
-		{Name: "plan-rc", Run: mir.PlanRC},
-		{Name: "specialize", Run: mir.Specialize},
-		{Name: "plan-direct", Run: mir.PlanDirect},
+	prog := mirbuild.Program(res)
+	passes := []mirplan.Transform{
+		{Name: "plan-rc", Run: mirplan.PlanRC},
+		{Name: "specialize", Run: mirplan.Specialize},
+		{Name: "plan-direct", Run: mirplan.PlanDirect},
 	}
-	if err := prog.Apply(passes...); err != nil {
+	if err := mirplan.Apply(prog, passes...); err != nil {
 		t.Fatal(err)
 	}
-	return llgen.EmitProgram(prog, llgen.EmitOptions{Reachable: mir.Reachable(prog)}).IR
+	return llgen.EmitProgram(prog, llgen.EmitOptions{Reachable: mirreach.Reachable(prog.R, prog.Entry, prog.Funcs, prog.ByEnt)}).IR
 }
 
 const identityProbe = `type Point = {

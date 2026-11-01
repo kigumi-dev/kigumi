@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
 	midir "kigumi/internal/compiler/mir/ir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -63,4 +63,4 @@ func (e *emitter) callEntity(sb *strings.Builder, f *midir.Func, in midir.Inst, 
 	return e.irb(sb).Call(rtStd, vptr(e.stdKeyStr(key)), vi32(len(args)), vptr(arr)).Text
 }
 
-func (e *emitter) stdKey(fn sem.EntityID) string { return mir.StdKey(e.r, fn, false) }
+func (e *emitter) stdKey(fn sem.EntityID) string { return opdef.StdKey(e.r, fn, false) }

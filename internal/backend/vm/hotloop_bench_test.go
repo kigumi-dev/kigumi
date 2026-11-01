@@ -7,6 +7,8 @@ import (
 
 	"kigumi/internal/backend/vm"
 	"kigumi/internal/compiler/mir"
+	mirbuild "kigumi/internal/compiler/mir/build"
+	mirplan "kigumi/internal/compiler/mir/plan"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/devkit/semfixture"
@@ -55,8 +57,8 @@ func buildRunnableProgramTB(tb testing.TB, src string) *mir.Program {
 	if res.HasErrors() {
 		tb.Fatalf("check errors:\n%s", res.Render())
 	}
-	prog := mir.Build(res)
-	if err := prog.Apply(mir.Transform{Name: "plan-rc", Run: mir.PlanRC}); err != nil {
+	prog := mirbuild.Program(res)
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
 		tb.Fatalf("plan-rc: %v", err)
 	}
 	return prog

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/devkit/semfixture"
 	"kigumi/internal/toolchain/contract/schema"
@@ -53,7 +53,7 @@ func TestEveryTryFunctionHasATwoCallSweep(t *testing.T) {
 		if e.Kind != sem.EntFn || e.Flags&sem.EfStd == 0 || len(e.Name) < 4 || !strings.HasPrefix(e.Name, "try") || e.Name[3] < 'A' || e.Name[3] > 'Z' {
 			continue
 		}
-		tries = append(tries, mir.StdKey(res, sem.EntityID(id), true))
+		tries = append(tries, opdef.StdKey(res, sem.EntityID(id), true))
 	}
 	if len(tries) < 50 {
 		t.Fatalf("found only %d try functions; std not loaded?", len(tries))

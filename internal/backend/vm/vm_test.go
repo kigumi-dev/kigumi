@@ -11,7 +11,8 @@ import (
 
 	"kigumi/internal/backend/vm"
 	"kigumi/internal/compiler/hir"
-	"kigumi/internal/compiler/mir"
+	mirbuild "kigumi/internal/compiler/mir/build"
+	mirplan "kigumi/internal/compiler/mir/plan"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/devkit/semfixture"
@@ -90,11 +91,11 @@ func TestScalarSlice(t *testing.T) {
 			dump.WriteString(hir.Dump(res, f))
 		}
 	}
-	prog := mir.Build(res)
+	prog := mirbuild.Program(res)
 	if prog.HasErrors() {
 		t.Fatal("ownership errors")
 	}
-	if err := prog.Apply(mir.Transform{Name: "plan-rc", Run: mir.PlanRC}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
 		t.Fatalf("plan-rc: %v", err)
 	}
 	var out, errOut bytes.Buffer

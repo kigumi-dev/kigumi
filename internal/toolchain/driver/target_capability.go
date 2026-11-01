@@ -1,13 +1,13 @@
 package driver
 
 import (
-	"kigumi/internal/compiler/mir"
 	opdef "kigumi/internal/compiler/mir/ops"
+	mirreach "kigumi/internal/compiler/mir/reach"
 	buildconfig "kigumi/internal/toolchain/config"
 )
 
-func capabilityPlatform(t buildconfig.Target) mir.Platform {
-	p := mir.Platform{OS: t.OS, Bare: t.Bare(), NoLibc: t.Freestanding(), Allocator: t.Allocator, RecoverableOnly: t.RecoverableOnly()}
+func capabilityPlatform(t buildconfig.Target) mirreach.Platform {
+	p := mirreach.Platform{OS: t.OS, Bare: t.Bare(), NoLibc: t.Freestanding(), Allocator: t.Allocator, RecoverableOnly: t.RecoverableOnly()}
 	if t.StrictBlocking() {
 		p.ThreadProfile = t.BlockingExecutor
 	}

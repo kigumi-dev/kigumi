@@ -8,6 +8,8 @@ import (
 
 	"kigumi/internal/backend/vm"
 	"kigumi/internal/compiler/mir"
+	mirbuild "kigumi/internal/compiler/mir/build"
+	mirplan "kigumi/internal/compiler/mir/plan"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/devkit/semfixture"
@@ -144,9 +146,9 @@ func benchProgram(tb testing.TB, src string) *mir.Program {
 	if res.HasErrors() {
 		tb.Fatalf("check errors:\n%s", res.Render())
 	}
-	prog := mir.Build(res)
-	plans := []mir.Transform{{Name: "plan-rc", Run: mir.PlanRC}, {Name: "specialize", Run: mir.Specialize}, {Name: "elide-rc", Run: mir.ElideRC}, {Name: "plan-direct", Run: mir.PlanDirect}}
-	if err := prog.Apply(plans...); err != nil {
+	prog := mirbuild.Program(res)
+	plans := []mirplan.Transform{{Name: "plan-rc", Run: mirplan.PlanRC}, {Name: "specialize", Run: mirplan.Specialize}, {Name: "elide-rc", Run: mirplan.ElideRC}, {Name: "plan-direct", Run: mirplan.PlanDirect}}
+	if err := mirplan.Apply(prog, plans...); err != nil {
 		tb.Fatalf("plans: %v", err)
 	}
 	return prog

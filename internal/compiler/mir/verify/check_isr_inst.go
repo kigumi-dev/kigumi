@@ -1,0 +1,157 @@
+package verify
+
+import (
+	"strings"
+
+	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
+	opdef "kigumi/internal/compiler/mir/ops"
+	ownquery "kigumi/internal/compiler/mir/ownership"
+	"kigumi/internal/compiler/sem"
+)
+
+// isrCheckedOps are the integer operators whose overflow or zero divisor traps.
+var isrCheckedOps = map[string]bool{"+": true, "-": true, "*": true, "/": true, "%": true, "<<": true, ">>": true, "neg": true}
+
+// isrPureBuiltins read their operands only: no allocation, release, panic or blocking; the witness call between them is judged on its own.
+var isrPureBuiltins = map[string]bool{"direct.eq": true, "direct.hash": true, mir.BuiltinCmpUnordered: true, mir.BuiltinCmpGuard: true}
+
+// isrForbidden names what in does that no interrupt handler may, "" when it is fine; releases selects the release pass.
+func (p *claims) isrForbidden(f *midir.Func, in midir.Inst, inert []bool, releases bool) string {
+	if in.Op == midir.OpDrop || in.Op == midir.OpRelease {
+		if l := in.Args[0]; releases && !p.isrInertDrop(f, l, inert) {
+			return "releases a `" + p.R.TypeString(f.Locals[l].Type) + "` that may free memory"
+		}
+		return ""
+	}
+	if releases {
+		return ""
+	}
+	if t := p.boxedType(f, in); t != 0 {
+		return "boxes a `" + p.R.TypeString(t) + "` value"
+	}
+	if t := p.BoxedResult(f, in); t != 0 {
+		return "receives a `" + p.R.TypeString(t) + "` result in a box allocated for it"
+	}
+	if p.AllocCopy(f, in) {
+		return "copies a value into a fresh allocation"
+	}
+	if in.NoTrap && (in.Op == midir.OpPanic || in.Op == midir.OpBinary || in.Op == midir.OpIndex || in.Op == midir.OpSetIndex) {
+		return ""
+	}
+	switch in.Op {
+	case midir.OpPanic:
+		return "may panic"
+	case midir.OpIndex, midir.OpSetIndex:
+		return "may panic on an out-of-bounds index"
+	case midir.OpBinary, midir.OpUnary:
+		if isrCheckedOps[in.Str] && p.R.Types.IsInteger(f.Locals[in.Dst].Type) {
+			return "may panic on integer overflow or a zero divisor"
+		}
+	case midir.OpBuiltin:
+		if !isrPureBuiltins[in.Str] && !strings.HasPrefix(in.Str, "atomic.") && !strings.HasPrefix(in.Str, "volatile.") {
+			return "calls the runtime helper `" + in.Str + "`"
+		}
+	case midir.OpShell, midir.OpInterp:
+		return "allocates a new value"
+	case midir.OpAwait, midir.OpFutureNew, midir.OpFutureDone, midir.OpCancelled, midir.OpCancelDone:
+		return "suspends or builds a future"
+	case midir.OpCallC:
+		return "calls through a C function pointer no contract covers"
+	case midir.OpRecord, midir.OpArray, midir.OpBox:
+		if !f.IsDirect(in.Dst) {
+			return "allocates a new `" + p.R.TypeString(f.Locals[in.Dst].Type) + "`"
+		}
+	case midir.OpVariant, midir.OpClosure:
+		if len(in.Args) > 0 && !f.IsDirect(in.Dst) {
+			return "allocates a new `" + p.R.TypeString(f.Locals[in.Dst].Type) + "`"
+		}
+	case midir.OpNewCell:
+		if !in.Scoped && !in.Lent {
+			return "allocates a cell"
+		}
+	case midir.OpCall:
+		return p.isrCallForbidden(f, in)
+	case midir.OpCallValue:
+		if p.isrValueTarget(f, in.Args[0]) == nil {
+			return "calls a function value whose target the lowering cannot see"
+		}
+	}
+	return ""
+}
+
+func (p *claims) isrInertDrop(f *midir.Func, l midir.LocalID, inert []bool) bool {
+	t := f.Locals[l].Type
+	return p.R.CannotOwn(t) || f.IsDirect(l) && !p.R.CountedAdt(t) || p.isrImmortal(f, l, inert)
+}
+
+// isrInertArgs marks the parameters of g that the call in passes an immortal value; a callback reached through a primitive has no positional mapping.
+func (p *claims) isrInertArgs(f *midir.Func, in midir.Inst, g *midir.Func, inert []bool) []bool {
+	if in.Op != midir.OpCall || p.ByEnt[in.Ent] != g || len(in.Args) != len(g.Params) {
+		return nil
+	}
+	var out []bool
+	for i, a := range in.Args {
+		if p.isrImmortal(f, a, inert) {
+			if out == nil {
+				out = make([]bool, len(g.Params))
+			}
+			out[i] = true
+		}
+	}
+	return out
+}
+
+func isrInertParam(f *midir.Func, l midir.LocalID, inert []bool) bool {
+	i := isrParamIndex(f, l)
+	return i >= 0 && i < len(inert) && inert[i]
+}
+
+func isrParamIndex(f *midir.Func, l midir.LocalID) int {
+	for i, q := range f.Params {
+		if q == l {
+			return i
+		}
+	}
+	return -1
+}
+
+type isrVisit struct {
+	f     *midir.Func
+	inert string
+}
+
+func isrVisitKey(f *midir.Func, inert []bool) isrVisit {
+	b := make([]byte, len(inert))
+	for i, v := range inert {
+		b[i] = '0'
+		if v {
+			b[i] = '1'
+		}
+	}
+	return isrVisit{f, string(b)}
+}
+
+// isrCallForbidden rejects a call the backend runs through a boxing runtime path or a foreign symbol.
+func (p *claims) isrCallForbidden(f *midir.Func, in midir.Inst) string {
+	name := p.R.Entity(in.Ent).Name
+	if p.R.Entity(in.Ent).Kind == sem.EntFn && p.R.Fn(in.Ent).Abi != "" {
+		return "calls the foreign function `" + name + "`"
+	}
+	if !ownquery.IsStdPrimitive(p.R, in.Ent) {
+		if p.ByEnt[in.Ent] == nil {
+			return "calls `" + name + "`, whose lowered body is not available to verify"
+		}
+		return ""
+	}
+	if cb, ok := p.isrCallbackArg(in); ok && p.isrValueTarget(f, in.Args[cb]) == nil {
+		return "passes `" + name + "` a callback the lowering cannot see"
+	}
+	if in.DPrim != opdef.DPNone {
+		return ""
+	}
+	if t := f.Locals[in.Dst].Type; t != sem.TyUnit {
+		return "calls `" + name + "` through the runtime, which returns its `" + p.R.TypeString(t) + "` result in a fresh box"
+	}
+	return ""
+}

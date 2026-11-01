@@ -119,7 +119,7 @@ func (p *Program) FloatConversion(f *midir.Func, in midir.Inst) bool {
 		return false
 	}
 	e := p.R.Entity(in.Ent)
-	if e.Kind != sem.EntFn || !strings.HasPrefix(e.Name, "to") || p.R.Fn(in.Ent).Owner == 0 || !strings.HasPrefix(StdKey(p.R, in.Ent, false), "std/prelude.") {
+	if e.Kind != sem.EntFn || !strings.HasPrefix(e.Name, "to") || p.R.Fn(in.Ent).Owner == 0 || !strings.HasPrefix(opdef.StdKey(p.R, in.Ent, false), "std/prelude.") {
 		return false
 	}
 	tt := p.R.Types

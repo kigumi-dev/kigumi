@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	mirbuild "kigumi/internal/compiler/mir/build"
+	mirplan "kigumi/internal/compiler/mir/plan"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/devkit/semfixture"
@@ -73,8 +75,8 @@ func buildEmitBenchProgram(b *testing.B, count int) *mir.Program {
 	if res.HasErrors() {
 		b.Fatalf("check errors:\n%s", res.Render())
 	}
-	prog := mir.Build(res)
-	if err := prog.Apply(mir.Transform{Name: "plan-rc", Run: mir.PlanRC}, mir.Transform{Name: "plan-direct", Run: mir.PlanDirect}); err != nil {
+	prog := mirbuild.Program(res)
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}, mirplan.Transform{Name: "plan-direct", Run: mirplan.PlanDirect}); err != nil {
 		b.Fatalf("plan-rc: %v", err)
 	}
 	return prog

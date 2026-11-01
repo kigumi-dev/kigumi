@@ -6,7 +6,9 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/mir"
+	mirbuild "kigumi/internal/compiler/mir/build"
 	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/devkit/mirfixture"
 	"kigumi/internal/devkit/semfixture"
 )
 
@@ -22,8 +24,8 @@ func TestSiteAtResolvesFileAndLine(t *testing.T) {
 	if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	res, _, _ := checkFixture(t, path, std)
-	prog := mir.Build(res)
+	res, _, _ := mirfixture.CheckFixture(t, path, std)
+	prog := mirbuild.Program(res)
 
 	mainFn := prog.Entry
 	if mainFn == nil {

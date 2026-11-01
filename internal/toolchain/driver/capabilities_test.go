@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	mirreach "kigumi/internal/compiler/mir/reach"
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
@@ -104,7 +104,7 @@ fn two() -> Bool {
 
 print "${one()} ${two()}"
 `)
-	var sites []mir.CapabilitySite
+	var sites []mirreach.CapabilitySite
 	for _, r := range driver.CapabilityReasons(a, buildconfig.HostTarget()) {
 		if r.Op == "CSTRING_NEW" {
 			sites = r.Sites

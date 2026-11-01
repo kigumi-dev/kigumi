@@ -2,17 +2,18 @@ package vm_test
 
 import (
 	"bytes"
-	"kigumi/internal/toolchain/buildgraph"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"kigumi/internal/backend/vm"
-	"kigumi/internal/compiler/mir"
+	mirbuild "kigumi/internal/compiler/mir/build"
+	mirplan "kigumi/internal/compiler/mir/plan"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/devkit/semfixture"
 	"kigumi/internal/lang/token"
+	"kigumi/internal/toolchain/buildgraph"
 	"kigumi/internal/toolchain/contract/schema"
 )
 
@@ -25,8 +26,8 @@ func evalBuild(t *testing.T, src string, flags []string) (*buildgraph.Graph, err
 	}
 	fn := res.PackageMember(res.PackageByPath("build"), "configure")
 	root, out := t.TempDir(), t.TempDir()
-	prog := mir.Build(res)
-	if err := prog.Apply(mir.Transform{Name: "plan-rc", Run: mir.PlanRC}); err != nil {
+	prog := mirbuild.Program(res)
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
 		t.Fatalf("plan-rc: %v", err)
 	}
 	return vm.EvalBuild(prog, fn, buildgraph.Request{Flags: flags}, buildgraph.Roots{Roots: []string{root, out}, Host: buildgraph.Target{Sys: "posix"}})

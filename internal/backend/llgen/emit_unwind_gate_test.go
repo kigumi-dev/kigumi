@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/backend/llgen"
-	"kigumi/internal/compiler/mir"
+	mirreach "kigumi/internal/compiler/mir/reach"
 )
 
 const dropHookSrc = `
@@ -30,7 +30,7 @@ fn main() -> Void! {
 
 func TestUnwindFollowsDropHooksWithoutATaskExecutor(t *testing.T) {
 	hooks := plannedProgram(t, dropHookSrc)
-	out := llgen.EmitProgram(hooks, llgen.EmitOptions{Catch: true, Reachable: mir.Reachable(hooks)})
+	out := llgen.EmitProgram(hooks, llgen.EmitOptions{Catch: true, Reachable: mirreach.Reachable(hooks.R, hooks.Entry, hooks.Funcs, hooks.ByEnt)})
 	if !out.Unwind {
 		t.Fatal("a program with a drop hook and no executor must unwind")
 	}
@@ -38,7 +38,7 @@ func TestUnwindFollowsDropHooksWithoutATaskExecutor(t *testing.T) {
 		t.Error("scope does not sweep after a faulting drop")
 	}
 	plain := plannedProgram(t, unwindSrc)
-	if llgen.EmitProgram(plain, llgen.EmitOptions{Catch: true, Reachable: mir.Reachable(plain)}).Unwind {
+	if llgen.EmitProgram(plain, llgen.EmitOptions{Catch: true, Reachable: mirreach.Reachable(plain.R, plain.Entry, plain.Funcs, plain.ByEnt)}).Unwind {
 		t.Error("a program with no drop hook and no executor pays for unwinding")
 	}
 }

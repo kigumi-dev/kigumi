@@ -4,7 +4,7 @@ import (
 	"io"
 
 	"kigumi/internal/backend/llgen"
-	"kigumi/internal/compiler/mir"
+	mirreach "kigumi/internal/compiler/mir/reach"
 	buildconfig "kigumi/internal/toolchain/config"
 )
 
@@ -37,7 +37,7 @@ func emitOptionsFor(t buildconfig.Target) llgen.EmitOptions {
 
 type compiled struct {
 	llgen.Output
-	Reasons []mir.CapabilityReason
+	Reasons []mirreach.CapabilityReason
 	// Abi is the runtime fingerprint bound into the IR; empty until withRuntimeABI runs.
 	Abi string
 }

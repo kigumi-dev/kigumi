@@ -39,7 +39,7 @@ func (m *Machine) registerFFI() {
 	for _, k := range []string{"ffi.CValue.ptr", "ffi.Pin.ptr"} {
 		h[k] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return mkOpaque("Ptr", handleOf(a[0])) }
 	}
-	// self is a runtime-primitive arg (inPlace), so the caller also runs
+	// self is a runtime-primitive arg (InPlace), so the caller also runs
 	// Pin.drop on self right after this call; zeroing self's own handle
 	// field first makes that re-entry a no-op (see Pin.drop) without
 	// touching the slot, so a pointer already handed out via .ptr() keeps

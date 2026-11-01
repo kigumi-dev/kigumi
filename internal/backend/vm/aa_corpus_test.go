@@ -16,6 +16,8 @@ import (
 
 	"kigumi/internal/backend/vm"
 	"kigumi/internal/compiler/mir"
+	mirbuild "kigumi/internal/compiler/mir/build"
+	mirplan "kigumi/internal/compiler/mir/plan"
 )
 
 const liveFile = "../../../testdata/vm_live.txt"
@@ -153,12 +155,12 @@ func preparedProg(t *testing.T, fx fixture, gate *liveGate, unsupported *atomic.
 	if res.HasErrors() {
 		t.Skip("check errors")
 	}
-	prog := mir.Build(res)
+	prog := mirbuild.Program(res)
 	if prog.HasErrors() {
 		t.Skip("ownership errors")
 	}
-	plans := []mir.Transform{{Name: "plan-rc", Run: mir.PlanRC}, {Name: "specialize", Run: mir.Specialize}, {Name: "elide-rc", Run: mir.ElideRC}, {Name: "plan-direct", Run: mir.PlanDirect}}
-	if err := prog.Apply(plans...); err != nil {
+	plans := []mirplan.Transform{{Name: "plan-rc", Run: mirplan.PlanRC}, {Name: "specialize", Run: mirplan.Specialize}, {Name: "elide-rc", Run: mirplan.ElideRC}, {Name: "plan-direct", Run: mirplan.PlanDirect}}
+	if err := mirplan.Apply(prog, plans...); err != nil {
 		t.Fatalf("plans: %v", err)
 	}
 	if errs := gate.fold(prog); len(errs) > 0 {

@@ -5,7 +5,8 @@ import (
 	"testing"
 
 	"kigumi/internal/backend/vm"
-	"kigumi/internal/compiler/mir"
+	mirbuild "kigumi/internal/compiler/mir/build"
+	mirplan "kigumi/internal/compiler/mir/plan"
 )
 
 const crossLoopSrc = `type P = { pub x Int, pub y Int, pub z Int, pub w Int }
@@ -35,8 +36,8 @@ func TestDirectCrossingsKeepTheLiveTotalFlat(t *testing.T) {
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}
-	prog := mir.Build(res)
-	err := prog.Apply(mir.Transform{Name: "plan-rc", Run: mir.PlanRC}, mir.Transform{Name: "plan-direct", Run: mir.PlanDirect})
+	prog := mirbuild.Program(res)
+	err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}, mirplan.Transform{Name: "plan-direct", Run: mirplan.PlanDirect})
 	if err != nil {
 		t.Fatal(err)
 	}

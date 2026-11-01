@@ -6,6 +6,7 @@ import (
 
 	"kigumi/internal/compiler/mir"
 	"kigumi/internal/compiler/sem"
+	"kigumi/internal/devkit/mirfixture"
 )
 
 const boxedParamSrc = `
@@ -23,7 +24,7 @@ fn main() -> Void! {}
 `
 
 func TestBoxedParamsFollowTheBoxesABodyMakes(t *testing.T) {
-	p := planned(t, boxedParamSrc)
+	p := mirfixture.Planned(t, boxedParamSrc)
 	bp := mir.NewBoxedParams(p)
 	for name, want := range map[string][]bool{
 		"main.put":     {false, true},
@@ -31,14 +32,14 @@ func TestBoxedParamsFollowTheBoxesABodyMakes(t *testing.T) {
 		"main.call":    {false, true, false},
 		"main.plain":   {false, false},
 	} {
-		if got := bp.Of(funcNamed(t, p, name)); !slices.Equal(got, want) {
+		if got := bp.Of(mirfixture.FuncNamed(t, p, name)); !slices.Equal(got, want) {
 			t.Errorf("%s: boxed parameters %v, want %v", name, got, want)
 		}
 	}
 }
 
 func TestBoxedParamsTakeEveryClosureParameterBoxed(t *testing.T) {
-	p := planned(t, boxedParamSrc)
+	p := mirfixture.Planned(t, boxedParamSrc)
 	bp := mir.NewBoxedParams(p)
 	closures := 0
 	for _, f := range p.Funcs {
@@ -72,11 +73,11 @@ fn main() -> Void! {}
 
 func TestBoxedParamsOfMutualRecursionIgnoreTheOrderOfFirstReach(t *testing.T) {
 	for _, first := range []string{"main.f", "main.g"} {
-		p := planned(t, mutualSrc)
+		p := mirfixture.Planned(t, mutualSrc)
 		bp := mir.NewBoxedParams(p)
-		bp.Of(funcNamed(t, p, first))
+		bp.Of(mirfixture.FuncNamed(t, p, first))
 		for _, name := range []string{"main.f", "main.g"} {
-			if got, want := bp.Of(funcNamed(t, p, name)), []bool{false, true, false}; !slices.Equal(got, want) {
+			if got, want := bp.Of(mirfixture.FuncNamed(t, p, name)), []bool{false, true, false}; !slices.Equal(got, want) {
 				t.Errorf("%s first: %s has boxed parameters %v, want %v", first, name, got, want)
 			}
 		}

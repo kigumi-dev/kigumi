@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	mirreach "kigumi/internal/compiler/mir/reach"
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
@@ -15,11 +15,11 @@ import (
 func TestThreadProfileFollowsReachability(t *testing.T) {
 	t.Parallel()
 	single := analyzeFixture(t, "async_spawn_order.txtar")
-	if mir.UsesThreads(single) {
+	if mirreach.Reachable(single.R, single.Entry, single.Funcs, single.ByEnt).UsesThreads() {
 		t.Fatal("a current-thread executor program asked for the thread runtime")
 	}
 	pooled := analyzeFixture(t, "async_thread_spawn.txtar")
-	if !mir.UsesThreads(pooled) {
+	if !mirreach.Reachable(pooled.R, pooled.Entry, pooled.Funcs, pooled.ByEnt).UsesThreads() {
 		t.Fatal("a thread pool program did not ask for the thread runtime")
 	}
 }
@@ -75,7 +75,7 @@ func TestIndirectPoolMentionUsesThreads(t *testing.T) {
 	if out := a.Res.Render(); out != "" {
 		t.Fatalf("a hosted build of an indirect pool should check clean:\n%s", out)
 	}
-	if !mir.UsesThreads(a.Prog) {
+	if !mirreach.Reachable(a.Prog.R, a.Prog.Entry, a.Prog.Funcs, a.Prog.ByEnt).UsesThreads() {
 		t.Fatal("a mention of the pool constructor did not ask for the thread runtime")
 	}
 }

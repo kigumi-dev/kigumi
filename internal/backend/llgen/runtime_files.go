@@ -4,7 +4,7 @@ import (
 	_ "embed"
 	"slices"
 
-	"kigumi/internal/compiler/mir"
+	mirreach "kigumi/internal/compiler/mir/reach"
 )
 
 //go:embed runtime/rt.h
@@ -122,7 +122,7 @@ func RuntimeFiles(sys, os string) []RuntimeFile {
 	files := []RuntimeFile{{"rt.h", runtimeHeader}, {"rt_internal.h", runtimeInternalHeader}, {"rt_std_ops.h", runtimeStdOps}, {"rt_core.c", runtimeCore}, {"rt_float.c", runtimeFloat}, {"rt_sys.c", runtimeSys}}
 	files = append(files, capFiles...)
 	files = append(files, coreFragments...)
-	if sys != "none" && mir.PosixSignalOS(os) {
+	if sys != "none" && mirreach.PosixSignalOS(os) {
 		files = append(files, RuntimeFile{"rt_signal.c", runtimeSignal}, RuntimeFile{"rt_stack_guard.c", runtimeStackGuard})
 	}
 	if freestandingOS[os] {

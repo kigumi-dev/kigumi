@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/devkit/semfixture"
 	"kigumi/internal/toolchain/contract/schema"
@@ -110,7 +110,7 @@ func TestEveryTryFunctionHasAPlainForm(t *testing.T) {
 		if e.Kind != sem.EntFn || e.Flags&sem.EfStd == 0 {
 			continue
 		}
-		key := mir.StdKey(res, sem.EntityID(id), true)
+		key := opdef.StdKey(res, sem.EntityID(id), true)
 		names[key] = true
 		if len(e.Name) > 3 && strings.HasPrefix(e.Name, "try") && e.Name[3] >= 'A' && e.Name[3] <= 'Z' {
 			tries = append(tries, key)

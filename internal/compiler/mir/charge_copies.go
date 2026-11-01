@@ -8,7 +8,7 @@ import (
 	"kigumi/internal/compiler/syntax"
 )
 
-func (p *Program) allocCopy(f *midir.Func, in midir.Inst) bool {
+func (p *Program) AllocCopy(f *midir.Func, in midir.Inst) bool {
 	if _, ok := p.elemCopy(f, in); ok {
 		return true
 	}
@@ -41,7 +41,7 @@ func (p *Program) elemCopy(f *midir.Func, in midir.Inst) (sem.TypeID, bool) {
 	return elem, ok
 }
 
-func (p *Program) copiedType(f *midir.Func, in midir.Inst) sem.TypeID {
+func (p *Program) CopiedType(f *midir.Func, in midir.Inst) sem.TypeID {
 	if t, ok := p.contentCopy(f, in); ok {
 		return t
 	}
@@ -55,48 +55,23 @@ func (p *Program) copiedType(f *midir.Func, in midir.Inst) sem.TypeID {
 }
 
 func (p *Program) InstAllocates(f *midir.Func, in midir.Inst) bool {
-	if in.Op == midir.OpBoxDirect && !in.Fixed || p.boxedResult(f, in) != 0 {
+	if in.Op == midir.OpBoxDirect && !in.Fixed || p.BoxedResult(f, in) != 0 {
 		return true
 	}
-	_, deferred := p.paramCopy(f, in)
-	return p.allocCopy(f, in) && !deferred
+	_, deferred := p.ParamCopy(f, in)
+	return p.AllocCopy(f, in) && !deferred
 }
 
-// sem settled the effect summaries before PlanRC planned any of these copies.
-func (p *Program) chargeCopies() {
-	var sites []sem.CopySite
-	facts := paramCopies{}
-	for _, f := range p.Funcs {
-		if f.Ent == 0 {
-			continue
-		}
-		for _, blk := range f.Blocks {
-			for _, in := range blk.Insts {
-				if !p.allocCopy(f, in) {
-					continue
-				}
-				if fact, ok := p.paramCopy(f, in); ok {
-					facts.add(f.Ent, fact)
-					continue
-				}
-				sites = append(sites, p.copySite(f, in))
-			}
-		}
-	}
-	sites = append(sites, p.chargeCalls(facts)...)
-	p.R.ChargeCopies(sites)
-}
-
-func (p *Program) copySite(f *midir.Func, in midir.Inst) sem.CopySite {
+func (p *Program) CopySite(f *midir.Func, in midir.Inst) sem.CopySite {
 	if t, ok := p.contentCopy(f, in); ok {
-		return sem.CopySite{Owner: f.Ent, File: f.File, Node: p.siteNode(f, in), Type: t, Content: true}
+		return sem.CopySite{Owner: f.Ent, File: f.File, Node: p.SiteNode(f, in), Type: t, Content: true}
 	}
 	elem, isElem := p.elemCopy(f, in)
 	copies := !isElem || p.R.CopyAllocates(elem)
-	return sem.CopySite{Owner: f.Ent, File: f.File, Node: p.siteNode(f, in), Type: p.copiedType(f, in), Held: !in.Own && !isElem, Elem: isElem && copies, Boxed: isElem && !copies}
+	return sem.CopySite{Owner: f.Ent, File: f.File, Node: p.SiteNode(f, in), Type: p.CopiedType(f, in), Held: !in.Own && !isElem, Elem: isElem && copies, Boxed: isElem && !copies}
 }
 
-func (p *Program) siteNode(f *midir.Func, in midir.Inst) syntax.NodeID {
+func (p *Program) SiteNode(f *midir.Func, in midir.Inst) syntax.NodeID {
 	if in.Node != 0 {
 		return in.Node
 	}

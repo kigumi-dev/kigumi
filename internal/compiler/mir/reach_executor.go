@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	opdef "kigumi/internal/compiler/mir/ops"
+	mirreach "kigumi/internal/compiler/mir/reach"
 )
 
 type executorMemo struct {
@@ -14,7 +15,7 @@ type executorMemo struct {
 
 func (p *Program) reachMemo() *executorMemo {
 	p.executor.once.Do(func() {
-		rs := Reachable(p)
+		rs := mirreach.Reachable(p.R, p.Entry, p.Funcs, p.ByEnt)
 		for _, c := range opdef.Capabilities(rs.Ops) {
 			if opdef.Capability(c) == opdef.CapTaskExecutor {
 				p.executor.exec = true
@@ -29,7 +30,7 @@ func (p *Program) reachMemo() *executorMemo {
 func (p *Program) ReachesTaskExecutor() bool { return p.reachMemo().exec }
 
 // ReachesDropHook reports whether rs keeps a drop hook written in Kigumi, the only code a release can panic in.
-func (p *Program) ReachesDropHook(rs *Reachability) bool {
+func (p *Program) ReachesDropHook(rs *mirreach.Reachability) bool {
 	for id := range rs.Types {
 		if d := p.R.TypeDecl(id).Drop; d != 0 && rs.Keep(d) && p.ByEnt[d] != nil {
 			return true

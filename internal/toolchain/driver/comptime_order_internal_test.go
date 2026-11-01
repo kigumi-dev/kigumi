@@ -6,7 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	mirbuild "kigumi/internal/compiler/mir/build"
+	mirplan "kigumi/internal/compiler/mir/plan"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/toolchain/contract/schema"
 )
@@ -28,13 +29,13 @@ func TestFoldComptimeRefusesAnUnplannedBlock(t *testing.T) {
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}
-	rc := mir.Transform{Name: "plan-rc", Run: mir.PlanRC}
-	fold := mir.Transform{Name: "fold-comptime", Run: foldComptime}
-	err = mir.Build(res).Apply(rc, fold)
+	rc := mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}
+	fold := mirplan.Transform{Name: "fold-comptime", Run: foldComptime}
+	err = mirplan.Apply(mirbuild.Program(res), rc, fold)
 	if err == nil || !strings.Contains(err.Error(), "before plan-direct") {
 		t.Fatalf("folding an unplanned block: err = %v", err)
 	}
-	if err := mir.Build(res).Apply(rc, mir.Transform{Name: "plan-direct", Run: mir.PlanDirect}, fold); err != nil {
+	if err := mirplan.Apply(mirbuild.Program(res), rc, mirplan.Transform{Name: "plan-direct", Run: mirplan.PlanDirect}, fold); err != nil {
 		t.Fatalf("folding a planned block: %v", err)
 	}
 }

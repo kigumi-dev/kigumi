@@ -47,7 +47,7 @@ func (p *Program) dumpFunc(sb *strings.Builder, f *midir.Func) {
 	sb.WriteString("}\n")
 }
 
-func (p *Program) local(f *midir.Func, l midir.LocalID) string {
+func (p *Program) LocalName(f *midir.Func, l midir.LocalID) string {
 	if int(l) >= len(f.Locals) {
 		return fmt.Sprintf("%%?%d", l)
 	}
@@ -57,20 +57,20 @@ func (p *Program) local(f *midir.Func, l midir.LocalID) string {
 func (p *Program) inst(f *midir.Func, in midir.Inst) string {
 	var args []string
 	for _, a := range in.Args {
-		args = append(args, p.local(f, a))
+		args = append(args, p.LocalName(f, a))
 	}
 	head := ""
 	switch in.Op {
 	case midir.OpDrop, midir.OpSetField, midir.OpSetIndex, midir.OpCellSet, midir.OpGlobalSet, midir.OpPanic, midir.OpNop, midir.OpCancelDone:
 	default:
-		head = p.local(f, in.Dst) + " = "
+		head = p.LocalName(f, in.Dst) + " = "
 	}
 	body := in.Op.String()
 	switch in.Op {
 	case midir.OpConst:
 		body += " " + litText(in) + ": " + p.R.TypeString(in.Type)
 	case midir.OpCall, midir.OpVariant, midir.OpRecord, midir.OpClosure, midir.OpFnItem, midir.OpBind, midir.OpCFnPtr, midir.OpIsVariant, midir.OpIsType, midir.OpGlobalGet, midir.OpGlobalSet:
-		body += " " + p.declName(in.Ent)
+		body += " " + p.DeclName(in.Ent)
 		if in.Str != "" {
 			body += " " + in.Str
 		}
@@ -136,16 +136,16 @@ func (p *Program) term(f *midir.Func, t midir.Term) string {
 	case midir.TermJump:
 		return fmt.Sprintf("jump b%d", t.Targets[0])
 	case midir.TermBranch:
-		return fmt.Sprintf("branch %s ? b%d : b%d", p.local(f, t.Args[0]), t.Targets[0], t.Targets[1])
+		return fmt.Sprintf("branch %s ? b%d : b%d", p.LocalName(f, t.Args[0]), t.Targets[0], t.Targets[1])
 	case midir.TermReturn:
-		return "return " + p.local(f, t.Args[0])
+		return "return " + p.LocalName(f, t.Args[0])
 	case midir.TermUnreachable:
 		return "unreachable"
 	}
 	return "<no terminator>"
 }
 
-// mobility names how a Future's state may move, as classifyMobility left it.
+// mobility names how a Future's state may move, as mobility.Classify left it.
 func (p *Program) mobility(f *midir.Func) string {
 	if e := p.R.Entity(f.Ent); e.Kind != sem.EntFn {
 		return "unknown"

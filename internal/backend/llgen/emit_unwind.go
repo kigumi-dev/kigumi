@@ -5,9 +5,9 @@ import (
 	"slices"
 	"strings"
 
-	"kigumi/internal/compiler/mir"
 	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
+	mirunwind "kigumi/internal/compiler/mir/unwind"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -16,7 +16,7 @@ type unwindFrame struct {
 	// agg holds the counted direct locals: slot k is the local's address with bit 0 set, slot k+1 its drop helper.
 	agg  map[midir.LocalID]*aggInfo
 	n    int
-	plan *mir.UnwindPlan
+	plan *mirunwind.Plan
 	// inFrame: the slots are the Future's frame words, not an array beside the record.
 	inFrame bool
 	cur     []uint64

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/backend/llgen"
-	"kigumi/internal/compiler/mir"
+	mirreach "kigumi/internal/compiler/mir/reach"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -34,7 +34,7 @@ func namedType(t *testing.T, r *sem.Result, name string) sem.EntityID {
 
 func TestEmitKeepsOnlyReachableDescriptors(t *testing.T) {
 	prog := plannedProgram(t, keptTypeSrc)
-	rs := mir.Reachable(prog)
+	rs := mirreach.Reachable(prog.R, prog.Entry, prog.Funcs, prog.ByEnt)
 	ir := llgen.EmitWith(prog, llgen.EmitOptions{Reachable: rs})
 	if !strings.Contains(ir, `@".type.main.Used" =`) {
 		t.Fatalf("a constructed type has no descriptor:\n%s", ir)
@@ -46,7 +46,7 @@ func TestEmitKeepsOnlyReachableDescriptors(t *testing.T) {
 
 func TestEmitRefusesDescriptorOfUnkeptType(t *testing.T) {
 	prog := plannedProgram(t, keptTypeSrc)
-	rs := mir.Reachable(prog)
+	rs := mirreach.Reachable(prog.R, prog.Entry, prog.Funcs, prog.ByEnt)
 	delete(rs.Types, namedType(t, prog.R, "Used"))
 	defer func() {
 		got := recover()

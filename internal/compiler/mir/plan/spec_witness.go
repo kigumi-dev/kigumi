@@ -1,0 +1,100 @@
+package plan
+
+import (
+	"slices"
+
+	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
+)
+
+// Conformance fixes the implementation's receiver kind and parameter types, so plan-rc's plan still holds.
+func (s *specializer) devirtualize(sp *spec, f *midir.Func) {
+	if sp.wit == nil {
+		return
+	}
+	slots := s.p.R.Fn(sp.gen).Witnesses
+	defs := singleDefs(f)
+	for bid := range f.Blocks {
+		insts := f.Blocks[bid].Insts
+		for i := range insts {
+			in := &insts[i]
+			if in.Op == midir.OpBuiltin && in.Str == mir.BuiltinCmpUnordered {
+				s.foldUnordered(sp, f, defs, slots, in)
+				continue
+			}
+			if in.Op != midir.OpCallValue || in.Ent == 0 || len(in.Args) == 0 {
+				continue
+			}
+			k := witnessSlotOf(f, defs, in.Args[0], slots)
+			if k < 0 || sp.wit[k].Kind != sem.WitnessFn || !s.directImpl(sp.wit[k].Ent, *in) {
+				continue
+			}
+			in.Op, in.Ent, in.Args = midir.OpCall, sp.wit[k].Ent, in.Args[1:]
+		}
+	}
+	foldCompareGuards(f, defs)
+}
+
+func (s *specializer) directImpl(m sem.EntityID, in midir.Inst) bool {
+	r := s.p.R
+	if s.p.ByEnt[m] == nil || r.Entity(m).Kind != sem.EntFn {
+		return false
+	}
+	info, req := r.Fn(m), r.Fn(in.Ent)
+	if info.Declared&sem.EffAsync != 0 || info.Recv != req.Recv {
+		return false
+	}
+	if len(info.Witnesses) > 0 || len(info.ConstParams) > 0 || len(info.CtxRequires) > 0 {
+		return false
+	}
+	arity := len(info.Params)
+	if info.Recv != sem.RecvNone {
+		arity++
+	}
+	return arity == len(in.Args)-1
+}
+
+func witnessSlotOf(f *midir.Func, defs map[midir.LocalID]*midir.Inst, l midir.LocalID, slots []sem.WitnessSlot) int {
+	for steps := 0; steps < len(f.Locals); steps++ {
+		if slices.Contains(f.Params, l) {
+			for k, slot := range slots {
+				if f.Locals[l].Ent == slot.Local {
+					return k
+				}
+			}
+			return -1
+		}
+		d := defs[l]
+		if d == nil {
+			return -1
+		}
+		switch d.Op {
+		case midir.OpCopy, midir.OpAlias, midir.OpShare, midir.OpMove:
+			l = d.Args[0]
+		default:
+			return -1
+		}
+	}
+	return -1
+}
+
+func singleDefs(f *midir.Func) map[midir.LocalID]*midir.Inst {
+	out := map[midir.LocalID]*midir.Inst{}
+	count := map[midir.LocalID]int{}
+	for bid := range f.Blocks {
+		insts := f.Blocks[bid].Insts
+		for i := range insts {
+			if insts[i].Op.Yields() {
+				count[insts[i].Dst]++
+				out[insts[i].Dst] = &insts[i]
+			}
+		}
+	}
+	for l, n := range count {
+		if n != 1 {
+			delete(out, l)
+		}
+	}
+	return out
+}

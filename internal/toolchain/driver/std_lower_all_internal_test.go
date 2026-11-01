@@ -3,7 +3,7 @@ package driver
 import (
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	mirbuild "kigumi/internal/compiler/mir/build"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/devkit/semfixture"
 	"kigumi/internal/lang/diag"
@@ -37,7 +37,7 @@ func TestStdLowersAndVerifiesWhole(t *testing.T) {
 			t.Errorf("std reports diagnostics:\n%s", diag.RenderAll(res, ds))
 		}
 	}
-	if pruned := mir.Build(res); len(pruned.Funcs) >= len(prog.Funcs) {
+	if pruned := mirbuild.Program(res); len(pruned.Funcs) >= len(prog.Funcs) {
 		t.Errorf("Build lowered %d bodies of a std-only module, BuildAll %d", len(pruned.Funcs), len(prog.Funcs))
 	}
 }

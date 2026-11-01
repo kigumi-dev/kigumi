@@ -6,7 +6,8 @@ import (
 	"testing"
 
 	"kigumi/internal/backend/vm"
-	"kigumi/internal/compiler/mir"
+	mirbuild "kigumi/internal/compiler/mir/build"
+	mirplan "kigumi/internal/compiler/mir/plan"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -18,11 +19,11 @@ func evalOneComptime(t *testing.T, src string) (sem.Literal, error) {
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}
-	prog := mir.Build(res)
+	prog := mirbuild.Program(res)
 	if len(prog.Comptime) != 1 {
 		t.Fatalf("got %d comptime blocks, want 1", len(prog.Comptime))
 	}
-	if err := prog.Apply(mir.Transform{Name: "plan-rc", Run: mir.PlanRC}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
 		t.Fatalf("plan-rc: %v", err)
 	}
 	return vm.EvalComptime(prog, prog.Comptime[0])

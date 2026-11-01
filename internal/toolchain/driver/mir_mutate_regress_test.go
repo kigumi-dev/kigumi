@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
+	mirverify "kigumi/internal/compiler/mir/verify"
 )
 
 func TestFixedMutants(t *testing.T) {
@@ -22,9 +22,9 @@ func TestFixedMutants(t *testing.T) {
 			if err != nil {
 				t.Fatalf("%v: pin it again from a fresh fuzz finding", err)
 			}
-			err = p.Verify()
+			err = mirverify.Program(p)
 			if c.rule != "" {
-				if ve, ok := err.(*mir.Error); !ok || ve.Rule != c.rule {
+				if ve, ok := err.(*mirverify.Error); !ok || ve.Rule != c.rule {
 					t.Fatalf("%s: got %v, want rule %s", what, err, c.rule)
 				}
 				return

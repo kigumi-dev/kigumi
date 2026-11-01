@@ -3,13 +3,13 @@ package driver
 import (
 	"fmt"
 
-	"kigumi/internal/compiler/mir"
 	opdef "kigumi/internal/compiler/mir/ops"
+	mirreach "kigumi/internal/compiler/mir/reach"
 	buildconfig "kigumi/internal/toolchain/config"
 )
 
 // The runtime keeps a task panic fatal there; this only says so.
-func (a *Analysis) warnTaskPanicFatal(t buildconfig.Target, reach *mir.Reachability) {
+func (a *Analysis) warnTaskPanicFatal(t buildconfig.Target, reach *mirreach.Reachability) {
 	if wantsTaskCatch(t) {
 		return
 	}
@@ -31,7 +31,7 @@ func targetLabel(t buildconfig.Target) string {
 	return fmt.Sprintf("%s-%s", t.Arch, t.OS)
 }
 
-func firstTaskSite(reach *mir.Reachability) (mir.OpSite, bool) {
+func firstTaskSite(reach *mirreach.Reachability) (mirreach.OpSite, bool) {
 	for _, name := range []string{"TASK_SPAWN", "TASK_HANDOFF"} {
 		if op, ok := opdef.StdOpIdOf(name); ok {
 			if site, ok := reach.OpSites[op]; ok {
@@ -39,5 +39,5 @@ func firstTaskSite(reach *mir.Reachability) (mir.OpSite, bool) {
 			}
 		}
 	}
-	return mir.OpSite{}, false
+	return mirreach.OpSite{}, false
 }
