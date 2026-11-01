@@ -1,0 +1,18 @@
+-- src --
+type In = { a Int, b Int }
+type Seed = { inner In, base Int }
+fn mkSeed() -> Seed { Seed { inner: In { a: 1, b: 2 }, base: 40 } }
+static seed: Seed = comptime mkSeed()
+
+type Spare = { x Int, y Int }
+fn mkSpare() -> Spare { Spare { x: 5, y: 6 } }
+static spare: Spare = comptime mkSpare()
+
+fn derive() -> Int { seed.base + seed.inner.b }
+static answer: Int = comptime derive()
+
+fn main() {
+    print "${answer}"
+}
+-- stdout --
+42

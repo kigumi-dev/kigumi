@@ -1,0 +1,18 @@
+-- src --
+type In = { a Int, b Int }
+type Out = { p In, q Int }
+fn mk() -> Out { Out { p: In { a: 1, b: 2 }, q: 3 } }
+static o: Out = comptime mk()
+
+type Cell = { mut hits Int }
+type Slot = { cell Cell, id Int }
+fn mkSlot() -> Slot { Slot { cell: Cell { hits: 0 }, id: 7 } }
+static slot: Slot = comptime mkSlot()
+
+fn main() {
+    print "${o.q}"
+    print "${slot.id}"
+}
+-- stdout --
+3
+7

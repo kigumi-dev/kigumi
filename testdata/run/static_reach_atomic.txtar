@@ -1,0 +1,18 @@
+-- src --
+import {atomicAdd, atomicLoad, AtomicOrder} from std/mem
+
+type Lim = { lo Int, hi Int }
+type Cfg = { lim Lim, step Int }
+fn mkCfg() -> Cfg { Cfg { lim: Lim { lo: 0, hi: 9 }, step: 3 } }
+static cfg: Cfg = comptime mkCfg()
+static mut hits: Int = 0
+
+fn main() {
+    unsafe {
+        _ = atomicAdd(&mut hits, cfg.step, AtomicOrder.SeqCst)
+        _ = atomicAdd(&mut hits, cfg.step, AtomicOrder.Relaxed)
+        print "${atomicLoad(&hits, AtomicOrder.SeqCst)}"
+    }
+}
+-- stdout --
+6

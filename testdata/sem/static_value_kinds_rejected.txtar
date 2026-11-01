@@ -1,0 +1,64 @@
+-- src --
+type In = {
+    pub a Int
+    pub b Int
+}
+
+type Pick = Held(v: In) | Empty
+
+fn mkPick() -> Pick {
+    Held(In { a: 1, b: 2 })
+}
+
+fn hidden(x: Int) -> Int {
+    x + 1
+}
+
+fn mkFn() -> fn(Int) -> Int {
+    hidden
+}
+
+fn mkOpt() -> Option[In] {
+    Some(In { a: 1, b: 2 })
+}
+
+fn mkRes() -> Result[In, Int] {
+    Ok(In { a: 1, b: 2 })
+}
+
+static pick: Pick = comptime mkPick() //~ ERROR a comptime block must produce
+static viaThunk: fn(Int) -> Int = comptime mkFn() //~ ERROR a comptime block must produce
+static named: fn(Int) -> Int = hidden //~ ERROR `hidden` is not a compile-time constant
+static opt: Option[In] = comptime mkOpt() //~ ERROR a comptime block must produce
+static res: Result[In, Int] = comptime mkRes() //~ ERROR a comptime block must produce
+-- expect --
+error[E918]: a comptime block must produce a number, Bool, Char, String or Bytes, or as a const or static initializer a plain record of those, not `Pick`
+  --> main/main.kg:28:21
+   |
+28 | static pick: Pick = comptime mkPick() //~ ERROR a comptime block must produce
+   |                     ^^^^^^^^^^^^^^^^
+
+error[E918]: a comptime block must produce a number, Bool, Char, String or Bytes, or as a const or static initializer a plain record of those, not `fn(Int) -> Int`
+  --> main/main.kg:29:35
+   |
+29 | static viaThunk: fn(Int) -> Int = comptime mkFn() //~ ERROR a comptime block must produce
+   |                                   ^^^^^^^^^^^^^^
+
+error[E238]: `hidden` is not a compile-time constant
+  --> main/main.kg:30:32
+   |
+30 | static named: fn(Int) -> Int = hidden //~ ERROR `hidden` is not a compile-time constant
+   |                                ^^^^^^
+
+error[E918]: a comptime block must produce a number, Bool, Char, String or Bytes, or as a const or static initializer a plain record of those, not `In?`
+  --> main/main.kg:31:26
+   |
+31 | static opt: Option[In] = comptime mkOpt() //~ ERROR a comptime block must produce
+   |                          ^^^^^^^^^^^^^^^
+
+error[E918]: a comptime block must produce a number, Bool, Char, String or Bytes, or as a const or static initializer a plain record of those, not `Result[In, Int]`
+  --> main/main.kg:32:31
+   |
+32 | static res: Result[In, Int] = comptime mkRes() //~ ERROR a comptime block must produce
+   |                               ^^^^^^^^^^^^^^^
+

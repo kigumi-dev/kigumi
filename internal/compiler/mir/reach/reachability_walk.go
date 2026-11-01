@@ -142,7 +142,7 @@ func newReachWalk(r *sem.Result, byEnt map[sem.EntityID]*midir.Func) *reachWalk 
 	return w
 }
 
-// Reachable walks from the entry, the exports and the tests among funcs.
+// Reachable walks from the entry, the exports and the tests among funcs, keeping every static's value types.
 func Reachable(r *sem.Result, entry *midir.Func, funcs []*midir.Func, byEnt map[sem.EntityID]*midir.Func) *Reachability {
 	w := newReachWalk(r, byEnt)
 	if entry != nil {
@@ -157,6 +157,7 @@ func Reachable(r *sem.Result, entry *midir.Func, funcs []*midir.Func, byEnt map[
 			w.root(f.Ent, RootExport)
 		}
 	}
+	w.rootStatics()
 	w.drain()
 	return w.rs
 }

@@ -16269,6 +16269,91 @@
       ]
     },
     {
+      "id": "run/static_reach_atomic",
+      "kind": "run",
+      "path": "testdata/run/static_reach_atomic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/static_reach_initializer_only",
+      "kind": "run",
+      "path": "testdata/run/static_reach_initializer_only.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/static_reach_static_mut",
+      "kind": "run",
+      "path": "testdata/run/static_reach_static_mut.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/static_reach_three_levels",
+      "kind": "run",
+      "path": "testdata/run/static_reach_three_levels.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/static_reach_unnamed_nested",
+      "kind": "run",
+      "path": "testdata/run/static_reach_unnamed_nested.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/static_record_constant",
       "kind": "run",
       "path": "testdata/run/static_record_constant.txtar",
@@ -23880,6 +23965,17 @@
       "id": "sem/static_scalar_direct_store",
       "kind": "sem",
       "path": "testdata/sem/static_scalar_direct_store.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/static_value_kinds_rejected",
+      "kind": "sem",
+      "path": "testdata/sem/static_value_kinds_rejected.txtar",
       "mode": [
         "check"
       ],
