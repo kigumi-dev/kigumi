@@ -17,7 +17,7 @@ type noImports struct{}
 
 func (noImports) Import(path string) (*types.Package, error) { return nil, errors.New("not loaded") }
 
-// TestNoExecWithLiteralProgram forbids a constant program name in exec.Command(Context), whether written as a literal, a named const or a concatenation. There is no exemption: internal/cli resolves tools through shared.CompilerOptions like every other package.
+// TestNoExecWithLiteralProgram forbids a constant program name in exec.Command(Context), whether written as a literal, a named const or a concatenation. There is no exemption: internal/cli resolves tools through session.CompilerOptions like every other package.
 // Constants are folded per package with go/types and imports left unresolved, so a constant imported from another package is not seen.
 func TestNoExecWithLiteralProgram(t *testing.T) {
 	byDir := map[string][]string{}

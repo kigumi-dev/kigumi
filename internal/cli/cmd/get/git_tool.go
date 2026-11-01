@@ -13,7 +13,7 @@ import (
 const allowedGitProtocols = "https:ssh:git:file"
 
 func gitCommand(args ...string) (*exec.Cmd, error) {
-	path, err := shared.CompilerOptions().LookTool("git")
+	path, err := session.CompilerOptions().LookTool("git")
 	if err != nil {
 		return nil, errors.WrapErr(err, "find git")
 	}

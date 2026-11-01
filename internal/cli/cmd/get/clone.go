@@ -8,15 +8,14 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/spf13/cobra"
-
 	"kigumi/internal/base/errors"
+	"kigumi/internal/cli/session"
 	"kigumi/internal/toolchain/driver"
 )
 
-// clone fetches the version of r into dir through a temporary directory, so a failed
-// fetch leaves no half-written module, and returns the commit it resolved to.
-func clone(cmd *cobra.Command, r driver.Require, dir string) (string, error) {
+// clone fetches the version of r into dir through a temporary directory, so a failed fetch leaves no half-written
+// module, and returns the commit it resolved to.
+func clone(io session.IO, r driver.Require, dir string) (string, error) {
 	url, subdir, ok := driver.RepoOf(r)
 	if !ok {
 		return "", errors.NewErrf("dependency %s %s: cannot derive its repository; give `url` in the Require", r.Name, r.Version)
@@ -34,9 +33,9 @@ func clone(cmd *cobra.Command, r driver.Require, dir string) (string, error) {
 	defer os.RemoveAll(tmp)
 	var commit string
 	if driver.IsCommitHash(r.Version) {
-		commit, err = cloneCommit(cmd, url, r.Version, tmp)
+		commit, err = cloneCommit(io, url, r.Version, tmp)
 	} else {
-		commit, err = cloneTag(cmd, url, driver.TagOf(subdir, r.Version), tmp)
+		commit, err = cloneTag(io, url, driver.TagOf(subdir, r.Version), tmp)
 	}
 	if err != nil {
 		return "", err
@@ -68,34 +67,33 @@ func clone(cmd *cobra.Command, r driver.Require, dir string) (string, error) {
 	return commit, nil
 }
 
-func git(cmd *cobra.Command, dir string, args ...string) (string, error) {
+func git(io session.IO, dir string, args ...string) (string, error) {
 	g, err := gitCommand(args...)
 	if err != nil {
 		return "", err
 	}
 	g.Dir = dir
-	g.Stderr = cmd.ErrOrStderr()
+	g.Stderr = io.Err
 	out, err := g.Output()
 	return strings.TrimSpace(string(out)), err
 }
 
-func cloneTag(cmd *cobra.Command, url, tag, tmp string) (string, error) {
-	if _, err := git(cmd, "", "clone", "--quiet", "--depth", "1", "--branch", tag, "--", url, tmp); err != nil {
+func cloneTag(io session.IO, url, tag, tmp string) (string, error) {
+	if _, err := git(io, "", "clone", "--quiet", "--depth", "1", "--branch", tag, "--", url, tmp); err != nil {
 		return "", errors.WrapErrf(err, "git clone %s at %s", url, tag)
 	}
-	head, err := git(cmd, tmp, "rev-parse", "HEAD")
+	head, err := git(io, tmp, "rev-parse", "HEAD")
 	if err != nil {
 		return "", errors.WrapErr(err, "git rev-parse")
 	}
 	// --branch also matches a branch of that name; insist on the tag.
-	if tagged, err := git(cmd, tmp, "rev-parse", "--verify", "--quiet", "refs/tags/"+tag+"^{commit}"); err != nil || tagged != head {
+	if tagged, err := git(io, tmp, "rev-parse", "--verify", "--quiet", "refs/tags/"+tag+"^{commit}"); err != nil || tagged != head {
 		return "", errors.NewErrf("%s has no tag %s (a branch of that name is not a version)", url, tag)
 	}
 	return head, nil
 }
 
-// dropNestedModules removes module roots below src: they are separate
-// modules with their own versions and are fetched on their own.
+// dropNestedModules removes module roots below src: they are separate modules, versioned and fetched on their own.
 func dropNestedModules(src string) error {
 	var nested []string
 	filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
@@ -116,8 +114,7 @@ func dropNestedModules(src string) error {
 	return nil
 }
 
-// latestTag asks the repo for its tags and picks the highest release
-// version of the module's subdirectory (prereleases excluded).
+// latestTag picks the highest release tag (prereleases excluded) of the module's subdirectory in its repo.
 func latestTag(r driver.Require) (string, error) {
 	url, subdir, _ := driver.RepoOf(r)
 	if err := checkRequire(r, url); err != nil {

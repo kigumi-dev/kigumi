@@ -14,7 +14,7 @@ import (
 var envAllowed = []string{"internal/cli/", "internal/backend/vm/std_host.go"}
 
 // processAllowed lists the files that may resolve a path against the process cwd, search PATH or ask for the home directory.
-// The rule: a main package, or the CLI's one reader (shared/compiler_options.go), reads the process once and passes the facts down; no library file falls back to the process.
+// The rule: a main package, or the CLI's one reader (session/compiler_options.go), reads the process once and passes the facts down; no library file falls back to the process.
 var processAllowed = map[string]bool{
 	"internal/cli/session/compiler_options.go": true,
 	"cmd/testaudit/main.go":                    true,

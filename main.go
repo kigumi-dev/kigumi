@@ -16,7 +16,7 @@ import (
 var stdFS embed.FS
 
 func main() {
-	shared.SetEmbeddedStd(stdFS, "std")
-	root := cli.RootCmd()
-	os.Exit(cliutil.Execute(root, cli.Debug(root)))
+	session.SetEmbeddedStd(stdFS, "std")
+	root := cli.New()
+	os.Exit(exit.Execute(root, cli.Debug(root)))
 }

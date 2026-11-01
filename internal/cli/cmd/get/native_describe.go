@@ -3,27 +3,25 @@ package get
 import (
 	"encoding/json"
 	"fmt"
-
-	"github.com/spf13/cobra"
+	"io"
 
 	"kigumi/internal/toolchain/driver"
 )
 
-// printNativeChanges reports every added or removed Source/Link, grouped
-// per dependency (the root cause), and the lock diff as JSON when asked.
-func printNativeChanges(cmd *cobra.Command, changes []nativeChange, asJSON bool) {
+// printNativeChanges reports every added or removed Source/Link per dependency, and the lock diff as JSON when asked.
+func printNativeChanges(w io.Writer, changes []nativeChange, asJSON bool) {
 	if len(changes) == 0 {
 		return
 	}
-	cmd.Println("native changes:")
+	fmt.Fprintln(w, "native changes:")
 	for _, c := range changes {
 		for _, line := range c.Lines {
-			cmd.Printf("  %s: %s\n", c.Module, line)
+			fmt.Fprintf(w, "  %s: %s\n", c.Module, line)
 		}
 	}
 	if asJSON {
 		b, _ := json.MarshalIndent(changes, "", "  ")
-		cmd.Println(string(b))
+		fmt.Fprintln(w, string(b))
 	}
 }
 

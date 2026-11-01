@@ -1,30 +1,20 @@
-// Package shared holds the helpers the kigumi subcommands have in common:
-// locating the std stubs, loading a module from a root or an entry file,
-// and reporting diagnostics.
-package shared
+package session
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/spf13/cobra"
-
 	"kigumi/internal/base/errors"
 	"kigumi/internal/cli/exit"
-	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
-	"kigumi/internal/toolchain/policy"
 )
 
-// StdRoot resolves the std stub directory: the --std flag, $KIGUMI_STD,
-// a std directory under the working directory, one next to the
-// executable, or the copy embedded in the executable.
-func StdRoot(cmd *cobra.Command) string {
-	if std, _ := cmd.Flags().GetString("std"); std != "" {
-		return std
+// StdRoot resolves the std directory: --std, $KIGUMI_STD, ./std, one next to the executable, or the embedded copy.
+func (s Session) StdRoot() string {
+	if s.Std != "" {
+		return s.Std
 	}
 	if env := os.Getenv("KIGUMI_STD"); env != "" {
 		return env
@@ -41,25 +31,22 @@ func StdRoot(cmd *cobra.Command) string {
 	return embeddedStdRoot()
 }
 
-// Load reads the module named by target: a module root, or an entry file.
-// Parse diagnostics go to errOut and end the command with exit code 1.
-// policy is Development when omitted; only `kigumi build`/`check` pass
-// Release, through the --release flag.
-func Load(cmd *cobra.Command, target string, test bool, errOut io.Writer, policies ...policy.BuildPolicy) (*driver.Module, error) {
-	return load(cmd, target, test, false, false, errOut, policies)
+// Load reads the module root or entry file target under s.Policy; parse diagnostics go to errOut and end the command with 1.
+func (s Session) Load(target string, test bool, errOut io.Writer) (*driver.Module, error) {
+	return s.load(target, test, false, false, errOut)
 }
 
 // LoadWhole is Load for a command that describes the whole module even when the target names one entry file (doc, schema).
-func LoadWhole(cmd *cobra.Command, target string, test bool, errOut io.Writer) (*driver.Module, error) {
-	return load(cmd, target, test, false, true, errOut, nil)
+func (s Session) LoadWhole(target string, test bool, errOut io.Writer) (*driver.Module, error) {
+	return s.load(target, test, false, true, errOut)
 }
 
 // LoadSettled is Load for a command that only needs the check outcome: an unchanged module answers from the package cache without parsing a source.
-func LoadSettled(cmd *cobra.Command, target string, test bool, errOut io.Writer, policies ...policy.BuildPolicy) (*driver.Module, error) {
-	return load(cmd, target, test, true, false, errOut, policies)
+func (s Session) LoadSettled(target string, test bool, errOut io.Writer) (*driver.Module, error) {
+	return s.load(target, test, true, false, errOut)
 }
 
-func load(cmd *cobra.Command, target string, test, deferParse, whole bool, errOut io.Writer, policies []policy.BuildPolicy) (*driver.Module, error) {
+func (s Session) load(target string, test, deferParse, whole bool, errOut io.Writer) (*driver.Module, error) {
 	root, entry := target, ""
 	if strings.HasSuffix(target, ".kg") {
 		if _, err := os.Stat(target); err != nil {
@@ -76,28 +63,21 @@ func load(cmd *cobra.Command, target string, test, deferParse, whole bool, errOu
 		}
 		entry = filepath.ToSlash(rel)
 	}
-	noLocal, _ := cmd.Flags().GetBool("no-local")
-	tgt, err := Target(cmd)
+	tgt, err := s.Target()
 	if err != nil {
-		return nil, &cliutil.UsageError{Err: err}
+		return nil, &exit.UsageError{Err: err}
 	}
-	pol := policy.Development()
-	if len(policies) > 0 {
-		pol = policies[0]
-	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: StdRoot(cmd), Test: test, Entry: entry, NoLocal: noLocal || LocalOff(), Target: tgt, Policy: pol, ZigPath: ZigPath(), ZigHome: ZigHome(), Offline: Offline(cmd), VerifyPasses: VerifyPasses(), Compiler: CompilerOptions(), PackageCache: PackageCache(), DeferParse: deferParse, UnitCheck: deferParse && UnitCheck(), LazyStd: UnitCheck(), AllOwnPackages: whole})
+	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: s.StdRoot(), Test: test, Entry: entry, NoLocal: s.NoLocal || LocalOff(), Target: tgt, Policy: s.Policy(), ZigPath: ZigPath(), ZigHome: ZigHome(), Offline: s.Offline, VerifyPasses: VerifyPasses(), Compiler: CompilerOptions(), PackageCache: PackageCache(), DeferParse: deferParse, UnitCheck: deferParse && UnitCheck(), LazyStd: UnitCheck(), AllOwnPackages: whole})
 	if err != nil {
 		return nil, errors.WrapErrf(err, "load module %s", root)
 	}
 	if m.ReportDiagnostics(errOut) {
-		return nil, cliutil.Exit(1)
+		return nil, exit.Code(1)
 	}
 	return m, nil
 }
 
-// packageEntry turns a package directory inside a module (`cmd/app`) into
-// its entry file, main.kg or its only .kg file; a module root and anything
-// else pass through.
+// packageEntry turns a package directory inside a module (`cmd/app`) into main.kg or its only .kg file; anything else passes through.
 func packageEntry(dir string) string {
 	if driver.IsModuleRoot(dir) {
 		return dir
@@ -117,52 +97,10 @@ func packageEntry(dir string) string {
 	return dir
 }
 
-// moduleRoot is the nearest ancestor of the entry file that is a module
-// (mod.kg or cmd/); without one, the entry file's own directory (script
-// mode).
+// moduleRoot is the nearest ancestor of entry holding mod.kg or cmd/, else entry's own directory (script mode).
 func moduleRoot(entry string) string {
 	if root, ok := driver.FindModuleRoot(filepath.Dir(entry)); ok {
 		return root
 	}
 	return filepath.Dir(entry)
-}
-
-// Target reads the --target and --sys flags.
-func Target(cmd *cobra.Command) (buildconfig.Target, error) {
-	triple, _ := cmd.Flags().GetString("target")
-	sys, _ := cmd.Flags().GetString("sys")
-	t, err := buildconfig.ParseTarget(CompilerOptions(), triple, sys)
-	if err != nil {
-		return t, err
-	}
-	switch alloc, _ := cmd.Flags().GetString("allocator"); alloc {
-	case "", "general":
-	case "none":
-		t.Allocator = "none"
-	default:
-		return t, fmt.Errorf("allocator %q: want general or none", alloc)
-	}
-	switch profile, _ := cmd.Flags().GetString("profile"); profile {
-	case "", "fatal-permitted":
-	case "recoverable-only":
-		t.Profile = "recoverable-only"
-	default:
-		return t, fmt.Errorf("profile %q: want fatal-permitted or recoverable-only", profile)
-	}
-	switch bp, _ := cmd.Flags().GetString("blocking-executor"); bp {
-	case "", "hosted":
-	case "isr", "alloc-free-executor", "single-thread-event-loop":
-		t.BlockingExecutor = bp
-	default:
-		return t, fmt.Errorf("blocking-executor %q: want hosted, isr, alloc-free-executor or single-thread-event-loop", bp)
-	}
-	switch stackProfile, _ := cmd.Flags().GetString("stack-profile"); stackProfile {
-	case "", "hosted-growable":
-	case "strict":
-		t.StrictStack = true
-	default:
-		return t, fmt.Errorf("stack-profile %q: want hosted-growable or strict", stackProfile)
-	}
-	t.StackBudgetKiB, _ = cmd.Flags().GetInt("stack-budget-kib")
-	return t, nil
 }

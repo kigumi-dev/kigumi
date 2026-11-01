@@ -4,7 +4,7 @@ import "sync/atomic"
 
 import "kigumi/internal/lang/token"
 
-// spanComputeOps counts Span cache misses; interp_perf_test.go asserts each
+// spanComputeOps counts Span cache misses; interp_perf_internal_test.go asserts each
 // node's span is computed once, not once per query.
 var spanComputeOps atomic.Int64
 

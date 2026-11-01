@@ -2,45 +2,18 @@
 package check
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 
-	"kigumi/internal/base/errors"
-	"kigumi/internal/cli/exit"
 	"kigumi/internal/cli/session"
-	"kigumi/internal/toolchain/driver"
-	"kigumi/internal/toolchain/policy"
 )
 
-func Cmd() *cobra.Command {
+func New() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "check <module-root|entry.kg>",
 		Short: "Type-check a module and print its diagnostics",
 		Args:  cobra.ExactArgs(1),
+		RunE:  session.RunE(parseOptions, run),
 	}
-	shared.ReleaseFlag(cmd)
-	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		pol := shared.Policy(cmd)
-		m, err := shared.LoadSettled(cmd, args[0], false, cmd.ErrOrStderr(), pol)
-		if err != nil {
-			return err
-		}
-		extra := append(shared.ReleaseViolations(cmd, false), driver.LinkIdentityViolations(m, shared.CompilerOptions().Host)...)
-		report := policy.Evaluate(m.Violations, pol, extra...)
-		fmt.Fprint(cmd.ErrOrStderr(), report.Render())
-		if report.HasErrors() {
-			return cliutil.Exit(1)
-		}
-		res, err := driver.CheckUnits(m)
-		if err != nil {
-			return errors.WrapErr(err, "check module")
-		}
-		fmt.Fprint(cmd.ErrOrStderr(), res.Render())
-		if res.HasErrors() {
-			return cliutil.Exit(1)
-		}
-		return nil
-	}
+	session.ReleaseFlag(cmd)
 	return cmd
 }

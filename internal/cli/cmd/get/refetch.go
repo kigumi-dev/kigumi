@@ -5,9 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/spf13/cobra"
-
 	"kigumi/internal/base/errors"
+	"kigumi/internal/cli/session"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -51,10 +50,10 @@ func remoteTagCommit(r driver.Require) (string, error) {
 }
 
 // refetch clones r fresh and swaps it in for dir, aside-then-remove so a crash between the two renames leaves the old entry recoverable.
-func refetch(cmd *cobra.Command, r driver.Require, dir string) (string, error) {
+func refetch(io session.IO, r driver.Require, dir string) (string, error) {
 	tmp := dir + ".refetch-tmp"
 	os.RemoveAll(tmp)
-	commit, err := clone(cmd, r, tmp)
+	commit, err := clone(io, r, tmp)
 	if err != nil {
 		os.RemoveAll(tmp)
 		return "", err

@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"kigumi/internal/cli/clitest"
 )
 
 // An unrecognized --color value must be a usage error rather than
@@ -13,10 +15,10 @@ func TestColorFlagValidation(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	hello, _ := filepath.Abs("../../examples/hello/main.kg")
 
-	if code, errOut := executeReal(t, "--color", "banana", "--std", std, "run", hello); code != 2 || !strings.Contains(errOut, "--color") {
+	if code, errOut := clitest.ExecuteReal(t, "--color", "banana", "--std", std, "run", hello); code != 2 || !strings.Contains(errOut, "--color") {
 		t.Fatalf("--color banana: exit %d, stderr %q", code, errOut)
 	}
-	if code, out, errOut := execute(t, "--color", "never", "--std", std, "run", hello); code != 0 || out != "Hello, Kigumi!\n" {
+	if code, out, errOut := clitest.Execute(t, "--color", "never", "--std", std, "run", hello); code != 0 || out != "Hello, Kigumi!\n" {
 		t.Fatalf("--color never: exit %d, stdout %q, stderr %q", code, out, errOut)
 	}
 }
@@ -25,7 +27,7 @@ func TestBuildLinkFlagValidation(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	hello, _ := filepath.Abs("../../examples/hello/main.kg")
 	out := filepath.Join(t.TempDir(), "a.out")
-	if code, errOut := executeReal(t, "--std", std, "build", "--link", "banana", "-o", out, hello); code != 2 || !strings.Contains(errOut, "link") {
+	if code, errOut := clitest.ExecuteReal(t, "--std", std, "build", "--link", "banana", "-o", out, hello); code != 2 || !strings.Contains(errOut, "link") {
 		t.Fatalf("--link banana: exit %d, stderr %q", code, errOut)
 	}
 }
@@ -39,16 +41,16 @@ func TestBuildRejectsBuildProgramFlagsWithoutOne(t *testing.T) {
 	os.WriteFile(file, []byte("fn main() -> Void! {}\n"), 0o644)
 	out := filepath.Join(dir, "a.out")
 
-	if code, errOut := executeReal(t, "--std", std, "build", "--plan", "-o", out, file); code != 2 || !strings.Contains(errOut, "--plan") {
+	if code, errOut := clitest.ExecuteReal(t, "--std", std, "build", "--plan", "-o", out, file); code != 2 || !strings.Contains(errOut, "--plan") {
 		t.Fatalf("build --plan without build.kg: exit %d, stderr %q", code, errOut)
 	}
 	if _, err := os.Stat(out); err == nil {
 		t.Fatal("build --plan without build.kg must not build anything")
 	}
-	if code, errOut := executeReal(t, "--std", std, "build", "--out-dir", dir, "-o", out, file); code != 2 || !strings.Contains(errOut, "--out-dir") {
+	if code, errOut := clitest.ExecuteReal(t, "--std", std, "build", "--out-dir", dir, "-o", out, file); code != 2 || !strings.Contains(errOut, "--out-dir") {
 		t.Fatalf("build --out-dir without build.kg: exit %d, stderr %q", code, errOut)
 	}
-	if code, errOut := executeReal(t, "--std", std, "build", "--secret", "x=/nonexistent", "-o", out, file); code != 2 || !strings.Contains(errOut, "--secret") {
+	if code, errOut := clitest.ExecuteReal(t, "--std", std, "build", "--secret", "x=/nonexistent", "-o", out, file); code != 2 || !strings.Contains(errOut, "--secret") {
 		t.Fatalf("build --secret without build.kg: exit %d, stderr %q", code, errOut)
 	}
 }
@@ -61,7 +63,7 @@ func TestFmtCheckWriteMutuallyExclusive(t *testing.T) {
 	src := "let   x = 1\nprint x\n"
 	os.WriteFile(file, []byte(src), 0o644)
 
-	code, errOut := executeReal(t, "fmt", "--check", "-w", file)
+	code, errOut := clitest.ExecuteReal(t, "fmt", "--check", "-w", file)
 	if code != 2 || !strings.Contains(errOut, "--check") || !strings.Contains(errOut, "--write") {
 		t.Fatalf("fmt --check -w: exit %d, stderr %q", code, errOut)
 	}

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/spf13/cobra"
-
 	"kigumi/internal/base/errors"
 	"kigumi/internal/cli/exit"
 	"kigumi/internal/cli/session"
@@ -13,31 +11,33 @@ import (
 	"kigumi/internal/toolchain/policy"
 )
 
-func runProgram(cmd *cobra.Command, root string, flags []string, plan bool, outDir string, secretSpecs []string, reproducible bool, pol policy.BuildPolicy, form outputShape) error {
-	target, err := shared.Target(cmd)
+func runProgram(io session.IO, opts options) error {
+	s := opts.session
+	pol := s.Policy()
+	target, err := s.Target()
 	if err != nil {
-		return &cliutil.UsageError{Err: err}
+		return &exit.UsageError{Err: err}
 	}
-	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: shared.StdRoot(cmd), Policy: pol, ZigPath: shared.ZigPath(), VerifyPasses: shared.VerifyPasses(), Compiler: shared.CompilerOptions()})
+	p, ok, err := driver.LoadBuildProgram(opts.root, driver.LoadOptions{StdRoot: s.StdRoot(), Policy: pol, ZigPath: session.ZigPath(), VerifyPasses: session.VerifyPasses(), Compiler: session.CompilerOptions()})
 	if err != nil {
-		cmd.PrintErr(err.Error())
+		fmt.Fprint(io.Err, err.Error())
 		if !strings.HasSuffix(err.Error(), "\n") {
-			cmd.PrintErrln()
+			fmt.Fprintln(io.Err)
 		}
-		return cliutil.Exit(1)
+		return exit.Code(1)
 	}
 	if !ok {
-		return errors.NewErrf("%s has no %s", root, driver.BuildFileName)
+		return errors.NewErrf("%s has no %s", opts.root, driver.BuildFileName)
 	}
-	report := policy.Evaluate(p.Module.Violations, pol, shared.ReleaseViolations(cmd, true)...)
-	fmt.Fprint(cmd.ErrOrStderr(), report.Render())
+	report := policy.Evaluate(p.Module.Violations, pol, s.ReleaseViolations(true)...)
+	fmt.Fprint(io.Err, report.Render())
 	if report.HasErrors() {
-		return cliutil.Exit(1)
+		return exit.Code(1)
 	}
-	g, err := p.Run(target, flags, outDir)
+	g, err := p.Run(target, opts.extra, opts.outDir)
 	if err != nil {
-		cmd.PrintErrln(driver.BuildFileName + ": " + err.Error())
-		return cliutil.Exit(1)
+		fmt.Fprintln(io.Err, driver.BuildFileName+": "+err.Error())
+		return exit.Code(1)
 	}
 	roots, err := p.DescriptorRoots()
 	if err != nil {
@@ -47,36 +47,36 @@ func runProgram(cmd *cobra.Command, root string, flags []string, plan bool, outD
 	if err != nil {
 		return err
 	}
-	rg, err := driver.ResolveGraph(shared.CompilerOptions(), g, descriptors)
+	rg, err := driver.ResolveGraph(session.CompilerOptions(), g, descriptors)
 	if err != nil {
-		cmd.PrintErrln(driver.BuildFileName + ": " + err.Error())
-		return cliutil.Exit(1)
+		fmt.Fprintln(io.Err, driver.BuildFileName+": "+err.Error())
+		return exit.Code(1)
 	}
-	if plan {
-		fmt.Fprint(cmd.OutOrStdout(), driver.PlanJSON(rg, p))
+	if opts.plan {
+		fmt.Fprint(io.Out, driver.PlanJSON(rg, p))
 		return nil
 	}
 	secrets := map[string]string{}
-	for _, spec := range secretSpecs {
+	for _, spec := range opts.secrets {
 		name, path, ok := strings.Cut(spec, "=")
 		if !ok {
-			return &cliutil.UsageError{Err: errors.NewErrf("--secret takes name=file, not %q", spec)}
+			return &exit.UsageError{Err: errors.NewErrf("--secret takes name=file, not %q", spec)}
 		}
 		secrets[name] = path
 	}
 	for _, s := range rg.Graph.Secrets {
 		if _, ok := secrets[s.Name]; !ok {
-			if file := shared.SecretFile(s.Name); file != "" {
+			if file := session.SecretFile(s.Name); file != "" {
 				secrets[s.Name] = file
 			}
 		}
 	}
 	reports := map[string]driver.BuildReport{}
-	exec := driver.ExecOptions{Secrets: secrets, CFlags: shared.CFlags(), ToolEnv: shared.ToolEnv(), Reproducible: reproducible, Env: shared.CCEnv(), Link: form.link, SizeMin: form.sizeMin, Reports: reports}
-	if err := driver.ExecuteGraph(p, rg, outDir, exec, cmd.ErrOrStderr()); err != nil {
-		cmd.PrintErrln("build: " + err.Error())
-		return cliutil.Exit(1)
+	exec := driver.ExecOptions{Secrets: secrets, CFlags: session.CFlags(), ToolEnv: session.ToolEnv(), Reproducible: opts.reproducible, Env: session.CCEnv(), Link: opts.shape.link, SizeMin: opts.shape.sizeMin, Reports: reports}
+	if err := driver.ExecuteGraph(p, rg, opts.outDir, exec, io.Err); err != nil {
+		fmt.Fprintln(io.Err, "build: "+err.Error())
+		return exit.Code(1)
 	}
-	fmt.Fprint(cmd.ErrOrStderr(), buildSummary(cmd, p.Module, pol, reproducible, driver.ToolCapabilities(rg.Graph), reports).Render())
+	fmt.Fprint(io.Err, buildSummary(s, p.Module, pol, opts.reproducible, driver.ToolCapabilities(rg.Graph), reports).Render())
 	return nil
 }

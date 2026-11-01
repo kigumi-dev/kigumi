@@ -1,0 +1,21 @@
+Dump the syntax tree and parse diagnostics of one file
+
+Usage:
+  kigumi parse <file> [flags]
+
+Flags:
+  -h, --help   help for parse
+
+Global Flags:
+      --allocator allocator        default allocator profile: general or none (none rejects allocation outside allocator blocks)
+      --blocking-executor string   async/blocking execution-agent profile: hosted (default, warns on a direct-blocking operation reachable from an async body) or a strict profile that rejects it instead - isr, alloc-free-executor, single-thread-event-loop
+      --color string               color diagnostics: auto (a terminal without NO_COLOR), always, or never (default "auto")
+  -d, --debug                      print stack traces with internal errors
+      --no-local                   ignore mod.local.kg and resolve dependencies as users of the module would
+      --offline                    never fetch a pinned zig on demand; report a diagnostic instead
+      --profile string             allocation-failure profile: fatal-permitted (default) or recoverable-only (rejects any path that terminates on a refused allocation instead of returning it as a value)
+      --stack-budget-kib int       with --stack-profile strict, the available stack capacity in KiB a bounded entry must additionally fit under (default: no numeric budget)
+      --stack-profile string       stack policy: hosted-growable (default, reports the resource summary only) or strict (rejects an entry whose call chain is unbounded or unknown)
+      --std string                 directory holding the std stubs (default: $KIGUMI_STD, ./std, or next to the executable)
+      --sys string                 runtime system layer, posix or none (default: from the target)
+      --target string              target triple such as x86_64-linux-musl or x86_64-freestanding (default: the host)

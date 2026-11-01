@@ -1,4 +1,4 @@
-package shared_test
+package session_test
 
 import (
 	"os"
@@ -6,34 +6,31 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/spf13/cobra"
-
 	"kigumi/internal/cli/session"
 )
 
 // TestEmbeddedStdHashDistinguishesPathContentBoundary checks that two trees whose raw path||content bytes would collide still hash to different values.
 func TestEmbeddedStdHashDistinguishesPathContentBoundary(t *testing.T) {
-	cmd := &cobra.Command{}
-	cmd.Flags().String("std", "", "")
+	var s session.Session
 
 	t.Chdir(t.TempDir())
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
 	t.Setenv("KIGUMI_STD", "")
-	shared.SetEmbeddedStd(fstest.MapFS{
+	session.SetEmbeddedStd(fstest.MapFS{
 		"std/prelude/ab": {Data: []byte("c")},
 	}, "std")
-	rootA := shared.StdRoot(cmd)
+	rootA := s.StdRoot()
 	if rootA == "" {
 		t.Fatal("no std root for tree A")
 	}
 
 	t.Chdir(t.TempDir())
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
-	shared.SetEmbeddedStd(fstest.MapFS{
+	session.SetEmbeddedStd(fstest.MapFS{
 		"std/prelude/a": {Data: []byte("bc")},
 	}, "std")
-	defer shared.SetEmbeddedStd(fstest.MapFS{}, ".")
-	rootB := shared.StdRoot(cmd)
+	defer session.SetEmbeddedStd(fstest.MapFS{}, ".")
+	rootB := s.StdRoot()
 	if rootB == "" {
 		t.Fatal("no std root for tree B")
 	}
@@ -45,16 +42,15 @@ func TestEmbeddedStdHashDistinguishesPathContentBoundary(t *testing.T) {
 
 // TestEmbeddedStdNeverDeletesLiveDirectory checks that publishing over a stale cache entry never leaves the directory missing, even momentarily.
 func TestEmbeddedStdNeverDeletesLiveDirectory(t *testing.T) {
+	var s session.Session
 	t.Chdir(t.TempDir())
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
 	t.Setenv("KIGUMI_STD", "")
-	shared.SetEmbeddedStd(fstest.MapFS{
+	session.SetEmbeddedStd(fstest.MapFS{
 		"std/prelude/prelude.kg": {Data: []byte("pub type Ordering = Less | Equal | Greater\n")},
 	}, "std")
-	defer shared.SetEmbeddedStd(fstest.MapFS{}, ".")
-	cmd := &cobra.Command{}
-	cmd.Flags().String("std", "", "")
-	root := shared.StdRoot(cmd)
+	defer session.SetEmbeddedStd(fstest.MapFS{}, ".")
+	root := s.StdRoot()
 	if root == "" {
 		t.Fatal("no std root from the embedded copy")
 	}
@@ -71,7 +67,7 @@ func TestEmbeddedStdNeverDeletesLiveDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	again := shared.StdRoot(cmd)
+	again := s.StdRoot()
 	if again != root {
 		t.Fatalf("lookup after poisoning %q, want the same path %q", again, root)
 	}

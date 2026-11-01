@@ -1,4 +1,4 @@
-package shared
+package session
 
 import (
 	"os"
@@ -8,31 +8,22 @@ import (
 	"kigumi/internal/toolchain/policy"
 )
 
-// ReleaseFlag adds --release to cmd; Policy reads it back.
+// ReleaseFlag adds --release to cmd; Session.Policy reads it back.
 func ReleaseFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool("release", false, "require a locked, hash-verified dependency tree and reject mod.local.kg and ambient environment overrides")
 }
 
-// Policy is the only place a bool decides between the two build policies;
-// everything downstream reads BuildPolicy's fields instead.
-func Policy(cmd *cobra.Command) policy.BuildPolicy {
-	if release, _ := cmd.Flags().GetBool("release"); release {
+// Policy is the only place a bool decides between the two build policies; everything downstream reads BuildPolicy's fields.
+func (s Session) Policy() policy.BuildPolicy {
+	if s.Release {
 		return policy.Release()
 	}
 	return policy.Development()
 }
 
-// Offline reports --offline: stop a pinned zig build from fetching the pin
-// on demand, reporting a diagnostic instead.
-func Offline(cmd *cobra.Command) bool {
-	v, _ := cmd.Flags().GetBool("offline")
-	return v
-}
-
-// AmbientStd reports $KIGUMI_STD when --std did not pin the std root
-// instead; env reads stay in this package, never in internal/toolchain/driver.
-func AmbientStd(cmd *cobra.Command) (path string, ambient bool) {
-	if std, _ := cmd.Flags().GetString("std"); std != "" {
+// AmbientStd reports $KIGUMI_STD when --std did not pin the std root.
+func (s Session) AmbientStd() (path string, ambient bool) {
+	if s.Std != "" {
 		return "", false
 	}
 	if env := os.Getenv("KIGUMI_STD"); env != "" {
@@ -41,18 +32,16 @@ func AmbientStd(cmd *cobra.Command) (path string, ambient bool) {
 	return "", false
 }
 
-// AmbientCFlags reports KIGUMI_CFLAGS: there is no --cflags flag, so any
-// extra compiler/linker flag in effect today is always ambient.
+// AmbientCFlags reports KIGUMI_CFLAGS; with no --cflags flag, any extra compiler or linker flag is ambient.
 func AmbientCFlags() (flags []string, ambient bool) {
 	f := CFlags()
 	return f, len(f) > 0
 }
 
-// ReleaseViolations collects the ambient-environment violations only the
-// CLI can see, for EvaluateRelease's extra argument.
-func ReleaseViolations(cmd *cobra.Command, includeCFlags bool) []policy.Violation {
+// ReleaseViolations collects the ambient-environment violations only the CLI can see, for policy.Evaluate's extra argument.
+func (s Session) ReleaseViolations(includeCFlags bool) []policy.Violation {
 	var vs []policy.Violation
-	if path, ambient := AmbientStd(cmd); ambient {
+	if path, ambient := s.AmbientStd(); ambient {
 		vs = append(vs, policy.AmbientStdViolation(path))
 	}
 	if includeCFlags {

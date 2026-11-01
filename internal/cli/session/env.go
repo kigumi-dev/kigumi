@@ -1,4 +1,4 @@
-package shared
+package session
 
 import (
 	"fmt"
@@ -8,9 +8,6 @@ import (
 
 	"kigumi/internal/toolchain/driver"
 )
-
-// The KIGUMI_* variables are read here, once, and handed to the compiler
-// packages as explicit options.
 
 // CFlags returns the extra C compiler and linker arguments of KIGUMI_CFLAGS.
 func CFlags() []string { return strings.Fields(os.Getenv("KIGUMI_CFLAGS")) }
@@ -43,8 +40,7 @@ func VerifyPasses() bool { return os.Getenv("KIGUMI_VERIFY") == "all" }
 // ZigPath returns KIGUMI_ZIG, an explicit zig binary resolved before PATH.
 func ZigPath() string { return os.Getenv("KIGUMI_ZIG") }
 
-// ZigHome is KIGUMI_ZIG_HOME, else $XDG_DATA_HOME/kigumi/zig; "" defers to
-// zigtool/store.Root's own default.
+// ZigHome is KIGUMI_ZIG_HOME, else $XDG_DATA_HOME/kigumi/zig; "" defers to the store's own default.
 func ZigHome() string {
 	if home := os.Getenv("KIGUMI_ZIG_HOME"); home != "" {
 		return home
@@ -55,14 +51,11 @@ func ZigHome() string {
 	return ""
 }
 
-// ZigStoreRoot is the managed zig store's directory, ZigHome resolved
-// against zigtool/store's default.
+// ZigStoreRoot is the managed zig store's directory, ZigHome resolved against the store's default.
 func ZigStoreRoot() (string, error) { return CompilerOptions().ZigStoreRoot(ZigHome()) }
 
-// Color decides whether output to f gets ANSI colors: --color always or
-// never settle it, otherwise NO_COLOR (no-color.org) turns it off,
-// CLICOLOR_FORCE turns it on, and a dumb terminal or a non-terminal
-// stays plain. mode must be "", "auto", "always", or "never".
+// Color decides ANSI colors for f: --color always/never settle it, else NO_COLOR turns it off, CLICOLOR_FORCE on,
+// and a dumb terminal or a non-terminal stays plain.
 func Color(mode string, f *os.File) (bool, error) {
 	switch mode {
 	case "", "auto":
@@ -89,8 +82,7 @@ func Color(mode string, f *os.File) (bool, error) {
 // SecretFile returns the file named by KIGUMI_SECRET_<name>, or "".
 func SecretFile(name string) string { return os.Getenv("KIGUMI_SECRET_" + name) }
 
-// ToolEnv is the allowlisted environment a build.kg tool process gets:
-// PATH, the locale and the temp directory, never the rest.
+// ToolEnv is the allowlisted environment a build.kg tool process gets: PATH, the locale and the temp directory.
 func ToolEnv() []string {
 	var env []string
 	for _, name := range []string{"PATH", "LANG", "LC_ALL", "LC_CTYPE", "TMPDIR", "TEMP", "TMP", "SYSTEMROOT"} {
@@ -101,8 +93,5 @@ func ToolEnv() []string {
 	return env
 }
 
-// CCEnv is the allowlisted environment a build's C compiler/archiver
-// subprocess gets when --reproducible pins its own isolated compiler
-// cache: internal/toolchain/driver may not read the ambient environment itself
-// so it starts from this instead of os.Environ().
+// CCEnv is the allowlisted environment of a --reproducible build's C compiler, which may not inherit os.Environ.
 func CCEnv() []string { return ToolEnv() }

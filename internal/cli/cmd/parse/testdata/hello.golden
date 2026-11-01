@@ -1,0 +1,6 @@
+File
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "Hello, Kigumi!"

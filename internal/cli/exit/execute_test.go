@@ -1,4 +1,4 @@
-package cliutil_test
+package exit_test
 
 import (
 	"io"
@@ -27,14 +27,14 @@ func TestExecuteExitCodes(t *testing.T) {
 	}{
 		{"ok", nil, func() error { return nil }, 0},
 		{"failure", nil, func() error { return errors.NewErr("boom") }, 1},
-		{"exit", nil, func() error { return cliutil.Exit(3) }, 3},
+		{"exit", nil, func() error { return exit.Code(3) }, 3},
 		{"usage", []string{"--unknown"}, func() error { return nil }, 2},
-		{"panic", nil, func() error { panic("boom") }, cliutil.InternalErrorExit},
+		{"panic", nil, func() error { panic("boom") }, exit.Internal},
 	}
 	for _, c := range cases {
 		root := command(c.run)
 		root.SetArgs(c.args)
-		if got := cliutil.Execute(root, nil); got != c.want {
+		if got := exit.Execute(root, nil); got != c.want {
 			t.Errorf("%s: exit %d, want %d", c.name, got, c.want)
 		}
 	}

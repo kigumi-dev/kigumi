@@ -2,29 +2,26 @@ package get
 
 import (
 	stderrors "errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/spf13/cobra"
 
 	"kigumi/internal/base/errors"
 	"kigumi/internal/cli/session"
 	"kigumi/internal/toolchain/driver"
 )
 
-// originFile keeps the commit a cache entry was cloned from; the .git
-// directory itself is removed to keep the cache small.
+// originFile keeps the commit a cache entry was cloned from; the .git directory is removed to keep the cache small.
 const originFile = driver.OriginFileName
 
 type fetcher struct {
-	cmd    *cobra.Command
+	io     session.IO
 	update bool
 	// lock is what the lock file said before; next is what it will say.
 	lock, next driver.Lock
 	local      driver.Local
-	// after collects each resolved dependency's native declarations, for
-	// the native consent diff against snapshotNative's before.
+	// after collects each resolved dependency's native declarations for the consent diff against snapshotNative.
 	after map[string]driver.ModFile
 }
 
@@ -33,7 +30,7 @@ func (f *fetcher) module(mf driver.ModFile) error {
 	var sel *driver.Selection
 	for {
 		var err error
-		sel, err = driver.SelectVersions(shared.CompilerOptions(), mf, f.local)
+		sel, err = driver.SelectVersions(session.CompilerOptions(), mf, f.local)
 		if err == nil {
 			break
 		}
@@ -41,7 +38,7 @@ func (f *fetcher) module(mf driver.ModFile) error {
 		if !stderrors.As(err, &missing) {
 			return err
 		}
-		dir, _, err := driver.DepDir(shared.CompilerOptions(), f.local, missing.Require, true)
+		dir, _, err := driver.DepDir(session.CompilerOptions(), f.local, missing.Require, true)
 		if err != nil {
 			return err
 		}
@@ -51,12 +48,12 @@ func (f *fetcher) module(mf driver.ModFile) error {
 	}
 	for _, name := range sel.Names() {
 		r := sel.Requires[name]
-		dir, missing, err := driver.DepDir(shared.CompilerOptions(), f.local, r, true)
+		dir, missing, err := driver.DepDir(session.CompilerOptions(), f.local, r, true)
 		if err != nil {
 			return errors.WrapErr(err, "resolve dependency")
 		}
 		if _, replaced := f.local.Replaces[r.Name]; replaced {
-			f.cmd.Printf("%s %s: %s (replace)\n", r.Name, r.Version, dir)
+			fmt.Fprintf(f.io.Msg, "%s %s: %s (replace)\n", r.Name, r.Version, dir)
 		} else if err := f.cached(r, dir, missing); err != nil {
 			return err
 		}
@@ -69,22 +66,21 @@ func (f *fetcher) module(mf driver.ModFile) error {
 	return nil
 }
 
-// native lists what a dependency adds to the link line, so the root sees
-// what it is trusting, and records it for the before/after consent diff.
+// native lists what a dependency adds to the link line, so the root sees what it trusts, and records it for the diff.
 func (f *fetcher) native(name string, mf driver.ModFile) {
 	if f.after != nil {
 		f.after[name] = mf
 	}
 	for _, l := range mf.Links {
 		if l.Library != "" {
-			f.cmd.Printf("  %s links -l%s\n", name, l.Library)
+			fmt.Fprintf(f.io.Msg, "  %s links -l%s\n", name, l.Library)
 		}
 		if l.Search != "" {
-			f.cmd.Printf("  %s adds search path %s\n", name, l.Search)
+			fmt.Fprintf(f.io.Msg, "  %s adds search path %s\n", name, l.Search)
 		}
 	}
 	for _, s := range mf.Sources {
-		f.cmd.Printf("  %s compiles %s\n", name, s.Path)
+		fmt.Fprintf(f.io.Msg, "  %s compiles %s\n", name, s.Path)
 	}
 }
 
@@ -99,7 +95,7 @@ func (f *fetcher) cached(r driver.Require, dir string, missing bool) error {
 		return errors.NewErrf("%s %s is now fetched from %s but the lock recorded %s; run `kigumi get -u` to accept the new source", r.Name, r.Version, want, prev.URL)
 	}
 	if missing {
-		rawCommit, err := clone(f.cmd, r, dir)
+		rawCommit, err := clone(f.io, r, dir)
 		if err != nil {
 			return err
 		}
@@ -108,22 +104,22 @@ func (f *fetcher) cached(r driver.Require, dir string, missing bool) error {
 			os.RemoveAll(dir)
 			return errors.NewErrf("%s %s now points at %s but the lock recorded %s; run `kigumi get -u` to accept the new commit", r.Name, r.Version, short(commit), short(prev.Commit))
 		}
-		f.cmd.Printf("%s %s: fetched into %s\n", r.Name, r.Version, dir)
+		fmt.Fprintf(f.io.Msg, "%s %s: fetched into %s\n", r.Name, r.Version, dir)
 	} else if f.update && locked && !driver.IsCommitHash(r.Version) {
 		remote, err := remoteTagCommit(r)
 		if err != nil {
 			return errors.WrapErrf(err, "%s %s: check the remote tag", r.Name, r.Version)
 		}
 		if driver.TagCommit(remote) == driver.NormalizeCommit(prev.Commit) {
-			f.cmd.Printf("%s %s: %s (up to date)\n", r.Name, r.Version, dir)
-		} else if newCommit, err := refetch(f.cmd, r, dir); err != nil {
+			fmt.Fprintf(f.io.Msg, "%s %s: %s (up to date)\n", r.Name, r.Version, dir)
+		} else if newCommit, err := refetch(f.io, r, dir); err != nil {
 			return err
 		} else {
-			f.cmd.Printf("%s %s: moved from %s to %s; refetched into %s\n", r.Name, r.Version, short(prev.Commit), short(newCommit), dir)
+			fmt.Fprintf(f.io.Msg, "%s %s: moved from %s to %s; refetched into %s\n", r.Name, r.Version, short(prev.Commit), short(newCommit), dir)
 			missing = true
 		}
 	} else {
-		f.cmd.Printf("%s %s: %s\n", r.Name, r.Version, dir)
+		fmt.Fprintf(f.io.Msg, "%s %s: %s\n", r.Name, r.Version, dir)
 	}
 	hash, err := driver.TreeHash(dir)
 	if err != nil {

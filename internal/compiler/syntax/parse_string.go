@@ -38,12 +38,12 @@ type interpInfo struct {
 }
 
 // scanOps counts bytes visited across interpolationRanges, matchBrace and
-// skipString; interp_perf_test.go asserts deep nesting scans linearly,
+// skipString; interp_perf_internal_test.go asserts deep nesting scans linearly,
 // without timing wall-clock.
 var scanOps atomic.Int64
 
 // utf8ValidBytes counts bytes passed to utf8.Valid by lexString;
-// interp_perf_test.go asserts it grows with source size, not size*depth,
+// interp_perf_internal_test.go asserts it grows with source size, not size*depth,
 // since a hint hit skips the recheck (see lexString).
 var utf8ValidBytes atomic.Int64
 

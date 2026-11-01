@@ -1,11 +1,8 @@
-// Package doctor implements `kigumi doctor`: a read-only report of what the CLI resolved and where each value came from.
 package doctor
 
 import (
 	"fmt"
 	"os"
-
-	"github.com/spf13/cobra"
 
 	"kigumi/internal/cli/session"
 	"kigumi/internal/toolchain/driver"
@@ -13,21 +10,21 @@ import (
 	"kigumi/internal/toolchain/zig"
 )
 
-// Field is one resolved value, its source, and whether it is usable.
-type Field struct {
+// field is one resolved value, its source, and whether it is usable.
+type field struct {
 	Value  string `json:"value"`
 	Source string `json:"source"`
 	Status string `json:"status"`
 }
 
-// Report is the full doctor snapshot.
-type Report struct {
+// report is the full doctor snapshot.
+type report struct {
 	version.Provenance
-	Std       Field `json:"std"`
-	Target    Field `json:"target"`
-	CCompiler Field `json:"cCompiler"`
-	Zig       Field `json:"zig"`
-	ModCache  Field `json:"modCache"`
+	Std       field `json:"std"`
+	Target    field `json:"target"`
+	CCompiler field `json:"cCompiler"`
+	Zig       field `json:"zig"`
+	ModCache  field `json:"modCache"`
 	Formats   struct {
 		Schema    int `json:"schema"`
 		ModJSON   int `json:"modJson"`
@@ -36,11 +33,11 @@ type Report struct {
 	} `json:"formatVersions"`
 }
 
-// Build resolves cmd's flags and the host environment into a Report.
-func Build(cmd *cobra.Command) Report {
-	r := Report{Provenance: version.Current()}
-	r.Std = stdField(cmd)
-	r.Target = targetField(cmd)
+// buildReport resolves the session and the host environment into a report.
+func buildReport(s session.Session) report {
+	r := report{Provenance: version.Current()}
+	r.Std = stdField(s)
+	r.Target = targetField(s)
 	r.CCompiler = ccompilerField()
 	r.Zig = zigField()
 	r.ModCache = modCacheField()
@@ -51,70 +48,70 @@ func Build(cmd *cobra.Command) Report {
 	return r
 }
 
-func stdField(cmd *cobra.Command) Field {
-	path := shared.StdRoot(cmd)
+func stdField(s session.Session) field {
+	path := s.StdRoot()
 	source := "default (embedded copy, or a std/ directory found near the executable or working directory)"
-	if flag, _ := cmd.Flags().GetString("std"); flag != "" {
+	if s.Std != "" {
 		source = "--std"
-	} else if _, ambient := shared.AmbientStd(cmd); ambient {
+	} else if _, ambient := s.AmbientStd(); ambient {
 		source = "$KIGUMI_STD"
 	}
-	return Field{Value: path, Source: source, Status: "ok"}
+	return field{Value: path, Source: source, Status: "ok"}
 }
 
-func targetField(cmd *cobra.Command) Field {
-	t, err := shared.Target(cmd)
+func targetField(s session.Session) field {
+	t, err := s.Target()
 	if err != nil {
-		return Field{Status: "invalid", Source: "--target/--sys/--allocator/--profile/--stack-profile"}
+		return field{Status: "invalid", Source: "--target/--sys/--allocator/--profile/--stack-profile"}
 	}
-	if triple, _ := cmd.Flags().GetString("target"); triple != "" {
-		return Field{Value: t.Triple, Source: "--target", Status: "ok"}
+	if s.Triple != "" {
+		return field{Value: t.Triple, Source: "--target", Status: "ok"}
 	}
-	return Field{Value: t.OS + "/" + t.Arch, Source: "host default", Status: "ok"}
+	return field{Value: t.OS + "/" + t.Arch, Source: "host default", Status: "ok"}
 }
 
-func ccompilerField() Field {
-	argv := shared.CompilerOptions().CCompiler()
+func ccompilerField() field {
+	argv := session.CompilerOptions().CCompiler()
 	if len(argv) == 0 {
-		return Field{Source: "PATH (zig cc, then clang)", Status: "missing"}
+		return field{Source: "PATH (zig cc, then clang)", Status: "missing"}
 	}
 	name := argv[0]
 	if len(argv) > 1 {
 		name += " " + argv[1]
 	}
-	return Field{Value: name, Source: "PATH (zig cc, then clang)", Status: "ok"}
+	return field{Value: name, Source: "PATH (zig cc, then clang)", Status: "ok"}
 }
 
 // zigField reads mod.kg directly; no std root is available here to load a full module.
-func zigField() Field {
+func zigField() field {
 	mf, _, _ := driver.ReadModFile(".")
-	root, err := shared.ZigStoreRoot()
+	root, err := session.ZigStoreRoot()
 	if err != nil {
 		root = ""
 	}
-	r := zigtool.ForModule(shared.CompilerOptions().ToolLookup(), root, shared.ZigPath(), mf.Zig)
+	r := zigtool.ForModule(session.CompilerOptions().ToolLookup(), root, session.ZigPath(), mf.Zig)
 	switch {
 	case r.Path == "":
 		status := "missing"
 		if mf.Zig == "" {
-			return Field{Source: r.Source, Status: status}
+			return field{Source: r.Source, Status: status}
 		}
-		return Field{Value: fmt.Sprintf("pin %s not resolved: %s", mf.Zig, r.Err), Source: r.Source, Status: status}
+		return field{Value: fmt.Sprintf("pin %s not resolved: %s", mf.Zig, r.Err), Source: r.Source, Status: status}
 	case mf.Zig == "":
-		return Field{Value: r.Path, Source: r.Source, Status: "ok"}
+		return field{Value: r.Path, Source: r.Source, Status: "ok"}
 	case r.Mismatch:
-		return Field{Value: fmt.Sprintf("%s (%s, pin %s not satisfied)", r.Path, r.Version, mf.Zig), Source: r.Source, Status: "mismatch"}
+		return field{Value: fmt.Sprintf("%s (%s, pin %s not satisfied)", r.Path, r.Version, mf.Zig), Source: r.Source, Status: "mismatch"}
 	case r.Err != nil:
-		return Field{Value: fmt.Sprintf("%s (version unknown: %s; pin %s)", r.Path, r.Err, mf.Zig), Source: r.Source, Status: "unknown"}
+		return field{Value: fmt.Sprintf("%s (version unknown: %s; pin %s)", r.Path, r.Err, mf.Zig), Source: r.Source, Status: "unknown"}
 	default:
-		return Field{Value: fmt.Sprintf("%s (%s, satisfies pin %s)", r.Path, r.Version, mf.Zig), Source: r.Source, Status: "ok"}
+		return field{Value: fmt.Sprintf("%s (%s, satisfies pin %s)", r.Path, r.Version, mf.Zig), Source: r.Source, Status: "ok"}
 	}
 }
 
-func modCacheField() Field {
+func modCacheField() field {
 	dir, err := os.UserCacheDir()
 	if err != nil {
-		return Field{Status: "unknown", Source: "os.UserCacheDir"}
+		return field{Status: "unknown", Source: "os.UserCacheDir"}
 	}
-	return Field{Value: dir + "/kigumi/mod", Source: "os.UserCacheDir()/kigumi/mod (no override today)", Status: "ok"}
+	return field{Value: dir + "/kigumi/mod", Source: "os.UserCacheDir()/kigumi/mod (no override today)", Status: "ok"}
 }

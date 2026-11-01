@@ -6,11 +6,9 @@ import (
 	"github.com/spf13/cobra"
 
 	"kigumi/internal/cli/session"
-	"kigumi/internal/toolchain/driver"
 )
 
-// Cmd builds the `kigumi zig` command tree.
-func Cmd() *cobra.Command {
+func New() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "zig",
 		Short: "Manage the zig toolchains kigumi downloads, builds and runs builds with",
@@ -20,20 +18,41 @@ func Cmd() *cobra.Command {
 	return cmd
 }
 
-// storeRoot resolves the managed store's directory: --zig-home, else shared.ZigStoreRoot's default.
-func storeRoot(cmd *cobra.Command) (string, error) {
-	if home, _ := cmd.Flags().GetString("zig-home"); home != "" {
-		return shared.CompilerOptions().ZigStoreRoot(home)
+func installCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "install [version]",
+		Short: "Download (or, with --source, build) a zig version into the managed store",
+		Args:  cobra.MaximumNArgs(1),
+		RunE:  session.RunE(parseOptions, runInstall),
 	}
-	return shared.ZigStoreRoot()
+	cmd.Flags().String("source", "", "build from a git url or local checkout, optionally @ref, instead of downloading a release")
+	cmd.Flags().String("base-url", "", "override ziglang.org/download/index.json (a mirror, or a test server)")
+	return cmd
 }
 
-// modulePin is the zig version the module in the working directory pins,
-// or "" when there is none (no mod.kg, or an unpinned one).
-func modulePin() string {
-	mf, _, err := driver.ReadModFile(".")
-	if err != nil {
-		return ""
+func listCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "list",
+		Short: "List the zig versions installed in the managed store",
+		Args:  cobra.NoArgs,
+		RunE:  session.RunE(parseOptions, runList),
 	}
-	return mf.Zig
+}
+
+func removeCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "remove <version>",
+		Short: "Remove an installed zig version from the managed store",
+		Args:  cobra.ExactArgs(1),
+		RunE:  session.RunE(parseOptions, runRemove),
+	}
+}
+
+func whichCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "which",
+		Short: "Print the zig a native build here would use, and why",
+		Args:  cobra.NoArgs,
+		RunE:  session.RunE(parseOptions, runWhich),
+	}
 }

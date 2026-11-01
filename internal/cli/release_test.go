@@ -4,6 +4,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"kigumi/internal/cli/clitest"
 )
 
 // TestCheckReleasePolicy checks that a mod.local.kg-resolved dependency warns
@@ -12,7 +14,7 @@ func TestCheckReleasePolicy(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	dependency, _ := filepath.Abs("../../examples/dependency")
 
-	code, _, errOut := execute(t, "--std", std, "check", dependency)
+	code, _, errOut := clitest.Execute(t, "--std", std, "check", dependency)
 	if code != 0 {
 		t.Fatalf("development check: exit %d, stderr %q", code, errOut)
 	}
@@ -20,7 +22,7 @@ func TestCheckReleasePolicy(t *testing.T) {
 		t.Fatalf("development check: want a release-local-replace warning, got %q", errOut)
 	}
 
-	code, errOut = executeReal(t, "--std", std, "check", "--release", dependency)
+	code, errOut = clitest.ExecuteReal(t, "--std", std, "check", "--release", dependency)
 	if code != 1 {
 		t.Fatalf("release check: exit %d, stderr %q", code, errOut)
 	}
@@ -35,7 +37,7 @@ func TestBuildReleaseEmitLLVM(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	hello, _ := filepath.Abs("../../examples/hello/main.kg")
 
-	code, out, errOut := execute(t, "--std", std, "build", "--release", "--emit-llvm", hello)
+	code, out, errOut := clitest.Execute(t, "--std", std, "build", "--release", "--emit-llvm", hello)
 	if code != 0 {
 		t.Fatalf("exit %d, stderr %q", code, errOut)
 	}
@@ -53,7 +55,7 @@ func TestBuildReleaseRejectsLocalReplace(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	dependency, _ := filepath.Abs("../../examples/dependency")
 
-	code, errOut := executeReal(t, "--std", std, "build", "--release", "--emit-llvm", dependency)
+	code, errOut := clitest.ExecuteReal(t, "--std", std, "build", "--release", "--emit-llvm", dependency)
 	if code != 1 {
 		t.Fatalf("exit %d, stderr %q", code, errOut)
 	}

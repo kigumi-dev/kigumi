@@ -1,4 +1,4 @@
-package shared
+package session
 
 import (
 	"crypto/sha256"

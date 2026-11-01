@@ -3,22 +3,20 @@ package build
 import (
 	"strings"
 
-	"github.com/spf13/cobra"
-
 	"kigumi/internal/cli/session"
 	"kigumi/internal/toolchain/contract/schema"
 	"kigumi/internal/toolchain/driver"
 	"kigumi/internal/toolchain/policy"
 )
 
-func buildSummary(cmd *cobra.Command, m *driver.Module, pol policy.BuildPolicy, reproducible bool, tools []string, reports map[string]driver.BuildReport) driver.Summary {
+func buildSummary(s session.Session, m *driver.Module, pol policy.BuildPolicy, reproducible bool, tools []string, reports map[string]driver.BuildReport) driver.Summary {
 	var inputs []string
-	if path, ambient := shared.AmbientStd(cmd); ambient {
+	if path, ambient := s.AmbientStd(); ambient {
 		inputs = append(inputs, "std: "+path+" (from $KIGUMI_STD)")
 	} else {
-		inputs = append(inputs, "std: "+shared.StdRoot(cmd))
+		inputs = append(inputs, "std: "+s.StdRoot())
 	}
-	if flags, ambient := shared.AmbientCFlags(); ambient {
+	if flags, ambient := session.AmbientCFlags(); ambient {
 		inputs = append(inputs, "cflags: "+strings.Join(flags, " ")+" (from $KIGUMI_CFLAGS)")
 	}
 	var provenance []schema.GeneratedArtifact

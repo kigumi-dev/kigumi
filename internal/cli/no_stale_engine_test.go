@@ -6,11 +6,13 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"kigumi/internal/cli/clitest"
 )
 
 func TestNoStaleEngineGuidance(t *testing.T) {
 	for _, args := range [][]string{{"--help"}, {"run", "--help"}, {"test", "--help"}, {"build", "--help"}} {
-		_, out, errOut := execute(t, args...)
+		_, out, errOut := clitest.Execute(t, args...)
 		if s := out + errOut; strings.Contains(s, "--engine") || strings.Contains(s, "interp") {
 			t.Errorf("%v mentions a removed engine:\n%s", args, s)
 		}

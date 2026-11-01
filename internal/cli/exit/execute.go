@@ -1,6 +1,5 @@
-// Package cliutil holds the small helpers every command shares: running
-// the root command, mapping errors to exit codes, and rendering errors.
-package cliutil
+// Package exit owns the process boundary: it runs the root command, maps errors to exit codes and renders them.
+package exit
 
 import (
 	"fmt"
@@ -19,23 +18,17 @@ type UsageError struct{ Err error }
 func (e *UsageError) Error() string { return e.Err.Error() }
 func (e *UsageError) Unwrap() error { return e.Err }
 
-// ExitError ends the process with a code after the command has already
-// reported everything it wanted to (diagnostics, program output).
-type ExitError struct{ Code int }
+// Error ends the process with Code after the command has reported everything itself.
+type Error struct{ Code int }
 
-func (e *ExitError) Error() string { return fmt.Sprintf("exit status %d", e.Code) }
+func (e *Error) Error() string { return fmt.Sprintf("exit status %d", e.Code) }
 
-func Exit(code int) error { return &ExitError{Code: code} }
+func Code(code int) error { return &Error{Code: code} }
 
-// InternalErrorExit is the exit code for a panic that escaped a command's
-// RunE (a compiler bug, not a usage mistake): kept apart from 2 so a
-// caller can tell "bad invocation" from "the toolchain itself crashed".
-const InternalErrorExit = 70
+// Internal is the exit code of a panic escaping a command, kept apart from 2 so a crash never reads as a usage mistake.
+const Internal = 70
 
-// Execute runs root and returns the process exit code: 0 on success, 2
-// for usage errors, the requested code for ExitError, InternalErrorExit
-// for an unrecovered panic, 1 otherwise. Other errors are printed to
-// stderr, with their stack trace when debug is on.
+// Execute runs root and returns 0, 2 for a usage error, Error's code, Internal for a panic, or 1 after printing the error.
 func Execute(root *cobra.Command, debug func() bool) (code int) {
 	root.SetFlagErrorFunc(func(_ *cobra.Command, err error) error { return &UsageError{Err: err} })
 	markUsageErrors(root)
@@ -45,14 +38,14 @@ func Execute(root *cobra.Command, debug func() bool) (code int) {
 			if debug != nil && debug() {
 				os.Stderr.Write(rtdebug.Stack())
 			}
-			code = InternalErrorExit
+			code = Internal
 		}
 	}()
 	err := root.Execute()
 	if err == nil {
 		return 0
 	}
-	var exit *ExitError
+	var exit *Error
 	if errors.As(err, &exit) {
 		return exit.Code
 	}
@@ -65,8 +58,7 @@ func Execute(root *cobra.Command, debug func() bool) (code int) {
 	return 1
 }
 
-// markUsageErrors makes positional-argument validation failures usage
-// errors too, on every command of the tree.
+// markUsageErrors makes positional-argument validation failures usage errors on every command of the tree.
 func markUsageErrors(cmd *cobra.Command) {
 	if validate := cmd.Args; validate != nil {
 		cmd.Args = func(c *cobra.Command, args []string) error {
