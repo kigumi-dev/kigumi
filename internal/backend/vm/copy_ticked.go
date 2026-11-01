@@ -1,8 +1,6 @@
 package vm
 
 import (
-	"sync/atomic"
-
 	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 )
@@ -71,8 +69,9 @@ func (m *Machine) ticks(n int) bool {
 	return false
 }
 
+// Unlike rt_copy, no immortal shortcut: an immortal aggregate here is a static, which native builds as an ordinary object.
 func (c copier) value(v *obj) (*obj, bool) {
-	if v == nil || atomic.LoadInt32(&v.rc) < 0 {
+	if v == nil {
 		return v, true
 	}
 	m := c.m

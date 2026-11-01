@@ -54,13 +54,17 @@ func leafTicks(fs []*obj) int {
 func scalarBoxes(v *obj) bool {
 	switch v.k {
 	case kInt:
-		return uint64(v.i-internMin) >= internN || internSlot(v.nkind()) < 0
+		return intBoxes(v.i, v.nkind())
 	case kFloat:
 		return true
 	case kChar:
 		return v.ch() >= 128
 	}
 	return false
+}
+
+func intBoxes(i int64, nk int) bool {
+	return uint64(i-internMin) >= internN || internSlot(nk) < 0
 }
 
 func (m *Machine) scalarTick(v *obj) {
