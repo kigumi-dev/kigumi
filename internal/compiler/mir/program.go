@@ -1,3 +1,4 @@
+// Package mir holds the lowered program and the whole-program passes over it.
 package mir
 
 import (

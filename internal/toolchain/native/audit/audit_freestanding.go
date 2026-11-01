@@ -48,8 +48,8 @@ func Archive(o buildconfig.CompilerOptions, ar []string, archive, name string, a
 		allSyms = append(allSyms, syms...)
 	}
 	permitted := make(map[string]bool, len(allowed)+len(embedder))
-	for name, value := range allowed {
-		permitted[name] = value
+	for sym, value := range allowed {
+		permitted[sym] = value
 	}
 	for _, s := range embedder {
 		permitted[s] = true

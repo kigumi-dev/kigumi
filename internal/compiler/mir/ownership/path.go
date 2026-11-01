@@ -60,7 +60,7 @@ func StepsMeet(a, b int) bool {
 	return a == b || a == AnyElem && (eb || b == AnyElem) || b == AnyElem && ea
 }
 
-// under puts the step of read in in front of p; an index (unless def finds a constant one) or unbox cuts the path.
+// Under puts the step of read in in front of p; an index (unless def finds a constant one) or unbox cuts the path.
 func (p Path) Under(in *midir.Inst, exact bool, def func(midir.LocalID) *midir.Inst) (Path, bool) {
 	if in.Op == midir.OpIndex && def == nil || in.Op == midir.OpUnbox {
 		return nil, false

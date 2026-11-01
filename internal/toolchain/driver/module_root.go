@@ -8,7 +8,7 @@ import (
 	buildconfig "kigumi/internal/toolchain/config"
 )
 
-// resolveRoot keeps a relative root as given when it names the same directory under Cwd, so process-cwd callers see unchanged paths.
+// resolveModuleRoot keeps a relative root as given when it names the same directory under Cwd, so process-cwd callers see unchanged paths.
 func resolveModuleRoot(o buildconfig.CompilerOptions, root string) (string, error) {
 	if filepath.IsAbs(root) {
 		return root, nil

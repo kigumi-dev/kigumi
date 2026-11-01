@@ -1,8 +1,7 @@
 package ir
 
-// Shape is the operand contract of one opcode: how many arguments it
-// takes (max -1 for any number), whether it yields a value, and which
-// fields it must carry.
+// Shape is the operand contract of one opcode: argument count (max -1 for any),
+// whether it yields a value, and which fields it must carry.
 type Shape struct {
 	Min, Max int
 	Result   bool

@@ -10,7 +10,7 @@ type BodyLookup func(sem.EntityID) (*midir.Func, bool)
 
 type Analyzer struct {
 	*ownquery.Input
-	unowned     map[*midir.Func][]bool
+	unowned     ownquery.LentMemo
 	lookup      BodyLookup
 	offloads    offloadMemo
 	paramStores map[paramSlot]bool
@@ -36,14 +36,4 @@ func (c *borrowCheck) calleeBody(ent sem.EntityID) (*midir.Func, bool) {
 	return lookup(ent)
 }
 
-func (p *Analyzer) unownedRefs(f *midir.Func) []bool {
-	if out, ok := p.unowned[f]; ok {
-		return out
-	}
-	out := ownquery.LentRefs(p.R, f)
-	if p.unowned == nil {
-		p.unowned = map[*midir.Func][]bool{}
-	}
-	p.unowned[f] = out
-	return out
-}
+func (p *Analyzer) unownedRefs(f *midir.Func) []bool { return p.unowned.Of(p.R, f) }

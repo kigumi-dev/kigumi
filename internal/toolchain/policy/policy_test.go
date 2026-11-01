@@ -27,7 +27,7 @@ func TestDevelopmentIsZeroValue(t *testing.T) {
 	}
 }
 
-// TestReportRenderShape checks EvaluateRelease's rendering: a severity word, the
+// TestReportRenderShape checks the report rendering: a severity word, the
 // stable id, detail lines, a release-policy reason, a help line, and a summary.
 func TestReportRenderShape(t *testing.T) {
 	report := policy.Evaluate([]policy.Violation{{

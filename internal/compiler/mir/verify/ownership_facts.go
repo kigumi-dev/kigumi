@@ -8,17 +8,7 @@ import (
 
 type ownershipFacts struct {
 	*mir.Program
-	unowned map[*midir.Func][]bool
+	unowned ownquery.LentMemo
 }
 
-func (p *ownershipFacts) unownedRefs(f *midir.Func) []bool {
-	if out, ok := p.unowned[f]; ok {
-		return out
-	}
-	out := ownquery.LentRefs(p.R, f)
-	if p.unowned == nil {
-		p.unowned = map[*midir.Func][]bool{}
-	}
-	p.unowned[f] = out
-	return out
-}
+func (p *ownershipFacts) unownedRefs(f *midir.Func) []bool { return p.unowned.Of(p.R, f) }

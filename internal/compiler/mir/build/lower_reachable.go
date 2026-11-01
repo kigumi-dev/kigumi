@@ -112,15 +112,14 @@ func (p *lowering) topOf(id sem.EntityID) sem.EntityID {
 }
 
 func (p *lowering) lowerTop(id sem.EntityID) {
-	l := p
-	if l.tried[id] || !p.lowerable(id) {
+	if p.tried[id] || !p.lowerable(id) {
 		return
 	}
-	l.tried[id] = true
-	saved := l.cur
-	l.cur = id
+	p.tried[id] = true
+	saved := p.cur
+	p.cur = id
 	p.build(hir.Lower(p.R, id))
-	l.cur = saved
+	p.cur = saved
 }
 
 // calleeBody is ent's MIR only if lowering every body in entity order would have built it before the current one,

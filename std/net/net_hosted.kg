@@ -513,7 +513,7 @@ pub fn Net.listen(self, host: String, port: Int) -> Listener! {
     if !validPort(port) {
         fail fails("port must be between 0 and 65535")
     }
-    // An empty host means "every interface", matching internal/netsock.Listen.
+    // An empty host means "every interface", matching internal/backend/vm/host/net.Listen.
     let host = if host == "" {
         "0.0.0.0"
     } else {

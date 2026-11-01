@@ -108,7 +108,7 @@ func isDebugSection(name string) bool {
 	return strings.HasPrefix(name, ".debug_") || strings.HasPrefix(name, ".zdebug_") || name == ".gnu_debuglink"
 }
 
-// stripELFDebug removes the DWARF sections of an ELF file and keeps the symbol table.
+// StripDebug removes the DWARF sections of an ELF file and keeps the symbol table.
 // Kept sections stay in place when something loaded sits behind them; the rest are packed down.
 func StripDebug(path string) error {
 	img, err := os.ReadFile(path)

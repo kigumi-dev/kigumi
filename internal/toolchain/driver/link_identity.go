@@ -101,7 +101,7 @@ func linkIdentityUnknownViolation(module, library string) policy.Violation {
 	}
 }
 
-// LinkIdentityViolations is EvaluateRelease's extra argument for every
+// LinkIdentityViolations lists a violation for every
 // Link in m that ResolveLinkIdentity could not find against t.
 func LinkIdentityViolations(m *Module, t buildconfig.Target) []policy.Violation {
 	var vs []policy.Violation

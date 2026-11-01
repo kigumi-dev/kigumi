@@ -11,7 +11,7 @@ type FlagThread struct {
 	preds    map[midir.BlockID][]midir.BlockID
 }
 
-// allThreaded reports whether every edge into t decides the flag t re-tests, so the state
+// AllThreaded reports whether every edge into t decides the flag t re-tests, so the state
 // joined at t never reaches t's targets as such.
 func (c *FlagThread) AllThreaded(t midir.BlockID) bool {
 	if c.preds == nil {
@@ -33,7 +33,7 @@ func (c *FlagThread) AllThreaded(t midir.BlockID) bool {
 	return true
 }
 
-// target resolves the branch ending t when the edge from bid already decided its
+// Target resolves the branch ending t when the edge from bid already decided its
 // condition, as an `if v is P(x)` join re-tests the flag the test set.
 func (c *FlagThread) Target(bid, t midir.BlockID) (midir.BlockID, bool) {
 	tt := c.f.Blocks[t].Term

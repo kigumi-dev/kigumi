@@ -69,7 +69,8 @@ func (c Capability) Macro() string {
 	return "KIGUMI_CAP_" + up
 }
 
-func closure(seen map[Capability]bool) {
+// AddRequirements grows seen with every capability the members need.
+func AddRequirements(seen map[Capability]bool) {
 	for changed := true; changed; {
 		changed = false
 		for c := range seen {
@@ -90,7 +91,7 @@ func Capabilities(ops []StdOpId) []string {
 			seen[c] = true
 		}
 	}
-	closure(seen)
+	AddRequirements(seen)
 	out := make([]string, 0, len(seen))
 	for c := range seen {
 		out = append(out, string(c))
@@ -107,5 +108,3 @@ func CapabilityMacros(ops []StdOpId) []string {
 	}
 	return out
 }
-
-func AddRequirements(seen map[Capability]bool) { closure(seen) }

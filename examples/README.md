@@ -17,7 +17,7 @@ kigumi test examples/testing
 through the VM and as a native build and compares stdout against
 `expect.txt`, `test-only` relies on its `_test.kg` blocks instead, and
 `build-graph` is driven by its own `build.kg`-specific test. `go test
-./internal/driver` checks every example against its catalog entry, so a
+./internal/toolchain/driver` checks every example against its catalog entry, so a
 missing or unreadable `expect.txt` fails the build unless the catalog says
 why; the examples double as an end-to-end test suite. `args.txt` and
 `stdin.txt` supply arguments and input where an example needs them.

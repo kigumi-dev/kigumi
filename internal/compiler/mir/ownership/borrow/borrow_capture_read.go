@@ -26,7 +26,7 @@ func newReadCheck(p *ownquery.Input, f *midir.Func) *readCheck {
 	return &readCheck{p: p, f: f, defs: mirflow.SoleDefs(f), events: map[midir.BlockID][]ownquery.MoveEvent{}, seen: map[syntax.NodeID]bool{}}
 }
 
-// checkReadCaptures: a closure that only reads a move-only local shares it, so the local is neither moved nor changed while the closure may run.
+// CheckReadCaptures: a closure that only reads a move-only local shares it, so the local is neither moved nor changed while the closure may run.
 func CheckReadCaptures(p *ownquery.Input, f *midir.Func, moves []ownquery.MoveEvent) {
 	c := newReadCheck(p, f)
 	c.emit = c.report
