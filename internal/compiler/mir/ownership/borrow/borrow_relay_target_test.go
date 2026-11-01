@@ -45,7 +45,7 @@ func TestParamRelayDispatchTargets(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			g := body(tc.name)
-			c := &borrowCheck{p: p.input, f: g}
+			c := &borrowCheck{p: p.input, state: New(p.input, nil), f: g}
 			sites := c.paramSites(paramKey{g: g, i: len(g.Params) - 1, kind: siteOut})
 			var got []relayTarget
 			for _, s := range sites {
@@ -63,7 +63,7 @@ func TestParamRelayDispatchTargets(t *testing.T) {
 func TestRelayUnknownAndFirstParameter(t *testing.T) {
 	p, body := srcProgram(t, relaySrc+dispatchRelaySrc)
 	g := body("two")
-	c := &borrowCheck{p: p.input, f: g}
+	c := &borrowCheck{p: p.input, state: New(p.input, nil), f: g}
 	defs := mirflow.SoleDefs(g)
 	if g.Params[0] != 0 {
 		t.Fatalf("first parameter = %d, want local 0", g.Params[0])

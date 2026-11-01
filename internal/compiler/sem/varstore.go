@@ -88,6 +88,7 @@ func (v *varStore) resolve(t TypeID) TypeID {
 	if cached.value != 0 {
 		return cached.value
 	}
+	v.r.resolveMisses++
 	n := tt.Node(t)
 	if n.Kind == KVar {
 		cached.value = t

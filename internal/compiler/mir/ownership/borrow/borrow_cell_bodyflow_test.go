@@ -145,7 +145,7 @@ func TestBodyFactsFollowsEveryRole(t *testing.T) {
 			if f.Ent == 0 || p.R.Entity(f.Ent).Name != fn {
 				continue
 			}
-			c := &borrowCheck{p: p.input, f: f}
+			c := &borrowCheck{p: p.input, state: New(p.input, nil), f: f}
 			fs := c.bodyFacts(f)
 			for l, loc := range f.Locals {
 				if loc.Name == local {

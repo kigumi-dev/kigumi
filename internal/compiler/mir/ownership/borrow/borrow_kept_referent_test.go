@@ -49,18 +49,18 @@ func TestKeptReferentSummaries(t *testing.T) {
 	p, body := srcProgram(t, keptReferentSrc)
 	for _, name := range []string{"outG", "relayG", "sinkG", "boundG", "dynG"} {
 		g := body(name)
-		c := &borrowCheck{p: p.input, f: g}
+		c := &borrowCheck{p: p.input, state: New(p.input, nil), f: g}
 		if s := c.keptOf(g.Ent); !s.storesInto(2, 1) {
 			t.Errorf("%s: an unknown callback does not keep c in h: %+v", name, s)
 		}
 	}
 	g := body("dynG")
-	c := &borrowCheck{p: p.input, f: g}
+	c := &borrowCheck{p: p.input, state: New(p.input, nil), f: g}
 	if typ := g.Locals[g.Params[2]].Type; !c.heldAsyncType(typ) || !c.hidesLayout(typ) {
 		t.Error("an existential view hides its holder's layout")
 	}
 	g = body("parsed")
-	c = &borrowCheck{p: p.input, f: g}
+	c = &borrowCheck{p: p.input, state: New(p.input, nil), f: g}
 	s := c.keptOf(g.Ent)
 	if s.storesInto(0, 1) || s.movesInto(0, 1) {
 		t.Errorf("the declared parser keeps a reference from plain contents: %+v", s)

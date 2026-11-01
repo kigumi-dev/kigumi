@@ -40,7 +40,7 @@ func TestKeptAsyncStoreSummaries(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			g := body(tc.name)
-			c := &borrowCheck{p: p.input, f: g}
+			c := &borrowCheck{p: p.input, state: New(p.input, nil), f: g}
 			if s := c.keptBound(g.Ent, nil); s != nil {
 				t.Errorf("async construction has a body result summary: %+v", s)
 			}

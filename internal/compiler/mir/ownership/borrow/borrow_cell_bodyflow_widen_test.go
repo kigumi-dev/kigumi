@@ -13,7 +13,7 @@ func TestPlaceRootsWidensAReferenceFromElsewhere(t *testing.T) {
 	refType := p.R.Entity(p.R.Fn(member("setF")).Params[0]).Type
 	g := &midir.Func{Locals: []midir.Local{{}, {Type: refType}}}
 	g.Blocks = []midir.Block{{Insts: []midir.Inst{{Op: midir.OpGlobalGet, Dst: 1}}}}
-	c := &borrowCheck{p: p.input, f: g}
+	c := &borrowCheck{p: p.input, state: New(p.input, nil), f: g}
 	if _, ok := c.placeRoots(g, allDefs(g), 1); ok {
 		t.Fatal("a reference read from a global was pinned to this body's locals")
 	}
@@ -32,7 +32,7 @@ func TestCaptureStoresOfABusyClosureAreOpaque(t *testing.T) {
 			}
 		}
 	}
-	c := &borrowCheck{p: p.input, f: closure}
+	c := &borrowCheck{p: p.input, state: New(p.input, nil), f: closure}
 	c.bodyFacts(closure)
 	fs := c.bodyFacts(outer)
 	for l, loc := range outer.Locals {

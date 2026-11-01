@@ -2,6 +2,7 @@ package audit
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -48,9 +49,7 @@ func Archive(o buildconfig.CompilerOptions, ar []string, archive, name string, a
 		allSyms = append(allSyms, syms...)
 	}
 	permitted := make(map[string]bool, len(allowed)+len(embedder))
-	for sym, value := range allowed {
-		permitted[sym] = value
-	}
+	maps.Copy(permitted, allowed)
 	for _, s := range embedder {
 		permitted[s] = true
 	}

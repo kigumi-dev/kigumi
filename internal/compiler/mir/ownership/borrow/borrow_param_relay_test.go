@@ -36,7 +36,7 @@ func TestParamRelaySummaryKinds(t *testing.T) {
 	for _, name := range []string{"store", "nested", "read", "moveSink", "moveFuture", "forwarded"} {
 		t.Run(name, func(t *testing.T) {
 			g := body(name)
-			c := &borrowCheck{p: p.input, f: g}
+			c := &borrowCheck{p: p.input, state: New(p.input, nil), f: g}
 			i := len(g.Params) - 1
 			want := name != "read"
 			if got := c.paramOut(g, i); got != want {

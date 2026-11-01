@@ -7,7 +7,6 @@ import (
 	"kigumi/internal/compiler/mir"
 	midir "kigumi/internal/compiler/mir/ir"
 	mirmobility "kigumi/internal/compiler/mir/mobility"
-	borrowpass "kigumi/internal/compiler/mir/ownership/borrow"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
@@ -27,11 +26,7 @@ func For(r *sem.Result, keep func(path string) bool) *mir.Program {
 func build(r *sem.Result, all bool) *mir.Program { return buildFor(r, all, nil) }
 
 func buildFor(r *sem.Result, all bool, keep func(path string) bool) *mir.Program {
-	p := &mir.Program{R: r, ByEnt: map[sem.EntityID]*midir.Func{}}
-	l := &lowering{Program: p, rootKeep: keep}
-	l.input = newOwnershipInput(l)
-	l.lowerReachable(all)
-	p.Diags = append(p.Diags, borrowpass.New(l.input, l.bodyByEnt).CheckRefScopes()...)
+	p := lowerChecked(r, all, keep).Program
 	p.Entry = p.ByEnt[r.MainFn()]
 	resolveStdOps(p)
 	for _, f := range p.AllFuncs() {

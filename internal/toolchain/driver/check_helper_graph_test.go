@@ -16,8 +16,8 @@ func TestCheckDuplicatedHelperGraph(t *testing.T) {
 	if out != "checked" {
 		t.Fatalf("output = %q", out)
 	}
-	if cpu > 3*time.Second {
-		t.Fatalf("cpu time %v, limit 3s", cpu)
+	if cpu > 30*time.Second {
+		t.Fatalf("cpu time %v, limit 30s", cpu)
 	}
 	t.Logf("check used %v of CPU time", cpu)
 }

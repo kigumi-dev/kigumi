@@ -129,10 +129,6 @@ func (p *lowering) calleeBody(ent sem.EntityID) (*midir.Func, bool) {
 		return nil, false
 	}
 	p.lowerTop(ent)
-	return p.bodyByEnt(ent)
-}
-
-func (p *lowering) bodyByEnt(ent sem.EntityID) (*midir.Func, bool) {
 	f, ok := p.ByEnt[ent]
 	return f, ok
 }

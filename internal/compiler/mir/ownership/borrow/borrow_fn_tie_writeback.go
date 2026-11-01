@@ -39,7 +39,7 @@ func (c *borrowCheck) callStores(before []midir.Inst, cell midir.LocalID) bool {
 		case in.Op == midir.OpCallValue || in.Ent == 0 || c.p.R.Entity(in.Ent).Kind != sem.EntFn:
 			return false
 		}
-		return c.analysis().storesParam(in.Ent, k)
+		return c.state.storesParam(in.Ent, k)
 	}
 	return false
 }

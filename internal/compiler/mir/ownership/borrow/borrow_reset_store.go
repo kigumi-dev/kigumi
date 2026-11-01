@@ -9,7 +9,7 @@ import (
 // replacesHolder reports whether in stores into the named holder's only field that may carry a borrow, so the store
 // ends every borrow the holder had.
 func (c *borrowCheck) replacesHolder(in midir.Inst, holder midir.LocalID) bool {
-	return in.Op == midir.OpSetField && len(in.Args) > 0 && in.Args[0] == holder && c.f.Locals[holder].Ent != 0 && c.analysis().replacingField(c.f.Locals[holder].Type, in.Index)
+	return in.Op == midir.OpSetField && len(in.Args) > 0 && in.Args[0] == holder && c.f.Locals[holder].Ent != 0 && c.state.replacingField(c.f.Locals[holder].Type, in.Index)
 }
 
 // replacingField reports whether field index of record type t is a bare reference and its only field that may carry a borrow.

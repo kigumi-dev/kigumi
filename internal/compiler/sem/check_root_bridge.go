@@ -53,6 +53,7 @@ type rootRun struct {
 	poisonBySite   map[siteLoc][]EntityID
 	poisonedPlaces map[EntityID]bool
 	siteEdges      map[EntityID]map[siteLoc][]EffectEdge
+	forwardFrames  int
 }
 
 type siteLoc struct {

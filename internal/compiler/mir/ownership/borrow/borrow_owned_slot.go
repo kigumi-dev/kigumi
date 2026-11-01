@@ -61,7 +61,7 @@ func (c *borrowCheck) declaredAsBorrow(t sem.TypeID) bool {
 // A field read retains, so only a borrow and a lent parameter are unowned.
 func (c *borrowCheck) unownedRef(l midir.LocalID) bool {
 	if c.unowned == nil {
-		c.unowned = c.analysis().unownedRefs(c.f)
+		c.unowned = c.state.unownedRefs(c.f)
 	}
 	return c.unowned[l]
 }

@@ -29,7 +29,7 @@ fn caller(w: fn(Int) -> Int, f: Future[usize]) {
 func TestCallFlowsResolveCallee(t *testing.T) {
 	p, body := srcProgram(t, flowCalleeSrc)
 	g := body("caller")
-	c := &borrowCheck{p: p.input, f: g, holders: map[midir.LocalID]*borrowInfo{}}
+	c := &borrowCheck{p: p.input, state: New(p.input, nil), f: g, holders: map[midir.LocalID]*borrowInfo{}}
 	seen := map[string]bool{}
 	for _, blk := range g.Blocks {
 		for _, in := range blk.Insts {

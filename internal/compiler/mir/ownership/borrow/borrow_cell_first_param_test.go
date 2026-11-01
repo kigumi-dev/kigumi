@@ -36,7 +36,7 @@ async fn awaitsParam(mut x: Future[Int], o: Future[Int]?, b: Bool) -> Int {
 `
 
 func collected(p *fixture, g *midir.Func) *borrowCheck {
-	c := &borrowCheck{p: p.input, f: g, holders: map[midir.LocalID]*borrowInfo{}, reported: map[reportKey]int{}, keptTemp: map[midir.LocalID]bool{}}
+	c := &borrowCheck{p: p.input, state: New(p.input, nil), f: g, holders: map[midir.LocalID]*borrowInfo{}, reported: map[reportKey]int{}, keptTemp: map[midir.LocalID]bool{}}
 	c.collect()
 	c.offloadNode = map[sem.EntityID]syntax.NodeID{}
 	return c

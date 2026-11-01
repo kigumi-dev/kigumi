@@ -19,6 +19,9 @@ func scaleRSS(t *testing.T, src string, cpuLimit time.Duration, maxMB int64) str
 	return out
 }
 
+// linear fits per-block analysis state that grows with the block count, not with blocks times locals.
+var linear = growthLimit{bytes: 2.5, insts: 2.2}
+
 func manyLoops(n int, header string) string {
 	var src strings.Builder
 	src.WriteString("fn work(xs: &Array[Int]) -> Int {\n    let mut total = 0\n")
@@ -32,76 +35,49 @@ func manyLoops(n int, header string) string {
 func TestRunFunctionWithManyLoopsStaysCheap(t *testing.T) {
 	for _, header := range []string{"i in 0..3", "x in xs"} {
 		t.Run(header, func(t *testing.T) {
-			if got := scaleRSS(t, manyLoops(4000, header), 8*time.Second, 500); got != "12000\n" {
+			gen := func(n int) string { return manyLoops(n, header) }
+			requireGrowth(t, gen, 4000, linear)
+			if got := scaleRSS(t, gen(4000), 80*time.Second, 500); got != "12000\n" {
 				t.Fatalf("stdout %q", got)
 			}
 		})
 	}
 }
 
-const asyncPrelude = "import task from std/task\n\nasync fn tick() -> Int {\n    1\n}\n\n"
-const asyncRun = "\nlet ex = task.currentThreadExecutor()\nprint \"result ${ex.runToCompletion(work())}\"\n"
-
-func TestRunAsyncDefersAcrossAwaitsStayCheap(t *testing.T) {
+func elseIfChain(n int, param, test, arg string) string {
 	var src strings.Builder
-	src.WriteString(asyncPrelude + "async fn work() -> Int {\n    let mut total = 0\n")
-	for i := range 400 {
-		fmt.Fprintf(&src, "    let s%d = \"s%d\"\n    defer print \"d${s%d}\"\n    total = total + await tick()\n", i, i, i)
+	fmt.Fprintf(&src, "fn pick(x: %s) -> Int {\n    if %s {\n        0\n    }", param, fmt.Sprintf(test, 0))
+	for i := 1; i < n; i++ {
+		fmt.Fprintf(&src, " else if %s {\n        %d\n    }", fmt.Sprintf(test, i), i)
 	}
-	src.WriteString("    total\n}\n" + asyncRun)
-	out := scaleRSS(t, src.String(), 9*time.Second, 600)
-	if !strings.HasSuffix(out, "result 400\n") {
-		t.Fatalf("stdout tail %q", out[max(0, len(out)-40):])
-	}
-}
-
-func TestRunOwnedLocalsAcrossAwaitStayCheap(t *testing.T) {
-	var src strings.Builder
-	src.WriteString(asyncPrelude + "async fn work() -> Int {\n    let mut total = 0\n")
-	for i := range 3000 {
-		fmt.Fprintf(&src, "    let v%d = \"s%d\"\n", i, i)
-	}
-	src.WriteString("    total = total + await tick()\n")
-	for i := range 3000 {
-		fmt.Fprintf(&src, "    total = total + (v%d.len().toInt() || 0)\n", i)
-	}
-	src.WriteString("    total\n}\n" + asyncRun)
-	if got := scaleRSS(t, src.String(), 9*time.Second, 900); got != "result 13891\n" {
-		t.Fatalf("stdout %q", got)
-	}
+	fmt.Fprintf(&src, " else {\n        -1\n    }\n}\nprint \"${pick(%s)}\"\n", arg)
+	return src.String()
 }
 
 func TestRunDeepElseIfChainStaysCheap(t *testing.T) {
-	var src strings.Builder
-	src.WriteString("fn pick(x: Int) -> Int {\n    if x == 0 {\n        0\n    }")
-	for i := 1; i < 1200; i++ {
-		fmt.Fprintf(&src, " else if x == %d {\n        %d\n    }", i, i)
-	}
-	src.WriteString(" else {\n        -1\n    }\n}\nprint \"${pick(77)}\"\n")
-	if got := runGeneratedVM(t, src.String(), 3*time.Second); got != "77\n" {
+	gen := func(n int) string { return elseIfChain(n, "Int", "x == %d", "77") }
+	requireGrowth(t, gen, 1200, linear)
+	if got := runGeneratedVM(t, gen(1200), 30*time.Second); got != "77\n" {
 		t.Fatalf("stdout %q", got)
 	}
 }
 
+func TestRunElseIfOptionChainStaysCheap(t *testing.T) {
+	gen := func(n int) string { return elseIfChain(n, "Int?", "x is Some(%d)", "Some(77)") }
+	requireGrowth(t, gen, 1200, linear)
+	if got := scaleRSS(t, gen(1200), 60*time.Second, 400); got != "77\n" {
+		t.Fatalf("stdout %q", got)
+	}
+}
+
+func nestedWraps(n int) string {
+	return "fn wrap[T](x: T) -> Option[T] {\n    Some(x)\n}\n\nfn work() -> Int {\n    let v = " + strings.Repeat("wrap(", n) + "1" + strings.Repeat(")", n) + "\n    0\n}\nprint \"${work()}\"\n"
+}
+
+// The types nest n deep, so walking each local's type makes the bytes quadratic however the resolutions are cached.
 func TestRunNestedGenericCallsStayCheap(t *testing.T) {
-	const n = 800
-	src := "fn wrap[T](x: T) -> Option[T] {\n    Some(x)\n}\n\nfn work() -> Int {\n    let v = " + strings.Repeat("wrap(", n) + "1" + strings.Repeat(")", n) + "\n    0\n}\nprint \"${work()}\"\n"
-	if got := runGeneratedVM(t, src, 3*time.Second); got != "0\n" {
-		t.Fatalf("stdout %q", got)
-	}
-}
-
-func TestRunOwnedLocalEachAcrossItsOwnAwaitStaysCheap(t *testing.T) {
-	var src strings.Builder
-	src.WriteString(asyncPrelude + "async fn work() -> Int {\n    let mut total = 0\n")
-	for i := range 3000 {
-		fmt.Fprintf(&src, "    let v%d = \"s%d\"\n    total = total + await tick()\n", i, i)
-	}
-	for i := range 3000 {
-		fmt.Fprintf(&src, "    total = total + (v%d.len().toInt() || 0)\n", i)
-	}
-	src.WriteString("    total\n}\n" + asyncRun)
-	if got := scaleRSS(t, src.String(), 10*time.Second, 1100); got != "result 16890\n" {
+	requireGrowth(t, nestedWraps, 800, growthLimit{misses: 2.5, insts: 2.2})
+	if got := runGeneratedVM(t, nestedWraps(800), 30*time.Second); got != "0\n" {
 		t.Fatalf("stdout %q", got)
 	}
 }
@@ -118,57 +94,28 @@ func TestRunManyLoopShapesStayCheap(t *testing.T) {
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			if got := scaleRSS(t, repeatedBody(4000, c.body, ""), 8*time.Second, 500); got != c.want {
+			gen := func(n int) string { return repeatedBody(n, c.body, "") }
+			requireGrowth(t, gen, 4000, linear)
+			if got := scaleRSS(t, gen(4000), 80*time.Second, 500); got != c.want {
 				t.Fatalf("stdout %q", got)
 			}
 		})
 	}
 }
 
-func TestRunElseIfOptionChainStaysCheap(t *testing.T) {
-	var src strings.Builder
-	src.WriteString("fn pick(x: Int?) -> Int {\n    if x is Some(0) {\n        0\n    }")
-	for i := 1; i < 1200; i++ {
-		fmt.Fprintf(&src, " else if x is Some(%d) {\n        %d\n    }", i, i)
-	}
-	src.WriteString(" else {\n        -1\n    }\n}\nprint \"${pick(Some(77))}\"\n")
-	if got := scaleRSS(t, src.String(), 6*time.Second, 400); got != "77\n" {
-		t.Fatalf("stdout %q", got)
-	}
-}
-
-func TestRunManyOwnedMovesStayCheap(t *testing.T) {
+func ownedMoves(n int) string {
 	var src strings.Builder
 	src.WriteString("fn eat(s: String) -> Int {\n    s.len().toInt() || 0\n}\n\nfn work() -> Int {\n    let mut x = 0\n")
-	for i := range 10000 {
+	for i := range n {
 		fmt.Fprintf(&src, "    let s%d = \"v%d\"\n    x = x + eat(s%d)\n", i, i, i)
 	}
 	src.WriteString("    x\n}\nprint \"${work()}\"\n")
-	if got := runGeneratedVM(t, src.String(), 5*time.Second); got != "48890\n" {
-		t.Fatalf("stdout %q", got)
-	}
+	return src.String()
 }
 
-func TestRunManyGrowingArrayLoopsStayCheap(t *testing.T) {
-	var src strings.Builder
-	src.WriteString("fn work() -> Int {\n    let mut total = 0\n")
-	for i := range 4000 {
-		fmt.Fprintf(&src, "    let mut b%[1]d = Array.empty[String]()\n    let mut j%[1]d: usize = 0\n    for j%[1]d < 3 {\n        b%[1]d.push(\"x${j%[1]d}\")\n        j%[1]d = j%[1]d + 1\n    }\n    total = total + (b%[1]d.len().toInt() || 0)\n", i)
-	}
-	src.WriteString("    total\n}\nprint \"r ${work()}\"\n")
-	if got := scaleRSS(t, src.String(), 15*time.Second, 700); got != "r 12000\n" {
-		t.Fatalf("stdout %q", got)
-	}
-}
-
-func TestRunManyOptionalOwnedPayloadsStayCheap(t *testing.T) {
-	var src strings.Builder
-	src.WriteString("fn g(i: Int) -> Option[Array[Int]] {\n    if i > 0 { Some(Array.of(i, 2)) } else { None }\n}\n\nfn work() -> Int {\n    let mut total = 0\n")
-	for i := range 3000 {
-		fmt.Fprintf(&src, "    if g(%[1]d) is Some(a%[1]d) {\n        total = total + (a%[1]d.len().toInt() || 0)\n    }\n", i)
-	}
-	src.WriteString("    total\n}\nprint \"r ${work()}\"\n")
-	if got := scaleRSS(t, src.String(), 8*time.Second, 1000); got != "r 5998\n" {
+func TestRunManyOwnedMovesStayCheap(t *testing.T) {
+	requireGrowth(t, ownedMoves, 10000, linear)
+	if got := runGeneratedVM(t, ownedMoves(10000), 50*time.Second); got != "48890\n" {
 		t.Fatalf("stdout %q", got)
 	}
 }

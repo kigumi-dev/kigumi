@@ -72,7 +72,7 @@ func sharedStoreProgram(t *testing.T) (*fixture, func(string) *midir.Func) {
 
 // storedArgs names the callee parameters each call of g to name may store into shared storage, `?` for an unknown one.
 func storedArgs(p *fixture, g *midir.Func, name string) [][]string {
-	c := &borrowCheck{p: p.input, f: g}
+	c := &borrowCheck{p: p.input, state: New(p.input, nil), f: g}
 	x := &sinkCtx{g: g, fs: c.bodyFacts(g)}
 	var out [][]string
 	for _, blk := range g.Blocks {
@@ -112,7 +112,7 @@ func TestSharedStoresFollowReceiverMode(t *testing.T) {
 }
 
 func sinkNames(p *fixture, g *midir.Func, bind map[int][]sem.EntityID) []string {
-	c := &borrowCheck{p: p.input, f: g}
+	c := &borrowCheck{p: p.input, state: New(p.input, nil), f: g}
 	names := []string{}
 	for _, q := range c.sharedSinks(g.Ent, bind) {
 		names = append(names, p.R.Entity(q).Name)
@@ -159,7 +159,7 @@ func TestSharedSinksFollowBinding(t *testing.T) {
 func TestSharedStoresThroughImplementers(t *testing.T) {
 	p, body := sharedStoreProgram(t)
 	g := body("viaIface")
-	c := &borrowCheck{p: p.input, f: g}
+	c := &borrowCheck{p: p.input, state: New(p.input, nil), f: g}
 	req := p.R.Requirement(p.R.PackageMember(p.R.PackageByPath("main"), "Taker"), "take")
 	var owners []string
 	for _, e := range c.implementers(req) {

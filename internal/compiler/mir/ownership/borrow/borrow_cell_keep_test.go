@@ -107,7 +107,7 @@ func calls(p *fixture, g *midir.Func, name string) []midir.Inst {
 func TestSharedStorageFollowsLayout(t *testing.T) {
 	p, body := keepProgram(t)
 	g := body("kinds")
-	c := &borrowCheck{p: p.input, f: g}
+	c := &borrowCheck{p: p.input, state: New(p.input, nil), f: g}
 	want := map[string]bool{"a": true, "b": false, "c": false, "d": true, "e": true, "f": false, "g": true, "h": true}
 	for name, shared := range want {
 		if got := c.sharedStorage(g.Locals[localNamed(t, g, name)].Type); got != shared {
@@ -119,7 +119,7 @@ func TestSharedStorageFollowsLayout(t *testing.T) {
 func TestPrimSummaryKeepsIntoSharedStorage(t *testing.T) {
 	p, body := keepProgram(t)
 	g := body("prims")
-	c := &borrowCheck{p: p.input, f: g}
+	c := &borrowCheck{p: p.input, state: New(p.input, nil), f: g}
 	set, with, run := calls(p, g, "set")[0].Ent, calls(p, g, "with")[0].Ent, calls(p, g, "run")[0].Ent
 	params := c.declaredParams(set)
 	if got := c.primSummary(set).stores[params[0]]; !slices.Equal(got, []uint32{uint32(params[1])}) {
@@ -138,7 +138,7 @@ func TestBodyFactsFollowSharedStores(t *testing.T) {
 	target := uint32(p.R.PackageMember(p.R.PackageByPath("main"), "target"))
 	for _, fn := range []string{"keepFn", "viaHelper", "viaMethodValue"} {
 		g := body(fn)
-		c := &borrowCheck{p: p.input, f: g}
+		c := &borrowCheck{p: p.input, state: New(p.input, nil), f: g}
 		if !c.bodyFacts(g)[localNamed(t, g, "s")][target] {
 			t.Errorf("%s: s does not hold target", fn)
 		}
@@ -148,7 +148,7 @@ func TestBodyFactsFollowSharedStores(t *testing.T) {
 func TestKeeperClassLinksEarlierCopies(t *testing.T) {
 	p, body := keepProgram(t)
 	g := body("classes")
-	c := &borrowCheck{p: p.input, f: g}
+	c := &borrowCheck{p: p.input, state: New(p.input, nil), f: g}
 	sets := calls(p, g, "set")
 	local, param := c.keeperOf(sets[0].Args[0]), c.keeperOf(sets[1].Args[0])
 	if !slices.Contains(local.locals, localNamed(t, g, "s2")) || slices.Contains(local.locals, localNamed(t, g, "apart")) || local.escapes {
@@ -163,7 +163,7 @@ func TestKeeperClassReachesFirstParam(t *testing.T) {
 	p, body := keepProgram(t)
 	for _, fn := range []string{"byClone", "byLet", "byHelper", "byField", "bySelf"} {
 		g := body(fn)
-		c := &borrowCheck{p: p.input, f: g}
+		c := &borrowCheck{p: p.input, state: New(p.input, nil), f: g}
 		k := c.keeperOf(calls(p, g, "set")[0].Args[0])
 		if !k.escapes || !slices.Contains(k.locals, g.Params[0]) || !slices.Contains(c.sharedPlaces(calls(p, g, "set")[0].Args[0]), c.spawnScope()) {
 			t.Errorf("%s: class %v (escapes %v), want the first parameter in it and the task scope kept", fn, k.locals, k.escapes)

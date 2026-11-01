@@ -98,6 +98,7 @@ func (r *Result) rootOf(ent EntityID) EntityID {
 // calleeHopsWith is callee's distance to the runner, narrowing with subst
 // along the whole forwarding chain under visited, not just callee's own calls.
 func (r *Result) calleeHopsWith(callee EntityID, subst map[EntityID][]EntityID, rr *rootRun, visited map[EntityID]bool) int {
+	rr.forwardFrames++
 	best := 0
 	cache := rootForwardCache{}
 	for _, e := range r.edgesOf(callee) {

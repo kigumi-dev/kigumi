@@ -64,8 +64,7 @@ type Result struct {
 	seen            map[diagKey]struct{}
 	derives         []deriveRequest
 	generated       []generatedFile
-	// genFailed marks a DeriveGenerator failure (E1430, E1432); CheckWith
-	// skips its rerun then, rather than burying the cause behind missing-witness errors.
+	// genFailed marks a DeriveGenerator failure (E1430, E1432), so CheckWith skips its rerun instead of burying the cause.
 	genFailed bool
 	mod       *Module
 	sources   *token.SourceStore
@@ -85,6 +84,7 @@ type Result struct {
 	pendingImports  []pendingImport
 	order           []PackageID
 	bodiesChecked   bool
+	resolveMisses   int
 	cancelled       bool
 	declScopes      map[EntityID]ScopeID
 	aliasState      map[EntityID]uint8

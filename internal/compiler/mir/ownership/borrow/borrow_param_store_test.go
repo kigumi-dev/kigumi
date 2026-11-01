@@ -99,7 +99,7 @@ func cpuTime() time.Duration {
 // The summaries of one call-graph component are solved together, so their cost grows with its size, not its paths.
 func TestParamStoreSitesComponentCost(t *testing.T) {
 	p, f := buildSites(t, chainSource(22), time.Second)
-	c := &borrowCheck{p: p.input, f: f}
+	c := &borrowCheck{p: p.input, state: New(p.input, nil), f: f}
 	if sites := c.paramStoreSites(f, 0); len(sites) != 1 || len(sites[0].path) == 0 || sites[0].path[0] != 1 {
 		t.Fatalf("chain: sites = %v, want one under p.y", sites)
 	}
@@ -108,7 +108,7 @@ func TestParamStoreSitesComponentCost(t *testing.T) {
 		t.Errorf("chain: %d summary runs for 23 functions", c.siteRuns)
 	}
 	p, f = buildSites(t, rotationSource(20), 2*time.Second)
-	c = &borrowCheck{p: p.input, f: f}
+	c = &borrowCheck{p: p.input, state: New(p.input, nil), f: f}
 	for i := range 20 {
 		if len(c.paramStoreSites(f, i)) == 0 {
 			t.Fatalf("rotation: parameter %d stores nothing", i)
@@ -119,7 +119,7 @@ func TestParamStoreSitesComponentCost(t *testing.T) {
 		t.Errorf("rotation: %d summary runs for 22 parameters", c.siteRuns)
 	}
 	p, f = buildSites(t, rotationSource(60), 3*time.Second)
-	c = &borrowCheck{p: p.input, f: f}
+	c = &borrowCheck{p: p.input, state: New(p.input, nil), f: f}
 	c.paramStoreSites(f, 0)
 	t.Logf("rotation of 60: %d summary runs", c.siteRuns)
 	if c.siteRuns > 4*62 {

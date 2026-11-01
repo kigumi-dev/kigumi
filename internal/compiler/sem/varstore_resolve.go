@@ -57,3 +57,6 @@ func (v *varStore) invalidate(t TypeID) {
 		queue = append(queue, entry.users...)
 	}
 }
+
+// ResolveMisses counts the inference-variable resolutions no cache could answer.
+func (r *Result) ResolveMisses() int { return r.resolveMisses }

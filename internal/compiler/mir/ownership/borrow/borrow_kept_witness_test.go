@@ -40,7 +40,7 @@ fn consume(f: fn(&mut Int) -> Future[usize], c: &mut Int, h: &mut Consumer) {
 		kept bool
 	}{{"store", true}, {"consume", false}} {
 		g := body(tc.name)
-		c := &borrowCheck{p: p.input, f: g}
+		c := &borrowCheck{p: p.input, state: New(p.input, nil), f: g}
 		if s := c.keptOf(g.Ent); s.storesInto(2, 1) != tc.kept {
 			t.Errorf("%s: stores c in h = %v, want %v", tc.name, s.storesInto(2, 1), tc.kept)
 		}

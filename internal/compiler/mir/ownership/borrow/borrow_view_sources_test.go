@@ -19,7 +19,7 @@ fn choose['a](h: &mut Hold['a], j: &mut Hold['a], b: Bool, f: Future[usize]) {
 `)
 	g := body("choose")
 	v := localNamed(t, g, "v")
-	c := &borrowCheck{p: p.input, f: g}
+	c := &borrowCheck{p: p.input, state: New(p.input, nil), f: g}
 	s := c.viewSources(v)
 	var roots []midir.LocalID
 	for _, l := range s.locals {
@@ -34,7 +34,7 @@ fn choose['a](h: &mut Hold['a], j: &mut Hold['a], b: Bool, f: Future[usize]) {
 	h := *g
 	h.Locals = append(slices.Clone(g.Locals), midir.Local{Type: g.Locals[v].Type})
 	unknown := midir.LocalID(len(g.Locals))
-	c = &borrowCheck{p: p.input, f: &h, viewDefs: allDefs(&h), viewSets: map[midir.LocalID]viewSourceSet{}}
+	c = &borrowCheck{p: p.input, state: New(p.input, nil), f: &h, viewDefs: allDefs(&h), viewSets: map[midir.LocalID]viewSourceSet{}}
 	c.viewDefs[v] = append(c.viewDefs[v], &midir.Inst{Op: midir.OpCopy, Dst: v, Args: []midir.LocalID{v}})
 	if s = c.viewSources(v); !s.complete || len(s.locals) != 2 {
 		t.Fatalf("a loop edge lost its incoming holders: %+v", s)
