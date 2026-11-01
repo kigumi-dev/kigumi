@@ -13,10 +13,6 @@ import (
 // source with a single `fn configure(b: build.Builder) -> Void!`.
 const BuildFileName = "build.kg"
 
-// FrameworkFileName describes a Framework: its name, version and the
-// external tools a build program may run through it.
-const FrameworkFileName = "kigumi.framework.kg"
-
 // ReadBuildFile parses root/build.kg; ok is false when there is none.
 func ReadBuildFile(root string) (*syntax.Tree, bool, error) {
 	src, err := os.ReadFile(filepath.Join(root, BuildFileName))

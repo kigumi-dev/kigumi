@@ -9,7 +9,7 @@ import (
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 
-	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
 )
 
 // TestDependencyCacheOrigin: a definition inside a module-cache dependency
@@ -17,23 +17,23 @@ import (
 func TestDependencyCacheOrigin(t *testing.T) {
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
-	depDir, err := driver.CacheDir(testCompiler(), driver.Require{Name: "example.com/greet", Version: "v1.0.0"})
+	depDir, err := module.CacheDir(testCompiler(), module.Require{Name: "example.com/greet", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	os.MkdirAll(depDir, 0o755)
 	os.WriteFile(filepath.Join(depDir, "mod.kg"), []byte("Module {\n    name: \"example.com/greet\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(depDir, "greet.kg"), []byte("pub fn hello() -> Int {\n    1\n}\n"), 0o644)
-	os.WriteFile(filepath.Join(depDir, driver.OriginFileName), []byte("cafebabe\n"), 0o644)
-	hash, err := driver.TreeHash(depDir)
+	os.WriteFile(filepath.Join(depDir, module.OriginFileName), []byte("cafebabe\n"), 0o644)
+	hash, err := module.TreeHash(depDir)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"app\"\n    kigumi: \"0.1\"\n}\nRequire { name: \"example.com/greet\", version: \"v1.0.0\" }\n"), 0o644)
-	lock := driver.Lock{Entries: map[string]driver.LockEntry{"example.com/greet": {Version: "v1.0.0", Commit: "cafebabe", Hash: hash}}}
-	if err := driver.WriteLock(root, lock); err != nil {
+	lock := module.Lock{Entries: map[string]module.LockEntry{"example.com/greet": {Version: "v1.0.0", Commit: "cafebabe", Hash: hash}}}
+	if err := module.WriteLock(root, lock); err != nil {
 		t.Fatal(err)
 	}
 	src := "import {hello} from example.com/greet\nprint \"${hello()}\"\n"

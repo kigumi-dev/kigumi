@@ -2,7 +2,6 @@ package driver
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -61,43 +60,4 @@ func envNames(env []string) string {
 		names = append(names, strings.SplitN(kv, "=", 2)[0])
 	}
 	return strings.Join(names, ",")
-}
-
-// checkOutputSlot refuses a pre-existing symlink, directory or special
-// file at path: writing through a symlink there could land outside the
-// output directory, and the other kinds are not something a build step
-// should silently replace. A plain file or nothing at path is fine.
-func checkOutputSlot(path string) error {
-	fi, err := os.Lstat(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
-	switch {
-	case fi.Mode()&os.ModeSymlink != 0:
-		return fmt.Errorf("output %s already exists as a symlink", path)
-	case fi.IsDir():
-		return fmt.Errorf("output %s already exists as a directory", path)
-	case !fi.Mode().IsRegular():
-		return fmt.Errorf("output %s already exists as a special file", path)
-	}
-	return nil
-}
-
-// writeGraphOutput writes content to path once checkOutputSlot passes; the
-// atomic rename replaces a symlink planted at path instead of following it.
-// Unlike writeFileAtomic's default, perm is enforced even when path already
-// exists: a build-graph output is a deterministic function of the graph, not
-// user source to preserve the mode of (a stale or tampered --out-dir must
-// not leak its old mode into freshly generated content).
-func writeGraphOutput(path string, content []byte, perm os.FileMode) error {
-	if err := checkOutputSlot(path); err != nil {
-		return err
-	}
-	if err := writeFileAtomic(path, content, perm); err != nil {
-		return err
-	}
-	return os.Chmod(path, perm)
 }

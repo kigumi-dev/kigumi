@@ -9,6 +9,7 @@ import (
 
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/lang/token"
+	"kigumi/internal/toolchain/module"
 )
 
 // indexPackage records the files of one directory as a package header, without reading them.
@@ -20,14 +21,14 @@ func (m *Module) indexPackage(dir, pkgPath, fileRel string, std, test bool) erro
 	names := map[string]bool{}
 	// build.kg is the build program only at the module root; a package may
 	// still have a file of that name (std/build does).
-	isProgram := func(name string) bool { return name == BuildFileName && sameDir(m.compiler, dir, m.Root) }
+	isProgram := func(name string) bool { return name == BuildFileName && module.SameDir(m.compiler, dir, m.Root) }
 	for _, e := range entries {
-		if !e.IsDir() && strings.HasSuffix(e.Name(), ".kg") && !IsManifest(e.Name()) && !isProgram(e.Name()) {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".kg") && !module.IsManifest(e.Name()) && !isProgram(e.Name()) {
 			names[e.Name()] = true
 		}
 	}
 	for abs := range m.overlay {
-		if filepath.Dir(abs) == filepath.Clean(dir) && strings.HasSuffix(abs, ".kg") && !IsManifest(filepath.Base(abs)) && !isProgram(filepath.Base(abs)) {
+		if filepath.Dir(abs) == filepath.Clean(dir) && strings.HasSuffix(abs, ".kg") && !module.IsManifest(filepath.Base(abs)) && !isProgram(filepath.Base(abs)) {
 			names[filepath.Base(abs)] = true
 		}
 	}

@@ -2,7 +2,7 @@ package zig
 
 import (
 	"kigumi/internal/cli/session"
-	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
 )
 
 // storeRoot resolves the managed store's directory: --zig-home, else session.ZigStoreRoot's default.
@@ -15,7 +15,7 @@ func storeRoot(zigHome string) (string, error) {
 
 // modulePin is the zig version the module in the working directory pins, or "" when it has none.
 func modulePin() string {
-	mf, _, err := driver.ReadModFile(".")
+	mf, _, err := module.ReadModFile(".")
 	if err != nil {
 		return ""
 	}

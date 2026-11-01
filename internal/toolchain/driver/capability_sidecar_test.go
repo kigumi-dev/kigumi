@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"kigumi/internal/toolchain/artifact"
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
@@ -34,7 +35,7 @@ func buildWithTarget(t *testing.T, target buildconfig.Target, src string, opts d
 
 func requireReason(t *testing.T, out, capability, op string) {
 	t.Helper()
-	fp, ok, err := driver.ReadFingerprintSidecar(out)
+	fp, ok, err := artifact.ReadFingerprintSidecar(out)
 	if err != nil || !ok {
 		t.Fatalf("no provenance sidecar next to %s: ok=%v err=%v", out, ok, err)
 	}

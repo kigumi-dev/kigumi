@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"kigumi/internal/toolchain/artifact"
 	buildconfig "kigumi/internal/toolchain/config"
+	"kigumi/internal/toolchain/native/link"
 )
 
 // splitArchiveCFlags keeps linker-shaped flags out of buildArchive's compile-only step; zig cc corrupts objects when --gc-sections reaches a -c invocation.
@@ -22,30 +24,17 @@ func splitArchiveCFlags(flags []string) (compile, linkerLike []string) {
 	return compile, linkerLike
 }
 
-// arTool is the archiver for cc: zig's own, since a plain system `ar`
-// cannot read object files zig cc produced for some targets.
-func arTool(o buildconfig.CompilerOptions, cc []string) ([]string, error) {
-	if isZig(cc) {
-		return []string{cc[0], "ar"}, nil
-	}
-	ar, err := o.LookTool("ar")
-	if err != nil {
-		return nil, err
-	}
-	return []string{ar}, nil
-}
-
 // buildArchive compiles each input to an object for the embedder to link (freestanding has no libc); dir/comp-dir is pinned so two builds don't diverge, and -ffunction/data-sections keeps the embedder's --gc-sections effective.
 func buildArchive(o buildconfig.CompilerOptions, cc, args, inputs []string, dir, out string, env []string, stderr io.Writer) (bool, error) {
 	var objs []string
 	for i, in := range inputs {
-		rel, err := pinnedInput(o, dir, in)
+		rel, err := link.PinnedInput(o, dir, in)
 		if err != nil {
 			return false, err
 		}
 		obj := fmt.Sprintf("obj%d.o", i)
 		cargs := append(append([]string{}, args...), "-ffreestanding", "-fno-stack-protector", "-ffunction-sections", "-fdata-sections", "-fdebug-compilation-dir=.")
-		cargs = append(append(cargs, prefixMapFlag(o)...), "-c", "-o", obj, rel)
+		cargs = append(append(cargs, link.PrefixMapFlag(o)...), "-c", "-o", obj, rel)
 		cmd := exec.Command(cc[0], cargs...)
 		cmd.Dir = dir
 		cmd.Stderr = stderr
@@ -57,11 +46,11 @@ func buildArchive(o buildconfig.CompilerOptions, cc, args, inputs []string, dir,
 		}
 		objs = append(objs, obj)
 	}
-	ar, err := arTool(o, cc)
+	ar, err := link.Archiver(o, cc)
 	if err != nil {
 		return false, err
 	}
-	return publishBuildOutput(out, func(staged string) error {
+	return artifact.Publish(out, func(staged string) error {
 		absStaged, err := o.Abs(staged)
 		if err != nil {
 			return err

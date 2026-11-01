@@ -9,16 +9,11 @@ import (
 	"kigumi/internal/interop/cheader"
 	"kigumi/internal/lang/diag"
 	buildconfig "kigumi/internal/toolchain/config"
+	"kigumi/internal/toolchain/module"
 )
 
-// HeaderImport is a `Header { path, package }` record: a C header, relative
-// to the module directory, imported as the package `c/<package>`
-type HeaderImport struct {
-	Path, Package string
-}
-
 // HeaderCacheDir is where imported headers' generated packages are cached
-// (cheader.Import), separate from CacheDir's fetched-module tree.
+// (cheader.Import), separate from module.CacheDir's fetched-module tree.
 func HeaderCacheDir(o buildconfig.CompilerOptions) (string, error) {
 	dir, err := o.CacheRoot()
 	if err != nil {
@@ -29,7 +24,7 @@ func HeaderCacheDir(o buildconfig.CompilerOptions) (string, error) {
 
 // addHeaders imports each Header record of mf, resolved against dir, as the package
 // `c/<package>`; a header with unsupported constructs still imports what it can.
-func (m *Module) addHeaders(dir string, mf ModFile) error {
+func (m *Module) addHeaders(dir string, mf module.ModFile) error {
 	if len(mf.Headers) == 0 {
 		return nil
 	}
@@ -38,7 +33,7 @@ func (m *Module) addHeaders(dir string, mf ModFile) error {
 		return err
 	}
 	if zigPath == "" {
-		return fmt.Errorf("zig not found (needed to import %s's Header records); install zig or remove them", byName(mf))
+		return fmt.Errorf("zig not found (needed to import %s's Header records); install zig or remove them", module.DisplayName(mf))
 	}
 	cacheDir, err := HeaderCacheDir(m.compiler)
 	if err != nil {
@@ -69,7 +64,7 @@ func (m *Module) addHeaders(dir string, mf ModFile) error {
 
 // loadHeaderPackage registers one imported header's generated source as the package
 // `c/<package>`, loading it like any other package file.
-func (m *Module) loadHeaderPackage(h HeaderImport, res cheader.Result) error {
+func (m *Module) loadHeaderPackage(h module.HeaderImport, res cheader.Result) error {
 	pkgPath := "c/" + h.Package
 	genDir := filepath.Dir(res.CachePath)
 	if err := m.loadPackage(genDir, pkgPath, pkgPath, false, false); err != nil {

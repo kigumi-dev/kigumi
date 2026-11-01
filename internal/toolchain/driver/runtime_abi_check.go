@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/sem"
+	"kigumi/internal/toolchain/artifact"
 )
 
 // linkedArtifacts lists the files this link pulls in that a Kigumi build
@@ -39,11 +40,11 @@ func checkLinkedRuntimeABI(m *Module, cflags, lflags []string, want string) erro
 		if _, err := os.Stat(path); err != nil {
 			continue
 		}
-		fp, ok, err := ReadFingerprintSidecar(path)
+		fp, ok, err := artifact.ReadFingerprintSidecar(path)
 		if err != nil || !ok || fp.RuntimeAbi == want {
 			continue
 		}
-		msg, help := sem.FillCode(sem.RuntimeAbiMismatch, path, orNone(fp.RuntimeAbi), want)
+		msg, help := sem.FillCode(sem.RuntimeAbiMismatch, path, artifact.OrNone(fp.RuntimeAbi), want)
 		return fmt.Errorf("%s: %s: %s (%s)", sem.RuntimeAbiMismatch.Num, sem.RuntimeAbiMismatch.Name, msg, help)
 	}
 	return nil

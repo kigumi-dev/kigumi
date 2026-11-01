@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	buildconfig "kigumi/internal/toolchain/config"
+	"kigumi/internal/toolchain/module"
 )
 
 // PackageCacheStats counts package-cache traffic, so a test can pin that a no-op load writes nothing and a private edit rewrites one package.
@@ -137,4 +138,26 @@ func (c *packageCache) hasAPI(digest string) bool {
 		return false
 	}
 	return true
+}
+
+const (
+	cacheLimitBytes = 256 << 20
+	pruneEvery      = 128
+)
+
+// noteWrite counts a store write and prunes on the first one and every pruneEvery-th after, so a long editor session stays bounded as well as a one-shot command.
+func (c *packageCache) noteWrite() {
+	c.writes++
+	if c.writes%pruneEvery == 1 {
+		c.prune()
+	}
+}
+
+// prune keeps the store under its limit; a removed entry is only a later miss.
+func (c *packageCache) prune() {
+	limit := c.limit
+	if limit == 0 {
+		limit = cacheLimitBytes
+	}
+	c.stats.Pruned += module.PruneCache(c.dir, []string{"pkg", "api", "check", "unit"}, limit)
 }

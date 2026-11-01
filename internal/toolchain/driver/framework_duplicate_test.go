@@ -8,6 +8,7 @@ import (
 
 	"kigumi/internal/toolchain/buildgraph"
 	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
 )
 
 // TestResolveGraphRejectsAmbiguousFrameworkProvider checks that two descriptors providing the same Framework name/version fail, listing both providers.
@@ -52,7 +53,7 @@ func TestResolveGraphAcceptsUniqueFrameworkProvider(t *testing.T) {
 func TestLoadFrameworksRejectsDuplicateFrameworkRecord(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, driver.FrameworkFileName), []byte(
+	os.WriteFile(filepath.Join(dir, module.FrameworkFileName), []byte(
 		"Framework { name: \"acme/sdk\" version: \"1.0\" }\n"+
 			"Framework { name: \"acme/sdk\" version: \"2.0\" }\n"+
 			"Tool { name: \"gen\" program: \"tools/gen.sh\" }\n"), 0o644)
@@ -65,7 +66,7 @@ func TestLoadFrameworksRejectsDuplicateFrameworkRecord(t *testing.T) {
 func TestLoadFrameworksRejectsDuplicateToolName(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, driver.FrameworkFileName), []byte(
+	os.WriteFile(filepath.Join(dir, module.FrameworkFileName), []byte(
 		"Framework { name: \"acme/sdk\" version: \"1.0\" }\n"+
 			"Tool { name: \"gen\" program: \"tools/gen-old.sh\" }\n"+
 			"Tool { name: \"gen\" program: \"tools/gen-new.sh\" }\n"), 0o644)

@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"kigumi/internal/cli/session"
-	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
 )
 
 func run(io session.IO, opts options) error {
@@ -12,16 +12,17 @@ func run(io session.IO, opts options) error {
 	if err != nil {
 		return err
 	}
+	git := newGit(io)
 	if opts.add != "" {
-		if err := t.add(io, opts.add, opts.url); err != nil {
+		if err := t.add(io, git, opts.add, opts.url); err != nil {
 			return err
 		}
 	}
-	if err := t.fetch(io, opts); err != nil {
+	if err := t.fetch(io, git, opts); err != nil {
 		// Roll back the add so a failed fetch leaves no orphaned Require; scripts have no removal helper yet.
 		if opts.add != "" && t.script == "" {
 			name, _, _ := strings.Cut(opts.add, "@")
-			driver.RemoveRequires(t.dir, map[string]bool{name: true})
+			module.RemoveRequires(t.dir, map[string]bool{name: true})
 		}
 		return err
 	}

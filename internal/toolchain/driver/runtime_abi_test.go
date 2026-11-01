@@ -13,6 +13,7 @@ import (
 
 	"kigumi/internal/backend/llgen"
 	opdef "kigumi/internal/compiler/mir/ops"
+	"kigumi/internal/toolchain/artifact"
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 	"kigumi/internal/toolchain/version"
@@ -158,7 +159,7 @@ func TestRegistryChangeInvalidatesRuntime(t *testing.T) {
 		t.Fatalf("two builds of one program disagree: %v vs %v", before, embeddedFingerprints(t, again))
 	}
 	archive := filepath.Join(t.TempDir(), "rt.a")
-	bareBuild := func() (string, driver.ArtifactFingerprint) {
+	bareBuild := func() (string, artifact.Fingerprint) {
 		t.Helper()
 		target, err := buildconfig.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 		if err != nil {
@@ -177,7 +178,7 @@ func TestRegistryChangeInvalidatesRuntime(t *testing.T) {
 		if err != nil || !ok {
 			t.Fatalf("bare build: %v\n%s", err, stderr.String())
 		}
-		fp, _, err := driver.ReadFingerprintSidecar(archive)
+		fp, _, err := artifact.ReadFingerprintSidecar(archive)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -312,13 +313,13 @@ func TestLinkRejectsStaleRuntimeArchive(t *testing.T) {
 	}
 	for _, c := range []struct {
 		name string
-		fp   driver.ArtifactFingerprint
+		fp   artifact.Fingerprint
 		want string
 	}{
-		{"other runtime", driver.ArtifactFingerprint{RuntimeAbi: "kgabi1:" + strings.Repeat("a", 32)}, "kgabi1:" + strings.Repeat("a", 32)},
-		{"older toolchain", driver.ArtifactFingerprint{AbiRevision: 1}, "none"},
+		{"other runtime", artifact.Fingerprint{RuntimeAbi: "kgabi1:" + strings.Repeat("a", 32)}, "kgabi1:" + strings.Repeat("a", 32)},
+		{"older toolchain", artifact.Fingerprint{AbiRevision: 1}, "none"},
 	} {
-		if err := driver.WriteFingerprintSidecar(lib, c.fp); err != nil {
+		if err := artifact.WriteFingerprintSidecar(lib, c.fp); err != nil {
 			t.Fatal(err)
 		}
 		exe := filepath.Join(t.TempDir(), "prog")

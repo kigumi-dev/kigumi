@@ -5,16 +5,12 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	buildconfig "kigumi/internal/toolchain/config"
+	"kigumi/internal/toolchain/native/link"
 	"kigumi/internal/toolchain/native/object"
 )
-
-func isZig(cc []string) bool {
-	return len(cc) > 0 && (strings.HasSuffix(cc[0], "zig") || filepath.Base(cc[0]) == "zig")
-}
 
 // hostLink is one hosted executable's compile-and-link step; args are the compile flags every input shares.
 type hostLink struct {
@@ -32,7 +28,7 @@ type hostLink struct {
 // run links h into staged. zig links libm itself and only for the symbols the program references, so -lm goes only to another compiler.
 func (h hostLink) run(staged string) error {
 	m, cc, opts, t := h.m, h.cc, h.opts, h.t
-	linkOut, linkInputsList, err := linkInputs(m.compiler, opts.pinCompDir, h.dir, staged, h.inputs)
+	linkOut, linkInputsList, err := link.Inputs(m.compiler, opts.pinCompDir, h.dir, staged, h.inputs)
 	if err != nil {
 		return err
 	}
@@ -40,7 +36,7 @@ func (h hostLink) run(staged string) error {
 	linkArgs = append(linkArgs, linkInputsList...)
 	if opts.pinCompDir {
 		linkArgs = append(linkArgs, "-fdebug-compilation-dir=.")
-		linkArgs = append(linkArgs, prefixMapFlag(m.compiler)...)
+		linkArgs = append(linkArgs, link.PrefixMapFlag(m.compiler)...)
 	}
 	if sectionGC(t) {
 		linkArgs = append(linkArgs, "-Wl,--gc-sections")
@@ -48,10 +44,10 @@ func (h hostLink) run(staged string) error {
 	switch {
 	case opts.SizeMin:
 		linkArgs = append(linkArgs, "-s")
-	case h.link.Static && !isZig(cc):
+	case h.link.Static && !link.IsZig(cc):
 		linkArgs = append(linkArgs, "-Wl,--strip-debug")
 	}
-	if !isZig(cc) {
+	if !link.IsZig(cc) {
 		linkArgs = append(linkArgs, "-lm")
 	}
 	if _, ok := m.Packages["std/dl"]; ok && !h.link.Static {
@@ -101,7 +97,7 @@ func (h hostLink) run(staged string) error {
 		}
 		return fmt.Errorf("link failed: %w", err)
 	}
-	if h.link.Static && !opts.SizeMin && isZig(cc) {
+	if h.link.Static && !opts.SizeMin && link.IsZig(cc) {
 		// zig cc turns --strip-debug into a full strip, and its static libc objects carry absolute build paths in DWARF.
 		return object.StripDebug(linkOut)
 	}

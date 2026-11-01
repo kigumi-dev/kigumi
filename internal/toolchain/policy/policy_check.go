@@ -35,6 +35,18 @@ func NativeLinkUnresolvedViolation(module, search string) Violation {
 	}
 }
 
+// NativeLinkIdentityUnknownViolation is distinct from release-native-link-unresolved:
+// that one is a missing Search directory, this one a Search directory present but not holding the named library.
+func NativeLinkIdentityUnknownViolation(module, library string) Violation {
+	return Violation{
+		ID:      "release-native-link-identity-unknown",
+		Subject: "Link { library: \"" + library + "\" } (" + module + ") does not resolve to a library file this host's search list can find",
+		Detail:  []KV{Detail("library", library)},
+		Policy:  "rejected because release requires the actual resolved library identity to be recorded, not only the declared name",
+		Help:    "add a Link search path that holds lib" + library + ", install the library where this host's linker would find it, or keep this as a development build",
+	}
+}
+
 // AmbientStdViolation reports that the std library came from $KIGUMI_STD; only
 // internal/cli reads the environment, so it builds this violation itself.
 func AmbientStdViolation(path string) Violation {

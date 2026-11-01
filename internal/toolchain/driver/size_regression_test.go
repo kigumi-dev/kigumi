@@ -7,6 +7,7 @@ import (
 
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/native/link"
 )
 
 // pinnedSizes are stripped x86_64-linux-musl executables in bytes, built with zig 0.17.0; repin when a change is meant to grow one.
@@ -27,7 +28,7 @@ const sizeMarginPercent = 3
 
 func TestExecutableSizeRegression(t *testing.T) {
 	cc := testCompiler().CCompiler()
-	if cc == nil || driver.ZigVersionOf(cc) != "0.17.0" {
+	if cc == nil || link.ZigVersionOf(cc) != "0.17.0" {
 		t.Skip("the pinned sizes are zig 0.17.0's")
 	}
 	target, err := buildconfig.ParseTarget(testCompiler(), "x86_64-linux-musl", "")

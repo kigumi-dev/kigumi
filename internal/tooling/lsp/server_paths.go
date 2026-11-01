@@ -7,7 +7,7 @@ import (
 
 	"go.lsp.dev/uri"
 
-	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
 )
 
 // findStd locates the std stubs when the CLI passed none: <root>/std, or
@@ -40,7 +40,7 @@ func (s *Server) allModuleRoots() []string {
 	seen := map[string]bool{}
 	var roots []string
 	for _, workspace := range s.roots {
-		for _, root := range driver.ModuleRoots(s.compiler, workspace, s.stdRoot) {
+		for _, root := range module.Roots(s.compiler, workspace, s.stdRoot) {
 			root = filepath.Clean(root)
 			if seen[root] {
 				continue
@@ -60,13 +60,13 @@ func (s *Server) moduleRoot(path string) string {
 			continue
 		}
 		for dir := filepath.Dir(path); dir != root; dir = filepath.Dir(dir) {
-			if driver.IsModuleRoot(dir) {
+			if module.IsModuleRoot(dir) {
 				return dir
 			}
 		}
 		return root
 	}
-	if root, ok := driver.FindModuleRoot(filepath.Dir(path)); ok {
+	if root, ok := module.FindModuleRoot(filepath.Dir(path)); ok {
 		return root
 	}
 	return filepath.Dir(path)

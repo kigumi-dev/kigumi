@@ -8,6 +8,7 @@ import (
 	"kigumi/internal/base/errors"
 	"kigumi/internal/cli/exit"
 	"kigumi/internal/cli/session"
+	"kigumi/internal/toolchain/artifact"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -36,13 +37,13 @@ func explainCapabilities(io session.IO, s session.Session, target string) error 
 	return nil
 }
 
-func artifactFingerprint(path string) (driver.ArtifactFingerprint, bool) {
+func artifactFingerprint(path string) (artifact.Fingerprint, bool) {
 	if strings.HasSuffix(path, ".kg") {
-		return driver.ArtifactFingerprint{}, false
+		return artifact.Fingerprint{}, false
 	}
 	if st, err := os.Stat(path); err != nil || st.IsDir() {
-		return driver.ArtifactFingerprint{}, false
+		return artifact.Fingerprint{}, false
 	}
-	fp, ok, err := driver.ReadFingerprintSidecar(path)
+	fp, ok, err := artifact.ReadFingerprintSidecar(path)
 	return fp, ok && err == nil
 }

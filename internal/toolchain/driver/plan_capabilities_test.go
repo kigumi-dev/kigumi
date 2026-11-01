@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"kigumi/internal/toolchain/artifact"
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
@@ -69,9 +70,9 @@ type planCapabilities struct {
 	Artifacts []struct {
 		Name        string `json:"name"`
 		Fingerprint struct {
-			Target              string                     `json:"target"`
-			CapabilityProvision []driver.CapabilityVerdict `json:"capabilityProvision"`
-			CapabilityReasons   []driver.CapabilityReason  `json:"capabilityReasons"`
+			Target              string                       `json:"target"`
+			CapabilityProvision []artifact.CapabilityVerdict `json:"capabilityProvision"`
+			CapabilityReasons   []driver.CapabilityReason    `json:"capabilityReasons"`
 		} `json:"fingerprint"`
 	} `json:"artifacts"`
 }
@@ -83,10 +84,10 @@ func TestPlanPrintsCapabilityReasons(t *testing.T) {
 		t.Fatal(err)
 	}
 	type view struct {
-		Artifact  string                     `json:"artifact"`
-		Target    string                     `json:"target"`
-		Provision []driver.CapabilityVerdict `json:"provision"`
-		Reasons   []driver.CapabilityReason  `json:"reasons"`
+		Artifact  string                       `json:"artifact"`
+		Target    string                       `json:"target"`
+		Provision []artifact.CapabilityVerdict `json:"provision"`
+		Reasons   []driver.CapabilityReason    `json:"reasons"`
 	}
 	var views []view
 	for _, a := range got.Artifacts {

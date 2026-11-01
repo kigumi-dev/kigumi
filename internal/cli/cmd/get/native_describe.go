@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
 )
 
 // printNativeChanges reports every added or removed Source/Link per dependency, and the lock diff as JSON when asked.
@@ -25,7 +25,7 @@ func printNativeChanges(w io.Writer, changes []nativeChange, asJSON bool) {
 	}
 }
 
-func describeChange(hasB, hasA bool, b, a driver.ModFile) []string {
+func describeChange(hasB, hasA bool, b, a module.ModFile) []string {
 	if !hasB {
 		return append([]string{"new dependency, trusted for the first time"}, addedLines(a)...)
 	}
@@ -40,7 +40,7 @@ func describeChange(hasB, hasA bool, b, a driver.ModFile) []string {
 	return lines
 }
 
-func addedLines(mf driver.ModFile) []string {
+func addedLines(mf module.ModFile) []string {
 	var out []string
 	for _, l := range mf.Links {
 		out = append(out, "+Link "+linkDesc(l))
@@ -51,7 +51,7 @@ func addedLines(mf driver.ModFile) []string {
 	return out
 }
 
-func diffLinks(sign string, from, without []driver.Link) []string {
+func diffLinks(sign string, from, without []module.Link) []string {
 	var out []string
 	for _, l := range from {
 		if !containsLink(without, l) {
@@ -61,7 +61,7 @@ func diffLinks(sign string, from, without []driver.Link) []string {
 	return out
 }
 
-func diffSources(sign string, from, without []driver.NativeSource) []string {
+func diffSources(sign string, from, without []module.NativeSource) []string {
 	var out []string
 	for _, s := range from {
 		if !containsSource(without, s) {
@@ -71,7 +71,7 @@ func diffSources(sign string, from, without []driver.NativeSource) []string {
 	return out
 }
 
-func containsLink(in []driver.Link, l driver.Link) bool {
+func containsLink(in []module.Link, l module.Link) bool {
 	for _, x := range in {
 		if x == l {
 			return true
@@ -80,7 +80,7 @@ func containsLink(in []driver.Link, l driver.Link) bool {
 	return false
 }
 
-func containsSource(in []driver.NativeSource, s driver.NativeSource) bool {
+func containsSource(in []module.NativeSource, s module.NativeSource) bool {
 	for _, x := range in {
 		if x == s {
 			return true
@@ -89,7 +89,7 @@ func containsSource(in []driver.NativeSource, s driver.NativeSource) bool {
 	return false
 }
 
-func linkDesc(l driver.Link) string {
+func linkDesc(l module.Link) string {
 	switch {
 	case l.Library != "" && l.Search != "":
 		return fmt.Sprintf("library=%s search=%s", l.Library, l.Search)

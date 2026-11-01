@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
 )
 
 // A dependency's own mod.local.kg is never read: only the override next to
@@ -49,20 +50,20 @@ func TestLoadRejectsTamperedCache(t *testing.T) {
 
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
-	dir, err := driver.CacheDir(testCompiler(), driver.Require{Name: "greet", Version: "v1.0.0"})
+	dir, err := module.CacheDir(testCompiler(), module.Require{Name: "greet", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	os.MkdirAll(dir, 0o755)
 	os.WriteFile(filepath.Join(dir, "mod.kg"), []byte("Module {\n    name: \"greet\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(dir, "greet.kg"), []byte("pub fn greeting() -> String {\n    \"hello\"\n}\n"), 0o644)
-	os.WriteFile(filepath.Join(dir, driver.OriginFileName), []byte("deadbeef\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, module.OriginFileName), []byte("deadbeef\n"), 0o644)
 
-	hash, err := driver.TreeHash(dir)
+	hash, err := module.TreeHash(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := driver.WriteLock(app, driver.Lock{Entries: map[string]driver.LockEntry{
+	if err := module.WriteLock(app, module.Lock{Entries: map[string]module.LockEntry{
 		"greet": {Version: "v1.0.0", Commit: "deadbeef", Hash: hash},
 	}}); err != nil {
 		t.Fatal(err)
@@ -78,7 +79,7 @@ func TestLoadRejectsTamperedCache(t *testing.T) {
 	if err == nil {
 		t.Fatal("a cache diverged from mod.lock.kg should be rejected")
 	}
-	if !strings.Contains(err.Error(), driver.LockName) {
+	if !strings.Contains(err.Error(), module.LockName) {
 		t.Fatalf("wrong diagnostic: %v", err)
 	}
 }
@@ -95,14 +96,14 @@ func TestLoadRejectsMissingLockEntry(t *testing.T) {
 
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
-	dir, err := driver.CacheDir(testCompiler(), driver.Require{Name: "greet", Version: "v1.0.0"})
+	dir, err := module.CacheDir(testCompiler(), module.Require{Name: "greet", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	os.MkdirAll(dir, 0o755)
 	os.WriteFile(filepath.Join(dir, "mod.kg"), []byte("Module {\n    name: \"greet\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(dir, "greet.kg"), []byte("pub fn greeting() -> String {\n    \"hello\"\n}\n"), 0o644)
-	os.WriteFile(filepath.Join(dir, driver.OriginFileName), []byte("deadbeef\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, module.OriginFileName), []byte("deadbeef\n"), 0o644)
 
 	_, err = driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler()})
 	if err == nil {
@@ -125,16 +126,16 @@ func TestLoadRejectsStaleLockVersion(t *testing.T) {
 
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
-	dir, err := driver.CacheDir(testCompiler(), driver.Require{Name: "greet", Version: "v1.0.0"})
+	dir, err := module.CacheDir(testCompiler(), module.Require{Name: "greet", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	os.MkdirAll(dir, 0o755)
 	os.WriteFile(filepath.Join(dir, "mod.kg"), []byte("Module {\n    name: \"greet\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(dir, "greet.kg"), []byte("pub fn greeting() -> String {\n    \"TAMPERED\"\n}\n"), 0o644)
-	os.WriteFile(filepath.Join(dir, driver.OriginFileName), []byte("deadbeef\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, module.OriginFileName), []byte("deadbeef\n"), 0o644)
 
-	if err := driver.WriteLock(app, driver.Lock{Entries: map[string]driver.LockEntry{
+	if err := module.WriteLock(app, module.Lock{Entries: map[string]module.LockEntry{
 		"greet": {Version: "v0.9.0", Commit: "deadbeef", Hash: "h1:0000000000000000000000000000000000000000000000000000000000000000"},
 	}}); err != nil {
 		t.Fatal(err)
@@ -159,20 +160,20 @@ func TestScriptRunsWithoutLockFile(t *testing.T) {
 
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
-	dir, err := driver.CacheDir(testCompiler(), driver.Require{Name: "greet", Version: "v1.0.0"})
+	dir, err := module.CacheDir(testCompiler(), module.Require{Name: "greet", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	os.MkdirAll(dir, 0o755)
 	os.WriteFile(filepath.Join(dir, "mod.kg"), []byte("Module {\n    name: \"greet\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(dir, "greet.kg"), []byte("pub fn greeting() -> String {\n    \"hello\"\n}\n"), 0o644)
-	os.WriteFile(filepath.Join(dir, driver.OriginFileName), []byte("deadbeef\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, module.OriginFileName), []byte("deadbeef\n"), 0o644)
 
 	if _, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler()}); err != nil {
 		t.Fatalf("a script with no lock file should still load from the cache: %v", err)
 	}
 
-	if err := driver.WriteLockFile(script+".lock.kg", driver.Lock{Entries: map[string]driver.LockEntry{
+	if err := module.WriteLockFile(script+".lock.kg", module.Lock{Entries: map[string]module.LockEntry{
 		"greet": {Version: "v0.9.0", Commit: "deadbeef", Hash: "h1:0000000000000000000000000000000000000000000000000000000000000000"},
 	}}); err != nil {
 		t.Fatal(err)

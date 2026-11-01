@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"kigumi/internal/toolchain/artifact"
 	"kigumi/internal/toolchain/contract/schema"
 	"kigumi/internal/toolchain/policy"
 )
@@ -68,7 +69,7 @@ func deriveProvenanceLines(items []schema.GeneratedArtifact) []string {
 		if g.Origin != nil {
 			name = g.Origin.Name
 		}
-		out[i] = fmt.Sprintf("%s on %s (%s)", g.Generator, name, short(g.ContentHash))
+		out[i] = fmt.Sprintf("%s on %s (%s)", g.Generator, name, artifact.ShortHash(g.ContentHash))
 	}
 	return out
 }

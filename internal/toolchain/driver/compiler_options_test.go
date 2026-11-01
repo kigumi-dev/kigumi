@@ -7,6 +7,7 @@ import (
 
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
 )
 
 func TestCompilerOptionsHostDecidesTheDefaultTarget(t *testing.T) {
@@ -58,7 +59,7 @@ func TestZeroCompilerOptionsReadsNothingFromTheProcess(t *testing.T) {
 	if got, err := zero.ZigStoreRoot("/store"); err != nil || got != "/store" {
 		t.Errorf("ZigStoreRoot override = %q, %v", got, err)
 	}
-	if _, err := driver.CacheDir(zero, driver.Require{Name: "example.com/a", Version: "v1.0.0"}); err == nil {
+	if _, err := module.CacheDir(zero, module.Require{Name: "example.com/a", Version: "v1.0.0"}); err == nil {
 		t.Error("CacheDir with an empty CacheDir must fail")
 	}
 	if _, err := driver.HeaderCacheDir(zero); err == nil {
@@ -71,7 +72,7 @@ func TestZeroCompilerOptionsReadsNothingFromTheProcess(t *testing.T) {
 
 func TestCompilerOptionsCacheDirIsExplicit(t *testing.T) {
 	cache := t.TempDir()
-	got, err := driver.CacheDir(buildconfig.CompilerOptions{CacheDir: cache}, driver.Require{Name: "example.com/a", Version: "v1.0.0"})
+	got, err := module.CacheDir(buildconfig.CompilerOptions{CacheDir: cache}, module.Require{Name: "example.com/a", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +80,7 @@ func TestCompilerOptionsCacheDirIsExplicit(t *testing.T) {
 		t.Errorf("CacheDir = %q, want %q", got, want)
 	}
 	header, _ := driver.HeaderCacheDir(buildconfig.CompilerOptions{CacheDir: cache})
-	derive, _ := driver.DeriveCacheDir(buildconfig.CompilerOptions{CacheDir: cache})
+	derive, _ := module.DeriveCacheDir(buildconfig.CompilerOptions{CacheDir: cache})
 	if header != filepath.Join(cache, "kigumi", "cheader") || derive != filepath.Join(cache, "kigumi", "derive") {
 		t.Errorf("header cache %q, derive cache %q", header, derive)
 	}

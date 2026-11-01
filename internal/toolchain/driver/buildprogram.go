@@ -11,6 +11,7 @@ import (
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/toolchain/buildgraph"
 	buildconfig "kigumi/internal/toolchain/config"
+	"kigumi/internal/toolchain/module"
 )
 
 // BuildProgram is a checked build.kg: the module it configures, the checker
@@ -149,7 +150,7 @@ func (p *BuildProgram) Roots(outDir string) ([]string, error) {
 	}
 	sort.Strings(names)
 	for _, name := range names {
-		dir, _, err := DepDir(p.Module.compiler, p.Module.local, p.Module.Selected[name], true)
+		dir, _, err := module.DepDir(p.Module.compiler, p.Module.local, p.Module.Selected[name], true)
 		if err != nil {
 			return nil, err
 		}

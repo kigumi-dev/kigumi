@@ -7,7 +7,7 @@ import (
 	"kigumi/internal/base/errors"
 	"kigumi/internal/cli/exit"
 	"kigumi/internal/cli/session"
-	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
 	"kigumi/internal/toolchain/version"
 )
 
@@ -18,8 +18,8 @@ type manifestJSON struct {
 	Kigumi        string                `json:"kigumi"`
 	Zig           string                `json:"zig,omitempty"`
 	Requires      []requireJSON         `json:"requires"`
-	Links         []driver.Link         `json:"links"`
-	Sources       []driver.NativeSource `json:"sources"`
+	Links         []module.Link         `json:"links"`
+	Sources       []module.NativeSource `json:"sources"`
 	Local         map[string]string     `json:"local"`
 	Lock          map[string]lockJSON   `json:"lock"`
 }
@@ -38,18 +38,18 @@ type lockJSON struct {
 
 // runJSON prints mod.kg and mod.lock.kg as one JSON document for tools that do not parse Kigumi.
 func runJSON(io session.IO, opts options) error {
-	mf, ok, err := driver.ReadModFile(opts.root)
+	mf, ok, err := module.ReadModFile(opts.root)
 	if err != nil {
 		return errors.WrapErr(err, "read manifest")
 	}
 	if !ok {
-		return &exit.UsageError{Err: errors.NewErrf("%s has no %s", opts.root, driver.ManifestName)}
+		return &exit.UsageError{Err: errors.NewErrf("%s has no %s", opts.root, module.ManifestName)}
 	}
-	lock, err := driver.ReadLock(opts.root)
+	lock, err := module.ReadLock(opts.root)
 	if err != nil {
 		return errors.WrapErr(err, "read lock")
 	}
-	local, err := driver.ReadLocal(session.CompilerOptions(), opts.root)
+	local, err := module.ReadLocal(session.CompilerOptions(), opts.root)
 	if err != nil {
 		return errors.WrapErr(err, "read local overrides")
 	}

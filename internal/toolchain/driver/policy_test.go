@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
 	"kigumi/internal/toolchain/policy"
 )
 
@@ -58,12 +59,12 @@ func TestUnlockedScriptReleasePolicy(t *testing.T) {
 	writeDepModule(t, dep, "greet")
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
-	dir, err := driver.CacheDir(testCompiler(), driver.Require{Name: "greet", Version: "v1.0.0"})
+	dir, err := module.CacheDir(testCompiler(), module.Require{Name: "greet", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	writeDepModule(t, dir, "greet")
-	os.WriteFile(filepath.Join(dir, driver.OriginFileName), []byte("deadbeef\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, module.OriginFileName), []byte("deadbeef\n"), 0o644)
 
 	script := filepath.Join(root, "main.kg")
 	os.WriteFile(script, []byte("Kigumi { version: \"0.1\" }\nRequire { name: \"greet\", version: \"v1.0.0\" }\n\nimport {greeting} from greet\nprint greeting()\n"), 0o644)
@@ -118,18 +119,18 @@ func TestLoadRejectsTamperedNativeDeclaration(t *testing.T) {
 
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
-	dir, err := driver.CacheDir(testCompiler(), driver.Require{Name: "greet", Version: "v1.0.0"})
+	dir, err := module.CacheDir(testCompiler(), module.Require{Name: "greet", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	writeDepModule(t, dir, "greet")
-	os.WriteFile(filepath.Join(dir, driver.OriginFileName), []byte("deadbeef\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, module.OriginFileName), []byte("deadbeef\n"), 0o644)
 
-	hash, err := driver.TreeHash(dir)
+	hash, err := module.TreeHash(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := driver.WriteLock(app, driver.Lock{Entries: map[string]driver.LockEntry{
+	if err := module.WriteLock(app, module.Lock{Entries: map[string]module.LockEntry{
 		"greet": {Version: "v1.0.0", Commit: "deadbeef", Hash: hash},
 	}}); err != nil {
 		t.Fatal(err)
@@ -147,7 +148,7 @@ func TestLoadRejectsTamperedNativeDeclaration(t *testing.T) {
 		if err == nil {
 			t.Fatalf("%s: a tampered native declaration should be rejected", pol)
 		}
-		if !strings.Contains(err.Error(), driver.LockName) {
+		if !strings.Contains(err.Error(), module.LockName) {
 			t.Fatalf("%s: wrong diagnostic: %v", pol, err)
 		}
 	}

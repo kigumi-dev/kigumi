@@ -7,8 +7,10 @@ import (
 	"strings"
 
 	"kigumi/internal/backend/llgen"
+	"kigumi/internal/toolchain/artifact"
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/native/audit"
+	"kigumi/internal/toolchain/native/link"
 )
 
 // wasi-libc's setjmp.h needs exception handling and a wasm backend has no jump of its own, so wasm keeps task panics fatal.
@@ -31,9 +33,9 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 	if err != nil || !ok {
 		return ok, err
 	}
-	m, code, t, link, cc, cflags, lflags := l.m, l.code, l.t, l.link, l.cc, l.cflags, l.lflags
+	m, code, t, linkage, cc, cflags, lflags := l.m, l.code, l.t, l.link, l.cc, l.cflags, l.lflags
 	if opts.Report != nil {
-		*opts.Report = BuildReport{Linkage: link, SizeMin: opts.SizeMin, SectionGC: sectionGC(t), LTO: lto(t), Archive: t.Bare()}
+		*opts.Report = BuildReport{Linkage: linkage, SizeMin: opts.SizeMin, SectionGC: sectionGC(t), LTO: lto(t), Archive: t.Bare()}
 	}
 	dir, err := os.MkdirTemp("", "kigumi-build")
 	if err != nil {
@@ -87,15 +89,15 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 			// A wasm object compiled position-independent imports __memory_base and __table_base from the linker.
 			args = append(args, "-fPIE")
 		}
-		fp := CurrentFingerprint(t, ZigVersionOf(cc))
+		fp := CurrentFingerprint(t, link.ZigVersionOf(cc))
 		fp.RuntimeAbi = code.Abi
-		reportStaleFingerprint(out, fp, stderr)
-		ok, err := publishBuildOutput(out, func(staged string) error {
+		artifact.ReportStale(out, fp, stderr)
+		ok, err := artifact.Publish(out, func(staged string) error {
 			built, err := buildArchive(m.compiler, cc, args, inputs, dir, staged, opts.ccEnv, stderr)
 			if err != nil || !built {
 				return err
 			}
-			ar, err := arTool(m.compiler, cc)
+			ar, err := link.Archiver(m.compiler, cc)
 			if err != nil {
 				return err
 			}
@@ -105,15 +107,15 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 			return ok, err
 		}
 		withProvenance(&fp, m, t, code)
-		return true, WriteFingerprintSidecar(out, fp)
+		return true, artifact.WriteFingerprintSidecar(out, fp)
 	}
-	ok, err = publishBuildOutput(out, func(staged string) error {
-		return hostLink{m: m, cc: cc, args: args, inputs: inputs, dir: dir, opts: opts, t: t, link: link, cflags: cflags, lflags: lflags, stderr: stderr}.run(staged)
+	ok, err = artifact.Publish(out, func(staged string) error {
+		return hostLink{m: m, cc: cc, args: args, inputs: inputs, dir: dir, opts: opts, t: t, link: linkage, cflags: cflags, lflags: lflags, stderr: stderr}.run(staged)
 	})
 	if err != nil || !ok {
 		return ok, err
 	}
-	fp := CurrentFingerprint(t, ZigVersionOf(cc))
+	fp := CurrentFingerprint(t, link.ZigVersionOf(cc))
 	withProvenance(&fp, m, t, code)
-	return true, WriteFingerprintSidecar(out, fp)
+	return true, artifact.WriteFingerprintSidecar(out, fp)
 }

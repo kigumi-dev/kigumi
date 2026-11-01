@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"kigumi/internal/toolchain/artifact"
 )
 
 // ExecOptions is what the CLI resolved for one build: secret files by
@@ -61,7 +63,7 @@ func ExecuteGraph(p *BuildProgram, rg *ResolvedGraph, outDir string, opts ExecOp
 	}
 	for _, f := range g.Files {
 		if f.Kind == "generated" {
-			if err := writeGraphOutput(filePath(f.ID), []byte(f.Content), 0o644); err != nil {
+			if err := artifact.WriteOutput(filePath(f.ID), []byte(f.Content), 0o644); err != nil {
 				return err
 			}
 		}
@@ -164,12 +166,12 @@ func runToolStep(rg *ResolvedGraph, idx int, filePath func(int) string, opts Exe
 	outPaths := make([]string, len(s.Outputs))
 	for i, o := range s.Outputs {
 		p := filePath(o)
-		if err := checkOutputSlot(p); err != nil {
+		if err := artifact.CheckOutputSlot(p); err != nil {
 			return fmt.Errorf("tool %s: %w", name, err)
 		}
 		outPaths[i] = p
 	}
-	quarantined, err := quarantineStaleOutputs(outPaths)
+	quarantined, err := artifact.Quarantine(outPaths)
 	if err != nil {
 		return fmt.Errorf("tool %s: quarantine a stale output: %w", name, err)
 	}
@@ -182,17 +184,17 @@ func runToolStep(rg *ResolvedGraph, idx int, filePath func(int) string, opts Exe
 	cmd.Stdout = stderr
 	fmt.Fprintf(stderr, "build: tool %s runs trusted (no sandbox), env %s\n", name, envNames(cmd.Env))
 	if err := cmd.Run(); err != nil {
-		restoreQuarantinedOutputs(outPaths, quarantined)
+		artifact.RestoreQuarantined(outPaths, quarantined)
 		return fmt.Errorf("tool %s (%s %s) failed: %w", name, program, strings.Join(fullDisplay, " "), err)
 	}
 	for _, o := range s.Outputs {
 		p := filePath(o)
 		fi, err := os.Lstat(p)
 		if err != nil || !fi.Mode().IsRegular() {
-			restoreQuarantinedOutputs(outPaths, quarantined)
+			artifact.RestoreQuarantined(outPaths, quarantined)
 			return fmt.Errorf("tool %s did not produce a regular file at %s", name, rg.Graph.Files[o].Path)
 		}
 	}
-	dropQuarantinedOutputs(quarantined)
+	artifact.DropQuarantined(quarantined)
 	return nil
 }

@@ -6,6 +6,7 @@ import (
 
 	"kigumi/internal/cli/session"
 	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
 	"kigumi/internal/toolchain/version"
 	"kigumi/internal/toolchain/zig"
 )
@@ -84,7 +85,7 @@ func ccompilerField() field {
 
 // zigField reads mod.kg directly; no std root is available here to load a full module.
 func zigField() field {
-	mf, _, _ := driver.ReadModFile(".")
+	mf, _, _ := module.ReadModFile(".")
 	root, err := session.ZigStoreRoot()
 	if err != nil {
 		root = ""

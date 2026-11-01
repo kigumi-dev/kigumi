@@ -10,6 +10,7 @@ import (
 	"go.lsp.dev/uri"
 
 	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
 )
 
 func (s *Server) publish(ctx context.Context, u uri.URI, ds []protocol.Diagnostic) {
@@ -27,7 +28,7 @@ func (s *Server) publish(ctx context.Context, u uri.URI, ds []protocol.Diagnosti
 
 func (s *Server) analyze(ctx context.Context, u uri.URI) {
 	path := uriToPath(u)
-	if driver.IsManifest(filepath.Base(path)) {
+	if module.IsManifest(filepath.Base(path)) {
 		s.publish(ctx, u, s.manifestDiagnostics(u))
 	}
 	own := s.moduleRoot(path)
@@ -58,7 +59,7 @@ func (s *Server) analyzeModule(ctx context.Context, root string, u uri.URI, forc
 func (s *Server) publishSnapshot(ctx context.Context, snap *snapshot, u uri.URI) {
 	root := snap.root
 	if snap.mod == nil {
-		if u != "" && !driver.IsManifest(filepath.Base(uriToPath(u))) {
+		if u != "" && !module.IsManifest(filepath.Base(uriToPath(u))) {
 			s.publish(ctx, u, []protocol.Diagnostic{{Message: protocol.String(snap.err.Error()), Severity: protocol.DiagnosticSeverityError}})
 		}
 		return

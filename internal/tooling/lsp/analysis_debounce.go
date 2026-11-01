@@ -7,14 +7,14 @@ import (
 
 	"go.lsp.dev/uri"
 
-	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
 )
 
 // schedule invalidates the roots path belongs to and re-arms the debounce
 // timer; the analysis itself runs on the timer's goroutine.
 func (s *Server) schedule(ctx context.Context, u uri.URI) {
 	path := uriToPath(u)
-	if driver.IsManifest(filepath.Base(path)) {
+	if module.IsManifest(filepath.Base(path)) {
 		s.publish(ctx, u, s.manifestDiagnostics(u))
 	}
 	s.bg = context.WithoutCancel(ctx)

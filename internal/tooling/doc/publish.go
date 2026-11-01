@@ -8,7 +8,7 @@ import (
 	"sort"
 
 	"kigumi/internal/base/errors"
-	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/base/fsx"
 )
 
 const manifestName = ".kigumi-doc-manifest.json"
@@ -35,7 +35,7 @@ func Publish(dir string, files map[string][]byte, validate func(stagingDir strin
 		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
 			return errors.WrapErr(err, "create doc staging directory")
 		}
-		if err := driver.WriteFileAtomic(p, content, 0o644); err != nil {
+		if err := fsx.WriteFileAtomic(p, content, 0o644); err != nil {
 			return errors.WrapErr(err, "write staged doc page")
 		}
 	}
@@ -145,7 +145,7 @@ func overlay(dir string, full map[string][]byte, owned []string) error {
 		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
 			return errors.WrapErr(err, "create doc directory")
 		}
-		if err := driver.WriteFileAtomic(p, content, 0o644); err != nil {
+		if err := fsx.WriteFileAtomic(p, content, 0o644); err != nil {
 			return errors.WrapErr(err, "write doc page")
 		}
 	}

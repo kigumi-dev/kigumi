@@ -3,9 +3,11 @@ package driver
 import (
 	"encoding/json"
 
+	"kigumi/internal/toolchain/artifact"
 	"kigumi/internal/toolchain/buildgraph"
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/contract/schema"
+	"kigumi/internal/toolchain/native/link"
 	"kigumi/internal/toolchain/version"
 )
 
@@ -17,10 +19,10 @@ func PlanJSON(rg *ResolvedGraph, p *BuildProgram) string {
 
 // PlanJSONWithStats is PlanJSON plus how many artifact analyses the plan ran or reused.
 func PlanJSONWithStats(rg *ResolvedGraph, p *BuildProgram) (string, PlanStats) {
-	type artifact struct {
+	type plannedArtifact struct {
 		*buildgraph.Artifact
 		Resolved         buildconfig.Target         `json:"resolved"`
-		Fingerprint      ArtifactFingerprint        `json:"fingerprint"`
+		Fingerprint      artifact.Fingerprint       `json:"fingerprint"`
 		DeriveProvenance []schema.GeneratedArtifact `json:"deriveProvenance,omitempty"`
 	}
 	// resolvedFramework adds the winning descriptor's directory to the ref.
@@ -37,16 +39,16 @@ func PlanJSONWithStats(rg *ResolvedGraph, p *BuildProgram) (string, PlanStats) {
 		Secrets          []buildgraph.SecretRef     `json:"secrets"`
 		Files            []buildgraph.FileRef       `json:"files"`
 		ToolSteps        []buildgraph.ToolStep      `json:"toolSteps"`
-		Artifacts        []artifact                 `json:"artifacts"`
+		Artifacts        []plannedArtifact          `json:"artifacts"`
 		Order            []string                   `json:"order"`
 		DeriveProvenance []schema.GeneratedArtifact `json:"deriveProvenance,omitempty"`
-	}{FormatVersion: version.BuildPlanFormatVersion, Toolchain: version.Current(), NativeToolchain: rg.options.CCompiler(), Request: rg.Graph.Request, Secrets: rg.Graph.Secrets, Files: rg.Graph.Files, ToolSteps: rg.Graph.ToolSteps, Artifacts: []artifact{}, Order: rg.Order}
+	}{FormatVersion: version.BuildPlanFormatVersion, Toolchain: version.Current(), NativeToolchain: rg.options.CCompiler(), Request: rg.Graph.Request, Secrets: rg.Graph.Secrets, Files: rg.Graph.Files, ToolSteps: rg.Graph.ToolSteps, Artifacts: []plannedArtifact{}, Order: rg.Order}
 	zigVersion := ""
 	cache := newPlanCache(rg.options)
 	if p != nil {
 		plan.DeriveProvenance = schema.BuildProvenance(p.Res, nil)
 		if cc, err := CCompilerFor(p.Module); err == nil {
-			plan.NativeToolchain, zigVersion = cc, ZigVersionOf(cc)
+			plan.NativeToolchain, zigVersion = cc, link.ZigVersionOf(cc)
 		}
 	}
 	for i, f := range rg.Graph.Frameworks {
@@ -67,7 +69,7 @@ func PlanJSONWithStats(rg *ResolvedGraph, p *BuildProgram) (string, PlanStats) {
 		if facts != nil {
 			prov = facts.provenance
 		}
-		plan.Artifacts = append(plan.Artifacts, artifact{a, rg.Targets[i], fp, prov})
+		plan.Artifacts = append(plan.Artifacts, plannedArtifact{a, rg.Targets[i], fp, prov})
 	}
 	out, _ := json.MarshalIndent(plan, "", "  ")
 	return string(out) + "\n", cache.finish()

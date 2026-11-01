@@ -4,7 +4,7 @@ import (
 	"sort"
 
 	"kigumi/internal/cli/session"
-	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
 )
 
 // nativeSnapshot is one dependency's native declarations at a point in
@@ -24,7 +24,7 @@ type sourceJSON struct {
 	Asm  bool   `json:"asm,omitempty"`
 }
 
-func snapshotJSON(mf driver.ModFile) *nativeSnapshot {
+func snapshotJSON(mf module.ModFile) *nativeSnapshot {
 	s := &nativeSnapshot{}
 	for _, l := range mf.Links {
 		s.Links = append(s.Links, linkJSON{Library: l.Library, Search: l.Search})
@@ -46,14 +46,14 @@ type nativeChange struct {
 
 // snapshotNative reads the native declarations the current lock records,
 // before `kigumi get` fetches or updates anything.
-func snapshotNative(lock driver.Lock) map[string]driver.ModFile {
-	out := map[string]driver.ModFile{}
+func snapshotNative(lock module.Lock) map[string]module.ModFile {
+	out := map[string]module.ModFile{}
 	for name, entry := range lock.Entries {
-		dir, err := driver.CacheDir(session.CompilerOptions(), driver.Require{Name: name, Version: entry.Version})
+		dir, err := module.CacheDir(session.CompilerOptions(), module.Require{Name: name, Version: entry.Version})
 		if err != nil {
 			continue
 		}
-		if mf, ok, err := driver.ReadModFile(dir); err == nil && ok {
+		if mf, ok, err := module.ReadModFile(dir); err == nil && ok {
 			out[name] = mf
 		}
 	}
@@ -62,7 +62,7 @@ func snapshotNative(lock driver.Lock) map[string]driver.ModFile {
 
 // diffNative compares the native declarations before and after a fetch,
 // skipping dependencies whose Links and Sources did not change.
-func diffNative(before, after map[string]driver.ModFile) []nativeChange {
+func diffNative(before, after map[string]module.ModFile) []nativeChange {
 	names := map[string]bool{}
 	for n := range before {
 		names[n] = true
@@ -97,7 +97,7 @@ func diffNative(before, after map[string]driver.ModFile) []nativeChange {
 	return out
 }
 
-func linksEqual(a, b []driver.Link) bool {
+func linksEqual(a, b []module.Link) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -109,7 +109,7 @@ func linksEqual(a, b []driver.Link) bool {
 	return true
 }
 
-func sourcesEqual(a, b []driver.NativeSource) bool {
+func sourcesEqual(a, b []module.NativeSource) bool {
 	if len(a) != len(b) {
 		return false
 	}

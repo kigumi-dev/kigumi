@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
 )
 
 var embedded fs.FS
@@ -81,7 +81,7 @@ func validStdCache(dir, hash string) bool {
 	if err != nil || !st.IsDir() || st.Mode().Perm()&0o022 != 0 {
 		return false
 	}
-	if err := driver.CheckCacheTree(dir); err != nil {
+	if err := module.CheckCacheTree(dir); err != nil {
 		return false
 	}
 	got, err := hashTree(dir)

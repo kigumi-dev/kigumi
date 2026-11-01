@@ -8,6 +8,7 @@ import (
 
 	"kigumi/internal/lang/token"
 	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
 )
 
 func isrModule(t *testing.T, manifest, src string) *driver.Module {
@@ -94,12 +95,12 @@ func TestInterruptManifestRecords(t *testing.T) {
 	}
 	for _, c := range cases {
 		src := "Module {\n    name: \"isr\"\n    kigumi: \"0.1\"\n}\n" + c.text + "\n"
-		_, ds := driver.ParseModFile(token.NewFile("mod.kg", []byte(src)))
+		_, ds := module.ParseModFile(token.NewFile("mod.kg", []byte(src)))
 		if len(ds) == 0 || !strings.Contains(ds[0].Msg, c.want) {
 			t.Fatalf("%q: want a diagnostic mentioning %q, got %v", c.text, c.want, ds)
 		}
 	}
-	mf, ds := driver.ParseModFile(token.NewFile("mod.kg", []byte("Module {\n    name: \"isr\"\n    kigumi: \"0.1\"\n}\nInterrupt { allow: \"sync  q.n impl=cas   width=32 ; mmio uart.ack\" }\nInterrupt { handler: \"isr.a, isr.b\", allow: \"mmio uart.ack\" }\n")))
+	mf, ds := module.ParseModFile(token.NewFile("mod.kg", []byte("Module {\n    name: \"isr\"\n    kigumi: \"0.1\"\n}\nInterrupt { allow: \"sync  q.n impl=cas   width=32 ; mmio uart.ack\" }\nInterrupt { handler: \"isr.a, isr.b\", allow: \"mmio uart.ack\" }\n")))
 	if len(ds) != 0 || strings.Join(mf.Interrupt.Root, "|") != "mmio uart.ack|sync q.n width=32 impl=cas" || len(mf.Interrupt.Handlers["isr.b"]) != 1 {
 		t.Fatalf("records must canonicalize and share a handler record: %+v %v", mf.Interrupt, ds)
 	}

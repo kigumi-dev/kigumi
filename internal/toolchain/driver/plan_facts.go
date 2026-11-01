@@ -6,9 +6,11 @@ import (
 
 	mirreach "kigumi/internal/compiler/mir/reach"
 	"kigumi/internal/compiler/sem"
+	"kigumi/internal/toolchain/artifact"
 	"kigumi/internal/toolchain/buildgraph"
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/contract/schema"
+	"kigumi/internal/toolchain/module"
 )
 
 // PlanStats counts how many artifact analyses a plan ran and how many it reused.
@@ -29,14 +31,14 @@ type planFacts struct {
 
 type planCache struct {
 	facts      map[string]*planFacts
-	provisions map[string][]CapabilityVerdict
+	provisions map[string][]artifact.CapabilityVerdict
 	derive     *schema.DeriveCache
 	stats      PlanStats
 }
 
 func newPlanCache(o buildconfig.CompilerOptions) *planCache {
-	c := &planCache{facts: map[string]*planFacts{}, provisions: map[string][]CapabilityVerdict{}}
-	if dir, err := DeriveCacheDir(o); err == nil {
+	c := &planCache{facts: map[string]*planFacts{}, provisions: map[string][]artifact.CapabilityVerdict{}}
+	if dir, err := module.DeriveCacheDir(o); err == nil {
 		c.derive = &schema.DeriveCache{Dir: dir}
 	}
 	return c
@@ -57,7 +59,7 @@ func (c *planCache) finish() PlanStats {
 }
 
 // provision shares the verdict table between targets whose platforms differ only in an OS the rules treat alike.
-func (c *planCache) provision(t buildconfig.Target) []CapabilityVerdict {
+func (c *planCache) provision(t buildconfig.Target) []artifact.CapabilityVerdict {
 	key := capabilityPlatform(t).ProvisionKey()
 	if v, ok := c.provisions[key]; ok {
 		c.stats.ProvisionReused++

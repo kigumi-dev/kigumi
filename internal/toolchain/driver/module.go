@@ -7,6 +7,7 @@ import (
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/lang/token"
 	buildconfig "kigumi/internal/toolchain/config"
+	"kigumi/internal/toolchain/module"
 	"kigumi/internal/toolchain/policy"
 )
 
@@ -48,12 +49,12 @@ type Module struct {
 	Order []string
 	// Links and Sources collect the C libraries and sources of the module
 	// and its dependencies, search paths and sources made absolute.
-	Links   []Link
+	Links   []module.Link
 	Sources []string
 	// Manifest is mod.kg, or the leading records of the script.
-	Manifest ModFile
+	Manifest module.ModFile
 	// Selected is what minimal version selection chose for each dependency.
-	Selected map[string]Require
+	Selected map[string]module.Require
 	// ScriptFile is the root-relative entry that carried the manifest.
 	ScriptFile string
 	// Violations are release-policy findings from loading (a local replacement,
@@ -61,7 +62,7 @@ type Module struct {
 	Violations []policy.Violation
 	// depInterrupt are the dependencies' Interrupt records, in the order the dependencies were loaded.
 	depInterrupt []sem.DepInterrupt
-	local        Local
+	local        module.Local
 	target       buildconfig.Target
 	headers      headerLibc
 	// deny, ceiling and artifactName carry an artifact's declared

@@ -6,7 +6,7 @@ import (
 
 	"kigumi/internal/cli/exit"
 	"kigumi/internal/cli/session"
-	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
 )
 
 func runInit(io session.IO, opts options) error {
@@ -20,9 +20,9 @@ func runInit(io session.IO, opts options) error {
 		}
 		name = filepath.Base(abs)
 	}
-	if err := driver.WriteManifest(opts.root, name); err != nil {
+	if err := module.WriteManifest(opts.root, name); err != nil {
 		return &exit.UsageError{Err: err}
 	}
-	fmt.Fprintf(io.Msg, "wrote %s\n", filepath.Join(opts.root, driver.ManifestName))
+	fmt.Fprintf(io.Msg, "wrote %s\n", filepath.Join(opts.root, module.ManifestName))
 	return nil
 }

@@ -9,6 +9,7 @@ import (
 	"kigumi/internal/base/errors"
 	"kigumi/internal/cli/exit"
 	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
 )
 
 // StdRoot resolves the std directory: --std, $KIGUMI_STD, ./std, one next to the executable, or the embedded copy.
@@ -79,10 +80,10 @@ func (s Session) load(target string, test, deferParse, whole bool, errOut io.Wri
 
 // packageEntry turns a package directory inside a module (`cmd/app`) into main.kg or its only .kg file; anything else passes through.
 func packageEntry(dir string) string {
-	if driver.IsModuleRoot(dir) {
+	if module.IsModuleRoot(dir) {
 		return dir
 	}
-	if _, ok := driver.FindModuleRoot(dir); !ok {
+	if _, ok := module.FindModuleRoot(dir); !ok {
 		return dir
 	}
 	names, _ := filepath.Glob(filepath.Join(dir, "*.kg"))
@@ -91,7 +92,7 @@ func packageEntry(dir string) string {
 			return n
 		}
 	}
-	if len(names) == 1 && !driver.IsManifest(filepath.Base(names[0])) {
+	if len(names) == 1 && !module.IsManifest(filepath.Base(names[0])) {
 		return names[0]
 	}
 	return dir
@@ -99,7 +100,7 @@ func packageEntry(dir string) string {
 
 // moduleRoot is the nearest ancestor of entry holding mod.kg or cmd/, else entry's own directory (script mode).
 func moduleRoot(entry string) string {
-	if root, ok := driver.FindModuleRoot(filepath.Dir(entry)); ok {
+	if root, ok := module.FindModuleRoot(filepath.Dir(entry)); ok {
 		return root
 	}
 	return filepath.Dir(entry)

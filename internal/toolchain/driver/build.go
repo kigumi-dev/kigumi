@@ -5,6 +5,7 @@ import (
 
 	"kigumi/internal/backend/llgen"
 	mirreach "kigumi/internal/compiler/mir/reach"
+	"kigumi/internal/toolchain/artifact"
 	buildconfig "kigumi/internal/toolchain/config"
 )
 
@@ -105,4 +106,16 @@ func BuildWith(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 		return buildReproducible(m, out, stderr, opts)
 	}
 	return buildOnce(m, out, stderr, opts)
+}
+
+// buildReproducible is the --reproducible build: artifact.Reproduce runs buildOnce twice under isolated caches, each with the pinned
+// compilation directory.
+func buildReproducible(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool, error) {
+	return artifact.Reproduce(out, opts.Env, func(buildOut string, env []string) (bool, error) {
+		once := opts
+		once.Reproducible = false
+		once.pinCompDir = true
+		once.ccEnv = env
+		return buildOnce(m, buildOut, stderr, once)
+	})
 }

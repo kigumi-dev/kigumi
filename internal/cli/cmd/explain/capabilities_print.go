@@ -5,15 +5,16 @@ import (
 	"io"
 	"strings"
 
+	"kigumi/internal/toolchain/artifact"
 	"kigumi/internal/toolchain/driver"
 )
 
-func printCapabilities(out io.Writer, provision []driver.CapabilityVerdict, reasons []driver.CapabilityReason) {
+func printCapabilities(out io.Writer, provision []artifact.CapabilityVerdict, reasons []driver.CapabilityReason) {
 	if len(reasons) == 0 {
 		fmt.Fprint(out, "no named capability in this closed vocabulary\n")
 		return
 	}
-	verdict := map[string]driver.CapabilityVerdict{}
+	verdict := map[string]artifact.CapabilityVerdict{}
 	for _, v := range provision {
 		verdict[v.Capability] = v
 	}
@@ -45,7 +46,7 @@ func printSites(out io.Writer, cr driver.CapabilityReason) {
 	}
 }
 
-func provisionLine(cr driver.CapabilityReason, verdict map[string]driver.CapabilityVerdict) string {
+func provisionLine(cr driver.CapabilityReason, verdict map[string]artifact.CapabilityVerdict) string {
 	if v, ok := verdict[cr.Capability]; ok {
 		cr.Provided, cr.Why = v.Provided, v.Why
 	}

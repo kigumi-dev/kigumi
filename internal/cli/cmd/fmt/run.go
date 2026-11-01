@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"kigumi/internal/base/errors"
+	"kigumi/internal/base/fsx"
 	"kigumi/internal/cli/exit"
 	"kigumi/internal/cli/session"
 	"kigumi/internal/toolchain/driver"
@@ -47,7 +48,7 @@ func formatOne(io session.IO, path string, write, check, several bool) error {
 			return fmt.Errorf("%s: not formatted", path)
 		}
 	case write && path != "-":
-		if err := driver.WriteFileAtomic(path, []byte(out), 0o644); err != nil {
+		if err := fsx.WriteFileAtomic(path, []byte(out), 0o644); err != nil {
 			return errors.WrapErrf(err, "write %s", path)
 		}
 	default:

@@ -9,18 +9,19 @@ import (
 	"kigumi/internal/base/errors"
 	"kigumi/internal/cli/exit"
 	"kigumi/internal/cli/session"
-	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
+	"kigumi/internal/toolchain/module/vcs"
 )
 
 // target is what `kigumi get` operates on: a module root with mod.kg, or a script carrying manifest records.
 type target struct {
 	dir, script, lockPath string
-	manifest              driver.ModFile
+	manifest              module.ModFile
 }
 
 func openTarget(path string, lock bool) (*target, error) {
 	if strings.HasSuffix(path, ".kg") {
-		mf, _, err := driver.ReadScriptManifest(path)
+		mf, _, err := module.ReadScriptManifest(path)
 		if err != nil {
 			return nil, errors.WrapErr(err, "read script manifest")
 		}
@@ -30,14 +31,14 @@ func openTarget(path string, lock bool) (*target, error) {
 		}
 		return t, nil
 	}
-	mf, ok, err := driver.ReadModFile(path)
+	mf, ok, err := module.ReadModFile(path)
 	if err != nil {
 		return nil, errors.WrapErr(err, "read manifest")
 	}
 	if !ok {
-		return nil, &exit.UsageError{Err: errors.NewErrf("%s has no %s; run `kigumi mod init` or name a script", path, driver.ManifestName)}
+		return nil, &exit.UsageError{Err: errors.NewErrf("%s has no %s; run `kigumi mod init` or name a script", path, module.ManifestName)}
 	}
-	return &target{dir: path, manifest: mf, lockPath: filepath.Join(path, driver.LockName)}, nil
+	return &target{dir: path, manifest: mf, lockPath: filepath.Join(path, module.LockName)}, nil
 }
 
 func fileExists(p string) bool {
@@ -46,14 +47,14 @@ func fileExists(p string) bool {
 }
 
 // add appends a Require for `path[@version]`, asking the repo for its newest tag when no version is given.
-func (t *target) add(io session.IO, spec, url string) error {
+func (t *target) add(io session.IO, git vcs.Git, spec, url string) error {
 	name, version, _ := strings.Cut(spec, "@")
-	r := driver.Require{Name: name, Version: version, URL: url}
-	if _, _, ok := driver.RepoOf(r); !ok {
+	r := module.Require{Name: name, Version: version, URL: url}
+	if _, _, ok := module.RepoOf(r); !ok {
 		return &exit.UsageError{Err: errors.NewErrf("cannot derive where %s lives; give --url", name)}
 	}
 	if r.Version == "" {
-		v, err := latestTag(r)
+		v, err := git.LatestTag(r)
 		if err != nil {
 			return err
 		}
@@ -61,9 +62,9 @@ func (t *target) add(io session.IO, spec, url string) error {
 	}
 	var err error
 	if t.script != "" {
-		err = driver.AppendScriptRequire(t.script, r)
+		err = module.AppendScriptRequire(t.script, r)
 	} else {
-		err = driver.AppendRequire(t.dir, r)
+		err = module.AppendRequire(t.dir, r)
 	}
 	if err != nil {
 		return &exit.UsageError{Err: err}
@@ -73,26 +74,26 @@ func (t *target) add(io session.IO, spec, url string) error {
 	return nil
 }
 
-func (t *target) fetch(io session.IO, opts options) error {
-	lock := driver.Lock{Entries: map[string]driver.LockEntry{}}
+func (t *target) fetch(io session.IO, git vcs.Git, opts options) error {
+	lock := module.Lock{Entries: map[string]module.LockEntry{}}
 	if t.lockPath != "" {
 		var err error
-		if lock, err = driver.ReadLockFile(t.lockPath); err != nil {
+		if lock, err = module.ReadLockFile(t.lockPath); err != nil {
 			return errors.WrapErr(err, "read lock")
 		}
 	}
-	local, err := driver.ReadLocal(session.CompilerOptions(), t.dir)
+	local, err := module.ReadLocal(session.CompilerOptions(), t.dir)
 	if err != nil {
 		return errors.WrapErr(err, "read local overrides")
 	}
 	if session.LocalOff() {
-		local = driver.Local{Replaces: map[string]string{}}
+		local = module.Local{Replaces: map[string]string{}}
 	}
 	if opts.session.NoLocal {
-		local = driver.Local{Replaces: map[string]string{}}
+		local = module.Local{Replaces: map[string]string{}}
 	}
 	before := snapshotNative(lock)
-	f := &fetcher{io: io, update: opts.update, lock: lock, local: local, next: driver.Lock{Entries: map[string]driver.LockEntry{}}, after: map[string]driver.ModFile{}}
+	f := &fetcher{io: io, git: git, update: opts.update, lock: lock, local: local, next: module.Lock{Entries: map[string]module.LockEntry{}}, after: map[string]module.ModFile{}}
 	if err := f.module(t.manifest); err != nil {
 		return err
 	}
@@ -100,7 +101,7 @@ func (t *target) fetch(io session.IO, opts options) error {
 	if t.lockPath == "" {
 		return nil
 	}
-	if err := driver.WriteLockFile(t.lockPath, f.next); err != nil {
+	if err := module.WriteLockFile(t.lockPath, f.next); err != nil {
 		return errors.WrapErr(err, "write lock")
 	}
 	return nil

@@ -1,59 +1,10 @@
 package driver
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"os"
-	"slices"
 
-	"kigumi/internal/compiler/syntax"
-	"kigumi/internal/lang/diag"
-	"kigumi/internal/lang/token"
+	"kigumi/internal/toolchain/module"
 )
-
-// scanImports reads every `import` keyword with the lexer alone, so it may name more packages than the parser, never fewer.
-func scanImports(src []byte) []string {
-	toks := syntax.Lex(src, &diag.Bag{})
-	var out []string
-	for i, tk := range toks {
-		if tk.Kind != token.KwImport {
-			continue
-		}
-		depth := 0
-		for j := i + 1; j < len(toks) && toks[j].Kind != token.EOF && (depth > 0 || toks[j].Kind != token.Newline); j++ {
-			switch toks[j].Kind {
-			case token.LBrace:
-				depth++
-			case token.RBrace:
-				depth--
-			}
-			if depth > 0 || toks[j].Kind != token.Ident || toks[j].Text(src) != "from" {
-				continue
-			}
-			from := int(toks[j].End)
-			for from < len(src) && (src[from] == ' ' || src[from] == '\t') {
-				from++
-			}
-			end := from
-			for end < len(src) && !isPathEnd(src[end]) {
-				end++
-			}
-			if end > from {
-				out = append(out, string(src[from:end]))
-			}
-			break
-		}
-	}
-	slices.Sort(out)
-	return slices.Compact(out)
-}
-
-func isPathEnd(c byte) bool { return c == ' ' || c == '\t' || c == '\r' || c == '\n' }
-
-func contentHash(src []byte) string {
-	sum := sha256.Sum256(src)
-	return hex.EncodeToString(sum[:])
-}
 
 // scan fills f's content hash and imports, from the memo when size and mtime still match and from the file otherwise.
 func (m *Module) scan(f *indexedFile) error {
@@ -69,11 +20,11 @@ func (m *Module) scan(f *indexedFile) error {
 		if _, err := m.source(f); err != nil {
 			return err
 		}
-		f.hash, f.imports, f.scanned = contentHash(f.src), scanImports(f.src), true
+		f.hash, f.imports, f.scanned = module.ContentHash(f.src), module.ScanImports(f.src), true
 		m.index.memo.put(f.abs, f.size, f.mtime, f.ctime, f.hash, f.imports)
 		return nil
 	}
-	f.hash, f.imports, f.scanned = contentHash(f.src), scanImports(f.src), true
+	f.hash, f.imports, f.scanned = module.ContentHash(f.src), module.ScanImports(f.src), true
 	if !f.overlay {
 		m.index.memo.put(f.abs, f.size, f.mtime, f.ctime, f.hash, f.imports)
 	}

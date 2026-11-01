@@ -2,36 +2,18 @@ package get
 
 import (
 	"os"
-	"os/exec"
-	"slices"
-	"strings"
 
-	"kigumi/internal/base/errors"
 	"kigumi/internal/cli/session"
+	"kigumi/internal/toolchain/module/vcs"
 )
 
-const allowedGitProtocols = "https:ssh:git:file"
-
-func gitCommand(args ...string) (*exec.Cmd, error) {
-	path, err := session.CompilerOptions().LookTool("git")
-	if err != nil {
-		return nil, errors.WrapErr(err, "find git")
-	}
-	g := exec.Command(path, args...)
+// newGit hands the module fetcher git from PATH, with the process environment narrowed to the allowed transport protocols.
+func newGit(io session.IO) vcs.Git {
 	user, set := os.LookupEnv("GIT_ALLOW_PROTOCOL")
-	g.Env = append(os.Environ(), "GIT_ALLOW_PROTOCOL="+gitProtocols(user, set))
-	return g, nil
-}
-
-func gitProtocols(user string, set bool) string {
-	if !set {
-		return allowedGitProtocols
+	return vcs.Git{
+		Look:   session.CompilerOptions().LookTool,
+		Env:    append(os.Environ(), "GIT_ALLOW_PROTOCOL="+vcs.Protocols(user, set)),
+		Stderr: io.Err,
+		Log:    io.Msg,
 	}
-	var keep []string
-	for _, p := range strings.Split(user, ":") {
-		if slices.Contains(strings.Split(allowedGitProtocols, ":"), p) {
-			keep = append(keep, p)
-		}
-	}
-	return strings.Join(keep, ":")
 }

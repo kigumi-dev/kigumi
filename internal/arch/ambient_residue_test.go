@@ -28,7 +28,7 @@ var residueAllowed = map[string]bool{
 
 func TestAmbientReadsOutsideOptionsAreFrozen(t *testing.T) {
 	seen := map[string]bool{}
-	for _, dir := range []string{"toolchain/driver", "toolchain/config", "toolchain/zig", "base/platform", "lang/target"} {
+	for _, dir := range []string{"toolchain/driver", "toolchain/module", "toolchain/artifact", "toolchain/native", "toolchain/config", "toolchain/zig", "base/platform", "lang/target"} {
 		root := filepath.Join("..", dir)
 		err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 			if err != nil || d.IsDir() || !strings.HasSuffix(p, ".go") || strings.HasSuffix(p, "_test.go") {

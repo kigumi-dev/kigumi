@@ -4,6 +4,7 @@ import (
 	"io"
 
 	buildconfig "kigumi/internal/toolchain/config"
+	"kigumi/internal/toolchain/module"
 	"kigumi/internal/toolchain/policy"
 )
 
@@ -34,7 +35,7 @@ type LoadOptions struct {
 	ArtifactName string
 	// ExtraSources and ExtraLinks join the module's native sources and links before its Header records are translated.
 	ExtraSources []string
-	ExtraLinks   []Link
+	ExtraLinks   []module.Link
 	// Policy governs the release predicate: under Release a local replacement or
 	// unlocked dependency-bearing script fails the load instead of only warning.
 	Policy policy.BuildPolicy

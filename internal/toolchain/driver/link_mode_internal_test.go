@@ -7,6 +7,7 @@ import (
 	"kigumi/internal/backend/llgen"
 	opdef "kigumi/internal/compiler/mir/ops"
 	buildconfig "kigumi/internal/toolchain/config"
+	"kigumi/internal/toolchain/module"
 )
 
 func TestResolveLinkage(t *testing.T) {
@@ -38,7 +39,7 @@ func TestResolveLinkage(t *testing.T) {
 		{name: "extern dlopen forced static", t: host, code: externDL, mode: LinkStatic, failing: "extern(C) dlopen"},
 		{name: "explicit musl with dl", t: musl, code: dl, failing: "links statically, but std/dl"},
 		{name: "explicit musl with extern dlopen", t: musl, code: externDL, failing: "use a -gnu target"},
-		{name: "native link", t: host, m: Module{Links: []Link{{Library: "z"}}}, reason: "native Link libz"},
+		{name: "native link", t: host, m: Module{Links: []module.Link{{Library: "z"}}}, reason: "native Link libz"},
 		{name: "native source", t: host, m: Module{Sources: []string{"x.c"}}, reason: "native Source"},
 		{name: "sanitizer", t: host, cflags: []string{"-fsanitize=thread"}, reason: "-fsanitize=thread"},
 		{name: "rc checker", t: host, cflags: []string{"-DKIGUMI_RC_CHECK"}, reason: "RC checker"},

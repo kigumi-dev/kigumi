@@ -105,7 +105,7 @@ func TestBuildOutputReservedDeviceName(t *testing.T) {
 }
 
 // TestBuildGraphGeneratedOutputIgnoresStaleMode covers a regression from
-// file-writes-safety-1: writeFileAtomic's mode-preserving behavior (meant
+// file-writes-safety-1: fsx.WriteFileAtomic's mode-preserving behavior (meant
 // for user source edited by `kigumi fmt -w`/`kigumi get`) must not leak
 // into build-graph "generated" files. A rebuild is a deterministic
 // function of the graph, so a slot a previous run (or a user) left

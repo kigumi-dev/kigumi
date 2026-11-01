@@ -9,7 +9,7 @@ import (
 
 	"kigumi/internal/lang/diag"
 	"kigumi/internal/lang/token"
-	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
 )
 
 // manifestDiagnostics validates an open mod.kg or mod.lock.kg buffer. The
@@ -20,12 +20,12 @@ func (s *Server) manifestDiagnostics(u uri.URI) []protocol.Diagnostic {
 	f := token.NewFile(filepath.Base(path), []byte(s.docs[u]))
 	var ds []diag.Diagnostic
 	switch {
-	case f.Name == driver.LocalName:
-		_, ds = driver.ParseLocal(f, filepath.Dir(path))
+	case f.Name == module.LocalName:
+		_, ds = module.ParseLocal(f, filepath.Dir(path))
 	case strings.HasSuffix(f.Name, ".lock.kg"):
-		_, ds = driver.ParseLock(f)
+		_, ds = module.ParseLock(f)
 	default:
-		_, ds = driver.ParseModFile(f)
+		_, ds = module.ParseModFile(f)
 	}
 	out := []protocol.Diagnostic{}
 	for _, d := range ds {

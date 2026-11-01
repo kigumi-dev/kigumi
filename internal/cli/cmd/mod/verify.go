@@ -8,18 +8,18 @@ import (
 	"kigumi/internal/base/errors"
 	"kigumi/internal/cli/exit"
 	"kigumi/internal/cli/session"
-	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
 )
 
 func runVerify(io session.IO, opts options) error {
-	lock, err := driver.ReadLock(opts.root)
+	lock, err := module.ReadLock(opts.root)
 	if err != nil {
 		return errors.WrapErr(err, "read lock")
 	}
 	bad := 0
 	for _, name := range sortedNames(lock) {
 		e := lock.Entries[name]
-		dir, err := driver.CacheDir(session.CompilerOptions(), driver.Require{Name: name, Version: e.Version})
+		dir, err := module.CacheDir(session.CompilerOptions(), module.Require{Name: name, Version: e.Version})
 		if err != nil {
 			return err
 		}
@@ -28,17 +28,17 @@ func runVerify(io session.IO, opts options) error {
 			fmt.Fprintf(io.Msg, "%s %s: not fetched\n", name, e.Version)
 			continue
 		}
-		if !driver.CacheReady(dir) {
+		if !module.CacheReady(dir) {
 			bad++
 			fmt.Fprintf(io.Msg, "%s %s: incomplete cache entry in %s (missing origin marker or manifest)\n", name, e.Version, dir)
 			continue
 		}
-		if err := driver.CheckCacheTree(dir); err != nil {
+		if err := module.CheckCacheTree(dir); err != nil {
 			bad++
 			fmt.Fprintf(io.Msg, "%s %s: %s\n", name, e.Version, err)
 			continue
 		}
-		hash, err := driver.TreeHash(dir)
+		hash, err := module.TreeHash(dir)
 		if err != nil {
 			return errors.WrapErr(err, "hash dependency")
 		}
@@ -55,7 +55,7 @@ func runVerify(io session.IO, opts options) error {
 	return nil
 }
 
-func sortedNames(lock driver.Lock) []string {
+func sortedNames(lock module.Lock) []string {
 	names := make([]string, 0, len(lock.Entries))
 	for n := range lock.Entries {
 		names = append(names, n)

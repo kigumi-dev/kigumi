@@ -6,6 +6,7 @@ import (
 
 	"kigumi/internal/toolchain/buildgraph"
 	buildconfig "kigumi/internal/toolchain/config"
+	"kigumi/internal/toolchain/module"
 )
 
 // ResolvedGraph is a build graph with targets parsed, frameworks and
@@ -55,7 +56,7 @@ func ResolveGraph(o buildconfig.CompilerOptions, g *buildgraph.Graph, descriptor
 		}
 		switch len(matches) {
 		case 0:
-			return nil, fmt.Errorf("framework %s %s has no descriptor (%s) in the module or its dependencies", f.Name, f.Version, FrameworkFileName)
+			return nil, fmt.Errorf("framework %s %s has no descriptor (%s) in the module or its dependencies", f.Name, f.Version, module.FrameworkFileName)
 		case 1:
 			rg.Frameworks = append(rg.Frameworks, matches[0])
 		default:

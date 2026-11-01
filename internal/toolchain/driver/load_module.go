@@ -5,12 +5,13 @@ import (
 	"path/filepath"
 	"time"
 
+	"kigumi/internal/toolchain/module"
 	"kigumi/internal/toolchain/policy"
 )
 
 // loadModule indexes every package under root and the std stubs, then parses the packages the root set reaches. Parse diagnostics stay on each Tree; loading itself only fails on I/O.
 func loadModule(root string, opts LoadOptions) (*Module, error) {
-	m := &Module{Root: root, Entry: opts.Entry, ExplicitEntry: opts.Entry != "", overlay: opts.Overlay, Packages: map[string]*Package{}, local: Local{Replaces: map[string]string{}}, target: opts.Target, deny: opts.Deny, ceiling: opts.Ceiling, artifactName: opts.ArtifactName, explicitZig: opts.ZigPath, zigHome: opts.ZigHome, zigIndexURL: opts.ZigIndexURL, zigPublicKey: opts.ZigPublicKey, offline: opts.Offline, zigNotice: opts.ZigNotice, verifyPasses: opts.VerifyPasses, rootDirs: opts.RootDirs, rootImports: opts.RootImports, allPackages: opts.AllPackages, allOwn: opts.AllOwnPackages, deferred: opts.DeferParse, unitCheck: opts.UnitCheck, lazyStd: opts.LazyStd, test: opts.Test, keyEntry: opts.Entry, keyExplicit: opts.Entry != "", fileOrder: opts.FileOrder, compiler: opts.Compiler, headers: headerLibc{opts: opts}}
+	m := &Module{Root: root, Entry: opts.Entry, ExplicitEntry: opts.Entry != "", overlay: opts.Overlay, Packages: map[string]*Package{}, local: module.Local{Replaces: map[string]string{}}, target: opts.Target, deny: opts.Deny, ceiling: opts.Ceiling, artifactName: opts.ArtifactName, explicitZig: opts.ZigPath, zigHome: opts.ZigHome, zigIndexURL: opts.ZigIndexURL, zigPublicKey: opts.ZigPublicKey, offline: opts.Offline, zigNotice: opts.ZigNotice, verifyPasses: opts.VerifyPasses, rootDirs: opts.RootDirs, rootImports: opts.RootImports, allPackages: opts.AllPackages, allOwn: opts.AllOwnPackages, deferred: opts.DeferParse, unitCheck: opts.UnitCheck, lazyStd: opts.LazyStd, test: opts.Test, keyEntry: opts.Entry, keyExplicit: opts.Entry != "", fileOrder: opts.FileOrder, compiler: opts.Compiler, headers: headerLibc{opts: opts}}
 	m.index = newPkgIndex(opts.PackageCache, root, opts.Compiler, time.Now)
 	m.pkgCache = newPackageCache(opts.PackageCache)
 	if m.target.OS == "" {
@@ -19,7 +20,7 @@ func loadModule(root string, opts LoadOptions) (*Module, error) {
 	if m.target.Unverified() {
 		m.Violations = append(m.Violations, policy.UnverifiedTargetViolation(m.target.Triple))
 	}
-	mf, hasMod, err := ReadModFile(root)
+	mf, hasMod, err := module.ReadModFile(root)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +46,7 @@ func loadModule(root string, opts LoadOptions) (*Module, error) {
 		return nil, err
 	}
 	if !opts.NoLocal {
-		if m.local, err = ReadLocal(opts.Compiler, root); err != nil {
+		if m.local, err = module.ReadLocal(opts.Compiler, root); err != nil {
 			return nil, err
 		}
 		if err := m.checkLocalReplace(opts.Policy); err != nil {
@@ -53,7 +54,7 @@ func loadModule(root string, opts LoadOptions) (*Module, error) {
 		}
 	}
 	if !opts.NoDeps {
-		lock, err := ReadLock(root)
+		lock, err := module.ReadLock(root)
 		if err != nil {
 			return nil, err
 		}
@@ -69,7 +70,7 @@ func loadModule(root string, opts LoadOptions) (*Module, error) {
 					m.Violations = append(m.Violations, v)
 				}
 				enforceLock = false
-			} else if lock, err = ReadLockFile(scriptLock); err != nil {
+			} else if lock, err = module.ReadLockFile(scriptLock); err != nil {
 				return nil, err
 			}
 		}

@@ -3,6 +3,7 @@ package driver
 import (
 	opdef "kigumi/internal/compiler/mir/ops"
 	mirreach "kigumi/internal/compiler/mir/reach"
+	"kigumi/internal/toolchain/artifact"
 	buildconfig "kigumi/internal/toolchain/config"
 )
 
@@ -14,18 +15,12 @@ func capabilityPlatform(t buildconfig.Target) mirreach.Platform {
 	return p
 }
 
-type CapabilityVerdict struct {
-	Capability string `json:"capability"`
-	Provided   bool   `json:"provided"`
-	Why        string `json:"why,omitempty"`
-}
-
-func ProvidedCapabilities(t buildconfig.Target) []CapabilityVerdict {
+func ProvidedCapabilities(t buildconfig.Target) []artifact.CapabilityVerdict {
 	plat := capabilityPlatform(t)
-	var out []CapabilityVerdict
+	var out []artifact.CapabilityVerdict
 	for _, c := range opdef.Vocabulary() {
 		got := plat.Provides(c)
-		out = append(out, CapabilityVerdict{Capability: string(c), Provided: got.Provided, Why: got.Reason})
+		out = append(out, artifact.CapabilityVerdict{Capability: string(c), Provided: got.Provided, Why: got.Reason})
 	}
 	return out
 }

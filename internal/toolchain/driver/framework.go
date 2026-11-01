@@ -1,12 +1,16 @@
 package driver
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
+	"os"
 	"path/filepath"
 
 	"kigumi/internal/lang/diag"
 	"kigumi/internal/lang/token"
 	buildconfig "kigumi/internal/toolchain/config"
+	"kigumi/internal/toolchain/module"
 )
 
 // FrameworkDescriptor is a kigumi.framework.kg: the Framework a directory provides and the tools it registers; only listed tools may run.
@@ -57,15 +61,15 @@ var frameworkFields = map[string][]string{
 func LoadFrameworks(roots []string) ([]FrameworkDescriptor, error) {
 	var out []FrameworkDescriptor
 	for _, dir := range roots {
-		src, ok, err := readFileMaybe(filepath.Join(dir, FrameworkFileName))
+		src, err := os.ReadFile(filepath.Join(dir, module.FrameworkFileName))
+		if errors.Is(err, fs.ErrNotExist) {
+			continue
+		}
 		if err != nil {
 			return nil, err
 		}
-		if !ok {
-			continue
-		}
-		f := token.NewFile(FrameworkFileName, src)
-		recs, ds := parseRecords(f, frameworkFields)
+		f := token.NewFile(module.FrameworkFileName, src)
+		recs, ds := module.ParseRecords(f, frameworkFields)
 		fd := FrameworkDescriptor{Dir: dir, Tools: map[string]ToolProgram{}}
 		seenFramework, seenTool := false, map[string]bool{}
 		for _, r := range recs {
@@ -94,7 +98,7 @@ func LoadFrameworks(roots []string) ([]FrameworkDescriptor, error) {
 			ds = append(ds, diag.Errorf(diag.Location{Span: token.Span{}}, "the descriptor needs a Framework record"))
 		}
 		if len(ds) > 0 {
-			return nil, fmt.Errorf("%s: %s", filepath.Join(dir, FrameworkFileName), diag.RenderAll(f, ds[:1]))
+			return nil, fmt.Errorf("%s: %s", filepath.Join(dir, module.FrameworkFileName), diag.RenderAll(f, ds[:1]))
 		}
 		out = append(out, fd)
 	}

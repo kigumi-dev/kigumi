@@ -4,8 +4,17 @@ import (
 	"fmt"
 	"sort"
 
+	buildconfig "kigumi/internal/toolchain/config"
+	"kigumi/internal/toolchain/native/link"
 	"kigumi/internal/toolchain/policy"
 )
+
+// LocalReplaceDir reports the directory a Replace record sent name to, so
+// callers can tell a developer's checkout apart from the module cache.
+func (m *Module) LocalReplaceDir(name string) (string, bool) {
+	p, ok := m.local.Replaces[name]
+	return p, ok
+}
 
 // LocalOverrides lists the mod.local.kg replacements in effect, sorted by
 // name, for the build summary.
@@ -49,4 +58,19 @@ func (m *Module) checkLocalReplace(pol policy.BuildPolicy) error {
 		m.Violations = append(m.Violations, v)
 	}
 	return nil
+}
+
+// LinkIdentityViolations lists a violation for every
+// Link in m that link.ResolveLinkIdentity could not find against t.
+func LinkIdentityViolations(m *Module, t buildconfig.Target) []policy.Violation {
+	var vs []policy.Violation
+	for _, l := range m.Links {
+		if l.Library == "" {
+			continue
+		}
+		if _, ok := link.ResolveLinkIdentity(m.compiler, l, t); !ok {
+			vs = append(vs, policy.NativeLinkIdentityUnknownViolation(m.Name, l.Library))
+		}
+	}
+	return vs
 }

@@ -5,6 +5,7 @@ import (
 	"io"
 
 	buildconfig "kigumi/internal/toolchain/config"
+	"kigumi/internal/toolchain/native/link"
 )
 
 // linked is a compiled module and the C library its build links.
@@ -29,10 +30,10 @@ func compileLinked(m *Module, stderr io.Writer, opts BuildOptions, emit bool) (l
 		return linked{code: code}, ok, err
 	}
 	l := linked{m: m, code: withRuntimeABI(t, code, opts.CFlags), t: t}
-	if l.cflags, err = resolveFlagPaths(m.compiler, opts.CFlags); err != nil {
+	if l.cflags, err = link.ResolveFlagPaths(m.compiler, opts.CFlags); err != nil {
 		return l, false, err
 	}
-	if l.lflags, err = resolveFlagPaths(m.compiler, opts.LinkFlags); err != nil {
+	if l.lflags, err = link.ResolveFlagPaths(m.compiler, opts.LinkFlags); err != nil {
 		return l, false, err
 	}
 	if emit && len(m.headers.triples) == 0 {
@@ -40,7 +41,7 @@ func compileLinked(m *Module, stderr io.Writer, opts BuildOptions, emit bool) (l
 		if err != nil {
 			return l, false, err
 		}
-		l.t, l.link, err = resolveLinkage(m, t, opts.Link, len(cc) == 0 || isZig(cc), l.code, l.cflags, l.lflags)
+		l.t, l.link, err = resolveLinkage(m, t, opts.Link, len(cc) == 0 || link.IsZig(cc), l.code, l.cflags, l.lflags)
 		return l, err == nil, err
 	}
 	if err := checkLinkedRuntimeABI(m, l.cflags, l.lflags, l.code.Abi); err != nil {
@@ -52,7 +53,7 @@ func compileLinked(m *Module, stderr io.Writer, opts BuildOptions, emit bool) (l
 	if l.cc == nil {
 		return l, false, fmt.Errorf("no C compiler found (need zig or clang)")
 	}
-	if l.t, l.link, err = resolveLinkage(m, t, opts.Link, isZig(l.cc), l.code, l.cflags, l.lflags); err != nil {
+	if l.t, l.link, err = resolveLinkage(m, t, opts.Link, link.IsZig(l.cc), l.code, l.cflags, l.lflags); err != nil {
 		return l, false, err
 	}
 	if m.headers.match(l.t) {

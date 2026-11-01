@@ -8,7 +8,8 @@ import (
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/lang/diag"
 	"kigumi/internal/lang/token"
-	"kigumi/internal/toolchain/zig"
+	"kigumi/internal/toolchain/module"
+	zigtool "kigumi/internal/toolchain/zig"
 	"kigumi/internal/toolchain/zig/fetch"
 	"kigumi/internal/toolchain/zig/store"
 )
@@ -58,7 +59,7 @@ func (m *Module) fetchZigOnDemand(storeRoot, want string) (string, error) {
 // split across c's message and help holes the same way a sem.Result diagnostic's do.
 func (m *Module) zigPinError(c sem.Code, args ...any) error {
 	msg, help := sem.FillCode(c, args...)
-	name, path := ManifestName, filepath.Join(m.Root, ManifestName)
+	name, path := module.ManifestName, filepath.Join(m.Root, module.ManifestName)
 	if m.ScriptFile != "" {
 		name, path = filepath.Base(m.ScriptFile), filepath.Join(m.Root, filepath.FromSlash(m.ScriptFile))
 	}
@@ -83,17 +84,4 @@ func CCompilerFor(m *Module) ([]string, error) {
 		return []string{path, "cc"}, nil
 	}
 	return m.compiler.CCompiler(), nil
-}
-
-// ZigVersionOf is "" unless cc is a zig invocation, for ArtifactFingerprint
-// and the cheader cache key's zig axis.
-func ZigVersionOf(cc []string) string {
-	if len(cc) == 0 || filepath.Base(cc[0]) != "zig" {
-		return ""
-	}
-	v, err := zigtool.Version(cc[0])
-	if err != nil {
-		return ""
-	}
-	return v
 }

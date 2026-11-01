@@ -3,9 +3,11 @@ package driver
 import (
 	"fmt"
 	"io"
-	"kigumi/internal/toolchain/buildgraph"
 	"path/filepath"
 	"strings"
+
+	"kigumi/internal/toolchain/buildgraph"
+	"kigumi/internal/toolchain/module"
 )
 
 // artifactOut is where an artifact lands: `<out>/<name>` for an executable,
@@ -24,7 +26,7 @@ func buildArtifact(p *BuildProgram, rg *ResolvedGraph, idx int, filePath func(in
 	a, t := g.Artifacts[idx], rg.Targets[idx]
 	root, _ := p.Module.compiler.Abs(p.Module.Root)
 	var sources []string
-	var links []Link
+	var links []module.Link
 	seen := map[int]bool{}
 	var merge func(id int)
 	merge = func(id int) {
@@ -40,7 +42,7 @@ func buildArtifact(p *BuildProgram, rg *ResolvedGraph, idx int, filePath func(in
 			if l.Search != "" && !filepath.IsAbs(l.Search) {
 				l.Search = filepath.Join(root, filepath.FromSlash(l.Search))
 			}
-			links = append(links, Link{Library: l.Library, Search: l.Search})
+			links = append(links, module.Link{Library: l.Library, Search: l.Search})
 		}
 		for _, u := range art.Uses {
 			merge(u)

@@ -11,6 +11,7 @@ import (
 	"kigumi/internal/lang/token"
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
+	"kigumi/internal/toolchain/module"
 )
 
 func buildFreestanding(t *testing.T, manifestExtra string) error {
@@ -47,8 +48,8 @@ func TestAuditAcceptsEmbedderSymbols(t *testing.T) {
 }
 
 func TestEmbedderRecordParses(t *testing.T) {
-	parse := func(src string) (driver.ModFile, []diag.Diagnostic) {
-		return driver.ParseModFile(token.NewFile("mod.kg", []byte("Module { name: \"a\", kigumi: \"0.1\" }\n"+src)))
+	parse := func(src string) (module.ModFile, []diag.Diagnostic) {
+		return module.ParseModFile(token.NewFile("mod.kg", []byte("Module { name: \"a\", kigumi: \"0.1\" }\n"+src)))
 	}
 	mf, ds := parse("Embedder { symbol: \"hal_gpio_write\" }\nEmbedder { symbol: \"_start\" }\n")
 	if len(ds) != 0 || len(mf.Embedder) != 2 || mf.Embedder[0] != "hal_gpio_write" || mf.Embedder[1] != "_start" {
