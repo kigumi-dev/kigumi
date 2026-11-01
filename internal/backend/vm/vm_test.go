@@ -55,7 +55,7 @@ func readFixture(t *testing.T, path string) fixture {
 
 func checkSource(t *testing.T, src string) *sem.Result {
 	pkgs := map[string]*sem.Package{}
-	for _, p := range testkit.LoadStd(t, "../../../std") {
+	for _, p := range semfixture.LoadStd(t, "../../../std") {
 		pkgs[p.Path] = p
 	}
 	tree := syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
@@ -95,7 +95,7 @@ func TestScalarSlice(t *testing.T) {
 	if prog.HasErrors() {
 		t.Fatal("ownership errors")
 	}
-	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}); err != nil {
 		t.Fatalf("plan-rc: %v", err)
 	}
 	var out, errOut bytes.Buffer

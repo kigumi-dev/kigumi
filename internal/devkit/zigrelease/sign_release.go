@@ -1,6 +1,6 @@
-// Package fetchtest signs fake releases the way minisign does, standing in
+// Package zigrelease signs fake releases the way minisign does, standing in
 // for ziglang.org in tests; nothing in the kigumi binary imports it.
-package fetchtest
+package zigrelease
 
 import (
 	"crypto/ed25519"

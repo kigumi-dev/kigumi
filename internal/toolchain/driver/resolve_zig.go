@@ -9,16 +9,16 @@ import (
 	"kigumi/internal/lang/diag"
 	"kigumi/internal/lang/token"
 	"kigumi/internal/toolchain/module"
-	zigtool "kigumi/internal/toolchain/zig"
+	"kigumi/internal/toolchain/zig"
 	"kigumi/internal/toolchain/zig/fetch"
 	"kigumi/internal/toolchain/zig/store"
 )
 
-// ResolveZig resolves zig per zigtool.ForModule's order (store, explicit,
+// ResolveZig resolves zig per zig.ForModule's order (store, explicit,
 // PATH); an unsatisfied pin fetches it on demand unless m.offline (E1563).
 func (m *Module) ResolveZig() (string, error) {
 	storeRoot, _ := m.compiler.ZigStoreRoot(m.zigHome)
-	r := zigtool.ForModule(m.compiler.ToolLookup(), storeRoot, m.explicitZig, m.Manifest.Zig)
+	r := zig.ForModule(m.compiler.ToolLookup(), storeRoot, m.explicitZig, m.Manifest.Zig)
 	switch {
 	case r.Want == "":
 		return r.Path, r.Err

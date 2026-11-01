@@ -13,7 +13,7 @@ func runWhich(io session.IO, opts options) error {
 		return err
 	}
 	want := modulePin()
-	r := zigtool.ForModule(session.CompilerOptions().ToolLookup(), root, session.ZigPath(), want)
+	r := zig.ForModule(session.CompilerOptions().ToolLookup(), root, session.ZigPath(), want)
 	switch {
 	case r.Path == "" && want == "":
 		fmt.Fprintln(io.Msg, "no zig found, and this module is unpinned (a native build falls back to clang)")

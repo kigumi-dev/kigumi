@@ -62,7 +62,7 @@ func fakeTarball(t *testing.T, triple, version, zigScript string) []byte {
 // key's line for Options.PublicKey — the real pinned key is never touched.
 func fakeServer(t *testing.T, version, triple string, tarball []byte, corruptSig, corruptChecksum bool) (indexURL, publicKey string, cleanup func()) {
 	t.Helper()
-	priv, keyID, pubLine := fetchtest.NewSigningKey()
+	priv, keyID, pubLine := zigrelease.NewSigningKey()
 	sum := sha256.Sum256(tarball)
 	shasum := hex.EncodeToString(sum[:])
 	if corruptChecksum {
@@ -89,7 +89,7 @@ func fakeServer(t *testing.T, version, triple string, tarball []byte, corruptSig
 		if corruptSig {
 			signed = append([]byte{0}, tarball...)
 		}
-		sig := fetchtest.SignFile(priv, keyID, signed, "timestamp:1 file:"+tarName+" hashed")
+		sig := zigrelease.SignFile(priv, keyID, signed, "timestamp:1 file:"+tarName+" hashed")
 		w.Write(sig)
 	})
 	srv = httptest.NewServer(mux)

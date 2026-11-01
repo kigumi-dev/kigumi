@@ -46,7 +46,7 @@ var oomInert = map[string]string{
 
 func TestEveryTryFunctionHasATwoCallSweep(t *testing.T) {
 	t.Parallel()
-	res := sem.CheckWith(&sem.Module{Packages: testkit.LoadStd(t, "../../../std")}, schema.GenerateDerive)
+	res := sem.CheckWith(&sem.Module{Packages: semfixture.LoadStd(t, "../../../std")}, schema.GenerateDerive)
 	var tries []string
 	for id := range res.Entities {
 		e := &res.Entities[id]

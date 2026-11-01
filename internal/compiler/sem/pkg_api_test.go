@@ -15,7 +15,7 @@ import (
 func libAPI(t *testing.T, src string) string {
 	t.Helper()
 	f := token.NewFile("lib/lib.kg", []byte(src))
-	pkgs := append(testkit.LoadStd(t, "../../../std"), &sem.Package{Path: "lib", Files: []*syntax.Tree{syntax.Parse(f)}})
+	pkgs := append(semfixture.LoadStd(t, "../../../std"), &sem.Package{Path: "lib", Files: []*syntax.Tree{syntax.Parse(f)}})
 	res := sem.CheckWith(&sem.Module{Packages: pkgs}, schema.GenerateDerive)
 	for i := 1; i < len(res.Files); i++ {
 		for _, d := range res.Files[i].Diags {
@@ -96,7 +96,7 @@ func TestPackageAPIIgnoresInstancesMintedByImporters(t *testing.T) {
 	const lib = "pub interface Shape {\n    fn area(self) -> Int\n}\n\npub type Square = {\n    pub n Int\n}\n\npub fn Square.area(self) -> Int {\n    self.n\n}\n\npub fn measure[S: Shape](s: S) -> Int {\n    s.area()\n}\n"
 	const app = "import lib from lib\n\nfn use() -> Int {\n    lib.measure(lib.Square { n: 1 })\n}\n"
 	api := func(withApp bool) string {
-		pkgs := append(testkit.LoadStd(t, "../../../std"), &sem.Package{Path: "lib", Files: []*syntax.Tree{syntax.Parse(token.NewFile("lib/lib.kg", []byte(lib)))}})
+		pkgs := append(semfixture.LoadStd(t, "../../../std"), &sem.Package{Path: "lib", Files: []*syntax.Tree{syntax.Parse(token.NewFile("lib/lib.kg", []byte(lib)))}})
 		if withApp {
 			pkgs = append(pkgs, &sem.Package{Path: "app", Files: []*syntax.Tree{syntax.Parse(token.NewFile("app/app.kg", []byte(app)))}})
 		}

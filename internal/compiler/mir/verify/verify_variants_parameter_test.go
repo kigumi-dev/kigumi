@@ -46,7 +46,7 @@ func TestVerifyVariantsReassignedParameter(t *testing.T) {
 	if err := mirverify.Program(p); err != nil {
 		t.Fatalf("verify: %v\n%s", err, mirfixture.UserDump(p))
 	}
-	if err := mirplan.Apply(p, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}, mirplan.Transform{Name: "plan-direct", Run: mirplan.PlanDirect}); err != nil {
+	if err := mirplan.Apply(p, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}, mirplan.Transform{Name: "plan-direct", Run: mirplan.PlanDirect}); err != nil {
 		t.Fatalf("planned: %v\n%s", err, mirfixture.UserDump(p))
 	}
 }

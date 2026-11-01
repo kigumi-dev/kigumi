@@ -29,7 +29,7 @@ func TestFoldComptimeRefusesAnUnplannedBlock(t *testing.T) {
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}
-	rc := mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}
+	rc := mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}
 	fold := mirplan.Transform{Name: "fold-comptime", Run: foldComptime}
 	err = mirplan.Apply(mirbuild.Program(res), rc, fold)
 	if err == nil || !strings.Contains(err.Error(), "before plan-direct") {

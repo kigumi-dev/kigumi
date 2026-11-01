@@ -12,7 +12,7 @@ import (
 
 // A user build lowers only the std bodies it reaches, so std's own MIR-level checks run here over every body.
 func TestStdLowersAndVerifiesWhole(t *testing.T) {
-	res := sem.CheckWith(&sem.Module{Packages: testkit.LoadStd(t, "../../../std")}, schema.GenerateDerive)
+	res := sem.CheckWith(&sem.Module{Packages: semfixture.LoadStd(t, "../../../std")}, schema.GenerateDerive)
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}

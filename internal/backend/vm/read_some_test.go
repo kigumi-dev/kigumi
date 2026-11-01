@@ -29,7 +29,7 @@ func TestStdinReadSomeReceivesData(t *testing.T) {
 	if prog.HasErrors() {
 		t.Fatal("ownership errors")
 	}
-	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}); err != nil {
 		t.Fatalf("plan-rc: %v", err)
 	}
 
@@ -79,7 +79,7 @@ func TestStdinReadSomeTimesOut(t *testing.T) {
 	if prog.HasErrors() {
 		t.Fatal("ownership errors")
 	}
-	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}); err != nil {
 		t.Fatalf("plan-rc: %v", err)
 	}
 
@@ -123,7 +123,7 @@ func TestStdinReadSomeClosed(t *testing.T) {
 	if prog.HasErrors() {
 		t.Fatal("ownership errors")
 	}
-	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}); err != nil {
 		t.Fatalf("plan-rc: %v", err)
 	}
 

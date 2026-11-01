@@ -125,7 +125,7 @@ print "${total}"
 func benchProgram(tb testing.TB, src string) *mir.Program {
 	tb.Helper()
 	pkgs := map[string]*sem.Package{}
-	for _, p := range testkit.LoadStd(tb, "../../../std") {
+	for _, p := range semfixture.LoadStd(tb, "../../../std") {
 		pkgs[p.Path] = p
 	}
 	tree := syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
@@ -147,7 +147,7 @@ func benchProgram(tb testing.TB, src string) *mir.Program {
 		tb.Fatalf("check errors:\n%s", res.Render())
 	}
 	prog := mirbuild.Program(res)
-	plans := []mirplan.Transform{{Name: "plan-rc", Run: mirplan.PlanRC}, {Name: "specialize", Run: mirplan.Specialize}, {Name: "elide-rc", Run: mirplan.ElideRC}, {Name: "plan-direct", Run: mirplan.PlanDirect}}
+	plans := []mirplan.Transform{{Name: "plan-rc", Run: mirplan.RC}, {Name: "specialize", Run: mirplan.Specialize}, {Name: "elide-rc", Run: mirplan.ElideRC}, {Name: "plan-direct", Run: mirplan.PlanDirect}}
 	if err := mirplan.Apply(prog, plans...); err != nil {
 		tb.Fatalf("plans: %v", err)
 	}

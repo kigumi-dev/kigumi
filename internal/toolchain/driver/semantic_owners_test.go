@@ -56,7 +56,7 @@ var nativeLowered = map[string]bool{
 // TestSemanticOwnersFresh diffs testdata/semantic_owners.json against std
 // (UPDATE=1 regenerates it) and fails a bodiless declaration with no backend.
 func TestSemanticOwnersFresh(t *testing.T) {
-	res := sem.CheckWith(&sem.Module{Packages: testkit.LoadStd(t, "../../../std")}, schema.GenerateDerive)
+	res := sem.CheckWith(&sem.Module{Packages: semfixture.LoadStd(t, "../../../std")}, schema.GenerateDerive)
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}

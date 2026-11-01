@@ -15,7 +15,7 @@ func checkOp(t *testing.T, src string) *sem.Result {
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
 	main.Files = []*syntax.Tree{main.Entry}
-	r := sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../../std"), main)}, schema.GenerateDerive)
+	r := sem.CheckWith(&sem.Module{Packages: append(semfixture.LoadStd(t, "../../../std"), main)}, schema.GenerateDerive)
 	if r.HasErrors() {
 		t.Fatalf("unexpected errors:\n%s", r.Render())
 	}

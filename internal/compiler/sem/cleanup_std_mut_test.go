@@ -19,7 +19,7 @@ var bodilessStdMutSelf = []string{
 }
 
 func TestBodilessStdMutSelfClassified(t *testing.T) {
-	r := sem.CheckWith(&sem.Module{Packages: testkit.LoadStd(t, "../../../std")}, schema.GenerateDerive)
+	r := sem.CheckWith(&sem.Module{Packages: semfixture.LoadStd(t, "../../../std")}, schema.GenerateDerive)
 	var got []string
 	for id := range r.Entities {
 		e := &r.Entities[id]

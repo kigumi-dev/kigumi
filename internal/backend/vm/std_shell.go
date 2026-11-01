@@ -62,19 +62,19 @@ func atoi(s string) int64 {
 
 // planOf turns a Plan record into the host plan by asking std/shell.stages
 // for the stage records, so word joining lives in one place.
-func (m *Machine) planOf(v *obj) (*hostshell.Plan, string) {
+func (m *Machine) planOf(v *obj) (*shell.Plan, string) {
 	stages := m.callStd("std/shell", "stages", []*obj{v})
 	defer m.release(stages)
-	p := &hostshell.Plan{}
+	p := &shell.Plan{}
 	for _, sv := range deref(stages).fields {
 		rec := deref(sv)
-		var st hostshell.Stage
+		var st shell.Stage
 		for _, a := range deref(rec.fields[0]).fields {
 			st.Argv = append(st.Argv, string(deref(a).str()))
 		}
 		for _, r := range deref(rec.fields[1]).fields {
 			rr := deref(r)
-			st.Redirs = append(st.Redirs, hostshell.Redirect{Op: uint32(deref(rr.fields[0]).i), Fd: int(deref(rr.fields[1]).i), Target: string(deref(rr.fields[2]).str())})
+			st.Redirs = append(st.Redirs, shell.Redirect{Op: uint32(deref(rr.fields[0]).i), Fd: int(deref(rr.fields[1]).i), Target: string(deref(rr.fields[2]).str())})
 		}
 		if g := deref(rec.fields[2]); len(g.fields) == 1 {
 			pattern := deref(g.fields[0])
@@ -84,7 +84,7 @@ func (m *Machine) planOf(v *obj) (*hostshell.Plan, string) {
 			if text != "" {
 				return nil, "invalid grep pattern: " + text
 			}
-			st.Filter = hostshell.GrepFilter(string(pattern.str()))
+			st.Filter = shell.GrepFilter(string(pattern.str()))
 		}
 		p.Stages = append(p.Stages, st)
 	}
@@ -99,7 +99,7 @@ func (m *Machine) registerShell() {
 		if problem != "" {
 			return m.errMsg(problem)
 		}
-		out, errOut, _, err := hostshell.Run(plan, m.opts.Cwd)
+		out, errOut, _, err := shell.Run(plan, m.opts.Cwd)
 		if err != nil {
 			return m.errMsg(err.Error())
 		}
@@ -111,7 +111,7 @@ func (m *Machine) registerShell() {
 		if problem != "" {
 			return m.errMsg(problem)
 		}
-		out, errOut, statuses, err := hostshell.Run(plan, m.opts.Cwd)
+		out, errOut, statuses, err := shell.Run(plan, m.opts.Cwd)
 		if err != nil {
 			return m.errMsg(err.Error())
 		}

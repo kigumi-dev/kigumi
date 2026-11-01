@@ -35,7 +35,7 @@ func TestInstanceNamesDifferingInWitnessesDoNotDependOnOrder(t *testing.T) {
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte("fn f() -> Int { 1 }\nfn g() -> Int { 2 }\n")))
 	main.Files = []*syntax.Tree{main.Entry}
-	res := sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../../../std"), main)}, schema.GenerateDerive)
+	res := sem.CheckWith(&sem.Module{Packages: append(semfixture.LoadStd(t, "../../../../std"), main)}, schema.GenerateDerive)
 	if res.HasErrors() {
 		t.Fatal(res.Render())
 	}

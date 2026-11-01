@@ -12,7 +12,7 @@ import (
 
 // TestRegistryMatchesStd holds the registry and the bodiless std functions to each other: every key names one, and every one resolves to an op or is lowered at the call site.
 func TestRegistryMatchesStd(t *testing.T) {
-	res := sem.CheckWith(&sem.Module{Packages: testkit.LoadStd(t, "../../../std")}, schema.GenerateDerive)
+	res := sem.CheckWith(&sem.Module{Packages: semfixture.LoadStd(t, "../../../std")}, schema.GenerateDerive)
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}

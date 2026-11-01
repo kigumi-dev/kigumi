@@ -154,7 +154,7 @@ func TestVerifyShapeAndTypeText(t *testing.T) {
 
 func TestVerifyLentWrapped(t *testing.T) {
 	prog := mirbuild.Program(mirfixture.CheckSourceMir(t, rulesSrc))
-	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}); err != nil {
 		t.Fatal(err)
 	}
 	f := mirfixture.FuncNamed(t, prog, "main.Point.total")

@@ -35,7 +35,7 @@ func buildRunnableProgram(t *testing.T, src string) *mir.Program {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}
 	prog := mirbuild.Program(res)
-	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}); err != nil {
 		t.Fatalf("plan-rc: %v", err)
 	}
 	return prog

@@ -7,7 +7,7 @@ import (
 	"kigumi/internal/compiler/sem"
 )
 
-// ElideRC drops counts PlanRC left that no observer can tell from their absence.
+// ElideRC drops counts RC left that no observer can tell from their absence.
 func ElideRC(p *mir.Program) error { return (&planner{Program: p}).elideRC() }
 
 func (p *planner) elideRC() error {

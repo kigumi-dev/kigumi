@@ -67,12 +67,12 @@ func TestNoConformanceQueryAfterSeal(t *testing.T) {
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(conformSealSrc)))
 	main.Files = []*syntax.Tree{main.Entry}
-	res := sem.Check(&sem.Module{Packages: append(testkit.LoadStd(t, "../../../std"), main)})
+	res := sem.Check(&sem.Module{Packages: append(semfixture.LoadStd(t, "../../../std"), main)})
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}
 	prog := mirbuild.Program(res)
-	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}, mirplan.Transform{Name: "plan-direct", Run: mirplan.PlanDirect}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}, mirplan.Transform{Name: "plan-direct", Run: mirplan.PlanDirect}); err != nil {
 		t.Fatal(err)
 	}
 	llgen.Emit(prog)

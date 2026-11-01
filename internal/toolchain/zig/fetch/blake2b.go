@@ -114,7 +114,7 @@ func (s *blake2bState) sum() [64]byte {
 }
 
 // Blake2b512Sum is the unkeyed BLAKE2b-512 digest minisign's "ED" signatures
-// sign, not the file itself; exported for fetchtest.
+// sign, not the file itself; exported for zigrelease.
 func Blake2b512Sum(data []byte) [64]byte {
 	s := newBlake2b512()
 	s.write(data)

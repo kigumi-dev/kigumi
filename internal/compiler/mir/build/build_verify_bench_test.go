@@ -49,7 +49,7 @@ fn makeAdder%d(n: Int) -> fn(Int) -> Int {
 func genMIRBenchModule(b *testing.B, count int) *sem.Result {
 	b.Helper()
 	pkgs := map[string]*sem.Package{}
-	for _, p := range testkit.LoadStd(b, "../../../../std") {
+	for _, p := range semfixture.LoadStd(b, "../../../../std") {
 		pkgs[p.Path] = p
 	}
 	var sb strings.Builder
@@ -122,7 +122,7 @@ fn useField%d['a](h: Holder%d['a]) {
 func genMIRBorrowBenchModule(b *testing.B, count int) *sem.Result {
 	b.Helper()
 	pkgs := map[string]*sem.Package{}
-	for _, p := range testkit.LoadStd(b, "../../../../std") {
+	for _, p := range semfixture.LoadStd(b, "../../../../std") {
 		pkgs[p.Path] = p
 	}
 	var sb strings.Builder

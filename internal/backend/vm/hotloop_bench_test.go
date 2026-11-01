@@ -33,7 +33,7 @@ print "${total}"
 func buildRunnableProgramTB(tb testing.TB, src string) *mir.Program {
 	tb.Helper()
 	pkgs := map[string]*sem.Package{}
-	for _, p := range testkit.LoadStd(tb, "../../../std") {
+	for _, p := range semfixture.LoadStd(tb, "../../../std") {
 		pkgs[p.Path] = p
 	}
 	tree := syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
@@ -58,7 +58,7 @@ func buildRunnableProgramTB(tb testing.TB, src string) *mir.Program {
 		tb.Fatalf("check errors:\n%s", res.Render())
 	}
 	prog := mirbuild.Program(res)
-	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}); err != nil {
 		tb.Fatalf("plan-rc: %v", err)
 	}
 	return prog

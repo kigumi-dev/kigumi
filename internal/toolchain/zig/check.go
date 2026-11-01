@@ -1,4 +1,4 @@
-package zigtool
+package zig
 
 // Check is one resolution attempt: the zig Resolve found (if any), the
 // version it reports when Want is pinned, and whether that matched.

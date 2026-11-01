@@ -28,7 +28,7 @@ func TestGenerateDeriveFailsClosedOnNondeterminism(t *testing.T) {
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
 	main.Files = []*syntax.Tree{main.Entry}
-	res := sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../../../std"), main)}, GenerateDerive)
+	res := sem.CheckWith(&sem.Module{Packages: append(semfixture.LoadStd(t, "../../../../std"), main)}, GenerateDerive)
 	out := res.Render()
 	if !strings.Contains(out, "E1430") || !strings.Contains(out, "two runs over the same declaration produced different source") {
 		t.Fatalf("expected E1430 naming the disagreement:\n%s", out)

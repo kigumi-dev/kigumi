@@ -16,7 +16,7 @@ func checkRecoverableOnly(t *testing.T, src string) *sem.Result {
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
 	main.Files = []*syntax.Tree{main.Entry}
-	return sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../../std"), main), RecoverableOnly: true}, schema.GenerateDerive)
+	return sem.CheckWith(&sem.Module{Packages: append(semfixture.LoadStd(t, "../../../std"), main), RecoverableOnly: true}, schema.GenerateDerive)
 }
 
 func TestRecoverableOnlyRejectsFatalConvenience(t *testing.T) {

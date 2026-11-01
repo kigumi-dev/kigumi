@@ -20,7 +20,7 @@ func TestVerifyCorpus(t *testing.T) {
 	for _, path := range files {
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			t.Parallel()
-			res, _, _ := mirfixture.CheckFixture(t, path, testkit.LoadStd(t, "../../../../std"))
+			res, _, _ := mirfixture.CheckFixture(t, path, semfixture.LoadStd(t, "../../../../std"))
 			prog := mirbuild.Program(res)
 			if prog.HasErrors() {
 				t.Skip("ownership diagnostics")
@@ -30,7 +30,7 @@ func TestVerifyCorpus(t *testing.T) {
 			}
 			// Apply verifies again afterwards, so the drops and releases
 			// plan-rc makes explicit are checked too.
-			if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
+			if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}); err != nil {
 				t.Errorf("plan-rc: %v", err)
 			}
 			if err := mirplan.Apply(prog, mirplan.Transform{Name: "elide-rc", Run: mirplan.ElideRC}); err != nil {

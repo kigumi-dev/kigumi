@@ -50,7 +50,7 @@ fn makeAdder%d(n: Int) -> fn(Int) -> Int {
 func buildEmitBenchProgram(b *testing.B, count int) *mir.Program {
 	b.Helper()
 	pkgs := map[string]*sem.Package{}
-	for _, p := range testkit.LoadStd(b, "../../../std") {
+	for _, p := range semfixture.LoadStd(b, "../../../std") {
 		pkgs[p.Path] = p
 	}
 	var sb strings.Builder
@@ -76,7 +76,7 @@ func buildEmitBenchProgram(b *testing.B, count int) *mir.Program {
 		b.Fatalf("check errors:\n%s", res.Render())
 	}
 	prog := mirbuild.Program(res)
-	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}, mirplan.Transform{Name: "plan-direct", Run: mirplan.PlanDirect}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}, mirplan.Transform{Name: "plan-direct", Run: mirplan.PlanDirect}); err != nil {
 		b.Fatalf("plan-rc: %v", err)
 	}
 	return prog

@@ -90,13 +90,13 @@ func TestPlanDirectMovesTheKeyOfASpecializedTrySet(t *testing.T) {
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(moveMapKeySrc)))
 	main.Files = []*syntax.Tree{main.Entry}
 	mod := sem.Module{RecoverableOnly: true, IsrContracts: opdef.IsrContracts}
-	mod.Packages = append(testkit.LoadStd(t, "../../../../std"), main)
+	mod.Packages = append(semfixture.LoadStd(t, "../../../../std"), main)
 	res := sem.CheckWith(&mod, schema.GenerateDerive)
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}
 	p := mirbuild.Program(res)
-	err := mirplan.Apply(p, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC},
+	err := mirplan.Apply(p, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC},
 		mirplan.Transform{Name: "specialize", Run: mirplan.Specialize},
 		mirplan.Transform{Name: "elide-rc", Run: mirplan.ElideRC},
 		mirplan.Transform{Name: "plan-direct", Run: mirplan.PlanDirect})

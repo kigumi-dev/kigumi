@@ -9,7 +9,7 @@ func (m *Machine) registerNetPoll() {
 	h := m.host
 	fdOf := func(v *obj) int { return int(deref(deref(v).fields[0]).i) }
 	h["net.Listener.pollAccept"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		fd, ok, err := netsock.TryAccept(fdOf(a[0]))
+		fd, ok, err := net.TryAccept(fdOf(a[0]))
 		if err != nil {
 			return m.errMsg(ioError(err).Error())
 		}
@@ -29,7 +29,7 @@ func (m *Machine) registerNetPoll() {
 			return m.ok(m.some(mkInt(0, m.numKind(sem.TyUsize))))
 		}
 		buf := make([]byte, max)
-		got, ok, err := netsock.TryRead(fdOf(a[0]), buf)
+		got, ok, err := net.TryRead(fdOf(a[0]), buf)
 		if err != nil {
 			return m.errMsg(ioError(err).Error())
 		}
@@ -47,7 +47,7 @@ func (m *Machine) registerNetPoll() {
 		if len(data) == 0 {
 			return m.ok(m.some(mkInt(0, m.numKind(sem.TyUsize))))
 		}
-		sent, ok, err := netsock.TryWrite(fdOf(a[0]), data)
+		sent, ok, err := net.TryWrite(fdOf(a[0]), data)
 		if err != nil {
 			return m.errMsg(ioError(err).Error())
 		}

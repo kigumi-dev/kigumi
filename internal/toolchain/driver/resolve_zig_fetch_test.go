@@ -53,7 +53,7 @@ func fakeZigIndexServer(t *testing.T, version string) (indexURL, publicKey strin
 	}
 	tarball := buf.Bytes()
 
-	priv, keyID, pubLine := fetchtest.NewSigningKey()
+	priv, keyID, pubLine := zigrelease.NewSigningKey()
 	sum := sha256.Sum256(tarball)
 	tarName := fmt.Sprintf("zig-%s-%s.tar.gz", triple, version)
 	var srv *httptest.Server
@@ -68,7 +68,7 @@ func fakeZigIndexServer(t *testing.T, version string) (indexURL, publicKey strin
 	})
 	mux.HandleFunc("/"+tarName, func(w http.ResponseWriter, r *http.Request) { w.Write(tarball) })
 	mux.HandleFunc("/"+tarName+".minisig", func(w http.ResponseWriter, r *http.Request) {
-		w.Write(fetchtest.SignFile(priv, keyID, tarball, "timestamp:1 file:"+tarName+" hashed"))
+		w.Write(zigrelease.SignFile(priv, keyID, tarball, "timestamp:1 file:"+tarName+" hashed"))
 	})
 	srv = httptest.NewServer(mux)
 	return srv.URL + "/index.json", pubLine, srv.Close

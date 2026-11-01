@@ -17,7 +17,7 @@ func checkIsr(t *testing.T, src string) *sem.Result {
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
 	main.Files = []*syntax.Tree{main.Entry}
-	return sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../../std"), main), IsrContracts: opdef.IsrContracts}, schema.GenerateDerive)
+	return sem.CheckWith(&sem.Module{Packages: append(semfixture.LoadStd(t, "../../../std"), main), IsrContracts: opdef.IsrContracts}, schema.GenerateDerive)
 }
 
 // checkIsrWithSource is checkIsr plus a bodiless Std package whose functions carry an inert contract, isolating a drop-only path.
@@ -61,7 +61,7 @@ func checkIsrWith(t *testing.T, source, src string, contracts sem.IsrContracts, 
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
 	main.Files = []*syntax.Tree{main.Entry}
-	return sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../../std"), lib, main), IsrContracts: contracts, Interrupt: cfg}, schema.GenerateDerive)
+	return sem.CheckWith(&sem.Module{Packages: append(semfixture.LoadStd(t, "../../../std"), lib, main), IsrContracts: contracts, Interrupt: cfg}, schema.GenerateDerive)
 }
 
 func TestInterruptHandlerOK(t *testing.T) {

@@ -10,8 +10,8 @@ import (
 	"kigumi/internal/compiler/sem"
 )
 
-// After PlanRC a backend translates opcodes one by one without consulting Plan.
-func PlanRC(p *mir.Program) error { return (&planner{Program: p}).planRC() }
+// After RC a backend translates opcodes one by one without consulting Plan.
+func RC(p *mir.Program) error { return (&planner{Program: p}).planRC() }
 
 func (p *planner) planRC() error {
 	fs := p.AllFuncs()

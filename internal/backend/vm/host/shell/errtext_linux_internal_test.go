@@ -1,6 +1,6 @@
 //go:build linux
 
-package hostshell
+package shell
 
 import (
 	"syscall"

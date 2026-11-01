@@ -103,7 +103,7 @@ func Import(opts Options) (Result, error) {
 	if depRun == nil {
 		depRun = RunZigDeps
 	}
-	zigDigest, err := zigtool.Fingerprint(opts.ZigPath)
+	zigDigest, err := zig.Fingerprint(opts.ZigPath)
 	if err != nil {
 		return Result{}, err
 	}

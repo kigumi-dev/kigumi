@@ -33,7 +33,7 @@ func TestPlanRCCorpus(t *testing.T) {
 	for _, path := range files {
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			t.Parallel()
-			res, _, _ := mirfixture.CheckFixture(t, path, testkit.LoadStd(t, "../../../../std"))
+			res, _, _ := mirfixture.CheckFixture(t, path, semfixture.LoadStd(t, "../../../../std"))
 			prog := mirbuild.Program(res)
 			if prog.HasErrors() {
 				t.Skip("fixture expects ownership diagnostics")
@@ -41,7 +41,7 @@ func TestPlanRCCorpus(t *testing.T) {
 			if err := mirverify.Program(prog); err != nil {
 				t.Fatalf("verify before plan-rc: %v", err)
 			}
-			if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
+			if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}); err != nil {
 				t.Fatalf("plan-rc: %v\n%s", err, prog.Dump())
 			}
 			var funcs []*midir.Func
@@ -82,7 +82,7 @@ func rcLocals(t sem.TypeID, ent sem.EntityID, named ...bool) []midir.Local {
 func planRC(t *testing.T, f *midir.Func, p *mir.Program) {
 	t.Helper()
 	p.Funcs = []*midir.Func{f}
-	if err := mirplan.PlanRC(p); err != nil {
+	if err := mirplan.RC(p); err != nil {
 		t.Fatalf("plan-rc: %v", err)
 	}
 }
@@ -248,7 +248,7 @@ fn run() {
 
 fn main() -> Void! {}
 `))
-	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}); err != nil {
 		t.Fatal(err)
 	}
 	run := mirfixture.FuncNamed(t, prog, "main.run")

@@ -9,7 +9,7 @@ import (
 	"kigumi/internal/compiler/syntax"
 )
 
-// shareFacts reads a body as it was before PlanRC rewrote it; Points name instructions of that snapshot.
+// shareFacts reads a body as it was before RC rewrote it; Points name instructions of that snapshot.
 type shareFacts struct {
 	p       *planner
 	f       *midir.Func

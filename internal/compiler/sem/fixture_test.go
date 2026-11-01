@@ -105,11 +105,11 @@ func buildModule(t *testing.T, fx fixture) *sem.Module {
 	pkgs := map[string]*sem.Package{}
 	deps := fx.deps()
 	if fx.opt("std", "default") == "default" {
-		for _, p := range testkit.LoadStd(t, "../../../std") {
+		for _, p := range semfixture.LoadStd(t, "../../../std") {
 			pkgs[p.Path] = p
 		}
 	} else {
-		for _, p := range testkit.LoadPrelude(t, "../../../std") {
+		for _, p := range semfixture.LoadPrelude(t, "../../../std") {
 			pkgs[p.Path] = p
 		}
 	}

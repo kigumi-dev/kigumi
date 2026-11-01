@@ -1,4 +1,4 @@
-package zigtool
+package zig
 
 import "kigumi/internal/toolchain/zig/store"
 

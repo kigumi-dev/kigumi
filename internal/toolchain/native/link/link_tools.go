@@ -31,7 +31,7 @@ func ZigVersionOf(cc []string) string {
 	if len(cc) == 0 || filepath.Base(cc[0]) != "zig" {
 		return ""
 	}
-	v, err := zigtool.Version(cc[0])
+	v, err := zig.Version(cc[0])
 	if err != nil {
 		return ""
 	}

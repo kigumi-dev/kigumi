@@ -17,7 +17,7 @@ func TestMirDump(t *testing.T) {
 	if out == "" {
 		t.Skip()
 	}
-	std := testkit.LoadStd(t, "../../../../std")
+	std := semfixture.LoadStd(t, "../../../../std")
 	files, _ := filepath.Glob("../../../../testdata/run/*.txtar")
 	for _, path := range files {
 		res, _, _ := mirfixture.CheckFixture(t, path, std)

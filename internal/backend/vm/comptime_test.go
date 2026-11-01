@@ -23,7 +23,7 @@ func evalOneComptime(t *testing.T, src string) (sem.Literal, error) {
 	if len(prog.Comptime) != 1 {
 		t.Fatalf("got %d comptime blocks, want 1", len(prog.Comptime))
 	}
-	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}); err != nil {
 		t.Fatalf("plan-rc: %v", err)
 	}
 	return vm.EvalComptime(prog, prog.Comptime[0])

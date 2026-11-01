@@ -122,7 +122,7 @@ func (b *builder) transfer(outer *hir.Expr, v midir.LocalID) midir.LocalID {
 	t := src.Type
 	switch {
 	case b.r.IsCopy(t) && b.fn.Locals[id].Cell:
-		// v is an OpCellGet read; PlanRC would alias an Ent-less OpCopy
+		// v is an OpCellGet read; RC would alias an Ent-less OpCopy
 		// source, drifting with the cell's later in-place field writes.
 		return retag(b.emit(midir.Inst{Op: midir.OpShare, Dst: b.temp(t), Args: []midir.LocalID{v}, Copy: true, Node: src.Node}))
 	case b.r.IsCopy(t):

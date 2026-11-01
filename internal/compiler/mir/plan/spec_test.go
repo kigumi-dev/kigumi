@@ -22,7 +22,7 @@ func specialized(t *testing.T, src string) *mir.Program {
 		t.Fatalf("build errors:\n%s", prog.Render())
 	}
 	passes := []mirplan.Transform{
-		{Name: "plan-rc", Run: mirplan.PlanRC},
+		{Name: "plan-rc", Run: mirplan.RC},
 		{Name: "specialize", Run: mirplan.Specialize},
 		{Name: "plan-direct", Run: mirplan.PlanDirect},
 	}

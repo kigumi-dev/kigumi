@@ -5,7 +5,7 @@ import (
 	"kigumi/internal/toolchain/zig/store"
 )
 
-func (o CompilerOptions) ToolLookup() zigtool.Lookup { return zigtool.InDirs(o.PathDirs) }
+func (o CompilerOptions) ToolLookup() zig.Lookup { return zig.InDirs(o.PathDirs) }
 
 // CCompiler finds a C compiler able to consume LLVM IR: zig cc or clang.
 func (o CompilerOptions) CCompiler() []string {

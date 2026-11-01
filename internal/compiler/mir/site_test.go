@@ -13,7 +13,7 @@ import (
 )
 
 func TestSiteAtResolvesFileAndLine(t *testing.T) {
-	std := testkit.LoadStd(t, "../../../std")
+	std := semfixture.LoadStd(t, "../../../std")
 	dir := t.TempDir()
 	path := filepath.Join(dir, "fixture.txtar")
 	src := "-- src --\n" +

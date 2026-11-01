@@ -28,7 +28,7 @@ func TestPackageAPITracksEscapingTypeParam(t *testing.T) {
 func TestParamTypeStringKeepsEscaping(t *testing.T) {
 	t.Parallel()
 	const src = "pub fn keep[F: Fn[fn() -> Void]](callback: escaping F, other: F) {}\npub fn keepV[F: Fn[fn() -> Void]](cbs: ...escaping F) {}\npub fn plainV[F: Fn[fn() -> Void]](cbs: ...F) {}\n"
-	pkgs := append(testkit.LoadStd(t, "../../../std"), &sem.Package{Path: "lib", Files: []*syntax.Tree{syntax.Parse(token.NewFile("lib/lib.kg", []byte(src)))}})
+	pkgs := append(semfixture.LoadStd(t, "../../../std"), &sem.Package{Path: "lib", Files: []*syntax.Tree{syntax.Parse(token.NewFile("lib/lib.kg", []byte(src)))}})
 	res := sem.CheckWith(&sem.Module{Packages: pkgs}, schema.GenerateDerive)
 	for _, d := range res.Files[len(res.Files)-1].Diags {
 		if d.Severity == diag.Error {

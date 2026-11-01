@@ -146,7 +146,7 @@ func TestDefinedReadThroughAReferenceKeepsTheReferent(t *testing.T) {
 		t.Fatalf("build errors:\n%s", p.Render())
 	}
 	// Not mirfixture.Planned(): the verifier's verdict is reported after these checks so they fail on their own.
-	perr := mirplan.Apply(p, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}, mirplan.Transform{Name: "plan-direct", Run: mirplan.PlanDirect})
+	perr := mirplan.Apply(p, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}, mirplan.Transform{Name: "plan-direct", Run: mirplan.PlanDirect})
 	handsOver := map[string]bool{"main.get": false, "main.local": false, "main.viaCall": true, "main.viaField": true, "main.viaAlias": false}
 	for name, want := range handsOver {
 		f := mirfixture.FuncNamed(t, p, name)

@@ -56,7 +56,7 @@ func genModuleSource(count int) string {
 func buildBenchModule(b *testing.B, size int) *sem.Module {
 	b.Helper()
 	pkgs := map[string]*sem.Package{}
-	for _, p := range testkit.LoadStd(b, "../../../std") {
+	for _, p := range semfixture.LoadStd(b, "../../../std") {
 		pkgs[p.Path] = p
 	}
 	tree := syntax.Parse(token.NewFile("main/main.kg", []byte(genModuleSource(size))))

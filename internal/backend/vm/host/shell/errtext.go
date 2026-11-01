@@ -1,4 +1,4 @@
-package hostshell
+package shell
 
 import (
 	"errors"

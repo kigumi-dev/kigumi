@@ -161,7 +161,7 @@ func lowerProgram(res *sem.Result, all bool, keep func(path string) bool) *mir.P
 // fold-comptime runs last so a comptime block runs the planned MIR.
 func planPasses(comptime bool) []mirplan.Transform {
 	out := []mirplan.Transform{
-		{Name: "plan-rc", Run: mirplan.PlanRC},
+		{Name: "plan-rc", Run: mirplan.RC},
 		{Name: "specialize", Run: mirplan.Specialize},
 		{Name: "elide-rc", Run: mirplan.ElideRC},
 		{Name: "plan-direct", Run: mirplan.PlanDirect},

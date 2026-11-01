@@ -2,7 +2,7 @@ package plan
 
 import "kigumi/internal/compiler/sem"
 
-// sem settled the effect summaries before PlanRC planned any of these copies.
+// sem settled the effect summaries before RC planned any of these copies.
 func (p *planner) chargeCopies() {
 	var sites []sem.CopySite
 	facts := paramCopies{}

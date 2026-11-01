@@ -1,6 +1,6 @@
-// Package testkit holds helpers shared by the test packages: loading the
+// Package semfixture holds helpers shared by the test packages: loading the
 // std sources the way the driver does, without going through a module.
-package testkit
+package semfixture
 
 import (
 	"os"

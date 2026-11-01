@@ -31,10 +31,10 @@ func RunZig(zigPath, target, headerPath string) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-// zigVersionString is informational only, unlike zigtool.Fingerprint: never
+// zigVersionString is informational only, unlike zig.Fingerprint: never
 // part of the cache key, so a lookup never depends on it succeeding.
 func zigVersionString(zigPath string) string {
-	v, err := zigtool.Version(zigPath)
+	v, err := zig.Version(zigPath)
 	if err != nil {
 		return ""
 	}

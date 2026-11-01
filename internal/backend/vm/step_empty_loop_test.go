@@ -14,7 +14,7 @@ import (
 
 func TestSandboxStepBudgetStopsAnEmptyLoop(t *testing.T) {
 	prog := mirbuild.Program(checkSource(t, "print \"x\"\n"))
-	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}); err != nil {
 		t.Fatal(err)
 	}
 	entry := prog.Funcs[len(prog.Funcs)-1]
@@ -42,7 +42,7 @@ func TestSandboxStepBudgetStopsAnEmptyLoop(t *testing.T) {
 func TestSandboxStepBudgetStopsAnEmptyAsyncLoop(t *testing.T) {
 	src := "import task from std/task\n\nasync fn spin() -> Int {\n    1\n}\n\nlet ex = task.currentThreadExecutor()\nprint \"${ex.runToCompletion(spin())}\"\n"
 	prog := mirbuild.Program(checkSource(t, src))
-	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}); err != nil {
 		t.Fatal(err)
 	}
 	spun := false

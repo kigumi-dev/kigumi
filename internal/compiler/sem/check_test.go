@@ -73,7 +73,7 @@ func TestSemCorpus(t *testing.T) {
 
 // TestStdStubs checks the shared stubs alone: they must be clean.
 func TestStdStubs(t *testing.T) {
-	mod := &sem.Module{Packages: testkit.LoadStd(t, "../../../std")}
+	mod := &sem.Module{Packages: semfixture.LoadStd(t, "../../../std")}
 	res := sem.CheckWith(mod, schema.GenerateDerive)
 	if out := res.Render(); out != "" {
 		t.Errorf("std stubs are not clean:\n%s", out)

@@ -86,7 +86,7 @@ func ioError(err error) error {
 	}
 	var errno syscall.Errno
 	if errors.As(err, &errno) {
-		return errors.New(hostshell.OSErrText(errno))
+		return errors.New(shell.OSErrText(errno))
 	}
 	return err
 }

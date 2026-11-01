@@ -40,7 +40,7 @@ func TestMirCorpus(t *testing.T) {
 					ran.Add(1)
 				}
 			}()
-			runFixture(t, path, testkit.LoadStd(t, "../../../../std"))
+			runFixture(t, path, semfixture.LoadStd(t, "../../../../std"))
 		})
 	}
 }

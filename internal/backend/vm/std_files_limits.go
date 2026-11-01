@@ -17,11 +17,11 @@ const defaultReadLimit = 268435456
 func (m *Machine) readLimited(path string, limit int64) ([]byte, string) {
 	f, err := os.Open(m.resolvePath(path))
 	if err != nil {
-		return nil, hostshell.OSErrText(err)
+		return nil, shell.OSErrText(err)
 	}
 	defer f.Close()
 	if info, err := f.Stat(); err == nil && info.IsDir() {
-		return nil, hostshell.OSErrText(syscall.EISDIR)
+		return nil, shell.OSErrText(syscall.EISDIR)
 	}
 	var src io.Reader = f
 	if limit >= 0 && limit < 1<<62 {
@@ -30,7 +30,7 @@ func (m *Machine) readLimited(path string, limit int64) ([]byte, string) {
 	b, err := io.ReadAll(src)
 	switch {
 	case err != nil:
-		return nil, hostshell.OSErrText(err)
+		return nil, shell.OSErrText(err)
 	case limit >= 0 && int64(len(b)) > limit:
 		return nil, fmt.Sprintf("file is larger than the read limit of %d bytes", uint64(limit))
 	}
@@ -66,7 +66,7 @@ func (m *Machine) registerFileReads() {
 	h["fs.Files.createWithMode"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		fh, err := os.OpenFile(m.resolvePath(pathText(a[1])), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, unixMode(deref(a[2]).i))
 		if err != nil {
-			return m.errMsg(hostshell.OSErrText(err))
+			return m.errMsg(shell.OSErrText(err))
 		}
 		file := m.r.Types.Node(m.resultPayload(fn)).Ent
 		return m.ok(mkRecord(file, []*obj{mkOpaque("Ptr", fh)}))
@@ -74,16 +74,16 @@ func (m *Machine) registerFileReads() {
 	h["fs.Files.remove"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		path := m.resolvePath(pathText(a[1]))
 		if info, err := os.Lstat(path); err == nil && info.IsDir() {
-			return m.errMsg(hostshell.OSErrText(syscall.EISDIR))
+			return m.errMsg(shell.OSErrText(syscall.EISDIR))
 		}
 		if err := os.Remove(path); err != nil {
-			return m.errMsg(hostshell.OSErrText(err))
+			return m.errMsg(shell.OSErrText(err))
 		}
 		return m.ok(unitObj)
 	}
 	h["fs.Files.removeDir"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		if err := syscall.Rmdir(m.resolvePath(pathText(a[1]))); err != nil {
-			return m.errMsg(hostshell.OSErrText(err))
+			return m.errMsg(shell.OSErrText(err))
 		}
 		return m.ok(unitObj)
 	}

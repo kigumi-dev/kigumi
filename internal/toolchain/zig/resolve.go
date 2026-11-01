@@ -1,6 +1,6 @@
-// Package zigtool resolves the zig binary a native build or header import
+// Package zig resolves the zig binary a native build or header import
 // should run, and checks its reported version against a module's pin.
-package zigtool
+package zig
 
 import (
 	"fmt"

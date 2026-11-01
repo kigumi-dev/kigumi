@@ -113,12 +113,12 @@ func TestPlanDirectCorpus(t *testing.T) {
 	for _, path := range files {
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			t.Parallel()
-			res, _, _ := mirfixture.CheckFixture(t, path, testkit.LoadStd(t, "../../../../std"))
+			res, _, _ := mirfixture.CheckFixture(t, path, semfixture.LoadStd(t, "../../../../std"))
 			prog := mirbuild.Program(res)
 			if prog.HasErrors() {
 				t.Skip("fixture expects ownership diagnostics")
 			}
-			err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC},
+			err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC},
 				mirplan.Transform{Name: "specialize", Run: mirplan.Specialize},
 				mirplan.Transform{Name: "plan-direct", Run: mirplan.PlanDirect})
 			if err != nil {

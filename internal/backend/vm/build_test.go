@@ -20,14 +20,14 @@ import (
 func evalBuild(t *testing.T, src string, flags []string) (*buildgraph.Graph, error) {
 	t.Helper()
 	build := &sem.Package{Path: "build", Files: []*syntax.Tree{syntax.Parse(token.NewFile("build.kg", []byte(src)))}}
-	res := sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../../std"), build)}, schema.GenerateDerive)
+	res := sem.CheckWith(&sem.Module{Packages: append(semfixture.LoadStd(t, "../../../std"), build)}, schema.GenerateDerive)
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}
 	fn := res.PackageMember(res.PackageByPath("build"), "configure")
 	root, out := t.TempDir(), t.TempDir()
 	prog := mirbuild.Program(res)
-	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}); err != nil {
 		t.Fatalf("plan-rc: %v", err)
 	}
 	return vm.EvalBuild(prog, fn, buildgraph.Request{Flags: flags}, buildgraph.Roots{Roots: []string{root, out}, Host: buildgraph.Target{Sys: "posix"}})

@@ -221,7 +221,7 @@ c.nested()
 	if err := mirverify.Program(prog); err != nil {
 		t.Fatalf("verify: %v", err)
 	}
-	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}); err != nil {
 		t.Fatalf("plan-rc: %v\n%s", err, prog.Dump())
 	}
 }

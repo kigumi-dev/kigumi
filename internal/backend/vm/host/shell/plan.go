@@ -1,7 +1,7 @@
-// Package hostshell runs shell plans: external commands chained
+// Package shell runs shell plans: external commands chained
 // through pipes, in-process filters and redirects. Both executors hand it
 // the plan std/shell parsed.
-package hostshell
+package shell
 
 import (
 	"bufio"

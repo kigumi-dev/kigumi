@@ -120,7 +120,7 @@ func (w *shareFacts) untracked(v midir.LocalID) bool {
 	return l.Cell && !l.Borrowed && w.p.R.Types.Kind(l.Type) != sem.KRef
 }
 
-// PlanRC already copies a named local's own value wherever it is taken over or returned.
+// RC already copies a named local's own value wherever it is taken over or returned.
 func (w *shareFacts) aliasOfNamed(v midir.LocalID) bool {
 	for range w.nLocals {
 		if w.f.Locals[v].Ent != 0 {

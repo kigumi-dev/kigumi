@@ -90,7 +90,7 @@ func zigField() field {
 	if err != nil {
 		root = ""
 	}
-	r := zigtool.ForModule(session.CompilerOptions().ToolLookup(), root, session.ZigPath(), mf.Zig)
+	r := zig.ForModule(session.CompilerOptions().ToolLookup(), root, session.ZigPath(), mf.Zig)
 	switch {
 	case r.Path == "":
 		status := "missing"

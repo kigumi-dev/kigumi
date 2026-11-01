@@ -68,7 +68,7 @@ func buildSites(t *testing.T, src string, budget time.Duration) (*fixture, *midi
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
 	main.Files = []*syntax.Tree{main.Entry}
-	res := sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../../../../std"), main), IsrContracts: opdef.IsrContracts}, schema.GenerateDerive)
+	res := sem.CheckWith(&sem.Module{Packages: append(semfixture.LoadStd(t, "../../../../../std"), main), IsrContracts: opdef.IsrContracts}, schema.GenerateDerive)
 	if res.HasErrors() {
 		t.Fatal(res.Render())
 	}

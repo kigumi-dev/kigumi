@@ -32,7 +32,7 @@ func checkIsrDeps(t *testing.T, root sem.InterruptConfig, deps ...sem.DepInterru
 		p.Files = []*syntax.Tree{p.Entry}
 		return p
 	}
-	pkgs := append(testkit.LoadStd(t, "../../../std"), pkg("buflib", "", isrDeviceLib, true), pkg("deplib", "deplib", isrDepHandler, false), pkg("main", "", "", false))
+	pkgs := append(semfixture.LoadStd(t, "../../../std"), pkg("buflib", "", isrDeviceLib, true), pkg("deplib", "deplib", isrDepHandler, false), pkg("main", "", "", false))
 	return sem.CheckWith(&sem.Module{Packages: pkgs, IsrContracts: isrDeviceContracts, Interrupt: root, DepInterrupt: deps}, schema.GenerateDerive)
 }
 

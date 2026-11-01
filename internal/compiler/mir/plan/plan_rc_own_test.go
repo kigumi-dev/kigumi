@@ -85,7 +85,7 @@ func rcPlanned(t *testing.T, src string) *mir.Program {
 	if prog.HasErrors() {
 		t.Fatalf("build errors:\n%s", prog.Render())
 	}
-	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}); err != nil {
 		t.Fatalf("plan-rc: %v\n%s", err, prog.Dump())
 	}
 	return prog

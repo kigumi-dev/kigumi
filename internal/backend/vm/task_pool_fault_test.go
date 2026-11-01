@@ -22,7 +22,7 @@ func buildAndRun(t *testing.T, src string, opts vm.Options) (stdout, stderr stri
 	if prog.HasErrors() {
 		t.Fatal("ownership errors")
 	}
-	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}); err != nil {
 		t.Fatalf("plan-rc: %v", err)
 	}
 	var out, errOut bytes.Buffer
@@ -314,7 +314,7 @@ print "total ${ex.runToCompletion(root())}"
 		t.Fatalf("check errors:\n%s", res.Render())
 	}
 	prog := mirbuild.Program(res)
-	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.PlanRC}); err != nil {
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}); err != nil {
 		t.Fatalf("plan-rc: %v", err)
 	}
 	var out, errOut bytes.Buffer

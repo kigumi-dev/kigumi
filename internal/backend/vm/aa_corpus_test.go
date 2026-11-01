@@ -159,7 +159,7 @@ func preparedProg(t *testing.T, fx fixture, gate *liveGate, unsupported *atomic.
 	if prog.HasErrors() {
 		t.Skip("ownership errors")
 	}
-	plans := []mirplan.Transform{{Name: "plan-rc", Run: mirplan.PlanRC}, {Name: "specialize", Run: mirplan.Specialize}, {Name: "elide-rc", Run: mirplan.ElideRC}, {Name: "plan-direct", Run: mirplan.PlanDirect}}
+	plans := []mirplan.Transform{{Name: "plan-rc", Run: mirplan.RC}, {Name: "specialize", Run: mirplan.Specialize}, {Name: "elide-rc", Run: mirplan.ElideRC}, {Name: "plan-direct", Run: mirplan.PlanDirect}}
 	if err := mirplan.Apply(prog, plans...); err != nil {
 		t.Fatalf("plans: %v", err)
 	}

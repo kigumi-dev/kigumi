@@ -28,7 +28,7 @@ func checkBlocking(t *testing.T, profile, src string) *sem.Result {
 	}
 	main.Files = []*syntax.Tree{main.Entry}
 	return sem.CheckWith(&sem.Module{
-		Packages:        append(testkit.LoadStd(t, "../../../std"), main),
+		Packages:        append(semfixture.LoadStd(t, "../../../std"), main),
 		BlockingProfile: profile,
 	}, schema.GenerateDerive)
 }

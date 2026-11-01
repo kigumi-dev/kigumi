@@ -102,7 +102,7 @@ var standaloneTry = map[string]bool{
 
 // A new try* function must come with its plain form (or be listed above), so the family stays uniform.
 func TestEveryTryFunctionHasAPlainForm(t *testing.T) {
-	res := sem.CheckWith(&sem.Module{Packages: testkit.LoadStd(t, "../../../std")}, schema.GenerateDerive)
+	res := sem.CheckWith(&sem.Module{Packages: semfixture.LoadStd(t, "../../../std")}, schema.GenerateDerive)
 	names := map[string]bool{}
 	var tries []string
 	for id := range res.Entities {
