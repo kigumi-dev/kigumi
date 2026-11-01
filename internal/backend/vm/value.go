@@ -184,4 +184,10 @@ func retain(v *obj) *obj {
 	return v
 }
 
-func setImmortal(v *obj) { atomic.StoreInt32(&v.rc, -1) }
+// An rcShared object is an immortal native shares too, so rt_copy returns it; an rcImmortal static is an ordinary object there.
+const (
+	rcImmortal int32 = -1
+	rcShared   int32 = -2
+)
+
+func setImmortal(v *obj) { atomic.StoreInt32(&v.rc, rcImmortal) }

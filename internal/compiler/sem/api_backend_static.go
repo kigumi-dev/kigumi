@@ -51,6 +51,38 @@ func (r *Result) DirectStatic(id EntityID) bool {
 	return info.Mut && info.Owner == StaticOwned && r.RegScalar(r.Entities[id].Type)
 }
 
+// ImmortalStatic reports a Kigumi-owned non-mut static whose value is a record of literals with no `mut` field at any
+// depth; nothing writes it in place, so the back ends keep it as one immortal that a copy shares.
+func (r *Result) ImmortalStatic(id EntityID) bool {
+	if r.Entities[id].Kind != EntStatic {
+		return false
+	}
+	if info := r.Static(id); info.Mut || info.Owner != StaticOwned {
+		return false
+	}
+	lit, ok := r.StaticValueOf(id)
+	return ok && r.fixedRecord(lit, r.Entities[id].Type)
+}
+
+func (r *Result) fixedRecord(lit Literal, typ TypeID) bool {
+	ent := r.Types.Node(typ).Ent
+	if lit.Kind != LitRecord || len(lit.Fields) == 0 || r.RecordWritable(ent) {
+		return false
+	}
+	for i, f := range r.typeDecl(ent).Fields {
+		switch fl := lit.Fields[i]; fl.Kind {
+		case LitRecord:
+			if !r.fixedRecord(fl, r.Entities[f].Type) {
+				return false
+			}
+		case LitInt, LitFloat, LitString, LitBool, LitChar:
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 // StaticSymbolOf resolves a static's external linkage spelling: the
 // `@linkName` override, or its source identifier.
 func (r *Result) StaticSymbolOf(id EntityID) string {

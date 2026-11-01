@@ -27,9 +27,11 @@ func liveDropped(tracked bool) {
 	}
 }
 
-func (m *Machine) immortalize(v *obj) {
+func (m *Machine) immortalize(v *obj) { m.pin(v, rcImmortal) }
+
+func (m *Machine) pin(v *obj, rc int32) {
 	if liveTrack.Load() && atomic.LoadInt32(&v.rc) > 0 {
 		liveDropped(v.live)
 	}
-	setImmortal(v)
+	atomic.StoreInt32(&v.rc, rc)
 }

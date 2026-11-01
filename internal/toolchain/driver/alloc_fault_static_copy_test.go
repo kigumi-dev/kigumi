@@ -89,14 +89,20 @@ fn main() {
 `,
 }
 
-// A copy of a static is a fresh object that costs what native's copy of its ordinary object costs;
-// the sweep is armed because native builds the static before main and the VM counts nothing there.
+// A copy of a static with a mut field allocates like native's copy of its ordinary object, one of a read-only
+// record of literals is native's shared immortal; armed, since native builds statics before main.
 func TestStaticCopyTickParityAgrees(t *testing.T) {
 	t.Parallel()
-	for name, src := range staticCopySources {
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			checkArmedTickParity(t, loadSweepModule(t, staticCopyHead+src, ""))
-		})
+	groups := []struct {
+		head    string
+		sources map[string]string
+	}{{staticCopyHead, staticCopySources}, {staticImmortalHead, staticImmortalSources}}
+	for _, g := range groups {
+		for name, src := range g.sources {
+			t.Run(name, func(t *testing.T) {
+				t.Parallel()
+				checkArmedTickParity(t, loadSweepModule(t, g.head+src, ""))
+			})
+		}
 	}
 }

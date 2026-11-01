@@ -7,7 +7,7 @@ import (
 	"kigumi/internal/compiler/sem"
 )
 
-// initGlobals materializes every owned/exported static as an immortal (rc -1) object; an extern static gets no VM storage.
+// initGlobals materializes every owned/exported static as an immortal, rcShared when native shares it too; an extern static gets no VM storage.
 func (m *Machine) initGlobals() {
 	for _, ent := range m.r.StaticEntities() {
 		if owner, _ := m.r.StaticOwnerOf(ent); owner == sem.StaticExtern {
@@ -18,21 +18,27 @@ func (m *Machine) initGlobals() {
 			continue
 		}
 		v := m.constant(&midir.Inst{Lit: lit, Type: m.r.Entity(ent).Type})
-		m.immortalizeDeep(v)
+		if m.r.ImmortalStatic(ent) {
+			m.pinDeep(v, rcShared)
+		} else {
+			m.immortalizeDeep(v)
+		}
 		m.sh.globals[ent] = v
 	}
 }
 
 // A static's whole tree outlives the run, so none of it counts as live.
-func (m *Machine) immortalizeDeep(v *obj) {
+func (m *Machine) immortalizeDeep(v *obj) { m.pinDeep(v, rcImmortal) }
+
+func (m *Machine) pinDeep(v *obj, rc int32) {
 	if v == nil || atomic.LoadInt32(&v.rc) < 0 {
 		return
 	}
-	m.immortalize(v)
+	m.pin(v, rc)
 	for _, f := range v.fields {
-		m.immortalizeDeep(f)
+		m.pinDeep(f, rc)
 	}
-	m.immortalizeDeep(v.inner)
+	m.pinDeep(v.inner, rc)
 }
 
 // The key set is fixed once the run starts, so only the slot a `static mut`

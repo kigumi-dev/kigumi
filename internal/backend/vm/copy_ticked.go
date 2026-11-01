@@ -1,6 +1,8 @@
 package vm
 
 import (
+	"sync/atomic"
+
 	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 )
@@ -14,11 +16,18 @@ type copier struct {
 
 func (m *Machine) copyTry(v *obj) (*obj, bool) { return copier{m, true}.value(v) }
 
+// A direct or inline destination is native's unboxed copy, never the shared immortal itself.
 func (m *Machine) copyShared(f *midir.Func, in *midir.Inst, ic *instCode, v *obj) *obj {
-	if m.opts.FaultInjectAt <= 0 || f.IsDirect(in.Dst) || ic.inlineCopy {
+	if f.IsDirect(in.Dst) || ic.inlineCopy {
 		return m.copy(v)
 	}
-	return m.copyPanicking(v)
+	if m.opts.FaultInjectAt > 0 {
+		return m.copyPanicking(v)
+	}
+	if v != nil && atomic.LoadInt32(&v.rc) == rcShared {
+		return v
+	}
+	return m.copy(v)
 }
 
 func (m *Machine) copyPanicking(v *obj) *obj {
@@ -69,9 +78,9 @@ func (m *Machine) ticks(n int) bool {
 	return false
 }
 
-// Unlike rt_copy, no immortal shortcut: an immortal aggregate here is a static, which native builds as an ordinary object.
+// Only an rcShared immortal is returned as is: any other immortal aggregate here is a static native copies.
 func (c copier) value(v *obj) (*obj, bool) {
-	if v == nil {
+	if v == nil || atomic.LoadInt32(&v.rc) == rcShared {
 		return v, true
 	}
 	m := c.m
