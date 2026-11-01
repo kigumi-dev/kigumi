@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"kigumi/internal/compiler/sem"
+	"kigumi/internal/lang/isr"
 )
 
 type ScalarBoxSource struct {
@@ -60,7 +60,7 @@ func (reg *StdOpRegistry) attach(op *StdOpEntry, word, value string) error {
 		}
 		op.Types = append(op.Types, NativeType{pkg, name})
 	case "isr":
-		c, err := sem.ParseIsrPermission(value)
+		c, err := isr.ParsePermission(value)
 		if err != nil {
 			return fmt.Errorf("op %s: isr: %w", op.Name, err)
 		}
@@ -76,7 +76,7 @@ func (reg *StdOpRegistry) attachGroup(g *BodilessGroup, word, value string) erro
 	case "prefix":
 		g.Prefixes = append(g.Prefixes, value)
 	case "isr":
-		c, err := sem.ParseIsrPermission(value)
+		c, err := isr.ParsePermission(value)
 		if err != nil {
 			return fmt.Errorf("bodiless %s: isr: %w", g.Name, err)
 		}

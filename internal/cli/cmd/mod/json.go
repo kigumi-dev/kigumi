@@ -64,6 +64,6 @@ func runJSON(io session.IO, opts options) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintln(io.Msg, string(data))
+	fmt.Fprintln(io.Out, string(data))
 	return nil
 }

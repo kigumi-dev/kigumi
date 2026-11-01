@@ -23,6 +23,6 @@ func runInit(io session.IO, opts options) error {
 	if err := module.WriteManifest(opts.root, name); err != nil {
 		return &exit.UsageError{Err: err}
 	}
-	fmt.Fprintf(io.Msg, "wrote %s\n", filepath.Join(opts.root, module.ManifestName))
+	fmt.Fprintf(io.Err, "wrote %s\n", filepath.Join(opts.root, module.ManifestName))
 	return nil
 }

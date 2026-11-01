@@ -20,7 +20,7 @@ func runList(io session.IO, opts options) error {
 	sort.Strings(versions)
 	want := modulePin()
 	if len(versions) == 0 {
-		fmt.Fprintln(io.Msg, "no zig versions installed")
+		fmt.Fprintln(io.Out, "no zig versions installed")
 	}
 	for _, v := range versions {
 		m, _ := store.ReadManifest(store.VersionDir(root, v))
@@ -28,11 +28,11 @@ func runList(io session.IO, opts options) error {
 		if want != "" && v == want {
 			mark = " (needed by this module)"
 		}
-		fmt.Fprintf(io.Msg, "%s  %s%s\n", v, m.Obtained, mark)
+		fmt.Fprintf(io.Out, "%s  %s%s\n", v, m.Obtained, mark)
 	}
 	if want != "" {
 		if _, ok := store.Installed(root, want); !ok {
-			fmt.Fprintf(io.Msg, "%s  not installed (this module's pin)\n", want)
+			fmt.Fprintf(io.Out, "%s  not installed (this module's pin)\n", want)
 		}
 	}
 	return nil

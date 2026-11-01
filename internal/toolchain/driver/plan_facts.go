@@ -105,11 +105,11 @@ func (c *planCache) artifactFacts(p *BuildProgram, a *buildgraph.Artifact, t bui
 	return f
 }
 
-func (f *planFacts) reasons(t buildconfig.Target) []mirreach.CapabilityReason {
+func (f *planFacts) reasons(t buildconfig.Target) []CapabilityReason {
 	if f == nil || f.reach == nil {
 		return nil
 	}
-	return f.reach.CapabilityReasons(f.res, capabilityPlatform(t))
+	return capabilityReasons(f.reach, f.res, t)
 }
 
 // analysisKey omits the artifact's name, which only labels diagnostics.

@@ -8,6 +8,7 @@ import (
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/devkit/semfixture"
+	"kigumi/internal/lang/isr"
 	"kigumi/internal/lang/token"
 	"kigumi/internal/toolchain/contract/schema"
 )
@@ -23,23 +24,23 @@ func checkIsr(t *testing.T, src string) *sem.Result {
 // checkIsrWithSource is checkIsr plus a bodiless Std package whose functions carry an inert contract, isolating a drop-only path.
 func checkIsrWithSource(t *testing.T, source, src string) *sem.Result {
 	t.Helper()
-	return checkIsrWith(t, source, src, isrTestContracts{inert: true}, sem.InterruptConfig{})
+	return checkIsrWith(t, source, src, isrTestContracts{inert: true}, isr.Config{})
 }
 
 // isrTestContracts trusts buflib's bodiless functions: inert when inert is set, else by the contracts map.
 type isrTestContracts struct {
 	inert     bool
-	contracts map[string]sem.IsrContract
+	contracts map[string]isr.Contract
 }
 
-func (c isrTestContracts) IsrContract(key string) (sem.IsrContract, bool) {
+func (c isrTestContracts) IsrContract(key string) (isr.Contract, bool) {
 	if !strings.HasPrefix(key, "buflib.") {
 		return opdef.IsrContracts.IsrContract(key)
 	}
 	if got, ok := c.contracts[key]; ok {
 		return got, true
 	}
-	return sem.IsrContract{Kind: sem.IsrInert}, c.inert
+	return isr.Contract{Kind: isr.Inert}, c.inert
 }
 
 func (c isrTestContracts) IsrKnown(id string) bool {
@@ -53,7 +54,7 @@ func (c isrTestContracts) IsrKnown(id string) bool {
 
 func (isrTestContracts) IsrVersion() string { return "test" }
 
-func checkIsrWith(t *testing.T, source, src string, contracts sem.IsrContracts, cfg sem.InterruptConfig) *sem.Result {
+func checkIsrWith(t *testing.T, source, src string, contracts sem.IsrContracts, cfg isr.Config) *sem.Result {
 	t.Helper()
 	lib := &sem.Package{Path: "buflib", Std: true}
 	lib.Entry = syntax.Parse(token.NewFile("buflib/buflib.kg", []byte(source)))
@@ -962,7 +963,7 @@ export(interrupt) {
     }
 }
 `
-	res := checkIsrWith(t, lib, src, isrTestContracts{}, sem.InterruptConfig{})
+	res := checkIsrWith(t, lib, src, isrTestContracts{}, isr.Config{})
 	if out := res.Render(); !strings.Contains(out, "E1082") || !strings.Contains(out, "calls `raw_op`, which has no body the compiler can check and no reviewed interrupt contract") {
 		t.Fatalf("a bodiless noalloc callee without a contract must be rejected:\n%s", out)
 	}
@@ -982,7 +983,7 @@ export(interrupt) {
         raw_op()
     }
 }
-`, isrTestContracts{}, sem.InterruptConfig{})
+`, isrTestContracts{}, isr.Config{})
 	if out := res.Render(); !strings.Contains(out, "E1082") {
 		t.Fatalf("`pure noalloc` alone is no interrupt contract either:\n%s", out)
 	}

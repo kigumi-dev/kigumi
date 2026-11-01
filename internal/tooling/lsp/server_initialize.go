@@ -3,7 +3,7 @@ package lsp
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	stderrors "errors"
 
 	"go.lsp.dev/protocol"
 
@@ -13,7 +13,7 @@ import (
 
 func (s *Server) Initialize(ctx context.Context, p *protocol.InitializeParams) (*protocol.InitializeResult, error) {
 	if s.compiler.Cwd == "" {
-		return nil, errors.New("lsp: CompilerOptions.Cwd is required; build the server with WithPackageCache")
+		return nil, stderrors.New("lsp: CompilerOptions.Cwd is required; build the server with WithPackageCache")
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()

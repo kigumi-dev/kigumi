@@ -27,7 +27,7 @@ func runInstall(io session.IO, opts options) error {
 		return installFromSource(io, root, want, opts.source)
 	}
 	if _, ok := store.Installed(root, want); ok && opts.baseURL == "" {
-		fmt.Fprintf(io.Msg, "zig %s already installed\n", want)
+		fmt.Fprintf(io.Err, "zig %s already installed\n", want)
 		return nil
 	}
 	m, err := fetch.InstallRelease(fetch.Options{IndexURL: opts.baseURL, StoreRoot: root, Version: want, Stderr: io.Err, Lookup: session.CompilerOptions().ToolLookup()})
@@ -37,7 +37,7 @@ func runInstall(io session.IO, opts options) error {
 		}
 		return errors.WrapErrf(err, "install zig %s", want)
 	}
-	fmt.Fprintf(io.Msg, "zig %s installed (%s %s)\n", m.Version, m.OS, m.Arch)
+	fmt.Fprintf(io.Err, "zig %s installed (%s %s)\n", m.Version, m.OS, m.Arch)
 	return nil
 }
 
@@ -75,7 +75,7 @@ func installFromSource(io session.IO, root, want, sourceArg string) error {
 	if err != nil {
 		return errors.WrapErrf(err, "build zig %s from source", want)
 	}
-	fmt.Fprintf(io.Msg, "zig %s built from source (commit %s%s)\n", m.Version, short(m.Commit), dirtySuffix(m.Dirty))
+	fmt.Fprintf(io.Err, "zig %s built from source (commit %s%s)\n", m.Version, short(m.Commit), dirtySuffix(m.Dirty))
 	return nil
 }
 

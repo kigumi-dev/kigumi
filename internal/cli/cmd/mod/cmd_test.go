@@ -17,8 +17,8 @@ func TestModCommands(t *testing.T) {
 	os.WriteFile(filepath.Join(lib, "lib.kg"), []byte("pub fn one() -> Int {\n    1\n}\n"), 0o644)
 	app := filepath.Join(root, "app")
 	os.MkdirAll(app, 0o755)
-	if code, out, _ := clitest.Execute(t, "mod", "init", "-C", app, "github.com/acme/app"); code != 0 || !strings.Contains(out, "mod.kg") {
-		t.Fatalf("init: exit %d %q", code, out)
+	if code, _, errOut := clitest.Execute(t, "mod", "init", "-C", app, "github.com/acme/app"); code != 0 || !strings.Contains(errOut, "mod.kg") {
+		t.Fatalf("init: exit %d %q", code, errOut)
 	}
 	if code, _, _ := clitest.Execute(t, "mod", "init", "-C", app); code != 2 {
 		t.Fatalf("second init should be a usage error, exit %d", code)
@@ -43,7 +43,7 @@ func TestModCommands(t *testing.T) {
 		t.Fatalf("local override: %v\n%s", err, local)
 	}
 	os.WriteFile(filepath.Join(app, "main.kg"), []byte("import {one} from github.com/acme/lib\nprint \"${one()}\"\n"), 0o644)
-	if code, out, errOut := clitest.Execute(t, "mod", "tidy", "-C", app); code != 0 || !strings.Contains(out, "removed github.com/acme/unused") {
+	if code, out, errOut := clitest.Execute(t, "mod", "tidy", "-C", app); code != 0 || !strings.Contains(errOut, "removed github.com/acme/unused") {
 		t.Fatalf("tidy: exit %d %q %q", code, out, errOut)
 	}
 	if code, out, _ := clitest.Execute(t, "mod", "json", "-C", app); code != 0 || !strings.Contains(out, "\"local\"") || !strings.Contains(out, "acme/lib") {

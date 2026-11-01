@@ -8,23 +8,23 @@ import (
 )
 
 type CapabilityReason struct {
-	Capability string `json:"capability"`
+	Capability string
 	// Op is the std op that draws on Capability; empty when RequiredBy implies it.
-	Op         string `json:"op,omitempty"`
-	RequiredBy string `json:"requiredBy,omitempty"`
+	Op         string
+	RequiredBy string
 	// RootKind and Path describe the first reaching site, Sites[0].
-	RootKind string           `json:"rootKind"`
-	Path     []string         `json:"path"`
-	Sites    []CapabilitySite `json:"sites"`
-	Provided bool             `json:"provided"`
-	Why      string           `json:"why,omitempty"`
+	RootKind string
+	Path     []string
+	Sites    []CapabilitySite
+	Provided bool
+	Why      string
 }
 
 // CapabilitySite is one function that reaches the op, with how many of its call sites do.
 type CapabilitySite struct {
-	RootKind string   `json:"rootKind"`
-	Path     []string `json:"path"`
-	Calls    int      `json:"calls"`
+	RootKind string
+	Path     []string
+	Calls    int
 }
 
 func (cr CapabilityReason) Root() string {

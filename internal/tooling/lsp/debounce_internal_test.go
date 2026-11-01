@@ -2,7 +2,7 @@ package lsp
 
 import (
 	"context"
-	"errors"
+	stderrors "errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -200,7 +200,7 @@ func TestSlowAnalysisIsCancelledByTheNextEdit(t *testing.T) {
 	releasedAt := time.Now()
 	close(release)
 
-	if err := <-checkedCh; !errors.Is(err, context.Canceled) {
+	if err := <-checkedCh; !stderrors.Is(err, context.Canceled) {
 		t.Fatalf("the superseded analysis should be cancelled, not run to completion: %v", err)
 	}
 	if stop := time.Since(releasedAt); stop > full {

@@ -8,8 +8,12 @@ import (
 	"path/filepath"
 
 	buildconfig "kigumi/internal/toolchain/config"
-	"kigumi/internal/toolchain/module"
 )
+
+// Library is the part of a module's Link record that names a library file: Name as in -lName, Search tried first.
+type Library struct {
+	Name, Search string
+}
 
 // LinkIdentity is what a Link record actually resolved to on this host,
 // kept separate from the descriptor the module tree hash already covers.
@@ -50,20 +54,20 @@ func IsHostTarget(o buildconfig.CompilerOptions, t buildconfig.Target) bool {
 	return t.Triple == "" && (t.OS == "" || t.OS == h.OS) && (t.Arch == "" || t.Arch == h.Arch)
 }
 
-// ResolveLinkIdentity locates and digests the actual library file a
-// Link{library: ...} names; ok is false when nothing on t's search list resolves it.
-func ResolveLinkIdentity(o buildconfig.CompilerOptions, l module.Link, t buildconfig.Target) (LinkIdentity, bool) {
-	id := LinkIdentity{Library: l.Library}
-	if l.Library == "" || !IsHostTarget(o, t) {
+// ResolveLinkIdentity locates and digests the actual library file lib
+// names; ok is false when nothing on t's search list resolves it.
+func ResolveLinkIdentity(o buildconfig.CompilerOptions, lib Library, t buildconfig.Target) (LinkIdentity, bool) {
+	id := LinkIdentity{Library: lib.Name}
+	if lib.Name == "" || !IsHostTarget(o, t) {
 		return id, false
 	}
 	hostOS := o.HostOrAmbient().OS
 	dirs := defaultLibraryDirs(hostOS)
-	if l.Search != "" {
-		dirs = append([]string{l.Search}, dirs...)
+	if lib.Search != "" {
+		dirs = append([]string{lib.Search}, dirs...)
 	}
 	for _, dir := range dirs {
-		for _, name := range candidateLibraryNames(hostOS, l.Library) {
+		for _, name := range candidateLibraryNames(hostOS, lib.Name) {
 			p := filepath.Join(dir, name)
 			digest, err := digestFile(p)
 			if err != nil {

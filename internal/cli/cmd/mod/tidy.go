@@ -31,7 +31,7 @@ func runTidy(io session.IO, opts options) error {
 		}
 	}
 	if len(unused) == 0 {
-		fmt.Fprintln(io.Msg, "nothing to remove")
+		fmt.Fprintln(io.Err, "nothing to remove")
 		return nil
 	}
 	lock, err := module.ReadLock(opts.root)
@@ -51,7 +51,7 @@ func runTidy(io session.IO, opts options) error {
 		return errors.WrapErr(err, "write lock")
 	}
 	for name := range unused {
-		fmt.Fprintf(io.Msg, "removed %s\n", name)
+		fmt.Fprintf(io.Err, "removed %s\n", name)
 	}
 	return nil
 }

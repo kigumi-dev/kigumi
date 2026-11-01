@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"kigumi/internal/compiler/sem"
 	"kigumi/internal/lang/diag"
+	"kigumi/internal/lang/isr"
 	"kigumi/internal/lang/token"
 )
 
@@ -62,7 +62,7 @@ type ModFile struct {
 	ZigSpan  token.Span
 	Embedder []string
 	// Interrupt is the interrupt configuration of `Interrupt` records; the root module's is the limit, a dependency's only narrows its own handlers.
-	Interrupt sem.InterruptConfig
+	Interrupt isr.Config
 }
 
 // NativeSource is a `Source { c }` or `Source { asm }` record: a C or assembly

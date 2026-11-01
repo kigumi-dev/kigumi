@@ -16,8 +16,10 @@ type AllocClaim struct {
 }
 
 // A body the summary calls `noalloc`, declared or inferred, must not box; `pure` allows allocation.
-func CheckAllocClaims(p *mir.Program, reached map[sem.EntityID]bool) []AllocClaim {
-	return (&claims{Program: p}).allocClaims(reached)
+// The lend demotion runs first because it settles the summaries the claims read.
+func CheckAllocClaims(p *mir.Program) []AllocClaim {
+	c := &claims{Program: p}
+	return c.allocClaims(c.demoteBoxedLends())
 }
 
 func (p *claims) allocClaims(reached map[sem.EntityID]bool) []AllocClaim {

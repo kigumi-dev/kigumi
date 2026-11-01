@@ -26,7 +26,7 @@ func TestGetRefusesOptionLikeURL(t *testing.T) {
 		os.MkdirAll(app, 0o755)
 		req := "Require {\n    name: \"example.com/evil\"\n    version: \"v1.0.0\"\n    url: \"" + evil + "\"\n}\n"
 		os.WriteFile(filepath.Join(app, "mod.kg"), clitest.Manifest("app", req), 0o644)
-		code, errOut := clitest.ExecuteReal(t, "get", app)
+		code, _, errOut := clitest.Execute(t, "get", app)
 		if code == 0 || !strings.Contains(errOut, "refusing repository url") || !strings.Contains(errOut, evil) {
 			t.Errorf("%q: exit %d, stderr %q", evil, code, errOut)
 		}
@@ -49,7 +49,7 @@ func TestGetRefusesOptionLikeURLFromDependency(t *testing.T) {
 	app := filepath.Join(root, "app")
 	os.MkdirAll(app, 0o755)
 	os.WriteFile(filepath.Join(app, "mod.kg"), clitest.Manifest("app", requireBlock("example.com/mid", "v1.0.0", mid)), 0o644)
-	code, errOut := clitest.ExecuteReal(t, "get", app)
+	code, _, errOut := clitest.Execute(t, "get", app)
 	if code == 0 || !strings.Contains(errOut, evil) {
 		t.Fatalf("exit %d, stderr %q", code, errOut)
 	}
@@ -76,7 +76,7 @@ func TestGetRefusesSymlinkedSubdir(t *testing.T) {
 	os.MkdirAll(app, 0o755)
 	req := "Require {\n    name: \"example.com/repo/sub/inner\"\n    version: \"v1.0.0\"\n    url: \"file://" + repo + "\"\n}\n"
 	os.WriteFile(filepath.Join(app, "mod.kg"), clitest.Manifest("app", req), 0o644)
-	code, errOut := clitest.ExecuteReal(t, "get", app)
+	code, _, errOut := clitest.Execute(t, "get", app)
 	if code == 0 || !strings.Contains(errOut, "example.com/repo/sub/inner") || !strings.Contains(errOut, "outside") {
 		t.Fatalf("exit %d, stderr %q", code, errOut)
 	}
@@ -120,10 +120,10 @@ func TestLockRecordsUrlAndBuildChecksIt(t *testing.T) {
 		t.Fatalf("run with a matching lock: %s", errOut)
 	}
 	req(fork)
-	if code, errOut := clitest.ExecuteReal(t, "get", app); code == 0 || !strings.Contains(errOut, "lock recorded") {
+	if code, _, errOut := clitest.Execute(t, "get", app); code == 0 || !strings.Contains(errOut, "lock recorded") {
 		t.Fatalf("get with a changed url: exit %d, %s", code, errOut)
 	}
-	if code, errOut := clitest.ExecuteReal(t, "--std", std, "run", app); code == 0 || !strings.Contains(errOut, "locked") {
+	if code, _, errOut := clitest.Execute(t, "--std", std, "run", app); code == 0 || !strings.Contains(errOut, "locked") {
 		t.Fatalf("run with a changed url: exit %d, %s", code, errOut)
 	}
 	if code, _, errOut := clitest.Execute(t, "get", "-u", app); code != 0 {

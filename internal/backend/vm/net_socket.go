@@ -1,12 +1,12 @@
 package vm
 
 import (
-	"kigumi/internal/backend/vm/host/net"
+	hostnet "kigumi/internal/backend/vm/host/net"
 	"kigumi/internal/compiler/sem"
 )
 
 // std/net's Conn/Listener bodies reach the host through extern(C) socket
-// calls the VM cannot make; these are their Go counterparts, built on net's raw-fd implementation.
+// calls the VM cannot make; these are their Go counterparts, built on hostnet's raw-fd sockets.
 func (m *Machine) registerNet() {
 	h := m.host
 	fdOf := func(v *obj) int { return int(deref(deref(v).fields[0]).i) }
@@ -28,17 +28,17 @@ func (m *Machine) registerNet() {
 			return m.ok(connRecord(fn, fd))
 		}
 	}
-	h["net.Net.connect"] = dialOrListen(net.Dial)
-	h["net.Net.listen"] = dialOrListen(net.Listen)
+	h["net.Net.connect"] = dialOrListen(hostnet.Dial)
+	h["net.Net.listen"] = dialOrListen(hostnet.Listen)
 	h["net.Listener.accept"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		fd, err := net.Accept(fdOf(a[0]))
+		fd, err := hostnet.Accept(fdOf(a[0]))
 		if err != nil {
 			return m.errMsg(err.Error())
 		}
 		return m.ok(connRecord(fn, fd))
 	}
 	h["net.Listener.port"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		return mkInt(int64(net.Port(fdOf(a[0]))), m.numKind(sem.TyI64))
+		return mkInt(int64(hostnet.Port(fdOf(a[0]))), m.numKind(sem.TyI64))
 	}
 	h["net.Conn.read"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		max := deref(a[2]).i
@@ -46,7 +46,7 @@ func (m *Machine) registerNet() {
 			return m.errMsg("out of memory")
 		}
 		buf := make([]byte, max)
-		got, err := net.Read(fdOf(a[0]), buf)
+		got, err := hostnet.Read(fdOf(a[0]), buf)
 		if err != nil {
 			return m.errMsg(err.Error())
 		}
@@ -57,7 +57,7 @@ func (m *Machine) registerNet() {
 		return m.ok(mkInt(int64(got), m.numKind(sem.TyUsize)))
 	}
 	h["net.Conn.write"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		sent, err := net.Write(fdOf(a[0]), deref(a[1]).str())
+		sent, err := hostnet.Write(fdOf(a[0]), deref(a[1]).str())
 		if err != nil {
 			return m.errMsg(err.Error())
 		}
@@ -78,7 +78,7 @@ func (m *Machine) registerNet() {
 func releaseSocket(v *obj) {
 	r := deref(v)
 	if fd := deref(r.fields[0]); fd.i >= 0 {
-		net.Close(int(fd.i))
+		hostnet.Close(int(fd.i))
 		rewriteInt(r, 0, -1)
 	}
 }

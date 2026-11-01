@@ -4,8 +4,8 @@ import (
 	"slices"
 	"strings"
 
-	"kigumi/internal/compiler/sem"
 	"kigumi/internal/lang/diag"
+	"kigumi/internal/lang/isr"
 )
 
 // addInterrupt reads one provisional `Interrupt { handler, allow }` record: without `handler` it is the
@@ -19,11 +19,11 @@ func (mf *ModFile) addInterrupt(r Record) []diag.Diagnostic {
 		if strings.TrimSpace(text) == "" {
 			continue
 		}
-		c, err := sem.ParseIsrPermission(text)
+		c, err := isr.ParsePermission(text)
 		if err != nil {
 			return errf("Interrupt allow: " + err.Error())
 		}
-		if c.Kind == sem.IsrInert {
+		if c.Kind == isr.Inert {
 			return errf("Interrupt allow names MMIO or synchronization operations; ordinary computation needs no permission")
 		}
 		allow = append(allow, c.ID)

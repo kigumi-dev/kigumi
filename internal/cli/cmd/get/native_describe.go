@@ -3,25 +3,28 @@ package get
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 
+	"kigumi/internal/cli/session"
 	"kigumi/internal/toolchain/module"
 )
 
-// printNativeChanges reports every added or removed Source/Link per dependency, and the lock diff as JSON when asked.
-func printNativeChanges(w io.Writer, changes []nativeChange, asJSON bool) {
-	if len(changes) == 0 {
-		return
+// printNativeChanges reports every added or removed Source/Link per dependency; asJSON leaves stdout to the JSON diff alone.
+func printNativeChanges(out session.IO, changes []nativeChange, asJSON bool) {
+	w := out.Out
+	if asJSON {
+		w = out.Err
 	}
-	fmt.Fprintln(w, "native changes:")
+	if len(changes) > 0 {
+		fmt.Fprintln(w, "native changes:")
+	}
 	for _, c := range changes {
 		for _, line := range c.Lines {
 			fmt.Fprintf(w, "  %s: %s\n", c.Module, line)
 		}
 	}
 	if asJSON {
-		b, _ := json.MarshalIndent(changes, "", "  ")
-		fmt.Fprintln(w, string(b))
+		b, _ := json.MarshalIndent(append([]nativeChange{}, changes...), "", "  ")
+		fmt.Fprintln(out.Out, string(b))
 	}
 }
 

@@ -43,8 +43,8 @@ func run(io session.IO, opts options) error {
 	if opts.outDir == "" {
 		sort.Strings(paths)
 		for _, p := range paths {
-			fmt.Fprint(io.Msg, pages[p])
-			fmt.Fprintln(io.Msg)
+			fmt.Fprint(io.Out, pages[p])
+			fmt.Fprintln(io.Out)
 		}
 		return nil
 	}

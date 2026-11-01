@@ -34,13 +34,13 @@ func TestGet(t *testing.T) {
 	if code, _, _ := clitest.Execute(t, "--std", std, "run", app); code == 0 {
 		t.Fatal("run before get should fail")
 	}
-	if code, out, errOut := clitest.Execute(t, "get", app); code != 0 || !strings.Contains(out, "fetched") {
+	if code, out, errOut := clitest.Execute(t, "get", app); code != 0 || !strings.Contains(errOut, "fetched") {
 		t.Fatalf("get: exit %d out %q err %q", code, out, errOut)
 	}
 	if code, out, errOut := clitest.Execute(t, "--std", std, "run", app); code != 0 || out != "hello, deps\n" {
 		t.Fatalf("run after get: exit %d out %q err %q", code, out, errOut)
 	}
-	if code, out, _ := clitest.Execute(t, "get", app); code != 0 || strings.Contains(out, "fetched") {
-		t.Fatalf("second get should reuse the cache: %q", out)
+	if code, _, errOut := clitest.Execute(t, "get", app); code != 0 || strings.Contains(errOut, "fetched") {
+		t.Fatalf("second get should reuse the cache: %q", errOut)
 	}
 }

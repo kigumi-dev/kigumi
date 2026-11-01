@@ -38,7 +38,7 @@ func TestZigInstallListRemove(t *testing.T) {
 	seedZigStore(t, home, "9.4.1")
 
 	code, out, errOut := clitest.Execute(t, "zig", "install", "9.4.1", "--zig-home", home)
-	if code != 0 || !strings.Contains(out, "9.4.1") {
+	if code != 0 || !strings.Contains(errOut, "9.4.1 already installed") {
 		t.Fatalf("install: code=%d out=%q err=%q", code, out, errOut)
 	}
 
@@ -160,8 +160,8 @@ func TestZigInstallFromSource(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("install --source: %s%s", out, errOut)
 	}
-	if !strings.Contains(out, "built from source") {
-		t.Fatalf("install --source output = %q", out)
+	if !strings.Contains(errOut, "built from source") {
+		t.Fatalf("install --source output = %q", errOut)
 	}
 
 	code, out, errOut = clitest.Execute(t, "zig", "list", "--zig-home", home)
@@ -175,7 +175,7 @@ func TestZigInstallFromSourceRejectsWrongVersion(t *testing.T) {
 	checkout := localGitCheckout(t)
 	home := t.TempDir()
 
-	code, errOut := clitest.ExecuteReal(t, "zig", "install", "0.18.0-dev.2+other", "--source", checkout, "--zig-home", home)
+	code, _, errOut := clitest.Execute(t, "zig", "install", "0.18.0-dev.2+other", "--source", checkout, "--zig-home", home)
 	if code == 0 || !strings.Contains(errOut, "E1565") {
 		t.Fatalf("want E1565 (source build unverified), code=%d err=%q", code, errOut)
 	}

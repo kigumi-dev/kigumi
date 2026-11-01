@@ -1,7 +1,7 @@
 package sem_test
 
 import (
-	"math/rand"
+	mathrand "math/rand"
 	"slices"
 	"strings"
 	"testing"
@@ -31,7 +31,7 @@ func TestRootBridgeDeclarationOrder(t *testing.T) {
 			}
 			orders := [][]int{reverse(len(blocks)), rotate(len(blocks), 7)}
 			for seed := int64(1); seed <= 4; seed++ {
-				orders = append(orders, rand.New(rand.NewSource(seed)).Perm(len(blocks)))
+				orders = append(orders, mathrand.New(mathrand.NewSource(seed)).Perm(len(blocks)))
 			}
 			for _, order := range orders {
 				permuted := make([]string, len(blocks))

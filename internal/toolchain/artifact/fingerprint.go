@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 
-	mirreach "kigumi/internal/compiler/mir/reach"
 	"kigumi/internal/toolchain/contract/schema"
 )
 
@@ -26,9 +25,9 @@ type Fingerprint struct {
 	// RuntimeAbi adds the runtime flag set (thread profile, unwind, capabilities, user -D); empty where no build ran, as in a plan.
 	RuntimeAbi string `json:"runtimeAbi,omitempty"`
 	// FingerprintMismatch never compares DeriveProvenance, CapabilityProvision or CapabilityReasons.
-	DeriveProvenance    []schema.GeneratedArtifact  `json:"deriveProvenance,omitempty"`
-	CapabilityProvision []CapabilityVerdict         `json:"capabilityProvision,omitempty"`
-	CapabilityReasons   []mirreach.CapabilityReason `json:"capabilityReasons,omitempty"`
+	DeriveProvenance    []schema.GeneratedArtifact `json:"deriveProvenance,omitempty"`
+	CapabilityProvision []CapabilityVerdict        `json:"capabilityProvision,omitempty"`
+	CapabilityReasons   []CapabilityReason         `json:"capabilityReasons,omitempty"`
 }
 
 type CapabilityVerdict struct {

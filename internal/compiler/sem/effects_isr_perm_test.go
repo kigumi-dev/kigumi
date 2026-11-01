@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/sem"
+	"kigumi/internal/lang/isr"
 )
 
 const (
@@ -12,11 +13,11 @@ const (
 	isrAck    = "mmio uart.ack"
 )
 
-var isrDeviceContracts = isrTestContracts{contracts: map[string]sem.IsrContract{
-	"buflib.notify": {Kind: sem.IsrSync, ID: isrNotify},
-	"buflib.ack":    {Kind: sem.IsrMMIO, ID: isrAck},
-	"buflib.quiet":  {Kind: sem.IsrInert},
-	"buflib.port":   {Kind: sem.IsrInert},
+var isrDeviceContracts = isrTestContracts{contracts: map[string]isr.Contract{
+	"buflib.notify": {Kind: isr.Sync, ID: isrNotify},
+	"buflib.ack":    {Kind: isr.MMIO, ID: isrAck},
+	"buflib.quiet":  {Kind: isr.Inert},
+	"buflib.port":   {Kind: isr.Inert},
 }}
 
 const isrDeviceLib = `
@@ -56,7 +57,7 @@ export(interrupt) {
 `
 
 func TestInterruptPermissionPerHandler(t *testing.T) {
-	cfg := sem.InterruptConfig{Root: []string{isrNotify}, Handlers: map[string][]string{"main.timer": nil}}
+	cfg := isr.Config{Root: []string{isrNotify}, Handlers: map[string][]string{"main.timer": nil}}
 	res := checkIsrWith(t, isrDeviceLib, isrTwoHandlers, isrDeviceContracts, cfg)
 	out := res.Render()
 	if strings.Contains(out, "handler `uart`") {
@@ -70,7 +71,7 @@ func TestInterruptPermissionPerHandler(t *testing.T) {
 }
 
 func TestInterruptPermissionKeepsFacts(t *testing.T) {
-	res := checkIsrWith(t, isrDeviceLib, isrTwoHandlers, isrDeviceContracts, sem.InterruptConfig{Root: []string{isrNotify}})
+	res := checkIsrWith(t, isrDeviceLib, isrTwoHandlers, isrDeviceContracts, isr.Config{Root: []string{isrNotify}})
 	if res.HasErrors() {
 		t.Fatalf("both handlers inherit the permitted sync:\n%s", res.Render())
 	}
@@ -85,14 +86,14 @@ func TestInterruptPermissionKeepsFacts(t *testing.T) {
 }
 
 func TestInterruptPermissionRootLimit(t *testing.T) {
-	cfg := sem.InterruptConfig{Handlers: map[string][]string{"main.uart": {isrNotify}, "main.gone": nil}}
+	cfg := isr.Config{Handlers: map[string][]string{"main.uart": {isrNotify}, "main.gone": nil}}
 	out := checkIsrWith(t, isrDeviceLib, isrTwoHandlers, isrDeviceContracts, cfg).Render()
 	for _, want := range []string{"E1091", "the `Interrupt` record for handler `main.uart` names `" + isrNotify + "`, which is outside the root limit", "E1092", "names handler `main.gone`", "handler `uart` reaches `" + isrNotify + "`"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("a handler record must not widen the root limit (missing %q):\n%s", want, out)
 		}
 	}
-	cfg = sem.InterruptConfig{Root: []string{"sync queue.notify width=64 impl=cas"}}
+	cfg = isr.Config{Root: []string{"sync queue.notify width=64 impl=cas"}}
 	out = checkIsrWith(t, isrDeviceLib, isrTwoHandlers, isrDeviceContracts, cfg).Render()
 	for _, want := range []string{"E1091", "matches no reviewed contract", "E1088"} {
 		if !strings.Contains(out, want) {
@@ -103,8 +104,8 @@ func TestInterruptPermissionRootLimit(t *testing.T) {
 
 func TestInterruptPermissionNearMiss(t *testing.T) {
 	contracts := isrDeviceContracts
-	contracts.contracts = map[string]sem.IsrContract{"buflib.notify": {Kind: sem.IsrSync, ID: isrNotify}, "buflib.quiet": {Kind: sem.IsrInert}, "buflib.wide": {Kind: sem.IsrSync, ID: "sync queue.notify width=64 impl=cas"}}
-	cfg := sem.InterruptConfig{Root: []string{"sync queue.notify width=64 impl=cas"}}
+	contracts.contracts = map[string]isr.Contract{"buflib.notify": {Kind: isr.Sync, ID: isrNotify}, "buflib.quiet": {Kind: isr.Inert}, "buflib.wide": {Kind: isr.Sync, ID: "sync queue.notify width=64 impl=cas"}}
+	cfg := isr.Config{Root: []string{"sync queue.notify width=64 impl=cas"}}
 	out := checkIsrWith(t, isrDeviceLib, isrTwoHandlers, contracts, cfg).Render()
 	if !strings.Contains(out, "permits `sync queue.notify width=64 impl=cas`, which differs in width, implementation or nesting condition") {
 		t.Fatalf("a width mismatch must be rejected with the near miss shown:\n%s", out)
@@ -122,13 +123,13 @@ export(interrupt) {
     }
 }
 `
-	out := checkIsrWith(t, isrDeviceLib, src, isrDeviceContracts, sem.InterruptConfig{}).Render()
+	out := checkIsrWith(t, isrDeviceLib, src, isrDeviceContracts, isr.Config{}).Render()
 	for _, want := range []string{"E1088", "reaches `" + isrAck + "`", "drops `Port`", "calls `drop`", "calls `ack`, which performs `" + isrAck + "`"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("a drop doing unpermitted MMIO must be rejected with its path (missing %q):\n%s", want, out)
 		}
 	}
-	if res := checkIsrWith(t, isrDeviceLib, src, isrDeviceContracts, sem.InterruptConfig{Root: []string{isrAck}}); res.HasErrors() {
+	if res := checkIsrWith(t, isrDeviceLib, src, isrDeviceContracts, isr.Config{Root: []string{isrAck}}); res.HasErrors() {
 		t.Fatalf("a drop doing permitted MMIO must pass:\n%s", res.Render())
 	}
 }
@@ -147,7 +148,7 @@ export(interrupt) {
     }
 }
 `
-	out := checkIsrWith(t, isrDeviceLib, src, isrDeviceContracts, sem.InterruptConfig{}).Render()
+	out := checkIsrWith(t, isrDeviceLib, src, isrDeviceContracts, isr.Config{}).Render()
 	if !strings.Contains(out, "export(interrupt) handler `tick`") {
 		t.Fatalf("a callback reaching unpermitted sync must not pass:\n%s", out)
 	}

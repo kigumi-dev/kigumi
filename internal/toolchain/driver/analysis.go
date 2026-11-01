@@ -125,10 +125,8 @@ func buildProgram(res *sem.Result, o progOptions) (*mir.Program, error) {
 	return prog, nil
 }
 
-// claimDiags runs the lend demotion first because the claim check reads sem after it.
 func claimDiags(prog *mir.Program) []mirverify.AllocClaim {
-	reached := mir.DemoteBoxedLends(prog)
-	return append(mirverify.CheckAllocClaims(prog, reached), mirverify.CheckInterruptLowering(prog)...)
+	return append(mirverify.CheckAllocClaims(prog), mirverify.CheckInterruptLowering(prog)...)
 }
 
 func nativeBoxSites(t buildconfig.Target) func(*mir.Program) mir.NativeBoxSites {

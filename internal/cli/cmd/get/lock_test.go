@@ -88,7 +88,7 @@ func TestGetAdd(t *testing.T) {
 	os.MkdirAll(app, 0o755)
 	os.WriteFile(filepath.Join(app, "mod.kg"), clitest.Manifest("app", ""), 0o644)
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
-	if code, out, errOut := clitest.Execute(t, "get", "github.com/kigumilang/exp/web", "--url", "file://"+repo, app); code != 0 || !strings.Contains(out, "added github.com/kigumilang/exp/web v0.3.0") {
+	if code, out, errOut := clitest.Execute(t, "get", "github.com/kigumilang/exp/web", "--url", "file://"+repo, app); code != 0 || !strings.Contains(errOut, "added github.com/kigumilang/exp/web v0.3.0") {
 		t.Fatalf("get add: exit %d %q %q", code, out, errOut)
 	}
 	mf, _ := os.ReadFile(filepath.Join(app, "mod.kg"))

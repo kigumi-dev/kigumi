@@ -7,6 +7,7 @@ import (
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/devkit/semfixture"
+	"kigumi/internal/lang/isr"
 	"kigumi/internal/lang/token"
 	"kigumi/internal/toolchain/contract/schema"
 )
@@ -24,7 +25,7 @@ export(interrupt) {
 }
 `
 
-func checkIsrDeps(t *testing.T, root sem.InterruptConfig, deps ...sem.DepInterrupt) *sem.Result {
+func checkIsrDeps(t *testing.T, root isr.Config, deps ...sem.DepInterrupt) *sem.Result {
 	t.Helper()
 	pkg := func(path, module, src string, std bool) *sem.Package {
 		p := &sem.Package{Path: path, Module: module, Std: std}
@@ -37,11 +38,11 @@ func checkIsrDeps(t *testing.T, root sem.InterruptConfig, deps ...sem.DepInterru
 }
 
 func depRecord(handlers map[string][]string) sem.DepInterrupt {
-	return sem.DepInterrupt{Module: "deplib", Config: sem.InterruptConfig{Handlers: handlers}}
+	return sem.DepInterrupt{Module: "deplib", Config: isr.Config{Handlers: handlers}}
 }
 
 func TestInterruptDependencyNarrowsItsHandler(t *testing.T) {
-	root := sem.InterruptConfig{Root: []string{isrAck, isrNotify}}
+	root := isr.Config{Root: []string{isrAck, isrNotify}}
 	if out := checkIsrDeps(t, root).Render(); strings.Contains(out, "E10") {
 		t.Fatalf("both handlers use the root common configuration:\n%s", out)
 	}
@@ -58,7 +59,7 @@ func TestInterruptDependencyNarrowsItsHandler(t *testing.T) {
 }
 
 func TestInterruptDependencyCannotWidenRoot(t *testing.T) {
-	root := sem.InterruptConfig{Root: []string{isrNotify}}
+	root := isr.Config{Root: []string{isrNotify}}
 	out := checkIsrDeps(t, root, depRecord(map[string][]string{"deplib.uart": {isrAck}})).Render()
 	for _, want := range []string{"E1091", "the `Interrupt` record of dependency `deplib` for handler `deplib.uart` names `" + isrAck + "`, which is outside the root limit", "E1088", "handler `uart` reaches `" + isrAck + "`"} {
 		if !strings.Contains(out, want) {
@@ -72,7 +73,7 @@ func TestInterruptDependencyCannotWidenRoot(t *testing.T) {
 }
 
 func TestInterruptDependencyRootRecordCannotLoosen(t *testing.T) {
-	root := sem.InterruptConfig{Root: []string{isrAck, isrNotify}, Handlers: map[string][]string{"deplib.uart": {isrAck, isrNotify}}}
+	root := isr.Config{Root: []string{isrAck, isrNotify}, Handlers: map[string][]string{"deplib.uart": {isrAck, isrNotify}}}
 	out := checkIsrDeps(t, root, depRecord(map[string][]string{"deplib.uart": {isrNotify}})).Render()
 	if !strings.Contains(out, "E1088") || !strings.Contains(out, "handler `uart` reaches `"+isrAck+"`") {
 		t.Fatalf("the root's handler record must not widen what the dependency's record narrowed:\n%s", out)
@@ -80,8 +81,8 @@ func TestInterruptDependencyRootRecordCannotLoosen(t *testing.T) {
 }
 
 func TestInterruptDependencyRecordShape(t *testing.T) {
-	root := sem.InterruptConfig{Root: []string{isrAck, isrNotify}}
-	common := sem.DepInterrupt{Module: "deplib", Config: sem.InterruptConfig{Root: []string{isrAck}}}
+	root := isr.Config{Root: []string{isrAck, isrNotify}}
+	common := sem.DepInterrupt{Module: "deplib", Config: isr.Config{Root: []string{isrAck}}}
 	out := checkIsrDeps(t, root, common).Render()
 	if strings.Contains(out, "E2141") || strings.Contains(out, "error") {
 		t.Fatalf("a dependency's common record is its own root limit and must not affect the consumer:\n%s", out)
@@ -97,11 +98,11 @@ func TestInterruptDependencyRecordShape(t *testing.T) {
 }
 
 func TestInterruptConfigWithoutMatchingHandler(t *testing.T) {
-	out := checkIsrWith(t, "", "", isrDeviceContracts, sem.InterruptConfig{Root: []string{"mmio nope.op"}}).Render()
+	out := checkIsrWith(t, "", "", isrDeviceContracts, isr.Config{Root: []string{"mmio nope.op"}}).Render()
 	if !strings.Contains(out, "E1091") || !strings.Contains(out, "the root `Interrupt` record names `mmio nope.op`, which matches no reviewed contract") {
 		t.Fatalf("a root permission matching no contract must be reported even with no handler:\n%s", out)
 	}
-	cfg := sem.InterruptConfig{Handlers: map[string][]string{"main.gone": {"mmio nope.op", isrNotify}}}
+	cfg := isr.Config{Handlers: map[string][]string{"main.gone": {"mmio nope.op", isrNotify}}}
 	out = checkIsrWith(t, isrDeviceLib, "", isrDeviceContracts, cfg).Render()
 	for _, want := range []string{"E1091", "the `Interrupt` record for handler `main.gone` names `mmio nope.op`, which matches no reviewed contract", "names `" + isrNotify + "`, which is outside the root limit", "E1092", "names handler `main.gone`"} {
 		if !strings.Contains(out, want) {

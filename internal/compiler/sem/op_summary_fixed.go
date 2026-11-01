@@ -1,5 +1,7 @@
 package sem
 
+import "kigumi/internal/lang/isr"
+
 // opFixedSummary is OpSummary's analogue of fixedSummary: a bodiless function with a reviewed contract
 // takes the contract's facts; any other one is Untrusted, its declared `noalloc` clearing only FactAlloc.
 func (r *Result) opFixedSummary(id EntityID) (OpSummary, bool) {
@@ -41,13 +43,13 @@ func (r *Result) opFixedSummary(id EntityID) (OpSummary, bool) {
 	return s, true
 }
 
-func contractSummary(c IsrContract) OpSummary {
+func contractSummary(c isr.Contract) OpSummary {
 	s := OpSummary{Known: true}
 	switch c.Kind {
-	case IsrSync:
+	case isr.Sync:
 		s.Facts[FactSync] = OpFactState{Maybe: true, Contract: true}
 		s.Contracts = c.ID
-	case IsrMMIO:
+	case isr.MMIO:
 		s.Facts[FactIO] = OpFactState{Maybe: true, Contract: true}
 		s.Contracts = c.ID
 	}

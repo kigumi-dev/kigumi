@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"kigumi/internal/compiler/sem"
+	"kigumi/internal/lang/isr"
 )
 
 //go:embed stdops.reg
@@ -28,8 +28,8 @@ type StdOpEntry struct {
 	// Callback is the argument index of a closure the op calls, -1 for none.
 	Callback  int
 	ScalarBox *ScalarBoxSource
-	// Isr is the reviewed interrupt contract (`isr` line); IsrNone when the op has none.
-	Isr sem.IsrContract
+	// Isr is the reviewed interrupt contract (`isr` line); isr.None when the op has none.
+	Isr isr.Contract
 	// Retired keeps the id taken after the std function gained a Kigumi body; nothing resolves to it.
 	Retired bool
 }
@@ -39,7 +39,7 @@ type BodilessGroup struct {
 	Name     string
 	Keys     []string
 	Prefixes []string
-	Isr      sem.IsrContract
+	Isr      isr.Contract
 }
 
 // StdOpRegistry is the parsed registry: ops in id order, plus the builtins and the bodiless groups.

@@ -17,6 +17,6 @@ func runAdd(io session.IO, opts options) error {
 	if err := module.AppendRequire(opts.root, r); err != nil {
 		return &exit.UsageError{Err: err}
 	}
-	fmt.Fprintf(io.Msg, "added %s %s; run `kigumi get` to fetch it\n", r.Name, r.Version)
+	fmt.Fprintf(io.Err, "added %s %s; run `kigumi get` to fetch it\n", r.Name, r.Version)
 	return nil
 }

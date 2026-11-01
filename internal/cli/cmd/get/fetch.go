@@ -52,7 +52,7 @@ func (f *fetcher) module(mf module.ModFile) error {
 			return errors.WrapErr(err, "resolve dependency")
 		}
 		if _, replaced := f.local.Replaces[r.Name]; replaced {
-			fmt.Fprintf(f.io.Msg, "%s %s: %s (replace)\n", r.Name, r.Version, dir)
+			fmt.Fprintf(f.io.Err, "%s %s: %s (replace)\n", r.Name, r.Version, dir)
 		} else if err := f.cached(r, dir, missing); err != nil {
 			return err
 		}
@@ -72,14 +72,14 @@ func (f *fetcher) native(name string, mf module.ModFile) {
 	}
 	for _, l := range mf.Links {
 		if l.Library != "" {
-			fmt.Fprintf(f.io.Msg, "  %s links -l%s\n", name, l.Library)
+			fmt.Fprintf(f.io.Err, "  %s links -l%s\n", name, l.Library)
 		}
 		if l.Search != "" {
-			fmt.Fprintf(f.io.Msg, "  %s adds search path %s\n", name, l.Search)
+			fmt.Fprintf(f.io.Err, "  %s adds search path %s\n", name, l.Search)
 		}
 	}
 	for _, s := range mf.Sources {
-		fmt.Fprintf(f.io.Msg, "  %s compiles %s\n", name, s.Path)
+		fmt.Fprintf(f.io.Err, "  %s compiles %s\n", name, s.Path)
 	}
 }
 
@@ -103,22 +103,22 @@ func (f *fetcher) cached(r module.Require, dir string, missing bool) error {
 			os.RemoveAll(dir)
 			return errors.NewErrf("%s %s now points at %s but the lock recorded %s; run `kigumi get -u` to accept the new commit", r.Name, r.Version, short(commit), short(prev.Commit))
 		}
-		fmt.Fprintf(f.io.Msg, "%s %s: fetched into %s\n", r.Name, r.Version, dir)
+		fmt.Fprintf(f.io.Err, "%s %s: fetched into %s\n", r.Name, r.Version, dir)
 	} else if f.update && locked && !module.IsCommitHash(r.Version) {
 		remote, err := f.git.RemoteTagCommit(r)
 		if err != nil {
 			return errors.WrapErrf(err, "%s %s: check the remote tag", r.Name, r.Version)
 		}
 		if module.TagCommit(remote) == module.NormalizeCommit(prev.Commit) {
-			fmt.Fprintf(f.io.Msg, "%s %s: %s (up to date)\n", r.Name, r.Version, dir)
+			fmt.Fprintf(f.io.Err, "%s %s: %s (up to date)\n", r.Name, r.Version, dir)
 		} else if newCommit, err := f.git.Refetch(r, dir); err != nil {
 			return err
 		} else {
-			fmt.Fprintf(f.io.Msg, "%s %s: moved from %s to %s; refetched into %s\n", r.Name, r.Version, short(prev.Commit), short(newCommit), dir)
+			fmt.Fprintf(f.io.Err, "%s %s: moved from %s to %s; refetched into %s\n", r.Name, r.Version, short(prev.Commit), short(newCommit), dir)
 			missing = true
 		}
 	} else {
-		fmt.Fprintf(f.io.Msg, "%s %s: %s\n", r.Name, r.Version, dir)
+		fmt.Fprintf(f.io.Err, "%s %s: %s\n", r.Name, r.Version, dir)
 	}
 	hash, err := module.TreeHash(dir)
 	if err != nil {

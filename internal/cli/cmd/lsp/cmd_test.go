@@ -23,7 +23,7 @@ func TestHelp(t *testing.T) {
 }
 
 func TestInvalidTarget(t *testing.T) {
-	code, errOut := clitest.ExecuteReal(t, "lsp", "--target", "bogus-x")
+	code, _, errOut := clitest.Execute(t, "lsp", "--target", "bogus-x")
 	if code != 1 {
 		t.Fatalf("exit %d, stderr %q", code, errOut)
 	}
@@ -42,9 +42,9 @@ func TestSession(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	stdin, stdout := os.Stdin, os.Stdout
-	os.Stdin, os.Stdout = inR, outW
-	defer func() { os.Stdin, os.Stdout = stdin, stdout }()
+	stdin := os.Stdin
+	os.Stdin = inR
+	defer func() { os.Stdin = stdin }()
 	var replies []string
 	collected := make(chan struct{})
 	go func() {
@@ -60,10 +60,10 @@ func TestSession(t *testing.T) {
 		inW.Close()
 		io.Copy(io.Discard, r)
 	}()
-	code, _, errOut := clitest.Execute(t, "--std", std, "lsp")
+	code, errOut := clitest.ExecuteOn(t, outW, "--std", std, "lsp")
 	outW.Close()
 	<-collected
-	os.Stdin, os.Stdout = stdin, stdout
+	os.Stdin = stdin
 	if code != 0 || errOut != "" {
 		t.Fatalf("exit %d, stderr %q", code, errOut)
 	}

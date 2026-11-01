@@ -4,7 +4,6 @@ import (
 	"io"
 
 	"kigumi/internal/backend/llgen"
-	mirreach "kigumi/internal/compiler/mir/reach"
 	"kigumi/internal/toolchain/artifact"
 	buildconfig "kigumi/internal/toolchain/config"
 )
@@ -38,7 +37,7 @@ func emitOptionsFor(t buildconfig.Target) llgen.EmitOptions {
 
 type compiled struct {
 	llgen.Output
-	Reasons []mirreach.CapabilityReason
+	Reasons []CapabilityReason
 	// Abi is the runtime fingerprint bound into the IR; empty until withRuntimeABI runs.
 	Abi string
 }
@@ -63,7 +62,7 @@ func compile(m *Module, stderr io.Writer, t buildconfig.Target, opts llgen.EmitO
 	io.WriteString(stderr, a.Res.RenderTaskPanicWarning())
 	opts.Reachable = reach
 	m.stats.Emit++
-	return compiled{Output: llgen.EmitProgram(a.Prog, opts), Reasons: reach.CapabilityReasons(a.Res, capabilityPlatform(t))}, true, nil
+	return compiled{Output: llgen.EmitProgram(a.Prog, opts), Reasons: capabilityReasons(reach, a.Res, t)}, true, nil
 }
 
 // BuildOptions selects the target; the zero value builds for the host.

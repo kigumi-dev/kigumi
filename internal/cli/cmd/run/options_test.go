@@ -17,11 +17,11 @@ func TestRunFlagAfterEntryFile(t *testing.T) {
 	file := filepath.Join(dir, "main.kg")
 	os.WriteFile(file, []byte("print \"ok\"\n"), 0o644)
 
-	code, errOut := clitest.ExecuteReal(t, "--std", std, "run", "--target", "bogus-triple-xyz", file)
+	code, _, errOut := clitest.Execute(t, "--std", std, "run", "--target", "bogus-triple-xyz", file)
 	if code != 2 {
 		t.Fatalf("--target before the entry file: exit %d, stderr %q", code, errOut)
 	}
-	code, errOut = clitest.ExecuteReal(t, "--std", std, "run", file, "--target", "bogus-triple-xyz")
+	code, _, errOut = clitest.Execute(t, "--std", std, "run", file, "--target", "bogus-triple-xyz")
 	if code != 2 || !strings.Contains(errOut, "--target") {
 		t.Fatalf("--target after the entry file: exit %d, stderr %q", code, errOut)
 	}

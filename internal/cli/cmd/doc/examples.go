@@ -30,7 +30,7 @@ func runExamples(io session.IO, opts examplesOptions) error {
 		return nil
 	}
 	if opts.outDir == "" {
-		fmt.Fprint(io.Msg, md)
+		fmt.Fprint(io.Out, md)
 		return nil
 	}
 	return docgen.Publish(opts.outDir, map[string][]byte{"examples.md": []byte(strings.TrimSpace(md) + "\n")}, docgen.ValidateMarkdownSite)

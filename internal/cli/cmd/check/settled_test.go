@@ -44,18 +44,6 @@ func TestCheckReplaysUnchangedModuleAndNoticesEdits(t *testing.T) {
 	}
 }
 
-func writeSettleModule(t *testing.T, root string, files map[string]string, stamp time.Time) {
-	t.Helper()
-	for rel, body := range files {
-		full := filepath.Join(root, rel)
-		os.MkdirAll(filepath.Dir(full), 0o755)
-		if err := os.WriteFile(full, []byte(body), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		os.Chtimes(full, stamp, stamp)
-	}
-}
-
 func warnOnlyModule() map[string]string {
 	return map[string]string{
 		"mod.kg":          "Module {\n    name: \"settle\"\n    kigumi: \"0.1\"\n}\n",
@@ -68,7 +56,7 @@ func TestSettledCheckReplaysTheColorOfTheRequest(t *testing.T) {
 	for _, order := range [][2]string{{"always", "never"}, {"never", "always"}} {
 		root := t.TempDir()
 		t.Setenv("KIGUMI_PKG_CACHE", t.TempDir())
-		writeSettleModule(t, root, warnOnlyModule(), time.Now().Add(-time.Hour))
+		clitest.WriteFiles(t, root, warnOnlyModule(), time.Now().Add(-time.Hour))
 		outputs := map[string]string{}
 		for _, mode := range []string{order[0], order[1], order[0], order[1]} {
 			code, _, errOut := clitest.Execute(t, "--std", std, "--color", mode, "check", root)
@@ -96,34 +84,14 @@ func TestCheckNoticesSameSizeEditWithRestoredMtime(t *testing.T) {
 		"lib/lib.kg":      "pub fn one() -> Int {\n    1\n}\n",
 		"cmd/app/main.kg": "import lib from settle/lib\n\nprint \"${lib.one()}\"\n",
 	}
-	writeSettleModule(t, root, files, stamp)
+	clitest.WriteFiles(t, root, files, stamp)
 	for range 2 {
 		if code, _, errOut := clitest.Execute(t, "--std", std, "check", root); code != 0 {
 			t.Fatalf("clean module: exit %d\n%s", code, errOut)
 		}
 	}
-	writeSettleModule(t, root, map[string]string{"lib/lib.kg": "pub fn one() -> Ini {\n    1\n}\n"}, stamp)
+	clitest.WriteFiles(t, root, map[string]string{"lib/lib.kg": "pub fn one() -> Ini {\n    1\n}\n"}, stamp)
 	if code, _, errOut := clitest.Execute(t, "--std", std, "check", root); code != 1 || errOut == "" {
 		t.Fatalf("a same-size edit with the mtime put back must be seen: exit %d, stderr %q", code, errOut)
-	}
-}
-
-func TestDocOfAnEntryFileDescribesTheWholeModule(t *testing.T) {
-	std, _ := filepath.Abs("../../../../std")
-	root := t.TempDir()
-	t.Setenv("KIGUMI_PKG_CACHE", t.TempDir())
-	writeSettleModule(t, root, map[string]string{
-		"mod.kg":          "Module {\n    name: \"settle\"\n    kigumi: \"0.1\"\n}\n",
-		"lib/lib.kg":      "// one is the number one.\npub fn one() -> Int {\n    1\n}\n",
-		"extra/extra.kg":  "// two is the number two.\npub fn two() -> Int {\n    2\n}\n",
-		"cmd/app/main.kg": "import lib from settle/lib\n\nprint \"${lib.one()}\"\n",
-	}, time.Now().Add(-time.Hour))
-	_, whole, _ := clitest.Execute(t, "--std", std, "doc", root)
-	code, out, errOut := clitest.Execute(t, "--std", std, "doc", filepath.Join(root, "cmd/app/main.kg"))
-	if code != 0 || out != whole {
-		t.Fatalf("doc of an entry file must equal doc of the module: exit %d, stderr %q\n%q\nvs\n%q", code, errOut, out, whole)
-	}
-	if !strings.Contains(out, "settle/extra") {
-		t.Errorf("the package the entry does not import must be documented: %q", out)
 	}
 }

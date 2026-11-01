@@ -25,17 +25,17 @@ func runVerify(io session.IO, opts options) error {
 		}
 		if _, err := os.Stat(dir); err != nil {
 			bad++
-			fmt.Fprintf(io.Msg, "%s %s: not fetched\n", name, e.Version)
+			fmt.Fprintf(io.Out, "%s %s: not fetched\n", name, e.Version)
 			continue
 		}
 		if !module.CacheReady(dir) {
 			bad++
-			fmt.Fprintf(io.Msg, "%s %s: incomplete cache entry in %s (missing origin marker or manifest)\n", name, e.Version, dir)
+			fmt.Fprintf(io.Out, "%s %s: incomplete cache entry in %s (missing origin marker or manifest)\n", name, e.Version, dir)
 			continue
 		}
 		if err := module.CheckCacheTree(dir); err != nil {
 			bad++
-			fmt.Fprintf(io.Msg, "%s %s: %s\n", name, e.Version, err)
+			fmt.Fprintf(io.Out, "%s %s: %s\n", name, e.Version, err)
 			continue
 		}
 		hash, err := module.TreeHash(dir)
@@ -43,10 +43,10 @@ func runVerify(io session.IO, opts options) error {
 			return errors.WrapErr(err, "hash dependency")
 		}
 		if hash == e.Hash {
-			fmt.Fprintf(io.Msg, "%s %s: ok\n", name, e.Version)
+			fmt.Fprintf(io.Out, "%s %s: ok\n", name, e.Version)
 		} else {
 			bad++
-			fmt.Fprintf(io.Msg, "%s %s: MISMATCH in %s\n", name, e.Version, dir)
+			fmt.Fprintf(io.Out, "%s %s: MISMATCH in %s\n", name, e.Version, dir)
 		}
 	}
 	if bad > 0 {

@@ -69,7 +69,7 @@ func (t *target) add(io session.IO, git vcs.Git, spec, url string) error {
 	if err != nil {
 		return &exit.UsageError{Err: err}
 	}
-	fmt.Fprintf(io.Msg, "added %s %s\n", r.Name, r.Version)
+	fmt.Fprintf(io.Err, "added %s %s\n", r.Name, r.Version)
 	t.manifest.Requires = append(t.manifest.Requires, r)
 	return nil
 }
@@ -97,7 +97,7 @@ func (t *target) fetch(io session.IO, git vcs.Git, opts options) error {
 	if err := f.module(t.manifest); err != nil {
 		return err
 	}
-	printNativeChanges(io.Msg, diffNative(before, f.after), opts.diffJSON)
+	printNativeChanges(io, diffNative(before, f.after), opts.diffJSON)
 	if t.lockPath == "" {
 		return nil
 	}

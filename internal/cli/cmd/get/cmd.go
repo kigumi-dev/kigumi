@@ -17,6 +17,6 @@ func New() *cobra.Command {
 	cmd.Flags().BoolP("update", "u", false, "accept a tag that moved since the lock file was written")
 	cmd.Flags().Bool("lock", false, "for a script, write <script>.lock.kg next to it")
 	cmd.Flags().String("url", "", "clone URL of the module being added, when it cannot be derived from its name")
-	cmd.Flags().Bool("diff-json", false, "also print the native consent diff (added/removed Source and Link declarations) as JSON")
+	cmd.Flags().Bool("diff-json", false, "print the native consent diff (added/removed Source and Link declarations) as JSON on stdout, moving the summary lines to stderr")
 	return cmd
 }

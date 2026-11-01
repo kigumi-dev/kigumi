@@ -17,7 +17,7 @@ func TestModAddRejectsInvalidVersionImmediately(t *testing.T) {
 	if code, _, _ := clitest.Execute(t, "mod", "init", "-C", app, "github.com/acme/app"); code != 0 {
 		t.Fatal("init failed")
 	}
-	if code, errOut := clitest.ExecuteReal(t, "mod", "add", "-C", app, "github.com/acme/dep", "not-semver"); code == 0 {
+	if code, _, errOut := clitest.Execute(t, "mod", "add", "-C", app, "github.com/acme/dep", "not-semver"); code == 0 {
 		t.Fatal("an invalid version must be refused by `mod add`, not accepted and left for `mod json` to catch")
 	} else if !strings.Contains(errOut, "not-semver") {
 		t.Fatalf("error should name the bad version, got %q", errOut)
@@ -76,7 +76,7 @@ func TestModTidyRemovesLocalReplace(t *testing.T) {
 		t.Fatalf("replace: %s", errOut)
 	}
 	os.WriteFile(filepath.Join(app, "main.kg"), []byte("print \"hi\"\n"), 0o644)
-	if code, out, errOut := clitest.Execute(t, "mod", "tidy", "-C", app); code != 0 || !strings.Contains(out, "removed github.com/acme/unused") {
+	if code, out, errOut := clitest.Execute(t, "mod", "tidy", "-C", app); code != 0 || !strings.Contains(errOut, "removed github.com/acme/unused") {
 		t.Fatalf("tidy: exit %d %q %q", code, out, errOut)
 	}
 	local, err := os.ReadFile(filepath.Join(app, "mod.local.kg"))

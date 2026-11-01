@@ -3,7 +3,7 @@ package vm
 import (
 	"go/ast"
 	"go/parser"
-	"go/token"
+	gotoken "go/token"
 	"slices"
 	"strconv"
 	"testing"
@@ -12,7 +12,7 @@ import (
 )
 
 func TestBuiltinCasesMatchTheRegistry(t *testing.T) {
-	file, err := parser.ParseFile(token.NewFileSet(), "builtins.go", nil, 0)
+	file, err := parser.ParseFile(gotoken.NewFileSet(), "builtins.go", nil, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

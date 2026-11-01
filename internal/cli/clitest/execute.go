@@ -2,9 +2,8 @@
 package clitest
 
 import (
-	"bytes"
-	"io"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"kigumi/internal/cli"
@@ -13,31 +12,47 @@ import (
 
 func init() { os.Setenv("KIGUMI_VERIFY", "all") }
 
-// Execute runs the root command on args and returns its exit code, stdout and stderr.
+// Execute runs the root command on args as main does and returns its exit code and what it wrote to os.Stdout and os.Stderr.
 func Execute(t *testing.T, args ...string) (int, string, string) {
 	t.Helper()
-	root := cli.New()
-	var out, errOut bytes.Buffer
-	root.SetOut(&out)
-	root.SetErr(&errOut)
-	root.SetArgs(args)
-	code := exit.Execute(root, cli.Debug(root))
-	return code, out.String(), errOut.String()
+	out := tempFile(t, "stdout")
+	code, errOut := ExecuteOn(t, out, args...)
+	return code, readFile(t, out), errOut
 }
 
-// ExecuteReal is Execute that also returns what exit.Execute writes to os.Stderr directly, past the command's writer.
-func ExecuteReal(t *testing.T, args ...string) (int, string) {
+// ExecuteOn is Execute with os.Stdout bound to out, for a test that reads the output while the command runs.
+func ExecuteOn(t *testing.T, out *os.File, args ...string) (int, string) {
 	t.Helper()
-	r, w, err := os.Pipe()
+	errFile := tempFile(t, "stderr")
+	root := cli.New()
+	root.SetArgs(args)
+	code := withStdio(out, errFile, func() int { return exit.Execute(root, cli.Debug(root)) })
+	return code, readFile(t, errFile)
+}
+
+// withStdio swaps the process streams rather than calling SetOut, which would also redirect cobra's stderr fallback.
+func withStdio(out, err *os.File, run func() int) int {
+	realOut, realErr := os.Stdout, os.Stderr
+	os.Stdout, os.Stderr = out, err
+	defer func() { os.Stdout, os.Stderr = realOut, realErr }()
+	return run()
+}
+
+func tempFile(t *testing.T, name string) *os.File {
+	t.Helper()
+	f, err := os.Create(filepath.Join(t.TempDir(), name))
 	if err != nil {
 		t.Fatal(err)
 	}
-	real := os.Stderr
-	os.Stderr = w
-	code, _, errOut := Execute(t, args...)
-	os.Stderr = real
-	w.Close()
-	var buf bytes.Buffer
-	io.Copy(&buf, r)
-	return code, errOut + buf.String()
+	t.Cleanup(func() { f.Close() })
+	return f
+}
+
+func readFile(t *testing.T, f *os.File) string {
+	t.Helper()
+	b, err := os.ReadFile(f.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
 }

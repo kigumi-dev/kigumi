@@ -1,6 +1,7 @@
 package get_test
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,20 +34,21 @@ func TestGetNativeConsentDiff(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("get: %s%s", out, errOut)
 	}
-	if !strings.Contains(out, "native changes:") || !strings.Contains(out, "greet: new dependency, trusted for the first time") || !strings.Contains(out, "+Link library=m") {
-		t.Fatalf("missing the first-fetch native consent summary: %s", out)
+	if !strings.Contains(errOut, "native changes:") || !strings.Contains(errOut, "greet: new dependency, trusted for the first time") || !strings.Contains(errOut, "+Link library=m") {
+		t.Fatalf("missing the first-fetch native consent summary: %s", errOut)
 	}
-	if !strings.Contains(out, "\"module\": \"greet\"") || !strings.Contains(out, "\"library\": \"m\"") {
-		t.Fatalf("missing the JSON diff: %s", out)
+	diff := parseDiff(t, out)
+	if len(diff) != 1 || diff[0].Module != "greet" || diff[0].Before != nil || diff[0].After == nil || len(diff[0].After.Links) != 1 || diff[0].After.Links[0].Library != "m" {
+		t.Fatalf("JSON diff %+v, want greet adding library m", diff)
 	}
 
-	// A second `get` with nothing to fetch reports no native changes.
-	code, out, errOut = clitest.Execute(t, "get", app)
+	// A second `get` with nothing to fetch reports no native changes, and --diff-json an empty diff.
+	code, out, errOut = clitest.Execute(t, "get", "--diff-json", app)
 	if code != 0 {
 		t.Fatalf("get (no-op): %s%s", out, errOut)
 	}
-	if strings.Contains(out, "native changes:") {
-		t.Fatalf("an unchanged dependency tree should report no native changes: %s", out)
+	if diff := parseDiff(t, out); diff == nil || len(diff) != 0 || strings.Contains(errOut, "native changes:") {
+		t.Fatalf("an unchanged dependency tree should report an empty diff: stdout %q stderr %q", out, errOut)
 	}
 
 	// Bump to a version with a Source: the old v1.0.0 cache entry stays as the diff's "before".
@@ -67,4 +69,20 @@ func TestGetNativeConsentDiff(t *testing.T) {
 	if strings.Contains(out, "greet: +Link") {
 		t.Fatalf("the unchanged Link must not show as added again: %s", out)
 	}
+}
+
+type diffEntry struct {
+	Module        string
+	Before, After *struct{ Links []struct{ Library string } }
+}
+
+// parseDiff fails unless stdout is exactly one JSON document.
+func parseDiff(t *testing.T, stdout string) []diffEntry {
+	t.Helper()
+	var diff []diffEntry
+	dec := json.NewDecoder(strings.NewReader(stdout))
+	if err := dec.Decode(&diff); err != nil || dec.More() {
+		t.Fatalf("stdout is not one JSON document (%v): %q", err, stdout)
+	}
+	return diff
 }

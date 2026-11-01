@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/sem"
+	"kigumi/internal/lang/isr"
 )
 
 var IsrContracts sem.IsrContracts = registryIsr{Registry}
@@ -13,14 +14,14 @@ var IsrContracts sem.IsrContracts = registryIsr{Registry}
 type registryIsr struct{ reg *StdOpRegistry }
 
 // IsrContract resolves key the way StdOpFor does, then through the bodiless groups; an op without an `isr` line has none.
-func (r registryIsr) IsrContract(key string) (sem.IsrContract, bool) {
+func (r registryIsr) IsrContract(key string) (isr.Contract, bool) {
 	key = strings.TrimPrefix(key, "std/")
 	if id, ok := StdOpFor(key); ok && int(id) < len(r.reg.Ops) {
 		c := r.reg.Ops[id].Isr
-		return c, c.Kind != sem.IsrNone
+		return c, c.Kind != isr.None
 	}
 	for _, g := range r.reg.Bodiless {
-		if g.Isr.Kind == sem.IsrNone {
+		if g.Isr.Kind == isr.None {
 			continue
 		}
 		for _, k := range g.Keys {
@@ -34,7 +35,7 @@ func (r registryIsr) IsrContract(key string) (sem.IsrContract, bool) {
 			}
 		}
 	}
-	return sem.IsrContract{}, false
+	return isr.Contract{}, false
 }
 
 func (r registryIsr) IsrKnown(id string) bool {

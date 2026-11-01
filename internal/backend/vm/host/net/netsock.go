@@ -6,14 +6,14 @@ package net
 
 import (
 	"fmt"
-	"net"
+	stdnet "net"
 	"strconv"
 	"syscall"
 )
 
 // Dial resolves host:port over IPv4 and returns a connected socket's fd.
 func Dial(host string, port int64) (int, error) {
-	addr, err := net.ResolveTCPAddr("tcp4", net.JoinHostPort(host, strconv.FormatInt(port, 10)))
+	addr, err := stdnet.ResolveTCPAddr("tcp4", stdnet.JoinHostPort(host, strconv.FormatInt(port, 10)))
 	if err != nil {
 		return -1, err
 	}
@@ -40,9 +40,9 @@ func Listen(host string, port int64) (int, error) {
 	if host == "" {
 		host = "0.0.0.0"
 	}
-	ip := net.ParseIP(host)
+	ip := stdnet.ParseIP(host)
 	if ip == nil {
-		addr, err := net.ResolveIPAddr("ip4", host)
+		addr, err := stdnet.ResolveIPAddr("ip4", host)
 		if err != nil {
 			return -1, err
 		}

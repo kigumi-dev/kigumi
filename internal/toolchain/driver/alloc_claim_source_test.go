@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/compiler/mir"
 	mirverify "kigumi/internal/compiler/mir/verify"
 	"kigumi/internal/toolchain/driver"
 )
@@ -91,7 +90,7 @@ func TestAForgedNoallocSummaryReachesE1770FromSource(t *testing.T) {
 		info := a.Res.Fn(mainFn(t, a.Res, name))
 		info.Summary.Noalloc, info.Summary.Known = true, true
 	}
-	got := strings.Join(claimCodes(mirverify.CheckAllocClaims(a.Prog, mir.DemoteBoxedLends(a.Prog))), "\n")
+	got := strings.Join(claimCodes(mirverify.CheckAllocClaims(a.Prog)), "\n")
 	for _, want := range []string{"E1770 `keep` is inferred `noalloc`", "E1770 `throughValue` is inferred `noalloc`", "E1843 `throughValue` is inferred `noalloc`"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("no %q among the claims:\n%s", want, got)

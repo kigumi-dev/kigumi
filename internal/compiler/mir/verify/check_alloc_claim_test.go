@@ -54,7 +54,7 @@ func TestAllocClaimsReportABoxInAnInferredNoallocBody(t *testing.T) {
 	if err := mirverify.Program(p); err != nil && strings.Contains(err.Error(), "alloc-claim") {
 		t.Fatalf("a box in an inferred body is a diagnostic, not a verifier fault: %v", err)
 	}
-	claims := mirverify.CheckAllocClaims(p, mir.DemoteBoxedLends(p))
+	claims := mirverify.CheckAllocClaims(p)
 	if len(claims) != 1 || claims[0].Diag.Code != "E1770" || !strings.Contains(claims[0].Diag.Msg, "`peek` is inferred `noalloc`") {
 		t.Fatalf("want one E1770 for peek, got %+v", claims)
 	}
@@ -63,7 +63,7 @@ func TestAllocClaimsReportABoxInAnInferredNoallocBody(t *testing.T) {
 func TestAllocClaimsKeepTheDeclaredCode(t *testing.T) {
 	p := mirfixture.Planned(t, inferredNoallocSrc)
 	withBox(t, p, "main.declared")
-	claims := mirverify.CheckAllocClaims(p, mir.DemoteBoxedLends(p))
+	claims := mirverify.CheckAllocClaims(p)
 	if len(claims) != 1 || claims[0].Diag.Code != "E1570" {
 		t.Fatalf("want one E1570 for declared, got %+v", claims)
 	}
@@ -84,7 +84,7 @@ fn grow(p: Point) -> Array[Point] {
 
 fn main() -> Void! {}
 `)
-	if claims := mirverify.CheckAllocClaims(p, mir.DemoteBoxedLends(p)); len(claims) != 0 {
+	if claims := mirverify.CheckAllocClaims(p); len(claims) != 0 {
 		t.Fatalf("a body without a noalloc summary may box: %+v", claims)
 	}
 }

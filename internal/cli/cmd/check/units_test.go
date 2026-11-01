@@ -26,7 +26,7 @@ func TestCheckUnitsPrintTheWholeCheckOutput(t *testing.T) {
 		root := t.TempDir()
 		var out []string
 		for _, lib := range libs {
-			writeSettleModule(t, root, map[string]string{"mod.kg": mod, "lib/lib.kg": lib, "mid/mid.kg": mid, "cmd/app/main.kg": app}, time.Now().Add(-time.Hour))
+			clitest.WriteFiles(t, root, map[string]string{"mod.kg": mod, "lib/lib.kg": lib, "mid/mid.kg": mid, "cmd/app/main.kg": app}, time.Now().Add(-time.Hour))
 			code, _, errOut := clitest.Execute(t, "--std", std, "check", root)
 			out = append(out, errOut+string(rune('0'+code)))
 		}

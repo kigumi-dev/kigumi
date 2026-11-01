@@ -68,14 +68,14 @@ func TestMissingEntryFile(t *testing.T) {
 	missing := filepath.Join(dir, "does_not_exist.kg")
 
 	for _, sub := range []string{"check", "test", "doc"} {
-		code, errOut := clitest.ExecuteReal(t, "--std", std, sub, missing)
+		code, _, errOut := clitest.Execute(t, "--std", std, sub, missing)
 		if code != 1 || !strings.Contains(errOut, "no such file") {
 			t.Errorf("%s on missing entry file: exit %d, stderr %q", sub, code, errOut)
 		}
 	}
 
 	out := filepath.Join(dir, "a.out")
-	code, errOut := clitest.ExecuteReal(t, "--std", std, "build", "-o", out, missing)
+	code, _, errOut := clitest.Execute(t, "--std", std, "build", "-o", out, missing)
 	if code != 1 || !strings.Contains(errOut, "no such file") {
 		t.Errorf("build on missing entry file: exit %d, stderr %q", code, errOut)
 	}
@@ -83,7 +83,7 @@ func TestMissingEntryFile(t *testing.T) {
 		t.Error("build on missing entry file wrote an output binary")
 	}
 
-	code, errOut = clitest.ExecuteReal(t, "--std", std, "run", missing)
+	code, _, errOut = clitest.Execute(t, "--std", std, "run", missing)
 	if code != 1 || !strings.Contains(errOut, "no such file") {
 		t.Errorf("run on missing entry file: exit %d, stderr %q", code, errOut)
 	}

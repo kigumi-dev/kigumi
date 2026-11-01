@@ -14,6 +14,6 @@ func newGit(io session.IO) vcs.Git {
 		Look:   session.CompilerOptions().LookTool,
 		Env:    append(os.Environ(), "GIT_ALLOW_PROTOCOL="+vcs.Protocols(user, set)),
 		Stderr: io.Err,
-		Log:    io.Msg,
+		Log:    io.Err,
 	}
 }

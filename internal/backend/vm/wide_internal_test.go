@@ -2,7 +2,7 @@ package vm
 
 import (
 	"math/big"
-	"math/rand"
+	mathrand "math/rand"
 	"testing"
 )
 
@@ -15,7 +15,7 @@ func (w wide) unsigned() *big.Int { return bigOfWide(w, false) }
 
 func (w wide) signedInt() *big.Int { return bigOfWide(w, true) }
 
-func randWide(r *rand.Rand) wide {
+func randWide(r *mathrand.Rand) wide {
 	pick := func() uint64 {
 		switch r.Intn(6) {
 		case 0:
@@ -37,7 +37,7 @@ func randWide(r *rand.Rand) wide {
 }
 
 func TestWideArithmeticAgainstBig(t *testing.T) {
-	r := rand.New(rand.NewSource(7))
+	r := mathrand.New(mathrand.NewSource(7))
 	for range 20000 {
 		a, b := randWide(r), randWide(r)
 		ua, ub := a.unsigned(), b.unsigned()
@@ -99,7 +99,7 @@ func TestWideArithmeticAgainstBig(t *testing.T) {
 }
 
 func TestWideFloatConversionRoundsLikeHardware(t *testing.T) {
-	r := rand.New(rand.NewSource(11))
+	r := mathrand.New(mathrand.NewSource(11))
 	for range 20000 {
 		a := randWide(r)
 		a = shrW(a, uint(r.Intn(100)))

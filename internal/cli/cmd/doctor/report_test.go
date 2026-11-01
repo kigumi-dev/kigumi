@@ -52,7 +52,7 @@ func TestDoctor(t *testing.T) {
 		t.Errorf("doctor's testEvent format version = %d, want vm.TestEventFormatVersion (%d)", envelope.Data.FormatVersions.TestEvent, vm.TestEventFormatVersion)
 	}
 
-	if code, errOut := clitest.ExecuteReal(t, "--std", std, "doctor", "--format", "bogus"); code != 2 || !strings.Contains(errOut, "--format") {
+	if code, _, errOut := clitest.Execute(t, "--std", std, "doctor", "--format", "bogus"); code != 2 || !strings.Contains(errOut, "--format") {
 		t.Fatalf("doctor --format bogus: exit %d, stderr %q", code, errOut)
 	}
 }

@@ -18,7 +18,7 @@ func TestExplainCode(t *testing.T) {
 	if code != 0 || out == "" {
 		t.Fatalf("explain E100: exit %d\n%s", code, out)
 	}
-	code, errOut := clitest.ExecuteReal(t, "explain", "E9999999")
+	code, _, errOut := clitest.Execute(t, "explain", "E9999999")
 	if code == 0 || !strings.Contains(errOut, "unknown diagnostic code") {
 		t.Fatalf("explain with an unknown code must fail: exit %d\n%s", code, errOut)
 	}
@@ -64,12 +64,12 @@ fn quiet() {}
 		t.Fatalf("explain --fn on a handler must show its resolved permissions: exit %d\n%s%s", code, out, errOut)
 	}
 
-	code, errOut = clitest.ExecuteReal(t, "--std", std, "explain", "--fn", "main.missing", file)
+	code, _, errOut = clitest.Execute(t, "--std", std, "explain", "--fn", "main.missing", file)
 	if code == 0 || !strings.Contains(errOut, "no function") {
 		t.Fatalf("explain --fn on an unknown name must fail: exit %d\n%s", code, errOut)
 	}
 
-	code, errOut = clitest.ExecuteReal(t, "--std", std, "explain", "--fn", "main.quiet")
+	code, _, errOut = clitest.Execute(t, "--std", std, "explain", "--fn", "main.quiet")
 	if code == 0 || !strings.Contains(errOut, "--fn needs exactly one") {
 		t.Fatalf("explain --fn without a module argument must fail: exit %d\n%s", code, errOut)
 	}

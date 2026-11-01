@@ -3,7 +3,7 @@ package vm
 import (
 	"go/ast"
 	"go/parser"
-	"go/token"
+	gotoken "go/token"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -79,7 +79,7 @@ func copyPrimitiveBodies(t *testing.T) (map[string]*ast.FuncDecl, map[string]ast
 		if strings.HasSuffix(path, "_test.go") {
 			continue
 		}
-		file, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
+		file, err := parser.ParseFile(gotoken.NewFileSet(), path, nil, 0)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -116,7 +116,7 @@ func copyPrimitiveBodies(t *testing.T) (map[string]*ast.FuncDecl, map[string]ast
 
 func copyPrimitiveKey(expr ast.Expr) (string, bool) {
 	lit, ok := expr.(*ast.BasicLit)
-	if !ok || lit.Kind != token.STRING {
+	if !ok || lit.Kind != gotoken.STRING {
 		return "", false
 	}
 	key, err := strconv.Unquote(lit.Value)

@@ -61,7 +61,7 @@ func TestProfileClaimsReportACrossingTheProfileTrusted(t *testing.T) {
 			return llgen.ScalarBoxSites(p, llgen.EmitOptions{Reachable: mirreach.Reachable(p.R, p.Entry, p.Funcs, p.ByEnt)})
 		}
 		var codes []string
-		for _, claim := range mirverify.CheckAllocClaims(prog, mir.DemoteBoxedLends(prog)) {
+		for _, claim := range mirverify.CheckAllocClaims(prog) {
 			codes = append(codes, claim.Diag.Code)
 		}
 		if len(codes) != 1 || codes[0] != c.code {
@@ -78,5 +78,5 @@ func TestProfileClaimsRefuseToRunWithoutTheNativeBoxes(t *testing.T) {
 			t.Error("CheckAllocClaims ran a profile check with no NativeBoxes")
 		}
 	}()
-	mirverify.CheckAllocClaims(prog, mir.DemoteBoxedLends(prog))
+	mirverify.CheckAllocClaims(prog)
 }

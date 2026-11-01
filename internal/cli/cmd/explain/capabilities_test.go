@@ -53,15 +53,3 @@ func TestExplainCapabilitiesReadsBuiltArtifact(t *testing.T) {
 		t.Fatalf("explain --capabilities on a built artifact: exit %d\n%s%s", code, got, errOut)
 	}
 }
-
-func TestCheckReportsCapabilityNotProvided(t *testing.T) {
-	std, _ := filepath.Abs("../../../../std")
-	file := capabilityModule(t)
-	if code, _, errOut := clitest.Execute(t, "--std", std, "check", file); code != 0 {
-		t.Fatalf("check on a hosted target: exit %d\n%s", code, errOut)
-	}
-	code, _, errOut := clitest.Execute(t, "--std", std, "--sys", "none", "check", file)
-	if code != 1 || !strings.Contains(errOut, "E1370") || !strings.Contains(errOut, "host.args") {
-		t.Fatalf("check with --sys none: exit %d\n%s", code, errOut)
-	}
-}

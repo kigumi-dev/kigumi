@@ -3,6 +3,7 @@ package sem
 import (
 	"cmp"
 	"slices"
+	"strconv"
 	"strings"
 
 	"kigumi/internal/compiler/syntax"
@@ -31,8 +32,22 @@ func defineCode(num, name, template string) Code {
 	return c
 }
 
-// Codes lists the catalog in definition order, for `kigumi explain`.
-func Codes() []Code { return append([]Code{}, codes...) }
+// Codes lists the catalog errors first, each by number, for `kigumi explain`; definition order would follow file names.
+func Codes() []Code {
+	out := append([]Code{}, codes...)
+	slices.SortFunc(out, func(a, b Code) int {
+		if c := cmp.Compare(a.Num[0], b.Num[0]); c != 0 {
+			return c
+		}
+		return cmp.Compare(codeNumber(a.Num), codeNumber(b.Num))
+	})
+	return out
+}
+
+func codeNumber(num string) int {
+	n, _ := strconv.Atoi(num[1:])
+	return n
+}
 
 func HelpOf(num string) string {
 	for _, c := range codes {

@@ -1,7 +1,7 @@
 package fmt
 
 import (
-	"fmt"
+	stdfmt "fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -23,7 +23,7 @@ func run(io session.IO, opts options) error {
 	for _, path := range paths {
 		if err := formatOne(io, path, opts.write, opts.check, len(paths) > 1); err != nil {
 			failed = true
-			fmt.Fprintln(io.Err, strings.TrimRight(err.Error(), "\n"))
+			stdfmt.Fprintln(io.Err, strings.TrimRight(err.Error(), "\n"))
 		}
 	}
 	if failed {
@@ -45,7 +45,7 @@ func formatOne(io session.IO, path string, write, check, several bool) error {
 	switch {
 	case check:
 		if out != string(src.Src) {
-			return fmt.Errorf("%s: not formatted", path)
+			return stdfmt.Errorf("%s: not formatted", path)
 		}
 	case write && path != "-":
 		if err := fsx.WriteFileAtomic(path, []byte(out), 0o644); err != nil {
@@ -53,9 +53,9 @@ func formatOne(io session.IO, path string, write, check, several bool) error {
 		}
 	default:
 		if several {
-			fmt.Fprintf(io.Out, "==> %s <==\n", path)
+			stdfmt.Fprintf(io.Out, "==> %s <==\n", path)
 		}
-		fmt.Fprint(io.Out, out)
+		stdfmt.Fprint(io.Out, out)
 	}
 	return nil
 }

@@ -295,12 +295,10 @@ pub pure fn tryReplace(s: String, old: String, new: String) -> Result[String, Al
     AllocError.wrap(buf.freezeString())
 }
 
+// Not an `indexOf` overload: accelerators are keyed by package, owner and name
+// without the signature, so an overload of an accelerated name reaches the wrong one.
 /// Byte offset of the first `sub` in `s`, or None. The empty `sub` is at 0.
 /// Offsets are byte offsets, the same as `slice` takes.
-///
-/// Why not an `indexOf` overload: the engines key their accelerators by
-/// package and name, so an overload of an accelerated function reaches the
-/// wrong implementation (`internal/interp/call_dispatch.go` builtinKey).
 pub pure fn find(s: String, sub: String) -> usize? {
     s.toBytes().indexOf(sub.toBytes())
 }

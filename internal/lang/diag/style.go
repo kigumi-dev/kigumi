@@ -1,8 +1,6 @@
 package diag
 
-// Colors is whether rendered diagnostics carry ANSI colors. The CLI turns
-// it on once for the process when stderr is a terminal (spec: NO_COLOR and
-// --color decide); everything else renders plain text.
+// colors is process-wide: the CLI sets it once from --color, NO_COLOR and whether stderr is a terminal.
 var colors bool
 
 // UseColor switches colored rendering on or off.

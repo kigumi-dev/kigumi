@@ -67,10 +67,7 @@ func TestVerifyTypes(t *testing.T) {
 	}
 }
 
-// TestVerifyFnPurityErasure checks that a copy from a plain fn value into a
-// `pure`/`noalloc`-qualified fn-typed slot (or a plain fn item)
-// verifies, since purity is the effects pass's job, not the runtime
-// representation's.
+// Purity is the effects pass's job, so copying a plain fn value into a `pure`/`noalloc` fn slot verifies.
 func TestVerifyFnPurityErasure(t *testing.T) {
 	p := mirfixture.Program(t)
 	tt := p.R.Types
@@ -198,10 +195,7 @@ let _ = bump()
 	}
 }
 
-// TestVerifyCellCapturesNested checks that a closure forwarding its own
-// captured cell to a nested closure verifies: build.go never rewraps a
-// forwarded capture, and the trace back to the outer OpNewCell must follow
-// it through both layers.
+// Lowering never rewraps a forwarded capture, so the trace back to the outer OpNewCell crosses both closures.
 func TestVerifyCellCapturesNested(t *testing.T) {
 	res := mirfixture.CheckSourceMir(t, `
 type Counter = {

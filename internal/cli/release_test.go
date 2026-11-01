@@ -22,7 +22,7 @@ func TestCheckReleasePolicy(t *testing.T) {
 		t.Fatalf("development check: want a release-local-replace warning, got %q", errOut)
 	}
 
-	code, errOut = clitest.ExecuteReal(t, "--std", std, "check", "--release", dependency)
+	code, _, errOut = clitest.Execute(t, "--std", std, "check", "--release", dependency)
 	if code != 1 {
 		t.Fatalf("release check: exit %d, stderr %q", code, errOut)
 	}
@@ -55,7 +55,7 @@ func TestBuildReleaseRejectsLocalReplace(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	dependency, _ := filepath.Abs("../../examples/dependency")
 
-	code, errOut := clitest.ExecuteReal(t, "--std", std, "build", "--release", "--emit-llvm", dependency)
+	code, _, errOut := clitest.Execute(t, "--std", std, "build", "--release", "--emit-llvm", dependency)
 	if code != 1 {
 		t.Fatalf("exit %d, stderr %q", code, errOut)
 	}

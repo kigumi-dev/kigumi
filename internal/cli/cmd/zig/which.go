@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"kigumi/internal/cli/session"
-	"kigumi/internal/toolchain/zig"
+	zigtool "kigumi/internal/toolchain/zig"
 )
 
 func runWhich(io session.IO, opts options) error {
@@ -13,20 +13,20 @@ func runWhich(io session.IO, opts options) error {
 		return err
 	}
 	want := modulePin()
-	r := zig.ForModule(session.CompilerOptions().ToolLookup(), root, session.ZigPath(), want)
+	r := zigtool.ForModule(session.CompilerOptions().ToolLookup(), root, session.ZigPath(), want)
 	switch {
 	case r.Path == "" && want == "":
-		fmt.Fprintln(io.Msg, "no zig found, and this module is unpinned (a native build falls back to clang)")
+		fmt.Fprintln(io.Out, "no zig found, and this module is unpinned (a native build falls back to clang)")
 	case r.Path == "":
-		fmt.Fprintf(io.Msg, "no zig satisfies this module's pin (%s); run `kigumi zig install` or set KIGUMI_ZIG\n", want)
+		fmt.Fprintf(io.Out, "no zig satisfies this module's pin (%s); run `kigumi zig install` or set KIGUMI_ZIG\n", want)
 	case want == "":
-		fmt.Fprintf(io.Msg, "%s (%s, unpinned)\n", r.Path, r.Source)
+		fmt.Fprintf(io.Out, "%s (%s, unpinned)\n", r.Path, r.Source)
 	case r.Mismatch:
-		fmt.Fprintf(io.Msg, "%s (%s, reports %s, does not satisfy pin %s)\n", r.Path, r.Source, r.Version, want)
+		fmt.Fprintf(io.Out, "%s (%s, reports %s, does not satisfy pin %s)\n", r.Path, r.Source, r.Version, want)
 	case r.Err != nil:
-		fmt.Fprintf(io.Msg, "%s (%s, version unknown: %s; pin %s)\n", r.Path, r.Source, r.Err, want)
+		fmt.Fprintf(io.Out, "%s (%s, version unknown: %s; pin %s)\n", r.Path, r.Source, r.Err, want)
 	default:
-		fmt.Fprintf(io.Msg, "%s (%s, satisfies pin %s)\n", r.Path, r.Source, want)
+		fmt.Fprintf(io.Out, "%s (%s, satisfies pin %s)\n", r.Path, r.Source, want)
 	}
 	return nil
 }

@@ -5,7 +5,7 @@ package lsp
 
 import (
 	"context"
-	"errors"
+	stderrors "errors"
 	"io"
 	"os"
 	"sync"
@@ -97,7 +97,7 @@ func (s *Server) WithTarget(t buildconfig.Target) *Server {
 // Serve speaks the protocol on stdin/stdout until the client hangs up.
 func Serve(stdRoot string, target buildconfig.Target, cache string, o buildconfig.CompilerOptions, lazyStd bool) error {
 	if o.Cwd == "" {
-		return errors.New("lsp: CompilerOptions.Cwd is required; the caller fills it from the process")
+		return stderrors.New("lsp: CompilerOptions.Cwd is required; the caller fills it from the process")
 	}
 	conn := New(stdRoot).WithTarget(target).WithPackageCache(cache, o).WithLazyStd(lazyStd).Connect(context.Background(), jsonrpc2.NewStream(stdio{}))
 	<-conn.Done()

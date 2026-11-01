@@ -1,6 +1,9 @@
 package sem
 
-import "kigumi/internal/lang/token"
+import (
+	"kigumi/internal/lang/isr"
+	"kigumi/internal/lang/token"
+)
 
 import "kigumi/internal/compiler/syntax"
 
@@ -69,7 +72,7 @@ type Module struct {
 	// IsrContracts are the reviewed contracts of bodiless std functions; nil trusts none.
 	IsrContracts IsrContracts
 	// Interrupt is the root module's interrupt configuration.
-	Interrupt InterruptConfig
+	Interrupt isr.Config
 	// DepInterrupt are the dependencies' Interrupt records: they only narrow their own handlers within the root limit.
 	DepInterrupt []DepInterrupt
 }

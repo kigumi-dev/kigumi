@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"kigumi/internal/cli/session"
 )
@@ -47,4 +48,17 @@ func Monorepo(t *testing.T, root string) string {
 	Git(t, repo, "tag", "sgx/v0.1.0")
 	Git(t, repo, "tag", "web/v0.3.0")
 	return repo
+}
+
+// WriteFiles writes each root-relative file and sets its mtime to stamp.
+func WriteFiles(t *testing.T, root string, files map[string]string, stamp time.Time) {
+	t.Helper()
+	for rel, body := range files {
+		full := filepath.Join(root, rel)
+		os.MkdirAll(filepath.Dir(full), 0o755)
+		if err := os.WriteFile(full, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		os.Chtimes(full, stamp, stamp)
+	}
 }

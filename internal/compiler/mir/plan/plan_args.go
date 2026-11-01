@@ -19,11 +19,7 @@ func (p *planner) copyable(t sem.TypeID) bool {
 	return p.R.IsCopy(t)
 }
 
-// mustCopy reports whether an instruction consumes a named local that the
-// scope still owns: Copy values (a Copy-constrained type parameter
-// included) are duplicated (or retained) so the local's drop at scope exit
-// stays balanced. Move-only values, type parameters included, are
-// transferred as they are.
+// mustCopy: the scope still drops a named Copy local at exit, so an operand that consumes it gets a duplicate.
 func (p *planner) mustCopy(f *midir.Func, in midir.Inst, a midir.LocalID) bool {
 	l := f.Locals[a]
 	if l.Ent == 0 || !p.copyable(l.Type) {

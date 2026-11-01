@@ -68,7 +68,7 @@ func LinkIdentityViolations(m *Module, t buildconfig.Target) []policy.Violation 
 		if l.Library == "" {
 			continue
 		}
-		if _, ok := link.ResolveLinkIdentity(m.compiler, l, t); !ok {
+		if _, ok := link.ResolveLinkIdentity(m.compiler, link.Library{Name: l.Library, Search: l.Search}, t); !ok {
 			vs = append(vs, policy.NativeLinkIdentityUnknownViolation(m.Name, l.Library))
 		}
 	}

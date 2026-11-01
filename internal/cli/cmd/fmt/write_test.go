@@ -8,8 +8,7 @@ import (
 	"kigumi/internal/cli/clitest"
 )
 
-// `kigumi fmt -w` must write atomically, like BUILD-005's build-graph
-// output, preserving the source's mode and leaving it untouched on failure.
+// `kigumi fmt -w` writes atomically, preserving the source's mode and leaving it untouched on failure.
 func TestFmtWriteIsAtomicAndPreservesMode(t *testing.T) {
 	if os.Getuid() == 0 {
 		t.Skip("root ignores file permissions")

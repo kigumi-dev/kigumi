@@ -26,3 +26,19 @@ func TestCodeNumbersUnique(t *testing.T) {
 		}
 	}
 }
+
+func TestCodesListErrorsFirstByNumber(t *testing.T) {
+	list := Codes()
+	if len(list) != len(codes) {
+		t.Fatalf("Codes lists %d of %d codes", len(list), len(codes))
+	}
+	for i := 1; i < len(list); i++ {
+		a, b := list[i-1], list[i]
+		if a.Num[0] > b.Num[0] || a.Num[0] == b.Num[0] && codeNumber(a.Num) >= codeNumber(b.Num) {
+			t.Fatalf("%s is listed before %s", a.Num, b.Num)
+		}
+	}
+	if list[0].Num != "E100" {
+		t.Fatalf("the listing starts at %s, want E100", list[0].Num)
+	}
+}

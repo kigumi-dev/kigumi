@@ -1,4 +1,4 @@
-package module
+package driver
 
 import (
 	"crypto/sha256"
@@ -10,8 +10,8 @@ import (
 	"kigumi/internal/lang/token"
 )
 
-// ScanImports reads every `import` keyword with the lexer alone, so it may name more packages than the parser, never fewer.
-func ScanImports(src []byte) []string {
+// scanImports reads every `import` keyword with the lexer alone, so it may name more packages than the parser, never fewer.
+func scanImports(src []byte) []string {
 	toks := syntax.Lex(src, &diag.Bag{})
 	var out []string
 	for i, tk := range toks {
@@ -49,7 +49,7 @@ func ScanImports(src []byte) []string {
 
 func isPathEnd(c byte) bool { return c == ' ' || c == '\t' || c == '\r' || c == '\n' }
 
-func ContentHash(src []byte) string {
+func contentHash(src []byte) string {
 	sum := sha256.Sum256(src)
 	return hex.EncodeToString(sum[:])
 }

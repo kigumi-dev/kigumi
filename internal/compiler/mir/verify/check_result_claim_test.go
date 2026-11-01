@@ -43,7 +43,7 @@ func TestAllocClaimsReportAValueWhoseEntryBoxes(t *testing.T) {
 	withValueOf(t, p, "main.peek", "main.mk")
 	withValueOf(t, p, "main.declared", "main.mk")
 	codes := map[string]string{}
-	for _, c := range mirverify.CheckAllocClaims(p, mir.DemoteBoxedLends(p)) {
+	for _, c := range mirverify.CheckAllocClaims(p) {
 		codes[c.Diag.Code] = c.Diag.Msg
 	}
 	if !strings.Contains(codes["E1843"], "`peek` is inferred `noalloc`") || !strings.Contains(codes["E1842"], "`declared` is declared `noalloc`") || len(codes) != 2 {
@@ -54,7 +54,7 @@ func TestAllocClaimsReportAValueWhoseEntryBoxes(t *testing.T) {
 func TestAllocClaimsIgnoreAValueWhoseEntryBoxesNothing(t *testing.T) {
 	p := mirfixture.Planned(t, resultClaimSrc)
 	withValueOf(t, p, "main.declared", "main.peek")
-	if claims := mirverify.CheckAllocClaims(p, mir.DemoteBoxedLends(p)); len(claims) != 0 {
+	if claims := mirverify.CheckAllocClaims(p); len(claims) != 0 {
 		t.Fatalf("peek's entry only unboxes, yet got %+v", claims)
 	}
 }

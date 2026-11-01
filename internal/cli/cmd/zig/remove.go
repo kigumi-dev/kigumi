@@ -15,6 +15,6 @@ func runRemove(io session.IO, opts options) error {
 	if err := store.Remove(root, opts.args[0]); err != nil {
 		return err
 	}
-	fmt.Fprintf(io.Msg, "zig %s removed\n", opts.args[0])
+	fmt.Fprintf(io.Err, "zig %s removed\n", opts.args[0])
 	return nil
 }

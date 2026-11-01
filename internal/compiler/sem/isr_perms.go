@@ -3,6 +3,8 @@ package sem
 import (
 	"slices"
 	"strings"
+
+	"kigumi/internal/lang/isr"
 )
 
 // isrScope is one handler's resolved permission set and every node's verdict under it.
@@ -31,9 +33,9 @@ func (r *Result) handlerKey(id EntityID) string {
 	return r.Packages[r.Entities[id].Pkg].Path + "." + r.Entities[id].Name
 }
 
-func (r *Result) interruptConfig() InterruptConfig {
+func (r *Result) interruptConfig() isr.Config {
 	if r.mod == nil {
-		return InterruptConfig{}
+		return isr.Config{}
 	}
 	return r.mod.Interrupt
 }

@@ -65,15 +65,15 @@ func TestGetUpdateAnnotatedTagStaysUpToDate(t *testing.T) {
 		t.Fatalf("get: %s", errOut)
 	}
 	for i := 0; i < 2; i++ {
-		code, out, errOut := clitest.Execute(t, "get", "-u", app)
+		code, _, errOut := clitest.Execute(t, "get", "-u", app)
 		if code != 0 {
 			t.Fatalf("get -u (run %d): %s", i, errOut)
 		}
-		if strings.Contains(out, "moved from") {
-			t.Fatalf("get -u (run %d) treated an unmoved annotated tag as moved: %q", i, out)
+		if strings.Contains(errOut, "moved from") {
+			t.Fatalf("get -u (run %d) treated an unmoved annotated tag as moved: %q", i, errOut)
 		}
-		if !strings.Contains(out, "up to date") {
-			t.Fatalf("get -u (run %d) want up to date, got %q", i, out)
+		if !strings.Contains(errOut, "up to date") {
+			t.Fatalf("get -u (run %d) want up to date, got %q", i, errOut)
 		}
 	}
 }

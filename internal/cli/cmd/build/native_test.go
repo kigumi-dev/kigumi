@@ -34,7 +34,7 @@ func TestBuildPlainBuildNative(t *testing.T) {
 			t.Errorf("the build summary lacks %q:\n%s", strings.TrimSpace(line), errOut)
 		}
 	}
-	if code, errOut := clitest.ExecuteReal(t, "--std", std, "--target", "x86_64-linux-gnu", "build", "--link", "static", "-o", out, file); code == 0 || !strings.Contains(errOut, "--link static contradicts --target x86_64-linux-gnu") {
+	if code, _, errOut := clitest.Execute(t, "--std", std, "--target", "x86_64-linux-gnu", "build", "--link", "static", "-o", out, file); code == 0 || !strings.Contains(errOut, "--link static contradicts --target x86_64-linux-gnu") {
 		t.Fatalf("--link static with --target: exit %d, stderr %q", code, errOut)
 	}
 	if _, err := os.Stat(out); err != nil {

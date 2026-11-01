@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"kigumi/internal/compiler/sem"
+	"kigumi/internal/lang/isr"
 	"kigumi/internal/toolchain/module"
 	"kigumi/internal/toolchain/policy"
 )
@@ -61,7 +62,7 @@ func (m *Module) loadDeps(opts LoadOptions, lock module.Lock, enforceLock bool) 
 			return err
 		}
 		if len(depMod.Interrupt.Handlers) > 0 {
-			m.depInterrupt = append(m.depInterrupt, sem.DepInterrupt{Module: r.Name, Config: sem.InterruptConfig{Handlers: depMod.Interrupt.Handlers}})
+			m.depInterrupt = append(m.depInterrupt, sem.DepInterrupt{Module: r.Name, Config: isr.Config{Handlers: depMod.Interrupt.Handlers}})
 		}
 		if err := m.addNative(depDir, depMod); err != nil {
 			return err
