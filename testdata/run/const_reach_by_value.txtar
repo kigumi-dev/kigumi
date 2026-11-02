@@ -1,0 +1,15 @@
+-- src --
+type In = { a Int, b Int }
+type Out = { p In, q Int }
+fn mk() -> Out { Out { p: In { a: 1, b: 2 }, q: 3 } }
+const c: Out = comptime mk()
+
+fn total(o: Out) -> Int { o.q * 2 }
+fn keep(o: Out) -> Out { o }
+
+fn main() {
+    let x = keep(c)
+    print "${total(c)} ${x.q}"
+}
+-- stdout --
+6 3

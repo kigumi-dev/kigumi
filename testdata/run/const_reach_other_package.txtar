@@ -1,0 +1,14 @@
+-- src --
+import a from lib/a
+
+fn main() {
+    print "${a.C.q} ${a.twice(a.C)}"
+}
+-- lib/a/a.kg --
+pub type In = { pub a Int, pub b Int }
+pub type Out = { pub p In, pub q Int }
+fn mk() -> Out { Out { p: In { a: 1, b: 2 }, q: 3 } }
+pub const C: Out = comptime mk()
+pub fn twice(o: Out) -> Int { o.q * 2 }
+-- stdout --
+3 6

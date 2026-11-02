@@ -1,0 +1,19 @@
+-- src --
+type In = { a Int, b Int }
+type Out = { p In, q Int }
+fn mk() -> Out { Out { p: In { a: 1, b: 2 }, q: 3 } }
+const c: Out = comptime mk()
+
+type Gauge = { mut level Int }
+type Meter = { gauge Gauge, id Int }
+fn mkMeter() -> Meter { Meter { gauge: Gauge { level: 0 }, id: 7 } }
+const meter: Meter = comptime mkMeter()
+
+fn main() {
+    print "${c.q}"
+    let mut m = meter
+    print "${meter.id} ${m.id}"
+}
+-- stdout --
+3
+7 7

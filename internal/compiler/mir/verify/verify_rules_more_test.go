@@ -149,6 +149,7 @@ func TestVerifyShapeAndTypeText(t *testing.T) {
 	}
 	expectRule(t, p, body(midir.Inst{Op: midir.OpUnit, Dst: 0, Str: "x"}), "shape", `unit carries the text "x" it never reads`)
 	expectRule(t, p, body(midir.Inst{Op: midir.OpConst, Dst: 0, Type: sem.TyI64, Str: "x"}), "shape", `const carries the text "x", which is not its number`)
+	expectRule(t, p, body(midir.Inst{Op: midir.OpCopy, Dst: 0, Args: []midir.LocalID{0}, Lit: sem.Literal{Kind: sem.LitInt}}), "shape", "copy carries a literal it never reads")
 	expectRule(t, p, body(midir.Inst{Op: midir.OpAlias, Dst: 0, Args: []midir.LocalID{1}}), "types", "alias from String into Int")
 }
 

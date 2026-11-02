@@ -1,0 +1,11 @@
+-- src --
+type Tag = { code Int, on Bool }
+type Label = { tag Tag, name String }
+const label: Label = comptime { Label { tag: Tag { code: 9, on: true }, name: "x" } }
+
+fn main() {
+    let all = Array.of(label, label)
+    print "${all.len()} ${all[1].name} ${label.name}"
+}
+-- stdout --
+2 x x

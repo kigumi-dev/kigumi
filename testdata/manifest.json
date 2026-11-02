@@ -6529,6 +6529,91 @@
       ]
     },
     {
+      "id": "run/const_reach_by_value",
+      "kind": "run",
+      "path": "testdata/run/const_reach_by_value.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/const_reach_other_package",
+      "kind": "run",
+      "path": "testdata/run/const_reach_other_package.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/const_reach_three_levels",
+      "kind": "run",
+      "path": "testdata/run/const_reach_three_levels.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/const_reach_top_field",
+      "kind": "run",
+      "path": "testdata/run/const_reach_top_field.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/const_reach_unused_nested",
+      "kind": "run",
+      "path": "testdata/run/const_reach_unused_nested.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/context_closure_calls_bound",
       "kind": "run",
       "path": "testdata/run/context_closure_calls_bound.txtar",

@@ -105,6 +105,9 @@ func (w *reachWalk) inst(f *midir.Func, id sem.EntityID, pkg sem.PackageID, in *
 	w.visit(id, in.Ent, "call")
 	w.keepErrorContext(in.Ent)
 	w.walkType(in.Type)
+	if s, _ := in.Op.Shape(); s.Literal {
+		w.walkValue(in.Lit, in.Type)
+	}
 	switch in.Op {
 	case midir.OpRecord, midir.OpIsType:
 		w.markType(in.Ent)

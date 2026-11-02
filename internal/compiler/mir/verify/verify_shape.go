@@ -28,6 +28,9 @@ func verifyShape(f *midir.Func) *Error {
 			if s.Text && in.Str == "" {
 				return fail("shape", bid, i, "%s needs its text", in.Op)
 			}
+			if !s.Literal && in.Lit.Kind != 0 && in.Op != midir.OpNop {
+				return fail("shape", bid, i, "%s carries a literal it never reads", in.Op)
+			}
 			if in.Op == midir.OpAwait && in.Str != "" && in.Str != "settle" {
 				return fail("shape", bid, i, "await carries the text %q, which is not a mode", in.Str)
 			}

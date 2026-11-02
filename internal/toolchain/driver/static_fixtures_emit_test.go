@@ -4,13 +4,23 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"kigumi/internal/compiler/sem"
 	"kigumi/internal/toolchain/driver"
 )
 
 // TestAotCorpus builds these too, but there a backstop panic in llgen crashes the whole test binary instead of failing one fixture.
 func TestStaticFixturesEmitNatively(t *testing.T) {
+	emitFixturesNatively(t, "static ", func(r *sem.Result) bool { return len(r.StaticEntities()) > 0 })
+}
+
+func TestConstFixturesEmitNatively(t *testing.T) {
+	emitFixturesNatively(t, "const ", declaresConst)
+}
+
+func emitFixturesNatively(t *testing.T, marker string, declares func(*sem.Result) bool) {
 	manifest := loadManifest(t)
 	files, _ := filepath.Glob("../../../testdata/run/*.txtar")
 	for _, path := range files {
@@ -19,7 +29,7 @@ func TestStaticFixturesEmitNatively(t *testing.T) {
 			t.Fatal(err)
 		}
 		fx := manifest.ByID(fixtureID(path))
-		if !bytes.Contains(data, []byte("static ")) || fx == nil || !fx.Runs("native") {
+		if !bytes.Contains(data, []byte(marker)) || fx == nil || !fx.Runs("native") {
 			continue
 		}
 		t.Run(filepath.Base(path), func(t *testing.T) {
@@ -33,12 +43,22 @@ func TestStaticFixturesEmitNatively(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(a.Res.StaticEntities()) == 0 {
-				t.Skip("declares no static")
+			if !declares(a.Res) {
+				t.Skip("declares no " + strings.TrimSpace(marker))
 			}
 			emitWithoutPanic(t, m)
 		})
 	}
+}
+
+func declaresConst(r *sem.Result) bool {
+	for id := 1; id < len(r.Entities); id++ {
+		e := r.Entity(sem.EntityID(id))
+		if e.Kind == sem.EntConst && !r.Packages[e.Pkg].Std {
+			return true
+		}
+	}
+	return false
 }
 
 func emitWithoutPanic(t *testing.T, m *driver.Module) {

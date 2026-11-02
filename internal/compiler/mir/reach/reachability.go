@@ -44,7 +44,7 @@ type Reachability struct {
 	// AllOpSites lists every reachable call site per op, in discovery order; OpSites holds the first.
 	AllOpSites map[opdef.StdOpId][]OpSite
 	// Types are the named types data() must give a real descriptor: built, held or tested by reachable code,
-	// held by a static's value, or built by name in rt_core.c.
+	// held by a static's value or a constant reachable code reads, or built by name in rt_core.c.
 	Types map[sem.EntityID]bool
 }
 
