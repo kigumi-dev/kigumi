@@ -92,11 +92,11 @@ func (c *borrowCheck) callableKeeps(a midir.LocalID) bool {
 	if !c.callableNode(t) {
 		return false
 	}
-	ents, ok := c.fnItemOrigins(a, 8)
+	ents := c.fnItemOrigins(a, 8)
 	if n := c.p.R.Types.Node(t); n.Kind == sem.KClosure && n.Ent != 0 && c.p.R.Entity(n.Ent).Kind == sem.EntClosure {
-		ents, ok = []sem.EntityID{n.Ent}, true
+		ents = knownItems(n.Ent)
 	}
-	return !ok || slices.ContainsFunc(ents, func(e sem.EntityID) bool {
+	return !ents.known || slices.ContainsFunc(ents.ents, func(e sem.EntityID) bool {
 		if c.p.R.Entity(e).Kind == sem.EntFn && (ownquery.IsAsyncBody(c.p.R, e) || c.p.R.Fn(e).Body == 0) {
 			return true
 		}

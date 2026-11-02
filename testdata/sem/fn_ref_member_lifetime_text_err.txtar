@@ -1,0 +1,39 @@
+-- module --
+mir: planned
+-- src --
+fn length['a](value: &'a String) -> usize { value.len() }
+fn run2['x, 'y](v: &'x String, w: &'y String) {
+    let f = length
+    let a = f.nope //~ ERROR `fn(&'a (length) String) -> usize` has no field or method `nope`
+    let n: Int = f //~ ERROR found `fn(&'a (length) String) -> usize`
+}
+fn run0() {
+    let f = length
+    let a = f.nope //~ ERROR `fn(&'a (run0) String) -> usize` has no field or method `nope`
+    let n: Int = f //~ ERROR found `fn(&'a (run0) String) -> usize`
+}
+-- expect --
+error[E510]: `fn(&'a (length) String) -> usize` has no field or method `nope`
+ --> main.kg:4:13
+  |
+4 |     let a = f.nope //~ ERROR `fn(&'a (length) String) -> usize` has no field or method `nope`
+  |             ^^^^^^
+
+error[E400]: expected `Int`, found `fn(&'a (length) String) -> usize`
+ --> main.kg:5:18
+  |
+5 |     let n: Int = f //~ ERROR found `fn(&'a (length) String) -> usize`
+  |                  ^
+
+error[E510]: `fn(&'a (run0) String) -> usize` has no field or method `nope`
+ --> main.kg:9:13
+  |
+9 |     let a = f.nope //~ ERROR `fn(&'a (run0) String) -> usize` has no field or method `nope`
+  |             ^^^^^^
+
+error[E400]: expected `Int`, found `fn(&'a (run0) String) -> usize`
+  --> main.kg:10:18
+   |
+10 |     let n: Int = f //~ ERROR found `fn(&'a (run0) String) -> usize`
+   |                  ^
+

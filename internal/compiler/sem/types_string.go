@@ -82,7 +82,7 @@ func (r *Result) writeType(sb *strings.Builder, t TypeID) {
 		}
 	case KRef:
 		sb.WriteString("&")
-		if n.Lifetime != 0 {
+		if n.Lifetime != 0 && tt.nodes[n.Lifetime].Kind == KParam {
 			r.writeType(sb, n.Lifetime)
 			sb.WriteByte(' ')
 		}

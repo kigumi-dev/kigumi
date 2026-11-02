@@ -23,13 +23,13 @@ var rcCallSites = map[string]*regexp.Regexp{
 
 // Call sites of the count and cell runtime calls in the IR of every native run fixture, std included.
 var pinnedRCCalls = map[string]int{
-	"fixtures":         935,
-	"rt_retain":        9555,
-	"rt_release":       70510,
-	"rt_release_outer": 28188,
-	"rt_drop":          42052,
-	"rt_cell_init":     5950,
-	"rt_cell_take":     2402,
+	"fixtures":         953,
+	"rt_retain":        9563,
+	"rt_release":       70973,
+	"rt_release_outer": 28206,
+	"rt_drop":          42377,
+	"rt_cell_init":     5954,
+	"rt_cell_take":     2406,
 	"rt_setfield_swap": 559,
 	"rt_setindex_swap": 106,
 }
@@ -456,6 +456,24 @@ var addedAfterBaseline = map[string]bool{
 	"static_reach_static_mut.txtar":                 true,
 	"static_reach_atomic.txtar":                     true,
 	"static_reach_initializer_only.txtar":           true,
+	"fn_ref_erase_routes.txtar":                     true,
+	"fn_ref_relay_async.txtar":                      true,
+	"fn_ref_erase_nested.txtar":                     true,
+	"fn_ref_variance_routes.txtar":                  true,
+	"fn_ref_bound_param.txtar":                      true,
+	"fn_ref_bound_routes.txtar":                     true,
+	"fn_ref_slot_routes.txtar":                      true,
+	"fn_ref_receiver_routes.txtar":                  true,
+	"fn_ref_plain_parts.txtar":                      true,
+	"fn_ref_known_parts.txtar":                      true,
+	"fn_ref_value_iface_routes.txtar":               true,
+	"fn_ref_value_calls.txtar":                      true,
+	"fn_ref_value_variadic.txtar":                   true,
+	"fn_ref_value_mut.txtar":                        true,
+	"fn_ref_value_pipe.txtar":                       true,
+	"fn_ref_value_alias_graph.txtar":                true,
+	"fn_ref_value_hole_closure.txtar":               true,
+	"fn_ref_value_explicit.txtar":                   true,
 }
 
 func TestRCCallCounts(t *testing.T) {

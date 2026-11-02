@@ -2,7 +2,9 @@ package sem
 
 import "strings"
 
-func (r *Result) writeFn(sb *strings.Builder, n typeNode) {
+func (r *Result) writeFn(sb *strings.Builder, n typeNode) { r.writeFnWith(sb, n, r.writeType) }
+
+func (r *Result) writeFnWith(sb *strings.Builder, n typeNode, write func(*strings.Builder, TypeID)) {
 	if n.Flags&fnEscaping != 0 {
 		sb.WriteString("escaping ")
 	}
@@ -36,7 +38,7 @@ func (r *Result) writeFn(sb *strings.Builder, n typeNode) {
 				a = elem
 			}
 		}
-		r.writeType(sb, a)
+		write(sb, a)
 	}
 	if n.Flags&fnCVariadic != 0 {
 		if len(n.Args) > 0 {
@@ -45,7 +47,7 @@ func (r *Result) writeFn(sb *strings.Builder, n typeNode) {
 		sb.WriteString("...")
 	}
 	sb.WriteString(") -> ")
-	r.writeType(sb, n.Elem)
+	write(sb, n.Elem)
 }
 
 func (r *Result) arrayElem(t TypeID) (TypeID, bool) {

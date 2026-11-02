@@ -125,10 +125,10 @@ func (c *checker) memberOn(n, base syntax.NodeID, recv TypeID, name string) Type
 		return TyPoison
 	}
 	if pkg := c.hiddenMemberPackage(recv, name); pkg != "" {
-		c.errAtHelp(n, hiddenMemberHelp(name, pkg), cMemberNotFound, recv, name)
+		c.errAtHelp(n, hiddenMemberHelp(name, pkg), cMemberNotFound, c.foreignTypeArg(recv), name)
 		return TyPoison
 	}
-	c.errSuggest(n, cMemberNotFound, name, c.r.memberNames(c.r.namedEnt(recv)), recv, name)
+	c.errSuggest(n, cMemberNotFound, name, c.r.memberNames(c.r.namedEnt(recv)), c.foreignTypeArg(recv), name)
 	return TyPoison
 }
 

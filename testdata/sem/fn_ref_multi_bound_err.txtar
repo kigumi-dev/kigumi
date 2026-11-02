@@ -1,0 +1,54 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+fn drive['a, F: Fn[fn(&String, Sink['a]) -> Void]](f: F, k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    f(&loc, k)
+}
+
+fn drive2['a, F: Fn[fn(&String, Sink['a]) -> Void] + Fn[fn(&'a String, Sink['a]) -> Void]](f: F, k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    f(&loc, k)
+}
+
+fn outerG['a, G: Fn[fn(&'a String, Sink['a]) -> Void]](g: G, k: Sink['a]) {
+    drive2(g, k) //~ ERROR reference lifetime of `function value` cannot be erased
+}
+
+fn outerV['a](g: fn(&'a String, Sink['a]) -> Void, k: Sink['a]) {
+    drive2(g, k) //~ ERROR reference lifetime of `function value` cannot be erased
+}
+
+pub fn attackItem['a](k: Sink['a]) {
+    drive2(keep, k) //~ ERROR reference lifetime of `keep` cannot be erased
+}
+
+pub fn safeItem['a](k: Sink['a]) { drive2(nop, k) }
+
+fn plainFirst['a, G: Fn[fn(&String, Sink['a]) -> Void] + Fn[fn(&'a String, Sink['a]) -> Void]](g: G, k: Sink['a]) { drive(g, k) }
+
+fn plainSecond['a, G: Fn[fn(&'a String, Sink['a]) -> Void] + Fn[fn(&String, Sink['a]) -> Void]](g: G, k: Sink['a]) { drive(g, k) }
+-- expect --
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:17:12
+   |
+17 |     drive2(g, k) //~ ERROR reference lifetime of `function value` cannot be erased
+   |            ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:21:12
+   |
+21 |     drive2(g, k) //~ ERROR reference lifetime of `function value` cannot be erased
+   |            ^
+
+error[E2297]: the reference lifetime of `keep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:25:12
+   |
+25 |     drive2(keep, k) //~ ERROR reference lifetime of `keep` cannot be erased
+   |            ^^^^
+

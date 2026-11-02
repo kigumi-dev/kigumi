@@ -1,0 +1,183 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+fn mkKeep['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { keep }
+fn mkNop['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { nop }
+fn mkMkKeep['a](n: Int) -> fn(Int) -> fn(&'a String, Sink['a]) -> Void { mkKeep }
+fn mkMkNop['a](n: Int) -> fn(Int) -> fn(&'a String, Sink['a]) -> Void { mkNop }
+fn drive['a, F: Fn[fn(&String, Sink['a]) -> Void]](f: F, k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    f(&loc, k)
+}
+pub type Box[F] = { pub cb F }
+pub type Runner['a, F: Fn[fn(&String, Sink['a]) -> Void]] = { pub mut cb F }
+pub type RunnerN['a, F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void]] = { pub mut cb F }
+pub type Outer['a, F: Fn[fn(&String, Sink['a]) -> Void]] = { pub b Box[F] }
+pub type OuterN['a, F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void]] = { pub b Box[F] }
+pub type Cb['a, F: Fn[fn(&String, Sink['a]) -> Void]] = Has(b: Box[F]) | NoCb
+pub type CbN['a, F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void]] = HasN(b: Box[F]) | NoCbN
+pub type HN['a] = { pub n Int }
+fn HN['a].run[F: Fn[fn(&String, Sink['a]) -> Void]](self, f: F, k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    f(&loc, k)
+}
+fn HN['a].runN[F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void]](self, f: F, k: Sink['a]) { }
+fn mapO[U, F: Fn[fn(Int) -> U]](o: Option[F], t: Int) -> Option[U] { if o is Some(f) { Some(f(t)) } else { None } }
+fn runB['a, F: Fn[fn(&String, Sink['a]) -> Void]](b: Box[F], k: Sink['a]) { drive(b.cb, k) }
+fn runBN['a, F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void]](b: Box[F], k: Sink['a]) { }
+fn runO['a, F: Fn[fn(&String, Sink['a]) -> Void]](o: Option[F], k: Sink['a]) { if o is Some(f) { drive(f, k) } }
+fn runIt['a, F: Fn[fn(&String, Sink['a]) -> Void]](r: Runner['a, F], k: Sink['a]) { drive(r.cb, k) }
+fn runItN['a, F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void]](r: RunnerN['a, F], k: Sink['a]) { }
+fn twoLevelT['a, F: Fn[fn(&String, Sink['a]) -> Void], G: Fn[fn(Int) -> F]](g: G, k: Sink['a]) {
+    let f = g(3)
+    let loc = "local-${40 + 2}"
+    f(&loc, k)
+}
+fn twoLevelO[U, F: Fn[fn(Int) -> U], G: Fn[fn(Int) -> F]](g: G, t: Int) -> Option[U] { let f = g(t); Some(f(t)) }
+pub fn optTop['a](k: Sink['a]) { runO(Some(keep), k) } //~ ERROR cannot be erased
+pub fn optNested['a](k: Sink['a]) {
+    let o: Option[fn(&String, Sink['a]) -> Void] = mapO(Some(mkKeep), 3) //~ ERROR cannot be erased
+}
+pub fn optSafe['a](k: Sink['a]) { runO(Some(nop), k) }
+pub fn boxTop['a](k: Sink['a]) { runB(Box { cb: keep }, k) } //~ ERROR cannot be erased
+pub fn boxNested['a](k: Sink['a]) { runBN(Box { cb: mkKeep }, k) } //~ ERROR cannot be erased
+pub fn boxSafe['a](k: Sink['a]) { runB(Box { cb: nop }, k) }
+pub fn spreadTop['a](k: Sink['a]) { runIt(Runner { ..Box { cb: keep } }, k) } //~ ERROR cannot be erased
+pub fn spreadNested['a](k: Sink['a]) { runItN(RunnerN { ..Box { cb: mkKeep } }, k) } //~ ERROR cannot be erased
+pub fn spreadSafe['a](k: Sink['a]) { runIt(Runner { ..Box { cb: nop } }, k) }
+pub fn outerTop['a](k: Sink['a]) { let o = Outer { b: Box { cb: keep } } } //~ ERROR cannot be erased
+pub fn outerNested['a](k: Sink['a]) { let o = OuterN { b: Box { cb: mkKeep } } } //~ ERROR cannot be erased
+pub fn outerSafe['a](k: Sink['a]) { let o = Outer { b: Box { cb: nop } } }
+pub fn variantTop['a](k: Sink['a]) { let c = Has(Box { cb: keep }) } //~ ERROR cannot be erased
+pub fn variantNested['a](k: Sink['a]) { let c = HasN(Box { cb: mkKeep }) } //~ ERROR cannot be erased
+pub fn variantSafe['a](k: Sink['a]) { let c = Has(Box { cb: nop }) }
+pub fn assignTop['a](k: Sink['a]) {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { cb: nop }
+    r.cb = keep //~ ERROR cannot be erased
+}
+pub fn assignNested['a](k: Sink['a]) {
+    let mut r: RunnerN['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void] = RunnerN { cb: mkNop }
+    r.cb = mkKeep //~ ERROR cannot be erased
+}
+pub fn assignSafe['a](k: Sink['a]) {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { cb: nop }
+    r.cb = nop
+}
+pub fn boundTop['a](k: Sink['a]) { twoLevelT(mkKeep, k) } //~ ERROR cannot be erased
+pub fn boundNested['a](k: Sink['a]) {
+    let o: Option[fn(&String, Sink['a]) -> Void] = twoLevelO(mkMkKeep, 3) //~ ERROR cannot be erased
+}
+pub fn boundSafe['a](k: Sink['a]) { twoLevelT(mkNop, k) }
+pub fn methodValueTop['a](k: Sink['a]) {
+    let hn: HN['a] = HN { n: 1 }
+    let d = hn.run[fn(&'a String, Sink['a]) -> Void] //~ ERROR cannot be erased
+}
+pub fn methodValueNested['a](k: Sink['a]) {
+    let hn: HN['a] = HN { n: 1 }
+    let d = hn.runN[fn(Int) -> fn(&'a String, Sink['a]) -> Void] //~ ERROR cannot be erased
+}
+pub fn methodValueSafe['a](k: Sink['a]) {
+    let hn: HN['a] = HN { n: 1 }
+    let d = hn.run[fn(&String, Sink['a]) -> Void]
+}
+-- expect --
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:38:39
+   |
+38 | pub fn optTop['a](k: Sink['a]) { runO(Some(keep), k) } //~ ERROR cannot be erased
+   |                                       ^^^^^^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:40:57
+   |
+40 |     let o: Option[fn(&String, Sink['a]) -> Void] = mapO(Some(mkKeep), 3) //~ ERROR cannot be erased
+   |                                                         ^^^^^^^^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:43:39
+   |
+43 | pub fn boxTop['a](k: Sink['a]) { runB(Box { cb: keep }, k) } //~ ERROR cannot be erased
+   |                                       ^^^^^^^^^^^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:44:43
+   |
+44 | pub fn boxNested['a](k: Sink['a]) { runBN(Box { cb: mkKeep }, k) } //~ ERROR cannot be erased
+   |                                           ^^^^^^^^^^^^^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:46:54
+   |
+46 | pub fn spreadTop['a](k: Sink['a]) { runIt(Runner { ..Box { cb: keep } }, k) } //~ ERROR cannot be erased
+   |                                                      ^^^^^^^^^^^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:47:59
+   |
+47 | pub fn spreadNested['a](k: Sink['a]) { runItN(RunnerN { ..Box { cb: mkKeep } }, k) } //~ ERROR cannot be erased
+   |                                                           ^^^^^^^^^^^^^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:49:55
+   |
+49 | pub fn outerTop['a](k: Sink['a]) { let o = Outer { b: Box { cb: keep } } } //~ ERROR cannot be erased
+   |                                                       ^^^^^^^^^^^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:50:59
+   |
+50 | pub fn outerNested['a](k: Sink['a]) { let o = OuterN { b: Box { cb: mkKeep } } } //~ ERROR cannot be erased
+   |                                                           ^^^^^^^^^^^^^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:52:50
+   |
+52 | pub fn variantTop['a](k: Sink['a]) { let c = Has(Box { cb: keep }) } //~ ERROR cannot be erased
+   |                                                  ^^^^^^^^^^^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:53:54
+   |
+53 | pub fn variantNested['a](k: Sink['a]) { let c = HasN(Box { cb: mkKeep }) } //~ ERROR cannot be erased
+   |                                                      ^^^^^^^^^^^^^^^^
+
+error[E2297]: the reference lifetime of `keep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:57:12
+   |
+57 |     r.cb = keep //~ ERROR cannot be erased
+   |            ^^^^
+
+error[E2297]: the reference lifetime of `mkKeep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:61:12
+   |
+61 |     r.cb = mkKeep //~ ERROR cannot be erased
+   |            ^^^^^^
+
+error[E2297]: the reference lifetime of `mkKeep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:67:46
+   |
+67 | pub fn boundTop['a](k: Sink['a]) { twoLevelT(mkKeep, k) } //~ ERROR cannot be erased
+   |                                              ^^^^^^
+
+error[E2297]: the reference lifetime of `mkMkKeep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:69:62
+   |
+69 |     let o: Option[fn(&String, Sink['a]) -> Void] = twoLevelO(mkMkKeep, 3) //~ ERROR cannot be erased
+   |                                                              ^^^^^^^^
+
+error[E2297]: the reference lifetime of `run` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:74:13
+   |
+74 |     let d = hn.run[fn(&'a String, Sink['a]) -> Void] //~ ERROR cannot be erased
+   |             ^^^^^^
+
+error[E2297]: the reference lifetime of `runN` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:78:13
+   |
+78 |     let d = hn.runN[fn(Int) -> fn(&'a String, Sink['a]) -> Void] //~ ERROR cannot be erased
+   |             ^^^^^^^
+

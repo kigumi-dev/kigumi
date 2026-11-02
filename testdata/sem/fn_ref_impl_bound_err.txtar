@@ -1,0 +1,37 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+fn mkKeep['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { keep }
+fn mkNop['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { nop }
+pub type Box[F] = { pub mut cb F }
+pub interface Runner2[F] { fn run(self, f: F) }
+@impl(Runner2[F])
+pub type R1['a, F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void]] = { pub n Int }
+pub fn R1['a, F].run(self, f: F) { }
+fn useR3['a, R: Runner2[fn(Int) -> fn(&'a String, Sink['a]) -> Void]](r: R, k: Sink['a]) { r.run(mkKeep) }
+pub fn existential['a](k: Sink['a]) {
+    let r: R1['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void] = R1 { n: 1 }
+    let x: &Runner2[fn(Int) -> fn(&'a String, Sink['a]) -> Void] = &r //~ ERROR cannot be erased
+    x.run(mkKeep)
+}
+pub fn generic['a](k: Sink['a]) {
+    let r: R1['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void] = R1 { n: 1 }
+    useR3(r, k) //~ ERROR cannot be erased
+}
+-- expect --
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:15:68
+   |
+15 |     let x: &Runner2[fn(Int) -> fn(&'a String, Sink['a]) -> Void] = &r //~ ERROR cannot be erased
+   |                                                                    ^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:20:11
+   |
+20 |     useR3(r, k) //~ ERROR cannot be erased
+   |           ^
+

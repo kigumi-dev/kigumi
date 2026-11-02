@@ -1,0 +1,51 @@
+-- src --
+pub type Maker[F] = { pub make fn(&String) -> F }
+
+fn length['a](value: &'a String) -> usize { value.len() }
+fn useLen['a](f: fn(&'a String) -> usize) -> usize { 7 }
+fn useLen2(f: fn(&String) -> usize) -> usize { 0 }
+fn feeder['a](f: fn(fn(&'a String) -> usize) -> usize) -> usize { 0 }
+fn mk['a](s: &String) -> fn(&'a String) -> usize { length }
+
+pub fn passedToCallback() {
+    let x: fn(fn(fn(&String) -> usize) -> usize) -> usize = feeder //~ ERROR found `fn(fn(fn(&'a (feeder) String) -> usize) -> usize) -> usize`
+}
+
+pub fn callbackKeeps['a](v: &'a String) {
+    let y: fn(fn(&'a String) -> usize) -> usize = useLen2 //~ ERROR expected `fn(fn(&'a String) -> usize) -> usize`
+}
+
+pub fn notHeld['a](v: &'a String) {
+    let m = Maker { make: mk }
+    let n: Maker[fn(&String) -> usize] = m //~ ERROR expected `Maker[fn(&String) -> usize]`
+}
+
+pub fn throughReference['a](v: &'a String) {
+    let fs = Array.of(length)
+    let r: &Array[fn(&String) -> usize] = &fs //~ ERROR expected `&Array[fn(&String) -> usize]`
+}
+-- expect --
+error[E400]: expected `fn(fn(fn(&String) -> usize) -> usize) -> usize`, found `fn(fn(fn(&'a (feeder) String) -> usize) -> usize) -> usize`
+  --> main/main.kg:10:61
+   |
+10 |     let x: fn(fn(fn(&String) -> usize) -> usize) -> usize = feeder //~ ERROR found `fn(fn(fn(&'a (feeder) String) -> usize) -> usize) -> usize`
+   |                                                             ^^^^^^
+
+error[E400]: expected `fn(fn(&'a String) -> usize) -> usize`, found `fn(fn(&String) -> usize) -> usize`
+  --> main/main.kg:14:51
+   |
+14 |     let y: fn(fn(&'a String) -> usize) -> usize = useLen2 //~ ERROR expected `fn(fn(&'a String) -> usize) -> usize`
+   |                                                   ^^^^^^^
+
+error[E400]: expected `Maker[fn(&String) -> usize]`, found `Maker[fn(&'a String) -> usize]`
+  --> main/main.kg:19:42
+   |
+19 |     let n: Maker[fn(&String) -> usize] = m //~ ERROR expected `Maker[fn(&String) -> usize]`
+   |                                          ^
+
+error[E400]: expected `&Array[fn(&String) -> usize]`, found `&Array[fn(&'a String) -> usize]`
+  --> main/main.kg:24:43
+   |
+24 |     let r: &Array[fn(&String) -> usize] = &fs //~ ERROR expected `&Array[fn(&String) -> usize]`
+   |                                           ^^^
+

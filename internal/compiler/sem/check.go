@@ -60,9 +60,8 @@ type checker struct {
 	contracts    []Effects
 	lambdas      []*lambdaCtx
 	retLeaves    []syntax.NodeID
-	// captureSites indexes every Capture entry recorded for a local, across
-	// closures open and closed, so a write seen after a closure finishes can
-	// still promote that closure's entry.
+	// captureSites indexes every Capture entry of a local across open and closed closures, so a write seen after a
+	// closure finishes can still promote that closure's entry.
 	captureSites map[EntityID][]captureSite
 	facts        []NarrowFact
 	inCond       int
@@ -79,6 +78,21 @@ type checker struct {
 	paramAlias map[EntityID]EntityID
 	// letInit: a local's `let` initializer, so an fn value can be traced through alias chains.
 	letInit map[EntityID]syntax.NodeID
+	// valueExprs maps a method value expression to its own-generic instantiation, for the proof at calls through it.
+	valueExprs map[syntax.NodeID]*valueInstData
+	// holderVals, holderAlias, holderOther record, per local, the method values it is bound to, the locals it aliases,
+	// and whether it is ever assigned a non-method value, resolved flow-insensitively for the holder escape walk.
+	holderVals      map[EntityID][]*valueInstData
+	holderAlias     map[EntityID][]EntityID
+	holderOther     map[EntityID]bool
+	holderAliasNode map[syntax.NodeID]bool
+	holderRes       map[EntityID]*holderRes
+	// callArgs and walkOwner feed the holder walk: a value call's placed arguments and the closure it walks inside.
+	callArgs  map[syntax.NodeID][]syntax.NodeID
+	walkOwner EntityID
+	// valueIfaceChecks defers a value instantiation's interface-bound refusal to the end of the body, so a later call
+	// through the value counts.
+	valueIfaceChecks []valueIfaceCheck
 	// paramReassign: the values a param is wholly reassigned to, which a returned param may hold instead of its argument.
 	paramReassign map[EntityID][]syntax.NodeID
 	// escapeAlias: a non-escaping parameter a local may hold; any binding or branch taints it and `mut` does not clear it.
@@ -176,25 +190,6 @@ func (c *checker) checkBodyBlock(body syntax.NodeID) {
 	c.checkExitMoves()
 	c.checkEscapeTailReturn(body)
 	c.finish()
-}
-
-func (c *checker) pushScope(kind ScopeKind, node syntax.NodeID) ScopeID {
-	s := c.r.newScope(kind, c.scope, c.f, node)
-	c.r.Scopes[s].Fn = c.fn
-	c.info.Scopes[node] = s
-	c.scope = s
-	return s
-}
-
-func (c *checker) popScope(saved ScopeID) {
-	if len(c.reserved) > 0 || len(c.cleanupLog.earlier) > 0 {
-		c.releaseReservations(c.scope)
-	}
-	c.scope = saved
-}
-
-func (c *checker) setType(n syntax.NodeID, t TypeID) TypeID {
-	c.info.Types[n] = t
-	c.touched = append(c.touched, n)
-	return t
+	c.escapeHolderUses(body)
+	c.flushValueIfaceChecks()
 }

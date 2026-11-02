@@ -1,0 +1,29 @@
+-- src --
+type View['a] = { pub value &'a String }
+
+fn length['a](value: &'a String) -> usize { value.len() }
+fn view['a](value: &'a String) -> View['a] { View { value: value } }
+fn id[T](x: T) -> T { x }
+fn second[T](x: T, y: T) -> T { y }
+fn wrap[T](x: T) -> Array[T] { Array.of(x) }
+fn twice(f: fn(&String) -> usize, v: &String) -> usize { f(v) + f(v) }
+
+fn run['a](value: &'a String, p: escaping fn(&'a String) -> usize) {
+    let direct: fn(&String) -> usize = length
+    let fs: Array[fn(&String) -> usize] = Array.of(length)
+    let ws: Array[fn(&String) -> usize] = wrap(length)
+    let nested: Array[fn(&String) -> usize] = Array.of(id(length))
+    let vs: Array[fn(&String) -> View['a]] = Array.of(view)
+    print "${direct(value)} ${fs[0](value)} ${ws[0](value)} ${nested[0](value)} ${vs.len()}"
+    print "${twice(length, value)} ${twice(fs[0], value)} ${twice(id(length), value)}"
+    let q: fn(&'a String) -> usize = length
+    let g = id(length)
+    print "${twice(id(q), value)} ${twice(g, value)} ${twice(second(p, q), value)}"
+}
+
+let text = "hello"
+run(&text, length)
+-- stdout --
+5 5 5 5 1
+10 10 10
+10 10 10

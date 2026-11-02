@@ -26,10 +26,11 @@ func (c *borrowCheck) keptFlowCallees(in midir.Inst) ([]sem.EntityID, []midir.Lo
 	if in.Op == midir.OpCallValue || in.Op == midir.OpFutureNew {
 		args = in.Args[1:]
 		if in.Ent == 0 {
-			var ok bool
-			if ents, ok = c.fnItemOrigins(in.Args[0], 8); !ok {
+			items := c.fnItemOrigins(in.Args[0], 8)
+			if !items.known {
 				return nil, args
 			}
+			ents = items.ents
 		}
 	}
 	return c.resolveKeptCallees(ents), args

@@ -152,11 +152,11 @@ func (c *borrowCheck) siteBind(e sem.EntityID, args []midir.LocalID) map[int][]s
 		if j >= len(c.declaredParams(e)) || c.fnResult(c.f.Locals[a].Type) == 0 {
 			continue
 		}
-		if ents, ok := c.fnItemOrigins(a, 8); ok {
+		if ents := c.fnItemOrigins(a, 8); ents.known && len(ents.ents) > 0 {
 			if out == nil {
 				out = map[int][]sem.EntityID{}
 			}
-			out[j] = ents
+			out[j] = ents.ents
 		}
 	}
 	return out

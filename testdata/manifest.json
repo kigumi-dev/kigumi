@@ -941,6 +941,17 @@
       ]
     },
     {
+      "id": "mir/lifetime_callvalue_caller_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_callvalue_caller_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/lifetime_callvalue_composite",
       "kind": "mir",
       "path": "testdata/mir/lifetime_callvalue_composite.txtar",
@@ -955,6 +966,17 @@
       "id": "mir/lifetime_callvalue_untracked_err",
       "kind": "mir",
       "path": "testdata/mir/lifetime_callvalue_untracked_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_erase_relay",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_erase_relay.txtar",
       "mode": [
         "build"
       ],
@@ -10416,9 +10438,315 @@
       ]
     },
     {
+      "id": "run/fn_ref_bound_param",
+      "kind": "run",
+      "path": "testdata/run/fn_ref_bound_param.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_ref_bound_routes",
+      "kind": "run",
+      "path": "testdata/run/fn_ref_bound_routes.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/fn_ref_contract",
       "kind": "run",
       "path": "testdata/run/fn_ref_contract.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_ref_erase_nested",
+      "kind": "run",
+      "path": "testdata/run/fn_ref_erase_nested.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_ref_erase_routes",
+      "kind": "run",
+      "path": "testdata/run/fn_ref_erase_routes.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_ref_known_parts",
+      "kind": "run",
+      "path": "testdata/run/fn_ref_known_parts.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_ref_plain_parts",
+      "kind": "run",
+      "path": "testdata/run/fn_ref_plain_parts.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_ref_receiver_routes",
+      "kind": "run",
+      "path": "testdata/run/fn_ref_receiver_routes.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_ref_relay_async",
+      "kind": "run",
+      "path": "testdata/run/fn_ref_relay_async.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_ref_slot_routes",
+      "kind": "run",
+      "path": "testdata/run/fn_ref_slot_routes.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_ref_value_alias_graph",
+      "kind": "run",
+      "path": "testdata/run/fn_ref_value_alias_graph.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_ref_value_calls",
+      "kind": "run",
+      "path": "testdata/run/fn_ref_value_calls.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_ref_value_explicit",
+      "kind": "run",
+      "path": "testdata/run/fn_ref_value_explicit.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_ref_value_hole_closure",
+      "kind": "run",
+      "path": "testdata/run/fn_ref_value_hole_closure.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_ref_value_iface_routes",
+      "kind": "run",
+      "path": "testdata/run/fn_ref_value_iface_routes.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_ref_value_mut",
+      "kind": "run",
+      "path": "testdata/run/fn_ref_value_mut.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_ref_value_pipe",
+      "kind": "run",
+      "path": "testdata/run/fn_ref_value_pipe.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_ref_value_variadic",
+      "kind": "run",
+      "path": "testdata/run/fn_ref_value_variadic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_ref_variance_routes",
+      "kind": "run",
+      "path": "testdata/run/fn_ref_variance_routes.txtar",
       "mode": [
         "vm",
         "native"
@@ -21674,6 +22002,50 @@
       ]
     },
     {
+      "id": "sem/fn_ref_assoc_value_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_assoc_value_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_bound_param_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_bound_param_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_bound_param_shape_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_bound_param_shape_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_caller_lifetime_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_caller_lifetime_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/fn_ref_contract_coerce_err",
       "kind": "sem",
       "path": "testdata/sem/fn_ref_contract_coerce_err.txtar",
@@ -21721,6 +22093,413 @@
       "id": "sem/fn_ref_contract_witness_err",
       "kind": "sem",
       "path": "testdata/sem/fn_ref_contract_witness_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_erase_bound_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_erase_bound_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_erase_nested_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_erase_nested_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_erase_nested_proof_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_erase_nested_proof_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_erase_relay_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_erase_relay_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_erase_routes_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_erase_routes_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_explicit_bound_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_explicit_bound_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_generic_keep_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_generic_keep_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_iface_bound_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_iface_bound_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_iface_fn_param_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_iface_fn_param_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_impl_bound_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_impl_bound_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_lifetime_scope_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_lifetime_scope_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_lifetime_text_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_lifetime_text_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_member_lifetime_text_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_member_lifetime_text_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_method_bound_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_method_bound_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_method_receiver_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_method_receiver_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_method_value_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_method_value_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_multi_bound_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_multi_bound_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_part_path_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_part_path_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_part_write_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_part_write_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_relay_async_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_relay_async_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_requirement_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_requirement_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_slot_routes_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_slot_routes_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_type_bound_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_type_bound_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_unknown_dedupe_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_unknown_dedupe_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_value_escape_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_value_escape_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_value_escape_uses_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_value_escape_uses_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_value_flow_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_value_flow_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_value_fnitem_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_value_fnitem_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_value_iface_bound_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_value_iface_bound_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_value_later_call_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_value_later_call_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_value_pipe_hole_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_value_pipe_hole_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_value_store_escape_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_value_store_escape_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_value_toplevel_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_value_toplevel_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_value_toplevel_wrap_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_value_toplevel_wrap_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_value_variadic_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_value_variadic_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_value_wrapper_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_value_wrapper_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_witness_binder_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_witness_binder_err.txtar",
       "mode": [
         "check"
       ],
@@ -23668,6 +24447,39 @@
       "id": "sem/ref_scrutinee_temp_err",
       "kind": "sem",
       "path": "testdata/sem/ref_scrutinee_temp_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/relay_maker_borrow_err",
+      "kind": "sem",
+      "path": "testdata/sem/relay_maker_borrow_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/relay_maker_method_err",
+      "kind": "sem",
+      "path": "testdata/sem/relay_maker_method_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/relay_maker_move_err",
+      "kind": "sem",
+      "path": "testdata/sem/relay_maker_move_err.txtar",
       "mode": [
         "check"
       ],

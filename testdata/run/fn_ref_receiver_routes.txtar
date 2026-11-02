@@ -1,0 +1,31 @@
+-- src --
+fn length['a](value: &'a String) -> usize { value.len() }
+fn plainLen(v: &String) -> usize { v.len() + 100 }
+
+pub type Box[F] = { pub mut cb F }
+pub type Outer[F: Fn[fn(&String) -> usize]] = { pub mut b Box[F] }
+fn Outer[F].go(self, v: &String) -> usize { (self.b.cb)(v) }
+
+pub interface Maker[F] { fn make(move self) -> F }
+@impl(Maker[F])
+pub type KM[F] = { pub f F }
+pub fn KM[F].make(move self) -> F { self.f }
+pub type HN = { pub n Int }
+fn HN.useM[F: Fn[fn(&String) -> usize], M: Maker[F]](self, m: M, v: &String) -> usize { (m.make())(v) }
+fn HN.run[F: Fn[fn(&String) -> usize]](self, f: F, v: &String) -> usize { f(v) }
+
+fn routes(v: &String) -> String {
+    let o = Outer { b: Box { cb: length } }
+    let viaReceiver = o.go(v)
+    let hn = HN { n: 1 }
+    let viaInterface = hn.useM[fn(&String) -> usize, KM[fn(&String) -> usize]](KM { f: plainLen }, v)
+    let d = hn.run
+    let first = d(length, v)
+    let second = d(plainLen, v)
+    "${viaReceiver} ${viaInterface} ${first} ${second}"
+}
+
+let s = "hello"
+print routes(&s)
+-- stdout --
+5 105 5 105

@@ -1,0 +1,48 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+pub interface Sized2 { fn size(move self) -> usize }
+pub type R0['a, F] = { pub cb F, pub k Sink['a] }
+pub fn R0['a, F: Fn[fn(&String, Sink['a]) -> Void]].size(move self) -> usize {
+    let loc = "local-${40 + 2}-abcdefghijklmnopqrstuvwxyz"
+    (self.cb)(&loc, self.k)
+    7
+}
+pub type Hn = { pub n Int }
+fn measureAll['a, R: Sized2](rs: ...R) -> usize {
+    let mut t: usize = 0
+    for r in rs { t = t + r.size() }
+    t
+}
+fn Hn.measureM['a, R: Sized2](self, rs: ...R) -> usize {
+    let mut t: usize = 0
+    for r in rs { t = t + r.size() }
+    t
+}
+pub fn direct['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    measureAll(ra, rb) //~ ERROR cannot be erased
+}
+pub fn method['a](k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    hn.measureM(rb) //~ ERROR cannot be erased
+}
+-- expect --
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:26:20
+   |
+26 |     measureAll(ra, rb) //~ ERROR cannot be erased
+   |                    ^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:31:17
+   |
+31 |     hn.measureM(rb) //~ ERROR cannot be erased
+   |                 ^^
+

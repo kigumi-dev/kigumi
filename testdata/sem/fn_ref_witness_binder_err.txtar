@@ -1,0 +1,30 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn mkKeep['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { keep }
+pub interface Runner2[F] { fn run(self, f: F) }
+pub type R0['a, F] = { pub n Int }
+pub fn R0['a, F: Fn[fn(Int) -> fn(&'a String, Sink['a]) -> Void]].run(self, f: F) { }
+pub fn R0['a, F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void]].run(self, f: F, n: Int) { }
+pub type R5['a, F] = { pub n Int }
+pub fn R5['a, F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void]].run(self, f: F) { }
+pub fn R5['a, F: Fn[fn(Int) -> fn(&'a String, Sink['a]) -> Void]].run(self, f: F, n: Int) { }
+fn useR3['a, R: Runner2[fn(Int) -> fn(&'a String, Sink['a]) -> Void]](r: R, k: Sink['a]) { r.run(mkKeep) }
+pub fn exactWitness['a](k: Sink['a]) {
+    let r: R0['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void] = R0 { n: 1 }
+    useR3(r, k)
+}
+pub fn plainWitness['a](k: Sink['a]) {
+    let r: R5['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void] = R5 { n: 1 }
+    useR3(r, k) //~ ERROR cannot be erased
+}
+-- expect --
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:19:11
+   |
+19 |     useR3(r, k) //~ ERROR cannot be erased
+   |           ^
+

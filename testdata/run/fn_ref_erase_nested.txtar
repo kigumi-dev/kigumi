@@ -1,0 +1,72 @@
+-- src --
+type Box[F] = { pub f F }
+fn useLen['a](f: fn(&'a String) -> usize) -> usize { 7 }
+fn length['a](value: &'a String) -> usize { value.len() }
+fn mkLen['a](n: Int) -> fn(&'a String) -> usize { length }
+fn id[T](x: T) -> T { x }
+fn plainLen(v: &String) -> usize { v.len() + 100 }
+
+fn retItem() -> fn(&String) -> usize { length }
+fn retArray() -> Array[fn(&String) -> usize] { Array.of(length) }
+fn retLocal() -> Array[fn(&String) -> usize] {
+    let fs = Array.of(length)
+    fs
+}
+
+fn run0() {
+    let direct: fn(fn(&String) -> usize) -> usize = useLen
+    let us: Array[fn(fn(&String) -> usize) -> usize] = Array.of(useLen)
+    let m: fn(Int) -> fn(&String) -> usize = mkLen
+    let ms: Array[fn(Int) -> fn(&String) -> usize] = Array.of(mkLen)
+    let t = "abc"
+    print "${direct(plainLen)} ${us[0](length)} ${m(1)(&t)} ${ms[0](2)(&t)}"
+    let fs = Array.of(length)
+    let g: Array[fn(&String) -> usize] = fs
+    let fs2 = Array.of(length)
+    let h: Array[fn(&String) -> usize] = id(fs2)
+    let o = Some(length)
+    let p: Option[fn(&String) -> usize] = o
+    print "${g[0](&t)} ${h[0](&t)} ${p.unwrap()(&t)}"
+    print "${retItem()(&t)} ${retArray()[0](&t)} ${retLocal()[0](&t)}"
+}
+
+fn run2['a, 'b](v: &'a String, w: &'b String) {
+    let direct: fn(fn(&String) -> usize) -> usize = useLen
+    let fs = Array.of(length)
+    let g: Array[fn(&String) -> usize] = fs
+    print "${direct(length)} ${g[0](v)} ${g[0](w)}"
+}
+
+fn run1['a](value: &'a String) {
+    let fs = Array.of(length)
+    let g: Array[fn(&String) -> usize] = fs
+    print "${g[0](value)}"
+}
+
+fn boxed() -> usize {
+    let b = Box { f: length }
+    let c: Box[fn(&String) -> usize] = b
+    let loc = "local${1}"
+    (c.f)(&loc)
+}
+
+fn relayedBox() -> usize {
+    let b = Box { f: length }
+    let c: Box[fn(&String) -> usize] = id(b)
+    let loc = "relay${12}"
+    (c.f)(&loc)
+}
+
+let text = "hello"
+let other = "hi"
+run0()
+run1(&text)
+run2(&text, &other)
+print "${boxed()} ${relayedBox()}"
+-- stdout --
+7 7 3 3
+3 3 3
+3 3 3
+5
+7 5 2
+6 7

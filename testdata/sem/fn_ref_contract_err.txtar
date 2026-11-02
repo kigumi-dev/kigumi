@@ -8,18 +8,18 @@ fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
 
 pub fn direct['a](g: fn(&'a String, Sink['a]) -> Void, k: Sink['a]) {
     let loc = "local"
-    g(&loc, k) //~ ERROR a value borrowing `loc` cannot go into shared storage
+    g(&loc, k) //~ ERROR a value borrowing `loc` cannot be passed as `&'a String`
 }
 
 pub fn bound['a, F: Fn[fn(&'a String, Sink['a]) -> Void]](g: F, k: Sink['a]) {
     let loc = "local"
-    g(&loc, k) //~ ERROR a value borrowing `loc` cannot go into shared storage
+    g(&loc, k) //~ ERROR a value borrowing `loc` cannot be passed as `&'a String`
 }
 
 pub fn alias['a](g: fn(&'a String, Sink['a]) -> Void, k: Sink['a]) {
     let loc = "local"
     let h = g
-    h(&loc, k) //~ ERROR a value borrowing `loc` cannot go into shared storage
+    h(&loc, k) //~ ERROR a value borrowing `loc` cannot be passed as `&'a String`
 }
 
 pub fn known['a](k: Sink['a]) {
@@ -28,40 +28,40 @@ pub fn known['a](k: Sink['a]) {
 }
 
 -- expect --
-error[E2158]: a value borrowing `loc` cannot go into shared storage: another handle to that storage can keep it after `loc` is gone
+error[E2320]: a value borrowing `loc` cannot be passed as `&'a String`: `'a` belongs to the caller and outlives this call
  --> main.kg:8:5
   |
-8 |     g(&loc, k) //~ ERROR a value borrowing `loc` cannot go into shared storage
+8 |     g(&loc, k) //~ ERROR a value borrowing `loc` cannot be passed as `&'a String`
   |     ^^^^^^^^^
-  = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+  = help: pass a borrow the caller lent, or give the function value a plain `&` parameter, which cannot keep the borrow
 note: `loc` is borrowed here
  --> main.kg:8:7
   |
-8 |     g(&loc, k) //~ ERROR a value borrowing `loc` cannot go into shared storage
+8 |     g(&loc, k) //~ ERROR a value borrowing `loc` cannot be passed as `&'a String`
   |       ^^^^
 
-error[E2158]: a value borrowing `loc` cannot go into shared storage: another handle to that storage can keep it after `loc` is gone
+error[E2320]: a value borrowing `loc` cannot be passed as `&'a String`: `'a` belongs to the caller and outlives this call
   --> main.kg:13:5
    |
-13 |     g(&loc, k) //~ ERROR a value borrowing `loc` cannot go into shared storage
+13 |     g(&loc, k) //~ ERROR a value borrowing `loc` cannot be passed as `&'a String`
    |     ^^^^^^^^^
-   = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+   = help: pass a borrow the caller lent, or give the function value a plain `&` parameter, which cannot keep the borrow
 note: `loc` is borrowed here
   --> main.kg:13:7
    |
-13 |     g(&loc, k) //~ ERROR a value borrowing `loc` cannot go into shared storage
+13 |     g(&loc, k) //~ ERROR a value borrowing `loc` cannot be passed as `&'a String`
    |       ^^^^
 
-error[E2158]: a value borrowing `loc` cannot go into shared storage: another handle to that storage can keep it after `loc` is gone
+error[E2320]: a value borrowing `loc` cannot be passed as `&'a String`: `'a` belongs to the caller and outlives this call
   --> main.kg:19:5
    |
-19 |     h(&loc, k) //~ ERROR a value borrowing `loc` cannot go into shared storage
+19 |     h(&loc, k) //~ ERROR a value borrowing `loc` cannot be passed as `&'a String`
    |     ^^^^^^^^^
-   = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+   = help: pass a borrow the caller lent, or give the function value a plain `&` parameter, which cannot keep the borrow
 note: `loc` is borrowed here
   --> main.kg:19:7
    |
-19 |     h(&loc, k) //~ ERROR a value borrowing `loc` cannot go into shared storage
+19 |     h(&loc, k) //~ ERROR a value borrowing `loc` cannot be passed as `&'a String`
    |       ^^^^
 
 error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead

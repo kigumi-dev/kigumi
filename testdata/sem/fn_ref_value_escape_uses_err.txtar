@@ -1,0 +1,119 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+pub interface Sized2 { fn size(move self) -> usize }
+pub type R0['a, F] = { pub cb F, pub k Sink['a] }
+pub fn R0['a, F: Fn[fn(&String, Sink['a]) -> Void]].size(move self) -> usize {
+    let loc = "local-${40 + 2}-abcdefghijklmnopqrstuvwxyz"
+    (self.cb)(&loc, self.k)
+    7
+}
+pub type Hn = { pub n Int }
+pub type Holder[G] = { pub f G }
+fn Hn.measure[R: Sized2](self, r: R) -> usize { r.size() }
+fn apply['a](g: fn(R0['a, fn(&'a String, Sink['a]) -> Void]) -> usize, r: R0['a, fn(&'a String, Sink['a]) -> Void]) -> usize { g(r) }
+fn callIt['a, T, H: Fn[fn(T) -> usize]](h: H, x: T) -> usize { h(x) }
+fn callOwn['a, H: Fn[fn(R0['a, fn(&'a String, Sink['a]) -> Void]) -> usize]](h: H, k: Sink['a]) -> usize { h(R0 { cb: keep, k: k }) }
+pub fn storeField['a](k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let h = Holder { f: hn.measure } //~ ERROR cannot be erased
+    (h.f)(rb)
+}
+pub fn storeArray['a](k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let fs = Array.of(hn.measure) //~ ERROR cannot be erased
+    fs[0](rb)
+}
+pub fn storeOption['a](k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let o = Some(hn.measure) //~ ERROR cannot be erased
+    match o { Some(f) -> f(rb), None -> 0 }
+}
+pub fn toGeneric['a](k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    callIt(hn.measure, rb) //~ ERROR cannot be erased
+}
+pub fn calleeBuilds['a](k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    callOwn(hn.measure, k2) //~ ERROR cannot be erased
+}
+pub fn provedThenEscapes['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let g = hn.measure
+    let x = g(ra)
+    x + apply(g, rb) //~ ERROR cannot be erased
+}
+pub fn provedThenAlias['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let g = hn.measure
+    let x = g(ra)
+    let g2 = g
+    x + apply(g2, rb) //~ ERROR cannot be erased
+}
+pub fn returnsValue['a](hn: Hn, k1: Sink['a]) -> fn(R0['a, fn(&'a String, Sink['a]) -> Void]) -> usize {
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let g = hn.measure
+    let x = g(ra)
+    g //~ ERROR cannot be erased
+}
+-- expect --
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:21:25
+   |
+21 |     let h = Holder { f: hn.measure } //~ ERROR cannot be erased
+   |                         ^^^^^^^^^^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:27:23
+   |
+27 |     let fs = Array.of(hn.measure) //~ ERROR cannot be erased
+   |                       ^^^^^^^^^^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:33:18
+   |
+33 |     let o = Some(hn.measure) //~ ERROR cannot be erased
+   |                  ^^^^^^^^^^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:39:12
+   |
+39 |     callIt(hn.measure, rb) //~ ERROR cannot be erased
+   |            ^^^^^^^^^^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:43:13
+   |
+43 |     callOwn(hn.measure, k2) //~ ERROR cannot be erased
+   |             ^^^^^^^^^^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:51:15
+   |
+51 |     x + apply(g, rb) //~ ERROR cannot be erased
+   |               ^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:60:15
+   |
+60 |     x + apply(g2, rb) //~ ERROR cannot be erased
+   |               ^^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:66:5
+   |
+66 |     g //~ ERROR cannot be erased
+   |     ^
+

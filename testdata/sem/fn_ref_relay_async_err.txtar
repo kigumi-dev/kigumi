@@ -1,0 +1,97 @@
+-- module --
+mir: planned
+-- src --
+import task from std/task
+
+async fn pushA(v: &mut Array[String]) { v.push("A") }
+async fn pushB(v: &mut Array[String]) {
+    await task.yieldNow()
+    v.push("B-written-${40 + 2}")
+}
+fn sel[T, F: Fn[fn() -> T]](x: T, g: F) -> T { g() }
+fn id[T](x: T) -> T { x }
+fn consume(a: Array[String]) -> usize { a.len() }
+
+interface Maker[T] { fn make(self) -> T }
+type MakeB = { pub n Int }
+fn MakeB.make(self) -> fn(&mut Array[String]) -> Future[Void] { pushB }
+fn viaMaker[T, M: Maker[T]](x: T, m: M) -> T { m.make() }
+
+pub fn viaClosure() {
+    let ex = task.currentThreadExecutor()
+    let h = sel(pushA, () => pushB)
+    let mut v = Array.of("init-${1}")
+    let fut = h(&mut v)
+    v.push("during") //~ ERROR `v` is exclusively borrowed
+    ex.runToCompletion(fut)
+}
+
+pub fn viaInterface() {
+    let ex = task.currentThreadExecutor()
+    let h = viaMaker(pushA, MakeB { n: 1 })
+    let mut v = Array.of("init-${1}")
+    let fut = h(&mut v)
+    v.push("during") //~ ERROR `v` is exclusively borrowed
+    ex.runToCompletion(fut)
+}
+
+pub fn movedAway() {
+    let ex = task.currentThreadExecutor()
+    let h = sel(pushA, () => pushB)
+    let mut v = Array.of("init-${1}")
+    let fut = h(&mut v)
+    let n = consume(v) //~ ERROR `v` is borrowed and cannot be moved
+    ex.runToCompletion(fut)
+}
+
+pub fn viaId() {
+    let ex = task.currentThreadExecutor()
+    let h = id(pushA)
+    let mut v = Array.of("init-${1}")
+    let fut = h(&mut v)
+    v.push("during") //~ ERROR `v` is exclusively borrowed
+    ex.runToCompletion(fut)
+}
+-- expect --
+error[E2198]: `v` is exclusively borrowed and cannot be used here
+  --> main.kg:22:5
+   |
+22 |     v.push("during") //~ ERROR `v` is exclusively borrowed
+   |     ^
+   = help: end the borrow first or use a copy
+note: `v` is borrowed here
+  --> main.kg:21:17
+   |
+21 |     let fut = h(&mut v)
+   |                 ^^^^^^
+
+error[E2198]: `v` is exclusively borrowed and cannot be used here
+  --> main.kg:31:5
+   |
+31 |     v.push("during") //~ ERROR `v` is exclusively borrowed
+   |     ^
+   = help: end the borrow first or use a copy
+note: `v` is borrowed here
+  --> main.kg:30:17
+   |
+30 |     let fut = h(&mut v)
+   |                 ^^^^^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+  --> main.kg:40:21
+   |
+40 |     let n = consume(v) //~ ERROR `v` is borrowed and cannot be moved
+   |                     ^
+
+error[E2198]: `v` is exclusively borrowed and cannot be used here
+  --> main.kg:49:5
+   |
+49 |     v.push("during") //~ ERROR `v` is exclusively borrowed
+   |     ^
+   = help: end the borrow first or use a copy
+note: `v` is borrowed here
+  --> main.kg:48:17
+   |
+48 |     let fut = h(&mut v)
+   |                 ^^^^^^
+

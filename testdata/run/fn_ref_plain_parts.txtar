@@ -1,0 +1,34 @@
+-- src --
+fn blen['a](x: &'a Array[Int]) -> usize { x.len() }
+fn length['a](value: &'a String) -> usize { value.len() }
+
+pub type R2[F: Fn[fn(&Array[Int]) -> usize] + Copy] = { pub cb F, pub n usize }
+pub type R1[F: Fn[fn(&Array[Int]) -> usize] + Copy] = { pub cb F }
+fn use2[F: Fn[fn(&Array[Int]) -> usize] + Copy](r: R2[F]) -> usize {
+    let xs = Array.of(1, 2, 3)
+    (r.cb)(&xs) + r.n
+}
+fn use1[F: Fn[fn(&Array[Int]) -> usize] + Copy](r: R1[F]) -> usize {
+    let xs = Array.of(1, 2, 3)
+    (r.cb)(&xs)
+}
+fn useT[F: Fn[fn(&Array[Int]) -> usize] + Copy](t: (F, usize)) -> usize {
+    let xs = Array.of(1, 2, 3)
+    let (f, n) = t
+    f(&xs) + n
+}
+
+pub type Box[F] = { pub mut cb F }
+pub type Outer[F: Fn[fn(&String) -> usize] + Copy] = { pub mut b Box[F] }
+pub fn Outer[F].go(move self, v: &String) -> usize { (self.b.cb)(v) }
+pub interface Goer { fn go(move self, v: &String) -> usize }
+fn viaIface[R: Goer](r: R, v: &String) -> usize { r.go(v) }
+
+let r = R2 { cb: blen, n: 20 }
+let s = "hello"
+let o = Outer { b: Box { cb: length } }
+let g = o.go
+let o2 = Outer { b: Box { cb: length } }
+print "${use1(R1 { cb: blen })} ${use2(R2 { cb: blen, n: 10 })} ${use2(r)} ${useT((blen, 30))} ${g(&s)} ${viaIface(o2, &s)}"
+-- stdout --
+3 13 23 33 5 5

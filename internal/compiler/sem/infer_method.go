@@ -82,7 +82,8 @@ func (c *checker) callRequirement(n, callee, base syntax.NodeID, recv TypeID, re
 		c.edge(EffectEdge{Kind: EdgeCall, Target: req, Param: c.ifaceRecvEnt(base, recv), Node: n})
 		c.noteIfaceRecvFn(n, base)
 	}
-	sig = c.instantiateRequirement(n, req, sig, typeArgs)
+	declared := sig
+	sig, subst := c.instantiateRequirement(n, req, sig, typeArgs)
 	from := len(*c.edges)
 	ret, plan := c.checkArgs(n, c.r.Entities[req].Name, sig, args, nil, want, c.r.Fn(req).Params, false, c.r.Fn(req).Declared&EffAsync != 0)
 	c.taintRecvResult(n, ret, base)
@@ -91,6 +92,7 @@ func (c *checker) callRequirement(n, callee, base syntax.NodeID, recv TypeID, re
 	if plan != nil {
 		effArgs = plan.placed()
 	}
+	c.argContracts(effArgs, declared, subst, 0, 0)
 	if c.r.Fn(req).Recv == RecvMut {
 		c.checkReentrantCapture(base, effArgs)
 		c.recordReqFieldCallSite(n, req, base, effArgs)

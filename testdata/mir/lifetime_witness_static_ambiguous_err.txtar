@@ -50,12 +50,12 @@ error[move-while-borrowed]: `buf2` is still borrowed when its scope ends here
 12 |     let buf2 = Bytes.fromArray(&Array.of(1, 2, 3))
    |         ^^^^
 
-error[E2158]: a value borrowing `buf2` cannot go into shared storage: another handle to that storage can keep it after `buf2` is gone
+error[E2320]: a value borrowing `buf2` cannot be passed as `&'a Bytes`: `'a` belongs to the caller and outlives this call
   --> lib/lt.kg:13:5
    |
 13 |     T.make(a, &buf2)
    |     ^^^^^^^^^^^^^^^
-   = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+   = help: pass a borrow the caller lent, or give the function value a plain `&` parameter, which cannot keep the borrow
 note: `buf2` is borrowed here
   --> lib/lt.kg:13:15
    |

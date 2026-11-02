@@ -1,0 +1,69 @@
+-- src --
+fn blen['a](x: &'a Array[Int]) -> usize { x.len() }
+fn ten(n: Int) -> usize { 10 }
+fn five() -> usize { 5 }
+
+fn runO[F: Fn[fn(&Array[Int]) -> usize] + Copy](o: Option[F]) -> usize {
+    let xs = Array.of(1, 2, 3)
+    if o is Some(f) { f(&xs) } else { 100 }
+}
+fn opts['a](x: &'a Array[Int]) -> usize {
+    let n: Option[fn(&'a Array[Int]) -> usize] = None
+    let s: Option[fn(&'a Array[Int]) -> usize] = Some(blen)
+    runO(n) + runO(s)
+}
+fn joined(c: Bool) -> usize {
+    let n = if c { Some(blen) } else { None }
+    runO(n)
+}
+
+pub type R9[F: Fn[fn(&Array[Int]) -> usize] + Copy] = { pub n usize }
+fn use9[F: Fn[fn(&Array[Int]) -> usize] + Copy](r: R9[F]) -> usize { r.n }
+pub type E[F: Fn[fn(&Array[Int]) -> usize] + Copy] = A(f: F) | B(n: usize)
+fn useE[F: Fn[fn(&Array[Int]) -> usize] + Copy](e: E[F]) -> usize {
+    let xs = Array.of(1, 2, 3)
+    match e {
+        A(f) -> f(&xs)
+        B(n) -> n
+    }
+}
+fn plain['a](x: &'a Array[Int]) -> usize {
+    let r: R9[fn(&'a Array[Int]) -> usize] = R9 { n: 5 }
+    let e: E[fn(&'a Array[Int]) -> usize] = B(7)
+    let e2: E[fn(&'a Array[Int]) -> usize] = A(blen)
+    use9(r) + useE(e) + useE(e2)
+}
+
+pub type R7[F: Fn[fn(&Array[Int]) -> usize] + Copy] = { pub cb F, pub g fn(Int) -> usize }
+pub type R8[F: Fn[fn(&Array[Int]) -> usize] + Copy] = { pub cb F, pub g fn() -> usize }
+fn use7[F: Fn[fn(&Array[Int]) -> usize] + Copy](r: R7[F]) -> usize {
+    let xs = Array.of(1, 2, 3)
+    (r.cb)(&xs) + (r.g)(1)
+}
+fn use8[F: Fn[fn(&Array[Int]) -> usize] + Copy](r: R8[F]) -> usize {
+    let xs = Array.of(1, 2, 3)
+    (r.cb)(&xs) + (r.g)()
+}
+fn viaParam(g: escaping fn(Int) -> usize) -> usize { use7(R7 { cb: blen, g: g }) }
+fn spread() -> usize {
+    let src = R7 { cb: blen, g: ten }
+    use7(R7 { g: (n: Int) => 4, ..src })
+}
+
+pub interface Shape { fn area(self) -> usize }
+pub type Sq = { pub s usize }
+pub fn Sq.area(self) -> usize { self.s * self.s }
+pub type RI[F: Fn[fn(&Array[Int]) -> usize] + Copy] = { pub cb F, pub sh Shape }
+fn useI[F: Fn[fn(&Array[Int]) -> usize] + Copy](r: RI[F]) -> usize {
+    let xs = Array.of(1, 2)
+    (r.cb)(&xs) + r.sh.area()
+}
+
+let xs = Array.of(1)
+print "${opts(&xs)} ${joined(false)} ${joined(true)} ${plain(&xs)}"
+print "${use7(R7 { cb: blen, g: ten })} ${use7(R7 { cb: blen, g: (n: Int) => 20 })} ${viaParam(ten)} ${use8(R8 { cb: blen, g: five })} ${spread()}"
+print "${useI(RI { cb: blen, sh: Sq { s: 3 } })}"
+-- stdout --
+103 100 3 15
+13 23 13 8 7
+11

@@ -9,12 +9,14 @@ type constraintCheck struct {
 	param EntityID
 	arg   TypeID
 	subst map[EntityID]TypeID
+	value bool
+	held  *valueInstData
 }
 
 func (c *checker) deferConstraints(n syntax.NodeID, params []EntityID, inst []TypeID, subst map[EntityID]TypeID) {
 	for i, p := range params {
 		if i < len(inst) && len(c.r.typeParam(p).Constraints) > 0 {
-			c.constraints = append(c.constraints, constraintCheck{n, p, inst[i], subst})
+			c.constraints = append(c.constraints, constraintCheck{n, p, inst[i], subst, false, nil})
 		}
 	}
 }
@@ -48,10 +50,14 @@ func (c *checker) checkConstraints() {
 				continue
 			}
 			if why := c.unsatisfied(arg, con); why != "" {
-				c.errAt(cc.node, cConstraintUnsatisfied, arg, c.constraintText(con), why)
+				c.errAt(cc.node, cConstraintUnsatisfied, c.typeArgLabel(arg), c.constraintText(con), why)
 				if con.Kind == CIface {
 					c.markUnsatisfied(cc.node, arg, con.Type)
 				}
+			} else if cc.value && isFnKind(con.Kind) {
+				c.valueErasure(cc, arg, con.Type)
+			} else if cc.value && con.Kind == CIface {
+				c.valueIfaceChecks = append(c.valueIfaceChecks, valueIfaceCheck{cc, arg, con.Type})
 			}
 		}
 	}
@@ -152,13 +158,13 @@ func (c *checker) constraintText(con Constraint) string {
 	case CSync:
 		return "Sync"
 	case CFn:
-		return "Fn[" + c.r.TypeString(con.Type) + "]"
+		return "Fn[" + c.typeLabel(con.Type) + "]"
 	case CFnMut:
-		return "FnMut[" + c.r.TypeString(con.Type) + "]"
+		return "FnMut[" + c.typeLabel(con.Type) + "]"
 	case CFnOnce:
-		return "FnOnce[" + c.r.TypeString(con.Type) + "]"
+		return "FnOnce[" + c.typeLabel(con.Type) + "]"
 	}
-	return c.r.TypeString(con.Type)
+	return c.typeLabel(con.Type)
 }
 
 func (c *checker) markerWhy(arg, iface TypeID) string {

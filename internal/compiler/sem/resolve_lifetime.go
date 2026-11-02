@@ -75,13 +75,16 @@ func (r *Result) explicitLifetimeOf(f FileID, scope ScopeID, n syntax.NodeID) En
 	return 0
 }
 
-// Unlike an ordinary type-param var, never reports cInferUnresolved; settles
-// to fallback's KParam instead, since a return-only lifetime may never be
-// touched by unification.
+// Unlike an ordinary type-param var, never reports cInferUnresolved but settles to fallback's KParam, since a
+// return-only lifetime may never be touched by unification.
 func (v *varStore) freshLifetime(origin syntax.NodeID, param, fallback EntityID) TypeID {
 	t := v.fresh(origin, v.r.Entities[param].Name)
 	i, _ := v.index(t)
 	v.lifetimeDefault[i] = v.r.Types.Param(fallback)
+	if v.lifetimeParams == nil {
+		v.lifetimeParams = map[uint32]EntityID{}
+	}
+	v.lifetimeParams[i] = param
 	return t
 }
 

@@ -45,7 +45,8 @@ func (c *checker) callVariant(n syntax.NodeID, head headRef, args []syntax.NodeI
 			continue
 		}
 		payload := c.r.Types.Subst(vi.Payload[i], subst)
-		c.checkArg(a, payload, 0, false)
+		c.checkArg(a, payload, 0, false, callResult{})
+		c.slotContracts(a, vi.Payload[i], subst, erasePos{pos: true, provable: true})
 		c.rejectScalarCopyStore(a, payload)
 		if c.t.Kind(c.t.Unparen(a)) == syntax.MemberExpr {
 			c.rejectFieldValue(a)
@@ -118,9 +119,9 @@ func (c *checker) callMethodOn(n, callee, base syntax.NodeID, recv, valueType Ty
 		if tt.Kind(valueType) == KParam {
 			c.errAt(callee, cParamNoMember, valueType, name)
 		} else if pkg := c.hiddenMemberPackage(valueType, name); pkg != "" {
-			c.errAtHelp(callee, hiddenMemberHelp(name, pkg), cMemberNotFound, valueType, name)
+			c.errAtHelp(callee, hiddenMemberHelp(name, pkg), cMemberNotFound, c.foreignTypeArg(valueType), name)
 		} else {
-			c.errSuggest(callee, cMemberNotFound, name, c.r.memberNames(c.r.namedEnt(valueType)), valueType, name)
+			c.errSuggest(callee, cMemberNotFound, name, c.r.memberNames(c.r.namedEnt(valueType)), c.foreignTypeArg(valueType), name)
 		}
 		return TyPoison
 	}

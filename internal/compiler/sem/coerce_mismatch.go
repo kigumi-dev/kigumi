@@ -66,7 +66,7 @@ func (c *checker) mismatch(n syntax.NodeID, want, got TypeID) {
 	if c.closureMismatch(n, cTypeMismatch, want, got) {
 		return
 	}
-	ws, gs := c.r.mismatchLabels(c.vars.literalLabel(want), c.vars.literalLabel(got))
+	ws, gs := c.mismatchText(want, got)
 	if n == c.wantAliasTarget {
 		if alias, ok := c.r.aliasNameAt(c.wantAliasFile, c.wantAliasNode, want); ok {
 			ws = alias

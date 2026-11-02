@@ -1,0 +1,44 @@
+-- src --
+fn blen['a](x: &'a Array[Int]) -> usize { x.len() }
+fn plainLen(x: &Array[Int]) -> usize { x.len() + 100 }
+
+pub interface Runner[F] { fn run(self, f: F) -> usize }
+@impl(Runner[F])
+pub type R1[F: Fn[fn(&Array[Int]) -> usize]] = { pub n usize }
+pub fn R1[F].run(self, f: F) -> usize {
+    let xs = Array.of(1, 2)
+    f(&xs) + self.n
+}
+pub type Hn = { pub n Int }
+fn Hn.use[R: Runner[fn(&Array[Int]) -> usize]](self, r: R) -> usize { r.run(plainLen) }
+
+pub interface Sized2 { fn size(self) -> usize }
+pub type R2[F: Fn[fn(&Array[Int]) -> usize] + Copy] = { pub cb F }
+pub fn R2[F].size(self) -> usize {
+    let xs = Array.of(1, 2, 3)
+    (self.cb)(&xs)
+}
+fn Hn.measure[R: Sized2](self, r: R) -> usize { r.size() }
+fn sizes['a](hn: Hn, x: &'a Array[Int]) -> usize {
+    let r: R2[fn(&'a Array[Int]) -> usize] = R2 { cb: blen }
+    let g = hn.measure
+    g(r)
+}
+
+pub interface Runner3[F] { fn run3(self, f: F) -> usize }
+pub type R0['a, F] = { pub n usize }
+pub fn R0['a, F: Fn[fn(&'a Array[Int]) -> usize]].run3(self, f: F) -> usize { self.n }
+pub fn R0['a, F: Fn[fn(&Array[Int]) -> usize]].run3(self, f: F, n: Int) -> usize { self.n + 1 }
+fn useR['a, R: Runner3[fn(&'a Array[Int]) -> usize]](r: R) -> usize { r.run3(blen) }
+fn overloaded['a](x: &'a Array[Int]) -> usize {
+    let r: R0['a, fn(&'a Array[Int]) -> usize] = R0 { n: 4 }
+    useR(r)
+}
+
+let hn = Hn { n: 1 }
+let r: R1[fn(&Array[Int]) -> usize] = R1 { n: 5 }
+let f = hn.use
+let xs = Array.of(9)
+print "${f(r)} ${sizes(hn, &xs)} ${overloaded(&xs)}"
+-- stdout --
+107 3 4

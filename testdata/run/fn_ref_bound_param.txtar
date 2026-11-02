@@ -1,0 +1,14 @@
+-- src --
+fn plainLen(v: &String) -> usize { v.len() + 100 }
+fn useLen['a](f: fn(&'a String) -> usize) -> usize { 7 }
+
+fn takesTagged['a, F: Fn[fn(&'a String) -> usize]](f: F, v: &'a String) -> usize { f(v) }
+fn passPlain['a, G: Fn[fn(&String) -> usize]](g: G, v: &'a String) -> usize { takesTagged(g, v) }
+
+fn takesCallback[F: Fn[fn(fn(&String) -> usize) -> usize]](f: F) -> usize { f(plainLen) }
+fn passCallback['a, G: Fn[fn(fn(&'a String) -> usize) -> usize]](g: G) -> usize { takesCallback(g) }
+
+let s = "hello"
+print "${passPlain(plainLen, &s)} ${passCallback(useLen)}"
+-- stdout --
+105 7

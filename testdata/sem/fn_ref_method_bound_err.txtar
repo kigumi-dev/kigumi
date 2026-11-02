@@ -1,0 +1,42 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+fn mkKeep['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { keep }
+fn mkNop['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { nop }
+pub interface Runner2[F] { fn run(self, f: F) }
+pub type R0['a, F] = { pub n Int }
+pub fn R0['a, F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void]].run(self, f: F) { }
+fn useR3['a, R: Runner2[fn(Int) -> fn(&'a String, Sink['a]) -> Void]](r: R, k: Sink['a]) { r.run(mkKeep) }
+pub fn viaBound['a](k: Sink['a]) {
+    let r: R0['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void] = R0 { n: 1 }
+    useR3(r, k) //~ ERROR cannot be erased
+}
+pub fn viaRef['a](k: Sink['a]) {
+    let r: R0['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void] = R0 { n: 1 }
+    let x: &Runner2[fn(Int) -> fn(&'a String, Sink['a]) -> Void] = &r //~ ERROR cannot be erased
+    x.run(mkKeep)
+}
+pub interface Sized2 { fn size(self) -> Int }
+pub fn R0['a, F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void]].size(self) -> Int { 1 }
+fn useS[R: Sized2](r: R) -> Int { r.size() }
+pub fn sized['a](k: Sink['a]) -> Int {
+    let r: R0['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void] = R0 { n: 1 }
+    useS(r)
+}
+-- expect --
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:13:11
+   |
+13 |     useR3(r, k) //~ ERROR cannot be erased
+   |           ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:17:68
+   |
+17 |     let x: &Runner2[fn(Int) -> fn(&'a String, Sink['a]) -> Void] = &r //~ ERROR cannot be erased
+   |                                                                    ^^
+

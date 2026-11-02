@@ -1,0 +1,38 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+fn mkKeep['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { keep }
+fn mkNop['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { nop }
+pub type Box[F] = { pub mut cb F }
+fn drive2['a](f: fn(&String, Sink['a]) -> Void, g: fn(&String, Sink['a]) -> Void, k: Sink['a]) { }
+pub fn outer['a](f1: fn(&'a String, Sink['a]) -> Void, f2: fn(&'a String, Sink['a]) -> Void, k: Sink['a]) { drive2(f1, f2, k) } //~ ERROR cannot be erased //~ ERROR cannot be erased
+pub fn sameItem['a](k: Sink['a]) { drive2(keep, keep, k) } //~ ERROR cannot be erased //~ ERROR cannot be erased
+-- expect --
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+ --> main.kg:9:116
+  |
+9 | pub fn outer['a](f1: fn(&'a String, Sink['a]) -> Void, f2: fn(&'a String, Sink['a]) -> Void, k: Sink['a]) { drive2(f1, f2, k) } //~ ERROR cannot be erased //~ ERROR cannot be erased
+  |                                                                                                                    ^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+ --> main.kg:9:120
+  |
+9 | pub fn outer['a](f1: fn(&'a String, Sink['a]) -> Void, f2: fn(&'a String, Sink['a]) -> Void, k: Sink['a]) { drive2(f1, f2, k) } //~ ERROR cannot be erased //~ ERROR cannot be erased
+  |                                                                                                                        ^^
+
+error[E2297]: the reference lifetime of `keep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:10:43
+   |
+10 | pub fn sameItem['a](k: Sink['a]) { drive2(keep, keep, k) } //~ ERROR cannot be erased //~ ERROR cannot be erased
+   |                                           ^^^^
+
+error[E2297]: the reference lifetime of `keep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:10:49
+   |
+10 | pub fn sameItem['a](k: Sink['a]) { drive2(keep, keep, k) } //~ ERROR cannot be erased //~ ERROR cannot be erased
+   |                                                 ^^^^
+

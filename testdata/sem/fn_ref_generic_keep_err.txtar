@@ -1,0 +1,35 @@
+-- module --
+mir: planned
+-- src --
+fn blen['a](x: &'a Array[Int]) -> usize { x.len() }
+fn glen['a, T](x: &'a Array[T]) -> usize { x.len() }
+fn id[T](x: T) -> T { x }
+
+pub fn concrete() {
+    let b: fn(&Array[Int]) -> usize = blen
+}
+
+pub fn generic() {
+    let g: fn(&Array[Int]) -> usize = glen //~ ERROR reference lifetime of `glen` cannot be erased
+    let gs: Array[fn(&Array[Int]) -> usize] = Array.of(glen) //~ ERROR reference lifetime of `glen` cannot be erased
+    let gi: fn(&Array[Int]) -> usize = id(glen) //~ ERROR reference lifetime of `glen` cannot be erased
+}
+-- expect --
+error[E2297]: the reference lifetime of `glen` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:10:39
+   |
+10 |     let g: fn(&Array[Int]) -> usize = glen //~ ERROR reference lifetime of `glen` cannot be erased
+   |                                       ^^^^
+
+error[E2297]: the reference lifetime of `glen` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:11:56
+   |
+11 |     let gs: Array[fn(&Array[Int]) -> usize] = Array.of(glen) //~ ERROR reference lifetime of `glen` cannot be erased
+   |                                                        ^^^^
+
+error[E2297]: the reference lifetime of `glen` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:12:43
+   |
+12 |     let gi: fn(&Array[Int]) -> usize = id(glen) //~ ERROR reference lifetime of `glen` cannot be erased
+   |                                           ^^^^
+

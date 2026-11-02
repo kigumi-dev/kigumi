@@ -1,0 +1,58 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn stash['a](x: &'a String, k: Sink['a]) -> &'a String {
+    k.items.push(V { s: x })
+    x
+}
+fn wrap[T](x: T) -> Array[T] { Array.of(x) }
+
+pub fn element['a](k: Sink['a]) {
+    let fs: Array[fn(&String, Sink['a]) -> Void] = Array.of(keep) //~ ERROR reference lifetime of `keep` cannot be erased
+}
+
+pub fn generic['a](k: Sink['a]) {
+    let ws: Array[fn(&String, Sink['a]) -> Void] = wrap(keep) //~ ERROR reference lifetime of `keep` cannot be erased
+}
+
+pub fn payload['a](k: Sink['a]) {
+    let o: Option[fn(&String, Sink['a]) -> Void] = Some(keep) //~ ERROR reference lifetime of `keep` cannot be erased
+}
+
+pub fn returns['a](k: Sink['a]) {
+    let fs: Array[fn(&String, Sink['a]) -> &'a String] = Array.of(stash) //~ ERROR reference lifetime of `stash` cannot be erased
+}
+
+pub fn tagged['a](k: Sink['a]) {
+    let fs: Array[fn(&'a String, Sink['a]) -> Void] = Array.of(keep)
+    let ws: Array[fn(&'a String, Sink['a]) -> &'a String] = wrap(stash)
+}
+-- expect --
+error[E2297]: the reference lifetime of `keep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:12:61
+   |
+12 |     let fs: Array[fn(&String, Sink['a]) -> Void] = Array.of(keep) //~ ERROR reference lifetime of `keep` cannot be erased
+   |                                                             ^^^^
+
+error[E2297]: the reference lifetime of `keep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:16:57
+   |
+16 |     let ws: Array[fn(&String, Sink['a]) -> Void] = wrap(keep) //~ ERROR reference lifetime of `keep` cannot be erased
+   |                                                         ^^^^
+
+error[E2297]: the reference lifetime of `keep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:20:57
+   |
+20 |     let o: Option[fn(&String, Sink['a]) -> Void] = Some(keep) //~ ERROR reference lifetime of `keep` cannot be erased
+   |                                                         ^^^^
+
+error[E2297]: the reference lifetime of `stash` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:24:67
+   |
+24 |     let fs: Array[fn(&String, Sink['a]) -> &'a String] = Array.of(stash) //~ ERROR reference lifetime of `stash` cannot be erased
+   |                                                                   ^^^^^
+

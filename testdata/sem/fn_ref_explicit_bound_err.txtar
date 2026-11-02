@@ -1,0 +1,49 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+pub type Holder['a] = { pub s &'a String }
+
+fn Holder['a].run[F: Fn[fn(&String, Sink['a]) -> Void]](self, f: F, k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    f(&loc, k)
+}
+
+fn apply[F: Fn[fn(&String) -> usize]](f: F, v: &String) -> usize { f(v) }
+
+fn outer['a, G: Fn[fn(&'a String, Sink['a]) -> Void]](g: G, h: Holder['a], k: Sink['a]) {
+    h.run[G](g, k) //~ ERROR reference lifetime of `function value` cannot be erased
+}
+
+fn outerItem['a](h: Holder['a], k: Sink['a]) {
+    h.run[fn(&'a String, Sink['a]) -> Void](keep, k) //~ ERROR reference lifetime of `keep` cannot be erased
+}
+
+fn outerApply['a, G: Fn[fn(&'a String) -> usize]](g: G, v: &'a String) -> usize {
+    apply[G](g, v) //~ ERROR reference lifetime of `function value` cannot be erased
+}
+
+fn safeItem['a](h: Holder['a], k: Sink['a]) { h.run[fn(&'a String, Sink['a]) -> Void](nop, k) }
+-- expect --
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:16:14
+   |
+16 |     h.run[G](g, k) //~ ERROR reference lifetime of `function value` cannot be erased
+   |              ^
+
+error[E2297]: the reference lifetime of `keep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:20:45
+   |
+20 |     h.run[fn(&'a String, Sink['a]) -> Void](keep, k) //~ ERROR reference lifetime of `keep` cannot be erased
+   |                                             ^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:24:14
+   |
+24 |     apply[G](g, v) //~ ERROR reference lifetime of `function value` cannot be erased
+   |              ^
+

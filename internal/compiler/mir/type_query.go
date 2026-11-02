@@ -5,12 +5,15 @@ import (
 	"kigumi/internal/compiler/sem"
 )
 
-// SameType counts a closure as its signature and ignores `pure`/`noalloc`/escaping on fn types:
+// SameType counts a closure as its signature and ignores `pure`/`noalloc`/escaping on fn types and reference lifetimes:
 // every back end treats a closure as a function value, and those qualifiers never reach the runtime representation.
 func (p *Program) SameType(a, b sem.TypeID) bool {
 	a, b = p.FnType(a), p.FnType(b)
 	a, b = p.R.Types.WithRefLifetime(a, 0), p.R.Types.WithRefLifetime(b, 0)
 	if a == b || p.sameFnRepr(a, b) || p.R.Types.SameIgnoringEscaping(a, b) {
+		return true
+	}
+	if p.R.Types.WithoutRefLifetimes(a) == p.R.Types.WithoutRefLifetimes(b) {
 		return true
 	}
 	// A defined type and its underlying chain share one representation, so

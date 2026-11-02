@@ -1,0 +1,34 @@
+-- src --
+fn length['a](value: &'a String) -> usize { value.len() }
+fn keep2['a](value: &'a String, n: Int) -> usize { value.len() }
+
+fn run1['a](value: &'a String) {
+    let n: Int = length //~ ERROR found `fn(&'a String) -> usize`
+}
+
+fn run2['a, 'b](value: &'b String) {
+    let n: Array[fn(&'b String) -> usize] = Array.of(keep2) //~ ERROR found `Array[fn(&String, Int) -> usize]`
+}
+
+fn run3() {
+    let n: Int = length //~ ERROR found `fn(&String) -> usize`
+}
+-- expect --
+error[E400]: expected `Int`, found `fn(&'a String) -> usize`
+ --> main/main.kg:5:18
+  |
+5 |     let n: Int = length //~ ERROR found `fn(&'a String) -> usize`
+  |                  ^^^^^^
+
+error[E400]: expected `Array[fn(&'b String) -> usize]`, found `Array[fn(&String, Int) -> usize]`
+ --> main/main.kg:9:45
+  |
+9 |     let n: Array[fn(&'b String) -> usize] = Array.of(keep2) //~ ERROR found `Array[fn(&String, Int) -> usize]`
+  |                                             ^^^^^^^^^^^^^^
+
+error[E400]: expected `Int`, found `fn(&String) -> usize`
+  --> main/main.kg:13:18
+   |
+13 |     let n: Int = length //~ ERROR found `fn(&String) -> usize`
+   |                  ^^^^^^
+

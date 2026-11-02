@@ -15,9 +15,14 @@ type varStore struct {
 	// lifetimeDefault is a lifetime var's settle() fallback,
 	// 0 for an ordinary type-parameter variable (still cInferUnresolved).
 	lifetimeDefault []TypeID
-	first           int // first variable created since the last boundary
-	trail           []uint32
-	resolved        map[TypeID]*varResolution
+	// lifetimeLabel is lifetimeDefault when the function being checked declares it, the only lifetime a diagnostic shows.
+	lifetimeLabel []TypeID
+	// lifetimeParams is the declared lifetime parameter each lifetime var instantiates.
+	lifetimeParams map[uint32]EntityID
+	valueVars      map[uint32]bool
+	first          int // first variable created since the last boundary
+	trail          []uint32
+	resolved       map[TypeID]*varResolution
 }
 
 func newVarStore(r *Result) *varStore { return &varStore{r: r} }
@@ -30,6 +35,7 @@ func (v *varStore) fresh(origin syntax.NodeID, name string) TypeID {
 	v.names = append(v.names, name)
 	v.hint = append(v.hint, 0)
 	v.lifetimeDefault = append(v.lifetimeDefault, 0)
+	v.lifetimeLabel = append(v.lifetimeLabel, 0)
 	return v.r.Types.Var(uint32(len(v.binding) - 1))
 }
 

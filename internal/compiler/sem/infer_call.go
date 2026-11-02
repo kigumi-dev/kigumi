@@ -50,7 +50,9 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 	if plan != nil {
 		effArgs = plan.placed()
 	}
-	c.callbackEdges(n, fn, sig, effArgs)
+	subst := c.callSubst(fn, inst, recv)
+	c.callbackEdges(n, fn, sig, effArgs, subst)
+	c.argContracts(effArgs, info.Sig, subst, fn, recvBase)
 	c.fieldCallbackEdges(fn, effArgs)
 	c.knownFieldCallEdges(n, fn, effArgs)
 	c.ifaceFieldArgEdges(n, fn, effArgs)
@@ -147,7 +149,7 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 					continue
 				}
 				inner := c.t.View(a).AsSpread().Value().ID()
-				c.checkArg(inner, params[fixed], entAt(declParams, fixed), async)
+				c.checkArg(inner, params[fixed], entAt(declParams, fixed), async, callResult{})
 				c.crossArg(inner, entAt(declParams, fixed))
 				c.checkEscapeArg(inner, entAt(declParams, fixed), params[fixed], tt.escMarked(sn.Var, fixed), name)
 				continue
@@ -165,7 +167,7 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 			c.noteLentArg(a, entAt(declParams, pi), param, tt.escMarked(sn.Var, pi))
 			from := len(*c.edges)
 			c.markReborrowArg(a, param, entAt(declParams, pi), async)
-			c.checkArg(a, param, entAt(declParams, pi), async)
+			c.checkArg(a, param, entAt(declParams, pi), async, callResult{sn.Elem, want})
 			c.rejectScalarCopyArg(a, param)
 			c.crossArg(a, entAt(declParams, pi))
 			c.boxedArg(a, entAt(declParams, pi))

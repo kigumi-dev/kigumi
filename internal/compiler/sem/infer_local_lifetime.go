@@ -1,6 +1,10 @@
 package sem
 
-import "kigumi/internal/compiler/syntax"
+import (
+	"slices"
+
+	"kigumi/internal/compiler/syntax"
+)
 
 type localLifetimeKey struct {
 	fn   EntityID
@@ -75,4 +79,13 @@ func (v *varStore) onlyLifetimeVars(t TypeID) bool {
 		}
 	}
 	return v.onlyLifetimeVars(n.Elem)
+}
+
+func (c *checker) freshLifetime(n syntax.NodeID, p EntityID) TypeID {
+	fallback := c.lifetimeFallback(p)
+	t := c.vars.freshLifetime(n, p, fallback)
+	if i, ok := c.vars.index(t); ok && c.fn != 0 && c.r.Entities[c.fn].Kind == EntFn && slices.Contains(c.r.Fn(c.fn).TypeParams, fallback) {
+		c.vars.lifetimeLabel[i] = c.r.Types.Param(fallback)
+	}
+	return t
 }

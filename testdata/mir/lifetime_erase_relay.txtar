@@ -1,0 +1,42 @@
+-- lib/relay.kg --
+fn length['a](value: &'a String) -> usize { value.len() }
+fn twice(f: fn(&String) -> usize, v: &String) -> usize { f(v) + f(v) }
+fn id[T](x: T) -> T { x }
+
+fn relayed['a](value: &'a String) -> usize {
+    let q: fn(&'a String) -> usize = length
+    twice(id(q), value)
+}
+-- expect --
+fn lib.length(%value: &String) -> usize {
+  b0:
+    %t1 = call std/prelude.String.len(%value)
+    return %t1
+}
+fn lib.twice(%f: fn(&String) -> usize, %v: &String) -> usize {
+  b0:
+    %t2 = copy(%v)
+    %t3 = callv(%f, %t2)
+    %t4 = copy(%v)
+    %t5 = callv(%f, %t4)
+    %t6 = bin +(%t3, %t5)
+    drop(%f)
+    return %t6
+}
+fn lib.id(%x: T) -> T {
+  b0:
+    %t1 = move(%x)
+    nop
+    return %t1
+}
+fn lib.relayed(%value: &String) -> usize {
+  b0:
+    %t1 = fnitem lib.length
+    %q = copy(%t1)
+    %t3 = copy(%q)
+    %t4 = call lib.id(%t3)
+    %t5 = copy(%value)
+    %t6 = call lib.twice(%t4, %t5)
+    drop(%q)
+    return %t6
+}

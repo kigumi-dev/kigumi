@@ -23,7 +23,10 @@ func (c *checker) methodValue(n, base syntax.NodeID, valueType TypeID, m EntityI
 			return TyPoison
 		}
 		shape := sig
+		from := len(c.constraints)
 		sig, inst, _ = c.instantiateFn(n, m, nil, valueType)
+		c.markValueInstance(from)
+		c.recordValueExpr(n, m, inst, valueType, from)
 		c.markDeferrable(inst, shape)
 		c.touched = append(c.touched, n)
 		c.bindMethodWitnesses(n, m, valueType, inst)
@@ -35,6 +38,7 @@ func (c *checker) methodValue(n, base syntax.NodeID, valueType TypeID, m EntityI
 		c.errAt(n, cMethodValueMoveOnly, valueType)
 		return TyPoison
 	}
+	c.recvContracts(base, m, c.callSubst(m, inst, valueType))
 	if owned && !c.takeReceiver(n, base, valueType, viaRef) {
 		return TyPoison
 	}

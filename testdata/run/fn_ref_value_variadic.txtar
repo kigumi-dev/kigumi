@@ -1,0 +1,33 @@
+-- src --
+fn blen['a](x: &'a Array[Int]) -> usize { x.len() }
+pub interface Sized2 { fn size(self) -> usize }
+pub type R2[F: Fn[fn(&Array[Int]) -> usize] + Copy] = { pub cb F }
+pub fn R2[F].size(self) -> usize {
+    let xs = Array.of(1, 2, 3, 4)
+    (self.cb)(&xs)
+}
+pub type Hn = { pub n Int }
+fn measureAll[R: Sized2](rs: ...R) -> usize {
+    let mut t: usize = 0
+    for r in rs { t = t + r.size() }
+    t
+}
+fn Hn.measureM[R: Sized2](self, rs: ...R) -> usize {
+    let mut t: usize = 0
+    for r in rs { t = t + r.size() }
+    t
+}
+fn direct['a](x: &'a Array[Int]) -> usize {
+    let ra: R2[fn(&'a Array[Int]) -> usize] = R2 { cb: blen }
+    let rb: R2[fn(&'a Array[Int]) -> usize] = R2 { cb: blen }
+    measureAll(ra, rb)
+}
+fn method['a](hn: Hn, x: &'a Array[Int]) -> usize {
+    let ra: R2[fn(&'a Array[Int]) -> usize] = R2 { cb: blen }
+    hn.measureM(ra)
+}
+let hn = Hn { n: 1 }
+let xs = Array.of(9)
+print "${direct(&xs)} ${method(hn, &xs)}"
+-- stdout --
+8 4

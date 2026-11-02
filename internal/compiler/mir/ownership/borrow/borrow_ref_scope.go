@@ -1,6 +1,9 @@
 package borrow
 
 import (
+	"fmt"
+	"slices"
+
 	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/lang/diag"
@@ -13,7 +16,8 @@ func (state *Analyzer) CheckRefScopes() []midir.FileDiag {
 	p := state.Input
 	c := &borrowCheck{p: p, state: state}
 	memo, active := map[refScopeKey]bool{}, map[refScopeKey]bool{}
-	seen := map[[3]uint32]bool{}
+	seen, failed := map[[3]uint32]bool{}, map[string][][2]int{}
+	emitted := map[[2]uint32][][2]int{}
 	for _, u := range p.R.RefScopeUses() {
 		if u.Owner != 0 && p.ByEnt[u.Owner] == nil || u.Owner == 0 && p.Unlowered(u.Target) {
 			continue
@@ -23,13 +27,23 @@ func (state *Analyzer) CheckRefScopes() []midir.FileDiag {
 			continue
 		}
 		keys, name, safe := state.refScopeOrigins(u)
+		var failing []refScopeKey
 		for _, key := range keys {
-			safe = safe && c.refStaysInResult(key, memo, active)
+			if !c.refStaysInResult(key, memo, active) {
+				safe, failing = false, append(failing, key)
+			}
 		}
-		if !safe {
-			seen[key] = true
+		t := p.R.Tree(u.File)
+		// A value and the literal holding it that fail on the same callables are one error, whichever bound asked.
+		s := t.Span(u.Node)
+		group, span := fmt.Sprint(u.Owner, u.File, failing), [2]int{int(s.Start), int(s.End)}
+		ekey := [2]uint32{uint32(u.Owner), uint32(u.File)}
+		// An unknown-origin use adds nothing where a known callable already failed at the same node.
+		covered := len(failing) == 0 && slices.ContainsFunc(emitted[ekey], func(o [2]int) bool { return nested(span, o) })
+		if !safe && !covered && !slices.ContainsFunc(failed[group], func(o [2]int) bool { return nested(o, span) || nested(span, o) }) {
+			seen[key], failed[group] = true, append(failed[group], span)
+			emitted[ekey] = append(emitted[ekey], span)
 			code, _ := sem.CodeByName("borrow-callable-lifetime")
-			t := p.R.Tree(u.File)
 			d := diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(u.Node)), Code: code.Num,
 				Msg: sem.FillTemplate(code.Template, name)}
 			out = append(out, midir.FileDiag{File: u.File, Diag: d})
@@ -37,6 +51,8 @@ func (state *Analyzer) CheckRefScopes() []midir.FileDiag {
 	}
 	return out
 }
+
+func nested(in, out [2]int) bool { return out[0] <= in[0] && in[1] <= out[1] }
 
 // Losing a named reference contract requires proof that the reference only leaves through the result.
 func (c *borrowCheck) refStaysInResult(key refScopeKey, memo, active map[refScopeKey]bool) bool {
@@ -63,7 +79,7 @@ func (c *borrowCheck) refResultOnly(key refScopeKey, memo, active map[refScopeKe
 		return false
 	}
 	for _, l := range g.Params {
-		if kept[l][uint32(key.param)] {
+		if kept[l][uint32(key.param)] && !c.ownPlaceHoldsNothing(g, l, key.param) {
 			return false
 		}
 	}
@@ -96,7 +112,7 @@ func (c *borrowCheck) refResultOnly(key refScopeKey, memo, active map[refScopeKe
 						return false
 					}
 					for _, q := range qs {
-						if c.p.ByEnt[e] == nil && c.scopedBorrow(q) {
+						if c.p.ByEnt[e] == nil && (c.scopedBorrow(q) || c.bodylessKeepsNone(g, in, e)) {
 							continue
 						}
 						if !c.refStaysInResult(refScopeKey{e, q}, memo, active) {

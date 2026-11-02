@@ -24,7 +24,7 @@ func (c *checker) synthTuple(n syntax.NodeID, want TypeID) TypeID {
 		subst[p] = typeArgs[i]
 	}
 	for i, it := range items.EnumerateIDs() {
-		c.checkArg(it, c.r.Types.Subst(c.r.Entities[info.Fields[i]].Type, subst), 0, false)
+		c.checkArg(it, c.r.Types.Subst(c.r.Entities[info.Fields[i]].Type, subst), 0, false, callResult{})
 		c.noteCopyLit(n, it)
 		c.rejectFieldValue(it)
 	}

@@ -1,0 +1,55 @@
+-- src --
+fn plainId(x: &String) -> &String { x }
+fn length['a](value: &'a String) -> usize { value.len() }
+fn feeder['a](f: fn(fn(&'a String) -> usize) -> usize) -> usize { 0 }
+fn drive[F: Fn[fn(fn(fn(&String) -> usize) -> usize) -> usize]](f: F) -> usize { 0 }
+
+fn bound() -> usize {
+    drive(feeder) //~ ERROR does not satisfy `Fn[fn(fn(fn(&String) -> usize) -> usize) -> usize]`
+}
+
+fn elided['a](v: &'a String) {
+    let g: fn(&'a String) -> &'a String = plainId //~ ERROR found `fn(&'_ (plainId) String) -> &String`
+}
+
+fn twoLifetimes['a, 'b](v: &'a String) {
+    let n: Int = length //~ ERROR found `fn(&String) -> usize`
+    let fs = Array.of(length)
+    let m: Int = fs //~ ERROR found `Array[fn(&'a (length) String) -> usize]`
+}
+
+fn noLifetime() {
+    let fs = Array.of(length)
+    let m: Int = fs //~ ERROR found `Array[fn(&'a (noLifetime) String) -> usize]`
+}
+-- expect --
+error[E300]: `fn(fn(fn(&'a (bound) String) -> usize) -> usize) -> usize` does not satisfy `Fn[fn(fn(fn(&String) -> usize) -> usize) -> usize]`: signature differs
+ --> main/main.kg:7:5
+  |
+7 |     drive(feeder) //~ ERROR does not satisfy `Fn[fn(fn(fn(&String) -> usize) -> usize) -> usize]`
+  |     ^^^^^^^^^^^^
+
+error[E400]: expected `fn(&'a String) -> &String`, found `fn(&'_ (plainId) String) -> &String`
+  --> main/main.kg:11:43
+   |
+11 |     let g: fn(&'a String) -> &'a String = plainId //~ ERROR found `fn(&'_ (plainId) String) -> &String`
+   |                                           ^^^^^^^
+
+error[E400]: expected `Int`, found `fn(&String) -> usize`
+  --> main/main.kg:15:18
+   |
+15 |     let n: Int = length //~ ERROR found `fn(&String) -> usize`
+   |                  ^^^^^^
+
+error[E400]: expected `Int`, found `Array[fn(&'a (length) String) -> usize]`
+  --> main/main.kg:17:18
+   |
+17 |     let m: Int = fs //~ ERROR found `Array[fn(&'a (length) String) -> usize]`
+   |                  ^^
+
+error[E400]: expected `Int`, found `Array[fn(&'a (noLifetime) String) -> usize]`
+  --> main/main.kg:22:18
+   |
+22 |     let m: Int = fs //~ ERROR found `Array[fn(&'a (noLifetime) String) -> usize]`
+   |                  ^^
+

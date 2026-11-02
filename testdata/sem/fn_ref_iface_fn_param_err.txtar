@@ -1,0 +1,86 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+fn mkKeep['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { keep }
+fn mkNop['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { nop }
+pub interface Feeder['a] { fn feed(self, f: fn(Int) -> fn(&'a String, Sink['a]) -> Void, k: Sink['a]) }
+pub type R4['a, F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void]] = { pub cb F }
+pub fn R4['a, F].feed(self, f: F, k: Sink['a]) { }
+fn useF['a, R: Feeder['a]](r: R, k: Sink['a]) { r.feed(mkKeep, k) }
+pub fn annotated['a](k: Sink['a]) {
+    let r: R4['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void] = R4 { cb: mkNop }
+    useF(r, k) //~ ERROR cannot be erased
+}
+pub fn inferred['a](k: Sink['a]) {
+    let r = R4 { cb: mkNop }
+    useF(r, k) //~ ERROR cannot be erased
+}
+
+pub interface Feeder1['a] { fn feed1(self, f: fn(Int) -> fn(&'a String, Sink['a]) -> Void) }
+pub type R5['a, F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void]] = { pub cb F }
+pub fn R5['a, F].feed1(self, f: F) { }
+pub type HN['a] = { pub n Int }
+fn HN['a].useF1[R: Feeder1['a]](self, r: R) { r.feed1(mkKeep) }
+fn useF1['a, R: Feeder1['a]](r: R) { r.feed1(mkKeep) }
+pub fn method['a](k: Sink['a]) {
+    let r: R5['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void] = R5 { cb: mkNop }
+    let hn: HN['a] = HN { n: 1 }
+    hn.useF1(r) //~ ERROR cannot be erased
+}
+pub fn noSink['a](k: Sink['a]) {
+    let r: R5['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void] = R5 { cb: mkNop }
+    useF1(r) //~ ERROR cannot be erased
+}
+
+pub interface Feeder3['a] { fn feed3(self, f: fn(&'a String, Sink['a]) -> Void, k: Sink['a]) }
+pub type R6['a, F: Fn[fn(&String, Sink['a]) -> Void]] = { pub cb F }
+pub fn R6['a, F].feed3(self, f: F, k: Sink['a]) { }
+fn HN['a].useF3[R: Feeder3['a]](self, r: R, k: Sink['a]) { r.feed3(keep, k) }
+pub fn topLevel['a](k: Sink['a]) {
+    let r: R6['a, fn(&'a String, Sink['a]) -> Void] = R6 { cb: nop }
+    let hn: HN['a] = HN { n: 1 }
+    hn.useF3(r, k) //~ ERROR cannot be erased
+}
+
+pub interface Sized['a] { fn size(self, k: Sink['a]) -> Int }
+pub fn R6['a, F].size(self, k: Sink['a]) -> Int { 1 }
+fn useS['a, R: Sized['a]](r: R, k: Sink['a]) -> Int { r.size(k) }
+pub fn noCallable['a](k: Sink['a]) -> Int {
+    let r: R6['a, fn(&'a String, Sink['a]) -> Void] = R6 { cb: nop }
+    useS(r, k)
+}
+-- expect --
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:13:10
+   |
+13 |     useF(r, k) //~ ERROR cannot be erased
+   |          ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:17:10
+   |
+17 |     useF(r, k) //~ ERROR cannot be erased
+   |          ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:29:14
+   |
+29 |     hn.useF1(r) //~ ERROR cannot be erased
+   |              ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:33:11
+   |
+33 |     useF1(r) //~ ERROR cannot be erased
+   |           ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:43:14
+   |
+43 |     hn.useF3(r, k) //~ ERROR cannot be erased
+   |              ^
+

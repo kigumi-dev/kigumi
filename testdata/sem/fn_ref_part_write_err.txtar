@@ -1,0 +1,134 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+fn mkKeep['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { keep }
+fn mkNop['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { nop }
+fn drive['a, F: Fn[fn(&String, Sink['a]) -> Void]](f: F, k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    f(&loc, k)
+}
+
+pub type Box[F] = { pub mut cb F }
+pub type OuterN['a, F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void]] = { pub mut b Box[F] }
+pub type OuterA['a, F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void]] = { pub mut a Array[F] }
+pub type Outer['a, F: Fn[fn(&String, Sink['a]) -> Void]] = { pub mut b Box[F] }
+
+fn OuterN['a, F].go(self, k: Sink['a]) { }
+fn OuterA['a, F].go(self, k: Sink['a]) { }
+fn mapBA[U, F: Fn[fn(Int) -> U] + Copy](b: Box[Array[F]], t: Int) -> U { (b.cb[b.cb.len() - 1])(t) }
+fn runOuterN['a, F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void]](o: OuterN['a, F], k: Sink['a]) { }
+fn runOuterA['a, F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void]](o: OuterA['a, F], k: Sink['a]) { }
+fn runOuter['a, F: Fn[fn(&String, Sink['a]) -> Void]](o: Outer['a, F], k: Sink['a]) { drive(o.b.cb, k) }
+fn setB['a](b: &mut Box[fn(Int) -> fn(&'a String, Sink['a]) -> Void]) { b.cb = mkKeep }
+
+pub fn pushPart['a](k: Sink['a]) {
+    let mut o = Box { cb: Array.of(mkNop) }
+    o.cb.push(mkKeep)
+    let h: fn(&String, Sink['a]) -> Void = mapBA(o, 3) //~ ERROR cannot be erased
+}
+
+pub fn assignPart['a](k: Sink['a]) {
+    let mut o = OuterN { b: Box { cb: mkNop } }
+    o.b.cb = mkKeep //~ ERROR reference lifetime of `mkKeep` cannot be erased
+    runOuterN(o, k) //~ ERROR cannot be erased
+}
+
+pub fn lendPart['a](k: Sink['a]) {
+    let mut o = OuterN { b: Box { cb: mkNop } }
+    setB(&mut o.b)
+    runOuterN(o, k) //~ ERROR cannot be erased
+}
+
+pub fn pushOuter['a](k: Sink['a]) {
+    let mut o = OuterA { a: Array.of(mkNop) }
+    o.a.push(mkKeep)
+    runOuterA(o, k) //~ ERROR cannot be erased
+}
+
+pub fn untouched['a](k: Sink['a]) {
+    let o = OuterN { b: Box { cb: mkNop } }
+    runOuterN(o, k)
+}
+
+pub fn receiverAssign['a](k: Sink['a]) {
+    let mut o = OuterN { b: Box { cb: mkNop } }
+    o.b.cb = mkKeep //~ ERROR reference lifetime of `mkKeep` cannot be erased
+    o.go(k) //~ ERROR cannot be erased
+}
+
+pub fn receiverPush['a](k: Sink['a]) {
+    let mut o = OuterA { a: Array.of(mkNop) }
+    o.a.push(mkKeep)
+    o.go(k) //~ ERROR cannot be erased
+}
+
+pub fn receiverSafe['a](k: Sink['a]) {
+    let o = OuterN { b: Box { cb: mkNop } }
+    o.go(k)
+}
+
+pub fn writtenField['a](k: Sink['a]) {
+    let mut b = Box { cb: nop }
+    b.cb = keep
+    runOuter(Outer { b: b }, k) //~ ERROR cannot be erased
+}
+-- expect --
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:29:50
+   |
+29 |     let h: fn(&String, Sink['a]) -> Void = mapBA(o, 3) //~ ERROR cannot be erased
+   |                                                  ^
+
+error[E2297]: the reference lifetime of `mkKeep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:34:14
+   |
+34 |     o.b.cb = mkKeep //~ ERROR reference lifetime of `mkKeep` cannot be erased
+   |              ^^^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:35:15
+   |
+35 |     runOuterN(o, k) //~ ERROR cannot be erased
+   |               ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:41:15
+   |
+41 |     runOuterN(o, k) //~ ERROR cannot be erased
+   |               ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:47:15
+   |
+47 |     runOuterA(o, k) //~ ERROR cannot be erased
+   |               ^
+
+error[E2297]: the reference lifetime of `mkKeep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:57:14
+   |
+57 |     o.b.cb = mkKeep //~ ERROR reference lifetime of `mkKeep` cannot be erased
+   |              ^^^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:58:5
+   |
+58 |     o.go(k) //~ ERROR cannot be erased
+   |     ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:64:5
+   |
+64 |     o.go(k) //~ ERROR cannot be erased
+   |     ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:75:25
+   |
+75 |     runOuter(Outer { b: b }, k) //~ ERROR cannot be erased
+   |                         ^
+

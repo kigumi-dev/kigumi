@@ -1,0 +1,50 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn mkKeep['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { keep }
+pub interface Runner2[F] { fn run(self, f: F) }
+@impl(Runner2[F])
+pub type R1['a, F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void]] = { pub n Int }
+pub fn R1['a, F].run(self, f: F) { }
+pub type R0['a, F] = { pub n Int }
+pub fn R0['a, F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void]].run(self, f: F) { }
+pub type Hn = { pub n Int }
+fn Hn.useR3['a, R: Runner2[fn(Int) -> fn(&'a String, Sink['a]) -> Void]](self, r: R, k: Sink['a]) { r.run(mkKeep) }
+pub fn declBound['a](k: Sink['a]) {
+    let r: R1['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void] = R1 { n: 1 }
+    let hn = Hn { n: 1 }
+    let f = hn.useR3
+    f(r, k) //~ ERROR cannot be erased
+}
+pub fn receiverBound['a](k: Sink['a]) {
+    let r: R0['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void] = R0 { n: 1 }
+    let hn = Hn { n: 1 }
+    let f = hn.useR3
+    f(r, k) //~ ERROR cannot be erased
+}
+pub fn annotated['a](k: Sink['a]) {
+    let hn = Hn { n: 1 }
+    let f: fn(R1['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void], Sink['a]) -> Void = hn.useR3 //~ ERROR `useR3` cannot be erased
+}
+-- expect --
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:17:7
+   |
+17 |     f(r, k) //~ ERROR cannot be erased
+   |       ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:23:7
+   |
+23 |     f(r, k) //~ ERROR cannot be erased
+   |       ^
+
+error[E2297]: the reference lifetime of `useR3` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:27:88
+   |
+27 |     let f: fn(R1['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void], Sink['a]) -> Void = hn.useR3 //~ ERROR `useR3` cannot be erased
+   |                                                                                        ^^^^^^^^
+

@@ -1,0 +1,13 @@
+-- src --
+fn takesTaggedCallback['a, F: Fn[fn(fn(&'a String) -> usize) -> usize]](f: F) -> usize { 0 }
+
+fn passPlainCallback[G: Fn[fn(fn(&String) -> usize) -> usize]](g: G) -> usize {
+    takesTaggedCallback(g) //~ ERROR `G` does not satisfy
+}
+-- expect --
+error[E300]: `G` does not satisfy `Fn[fn(fn(&'a (passPlainCallback) String) -> usize) -> usize]`: add the constraint to `G`
+ --> main/main.kg:4:5
+  |
+4 |     takesTaggedCallback(g) //~ ERROR `G` does not satisfy
+  |     ^^^^^^^^^^^^^^^^^^^^^
+

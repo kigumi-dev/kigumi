@@ -1,0 +1,43 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+pub type Runner['a, F: Fn[fn(&String, Sink['a]) -> Void]] = { pub cb F }
+pub type Cb['a, F: Fn[fn(&String, Sink['a]) -> Void]] = Has(f: F) | NoCb
+
+fn runIt['a, F: Fn[fn(&String, Sink['a]) -> Void]](r: Runner['a, F], k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    (r.cb)(&loc, k)
+}
+
+fn runCb['a, F: Fn[fn(&String, Sink['a]) -> Void]](c: Cb['a, F], k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    if c is Has(f) { f(&loc, k) }
+}
+
+pub fn attackRecord['a](k: Sink['a]) {
+    runIt(Runner { cb: keep }, k) //~ ERROR reference lifetime of `keep` cannot be erased
+}
+
+pub fn attackVariant['a](k: Sink['a]) {
+    runCb(Has(keep), k) //~ ERROR reference lifetime of `keep` cannot be erased
+}
+
+pub fn safeRecord['a](k: Sink['a]) { runIt(Runner { cb: nop }, k) }
+-- expect --
+error[E2297]: the reference lifetime of `keep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:20:24
+   |
+20 |     runIt(Runner { cb: keep }, k) //~ ERROR reference lifetime of `keep` cannot be erased
+   |                        ^^^^
+
+error[E2297]: the reference lifetime of `keep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:24:15
+   |
+24 |     runCb(Has(keep), k) //~ ERROR reference lifetime of `keep` cannot be erased
+   |               ^^^^
+

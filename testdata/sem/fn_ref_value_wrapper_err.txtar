@@ -1,0 +1,181 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+pub interface Sized2 { fn size(move self) -> usize }
+pub type R0['a, F] = { pub cb F, pub k Sink['a] }
+pub fn R0['a, F: Fn[fn(&String, Sink['a]) -> Void]].size(move self) -> usize {
+    let loc = "local-${40 + 2}-abcdefghijklmnopqrstuvwxyz"
+    (self.cb)(&loc, self.k)
+    7
+}
+pub type Hn = { pub n Int }
+fn Hn.measure[R: Sized2](self, r: R) -> usize { r.size() }
+pub type Holder[G] = { pub f G }
+fn apply['a](g: fn(R0['a, fn(&'a String, Sink['a]) -> Void]) -> usize, r: R0['a, fn(&'a String, Sink['a]) -> Void]) -> usize { g(r) }
+fn callRef['a](p: &fn(R0['a, fn(&'a String, Sink['a]) -> Void]) -> usize, r: R0['a, fn(&'a String, Sink['a]) -> Void]) -> usize { p(r) }
+fn runAll['a, H: Fn[fn(R0['a, fn(&'a String, Sink['a]) -> Void]) -> usize] + Copy](r: R0['a, fn(&'a String, Sink['a]) -> Void], hs: ...H) -> usize { hs[0](r) }
+fn zero['a](r: R0['a, fn(&'a String, Sink['a]) -> Void]) -> usize { 0 }
+pub fn wrapBlock['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let g = hn.measure
+    let x = g(ra)
+    x + apply({ g }, rb) //~ ERROR cannot be erased
+}
+pub fn wrapIf['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let g = hn.measure
+    let x = g(ra)
+    x + apply(if x > 0 { g } else { g }, rb) //~ ERROR cannot be erased
+}
+pub fn wrapMatch['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let g = hn.measure
+    let x = g(ra)
+    x + apply(match x { 0 -> g, _ -> g }, rb) //~ ERROR cannot be erased
+}
+pub fn blockCallee['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let g = hn.measure
+    let x = g(ra)
+    x + ({ g })(rb) //~ ERROR cannot be erased
+}
+pub fn holderIf['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let g = hn.measure
+    let x = g(ra)
+    let h = Holder { f: if x > 0 { g } else { g } } //~ ERROR cannot be erased
+    x + (h.f)(rb)
+}
+pub fn byRef['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let g = hn.measure
+    let x = g(ra)
+    x + callRef(&g, rb) //~ ERROR cannot be erased
+}
+pub fn variadicElem['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let g = hn.measure
+    let x = g(ra)
+    x + runAll(rb, { g }) //~ ERROR cannot be erased
+}
+pub fn letWrap['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let g = hn.measure
+    let x = g(ra)
+    let f = if x > 0 { g } else { g } //~ ERROR cannot be erased
+    x + f(rb)
+}
+pub fn letRef['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let g = hn.measure
+    let x = g(ra)
+    let p = &g //~ ERROR cannot be erased
+    x + p(rb)
+}
+pub fn matchScrut['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let g = hn.measure
+    let x = g(ra)
+    match g { f -> x + f(rb) } //~ ERROR cannot be erased
+}
+pub fn assignHolder['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let mut f = zero
+    let g = hn.measure
+    let x = g(ra)
+    f = g
+    x + f(rb) //~ ERROR cannot be erased
+}
+-- expect --
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:25:17
+   |
+25 |     x + apply({ g }, rb) //~ ERROR cannot be erased
+   |                 ^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:33:26
+   |
+33 |     x + apply(if x > 0 { g } else { g }, rb) //~ ERROR cannot be erased
+   |                          ^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:41:30
+   |
+41 |     x + apply(match x { 0 -> g, _ -> g }, rb) //~ ERROR cannot be erased
+   |                              ^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:49:12
+   |
+49 |     x + ({ g })(rb) //~ ERROR cannot be erased
+   |            ^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:57:36
+   |
+57 |     let h = Holder { f: if x > 0 { g } else { g } } //~ ERROR cannot be erased
+   |                                    ^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:66:18
+   |
+66 |     x + callRef(&g, rb) //~ ERROR cannot be erased
+   |                  ^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:74:22
+   |
+74 |     x + runAll(rb, { g }) //~ ERROR cannot be erased
+   |                      ^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:82:24
+   |
+82 |     let f = if x > 0 { g } else { g } //~ ERROR cannot be erased
+   |                        ^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:91:14
+   |
+91 |     let p = &g //~ ERROR cannot be erased
+   |              ^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+   --> main.kg:100:11
+    |
+100 |     match g { f -> x + f(rb) } //~ ERROR cannot be erased
+    |           ^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+   --> main.kg:110:9
+    |
+110 |     x + f(rb) //~ ERROR cannot be erased
+    |         ^
+

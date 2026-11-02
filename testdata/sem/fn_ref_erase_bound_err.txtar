@@ -1,0 +1,74 @@
+-- module --
+mir: planned
+-- src --
+fn keepVia['a](x: &'a String, cb: fn(&'a String) -> Void) { cb(x) }
+fn nopVia['a](x: &'a String, cb: fn(&'a String) -> Void) { }
+fn callErased['b](f: fn(&String, fn(&'b String) -> Void) -> Void, cb: fn(&'b String) -> Void) {
+    let loc = "local${40 + 2}"
+    f(&loc, cb)
+}
+fn apply2[T, F: Fn[fn(T) -> T]](x: T, f: F) -> T { f(x) }
+fn sel2[T, F: Fn[fn() -> T]](x: T, g: F, flag: Bool) -> T { if flag { x } else { g() } }
+fn id[T](x: T) -> T { x }
+
+pub fn direct['a](cb: fn(&'a String) -> Void) {
+    let f: fn(&String, fn(&'a String) -> Void) -> Void = keepVia //~ ERROR reference lifetime of `keepVia` cannot be erased
+    callErased(f, cb)
+}
+
+pub fn viaApply['a](cb: fn(&'a String) -> Void) {
+    callErased(apply2(nopVia, (y) => keepVia), cb) //~ ERROR reference lifetime of `function value` cannot be erased
+}
+
+pub fn viaSel['a](cb: fn(&'a String) -> Void, flag: Bool) {
+    callErased(sel2(nopVia, () => keepVia, flag), cb) //~ ERROR reference lifetime of `function value` cannot be erased
+}
+
+pub fn expectApply['a](cb: fn(&'a String) -> Void) {
+    let f: fn(&String, fn(&'a String) -> Void) -> Void = apply2(nopVia, (y) => keepVia) //~ ERROR reference lifetime of `keepVia` cannot be erased
+}
+
+pub fn expectSel['a](cb: fn(&'a String) -> Void, flag: Bool) {
+    let f: fn(&String, fn(&'a String) -> Void) -> Void = sel2(nopVia, () => keepVia, flag) //~ ERROR reference lifetime of `keepVia` cannot be erased
+}
+
+pub fn expectLambdaCall['a](cb: fn(&'a String) -> Void) {
+    let f: fn(&String, fn(&'a String) -> Void) -> Void = id((() => keepVia)()) //~ ERROR reference lifetime of `function value` cannot be erased
+}
+-- expect --
+error[E2297]: the reference lifetime of `keepVia` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:12:58
+   |
+12 |     let f: fn(&String, fn(&'a String) -> Void) -> Void = keepVia //~ ERROR reference lifetime of `keepVia` cannot be erased
+   |                                                          ^^^^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:17:16
+   |
+17 |     callErased(apply2(nopVia, (y) => keepVia), cb) //~ ERROR reference lifetime of `function value` cannot be erased
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:21:16
+   |
+21 |     callErased(sel2(nopVia, () => keepVia, flag), cb) //~ ERROR reference lifetime of `function value` cannot be erased
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2297]: the reference lifetime of `keepVia` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:25:80
+   |
+25 |     let f: fn(&String, fn(&'a String) -> Void) -> Void = apply2(nopVia, (y) => keepVia) //~ ERROR reference lifetime of `keepVia` cannot be erased
+   |                                                                                ^^^^^^^
+
+error[E2297]: the reference lifetime of `keepVia` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:29:77
+   |
+29 |     let f: fn(&String, fn(&'a String) -> Void) -> Void = sel2(nopVia, () => keepVia, flag) //~ ERROR reference lifetime of `keepVia` cannot be erased
+   |                                                                             ^^^^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:33:61
+   |
+33 |     let f: fn(&String, fn(&'a String) -> Void) -> Void = id((() => keepVia)()) //~ ERROR reference lifetime of `function value` cannot be erased
+   |                                                             ^^^^^^^^^^^^^^^^
+

@@ -3,14 +3,14 @@ package sem
 import "kigumi/internal/compiler/syntax"
 
 // instantiateRequirement gives a requirement's own type parameters fresh variables at each call, or the explicit ones.
-func (c *checker) instantiateRequirement(n syntax.NodeID, req EntityID, sig TypeID, typeArgs []TypeID) TypeID {
+func (c *checker) instantiateRequirement(n syntax.NodeID, req EntityID, sig TypeID, typeArgs []TypeID) (TypeID, map[EntityID]TypeID) {
 	own := c.r.Fn(req).TypeParams
 	if len(typeArgs) > 0 && len(typeArgs) != len(own) {
 		c.errAt(n, cTypeArgCount, c.r.Entities[req].Name, len(own), plural(len(own)), len(typeArgs))
 		typeArgs = nil
 	}
 	if len(own) == 0 {
-		return sig
+		return sig, nil
 	}
 	subst := map[EntityID]TypeID{}
 	inst := make([]TypeID, len(own))
@@ -19,7 +19,7 @@ func (c *checker) instantiateRequirement(n syntax.NodeID, req EntityID, sig Type
 		case i < len(typeArgs):
 			inst[i] = typeArgs[i]
 		case c.r.typeParam(p).IsLifetime:
-			inst[i] = c.vars.freshLifetime(n, p, c.lifetimeFallback(p))
+			inst[i] = c.freshLifetime(n, p)
 		default:
 			inst[i] = c.vars.fresh(n, c.r.Entities[p].Name)
 		}
@@ -27,7 +27,7 @@ func (c *checker) instantiateRequirement(n syntax.NodeID, req EntityID, sig Type
 	}
 	c.deferConstraints(n, own, inst, subst)
 	c.hintFnParams(own, inst, subst)
-	return c.r.Types.Subst(sig, subst)
+	return c.r.Types.Subst(sig, subst), subst
 }
 
 func (c *checker) hasRequirement(t TypeID, name string) bool {

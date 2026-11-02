@@ -1,0 +1,83 @@
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+
+fn useLen['a](f: fn(&'a String) -> usize) -> usize { 7 }
+fn plainLen(v: &String) -> usize { v.len() + 100 }
+fn id[T](x: T) -> T { x }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+fn mkNop['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { nop }
+fn drive[F: Fn[fn(fn(&String) -> usize) -> usize]](f: F) -> usize { f(plainLen) }
+fn drive2['a, F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void]](f: F, k: Sink['a]) { }
+fn lenA['a](v: &'a mut Array[String]) -> usize { v.len() }
+fn blen['a](x: &'a Array[Int]) -> usize { x.len() }
+fn clen['a](x: &'a Array[Int]) -> Int { x[0] }
+fn slen['a](x: &'a String) -> usize { x.len() }
+
+fn direct() -> usize {
+    let us: Array[fn(fn(&String) -> usize) -> usize] = Array.of(useLen)
+    us[0](plainLen)
+}
+
+fn viaId() -> usize {
+    let us: Array[fn(fn(&String) -> usize) -> usize] = id(Array.of(useLen))
+    us[0](plainLen)
+}
+
+fn viaLet() -> usize {
+    let us0 = Array.of(useLen)
+    let us: Array[fn(fn(&String) -> usize) -> usize] = us0
+    us[0](plainLen)
+}
+
+fn viaOption() -> usize {
+    let o = Some(useLen)
+    let p: Option[fn(fn(&String) -> usize) -> usize] = o
+    p.unwrap()(plainLen)
+}
+
+fn widen['a](value: &'a String) -> usize {
+    let a: fn(&'a String) -> usize = plainLen
+    let b: Array[fn(&'a String) -> usize] = Array.of(plainLen)
+    let c0 = Array.of(plainLen)
+    let c: Array[fn(&'a String) -> usize] = c0
+    let o0 = Some(plainLen)
+    let o: Option[fn(&'a String) -> usize] = o0
+    let mut n = a(value) + b.len() + c.len()
+    if o is Some(_) { n = n + 1 }
+    n
+}
+
+fn closureSite['a](v: &'a String) -> usize {
+    let item: fn(fn(&String) -> usize) -> usize = useLen
+    let c = (f: fn(&'a String) -> usize) => {
+        let n: usize = 7
+        n
+    }
+    let g: fn(fn(&String) -> usize) -> usize = c
+    item(plainLen) + g(plainLen)
+}
+
+pub fn boundResult['a](k: Sink['a]) {
+    let m: fn(Int) -> fn(&String, Sink['a]) -> Void = mkNop
+    drive2(mkNop, k)
+}
+
+fn keepsNothing() -> String {
+    let m: fn(&mut Array[String]) -> usize = lenA
+    let b: fn(&Array[Int]) -> usize = blen
+    let c: fn(&Array[Int]) -> Int = clen
+    let s: fn(&String) -> usize = slen
+    let mut a = Array.of("x${1}")
+    let n = Array.of(4, 5, 6)
+    "${m(&mut a)} ${b(&n)} ${c(&n)} ${s(&"abc")}"
+}
+
+let s = "hello"
+print "${direct()} ${viaId()} ${viaLet()} ${viaOption()}"
+print "${widen(&s)} ${closureSite(&s)} ${drive(useLen)}"
+print "${keepsNothing()}"
+-- stdout --
+7 7 7 7
+108 14 7
+1 3 4 3

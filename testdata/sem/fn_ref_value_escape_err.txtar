@@ -1,0 +1,32 @@
+-- module --
+mir: planned
+-- src --
+fn blen['a](x: &'a Array[Int]) -> usize { x.len() }
+pub interface Sized2 { fn size(self) -> usize }
+pub type R2[F: Fn[fn(&Array[Int]) -> usize] + Copy] = { pub cb F }
+pub fn R2[F].size(self) -> usize {
+    let xs = Array.of(1, 2, 3)
+    (self.cb)(&xs)
+}
+pub type Hn = { pub n Int }
+fn Hn.measure[R: Sized2](self, r: R) -> usize { r.size() }
+fn apply['a](g: fn(R2[fn(&'a Array[Int]) -> usize]) -> usize, r: R2[fn(&'a Array[Int]) -> usize]) -> usize { g(r) }
+fn escapeArg['a](hn: Hn, r: R2[fn(&'a Array[Int]) -> usize]) -> usize {
+    apply(hn.measure, r) //~ ERROR `measure` cannot be erased
+}
+fn escapeReturn['a](hn: Hn) -> fn(R2[fn(&'a Array[Int]) -> usize]) -> usize {
+    hn.measure //~ ERROR `measure` cannot be erased
+}
+-- expect --
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:12:11
+   |
+12 |     apply(hn.measure, r) //~ ERROR `measure` cannot be erased
+   |           ^^^^^^^^^^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:15:5
+   |
+15 |     hn.measure //~ ERROR `measure` cannot be erased
+   |     ^^^^^^^^^^
+

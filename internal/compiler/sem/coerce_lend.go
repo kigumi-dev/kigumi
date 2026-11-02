@@ -22,6 +22,7 @@ func (c *checker) lendExistential(n syntax.NodeID, got, want TypeID) ([]CoStep, 
 	if !res.ok {
 		return nil, false
 	}
+	c.implContracts(n, g.Elem, w.Elem, erasePos{pos: true})
 	for _, wit := range res.witnesses {
 		if len(c.r.Fn(wit).Witnesses) > 0 {
 			c.errAt(n, cIfaceBoxWitness, g.Elem, w.Elem, c.r.Entities[wit].Name)

@@ -1,0 +1,32 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+fn mkKeep['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { keep }
+fn mkNop['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { nop }
+pub type Box[F] = { pub mut cb F }
+pub type OuterN['a, F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void] + Copy] = { pub mut b Box[F] }
+pub fn OuterN['a, F].goA(o: OuterN['a, F], k: Sink['a]) { }
+fn callIt2['a](g: fn(OuterN['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void], Sink['a]) -> Void, k: Sink['a]) { }
+pub fn assocLet['a](k: Sink['a]) {
+    let g: fn(OuterN['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void], Sink['a]) -> Void = OuterN.goA //~ ERROR `goA` cannot be erased
+}
+pub fn assocArg['a](k: Sink['a]) {
+    callIt2(OuterN.goA, k) //~ ERROR `goA` cannot be erased
+}
+-- expect --
+error[E2297]: the reference lifetime of `goA` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:12:92
+   |
+12 |     let g: fn(OuterN['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void], Sink['a]) -> Void = OuterN.goA //~ ERROR `goA` cannot be erased
+   |                                                                                            ^^^^^^^^^^
+
+error[E2297]: the reference lifetime of `goA` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:15:13
+   |
+15 |     callIt2(OuterN.goA, k) //~ ERROR `goA` cannot be erased
+   |             ^^^^^^^^^^
+

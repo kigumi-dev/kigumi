@@ -1,0 +1,60 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+fn mkKeep['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { keep }
+fn mkNop['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { nop }
+pub type Box[F] = { pub mut cb F }
+pub type OuterN['a, F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void] + Copy] = { pub mut b Box[F] }
+pub fn OuterN['a, F].go(move self, k: Sink['a]) { }
+fn setB['a](b: &mut Box[fn(Int) -> fn(&'a String, Sink['a]) -> Void]) { b.cb = mkKeep }
+fn callIt['a, H: Fn[fn(Sink['a]) -> Void]](h: H, k: Sink['a]) { h(k) }
+pub interface Goer['a] { fn go(move self, k: Sink['a]) }
+fn viaIface['a, R: Goer['a]](r: R, k: Sink['a]) { r.go(k) }
+pub fn methodValue['a](k: Sink['a]) {
+    let mut o = OuterN { b: Box { cb: mkNop } }
+    setB(&mut o.b)
+    let g = o.go //~ ERROR cannot be erased
+    g(k)
+}
+pub fn methodArg['a](k: Sink['a]) {
+    let mut o = OuterN { b: Box { cb: mkNop } }
+    setB(&mut o.b)
+    callIt(o.go, k) //~ ERROR cannot be erased
+}
+pub fn ifaceBound['a](k: Sink['a]) {
+    let mut o = OuterN { b: Box { cb: mkNop } }
+    setB(&mut o.b)
+    viaIface(o, k) //~ ERROR cannot be erased
+}
+pub fn methodValueSafe['a](k: Sink['a]) {
+    let o = OuterN { b: Box { cb: mkNop } }
+    let g = o.go
+    g(k)
+}
+pub fn ifaceSafe['a](k: Sink['a]) {
+    let o = OuterN { b: Box { cb: mkNop } }
+    viaIface(o, k)
+}
+-- expect --
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:17:13
+   |
+17 |     let g = o.go //~ ERROR cannot be erased
+   |             ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:23:12
+   |
+23 |     callIt(o.go, k) //~ ERROR cannot be erased
+   |            ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:28:14
+   |
+28 |     viaIface(o, k) //~ ERROR cannot be erased
+   |              ^
+

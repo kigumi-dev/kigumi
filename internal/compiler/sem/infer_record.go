@@ -75,7 +75,8 @@ func (c *checker) synthRecord(n syntax.NodeID, want TypeID) TypeID {
 		given[fld] = true
 		fieldType := c.r.Types.Subst(c.r.Entities[fld].Type, subst)
 		start := c.vars.count()
-		c.checkArg(value, fieldType, 0, false)
+		c.checkArg(value, fieldType, 0, false, callResult{})
+		c.slotContracts(value, c.r.Entities[fld].Type, subst, erasePos{pos: true, provable: true})
 		if fieldType == TyPoison {
 			c.vars.poisonFrom(start)
 		}
@@ -149,6 +150,9 @@ func (c *checker) spreadEntry(target EntityID, subst map[EntityID]TypeID, src sy
 			c.errAt(src, cNotVisible, name, c.r.visText(c.r.Entities[sf].Vis), c.r.Packages[c.r.Entities[sf].Pkg].Path)
 		case got != want && !c.vars.unify(want, got):
 			c.errAt(src, cSpreadFieldType, name, c.vars.resolve(got), c.vars.resolve(want))
+		default:
+			part := partPath{{Index: c.r.field(sf).Index, Field: true}}
+			c.slotContracts(src, c.r.Entities[fld].Type, subst, erasePos{pos: true, provable: true, path: part})
 		}
 		given[fld] = true
 	}

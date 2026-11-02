@@ -1,0 +1,28 @@
+-- src --
+fn blen['a](x: &'a Array[Int]) -> usize { x.len() }
+pub interface Sized2 { fn size(self) -> usize }
+pub type R2[F: Fn[fn(&Array[Int]) -> usize] + Copy] = { pub cb F }
+pub fn R2[F].size(self) -> usize {
+    let xs = Array.of(1, 2, 3)
+    (self.cb)(&xs)
+}
+pub type Hn = { pub n Int }
+fn Hn.measure[R: Sized2](self, r: R) -> usize { r.size() }
+fn one['a](hn: Hn, xs: &'a Array[Int]) -> usize {
+    let ra: R2[fn(&'a Array[Int]) -> usize] = R2 { cb: blen }
+    let mut g = hn.measure
+    g(ra)
+}
+fn reassign['a](hn: Hn, xs: &'a Array[Int]) -> usize {
+    let ra: R2[fn(&'a Array[Int]) -> usize] = R2 { cb: blen }
+    let rb: R2[fn(&'a Array[Int]) -> usize] = R2 { cb: blen }
+    let mut g = hn.measure
+    let x = g(ra)
+    g = hn.measure
+    x + g(rb)
+}
+let hn = Hn { n: 1 }
+let xs = Array.of(9)
+print "${one(hn, &xs)} ${reassign(hn, &xs)}"
+-- stdout --
+3 6

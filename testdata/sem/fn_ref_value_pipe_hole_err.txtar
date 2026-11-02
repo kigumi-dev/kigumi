@@ -1,0 +1,88 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+pub interface Sized2 { fn size(move self) -> usize }
+pub type R0['a, F] = { pub cb F, pub k Sink['a] }
+pub fn R0['a, F: Fn[fn(&String, Sink['a]) -> Void]].size(move self) -> usize {
+    let loc = "local-${40 + 2}-abcdefghijklmnopqrstuvwxyz"
+    (self.cb)(&loc, self.k)
+    7
+}
+pub type Hn = { pub n Int }
+fn Hn.measure[R: Sized2](self, r: R) -> usize { r.size() }
+fn Hn.measure2[R: Sized2](self, n: Int, r: R) -> usize { r.size() }
+pub fn holeAfterCall['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let g = hn.measure2
+    let x = g(1, ra)
+    x + (rb |> g(1, _)) //~ ERROR cannot be erased
+}
+pub fn holeOnly['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let g = hn.measure2
+    rb |> g(1, _) //~ ERROR cannot be erased
+}
+pub fn holeAlias['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let g = hn.measure2
+    let f = g
+    let x = f(1, ra)
+    x + (rb |> f(1, _)) //~ ERROR cannot be erased
+}
+pub fn holeInPlace['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let x = hn.measure2(1, ra)
+    x + (rb |> (hn.measure2)(1, _)) //~ ERROR cannot be erased
+}
+pub fn inClosure['a](k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let cl = (k: Sink['a]) => {
+        let r: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k }
+        let f = hn.measure
+        f(r) //~ ERROR cannot be erased
+    }
+    cl(k2)
+}
+-- expect --
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:21:10
+   |
+21 |     x + (rb |> g(1, _)) //~ ERROR cannot be erased
+   |          ^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:28:5
+   |
+28 |     rb |> g(1, _) //~ ERROR cannot be erased
+   |     ^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:37:10
+   |
+37 |     x + (rb |> f(1, _)) //~ ERROR cannot be erased
+   |          ^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:44:10
+   |
+44 |     x + (rb |> (hn.measure2)(1, _)) //~ ERROR cannot be erased
+   |          ^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:51:11
+   |
+51 |         f(r) //~ ERROR cannot be erased
+   |           ^
+

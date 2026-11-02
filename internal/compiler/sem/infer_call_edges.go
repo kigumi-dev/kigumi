@@ -8,7 +8,7 @@ import (
 
 // Each fn-typed arg contributes its own effects; a named edge only counts
 // once the callee body is known to call that parameter.
-func (c *checker) callbackEdges(n syntax.NodeID, fn EntityID, sig TypeID, args []syntax.NodeID) {
+func (c *checker) callbackEdges(n syntax.NodeID, fn EntityID, sig TypeID, args []syntax.NodeID, subst map[EntityID]TypeID) {
 	tt := c.r.Types
 	params := tt.Node(sig).Args
 	info := c.r.Fn(fn)
@@ -17,6 +17,7 @@ func (c *checker) callbackEdges(n syntax.NodeID, fn EntityID, sig TypeID, args [
 		if i >= len(params) {
 			continue
 		}
+		declared := tt.Node(info.Sig).Args
 		pt := c.vars.resolve(params[i])
 		if tt.Kind(pt) == KIface {
 			c.ifaceArgEdge(n, a, info, i)
@@ -30,7 +31,9 @@ func (c *checker) callbackEdges(n syntax.NodeID, fn EntityID, sig TypeID, args [
 			param = info.Params[i]
 		}
 		at := c.vars.resolve(c.info.Types[a])
-		c.refScopeContract(a, at, c.r.fnShapeOf(pt))
+		if i >= len(declared) || tt.Kind(declared[i]) != KParam {
+			c.refScopeContract(a, at, c.r.fnShapeOf(pt))
+		}
 		need, bound := c.fnBoundMods(fn, i)
 		if bound != 0 {
 			c.rejectFnItemBound(n, a, fn, i)

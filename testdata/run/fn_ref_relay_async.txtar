@@ -1,0 +1,25 @@
+-- src --
+import task from std/task
+
+async fn pushA(v: &mut Array[String]) {
+    await task.yieldNow()
+    v.push("A-${40 + 2}")
+}
+fn id[T](x: T) -> T { x }
+fn second[T](x: T, y: T) -> T { y }
+
+fn main() {
+    let ex = task.currentThreadExecutor()
+    let h = id(pushA)
+    let mut v = Array.of("init-${1}")
+    let fut = h(&mut v)
+    ex.runToCompletion(fut)
+    print "after: ${v.len()} ${v[v.len() - 1]}"
+    let g = second(pushA, pushA)
+    let fut2 = g(&mut v)
+    ex.runToCompletion(fut2)
+    print "again: ${v.len()}"
+}
+-- stdout --
+after: 2 A-42
+again: 3

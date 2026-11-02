@@ -1,0 +1,65 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn length['a](value: &'a String) -> usize { value.len() }
+fn mkKeep['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { keep }
+fn mkP['a](f: escaping fn(&'a String) -> usize) -> fn(&'a String) -> usize { f }
+
+pub fn keptElement['a](k: Sink['a]) {
+    let fs = Array.of(keep)
+    let g: Array[fn(&String, Sink['a]) -> Void] = fs //~ ERROR reference lifetime of `function value` cannot be erased
+}
+
+pub fn writtenElement['a](p: escaping fn(&'a String) -> usize) {
+    let mut fs = Array.of(length)
+    fs.push(p)
+    let g: Array[fn(&String) -> usize] = fs //~ ERROR reference lifetime of `function value` cannot be erased
+}
+
+pub fn keptPayload['a](k: Sink['a]) {
+    let o = Some(keep)
+    let g: Option[fn(&String, Sink['a]) -> Void] = o //~ ERROR reference lifetime of `function value` cannot be erased
+}
+
+pub fn returnsKeeper['a](k: Sink['a]) {
+    let m: fn(Int) -> fn(&String, Sink['a]) -> Void = mkKeep //~ ERROR reference lifetime of `mkKeep` cannot be erased
+}
+
+pub fn returnsParam['a](k: Sink['a]) {
+    let m: fn(escaping fn(&'a String) -> usize) -> fn(&String) -> usize = mkP //~ ERROR reference lifetime of `mkP` cannot be erased
+}
+-- expect --
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:11:51
+   |
+11 |     let g: Array[fn(&String, Sink['a]) -> Void] = fs //~ ERROR reference lifetime of `function value` cannot be erased
+   |                                                   ^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:17:42
+   |
+17 |     let g: Array[fn(&String) -> usize] = fs //~ ERROR reference lifetime of `function value` cannot be erased
+   |                                          ^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:22:52
+   |
+22 |     let g: Option[fn(&String, Sink['a]) -> Void] = o //~ ERROR reference lifetime of `function value` cannot be erased
+   |                                                    ^
+
+error[E2297]: the reference lifetime of `mkKeep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:26:55
+   |
+26 |     let m: fn(Int) -> fn(&String, Sink['a]) -> Void = mkKeep //~ ERROR reference lifetime of `mkKeep` cannot be erased
+   |                                                       ^^^^^^
+
+error[E2297]: the reference lifetime of `mkP` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:30:75
+   |
+30 |     let m: fn(escaping fn(&'a String) -> usize) -> fn(&String) -> usize = mkP //~ ERROR reference lifetime of `mkP` cannot be erased
+   |                                                                           ^^^
+

@@ -21,22 +21,15 @@ func (c *checker) hintFnParams(own []EntityID, inst []TypeID, subst map[EntityID
 func (c *checker) instantiateFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, recv TypeID) (TypeID, []TypeID, bool) {
 	info := c.r.Fn(fn)
 	tt := c.r.Types
-	subst := map[EntityID]TypeID{}
-	ownerParams := c.r.ownerParams(fn)
-	own := info.TypeParams
-	if recv != 0 && len(ownerParams) > 0 && len(own) >= len(ownerParams) && own[0] == ownerParams[0] {
-		rn := tt.Node(recv)
+	subst, own := c.ownerSubst(fn, recv)
+	if len(info.RecvParams) > 0 && len(own) < len(info.TypeParams) {
 		var recvArgs []TypeID
-		for i, p := range ownerParams {
-			if i < len(rn.Args) {
-				subst[p] = rn.Args[i]
-				recvArgs = append(recvArgs, rn.Args[i])
+		for _, p := range info.TypeParams[:len(info.TypeParams)-len(own)] {
+			if t, ok := subst[p]; ok {
+				recvArgs = append(recvArgs, t)
 			}
 		}
-		if len(info.RecvParams) > 0 {
-			c.deferConstraints(n, info.RecvParams, recvArgs, subst)
-		}
-		own = own[len(ownerParams):]
+		c.deferConstraints(n, info.RecvParams, recvArgs, subst)
 	}
 	bad := false
 	if len(typeArgs) > 0 && len(typeArgs) != len(own) {
@@ -53,7 +46,7 @@ func (c *checker) instantiateFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID,
 		case bad:
 			t = TyPoison
 		case c.r.typeParam(p).IsLifetime:
-			t = c.vars.freshLifetime(n, p, c.lifetimeFallback(p))
+			t = c.freshLifetime(n, p)
 		default:
 			t = c.vars.fresh(n, c.r.Entities[p].Name)
 		}
@@ -94,11 +87,10 @@ func (c *checker) coerceGenericFnItem(n syntax.NodeID, item EntityID, got, want 
 		return false
 	}
 	mark := c.vars.mark()
-	for i := range g.Args {
-		if !c.vars.unifyIgnoringEscaping(g.Args[i], w.Args[i]) {
-			c.vars.rollback(mark)
-			return false
-		}
+	fit := &eraseFit{v: c.vars, lenient: true}
+	if !fit.params(g, w, erasePos{pos: true, provable: true}) {
+		c.vars.rollback(mark)
+		return false
 	}
 	for _, f := range fresh {
 		if tt.Kind(c.vars.resolve(f)) == KRef {
@@ -108,7 +100,7 @@ func (c *checker) coerceGenericFnItem(n syntax.NodeID, item EntityID, got, want 
 			return true
 		}
 	}
-	if !c.vars.unifyIgnoringEscaping(g.Elem, w.Elem) {
+	if !fit.walk(g.Elem, w.Elem, erasePos{pos: true, provable: true, results: 1}) {
 		c.vars.rollback(mark)
 		return false
 	}

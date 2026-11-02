@@ -1,0 +1,206 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+fn ten(n: Int) -> usize { 10 }
+fn mkKeep['a]() -> fn(&'a String, Sink['a]) -> Void { keep }
+fn mkNop['a]() -> fn(&'a String, Sink['a]) -> Void { nop }
+pub type Box[F] = { pub cb F }
+pub type R7['a, F: Fn[fn(&String, Sink['a]) -> Void] + Copy] = { pub cb F, pub g fn(Int) -> usize }
+pub type R2['a, F: Fn[fn(&String, Sink['a]) -> Void] + Copy] = { pub a F, pub b F }
+pub type RO['a, F: Fn[fn(&String, Sink['a]) -> Void] + Copy] = { pub o Option[F], pub n Int }
+pub type E['a, F: Fn[fn(&String, Sink['a]) -> Void] + Copy] = A(f: F) | B(n: Int) | C(g: F, h: F)
+pub type RM['a, F: Fn[fn(&String, Sink['a]) -> Void] + Copy] = { pub mk fn() -> F, pub n Int }
+pub type RB['a, F: Fn[fn(&String, Sink['a]) -> Void] + Copy] = { pub b Box[F], pub n Int }
+pub type RG['a, F: Fn[fn(&String, Sink['a]) -> Void] + Copy, G: Fn[fn() -> F] + Copy] = { pub mk G, pub n Int }
+pub type RA['a, F: Fn[fn(&String, Sink['a]) -> Void] + Copy] = { pub xs Array[F] }
+fn use7['a, F: Fn[fn(&String, Sink['a]) -> Void] + Copy](r: R7['a, F], k: Sink['a]) { }
+fn use2['a, F: Fn[fn(&String, Sink['a]) -> Void] + Copy](r: R2['a, F], k: Sink['a]) { }
+fn useO['a, F: Fn[fn(&String, Sink['a]) -> Void] + Copy](r: RO['a, F], k: Sink['a]) { }
+fn useE['a, F: Fn[fn(&String, Sink['a]) -> Void] + Copy](e: E['a, F], k: Sink['a]) { }
+fn useOpt['a, F: Fn[fn(&String, Sink['a]) -> Void] + Copy](o: Option[F], k: Sink['a]) { }
+fn useM['a, F: Fn[fn(&String, Sink['a]) -> Void] + Copy](r: RM['a, F], k: Sink['a]) { }
+fn useB['a, F: Fn[fn(&String, Sink['a]) -> Void] + Copy](r: RB['a, F], k: Sink['a]) { }
+fn useG['a, F: Fn[fn(&String, Sink['a]) -> Void] + Copy, G: Fn[fn() -> F] + Copy](r: RG['a, F, G], k: Sink['a]) { }
+fn useA['a, F: Fn[fn(&String, Sink['a]) -> Void] + Copy](r: RA['a, F], k: Sink['a]) { }
+
+pub fn bound['a](k: Sink['a]) { use7(R7 { cb: keep, g: ten }, k) } //~ ERROR cannot be erased
+pub fn sibling['a](k: Sink['a]) { use2(R2 { a: nop, b: keep }, k) } //~ ERROR cannot be erased
+pub fn nestedOpt['a](k: Sink['a]) { useO(RO { o: Some(keep), n: 1 }, k) } //~ ERROR cannot be erased
+pub fn joined['a](k: Sink['a], c: Bool) {
+    let o = if c { Some(keep) } else { None }
+    useOpt(o, k) //~ ERROR cannot be erased
+}
+pub fn variant['a](k: Sink['a]) {
+    let e: E['a, fn(&'a String, Sink['a]) -> Void] = C(nop, keep) //~ ERROR cannot be erased
+    useE(e, k) //~ ERROR cannot be erased
+}
+pub fn spread['a](k: Sink['a]) {
+    let src: R7['a, fn(&'a String, Sink['a]) -> Void] = R7 { cb: keep, g: ten } //~ ERROR cannot be erased
+    use7(R7 { g: (n: Int) => 3, ..src }, k) //~ ERROR cannot be erased
+}
+pub fn copied['a](k: Sink['a]) {
+    let r = R7 { cb: keep, g: ten } //~ ERROR cannot be erased
+    let r2 = r
+    use7(r2, k) //~ ERROR cannot be erased
+}
+pub fn maker['a](k: Sink['a]) {
+    let r: RM['a, fn(&'a String, Sink['a]) -> Void] = RM { mk: mkNop, n: 1 }
+    useM(r, k) //~ ERROR cannot be erased
+}
+pub fn boxed['a](k: Sink['a]) {
+    let r: RB['a, fn(&'a String, Sink['a]) -> Void] = RB { b: Box { cb: keep }, n: 1 } //~ ERROR cannot be erased
+    useB(r, k) //~ ERROR cannot be erased
+}
+pub fn makerBound['a](k: Sink['a]) {
+    let r: RG['a, fn(&'a String, Sink['a]) -> Void, fn() -> fn(&'a String, Sink['a]) -> Void] = RG { mk: mkKeep, n: 1 } //~ ERROR cannot be erased
+    useG(r, k) //~ ERROR cannot be erased
+}
+pub fn array['a](k: Sink['a]) {
+    let r: RA['a, fn(&'a String, Sink['a]) -> Void] = RA { xs: Array.of(nop, keep) } //~ ERROR cannot be erased
+    useA(r, k) //~ ERROR cannot be erased
+}
+
+pub fn okParam['a](k: Sink['a], g: escaping fn(Int) -> usize) { use7(R7 { cb: nop, g: g }, k) }
+pub fn okSibling['a](k: Sink['a]) { use2(R2 { a: nop, b: nop }, k) }
+pub fn okNone['a](k: Sink['a]) {
+    let r: RO['a, fn(&'a String, Sink['a]) -> Void] = RO { o: None, n: 1 }
+    useO(r, k)
+}
+pub fn okJoined['a](k: Sink['a], c: Bool) {
+    let o = if c { Some(nop) } else { None }
+    useOpt(o, k)
+}
+pub fn okVariant['a](k: Sink['a]) {
+    let e: E['a, fn(&'a String, Sink['a]) -> Void] = B(3)
+    useE(e, k)
+}
+pub fn okSpread['a](k: Sink['a]) {
+    let src = R7 { cb: nop, g: (n: Int) => 3 }
+    use7(R7 { cb: nop, ..src }, k)
+}
+pub fn okBoxed['a](k: Sink['a]) {
+    let r: RB['a, fn(&'a String, Sink['a]) -> Void] = RB { b: Box { cb: nop }, n: 1 }
+    useB(r, k)
+}
+pub fn okMakerBound['a](k: Sink['a]) {
+    let r: RG['a, fn(&'a String, Sink['a]) -> Void, fn() -> fn(&'a String, Sink['a]) -> Void] = RG { mk: mkNop, n: 1 }
+    useG(r, k)
+}
+pub fn okArray['a](k: Sink['a]) {
+    let r: RA['a, fn(&'a String, Sink['a]) -> Void] = RA { xs: Array.of(nop, nop) }
+    useA(r, k)
+}
+
+fn blen['a](x: &'a Array[Int]) -> usize { x.len() }
+fn takeO(o: Option[fn(&Array[Int]) -> usize]) -> usize { 0 }
+pub fn okContainer['a](x: &'a Array[Int]) -> usize {
+    let n: Option[fn(&'a Array[Int]) -> usize] = None
+    takeO(n)
+}
+-- expect --
+error[E2297]: the reference lifetime of `keep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:27:47
+   |
+27 | pub fn bound['a](k: Sink['a]) { use7(R7 { cb: keep, g: ten }, k) } //~ ERROR cannot be erased
+   |                                               ^^^^
+
+error[E2297]: the reference lifetime of `keep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:28:56
+   |
+28 | pub fn sibling['a](k: Sink['a]) { use2(R2 { a: nop, b: keep }, k) } //~ ERROR cannot be erased
+   |                                                        ^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:29:50
+   |
+29 | pub fn nestedOpt['a](k: Sink['a]) { useO(RO { o: Some(keep), n: 1 }, k) } //~ ERROR cannot be erased
+   |                                                  ^^^^^^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:32:12
+   |
+32 |     useOpt(o, k) //~ ERROR cannot be erased
+   |            ^
+
+error[E2297]: the reference lifetime of `keep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:35:61
+   |
+35 |     let e: E['a, fn(&'a String, Sink['a]) -> Void] = C(nop, keep) //~ ERROR cannot be erased
+   |                                                             ^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:36:10
+   |
+36 |     useE(e, k) //~ ERROR cannot be erased
+   |          ^
+
+error[E2297]: the reference lifetime of `keep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:39:66
+   |
+39 |     let src: R7['a, fn(&'a String, Sink['a]) -> Void] = R7 { cb: keep, g: ten } //~ ERROR cannot be erased
+   |                                                                  ^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:40:35
+   |
+40 |     use7(R7 { g: (n: Int) => 3, ..src }, k) //~ ERROR cannot be erased
+   |                                   ^^^
+
+error[E2297]: the reference lifetime of `keep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:43:22
+   |
+43 |     let r = R7 { cb: keep, g: ten } //~ ERROR cannot be erased
+   |                      ^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:45:10
+   |
+45 |     use7(r2, k) //~ ERROR cannot be erased
+   |          ^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:49:10
+   |
+49 |     useM(r, k) //~ ERROR cannot be erased
+   |          ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:52:63
+   |
+52 |     let r: RB['a, fn(&'a String, Sink['a]) -> Void] = RB { b: Box { cb: keep }, n: 1 } //~ ERROR cannot be erased
+   |                                                               ^^^^^^^^^^^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:53:10
+   |
+53 |     useB(r, k) //~ ERROR cannot be erased
+   |          ^
+
+error[E2297]: the reference lifetime of `mkKeep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:56:106
+   |
+56 |     let r: RG['a, fn(&'a String, Sink['a]) -> Void, fn() -> fn(&'a String, Sink['a]) -> Void] = RG { mk: mkKeep, n: 1 } //~ ERROR cannot be erased
+   |                                                                                                          ^^^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:57:10
+   |
+57 |     useG(r, k) //~ ERROR cannot be erased
+   |          ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:60:64
+   |
+60 |     let r: RA['a, fn(&'a String, Sink['a]) -> Void] = RA { xs: Array.of(nop, keep) } //~ ERROR cannot be erased
+   |                                                                ^^^^^^^^^^^^^^^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:61:10
+   |
+61 |     useA(r, k) //~ ERROR cannot be erased
+   |          ^
+

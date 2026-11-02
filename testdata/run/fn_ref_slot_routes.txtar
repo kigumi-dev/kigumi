@@ -1,0 +1,42 @@
+-- src --
+fn length['a](value: &'a String) -> usize { value.len() }
+fn mkLen['a](n: Int) -> fn(&'a String) -> usize { length }
+fn plainLen(v: &String) -> usize { v.len() + 100 }
+
+pub type Box[F] = { pub cb F }
+pub type Runner[F: Fn[fn(&String) -> usize]] = { pub mut cb F }
+pub type Outer[F: Fn[fn(&String) -> usize]] = { pub b Box[F] }
+pub type Cb[F: Fn[fn(&String) -> usize]] = Has(b: Box[F]) | NoCb
+pub type HN = { pub n Int }
+
+fn HN.run[F: Fn[fn(&String) -> usize]](self, f: F, v: &String) -> usize { f(v) }
+fn runO[F: Fn[fn(&String) -> usize]](o: Option[F], v: &String) -> usize { if o is Some(f) { f(v) } else { 0 } }
+fn runB[F: Fn[fn(&String) -> usize]](b: Box[F], v: &String) -> usize { (b.cb)(v) }
+fn runIt[F: Fn[fn(&String) -> usize]](r: Runner[F], v: &String) -> usize { (r.cb)(v) }
+fn runOuter[F: Fn[fn(&String) -> usize]](o: Outer[F], v: &String) -> usize { (o.b.cb)(v) }
+fn runCb[F: Fn[fn(&String) -> usize]](c: Cb[F], v: &String) -> usize { if c is Has(b) { (b.cb)(v) } else { 0 } }
+fn twoLevel[F: Fn[fn(&String) -> usize], G: Fn[fn(Int) -> F]](g: G, v: &String) -> usize { let f = g(3); f(v) }
+fn mapO[U, F: Fn[fn(Int) -> U]](o: Option[F], t: Int) -> Option[U] { if o is Some(f) { Some(f(t)) } else { None } }
+
+fn routes(v: &String) -> String {
+    let viaOption = runO(Some(length), v)
+    let viaBox = runB(Box { cb: length }, v)
+    let viaSpread = runIt(Runner { ..Box { cb: length } }, v)
+    let viaOuter = runOuter(Outer { b: Box { cb: length } }, v)
+    let viaVariant = runCb(Has(Box { cb: length }), v)
+    let mut r: Runner[fn(&String) -> usize] = Runner { cb: plainLen }
+    r.cb = length
+    let viaAssign = runIt(r, v)
+    let viaBound = twoLevel(mkLen, v)
+    let hn = HN { n: 1 }
+    let d = hn.run[fn(&String) -> usize]
+    let viaMethodValue = d(length, v)
+    let o: Option[fn(&String) -> usize] = mapO(Some(mkLen), 3)
+    let viaNested = if o is Some(h) { h(v) } else { 0 }
+    "${viaOption} ${viaBox} ${viaSpread} ${viaOuter} ${viaVariant} ${viaAssign} ${viaBound} ${viaMethodValue} ${viaNested}"
+}
+
+let s = "hello"
+print routes(&s)
+-- stdout --
+5 5 5 5 5 5 5 5 5

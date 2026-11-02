@@ -1,0 +1,37 @@
+-- module --
+mir: planned
+-- src --
+fn length['a](value: &'a String) -> usize { value.len() }
+fn twice(f: fn(&String) -> usize, v: &String) -> usize { f(v) + f(v) }
+fn id[T](x: T) -> T { x }
+fn second[T](x: T, y: T) -> T { y }
+fn pick['a](f: escaping fn(&'a String) -> usize) -> fn(&'a String) -> usize { f }
+
+pub fn relayed['a](value: &'a String, p: escaping fn(&'a String) -> usize) -> usize {
+    let q: fn(&'a String) -> usize = length
+    let g = id(length)
+    twice(id(q), value) + twice(g, value) + twice(second(p, q), value)
+}
+
+pub fn untied['a](value: &'a String, p: escaping fn(&'a String) -> usize) -> usize {
+    let q: fn(&'a String) -> usize = length
+    twice(second(q, p), value) //~ ERROR reference lifetime of `function value` cannot be erased
+}
+
+pub fn unrelayed['a](value: &'a String) -> usize {
+    let q: fn(&'a String) -> usize = length
+    twice(pick(q), value) //~ ERROR reference lifetime of `function value` cannot be erased
+}
+-- expect --
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:15:11
+   |
+15 |     twice(second(q, p), value) //~ ERROR reference lifetime of `function value` cannot be erased
+   |           ^^^^^^^^^^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:20:11
+   |
+20 |     twice(pick(q), value) //~ ERROR reference lifetime of `function value` cannot be erased
+   |           ^^^^^^
+

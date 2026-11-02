@@ -1,0 +1,38 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+pub interface Sized2 { fn size(move self) -> usize }
+pub type R0['a, F] = { pub cb F, pub k Sink['a] }
+pub fn R0['a, F: Fn[fn(&String, Sink['a]) -> Void]].size(move self) -> usize {
+    let loc = "local-${40 + 2}-abcdefghij"
+    (self.cb)(&loc, self.k)
+    7
+}
+pub type Hn = { pub n Int }
+fn Hn.measure[R: Sized2](self, r: R) -> usize { r.size() }
+fn measureFree[R: Sized2](r: R) -> usize { r.size() }
+pub fn freeInPlace['a](k2: Sink['a]) -> usize {
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    (measureFree)(rb) //~ ERROR cannot be erased
+}
+pub fn freeAnnot['a](k2: Sink['a]) -> usize {
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let f: fn(R0['a, fn(&'a String, Sink['a]) -> Void]) -> usize = measureFree
+    f(rb) //~ ERROR cannot be erased
+}
+-- expect --
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:16:19
+   |
+16 |     (measureFree)(rb) //~ ERROR cannot be erased
+   |                   ^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:21:7
+   |
+21 |     f(rb) //~ ERROR cannot be erased
+   |       ^^
+

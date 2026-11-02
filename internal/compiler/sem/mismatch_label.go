@@ -2,9 +2,8 @@ package sem
 
 import "strings"
 
-// mismatchLabels qualifies want/got with their declaring package when they
-// share a bare name, so the message doesn't read "expected `Widget`, found
-// `Widget`" with no way to tell them apart.
+// mismatchLabels qualifies want/got with their declaring package when they share a bare name, so the message never
+// reads "expected `Widget`, found `Widget`".
 func (r *Result) mismatchLabels(want, got TypeID) (string, string) {
 	we, ge := r.namedTypeEntity(want), r.namedTypeEntity(got)
 	if we != 0 && ge != 0 && we != ge {
@@ -13,9 +12,7 @@ func (r *Result) mismatchLabels(want, got TypeID) (string, string) {
 			return r.qualifiedTypeString(want, we), r.qualifiedTypeString(got, ge)
 		}
 	}
-	// Two lifetime parameters from different declarations can both be
-	// spelled `'a` and render identically; qualify each
-	// with its declaring function or type.
+	// Lifetime parameters of different declarations can both be spelled `'a`; qualify each with its declaring item.
 	if qualify := r.collidingLifetimeParams(want, got); qualify != nil {
 		var wsb, gsb strings.Builder
 		r.writeTypeQualifyingLifetimes(&wsb, want, qualify)
@@ -47,16 +44,30 @@ func (r *Result) collidingLifetimeParams(a, b TypeID) map[EntityID]bool {
 	return out
 }
 
-// Only KNamed/KIface arguments are walked specially: a lifetime tag never
-// occurs elsewhere in a TypeID.
 func (r *Result) writeTypeQualifyingLifetimes(sb *strings.Builder, t TypeID, qualify map[EntityID]bool) {
 	tt := r.Types
 	n := tt.nodes[t]
-	if n.Kind == KParam && qualify[n.Ent] {
+	write := func(sb *strings.Builder, t TypeID) { r.writeTypeQualifyingLifetimes(sb, t, qualify) }
+	switch {
+	case n.Kind == KParam && qualify[n.Ent]:
 		sb.WriteString(r.entityName(n.Ent))
 		sb.WriteString(" (")
 		sb.WriteString(r.entityName(r.Entities[n.Ent].Parent))
 		sb.WriteString(")")
+		return
+	case n.Kind == KFn:
+		r.writeFnWith(sb, n, write)
+		return
+	case n.Kind == KRef:
+		sb.WriteString("&")
+		if n.Lifetime != 0 && tt.nodes[n.Lifetime].Kind == KParam {
+			write(sb, n.Lifetime)
+			sb.WriteByte(' ')
+		}
+		if n.Flags&flagMut != 0 {
+			sb.WriteString("mut ")
+		}
+		write(sb, n.Elem)
 		return
 	}
 	if n.Kind == KNamed || n.Kind == KIface {

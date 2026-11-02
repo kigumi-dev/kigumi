@@ -1,0 +1,24 @@
+-- src --
+fn blen['a](x: &'a Array[Int]) -> usize { x.len() }
+pub interface Sized2 { fn size(self) -> usize }
+pub type R2[F: Fn[fn(&Array[Int]) -> usize] + Copy] = { pub cb F }
+pub fn R2[F].size(self) -> usize {
+    let xs = Array.of(1, 2, 3)
+    (self.cb)(&xs)
+}
+pub type Hn = { pub n Int }
+fn Hn.measure[R: Sized2](self, r: R) -> usize { r.size() }
+fn piped['a](hn: Hn, xs: &'a Array[Int]) -> usize {
+    let ra: R2[fn(&'a Array[Int]) -> usize] = R2 { cb: blen }
+    ra |> hn.measure
+}
+fn pipedLocal['a](hn: Hn, xs: &'a Array[Int]) -> usize {
+    let ra: R2[fn(&'a Array[Int]) -> usize] = R2 { cb: blen }
+    let g = hn.measure
+    ra |> g
+}
+let hn = Hn { n: 1 }
+let xs = Array.of(9)
+print "${piped(hn, &xs)} ${pipedLocal(hn, &xs)}"
+-- stdout --
+3 3

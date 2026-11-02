@@ -53,6 +53,8 @@ func (c *checker) coerceSteps(n syntax.NodeID, got, want TypeID) ([]CoStep, bool
 			return []CoStep{{CoLiteral, want}}, true
 		}
 		return nil, false
+	case c.coerceErasedValue(n, got, want):
+		return nil, true
 	}
 	if elem, ok := tt.IsOption(want); ok {
 		if s, ok := c.coerceSteps(n, got, elem); ok {
@@ -82,6 +84,7 @@ func (c *checker) coerceSteps(n syntax.NodeID, got, want TypeID) ([]CoStep, bool
 	}
 	if tt.Kind(want) == KIface && c.r.objectSafe(tt.Node(want).Ent) {
 		if res := c.r.conforms(got, want, c.pkg); res.ok {
+			c.implContracts(n, got, want, slotRoot)
 			for _, w := range res.witnesses {
 				if len(c.r.Fn(w).Witnesses) > 0 {
 					c.errAt(n, cIfaceBoxWitness, got, want, c.r.Entities[w].Name)
@@ -113,7 +116,7 @@ func (c *checker) coerceToFn(n syntax.NodeID, got, want TypeID) ([]CoStep, bool)
 	if g.Kind != KFn || g.Flags&fnCAbi != 0 {
 		return nil, false
 	}
-	if !c.sameFnShape(got, want) || (g.Flags^w.Flags)&uint16(EffUnsafe) != 0 {
+	if (g.Flags^w.Flags)&uint16(EffUnsafe) != 0 || !c.fitsErased(got, want, true) {
 		return nil, false
 	}
 	c.refScopeContract(n, got, want)

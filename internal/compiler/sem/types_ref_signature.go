@@ -1,6 +1,10 @@
 package sem
 
-import "kigumi/internal/compiler/syntax"
+import (
+	"slices"
+
+	"kigumi/internal/compiler/syntax"
+)
 
 // Callable signatures retain the tag that ordinary reference declarations store on their parameter entity.
 func (tt *TypeTable) WithRefLifetime(t, lifetime TypeID) TypeID {
@@ -58,4 +62,25 @@ func (r *Result) refTypeSlot(f FileID, scope ScopeID, node syntax.NodeID, typ Ty
 		return r.Types.WithRefLifetime(typ, r.Types.Param(lt))
 	}
 	return typ
+}
+
+// WithoutRefLifetimes drops every reference lifetime tag inside t; no runtime representation carries one.
+func (tt *TypeTable) WithoutRefLifetimes(t TypeID) TypeID {
+	if t == 0 {
+		return t
+	}
+	n := tt.Node(t)
+	elem, args, changed := tt.WithoutRefLifetimes(n.Elem), slices.Clone(n.Args), n.Kind == KRef && n.Lifetime != 0
+	for i, a := range args {
+		args[i] = tt.WithoutRefLifetimes(a)
+		changed = changed || args[i] != a
+	}
+	if !changed && elem == n.Elem {
+		return t
+	}
+	if n.Kind == KRef {
+		n.Lifetime = 0
+	}
+	n.Elem, n.Args = elem, args
+	return tt.Intern(n)
 }

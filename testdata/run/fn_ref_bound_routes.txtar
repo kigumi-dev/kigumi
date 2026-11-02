@@ -1,0 +1,48 @@
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+pub type Holder['a] = { pub s &'a String }
+pub type Runner['a, F: Fn[fn(&String, Sink['a]) -> Void]] = { pub cb F }
+
+fn nop['a](x: &'a String, k: Sink['a]) { }
+fn length['a](value: &'a String) -> usize { value.len() }
+fn mkLen['a](n: Int) -> fn(&'a String) -> usize { length }
+
+fn Holder['a].run[F: Fn[fn(&String, Sink['a]) -> Void]](self, f: F, k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    f(&loc, k)
+}
+fn drive['a, F: Fn[fn(&String, Sink['a]) -> Void]](f: F, k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    f(&loc, k)
+}
+fn drive2['a, F: Fn[fn(&String, Sink['a]) -> Void] + Fn[fn(&'a String, Sink['a]) -> Void]](f: F, k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    f(&loc, k)
+}
+fn runIt['a, F: Fn[fn(&String, Sink['a]) -> Void]](r: Runner['a, F], k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    (r.cb)(&loc, k)
+}
+fn both['a, G: Fn[fn(&'a String, Sink['a]) -> Void] + Fn[fn(&String, Sink['a]) -> Void]](g: G, k: Sink['a]) { drive(g, k) }
+
+fn explicitSafe['a](h: Holder['a], k: Sink['a]) { h.run[fn(&'a String, Sink['a]) -> Void](nop, k) }
+fn multiSafe['a](k: Sink['a]) { drive2(nop, k) }
+pub fn runnerSafe['a](k: Sink['a]) { runIt(Runner { cb: nop }, k) }
+fn bothSafe['a](k: Sink['a]) { both(nop, k) }
+
+fn mapIt[T, U, F: Fn[fn(T) -> U]](f: F, t: T) -> U { f(t) }
+fn mapD[U](f: fn(Int) -> U, t: Int) -> U { f(t) }
+fn takeF['a, F: Fn[fn(&'a String) -> usize]](f: F, v: &'a String) -> usize { f(v) }
+fn twoLifetimes['x, 'y, G: Fn[fn(&'x String) -> usize]](g: G, v: &'x String, w: &'y String) -> usize { takeF(g, v) }
+
+let text = "hello"
+let mut items = Array.of(V { s: &text })
+explicitSafe(Holder { s: &text }, Sink { items: &mut items })
+multiSafe(Sink { items: &mut items })
+bothSafe(Sink { items: &mut items })
+let g1: fn(&String) -> usize = mapIt(mkLen, 3)
+let g2: fn(&String) -> usize = mapD(mkLen, 3)
+print "${items.len()} ${g1(&text)} ${g2(&text)} ${twoLifetimes(length, &text, &text)}"
+-- stdout --
+1 5 5 5

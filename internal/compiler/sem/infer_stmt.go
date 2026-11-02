@@ -135,6 +135,7 @@ func (c *checker) letStmt(n syntax.NodeID) {
 		if mut {
 			c.noteMutAlias(c.info.Defs[s.Pattern], s.Init)
 		}
+		c.noteHolderValue(c.info.Defs[s.Pattern], s.Init)
 		c.noteMutHolder(c.info.Defs[s.Pattern], s.Init)
 		// Unlike the local-wide tracking above this runs for `let mut` too:
 		// recordFieldWrite keeps a field's own known set sound under reassignment.

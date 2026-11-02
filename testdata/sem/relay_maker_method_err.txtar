@@ -1,0 +1,53 @@
+-- module --
+mir: planned
+-- src --
+import task from std/task
+
+async fn pushB(v: &mut Array[String]) {
+    await task.yieldNow()
+    v.push("B-written-${40 + 2}")
+}
+fn syncReady(v: &mut Array[String]) -> Future[Void] { task.yieldNow() }
+interface Maker[T] { fn create() -> T }
+@impl(Maker[fn(&mut Array[String]) -> Future[Void]])
+type MakeB = { pub n Int }
+fn MakeB.create() -> fn(&mut Array[String]) -> Future[Void] { pushB }
+type Holder = { pub n Int }
+fn Holder.pick[T, M: Maker[T]](self, x: T, flag: Bool) -> T { if flag { x } else { M.create() } }
+
+fn main() {
+    let ex = task.currentThreadExecutor()
+    let hd = Holder { n: 1 }
+    let h = hd.pick[fn(&mut Array[String]) -> Future[Void], MakeB](syncReady, false)
+    let mut v = Array.of("init-${1}")
+    let fut = h(&mut v)
+    v.push("during") //~ ERROR `v` is exclusively borrowed
+    print "during: ${v.len()}" //~ ERROR `v` is exclusively borrowed
+    ex.runToCompletion(fut)
+    print "after: ${v.len()} ${v[v.len() - 1]}"
+}
+-- expect --
+error[E2198]: `v` is exclusively borrowed and cannot be used here
+  --> main.kg:22:22
+   |
+22 |     print "during: ${v.len()}" //~ ERROR `v` is exclusively borrowed
+   |                      ^^^^^^
+   = help: end the borrow first or use a copy
+note: `v` is borrowed here
+  --> main.kg:20:17
+   |
+20 |     let fut = h(&mut v)
+   |                 ^^^^^^
+
+error[E2198]: `v` is exclusively borrowed and cannot be used here
+  --> main.kg:21:5
+   |
+21 |     v.push("during") //~ ERROR `v` is exclusively borrowed
+   |     ^
+   = help: end the borrow first or use a copy
+note: `v` is borrowed here
+  --> main.kg:20:17
+   |
+20 |     let fut = h(&mut v)
+   |                 ^^^^^^
+

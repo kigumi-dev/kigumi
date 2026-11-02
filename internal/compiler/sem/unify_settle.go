@@ -1,10 +1,13 @@
 package sem
 
-import "kigumi/internal/compiler/syntax"
+import (
+	"cmp"
 
-// settle runs at a statement boundary: unbound variables become their
-// literal default or an infer-unresolved error, and pending literal nodes
-// are range-checked against the final type.
+	"kigumi/internal/compiler/syntax"
+)
+
+// settle runs at a statement boundary: unbound variables become their literal default or an infer-unresolved error,
+// and pending literal nodes are range-checked against the final type.
 func (v *varStore) settle(c *checker) {
 	for i := v.first; i < len(v.binding); i++ {
 		if v.binding[i] != 0 {
@@ -74,7 +77,7 @@ func (v *varStore) defaulted(t TypeID) TypeID {
 		case 2:
 			return TyF64
 		}
-		return t
+		return cmp.Or(v.lifetimeLabel[n.Var], t)
 	}
 	args := make([]TypeID, len(n.Args))
 	for i, a := range n.Args {

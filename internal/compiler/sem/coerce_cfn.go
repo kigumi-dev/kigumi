@@ -15,7 +15,7 @@ func (c *checker) coerceToCFn(n syntax.NodeID, got, want TypeID) ([]CoStep, bool
 		c.errAt(n, cCFnPtrSource, c.r.TypeString(want))
 		return nil, true
 	}
-	if g.Flags&fnVariadic != 0 || tt.Node(want).Flags&fnCVariadic != 0 || !c.sameFnShape(got, want) {
+	if g.Flags&fnVariadic != 0 || tt.Node(want).Flags&fnCVariadic != 0 || !c.exactFnShape(got, want) {
 		return nil, false
 	}
 	return []CoStep{{CoCFnPtr, want}}, true

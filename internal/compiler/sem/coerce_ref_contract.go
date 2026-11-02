@@ -1,11 +1,20 @@
 package sem
 
-import "kigumi/internal/compiler/syntax"
+import (
+	"slices"
 
+	"kigumi/internal/compiler/syntax"
+)
+
+// RefScopeUse is one erasure to prove. Parts then Results lead from the value to the callables it concerns, through
+// its parts and then calls of what they return; Params are used only when both are empty.
 type RefScopeUse struct {
 	Owner, Target EntityID
 	Params        []EntityID
 	Slots         []int
+	Parts         []PartStep
+	Results       int
+	Unprovable    bool
 	File          FileID
 	Node          syntax.NodeID
 }
@@ -27,14 +36,20 @@ func (tt *TypeTable) erasedRefParams(got, want TypeID) []int {
 }
 
 func (r *Result) refScopeUse(owner, target EntityID, got, want TypeID, file FileID, node syntax.NodeID) RefScopeUse {
-	u := RefScopeUse{Owner: owner, Target: target, File: file, Node: node}
-	var ps []EntityID
-	if r.Entities[target].Kind == EntClosure {
-		ps = r.closure(target).Params
-	} else {
-		ps = r.Fn(target).Params
+	return r.targetUse(RefScopeUse{Owner: owner, Target: target, File: file, Node: node}, r.Types.erasedRefParams(got, want))
+}
+
+func (r *Result) targetUse(u RefScopeUse, slots []int) RefScopeUse {
+	if u.Target == 0 || len(u.Parts) != 0 || u.Results != 0 {
+		return RefScopeUse{Owner: u.Owner, Target: u.Target, Slots: slots, Parts: u.Parts, Results: u.Results, File: u.File, Node: u.Node}
 	}
-	for _, i := range r.Types.erasedRefParams(got, want) {
+	var ps []EntityID
+	if r.Entities[u.Target].Kind == EntClosure {
+		ps = r.closure(u.Target).Params
+	} else {
+		ps = r.Fn(u.Target).Params
+	}
+	for _, i := range slots {
 		if i < len(ps) {
 			u.Params = append(u.Params, ps[i])
 		}
@@ -43,33 +58,69 @@ func (r *Result) refScopeUse(owner, target EntityID, got, want TypeID, file File
 }
 
 func (c *checker) refScopeContract(n syntax.NodeID, got, want TypeID) {
-	tt := c.r.Types
 	got, want = c.vars.resolve(got), c.vars.resolve(want)
-	var targets []EntityID
+	targets, value := c.erasedValue(n, got, want)
+	if value != 0 {
+		c.recordErasures(n, targets, c.erasedSlots(value, want))
+	}
+}
+
+// erasedValue is the callables the value at n can be and the fn type its erasure to want is measured on; the type is 0
+// when the value is a type parameter one of whose bounds fits want without an erasure.
+func (c *checker) erasedValue(n syntax.NodeID, got, want TypeID) ([]EntityID, TypeID) {
+	targets := c.valueTargets(n, got)
+	if k := c.r.Types.Kind(got); k == KClosure || k == KParam {
+		return targets, c.valueShape(got, want)
+	}
+	return targets, got
+}
+
+func (c *checker) valueTargets(n syntax.NodeID, got TypeID) []EntityID {
 	if item := c.info.Uses[c.t.Unparen(n)]; item != 0 && c.r.Entities[item].Kind == EntFn {
-		targets, got = []EntityID{item}, c.r.Fn(item).Sig
-	} else if tt.Kind(got) == KClosure {
-		ent := tt.Node(got).Ent
-		targets, got = []EntityID{ent}, c.r.closure(ent).Sig
-	} else {
-		targets = c.localKnownFns(n)
-		if tt.Kind(got) == KParam {
-			got = c.r.fnShapeOf(got)
+		return []EntityID{item}
+	}
+	if c.r.Types.Kind(got) == KClosure {
+		return []EntityID{c.r.Types.Node(got).Ent}
+	}
+	return c.localKnownFns(n)
+}
+
+func (c *checker) recordErasures(n syntax.NodeID, targets []EntityID, slots []eraseSlot) {
+	var groups []eraseSlot
+	var members [][]int
+	for _, s := range slots {
+		i := slices.IndexFunc(groups, func(g eraseSlot) bool { return g.results == s.results && slices.Equal(g.path, s.path) })
+		if i < 0 {
+			i, groups, members = len(groups), append(groups, s), append(members, nil)
+		}
+		members[i] = append(members[i], s.slot)
+	}
+	for i, g := range groups {
+		u := RefScopeUse{Owner: c.refOwner(), Parts: g.path, Results: g.results, File: c.f, Node: c.t.Unparen(n)}
+		if len(targets) == 0 || len(g.path) != 0 {
+			c.r.refUses = append(c.r.refUses, c.r.targetUse(u, members[i]))
+			continue
+		}
+		for _, target := range targets {
+			u.Target = target
+			c.r.refUses = append(c.r.refUses, c.r.targetUse(u, members[i]))
 		}
 	}
-	if len(tt.erasedRefParams(got, want)) == 0 {
-		return
+}
+
+// refuseErasure records an erasure at n that no proof can reach.
+func (c *checker) refuseErasure(n syntax.NodeID, target EntityID) {
+	c.r.refUses = append(c.r.refUses, RefScopeUse{Owner: c.refOwner(), Target: target, Unprovable: true, File: c.f, Node: c.t.Unparen(n)})
+}
+
+func (c *checker) refOwner() EntityID {
+	if c.walkOwner != 0 {
+		return c.walkOwner
 	}
-	owner := c.fn
 	if len(c.lambdas) > 0 {
-		owner = c.lambdas[len(c.lambdas)-1].ent
+		return c.lambdas[len(c.lambdas)-1].ent
 	}
-	if len(targets) == 0 {
-		c.r.refUses = append(c.r.refUses, RefScopeUse{Owner: owner, Slots: tt.erasedRefParams(got, want), File: c.f, Node: c.t.Unparen(n)})
-	}
-	for _, target := range targets {
-		c.r.refUses = append(c.r.refUses, c.r.refScopeUse(owner, target, got, want, c.f, n))
-	}
+	return c.fn
 }
 
 func (r *Result) RefScopeUses() []RefScopeUse {

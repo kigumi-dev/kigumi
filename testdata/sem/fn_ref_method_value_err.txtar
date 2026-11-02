@@ -1,0 +1,61 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+fn mkKeep['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { keep }
+fn mkNop['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { nop }
+fn drive['a, F: Fn[fn(&String, Sink['a]) -> Void]](f: F, k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    f(&loc, k)
+}
+
+pub type Box[F] = { pub mut cb F }
+pub type HN['a] = { pub n Int }
+fn HN['a].run[F: Fn[fn(&String, Sink['a]) -> Void]](self, f: F, k: Sink['a]) { }
+
+pub fn safeCall['a](k: Sink['a]) {
+    let hn: HN['a] = HN { n: 1 }
+    let d = hn.run
+    d(nop, k)
+}
+
+pub fn keepCall['a](k: Sink['a]) {
+    let hn: HN['a] = HN { n: 1 }
+    let d = hn.run
+    d(keep, k) //~ ERROR reference lifetime of `keep` cannot be erased
+}
+
+pub fn laterCall['a](k: Sink['a], k2: Sink['a]) {
+    let hn: HN['a] = HN { n: 1 }
+    let d = hn.run
+    d(nop, k)
+    d(keep, k2) //~ ERROR reference lifetime of `keep` cannot be erased
+}
+
+pub fn fixedByExpectedType['a](k: Sink['a]) {
+    let hn: HN['a] = HN { n: 1 }
+    let d: fn(fn(&'a String, Sink['a]) -> Void, Sink['a]) -> Void = hn.run //~ ERROR reference lifetime of `run` cannot be erased
+}
+-- expect --
+error[E2297]: the reference lifetime of `keep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:26:7
+   |
+26 |     d(keep, k) //~ ERROR reference lifetime of `keep` cannot be erased
+   |       ^^^^
+
+error[E2297]: the reference lifetime of `keep` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:33:7
+   |
+33 |     d(keep, k2) //~ ERROR reference lifetime of `keep` cannot be erased
+   |       ^^^^
+
+error[E2297]: the reference lifetime of `run` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:38:69
+   |
+38 |     let d: fn(fn(&'a String, Sink['a]) -> Void, Sink['a]) -> Void = hn.run //~ ERROR reference lifetime of `run` cannot be erased
+   |                                                                     ^^^^^^
+

@@ -56,9 +56,15 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 		c.markEraseSite(rhs, siteLocal)
 	}
 	c.check(rhs, target)
+	c.fieldContracts(lhs, rhs)
 	c.rejectTempBorrowStore(rhs)
 	c.storeScalarCopy(lhs, rhs, target)
 	c.noteHolderAssign(lhs, rhs)
+	// Only a plain local slot is a holder; a field, element or `&mut` target stores the value elsewhere (an escape).
+	if ent := c.info.Uses[c.t.Unparen(lhs)]; c.t.Kind(c.t.Unparen(lhs)) == syntax.Ident &&
+		c.r.Entities[ent].Kind == EntLocal && c.r.Types.Kind(c.vars.resolve(c.r.Entities[ent].Type)) != KRef {
+		c.noteHolderValue(ent, rhs)
+	}
 	c.rejectFieldValue(rhs)
 	c.onceReassign(lhs)
 	if late {

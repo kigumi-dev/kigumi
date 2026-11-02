@@ -1,0 +1,36 @@
+-- lib/caller.kg --
+type View['a] = { pub value &'a String }
+
+fn direct['a](g: fn(&'a String) -> View['a]) -> usize {
+    let loc = "local${1}"
+    let v = g(&loc)
+    v.value.len()
+}
+-- expect --
+fn lib.direct(%g: fn(&'a String) -> View['a]) -> usize {
+  b0:
+    %t2 = const 1: Int
+    %t1 = interp "local\x00"(%t2)
+    %loc = copy(%t1)
+    %t4 = borrow 0(%loc)
+    %t5 = callv(%g, %t4)
+    %v = copy(%t5)
+    %t7 = field 0(%v)
+    %t8 = call std/prelude.String.len(%t7)
+    drop(%v)
+    drop(%loc)
+    drop(%g)
+    return %t8
+}
+error[E2320]: a value borrowing `loc` cannot be passed as `&'a String`: `'a` belongs to the caller and outlives this call
+ --> lib/caller.kg:5:13
+  |
+5 |     let v = g(&loc)
+  |             ^^^^^^
+  = help: pass a borrow the caller lent, or give the function value a plain `&` parameter, which cannot keep the borrow
+note: `loc` is borrowed here
+ --> lib/caller.kg:5:15
+  |
+5 |     let v = g(&loc)
+  |               ^^^^
+

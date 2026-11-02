@@ -86,6 +86,7 @@ func (c *checker) callValue(n, callee syntax.NodeID, ft TypeID, args []syntax.No
 	if plan != nil {
 		effArgs = plan.placed()
 	}
+	c.recordCallArgs(n, effArgs)
 	switch {
 	case closure != 0:
 		c.crossScalarArgs(effArgs, whyClosureScalar)

@@ -1,0 +1,64 @@
+-- module --
+mir: planned
+-- src --
+pub type View['a] = { pub value &'a String }
+
+pub fn direct['a](g: fn(&'a String) -> View['a]) -> usize {
+    let loc = "local${1}"
+    let v = g(&loc) //~ ERROR cannot be passed as `&'a String`
+    v.value.len()
+}
+
+pub fn bound['a, F: Fn[fn(&'a String) -> View['a]]](g: F) -> usize {
+    let loc = "local${1}"
+    let v = g(&loc) //~ ERROR cannot be passed as `&'a String`
+    v.value.len()
+}
+
+pub fn lent['a](g: fn(&'a String) -> View['a], value: &'a String) -> usize {
+    let v = g(value)
+    v.value.len()
+}
+
+pub fn mixedIf['a](g: fn(&'a String) -> usize, a: &'a String, c: Bool) -> usize {
+    let loc = "loc${1}"
+    let s = if c { a } else { &loc }
+    g(s) //~ ERROR cannot be passed as `&'a String`
+}
+-- expect --
+error[E2320]: a value borrowing `loc` cannot be passed as `&'a String`: `'a` belongs to the caller and outlives this call
+ --> main.kg:5:13
+  |
+5 |     let v = g(&loc) //~ ERROR cannot be passed as `&'a String`
+  |             ^^^^^^
+  = help: pass a borrow the caller lent, or give the function value a plain `&` parameter, which cannot keep the borrow
+note: `loc` is borrowed here
+ --> main.kg:5:15
+  |
+5 |     let v = g(&loc) //~ ERROR cannot be passed as `&'a String`
+  |               ^^^^
+
+error[E2320]: a value borrowing `loc` cannot be passed as `&'a String`: `'a` belongs to the caller and outlives this call
+  --> main.kg:11:13
+   |
+11 |     let v = g(&loc) //~ ERROR cannot be passed as `&'a String`
+   |             ^^^^^^
+   = help: pass a borrow the caller lent, or give the function value a plain `&` parameter, which cannot keep the borrow
+note: `loc` is borrowed here
+  --> main.kg:11:15
+   |
+11 |     let v = g(&loc) //~ ERROR cannot be passed as `&'a String`
+   |               ^^^^
+
+error[E2320]: a value borrowing `loc` cannot be passed as `&'a String`: `'a` belongs to the caller and outlives this call
+  --> main.kg:23:5
+   |
+23 |     g(s) //~ ERROR cannot be passed as `&'a String`
+   |     ^^^
+   = help: pass a borrow the caller lent, or give the function value a plain `&` parameter, which cannot keep the borrow
+note: `loc` is borrowed here
+  --> main.kg:22:31
+   |
+22 |     let s = if c { a } else { &loc }
+   |                               ^^^^
+

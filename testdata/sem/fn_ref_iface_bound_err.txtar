@@ -1,0 +1,36 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+fn mkKeep['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { keep }
+fn mkNop['a](n: Int) -> fn(&'a String, Sink['a]) -> Void { nop }
+fn drive['a, F: Fn[fn(&String, Sink['a]) -> Void]](f: F, k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    f(&loc, k)
+}
+
+pub type Box[F] = { pub mut cb F }
+pub interface Maker[F] { fn make(move self) -> F }
+@impl(Maker[F])
+pub type KM[F] = { pub f F }
+pub fn KM[F].make(move self) -> F { self.f }
+pub type HN['a] = { pub n Int }
+
+fn HN['a].useM[F: Fn[fn(Int) -> fn(&String, Sink['a]) -> Void], M: Maker[F]](self, m: M, k: Sink['a]) { }
+
+pub fn throughInterface['a](k: Sink['a]) {
+    let hn: HN['a] = HN { n: 1 }
+    let km = KM { f: mkKeep }
+    hn.useM[fn(Int) -> fn(&'a String, Sink['a]) -> Void, KM[fn(Int) -> fn(&'a String, Sink['a]) -> Void]](km, k) //~ ERROR cannot be erased
+}
+-- expect --
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:25:107
+   |
+25 |     hn.useM[fn(Int) -> fn(&'a String, Sink['a]) -> Void, KM[fn(Int) -> fn(&'a String, Sink['a]) -> Void]](km, k) //~ ERROR cannot be erased
+   |                                                                                                           ^^
+

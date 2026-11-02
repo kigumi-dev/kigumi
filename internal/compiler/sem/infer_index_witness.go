@@ -83,6 +83,10 @@ func (c *checker) methodRefTypeArgs(n, base syntax.NodeID, items syntax.ListView
 		}
 		c.vars.unify(inst[i], t)
 	}
+	if d := c.valueExprs[c.t.Unparen(base)]; d != nil {
+		delete(c.valueExprs, c.t.Unparen(base))
+		c.valueExprs[c.t.Unparen(n)] = d
+	}
 	return c.vars.resolve(ref)
 }
 

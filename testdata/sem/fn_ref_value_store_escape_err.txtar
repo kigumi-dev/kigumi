@@ -1,0 +1,128 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+pub interface Sized2 { fn size(move self) -> usize }
+pub type R0['a, F] = { pub cb F, pub k Sink['a] }
+pub fn R0['a, F: Fn[fn(&String, Sink['a]) -> Void]].size(move self) -> usize {
+    let loc = "local-${40 + 2}-abcdefghijklmnopqrstuvwxyz"
+    (self.cb)(&loc, self.k)
+    7
+}
+pub type Hn = { pub n Int }
+fn Hn.measure[R: Sized2](self, r: R) -> usize { r.size() }
+pub type Holder[G] = { pub mut f G }
+fn zero['a](r: R0['a, fn(&'a String, Sink['a]) -> Void]) -> usize { 0 }
+pub fn fieldStore['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let g = hn.measure
+    let x = g(ra)
+    let mut h = Holder { f: zero }
+    h.f = g //~ ERROR cannot be erased
+    x + (h.f)(rb)
+}
+pub fn indexStore['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let g = hn.measure
+    let x = g(ra)
+    let mut arr = Array.of(zero)
+    arr[0] = g //~ ERROR cannot be erased
+    x + arr[0](rb)
+}
+pub fn letElse['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let g = hn.measure
+    let x = g(ra)
+    let f = g else { return 0 } //~ ERROR cannot be erased //~ WARNING pattern is irrefutable
+    x + f(rb)
+}
+pub fn pipeCall['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let g = hn.measure
+    rb |> g() //~ ERROR cannot be erased
+}
+pub fn pipeCallAfter['a](k1: Sink['a], k2: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let rb: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: keep, k: k2 }
+    let g = hn.measure
+    let x = g(ra)
+    x + (rb |> g()) //~ ERROR cannot be erased
+}
+pub fn outField['a](out: &mut Holder[fn(R0['a, fn(&'a String, Sink['a]) -> Void]) -> usize], k1: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let g = hn.measure
+    let x = g(ra)
+    out.f = g //~ ERROR cannot be erased
+    x
+}
+pub fn outRef['a](out: &mut fn(R0['a, fn(&'a String, Sink['a]) -> Void]) -> usize, k1: Sink['a]) -> usize {
+    let hn = Hn { n: 1 }
+    let ra: R0['a, fn(&'a String, Sink['a]) -> Void] = R0 { cb: nop, k: k1 }
+    let g = hn.measure
+    let x = g(ra)
+    out = g //~ ERROR cannot be erased
+    x
+}
+-- expect --
+warning[W800]: pattern is irrefutable
+  --> main.kg:42:9
+   |
+42 |     let f = g else { return 0 } //~ ERROR cannot be erased //~ WARNING pattern is irrefutable
+   |         ^
+   = help: `else` is never taken
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:23:11
+   |
+23 |     h.f = g //~ ERROR cannot be erased
+   |           ^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:33:14
+   |
+33 |     arr[0] = g //~ ERROR cannot be erased
+   |              ^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:42:13
+   |
+42 |     let f = g else { return 0 } //~ ERROR cannot be erased //~ WARNING pattern is irrefutable
+   |             ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:50:5
+   |
+50 |     rb |> g() //~ ERROR cannot be erased
+   |     ^^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:58:10
+   |
+58 |     x + (rb |> g()) //~ ERROR cannot be erased
+   |          ^^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:65:13
+   |
+65 |     out.f = g //~ ERROR cannot be erased
+   |             ^
+
+error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:73:11
+   |
+73 |     out = g //~ ERROR cannot be erased
+   |           ^
+

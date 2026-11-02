@@ -147,7 +147,10 @@ func (c *checker) fnItemValue(n syntax.NodeID, set OverloadSetID) TypeID {
 	switch {
 	case len(c.ownGenerics(fn)) > 0:
 		var inst []TypeID
+		from := len(c.constraints)
 		sig, inst, _ = c.instantiateFn(n, fn, nil, 0)
+		c.markValueInstance(from)
+		c.recordValueExpr(n, fn, inst, 0, from)
 		c.fnItemHidden(n, fn, inst)
 		c.errorAsCheck(n, fn, inst)
 		c.deferFFIValueCheck(n, fn, inst, 0)

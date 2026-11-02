@@ -4,7 +4,7 @@ import "kigumi/internal/compiler/syntax"
 
 // paramEnt is the declared parameter entity for the alias hint, or 0 when there is none.
 // async marks a call that build_call.go's placeArg never boxes an argument for.
-func (c *checker) checkArg(a syntax.NodeID, param TypeID, paramEnt EntityID, async bool) {
+func (c *checker) checkArg(a syntax.NodeID, param TypeID, paramEnt EntityID, async bool, res callResult) {
 	if c.t.Kind(a) == syntax.BorrowExpr {
 		if async {
 			if c.argAsyncPlace == nil {
@@ -25,6 +25,7 @@ func (c *checker) checkArg(a syntax.NodeID, param TypeID, paramEnt EntityID, asy
 	defer c.noteRefArg(a, paramEnt, async)
 	c.noteRefPlaceArg(a, paramEnt, async)
 	aliasFile, aliasNode := c.r.paramAliasSite(paramEnt)
+	c.expectErasedCall(a, param, res)
 	param = c.vars.resolve(param)
 	if !c.r.Types.ContainsVar(param) || c.lambdaArg(a) {
 		c.checkAlias(a, param, aliasFile, aliasNode)
@@ -47,6 +48,11 @@ func (c *checker) checkArg(a syntax.NodeID, param TypeID, paramEnt EntityID, asy
 		c.vars.poison(param)
 		c.vars.poison(hint)
 		return
+	}
+	if ft := c.valueBoundWant(param, got); ft != 0 {
+		param = ft
+	} else if ft := c.erasedItemWant(a, got, param, res); ft != 0 {
+		param = ft
 	}
 	steps, ok := c.coerceSteps(a, got, param)
 	if !ok {
@@ -79,6 +85,12 @@ func (c *checker) fixHintedSignature(a syntax.NodeID, got, hint TypeID) {
 	case KClosure:
 		if c.sameFnShape(c.r.closure(c.r.Types.Node(got).Ent).Sig, hint) {
 			c.refScopeContract(a, got, hint)
+		}
+	case KParam:
+		for _, s := range c.paramShapes(got) {
+			if c.sameFnShape(s, hint) {
+				return
+			}
 		}
 	}
 }

@@ -9,7 +9,10 @@ func (c *checker) explicitFnItem(n syntax.NodeID, fn EntityID, params []EntityID
 	}
 	c.r.useEntity(c.f, n, fn)
 	c.info.Uses[n] = fn
+	from := len(c.constraints)
 	sig, inst, _ := c.instantiateFn(n, fn, typeArgs, 0)
+	c.markValueInstance(from)
+	c.recordValueExpr(n, fn, inst, 0, from)
 	c.fnItemHidden(n, fn, inst)
 	c.errorAsCheck(n, fn, inst)
 	c.deferFFIValueCheck(n, fn, inst, 0)

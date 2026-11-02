@@ -144,9 +144,12 @@ func (c *checker) closureErase(n syntax.NodeID, closure EntityID, want TypeID) (
 	return []CoStep{{CoClosureErase, want}}, true
 }
 
-// sameFnShape judges two fn signatures interchangeable for closure erasure and Fn/FnMut/
-// FnOnce satisfaction, ignoring escaping-vs-plain mismatches: enforced separately at call sites.
-func (c *checker) sameFnShape(got, want TypeID) bool {
+// sameFnShape judges two fn signatures interchangeable for closure erasure and Fn/FnMut/FnOnce satisfaction by the
+// same match a fn coercion uses, ignoring escaping-vs-plain mismatches: enforced separately at call sites.
+func (c *checker) sameFnShape(got, want TypeID) bool { return c.fitsErased(got, want, true) }
+
+// exactFnShape keeps reference lifetimes apart, for a C function pointer, which carries no erasure proof.
+func (c *checker) exactFnShape(got, want TypeID) bool {
 	tt := c.r.Types
 	g, w := tt.Node(c.vars.resolve(got)), tt.Node(c.vars.resolve(want))
 	if len(g.Args) != len(w.Args) || g.Flags&fnVariadic != w.Flags&fnVariadic {

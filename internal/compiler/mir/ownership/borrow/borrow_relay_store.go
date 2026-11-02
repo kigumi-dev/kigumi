@@ -15,7 +15,7 @@ func (c *borrowCheck) checkRelayStores(in midir.Inst) {
 			continue
 		}
 		if v.at != nil {
-			part, ok := c.partInfo(v)
+			part, ok := c.partInfo(v.flowArg)
 			if !ok {
 				continue
 			}
@@ -23,14 +23,19 @@ func (c *borrowCheck) checkRelayStores(in midir.Inst) {
 				return !slices.ContainsFunc(part.owners, func(p ownerRef) bool { return o.owner == p.owner })
 			})
 		}
-		if b = c.frameBorrows(b); b != nil {
-			c.reportShared(in, v.arg, b)
-			return
+		if b = c.frameBorrows(b); b == nil {
+			continue
 		}
+		if v.param != 0 {
+			c.reportCallerLifetime(in, v.arg, b, v.param)
+		} else {
+			c.reportShared(in, v.arg, b)
+		}
+		return
 	}
 }
 
-func (c *borrowCheck) relayStoreValues(in midir.Inst) []flowArg {
+func (c *borrowCheck) relayStoreValues(in midir.Inst) []relayStore {
 	if in.Op != midir.OpCall && in.Op != midir.OpCallValue {
 		return nil
 	}
@@ -40,7 +45,7 @@ func (c *borrowCheck) relayStoreValues(in midir.Inst) []flowArg {
 		o := c.calleeOrigin(c.f, defs, in.Args[0])
 		h, args = o.body, slices.Concat(o.captures, in.Args[1:])
 		if h == nil {
-			var out []flowArg
+			var out []relayStore
 			sig := c.slotFnType(c.f.Locals[in.Args[0]].Type)
 			for k, a := range in.Args[1:] {
 				decl, _ := c.callParam(c.f, in, k+1)
@@ -48,7 +53,7 @@ func (c *borrowCheck) relayStoreValues(in midir.Inst) []flowArg {
 					if c.flowBorrow(a, !v.contents) == nil || o.isParam && c.boundCalleeQuiet(c.f, o.param, k) {
 						continue
 					}
-					out = append(out, v)
+					out = append(out, relayStore{v, c.callerLifetimeParam(sig, k)})
 				}
 			}
 			return out
@@ -57,7 +62,7 @@ func (c *borrowCheck) relayStoreValues(in midir.Inst) []flowArg {
 	if h == nil {
 		return nil
 	}
-	var out []flowArg
+	var out []relayStore
 	for k, a := range args {
 		for _, s := range c.paramSites(paramKey{g: h, i: k, kind: siteOut}) {
 			if !c.frameTarget(c.f, defs, s.callee, args, 8) {
@@ -65,7 +70,7 @@ func (c *borrowCheck) relayStoreValues(in midir.Inst) []flowArg {
 			}
 			prm := h.Locals[h.Params[k]]
 			if v, ok := c.relayValue(a, prm.Type, c.paramKeepsRef(h, k), s.path); ok {
-				out = append(out, v)
+				out = append(out, relayStore{flowArg: v})
 			}
 		}
 	}
