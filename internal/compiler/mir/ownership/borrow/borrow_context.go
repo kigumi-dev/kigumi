@@ -14,6 +14,7 @@ type Analyzer struct {
 	lookup      BodyLookup
 	offloads    offloadMemo
 	paramStores map[paramSlot]bool
+	ended       map[*midir.Func]*endedFacts
 }
 
 func New(p *ownquery.Input, lookup BodyLookup) *Analyzer {

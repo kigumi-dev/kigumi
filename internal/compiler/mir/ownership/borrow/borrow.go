@@ -108,7 +108,7 @@ type borrowCheck struct {
 	mixed       map[syntax.NodeID]midir.LocalID
 	viewDefs    map[midir.LocalID][]*midir.Inst
 	viewSets    map[midir.LocalID]viewSourceSet
-	ended       map[midir.LocalID][]bool
+	ended       *endedFacts
 
 	cellState
 	fields fieldState

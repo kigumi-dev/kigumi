@@ -87,3 +87,27 @@ func ReversePostorder(f *midir.Func) []midir.BlockID {
 	}
 	return post
 }
+
+func Preds(f *midir.Func) [][]midir.BlockID {
+	counts := make([]int, len(f.Blocks))
+	edges := 0
+	for b := range f.Blocks {
+		for _, t := range f.Blocks[b].Term.Targets {
+			counts[t]++
+			edges++
+		}
+	}
+	all := make([]midir.BlockID, edges)
+	preds := make([][]midir.BlockID, len(f.Blocks))
+	off := 0
+	for b, n := range counts {
+		preds[b] = all[off : off : off+n]
+		off += n
+	}
+	for b := range f.Blocks {
+		for _, t := range f.Blocks[b].Term.Targets {
+			preds[t] = append(preds[t], midir.BlockID(b))
+		}
+	}
+	return preds
+}
