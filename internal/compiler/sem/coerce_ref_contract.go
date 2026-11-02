@@ -2,12 +2,13 @@ package sem
 
 import (
 	"slices"
+	"strings"
 
 	"kigumi/internal/compiler/syntax"
 )
 
-// RefScopeUse is one erasure to prove. Parts then Results lead from the value to the callables it concerns, through
-// its parts and then calls of what they return; Params are used only when both are empty.
+// RefScopeUse is one erasure to prove. Parts then Results lead from the value to the callables it concerns; Params are
+// used only when both are empty. Use, when unprovable, names what this use does that no proof follows.
 type RefScopeUse struct {
 	Owner, Target EntityID
 	Params        []EntityID
@@ -15,11 +16,21 @@ type RefScopeUse struct {
 	Parts         []PartStep
 	Results       int
 	Unprovable    bool
+	Use           string
 	File          FileID
 	Node          syntax.NodeID
 }
 
 var cRefScopeErase = defineCode("E2297", "borrow-callable-lifetime", "the reference lifetime of `{name}` cannot be erased: the callable may retain that reference outside its result")
+
+// Message is the E2297 text for u: a refusal at a use names what that use does in place of what the callable may keep.
+func (u RefScopeUse) Message(name string) string {
+	if u.Use == "" {
+		return FillTemplate(cRefScopeErase.Template, name)
+	}
+	head, _, _ := strings.Cut(cRefScopeErase.Template, ": ")
+	return FillTemplate(head, name) + ": " + u.Use
+}
 
 func (tt *TypeTable) erasedRefParams(got, want TypeID) []int {
 	g, w := tt.Node(got), tt.Node(want)
@@ -110,7 +121,11 @@ func (c *checker) recordErasures(n syntax.NodeID, targets []EntityID, slots []er
 
 // refuseErasure records an erasure at n that no proof can reach.
 func (c *checker) refuseErasure(n syntax.NodeID, target EntityID) {
-	c.r.refUses = append(c.r.refUses, RefScopeUse{Owner: c.refOwner(), Target: target, Unprovable: true, File: c.f, Node: c.t.Unparen(n)})
+	c.refuseErasureUse(n, target, "")
+}
+
+func (c *checker) refuseErasureUse(n syntax.NodeID, target EntityID, use string) {
+	c.r.refUses = append(c.r.refUses, RefScopeUse{Owner: c.refOwner(), Target: target, Unprovable: true, Use: use, File: c.f, Node: c.t.Unparen(n)})
 }
 
 func (c *checker) refOwner() EntityID {

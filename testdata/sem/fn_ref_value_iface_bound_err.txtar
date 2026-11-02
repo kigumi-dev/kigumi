@@ -26,8 +26,14 @@ pub fn receiverBound['a](k: Sink['a]) {
     f(r, k) //~ ERROR cannot be erased
 }
 pub fn annotated['a](k: Sink['a]) {
+    let r: R1['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void] = R1 { n: 1 }
     let hn = Hn { n: 1 }
-    let f: fn(R1['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void], Sink['a]) -> Void = hn.useR3 //~ ERROR `useR3` cannot be erased
+    let f: fn(R1['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void], Sink['a]) -> Void = hn.useR3
+    f(r, k) //~ ERROR cannot be erased
+}
+pub fn annotatedUnused['a](k: Sink['a]) {
+    let hn = Hn { n: 1 }
+    let f: fn(R1['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void], Sink['a]) -> Void = hn.useR3
 }
 -- expect --
 error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
@@ -42,9 +48,9 @@ error[E2297]: the reference lifetime of `function value` cannot be erased: the c
 23 |     f(r, k) //~ ERROR cannot be erased
    |       ^
 
-error[E2297]: the reference lifetime of `useR3` cannot be erased: the callable may retain that reference outside its result
-  --> main.kg:27:88
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:29:7
    |
-27 |     let f: fn(R1['a, fn(Int) -> fn(&'a String, Sink['a]) -> Void], Sink['a]) -> Void = hn.useR3 //~ ERROR `useR3` cannot be erased
-   |                                                                                        ^^^^^^^^
+29 |     f(r, k) //~ ERROR cannot be erased
+   |       ^
 

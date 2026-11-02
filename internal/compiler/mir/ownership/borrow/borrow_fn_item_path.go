@@ -14,7 +14,7 @@ func (c *borrowCheck) fnItemPath(l midir.LocalID, path []sem.PartStep, depth int
 		return c.partItems(l, depth)
 	}
 	again := func(a midir.LocalID, depth int) fnItems { return c.fnItemPath(a, path, depth) }
-	return c.builtItems(l, depth, again, func(d *midir.Inst, depth int) fnItems { return c.builtPath(d, path, depth) })
+	return c.builtItems(l, path, depth, again, func(d *midir.Inst, depth int) fnItems { return c.builtPath(d, path, depth) })
 }
 
 func (c *borrowCheck) builtPath(d *midir.Inst, path []sem.PartStep, depth int) fnItems {

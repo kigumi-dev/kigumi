@@ -73,6 +73,8 @@ type borrowCheck struct {
 	// sole caches soleDefs for soleDef, built on first use; defsAll caches defsOf.
 	sole    map[midir.LocalID]*midir.Inst
 	defsAll map[midir.LocalID][]*midir.Inst
+	// partWritesOf caches partWrites per local.
+	partWritesOf map[midir.LocalID]writeSet
 	// chainOnly caches chainedOnly's result per local.
 	chainOnly map[midir.LocalID]bool
 	// unowned caches unownedRefs, built on first use.

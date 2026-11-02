@@ -47,31 +47,3 @@ func (c *borrowCheck) defsOf(l midir.LocalID) []*midir.Inst {
 	}
 	return c.defsAll[l]
 }
-
-// writtenThrough reports whether something stores into l or into a part of it reached through a projection (a field,
-// element, payload, alias or borrow of l), or borrows such a place mutably.
-func (c *borrowCheck) writtenThrough(l midir.LocalID) bool {
-	places := map[midir.LocalID]bool{l: true}
-	for changed := true; changed; {
-		changed = false
-		for _, blk := range c.f.Blocks {
-			for _, in := range blk.Insts {
-				switch {
-				case len(in.Args) == 0 || !places[in.Args[0]]:
-				case in.Op == midir.OpSetField || in.Op == midir.OpSetIndex || in.Op == midir.OpCellSet || in.Op == midir.OpBorrow && in.Index == 1:
-					return true
-				case projects[in.Op] && in.Op.Yields() && !places[in.Dst]:
-					places[in.Dst], changed = true, true
-				}
-			}
-		}
-	}
-	for p := range places {
-		if c.f.Locals[p].Cell {
-			return true
-		}
-	}
-	return false
-}
-
-var projects = map[midir.Opcode]bool{midir.OpField: true, midir.OpFieldMove: true, midir.OpIndex: true, midir.OpPayload: true, midir.OpAlias: true, midir.OpBorrow: true}

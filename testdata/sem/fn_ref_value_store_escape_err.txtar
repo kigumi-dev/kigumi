@@ -84,19 +84,19 @@ warning[W800]: pattern is irrefutable
    |         ^
    = help: `else` is never taken
 
-error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+error[E2297]: the reference lifetime of `measure` cannot be erased: only a direct call through the value can prove its argument, and this use passes it on
   --> main.kg:23:11
    |
 23 |     h.f = g //~ ERROR cannot be erased
    |           ^
 
-error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+error[E2297]: the reference lifetime of `measure` cannot be erased: only a direct call through the value can prove its argument, and this use passes it on
   --> main.kg:33:14
    |
 33 |     arr[0] = g //~ ERROR cannot be erased
    |              ^
 
-error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+error[E2297]: the reference lifetime of `measure` cannot be erased: only a direct call through the value can prove its argument, and this use passes it on
   --> main.kg:42:13
    |
 42 |     let f = g else { return 0 } //~ ERROR cannot be erased //~ WARNING pattern is irrefutable
@@ -114,13 +114,13 @@ error[E2297]: the reference lifetime of `function value` cannot be erased: the c
 58 |     x + (rb |> g()) //~ ERROR cannot be erased
    |          ^^
 
-error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+error[E2297]: the reference lifetime of `measure` cannot be erased: only a direct call through the value can prove its argument, and this use passes it on
   --> main.kg:65:13
    |
 65 |     out.f = g //~ ERROR cannot be erased
    |             ^
 
-error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+error[E2297]: the reference lifetime of `measure` cannot be erased: only a direct call through the value can prove its argument, and this use passes it on
   --> main.kg:73:11
    |
 73 |     out = g //~ ERROR cannot be erased

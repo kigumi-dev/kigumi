@@ -1,0 +1,89 @@
+-- src --
+fn blen['a](x: &'a Array[Int]) -> usize { x.len() }
+fn twice['a](x: &'a Array[Int]) -> usize { x.len() * 2 }
+fn ten(n: Int) -> usize { 10 }
+pub type Box[T] = { pub mut cb T }
+fn put[T](b: &mut Box[T], v: T) { b.cb = v }
+pub fn Box[T].set(mut self, v: T) { self.cb = v }
+fn sizeOf['b, T](b: &'b mut Box[T]) -> usize { 7 }
+fn pickOther['b, 'c, T](b: &'b mut Box[T], s: &'c Array[Int]) -> &'c Array[Int] { s }
+pub type Runner[F: Fn[fn(&Array[Int]) -> usize] + Copy] = { pub mut n usize, pub mut cbs Array[F], pub mut b Box[F], pub mut g fn(Int) -> usize }
+pub fn Runner[F].run(self) -> usize {
+    let xs = Array.of(1, 2, 3)
+    let mut total = self.n + (self.b.cb)(&xs) + (self.g)(1)
+    let mut i: usize = 0
+    for i < self.cbs.len() {
+        total = total + (self.cbs[i])(&xs)
+        i = i + 1
+    }
+    total
+}
+pub fn Runner[F].add(mut self, f: escaping F) { self.cbs.push(f) }
+fn untouched['a](x: &'a Array[Int]) -> usize {
+    let r: Runner[fn(&'a Array[Int]) -> usize] = Runner { n: 0, cbs: Array.of(blen), b: Box { cb: blen }, g: ten }
+    r.run()
+}
+fn field['a](x: &'a Array[Int]) -> usize {
+    let mut r: Runner[fn(&'a Array[Int]) -> usize] = Runner { n: 0, cbs: Array.of(blen), b: Box { cb: blen }, g: ten }
+    r.n = 100
+    r.run()
+}
+fn pushed['a](x: &'a Array[Int]) -> usize {
+    let mut r: Runner[fn(&'a Array[Int]) -> usize] = Runner { n: 0, cbs: Array.of(blen), b: Box { cb: blen }, g: ten }
+    r.cbs.push(twice)
+    r.run()
+}
+fn indexed['a](x: &'a Array[Int]) -> usize {
+    let mut r: Runner[fn(&'a Array[Int]) -> usize] = Runner { n: 0, cbs: Array.of(blen), b: Box { cb: blen }, g: ten }
+    r.cbs[0] = twice
+    r.run()
+}
+fn lent['a](x: &'a Array[Int]) -> usize {
+    let mut r: Runner[fn(&'a Array[Int]) -> usize] = Runner { n: 0, cbs: Array.of(blen), b: Box { cb: blen }, g: ten }
+    put(&mut r.b, twice)
+    r.run()
+}
+fn nested['a](x: &'a Array[Int]) -> usize {
+    let mut r: Runner[fn(&'a Array[Int]) -> usize] = Runner { n: 0, cbs: Array.of(blen), b: Box { cb: blen }, g: ten }
+    r.b.cb = twice
+    r.run()
+}
+fn other['a](x: &'a Array[Int]) -> usize {
+    let mut r: Runner[fn(&'a Array[Int]) -> usize] = Runner { n: 0, cbs: Array.of(blen), b: Box { cb: blen }, g: ten }
+    r.g = (n: Int) => 1
+    r.run()
+}
+fn method['a](x: &'a Array[Int]) -> usize {
+    let mut r: Runner[fn(&'a Array[Int]) -> usize] = Runner { n: 0, cbs: Array.of(blen), b: Box { cb: blen }, g: ten }
+    r.add(twice)
+    r.run()
+}
+fn boxMethod['a](x: &'a Array[Int]) -> usize {
+    let mut r: Runner[fn(&'a Array[Int]) -> usize] = Runner { n: 0, cbs: Array.of(blen), b: Box { cb: blen }, g: ten }
+    r.b.set(twice)
+    r.run()
+}
+fn appended['a](x: &'a Array[Int]) -> usize {
+    let mut r: Runner[fn(&'a Array[Int]) -> usize] = Runner { n: 0, cbs: Array.of(blen), b: Box { cb: blen }, g: ten }
+    let more: Array[fn(&'a Array[Int]) -> usize] = Array.of(twice, twice)
+    r.cbs.appendAll(more)
+    r.run()
+}
+fn lentForSize['a](x: &'a Array[Int]) -> usize {
+    let mut r: Runner[fn(&'a Array[Int]) -> usize] = Runner { n: 0, cbs: Array.of(blen), b: Box { cb: blen }, g: ten }
+    let n = sizeOf(&mut r.b)
+    r.run() + n
+}
+fn lentForOther['a](x: &'a Array[Int]) -> usize {
+    let mut r: Runner[fn(&'a Array[Int]) -> usize] = Runner { n: 0, cbs: Array.of(blen), b: Box { cb: blen }, g: ten }
+    let s = pickOther(&mut r.b, x)
+    r.run() + s.len()
+}
+let xs = Array.of(1)
+print "${untouched(&xs)} ${field(&xs)} ${pushed(&xs)} ${indexed(&xs)}"
+print "${lent(&xs)} ${nested(&xs)} ${other(&xs)} ${method(&xs)}"
+print "${boxMethod(&xs)} ${appended(&xs)} ${lentForSize(&xs)} ${lentForOther(&xs)}"
+-- stdout --
+16 116 22 19
+19 19 7 22
+19 28 23 17

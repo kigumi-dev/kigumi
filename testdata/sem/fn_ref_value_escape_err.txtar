@@ -18,13 +18,13 @@ fn escapeReturn['a](hn: Hn) -> fn(R2[fn(&'a Array[Int]) -> usize]) -> usize {
     hn.measure //~ ERROR `measure` cannot be erased
 }
 -- expect --
-error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+error[E2297]: the reference lifetime of `measure` cannot be erased: only a direct call through the value can prove its argument, and this use passes it on
   --> main.kg:12:11
    |
 12 |     apply(hn.measure, r) //~ ERROR `measure` cannot be erased
    |           ^^^^^^^^^^
 
-error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+error[E2297]: the reference lifetime of `measure` cannot be erased: only a direct call through the value can prove its argument, and this use passes it on
   --> main.kg:15:5
    |
 15 |     hn.measure //~ ERROR `measure` cannot be erased

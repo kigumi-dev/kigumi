@@ -10931,6 +10931,23 @@
       ]
     },
     {
+      "id": "run/fn_ref_value_unused",
+      "kind": "run",
+      "path": "testdata/run/fn_ref_value_unused.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/fn_ref_value_variadic",
       "kind": "run",
       "path": "testdata/run/fn_ref_value_variadic.txtar",
@@ -10951,6 +10968,23 @@
       "id": "run/fn_ref_variance_routes",
       "kind": "run",
       "path": "testdata/run/fn_ref_variance_routes.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_ref_written_path",
+      "kind": "run",
+      "path": "testdata/run/fn_ref_written_path.txtar",
       "mode": [
         "vm",
         "native"
@@ -22863,6 +22897,17 @@
       ]
     },
     {
+      "id": "sem/fn_ref_lent_result_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_lent_result_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/fn_ref_lifetime_scope_err",
       "kind": "sem",
       "path": "testdata/sem/fn_ref_lifetime_scope_err.txtar",
@@ -23152,6 +23197,17 @@
       "id": "sem/fn_ref_witness_binder_err",
       "kind": "sem",
       "path": "testdata/sem/fn_ref_witness_binder_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_ref_written_path_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_ref_written_path_err.txtar",
       "mode": [
         "check"
       ],

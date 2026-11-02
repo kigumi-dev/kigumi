@@ -1,0 +1,163 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+fn mkNop['a]() -> fn(&'a String, Sink['a]) -> Void { nop }
+fn mkKeep['a]() -> fn(&'a String, Sink['a]) -> Void { keep }
+pub type Box[T] = { pub mut cb T }
+fn put[T](b: &mut Box[T], v: T) { b.cb = v }
+pub fn Box[T].set(mut self, v: T) { self.cb = v }
+fn swapIn[T](a: &mut Box[T], b: &mut Box[T]) { }
+fn fillFrom[T, M: Fn[fn() -> T]](b: &mut Box[T], m: M) { b.cb = m() }
+pub type Runner['a, F: Fn[fn(&String, Sink['a]) -> Void] + Copy] = {
+    pub mut n Int,
+    pub mut cbs Array[F],
+    pub mut b Box[F],
+    pub mut other fn(&'a String, Sink['a]) -> Void,
+}
+pub fn Runner['a, F].run(self, k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    (self.cbs[self.cbs.len() - 1])(&loc, k)
+}
+pub fn Runner['a, F].fill(mut self, mk: escaping fn() -> F) { self.b.cb = mk() }
+fn setAll['a](r: &mut Runner['a, fn(&'a String, Sink['a]) -> Void]) { r.cbs.push(keep) }
+
+pub fn intField['a](k: Sink['a]) {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { n: 0, cbs: Array.of(nop), b: Box { cb: nop }, other: nop }
+    r.n = 1
+    r.run(k)
+}
+pub fn pushSafe['a](k: Sink['a]) {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { n: 0, cbs: Array.of(nop), b: Box { cb: nop }, other: nop }
+    r.cbs.push(nop)
+    r.run(k)
+}
+pub fn otherField['a](k: Sink['a]) {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { n: 0, cbs: Array.of(nop), b: Box { cb: nop }, other: nop }
+    r.other = keep
+    r.run(k)
+}
+
+pub fn pushKeep['a](k: Sink['a]) {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { n: 0, cbs: Array.of(nop), b: Box { cb: nop }, other: nop }
+    r.cbs.push(keep)
+    r.run(k) //~ ERROR cannot be erased
+}
+pub fn indexKeep['a](k: Sink['a]) {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { n: 0, cbs: Array.of(nop), b: Box { cb: nop }, other: nop }
+    r.cbs[0] = keep
+    r.run(k) //~ ERROR cannot be erased
+}
+pub fn putKeep['a](k: Sink['a]) {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { n: 0, cbs: Array.of(nop), b: Box { cb: nop }, other: nop }
+    put(&mut r.b, keep)
+    r.run(k) //~ ERROR cannot be erased
+}
+pub fn lendWholeToValue['a](k: Sink['a]) {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { n: 0, cbs: Array.of(nop), b: Box { cb: nop }, other: nop }
+    let g: fn(&mut Runner['a, fn(&'a String, Sink['a]) -> Void]) -> Void = setAll
+    g(&mut r)
+    r.run(k) //~ ERROR cannot be erased
+}
+pub fn lendWholeToConcrete['a](k: Sink['a]) {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { n: 0, cbs: Array.of(nop), b: Box { cb: nop }, other: nop }
+    setAll(&mut r)
+    r.run(k) //~ ERROR cannot be erased
+}
+pub fn makerMethod['a](k: Sink['a]) {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { n: 0, cbs: Array.of(nop), b: Box { cb: nop }, other: nop }
+    r.fill(mkNop) //~ ERROR cannot be erased
+    r.run(k) //~ ERROR cannot be erased
+}
+pub fn setKeep['a](k: Sink['a]) {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { n: 0, cbs: Array.of(nop), b: Box { cb: nop }, other: nop }
+    r.b.set(keep)
+    r.run(k) //~ ERROR cannot be erased
+}
+pub fn swapped['a](k: Sink['a]) {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { n: 0, cbs: Array.of(nop), b: Box { cb: nop }, other: nop }
+    let mut o: Box[fn(&'a String, Sink['a]) -> Void] = Box { cb: keep }
+    swapIn(&mut r.b, &mut o)
+    r.run(k) //~ ERROR cannot be erased
+}
+pub fn filledByBound['a](k: Sink['a]) {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { n: 0, cbs: Array.of(nop), b: Box { cb: nop }, other: nop }
+    fillFrom(&mut r.b, mkNop)
+    r.run(k) //~ ERROR cannot be erased
+}
+pub fn heldBorrow['a](k: Sink['a]) {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { n: 0, cbs: Array.of(nop), b: Box { cb: nop }, other: nop }
+    let p = &mut r.cbs
+    p.push(nop)
+    r.run(k) //~ ERROR cannot be erased
+}
+-- expect --
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:44:5
+   |
+44 |     r.run(k) //~ ERROR cannot be erased
+   |     ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:49:5
+   |
+49 |     r.run(k) //~ ERROR cannot be erased
+   |     ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:54:5
+   |
+54 |     r.run(k) //~ ERROR cannot be erased
+   |     ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:60:5
+   |
+60 |     r.run(k) //~ ERROR cannot be erased
+   |     ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:65:5
+   |
+65 |     r.run(k) //~ ERROR cannot be erased
+   |     ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:69:5
+   |
+69 |     r.fill(mkNop) //~ ERROR cannot be erased
+   |     ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:70:5
+   |
+70 |     r.run(k) //~ ERROR cannot be erased
+   |     ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:75:5
+   |
+75 |     r.run(k) //~ ERROR cannot be erased
+   |     ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:81:5
+   |
+81 |     r.run(k) //~ ERROR cannot be erased
+   |     ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:86:5
+   |
+86 |     r.run(k) //~ ERROR cannot be erased
+   |     ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:92:5
+   |
+92 |     r.run(k) //~ ERROR cannot be erased
+   |     ^
+

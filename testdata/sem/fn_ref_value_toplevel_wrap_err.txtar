@@ -17,7 +17,7 @@ let g = hn.measure
 let x = g(r)
 print "${x} ${applyTop({ g }, r)}" //~ ERROR cannot be erased
 -- expect --
-error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+error[E2297]: the reference lifetime of `measure` cannot be erased: only a direct call through the value can prove its argument, and this use passes it on
   --> main.kg:15:26
    |
 15 | print "${x} ${applyTop({ g }, r)}" //~ ERROR cannot be erased

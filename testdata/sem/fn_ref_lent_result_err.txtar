@@ -1,0 +1,99 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+pub type Box[T] = { pub mut cb T }
+pub type Pair[T] = { pub mut bx Box[T], pub mut arr Array[T] }
+pub type W['b, T] = { pub mut r &'b mut Box[T] }
+pub type Runner['a, F: Fn[fn(&String, Sink['a]) -> Void] + Copy] = { pub mut n Int, pub mut b Pair[F] }
+fn bxOf['b, T](h: &'b mut Pair[T]) -> &'b mut Box[T] { &mut h.bx }
+pub fn Pair[T].bxM(mut self) -> &mut Box[T] { &mut self.bx }
+pub fn Pair[T].arrM(mut self) -> &mut Array[T] { &mut self.arr }
+fn wrapBx['b, T](h: &'b mut Pair[T]) -> W['b, T] { W { r: &mut h.bx } }
+fn countOf['b, T](h: &'b mut Pair[T]) -> usize { h.arr.len() }
+fn pick['b, 'c, T](h: &'b mut Pair[T], s: &'c String) -> &'c String { s }
+pub fn Runner['a, F].run(self, k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    (self.b.bx.cb)(&loc, k)
+}
+pub fn Runner['a, F].runA(self, k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    (self.b.arr[0])(&loc, k)
+}
+pub fn viaFn['a](k: Sink['a]) {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { n: 0, b: Pair { bx: Box { cb: nop }, arr: Array.of(nop) } }
+    let p = bxOf(&mut r.b)
+    p.cb = keep
+    r.run(k) //~ ERROR cannot be erased
+}
+pub fn viaMethod['a](k: Sink['a]) {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { n: 0, b: Pair { bx: Box { cb: nop }, arr: Array.of(nop) } }
+    let p = r.b.bxM()
+    p.cb = keep
+    r.run(k) //~ ERROR cannot be erased
+}
+pub fn viaArrPush['a](k: Sink['a]) {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { n: 0, b: Pair { bx: Box { cb: nop }, arr: Array.of(nop) } }
+    let a = r.b.arrM()
+    a.push(keep)
+    r.runA(k) //~ ERROR cannot be erased
+}
+pub fn viaArrIndex['a](k: Sink['a]) {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { n: 0, b: Pair { bx: Box { cb: nop }, arr: Array.of(nop) } }
+    let a = r.b.arrM()
+    a[0] = keep
+    r.runA(k) //~ ERROR cannot be erased
+}
+pub fn viaRecord['a](k: Sink['a]) {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { n: 0, b: Pair { bx: Box { cb: nop }, arr: Array.of(nop) } }
+    if true {
+        let mut w = wrapBx(&mut r.b)
+        w.r.cb = keep
+    }
+    r.run(k) //~ ERROR cannot be erased
+}
+pub fn counted['a](k: Sink['a]) {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { n: 0, b: Pair { bx: Box { cb: nop }, arr: Array.of(nop) } }
+    let n = countOf(&mut r.b)
+    r.run(k)
+}
+pub fn picked['a](k: Sink['a], s: &'a String) -> usize {
+    let mut r: Runner['a, fn(&'a String, Sink['a]) -> Void] = Runner { n: 0, b: Pair { bx: Box { cb: nop }, arr: Array.of(nop) } }
+    let t = pick(&mut r.b, s)
+    r.run(k)
+    t.len()
+}
+-- expect --
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:27:5
+   |
+27 |     r.run(k) //~ ERROR cannot be erased
+   |     ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:33:5
+   |
+33 |     r.run(k) //~ ERROR cannot be erased
+   |     ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:39:5
+   |
+39 |     r.runA(k) //~ ERROR cannot be erased
+   |     ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:45:5
+   |
+45 |     r.runA(k) //~ ERROR cannot be erased
+   |     ^
+
+error[E2297]: the reference lifetime of `function value` cannot be erased: the callable may retain that reference outside its result
+  --> main.kg:53:5
+   |
+53 |     r.run(k) //~ ERROR cannot be erased
+   |     ^
+

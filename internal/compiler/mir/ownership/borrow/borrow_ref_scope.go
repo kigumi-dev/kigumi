@@ -45,7 +45,7 @@ func (state *Analyzer) CheckRefScopes() []midir.FileDiag {
 			emitted[ekey] = append(emitted[ekey], span)
 			code, _ := sem.CodeByName("borrow-callable-lifetime")
 			d := diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(u.Node)), Code: code.Num,
-				Msg: sem.FillTemplate(code.Template, name)}
+				Msg: u.Message(name)}
 			out = append(out, midir.FileDiag{File: u.File, Diag: d})
 		}
 	}

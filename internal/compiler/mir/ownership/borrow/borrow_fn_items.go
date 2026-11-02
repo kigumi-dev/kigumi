@@ -53,7 +53,7 @@ func (c *borrowCheck) fnItemOrigins(l midir.LocalID, depth int) fnItems {
 
 // fnItemsWithin are the fn items anywhere in the container l, l being built here and never written through.
 func (c *borrowCheck) fnItemsWithin(l midir.LocalID, depth int) fnItems {
-	return c.builtItems(l, depth, func(a midir.LocalID, depth int) fnItems { return c.fnItemsWithin(a, depth) },
+	return c.builtItems(l, nil, depth, func(a midir.LocalID, depth int) fnItems { return c.fnItemsWithin(a, depth) },
 		func(d *midir.Inst, depth int) fnItems {
 			out := knownItems()
 			for _, a := range d.Args {
@@ -75,17 +75,24 @@ func (c *borrowCheck) partItems(a midir.LocalID, depth int) fnItems {
 	return ents
 }
 
-// builtItems follows the container l to where it is built, through copies and generic relays; built reads a record,
-// variant or array literal.
-func (c *borrowCheck) builtItems(l midir.LocalID, depth int, again func(midir.LocalID, int) fnItems, built func(*midir.Inst, int) fnItems) fnItems {
+// builtItems are the fn items at path of the container l: where it is built, through copies and generic relays (built
+// reads a record, variant or array literal), and what the writes into it can leave there.
+func (c *borrowCheck) builtItems(l midir.LocalID, path []sem.PartStep, depth int, again func(midir.LocalID, int) fnItems, built func(*midir.Inst, int) fnItems) fnItems {
 	if c.holdsNoCallable(c.f.Locals[l].Type, map[sem.TypeID]bool{}) {
 		return knownItems()
 	}
 	defs := c.defsOf(l)
-	if depth == 0 || len(defs) == 0 || c.writtenThrough(l) {
+	if depth == 0 || len(defs) == 0 {
 		return fnItems{}
 	}
-	out := knownItems()
+	writes, ok := c.partWrites(l)
+	if !ok {
+		return fnItems{}
+	}
+	out := c.writesItems(c.f.Locals[l].Type, writes, path, depth-1)
+	if !out.known {
+		return out
+	}
 	for _, d := range defs {
 		var ents fnItems
 		switch {

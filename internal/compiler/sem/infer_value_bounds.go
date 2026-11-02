@@ -2,13 +2,15 @@ package sem
 
 import "kigumi/internal/compiler/syntax"
 
-// valueInstData is a method or fn item value's callee and the substitution instantiating its own type parameters; its
-// bound checks point at it. A direct call through the value proves each argument (called); any other use escapes.
+// valueInstData is a method or fn item value's callee and own-generic substitution. A direct call proves each argument
+// (called); any other use escapes, as escapeUse says; bound marks a value a local holds, seen one the escape walk met.
 type valueInstData struct {
-	m        EntityID
-	subst    map[EntityID]TypeID
-	called   bool
-	escapeAt syntax.NodeID
+	m           EntityID
+	subst       map[EntityID]TypeID
+	called      bool
+	bound, seen bool
+	escapeAt    syntax.NodeID
+	escapeUse   string
 }
 
 // recordValueExpr remembers the value at n, its instantiation and the bound checks it made, for the proof at direct
@@ -39,7 +41,24 @@ func (c *checker) escapeHolderUses(body syntax.NodeID) {
 
 func (c *checker) escapeHolderWalk(n syntax.NodeID, ok map[syntax.NodeID]bool) {
 	t := c.t
+	if d := c.valueExprs[n]; d != nil {
+		d.seen = true
+		if !ok[n] && !d.bound {
+			c.escapeValueData(n, d, usePassed)
+		}
+	}
 	switch t.Kind(n) {
+	case syntax.Block:
+		b := t.View(n).AsBlock()
+		for i := range b.Len() - 1 {
+			if b.At(i).Kind() == syntax.ExprStmt {
+				ok[t.Unparen(b.At(i).AsExprStmt().Expr().ID())] = true
+			}
+		}
+	case syntax.LetStmt:
+		if v := t.View(n).AsLet(); v.Pattern().Kind() == syntax.PatWildcard && v.Init().Valid() {
+			ok[t.Unparen(v.Init().ID())] = true
+		}
 	case syntax.Lambda:
 		if ent := c.info.Defs[n]; ent != 0 {
 			saved := c.walkOwner
@@ -67,7 +86,7 @@ func (c *checker) escapeHolderWalk(n syntax.NodeID, ok map[syntax.NodeID]bool) {
 	case syntax.Ident:
 		if !ok[n] && !c.holderAliasNode[n] {
 			if r := c.holderOf(c.info.Uses[n]); r != nil {
-				c.escapeHolder(n, r)
+				c.escapeHolder(n, r, usePassed)
 			}
 		}
 	}
@@ -99,7 +118,7 @@ func (c *checker) proveHolderCall(callee syntax.NodeID, args []syntax.NodeID) {
 		return
 	}
 	if r.poison {
-		c.escapeHolder(cu, r)
+		c.escapeHolder(cu, r, useMixed)
 		return
 	}
 	for _, d := range r.reps {
@@ -119,51 +138,5 @@ func (c *checker) proveValue(d *valueInstData, args []syntax.NodeID) {
 		if decl, inner := c.declaredArg(sig, args, i); decl != 0 {
 			c.slotContractsMode(inner, decl, d.subst, slotRoot, true)
 		}
-	}
-}
-
-func (c *checker) escapeHolder(node syntax.NodeID, r *holderRes) {
-	if r.escaped {
-		return
-	}
-	r.escaped = true
-	for _, d := range r.vals {
-		c.escapeValueData(node, d)
-	}
-}
-
-func (c *checker) escapeValueData(node syntax.NodeID, d *valueInstData) {
-	if d.escapeAt == 0 {
-		d.escapeAt = node
-	}
-}
-
-type valueIfaceCheck struct {
-	cc         constraintCheck
-	arg, iface TypeID
-}
-
-// flushValueIfaceChecks runs once the whole body is checked. A value proved only by direct calls is accepted; one that
-// escaped is refused at the escape; one never used at all is refused at its creation.
-func (c *checker) flushValueIfaceChecks() {
-	checks := c.valueIfaceChecks
-	c.valueIfaceChecks = nil
-	for _, v := range checks {
-		c.valueIfaceErasure(v.cc, v.arg, v.iface)
-	}
-}
-
-func (c *checker) valueIfaceErasure(cc constraintCheck, arg, iface TypeID) {
-	w := &slotWalk{c: c, seen: map[EntityID]bool{}}
-	w.implBounds(arg, iface, slotRoot)
-	if !w.refuse && len(w.slots) == 0 {
-		return
-	}
-	switch d := cc.held; {
-	case d != nil && d.escapeAt != 0:
-		c.refuseErasure(d.escapeAt, c.valueItem(cc))
-	case d != nil && d.called:
-	default:
-		c.refuseErasure(cc.node, c.valueItem(cc))
 	}
 }

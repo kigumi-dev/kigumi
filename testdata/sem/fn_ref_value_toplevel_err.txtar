@@ -15,7 +15,7 @@ let hn = Hn { n: 1 }
 let r: R2[fn(&Array[Int]) -> usize] = R2 { cb: blen }
 print "${applyTop(hn.measure, r)}" //~ ERROR cannot be erased
 -- expect --
-error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+error[E2297]: the reference lifetime of `measure` cannot be erased: only a direct call through the value can prove its argument, and this use passes it on
   --> main.kg:13:19
    |
 13 | print "${applyTop(hn.measure, r)}" //~ ERROR cannot be erased

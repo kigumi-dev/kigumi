@@ -69,49 +69,49 @@ pub fn returnsValue['a](hn: Hn, k1: Sink['a]) -> fn(R0['a, fn(&'a String, Sink['
     g //~ ERROR cannot be erased
 }
 -- expect --
-error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+error[E2297]: the reference lifetime of `measure` cannot be erased: only a direct call through the value can prove its argument, and this use passes it on
   --> main.kg:21:25
    |
 21 |     let h = Holder { f: hn.measure } //~ ERROR cannot be erased
    |                         ^^^^^^^^^^
 
-error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+error[E2297]: the reference lifetime of `measure` cannot be erased: only a direct call through the value can prove its argument, and this use passes it on
   --> main.kg:27:23
    |
 27 |     let fs = Array.of(hn.measure) //~ ERROR cannot be erased
    |                       ^^^^^^^^^^
 
-error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+error[E2297]: the reference lifetime of `measure` cannot be erased: only a direct call through the value can prove its argument, and this use passes it on
   --> main.kg:33:18
    |
 33 |     let o = Some(hn.measure) //~ ERROR cannot be erased
    |                  ^^^^^^^^^^
 
-error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+error[E2297]: the reference lifetime of `measure` cannot be erased: only a direct call through the value can prove its argument, and this use passes it on
   --> main.kg:39:12
    |
 39 |     callIt(hn.measure, rb) //~ ERROR cannot be erased
    |            ^^^^^^^^^^
 
-error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+error[E2297]: the reference lifetime of `measure` cannot be erased: only a direct call through the value can prove its argument, and this use passes it on
   --> main.kg:43:13
    |
 43 |     callOwn(hn.measure, k2) //~ ERROR cannot be erased
    |             ^^^^^^^^^^
 
-error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+error[E2297]: the reference lifetime of `measure` cannot be erased: only a direct call through the value can prove its argument, and this use passes it on
   --> main.kg:51:15
    |
 51 |     x + apply(g, rb) //~ ERROR cannot be erased
    |               ^
 
-error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+error[E2297]: the reference lifetime of `measure` cannot be erased: only a direct call through the value can prove its argument, and this use passes it on
   --> main.kg:60:15
    |
 60 |     x + apply(g2, rb) //~ ERROR cannot be erased
    |               ^^
 
-error[E2297]: the reference lifetime of `measure` cannot be erased: the callable may retain that reference outside its result
+error[E2297]: the reference lifetime of `measure` cannot be erased: only a direct call through the value can prove its argument, and this use passes it on
   --> main.kg:66:5
    |
 66 |     g //~ ERROR cannot be erased

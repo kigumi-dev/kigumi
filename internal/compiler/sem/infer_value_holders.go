@@ -19,7 +19,9 @@ type holderRes struct {
 func (c *checker) noteHolderValue(local EntityID, value syntax.NodeID) {
 	u := c.t.Unparen(value)
 	switch {
+	case c.valueExprs[u] != nil && local == 0:
 	case c.valueExprs[u] != nil:
+		c.valueExprs[u].bound = true
 		if c.holderVals == nil {
 			c.holderVals = map[EntityID][]*valueInstData{}
 		}
