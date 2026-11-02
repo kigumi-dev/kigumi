@@ -1,0 +1,354 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+type W = {
+    pub items Array[Res]
+    pub ws Array[V]
+}
+
+type V = {
+    pub items Array[Res]
+}
+
+type Box[T] = {
+    pub v T
+}
+
+type H['a] = {
+    pub r &'a Array[W]
+}
+
+type Holder = {
+    pub ws Array[W]
+}
+
+fn id[T](x: T) -> T {
+    x
+}
+
+fn pair[T](a: T, b: T) -> Box[T] {
+    Box { v: a }
+}
+
+fn apply(f: fn() -> Int) -> Int {
+    f()
+}
+
+fn me(h: &Array[Array[Res]]) -> &Array[Array[Res]] {
+    h
+}
+
+fn sharedField(xs: &Array[W]) {
+    for r in xs[0].items { //~ ERROR `for` over `xs[0].items` would take each element
+        _ = r
+    }
+}
+
+fn sharedElem(xs: &Array[Array[Res]]) {
+    for r in xs[0] { //~ ERROR `for` over `xs[0]` would take each element
+        _ = r
+    }
+}
+
+fn mutField(xs: &mut Array[W]) {
+    for r in xs[0].items { //~ ERROR `for` over `xs[0].items` would take each element
+        _ = r
+    }
+}
+
+fn mutElem(xs: &mut Array[Array[Res]]) {
+    for r in xs[0] { //~ ERROR `for` over `xs[0]` would take each element
+        _ = r
+    }
+}
+
+fn localRef(owner: Array[W]) {
+    let xs = &owner
+    for r in xs[0].items { //~ ERROR `for` over `xs[0].items` would take each element
+        _ = r
+    }
+}
+
+fn localRefElem(owner: Array[Array[Res]]) {
+    let xs: &Array[Array[Res]] = &owner
+    for r in xs[0] { //~ ERROR `for` over `xs[0]` would take each element
+        _ = r
+    }
+}
+
+fn inferredParam(owner: Array[Array[Res]]) {
+    let xs = id(&owner)
+    for r in xs[0] { //~ ERROR `for` over `xs[0]` would take each element
+        _ = r
+    }
+}
+
+fn inferredField(owner: Array[W]) {
+    let b = Box { v: &owner }
+    for r in b.v[0].items { //~ ERROR `for` over `b.v[0].items` would take each element
+        _ = r
+    }
+}
+
+fn inferredCall(owner: Array[W]) {
+    let b = pair(&owner, &owner)
+    for r in b.v[0].items { //~ ERROR `for` over `b.v[0].items` would take each element
+        _ = r
+    }
+}
+
+fn heldRef['a](h: H['a]) {
+    for r in h.r[0].items { //~ ERROR `for` over `h.r[0].items` would take each element
+        _ = r
+    }
+}
+
+fn genericElem[T](xs: &Array[Array[T]]) {
+    for r in xs[0] { //~ ERROR `for` over `xs[0]` would take each element
+        _ = r
+    }
+}
+
+fn nested(xs: &Array[Array[Array[Res]]]) {
+    for r in xs[0][1] { //~ ERROR `for` over `xs[0][1]` would take each element
+        _ = r
+    }
+}
+
+fn nestedField(xs: &Array[W]) {
+    for r in xs[0].ws[1].items { //~ ERROR `for` over `xs[0].ws[1].items` would take each element
+        _ = r
+    }
+}
+
+fn callRef(h: &Array[Array[Res]]) {
+    for r in me(h)[0] { //~ ERROR `for` over `me(h)[0]` would take each element
+        _ = r
+    }
+}
+
+fn joinRef(c: Bool, xs: &Array[Array[Res]], ys: &Array[Array[Res]]) {
+    for r in (if c { xs } else { ys })[0] { //~ ERROR `for` over `(if c { xs } else { ys })[0]` would take each element
+        _ = r
+    }
+}
+
+fn ix(i: usize) -> usize {
+    i
+}
+
+fn callIndex(xs: &Array[Array[Res]], ks: &Array[usize]) {
+    for r in xs[ix(0)] { //~ ERROR `for` over `xs[ix(0)]` would take each element
+        _ = r
+    }
+    for r in xs[ks[0]] { //~ ERROR `for` over `xs[ks[0]]` would take each element
+        _ = r
+    }
+    for r in xs[ks.len() - ix(1)] { //~ ERROR `for` over `xs[ks.len() - ix(1)]` would take each element
+        _ = r
+    }
+}
+
+fn slice(xs: &Array[Res]) {
+    for r in xs[0..1] { //~ ERROR `for` over `xs[0..1]` would take each element
+        _ = r
+    }
+}
+
+fn sliceField(xs: &Array[W]) {
+    for r in xs[0].items[0..1] { //~ ERROR `for` over `xs[0].items[0..1]` would take each element
+        _ = r
+    }
+}
+
+fn Holder.lent(self) {
+    for r in self.ws[0].items { //~ ERROR `for` over `self.ws[0].items` would take each element
+        _ = r
+    }
+}
+
+fn captured(xs: Array[W]) -> Int {
+    apply(() => {
+        let mut n = 0
+        for r in xs[0].items { //~ ERROR `for` over `xs[0].items` would take each element
+            n = n + r.id
+        }
+        n
+    })
+}
+
+fn borrowedOk(xs: &Array[W], ys: &mut Array[Array[Res]], ns: &Array[Array[Int]]) -> Int {
+    let mut n = 0
+    for r in &xs[0].items {
+        n = n + r.id
+    }
+    for r in &ys[0] {
+        n = n + r.id
+    }
+    for r in &xs[0].items[0..1] {
+        n = n + r.id
+    }
+    for k in ns[0] {
+        n = n + k
+    }
+    n
+}
+-- expect --
+error[E2200]: `for` over `xs[0].items` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+  --> main/main.kg:45:14
+   |
+45 |     for r in xs[0].items { //~ ERROR `for` over `xs[0].items` would take each element
+   |              ^^^^^^^^^^^
+   = help: iterate `&xs[0].items` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `xs[0]` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+  --> main/main.kg:51:14
+   |
+51 |     for r in xs[0] { //~ ERROR `for` over `xs[0]` would take each element
+   |              ^^^^
+   = help: iterate `&xs[0]` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `xs[0].items` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+  --> main/main.kg:57:14
+   |
+57 |     for r in xs[0].items { //~ ERROR `for` over `xs[0].items` would take each element
+   |              ^^^^^^^^^^^
+   = help: iterate `&xs[0].items` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `xs[0]` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+  --> main/main.kg:63:14
+   |
+63 |     for r in xs[0] { //~ ERROR `for` over `xs[0]` would take each element
+   |              ^^^^
+   = help: iterate `&xs[0]` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `xs[0].items` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+  --> main/main.kg:70:14
+   |
+70 |     for r in xs[0].items { //~ ERROR `for` over `xs[0].items` would take each element
+   |              ^^^^^^^^^^^
+   = help: iterate `&xs[0].items` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `xs[0]` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+  --> main/main.kg:77:14
+   |
+77 |     for r in xs[0] { //~ ERROR `for` over `xs[0]` would take each element
+   |              ^^^^
+   = help: iterate `&xs[0]` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `xs[0]` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+  --> main/main.kg:84:14
+   |
+84 |     for r in xs[0] { //~ ERROR `for` over `xs[0]` would take each element
+   |              ^^^^
+   = help: iterate `&xs[0]` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `b.v[0].items` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+  --> main/main.kg:91:14
+   |
+91 |     for r in b.v[0].items { //~ ERROR `for` over `b.v[0].items` would take each element
+   |              ^^^^^^^^^^^^
+   = help: iterate `&b.v[0].items` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `b.v[0].items` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+  --> main/main.kg:98:14
+   |
+98 |     for r in b.v[0].items { //~ ERROR `for` over `b.v[0].items` would take each element
+   |              ^^^^^^^^^^^^
+   = help: iterate `&b.v[0].items` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `h.r[0].items` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+   --> main/main.kg:104:14
+    |
+104 |     for r in h.r[0].items { //~ ERROR `for` over `h.r[0].items` would take each element
+    |              ^^^^^^^^^^^^
+    = help: iterate `&h.r[0].items` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `xs[0]` would take each element out of a place that is only borrowed, and `T` is not known to be `Copy`
+   --> main/main.kg:110:14
+    |
+110 |     for r in xs[0] { //~ ERROR `for` over `xs[0]` would take each element
+    |              ^^^^
+    = help: iterate `&xs[0]` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `xs[0][1]` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+   --> main/main.kg:116:14
+    |
+116 |     for r in xs[0][1] { //~ ERROR `for` over `xs[0][1]` would take each element
+    |              ^^^^^^^
+    = help: iterate `&xs[0][1]` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `xs[0].ws[1].items` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+   --> main/main.kg:122:14
+    |
+122 |     for r in xs[0].ws[1].items { //~ ERROR `for` over `xs[0].ws[1].items` would take each element
+    |              ^^^^^^^^^^^^^^^^^
+    = help: iterate `&xs[0].ws[1].items` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `me(h)[0]` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+   --> main/main.kg:128:14
+    |
+128 |     for r in me(h)[0] { //~ ERROR `for` over `me(h)[0]` would take each element
+    |              ^^^^^^^
+    = help: iterate `&me(h)[0]` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `(if c { xs } else { ys })[0]` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+   --> main/main.kg:134:14
+    |
+134 |     for r in (if c { xs } else { ys })[0] { //~ ERROR `for` over `(if c { xs } else { ys })[0]` would take each element
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: iterate `&(if c { xs } else { ys })[0]` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `xs[ix(0)]` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+   --> main/main.kg:144:14
+    |
+144 |     for r in xs[ix(0)] { //~ ERROR `for` over `xs[ix(0)]` would take each element
+    |              ^^^^^^^
+    = help: iterate `&xs[ix(0)]` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `xs[ks[0]]` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+   --> main/main.kg:147:14
+    |
+147 |     for r in xs[ks[0]] { //~ ERROR `for` over `xs[ks[0]]` would take each element
+    |              ^^^^^^^
+    = help: iterate `&xs[ks[0]]` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `xs[ks.len() - ix(1)]` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+   --> main/main.kg:150:14
+    |
+150 |     for r in xs[ks.len() - ix(1)] { //~ ERROR `for` over `xs[ks.len() - ix(1)]` would take each element
+    |              ^^^^^^^^^^^^^^^^^^
+    = help: iterate `&xs[ks.len() - ix(1)]` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `xs[0..1]` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+   --> main/main.kg:156:14
+    |
+156 |     for r in xs[0..1] { //~ ERROR `for` over `xs[0..1]` would take each element
+    |              ^^^^^^^
+    = help: `xs[0..1]` shares its elements with `xs`; iterate `&xs[0..1]` to borrow them
+
+error[E2200]: `for` over `xs[0].items[0..1]` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+   --> main/main.kg:162:14
+    |
+162 |     for r in xs[0].items[0..1] { //~ ERROR `for` over `xs[0].items[0..1]` would take each element
+    |              ^^^^^^^^^^^^^^^^
+    = help: `xs[0].items[0..1]` shares its elements with `xs[0].items`; iterate `&xs[0].items[0..1]` to borrow them
+
+error[E2200]: `for` over `self.ws[0].items` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+   --> main/main.kg:168:14
+    |
+168 |     for r in self.ws[0].items { //~ ERROR `for` over `self.ws[0].items` would take each element
+    |              ^^^^^^^^^^^^^^^^
+    = help: iterate `&self.ws[0].items` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `xs[0].items` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+   --> main/main.kg:176:18
+    |
+176 |         for r in xs[0].items { //~ ERROR `for` over `xs[0].items` would take each element
+    |                  ^^^^^^^^^^^
+    = help: iterate `&xs[0].items` to borrow the elements, or take the owner by `move`
+

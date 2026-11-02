@@ -122,6 +122,9 @@ func (c *checker) sharedRefFix(root EntityID) (string, bool) {
 	if c.r.Types.Kind(e.Type) != KRef || c.r.Types.RefMut(e.Type) {
 		return "", false
 	}
+	if slice, ok := c.sliceViews[root]; ok {
+		return "`" + e.Name + "` holds the slice `" + c.takeName(slice) + "`, which is read-only; write through `" + c.takeName(c.sliceSource(slice)) + "` instead", true
+	}
 	return "annotate `" + e.Name + "` as `&mut " + c.r.TypeString(c.r.Types.Node(e.Type).Elem) + "`", true
 }
 

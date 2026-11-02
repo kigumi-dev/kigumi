@@ -170,6 +170,7 @@ func (c *checker) checkReceiver(base syntax.NodeID, recv TypeID, m EntityID) {
 		} else if !c.isPlace(base) {
 			c.errAt(base, cRecvTemporary, name)
 		} else if c.rejectCtxKeyWrite(base, "the receiver of `mut self` method `"+name+"`") {
+		} else if c.rejectViewAccess(base, accessMutSelf) {
 		} else if !c.isMutablePlace(base) {
 			c.reportRecvNotMutable(base, name)
 		} else if root := c.rootOf(base); root != 0 {
@@ -181,8 +182,8 @@ func (c *checker) checkReceiver(base syntax.NodeID, recv TypeID, m EntityID) {
 	case RecvMove:
 		if tt.Kind(recv) == KRef {
 			c.errAt(base, cMoveOutOfBorrow, tt.Node(recv).Elem)
-		} else if c.indexRooted(base) && !c.copyNow(recv) {
-			c.errAtHelp(base, c.noCloneHelp(recv, "borrow it with `&`, or take it with `.takeAt`"), cIndexValueCopy, recv)
+		} else if c.indexRooted(base) && !c.copyNow(recv) && c.bracketKind(c.t.Unparen(base)) != bracketValueSlice {
+			c.errAtHelp(base, c.indexValueHelp(base, recv), cIndexValueCopy, recv)
 		} else if !c.rejectArgTake(base, recv) {
 			c.consumeWhole(base)
 		}

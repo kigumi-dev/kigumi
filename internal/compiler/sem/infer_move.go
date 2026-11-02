@@ -36,7 +36,11 @@ func (c *checker) synthMove(n syntax.NodeID, want TypeID) TypeID {
 
 func (c *checker) checkMoveOut(target syntax.NodeID, t, baseType TypeID, isField bool) bool {
 	if c.indexRooted(target) {
-		c.errAtHelp(target, c.noCloneHelp(t, "take the element out with `.takeAt` instead"), cMoveIndex)
+		help := "take the element out with `.takeAt` instead"
+		if !c.takeAtAllowed(target) {
+			help = "borrow it with `&` instead"
+		}
+		c.errAtHelp(target, c.noCloneHelp(t, help), cMoveIndex)
 		return false
 	}
 	p, ok := c.buildPlace(target)

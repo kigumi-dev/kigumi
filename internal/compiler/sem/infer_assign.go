@@ -25,6 +25,7 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 		c.checkStaticAssign(lhs, staticEnt)
 	} else if c.indexAssignUnsupported(lhs) {
 		c.errAt(lhs, cIndexAssignUnsupported)
+	} else if c.rejectViewAccess(lhs, accessAssign) {
 	} else if !c.isMutablePlace(lhs) && op.IsCompoundAssign() {
 		c.reportImmutableBase(lhs)
 	} else if !c.isMutablePlace(lhs) {

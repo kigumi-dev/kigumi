@@ -1,0 +1,135 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type W = {
+    pub items Array[Res]
+    pub ws Array[V]
+}
+
+type V = {
+    pub items Array[Res]
+}
+
+fn mkw(i: Int) -> W {
+    W { items: Array.of(mk(i)), ws: Array.of(V { items: Array.of(mk(i + 1)) }) }
+}
+
+fn ownedField(xs: Array[W]) {
+    for r in xs[0].items { //~ ERROR reading `Array[Res]` out of an index by value
+        _ = r
+    }
+}
+
+fn ownedElem(xs: Array[Array[Res]]) {
+    for r in xs[0] { //~ ERROR reading `Array[Res]` out of an index by value
+        _ = r
+    }
+}
+
+fn localField() {
+    let mut xs = Array.of(mkw(1))
+    for r in xs[0].items { //~ ERROR reading `Array[Res]` out of an index by value
+        _ = r
+    }
+    xs.push(mkw(2))
+}
+
+fn nested(xs: Array[Array[Array[Res]]]) {
+    for r in xs[0][1] { //~ ERROR reading `Array[Res]` out of an index by value
+        _ = r
+    }
+}
+
+fn nestedField(xs: Array[W]) {
+    for r in xs[0].ws[1].items { //~ ERROR reading `Array[Res]` out of an index by value
+        _ = r
+    }
+}
+
+fn genericElem[T](xs: Array[Array[T]]) {
+    for r in xs[0] { //~ ERROR reading `Array[T]` out of an index by value
+        _ = r
+    }
+}
+
+fn ownedSlice(ys: Array[Res]) {
+    for r in ys[0..1] { //~ ERROR `for` over `ys[0..1]` would take each element
+        _ = r
+    }
+}
+
+fn mkws() -> Array[W] {
+    Array.of(mkw(1))
+}
+
+fn ownedOk(xs: Array[W], ns: Array[Array[Int]]) -> Int {
+    let mut n = 0
+    for r in &xs[0].items {
+        n = n + r.id
+    }
+    for r in mkws()[0].items {
+        n = n + r.id
+    }
+    for k in ns[0] {
+        n = n + k
+    }
+    n
+}
+-- expect --
+error[E1050]: reading `Array[Res]` out of an index by value needs `Copy`
+  --> main/main.kg:25:14
+   |
+25 |     for r in xs[0].items { //~ ERROR reading `Array[Res]` out of an index by value
+   |              ^^^^^^^^^^^
+   = help: borrow it with `&`, or take it with `.takeAt`
+
+error[E1050]: reading `Array[Res]` out of an index by value needs `Copy`
+  --> main/main.kg:31:14
+   |
+31 |     for r in xs[0] { //~ ERROR reading `Array[Res]` out of an index by value
+   |              ^^^^
+   = help: borrow it with `&`, or take it with `.takeAt`
+
+error[E1050]: reading `Array[Res]` out of an index by value needs `Copy`
+  --> main/main.kg:38:14
+   |
+38 |     for r in xs[0].items { //~ ERROR reading `Array[Res]` out of an index by value
+   |              ^^^^^^^^^^^
+   = help: borrow it with `&`, or take it with `.takeAt`
+
+error[E1050]: reading `Array[Res]` out of an index by value needs `Copy`
+  --> main/main.kg:45:14
+   |
+45 |     for r in xs[0][1] { //~ ERROR reading `Array[Res]` out of an index by value
+   |              ^^^^^^^
+   = help: borrow it with `&`, or take it with `.takeAt`
+
+error[E1050]: reading `Array[Res]` out of an index by value needs `Copy`
+  --> main/main.kg:51:14
+   |
+51 |     for r in xs[0].ws[1].items { //~ ERROR reading `Array[Res]` out of an index by value
+   |              ^^^^^^^^^^^^^^^^^
+   = help: borrow it with `&`, or take it with `.takeAt`
+
+error[E1050]: reading `Array[T]` out of an index by value needs `Copy`
+  --> main/main.kg:57:14
+   |
+57 |     for r in xs[0] { //~ ERROR reading `Array[T]` out of an index by value
+   |              ^^^^
+   = help: borrow it with `&`, or take it with `.takeAt`
+
+error[E2200]: `for` over `ys[0..1]` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+  --> main/main.kg:63:14
+   |
+63 |     for r in ys[0..1] { //~ ERROR `for` over `ys[0..1]` would take each element
+   |              ^^^^^^^
+   = help: `ys[0..1]` shares its elements with `ys`; iterate `&ys[0..1]` to borrow them
+

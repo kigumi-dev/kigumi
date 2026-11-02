@@ -20,7 +20,7 @@ func (c *checker) takeReceiver(n, base syntax.NodeID, recv TypeID, viaRef bool) 
 	case syntax.MemberExpr:
 		return c.movableField(n, b, recv)
 	case syntax.BracketExpr:
-		c.errAt(n, cMethodValuePlace, recv, "an element, since indexing never moves a value out", "take the element out with `.takeAt` first, or call the method directly")
+		c.errAt(n, cMethodValuePlace, recv, "an element, since indexing never moves a value out", c.elementMethodValueFix(n))
 		return false
 	case syntax.OptMemberExpr:
 		c.errAt(n, cMethodValuePlace, recv, "a field read through `?.`", "bind the value to a local first, or call the method directly")
@@ -56,7 +56,7 @@ func (c *checker) movableField(n, field syntax.NodeID, recv TypeID) bool {
 			}
 			c.errAt(n, cMethodValuePlace, recv, "a field of a static", "bind the value to a local first, or call the method directly")
 		case syntax.BracketExpr:
-			c.errAt(n, cMethodValuePlace, recv, "a field of an element, since indexing never moves a value out", "take the element out with `.takeAt` first, or call the method directly")
+			c.errAt(n, cMethodValuePlace, recv, "a field of an element, since indexing never moves a value out", c.elementMethodValueFix(n))
 		case syntax.OptMemberExpr:
 			c.errAt(n, cMethodValuePlace, recv, "a field of a temporary read through `?.`", "bind the value to a local first, or call the method directly")
 		default:
@@ -105,4 +105,11 @@ func (c *checker) lentRoot(n syntax.NodeID) bool {
 		}
 	}
 	return false
+}
+
+func (c *checker) elementMethodValueFix(n syntax.NodeID) string {
+	if c.takeAtAllowed(n) {
+		return "take the element out with `.takeAt` first, or call the method directly"
+	}
+	return "call the method directly"
 }

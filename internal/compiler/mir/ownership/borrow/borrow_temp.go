@@ -37,6 +37,8 @@ func (c *borrowCheck) tempPlace(l midir.LocalID) (midir.LocalID, ownquery.Path, 
 			return l, path, exact, c.multiDefined(l) && c.ownsValue(l)
 		}
 		switch {
+		case c.freshSlice(d) && len(path) == 0:
+			return l, path, exact, true
 		case d.Op == midir.OpField, d.Op == midir.OpPayload, d.Op == midir.OpIndex, d.Op == midir.OpUnbox:
 			path, exact = path.Under(d, exact, nil)
 		case d.Op == midir.OpCopy, d.Op == midir.OpBorrow, d.Op == midir.OpShare, d.Op == midir.OpAlias, d.Op == midir.OpCellGet:
@@ -53,6 +55,16 @@ func (c *borrowCheck) tempPlace(l midir.LocalID) (midir.LocalID, ownquery.Path, 
 		l = d.Args[0]
 	}
 	return 0, nil, false, false
+}
+
+// freshSlice: a range index builds a new array or string, so the slice ends with its statement like a call's result;
+// an element read through it is still the source's object.
+func (c *borrowCheck) freshSlice(d *midir.Inst) bool {
+	if d.Op != midir.OpIndex || len(d.Args) < 2 {
+		return false
+	}
+	n := c.p.R.Types.Node(c.f.Locals[d.Args[1]].Type)
+	return n.Kind == sem.KNamed && n.Ent != 0 && n.Ent == c.p.R.LangItem("Range")
 }
 
 // immortalLiteral: llgen gives scalar and string literals a static slot and the VM interns them alike;

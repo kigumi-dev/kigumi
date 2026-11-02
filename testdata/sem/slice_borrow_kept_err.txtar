@@ -1,0 +1,56 @@
+-- module --
+mir: planned
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn pick(k: Bool, ys: &Array[Res], o: &Array[Res]) -> Int {
+    let zs = if k { &ys[0..1] } else { o } //~ ERROR `zs` keeps a borrow of a temporary
+    zs.len().toInt() || 0
+}
+
+fn pickString(k: Bool, s: &String, t: &String) -> Int {
+    let r = if k { &s[0..2] } else { t } //~ ERROR `r` keeps a borrow of a temporary
+    r.len().toInt() || 0
+}
+
+fn collect(a: &Array[Res]) -> Int {
+    a.len().toInt() || 0
+}
+
+fn keptOk(ys: &Array[Res]) -> Int {
+    let zs = ys[0..1]
+    let mut n = collect(zs) + collect(&ys[0..1])
+    for r in &ys[0..1] {
+        n = n + r.id
+    }
+    n
+}
+
+fn id1['a](r: &'a Res) -> &'a Res {
+    r
+}
+
+fn elementKept(k: Bool, ys: &Array[Res], o: &Res, ns: &Array[Int]) -> Int {
+    let r = &ys[0..2][1]
+    let c = id1(&ys[0..2][1])
+    let j = if k { &ys[0..2][1] } else { o }
+    let i = &ns[0..2][1]
+    r.id + c.id + j.id + i
+}
+-- expect --
+error[E2235]: `zs` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+ --> main.kg:8:9
+  |
+8 |     let zs = if k { &ys[0..1] } else { o } //~ ERROR `zs` keeps a borrow of a temporary
+  |         ^^
+
+error[E2235]: `r` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:13:9
+   |
+13 |     let r = if k { &s[0..2] } else { t } //~ ERROR `r` keeps a borrow of a temporary
+   |         ^
+

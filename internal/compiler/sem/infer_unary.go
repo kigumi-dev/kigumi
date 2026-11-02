@@ -71,6 +71,7 @@ func (c *checker) synthBorrow(n syntax.NodeID, want TypeID) TypeID {
 	} else if mut && c.indexAssignUnsupported(inner) {
 		c.errAt(inner, cIndexAssignUnsupported)
 	} else if mut && c.rejectCtxKeyWrite(inner, "borrowed with `&mut`") {
+	} else if mut && c.rejectViewAccess(inner, accessMutBorrow) {
 	} else if mut && !c.isMutablePlace(inner) {
 		c.errAt(inner, cAssignNotPlace)
 	}

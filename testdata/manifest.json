@@ -5080,6 +5080,23 @@
       ]
     },
     {
+      "id": "run/borrow_string_literal_let",
+      "kind": "run",
+      "path": "testdata/run/borrow_string_literal_let.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/borrow_temp_field_scrutinee",
       "kind": "run",
       "path": "testdata/run/borrow_temp_field_scrutinee.txtar",
@@ -6138,6 +6155,23 @@
       ]
     },
     {
+      "id": "run/closure_lent_field_let",
+      "kind": "run",
+      "path": "testdata/run/closure_lent_field_let.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/closure_once",
       "kind": "run",
       "path": "testdata/run/closure_once.txtar",
@@ -6600,6 +6634,23 @@
       "id": "run/const_reach_unused_nested",
       "kind": "run",
       "path": "testdata/run/const_reach_unused_nested.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/const_string_qualified_borrow",
+      "kind": "run",
+      "path": "testdata/run/const_string_qualified_borrow.txtar",
       "mode": [
         "vm",
         "native"
@@ -11307,6 +11358,23 @@
       ]
     },
     {
+      "id": "run/for_index_owned_ok",
+      "kind": "run",
+      "path": "testdata/run/for_index_owned_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/for_inline_closure_semicolon",
       "kind": "run",
       "path": "testdata/run/for_inline_closure_semicolon.txtar",
@@ -12058,6 +12126,23 @@
       "id": "run/import_rename",
       "kind": "run",
       "path": "testdata/run/import_rename.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/index_witness_temp_ok",
+      "kind": "run",
+      "path": "testdata/run/index_witness_temp_ok.txtar",
       "mode": [
         "vm",
         "native"
@@ -16737,6 +16822,57 @@
       "id": "run/shift_context",
       "kind": "run",
       "path": "testdata/run/shift_context.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/slice_element_mut_ok",
+      "kind": "run",
+      "path": "testdata/run/slice_element_mut_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/slice_value_copy_ok",
+      "kind": "run",
+      "path": "testdata/run/slice_value_copy_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/slice_view_ok",
+      "kind": "run",
+      "path": "testdata/run/slice_view_ok.txtar",
       "mode": [
         "vm",
         "native"
@@ -23293,6 +23429,28 @@
       ]
     },
     {
+      "id": "sem/for_index_borrowed_err",
+      "kind": "sem",
+      "path": "testdata/sem/for_index_borrowed_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/for_index_owned_err",
+      "kind": "sem",
+      "path": "testdata/sem/for_index_owned_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/for_loop_scalar_mut",
       "kind": "sem",
       "path": "testdata/sem/for_loop_scalar_mut.txtar",
@@ -23593,6 +23751,17 @@
       "id": "sem/index_value_copy",
       "kind": "sem",
       "path": "testdata/sem/index_value_copy.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/index_witness_err",
+      "kind": "sem",
+      "path": "testdata/sem/index_witness_err.txtar",
       "mode": [
         "check"
       ],
@@ -25606,6 +25775,28 @@
       "id": "sem/shift_literal_reject",
       "kind": "sem",
       "path": "testdata/sem/shift_literal_reject.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/slice_borrow_kept_err",
+      "kind": "sem",
+      "path": "testdata/sem/slice_borrow_kept_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/slice_view_err",
+      "kind": "sem",
+      "path": "testdata/sem/slice_view_err.txtar",
       "mode": [
         "check"
       ],

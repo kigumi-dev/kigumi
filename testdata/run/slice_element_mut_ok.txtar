@@ -1,0 +1,66 @@
+-- src --
+type Res = resource {
+    pub mut id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type W = {
+    pub mut items Array[Res]
+    pub mut p P
+}
+
+type P = {
+    pub mut x Int
+    pub y Int
+}
+
+fn P.bump(mut self) {
+    self.x = self.x + 100
+}
+
+fn pushIt(a: &mut Array[Res]) {
+    a.push(mk(50))
+}
+
+fn inc(v: &mut Int) {
+    v = v + 1
+}
+
+fn main() {
+    let mut vs = Array.of(W { items: Array.of(mk(1), mk(2)), p: P { x: 1, y: 0 } })
+    let t = vs[0..1][0].items.takeAt(0)
+    print "len ${vs[0].items.len()} first ${vs[0].items[0].id}"
+    vs[0..1][0].items.push(mk(40))
+    pushIt(&mut vs[0..1][0].items)
+    print "len ${vs[0].items.len()} last ${vs[0].items[2].id}"
+    for r in &mut vs[0..1][0].items {
+        r.id = r.id + 10
+    }
+    print "ids ${vs[0].items[0].id} ${vs[0].items[1].id} ${vs[0].items[2].id}"
+    vs[0..1][0].p.bump()
+    inc(&mut vs[0..1][0].p.x)
+    print "p ${vs[0].p.x}"
+    let mut ps = Array.of(P { x: 1, y: 2 })
+    inc(&mut ps[0..1][0].x)
+    ps[0].x = ps[0].x + 10
+    print "ps ${ps[0].x}"
+    print "t ${t?.id || 0}"
+}
+-- stdout --
+len 1 first 2
+len 3 last 50
+ids 12 50 60
+p 102
+ps 12
+t 1
+drop 1
+drop 60
+drop 50
+drop 12

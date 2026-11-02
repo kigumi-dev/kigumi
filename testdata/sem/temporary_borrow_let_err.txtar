@@ -26,11 +26,12 @@ fn run() -> Int {
     let d = &H { r: R { id: 3 }, s: "t" } //~ ERROR borrow of a temporary `H`
     let e = &mkn(4)
     let f = &(e + 1)
-    let g = &"lit" //~ ERROR borrow of a temporary `String`
+    let g = &"lit"
+    let h = &"lit${e}" //~ ERROR borrow of a temporary `String`
     let p = &P { x: 5 } //~ ERROR borrow of a temporary `P`
     let q = { &mk(6) } //~ ERROR borrow of the result of `mk(..)`
     let s = { let j = 7; &mk(j) } //~ ERROR borrow of the result of `mk(..)`
-    a.id + b.id + c.id + d.r.id + e + f + p.x + q.id + s.id + (g.len().toInt() || 0)
+    a.id + b.id + c.id + d.r.id + e + f + p.x + q.id + s.id + (g.len().toInt() || 0) + (h.len().toInt() || 0)
 }
 -- expect --
 error[E2234]: `let` cannot keep a borrow of the result of `mk(..)`, which is dropped at the end of this statement
@@ -62,30 +63,30 @@ error[E2234]: `let` cannot keep a borrow of a temporary `H`, which is dropped at
    = help: bind the value to a local first and borrow the local
 
 error[E2234]: `let` cannot keep a borrow of a temporary `String`, which is dropped at the end of this statement
-  --> main/main.kg:28:13
+  --> main/main.kg:29:13
    |
-28 |     let g = &"lit" //~ ERROR borrow of a temporary `String`
-   |             ^^^^^^
+29 |     let h = &"lit${e}" //~ ERROR borrow of a temporary `String`
+   |             ^^^^^^^^^^
    = help: bind the value to a local first and borrow the local
 
 error[E2234]: `let` cannot keep a borrow of a temporary `P`, which is dropped at the end of this statement
-  --> main/main.kg:29:13
+  --> main/main.kg:30:13
    |
-29 |     let p = &P { x: 5 } //~ ERROR borrow of a temporary `P`
+30 |     let p = &P { x: 5 } //~ ERROR borrow of a temporary `P`
    |             ^^^^^^^^^
    = help: bind the value to a local first and borrow the local
 
 error[E2234]: `let` cannot keep a borrow of the result of `mk(..)`, which is dropped at the end of this statement
-  --> main/main.kg:30:15
+  --> main/main.kg:31:15
    |
-30 |     let q = { &mk(6) } //~ ERROR borrow of the result of `mk(..)`
+31 |     let q = { &mk(6) } //~ ERROR borrow of the result of `mk(..)`
    |               ^^^^^
    = help: bind the value to a local first and borrow the local
 
 error[E2234]: `let` cannot keep a borrow of the result of `mk(..)`, which is dropped at the end of this statement
-  --> main/main.kg:31:26
+  --> main/main.kg:32:26
    |
-31 |     let s = { let j = 7; &mk(j) } //~ ERROR borrow of the result of `mk(..)`
+32 |     let s = { let j = 7; &mk(j) } //~ ERROR borrow of the result of `mk(..)`
    |                          ^^^^^
    = help: bind the value to a local first and borrow the local
 

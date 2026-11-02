@@ -89,6 +89,8 @@ func (c *checker) rejectLeafTake(n syntax.NodeID, t TypeID, take fieldTake) bool
 	case c.chainDropOwner(n) != 0:
 		c.rejectDropOwnerTake(n, c.chainDropOwner(n))
 		return true
+	case c.indexRooted(n):
+		return c.rejectIndexTake(n, take)
 	case c.fieldMember(n):
 		return c.rejectTake(n, t, take)
 	}

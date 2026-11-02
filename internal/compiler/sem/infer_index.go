@@ -47,7 +47,7 @@ func (c *checker) indexValueResult(n syntax.NodeID, elem TypeID) TypeID {
 		return elem
 	}
 	if !c.copyNow(elem) {
-		c.errAtHelp(n, c.noCloneHelp(elem, "borrow it with `&`, or take it with `.takeAt`"), cIndexValueCopy, elem)
+		c.errAtHelp(n, c.indexValueHelp(n, elem), cIndexValueCopy, elem)
 	}
 	return elem
 }
@@ -58,23 +58,15 @@ func (c *checker) checkIndexFieldValue(n syntax.NodeID, t TypeID) TypeID {
 	if t == 0 || t == TyPoison || !c.indexRooted(n) || c.copyNow(t) {
 		return t
 	}
-	c.errAtHelp(n, c.noCloneHelp(t, "borrow it with `&`, or take it with `.takeAt`"), cIndexValueCopy, t)
+	c.errAtHelp(n, c.indexValueHelp(n, t), cIndexValueCopy, t)
 	return t
 }
 
 // indexRooted reports whether n bottoms out, through parens and field projections,
 // at a bracket index. Walks the syntax directly so an unresolvable base can't hide it.
 func (c *checker) indexRooted(n syntax.NodeID) bool {
-	for {
-		switch c.t.Kind(n) {
-		case syntax.Paren, syntax.MemberExpr, syntax.OptMemberExpr:
-			n = c.t.View(n).Base().ID()
-		case syntax.BracketExpr:
-			return true
-		default:
-			return false
-		}
-	}
+	_, ok := c.indexRoot(n)
+	return ok
 }
 
 func (c *checker) ownGenerics(fn EntityID) []EntityID {

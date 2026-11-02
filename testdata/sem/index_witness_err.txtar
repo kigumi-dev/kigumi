@@ -1,0 +1,100 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type W = {
+    pub f Res
+    pub items Array[Res]
+    pub n Int
+}
+
+fn mkw(i: Int) -> W {
+    W { f: mk(i), items: Array.of(mk(i + 1)), n: i }
+}
+
+fn eat(r: Res) -> Int {
+    r.id
+}
+
+type Grid = {
+    pub n Int
+}
+
+fn Grid.index(self, i: usize) -> Array[Res] {
+    Array.of(mk(self.n))
+}
+
+type Rows = {
+    pub n Int
+}
+
+fn Rows.index(self, i: usize) -> W {
+    mkw(self.n)
+}
+
+type Opts = {
+    pub n Int
+}
+
+fn Opts.index(self, i: usize) -> Res? {
+    Some(mk(self.n))
+}
+
+fn witnessRef(g: &Grid, rows: &Rows) -> Int {
+    let mut s = 0
+    for r in g[0] {
+        s = s + eat(r)
+    }
+    for r in rows[5].items {
+        s = s + eat(r)
+    }
+    s
+}
+
+fn witnessKept(g: &Grid) -> Int {
+    let a = &g[0] //~ ERROR `let` cannot keep a borrow of the result of `g[0]`
+    a.len().toInt() || 0
+}
+
+fn matchRef(xs: &Array[W]) -> Int {
+    match xs[0] { //~ ERROR reading `W` out of an index by value
+        W { f, items, n } -> eat(f) + n
+    }
+}
+
+fn ifLetWitness(o: &Opts) -> Int {
+    if let Some(r) = o[2] { //~ ERROR reading `Res?` out of an index by value
+        eat(r)
+    } else {
+        0
+    }
+}
+-- expect --
+error[E2234]: `let` cannot keep a borrow of the result of `g[0]`, which is dropped at the end of this statement
+  --> main/main.kg:61:13
+   |
+61 |     let a = &g[0] //~ ERROR `let` cannot keep a borrow of the result of `g[0]`
+   |             ^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E1050]: reading `W` out of an index by value needs `Copy`
+  --> main/main.kg:66:11
+   |
+66 |     match xs[0] { //~ ERROR reading `W` out of an index by value
+   |           ^^^^
+   = help: borrow it with `&`, or take it with `.takeAt`
+
+error[E1050]: reading `Res?` out of an index by value needs `Copy`
+  --> main/main.kg:72:22
+   |
+72 |     if let Some(r) = o[2] { //~ ERROR reading `Res?` out of an index by value
+   |                      ^^^
+   = help: borrow it with `&`, or take it with `.takeAt`
+

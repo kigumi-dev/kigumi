@@ -72,7 +72,7 @@ func (c *checker) markScalarBorrow(b scalarBorrow, written func(scalarBorrow, En
 		if written != nil {
 			written(b, ent)
 		}
-	case c.indexAssignUnsupported(b.inner) || !c.isMutablePlace(b.inner):
+	case c.indexAssignUnsupported(b.inner) || !c.isMutablePlace(b.inner) || c.viewRefuses(b.inner, accessMutBorrow):
 	case b.async:
 		c.errAt(b.inner, cMutPlaceAsyncArg)
 	case !b.arg:

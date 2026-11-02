@@ -1,0 +1,46 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type Cell = {
+    pub v Res
+    pub n Int
+}
+
+type Pair = {
+    pub c Cell
+    pub w Res
+}
+
+fn apply(f: fn() -> Int) -> Int {
+    f()
+}
+
+fn main() {
+    let w = Cell { v: Res { id: 1 }, n: 5 }
+    let r = apply(() => {
+        let a = w.v
+        a.id + w.n
+    })
+    print "r=${r}"
+    let p = Pair { c: Cell { v: Res { id: 2 }, n: 0 }, w: Res { id: 3 } }
+    let s = apply(() => {
+        let a = p.c.v
+        let b = p.w
+        a.id * 10 + b.id
+    })
+    print "s=${s}"
+    print "still ${w.v.id} ${p.c.v.id} ${p.w.id}"
+}
+-- stdout --
+r=6
+s=23
+still 1 2 3
+drop 3
+drop 2
+drop 1

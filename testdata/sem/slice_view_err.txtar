@@ -1,0 +1,439 @@
+-- src --
+type Res = resource {
+    pub mut id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type P = {
+    pub mut x Int
+}
+
+type W = {
+    pub items Array[Res]
+}
+
+fn eat(r: Res) -> Int {
+    r.id
+}
+
+fn eatAll(a: Array[Res]) -> Int {
+    a.len().toInt() || 0
+}
+
+fn sum(a: Array[Int]) -> Int {
+    a.len().toInt() || 0
+}
+
+fn first(a: Array[P]) -> Int {
+    a[0].x
+}
+
+fn mutate(mut a: Array[P]) {
+    a[0].x = 9
+}
+
+fn bump(a: &mut Array[P]) {
+    a[0].x = 9
+}
+
+fn popIt(a: &mut Array[Array[Res]]) -> Array[Res] {
+    a.takeAt(0) || Array.empty()
+}
+
+fn setFirst(a: &mut Array[Res]) {
+    a[0] = mk(9)
+}
+
+fn P.inc(mut self) {
+    self.x = self.x + 1
+}
+
+type V = {
+    pub mut items Array[Res]
+    pub mut p P
+}
+
+fn collect(a: &Array[Res]) -> Int {
+    a.len().toInt() || 0
+}
+
+fn mka(i: Int) -> Array[Array[Res]] {
+    Array.of(Array.of(mk(i)))
+}
+
+fn mkrs(i: Int) -> Array[Res] {
+    Array.of(mk(i))
+}
+
+fn consumeNested(xss: Array[Array[Res]]) -> Int {
+    let mut n = 0
+    for a in xss[0..1] { //~ ERROR `for` over `xss[0..1]` would take each element
+        for r in a {
+            n = n + eat(r)
+        }
+    }
+    n
+}
+
+fn handedRes(ys: Array[Res]) -> Int {
+    eatAll(ys[0..1]) //~ ERROR reading `Array[Res]` out of an index by value
+}
+
+fn handedRecord(ps: Array[P]) -> Int {
+    first(ps[0..2]) //~ ERROR reading `Array[P]` out of an index by value
+}
+
+fn handedGeneric[T: Copy](xs: Array[T]) -> Array[T] {
+    xs[0..1] //~ ERROR reading `Array[T]` out of an index by value
+}
+
+fn returned(xs: Array[Res]) -> Array[Res] {
+    xs[1..2] //~ ERROR reading `Array[Res]` out of an index by value
+}
+
+fn returnedRef(xs: &Array[Res]) -> Array[Res] {
+    xs[1..2] //~ ERROR reading `Array[Res]` out of an index by value
+}
+
+fn built(ys: Array[Res]) -> W {
+    W { items: ys[0..1] } //~ ERROR reading `Array[Res]` out of an index by value
+}
+
+fn joined(c: Bool, ys: Array[Res]) -> Int {
+    let a = if c { ys[0..1] } else { mkrs(0) } //~ ERROR reading `Array[Res]` out of an index by value
+    a.len().toInt() || 0
+}
+
+fn assigned(ys: Array[Res]) {
+    let mut out = mkrs(0)
+    out = ys[0..1] //~ ERROR reading `Array[Res]` out of an index by value
+    _ = out
+}
+
+fn writeViaLet(ps: Array[P]) {
+    let mut zs = ps[0..1]
+    zs[0].x = 77 //~ ERROR `zs` is immutable
+}
+
+fn writeInPlace(ps: Array[P]) {
+    ps[0..1][0].x = 9 //~ ERROR `ps` is immutable
+}
+
+fn writeHanded(ps: Array[P]) {
+    mutate(ps[0..1]) //~ ERROR reading `Array[P]` out of an index by value
+}
+
+fn writeBorrowed(ps: Array[P]) {
+    bump(&mut ps[0..1]) //~ ERROR `ps[0..1]` is a slice, a new array that shares only the elements of `ps`
+}
+
+fn takeFromSlice(mut ys: Array[Array[Res]]) -> Int {
+    let a = ys[0..1].takeAt(0) || Array.empty() //~ ERROR `ys[0..1]` is a slice
+    a.len().toInt() || 0
+}
+
+fn takeViaMutRef(mut ys: Array[Array[Res]]) -> Int {
+    let a = popIt(&mut ys[0..1]) //~ ERROR `ys[0..1]` is a slice
+    a.len().toInt() || 0
+}
+
+fn takeInCallee(ms: &mut Array[Array[Res]]) -> Int {
+    let a = ms[0..1].takeAt(0) || Array.empty() //~ ERROR `ms[0..1]` is a slice
+    a.len().toInt() || 0
+}
+
+fn slotWrite(mut ps: Array[P]) {
+    ps[0..1][0] = P { x: 9 } //~ ERROR `ps[0..1][0]` is in the slice `ps[0..1]`
+}
+
+fn valueSlotWrite(mut ns: Array[Int]) {
+    ns[0..1][0] = 9 //~ ERROR cannot assign to this expression
+}
+
+fn valueSlotAdd(mut ns: Array[Int]) {
+    ns[0..1][0] += 1 //~ ERROR cannot assign to this expression
+}
+
+fn valueSlicePush(mut ns: Array[Int]) {
+    ns[0..2].push(4) //~ ERROR `push` takes `mut self` but the receiver is a temporary
+}
+
+fn slotWriteViaMutRef(mut rs: Array[Res]) {
+    setFirst(&mut rs[0..1]) //~ ERROR `rs[0..1]` is a slice
+}
+
+fn mutSelfOnSlot(mut ps: Array[P]) {
+    ps[0..1][0].inc() //~ ERROR `ps[0..1][0]` is in the slice `ps[0..1]`
+}
+
+fn nestedSliceWrite(mut ps: Array[P]) {
+    ps[0..2][0..1][0] = P { x: 5 } //~ ERROR `ps[0..2][0..1][0]` is in the slice `ps[0..2][0..1]`
+}
+
+fn elementUnderSlice(ys: Array[Res]) -> Int {
+    eat(ys[0..1][0]) //~ ERROR reading `Res` out of an index by value
+}
+
+fn moveUnderSlice(ys: Array[Res]) -> Int {
+    eat(move ys[0..1][0]) //~ ERROR cannot move a value out of an index
+}
+
+fn mutLoopOverSlice(mut ps: Array[P]) {
+    for p in &mut ps[0..1] { //~ ERROR `ps[0..1]` is a slice
+        p.x = 1
+    }
+}
+
+fn keptShared(ys: Array[Res]) -> Int {
+    let zs = &ys[0..1] //~ ERROR `let` cannot keep a borrow of the result of `ys[0..1]`
+    zs.len().toInt() || 0
+}
+
+fn keptMut() {
+    let mut ms = mkrs(1)
+    let ws = &mut ms[0..1] //~ ERROR `ms[0..1]` is a slice
+    _ = ws
+}
+
+fn keptString(s: String) -> Int {
+    let r = &s[0..2] //~ ERROR `let` cannot keep a borrow of the result of `s[0..2]`
+    r.len().toInt() || 0
+}
+
+fn viewOk(ys: Array[Res], ns: Array[Int]) -> Int {
+    let mut n = 0
+    for k in ns[0..2] {
+        n = n + k
+    }
+    for r in &ys[0..1] {
+        n = n + r.id
+    }
+    let zs = ys[0..1] //~ TYPE zs : &Array[Res]
+    let ks = ns[1..2] //~ TYPE ks : Array[Int]
+    n = n + sum(ns[0..2])
+    n = n + collect(&ys[0..1]) + collect(zs)
+    for a in mka(1)[0..1] {
+        for r in a {
+            n = n + eat(r)
+        }
+    }
+    n = n + eatAll(mkrs(2)[0..1])
+    let mut ms = Array.of(P { x: 1 })
+    ms[0..1][0].x = 7
+    let mut vs = Array.of(V { items: Array.of(mk(1)), p: P { x: 1 } })
+    vs[0..1][0].items[0] = mk(9)
+    vs[0..1][0].p.x = 5
+    vs[0..1][0].items = Array.of(mk(7))
+    let r = &mut vs[0..1][0].items
+    r.push(mk(8))
+    vs[0..1][0].p.inc()
+    let e = &ys[0..1][0] //~ TYPE e : &Res
+    n = n + e.id
+    n + (ks.len().toInt() || 0)
+}
+-- expect --
+error[E2200]: `for` over `xss[0..1]` would take each element out of a place that is only borrowed, and `Array[Res]` is not known to be `Copy`
+  --> main/main.kg:74:14
+   |
+74 |     for a in xss[0..1] { //~ ERROR `for` over `xss[0..1]` would take each element
+   |              ^^^^^^^^
+   = help: `xss[0..1]` shares its elements with `xss`; iterate `&xss[0..1]` to borrow them
+
+error[E1050]: reading `Array[Res]` out of an index by value needs `Copy`
+  --> main/main.kg:83:12
+   |
+83 |     eatAll(ys[0..1]) //~ ERROR reading `Array[Res]` out of an index by value
+   |            ^^^^^^^
+   = help: `ys[0..1]` shares its elements with `ys`; borrow it with `&ys[0..1]`
+
+error[E1050]: reading `Array[P]` out of an index by value needs `Copy`
+  --> main/main.kg:87:11
+   |
+87 |     first(ps[0..2]) //~ ERROR reading `Array[P]` out of an index by value
+   |           ^^^^^^^
+   = help: `ps[0..2]` shares its elements with `ps`; borrow it with `&ps[0..2]`, or copy the elements with `.slice`
+
+error[E1050]: reading `Array[T]` out of an index by value needs `Copy`
+  --> main/main.kg:91:5
+   |
+91 |     xs[0..1] //~ ERROR reading `Array[T]` out of an index by value
+   |     ^^^^^^^
+   = help: `xs[0..1]` shares its elements with `xs`; borrow it with `&xs[0..1]`, or copy the elements with `.slice`
+
+error[E1050]: reading `Array[Res]` out of an index by value needs `Copy`
+  --> main/main.kg:95:5
+   |
+95 |     xs[1..2] //~ ERROR reading `Array[Res]` out of an index by value
+   |     ^^^^^^^
+   = help: `xs[1..2]` shares its elements with `xs`; borrow it with `&xs[1..2]`
+
+error[E1050]: reading `Array[Res]` out of an index by value needs `Copy`
+  --> main/main.kg:99:5
+   |
+99 |     xs[1..2] //~ ERROR reading `Array[Res]` out of an index by value
+   |     ^^^^^^^
+   = help: `xs[1..2]` shares its elements with `xs`; borrow it with `&xs[1..2]`
+
+error[E1050]: reading `Array[Res]` out of an index by value needs `Copy`
+   --> main/main.kg:103:16
+    |
+103 |     W { items: ys[0..1] } //~ ERROR reading `Array[Res]` out of an index by value
+    |                ^^^^^^^
+    = help: `ys[0..1]` shares its elements with `ys`; borrow it with `&ys[0..1]`
+
+error[E1050]: reading `Array[Res]` out of an index by value needs `Copy`
+   --> main/main.kg:107:20
+    |
+107 |     let a = if c { ys[0..1] } else { mkrs(0) } //~ ERROR reading `Array[Res]` out of an index by value
+    |                    ^^^^^^^
+    = help: `ys[0..1]` shares its elements with `ys`; borrow it with `&ys[0..1]`
+
+error[E1050]: reading `Array[Res]` out of an index by value needs `Copy`
+   --> main/main.kg:113:11
+    |
+113 |     out = ys[0..1] //~ ERROR reading `Array[Res]` out of an index by value
+    |           ^^^^^^^
+    = help: `ys[0..1]` shares its elements with `ys`; borrow it with `&ys[0..1]`
+
+error[E701]: `zs` is immutable
+   --> main/main.kg:119:5
+    |
+119 |     zs[0].x = 77 //~ ERROR `zs` is immutable
+    |     ^^
+    = help: `zs` holds the slice `ps[0..1]`, which is read-only; write through `ps` instead
+
+error[E701]: `ps` is immutable
+   --> main/main.kg:123:5
+    |
+123 |     ps[0..1][0].x = 9 //~ ERROR `ps` is immutable
+    |     ^^
+    = help: declare `let mut ps`
+
+error[E1050]: reading `Array[P]` out of an index by value needs `Copy`
+   --> main/main.kg:127:12
+    |
+127 |     mutate(ps[0..1]) //~ ERROR reading `Array[P]` out of an index by value
+    |            ^^^^^^^
+    = help: `ps[0..1]` shares its elements with `ps`; borrow it with `&ps[0..1]`, or copy the elements with `.slice`
+
+error[E2236]: `ps[0..1]` is a slice, a new array that shares only the elements of `ps`, so it cannot be borrowed with `&mut`
+   --> main/main.kg:131:15
+    |
+131 |     bump(&mut ps[0..1]) //~ ERROR `ps[0..1]` is a slice, a new array that shares only the elements of `ps`
+    |               ^^^^^^^
+    = help: reach it through `ps` instead
+
+error[E2236]: `ys[0..1]` is a slice, a new array that shares only the elements of `ys`, so it cannot be the receiver of a `mut self` method
+   --> main/main.kg:135:13
+    |
+135 |     let a = ys[0..1].takeAt(0) || Array.empty() //~ ERROR `ys[0..1]` is a slice
+    |             ^^^^^^^
+    = help: reach it through `ys` instead
+
+error[E2236]: `ys[0..1]` is a slice, a new array that shares only the elements of `ys`, so it cannot be borrowed with `&mut`
+   --> main/main.kg:140:24
+    |
+140 |     let a = popIt(&mut ys[0..1]) //~ ERROR `ys[0..1]` is a slice
+    |                        ^^^^^^^
+    = help: reach it through `ys` instead
+
+error[E2236]: `ms[0..1]` is a slice, a new array that shares only the elements of `ms`, so it cannot be the receiver of a `mut self` method
+   --> main/main.kg:145:13
+    |
+145 |     let a = ms[0..1].takeAt(0) || Array.empty() //~ ERROR `ms[0..1]` is a slice
+    |             ^^^^^^^
+    = help: reach it through `ms` instead
+
+error[E2236]: `ps[0..1][0]` is in the slice `ps[0..1]`, a new array that shares only the elements of `ps`, so it cannot be assigned
+   --> main/main.kg:150:5
+    |
+150 |     ps[0..1][0] = P { x: 9 } //~ ERROR `ps[0..1][0]` is in the slice `ps[0..1]`
+    |     ^^^^^^^^^^
+    = help: reach it through `ps` instead
+
+error[E703]: cannot assign to this expression
+   --> main/main.kg:154:5
+    |
+154 |     ns[0..1][0] = 9 //~ ERROR cannot assign to this expression
+    |     ^^^^^^^^^^
+
+error[E703]: cannot assign to this expression
+   --> main/main.kg:158:5
+    |
+158 |     ns[0..1][0] += 1 //~ ERROR cannot assign to this expression
+    |     ^^^^^^^^^^
+
+error[E516]: `push` takes `mut self` but the receiver is a temporary
+   --> main/main.kg:162:5
+    |
+162 |     ns[0..2].push(4) //~ ERROR `push` takes `mut self` but the receiver is a temporary
+    |     ^^^^^^^
+
+error[E2236]: `rs[0..1]` is a slice, a new array that shares only the elements of `rs`, so it cannot be borrowed with `&mut`
+   --> main/main.kg:166:19
+    |
+166 |     setFirst(&mut rs[0..1]) //~ ERROR `rs[0..1]` is a slice
+    |                   ^^^^^^^
+    = help: reach it through `rs` instead
+
+error[E2236]: `ps[0..1][0]` is in the slice `ps[0..1]`, a new array that shares only the elements of `ps`, so it cannot be the receiver of a `mut self` method
+   --> main/main.kg:170:5
+    |
+170 |     ps[0..1][0].inc() //~ ERROR `ps[0..1][0]` is in the slice `ps[0..1]`
+    |     ^^^^^^^^^^
+    = help: reach it through `ps` instead
+
+error[E2236]: `ps[0..2][0..1][0]` is in the slice `ps[0..2][0..1]`, a new array that shares only the elements of `ps`, so it cannot be assigned
+   --> main/main.kg:174:5
+    |
+174 |     ps[0..2][0..1][0] = P { x: 5 } //~ ERROR `ps[0..2][0..1][0]` is in the slice `ps[0..2][0..1]`
+    |     ^^^^^^^^^^^^^^^^
+    = help: reach it through `ps` instead
+
+error[E1050]: reading `Res` out of an index by value needs `Copy`
+   --> main/main.kg:178:9
+    |
+178 |     eat(ys[0..1][0]) //~ ERROR reading `Res` out of an index by value
+    |         ^^^^^^^^^^
+    = help: borrow it with `&`
+
+error[E1022]: cannot move a value out of an index
+   --> main/main.kg:182:14
+    |
+182 |     eat(move ys[0..1][0]) //~ ERROR cannot move a value out of an index
+    |              ^^^^^^^^^^
+    = help: borrow it with `&` instead
+
+error[E2236]: `ps[0..1]` is a slice, a new array that shares only the elements of `ps`, so it cannot be borrowed with `&mut`
+   --> main/main.kg:186:19
+    |
+186 |     for p in &mut ps[0..1] { //~ ERROR `ps[0..1]` is a slice
+    |                   ^^^^^^^
+    = help: reach it through `ps` instead
+
+error[E2234]: `let` cannot keep a borrow of the result of `ys[0..1]`, which is dropped at the end of this statement
+   --> main/main.kg:192:14
+    |
+192 |     let zs = &ys[0..1] //~ ERROR `let` cannot keep a borrow of the result of `ys[0..1]`
+    |              ^^^^^^^^
+    = help: bind the slice without `&`, as in `let s = ys[0..1]`, which keeps it until the end of the scope
+
+error[E2236]: `ms[0..1]` is a slice, a new array that shares only the elements of `ms`, so it cannot be borrowed with `&mut`
+   --> main/main.kg:198:19
+    |
+198 |     let ws = &mut ms[0..1] //~ ERROR `ms[0..1]` is a slice
+    |                   ^^^^^^^
+    = help: reach it through `ms` instead
+
+error[E2234]: `let` cannot keep a borrow of the result of `s[0..2]`, which is dropped at the end of this statement
+   --> main/main.kg:203:13
+    |
+203 |     let r = &s[0..2] //~ ERROR `let` cannot keep a borrow of the result of `s[0..2]`
+    |             ^^^^^^^
+    = help: bind the value to a local first and borrow the local
+

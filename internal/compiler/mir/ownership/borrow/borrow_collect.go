@@ -78,12 +78,8 @@ func (c *borrowCheck) collectInst(in midir.Inst) bool {
 			}
 			return false
 		}
-		root, path, exact, ok := c.patternPlace(in.Args[0])
-		if ok {
-			ref := c.endedOwner(ownerRef{owner: root, mut: in.Index == 1, path: path, exact: exact, lifetime: c.projectionLifetime(root, in.Args[0])}, in.Args[0])
-			b := &borrowInfo{owners: []ownerRef{ref}, hasOwner: true, node: in.Node}
-			mergeInto(b, c.throughRef(root, path, exact, in.Index == 1))
-			return set(b, true)
+		if root, path, exact, ok := c.patternPlace(in.Args[0]); ok {
+			return set(c.placeBorrow(in, root, path, exact), true)
 		}
 		if b, ok := c.tempBorrow(in); ok {
 			return set(b, true)

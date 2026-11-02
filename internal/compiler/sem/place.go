@@ -57,7 +57,7 @@ func (c *checker) buildPlace(n syntax.NodeID) (Place, bool) {
 		return c.r.fieldPlace(base, fld), true
 	case syntax.BracketExpr:
 		base, ok := c.buildPlace(node.AsBracket().Base().ID())
-		if !ok {
+		if !ok || c.bracketKind(n) == bracketValueSlice {
 			return Place{}, false
 		}
 		return Place{Root: base.Root, Fields: base.Fields, Index: true, Deref: base.Deref, Mutable: base.Mutable}, true

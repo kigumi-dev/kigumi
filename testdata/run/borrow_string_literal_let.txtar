@@ -1,0 +1,31 @@
+-- src --
+const GREETING = "hello"
+
+type Holder['a] = {
+    pub mut s &'a String
+}
+
+fn pick(k: Bool, s: &String) -> String {
+    let r = if k { &"abc" } else { s }
+    "${r}/${r.len()}"
+}
+
+fn main() {
+    let r = &"abc"
+    let g = &GREETING
+    let p = &("paren")
+    print "${r} ${r.len()} ${g} ${p}"
+    let mut h = Holder { s: &"start" }
+    for i in 0..2 {
+        print "${i} ${h.s}"
+        h.s = &"loop"
+    }
+    print "${h.s}"
+    print "${pick(true, &"zz")} ${pick(false, &"zz")}"
+}
+-- stdout --
+abc 3 hello paren
+0 start
+1 loop
+loop
+abc/3 zz/2

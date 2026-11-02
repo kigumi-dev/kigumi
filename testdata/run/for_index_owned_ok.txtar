@@ -1,0 +1,119 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type W = {
+    pub items Array[Res]
+    pub n Int
+}
+
+fn mkw(i: Int) -> W {
+    W { items: Array.of(mk(i), mk(i + 1)), n: i }
+}
+
+fn mkws(i: Int) -> Array[W] {
+    Array.of(mkw(i), mkw(i + 10))
+}
+
+fn mka(i: Int) -> Array[Array[Res]] {
+    Array.of(Array.of(mk(i), mk(i + 1)), Array.of(mk(i + 2)))
+}
+
+fn viaRef(xs: &Array[W]) -> Int {
+    let mut s = 0
+    for r in &xs[0].items {
+        s = s + r.id
+    }
+    s
+}
+
+fn viaMut(xs: &mut Array[Array[Res]]) -> Int {
+    let mut s = 0
+    for r in &xs[0] {
+        s = s + r.id
+    }
+    s
+}
+
+fn viaRefCopy(ns: &Array[Array[Int]]) -> Int {
+    let mut s = 0
+    for k in ns[0] {
+        s = s + k
+    }
+    s
+}
+
+fn viaTemp(i: Int) -> Int {
+    let mut s = 0
+    for r in mkws(i)[0].items {
+        print "temp item ${r.id}"
+        s = s + r.id
+    }
+    for r in mka(i + 20)[1] {
+        print "temp elem ${r.id}"
+        s = s + r.id
+    }
+    s
+}
+
+fn viaTake(xs: Array[W]) -> Int {
+    let mut ys = xs
+    let mut s = 0
+    if let Some(w) = ys.takeAt(0) {
+        for r in move w.items {
+            s = s + r.id
+        }
+    }
+    print "left ${ys.len()}"
+    s
+}
+
+fn main() {
+    let xs = mkws(1)
+    print "ref ${viaRef(&xs)}"
+    print "after ref ${xs[0].items.len()} ${xs[0].items[0].id}"
+    let mut ys = mka(30)
+    print "mut ${viaMut(&mut ys)}"
+    print "after mut ${ys[0].len()} ${ys[0][1].id}"
+    let ns = Array.of(Array.of(1, 2, 3))
+    print "copy ${viaRefCopy(&ns)} ${ns[0].len()}"
+    print "temp ${viaTemp(50)}"
+    print "take ${viaTake(xs)}"
+    print "end"
+}
+-- stdout --
+ref 3
+after ref 2 1
+mut 61
+after mut 2 31
+copy 6 3
+drop 61
+drop 60
+temp item 50
+drop 50
+temp item 51
+drop 51
+drop 71
+drop 70
+temp elem 72
+drop 72
+temp 173
+drop 1
+drop 2
+left 1
+drop 12
+drop 11
+take 3
+end
+drop 32
+drop 31
+drop 30

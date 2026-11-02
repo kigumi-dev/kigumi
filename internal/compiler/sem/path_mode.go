@@ -1,10 +1,6 @@
 package sem
 
-import (
-	"strings"
-
-	"kigumi/internal/compiler/syntax"
-)
+import "kigumi/internal/compiler/syntax"
 
 // pathMode is how a place expression is reached: from an owned binding or a temporary (whose
 // other fields drop with it), through a lent binding, or through a reference.
@@ -20,8 +16,8 @@ const (
 
 func (m pathMode) borrowed() bool { return m == pathLent || m == pathRef }
 
-// pathMode walks from the leaf to the root and reads each link's declared type: a link whose base
-// is a reference (a `&T` binding or field, a call returning `&T`) or a context key ends in pathRef.
+// pathMode walks from the leaf to the root and reads each link's declared type: a field or index through
+// a reference or a context key ends in pathRef, a slice is a view of its source, a witness result a temporary.
 func (c *checker) pathMode(n syntax.NodeID) pathMode {
 	n = c.t.Unparen(n)
 	switch c.t.Kind(n) {
@@ -29,17 +25,28 @@ func (c *checker) pathMode(n syntax.NodeID) pathMode {
 		if ent := c.info.Uses[n]; ent != 0 && c.r.Entities[ent].Kind == EntContextKey {
 			return pathRef
 		}
-		base := c.t.View(n).AsMember().Base().ID()
-		if c.r.Types.Kind(c.vars.resolve(c.info.Types[base])) == KRef {
-			return pathRef
-		}
-		return c.pathMode(base)
+		return c.linkMode(c.t.View(n).AsMember().Base().ID())
 	case syntax.BracketExpr:
-		return c.pathMode(c.t.View(n).AsBracket().Base().ID())
+		switch c.bracketKind(n) {
+		case bracketWitness, bracketValueSlice:
+			return pathTemp
+		case bracketSlice:
+			return sliceMode(c.linkMode(c.t.View(n).AsBracket().Base().ID()))
+		}
+		return c.linkMode(c.t.View(n).AsBracket().Base().ID())
 	case syntax.Ident:
 		return c.bindingMode(c.info.Uses[n])
 	}
 	return pathTemp
+}
+
+// linkMode is how a projection out of base is reached. A binding holding a reference owns only the
+// reference, so the binding reads as owned and what is reached through it as pathRef.
+func (c *checker) linkMode(base syntax.NodeID) pathMode {
+	if c.r.Types.Kind(c.vars.resolve(c.info.Types[base])) == KRef {
+		return pathRef
+	}
+	return c.pathMode(base)
 }
 
 // pathDropOwner is the first type along n's links, leaf first, that defines a custom `drop`.
@@ -80,34 +87,11 @@ func (c *checker) lentCapture(ent EntityID) bool {
 	return ok && ctx.list[i].Mode == capBorrow
 }
 
-// takeName names a taken place on one line: as written when that fits, else with each base that
-// spans lines shown as `(...)`, as is a base that is no place or call (a join, a block).
-func (c *checker) takeName(n syntax.NodeID) string {
-	n = c.t.Unparen(n)
-	switch c.t.Kind(n) {
-	case syntax.Ident, syntax.MemberExpr, syntax.OptMemberExpr, syntax.BracketExpr, syntax.CallExpr, syntax.WsCallExpr:
-	default:
-		return "(...)"
-	}
-	if s := c.srcText(n); !strings.Contains(s, "\n") {
-		return s
-	}
-	v := c.t.View(n)
-	switch c.t.Kind(n) {
-	case syntax.MemberExpr:
-		return c.takeName(v.AsMember().Base().ID()) + "." + v.Tok().Text()
-	case syntax.OptMemberExpr:
-		return c.takeName(v.AsOptMember().Base().ID()) + "?." + v.Tok().Text()
-	case syntax.BracketExpr:
-		return c.takeName(v.AsBracket().Base().ID()) + "[..]"
-	}
-	return "(...)"
-}
-
 // borrowedLeaf: some value leaf of n is reached through a borrow, so a pattern on n binds by reference.
+// A leaf already refused binds as written, so its pattern adds no follow-on type error.
 func (c *checker) borrowedLeaf(n syntax.NodeID) bool {
 	for _, leaf := range c.valueLeaves(n) {
-		if c.pathMode(leaf).borrowed() {
+		if c.pathMode(leaf).borrowed() && !c.r.hasErrorAt(c.f, leaf) {
 			return true
 		}
 	}

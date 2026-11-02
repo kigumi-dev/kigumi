@@ -1,0 +1,17 @@
+-- src --
+import a from lib/a
+
+fn pick(k: Bool, s: &String) -> Int {
+    let r = if k { &a.S } else { s }
+    r.len().toInt() || 0
+}
+
+fn main() {
+    let r = &a.S
+    let p = &(a.S)
+    print "${r} ${p} ${pick(true, &"abc")} ${pick(false, &"abc")}"
+}
+-- lib/a/a.kg --
+pub const S: String = "xy"
+-- stdout --
+xy xy 2 3

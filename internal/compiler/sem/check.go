@@ -78,6 +78,8 @@ type checker struct {
 	paramAlias map[EntityID]EntityID
 	// letInit: a local's `let` initializer, so an fn value can be traced through alias chains.
 	letInit map[EntityID]syntax.NodeID
+	// sliceViews maps a local that a `let` bound to a slice by reference to that slice.
+	sliceViews map[EntityID]syntax.NodeID
 	// valueExprs maps a method value expression to its own-generic instantiation, for the proof at calls through it.
 	valueExprs map[syntax.NodeID]*valueInstData
 	// holderVals, holderAlias, holderOther record, per local, the method values it is bound to, the locals it aliases,

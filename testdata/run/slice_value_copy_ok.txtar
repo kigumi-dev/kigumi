@@ -1,0 +1,46 @@
+-- src --
+type P = { pub mut x Int }
+type C = { pub x Int, pub y Int }
+fn total(a: Array[Int]) -> Int {
+    let mut s = 0
+    for v in a { s = s + v }
+    s
+}
+const KEPT: usize = comptime {
+    let mut big = Array.empty[Int]()
+    for i in 0..30 {
+        big.push(i)
+    }
+    let mut store = Array.empty[Array[Int]]()
+    for _ in 0..4 {
+        let piece = big[0..30]
+        store.push(piece)
+    }
+    store.len()
+}
+
+fn main() {
+    print "comptime ${KEPT}"
+    let mut big = Array.empty[Int]()
+    for i in 0..10 {
+        big.push(i)
+    }
+    let mut store = Array.empty[Array[Int]]()
+    for _ in 0..3 {
+        let piece = big[0..4]
+        store.push(piece)
+    }
+    store.push(big[5..7])
+    let mut own = big[2..5]
+    own[0] = 100
+    own.push(7)
+    print "store ${store.len()} ${store[0].len()} ${store[3][1]} own ${own[0]} ${own.len()} big ${big[2]} total ${total(big[0..3])}"
+    let cs = Array.of(C { x: 1, y: 2 }, C { x: 3, y: 4 })
+    let mut ds = cs[0..1]
+    ds[0] = C { x: 9, y: 9 }
+    print "cs ${cs[0].x} ds ${ds[0].x}"
+}
+-- stdout --
+comptime 4
+store 4 4 6 own 100 4 big 2 total 3
+cs 1 ds 9

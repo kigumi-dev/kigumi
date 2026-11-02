@@ -1,0 +1,100 @@
+-- src --
+type Res = resource {
+    pub mut id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type P = {
+    pub mut x Int
+}
+
+type V = {
+    pub mut items Array[Res]
+    pub mut p P
+}
+
+fn collect(a: &Array[Res]) -> Int {
+    a.len().toInt() || 0
+}
+
+fn mka(i: Int) -> Array[Array[Res]] {
+    Array.of(Array.of(mk(i), mk(i + 1)), Array.of(mk(i + 2)))
+}
+
+fn id1['a](r: &'a Res) -> &'a Res {
+    r
+}
+
+fn pick(k: Bool, ys: &Array[Res], o: &Res) -> Int {
+    let r = if k { &ys[0..2][1] } else { o }
+    let f = Array.of(mk(70), mk(71))
+    r.id + collect(&f)
+}
+
+fn viaCall(ys: &Array[Res]) -> Int {
+    let r = id1(&ys[0..2][1])
+    let f = Array.of(mk(80), mk(81))
+    r.id + collect(&f)
+}
+
+fn main() {
+    let ys = Array.of(mk(1), mk(2), mk(3))
+    let zs = ys[0..1]
+    print "zs ${zs.len()} ${zs[0].id} ${collect(&ys[0..2])}"
+    for r in &ys[1..2] {
+        print "r ${r.id}"
+    }
+    let e = &ys[0..2][1]
+    let ns = Array.of(10, 20, 30)
+    let k = &ns[0..2][1]
+    let o = mk(4)
+    print "e ${e.id} k ${k} p ${pick(true, &ys, &o)} c ${viaCall(&ys)}"
+    let mut ps = Array.of(P { x: 1 }, P { x: 2 })
+    ps[0..1][0].x = 7
+    print "ps ${ps[0].x} ${ps[1].x}"
+    let mut vs = Array.of(V { items: Array.of(mk(5)), p: P { x: 1 } })
+    vs[0..1][0].items[0] = mk(6)
+    vs[0..1][0].p.x = 9
+    print "vs ${vs[0].items[0].id} ${vs[0].p.x}"
+    let mut s = 0
+    for a in mka(10)[0..1] {
+        for r in a {
+            s = s + r.id
+        }
+    }
+    print "s ${s}"
+    let ks = ns[1..3]
+    let mut t = 0
+    for n in ns[0..2] {
+        t = t + n
+    }
+    print "ks ${ks.len()} ${ks[0]} t ${t}"
+}
+-- stdout --
+zs 1 1 2
+r 2
+drop 71
+drop 70
+drop 81
+drop 80
+e 2 k 20 p 4 c 4
+ps 7 2
+drop 5
+vs 6 9
+drop 12
+drop 10
+drop 11
+s 21
+ks 2 20 t 30
+drop 6
+drop 4
+drop 3
+drop 2
+drop 1

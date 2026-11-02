@@ -1,0 +1,67 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type W = {
+    pub items Array[Res]
+    pub n Int
+}
+
+fn eat(r: Res) -> Int {
+    r.id
+}
+
+type Grid = {
+    pub n Int
+}
+
+fn Grid.index(self, i: usize) -> Array[Res] {
+    Array.of(mk(self.n + (i.toInt() || 0)), mk(self.n + 100))
+}
+
+type Rows = {
+    pub n Int
+}
+
+fn Rows.index(self, i: usize) -> W {
+    W { items: Array.of(mk(self.n + (i.toInt() || 0))), n: self.n }
+}
+
+fn viaRef(g: &Grid, rows: &Rows) -> Int {
+    let mut s = 0
+    for r in g[0] {
+        s = s + eat(r)
+    }
+    for r in rows[5].items {
+        s = s + eat(r)
+    }
+    s
+}
+
+fn main() {
+    let g = Grid { n: 10 }
+    let rows = Rows { n: 20 }
+    print "ref=${viaRef(&g, &rows)}"
+    let mut t = 0
+    for r in g[1] {
+        t = t + eat(r)
+    }
+    print "owned=${t} n=${g.n} ${rows.n}"
+}
+-- stdout --
+drop 10
+drop 110
+drop 25
+ref=145
+drop 11
+drop 110
+owned=121 n=10 20

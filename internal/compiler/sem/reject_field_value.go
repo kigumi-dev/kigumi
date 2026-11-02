@@ -24,12 +24,15 @@ func (c *checker) rejectFieldLeaf(n syntax.NodeID, take fieldTake) bool {
 		c.rejectDropOwnerTake(n, owner)
 		return true
 	}
+	if c.indexRooted(n) {
+		return c.rejectIndexTake(n, take)
+	}
 	if !c.fieldMember(n) {
 		return false
 	}
 	k := c.r.Entities[c.info.Uses[n]].Kind
 	t := c.vars.resolve(c.info.Types[n])
-	if t == 0 || t == TyPoison || c.r.isCopy(t) || c.r.Types.Kind(t) == KRef || c.indexRooted(n) || c.r.hasErrorAt(c.f, n) {
+	if t == 0 || t == TyPoison || c.r.isCopy(t) || c.r.Types.Kind(t) == KRef || c.r.hasErrorAt(c.f, n) {
 		return false
 	}
 	mode := c.pathMode(n)
