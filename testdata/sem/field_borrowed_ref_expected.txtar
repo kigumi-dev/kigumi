@@ -1,0 +1,30 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+type Cell = {
+    pub v Res
+}
+
+fn Cell.peek(self) -> &Res {
+    self.v //~ ERROR expected `&Res`, found `Res`
+}
+
+fn Cell.look(self) -> Int {
+    let r: &Res = self.v //~ ERROR expected `&Res`, found `Res`
+    r.id
+}
+-- expect --
+error[E400]: expected `&Res`, found `Res`
+  --> main/main.kg:10:5
+   |
+10 |     self.v //~ ERROR expected `&Res`, found `Res`
+   |     ^^^^^^
+
+error[E400]: expected `&Res`, found `Res`
+  --> main/main.kg:14:19
+   |
+14 |     let r: &Res = self.v //~ ERROR expected `&Res`, found `Res`
+   |                   ^^^^^^
+

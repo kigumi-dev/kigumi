@@ -175,3 +175,6 @@ func (k NodeKind) String() string {
 func (k NodeKind) IsPattern() bool { return k >= PatWildcard && k <= PatRange }
 
 func (k NodeKind) IsType() bool { return (k >= TypePath && k <= TypeTuple) || k == Paren }
+
+// Valid reports whether k is a node kind the parser or checker can produce.
+func (k NodeKind) Valid() bool { return k < kindEnd }

@@ -1,0 +1,56 @@
+-- src --
+fn eat[T](v: T) {}
+
+type Cell[T] = {
+    pub v T
+    pub n Int
+}
+
+fn letFallback[T](o: T?, p: Cell[T]) -> T {
+    let r = o || p.v //~ ERROR reading `p.v` by value
+    eat(p)
+    r
+}
+
+fn argFallback[T](o: T?, p: Cell[T]) {
+    eat(o || p.v) //~ ERROR reading `p.v` by value
+    eat(p)
+}
+
+fn handlerFallback[T](r: Result[T, Int], p: Cell[T]) -> T {
+    let v = r || (e) => p.v //~ ERROR reading `p.v` by value
+    eat(p)
+    v
+}
+
+fn copyField[T](o: Int?, p: Cell[T]) -> Int {
+    let n = o || p.n
+    eat(p)
+    n
+}
+
+fn movedField[T](o: T?, p: Cell[T]) -> T {
+    o || move p.v
+}
+-- expect --
+error[E2153]: reading `p.v` by value would copy a `T`, which is not `Copy`
+ --> main/main.kg:9:18
+  |
+9 |     let r = o || p.v //~ ERROR reading `p.v` by value
+  |                  ^^^
+  = help: write `move p.v` to take it out, or borrow it with `&p.v`
+
+error[E2153]: reading `p.v` by value would copy a `T`, which is not `Copy`
+  --> main/main.kg:15:14
+   |
+15 |     eat(o || p.v) //~ ERROR reading `p.v` by value
+   |              ^^^
+   = help: write `move p.v` to take it out, or borrow it with `&p.v`
+
+error[E2153]: reading `p.v` by value would copy a `T`, which is not `Copy`
+  --> main/main.kg:20:25
+   |
+20 |     let v = r || (e) => p.v //~ ERROR reading `p.v` by value
+   |                         ^^^
+   = help: write `move p.v` to take it out, or borrow it with `&p.v`
+

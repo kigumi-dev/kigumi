@@ -19,7 +19,7 @@ type Box[T] = {
     pub v T
 }
 
-fn Box[T].map[U](self, f: fn(T) -> U) -> Box[U] {
+fn Box[T: Copy].map[U](self, f: fn(T) -> U) -> Box[U] {
     Box[U] { v: f(self.v) }
 }
 

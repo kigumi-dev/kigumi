@@ -1,0 +1,461 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn Res.close(move self) {
+    print "close ${self.id}"
+}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+fn eat(r: Res) {
+    r.close()
+}
+
+type C = {
+    pub v Res
+    pub w Res
+}
+
+type Pair = {
+    pub a Res
+    pub b Res
+}
+
+type CP = {
+    pub p Pair
+    pub q Pair
+}
+
+fn unsafeArg(c: C) -> Int {
+    eat(unsafe { c.v })
+    c.w.id
+}
+
+fn unsafeReceiver(c: C) {
+    unsafe { c.v }.close()
+}
+
+fn borrowMoved(c: C, o: Res?) -> Int {
+    match &(o || move c.v) {
+        r -> r.id
+    }
+}
+
+fn borrowArms(c: CP, k: Bool) -> Int {
+    (if k { &c.p } else { &c.q }).a.id
+}
+
+fn returnBefore(p: Pair, k: Bool) -> Res {
+    if k {
+        return p.a
+    }
+    defer {
+        print "defer ${p.a.id}"
+    }
+    mk(0)
+}
+
+async fn val(x: Int) -> Int {
+    x
+}
+
+type Holder = {
+    pub t Future[Int]
+}
+
+async fn awaited(h: Holder) -> Int {
+    await unsafe { h.t }
+}
+
+fn memberPass(c: CP) -> Int {
+    { c.p }.a.id + unsafe { c.q }.a.id
+}
+
+fn borrowPass(c: CP) -> Int {
+    let r = &unsafe { c.p }
+    let s = &unsafe { c.q }.b
+    r.a.id + s.id
+}
+
+type PA = {
+    pub xs Array[Res]
+}
+
+type W2 = resource {
+    pub pa PA
+}
+
+fn W2.drop(move self) {
+    print "w2 drop"
+    let W2 { pa } = self
+    let PA { xs } = pa
+    for r in xs {
+        r.close()
+    }
+}
+
+fn mkw2(i: Int) -> W2 {
+    W2 { pa: PA { xs: Array.of(mk(i), mk(i + 1)) } }
+}
+
+fn forPass() -> Int {
+    let mut s = 0
+    for r in &{ mkw2(30).pa }.xs {
+        s = s + r.id
+    }
+    for r in &unsafe { mkw2(40).pa }.xs {
+        s = s + r.id
+    }
+    s
+}
+
+type Cell = {
+    pub v Res
+}
+
+fn mkc(id: Int) -> Cell {
+    Cell { v: mk(id) }
+}
+
+context ck: Cell
+
+@provides(ck)
+type Env = {
+    pub ck Cell
+}
+
+type Pt = {
+    pub name String
+    pub n Int
+}
+
+fn mkPt() -> Pt {
+    Pt { name: "origin", n: 1 }
+}
+
+static origin: Pt = comptime mkPt()
+
+fn outerLocal(c: Cell) -> Int {
+    match &unsafe { c }.v {
+        r -> r.id
+    }
+}
+
+fn staticRoot() -> Int {
+    let r = &origin
+    let s = &origin.name
+    print "name ${s}"
+    r.n
+}
+
+fn outerKey() -> Int {
+    let r = &ck.v
+    r.id
+}
+
+fn matchScoped() -> Int {
+    match &unsafe {
+        let t = mk(31)
+        t
+    } {
+        r -> r.id
+    }
+}
+
+type C2 = {
+    pub xs Array[Res]
+    pub ys Array[Res]
+}
+
+fn burn(p: Pair) {
+    let Pair { a, b } = p
+    a.close()
+    b.close()
+}
+
+fn refJoinAfter(c: CP, k: Bool) -> Int {
+    let n = {
+        let r = &(if k { &c.p } else { &c.q }).a
+        r.id
+    }
+    burn(move c.p)
+    n
+}
+
+fn refJoinIndex(c: C2, k: Bool) -> Int {
+    (if k { &c.xs } else { &c.ys })[0].id
+}
+
+fn forRefJoin(c: C2, k: Bool) -> Int {
+    let mut s = 0
+    for x in &(if k { &c.xs } else { &c.ys }) {
+        s = s + x.id
+    }
+    s
+}
+
+type H['a] = {
+    pub r &'a Res
+}
+
+fn bodyParamField(c: Cell) -> Int {
+    let r = unsafe { &c.v }
+    let h = H { r: &c.v }
+    r.id + h.r.id
+}
+
+fn bodyLocal() -> Int {
+    let c = mkc(51)
+    let r = context (Env { ck: mkc(52) }) { &c.v }
+    r.id
+}
+
+fn look(r: &Res) -> Int {
+    r.id
+}
+
+fn scopedUse() -> Int {
+    let a = match &unsafe {
+        let t = mkc(53)
+        t.v
+    } {
+        r -> look(r)
+    }
+    a + look(&{
+        let t = mkc(54)
+        t.v
+    })
+}
+
+fn litBorrow() -> Int {
+    let r = &5
+    let f = &2.5
+    let s = &(1 + 2)
+    let t: &Int = &5
+    print "lit ${r} ${f} ${s} ${t}"
+    0
+}
+
+fn argOr(om: Res?) -> Int {
+    look(&(om || mk(61)))
+}
+
+fn argOrField(oc: Cell?) -> Int {
+    look(&(oc || mkc(62)).v)
+}
+
+fn argMatch(om: Res?) -> Int {
+    look(&(match om {
+        Some(v) -> v
+        None -> mk(63)
+    }))
+}
+
+fn argIfLet(om: Res?) -> Int {
+    look(&(if let Some(v) = om { v } else { mk(64) }))
+}
+
+fn argHandler(rr: Result[Res, Int]) -> Int {
+    look(&(rr || (e) => mk(e)))
+}
+
+fn argUnsafeOr(om: Res?) -> Int {
+    look(&unsafe { om || mk(66) })
+}
+
+fn argDeferSplit(k: Bool) -> Int {
+    look(unsafe {
+        &unsafe {
+            defer {
+                if k {
+                    print "defer split"
+                }
+            }
+            {
+                let t = mkc(67)
+                t.v
+            }
+        }
+    })
+}
+
+type SH['a] = {
+    pub s &'a String
+}
+
+const word: String = "konst"
+
+fn showS['b](h: SH['b]) -> usize {
+    print "show ${h.s}"
+    h.s.len()
+}
+
+fn stringKept() -> usize {
+    let h = SH { s: &"lit" }
+    let g = SH { s: &word }
+    print "kept ${h.s} ${g.s}"
+    showS(h) + showS(g)
+}
+
+fn unsafeLit() -> Int {
+    let k: &Int = &unsafe { 6 }
+    let h = &unsafe { 7 }
+    print "unsafe ${k} ${h}"
+    0
+}
+
+fn argFieldMove(c: Cell) -> Int {
+    look(&(move c.v))
+}
+
+fn handlerOther(p: Pair, r: Result[Res, Int]) -> Res {
+    r || (e) => {
+        defer {
+            print "defer ${p.b.id}"
+        }
+        p.a
+    }
+}
+
+print "w ${unsafeArg(C { v: mk(1), w: mk(2) })}"
+unsafeReceiver(C { v: mk(3), w: mk(4) })
+print "moved ${borrowMoved(C { v: mk(5), w: mk(6) }, None)}"
+print "arms ${borrowArms(CP { p: Pair { a: mk(7), b: mk(8) }, q: Pair { a: mk(9), b: mk(10) } }, false)}"
+returnBefore(Pair { a: mk(11), b: mk(12) }, true).close()
+returnBefore(Pair { a: mk(13), b: mk(14) }, false).close()
+let ex = task.currentThreadExecutor()
+print "await ${ex.runToCompletion(awaited(Holder { t: val(15) }))}"
+print "pass ${memberPass(CP { p: Pair { a: mk(20), b: mk(21) }, q: Pair { a: mk(22), b: mk(23) } })}"
+print "lent ${borrowPass(CP { p: Pair { a: mk(24), b: mk(25) }, q: Pair { a: mk(26), b: mk(27) } })}"
+print "for ${forPass()}"
+print "outer ${outerLocal(mkc(30))}"
+print "static ${staticRoot()}"
+context (Env { ck: mkc(32) }) {
+    print "key ${outerKey()}"
+}
+print "scoped ${matchScoped()}"
+print "after ${refJoinAfter(CP { p: Pair { a: mk(33), b: mk(34) }, q: Pair { a: mk(35), b: mk(36) } }, true)}"
+print "index ${refJoinIndex(C2 { xs: Array.of(mk(37)), ys: Array.of(mk(38)) }, false)}"
+handlerOther(Pair { a: mk(39), b: mk(40) }, Err(0)).close()
+print "forjoin ${forRefJoin(C2 { xs: Array.of(mk(41), mk(42)), ys: Array.of(mk(43)) }, true)}"
+print "param ${bodyParamField(mkc(50))}"
+print "local ${bodyLocal()}"
+print "scoped ${scopedUse()}"
+print "lit ${litBorrow()}"
+print "args ${argOr(Some(mk(60)))} ${argOrField(None)} ${argMatch(None)} ${argIfLet(Some(mk(68)))}"
+print "more ${argHandler(Err(65))} ${argUnsafeOr(None)} ${argDeferSplit(true)}"
+print "strings ${stringKept()}"
+print "lits ${unsafeLit()}"
+print "fieldmove ${argFieldMove(mkc(69))}"
+print "done"
+-- stdout --
+close 1
+drop 2
+drop 1
+w 2
+close 3
+drop 4
+drop 3
+drop 5
+drop 6
+moved 5
+drop 10
+drop 9
+drop 8
+drop 7
+arms 9
+drop 12
+close 11
+drop 11
+defer 13
+drop 14
+drop 13
+close 0
+drop 0
+await 15
+drop 23
+drop 22
+drop 21
+drop 20
+pass 42
+drop 27
+drop 26
+drop 25
+drop 24
+lent 51
+w2 drop
+close 30
+drop 30
+close 31
+drop 31
+w2 drop
+close 40
+drop 40
+close 41
+drop 41
+for 142
+drop 30
+outer 30
+name origin
+static 1
+key 32
+drop 32
+drop 31
+scoped 31
+close 33
+drop 33
+close 34
+drop 34
+drop 36
+drop 35
+after 33
+drop 38
+drop 37
+index 38
+defer 40
+drop 40
+close 39
+drop 39
+drop 43
+drop 42
+drop 41
+forjoin 83
+drop 50
+param 100
+drop 52
+drop 51
+local 51
+drop 53
+drop 54
+scoped 107
+lit 5 2.5 3 5
+lit 0
+drop 60
+drop 62
+drop 63
+drop 68
+args 60 62 63 68
+drop 65
+drop 66
+defer split
+drop 67
+more 65 66 67
+kept lit konst
+show lit
+show konst
+strings 8
+unsafe 6 7
+lits 0
+drop 69
+fieldmove 69
+done

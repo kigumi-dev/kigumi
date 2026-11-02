@@ -1,0 +1,91 @@
+-- module --
+mir: planned
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn Res.close(move self) {}
+
+fn eat(r: Res) {}
+
+fn arrayThenFallback(x: Res, y: Res) -> Res {
+    let mut a = Array.of(x, y)
+    a.takeAt(1) || x //~ ERROR `x` was moved
+}
+
+fn sharedAfterFallback(o: Res?, x: Res) -> Res {
+    let r = o || x
+    eat(x) //~ ERROR `x` is moved on some paths but not others
+    r
+}
+
+fn fallbackPerIteration(x: Res) {
+    for i in 0..2 {
+        let o: Res? = None
+        eat(o || x) //~ ERROR earlier iteration of the loop
+    }
+}
+
+fn closeThenFallback(o: Res?, x: Res) -> Res {
+    x.close()
+    o || x //~ ERROR `x` was moved
+}
+
+fn closureAfterClose(o: Res?, x: Res) -> Res {
+    x.close()
+    let f = () => o || x //~ ERROR `x` was moved
+    f()
+}
+-- expect --
+error[E2197]: `x` was moved; it cannot be used again
+  --> main.kg:13:20
+   |
+13 |     a.takeAt(1) || x //~ ERROR `x` was moved
+   |                    ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
+note: `x` is moved here
+  --> main.kg:12:26
+   |
+12 |     let mut a = Array.of(x, y)
+   |                          ^
+
+error[move-join-mismatch]: `x` is moved on some paths but not others
+  --> main.kg:18:9
+   |
+18 |     eat(x) //~ ERROR `x` is moved on some paths but not others
+   |         ^
+
+error[E2197]: `x` was moved in an earlier iteration of the loop; it cannot be moved again
+  --> main.kg:25:18
+   |
+25 |         eat(o || x) //~ ERROR earlier iteration of the loop
+   |                  ^
+   = help: create the value inside the loop, or leave the loop right after moving it
+
+error[E2197]: `x` was moved; it cannot be used again
+  --> main.kg:31:10
+   |
+31 |     o || x //~ ERROR `x` was moved
+   |          ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
+note: `x` is moved here
+  --> main.kg:30:5
+   |
+30 |     x.close()
+   |     ^
+
+error[E2197]: `x` was moved; it cannot be used again
+  --> main.kg:36:13
+   |
+36 |     let f = () => o || x //~ ERROR `x` was moved
+   |             ^^^^^^^^^^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
+note: `x` is moved here
+  --> main.kg:35:5
+   |
+35 |     x.close()
+   |     ^
+

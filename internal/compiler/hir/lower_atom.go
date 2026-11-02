@@ -21,6 +21,12 @@ func (l *lowerer) move(n, target syntax.NodeID) *Expr {
 	if l.r.IsCopy(l.typeOf(target)) {
 		return l.expr(target)
 	}
+	if l.r.Entity(l.info.Uses[target]).Kind == sem.EntType {
+		// `.value` retypes its base's storage, so the move applies to the base.
+		out := l.node(target, DefinedUnwrap)
+		out.Args = []*Expr{l.move(n, l.t.View(target).AsMember().Base().ID())}
+		return out
+	}
 	fld := l.r.Field(l.info.Uses[target])
 	base := l.expr(l.t.View(target).AsMember().Base().ID())
 	out := l.node(target, FieldMove)

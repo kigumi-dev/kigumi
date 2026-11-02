@@ -48,11 +48,15 @@ func (b *builder) closeOperandScope() {
 // other types through their `branch` witness.
 func (b *builder) fallback(e *hir.Expr) midir.LocalID {
 	n := e.Node
-	l := b.expr(e.Args[0])
+	var l midir.LocalID
 	lt := e.Args[0].Type
 	if e.Ent != 0 {
-		l = b.emit(midir.Inst{Op: midir.OpCall, Dst: b.temp(b.r.Types.Node(b.r.Fn(e.Ent).Sig).Elem), Ent: e.Ent, Args: []midir.LocalID{l}, Node: n})
-		lt = b.fn.Locals[l].Type
+		ret := b.r.Types.Subst(b.r.Types.Node(b.r.Fn(e.Ent).Sig).Elem, b.r.InstanceSubst(e.Ent, b.r.Types.Node(lt).Args))
+		// The witness takes `move self`, so a named left operand moves into the call like any receiver.
+		l = b.emit(midir.Inst{Op: midir.OpCall, Dst: b.temp(ret), Ent: e.Ent, Args: []midir.LocalID{b.exprMoved(e.Args[0])}, Node: n})
+		lt = ret
+	} else {
+		l = b.expr(e.Args[0])
 	}
 	result := b.temp(e.Type)
 	// The Option / Result temporary is owned by a scope that opens after
@@ -83,12 +87,13 @@ func (b *builder) fallback(e *hir.Expr) midir.LocalID {
 		hit = l
 	} else {
 		hit = b.emit(midir.Inst{Op: midir.OpPayload, Dst: b.temp(ltn.Args[0]), Args: []midir.LocalID{l}, Node: n, Place: true})
-		if !b.r.IsCopy(ltn.Args[0]) {
-			b.emit(midir.Inst{Op: midir.OpNop, Args: []midir.LocalID{hit}, Node: n, Guarded: true})
-		}
 	}
-	if e.HitLift {
+	switch {
+	case e.HitLift:
+		// The lifting constructor takes the payload place itself; a guard mark before it would read as a second take.
 		hit = b.coerce(e.Coercion, n, hit)
+	case lt != sem.TyBool && !b.r.IsCopy(ltn.Args[0]):
+		b.emit(midir.Inst{Op: midir.OpNop, Args: []midir.LocalID{hit}, Node: n, Guarded: true})
 	}
 	b.assign(result, hit)
 	b.jump(join)
@@ -105,7 +110,7 @@ func (b *builder) fallback(e *hir.Expr) midir.LocalID {
 		pl := b.declare(e.Param.Ent)
 		b.assign(pl, miss)
 	}
-	b.assign(result, b.fullValue(func() midir.LocalID { return b.expr(e.Args[1]) }))
+	b.assign(result, b.fullValue(func() midir.LocalID { return b.missValue(e.Args[1]) }))
 	b.exitScope()
 	b.jump(join)
 	b.cur = join

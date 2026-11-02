@@ -1,0 +1,256 @@
+-- module --
+mir: planned
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type Cell = {
+    pub v Res
+}
+
+fn mkc(id: Int) -> Cell {
+    Cell { v: mk(id) }
+}
+
+fn Cell.peek(self) -> Int {
+    let r = &unsafe { self }.v //~ ERROR `self` is borrowed by this method
+    r.id
+}
+
+context k: Cell
+
+@provides(k)
+type Env = {
+    pub k Cell
+}
+
+type Slot = Full(Res) | Empty
+
+type H['a] = {
+    pub r &'a Res
+}
+
+type Pt = {
+    pub name String
+    pub n Int
+}
+
+fn mkPt() -> Pt {
+    Pt { name: "origin", n: 1 }
+}
+
+const home: Pt = comptime mkPt()
+
+type HP['a] = {
+    pub r &'a Pt
+}
+
+type HS['a] = {
+    pub r &'a Slot
+}
+
+type E['a] = Some1(H['a]) | None1
+
+fn wrap['a](r: &'a Res) -> H['a] {
+    H { r: r }
+}
+
+fn scopedTail() -> Int {
+    let h = H { r: &unsafe { //~ ERROR `h` keeps a borrow of a temporary
+        let t = mk(2)
+        t
+    } }
+    h.r.id
+}
+
+fn movedTail(c: Cell) -> Int {
+    let h = H { r: &unsafe { c }.v } //~ ERROR `h` keeps a borrow of a temporary
+    h.r.id
+}
+
+fn scopedMember() -> Int {
+    let h = H { r: &unsafe { //~ ERROR `h` keeps a borrow of a temporary
+        let t = mkc(8)
+        t.v
+    } }
+    h.r.id
+}
+
+fn providedKey() -> Int {
+    let h = H { r: &context (Env { k: mkc(1) }) { //~ ERROR `h` keeps a borrow of a temporary
+        k.v
+    } }
+    h.r.id
+}
+
+fn constField() -> Int {
+    let h = HP { r: unsafe { &home } } //~ ERROR `h` keeps a borrow of a temporary
+    h.r.n
+}
+
+fn nullaryVariant() -> Int {
+    let h = HS { r: &Empty } //~ ERROR `h` keeps a borrow of a temporary
+    match h.r {
+        Full(x) -> x.id
+        Empty -> 0
+    }
+}
+
+fn borrowInBody() -> Int {
+    let h = H { r: unsafe { &mk(3) } } //~ ERROR `h` keeps a borrow of a temporary
+    h.r.id
+}
+
+fn payload(c: Cell) -> Int {
+    let e = Some1(wrap(&unsafe { c }.v)) //~ ERROR `e` keeps a borrow of a temporary
+    match e {
+        Some1(h) -> h.r.id //~ ERROR `h` keeps a borrow of a temporary
+        None1 -> 0
+    }
+}
+
+fn element(c: Cell) -> Int {
+    let xs = Array.of(wrap(&unsafe { c }.v)) //~ ERROR `xs` keeps a borrow of a temporary
+    xs[0].r.id
+}
+
+fn stored(c: Cell) -> Int {
+    let h = wrap(&unsafe { c }.v) //~ ERROR `h` keeps a borrow of a temporary
+    h.r.id
+}
+
+fn joinArm(c: Cell, x: &Res, k: Bool) -> Int {
+    let r = if k { &unsafe { c }.v } else { x } //~ ERROR `r` keeps a borrow of a temporary
+    r.id
+}
+
+fn joinScoped(x: &Res, k: Bool) -> Int {
+    let r = if k { //~ ERROR `r` keeps a borrow of a temporary
+        &unsafe {
+            let t = mkc(4)
+            t.v
+        }
+    } else {
+        x
+    }
+    r.id
+}
+
+fn lentCapture(c: Cell, o: Int?) -> Int {
+    o.unwrapOrElse(() => {
+        let r = &unsafe { c }.v //~ ERROR `c` is lent to this closure
+        r.id
+    })
+}
+
+fn paramField(c: Cell) -> Int {
+    let h = H { r: &c.v }
+    h.r.id
+}
+
+fn scrutScoped() -> Int {
+    match &unsafe {
+        let t = mkc(5)
+        t.v
+    } {
+        r -> r.id
+    }
+}
+-- expect --
+error[move-from-borrow]: `self` is borrowed by this method and cannot be moved out; take `move self`
+  --> main.kg:20:23
+   |
+20 |     let r = &unsafe { self }.v //~ ERROR `self` is borrowed by this method
+   |                       ^^^^
+
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:63:9
+   |
+63 |     let h = H { r: &unsafe { //~ ERROR `h` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:71:9
+   |
+71 |     let h = H { r: &unsafe { c }.v } //~ ERROR `h` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:76:9
+   |
+76 |     let h = H { r: &unsafe { //~ ERROR `h` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:84:9
+   |
+84 |     let h = H { r: &context (Env { k: mkc(1) }) { //~ ERROR `h` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:91:9
+   |
+91 |     let h = HP { r: unsafe { &home } } //~ ERROR `h` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:96:9
+   |
+96 |     let h = HS { r: &Empty } //~ ERROR `h` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+   --> main.kg:104:9
+    |
+104 |     let h = H { r: unsafe { &mk(3) } } //~ ERROR `h` keeps a borrow of a temporary
+    |         ^
+
+error[E2235]: `e` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+   --> main.kg:109:9
+    |
+109 |     let e = Some1(wrap(&unsafe { c }.v)) //~ ERROR `e` keeps a borrow of a temporary
+    |         ^
+
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+   --> main.kg:111:15
+    |
+111 |         Some1(h) -> h.r.id //~ ERROR `h` keeps a borrow of a temporary
+    |               ^
+
+error[E2235]: `xs` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+   --> main.kg:117:9
+    |
+117 |     let xs = Array.of(wrap(&unsafe { c }.v)) //~ ERROR `xs` keeps a borrow of a temporary
+    |         ^^
+
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+   --> main.kg:122:9
+    |
+122 |     let h = wrap(&unsafe { c }.v) //~ ERROR `h` keeps a borrow of a temporary
+    |         ^
+
+error[E2235]: `r` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+   --> main.kg:127:9
+    |
+127 |     let r = if k { &unsafe { c }.v } else { x } //~ ERROR `r` keeps a borrow of a temporary
+    |         ^
+
+error[E2235]: `r` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+   --> main.kg:132:9
+    |
+132 |     let r = if k { //~ ERROR `r` keeps a borrow of a temporary
+    |         ^
+
+error[move-from-borrow]: `c` is lent to this closure and cannot be moved out; write `move` before the closure to give it `c`
+   --> main.kg:145:27
+    |
+145 |         let r = &unsafe { c }.v //~ ERROR `c` is lent to this closure
+    |                           ^
+

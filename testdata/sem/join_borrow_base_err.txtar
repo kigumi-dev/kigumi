@@ -1,0 +1,263 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn Res.close(move self) {}
+
+fn eat(r: Res) {}
+
+type C = {
+    pub v Res
+    pub w Res
+    pub xs Array[Res]
+    pub ys Array[Res]
+}
+
+type Pair = {
+    pub a Res
+    pub b Res
+}
+
+type CP = {
+    pub p Pair
+    pub q Pair
+}
+
+type Cell = {
+    pub v Res
+}
+
+type D = {
+    pub oc Cell?
+}
+
+fn borrowOr(c: C, o: Res?) -> Int {
+    let r = &(o || c.v) //~ ERROR reading `c.v` by value //~ ERROR cannot keep a borrow of a temporary
+    r.id
+}
+
+fn borrowMatch(c: C, k: Bool) -> Int {
+    match &(if k { c.v } else { c.w }) { //~ ERROR reading `c.v` by value //~ ERROR reading `c.w` by value
+        r -> r.id
+    }
+}
+
+fn borrowFor(c: C, k: Bool) -> Int {
+    let mut s = 0
+    for r in &(if k { c.xs } else { c.ys }) { //~ ERROR reading `c.xs` by value //~ ERROR reading `c.ys` by value
+        s = s + r.id
+    }
+    s
+}
+
+fn memberIf(c: CP, k: Bool) {
+    (if k { c.p } else { c.q }).a.close() //~ ERROR reading `c.p` by value //~ ERROR reading `c.q` by value
+}
+
+fn memberOr(c: CP, o: Pair?) {
+    eat((o || c.p).a) //~ ERROR reading `c.p` by value
+}
+
+fn chainIf(d: D, k: Bool) {
+    eat((if k { d.oc } else { None })?.v || Res { id: 0 }) //~ ERROR reading `d.oc` by value
+}
+
+fn moveProjected(c: CP, o: Pair?) -> Res {
+    move (o || c.p).a //~ ERROR reading `c.p` by value
+}
+
+fn borrowMovedLet(c: C, o: Res?) -> Int {
+    let r = &(o || move c.v) //~ ERROR cannot keep a borrow of a temporary
+    r.id
+}
+
+fn borrowMovedMatch(c: C, o: Res?) -> Int {
+    match &(o || move c.v) {
+        r -> r.id
+    }
+}
+
+fn borrowArms(c: CP, k: Bool) -> Int {
+    (if k { &c.p } else { &c.q }).a.id
+}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+fn borrowUnsafeTemp() -> Int {
+    let r = &unsafe { mk(1) } //~ ERROR cannot keep a borrow of the result of `mk(..)`
+    r.id
+}
+
+fn borrowUnsafe(c: CP) -> Int {
+    let r = &unsafe { c.p }.a
+    r.id
+}
+
+fn memberBlock(c: CP) -> Int {
+    { c.p }.a.id + unsafe { c.q }.a.id
+}
+
+fn both(r: &Res, n: Int) -> Int {
+    r.id + n
+}
+
+fn indexMatch(c: C, k: Bool) -> Int {
+    match &(if k { c.xs } else { c.ys })[0] { //~ ERROR reading `c.xs` by value //~ ERROR reading `c.ys` by value
+        r -> r.id
+    }
+}
+
+fn indexOr(c: C, o: Array[Res]?) -> Int {
+    both(&(o || c.xs)[0], 1) //~ ERROR reading `c.xs` by value
+}
+
+fn indexMember(c: C, k: Bool) -> Int {
+    both(&(if k { c.xs } else { c.ys })[0], 2) //~ ERROR reading `c.xs` by value //~ ERROR reading `c.ys` by value
+}
+
+fn indexArms(c: C, k: Bool) -> Int {
+    both(&(if k { &c.xs } else { &c.ys })[0], 3)
+}
+
+fn optJoinName(d: D, e: D, k: Bool) -> Res {
+    (if k { &d.oc } else { &e.oc })?.v || Res { id: 0 } //~ ERROR reading `(...)?.v` by value
+}
+-- expect --
+error[E2234]: `let` cannot keep a borrow of a temporary `Res`, which is dropped at the end of this statement
+  --> main/main.kg:37:13
+   |
+37 |     let r = &(o || c.v) //~ ERROR reading `c.v` by value //~ ERROR cannot keep a borrow of a temporary
+   |             ^^^^^^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2153]: reading `c.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:37:20
+   |
+37 |     let r = &(o || c.v) //~ ERROR reading `c.v` by value //~ ERROR cannot keep a borrow of a temporary
+   |                    ^^^
+   = help: write `move c.v` to take it out, or borrow it with `&c.v`
+
+error[E2153]: reading `c.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:42:20
+   |
+42 |     match &(if k { c.v } else { c.w }) { //~ ERROR reading `c.v` by value //~ ERROR reading `c.w` by value
+   |                    ^^^
+   = help: write `move c.v` to take it out, or borrow it with `&c.v`
+
+error[E2153]: reading `c.w` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:42:33
+   |
+42 |     match &(if k { c.v } else { c.w }) { //~ ERROR reading `c.v` by value //~ ERROR reading `c.w` by value
+   |                                 ^^^
+   = help: write `move c.w` to take it out, or borrow it with `&c.w`
+
+error[E2153]: reading `c.xs` by value would copy a `Array[Res]`, which is not `Copy`
+  --> main/main.kg:49:23
+   |
+49 |     for r in &(if k { c.xs } else { c.ys }) { //~ ERROR reading `c.xs` by value //~ ERROR reading `c.ys` by value
+   |                       ^^^^
+   = help: write `move c.xs` to take it out, or borrow it with `&c.xs`
+
+error[E2153]: reading `c.ys` by value would copy a `Array[Res]`, which is not `Copy`
+  --> main/main.kg:49:37
+   |
+49 |     for r in &(if k { c.xs } else { c.ys }) { //~ ERROR reading `c.xs` by value //~ ERROR reading `c.ys` by value
+   |                                     ^^^^
+   = help: write `move c.ys` to take it out, or borrow it with `&c.ys`
+
+error[E2153]: reading `c.p` by value would copy a `Pair`, which is not `Copy`
+  --> main/main.kg:56:13
+   |
+56 |     (if k { c.p } else { c.q }).a.close() //~ ERROR reading `c.p` by value //~ ERROR reading `c.q` by value
+   |             ^^^
+   = help: write `move c.p` to take it out, or borrow it with `&c.p`
+
+error[E2153]: reading `c.q` by value would copy a `Pair`, which is not `Copy`
+  --> main/main.kg:56:26
+   |
+56 |     (if k { c.p } else { c.q }).a.close() //~ ERROR reading `c.p` by value //~ ERROR reading `c.q` by value
+   |                          ^^^
+   = help: write `move c.q` to take it out, or borrow it with `&c.q`
+
+error[E2153]: reading `c.p` by value would copy a `Pair`, which is not `Copy`
+  --> main/main.kg:60:15
+   |
+60 |     eat((o || c.p).a) //~ ERROR reading `c.p` by value
+   |               ^^^
+   = help: write `move c.p` to take it out, or borrow it with `&c.p`
+
+error[E2153]: reading `d.oc` by value would copy a `Cell?`, which is not `Copy`
+  --> main/main.kg:64:17
+   |
+64 |     eat((if k { d.oc } else { None })?.v || Res { id: 0 }) //~ ERROR reading `d.oc` by value
+   |                 ^^^^
+   = help: write `move d.oc` to take it out, or borrow it with `&d.oc`
+
+error[E2153]: reading `c.p` by value would copy a `Pair`, which is not `Copy`
+  --> main/main.kg:68:16
+   |
+68 |     move (o || c.p).a //~ ERROR reading `c.p` by value
+   |                ^^^
+   = help: write `move c.p` to take it out, or borrow it with `&c.p`
+
+error[E2234]: `let` cannot keep a borrow of a temporary `Res`, which is dropped at the end of this statement
+  --> main/main.kg:72:13
+   |
+72 |     let r = &(o || move c.v) //~ ERROR cannot keep a borrow of a temporary
+   |             ^^^^^^^^^^^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of the result of `mk(..)`, which is dropped at the end of this statement
+  --> main/main.kg:91:13
+   |
+91 |     let r = &unsafe { mk(1) } //~ ERROR cannot keep a borrow of the result of `mk(..)`
+   |             ^^^^^^^^^^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2153]: reading `c.xs` by value would copy a `Array[Res]`, which is not `Copy`
+   --> main/main.kg:109:20
+    |
+109 |     match &(if k { c.xs } else { c.ys })[0] { //~ ERROR reading `c.xs` by value //~ ERROR reading `c.ys` by value
+    |                    ^^^^
+    = help: write `move c.xs` to take it out, or borrow it with `&c.xs`
+
+error[E2153]: reading `c.ys` by value would copy a `Array[Res]`, which is not `Copy`
+   --> main/main.kg:109:34
+    |
+109 |     match &(if k { c.xs } else { c.ys })[0] { //~ ERROR reading `c.xs` by value //~ ERROR reading `c.ys` by value
+    |                                  ^^^^
+    = help: write `move c.ys` to take it out, or borrow it with `&c.ys`
+
+error[E2153]: reading `c.xs` by value would copy a `Array[Res]`, which is not `Copy`
+   --> main/main.kg:115:17
+    |
+115 |     both(&(o || c.xs)[0], 1) //~ ERROR reading `c.xs` by value
+    |                 ^^^^
+    = help: write `move c.xs` to take it out, or borrow it with `&c.xs`
+
+error[E2153]: reading `c.xs` by value would copy a `Array[Res]`, which is not `Copy`
+   --> main/main.kg:119:19
+    |
+119 |     both(&(if k { c.xs } else { c.ys })[0], 2) //~ ERROR reading `c.xs` by value //~ ERROR reading `c.ys` by value
+    |                   ^^^^
+    = help: write `move c.xs` to take it out, or borrow it with `&c.xs`
+
+error[E2153]: reading `c.ys` by value would copy a `Array[Res]`, which is not `Copy`
+   --> main/main.kg:119:33
+    |
+119 |     both(&(if k { c.xs } else { c.ys })[0], 2) //~ ERROR reading `c.xs` by value //~ ERROR reading `c.ys` by value
+    |                                 ^^^^
+    = help: write `move c.ys` to take it out, or borrow it with `&c.ys`
+
+error[E2153]: reading `(...)?.v` by value would copy a `Res`, which is not `Copy`
+   --> main/main.kg:127:5
+    |
+127 |     (if k { &d.oc } else { &e.oc })?.v || Res { id: 0 } //~ ERROR reading `(...)?.v` by value
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: match on the option and `move` the field out of the payload, or call a method that returns what you need
+

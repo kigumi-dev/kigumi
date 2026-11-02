@@ -1,0 +1,202 @@
+-- lib/lib.kg --
+pub type Pt = {
+    pub name String
+    pub n Int
+}
+
+pub fn mkPt() -> Pt {
+    Pt { name: "origin", n: 1 }
+}
+
+pub const home: Pt = comptime mkPt()
+
+pub static origin: Pt = comptime mkPt()
+-- src --
+import lib from lib
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type Cell = {
+    pub v Res
+}
+
+fn mkc(id: Int) -> Cell {
+    Cell { v: mk(id) }
+}
+
+context n: Int
+
+@provides(n)
+type Num = {
+    pub n Int
+}
+
+type Slot = Full(Res) | Empty
+
+const near: lib.Pt = comptime lib.mkPt()
+
+fn bodyCall() -> Int {
+    let r = unsafe { &mk(2) } //~ ERROR cannot keep a borrow of the result of `mk(..)`
+    r.id
+}
+
+fn bodyField() -> Int {
+    let r = unsafe { &mkc(1).v } //~ ERROR cannot keep a borrow of the result of `mkc(..)`
+    r.id
+}
+
+fn bodyMoved(c: Cell) -> Int {
+    let r = unsafe { &unsafe { c }.v } //~ ERROR cannot keep a borrow of a temporary
+    r.id
+}
+
+fn bodyContext() -> Int {
+    let r = context (Num { n: 2 }) { &mk(n) } //~ ERROR cannot keep a borrow of the result of `mk(..)`
+    r.id
+}
+
+fn bodyConst() -> Int {
+    let r = unsafe { &near } //~ ERROR cannot keep a borrow of a temporary
+    r.n
+}
+
+fn bodyConstField() -> usize {
+    let s = unsafe { { &near.name } } //~ ERROR cannot keep a borrow of a temporary
+    s.len()
+}
+
+type HR['a] = {
+    pub mut r &'a Res
+}
+
+fn bodyStore(x: &Res) -> Int {
+    let mut h = HR { r: x }
+    h.r = unsafe { &mk(3) } //~ ERROR an assignment cannot keep a borrow
+    h.r.id
+}
+
+fn qualifiedConst() -> Int {
+    let r = &lib.home //~ ERROR cannot keep a borrow of a temporary
+    r.n
+}
+
+fn qualifiedConstField() -> usize {
+    let s = &lib.home.name //~ ERROR cannot keep a borrow of a temporary
+    s.len()
+}
+
+fn nullaryVariant() -> Int {
+    let r = &Empty //~ ERROR cannot keep a borrow of a temporary
+    match r {
+        Full(x) -> x.id
+        Empty -> 7
+    }
+}
+
+fn function() -> Int {
+    let g = &mk //~ ERROR cannot keep a borrow of a temporary
+    g(3).id
+}
+
+fn qualifiedStatic() -> usize {
+    let r = &lib.origin
+    let s = &lib.origin.name
+    r.name.len() + s.len()
+}
+
+fn bodyParamField(c: Cell) -> Int {
+    let r = unsafe { &c.v }
+    r.id
+}
+
+fn localRoot() -> Int {
+    let c = mkc(4)
+    let r = context (Num { n: 1 }) { &c.v }
+    r.id
+}
+-- expect --
+error[E2234]: `let` cannot keep a borrow of the result of `mk(..)`, which is dropped at the end of this statement
+  --> main/main.kg:33:22
+   |
+33 |     let r = unsafe { &mk(2) } //~ ERROR cannot keep a borrow of the result of `mk(..)`
+   |                      ^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of the result of `mkc(..)`, which is dropped at the end of this statement
+  --> main/main.kg:38:22
+   |
+38 |     let r = unsafe { &mkc(1).v } //~ ERROR cannot keep a borrow of the result of `mkc(..)`
+   |                      ^^^^^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `Cell`, which is dropped at the end of this statement
+  --> main/main.kg:43:22
+   |
+43 |     let r = unsafe { &unsafe { c }.v } //~ ERROR cannot keep a borrow of a temporary
+   |                      ^^^^^^^^^^^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of the result of `mk(..)`, which is dropped at the end of this statement
+  --> main/main.kg:48:38
+   |
+48 |     let r = context (Num { n: 2 }) { &mk(n) } //~ ERROR cannot keep a borrow of the result of `mk(..)`
+   |                                      ^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `Pt`, which is dropped at the end of this statement
+  --> main/main.kg:53:22
+   |
+53 |     let r = unsafe { &near } //~ ERROR cannot keep a borrow of a temporary
+   |                      ^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `Pt`, which is dropped at the end of this statement
+  --> main/main.kg:58:24
+   |
+58 |     let s = unsafe { { &near.name } } //~ ERROR cannot keep a borrow of a temporary
+   |                        ^^^^^^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2295]: an assignment cannot keep a borrow of the result of `mk(..)`, which is dropped at the end of this statement
+  --> main/main.kg:68:20
+   |
+68 |     h.r = unsafe { &mk(3) } //~ ERROR an assignment cannot keep a borrow
+   |                    ^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `Pt`, which is dropped at the end of this statement
+  --> main/main.kg:73:13
+   |
+73 |     let r = &lib.home //~ ERROR cannot keep a borrow of a temporary
+   |             ^^^^^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `Pt`, which is dropped at the end of this statement
+  --> main/main.kg:78:13
+   |
+78 |     let s = &lib.home.name //~ ERROR cannot keep a borrow of a temporary
+   |             ^^^^^^^^^^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `Slot`, which is dropped at the end of this statement
+  --> main/main.kg:83:13
+   |
+83 |     let r = &Empty //~ ERROR cannot keep a borrow of a temporary
+   |             ^^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `fn(Int) -> Res`, which is dropped at the end of this statement
+  --> main/main.kg:91:13
+   |
+91 |     let g = &mk //~ ERROR cannot keep a borrow of a temporary
+   |             ^^^
+   = help: bind the value to a local first and borrow the local
+

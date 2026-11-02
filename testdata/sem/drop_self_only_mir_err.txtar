@@ -1,0 +1,49 @@
+-- module --
+mir: planned
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+fn eat(r: Res) {}
+
+type G3 = resource {
+    pub a Res
+    pub n Int
+}
+
+fn G3.drop(move self) {
+    if self.n == 1 {
+        let h = G3 { a: mk(100), n: 2 }
+        eat(h.a) //~ ERROR cannot move `h.a` out of `G3`
+    }
+}
+
+type G5 = resource {
+    pub a Res
+    pub n Int
+}
+
+fn G5.drop(move self) {
+    eat(move self.a)
+}
+
+fn loopTail(x: Res) -> Res {
+    let f = () => for {
+        break x
+    }
+    f()
+}
+-- expect --
+error[E1021]: cannot move `h.a` out of `G3`, which defines a custom `drop`; add a `take`-style method that returns `h.a` instead
+  --> main.kg:21:9
+   |
+21 |         eat(h.a) //~ ERROR cannot move `h.a` out of `G3`
+   |         ^^^^^^^
+

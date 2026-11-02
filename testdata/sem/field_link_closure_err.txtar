@@ -1,0 +1,106 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+type Cell = {
+    pub v Res
+    pub n Int
+}
+
+type H['a] = {
+    pub r &'a Cell
+}
+
+fn me(c: &Cell) -> &Cell {
+    c
+}
+
+fn apply(f: fn(Res?) -> Res) -> Res {
+    f(None)
+}
+
+fn Cell.tailSelf(self) -> Res {
+    apply((o) => o || self.v) //~ ERROR reading `self.v` by value
+}
+
+fn Cell.returnSelf(self) -> Res {
+    apply((o) => {
+        if self.n == 0 {
+            return o || self.v //~ ERROR reading `self.v` by value
+        }
+        Res { id: 9 }
+    })
+}
+
+fn returnRef(c: &Cell) -> Res {
+    apply((o) => {
+        if c.n == 0 {
+            return if o is Some(r) { r } else { c.v } //~ ERROR reading `c.v` by value
+        }
+        Res { id: 9 }
+    })
+}
+
+fn returnLent() -> Res {
+    let w = Cell { v: Res { id: 1 }, n: 0 }
+    apply((o) => {
+        if w.n == 0 {
+            return o || w.v //~ ERROR reading `w.v` by value
+        }
+        Res { id: 9 }
+    })
+}
+
+fn tailRefField['a](h: H['a]) -> Res {
+    apply((o) => o || h.r.v) //~ ERROR reading `h.r.v` by value
+}
+
+fn tailRefCall(c: &Cell) -> Res {
+    apply((o) => o || me(c).v) //~ ERROR reading `me(c).v` by value
+}
+-- expect --
+error[E2153]: reading `self.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:25:23
+   |
+25 |     apply((o) => o || self.v) //~ ERROR reading `self.v` by value
+   |                       ^^^^^^
+   = help: `self.v` is reached through a borrow, so it cannot be moved out; borrow it with `&self.v`
+
+error[E2153]: reading `self.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:31:25
+   |
+31 |             return o || self.v //~ ERROR reading `self.v` by value
+   |                         ^^^^^^
+   = help: `self.v` is reached through a borrow, so it cannot be moved out; borrow it with `&self.v`
+
+error[E2153]: reading `c.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:40:49
+   |
+40 |             return if o is Some(r) { r } else { c.v } //~ ERROR reading `c.v` by value
+   |                                                 ^^^
+   = help: `c.v` is reached through a borrow, so it cannot be moved out; borrow it with `&c.v`
+
+error[E2153]: reading `w.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:50:25
+   |
+50 |             return o || w.v //~ ERROR reading `w.v` by value
+   |                         ^^^
+   = help: `w` is lent to this closure; write `move` before the closure to give it `w`, for a callee that takes an `FnOnce`
+
+error[E2153]: reading `h.r.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:57:23
+   |
+57 |     apply((o) => o || h.r.v) //~ ERROR reading `h.r.v` by value
+   |                       ^^^^^
+   = help: `h.r.v` is reached through a borrow, so it cannot be moved out; borrow it with `&h.r.v`
+
+error[E2153]: reading `me(c).v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:61:23
+   |
+61 |     apply((o) => o || me(c).v) //~ ERROR reading `me(c).v` by value
+   |                       ^^^^^^^
+   = help: `me(c).v` is reached through a borrow, so it cannot be moved out; borrow it with `&me(c).v`
+

@@ -1,0 +1,68 @@
+-- module --
+mir: planned
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn Res.close(move self) {}
+
+fn eat(r: Res) {}
+
+type C = {
+    pub v Res
+    pub w Res
+}
+
+async fn val(x: Int) -> Int {
+    x
+}
+
+type Holder = {
+    pub t Future[Int]
+}
+
+fn arg(c: C) -> Int {
+    eat(unsafe { c.v })
+    c.w.id
+}
+
+fn receiver(c: C) {
+    unsafe { c.v }.close()
+}
+
+async fn awaited(h: Holder) -> Int {
+    await unsafe { h.t }
+}
+
+fn argTwice(c: C) {
+    eat(unsafe { c.v })
+    eat(c.v) //~ ERROR `c.v` was moved //~ ERROR `c.v` was moved
+}
+-- expect --
+error[E2197]: `c.v` was moved; it cannot be used again
+  --> main.kg:39:9
+   |
+39 |     eat(c.v) //~ ERROR `c.v` was moved //~ ERROR `c.v` was moved
+   |         ^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
+note: `c.v` is moved here
+  --> main.kg:38:5
+   |
+38 |     eat(unsafe { c.v })
+   |     ^^^^^^^^^^^^^^^^
+
+error[E2197]: `c.v` was moved; it cannot be used again
+  --> main.kg:39:5
+   |
+39 |     eat(c.v) //~ ERROR `c.v` was moved //~ ERROR `c.v` was moved
+   |     ^^^^^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
+note: `c.v` is moved here
+  --> main.kg:38:5
+   |
+38 |     eat(unsafe { c.v })
+   |     ^^^^^^^^^^^^^^^^
+

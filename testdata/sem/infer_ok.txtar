@@ -50,11 +50,11 @@ type Box[T] = {
     pub v T
 }
 
-fn Box[T].get(self) -> T {
+fn Box[T: Copy].get(self) -> T {
     self.v
 }
 
-fn Box[T].map[U](self, f: fn(T) -> U) -> Box[U] {
+fn Box[T: Copy].map[U](self, f: fn(T) -> U) -> Box[U] {
     Box[U] { v: f(self.v) }
 }
 

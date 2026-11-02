@@ -1,0 +1,392 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+type Box = {
+    pub v Res
+    pub o Res?
+}
+
+fn Box.fallbackSelf(self, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    o || self.v //~ ERROR reading `self.v` by value
+}
+
+fn Box.handlerSelf(self, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    r || (e) => self.v //~ ERROR reading `self.v` by value
+}
+
+fn Box.lhsSelf(self, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    self.o || y //~ ERROR reading `self.o` by value
+}
+
+fn Box.ifArmSelf(self, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    if c { self.v } else { y } //~ ERROR reading `self.v` by value
+}
+
+fn Box.matchArmSelf(self, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    match k {
+        Some(_) -> self.v //~ ERROR reading `self.v` by value
+        None -> y
+    }
+}
+
+fn Box.plainSelf(self, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    self.v //~ ERROR reading `self.v` by value
+}
+
+fn Box.letSelf(self, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    let z = o || self.v //~ ERROR reading `self.v` by value
+    z
+}
+
+fn Box.retSelf(self, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    if c {
+        return o || self.v //~ ERROR reading `self.v` by value
+    }
+    y
+}
+
+fn Box.fallbackMutSelf(mut self, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    o || self.v //~ ERROR reading `self.v` by value
+}
+
+fn Box.handlerMutSelf(mut self, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    r || (e) => self.v //~ ERROR reading `self.v` by value
+}
+
+fn Box.lhsMutSelf(mut self, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    self.o || y //~ ERROR reading `self.o` by value
+}
+
+fn Box.ifArmMutSelf(mut self, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    if c { self.v } else { y } //~ ERROR reading `self.v` by value
+}
+
+fn Box.matchArmMutSelf(mut self, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    match k {
+        Some(_) -> self.v //~ ERROR reading `self.v` by value
+        None -> y
+    }
+}
+
+fn Box.plainMutSelf(mut self, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    self.v //~ ERROR reading `self.v` by value
+}
+
+fn Box.letMutSelf(mut self, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    let z = o || self.v //~ ERROR reading `self.v` by value
+    z
+}
+
+fn Box.retMutSelf(mut self, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    if c {
+        return o || self.v //~ ERROR reading `self.v` by value
+    }
+    y
+}
+
+fn fallbackRef(b: &Box, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    o || b.v //~ ERROR reading `b.v` by value
+}
+
+fn handlerRef(b: &Box, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    r || (e) => b.v //~ ERROR reading `b.v` by value
+}
+
+fn lhsRef(b: &Box, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    b.o || y //~ ERROR reading `b.o` by value
+}
+
+fn ifArmRef(b: &Box, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    if c { b.v } else { y } //~ ERROR reading `b.v` by value
+}
+
+fn matchArmRef(b: &Box, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    match k {
+        Some(_) -> b.v //~ ERROR reading `b.v` by value
+        None -> y
+    }
+}
+
+fn plainRef(b: &Box, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    b.v //~ ERROR reading `b.v` by value
+}
+
+fn letRef(b: &Box, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    let z = o || b.v //~ ERROR reading `b.v` by value
+    z
+}
+
+fn retRef(b: &Box, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    if c {
+        return o || b.v //~ ERROR reading `b.v` by value
+    }
+    y
+}
+
+fn fallbackMutRef(b: &mut Box, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    o || b.v //~ ERROR reading `b.v` by value
+}
+
+fn handlerMutRef(b: &mut Box, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    r || (e) => b.v //~ ERROR reading `b.v` by value
+}
+
+fn lhsMutRef(b: &mut Box, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    b.o || y //~ ERROR reading `b.o` by value
+}
+
+fn ifArmMutRef(b: &mut Box, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    if c { b.v } else { y } //~ ERROR reading `b.v` by value
+}
+
+fn matchArmMutRef(b: &mut Box, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    match k {
+        Some(_) -> b.v //~ ERROR reading `b.v` by value
+        None -> y
+    }
+}
+
+fn plainMutRef(b: &mut Box, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    b.v //~ ERROR reading `b.v` by value
+}
+
+fn letMutRef(b: &mut Box, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    let z = o || b.v //~ ERROR reading `b.v` by value
+    z
+}
+
+fn retMutRef(b: &mut Box, c: Bool, o: Res?, r: Result[Res, Int], k: Int?, y: Res) -> Res {
+    if c {
+        return o || b.v //~ ERROR reading `b.v` by value
+    }
+    y
+}
+-- expect --
+error[E2153]: reading `self.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:13:10
+   |
+13 |     o || self.v //~ ERROR reading `self.v` by value
+   |          ^^^^^^
+   = help: `self.v` is reached through a borrow, so it cannot be moved out; borrow it with `&self.v`
+
+error[E2153]: reading `self.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:17:17
+   |
+17 |     r || (e) => self.v //~ ERROR reading `self.v` by value
+   |                 ^^^^^^
+   = help: `self.v` is reached through a borrow, so it cannot be moved out; borrow it with `&self.v`
+
+error[E2153]: reading `self.o` by value would copy a `Res?`, which is not `Copy`
+  --> main/main.kg:21:5
+   |
+21 |     self.o || y //~ ERROR reading `self.o` by value
+   |     ^^^^^^
+   = help: `self.o` is reached through a borrow, so its payload cannot be taken out; match on it to borrow the payload instead
+
+error[E2153]: reading `self.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:25:12
+   |
+25 |     if c { self.v } else { y } //~ ERROR reading `self.v` by value
+   |            ^^^^^^
+   = help: `self.v` is reached through a borrow, so it cannot be moved out; borrow it with `&self.v`
+
+error[E2153]: reading `self.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:30:20
+   |
+30 |         Some(_) -> self.v //~ ERROR reading `self.v` by value
+   |                    ^^^^^^
+   = help: `self.v` is reached through a borrow, so it cannot be moved out; borrow it with `&self.v`
+
+error[E2153]: reading `self.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:36:5
+   |
+36 |     self.v //~ ERROR reading `self.v` by value
+   |     ^^^^^^
+   = help: `self.v` is reached through a borrow, so it cannot be moved out; borrow it with `&self.v`
+
+error[E2153]: reading `self.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:40:18
+   |
+40 |     let z = o || self.v //~ ERROR reading `self.v` by value
+   |                  ^^^^^^
+   = help: `self.v` is reached through a borrow, so it cannot be moved out; borrow it with `&self.v`
+
+error[E2153]: reading `self.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:46:21
+   |
+46 |         return o || self.v //~ ERROR reading `self.v` by value
+   |                     ^^^^^^
+   = help: `self.v` is reached through a borrow, so it cannot be moved out; borrow it with `&self.v`
+
+error[E2153]: reading `self.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:52:10
+   |
+52 |     o || self.v //~ ERROR reading `self.v` by value
+   |          ^^^^^^
+   = help: `self.v` is reached through a borrow, so it cannot be moved out; borrow it with `&self.v`
+
+error[E2153]: reading `self.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:56:17
+   |
+56 |     r || (e) => self.v //~ ERROR reading `self.v` by value
+   |                 ^^^^^^
+   = help: `self.v` is reached through a borrow, so it cannot be moved out; borrow it with `&self.v`
+
+error[E2153]: reading `self.o` by value would copy a `Res?`, which is not `Copy`
+  --> main/main.kg:60:5
+   |
+60 |     self.o || y //~ ERROR reading `self.o` by value
+   |     ^^^^^^
+   = help: write `move self.o` to take it out, and assign `self.o` again before the method returns
+
+error[E2153]: reading `self.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:64:12
+   |
+64 |     if c { self.v } else { y } //~ ERROR reading `self.v` by value
+   |            ^^^^^^
+   = help: `self.v` is reached through a borrow, so it cannot be moved out; borrow it with `&self.v`
+
+error[E2153]: reading `self.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:69:20
+   |
+69 |         Some(_) -> self.v //~ ERROR reading `self.v` by value
+   |                    ^^^^^^
+   = help: `self.v` is reached through a borrow, so it cannot be moved out; borrow it with `&self.v`
+
+error[E2153]: reading `self.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:75:5
+   |
+75 |     self.v //~ ERROR reading `self.v` by value
+   |     ^^^^^^
+   = help: `self.v` is reached through a borrow, so it cannot be moved out; borrow it with `&self.v`
+
+error[E2153]: reading `self.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:79:18
+   |
+79 |     let z = o || self.v //~ ERROR reading `self.v` by value
+   |                  ^^^^^^
+   = help: write `move self.v` to take it out, and assign `self.v` again before the method returns
+
+error[E2153]: reading `self.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:85:21
+   |
+85 |         return o || self.v //~ ERROR reading `self.v` by value
+   |                     ^^^^^^
+   = help: `self.v` is reached through a borrow, so it cannot be moved out; borrow it with `&self.v`
+
+error[E2153]: reading `b.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:91:10
+   |
+91 |     o || b.v //~ ERROR reading `b.v` by value
+   |          ^^^
+   = help: `b.v` is reached through a borrow, so it cannot be moved out; borrow it with `&b.v`
+
+error[E2153]: reading `b.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:95:17
+   |
+95 |     r || (e) => b.v //~ ERROR reading `b.v` by value
+   |                 ^^^
+   = help: `b.v` is reached through a borrow, so it cannot be moved out; borrow it with `&b.v`
+
+error[E2153]: reading `b.o` by value would copy a `Res?`, which is not `Copy`
+  --> main/main.kg:99:5
+   |
+99 |     b.o || y //~ ERROR reading `b.o` by value
+   |     ^^^
+   = help: `b.o` is reached through a borrow, so its payload cannot be taken out; match on it to borrow the payload instead
+
+error[E2153]: reading `b.v` by value would copy a `Res`, which is not `Copy`
+   --> main/main.kg:103:12
+    |
+103 |     if c { b.v } else { y } //~ ERROR reading `b.v` by value
+    |            ^^^
+    = help: `b.v` is reached through a borrow, so it cannot be moved out; borrow it with `&b.v`
+
+error[E2153]: reading `b.v` by value would copy a `Res`, which is not `Copy`
+   --> main/main.kg:108:20
+    |
+108 |         Some(_) -> b.v //~ ERROR reading `b.v` by value
+    |                    ^^^
+    = help: `b.v` is reached through a borrow, so it cannot be moved out; borrow it with `&b.v`
+
+error[E2153]: reading `b.v` by value would copy a `Res`, which is not `Copy`
+   --> main/main.kg:114:5
+    |
+114 |     b.v //~ ERROR reading `b.v` by value
+    |     ^^^
+    = help: `b.v` is reached through a borrow, so it cannot be moved out; borrow it with `&b.v`
+
+error[E2153]: reading `b.v` by value would copy a `Res`, which is not `Copy`
+   --> main/main.kg:118:18
+    |
+118 |     let z = o || b.v //~ ERROR reading `b.v` by value
+    |                  ^^^
+    = help: `b.v` is reached through a borrow, so it cannot be moved out; borrow it with `&b.v`
+
+error[E2153]: reading `b.v` by value would copy a `Res`, which is not `Copy`
+   --> main/main.kg:124:21
+    |
+124 |         return o || b.v //~ ERROR reading `b.v` by value
+    |                     ^^^
+    = help: `b.v` is reached through a borrow, so it cannot be moved out; borrow it with `&b.v`
+
+error[E2153]: reading `b.v` by value would copy a `Res`, which is not `Copy`
+   --> main/main.kg:130:10
+    |
+130 |     o || b.v //~ ERROR reading `b.v` by value
+    |          ^^^
+    = help: `b.v` is reached through a borrow, so it cannot be moved out; borrow it with `&b.v`
+
+error[E2153]: reading `b.v` by value would copy a `Res`, which is not `Copy`
+   --> main/main.kg:134:17
+    |
+134 |     r || (e) => b.v //~ ERROR reading `b.v` by value
+    |                 ^^^
+    = help: `b.v` is reached through a borrow, so it cannot be moved out; borrow it with `&b.v`
+
+error[E2153]: reading `b.o` by value would copy a `Res?`, which is not `Copy`
+   --> main/main.kg:138:5
+    |
+138 |     b.o || y //~ ERROR reading `b.o` by value
+    |     ^^^
+    = help: `b.o` is reached through a borrow, so its payload cannot be taken out; match on it to borrow the payload instead
+
+error[E2153]: reading `b.v` by value would copy a `Res`, which is not `Copy`
+   --> main/main.kg:142:12
+    |
+142 |     if c { b.v } else { y } //~ ERROR reading `b.v` by value
+    |            ^^^
+    = help: `b.v` is reached through a borrow, so it cannot be moved out; borrow it with `&b.v`
+
+error[E2153]: reading `b.v` by value would copy a `Res`, which is not `Copy`
+   --> main/main.kg:147:20
+    |
+147 |         Some(_) -> b.v //~ ERROR reading `b.v` by value
+    |                    ^^^
+    = help: `b.v` is reached through a borrow, so it cannot be moved out; borrow it with `&b.v`
+
+error[E2153]: reading `b.v` by value would copy a `Res`, which is not `Copy`
+   --> main/main.kg:153:5
+    |
+153 |     b.v //~ ERROR reading `b.v` by value
+    |     ^^^
+    = help: `b.v` is reached through a borrow, so it cannot be moved out; borrow it with `&b.v`
+
+error[E2153]: reading `b.v` by value would copy a `Res`, which is not `Copy`
+   --> main/main.kg:157:18
+    |
+157 |     let z = o || b.v //~ ERROR reading `b.v` by value
+    |                  ^^^
+    = help: `b.v` is reached through a borrow, so it cannot be moved out; borrow it with `&b.v`
+
+error[E2153]: reading `b.v` by value would copy a `Res`, which is not `Copy`
+   --> main/main.kg:163:21
+    |
+163 |         return o || b.v //~ ERROR reading `b.v` by value
+    |                     ^^^
+    = help: `b.v` is reached through a borrow, so it cannot be moved out; borrow it with `&b.v`
+

@@ -57,7 +57,7 @@ func (c *checker) recordParamReassigns(ret, src EntityID, depth int) {
 		return
 	}
 	for _, rhs := range c.paramReassign[root] {
-		for _, leaf := range c.expandLetLeaves(c.tailLeaves(rhs, 0), 0) {
+		for _, leaf := range c.expandLetLeaves(c.tailLeaves(rhs), 0) {
 			c.recordResultLeaf(ret, leaf, depth+1)
 		}
 	}

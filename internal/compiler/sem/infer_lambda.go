@@ -16,6 +16,7 @@ type lambdaCtx struct {
 	reserveUses []captureUse
 	writes      []EntityID
 	consumes    []lambdaConsume
+	exits       exitLeaves
 	// keptMut are captures of a local another closure writes, rejected unless they turn out only read.
 	keptMut map[EntityID]syntax.NodeID
 }
@@ -149,6 +150,8 @@ func (c *checker) lambdaBody(body syntax.NodeID, ret TypeID) TypeID {
 	}
 	c.checkEscapeTailReturn(body)
 	c.noteLambdaTail(body)
+	exits := c.lambdas[len(c.lambdas)-1].exits
+	c.rejectBorrowedFieldResult(append(append(c.tailLeaves(body), exits.rets...), exits.fails...))
 	c.retType, c.loop, c.cleanup, c.stmtPos = savedRet, savedLoop, savedCleanup, savedStmt
 	c.breaks = savedBreaks
 	c.vars.first = savedFirst

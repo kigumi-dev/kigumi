@@ -94,7 +94,7 @@ func (c *checker) rejectScalarCopyArg(arg syntax.NodeID, param TypeID) {
 		return
 	}
 	_, ref := c.r.ScalarRefElem(c.vars.resolve(param))
-	for _, leaf := range c.tailLeaves(arg, 0) {
+	for _, leaf := range c.tailLeaves(arg) {
 		src, k := c.copyCarrier(leaf)
 		if k == carryNone || k == carryDirect && !ref {
 			continue
@@ -107,6 +107,12 @@ func (c *checker) rejectScalarCopyArg(arg syntax.NodeID, param TypeID) {
 	}
 }
 
+func (c *checker) rejectResultLeaves(body syntax.NodeID) {
+	c.rejectScalarCopyResult(body)
+	c.rejectBorrowedFieldResult(append(c.resultLeaves(body), c.exits.fails...))
+	c.rejectCleanupReadsTaken(body)
+}
+
 // A `&mut` scalar result built from a copy binding would alias nothing the caller passed.
 func (c *checker) rejectScalarCopyResult(body syntax.NodeID) {
 	_, ref := c.r.ScalarRefElem(c.vars.resolve(c.retType))
@@ -115,7 +121,7 @@ func (c *checker) rejectScalarCopyResult(body syntax.NodeID) {
 
 func (c *checker) rejectScalarCopyStore(value syntax.NodeID, field TypeID) {
 	_, ref := c.r.ScalarRefElem(c.vars.resolve(field))
-	c.rejectCopyLeaves(c.tailLeaves(value, 0), ref)
+	c.rejectCopyLeaves(c.tailLeaves(value), ref)
 }
 
 func (c *checker) rejectCopyLeaves(leaves []syntax.NodeID, ref bool) {

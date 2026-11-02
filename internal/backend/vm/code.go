@@ -76,11 +76,12 @@ func (m *Machine) decode(f *midir.Func) *funcCode {
 	return c
 }
 
-// scalarConst is the shared immortal a scalar literal evaluates to; strings and bytes stay fresh.
+// scalarConst is the shared immortal a scalar or string literal evaluates to, as llgen's static slots are;
+// bytes stay fresh because secureErase rewrites them in place.
 func (m *Machine) scalarConst(in *midir.Inst) *obj {
 	v := m.constant(in)
 	switch v.k {
-	case kInt, kFloat, kChar:
+	case kInt, kFloat, kChar, kStr:
 		m.immortalize(v)
 		return v
 	case kBool, kUnit:

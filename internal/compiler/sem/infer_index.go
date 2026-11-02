@@ -34,6 +34,7 @@ func (c *checker) synthBracket(n syntax.NodeID) TypeID {
 		c.errAt(n, cIndexCount)
 		return TyPoison
 	}
+	c.rejectJoinBase(base)
 	index := c.vars.resolve(c.synth(items.ItemID(0)))
 	return c.indexType(n, items.ItemID(0), recv, index)
 }

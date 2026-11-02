@@ -1,0 +1,102 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type PA = {
+    pub xs Array[Res]
+}
+
+type W2 = resource {
+    pub pa PA
+}
+
+fn W2.drop(move self) {}
+
+fn mkw2(i: Int) -> W2 {
+    W2 { pa: PA { xs: Array.of(mk(i)) } }
+}
+
+type HPA = {
+    pub pa PA
+}
+
+type H['a] = {
+    pub r &'a HPA
+}
+
+fn viaIf(c: Bool) -> Int {
+    let mut s = 0
+    for r in &(if c { PA { xs: Array.of(mk(0)) } } else { mkw2(5).pa }).xs { //~ ERROR cannot move `mkw2(5).pa` out of `W2`
+        s = s + r.id
+    }
+    s
+}
+
+fn viaOr(o: PA?) -> Int {
+    let mut s = 0
+    for r in &(o || mkw2(6).pa).xs { //~ ERROR cannot move `mkw2(6).pa` out of `W2`
+        s = s + r.id
+    }
+    s
+}
+
+fn viaLen(c: Bool) -> usize {
+    (if c { PA { xs: Array.of(mk(0)) } } else { mkw2(7).pa }).xs.len() //~ ERROR cannot move `mkw2(7).pa` out of `W2`
+}
+
+fn viaMatchBorrow(c: Bool) -> usize {
+    match &(if c { PA { xs: Array.of(mk(0)) } } else { mkw2(8).pa }).xs { //~ ERROR cannot move `mkw2(8).pa` out of `W2`
+        xs -> xs.len()
+    }
+}
+
+fn viaLink['a](h: H['a], c: Bool) -> usize {
+    (if c { PA { xs: Array.of(mk(0)) } } else { h.r.pa }).xs.len() //~ ERROR reading `h.r.pa` by value
+}
+
+fn ownedPicksAreReads(c: Bool, a: PA, b: PA) -> usize {
+    (if c { a } else { b }).xs.len()
+}
+-- expect --
+error[E1021]: cannot move `mkw2(5).pa` out of `W2`, which defines a custom `drop`
+  --> main/main.kg:35:59
+   |
+35 |     for r in &(if c { PA { xs: Array.of(mk(0)) } } else { mkw2(5).pa }).xs { //~ ERROR cannot move `mkw2(5).pa` out of `W2`
+   |                                                           ^^^^^^^^^^
+   = help: add a `take`-style method that returns `mkw2(5).pa` instead
+
+error[E1021]: cannot move `mkw2(6).pa` out of `W2`, which defines a custom `drop`
+  --> main/main.kg:43:21
+   |
+43 |     for r in &(o || mkw2(6).pa).xs { //~ ERROR cannot move `mkw2(6).pa` out of `W2`
+   |                     ^^^^^^^^^^
+   = help: add a `take`-style method that returns `mkw2(6).pa` instead
+
+error[E1021]: cannot move `mkw2(7).pa` out of `W2`, which defines a custom `drop`
+  --> main/main.kg:50:49
+   |
+50 |     (if c { PA { xs: Array.of(mk(0)) } } else { mkw2(7).pa }).xs.len() //~ ERROR cannot move `mkw2(7).pa` out of `W2`
+   |                                                 ^^^^^^^^^^
+   = help: add a `take`-style method that returns `mkw2(7).pa` instead
+
+error[E1021]: cannot move `mkw2(8).pa` out of `W2`, which defines a custom `drop`
+  --> main/main.kg:54:56
+   |
+54 |     match &(if c { PA { xs: Array.of(mk(0)) } } else { mkw2(8).pa }).xs { //~ ERROR cannot move `mkw2(8).pa` out of `W2`
+   |                                                        ^^^^^^^^^^
+   = help: add a `take`-style method that returns `mkw2(8).pa` instead
+
+error[E2153]: reading `h.r.pa` by value would copy a `PA`, which is not `Copy`
+  --> main/main.kg:60:49
+   |
+60 |     (if c { PA { xs: Array.of(mk(0)) } } else { h.r.pa }).xs.len() //~ ERROR reading `h.r.pa` by value
+   |                                                 ^^^^^^
+   = help: `h.r.pa` is reached through a borrow, so it cannot be moved out; borrow it with `&h.r.pa`
+

@@ -53,6 +53,7 @@ func (c *checker) synthBorrow(n syntax.NodeID, want TypeID) TypeID {
 	b := c.t.View(n).AsBorrow()
 	inner := b.Operand().ID()
 	t := c.synthPlace(inner)
+	c.rejectJoinBase(inner)
 	if w := c.r.Types.Node(c.vars.resolve(want)); w.Kind == KRef && c.r.Types.Kind(c.vars.resolve(t)) == KUntyped {
 		target := c.vars.resolve(w.Elem)
 		if c.r.Types.ContainsVar(target) || c.r.Types.Kind(target) == KUntyped {
@@ -88,6 +89,16 @@ func (c *checker) synthBorrow(n syntax.NodeID, want TypeID) TypeID {
 		c.noteScalarBorrow(n, inner, refT)
 	}
 	return refT
+}
+
+// defaultBorrowedLiteral gives `let r = &5` the literal's default type, as `let r: &Int = &5` gets its declared one.
+func (c *checker) defaultBorrowedLiteral(b syntax.NodeID, got TypeID) TypeID {
+	r := c.r.Types.Node(c.vars.resolve(got))
+	if r.Kind != KRef || c.r.Types.Kind(c.vars.resolve(r.Elem)) != KUntyped {
+		return got
+	}
+	elem := c.adopt(c.literalNode(c.t.View(b).AsBorrow().Operand().ID()), defaultOf(c.vars.resolve(r.Elem)))
+	return c.setType(b, c.r.Types.Ref(elem, r.Flags&flagMut != 0))
 }
 
 func (c *checker) noteDiag(d diag.Diagnostic) { c.r.emitDiag(c.f, d) }

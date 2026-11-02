@@ -1,0 +1,126 @@
+-- src --
+type Inner = resource {
+    pub id Int
+}
+
+fn Inner.drop(move self) {}
+
+type Outer = {
+    pub inner Inner
+    pub n Int
+}
+
+type Wrap = {
+    pub inner Inner
+}
+
+type Boxed = Wrapped(Inner)
+
+type Maybe = {
+    pub v Inner?
+}
+
+fn Maybe.branch(move self) -> Branch[Inner, Void] {
+    match self.v {
+        Some(r) -> Branch.Hit(r)
+        None -> Branch.Miss(())
+    }
+}
+
+type Holder = {
+    pub m Maybe
+}
+
+fn apply(f: fn(Inner?) -> Inner) -> Inner {
+    f(None)
+}
+
+fn record(o: &Outer) -> Wrap {
+    Wrap { inner: o.inner } //~ ERROR reading `o.inner` by value
+}
+
+fn variant(o: &Outer) -> Boxed {
+    Wrapped(o.inner) //~ ERROR reading `o.inner` by value
+}
+
+fn tuple(o: &Outer) -> (Inner, Int) {
+    (o.inner, o.n) //~ ERROR reading `o.inner` by value
+}
+
+fn lambdaRef(o: &Outer) -> Inner {
+    apply((x) => x || o.inner) //~ ERROR reading `o.inner` by value
+}
+
+fn Outer.lambdaSelf(self) -> Inner {
+    apply((x) => x || self.inner) //~ ERROR reading `self.inner` by value
+}
+
+fn lambdaLent() -> Inner {
+    let w = Outer { inner: Inner { id: 1 }, n: 0 }
+    apply((x) => x || w.inner) //~ ERROR reading `w.inner` by value
+}
+
+fn Holder.witnessSelf(self, x: Inner) -> Inner {
+    self.m || x //~ ERROR reading `self.m` by value
+}
+
+fn witnessRef(h: &Holder, x: Inner) -> Inner {
+    h.m || x //~ ERROR reading `h.m` by value
+}
+-- expect --
+error[E2153]: reading `o.inner` by value would copy a `Inner`, which is not `Copy`
+  --> main/main.kg:38:19
+   |
+38 |     Wrap { inner: o.inner } //~ ERROR reading `o.inner` by value
+   |                   ^^^^^^^
+   = help: `o.inner` is reached through a borrow, so it cannot be handed over by value; pass a value the caller owns
+
+error[E2153]: reading `o.inner` by value would copy a `Inner`, which is not `Copy`
+  --> main/main.kg:42:13
+   |
+42 |     Wrapped(o.inner) //~ ERROR reading `o.inner` by value
+   |             ^^^^^^^
+   = help: `o.inner` is reached through a borrow, so it cannot be handed over by value; pass a value the caller owns
+
+error[E2153]: reading `o.inner` by value would copy a `Inner`, which is not `Copy`
+  --> main/main.kg:46:6
+   |
+46 |     (o.inner, o.n) //~ ERROR reading `o.inner` by value
+   |      ^^^^^^^
+   = help: `o.inner` is reached through a borrow, so it cannot be handed over by value; pass a value the caller owns
+
+error[E2153]: reading `o.inner` by value would copy a `Inner`, which is not `Copy`
+  --> main/main.kg:50:23
+   |
+50 |     apply((x) => x || o.inner) //~ ERROR reading `o.inner` by value
+   |                       ^^^^^^^
+   = help: `o.inner` is reached through a borrow, so it cannot be moved out; borrow it with `&o.inner`
+
+error[E2153]: reading `self.inner` by value would copy a `Inner`, which is not `Copy`
+  --> main/main.kg:54:23
+   |
+54 |     apply((x) => x || self.inner) //~ ERROR reading `self.inner` by value
+   |                       ^^^^^^^^^^
+   = help: `self.inner` is reached through a borrow, so it cannot be moved out; borrow it with `&self.inner`
+
+error[E2153]: reading `w.inner` by value would copy a `Inner`, which is not `Copy`
+  --> main/main.kg:59:23
+   |
+59 |     apply((x) => x || w.inner) //~ ERROR reading `w.inner` by value
+   |                       ^^^^^^^
+   = help: `w` is lent to this closure; write `move` before the closure to give it `w`, for a callee that takes an `FnOnce`
+
+error[E2153]: reading `self.m` by value would copy a `Maybe`, which is not `Copy`
+  --> main/main.kg:63:5
+   |
+63 |     self.m || x //~ ERROR reading `self.m` by value
+   |     ^^^^^^
+   = help: `self.m` is reached through a borrow, so it cannot be handed over by value; pass a value the caller owns
+
+error[E2153]: reading `h.m` by value would copy a `Maybe`, which is not `Copy`
+  --> main/main.kg:67:5
+   |
+67 |     h.m || x //~ ERROR reading `h.m` by value
+   |     ^^^
+   = help: `h.m` is reached through a borrow, so it cannot be handed over by value; pass a value the caller owns
+

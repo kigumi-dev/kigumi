@@ -1,24 +1,33 @@
 -- lib/peek.kg --
-// A T-typed field read through a borrowed receiver is
-// still a borrow of the caller's storage, so moving it out is rejected
-// exactly like a concrete move-only field (own_borrowed.go's moveOnly
-// used to exempt every sem.KParam local from this check).
+// A generic receiver its method borrows is still the caller's storage, so
+// handing it on by value is rejected like a concrete move-only one.
 type Box[T] = {
     pub value T
 }
 
-fn Box[T].peek(self) -> T {
-    self.value
+fn keep[U](v: U) -> U {
+    v
+}
+
+fn Box[T].again(self) -> Box[T] {
+    keep(self)
 }
 -- expect --
-fn lib.Box.peek(%self: Box[T]) -> T {
+fn lib.keep(%v: U) -> U {
   b0:
-    %t1 = field 0(%self)
+    %t1 = move(%v)
+    nop
     return %t1
 }
-error[move-from-borrow]: a value borrowed here cannot be moved out
-  --> lib/peek.kg:10:5
+fn lib.Box.again(%self: Box[T]) -> Box[T] {
+  b0:
+    %t1 = move(%self)
+    %t2 = call lib.keep(%t1)
+    return %t2
+}
+error[move-from-borrow]: `self` is borrowed by this method and cannot be moved out; take `move self`
+  --> lib/peek.kg:12:10
    |
-10 |     self.value
-   |     ^^^^^^^^^^
+12 |     keep(self)
+   |          ^^^^
 

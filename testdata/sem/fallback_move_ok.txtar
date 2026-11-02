@@ -1,0 +1,60 @@
+-- module --
+mir: planned
+-- src --
+fn eat[T](v: T) {}
+
+type Cell[T] = {
+    pub v T
+}
+
+fn Cell[T].take(move self) -> T {
+    self.v
+}
+
+fn Cell[T].orSelf(move self, o: Cell[T]?) -> Cell[T] {
+    o || self
+}
+
+fn single[T](o: T?, x: T) -> T {
+    o || x
+}
+
+fn arrayFallback[T](x: T, y: T) -> T {
+    let mut a = Array.of(y)
+    a.takeAt(0) || x
+}
+
+fn handler[T](r: Result[T, Int], x: T) -> T {
+    r || (e) => x
+}
+
+fn inOneArm[T](c: Bool, o: T?, x: T, y: T) -> T {
+    if c { o || x } else { y }
+}
+
+fn perElement[T](xs: Array[T]) {
+    for x in xs {
+        let o: T? = None
+        eat(o || x)
+    }
+}
+
+fn tryAfter[T](o: Result[T, Int]?, r: Result[T, Int]) -> Result[T, Int] {
+    let b = o || r
+    let a = b?
+    Ok(a)
+}
+
+fn closureOnce[T](o: T?, x: T) -> T {
+    let f = () => o || x
+    f()
+}
+
+fn receiverThrough[T](o: Cell[T]?, c: Cell[T]) -> T {
+    (o || c).take()
+}
+
+fn fieldMoved[T](o: T?, p: Cell[T]) -> T {
+    o || move p.v
+}
+-- expect --

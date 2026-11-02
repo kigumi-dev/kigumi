@@ -30,6 +30,8 @@ func (c *checker) adoptTails(n syntax.NodeID, target TypeID) {
 		for arm := range c.t.View(n).AsMatch().Arms().IDs() {
 			parts = append(parts, matchArm(c.t, arm).Body)
 		}
+	case syntax.UnsafeExpr, syntax.AllocatorExpr, syntax.ContextExpr, syntax.ContractExpr:
+		parts = []syntax.NodeID{c.leafBody(c.t.View(n))}
 	}
 	for _, p := range parts {
 		if p != 0 && c.r.Types.Kind(c.info.Types[p]) == KUntyped {

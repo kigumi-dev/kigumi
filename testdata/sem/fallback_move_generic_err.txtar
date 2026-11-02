@@ -1,0 +1,250 @@
+-- module --
+mir: planned
+-- src --
+fn eat[T](v: T) {}
+
+type Cell[T] = {
+    pub v T
+}
+
+fn Cell[T].take(move self) -> T {
+    self.v
+}
+
+fn Cell[T].orSelf(self, o: Cell[T]?) -> Cell[T] {
+    o || self //~ ERROR `self` is borrowed by this method
+}
+
+fn arrayThenFallback[T](x: T, y: T) -> T {
+    let mut a = Array.of(x, y)
+    a.takeAt(1) || x //~ ERROR `x` was moved
+}
+
+fn resultFallback[T](r: Result[T, Int], x: T) -> T {
+    eat(x)
+    r || x //~ ERROR `x` was moved
+}
+
+fn handlerFallback[T](r: Result[T, Int], x: T) -> T {
+    eat(x)
+    r || (e) => x //~ ERROR `x` was moved
+}
+
+fn fallbackThenUse[T](o: T?, x: T) -> T {
+    let r = o || x
+    eat(x) //~ ERROR `x` is moved on some paths but not others
+    r
+}
+
+fn fallbackTwice[T](o: T?, q: T?, x: T) -> T {
+    eat(o || x)
+    q || x //~ ERROR `x` is moved on some paths but not others
+}
+
+fn fallbackInIf[T](c: Bool, o: T?, x: T, y: T) -> T {
+    eat(x)
+    if c { o || x } else { y } //~ ERROR `x` was moved
+}
+
+fn fallbackInMatch[T](o: T?, q: T?, x: T) -> T {
+    eat(x)
+    match o {
+        Some(v) -> v
+        None -> q || x //~ ERROR `x` was moved
+    }
+}
+
+fn fallbackInLoop[T](x: T) {
+    for i in 0..2 {
+        let o: T? = None
+        eat(o || x) //~ ERROR earlier iteration of the loop
+    }
+}
+
+fn tryThenFallback[T](r: Result[T, Int], o: Result[T, Int]?) -> Result[T, Int] {
+    let a = r?
+    eat(a)
+    o || r //~ ERROR `r` was moved
+}
+
+fn fallbackThenTry[T](o: Result[T, Int]?, r: Result[T, Int]) -> Result[T, Int] {
+    eat(o || r)
+    let a = r? //~ ERROR `r` is moved on some paths but not others
+    Ok(a)
+}
+
+fn closureAfterMove[T](o: T?, x: T) -> T {
+    eat(x)
+    let f = () => o || x //~ ERROR `x` was moved
+    f()
+}
+
+fn fallbackThenCapture[T](o: T?, x: T) -> T {
+    eat(o || x)
+    let f = () => x //~ ERROR `x` is moved on some paths but not others
+    f()
+}
+
+fn onceClosure[T](x: T) -> T {
+    let f = (o: T?) => o || x
+    eat(f(None))
+    f(None) //~ ERROR `f` consumes `x` when called
+}
+
+fn receiverThenFallback[T](o: Cell[T]?, c: Cell[T]) -> T {
+    eat(c.take())
+    let d = o || c //~ ERROR `c` was moved
+    d.take()
+}
+
+fn fallbackThenReceiver[T](o: Cell[T]?, c: Cell[T]) -> T {
+    eat(o || c)
+    c.take() //~ ERROR `c` is moved on some paths but not others
+}
+-- expect --
+error[move-from-borrow]: `self` is borrowed by this method and cannot be moved out; take `move self`
+  --> main.kg:12:10
+   |
+12 |     o || self //~ ERROR `self` is borrowed by this method
+   |          ^^^^
+
+error[E2197]: `x` was moved; it cannot be used again
+  --> main.kg:17:20
+   |
+17 |     a.takeAt(1) || x //~ ERROR `x` was moved
+   |                    ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
+note: `x` is moved here
+  --> main.kg:16:26
+   |
+16 |     let mut a = Array.of(x, y)
+   |                          ^
+
+error[E2197]: `x` was moved; it cannot be used again
+  --> main.kg:22:10
+   |
+22 |     r || x //~ ERROR `x` was moved
+   |          ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
+note: `x` is moved here
+  --> main.kg:21:9
+   |
+21 |     eat(x)
+   |         ^
+
+error[E2197]: `x` was moved; it cannot be used again
+  --> main.kg:27:17
+   |
+27 |     r || (e) => x //~ ERROR `x` was moved
+   |                 ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
+note: `x` is moved here
+  --> main.kg:26:9
+   |
+26 |     eat(x)
+   |         ^
+
+error[move-join-mismatch]: `x` is moved on some paths but not others
+  --> main.kg:32:9
+   |
+32 |     eat(x) //~ ERROR `x` is moved on some paths but not others
+   |         ^
+
+error[move-join-mismatch]: `x` is moved on some paths but not others
+  --> main.kg:38:10
+   |
+38 |     q || x //~ ERROR `x` is moved on some paths but not others
+   |          ^
+
+error[E2197]: `x` was moved; it cannot be used again
+  --> main.kg:43:17
+   |
+43 |     if c { o || x } else { y } //~ ERROR `x` was moved
+   |                 ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
+note: `x` is moved here
+  --> main.kg:42:9
+   |
+42 |     eat(x)
+   |         ^
+
+error[E2197]: `x` was moved; it cannot be used again
+  --> main.kg:50:22
+   |
+50 |         None -> q || x //~ ERROR `x` was moved
+   |                      ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
+note: `x` is moved here
+  --> main.kg:47:9
+   |
+47 |     eat(x)
+   |         ^
+
+error[E2197]: `x` was moved in an earlier iteration of the loop; it cannot be moved again
+  --> main.kg:57:18
+   |
+57 |         eat(o || x) //~ ERROR earlier iteration of the loop
+   |                  ^
+   = help: create the value inside the loop, or leave the loop right after moving it
+
+error[E2197]: `r` was moved; it cannot be used again
+  --> main.kg:64:10
+   |
+64 |     o || r //~ ERROR `r` was moved
+   |          ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
+
+error[move-join-mismatch]: `r` is moved on some paths but not others
+  --> main.kg:69:13
+   |
+69 |     let a = r? //~ ERROR `r` is moved on some paths but not others
+   |             ^^
+
+error[E2197]: `x` was moved; it cannot be used again
+  --> main.kg:75:13
+   |
+75 |     let f = () => o || x //~ ERROR `x` was moved
+   |             ^^^^^^^^^^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
+note: `x` is moved here
+  --> main.kg:74:9
+   |
+74 |     eat(x)
+   |         ^
+
+error[move-join-mismatch]: `x` is moved on some paths but not others
+  --> main.kg:81:13
+   |
+81 |     let f = () => x //~ ERROR `x` is moved on some paths but not others
+   |             ^^^^^^^
+
+error[E2151]: `f` consumes `x` when called and can be called only once
+  --> main.kg:88:5
+   |
+88 |     f(None) //~ ERROR `f` consumes `x` when called
+   |     ^^^^^^
+   = help: call it a single time, or have the closure borrow `x` instead of consuming it
+note: `f` may already be called here
+  --> main.kg:87:9
+   |
+87 |     eat(f(None))
+   |         ^^^^^^
+
+error[E2197]: `c` was moved; it cannot be used again
+  --> main.kg:93:18
+   |
+93 |     let d = o || c //~ ERROR `c` was moved
+   |                  ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
+note: `c` is moved here
+  --> main.kg:92:9
+   |
+92 |     eat(c.take())
+   |         ^
+
+error[move-join-mismatch]: `c` is moved on some paths but not others
+  --> main.kg:99:5
+   |
+99 |     c.take() //~ ERROR `c` is moved on some paths but not others
+   |     ^
+

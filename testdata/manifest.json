@@ -9117,6 +9117,74 @@
       ]
     },
     {
+      "id": "run/fallback_branch_witness",
+      "kind": "run",
+      "path": "testdata/run/fallback_branch_witness.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fallback_lift_move",
+      "kind": "run",
+      "path": "testdata/run/fallback_lift_move.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fallback_move_copy",
+      "kind": "run",
+      "path": "testdata/run/fallback_move_copy.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fallback_move_owned",
+      "kind": "run",
+      "path": "testdata/run/fallback_move_owned.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/fallback_tail",
       "kind": "run",
       "path": "testdata/run/fallback_tail.txtar",
@@ -9329,9 +9397,60 @@
       ]
     },
     {
+      "id": "run/field_owned_path",
+      "kind": "run",
+      "path": "testdata/run/field_owned_path.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/field_owned_take",
+      "kind": "run",
+      "path": "testdata/run/field_owned_take.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/field_ref_named_local",
       "kind": "run",
       "path": "testdata/run/field_ref_named_local.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/field_temp_owned",
+      "kind": "run",
+      "path": "testdata/run/field_temp_owned.txtar",
       "mode": [
         "vm",
         "native"
@@ -11021,6 +11140,40 @@
       "id": "run/for_borrow_temp_drop",
       "kind": "run",
       "path": "testdata/run/for_borrow_temp_drop.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/for_borrow_temp_field",
+      "kind": "run",
+      "path": "testdata/run/for_borrow_temp_field.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/for_borrow_temp_root",
+      "kind": "run",
+      "path": "testdata/run/for_borrow_temp_root.txtar",
       "mode": [
         "vm",
         "native"
@@ -12803,6 +12956,23 @@
       ]
     },
     {
+      "id": "run/join_borrow_ok",
+      "kind": "run",
+      "path": "testdata/run/join_borrow_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/json_decode",
       "kind": "run",
       "path": "testdata/run/json_decode.txtar",
@@ -13602,6 +13772,23 @@
       ]
     },
     {
+      "id": "run/loop_break_join_ok",
+      "kind": "run",
+      "path": "testdata/run/loop_break_join_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/main_void_result_err",
       "kind": "run",
       "path": "testdata/run/main_void_result_err.txtar",
@@ -14098,6 +14285,23 @@
       "id": "run/move_track_patterns",
       "kind": "run",
       "path": "testdata/run/move_track_patterns.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/move_value_temp",
+      "kind": "run",
+      "path": "testdata/run/move_value_temp.txtar",
       "mode": [
         "vm",
         "native"
@@ -19164,6 +19368,17 @@
       ]
     },
     {
+      "id": "sem/await_take_err",
+      "kind": "sem",
+      "path": "testdata/sem/await_take_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/borrow_carried_future_err",
       "kind": "sem",
       "path": "testdata/sem/borrow_carried_future_err.txtar",
@@ -19244,6 +19459,28 @@
       "id": "sem/borrow_index_through_field_err",
       "kind": "sem",
       "path": "testdata/sem/borrow_index_through_field_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_kept_body_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_kept_body_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_kept_producers_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_kept_producers_err.txtar",
       "mode": [
         "check"
       ],
@@ -19398,6 +19635,28 @@
       "id": "sem/borrow_return_projection_err",
       "kind": "sem",
       "path": "testdata/sem/borrow_return_projection_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_root_kinds_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_root_kinds_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_scoped_root_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_scoped_root_err.txtar",
       "mode": [
         "check"
       ],
@@ -19857,6 +20116,17 @@
       ]
     },
     {
+      "id": "sem/cleanup_order_err",
+      "kind": "sem",
+      "path": "testdata/sem/cleanup_order_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/cleanup_reserve_lend_below",
       "kind": "sem",
       "path": "testdata/sem/cleanup_reserve_lend_below.txtar",
@@ -19871,6 +20141,17 @@
       "id": "sem/cleanup_reserve_move_capture",
       "kind": "sem",
       "path": "testdata/sem/cleanup_reserve_move_capture.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/cleanup_tail_take_err",
+      "kind": "sem",
+      "path": "testdata/sem/cleanup_tail_take_err.txtar",
       "mode": [
         "check"
       ],
@@ -20212,6 +20493,17 @@
       "id": "sem/const_typed_ops_err",
       "kind": "sem",
       "path": "testdata/sem/const_typed_ops_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/consume_borrowed_arg_err",
+      "kind": "sem",
+      "path": "testdata/sem/consume_borrowed_arg_err.txtar",
       "mode": [
         "check"
       ],
@@ -20704,6 +20996,17 @@
       ]
     },
     {
+      "id": "sem/destructure_drop_err",
+      "kind": "sem",
+      "path": "testdata/sem/destructure_drop_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/diag_borrow_escape_once",
       "kind": "sem",
       "path": "testdata/sem/diag_borrow_escape_once.txtar",
@@ -20861,6 +21164,39 @@
       "id": "sem/drop_bounded_witness",
       "kind": "sem",
       "path": "testdata/sem/drop_bounded_witness.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/drop_owner_help_err",
+      "kind": "sem",
+      "path": "testdata/sem/drop_owner_help_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/drop_self_only_err",
+      "kind": "sem",
+      "path": "testdata/sem/drop_self_only_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/drop_self_only_mir_err",
+      "kind": "sem",
+      "path": "testdata/sem/drop_self_only_mir_err.txtar",
       "mode": [
         "check"
       ],
@@ -21892,9 +22228,97 @@
       ]
     },
     {
+      "id": "sem/fallback_branch_witness",
+      "kind": "sem",
+      "path": "testdata/sem/fallback_branch_witness.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/fallback_err",
       "kind": "sem",
       "path": "testdata/sem/fallback_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fallback_field_value_err",
+      "kind": "sem",
+      "path": "testdata/sem/fallback_field_value_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fallback_lift_move",
+      "kind": "sem",
+      "path": "testdata/sem/fallback_lift_move.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fallback_move_array_err",
+      "kind": "sem",
+      "path": "testdata/sem/fallback_move_array_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fallback_move_copy_ok",
+      "kind": "sem",
+      "path": "testdata/sem/fallback_move_copy_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fallback_move_generic_err",
+      "kind": "sem",
+      "path": "testdata/sem/fallback_move_generic_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fallback_move_ok",
+      "kind": "sem",
+      "path": "testdata/sem/fallback_move_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fallback_move_resource_err",
+      "kind": "sem",
+      "path": "testdata/sem/fallback_move_resource_err.txtar",
       "mode": [
         "check"
       ],
@@ -21961,6 +22385,149 @@
       "id": "sem/ffi_lease_escape_paths_err",
       "kind": "sem",
       "path": "testdata/sem/ffi_lease_escape_paths_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/field_borrowed_payload_help",
+      "kind": "sem",
+      "path": "testdata/sem/field_borrowed_payload_help.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/field_borrowed_ref_expected",
+      "kind": "sem",
+      "path": "testdata/sem/field_borrowed_ref_expected.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/field_borrowed_take_err",
+      "kind": "sem",
+      "path": "testdata/sem/field_borrowed_take_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/field_borrowed_take_generic_err",
+      "kind": "sem",
+      "path": "testdata/sem/field_borrowed_take_generic_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/field_borrowed_take_misc_err",
+      "kind": "sem",
+      "path": "testdata/sem/field_borrowed_take_misc_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/field_link_borrowed_err",
+      "kind": "sem",
+      "path": "testdata/sem/field_link_borrowed_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/field_link_closure_err",
+      "kind": "sem",
+      "path": "testdata/sem/field_link_closure_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/field_mut_self_help",
+      "kind": "sem",
+      "path": "testdata/sem/field_mut_self_help.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/field_owned_path_ok",
+      "kind": "sem",
+      "path": "testdata/sem/field_owned_path_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/field_owned_take_ok",
+      "kind": "sem",
+      "path": "testdata/sem/field_owned_take_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/field_temp_drop_err",
+      "kind": "sem",
+      "path": "testdata/sem/field_temp_drop_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/field_temp_owned_ok",
+      "kind": "sem",
+      "path": "testdata/sem/field_temp_owned_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/field_wrapper_temp_drop_err",
+      "kind": "sem",
+      "path": "testdata/sem/field_wrapper_temp_drop_err.txtar",
       "mode": [
         "check"
       ],
@@ -22574,6 +23141,17 @@
       ]
     },
     {
+      "id": "sem/for_head_leaves_err",
+      "kind": "sem",
+      "path": "testdata/sem/for_head_leaves_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/for_loop_scalar_mut",
       "kind": "sem",
       "path": "testdata/sem/for_loop_scalar_mut.txtar",
@@ -22992,6 +23570,50 @@
       ]
     },
     {
+      "id": "sem/join_base_err",
+      "kind": "sem",
+      "path": "testdata/sem/join_base_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/join_borrow_base_err",
+      "kind": "sem",
+      "path": "testdata/sem/join_borrow_base_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/join_consume_err",
+      "kind": "sem",
+      "path": "testdata/sem/join_consume_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/join_ref_borrow_err",
+      "kind": "sem",
+      "path": "testdata/sem/join_ref_borrow_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/json_derive",
       "kind": "sem",
       "path": "testdata/sem/json_derive.txtar",
@@ -23094,6 +23716,28 @@
       "id": "sem/layout_err",
       "kind": "sem",
       "path": "testdata/sem/layout_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/leaf_break_fail_err",
+      "kind": "sem",
+      "path": "testdata/sem/leaf_break_fail_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/leaf_depth_err",
+      "kind": "sem",
+      "path": "testdata/sem/leaf_depth_err.txtar",
       "mode": [
         "check"
       ],
@@ -23226,6 +23870,17 @@
       "id": "sem/literal_receiver_ambiguous",
       "kind": "sem",
       "path": "testdata/sem/literal_receiver_ambiguous.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/loop_break_targets_err",
+      "kind": "sem",
+      "path": "testdata/sem/loop_break_targets_err.txtar",
       "mode": [
         "check"
       ],
@@ -23476,6 +24131,17 @@
       ]
     },
     {
+      "id": "sem/move_field_rule_err",
+      "kind": "sem",
+      "path": "testdata/sem/move_field_rule_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/move_self_exit_drop_noalloc",
       "kind": "sem",
       "path": "testdata/sem/move_self_exit_drop_noalloc.txtar",
@@ -23501,6 +24167,17 @@
       "id": "sem/move_self_exit_drop_noalloc_paths",
       "kind": "sem",
       "path": "testdata/sem/move_self_exit_drop_noalloc_paths.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/move_through_reference_err",
+      "kind": "sem",
+      "path": "testdata/sem/move_through_reference_err.txtar",
       "mode": [
         "check"
       ],
@@ -23567,6 +24244,17 @@
       "id": "sem/move_track_whole_use",
       "kind": "sem",
       "path": "testdata/sem/move_track_whole_use.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/move_value_temp_ok",
+      "kind": "sem",
+      "path": "testdata/sem/move_value_temp_ok.txtar",
       "mode": [
         "check"
       ],
@@ -23806,6 +24494,17 @@
       ]
     },
     {
+      "id": "sem/opt_chain_ref_call_err",
+      "kind": "sem",
+      "path": "testdata/sem/opt_chain_ref_call_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/ordering_tuple_diag",
       "kind": "sem",
       "path": "testdata/sem/ordering_tuple_diag.txtar",
@@ -23908,6 +24607,28 @@
       "id": "sem/pattern_move_variant",
       "kind": "sem",
       "path": "testdata/sem/pattern_move_variant.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/pattern_ref_link_bind",
+      "kind": "sem",
+      "path": "testdata/sem/pattern_ref_link_bind.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/pattern_temp_drop_err",
+      "kind": "sem",
+      "path": "testdata/sem/pattern_temp_drop_err.txtar",
       "mode": [
         "check"
       ],
@@ -24433,6 +25154,17 @@
       ]
     },
     {
+      "id": "sem/ref_contents_kept_err",
+      "kind": "sem",
+      "path": "testdata/sem/ref_contents_kept_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/ref_scrutinee_guard_err",
       "kind": "sem",
       "path": "testdata/sem/ref_scrutinee_guard_err.txtar",
@@ -24612,6 +25344,17 @@
       "id": "sem/schema_metadata",
       "kind": "sem",
       "path": "testdata/sem/schema_metadata.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/scrutinee_wrapped_ref",
+      "kind": "sem",
+      "path": "testdata/sem/scrutinee_wrapped_ref.txtar",
       "mode": [
         "check"
       ],
@@ -25316,6 +26059,17 @@
       "id": "sem/unsafe_guarantee_opaque",
       "kind": "sem",
       "path": "testdata/sem/unsafe_guarantee_opaque.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/unsafe_operand_move",
+      "kind": "sem",
+      "path": "testdata/sem/unsafe_operand_move.txtar",
       "mode": [
         "check"
       ],

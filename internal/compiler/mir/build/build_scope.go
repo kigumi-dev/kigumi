@@ -108,26 +108,6 @@ func (b *builder) own(l midir.LocalID) midir.LocalID {
 	return l
 }
 
-// ownBorrowedSource registers a for-loop's borrowed-head source for release
-// when it is itself a temporary: a field/index/cell projection (rt_field,
-// rt_index, rt_cellget) retains on read, and the alias itself has nothing
-// to release (declare()'s KRef exclusion also keeps emit() from
-// ever dropping the alias). A bare local/parameter source retains nothing
-// and is left alone.
-func (b *builder) ownBorrowedSource(iter midir.LocalID) {
-	insts := b.block().Insts
-	if len(insts) == 0 {
-		return
-	}
-	last := insts[len(insts)-1]
-	if last.Op != midir.OpBorrow || last.Dst != iter || len(last.Args) != 1 {
-		return
-	}
-	if src := last.Args[0]; b.fn.Locals[src].Ent == 0 {
-		b.own(src)
-	}
-}
-
 // detach copies a named local into a temporary before the scope that owns
 // the local is unwound, so the value returned outlives the drops.
 func (b *builder) detach(v midir.LocalID) midir.LocalID {

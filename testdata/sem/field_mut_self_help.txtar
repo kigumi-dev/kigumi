@@ -1,0 +1,46 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+fn eat(r: Res) {}
+
+type H = {
+    pub mut r Res
+    pub mut o Res?
+}
+
+fn H.swapImplicit(mut self) {
+    eat(self.r) //~ ERROR reading `self.r` by value
+    self.r = mk(2)
+}
+
+fn H.tailImplicit(mut self) -> Res {
+    self.r //~ ERROR reading `self.r` by value
+}
+
+fn H.swapMove(mut self) {
+    eat(move self.r)
+    self.r = mk(4)
+}
+-- expect --
+error[E2153]: reading `self.r` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:19:9
+   |
+19 |     eat(self.r) //~ ERROR reading `self.r` by value
+   |         ^^^^^^
+   = help: write `move self.r` to take it out, and assign `self.r` again before the method returns
+
+error[E2153]: reading `self.r` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:24:5
+   |
+24 |     self.r //~ ERROR reading `self.r` by value
+   |     ^^^^^^
+   = help: `self.r` is reached through a borrow, so it cannot be moved out; borrow it with `&self.r`
+

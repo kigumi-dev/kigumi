@@ -1,0 +1,63 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+type Cell = {
+    pub v Res
+    pub n Int
+}
+
+type HC = {
+    pub oc Cell?
+}
+
+type HR = {
+    pub r Result[Res, Int]
+}
+
+fn me(h: &HC) -> &HC {
+    h
+}
+
+fn viaCall(h: &HC, y: Res) -> Res {
+    me(h).oc?.v || y //~ ERROR reading `me(h).oc?.v` by value
+}
+
+fn viaCallLet(h: &HC) -> Res? {
+    let x = me(h).oc?.v //~ ERROR reading `me(h).oc?.v` by value
+    x
+}
+
+fn viaCallCopy(h: &HC) -> Int {
+    me(h).oc?.n || 0
+}
+
+fn HR.get(self) -> Result[Res, Int] {
+    let x = self.r? //~ ERROR reading `self.r` by value
+    Ok(x)
+}
+-- expect --
+error[E2153]: reading `me(h).oc?.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:25:5
+   |
+25 |     me(h).oc?.v || y //~ ERROR reading `me(h).oc?.v` by value
+   |     ^^^^^^^^^^^
+   = help: match on the option and `move` the field out of the payload, or call a method that returns what you need
+
+error[E2153]: reading `me(h).oc?.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:29:13
+   |
+29 |     let x = me(h).oc?.v //~ ERROR reading `me(h).oc?.v` by value
+   |             ^^^^^^^^^^^
+   = help: match on the option and `move` the field out of the payload, or call a method that returns what you need
+
+error[E2153]: reading `self.r` by value would copy a `Result[Res, Int]`, which is not `Copy`
+  --> main/main.kg:38:13
+   |
+38 |     let x = self.r? //~ ERROR reading `self.r` by value
+   |             ^^^^^^
+   = help: `self.r` is reached through a borrow, so its payload cannot be taken out; match on it to borrow the payload instead
+

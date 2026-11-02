@@ -40,12 +40,14 @@ func (c *checker) checkMoveOut(target syntax.NodeID, t, baseType TypeID, isField
 		return false
 	}
 	p, ok := c.buildPlace(target)
-	if !ok {
-		return true
-	}
-	if p.Deref {
+	if c.pathMode(target) == pathRef || ok && p.Deref {
 		c.errAt(target, cMoveOutOfBorrow, t)
 		return false
+	}
+	if isField && c.r.Entities[c.info.Uses[target]].Kind == EntType {
+		// `.value` moves its base's storage, so the base is the place checked.
+		base := c.t.Unparen(c.t.View(target).AsMember().Base().ID())
+		return c.checkMoveOut(base, c.vars.resolve(c.info.Types[base]), c.memberBaseType(base), c.t.Kind(base) == syntax.MemberExpr)
 	}
 	if !isField {
 		return true
@@ -54,14 +56,35 @@ func (c *checker) checkMoveOut(target syntax.NodeID, t, baseType TypeID, isField
 		c.errAt(target, cMoveCapturedField, c.placeName(target), c.r.Entities[root].Name)
 		return false
 	}
-	if bn := c.r.Types.Node(baseType); bn.Kind == KNamed {
-		if info := c.r.typeDecl(bn.Ent); info.Drop != 0 {
-			name := c.placeName(target)
-			c.errAt(target, cMoveDropType, name, baseType, name)
-			return false
-		}
+	if c.customDrop(baseType) && !c.dropSelf(c.t.View(target).AsMember().Base().ID()) {
+		name := c.takeName(target)
+		c.errAt(target, cMoveDropType, name, baseType, name)
+		return false
 	}
-	return true
+	return !c.rejectTake(target, t, takeMoved)
+}
+
+// memberBaseType is the type a member's base reads as, seen through a `Shared[T]`.
+func (c *checker) memberBaseType(m syntax.NodeID) TypeID {
+	if c.t.Kind(m) != syntax.MemberExpr {
+		return 0
+	}
+	return c.readThrough(c.vars.resolve(c.info.Types[c.t.View(m).AsMember().Base().ID()]))
+}
+
+func (c *checker) customDrop(t TypeID) bool {
+	bn := c.r.Types.Node(t)
+	return bn.Kind == KNamed && c.r.typeDecl(bn.Ent).Drop != 0
+}
+
+// dropSelf: n is the `self` of the `drop` being checked, whose own fields that drop takes apart.
+func (c *checker) dropSelf(n syntax.NodeID) bool {
+	n = c.t.Unparen(n)
+	if c.t.Kind(n) != syntax.Ident || c.fn == 0 || c.r.Entities[c.fn].Kind != EntFn {
+		return false
+	}
+	info := c.r.Fn(c.fn)
+	return info.Owner != 0 && c.r.typeDecl(info.Owner).Drop == c.fn && c.info.Uses[n] == info.SelfParam
 }
 
 func (c *checker) capturedFieldRoot(field syntax.NodeID) (EntityID, bool) {

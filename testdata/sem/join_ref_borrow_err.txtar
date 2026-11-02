@@ -1,0 +1,106 @@
+-- module --
+mir: planned
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn Res.close(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type Pair = {
+    pub a Res
+    pub b Res
+}
+
+type C = {
+    pub p Pair
+    pub q Pair
+}
+
+type C2 = {
+    pub xs Array[Res]
+    pub ys Array[Res]
+}
+
+fn burn(p: Pair) {
+    let Pair { a, b } = p
+    a.close()
+    b.close()
+}
+
+fn drain(xs: Array[Res]) {
+    for x in xs {
+        x.close()
+    }
+}
+
+fn letMember(c: C, k: Bool) -> Int {
+    let r = &(if k { &c.p } else { &c.q }).a
+    burn(move c.p) //~ ERROR `c` is borrowed
+    r.id
+}
+
+fn otherArm(c: C, k: Bool) -> Int {
+    let r = &(if k { &c.p } else { &c.q }).a
+    burn(move c.q) //~ ERROR `c` is borrowed
+    r.id
+}
+
+fn matchMember(c: C, k: Bool) -> Int {
+    match &(if k { &c.p } else { &c.q }).b {
+        r -> {
+            burn(move c.p) //~ ERROR `c` is borrowed
+            r.id
+        }
+    }
+}
+
+fn forHead(c: C2, k: Bool) -> Int {
+    let mut s = 0
+    for x in &(if k { &c.xs } else { &c.ys }) {
+        drain(move c.xs) //~ ERROR `c` is borrowed
+        s = s + x.id
+        break
+    }
+    s
+}
+
+fn borrowEnded(c: C, k: Bool) -> Int {
+    let n = {
+        let r = &(if k { &c.p } else { &c.q }).a
+        r.id
+    }
+    burn(move c.p)
+    n
+}
+-- expect --
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+  --> main.kg:42:15
+   |
+42 |     burn(move c.p) //~ ERROR `c` is borrowed
+   |               ^^^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+  --> main.kg:48:15
+   |
+48 |     burn(move c.q) //~ ERROR `c` is borrowed
+   |               ^^^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+  --> main.kg:55:23
+   |
+55 |             burn(move c.p) //~ ERROR `c` is borrowed
+   |                       ^^^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+  --> main.kg:64:20
+   |
+64 |         drain(move c.xs) //~ ERROR `c` is borrowed
+   |                    ^^^^
+

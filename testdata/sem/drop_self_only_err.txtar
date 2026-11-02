@@ -1,0 +1,48 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+fn eat(r: Res) {}
+
+type G2 = resource {
+    pub a Res
+    pub n Int
+}
+
+fn G2.drop(move self) {
+    if self.n == 1 {
+        let h = G2 { a: mk(100), n: 2 }
+        eat(move h.a) //~ ERROR cannot move `h.a` out of `G2`
+    }
+}
+
+type G4 = resource {
+    pub a Res
+    pub n Int
+}
+
+fn G4.drop(move self) {
+    eat(G4 { a: mk(1), n: 2 }.a) //~ ERROR cannot move `G4 { a: mk(1), n: 2 }.a` out of `G4`
+}
+-- expect --
+error[E1021]: cannot move `h.a` out of `G2`, which defines a custom `drop`
+  --> main/main.kg:21:18
+   |
+21 |         eat(move h.a) //~ ERROR cannot move `h.a` out of `G2`
+   |                  ^^^
+   = help: add a `take`-style method that returns `h.a` instead
+
+error[E1021]: cannot move `G4 { a: mk(1), n: 2 }.a` out of `G4`, which defines a custom `drop`
+  --> main/main.kg:31:9
+   |
+31 |     eat(G4 { a: mk(1), n: 2 }.a) //~ ERROR cannot move `G4 { a: mk(1), n: 2 }.a` out of `G4`
+   |         ^^^^^^^^^^^^^^^^^^^^^^^
+   = help: add a `take`-style method that returns `G4 { a: mk(1), n: 2 }.a` instead
+

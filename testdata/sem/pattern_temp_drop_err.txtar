@@ -1,0 +1,143 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type Inner = {
+    pub a Res
+}
+
+type Guard = resource {
+    pub inner Inner
+    pub o Res?
+    pub n Int
+}
+
+fn Guard.drop(move self) {}
+
+fn mkg(i: Int) -> Guard {
+    Guard { inner: Inner { a: mk(i) }, o: Some(mk(i + 10)), n: i }
+}
+
+fn mko(i: Int) -> Guard? {
+    Some(mkg(i))
+}
+
+fn viaMatch(y: Res) -> Res {
+    match mkg(1).o { //~ ERROR cannot move `mkg(1).o` out of `Guard`
+        Some(r) -> r
+        None -> y
+    }
+}
+
+fn viaIs(y: Res) -> Res {
+    if mkg(2).o is Some(r) { r } else { y } //~ ERROR cannot move `mkg(2).o` out of `Guard`
+}
+
+fn viaIfLet(y: Res) -> Res {
+    if let Some(r) = mkg(3).o { r } else { y } //~ ERROR cannot move `mkg(3).o` out of `Guard`
+}
+
+fn viaLetElse() -> Res {
+    let Some(r) = mkg(4).o else { //~ ERROR cannot move `mkg(4).o` out of `Guard`
+        return mk(0)
+    }
+    r
+}
+
+fn viaChain(y: Res) -> Res {
+    mko(5)?.inner.a || y //~ ERROR cannot move `mko(5)?.inner.a` out of `Guard`
+}
+
+fn viaChainOne() -> Res?? {
+    let r = mko(6)?.o //~ ERROR cannot move `mko(6)?.o` out of `Guard`
+    r
+}
+
+fn viaChainMatch(y: Res) -> Res {
+    match mko(7)?.inner.a { //~ ERROR cannot move `mko(7)?.inner.a` out of `Guard`
+        Some(r) -> r
+        None -> y
+    }
+}
+
+fn borrowed() -> Int {
+    match &mkg(8).o {
+        Some(r) -> r.id
+        None -> 0
+    }
+}
+
+fn copyOnly() -> Int {
+    match mkg(9).n {
+        0 -> 1
+        n -> n
+    }
+}
+
+fn wildcard() -> Bool {
+    mkg(10).o is Some(_)
+}
+
+fn chainBorrowed() -> Int {
+    match &mko(11)?.inner.a {
+        Some(r) -> r.id
+        None -> 0
+    }
+}
+-- expect --
+error[E1021]: cannot move `mkg(1).o` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:32:11
+   |
+32 |     match mkg(1).o { //~ ERROR cannot move `mkg(1).o` out of `Guard`
+   |           ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(1).o` instead
+
+error[E1021]: cannot move `mkg(2).o` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:39:8
+   |
+39 |     if mkg(2).o is Some(r) { r } else { y } //~ ERROR cannot move `mkg(2).o` out of `Guard`
+   |        ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(2).o` instead
+
+error[E1021]: cannot move `mkg(3).o` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:43:22
+   |
+43 |     if let Some(r) = mkg(3).o { r } else { y } //~ ERROR cannot move `mkg(3).o` out of `Guard`
+   |                      ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(3).o` instead
+
+error[E1021]: cannot move `mkg(4).o` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:47:19
+   |
+47 |     let Some(r) = mkg(4).o else { //~ ERROR cannot move `mkg(4).o` out of `Guard`
+   |                   ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(4).o` instead
+
+error[E1021]: cannot move `mko(5)?.inner.a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:54:5
+   |
+54 |     mko(5)?.inner.a || y //~ ERROR cannot move `mko(5)?.inner.a` out of `Guard`
+   |     ^^^^^^^^^^^^^^^
+   = help: add a `take`-style method that returns `mko(5)?.inner.a` instead
+
+error[E1021]: cannot move `mko(6)?.o` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:58:13
+   |
+58 |     let r = mko(6)?.o //~ ERROR cannot move `mko(6)?.o` out of `Guard`
+   |             ^^^^^^^^^
+   = help: add a `take`-style method that returns `mko(6)?.o` instead
+
+error[E1021]: cannot move `mko(7)?.inner.a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:63:11
+   |
+63 |     match mko(7)?.inner.a { //~ ERROR cannot move `mko(7)?.inner.a` out of `Guard`
+   |           ^^^^^^^^^^^^^^^
+   = help: add a `take`-style method that returns `mko(7)?.inner.a` instead
+

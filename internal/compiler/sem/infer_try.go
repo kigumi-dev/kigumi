@@ -25,6 +25,7 @@ func (c *checker) synthFail(n syntax.NodeID) TypeID {
 		return TyNever
 	}
 	c.check(operand, errType)
+	c.noteExitValue(operand, true)
 	if !c.fixedValue(operand, errType) {
 		c.buildEdge(n, c.retType)
 	}

@@ -101,7 +101,9 @@ func (c *checker) consumeArg(a syntax.NodeID, param TypeID) {
 		return
 	}
 	c.noteOnceUse(a, a, c.info.Types[a])
-	c.consumeWhole(a)
+	if !c.rejectArgTake(a, param) {
+		c.consumeWhole(a)
+	}
 }
 
 // entAt is params[i], or 0 when i is out of range (e.g. no source declaration).

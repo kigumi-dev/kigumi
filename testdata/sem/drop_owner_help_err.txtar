@@ -1,0 +1,75 @@
+-- module --
+mir: planned
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+fn eat(r: Res) {}
+
+type G = resource {
+    pub a Res
+}
+
+fn G.drop(move self) {
+    let o: Res? = None
+    eat(o || move self.a)
+}
+
+type H = resource {
+    pub a Res
+}
+
+fn H.drop(move self) {
+    let o: Res? = None
+    eat(o || self.a) //~ ERROR reading `self.a` by value
+}
+
+type Guard = resource {
+    pub a Res
+}
+
+fn Guard.drop(move self) {}
+
+fn mkg(i: Int) -> Guard {
+    Guard { a: mk(i) }
+}
+
+fn lentCapture(g: Guard, o: Res?) -> Res {
+    o.unwrapOrElse(() => g.a) //~ ERROR cannot move `g.a` out of `Guard`
+}
+
+fn multiLine(k: Int) -> Res {
+    (match k { //~ ERROR cannot move `(...).a` out of `Guard`
+        0 -> mkg(1)
+        _ -> mkg(2)
+    }).a
+}
+-- expect --
+error[E2153]: reading `self.a` by value would copy a `Res`, which is not `Copy`
+  --> main.kg:28:14
+   |
+28 |     eat(o || self.a) //~ ERROR reading `self.a` by value
+   |              ^^^^^^
+   = help: write `move self.a` to take it out, or borrow it with `&self.a`
+
+error[E1021]: cannot move `g.a` out of `Guard`, which defines a custom `drop`
+  --> main.kg:42:26
+   |
+42 |     o.unwrapOrElse(() => g.a) //~ ERROR cannot move `g.a` out of `Guard`
+   |                          ^^^
+   = help: add a `take`-style method that returns `g.a` instead
+
+error[E1021]: cannot move `(...).a` out of `Guard`, which defines a custom `drop`
+  --> main.kg:46:5
+   |
+46 |     (match k { //~ ERROR cannot move `(...).a` out of `Guard`
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: add a `take`-style method that returns `(...).a` instead
+

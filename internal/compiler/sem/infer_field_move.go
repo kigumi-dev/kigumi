@@ -21,7 +21,7 @@ func (c *checker) synthRead(n syntax.NodeID) TypeID {
 // of a borrowed place would copy that `&mut`, so it is a move out of the borrow, rejected as for the `&mut` itself.
 func (c *checker) noteFieldMove(n syntax.NodeID, t TypeID) {
 	rt := c.vars.resolve(t)
-	holder := !c.r.Types.RefMut(rt) && c.borrowedPlace(n) && c.r.ownsMutRef(rt, map[TypeID]bool{})
+	holder := !c.r.Types.RefMut(rt) && c.pathMode(n).borrowed() && c.r.ownsMutRef(rt, map[TypeID]bool{})
 	if c.t.Kind(n) != syntax.MemberExpr || c.held.reborrows[n] || !c.r.Types.RefMut(rt) && !holder {
 		return
 	}

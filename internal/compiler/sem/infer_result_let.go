@@ -13,7 +13,7 @@ func (c *checker) expandLetLeaves(leaves []syntax.NodeID, depth int) []syntax.No
 			out = append(out, leaf)
 			continue
 		}
-		out = append(out, c.expandLetLeaves(c.tailLeaves(init, 0), depth+1)...)
+		out = append(out, c.expandLetLeaves(c.tailLeaves(init), depth+1)...)
 	}
 	return out
 }

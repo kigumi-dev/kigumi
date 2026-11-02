@@ -16,6 +16,7 @@ func (c *checker) synthAwait(n syntax.NodeID) TypeID {
 	op := c.t.View(n).AsAwait().Operand().ID()
 	c.r.markTaskFuture(c.f, op, futureAwaited)
 	t := c.vars.resolve(c.synth(op))
+	c.rejectArgTake(op, t)
 	switch e := c.r.Entities[c.fn]; {
 	case c.leavesComptime(n, "`await`"):
 		return TyPoison

@@ -85,6 +85,8 @@ func (c *checker) letStmt(n syntax.NodeID) {
 		got = c.synth(s.Init)
 		if c.r.Types.Kind(c.vars.resolve(got)) == KUntyped {
 			got = c.adopt(c.literalNode(s.Init), defaultOf(c.vars.resolve(got)))
+		} else if b := c.t.Unparen(s.Init); c.t.Kind(b) == syntax.BorrowExpr {
+			got = c.defaultBorrowedLiteral(b, got)
 		}
 	}
 	c.rejectTempBorrowLet(s.Init)
@@ -99,7 +101,7 @@ func (c *checker) letStmt(n syntax.NodeID) {
 		switch {
 		case annotated != 0:
 			typ = annotated
-		case c.borrowedPlace(s.Init) && !c.r.isCopy(c.vars.resolve(got)) && c.r.Types.Kind(c.vars.resolve(got)) != KRef:
+		case c.pathMode(s.Init).borrowed() && !c.r.isCopy(c.vars.resolve(got)) && c.r.Types.Kind(c.vars.resolve(got)) != KRef:
 			typ, borrow = c.r.Types.Ref(c.vars.resolve(got), false), true
 		}
 		if !borrow {

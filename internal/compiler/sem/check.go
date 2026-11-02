@@ -59,7 +59,7 @@ type checker struct {
 	patMoved     patMoveLog
 	contracts    []Effects
 	lambdas      []*lambdaCtx
-	retLeaves    []syntax.NodeID
+	exits        exitLeaves
 	// captureSites indexes every Capture entry of a local across open and closed closures, so a write seen after a
 	// closure finishes can still promote that closure's entry.
 	captureSites map[EntityID][]captureSite
@@ -186,7 +186,7 @@ func (r *Result) checkFnBody(id EntityID) {
 func (c *checker) checkBodyBlock(body syntax.NodeID) {
 	c.exitCheck.tail = c.bodyTail(body)
 	c.check(body, c.retType)
-	c.rejectScalarCopyResult(body)
+	c.rejectResultLeaves(body)
 	c.checkExitMoves()
 	c.checkEscapeTailReturn(body)
 	c.finish()

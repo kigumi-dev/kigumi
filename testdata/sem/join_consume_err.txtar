@@ -1,0 +1,164 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn Res.close(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+fn eat(r: Res) {}
+
+type C = {
+    pub v Res
+    pub o Res?
+    pub r Result[Res, Int]
+}
+
+type G = resource {
+    pub a Res
+}
+
+fn G.drop(move self) {
+    eat(for {
+        break self.a //~ ERROR reading `self.a` by value
+    })
+}
+
+fn recvOr(c: C, o: Res?) {
+    (o || c.v).close() //~ ERROR reading `c.v` by value
+}
+
+fn recvIf(c: C, k: Bool) {
+    (if k { c.v } else { mk(0) }).close() //~ ERROR reading `c.v` by value
+}
+
+fn recvMatch(c: C) {
+    (match 1 {
+        _ -> c.v //~ ERROR reading `c.v` by value
+    }).close()
+}
+
+fn scrutOr(c: C, o: Res?) {
+    match (o || c.v) { //~ ERROR reading `c.v` by value
+        r -> eat(r)
+    }
+}
+
+fn scrutIs(c: C, k: Bool) {
+    if (if k { c.o } else { None }) is Some(r) { //~ ERROR reading `c.o` by value
+        eat(r)
+    }
+}
+
+fn scrutLetElse(c: C, k: Bool) {
+    let Some(r) = (if k { c.o } else { None }) else { //~ ERROR reading `c.o` by value
+        return
+    }
+    eat(r)
+}
+
+fn payloadIf(c: C, k: Bool) {
+    eat((if k { c.o } else { None }) || mk(0)) //~ ERROR reading `c.o` by value
+}
+
+fn payloadTry(c: C, t: Bool) -> Result[Int, Int] {
+    let x = (if t { c.r } else { Err(0) })? //~ ERROR reading `c.r` by value
+    Ok(x.id)
+}
+
+fn argIfLet(c: C, o: Res?) {
+    eat(if let Some(x) = o { x } else { c.v }) //~ ERROR reading `c.v` by value
+}
+
+fn argBreak(c: C) {
+    eat(for {
+        break c.v //~ ERROR reading `c.v` by value
+    })
+}
+
+fn movedIsFine(c: C, o: Res?) {
+    (o || move c.v).close()
+}
+-- expect --
+error[E2153]: reading `self.a` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:27:15
+   |
+27 |         break self.a //~ ERROR reading `self.a` by value
+   |               ^^^^^^
+   = help: write `move self.a` to take it out, or borrow it with `&self.a`
+
+error[E2153]: reading `c.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:32:11
+   |
+32 |     (o || c.v).close() //~ ERROR reading `c.v` by value
+   |           ^^^
+   = help: write `move c.v` to take it out, or borrow it with `&c.v`
+
+error[E2153]: reading `c.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:36:13
+   |
+36 |     (if k { c.v } else { mk(0) }).close() //~ ERROR reading `c.v` by value
+   |             ^^^
+   = help: write `move c.v` to take it out, or borrow it with `&c.v`
+
+error[E2153]: reading `c.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:41:14
+   |
+41 |         _ -> c.v //~ ERROR reading `c.v` by value
+   |              ^^^
+   = help: write `move c.v` to take it out, or borrow it with `&c.v`
+
+error[E2153]: reading `c.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:46:17
+   |
+46 |     match (o || c.v) { //~ ERROR reading `c.v` by value
+   |                 ^^^
+   = help: write `move c.v` to take it out, or borrow it with `&c.v`
+
+error[E2153]: reading `c.o` by value would copy a `Res?`, which is not `Copy`
+  --> main/main.kg:52:16
+   |
+52 |     if (if k { c.o } else { None }) is Some(r) { //~ ERROR reading `c.o` by value
+   |                ^^^
+   = help: write `move c.o` to take it out, or borrow it with `&c.o`
+
+error[E2153]: reading `c.o` by value would copy a `Res?`, which is not `Copy`
+  --> main/main.kg:58:27
+   |
+58 |     let Some(r) = (if k { c.o } else { None }) else { //~ ERROR reading `c.o` by value
+   |                           ^^^
+   = help: write `move c.o` to take it out, or borrow it with `&c.o`
+
+error[E2153]: reading `c.o` by value would copy a `Res?`, which is not `Copy`
+  --> main/main.kg:65:17
+   |
+65 |     eat((if k { c.o } else { None }) || mk(0)) //~ ERROR reading `c.o` by value
+   |                 ^^^
+   = help: write `move c.o` to take it out, or borrow it with `&c.o`
+
+error[E2153]: reading `c.r` by value would copy a `Result[Res, Int]`, which is not `Copy`
+  --> main/main.kg:69:21
+   |
+69 |     let x = (if t { c.r } else { Err(0) })? //~ ERROR reading `c.r` by value
+   |                     ^^^
+   = help: write `move c.r` to take it out, or borrow it with `&c.r`
+
+error[E2153]: reading `c.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:74:41
+   |
+74 |     eat(if let Some(x) = o { x } else { c.v }) //~ ERROR reading `c.v` by value
+   |                                         ^^^
+   = help: write `move c.v` to take it out, or borrow it with `&c.v`
+
+error[E2153]: reading `c.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:79:15
+   |
+79 |         break c.v //~ ERROR reading `c.v` by value
+   |               ^^^
+   = help: write `move c.v` to take it out, or borrow it with `&c.v`
+

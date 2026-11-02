@@ -1,0 +1,193 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn Res.close(move self) {
+    print "close ${self.id}"
+}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+fn eat(r: Res) {
+    r.close()
+}
+
+type C = {
+    pub v Res
+    pub o Res?
+}
+
+fn cell(i: Int) -> C {
+    C { v: mk(i), o: None }
+}
+
+fn storedHandler(x: Res, r: Result[Int, Int]) -> Res {
+    let g = () => for {
+        let n = r || (e) => break x
+        break mk(n)
+    }
+    g()
+}
+
+fn movedPick(c: C, o: Res?) {
+    (o || move c.v).close()
+}
+
+fn handlerBreak(r: Result[Int, Int]) -> Res {
+    for {
+        let n = r || (e) => break mk(e)
+        break mk(n + 100)
+    }
+}
+
+fn condHeadBreak(c: Bool) -> Res {
+    for {
+        for (if c { break mk(30) } else { false }) {
+            print "never"
+        }
+        break mk(31)
+    }
+}
+
+fn deep(k: Int, y: Res) -> Res {
+    if k == 0 {
+        y
+    } else if k == 1 {
+        y
+    } else if k == 2 {
+        y
+    } else if k == 3 {
+        y
+    } else if k == 4 {
+        y
+    } else if k == 5 {
+        y
+    } else if k == 6 {
+        y
+    } else if k == 7 {
+        y
+    } else if k == 8 {
+        y
+    } else if k == 9 {
+        y
+    } else if k == 10 {
+        y
+    } else if k == 11 {
+        y
+    } else if k == 12 {
+        y
+    } else if k == 13 {
+        y
+    } else if k == 14 {
+        y
+    } else if k == 15 {
+        y
+    } else if k == 16 {
+        y
+    } else if k == 17 {
+        y
+    } else if k == 18 {
+        y
+    } else if k == 19 {
+        y
+    } else if k == 20 {
+        y
+    } else if k == 21 {
+        y
+    } else if k == 22 {
+        y
+    } else if k == 23 {
+        y
+    } else if k == 24 {
+        y
+    } else if k == 25 {
+        y
+    } else if k == 26 {
+        y
+    } else if k == 27 {
+        y
+    } else if k == 28 {
+        y
+    } else if k == 29 {
+        y
+    } else if k == 30 {
+        y
+    } else if k == 31 {
+        y
+    } else if k == 32 {
+        y
+    } else if k == 33 {
+        y
+    } else if k == 34 {
+        y
+    } else if k == 35 {
+        y
+    } else if k == 36 {
+        y
+    } else if k == 37 {
+        y
+    } else if k == 38 {
+        y
+    } else if k == 39 {
+        y
+    } else {
+        cell(k).v
+    }
+}
+
+async fn val(x: Int) -> Int {
+    x
+}
+
+type Holder = {
+    pub t Future[Int]
+}
+
+async fn ownedAwait(h: Holder) -> Int {
+    await h.t
+}
+
+storedHandler(mk(1), Err(0)).close()
+storedHandler(mk(2), Ok(5)).close()
+movedPick(C { v: mk(10), o: None }, None)
+handlerBreak(Err(20)).close()
+handlerBreak(Ok(21)).close()
+condHeadBreak(true).close()
+condHeadBreak(false).close()
+deep(50, mk(40)).close()
+deep(3, mk(41)).close()
+let ex = task.currentThreadExecutor()
+print "await ${ex.runToCompletion(ownedAwait(Holder { t: val(7) }))}"
+print "done"
+-- stdout --
+close 1
+drop 1
+drop 2
+close 5
+drop 5
+close 10
+drop 10
+close 20
+drop 20
+close 121
+drop 121
+close 30
+drop 30
+close 31
+drop 31
+drop 40
+close 50
+drop 50
+close 41
+drop 41
+await 7
+done

@@ -1,0 +1,158 @@
+-- module --
+mir: planned
+-- src --
+type View['a] = {
+    pub s &'a String
+}
+
+type Bag[T] = {
+    pub mut items Array[T]
+}
+
+type W[T] = {
+    pub v T
+}
+
+fn Bag[T: Copy].extend(mut self, src: &Array[T]) {
+    for x in src {
+        self.items.push(x)
+    }
+}
+
+fn Bag[T: Copy].addFrom(mut self, k: &W[T]) {
+    self.items.push(k.v)
+}
+
+fn addTo[T: Copy](dst: &mut Array[T], k: &W[T]) {
+    dst.push(k.v)
+}
+
+fn mkStr(i: Int) -> String {
+    "s${i}"
+}
+
+fn m1() -> usize {
+    let name = "named"
+    let mut b = Bag { items: Array.of(View { s: &name }) }
+    b.extend(&Array.of(View { s: &mkStr(1) })) //~ ERROR `b` keeps a borrow of a temporary
+    b.items[1].s.len()
+}
+
+fn m2() -> usize {
+    let name = "named"
+    let mut b = Bag { items: Array.of(View { s: &name }) }
+    b.addFrom(&W { v: View { s: &mkStr(1) } }) //~ ERROR `b` keeps a borrow of a temporary
+    b.items[1].s.len()
+}
+
+fn m4() -> usize {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    addTo(&mut xs, &W { v: View { s: &mkStr(1) } }) //~ ERROR `xs` keeps a borrow of a temporary
+    xs[1].s.len()
+}
+
+fn m7() -> usize {
+    let name = "named"
+    let mut b = Bag { items: Array.of(View { s: &name }) }
+    for i in 0..1 {
+        let inner = "in${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+        let w = W { v: View { s: &inner } }
+        b.addFrom(&w)
+    }
+    b.items[1].s.len()
+}
+
+fn stringKey(xs: &mut Array[String], k: &W[String]) {
+    xs.push(k.v)
+}
+
+fn plainContents() -> usize {
+    let mut xs = Array.of("a")
+    stringKey(&mut xs, &W { v: mkStr(2) })
+    xs[1].len()
+}
+
+interface FromRef[K] {
+    fn fromRef(k: &K) -> Self
+}
+
+fn View['a].fromRef(k: &'a String) -> View['a] {
+    View { s: k }
+}
+
+type KBag[K, V] = {
+    pub mut vs Array[V]
+    pub ks Array[K]
+}
+
+fn KBag[K, V: FromRef[K]].addRef(mut self, k: &K) {
+    self.vs.push(V.fromRef(k))
+}
+
+fn mintTo[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    dst.push(V.fromRef(k))
+}
+
+fn witnessSelf() -> usize {
+    let name = "named"
+    let mut b = KBag { vs: Array.of(View { s: &name }), ks: Array.of("k") }
+    b.addRef(&mkStr(1)) //~ ERROR `b` keeps a borrow of a temporary
+    b.vs[1].s.len()
+}
+
+fn witnessMut() -> usize {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    mintTo(&mut xs, &mkStr(1)) //~ ERROR `xs` keeps a borrow of a temporary
+    xs[1].s.len()
+}
+-- expect --
+error[E2235]: `b` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:34:5
+   |
+34 |     b.extend(&Array.of(View { s: &mkStr(1) })) //~ ERROR `b` keeps a borrow of a temporary
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2235]: `b` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:41:5
+   |
+41 |     b.addFrom(&W { v: View { s: &mkStr(1) } }) //~ ERROR `b` keeps a borrow of a temporary
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2235]: `xs` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:48:5
+   |
+48 |     addTo(&mut xs, &W { v: View { s: &mkStr(1) } }) //~ ERROR `xs` keeps a borrow of a temporary
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
+  --> main.kg:56:13
+   |
+56 |         let inner = "in${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+   |             ^^^^^
+
+error[E2198]: `inner` is borrowed and cannot be mutated here
+  --> main.kg:56:13
+   |
+56 |         let inner = "in${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+   |             ^^^^^
+   = help: end the borrow first or use a copy
+note: `inner` is borrowed here
+  --> main.kg:57:34
+   |
+57 |         let w = W { v: View { s: &inner } }
+   |                                  ^^^^^^
+
+error[E2235]: `b` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:97:5
+   |
+97 |     b.addRef(&mkStr(1)) //~ ERROR `b` keeps a borrow of a temporary
+   |     ^^^^^^^^^^^^^^^^^
+
+error[E2235]: `xs` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+   --> main.kg:104:5
+    |
+104 |     mintTo(&mut xs, &mkStr(1)) //~ ERROR `xs` keeps a borrow of a temporary
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+

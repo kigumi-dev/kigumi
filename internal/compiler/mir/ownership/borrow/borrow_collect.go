@@ -80,7 +80,7 @@ func (c *borrowCheck) collectInst(in midir.Inst) bool {
 		}
 		root, path, exact, ok := c.patternPlace(in.Args[0])
 		if ok {
-			ref := ownerRef{owner: root, mut: in.Index == 1, path: path, exact: exact, lifetime: c.projectionLifetime(root, in.Args[0])}
+			ref := c.endedOwner(ownerRef{owner: root, mut: in.Index == 1, path: path, exact: exact, lifetime: c.projectionLifetime(root, in.Args[0])}, in.Args[0])
 			b := &borrowInfo{owners: []ownerRef{ref}, hasOwner: true, node: in.Node}
 			mergeInto(b, c.throughRef(root, path, exact, in.Index == 1))
 			return set(b, true)
@@ -93,6 +93,7 @@ func (c *borrowCheck) collectInst(in midir.Inst) bool {
 			// against, but still has to reject escape like any other.
 			return set(&borrowInfo{node: in.Node, fromStatic: true}, true)
 		}
+		return set(c.joinedRefBorrow(in))
 	case midir.OpCopy, midir.OpMove:
 		src, ok := c.holders[in.Args[0]]
 		if ok && c.widens(in.Dst) {

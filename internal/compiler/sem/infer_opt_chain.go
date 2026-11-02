@@ -44,6 +44,7 @@ func (c *checker) synthOptChain(n, o syntax.NodeID) TypeID {
 
 func (c *checker) optChainOn(n, o syntax.NodeID, base TypeID) TypeID {
 	baseNode := c.t.View(o).AsOptMember().Base().ID()
+	c.rejectJoinBase(baseNode)
 	through := false
 	if bn := c.r.Types.Node(base); bn.Kind == KRef {
 		if _, isOpt := c.r.Types.IsOption(c.vars.resolve(bn.Elem)); isOpt {
@@ -57,7 +58,7 @@ func (c *checker) optChainOn(n, o syntax.NodeID, base TypeID) TypeID {
 		}
 		return TyPoison
 	}
-	byRef := through || c.isPlace(baseNode) && !c.r.isCopy(elem)
+	byRef := through || (c.isPlace(baseNode) || c.pathMode(baseNode).borrowed()) && !c.r.isCopy(elem)
 	holeType := elem
 	if byRef {
 		holeType = c.r.Types.Ref(elem, false)
@@ -137,7 +138,7 @@ func (c *checker) rejectOptFieldValue(n, baseNode syntax.NodeID, field string, t
 	if c.indexRooted(baseNode) || c.info.Uses[n] == 0 || c.r.Entities[c.info.Uses[n]].Kind != EntField || c.r.isCopy(t) {
 		return false
 	}
-	name := c.placeName(baseNode) + "?." + field
+	name := c.takeName(baseNode) + "?." + field
 	c.errAtHelp(n, "match on the option and `move` the field out of the payload, or call a method that returns what you need", cFieldValueMove, name, t, name, name)
 	return true
 }

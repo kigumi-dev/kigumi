@@ -12,8 +12,12 @@ type Outer = {
     pub n Int
 }
 
-fn Outer.steal(self) -> Inner {
-    self.inner
+fn keep(o: Outer) -> Outer {
+    o
+}
+
+fn Outer.steal(self) -> Outer {
+    keep(self)
 }
 
 fn Outer.count(self) -> Int {
@@ -32,10 +36,17 @@ fn lib.Inner.drop(%self: Inner) -> Void {
     %t2 = unit
     return %t2
 }
-fn lib.Outer.steal(%self: Outer) -> Inner {
+fn lib.keep(%o: Outer) -> Outer {
   b0:
-    %t1 = field 0(%self)
+    %t1 = move(%o)
+    nop
     return %t1
+}
+fn lib.Outer.steal(%self: Outer) -> Outer {
+  b0:
+    %t1 = move(%self)
+    %t2 = call lib.keep(%t1)
+    return %t2
 }
 fn lib.Outer.count(%self: Outer) -> Int {
   b0:
@@ -48,9 +59,9 @@ fn lib.peek(%o: &Outer) -> Int {
     %t2 = field 0(%t1)
     return %t2
 }
-error[move-from-borrow]: a value borrowed here cannot be moved out
-  --> lib/field.kg:15:5
+error[move-from-borrow]: `self` is borrowed by this method and cannot be moved out; take `move self`
+  --> lib/field.kg:19:10
    |
-15 |     self.inner
-   |     ^^^^^^^^^^
+19 |     keep(self)
+   |          ^^^^
 

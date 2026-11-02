@@ -1,0 +1,58 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type Cell = {
+    pub v Res
+    pub o Res?
+}
+
+type Holder = {
+    pub xs Array[Cell]
+    pub o Res?
+}
+
+fn Holder.viaIndex(self, y: Res) -> Res {
+    self.xs[0].o || y //~ ERROR reading `Res?` out of an index by value needs `Copy`
+}
+
+fn Holder.viaSelf(self, y: Res) -> Res {
+    self.o || y //~ ERROR reading `self.o` by value
+}
+
+fn viaCapture(o: Res?, q: Res?) -> Res {
+    o.unwrapOrElse(() => q || mk(0)) //~ ERROR reading `q` by value
+}
+
+fn viaMoveClosure(o: Res?, q: Res?) -> Res {
+    o.unwrapOrElse(move () => q || mk(0))
+}
+-- expect --
+error[E1050]: reading `Res?` out of an index by value needs `Copy`
+  --> main/main.kg:22:5
+   |
+22 |     self.xs[0].o || y //~ ERROR reading `Res?` out of an index by value needs `Copy`
+   |     ^^^^^^^^^^^^
+   = help: borrow it with `&`, or take it with `.takeAt`
+
+error[E2153]: reading `self.o` by value would copy a `Res?`, which is not `Copy`
+  --> main/main.kg:26:5
+   |
+26 |     self.o || y //~ ERROR reading `self.o` by value
+   |     ^^^^^^
+   = help: `self.o` is reached through a borrow, so its payload cannot be taken out; match on it to borrow the payload instead
+
+error[E2153]: reading `q` by value would copy a `Res?`, which is not `Copy`
+  --> main/main.kg:30:26
+   |
+30 |     o.unwrapOrElse(() => q || mk(0)) //~ ERROR reading `q` by value
+   |                          ^
+   = help: `q` is lent to this closure; write `move` before the closure to give it `q`, for a callee that takes an `FnOnce`
+

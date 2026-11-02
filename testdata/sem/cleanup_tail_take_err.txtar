@@ -1,0 +1,53 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+type Pair = {
+    pub a Res
+    pub b Res
+}
+
+fn implicitOr(p: Pair, o: Res?) -> Res {
+    defer { print "defer ${p.a.id}" } //~ ERROR a cleanup reads `p.a`
+    o || p.a
+}
+
+fn implicitTail(p: Pair) -> Res {
+    defer { print "defer ${p.a.id}" } //~ ERROR a cleanup reads `p.a`
+    p.a
+}
+
+fn implicitIf(p: Pair, c: Bool, y: Res) -> Res {
+    defer { print "defer ${p.a.id}" } //~ ERROR a cleanup reads `p.a`
+    if c { p.a } else { y }
+}
+
+fn otherField(p: Pair, o: Res?) -> Res {
+    defer { print "defer ${p.b.id}" }
+    o || p.a
+}
+-- expect --
+error[E2103]: a cleanup reads `p.a`, which can already be moved when the cleanup runs
+  --> main/main.kg:13:28
+   |
+13 |     defer { print "defer ${p.a.id}" } //~ ERROR a cleanup reads `p.a`
+   |                            ^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+
+error[E2103]: a cleanup reads `p.a`, which can already be moved when the cleanup runs
+  --> main/main.kg:18:28
+   |
+18 |     defer { print "defer ${p.a.id}" } //~ ERROR a cleanup reads `p.a`
+   |                            ^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+
+error[E2103]: a cleanup reads `p.a`, which can already be moved when the cleanup runs
+  --> main/main.kg:23:28
+   |
+23 |     defer { print "defer ${p.a.id}" } //~ ERROR a cleanup reads `p.a`
+   |                            ^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+

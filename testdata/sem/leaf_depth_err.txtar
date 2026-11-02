@@ -1,0 +1,218 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+fn eat(r: Res) {}
+
+type Guard = resource {
+    pub a Res
+}
+
+fn Guard.drop(move self) {}
+
+fn mkg(i: Int) -> Guard {
+    Guard { a: mk(i) }
+}
+
+type Cell = {
+    pub v Res
+}
+
+fn pick(k: Int, y: Res) -> Res {
+    if k == 0 {
+        y
+    } else if k == 1 {
+        y
+    } else if k == 2 {
+        y
+    } else if k == 3 {
+        y
+    } else if k == 4 {
+        y
+    } else if k == 5 {
+        y
+    } else if k == 6 {
+        y
+    } else if k == 7 {
+        y
+    } else if k == 8 {
+        y
+    } else if k == 9 {
+        y
+    } else if k == 10 {
+        y
+    } else if k == 11 {
+        y
+    } else if k == 12 {
+        y
+    } else if k == 13 {
+        y
+    } else if k == 14 {
+        y
+    } else {
+        mkg(k).a //~ ERROR cannot move `mkg(k).a` out of `Guard`
+    }
+}
+
+fn pick40(k: Int, y: Res) -> Res {
+    if k == 0 {
+        y
+    } else if k == 1 {
+        y
+    } else if k == 2 {
+        y
+    } else if k == 3 {
+        y
+    } else if k == 4 {
+        y
+    } else if k == 5 {
+        y
+    } else if k == 6 {
+        y
+    } else if k == 7 {
+        y
+    } else if k == 8 {
+        y
+    } else if k == 9 {
+        y
+    } else if k == 10 {
+        y
+    } else if k == 11 {
+        y
+    } else if k == 12 {
+        y
+    } else if k == 13 {
+        y
+    } else if k == 14 {
+        y
+    } else if k == 15 {
+        y
+    } else if k == 16 {
+        y
+    } else if k == 17 {
+        y
+    } else if k == 18 {
+        y
+    } else if k == 19 {
+        y
+    } else if k == 20 {
+        y
+    } else if k == 21 {
+        y
+    } else if k == 22 {
+        y
+    } else if k == 23 {
+        y
+    } else if k == 24 {
+        y
+    } else if k == 25 {
+        y
+    } else if k == 26 {
+        y
+    } else if k == 27 {
+        y
+    } else if k == 28 {
+        y
+    } else if k == 29 {
+        y
+    } else if k == 30 {
+        y
+    } else if k == 31 {
+        y
+    } else if k == 32 {
+        y
+    } else if k == 33 {
+        y
+    } else if k == 34 {
+        y
+    } else if k == 35 {
+        y
+    } else if k == 36 {
+        y
+    } else if k == 37 {
+        y
+    } else if k == 38 {
+        y
+    } else if k == 39 {
+        y
+    } else {
+        mkg(k).a //~ ERROR cannot move `mkg(k).a` out of `Guard`
+    }
+}
+
+fn deep() -> Res {
+    ((((((((((((((((((((((((((((((((((((((((mkg(6).a)))))))))))))))))))))))))))))))))))))))) //~ ERROR cannot move `mkg(6).a` out of `Guard`
+}
+
+fn deepOwned(k: Int, c: Cell, y: Res) -> Res {
+    let r = if k == 0 {
+        y
+    } else if k == 1 {
+        y
+    } else if k == 2 {
+        y
+    } else if k == 3 {
+        y
+    } else if k == 4 {
+        y
+    } else if k == 5 {
+        y
+    } else if k == 6 {
+        y
+    } else if k == 7 {
+        y
+    } else if k == 8 {
+        y
+    } else if k == 9 {
+        y
+    } else if k == 10 {
+        y
+    } else if k == 11 {
+        y
+    } else if k == 12 {
+        y
+    } else if k == 13 {
+        y
+    } else if k == 14 {
+        y
+    } else {
+        c.v //~ ERROR reading `c.v` by value
+    }
+    r
+}
+-- expect --
+error[E1021]: cannot move `mkg(k).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:59:9
+   |
+59 |         mkg(k).a //~ ERROR cannot move `mkg(k).a` out of `Guard`
+   |         ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(k).a` instead
+
+error[E1021]: cannot move `mkg(k).a` out of `Guard`, which defines a custom `drop`
+   --> main/main.kg:145:9
+    |
+145 |         mkg(k).a //~ ERROR cannot move `mkg(k).a` out of `Guard`
+    |         ^^^^^^^^
+    = help: add a `take`-style method that returns `mkg(k).a` instead
+
+error[E1021]: cannot move `mkg(6).a` out of `Guard`, which defines a custom `drop`
+   --> main/main.kg:150:45
+    |
+150 |     ((((((((((((((((((((((((((((((((((((((((mkg(6).a)))))))))))))))))))))))))))))))))))))))) //~ ERROR cannot move `mkg(6).a` out of `Guard`
+    |                                             ^^^^^^^^
+    = help: add a `take`-style method that returns `mkg(6).a` instead
+
+error[E2153]: reading `c.v` by value would copy a `Res`, which is not `Copy`
+   --> main/main.kg:185:9
+    |
+185 |         c.v //~ ERROR reading `c.v` by value
+    |         ^^^
+    = help: write `move c.v` to take it out, or borrow it with `&c.v`
+

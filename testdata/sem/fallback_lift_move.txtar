@@ -1,0 +1,62 @@
+-- module --
+mir: planned
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn eat[T](v: T) {}
+
+fn pick[T](o: T?, x: T?) -> T? {
+    o || x
+}
+
+fn pickRes(o: Res?, x: Res?) -> Res? {
+    let r: Res? = o || x
+    r
+}
+
+fn pickNone[T](o: T?) -> T? {
+    o || None
+}
+
+fn hitThenUse[T](o: T?, x: T?) -> T? {
+    let r: T? = o || x
+    eat(o) //~ ERROR `o` was moved
+    r
+}
+
+fn missThenUse[T](o: T?, x: T?) -> T? {
+    let r: T? = o || x
+    eat(x) //~ ERROR `x` is moved on some paths but not others
+    r
+}
+
+fn liftTwice[T](o: T?, x: T?) -> T? {
+    let a: T? = o || None
+    eat(a)
+    o || x //~ ERROR `o` was moved
+}
+-- expect --
+error[E2197]: `o` was moved; it cannot be used again
+  --> main.kg:24:9
+   |
+24 |     eat(o) //~ ERROR `o` was moved
+   |         ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
+
+error[move-join-mismatch]: `x` is moved on some paths but not others
+  --> main.kg:30:9
+   |
+30 |     eat(x) //~ ERROR `x` is moved on some paths but not others
+   |         ^
+
+error[E2197]: `o` was moved; it cannot be used again
+  --> main.kg:37:5
+   |
+37 |     o || x //~ ERROR `o` was moved
+   |     ^^^^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
+

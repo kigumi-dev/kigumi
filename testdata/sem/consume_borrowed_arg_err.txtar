@@ -1,0 +1,114 @@
+-- src --
+import {Box} from std/alloc
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+type Cell = {
+    pub v Res
+}
+
+fn Cell.take(move self) -> Res {
+    self.v
+}
+
+type H = {
+    pub b Box[Cell]
+    pub c Cell
+    pub oc Cell?
+}
+
+fn eat(r: Res) {}
+
+fn intoRef(h: &H) -> Cell {
+    h.b.into() //~ ERROR reading `h.b` by value
+}
+
+fn intoFallback(h: &H, o: Res?) -> Res {
+    o || h.b.into().v //~ ERROR reading `h.b` by value
+}
+
+fn intoLet(h: &H, o: Res?) -> Res {
+    let c = h.b.into() //~ ERROR reading `h.b` by value
+    o || move c.v
+}
+
+fn H.intoSelf(self) -> Cell {
+    self.b.into() //~ ERROR reading `self.b` by value
+}
+
+fn userMoveSelf(h: &H) -> Res {
+    h.c.take() //~ ERROR reading `h.c` by value
+}
+
+fn stdMoveSelf(h: &H) -> Cell {
+    h.oc.unwrap() //~ ERROR reading `h.oc` by value
+}
+
+fn userArg(h: &H) {
+    eat(h.c.v) //~ ERROR reading `h.c.v` by value
+}
+
+fn primitiveArg(h: &H, mut xs: Array[Res]) {
+    xs.push(h.c.v) //~ ERROR reading `h.c.v` by value
+}
+-- expect --
+error[E2153]: reading `h.b` by value would copy a `Box[Cell]`, which is not `Copy`
+  --> main/main.kg:26:5
+   |
+26 |     h.b.into() //~ ERROR reading `h.b` by value
+   |     ^^^
+   = help: `h.b` is reached through a borrow, so it cannot be handed over by value; pass a value the caller owns
+
+error[E2153]: reading `h.b` by value would copy a `Box[Cell]`, which is not `Copy`
+  --> main/main.kg:30:10
+   |
+30 |     o || h.b.into().v //~ ERROR reading `h.b` by value
+   |          ^^^
+   = help: `h.b` is reached through a borrow, so it cannot be handed over by value; pass a value the caller owns
+
+error[E2153]: reading `h.b` by value would copy a `Box[Cell]`, which is not `Copy`
+  --> main/main.kg:34:13
+   |
+34 |     let c = h.b.into() //~ ERROR reading `h.b` by value
+   |             ^^^
+   = help: `h.b` is reached through a borrow, so it cannot be handed over by value; pass a value the caller owns
+
+error[E2153]: reading `self.b` by value would copy a `Box[Cell]`, which is not `Copy`
+  --> main/main.kg:39:5
+   |
+39 |     self.b.into() //~ ERROR reading `self.b` by value
+   |     ^^^^^^
+   = help: `self.b` is reached through a borrow, so it cannot be handed over by value; pass a value the caller owns
+
+error[E2153]: reading `h.c` by value would copy a `Cell`, which is not `Copy`
+  --> main/main.kg:43:5
+   |
+43 |     h.c.take() //~ ERROR reading `h.c` by value
+   |     ^^^
+   = help: `h.c` is reached through a borrow, so it cannot be handed over by value; pass a value the caller owns
+
+error[E2153]: reading `h.oc` by value would copy a `Cell?`, which is not `Copy`
+  --> main/main.kg:47:5
+   |
+47 |     h.oc.unwrap() //~ ERROR reading `h.oc` by value
+   |     ^^^^
+   = help: `h.oc` is reached through a borrow, so it cannot be handed over by value; pass a value the caller owns
+
+error[E2153]: reading `h.c.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:51:9
+   |
+51 |     eat(h.c.v) //~ ERROR reading `h.c.v` by value
+   |         ^^^^^
+   = help: `h.c.v` is reached through a borrow, so it cannot be handed over by value; pass a value the caller owns
+
+error[E2153]: reading `h.c.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:55:13
+   |
+55 |     xs.push(h.c.v) //~ ERROR reading `h.c.v` by value
+   |             ^^^^^
+   = help: `h.c.v` is reached through a borrow, so it cannot be handed over by value; pass a value the caller owns
+

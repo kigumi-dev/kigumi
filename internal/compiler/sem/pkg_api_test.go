@@ -41,7 +41,7 @@ func TestPackageAPIStability(t *testing.T) {
     pub value T
 }
 
-pub fn Box[T].get(self) -> T {
+pub fn Box[T: Copy].get(self) -> T {
     self.value
 }
 
@@ -57,10 +57,10 @@ pub const Limit: Int = 10
 `
 	want := libAPI(t, base)
 	same := map[string]string{
-		"private body":       "pub type Box[T] = {\n    pub value T\n}\n\npub fn Box[T].get(self) -> T {\n    self.value\n}\n\npub fn double(x: Int) -> Int {\n    helper(x) * 2\n}\n\nfn helper(x: Int) -> Int {\n    x + 0\n}\n\npub const Limit: Int = 10\n",
+		"private body":       "pub type Box[T] = {\n    pub value T\n}\n\npub fn Box[T: Copy].get(self) -> T {\n    self.value\n}\n\npub fn double(x: Int) -> Int {\n    helper(x) * 2\n}\n\nfn helper(x: Int) -> Int {\n    x + 0\n}\n\npub const Limit: Int = 10\n",
 		"private addition":   base + "\nfn unused() -> Int {\n    3\n}\n",
-		"non-generic body":   "pub type Box[T] = {\n    pub value T\n}\n\npub fn Box[T].get(self) -> T {\n    self.value\n}\n\npub fn double(x: Int) -> Int {\n    let y = helper(x)\n    y * 2\n}\n\nfn helper(x: Int) -> Int {\n    x\n}\n\npub const Limit: Int = 10\n",
-		"generic body space": "pub type Box[T] = {\n    pub value T\n}\n\npub fn Box[T].get(self) -> T {\n    // read it\n    self.value\n}\n\npub fn double(x: Int) -> Int {\n    helper(x) * 2\n}\n\nfn helper(x: Int) -> Int {\n    x\n}\n\npub const Limit: Int = 10\n",
+		"non-generic body":   "pub type Box[T] = {\n    pub value T\n}\n\npub fn Box[T: Copy].get(self) -> T {\n    self.value\n}\n\npub fn double(x: Int) -> Int {\n    let y = helper(x)\n    y * 2\n}\n\nfn helper(x: Int) -> Int {\n    x\n}\n\npub const Limit: Int = 10\n",
+		"generic body space": "pub type Box[T] = {\n    pub value T\n}\n\npub fn Box[T: Copy].get(self) -> T {\n    // read it\n    self.value\n}\n\npub fn double(x: Int) -> Int {\n    helper(x) * 2\n}\n\nfn helper(x: Int) -> Int {\n    x\n}\n\npub const Limit: Int = 10\n",
 	}
 	for name, src := range same {
 		if got := libAPI(t, src); got != want {
@@ -68,12 +68,12 @@ pub const Limit: Int = 10
 		}
 	}
 	differs := map[string]string{
-		"signature":          "pub type Box[T] = {\n    pub value T\n}\n\npub fn Box[T].get(self) -> T {\n    self.value\n}\n\npub fn double(x: Int, y: Int) -> Int {\n    helper(x) * y\n}\n\nfn helper(x: Int) -> Int {\n    x\n}\n\npub const Limit: Int = 10\n",
-		"const value":        "pub type Box[T] = {\n    pub value T\n}\n\npub fn Box[T].get(self) -> T {\n    self.value\n}\n\npub fn double(x: Int) -> Int {\n    helper(x) * 2\n}\n\nfn helper(x: Int) -> Int {\n    x\n}\n\npub const Limit: Int = 11\n",
-		"generic body":       "pub type Box[T] = {\n    pub value T\n}\n\npub fn Box[T].get(self) -> T {\n    (self.value)\n}\n\npub fn double(x: Int) -> Int {\n    helper(x) * 2\n}\n\nfn helper(x: Int) -> Int {\n    x\n}\n\npub const Limit: Int = 10\n",
-		"private field":      "pub type Box[T] = {\n    pub value T\n    count Int\n}\n\npub fn Box[T].get(self) -> T {\n    self.value\n}\n\npub fn double(x: Int) -> Int {\n    helper(x) * 2\n}\n\nfn helper(x: Int) -> Int {\n    x\n}\n\npub const Limit: Int = 10\n",
+		"signature":          "pub type Box[T] = {\n    pub value T\n}\n\npub fn Box[T: Copy].get(self) -> T {\n    self.value\n}\n\npub fn double(x: Int, y: Int) -> Int {\n    helper(x) * y\n}\n\nfn helper(x: Int) -> Int {\n    x\n}\n\npub const Limit: Int = 10\n",
+		"const value":        "pub type Box[T] = {\n    pub value T\n}\n\npub fn Box[T: Copy].get(self) -> T {\n    self.value\n}\n\npub fn double(x: Int) -> Int {\n    helper(x) * 2\n}\n\nfn helper(x: Int) -> Int {\n    x\n}\n\npub const Limit: Int = 11\n",
+		"generic body":       "pub type Box[T] = {\n    pub value T\n}\n\npub fn Box[T: Copy].get(self) -> T {\n    (self.value)\n}\n\npub fn double(x: Int) -> Int {\n    helper(x) * 2\n}\n\nfn helper(x: Int) -> Int {\n    x\n}\n\npub const Limit: Int = 10\n",
+		"private field":      "pub type Box[T] = {\n    pub value T\n    count Int\n}\n\npub fn Box[T: Copy].get(self) -> T {\n    self.value\n}\n\npub fn double(x: Int) -> Int {\n    helper(x) * 2\n}\n\nfn helper(x: Int) -> Int {\n    x\n}\n\npub const Limit: Int = 10\n",
 		"new public item":    base + "\npub fn extra() -> Int {\n    1\n}\n",
-		"visibility removed": "pub type Box[T] = {\n    pub value T\n}\n\npub fn Box[T].get(self) -> T {\n    self.value\n}\n\npub fn double(x: Int) -> Int {\n    helper(x) * 2\n}\n\nfn helper(x: Int) -> Int {\n    x\n}\n\nconst Limit: Int = 10\n",
+		"visibility removed": "pub type Box[T] = {\n    pub value T\n}\n\npub fn Box[T: Copy].get(self) -> T {\n    self.value\n}\n\npub fn double(x: Int) -> Int {\n    helper(x) * 2\n}\n\nfn helper(x: Int) -> Int {\n    x\n}\n\nconst Limit: Int = 10\n",
 	}
 	for name, src := range differs {
 		if got := libAPI(t, src); got == want {

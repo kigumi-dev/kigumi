@@ -1,0 +1,84 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type Guard = resource {
+    pub a Res
+    pub n Int
+}
+
+fn Guard.drop(move self) {}
+
+fn mkg(i: Int) -> Guard {
+    Guard { a: mk(i), n: i }
+}
+
+type Id = Res
+
+type W = {
+    pub id Id
+}
+
+fn tempDrop(o: Res?) -> Res {
+    o || move mkg(1).a //~ ERROR cannot move `mkg(1).a` out of `Guard`
+}
+
+fn ownerDrop(g: Guard) -> Res {
+    move g.a //~ ERROR cannot move `g.a` out of `Guard`
+}
+
+fn ownerDropFallback(g: Guard, o: Res?) -> Res {
+    let r = o || g.a //~ ERROR cannot move `g.a` out of `Guard`
+    r
+}
+
+fn ownerDropLet(g: Guard) -> Res {
+    let r = g.a //~ ERROR cannot move `g.a` out of `Guard`
+    r
+}
+
+fn valueThroughRef(x: &W) -> Res {
+    move x.id.value //~ ERROR cannot move `Res` out of a borrow
+}
+-- expect --
+error[E1021]: cannot move `mkg(1).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:29:15
+   |
+29 |     o || move mkg(1).a //~ ERROR cannot move `mkg(1).a` out of `Guard`
+   |               ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(1).a` instead
+
+error[E1021]: cannot move `g.a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:33:10
+   |
+33 |     move g.a //~ ERROR cannot move `g.a` out of `Guard`
+   |          ^^^
+   = help: add a `take`-style method that returns `g.a` instead
+
+error[E1021]: cannot move `g.a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:37:18
+   |
+37 |     let r = o || g.a //~ ERROR cannot move `g.a` out of `Guard`
+   |                  ^^^
+   = help: add a `take`-style method that returns `g.a` instead
+
+error[E1021]: cannot move `g.a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:42:13
+   |
+42 |     let r = g.a //~ ERROR cannot move `g.a` out of `Guard`
+   |             ^^^
+   = help: add a `take`-style method that returns `g.a` instead
+
+error[E517]: cannot move `Res` out of a borrow
+  --> main/main.kg:47:10
+   |
+47 |     move x.id.value //~ ERROR cannot move `Res` out of a borrow
+   |          ^^^^^^^^^^
+

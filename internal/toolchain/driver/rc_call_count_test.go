@@ -23,14 +23,14 @@ var rcCallSites = map[string]*regexp.Regexp{
 
 // Call sites of the count and cell runtime calls in the IR of every native run fixture, std included.
 var pinnedRCCalls = map[string]int{
-	"fixtures":         953,
-	"rt_retain":        9563,
-	"rt_release":       70973,
-	"rt_release_outer": 28206,
-	"rt_drop":          42377,
-	"rt_cell_init":     5954,
+	"fixtures":         965,
+	"rt_retain":        9612,
+	"rt_release":       71116,
+	"rt_release_outer": 28666,
+	"rt_drop":          42449,
+	"rt_cell_init":     5961,
 	"rt_cell_take":     2406,
-	"rt_setfield_swap": 559,
+	"rt_setfield_swap": 560,
 	"rt_setindex_swap": 106,
 }
 
@@ -474,6 +474,18 @@ var addedAfterBaseline = map[string]bool{
 	"fn_ref_value_alias_graph.txtar":                true,
 	"fn_ref_value_hole_closure.txtar":               true,
 	"fn_ref_value_explicit.txtar":                   true,
+	"fallback_move_copy.txtar":                      true,
+	"fallback_move_owned.txtar":                     true,
+	"field_owned_take.txtar":                        true,
+	"fallback_lift_move.txtar":                      true,
+	"fallback_branch_witness.txtar":                 true,
+	"field_owned_path.txtar":                        true,
+	"move_value_temp.txtar":                         true,
+	"field_temp_owned.txtar":                        true,
+	"for_borrow_temp_field.txtar":                   true,
+	"for_borrow_temp_root.txtar":                    true,
+	"loop_break_join_ok.txtar":                      true,
+	"join_borrow_ok.txtar":                          true,
 }
 
 func TestRCCallCounts(t *testing.T) {

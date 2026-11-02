@@ -1,0 +1,88 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+fn eat(r: Res) {}
+
+type Guard = resource {
+    pub a Res
+}
+
+fn Guard.drop(move self) {}
+
+fn mkg(i: Int) -> Guard {
+    Guard { a: mk(i) }
+}
+
+type Cell = {
+    pub v Res
+}
+
+fn viaHandler(r: Result[Int, Int]) -> Res {
+    for {
+        let n = r || (e) => break mkg(e).a //~ ERROR cannot move `mkg(e).a` out of `Guard`
+        break mk(n)
+    }
+}
+
+fn viaCondHead(c: Bool) -> Res {
+    for {
+        for (if c { break mkg(2).a } else { false }) { //~ ERROR cannot move `mkg(2).a` out of `Guard`
+            eat(mk(1))
+        }
+        break mk(0)
+    }
+}
+
+fn viaInHead(c: Bool) -> Res {
+    for {
+        for x in (if c { break mkg(3).a } else { Array.of(1) }) { //~ ERROR cannot move `mkg(3).a` out of `Guard`
+            eat(mk(x))
+        }
+        break mk(0)
+    }
+}
+
+fn ownedHandler(c: Cell, r: Result[Int, Int]) -> Res {
+    let x = for {
+        let n = r || (e) => break c.v //~ ERROR reading `c.v` by value
+        break mk(n)
+    }
+    x
+}
+-- expect --
+error[E1021]: cannot move `mkg(e).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:29:35
+   |
+29 |         let n = r || (e) => break mkg(e).a //~ ERROR cannot move `mkg(e).a` out of `Guard`
+   |                                   ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(e).a` instead
+
+error[E1021]: cannot move `mkg(2).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:36:27
+   |
+36 |         for (if c { break mkg(2).a } else { false }) { //~ ERROR cannot move `mkg(2).a` out of `Guard`
+   |                           ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(2).a` instead
+
+error[E1021]: cannot move `mkg(3).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:45:32
+   |
+45 |         for x in (if c { break mkg(3).a } else { Array.of(1) }) { //~ ERROR cannot move `mkg(3).a` out of `Guard`
+   |                                ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(3).a` instead
+
+error[E2153]: reading `c.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:54:35
+   |
+54 |         let n = r || (e) => break c.v //~ ERROR reading `c.v` by value
+   |                                   ^^^
+   = help: write `move c.v` to take it out, or borrow it with `&c.v`
+

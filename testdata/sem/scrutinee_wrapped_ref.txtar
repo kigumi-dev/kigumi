@@ -1,0 +1,62 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn Res.close(move self) {}
+
+type Holder = {
+    pub o Res?
+}
+
+type H['a] = {
+    pub r &'a Holder
+}
+
+fn me(h: &Holder) -> &Holder {
+    h
+}
+
+fn linkUnsafe['a](h: H['a]) {
+    if let Some(r) = unsafe { h.r.o } {
+        r.close() //~ ERROR cannot move `Res` out of a borrow
+    }
+}
+
+fn linkIf['a](h: H['a], c: Bool) {
+    if (if c { h.r.o } else { None }) is Some(r) {
+        r.close() //~ ERROR cannot move `Res` out of a borrow
+    }
+}
+
+fn callUnsafe(h: &Holder) {
+    match unsafe { me(h).o } {
+        Some(r) -> r.close() //~ ERROR cannot move `Res` out of a borrow
+        None -> {}
+    }
+}
+
+fn linkRead['a](h: H['a]) -> Int {
+    if let Some(r) = unsafe { h.r.o } { r.id } else { 0 }
+}
+-- expect --
+error[E517]: cannot move `Res` out of a borrow
+  --> main/main.kg:23:9
+   |
+23 |         r.close() //~ ERROR cannot move `Res` out of a borrow
+   |         ^
+
+error[E517]: cannot move `Res` out of a borrow
+  --> main/main.kg:29:9
+   |
+29 |         r.close() //~ ERROR cannot move `Res` out of a borrow
+   |         ^
+
+error[E517]: cannot move `Res` out of a borrow
+  --> main/main.kg:35:20
+   |
+35 |         Some(r) -> r.close() //~ ERROR cannot move `Res` out of a borrow
+   |                    ^
+

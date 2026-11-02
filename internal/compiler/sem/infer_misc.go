@@ -137,6 +137,7 @@ func (c *checker) synthContract(n syntax.NodeID, want TypeID) TypeID {
 func (c *checker) synthOptMember(n syntax.NodeID) TypeID {
 	member := c.t.View(n).AsOptMember()
 	base := c.vars.resolve(c.synthPlace(member.Base().ID()))
+	c.rejectJoinBase(member.Base().ID())
 	if bn := c.r.Types.Node(base); bn.Kind == KRef {
 		if _, isOpt := c.r.Types.IsOption(c.vars.resolve(bn.Elem)); isOpt {
 			return c.optChainOn(n, n, base)
@@ -153,7 +154,7 @@ func (c *checker) synthOptMember(n syntax.NodeID) TypeID {
 	if t == TyPoison {
 		return TyPoison
 	}
-	if c.isPlace(member.Base().ID()) && !c.r.isCopy(elem) && c.rejectOptFieldValue(n, member.Base().ID(), member.Member().Text(), t) {
+	if (c.isPlace(member.Base().ID()) || c.pathMode(member.Base().ID()).borrowed()) && !c.r.isCopy(elem) && c.rejectOptFieldValue(n, member.Base().ID(), member.Member().Text(), t) {
 		return TyPoison
 	}
 	c.buildEdge(n, c.r.Types.Option(t))

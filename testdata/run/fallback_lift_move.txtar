@@ -1,0 +1,48 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+fn pick[T](o: T?, x: T?) -> T? {
+    o || x
+}
+
+fn pickRes(o: Res?, x: Res?) -> Res? {
+    let r: Res? = o || x
+    r
+}
+
+fn show(r: Res?) {
+    match r {
+        Some(v) -> print "got ${v.id}"
+        None -> print "none"
+    }
+}
+
+print "${pick(Some(1), None) || 0} ${pick(None, Some(2)) || 0} ${pick[Int](None, None) || 0}"
+print "${pick(Some("a"), Some("b")) || ""}"
+show(pick(Some(mk(3)), Some(mk(4))))
+show(pick(None, Some(mk(5))))
+show(pickRes(Some(mk(6)), None))
+show(pickRes(None, None))
+print "done"
+-- stdout --
+1 2 0
+a
+drop 4
+got 3
+drop 3
+got 5
+drop 5
+got 6
+drop 6
+none
+done

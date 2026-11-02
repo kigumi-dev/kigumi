@@ -12,7 +12,7 @@ func (c *checker) noteClosureResult(call syntax.NodeID, closure EntityID) {
 		return
 	}
 	res := c.r.callResultEnt(c.f, call, closure)
-	for _, leaf := range c.tailLeaves(c.t.View(ent.Node).AsLambda().Body().ID(), 0) {
+	for _, leaf := range c.tailLeaves(c.t.View(ent.Node).AsLambda().Body().ID()) {
 		if lit := c.stripParen(leaf); c.t.Kind(lit) == syntax.RecordLit {
 			c.recordKnownFieldFns(lit, res)
 		} else if src := c.r.fnChainEnt(c.f, leaf); src != 0 && c.r.concretePlace(src) {

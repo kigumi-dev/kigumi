@@ -21,7 +21,7 @@ func (a *owner) checkDropOwner(n syntax.NodeID, l midir.LocalID, report bool) {
 		if !a.pl.payloadStep(c) {
 			t := a.f.Locals[par].Type
 			if node := a.p.R.Types.Node(t); node.Kind == sem.KNamed && node.Ent != 0 && a.p.R.Entity(node.Ent).Kind == sem.EntType {
-				if d := a.p.R.TypeDecl(node.Ent).Drop; d != 0 && d != a.f.Ent {
+				if d := a.p.R.TypeDecl(node.Ent).Drop; d != 0 && !(d == a.f.Ent && a.dropSelfRoot(par)) {
 					c, _ := sem.CodeByName("move-drop-type")
 					name := a.ownerName(l)
 					msg, help := sem.FillCode(c, name, a.p.R.TypeString(t), name)
@@ -51,4 +51,17 @@ func (pl *places) payloadStep(l midir.LocalID) bool {
 	k := pl.key[l]
 	i := strings.LastIndexByte(k, '.')
 	return i >= 0 && strings.HasPrefix(k[i+1:], "p")
+}
+
+// dropSelfRoot: place l is rooted at the `self` of the destructor being lowered, the one value whose
+// own fields that destructor takes apart.
+func (a *owner) dropSelfRoot(l midir.LocalID) bool {
+	for {
+		par, ok := a.pl.parent[l]
+		if !ok {
+			break
+		}
+		l = par
+	}
+	return len(a.f.Params) > 0 && l == a.f.Params[0]
 }

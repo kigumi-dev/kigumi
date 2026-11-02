@@ -1,0 +1,146 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+fn eat(r: Res) {
+    print "eat ${r.id}"
+}
+
+type Cell = {
+    pub v Res
+    pub o Res?
+}
+
+fn cell(v: Int, o: Int?) -> Cell {
+    Cell { v: mk(v), o: if o is Some(i) { Some(mk(i)) } else { None } }
+}
+
+type Pair = {
+    pub c Cell
+    pub n Int
+}
+
+fn pair(v: Int) -> Pair {
+    Pair { c: cell(v, Some(v + 1)), n: v }
+}
+
+type Maker = {
+    pub n Int
+}
+
+fn Maker.cell(self) -> Cell {
+    cell(self.n, None)
+}
+
+type Guard = resource {
+    pub a Res
+    pub n Int
+}
+
+fn Guard.drop(move self) {
+    print "guard drop ${self.n}"
+    let Guard { a, n } = self
+    eat(a)
+}
+
+fn mkg(i: Int) -> Guard {
+    Guard { a: mk(i), n: i }
+}
+
+type H = {
+    pub mut r Res
+}
+
+fn H.swap(mut self, n: Int) {
+    eat(move self.r)
+    self.r = mk(n)
+}
+
+fn fallback(o: Res?) -> Res {
+    o || cell(1, Some(2)).v
+}
+
+fn handed() {
+    eat(cell(3, Some(4)).v)
+}
+
+fn payload(y: Res) -> Res {
+    cell(5, Some(6)).o || y
+}
+
+fn bound() -> Res {
+    let r = cell(7, None).v
+    r
+}
+
+fn explicit() -> Res {
+    move cell(8, Some(9)).v
+}
+
+fn nested(o: Res?) -> Res {
+    o || pair(10).c.v
+}
+
+fn chained(m: Maker) -> Res {
+    m.cell().v
+}
+
+fn copyThroughDrop() -> Int {
+    mkg(13).n
+}
+
+fn show(r: Res) {
+    print "got ${r.id}"
+}
+
+show(fallback(None))
+handed()
+show(payload(mk(20)))
+show(bound())
+show(explicit())
+show(nested(None))
+show(chained(Maker { n: 12 }))
+print "n ${copyThroughDrop()}"
+let mut h = H { r: mk(30) }
+h.swap(31)
+print "h ${h.r.id}"
+print "done"
+-- stdout --
+drop 2
+got 1
+drop 1
+eat 3
+drop 4
+drop 3
+drop 5
+drop 20
+got 6
+drop 6
+got 7
+drop 7
+drop 9
+got 8
+drop 8
+drop 11
+got 10
+drop 10
+got 12
+drop 12
+guard drop 13
+eat 13
+drop 13
+n 13
+eat 30
+drop 30
+h 31
+done
+drop 31

@@ -1,0 +1,208 @@
+-- src --
+import {Arena} from std/alloc
+
+context k: Int
+
+@provides(k)
+type Env = {
+    pub k Int
+}
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+fn eat(r: Res) {}
+
+type Guard = resource {
+    pub a Res
+    pub o Res?
+}
+
+fn Guard.drop(move self) {}
+
+fn mkg(i: Int) -> Guard {
+    Guard { a: mk(i), o: None }
+}
+
+fn unsafeTail() -> Res {
+    unsafe { mkg(1).a } //~ ERROR cannot move `mkg(1).a` out of `Guard`
+}
+
+fn unsafeOr(o: Res?) -> Res {
+    o || unsafe { mkg(2).a } //~ ERROR cannot move `mkg(2).a` out of `Guard`
+}
+
+fn unsafeLet() -> Res {
+    let r = unsafe { mkg(3).a } //~ ERROR cannot move `mkg(3).a` out of `Guard`
+    r
+}
+
+fn unsafeArg() {
+    eat(unsafe { mkg(4).a }) //~ ERROR cannot move `mkg(4).a` out of `Guard`
+}
+
+fn unsafeReceiver() -> Res {
+    unsafe { mkg(5).o }.unwrap() //~ ERROR cannot move `mkg(5).o` out of `Guard`
+}
+
+fn unsafePayload(y: Res) -> Res {
+    unsafe { mkg(6).o } || y //~ ERROR cannot move `mkg(6).o` out of `Guard`
+}
+
+fn ifLetTail(o: Res?) -> Res {
+    if let Some(r) = o { r } else { mkg(7).a } //~ ERROR cannot move `mkg(7).a` out of `Guard`
+}
+
+fn ifLetOr(o: Res?, q: Res?) -> Res {
+    q || if let Some(r) = o { r } else { mkg(8).a } //~ ERROR cannot move `mkg(8).a` out of `Guard`
+}
+
+fn ifLetLet(o: Res?) -> Res {
+    let r = if let Some(r) = o { r } else { mkg(9).a } //~ ERROR cannot move `mkg(9).a` out of `Guard`
+    r
+}
+
+fn ifLetArg(o: Res?) {
+    eat(if let Some(r) = o { r } else { mkg(10).a }) //~ ERROR cannot move `mkg(10).a` out of `Guard`
+}
+
+fn ifLetReceiver(o: Res??) -> Res {
+    (if let Some(r) = o { r } else { mkg(11).o }).unwrap() //~ ERROR cannot move `mkg(11).o` out of `Guard`
+}
+
+fn ifLetPayload(o: Res??, y: Res) -> Res {
+    (if let Some(r) = o { r } else { mkg(12).o }) || y //~ ERROR cannot move `mkg(12).o` out of `Guard`
+}
+
+fn contextTail() -> Res {
+    context (Env { k: 13 }) {
+        mkg(k).a //~ ERROR cannot move `mkg(k).a` out of `Guard`
+    }
+}
+
+fn contextArg() {
+    eat(context (Env { k: 14 }) {
+        mkg(k).a //~ ERROR cannot move `mkg(k).a` out of `Guard`
+    })
+}
+
+fn allocatorLet() -> Int! {
+    let arena = Arena.create()?
+    let r = allocator arena.scope() {
+        mkg(15).a //~ ERROR cannot move `mkg(15).a` out of `Guard`
+    }
+    Ok(r.id)
+}
+-- expect --
+error[E1021]: cannot move `mkg(1).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:34:14
+   |
+34 |     unsafe { mkg(1).a } //~ ERROR cannot move `mkg(1).a` out of `Guard`
+   |              ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(1).a` instead
+
+error[E1021]: cannot move `mkg(2).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:38:19
+   |
+38 |     o || unsafe { mkg(2).a } //~ ERROR cannot move `mkg(2).a` out of `Guard`
+   |                   ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(2).a` instead
+
+error[E1021]: cannot move `mkg(3).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:42:22
+   |
+42 |     let r = unsafe { mkg(3).a } //~ ERROR cannot move `mkg(3).a` out of `Guard`
+   |                      ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(3).a` instead
+
+error[E1021]: cannot move `mkg(4).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:47:18
+   |
+47 |     eat(unsafe { mkg(4).a }) //~ ERROR cannot move `mkg(4).a` out of `Guard`
+   |                  ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(4).a` instead
+
+error[E1021]: cannot move `mkg(5).o` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:51:14
+   |
+51 |     unsafe { mkg(5).o }.unwrap() //~ ERROR cannot move `mkg(5).o` out of `Guard`
+   |              ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(5).o` instead
+
+error[E1021]: cannot move `mkg(6).o` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:55:14
+   |
+55 |     unsafe { mkg(6).o } || y //~ ERROR cannot move `mkg(6).o` out of `Guard`
+   |              ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(6).o` instead
+
+error[E1021]: cannot move `mkg(7).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:59:37
+   |
+59 |     if let Some(r) = o { r } else { mkg(7).a } //~ ERROR cannot move `mkg(7).a` out of `Guard`
+   |                                     ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(7).a` instead
+
+error[E1021]: cannot move `mkg(8).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:63:42
+   |
+63 |     q || if let Some(r) = o { r } else { mkg(8).a } //~ ERROR cannot move `mkg(8).a` out of `Guard`
+   |                                          ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(8).a` instead
+
+error[E1021]: cannot move `mkg(9).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:67:45
+   |
+67 |     let r = if let Some(r) = o { r } else { mkg(9).a } //~ ERROR cannot move `mkg(9).a` out of `Guard`
+   |                                             ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(9).a` instead
+
+error[E1021]: cannot move `mkg(10).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:72:41
+   |
+72 |     eat(if let Some(r) = o { r } else { mkg(10).a }) //~ ERROR cannot move `mkg(10).a` out of `Guard`
+   |                                         ^^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(10).a` instead
+
+error[E1021]: cannot move `mkg(11).o` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:76:38
+   |
+76 |     (if let Some(r) = o { r } else { mkg(11).o }).unwrap() //~ ERROR cannot move `mkg(11).o` out of `Guard`
+   |                                      ^^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(11).o` instead
+
+error[E1021]: cannot move `mkg(12).o` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:80:38
+   |
+80 |     (if let Some(r) = o { r } else { mkg(12).o }) || y //~ ERROR cannot move `mkg(12).o` out of `Guard`
+   |                                      ^^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(12).o` instead
+
+error[E1021]: cannot move `mkg(k).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:85:9
+   |
+85 |         mkg(k).a //~ ERROR cannot move `mkg(k).a` out of `Guard`
+   |         ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(k).a` instead
+
+error[E1021]: cannot move `mkg(k).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:91:9
+   |
+91 |         mkg(k).a //~ ERROR cannot move `mkg(k).a` out of `Guard`
+   |         ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(k).a` instead
+
+error[E1021]: cannot move `mkg(15).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:98:9
+   |
+98 |         mkg(15).a //~ ERROR cannot move `mkg(15).a` out of `Guard`
+   |         ^^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(15).a` instead
+

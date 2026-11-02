@@ -26,58 +26,48 @@ func (c *borrowCheck) heldPlace(l midir.LocalID) (midir.LocalID, ownquery.Path, 
 	return c.tempPlace(l)
 }
 
+// tempPlace: a value ends with its statement unless its definition proves it a read of a longer-lived place
+// (a named local, a static, a cell's content, an iterated element) or an immortal literal.
 func (c *borrowCheck) tempPlace(l midir.LocalID) (midir.LocalID, ownquery.Path, bool, bool) {
 	var path ownquery.Path
 	exact := true
 	for c.f.Locals[l].Ent == 0 {
 		d := c.definition(l)
 		if d == nil {
-			return l, path, exact, c.multiDefined(l) && c.joinsBuilt(l)
+			return l, path, exact, c.multiDefined(l) && c.ownsValue(l)
 		}
-		switch d.Op {
-		case midir.OpCall, midir.OpCallValue, midir.OpRecord, midir.OpVariant, midir.OpArray:
-			return l, path, exact, true
-		case midir.OpField, midir.OpPayload, midir.OpIndex, midir.OpUnbox:
+		switch {
+		case d.Op == midir.OpField, d.Op == midir.OpPayload, d.Op == midir.OpIndex, d.Op == midir.OpUnbox:
 			path, exact = path.Under(d, exact, nil)
-		case midir.OpCopy, midir.OpBorrow:
-		default:
+		case d.Op == midir.OpCopy, d.Op == midir.OpBorrow, d.Op == midir.OpShare, d.Op == midir.OpAlias, d.Op == midir.OpCellGet:
+		case d.Op == midir.OpMove && c.f.Locals[d.Args[0]].Ent == 0:
+		case iterElement(d):
+			path, exact = nil, false
+		case d.Op == midir.OpGlobalGet, d.Op == midir.OpUnit, d.Op == midir.OpCFnPtr, d.Op == midir.OpLendBox, immortalLiteral(d):
 			return 0, nil, false, false
+		case d.Op == midir.OpCall, d.Op == midir.OpCallValue, d.Op == midir.OpRecord, d.Op == midir.OpVariant, d.Op == midir.OpArray, d.Op == midir.OpMove:
+			return l, path, exact, true
+		default:
+			return l, path, exact, c.ownsValue(l)
 		}
 		l = d.Args[0]
 	}
 	return 0, nil, false, false
 }
 
-// joinsBuilt reports whether every definition of l builds a fresh value, or copies a temporary that does,
-// as the arms of `x?.f`, `if` and `match` do.
-func (c *borrowCheck) joinsBuilt(l midir.LocalID) bool {
-	return c.builtFresh(l, map[midir.LocalID]bool{})
+// immortalLiteral: llgen gives scalar and string literals a static slot and the VM interns them alike;
+// a Bytes literal (erased in place) and a record constant are built afresh at every use.
+func immortalLiteral(d *midir.Inst) bool {
+	switch d.Lit.Kind {
+	case sem.LitInt, sem.LitFloat, sem.LitChar, sem.LitBool, sem.LitString:
+		return d.Op == midir.OpConst
+	}
+	return false
 }
 
-func (c *borrowCheck) builtFresh(l midir.LocalID, seen map[midir.LocalID]bool) bool {
-	if seen[l] {
-		return true
-	}
-	seen[l] = true
-	defined := false
-	for _, blk := range c.f.Blocks {
-		for _, in := range blk.Insts {
-			if !in.Op.Yields() || in.Dst != l {
-				continue
-			}
-			defined = true
-			switch in.Op {
-			case midir.OpCall, midir.OpCallValue, midir.OpRecord, midir.OpVariant, midir.OpArray:
-			case midir.OpCopy:
-				if c.f.Locals[in.Args[0]].Ent != 0 || !c.builtFresh(in.Args[0], seen) {
-					return false
-				}
-			default:
-				return false
-			}
-		}
-	}
-	return defined
+// ownsValue: a reference or a scalar holds nothing its end frees.
+func (c *borrowCheck) ownsValue(l midir.LocalID) bool {
+	return c.p.R.Types.Kind(c.f.Locals[l].Type) != sem.KRef && !c.scalarTemp(l)
 }
 
 // checkTempKept rejects binding a name to a borrow of a statement's temporary, also one a Future or Task captured.

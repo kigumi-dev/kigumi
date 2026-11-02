@@ -21,7 +21,7 @@ func (c *checker) markEraseSite(n syntax.NodeID, site eraseSite) {
 		c.eraseSites = map[syntax.NodeID]eraseSite{}
 	}
 	c.eraseSites[n] = site
-	for _, leaf := range c.tailLeaves(n, 0) {
+	for _, leaf := range c.tailLeaves(n) {
 		c.eraseSites[leaf] = site
 		if c.t.Kind(leaf) == syntax.MoveExpr {
 			c.eraseSites[c.t.Unparen(c.t.View(leaf).AsMove().Operand().ID())] = site

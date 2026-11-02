@@ -1,0 +1,120 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type Pair = {
+    pub a Res
+    pub b Res
+}
+
+fn returnBefore(p: Pair, k: Bool) -> Res {
+    if k {
+        return p.a
+    }
+    defer {
+        print "defer ${p.a.id}"
+    }
+    mk(0)
+}
+
+fn returnAfter(p: Pair, k: Bool) -> Res {
+    defer {
+        print "defer ${p.a.id}" //~ ERROR a cleanup reads `p.a`
+    }
+    if k {
+        return p.a
+    }
+    mk(0)
+}
+
+fn failValue(p: Pair) -> Result[Int, Res] {
+    defer {
+        print "defer ${p.a.id}" //~ ERROR a cleanup reads `p.a`
+    }
+    fail p.a
+}
+
+fn failCleanup(p: Pair) -> Result[Int, Res] {
+    defer(fail) {
+        print "defer ${p.a.id}" //~ ERROR a cleanup reads `p.a`
+    }
+    fail p.a
+}
+
+fn failJoin(p: Pair, o: Res?) -> Result[Int, Res] {
+    defer {
+        print "defer ${p.a.id}" //~ ERROR a cleanup reads `p.a`
+    }
+    fail o || p.a
+}
+
+fn failBefore(p: Pair, k: Bool) -> Result[Int, Res] {
+    if k {
+        fail p.a
+    }
+    defer {
+        print "defer ${p.a.id}"
+    }
+    Ok(1)
+}
+
+fn handlerArm(p: Pair, r: Result[Res, Int]) -> Res {
+    r || (e) => {
+        defer {
+            print "defer ${p.a.id}" //~ ERROR a cleanup reads `p.a`
+        }
+        p.a
+    }
+}
+
+fn handlerOther(p: Pair, r: Result[Res, Int]) -> Res {
+    r || (e) => {
+        defer {
+            print "defer ${p.b.id}"
+        }
+        p.a
+    }
+}
+-- expect --
+error[E2103]: a cleanup reads `p.a`, which can already be moved when the cleanup runs
+  --> main/main.kg:28:24
+   |
+28 |         print "defer ${p.a.id}" //~ ERROR a cleanup reads `p.a`
+   |                        ^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+
+error[E2103]: a cleanup reads `p.a`, which can already be moved when the cleanup runs
+  --> main/main.kg:38:24
+   |
+38 |         print "defer ${p.a.id}" //~ ERROR a cleanup reads `p.a`
+   |                        ^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+
+error[E2103]: a cleanup reads `p.a`, which can already be moved when the cleanup runs
+  --> main/main.kg:45:24
+   |
+45 |         print "defer ${p.a.id}" //~ ERROR a cleanup reads `p.a`
+   |                        ^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+
+error[E2103]: a cleanup reads `p.a`, which can already be moved when the cleanup runs
+  --> main/main.kg:52:24
+   |
+52 |         print "defer ${p.a.id}" //~ ERROR a cleanup reads `p.a`
+   |                        ^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+
+error[E2103]: a cleanup reads `p.a`, which can already be moved when the cleanup runs
+  --> main/main.kg:70:28
+   |
+70 |             print "defer ${p.a.id}" //~ ERROR a cleanup reads `p.a`
+   |                            ^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+

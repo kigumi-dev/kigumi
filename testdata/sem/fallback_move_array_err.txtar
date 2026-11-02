@@ -1,0 +1,21 @@
+-- module --
+mir: planned
+-- src --
+fn hArr[T](x: T, y: T) -> T {
+    let mut a = Array.of(x, y)
+    a.takeAt(1) || x //~ ERROR `x` was moved
+}
+print "${hArr(1, 2)}"
+-- expect --
+error[E2197]: `x` was moved; it cannot be used again
+ --> main.kg:3:20
+  |
+3 |     a.takeAt(1) || x //~ ERROR `x` was moved
+  |                    ^
+  = help: borrow it with `&` where it is used before the move, or make the move its last use
+note: `x` is moved here
+ --> main.kg:2:26
+  |
+2 |     let mut a = Array.of(x, y)
+  |                          ^
+

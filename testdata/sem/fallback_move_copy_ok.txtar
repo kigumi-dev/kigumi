@@ -1,0 +1,104 @@
+-- module --
+mir: planned
+-- src --
+fn eat[T](v: T) {}
+
+type Cell[T] = {
+    pub v T
+}
+
+fn Cell[T].take(move self) -> T {
+    self.v
+}
+
+fn Cell[T: Copy].orSelf(self, o: Cell[T]?) -> Cell[T] {
+    o || self
+}
+
+fn arrayThenFallback[T: Copy](x: T, y: T) -> T {
+    let mut a = Array.of(x, y)
+    a.takeAt(1) || x
+}
+
+fn resultFallback[T: Copy](r: Result[T, Int], x: T) -> T {
+    eat(x)
+    r || x
+}
+
+fn handlerFallback[T: Copy](r: Result[T, Int], x: T) -> T {
+    eat(x)
+    r || (e) => x
+}
+
+fn fallbackThenUse[T: Copy](o: T?, x: T) -> T {
+    let r = o || x
+    eat(x)
+    r
+}
+
+fn fallbackTwice[T: Copy](o: T?, q: T?, x: T) -> T {
+    eat(o || x)
+    q || x
+}
+
+fn fallbackInIf[T: Copy](c: Bool, o: T?, x: T, y: T) -> T {
+    eat(x)
+    if c { o || x } else { y }
+}
+
+fn fallbackInMatch[T: Copy](o: T?, q: T?, x: T) -> T {
+    eat(x)
+    match o {
+        Some(v) -> v
+        None -> q || x
+    }
+}
+
+fn fallbackInLoop[T: Copy](x: T) {
+    for i in 0..2 {
+        let o: T? = None
+        eat(o || x)
+    }
+}
+
+fn tryThenFallback[T: Copy](r: Result[T, Int], o: Result[T, Int]?) -> Result[T, Int] {
+    let a = r?
+    eat(a)
+    o || r
+}
+
+fn fallbackThenTry[T: Copy](o: Result[T, Int]?, r: Result[T, Int]) -> Result[T, Int] {
+    eat(o || r)
+    let a = r?
+    Ok(a)
+}
+
+fn closureAfterMove[T: Copy](o: T?, x: T) -> T {
+    eat(x)
+    let f = () => o || x
+    f()
+}
+
+fn fallbackThenCapture[T: Copy](o: T?, x: T) -> T {
+    eat(o || x)
+    let f = () => x
+    f()
+}
+
+fn onceClosure[T: Copy](x: T) -> T {
+    let f = (o: T?) => o || x
+    eat(f(None))
+    f(None)
+}
+
+fn receiverThenFallback[T: Copy](o: Cell[T]?, c: Cell[T]) -> T {
+    eat(c.take())
+    let d = o || c
+    d.take()
+}
+
+fn fallbackThenReceiver[T: Copy](o: Cell[T]?, c: Cell[T]) -> T {
+    eat(o || c)
+    c.take()
+}
+-- expect --

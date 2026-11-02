@@ -90,12 +90,15 @@ func sameDerivation(a, b derivation) bool {
 // carries reports whether a value of type t may hold what the flows track: something callable, a Future or Task, a
 // borrow, a resource whose drop runs, or a type parameter.
 func (c *borrowCheck) carries(t sem.TypeID) bool {
+	return c.typeRuns(t, runsDrop) || c.typeHolds(t, c.borrowShaped)
+}
+
+// borrowShaped: t itself may be or capture a borrow.
+func (c *borrowCheck) borrowShaped(t sem.TypeID) bool {
 	tt := c.p.R.Types
-	return c.typeRuns(t, runsDrop) || c.typeHolds(t, func(t sem.TypeID) bool {
-		switch tt.Kind(t) {
-		case sem.KFn, sem.KClosure, sem.KIface, sem.KRef, sem.KParam, sem.KVar:
-			return true
-		}
-		return tt.Kind(t) == sem.KNamed && tt.Node(t).Ent == tt.FutureEnt() || c.p.R.IsTaskType(t)
-	})
+	switch tt.Kind(t) {
+	case sem.KFn, sem.KClosure, sem.KIface, sem.KRef, sem.KParam, sem.KVar:
+		return true
+	}
+	return tt.Kind(t) == sem.KNamed && tt.Node(t).Ent == tt.FutureEnt() || c.p.R.IsTaskType(t)
 }

@@ -1,0 +1,233 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type Cell = {
+    pub v Res
+}
+
+fn mkc(id: Int) -> Cell {
+    Cell { v: mk(id) }
+}
+
+context k: Cell
+
+@provides(k)
+type Env = {
+    pub k Cell
+}
+
+type Pt = {
+    pub name String
+    pub n Int
+}
+
+fn mkPt() -> Pt {
+    Pt { name: "origin", n: 1 }
+}
+
+const home: Pt = comptime mkPt()
+
+static origin: Pt = comptime mkPt()
+
+type Pair = {
+    pub a Res
+    pub b Res
+}
+
+type C = {
+    pub p Pair
+    pub q Pair
+}
+
+fn unsafeLocal() -> Int {
+    let r = &unsafe { //~ ERROR cannot keep a borrow of a temporary
+        let t = mk(7)
+        t
+    }
+    r.id
+}
+
+fn unsafeLocalField() -> Int {
+    let r = &unsafe { //~ ERROR cannot keep a borrow of a temporary
+        let t = mkc(8)
+        t.v
+    }
+    r.id
+}
+
+fn nestedBlock() -> Int {
+    let r = &unsafe { //~ ERROR cannot keep a borrow of a temporary
+        {
+            let t = mk(3)
+            t
+        }
+    }
+    r.id
+}
+
+fn memberOfLocal() -> Int {
+    let r = &(unsafe { //~ ERROR cannot keep a borrow of a temporary
+        let t = mkc(4)
+        t
+    }).v
+    r.id
+}
+
+fn movedParam(c: Cell) -> Int {
+    let r = &unsafe { c }.v //~ ERROR cannot keep a borrow of a temporary
+    r.id
+}
+
+fn providedKey() -> Int {
+    let r = &context (Env { k: mkc(1) }) { //~ ERROR cannot keep a borrow of a temporary
+        k.v
+    }
+    r.id
+}
+
+fn providedLocal() -> Int {
+    let r = &context (Env { k: mkc(1) }) { //~ ERROR cannot keep a borrow of a temporary
+        let t = mk(2)
+        t
+    }
+    r.id
+}
+
+fn constRoot() -> Int {
+    let r = &home //~ ERROR cannot keep a borrow of a temporary
+    r.n
+}
+
+fn constField() -> usize {
+    let s = &home.name //~ ERROR cannot keep a borrow of a temporary
+    s.len()
+}
+
+fn refJoinMatch(c: C, k: Bool) -> Int {
+    match &(if k { &c.p } else { &c.q }) {
+        r -> r.a.id //~ ERROR this pattern cannot match `&&Pair`
+    }
+}
+
+fn refMatch(p: &Pair) -> Int {
+    match &p {
+        r -> r.a.id //~ ERROR this pattern cannot match `&&Pair`
+    }
+}
+
+fn staticRoot() -> usize {
+    let r = &origin
+    let s = &origin.name
+    r.name.len() + s.len()
+}
+
+fn outerKey() -> Int {
+    let r = &k.v
+    r.id
+}
+
+fn outerField(c: Cell) -> Int {
+    let r = &unsafe { c.v }
+    r.id
+}
+
+fn matchScoped() -> Int {
+    match &unsafe {
+        let t = mk(9)
+        t
+    } {
+        r -> r.id
+    }
+}
+
+fn refJoinPlain(c: C, k: Bool) -> Int {
+    match if k { &c.p } else { &c.q } {
+        r -> r.a.id
+    }
+}
+-- expect --
+error[E2234]: `let` cannot keep a borrow of a temporary `Res`, which is dropped at the end of this statement
+  --> main/main.kg:50:13
+   |
+50 |     let r = &unsafe { //~ ERROR cannot keep a borrow of a temporary
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `Cell`, which is dropped at the end of this statement
+  --> main/main.kg:58:13
+   |
+58 |     let r = &unsafe { //~ ERROR cannot keep a borrow of a temporary
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `Res`, which is dropped at the end of this statement
+  --> main/main.kg:66:13
+   |
+66 |     let r = &unsafe { //~ ERROR cannot keep a borrow of a temporary
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `Cell`, which is dropped at the end of this statement
+  --> main/main.kg:76:13
+   |
+76 |     let r = &(unsafe { //~ ERROR cannot keep a borrow of a temporary
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `Cell`, which is dropped at the end of this statement
+  --> main/main.kg:84:13
+   |
+84 |     let r = &unsafe { c }.v //~ ERROR cannot keep a borrow of a temporary
+   |             ^^^^^^^^^^^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `Cell`, which is dropped at the end of this statement
+  --> main/main.kg:89:13
+   |
+89 |     let r = &context (Env { k: mkc(1) }) { //~ ERROR cannot keep a borrow of a temporary
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `Res`, which is dropped at the end of this statement
+  --> main/main.kg:96:13
+   |
+96 |     let r = &context (Env { k: mkc(1) }) { //~ ERROR cannot keep a borrow of a temporary
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `Pt`, which is dropped at the end of this statement
+   --> main/main.kg:104:13
+    |
+104 |     let r = &home //~ ERROR cannot keep a borrow of a temporary
+    |             ^^^^^
+    = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `Pt`, which is dropped at the end of this statement
+   --> main/main.kg:109:13
+    |
+109 |     let s = &home.name //~ ERROR cannot keep a borrow of a temporary
+    |             ^^^^^^^^^^
+    = help: bind the value to a local first and borrow the local
+
+error[E810]: this pattern cannot match `&&Pair`
+   --> main/main.kg:115:9
+    |
+115 |         r -> r.a.id //~ ERROR this pattern cannot match `&&Pair`
+    |         ^
+    = help: the value is already a reference; match it without the outer `&`
+
+error[E810]: this pattern cannot match `&&Pair`
+   --> main/main.kg:121:9
+    |
+121 |         r -> r.a.id //~ ERROR this pattern cannot match `&&Pair`
+    |         ^
+    = help: the value is already a reference; match it without the outer `&`
+

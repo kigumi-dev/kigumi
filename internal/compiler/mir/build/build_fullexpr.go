@@ -66,3 +66,12 @@ func (b *builder) armBody(e *hir.Expr) midir.LocalID {
 	}
 	return b.fullValue(func() midir.LocalID { return b.exprMoved(e) })
 }
+
+// missValue moves a move-only operand out like an arm's value; a Copy one is read
+// in place rather than through exprMoved's extra temporary.
+func (b *builder) missValue(e *hir.Expr) midir.LocalID {
+	if b.r.IsCopy(e.Type) {
+		return b.expr(e)
+	}
+	return b.exprMoved(e)
+}

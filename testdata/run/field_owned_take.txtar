@@ -1,0 +1,153 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type Box = {
+    pub v Res
+    pub o Res?
+    pub n Int
+}
+
+type Cell[T] = {
+    pub v T
+    pub n Int
+}
+
+fn box(v: Int, o: Int?) -> Box {
+    Box { v: mk(v), o: if o is Some(i) { Some(mk(i)) } else { None }, n: v }
+}
+
+fn fallback(b: Box, o: Res?) -> Res {
+    o || b.v
+}
+
+fn handler(b: Box, r: Result[Res, Int]) -> Res {
+    r || (e) => b.v
+}
+
+fn lhs(b: Box, y: Res) -> Res {
+    b.o || y
+}
+
+fn ifArm(b: Box, c: Bool, y: Res) -> Res {
+    if c { b.v } else { y }
+}
+
+fn matchArm(b: Box, k: Int?, y: Res) -> Res {
+    match k {
+        Some(_) -> b.v
+        None -> y
+    }
+}
+
+fn plain(b: Box) -> Res {
+    b.v
+}
+
+fn ret(b: Box, c: Bool, o: Res?, y: Res) -> Res {
+    if c {
+        return o || b.v
+    }
+    y
+}
+
+fn genericFallback[T](c: Cell[T], o: T?) -> T {
+    o || c.v
+}
+
+fn storedClosure(b: Box) -> Res {
+    let f = (o: Res?) => o || b.v
+    f(None)
+}
+
+fn Box.count(self, o: Int?) -> Int {
+    o || self.n
+}
+
+fn countRef[T](c: &Cell[T], o: Int?) -> Int {
+    if o is Some(i) { i } else { c.n }
+}
+
+fn Cell[T: Copy].peek(self, o: T?) -> T {
+    o || self.v
+}
+
+fn show(r: Res) {
+    print "got ${r.id}"
+}
+
+show(fallback(box(1, None), None))
+show(fallback(box(2, None), Some(mk(3))))
+show(handler(box(4, None), Err(0)))
+show(handler(box(5, None), Ok(mk(6))))
+show(lhs(box(7, Some(8)), mk(9)))
+show(lhs(box(10, None), mk(11)))
+show(ifArm(box(12, None), true, mk(13)))
+show(ifArm(box(14, None), false, mk(15)))
+show(matchArm(box(16, None), Some(0), mk(17)))
+show(plain(box(18, None)))
+show(ret(box(19, None), true, None, mk(20)))
+show(ret(box(21, None), false, None, mk(22)))
+show(genericFallback(Cell { v: mk(23), n: 0 }, None))
+show(storedClosure(box(24, None)))
+let b = box(25, None)
+print "${b.count(None)} ${b.count(Some(1))}"
+let c = Cell { v: mk(26), n: 7 }
+print "${countRef(&c, None)}"
+let q = Cell { v: 27, n: 0 }
+print "${q.peek(None)} ${q.peek(Some(28))}"
+print "done"
+-- stdout --
+got 1
+drop 1
+drop 2
+got 3
+drop 3
+got 4
+drop 4
+drop 5
+got 6
+drop 6
+drop 9
+drop 7
+got 8
+drop 8
+drop 10
+got 11
+drop 11
+drop 13
+got 12
+drop 12
+drop 14
+got 15
+drop 15
+drop 17
+got 16
+drop 16
+got 18
+drop 18
+drop 20
+got 19
+drop 19
+drop 21
+got 22
+drop 22
+got 23
+drop 23
+got 24
+drop 24
+25 1
+7
+27 28
+done
+drop 26
+drop 25

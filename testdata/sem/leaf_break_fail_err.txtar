@@ -1,0 +1,160 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+fn eat(r: Res) {}
+
+type Guard = resource {
+    pub a Res
+}
+
+fn Guard.drop(move self) {}
+
+fn mkg(i: Int) -> Guard {
+    Guard { a: mk(i) }
+}
+
+type Cell = {
+    pub v Res
+}
+
+type H['a] = {
+    pub r &'a Cell
+}
+
+fn me(c: &Cell) -> &Cell {
+    c
+}
+
+fn breakTemp() -> Res {
+    for {
+        break mkg(1).a //~ ERROR cannot move `mkg(1).a` out of `Guard`
+    }
+}
+
+fn breakOwned(c: Cell) -> Res {
+    let r = for {
+        break c.v //~ ERROR reading `c.v` by value
+    }
+    r
+}
+
+fn breakLink['a](h: H['a]) -> Res {
+    for {
+        break h.r.v //~ ERROR reading `h.r.v` by value
+    }
+}
+
+fn breakArg() {
+    eat(for {
+        break mkg(2).a //~ ERROR cannot move `mkg(2).a` out of `Guard`
+    })
+}
+
+fn breakOr(o: Res?) -> Res {
+    o || for {
+        break mkg(3).a //~ ERROR cannot move `mkg(3).a` out of `Guard`
+    }
+}
+
+fn breakInClosure() -> Res {
+    let f = () => for {
+        break mkg(4).a //~ ERROR cannot move `mkg(4).a` out of `Guard`
+    }
+    f()
+}
+
+fn failTemp() -> Result[Int, Res] {
+    fail mkg(5).a //~ ERROR cannot move `mkg(5).a` out of `Guard`
+}
+
+fn failLink['a](h: H['a]) -> Result[Int, Res] {
+    fail h.r.v //~ ERROR reading `h.r.v` by value
+}
+
+fn failCall(c: &Cell) -> Result[Int, Res] {
+    fail me(c).v //~ ERROR reading `me(c).v` by value
+}
+
+fn failOr(o: Res?) -> Result[Int, Res] {
+    let r = o || fail mkg(6).a //~ ERROR cannot move `mkg(6).a` out of `Guard`
+    Ok(r.id)
+}
+-- expect --
+error[E1021]: cannot move `mkg(1).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:37:15
+   |
+37 |         break mkg(1).a //~ ERROR cannot move `mkg(1).a` out of `Guard`
+   |               ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(1).a` instead
+
+error[E2153]: reading `c.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:43:15
+   |
+43 |         break c.v //~ ERROR reading `c.v` by value
+   |               ^^^
+   = help: write `move c.v` to take it out, or borrow it with `&c.v`
+
+error[E2153]: reading `h.r.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:50:15
+   |
+50 |         break h.r.v //~ ERROR reading `h.r.v` by value
+   |               ^^^^^
+   = help: `h.r.v` is reached through a borrow, so it cannot be moved out; borrow it with `&h.r.v`
+
+error[E1021]: cannot move `mkg(2).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:56:15
+   |
+56 |         break mkg(2).a //~ ERROR cannot move `mkg(2).a` out of `Guard`
+   |               ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(2).a` instead
+
+error[E1021]: cannot move `mkg(3).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:62:15
+   |
+62 |         break mkg(3).a //~ ERROR cannot move `mkg(3).a` out of `Guard`
+   |               ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(3).a` instead
+
+error[E1021]: cannot move `mkg(4).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:68:15
+   |
+68 |         break mkg(4).a //~ ERROR cannot move `mkg(4).a` out of `Guard`
+   |               ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(4).a` instead
+
+error[E1021]: cannot move `mkg(5).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:74:10
+   |
+74 |     fail mkg(5).a //~ ERROR cannot move `mkg(5).a` out of `Guard`
+   |          ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(5).a` instead
+
+error[E2153]: reading `h.r.v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:78:10
+   |
+78 |     fail h.r.v //~ ERROR reading `h.r.v` by value
+   |          ^^^^^
+   = help: `h.r.v` is reached through a borrow, so it cannot be moved out; borrow it with `&h.r.v`
+
+error[E2153]: reading `me(c).v` by value would copy a `Res`, which is not `Copy`
+  --> main/main.kg:82:10
+   |
+82 |     fail me(c).v //~ ERROR reading `me(c).v` by value
+   |          ^^^^^^^
+   = help: `me(c).v` is reached through a borrow, so it cannot be moved out; borrow it with `&me(c).v`
+
+error[E1021]: cannot move `mkg(6).a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:86:23
+   |
+86 |     let r = o || fail mkg(6).a //~ ERROR cannot move `mkg(6).a` out of `Guard`
+   |                       ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(6).a` instead
+

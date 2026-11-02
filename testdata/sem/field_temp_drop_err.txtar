@@ -1,0 +1,180 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+fn eat(r: Res) {}
+
+type Inner = {
+    pub a Res
+    pub b Res
+}
+
+type Guard = resource {
+    pub inner Inner
+    pub a2 Res
+    pub o Res?
+}
+
+fn Guard.drop(move self) {}
+
+fn mkg(i: Int) -> Guard {
+    Guard { inner: Inner { a: mk(i), b: mk(i + 1) }, a2: mk(i + 2), o: None }
+}
+
+type Maker = {
+    pub n Int
+}
+
+fn Maker.guard(self) -> Guard {
+    mkg(self.n)
+}
+
+type W = {
+    pub g Guard
+}
+
+fn mkw(i: Int) -> W {
+    W { g: mkg(i) }
+}
+
+fn plainTail() -> Res {
+    mkg(1).a2 //~ ERROR cannot move `mkg(1).a2` out of `Guard`
+}
+
+fn viaOr(o: Res?) -> Res {
+    o || mkg(2).a2 //~ ERROR cannot move `mkg(2).a2` out of `Guard`
+}
+
+fn viaIf(c: Bool, y: Res) -> Res {
+    if c { mkg(3).a2 } else { y } //~ ERROR cannot move `mkg(3).a2` out of `Guard`
+}
+
+fn viaLet() -> Res {
+    let r = mkg(4).a2 //~ ERROR cannot move `mkg(4).a2` out of `Guard`
+    r
+}
+
+fn viaPayload(y: Res) -> Res {
+    mkg(5).o || y //~ ERROR cannot move `mkg(5).o` out of `Guard`
+}
+
+fn viaArg() {
+    eat(mkg(6).a2) //~ ERROR cannot move `mkg(6).a2` out of `Guard`
+}
+
+fn nested(o: Res?) -> Res {
+    o || mkg(7).inner.a //~ ERROR cannot move `mkg(7).inner.a` out of `Guard`
+}
+
+fn chained(m: Maker) -> Res {
+    m.guard().inner.a //~ ERROR cannot move `m.guard().inner.a` out of `Guard`
+}
+
+fn middleLink() -> Res {
+    mkw(8).g.inner.a //~ ERROR cannot move `mkw(8).g.inner.a` out of `Guard`
+}
+
+fn moveNested(o: Res?) -> Res {
+    o || move mkg(9).inner.a //~ ERROR cannot move `mkg(9).inner.a` out of `Guard`
+}
+
+fn moveChained(m: Maker) -> Res {
+    move m.guard().inner.a //~ ERROR cannot move `m.guard().inner.a` out of `Guard`
+}
+
+fn moveMiddleLink() -> Res {
+    let r = move mkw(10).g.inner.a //~ ERROR cannot move `mkw(10).g.inner.a` out of `Guard`
+    r
+}
+-- expect --
+error[E1021]: cannot move `mkg(1).a2` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:47:5
+   |
+47 |     mkg(1).a2 //~ ERROR cannot move `mkg(1).a2` out of `Guard`
+   |     ^^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(1).a2` instead
+
+error[E1021]: cannot move `mkg(2).a2` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:51:10
+   |
+51 |     o || mkg(2).a2 //~ ERROR cannot move `mkg(2).a2` out of `Guard`
+   |          ^^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(2).a2` instead
+
+error[E1021]: cannot move `mkg(3).a2` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:55:12
+   |
+55 |     if c { mkg(3).a2 } else { y } //~ ERROR cannot move `mkg(3).a2` out of `Guard`
+   |            ^^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(3).a2` instead
+
+error[E1021]: cannot move `mkg(4).a2` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:59:13
+   |
+59 |     let r = mkg(4).a2 //~ ERROR cannot move `mkg(4).a2` out of `Guard`
+   |             ^^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(4).a2` instead
+
+error[E1021]: cannot move `mkg(5).o` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:64:5
+   |
+64 |     mkg(5).o || y //~ ERROR cannot move `mkg(5).o` out of `Guard`
+   |     ^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(5).o` instead
+
+error[E1021]: cannot move `mkg(6).a2` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:68:9
+   |
+68 |     eat(mkg(6).a2) //~ ERROR cannot move `mkg(6).a2` out of `Guard`
+   |         ^^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(6).a2` instead
+
+error[E1021]: cannot move `mkg(7).inner.a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:72:10
+   |
+72 |     o || mkg(7).inner.a //~ ERROR cannot move `mkg(7).inner.a` out of `Guard`
+   |          ^^^^^^^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(7).inner.a` instead
+
+error[E1021]: cannot move `m.guard().inner.a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:76:5
+   |
+76 |     m.guard().inner.a //~ ERROR cannot move `m.guard().inner.a` out of `Guard`
+   |     ^^^^^^^^^^^^^^^^^
+   = help: add a `take`-style method that returns `m.guard().inner.a` instead
+
+error[E1021]: cannot move `mkw(8).g.inner.a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:80:5
+   |
+80 |     mkw(8).g.inner.a //~ ERROR cannot move `mkw(8).g.inner.a` out of `Guard`
+   |     ^^^^^^^^^^^^^^^^
+   = help: add a `take`-style method that returns `mkw(8).g.inner.a` instead
+
+error[E1021]: cannot move `mkg(9).inner.a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:84:15
+   |
+84 |     o || move mkg(9).inner.a //~ ERROR cannot move `mkg(9).inner.a` out of `Guard`
+   |               ^^^^^^^^^^^^^^
+   = help: add a `take`-style method that returns `mkg(9).inner.a` instead
+
+error[E1021]: cannot move `m.guard().inner.a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:88:10
+   |
+88 |     move m.guard().inner.a //~ ERROR cannot move `m.guard().inner.a` out of `Guard`
+   |          ^^^^^^^^^^^^^^^^^
+   = help: add a `take`-style method that returns `m.guard().inner.a` instead
+
+error[E1021]: cannot move `mkw(10).g.inner.a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:92:18
+   |
+92 |     let r = move mkw(10).g.inner.a //~ ERROR cannot move `mkw(10).g.inner.a` out of `Guard`
+   |                  ^^^^^^^^^^^^^^^^^
+   = help: add a `take`-style method that returns `mkw(10).g.inner.a` instead
+

@@ -42,6 +42,7 @@ func (c *checker) synthFallback(n, lhs, rhs syntax.NodeID, want TypeID) TypeID {
 		c.fallbackArm(rhs, r, result)
 	} else {
 		c.check(rhs, result)
+		c.consumeWhole(rhs)
 	}
 	c.branch--
 	return result
@@ -69,8 +70,8 @@ func (c *checker) fallbackParts(n, lhs syntax.NodeID, l TypeID) (v, r TypeID, wi
 	if val, e, isRes := tt.IsResult(l); isRes {
 		return val, e, 0, true
 	}
-	branch := c.r.langItems["Branch"]
-	if set := c.memberSetHere(l, "branch"); set != 0 && branch != 0 {
+	if set := c.memberSetHere(l, "branch"); set != 0 {
+		branch := c.r.langItem(c.f, n, "Branch")
 		m := c.visibleMembers(set)[0]
 		sig, _, _ := c.instantiateFn(n, m, nil, l)
 		ret := c.vars.resolve(tt.Node(sig).Elem)
@@ -107,12 +108,13 @@ func (c *checker) fallbackArm(lambda syntax.NodeID, r, want TypeID) {
 	c.declareLocal(p, c.t.View(p).Tok().Text(), r, false)
 	c.setType(p, r)
 	c.check(body, want)
+	c.consumeWhole(body)
 	c.popScope(saved)
 	c.setType(lambda, want)
 }
 
 func (c *checker) reservePayloadTake(operand syntax.NodeID, whole, payload TypeID) {
-	if whole == TyBool || c.r.Types.Kind(whole) == KRef || !c.ownsType(payload) {
+	if whole == TyBool || c.r.Types.Kind(whole) == KRef || !c.ownsType(payload) || c.rejectPayloadTake(operand, whole) {
 		return
 	}
 	c.reserveUse(operand)

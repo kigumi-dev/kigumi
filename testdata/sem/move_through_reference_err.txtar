@@ -1,0 +1,78 @@
+-- src --
+context k: Cell
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+type Cell = {
+    pub v Res
+}
+
+fn Cell.me(self) -> &Cell {
+    &self
+}
+
+type H['a] = {
+    pub r &'a Cell
+}
+
+type Id = Res
+
+fn me(c: &Cell) -> &Cell {
+    c
+}
+
+fn refField['a](h: H['a], o: Res?) -> Res {
+    let r = o || move h.r.v //~ ERROR cannot move `Res` out of a borrow
+    r
+}
+
+fn refCall(c: &Cell) -> Res {
+    move me(c).v //~ ERROR cannot move `Res` out of a borrow
+}
+
+fn refMethod(c: &Cell) -> Res {
+    move c.me().v //~ ERROR cannot move `Res` out of a borrow
+}
+
+fn ctxKey() -> Res {
+    move k.v //~ ERROR cannot move `Res` out of a borrow
+}
+
+fn refValue(i: &Id) -> Res {
+    move i.value //~ ERROR cannot move `Res` out of a borrow
+}
+-- expect --
+error[E517]: cannot move `Res` out of a borrow
+  --> main/main.kg:28:23
+   |
+28 |     let r = o || move h.r.v //~ ERROR cannot move `Res` out of a borrow
+   |                       ^^^^^
+
+error[E517]: cannot move `Res` out of a borrow
+  --> main/main.kg:33:10
+   |
+33 |     move me(c).v //~ ERROR cannot move `Res` out of a borrow
+   |          ^^^^^^^
+
+error[E517]: cannot move `Res` out of a borrow
+  --> main/main.kg:37:10
+   |
+37 |     move c.me().v //~ ERROR cannot move `Res` out of a borrow
+   |          ^^^^^^^^
+
+error[E517]: cannot move `Res` out of a borrow
+  --> main/main.kg:41:10
+   |
+41 |     move k.v //~ ERROR cannot move `Res` out of a borrow
+   |          ^^^
+
+error[E517]: cannot move `Res` out of a borrow
+  --> main/main.kg:45:10
+   |
+45 |     move i.value //~ ERROR cannot move `Res` out of a borrow
+   |          ^^^^^^^
+

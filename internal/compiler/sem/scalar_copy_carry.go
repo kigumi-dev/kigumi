@@ -60,7 +60,7 @@ func (c *checker) noteCopyLit(n, item syntax.NodeID) {
 	if len(c.held.scalarCopy) == 0 {
 		return
 	}
-	for _, leaf := range c.tailLeaves(item, 0) {
+	for _, leaf := range c.tailLeaves(item) {
 		if src, k := c.copyCarrier(leaf); k != carryNone {
 			if c.held.copyLit == nil {
 				c.held.copyLit = map[syntax.NodeID]EntityID{}
@@ -75,7 +75,7 @@ func (c *checker) inheritScalarCopy(ent EntityID, init syntax.NodeID) {
 	if ent == 0 || len(c.held.scalarCopy) == 0 {
 		return
 	}
-	for _, leaf := range c.tailLeaves(init, 0) {
+	for _, leaf := range c.tailLeaves(init) {
 		if src, k := c.copyCarrier(leaf); k != carryNone {
 			c.bindCopy(ent, src)
 			return
@@ -87,7 +87,7 @@ func (c *checker) inheritPatternCopy(expr syntax.NodeID, bound []EntityID) {
 	if len(c.held.scalarCopy) == 0 {
 		return
 	}
-	for _, leaf := range c.tailLeaves(expr, 0) {
+	for _, leaf := range c.tailLeaves(expr) {
 		if src, k := c.copyCarrier(leaf); k == carryInside {
 			for _, ent := range bound {
 				c.bindCopy(ent, src)
@@ -120,7 +120,7 @@ func (c *checker) storeScalarCopy(lhs, rhs syntax.NodeID, target TypeID) {
 	if len(c.held.scalarCopy) == 0 || !c.holdsMutRef(c.r.Entities[ent].Type, 0) || c.r.Types.RefMut(c.vars.resolve(c.r.Entities[ent].Type)) {
 		return
 	}
-	for _, leaf := range c.tailLeaves(rhs, 0) {
+	for _, leaf := range c.tailLeaves(rhs) {
 		if src, k := c.copyCarrier(leaf); k == carryInside {
 			c.bindCopy(ent, src)
 			return

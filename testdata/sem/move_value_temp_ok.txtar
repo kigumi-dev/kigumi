@@ -1,0 +1,55 @@
+-- module --
+mir: planned
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type Id = Res
+
+type W = {
+    pub id Id
+    pub r Res
+    pub n Int
+}
+
+type Cell = {
+    pub v Res
+    pub o Res?
+}
+
+fn w(a: Int, b: Int) -> W {
+    W { id: Id(mk(a)), r: mk(b), n: a }
+}
+
+fn cell(v: Int, o: Int?) -> Cell {
+    Cell { v: mk(v), o: if o is Some(i) { Some(mk(i)) } else { None } }
+}
+
+fn valueField(x: W) -> Res {
+    move x.id.value
+}
+
+fn valueFieldFallback(x: W, o: Res?) -> Res {
+    o || move x.id.value
+}
+
+fn valueBinding(i: Id) -> Res {
+    move i.value
+}
+
+fn tempField(o: Res?) -> Res {
+    o || move cell(30, Some(31)).v
+}
+
+fn tempFieldLet() -> Res {
+    let r = move cell(40, None).v
+    r
+}
+-- expect --

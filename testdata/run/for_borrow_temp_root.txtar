@@ -1,0 +1,183 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn Res.close(move self) {
+    print "close ${self.id}"
+}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type GA = resource {
+    pub xs Array[Res]
+}
+
+fn GA.drop(move self) {
+    print "ga drop"
+    let GA { xs } = self
+    for r in xs {
+        r.close()
+    }
+}
+
+fn mkga(i: Int) -> GA {
+    GA { xs: Array.of(mk(i), mk(i + 1)) }
+}
+
+type H = {
+    pub inner GA
+}
+
+fn viaOr(o: GA?) -> Int {
+    let mut s = 0
+    for r in &(o || mkga(1)).xs {
+        s = s + r.id
+    }
+    print "after or"
+    s
+}
+
+fn viaIf(c: Bool) -> Int {
+    let mut s = 0
+    for r in &(if c { mkga(10) } else { mkga(20) }).xs {
+        s = s + r.id
+    }
+    print "after if"
+    s
+}
+
+fn viaMatch(k: Int) -> Int {
+    let mut s = 0
+    for r in &(match k {
+        0 -> mkga(30)
+        _ -> mkga(40)
+    }).xs {
+        s = s + r.id
+    }
+    print "after match"
+    s
+}
+
+fn viaIfLet(o: GA?) -> Int {
+    let mut s = 0
+    for r in &(if let Some(g) = o { g } else { mkga(50) }).xs {
+        s = s + r.id
+    }
+    print "after if let"
+    s
+}
+
+fn viaMove(h: H) -> Int {
+    let mut s = 0
+    for r in &(move h.inner).xs {
+        s = s + r.id
+    }
+    print "after move"
+    s
+}
+
+fn viaBreak() -> Int {
+    let r = for {
+        break mk(70)
+    }
+    r.id
+}
+
+type Cell = {
+    pub v Res
+    pub n Int
+}
+
+type HC = {
+    pub oc Cell?
+}
+
+fn me(h: &HC) -> &HC {
+    h
+}
+
+fn chainCopy(h: &HC) -> Int {
+    me(h).oc?.n || 0
+}
+
+fn loopTail(x: Res) -> Res {
+    let f = () => for {
+        break x
+    }
+    f()
+}
+
+type G5 = resource {
+    pub a Res
+}
+
+fn G5.drop(move self) {
+    print "g5 drop"
+    let o: Res? = None
+    (o || move self.a).close()
+}
+
+print "${viaOr(None)}"
+print "${viaIf(true)}"
+print "${viaMatch(1)}"
+print "${viaIfLet(None)}"
+print "${viaMove(H { inner: mkga(60) })}"
+print "${viaBreak()}"
+let hc = HC { oc: Some(Cell { v: mk(80), n: 8 }) }
+print "chain ${chainCopy(&hc)}"
+loopTail(mk(90)).close()
+let g5 = G5 { a: mk(95) }
+print "done"
+-- stdout --
+ga drop
+close 1
+drop 1
+close 2
+drop 2
+after or
+3
+ga drop
+close 10
+drop 10
+close 11
+drop 11
+after if
+21
+ga drop
+close 40
+drop 40
+close 41
+drop 41
+after match
+81
+ga drop
+close 50
+drop 50
+close 51
+drop 51
+after if let
+101
+ga drop
+close 60
+drop 60
+close 61
+drop 61
+after move
+121
+drop 70
+70
+chain 8
+close 90
+drop 90
+done
+g5 drop
+close 95
+drop 95
+drop 80

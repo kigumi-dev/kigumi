@@ -1,0 +1,95 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type Cell[T] = {
+    pub v T
+}
+
+fn Cell[T].take(move self) -> T {
+    self.v
+}
+
+fn Cell[T].orSelf(move self, o: Cell[T]?) -> Cell[T] {
+    o || self
+}
+
+fn single[T](o: T?, x: T) -> T {
+    o || x
+}
+
+fn arrayFallback[T](x: T, y: T) -> T {
+    let mut a = Array.of(y)
+    let first = a.takeAt(0) || x
+    first
+}
+
+fn handler[T](r: Result[T, Int], x: T) -> T {
+    r || (e) => x
+}
+
+fn inOneArm[T](c: Bool, o: T?, x: T, y: T) -> T {
+    if c { o || x } else { y }
+}
+
+fn closureOnce[T](o: T?, x: T) -> T {
+    let f = () => o || x
+    f()
+}
+
+fn receiverThrough[T](o: Cell[T]?, c: Cell[T]) -> T {
+    (o || c).take()
+}
+
+fn show(r: Res) {
+    print "got ${r.id}"
+}
+
+show(single(None, mk(1)))
+show(single(Some(mk(2)), mk(3)))
+show(arrayFallback(mk(4), mk(5)))
+show(handler(Err(0), mk(6)))
+show(handler(Ok(mk(7)), mk(8)))
+show(inOneArm(true, None, mk(9), mk(10)))
+show(inOneArm(false, None, mk(11), mk(12)))
+show(closureOnce(None, mk(13)))
+show(receiverThrough(None, Cell { v: mk(14) }))
+show(Cell { v: mk(15) }.orSelf(Some(Cell { v: mk(16) })).take())
+print "done"
+-- stdout --
+got 1
+drop 1
+drop 3
+got 2
+drop 2
+drop 4
+got 5
+drop 5
+got 6
+drop 6
+drop 8
+got 7
+drop 7
+drop 10
+got 9
+drop 9
+drop 11
+got 12
+drop 12
+got 13
+drop 13
+got 14
+drop 14
+drop 15
+got 16
+drop 16
+done

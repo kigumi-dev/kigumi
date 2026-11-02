@@ -1,0 +1,121 @@
+-- src --
+fn keep[T](v: T) -> T {
+    v
+}
+
+type Cell[T] = {
+    pub v T
+}
+
+fn Cell[T].take(move self) -> T {
+    self.v
+}
+
+fn Cell[T: Copy].orSelf(self, o: Cell[T]?) -> Cell[T] {
+    o || self
+}
+
+fn arrayThenFallback[T: Copy](x: T, y: T) -> T {
+    let mut a = Array.of(x, y)
+    let first = a.takeAt(1) || x
+    let second = a.takeAt(1) || x
+    keep(second)
+}
+
+fn resultFallback[T: Copy](r: Result[T, Int], x: T) -> T {
+    let k = keep(x)
+    r || x
+}
+
+fn handlerFallback[T: Copy](r: Result[T, Int], x: T) -> T {
+    let k = keep(x)
+    r || (e) => x
+}
+
+fn fallbackTwice[T: Copy](o: T?, q: T?, x: T) -> (T, T, T) {
+    let a = o || x
+    let b = q || x
+    (a, b, keep(x))
+}
+
+fn fallbackInIf[T: Copy](c: Bool, o: T?, x: T, y: T) -> T {
+    let k = keep(x)
+    if c { o || x } else { y }
+}
+
+fn fallbackInMatch[T: Copy](o: T?, q: T?, x: T) -> T {
+    let k = keep(x)
+    match o {
+        Some(v) -> v
+        None -> q || x
+    }
+}
+
+fn fallbackInLoop[T: Copy](x: T, n: Int) -> Array[T] {
+    let mut out = Array.of(x)
+    for i in 0..n {
+        let o: T? = None
+        out.push(o || x)
+    }
+    out
+}
+
+fn fallbackThenTry[T: Copy](o: Result[T, Int]?, r: Result[T, Int]) -> Result[T, Int] {
+    let b = o || r
+    let a = r?
+    let c = b?
+    Ok(c)
+}
+
+fn onceClosure[T: Copy](x: T) -> T {
+    let f = (o: T?) => o || x
+    let a = f(None)
+    f(None)
+}
+
+fn fallbackThenCapture[T: Copy](o: T?, x: T) -> T {
+    let r = o || x
+    let f = () => x
+    f()
+}
+
+fn receiverTwice[T: Copy](o: Cell[T]?, c: Cell[T]) -> T {
+    let a = c.take()
+    let d = o || c
+    d.take()
+}
+
+print "${arrayThenFallback(1, 2)} ${arrayThenFallback("a", "b")}"
+print "${resultFallback(Ok(3), 4)} ${resultFallback(Err(0), 4)}"
+print "${handlerFallback(Err(9), "h")} ${handlerFallback(Ok("ok"), "h")}"
+let t1 = fallbackTwice(None, Some(5), 4)
+print "${t1._0} ${t1._1} ${t1._2}"
+let t2 = fallbackTwice(Some("x"), None, "y")
+print "${t2._0} ${t2._1} ${t2._2}"
+print "${fallbackInIf(true, None, 6, 7)} ${fallbackInIf(false, None, 6, 7)}"
+print "${fallbackInMatch(None, None, "m")} ${fallbackInMatch(Some("s"), None, "m")}"
+print "${fallbackInLoop(8, 2).len()}"
+print debug(&fallbackThenTry(None, Ok(10)))
+print debug(&fallbackThenTry(Some(Ok(11)), Err(1)))
+print "${onceClosure(12)} ${onceClosure("twice")}"
+print "${fallbackThenCapture(None, 13)}"
+print "${receiverTwice(None, Cell { v: 14 })} ${receiverTwice(Some(Cell { v: 15 }), Cell { v: 16 })}"
+let base = Cell { v: "self" }
+print base.orSelf(None).v
+print base.orSelf(Some(Cell { v: "other" })).v
+-- stdout --
+1 a
+3 4
+h ok
+4 5 4
+x y y
+6 7
+m s
+3
+Ok(10)
+Err(1)
+12 twice
+13
+14 15
+self
+other

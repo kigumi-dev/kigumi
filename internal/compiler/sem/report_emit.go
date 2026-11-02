@@ -124,3 +124,14 @@ func (r *Result) errFix(f FileID, n syntax.NodeID, fix diag.Fix, c Code, args ..
 	}
 	return ok
 }
+
+// hasErrorAt reports an error already emitted on exactly n's span, so a follow-up check stays quiet.
+func (r *Result) hasErrorAt(f FileID, n syntax.NodeID) bool {
+	span := r.Files[f].span(n)
+	for _, d := range r.Files[f].Diags {
+		if d.Severity == diag.Error && d.Loc.Span == span {
+			return true
+		}
+	}
+	return false
+}

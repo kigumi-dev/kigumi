@@ -10,17 +10,24 @@ func (c *checker) checkPatternOn(p, expr syntax.NodeID, scrutinee TypeID, mut bo
 	whole := c.held.patWhole
 	c.held.patWhole = false
 	saved, savedMut := c.patBorrow, c.patBorrowMut
-	c.patBorrow, c.patBorrowMut = expr != 0 && c.borrowedPlace(expr), false
+	c.patBorrow, c.patBorrowMut = expr != 0 && c.borrowedLeaf(expr), false
 	scrutinee = c.vars.resolve(scrutinee)
 	if n := c.r.Types.Node(scrutinee); n.Kind == KRef {
 		c.patBorrow = true
 		c.patBorrowMut = n.Flags&flagMut != 0
+		if expr != 0 && c.r.Types.Kind(c.vars.resolve(n.Elem)) == KRef && c.t.Kind(p) != syntax.PatWildcard {
+			c.errAtHelp(p, "the value is already a reference; match it without the outer `&`", cPatternKind, scrutinee)
+			n.Elem = TyPoison
+		}
 		scrutinee = c.vars.resolve(n.Elem)
 	}
 	bound := len(c.locals)
 	savedMoved := c.patMoved
 	c.patMoved = patMoveLog{}
 	info := c.patternInner(p, scrutinee, mut, seen)
+	if !c.rejectDropDestructure(p, expr) && expr != 0 && !c.patBorrow {
+		c.rejectScrutineeTake(expr, c.locals[bound:])
+	}
 	if expr != 0 {
 		if whole && !c.patBorrow {
 			c.reserveWhole(p, expr)
@@ -46,19 +53,6 @@ func (c *checker) checkPatternOn(p, expr syntax.NodeID, scrutinee TypeID, mut bo
 	c.patBorrow, c.patBorrowMut = saved, savedMut
 	c.info.Pats[p] = info
 	return info
-}
-
-func (c *checker) borrowedPlace(n syntax.NodeID) bool {
-	p, ok := c.buildPlace(n)
-	if !ok {
-		return false
-	}
-	if p.Deref {
-		return true
-	}
-	e := &c.r.Entities[p.Root]
-	// A borrowed self has EfSelf set and EfMove clear.
-	return e.Flags&EfSelf != 0 && e.Flags&EfMove == 0
 }
 
 // A mut borrow always binds `&mut T`, Copy or not: writing through it

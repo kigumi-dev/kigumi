@@ -1,0 +1,124 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type GA = resource {
+    pub xs Array[Res]
+}
+
+fn GA.drop(move self) {}
+
+fn mkga(i: Int) -> GA {
+    GA { xs: Array.of(mk(i)) }
+}
+
+type HA = {
+    pub xs Array[Res]
+}
+
+type H['a] = {
+    pub r &'a HA
+}
+
+fn me(h: &HA) -> &HA {
+    h
+}
+
+fn unsafeTemp() {
+    for r in unsafe { mkga(1).xs } { //~ ERROR cannot move `mkga(1).xs` out of `GA`
+        _ = r
+    }
+}
+
+fn ifTemp(c: Bool) {
+    for r in (if c { mkga(2).xs } else { Array.of(mk(0)) }) { //~ ERROR cannot move `mkga(2).xs` out of `GA`
+        _ = r
+    }
+}
+
+fn orTemp(o: Array[Res]?) {
+    for r in (o || mkga(3).xs) { //~ ERROR cannot move `mkga(3).xs` out of `GA`
+        _ = r
+    }
+}
+
+fn namedOwner(g: GA) {
+    for r in unsafe { g.xs } { //~ ERROR cannot move `g.xs` out of `GA`
+        _ = r
+    }
+}
+
+fn borrowedRoot(h: &HA) {
+    for r in unsafe { h.xs } { //~ ERROR `for` over `h.xs` would take each element out
+        _ = r
+    }
+}
+
+fn borrowedLink['a](h: H['a]) {
+    for r in unsafe { h.r.xs } { //~ ERROR `for` over `h.r.xs` would take each element out
+        _ = r
+    }
+}
+
+fn borrowedCall(h: &HA, c: Bool) {
+    for r in (if c { me(h).xs } else { Array.of(mk(0)) }) { //~ ERROR `for` over `me(h).xs` would take each element out
+        _ = r
+    }
+}
+-- expect --
+error[E1021]: cannot move `mkga(1).xs` out of `GA`, which defines a custom `drop`
+  --> main/main.kg:34:23
+   |
+34 |     for r in unsafe { mkga(1).xs } { //~ ERROR cannot move `mkga(1).xs` out of `GA`
+   |                       ^^^^^^^^^^
+   = help: add a `take`-style method that returns `mkga(1).xs` instead
+
+error[E1021]: cannot move `mkga(2).xs` out of `GA`, which defines a custom `drop`
+  --> main/main.kg:40:22
+   |
+40 |     for r in (if c { mkga(2).xs } else { Array.of(mk(0)) }) { //~ ERROR cannot move `mkga(2).xs` out of `GA`
+   |                      ^^^^^^^^^^
+   = help: add a `take`-style method that returns `mkga(2).xs` instead
+
+error[E1021]: cannot move `mkga(3).xs` out of `GA`, which defines a custom `drop`
+  --> main/main.kg:46:20
+   |
+46 |     for r in (o || mkga(3).xs) { //~ ERROR cannot move `mkga(3).xs` out of `GA`
+   |                    ^^^^^^^^^^
+   = help: add a `take`-style method that returns `mkga(3).xs` instead
+
+error[E1021]: cannot move `g.xs` out of `GA`, which defines a custom `drop`
+  --> main/main.kg:52:23
+   |
+52 |     for r in unsafe { g.xs } { //~ ERROR cannot move `g.xs` out of `GA`
+   |                       ^^^^
+   = help: add a `take`-style method that returns `g.xs` instead
+
+error[E2200]: `for` over `h.xs` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+  --> main/main.kg:58:23
+   |
+58 |     for r in unsafe { h.xs } { //~ ERROR `for` over `h.xs` would take each element out
+   |                       ^^^^
+   = help: iterate `&h.xs` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `h.r.xs` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+  --> main/main.kg:64:23
+   |
+64 |     for r in unsafe { h.r.xs } { //~ ERROR `for` over `h.r.xs` would take each element out
+   |                       ^^^^^^
+   = help: iterate `&h.r.xs` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `me(h).xs` would take each element out of a place that is only borrowed, and `Res` is not known to be `Copy`
+  --> main/main.kg:70:22
+   |
+70 |     for r in (if c { me(h).xs } else { Array.of(mk(0)) }) { //~ ERROR `for` over `me(h).xs` would take each element out
+   |                      ^^^^^^^^
+   = help: iterate `&me(h).xs` to borrow the elements, or take the owner by `move`
+

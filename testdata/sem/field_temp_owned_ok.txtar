@@ -1,0 +1,97 @@
+-- module --
+mir: planned
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+fn eat(r: Res) {}
+
+type Cell = {
+    pub v Res
+    pub o Res?
+}
+
+fn cell(v: Int, o: Int?) -> Cell {
+    Cell { v: mk(v), o: if o is Some(i) { Some(mk(i)) } else { None } }
+}
+
+type Pair = {
+    pub c Cell
+    pub n Int
+}
+
+fn pair(v: Int) -> Pair {
+    Pair { c: cell(v, Some(v + 1)), n: v }
+}
+
+type Maker = {
+    pub n Int
+}
+
+fn Maker.cell(self) -> Cell {
+    cell(self.n, None)
+}
+
+type Guard = resource {
+    pub a Res
+    pub n Int
+}
+
+fn Guard.drop(move self) {
+    let Guard { a, n } = self
+    eat(a)
+}
+
+fn mkg(i: Int) -> Guard {
+    Guard { a: mk(i), n: i }
+}
+
+type H = {
+    pub mut r Res
+}
+
+fn H.swap(mut self, n: Int) {
+    eat(move self.r)
+    self.r = mk(n)
+}
+
+fn fallback(o: Res?) -> Res {
+    o || cell(1, Some(2)).v
+}
+
+fn handed() {
+    eat(cell(3, Some(4)).v)
+}
+
+fn payload(y: Res) -> Res {
+    cell(5, Some(6)).o || y
+}
+
+fn bound() -> Res {
+    let r = cell(7, None).v
+    r
+}
+
+fn explicit() -> Res {
+    move cell(8, Some(9)).v
+}
+
+fn nested(o: Res?) -> Res {
+    o || pair(10).c.v
+}
+
+fn chained(m: Maker) -> Res {
+    m.cell().v
+}
+
+fn copyThroughDrop() -> Int {
+    mkg(13).n
+}
+-- expect --

@@ -13,17 +13,17 @@ type Outer = {
 }
 
 type Wrap = {
-    pub inner Inner
+    pub outer Outer
 }
 
-type Box = Wrapped(Inner)
+type Box = Wrapped(Outer)
 
-fn record(o: &Outer) -> Wrap {
-    Wrap { inner: o.inner }
+fn Outer.record(self) -> Wrap {
+    Wrap { outer: self }
 }
 
-fn variant(o: &Outer) -> Box {
-    Wrapped(o.inner)
+fn Outer.variant(self) -> Box {
+    Wrapped(self)
 }
 
 -- expect --
@@ -34,27 +34,27 @@ fn lib.Inner.drop(%self: Inner) -> Void {
     %t2 = unit
     return %t2
 }
-fn lib.record(%o: &Outer) -> Wrap {
+fn lib.Outer.record(%self: Outer) -> Wrap {
   b0:
-    %t1 = field 0(%o)
+    %t1 = move(%self)
     %t2 = record lib.Wrap(%t1)
     return %t2
 }
-fn lib.variant(%o: &Outer) -> Box {
+fn lib.Outer.variant(%self: Outer) -> Box {
   b0:
-    %t1 = field 0(%o)
+    %t1 = move(%self)
     %t2 = variant lib.Box.Wrapped(%t1)
     return %t2
 }
-error[move-from-borrow]: a value borrowed here cannot be moved out
-  --> lib/field.kg:21:5
+error[move-from-borrow]: `self` is borrowed by this method and cannot be moved out; take `move self`
+  --> lib/field.kg:21:19
    |
-21 |     Wrap { inner: o.inner }
-   |     ^^^^^^^^^^^^^^^^^^^^^
+21 |     Wrap { outer: self }
+   |                   ^^^^
 
-error[move-from-borrow]: a value borrowed here cannot be moved out
-  --> lib/field.kg:25:5
+error[move-from-borrow]: `self` is borrowed by this method and cannot be moved out; take `move self`
+  --> lib/field.kg:25:13
    |
-25 |     Wrapped(o.inner)
-   |     ^^^^^^^^^^^^^^^
+25 |     Wrapped(self)
+   |             ^^^^
 

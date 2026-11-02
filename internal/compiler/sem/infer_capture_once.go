@@ -24,7 +24,7 @@ func (c *checker) noteNestedCaptureMoves(n syntax.NodeID, ctx *lambdaCtx) {
 }
 
 func (c *checker) noteLambdaTail(body syntax.NodeID) {
-	for _, leaf := range c.tailLeaves(body, 0) {
+	for _, leaf := range c.tailLeaves(body) {
 		if p, ok := c.consumedPlace(leaf); ok {
 			c.noteLambdaConsume(leaf, p)
 		}

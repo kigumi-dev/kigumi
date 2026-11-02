@@ -1,0 +1,50 @@
+-- src --
+async fn val(x: Int) -> Int {
+    x
+}
+
+type Holder = {
+    pub t Future[Int]
+}
+
+type HR['a] = {
+    pub r &'a Holder
+}
+
+async fn viaRef(h: &Holder) -> Int {
+    await h.t //~ ERROR reading `h.t` by value
+}
+
+async fn viaLink['a](h: HR['a]) -> Int {
+    await h.r.t //~ ERROR reading `h.r.t` by value
+}
+
+async fn viaIf(c: Bool, h: Holder) -> Int {
+    await (if c { h.t } else { val(0) }) //~ ERROR reading `h.t` by value
+}
+
+async fn ownedDirect(h: Holder) -> Int {
+    await h.t
+}
+-- expect --
+error[E2153]: reading `h.t` by value would copy a `Future[Int]`, which is not `Copy`
+  --> main/main.kg:14:11
+   |
+14 |     await h.t //~ ERROR reading `h.t` by value
+   |           ^^^
+   = help: `h.t` is reached through a borrow, so it cannot be handed over by value; pass a value the caller owns, or clone it
+
+error[E2153]: reading `h.r.t` by value would copy a `Future[Int]`, which is not `Copy`
+  --> main/main.kg:18:11
+   |
+18 |     await h.r.t //~ ERROR reading `h.r.t` by value
+   |           ^^^^^
+   = help: `h.r.t` is reached through a borrow, so it cannot be handed over by value; pass a value the caller owns, or clone it
+
+error[E2153]: reading `h.t` by value would copy a `Future[Int]`, which is not `Copy`
+  --> main/main.kg:22:19
+   |
+22 |     await (if c { h.t } else { val(0) }) //~ ERROR reading `h.t` by value
+   |                   ^^^
+   = help: write `move h.t` to take it out, borrow it with `&h.t`, or clone it
+

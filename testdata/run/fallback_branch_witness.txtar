@@ -1,0 +1,82 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type Maybe = {
+    pub v Res?
+}
+
+fn Maybe.branch(move self) -> Branch[Res, Void] {
+    match self.v {
+        Some(r) -> Branch.Hit(r)
+        None -> Branch.Miss(())
+    }
+}
+
+type Lookup[T] = Found(T) | Missing(Int)
+
+fn Lookup[T].branch(move self) -> Branch[T, Int] {
+    match self {
+        Found(v) -> Branch.Hit(v)
+        Missing(code) -> Branch.Miss(code)
+    }
+}
+
+fn named(m: Maybe, x: Res) -> Res {
+    m || x
+}
+
+fn temp(n: Int, x: Res) -> Res {
+    Maybe { v: if n > 0 { Some(mk(n)) } else { None } } || x
+}
+
+fn generic[T](l: Lookup[T], x: T) -> T {
+    l || x
+}
+
+fn handler(l: Lookup[Res]) -> Res {
+    l || (code) => mk(code)
+}
+
+fn show(r: Res) {
+    print "got ${r.id}"
+}
+
+show(named(Maybe { v: Some(mk(1)) }, mk(2)))
+show(named(Maybe { v: None }, mk(3)))
+show(temp(4, mk(5)))
+show(temp(0, mk(6)))
+show(generic(Found(mk(7)), mk(8)))
+show(generic(Missing(0), mk(9)))
+show(handler(Missing(10)))
+print "${generic(Found(11), 12)} ${generic(Missing(0), 13)}"
+print "done"
+-- stdout --
+drop 2
+got 1
+drop 1
+got 3
+drop 3
+drop 5
+got 4
+drop 4
+got 6
+drop 6
+drop 8
+got 7
+drop 7
+got 9
+drop 9
+got 10
+drop 10
+11 13
+done

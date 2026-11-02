@@ -183,7 +183,7 @@ func (c *checker) checkReceiver(base syntax.NodeID, recv TypeID, m EntityID) {
 			c.errAt(base, cMoveOutOfBorrow, tt.Node(recv).Elem)
 		} else if c.indexRooted(base) && !c.copyNow(recv) {
 			c.errAtHelp(base, c.noCloneHelp(recv, "borrow it with `&`, or take it with `.takeAt`"), cIndexValueCopy, recv)
-		} else {
+		} else if !c.rejectArgTake(base, recv) {
 			c.consumeWhole(base)
 		}
 	}

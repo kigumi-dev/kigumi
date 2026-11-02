@@ -1,0 +1,109 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn Res.close(move self) {
+    print "close ${self.id}"
+}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type GA = resource {
+    pub xs Array[Res]
+}
+
+fn GA.drop(move self) {
+    print "ga drop"
+    let GA { xs } = self
+    for r in xs {
+        r.close()
+    }
+}
+
+fn mkga(i: Int) -> GA {
+    GA { xs: Array.of(mk(i), mk(i + 1)) }
+}
+
+type Plain = {
+    pub xs Array[Res]
+    pub tag Res
+}
+
+fn mkp(i: Int) -> Plain {
+    Plain { xs: Array.of(mk(i)), tag: mk(i + 50) }
+}
+
+type Nest = {
+    pub ga GA
+}
+
+fn mkn(i: Int) -> Nest {
+    Nest { ga: mkga(i) }
+}
+
+fn sumGuarded() -> Int {
+    let mut s = 0
+    for r in &mkga(1).xs {
+        print "iter ${r.id}"
+        s = s + r.id
+    }
+    print "after guarded"
+    s
+}
+
+fn sumPlain() -> Int {
+    let mut s = 0
+    for r in &mkp(10).xs {
+        print "iter ${r.id}"
+        s = s + r.id
+    }
+    print "after plain"
+    s
+}
+
+fn sumNested() -> Int {
+    let mut s = 0
+    for r in &mkn(20).ga.xs {
+        print "iter ${r.id}"
+        s = s + r.id
+    }
+    print "after nested"
+    s
+}
+
+print "${sumGuarded()}"
+print "${sumPlain()}"
+print "${sumNested()}"
+print "done"
+-- stdout --
+iter 1
+iter 2
+ga drop
+close 1
+drop 1
+close 2
+drop 2
+after guarded
+3
+iter 10
+drop 60
+drop 10
+after plain
+10
+iter 20
+iter 21
+ga drop
+close 20
+drop 20
+close 21
+drop 21
+after nested
+41
+done

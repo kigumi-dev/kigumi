@@ -1,0 +1,67 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+type Guard = resource {
+    pub a Res
+    pub n Int
+}
+
+fn Guard.drop(move self) {
+    let Guard { a, n } = self
+}
+
+type Outer = {
+    pub g Guard
+}
+
+fn letDestructure(g: Guard) -> Res {
+    let Guard { a, n } = g //~ ERROR cannot move `a` out of `Guard`
+    a
+}
+
+fn matchDestructure(g: Guard) -> Res {
+    match g {
+        Guard { a, n } -> a //~ ERROR cannot move `a` out of `Guard`
+    }
+}
+
+fn nestedDestructure(o: Outer) -> Res {
+    let Outer { g: Guard { a, n } } = o //~ ERROR cannot move `a` out of `Guard`
+    a
+}
+
+fn copyOnly(g: Guard) -> Int {
+    let Guard { a: _, n } = g
+    n
+}
+
+fn borrowed(g: &Guard) -> Int {
+    let Guard { a, n } = g
+    a.id + n
+}
+-- expect --
+error[E1021]: cannot move `a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:21:9
+   |
+21 |     let Guard { a, n } = g //~ ERROR cannot move `a` out of `Guard`
+   |         ^^^^^^^^^^^^
+   = help: add a `take`-style method that returns `a` instead
+
+error[E1021]: cannot move `a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:27:9
+   |
+27 |         Guard { a, n } -> a //~ ERROR cannot move `a` out of `Guard`
+   |         ^^^^^^^^^^^^
+   = help: add a `take`-style method that returns `a` instead
+
+error[E1021]: cannot move `a` out of `Guard`, which defines a custom `drop`
+  --> main/main.kg:32:20
+   |
+32 |     let Outer { g: Guard { a, n } } = o //~ ERROR cannot move `a` out of `Guard`
+   |                    ^^^^^^^^^^^^
+   = help: add a `take`-style method that returns `a` instead
+

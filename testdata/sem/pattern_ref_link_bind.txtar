@@ -1,0 +1,78 @@
+-- src --
+context k: Cell
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+type Cell = {
+    pub o Res?
+}
+
+type H['a] = {
+    pub r &'a Cell
+}
+
+fn me(c: &Cell) -> &Cell {
+    c
+}
+
+fn refFieldIfLet['a](h: H['a], y: Res) -> Res {
+    if let Some(r) = h.r.o { r } else { y } //~ ERROR expected `Res`, found `&Res`
+}
+
+fn refCallMatch(c: &Cell, y: Res) -> Res {
+    match me(c).o {
+        Some(r) -> r //~ ERROR expected `Res`, found `&Res`
+        None -> y
+    }
+}
+
+fn refFieldIs['a](h: H['a], y: Res) -> Res {
+    if h.r.o is Some(r) { r } else { y } //~ ERROR expected `Res`, found `&Res`
+}
+
+fn ctxKeyMatch(y: Res) -> Res {
+    match k.o {
+        Some(r) -> r //~ ERROR expected `Res`, found `&Res`
+        None -> y
+    }
+}
+
+fn refFieldRead['a](h: H['a]) -> Int {
+    if let Some(r) = h.r.o { r.id } else { 0 }
+}
+
+fn refCallRead(c: &Cell) -> Int {
+    match me(c).o {
+        Some(r) -> r.id
+        None -> 0
+    }
+}
+-- expect --
+error[E400]: expected `Res`, found `&Res`
+  --> main/main.kg:22:30
+   |
+22 |     if let Some(r) = h.r.o { r } else { y } //~ ERROR expected `Res`, found `&Res`
+   |                              ^
+
+error[E400]: expected `Res`, found `&Res`
+  --> main/main.kg:27:20
+   |
+27 |         Some(r) -> r //~ ERROR expected `Res`, found `&Res`
+   |                    ^
+
+error[E400]: expected `Res`, found `&Res`
+  --> main/main.kg:33:27
+   |
+33 |     if h.r.o is Some(r) { r } else { y } //~ ERROR expected `Res`, found `&Res`
+   |                           ^
+
+error[E400]: expected `Res`, found `&Res`
+  --> main/main.kg:38:20
+   |
+38 |         Some(r) -> r //~ ERROR expected `Res`, found `&Res`
+   |                    ^
+

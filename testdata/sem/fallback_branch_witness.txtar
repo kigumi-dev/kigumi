@@ -1,0 +1,93 @@
+-- module --
+mir: planned
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn eat[T](v: T) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type Maybe = {
+    pub v Res?
+}
+
+fn Maybe.branch(move self) -> Branch[Res, Void] {
+    match self.v {
+        Some(r) -> Branch.Hit(r)
+        None -> Branch.Miss(())
+    }
+}
+
+type Lookup[T] = Found(T) | Missing(Int)
+
+fn Lookup[T].branch(move self) -> Branch[T, Int] {
+    match self {
+        Found(v) -> Branch.Hit(v)
+        Missing(code) -> Branch.Miss(code)
+    }
+}
+
+fn named(m: Maybe, x: Res) -> Res {
+    m || x
+}
+
+fn temp(n: Int, x: Res) -> Res {
+    Maybe { v: if n > 0 { Some(mk(n)) } else { None } } || x
+}
+
+fn generic[T](l: Lookup[T], x: T) -> T {
+    l || x
+}
+
+fn handler(l: Lookup[Res]) -> Res {
+    l || (code) => mk(code)
+}
+
+fn witnessThenUse(m: Maybe, x: Res) -> Res {
+    let r = m || x
+    eat(m) //~ ERROR `m` was moved
+    r
+}
+
+fn missThenUse(m: Maybe, x: Res) -> Res {
+    let r = m || x
+    eat(x) //~ ERROR `x` is moved on some paths but not others
+    r
+}
+
+fn genericMissThenUse[T](l: Lookup[T], x: T) -> T {
+    let r = l || x
+    eat(x) //~ ERROR `x` is moved on some paths but not others
+    r
+}
+-- expect --
+error[E2197]: `m` was moved; it cannot be used again
+  --> main.kg:51:9
+   |
+51 |     eat(m) //~ ERROR `m` was moved
+   |         ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
+note: `m` is moved here
+  --> main.kg:50:13
+   |
+50 |     let r = m || x
+   |             ^
+
+error[move-join-mismatch]: `x` is moved on some paths but not others
+  --> main.kg:57:9
+   |
+57 |     eat(x) //~ ERROR `x` is moved on some paths but not others
+   |         ^
+
+error[move-join-mismatch]: `x` is moved on some paths but not others
+  --> main.kg:63:9
+   |
+63 |     eat(x) //~ ERROR `x` is moved on some paths but not others
+   |         ^
+

@@ -2,8 +2,8 @@ package sem
 
 import "kigumi/internal/compiler/syntax"
 
-// rejectTempBorrowLet stops `let k = &mk()` (also through a field, `?.` field or index of the temporary)
-// when the temporary owns something its end-of-statement drop would free under k; `x?.f`, a block, `if` and `match` build fresh temporaries.
+// rejectTempBorrowLet stops `let k = &mk()` (also through a field, `?.` field or index) when the temporary owns
+// what its end-of-statement drop frees under k; every root but a binding that outlives the borrow is one.
 func (c *checker) rejectTempBorrowLet(init syntax.NodeID) {
 	if n, root, t, ok := c.tempBorrow(init); ok {
 		c.errAt(n, cTempBorrowLet, c.temporaryName(root, t))
@@ -17,15 +17,10 @@ func (c *checker) rejectTempBorrowStore(rhs syntax.NodeID) {
 	}
 }
 
+// tempBorrow finds the borrow init hands on as itself, through block tails and unsafe-style bodies; a join's
+// arms are left to MIR, which follows each arm's temporary into every place that keeps it.
 func (c *checker) tempBorrow(init syntax.NodeID) (syntax.NodeID, syntax.NodeID, TypeID, bool) {
-	n := c.t.Unparen(init)
-	for c.t.Kind(n) == syntax.Block {
-		tail := c.t.View(n).AsBlock().Tail()
-		if !tail.Valid() {
-			return 0, 0, 0, false
-		}
-		n = c.t.Unparen(tail.ID())
-	}
+	n := c.passThrough(init)
 	if c.t.Kind(n) != syntax.BorrowExpr {
 		return 0, 0, 0, false
 	}
@@ -33,22 +28,28 @@ func (c *checker) tempBorrow(init syntax.NodeID) (syntax.NodeID, syntax.NodeID, 
 	root, opt := operand, false
 	for {
 		root = c.t.Unparen(root)
-		switch c.t.Kind(root) {
-		case syntax.MemberExpr:
+		k := c.t.Kind(root)
+		if k == syntax.MemberExpr && !c.namesEntity(root) {
 			root = c.t.View(root).AsMember().Base().ID()
 			continue
-		case syntax.OptMemberExpr:
+		}
+		switch {
+		case k == syntax.OptMemberExpr:
 			root, opt = c.t.View(root).AsOptMember().Base().ID(), true
 			continue
-		case syntax.BracketExpr:
+		case k == syntax.BracketExpr:
 			root = c.t.View(root).AsBracket().Base().ID()
 			continue
-		case syntax.CallExpr, syntax.RecordLit, syntax.TupleLit, syntax.StringLit, syntax.ByteStringLit, syntax.Block, syntax.IfExpr, syntax.IfLetExpr, syntax.MatchExpr:
-		default:
-			if !opt {
+		case k == syntax.Ident || k == syntax.MemberExpr:
+			if opt {
+				root = c.t.Unparen(operand)
+			} else if c.outlives(root, n) {
 				return 0, 0, 0, false
 			}
-			root = c.t.Unparen(operand)
+		case leafRules[k] == leafBody:
+			if root = c.passThrough(root); !c.movedTail(root) {
+				continue
+			}
 		}
 		break
 	}
@@ -60,6 +61,38 @@ func (c *checker) tempBorrow(init syntax.NodeID) (syntax.NodeID, syntax.NodeID, 
 		return 0, 0, 0, false
 	}
 	return n, root, t, true
+}
+
+// namesEntity reports whether member n names a declaration, as `pkg.c` or `T.V` do, rather than a field.
+func (c *checker) namesEntity(n syntax.NodeID) bool {
+	k := c.r.Entities[c.info.Uses[n]].Kind
+	return k != EntNone && k != EntField
+}
+
+// outlives reports whether the root id names a place living past within: a static, or a local or context key
+// declared or provided outside it. A const, variant, function or anything unresolved is a fresh value per use.
+func (c *checker) outlives(id, within syntax.NodeID) bool {
+	ent := c.info.Uses[id]
+	switch c.r.Entities[ent].Kind {
+	case EntStatic:
+		return true
+	case EntLocal, EntParam:
+		return !c.within(c.r.Entities[ent].Node, within)
+	case EntContextKey:
+		b := c.info.CtxUse[id]
+		return b.Local == 0 || !c.within(c.r.Entities[b.Local].Node, within)
+	}
+	return false
+}
+
+// movedTail reports whether n, a body's tail, names an owned local whose value moves into the body's result;
+// moving a borrowed one is the error MIR reports.
+func (c *checker) movedTail(n syntax.NodeID) bool {
+	if c.t.Kind(n) != syntax.Ident || c.pathMode(n) != pathOwned || c.r.isCopy(c.vars.resolve(c.info.Types[n])) {
+		return false
+	}
+	k := c.r.Entities[c.info.Uses[n]].Kind
+	return k == EntLocal || k == EntParam
 }
 
 func (c *checker) temporaryName(root syntax.NodeID, t TypeID) string {

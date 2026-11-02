@@ -1,6 +1,7 @@
 package borrow
 
 import (
+	"cmp"
 	"slices"
 	"strings"
 
@@ -34,6 +35,8 @@ func checkBorrowedMoves(state *Analyzer, f *midir.Func) {
 		}
 	}
 	fieldRead := make([]syntax.NodeID, len(f.Locals))
+	// origin is where a borrowed value was read, for a join temporary whose own copies carry no node.
+	origin := make([]syntax.NodeID, len(f.Locals))
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			if in.Op.Yields() {
@@ -47,6 +50,9 @@ func checkBorrowedMoves(state *Analyzer, f *midir.Func) {
 			case midir.OpField, midir.OpIndex, midir.OpPayload, midir.OpUnbox, midir.OpCopy:
 				if propagates {
 					borrowed[in.Dst] = true
+					if origin[in.Dst] == 0 {
+						origin[in.Dst] = cmp.Or(in.Node, origin[in.Args[0]])
+					}
 				}
 			// A field taken out of a receiver is meant to escape its own
 			// method; a closure only lends a captured self, so it stays tainted.
@@ -136,7 +142,8 @@ func checkBorrowedMoves(state *Analyzer, f *midir.Func) {
 				}
 			case midir.OpCall, midir.OpCallValue, midir.OpBuiltin, midir.OpFutureNew:
 				for i, a := range in.Args {
-					if moveOnly(a) && ownquery.ConsumesArg(p.R, p.ByEnt, &in, i) {
+					// A runtime primitive has no body to lend from; its declaration says what it takes.
+					if moveOnly(a) && (ownquery.ConsumesArg(p.R, p.ByEnt, &in, i) || ownquery.PrimitiveTakes(p.R, &in, i)) {
 						report(in.Node, a)
 					}
 				}
@@ -153,7 +160,7 @@ func checkBorrowedMoves(state *Analyzer, f *midir.Func) {
 		if blk.Term.Op == midir.TermReturn {
 			for _, a := range blk.Term.Args {
 				if moveOnly(a) {
-					report(defNode[a], a)
+					report(cmp.Or(defNode[a], origin[a]), a)
 				}
 			}
 		}

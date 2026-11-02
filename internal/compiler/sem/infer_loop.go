@@ -28,8 +28,10 @@ func (c *checker) synthFor(n syntax.NodeID) TypeID {
 		sites = c.markLoopSites()
 		elem := c.iterElement(n, s.Head, iter)
 		if !c.r.isCopy(c.vars.resolve(elem)) {
-			c.rejectFieldLeaf(c.t.Unparen(s.Head))
-			c.rejectForOfBorrowed(s.Head, iter, elem)
+			for _, leaf := range c.valueLeaves(s.Head) {
+				c.rejectFieldLeaf(leaf, takeIterated)
+				c.rejectForOfBorrowed(leaf, c.vars.resolve(c.info.Types[leaf]), elem)
+			}
 		}
 		c.reserveUse(s.Head)
 		c.checkPattern(s.Pattern, elem, false, c.scope)
@@ -128,9 +130,7 @@ func (c *checker) synthReturn(n syntax.NodeID) TypeID {
 	defer func() { c.exitCheck.returning = c.exitCheck.returning[:len(c.exitCheck.returning)-1] }()
 	saved := c.beginExit()
 	c.check(val, c.retType)
-	if len(c.lambdas) == 0 {
-		c.retLeaves = append(c.retLeaves, val)
-	}
+	c.noteExitValue(val, false)
 	c.checkEscapeReturn(val)
 	c.consumeWhole(val)
 	c.endExit(saved)

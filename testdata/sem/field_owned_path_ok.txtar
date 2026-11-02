@@ -1,0 +1,59 @@
+-- module --
+mir: planned
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type Cell = {
+    pub v Res
+    pub o Res?
+}
+
+type Id = Res
+
+type W = {
+    pub id Id
+    pub c Cell
+}
+
+fn cell(v: Int, o: Int?) -> Cell {
+    Cell { v: mk(v), o: if o is Some(i) { Some(mk(i)) } else { None } }
+}
+
+fn w(id: Int, v: Int, o: Int?) -> W {
+    W { id: Id(mk(id)), c: cell(v, o) }
+}
+
+fn nested(x: W, o: Res?) -> Res {
+    o || x.c.v
+}
+
+fn nestedLhs(x: W, y: Res) -> Res {
+    x.c.o || y
+}
+
+fn temp(o: Res?) -> Res {
+    o || cell(50, None).v
+}
+
+fn wholeValue(i: Id) -> Res {
+    let r = i.value
+    r
+}
+
+fn fieldValue(x: W, c: Bool, y: Res) -> Res {
+    if c { x.id.value } else { y }
+}
+
+fn explicitMove(x: W) -> Res {
+    let r = move x.c.v
+    r
+}
+-- expect --

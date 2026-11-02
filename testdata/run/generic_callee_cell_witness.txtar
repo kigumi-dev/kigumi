@@ -3,7 +3,7 @@ interface Taker[V] {
     fn take(mut self) -> V?
 }
 
-fn drainGeneric[V, T: Taker[V]](x: &mut T, zero: V) -> V {
+fn drainGeneric[V: Copy, T: Taker[V]](x: &mut T, zero: V) -> V {
     let a = x.take() || zero
     let b = x.take() || zero
     b

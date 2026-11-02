@@ -28,7 +28,7 @@ fn Pair[T, U].tooMany(self) -> Int { //~ ERROR receiver binders must be `[T]` as
     1
 }
 
-fn Pair[T].map[U](self, f: fn(T) -> U) -> Pair[U] {
+fn Pair[T: Copy].map[U](self, f: fn(T) -> U) -> Pair[U] {
     Pair[U] {
         first: f(self.first)
         second: f(self.second)

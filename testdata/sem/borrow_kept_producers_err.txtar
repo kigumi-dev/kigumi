@@ -1,0 +1,214 @@
+-- module --
+mir: planned
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {}
+
+fn mk(id: Int) -> Res {
+    Res { id: id }
+}
+
+type Cell = {
+    pub v Res
+}
+
+type H['a] = {
+    pub r &'a Res
+}
+
+type SH['a] = {
+    pub s &'a String
+}
+
+type GH['a, F] = {
+    pub f &'a F
+}
+
+type BH['a] = {
+    pub b &'a Bytes
+}
+
+fn sq(x: Int) -> Int {
+    x * x
+}
+
+async fn amk(i: Int) -> Res {
+    mk(i)
+}
+
+fn fieldMoveKept(c: Cell) -> Int {
+    let h = H { r: &(move c.v) } //~ ERROR `h` keeps a borrow of a temporary
+    h.r.id
+}
+
+fn fieldMoveArm(c: Cell, x: &Res, k: Bool) -> Int {
+    let r = if k { &(move c.v) } else { x } //~ ERROR `r` keeps a borrow of a temporary
+    r.id
+}
+
+fn fieldMoveRet['a](x: &'a Res, c: Cell) -> &'a Res {
+    &(move c.v) //~ ERROR a borrow cannot be returned
+}
+
+fn fieldMoveArray(c: Cell) -> Int {
+    let xs = Array.of(H { r: &(move c.v) }) //~ ERROR `xs` keeps a borrow of a temporary
+    xs[0].r.id
+}
+
+async fn awaitKept() -> Int {
+    let h = H { r: &(await amk(1)) } //~ ERROR `h` keeps a borrow of a temporary
+    h.r.id
+}
+
+async fn awaitRet['a](x: &'a Res) -> &'a Res {
+    &(await amk(3)) //~ ERROR a borrow cannot be returned
+}
+
+fn interpKept(i: Int) -> usize {
+    let h = SH { s: &"x${i}" } //~ ERROR `h` keeps a borrow of a temporary
+    h.s.len()
+}
+
+fn interpJoin(i: Int, k: Bool) -> usize {
+    let h = if k { SH { s: &"j${i}" } } else { SH { s: &"none" } } //~ ERROR `h` keeps a borrow of a temporary
+    h.s.len()
+}
+
+fn interpRet['a](x: &'a String, i: Int) -> &'a String {
+    &"t${i}" //~ ERROR a borrow cannot be returned
+}
+
+fn closureKept(n: Int) -> Int {
+    let s = "x${n}"
+    let h = GH { f: &(() => s.len()) } //~ ERROR `h` keeps a borrow of a temporary
+    0
+}
+
+fn fnKept() -> Int {
+    let h = GH { f: &sq } //~ ERROR `h` keeps a borrow of a temporary
+    (h.f)(3)
+}
+
+fn bytesKept() -> usize {
+    let h = BH { b: &b"abc" } //~ ERROR `h` keeps a borrow of a temporary
+    h.b.len()
+}
+
+type Pt = {
+    pub name String
+    pub n Int
+}
+
+fn mkPt() -> Pt {
+    Pt { name: "origin", n: 1 }
+}
+
+const home: Pt = comptime mkPt()
+
+const word: String = "konst"
+
+type PH['a] = {
+    pub p &'a Pt
+}
+
+type IH['a] = {
+    pub n &'a Int
+}
+
+fn recordConstKept() -> Int {
+    let h = PH { p: &home } //~ ERROR `h` keeps a borrow of a temporary
+    h.p.n
+}
+
+fn stringKept() -> usize {
+    let h = SH { s: &"lit" }
+    let g = SH { s: &word }
+    h.s.len() + g.s.len()
+}
+
+fn scalarKept() -> Int {
+    let h = IH { n: &5 }
+    0
+}
+-- expect --
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:40:9
+   |
+40 |     let h = H { r: &(move c.v) } //~ ERROR `h` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `r` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:45:9
+   |
+45 |     let r = if k { &(move c.v) } else { x } //~ ERROR `r` keeps a borrow of a temporary
+   |         ^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:50:5
+   |
+50 |     &(move c.v) //~ ERROR a borrow cannot be returned
+   |     ^^^^^^^^^^
+
+error[E2235]: `xs` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:54:9
+   |
+54 |     let xs = Array.of(H { r: &(move c.v) }) //~ ERROR `xs` keeps a borrow of a temporary
+   |         ^^
+
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:59:9
+   |
+59 |     let h = H { r: &(await amk(1)) } //~ ERROR `h` keeps a borrow of a temporary
+   |         ^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:64:5
+   |
+64 |     &(await amk(3)) //~ ERROR a borrow cannot be returned
+   |     ^^^^^^^^^^^^^
+
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:68:9
+   |
+68 |     let h = SH { s: &"x${i}" } //~ ERROR `h` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:73:9
+   |
+73 |     let h = if k { SH { s: &"j${i}" } } else { SH { s: &"none" } } //~ ERROR `h` keeps a borrow of a temporary
+   |         ^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:78:5
+   |
+78 |     &"t${i}" //~ ERROR a borrow cannot be returned
+   |     ^^^^^^^^
+
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:83:9
+   |
+83 |     let h = GH { f: &(() => s.len()) } //~ ERROR `h` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:88:9
+   |
+88 |     let h = GH { f: &sq } //~ ERROR `h` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:93:9
+   |
+93 |     let h = BH { b: &b"abc" } //~ ERROR `h` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+   --> main.kg:119:9
+    |
+119 |     let h = PH { p: &home } //~ ERROR `h` keeps a borrow of a temporary
+    |         ^
+

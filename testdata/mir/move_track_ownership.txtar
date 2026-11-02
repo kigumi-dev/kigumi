@@ -86,34 +86,36 @@ fn lib.orTwice(%o: Res?, %d: Res, %e: Res) -> Void {
     jump b3
   b2:
     %t6 = unit
-    %t3 = copy(%d)
+    %t7 = move(%d)
+    %t3 = copy(%t7)
     jump b3
   b3:
     %a = copy(%t3)
-    %t9 = isvariant Option.Some(%o)
-    branch %t9 ? b4 : b5
+    %t10 = isvariant Option.Some(%o)
+    branch %t10 ? b4 : b5
   b4:
-    %t10 = payload 0(%o)
+    %t11 = payload 0(%o)
     nop
-    %t8 = copy(%t10)
+    %t9 = copy(%t11)
     jump b6
   b5:
-    %t11 = unit
-    %t8 = copy(%e)
+    %t12 = unit
+    %t13 = move(%e)
+    %t9 = copy(%t13)
     jump b6
   b6:
-    %b = copy(%t8)
-    %t13 = move(%a)
-    %t14 = call lib.Res.close(%t13)
-    drop(%t14)
-    %t15 = move(%b)
+    %b = copy(%t9)
+    %t15 = move(%a)
     %t16 = call lib.Res.close(%t15)
+    drop(%t16)
+    %t17 = move(%b)
+    %t18 = call lib.Res.close(%t17)
     nop
     nop
     drop(%e)
     drop(%d)
     drop(%o)
-    return %t16
+    return %t18
 }
 fn lib.captureThenClose.closure1(%r: Res) -> Void {
   b0:
