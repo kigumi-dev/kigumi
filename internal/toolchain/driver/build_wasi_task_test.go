@@ -25,9 +25,7 @@ print "${ex.runToCompletion(root())}"
 `
 
 func TestBuildWasiTaskProgram(t *testing.T) {
-	if testCompiler().CCompiler() == nil {
-		t.Skip("needs a C compiler")
-	}
+	requireZig(t)
 	target, err := buildconfig.ParseTarget(testCompiler(), "wasm32-wasi", "")
 	if err != nil {
 		t.Fatal(err)

@@ -52,9 +52,7 @@ var freestandingTargets = []string{
 
 // The backend lowers a large aggregate copy to memmove, and a 32-bit or wasm target calls compiler-rt helpers; the audit must accept both.
 func TestBuildFreestandingTargetsPassAudit(t *testing.T) {
-	if testCompiler().CCompiler() == nil {
-		t.Skip("no C compiler")
-	}
+	requireZig(t)
 	for _, triple := range freestandingTargets {
 		for _, p := range freestandingTargetPrograms {
 			t.Run(triple+"/"+p.name, func(t *testing.T) {
@@ -88,9 +86,7 @@ func TestParseTargetRejectsWasmUEFI(t *testing.T) {
 
 // The audit reads wasm and 32-bit COFF objects too, so an undeclared libc call is named on them as it is on ELF.
 func TestAuditRejectsDisallowedSymbolOnObjectFormats(t *testing.T) {
-	if testCompiler().CCompiler() == nil {
-		t.Skip("no C compiler")
-	}
+	requireZig(t)
 	for _, triple := range []string{"wasm32-freestanding", "x86-uefi", "arm-freestanding"} {
 		t.Run(triple, func(t *testing.T) {
 			t.Parallel()

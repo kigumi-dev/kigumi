@@ -16,8 +16,14 @@ var dataLayouts = map[string]string{
 	"arm":     "e-m:e-p:32:32-Fi8-i64:64-v128:64:128-a:0:32-n32-S64",
 }
 
+// windowsDataLayouts follows what zig cc reports for COFF targets: the mangling
+// mode changes to the Windows one and arm64 also loses the ELF alignment
+// entries, so a UEFI module's IR declares the same layout as its target.
 var windowsDataLayouts = map[string]string{
-	"386": "e-m:x-p:32:32-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:32-n8:16:32-a:0:32-S32",
+	"amd64": "e-m:w-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128",
+	"arm64": "e-m:w-p270:32:32-p271:32:32-p272:64:64-p:64:64-i32:32-i64:64-i128:128-n32:64-S128-Fn32",
+	"arm":   "e-m:w-p:32:32-Fi8-i64:64-v128:64:128-a:0:32-n32-S64",
+	"386":   "e-m:x-p:32:32-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:32-n8:16:32-a:0:32-S32",
 }
 
 // DataLayout is the LLVM datalayout string of the target's C compiler.

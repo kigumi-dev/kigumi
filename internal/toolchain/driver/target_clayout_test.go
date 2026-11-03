@@ -81,7 +81,8 @@ func TestTargetDataLayoutMatchesCompiler(t *testing.T) {
 	if cc == nil {
 		t.Skip("needs a C compiler")
 	}
-	triples := []string{"x86_64-linux", "x86-linux", "x86-windows", "aarch64-linux", "riscv64-linux", "wasm32-wasi", "arm-linux-gnueabihf"}
+	triples := []string{"x86_64-linux", "x86-linux", "x86-windows", "aarch64-linux", "riscv64-linux", "wasm32-wasi", "arm-linux-gnueabihf",
+		"x86_64-uefi", "x86-uefi", "aarch64-uefi", "arm-uefi"}
 	dir := t.TempDir()
 	src := filepath.Join(dir, "e.c")
 	os.WriteFile(src, []byte("int x;\n"), 0o644)
@@ -112,10 +113,24 @@ func TestTargetDataLayoutMatchesCompiler(t *testing.T) {
 				t.Errorf("%s: f%d align = %d, compiler says %d", triple, bits, got, want)
 			}
 		}
+		if got, want := manglingMode(l.DataLayout()), manglingMode(string(m[1])); got != want {
+			t.Errorf("%s: mangling %q, compiler says %q", triple, got, want)
+		}
 		if got := l.PtrBits; got != 64 && got != 32 {
 			t.Errorf("%s: pointer width %d", triple, got)
 		}
 	}
+}
+
+// manglingMode is the `m:` component of a datalayout: ELF and COFF differ
+// there, which the alignment checks cannot see.
+func manglingMode(dataLayout string) string {
+	for _, part := range strings.Split(dataLayout, "-") {
+		if mode, ok := strings.CutPrefix(part, "m:"); ok {
+			return mode
+		}
+	}
+	return ""
 }
 
 const usizeCallSrc = `extern(C) {

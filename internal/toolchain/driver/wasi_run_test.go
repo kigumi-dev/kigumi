@@ -85,9 +85,7 @@ func wasiRuntime(t *testing.T) string {
 }
 
 func TestWasiProvidedSetRuns(t *testing.T) {
-	if testCompiler().CCompiler() == nil {
-		t.Skip("no C compiler")
-	}
+	requireZig(t)
 	node := wasiRuntime(t)
 	wasi := mustTarget(t, "wasm32-wasi", "")
 	runner := filepath.Join(t.TempDir(), "run.mjs")

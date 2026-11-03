@@ -50,6 +50,9 @@ func TestReproducibleAcrossCheckouts(t *testing.T) {
 	}
 	for name, target := range map[string]buildconfig.Target{"hosted": {}, "freestanding": freestanding} {
 		t.Run(name, func(t *testing.T) {
+			if name == "freestanding" {
+				requireZig(t)
+			}
 			root := t.TempDir()
 			a := buildFromCheckout(t, filepath.Join(root, "a", "proj"), target)
 			b := buildFromCheckout(t, filepath.Join(root, "deeper", "checkout", "proj"), target)

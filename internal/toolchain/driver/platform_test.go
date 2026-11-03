@@ -213,6 +213,7 @@ func TestBuildFreestandingNoCloseSymbol(t *testing.T) {
 // own objects resolve each other (rt_core.c calling into rt_sys.c, say),
 // and checks every one is in internal/backend/llgen/runtime/freestanding_symbols.txt.
 func TestBuildFreestandingSymbolSet(t *testing.T) {
+	requireZig(t) // the archive leaves compiler-rt symbols for the embedder, as zig builds them
 	for _, triple := range []string{"x86_64-freestanding", "x86-freestanding", "arm-freestanding"} {
 		t.Run(triple, func(t *testing.T) { checkFreestandingSymbolSet(t, triple) })
 	}

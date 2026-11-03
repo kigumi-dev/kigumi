@@ -45,9 +45,7 @@ print "${unsafe { ffi.bytesFrom(ffi.bytesPtr(&src), n) }.len()}"
 // A usize at or above 2^32 must make Bytes allocation fail on a 32-bit
 // target instead of wrapping to a short buffer with the long length.
 func TestBytesAllocationRefusesAboveSizeT(t *testing.T) {
-	if testCompiler().CCompiler() == nil {
-		t.Skip("no C compiler")
-	}
+	requireZig(t) // the 32-bit case links x86-linux-musl, which only zig ships
 	cases := []struct{ name, src, want string }{
 		{"try", wideBytesSrc, "zeros err\nfill err\n"},
 		{"nearLimit", nearLimitBytesSrc, "zeros err\nfill err\n"},

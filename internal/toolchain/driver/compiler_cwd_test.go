@@ -78,9 +78,7 @@ func TestLoadModuleResolvesRelativeRootAgainstCompilerCwd(t *testing.T) {
 }
 
 func TestBuildResolvesLinkerScriptAgainstCompilerCwd(t *testing.T) {
-	if testCompiler().CCompiler() == nil {
-		t.Skip("no C compiler")
-	}
+	requireZig(t) // GNU ld rejects the script lld accepts here
 	cwd := t.TempDir()
 	os.WriteFile(filepath.Join(cwd, "ls.ld"), []byte("kigumi_script_marker = 0x1234;\n"), 0o644)
 	m := cwdModule(t, testCompilerAt(cwd))

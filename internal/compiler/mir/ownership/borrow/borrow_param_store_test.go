@@ -76,7 +76,7 @@ func buildSites(t *testing.T, src string, budget time.Duration) (*fixture, *midi
 	p := buildTypedFixture(res)
 	took := cpuTime() - start
 	t.Logf("built in %v of CPU", took)
-	if took > budget {
+	if !raceDetector && took > budget {
 		t.Errorf("building took %v of CPU, over %v", took, budget)
 	}
 	for _, f := range p.Funcs {

@@ -113,9 +113,7 @@ func TestAuditRejectsTLS(t *testing.T) {
 // TestBuildUEFITrivialProgram builds for x86_64-uefi without the embedder supplying COFF's compiler-inserted symbols (_fltused, __chkstk).
 func TestBuildUEFITrivialProgram(t *testing.T) {
 	t.Parallel()
-	if testCompiler().CCompiler() == nil {
-		t.Skip("no C compiler")
-	}
+	requireZig(t)
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"uefitrivial\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("let x = 1\n"), 0o644)
@@ -138,9 +136,7 @@ func TestBuildUEFITrivialProgram(t *testing.T) {
 // TestAuditRejectsDisallowedSymbolUEFI is TestAuditRejectsDisallowedSymbol on the COFF/UEFI path, which carries extra compiler-inserted symbols.
 func TestAuditRejectsDisallowedSymbolUEFI(t *testing.T) {
 	t.Parallel()
-	if testCompiler().CCompiler() == nil {
-		t.Skip("no C compiler")
-	}
+	requireZig(t)
 	root := writeAuditModule(t, "leakyuefi", "extern int printf(const char *fmt, ...);\nint leak(void) { return printf(\"hi\\n\"); }\n")
 	target, err := buildconfig.ParseTarget(testCompiler(), "x86_64-uefi", "")
 	if err != nil {
@@ -165,9 +161,7 @@ func TestAuditRejectsDisallowedSymbolUEFI(t *testing.T) {
 // TestAuditRejectsTLSUEFI is TestAuditRejectsTLS on COFF/UEFI, where TLS is read from the defining section's name, not a per-symbol type.
 func TestAuditRejectsTLSUEFI(t *testing.T) {
 	t.Parallel()
-	if testCompiler().CCompiler() == nil {
-		t.Skip("no C compiler")
-	}
+	requireZig(t)
 	root := writeAuditModule(t, "tlsleakuefi", "_Thread_local int counter;\nint bump(void) { return ++counter; }\n")
 	target, err := buildconfig.ParseTarget(testCompiler(), "x86_64-uefi", "")
 	if err != nil {

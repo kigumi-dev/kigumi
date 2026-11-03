@@ -69,9 +69,10 @@ func runExe(t *testing.T, exe string) string {
 
 // The host default is one static binary; --link dynamic keeps glibc and links libm only when the program reaches it.
 func TestHostLinkForms(t *testing.T) {
-	if runtime.GOOS != "linux" || testCompiler().CCompiler() == nil {
-		t.Skip("needs a Linux host and a C compiler")
+	if runtime.GOOS != "linux" {
+		t.Skip("needs a Linux host")
 	}
+	requireZig(t) // the default link form is a static musl binary, which only zig ships
 	const plain = "print \"hello\"\n"
 	const pow = "import math from std/math\nlet x = 2.0\nprint \"${math.pow(x, 10.0)}\"\n"
 	t.Run("default", func(t *testing.T) {

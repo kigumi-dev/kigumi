@@ -33,7 +33,7 @@ jobs:
   race:
     name: race (${{ matrix.pkg }})
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -43,7 +43,9 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26"
-      - run: go test -race ./internal/${{ matrix.pkg }}/...
+      # The race detector's shadow memory makes the corpus runs several times
+      # slower than a plain build, so the default 10m test timeout is too short.
+      - run: go test -race -timeout 45m ./internal/${{ matrix.pkg }}/...
 
   audit:
     name: test audit
@@ -75,6 +77,9 @@ jobs:
           path: ~/.local/share/kigumi/zig
           key: kigumi-zig-${{ runner.os }}-${{ runner.arch }}-${{ needs.zig-version.outputs.version }}
       - run: go run . zig install ${{ needs.zig-version.outputs.version }}
+      # The driver tests pick their C compiler from PATH; the installed store
+      # holds the pinned zig, not the runner image's clang.
+      - run: echo "$HOME/.local/share/kigumi/zig/${{ needs.zig-version.outputs.version }}" >> "$GITHUB_PATH"
       - run: go test -timeout 60m ./internal/toolchain/driver/
       - run: KIGUMI_CFLAGS=-DKIGUMI_RC_CHECK go test -timeout 60m ./internal/toolchain/driver/
       - run: KIGUMI_CFLAGS='-fsanitize=address,undefined -g' go test -timeout 60m -run 'TestAotCorpus|TestAotFFI|TestAotDL|TestAotAsm' ./internal/toolchain/driver/
