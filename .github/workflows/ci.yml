@@ -63,10 +63,27 @@ jobs:
           path: test-audit.json
 
   aot:
-    name: AOT with pinned zig
+    name: AOT with pinned zig (${{ matrix.name }})
     needs: zig-version
     runs-on: ubuntu-latest
     timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            cflags: ""
+            cmd: go test -timeout 120m ./internal/toolchain/driver/
+          - name: rc-check
+            cflags: -DKIGUMI_RC_CHECK
+            cmd: go test -timeout 120m ./internal/toolchain/driver/
+          - name: sanitizers
+            cflags: -fsanitize=address,undefined -g
+            cmd: go test -timeout 120m -run 'TestAotCorpus|TestAotFFI|TestAotDL|TestAotAsm' ./internal/toolchain/driver/
+          # internal/cli and internal/devkit/bench each have one native-toolchain test, skipped by the hermetic job above.
+          - name: cli
+            cflags: ""
+            cmd: go test -timeout 10m ./internal/cli/... ./internal/devkit/...
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -80,11 +97,9 @@ jobs:
       # The driver tests pick their C compiler from PATH; the installed store
       # holds the pinned zig, not the runner image's clang.
       - run: echo "$HOME/.local/share/kigumi/zig/${{ needs.zig-version.outputs.version }}" >> "$GITHUB_PATH"
-      - run: go test -timeout 60m ./internal/toolchain/driver/
-      - run: KIGUMI_CFLAGS=-DKIGUMI_RC_CHECK go test -timeout 60m ./internal/toolchain/driver/
-      - run: KIGUMI_CFLAGS='-fsanitize=address,undefined -g' go test -timeout 60m -run 'TestAotCorpus|TestAotFFI|TestAotDL|TestAotAsm' ./internal/toolchain/driver/
-      # internal/cli and internal/devkit/bench each have one native-toolchain test, skipped by the hermetic job above.
-      - run: go test -timeout 10m ./internal/cli/... ./internal/devkit/...
+      - run: ${{ matrix.cmd }}
+        env:
+          KIGUMI_CFLAGS: ${{ matrix.cflags }}
 
   benchmarks:
     name: benchmarks (observation only)
