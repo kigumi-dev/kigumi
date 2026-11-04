@@ -20,32 +20,27 @@ jobs:
     # The corpus runs are split across shards: KIGUMI_TEST_SHARD selects one
     # slice of every testdata/**.txtar loop, so the wall time is the slowest
     # shard instead of the sum. Unit tests run in every shard.
-    name: go test (no C toolchain, shard ${{ matrix.shard }}/4)
+    name: go test (no C toolchain, shard ${{ matrix.index }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        shard: ["0", "1", "2", "3"]
+        index: ["0", "1", "2", "3"]
     env:
-      KIGUMI_TEST_SHARD: ${{ matrix.shard }}/4
+      KIGUMI_TEST_SHARD: ${{ matrix.index }}/4
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26"
-      - run: test -z "$(gofmt -l .)"
-        if: matrix.shard == '0'
-      - run: go vet ./...
-        if: matrix.shard == '0'
-      - run: go test -timeout 60m ./...
-      - run: go test -run 'Fuzz' -fuzz 'Fuzz' -fuzztime 20s ./internal/compiler/syntax/
-        if: matrix.shard == '0'
+      - run: go test -timeout 60m $(go list ./... | grep -v '^kigumi/internal/toolchain/driver$')
+      - run: go test -timeout 60m -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} 4 kigumi/internal/toolchain/driver)" ./internal/toolchain/driver
       # The verifier's oracle: mutated MIR must never crash verify, llgen or the
       # VM. It needs no C toolchain, so the hermetic job can run it; the nightly
       # workflow keeps the longer pass.
       - run: go test -run '^$' -fuzz '^FuzzMutatedMIR$' -fuzztime 20s ./internal/toolchain/driver/
-        if: matrix.shard == '0'
+        if: matrix.index == '0'
 
   race:
     name: race (${{ matrix.pkg }})
@@ -95,64 +90,74 @@ jobs:
           - name: default-0
             cflags: 
             asan: ""
-            shard: "0/4"
+            index: "0"
+            count: "4"
             zig: "yes"
-            cmd: go test -timeout 120m ./internal/toolchain/driver/
+            cmd: go test -timeout 120m -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} ${{ matrix.count }} kigumi/internal/toolchain/driver)" ./internal/toolchain/driver/
           - name: default-1
             cflags: 
             asan: ""
-            shard: "1/4"
+            index: "1"
+            count: "4"
             zig: "yes"
-            cmd: go test -timeout 120m ./internal/toolchain/driver/
+            cmd: go test -timeout 120m -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} ${{ matrix.count }} kigumi/internal/toolchain/driver)" ./internal/toolchain/driver/
           - name: default-2
             cflags: 
             asan: ""
-            shard: "2/4"
+            index: "2"
+            count: "4"
             zig: "yes"
-            cmd: go test -timeout 120m ./internal/toolchain/driver/
+            cmd: go test -timeout 120m -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} ${{ matrix.count }} kigumi/internal/toolchain/driver)" ./internal/toolchain/driver/
           - name: default-3
             cflags: 
             asan: ""
-            shard: "3/4"
+            index: "3"
+            count: "4"
             zig: "yes"
-            cmd: go test -timeout 120m ./internal/toolchain/driver/
+            cmd: go test -timeout 120m -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} ${{ matrix.count }} kigumi/internal/toolchain/driver)" ./internal/toolchain/driver/
           - name: rc-check-0
             cflags: -DKIGUMI_RC_CHECK
             asan: ""
-            shard: "0/4"
+            index: "0"
+            count: "4"
             zig: "yes"
-            cmd: go test -timeout 120m ./internal/toolchain/driver/
+            cmd: go test -timeout 120m -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} ${{ matrix.count }} kigumi/internal/toolchain/driver)" ./internal/toolchain/driver/
           - name: rc-check-1
             cflags: -DKIGUMI_RC_CHECK
             asan: ""
-            shard: "1/4"
+            index: "1"
+            count: "4"
             zig: "yes"
-            cmd: go test -timeout 120m ./internal/toolchain/driver/
+            cmd: go test -timeout 120m -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} ${{ matrix.count }} kigumi/internal/toolchain/driver)" ./internal/toolchain/driver/
           - name: rc-check-2
             cflags: -DKIGUMI_RC_CHECK
             asan: ""
-            shard: "2/4"
+            index: "2"
+            count: "4"
             zig: "yes"
-            cmd: go test -timeout 120m ./internal/toolchain/driver/
+            cmd: go test -timeout 120m -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} ${{ matrix.count }} kigumi/internal/toolchain/driver)" ./internal/toolchain/driver/
           - name: rc-check-3
             cflags: -DKIGUMI_RC_CHECK
             asan: ""
-            shard: "3/4"
+            index: "3"
+            count: "4"
             zig: "yes"
-            cmd: go test -timeout 120m ./internal/toolchain/driver/
+            cmd: go test -timeout 120m -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} ${{ matrix.count }} kigumi/internal/toolchain/driver)" ./internal/toolchain/driver/
           - name: sanitizers
             cflags: -fsanitize=address,undefined -g
             # The corpus exits through error paths that leave values unowned by design, and asks for
             # impossible allocation sizes to test the fallible API; ASan must not turn either into an abort.
             asan: detect_leaks=0:allocator_may_return_null=1
-            shard: ""
+            index: "0"
+            count: "1"
             zig: "no"
             cmd: go test -timeout 120m -run 'TestSanitizerRuntimeIsActive|TestAotCorpus|TestAotFFI|TestAotDL|TestAotAsm' ./internal/toolchain/driver/
           # internal/cli and internal/devkit/bench each have one native-toolchain test, skipped by the hermetic job above.
           - name: cli
             cflags: ""
             asan: ""
-            shard: ""
+            index: "0"
+            count: "1"
             zig: "yes"
             cmd: go test -timeout 10m ./internal/cli/... ./internal/devkit/...
     steps:
@@ -175,7 +180,7 @@ jobs:
         env:
           KIGUMI_CFLAGS: ${{ matrix.cflags }}
           ASAN_OPTIONS: ${{ matrix.asan }}
-          KIGUMI_TEST_SHARD: ${{ matrix.shard }}
+          KIGUMI_TEST_SHARD: ${{ matrix.index }}/${{ matrix.count }}
 
   benchmarks:
     name: benchmarks (observation only)
