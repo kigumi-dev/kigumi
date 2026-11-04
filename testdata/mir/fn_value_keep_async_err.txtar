@@ -1,0 +1,386 @@
+-- lib/async.kg --
+import {Shared} from std/alloc
+import task from std/task
+
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+async fn keepA['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+async fn useKeepA['a](x: &'a String, k: Sink['a]) { await keepA(x, k) }
+async fn useKeepV['a](x: &'a String, k: Sink['a]) {
+    let r = keepA
+    await r(x, k)
+}
+pub fn awaitsDirect['a](k: Sink['a]) {
+    let g = useKeepA
+    let loc = "local-${1}"
+    task.currentThreadExecutor().runToCompletion(g(&loc, k))
+}
+pub fn awaitsValue['a](k: Sink['a]) {
+    let g = useKeepV
+    let loc = "local-${3}"
+    task.currentThreadExecutor().runToCompletion(g(&loc, k))
+}
+
+async fn mut1(a: &mut Array[String]) -> usize {
+    a.push("b")
+    a.len()
+}
+pub type Box[F] = { pub cb F }
+fn nopIn(s: Shared[Future[usize]?], f: Future[usize]) { }
+fn keepIn(s: Shared[Future[usize]?], f: Future[usize]) { s.set(Some(f)) }
+pub fn inArray(sh: Shared[Future[usize]?]) {
+    let mut z = Array.of("a")
+    let fs = Array.of(nopIn, keepIn)
+    fs[1](sh, mut1(&mut z))
+}
+pub fn inField(sh: Shared[Future[usize]?]) {
+    let mut z = Array.of("a")
+    let b = Box { cb: keepIn }
+    (b.cb)(sh, mut1(&mut z))
+}
+pub fn quietArray(sh: Shared[Future[usize]?]) {
+    let mut z = Array.of("a")
+    let fs = Array.of(nopIn, nopIn)
+    fs[1](sh, mut1(&mut z))
+}
+
+async fn lenOf(x: &String) -> usize { x.len() }
+fn callIt['a](g: fn(&'a String, Shared[Future[usize]?]) -> Void, s: Shared[Future[usize]?]) {
+    let loc = "local-${40 + 2}"
+    g(&loc, s)
+}
+pub fn captured['a](x0: &'a String) {
+    let sh: Shared[Future[usize]?] = Shared.new(None)
+    let n = 3
+    callIt((x: &'a String, s: Shared[Future[usize]?]) => {
+        let z = n
+        s.set(Some(lenOf(x)))
+    }, sh.clone())
+}
+pub fn literal['a](x0: &'a String, sh: Shared[Future[usize]?]) {
+    let c = (x: &'a String, s: Shared[Future[usize]?]) => {
+        s.set(Some(lenOf(x)))
+    }
+    let loc = "local-${40 + 2}"
+    c(&loc, sh)
+}
+-- expect --
+async fn lib.keepA(%x: &String, %k: Sink['a]) -> Void {
+  b0:
+    %t2 = field 0(%k)
+    %t3 = borrow 1(%t2)
+    %t4 = share retain(%t3)
+    %t5 = newcell(%t4)
+    %t6 = copy(%x)
+    %t7 = record lib.V(%t6)
+    %t8 = call std/array.Array.push(%t5, %t7)
+    %t9 = celltake(%t5)
+    drop(%t5)
+    drop(%t9)
+    %t10 = builtin task.close
+    drop(%k)
+    return %t8
+}
+async fn lib.useKeepA(%x: &String, %k: Sink['a]) -> Void {
+  b0:
+    %t2 = copy(%x)
+    %t3 = move(%k)
+    %t4 = fnitem lib.keepA async
+    %t5 = future(%t4, %t2, %t3)
+    %t6 = await(%t5)
+    %t7 = cancelled
+    branch %t7 ? b1 : b2
+  b1:
+    nop
+    cancel
+    unreachable
+  b2:
+    %t8 = builtin task.close
+    nop
+    return %t6
+}
+async fn lib.useKeepV(%x: &String, %k: Sink['a]) -> Void {
+  b0:
+    %t2 = fnitem lib.keepA async
+    %r = copy(%t2)
+    %t4 = copy(%x)
+    %t5 = move(%k)
+    %t6 = callv(%r, %t4, %t5)
+    %t7 = await(%t6)
+    %t8 = cancelled
+    branch %t8 ? b1 : b2
+  b1:
+    drop(%r)
+    nop
+    cancel
+    unreachable
+  b2:
+    %t9 = builtin task.close
+    drop(%r)
+    nop
+    return %t7
+}
+fn lib.awaitsDirect(%k: Sink['a]) -> Void {
+  b0:
+    %t1 = fnitem lib.useKeepA async
+    %g = copy(%t1)
+    %t4 = const 1: Int
+    %t3 = interp "local-\x00"(%t4)
+    %loc = copy(%t3)
+    %t6 = call std/task.currentThreadExecutor
+    %t7 = borrow 0(%loc)
+    %t8 = move(%k)
+    %t9 = callv(%g, %t7, %t8)
+    %t10 = call std/task.Executor.runToCompletion(%t6, %t9)
+    drop(%loc)
+    drop(%g)
+    nop
+    return %t10
+}
+fn lib.awaitsValue(%k: Sink['a]) -> Void {
+  b0:
+    %t1 = fnitem lib.useKeepV async
+    %g = copy(%t1)
+    %t4 = const 3: Int
+    %t3 = interp "local-\x00"(%t4)
+    %loc = copy(%t3)
+    %t6 = call std/task.currentThreadExecutor
+    %t7 = borrow 0(%loc)
+    %t8 = move(%k)
+    %t9 = callv(%g, %t7, %t8)
+    %t10 = call std/task.Executor.runToCompletion(%t6, %t9)
+    drop(%loc)
+    drop(%g)
+    nop
+    return %t10
+}
+async fn lib.mut1(%a: &mut Array[String]) -> usize {
+  b0:
+    %t1 = borrow 1(%a)
+    %t2 = share retain(%t1)
+    %t3 = newcell(%t2)
+    %t4 = const "b": String
+    %t5 = call std/array.Array.push(%t3, %t4)
+    %t6 = celltake(%t3)
+    drop(%t3)
+    drop(%t6)
+    drop(%t5)
+    %t7 = call std/array.Array.len(%a)
+    %t8 = builtin task.close
+    return %t7
+}
+fn lib.nopIn(%s: Shared[Future[usize]?], %f: Future[usize]) -> Void {
+  b0:
+    %t2 = unit
+    drop(%f)
+    drop(%s)
+    return %t2
+}
+fn lib.keepIn(%s: Shared[Future[usize]?], %f: Future[usize]) -> Void {
+  b0:
+    %t2 = move(%f)
+    %t3 = variant Option.Some(%t2)
+    %t4 = call std/alloc.Shared.set(%s, %t3)
+    nop
+    drop(%s)
+    return %t4
+}
+fn lib.inArray(%sh: Shared[Future[usize]?]) -> Void {
+  b0:
+    %t1 = const "a": String
+    %t2 = array(%t1)
+    %t3 = call std/array.Array.of(%t2)
+    %z = copy(%t3)
+    %t5 = fnitem lib.nopIn
+    %t6 = fnitem lib.keepIn
+    %t7 = array(%t5, %t6)
+    %t8 = call std/array.Array.of(%t7)
+    %fs = copy(%t8)
+    %t10 = const 1: usize
+    %t11 = index(%fs, %t10)
+    %t12 = move(%sh)
+    %t13 = borrow 1(%z)
+    %t14 = fnitem lib.mut1 async
+    %t15 = future(%t14, %t13)
+    %t16 = callv(%t11, %t12, %t15)
+    drop(%fs)
+    drop(%z)
+    nop
+    return %t16
+}
+fn lib.inField(%sh: Shared[Future[usize]?]) -> Void {
+  b0:
+    %t1 = const "a": String
+    %t2 = array(%t1)
+    %t3 = call std/array.Array.of(%t2)
+    %z = copy(%t3)
+    %t5 = fnitem lib.keepIn
+    %t6 = record lib.Box(%t5)
+    %b = copy(%t6)
+    %t8 = field 0(%b)
+    %t9 = move(%sh)
+    %t10 = borrow 1(%z)
+    %t11 = fnitem lib.mut1 async
+    %t12 = future(%t11, %t10)
+    %t13 = callv(%t8, %t9, %t12)
+    drop(%b)
+    drop(%z)
+    nop
+    return %t13
+}
+fn lib.quietArray(%sh: Shared[Future[usize]?]) -> Void {
+  b0:
+    %t1 = const "a": String
+    %t2 = array(%t1)
+    %t3 = call std/array.Array.of(%t2)
+    %z = copy(%t3)
+    %t5 = fnitem lib.nopIn
+    %t6 = fnitem lib.nopIn
+    %t7 = array(%t5, %t6)
+    %t8 = call std/array.Array.of(%t7)
+    %fs = copy(%t8)
+    %t10 = const 1: usize
+    %t11 = index(%fs, %t10)
+    %t12 = move(%sh)
+    %t13 = borrow 1(%z)
+    %t14 = fnitem lib.mut1 async
+    %t15 = future(%t14, %t13)
+    %t16 = callv(%t11, %t12, %t15)
+    drop(%fs)
+    drop(%z)
+    nop
+    return %t16
+}
+async fn lib.lenOf(%x: &String) -> usize {
+  b0:
+    %t1 = call std/prelude.String.len(%x)
+    %t2 = builtin task.close
+    return %t1
+}
+fn lib.callIt(%g: fn(&'a String, Shared[Future[usize]?]) -> Void, %s: Shared[Future[usize]?]) -> Void {
+  b0:
+    %t3 = const 42: Int
+    %t2 = interp "local-\x00"(%t3)
+    %loc = copy(%t2)
+    %t5 = borrow 0(%loc)
+    %t6 = move(%s)
+    %t7 = callv(%g, %t5, %t6)
+    drop(%loc)
+    nop
+    drop(%g)
+    return %t7
+}
+fn lib.captured.closure1(%n: Int, %x: &String, %s: Shared[Future[usize]?]) -> Void {
+  b0:
+    %t3 = copy(%n)
+    %z = copy(%t3)
+    %t5 = copy(%x)
+    %t6 = fnitem lib.lenOf async
+    %t7 = future(%t6, %t5)
+    %t8 = variant Option.Some(%t7)
+    %t9 = call std/alloc.Shared.set(%s, %t8)
+    drop(%z)
+    drop(%s)
+    drop(%n)
+    return %t9
+}
+fn lib.captured(%x0: &String) -> Void {
+  b0:
+    %t1 = variant Option.None
+    %t2 = call std/alloc.Shared.new(%t1)
+    %sh = copy(%t2)
+    %t4 = const 3: Int
+    %n = copy(%t4)
+    %t6 = copy(%n)
+    %t7 = closure lib.captured.closure1(%t6)
+    %t8 = call std/alloc.Shared.clone(%sh)
+    %t9 = call lib.callIt(%t7, %t8)
+    drop(%n)
+    drop(%sh)
+    return %t9
+}
+fn lib.literal.closure1(%x: &String, %s: Shared[Future[usize]?]) -> Void {
+  b0:
+    %t2 = copy(%x)
+    %t3 = fnitem lib.lenOf async
+    %t4 = future(%t3, %t2)
+    %t5 = variant Option.Some(%t4)
+    %t6 = call std/alloc.Shared.set(%s, %t5)
+    drop(%s)
+    return %t6
+}
+fn lib.literal(%x0: &String, %sh: Shared[Future[usize]?]) -> Void {
+  b0:
+    %t2 = closure lib.literal.closure1
+    %c = copy(%t2)
+    %t5 = const 42: Int
+    %t4 = interp "local-\x00"(%t5)
+    %loc = copy(%t4)
+    %t7 = borrow 0(%loc)
+    %t8 = move(%sh)
+    %t9 = callv(%c, %t7, %t8)
+    drop(%loc)
+    drop(%c)
+    nop
+    return %t9
+}
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> lib/async.kg:15:50
+   |
+15 |     task.currentThreadExecutor().runToCompletion(g(&loc, k))
+   |                                                  ^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> lib/async.kg:20:50
+   |
+20 |     task.currentThreadExecutor().runToCompletion(g(&loc, k))
+   |                                                  ^^^^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+  --> lib/async.kg:33:5
+   |
+33 |     fs[1](sh, mut1(&mut z))
+   |     ^^^^^^^^^^^^^^^^^^^^^
+   = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+  --> lib/async.kg:33:20
+   |
+33 |     fs[1](sh, mut1(&mut z))
+   |                    ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+  --> lib/async.kg:38:5
+   |
+38 |     (b.cb)(sh, mut1(&mut z))
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+   = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+  --> lib/async.kg:38:21
+   |
+38 |     (b.cb)(sh, mut1(&mut z))
+   |                     ^^^^^^
+
+error[E2320]: a value borrowing `loc` cannot be passed as `&'a String`: `'a` belongs to the caller and outlives this call
+  --> lib/async.kg:49:5
+   |
+49 |     g(&loc, s)
+   |     ^^^^^^^^^
+   = help: pass a borrow the caller lent, or give the function value a plain `&` parameter, which cannot keep the borrow
+note: `loc` is borrowed here
+  --> lib/async.kg:49:7
+   |
+49 |     g(&loc, s)
+   |       ^^^^
+
+error[borrow-escape]: a borrow cannot be captured by a future; the future may run after the borrowed value is gone, so pass the value itself
+  --> lib/async.kg:56:20
+   |
+56 |         s.set(Some(lenOf(x)))
+   |                    ^^^^^^^
+
+error[borrow-escape]: a borrow cannot be captured by a future; the future may run after the borrowed value is gone, so pass the value itself
+  --> lib/async.kg:61:20
+   |
+61 |         s.set(Some(lenOf(x)))
+   |                    ^^^^^^^
+

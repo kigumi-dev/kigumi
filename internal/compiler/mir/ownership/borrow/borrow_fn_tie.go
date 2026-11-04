@@ -108,39 +108,22 @@ func (c *borrowCheck) mayBorrowResult(r sem.TypeID) bool {
 // makesOwnBorrow reports whether the function value a returns a reference, names a lifetime of its own declaration (a
 // closure's belongs to the enclosing function) or keeps an argument's Future or capture. An unknown value is judged by its type.
 func (c *borrowCheck) makesOwnBorrow(a midir.LocalID) bool {
-	switch fn := c.fnEntityOf(a); {
-	case fn != 0 && ownquery.IsAsyncBody(c.p.R, fn):
+	o, known := c.soleOrigin(a)
+	switch fn := o.ent; {
+	case known && ownquery.IsAsyncBody(c.p.R, fn):
 		return c.asyncKeepsBorrow(c.p.R.Fn(fn))
-	case fn != 0 && c.p.R.Entity(fn).Kind == sem.EntFn:
+	case known && c.p.R.Entity(fn).Kind == sem.EntFn:
 		info := c.p.R.Fn(fn)
 		ret := c.p.R.Types.Node(info.Sig).Elem
 		return c.refIn(ret) || c.keepsDeferredArg(info.Params, ret) || slices.ContainsFunc(c.p.R.Types.Params(ret), func(p sem.EntityID) bool {
 			return c.p.R.TypeParam(p).IsLifetime && slices.Contains(info.TypeParams, p)
 		})
-	case fn != 0 && c.p.R.Entity(fn).Kind == sem.EntClosure:
+	case known && c.p.R.Entity(fn).Kind == sem.EntClosure:
 		info := c.p.R.Closure(fn)
 		return c.refIn(info.Ret) || c.keepsDeferredArg(info.Params, info.Ret)
 	}
 	r := c.fnResult(c.f.Locals[a].Type)
 	return r != 0 && c.mayBorrowResult(r)
-}
-
-// fnEntityOf follows a's single definitions through copies to the function item or closure it names.
-func (c *borrowCheck) fnEntityOf(a midir.LocalID) sem.EntityID {
-	for range len(c.f.Locals) {
-		d := c.soleDef(a)
-		switch {
-		case d == nil:
-			return 0
-		case d.Op == midir.OpFnItem || d.Op == midir.OpClosure:
-			return d.Ent
-		case (d.Op == midir.OpCopy || d.Op == midir.OpMove || d.Op == midir.OpAlias) && len(d.Args) > 0:
-			a = d.Args[0]
-		default:
-			return 0
-		}
-	}
-	return 0
 }
 
 // refIn reports whether t is or has as an argument a reference, not looking into a named type's fields.

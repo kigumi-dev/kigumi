@@ -10,14 +10,21 @@ import (
 // checkSharedStores rejects a call storing into shared storage a value that borrows a place this frame owns; a borrow a
 // parameter brought in is left to the caller, which sees it through this body's sharedSinks.
 func (c *borrowCheck) checkSharedStores(in midir.Inst) {
+	x := &sinkCtx{g: c.f}
+	var ts []sinkTarget
+	if in.Op == midir.OpCall || in.Op == midir.OpCallValue || in.Op == midir.OpFutureNew {
+		ts, _ = c.sinkCallees(x, in)
+	}
 	gate := false
 	for k, a := range in.Args {
-		gate = gate || c.ownedBorrow(a, in.Op == midir.OpCall && in.Ent != 0 && slices.ContainsFunc(c.boundParams([]sem.EntityID{in.Ent}, in, k), c.keepsRef)) != nil
+		keeps := slices.ContainsFunc(ts, func(t sinkTarget) bool { return slices.ContainsFunc(t.bind(k), c.keepsRef) })
+		gate = gate || c.ownedBorrow(a, keeps) != nil
 	}
 	if !gate {
 		return
 	}
-	for _, st := range c.sharedStoreArgs(&sinkCtx{g: c.f, fs: c.bodyFacts(c.f)}, in) {
+	x.fs = c.bodyFacts(c.f)
+	for _, st := range c.sharedStoreArgs(x, in) {
 		a := in.Args[st.arg]
 		if b := c.flowBorrow(a, st.param != 0 && c.keepsRef(st.param)); b != nil {
 			c.reportShared(in, a, b)

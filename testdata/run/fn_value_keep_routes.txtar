@@ -1,0 +1,151 @@
+-- src --
+import task from std/task
+
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+pub type Box[F] = { pub cb F }
+pub type H = { pub n Int }
+
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+fn count['a](x: &'a String, k: Sink['a]) { print "count ${x.len()} ${k.items.len()}" }
+fn H.countIn['a](self, x: &'a String, k: Sink['a]) { print "countIn ${self.n} ${x.len()}" }
+async fn countLater['a](x: &'a String, k: Sink['a]) { print "countLater ${x.len()} ${k.items.len()}" }
+
+fn letBound['a](k: Sink['a]) {
+    let g = count
+    let loc = "local-${40 + 2}"
+    g(&loc, k)
+}
+
+fn annotated['a](k: Sink['a]) {
+    let g: fn(&'a String, Sink['a]) -> Void = count
+    let loc = "annotated-${1}"
+    g(&loc, k)
+}
+
+fn erased['a](k: Sink['a]) {
+    let g: fn(&String, Sink['a]) -> Void = count
+    let loc = "erased-${1}"
+    g(&loc, k)
+}
+
+fn aliasChain['a](k: Sink['a]) {
+    let g = nop
+    let h = g
+    let i: fn(&'a String, Sink['a]) -> Void = h
+    let loc = "chain-${1}"
+    i(&loc, k)
+    print "chain ${loc.len()}"
+}
+
+fn inField['a](k: Sink['a]) {
+    let b = Box { cb: count }
+    let loc = "field-${1}"
+    (b.cb)(&loc, k)
+}
+
+fn eitherQuiet['a](k: Sink['a], c: Bool) {
+    let g = if c { nop } else { count }
+    let loc = "either-${1}"
+    g(&loc, k)
+}
+
+fn asyncItem['a](k: Sink['a]) {
+    let g = countLater
+    let loc = "async-${1}"
+    task.currentThreadExecutor().runToCompletion(g(&loc, k))
+}
+
+fn methodValue['a](k: Sink['a]) {
+    let h = H { n: 7 }
+    let m = h.countIn
+    let loc = "method-${1}"
+    m(&loc, k)
+}
+
+fn apply['a](f: fn(&'a String, Sink['a]) -> Void, x: &'a String, k: Sink['a]) { f(x, k) }
+
+fn boundAtSite['a](k: Sink['a]) {
+    let a = apply
+    let loc = "bound-${1}"
+    a(count, &loc, k)
+}
+
+fn inArray['a](k: Sink['a]) {
+    let fs = Array.of(nop, count)
+    let loc = "array-${1}"
+    fs[1](&loc, k)
+}
+
+fn callQuiet['a](g: fn(&'a String, Sink['a]) -> Void, k: Sink['a]) {
+    let loc = "quiet-${1}"
+    g(&loc, k)
+}
+
+fn quietCallers(c: Bool) -> usize {
+    let text = "q"
+    let mut items = Array.of(V { s: &text })
+    callQuiet(nop, Sink { items: &mut items })
+    let q = count
+    callQuiet(q, Sink { items: &mut items })
+    callQuiet(if c { nop } else { count }, Sink { items: &mut items })
+    items.len()
+}
+
+fn lent['a](x: &'a String, k: Sink['a], c: Bool) {
+    let g = if c { keep } else { nop }
+    g(x, k)
+}
+
+fn localQuiet(c: Bool) -> usize {
+    let text = "t"
+    let g = if c { nop } else { count }
+    let mut loc = "local-${1}"
+    let mut items = Array.of(V { s: &text })
+    g(&loc, Sink { items: &mut items })
+    loc = "again-${2}"
+    items.len() + loc.len()
+}
+
+let text = "hello"
+let more = "kept-by-caller"
+let mut items = Array.of(V { s: &text })
+letBound(Sink { items: &mut items })
+annotated(Sink { items: &mut items })
+erased(Sink { items: &mut items })
+aliasChain(Sink { items: &mut items })
+inField(Sink { items: &mut items })
+eitherQuiet(Sink { items: &mut items }, true)
+eitherQuiet(Sink { items: &mut items }, false)
+asyncItem(Sink { items: &mut items })
+methodValue(Sink { items: &mut items })
+boundAtSite(Sink { items: &mut items })
+inArray(Sink { items: &mut items })
+print "quiet ${quietCallers(true)} ${quietCallers(false)}"
+lent(&more, Sink { items: &mut items }, true)
+lent(&more, Sink { items: &mut items }, false)
+print "local ${localQuiet(true)} ${localQuiet(false)}"
+let junk = "overwrite-${1}${2}${3}-ZZZZZZZZZZZZZZZZZZZZZZZZZZZ"
+print "${items.len()} ${junk.len()}"
+for v in &items { print "${v.s}" }
+-- stdout --
+count 8 1
+count 11 1
+count 8 1
+chain 7
+count 7 1
+count 8 1
+countLater 7 1
+countIn 7 8
+count 7 1
+count 7 1
+count 7 1
+count 7 1
+count 7 1
+quiet 1 1
+count 7 1
+local 8 8
+2 41
+hello
+kept-by-caller

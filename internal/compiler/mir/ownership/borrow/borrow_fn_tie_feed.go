@@ -156,8 +156,9 @@ func (c *borrowCheck) feedingParams(a midir.LocalID, n int) []int {
 	for i := range every {
 		every[i] = i
 	}
-	fn := c.fnEntityOf(a)
-	if fn == 0 || c.p.R.Entity(fn).Kind != sem.EntFn || ownquery.IsAsyncBody(c.p.R, fn) {
+	o, known := c.soleOrigin(a)
+	fn := o.ent
+	if !known || c.p.R.Entity(fn).Kind != sem.EntFn || ownquery.IsAsyncBody(c.p.R, fn) {
 		return every
 	}
 	info := c.p.R.Fn(fn)
@@ -168,11 +169,14 @@ func (c *borrowCheck) feedingParams(a midir.LocalID, n int) []int {
 	} else if c.refIn(ret) {
 		return every
 	}
-	if info.Recv != sem.RecvNone || len(info.Params) != n {
-		return every
-	}
+	declared := c.declaredParams(fn)
 	var out []int
-	for i, p := range info.Params {
+	for i := range n {
+		j := o.argParam(i)
+		if j >= len(declared) {
+			return every
+		}
+		p := declared[j]
 		ps := c.p.R.Types.Params(c.p.R.Entity(p).Type)
 		if lt := c.p.R.Local(p).Lifetime; lt != 0 {
 			ps = append(ps, lt)

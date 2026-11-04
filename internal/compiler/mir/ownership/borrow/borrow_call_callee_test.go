@@ -34,18 +34,19 @@ func TestCallFlowsResolveCallee(t *testing.T) {
 	for _, blk := range g.Blocks {
 		for _, in := range blk.Insts {
 			if in.Op == midir.OpCallValue && in.Ent == 0 {
-				if e, _ := c.flowCallee(in); e != 0 {
-					t.Errorf("unknown function parameter resolved to %d", e)
+				if ts := c.flowCallees(in); len(ts) != 0 {
+					t.Errorf("unknown function parameter resolved to %+v", ts)
 				}
 				seen["unknown"] = true
 			}
 			if in.Op != midir.OpFutureNew {
 				continue
 			}
-			e, args := c.flowCallee(in)
-			if e == 0 || len(args) != 2 || in.Ent != 0 {
-				t.Fatalf("direct future callee = %d, args = %v, instruction = %+v", e, args, in)
+			ts := c.flowCallees(in)
+			if len(ts) != 1 || len(ts[0].args) != 2 || ts[0].kept != nil || in.Ent != 0 {
+				t.Fatalf("direct future callees = %+v, instruction = %+v", ts, in)
 			}
+			e, args := ts[0].ent, ts[0].args
 			name := p.R.Entity(e).Name
 			for _, call := range []midir.Inst{
 				in,
@@ -58,11 +59,7 @@ func TestCallFlowsResolveCallee(t *testing.T) {
 				}
 				if name == "carryA" {
 					c.holders[args[0]] = &borrowInfo{}
-					targets, values := c.carryFlows(call)
-					if len(values) != 1 || values[0] != args[0] {
-						t.Fatalf("%s: carried values = %v, want %v", call.Op, values, args[:1])
-					}
-					assertSignatureFlow(t, targets, e, args)
+					assertSignatureFlow(t, c.carryFlows(call), e, args)
 				}
 			}
 			seen[name] = true

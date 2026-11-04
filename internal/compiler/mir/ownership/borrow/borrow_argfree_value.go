@@ -9,14 +9,16 @@ import (
 )
 
 // valueKept reports, per argument of value call in after the callee, whether its result may keep it: what the
-// keptSummary of every fn item the value can be says (calleeKeeps), and yes for any other callee.
+// keptSummary of every origin the value can be says of the parameter the argument lands on, and yes for an unknown one.
 func (c *borrowCheck) valueKept(in midir.Inst) func(int) bool {
-	ents := c.fnItemOrigins(in.Args[0], 8)
-	if !ents.known || in.Ent != 0 {
+	origins, ok := c.calleeOrigins(c.f, c.soleDefMap(), in.Args[0])
+	if !ok || in.Ent != 0 || origins[0].isParam {
 		return func(int) bool { return true }
 	}
 	return func(k int) bool {
-		return slices.ContainsFunc(ents.ents, func(e sem.EntityID) bool { return c.calleeKeeps(e, k, in.Args[1:]) })
+		return slices.ContainsFunc(origins, func(o calleeOrigin) bool {
+			return c.calleeKeeps(o.ent, o.argParam(k), o.params(in.Args[1:]))
+		})
 	}
 }
 

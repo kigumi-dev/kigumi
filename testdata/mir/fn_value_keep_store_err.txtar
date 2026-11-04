@@ -1,0 +1,598 @@
+-- lib/keep.kg --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+pub type Box[F] = { pub cb F }
+pub type H = { pub n Int }
+
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn keepFirst['a](x: &'a String, k: Sink['a]) { let at = k.items.insertAt(0, V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+fn H.keepIn['a](self, x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+async fn keepLater['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+
+pub fn letBound['a](k: Sink['a]) {
+    let g = keep
+    let loc = "local-${40 + 2}"
+    g(&loc, k)
+}
+
+pub fn annotated['a](k: Sink['a]) {
+    let g: fn(&'a String, Sink['a]) -> Void = keep
+    let loc = "local-${40 + 2}"
+    g(&loc, k)
+}
+
+pub fn aliasChain['a](k: Sink['a]) {
+    let g = keep
+    let h = g
+    let i: fn(&'a String, Sink['a]) -> Void = h
+    let loc = "local-${40 + 2}"
+    i(&loc, k)
+}
+
+pub fn inField['a](k: Sink['a]) {
+    let b = Box { cb: keep }
+    let loc = "local-${40 + 2}"
+    (b.cb)(&loc, k)
+}
+
+pub fn eitherKeeps['a](k: Sink['a], c: Bool) {
+    let g = if c { keep } else { keepFirst }
+    let loc = "local-${40 + 2}"
+    g(&loc, k)
+}
+
+pub fn oneKeeps['a](k: Sink['a], c: Bool) {
+    let g = if c { nop } else { keep }
+    let loc = "local-${40 + 2}"
+    g(&loc, k)
+}
+
+pub async fn asyncItem['a](k: Sink['a]) {
+    let g = keepLater
+    let loc = "local-${40 + 2}"
+    await g(&loc, k)
+}
+
+pub fn methodValue['a](k: Sink['a]) {
+    let h = H { n: 1 }
+    let m = h.keepIn
+    let loc = "local-${40 + 2}"
+    m(&loc, k)
+}
+
+fn apply['a](f: fn(&'a String, Sink['a]) -> Void, x: &'a String, k: Sink['a]) { f(x, k) }
+
+pub fn boundAtSite['a](k: Sink['a]) {
+    let a = apply
+    let loc = "local-${40 + 2}"
+    a(keep, &loc, k)
+}
+
+pub fn inArray['a](k: Sink['a]) {
+    let fs = Array.of(nop, keep)
+    let loc = "local-${40 + 2}"
+    fs[0](&loc, k)
+}
+
+fn callLoud['a](g: fn(&'a String, Sink['a]) -> Void, k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    g(&loc, k)
+}
+
+pub fn loudCaller['a](k: Sink['a], c: Bool) {
+    let g = if c { nop } else { keep }
+    callLoud(g, k)
+}
+
+pub fn localHolder() -> usize {
+    let text = "t"
+    let g = keep
+    let mut loc = "local-${40 + 2}"
+    let mut items = Array.of(V { s: &text })
+    g(&loc, Sink { items: &mut items })
+    loc = "x${1}"
+    items.len()
+}
+
+pub fn localEither(c: Bool) -> usize {
+    let text = "t"
+    let g = if c { nop } else { keep }
+    let mut loc = "local-${40 + 2}"
+    let mut items = Array.of(V { s: &text })
+    g(&loc, Sink { items: &mut items })
+    loc = "x${1}"
+    items.len()
+}
+-- expect --
+fn lib.keep(%x: &String, %k: Sink['a]) -> Void {
+  b0:
+    %t2 = field 0(%k)
+    %t3 = borrow 1(%t2)
+    %t4 = share retain(%t3)
+    %t5 = newcell(%t4)
+    %t6 = copy(%x)
+    %t7 = record lib.V(%t6)
+    %t8 = call std/array.Array.push(%t5, %t7)
+    %t9 = celltake(%t5)
+    drop(%t5)
+    drop(%t9)
+    drop(%k)
+    return %t8
+}
+fn lib.keepFirst(%x: &String, %k: Sink['a]) -> Void {
+  b0:
+    %t2 = field 0(%k)
+    %t3 = borrow 1(%t2)
+    %t4 = share retain(%t3)
+    %t5 = newcell(%t4)
+    %t6 = const 0: usize
+    %t7 = copy(%x)
+    %t8 = record lib.V(%t7)
+    %t9 = call std/array.Array.insertAt(%t5, %t6, %t8)
+    %t10 = celltake(%t5)
+    drop(%t5)
+    drop(%t10)
+    %at = copy(%t9)
+    drop(%at)
+    %t12 = unit
+    drop(%k)
+    return %t12
+}
+fn lib.nop(%x: &String, %k: Sink['a]) -> Void {
+  b0:
+    %t2 = unit
+    drop(%k)
+    return %t2
+}
+fn lib.H.keepIn(%self: H, %x: &String, %k: Sink['a]) -> Void {
+  b0:
+    %t3 = field 0(%k)
+    %t4 = borrow 1(%t3)
+    %t5 = share retain(%t4)
+    %t6 = newcell(%t5)
+    %t7 = copy(%x)
+    %t8 = record lib.V(%t7)
+    %t9 = call std/array.Array.push(%t6, %t8)
+    %t10 = celltake(%t6)
+    drop(%t6)
+    drop(%t10)
+    drop(%k)
+    return %t9
+}
+async fn lib.keepLater(%x: &String, %k: Sink['a]) -> Void {
+  b0:
+    %t2 = field 0(%k)
+    %t3 = borrow 1(%t2)
+    %t4 = share retain(%t3)
+    %t5 = newcell(%t4)
+    %t6 = copy(%x)
+    %t7 = record lib.V(%t6)
+    %t8 = call std/array.Array.push(%t5, %t7)
+    %t9 = celltake(%t5)
+    drop(%t5)
+    drop(%t9)
+    %t10 = builtin task.close
+    drop(%k)
+    return %t8
+}
+fn lib.letBound(%k: Sink['a]) -> Void {
+  b0:
+    %t1 = fnitem lib.keep
+    %g = copy(%t1)
+    %t4 = const 42: Int
+    %t3 = interp "local-\x00"(%t4)
+    %loc = copy(%t3)
+    %t6 = borrow 0(%loc)
+    %t7 = move(%k)
+    %t8 = callv(%g, %t6, %t7)
+    drop(%loc)
+    drop(%g)
+    nop
+    return %t8
+}
+fn lib.annotated(%k: Sink['a]) -> Void {
+  b0:
+    %t1 = fnitem lib.keep
+    %g = copy(%t1)
+    %t4 = const 42: Int
+    %t3 = interp "local-\x00"(%t4)
+    %loc = copy(%t3)
+    %t6 = borrow 0(%loc)
+    %t7 = move(%k)
+    %t8 = callv(%g, %t6, %t7)
+    drop(%loc)
+    drop(%g)
+    nop
+    return %t8
+}
+fn lib.aliasChain(%k: Sink['a]) -> Void {
+  b0:
+    %t1 = fnitem lib.keep
+    %g = copy(%t1)
+    %t3 = copy(%g)
+    %h = copy(%t3)
+    %t5 = copy(%h)
+    %i = copy(%t5)
+    %t8 = const 42: Int
+    %t7 = interp "local-\x00"(%t8)
+    %loc = copy(%t7)
+    %t10 = borrow 0(%loc)
+    %t11 = move(%k)
+    %t12 = callv(%i, %t10, %t11)
+    drop(%loc)
+    drop(%i)
+    drop(%h)
+    drop(%g)
+    nop
+    return %t12
+}
+fn lib.inField(%k: Sink['a]) -> Void {
+  b0:
+    %t1 = fnitem lib.keep
+    %t2 = record lib.Box(%t1)
+    %b = copy(%t2)
+    %t5 = const 42: Int
+    %t4 = interp "local-\x00"(%t5)
+    %loc = copy(%t4)
+    %t7 = field 0(%b)
+    %t8 = borrow 0(%loc)
+    %t9 = move(%k)
+    %t10 = callv(%t7, %t8, %t9)
+    drop(%loc)
+    drop(%b)
+    nop
+    return %t10
+}
+fn lib.eitherKeeps(%k: Sink['a], %c: Bool) -> Void {
+  b0:
+    branch %c ? b1 : b2
+  b1:
+    %t3 = fnitem lib.keep
+    %t2 = copy(%t3)
+    jump b3
+  b2:
+    %t4 = fnitem lib.keepFirst
+    %t2 = copy(%t4)
+    jump b3
+  b3:
+    %g = copy(%t2)
+    %t7 = const 42: Int
+    %t6 = interp "local-\x00"(%t7)
+    %loc = copy(%t6)
+    %t9 = borrow 0(%loc)
+    %t10 = move(%k)
+    %t11 = callv(%g, %t9, %t10)
+    drop(%loc)
+    drop(%g)
+    drop(%c)
+    nop
+    return %t11
+}
+fn lib.oneKeeps(%k: Sink['a], %c: Bool) -> Void {
+  b0:
+    branch %c ? b1 : b2
+  b1:
+    %t3 = fnitem lib.nop
+    %t2 = copy(%t3)
+    jump b3
+  b2:
+    %t4 = fnitem lib.keep
+    %t2 = copy(%t4)
+    jump b3
+  b3:
+    %g = copy(%t2)
+    %t7 = const 42: Int
+    %t6 = interp "local-\x00"(%t7)
+    %loc = copy(%t6)
+    %t9 = borrow 0(%loc)
+    %t10 = move(%k)
+    %t11 = callv(%g, %t9, %t10)
+    drop(%loc)
+    drop(%g)
+    drop(%c)
+    nop
+    return %t11
+}
+async fn lib.asyncItem(%k: Sink['a]) -> Void {
+  b0:
+    %t1 = fnitem lib.keepLater async
+    %g = copy(%t1)
+    %t4 = const 42: Int
+    %t3 = interp "local-\x00"(%t4)
+    %loc = copy(%t3)
+    %t6 = borrow 0(%loc)
+    %t7 = move(%k)
+    %t8 = callv(%g, %t6, %t7)
+    %t9 = await(%t8)
+    %t10 = cancelled
+    branch %t10 ? b1 : b2
+  b1:
+    drop(%loc)
+    drop(%g)
+    nop
+    cancel
+    unreachable
+  b2:
+    %t11 = builtin task.close
+    drop(%loc)
+    drop(%g)
+    nop
+    return %t9
+}
+fn lib.methodValue(%k: Sink['a]) -> Void {
+  b0:
+    %t1 = const 1: Int
+    %t2 = record lib.H(%t1)
+    %h = copy(%t2)
+    %t4 = closure lib.H.keepIn method(%h)
+    %m = copy(%t4)
+    %t7 = const 42: Int
+    %t6 = interp "local-\x00"(%t7)
+    %loc = copy(%t6)
+    %t9 = borrow 0(%loc)
+    %t10 = move(%k)
+    %t11 = callv(%m, %t9, %t10)
+    drop(%loc)
+    drop(%m)
+    drop(%h)
+    nop
+    return %t11
+}
+fn lib.apply(%f: fn(&'a String, Sink['a]) -> Void, %x: &String, %k: Sink['a]) -> Void {
+  b0:
+    %t3 = copy(%x)
+    %t4 = move(%k)
+    %t5 = callv(%f, %t3, %t4)
+    nop
+    drop(%f)
+    return %t5
+}
+fn lib.boundAtSite(%k: Sink['a]) -> Void {
+  b0:
+    %t1 = fnitem lib.apply
+    %a = copy(%t1)
+    %t4 = const 42: Int
+    %t3 = interp "local-\x00"(%t4)
+    %loc = copy(%t3)
+    %t6 = fnitem lib.keep
+    %t7 = borrow 0(%loc)
+    %t8 = move(%k)
+    %t9 = callv(%a, %t6, %t7, %t8)
+    drop(%loc)
+    drop(%a)
+    nop
+    return %t9
+}
+fn lib.inArray(%k: Sink['a]) -> Void {
+  b0:
+    %t1 = fnitem lib.nop
+    %t2 = fnitem lib.keep
+    %t3 = array(%t1, %t2)
+    %t4 = call std/array.Array.of(%t3)
+    %fs = copy(%t4)
+    %t7 = const 42: Int
+    %t6 = interp "local-\x00"(%t7)
+    %loc = copy(%t6)
+    %t9 = const 0: usize
+    %t10 = index(%fs, %t9)
+    %t11 = borrow 0(%loc)
+    %t12 = move(%k)
+    %t13 = callv(%t10, %t11, %t12)
+    drop(%loc)
+    drop(%fs)
+    nop
+    return %t13
+}
+fn lib.callLoud(%g: fn(&'a String, Sink['a]) -> Void, %k: Sink['a]) -> Void {
+  b0:
+    %t3 = const 42: Int
+    %t2 = interp "local-\x00"(%t3)
+    %loc = copy(%t2)
+    %t5 = borrow 0(%loc)
+    %t6 = move(%k)
+    %t7 = callv(%g, %t5, %t6)
+    drop(%loc)
+    nop
+    drop(%g)
+    return %t7
+}
+fn lib.loudCaller(%k: Sink['a], %c: Bool) -> Void {
+  b0:
+    branch %c ? b1 : b2
+  b1:
+    %t3 = fnitem lib.nop
+    %t2 = copy(%t3)
+    jump b3
+  b2:
+    %t4 = fnitem lib.keep
+    %t2 = copy(%t4)
+    jump b3
+  b3:
+    %g = copy(%t2)
+    %t6 = copy(%g)
+    %t7 = move(%k)
+    %t8 = call lib.callLoud(%t6, %t7)
+    drop(%g)
+    drop(%c)
+    nop
+    return %t8
+}
+fn lib.localHolder() -> usize {
+  b0:
+    %t0 = const "t": String
+    %text = copy(%t0)
+    %t2 = fnitem lib.keep
+    %g = copy(%t2)
+    %t5 = const 42: Int
+    %t4 = interp "local-\x00"(%t5)
+    %loc = copy(%t4)
+    %t7 = borrow 0(%text)
+    %t8 = record lib.V(%t7)
+    %t9 = array(%t8)
+    %t10 = call std/array.Array.of(%t9)
+    %items = copy(%t10)
+    %t12 = borrow 0(%loc)
+    %t13 = borrow 1(%items)
+    %t14 = record lib.Sink(%t13)
+    %t15 = callv(%g, %t12, %t14)
+    drop(%t15)
+    %t17 = const 1: Int
+    %t16 = interp "x\x00"(%t17)
+    drop(%loc)
+    %loc = copy(%t16)
+    %t18 = call std/array.Array.len(%items)
+    drop(%items)
+    drop(%loc)
+    drop(%g)
+    drop(%text)
+    return %t18
+}
+fn lib.localEither(%c: Bool) -> usize {
+  b0:
+    %t1 = const "t": String
+    %text = copy(%t1)
+    branch %c ? b1 : b2
+  b1:
+    %t4 = fnitem lib.nop
+    %t3 = copy(%t4)
+    jump b3
+  b2:
+    %t5 = fnitem lib.keep
+    %t3 = copy(%t5)
+    jump b3
+  b3:
+    %g = copy(%t3)
+    %t8 = const 42: Int
+    %t7 = interp "local-\x00"(%t8)
+    %loc = copy(%t7)
+    %t10 = borrow 0(%text)
+    %t11 = record lib.V(%t10)
+    %t12 = array(%t11)
+    %t13 = call std/array.Array.of(%t12)
+    %items = copy(%t13)
+    %t15 = borrow 0(%loc)
+    %t16 = borrow 1(%items)
+    %t17 = record lib.Sink(%t16)
+    %t18 = callv(%g, %t15, %t17)
+    drop(%t18)
+    %t20 = const 1: Int
+    %t19 = interp "x\x00"(%t20)
+    drop(%loc)
+    %loc = copy(%t19)
+    %t21 = call std/array.Array.len(%items)
+    drop(%items)
+    drop(%loc)
+    drop(%g)
+    drop(%text)
+    drop(%c)
+    return %t21
+}
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> lib/keep.kg:15:5
+   |
+15 |     g(&loc, k)
+   |     ^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> lib/keep.kg:21:5
+   |
+21 |     g(&loc, k)
+   |     ^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> lib/keep.kg:29:5
+   |
+29 |     i(&loc, k)
+   |     ^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> lib/keep.kg:35:5
+   |
+35 |     (b.cb)(&loc, k)
+   |     ^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> lib/keep.kg:41:5
+   |
+41 |     g(&loc, k)
+   |     ^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> lib/keep.kg:47:5
+   |
+47 |     g(&loc, k)
+   |     ^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> lib/keep.kg:53:11
+   |
+53 |     await g(&loc, k)
+   |           ^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> lib/keep.kg:60:5
+   |
+60 |     m(&loc, k)
+   |     ^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> lib/keep.kg:68:5
+   |
+68 |     a(keep, &loc, k)
+   |     ^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> lib/keep.kg:74:5
+   |
+74 |     fs[0](&loc, k)
+   |     ^^^^^^^^^^^^^
+
+error[E2320]: a value borrowing `loc` cannot be passed as `&'a String`: `'a` belongs to the caller and outlives this call
+  --> lib/keep.kg:79:5
+   |
+79 |     g(&loc, k)
+   |     ^^^^^^^^^
+   = help: pass a borrow the caller lent, or give the function value a plain `&` parameter, which cannot keep the borrow
+note: `loc` is borrowed here
+  --> lib/keep.kg:79:7
+   |
+79 |     g(&loc, k)
+   |       ^^^^
+
+error[E2198]: `loc` is borrowed and cannot be mutated here
+  --> lib/keep.kg:93:5
+   |
+93 |     loc = "x${1}"
+   |     ^^^
+   = help: end the borrow first or use a copy
+note: `loc` is borrowed here
+  --> lib/keep.kg:92:7
+   |
+92 |     g(&loc, Sink { items: &mut items })
+   |       ^^^^
+
+error[move-while-borrowed]: `loc` is borrowed and cannot be moved or dropped here
+  --> lib/keep.kg:93:5
+   |
+93 |     loc = "x${1}"
+   |     ^^^
+
+error[E2198]: `loc` is borrowed and cannot be mutated here
+   --> lib/keep.kg:103:5
+    |
+103 |     loc = "x${1}"
+    |     ^^^
+    = help: end the borrow first or use a copy
+note: `loc` is borrowed here
+   --> lib/keep.kg:102:7
+    |
+102 |     g(&loc, Sink { items: &mut items })
+    |       ^^^^
+
+error[move-while-borrowed]: `loc` is borrowed and cannot be moved or dropped here
+   --> lib/keep.kg:103:5
+    |
+103 |     loc = "x${1}"
+    |     ^^^
+

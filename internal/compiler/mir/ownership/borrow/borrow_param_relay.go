@@ -32,30 +32,36 @@ func (c *borrowCheck) relayTargets(g *midir.Func, defs map[midir.LocalID]*midir.
 	if kind == siteOut && !c.calleeKeepsBorrow(g.Locals[l].Type) {
 		return nil
 	}
-	o := c.calleeOrigin(g, defs, l)
-	if o.isParam {
-		return []relayTarget{{kind: relayParam, param: o.param}}
+	origins, ok := c.calleeOrigins(g, defs, l)
+	if ok && origins[0].isParam {
+		return []relayTarget{{kind: relayParam, param: origins[0].param}}
 	}
-	if o.body == nil || depth == 0 {
+	if !ok || depth == 0 {
 		return []relayTarget{{kind: relayUnknown}}
 	}
 	var out []relayTarget
-	for _, s := range c.callableSites(o.body, len(o.captures), kind) {
-		for _, mapped := range c.relaySite(g, defs, s, o.captures, kind, depth-1) {
-			if !slices.Contains(out, mapped.callee) {
-				out = append(out, mapped.callee)
+	for _, o := range origins {
+		if o.body == nil {
+			return []relayTarget{{kind: relayUnknown}}
+		}
+		for _, s := range c.callableSites(o.body, o.argParams(), kind) {
+			for _, mapped := range c.relaySite(g, defs, s, o.boundLocals(), kind, depth-1) {
+				if !slices.Contains(out, mapped.callee) {
+					out = append(out, mapped.callee)
+				}
 			}
 		}
 	}
 	return out
 }
 
-func (c *borrowCheck) callableSites(h *midir.Func, skip int, kind siteKind) []paramStore {
-	if h == nil || skip > len(h.Params) {
+// callableSites are the sites of h's parameters params, those the calls of a value running h pass.
+func (c *borrowCheck) callableSites(h *midir.Func, params []int, kind siteKind) []paramStore {
+	if h == nil || slices.ContainsFunc(params, func(j int) bool { return j >= len(h.Params) }) {
 		return wholeParam
 	}
 	var out []paramStore
-	for j := skip; j < len(h.Params); j++ {
+	for _, j := range params {
 		if kind == siteOut && !c.paramKeepsRef(h, j) && !c.paramKeepsBorrow(h.Locals[h.Params[j]].Type) {
 			continue
 		}
@@ -78,9 +84,10 @@ func (c *borrowCheck) closureFed(callee *midir.Func, i int, lit *midir.Inst, val
 	if !ok {
 		return values
 	}
+	o := c.litOrigin(lit)
 	return slices.DeleteFunc(slices.Clone(values), func(v flowArg) bool {
 		for p, params := range feeds {
-			if slices.Contains(params, v.param) && c.paramOut(h, len(lit.Args)+p) {
+			if slices.Contains(params, v.param) && c.paramOut(h, o.argParam(p)) {
 				return false
 			}
 		}

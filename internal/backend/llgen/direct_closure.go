@@ -19,7 +19,7 @@ func (e *emitter) closureCall(sb *strings.Builder, in midir.Inst, a *aggInfo) {
 	args, out := e.retSlot(sb, s)
 	args = append(args, "ptr "+aggPtr(in.Args[0]))
 	for k, l := range in.Args[1:] {
-		if p := s.param(len(a.Fields) + k); p != nil {
+		if p := s.param(midir.ArgParam(midir.BoundTrails(midir.OpClosure), len(a.Fields), k)); p != nil {
 			args = append(args, e.aggArg(sb, p, l))
 			continue
 		}
@@ -34,7 +34,7 @@ func (e *emitter) cloBoxFn(a *aggInfo) string {
 	fmt.Fprintf(&sb, "define internal ptr %s(ptr %%v) {\nentry:\n", e.aggBoxSym(a))
 	arr, boxes := e.boxLeaves(&sb, a, "%v")
 	fmt.Fprintf(&sb, "  %%r = call ptr @rt_closure(ptr %s, i32 %d, ptr %s)\n", e.useAdapter(a.Clo), len(a.Fields), arr)
-	fmt.Fprintf(&sb, "  call ptr @rt_closure_lent(ptr %%r, i32 %d)\n", e.lentMask(a.Clo.Ent, len(a.Fields)))
+	fmt.Fprintf(&sb, "  call ptr @rt_closure_lent(ptr %%r, i32 %d)\n", e.lentMask(a.Clo.Ent, midir.BoundTrails(midir.OpClosure), len(a.Fields)))
 	for _, b := range boxes {
 		fmt.Fprintf(&sb, "  call void @rt_release(ptr %s)\n", b)
 	}

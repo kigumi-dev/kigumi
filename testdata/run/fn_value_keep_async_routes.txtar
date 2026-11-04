@@ -1,0 +1,77 @@
+-- src --
+import {Shared} from std/alloc
+import task from std/task
+
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+async fn readA['a](x: &'a String, k: Sink['a]) { print "readA ${x.len()} ${k.items.len()}" }
+async fn useBothA['a](x: &'a String, k: Sink['a]) { await readA(x, k) }
+async fn useBothV['a](x: &'a String, k: Sink['a]) {
+    let r = readA
+    await r(x, k)
+}
+fn awaitsDirect['a](k: Sink['a]) {
+    let g = useBothA
+    let loc = "direct-${1}"
+    task.currentThreadExecutor().runToCompletion(g(&loc, k))
+}
+fn awaitsValue['a](k: Sink['a]) {
+    let g = useBothV
+    let loc = "value-${12}"
+    task.currentThreadExecutor().runToCompletion(g(&loc, k))
+}
+
+async fn mut1(a: &mut Array[String]) -> usize {
+    a.push("b")
+    a.len()
+}
+pub type Box[F] = { pub cb F }
+fn nopIn(s: Shared[Future[usize]?], f: Future[usize]) { print "nopIn" }
+fn nop2(s: Shared[Future[usize]?], f: Future[usize]) { print "nop2" }
+fn quietArray(sh: Shared[Future[usize]?]) -> usize {
+    let mut z = Array.of("a")
+    let fs = Array.of(nopIn, nop2)
+    fs[1](sh, mut1(&mut z))
+    z.len()
+}
+fn quietField(sh: Shared[Future[usize]?]) -> usize {
+    let mut z = Array.of("a")
+    let b = Box { cb: nopIn }
+    (b.cb)(sh, mut1(&mut z))
+    z.len()
+}
+
+fn callIt['a](g: fn(&'a String, Shared[Future[usize]?]) -> Void, s: Shared[Future[usize]?]) {
+    let loc = "local-${40 + 2}"
+    g(&loc, s)
+}
+fn captured['a](x0: &'a String) -> usize {
+    let sh: Shared[Future[usize]?] = Shared.new(None)
+    let n = 3
+    callIt((x: &'a String, s: Shared[Future[usize]?]) => {
+        let z = n
+        print "captured ${x.len()} ${z}"
+    }, sh.clone())
+    let f = sh.withMut((o: &mut Future[usize]?) => o.take())
+    match f {
+        Some(fu) -> task.currentThreadExecutor().runToCompletion(fu)
+        None -> 0
+    }
+}
+
+let text = "hello"
+let mut items = Array.of(V { s: &text })
+awaitsDirect(Sink { items: &mut items })
+awaitsValue(Sink { items: &mut items })
+let sh: Shared[Future[usize]?] = Shared.new(None)
+print "quiet ${quietArray(sh.clone())} ${quietField(sh.clone())}"
+let t = "t"
+print "captured ${captured(&t)} ${items.len()}"
+-- stdout --
+readA 8 1
+readA 8 1
+nop2
+nopIn
+quiet 1 1
+captured 8 3
+captured 0 1

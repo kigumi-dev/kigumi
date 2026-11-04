@@ -8,9 +8,10 @@ import (
 )
 
 func (c *borrowCheck) keptFlows(in midir.Inst) []storeFlow {
-	ents, args := c.keptFlowCallees(in)
+	ts, args := c.keptFlowCallees(in)
 	witness := c.ifaceRequirement(in.Ent)
-	unknown := len(ents) == 0 || !witness && (in.Op == midir.OpCallValue || in.Op == midir.OpFutureNew) && slices.ContainsFunc(ents, c.unsummarized)
+	unknown := len(ts) == 0 || !witness && (in.Op == midir.OpCallValue || in.Op == midir.OpFutureNew) &&
+		slices.ContainsFunc(ts, func(t callTarget) bool { return c.unsummarized(t.ent) })
 	unknown = unknown || witness && len(c.implementers(in.Ent)) == 0
 	if unknown {
 		if witness {
@@ -27,7 +28,8 @@ func (c *borrowCheck) keptFlows(in midir.Inst) []storeFlow {
 		return c.opaqueKeptFlows(args)
 	}
 	var out []storeFlow
-	for _, e := range ents {
+	for _, ct := range ts {
+		e, args := ct.ent, ct.args
 		if c.p.R.Entity(e).Kind != sem.EntFn {
 			continue
 		}
@@ -105,8 +107,7 @@ func (c *borrowCheck) opaqueKeptFlows(args []midir.LocalID) []storeFlow {
 // withKeptFlows adds keptFlows to fls, each keeping only the values no flow into the same target already stores the
 // same way (the argument itself, or what it lends), as a flow of its own so it stays kept.
 func (c *borrowCheck) withKeptFlows(in midir.Inst, fls []storeFlow) []storeFlow {
-	carried, _ := c.carryFlows(in)
-	known := slices.Concat(fls, carried)
+	known := slices.Concat(fls, c.carryFlows(in))
 	for _, k := range c.keptFlows(in) {
 		k.values = slices.DeleteFunc(k.values, func(v flowArg) bool {
 			return !k.unresolved && slices.ContainsFunc(known, func(f storeFlow) bool {

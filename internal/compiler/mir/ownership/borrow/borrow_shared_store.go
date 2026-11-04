@@ -20,6 +20,7 @@ type sinkCtx struct {
 	g    *midir.Func
 	fs   flowSets
 	bind map[int][]sem.EntityID
+	defs map[midir.LocalID]*midir.Inst
 }
 
 // interiorParam reports a parameter of bodiless e that e may write into without exclusive access: shared storage by its
@@ -41,15 +42,15 @@ func (c *borrowCheck) sharedStoreArgs(x *sinkCtx, in midir.Inst) []sharedStore {
 	if in.Op != midir.OpCall && in.Op != midir.OpCallValue && in.Op != midir.OpFutureNew {
 		return nil
 	}
-	ents, known := c.sinkCallees(x, in)
+	ts, known := c.sinkCallees(x, in)
 	if !known {
 		return c.unknownStores(x, in)
 	}
 	var out []sharedStore
-	for _, e := range ents {
-		kept := c.keptParams(x, in, e)
+	for _, t := range ts {
+		kept := c.keptParams(x, in, t)
 		for k := range in.Args {
-			for _, q := range c.boundParams([]sem.EntityID{e}, in, k) {
+			for _, q := range t.bind(k) {
 				if slices.Contains(kept, q) && !slices.ContainsFunc(out, func(s sharedStore) bool { return s.arg == k }) {
 					out = append(out, sharedStore{arg: k, param: q})
 				}
@@ -61,18 +62,18 @@ func (c *borrowCheck) sharedStoreArgs(x *sinkCtx, in midir.Inst) []sharedStore {
 
 // keptParams are the parameters of e that call in may store into shared storage: a body's sharedSinks, or for a bodiless
 // fn every keepable parameter beside an interiorParam that call in binds to shared storage.
-func (c *borrowCheck) keptParams(x *sinkCtx, in midir.Inst, e sem.EntityID) []sem.EntityID {
-	fn := e
+func (c *borrowCheck) keptParams(x *sinkCtx, in midir.Inst, t sinkTarget) []sem.EntityID {
+	e, fn := t.ent, t.ent
 	if m := c.methodOf(e); m != 0 {
 		fn = m
 	}
 	if c.p.R.Entity(fn).Kind != sem.EntFn || c.p.R.Fn(fn).Body != 0 {
-		return c.sharedSinks(fn, c.bindAt(x, in, e))
+		return c.sharedSinks(fn, c.bindAt(x, in, t))
 	}
 	var out []sem.EntityID
 	params := c.declaredParams(fn)
 	for k := range in.Args {
-		for _, q := range c.boundParams([]sem.EntityID{e}, in, k) {
+		for _, q := range t.bind(k) {
 			if !c.interiorParam(fn, q) || !c.sharedStorage(x.g.Locals[in.Args[k]].Type) {
 				continue
 			}
@@ -86,43 +87,12 @@ func (c *borrowCheck) keptParams(x *sinkCtx, in midir.Inst, e sem.EntityID) []se
 	return out
 }
 
-// sinkCallees are what call in may run, false when x cannot name them all: an interface requirement's implementers, on a
-// view or through a bound, else fn items and closures by the flow and a parameter by its binding.
-func (c *borrowCheck) sinkCallees(x *sinkCtx, in midir.Inst) ([]sem.EntityID, bool) {
-	if in.Ent != 0 && c.ifaceRequirement(in.Ent) {
-		impls := c.implementers(in.Ent)
-		return impls, len(impls) > 0
-	}
-	ents, params, unseen := c.calleeOf(x.g, x.fs, in)
-	if unseen {
-		return nil, false
-	}
-	for _, p := range params {
-		b, ok := x.bind[slices.Index(c.declaredParams(x.g.Ent), p)]
-		if !ok {
-			return nil, false
-		}
-		ents = append(ents, b...)
-	}
-	var out []sem.EntityID
-	for _, e := range ents {
-		if !c.ifaceRequirement(e) {
-			out = append(out, e)
-		} else if impls := c.implementers(e); len(impls) > 0 {
-			out = append(out, impls...)
-		} else {
-			return nil, false
-		}
-	}
-	return out, true
-}
-
-// bindAt binds each callable parameter of e that call in passes only fn items and closures x can name.
-func (c *borrowCheck) bindAt(x *sinkCtx, in midir.Inst, e sem.EntityID) map[int][]sem.EntityID {
+// bindAt binds each callable parameter of t's fn that call in passes only fn items and closures x can name.
+func (c *borrowCheck) bindAt(x *sinkCtx, in midir.Inst, t sinkTarget) map[int][]sem.EntityID {
 	var out map[int][]sem.EntityID
-	declared := c.declaredParams(e)
+	declared := c.declaredParams(t.ent)
 	for k, a := range in.Args {
-		for _, q := range c.boundParams([]sem.EntityID{e}, in, k) {
+		for _, q := range t.bind(k) {
 			if !c.callableNode(c.p.R.Entity(q).Type) {
 				continue
 			}

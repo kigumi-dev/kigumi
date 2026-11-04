@@ -55,16 +55,14 @@ func (e *emitter) adapter(f *midir.Func) string {
 	fmt.Fprintf(&sb, "define ptr %s(ptr %%env, ptr %%args) {\n", e.adapterSym(f))
 	var vals []string
 	boxedBody := e.directSig(f) == nil
+	slots := paramSlots(midir.BoundTrails(midir.OpClosure), ncaps, len(f.Params))
 	for i := range f.Params {
 		v := fmt.Sprintf("%%a%d", i)
-		switch {
-		case i < ncaps && boxedBody && e.p.CaptureLent(f, i):
+		if s := slots[i]; s.env && boxedBody && e.p.CaptureLent(f, s.index) {
 			// Borrowed in place, so a panic in the callee leaves no reference to give back.
-			e.irb(&sb).CallAs(v, rtIterAt, vptr("%env"), vi64(i), vi32(1))
-		case i < ncaps:
-			e.irb(&sb).CallAs(v, rtAt, vptr("%env"), vi64(i))
-		default:
-			e.irb(&sb).CallAs(v, rtAt, vptr("%args"), vi64(i-ncaps))
+			e.irb(&sb).CallAs(v, rtIterAt, vptr("%env"), vi64(s.index), vi32(1))
+		} else {
+			e.slotArg(&sb, v, s)
 		}
 		vals = append(vals, v)
 	}
@@ -86,14 +84,10 @@ func (e *emitter) bindAdapter(f *midir.Func) string {
 	nw := len(info.Witnesses) + len(info.ConstParams)
 	fmt.Fprintf(&sb, "define ptr %s(ptr %%env, ptr %%args) {\n", e.bindSym(f))
 	var vals []string
-	plain := len(f.Params) - nw
+	slots := paramSlots(midir.BoundTrails(midir.OpBind), nw, len(f.Params))
 	for i := range f.Params {
 		v := fmt.Sprintf("%%a%d", i)
-		if i < plain {
-			e.irb(&sb).CallAs(v, rtAt, vptr("%args"), vi64(i))
-		} else {
-			e.irb(&sb).CallAs(v, rtAt, vptr("%env"), vi64(i-plain))
-		}
+		e.slotArg(&sb, v, slots[i])
 		vals = append(vals, v)
 	}
 	fmt.Fprintf(&sb, "  ret ptr %s\n}\n\n", e.callBoxed(&sb, f, vals))

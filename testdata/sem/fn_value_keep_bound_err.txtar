@@ -1,0 +1,97 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+
+interface Pusher['a] {
+    fn pushRef(move self, x: &'a String)
+}
+fn Sink['a].pushRef(move self, x: &'a String) { self.items.push(V { s: x }) }
+
+fn keepK['a, K: Pusher['a]](x: &'a String, k: K) { k.pushRef(x) }
+pub type H = { pub n Int }
+fn H.keepG['a, K: Pusher['a]](self, x: &'a String, k: K) { k.pushRef(x) }
+
+pub fn genericItem['a](k: Sink['a]) {
+    let g: fn(&'a String, Sink['a]) -> Void = keepK
+    let loc = "local-${40 + 2}"
+    g(&loc, k) //~ ERROR a borrow cannot be stored into `k` here
+}
+
+pub fn appliedMethod['a](k: Sink['a]) {
+    let h = H { n: 1 }
+    let g: fn(&'a String, Sink['a]) -> Void = h.keepG
+    let loc = "local-${40 + 2}"
+    g(&loc, k) //~ ERROR a borrow cannot be stored into `k` here
+}
+
+pub fn genericHolder['b](k0: Sink['b]) -> usize {
+    let text = "hello"
+    let mut items = Array.of(V { s: &text })
+    let g: fn(&'b String, Sink['b]) -> Void = keepK
+    let mut loc = "local-${40 + 2}"
+    g(&loc, Sink { items: &mut items })
+    loc = "again-${1}" //~ ERROR `loc` is borrowed and cannot be mutated here //~ ERROR `loc` is borrowed and cannot be moved or dropped here
+    items.len()
+}
+
+pub fn appliedHolder['b](k0: Sink['b]) -> usize {
+    let text = "hello"
+    let mut items = Array.of(V { s: &text })
+    let h = H { n: 1 }
+    let g: fn(&'b String, Sink['b]) -> Void = h.keepG
+    let mut loc = "local-${40 + 2}"
+    g(&loc, Sink { items: &mut items })
+    loc = "again-${1}" //~ ERROR `loc` is borrowed and cannot be mutated here //~ ERROR `loc` is borrowed and cannot be moved or dropped here
+    items.len()
+}
+-- expect --
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:16:5
+   |
+16 |     g(&loc, k) //~ ERROR a borrow cannot be stored into `k` here
+   |     ^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:23:5
+   |
+23 |     g(&loc, k) //~ ERROR a borrow cannot be stored into `k` here
+   |     ^^^^^^^^^
+
+error[E2198]: `loc` is borrowed and cannot be mutated here
+  --> main.kg:32:5
+   |
+32 |     loc = "again-${1}" //~ ERROR `loc` is borrowed and cannot be mutated here //~ ERROR `loc` is borrowed and cannot be moved or dropped here
+   |     ^^^
+   = help: end the borrow first or use a copy
+note: `loc` is borrowed here
+  --> main.kg:31:7
+   |
+31 |     g(&loc, Sink { items: &mut items })
+   |       ^^^^
+
+error[move-while-borrowed]: `loc` is borrowed and cannot be moved or dropped here
+  --> main.kg:32:5
+   |
+32 |     loc = "again-${1}" //~ ERROR `loc` is borrowed and cannot be mutated here //~ ERROR `loc` is borrowed and cannot be moved or dropped here
+   |     ^^^
+
+error[E2198]: `loc` is borrowed and cannot be mutated here
+  --> main.kg:43:5
+   |
+43 |     loc = "again-${1}" //~ ERROR `loc` is borrowed and cannot be mutated here //~ ERROR `loc` is borrowed and cannot be moved or dropped here
+   |     ^^^
+   = help: end the borrow first or use a copy
+note: `loc` is borrowed here
+  --> main.kg:42:7
+   |
+42 |     g(&loc, Sink { items: &mut items })
+   |       ^^^^
+
+error[move-while-borrowed]: `loc` is borrowed and cannot be moved or dropped here
+  --> main.kg:43:5
+   |
+43 |     loc = "again-${1}" //~ ERROR `loc` is borrowed and cannot be mutated here //~ ERROR `loc` is borrowed and cannot be moved or dropped here
+   |     ^^^
+

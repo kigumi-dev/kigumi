@@ -17,16 +17,17 @@ type relayTarget struct {
 	param int
 }
 
-func (c *borrowCheck) relaySite(g *midir.Func, defs map[midir.LocalID]*midir.Inst, s paramStore, args []midir.LocalID, kind siteKind, depth int) []paramStore {
+func (c *borrowCheck) relaySite(g *midir.Func, defs map[midir.LocalID]*midir.Inst, s paramStore, args paramLocals, kind siteKind, depth int) []paramStore {
 	if s.callee.kind != relayParam {
 		return []paramStore{s}
 	}
-	if s.callee.param >= len(args) {
+	a, ok := args(s.callee.param)
+	if !ok {
 		s.callee = relayTarget{kind: relayUnknown}
 		return []paramStore{s}
 	}
 	var out []paramStore
-	for _, target := range c.relayTargets(g, defs, args[s.callee.param], kind, depth) {
+	for _, target := range c.relayTargets(g, defs, a, kind, depth) {
 		next := s
 		next.callee = target
 		out = append(out, next)
@@ -34,12 +35,13 @@ func (c *borrowCheck) relaySite(g *midir.Func, defs map[midir.LocalID]*midir.Ins
 	return out
 }
 
-func (c *borrowCheck) frameTarget(g *midir.Func, defs map[midir.LocalID]*midir.Inst, target relayTarget, args []midir.LocalID, depth int) bool {
+func (c *borrowCheck) frameTarget(g *midir.Func, defs map[midir.LocalID]*midir.Inst, target relayTarget, args paramLocals, depth int) bool {
 	switch target.kind {
 	case relayNone:
 		return false
 	case relayParam:
-		return target.param >= len(args) || c.frameCallee(g, defs, args[target.param], depth)
+		a, ok := args(target.param)
+		return !ok || c.frameCallee(g, defs, a, depth)
 	default:
 		return true
 	}

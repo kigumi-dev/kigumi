@@ -85,9 +85,15 @@ func (c *borrowCheck) instStoreSites(key paramKey, in midir.Inst, from map[midir
 			add(from[a], paramStore{via: true})
 			continue
 		}
+		if sites, ok := c.valueCallSites(g, defs, in, k, key.kind); ok {
+			for _, s := range sites {
+				add(from[a], s)
+			}
+			continue
+		}
 		if h := c.bodyCallee(in); h != nil {
 			for _, s := range c.paramSites(paramKey{g: h, i: k, kind: key.kind}) {
-				for _, mapped := range c.relaySite(g, defs, s, in.Args, key.kind, 8) {
+				for _, mapped := range c.relaySite(g, defs, s, localsOf(in.Args), key.kind, 8) {
 					add(from[a], mapped)
 				}
 			}

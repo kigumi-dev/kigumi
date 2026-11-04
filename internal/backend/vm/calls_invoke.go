@@ -21,35 +21,21 @@ func (m *Machine) callDirectValue(fv *obj, args []*obj) *obj {
 	return m.invokeAs(fv.cfn(), fv.cfn(), fv.cenv(), fv.bind, args)
 }
 
-// invoke is the adapter convention: the callee takes a retained reference
-// to every argument, the environment supplies the captured leading
-// parameters (or the bound trailing ones), and the argument array is
-// released afterwards.
+// invoke is the adapter convention: the callee takes a retained reference to every parameter AppendValueParams lays
+// out from the environment and the arguments, and the argument array is released afterwards.
 func (m *Machine) invoke(f *midir.Func, env *obj, bind bool, args []*obj) *obj {
 	return m.invokeAs(f, entryOf(f), env, bind, args)
 }
 
 // invokeAs runs body, f itself or f's entry, under invoke's convention.
 func (m *Machine) invokeAs(f, body *midir.Func, env *obj, bind bool, args []*obj) *obj {
-	nenv := 0
+	var bound []*obj
 	if env != nil {
-		nenv = len(env.fields)
+		bound = env.fields
 	}
-	params := m.argSlice(nenv + len(args))[:0]
-	if bind {
-		for _, a := range args {
-			params = append(params, retain(a))
-		}
-		for i := 0; i < nenv; i++ {
-			params = append(params, retain(env.fields[i]))
-		}
-	} else {
-		for i := 0; i < nenv; i++ {
-			params = append(params, retain(env.fields[i]))
-		}
-		for _, a := range args {
-			params = append(params, retain(a))
-		}
+	params := midir.AppendValueParams(m.argSlice(len(bound) + len(args))[:0], bind, bound, args)
+	for _, p := range params {
+		retain(p)
 	}
 	if !m.sweepsPanics() {
 		r := m.call(body, params)
@@ -60,4 +46,11 @@ func (m *Machine) invokeAs(f, body *midir.Func, env *obj, bind bool, args []*obj
 	r := m.call(body, params)
 	m.raiseJoined(m.settleInflight(rec))
 	return r
+}
+
+func envLen(fv *obj) int {
+	if env := fv.cenv(); env != nil {
+		return len(env.fields)
+	}
+	return 0
 }

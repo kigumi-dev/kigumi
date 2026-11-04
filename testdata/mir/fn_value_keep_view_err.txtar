@@ -1,0 +1,340 @@
+-- lib/view.kg --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+
+pub interface Caller['a] {
+    fn callIt(self, g: fn(&'a String, Sink['a]) -> Void, k: Sink['a])
+}
+pub type CQ = { pub n Int }
+fn CQ.callIt['a](self, g: fn(&'a String, Sink['a]) -> Void, k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    g(&loc, k)
+}
+pub fn viaView['a](c: &Caller['a], k: Sink['a]) { c.callIt(keep, k) }
+pub fn direct['a](k: Sink['a]) {
+    let cq = CQ { n: 1 }
+    cq.callIt(nop, k)
+}
+pub fn wire() -> usize {
+    let text = "hello"
+    let mut items = Array.of(V { s: &text })
+    let cq = CQ { n: 1 }
+    viaView(&cq, Sink { items: &mut items })
+    items.len()
+}
+
+pub interface Caller2['a] {
+    fn callIt(self, g: fn(&'a String, Sink['a]) -> Void, k: Sink['a])
+}
+pub type CQ2 = { pub n Int }
+fn CQ2.callIt['a](self, g: fn(&'a String, Sink['a]) -> Void, k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    g(&loc, k)
+}
+pub fn viaView2['a](c: &Caller2['a], k: Sink['a]) { c.callIt(nop, k) }
+pub fn direct2['a](k: Sink['a]) {
+    let cq = CQ2 { n: 1 }
+    cq.callIt(nop, k)
+}
+pub fn wire2() -> usize {
+    let text = "hello"
+    let mut items = Array.of(V { s: &text })
+    let cq = CQ2 { n: 1 }
+    viaView2(&cq, Sink { items: &mut items })
+    items.len()
+}
+
+pub type H = { pub n Int }
+pub interface Tagged { fn tag(self) -> Int }
+fn H.tag(self) -> Int { self.n }
+fn H.wrapX['a](self, x: &'a String, y: &'a String) -> V['a] { V { s: x } }
+fn H.pick['a](self, x: &'a String, y: &String) -> &'a String { x }
+fn H.pickG['a, Q: Tagged](self, x: &'a String, y: &String, q: Q) -> &'a String { x }
+
+pub fn wrapBoth['a](x: &'a String) -> V['a] {
+    let h = H { n: 1 }
+    let loc = "local-${40 + 2}"
+    let m = h.wrapX
+    m(&loc, x)
+}
+
+pub fn pickLocal['a](x: &'a String) -> &'a String {
+    let h = H { n: 1 }
+    let loc = "local-${40 + 2}"
+    let m = h.pick
+    m(&loc, x)
+}
+
+pub fn pickApplied['a](x: &'a String) -> &'a String {
+    let h = H { n: 1 }
+    let loc = "local-${40 + 2}"
+    let m: fn(&'a String, &String, H) -> &'a String = h.pickG
+    m(&loc, x, H { n: 2 })
+}
+-- expect --
+fn lib.keep(%x: &String, %k: Sink['a]) -> Void {
+  b0:
+    %t2 = field 0(%k)
+    %t3 = borrow 1(%t2)
+    %t4 = share retain(%t3)
+    %t5 = newcell(%t4)
+    %t6 = copy(%x)
+    %t7 = record lib.V(%t6)
+    %t8 = call std/array.Array.push(%t5, %t7)
+    %t9 = celltake(%t5)
+    drop(%t5)
+    drop(%t9)
+    drop(%k)
+    return %t8
+}
+fn lib.nop(%x: &String, %k: Sink['a]) -> Void {
+  b0:
+    %t2 = unit
+    drop(%k)
+    return %t2
+}
+fn lib.CQ.callIt(%self: CQ, %g: fn(&'a String, Sink['a]) -> Void, %k: Sink['a]) -> Void {
+  b0:
+    %t4 = const 42: Int
+    %t3 = interp "local-\x00"(%t4)
+    %loc = copy(%t3)
+    %t6 = borrow 0(%loc)
+    %t7 = move(%k)
+    %t8 = callv(%g, %t6, %t7)
+    drop(%loc)
+    nop
+    drop(%g)
+    return %t8
+}
+fn lib.viaView(%c: &Caller['a], %k: Sink['a]) -> Void {
+  b0:
+    %t2 = fnitem lib.keep
+    %t3 = move(%k)
+    %t4 = call lib.Caller.callIt(%c, %t2, %t3)
+    nop
+    return %t4
+}
+fn lib.direct(%k: Sink['a]) -> Void {
+  b0:
+    %t1 = const 1: Int
+    %t2 = record lib.CQ(%t1)
+    %cq = copy(%t2)
+    %t4 = fnitem lib.nop
+    %t5 = move(%k)
+    %t6 = call lib.CQ.callIt(%cq, %t4, %t5)
+    drop(%cq)
+    nop
+    return %t6
+}
+fn lib.wire() -> usize {
+  b0:
+    %t0 = const "hello": String
+    %text = copy(%t0)
+    %t2 = borrow 0(%text)
+    %t3 = record lib.V(%t2)
+    %t4 = array(%t3)
+    %t5 = call std/array.Array.of(%t4)
+    %items = copy(%t5)
+    %t7 = const 1: Int
+    %t8 = record lib.CQ(%t7)
+    %cq = copy(%t8)
+    %t10 = borrow 0(%cq)
+    %t11 = lendbox(%t10)
+    %t12 = borrow 1(%items)
+    %t13 = record lib.Sink(%t12)
+    %t14 = call lib.viaView(%t11, %t13)
+    drop(%t14)
+    %t15 = call std/array.Array.len(%items)
+    drop(%cq)
+    drop(%items)
+    drop(%text)
+    return %t15
+}
+fn lib.CQ2.callIt(%self: CQ2, %g: fn(&'a String, Sink['a]) -> Void, %k: Sink['a]) -> Void {
+  b0:
+    %t4 = const 42: Int
+    %t3 = interp "local-\x00"(%t4)
+    %loc = copy(%t3)
+    %t6 = borrow 0(%loc)
+    %t7 = move(%k)
+    %t8 = callv(%g, %t6, %t7)
+    drop(%loc)
+    nop
+    drop(%g)
+    return %t8
+}
+fn lib.viaView2(%c: &Caller2['a], %k: Sink['a]) -> Void {
+  b0:
+    %t2 = fnitem lib.nop
+    %t3 = move(%k)
+    %t4 = call lib.Caller2.callIt(%c, %t2, %t3)
+    nop
+    return %t4
+}
+fn lib.direct2(%k: Sink['a]) -> Void {
+  b0:
+    %t1 = const 1: Int
+    %t2 = record lib.CQ2(%t1)
+    %cq = copy(%t2)
+    %t4 = fnitem lib.nop
+    %t5 = move(%k)
+    %t6 = call lib.CQ2.callIt(%cq, %t4, %t5)
+    drop(%cq)
+    nop
+    return %t6
+}
+fn lib.wire2() -> usize {
+  b0:
+    %t0 = const "hello": String
+    %text = copy(%t0)
+    %t2 = borrow 0(%text)
+    %t3 = record lib.V(%t2)
+    %t4 = array(%t3)
+    %t5 = call std/array.Array.of(%t4)
+    %items = copy(%t5)
+    %t7 = const 1: Int
+    %t8 = record lib.CQ2(%t7)
+    %cq = copy(%t8)
+    %t10 = borrow 0(%cq)
+    %t11 = lendbox(%t10)
+    %t12 = borrow 1(%items)
+    %t13 = record lib.Sink(%t12)
+    %t14 = call lib.viaView2(%t11, %t13)
+    drop(%t14)
+    %t15 = call std/array.Array.len(%items)
+    drop(%cq)
+    drop(%items)
+    drop(%text)
+    return %t15
+}
+fn lib.H.tag(%self: H) -> Int {
+  b0:
+    %t1 = field 0(%self)
+    return %t1
+}
+fn lib.H.wrapX(%self: H, %x: &String, %y: &String) -> V['a] {
+  b0:
+    %t3 = copy(%x)
+    %t4 = record lib.V(%t3)
+    return %t4
+}
+fn lib.H.pick(%self: H, %x: &String, %y: &String) -> &String {
+  b0:
+    %t3 = copy(%x)
+    return %t3
+}
+fn lib.H.pickG(%self: H, %x: &String, %y: &String, %q: Q, %$w:Q:tag: fn() -> Int) -> &String {
+  b0:
+    %t5 = copy(%x)
+    drop(%$w:Q:tag)
+    drop(%q)
+    return %t5
+}
+fn lib.wrapBoth(%x: &String) -> V['a] {
+  b0:
+    %t1 = const 1: Int
+    %t2 = record lib.H(%t1)
+    %h = copy(%t2)
+    %t5 = const 42: Int
+    %t4 = interp "local-\x00"(%t5)
+    %loc = copy(%t4)
+    %t7 = closure lib.H.wrapX method(%h)
+    %m = copy(%t7)
+    %t9 = borrow 0(%loc)
+    %t10 = copy(%x)
+    %t11 = callv(%m, %t9, %t10)
+    drop(%m)
+    drop(%loc)
+    drop(%h)
+    return %t11
+}
+fn lib.pickLocal(%x: &String) -> &String {
+  b0:
+    %t1 = const 1: Int
+    %t2 = record lib.H(%t1)
+    %h = copy(%t2)
+    %t5 = const 42: Int
+    %t4 = interp "local-\x00"(%t5)
+    %loc = copy(%t4)
+    %t7 = closure lib.H.pick method(%h)
+    %m = copy(%t7)
+    %t9 = borrow 0(%loc)
+    %t10 = copy(%x)
+    %t11 = callv(%m, %t9, %t10)
+    drop(%m)
+    drop(%loc)
+    drop(%h)
+    return %t11
+}
+fn lib.pickApplied(%x: &String) -> &String {
+  b0:
+    %t1 = const 1: Int
+    %t2 = record lib.H(%t1)
+    %h = copy(%t2)
+    %t5 = const 42: Int
+    %t4 = interp "local-\x00"(%t5)
+    %loc = copy(%t4)
+    %t8 = bind lib.H.tag
+    %t7 = bind lib.H.pickG(%t8)
+    %t9 = closure lib.H.pickG applied(%t7, %h)
+    %m = copy(%t9)
+    %t11 = borrow 0(%loc)
+    %t12 = copy(%x)
+    %t13 = const 2: Int
+    %t14 = record lib.H(%t13)
+    %t15 = callv(%m, %t11, %t12, %t14)
+    drop(%m)
+    drop(%loc)
+    drop(%h)
+    return %t15
+}
+error[E2320]: a value borrowing `loc` cannot be passed as `&'a String`: `'a` belongs to the caller and outlives this call
+  --> lib/view.kg:12:5
+   |
+12 |     g(&loc, k)
+   |     ^^^^^^^^^
+   = help: pass a borrow the caller lent, or give the function value a plain `&` parameter, which cannot keep the borrow
+note: `loc` is borrowed here
+  --> lib/view.kg:12:7
+   |
+12 |     g(&loc, k)
+   |       ^^^^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> lib/view.kg:59:7
+   |
+59 |     m(&loc, x)
+   |       ^^^^
+
+error[move-while-borrowed]: `loc` is still borrowed when its scope ends here
+  --> lib/view.kg:57:9
+   |
+57 |     let loc = "local-${40 + 2}"
+   |         ^^^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> lib/view.kg:66:7
+   |
+66 |     m(&loc, x)
+   |       ^^^^
+
+error[move-while-borrowed]: `loc` is still borrowed when its scope ends here
+  --> lib/view.kg:64:9
+   |
+64 |     let loc = "local-${40 + 2}"
+   |         ^^^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> lib/view.kg:73:7
+   |
+73 |     m(&loc, x, H { n: 2 })
+   |       ^^^^
+
+error[move-while-borrowed]: `loc` is still borrowed when its scope ends here
+  --> lib/view.kg:71:9
+   |
+71 |     let loc = "local-${40 + 2}"
+   |         ^^^
+

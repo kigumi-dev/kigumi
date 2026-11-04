@@ -820,6 +820,50 @@
       ]
     },
     {
+      "id": "mir/fn_value_keep_async_err",
+      "kind": "mir",
+      "path": "testdata/mir/fn_value_keep_async_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/fn_value_keep_bound_err",
+      "kind": "mir",
+      "path": "testdata/mir/fn_value_keep_bound_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/fn_value_keep_store_err",
+      "kind": "mir",
+      "path": "testdata/mir/fn_value_keep_store_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/fn_value_keep_view_err",
+      "kind": "mir",
+      "path": "testdata/mir/fn_value_keep_view_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/for_borrow_move_err",
       "kind": "mir",
       "path": "testdata/mir/for_borrow_move_err.txtar",
@@ -11123,6 +11167,74 @@
       "id": "run/fn_value_generic_instance",
       "kind": "run",
       "path": "testdata/run/fn_value_generic_instance.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_value_keep_async_routes",
+      "kind": "run",
+      "path": "testdata/run/fn_value_keep_async_routes.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_value_keep_bound_routes",
+      "kind": "run",
+      "path": "testdata/run/fn_value_keep_bound_routes.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_value_keep_result_routes",
+      "kind": "run",
+      "path": "testdata/run/fn_value_keep_result_routes.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_value_keep_routes",
+      "kind": "run",
+      "path": "testdata/run/fn_value_keep_routes.txtar",
       "mode": [
         "vm",
         "native"
@@ -23377,6 +23489,50 @@
       "id": "sem/fn_value_hidden_args",
       "kind": "sem",
       "path": "testdata/sem/fn_value_hidden_args.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_value_keep_async_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_value_keep_async_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_value_keep_bound_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_value_keep_bound_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_value_keep_store_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_value_keep_store_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_value_keep_view_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_value_keep_view_err.txtar",
       "mode": [
         "check"
       ],

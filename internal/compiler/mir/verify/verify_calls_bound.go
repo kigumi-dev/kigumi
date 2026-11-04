@@ -85,11 +85,11 @@ func (p *callVerifier) closureSigMismatch(f *midir.Func, in midir.Inst, callee *
 	if p.looseType(dst) || node.Kind != sem.KFn {
 		return ""
 	}
-	rest := callee.Params[len(in.Args):]
-	if len(node.Args) != len(rest) {
-		return "yields a function of " + itoa(len(node.Args)) + " parameters for " + callee.Name + ", which leaves " + itoa(len(rest))
+	if len(node.Args) != len(callee.Params)-len(in.Args) {
+		return "yields a function of " + itoa(len(node.Args)) + " parameters for " + callee.Name + ", which leaves " + itoa(len(callee.Params)-len(in.Args))
 	}
-	for k, prm := range rest {
+	for k := range node.Args {
+		prm := callee.Params[midir.ArgParam(midir.BoundTrails(in.Op), len(in.Args), k)]
 		if want := callee.Locals[prm].Type; !p.compatibleGeneric(want, node.Args[k]) {
 			return "yields " + p.R.TypeString(dst) + " for " + callee.Name + ", whose parameter " + itoa(k) + " is " + p.R.TypeString(want)
 		}

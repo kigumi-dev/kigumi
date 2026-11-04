@@ -23,13 +23,13 @@ var rcCallSites = map[string]*regexp.Regexp{
 
 // Call sites of the count and cell runtime calls in the IR of every native run fixture, std included.
 var pinnedRCCalls = map[string]int{
-	"fixtures":         980,
-	"rt_retain":        9629,
-	"rt_release":       71518,
-	"rt_release_outer": 28940,
-	"rt_drop":          42536,
-	"rt_cell_init":     5979,
-	"rt_cell_take":     2411,
+	"fixtures":         984,
+	"rt_retain":        9636,
+	"rt_release":       71650,
+	"rt_release_outer": 29065,
+	"rt_drop":          42598,
+	"rt_cell_init":     5982,
+	"rt_cell_take":     2414,
 	"rt_setfield_swap": 567,
 	"rt_setindex_swap": 107,
 }
@@ -501,6 +501,10 @@ var addedAfterBaseline = map[string]bool{
 	"const_string_qualified_borrow.txtar":           true,
 	"slice_element_mut_ok.txtar":                    true,
 	"slice_value_copy_ok.txtar":                     true,
+	"fn_value_keep_routes.txtar":                    true,
+	"fn_value_keep_bound_routes.txtar":              true,
+	"fn_value_keep_result_routes.txtar":             true,
+	"fn_value_keep_async_routes.txtar":              true,
 }
 
 func TestRCCallCounts(t *testing.T) {

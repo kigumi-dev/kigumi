@@ -1,0 +1,129 @@
+-- module --
+mir: planned
+-- src --
+import {Shared} from std/alloc
+import task from std/task
+
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+async fn keepA['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+async fn useKeepA['a](x: &'a String, k: Sink['a]) { await keepA(x, k) }
+async fn useKeepV['a](x: &'a String, k: Sink['a]) {
+    let r = keepA
+    await r(x, k)
+}
+pub fn awaitsDirect['a](k: Sink['a]) {
+    let g = useKeepA
+    let loc = "local-${1}"
+    task.currentThreadExecutor().runToCompletion(g(&loc, k)) //~ ERROR a borrow cannot be stored into `k` here
+}
+pub fn awaitsValue['a](k: Sink['a]) {
+    let g = useKeepV
+    let loc = "local-${3}"
+    task.currentThreadExecutor().runToCompletion(g(&loc, k)) //~ ERROR a borrow cannot be stored into `k` here
+}
+
+async fn mut1(a: &mut Array[String]) -> usize {
+    a.push("b")
+    a.len()
+}
+pub type Box[F] = { pub cb F }
+fn nopIn(s: Shared[Future[usize]?], f: Future[usize]) { }
+fn keepIn(s: Shared[Future[usize]?], f: Future[usize]) { s.set(Some(f)) }
+pub fn inArray(sh: Shared[Future[usize]?]) {
+    let mut z = Array.of("a")
+    let fs = Array.of(nopIn, keepIn)
+    fs[1](sh, mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+pub fn inField(sh: Shared[Future[usize]?]) {
+    let mut z = Array.of("a")
+    let b = Box { cb: keepIn }
+    (b.cb)(sh, mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+}
+pub fn quietArray(sh: Shared[Future[usize]?]) {
+    let mut z = Array.of("a")
+    let fs = Array.of(nopIn, nopIn)
+    fs[1](sh, mut1(&mut z))
+}
+
+async fn lenOf(x: &String) -> usize { x.len() }
+fn callIt['a](g: fn(&'a String, Shared[Future[usize]?]) -> Void, s: Shared[Future[usize]?]) {
+    let loc = "local-${40 + 2}"
+    g(&loc, s) //~ ERROR cannot be passed as `&'a String`
+}
+pub fn captured['a](x0: &'a String) {
+    let sh: Shared[Future[usize]?] = Shared.new(None)
+    let n = 3
+    callIt((x: &'a String, s: Shared[Future[usize]?]) => {
+        let z = n
+        s.set(Some(lenOf(x))) //~ ERROR a borrow cannot be captured by a future
+    }, sh.clone())
+}
+pub fn literal['a](x0: &'a String, sh: Shared[Future[usize]?]) {
+    let c = (x: &'a String, s: Shared[Future[usize]?]) => {
+        s.set(Some(lenOf(x))) //~ ERROR a borrow cannot be captured by a future
+    }
+    let loc = "local-${40 + 2}"
+    c(&loc, sh)
+}
+-- expect --
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:15:50
+   |
+15 |     task.currentThreadExecutor().runToCompletion(g(&loc, k)) //~ ERROR a borrow cannot be stored into `k` here
+   |                                                  ^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:20:50
+   |
+20 |     task.currentThreadExecutor().runToCompletion(g(&loc, k)) //~ ERROR a borrow cannot be stored into `k` here
+   |                                                  ^^^^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+  --> main.kg:33:5
+   |
+33 |     fs[1](sh, mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+   |     ^^^^^^^^^^^^^^^^^^^^^
+   = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+  --> main.kg:33:20
+   |
+33 |     fs[1](sh, mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+   |                    ^^^^^^
+
+error[E2158]: a value borrowing `z` cannot go into shared storage: another handle to that storage can keep it after `z` is gone
+  --> main.kg:38:5
+   |
+38 |     (b.cb)(sh, mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+   = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `z` is borrowed here
+  --> main.kg:38:21
+   |
+38 |     (b.cb)(sh, mut1(&mut z)) //~ ERROR a value borrowing `z` cannot go into shared storage
+   |                     ^^^^^^
+
+error[E2320]: a value borrowing `loc` cannot be passed as `&'a String`: `'a` belongs to the caller and outlives this call
+  --> main.kg:49:5
+   |
+49 |     g(&loc, s) //~ ERROR cannot be passed as `&'a String`
+   |     ^^^^^^^^^
+   = help: pass a borrow the caller lent, or give the function value a plain `&` parameter, which cannot keep the borrow
+note: `loc` is borrowed here
+  --> main.kg:49:7
+   |
+49 |     g(&loc, s) //~ ERROR cannot be passed as `&'a String`
+   |       ^^^^
+
+error[borrow-escape]: a borrow cannot be captured by a future; the future may run after the borrowed value is gone, so pass the value itself
+  --> main.kg:56:20
+   |
+56 |         s.set(Some(lenOf(x))) //~ ERROR a borrow cannot be captured by a future
+   |                    ^^^^^^^
+
+error[borrow-escape]: a borrow cannot be captured by a future; the future may run after the borrowed value is gone, so pass the value itself
+  --> main.kg:61:20
+   |
+61 |         s.set(Some(lenOf(x))) //~ ERROR a borrow cannot be captured by a future
+   |                    ^^^^^^^
+

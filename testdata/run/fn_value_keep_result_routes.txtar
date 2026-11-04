@@ -1,0 +1,40 @@
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type H = { pub n Int }
+pub interface Tagged { fn tag(self) -> Int }
+fn H.tag(self) -> Int { self.n }
+fn H.pick['a](self, x: &'a String, y: &String) -> &'a String {
+    print "pick ${self.n} ${y.len()}"
+    x
+}
+fn H.pickG['a, Q: Tagged](self, x: &'a String, y: &String, q: Q) -> &'a String {
+    print "pickG ${self.n} ${y.len()} ${q.tag()}"
+    x
+}
+
+fn pickValue['a](x: &'a String) -> &'a String {
+    let h = H { n: 1 }
+    let loc = "local-${40 + 2}"
+    let m = h.pick
+    m(x, &loc)
+}
+
+fn pickApplied['a](x: &'a String) -> &'a String {
+    let h = H { n: 3 }
+    let loc = "applied-${40 + 2}"
+    let m: fn(&'a String, &String, H) -> &'a String = h.pickG
+    m(x, &loc, H { n: 4 })
+}
+
+fn main0() {
+    let t = "kept-by-caller"
+    let r = pickValue(&t)
+    let q = pickApplied(&t)
+    let junk = "overwrite-${1}${2}${3}-ZZZZZZZZZZZZZZZZZZZZZZZZZZZ"
+    print "${junk.len()} ${r} ${q}"
+}
+main0()
+-- stdout --
+pick 1 8
+pickG 3 10 4
+41 kept-by-caller kept-by-caller

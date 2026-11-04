@@ -69,11 +69,11 @@ func TestRelayUnknownAndFirstParameter(t *testing.T) {
 		t.Fatalf("first parameter = %d, want local 0", g.Params[0])
 	}
 	o := c.calleeOrigin(g, defs, 0)
-	if !o.isParam || o.param != 0 || !c.frameTarget(g, defs, relayTarget{kind: relayParam, param: 0}, g.Params, 8) {
+	if !o.isParam || o.param != 0 || !c.frameTarget(g, defs, relayTarget{kind: relayParam, param: 0}, localsOf(g.Params), 8) {
 		t.Fatal("first parameter was not treated as a possible storing callee")
 	}
 	for _, target := range []relayTarget{{kind: relayUnknown}, {kind: relayParam, param: len(g.Params)}} {
-		if !c.frameTarget(g, defs, target, g.Params, 8) || c.quietCallee(storeFlow{args: g.Params}, paramStore{callee: target}) {
+		if !c.frameTarget(g, defs, target, localsOf(g.Params), 8) || c.quietCallee(storeFlow{args: g.Params}, paramStore{callee: target}) {
 			t.Errorf("target %v was treated as quiet", target)
 		}
 	}

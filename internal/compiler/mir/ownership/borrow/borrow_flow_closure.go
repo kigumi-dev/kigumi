@@ -41,9 +41,9 @@ func (c *borrowCheck) capturesHolder(l midir.LocalID) bool {
 // captureReach adds, for a closure the callee may run, the places its body may store into through each capture; a
 // holder this frame took as a parameter reaches its caller's places, which addCaller checks as such.
 func (c *borrowCheck) captureReach(lit *midir.Inst, add, addCaller func(midir.LocalID)) {
-	h := c.p.ByEnt[lit.Ent]
+	h, o := c.p.ByEnt[lit.Ent], c.litOrigin(lit)
 	for j, a := range lit.Args {
-		sites := c.paramStoreSites(h, j)
+		sites := c.paramStoreSites(h, o.boundParam(0, j))
 		if len(sites) == 0 {
 			continue
 		}
@@ -69,7 +69,7 @@ func (c *borrowCheck) captureRefReach(lit *midir.Inst, j int, add, addCaller fun
 		addCaller(p)
 		return
 	}
-	fl := storeFlow{target: a, ref: true, callee: lit.Ent, param: j, args: lit.Args}
+	fl := storeFlow{target: a, ref: true, callee: lit.Ent, param: c.litOrigin(lit).boundParam(0, j), args: lit.Args}
 	if root, _, caller, ok := c.storeRoot(fl); ok && caller {
 		addCaller(root)
 		return
@@ -83,35 +83,29 @@ func (c *borrowCheck) captureRefReach(lit *midir.Inst, j int, add, addCaller fun
 	}
 }
 
-// callableMayStore reports whether code passed as l may store through what it is called with: a closure literal, fn
-// item or bound method (an interface witness) answers by its body's summaries, anything else may.
+// callableMayStore reports whether code passed as l may store through what it is called with: each origin calleeOrigins
+// names answers by its body's summaries; an unknown origin, a parameter or a body-less fn may.
 func (c *borrowCheck) callableMayStore(l midir.LocalID) bool {
-	var h *midir.Func
-	skip := 0
-	if lit := c.closureLiteral(l); lit != nil {
-		h, skip = c.p.ByEnt[lit.Ent], len(lit.Args)
-	} else if d := c.defThrough(l, midir.OpFnItem); d != nil {
-		h = c.p.ByEnt[d.Ent]
-	} else if d := c.defThrough(l, midir.OpBind); d != nil {
-		h, skip = c.p.ByEnt[d.Ent], len(d.Args)
-	}
-	return len(c.callableSites(h, skip, siteStores)) > 0
+	origins, ok := c.calleeOrigins(c.f, c.soleDefMap(), l)
+	return !ok || slices.ContainsFunc(origins, func(o calleeOrigin) bool {
+		return len(c.callableSites(o.body, o.argParams(), siteStores)) > 0
+	})
 }
 
 // captureValues are the captures a closure's body may store under another capture, and the parts of a capture it may
 // store back under the same one; param -1 keeps the callee's own summaries off them.
 func (c *borrowCheck) captureValues(lit *midir.Inst) []flowArg {
-	h := c.p.ByEnt[lit.Ent]
+	h, o := c.p.ByEnt[lit.Ent], c.litOrigin(lit)
 	var out []flowArg
 	for i, a := range lit.Args {
 		contents := c.p.R.Types.Kind(c.f.Locals[a].Type) == sem.KRef
 		for j := range lit.Args {
-			if j != i && len(c.paramStoreSites(h, j)) > 0 {
+			if j != i && len(c.paramStoreSites(h, o.boundParam(0, j))) > 0 {
 				out = append(out, flowArg{arg: a, contents: contents, param: -1})
 				break
 			}
 		}
-		if at := c.paramSelfSources(h, i); at != nil {
+		if at := c.paramSelfSources(h, o.boundParam(0, i)); at != nil {
 			out = append(out, flowArg{arg: a, contents: contents, param: -1, at: at})
 		}
 	}

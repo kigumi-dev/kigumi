@@ -1,6 +1,7 @@
 package plan
 
 import (
+	"slices"
 	"strconv"
 
 	midir "kigumi/internal/compiler/mir/ir"
@@ -26,18 +27,27 @@ func (p *planner) entryBody(f *midir.Func) *midir.Func {
 	if p.EnvABI(f) {
 		caps = len(p.EnvTypes(f))
 	}
+	trails, nargs := midir.BoundTrails(midir.OpClosure), len(f.Params)-caps
+	bound := map[int]bool{}
+	for j := range caps {
+		bound[midir.BoundParam(trails, nargs, j)] = true
+	}
 	// The entry owns every capture the adapter hands it; a lent parameter stays lent.
 	for i, prm := range f.Params {
 		b.Params = append(b.Params, entryLocal(b, f.Locals[prm].Type, false))
-		b.Locals[len(b.Locals)-1].Borrowed = i >= caps && f.Locals[prm].Borrowed
+		b.Locals[len(b.Locals)-1].Borrowed = !bound[i] && f.Locals[prm].Borrowed
 	}
 	var insts []midir.Inst
 	r := entryLocal(b, f.Ret, false)
 	if p.EnvABI(f) {
 		c := entryLocal(b, p.R.Types.Closure(f.Ent), true)
 		// A scalar capture is read into a copy of its own, the way plan-rc feeds a closure literal.
-		args, held := make([]midir.LocalID, caps), append([]midir.LocalID{}, b.Params[:caps]...)
-		for i, prm := range b.Params[:caps] {
+		captured := make([]midir.LocalID, caps)
+		for j := range captured {
+			captured[j] = b.Params[midir.BoundParam(trails, nargs, j)]
+		}
+		args, held := make([]midir.LocalID, caps), slices.Clone(captured)
+		for i, prm := range captured {
 			args[i] = prm
 			if t := b.Locals[prm].Type; !p.R.DirectAgg(t) {
 				args[i] = entryLocal(b, t, false)
@@ -49,8 +59,12 @@ func (p *planner) entryBody(f *midir.Func) *midir.Func {
 		for _, l := range held {
 			insts = append(insts, midir.Inst{Op: midir.OpRelease, Args: []midir.LocalID{l}})
 		}
+		call := []midir.LocalID{c}
+		for k := range nargs {
+			call = append(call, b.Params[midir.ArgParam(trails, caps, k)])
+		}
 		insts = append(insts,
-			midir.Inst{Op: midir.OpCallValue, Dst: r, Args: append([]midir.LocalID{c}, b.Params[caps:]...)},
+			midir.Inst{Op: midir.OpCallValue, Dst: r, Args: call},
 			midir.Inst{Op: midir.OpRelease, Args: []midir.LocalID{c}})
 	} else {
 		insts = append(insts, midir.Inst{Op: midir.OpCall, Dst: r, Ent: f.Ent, Args: append([]midir.LocalID{}, b.Params...)})

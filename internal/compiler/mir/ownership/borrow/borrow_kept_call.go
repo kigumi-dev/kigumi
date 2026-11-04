@@ -21,10 +21,12 @@ func (c *borrowCheck) keptCall(k *keptCtx, in midir.Inst) (uint64, func(int) uin
 	ents, off := c.keptCallees(k, in)
 	args := in.Args[min(off, len(in.Args)):]
 	plainResult := c.ifaceRequirement(in.Ent) && !c.facts().HoldsBorrow(k.g.Locals[in.Dst].Type) && !c.holdsDeferred(k.g.Locals[in.Dst].Type)
+	// all marks an async callee: the Future the call builds keeps every argument.
 	type callee struct {
-		s *keptSummary
-		h *midir.Func
-		n int
+		s   *keptSummary
+		h   *midir.Func
+		n   int
+		all bool
 	}
 	var cs []callee
 	var signatures []func(int) uint64
@@ -36,11 +38,15 @@ func (c *borrowCheck) keptCall(k *keptCtx, in midir.Inst) (uint64, func(int) uin
 			signatures = append(signatures, lent)
 			continue
 		}
+		async := ownquery.IsAsyncBody(c.p.R, e)
 		s := c.keptBound(e, c.argBind(k, e, args))
+		if async {
+			s = c.keptStoreSummary(e, c.argBind(k, e, args))
+		}
 		if s == nil {
 			return from, every
 		}
-		cs = append(cs, callee{s, c.p.ByEnt[e], len(c.declaredParams(e))})
+		cs = append(cs, callee{s, c.p.ByEnt[e], len(c.declaredParams(e)), async})
 	}
 	if cs == nil && signatures == nil {
 		return from, every
@@ -49,10 +55,10 @@ func (c *borrowCheck) keptCall(k *keptCtx, in midir.Inst) (uint64, func(int) uin
 		for _, ce := range cs {
 			switch {
 			case plainResult && (c.p.R.Types.Kind(k.g.Locals[a].Type) == sem.KRef || k.g.Locals[a].Cell):
-				if j >= ce.n || ce.s.keepsResult(j) || ce.s.movesOut(j) || j < len(ce.h.Params) && c.paramMoves(ce.h, j) {
+				if j >= ce.n || ce.all || ce.s.keepsResult(j) || ce.s.movesOut(j) || j < len(ce.h.Params) && c.paramMoves(ce.h, j) {
 					res |= c.moved(k, a)
 				}
-			case j >= ce.n || ce.s.keepsResult(j):
+			case j >= ce.n || ce.all || ce.s.keepsResult(j):
 				res |= k.facts[a]
 			case c.lendsPlace(k.g, a) && (ce.s.movesOut(j) || j < len(ce.h.Params) && c.paramMoves(ce.h, j)):
 				res |= c.moved(k, a)
@@ -82,20 +88,22 @@ func (c *borrowCheck) keptCall(k *keptCtx, in midir.Inst) (uint64, func(int) uin
 	}
 }
 
-// keptCallees are the sync fn items call in runs and the index of its first argument; nil for an async or unknown callee.
+// keptCallees are the fn items call in runs, a Future's construction like a call, and the index of its first argument;
+// nil for an unknown callee.
 func (c *borrowCheck) keptCallees(k *keptCtx, in midir.Inst) ([]sem.EntityID, int) {
 	var ents []sem.EntityID
 	off := 0
+	value := in.Op == midir.OpCallValue || in.Op == midir.OpFutureNew
 	switch {
 	case in.Op == midir.OpCall && in.Ent != 0:
 		ents = []sem.EntityID{in.Ent}
-	case in.Op == midir.OpCallValue && in.Ent != 0:
+	case value && in.Ent != 0:
 		ents, off = []sem.EntityID{in.Ent}, 1
-	case in.Op == midir.OpCallValue && in.Ent == 0 && len(in.Args) > 0:
+	case value && len(in.Args) > 0:
 		ents, off = c.itemsIn(k, in.Args[0], 8), 1
 	}
 	ents = c.resolveKeptCallees(ents)
-	if slices.ContainsFunc(ents, func(e sem.EntityID) bool { return c.p.R.Entity(e).Kind != sem.EntFn || ownquery.IsAsyncBody(c.p.R, e) }) {
+	if slices.ContainsFunc(ents, func(e sem.EntityID) bool { return c.p.R.Entity(e).Kind != sem.EntFn }) {
 		return nil, 0
 	}
 	return ents, off

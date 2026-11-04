@@ -54,10 +54,7 @@ func (m *Machine) calleeLent(fv *obj) (borrows func(int) bool, known bool) {
 	case fv.cstd() != "":
 		return func(i int) bool { return fv.clent()>>i&1 == 1 }, true
 	case callee != nil && m.r.Entity(callee.Ent).Kind == sem.EntFn:
-		off := 0
-		if env := fv.cenv(); env != nil && !fv.bind {
-			off = len(env.fields)
-		}
+		off := midir.ArgParam(fv.bind, envLen(fv), 0)
 		return func(i int) bool { return m.p.ParamLent(callee.Ent, off+i) }, true
 	case callee != nil && m.r.Entity(callee.Ent).Kind == sem.EntClosure:
 		params := m.r.Closure(callee.Ent).Params

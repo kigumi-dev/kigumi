@@ -7,14 +7,14 @@ import (
 	"kigumi/internal/compiler/sem"
 )
 
-// markLent gives a user function value its lent mask, the call arguments after off its parameters only borrow;
-// a capture-free value gets it when its immortal is filled.
-func (e *emitter) markLent(sb *strings.Builder, in midir.Inst, off int, captureFree bool, v string) string {
+// markLent gives a user function value binding nbound operands its lent mask, the call arguments its parameters only
+// borrow; a capture-free value gets it when its immortal is filled.
+func (e *emitter) markLent(sb *strings.Builder, in midir.Inst, nbound int, captureFree bool, v string) string {
 	k := e.r.Entity(in.Ent).Kind
 	if in.Async || k != sem.EntFn && k != sem.EntClosure {
 		return v
 	}
-	mask := e.lentMask(in.Ent, off)
+	mask := e.lentMask(in.Ent, midir.BoundTrails(in.Op), nbound)
 	if captureFree {
 		it := e.fnItems[v]
 		it.lent = mask
@@ -25,13 +25,13 @@ func (e *emitter) markLent(sb *strings.Builder, in midir.Inst, off int, captureF
 }
 
 // lentMask sets bit i when call argument i lands in a parameter of ent that only borrows it: a function's lent
-// parameter after the off its env fills, or a closure's `&T` parameter. Bit 31 marks the mask as complete.
-func (e *emitter) lentMask(ent sem.EntityID, off int) int {
+// parameter beside the nbound operands its env binds, or a closure's `&T` parameter. Bit 31 marks the mask as complete.
+func (e *emitter) lentMask(ent sem.EntityID, trails bool, nbound int) int {
 	mask := 1 << 31
 	switch e.r.Entity(ent).Kind {
 	case sem.EntFn:
-		for i := 0; off+i < e.paramCount(ent) && i < 31; i++ {
-			if e.p.ParamLent(ent, off+i) {
+		for i := 0; midir.ArgParam(trails, nbound, i) < e.paramCount(ent) && i < 31; i++ {
+			if e.p.ParamLent(ent, midir.ArgParam(trails, nbound, i)) {
 				mask |= 1 << i
 			}
 		}

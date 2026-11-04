@@ -105,20 +105,13 @@ func (m *Machine) startCoro(fu *future) *coro {
 	if fv.k != kClosure || fv.cfn() == nil {
 		m.abort("this Future has no async body to run")
 	}
-	var params []*obj
-	nenv := 0
+	var bound []*obj
 	if fv.cenv() != nil {
-		nenv = len(fv.cenv().fields)
+		for _, x := range fv.cenv().fields {
+			bound = append(bound, retain(x))
+		}
 	}
-	if fv.bind {
-		params = append(params, fu.args...)
-	}
-	for i := 0; i < nenv; i++ {
-		params = append(params, retain(fv.cenv().fields[i]))
-	}
-	if !fv.bind {
-		params = append(params, fu.args...)
-	}
+	params := midir.AppendValueParams(nil, fv.bind, bound, fu.args)
 	body := fv.cfn()
 	co := &coro{fr: frame{f: body, code: m.codeFor(body), locals: make([]*obj, len(body.Locals))}}
 	for i, p := range body.Params {

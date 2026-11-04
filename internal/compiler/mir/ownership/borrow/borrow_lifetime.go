@@ -157,25 +157,7 @@ func (c *borrowCheck) entityLifetimeSource(ent sem.EntityID, info *sem.FnInfo, a
 	if retLt == 0 {
 		return c.genericParamLifetimeSource(ent, info, args, start, calleeBase)
 	}
-	var candidates []lifetimeCandidate
-	if info.Recv != sem.RecvNone {
-		for _, p := range c.recvLifetimeParams(info) {
-			if p == retLt {
-				candidates = append(candidates, lifetimeCandidate{arg: recvIdx, callee: 0})
-				break
-			}
-		}
-		if info.SelfParam != 0 && c.p.R.Local(info.SelfParam).Lifetime == retLt {
-			candidates = append(candidates, lifetimeCandidate{arg: recvIdx, callee: 0, recv: info.Recv})
-		}
-	}
-	for i, prm := range info.Params {
-		if c.paramLifetimeOf(info, prm) == retLt {
-			lent := c.p.R.Types.Kind(c.p.R.Entity(prm).Type) == sem.KRef && c.p.R.Local(prm).Lifetime == 0
-			candidates = append(candidates, lifetimeCandidate{arg: start + i, callee: calleeBase + i, contents: lent})
-		}
-	}
-	return c.resolveLifetimeHolder(ent, args, candidates)
+	return c.resolveLifetimeHolder(ent, args, c.retLifetimeCandidates(info, retLt, recvIdx))
 }
 
 // recvLifetimeParams is info's receiver's own lifetime-bearing type parameters:

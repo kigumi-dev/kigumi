@@ -1,0 +1,80 @@
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+
+interface Pusher['a] {
+    fn pushRef(move self, x: &'a String)
+}
+fn Sink['a].pushRef(move self, x: &'a String) { self.items.push(V { s: x }) }
+pub type Quiet = { pub n Int }
+fn Quiet.pushRef['a](move self, x: &'a String) { print "quiet ${self.n} ${x.len()}" }
+
+fn keepK['a, K: Pusher['a]](x: &'a String, k: K) { k.pushRef(x) }
+fn countK['a, K: Pusher['a]](x: &'a String, k: K) { print "countK ${x.len()}" }
+pub type H = { pub n Int }
+fn H.keepG['a, K: Pusher['a]](self, x: &'a String, k: K) { k.pushRef(x) }
+fn H.countG['a, K: Pusher['a]](self, x: &'a String, k: K) { print "countG ${self.n} ${x.len()}" }
+
+fn genericItem['a](k: Sink['a]) {
+    let g: fn(&'a String, Sink['a]) -> Void = countK
+    let loc = "generic-${1}"
+    g(&loc, k)
+}
+
+fn appliedMethod['a](k: Sink['a]) {
+    let h = H { n: 7 }
+    let g: fn(&'a String, Sink['a]) -> Void = h.countG
+    let loc = "applied-${1}"
+    g(&loc, k)
+}
+
+fn quietWitness['a](q: Quiet) {
+    let g: fn(&'a String, Quiet) -> Void = keepK
+    let loc = "quiet-${1}"
+    g(&loc, q)
+}
+
+fn lentGeneric['a](x: &'a String, k: Sink['a]) {
+    let g: fn(&'a String, Sink['a]) -> Void = keepK
+    g(x, k)
+}
+
+fn lentApplied['a](x: &'a String, k: Sink['a]) {
+    let h = H { n: 1 }
+    let g: fn(&'a String, Sink['a]) -> Void = h.keepG
+    g(x, k)
+}
+
+fn genericHolder['b](k0: Sink['b]) -> usize {
+    let text = "hello"
+    let mut items = Array.of(V { s: &text })
+    let g: fn(&'b String, Sink['b]) -> Void = countK
+    let mut loc = "holder-${1}"
+    g(&loc, Sink { items: &mut items })
+    loc = "again-${2}"
+    items.len() + loc.len()
+}
+
+let text = "hello"
+let more = "kept-by-caller"
+let other = "applied-by-caller"
+let mut items = Array.of(V { s: &text })
+genericItem(Sink { items: &mut items })
+appliedMethod(Sink { items: &mut items })
+quietWitness(Quiet { n: 3 })
+lentGeneric(&more, Sink { items: &mut items })
+lentApplied(&other, Sink { items: &mut items })
+print "holder ${genericHolder(Sink { items: &mut items })}"
+let junk = "overwrite-${1}${2}${3}-ZZZZZZZZZZZZZZZZZZZZZZZZZZZ"
+print "${items.len()} ${junk.len()}"
+for v in &items { print "${v.s}" }
+-- stdout --
+countK 9
+countG 7 9
+quiet 3 7
+countK 8
+holder 8
+3 41
+hello
+kept-by-caller
+applied-by-caller

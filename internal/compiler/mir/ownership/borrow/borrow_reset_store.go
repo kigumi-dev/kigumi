@@ -52,8 +52,7 @@ func (c *borrowCheck) storesOnlyReplace(holder midir.LocalID) bool {
 						c.resets.stored[r] = c.resets.stored[r] || !c.replacesHolder(in, r) && !c.callResets(in, fl, r)
 					}
 				}
-				targets, _ := c.carryFlows(in)
-				for _, fl := range targets {
+				for _, fl := range c.carryFlows(in) {
 					for _, r := range c.storeDests(fl) {
 						c.resets.stored[r] = true
 					}

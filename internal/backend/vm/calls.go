@@ -95,7 +95,7 @@ func (m *Machine) closure(in *midir.Inst, ic *instCode, caps []*obj) *obj {
 	}
 	if p.useLowered {
 		cl.fn = p.f
-		c.bind = in.Op == midir.OpBind
+		c.bind = midir.BoundTrails(in.Op)
 	} else {
 		cl.stdKey, c.ent, cl.prov, cl.lent, cl.dyn = p.key, in.Ent, in.Prov, p.lent, p.dyn
 	}
@@ -140,10 +140,7 @@ func (m *Machine) takeReferents(fv *obj, args []*obj) {
 	if fv.cfn() == nil {
 		return
 	}
-	off := 0
-	if env := fv.cenv(); env != nil && !fv.bind {
-		off = len(env.fields)
-	}
+	off := midir.ArgParam(fv.bind, envLen(fv), 0)
 	refs := m.p.ReferentParams(fv.cfn())
 	for i, a := range args {
 		switch {

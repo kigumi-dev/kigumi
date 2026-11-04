@@ -9,8 +9,8 @@ import (
 
 func (c *borrowCheck) futureLifetimeSource(in midir.Inst) (*borrowInfo, bool) {
 	var slots []callSlot
-	if e, args := c.flowCallee(in); e != 0 {
-		slots = c.callSlots(c.p.R.Fn(e), args, 0)
+	if ts := c.flowCallees(in); len(ts) == 1 {
+		slots = c.callSlots(c.p.R.Fn(ts[0].ent), ts[0].args, 0)
 	}
 	var found []*borrowInfo
 	for i, a := range in.Args[1:] {
@@ -18,7 +18,7 @@ func (c *borrowCheck) futureLifetimeSource(in midir.Inst) (*borrowInfo, bool) {
 		if !ok {
 			continue
 		}
-		if !c.fitsDeclared(b, in.Dst) && !c.futureParamLifetime(slots, i, b) {
+		if !c.fitsFuture(b, in.Dst) && !c.futureParamLifetime(slots, i, b) {
 			return nil, false
 		}
 		if !slices.Contains(found, b) {
@@ -43,4 +43,10 @@ func (c *borrowCheck) futureParamLifetime(slots []callSlot, i int, b *borrowInfo
 	return b.lifetime != 0 && i < len(slots) && slices.ContainsFunc(slots[i].params, func(p sem.EntityID) bool {
 		return c.p.R.TypeParam(p).IsLifetime
 	})
+}
+
+// fitsFuture is fitsDeclared without a closure's lifetime: no caller ties a Future to the borrow a closure parameter
+// brought in, so it is refused as a fn item's would be.
+func (c *borrowCheck) fitsFuture(b *borrowInfo, dst midir.LocalID) bool {
+	return b.empty || !c.closureLifetime(b) && c.fitsDeclared(b, dst)
 }

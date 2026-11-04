@@ -1,0 +1,126 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = { pub s &'a String }
+pub type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+fn keep['a](x: &'a String, k: Sink['a]) { k.items.push(V { s: x }) }
+fn nop['a](x: &'a String, k: Sink['a]) { }
+
+pub interface Caller['a] {
+    fn callIt(self, g: fn(&'a String, Sink['a]) -> Void, k: Sink['a])
+}
+pub type CQ = { pub n Int }
+fn CQ.callIt['a](self, g: fn(&'a String, Sink['a]) -> Void, k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    g(&loc, k) //~ ERROR cannot be passed as `&'a String`
+}
+pub fn viaView['a](c: &Caller['a], k: Sink['a]) { c.callIt(keep, k) }
+pub fn direct['a](k: Sink['a]) {
+    let cq = CQ { n: 1 }
+    cq.callIt(nop, k)
+}
+pub fn wire() -> usize {
+    let text = "hello"
+    let mut items = Array.of(V { s: &text })
+    let cq = CQ { n: 1 }
+    viaView(&cq, Sink { items: &mut items })
+    items.len()
+}
+
+pub interface Caller2['a] {
+    fn callIt(self, g: fn(&'a String, Sink['a]) -> Void, k: Sink['a])
+}
+pub type CQ2 = { pub n Int }
+fn CQ2.callIt['a](self, g: fn(&'a String, Sink['a]) -> Void, k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    g(&loc, k)
+}
+pub fn viaView2['a](c: &Caller2['a], k: Sink['a]) { c.callIt(nop, k) }
+pub fn direct2['a](k: Sink['a]) {
+    let cq = CQ2 { n: 1 }
+    cq.callIt(nop, k)
+}
+pub fn wire2() -> usize {
+    let text = "hello"
+    let mut items = Array.of(V { s: &text })
+    let cq = CQ2 { n: 1 }
+    viaView2(&cq, Sink { items: &mut items })
+    items.len()
+}
+
+pub type H = { pub n Int }
+pub interface Tagged { fn tag(self) -> Int }
+fn H.tag(self) -> Int { self.n }
+fn H.wrapX['a](self, x: &'a String, y: &'a String) -> V['a] { V { s: x } }
+fn H.pick['a](self, x: &'a String, y: &String) -> &'a String { x }
+fn H.pickG['a, Q: Tagged](self, x: &'a String, y: &String, q: Q) -> &'a String { x }
+
+pub fn wrapBoth['a](x: &'a String) -> V['a] {
+    let h = H { n: 1 }
+    let loc = "local-${40 + 2}" //~ ERROR `loc` is still borrowed when its scope ends here
+    let m = h.wrapX
+    m(&loc, x) //~ ERROR a borrow cannot be returned
+}
+
+pub fn pickLocal['a](x: &'a String) -> &'a String {
+    let h = H { n: 1 }
+    let loc = "local-${40 + 2}" //~ ERROR `loc` is still borrowed when its scope ends here
+    let m = h.pick
+    m(&loc, x) //~ ERROR a borrow cannot be returned
+}
+
+pub fn pickApplied['a](x: &'a String) -> &'a String {
+    let h = H { n: 1 }
+    let loc = "local-${40 + 2}" //~ ERROR `loc` is still borrowed when its scope ends here
+    let m: fn(&'a String, &String, H) -> &'a String = h.pickG
+    m(&loc, x, H { n: 2 }) //~ ERROR a borrow cannot be returned
+}
+-- expect --
+error[E2320]: a value borrowing `loc` cannot be passed as `&'a String`: `'a` belongs to the caller and outlives this call
+  --> main.kg:12:5
+   |
+12 |     g(&loc, k) //~ ERROR cannot be passed as `&'a String`
+   |     ^^^^^^^^^
+   = help: pass a borrow the caller lent, or give the function value a plain `&` parameter, which cannot keep the borrow
+note: `loc` is borrowed here
+  --> main.kg:12:7
+   |
+12 |     g(&loc, k) //~ ERROR cannot be passed as `&'a String`
+   |       ^^^^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:59:7
+   |
+59 |     m(&loc, x) //~ ERROR a borrow cannot be returned
+   |       ^^^^
+
+error[move-while-borrowed]: `loc` is still borrowed when its scope ends here
+  --> main.kg:57:9
+   |
+57 |     let loc = "local-${40 + 2}" //~ ERROR `loc` is still borrowed when its scope ends here
+   |         ^^^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:66:7
+   |
+66 |     m(&loc, x) //~ ERROR a borrow cannot be returned
+   |       ^^^^
+
+error[move-while-borrowed]: `loc` is still borrowed when its scope ends here
+  --> main.kg:64:9
+   |
+64 |     let loc = "local-${40 + 2}" //~ ERROR `loc` is still borrowed when its scope ends here
+   |         ^^^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:73:7
+   |
+73 |     m(&loc, x, H { n: 2 }) //~ ERROR a borrow cannot be returned
+   |       ^^^^
+
+error[move-while-borrowed]: `loc` is still borrowed when its scope ends here
+  --> main.kg:71:9
+   |
+71 |     let loc = "local-${40 + 2}" //~ ERROR `loc` is still borrowed when its scope ends here
+   |         ^^^
+

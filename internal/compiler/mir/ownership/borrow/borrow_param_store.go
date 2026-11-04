@@ -82,7 +82,7 @@ func (c *borrowCheck) paramSelfSources(g *midir.Func, i int) []ownquery.Path {
 // Mutually recursive summaries settle together as one strongly connected component (Tarjan), iterated to a fixpoint.
 func (c *borrowCheck) paramSites(key paramKey) []paramStore {
 	g, i := key.g, key.i
-	if g == nil || i >= len(g.Params) {
+	if g == nil || i < 0 || i >= len(g.Params) {
 		return wholeParam
 	}
 	if e, ok := c.storeMemo[key]; ok {
