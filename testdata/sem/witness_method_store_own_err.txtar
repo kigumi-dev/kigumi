@@ -1,0 +1,100 @@
+-- module --
+mir: planned
+-- src --
+interface FromRef[K] {
+    fn fromRef(k: &K) -> Self
+}
+
+type View['a] = {
+    pub s &'a String
+}
+
+fn View['a].fromRef(k: &'a String) -> View['a] {
+    View { s: k }
+}
+
+interface Take {
+    fn take(mut self, k: &String)
+}
+
+type HSink['a, V] = {
+    pub mut vs &'a mut Array[V]
+}
+
+fn HSink['a, V: FromRef[String]].take(mut self, k: &String) {
+    self.vs.push(V.fromRef(k))
+}
+
+type Stash[V] = {
+    pub mut vs Array[V]
+}
+
+fn Stash[V: FromRef[String]].take(mut self, k: &String) {
+    self.vs.push(V.fromRef(k))
+}
+
+fn holder[T: Take](mut t: T, k: String) {
+    t.take(&k) //~ ERROR cannot be stored
+}
+
+fn returned[T: Take](mut t: T, k: String) -> T { //~ ERROR `k` is still borrowed when its scope ends here
+    t.take(&k) //~ ERROR cannot be stored //~ ERROR cannot be returned
+    t
+}
+
+fn twoLayer[T: Take](t: T, k: String) -> T {
+    returned(t, k)
+}
+
+fn useHolder() {
+    let name = "n"
+    let mut xs = Array.of(View { s: &name })
+    {
+        let h = HSink { vs: &mut xs }
+        holder(h, "dyn${1}")
+    }
+    print "got ${xs[1].s}"
+}
+
+fn useReturned() {
+    let name = "n"
+    let mut s = Stash { vs: Array.of(View { s: &name }) }
+    s = returned(s, "dyn${2}")
+    print "got ${s.vs[1].s}"
+}
+
+fn useTwoLayer() {
+    let name = "n"
+    let seed = Stash { vs: Array.of(View { s: &name }) }
+    let s = twoLayer(seed, "dyn${3}")
+    print "got ${s.vs[1].s}"
+}
+
+useHolder()
+useReturned()
+useTwoLayer()
+-- expect --
+error[E2160]: a borrow cannot be stored into `T`: the checker does not track where its contents borrow from; it follows writes only into an array, fixed array, map, record or variant held in a local, a `&mut` parameter, or a reference bound once to one of those, so write through that local or store a value it can own
+  --> main.kg:34:5
+   |
+34 |     t.take(&k) //~ ERROR cannot be stored
+   |     ^^^^^^^^^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:38:5
+   |
+38 |     t.take(&k) //~ ERROR cannot be stored //~ ERROR cannot be returned
+   |     ^^^^^^^^^
+
+error[move-while-borrowed]: `k` is still borrowed when its scope ends here
+  --> main.kg:37:32
+   |
+37 | fn returned[T: Take](mut t: T, k: String) -> T { //~ ERROR `k` is still borrowed when its scope ends here
+   |                                ^^^^^^^^^
+
+error[E2160]: a borrow cannot be stored into `T`: the checker does not track where its contents borrow from; it follows writes only into an array, fixed array, map, record or variant held in a local, a `&mut` parameter, or a reference bound once to one of those, so write through that local or store a value it can own
+  --> main.kg:38:5
+   |
+38 |     t.take(&k) //~ ERROR cannot be stored //~ ERROR cannot be returned
+   |     ^^^^^^^^^
+

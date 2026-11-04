@@ -27046,6 +27046,17 @@
       ]
     },
     {
+      "id": "sem/witness_method_store_own_err",
+      "kind": "sem",
+      "path": "testdata/sem/witness_method_store_own_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/witness_recv_private_pkg",
       "kind": "sem",
       "path": "testdata/sem/witness_recv_private_pkg.txtar",

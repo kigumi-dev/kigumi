@@ -10,21 +10,21 @@ interface Writer['a] {
 
 type Worker = { pub n Int }
 
-fn Worker.write['a](self, value: &'a String, sink: Sink['a]) -> View['a] { //~ ERROR cannot be erased
+fn Worker.write['a](self, value: &'a String, sink: Sink['a]) -> View['a] {
     sink.values.push(View { value: value })
     View { value: value }
 }
 
 fn run['a, W: Writer['a]](worker: W, sink: Sink['a]) {
     let local = "local"
-    let result = worker.write(&local, sink)
+    let result = worker.write(&local, sink) //~ ERROR cannot be stored
 }
 
 pub fn use['a](sink: Sink['a]) { run(Worker { n: 0 }, sink) }
 -- expect --
-error[E2297]: the reference lifetime of `write` cannot be erased: the callable may retain that reference outside its result
-  --> main.kg:10:1
+error[E2159]: a borrow cannot be stored into `sink` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:17:18
    |
-10 | fn Worker.write['a](self, value: &'a String, sink: Sink['a]) -> View['a] { //~ ERROR cannot be erased
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+17 |     let result = worker.write(&local, sink) //~ ERROR cannot be stored
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^
 

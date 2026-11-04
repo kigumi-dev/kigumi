@@ -23,6 +23,9 @@ func (t callTarget) stores(i, j int) bool {
 func (c *borrowCheck) flowCallees(in midir.Inst) []callTarget {
 	switch in.Op {
 	case midir.OpCall:
+		if in.Ent != 0 && c.ifaceRequirement(in.Ent) {
+			return c.requirementTargets(in.Ent, in.Args)
+		}
 		return c.fnTarget(in.Ent, in.Args, false)
 	case midir.OpCallValue, midir.OpFutureNew:
 	default:
@@ -33,6 +36,9 @@ func (c *borrowCheck) flowCallees(in midir.Inst) []callTarget {
 	}
 	callee, args := in.Args[0], in.Args[1:]
 	if in.Ent != 0 {
+		if c.ifaceRequirement(in.Ent) {
+			return c.requirementTargets(in.Ent, args)
+		}
 		return c.fnTarget(in.Ent, args, false)
 	}
 	if d := c.definition(callee); d != nil && d.Op == midir.OpFnItem {
@@ -47,6 +53,20 @@ func (c *borrowCheck) flowCallees(in midir.Inst) []callTarget {
 		if !o.isParam {
 			out = append(out, c.fnTarget(o.ent, o.params(args), true)...)
 		}
+	}
+	return out
+}
+
+// requirementTargets are the implementations a call through a requirement may run: a bodyless requirement carries no
+// store in its signature, so each implementation is checked by what its own body stores. The requirement alone when none
+// is sealed, which keeps the call opaque.
+func (c *borrowCheck) requirementTargets(req sem.EntityID, args []midir.LocalID) []callTarget {
+	out := make([]callTarget, 0, 1)
+	for _, w := range c.implementers(req) {
+		out = append(out, callTarget{ent: w, args: args, kept: c.keptStoreSummary(w, nil)})
+	}
+	if len(out) == 0 {
+		return []callTarget{{ent: req, args: args}}
 	}
 	return out
 }
