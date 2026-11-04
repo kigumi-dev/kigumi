@@ -1,0 +1,105 @@
+-- src --
+import task from std/task
+
+interface FromRef[K] {
+    fn fromRef(k: &K) -> Self
+}
+
+type View['a] = {
+    pub s &'a String
+}
+
+fn View['a].fromRef(k: &'a String) -> View['a] {
+    View { s: k }
+}
+
+type Tag['a] = {
+    pub v View['a]?
+    pub n usize
+}
+
+fn Tag['a].fromRef(k: &String) -> Tag['a] {
+    Tag { v: None, n: k.len() }
+}
+
+type Pair[V] = {
+    pub v V
+    pub n usize
+}
+
+fn Pair[V: FromRef[String]].fromRef(k: &String) -> Pair[V] {
+    Pair { v: V.fromRef(k), n: k.len() }
+}
+
+fn addTo[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    dst.push(V.fromRef(k))
+}
+
+type One[K, V] = {
+    pub k K
+    pub vs Array[V]
+}
+
+fn One[K, V: FromRef[K]].addSelf(self, dst: &mut Array[V]) {
+    dst.push(V.fromRef(&self.k))
+}
+
+fn apply[K, V, F: Fn[fn(&K) -> V]](dst: &mut Array[V], k: &K, f: F) {
+    dst.push(f(k))
+}
+
+fn viaApply[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    apply(dst, k, (x: &K) => V.fromRef(x))
+}
+
+fn mkArr[K, V: FromRef[K]](k: &K) -> Array[V] {
+    Array.of(V.fromRef(k))
+}
+
+fn run[T](f: Future[T]) -> T {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+async fn addLater[K, V: FromRef[K]](dst: &mut Array[V], k: &K) -> usize {
+    dst.push(V.fromRef(k))
+    dst.len()
+}
+
+fn pairs() -> usize {
+    let name = "named"
+    let mut ps = Array.of(Pair { v: Tag { v: Some(View { s: &name }), n: 0 }, n: 0 })
+    let mut ts = Array.of(Tag { v: Some(View { s: &name }), n: 0 })
+    for i in 0..2 {
+        let inner = "in${i}"
+        addTo(&mut ps, &inner)
+        viaApply(&mut ts, &inner)
+        for t in mkArr(&inner) {
+            ts.push(t)
+        }
+        let n = run(addLater(&mut ts, &inner))
+    }
+    let mut vs = Array.of(View { s: &name })
+    addTo(&mut vs, &name)
+    print "pairs ${ps.len()} ${ps[1].v.n} ${ps[2].n} ts ${ts.len()} ${ts[3].n} ${vs[1].s}"
+    ps.len()
+}
+
+fn kept() -> usize {
+    let outer = "outer"
+    let o = One { k: "self-k", vs: Array.of(View { s: &outer }) }
+    let mut xs = Array.of(View { s: &outer })
+    o.addSelf(&mut xs)
+    viaApply(&mut xs, &outer)
+    for v in mkArr(&outer) {
+        xs.push(v)
+    }
+    let n = run(addLater(&mut xs, &outer))
+    print "kept ${xs[1].s} ${xs[2].s} ${xs[3].s} ${xs[4].s} ${n}"
+    xs.len()
+}
+
+print "${pairs()} ${kept()}"
+-- stdout --
+pairs 3 3 3 ts 7 3 named
+kept self-k outer outer outer 5
+3 5

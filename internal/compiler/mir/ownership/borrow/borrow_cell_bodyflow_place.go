@@ -24,6 +24,11 @@ func allDefs(g *midir.Func) map[midir.LocalID][]*midir.Inst {
 // placeRoots are the locals a write through l may reach, following every definition back through projections, borrows,
 // cells, copies and, for a returned reference, the call's operands; not ok when a reference comes from anywhere else.
 func (c *borrowCheck) placeRoots(g *midir.Func, defs map[midir.LocalID][]*midir.Inst, l midir.LocalID) ([]midir.LocalID, bool) {
+	return c.placeRootsThrough(g, defs, l, false)
+}
+
+// placeRootsThrough is placeRoots, with mutOnly not following a shared borrow, which a write cannot go through.
+func (c *borrowCheck) placeRootsThrough(g *midir.Func, defs map[midir.LocalID][]*midir.Inst, l midir.LocalID, mutOnly bool) ([]midir.LocalID, bool) {
 	out, ok := []midir.LocalID{l}, true
 	for i := 0; i < len(out); i++ {
 		x := out[i]
@@ -33,6 +38,7 @@ func (c *borrowCheck) placeRoots(g *midir.Func, defs map[midir.LocalID][]*midir.
 			switch {
 			case len(d.Args) == 0:
 				ok = ok && !isRef
+			case mutOnly && d.Op == midir.OpBorrow && d.Index != 1:
 			case bodyRoles[d.Op] == roleCarry:
 				next = d.Args[:1]
 				switch d.Op {

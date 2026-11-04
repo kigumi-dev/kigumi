@@ -18987,6 +18987,57 @@
       ]
     },
     {
+      "id": "run/witness_ref_kept_ok",
+      "kind": "run",
+      "path": "testdata/run/witness_ref_kept_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/witness_ref_kept_round2_ok",
+      "kind": "run",
+      "path": "testdata/run/witness_ref_kept_round2_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/witness_ref_kept_round_ok",
+      "kind": "run",
+      "path": "testdata/run/witness_ref_kept_round_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "sem/abi_unknown_block_err",
       "kind": "sem",
       "path": "testdata/sem/abi_unknown_block_err.txtar",
@@ -26998,6 +27049,39 @@
       "id": "sem/witness_recv_private_pkg",
       "kind": "sem",
       "path": "testdata/sem/witness_recv_private_pkg.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/witness_ref_kept_err",
+      "kind": "sem",
+      "path": "testdata/sem/witness_ref_kept_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/witness_ref_kept_round2_err",
+      "kind": "sem",
+      "path": "testdata/sem/witness_ref_kept_round2_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/witness_ref_kept_round_err",
+      "kind": "sem",
+      "path": "testdata/sem/witness_ref_kept_round_err.txtar",
       "mode": [
         "check"
       ],

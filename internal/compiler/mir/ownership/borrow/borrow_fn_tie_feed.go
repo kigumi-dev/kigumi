@@ -17,6 +17,7 @@ const (
 	tieRecvMut
 	tieValue
 	tieFn
+	tieRecvKept
 )
 
 // tieArgs keeps only the arguments whose type can reach a parameter the fn value's result may borrow.
@@ -82,6 +83,8 @@ func (c *borrowCheck) tieInfo(v flowArg, generic, caller bool) (*borrowInfo, boo
 		return c.flowInfo(v)
 	case tieRecv, tieRecvMut:
 		return c.receiverPlaceInfo(v.arg, v.tie == tieRecvMut && !v.shared)
+	case tieRecvKept:
+		return c.keptRecvInfo(v.arg, !v.shared)
 	case tieRef:
 		b, ok = c.holders[v.arg]
 		recv := sem.RecvNone

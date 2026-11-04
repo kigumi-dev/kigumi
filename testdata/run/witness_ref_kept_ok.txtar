@@ -1,0 +1,127 @@
+-- src --
+interface FromRef[K] {
+    fn fromRef(k: &K) -> Self
+}
+
+interface Wrap[V] {
+    fn wrap(v: V) -> Self
+}
+
+type View['a] = {
+    pub s &'a String
+}
+
+fn View['a].fromRef(k: &'a String) -> View['a] {
+    View { s: k }
+}
+
+type Tag['a] = {
+    pub v View['a]?
+    pub n usize
+}
+
+fn Tag['a].fromRef(k: &String) -> Tag['a] {
+    Tag { v: None, n: k.len() }
+}
+
+fn Tag['a].show(self) -> String {
+    if self.v is Some(v) {
+        return "named ${v.s}"
+    }
+    "anon ${self.n}"
+}
+
+type Pair[V] = {
+    pub v V
+    pub n usize
+}
+
+fn Pair[V: FromRef[String]].fromRef(k: &String) -> Pair[V] {
+    Pair { v: V.fromRef(k), n: k.len() }
+}
+
+type Boxed[V] = {
+    pub v V
+}
+
+fn Boxed[V].wrap(v: V) -> Boxed[V] {
+    Boxed { v: v }
+}
+
+type Bag[K, V] = {
+    pub mut vs Array[V]
+    pub ks Array[K]
+}
+
+fn Bag[K, V: FromRef[K]].addRef(mut self, k: &K) {
+    self.vs.push(V.fromRef(k))
+}
+
+type Nest[K, V, W] = {
+    pub mut ws Array[W]
+    pub vs Array[V]
+    pub ks Array[K]
+}
+
+fn Nest[K, V: FromRef[K], W: Wrap[V]].add(mut self, k: &K) {
+    self.ws.push(W.wrap(V.fromRef(k)))
+}
+
+fn addTo[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    dst.push(V.fromRef(k))
+}
+
+fn relay[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    addTo(dst, k)
+}
+
+fn closureTo[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    let f = (x: &K) => V.fromRef(x)
+    dst.push(f(k))
+}
+
+fn kept() {
+    let outer = "outer"
+    let name = "first"
+    let mut b = Bag { vs: Array.of(View { s: &name }), ks: Array.of("k") }
+    let mut xs = Array.of(View { s: &name })
+    let mut ps = Array.of(Pair { v: View { s: &name }, n: 0 })
+    let mut nb = Nest { ws: Array.of(Boxed { v: View { s: &name } }), vs: Array.of(View { s: &name }), ks: Array.of("k") }
+    b.addRef(&outer)
+    addTo(&mut xs, &outer)
+    relay(&mut xs, &name)
+    addTo(&mut ps, &outer)
+    nb.add(&outer)
+    closureTo(&mut xs, &outer)
+    print "kept ${b.vs[1].s} ${xs[1].s} ${xs[2].s} ${xs[3].s} ${ps[1].v.s} ${ps[1].n} ${nb.ws[1].v.s}"
+}
+
+fn dropped() {
+    let name = "first"
+    let mut ts = Array.of(Tag { v: Some(View { s: &name }), n: 0 })
+    let mut b = Bag { vs: Array.of(Tag { v: Some(View { s: &name }), n: 0 }), ks: Array.of("k") }
+    for i in 0..2 {
+        let inner = "inner-${i}"
+        addTo(&mut ts, &inner)
+        relay(&mut ts, &inner)
+        closureTo(&mut ts, &inner)
+        b.addRef(&inner)
+    }
+    for t in &ts {
+        print t.show()
+    }
+    print "bag ${b.vs.len()} ${b.vs[2].show()}"
+}
+
+kept()
+dropped()
+-- stdout --
+kept outer outer first outer outer 5 outer
+named first
+anon 7
+anon 7
+anon 7
+anon 7
+anon 7
+anon 7
+bag 3 anon 7

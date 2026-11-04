@@ -1,0 +1,193 @@
+-- src --
+import cli from std/cli
+import os from std/os
+
+interface FromRef[K] {
+    fn fromRef(k: &K) -> Self
+}
+
+type View['a] = {
+    pub s &'a String
+}
+
+fn View['a].fromRef(k: &'a String) -> View['a] {
+    View { s: k }
+}
+
+type Tag = {
+    pub n usize
+}
+
+fn Tag.fromRef(k: &String) -> Tag {
+    Tag { n: k.len() }
+}
+
+type ArgView['a] = {
+    pub mut a &'a os.OsString
+}
+
+fn ArgView['a].parseFlag(arg: &'a os.OsString) -> Result[ArgView['a], String] {
+    Ok(ArgView { a: arg })
+}
+
+fn ArgView['a].absorbFlag(mut self, value: ArgView['a]) {
+    self.a = value.a
+}
+
+fn ArgView['a].flagInfo() -> cli.ValueInfo {
+    cli.ValueInfo { name: "view", shape: cli.Shape.Single }
+}
+
+fn placeholder[T: cli.FlagValue](t: &T) -> String {
+    T.flagInfo().name
+}
+
+type One[K, V] = {
+    pub k K
+    pub vs Array[V]
+}
+
+fn One[K, V: FromRef[K]].addSelf(self, dst: &mut Array[V]) {
+    dst.push(V.fromRef(&self.k))
+}
+
+fn One[K, V: FromRef[K]].relaySelf(self, dst: &mut Array[V]) {
+    self.addSelf(dst)
+}
+
+fn addAllMap[K, V: FromRef[K]](dst: &mut Array[V], ks: &Array[K]) {
+    for v in ks.map((k: &K) => V.fromRef(k)) {
+        dst.push(v)
+    }
+}
+
+fn apply0[V, F: Fn[fn() -> V]](dst: &mut Array[V], f: F) {
+    dst.push(f())
+}
+
+fn viaCap2[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    apply0(dst, () => V.fromRef(k))
+}
+
+type Pt = {
+    pub x Int
+}
+
+fn Pt.addVia[K, V: FromRef[K]](self, dst: &mut Array[V], k: &K) {
+    dst.push(V.fromRef(k))
+}
+
+fn callWith2[K, V](dst: &mut Array[V], k: &K, f: fn(&mut Array[V], &K) -> Void) {
+    f(dst, k)
+}
+
+type RefOne['a] = {
+    pub k &'a String
+}
+
+fn RefOne['a].addK[V: FromRef[String]](self, dst: &mut Array[V]) {
+    dst.push(V.fromRef(self.k))
+}
+
+type KRef2['a] = {
+    pub r &'a String
+}
+
+fn addR2['a, V: FromRef[String]](dst: &mut Array[V], h: KRef2['a]) {
+    dst.push(V.fromRef(h.r))
+}
+
+fn addR2Ref['a, V: FromRef[String]](dst: &mut Array[V], h: &KRef2['a]) {
+    dst.push(V.fromRef(h.r))
+}
+
+fn pickFrom[K](ks: &Array[K], n: usize) -> &K {
+    &ks[0]
+}
+
+fn viaHelper[K, V: FromRef[K]](dst: &mut Array[V], ks: &Array[K]) {
+    let n = dst.len()
+    dst.push(V.fromRef(pickFrom(ks, n)))
+}
+
+fn nextKey['b, K, V](d: &mut Array[V], ks: &'b Array[K]) -> &'b K {
+    &ks[d.len() % ks.len()]
+}
+
+fn viaNext[K, V: FromRef[K]](dst: &mut Array[V], ks: &Array[K]) {
+    let k = nextKey(dst, ks)
+    dst.push(V.fromRef(k))
+}
+
+fn wide[K, V: FromRef[K]](dst: &mut Array[V], k: &K, p0: Int, p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int, p8: Int, p9: Int, p10: Int, p11: Int, p12: Int, p13: Int, p14: Int, p15: Int, p16: Int, p17: Int, p18: Int, p19: Int, p20: Int, p21: Int, p22: Int, p23: Int, p24: Int, p25: Int, p26: Int, p27: Int, p28: Int, p29: Int, p30: Int, p31: Int, last: &K) {
+    dst.push(V.fromRef(k))
+    dst.push(V.fromRef(last))
+}
+
+fn cliFlag() {
+    let first = os.OsString.fromString("init")
+    let dest = ArgView { a: &first }
+    print "placeholder ${placeholder(&dest)}"
+    let line = Array.of(os.OsString.fromString("--n"), os.OsString.fromString("7"))
+    let mut count: Int = 0
+    let mut p = cli.Parser.new("x", &line)
+    p.flag("n", &mut count)
+    print "count ${count}"
+}
+
+fn outer() {
+    let name = "outer"
+    let ks = Array.of("key1", "key2")
+    let o = One { k: "self", vs: Array.of(View { s: &name }) }
+    let pt = Pt { x: 1 }
+    let mut xs = Array.of(View { s: &name })
+    o.relaySelf(&mut xs)
+    addAllMap(&mut xs, &ks)
+    viaCap2(&mut xs, &name)
+    callWith2(&mut xs, &name, pt.addVia)
+    viaHelper(&mut xs, &ks)
+    viaNext(&mut xs, &ks)
+    for i in 0..2 {
+        let ro = RefOne { k: &name }
+        ro.addK(&mut xs)
+        let h = KRef2 { r: &name }
+        addR2Ref(&mut xs, &h)
+        addR2(&mut xs, KRef2 { r: &name })
+    }
+    wide(&mut xs, &name, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, &name)
+    let mut line = ""
+    for v in &xs {
+        line = "${line} ${v.s}"
+    }
+    print "outer${line}"
+}
+
+fn quiet() {
+    let mut ts = Array.of(Tag { n: 0 })
+    for i in 0..2 {
+        let inner = "inner-${i}"
+        let ks = Array.of(inner)
+        One { k: "tmp${i}", vs: Array.of(Tag { n: 9 }) }.addSelf(&mut ts)
+        One { k: inner, vs: Array.of(Tag { n: 9 }) }.relaySelf(&mut ts)
+        addAllMap(&mut ts, &ks)
+        viaCap2(&mut ts, &ks[0])
+        addR2(&mut ts, KRef2 { r: &ks[0] })
+        wide(&mut ts, &ks[0], 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, &ks[0])
+    }
+    let mut total: usize = 0
+    for t in &ts {
+        total += t.n
+    }
+    print "quiet ${ts.len()} ${total}"
+}
+
+fn main() -> Void! {
+    cliFlag()
+    outer()
+    quiet()
+}
+-- stdout --
+placeholder view
+count 7
+outer outer self key1 key2 outer outer key1 key2 outer outer outer outer outer outer outer outer
+quiet 15 92

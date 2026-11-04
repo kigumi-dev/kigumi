@@ -13,6 +13,7 @@ func (c *borrowCheck) tiedCallSource(in midir.Inst) (*borrowInfo, bool) {
 	b, ok := c.calleeSource(in)
 	tie, done := c.fnTie(in)
 	tie = append(tie, c.summaryTie(in, done)...)
+	tie = append(tie, c.refKeptTie(in)...)
 	if len(tie) == 0 {
 		return b, ok
 	}

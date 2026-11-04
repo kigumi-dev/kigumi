@@ -53,6 +53,9 @@ func (c *borrowCheck) targetFlows(ct callTarget) []storeFlow {
 			fl.values = append(fl.values, flowArg{arg: t.arg, contents: t.contents, param: i, at: at})
 		}
 		fl.values = append(fl.values, c.tieValues(info, slots, t, fl.values)...)
+		if kind != targetDeferred {
+			fl.values = append(fl.values, c.refKeptValues(e, args, slots, i, fl.values)...)
+		}
 		if fl.values != nil {
 			out = append(out, fl)
 		}

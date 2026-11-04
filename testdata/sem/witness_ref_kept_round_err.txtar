@@ -1,0 +1,421 @@
+-- module --
+mir: planned
+-- src --
+import task from std/task
+
+interface FromRef[K] {
+    fn fromRef(k: &K) -> Self
+}
+
+type View['a] = {
+    pub s &'a String
+}
+
+fn View['a].fromRef(k: &'a String) -> View['a] {
+    View { s: k }
+}
+
+type One[K, V] = {
+    pub k K
+    pub vs Array[V]
+}
+
+fn One[K, V: FromRef[K]].addSelf(self, dst: &mut Array[V]) {
+    dst.push(V.fromRef(&self.k))
+}
+
+type Keys[K, V] = {
+    pub mut ks Array[K]
+    pub vs Array[V]
+}
+
+fn Keys[K, V: FromRef[K]].addMutSelf(mut self, dst: &mut Array[V]) {
+    dst.push(V.fromRef(&self.ks[0]))
+}
+
+type Self2[K, V] = {
+    pub mut ks Array[K]
+    pub mut vs Array[V]
+}
+
+fn Self2[K, V: FromRef[K]].selfLoop(mut self) {
+    self.vs.push(V.fromRef(&self.ks[0]))
+}
+
+fn selfRef[K, V: FromRef[K]](b: &mut Self2[K, V]) {
+    b.vs.push(V.fromRef(&b.ks[0]))
+}
+
+fn addAll[K, V: FromRef[K]](dst: &mut Array[V], ks: &Array[K]) {
+    for x in ks {
+        dst.push(V.fromRef(x))
+    }
+}
+
+fn firstOf[K](ks: &Array[K]) -> &K {
+    &ks[0]
+}
+
+fn addFirst[K, V: FromRef[K]](dst: &mut Array[V], ks: &Array[K]) {
+    dst.push(V.fromRef(firstOf(ks)))
+}
+
+fn apply[K, V, F: Fn[fn(&K) -> V]](dst: &mut Array[V], k: &K, f: F) {
+    dst.push(f(k))
+}
+
+fn viaApply[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    apply(dst, k, (x: &K) => V.fromRef(x))
+}
+
+fn addWith[K, V](dst: &mut Array[V], k: &K, f: fn(&K) -> V) {
+    dst.push(f(k))
+}
+
+fn useCb['a](xs: &mut Array[View['a]], f: fn(&String) -> View['a]) {
+    for i in 0..1 {
+        let inner = "cb${i}"
+        addWith(xs, &inner, f) //~ ERROR a borrow cannot be stored into `xs`
+    }
+}
+
+type Maker[K, V] = {
+    pub f fn(&K) -> V
+}
+
+fn addVia[K, V](dst: &mut Array[V], k: &K, m: &Maker[K, V]) {
+    dst.push((m.f)(k))
+}
+
+type Pack[V] = {
+    pub t V
+}
+
+fn mkArr[K, V: FromRef[K]](k: &K) -> Array[V] {
+    Array.of(V.fromRef(k))
+}
+
+fn mkPack[K, V: FromRef[K]](k: &K) -> Pack[V] {
+    Pack { t: V.fromRef(k) }
+}
+
+fn mkOpt[K, V: FromRef[K]](k: &K) -> V? {
+    Some(V.fromRef(k))
+}
+
+fn run[T](f: Future[T]) -> T {
+    task.currentThreadExecutor().runToCompletion(f)
+}
+
+async fn addLater[K, V: FromRef[K]](dst: &mut Array[V], k: &K) -> usize {
+    dst.push(V.fromRef(k))
+    dst.len()
+}
+
+fn viaReceiver() -> usize {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    for i in 0..1 {
+        let o = One { k: "o${i}", vs: Array.of(View { s: &name }) } //~ ERROR `o` is borrowed and cannot be mutated //~ ERROR `o` is still borrowed when its scope ends
+        o.addSelf(&mut xs)
+    }
+    xs.len()
+}
+
+fn viaMutReceiver() -> usize {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    for i in 0..1 {
+        let mut keys = Keys { ks: Array.of("k${i}"), vs: Array.of(View { s: &name }) } //~ ERROR `keys` is borrowed and cannot be mutated //~ ERROR `keys` is still borrowed when its scope ends
+        keys.addMutSelf(&mut xs) //~ ERROR `keys` is borrowed and cannot be mutated //~ ERROR a borrow of `keys` cannot be stored back into `keys`
+    }
+    xs.len()
+}
+
+fn viaSelfStore() -> usize {
+    let name = "named"
+    let mut b = Self2 { ks: Array.of("k${1}"), vs: Array.of(View { s: &name }) }
+    b.selfLoop() //~ ERROR a borrow of `b` cannot be stored back into `b`
+    let mut c = Self2 { ks: Array.of("k${2}"), vs: Array.of(View { s: &name }) }
+    selfRef(&mut c) //~ ERROR a borrow of `c` cannot be stored back into `c`
+    b.vs.len() + c.vs.len()
+}
+
+fn viaIteration() -> usize {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    for i in 0..1 {
+        let ks = Array.of("it${i}") //~ ERROR `ks` is borrowed and cannot be mutated //~ ERROR `ks` is still borrowed when its scope ends
+        addAll(&mut xs, &ks)
+    }
+    for i in 0..1 {
+        let ks = Array.of("fi${i}") //~ ERROR `ks` is borrowed and cannot be mutated //~ ERROR `ks` is still borrowed when its scope ends
+        addFirst(&mut xs, &ks)
+    }
+    xs.len()
+}
+
+fn viaCallbacks() -> usize {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    for i in 0..1 {
+        let inner = "ap${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+        viaApply(&mut xs, &inner)
+    }
+    useCb(&mut xs, View.fromRef)
+    let m = Maker { f: View.fromRef }
+    for i in 0..1 {
+        let inner = "rf${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+        addVia(&mut xs, &inner, &m)
+    }
+    xs.len()
+}
+
+fn viaResults() -> usize {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    for i in 0..1 {
+        let inner = "ar${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+        for v in mkArr(&inner) {
+            xs.push(v)
+        }
+    }
+    for i in 0..1 {
+        let inner = "pk${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+        xs.push(mkPack(&inner).t)
+    }
+    for i in 0..1 {
+        let inner = "op${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+        if mkOpt(&inner) is Some(v) {
+            xs.push(v)
+        }
+    }
+    xs.len()
+}
+
+fn viaAsync() -> usize {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    for i in 0..1 {
+        let inner = "as${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+        let n = run(addLater(&mut xs, &inner))
+    }
+    xs.len()
+}
+-- expect --
+error[E2159]: a borrow cannot be stored into `xs` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:75:9
+   |
+75 |         addWith(xs, &inner, f) //~ ERROR a borrow cannot be stored into `xs`
+   |         ^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `o` is still borrowed when its scope ends here
+   --> main.kg:116:13
+    |
+116 |         let o = One { k: "o${i}", vs: Array.of(View { s: &name }) } //~ ERROR `o` is borrowed and cannot be mutated //~ ERROR `o` is still borrowed when its scope ends
+    |             ^
+
+error[E2198]: `o` is borrowed and cannot be mutated here
+   --> main.kg:116:13
+    |
+116 |         let o = One { k: "o${i}", vs: Array.of(View { s: &name }) } //~ ERROR `o` is borrowed and cannot be mutated //~ ERROR `o` is still borrowed when its scope ends
+    |             ^
+    = help: end the borrow first or use a copy
+note: `o` is borrowed here
+   --> main.kg:117:9
+    |
+117 |         o.addSelf(&mut xs)
+    |         ^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `keys` is still borrowed when its scope ends here
+   --> main.kg:126:17
+    |
+126 |         let mut keys = Keys { ks: Array.of("k${i}"), vs: Array.of(View { s: &name }) } //~ ERROR `keys` is borrowed and cannot be mutated //~ ERROR `keys` is still borrowed when its scope ends
+    |                 ^^^^
+
+error[borrow-escape]: a borrow of `keys` cannot be stored back into `keys`
+   --> main.kg:127:9
+    |
+127 |         keys.addMutSelf(&mut xs) //~ ERROR `keys` is borrowed and cannot be mutated //~ ERROR a borrow of `keys` cannot be stored back into `keys`
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `keys` is borrowed and cannot be mutated here
+   --> main.kg:127:9
+    |
+127 |         keys.addMutSelf(&mut xs) //~ ERROR `keys` is borrowed and cannot be mutated //~ ERROR a borrow of `keys` cannot be stored back into `keys`
+    |         ^^^^
+    = help: end the borrow first or use a copy
+note: `keys` is borrowed here
+   --> main.kg:127:9
+    |
+127 |         keys.addMutSelf(&mut xs) //~ ERROR `keys` is borrowed and cannot be mutated //~ ERROR a borrow of `keys` cannot be stored back into `keys`
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `keys` is borrowed and cannot be mutated here
+   --> main.kg:126:17
+    |
+126 |         let mut keys = Keys { ks: Array.of("k${i}"), vs: Array.of(View { s: &name }) } //~ ERROR `keys` is borrowed and cannot be mutated //~ ERROR `keys` is still borrowed when its scope ends
+    |                 ^^^^
+    = help: end the borrow first or use a copy
+note: `keys` is borrowed here
+   --> main.kg:127:9
+    |
+127 |         keys.addMutSelf(&mut xs) //~ ERROR `keys` is borrowed and cannot be mutated //~ ERROR a borrow of `keys` cannot be stored back into `keys`
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a borrow of `c` cannot be stored back into `c`
+   --> main.kg:137:5
+    |
+137 |     selfRef(&mut c) //~ ERROR a borrow of `c` cannot be stored back into `c`
+    |     ^^^^^^^^^^^^^^
+
+error[borrow-escape]: a borrow of `b` cannot be stored back into `b`
+   --> main.kg:135:5
+    |
+135 |     b.selfLoop() //~ ERROR a borrow of `b` cannot be stored back into `b`
+    |     ^^^^^^^^^^^
+
+error[move-while-borrowed]: `ks` is still borrowed when its scope ends here
+   --> main.kg:145:13
+    |
+145 |         let ks = Array.of("it${i}") //~ ERROR `ks` is borrowed and cannot be mutated //~ ERROR `ks` is still borrowed when its scope ends
+    |             ^^
+
+error[E2198]: `ks` is borrowed and cannot be mutated here
+   --> main.kg:145:13
+    |
+145 |         let ks = Array.of("it${i}") //~ ERROR `ks` is borrowed and cannot be mutated //~ ERROR `ks` is still borrowed when its scope ends
+    |             ^^
+    = help: end the borrow first or use a copy
+note: `ks` is borrowed here
+   --> main.kg:146:25
+    |
+146 |         addAll(&mut xs, &ks)
+    |                         ^^^
+
+error[move-while-borrowed]: `ks` is still borrowed when its scope ends here
+   --> main.kg:149:13
+    |
+149 |         let ks = Array.of("fi${i}") //~ ERROR `ks` is borrowed and cannot be mutated //~ ERROR `ks` is still borrowed when its scope ends
+    |             ^^
+
+error[E2198]: `ks` is borrowed and cannot be mutated here
+   --> main.kg:149:13
+    |
+149 |         let ks = Array.of("fi${i}") //~ ERROR `ks` is borrowed and cannot be mutated //~ ERROR `ks` is still borrowed when its scope ends
+    |             ^^
+    = help: end the borrow first or use a copy
+note: `ks` is borrowed here
+   --> main.kg:150:27
+    |
+150 |         addFirst(&mut xs, &ks)
+    |                           ^^^
+
+error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
+   --> main.kg:159:13
+    |
+159 |         let inner = "ap${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+
+error[E2198]: `inner` is borrowed and cannot be mutated here
+   --> main.kg:159:13
+    |
+159 |         let inner = "ap${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+    = help: end the borrow first or use a copy
+note: `inner` is borrowed here
+   --> main.kg:160:27
+    |
+160 |         viaApply(&mut xs, &inner)
+    |                           ^^^^^^
+
+error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
+   --> main.kg:165:13
+    |
+165 |         let inner = "rf${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+
+error[E2198]: `inner` is borrowed and cannot be mutated here
+   --> main.kg:165:13
+    |
+165 |         let inner = "rf${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+    = help: end the borrow first or use a copy
+note: `inner` is borrowed here
+   --> main.kg:166:25
+    |
+166 |         addVia(&mut xs, &inner, &m)
+    |                         ^^^^^^
+
+error[E2198]: `inner` is borrowed and cannot be mutated here
+   --> main.kg:175:13
+    |
+175 |         let inner = "ar${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+    = help: end the borrow first or use a copy
+note: `inner` is borrowed here
+   --> main.kg:176:9
+    |
+176 |         for v in mkArr(&inner) {
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
+   --> main.kg:175:13
+    |
+175 |         let inner = "ar${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+
+error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
+   --> main.kg:181:13
+    |
+181 |         let inner = "pk${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+
+error[E2198]: `inner` is borrowed and cannot be mutated here
+   --> main.kg:181:13
+    |
+181 |         let inner = "pk${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+    = help: end the borrow first or use a copy
+note: `inner` is borrowed here
+   --> main.kg:182:17
+    |
+182 |         xs.push(mkPack(&inner).t)
+    |                 ^^^^^^^^^^^^^
+
+error[E2198]: `inner` is borrowed and cannot be mutated here
+   --> main.kg:185:13
+    |
+185 |         let inner = "op${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+    = help: end the borrow first or use a copy
+note: `inner` is borrowed here
+   --> main.kg:186:12
+    |
+186 |         if mkOpt(&inner) is Some(v) {
+    |            ^^^^^^^^^^^^
+
+error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
+   --> main.kg:185:13
+    |
+185 |         let inner = "op${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+
+error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
+   --> main.kg:197:13
+    |
+197 |         let inner = "as${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+
+error[E2198]: `inner` is borrowed and cannot be mutated here
+   --> main.kg:197:13
+    |
+197 |         let inner = "as${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+    = help: end the borrow first or use a copy
+note: `inner` is borrowed here
+   --> main.kg:198:39
+    |
+198 |         let n = run(addLater(&mut xs, &inner))
+    |                                       ^^^^^^
+

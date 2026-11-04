@@ -1,0 +1,370 @@
+-- module --
+mir: planned
+-- src --
+interface FromRef[K] {
+    fn fromRef(k: &K) -> Self
+}
+
+type View['a] = {
+    pub s &'a String
+}
+
+fn View['a].fromRef(k: &'a String) -> View['a] {
+    View { s: k }
+}
+
+type One[K, V] = {
+    pub k K
+    pub vs Array[V]
+}
+
+fn One[K, V: FromRef[K]].addSelf(self, dst: &mut Array[V]) {
+    dst.push(V.fromRef(&self.k))
+}
+
+fn One[K, V: FromRef[K]].relaySelf(self, dst: &mut Array[V]) {
+    self.addSelf(dst)
+}
+
+fn One[K, V: FromRef[K]].relay2(self, dst: &mut Array[V]) {
+    self.relaySelf(dst)
+}
+
+fn One[K, V: FromRef[K]].view(self) -> V {
+    V.fromRef(&self.k)
+}
+
+fn addAllMap[K, V: FromRef[K]](dst: &mut Array[V], ks: &Array[K]) {
+    for v in ks.map((k: &K) => V.fromRef(k)) {
+        dst.push(v)
+    }
+}
+
+fn apply0[V, F: Fn[fn() -> V]](dst: &mut Array[V], f: F) {
+    dst.push(f())
+}
+
+fn viaCap2[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    apply0(dst, () => V.fromRef(k))
+}
+
+type Pt = {
+    pub x Int
+}
+
+fn Pt.addVia[K, V: FromRef[K]](self, dst: &mut Array[V], k: &K) {
+    dst.push(V.fromRef(k))
+}
+
+fn callWith2[K, V](dst: &mut Array[V], k: &K, f: fn(&mut Array[V], &K) -> Void) {
+    f(dst, k)
+}
+
+fn addTo[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    dst.push(V.fromRef(k))
+}
+
+fn fwd[K, V](dst: &mut Array[V], k: &K, f: fn(&mut Array[V], &K) -> Void) {
+    f(dst, k)
+}
+
+fn useFwd['a](xs: &mut Array[View['a]], f: fn(&mut Array[View['a]], &String) -> Void) {
+    for i in 0..1 {
+        let inner = "fw${i}"
+        fwd(xs, &inner, f) //~ ERROR `xs` is borrowed and cannot be mutated //~ ERROR a borrow cannot be stored into `xs` //~ ERROR a borrow cannot be stored into `xs`
+    }
+}
+
+type RefOne['a] = {
+    pub k &'a String
+}
+
+fn RefOne['a].addK[V: FromRef[String]](self, dst: &mut Array[V]) {
+    dst.push(V.fromRef(self.k))
+}
+
+fn RefOne['a].moveK[V: FromRef[String]](move self, dst: &mut Array[V]) {
+    dst.push(V.fromRef(self.k))
+}
+
+type KRef2['a] = {
+    pub r &'a String
+}
+
+fn addR2['a, V: FromRef[String]](dst: &mut Array[V], h: KRef2['a]) {
+    dst.push(V.fromRef(h.r))
+}
+
+fn wide[K, V: FromRef[K]](dst: &mut Array[V], k: &K, p0: Int, p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int, p8: Int, p9: Int, p10: Int, p11: Int, p12: Int, p13: Int, p14: Int, p15: Int, p16: Int, p17: Int, p18: Int, p19: Int, p20: Int, p21: Int, p22: Int, p23: Int, p24: Int, p25: Int, p26: Int, p27: Int, p28: Int, p29: Int, p30: Int, p31: Int, last: &K) {
+    dst.push(V.fromRef(last))
+}
+
+fn mkStr(i: Int) -> String {
+    "s${i}"
+}
+
+fn viaRelay() -> usize {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    for i in 0..1 {
+        let o = One { k: "re${i}", vs: Array.of(View { s: &name }) } //~ ERROR `o` is borrowed and cannot be mutated //~ ERROR `o` is still borrowed when its scope ends
+        o.relay2(&mut xs)
+    }
+    xs.len()
+}
+
+fn viaMap() -> usize {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    for i in 0..1 {
+        let ks = Array.of("mp${i}") //~ ERROR `ks` is borrowed and cannot be mutated //~ ERROR `ks` is still borrowed when its scope ends
+        addAllMap(&mut xs, &ks)
+    }
+    xs.len()
+}
+
+fn viaCapture() -> usize {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    for i in 0..1 {
+        let inner = "cp${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+        viaCap2(&mut xs, &inner)
+    }
+    xs.len()
+}
+
+fn viaMethodValue() -> usize {
+    let name = "named"
+    let pt = Pt { x: 1 }
+    let mut xs = Array.of(View { s: &name })
+    for i in 0..1 {
+        let inner = "mv${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+        callWith2(&mut xs, &inner, pt.addVia)
+    }
+    useFwd(&mut xs, addTo)
+    xs.len()
+}
+
+fn viaTemporary() -> usize {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    One { k: "tmp${1}", vs: Array.of(View { s: &name }) }.addSelf(&mut xs) //~ ERROR `xs` keeps a borrow of a temporary
+    let mut ys = Array.of(View { s: &name })
+    ys.push(One { k: "tmp${2}", vs: Array.of(View { s: &name }) }.view()) //~ ERROR `ys` keeps a borrow of a temporary
+    let mut zs = Array.of(View { s: &name })
+    for i in 0..1 {
+        let inner = "tr${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+        RefOne { k: &inner }.addK(&mut zs)
+    }
+    xs.len() + ys.len() + zs.len()
+}
+
+fn viaHolder() -> usize {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    for i in 0..1 {
+        let inner = "ho${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+        addR2(&mut xs, KRef2 { r: &inner })
+    }
+    let mut ys = Array.of(View { s: &name })
+    for i in 0..1 {
+        let inner = "ms${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+        let ro = RefOne { k: &inner }
+        ro.moveK(&mut ys)
+    }
+    let mut zs = Array.of(View { s: &name })
+    addR2(&mut zs, KRef2 { r: &mkStr(3) }) //~ ERROR `zs` keeps a borrow of a temporary
+    xs.len() + ys.len() + zs.len()
+}
+
+fn viaWide() -> usize {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    for i in 0..1 {
+        let inner = "wd${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+        wide(&mut xs, &name, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, &inner)
+    }
+    xs.len()
+}
+-- expect --
+error[E2159]: a borrow cannot be stored into `xs` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:71:9
+   |
+71 |         fwd(xs, &inner, f) //~ ERROR `xs` is borrowed and cannot be mutated //~ ERROR a borrow cannot be stored into `xs` //~ ERROR a borrow cannot be stored into `xs`
+   |         ^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `xs` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:71:9
+   |
+71 |         fwd(xs, &inner, f) //~ ERROR `xs` is borrowed and cannot be mutated //~ ERROR a borrow cannot be stored into `xs` //~ ERROR a borrow cannot be stored into `xs`
+   |         ^^^^^^^^^^^^^^^^^
+
+error[E2198]: `xs` is borrowed and cannot be mutated here
+  --> main.kg:71:9
+   |
+71 |         fwd(xs, &inner, f) //~ ERROR `xs` is borrowed and cannot be mutated //~ ERROR a borrow cannot be stored into `xs` //~ ERROR a borrow cannot be stored into `xs`
+   |         ^^^^^^^^^^^^^^^^^
+   = help: read through `xs` before the call (as in `xs.len()`) or borrow it after the call
+
+error[move-while-borrowed]: `o` is still borrowed when its scope ends here
+   --> main.kg:107:13
+    |
+107 |         let o = One { k: "re${i}", vs: Array.of(View { s: &name }) } //~ ERROR `o` is borrowed and cannot be mutated //~ ERROR `o` is still borrowed when its scope ends
+    |             ^
+
+error[E2198]: `o` is borrowed and cannot be mutated here
+   --> main.kg:107:13
+    |
+107 |         let o = One { k: "re${i}", vs: Array.of(View { s: &name }) } //~ ERROR `o` is borrowed and cannot be mutated //~ ERROR `o` is still borrowed when its scope ends
+    |             ^
+    = help: end the borrow first or use a copy
+note: `o` is borrowed here
+   --> main.kg:108:9
+    |
+108 |         o.relay2(&mut xs)
+    |         ^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `ks` is still borrowed when its scope ends here
+   --> main.kg:117:13
+    |
+117 |         let ks = Array.of("mp${i}") //~ ERROR `ks` is borrowed and cannot be mutated //~ ERROR `ks` is still borrowed when its scope ends
+    |             ^^
+
+error[E2198]: `ks` is borrowed and cannot be mutated here
+   --> main.kg:117:13
+    |
+117 |         let ks = Array.of("mp${i}") //~ ERROR `ks` is borrowed and cannot be mutated //~ ERROR `ks` is still borrowed when its scope ends
+    |             ^^
+    = help: end the borrow first or use a copy
+note: `ks` is borrowed here
+   --> main.kg:118:28
+    |
+118 |         addAllMap(&mut xs, &ks)
+    |                            ^^^
+
+error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
+   --> main.kg:127:13
+    |
+127 |         let inner = "cp${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+
+error[E2198]: `inner` is borrowed and cannot be mutated here
+   --> main.kg:127:13
+    |
+127 |         let inner = "cp${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+    = help: end the borrow first or use a copy
+note: `inner` is borrowed here
+   --> main.kg:128:26
+    |
+128 |         viaCap2(&mut xs, &inner)
+    |                          ^^^^^^
+
+error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
+   --> main.kg:138:13
+    |
+138 |         let inner = "mv${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+
+error[E2198]: `inner` is borrowed and cannot be mutated here
+   --> main.kg:138:13
+    |
+138 |         let inner = "mv${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+    = help: end the borrow first or use a copy
+note: `inner` is borrowed here
+   --> main.kg:139:28
+    |
+139 |         callWith2(&mut xs, &inner, pt.addVia)
+    |                            ^^^^^^
+
+error[E2235]: `ys` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+   --> main.kg:150:5
+    |
+150 |     ys.push(One { k: "tmp${2}", vs: Array.of(View { s: &name }) }.view()) //~ ERROR `ys` keeps a borrow of a temporary
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2235]: `xs` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+   --> main.kg:148:5
+    |
+148 |     One { k: "tmp${1}", vs: Array.of(View { s: &name }) }.addSelf(&mut xs) //~ ERROR `xs` keeps a borrow of a temporary
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
+   --> main.kg:153:13
+    |
+153 |         let inner = "tr${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+
+error[E2198]: `inner` is borrowed and cannot be mutated here
+   --> main.kg:153:13
+    |
+153 |         let inner = "tr${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+    = help: end the borrow first or use a copy
+note: `inner` is borrowed here
+   --> main.kg:154:21
+    |
+154 |         RefOne { k: &inner }.addK(&mut zs)
+    |                     ^^^^^^
+
+error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
+   --> main.kg:163:13
+    |
+163 |         let inner = "ho${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+
+error[E2198]: `inner` is borrowed and cannot be mutated here
+   --> main.kg:163:13
+    |
+163 |         let inner = "ho${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+    = help: end the borrow first or use a copy
+note: `inner` is borrowed here
+   --> main.kg:164:35
+    |
+164 |         addR2(&mut xs, KRef2 { r: &inner })
+    |                                   ^^^^^^
+
+error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
+   --> main.kg:168:13
+    |
+168 |         let inner = "ms${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+
+error[E2198]: `inner` is borrowed and cannot be mutated here
+   --> main.kg:168:13
+    |
+168 |         let inner = "ms${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+    = help: end the borrow first or use a copy
+note: `inner` is borrowed here
+   --> main.kg:169:30
+    |
+169 |         let ro = RefOne { k: &inner }
+    |                              ^^^^^^
+
+error[E2235]: `zs` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+   --> main.kg:173:5
+    |
+173 |     addR2(&mut zs, KRef2 { r: &mkStr(3) }) //~ ERROR `zs` keeps a borrow of a temporary
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
+   --> main.kg:181:13
+    |
+181 |         let inner = "wd${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+
+error[E2198]: `inner` is borrowed and cannot be mutated here
+   --> main.kg:181:13
+    |
+181 |         let inner = "wd${i}" //~ ERROR `inner` is borrowed and cannot be mutated //~ ERROR `inner` is still borrowed when its scope ends
+    |             ^^^^^
+    = help: end the borrow first or use a copy
+note: `inner` is borrowed here
+   --> main.kg:182:148
+    |
+182 |         wide(&mut xs, &name, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, &inner)
+    |                                                                                                                                                    ^^^^^^
+

@@ -13,6 +13,7 @@ type Analyzer struct {
 	unowned     ownquery.LentMemo
 	lookup      BodyLookup
 	offloads    offloadMemo
+	refKeeps    refKeepMemo
 	paramStores map[paramSlot]bool
 	ended       map[*midir.Func]*endedFacts
 }

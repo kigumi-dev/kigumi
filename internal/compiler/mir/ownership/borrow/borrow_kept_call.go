@@ -109,11 +109,11 @@ func (c *borrowCheck) keptCallees(k *keptCtx, in midir.Inst) ([]sem.EntityID, in
 	return ents, off
 }
 
-// itemsIn are the fn items local l of k's body holds: through copies, or bound to the parameter it is; nil if any
-// value it can hold is something else.
+// itemsIn are the fn items local l of k's body holds: through copies, or bound to the parameter or witness it is; nil
+// if any value it can hold is something else.
 func (c *borrowCheck) itemsIn(k *keptCtx, l midir.LocalID, depth int) []sem.EntityID {
 	defs := k.defs[l]
-	if i := k.index(l); len(defs) == 0 && i >= 0 {
+	if i := k.slot(l); len(defs) == 0 && i >= 0 {
 		return k.bind[i]
 	}
 	if depth == 0 || len(defs) == 0 || k.g.Locals[l].Cell {
@@ -123,7 +123,7 @@ func (c *borrowCheck) itemsIn(k *keptCtx, l midir.LocalID, depth int) []sem.Enti
 	for _, d := range defs {
 		var ents []sem.EntityID
 		switch {
-		case d.Op == midir.OpFnItem:
+		case d.Op == midir.OpFnItem, d.Op == midir.OpBind && len(d.Args) == 0:
 			ents = []sem.EntityID{d.Ent}
 		case (d.Op == midir.OpCopy || d.Op == midir.OpMove || d.Op == midir.OpAlias) && len(d.Args) > 0:
 			ents = c.itemsIn(k, d.Args[0], depth-1)

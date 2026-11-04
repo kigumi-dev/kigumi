@@ -1,0 +1,329 @@
+-- module --
+mir: planned
+-- src --
+interface FromRef[K] {
+    fn fromRef(k: &K) -> Self
+}
+
+interface Wrap[V] {
+    fn wrap(v: V) -> Self
+}
+
+type View['a] = {
+    pub s &'a String
+}
+
+fn View['a].fromRef(k: &'a String) -> View['a] {
+    View { s: k }
+}
+
+type Boxed[V] = {
+    pub v V
+}
+
+fn Boxed[V].wrap(v: V) -> Boxed[V] {
+    Boxed { v: v }
+}
+
+type Pair[V] = {
+    pub v V
+    pub n usize
+}
+
+fn Pair[V: FromRef[String]].fromRef(k: &String) -> Pair[V] {
+    Pair { v: V.fromRef(k), n: k.len() }
+}
+
+type Bag[K, V] = {
+    pub mut vs Array[V]
+    pub ks Array[K]
+}
+
+fn Bag[K, V: FromRef[K]].addRef(mut self, k: &K) {
+    self.vs.push(V.fromRef(k))
+}
+
+type Nest[K, V, W] = {
+    pub mut ws Array[W]
+    pub vs Array[V]
+    pub ks Array[K]
+}
+
+fn Nest[K, V: FromRef[K], W: Wrap[V]].add(mut self, k: &K) {
+    self.ws.push(W.wrap(V.fromRef(k)))
+}
+
+fn addTo[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    dst.push(V.fromRef(k))
+}
+
+fn relay[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    addTo(dst, k)
+}
+
+fn closureTo[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    let f = (x: &K) => V.fromRef(x)
+    dst.push(f(k))
+}
+
+type Sink['x, V] = {
+    pub mut items &'x mut Array[V]
+}
+
+fn fillSink['x, K, V: FromRef[K]](s: Sink['x, V], k: &K) {
+    s.items.push(V.fromRef(k))
+}
+
+fn ownLocal[K, V: FromRef[K]](dst: &mut Array[V], k: K) {
+    addTo(dst, &k) //~ ERROR a borrow cannot be stored into `dst`
+}
+
+fn intoCaller['a](dst: &mut Array[View['a]], k: &String) {
+    addTo(dst, k) //~ ERROR a borrow cannot be stored into `dst`
+}
+
+fn mkStr(i: Int) -> String {
+    "s${i}"
+}
+
+fn viaSelf() -> usize {
+    let name = "named"
+    let mut b = Bag { vs: Array.of(View { s: &name }), ks: Array.of("k") }
+    for i in 0..1 {
+        let inner = "in${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+        b.addRef(&inner)
+    }
+    b.vs[1].s.len()
+}
+
+fn viaMut() -> usize {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    for i in 0..1 {
+        let inner = "mu${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+        addTo(&mut xs, &inner)
+    }
+    xs[1].s.len()
+}
+
+fn viaRelay() -> usize {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    for i in 0..1 {
+        let inner = "re${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+        relay(&mut xs, &inner)
+    }
+    xs[1].s.len()
+}
+
+fn viaNest() -> usize {
+    let name = "named"
+    let mut b = Nest { ws: Array.of(Boxed { v: View { s: &name } }), vs: Array.of(View { s: &name }), ks: Array.of("k") }
+    for i in 0..1 {
+        let inner = "ne${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+        b.add(&inner)
+    }
+    b.ws[1].v.s.len()
+}
+
+fn viaGenericWitness() -> usize {
+    let name = "named"
+    let mut xs = Array.of(Pair { v: View { s: &name }, n: 0 })
+    for i in 0..1 {
+        let inner = "gw${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+        addTo(&mut xs, &inner)
+    }
+    xs[1].v.s.len()
+}
+
+fn viaClosure() -> usize {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    for i in 0..1 {
+        let inner = "cl${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+        closureTo(&mut xs, &inner)
+    }
+    xs[1].s.len()
+}
+
+fn viaHolder() -> usize {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    for i in 0..1 {
+        let inner = "sk${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+        fillSink(Sink { items: &mut xs }, &inner)
+    }
+    xs[1].s.len()
+}
+
+fn ownUse() -> usize {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    ownLocal(&mut xs, "own")
+    xs.len()
+}
+
+fn tempNest() -> usize {
+    let name = "named"
+    let mut b = Nest { ws: Array.of(Boxed { v: View { s: &name } }), vs: Array.of(View { s: &name }), ks: Array.of("k") }
+    b.add(&mkStr(1)) //~ ERROR `b` keeps a borrow of a temporary
+    b.ws[1].v.s.len()
+}
+
+fn tempRelay() -> usize {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    relay(&mut xs, &mkStr(2)) //~ ERROR `xs` keeps a borrow of a temporary
+    xs[1].s.len()
+}
+-- expect --
+error[E2159]: a borrow cannot be stored into `dst` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:75:5
+   |
+75 |     addTo(dst, &k) //~ ERROR a borrow cannot be stored into `dst`
+   |     ^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `dst` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:79:5
+   |
+79 |     addTo(dst, k) //~ ERROR a borrow cannot be stored into `dst`
+   |     ^^^^^^^^^^^^
+
+error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
+  --> main.kg:90:13
+   |
+90 |         let inner = "in${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+   |             ^^^^^
+
+error[E2198]: `inner` is borrowed and cannot be mutated here
+  --> main.kg:90:13
+   |
+90 |         let inner = "in${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+   |             ^^^^^
+   = help: end the borrow first or use a copy
+note: `inner` is borrowed here
+  --> main.kg:91:18
+   |
+91 |         b.addRef(&inner)
+   |                  ^^^^^^
+
+error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
+   --> main.kg:100:13
+    |
+100 |         let inner = "mu${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+    |             ^^^^^
+
+error[E2198]: `inner` is borrowed and cannot be mutated here
+   --> main.kg:100:13
+    |
+100 |         let inner = "mu${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+    |             ^^^^^
+    = help: end the borrow first or use a copy
+note: `inner` is borrowed here
+   --> main.kg:101:24
+    |
+101 |         addTo(&mut xs, &inner)
+    |                        ^^^^^^
+
+error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
+   --> main.kg:110:13
+    |
+110 |         let inner = "re${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+    |             ^^^^^
+
+error[E2198]: `inner` is borrowed and cannot be mutated here
+   --> main.kg:110:13
+    |
+110 |         let inner = "re${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+    |             ^^^^^
+    = help: end the borrow first or use a copy
+note: `inner` is borrowed here
+   --> main.kg:111:24
+    |
+111 |         relay(&mut xs, &inner)
+    |                        ^^^^^^
+
+error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
+   --> main.kg:120:13
+    |
+120 |         let inner = "ne${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+    |             ^^^^^
+
+error[E2198]: `inner` is borrowed and cannot be mutated here
+   --> main.kg:120:13
+    |
+120 |         let inner = "ne${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+    |             ^^^^^
+    = help: end the borrow first or use a copy
+note: `inner` is borrowed here
+   --> main.kg:121:15
+    |
+121 |         b.add(&inner)
+    |               ^^^^^^
+
+error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
+   --> main.kg:130:13
+    |
+130 |         let inner = "gw${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+    |             ^^^^^
+
+error[E2198]: `inner` is borrowed and cannot be mutated here
+   --> main.kg:130:13
+    |
+130 |         let inner = "gw${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+    |             ^^^^^
+    = help: end the borrow first or use a copy
+note: `inner` is borrowed here
+   --> main.kg:131:24
+    |
+131 |         addTo(&mut xs, &inner)
+    |                        ^^^^^^
+
+error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
+   --> main.kg:140:13
+    |
+140 |         let inner = "cl${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+    |             ^^^^^
+
+error[E2198]: `inner` is borrowed and cannot be mutated here
+   --> main.kg:140:13
+    |
+140 |         let inner = "cl${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+    |             ^^^^^
+    = help: end the borrow first or use a copy
+note: `inner` is borrowed here
+   --> main.kg:141:28
+    |
+141 |         closureTo(&mut xs, &inner)
+    |                            ^^^^^^
+
+error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
+   --> main.kg:150:13
+    |
+150 |         let inner = "sk${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+    |             ^^^^^
+
+error[E2198]: `inner` is borrowed and cannot be mutated here
+   --> main.kg:150:13
+    |
+150 |         let inner = "sk${i}" //~ ERROR `inner` is still borrowed when its scope ends //~ ERROR `inner` is borrowed and cannot be mutated
+    |             ^^^^^
+    = help: end the borrow first or use a copy
+note: `inner` is borrowed here
+   --> main.kg:151:43
+    |
+151 |         fillSink(Sink { items: &mut xs }, &inner)
+    |                                           ^^^^^^
+
+error[E2235]: `b` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+   --> main.kg:166:5
+    |
+166 |     b.add(&mkStr(1)) //~ ERROR `b` keeps a borrow of a temporary
+    |     ^^^^^^^^^^^^^^
+
+error[E2235]: `xs` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+   --> main.kg:173:5
+    |
+173 |     relay(&mut xs, &mkStr(2)) //~ ERROR `xs` keeps a borrow of a temporary
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
