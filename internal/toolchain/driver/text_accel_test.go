@@ -2,6 +2,7 @@ package driver_test
 
 import (
 	"bytes"
+	"kigumi/internal/devkit/fixture"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -31,6 +32,9 @@ func checkAcceleratorsMatchBodies(t *testing.T, use *regexp.Regexp, least int) {
 	files, _ := filepath.Glob("../../../testdata/run/*.txtar")
 	picked := 0
 	for _, path := range files {
+		if !fixture.Shard(filepath.Base(path)) {
+			continue
+		}
 		src, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)

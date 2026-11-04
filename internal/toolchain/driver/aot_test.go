@@ -32,6 +32,9 @@ func TestAotCorpus(t *testing.T) {
 		t.Logf("native: expect %d, ran %d", want.Load(), ran.Load())
 	})
 	for _, path := range files {
+		if !fixture.Shard(filepath.Base(path)) {
+			continue
+		}
 		id := fixtureID(path)
 		fx := manifest.ByID(id)
 		if fx == nil {

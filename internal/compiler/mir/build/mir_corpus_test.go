@@ -29,6 +29,9 @@ func TestMirCorpus(t *testing.T) {
 	var ran atomic.Int64
 	t.Cleanup(func() { t.Logf("mir: %d/%d fixtures passed", ran.Load(), len(files)) })
 	for _, path := range files {
+		if !fixture.Shard(filepath.Base(path)) {
+			continue
+		}
 		id := "mir/" + strings.TrimSuffix(filepath.Base(path), ".txtar")
 		if manifest.ByID(id) == nil {
 			t.Fatalf("%s: no manifest entry (run UPDATE=1 go test -run TestManifestFresh ./internal/toolchain/driver/)", id)

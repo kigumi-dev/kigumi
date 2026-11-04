@@ -1,6 +1,7 @@
 package sem_test
 
 import (
+	devfixture "kigumi/internal/devkit/fixture"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,6 +24,9 @@ func TestSemCorpus(t *testing.T) {
 		t.Fatal("no fixtures under testdata/sem")
 	}
 	for _, path := range files {
+		if !devfixture.Shard(filepath.Base(path)) {
+			continue
+		}
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			t.Parallel()
 			fx := parseFixture(t, path)

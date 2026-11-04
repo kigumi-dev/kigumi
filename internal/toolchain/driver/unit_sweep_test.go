@@ -3,6 +3,7 @@ package driver_test
 import (
 	"fmt"
 	"hash/fnv"
+	"kigumi/internal/devkit/fixture"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -226,6 +227,9 @@ func TestUnitSweepSemFixtures(t *testing.T) {
 	var tot sweepTotals
 	singles := 0
 	for _, p := range paths {
+		if !fixture.Shard(filepath.Base(p)) {
+			continue
+		}
 		fx, ok := readSweepFixture(p)
 		if !ok {
 			continue

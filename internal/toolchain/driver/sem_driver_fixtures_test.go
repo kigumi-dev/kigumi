@@ -1,6 +1,7 @@
 package driver_test
 
 import (
+	"kigumi/internal/devkit/fixture"
 	"os"
 	"path/filepath"
 	"strings"
@@ -62,6 +63,9 @@ func TestSemDriverFixtures(t *testing.T) {
 	paths, _ := filepath.Glob("../../../testdata/sem/*.txtar")
 	ran := 0
 	for _, path := range paths {
+		if !fixture.Shard(filepath.Base(path)) {
+			continue
+		}
 		fx := parseSemDriverFixture(t, path)
 		if fx.opts["stage"] != "driver" {
 			continue

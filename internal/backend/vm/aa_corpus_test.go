@@ -3,6 +3,7 @@ package vm_test
 import (
 	"bytes"
 	"fmt"
+	devfixture "kigumi/internal/devkit/fixture"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -176,6 +177,9 @@ func preparedProg(t *testing.T, fx fixture, gate *liveGate, unsupported *atomic.
 func corpusFixtures(t *testing.T) (zero, nonzero []string) {
 	files, _ := filepath.Glob("../../../testdata/run/*.txtar")
 	for _, path := range files {
+		if !devfixture.Shard(filepath.Base(path)) {
+			continue
+		}
 		if readFixture(t, path).exit == 0 {
 			zero = append(zero, path)
 		} else {

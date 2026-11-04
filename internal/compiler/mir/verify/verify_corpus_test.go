@@ -1,6 +1,7 @@
 package verify_test
 
 import (
+	"kigumi/internal/devkit/fixture"
 	"path/filepath"
 	"testing"
 
@@ -18,6 +19,9 @@ import (
 func TestVerifyCorpus(t *testing.T) {
 	files, _ := filepath.Glob("../../../../testdata/run/*.txtar")
 	for _, path := range files {
+		if !fixture.Shard(filepath.Base(path)) {
+			continue
+		}
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			t.Parallel()
 			res, _, _ := mirfixture.CheckFixture(t, path, semfixture.LoadStd(t, "../../../../std"))
