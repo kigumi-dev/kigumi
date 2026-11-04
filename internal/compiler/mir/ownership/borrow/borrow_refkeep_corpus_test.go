@@ -22,8 +22,13 @@ var corpusSection = regexp.MustCompile(`(?m)^-- (.+) --$`)
 // witnessSet, the narrowed answer never keeps what no implementation of the requirement keeps. Narrowing below the whole
 // requirement is the point (std/cli's Parser.flag accepts a keeping FlagValue elsewhere), so only the sound direction is pinned.
 func TestWitnessSetsKeepNoLess(t *testing.T) {
+	if raceDetector {
+		t.Skip("the corpus pin is checked in the plain build; it keeps no results but is the heaviest borrow test")
+	}
 	var mu sync.Mutex
-	names := map[*sem.Result]string{}
+	// current is the fixture being checked: holding the sem.Result instead would keep every program's trees and types
+	// alive, which is more memory than the runner has.
+	current := ""
 	hits, narrowed, programs := 0, 0, map[string]bool{}
 	var flips []string
 	witnessProbe = func(c *borrowCheck, narrow, wide []boundFn) {
@@ -34,9 +39,9 @@ func TestWitnessSetsKeepNoLess(t *testing.T) {
 		mu.Lock()
 		defer mu.Unlock()
 		hits++
-		programs[names[c.p.R]] = true
+		programs[current] = true
 		if n && !w {
-			flips = append(flips, names[c.p.R]+" fn="+c.f.Name)
+			flips = append(flips, current+" fn="+c.f.Name)
 		}
 		if n != w {
 			narrowed++
@@ -54,6 +59,9 @@ func TestWitnessSetsKeepNoLess(t *testing.T) {
 			}
 			// std's trees are shared by every check, so the subtests run one at a time.
 			t.Run(filepath.Base(path), func(t *testing.T) {
+				mu.Lock()
+				current = filepath.Base(path)
+				mu.Unlock()
 				main := &sem.Package{Path: "main"}
 				main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
 				main.Files = []*syntax.Tree{main.Entry}
@@ -61,9 +69,6 @@ func TestWitnessSetsKeepNoLess(t *testing.T) {
 				if res.HasErrors() {
 					return
 				}
-				mu.Lock()
-				names[res] = filepath.Base(path)
-				mu.Unlock()
 				buildTypedFixture(res)
 			})
 		}
