@@ -21,6 +21,16 @@ func Shard(id string) bool {
 	return int(h.Sum32()%uint32(n)) == i
 }
 
+// ShardShare is the share of a whole-corpus minimum that one shard should still find, so a
+// sanity count keeps its meaning in every shard.
+func ShardShare(least int) int {
+	_, n, ok := shardSpec()
+	if !ok {
+		return least
+	}
+	return max(1, least/n)
+}
+
 // Sharded reports whether KIGUMI_TEST_SHARD selected a subset, for checks that count the whole corpus.
 func Sharded() bool {
 	_, _, ok := shardSpec()

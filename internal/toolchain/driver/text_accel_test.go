@@ -74,7 +74,7 @@ func checkAcceleratorsMatchBodies(t *testing.T, use *regexp.Regexp, least int) {
 			}
 		})
 	}
-	if picked < least {
+	if picked < fixture.ShardShare(least) {
 		t.Fatalf("picked only %d fixtures", picked)
 	}
 }
