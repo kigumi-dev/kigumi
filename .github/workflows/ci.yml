@@ -73,16 +73,22 @@ jobs:
         include:
           - name: default
             cflags: ""
+            zig: "yes"
             cmd: go test -timeout 120m ./internal/toolchain/driver/
           - name: rc-check
             cflags: -DKIGUMI_RC_CHECK
+            zig: "yes"
             cmd: go test -timeout 120m ./internal/toolchain/driver/
+          # The pinned zig does not link a sanitizer runtime, so this pass runs on the host clang
+          # and TestSanitizerRuntimeIsActive fails the job if the instrumentation is missing.
           - name: sanitizers
             cflags: -fsanitize=address,undefined -g
-            cmd: go test -timeout 120m -run 'TestAotCorpus|TestAotFFI|TestAotDL|TestAotAsm' ./internal/toolchain/driver/
+            zig: "no"
+            cmd: go test -timeout 120m -run 'TestSanitizerRuntimeIsActive|TestAotCorpus|TestAotFFI|TestAotDL|TestAotAsm' ./internal/toolchain/driver/
           # internal/cli and internal/devkit/bench each have one native-toolchain test, skipped by the hermetic job above.
           - name: cli
             cflags: ""
+            zig: "yes"
             cmd: go test -timeout 10m ./internal/cli/... ./internal/devkit/...
     steps:
       - uses: actions/checkout@v4
@@ -90,13 +96,16 @@ jobs:
         with:
           go-version: "1.26"
       - uses: actions/cache@v4
+        if: matrix.zig == 'yes'
         with:
           path: ~/.local/share/kigumi/zig
           key: kigumi-zig-${{ runner.os }}-${{ runner.arch }}-${{ needs.zig-version.outputs.version }}
       - run: go run . zig install ${{ needs.zig-version.outputs.version }}
+        if: matrix.zig == 'yes'
       # The driver tests pick their C compiler from PATH; the installed store
       # holds the pinned zig, not the runner image's clang.
       - run: echo "$HOME/.local/share/kigumi/zig/${{ needs.zig-version.outputs.version }}" >> "$GITHUB_PATH"
+        if: matrix.zig == 'yes'
       - run: ${{ matrix.cmd }}
         env:
           KIGUMI_CFLAGS: ${{ matrix.cflags }}
