@@ -79,10 +79,6 @@ jobs:
     needs: zig-version
     runs-on: ubuntu-latest
     timeout-minutes: 240
-    # The sanitizer pass is the only one that is not green yet: it now really runs ASan (see
-    # TestSanitizerRuntimeIsActive) and reports leaks on error exits plus stack/allocator fixtures.
-    # It stays non-blocking until the inventory in docs-new/roadmap.md P0-1 is fixed.
-    continue-on-error: ${{ matrix.name == 'sanitizers' }}
     strategy:
       fail-fast: false
       matrix:
@@ -152,7 +148,14 @@ jobs:
             count: "1"
             driver: "no"
             zig: "no"
-            cmd: go test -timeout 120m -run 'TestSanitizerRuntimeIsActive|TestAotCorpus|TestAotFFI|TestAotDL|TestAotAsm' ./internal/toolchain/driver/
+            # ASan cannot host the deliberate huge allocations (it refuses sizes past its limit and
+            # prints a warning that breaks the expected stderr) or the stack-overflow fixtures (the
+            # sanitizer's own frames change the depth). Everything else runs instrumented.
+            cmd: >-
+              go test -timeout 120m
+              -run 'TestSanitizerRuntimeIsActive|TestRuntimeCUnitContracts|TestAotCorpus|TestAotFFI|TestAotDL|TestAotAsm'
+              -skip '^TestAotCorpus/(alloc_error|alloc_huge_requests|array_bulk|entropy_bytes_huge|entropy_bytes_huge_size|std_net_conn_read_huge|stack_overflow_panic|stack_overflow_task_alloc|stack_overflow_task_drop|stack_overflow_task_map)\.txtar$'
+              ./internal/toolchain/driver/
           # internal/cli and internal/devkit/bench each have one native-toolchain test, skipped by the hermetic job above.
           - name: cli
             cflags: ""
