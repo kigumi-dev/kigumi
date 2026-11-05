@@ -47,6 +47,42 @@ fn lineAt(data: &Bytes, from: usize) -> usize?! {
     None
 }
 
+// trailerFieldOk checks the RFC 9110 field-line grammar that chunked trailers must carry:
+// a nonempty token, a colon, and field-value bytes with no control characters other than HTAB.
+fn trailerFieldOk(line: &Bytes) -> Bool {
+    let mut colon = line.len()
+    for i in 0..line.len() {
+        let c = line.get(i) || 0
+        if c == 58 {
+            colon = i
+            break
+        }
+        if !tokenByte(c) {
+            return false
+        }
+    }
+    if colon == 0 || colon == line.len() {
+        return false
+    }
+    for i in (colon + 1)..line.len() {
+        let c = line.get(i) || 0
+        if c == 9 {
+            continue
+        }
+        if c < 32 || c == 127 {
+            return false
+        }
+    }
+    true
+}
+
+fn tokenByte(c: u8) -> Bool {
+    if (c >= 48 && c <= 57) || (c >= 65 && c <= 90) || (c >= 97 && c <= 122) {
+        return true
+    }
+    c == 33 || c == 35 || c == 36 || c == 37 || c == 38 || c == 39 || c == 42 || c == 43 || c == 45 || c == 46 || c == 94 || c == 95 || c == 96 || c == 124 || c == 126
+}
+
 // A chunk costs at most six wire bytes per payload byte when sent one byte at a time.
 fn rawCap(maxBody: usize, maxHead: usize) -> usize {
     maxBody.saturatingMul(8).saturatingAdd(maxHead)
@@ -113,6 +149,12 @@ fn Dechunker.step(mut self, data: &Bytes, maxBody: usize) -> usize! {
             Trailers -> {
                 let end = lineAt(data, at)? || return at
                 let blank = end == at
+                if !blank {
+                    let line = data.slice(at, end) || "".toBytes()
+                    if !trailerFieldOk(&line) {
+                        fail failure(400, "invalid trailer field")
+                    }
+                }
                 at = end + 2
                 if blank {
                     self.stage = Done

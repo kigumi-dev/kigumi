@@ -162,7 +162,11 @@ pub async fn Session.send(mut self, req: Request) -> Response! {
     (await self.wire.writeAll(head.concat(req.body), deadlineIn(self.timeoutMillis)))?
     let resp = (await self.wire.readResponse(req.method == "HEAD", self.timeoutMillis, self.maxBodyBytes, self.maxHeaderBytes))?
     let readToEof = req.method != "HEAD" && !noBodyStatus(resp.status) && framingOf(&resp.headers, false) is Ok(UntilClose)
-    self.open = !close && !readToEof && !wantsClose(&resp.headers, "HTTP/1.1")
+    // A body-sized 204/304 was already refused by readResponse; any other
+    // bytes left after the framed body are an unsolicited response, so keep
+    // them out of this session instead of serving them to the next request.
+    let stray = self.wire.pending.len() > 0
+    self.open = !close && !readToEof && !stray && !wantsClose(&resp.headers, "HTTP/1.1")
     resp
 }
 
@@ -180,8 +184,19 @@ async fn Wire.readResponse(mut self, headOnly: Bool, timeout: i64, maxBody: usiz
             if status < 200 {
                 continue
             }
-            let framing = if headOnly || noBodyStatus(status) {
+            let framing = if headOnly {
                 NoBody
+            } else if noBodyStatus(status) {
+                match (framingOf(&head.headers, false))? {
+                    Sized(n) -> {
+                        if n > 0 {
+                            fail MalformedResponse("body on ${status}")
+                        }
+                        NoBody
+                    }
+                    Chunked -> fail MalformedResponse("chunked body on ${status}")
+                    _ -> NoBody
+                }
             } else {
                 framingOf(&head.headers, false)?
             }
