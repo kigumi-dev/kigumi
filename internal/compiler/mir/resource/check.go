@@ -43,10 +43,14 @@ func StackRoots(r *sem.Result) []sem.EntityID {
 	for id := 1; id < len(r.Entities); id++ {
 		ent := sem.EntityID(id)
 		e := r.Entity(ent)
-		if e.Kind != sem.EntFn || r.Fn(ent).Export == "" {
+		if p := r.Packages[e.Pkg]; p.Std || p.Module != "" {
 			continue
 		}
-		if p := r.Packages[e.Pkg]; p.Std || p.Module != "" {
+		if e.Kind == sem.EntTest {
+			out = append(out, ent)
+			continue
+		}
+		if e.Kind != sem.EntFn || r.Fn(ent).Export == "" {
 			continue
 		}
 		out = append(out, ent)

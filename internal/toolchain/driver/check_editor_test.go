@@ -111,3 +111,36 @@ func TestCheckForEditorLeavesACopyFreeModuleAlone(t *testing.T) {
 		t.Fatalf("expected a clean check: %v\n%s", err, res.Render())
 	}
 }
+
+const editorBorrowSrc = `type Box = resource { pub mut n Int }
+fn Box.drop(move self) -> Void {}
+type Holder['a] = { pub mut r &'a mut Box }
+
+fn f() -> Int {
+    let mut a = Box { n: 1 }
+    let mut b = Box { n: 10 }
+    let mut h = Holder { r: &mut a }
+    h.r = &mut b
+    b.n = 100
+    h.r.n
+}
+
+fn main() -> Void! {
+    print "${f()}"
+}
+`
+
+func TestCheckForEditorReportsOwnershipDiagnostic(t *testing.T) {
+	t.Parallel()
+	res, err := driver.CheckForEditor(editorModule(t, editorBorrowSrc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := res.Render()
+	if !strings.Contains(out, "error[E2198]") {
+		t.Fatalf("the editor dropped the borrow diagnostic:\n%s", out)
+	}
+	if want := checkAllocClaim(t, editorBorrowSrc); out != want {
+		t.Errorf("the editor says\n%s\nbut `kigumi check` says\n%s", out, want)
+	}
+}

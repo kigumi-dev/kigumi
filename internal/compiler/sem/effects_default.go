@@ -80,7 +80,14 @@ func (r *Result) allocRoots() []EntityID {
 	}
 	for id := 1; id < len(r.Entities); id++ {
 		e := &r.Entities[id]
-		if e.Kind != EntFn || e.Flags&EfPoison != 0 || r.Packages[e.Pkg].Std {
+		if e.Flags&EfPoison != 0 || r.Packages[e.Pkg].Std {
+			continue
+		}
+		if e.Kind == EntTest {
+			roots = append(roots, EntityID(id))
+			continue
+		}
+		if e.Kind != EntFn {
 			continue
 		}
 		if info := r.Fn(EntityID(id)); info.Export != "" && info.Body != 0 {

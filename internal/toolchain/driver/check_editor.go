@@ -22,7 +22,7 @@ func CheckForEditorContext(ctx context.Context, m *Module) (*sem.Result, error) 
 	if err == nil && res.Cancelled() {
 		return nil, ctx.Err()
 	}
-	if err != nil || res.HasErrors() || !res.DefersAllocClaims() && !res.DeclaresNoalloc() && !res.SpecializesCalls() && !m.target.RestrictsAllocation() {
+	if err != nil || res.HasErrors() {
 		return res, err
 	}
 	built, found := editorDiags(m)
@@ -66,19 +66,30 @@ func editorDiagsWith(m *Module, lazy bool) (*sem.Result, []midir.FileDiag, bool)
 	if res.HasErrors() {
 		return res, nil, true
 	}
+	// Lowering appends the ownership diagnostics to res.Files; snapshot the
+	// semantic set first so those diagnostics are not mistaken for known ones.
+	known := diagKeys(res)
 	prog := lowerProgram(res, false, nil)
 	if lazy && len(prog.Skipped) > 0 {
 		return nil, nil, false
 	}
-	if res.HasErrors() {
-		return res, nil, true
+	// Lowering errors (notably the ownership pass) land in res.Files; collect
+	// them before the plan and return them even when they stop the build.
+	out := append([]midir.FileDiag(nil), prog.Diags...)
+	for id := range res.Files {
+		for _, d := range res.Files[id].Diags {
+			if !known[fmt.Sprint(id, d.Loc.Span, d.Code, d.Msg)] {
+				out = append(out, midir.FileDiag{File: sem.FileID(id), Diag: d})
+			}
+		}
 	}
-	known := diagKeys(res)
+	if res.HasErrors() {
+		return res, out, true
+	}
 	prog.NativeBoxes = nativeBoxSites(m.target)
 	if mirplan.Apply(prog, planPasses(false)...) != nil {
-		return res, nil, true
+		return res, out, true
 	}
-	out := append([]midir.FileDiag(nil), prog.Diags...)
 	for _, c := range claimDiags(prog) {
 		out = append(out, midir.FileDiag(c))
 	}
