@@ -139,7 +139,7 @@ func TestSubtleConstantTimeEqHasNoSecretDependentBranch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rtCore, err := os.ReadFile("../../backend/llgen/runtime/rt_core.c")
+	rtCore, err := os.ReadFile("../../backend/llgen/runtime/rt_utf8.inc")
 	if err != nil {
 		t.Fatal(err)
 	}
