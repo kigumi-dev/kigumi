@@ -13802,6 +13802,36 @@
     "status": "ok"
   },
   {
+    "key": "sort.indexOfSorted",
+    "signature": "pure fn(\u0026Array[T], \u0026T, fn(\u0026T, \u0026T) -\u003e Ordering) -\u003e usize?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sort.stable",
+    "signature": "pure fn(\u0026Array[T], fn(\u0026T, \u0026T) -\u003e Ordering) -\u003e Array[T]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sort.tryStable",
+    "signature": "pure fn(\u0026Array[T], fn(\u0026T, \u0026T) -\u003e Ordering) -\u003e Result[Array[T], AllocError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "stdio.hostStdio",
     "signature": "fn(Host) -\u003e Stdio",
     "has_body": true,

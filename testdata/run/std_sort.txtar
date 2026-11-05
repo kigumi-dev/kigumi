@@ -1,0 +1,21 @@
+-- src --
+import sort from std/sort
+
+type Item = { pub k Int, pub tag Int }
+
+let xs = Array.of(Item { k: 3, tag: 0 }, Item { k: 1, tag: 1 }, Item { k: 2, tag: 2 }, Item { k: 1, tag: 3 })
+let ordered = sort.stable(&xs, (a, b) => a.k.compareTo(b.k))
+for x in &ordered {
+    print "${x.k}:${x.tag}"
+}
+let key = Item { k: 2, tag: 9 }
+print "found ${debug(&sort.indexOfSorted(&ordered, &key, (a, b) => a.k.compareTo(b.k)))}"
+let missing = Item { k: 4, tag: 0 }
+print "missing ${debug(&sort.indexOfSorted(&ordered, &missing, (a, b) => a.k.compareTo(b.k)))}"
+-- stdout --
+1:1
+1:3
+2:2
+3:0
+found Some(2)
+missing None

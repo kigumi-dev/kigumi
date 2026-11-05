@@ -9953,6 +9953,15 @@
       ]
     },
     {
+      "id": "run/std_sort",
+      "kind": "run",
+      "path": "testdata/run/std_sort.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/std_text_search",
       "kind": "run",
       "path": "testdata/run/std_text_search.txtar",

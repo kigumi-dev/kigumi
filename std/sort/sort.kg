@@ -1,0 +1,39 @@
+import array from std/array
+
+/// A stable sorted copy of items; order decides which of two elements comes first.
+/// Equal elements keep their original relative order, unlike an unstable in-place sort.
+pub pure fn stable[T: Copy](items: &Array[T], order: fn(&T, &T) -> Ordering) -> Array[T] {
+    array.sortedBy(items, order)
+}
+
+/// The same as stable, or AllocError when the allocator refuses (stable panics instead).
+pub pure fn tryStable[T: Copy](items: &Array[T], order: fn(&T, &T) -> Ordering) -> Result[Array[T], AllocError] {
+    array.trySortedBy(items, order)
+}
+
+/// The index of target in items already sorted by order, or None. The binary search needs
+/// the same comparator used to sort; with duplicate keys any matching index is valid, and
+/// indexOfSorted is the stable choice for finding the first one.
+pub pure fn indexOfSorted[T: Copy](items: &Array[T], target: &T, order: fn(&T, &T) -> Ordering) -> usize? {
+    let mut lo: usize = 0
+    let mut hi = items.len()
+    for lo < hi {
+        let mid = lo + (hi - lo) / 2
+        let item = match items.get(mid) {
+            Some(v) -> v
+            None -> return None
+        }
+        match order(target, &item) {
+            Ordering.Less -> {
+                hi = mid
+            }
+            Ordering.Equal -> {
+                return Some(mid)
+            }
+            Ordering.Greater -> {
+                lo = mid + 1
+            }
+        }
+    }
+    None
+}
