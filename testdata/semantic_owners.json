@@ -3441,6 +3441,16 @@
     "status": "ok"
   },
   {
+    "key": "fs.Files.chmod",
+    "signature": "fn(Path, u32) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
     "key": "fs.Files.create",
     "signature": "fn(Path) -\u003e File!",
     "has_body": true,

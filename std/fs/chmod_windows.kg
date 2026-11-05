@@ -1,0 +1,15 @@
+import ffi from std/ffi
+
+extern(C) {
+    fn _chmod(path: *const u8, mode: i32) -> i32
+}
+
+/// Changes the read-only bit of path to match mode's write bits.
+pub fn Files.chmod(self, path: Path, mode: u32) -> Void! {
+    let c = ffi.CString.new(&path.text)?
+    if unsafe {
+        _chmod(c.ptr(), mode.toI32() || 0)
+    } != 0 {
+        fail ffi.lastError()
+    }
+}

@@ -1,0 +1,15 @@
+import ffi from std/ffi
+
+extern(C) {
+    fn chmod(path: *const u8, mode: u32) -> i32
+}
+
+/// Changes the permission bits of path to mode (before the umask, which chmod does not apply).
+pub fn Files.chmod(self, path: Path, mode: u32) -> Void! {
+    let c = ffi.CString.new(&path.text)?
+    if unsafe {
+        chmod(c.ptr(), mode)
+    } != 0 {
+        fail ffi.lastError()
+    }
+}

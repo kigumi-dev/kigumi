@@ -1,0 +1,15 @@
+-- src --
+import fs from std/fs
+
+let files = host.files()
+let p = fs.Path.fromString("/tmp/kigumi-std-fs-chmod.txt").unwrap()
+if files.exists(p) { files.remove(p).unwrap() }
+files.writeText(p, "secret").unwrap()
+files.chmod(p, 0o600).unwrap()
+print "private=${files.read(p).unwrap()}"
+files.chmod(p, 0o644).unwrap()
+print "public=${files.size(p).unwrap()}"
+files.remove(p).unwrap()
+-- stdout --
+private=secret
+public=6

@@ -90,6 +90,12 @@ func (m *Machine) registerFileReads() {
 	h["fs.File.seekEnd"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		return seekFile(m, a, io.SeekEnd)
 	}
+	h["fs.Files.chmod"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		if err := os.Chmod(m.resolvePath(pathText(a[1])), unixMode(deref(a[2]).i)); err != nil {
+			return m.errMsg(shell.OSErrText(err))
+		}
+		return m.ok(unitObj)
+	}
 	h["fs.Files.rename"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		if err := os.Rename(m.resolvePath(pathText(a[1])), m.resolvePath(pathText(a[2]))); err != nil {
 			return m.errMsg(shell.OSErrText(err))

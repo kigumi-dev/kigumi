@@ -9791,6 +9791,15 @@
       ]
     },
     {
+      "id": "run/std_fs_chmod",
+      "kind": "run",
+      "path": "testdata/run/std_fs_chmod.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/std_fs_rename_size",
       "kind": "run",
       "path": "testdata/run/std_fs_rename_size.txtar",
