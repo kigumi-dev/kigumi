@@ -15132,16 +15132,6 @@
     "status": "ok"
   },
   {
-    "key": "text.tryPushChar",
-    "signature": "pure fn(\u0026mut StringBuilder, Char) -\u003e Result[Void, AllocError]",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
     "key": "text.tryReplace",
     "signature": "pure fn(String, String, String) -\u003e Result[String, AllocError]",
     "has_body": true,
