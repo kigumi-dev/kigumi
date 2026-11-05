@@ -66,3 +66,37 @@ func TestSemanticTokens(t *testing.T) {
 		t.Fatalf("expected a parameter token on line 0: %v", rows)
 	}
 }
+
+// A definition token covers the name, not the whole declaration, and a token
+// length is UTF-16 code units even when the identifier is CJK.
+func TestSemanticTokensNameSpansAndUTF16Length(t *testing.T) {
+	root := t.TempDir()
+	os.MkdirAll(filepath.Join(root, "main"), 0o755)
+	src := "fn 日本(x: Int) -> Int {\n    x + 1\n}\n\nlet value = 日本(21)\n"
+	path := filepath.Join(root, "main", "main.kg")
+	os.WriteFile(path, []byte(src), 0o644)
+	std, _ := filepath.Abs("../../../std")
+	ctx := protocol.WithClient(context.Background(), &recorder{})
+	s := newServer(std)
+	s.Initialize(ctx, initParams(uri.File(root)))
+	doc := uri.File(path)
+	s.DidOpen(ctx, &protocol.DidOpenTextDocumentParams{TextDocument: protocol.TextDocumentItem{URI: doc, Text: src}})
+
+	toks, err := s.SemanticTokensFull(ctx, &protocol.SemanticTokensParams{TextDocument: protocol.TextDocumentIdentifier{URI: doc}})
+	if err != nil || toks == nil {
+		t.Fatalf("semantic tokens: %v %+v", err, toks)
+	}
+	rows := decodeSemanticTokens(toks.Data)
+	foundFn, foundParam := false, false
+	for _, r := range rows {
+		if r[0] == 0 && r[1] == 3 && r[2] == 2 && r[3] == 8 {
+			foundFn = true
+		}
+		if r[0] == 0 && r[1] == 6 && r[2] == 1 && r[3] == 4 {
+			foundParam = true
+		}
+	}
+	if !foundFn || !foundParam {
+		t.Fatalf("want function 3..5 len 2 and parameter 8 len 1, got %v", rows)
+	}
+}

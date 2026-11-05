@@ -57,7 +57,16 @@ func (s *Server) SemanticTokensFull(ctx context.Context, p *protocol.SemanticTok
 		if declared {
 			mods |= modDeclaration
 		}
-		items = append(items, semanticToken{nameSpan(t, syntax.NodeID(n)), typ, mods})
+		sp := nameSpan(t, syntax.NodeID(n))
+		if declared {
+			// info.Defs is keyed by the declaration node, whose own span covers
+			// the whole item; the entity token is the name to color.
+			e := snap.res.Entity(ent)
+			if et := snap.res.Tree(e.File); et == t && e.Tok != 0 && int(e.Tok) < len(et.Toks) {
+				sp = et.Toks[e.Tok].Span
+			}
+		}
+		items = append(items, semanticToken{sp, typ, mods})
 	}
 	for n, ent := range info.Defs {
 		add(n, ent, true)
@@ -71,12 +80,26 @@ func (s *Server) SemanticTokensFull(ctx context.Context, p *protocol.SemanticTok
 // encodeSemanticTokens sorts by position and applies the spec's delta
 // encoding: five uint32s per token (deltaLine, deltaStartChar, length, type, mods).
 func encodeSemanticTokens(f *token.File, items []semanticToken) []uint32 {
-	sort.Slice(items, func(i, j int) bool { return items[i].span.Start < items[j].span.Start })
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].span.Start != items[j].span.Start {
+			return items[i].span.Start < items[j].span.Start
+		}
+		return items[i].typ < items[j].typ
+	})
 	data := make([]uint32, 0, len(items)*5)
 	prevLine, prevChar := uint32(0), uint32(0)
+	var prevSpan token.Span
+	var prevType uint32
 	for _, it := range items {
+		if it.span.Start < 0 || it.span.End > token.Pos(len(f.Src)) || it.span.Start >= it.span.End {
+			continue
+		}
+		if it.span == prevSpan && it.typ == prevType {
+			continue // the same declaration reached through both maps
+		}
 		start := position(f, it.span.Start)
-		length := uint32(it.span.Len())
+		length := uint32(utf16Len(f.Src[it.span.Start:it.span.End]))
+		prevSpan, prevType = it.span, it.typ
 		deltaLine := start.Line - prevLine
 		deltaChar := start.Character
 		if deltaLine == 0 {
