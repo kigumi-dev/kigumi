@@ -410,6 +410,16 @@
     "status": "ok"
   },
   {
+    "key": "array.Array.indexOf",
+    "signature": "pure fn(T) -\u003e usize?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "array.Array.insertAt",
     "signature": "pure fn(usize, T) -\u003e Bool",
     "has_body": true,
@@ -502,6 +512,16 @@
   {
     "key": "array.Array.slice",
     "signature": "pure fn(usize, usize) -\u003e Array[T]?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.Array.sliceWith",
+    "signature": "pure fn(usize, usize, fn(\u0026T) -\u003e T) -\u003e Array[T]?",
     "has_body": true,
     "kind": "",
     "vm": "gap",

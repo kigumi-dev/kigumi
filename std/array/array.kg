@@ -301,3 +301,30 @@ pub pure fn tryJoin(items: &Array[String], sep: String) -> Result[String, AllocE
     }
     AllocError.wrap(buf.freezeString())
 }
+
+/// Index of the first element equal to item, or None.
+pub pure fn Array[T: Eq].indexOf(self, item: T) -> usize? {
+    let mut i: usize = 0
+    for x in &self {
+        if x.equals(&item) {
+            return Some(i)
+        }
+        i = i + 1
+    }
+    None
+}
+
+/// Copies of self[start..end] using f to clone each element, so an array of
+/// non-Copy values can be sliced too; None unless start <= end <= self.len().
+pub pure fn Array[T].sliceWith(self, start: usize, end: usize, f: fn(&T) -> T) -> Array[T]? {
+    if start > end || end > self.len() {
+        return None
+    }
+    let mut out = Array.empty[T]()
+    let mut i = start
+    for i < end {
+        out.push(self.with(i, f) || panic("sliceWith: index out of range"))
+        i = i + 1
+    }
+    Some(out)
+}

@@ -9737,6 +9737,15 @@
       ]
     },
     {
+      "id": "run/std_array_slice",
+      "kind": "run",
+      "path": "testdata/run/std_array_slice.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/std_base64",
       "kind": "run",
       "path": "testdata/run/std_base64.txtar",
