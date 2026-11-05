@@ -9962,6 +9962,15 @@
       ]
     },
     {
+      "id": "run/std_path",
+      "kind": "run",
+      "path": "testdata/run/std_path.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/std_sort",
       "kind": "run",
       "path": "testdata/run/std_sort.txtar",

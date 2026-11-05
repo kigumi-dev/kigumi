@@ -1,0 +1,188 @@
+import text from std/text
+
+/// Lexical manipulation of slash-separated paths. Nothing here touches the file system, so
+/// the answers depend on the string alone: `dir("a/b")` is `"a"` whether or not `a` exists.
+/// Windows separators and drive letters are out of scope.
+pub const separator: String = "/"
+
+/// Whether the path starts at the root.
+pub pure fn isAbs(p: String) -> Bool {
+    p.startsWith(separator)
+}
+
+/// The last element, without a trailing separator. `""` for the empty path, `"/"` for the root.
+pub pure fn base(p: String) -> String {
+    if p == "" {
+        return ""
+    }
+    let trimmed = dropTrailing(p)
+    if trimmed == separator {
+        return separator
+    }
+    match text.rfind(trimmed, separator) {
+        Some(at) -> trimmed.sliceBytes(at + 1, trimmed.len()) || trimmed
+        None -> trimmed
+    }
+}
+
+/// Everything before the last element. `"."` when the path has no separator.
+pub pure fn dir(p: String) -> String {
+    let trimmed = dropTrailing(p)
+    match text.rfind(trimmed, separator) {
+        Some(0) -> separator
+        Some(at) -> trimmed.sliceBytes(0, at) || "."
+        None -> if trimmed == "" && isAbs(p) {
+            separator
+        } else {
+            "."
+        }
+    }
+}
+
+/// The extension of the last element, dot included; `""` when there is none. A leading dot
+/// names a hidden file rather than an extension, so `ext(".bashrc")` is `""`.
+pub pure fn ext(p: String) -> String {
+    let b = base(p)
+    match text.rfind(b, ".") {
+        Some(0) -> ""
+        Some(at) -> b.sliceBytes(at, b.len()) || ""
+        None -> ""
+    }
+}
+
+/// The last element without its extension.
+pub pure fn stem(p: String) -> String {
+    let b = base(p)
+    let e = ext(p)
+    if e == "" {
+        return b
+    }
+    b.sliceBytes(0, b.len() - e.len()) || b
+}
+
+/// Joins the parts with one separator between them and cleans the result. Empty parts are
+/// skipped, so `join("a", "", "b")` is `"a/b"`.
+pub pure fn join(parts: &Array[String]) -> String {
+    let mut out = ""
+    for part in parts {
+        if part == "" {
+            continue
+        }
+        if out == "" {
+            out = "${part}"
+        } else {
+            out = "${out}${separator}${part}"
+        }
+    }
+    clean(out)
+}
+
+/// Joins two parts; the common case of `join`.
+pub pure fn join2(a: String, b: String) -> String {
+    join(&Array.of(a, b))
+}
+
+/// The shortest path with the same meaning: runs of separators collapse, `.` elements go away,
+/// and `..` cancels the element before it. A leading `..` is kept on a relative path and dropped
+/// on an absolute one, because the root has no parent. `""` cleans to `"."`.
+pub pure fn clean(p: String) -> String {
+    let abs = isAbs(p)
+    let mut kept = Array.empty[String]()
+    for part in elements(p) {
+        if part == "" || part == "." {
+            continue
+        }
+        if part == ".." {
+            if kept.len() > 0 && (kept.last() || "") != ".." {
+                _ = kept.takeAt(kept.len() - 1)
+                continue
+            }
+            if abs {
+                continue
+            }
+        }
+        kept.push(part)
+    }
+    let body = joinKept(&kept)
+    if abs {
+        return "${separator}${body}"
+    }
+    if body == "" {
+        return "."
+    }
+    body
+}
+
+/// The path split on separators, with the empty strings that leading, trailing and repeated
+/// separators produce left in. `clean` is what removes them.
+pub pure fn elements(p: String) -> Array[String] {
+    p.split(separator)
+}
+
+/// The cleaned elements, without the root marker: `"/a//b/."` gives `["a", "b"]`.
+pub pure fn parts(p: String) -> Array[String] {
+    let c = clean(p)
+    let body = if isAbs(c) {
+        c.sliceBytes(1, c.len()) || ""
+    } else {
+        c
+    }
+    if body == "" || body == "." {
+        return Array.empty[String]()
+    }
+    body.split(separator)
+}
+
+/// `target` expressed relative to `from`, or None when no relative path exists because one is
+/// absolute and the other is not, or because `from` keeps a leading `..`.
+pub pure fn rel(from: String, target: String) -> String? {
+    if isAbs(from) != isAbs(target) {
+        return None
+    }
+    let a = parts(from)
+    let b = parts(target)
+    if a.len() > 0 && (a.first() || "") == ".." {
+        return None
+    }
+    let mut same: usize = 0
+    for same < a.len() && same < b.len() && (a.get(same) || "") == (b.get(same) || "") {
+        same = same + 1
+    }
+    let mut out = Array.empty[String]()
+    let mut up = a.len()
+    for up > same {
+        out.push("..")
+        up = up - 1
+    }
+    let mut i = same
+    for i < b.len() {
+        out.push(b.get(i) || "")
+        i = i + 1
+    }
+    let body = joinKept(&out)
+    if body == "" {
+        return Some(".")
+    }
+    Some(body)
+}
+
+/// Drops the trailing separators of a path, keeping the root itself.
+fn dropTrailing(p: String) -> String {
+    let mut end = p.len()
+    for end > 1 && p.matchesAt(separator, end - 1) {
+        end = end - 1
+    }
+    p.sliceBytes(0, end) || p
+}
+
+fn joinKept(kept: &Array[String]) -> String {
+    let mut out = ""
+    for part in kept {
+        if out == "" {
+            out = "${part}"
+        } else {
+            out = "${out}${separator}${part}"
+        }
+    }
+    out
+}

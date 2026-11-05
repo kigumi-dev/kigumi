@@ -1,0 +1,16 @@
+-- src --
+import path from std/path
+
+print "base=${path.base("a/b/c.txt")} dir=${path.dir("a/b/c.txt")} ext=${path.ext("a/b/c.txt")} stem=${path.stem("a/b/c.txt")}"
+print "abs=${path.isAbs("/a")} ${path.isAbs("a")} root=${path.base("/")}"
+print "clean=${path.clean("a//b/../c/.")}"
+print "join=${path.join2("a", "b/c")} ${path.join(&Array.of("a", "b", "c"))}"
+print "parts=${debug(&path.parts("/a/b/c"))} elements=${debug(&path.elements("a/b/c"))}"
+print "rel=${debug(&path.rel("/a/b/c", "/a/d/e"))}"
+-- stdout --
+base=c.txt dir=a/b ext=.txt stem=c
+abs=true false root=/
+clean=a/c
+join=a/b/c a/b/c
+parts=[a, b, c] elements=[a, b, c]
+rel=Some(../../d/e)
