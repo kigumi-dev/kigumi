@@ -41,7 +41,11 @@ func checkLinkedRuntimeABI(m *Module, cflags, lflags []string, want string) erro
 			continue
 		}
 		fp, ok, err := artifact.ReadFingerprintSidecar(path)
-		if err != nil || !ok || fp.RuntimeAbi == want {
+		if err != nil {
+			msg, help := sem.FillCode(sem.RuntimeAbiUnreadable, path, err)
+			return fmt.Errorf("%s: %s: %s (%s)", sem.RuntimeAbiUnreadable.Num, sem.RuntimeAbiUnreadable.Name, msg, help)
+		}
+		if !ok || fp.RuntimeAbi == want {
 			continue
 		}
 		msg, help := sem.FillCode(sem.RuntimeAbiMismatch, path, artifact.OrNone(fp.RuntimeAbi), want)
