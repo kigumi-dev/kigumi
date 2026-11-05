@@ -60,11 +60,10 @@ func staticFixtures(t *testing.T, kind, mode string) []fixture.Fixture {
 	for _, f := range files {
 		base := strings.TrimSuffix(filepath.Base(f), ".txtar")
 		out = append(out, fixture.Fixture{
-			ID:       kind + "/" + base,
-			Kind:     kind,
-			Path:     "testdata/" + kind + "/" + base + ".txtar",
-			Mode:     []string{mode},
-			Observes: []string{"expect"},
+			ID:   kind + "/" + base,
+			Kind: kind,
+			Path: "testdata/" + kind + "/" + base + ".txtar",
+			Mode: []string{mode},
 		})
 	}
 	return out
@@ -81,14 +80,12 @@ func runFixtures(t *testing.T) []fixture.Fixture {
 	for i, path := range files {
 		base := strings.TrimSuffix(filepath.Base(path), ".txtar")
 		fx := fixture.Fixture{
-			ID:       "run/" + base,
-			Kind:     "run",
-			Path:     "testdata/run/" + base + ".txtar",
-			Observes: []string{"stdout", "stderr", "exit"},
+			ID:   "run/" + base,
+			Kind: "run",
+			Path: "testdata/run/" + base + ".txtar",
 		}
 		if fixtureEngines(path) == "native" {
 			fx.Mode = []string{"native"}
-			fx.Requires = []string{"c-compiler"}
 			fx.Skip = map[string]string{"vm": "static-refusal"}
 			out[i] = fx
 			continue
@@ -96,7 +93,6 @@ func runFixtures(t *testing.T) []fixture.Fixture {
 		t.Run(base, func(t *testing.T) {
 			t.Parallel()
 			c := checkedFixture(t, path)
-			fx.Requires = []string{"c-compiler"}
 			switch {
 			case c.refusal == nil:
 				fx.Mode = []string{"vm", "native"}

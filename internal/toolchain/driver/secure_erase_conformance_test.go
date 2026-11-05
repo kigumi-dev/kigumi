@@ -63,7 +63,7 @@ func TestSecureEraseSurvivesO2DeadStoreElimination(t *testing.T) {
 	if runtime.GOARCH != "amd64" || runtime.GOOS != "linux" {
 		t.Skip("x86-64 Linux only: the test reads AT&T assembly mnemonics")
 	}
-	rtCore, err := os.ReadFile("../../backend/llgen/runtime/rt_cap_mem_secure_erase.c.inc")
+	rtCore, err := os.ReadFile("../../backend/llgen/runtime/rt_cap_mem_secure_erase.inc")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	mirverify "kigumi/internal/compiler/mir/verify"
+	devfixture "kigumi/internal/devkit/fixture"
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
@@ -22,6 +23,9 @@ func TestCorpusOwnershipBeforeVerifier(t *testing.T) {
 		t.Fatal("no sem or run fixtures")
 	}
 	for _, path := range semPaths {
+		if !devfixture.Shard(filepath.Base(path)) {
+			continue
+		}
 		t.Run("sem/"+strings.TrimSuffix(filepath.Base(path), ".txtar"), func(t *testing.T) {
 			t.Parallel()
 			fx := parseSemDriverFixture(t, path)
@@ -38,6 +42,9 @@ func TestCorpusOwnershipBeforeVerifier(t *testing.T) {
 	}
 	manifest := loadManifest(t)
 	for _, path := range runPaths {
+		if !devfixture.Shard(filepath.Base(path)) {
+			continue
+		}
 		id := fixtureID(path)
 		fx := manifest.ByID(id)
 		if fx == nil {

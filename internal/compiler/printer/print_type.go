@@ -99,11 +99,14 @@ func (p *printer) typ(id syntax.NodeID) {
 	case syntax.TypeRef:
 		ref := v.AsTypeRef()
 		p.write("&")
-		if ref.Op().Kind() == token.Lifetime {
+		lifetime := ref.Op().Kind() == token.Lifetime
+		if lifetime {
 			p.write(ref.Op().Text() + " ")
 		}
 		if ref.Flags()&syntax.FlagMut != 0 {
 			p.write("mut ")
+		} else if !lifetime {
+			p.prefixSep(ref.Pointee().ID())
 		}
 		p.typ(ref.Pointee().ID())
 	case syntax.Paren:

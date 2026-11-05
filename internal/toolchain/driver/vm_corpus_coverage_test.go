@@ -3,6 +3,8 @@ package driver_test
 import (
 	"path/filepath"
 	"testing"
+
+	devfixture "kigumi/internal/devkit/fixture"
 )
 
 // TestRunCorpusVMCoverage checks every testdata/run fixture either runs on the VM or declares why not in `-- engines --`.
@@ -12,6 +14,9 @@ func TestRunCorpusVMCoverage(t *testing.T) {
 		t.Fatal("no run fixtures")
 	}
 	for _, path := range files {
+		if !devfixture.Shard(filepath.Base(path)) {
+			continue
+		}
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			t.Parallel()
 			declared := fixtureEngines(path)

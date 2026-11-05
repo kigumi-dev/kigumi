@@ -176,6 +176,9 @@ func preparedProg(t *testing.T, fx fixture, gate *liveGate, unsupported *atomic.
 
 func corpusFixtures(t *testing.T) (zero, nonzero []string) {
 	files, _ := filepath.Glob("../../../testdata/run/*.txtar")
+	if len(files) == 0 {
+		t.Fatal("no run fixtures")
+	}
 	for _, path := range files {
 		if !devfixture.Shard(filepath.Base(path)) {
 			continue

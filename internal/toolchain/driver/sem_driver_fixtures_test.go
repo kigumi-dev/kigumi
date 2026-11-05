@@ -61,6 +61,9 @@ func parseSemDriverFixture(t *testing.T, path string) semDriverFixture {
 
 func TestSemDriverFixtures(t *testing.T) {
 	paths, _ := filepath.Glob("../../../testdata/sem/*.txtar")
+	if len(paths) == 0 {
+		t.Fatal("no sem fixtures")
+	}
 	ran := 0
 	for _, path := range paths {
 		if !fixture.Shard(filepath.Base(path)) {

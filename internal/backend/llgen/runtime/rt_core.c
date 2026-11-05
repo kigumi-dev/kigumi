@@ -39,7 +39,7 @@ static pthread_mutex_t g_sched = PTHREAD_MUTEX_INITIALIZER;
 #define SCHED_UNLOCK() ((void)0)
 #endif
 #ifndef KIGUMI_FREESTANDING
-// Set by rt_stack_guard.c: the low end of this thread's stack, or 0 while no guard is installed.
+// Set by rt_stack_guard_hosted.c: the low end of this thread's stack, or 0 while no guard is installed.
 KG_TLS uintptr_t rt_stack_floor;
 KG_TLS uintptr_t rt_stack_saved;
 KG_TLS int rt_stack_forced;
@@ -1247,7 +1247,7 @@ val rt_copy_mut(val v) {
 
 #ifdef KIGUMI_INT128
 static int64_t truncate_to(int64_t v, int nk);
-#include "rt_int128.c.inc"
+#include "rt_int128.inc"
 void rt_const_int128(void* slot, int nk, int64_t lo, int64_t hi) {
     val v = (val)slot;
     v->kind = K_INT;
@@ -2844,7 +2844,7 @@ val rt_future_settle(val fut) {
 }
 
 #ifdef KIGUMI_CAP_TASK_EXECUTOR
-#include "rt_cap_task_executor.c.inc"
+#include "rt_cap_task_executor.inc"
 #endif
 // The scope closes only when the body leaving is the task's own Future.
 val rt_task_close(val fut) {
@@ -2856,7 +2856,7 @@ val rt_task_close(val fut) {
     return rt_unit();
 }
 #if !defined(KIGUMI_FREESTANDING) && defined(KIGUMI_CAP_TASK_BLOCKING_POOL)
-#include "rt_cap_task_blocking_pool.c.inc"
+#include "rt_cap_task_blocking_pool.inc"
 #endif
 static val poll_value(val v) {
     val d = deref(v);
@@ -3405,45 +3405,45 @@ static int subtle_constant_time_eq(val a, val b) {
     return diff == 0;
 }
 #ifdef KIGUMI_CAP_FFI_CSTRING
-#include "rt_cap_ffi_cstring.c.inc"
+#include "rt_cap_ffi_cstring.inc"
 #endif
 #ifdef KIGUMI_CAP_FFI_PIN
-#include "rt_cap_ffi_pin.c.inc"
+#include "rt_cap_ffi_pin.inc"
 #endif
 #ifdef KIGUMI_CAP_FFI_RAW
-#include "rt_cap_ffi_raw.c.inc"
+#include "rt_cap_ffi_raw.inc"
 #endif
 #ifdef KIGUMI_CAP_FFI_HANDLE_TABLE
-#include "rt_cap_ffi_handle_table.c.inc"
+#include "rt_cap_ffi_handle_table.inc"
 #endif
 #ifdef KIGUMI_CAP_MEM_SECURE_ERASE
-#include "rt_cap_mem_secure_erase.c.inc"
+#include "rt_cap_mem_secure_erase.inc"
 #endif
 #ifdef KIGUMI_CAP_HOST_SHELL
-#include "rt_cap_host_shell.c.inc"
+#include "rt_cap_host_shell.inc"
 #endif
 #ifdef KIGUMI_CAP_HOST_ARGS
-#include "rt_cap_host_args.c.inc"
+#include "rt_cap_host_args.inc"
 #endif
 #ifdef KIGUMI_CAP_HOST_FILES
-#include "rt_cap_host_files.c.inc"
+#include "rt_cap_host_files.inc"
 #endif
 #ifdef KIGUMI_CAP_HOST_NET
-#include "rt_cap_host_net.c.inc"
+#include "rt_cap_host_net.inc"
 #endif
 #ifdef KIGUMI_CAP_HOST_DL
-#include "rt_cap_host_dl.c.inc"
+#include "rt_cap_host_dl.inc"
 #endif
 #ifdef KIGUMI_CAP_HOST_ENTROPY
-#include "rt_cap_host_entropy.c.inc"
+#include "rt_cap_host_entropy.inc"
 #endif
 #ifdef KIGUMI_CAP_HOST_SIGNALS
-#include "rt_cap_host_signals.c.inc"
+#include "rt_cap_host_signals.inc"
 #endif
 #ifdef KIGUMI_CAP_HOST_STDIO
-#include "rt_cap_host_stdio.c.inc"
+#include "rt_cap_host_stdio.inc"
 #endif
-#include "rt_try_text.c.inc"
+#include "rt_std_text.inc"
 // A constructor keeps its argument as is: an interface value must stay a witness-carrying box inside the cell.
 static int op_stores_a0(int op) {
     return op == OP_BOX_TRY_NEW || op == OP_SHARED_TRY_NEW || op == OP_UCELL_NEW;

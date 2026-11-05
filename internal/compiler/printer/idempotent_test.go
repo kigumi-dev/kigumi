@@ -1,6 +1,7 @@
 package printer_test
 
 import (
+	devfixture "kigumi/internal/devkit/fixture"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -59,7 +60,13 @@ func TestIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if len(files) == 0 {
+		t.Fatal("no parser fixtures")
+	}
 	for _, path := range files {
+		if !devfixture.Shard(filepath.Base(path)) {
+			continue
+		}
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			src := readSrc(t, path)
 			tree := syntax.Parse(token.NewFile("a", []byte(src)))
@@ -128,7 +135,13 @@ func TestFmtCorpus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if len(files) == 0 {
+		t.Fatal("no fmt fixtures")
+	}
 	for _, path := range files {
+		if !devfixture.Shard(filepath.Base(path)) {
+			continue
+		}
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			raw, err := os.ReadFile(path)
 			if err != nil {
@@ -143,6 +156,12 @@ func TestFmtCorpus(t *testing.T) {
 				}
 			}
 			got := printer.Print(tree)
+			if reparsed := syntax.Parse(token.NewFile("b", []byte(got))); hasSyntaxError(reparsed) {
+				t.Fatalf("formatted output does not parse:\n%s\n%v", got, reparsed.Diags[0])
+			}
+			if again := printer.Print(syntax.Parse(token.NewFile("b", []byte(got)))); again != got {
+				t.Errorf("second run differs\n--- first ---\n%s--- second ---\n%s", got, again)
+			}
 			if os.Getenv("UPDATE") == "1" {
 				os.WriteFile(path, []byte("-- src --\n"+src+"-- expect --\n"+got), 0o644)
 				return
@@ -150,11 +169,17 @@ func TestFmtCorpus(t *testing.T) {
 			if want := string(raw[i+len("-- expect --\n"):]); got != want {
 				t.Errorf("mismatch\n--- got ---\n%s--- want ---\n%s", got, want)
 			}
-			if again := printer.Print(syntax.Parse(token.NewFile("b", []byte(got)))); again != got {
-				t.Errorf("second run differs\n--- first ---\n%s--- second ---\n%s", got, again)
-			}
 		})
 	}
+}
+
+func hasSyntaxError(tree *syntax.Tree) bool {
+	for _, d := range tree.Diags {
+		if d.Severity == diag.Error {
+			return true
+		}
+	}
+	return false
 }
 
 func readSrc(t *testing.T, path string) string {

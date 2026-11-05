@@ -1,4 +1,4 @@
-// Declares core helpers rt.h doesn't expose, for rt_cap_*.c.inc to call.
+// Declares core helpers rt.h doesn't expose, for rt_cap_*.inc to call.
 #ifndef KIGUMI_RT_INTERNAL_H
 #define KIGUMI_RT_INTERNAL_H
 #include "rt.h"

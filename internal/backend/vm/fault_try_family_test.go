@@ -10,6 +10,7 @@ import (
 	"kigumi/internal/backend/vm"
 	mirbuild "kigumi/internal/compiler/mir/build"
 	mirplan "kigumi/internal/compiler/mir/plan"
+	devfixture "kigumi/internal/devkit/fixture"
 )
 
 // A refused allocation inside a try* call returns Err, and the Err run frees everything the unfaulted run does: the same live-object count at exit.
@@ -22,6 +23,9 @@ func TestFaultInjectionTryFamilyLeavesNothingLive(t *testing.T) {
 	quiesce()
 	for _, path := range files {
 		name := strings.TrimSuffix(filepath.Base(path), ".kg")
+		if !devfixture.Shard(name + ".kg") {
+			continue
+		}
 		t.Run(name, func(t *testing.T) {
 			src, err := os.ReadFile(path)
 			if err != nil {

@@ -2,6 +2,7 @@ package driver_test
 
 import (
 	"bytes"
+	devfixture "kigumi/internal/devkit/fixture"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,11 +15,17 @@ func TestIRDump(t *testing.T) {
 	t.Parallel()
 	out := os.Getenv("IRDUMP_DIR")
 	if out == "" {
-		t.Skip()
+		t.Skip("set IRDUMP_DIR to write one IR dump per run fixture")
 	}
 	std, _ := filepath.Abs("../../../std")
 	files, _ := filepath.Glob("../../../testdata/run/*.txtar")
+	if len(files) == 0 {
+		t.Fatal("no run fixtures")
+	}
 	for _, path := range files {
+		if !devfixture.Shard(filepath.Base(path)) {
+			continue
+		}
 		data, _ := os.ReadFile(path)
 		text := string(data)
 		i := strings.Index(text, "-- src --\n")

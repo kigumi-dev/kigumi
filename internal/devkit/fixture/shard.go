@@ -9,8 +9,8 @@ import (
 
 // Shard reports whether a corpus entry belongs to this test binary. KIGUMI_TEST_SHARD="i/n"
 // splits the fixtures across n test processes, one CI job each, so the corpus wall time is the
-// slowest shard rather than the sum. Unset or malformed runs everything, which keeps a plain
-// `go test` complete; the hash is over the fixture id so every package splits the same way.
+// slowest shard rather than the sum. Unset runs everything, which keeps a plain `go test`
+// complete; a malformed selector panics so a typo cannot silently run the whole corpus.
 func Shard(id string) bool {
 	i, n, ok := shardSpec()
 	if !ok {
@@ -31,25 +31,18 @@ func ShardShare(least int) int {
 	return max(1, least/n)
 }
 
-// Sharded reports whether KIGUMI_TEST_SHARD selected a subset, for checks that count the whole corpus.
-func Sharded() bool {
-	_, _, ok := shardSpec()
-	return ok
-}
-
 func shardSpec() (int, int, bool) {
 	spec := os.Getenv("KIGUMI_TEST_SHARD")
 	if spec == "" {
 		return 0, 0, false
 	}
 	index, count, found := strings.Cut(spec, "/")
-	if !found {
-		return 0, 0, false
+	if found {
+		i, err1 := strconv.Atoi(index)
+		n, err2 := strconv.Atoi(count)
+		if err1 == nil && err2 == nil && n > 0 && i >= 0 && i < n {
+			return i, n, true
+		}
 	}
-	i, err1 := strconv.Atoi(index)
-	n, err2 := strconv.Atoi(count)
-	if err1 != nil || err2 != nil || n <= 0 || i < 0 || i >= n {
-		return 0, 0, false
-	}
-	return i, n, true
+	panic("KIGUMI_TEST_SHARD: want <index>/<count> with 0 <= index < count, got " + strconv.Quote(spec))
 }

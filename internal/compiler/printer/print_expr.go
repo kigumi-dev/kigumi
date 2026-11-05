@@ -38,6 +38,7 @@ func (p *printer) expr(id syntax.NodeID) {
 	case syntax.Unary:
 		u := v.AsUnary()
 		p.write(u.Op().Text())
+		p.prefixSep(u.Operand().ID())
 		p.expr(u.Operand().ID())
 	case syntax.Binary:
 		p.binary(id)
@@ -136,8 +137,23 @@ func (p *printer) expr(id syntax.NodeID) {
 		p.write("&")
 		if b.Flags()&syntax.FlagMut != 0 {
 			p.write("mut ")
+		} else {
+			p.prefixSep(b.Operand().ID())
 		}
 		p.expr(b.Operand().ID())
+	}
+}
+
+// prefixSep writes a space when a prefix operator would otherwise fuse with the operand's first
+// token (`- -n` printed as `--n` is a different token). A lifetime stays joined: `&'a T`.
+func (p *printer) prefixSep(next syntax.NodeID) {
+	text := p.t.View(next).Tok().Text()
+	if text == "" || text[0] == '\'' {
+		return
+	}
+	switch text[0] {
+	case '!', '~', '*', '%', '+', '-', '=', '<', '>', '&', '^', '|':
+		p.write(" ")
 	}
 }
 

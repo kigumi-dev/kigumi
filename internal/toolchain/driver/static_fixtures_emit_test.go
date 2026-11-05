@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/sem"
+	devfixture "kigumi/internal/devkit/fixture"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -23,7 +24,13 @@ func TestConstFixturesEmitNatively(t *testing.T) {
 func emitFixturesNatively(t *testing.T, marker string, declares func(*sem.Result) bool) {
 	manifest := loadManifest(t)
 	files, _ := filepath.Glob("../../../testdata/run/*.txtar")
+	if len(files) == 0 {
+		t.Fatal("no run fixtures")
+	}
 	for _, path := range files {
+		if !devfixture.Shard(filepath.Base(path)) {
+			continue
+		}
 		data, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)

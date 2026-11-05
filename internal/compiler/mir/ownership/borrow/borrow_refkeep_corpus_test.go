@@ -11,6 +11,7 @@ import (
 
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
+	devfixture "kigumi/internal/devkit/fixture"
 	"kigumi/internal/devkit/semfixture"
 	"kigumi/internal/lang/token"
 	"kigumi/internal/toolchain/contract/schema"
@@ -50,8 +51,14 @@ func TestWitnessSetsKeepNoLess(t *testing.T) {
 	std := semfixture.LoadStd(t, "../../../../../std")
 	run, _ := filepath.Glob("../../../../../testdata/run/*.txtar")
 	planned, _ := filepath.Glob("../../../../../testdata/sem/*.txtar")
+	if len(run) == 0 || len(planned) == 0 {
+		t.Fatal("no run or sem fixtures")
+	}
 	t.Run("corpus", func(t *testing.T) {
 		for _, path := range slices.Concat(run, planned) {
+			if !devfixture.Shard(filepath.Base(path)) {
+				continue
+			}
 			data, _ := os.ReadFile(path)
 			src, ok := corpusSource(string(data), strings.Contains(path, "/sem/"))
 			if !ok {

@@ -1,6 +1,7 @@
 package syntax_test
 
 import (
+	devfixture "kigumi/internal/devkit/fixture"
 	"os"
 	"path/filepath"
 	"slices"
@@ -25,6 +26,9 @@ func TestParserCorpus(t *testing.T) {
 		t.Fatal("no fixtures found")
 	}
 	for _, path := range files {
+		if !devfixture.Shard(filepath.Base(path)) {
+			continue
+		}
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			raw, err := os.ReadFile(path)
 			if err != nil {

@@ -224,6 +224,9 @@ func sweepFixtureRun(t *testing.T, fx sweepFixture, mutations int, tot *sweepTot
 
 func TestUnitSweepSemFixtures(t *testing.T) {
 	paths, _ := filepath.Glob("../../../testdata/sem/*.txtar")
+	if len(paths) == 0 {
+		t.Fatal("no sem fixtures")
+	}
 	var tot sweepTotals
 	singles := 0
 	for _, p := range paths {

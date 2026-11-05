@@ -18,6 +18,9 @@ import (
 // satisfy the contract, and ask for no conformance sem had not settled before sealing the witness table.
 func TestVerifyCorpus(t *testing.T) {
 	files, _ := filepath.Glob("../../../../testdata/run/*.txtar")
+	if len(files) == 0 {
+		t.Fatal("no run fixtures")
+	}
 	for _, path := range files {
 		if !fixture.Shard(filepath.Base(path)) {
 			continue

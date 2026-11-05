@@ -210,7 +210,7 @@ func TestBuildFreestandingNoCloseSymbol(t *testing.T) {
 // so a new runtime libc call (the close(2) case above) could silently
 // break one. This builds an archive from a program importing a broad set
 // of std packages, computes the symbols left undefined after the archive's
-// own objects resolve each other (rt_core.c calling into rt_sys.c, say),
+// own objects resolve each other (rt_core.c calling into rt_sys_weak.c, say),
 // and checks every one is in internal/backend/llgen/runtime/freestanding_symbols.txt.
 func TestBuildFreestandingSymbolSet(t *testing.T) {
 	requireZig(t) // the archive leaves compiler-rt symbols for the embedder, as zig builds them
@@ -313,7 +313,7 @@ func checkFreestandingSymbols(t *testing.T, triple, src string) {
 		if defined[name] || allowed[name] {
 			continue
 		}
-		t.Errorf("freestanding archive requires undefined symbol %q, missing from internal/backend/llgen/runtime/freestanding_symbols.txt; add it there if it is an intentional libc dependency, or implement it in rt_core.c/rt_sys.c otherwise", name)
+		t.Errorf("freestanding archive requires undefined symbol %q, missing from internal/backend/llgen/runtime/freestanding_symbols.txt; add it there if it is an intentional libc dependency, or implement it in rt_core.c/rt_sys_weak.c otherwise", name)
 	}
 }
 

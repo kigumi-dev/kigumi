@@ -1,6 +1,7 @@
 package build_test
 
 import (
+	devfixture "kigumi/internal/devkit/fixture"
 	"os"
 	"path/filepath"
 	"testing"
@@ -15,11 +16,17 @@ import (
 func TestMirDump(t *testing.T) {
 	out := os.Getenv("MIRDUMP_DIR")
 	if out == "" {
-		t.Skip()
+		t.Skip("set MIRDUMP_DIR to write one MIR dump per run fixture")
 	}
 	std := semfixture.LoadStd(t, "../../../../std")
 	files, _ := filepath.Glob("../../../../testdata/run/*.txtar")
+	if len(files) == 0 {
+		t.Fatal("no run fixtures")
+	}
 	for _, path := range files {
+		if !devfixture.Shard(filepath.Base(path)) {
+			continue
+		}
 		res, _, _ := mirfixture.CheckFixture(t, path, std)
 		prog := mirbuild.Program(res)
 		os.WriteFile(filepath.Join(out, filepath.Base(path)+".mir"), []byte(prog.Dump()+prog.Render()), 0o644)

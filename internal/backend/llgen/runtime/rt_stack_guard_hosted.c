@@ -1,5 +1,5 @@
 // Hosted POSIX only: a guard-page fault becomes the runtime's "stack overflow" panic, and the hash seed comes from the OS.
-// Other targets keep the weak defaults in rt_sys.c.
+// Other targets keep the weak defaults in rt_sys_weak.c.
 #define _GNU_SOURCE
 #include <pthread.h>
 #include <signal.h>

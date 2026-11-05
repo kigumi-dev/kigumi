@@ -1,0 +1,23 @@
+-- src --
+type W1 = { pub f Int }
+fn g(ws: Array[W1]) -> Int {
+    let mut n = 0
+    for W1 { f } in ws {
+        n = n + f
+    }
+    n
+}
+-- expect --
+type W1 = {
+    pub f Int
+}
+
+fn g(ws: Array[W1]) -> Int {
+    let mut n = 0
+    for W1 {
+        f
+    } in ws {
+        n = n + f
+    }
+    n
+}

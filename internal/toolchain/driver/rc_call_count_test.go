@@ -515,6 +515,9 @@ var addedAfterBaseline = map[string]bool{
 func TestRCCallCounts(t *testing.T) {
 	manifest := loadManifest(t)
 	files, _ := filepath.Glob("../../../testdata/run/*.txtar")
+	if len(files) == 0 {
+		t.Fatal("no run fixtures")
+	}
 	var mu sync.Mutex
 	totals := map[string]int{}
 	baseline := map[string]int{}

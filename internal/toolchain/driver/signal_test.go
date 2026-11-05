@@ -71,7 +71,7 @@ print "pending=${got}"
 // TestSignalWatchPending sends a real SIGINT (syscall.Kill) to itself for
 // the VM, and to the child process for a native build, and checks
 // watch/pending observes it without crashing: the C-side handler
-// (rt_signal.c) only sets a flag, so it never re-enters the refcounted
+// (rt_signal_hosted.c) only sets a flag, so it never re-enters the refcounted
 // runtime the way running arbitrary Kigumi from signal context would.
 func TestSignalWatchPending(t *testing.T) {
 	std, _ := filepath.Abs("../../../std")

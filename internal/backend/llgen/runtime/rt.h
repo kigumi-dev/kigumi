@@ -128,7 +128,7 @@ typedef struct {
     size_t len, cap;
 } buf;
 
-// ---- system layer (rt_sys.c; hosted std overrides the weak symbols) ----
+// ---- system layer (rt_sys_weak.c; hosted std overrides the weak symbols) ----
 void rt_sys_write(int fd, const char* p, size_t n);
 void rt_sys_exit(int code);
 int rt_sys_close(int fd);

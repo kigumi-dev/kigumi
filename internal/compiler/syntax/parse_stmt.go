@@ -146,7 +146,12 @@ func (p *parser) hasTopLevelIn() bool {
 			if depth == 0 {
 				return true
 			}
-		case token.Newline, token.EOF:
+		case token.Newline:
+			// A newline inside a pattern's `{...}` does not end the for header.
+			if depth <= 0 {
+				return false
+			}
+		case token.EOF:
 			return false
 		}
 		if depth < 0 {

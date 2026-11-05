@@ -30,9 +30,6 @@ func TestSemCorpus(t *testing.T) {
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			t.Parallel()
 			fx := parseFixture(t, path)
-			if p := fx.opt("pending", ""); p != "" {
-				t.Skipf("pending: %s", p)
-			}
 			if fx.opt("stage", "sem") == "driver" {
 				t.Skip("checked with a resolved target by internal/toolchain/driver's TestSemDriverFixtures")
 			}

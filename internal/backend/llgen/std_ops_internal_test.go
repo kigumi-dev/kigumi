@@ -162,7 +162,7 @@ func TestRuntimeCapFileCommentRuns(t *testing.T) {
 }
 
 func TestLlgenGoSourceCommentRuns(t *testing.T) {
-	for _, name := range []string{"std_ops_internal_test.go", "runtime_files.go"} {
+	for _, name := range []string{"std_ops_internal_test.go", "runtime_embed.go"} {
 		src, err := os.ReadFile(name)
 		if err != nil {
 			t.Fatal(err)

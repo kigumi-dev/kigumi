@@ -54,7 +54,7 @@ func (c Capability) HeapBacked() bool { return heapBacked[c] }
 func (c Capability) HasSource() bool { return c != CapTaskThreads }
 
 func (c Capability) SourceFile() string {
-	return "rt_cap_" + strings.NewReplacer(".", "_", "-", "_").Replace(string(c)) + ".c.inc"
+	return "rt_cap_" + strings.NewReplacer(".", "_", "-", "_").Replace(string(c)) + ".inc"
 }
 
 func (id StdOpId) Capability() (Capability, bool) {

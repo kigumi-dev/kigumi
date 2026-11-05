@@ -2,7 +2,7 @@ package llgen
 
 import "testing"
 
-// TestRuntimeFilesSignalGating checks rt_signal.c drops out for every OS
+// TestRuntimeFilesSignalGating checks rt_signal_hosted.c drops out for every OS
 // without POSIX <signal.h>, not just for "--sys none"/freestanding.
 func TestRuntimeFilesSignalGating(t *testing.T) {
 	has := func(files []RuntimeFile, name string) bool {
@@ -28,9 +28,9 @@ func TestRuntimeFilesSignalGating(t *testing.T) {
 		{"none", "freestanding", false},
 	}
 	for _, c := range cases {
-		got := has(RuntimeFiles(c.sys, c.os), "rt_signal.c")
+		got := has(RuntimeFiles(c.sys, c.os), "rt_signal_hosted.c")
 		if got != c.want {
-			t.Errorf("RuntimeFiles(%q, %q) has rt_signal.c = %v, want %v", c.sys, c.os, got, c.want)
+			t.Errorf("RuntimeFiles(%q, %q) has rt_signal_hosted.c = %v, want %v", c.sys, c.os, got, c.want)
 		}
 	}
 }

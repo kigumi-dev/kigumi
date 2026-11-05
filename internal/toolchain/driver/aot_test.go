@@ -20,6 +20,9 @@ func TestAotCorpus(t *testing.T) {
 	}
 	manifest := loadManifest(t)
 	files, _ := filepath.Glob("../../../testdata/run/*.txtar")
+	if len(files) == 0 {
+		t.Fatal("no run fixtures")
+	}
 	var want, ran atomic.Int64
 	var live map[string]int64
 	if countsNativeLive() {

@@ -18,15 +18,12 @@ type StderrMatch struct {
 
 // Fixture is one corpus entry: a file on disk plus what must hold of it.
 type Fixture struct {
-	ID       string            `json:"id"`
-	Kind     string            `json:"kind"`
-	Path     string            `json:"path"`
-	Mode     []string          `json:"mode"`
-	Target   []string          `json:"target,omitempty"`
-	Requires []string          `json:"requires,omitempty"`
-	Observes []string          `json:"observes"`
-	Stderr   *StderrMatch      `json:"stderr,omitempty"`
-	Skip     map[string]string `json:"skip,omitempty"` // excluded engine/target -> reason code
+	ID     string            `json:"id"`
+	Kind   string            `json:"kind"`
+	Path   string            `json:"path"`
+	Mode   []string          `json:"mode"`
+	Stderr *StderrMatch      `json:"stderr,omitempty"`
+	Skip   map[string]string `json:"skip,omitempty"` // excluded engine/target -> reason code
 }
 
 // Manifest is the full testdata/manifest.json document.
