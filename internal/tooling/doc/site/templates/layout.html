@@ -1,0 +1,28 @@
+{{define "layout"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{.Title}}</title>
+<script>{{.ThemeInit}}</script>
+<style>{{.CSS}}</style>
+</head>
+<body>
+<a class="skip-link" href="#kg-content">Skip to content</a>
+{{template "topbar" .}}
+<div class="layout{{if .TOC}} has-toc{{end}}">
+<aside class="sidebar" id="kg-sidebar">
+<div class="sidebar-head"><span>Packages</span><button class="icon-button" type="button" data-nav-close aria-label="Close packages">{{template "icon-close"}}</button></div>
+{{template "nav" .}}
+</aside>
+<main class="content" id="kg-content">
+{{template "main" .}}
+</main>
+{{if .TOC}}{{template "toc" .}}{{end}}
+</div>
+<div class="scrim" data-nav-close></div>
+<script>{{.JS}}</script>
+</body>
+</html>
+{{end}}

@@ -28,7 +28,11 @@ func run(io session.IO, opts options) error {
 			title = m.Name
 		}
 		files := make(map[string][]byte)
-		for name, text := range docgen.HTML(pages, title) {
+		site, err := docgen.HTML(pages, title)
+		if err != nil {
+			return errors.WrapErr(err, "render doc site")
+		}
+		for name, text := range site {
 			files[name] = []byte(text)
 		}
 		if err := docgen.Publish(opts.outDir, files, docgen.ValidateSite); err != nil {

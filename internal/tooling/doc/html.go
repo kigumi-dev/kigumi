@@ -1,38 +1,74 @@
 package doc
 
 import (
-	"html"
+	"html/template"
 	"path"
 	"sort"
 	"strings"
 )
 
 // HTML renders the Markdown pages as a static site: one page per package
-// plus index.html, styled inline so the output needs no other file. Every
-// href is relative to the page that carries it, so the site works from any
-// directory depth. The Markdown is our own (headings, fenced code, list
-// items, paragraphs), so a small converter covers it.
-func HTML(pages map[string]string, title string) map[string]string {
+// plus index.html. The site is self-contained (inline CSS and JS) so it works
+// offline and from any directory depth. Every href is relative to the page
+// that carries it.
+//
+// Markup lives in site/templates and assets in site/assets; this file only
+// shapes the view data. The templates are parsed from the embedded copy and
+// execute through html/template, which applies contextual escaping.
+func HTML(pages map[string]string, title string) (map[string]string, error) {
+	renderer, err := newSiteRenderer()
+	if err != nil {
+		return nil, err
+	}
 	paths := make([]string, 0, len(pages))
 	for p := range pages {
 		paths = append(paths, p)
 	}
 	sort.Strings(paths)
 	indexName := IndexFileName(paths, ".html", "index.html")
-	out := map[string]string{}
+	groups := groupPackages(paths)
+
+	out := make(map[string]string, len(paths)+1)
 	for _, p := range paths {
 		selfDir := pageDir(p)
-		nav := navHTML(paths, selfDir, p, indexName)
-		out[p+".html"] = page(p+" - "+title, nav, markdownToHTML(pages[p], selfDir))
+		body, toc := markdownPage(pages[p], selfDir)
+		navGroups, navTitles := navView(groups, selfDir, p)
+		html, err := renderer.render(renderer.page, pageData{
+			Title:     p + " - " + title,
+			SiteTitle: title,
+			IndexHref: relHref(selfDir, indexName),
+			Current:   p,
+			NavTitles: navTitles,
+			NavGroups: navGroups,
+			TOC:       toc,
+			Body:      template.HTML(body),
+			CSS:       renderer.css,
+			JS:        renderer.js,
+			ThemeInit: renderer.themeInit,
+		})
+		if err != nil {
+			return nil, err
+		}
+		out[p+".html"] = html
 	}
-	var index strings.Builder
-	index.WriteString("<h1>" + html.EscapeString(title) + "</h1>\n<ul>\n")
-	for _, p := range paths {
-		index.WriteString("<li><a href=\"" + html.EscapeString(p) + ".html\">" + html.EscapeString(p) + "</a></li>\n")
+	navGroups, navTitles := navView(groups, "", "")
+	html, err := renderer.render(renderer.index, pageData{
+		Title:        title,
+		SiteTitle:    title,
+		IndexHref:    relHref("", indexName),
+		NavTitles:    navTitles,
+		NavGroups:    navGroups,
+		CSS:          renderer.css,
+		JS:           renderer.js,
+		ThemeInit:    renderer.themeInit,
+		PackageCount: len(paths),
+		IndexGroups:  indexView(groups),
+	})
+	if err != nil {
+		return nil, err
 	}
-	index.WriteString("</ul>\n")
-	out[indexName] = page(title, navHTML(paths, "", "", indexName), index.String())
-	return out
+	out[indexName] = html
+	return out, nil
 }
 
 // pageDir is the root-relative directory a page's file lives in; "" at the site root.
@@ -52,40 +88,201 @@ func relHref(selfDir, target string) string {
 	return strings.Repeat("../", strings.Count(selfDir, "/")+1) + target
 }
 
-func navHTML(paths []string, selfDir, current, indexName string) string {
-	var sb strings.Builder
-	sb.WriteString("<nav>")
-	writeNavLink(&sb, relHref(selfDir, indexName), "Packages", current == "")
+type packageItem struct {
+	path  string // full package path, used for hrefs and filtering
+	label string // path relative to its group, used as the visible label
+}
+
+type packageGroup struct {
+	name  string // first path element, or "" for top-level packages
+	items []packageItem
+}
+
+// groupPackages buckets packages for the sidebar and index. A single package
+// stays alone (its full path is the label). Several packages that share a
+// directory prefix form one group: std/array and std/crypto/subtle become
+// "std" with "array" and "crypto/subtle". Otherwise the first path element is
+// the group, so unrelated roots still read as a tree.
+func groupPackages(paths []string) []packageGroup {
+	if len(paths) <= 1 {
+		g := packageGroup{}
+		for _, p := range paths {
+			g.items = append(g.items, packageItem{path: p, label: p})
+		}
+		return []packageGroup{g}
+	}
+	if prefix := commonDirPrefix(paths); prefix != "" {
+		g := packageGroup{name: strings.TrimSuffix(prefix, "/")}
+		for _, p := range paths {
+			label := strings.TrimPrefix(p, prefix)
+			if label == "" {
+				label = path.Base(p)
+			}
+			g.items = append(g.items, packageItem{path: p, label: label})
+		}
+		return []packageGroup{g}
+	}
+
+	byName := make(map[string]*packageGroup)
+	var names []string
 	for _, p := range paths {
-		writeNavLink(&sb, relHref(selfDir, p+".html"), p, p == current)
+		name, label := "", p
+		if i := strings.IndexByte(p, '/'); i >= 0 {
+			name, label = p[:i], p[i+1:]
+		}
+		g := byName[name]
+		if g == nil {
+			g = &packageGroup{name: name}
+			byName[name] = g
+			names = append(names, name)
+		}
+		g.items = append(g.items, packageItem{path: p, label: label})
 	}
-	sb.WriteString("</nav>\n")
-	return sb.String()
+	sort.Slice(names, func(i, j int) bool {
+		if names[i] == "" {
+			return true
+		}
+		if names[j] == "" {
+			return false
+		}
+		return names[i] < names[j]
+	})
+	out := make([]packageGroup, 0, len(names))
+	for _, name := range names {
+		out = append(out, *byName[name])
+	}
+	return out
 }
 
-func writeNavLink(sb *strings.Builder, href, text string, isCurrent bool) {
-	sb.WriteString("<a href=\"" + html.EscapeString(href) + "\"")
-	if isCurrent {
-		sb.WriteString(" aria-current=\"page\"")
+// commonDirPrefix returns the shared directory prefix of every package,
+// including its trailing slash, or "" when there is none.
+func commonDirPrefix(paths []string) string {
+	if len(paths) < 2 {
+		return ""
 	}
-	sb.WriteString(">" + html.EscapeString(text) + "</a>\n")
+	parts := strings.Split(path.Dir(paths[0]), "/")
+	if len(parts) == 1 && parts[0] == "." {
+		return ""
+	}
+	for _, p := range paths[1:] {
+		other := strings.Split(path.Dir(p), "/")
+		n := 0
+		for n < len(parts) && n < len(other) && parts[n] == other[n] {
+			n++
+		}
+		parts = parts[:n]
+		if len(parts) == 0 {
+			return ""
+		}
+	}
+	return strings.Join(parts, "/") + "/"
 }
 
-const style = `body{margin:0;font:15px/1.5 system-ui,sans-serif;color:#1f2328;background:#fff}
-main{max-width:56rem;margin:0 auto;padding:1.5rem 2rem 4rem}
-nav{border-bottom:1px solid #d0d7de;padding:.5rem 2rem;display:flex;flex-wrap:wrap;gap:.25rem 1rem;font-size:14px}
-a{color:#0969da;text-decoration:none}a:hover{text-decoration:underline}
-a[aria-current="page"]{color:inherit;font-weight:600;text-decoration:none}
-h1{font-size:1.8rem}h2{border-bottom:1px solid #d0d7de;padding-bottom:.25rem;margin-top:2rem}
-h3{margin-top:1.5rem}h4{margin:1rem 0 0 1rem}
-pre{background:#f6f8fa;border-radius:6px;padding:.75rem 1rem;overflow-x:auto}
-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em}
-p code{background:#f6f8fa;border-radius:4px;padding:0 .25em}
-.tok-kw{color:#cf222e}.tok-lit{color:#0a3069}.tok-com{color:#6e7781}
-@media(prefers-color-scheme:dark){body{color:#e6edf3;background:#0d1117}nav{border-color:#30363d}h2{border-color:#30363d}pre,p code{background:#161b22}a{color:#58a6ff}
-.tok-kw{color:#ff7b72}.tok-lit{color:#a5d6ff}.tok-com{color:#8b949e}}`
+func showGroupTitles(groups []packageGroup) bool {
+	return len(groups) > 1 || (len(groups) == 1 && groups[0].name != "")
+}
 
-func page(title, nav, body string) string {
-	return "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>" +
-		html.EscapeString(title) + "</title>\n<style>" + style + "</style>\n</head>\n<body>\n" + nav + "<main>\n" + body + "</main>\n</body>\n</html>\n"
+func groupLabel(g packageGroup) string {
+	if g.name == "" {
+		return "Top level"
+	}
+	return g.name
+}
+
+type navItemView struct {
+	Path    string
+	Label   string
+	Href    string
+	Search  string
+	Current bool
+}
+
+type navGroupView struct {
+	Label string
+	Count int
+	Items []navItemView
+}
+
+func navView(groups []packageGroup, selfDir, current string) ([]navGroupView, bool) {
+	out := make([]navGroupView, 0, len(groups))
+	for _, g := range groups {
+		items := make([]navItemView, 0, len(g.items))
+		for _, it := range g.items {
+			items = append(items, navItemView{
+				Path:    it.path,
+				Label:   it.label,
+				Href:    relHref(selfDir, it.path+".html"),
+				Search:  strings.ToLower(it.path),
+				Current: it.path == current,
+			})
+		}
+		out = append(out, navGroupView{
+			Label: groupLabel(g),
+			Count: len(g.items),
+			Items: items,
+		})
+	}
+	return out, showGroupTitles(groups)
+}
+
+type indexItemView struct {
+	Name     string
+	Path     string
+	Href     string
+	Search   string
+	ShowPath bool
+}
+
+type indexGroupView struct {
+	Label string
+	Count int
+	Items []indexItemView
+}
+
+func indexView(groups []packageGroup) []indexGroupView {
+	out := make([]indexGroupView, 0, len(groups))
+	for _, g := range groups {
+		items := make([]indexItemView, 0, len(g.items))
+		for _, it := range g.items {
+			items = append(items, indexItemView{
+				Name:     it.label,
+				Path:     it.path,
+				Href:     it.path + ".html",
+				Search:   strings.ToLower(it.path),
+				ShowPath: it.label != it.path,
+			})
+		}
+		out = append(out, indexGroupView{
+			Label: groupLabel(g),
+			Count: len(g.items),
+			Items: items,
+		})
+	}
+	return out
+}
+
+type tocEntry struct {
+	ID    string
+	Text  string
+	Level int
+}
+
+type pageData struct {
+	Title     string
+	SiteTitle string
+	IndexHref string
+	Current   string
+
+	NavTitles bool
+	NavGroups []navGroupView
+
+	TOC  []tocEntry
+	Body template.HTML
+
+	CSS       template.CSS
+	JS        template.JS
+	ThemeInit template.JS
+
+	PackageCount int
+	IndexGroups  []indexGroupView
 }

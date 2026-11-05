@@ -19,7 +19,10 @@ func runExamples(io session.IO, opts examplesOptions) error {
 		if opts.outDir == "" {
 			return &exit.UsageError{Err: errors.NewErrf("--html needs -o <dir>")}
 		}
-		site := docgen.HTML(map[string]string{"examples": md}, "Examples")
+		site, err := docgen.HTML(map[string]string{"examples": md}, "Examples")
+		if err != nil {
+			return errors.WrapErr(err, "render examples catalog")
+		}
 		files := make(map[string][]byte, len(site))
 		for name, text := range site {
 			files[name] = []byte(text)

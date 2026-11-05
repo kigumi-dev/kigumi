@@ -1,0 +1,40 @@
+{{define "topbar"}}
+<header class="topbar">
+<button class="icon-button nav-toggle" type="button" data-nav-toggle aria-label="Open packages" aria-expanded="false" aria-controls="kg-sidebar">{{template "icon-menu"}}</button>
+<a class="brand" href="{{.IndexHref}}"><span class="brand-mark" aria-hidden="true">K</span><span class="brand-name">{{.SiteTitle}}</span></a>
+<label class="search" for="kg-search">{{template "icon-search"}}<input id="kg-search" type="search" placeholder="Filter packages" autocomplete="off" spellcheck="false"><kbd>/</kbd></label>
+<button class="icon-button theme-toggle" type="button" data-theme-toggle aria-label="Toggle color theme" title="Toggle color theme">{{template "icon-sun"}}{{template "icon-moon"}}</button>
+</header>
+{{end}}
+
+{{define "nav"}}
+<nav class="package-nav" aria-label="Packages">
+<a class="nav-home" href="{{.IndexHref}}"{{if eq .Current ""}} aria-current="page"{{end}}>{{template "icon-home"}}<span>All packages</span></a>
+{{range .NavGroups}}
+{{if $.NavTitles}}<div class="nav-group">{{end}}
+{{if $.NavTitles}}<p class="nav-group-title" title="{{.Label}}"><span>{{.Label}}</span><span class="nav-count">{{.Count}}</span></p>{{end}}
+<ul class="nav-list">
+{{range .Items}}<li data-search="{{.Search}}"><a class="nav-link{{if .Current}} is-current{{end}}"{{if .Current}} aria-current="page"{{end}} href="{{.Href}}" title="{{.Path}}"><span class="nav-label">{{.Label}}</span></a></li>{{end}}
+</ul>
+{{if $.NavTitles}}</div>{{end}}
+{{end}}
+<p class="nav-empty" hidden>No packages match.</p>
+</nav>
+{{end}}
+
+{{define "toc"}}
+<aside class="toc" aria-label="On this page">
+<nav>
+<p class="toc-title">On this page</p>
+<ul class="toc-list">
+{{range .TOC}}<li class="toc-depth-{{.Level}}"><a href="#{{.ID}}">{{.Text}}</a></li>{{end}}
+</ul>
+</nav>
+</aside>
+{{end}}
+
+{{define "mobile-toc"}}
+<details class="toc-mobile"><summary>On this page</summary><ul class="toc-list">
+{{range .TOC}}<li class="toc-depth-{{.Level}}"><a href="#{{.ID}}">{{.Text}}</a></li>{{end}}
+</ul></details>
+{{end}}
