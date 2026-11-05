@@ -161,12 +161,16 @@ fn renderResponse(resp: Response, headOnly: Bool, close: Bool) -> Outgoing! {
     }
     let close = close || wantsClose(&resp.headers, "HTTP/1.1")
     let bodyLen = if noBodyStatus(resp.status) {
-        None
+        if resp.status == 205 {
+            Some(0)
+        } else {
+            None
+        }
     } else {
         Some(resp.body.len())
     }
     let mut out = renderHead("HTTP/1.1 ${resp.status} ${reason(resp.status)}", &resp.headers, bodyLen, close)?
-    if !headOnly && bodyLen is Some(_) {
+    if !headOnly && bodyLen is Some(n) && n > 0 {
         out = out.concat(resp.body)
     }
     Outgoing {

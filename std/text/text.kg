@@ -26,15 +26,17 @@ pub pure fn tryLines(s: String) -> Result[Array[String], AllocError] {
     if end == 0 {
         return AllocError.wrap(out)
     }
+    let mut endedLf = false
     if s[end - 1] == 10 {
         end = end - 1
+        endedLf = true
     }
     let mut start: usize = 0
     let mut i: usize = 0
     for i <= end {
         if i == end || s[i] == 10 {
             let mut stop = i
-            if stop > start && s[stop - 1] == 13 {
+            if (i < end || endedLf) && stop > start && s[stop - 1] == 13 {
                 stop = stop - 1
             }
             out.tryPush(boundaryPiece(s, start, stop)?)?

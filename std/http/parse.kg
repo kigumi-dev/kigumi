@@ -186,7 +186,7 @@ fn parseHex(text: String) -> usize? {
 }
 
 fn noBodyStatus(status: Int) -> Bool {
-    (status >= 100 && status < 200) || status == 204 || status == 304
+    (status >= 100 && status < 200) || status == 204 || status == 205 || status == 304
 }
 
 // renderHead writes a head line and its fields; Content-Length, Transfer-Encoding

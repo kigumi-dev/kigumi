@@ -46,7 +46,7 @@ pub pure fn u64Le(data: Bytes, at: usize) -> u64? {
 
 /// `n` bytes at `at`, most-significant first; None past the end or for n > 8.
 pub pure fn uintBe(data: Bytes, at: usize, n: usize) -> u64? {
-    if n > 8 || at + n > data.len() {
+    if n > 8 || at > data.len() || n > data.len() - at {
         return None
     }
     let mut v: u64 = 0
@@ -60,7 +60,7 @@ pub pure fn uintBe(data: Bytes, at: usize, n: usize) -> u64? {
 
 /// `n` bytes at `at`, least-significant first; None past the end or for n > 8.
 pub pure fn uintLe(data: Bytes, at: usize, n: usize) -> u64? {
-    if n > 8 || at + n > data.len() {
+    if n > 8 || at > data.len() || n > data.len() - at {
         return None
     }
     let mut v: u64 = 0

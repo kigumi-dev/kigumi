@@ -23,6 +23,6 @@ newline: 1:<>
 two newlines: 2:<><>
 crlf: 2:<a><b>
 crlf blank: 3:<a><><b>
-lone cr end: 1:<x>
+lone cr end: 1:<x>
 cr middle: 3
 no terminator: 2:<a><b>

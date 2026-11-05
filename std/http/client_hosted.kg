@@ -94,16 +94,24 @@ fn parseUrl(url: String) -> Target! {
     if hasControlOrSpace(authority) || hasControlOrSpace(path) || indexOfByte(authority, 64) is Some(_) {
         fail InvalidUrl("bad authority or path")
     }
-    let colon = indexOfByte(authority, 58)
-    let host = if colon is Some(i) {
-        authority.sliceBytes(0, i) || ""
-    } else {
-        authority
-    }
-    let port = if colon is Some(i) {
-        parseDecimal(authority.sliceBytes(i + 1, authority.len()) || "") || fail InvalidUrl("bad port")
-    } else {
-        80
+    let mut host = authority
+    let mut port: usize = 80
+    if indexOfByte(authority, 91) is Some(left) {
+        let right = indexOfByte(authority, 93) || fail InvalidUrl("bad IPv6 host")
+        if right <= left + 1 {
+            fail InvalidUrl("bad IPv6 host")
+        }
+        host = authority.sliceBytes(left + 1, right) || ""
+        let after = authority.sliceBytes(right + 1, authority.len()) || ""
+        if after != "" {
+            if !after.startsWith(":") {
+                fail InvalidUrl("bad authority")
+            }
+            port = parseDecimal(after.sliceBytes(1, after.len()) || "") || fail InvalidUrl("bad port")
+        }
+    } else if indexOfByte(authority, 58) is Some(i) {
+        host = authority.sliceBytes(0, i) || ""
+        port = parseDecimal(authority.sliceBytes(i + 1, authority.len()) || "") || fail InvalidUrl("bad port")
     }
     if host == "" || port > 65535 {
         fail InvalidUrl("bad host or port")
@@ -166,7 +174,7 @@ pub async fn Session.send(mut self, req: Request) -> Response! {
     // bytes left after the framed body are an unsolicited response, so keep
     // them out of this session instead of serving them to the next request.
     let stray = self.wire.pending.len() > 0
-    self.open = !close && !readToEof && !stray && !wantsClose(&resp.headers, "HTTP/1.1")
+    self.open = resp.status != 101 && !close && !readToEof && !stray && !wantsClose(&resp.headers, "HTTP/1.1")
     resp
 }
 
@@ -181,7 +189,7 @@ async fn Wire.readResponse(mut self, headOnly: Bool, timeout: i64, maxBody: usiz
             let head = parseHead(self.consume(end), 1000)?
             scanned = 0
             let status = statusOf(head.first) || fail MalformedResponse("bad status line")
-            if status < 200 {
+            if status < 200 && status != 101 {
                 continue
             }
             let framing = if headOnly {

@@ -2871,6 +2871,15 @@
       ]
     },
     {
+      "id": "run/binary_offset_overflow",
+      "kind": "run",
+      "path": "testdata/run/binary_offset_overflow.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/bind_temp_share",
       "kind": "run",
       "path": "testdata/run/bind_temp_share.txtar",
@@ -10014,6 +10023,15 @@
       ]
     },
     {
+      "id": "run/text_lines_cr",
+      "kind": "run",
+      "path": "testdata/run/text_lines_cr.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/text_lines_crlf",
       "kind": "run",
       "path": "testdata/run/text_lines_crlf.txtar",
@@ -11327,6 +11345,14 @@
       ]
     },
     {
+      "id": "sem/borrow_receiver_branch_arg",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_receiver_branch_arg.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/borrow_reset_before_drop",
       "kind": "sem",
       "path": "testdata/sem/borrow_reset_before_drop.txtar",
@@ -11354,6 +11380,14 @@
       "id": "sem/borrow_root_kinds_err",
       "kind": "sem",
       "path": "testdata/sem/borrow_root_kinds_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/borrow_scalar_field_by_value",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_scalar_field_by_value.txtar",
       "mode": [
         "check"
       ]
@@ -14826,6 +14860,14 @@
       "id": "sem/mut_place_escape",
       "kind": "sem",
       "path": "testdata/sem/mut_place_escape.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/mut_place_record_literal",
+      "kind": "sem",
+      "path": "testdata/sem/mut_place_record_literal.txtar",
       "mode": [
         "check"
       ]

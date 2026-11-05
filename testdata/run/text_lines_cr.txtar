@@ -1,0 +1,19 @@
+-- src --
+import io from std/io
+import text from std/text
+import hex from std/encoding/hex
+
+fn hx(s: String) -> String {
+    hex.encode(s.toBytes())
+}
+let l = text.lines("a\r")
+print "${l.len()} ${hx(l.get(0) || "")}"
+let m = text.lines("a\n\r")
+print "${m.len()} ${hx(m.get(1) || "")}"
+let mut r = io.BufReader.new(io.BytesReader.new(b"a\r"))
+let line = (r.readLine() || None) || ""
+print "${hx(line)}"
+-- stdout --
+1 610d
+2 0d
+610d

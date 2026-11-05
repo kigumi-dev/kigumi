@@ -65,16 +65,21 @@ func (m *Machine) splitPieces(s, sep *obj) []*obj {
 }
 
 func linePieces(s []byte) []*obj {
-	if len(s) == 0 {
-		return nil
-	}
-	if s[len(s)-1] == 10 {
-		s = s[:len(s)-1]
-	}
 	var out []*obj
-	for _, line := range bytes.Split(s, []byte{10}) {
-		line = bytes.TrimSuffix(line, []byte{13})
-		out = append(out, mkStr(append([]byte{}, line...)))
+	for len(s) > 0 {
+		if i := bytes.IndexByte(s, '\n'); i >= 0 {
+			line := s[:i]
+			if len(line) > 0 && line[len(line)-1] == 13 {
+				line = line[:len(line)-1]
+			}
+			out = append(out, mkStr(append([]byte{}, line...)))
+			s = s[i+1:]
+			continue
+		}
+		// The unterminated last line keeps its CR; only a line ended by LF
+		// had a CRLF ending to remove.
+		out = append(out, mkStr(append([]byte{}, s...)))
+		break
 	}
 	return out
 }

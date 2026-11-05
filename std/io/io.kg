@@ -299,10 +299,12 @@ pub fn BufReader.readLine(mut self) -> String?! {
     match self.readUntil("\n".toBytes())? {
         Some(raw) -> {
             let mut end = raw.len()
+            let mut hadLf = false
             if end > 0 && raw[end - 1] == 10 {
                 end = end - 1
+                hadLf = true
             }
-            if end > 0 && raw[end - 1] == 13 {
+            if hadLf && end > 0 && raw[end - 1] == 13 {
                 end = end - 1
             }
             let line = raw.slice(0, end) || raw
