@@ -92,7 +92,18 @@ func shardSelection(t *testing.T, root string, shard int, pkg string) []string {
 	}
 	expr := strings.TrimSpace(string(out))
 	expr = strings.TrimSuffix(strings.TrimPrefix(expr, "^("), ")$")
-	return strings.Split(expr, "|")
+	// -run alternatives are a set: a repeated name is harmless after `go test`
+	// compiles it, and deduplicating keeps the partition assertion about
+	// membership rather than a spelling detail of the generated regex.
+	var names []string
+	seen := map[string]bool{}
+	for _, name := range strings.Split(expr, "|") {
+		if !seen[name] {
+			seen[name] = true
+			names = append(names, name)
+		}
+	}
+	return names
 }
 
 func contains(names []string, name string) bool {
