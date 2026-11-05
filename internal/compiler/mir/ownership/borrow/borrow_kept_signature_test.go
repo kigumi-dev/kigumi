@@ -27,7 +27,7 @@ fn readExistential(mut r: io.Reader, max: usize) -> Bytes! {
     Bytes.fromArray(&buf)
 }
 fn use(mut r: net.Conn) -> Bytes! { readExistential(r, 64) }
-fn copy(mut r: net.Conn, mut w: net.Conn) -> usize! { io.copy(r, w) }
+fn copy(mut r: net.Conn, mut w: net.Conn) -> usize! { io.copy(&mut r, &mut w) }
 `)
 	if p.HasErrors() {
 		t.Fatal(p.Render())

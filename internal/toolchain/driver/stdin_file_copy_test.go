@@ -19,7 +19,8 @@ let files = host.files()
 let path = fs.Path.fromString("copied.txt")?
 let mut f = files.create(path)?
 let mut stdin = host.stdin()
-let n = io.copy(stdin, f)?
+let n = io.copy(&mut stdin, &mut f)?
+f.close()?
 let content = files.readBytes(path)?
 print "copied=${n} content=${String.fromBytes(content) || "?"}"
 files.remove(path)?
