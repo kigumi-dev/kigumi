@@ -1,8 +1,10 @@
 import ffi from std/ffi
 
+// POSIX struct timespec is time_t + long; both are pointer-sized on Linux and
+// macOS, unlike i64, which the 32-bit Linux C ABI would truncate.
 type Timespec layout(C) = {
-    pub sec i64
-    pub nsec i64
+    pub sec isize
+    pub nsec isize
 }
 
 extern(C) {
@@ -20,7 +22,7 @@ pub fn now() -> Instant {
         clock_gettime(0, cv.ptr())
     }
     let ts = cv.get()
-    Instant { ms: ts.sec * 1000 + ts.nsec / 1000000 }
+    Instant { ms: ts.sec.toInt() * 1000 + ts.nsec.toInt() / 1000000 }
 }
 
 /// The current reading of the monotonic clock (`CLOCK_MONOTONIC`).
@@ -33,7 +35,7 @@ pub fn monotonic() -> Monotonic {
         clock_gettime(1, cv.ptr())
     }
     let ts = cv.get()
-    Monotonic { ticks: ts.sec * 1000 + ts.nsec / 1000000 }
+    Monotonic { ticks: ts.sec.toInt() * 1000 + ts.nsec.toInt() / 1000000 }
 }
 
 /// Pauses the current thread for millis milliseconds.
@@ -42,8 +44,8 @@ pub fn sleep(millis: i64) {
         return
     }
     let cv = ffi.CValue.new(Timespec {
-        sec: millis / 1000
-        nsec: millis % 1000 * 1000000
+        sec: (millis / 1000).toIsize()
+        nsec: (millis % 1000 * 1000000).toIsize()
     })
     _ = unsafe {
         nanosleep(ffi.toConst(cv.ptr()), ffi.toMut(ffi.null[Timespec]()))
