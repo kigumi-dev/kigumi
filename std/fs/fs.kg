@@ -68,3 +68,15 @@ pub fn Files.writeText(self, path: Path, text: String) -> Void! {
     }
     file.close()
 }
+
+/// The portable kind of a file-system entry.
+pub type Kind =
+    | Regular
+    | Directory
+    | Other
+
+/// Portable metadata for a path: its kind and, for a regular file, its size in bytes.
+pub type Stat = {
+    pub kind Kind
+    pub size i64
+}

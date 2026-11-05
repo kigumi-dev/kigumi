@@ -100,3 +100,8 @@ pub fn File.seekCurrent(self, offset: i64) -> i64! {
 pub fn File.seekEnd(self, offset: i64) -> i64! {
     panic()
 }
+
+/// Reports path metadata; a bare target has no file system.
+pub fn Files.stat(self, path: Path) -> Stat! {
+    panic()
+}

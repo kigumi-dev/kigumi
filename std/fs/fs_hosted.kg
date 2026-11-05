@@ -443,3 +443,42 @@ fn seekTo(f: *mut u8, offset: i64, whence: i32) -> i64! {
     }
     at.toInt()
 }
+
+/// Metadata for path: directory, regular file with its byte size, or another entry.
+pub fn Files.stat(self, path: Path) -> Stat! {
+    let c = ffi.CString.new(&path.text)?
+    let d = unsafe {
+        opendir(c.ptr())
+    }
+    if !ffi.isNull(ffi.toConst(d)) {
+        _ = unsafe {
+            closedir(d)
+        }
+        return Stat {
+            kind: Kind.Directory
+            size: 0
+        }
+    }
+    let mut file = self.open(path)?
+    if unsafe {
+        fseek(file.f, 0, 2)
+    } != 0 {
+        return Stat {
+            kind: Kind.Other
+            size: 0
+        }
+    }
+    let end = unsafe {
+        ftell(file.f)
+    }
+    if end < 0 {
+        return Stat {
+            kind: Kind.Other
+            size: 0
+        }
+    }
+    Stat {
+        kind: Kind.Regular
+        size: end.toInt()
+    }
+}

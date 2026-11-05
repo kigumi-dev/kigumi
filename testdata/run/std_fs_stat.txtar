@@ -1,0 +1,19 @@
+-- src --
+import fs from std/fs
+
+let files = host.files()
+let dir = fs.Path.fromString("/tmp/kigumi-std-fs-stat-dir").unwrap()
+let file = fs.Path.fromString("/tmp/kigumi-std-fs-stat-dir/file.txt").unwrap()
+files.mkdir(dir).unwrap()
+files.writeText(file, "abc").unwrap()
+let ds = files.stat(dir).unwrap()
+let fstat = files.stat(file).unwrap()
+print "dir=${ds.kind is fs.Kind.Directory} ${ds.size}"
+print "file=${fstat.kind is fs.Kind.Regular} ${fstat.size}"
+print "missing=${files.stat(fs.Path.fromString("/tmp/kigumi-std-fs-stat-nope").unwrap()) is Err(_)}"
+files.remove(file).unwrap()
+files.removeDir(dir).unwrap()
+-- stdout --
+dir=true 0
+file=true 3
+missing=true

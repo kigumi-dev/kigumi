@@ -96,6 +96,22 @@ func (m *Machine) registerFileReads() {
 		}
 		return m.ok(unitObj)
 	}
+	h["fs.Files.stat"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		info, err := os.Stat(m.resolvePath(pathText(a[1])))
+		if err != nil {
+			return m.errMsg(shell.OSErrText(err))
+		}
+		kind, size := "Other", int64(0)
+		switch {
+		case info.IsDir():
+			kind = "Directory"
+		case info.Mode().IsRegular():
+			kind, size = "Regular", info.Size()
+		}
+		stat := m.r.Types.Node(m.resultPayload(fn)).Ent
+		k := mkVariant(m.variantOf(m.lookup("std/fs", "Kind"), kind), nil)
+		return m.ok(mkRecord(stat, []*obj{k, mkInt(size, m.numKind(sem.TyI64))}))
+	}
 	h["fs.Files.rename"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		if err := os.Rename(m.resolvePath(pathText(a[1])), m.resolvePath(pathText(a[2]))); err != nil {
 			return m.errMsg(shell.OSErrText(err))

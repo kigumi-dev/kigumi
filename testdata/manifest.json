@@ -9794,6 +9794,15 @@
       ]
     },
     {
+      "id": "run/std_fs_stat",
+      "kind": "run",
+      "path": "testdata/run/std_fs_stat.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/std_http_cancel",
       "kind": "run",
       "path": "testdata/run/std_http_cancel.txtar",
