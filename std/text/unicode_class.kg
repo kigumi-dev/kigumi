@@ -1,0 +1,88 @@
+// Extended grapheme cluster boundaries, UAX #29 with the Indic conjunct rule
+// (GB9c). Properties come from the generated table files; unicode_lookup.kg describes the layout.
+/// The Grapheme_Cluster_Break property of one scalar, with Extended_Pictographic
+/// as its own value.
+type Class =
+    | Other
+    | Cr
+    | Lf
+    | Control
+    | Extend
+    | Zwj
+    | Ri
+    | Prepend
+    | SpacingMark
+    | HangL
+    | HangV
+    | HangT
+    | HangLv
+    | HangLvt
+    | Pict
+
+/// Indic_Conjunct_Break of one scalar.
+type Incb =
+    | NoIncb
+    | IncbConsonant
+    | IncbLinker
+    | IncbExtend
+
+type Prop = {
+    class Class
+    incb Incb
+}
+
+pure noalloc fn classFromCode(code: Int) -> Class {
+    match code {
+        1 -> Class.Cr
+        2 -> Class.Lf
+        3 -> Class.Control
+        4 -> Class.Extend
+        5 -> Class.Zwj
+        6 -> Class.Ri
+        7 -> Class.Prepend
+        8 -> Class.SpacingMark
+        9 -> Class.HangL
+        10 -> Class.HangV
+        11 -> Class.HangT
+        12 -> Class.Pict
+        _ -> Class.Other
+    }
+}
+
+pure noalloc fn incbFromCode(code: Int) -> Incb {
+    match code {
+        1 -> Incb.IncbConsonant
+        2 -> Incb.IncbLinker
+        3 -> Incb.IncbExtend
+        _ -> Incb.NoIncb
+    }
+}
+
+pure noalloc fn propOf(p: Int) -> Prop {
+    if p >= 0x20 && p < 0x7f {
+        return Prop {
+            class: Class.Other
+            incb: Incb.NoIncb
+        }
+    }
+    if p >= 0xac00 && p <= 0xd7a3 {
+        return Prop {
+            class: hangulSyllable(p)
+            incb: Incb.NoIncb
+        }
+    }
+    let at = valueOffset(&graphemeIndex, &graphemeBlocks, 2, p)
+    Prop {
+        class: classFromCode(digitAt(&graphemeBlocks, at))
+        incb: incbFromCode(digitAt(&graphemeBlocks, at + 1))
+    }
+}
+
+/// A precomposed syllable is LV when it has no trailing jamo, LVT otherwise.
+pure noalloc fn hangulSyllable(p: Int) -> Class {
+    if (p - 0xac00) % 28 == 0 {
+        Class.HangLv
+    } else {
+        Class.HangLvt
+    }
+}
