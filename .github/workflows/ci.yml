@@ -34,6 +34,8 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26"
+      - run: test -z "$(gofmt -l .)"
+      - run: go vet ./...
       - run: go list ./... | grep -v '^kigumi/internal/toolchain/driver$' | xargs go test -timeout 60m
       - run: go test -timeout 60m -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} 4 kigumi/internal/toolchain/driver)" ./internal/toolchain/driver
       # The verifier's oracle: mutated MIR must never crash verify, llgen or the

@@ -3,7 +3,10 @@ package fixture
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
+	"slices"
+	"strings"
 )
 
 // Consistency reports every manifest/disk/catalog mismatch, one error each.
@@ -30,6 +33,20 @@ func Consistency(repoRoot string, m *Manifest) []error {
 	}
 
 	for _, fx := range m.Fixtures {
+		base := strings.TrimSuffix(path.Base(fx.Path), ".txtar")
+		if fx.ID != fx.Kind+"/"+base || fx.Path != "testdata/"+fx.Kind+"/"+base+".txtar" {
+			errs = append(errs, fmt.Errorf("manifest entry %q: path %q and id %q do not agree on kind and name", fx.ID, fx.Path, fx.ID))
+		}
+		modes, known := EngineUniverse[fx.Kind]
+		if !known {
+			errs = append(errs, fmt.Errorf("manifest entry %q: unknown fixture kind %q", fx.ID, fx.Kind))
+		} else {
+			for _, mode := range fx.Mode {
+				if !slices.Contains(modes, mode) {
+					errs = append(errs, fmt.Errorf("manifest entry %q: mode %q is not an engine of kind %q", fx.ID, mode, fx.Kind))
+				}
+			}
+		}
 		if _, onDisk := disk[fx.ID]; !onDisk {
 			errs = append(errs, fmt.Errorf("manifest entry %q: no such fixture on disk (expected %s)", fx.ID, fx.Path))
 			continue

@@ -1286,6 +1286,14 @@
       ]
     },
     {
+      "id": "parser/chained_operator_diag",
+      "kind": "parser",
+      "path": "testdata/parser/chained_operator_diag.txtar",
+      "mode": [
+        "parse"
+      ]
+    },
+    {
       "id": "parser/char_in_interpolation",
       "kind": "parser",
       "path": "testdata/parser/char_in_interpolation.txtar",
@@ -1297,6 +1305,14 @@
       "id": "parser/comment_whitespace",
       "kind": "parser",
       "path": "testdata/parser/comment_whitespace.txtar",
+      "mode": [
+        "parse"
+      ]
+    },
+    {
+      "id": "parser/condition_call_record_literal",
+      "kind": "parser",
+      "path": "testdata/parser/condition_call_record_literal.txtar",
       "mode": [
         "parse"
       ]
@@ -1462,6 +1478,22 @@
       ]
     },
     {
+      "id": "parser/generic_bracket_newline",
+      "kind": "parser",
+      "path": "testdata/parser/generic_bracket_newline.txtar",
+      "mode": [
+        "parse"
+      ]
+    },
+    {
+      "id": "parser/identifier_combining",
+      "kind": "parser",
+      "path": "testdata/parser/identifier_combining.txtar",
+      "mode": [
+        "parse"
+      ]
+    },
+    {
       "id": "parser/import_rename",
       "kind": "parser",
       "path": "testdata/parser/import_rename.txtar",
@@ -1473,6 +1505,14 @@
       "id": "parser/increment_suffix",
       "kind": "parser",
       "path": "testdata/parser/increment_suffix.txtar",
+      "mode": [
+        "parse"
+      ]
+    },
+    {
+      "id": "parser/interp_comments",
+      "kind": "parser",
+      "path": "testdata/parser/interp_comments.txtar",
       "mode": [
         "parse"
       ]
@@ -1609,6 +1649,22 @@
       "id": "parser/stmt_defer_fail",
       "kind": "parser",
       "path": "testdata/parser/stmt_defer_fail.txtar",
+      "mode": [
+        "parse"
+      ]
+    },
+    {
+      "id": "parser/string_bad_unicode_escape",
+      "kind": "parser",
+      "path": "testdata/parser/string_bad_unicode_escape.txtar",
+      "mode": [
+        "parse"
+      ]
+    },
+    {
+      "id": "parser/test_contextual_call",
+      "kind": "parser",
+      "path": "testdata/parser/test_contextual_call.txtar",
       "mode": [
         "parse"
       ]
