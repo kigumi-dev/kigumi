@@ -94,6 +94,7 @@ func runAot(t *testing.T, path string, fx *fixture.Fixture, live map[string]int6
 			noteNativeLive(t, filepath.Base(path), n, live)
 		}
 	}
+	noValuePlaceholder(t, out.String())
 	if out.String() != wantOut {
 		t.Errorf("stdout mismatch\n--- got ---\n%s--- want ---\n%s", out.String(), wantOut)
 	}

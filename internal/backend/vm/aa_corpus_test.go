@@ -198,6 +198,9 @@ func runCorpusFixture(t *testing.T, path string, gate *liveGate, unsupported *at
 	if err != nil {
 		t.Fatalf("vm: %v", err)
 	}
+	if strings.Contains(out, "<value>") {
+		t.Errorf("stdout contains the runtime's unknown-value placeholder")
+	}
 	if out != fx.stdout || code != fx.exit {
 		t.Errorf("mismatch (exit %d, want %d)\n--- got ---\n%s--- want ---\n%s", code, fx.exit, out, fx.stdout)
 	}

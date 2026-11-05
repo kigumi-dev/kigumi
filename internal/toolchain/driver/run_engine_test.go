@@ -50,6 +50,7 @@ func TestRunCorpusEngines(t *testing.T) {
 				t.Fatalf("manifest says vm runs %s, but it refused: %v", id, err)
 			}
 			ran.Add(1)
+			noValuePlaceholder(t, out.String())
 			if out.String() != wantOut {
 				t.Errorf("stdout mismatch\n--- got ---\n%s--- want ---\n%s", out.String(), wantOut)
 			}

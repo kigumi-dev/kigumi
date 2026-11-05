@@ -336,6 +336,17 @@
       ]
     },
     {
+      "id": "fmt/is_record_pattern",
+      "kind": "fmt",
+      "path": "testdata/fmt/is_record_pattern.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "fmt/lifetime",
       "kind": "fmt",
       "path": "testdata/fmt/lifetime.txtar",
@@ -6508,6 +6519,23 @@
       "id": "run/const_float",
       "kind": "run",
       "path": "testdata/run/const_float.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/const_float_typed_precision",
+      "kind": "run",
+      "path": "testdata/run/const_float_typed_precision.txtar",
       "mode": [
         "vm",
         "native"
@@ -13289,6 +13317,23 @@
       ]
     },
     {
+      "id": "run/json_bytes_base64",
+      "kind": "run",
+      "path": "testdata/run/json_bytes_base64.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/json_decode",
       "kind": "run",
       "path": "testdata/run/json_decode.txtar",
@@ -19162,6 +19207,17 @@
       "id": "sem/array_filter_move_only",
       "kind": "sem",
       "path": "testdata/sem/array_filter_move_only.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/asm_borrow_operand_err",
+      "kind": "sem",
+      "path": "testdata/sem/asm_borrow_operand_err.txtar",
       "mode": [
         "check"
       ],

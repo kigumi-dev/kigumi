@@ -99,3 +99,12 @@ func fixtureEngines(path string) string {
 	}
 	return strings.TrimSpace(engines)
 }
+
+// noValuePlaceholder rejects an accepted program that printed the runtime's unknown-value marker:
+// a value the checker let escape reaches the program's output as `<value>`.
+func noValuePlaceholder(t testing.TB, out string) {
+	t.Helper()
+	if strings.Contains(out, "<value>") {
+		t.Errorf("stdout contains the runtime's unknown-value placeholder:\n%s", out)
+	}
+}
