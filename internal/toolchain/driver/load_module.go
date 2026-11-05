@@ -84,7 +84,12 @@ func loadModule(root string, opts LoadOptions) (*Module, error) {
 		}
 	}
 	if m.deferred {
-		if m.trySettle(); m.settled == nil {
+		// KIGUMI_PKG_UNITS=off asks for every body to be checked; a settled
+		// replay would defeat it and keep a stale clean result alive.
+		if !opts.NoSettled {
+			m.trySettle()
+		}
+		if m.settled == nil {
 			m.ensureParsed()
 		}
 	} else if err := m.parseReachable(); err != nil {

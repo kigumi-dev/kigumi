@@ -68,7 +68,7 @@ func (s Session) load(target string, test, deferParse, whole bool, errOut io.Wri
 	if err != nil {
 		return nil, &exit.UsageError{Err: err}
 	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: s.StdRoot(), Test: test, Entry: entry, NoLocal: s.NoLocal || LocalOff(), Target: tgt, Policy: s.Policy(), ZigPath: ZigPath(), ZigHome: ZigHome(), Offline: s.Offline, VerifyPasses: VerifyPasses(), Compiler: CompilerOptions(), PackageCache: PackageCache(), DeferParse: deferParse, UnitCheck: deferParse && UnitCheck(), LazyStd: UnitCheck(), AllOwnPackages: whole})
+	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: s.StdRoot(), Test: test, Entry: entry, NoLocal: s.NoLocal || LocalOff(), Target: tgt, Policy: s.Policy(), ZigPath: ZigPath(), ZigHome: ZigHome(), Offline: s.Offline, VerifyPasses: VerifyPasses(), Compiler: CompilerOptions(), PackageCache: PackageCache(), DeferParse: deferParse, UnitCheck: deferParse && UnitCheck(), NoSettled: !UnitCheck(), LazyStd: UnitCheck(), AllOwnPackages: whole})
 	if err != nil {
 		return nil, errors.WrapErrf(err, "load module %s", root)
 	}

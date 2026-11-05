@@ -340,3 +340,20 @@ func TestMultiLineBraceImportKeysItsPackage(t *testing.T) {
 		t.Fatalf("breaking a package behind a multi-line import must not replay a clean outcome: %+v", m.PackageCacheStats())
 	}
 }
+
+func TestUnitsOffIgnoresSettledReplay(t *testing.T) {
+	t.Parallel()
+	root, cache := t.TempDir(), t.TempDir()
+	writeGraph(t, root, graphFiles())
+	recordStatuses(t, root, cache, "cmd/app/main.kg")
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: stdRoot(t), Entry: "cmd/app/main.kg", PackageCache: cache, DeferParse: true, UnitCheck: false, NoSettled: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st := m.PackageCacheStats(); st.SettledHits != 0 || m.IndexStats().PackagesParsed == 0 {
+		t.Fatalf("units off must parse and check the module, not replay the settled record: %+v %+v", st, m.IndexStats())
+	}
+	if res, err := driver.Check(m); err != nil || res.HasErrors() {
+		t.Fatalf("check: %v\n%s", err, res.Render())
+	}
+}

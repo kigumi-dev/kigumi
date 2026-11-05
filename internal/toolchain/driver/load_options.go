@@ -69,6 +69,10 @@ type LoadOptions struct {
 	DeferParse bool
 	// UnitCheck lets CheckUnits skip packages whose cached outcome is clean; it needs PackageCache.
 	UnitCheck bool
+	// NoSettled skips the module-wide settled replay even when the package cache
+	// has one; KIGUMI_PKG_UNITS=off sets it with UnitCheck=false so the whole
+	// module is parsed and checked again.
+	NoSettled bool
 	// LazyStd checks a std body only when the module names it; Check does so under UnitCheck too.
 	LazyStd bool
 	// PackageCache is the directory holding the index memo, package API artifacts and settled check results; "" turns persistence off.
