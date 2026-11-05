@@ -61,6 +61,7 @@ var coreFragments = []RuntimeFile{
 	{"rt_std_text.inc", runtimeStdText},
 	{"rt_display.inc", runtimeDisplay},
 	{"rt_number.inc", runtimeNumber},
+	{"rt_std_dispatch.inc", runtimeStdDispatch},
 }
 
 //go:embed runtime/rt_std_text.inc
@@ -74,6 +75,9 @@ var runtimeDisplay string
 
 //go:embed runtime/rt_number.inc
 var runtimeNumber string
+
+//go:embed runtime/rt_std_dispatch.inc
+var runtimeStdDispatch string
 
 //go:embed runtime/rt_cap_host_shell.inc
 var runtimeCapHostShell string
