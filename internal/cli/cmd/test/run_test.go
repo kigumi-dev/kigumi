@@ -40,3 +40,23 @@ test "beta" {
 	}
 
 }
+
+func TestTestListFilterMismatchFails(t *testing.T) {
+	std, _ := filepath.Abs("../../../../std")
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "main.kg"), []byte("test \"alpha\" {\n}\n"), 0o644)
+	code, _, errOut := clitest.Execute(t, "--std", std, "test", "--list", "--filter", "missing", dir)
+	if code != 1 || !strings.Contains(errOut, "no test matches") {
+		t.Fatalf("--list with a missing filter: exit %d stderr %q", code, errOut)
+	}
+}
+
+func TestTestListJSON(t *testing.T) {
+	std, _ := filepath.Abs("../../../../std")
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "main.kg"), []byte("test \"alpha\" {\n}\n"), 0o644)
+	code, out, errOut := clitest.Execute(t, "--std", std, "test", "--list", "--json", dir)
+	if code != 0 || !strings.Contains(out, `"type":"testList"`) || !strings.Contains(out, "alpha") || strings.Contains(out, "\t") {
+		t.Fatalf("--list --json: exit %d stdout %q stderr %q", code, out, errOut)
+	}
+}
