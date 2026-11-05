@@ -124,6 +124,12 @@ func (lx *lexer) scanEscape(pos int) int {
 					return pos + 1
 				}
 			}
+			// The brace never closed before the quote: leave the quote for the
+			// string scanner to end the literal instead of swallowing the file.
+			if pos < lx.end && lx.src[pos] == '"' {
+				lx.errorf(start, pos, "invalid escape sequence")
+				return pos
+			}
 		}
 	}
 	lx.errorf(start, min(pos+1, lx.end), "invalid escape sequence")

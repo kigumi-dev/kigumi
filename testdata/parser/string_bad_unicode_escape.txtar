@@ -1,0 +1,18 @@
+-- src --
+let a = "\u{12"
+let b = 1
+-- expect --
+File
+  Let
+    pattern: PatBind a
+    init: StringLit "\u{12"
+  Let
+    pattern: PatBind b
+    init: IntLit 1
+-- diagnostics --
+error[E2199]: invalid escape sequence
+ --> string_bad_unicode_escape.txtar:1:10
+  |
+1 | let a = "\u{12"
+  |          ^^^^^
+

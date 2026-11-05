@@ -9,6 +9,7 @@ type mutAliasArg struct {
 	root   EntityID
 	steps  []mutAliasStep
 	scalar bool
+	mut    bool
 }
 
 type mutAliasStep struct {
@@ -62,7 +63,7 @@ func (c *checker) borrowAliasArgOf(a syntax.NodeID, requireMut bool) (mutAliasAr
 	if !ok {
 		return mutAliasArg{}, false
 	}
-	return mutAliasArg{node: a, root: root, steps: steps, scalar: scalar}, true
+	return mutAliasArg{node: a, root: root, steps: steps, scalar: scalar, mut: c.t.View(a).AsBorrow().Flags()&syntax.FlagMut != 0}, true
 }
 
 // mutAliasChain walks n down to its root local, recording each field/index

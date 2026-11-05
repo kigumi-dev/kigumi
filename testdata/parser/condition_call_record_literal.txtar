@@ -1,0 +1,95 @@
+-- src --
+type U = { id Int }
+
+fn f(u: U) -> Int { u.id }
+
+fn g() -> Bool {
+    if f(U {}) == 0 {
+        true
+    } else {
+        false
+    }
+}
+
+fn h() -> Int {
+    match f(U {}) {
+        0 -> 1
+        _ -> 2
+    }
+}
+-- expect --
+File
+  TypeDecl
+    name: U
+    body: RecordBody
+      Field id
+        type: TypePath
+          Path Int
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: f
+    generics: -
+    params: List
+      Param u
+        type: TypePath
+          Path U
+    ret: TypePath
+      Path Int
+    body: Block
+      ExprStmt
+        Member id
+          Ident u
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: g
+    generics: -
+    params: List
+    ret: TypePath
+      Path Bool
+    body: Block
+      ExprStmt
+        If
+          cond: Binary ==
+            Call
+              Ident f
+              List
+                RecordLit
+                  Ident U
+                  List
+            IntLit 0
+          then: Block
+            ExprStmt
+              BoolLit true
+          else: Block
+            ExprStmt
+              BoolLit false
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: h
+    generics: -
+    params: List
+    ret: TypePath
+      Path Int
+    body: Block
+      ExprStmt
+        Match
+          Call
+            Ident f
+            List
+              RecordLit
+                Ident U
+                List
+          List
+            Arm
+              pattern: PatLit
+                IntLit 0
+              body: IntLit 1
+            Arm
+              pattern: PatWildcard _
+              body: IntLit 2

@@ -73,7 +73,11 @@ func (p *parser) bracketFollowedByDot() bool {
 				j := p.nextSignificant(i + 1)
 				return int(j) < len(p.toks) && p.toks[j].Kind == token.Dot
 			}
-		case token.Newline, token.EOF, token.LBrace:
+		case token.Newline:
+			if depth == 0 {
+				return false
+			}
+		case token.EOF, token.LBrace:
 			return false
 		}
 	}

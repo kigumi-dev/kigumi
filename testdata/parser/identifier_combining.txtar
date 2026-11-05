@@ -1,0 +1,15 @@
+-- src --
+let café = 1
+let café = 2
+let α = 3
+-- expect --
+File
+  Let
+    pattern: PatBind café
+    init: IntLit 1
+  Let
+    pattern: PatBind café
+    init: IntLit 2
+  Let
+    pattern: PatBind α
+    init: IntLit 3

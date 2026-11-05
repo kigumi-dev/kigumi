@@ -130,6 +130,11 @@ func (p *parser) isUpper(tok uint32) bool {
 // unknown names are a sem concern, not a parse error, since they depend on
 // the resolved callee.
 func (p *parser) exprList() []NodeID {
+	// A parenthesized list is never a condition's bare body, so a record
+	// literal argument such as f(U {}) is unambiguous inside it.
+	saved := p.noRecordLit
+	p.noRecordLit = false
+	defer func() { p.noRecordLit = saved }()
 	var items []NodeID
 	p.layoutList(token.LParen, token.RParen, func() {
 		if p.at(token.Ellipsis) {

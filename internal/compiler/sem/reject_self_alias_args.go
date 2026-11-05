@@ -17,6 +17,11 @@ func (c *checker) checkSelfAliasArgs(base syntax.NodeID, recv RecvKind, async bo
 			a = c.t.View(a).AsNamedArg().Value().ID()
 		}
 		for _, cand := range c.argBorrows(a) {
+			// A shared receiver only conflicts with a mutable borrow of its
+			// storage; a shared borrow reads the same value harmlessly.
+			if recv == RecvSelf && !cand.mut {
+				continue
+			}
 			if cand.root == root && mutAliasStepsOverlap(steps, cand.steps) {
 				c.errAt(a, cMutAliasSelfArg)
 				break

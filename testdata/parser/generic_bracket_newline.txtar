@@ -1,0 +1,70 @@
+-- src --
+type Box[T] = { pub v T }
+
+fn Box[T].get[
+    T
+]() -> T {
+    self.v
+}
+
+fn main() {
+    let b = Box[Int] { v: 1 }
+    print "${b.get()}"
+}
+-- expect --
+File
+  TypeDecl
+    name: Box
+    generics: List
+      GenericParam T
+    body: RecordBody
+      Field v
+        vis: Visibility
+        type: TypePath
+          Path T
+  FnDecl
+    attrs: -
+    vis: -
+    recv: TypePath
+      Path Box
+      List
+        GenericParam T
+    name: get
+    generics: List
+      GenericParam T
+    params: List
+    ret: TypePath
+      Path T
+    body: Block
+      ExprStmt
+        Member v
+          Ident self
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: main
+    generics: -
+    params: List
+    ret: -
+    body: Block
+      Let
+        pattern: PatBind b
+        init: RecordLit
+          Bracket
+            Ident Box
+            List
+              Ident Int
+          List
+            FieldInit v
+              IntLit 1
+      ExprStmt
+        WsCall
+          Ident print
+          List
+            StringLit "${b.get()}"
+              List
+                Call
+                  Member get
+                    Ident b
+                  List

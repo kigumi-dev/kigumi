@@ -63,7 +63,7 @@ func (lx *lexer) lexIdent() {
 			continue
 		}
 		r, size := utf8.DecodeRune(lx.src[lx.pos:lx.end])
-		if r < utf8.RuneSelf || !(unicode.IsLetter(r) || unicode.IsDigit(r)) {
+		if r < utf8.RuneSelf || !(unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsMark(r)) {
 			break
 		}
 		lx.pos += size
