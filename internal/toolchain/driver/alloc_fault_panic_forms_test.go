@@ -84,9 +84,8 @@ func panicFormNativeClasses(t *testing.T, src string) []byte {
 		cmd := exec.Command(exe)
 		cmd.Dir = t.TempDir()
 		cmd.Env = append(os.Environ(), "KIGUMI_FAIL_ALLOC_ARM=1", "KIGUMI_FAIL_ALLOC_AT="+strconv.Itoa(n))
-		var stdout, stderr bytes.Buffer
-		cmd.Stdout, cmd.Stderr = &stdout, &stderr
-		classes = append(classes, classifyPanicFormRun(exitCodeOf(cmd.Run()), stdout.String(), stderr.String()))
+		code, stdout, stderr := runFaultCmd(cmd)
+		classes = append(classes, classifyPanicFormRun(code, stdout, stderr))
 	}
 	return classes
 }

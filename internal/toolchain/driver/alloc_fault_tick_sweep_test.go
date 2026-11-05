@@ -112,10 +112,8 @@ func nativeRefusedRuns(t *testing.T, src string, count int) []refusedRun {
 		cmd := exec.Command(exe)
 		cmd.Dir = t.TempDir()
 		cmd.Env = append(os.Environ(), "KIGUMI_FAIL_ALLOC_AT="+strconv.Itoa(n), "KIGUMI_FAIL_ALLOC_ARM=1")
-		var errOut bytes.Buffer
-		cmd.Stderr = &errOut
-		code := exitCodeOf(cmd.Run())
-		runs = append(runs, refusedRun{code, strings.Contains(errOut.String(), "out of memory")})
+		code, _, errOut := runFaultCmd(cmd)
+		runs = append(runs, refusedRun{code, strings.Contains(errOut, "out of memory")})
 	}
 	return runs
 }

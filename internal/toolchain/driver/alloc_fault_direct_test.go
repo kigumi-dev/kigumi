@@ -155,9 +155,8 @@ func nativeAllocs(t *testing.T, src string) int {
 		cmd := exec.Command(exe)
 		cmd.Dir = t.TempDir()
 		cmd.Env = append(os.Environ(), "KIGUMI_FAIL_ALLOC_AT="+strconv.Itoa(n))
-		var out, errOut bytes.Buffer
-		cmd.Stdout, cmd.Stderr = &out, &errOut
-		if !checkBoxOutcome(t, "native", n, exitCodeOf(cmd.Run()), out.String(), errOut.String()) {
+		code, out, errOut := runFaultCmd(cmd)
+		if !checkBoxOutcome(t, "native", n, code, out, errOut) {
 			return n - 1
 		}
 	}

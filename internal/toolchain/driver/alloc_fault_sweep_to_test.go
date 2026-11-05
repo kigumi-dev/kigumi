@@ -51,7 +51,8 @@ func nativeSweepExitsTo(t *testing.T, m *driver.Module, limit int, armed bool) [
 		if armed {
 			cmd.Env = append(cmd.Env, "KIGUMI_FAIL_ALLOC_ARM=1")
 		}
-		exits = append(exits, exitCodeOf(cmd.Run()))
+		code, _, _ := runFaultCmd(cmd)
+		exits = append(exits, code)
 	}
 	return exits
 }
