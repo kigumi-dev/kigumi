@@ -1,0 +1,29 @@
+/// A span of time in milliseconds.
+pub type Duration = {
+    ms i64
+}
+
+/// A span of ms milliseconds.
+pub pure noalloc fn Duration.fromMillis(ms: i64) -> Duration {
+    Duration { ms: ms }
+}
+
+/// A span of seconds, saturating at the ends of the i64 range.
+pub pure fn Duration.fromSeconds(seconds: i64) -> Duration {
+    Duration { ms: seconds.saturatingMul(1000) }
+}
+
+/// This span in milliseconds.
+pub pure noalloc fn Duration.millis(self) -> i64 {
+    self.ms
+}
+
+/// This span in whole seconds, truncated toward zero.
+pub pure noalloc fn Duration.seconds(self) -> i64 {
+    self.ms / 1000
+}
+
+/// The sum of two spans, saturating at the ends of the i64 range.
+pub pure fn Duration.add(self, other: Duration) -> Duration {
+    Duration { ms: self.ms.saturatingAdd(other.ms) }
+}

@@ -1,0 +1,121 @@
+/// Parses an RFC 9110 HTTP-date in any form recipients must accept:
+/// IMF-fixdate, RFC 850 and asctime. None for an invalid date or another zone.
+pub pure fn parseDate(s: String) -> Instant? {
+    if s.len() == 29 && byteAt(s, 3) == 44 && byteAt(s, 4) == 32 {
+        return parseImf(s)
+    }
+    if s.len() == 24 && byteAt(s, 3) == 32 {
+        return parseAsctime(s)
+    }
+    parseRfc850(s)
+}
+
+// Sun, 06 Nov 1994 08:49:37 GMT
+pure fn parseImf(s: String) -> Instant? {
+    if !commaSpaced(s, 3) {
+        return None
+    }
+    let gmt = s.sliceBytes(25, 29) || return None
+    if gmt != " GMT" {
+        return None
+    }
+    let day = digits(s, 5, 2) || return None
+    let monthText = s.sliceBytes(8, 11) || return None
+    let month = monthFromName(monthText) || return None
+    let year = digits(s, 12, 4) || return None
+    let hour = digits(s, 17, 2) || return None
+    let minute = digits(s, 20, 2) || return None
+    let second = digits(s, 23, 2) || return None
+    buildInstant(year, month, day, hour, minute, second)
+}
+
+// Sunday, 06-Nov-94 08:49:37 GMT
+pure fn parseRfc850(s: String) -> Instant? {
+    let comma = indexOfByte(s, 44) || return None
+    if !commaSpaced(s, comma) || s.len() != comma + 24 {
+        return None
+    }
+    if byteAt(s, comma + 4) != 45 || byteAt(s, comma + 8) != 45 || byteAt(s, comma + 11) != 32 || byteAt(s, comma + 14) != 58 || byteAt(s, comma + 17) != 58 {
+        return None
+    }
+    let day = digits(s, comma + 2, 2) || return None
+    let monthText = s.sliceBytes(comma + 5, comma + 8) || return None
+    let month = monthFromName(monthText) || return None
+    let yy = digits(s, comma + 9, 2) || return None
+    let year = if yy < 70 {
+        2000 + yy
+    } else {
+        1900 + yy
+    }
+    let hour = digits(s, comma + 12, 2) || return None
+    let minute = digits(s, comma + 15, 2) || return None
+    let second = digits(s, comma + 18, 2) || return None
+    let gmt = s.sliceBytes(comma + 20, comma + 24) || return None
+    if gmt != " GMT" {
+        return None
+    }
+    buildInstant(year, month, day, hour, minute, second)
+}
+
+// Sun Nov  6 08:49:37 1994
+pure fn parseAsctime(s: String) -> Instant? {
+    if byteAt(s, 3) != 32 || byteAt(s, 7) != 32 || byteAt(s, 10) != 32 || byteAt(s, 13) != 58 || byteAt(s, 16) != 58 || byteAt(s, 19) != 32 {
+        return None
+    }
+    let monthText = s.sliceBytes(4, 7) || return None
+    let month = monthFromName(monthText) || return None
+    let day = if byteAt(s, 8) == 32 {
+        digits(s, 9, 1) || return None
+    } else {
+        digits(s, 8, 2) || return None
+    }
+    let hour = digits(s, 11, 2) || return None
+    let minute = digits(s, 14, 2) || return None
+    let second = digits(s, 17, 2) || return None
+    let year = digits(s, 20, 4) || return None
+    buildInstant(year, month, day, hour, minute, second)
+}
+
+pure noalloc fn buildInstant(year: i64, month: i64, day: i64, hour: i64, minute: i64, second: i64) -> Instant? {
+    if month < 1 || month > 12 || day < 1 || day > daysInMonth(year, month) || hour > 23 || minute > 59 || second > 59 {
+        return None
+    }
+    let days = daysFromCivil(year, month, day)
+    Some(fromUnixMillis(((days * 24 + hour) * 60 + minute) * 60000 + second * 1000))
+}
+
+pure noalloc fn digits(s: String, at: usize, n: usize) -> i64? {
+    if at + n > s.len() {
+        return None
+    }
+    let mut value: i64 = 0
+    for i in at..(at + n) {
+        let d = s[i].toInt() - 48
+        if d < 0 || d > 9 {
+            return None
+        }
+        value = value * 10 + d
+    }
+    Some(value)
+}
+
+pure noalloc fn byteAt(s: String, at: usize) -> u8 {
+    if at >= s.len() {
+        0
+    } else {
+        s[at]
+    }
+}
+
+pure noalloc fn indexOfByte(s: String, b: u8) -> usize? {
+    for i in 0..s.len() {
+        if s[i] == b {
+            return Some(i)
+        }
+    }
+    None
+}
+
+pure noalloc fn commaSpaced(s: String, comma: usize) -> Bool {
+    comma + 1 < s.len() && byteAt(s, comma + 1) == 32
+}
