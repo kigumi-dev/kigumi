@@ -86,6 +86,16 @@ func validPathSegment(seg string) bool {
 	return true
 }
 
+// testDeclAhead separates `test "name" {` from the same call shape without a
+// body, which is a contextual keyword used as an ordinary function name.
+func (p *parser) testDeclAhead() bool {
+	i := 2
+	for p.peek(i) == token.Newline {
+		i++
+	}
+	return p.peek(i) == token.LBrace
+}
+
 func (p *parser) testDecl(pf prefix) NodeID {
 	p.rejectDeclPrefix(pf, "test declarations")
 	tok := p.advance()

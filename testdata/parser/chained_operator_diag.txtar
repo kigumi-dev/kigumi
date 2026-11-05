@@ -1,0 +1,30 @@
+-- src --
+let a = 1
+let b = 2
+let c = 3
+let d = a < b < c
+-- expect --
+File
+  Let
+    pattern: PatBind a
+    init: IntLit 1
+  Let
+    pattern: PatBind b
+    init: IntLit 2
+  Let
+    pattern: PatBind c
+    init: IntLit 3
+  Let
+    pattern: PatBind d
+    init: Binary <
+      Binary <
+        Ident a
+        Ident b
+      Ident c
+-- diagnostics --
+error[E2199]: chained < needs parentheses
+ --> chained_operator_diag.txtar:4:15
+  |
+4 | let d = a < b < c
+  |               ^
+

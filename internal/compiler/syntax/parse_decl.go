@@ -163,7 +163,7 @@ func (p *parser) decl() NodeID {
 		return p.contextKeyDecl(pf)
 	case p.at(token.KwImport):
 		return p.importDecl(pf)
-	case p.atIdent("test") && p.peek(1) == token.String:
+	case p.atIdent("test") && p.peek(1) == token.String && p.testDeclAhead():
 		return p.testDecl(pf)
 	case p.at(token.KwExtern) || (p.atIdent("export") && p.peek(1) == token.LParen):
 		return p.abiBlock(pf)

@@ -1,0 +1,45 @@
+-- src --
+fn test(s: String) -> Int { s.len() }
+
+fn main() {
+    print "${test "hello"}"
+}
+-- expect --
+File
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: test
+    generics: -
+    params: List
+      Param s
+        type: TypePath
+          Path String
+    ret: TypePath
+      Path Int
+    body: Block
+      ExprStmt
+        Call
+          Member len
+            Ident s
+          List
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: main
+    generics: -
+    params: List
+    ret: -
+    body: Block
+      ExprStmt
+        WsCall
+          Ident print
+          List
+            StringLit "${test "hello"}"
+              List
+                WsCall
+                  Ident test
+                  List
+                    StringLit "hello"

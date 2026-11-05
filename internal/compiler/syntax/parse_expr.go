@@ -107,7 +107,7 @@ func (p *parser) binary(minPrec int) NodeID {
 		}
 		if !leftAssoc {
 			if np, _ := p.binaryPrec(); np == prec {
-				p.errorf("chained %s needs parentheses", p.tok().Kind)
+				p.errorf("chained %s needs parentheses", p.text())
 			}
 		}
 	}
