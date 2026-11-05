@@ -221,7 +221,7 @@ pub pure fn tryGraphemes(s: String) -> Result[Array[String], AllocError] {
     let mut cur = StringBuilder.tryNew()?
     let mut at = start()
     let mut first = true
-    for c in s.chars() {
+    for c in s.tryChars()? {
         let next = propOf(c.toInt())
         let cut = !first && breaks(&at, next)
         if cut {
@@ -229,7 +229,7 @@ pub pure fn tryGraphemes(s: String) -> Result[Array[String], AllocError] {
             out.tryPush(piece)?
             cur = StringBuilder.tryNew()?
         }
-        cur.tryPush(fromChar(c))?
+        tryPushChar(&mut cur, c)?
         at = advance(&at, next, !cut && !first)
         first = false
     }
@@ -238,6 +238,27 @@ pub pure fn tryGraphemes(s: String) -> Result[Array[String], AllocError] {
         out.tryPush(piece)?
     }
     AllocError.wrap(out)
+}
+
+// Appends c's UTF-8 bytes without allocating a one-scalar String.
+pure fn tryPushChar(b: &mut StringBuilder, c: Char) -> Result[Void, AllocError] {
+    let p = c.toInt()
+    if p < 0x80 {
+        return b.tryPushByte((p & 0x7f).toU8() || 0)
+    }
+    if p < 0x800 {
+        b.tryPushByte((0xc0 | (p >> 6)).toU8() || 0)?
+        return b.tryPushByte((0x80 | (p & 0x3f)).toU8() || 0)
+    }
+    if p < 0x10000 {
+        b.tryPushByte((0xe0 | (p >> 12)).toU8() || 0)?
+        b.tryPushByte((0x80 | ((p >> 6) & 0x3f)).toU8() || 0)?
+        return b.tryPushByte((0x80 | (p & 0x3f)).toU8() || 0)
+    }
+    b.tryPushByte((0xf0 | (p >> 18)).toU8() || 0)?
+    b.tryPushByte((0x80 | ((p >> 12) & 0x3f)).toU8() || 0)?
+    b.tryPushByte((0x80 | ((p >> 6) & 0x3f)).toU8() || 0)?
+    b.tryPushByte((0x80 | (p & 0x3f)).toU8() || 0)
 }
 
 // A cluster is built from whole scalars, so a freeze failure is an allocator refusal, not bad UTF-8.
