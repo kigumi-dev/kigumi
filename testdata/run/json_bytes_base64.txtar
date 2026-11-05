@@ -1,0 +1,16 @@
+-- src --
+import json from std/json
+import map from std/map
+print "enc=${json.encode(b"\xff\x00")?}"
+let mut m = map.empty[Bytes, Int]()
+m.set(b"\xff", 1)
+m.set(b"\xfe", 2)
+let t = json.encode(m)?
+let mut back = json.decode[map.Map[Bytes, Int]](t)?
+print "map=${back.len()} ff=${back.get(b"\xff") || 0} fe=${back.get(b"\xfe") || 0}"
+let b = json.decode[Bytes](json.encode(b"\x00\xff")?)?
+print "rt=${b.len()} first=${b.get(0) || 0} last=${b.get(1) || 0}"
+-- stdout --
+enc="/wA="
+map=2 ff=1 fe=2
+rt=2 first=0 last=255

@@ -1,4 +1,5 @@
 import {Box} from std/alloc
+import base64 from std/encoding/base64
 import {Map, empty} from std/map
 import math from std/math
 import text from std/text
@@ -262,17 +263,24 @@ pub fn Char.fromKeyText(s: String) -> Char! {
     fail Error { text: "expected a single character key, found \"${s}\"" }
 }
 
+/// Base64 keeps every byte injective in JSON, including the invalid UTF-8 that a raw string would lose.
 pub fn Bytes.toJson(self) -> Value {
-    Value.Text(String.fromBytes(self) || "")
+    Value.Text(base64.encode(self))
 }
 
 pub fn Bytes.fromJson(value: Value) -> Bytes! {
     let s = String.fromJson(value)?
-    Ok(s.toBytes())
+    match base64.decode(s) {
+        Ok(bytes) -> Ok(bytes)
+        Err(e) -> fail Error { text: "bytes are not base64: ${e.message()}" }
+    }
 }
 
 pub fn Bytes.fromKeyText(s: String) -> Bytes! {
-    Ok(s.toBytes())
+    match base64.decode(s) {
+        Ok(bytes) -> Ok(bytes)
+        Err(e) -> fail Error { text: "bytes key is not base64: ${e.message()}" }
+    }
 }
 
 pub fn Void.toJson(self) -> Value {
