@@ -14802,6 +14802,16 @@
     "status": "ok"
   },
   {
+    "key": "text.finishCluster",
+    "signature": "pure fn(StringBuilder) -\u003e Result[String, AllocError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "text.foldAscii",
     "signature": "pure noalloc fn(u8) -\u003e u8",
     "has_body": true,
@@ -15082,6 +15092,16 @@
     "status": "ok"
   },
   {
+    "key": "text.tryGraphemes",
+    "signature": "pure fn(String) -\u003e Result[Array[String], AllocError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "text.tryLines",
     "signature": "pure fn(String) -\u003e Result[Array[String], AllocError]",
     "has_body": true,
@@ -15106,9 +15126,9 @@
     "signature": "pure fn(String) -\u003e Result[Array[String], AllocError]",
     "has_body": true,
     "kind": "",
-    "vm": "gap",
+    "vm": "implemented",
     "native": "gap",
-    "accelerated": false,
+    "accelerated": true,
     "status": "ok"
   },
   {

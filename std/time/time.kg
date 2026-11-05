@@ -68,9 +68,17 @@ pure noalloc fn civilFromDays(days: i64) -> Civil {
     let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100)
     let mp = (5 * doy + 2) / 153
-    let month = if mp < 10 { mp + 3 } else { mp - 9 }
+    let month = if mp < 10 {
+        mp + 3
+    } else {
+        mp - 9
+    }
     Civil {
-        year: yoe + era * 400 + (if month <= 2 { 1 } else { 0 })
+        year: yoe + era * 400 + (if month <= 2 {
+            1
+        } else {
+            0
+        })
         month: month
         day: doy - (153 * mp + 2) / 5 + 1
     }
@@ -78,10 +86,18 @@ pure noalloc fn civilFromDays(days: i64) -> Civil {
 
 // The inverse of civilFromDays; valid for every year a date parser accepts.
 pure noalloc fn daysFromCivil(year: i64, month: i64, day: i64) -> i64 {
-    let y = year - (if month <= 2 { 1 } else { 0 })
+    let y = year - (if month <= 2 {
+        1
+    } else {
+        0
+    })
     let era = floorDiv(y, 400)
     let yoe = y - era * 400
-    let mp = month + (if month > 2 { -3 } else { 9 })
+    let mp = month + (if month > 2 {
+        -3
+    } else {
+        9
+    })
     let doy = (153 * mp + 2) / 5 + day - 1
     let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy
     era * 146097 + doe - 719468
@@ -112,7 +128,11 @@ pure noalloc fn leapYear(year: i64) -> Bool {
 pure noalloc fn daysInMonth(year: i64, month: i64) -> i64 {
     match month {
         1 -> 31
-        2 -> if leapYear(year) { 29 } else { 28 }
+        2 -> if leapYear(year) {
+            29
+        } else {
+            28
+        }
         3 -> 31
         4 -> 30
         5 -> 31
@@ -220,7 +240,11 @@ pure fn parseRfc850(s: String) -> Instant? {
     let monthText = s.sliceBytes(comma + 5, comma + 8) || return None
     let month = monthFromName(monthText) || return None
     let yy = digits(s, comma + 9, 2) || return None
-    let year = if yy < 70 { 2000 + yy } else { 1900 + yy }
+    let year = if yy < 70 {
+        2000 + yy
+    } else {
+        1900 + yy
+    }
     let hour = digits(s, comma + 12, 2) || return None
     let minute = digits(s, comma + 15, 2) || return None
     let second = digits(s, comma + 18, 2) || return None

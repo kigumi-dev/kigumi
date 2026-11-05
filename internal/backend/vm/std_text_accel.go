@@ -30,7 +30,7 @@ func (m *Machine) registerTextAccel() {
 	h["text.tryLines"] = func(m *Machine, _ sem.EntityID, a []*obj) *obj {
 		return m.ok(m.sized(mkArray(linePieces(str(a, 0)))))
 	}
-	h["text.tryGraphemes"] = func(m *Machine, _ sem.EntityID, a []*obj) *obj {
+	h["text.tryScalars"] = func(m *Machine, _ sem.EntityID, a []*obj) *obj {
 		return m.ok(m.sized(mkArray(graphemePieces(str(a, 0)))))
 	}
 	h["text.tryReplace"] = func(m *Machine, _ sem.EntityID, a []*obj) *obj {

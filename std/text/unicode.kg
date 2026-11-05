@@ -212,25 +212,40 @@ pure noalloc fn advance(at: &Scan, next: Prop, joined: Bool) -> Scan {
 
 /// Splits s into extended grapheme clusters. The clusters concatenate back to s.
 pub pure fn graphemes(s: String) -> Array[String] {
-    let mut out = Array.empty[String]()
-    let mut cur = StringBuilder.new()
+    tryGraphemes(s) || panic("out of memory")
+}
+
+/// Same as graphemes, or AllocError when the allocator refuses (graphemes panics instead).
+pub pure fn tryGraphemes(s: String) -> Result[Array[String], AllocError] {
+    let mut out = Array.tryWithCapacity[String](s.len())?
+    let mut cur = StringBuilder.tryNew()?
     let mut at = start()
     let mut first = true
     for c in s.chars() {
         let next = propOf(c.toInt())
         let cut = !first && breaks(&at, next)
         if cut {
-            out.push(cur.freeze() || "")
-            cur = StringBuilder.new()
+            let piece = finishCluster(cur)?
+            out.tryPush(piece)?
+            cur = StringBuilder.tryNew()?
         }
-        cur.push(fromChar(c))
+        cur.tryPush(fromChar(c))?
         at = advance(&at, next, !cut && !first)
         first = false
     }
     if !first {
-        out.push(cur.freeze() || "")
+        let piece = finishCluster(cur)?
+        out.tryPush(piece)?
     }
-    out
+    AllocError.wrap(out)
+}
+
+// A cluster is built from whole scalars, so a freeze failure is an allocator refusal, not bad UTF-8.
+pure fn finishCluster(b: StringBuilder) -> Result[String, AllocError] {
+    match b.tryFreeze() {
+        Ok(s) -> Ok(s)
+        Err(_) -> Err(AllocError.OutOfMemory)
+    }
 }
 
 /// Cells one cluster occupies. The first scalar that takes a cell decides, so a
