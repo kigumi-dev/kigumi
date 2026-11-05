@@ -1,0 +1,32 @@
+-- src --
+type P = resource { pub mut s Array[Int], tag Int }
+fn P.drop(move self) { print "drop ${self.tag}" }
+type Bx = resource { pub mut inner P }
+
+fn Bx.go(mut self, o: &P) -> Int {
+    self.inner = P { s: Array.of(99), tag: 99 }
+    o.s[0]
+}
+
+fn direct(b: &mut Bx) -> Int {
+    b.go(&b.inner) //~ ERROR this argument may target storage
+}
+
+fn branch(b: &mut Bx, c: Bool) -> Int {
+    b.go(if c { &b.inner } else { &b.inner }) //~ ERROR this argument may target storage
+}
+-- expect --
+error[E1123]: this argument may target storage this call's receiver already mutates
+  --> main/main.kg:11:10
+   |
+11 |     b.go(&b.inner) //~ ERROR this argument may target storage
+   |          ^^^^^^^^
+   = help: compute it before the call, or restructure so the receiver and the argument do not overlap
+
+error[E1123]: this argument may target storage this call's receiver already mutates
+  --> main/main.kg:15:10
+   |
+15 |     b.go(if c { &b.inner } else { &b.inner }) //~ ERROR this argument may target storage
+   |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: compute it before the call, or restructure so the receiver and the argument do not overlap
+

@@ -1,0 +1,21 @@
+-- src --
+type H = { pub mut a Int }
+
+fn take[T](x: T) -> Int {
+    _ = x
+    0
+}
+
+fn main() {
+    let mut h = H { a: 1 }
+    print "${take(&mut h.a)}" //~ ERROR a borrow cannot go to `x`
+    h.a = 2
+}
+-- expect --
+error[E1532]: a borrow cannot go to `x`, a parameter of `take` declared `T`: a parameter declared that way is dropped by the callee, and this borrow has no count to give
+  --> main/main.kg:10:19
+   |
+10 |     print "${take(&mut h.a)}" //~ ERROR a borrow cannot go to `x`
+   |                   ^^^^^^^^
+   = help: declare the parameter `&T`, or pass a value the callee can own
+

@@ -5,7 +5,21 @@ import "kigumi/internal/compiler/syntax"
 // paramEnt is the declared parameter entity for the alias hint, or 0 when there is none.
 // async marks a call that build_call.go's placeArg never boxes an argument for.
 func (c *checker) checkArg(a syntax.NodeID, param TypeID, paramEnt EntityID, async bool, res callResult) {
-	if c.t.Kind(a) == syntax.BorrowExpr {
+	c.checkArgAt(a, param, paramEnt, async, res, true)
+}
+
+// checkFieldArg checks a record literal's field value: it is stored in the new
+// aggregate, not written back through a call argument, so a scalar `&mut`
+// field/element inside it must be rejected instead of marked as an arg place.
+func (c *checker) checkFieldArg(a syntax.NodeID, param TypeID) {
+	c.checkArgAt(a, param, 0, false, callResult{}, false)
+}
+
+func (c *checker) checkArgAt(a syntax.NodeID, param TypeID, paramEnt EntityID, async bool, res callResult, callArg bool) {
+	if callArg {
+		c.rejectBorrowToGenericValue(a, paramEnt)
+	}
+	if callArg && c.t.Kind(a) == syntax.BorrowExpr {
 		if async {
 			if c.argAsyncPlace == nil {
 				c.argAsyncPlace = map[syntax.NodeID]bool{}
@@ -66,6 +80,29 @@ func (c *checker) checkArg(a syntax.NodeID, param TypeID, paramEnt EntityID, asy
 	}
 	c.fixHintedSignature(a, got, hint)
 	c.consumeArg(a, param)
+}
+
+// A borrow passed for a by-value type parameter has no cell the callee can
+// write back through; the callee owns and drops the reference instead. The
+// scalar field/element form used to slip past the MIR owned-slot check.
+func (c *checker) rejectBorrowToGenericValue(a syntax.NodeID, paramEnt EntityID) {
+	if paramEnt == 0 || c.t.Kind(a) != syntax.BorrowExpr {
+		return
+	}
+	if c.r.Types.Kind(c.vars.resolve(c.r.Entities[paramEnt].Type)) != KParam {
+		return
+	}
+	e := c.r.Entities[paramEnt]
+	// A callee that returns the parameter (directly or inside another type)
+	// only forwards the borrow; that is a well-formed borrow transfer.
+	ret := c.r.Types.Node(c.r.Fn(e.Parent).Sig).Elem
+	for _, p := range c.r.Types.Params(c.vars.resolve(ret)) {
+		if p == c.r.Types.Node(c.vars.resolve(e.Type)).Ent {
+			return
+		}
+	}
+	callee := c.r.Entities[e.Parent].Name
+	c.errAt(a, cBorrowOwnedParam, e.Name, callee, c.r.TypeString(e.Type))
 }
 
 // An fn or closure value passed for a type parameter bounded by Fn/FnMut/FnOnce fixes the type variables of the bound's signature now, so later statements see them.

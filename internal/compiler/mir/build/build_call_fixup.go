@@ -24,9 +24,14 @@ type argFixup struct {
 	lent bool
 }
 
-// placeArg boxes a scalar `&mut` argument for applyArgFixups to write back; skipped for async calls since their future can outlive this frame.
-func (b *builder) placeArg(a *hir.Expr, sync bool) (midir.LocalID, bool) {
+// placeArg boxes a scalar `&mut` argument for applyArgFixups to write back; skipped for async calls
+// since their future can outlive this frame, and for a parameter declared by value, which cannot
+// receive a borrow to write back into.
+func (b *builder) placeArg(a *hir.Expr, ent sem.EntityID, idx int, sync bool) (midir.LocalID, bool) {
 	if !sync || a.Kind != hir.Borrow || !a.Mut {
+		return 0, false
+	}
+	if ent != 0 && !b.declaredRef(ent, idx) {
 		return 0, false
 	}
 	scalarT, ok := b.r.ScalarRefElem(a.Type)

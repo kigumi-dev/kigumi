@@ -1,0 +1,18 @@
+-- src --
+type H = { pub mut a Int }
+type V['a] = { pub r &'a mut Int }
+
+fn main() {
+    let mut h = H { a: 1 }
+    let v = V { r: &mut h.a } //~ ERROR a mutable borrow of an array element or struct field cannot be stored
+    h.a = 2
+    _ = v
+}
+-- expect --
+error[E1121]: a mutable borrow of an array element or struct field cannot be stored in a variable
+ --> main/main.kg:6:25
+  |
+6 |     let v = V { r: &mut h.a } //~ ERROR a mutable borrow of an array element or struct field cannot be stored
+  |                         ^^^
+  = help: pass `&mut ...` directly as the call argument instead
+

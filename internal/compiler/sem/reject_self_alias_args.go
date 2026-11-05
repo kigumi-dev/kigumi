@@ -16,10 +16,32 @@ func (c *checker) checkSelfAliasArgs(base syntax.NodeID, recv RecvKind, async bo
 		if c.t.Kind(a) == syntax.NamedArg {
 			a = c.t.View(a).AsNamedArg().Value().ID()
 		}
-		if cand, ok := c.mutAliasArgOf(a); ok && cand.root == root && mutAliasStepsOverlap(steps, cand.steps) {
-			c.errAt(cand.node, cMutAliasSelfArg)
+		for _, cand := range c.argBorrows(a) {
+			if cand.root == root && mutAliasStepsOverlap(steps, cand.steps) {
+				c.errAt(a, cMutAliasSelfArg)
+				break
+			}
 		}
 	}
+}
+
+// argBorrows lists the borrows an argument may yield, including the branches of
+// an if/match/block; a branch the checker cannot resolve still aliases the receiver.
+func (c *checker) argBorrows(a syntax.NodeID) []mutAliasArg {
+	leaves := []syntax.NodeID{a}
+	switch c.t.Kind(c.t.Unparen(a)) {
+	case syntax.IfExpr, syntax.IfLetExpr, syntax.MatchExpr, syntax.Block:
+		leaves = c.valueLeaves(a)
+	}
+	var out []mutAliasArg
+	seen := map[syntax.NodeID]bool{}
+	for _, leaf := range leaves {
+		if cand, ok := c.borrowAliasArgOf(c.t.Unparen(leaf), false); ok && !seen[cand.node] {
+			seen[cand.node] = true
+			out = append(out, cand)
+		}
+	}
+	return out
 }
 
 // mutAliasStepsOverlap reports whether a and b, chains from the same root,

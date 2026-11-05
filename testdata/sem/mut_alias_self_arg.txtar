@@ -8,7 +8,7 @@ fn Box.touch(mut self, y: &mut Int) {
 
 fn fieldArg() {
     let mut b = Box { v: 1, w: 2 }
-    b.touch(&mut b.v) //~ ERROR this `&mut` argument may target storage this call's receiver already borrows
+    b.touch(&mut b.v) //~ ERROR this argument may target storage this call's receiver already mutates
 }
 
 type Inner = { mut x Int }
@@ -21,7 +21,7 @@ fn Box2.touch(mut self, y: &mut Int) {
 
 fn nestedFieldArg() {
     let mut b = Box2 { v: 1, inner: Inner { x: 9 } }
-    b.touch(&mut b.inner.x) //~ ERROR this `&mut` argument may target storage this call's receiver already borrows
+    b.touch(&mut b.inner.x) //~ ERROR this argument may target storage this call's receiver already mutates
 }
 
 type Box3 = { mut arr Array[Int] }
@@ -33,7 +33,7 @@ fn Box3.touch(mut self, y: &mut Int) {
 
 fn indexedElementArg() {
     let mut b = Box3 { arr: Array.of(1, 2, 3) }
-    b.touch(&mut b.arr[0]) //~ ERROR this `&mut` argument may target storage this call's receiver already borrows
+    b.touch(&mut b.arr[0]) //~ ERROR this argument may target storage this call's receiver already mutates
 }
 
 type Row = { mut cells Array[Int] }
@@ -46,11 +46,11 @@ fn Box4.touch(mut self, y: &mut Int) {
 
 fn elementBehindFieldArg() {
     let mut b = Box4 { row: Row { cells: Array.of(1, 2, 3) } }
-    b.touch(&mut b.row.cells[0]) //~ ERROR this `&mut` argument may target storage this call's receiver already borrows
+    b.touch(&mut b.row.cells[0]) //~ ERROR this argument may target storage this call's receiver already mutates
 }
 
 fn receiverLocalAlias(w: &mut Box) {
-    w.touch(&mut w.v) //~ ERROR this `&mut` argument may target storage this call's receiver already borrows
+    w.touch(&mut w.v) //~ ERROR this argument may target storage this call's receiver already mutates
 }
 
 type Reader = { v Int, mut w Int }
@@ -61,7 +61,7 @@ fn Reader.peek(self, y: &mut Int) {
 
 fn sharedSelfFieldArg() {
     let mut r = Reader { v: 1, w: 2 }
-    r.peek(&mut r.w) //~ ERROR this `&mut` argument may target storage this call's receiver already borrows
+    r.peek(&mut r.w) //~ ERROR this argument may target storage this call's receiver already mutates
 }
 
 fn disjointLocalOk() {
@@ -82,45 +82,45 @@ fn sharedSelfDisjointOk() {
     r.peek(&mut y)
 }
 -- expect --
-error[E1123]: this `&mut` argument may target storage this call's receiver already borrows
+error[E1123]: this argument may target storage this call's receiver already mutates
   --> main/main.kg:10:13
    |
-10 |     b.touch(&mut b.v) //~ ERROR this `&mut` argument may target storage this call's receiver already borrows
+10 |     b.touch(&mut b.v) //~ ERROR this argument may target storage this call's receiver already mutates
    |             ^^^^^^^^
-   = help: copy the value to a local first, call with `&mut` on that local, and write it back after the call
+   = help: compute it before the call, or restructure so the receiver and the argument do not overlap
 
-error[E1123]: this `&mut` argument may target storage this call's receiver already borrows
+error[E1123]: this argument may target storage this call's receiver already mutates
   --> main/main.kg:23:13
    |
-23 |     b.touch(&mut b.inner.x) //~ ERROR this `&mut` argument may target storage this call's receiver already borrows
+23 |     b.touch(&mut b.inner.x) //~ ERROR this argument may target storage this call's receiver already mutates
    |             ^^^^^^^^^^^^^^
-   = help: copy the value to a local first, call with `&mut` on that local, and write it back after the call
+   = help: compute it before the call, or restructure so the receiver and the argument do not overlap
 
-error[E1123]: this `&mut` argument may target storage this call's receiver already borrows
+error[E1123]: this argument may target storage this call's receiver already mutates
   --> main/main.kg:35:13
    |
-35 |     b.touch(&mut b.arr[0]) //~ ERROR this `&mut` argument may target storage this call's receiver already borrows
+35 |     b.touch(&mut b.arr[0]) //~ ERROR this argument may target storage this call's receiver already mutates
    |             ^^^^^^^^^^^^
-   = help: copy the value to a local first, call with `&mut` on that local, and write it back after the call
+   = help: compute it before the call, or restructure so the receiver and the argument do not overlap
 
-error[E1123]: this `&mut` argument may target storage this call's receiver already borrows
+error[E1123]: this argument may target storage this call's receiver already mutates
   --> main/main.kg:48:13
    |
-48 |     b.touch(&mut b.row.cells[0]) //~ ERROR this `&mut` argument may target storage this call's receiver already borrows
+48 |     b.touch(&mut b.row.cells[0]) //~ ERROR this argument may target storage this call's receiver already mutates
    |             ^^^^^^^^^^^^^^^^^^
-   = help: copy the value to a local first, call with `&mut` on that local, and write it back after the call
+   = help: compute it before the call, or restructure so the receiver and the argument do not overlap
 
-error[E1123]: this `&mut` argument may target storage this call's receiver already borrows
+error[E1123]: this argument may target storage this call's receiver already mutates
   --> main/main.kg:52:13
    |
-52 |     w.touch(&mut w.v) //~ ERROR this `&mut` argument may target storage this call's receiver already borrows
+52 |     w.touch(&mut w.v) //~ ERROR this argument may target storage this call's receiver already mutates
    |             ^^^^^^^^
-   = help: copy the value to a local first, call with `&mut` on that local, and write it back after the call
+   = help: compute it before the call, or restructure so the receiver and the argument do not overlap
 
-error[E1123]: this `&mut` argument may target storage this call's receiver already borrows
+error[E1123]: this argument may target storage this call's receiver already mutates
   --> main/main.kg:63:12
    |
-63 |     r.peek(&mut r.w) //~ ERROR this `&mut` argument may target storage this call's receiver already borrows
+63 |     r.peek(&mut r.w) //~ ERROR this argument may target storage this call's receiver already mutates
    |            ^^^^^^^^
-   = help: copy the value to a local first, call with `&mut` on that local, and write it back after the call
+   = help: compute it before the call, or restructure so the receiver and the argument do not overlap
 

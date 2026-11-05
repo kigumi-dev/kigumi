@@ -151,7 +151,7 @@ func (b *builder) valueCallArgs(e *hir.Expr) (midir.LocalID, []midir.LocalID) {
 // A bare `&mut T` local reborrows instead of moving since the callee's borrow ends when the call returns.
 // reborrow is false for async calls, whose future can outlive the call; sync false also skips placeArg's write-back.
 func (b *builder) argValue(a *hir.Expr, idx int, ent sem.EntityID, reborrow, sync bool) midir.LocalID {
-	if v, ok := b.placeArg(a, sync); ok {
+	if v, ok := b.placeArg(a, ent, idx, sync); ok {
 		return v
 	}
 	if v, ok := b.mutRefArg(a, idx, ent, sync); ok {

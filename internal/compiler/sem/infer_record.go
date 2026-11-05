@@ -75,7 +75,7 @@ func (c *checker) synthRecord(n syntax.NodeID, want TypeID) TypeID {
 		given[fld] = true
 		fieldType := c.r.Types.Subst(c.r.Entities[fld].Type, subst)
 		start := c.vars.count()
-		c.checkArg(value, fieldType, 0, false, callResult{})
+		c.checkFieldArg(value, fieldType)
 		c.slotContracts(value, c.r.Entities[fld].Type, subst, erasePos{pos: true, provable: true})
 		if fieldType == TyPoison {
 			c.vars.poisonFrom(start)

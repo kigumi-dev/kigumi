@@ -6,19 +6,19 @@ fn addBoth(a: &mut Int, b: &mut Int) {
 
 fn sameIndexLiteral() {
     let mut arr = Array.of(1, 2, 3)
-    addBoth(&mut arr[0], &mut arr[0]) //~ ERROR this `&mut` argument may target the same element
+    addBoth(&mut arr[0], &mut arr[0]) //~ ERROR this `&mut` argument may target the same storage
 }
 
 type Box = { mut v Int }
 
 fn sameField() {
     let mut b = Box { v: 1 }
-    addBoth(&mut b.v, &mut b.v) //~ ERROR this `&mut` argument may target the same element
+    addBoth(&mut b.v, &mut b.v) //~ ERROR this `&mut` argument may target the same storage
 }
 
 fn unknownIndices(i: usize, j: usize) {
     let mut arr = Array.of(1, 2, 3)
-    addBoth(&mut arr[i], &mut arr[j]) //~ ERROR this `&mut` argument may target the same element
+    addBoth(&mut arr[i], &mut arr[j]) //~ ERROR this `&mut` argument may target the same storage
 }
 
 fn distinctLiteral() {
@@ -33,34 +33,74 @@ fn distinctNestedRow() {
 
 fn sameNestedIndex() {
     let mut mat = Array.of(Array.of(1, 2), Array.of(3, 4))
-    addBoth(&mut mat[0][1], &mut mat[0][1]) //~ ERROR this `&mut` argument may target the same element
+    addBoth(&mut mat[0][1], &mut mat[0][1]) //~ ERROR this `&mut` argument may target the same storage
+}
+
+type Pair = { mut a Int, mut b Int }
+
+fn takeIntPair(x: &mut Int, p: &mut Pair) {}
+fn takePairInt(p: &mut Pair, x: &mut Int) {}
+
+fn wholeAndField() {
+    let mut p = Pair { a: 1, b: 2 }
+    takeIntPair(&mut p.a, &mut p) //~ ERROR this `&mut` argument may target the same storage
+}
+
+fn wholeAndFieldReversed() {
+    let mut p = Pair { a: 1, b: 2 }
+    takePairInt(&mut p, &mut p.a) //~ ERROR this `&mut` argument may target the same storage
+}
+
+fn siblingFields() {
+    let mut p = Pair { a: 1, b: 2 }
+    addBoth(&mut p.a, &mut p.b)
+}
+
+fn distinctRoots() {
+    let mut p = Pair { a: 1, b: 2 }
+    let mut q = Pair { a: 1, b: 2 }
+    takeIntPair(&mut p.a, &mut q)
 }
 -- expect --
-error[E1120]: this `&mut` argument may target the same element as an earlier `&mut` argument in this call
+error[E1120]: this `&mut` argument may target the same storage as an earlier `&mut` argument in this call
  --> main/main.kg:8:26
   |
-8 |     addBoth(&mut arr[0], &mut arr[0]) //~ ERROR this `&mut` argument may target the same element
+8 |     addBoth(&mut arr[0], &mut arr[0]) //~ ERROR this `&mut` argument may target the same storage
   |                          ^^^^^^^^^^
   = help: use indices the checker can prove differ, or restructure to one borrow
 
-error[E1120]: this `&mut` argument may target the same element as an earlier `&mut` argument in this call
+error[E1120]: this `&mut` argument may target the same storage as an earlier `&mut` argument in this call
   --> main/main.kg:15:23
    |
-15 |     addBoth(&mut b.v, &mut b.v) //~ ERROR this `&mut` argument may target the same element
+15 |     addBoth(&mut b.v, &mut b.v) //~ ERROR this `&mut` argument may target the same storage
    |                       ^^^^^^^^
    = help: use indices the checker can prove differ, or restructure to one borrow
 
-error[E1120]: this `&mut` argument may target the same element as an earlier `&mut` argument in this call
+error[E1120]: this `&mut` argument may target the same storage as an earlier `&mut` argument in this call
   --> main/main.kg:20:26
    |
-20 |     addBoth(&mut arr[i], &mut arr[j]) //~ ERROR this `&mut` argument may target the same element
+20 |     addBoth(&mut arr[i], &mut arr[j]) //~ ERROR this `&mut` argument may target the same storage
    |                          ^^^^^^^^^^
    = help: use indices the checker can prove differ, or restructure to one borrow
 
-error[E1120]: this `&mut` argument may target the same element as an earlier `&mut` argument in this call
+error[E1120]: this `&mut` argument may target the same storage as an earlier `&mut` argument in this call
   --> main/main.kg:35:29
    |
-35 |     addBoth(&mut mat[0][1], &mut mat[0][1]) //~ ERROR this `&mut` argument may target the same element
+35 |     addBoth(&mut mat[0][1], &mut mat[0][1]) //~ ERROR this `&mut` argument may target the same storage
    |                             ^^^^^^^^^^^^^
+   = help: use indices the checker can prove differ, or restructure to one borrow
+
+error[E1120]: this `&mut` argument may target the same storage as an earlier `&mut` argument in this call
+  --> main/main.kg:45:27
+   |
+45 |     takeIntPair(&mut p.a, &mut p) //~ ERROR this `&mut` argument may target the same storage
+   |                           ^^^^^^
+   = help: use indices the checker can prove differ, or restructure to one borrow
+
+error[E1120]: this `&mut` argument may target the same storage as an earlier `&mut` argument in this call
+  --> main/main.kg:50:25
+   |
+50 |     takePairInt(&mut p, &mut p.a) //~ ERROR this `&mut` argument may target the same storage
+   |                         ^^^^^^^^
    = help: use indices the checker can prove differ, or restructure to one borrow
 

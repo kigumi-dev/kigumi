@@ -132,7 +132,7 @@ var (
 
 	// Two `&mut` args taking the same scalar element box separate snapshots and
 	// write back after the call, so a true alias would silently drop one write.
-	cMutAliasArgs = defineCode("E1120", "mut-alias-args", "this `&mut` argument may target the same element as an earlier `&mut` argument in this call; use indices the checker can prove differ, or restructure to one borrow")
+	cMutAliasArgs = defineCode("E1120", "mut-alias-args", "this `&mut` argument may target the same storage as an earlier `&mut` argument in this call; use indices the checker can prove differ, or restructure to one borrow")
 
 	// Bound to a variable, a scalar &mut of an index/field has no base left
 	// for build_call_fixup.go to write back to once it reaches a call.
@@ -144,7 +144,7 @@ var (
 
 	// A `mut self`/`self` receiver borrows the whole place; a scalar &mut
 	// argument rooted there boxes a snapshot the MIR checker can't trace back to it.
-	cMutAliasSelfArg = defineCode("E1123", "mut-alias-self-arg", "this `&mut` argument may target storage this call's receiver already borrows; copy the value to a local first, call with `&mut` on that local, and write it back after the call")
+	cMutAliasSelfArg = defineCode("E1123", "mut-alias-self-arg", "this argument may target storage this call's receiver already mutates; compute it before the call, or restructure so the receiver and the argument do not overlap")
 
 	// A cleanup body must not suspend.
 	cCleanupAwait = defineCode("E1026", "cleanup-await", "`await` is not allowed in a cleanup body")

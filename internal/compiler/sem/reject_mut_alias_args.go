@@ -5,9 +5,10 @@ import "kigumi/internal/compiler/syntax"
 // mutAliasArg is one call argument's scalar `&mut` place: the root local
 // plus the field/index steps down to it, literal index values kept where seen.
 type mutAliasArg struct {
-	node  syntax.NodeID
-	root  EntityID
-	steps []mutAliasStep
+	node   syntax.NodeID
+	root   EntityID
+	steps  []mutAliasStep
+	scalar bool
 }
 
 type mutAliasStep struct {
@@ -17,8 +18,8 @@ type mutAliasStep struct {
 	val   int64
 }
 
-// checkMutAliasArgs rejects two `&mut` args that might name the same scalar
-// storage: a true alias would silently keep only whichever boxed write lands last.
+// checkMutAliasArgs rejects two `&mut` args that might name the same storage:
+// a true alias would silently keep only whichever boxed write lands last.
 func (c *checker) checkMutAliasArgs(args []syntax.NodeID) {
 	var seen []mutAliasArg
 	for _, a := range args {
@@ -40,21 +41,28 @@ func (c *checker) checkMutAliasArgs(args []syntax.NodeID) {
 	}
 }
 
-// mutAliasArgOf reads the field/index chain of a scalar `&mut` argument, or
-// reports ok false otherwise (a bare local already aliases its own cell).
+// mutAliasArgOf reads the place chain of any `&mut` argument, or reports ok
+// false when the place cannot be resolved. A bare local is a chain with no steps.
 func (c *checker) mutAliasArgOf(a syntax.NodeID) (mutAliasArg, bool) {
-	if c.t.Kind(a) != syntax.BorrowExpr || c.t.View(a).AsBorrow().Flags()&syntax.FlagMut == 0 {
+	return c.borrowAliasArgOf(a, true)
+}
+
+// borrowAliasArgOf reads a borrow's place chain; requireMut selects the `&mut`
+// form. A shared borrow still conflicts with a mutable receiver.
+func (c *checker) borrowAliasArgOf(a syntax.NodeID, requireMut bool) (mutAliasArg, bool) {
+	if c.t.Kind(a) != syntax.BorrowExpr {
+		return mutAliasArg{}, false
+	}
+	if requireMut && c.t.View(a).AsBorrow().Flags()&syntax.FlagMut == 0 {
 		return mutAliasArg{}, false
 	}
 	inner := c.t.View(a).AsBorrow().Operand().ID()
-	if _, ok := c.r.ScalarRefElem(c.vars.resolve(c.info.Types[a])); !ok {
-		return mutAliasArg{}, false
-	}
+	_, scalar := c.r.ScalarRefElem(c.vars.resolve(c.info.Types[a]))
 	root, steps, ok := c.mutAliasChain(inner)
-	if !ok || len(steps) == 0 {
+	if !ok {
 		return mutAliasArg{}, false
 	}
-	return mutAliasArg{node: a, root: root, steps: steps}, true
+	return mutAliasArg{node: a, root: root, steps: steps, scalar: scalar}, true
 }
 
 // mutAliasChain walks n down to its root local, recording each field/index
@@ -96,13 +104,18 @@ func (c *checker) mutAliasChain(n syntax.NodeID) (EntityID, []mutAliasStep, bool
 	return 0, nil, false
 }
 
-// mutAliasConflict: a differing root, length, field, or literal index pair
-// rules out aliasing; an index neither side can resolve cannot.
+// mutAliasConflict reports whether two places may overlap: same root and one
+// chain is a prefix of the other (an aggregate and a field below it), or both
+// reach the same step with compatible fields and indices.
 func mutAliasConflict(a, b mutAliasArg) bool {
-	if a.root != b.root || len(a.steps) != len(b.steps) {
+	if a.root != b.root {
 		return false
 	}
-	for i := range a.steps {
+	n := len(a.steps)
+	if len(b.steps) < n {
+		n = len(b.steps)
+	}
+	for i := 0; i < n; i++ {
 		sa, sb := a.steps[i], b.steps[i]
 		if sa.index != sb.index {
 			return false
@@ -117,5 +130,8 @@ func mutAliasConflict(a, b mutAliasArg) bool {
 			return false
 		}
 	}
-	return true
+	// Equal prefixes overlap. Two non-scalar borrows of the same place are
+	// already rejected by the exclusivity check; reporting here too would
+	// duplicate the diagnostic, so only pairs with a scalar side use this pass.
+	return a.scalar || b.scalar
 }
