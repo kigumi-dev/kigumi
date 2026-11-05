@@ -1,7 +1,6 @@
 package llgen_test
 
 import (
-	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -106,10 +105,7 @@ var varRewrite = regexp.MustCompile(`(?m)^\s*(a[0-9]->u\.var\.[a-z]+ = [^;]*;)`)
 // Sharing one value per construction site is only sound while no runtime
 // op rewrites a variant in place.
 func TestVariantRewriteInventory(t *testing.T) {
-	src, err := os.ReadFile("runtime/rt_core.c")
-	if err != nil {
-		t.Fatal(err)
-	}
+	src := []byte(llgen.RuntimeSource())
 	var got []string
 	for _, m := range varRewrite.FindAllStringSubmatch(string(src), -1) {
 		got = append(got, m[1])
@@ -125,10 +121,7 @@ func TestVariantRewriteInventory(t *testing.T) {
 // A closure call used to build a heap array for its arguments, which made
 // calling one in an ISR handler or a `noalloc` body allocate unseen.
 func TestInvokeBuildsNoArgumentArray(t *testing.T) {
-	src, err := os.ReadFile("runtime/rt_core.c")
-	if err != nil {
-		t.Fatal(err)
-	}
+	src := []byte(llgen.RuntimeSource())
 	body := cBody(t, string(src), "val rt_invoke(adapter_fn fn, val env, int n, val* args) {")
 	if strings.Contains(body, "rt_array(") {
 		t.Errorf("invoke still allocates the argument array:\n%s", body)
@@ -138,10 +131,7 @@ func TestInvokeBuildsNoArgumentArray(t *testing.T) {
 // Reporting a failed allocation must not need one, and must not race a
 // handler that preempted a first-use initializer.
 func TestAllocErrorBuiltInRtInit(t *testing.T) {
-	src, err := os.ReadFile("runtime/rt_core.c")
-	if err != nil {
-		t.Fatal(err)
-	}
+	src := []byte(llgen.RuntimeSource())
 	if body := cBody(t, string(src), "static val alloc_error(void) {"); strings.Contains(body, "ready") {
 		t.Errorf("alloc_error still builds its value on first use:\n%s", body)
 	}

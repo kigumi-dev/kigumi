@@ -1,10 +1,11 @@
 package llgen_test
 
 import (
-	"os"
 	"regexp"
 	"strings"
 	"testing"
+
+	"kigumi/internal/backend/llgen"
 )
 
 // A literal's value is fixed before the program starts, so building one
@@ -89,10 +90,7 @@ var scalarRewrite = regexp.MustCompile(`(?m)^\s*((\S+)->u\.(?:i|f|c|b|s\.[a-z]+)
 // Sharing one immortal per literal is only sound while no runtime op rewrites a scalar or
 // String payload through the object it was built in; the Bytes rewrite is why b".." is not shared.
 func TestScalarRewriteInventory(t *testing.T) {
-	src, err := os.ReadFile("runtime/rt_core.c")
-	if err != nil {
-		t.Fatal(err)
-	}
+	src := []byte(llgen.RuntimeSource())
 	for _, m := range scalarRewrite.FindAllStringSubmatch(string(src), -1) {
 		switch {
 		case m[2] == "v", m[2] == "c":

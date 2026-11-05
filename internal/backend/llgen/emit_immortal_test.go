@@ -1,7 +1,6 @@
 package llgen_test
 
 import (
-	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -150,10 +149,7 @@ fn main() -> Void! {
 // The runtime must not build an immortal at its first construction: a
 // handler can preempt the constructor between the sentinel and the payload.
 func TestRuntimeBuildsNoImmortalOnFirstUse(t *testing.T) {
-	src, err := os.ReadFile("runtime/rt_core.c")
-	if err != nil {
-		t.Fatal(err)
-	}
+	src := []byte(llgen.RuntimeSource())
 	for _, header := range []string{"val rt_nullary(rt_vdesc* d) {", "void rt_fnitem_init(void* slot, adapter_fn fn, int async) {"} {
 		if body := cBody(t, string(src), header); strings.Contains(body, "rc ==") {
 			t.Errorf("%s tests the sentinel it writes:\n%s", header, body)
