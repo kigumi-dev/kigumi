@@ -1,0 +1,18 @@
+-- src --
+import fs from std/fs
+
+let files = host.files()
+let a = fs.Path.fromString("/tmp/kigumi-std-fs-size-a.txt").unwrap()
+let b = fs.Path.fromString("/tmp/kigumi-std-fs-size-b.txt").unwrap()
+if files.exists(a) { files.remove(a).unwrap() }
+if files.exists(b) { files.remove(b).unwrap() }
+files.writeText(a, "hello").unwrap()
+print "size=${files.size(a).unwrap()} exists=${files.exists(b)}"
+files.rename(a, b).unwrap()
+print "renamed=${files.exists(a)} ${files.exists(b)} text=${files.read(b).unwrap()}"
+files.remove(b).unwrap()
+print "removed=${files.exists(b)}"
+-- stdout --
+size=5 exists=false
+renamed=false true text=hello
+removed=false

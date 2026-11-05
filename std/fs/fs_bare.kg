@@ -33,6 +33,16 @@ pub fn Files.readBytesUpTo(self, path: Path, limit: usize) -> Bytes! {
     panic()
 }
 
+/// Renames a path; a bare target has no file system.
+pub fn Files.rename(self, from: Path, to: Path) -> Void! {
+    panic()
+}
+
+/// Reports a file size; a bare target has no file system.
+pub fn Files.size(self, path: Path) -> i64! {
+    panic()
+}
+
 /// Deletes a file; a bare target has no file system.
 pub fn Files.remove(self, path: Path) -> Void! {
     panic()

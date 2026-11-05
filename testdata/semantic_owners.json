@@ -3521,6 +3521,26 @@
     "status": "ok"
   },
   {
+    "key": "fs.Files.rename",
+    "signature": "fn(Path, Path) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "fs.Files.size",
+    "signature": "fn(Path) -\u003e Int!",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
     "key": "fs.Files.writeText",
     "signature": "fn(Path, String) -\u003e Void!",
     "has_body": true,

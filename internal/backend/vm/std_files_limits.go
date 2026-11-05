@@ -81,6 +81,27 @@ func (m *Machine) registerFileReads() {
 		}
 		return m.ok(unitObj)
 	}
+	h["fs.Files.rename"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		if err := os.Rename(m.resolvePath(pathText(a[1])), m.resolvePath(pathText(a[2]))); err != nil {
+			return m.errMsg(shell.OSErrText(err))
+		}
+		return m.ok(unitObj)
+	}
+	h["fs.Files.size"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		f, err := os.Open(m.resolvePath(pathText(a[1])))
+		if err != nil {
+			return m.errMsg(shell.OSErrText(err))
+		}
+		defer f.Close()
+		info, err := f.Stat()
+		if err != nil {
+			return m.errMsg(shell.OSErrText(err))
+		}
+		if info.IsDir() {
+			return m.errMsg(shell.OSErrText(syscall.EISDIR))
+		}
+		return m.ok(mkInt(info.Size(), m.numKind(sem.TyI64)))
+	}
 	h["fs.Files.removeDir"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		if err := syscall.Rmdir(m.resolvePath(pathText(a[1]))); err != nil {
 			return m.errMsg(shell.OSErrText(err))

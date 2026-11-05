@@ -8,10 +8,13 @@ extern(C) {
     fn close(fd: i32) -> i32
     fn unlink(path: *const u8) -> i32
     fn rmdir(path: *const u8) -> i32
+    fn rename(old_path: *const u8, new_path: *const u8) -> i32
     fn fclose(f: *mut u8) -> i32
     fn fflush(f: *mut u8) -> i32
     fn fwrite(p: *const u8, size: usize, n: usize, f: *mut u8) -> usize
     fn fread(p: *mut u8, size: usize, n: usize, f: *mut u8) -> usize
+    fn fseek(f: *mut u8, offset: isize, whence: i32) -> i32
+    fn ftell(f: *mut u8) -> isize
     fn ferror(f: *mut u8) -> i32
     fn access(path: *const u8, mode: i32) -> i32
     fn mkdir(path: *const u8, mode: u32) -> i32
@@ -67,6 +70,36 @@ pub fn Files.createWithMode(self, path: Path, mode: u32) -> File! {
         fail err
     }
     File { f: f }
+}
+
+/// Renames or moves a file or directory. Fails when either path is missing,
+/// when the destination exists on a system that does not replace it, or when
+/// the two paths are on different file systems.
+pub fn Files.rename(self, from: Path, to: Path) -> Void! {
+    let a = ffi.CString.new(&from.text)?
+    let b = ffi.CString.new(&to.text)?
+    if unsafe {
+        rename(a.ptr(), b.ptr())
+    } != 0 {
+        fail ffi.lastError()
+    }
+}
+
+/// Size of the regular file at path in bytes.
+pub fn Files.size(self, path: Path) -> i64! {
+    let mut file = self.open(path)?
+    if unsafe {
+        fseek(file.f, 0, 2)
+    } != 0 {
+        fail ffi.lastError()
+    }
+    let end = unsafe {
+        ftell(file.f)
+    }
+    if end < 0 {
+        fail ffi.lastError()
+    }
+    end.toInt()
 }
 
 /// Deletes the file at path; a directory is an error, `removeDir` deletes an empty one.
