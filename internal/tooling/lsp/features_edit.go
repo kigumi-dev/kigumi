@@ -3,8 +3,8 @@ package lsp
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"slices"
+	"unicode"
 
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
@@ -15,7 +15,25 @@ import (
 	"kigumi/internal/lang/token"
 )
 
-var identRE = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+// isIdentifier follows the lexer's XID-like rule: a letter or `_` starts,
+// letters, marks, digits and `_` continue.
+func isIdentifier(name string) bool {
+	if name == "" {
+		return false
+	}
+	for i, r := range name {
+		if i == 0 {
+			if !(r == '_' || unicode.IsLetter(r)) {
+				return false
+			}
+			continue
+		}
+		if !(r == '_' || unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsMark(r)) {
+			return false
+		}
+	}
+	return !token.Lookup(name).IsKeyword()
+}
 
 // PrepareRename answers with the range of the name under the cursor when it
 // belongs to a declaration of this module.
@@ -39,7 +57,7 @@ func (s *Server) PrepareRename(ctx context.Context, p *protocol.PrepareRenamePar
 func (s *Server) Rename(ctx context.Context, p *protocol.RenameParams) (*protocol.WorkspaceEdit, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if !identRE.MatchString(p.NewName) {
+	if !isIdentifier(p.NewName) {
 		return nil, errors.NewErrf("%q is not a valid identifier", p.NewName)
 	}
 	snap, t, _, ent := s.entityAt(ctx, p.TextDocumentPositionParams, true)
@@ -86,7 +104,7 @@ func (s *Server) Rename(ctx context.Context, p *protocol.RenameParams) (*protoco
 	old := snap.res.Entity(ent).Name
 	for _, u := range snap.semIndex().usesOf(targets) {
 		sp := nameSpan(u.tree, u.node)
-		if text := string(u.tree.File.Src[sp.Start:sp.End]); text != old && identRE.MatchString(text) {
+		if text := string(u.tree.File.Src[sp.Start:sp.End]); text != old && isIdentifier(text) {
 			continue
 		}
 		add(u.tree.File, sp)

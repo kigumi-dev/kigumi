@@ -11,7 +11,16 @@ import (
 func (s *Server) Connect(ctx context.Context, stream jsonrpc2.Stream) jsonrpc2.Conn {
 	conn := jsonrpc2.NewConn(stream, jsonrpc2.WithCodec(protocolCodec{}))
 	ctx = protocol.WithClient(ctx, protocol.ClientDispatcher(conn))
-	handler := protocol.ServerHandler(s, jsonrpc2.MethodNotFoundHandler)
+	base := protocol.ServerHandler(s, jsonrpc2.MethodNotFoundHandler)
+	handler := func(ctx context.Context, request *jsonrpc2.Request) (any, error) {
+		resp, err := base(ctx, request)
+		if err != nil && !request.IsCall() {
+			// A notification has no response channel; an unimplemented method
+			// must not fail the connection for every later request.
+			return nil, nil
+		}
+		return resp, err
+	}
 	conn.Go(ctx, protocol.CancelHandler(orderedHandler(handler)))
 	return conn
 }
