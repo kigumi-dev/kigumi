@@ -156,6 +156,58 @@ fn framingOf(headers: &Headers, request: Bool) -> Framing! {
     Sized(parseDecimal(first) || fail failure(400, "invalid Content-Length"))
 }
 
+// validHost checks the RFC 9112 Host grammar: an IPv4/reg-name or a bracketed
+// IPv6 literal, optionally followed by a decimal port.
+fn validHost(v: String) -> Bool {
+    if v.len() == 0 || hasControlOrSpace(v) {
+        return false
+    }
+    if v.startsWith("[") {
+        let close = indexOfByte(v, 93) || return false
+        if close <= 1 {
+            return false
+        }
+        let inner = v.sliceBytes(1, close) || ""
+        if inner == "" || hasControlOrSpace(inner) || indexOfByte(inner, 58) is None {
+            return false
+        }
+        let after = v.sliceBytes(close + 1, v.len()) || ""
+        if after == "" {
+            return true
+        }
+        if !after.startsWith(":") {
+            return false
+        }
+        return validPort(after.sliceBytes(1, after.len()) || "")
+    }
+    let colon = indexOfByte(v, 58)
+    let host = if colon is Some(i) {
+        v.sliceBytes(0, i) || ""
+    } else {
+        v
+    }
+    if host == "" {
+        return false
+    }
+    for i in 0..host.len() {
+        let c = host[i]
+        if c <= 32 || c >= 127 || c == 47 || c == 92 || c == 64 || c == 91 || c == 93 || c == 35 || c == 63 || c == 58 {
+            return false
+        }
+    }
+    if colon is Some(i) {
+        return validPort(v.sliceBytes(i + 1, v.len()) || "")
+    }
+    true
+}
+
+fn validPort(text: String) -> Bool {
+    match parseDecimal(text) {
+        Some(p) -> p <= 65535
+        None -> false
+    }
+}
+
 fn parseDecimal(text: String) -> usize? {
     let b = text.bytes()
     if b.len() == 0 || b.len() > 15 {

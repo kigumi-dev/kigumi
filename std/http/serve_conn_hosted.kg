@@ -127,6 +127,9 @@ async fn Wire.readRequest(mut self, end: usize, limits: Limits, deadline: Deadli
     if hosts.len() > 1 || (hosts.len() == 0 && line.version == "HTTP/1.1") {
         fail failure(400, "missing or repeated Host")
     }
+    if hosts.len() == 1 && !validHost(hosts.get(0) || "") {
+        fail failure(400, "malformed Host")
+    }
     let framing = framingOf(&head.headers, true)?
     if framing is Sized(n) {
         if n > limits.maxBodyBytes {
