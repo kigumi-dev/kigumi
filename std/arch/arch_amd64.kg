@@ -1,0 +1,56 @@
+type Tsc = {
+    lo u32
+    hi u32
+}
+
+/// Runs CPUID for leaf and subleaf.
+pub fn cpuid(leaf: u32, subleaf: u32) -> Cpuid {
+    // rbx is the code generator's own register, so the template parks it on the
+    // stack and copies CPUID's output through r11.
+    let r: Cpuid = unsafe {
+        asm {
+            "push rbx"
+            "cpuid"
+            "mov r11d, ebx"
+            "pop rbx"
+            eax: inout(eax) leaf
+            ecx: inout(ecx) subleaf
+            ebx: out(r11d)
+            edx: out(edx)
+        }
+    }
+    r
+}
+
+/// Reads the time-stamp counter.
+pub fn rdtsc() -> u64 {
+    let r: Tsc = unsafe {
+        asm {
+            "rdtsc"
+            lo: out(eax)
+            hi: out(edx)
+            options nostack, preserves_flags
+        }
+    }
+    (r.hi.toU64() << 32) | r.lo.toU64()
+}
+
+/// Spins the CPU until the next interrupt or memory write.
+pub fn pause() {
+    unsafe {
+        asm {
+            "pause"
+            options nostack, preserves_flags
+        }
+    }
+}
+
+/// Halts the CPU until the next interrupt; privileged.
+pub unsafe fn hlt() {
+    unsafe {
+        asm {
+            "hlt"
+            options nostack
+        }
+    }
+}

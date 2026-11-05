@@ -24,6 +24,7 @@ var stdLayer = map[string]Layer{
 	"std/test":            LayerFoundation,
 	"std/crypto/subtle":   LayerFoundation,
 	"std/alloc":           LayerAllocation,
+	"std/arch":            LayerPlatform,
 	"std/binary":          LayerAllocation,
 	"std/encoding/base64": LayerAllocation,
 	"std/encoding/hex":    LayerAllocation,

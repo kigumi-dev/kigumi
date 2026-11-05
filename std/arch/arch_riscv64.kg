@@ -1,0 +1,19 @@
+/// Runs CPUID; only x86-64 has this instruction.
+pub fn cpuid(leaf: u32, subleaf: u32) -> Cpuid {
+    panic("cpuid is only implemented on x86-64")
+}
+
+/// Reads the time-stamp counter; only x86-64 has this instruction.
+pub fn rdtsc() -> u64 {
+    panic("rdtsc is only implemented on x86-64")
+}
+
+/// Spins the CPU; only x86-64 has this instruction.
+pub fn pause() {
+    panic("pause is only implemented on x86-64")
+}
+
+/// Halts the CPU; only x86-64 has this instruction.
+pub unsafe fn hlt() {
+    panic("hlt is only implemented on x86-64")
+}

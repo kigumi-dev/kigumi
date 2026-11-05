@@ -270,6 +270,46 @@
     "status": "ok"
   },
   {
+    "key": "arch.cpuid",
+    "signature": "fn(u32, u32) -\u003e Cpuid",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "arch.hlt",
+    "signature": "unsafe fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "arch.pause",
+    "signature": "fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "arch.rdtsc",
+    "signature": "fn() -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "array.Array.appendAll",
     "signature": "pure fn(Array[T]) -\u003e Void",
     "has_body": true,

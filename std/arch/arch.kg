@@ -1,0 +1,7 @@
+/// The four registers CPUID returns.
+pub type Cpuid = {
+    pub eax u32
+    pub ebx u32
+    pub ecx u32
+    pub edx u32
+}
