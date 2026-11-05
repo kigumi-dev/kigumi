@@ -62,6 +62,11 @@ var coreFragments = []RuntimeFile{
 	{"rt_display.inc", runtimeDisplay},
 	{"rt_number.inc", runtimeNumber},
 	{"rt_std_dispatch.inc", runtimeStdDispatch},
+	{"rt_drop.inc", runtimeDrop},
+	{"rt_iter.inc", runtimeIter},
+	{"rt_builtin.inc", runtimeBuiltin},
+	{"rt_utf8.inc", runtimeUtf8},
+	{"rt_mem.inc", runtimeMem},
 }
 
 //go:embed runtime/rt_std_text.inc
@@ -78,6 +83,21 @@ var runtimeNumber string
 
 //go:embed runtime/rt_std_dispatch.inc
 var runtimeStdDispatch string
+
+//go:embed runtime/rt_drop.inc
+var runtimeDrop string
+
+//go:embed runtime/rt_iter.inc
+var runtimeIter string
+
+//go:embed runtime/rt_builtin.inc
+var runtimeBuiltin string
+
+//go:embed runtime/rt_utf8.inc
+var runtimeUtf8 string
+
+//go:embed runtime/rt_mem.inc
+var runtimeMem string
 
 //go:embed runtime/rt_cap_host_shell.inc
 var runtimeCapHostShell string
