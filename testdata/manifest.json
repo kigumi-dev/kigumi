@@ -9890,6 +9890,15 @@
       ]
     },
     {
+      "id": "run/std_json_scalars",
+      "kind": "run",
+      "path": "testdata/run/std_json_scalars.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/std_map_update",
       "kind": "run",
       "path": "testdata/run/std_map_update.txtar",

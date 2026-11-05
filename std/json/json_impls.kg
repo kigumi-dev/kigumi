@@ -33,6 +33,34 @@ pub fn i32.fromKeyText(s: String) -> i32! {
     n.toI32() || fail Error { text: "${n} does not fit i32" }
 }
 
+pub fn i8.toJson(self) -> Value {
+    Value.Integer(self.toInt())
+}
+
+pub fn i8.fromJson(value: Value) -> i8! {
+    let n = i64.fromJson(value)?
+    n.toI8() || fail Error { text: "${n} does not fit i8" }
+}
+
+pub fn i8.fromKeyText(s: String) -> i8! {
+    let n = i64.fromKeyText(s)?
+    n.toI8() || fail Error { text: "${n} does not fit i8" }
+}
+
+pub fn i16.toJson(self) -> Value {
+    Value.Integer(self.toInt())
+}
+
+pub fn i16.fromJson(value: Value) -> i16! {
+    let n = i64.fromJson(value)?
+    n.toI16() || fail Error { text: "${n} does not fit i16" }
+}
+
+pub fn i16.fromKeyText(s: String) -> i16! {
+    let n = i64.fromKeyText(s)?
+    n.toI16() || fail Error { text: "${n} does not fit i16" }
+}
+
 pub fn u8.toJson(self) -> Value {
     Value.Integer(self.toInt())
 }
@@ -47,6 +75,20 @@ pub fn u8.fromKeyText(s: String) -> u8! {
     n.toU8() || fail Error { text: "${n} does not fit u8" }
 }
 
+pub fn u16.toJson(self) -> Value {
+    Value.Integer(self.toInt())
+}
+
+pub fn u16.fromJson(value: Value) -> u16! {
+    let n = i64.fromJson(value)?
+    n.toU16() || fail Error { text: "${n} does not fit u16" }
+}
+
+pub fn u16.fromKeyText(s: String) -> u16! {
+    let n = i64.fromKeyText(s)?
+    n.toU16() || fail Error { text: "${n} does not fit u16" }
+}
+
 pub fn u32.toJson(self) -> Value {
     Value.Integer(self.toInt())
 }
@@ -59,6 +101,29 @@ pub fn u32.fromJson(value: Value) -> u32! {
 pub fn u32.fromKeyText(s: String) -> u32! {
     let n = i64.fromKeyText(s)?
     n.toU32() || fail Error { text: "${n} does not fit u32" }
+}
+
+/// Integer when the value fits isize.
+pub fn isize.toJson(self) -> Value {
+    Value.Integer(self.toInt())
+}
+
+pub fn isize.fromJson(value: Value) -> isize! {
+    let n = i64.fromJson(value)?
+    let v = n.toIsize()
+    if v.toInt() != n {
+        fail Error { text: "${n} does not fit isize" }
+    }
+    Ok(v)
+}
+
+pub fn isize.fromKeyText(s: String) -> isize! {
+    let n = i64.fromKeyText(s)?
+    let v = n.toIsize()
+    if v.toInt() != n {
+        fail Error { text: "${n} does not fit isize" }
+    }
+    Ok(v)
 }
 
 /// Integer when the value fits i64, else Unsigned.
@@ -204,6 +269,18 @@ pub fn f64.fromJson(value: Value) -> Float! {
 
 pub fn f64.fromKeyText(s: String) -> Float! {
     text.parseFloat(s) || fail Error { text: "expected a number key, found \"${s}\"" }
+}
+
+pub fn f32.toJson(self) -> Value {
+    Value.Number(self.toF64())
+}
+
+pub fn f32.fromJson(value: Value) -> f32! {
+    Ok((f64.fromJson(value)?).toF32())
+}
+
+pub fn f32.fromKeyText(s: String) -> f32! {
+    Ok((f64.fromKeyText(s)?).toF32())
 }
 
 pub fn Bool.toJson(self) -> Value {
@@ -504,4 +581,28 @@ pub fn Tuple8[A: Decode, B: Decode, C: Decode, D: Decode, E: Decode, F: Decode, 
     let v6 = G.fromJson(items.takeAt(0) || Value.Null)?
     let v7 = H.fromJson(items.takeAt(0) || Value.Null)?
     Ok((v0, v1, v2, v3, v4, v5, v6, v7))
+}
+
+pub fn FixedArray[T: Encode, const N: usize].toJson(self) -> Value {
+    let mut items = Array.empty[Value]()
+    for i in 0..N {
+        items.push(self.at(i, (x) => x.toJson()) || Value.Null)
+    }
+    Value.List(items)
+}
+
+pub fn FixedArray[T: Decode, const N: usize].fromJson(value: Value) -> FixedArray[T, N]! {
+    match value {
+        Value.List(items) -> {
+            if items.len() != N {
+                fail Error { text: "expected an array of ${N} elements, found ${items.len()}" }
+            }
+            let mut out = Array.empty[T]()
+            for item in items {
+                out.push(T.fromJson(item)?)
+            }
+            FixedArray.fromArrayMove(out) || fail Error { text: "expected an array of ${N} elements" }
+        }
+        other -> mismatch("array", other)
+    }
 }

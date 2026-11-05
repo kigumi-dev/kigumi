@@ -5251,6 +5251,26 @@
     "status": "ok"
   },
   {
+    "key": "json.FixedArray.fromJson",
+    "signature": "fn(Value) -\u003e FixedArray[T, N]!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "json.FixedArray.toJson",
+    "signature": "fn() -\u003e Value",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "json.Map.fromJson",
     "signature": "fn(Value) -\u003e Map[K, V]!",
     "has_body": true,
@@ -5601,6 +5621,36 @@
     "status": "ok"
   },
   {
+    "key": "json.f32.fromJson",
+    "signature": "fn(Value) -\u003e f32!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "json.f32.fromKeyText",
+    "signature": "fn(String) -\u003e f32!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "json.f32.toJson",
+    "signature": "fn() -\u003e Value",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "json.f64.fromJson",
     "signature": "fn(Value) -\u003e Float!",
     "has_body": true,
@@ -5681,6 +5731,36 @@
     "status": "ok"
   },
   {
+    "key": "json.i16.fromJson",
+    "signature": "fn(Value) -\u003e i16!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "json.i16.fromKeyText",
+    "signature": "fn(String) -\u003e i16!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "json.i16.toJson",
+    "signature": "fn() -\u003e Value",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "json.i32.fromJson",
     "signature": "fn(Value) -\u003e i32!",
     "has_body": true,
@@ -5741,8 +5821,68 @@
     "status": "ok"
   },
   {
+    "key": "json.i8.fromJson",
+    "signature": "fn(Value) -\u003e i8!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "json.i8.fromKeyText",
+    "signature": "fn(String) -\u003e i8!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "json.i8.toJson",
+    "signature": "fn() -\u003e Value",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "json.invalid",
     "signature": "fn() -\u003e Error",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "json.isize.fromJson",
+    "signature": "fn(Value) -\u003e isize!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "json.isize.fromKeyText",
+    "signature": "fn(String) -\u003e isize!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "json.isize.toJson",
+    "signature": "fn() -\u003e Value",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -5872,6 +6012,36 @@
   },
   {
     "key": "json.u128.toJson",
+    "signature": "fn() -\u003e Value",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "json.u16.fromJson",
+    "signature": "fn(Value) -\u003e u16!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "json.u16.fromKeyText",
+    "signature": "fn(String) -\u003e u16!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "json.u16.toJson",
     "signature": "fn() -\u003e Value",
     "has_body": true,
     "kind": "",

@@ -1,0 +1,20 @@
+-- src --
+import json from std/json
+
+fn main() {
+    let a: i8 = -128
+    let b: i16 = -32768
+    let c: u16 = 65535
+    let d: isize = -7
+    let e: f32 = 1.5
+    let f: FixedArray[u8, 3] = FixedArray.filled[u8, 3](7)
+    print "enc=${json.encode(a).unwrap()} ${json.encode(b).unwrap()} ${json.encode(c).unwrap()} ${json.encode(d).unwrap()} ${json.encode(e).unwrap()} ${json.encode(f).unwrap()}"
+    print "dec=${json.decode[i8]("-128").unwrap()} ${json.decode[i16]("-32768").unwrap()} ${json.decode[u16]("65535").unwrap()} ${json.decode[isize]("-7").unwrap()} ${json.decode[f32]("1.5").unwrap()}"
+    print "fixed=${json.decode[FixedArray[u8, 3]]("[1,2,3]").unwrap().get(2) || 0} bad=${json.decode[FixedArray[u8, 3]]("[1,2]") is Err(_)}"
+    print "range=${json.decode[i8]("128") is Err(_)} ${json.decode[u16]("-1") is Err(_)}"
+}
+-- stdout --
+enc=-128 -32768 65535 -7 1.5 [7,7,7]
+dec=-128 -32768 65535 -7 1.5
+fixed=3 bad=true
+range=true true
