@@ -18,16 +18,16 @@ fn LogWriter.write(mut self, data: Bytes) -> usize! {
 let src = "hello io".toBytes()
 
 let mut r1 = io.BytesReader.new(src)
-let all = io.readAll(r1)?
+let all = io.readAll(&mut r1)?
 print "readAll: ${String.fromBytes(all) || "?"}"
 
 let mut w1 = LogWriter { buf: Array.empty[u8]() }
-io.writeAll(w1, src)?
+io.writeAll(&mut w1, src)?
 print "writeAll done"
 
 let mut r2 = io.BytesReader.new(src)
 let mut w2 = LogWriter { buf: Array.empty[u8]() }
-let n = io.copy(r2, w2)?
+let n = io.copy(&mut r2, &mut w2)?
 print "copy n=${n}"
 
 let mut bw = io.BytesWriter.new()

@@ -27,11 +27,11 @@ let src = Bytes.fromArray(&bytes)
 
 let mut r = io.BytesReader.new(src)
 let mut w = LogWriter { buf: Array.empty[u8]() }
-let n = io.copy(r, w)?
+let n = io.copy(&mut r, &mut w)?
 print "copy n=${n}"
 
 let mut r2 = io.BytesReader.new(src)
-let all = io.readAll(r2)?
+let all = io.readAll(&mut r2)?
 print "readAll len=${all.len()}"
 -- stdout --
 chunk len=4096 cumulative=4096

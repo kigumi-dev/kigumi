@@ -4912,7 +4912,7 @@
   },
   {
     "key": "io.copy",
-    "signature": "fn(R, W) -\u003e usize!",
+    "signature": "fn(\u0026mut R, \u0026mut W) -\u003e usize!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4932,7 +4932,7 @@
   },
   {
     "key": "io.readAll",
-    "signature": "fn(R) -\u003e Bytes!",
+    "signature": "fn(\u0026mut R) -\u003e Bytes!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4952,7 +4952,7 @@
   },
   {
     "key": "io.readUpTo",
-    "signature": "fn(R, usize) -\u003e Bytes!",
+    "signature": "fn(\u0026mut R, usize) -\u003e Bytes!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4982,7 +4982,7 @@
   },
   {
     "key": "io.writeAll",
-    "signature": "fn(W, Bytes) -\u003e Void!",
+    "signature": "fn(\u0026mut W, Bytes) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "gap",

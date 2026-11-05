@@ -47,7 +47,8 @@ for rows < 1500 {
 }
 print "rows ${rows} last ${last}"
 
-let whole = io.readAll(files.open(big)?)?
+let mut wholeFile = files.open(big)?
+let whole = io.readAll(&mut wholeFile)?
 print "bytes ${whole.len()}"
 
 let mut f2 = files.open(path)?

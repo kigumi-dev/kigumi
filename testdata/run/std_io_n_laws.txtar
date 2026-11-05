@@ -32,22 +32,27 @@ fn OverclaimWriter.write(mut self, data: Bytes) -> usize! {
     data.len() + 1
 }
 
-match io.readAll(OverMaxReader { called: 0 }) {
+let mut overMax = OverMaxReader { called: 0 }
+match io.readAll(&mut overMax) {
     Ok(_) -> print "readAll overmax: no error"
     Err(e) -> print "readAll overmax: ${e.message()}"
 }
 
-match io.readAll(GhostReader { calls: 0 }) {
+let mut ghost = GhostReader { calls: 0 }
+match io.readAll(&mut ghost) {
     Ok(_) -> print "readAll ghost: no error"
     Err(e) -> print "readAll ghost: ${e.message()}"
 }
 
-match io.copy(OverMaxReader { called: 0 }, io.BytesWriter.new()) {
+let mut overMaxCopy = OverMaxReader { called: 0 }
+let mut overMaxSink = io.BytesWriter.new()
+match io.copy(&mut overMaxCopy, &mut overMaxSink) {
     Ok(_) -> print "copy overmax: no error"
     Err(e) -> print "copy overmax: ${e.message()}"
 }
 
-match io.writeAll(OverclaimWriter { buf: Array.empty[u8]() }, "hello".toBytes()) {
+let mut overclaim = OverclaimWriter { buf: Array.empty[u8]() }
+match io.writeAll(&mut overclaim, "hello".toBytes()) {
     Ok(_) -> print "writeAll overclaim: no error"
     Err(e) -> print "writeAll overclaim: ${e.message()}"
 }

@@ -31,12 +31,7 @@ pub const defaultReadLimit: usize = 268435456
 
 /// Reads r until end of input and returns everything read; fails once the
 /// input turns out to exceed `defaultReadLimit` bytes, and `readUpTo` takes another limit.
-///
-/// Unsound if r is a `mut r: R` forwarded from the caller's own generic
-/// function and this (or writeAll/copy) is called more than once on it:
-/// R is exempt from move tracking, so each call silently gets its own
-/// copy instead of a use-after-move error.
-pub fn readAll[R: Reader](mut r: R) -> Bytes! {
+pub fn readAll[R: Reader](r: &mut R) -> Bytes! {
     let mut buf = Array.empty[u8]()
     for true {
         let before = buf.len()
@@ -54,7 +49,7 @@ pub fn readAll[R: Reader](mut r: R) -> Bytes! {
 }
 
 /// Same as readAll, but fails with IoError once more than limit bytes have arrived instead of reading on.
-pub fn readUpTo[R: Reader](mut r: R, limit: usize) -> Bytes! {
+pub fn readUpTo[R: Reader](r: &mut R, limit: usize) -> Bytes! {
     let mut buf = Array.empty[u8]()
     for true {
         let before = buf.len()
@@ -100,11 +95,7 @@ fn checkReadLaw(n: usize, max: usize, before: usize, after: usize) -> Void! {
 }
 
 /// Writes all of data to w, calling write again after each short write.
-///
-/// Unsound on a `mut w: W` forwarded from the caller's own generic
-/// function when called more than once on it (a header then a body,
-/// say): see readAll's note.
-pub fn writeAll[W: Writer](mut w: W, data: Bytes) -> Void! {
+pub fn writeAll[W: Writer](w: &mut W, data: Bytes) -> Void! {
     let mut sent: usize = 0
     for sent < data.len() {
         let given = remainder(data, sent)
@@ -126,13 +117,7 @@ fn checkWriteLaw(n: usize, given: usize) -> Void! {
 }
 
 /// Copies every byte from r to w and returns the total copied.
-///
-/// A single call is safe (this loops via w.write directly, not writeAll,
-/// specifically to avoid the hazard below). But like readAll/writeAll,
-/// calling copy itself more than once on a `mut w: W` or `mut r: R`
-/// forwarded from the caller's own generic function is unsound: see
-/// readAll's note.
-pub fn copy[R: Reader, W: Writer](mut r: R, mut w: W) -> usize! {
+pub fn copy[R: Reader, W: Writer](r: &mut R, w: &mut W) -> usize! {
     let mut total: usize = 0
     for true {
         let mut chunk = Array.empty[u8]()
@@ -141,8 +126,6 @@ pub fn copy[R: Reader, W: Writer](mut r: R, mut w: W) -> usize! {
         if n == 0 {
             break
         }
-        // w.write directly, not writeAll(w, ...): a generic Writer passed
-        // through another function is copied, so its mutations are lost.
         let data = Bytes.fromArray(&chunk)
         let mut sent: usize = 0
         for sent < data.len() {
@@ -199,10 +182,6 @@ pub fn BytesReader.read(mut self, into: &mut Array[u8], max: usize) -> usize! {
 
 /// A Writer that accumulates into an in-memory buffer.
 ///
-/// Passing a BytesWriter to writeAll/copy moves it, so its buffer cannot
-/// be read back afterward with .bytes() (a real use-after-move, since
-/// this type is concrete). Call .write(...) directly instead of going
-/// through writeAll/copy when the buffer needs inspecting afterward.
 pub type BytesWriter = {
     mut buf Array[u8]
 }

@@ -13,7 +13,7 @@ let mut r2 = io.BufReader.new(io.BytesReader.new("a: 1\r\nb: 2\r\n\r\nBODY".toBy
 let head = r2.readUntil("\r\n\r\n".toBytes())?
 print "head=${(head || "".toBytes()).len()} buffered=${r2.buffered()}"
 // BufReader は Reader なので readAll にそのまま流せる
-let rest = io.readAll(r2)?
+let rest = io.readAll(&mut r2)?
 print "rest=[${String.fromBytes(rest) || "?"}]"
 
 let mut r3 = io.BufReader.new(io.BytesReader.new("x".toBytes()))

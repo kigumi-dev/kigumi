@@ -40,7 +40,7 @@ let mut client2 = n.connect("127.0.0.1", port)?
 let sent2 = writeGeneric(client2, "via io.copy".toBytes())?
 let mut server2 = l.accept()?
 let mut sink = Sink { buf: Array.empty[u8]() }
-let copied = io.copy(server2, sink)?
+let copied = io.copy(&mut server2, &mut sink)?
 print "io.copy: sent=${sent2} copied=${copied}"
 -- stdout --
 generic write / existential read: sent=13 data=hello, kigumi

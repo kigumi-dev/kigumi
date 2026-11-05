@@ -37,14 +37,19 @@ fn describe(r: Result[Bytes, Error]) -> String {
     }
 }
 
-let zeros = Zeros { served: 0 }
-print "endless ${describe(io.readUpTo(zeros, 10000))}"
+let mut zeros = Zeros { served: 0 }
+print "endless ${describe(io.readUpTo(&mut zeros, 10000))}"
 let text = "0123456789".toBytes()
-print "exact ${describe(io.readUpTo(Slice { data: text, at: 0 }, 10))}"
-print "short ${describe(io.readUpTo(Slice { data: text, at: 0 }, 9))}"
-print "none ${describe(io.readUpTo(Slice { data: text, at: 0 }, 0))}"
-print "all ${describe(io.readAll(Slice { data: text, at: 0 }))}"
-print "empty ${describe(io.readUpTo(Slice { data: "".toBytes(), at: 0 }, 0))}"
+let mut exactSlice = Slice { data: text, at: 0 }
+print "exact ${describe(io.readUpTo(&mut exactSlice, 10))}"
+let mut shortSlice = Slice { data: text, at: 0 }
+print "short ${describe(io.readUpTo(&mut shortSlice, 9))}"
+let mut noneSlice = Slice { data: text, at: 0 }
+print "none ${describe(io.readUpTo(&mut noneSlice, 0))}"
+let mut allSlice = Slice { data: text, at: 0 }
+print "all ${describe(io.readAll(&mut allSlice))}"
+let mut emptySlice = Slice { data: "".toBytes(), at: 0 }
+print "empty ${describe(io.readUpTo(&mut emptySlice, 0))}"
 -- stdout --
 endless err input is larger than the read limit of 10000 bytes
 exact ok 10

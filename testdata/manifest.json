@@ -1182,30 +1182,6 @@
       ]
     },
     {
-      "id": "mir/std_io_bytes_writer_reuse",
-      "kind": "mir",
-      "path": "testdata/mir/std_io_bytes_writer_reuse.txtar",
-      "mode": [
-        "build"
-      ]
-    },
-    {
-      "id": "mir/std_io_generic_forward_gap",
-      "kind": "mir",
-      "path": "testdata/mir/std_io_generic_forward_gap.txtar",
-      "mode": [
-        "build"
-      ]
-    },
-    {
-      "id": "mir/std_io_generic_forward_hazard",
-      "kind": "mir",
-      "path": "testdata/mir/std_io_generic_forward_hazard.txtar",
-      "mode": [
-        "build"
-      ]
-    },
-    {
       "id": "mir/unit_bare_return",
       "kind": "mir",
       "path": "testdata/mir/unit_bare_return.txtar",

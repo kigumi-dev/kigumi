@@ -6,13 +6,14 @@ let files = host.files()
 let path = fs.Path.fromString("copy_out.txt")?
 let mut f = files.create(path)?
 let mut src = io.BytesReader.new("hello, kigumi\n".toBytes())
-let written = io.copy(src, f)?
+let written = io.copy(&mut src, &mut f)?
+f.close()?
 print "wrote=${written}"
 
 let content = files.readBytes(path)?
 let mut r2 = io.BytesReader.new(content)
 let mut out = host.stdout()
-let copied = io.copy(r2, out)?
+let copied = io.copy(&mut r2, &mut out)?
 print "copied=${copied}"
 files.remove(path)?
 -- stdout --
