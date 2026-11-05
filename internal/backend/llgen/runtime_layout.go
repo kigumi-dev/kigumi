@@ -20,13 +20,13 @@ var layoutBlocks = []struct{ src, marker string }{
 	{"rt.h", "struct rt_type {"},
 	{"rt.h", "struct rt_vdesc {"},
 	{"rt_core.c", "typedef struct kg_unwind {"},
-	{"rt_core.c", "typedef struct kg_uframe {"},
+	{"rt_unwind.inc", "typedef struct kg_uframe {"},
 }
 
 // RuntimeLayout is the normalized text of the value layout the runtime and
 // the emitted code share: kind enum, object header, type descriptors, the unwind records and the Go-side constants that mirror them.
 func RuntimeLayout() (string, error) {
-	sources := map[string]string{"rt.h": runtimeHeader, "rt_core.c": runtimeCore}
+	sources := map[string]string{"rt.h": runtimeHeader, "rt_core.c": runtimeCore, "rt_unwind.inc": runtimeUnwind}
 	var sb strings.Builder
 	for _, b := range layoutBlocks {
 		text, err := extractBlock(sources[b.src], b.marker)

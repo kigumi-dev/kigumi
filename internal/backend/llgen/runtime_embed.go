@@ -70,6 +70,10 @@ var coreFragments = []RuntimeFile{
 	{"rt_value.inc", runtimeValue},
 	{"rt_call.inc", runtimeCall},
 	{"rt_async.inc", runtimeAsync},
+	{"rt_alloc.inc", runtimeAlloc},
+	{"rt_rc.inc", runtimeRC},
+	{"rt_unwind.inc", runtimeUnwind},
+	{"rt_adt.inc", runtimeADT},
 }
 
 //go:embed runtime/rt_std_text.inc
@@ -110,6 +114,18 @@ var runtimeCall string
 
 //go:embed runtime/rt_async.inc
 var runtimeAsync string
+
+//go:embed runtime/rt_alloc.inc
+var runtimeAlloc string
+
+//go:embed runtime/rt_rc.inc
+var runtimeRC string
+
+//go:embed runtime/rt_unwind.inc
+var runtimeUnwind string
+
+//go:embed runtime/rt_adt.inc
+var runtimeADT string
 
 //go:embed runtime/rt_cap_host_shell.inc
 var runtimeCapHostShell string
