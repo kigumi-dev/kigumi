@@ -54,14 +54,26 @@ var capFiles = []RuntimeFile{
 	{"rt_cap_task_executor.inc", runtimeCapTaskExecutor},
 }
 
-// coreFragments are rt_core.c's other #include fragments, built only when a program needs them.
-var coreFragments = []RuntimeFile{{"rt_int128.inc", runtimeInt128}, {"rt_std_text.inc", runtimeStdText}}
+// coreFragments are rt_core.c's other #include fragments, split by family so the entry file only
+// keeps the state, init and std dispatch it must own.
+var coreFragments = []RuntimeFile{
+	{"rt_int128.inc", runtimeInt128},
+	{"rt_std_text.inc", runtimeStdText},
+	{"rt_display.inc", runtimeDisplay},
+	{"rt_number.inc", runtimeNumber},
+}
 
 //go:embed runtime/rt_std_text.inc
 var runtimeStdText string
 
 //go:embed runtime/rt_int128.inc
 var runtimeInt128 string
+
+//go:embed runtime/rt_display.inc
+var runtimeDisplay string
+
+//go:embed runtime/rt_number.inc
+var runtimeNumber string
 
 //go:embed runtime/rt_cap_host_shell.inc
 var runtimeCapHostShell string

@@ -15,7 +15,7 @@ type cDef struct {
 	params []string
 }
 
-var defRe = regexp.MustCompile(`(?m)^([A-Za-z_][A-Za-z0-9_ ]*\*?)\s+(rt_[A-Za-z0-9_]+|display)\s*\(([^)]*)\)\s*\{`)
+var defRe = regexp.MustCompile(`(?m)^([A-Za-z_][A-Za-z0-9_ ]*\*?)\s+(rt_[A-Za-z0-9_]+)\s*\(([^)]*)\)\s*\{`)
 
 func parseCDefs(src string) map[string]cDef {
 	out := map[string]cDef{}
@@ -57,20 +57,16 @@ func cTypeMatches(t Type, c string) bool {
 }
 
 // TestRuntimeFnsMatchC cross-checks the runtimeFns table against the C
-// runtime it declares.
+// runtime it declares, wherever the family fragment defines it.
 func TestRuntimeFnsMatchC(t *testing.T) {
-	src, err := os.ReadFile("runtime/rt_core.c")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defs := parseCDefs(string(src))
+	defs := parseCDefs(RuntimeSource())
 	if len(defs) < len(runtimeFns) {
-		t.Fatalf("only parsed %d C definitions for %d table entries; regex drifted from rt_core.c", len(defs), len(runtimeFns))
+		t.Fatalf("only parsed %d C definitions for %d table entries; regex drifted from the runtime source", len(defs), len(runtimeFns))
 	}
 	for _, fn := range runtimeFns {
 		def, ok := defs[fn.Name]
 		if !ok {
-			t.Errorf("%s: declared by llgen but not defined in rt_core.c", fn.Name)
+			t.Errorf("%s: declared by llgen but not defined in the runtime source", fn.Name)
 			continue
 		}
 		if len(def.params) != len(fn.Params) {
