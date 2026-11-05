@@ -56,6 +56,10 @@ func (r *Result) resolveLinkSection(f FileID, attrs syntax.NodeID, allowLink, al
 			}
 			sawSection = true
 			out.Section = r.oneStringArg(f, a, cSectionBadArg)
+			if out.Section != "" && !cSectionName(out.Section) {
+				r.errAt(f, a, cSectionBadChar)
+				out.Section = ""
+			}
 		}
 	}
 	return out
@@ -76,6 +80,17 @@ func (r *Result) oneStringArg(f FileID, attr syntax.NodeID, code Code) string {
 		return ""
 	}
 	return v.Str
+}
+
+// cSectionName keeps an object-file section emittable as an LLVM string: printable
+// ASCII without the quote and backslash that the IR string grammar reserves.
+func cSectionName(s string) bool {
+	for _, c := range s {
+		if c < 0x20 || c > 0x7e || c == '"' || c == '\\' {
+			return false
+		}
+	}
+	return true
 }
 
 func cSymbolName(s string) bool {

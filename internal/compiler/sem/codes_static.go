@@ -17,6 +17,7 @@ var (
 	cLinkNameBadArg       = defineCode("E1205", "link-name-bad-arg", "`@linkName` takes exactly one nonempty string literal made of letters, digits, `_`, `.` and `$`")
 	cSectionBadTarget     = defineCode("E1206", "section-bad-target", "`@section` is only allowed on a Kigumi-owned function or static definition, not an `extern` declaration")
 	cSectionBadArg        = defineCode("E1207", "section-bad-arg", "`@section` takes exactly one nonempty string literal")
+	cSectionBadChar       = defineCode("E1260", "section-bad-char", "`@section` name contains a character that cannot be written in LLVM IR; use printable ASCII without a quote or backslash")
 	cAttrDuplicate        = defineCode("E1208", "attr-duplicate", "`@{name}` cannot be given twice on the same declaration")
 	cLinkNameDuplicate    = defineCode("E1209", "link-name-duplicate-symbol", "the external name `{name}` is already used by another exported declaration")
 )

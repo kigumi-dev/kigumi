@@ -80,6 +80,10 @@ func (c *checker) checkLiteralFits(n syntax.NodeID, target TypeID) bool {
 			c.errAt(n, cLiteralOutOfRange, v.Int.String(), target)
 			return false
 		}
+		if v.Kind == constFloat && !floatFits(v.Float, tt.Width(target)) {
+			c.errAt(n, cLiteralOutOfRange, v.Float.Text('g', -1), target)
+			return false
+		}
 	case tt.Kind(target) == KUntyped:
 	default:
 		c.errAt(n, cTypeMismatch, target, c.r.untypedOf(v))
@@ -109,7 +113,10 @@ func (c *checker) fitsQuiet(n syntax.NodeID, target TypeID) bool {
 	case tt.IsInteger(target):
 		return v.Kind == constInt && c.r.intFits(v.Int, target)
 	case tt.IsFloat(target):
-		return v.Kind == constFloat || intExactAsFloat(v.Int, tt.Width(target))
+		if v.Kind == constFloat {
+			return floatFits(v.Float, tt.Width(target))
+		}
+		return v.Kind == constInt && intExactAsFloat(v.Int, tt.Width(target))
 	}
 	return false
 }

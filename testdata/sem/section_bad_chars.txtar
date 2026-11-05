@@ -1,0 +1,33 @@
+-- lib/s.kg --
+@section("ok.section")
+static good: u32 = 0
+
+@section("") //~ ERROR takes exactly one nonempty string literal
+static empty: u32 = 0
+
+@section("bad\"quote") //~ ERROR cannot be written in LLVM IR
+static quote: u32 = 0
+
+@section("bad\ttab") //~ ERROR cannot be written in LLVM IR
+static tab: u32 = 0
+-- expect --
+error[E1207]: `@section` takes exactly one nonempty string literal
+ --> lib/s.kg:4:1
+  |
+4 | @section("") //~ ERROR takes exactly one nonempty string literal
+  | ^^^^^^^^^^^
+
+error[E1260]: `@section` name contains a character that cannot be written in LLVM IR
+ --> lib/s.kg:7:1
+  |
+7 | @section("bad\"quote") //~ ERROR cannot be written in LLVM IR
+  | ^^^^^^^^^^^^^^^^^^^^^
+  = help: use printable ASCII without a quote or backslash
+
+error[E1260]: `@section` name contains a character that cannot be written in LLVM IR
+  --> lib/s.kg:10:1
+   |
+10 | @section("bad\ttab") //~ ERROR cannot be written in LLVM IR
+   | ^^^^^^^^^^^^^^^^^^^
+   = help: use printable ASCII without a quote or backslash
+
