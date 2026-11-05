@@ -45,7 +45,17 @@ func (p *printer) expr(id syntax.NodeID) {
 		is := v.AsIs()
 		p.expr(is.Left().ID())
 		p.write(" is ")
-		p.pattern(is.Pattern().ID())
+		// A record or or-pattern starts with `{`; without the grouping a following block
+		// (`if`, `for`) reads the brace as the pattern's body and the output stops parsing.
+		pat := is.Pattern().ID()
+		group := p.t.Kind(pat) == syntax.PatRecord || p.t.Kind(pat) == syntax.PatOr
+		if group {
+			p.write("(")
+		}
+		p.pattern(pat)
+		if group {
+			p.write(")")
+		}
 	case syntax.CallExpr:
 		c := v.AsCall()
 		p.expr(c.Callee().ID())

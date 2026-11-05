@@ -1,0 +1,53 @@
+-- src --
+type B = { pub n Int }
+type R = { pub n Int }
+
+fn f(b: &B) -> Bool {
+    if b is (B { n }) { n > 0 } else { false }
+}
+
+fn g(v: R?) -> Int {
+    if v is (R { n: 1 } | R { n }) { n } else { 0 }
+}
+
+fn h(v: R?) -> Bool {
+    let x = v is (R { n })
+    x
+}
+-- expect --
+type B = {
+    pub n Int
+}
+
+type R = {
+    pub n Int
+}
+
+fn f(b: &B) -> Bool {
+    if b is (B {
+        n
+    }) {
+        n > 0
+    } else {
+        false
+    }
+}
+
+fn g(v: R?) -> Int {
+    if v is (R {
+        n: 1
+    } | R {
+        n
+    }) {
+        n
+    } else {
+        0
+    }
+}
+
+fn h(v: R?) -> Bool {
+    let x = v is (R {
+        n
+    })
+    x
+}
