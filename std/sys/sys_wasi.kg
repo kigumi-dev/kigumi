@@ -1,0 +1,32 @@
+// WASI exposes capabilities, not the host syscall ABI.
+fn raw0(number: isize) -> isize {
+    unsupported()
+}
+
+fn raw1(number: isize, a1: isize) -> isize {
+    unsupported()
+}
+
+fn raw2(number: isize, a1: isize, a2: isize) -> isize {
+    unsupported()
+}
+
+fn raw3(number: isize, a1: isize, a2: isize, a3: isize) -> isize {
+    unsupported()
+}
+
+fn raw4(number: isize, a1: isize, a2: isize, a3: isize, a4: isize) -> isize {
+    unsupported()
+}
+
+fn raw5(number: isize, a1: isize, a2: isize, a3: isize, a4: isize, a5: isize) -> isize {
+    unsupported()
+}
+
+fn raw6(number: isize, a1: isize, a2: isize, a3: isize, a4: isize, a5: isize, a6: isize) -> isize {
+    unsupported()
+}
+
+fn unsupported() -> isize {
+    panic("raw syscalls are not supported on WASI")
+}

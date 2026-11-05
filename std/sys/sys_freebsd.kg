@@ -1,0 +1,45 @@
+extern(C) {
+    fn syscall(number: isize, ...) -> isize
+}
+
+fn raw0(number: isize) -> isize {
+    unsafe {
+        syscall(number)
+    }
+}
+
+fn raw1(number: isize, a1: isize) -> isize {
+    unsafe {
+        syscall(number, a1)
+    }
+}
+
+fn raw2(number: isize, a1: isize, a2: isize) -> isize {
+    unsafe {
+        syscall(number, a1, a2)
+    }
+}
+
+fn raw3(number: isize, a1: isize, a2: isize, a3: isize) -> isize {
+    unsafe {
+        syscall(number, a1, a2, a3)
+    }
+}
+
+fn raw4(number: isize, a1: isize, a2: isize, a3: isize, a4: isize) -> isize {
+    unsafe {
+        syscall(number, a1, a2, a3, a4)
+    }
+}
+
+fn raw5(number: isize, a1: isize, a2: isize, a3: isize, a4: isize, a5: isize) -> isize {
+    unsafe {
+        syscall(number, a1, a2, a3, a4, a5)
+    }
+}
+
+fn raw6(number: isize, a1: isize, a2: isize, a3: isize, a4: isize, a5: isize, a6: isize) -> isize {
+    unsafe {
+        syscall(number, a1, a2, a3, a4, a5, a6)
+    }
+}

@@ -14522,6 +14522,156 @@
     "status": "ok"
   },
   {
+    "key": "sys.call0",
+    "signature": "fn(isize) -\u003e isize!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sys.call1",
+    "signature": "fn(isize, isize) -\u003e isize!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sys.call2",
+    "signature": "fn(isize, isize, isize) -\u003e isize!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sys.call3",
+    "signature": "fn(isize, isize, isize, isize) -\u003e isize!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sys.call4",
+    "signature": "fn(isize, isize, isize, isize, isize) -\u003e isize!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sys.call5",
+    "signature": "fn(isize, isize, isize, isize, isize, isize) -\u003e isize!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sys.call6",
+    "signature": "fn(isize, isize, isize, isize, isize, isize, isize) -\u003e isize!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sys.check",
+    "signature": "fn(isize) -\u003e isize!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sys.raw0",
+    "signature": "fn(isize) -\u003e isize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sys.raw1",
+    "signature": "fn(isize, isize) -\u003e isize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sys.raw2",
+    "signature": "fn(isize, isize, isize) -\u003e isize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sys.raw3",
+    "signature": "fn(isize, isize, isize, isize) -\u003e isize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sys.raw4",
+    "signature": "fn(isize, isize, isize, isize, isize) -\u003e isize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sys.raw5",
+    "signature": "fn(isize, isize, isize, isize, isize, isize) -\u003e isize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sys.raw6",
+    "signature": "fn(isize, isize, isize, isize, isize, isize, isize) -\u003e isize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "task.BlockingError.message",
     "signature": "fn() -\u003e String",
     "has_body": true,

@@ -1,0 +1,72 @@
+import ffi from std/ffi
+
+/// Calls the host syscall number with no arguments.
+pub fn call0(number: isize) -> isize! {
+    ffi.clearErrno()
+    check(unsafe {
+        raw0(number)
+    })
+}
+
+/// Calls the host syscall number with one argument.
+pub fn call1(number: isize, a1: isize) -> isize! {
+    ffi.clearErrno()
+    check(unsafe {
+        raw1(number, a1)
+    })
+}
+
+/// Calls the host syscall number with two arguments.
+pub fn call2(number: isize, a1: isize, a2: isize) -> isize! {
+    ffi.clearErrno()
+    check(unsafe {
+        raw2(number, a1, a2)
+    })
+}
+
+/// Calls the host syscall number with three arguments.
+pub fn call3(number: isize, a1: isize, a2: isize, a3: isize) -> isize! {
+    ffi.clearErrno()
+    check(unsafe {
+        raw3(number, a1, a2, a3)
+    })
+}
+
+/// Calls the host syscall number with four arguments.
+pub fn call4(number: isize, a1: isize, a2: isize, a3: isize, a4: isize) -> isize! {
+    ffi.clearErrno()
+    check(unsafe {
+        raw4(number, a1, a2, a3, a4)
+    })
+}
+
+/// Calls the host syscall number with five arguments.
+pub fn call5(number: isize, a1: isize, a2: isize, a3: isize, a4: isize, a5: isize) -> isize! {
+    ffi.clearErrno()
+    check(unsafe {
+        raw5(number, a1, a2, a3, a4, a5)
+    })
+}
+
+/// Calls the host syscall number with six arguments.
+pub fn call6(number: isize, a1: isize, a2: isize, a3: isize, a4: isize, a5: isize, a6: isize) -> isize! {
+    ffi.clearErrno()
+    check(unsafe {
+        raw6(number, a1, a2, a3, a4, a5, a6)
+    })
+}
+
+// A syscall can legitimately return -1; errno is a failure only when it was
+// set afresh by this call.
+fn check(result: isize) -> isize! {
+    if result == -1 {
+        let code = ffi.errno()
+        if code != 0 {
+            fail ffi.CError {
+                code: code
+                text: ffi.errorText(code)
+            }
+        }
+    }
+    Ok(result)
+}
