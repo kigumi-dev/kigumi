@@ -102,7 +102,7 @@ lines [|] 2
 lines [a] 1
 lines [a] 1
 lines [a|b|] 3
-lines [] 1
+lines [] 1
 lines [x||y] 3
 graphemes [a|é|日|𝄞|b] 5 [] 0
 case HELLO, WöRLD! ZAZ@[`{ hello, wörld! zaz@[`{ <>
