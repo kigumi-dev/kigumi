@@ -87,6 +87,26 @@ func (lx *lexer) scanInterpolation(pos int) (int, bool) {
 				continue
 			}
 			pos++
+		case '/':
+			if pos+1 < lx.end && lx.src[pos+1] == '/' {
+				pos += 2
+				for pos < lx.end && lx.src[pos] != '\n' {
+					pos++
+				}
+				continue
+			}
+			if pos+1 < lx.end && lx.src[pos+1] == '*' {
+				pos += 2
+				for pos+1 < lx.end && !(lx.src[pos] == '*' && lx.src[pos+1] == '/') {
+					pos++
+				}
+				if pos+1 >= lx.end {
+					return pos, false
+				}
+				pos += 2
+				continue
+			}
+			pos++
 		default:
 			pos++
 		}
