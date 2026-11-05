@@ -812,7 +812,12 @@ val rt_record(rt_type* t, int64_t n, val* fields) {
     v->u.rec.type = t;
     v->u.rec.n = n;
     v->u.rec.fields = amalloc(v->al, (n ? n : 1) * sizeof(val));
-    if (!v->u.rec.fields) rt_panic("out of memory");
+    if (!v->u.rec.fields) {
+        // The header was allocated before the fields; a fatal OOM must not leave
+        // it live, or the live count at the fatal boundary is permanently off.
+        afree(v->al, v);
+        rt_panic("out of memory");
+    }
     for (int64_t i = 0; i < n; i++) {
         v->u.rec.fields[i] = fields[i];
     }
