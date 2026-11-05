@@ -30,3 +30,32 @@ fn main() {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 }
+
+// TestArchPrivilegedPrimitivesCompile checks that the privileged asm bodies
+// lower and link; they cannot be executed in user space.
+func TestArchPrivilegedPrimitivesCompile(t *testing.T) {
+	if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" {
+		t.Skip("std/arch's privileged primitives are assembled for x86-64 Linux only")
+	}
+	src := `import arch from std/arch
+
+fn usePrivileged() {
+    unsafe {
+        let _ = arch.rdmsr(0x10)
+        arch.wrmsr(0x10, 0)
+        arch.invlpg(0)
+        let _ = arch.inb(0)
+        arch.outb(0, 0)
+    }
+}
+
+fn main() {
+    if false {
+        usePrivileged()
+    }
+}
+`
+	if exe := buildProgram(t, src); exe == "" {
+		t.Fatal("privileged primitive build produced no executable")
+	}
+}

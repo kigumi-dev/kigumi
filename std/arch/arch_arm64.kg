@@ -17,3 +17,28 @@ pub fn pause() {
 pub unsafe fn hlt() {
     panic("hlt is only implemented on x86-64")
 }
+
+/// Reads a model-specific register; only x86-64 has this instruction.
+pub unsafe fn rdmsr(msr: u32) -> u64 {
+    panic("rdmsr is only implemented on x86-64")
+}
+
+/// Writes a model-specific register; only x86-64 has this instruction.
+pub unsafe fn wrmsr(msr: u32, value: u64) {
+    panic("wrmsr is only implemented on x86-64")
+}
+
+/// Invalidates a TLB entry; only x86-64 has this instruction.
+pub unsafe fn invlpg(page: usize) {
+    panic("invlpg is only implemented on x86-64")
+}
+
+/// Reads an I/O port; only x86-64 has this instruction.
+pub unsafe fn inb(port: u16) -> u8 {
+    panic("inb is only implemented on x86-64")
+}
+
+/// Writes an I/O port; only x86-64 has this instruction.
+pub unsafe fn outb(port: u16, value: u8) {
+    panic("outb is only implemented on x86-64")
+}

@@ -290,6 +290,36 @@
     "status": "ok"
   },
   {
+    "key": "arch.inb",
+    "signature": "unsafe fn(u16) -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "arch.invlpg",
+    "signature": "unsafe fn(usize) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "arch.outb",
+    "signature": "unsafe fn(u16, u8) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "arch.pause",
     "signature": "fn() -\u003e Void",
     "has_body": true,
@@ -300,8 +330,28 @@
     "status": "ok"
   },
   {
+    "key": "arch.rdmsr",
+    "signature": "unsafe fn(u32) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "arch.rdtsc",
     "signature": "fn() -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "arch.wrmsr",
+    "signature": "unsafe fn(u32, u64) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
