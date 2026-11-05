@@ -20,7 +20,7 @@ var oomCovers = map[string]string{
 	"array.Array.tryPush": "array_push", "array.Array.tryReserve": "array_reserve", "array.Array.tryAppendAll": "array_append_all",
 	"array.Array.tryInsertAt": "array_insert_at", "array.Array.tryTake": "array_take", "array.Array.tryMap": "array_map",
 	"array.Array.tryFilter": "array_filter", "array.Array.trySlice": "array_slice", "array.Array.tryConcat": "array_concat",
-	"array.tryJoin": "array_join", "array.trySortedBy": "array_sorted_by",
+	"array.tryJoin": "array_join", "array.trySortedBy": "array_sorted_by", "sort.tryStable": "sort_stable",
 	"prelude.String.trySliceBytes": "string_slice", "prelude.String.tryTrim": "string_trim", "prelude.String.trySplit": "string_split",
 	"prelude.String.tryConcat": "string_concat", "prelude.String.tryRepeat": "string_repeat", "prelude.String.tryToUpper": "string_to_upper",
 	"prelude.String.tryToLower": "string_to_lower", "prelude.String.tryChars": "string_chars", "prelude.String.tryFromBytes": "string_from_bytes",
