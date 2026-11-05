@@ -1,0 +1,12 @@
+-- src --
+import math from std/math
+
+print "exp0=${math.exp(0.0)} log1=${math.log(1.0)} log2_8=${math.log2(8.0)} log10_1000=${math.log10(1000.0)}"
+print "sin0=${math.sin(0.0)} cos0=${math.cos(0.0)} tan0=${math.tan(0.0)}"
+print "trunc=${math.trunc(2.9)} fract=${math.fract(2.25)} fmod=${math.fmod(5.0, 3.0)}"
+print "finite=${math.isFinite(1.0)} nan=${math.isNaN(math.nan())} inf=${math.isInf(math.inf())}"
+-- stdout --
+exp0=1 log1=0 log2_8=3 log10_1000=2.9999999999999996
+sin0=0 cos0=1 tan0=0
+trunc=2 fract=0.25 fmod=2
+finite=true nan=true inf=true

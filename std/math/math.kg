@@ -439,3 +439,287 @@ pub pure noalloc fn clamp(x: usize, lo: usize, hi: usize) -> usize {
         x
     }
 }
+
+/// Natural logarithm of 2.
+pub const ln2: Float = 0.6931471805599453
+
+/// Natural logarithm of 10.
+pub const ln10: Float = 2.302585092994046
+
+/// Half the ratio of a circle's circumference to its diameter.
+pub const pi: Float = 3.141592653589793
+
+/// Twice `pi`.
+pub const tau: Float = 6.283185307179586
+
+// pi/2 split so that `k * halfPiHi` is exact; see `reduce`.
+const halfPiHi: Float = 1.5707963109016418
+const halfPiLo: Float = 0.000000015893254712295857
+const twoOverPi: Float = 0.6366197723675814
+
+/// Whether x is the result of an undefined operation. NaN is the only value unequal to itself.
+pub pure fn isNaN(x: Float) -> Bool {
+    x != x
+}
+
+/// Whether x is an infinity of either sign.
+pub pure fn isInf(x: Float) -> Bool {
+    !isNaN(x) && x * 0.5 == x && x != 0.0
+}
+
+/// Whether x is neither NaN nor an infinity.
+pub pure fn isFinite(x: Float) -> Bool {
+    !isNaN(x) && !isInf(x)
+}
+
+/// x with its fractional part removed, rounding toward zero.
+pub pure fn trunc(x: Float) -> Float {
+    if x < 0.0 {
+        ceil(x)
+    } else {
+        floor(x)
+    }
+}
+
+/// The fractional part of x, with x's sign.
+pub pure fn fract(x: Float) -> Float {
+    x - trunc(x)
+}
+
+/// The remainder of x / y with x's sign, as C's `fmod`. NaN when y is zero.
+pub pure fn fmod(x: Float, y: Float) -> Float {
+    if y == 0.0 || isNaN(x) || isNaN(y) || isInf(x) {
+        return nan()
+    }
+    if isInf(y) {
+        return x
+    }
+    x - trunc(x / y) * y
+}
+
+/// e raised to the power x. Zero underflows to 0.0 and overflow gives +Inf.
+pub pure fn exp(x: Float) -> Float {
+    if isNaN(x) {
+        return x
+    }
+    if x > 710.0 {
+        return inf()
+    }
+    if x < -745.0 {
+        return 0.0
+    }
+    // exp(x) = 2^k * exp(r) with |r| <= ln2/2, where the series below needs 13 terms.
+    let k = round(x / ln2)
+    let r = x - k * ln2
+    scaleByPowerOfTwo(expSmall(r), k)
+}
+
+/// Natural logarithm of x. NaN for a negative x, -Inf at zero.
+pub pure fn log(x: Float) -> Float {
+    if isNaN(x) || x < 0.0 {
+        return nan()
+    }
+    if x == 0.0 {
+        return 0.0 - inf()
+    }
+    if isInf(x) {
+        return x
+    }
+    // x = f * 2^k with f in [sqrt(1/2), sqrt(2)), where atanh's series converges fastest.
+    let mut f = x
+    let mut k: Float = 0.0
+    for f >= 1.4142135623730951 {
+        f = f * 0.5
+        k = k + 1.0
+    }
+    for f < 0.7071067811865476 {
+        f = f * 2.0
+        k = k - 1.0
+    }
+    logNear1(f) + k * ln2
+}
+
+/// Base-2 logarithm of x.
+pub pure fn log2(x: Float) -> Float {
+    log(x) / ln2
+}
+
+/// Base-10 logarithm of x.
+pub pure fn log10(x: Float) -> Float {
+    log(x) / ln10
+}
+
+/// Sine of x in radians.
+pub pure fn sin(x: Float) -> Float {
+    if !isFinite(x) {
+        return nan()
+    }
+    let a = reduce(x)
+    match a.octant {
+        0 -> sinSmall(a.r)
+        1 -> cosSmall(a.r)
+        2 -> 0.0 - sinSmall(a.r)
+        _ -> 0.0 - cosSmall(a.r)
+    }
+}
+
+/// Cosine of x in radians.
+pub pure fn cos(x: Float) -> Float {
+    if !isFinite(x) {
+        return nan()
+    }
+    let a = reduce(x)
+    match a.octant {
+        0 -> cosSmall(a.r)
+        1 -> 0.0 - sinSmall(a.r)
+        2 -> 0.0 - cosSmall(a.r)
+        _ -> sinSmall(a.r)
+    }
+}
+
+/// Tangent of x in radians; +/-Inf near the poles, where cosine underflows to zero.
+pub pure fn tan(x: Float) -> Float {
+    let c = cos(x)
+    if c == 0.0 {
+        return inf()
+    }
+    sin(x) / c
+}
+
+/// Hyperbolic sine of x.
+pub pure fn sinh(x: Float) -> Float {
+    (exp(x) - exp(0.0 - x)) * 0.5
+}
+
+/// Hyperbolic cosine of x.
+pub pure fn cosh(x: Float) -> Float {
+    (exp(x) + exp(0.0 - x)) * 0.5
+}
+
+/// Hyperbolic tangent of x.
+pub pure fn tanh(x: Float) -> Float {
+    if x > 20.0 {
+        return 1.0
+    }
+    if x < -20.0 {
+        return -1.0
+    }
+    let e = exp(x + x)
+    (e - 1.0) / (e + 1.0)
+}
+
+/// The quiet NaN.
+pub pure fn nan() -> Float {
+    let z = zero()
+    z / z
+}
+
+/// Positive infinity.
+pub pure fn inf() -> Float {
+    1.0 / zero()
+}
+
+// Why a function: `0.0 / 0.0` written out is a constant expression, which E240 rejects.
+fn zero() -> Float {
+    0.0
+}
+
+/// exp(r) for |r| <= ln2/2, by its Taylor series. The 13th term is below 2^-53 of the sum.
+fn expSmall(r: Float) -> Float {
+    let mut term: Float = 1.0
+    let mut sum: Float = 1.0
+    let mut n: Float = 1.0
+    for n < 14.0 {
+        term = term * r / n
+        sum = sum + term
+        n = n + 1.0
+    }
+    sum
+}
+
+/// log(f) for f in [sqrt(1/2), sqrt(2)), as 2*atanh((f-1)/(f+1)). |s| stays under 0.1716,
+/// so s^2 < 0.03 and the 15 odd terms below carry past the last bit.
+fn logNear1(f: Float) -> Float {
+    let s = (f - 1.0) / (f + 1.0)
+    let sq = s * s
+    let mut term = s
+    let mut sum = s
+    let mut n: Float = 1.0
+    for n < 16.0 {
+        term = term * sq
+        sum = sum + term / (n + n + 1.0)
+        n = n + 1.0
+    }
+    sum + sum
+}
+
+/// x * 2^k, by squaring rather than `pow`, so the result stays exact until it overflows.
+fn scaleByPowerOfTwo(x: Float, k: Float) -> Float {
+    let mut out = x
+    let mut n = abs(k)
+    let factor = if k < 0.0 {
+        0.5
+    } else {
+        2.0
+    }
+    for n > 0.0 {
+        out = out * factor
+        n = n - 1.0
+    }
+    out
+}
+
+/// How far x is past a multiple of pi/2, and which quarter turn that was.
+type Angle = {
+    r Float
+    octant Int
+}
+
+/// x reduced to `r` in about [-pi/4, pi/4] plus the quarter turn it came from.
+///
+/// Why pi/2 is split in two: `x - k * halfPi` cancels its leading bits, so a single rounded
+/// halfPi would leave only the error of that constant behind. `halfPiHi` has its low 27
+/// mantissa bits clear, which makes `k * halfPiHi` exact for every k a Float can reach here,
+/// and `halfPiLo` carries the rest (Cody and Waite's reduction).
+fn reduce(x: Float) -> Angle {
+    let k = round(x * twoOverPi)
+    let r = (x - k * halfPiHi) - k * halfPiLo
+    let turns = fmod(k, 4.0)
+    let o = toInt(if turns < 0.0 {
+        turns + 4.0
+    } else {
+        turns
+    }) || 0
+    Angle {
+        r: r
+        octant: o
+    }
+}
+
+/// sin(t) for |t| <= pi/4 by its Taylor series.
+fn sinSmall(t: Float) -> Float {
+    let sq = t * t
+    let mut term = t
+    let mut sum = t
+    let mut n: Float = 1.0
+    for n < 11.0 {
+        term = 0.0 - term * sq / ((n + n) * (n + n + 1.0))
+        sum = sum + term
+        n = n + 1.0
+    }
+    sum
+}
+
+/// cos(t) for |t| <= pi/4 by its Taylor series.
+fn cosSmall(t: Float) -> Float {
+    let sq = t * t
+    let mut term: Float = 1.0
+    let mut sum: Float = 1.0
+    let mut n: Float = 1.0
+    for n < 11.0 {
+        term = 0.0 - term * sq / ((n + n - 1.0) * (n + n))
+        sum = sum + term
+        n = n + 1.0
+    }
+    sum
+}

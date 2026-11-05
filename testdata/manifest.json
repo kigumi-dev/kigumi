@@ -9899,6 +9899,15 @@
       ]
     },
     {
+      "id": "run/std_math_elementary",
+      "kind": "run",
+      "path": "testdata/run/std_math_elementary.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/std_more",
       "kind": "run",
       "path": "testdata/run/std_more.txtar",

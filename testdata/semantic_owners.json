@@ -6551,6 +6551,56 @@
     "status": "ok"
   },
   {
+    "key": "math.cos",
+    "signature": "pure fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.cosSmall",
+    "signature": "fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.cosh",
+    "signature": "pure fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.exp",
+    "signature": "pure fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.expSmall",
+    "signature": "fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "math.floor",
     "signature": "pure noalloc fn(Float) -\u003e Float",
     "has_body": false,
@@ -6561,6 +6611,106 @@
     "status": "ok"
   },
   {
+    "key": "math.fmod",
+    "signature": "pure fn(Float, Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.fract",
+    "signature": "pure fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.inf",
+    "signature": "pure fn() -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.isFinite",
+    "signature": "pure fn(Float) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.isInf",
+    "signature": "pure fn(Float) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.isNaN",
+    "signature": "pure fn(Float) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.log",
+    "signature": "pure fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.log10",
+    "signature": "pure fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.log2",
+    "signature": "pure fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.logNear1",
+    "signature": "fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "math.max",
     "signature": "pure noalloc fn(Int, Int) -\u003e Int",
     "has_body": true,
@@ -6773,6 +6923,16 @@
   {
     "key": "math.min",
     "signature": "pure noalloc fn(usize, usize) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.nan",
+    "signature": "pure fn() -\u003e Float",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -6791,6 +6951,16 @@
     "status": "ok"
   },
   {
+    "key": "math.reduce",
+    "signature": "fn(Float) -\u003e Angle",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "math.round",
     "signature": "pure noalloc fn(Float) -\u003e Float",
     "has_body": false,
@@ -6801,12 +6971,72 @@
     "status": "ok"
   },
   {
+    "key": "math.scaleByPowerOfTwo",
+    "signature": "fn(Float, Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.sin",
+    "signature": "pure fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.sinSmall",
+    "signature": "fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.sinh",
+    "signature": "pure fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "math.sqrt",
     "signature": "pure noalloc fn(Float) -\u003e Float",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
     "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.tan",
+    "signature": "pure fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.tanh",
+    "signature": "pure fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
     "accelerated": false,
     "status": "ok"
   },
@@ -6823,6 +7053,26 @@
   {
     "key": "math.toInt",
     "signature": "pure noalloc fn(Float) -\u003e Int?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.trunc",
+    "signature": "pure fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.zero",
+    "signature": "fn() -\u003e Float",
     "has_body": true,
     "kind": "",
     "vm": "gap",
