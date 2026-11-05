@@ -42,3 +42,18 @@ pub unsafe fn inb(port: u16) -> u8 {
 pub unsafe fn outb(port: u16, value: u8) {
     panic("outb is only implemented on x86-64")
 }
+
+/// Reads a hardware random value; only x86-64 has RDRAND.
+pub fn rdrand() -> u64? {
+    panic("rdrand is only implemented on x86-64")
+}
+
+/// Reads a control register; only x86-64 has control registers.
+pub unsafe fn readCr(n: u32) -> usize {
+    panic("control registers are only implemented on x86-64")
+}
+
+/// Writes a control register; only x86-64 has control registers.
+pub unsafe fn writeCr(n: u32, value: usize) {
+    panic("control registers are only implemented on x86-64")
+}

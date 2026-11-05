@@ -46,6 +46,9 @@ fn usePrivileged() {
         arch.invlpg(0)
         let _ = arch.inb(0)
         arch.outb(0, 0)
+        let _ = arch.rdrand()
+        let _ = arch.readCr(3)
+        arch.writeCr(3, 0)
     }
 }
 
