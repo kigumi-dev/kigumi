@@ -14982,8 +14982,78 @@
     "status": "ok"
   },
   {
+    "key": "time.Duration.add",
+    "signature": "pure fn(Duration) -\u003e Duration",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.Duration.fromMillis",
+    "signature": "pure noalloc fn(Int) -\u003e Duration",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.Duration.fromSeconds",
+    "signature": "pure fn(Int) -\u003e Duration",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.Duration.millis",
+    "signature": "pure noalloc fn() -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.Duration.seconds",
+    "signature": "pure noalloc fn() -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "time.Instant.elapsedMillis",
     "signature": "fn() -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.Instant.httpDate",
+    "signature": "pure fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.Instant.parts",
+    "signature": "pure noalloc fn() -\u003e Parts",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -15032,8 +15102,118 @@
     "status": "ok"
   },
   {
+    "key": "time.buildInstant",
+    "signature": "pure noalloc fn(Int, Int, Int, Int, Int, Int) -\u003e Instant?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.byteAt",
+    "signature": "pure noalloc fn(String, usize) -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.civilFromDays",
+    "signature": "pure noalloc fn(Int) -\u003e Civil",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.commaSpaced",
+    "signature": "pure noalloc fn(String, usize) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.daysFromCivil",
+    "signature": "pure noalloc fn(Int, Int, Int) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.daysInMonth",
+    "signature": "pure noalloc fn(Int, Int) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.digits",
+    "signature": "pure noalloc fn(String, usize, usize) -\u003e Int?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.floorDiv",
+    "signature": "pure noalloc fn(Int, Int) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.floorMod",
+    "signature": "pure noalloc fn(Int, Int) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "time.fromUnixMillis",
-    "signature": "pure fn(Int) -\u003e Instant",
+    "signature": "pure noalloc fn(Int) -\u003e Instant",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.indexOfByte",
+    "signature": "pure noalloc fn(String, u8) -\u003e usize?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.leapYear",
+    "signature": "pure noalloc fn(Int) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -15052,6 +15232,26 @@
     "status": "ok"
   },
   {
+    "key": "time.monthFromName",
+    "signature": "pure noalloc fn(String) -\u003e Int?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.monthName",
+    "signature": "pure noalloc fn(Int) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "time.now",
     "signature": "fn() -\u003e Instant",
     "has_body": true,
@@ -15059,6 +15259,46 @@
     "vm": "implemented",
     "native": "gap",
     "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "time.parseAsctime",
+    "signature": "pure fn(String) -\u003e Instant?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.parseDate",
+    "signature": "pure fn(String) -\u003e Instant?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.parseImf",
+    "signature": "pure fn(String) -\u003e Instant?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.parseRfc850",
+    "signature": "pure fn(String) -\u003e Instant?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
     "status": "ok"
   },
   {
@@ -15079,6 +15319,16 @@
     "vm": "implemented",
     "native": "gap",
     "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "time.weekdayName",
+    "signature": "pure noalloc fn(Int) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
     "status": "ok"
   }
 ]

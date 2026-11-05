@@ -1,0 +1,24 @@
+-- src --
+import time from std/time
+
+fn main() {
+    print "epoch=${time.fromUnixMillis(0).httpDate()}"
+    print "pre=${time.fromUnixMillis(-1).httpDate()}"
+    print "leap=${time.fromUnixMillis(951782400000).utc()} ${time.fromUnixMillis(-2208988800000).utc()}"
+    print "ymd=${time.parseDate("Sun, 06 Nov 1994 08:49:37 GMT").unwrap().unixMillis()}"
+    print "rfc850=${time.parseDate("Sunday, 06-Nov-94 08:49:37 GMT").unwrap().unixMillis()}"
+    print "asctime=${time.parseDate("Sun Nov  6 08:49:37 1994").unwrap().unixMillis()} ${time.parseDate("Tue Nov 30 08:49:37 1999").unwrap().utc()}"
+    print "bad=${time.parseDate("Sun, 31 Apr 1994 08:49:37 GMT") is None} ${time.parseDate("Sun, 06 Nov 1994 24:00:00 GMT") is None} ${time.parseDate("Sun, 06 Nov 1994 08:49:37 UTC") is None}"
+    print "future=${time.fromUnixMillis(1360101047000).httpDate()} ${time.parseDate("Tue, 05 Feb 2013 21:50:47 GMT").unwrap().unixMillis()}"
+    print "roundtrip=${time.parseDate(time.fromUnixMillis(-2208988800000).httpDate()).unwrap().unixMillis()}"
+}
+-- stdout --
+epoch=Thu, 01 Jan 1970 00:00:00 GMT
+pre=Wed, 31 Dec 1969 23:59:59 GMT
+leap=2000-02-29T00:00:00Z 1900-01-01T00:00:00Z
+ymd=784111777000
+rfc850=784111777000
+asctime=784111777000 1999-11-30T08:49:37Z
+bad=true true true
+future=Tue, 05 Feb 2013 21:50:47 GMT 1360101047000
+roundtrip=-2208988800000
