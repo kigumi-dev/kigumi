@@ -17,9 +17,19 @@ func (c *checker) checkSelfAliasArgs(base syntax.NodeID, recv RecvKind, async bo
 			a = c.t.View(a).AsNamedArg().Value().ID()
 		}
 		for _, cand := range c.argBorrows(a) {
-			// A shared receiver only conflicts with a mutable borrow of its
-			// storage; a shared borrow reads the same value harmlessly.
-			if recv == RecvSelf && !cand.mut {
+			// A shared argument conflicts with a mutating receiver even when it
+			// names a whole aggregate; a shared receiver only conflicts with a
+			// mutable argument.
+			if !cand.mut {
+				if recv == RecvMut && cand.root == root && mutAliasStepsOverlap(steps, cand.steps) {
+					c.errAt(a, cMutAliasSelfArg)
+					break
+				}
+				continue
+			}
+			// A mutable whole aggregate is the MIR exclusivity check's case; this
+			// pass keeps the scalar field/element write-back form it originally owned.
+			if !cand.scalar || len(cand.steps) == 0 {
 				continue
 			}
 			if cand.root == root && mutAliasStepsOverlap(steps, cand.steps) {

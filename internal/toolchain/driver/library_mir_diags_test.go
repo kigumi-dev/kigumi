@@ -19,7 +19,7 @@ func TestLibraryCheckKeepsMIRDiagnostics(t *testing.T) {
 		{"effects_noalloc_entry", "", "", []string{"E1840", "E1841", "E1610", "E907"}},
 		{"effects_noalloc_entry_witness", "", "", []string{"E1570"}},
 		{"capability_allocator_none_reached_cstring", "none", "", nil},
-		{"capability_allocator_none_reached_cstring", "none", probeTest, []string{"E1370"}},
+		{"capability_allocator_none_reached_cstring", "none", probeTest, []string{"E2314"}},
 	}
 	for _, c := range cases {
 		t.Run(c.fixture, func(t *testing.T) {
