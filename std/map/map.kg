@@ -249,6 +249,21 @@ pub pure fn Map[K: Eq + Hash, V].trySet(mut self, key: K, value: V) -> Result[Vo
     }
 }
 
+/// A copy of the value stored under key, or fallback when the key is absent.
+pub pure fn Map[K: Eq + Hash, V: Copy].getOr(self, key: &K, fallback: V) -> V {
+    self.get(key) || fallback
+}
+
+/// Replaces the value stored under key with f(old) and returns the old value,
+/// or inserts f(None) when the key is absent. The value is Copy so it can be
+/// passed to f and returned after the store.
+pub pure fn Map[K: Eq + Hash, V: Copy].update(mut self, key: K, f: fn(V?) -> V) -> V? {
+    let old = self.take(&key)
+    let next = f(old)
+    self.set(key, next)
+    old
+}
+
 /// A copy of the value stored under key, or None when the key is absent.
 pub pure fn Map[K: Eq + Hash, V: Copy].get(self, key: &K) -> V? {
     if self.position(key) is Some(pos) {

@@ -6081,6 +6081,16 @@
     "status": "ok"
   },
   {
+    "key": "map.Map.getOr",
+    "signature": "pure fn(\u0026K, V) -\u003e V",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "map.Map.hash",
     "signature": "pure fn() -\u003e u64",
     "has_body": true,
@@ -6213,6 +6223,16 @@
   {
     "key": "map.Map.tryValues",
     "signature": "pure fn() -\u003e Result[Array[V], AllocError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "map.Map.update",
+    "signature": "pure fn(K, fn(V?) -\u003e V) -\u003e V?",
     "has_body": true,
     "kind": "",
     "vm": "gap",

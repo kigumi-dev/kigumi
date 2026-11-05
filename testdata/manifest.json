@@ -9890,6 +9890,15 @@
       ]
     },
     {
+      "id": "run/std_map_update",
+      "kind": "run",
+      "path": "testdata/run/std_map_update.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/std_more",
       "kind": "run",
       "path": "testdata/run/std_more.txtar",

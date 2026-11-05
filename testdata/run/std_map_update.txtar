@@ -1,0 +1,15 @@
+-- src --
+import map from std/map
+
+let mut m = map.empty[String, Int]()
+print "missing ${m.getOr("a", 7)}"
+print "absent old ${debug(&m.update("a", (old) => if old is Some(v) { v + 1 } else { 1 }))}"
+print "one ${m.getOr("a", 0)}"
+print "old ${debug(&m.update("a", (old) => if old is Some(v) { v + 10 } else { 10 }))}"
+print "eleven ${m.getOr("a", 0)}"
+-- stdout --
+missing 7
+absent old None
+one 1
+old Some(1)
+eleven 11
