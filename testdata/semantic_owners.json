@@ -4611,8 +4611,48 @@
     "status": "ok"
   },
   {
+    "key": "http.tokenByte",
+    "signature": "fn(u8) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "http.trailerFieldOk",
+    "signature": "fn(\u0026Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "http.unmatched",
     "signature": "fn(String, Request) -\u003e Response!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "http.validHost",
+    "signature": "fn(String) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "http.validPort",
+    "signature": "fn(String) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",

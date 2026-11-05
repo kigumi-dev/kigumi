@@ -92,6 +92,17 @@ func (c *checker) rejectBorrowToGenericValue(a syntax.NodeID, paramEnt EntityID)
 	if c.r.Types.Kind(c.vars.resolve(c.r.Entities[paramEnt].Type)) != KParam {
 		return
 	}
+	if c.t.View(a).AsBorrow().Flags()&syntax.FlagMut == 0 {
+		return
+	}
+	place := c.t.Unparen(c.t.View(a).AsBorrow().Operand().ID())
+	switch c.t.Kind(place) {
+	case syntax.MemberExpr, syntax.BracketExpr:
+	default:
+		// A bare local borrow is the MIR owned-slot check's case; this sem
+		// check exists for the scalar field/element write-back lowering.
+		return
+	}
 	e := c.r.Entities[paramEnt]
 	// A callee that returns the parameter (directly or inside another type)
 	// only forwards the borrow; that is a well-formed borrow transfer.
