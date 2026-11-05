@@ -381,3 +381,25 @@ pub pure noalloc fn Duration.seconds(self) -> i64 {
 pub pure fn Duration.add(self, other: Duration) -> Duration {
     Duration { ms: self.ms.saturatingAdd(other.ms) }
 }
+
+/// Clock access as an explicit capability value from `host.clock()`.
+/// Safety: holds no state; every reading is independent, so sharing or duplicating it is free.
+pub type SystemClock = {
+    // A unit marker; the capability has no mutable state.
+    present Bool
+}
+
+/// A clock capability over the host's wall and monotonic clocks.
+pub pure noalloc fn SystemClock.new() -> SystemClock {
+    SystemClock { present: true }
+}
+
+/// The current time, like `now`.
+pub fn SystemClock.now(self) -> Instant {
+    now()
+}
+
+/// The current monotonic reading, like `monotonic`.
+pub fn SystemClock.monotonic(self) -> Monotonic {
+    monotonic()
+}

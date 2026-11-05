@@ -8391,6 +8391,16 @@
     "status": "ok"
   },
   {
+    "key": "os.Host.clock",
+    "signature": "fn() -\u003e SystemClock",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "os.Host.dl",
     "signature": "fn() -\u003e Loader",
     "has_body": false,
@@ -15364,6 +15374,36 @@
   {
     "key": "time.Monotonic.elapsedMillis",
     "signature": "fn() -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.SystemClock.monotonic",
+    "signature": "fn() -\u003e Monotonic",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.SystemClock.new",
+    "signature": "pure noalloc fn() -\u003e SystemClock",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.SystemClock.now",
+    "signature": "fn() -\u003e Instant",
     "has_body": true,
     "kind": "",
     "vm": "gap",

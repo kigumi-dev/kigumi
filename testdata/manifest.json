@@ -10043,6 +10043,15 @@
       ]
     },
     {
+      "id": "run/std_time_clock",
+      "kind": "run",
+      "path": "testdata/run/std_time_clock.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/std_time_date",
       "kind": "run",
       "path": "testdata/run/std_time_date.txtar",

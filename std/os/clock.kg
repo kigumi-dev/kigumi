@@ -1,0 +1,6 @@
+import time from std/time
+
+/// Clock access, obtained from `host.clock()`.
+pub fn Host.clock(self) -> time.SystemClock {
+    time.SystemClock.new()
+}

@@ -1,0 +1,12 @@
+-- src --
+import time from std/time
+
+fn main() {
+    let clock: time.SystemClock = host.clock()
+    let a = clock.monotonic()
+    let first = clock.now().unixMillis()
+    let second = clock.now().unixMillis()
+    print "ordered=${second >= first} ${a.elapsedMillis() >= 0}"
+}
+-- stdout --
+ordered=true true
