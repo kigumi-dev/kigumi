@@ -10,7 +10,7 @@ type Item = {
 fn run() {
     let s = "a,b,,c"
     print "split ${s.trySplit(",").unwrap().len()} ${array.join(&s.split(","), "|")} ${"abc".trySplit("").unwrap().len()} ${"".split(",").len()}"
-    print "chars ${"héllo".tryChars().unwrap().len()} ${"".chars().len()} ${array.join(&text.graphemes("hé!"), "/")} ${text.tryGraphemes("日本").unwrap().len()}"
+    print "chars ${"héllo".tryChars().unwrap().len()} ${"".chars().len()} ${array.join(&text.graphemes("hé!"), "/")} ${text.tryScalars("日本").unwrap().len()}"
     print "case ${"aBc-é".tryToUpper().unwrap()} ${"aBc-É".tryToLower().unwrap()} ${"xyz".toUpper()} ${"XYZ".toLower()}"
     print "lines ${text.tryLines("a\nb\n\nc\n").unwrap().len()} ${text.lines("").len()} ${text.lines("\n").len()} ${array.join(&text.tryLines("one\ntwo").unwrap(), "+")}"
     print "replace ${text.tryReplace("a-b-c", "-", "::").unwrap()} ${text.replace("aaa", "a", "bb")} ${text.replace("abc", "", "x")} ${text.tryReplace("abc", "z", "q").unwrap()}"

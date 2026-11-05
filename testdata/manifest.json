@@ -9989,6 +9989,15 @@
       ]
     },
     {
+      "id": "run/std_text_graphemes",
+      "kind": "run",
+      "path": "testdata/run/std_text_graphemes.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/std_text_search",
       "kind": "run",
       "path": "testdata/run/std_text_search.txtar",

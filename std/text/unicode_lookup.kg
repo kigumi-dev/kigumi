@@ -1,0 +1,22 @@
+pure noalloc fn hexDigit(c: Int) -> Int {
+    if c >= 0x61 {
+        c - 0x57
+    } else {
+        c - 0x30
+    }
+}
+
+pure noalloc fn digitAt(t: &String, at: usize) -> Int {
+    hexDigit(t[at].toInt())
+}
+
+/// Offset in `blocks` of the value for p, where each value is `digits`
+/// characters. The layout is described in tables.kg.
+pure noalloc fn valueOffset(index: &String, blocks: &String, digits: usize, p: Int) -> usize {
+    let q = p.toUsize() || 0
+    let block = q >> 7
+    let at = block * 2 + block / 64
+    let id = digitAt(index, at) * 16 + digitAt(index, at + 1)
+    let line = 128 * digits + 1
+    (id.toUsize() || 0) * line + (q & 127) * digits
+}

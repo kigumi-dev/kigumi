@@ -47,13 +47,13 @@ pub pure fn tryLines(s: String) -> Result[Array[String], AllocError] {
     AllocError.wrap(out)
 }
 
-/// One string per Unicode scalar value of s.
-pub pure fn graphemes(s: String) -> Array[String] {
-    tryGraphemes(s) || panic("out of memory")
+/// One string per Unicode scalar value of s. For user-perceived characters use graphemes.
+pub pure fn scalars(s: String) -> Array[String] {
+    tryScalars(s) || panic("out of memory")
 }
 
-/// Same as graphemes, or AllocError when the allocator refuses (graphemes panics instead).
-pub pure fn tryGraphemes(s: String) -> Result[Array[String], AllocError] {
+/// Same as scalars, or AllocError when the allocator refuses (scalars panics instead).
+pub pure fn tryScalars(s: String) -> Result[Array[String], AllocError] {
     let n = s.len()
     let mut count: usize = 0
     let mut i: usize = 0

@@ -1,0 +1,29 @@
+-- src --
+import text from std/text
+
+fn show(xs: &Array[String]) -> String {
+    let mut b = text.StringBuilder.new()
+    let mut first = true
+    for x in xs {
+        if !first { b.push("|") }
+        b.push(x)
+        first = false
+    }
+    b.freeze() || ""
+}
+
+fn main() {
+    print "scalars=${show(&text.scalars("a😀b"))}"
+    print "clusters=${show(&text.graphemes("a\u{301}🇯🇵👨‍👩‍👧‍👦b"))}"
+    print "virama-leading=${text.graphemes("\u{94d}\u{915}").len()} joined=${text.graphemes("\u{915}\u{94d}\u{915}").len()}"
+    print "width=${text.width('a')},${text.width('界')},${text.width('\u{301}')}"
+    print "stringWidth=${text.stringWidth("a\u{301}🇯🇵👨‍👩‍👧‍👦")}"
+    print "vs16=${text.clusterWidth("\u{2764}\u{fe0f}")} text=${text.clusterWidth("\u{2764}")}"
+}
+-- stdout --
+scalars=a|😀|b
+clusters=á|🇯🇵|👨‍👩‍👧‍👦|b
+virama-leading=2 joined=1
+width=1,2,0
+stringWidth=5
+vs16=2 text=1

@@ -14402,6 +14402,16 @@
     "status": "ok"
   },
   {
+    "key": "text.Breaker.step",
+    "signature": "pure fn(Char) -\u003e Boundary",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "text.StringBuilder.freeze",
     "signature": "pure fn() -\u003e String!",
     "has_body": true,
@@ -14502,8 +14512,68 @@
     "status": "ok"
   },
   {
+    "key": "text.advance",
+    "signature": "pure noalloc fn(\u0026Scan, Prop, Bool) -\u003e Scan",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "text.boundaryPiece",
     "signature": "pure fn(String, usize, usize) -\u003e Result[String, AllocError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.breaker",
+    "signature": "pure fn() -\u003e Breaker",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.breaks",
+    "signature": "pure noalloc fn(\u0026Scan, Prop) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.classFromCode",
+    "signature": "pure noalloc fn(Int) -\u003e Class",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.clusterWidth",
+    "signature": "pure fn(String) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.digitAt",
+    "signature": "pure noalloc fn(\u0026String, usize) -\u003e Int",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14572,8 +14642,68 @@
     "status": "ok"
   },
   {
+    "key": "text.hangulJoins",
+    "signature": "pure noalloc fn(Class, Class) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.hangulSyllable",
+    "signature": "pure noalloc fn(Int) -\u003e Class",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.hexDigit",
+    "signature": "pure noalloc fn(Int) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.incbFromCode",
+    "signature": "pure noalloc fn(Int) -\u003e Incb",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "text.indexOf",
     "signature": "pure fn(String, Char) -\u003e usize?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.isBreakClass",
+    "signature": "pure noalloc fn(Class) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.isRegionalPair",
+    "signature": "pure fn(\u0026Array[Char]) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14594,6 +14724,16 @@
   {
     "key": "text.lines",
     "signature": "pure fn(String) -\u003e Array[String]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.nextIncb",
+    "signature": "pure noalloc fn(\u0026Scan, Incb, Bool) -\u003e (Bool, Bool)",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14662,6 +14802,16 @@
     "status": "ok"
   },
   {
+    "key": "text.propOf",
+    "signature": "pure noalloc fn(Int) -\u003e Prop",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "text.replace",
     "signature": "pure fn(String, String, String) -\u003e String",
     "has_body": true,
@@ -14682,8 +14832,38 @@
     "status": "ok"
   },
   {
+    "key": "text.scalars",
+    "signature": "pure fn(String) -\u003e Array[String]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "text.slice",
     "signature": "pure fn(String, usize, usize) -\u003e String?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.start",
+    "signature": "pure noalloc fn() -\u003e Scan",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.stringWidth",
+    "signature": "pure fn(String) -\u003e Int",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14712,16 +14892,6 @@
     "status": "ok"
   },
   {
-    "key": "text.tryGraphemes",
-    "signature": "pure fn(String) -\u003e Result[Array[String], AllocError]",
-    "has_body": true,
-    "kind": "",
-    "vm": "implemented",
-    "native": "gap",
-    "accelerated": true,
-    "status": "ok"
-  },
-  {
     "key": "text.tryLines",
     "signature": "pure fn(String) -\u003e Result[Array[String], AllocError]",
     "has_body": true,
@@ -14739,6 +14909,16 @@
     "vm": "implemented",
     "native": "gap",
     "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "text.tryScalars",
+    "signature": "pure fn(String) -\u003e Result[Array[String], AllocError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
     "status": "ok"
   },
   {
@@ -14774,6 +14954,26 @@
   {
     "key": "text.utf8Width",
     "signature": "pure noalloc fn(u8) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.valueOffset",
+    "signature": "pure noalloc fn(\u0026String, \u0026String, usize, Int) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.width",
+    "signature": "pure noalloc fn(Char) -\u003e Int",
     "has_body": true,
     "kind": "",
     "vm": "gap",

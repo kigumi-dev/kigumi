@@ -34,7 +34,7 @@ var oomCovers = map[string]string{
 	"map.Map.tryEntries": "map_entries", "map.Map.tryKeys": "map_keys", "map.Map.tryValues": "map_values",
 	"text.StringBuilder.tryNew": "builder_new", "text.StringBuilder.tryPush": "builder_push", "text.StringBuilder.tryPushByte": "builder_push_byte",
 	"text.StringBuilder.tryFreeze": "builder_freeze",
-	"text.tryLines":                "text_lines", "text.tryGraphemes": "text_graphemes", "text.tryReplace": "text_replace",
+	"text.tryLines":                "text_lines", "text.tryScalars": "text_scalars", "text.tryReplace": "text_replace",
 	"text.tryTrimPrefix": "text_trim_prefix", "text.tryTrimSuffix": "text_trim_suffix", "text.trySlice": "text_slice",
 }
 

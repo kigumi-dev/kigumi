@@ -3,7 +3,7 @@ import text from std/text
 fn run() {
     let s = "héllo"
     eprint "go"
-    let r = text.tryGraphemes(s)
+    let r = text.tryScalars(s)
     if r is Err(_) {
         if s.len() == 6 {
             print "err"
