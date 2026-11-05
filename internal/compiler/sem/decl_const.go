@@ -60,6 +60,10 @@ func (r *Result) evalConstDecl(id EntityID) constValue {
 	if v.Kind == constInt && r.Types.IsInteger(typ) {
 		v.Typ = typ
 	}
+	if v.Kind == constFloat && r.Types.IsFloat(typ) {
+		v.Float = new(big.Float).SetPrec(floatPrec(r.Types, typ)).Set(v.Float)
+		v.Typ = typ
+	}
 	info.Value = v
 	info.State = constDone
 	return v

@@ -14,7 +14,7 @@ func (r *Result) constUnary(f FileID, n syntax.NodeID, op token.Kind, v constVal
 		res.Shift = v.Shift
 		return res, ok
 	case op == token.Minus && v.Kind == constFloat:
-		return constValue{Kind: constFloat, Float: new(big.Float).Neg(v.Float)}, true
+		return constValue{Kind: constFloat, Typ: v.Typ, Float: new(big.Float).SetPrec(floatPrec(r.Types, v.Typ)).Neg(v.Float)}, true
 	case op == token.Bang && v.Kind == constBool:
 		return constValue{Kind: constBool, Bool: !v.Bool}, true
 	case op == token.Tilde && v.Kind == constInt:
@@ -94,8 +94,17 @@ func (r *Result) constBinary(f FileID, n syntax.NodeID, op token.Kind, a, b cons
 		return res, ok
 	}
 	if (a.Kind == constInt || a.Kind == constFloat) && (b.Kind == constInt || b.Kind == constFloat) {
-		x, y := toFloat(a), toFloat(b)
-		z := new(big.Float).SetPrec(256)
+		typ := a.Typ
+		if typ == 0 {
+			typ = b.Typ
+		} else if b.Typ != 0 && b.Typ != typ {
+			r.errAt(f, n, cTypeMismatch, typ, b.Typ)
+			return constValue{}, false
+		}
+		// Float arithmetic follows IEEE at the declared type, exactly as the VM and native code do.
+		prec := floatPrec(r.Types, typ)
+		x, y := roundFloat(toFloat(a), prec), roundFloat(toFloat(b), prec)
+		z := new(big.Float).SetPrec(prec)
 		switch op {
 		case token.Plus:
 			z.Add(x, y)
@@ -114,7 +123,7 @@ func (r *Result) constBinary(f FileID, n syntax.NodeID, op token.Kind, a, b cons
 		default:
 			return fail()
 		}
-		return constValue{Kind: constFloat, Float: z}, true
+		return constValue{Kind: constFloat, Typ: typ, Float: z}, true
 	}
 	if a.Kind == constBool && b.Kind == constBool {
 		switch op {
@@ -132,6 +141,18 @@ func (r *Result) constBinary(f FileID, n syntax.NodeID, op token.Kind, a, b cons
 		return constValue{Kind: constBool, Bool: (a.Str == b.Str) == (op == token.EqEq)}, true
 	}
 	return fail()
+}
+
+// floatPrec is the mantissa width the declared float type keeps; an untyped expression defaults to Float.
+func floatPrec(tt *TypeTable, typ TypeID) uint {
+	if typ != 0 && tt.IsFloat(typ) && tt.Width(typ) == 32 {
+		return 24
+	}
+	return 53
+}
+
+func roundFloat(v *big.Float, prec uint) *big.Float {
+	return new(big.Float).SetPrec(prec).Set(v)
 }
 
 func toFloat(v constValue) *big.Float {

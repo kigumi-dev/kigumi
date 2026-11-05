@@ -1,0 +1,11 @@
+-- src --
+const A: Float = 0.1
+const B: Float = 0.2
+const K: Bool = A + B == 0.3
+const D: Bool = 0.1 + 0.2 == 0.3
+const X: Float = comptime { 0.1 + 0.2 }
+fn main() {
+    print "K=${K} D=${D} X=${X == 0.3} rt=${A + B == 0.3} same=${X == A + B}"
+}
+-- stdout --
+K=false D=false X=false rt=false same=true

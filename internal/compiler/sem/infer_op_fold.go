@@ -112,8 +112,10 @@ func (c *checker) foldBinary(n syntax.NodeID, op token.Kind, lhs, rhs syntax.Nod
 		c.info.Literals[n] = constValue{Kind: constInt, Int: out}
 		return TyUntypedInt
 	}
-	lf, rf := toFloat(lv), toFloat(rv)
-	out := new(big.Float).SetPrec(128)
+	// Kigumi's float arithmetic is IEEE at runtime, so a folded expression must round like one.
+	prec := floatPrec(tt, 0)
+	lf, rf := roundFloat(toFloat(lv), prec), roundFloat(toFloat(rv), prec)
+	out := new(big.Float).SetPrec(prec)
 	switch op {
 	case token.Plus:
 		out.Add(lf, rf)
@@ -130,7 +132,7 @@ func (c *checker) foldBinary(n syntax.NodeID, op token.Kind, lhs, rhs syntax.Nod
 	default:
 		return 0
 	}
-	c.info.Literals[n] = constValue{Kind: constFloat, Float: out}
+	c.info.Literals[n] = constValue{Kind: constFloat, Float: roundFloat(out, prec)}
 	return TyUntypedFloat
 }
 
