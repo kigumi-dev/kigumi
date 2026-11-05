@@ -1,6 +1,5 @@
 // Two-way string matching (Crochemore-Perrin): linear time in constant space.
 // Offsets written `x1` hold x + 1 so the algorithm's -1 sentinels stay unsigned.
-
 pure noalloc fn Bytes.at(self, i: usize, rev: Bool) -> u8 {
     if rev {
         self[self.len() - 1 - i]

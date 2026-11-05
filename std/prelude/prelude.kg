@@ -125,7 +125,11 @@ pub pure fn Option[T].orElse[F: FnOnce[fn() -> T?]](move self, f: F) -> T? {
 /// Keeps the value of Some only when keep accepts a borrow of it; otherwise None.
 pub pure fn Option[T].filter[F: FnOnce[fn(&T) -> Bool]](move self, keep: F) -> T? {
     match self {
-        Some(v) -> if keep(&v) { Some(v) } else { None }
+        Some(v) -> if keep(&v) {
+            Some(v)
+        } else {
+            None
+        }
         None -> None
     }
 }

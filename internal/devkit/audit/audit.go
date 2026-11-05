@@ -25,7 +25,7 @@ type AuditTotals struct {
 
 // BuildAudit runs every counter in this package and assembles the report.
 func BuildAudit(repoRoot string, look hosttool.Lookup) (*Audit, error) {
-	pkgs, err := CountGoTests(repoRoot, "testdata", "node_modules", ".git")
+	pkgs, err := CountGoTests(repoRoot, "testdata", "node_modules", ".git", "docs")
 	if err != nil {
 		return nil, err
 	}

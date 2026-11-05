@@ -36,7 +36,18 @@ func TestCorpusOwnershipBeforeVerifier(t *testing.T) {
 			checkOwnershipBackstop(t, m)
 		})
 	}
+	manifest := loadManifest(t)
 	for _, path := range runPaths {
+		id := fixtureID(path)
+		fx := manifest.ByID(id)
+		if fx == nil {
+			t.Fatalf("%s: no manifest entry (run UPDATE=1 go test -run TestManifestFresh ./internal/toolchain/driver/)", id)
+		}
+		// A fixture the VM runs already takes the same check through
+		// TestRunCorpusEngines; only the manifest's VM exclusions are unique here.
+		if fx.Runs("vm") {
+			continue
+		}
 		t.Run("run/"+strings.TrimSuffix(filepath.Base(path), ".txtar"), func(t *testing.T) {
 			t.Parallel()
 			root, _, _, _ := loadRunFixture(t, path)

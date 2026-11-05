@@ -55,8 +55,18 @@ pub pure fn Array.tryWithCapacity[T](capacity: usize) -> Result[Array[T], AllocE
 
 /// Copies of self[start..end], the range clamped to the array; AllocError when the allocator refuses.
 pure fn Array[T: Copy].tryCopyRange(self, start: usize, end: usize) -> Result[Array[T], AllocError] {
-    let lo = if start < self.len() { start } else { self.len() }
-    let hi = if end < lo { lo } else if end < self.len() { end } else { self.len() }
+    let lo = if start < self.len() {
+        start
+    } else {
+        self.len()
+    }
+    let hi = if end < lo {
+        lo
+    } else if end < self.len() {
+        end
+    } else {
+        self.len()
+    }
     let mut out = Array.tryWithCapacity[T](hi - lo)?
     let mut i = lo
     for i < hi {
