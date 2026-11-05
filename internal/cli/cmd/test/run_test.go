@@ -60,3 +60,15 @@ func TestTestListJSON(t *testing.T) {
 		t.Fatalf("--list --json: exit %d stdout %q stderr %q", code, out, errOut)
 	}
 }
+
+func TestTestRejectsNegativeTimeouts(t *testing.T) {
+	std, _ := filepath.Abs("../../../../std")
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "main.kg"), []byte("test \"alpha\" {\n}\n"), 0o644)
+	if code, _, errOut := clitest.Execute(t, "--std", std, "test", "--timeout", "-1s", dir); code == 0 || !strings.Contains(errOut, "must not be negative") {
+		t.Fatalf("negative timeout: exit %d stderr %q", code, errOut)
+	}
+	if code, _, errOut := clitest.Execute(t, "--std", std, "--stack-budget-kib", "1", "test", dir); code == 0 || !strings.Contains(errOut, "requires --stack-profile strict") {
+		t.Fatalf("stack budget without strict: exit %d stderr %q", code, errOut)
+	}
+}

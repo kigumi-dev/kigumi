@@ -1,6 +1,8 @@
 package test
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"kigumi/internal/cli/session"
@@ -22,5 +24,8 @@ func parseOptions(cmd *cobra.Command, args []string) (options, error) {
 	opts.tests.PerTestTimeout, _ = f.GetDuration("timeout")
 	opts.tests.SuiteTimeout, _ = f.GetDuration("suite-timeout")
 	opts.tests.JSON, _ = f.GetBool("json")
+	if opts.tests.PerTestTimeout < 0 || opts.tests.SuiteTimeout < 0 {
+		return opts, fmt.Errorf("--timeout and --suite-timeout must not be negative")
+	}
 	return opts, nil
 }

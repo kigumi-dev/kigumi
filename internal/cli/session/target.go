@@ -40,6 +40,12 @@ func (s Session) Target() (buildconfig.Target, error) {
 	default:
 		return t, fmt.Errorf("stack-profile %q: want hosted-growable or strict", s.StackProfile)
 	}
+	if s.StackBudgetKiB < 0 {
+		return t, fmt.Errorf("--stack-budget-kib: want a non-negative KiB count")
+	}
+	if s.StackBudgetKiB > 0 && s.StackProfile == "" {
+		return t, fmt.Errorf("--stack-budget-kib requires --stack-profile strict")
+	}
 	t.StackBudgetKiB = s.StackBudgetKiB
 	return t, nil
 }
