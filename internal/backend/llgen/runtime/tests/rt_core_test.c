@@ -70,6 +70,25 @@ static void boom(val unused) {
 }
 
 // A contained panic leaves no allocation or backward reference behind.
+static rt_type borrow_field_type = {.name = "BorrowField", .kind = 1, .borrow_fields = 1};
+static val g_borrow_child;
+
+static void drop_borrow_record(val unused) {
+    (void)unused;
+    val fields[1] = {g_borrow_child};
+    rt_release(rt_record(&borrow_field_type, 1, fields));
+}
+
+// The field is a borrow: the record never owns its referent, so a drop under a catch (which scans
+// children for user code) must not read a referent that is already gone.
+static void test_borrow_field_drop(void) {
+    int64_t live = g_general.live;
+    g_borrow_child = rt_int(1LL << 40, 0);
+    rt_release(g_borrow_child);
+    CHECK(contained(drop_borrow_record, NULL) == 1);
+    CHECK_LIVE(live);
+}
+
 static void test_unwind(void) {
     int64_t live = g_general.live;
     CHECK(contained(boom, NULL) == 0);
@@ -95,6 +114,7 @@ int main(int argc, char** argv) {
     } else {
         test_value_and_copy();
         test_drop_hook();
+        test_borrow_field_drop();
         test_unwind();
     }
     if (failures) {

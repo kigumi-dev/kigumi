@@ -2943,14 +2943,19 @@ static int has_drop_hook(val v) {
 static int child_may_run_drop(val c) {
     return c && c->rc == 1 && c->kind >= K_RECORD && c->kind != K_PTR;
 }
+static int is_borrow_slot(rt_type* t, int64_t i);
 static int free_runs_user_code(val v) {
     if (has_drop_hook(v)) return 1;
     switch (v->kind) {
-    case K_RECORD:
+    case K_RECORD: {
+        // A borrow field points at storage the record does not own; that referent may already be
+        // gone when this record drops, so it is not a child to inspect.
+        rt_type* t = v->u.rec.type;
         for (int64_t i = 0; i < v->u.rec.n; i++) {
-            if (child_may_run_drop(v->u.rec.fields[i])) return 1;
+            if (!is_borrow_slot(t, i) && child_may_run_drop(v->u.rec.fields[i])) return 1;
         }
         return 0;
+    }
     case K_VARIANT:
         for (int64_t i = 0; i < v->u.var.n; i++) {
             if (child_may_run_drop(v->u.var.payload[i])) return 1;
