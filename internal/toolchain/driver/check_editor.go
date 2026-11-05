@@ -86,9 +86,15 @@ func editorDiagsWith(m *Module, lazy bool) (*sem.Result, []midir.FileDiag, bool)
 	if res.HasErrors() {
 		return res, out, true
 	}
+	lowered := len(out)
 	prog.NativeBoxes = nativeBoxSites(m.target)
 	if mirplan.Apply(prog, planPasses(false)...) != nil {
 		return res, out, true
+	}
+	for _, d := range prog.Diags {
+		if !containsFileDiag(out[:lowered], d) {
+			out = append(out, d)
+		}
 	}
 	for _, c := range claimDiags(prog) {
 		out = append(out, midir.FileDiag(c))
@@ -101,6 +107,15 @@ func editorDiagsWith(m *Module, lazy bool) (*sem.Result, []midir.FileDiag, bool)
 		}
 	}
 	return res, out, true
+}
+
+func containsFileDiag(ds []midir.FileDiag, d midir.FileDiag) bool {
+	for _, x := range ds {
+		if x.File == d.File && x.Diag.Loc.Span == d.Diag.Loc.Span && x.Diag.Code == d.Diag.Code && x.Diag.Msg == d.Diag.Msg {
+			return true
+		}
+	}
+	return false
 }
 
 func diagKeys(res *sem.Result) map[string]bool {

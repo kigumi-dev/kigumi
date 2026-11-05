@@ -66,15 +66,17 @@ func (s *Server) publishSnapshot(ctx context.Context, snap *snapshot, u uri.URI)
 	}
 	byFile := s.diagnosticsByURI(snap)
 	fresh, stale := map[uri.URI]bool{}, s.published[root]
+	sent := map[uri.URI]bool{}
 	for _, fileURI := range byFile.order {
 		ds := byFile.diags[fileURI]
 		if len(ds) > 0 || stale[fileURI] || fileURI == u {
 			s.publish(ctx, fileURI, ds)
+			sent[fileURI] = true
 		}
 		fresh[fileURI] = len(ds) > 0
 	}
 	for d := range stale {
-		if !fresh[d] {
+		if !fresh[d] && !sent[d] {
 			s.publish(ctx, d, nil)
 		}
 	}
