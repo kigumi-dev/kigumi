@@ -9902,6 +9902,15 @@
       ]
     },
     {
+      "id": "run/std_io_reuse",
+      "kind": "run",
+      "path": "testdata/run/std_io_reuse.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/std_json_scalars",
       "kind": "run",
       "path": "testdata/run/std_json_scalars.txtar",

@@ -1,0 +1,16 @@
+-- src --
+import io from std/io
+
+fn writeTwice[W: io.Writer](w: &mut W) -> Void! {
+    io.writeAll(w, "ab".toBytes())?
+    io.writeAll(w, "cd".toBytes())?
+}
+
+let mut w = io.BytesWriter.new()
+writeTwice(&mut w)?
+print "once=${String.fromBytes(w.bytes()) || "?"}"
+io.writeAll(&mut w, "ef".toBytes())?
+print "twice=${String.fromBytes(w.bytes()) || "?"}"
+-- stdout --
+once=abcd
+twice=abcdef
