@@ -1,0 +1,17 @@
+-- module --
+mir: planned
+-- src --
+type R = { pub v u64 }
+fn f() -> R {
+    let x: i64 = 12345
+    unsafe { asm { "mov {v}, {p}", v: out(reg), p: in(reg) &x } } //~ ERROR is not an asm operand type
+}
+fn main() -> Void! { print "${f().v}" }
+-- expect --
+error[E935]: `&Int` is not an asm operand type
+ --> main.kg:4:52
+  |
+4 |     unsafe { asm { "mov {v}, {p}", v: out(reg), p: in(reg) &x } } //~ ERROR is not an asm operand type
+  |                                                    ^^^^^^^^^^
+  = help: use a fixed-width number, a raw pointer or a C function pointer
+

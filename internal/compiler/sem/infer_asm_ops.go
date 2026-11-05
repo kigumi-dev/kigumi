@@ -68,7 +68,9 @@ func (c *checker) asmOperand(line syntax.NodeID, arch *asmtable.Architecture, la
 
 // An untyped literal takes the register's natural integer width.
 func (c *checker) asmInput(op *AsmOperand, arch *asmtable.Architecture) TypeID {
-	t := c.readThrough(c.vars.resolve(c.synthRead(op.Expr)))
+	// No readThrough: a `&x` operand is not a number, and reading through it once handed the
+	// callee x's value in place of the address. asmOperandType rejects the reference.
+	t := c.vars.resolve(c.synthRead(op.Expr))
 	if c.r.Types.Kind(t) != KUntyped {
 		return t
 	}
