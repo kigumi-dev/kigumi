@@ -1,0 +1,8 @@
+-- src --
+import {atomicLoad, AtomicOrder} from std/mem
+static mut x: u64 = 5
+unsafe {
+    print "place ${atomicLoad(&(x), AtomicOrder.SeqCst)}"
+}
+-- stdout --
+place 5

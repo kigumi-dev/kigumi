@@ -21,7 +21,14 @@ func (b *builder) atomicStatic(e *hir.Expr) (midir.LocalID, bool) {
 	for place.Kind == hir.Wrap && len(place.Args) == 1 {
 		place = place.Args[0]
 	}
-	if place.Kind != hir.Borrow || len(place.Args) != 1 || place.Args[0].Kind != hir.Global {
+	if place.Kind != hir.Borrow || len(place.Args) != 1 {
+		return 0, false
+	}
+	operand := place.Args[0]
+	for operand.Kind == hir.Wrap && len(operand.Args) == 1 {
+		operand = operand.Args[0]
+	}
+	if operand.Kind != hir.Global {
 		return 0, false
 	}
 	order := e.Args[len(e.Args)-1]
@@ -36,7 +43,7 @@ func (b *builder) atomicStatic(e *hir.Expr) (midir.LocalID, bool) {
 		return 0, false
 	}
 	args := b.args(e, e.Args[1:len(e.Args)-1], nil, true, false, 0)
-	return b.emit(midir.Inst{Op: midir.OpBuiltin, Dst: b.temp(e.Type), Str: name, Ent: place.Args[0].Ent, Index: slices.Index(sem.AtomicOrders, b.r.Entity(order.Ent).Name), Args: args, Node: e.Node}), true
+	return b.emit(midir.Inst{Op: midir.OpBuiltin, Dst: b.temp(e.Type), Str: name, Ent: operand.Ent, Index: slices.Index(sem.AtomicOrders, b.r.Entity(order.Ent).Name), Args: args, Node: e.Node}), true
 }
 
 func (b *builder) volatileAt(e *hir.Expr, op sem.MemOp) midir.LocalID {

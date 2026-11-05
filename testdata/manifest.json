@@ -2817,6 +2817,15 @@
       ]
     },
     {
+      "id": "run/atomic_paren_place",
+      "kind": "run",
+      "path": "testdata/run/atomic_paren_place.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/atomic_static_ops",
       "kind": "run",
       "path": "testdata/run/atomic_static_ops.txtar",
@@ -5155,6 +5164,15 @@
       "id": "run/entry_intrinsics_ok",
       "kind": "run",
       "path": "testdata/run/entry_intrinsics_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/entry_test_block",
+      "kind": "run",
+      "path": "testdata/run/entry_test_block.txtar",
       "mode": [
         "vm",
         "native"
@@ -13453,6 +13471,14 @@
       ]
     },
     {
+      "id": "sem/float_literal_range",
+      "kind": "sem",
+      "path": "testdata/sem/float_literal_range.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/fn_param_borrow_store_err",
       "kind": "sem",
       "path": "testdata/sem/fn_param_borrow_store_err.txtar",
@@ -15560,6 +15586,14 @@
       "id": "sem/scrutinee_wrapped_ref",
       "kind": "sem",
       "path": "testdata/sem/scrutinee_wrapped_ref.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/section_bad_chars",
+      "kind": "sem",
+      "path": "testdata/sem/section_bad_chars.txtar",
       "mode": [
         "check"
       ]

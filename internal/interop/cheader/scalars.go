@@ -10,6 +10,9 @@ type ABI struct {
 	// LLP64 is true on Windows, where c_long/c_ulong are 32-bit unlike
 	// every LP64 target this importer otherwise sees.
 	LLP64 bool
+	// Long32 is true wherever C's long is 32 bits: LLP64 and every ILP32
+	// target (386, arm, wasm32), but not the LP64 hosts.
+	Long32 bool
 	// CharUnsigned is true on arm/arm64, where plain `char` defaults to
 	// unsigned unlike x86/x86_64.
 	CharUnsigned bool
@@ -20,8 +23,10 @@ type ABI struct {
 // ABIFor derives ABI facts from the same os/arch names internal/toolchain/config.Target
 // uses (amd64, arm64, riscv64, 386, arm; linux, darwin, windows, ...).
 func ABIFor(os, arch string) ABI {
+	llp64 := os == "windows"
 	return ABI{
-		LLP64:        os == "windows",
+		LLP64:        llp64,
+		Long32:       llp64 || arch == "386" || arch == "arm" || arch == "wasm32",
 		CharUnsigned: arch == "arm64" || arch == "arm",
 		Int128:       arch == "amd64" || arch == "arm64" || arch == "riscv64",
 	}
@@ -42,12 +47,12 @@ func mapScalar(word string, abi ABI) (string, bool) {
 	case "c_ushort":
 		return "u16", true
 	case "c_long":
-		if abi.LLP64 {
+		if abi.Long32 {
 			return "i32", true
 		}
 		return "i64", true
 	case "c_ulong":
-		if abi.LLP64 {
+		if abi.Long32 {
 			return "u32", true
 		}
 		return "u64", true

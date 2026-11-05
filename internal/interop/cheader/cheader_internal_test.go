@@ -196,6 +196,26 @@ func TestABIFor(t *testing.T) {
 	if got := ABIFor("linux", "amd64"); got.CharUnsigned {
 		t.Error("amd64 should default to signed char")
 	}
+	for _, c := range []struct{ os, arch string }{
+		{"linux", "386"}, {"linux", "arm"}, {"wasi", "wasm32"}, {"windows", "amd64"},
+	} {
+		if got := ABIFor(c.os, c.arch); !got.Long32 {
+			t.Errorf("%s/%s: long must be 32-bit", c.os, c.arch)
+		}
+	}
+	for _, c := range []struct{ os, arch string }{
+		{"linux", "amd64"}, {"linux", "arm64"}, {"linux", "riscv64"},
+	} {
+		if got := ABIFor(c.os, c.arch); got.Long32 {
+			t.Errorf("%s/%s: long must be 64-bit", c.os, c.arch)
+		}
+	}
+	if got, ok := mapScalar("c_long", ABIFor("linux", "386")); !ok || got != "i32" {
+		t.Errorf("c_long on 386 = %q, %v; want i32", got, ok)
+	}
+	if got, ok := mapScalar("c_long", ABIFor("linux", "amd64")); !ok || got != "i64" {
+		t.Errorf("c_long on amd64 = %q, %v; want i64", got, ok)
+	}
 }
 
 func TestInt128RecordField(t *testing.T) {

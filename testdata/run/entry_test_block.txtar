@@ -1,0 +1,7 @@
+-- src --
+test "hello world" {
+    print "inside"
+}
+print "ran"
+-- stdout --
+ran
