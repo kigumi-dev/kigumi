@@ -48,7 +48,7 @@ func TestRuntimeFragmentsAreTheVocabulary(t *testing.T) {
 }
 
 // A type is looked up by short name or, where a user type could share it, by its std/pkg. qualified name.
-var namedTypeRe = regexp.MustCompile(`(?:make_record|find_type)\("(?:std/[a-z]+\.)?([A-Za-z0-9_]+)"`)
+var namedTypeRe = regexp.MustCompile(`(?:rt_make_record|rt_find_type)\("(?:std/[a-z]+\.)?([A-Za-z0-9_]+)"`)
 
 // Tuple2 is built for a Map element, whose loop variable's own type keeps it.
 func TestRuntimeNamedTypesAreReachabilityRoots(t *testing.T) {

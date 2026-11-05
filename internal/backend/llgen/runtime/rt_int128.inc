@@ -218,7 +218,7 @@ static val w_binop(const char* op, val a, val b) {
     case '^':
         return w_box(w_new(x.lo ^ y.lo, x.hi ^ y.hi), nk);
     }
-    panicf("unsupported operator %s", op);
+    rt_panicf("unsupported operator %s", op);
     return NULL;
 }
 static val w_unop(char op, val a) {
@@ -314,14 +314,14 @@ static val w_convert(val a0, int dnk, int checked) {
         return rt_float(w_to_double(neg, neg ? w_negate(w) : w, (dnk & 255) == 32 ? 24 : 53), dnk);
     }
     if (a0->kind == K_FLOAT) {
-        if (!w_from_double(a0->u.f, &neg, &mag) || !w_fits(neg, mag, dnk)) return none();
-        return some(w_from_mag(neg, mag, dnk));
+        if (!w_from_double(a0->u.f, &neg, &mag) || !w_fits(neg, mag, dnk)) return rt_none();
+        return rt_some(w_from_mag(neg, mag, dnk));
     }
     w128 w = w_of(a0);
     neg = W_SIGNED(a0->nk) && w_neg(w);
     mag = neg ? w_negate(w) : w;
-    if (checked && !w_fits(neg, mag, dnk)) return none();
-    return checked ? some(w_from_mag(neg, mag, dnk)) : w_from_mag(neg, mag, dnk);
+    if (checked && !w_fits(neg, mag, dnk)) return rt_none();
+    return checked ? rt_some(w_from_mag(neg, mag, dnk)) : w_from_mag(neg, mag, dnk);
 }
 static int64_t w_range_len(val lo, val hi, int inclusive) {
     if (w_compare(hi, lo) < 0) return 0;

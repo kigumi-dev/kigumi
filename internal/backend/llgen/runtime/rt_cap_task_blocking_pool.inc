@@ -27,9 +27,9 @@ typedef struct blocking_future {
 #endif
 } blocking_future;
 static val blocking_capacity_exhausted(void) {
-    rt_vdesc* d = find_variant(find_type("BlockingError"), "CapacityExhausted");
-    if (!d) return err_msg("blocking pool capacity exhausted");
-    return err_val(rt_variant(d, 0, NULL));
+    rt_vdesc* d = find_variant(rt_find_type("BlockingError"), "CapacityExhausted");
+    if (!d) return rt_err_msg("blocking pool capacity exhausted");
+    return rt_err_val(rt_variant(d, 0, NULL));
 }
 #ifdef KG_BLOCKING_THREADS
 static KG_TLS val g_job_result;
@@ -147,7 +147,7 @@ static val cap_blocking_pool_new(val a0) {
     blocking_pool* p = calloc(1, sizeof *p);
     if (!p) rt_panic("out of memory");
     p->capacity = (int)a0->u.i;
-    return opaque("BlockingPool", p);
+    return rt_opaque("BlockingPool", p);
 }
 // Under a thread-pool executor the closure runs on a thread of its own; under a single-thread executor, or with none, it runs here on the caller.
 static val cap_blocking_pool_run(val a0, val a1) {
@@ -165,5 +165,5 @@ static val cap_blocking_pool_run(val a0, val a1) {
     }
     KG_INC(p->in_flight);
     f->pool = rt_retain(a0);
-    return ok(opaque("BlockingFuture", f));
+    return rt_ok(rt_opaque("BlockingFuture", f));
 }

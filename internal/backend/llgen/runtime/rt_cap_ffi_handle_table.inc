@@ -62,15 +62,15 @@ static val handle_free(handle_table* t, int64_t index) {
     return v;
 }
 static val handle_fault(const char* variant) {
-    rt_vdesc* d = find_variant(find_type("HandleFault"), variant);
-    if (!d) return err_msg("handle fault");
-    return err_val(rt_variant(d, 0, NULL));
+    rt_vdesc* d = find_variant(rt_find_type("HandleFault"), variant);
+    if (!d) return rt_err_msg("handle fault");
+    return rt_err_val(rt_variant(d, 0, NULL));
 }
 static val cap_handle_table_new(void) {
     handle_table* t = calloc(1, sizeof *t);
     if (!t) rt_panic("out of memory");
     val h = rt_int(handle_table_register(t), 64 | 256);
-    return make_record("HandleTable", 1, &h);
+    return rt_make_record("HandleTable", 1, &h);
 }
 static val cap_handle_table_insert(val a0, val a1) {
     int64_t ti = a0->u.rec.fields[0]->u.i;
@@ -96,7 +96,7 @@ static val cap_handle_table_insert(val a0, val a1) {
     t->slots[index].occupied = 1;
     t->slots[index].value = rt_retain(a1);
     val f[2] = {rt_int(ti, 64 | 256), rt_int(handle_pack(t->slots[index].generation, index), 64 | 256)};
-    return make_record("FfiHandle", 2, f);
+    return rt_make_record("FfiHandle", 2, f);
 }
 static val cap_handle_table_with(val a1, val a2) {
     handle_table* t;
@@ -123,7 +123,7 @@ static val cap_handle_table_reclaim(val a0, val a1) {
     if (index < 0 || index >= t->len) return handle_fault("OutOfRange");
     if (!t->slots[index].occupied || t->slots[index].generation != generation) return handle_fault("Stale");
     val f[2] = {rt_int(self_tbl, 64 | 256), rt_int(raw_slot, 64 | 256)};
-    return ok(make_record("FfiHandle", 2, f));
+    return rt_ok(rt_make_record("FfiHandle", 2, f));
 }
 static val cap_handle_table_close(val a0) {
     handle_table* t = g_handle_tables[a0->u.rec.fields[0]->u.i - 1];
@@ -133,9 +133,9 @@ static val cap_handle_table_close(val a0) {
     }
     if (live > 0) {
         val n = rt_int(live, 64 | 256);
-        return err_val(make_record("HandleTableBusy", 1, &n));
+        return rt_err_val(rt_make_record("HandleTableBusy", 1, &n));
     }
-    return ok(rt_unit());
+    return rt_ok(rt_unit());
 }
 static val cap_handle_table_drop(val a0) {
     int64_t ti = a0->u.rec.fields[0]->u.i;
@@ -150,7 +150,7 @@ static val cap_handle_table_drop(val a0) {
 }
 static val cap_handle_raw(val a0) {
     val f[2] = {rt_int(a0->u.rec.fields[0]->u.i, 64 | 256), rt_int(a0->u.rec.fields[1]->u.i, 64 | 256)};
-    return make_record("RawHandle", 2, f);
+    return rt_make_record("RawHandle", 2, f);
 }
 static val cap_handle_drop(val a0) {
     if (a0->u.rec.fields[0]->u.i == 0) return rt_unit();

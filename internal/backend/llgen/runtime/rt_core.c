@@ -150,7 +150,7 @@ static rt_type** g_types;
 static rt_vdesc *V_Some, *V_None, *V_Ok, *V_Err, *V_Less, *V_Equal, *V_Greater;
 static rt_type T_Error = {.name = "Error"};
 // The runtime's own errors are boxed as Error with `message` in slot 0.
-// The retain offsets invoke's release of the argument array, as rt_at does.
+// The retain offsets rt_invoke's release of the argument array, as rt_at does.
 static val error_message_adapter(val env, val args) {
     (void)env;
     val e = rt_retain(args->u.arr.items[0]);
@@ -450,7 +450,7 @@ static void unwind_frame(kg_unwind* u) {
 static void unwind_frame_slots(kg_unwind* u) {
     unwind_slots((val*)u->p, u->m, u->i);
 }
-// The arguments invoke still owes a release; u->i counts the ones left, so a release that panics resumes with the rest.
+// The arguments rt_invoke still owes a release; u->i counts the ones left, so a release that panics resumes with the rest.
 static void unwind_args(kg_unwind* u) {
     val* args = (val*)u->p;
     while (u->i > 0) rt_release(args[--u->i]);
@@ -571,9 +571,9 @@ void rt_unwind_leave(void* rec) {
     (void)rec;
 }
 #endif
-// panicf's every caller passes a fixed message with exactly one "%s"; this
+// rt_panicf's every caller passes a fixed message with exactly one "%s"; this
 // avoids a full printf just for that one substitution.
-void panicf(const char* fmt, const char* a) {
+void rt_panicf(const char* fmt, const char* a) {
     char buf[512];
     size_t n = 0;
     for (const char* f = fmt; *f && n + 1 < sizeof buf; f++) {
@@ -736,17 +736,17 @@ val rt_cellset_swap(val c, val x) {
 void rt_cellset(val c, val x) {
     rt_release(rt_cellset_swap(c, x));
 }
-val deref(val v);
+val rt_deref(val v);
 val rt_ptr(void* p) {
     val v = alloc(K_PTR);
     v->u.p = p;
     return v;
 }
 void* rt_ptr_val(val v) {
-    v = deref(v);
+    v = rt_deref(v);
     return v->kind == K_PTR ? v->u.p : NULL;
 }
-val opaque(const char* kind, void* data) {
+val rt_opaque(const char* kind, void* data) {
     val v = alloc(K_OPAQUE);
     v->u.op.kind = kind;
     v->u.op.data = data;
@@ -790,12 +790,12 @@ static int try_grow(val a, uint64_t extra) {
     a->u.arr.cap = (int64_t)cap;
     return 1;
 }
-void push(val a, val x) {
+void rt_push(val a, val x) {
     if (!try_grow(a, 1)) rt_panic("out of memory");
     a->u.arr.items[a->u.arr.len++] = x;
 }
 void rt_array_push(val a, val x) {
-    push(a, x);
+    rt_push(a, x);
 }
 val rt_at(val a, int64_t i) {
     if (!a || i < 0 || i >= a->u.arr.len) return rt_unit();
@@ -889,7 +889,7 @@ val rt_variant(rt_vdesc* d, int64_t n, val* payload) {
     }
     return v;
 }
-val deref(val v) {
+val rt_deref(val v) {
     CHK(v);
     while (v && v->kind == K_CELL) {
         v = v->u.cell.v;
@@ -898,7 +898,7 @@ val deref(val v) {
     return v;
 }
 val rt_field(val r, int64_t i) {
-    r = deref(r);
+    r = rt_deref(r);
     if (r->kind == K_BOX) r = r->u.box.v;
     return rt_retain(r->u.rec.fields[i]);
 }
@@ -906,7 +906,7 @@ val rt_field(val r, int64_t i) {
 // rt_release already treats as a no-op, so the field drops once through
 // whichever of r or the returned value reaches a drop first.
 val rt_field_move(val r, int64_t i) {
-    r = deref(r);
+    r = rt_deref(r);
     if (r->kind == K_BOX) r = r->u.box.v;
     val v = r->u.rec.fields[i];
     r->u.rec.fields[i] = NULL;
@@ -915,7 +915,7 @@ val rt_field_move(val r, int64_t i) {
 // Storing into a place releases what it held: the caller hands over an owned
 // reference, so without this the overwritten value is never dropped.
 val rt_setfield_swap(val r, int64_t i, val x) {
-    r = deref(r);
+    r = rt_deref(r);
     val old = r->u.rec.fields[i];
     r->u.rec.fields[i] = x;
     return borrow_field(r, i) ? NULL : old;
@@ -924,17 +924,17 @@ void rt_setfield(val r, int64_t i, val x) {
     rt_release(rt_setfield_swap(r, i, x));
 }
 val rt_payload(val v, int64_t i) {
-    v = deref(v);
+    v = rt_deref(v);
     return rt_retain(v->u.var.payload[i]);
 }
 val rt_isvariant(val v, rt_vdesc* d) {
-    v = deref(v);
+    v = rt_deref(v);
     return rt_bool(v->kind == K_VARIANT && v->u.var.v == d);
 }
 // The tag an inline ADT keeps beside its payload area: a variant's
 // declaration index, which is also the order llgen lays the cases out in.
 int rt_variant_index(val v) {
-    v = deref(v);
+    v = rt_deref(v);
     // A value that is no variant matches no case, as a boxed `match` finds.
     if (!v || v->kind != K_VARIANT) rt_panic("no match arm matched");
     return v->u.var.v->index;
@@ -956,7 +956,7 @@ void rt_box_lent(void* slot, val v, rt_type* dyn, void** vt) {
     b->owned = 1;
     b->al = NULL;
     b->u.box.dyn = dyn;
-    b->u.box.v = deref(v);
+    b->u.box.v = rt_deref(v);
     b->u.box.vt = vt;
     b->u.box.src = v && v->kind == K_CELL ? v : NULL;
 }
@@ -964,7 +964,7 @@ val rt_unbox(val b) {
     return b->kind == K_BOX ? rt_retain(b->u.box.v) : b;
 }
 val rt_istype(val b, rt_type* t) {
-    b = deref(b);
+    b = rt_deref(b);
     return rt_bool(b->kind == K_BOX && b->u.box.dyn == t);
 }
 // std/error.as[E]: e is E(x) doesn't type-check over a type parameter
@@ -974,20 +974,20 @@ val rt_istype(val b, rt_type* t) {
 // sem requires E: Copy, so the match is duplicated with rt_copy, never
 // aliased into the caller's borrow.
 val rt_error_as(val e, rt_type* target, rt_type* ctx, int64_t wrapped) {
-    val cur = deref(e);
+    val cur = rt_deref(e);
     for (;;) {
-        if (cur->kind != K_BOX) return none();
-        if (cur->u.box.dyn == target) return some(rt_copy(cur->u.box.v));
-        if (!ctx || cur->u.box.dyn != ctx) return none();
-        cur = deref(cur->u.box.v->u.rec.fields[wrapped]);
+        if (cur->kind != K_BOX) return rt_none();
+        if (cur->u.box.dyn == target) return rt_some(rt_copy(cur->u.box.v));
+        if (!ctx || cur->u.box.dyn != ctx) return rt_none();
+        cur = rt_deref(cur->u.box.v->u.rec.fields[wrapped]);
     }
 }
 static int boundary(const char* s, int64_t n, int64_t i) {
     return i == n || (s[i] & 0xC0) != 0x80;
 }
 val rt_index(val base, val idx, const char* site) {
-    base = deref(base);
-    idx = deref(idx);
+    base = rt_deref(base);
+    idx = rt_deref(idx);
     if (idx->kind == K_RECORD) {
         int64_t lo = idx->u.rec.fields[0]->u.i, hi = idx->u.rec.fields[1]->u.i;
         if (idx->u.rec.fields[2]->u.b) hi++;
@@ -1014,8 +1014,8 @@ val rt_index(val base, val idx, const char* site) {
     return rt_retain(base->u.arr.items[i]);
 }
 val rt_setindex_swap(val base, val idx, val v, const char* site) {
-    base = deref(base);
-    int64_t i = deref(idx)->u.i;
+    base = rt_deref(base);
+    int64_t i = rt_deref(idx)->u.i;
     if (base->kind != K_ARRAY || i < 0 || i >= base->u.arr.len) rt_panic_index(i, base->kind == K_ARRAY ? base->u.arr.len : 0, site);
     val old = base->u.arr.items[i];
     base->u.arr.items[i] = v;
@@ -1052,8 +1052,8 @@ static void take_fields(val dst, val src) {
 }
 // base[idx] = copy of src; the slot keeps its own box when src's fields fit into it.
 val rt_setindex_copy_swap(val base, val idx, val src, const char* site) {
-    base = deref(base);
-    int64_t i = deref(idx)->u.i;
+    base = rt_deref(base);
+    int64_t i = rt_deref(idx)->u.i;
     if (base->kind != K_ARRAY || i < 0 || i >= base->u.arr.len) rt_panic_index(i, base->kind == K_ARRAY ? base->u.arr.len : 0, site);
     val old = base->u.arr.items[i];
     if (old && fields_fit(old, src)) {
@@ -1068,7 +1068,7 @@ void rt_setindex_copy(val base, val idx, val src, const char* site) {
 }
 // r.fields[i] = copy of src; the field keeps its own box when src's fields fit into it.
 val rt_setfield_copy_swap(val r, int64_t i, val src) {
-    r = deref(r);
+    r = rt_deref(r);
     val old = r->u.rec.fields[i];
     if (old && !borrow_field(r, i) && fields_fit(old, src)) {
         take_fields(old, src);
@@ -1081,22 +1081,22 @@ void rt_setfield_copy(val r, int64_t i, val src) {
     rt_release(rt_setfield_copy_swap(r, i, src));
 }
 int64_t rt_int_val(val v) {
-    v = deref(v);
+    v = rt_deref(v);
     return v->kind == K_INT ? v->u.i : 0;
 }
 double rt_float_val(val v) {
-    v = deref(v);
+    v = rt_deref(v);
     return v->kind == K_FLOAT ? v->u.f : (double)v->u.i;
 }
 uint32_t rt_char_val(val v) {
-    v = deref(v);
+    v = rt_deref(v);
     return v->kind == K_CHAR ? v->u.c : 0;
 }
 val rt_from_cstr(const char* s) {
     return s ? rt_str(s, strlen(s)) : rt_str("", 0);
 }
 int rt_truth(val v) {
-    v = deref(v);
+    v = rt_deref(v);
     return v->kind == K_BOOL && v->u.b;
 }
 // Captures may alias live locals (method values, borrowed captures), so
@@ -1110,7 +1110,7 @@ val rt_closure(adapter_fn fn, int n, val* caps) {
 }
 
 val rt_closure_env(val f) {
-    f = deref(f);
+    f = rt_deref(f);
     return f->u.clo.env;
 }
 
@@ -1143,7 +1143,7 @@ void rt_fnitem_lent(void* slot, int lent) {
 }
 
 val rt_closure_lent(val v, int lent) {
-    deref(v)->u.clo.lent = (uint32_t)lent;
+    rt_deref(v)->u.clo.lent = (uint32_t)lent;
     return v;
 }
 
@@ -1261,15 +1261,15 @@ val rt_box_int128(int64_t lo, int64_t hi, int nk) {
     return w_box(w_new((uint64_t)lo, (uint64_t)hi), nk);
 }
 int64_t rt_int128_lo(val v) {
-    return deref(v)->u.w.lo;
+    return rt_deref(v)->u.w.lo;
 }
 int64_t rt_int128_hi(val v) {
-    return deref(v)->u.w.hi;
+    return rt_deref(v)->u.w.hi;
 }
 #endif
-int equal(val a, val b) {
-    a = deref(a);
-    b = deref(b);
+int rt_equal(val a, val b) {
+    a = rt_deref(a);
+    b = rt_deref(b);
     if (a->kind != b->kind) return 0;
     switch (a->kind) {
     case K_INT:
@@ -1295,9 +1295,9 @@ int equal(val a, val b) {
     return a == b;
 }
 
-// ---- strings and display ----
+// ---- strings and rt_display ----
 static KG_TLS int g_buf_try, g_buf_failed;
-void bput(buf* b, const char* s, size_t n) {
+void rt_bput(buf* b, const char* s, size_t n) {
     if (g_buf_try && g_buf_failed) return;
     if (b->len + n + 1 > b->cap) {
         if (g_buf_try && fault_tick()) {
@@ -1321,8 +1321,8 @@ void bput(buf* b, const char* s, size_t n) {
     b->len += n;
     b->p[b->len] = 0;
 }
-void bputs(buf* b, const char* s) {
-    bput(b, s, strlen(s));
+void rt_bputs(buf* b, const char* s) {
+    rt_bput(b, s, strlen(s));
 }
 static const char* short_name(const char* name) {
     const char* d = strrchr(name, '.');
@@ -1420,17 +1420,17 @@ static int is_tuple_name(const char* name) {
 }
 // `Map { k: v, ... }` in insertion order; the hash index is not part of what a map is.
 static void display_map(buf* b, val v) {
-    val keys = deref(v->u.rec.fields[0]), vals = deref(v->u.rec.fields[1]);
-    bputs(b, "Map {");
+    val keys = rt_deref(v->u.rec.fields[0]), vals = rt_deref(v->u.rec.fields[1]);
+    rt_bputs(b, "Map {");
     for (int64_t i = 0; i < keys->u.arr.len; i++) {
-        if (i) bputs(b, ",");
-        bputs(b, " ");
+        if (i) rt_bputs(b, ",");
+        rt_bputs(b, " ");
         display_into(b, keys->u.arr.items[i], 0);
-        bputs(b, ": ");
+        rt_bputs(b, ": ");
         display_into(b, vals->u.arr.items[i], 0);
     }
-    if (keys->u.arr.len > 0) bputs(b, " ");
-    bputs(b, "}");
+    if (keys->u.arr.len > 0) rt_bputs(b, " ");
+    rt_bputs(b, "}");
 }
 // `P { x: 1, y: 2 }`, or `(1, 2)` for a tuple; hashing (canon) keeps the bare `P { 1, 2 }` form.
 static void display_record(buf* b, val v, int canon) {
@@ -1442,130 +1442,126 @@ static void display_record(buf* b, val v, int canon) {
     const char* name = short_name(t->name);
     int named = !canon && t->fields && t->nfields == v->u.rec.n;
     if (named && is_tuple_name(name)) {
-        bputs(b, "(");
+        rt_bputs(b, "(");
         for (int64_t i = 0; i < v->u.rec.n; i++) {
-            if (i) bputs(b, ", ");
+            if (i) rt_bputs(b, ", ");
             display_into(b, v->u.rec.fields[i], canon);
         }
-        bputs(b, ")");
+        rt_bputs(b, ")");
         return;
     }
-    bputs(b, name);
-    bputs(b, " {");
+    rt_bputs(b, name);
+    rt_bputs(b, " {");
     for (int64_t i = 0; i < v->u.rec.n; i++) {
-        if (i) bputs(b, ",");
-        bputs(b, " ");
+        if (i) rt_bputs(b, ",");
+        rt_bputs(b, " ");
         if (named) {
-            bputs(b, t->fields[i]);
-            bputs(b, ": ");
+            rt_bputs(b, t->fields[i]);
+            rt_bputs(b, ": ");
         }
         display_into(b, v->u.rec.fields[i], canon);
     }
-    bputs(b, " }");
+    rt_bputs(b, " }");
 }
 // canon folds -0.0 and every NaN so hashing matches total float equality.
 void display_into(buf* b, val v, int canon) {
     char tmp[64];
-    v = deref(v);
+    v = rt_deref(v);
     switch (v->kind) {
     case K_INT:
 #ifdef KIGUMI_INT128
         if (W_IS(v->nk)) {
             char wide[48];
             w_dec(w_of(v), W_SIGNED(v->nk), wide);
-            bputs(b, wide);
+            rt_bputs(b, wide);
             break;
         }
 #endif
         if (v->nk & 256) i64_dec(v->u.i, tmp);
         else u64_dec((uint64_t)v->u.i, tmp);
-        bputs(b, tmp);
+        rt_bputs(b, tmp);
         break;
     case K_FLOAT: {
         char text[64];
         double f = v->u.f;
         if (canon) f = canon_float(f);
         rt_format_float(f, (v->nk & 255) == 32, text, sizeof text);
-        bputs(b, text);
+        rt_bputs(b, text);
         break;
     }
     case K_BOOL:
-        bputs(b, v->u.b ? "true" : "false");
+        rt_bputs(b, v->u.b ? "true" : "false");
         break;
     case K_CHAR: {
         char u[4];
-        bput(b, u, char_utf8(v->u.c, u));
+        rt_bput(b, u, char_utf8(v->u.c, u));
         break;
     }
     case K_STR:
     case K_BYTES:
-        bput(b, v->u.s.data, v->u.s.len);
+        rt_bput(b, v->u.s.data, v->u.s.len);
         break;
     case K_UNIT:
-        bputs(b, "()");
+        rt_bputs(b, "()");
         break;
     case K_PTR:
-        bputs(b, "<ptr ");
+        rt_bputs(b, "<ptr ");
         ptr_hex(v->u.p, tmp);
-        bputs(b, tmp);
-        bputs(b, ">");
+        rt_bputs(b, tmp);
+        rt_bputs(b, ">");
         break;
     case K_VARIANT:
-        bputs(b, v->u.var.v->name);
+        rt_bputs(b, v->u.var.v->name);
         if (v->u.var.n) {
-            bputs(b, "(");
+            rt_bputs(b, "(");
             for (int64_t i = 0; i < v->u.var.n; i++) {
-                if (i) bputs(b, ", ");
+                if (i) rt_bputs(b, ", ");
                 display_into(b, v->u.var.payload[i], canon);
             }
-            bputs(b, ")");
+            rt_bputs(b, ")");
         }
         break;
     case K_RECORD:
         display_record(b, v, canon);
         break;
     case K_ARRAY:
-        bputs(b, "[");
+        rt_bputs(b, "[");
         for (int64_t i = 0; i < v->u.arr.len; i++) {
-            if (i) bputs(b, ", ");
+            if (i) rt_bputs(b, ", ");
             display_into(b, v->u.arr.items[i], canon);
         }
-        bputs(b, "]");
+        rt_bputs(b, "]");
         break;
     case K_BOX:
         display_into(b, v->u.box.v, canon);
         break;
     case K_OPAQUE:
         if (strcmp(v->u.op.kind, "Box") == 0) display_into(b, ((val)v->u.op.data)->u.cell.v, canon);
-        else if (strcmp(v->u.op.kind, "Error") == 0 || strcmp(v->u.op.kind, "Path") == 0) bputs(b, (const char*)v->u.op.data);
+        else if (strcmp(v->u.op.kind, "Error") == 0 || strcmp(v->u.op.kind, "Path") == 0) rt_bputs(b, (const char*)v->u.op.data);
         else {
-            bputs(b, "<");
-            bputs(b, v->u.op.kind);
-            bputs(b, ">");
+            rt_bputs(b, "<");
+            rt_bputs(b, v->u.op.kind);
+            rt_bputs(b, ">");
         }
         break;
     default:
-        bputs(b, "<value>");
+        rt_bputs(b, "<value>");
     }
 }
-val display(val v) {
+val rt_display(val v) {
     buf b = {0};
-    bputs(&b, "");
+    rt_bputs(&b, "");
     display_into(&b, v, 0);
     return rt_str_take(b.p, b.len);
 }
 val rt_interp(int n, val* items) {
     buf b = {0};
-    bputs(&b, "");
+    rt_bputs(&b, "");
     for (int i = 0; i < n; i++) display_into(&b, items[i], 0);
     return rt_str_take(b.p, b.len);
 }
-const char* rt_cstr(val s);
-const char* cstr(val s) {
-    return rt_cstr(s);
-}
 const char* rt_cstr(val s) {
-    s = deref(s);
+    s = rt_deref(s);
     if (s->kind == K_BOX) s = s->u.box.v;
     if (s->kind == K_OPAQUE) return (const char*)s->u.op.data;
     if (s->u.s.len < 0) rt_panic("out of memory");
@@ -1700,8 +1696,8 @@ static val int_fn(const char* k, val a0, val a1) {
     return NULL;
 }
 static int cmp_vals(val a, val b) {
-    a = deref(a);
-    b = deref(b);
+    a = rt_deref(a);
+    b = rt_deref(b);
     switch (a->kind) {
     case K_INT:
 #ifdef KIGUMI_INT128
@@ -1753,7 +1749,7 @@ static int in_range(int64_t v, int s, int d) {
 // rt_convert is the prelude's numeric `toX`: dnk is the target kind (bit 10
 // for Char), checked says the declaration returns an Option.
 val rt_convert(val a0, int dnk, int checked) {
-    a0 = deref(a0);
+    a0 = rt_deref(a0);
     if (a0->kind == K_BOX) a0 = a0->u.box.v;
     if (dnk & 1024) return rt_char((uint32_t)a0->u.i);
     if (a0->kind == K_CHAR) return rt_int(a0->u.c, dnk);
@@ -1766,15 +1762,15 @@ val rt_convert(val a0, int dnk, int checked) {
     }
     if (a0->kind == K_FLOAT) {
         double x = trunc(a0->u.f);
-        if (x != x || x < -9223372036854775808.0 || x >= 9223372036854775808.0) return none();
-        return some(rt_int((int64_t)x, dnk));
+        if (x != x || x < -9223372036854775808.0 || x >= 9223372036854775808.0) return rt_none();
+        return rt_some(rt_int((int64_t)x, dnk));
     }
     if (!checked) return rt_int(truncate_to(a0->u.i, dnk), dnk);
-    if (!in_range(a0->u.i, a0->nk, dnk)) return none();
-    return some(rt_int(a0->u.i, dnk));
+    if (!in_range(a0->u.i, a0->nk, dnk)) return rt_none();
+    return rt_some(rt_int(a0->u.i, dnk));
 }
 static val direct_arg(val v) {
-    v = deref(v);
+    v = rt_deref(v);
     return v->kind == K_BOX ? v->u.box.v : v;
 }
 static uint64_t double_bits(double d) {
@@ -1783,7 +1779,7 @@ static uint64_t double_bits(double d) {
     return b;
 }
 static uint64_t leaf_bits(val v) {
-    v = deref(v);
+    v = rt_deref(v);
     switch (v->kind) {
     case K_FLOAT: return double_bits(v->u.f);
     case K_BOOL: return (uint64_t)(v->u.b != 0);
@@ -1834,7 +1830,7 @@ static int float_text_ok(const char* s, int64_t len) {
 }
 static int parse_float_text(val text, double* d) {
     val t = direct_arg(text);
-    const char* s = cstr(text);
+    const char* s = rt_cstr(text);
     int64_t len = t->kind == K_OPAQUE ? (int64_t)strlen(s) : t->u.s.len;
     int ok = 0;
     if (float_text_ok(s, len)) {
@@ -1883,14 +1879,14 @@ int64_t rt_d_hash_float(double f, int nk) {
     rt_format_float(f, (nk & 255) == 32, text, sizeof text);
     return fnv_text(text);
 }
-static val range_new(val lo, val hi, int inclusive);
+static val rt_range_new(val lo, val hi, int inclusive);
 val rt_binop(const char* op, val a, val b) {
-    a = deref(a);
-    b = deref(b);
-    if (!strcmp(op, "==")) return rt_bool(equal(a, b));
-    if (!strcmp(op, "!=")) return rt_bool(!equal(a, b));
-    if (!strcmp(op, "..")) return range_new(a, b, 0);
-    if (!strcmp(op, "..=")) return range_new(a, b, 1);
+    a = rt_deref(a);
+    b = rt_deref(b);
+    if (!strcmp(op, "==")) return rt_bool(rt_equal(a, b));
+    if (!strcmp(op, "!=")) return rt_bool(!rt_equal(a, b));
+    if (!strcmp(op, "..")) return rt_range_new(a, b, 0);
+    if (!strcmp(op, "..=")) return rt_range_new(a, b, 1);
     if (a->kind != K_FLOAT) {
         if (!strcmp(op, "<")) return rt_bool(cmp_vals(a, b) < 0);
         if (!strcmp(op, "<=")) return rt_bool(cmp_vals(a, b) <= 0);
@@ -1943,11 +1939,11 @@ val rt_binop(const char* op, val a, val b) {
     case '>':
         return rt_int(int_shr(x, y, nk), nk);
     }
-    panicf("unsupported operator %s", op);
+    rt_panicf("unsupported operator %s", op);
     return NULL;
 }
 val rt_unop(const char* op, val a) {
-    a = deref(a);
+    a = rt_deref(a);
     if (op[0] == '!') return rt_bool(!a->u.b);
     if (op[0] == '-') {
         if (a->kind == K_FLOAT) return rt_float(-a->u.f, a->nk);
@@ -1960,11 +1956,11 @@ val rt_unop(const char* op, val a) {
     if (op[0] == '~' && W_IS(a->nk)) return w_unop('~', a);
 #endif
     if (op[0] == '~') return rt_int(int_not(a->u.i, a->nk), a->nk);
-    panicf("unsupported unary %s", op);
+    rt_panicf("unsupported unary %s", op);
     return NULL;
 }
 val rt_cast(val a, int nk) {
-    a = deref(a);
+    a = rt_deref(a);
 #ifdef KIGUMI_INT128
     if (a->kind == K_INT && (W_IS(a->nk) || W_IS(nk))) return w_convert(a, nk, 0);
 #endif
@@ -1973,7 +1969,7 @@ val rt_cast(val a, int nk) {
 }
 
 // ---- ADT helpers and init ----
-rt_type* find_type(const char* name) {
+rt_type* rt_find_type(const char* name) {
     for (int i = 0; i < g_ntypes; i++)
         if (!strcmp(short_name(g_types[i]->name), name) || !strcmp(g_types[i]->name, name)) return g_types[i];
     return NULL;
@@ -2010,7 +2006,7 @@ void rt_init(int argc, char** argv, int ntypes, rt_type** types) {
     g_argv = argv;
     g_ntypes = ntypes;
     g_types = types;
-    rt_type *opt = find_type("Option"), *res = find_type("Result"), *ord = find_type("Ordering");
+    rt_type *opt = rt_find_type("Option"), *res = rt_find_type("Result"), *ord = rt_find_type("Ordering");
     V_Some = find_variant(opt, "Some");
     V_None = find_variant(opt, "None");
     V_Ok = find_variant(res, "Ok");
@@ -2018,7 +2014,7 @@ void rt_init(int argc, char** argv, int ntypes, rt_type** types) {
     V_Less = find_variant(ord, "Less");
     V_Equal = find_variant(ord, "Equal");
     V_Greater = find_variant(ord, "Greater");
-    rt_vdesc* oom = find_variant(find_type("AllocError"), "OutOfMemory");
+    rt_vdesc* oom = find_variant(rt_find_type("AllocError"), "OutOfMemory");
     if (oom && V_Err) {
         g_alloc_error_payload[0] = rt_nullary(oom);
         rt_const_variant(&g_alloc_error, g_alloc_error_payload, V_Err, 1);
@@ -2035,30 +2031,30 @@ void rt_init(int argc, char** argv, int ntypes, rt_type** types) {
     g_oom_error_payload[0] = &g_oom_box;
     if (V_Err) rt_const_variant(&g_oom_error, g_oom_error_payload, V_Err, 1);
 }
-val some(val v) {
+val rt_some(val v) {
     return rt_variant(V_Some, 1, &v);
 }
-val none(void) {
+val rt_none(void) {
     return rt_variant(V_None, 0, NULL);
 }
-val ok(val v) {
+val rt_ok(val v) {
     return rt_variant(V_Ok, 1, &v);
 }
-val err_val(val e) {
+val rt_err_val(val e) {
     return rt_variant(V_Err, 1, &e);
 }
-val err_msg(const char* msg) {
-    val e = rt_box(opaque("Error", (void*)msg), &T_Error, T_Error_vt);
-    return err_val(e);
+val rt_err_msg(const char* msg) {
+    val e = rt_box(rt_opaque("Error", (void*)msg), &T_Error, T_Error_vt);
+    return rt_err_val(e);
 }
 static val alloc_error(void) {
-    if (g_alloc_error.kind == 0) return err_msg("out of memory");
+    if (g_alloc_error.kind == 0) return rt_err_msg("out of memory");
     return &g_alloc_error;
 }
 static val oom_error(void) {
-    return g_oom_error.kind == 0 ? err_msg("out of memory") : &g_oom_error;
+    return g_oom_error.kind == 0 ? rt_err_msg("out of memory") : &g_oom_error;
 }
-// NULL-on-refusal counterparts to alloc_in/rt_str_take/opaque/rt_cell/rt_variant;
+// NULL-on-refusal counterparts to alloc_in/rt_str_take/rt_opaque/rt_cell/rt_variant;
 // callers release/free what they already hold on a NULL return.
 static val alloc_in_try(rt_allocator* a, int kind) {
     val v = amalloc(a, sizeof(struct obj));
@@ -2283,7 +2279,7 @@ static val try_ok_some(val v) {
     }
     return try_ok(s);
 }
-static val ordering(int c) {
+static val rt_ordering(int c) {
     return rt_variant(c < 0 ? V_Less : c > 0 ? V_Greater
                                              : V_Equal,
                       0,
@@ -2291,14 +2287,14 @@ static val ordering(int c) {
 }
 // `..`/`..=` are binary operators, so their operands are not consumed by
 // the emitter and the range must retain them.
-static val range_new(val lo, val hi, int inclusive) {
-    rt_type* t = find_type("Range");
+static val rt_range_new(val lo, val hi, int inclusive) {
+    rt_type* t = rt_find_type("Range");
     val f[3] = {rt_retain(lo), rt_retain(hi), rt_bool(inclusive)};
     return rt_record(t, 3, f);
 }
-val make_record(const char* tname, int n, val* fields) {
-    rt_type* t = find_type(tname);
-    if (!t) panicf("runtime type %s missing", tname);
+val rt_make_record(const char* tname, int n, val* fields) {
+    rt_type* t = rt_find_type(tname);
+    if (!t) rt_panicf("runtime type %s missing", tname);
     return rt_record(t, n, fields);
 }
 
@@ -2341,14 +2337,14 @@ static void report_live_objs(val r) {
 #endif
 // exit_t, ctx, wrapped and code are compile-time: ExitError's and Context's descriptors (null when no value of the type can exist), Context's "wrapped" field index and ExitError's "code" field index.
 int rt_exit_code(val r, rt_type* exit_t, rt_type* ctx, int64_t wrapped, int64_t code) {
-    r = deref(r);
+    r = rt_deref(r);
     if (r && r->kind == K_VARIANT && r->u.var.v == V_Err) {
-        for (val cur = deref(r->u.var.payload[0]); exit_t && cur->kind == K_BOX;) {
-            if (cur->u.box.dyn == exit_t) return (int)deref(cur->u.box.v->u.rec.fields[code])->u.i;
+        for (val cur = rt_deref(r->u.var.payload[0]); exit_t && cur->kind == K_BOX;) {
+            if (cur->u.box.dyn == exit_t) return (int)rt_deref(cur->u.box.v->u.rec.fields[code])->u.i;
             if (!ctx || cur->u.box.dyn != ctx) break;
-            cur = deref(cur->u.box.v->u.rec.fields[wrapped]);
+            cur = rt_deref(cur->u.box.v->u.rec.fields[wrapped]);
         }
-        val m = display(error_message(r->u.var.payload[0]));
+        val m = rt_display(error_message(r->u.var.payload[0]));
         write_line(2, "error: ", 7, m->u.s.data, m->u.s.len);
         return 1;
     }
@@ -2373,7 +2369,7 @@ static val invoke_args(adapter_fn fn, val env, int n, val* args, int owned) {
 #endif
     return r;
 }
-val invoke(adapter_fn fn, val env, int n, val* args) {
+val rt_invoke(adapter_fn fn, val env, int n, val* args) {
     return invoke_args(fn, env, n, args, 0);
 }
 // A call's argument count has no compile-time cap, and a variable-length
@@ -2409,7 +2405,7 @@ static val callv_async(val f, int n, val* args) {
 // rt_callv_m is rt_callv for a caller declaring each argument lent (a bit in lent) or handed over (in given): a lent one
 // a parameter of f consumes is retained first, a handed one a parameter only borrows is released after.
 val rt_callv_m(val f, int n, val* args, uint32_t lent, uint32_t given) {
-    val g = deref(f);
+    val g = rt_deref(f);
     uint32_t m = g->kind == K_CLOSURE && !g->u.clo.async ? g->u.clo.lent : 0;
     // An async value's Future keeps every argument, so it borrows none.
     int known = g->kind == K_CLOSURE && (g->u.clo.async || g->u.clo.key || ((m >> 31) & 1));
@@ -2427,7 +2423,7 @@ val rt_callv_lent(val f, int n, val* args) {
 }
 
 val rt_callv(val f, int n, val* args) {
-    f = deref(f);
+    f = rt_deref(f);
     if (f->kind != K_CLOSURE) rt_panic("value is not callable");
     if (f->u.clo.async) return callv_async(f, n, args);
 #ifdef KIGUMI_STD_DYNAMIC
@@ -2451,13 +2447,13 @@ val rt_callv(val f, int n, val* args) {
         return r;
     }
 #endif
-    return invoke(f->u.clo.fn, f->u.clo.env, n, args);
+    return rt_invoke(f->u.clo.fn, f->u.clo.env, n, args);
 }
 // rt_call_slot calls requirement slot of the interface a boxed value was
-// boxed as. invoke retains the receiver once and releases it, like a direct
+// boxed as. rt_invoke retains the receiver once and releases it, like a direct
 // call's borrow. recvmode: 1 `mut self`, 2 `move self` (consumes the box).
 val rt_call_slot(val recv, int slot, int n, val* args, int recvmode) {
-    val target = deref(recv);
+    val target = rt_deref(recv);
     if (target->kind != K_BOX || !target->u.box.vt) rt_panic("dynamic call on a value without a witness table");
     adapter_fn fn = (adapter_fn)target->u.box.vt[slot];
     int64_t total = n + 1;
@@ -2478,7 +2474,7 @@ val rt_call_slot(val recv, int slot, int n, val* args, int recvmode) {
     for (int i = 0; i < n; i++) all[i + 1] = args[i];
     val r = invoke_args(fn, NULL, (int)total, all, all != stackbuf);
     if (recvmode == 1 && target->u.box.src) {
-        target->u.box.v = deref(target->u.box.src);
+        target->u.box.v = rt_deref(target->u.box.src);
     } else if (recvmode == 1 && target->owned) {
         rt_release(cell.u.cell.v);
     } else if (recvmode == 1) {
@@ -2630,12 +2626,12 @@ val rt_future_complete(val fut, val v) {
 // A value that is not a compiler-built Future (a BlockingPool result) has
 // no mobility summary, so it stays on the lane that created it.
 static int future_mobile(val fut) {
-    val d = deref(fut);
+    val d = rt_deref(fut);
     if (!d || d->kind != K_OPAQUE || strcmp(d->u.op.kind, "Future")) return 0;
     return ((kgframe*)d->u.op.data)->desc->mobile;
 }
 val rt_future_new(val callee, int n, val* args) {
-    val clo = deref(callee);
+    val clo = rt_deref(callee);
     if (clo->kind != K_CLOSURE || !clo->u.clo.fn) rt_panic("this Future has no async body to run");
     const kg_async_desc* d = (const kg_async_desc*)(void*)clo->u.clo.fn;
     val env = clo->u.clo.env;
@@ -2653,7 +2649,7 @@ val rt_future_new(val callee, int n, val* args) {
     for (int i = 0; i < n; i++) f->args[m++] = rt_retain(args[i]);
     if (trailing)
         for (int i = 0; i < ne; i++) f->args[m++] = rt_retain(env->u.arr.items[i]);
-    return opaque("Future", f);
+    return rt_opaque("Future", f);
 }
 #ifdef KG_CATCH
 #define KG_FAULTING g_faulting
@@ -2849,7 +2845,7 @@ val rt_future_settle(val fut) {
 // The scope closes only when the body leaving is the task's own Future.
 val rt_task_close(val fut) {
 #ifdef KIGUMI_CAP_TASK_EXECUTOR
-    if (g_cur_task && g_cur_task->fut && deref(g_cur_task->fut) == fut) task_close_scope(g_cur_task);
+    if (g_cur_task && g_cur_task->fut && rt_deref(g_cur_task->fut) == fut) task_close_scope(g_cur_task);
 #else
     (void)fut;
 #endif
@@ -2859,7 +2855,7 @@ val rt_task_close(val fut) {
 #include "rt_cap_task_blocking_pool.inc"
 #endif
 static val poll_value(val v) {
-    val d = deref(v);
+    val d = rt_deref(v);
 #ifdef KIGUMI_CAP_TASK_EXECUTOR
     if (d && d->kind == K_OPAQUE && !strcmp(d->u.op.kind, "Task")) return poll_task((kgtask*)d->u.op.data);
     if (d && d->kind == K_OPAQUE && !strcmp(d->u.op.kind, "Yield")) return poll_yield((int*)d->u.op.data);
@@ -2935,7 +2931,7 @@ static void free_opaque_cb(val v) {
 }
 static void run_drop_hook(val v) {
     val a[1] = {v};
-    invoke((adapter_fn)v->u.rec.type->drop, NULL, 1, a);
+    rt_invoke((adapter_fn)v->u.rec.type->drop, NULL, 1, a);
 }
 static int has_drop_hook(val v) {
     return v->kind == K_RECORD && v->u.rec.type->kind == 1 && v->u.rec.type->drop;
@@ -3111,7 +3107,7 @@ static void drain_open(dstack* st, val v, int64_t pend) {
         if (!guarded && t->kind == 1 && t->drop) {
             v->rc = -1;
             val a[1] = {v};
-            invoke((adapter_fn)t->drop, NULL, 1, a);
+            rt_invoke((adapter_fn)t->drop, NULL, 1, a);
             v->rc = 0;
         }
         fr.i = v->u.rec.n - 1;
@@ -3191,13 +3187,13 @@ static rt_type* map_type(void) {
     static rt_type* t;
     static int looked;
     if (!looked) {
-        t = find_type("Map");
+        t = rt_find_type("Map");
         looked = 1;
     }
     return t;
 }
 int64_t rt_iter_count(val it) {
-    it = deref(it);
+    it = rt_deref(it);
     if (it->kind == K_ARRAY) return it->u.arr.len;
     if (it->kind == K_BYTES) return it->u.s.len;
     if (it->kind == K_RECORD && it->u.rec.type == map_type()) return it->u.rec.fields[0]->u.arr.len;
@@ -3235,13 +3231,13 @@ static val take_or_retain(val* slot) {
 }
 static val fixed_fill(val v, int64_t n) {
     val a = rt_array(0, NULL);
-    for (int64_t i = 0; i < n; i++) push(a, rt_copy(v));
+    for (int64_t i = 0; i < n; i++) rt_push(a, rt_copy(v));
     return a;
 }
 /* mode: 0 = iter.at (retains in place), 1 = iter.at_ref (borrowed, no
  * retain), 2 = iter.at_move (owned, transfers non-Copy elements). */
 val rt_iter_at(val it, int64_t i, int mode) {
-    it = deref(it);
+    it = rt_deref(it);
     if (it->kind == K_ARRAY) {
         if (mode == 1) return it->u.arr.items[i];
         if (mode == 2) return take_or_retain(&it->u.arr.items[i]);
@@ -3250,7 +3246,7 @@ val rt_iter_at(val it, int64_t i, int mode) {
     if (it->kind == K_BYTES) return rt_int((unsigned char)it->u.s.data[i], 8);
     if (it->kind == K_RECORD && it->u.rec.type == map_type()) {
         val keys = it->u.rec.fields[0], vals = it->u.rec.fields[1];
-        rt_type* tup = find_type("Tuple2");
+        rt_type* tup = rt_find_type("Tuple2");
         if (mode == 1) {
             val f[2] = {keys->u.arr.items[i], vals->u.arr.items[i]};
             return rt_record(tup, 2, f);
@@ -3270,20 +3266,20 @@ val rt_iter_at(val it, int64_t i, int mode) {
 }
 // An integer element read straight into a register takes no box of its own.
 int64_t rt_iter_at_int(val it, int64_t i) {
-    it = deref(it);
-    if (it->kind == K_ARRAY) return deref(it->u.arr.items[i])->u.i;
+    it = rt_deref(it);
+    if (it->kind == K_ARRAY) return rt_deref(it->u.arr.items[i])->u.i;
     if (it->kind == K_BYTES) return (unsigned char)it->u.s.data[i];
     return it->u.rec.fields[0]->u.i + i;
 }
 // print takes a String, so its bytes go out as they are and nothing is allocated.
 static void print_line(int fd, val v) {
-    v = deref(v);
-    if (v->kind == K_BOX) v = deref(v->u.box.v);
+    v = rt_deref(v);
+    if (v->kind == K_BOX) v = rt_deref(v->u.box.v);
     if (v->kind == K_STR && v->u.s.len >= 0) {
         write_line(fd, "", 0, v->u.s.data, v->u.s.len);
         return;
     }
-    val s = display(v);
+    val s = rt_display(v);
     write_line(fd, "", 0, s->u.s.data, s->u.s.len);
     rt_release(s);
 }
@@ -3297,35 +3293,35 @@ val rt_builtin(const char* name, int n, val* args) {
         fault_arm();
         return rt_unit();
     }
-    if (!strcmp(name, "panic")) rt_panic(n > 0 ? cstr(args[0]) : "explicit panic");
-    if (!strcmp(name, "host")) return opaque("Host", NULL);
+    if (!strcmp(name, "panic")) rt_panic(n > 0 ? rt_cstr(args[0]) : "explicit panic");
+    if (!strcmp(name, "host")) return rt_opaque("Host", NULL);
     if (!strcmp(name, "cmp.unordered")) {
-        val w = deref(args[0]), a = deref(args[1]), b = deref(args[2]);
+        val w = rt_deref(args[0]), a = rt_deref(args[1]), b = rt_deref(args[2]);
         const char* k = w->kind == K_CLOSURE && w->u.clo.key ? w->u.clo.key : "";
         if (!strncmp(k, "std/", 4)) k += 4;
         int fl = !strcmp(k, "prelude.f64.equals") || !strcmp(k, "prelude.f64.compareTo") || !strcmp(k, "prelude.f32.equals") || !strcmp(k, "prelude.f32.compareTo");
         return rt_bool(fl && ((a->kind == K_FLOAT && a->u.f != a->u.f) || (b->kind == K_FLOAT && b->u.f != b->u.f)));
     }
     if (!strcmp(name, "cmp.guard")) return rt_bool(rt_truth(args[0]) && !rt_truth(args[1]));
-    if (!strcmp(name, "fixed.fill")) return fixed_fill(args[0], deref(args[1])->u.i);
+    if (!strcmp(name, "fixed.fill")) return fixed_fill(args[0], rt_deref(args[1])->u.i);
     if (!strcmp(name, "iter.len")) return iter_len(args[0]);
-    if (!strcmp(name, "iter.at")) return rt_iter_at(args[0], deref(args[1])->u.i, 0);
-    if (!strcmp(name, "iter.at_ref")) return rt_iter_at(args[0], deref(args[1])->u.i, 1);
-    if (!strcmp(name, "iter.at_move")) return rt_iter_at(args[0], deref(args[1])->u.i, 2);
+    if (!strcmp(name, "iter.at")) return rt_iter_at(args[0], rt_deref(args[1])->u.i, 0);
+    if (!strcmp(name, "iter.at_ref")) return rt_iter_at(args[0], rt_deref(args[1])->u.i, 1);
+    if (!strcmp(name, "iter.at_move")) return rt_iter_at(args[0], rt_deref(args[1])->u.i, 2);
     if (!strcmp(name, "alloc.push")) {
-        val scope = deref(args[0]);
+        val scope = rt_deref(args[0]);
         if (g_alloc_sp + 1 >= 64) rt_panic("allocator blocks nested too deeply");
-        arena* ar = (arena*)deref((val)scope->u.op.data)->u.op.data;
+        arena* ar = (arena*)rt_deref((val)scope->u.op.data)->u.op.data;
         g_alloc_stack[++g_alloc_sp] = &ar->a;
         return opaque_in(&((arena*)((val)scope->u.op.data)->u.op.data)->a, "AllocGuard", rt_retain(scope));
     }
-    panicf("unknown builtin %s", name);
+    rt_panicf("unknown builtin %s", name);
     return NULL;
 }
 
 // RFC 3629 / Unicode Table 3-7: rejects overlong encodings, surrogates
 // (D800-DFFF) and codepoints above U+10FFFF, matching Go's unicode/utf8.Valid.
-int utf8_valid(const char* s, int64_t n) {
+int rt_utf8_valid(const char* s, int64_t n) {
     int64_t i = 0;
     while (i < n) {
         unsigned char c = s[i];
@@ -3361,12 +3357,12 @@ int utf8_valid(const char* s, int64_t n) {
     }
     return 1;
 }
-// hash_of is FNV-1a-64 (standard offset basis 0xcbf29ce484222325 /
+// rt_hash_of is FNV-1a-64 (standard offset basis 0xcbf29ce484222325 /
 // 14695981039346656037) over the canon rendering of v, so this and
 // internal/hashkey.Sum64 (interp, vm) agree byte for byte.
-uint64_t hash_of(val v) {
+uint64_t rt_hash_of(val v) {
     buf b = {0};
-    bputs(&b, "");
+    rt_bputs(&b, "");
     display_into(&b, v, 1);
     uint64_t h = 14695981039346656037ULL;
     for (size_t i = 0; i < b.len; i++) {
@@ -3593,7 +3589,7 @@ int rt_d_try_opt(int op, int n, val* a, val* out) {
     return 2;
 }
 val rt_std_id(int op, int n, val* a) {
-    val a0 = n > 0 ? deref(a[0]) : NULL, a1 = n > 1 ? deref(a[1]) : NULL, a2 = n > 2 ? deref(a[2]) : NULL;
+    val a0 = n > 0 ? rt_deref(a[0]) : NULL, a1 = n > 1 ? rt_deref(a[1]) : NULL, a2 = n > 2 ? rt_deref(a[2]) : NULL;
     if (a0 && a0->kind == K_BOX && !op_stores_a0(op)) a0 = a0->u.box.v;
     switch ((enum std_op)op) {
     RT_STD_OPS_RETIRED_CASES
@@ -3611,12 +3607,12 @@ val rt_std_id(int op, int n, val* a) {
 #endif
 #if defined(KIGUMI_OP_STRING_FROM_BYTES)
     case OP_STRING_FROM_BYTES:
-        if (!utf8_valid(a0->u.s.data, a0->u.s.len)) return err_msg("invalid UTF-8");
-        return ok(strdup_val(a0->u.s.data, a0->u.s.len));
+        if (!rt_utf8_valid(a0->u.s.data, a0->u.s.len)) return rt_err_msg("invalid UTF-8");
+        return rt_ok(strdup_val(a0->u.s.data, a0->u.s.len));
 #endif
 #if defined(KIGUMI_OP_STRING_TRY_FROM_BYTES)
     case OP_STRING_TRY_FROM_BYTES: {
-        if (!utf8_valid(a0->u.s.data, a0->u.s.len)) return err_msg("invalid UTF-8");
+        if (!rt_utf8_valid(a0->u.s.data, a0->u.s.len)) return rt_err_msg("invalid UTF-8");
         char* d = strdup_or_null(a0->u.s.data, a0->u.s.len);
         if (!d) return oom_error();
         val v = rt_str_take_try(d, a0->u.s.len);
@@ -3633,19 +3629,19 @@ val rt_std_id(int op, int n, val* a) {
     }
 #endif
 #if defined(KIGUMI_OP_EQUALS)
-    case OP_EQUALS: return rt_bool(a0->kind == K_FLOAT ? float_total_equal(a0->u.f, a1->u.f) : equal(a0, a1));
+    case OP_EQUALS: return rt_bool(a0->kind == K_FLOAT ? float_total_equal(a0->u.f, a1->u.f) : rt_equal(a0, a1));
 #endif
 #if defined(KIGUMI_OP_COMPARE_TO)
-    case OP_COMPARE_TO: return ordering(a0->kind == K_FLOAT ? float_total_compare(a0->u.f, a1->u.f) : cmp_vals(a0, a1));
+    case OP_COMPARE_TO: return rt_ordering(a0->kind == K_FLOAT ? float_total_compare(a0->u.f, a1->u.f) : cmp_vals(a0, a1));
 #endif
 #if defined(KIGUMI_OP_HASH)
-    case OP_HASH: return rt_int((int64_t)hash_of(a0), 64);
+    case OP_HASH: return rt_int((int64_t)rt_hash_of(a0), 64);
 #endif
 #if defined(KIGUMI_OP_MAP_SEED)
     case OP_MAP_SEED: return rt_int((int64_t)map_seed(), 64);
 #endif
 #if defined(KIGUMI_OP_DISPLAY)
-    case OP_DISPLAY: return display(a0);
+    case OP_DISPLAY: return rt_display(a0);
 #endif
 #if defined(KIGUMI_OP_STRING_BYTES)
     case OP_STRING_BYTES: return bytes_val(a0->u.s.data, a0->u.s.len);
@@ -3670,7 +3666,7 @@ val rt_std_id(int op, int n, val* a) {
         int64_t n2 = a0->u.arr.len;
         char* d = fault_tick() ? NULL : malloc(n2 + 1);
         if (!d) return alloc_error();
-        for (int64_t i = 0; i < n2; i++) d[i] = (char)deref(a0->u.arr.items[i])->u.i;
+        for (int64_t i = 0; i < n2; i++) d[i] = (char)rt_deref(a0->u.arr.items[i])->u.i;
         d[n2] = 0;
         val v = rt_str_take_try(d, n2);
         if (!v) {
@@ -3719,7 +3715,7 @@ val rt_std_id(int op, int n, val* a) {
         for (int64_t i = 0; i < a0->u.arr.len; i++) {
             val arg[1] = {a0->u.arr.items[i]};
             val keep = rt_callv_lent(a1, 1, arg);
-            int kept = deref(keep)->u.b;
+            int kept = rt_deref(keep)->u.b;
             rt_release(keep);
             if (!kept) continue;
             if (!try_grow(out, 1)) {
@@ -3760,7 +3756,7 @@ val rt_std_id(int op, int n, val* a) {
 #if defined(KIGUMI_OP_ARRAY_TRY_SLICE)
     case OP_ARRAY_TRY_SLICE: {
         int64_t s = a1->u.i, e = a2->u.i;
-        if (s < 0 || s > e || e > a0->u.arr.len) return try_ok(none());
+        if (s < 0 || s > e || e > a0->u.arr.len) return try_ok(rt_none());
         val out = array_try_copy(a0, s, e);
         return out ? try_ok_some(out) : alloc_error();
     }
@@ -3771,7 +3767,7 @@ val rt_std_id(int op, int n, val* a) {
 #if defined(KIGUMI_OP_STRING_TRY_SLICE_BYTES)
     case OP_STRING_TRY_SLICE_BYTES: {
         int64_t s = a1->u.i, e = a2->u.i, len = a0->u.s.len;
-        if (s < 0 || s > e || e > len || !boundary(a0->u.s.data, len, s) || !boundary(a0->u.s.data, len, e)) return try_ok(none());
+        if (s < 0 || s > e || e > len || !boundary(a0->u.s.data, len, s) || !boundary(a0->u.s.data, len, e)) return try_ok(rt_none());
         char* d = try_dup(a0->u.s.data + s, e - s);
         if (!d) return alloc_error();
         val v = rt_str_take_try(d, e - s);
@@ -3785,7 +3781,7 @@ val rt_std_id(int op, int n, val* a) {
 #if defined(KIGUMI_OP_BYTES_TRY_SLICE)
     case OP_BYTES_TRY_SLICE: {
         int64_t s = a1->u.i, e = a2->u.i, len = a0->u.s.len;
-        if (s < 0 || s > e || e > len) return try_ok(none());
+        if (s < 0 || s > e || e > len) return try_ok(rt_none());
         char* d = try_dup(a0->u.s.data + s, e - s);
         if (!d) return alloc_error();
         val v = rt_str_take_try(d, e - s);
@@ -3818,8 +3814,8 @@ val rt_std_id(int op, int n, val* a) {
 #endif
 #if defined(KIGUMI_OP_MAP_TRY_ENTRIES)
     case OP_MAP_TRY_ENTRIES: {
-        val keys = deref(a0->u.rec.fields[0]), values = deref(a0->u.rec.fields[1]);
-        rt_type* entry = find_type("std/map.Entry");
+        val keys = rt_deref(a0->u.rec.fields[0]), values = rt_deref(a0->u.rec.fields[1]);
+        rt_type* entry = rt_find_type("std/map.Entry");
         if (!entry) rt_panic("a runtime-named type was dropped by reachability");
         val out = array_try_new(keys->u.arr.len);
         if (!out) return alloc_error();
@@ -3840,10 +3836,10 @@ val rt_std_id(int op, int n, val* a) {
     }
 #endif
 #if defined(KIGUMI_OP_MAP_TRY_EMPTY)
-    case OP_MAP_TRY_EMPTY: return empty_record_try(find_type("std/map.Map"), 5);
+    case OP_MAP_TRY_EMPTY: return empty_record_try(rt_find_type("std/map.Map"), 5);
 #endif
 #if defined(KIGUMI_OP_STRING_BUILDER_TRY_NEW)
-    case OP_STRING_BUILDER_TRY_NEW: return empty_record_try(find_type("std/text.StringBuilder"), 1);
+    case OP_STRING_BUILDER_TRY_NEW: return empty_record_try(rt_find_type("std/text.StringBuilder"), 1);
 #endif
 #if defined(KIGUMI_OP_STRING_TRY_CHARS)
     case OP_STRING_TRY_CHARS: return try_string_chars(a0);
@@ -3866,7 +3862,7 @@ val rt_std_id(int op, int n, val* a) {
 #if defined(KIGUMI_OP_BYTE_BUFFER_COPY_FROM)
     case OP_BYTE_BUFFER_COPY_FROM: {
         val src = a2;
-        int64_t at = a1->u.i, lo = deref(a[3])->u.i, hi = deref(a[4])->u.i;
+        int64_t at = a1->u.i, lo = rt_deref(a[3])->u.i, hi = rt_deref(a[4])->u.i;
         if (lo < 0 || lo > hi || hi > src->u.s.len || at < 0 || at > a0->u.s.len - (hi - lo)) rt_panic("ByteBuffer.copyFrom: range out of bounds");
         memcpy((char*)a0->u.s.data + at, src->u.s.data + lo, (size_t)(hi - lo));
         return rt_unit();
@@ -3877,7 +3873,7 @@ val rt_std_id(int op, int n, val* a) {
 #endif
 #if defined(KIGUMI_OP_BYTE_BUFFER_FREEZE_STRING)
     case OP_BYTE_BUFFER_FREEZE_STRING:
-        if (!utf8_valid(a0->u.s.data, a0->u.s.len)) rt_panic("ByteBuffer.freezeString: invalid UTF-8");
+        if (!rt_utf8_valid(a0->u.s.data, a0->u.s.len)) rt_panic("ByteBuffer.freezeString: invalid UTF-8");
         a0->kind = K_STR;
         return rt_retain(a0);
 #endif
@@ -3890,7 +3886,7 @@ val rt_std_id(int op, int n, val* a) {
 #endif
 #if defined(KIGUMI_OP_ARRAY_PUSH)
     case OP_ARRAY_PUSH:
-        push(a0, rt_retain(a[1]));
+        rt_push(a0, rt_retain(a[1]));
         return rt_unit();
 #endif
 #if defined(KIGUMI_OP_ARRAY_GROW_BY)
@@ -3911,32 +3907,32 @@ val rt_std_id(int op, int n, val* a) {
 #if defined(KIGUMI_OP_ARRAY_GET)
     case OP_ARRAY_GET: {
         int64_t i = a1->u.i;
-        if (i < 0 || i >= a0->u.arr.len) return none();
-        return some(rt_copy(a0->u.arr.items[i]));
+        if (i < 0 || i >= a0->u.arr.len) return rt_none();
+        return rt_some(rt_copy(a0->u.arr.items[i]));
     }
 #endif
 #if defined(KIGUMI_OP_ARRAY_FIRST)
     case OP_ARRAY_FIRST:
-        if (a0->u.arr.len == 0) return none();
-        return some(rt_copy(a0->u.arr.items[0]));
+        if (a0->u.arr.len == 0) return rt_none();
+        return rt_some(rt_copy(a0->u.arr.items[0]));
 #endif
 #if defined(KIGUMI_OP_ARRAY_LAST)
     case OP_ARRAY_LAST:
-        if (a0->u.arr.len == 0) return none();
-        return some(rt_copy(a0->u.arr.items[a0->u.arr.len - 1]));
+        if (a0->u.arr.len == 0) return rt_none();
+        return rt_some(rt_copy(a0->u.arr.items[a0->u.arr.len - 1]));
 #endif
 #if defined(KIGUMI_OP_ARRAY_WITH)
     case OP_ARRAY_WITH: {
         int64_t i = a1->u.i;
-        if (i < 0 || i >= a0->u.arr.len) return none();
+        if (i < 0 || i >= a0->u.arr.len) return rt_none();
         val arg[1] = {a0->u.arr.items[i]};
-        return some(rt_callv_lent(a2, 1, arg));
+        return rt_some(rt_callv_lent(a2, 1, arg));
     }
 #endif
 #if defined(KIGUMI_OP_ARRAY_WITH_MUT)
     case OP_ARRAY_WITH_MUT: {
         int64_t i = a1->u.i;
-        if (i < 0 || i >= a0->u.arr.len) return none();
+        if (i < 0 || i >= a0->u.arr.len) return rt_none();
         // A scalar element aliases its obj on ordinary copy, so the
         // callback writes through a cell rather than the element itself;
         // the slot takes the cell's (possibly new) content back after.
@@ -3950,13 +3946,13 @@ val rt_std_id(int op, int n, val* a) {
         // array slot above; detach it first so that release is a no-op.
         cell->u.cell.v = NULL;
         rt_release(cell);
-        return some(r);
+        return rt_some(r);
     }
 #endif
 #if defined(KIGUMI_OP_ARRAY_TAKE_AT)
     case OP_ARRAY_TAKE_AT: {
         int64_t i = a1->u.i;
-        if (i < 0 || i >= a0->u.arr.len) return none();
+        if (i < 0 || i >= a0->u.arr.len) return rt_none();
         val x = a0->u.arr.items[i];
         if (i < a0->u.arr.len - 1 - i) {
             for (int64_t j = i; j > 0; j--) a0->u.arr.items[j] = a0->u.arr.items[j - 1];
@@ -3967,23 +3963,23 @@ val rt_std_id(int op, int n, val* a) {
             for (int64_t j = i; j + 1 < a0->u.arr.len; j++) a0->u.arr.items[j] = a0->u.arr.items[j + 1];
         }
         a0->u.arr.len--;
-        return some(x);
+        return rt_some(x);
     }
 #endif
 #if defined(KIGUMI_OP_OPTION_TAKE)
     case OP_OPTION_TAKE: {
-        if (a0->u.var.v != V_Some) return none();
+        if (a0->u.var.v != V_Some) return rt_none();
         val x = rt_retain(a0->u.var.payload[0]);
-        rt_cellset(a[0], none());
-        return some(x);
+        rt_cellset(a[0], rt_none());
+        return rt_some(x);
     }
 #endif
     // text
 #if defined(KIGUMI_OP_TEXT_PARSE_FLOAT)
     case OP_TEXT_PARSE_FLOAT: {
         double d;
-        if (!parse_float_text(a0, &d)) return none();
-        return some(rt_float(d, 64 | 512));
+        if (!parse_float_text(a0, &d)) return rt_none();
+        return rt_some(rt_float(d, 64 | 512));
     }
 #endif
     // os / fs
@@ -4103,8 +4099,8 @@ val rt_std_id(int op, int n, val* a) {
 #if defined(KIGUMI_OP_BYTES_GET)
     case OP_BYTES_GET: {
         int64_t i = a1->u.i;
-        if (i < 0 || i >= a0->u.s.len) return none();
-        return some(rt_int((uint8_t)a0->u.s.data[i], 8));
+        if (i < 0 || i >= a0->u.s.len) return rt_none();
+        return rt_some(rt_int((uint8_t)a0->u.s.data[i], 8));
     }
 #endif
 #if defined(KIGUMI_OP_SUBTLE_CT_EQ)
@@ -4306,7 +4302,7 @@ val rt_std_id(int op, int n, val* a) {
         if (!ar) return oom_error();
         ar->a.alloc = arena_alloc;
         ar->a.free = arena_free;
-        return ok(opaque("AllocatorHandle", ar));
+        return rt_ok(rt_opaque("AllocatorHandle", ar));
     }
 #endif
 #if defined(KIGUMI_OP_ARENA_TRY_CREATE)
@@ -4413,7 +4409,7 @@ val rt_std_id(int op, int n, val* a) {
 #if defined(KIGUMI_OP_WEAK_UPGRADE)
     case OP_WEAK_UPGRADE: {
         sctrl* c = a0->u.op.data;
-        return c->alive ? some(rt_retain(c->shared)) : none();
+        return c->alive ? rt_some(rt_retain(c->shared)) : rt_none();
     }
 #endif
 #if defined(KIGUMI_OP_BOX_TRY_NEW)
@@ -4532,12 +4528,12 @@ val rt_std_id(int op, int n, val* a) {
 #if defined(KIGUMI_OP_CHAR_FROM_INT)
     case OP_CHAR_FROM_INT: {
         int64_t v = a0->u.i;
-        if (v < 0 || v > 0x10FFFF || (v >= 0xD800 && v <= 0xDFFF)) return none();
-        return some(rt_char((uint32_t)v));
+        if (v < 0 || v > 0x10FFFF || (v >= 0xD800 && v <= 0xDFFF)) return rt_none();
+        return rt_some(rt_char((uint32_t)v));
     }
 #endif
 #if defined(KIGUMI_OP_UCELL_NEW)
-    case OP_UCELL_NEW: return opaque("UnsafeCell", rt_cell(rt_retain(a0)));
+    case OP_UCELL_NEW: return rt_opaque("UnsafeCell", rt_cell(rt_retain(a0)));
 #endif
 #if defined(KIGUMI_OP_UCELL_GET)
     case OP_UCELL_GET: return rt_copy(((val)a0->u.op.data)->u.cell.v);
@@ -4579,7 +4575,7 @@ val rt_std_id(int op, int n, val* a) {
     case OP_UCELL_ATOMIC_XOR: return ucell_atomic('^', a0, a1, NULL);
 #endif
 #if defined(KIGUMI_OP_UNINIT_NEW)
-    case OP_UNINIT_NEW: return opaque("Uninit", rt_cell(NULL));
+    case OP_UNINIT_NEW: return rt_opaque("Uninit", rt_cell(NULL));
 #endif
 #if defined(KIGUMI_OP_UNINIT_INITIALIZE)
     case OP_UNINIT_INITIALIZE: {
@@ -4642,11 +4638,11 @@ val rt_std_id(int op, int n, val* a) {
 val rt_std(const char* key, int n, val* a) {
     int op = rt_std_op_of(key);
     if (op >= 0) return rt_std_id(op, n, a);
-    val a0 = n > 0 ? deref(a[0]) : NULL, a1 = n > 1 ? deref(a[1]) : NULL, a2 = n > 2 ? deref(a[2]) : NULL;
+    val a0 = n > 0 ? rt_deref(a[0]) : NULL, a1 = n > 1 ? rt_deref(a[1]) : NULL, a2 = n > 2 ? rt_deref(a[2]) : NULL;
     if (a0 && a0->kind == K_BOX) a0 = a0->u.box.v;
     val r = rt_sys_std(key, n, a, a0, a1, a2);
     if (r) return r;
-    panicf("no runtime for %s", key);
+    rt_panicf("no runtime for %s", key);
     return NULL;
 }
 #endif
@@ -4660,12 +4656,12 @@ int64_t rt_callv_i64_m(val f, int n, val* args, uint32_t lent, uint32_t given) {
 
 int64_t rt_callv_i64(val f, int n, val* args) {
 #ifdef KIGUMI_STD_DYNAMIC
-    val g = deref(f);
+    val g = rt_deref(f);
     if (g->kind == K_CLOSURE && g->u.clo.key && !g->u.clo.async && n == 1 && g->u.clo.env->u.arr.len == 0 &&
         rt_std_op_of(g->u.clo.key) == OP_HASH) {
-        val a0 = deref(args[0]);
+        val a0 = rt_deref(args[0]);
         if (a0->kind == K_BOX) a0 = a0->u.box.v;
-        int64_t h = (int64_t)hash_of(a0);
+        int64_t h = (int64_t)rt_hash_of(a0);
         if (!(g->u.clo.lent & 1)) rt_release(args[0]);
         return h;
     }

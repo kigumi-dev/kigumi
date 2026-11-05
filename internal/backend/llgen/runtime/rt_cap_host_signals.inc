@@ -1,3 +1,3 @@
 static val cap_host_signals(void) {
-    return opaque("Signals", NULL);
+    return rt_opaque("Signals", NULL);
 }

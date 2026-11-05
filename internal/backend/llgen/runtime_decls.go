@@ -80,7 +80,7 @@ var (
 	rtCellTake         = RuntimeFn{"rt_cell_take", []Type{TPtr}, TPtr}
 	rtCellset          = RuntimeFn{"rt_cellset", []Type{TPtr, TPtr}, TVoid}
 	rtInterp           = RuntimeFn{"rt_interp", []Type{TI32, TPtr}, TPtr}
-	rtDisplay          = RuntimeFn{"display", []Type{TPtr}, TPtr}
+	rtDisplay          = RuntimeFn{"rt_display", []Type{TPtr}, TPtr}
 	rtDrop             = RuntimeFn{"rt_drop", []Type{TPtr}, TVoid}
 	rtDropOuter        = RuntimeFn{"rt_drop_outer", []Type{TPtr}, TVoid}
 	rtReleaseOuter     = RuntimeFn{"rt_release_outer", []Type{TPtr}, TI32}

@@ -129,7 +129,7 @@ func TestInvokeBuildsNoArgumentArray(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	body := cBody(t, string(src), "val invoke(adapter_fn fn, val env, int n, val* args) {")
+	body := cBody(t, string(src), "val rt_invoke(adapter_fn fn, val env, int n, val* args) {")
 	if strings.Contains(body, "rt_array(") {
 		t.Errorf("invoke still allocates the argument array:\n%s", body)
 	}

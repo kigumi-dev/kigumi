@@ -1,3 +1,3 @@
 static val cap_host_entropy(void) {
-    return opaque("Entropy", NULL);
+    return rt_opaque("Entropy", NULL);
 }

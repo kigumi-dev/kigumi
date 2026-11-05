@@ -30,7 +30,7 @@ static val try_string_chars(val s) {
 static int sort_less(val order, val b, val a) {
     val args[2] = {b, a};
     val r = rt_callv_lent(order, 2, args);
-    int less = deref(r)->u.var.v == V_Less;
+    int less = rt_deref(r)->u.var.v == V_Less;
     rt_release(r);
     return less;
 }
@@ -66,15 +66,15 @@ static val try_array_sorted_by(val items, val order) {
     return try_ok(out);
 }
 static val try_builder_freeze(val rec) {
-    val arr = deref(rec->u.rec.fields[0]);
+    val arr = rt_deref(rec->u.rec.fields[0]);
     int64_t n = arr->u.arr.len;
     char* d = n < 0 || fault_tick() ? NULL : kg_malloc_n(n);
     if (!d) return oom_error();
-    for (int64_t i = 0; i < n; i++) d[i] = (char)deref(arr->u.arr.items[i])->u.i;
+    for (int64_t i = 0; i < n; i++) d[i] = (char)rt_deref(arr->u.arr.items[i])->u.i;
     d[n] = 0;
-    if (!utf8_valid(d, n)) {
+    if (!rt_utf8_valid(d, n)) {
         free(d);
-        return err_msg("invalid UTF-8");
+        return rt_err_msg("invalid UTF-8");
     }
     val v = rt_str_take_try(d, n);
     if (!v) {
@@ -92,7 +92,7 @@ static val try_debug(val v) {
     buf b = {0};
     g_buf_try = 1;
     g_buf_failed = 0;
-    bputs(&b, "");
+    rt_bputs(&b, "");
     display_into(&b, v, 0);
     g_buf_try = 0;
     if (g_buf_failed) {

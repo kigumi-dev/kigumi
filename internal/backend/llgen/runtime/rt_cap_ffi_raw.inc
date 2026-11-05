@@ -40,10 +40,10 @@ static val utf8_lossy_val(const char* s, int64_t n) {
         uint32_t cp;
         int len = utf8_decode_one(s, n, i, &cp);
         if (len == 0) {
-            bput(&b, "\xEF\xBF\xBD", 3);
+            rt_bput(&b, "\xEF\xBF\xBD", 3);
             i++;
         } else {
-            bput(&b, s + i, (size_t)len);
+            rt_bput(&b, s + i, (size_t)len);
             i += len;
         }
     }
@@ -70,6 +70,6 @@ static val cap_ffi_string_lossy(val a0) {
 static val cap_ffi_string_checked(val a0) {
     const char* s = a0->u.p ? (const char*)a0->u.p : "";
     int64_t len = (int64_t)strlen(s);
-    if (!utf8_valid(s, len)) return none();
-    return some(strdup_val(s, len));
+    if (!rt_utf8_valid(s, len)) return rt_none();
+    return rt_some(strdup_val(s, len));
 }

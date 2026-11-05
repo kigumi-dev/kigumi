@@ -195,7 +195,7 @@ static __attribute__((noinline)) val poll_body(kgtask* t, int* faulted) {
 static void frames_sweep(val root) {
     int n = 0;
     for (val v = root;;) {
-        val d = deref(v);
+        val d = rt_deref(v);
         if (!d || d->kind != K_OPAQUE || strcmp(d->u.op.kind, "Future")) break;
         n++;
         v = ((kgframe*)d->u.op.data)->awaited;
@@ -459,7 +459,7 @@ static void exec_drain(void) {
     free(held);
 #endif
 }
-val rt_executor_new(void) { return opaque("Executor", exec_new(0)); }
+val rt_executor_new(void) { return rt_opaque("Executor", exec_new(0)); }
 val rt_thread_pool_new(int64_t workers) {
 #ifdef KIGUMI_THREADS
     if (workers < 1) rt_panic("a thread pool executor needs at least one worker");
@@ -475,7 +475,7 @@ val rt_thread_pool_new(int64_t workers) {
         e->wk[i].lane = i + 1;
         if (pthread_create(&e->threads[i], NULL, worker_main, &e->wk[i])) rt_panic("could not start an executor worker thread");
     }
-    return opaque("Executor", e);
+    return rt_opaque("Executor", e);
 #else
     (void)workers;
     rt_panic("this build has no thread support; use `task.currentThreadExecutor()`");
@@ -484,7 +484,7 @@ val rt_thread_pool_new(int64_t workers) {
 }
 val rt_run_to_completion(val exv, val fut) {
     if (g_cur_task) rt_panic("`Executor.runToCompletion` cannot run inside a task; `await` the future instead");
-    kgexec* e = (kgexec*)deref(exv)->u.op.data;
+    kgexec* e = (kgexec*)rt_deref(exv)->u.op.data;
     SCHED_LOCK();
     if (e->driving) {
         SCHED_UNLOCK();
@@ -570,7 +570,7 @@ static val task_start(kgexec* e, val fut, int mobile) {
     exec_push(e, t);
     SCHED_UNLOCK();
     sched_flush();
-    return opaque("Task", t);
+    return rt_opaque("Task", t);
 }
 static void task_check_open(void) {
     if (g_cur_task->closing) rt_panic("a task cannot spawn a child once its scope is closing; spawn it before the task returns, fails or is cancelled");
@@ -583,7 +583,7 @@ val rt_task_spawn(val fut) {
 val rt_task_handoff(val exv, val fut) {
     if (!g_cur_task) rt_panic("`Executor.handoff` needs a running task; start one with `Executor.runToCompletion`");
     task_check_open();
-    kgexec* e = (kgexec*)deref(exv)->u.op.data;
+    kgexec* e = (kgexec*)rt_deref(exv)->u.op.data;
     if (!future_mobile(fut)) rt_panic("this future is bound to its own executor and cannot be handed to another one");
     SCHED_LOCK();
 #ifdef KIGUMI_THREADS
@@ -597,7 +597,7 @@ val rt_task_handoff(val exv, val fut) {
 }
 void rt_task_cancel(val tv) {
     SCHED_LOCK();
-    task_request_cancel((kgtask*)deref(tv)->u.op.data);
+    task_request_cancel((kgtask*)rt_deref(tv)->u.op.data);
     SCHED_UNLOCK();
     sched_flush();
 }
@@ -700,5 +700,5 @@ static val poll_yield(int* st) {
 val rt_task_yield_now(void) {
     int* st = calloc(1, sizeof *st);
     if (!st) rt_panic("out of memory");
-    return opaque("Yield", st);
+    return rt_opaque("Yield", st);
 }

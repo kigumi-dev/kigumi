@@ -1,7 +1,7 @@
 static val cap_pin_new(val a) {
-    val v = rt_retain(deref(a));
+    val v = rt_retain(rt_deref(a));
     val h = rt_int((int64_t)(intptr_t)v, 64 | 256);
-    return make_record("Pin", 1, &h);
+    return rt_make_record("Pin", 1, &h);
 }
 static val cap_pin_ptr(val a0) {
     return rt_ptr((void*)(intptr_t)a0->u.rec.fields[0]->u.i);
@@ -26,5 +26,5 @@ static val cap_pin_release(val a0) {
 }
 static val cap_pin_reclaim(val a0) {
     val h = rt_int((int64_t)(intptr_t)a0->u.p, 64 | 256);
-    return make_record("Pin", 1, &h);
+    return rt_make_record("Pin", 1, &h);
 }
