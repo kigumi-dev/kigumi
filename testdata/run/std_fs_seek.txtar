@@ -1,0 +1,25 @@
+-- src --
+import fs from std/fs
+
+let files = host.files()
+let p = fs.Path.fromString("/tmp/kigumi-std-fs-seek.txt").unwrap()
+if files.exists(p) { files.remove(p).unwrap() }
+files.writeText(p, "abcdef").unwrap()
+let mut f = files.open(p).unwrap()
+print "start=${f.seekStart(4).unwrap()}"
+print "current=${f.seekCurrent(-2).unwrap()}"
+let mut buf = Array.empty[u8]()
+let n = f.read(&mut buf, 2).unwrap()
+print "read=${n} ${String.fromBytes(Bytes.fromArray(&buf)).unwrap()}"
+print "end=${f.seekEnd(0).unwrap()} back=${f.seekStart(0).unwrap()}"
+let mut all = Array.empty[u8]()
+let total = f.read(&mut all, 16).unwrap()
+print "all=${total} ${String.fromBytes(Bytes.fromArray(&all)).unwrap()}"
+f.close().unwrap()
+files.remove(p).unwrap()
+-- stdout --
+start=4
+current=2
+read=2 cd
+end=6 back=0
+all=6 abcdef

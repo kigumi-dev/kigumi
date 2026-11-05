@@ -406,3 +406,40 @@ extern(C) {
     fn fseek(f: *mut u8, offset: isize, whence: i32) -> i32
     fn ftell(f: *mut u8) -> isize
 }
+
+/// Moves the file cursor to offset bytes from the start and returns the new absolute offset.
+pub fn File.seekStart(self, offset: i64) -> i64! {
+    seekTo(self.f, offset, 0)
+}
+
+/// Moves the file cursor by offset bytes from its current position and returns the new absolute offset.
+pub fn File.seekCurrent(self, offset: i64) -> i64! {
+    seekTo(self.f, offset, 1)
+}
+
+/// Moves the file cursor to offset bytes from the end and returns the new absolute offset.
+pub fn File.seekEnd(self, offset: i64) -> i64! {
+    seekTo(self.f, offset, 2)
+}
+
+fn seekTo(f: *mut u8, offset: i64, whence: i32) -> i64! {
+    let off = offset.toIsize()
+    if off.toInt() != offset {
+        fail ffi.CError {
+            code: 22
+            text: "seek offset is outside the platform range"
+        }
+    }
+    if unsafe {
+        fseek(f, off, whence)
+    } != 0 {
+        fail ffi.lastError()
+    }
+    let at = unsafe {
+        ftell(f)
+    }
+    if at < 0 {
+        fail ffi.lastError()
+    }
+    at.toInt()
+}

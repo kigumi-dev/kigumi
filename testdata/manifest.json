@@ -9800,6 +9800,15 @@
       ]
     },
     {
+      "id": "run/std_fs_seek",
+      "kind": "run",
+      "path": "testdata/run/std_fs_seek.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/std_http_cancel",
       "kind": "run",
       "path": "testdata/run/std_http_cancel.txtar",

@@ -3391,6 +3391,36 @@
     "status": "ok"
   },
   {
+    "key": "fs.File.seekCurrent",
+    "signature": "fn(Int) -\u003e Int!",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "fs.File.seekEnd",
+    "signature": "fn(Int) -\u003e Int!",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "fs.File.seekStart",
+    "signature": "fn(Int) -\u003e Int!",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
     "key": "fs.File.write",
     "signature": "fn(Bytes) -\u003e usize!",
     "has_body": true,
@@ -3653,6 +3683,16 @@
   {
     "key": "fs.openFile",
     "signature": "fn(\u0026String, String) -\u003e File!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.seekTo",
+    "signature": "fn(*mut u8, Int, i32) -\u003e Int!",
     "has_body": true,
     "kind": "",
     "vm": "gap",

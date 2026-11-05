@@ -85,3 +85,18 @@ pub fn Files.exists(self, path: Path) -> Bool {
 pub fn Files.list(self, path: Path) -> Array[Path]! {
     panic()
 }
+
+/// Seeks a file from the start; a bare target has no file system.
+pub fn File.seekStart(self, offset: i64) -> i64! {
+    panic()
+}
+
+/// Seeks a file from the current position; a bare target has no file system.
+pub fn File.seekCurrent(self, offset: i64) -> i64! {
+    panic()
+}
+
+/// Seeks a file from the end; a bare target has no file system.
+pub fn File.seekEnd(self, offset: i64) -> i64! {
+    panic()
+}

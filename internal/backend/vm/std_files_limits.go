@@ -81,6 +81,15 @@ func (m *Machine) registerFileReads() {
 		}
 		return m.ok(unitObj)
 	}
+	h["fs.File.seekStart"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		return seekFile(m, a, io.SeekStart)
+	}
+	h["fs.File.seekCurrent"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		return seekFile(m, a, io.SeekCurrent)
+	}
+	h["fs.File.seekEnd"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		return seekFile(m, a, io.SeekEnd)
+	}
 	h["fs.Files.rename"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		if err := os.Rename(m.resolvePath(pathText(a[1])), m.resolvePath(pathText(a[2]))); err != nil {
 			return m.errMsg(shell.OSErrText(err))
@@ -108,6 +117,18 @@ func (m *Machine) registerFileReads() {
 		}
 		return m.ok(unitObj)
 	}
+}
+
+func seekFile(m *Machine, a []*obj, whence int) *obj {
+	fh := fileOf(a[0])
+	if fh == nil {
+		return m.errMsg("file is closed")
+	}
+	at, err := fh.Seek(deref(a[1]).i, whence)
+	if err != nil {
+		return m.errMsg(shell.OSErrText(err))
+	}
+	return m.ok(mkInt(at, m.numKind(sem.TyI64)))
 }
 
 func unixMode(bits int64) os.FileMode {
