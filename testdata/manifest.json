@@ -206,6 +206,14 @@
       ]
     },
     {
+      "id": "fmt/doc_nonfn",
+      "kind": "fmt",
+      "path": "testdata/fmt/doc_nonfn.txtar",
+      "mode": [
+        "format"
+      ]
+    },
+    {
       "id": "fmt/escaping_lambda_param",
       "kind": "fmt",
       "path": "testdata/fmt/escaping_lambda_param.txtar",
@@ -13113,6 +13121,14 @@
       "id": "sem/effects_pure_erase_declared_param",
       "kind": "sem",
       "path": "testdata/sem/effects_pure_erase_declared_param.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/effects_pure_local_closure",
+      "kind": "sem",
+      "path": "testdata/sem/effects_pure_local_closure.txtar",
       "mode": [
         "check"
       ]
