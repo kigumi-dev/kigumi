@@ -51,6 +51,14 @@ func (m *Machine) convert(a0 *obj) *obj {
 		if a0.k == kFloat {
 			return mkFloat(a0.fl(), dnk)
 		}
+		if bitsOf(dnk) == 32 {
+			// Round directly to f32; going through f64 rounds twice at the
+			// midpoint and can land one ULP low.
+			if isSigned(a0.nkind()) {
+				return mkFloat(float64(float32(a0.i)), dnk)
+			}
+			return mkFloat(float64(float32(uint64(a0.i))), dnk)
+		}
 		if isSigned(a0.nkind()) {
 			return mkFloat(float64(a0.i), dnk)
 		}

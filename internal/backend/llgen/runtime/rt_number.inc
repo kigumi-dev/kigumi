@@ -184,6 +184,11 @@ val rt_convert(val a0, int dnk, int checked) {
 #endif
     if (dnk & 512) {
         if (a0->kind == K_FLOAT) return rt_float(a0->u.f, dnk);
+        if ((dnk & 255) == 32) {
+            // One rounding to f32; converting through f64 can cross a midpoint.
+            float f = is_signed(a0->nk) ? (float)a0->u.i : (float)(uint64_t)a0->u.i;
+            return rt_float((double)f, dnk);
+        }
         return rt_float(is_signed(a0->nk) ? (double)a0->u.i : (double)(uint64_t)a0->u.i, dnk);
     }
     if (a0->kind == K_FLOAT) {

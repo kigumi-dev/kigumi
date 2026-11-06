@@ -56,7 +56,17 @@ func (e *emitter) convertInt(sb *strings.Builder, v Value, snk, dnk int, checked
 			conv = "sitofp"
 		}
 		d := e.newTmp()
-		fmt.Fprintf(sb, "  %s = %s i64 %s to double\n", d, conv, v.Text)
+		ty := "double"
+		if intBits(dnk) == 32 {
+			// One rounding to f32; converting through f64 can cross a midpoint.
+			ty = "float"
+		}
+		fmt.Fprintf(sb, "  %s = %s i64 %s to %s\n", d, conv, v.Text, ty)
+		if ty == "float" {
+			x := e.newTmp()
+			fmt.Fprintf(sb, "  %s = fpext float %s to double\n", x, d)
+			d = x
+		}
 		return e.presentBits(sb, "true", e.bitsOf(sb, d), out)
 	case !checked:
 		return e.presentBits(sb, "true", e.truncateTo(sb, dnk, v.Text), out)

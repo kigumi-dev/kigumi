@@ -6207,6 +6207,15 @@
       ]
     },
     {
+      "id": "run/float_int_rounding",
+      "kind": "run",
+      "path": "testdata/run/float_int_rounding.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/float_map_key",
       "kind": "run",
       "path": "testdata/run/float_map_key.txtar",
