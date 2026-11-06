@@ -1,0 +1,14 @@
+-- src --
+import math from std/math
+
+let u: u64 = 7
+let f: f32 = -2.5
+print "${math.abs(-9223372036854775807)}"
+print "${math.abs(u)}"
+print "${math.abs(f)}"
+print "${math.abs(-3)}"
+-- stdout --
+9223372036854775807
+7
+2.5
+3

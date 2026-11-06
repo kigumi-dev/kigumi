@@ -23,6 +23,48 @@ pub pure noalloc fn toFloat(x: Int) -> Float {
     x.toFloat()
 }
 
+
+/// Absolute value of x.
+pub pure noalloc fn abs(x: f32) -> f32 {
+    let z: f32 = 0.0
+    if x == z {
+        z
+    } else if x < z {
+        -x
+    } else {
+        x
+    }
+}
+
+/// Absolute value of x.
+pub pure noalloc fn abs(x: i128) -> i128 {
+    if x < 0 {
+        -x
+    } else {
+        x
+    }
+}
+
+/// Absolute value of x.
+pub pure noalloc fn abs(x: u8) -> u8 {
+    x
+}
+
+/// Absolute value of x.
+pub pure noalloc fn abs(x: u16) -> u16 {
+    x
+}
+
+/// Absolute value of x.
+pub pure noalloc fn abs(x: u32) -> u32 {
+    x
+}
+
+/// Absolute value of x.
+pub pure noalloc fn abs(x: u64) -> u64 {
+    x
+}
+
 /// The smaller of a and b.
 pub pure noalloc fn min(a: Int, b: Int) -> Int {
     if a < b {

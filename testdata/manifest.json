@@ -8153,6 +8153,15 @@
       ]
     },
     {
+      "id": "run/math_abs_overloads",
+      "kind": "run",
+      "path": "testdata/run/math_abs_overloads.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/math_abs_zero",
       "kind": "run",
       "path": "testdata/run/math_abs_zero.txtar",
@@ -15174,6 +15183,14 @@
       "id": "sem/noalloc_panic_forms",
       "kind": "sem",
       "path": "testdata/sem/noalloc_panic_forms.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/noalloc_to_bytes_err",
+      "kind": "sem",
+      "path": "testdata/sem/noalloc_to_bytes_err.txtar",
       "mode": [
         "check"
       ]
