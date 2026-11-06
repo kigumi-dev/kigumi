@@ -1,6 +1,6 @@
 // Package hashkey is the one definition of the primitive Hash algorithm,
 // used by internal/backend/vm so it (and, ported by hand,
-// internal/backend/llgen/runtime/rt_core.c) hash identical values to the identical
+// internal/backend/llgen/runtimegen/runtime/rt_core.c) hash identical values to the identical
 // uint64. It also holds the Float total order the Eq/Ord/Hash protocol
 // methods use, kept apart from the IEEE `==`/`<` operators.
 package hashkey

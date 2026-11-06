@@ -1,12 +1,10 @@
-package llgen
+package runtimegen
 
 import (
 	_ "embed"
 	"fmt"
 	"regexp"
 	"strings"
-
-	opdef "kigumi/internal/compiler/mir/ops"
 )
 
 //go:generate env UPDATE=1 go test -run TestStdDispatchFresh .
@@ -57,7 +55,7 @@ type stdDispatchBlock struct {
 
 var stdCapMacroRe = regexp.MustCompile(`^KIGUMI_CAP_[A-Z0-9_]+$`)
 
-// StdDispatch renders runtime/rt_std_dispatch.inc from the op registry and the hand-written
+// StdDispatch renders the runtime's rt_std_dispatch.inc from the op registry and the hand-written
 // C bodies in std_dispatch_bodies.txt: for every live op one `case OP_<NAME>` under
 // `#if defined(KIGUMI_OP_<NAME>)`, the capability groups with their absence stubs, the retired
 // cases (RT_STD_OPS_RETIRED_CASES, which rt_std_ops.h expands) and the bad-op default panic.
@@ -67,12 +65,12 @@ var stdCapMacroRe = regexp.MustCompile(`^KIGUMI_CAP_[A-Z0-9_]+$`)
 // `@arm name...`, `@stub name...`, `@endcap` and the ignored `@note text`; every other line is C
 // belonging to the `@op`/`@arm` above it, and a single-name body's first line is appended to the
 // `case OP_<NAME>:` label, so it starts with a space (or is empty).
-func StdDispatch(reg *opdef.StdOpRegistry) (string, error) {
+func StdDispatch(ops []Op) (string, error) {
 	blocks, err := parseStdDispatchBodies(stdDispatchBodies)
 	if err != nil {
 		return "", err
 	}
-	if err := checkStdDispatchBlocks(reg, blocks); err != nil {
+	if err := checkStdDispatchBlocks(ops, blocks); err != nil {
 		return "", err
 	}
 	var sb strings.Builder
@@ -170,9 +168,9 @@ func parseStdDispatchBodies(text string) ([]stdDispatchBlock, error) {
 }
 
 // checkStdDispatchBlocks proves the table answers the registry: every live op exactly once, no retired or unknown op, and every capability arm stubbed for the builds without it.
-func checkStdDispatchBlocks(reg *opdef.StdOpRegistry, blocks []stdDispatchBlock) error {
-	live := make(map[string]bool, len(reg.Ops))
-	for _, op := range reg.Ops {
+func checkStdDispatchBlocks(ops []Op, blocks []stdDispatchBlock) error {
+	live := make(map[string]bool, len(ops))
+	for _, op := range ops {
 		if !op.Retired {
 			live[op.Name] = true
 		}
@@ -269,7 +267,7 @@ func checkStdDispatchBlocks(reg *opdef.StdOpRegistry, blocks []stdDispatchBlock)
 		}
 	}
 	var missing []string
-	for _, op := range reg.Ops {
+	for _, op := range ops {
 		if !op.Retired && !seen[op.Name] {
 			missing = append(missing, op.Name)
 		}

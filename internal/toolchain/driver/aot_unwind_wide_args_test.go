@@ -65,7 +65,7 @@ func buildWideHarness(t *testing.T, source string) func(n string) string {
 	if cc == nil {
 		t.Skip("no C compiler")
 	}
-	rt, _ := filepath.Abs("../../backend/llgen/runtime")
+	rt, _ := filepath.Abs("../../backend/llgen/runtimegen/runtime")
 	dir := t.TempDir()
 	src := filepath.Join(dir, "harness.c")
 	if err := os.WriteFile(src, []byte(source), 0o644); err != nil {

@@ -153,8 +153,10 @@ func commentRuns(src string) []string {
 
 // TestRuntimeCapFileCommentRuns fails on a capability file's 3+-line comment run.
 func TestRuntimeCapFileCommentRuns(t *testing.T) {
-	files := append([]RuntimeFile{{"rt_internal.h", runtimeInternalHeader}}, capFiles...)
-	for _, f := range files {
+	for _, f := range RuntimeFiles("posix", "linux") {
+		if f.Name != "rt_internal.h" && !strings.HasPrefix(f.Name, "rt_cap_") {
+			continue
+		}
 		for _, run := range commentRuns(f.Src) {
 			t.Errorf("%s has a 3+-line comment run:\n%s", f.Name, run)
 		}

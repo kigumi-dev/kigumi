@@ -70,7 +70,7 @@ func Archive(o buildconfig.CompilerOptions, ar []string, archive, name string, a
 	}
 	sort.Strings(missing)
 	if cat := object.Classify(missing[0]); cat != "" {
-		return fmt.Errorf("auditing %s: references undefined symbol %q (%s), which is not in internal/backend/llgen/runtime/freestanding_symbols.txt (all: %s); if the embedder supplies it, name it in an Embedder record of mod.kg", name, missing[0], cat, strings.Join(missing, ", "))
+		return fmt.Errorf("auditing %s: references undefined symbol %q (%s), which is not in internal/backend/llgen/runtimegen/runtime/freestanding_symbols.txt (all: %s); if the embedder supplies it, name it in an Embedder record of mod.kg", name, missing[0], cat, strings.Join(missing, ", "))
 	}
-	return fmt.Errorf("auditing %s: references undefined symbol %q, which is not in internal/backend/llgen/runtime/freestanding_symbols.txt (all: %s); if the embedder supplies it, name it in an Embedder record of mod.kg", name, missing[0], strings.Join(missing, ", "))
+	return fmt.Errorf("auditing %s: references undefined symbol %q, which is not in internal/backend/llgen/runtimegen/runtime/freestanding_symbols.txt (all: %s); if the embedder supplies it, name it in an Embedder record of mod.kg", name, missing[0], strings.Join(missing, ", "))
 }

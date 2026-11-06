@@ -7,7 +7,7 @@ import (
 	opdef "kigumi/internal/compiler/mir/ops"
 )
 
-const stdOpHeaderPath = "runtime/rt_std_ops.h"
+const stdOpHeaderPath = "runtimegen/runtime/rt_std_ops.h"
 
 // TestStdOpHeaderFresh regenerates rt_std_ops.h with UPDATE=1 and otherwise fails when it is stale.
 func TestStdOpHeaderFresh(t *testing.T) {

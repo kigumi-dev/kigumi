@@ -90,7 +90,7 @@ func TestRuntimeFnsMatchC(t *testing.T) {
 // TestObjSlotMatchesC keeps the reserved immortal storage in step with the
 // bound rt.h asserts struct obj against.
 func TestObjSlotMatchesC(t *testing.T) {
-	src, err := os.ReadFile("runtime/rt.h")
+	src, err := os.ReadFile("runtimegen/runtime/rt.h")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +115,7 @@ func TestObjSlotMatchesC(t *testing.T) {
 // The literal slots kg_init_immortals fills name their object kind by
 // number, so the enum rt.h declares fixes these.
 func TestObjectKindsMatchC(t *testing.T) {
-	src, err := os.ReadFile("runtime/rt.h")
+	src, err := os.ReadFile("runtimegen/runtime/rt.h")
 	if err != nil {
 		t.Fatal(err)
 	}

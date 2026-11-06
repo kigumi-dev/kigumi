@@ -14,7 +14,7 @@ import (
 	"testing"
 )
 
-// rtFloatHarness drives internal/backend/llgen/runtime/rt_float.c directly (it
+// rtFloatHarness drives internal/backend/llgen/runtimegen/runtime/rt_float.c directly (it
 // depends on nothing else in the runtime, per its own header comment), so
 // this compiles just that one file plus a thin line-protocol wrapper
 // instead of building a whole kigumi program. Protocol, one request per
@@ -83,7 +83,7 @@ func compileRtFloatHarness(t *testing.T) string {
 	if err := os.WriteFile(harness, []byte(rtFloatHarnessSrc), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	rtFloat, err := filepath.Abs("../../backend/llgen/runtime/rt_float.c")
+	rtFloat, err := filepath.Abs("../../backend/llgen/runtimegen/runtime/rt_float.c")
 	if err != nil {
 		t.Fatal(err)
 	}

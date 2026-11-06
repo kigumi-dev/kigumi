@@ -1,43 +1,48 @@
-package llgen
+package runtimegen
 
 import (
 	"fmt"
 	"strings"
-
-	opdef "kigumi/internal/compiler/mir/ops"
 )
 
-//go:generate env UPDATE=1 go test -run TestStdOpHeaderFresh .
+// Op is one std op as the runtime artifacts see it: the registry facts that
+// fix `enum std_op`, the KIGUMI_OP_ case guards and the key resolver.
+type Op struct {
+	ID                       int
+	Name                     string
+	Retired                  bool
+	Keys, Suffixes, Prefixes []string
+}
 
 // StdOpHeader renders the registry as rt_std_ops.h: `enum std_op`, the retired case labels, the live ops' KIGUMI_OP_<NAME>
 // case guards (all on without KIGUMI_OP_SELECT) and rt_std_op_of, the key resolver that mirrors ops.StdOpFor.
-func StdOpHeader(reg *opdef.StdOpRegistry) string {
+func StdOpHeader(ops []Op) string {
 	var sb strings.Builder
 	sb.WriteString("// Generated from internal/compiler/mir/ops/stdops.reg by TestStdOpHeaderFresh; do not edit.\n")
 	sb.WriteString("#ifndef KIGUMI_RT_STD_OPS_H\n#define KIGUMI_RT_STD_OPS_H\n")
 	sb.WriteString("enum std_op {\n")
-	for _, op := range reg.Ops {
+	for _, op := range ops {
 		fmt.Fprintf(&sb, "    OP_%s = %d,\n", op.Name, op.ID)
 	}
 	sb.WriteString("};\n")
-	writeRetiredCases(&sb, reg)
+	writeRetiredCases(&sb, ops)
 	sb.WriteString("#ifndef KIGUMI_OP_SELECT\n")
-	for _, op := range reg.Ops {
+	for _, op := range ops {
 		if !op.Retired {
 			fmt.Fprintf(&sb, "#define %s\n", OpMacro(op.Name))
 		}
 	}
 	sb.WriteString("#define KIGUMI_STD_DYNAMIC\n#endif\n#ifdef KIGUMI_STD_DYNAMIC\n")
 	sb.WriteString("static int rt_std_op_of(const char* key) {\n    const char* k = key;\n    if (!strncmp(k, \"std/\", 4)) k += 4;\n")
-	for _, op := range reg.Ops {
+	for _, op := range ops {
 		writeMatch(&sb, "    ", "k", op.Keys, op.Name)
 	}
 	sb.WriteString("    const char* dot = strrchr(k, '.');\n    if (dot) {\n        const char* m = dot + 1;\n")
-	for _, op := range reg.Ops {
+	for _, op := range ops {
 		writeMatch(&sb, "        ", "m", op.Suffixes, op.Name)
 	}
 	sb.WriteString("    }\n")
-	for _, op := range reg.Ops {
+	for _, op := range ops {
 		for _, p := range op.Prefixes {
 			fmt.Fprintf(&sb, "    if (!strncmp(k, %q, %d)) return OP_%s;\n", p, len(p), op.Name)
 		}
@@ -47,9 +52,9 @@ func StdOpHeader(reg *opdef.StdOpRegistry) string {
 }
 
 // writeRetiredCases defines the case labels of retired ops so rt_std_id keeps -Wswitch complete.
-func writeRetiredCases(sb *strings.Builder, reg *opdef.StdOpRegistry) {
+func writeRetiredCases(sb *strings.Builder, ops []Op) {
 	var labels []string
-	for _, op := range reg.Ops {
+	for _, op := range ops {
 		if op.Retired {
 			labels = append(labels, "case OP_"+op.Name+":")
 		}

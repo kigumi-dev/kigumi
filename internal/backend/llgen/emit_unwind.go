@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 
+	"kigumi/internal/backend/llgen/runtimegen"
 	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	mirunwind "kigumi/internal/compiler/mir/unwind"
@@ -80,10 +81,7 @@ func (e *emitter) unwindFor(f *midir.Func) *unwindFrame {
 
 func (u *unwindFrame) words() int { return (u.n + 63) / 64 }
 
-// Must match kg_uframe in rt_core.c: a three-word header, the mask words, then the slots.
-const unwindHeaderWords = 3
-
-func (u *unwindFrame) slotWord(k int) int { return unwindHeaderWords + u.words() + k }
+func (u *unwindFrame) slotWord(k int) int { return runtimegen.UnwindHeaderWords + u.words() + k }
 
 func (e *emitter) unwindAllocas(sb *strings.Builder) {
 	u := e.unwind
@@ -94,8 +92,8 @@ func (e *emitter) unwindAllocas(sb *strings.Builder) {
 		e.asyncUnwindAllocas(sb)
 		return
 	}
-	fmt.Fprintf(sb, "  %%urec = alloca [%d x i64], align 8\n", unwindHeaderWords+u.words()+u.n)
-	fmt.Fprintf(sb, "  %%umask = getelementptr i64, ptr %%urec, i64 %d\n", unwindHeaderWords)
+	fmt.Fprintf(sb, "  %%urec = alloca [%d x i64], align 8\n", runtimegen.UnwindHeaderWords+u.words()+u.n)
+	fmt.Fprintf(sb, "  %%umask = getelementptr i64, ptr %%urec, i64 %d\n", runtimegen.UnwindHeaderWords)
 	fmt.Fprintf(sb, "  call void @llvm.memset.p0.i64(ptr %%umask, i8 0, i64 %d, i1 false)\n", 8*u.words())
 }
 

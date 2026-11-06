@@ -1,4 +1,4 @@
-package llgen
+package runtimegen
 
 import "testing"
 
@@ -28,9 +28,9 @@ func TestRuntimeFilesSignalGating(t *testing.T) {
 		{"none", "freestanding", false},
 	}
 	for _, c := range cases {
-		got := has(RuntimeFiles(c.sys, c.os), "rt_signal_hosted.c")
+		got := has(Files(c.sys, c.os), "rt_signal_hosted.c")
 		if got != c.want {
-			t.Errorf("RuntimeFiles(%q, %q) has rt_signal_hosted.c = %v, want %v", c.sys, c.os, got, c.want)
+			t.Errorf("Files(%q, %q) has rt_signal_hosted.c = %v, want %v", c.sys, c.os, got, c.want)
 		}
 	}
 }

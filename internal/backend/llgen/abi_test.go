@@ -84,7 +84,7 @@ func TestOnlyThreadPoolCreatesThreads(t *testing.T) {
 			}
 		}
 	}
-	src, err := os.ReadFile("runtime/rt_cap_task_executor.inc")
+	src, err := os.ReadFile("runtimegen/runtime/rt_cap_task_executor.inc")
 	if err != nil {
 		t.Fatal(err)
 	}

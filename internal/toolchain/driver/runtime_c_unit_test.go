@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// TestRuntimeCUnitContracts builds internal/backend/llgen/runtime/tests/rt_core_test.c and runs it:
+// TestRuntimeCUnitContracts builds internal/backend/llgen/runtimegen/runtime/tests/rt_core_test.c and runs it:
 // the C runtime has no unit tests of its own, so value ownership, copy, the drop hook, a contained
 // panic and an allocator refusal are fixed here rather than only through the AOT corpus. The
 // ambient KIGUMI_CFLAGS are added, so the CI sanitizer step exercises this harness under ASan.
@@ -18,7 +18,7 @@ func TestRuntimeCUnitContracts(t *testing.T) {
 	if cc == nil {
 		t.Skip("no C compiler")
 	}
-	rt, _ := filepath.Abs("../../backend/llgen/runtime")
+	rt, _ := filepath.Abs("../../backend/llgen/runtimegen/runtime")
 	dir := t.TempDir()
 	exe := filepath.Join(dir, "rt_core_test")
 	args := append(append([]string{}, cc[1:]...), "-I"+rt, "-g", "-O1",

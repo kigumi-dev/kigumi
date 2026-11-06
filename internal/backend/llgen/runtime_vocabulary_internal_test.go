@@ -3,6 +3,7 @@ package llgen
 import (
 	"regexp"
 	"slices"
+	"strings"
 	"testing"
 
 	opdef "kigumi/internal/compiler/mir/ops"
@@ -10,8 +11,23 @@ import (
 
 var capMacroRe = regexp.MustCompile(`KIGUMI_CAP_[A-Z0-9_]+`)
 
+// runtimeSources is every runtime text, including the target-only translation units.
+func runtimeSources() string {
+	var sb strings.Builder
+	seen := map[string]bool{}
+	for _, t := range [][2]string{{"posix", "linux"}, {"none", "uefi"}} {
+		for _, f := range RuntimeFiles(t[0], t[1]) {
+			if !seen[f.Name] {
+				seen[f.Name] = true
+				sb.WriteString(f.Src)
+			}
+		}
+	}
+	return sb.String()
+}
+
 func TestRuntimeGuardsAreTheVocabulary(t *testing.T) {
-	src := RuntimeSource() + runtimeSignal + runtimeFreestandingHeader
+	src := runtimeSources()
 	want := map[string]bool{}
 	for _, c := range opdef.Vocabulary() {
 		want[c.Macro()] = true
@@ -32,8 +48,10 @@ func TestRuntimeGuardsAreTheVocabulary(t *testing.T) {
 
 func TestRuntimeFragmentsAreTheVocabulary(t *testing.T) {
 	var got, want []string
-	for _, f := range capFiles {
-		got = append(got, f.Name)
+	for _, f := range RuntimeFiles("posix", "linux") {
+		if strings.HasPrefix(f.Name, "rt_cap_") {
+			got = append(got, f.Name)
+		}
 	}
 	for _, c := range opdef.Vocabulary() {
 		if c.HasSource() {

@@ -1,29 +1,21 @@
 package llgen
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"fmt"
-	"slices"
 	"strings"
 	"sync"
 
+	"kigumi/internal/backend/llgen/runtimegen"
 	opdef "kigumi/internal/compiler/mir/ops"
 )
 
-const abiFormat = "kgabi1"
-
 // AbiPlaceholder is what the emitted module carries until BindAbi swaps in
 // the real fingerprint; it has the real one's exact length.
-var AbiPlaceholder = abiFormat + ":" + strings.Repeat("0", 32)
+var AbiPlaceholder = runtimegen.AbiPlaceholder
 
 // AbiFingerprint hashes everything a runtime object and the code emitted
 // against it must agree on: the op registry, the value layout, the ABI revision (the driver's) and the runtime flag set.
 func AbiFingerprint(reg *opdef.StdOpRegistry, layout string, revision int, flags []string) string {
-	flags = slices.Compact(slices.Sorted(slices.Values(flags)))
-	h := sha256.New()
-	fmt.Fprintf(h, "%s\nrevision %d\n%s\nlayout\n%s\nflags %s\n", abiFormat, revision, reg.Canonical(), layout, strings.Join(flags, " "))
-	return abiFormat + ":" + hex.EncodeToString(h.Sum(nil))[:32]
+	return runtimegen.AbiFingerprint(reg.Canonical(), layout, revision, flags)
 }
 
 // CurrentAbiFingerprint is this compiler's fingerprint for a runtime built with flags.

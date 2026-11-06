@@ -1,4 +1,4 @@
-package llgen
+package runtimegen
 
 import (
 	"fmt"
@@ -12,6 +12,9 @@ var (
 	cSpace        = regexp.MustCompile(`\s+`)
 )
 
+// UnwindHeaderWords is the word count before kg_uframe's mask words; the emitter places the slots after it.
+const UnwindHeaderWords = 3
+
 // layoutBlocks names the C declarations whose shape the generated code and
 // the runtime must agree on: each is a marker that opens a brace block.
 var layoutBlocks = []struct{ src, marker string }{
@@ -23,9 +26,10 @@ var layoutBlocks = []struct{ src, marker string }{
 	{"rt_unwind.inc", "typedef struct kg_uframe {"},
 }
 
-// RuntimeLayout is the normalized text of the value layout the runtime and
-// the emitted code share: kind enum, object header, type descriptors, the unwind records and the Go-side constants that mirror them.
-func RuntimeLayout() (string, error) {
+// Layout is the normalized text of the value layout the runtime and the emitted
+// code share: kind enum, object header, descriptors and unwind records.
+// emittedHeader is the module's own header text, whose %/@-prefixed lines are the code's view.
+func Layout(emittedHeader string) (string, error) {
 	sources := map[string]string{"rt.h": runtimeHeader, "rt_core.c": runtimeCore, "rt_unwind.inc": runtimeUnwind}
 	var sb strings.Builder
 	for _, b := range layoutBlocks {
@@ -35,14 +39,14 @@ func RuntimeLayout() (string, error) {
 		}
 		sb.WriteString(normalizeC(text) + "\n")
 	}
-	fmt.Fprintf(&sb, "RT_OBJ_SLOT %d\nunwindHeaderWords %d\n%s\n", rtObjSlot(), unwindHeaderWords, irTypeLines())
+	fmt.Fprintf(&sb, "RT_OBJ_SLOT %d\nunwindHeaderWords %d\n%s\n", rtObjSlot(), UnwindHeaderWords, irTypeLines(emittedHeader))
 	return sb.String(), nil
 }
 
 // irTypeLines is the emitted module's own view of the runtime's structs.
-func irTypeLines() string {
+func irTypeLines(emittedHeader string) string {
 	var lines []string
-	for _, line := range strings.Split(header, "\n") {
+	for _, line := range strings.Split(emittedHeader, "\n") {
 		if strings.HasPrefix(line, "%") || strings.HasPrefix(line, "@") {
 			lines = append(lines, line)
 		}

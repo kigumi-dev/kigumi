@@ -1,4 +1,4 @@
-package llgen
+package runtimegen
 
 import (
 	_ "embed"

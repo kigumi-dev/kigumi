@@ -1,34 +1,35 @@
-package llgen
+package runtimegen
 
 import (
-	"os"
 	"strings"
 	"testing"
-
-	opdef "kigumi/internal/compiler/mir/ops"
 )
 
-const stdDispatchPath = "runtime/rt_std_dispatch.inc"
-
-// TestStdDispatchFresh regenerates rt_std_dispatch.inc with UPDATE=1 and otherwise fails when it is stale.
-func TestStdDispatchFresh(t *testing.T) {
-	want, err := StdDispatch(opdef.Registry)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if os.Getenv("UPDATE") == "1" {
-		if err := os.WriteFile(stdDispatchPath, []byte(want), 0o644); err != nil {
-			t.Fatal(err)
+// opsFromBlocks is the registry a body table describes: every op it answers.
+func opsFromBlocks(blocks []stdDispatchBlock) []Op {
+	var ops []Op
+	seen := map[string]bool{}
+	add := func(name string) {
+		if !seen[name] {
+			seen[name] = true
+			ops = append(ops, Op{ID: len(ops), Name: name})
 		}
-		return
 	}
-	got, err := os.ReadFile(stdDispatchPath)
-	if err != nil {
-		t.Fatal(err)
+	for _, b := range blocks {
+		switch b.Kind {
+		case stdDispatchOp:
+			for _, name := range b.Names {
+				add(name)
+			}
+		case stdDispatchCap:
+			for _, arm := range b.Arms {
+				for _, name := range arm.Names {
+					add(name)
+				}
+			}
+		}
 	}
-	if string(got) != want {
-		t.Errorf("%s is stale: run UPDATE=1 go test ./internal/backend/llgen -run StdDispatchFresh", stdDispatchPath)
-	}
+	return ops
 }
 
 // TestStdDispatchTableChecksTheRegistry pins the generator's guard rail: a live op with no body, an
@@ -42,7 +43,11 @@ func TestStdDispatchTableChecksTheRegistry(t *testing.T) {
 		}
 		return parsed
 	}
-	if err := checkStdDispatchBlocks(opdef.Registry, blocks(t)); err != nil {
+	ops := func(t *testing.T) []Op {
+		t.Helper()
+		return opsFromBlocks(blocks(t))
+	}
+	if err := checkStdDispatchBlocks(ops(t), blocks(t)); err != nil {
 		t.Fatalf("the checked-in body table is invalid: %v", err)
 	}
 	first := func(t *testing.T, bs []stdDispatchBlock) (int, stdDispatchBlock) {
@@ -56,28 +61,31 @@ func TestStdDispatchTableChecksTheRegistry(t *testing.T) {
 		return 0, stdDispatchBlock{}
 	}
 	t.Run("missing", func(t *testing.T) {
+		live := ops(t)
 		bs := blocks(t)
 		i, op := first(t, bs)
 		bs = append(bs[:i:i], bs[i+1:]...)
-		err := checkStdDispatchBlocks(opdef.Registry, bs)
+		err := checkStdDispatchBlocks(live, bs)
 		if err == nil || !strings.Contains(err.Error(), "no body for live op(s) "+op.Names[0]) {
 			t.Errorf("dropping %s: got %v", op.Names[0], err)
 		}
 	})
 	t.Run("unknown", func(t *testing.T) {
+		live := ops(t)
 		bs := blocks(t)
 		i, _ := first(t, bs)
 		bs[i].Names = []string{"NOT_A_REGISTRY_OP"}
-		err := checkStdDispatchBlocks(opdef.Registry, bs)
+		err := checkStdDispatchBlocks(live, bs)
 		if err == nil || !strings.Contains(err.Error(), "NOT_A_REGISTRY_OP is not a live registry op") {
 			t.Errorf("renaming a body: got %v", err)
 		}
 	})
 	t.Run("duplicate", func(t *testing.T) {
+		live := ops(t)
 		bs := blocks(t)
 		_, op := first(t, bs)
 		bs = append(bs, op)
-		err := checkStdDispatchBlocks(opdef.Registry, bs)
+		err := checkStdDispatchBlocks(live, bs)
 		if err == nil || !strings.Contains(err.Error(), "op "+op.Names[0]+" has two bodies") {
 			t.Errorf("duplicating %s: got %v", op.Names[0], err)
 		}

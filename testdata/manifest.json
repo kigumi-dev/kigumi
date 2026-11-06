@@ -3896,6 +3896,33 @@
       ]
     },
     {
+      "id": "run/compress_flate_vectors",
+      "kind": "run",
+      "path": "testdata/run/compress_flate_vectors.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/compress_gzip_vectors",
+      "kind": "run",
+      "path": "testdata/run/compress_gzip_vectors.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/compress_roundtrip",
+      "kind": "run",
+      "path": "testdata/run/compress_roundtrip.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/comptime",
       "kind": "run",
       "path": "testdata/run/comptime.txtar",
@@ -6797,6 +6824,15 @@
       "id": "run/fs_open_read_lines",
       "kind": "run",
       "path": "testdata/run/fs_open_read_lines.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/fs_path_api",
+      "kind": "run",
+      "path": "testdata/run/fs_path_api.txtar",
       "mode": [
         "vm",
         "native"
@@ -12131,9 +12167,25 @@
       ]
     },
     {
+      "id": "sem/closure_captured_mut_before_def",
+      "kind": "sem",
+      "path": "testdata/sem/closure_captured_mut_before_def.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/closure_captured_mut_conflict",
       "kind": "sem",
       "path": "testdata/sem/closure_captured_mut_conflict.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/closure_captured_mut_two_closures",
+      "kind": "sem",
+      "path": "testdata/sem/closure_captured_mut_two_closures.txtar",
       "mode": [
         "check"
       ]
