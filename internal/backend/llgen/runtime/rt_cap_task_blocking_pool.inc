@@ -116,7 +116,11 @@ static void blocking_job_discard(blocking_future* f) {
     f->job = NULL;
     pthread_join(j->thread, NULL);
     rt_release(j->result);
-    free(j->fault);
+    if (j->fault) {
+        char* fault = j->fault;
+        j->fault = NULL;
+        rt_panic(fault);
+    }
     free(j);
 }
 #endif

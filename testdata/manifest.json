@@ -2966,6 +2966,15 @@
       ]
     },
     {
+      "id": "run/blocking_pool_drop_panic",
+      "kind": "run",
+      "path": "testdata/run/blocking_pool_drop_panic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/blocking_pool_drop_waits",
       "kind": "run",
       "path": "testdata/run/blocking_pool_drop_waits.txtar",

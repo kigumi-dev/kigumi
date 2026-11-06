@@ -1,0 +1,23 @@
+-- src --
+import task from std/task
+
+async fn root() -> Int! {
+    let pool = task.BlockingPool.new(1)
+    {
+        let fut = pool.run(() => {
+            let missing: Int? = None
+            missing.expect("dropped blocking boom")
+        })?
+        _ = fut
+    }
+    7
+}
+
+let ex = task.threadPoolExecutor(2)
+let r = ex.runToCompletion(root())
+print "after ${r.unwrap()}"
+-- stdout --
+-- stderr --
+panic: dropped blocking boom
+-- exit --
+2

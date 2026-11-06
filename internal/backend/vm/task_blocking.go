@@ -73,6 +73,9 @@ func (m *Machine) dropJob(fu *future) {
 	<-job.fin
 	m.release(job.result)
 	job.result = nil
+	if f := job.failure; f != nil {
+		m.rethrow(f)
+	}
 }
 
 func (m *Machine) dropAdmission(fu *future) {
