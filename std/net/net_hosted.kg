@@ -437,11 +437,13 @@ fn statusOf(line: Bytes) -> Int? {
 }
 
 /// TCP connection; `read`/`write` match std/io's Reader/Writer shape.
+@unsafeGuarantee(Send)
 pub type Conn = resource {
     fd i32
 }
 
 /// TCP listening socket, from `Net.listen`.
+@unsafeGuarantee(Send)
 pub type Listener = resource {
     fd i32
 }

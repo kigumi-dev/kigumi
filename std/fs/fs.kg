@@ -15,6 +15,7 @@ pub type Path = {
 }
 
 /// Open file, from `Files.open` (read) or `Files.create` / `Files.append` (write); close it explicitly or let the drop close it.
+@unsafeGuarantee(Send)
 pub type File = resource {
     f *mut u8
 }
