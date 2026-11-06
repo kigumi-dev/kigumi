@@ -1,5 +1,6 @@
 import ffi from std/ffi
 import os from std/os
+import path from std/path
 
 /// File system access, obtained from `host.files()`.
 /// Safety: a stateless capability marker; every call it makes is independent, so sharing or duplicating it is free.
@@ -15,6 +16,7 @@ pub type Path = {
 }
 
 /// Open file, from `Files.open` (read) or `Files.create` / `Files.append` (write); close it explicitly or let the drop close it.
+/// Safety: the handle names one open file and moving it to another thread transfers that one owner.
 @unsafeGuarantee(Send)
 pub type File = resource {
     f *mut u8
@@ -49,6 +51,46 @@ pub pure fn Path.fromOsString(s: &os.OsString) -> Path! {
 /// The path as text.
 pub pure noalloc fn Path.toString(self) -> String {
     self.text
+}
+
+/// Whether the path starts at the root.
+pub pure fn Path.isAbsolute(self) -> Bool {
+    path.isAbs(self.text)
+}
+
+/// The last element, without a trailing separator.
+pub pure fn Path.fileName(self) -> String {
+    path.base(self.text)
+}
+
+/// The parent directory.
+pub pure fn Path.parent(self) -> Path {
+    Path { text: path.dir(self.text) }
+}
+
+/// The last element without its extension.
+pub pure fn Path.stem(self) -> String {
+    path.stem(self.text)
+}
+
+/// The extension of the last element, dot included.
+pub pure fn Path.extension(self) -> String {
+    path.ext(self.text)
+}
+
+/// other appended below this path, with redundant separators and `.`/`..` cleaned.
+pub pure fn Path.join(self, other: Path) -> Path {
+    Path { text: path.join2(self.text, other.text) }
+}
+
+/// The lexical form with redundant separators and `.`/`..` removed.
+pub pure fn Path.normalize(self) -> Path {
+    Path { text: path.clean(self.text) }
+}
+
+/// The bytes of the path as an OS string.
+pub pure fn Path.toOsString(self) -> os.OsString {
+    os.OsString.fromString(self.text)
 }
 
 /// Creates or truncates the file at path and writes text into it; loops

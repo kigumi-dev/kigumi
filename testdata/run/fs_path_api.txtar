@@ -1,0 +1,12 @@
+-- src --
+import fs from std/fs
+
+let a = fs.Path.fromString("a/b/").unwrap()
+let b = fs.Path.fromString("../c").unwrap()
+print "${a.fileName()} ${a.parent().toString()} ${a.join(b).normalize().toString()}"
+print "${a.isAbsolute()} ${a.stem()} ${a.extension()}"
+print "${a.toOsString().toStringLossy()}"
+-- stdout --
+b a a/c
+false b 
+a/b/

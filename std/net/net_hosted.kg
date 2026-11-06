@@ -437,12 +437,14 @@ fn statusOf(line: Bytes) -> Int? {
 }
 
 /// TCP connection; `read`/`write` match std/io's Reader/Writer shape.
+/// Safety: the handle names one socket and moving it to another thread transfers that one owner.
 @unsafeGuarantee(Send)
 pub type Conn = resource {
     fd i32
 }
 
 /// TCP listening socket, from `Net.listen`.
+/// Safety: the handle names one listening socket and moving it transfers that one owner.
 @unsafeGuarantee(Send)
 pub type Listener = resource {
     fd i32
