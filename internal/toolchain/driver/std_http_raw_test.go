@@ -71,6 +71,7 @@ var httpRawCases = []struct{ name, send, want string }{
 	{"negative length", "POST / HTTP/1.1\r\nHost: t\r\nContent-Length: -1\r\n\r\n", "HTTP/1.1 400 "},
 	{"list length", "POST / HTTP/1.1\r\nHost: t\r\nContent-Length: 1, 2\r\n\r\nab", "HTTP/1.1 400 "},
 	{"duplicate length", "POST / HTTP/1.1\r\nHost: t\r\nContent-Length: 1\r\nContent-Length: 2\r\n\r\nab", "HTTP/1.1 400 "},
+	{"leading zero length", "POST / HTTP/1.1\r\nHost: t\r\nContent-Length: 0000000000000003\r\nConnection: close\r\n\r\nabc", "HTTP/1.1 200 "},
 	{"absolute form", "GET http://t/ HTTP/1.1\r\nHost: t\r\n\r\n", "HTTP/1.1 400 "},
 	{"tab in request line", "GET\t/ HTTP/1.1\r\nHost: t\r\n\r\n", "HTTP/1.1 400 "},
 	{"slow head", "GET / HTTP/1.1\r\nHost: t\r\n", "HTTP/1.1 408 "},

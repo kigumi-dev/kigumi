@@ -225,11 +225,18 @@ fn validPort(text: String) -> Bool {
 
 fn parseDecimal(text: String) -> usize? {
     let b = text.bytes()
-    if b.len() == 0 || b.len() > 15 {
+    if b.len() == 0 {
+        return None
+    }
+    let mut start: usize = 0
+    for start + 1 < b.len() && (b.get(start) || 0) == 48 {
+        start = start + 1
+    }
+    if b.len() - start > 15 {
         return None
     }
     let mut n: usize = 0
-    for i in 0..b.len() {
+    for i in start..b.len() {
         let d = b.get(i) || 0
         if d < 48 || d > 57 {
             return None
