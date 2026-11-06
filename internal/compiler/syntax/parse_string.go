@@ -102,6 +102,17 @@ func matchBrace(src []byte, pos, end int, out map[int]interpInfo) int {
 				pos += n
 				continue
 			}
+		case '/':
+			if pos+1 < end && src[pos+1] == '/' {
+				for pos < end && src[pos] != '\n' {
+					pos++
+				}
+				continue
+			}
+			if pos+1 < end && src[pos+1] == '*' {
+				pos = skipBlockComment(src, pos, end)
+				continue
+			}
 		}
 		pos++
 	}
@@ -168,4 +179,27 @@ func (p *parser) subExpr(start, end int) NodeID {
 	}
 	p.pos, p.noRecordLit = savedPos, savedNR
 	return e
+}
+
+// skipBlockComment advances past a (possibly nested) block comment.
+func skipBlockComment(src []byte, pos, end int) int {
+	depth := 0
+	for pos < end {
+		scanOps.Add(1)
+		if pos+1 < end && src[pos] == '/' && src[pos+1] == '*' {
+			depth++
+			pos += 2
+			continue
+		}
+		if pos+1 < end && src[pos] == '*' && src[pos+1] == '/' {
+			depth--
+			pos += 2
+			if depth == 0 {
+				return pos
+			}
+			continue
+		}
+		pos++
+	}
+	return pos
 }

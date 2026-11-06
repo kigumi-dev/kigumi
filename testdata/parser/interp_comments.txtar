@@ -28,9 +28,6 @@ File
 
           List
             Ident x
-            Ident x
-            Ident a
-            Ident b
 -- diagnostics --
 error[E2199]: unterminated string literal
  --> interp_comments.txtar:3:13
@@ -38,11 +35,11 @@ error[E2199]: unterminated string literal
 3 |     let a = "${ x // a } in a comment\n}"
   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-error[E2199]: unterminated block comment
- --> interp_comments.txtar:4:19
+error[E2199]: unexpected `let` in interpolation
+ --> interp_comments.txtar:4:5
   |
 4 |     let b = "${ x /* } */ }"
-  |                   ^^^
+  |     ^^^
 
 error[E2199]: expected }, found end of file
  --> interp_comments.txtar:7:1
