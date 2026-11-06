@@ -171,6 +171,12 @@ func (m *Machine) pollTaskBody(t *task) (*obj, polled, *Panic) {
 		m.sweepFrames(base)
 		m.unwindFutures(t.fut)
 		fault, m.sweepFault = m.sweepFault, nil
+	} else {
+		// The root Future owns its async frame; synchronous callees still
+		// own their locals and must be released during the same fault.
+		m.sweepFault = fault
+		m.sweepSyncFrames(base)
+		fault, m.sweepFault = m.sweepFault, nil
 	}
 	m.frames = m.frames[:min(base, len(m.frames))]
 	return v, st, fault

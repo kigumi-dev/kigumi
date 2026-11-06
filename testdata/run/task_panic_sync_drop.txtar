@@ -1,0 +1,28 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn helper() -> Int {
+    let r = Res { id: 1 }
+    None.expect("boom")
+}
+
+async fn boom() -> Int {
+    helper()
+}
+
+let ex = task.threadPoolExecutor(2)
+print "total ${ex.runToCompletion(boom())}"
+-- stdout --
+drop 1
+-- stderr --
+panic: boom
+-- exit --
+2

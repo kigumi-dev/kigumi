@@ -10234,6 +10234,15 @@
       ]
     },
     {
+      "id": "run/task_panic_sync_drop",
+      "kind": "run",
+      "path": "testdata/run/task_panic_sync_drop.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/temp_drop_full_expr",
       "kind": "run",
       "path": "testdata/run/temp_drop_full_expr.txtar",

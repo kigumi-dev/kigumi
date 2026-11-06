@@ -195,7 +195,9 @@ static void task_raise(void) {
     while (g_unwind != g_unwind_base) {
         kg_unwind* u = g_unwind;
         if (!IS_FRAME_REC(u)) g_unwind = u->prev;
-        if (!IS_FRAME_REC(u) || !g_cur_task || g_cur_task->parent) u->run(u);
+        // A root task's Future slots are dropped by the task frame; ordinary
+        // stack frames still own their locals and must run here.
+        if (!IS_FRAME_REC(u) || !g_cur_task || g_cur_task->parent || u->run != unwind_frame_slots) u->run(u);
         if (g_unwind == u) g_unwind = u->prev;
     }
     KG_LONGJMP(*g_task_catch);

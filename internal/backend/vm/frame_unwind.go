@@ -109,3 +109,30 @@ func (m *Machine) raiseJoined(fault *Panic) {
 		m.throw(fault)
 	}
 }
+
+// sweepSyncFrames releases synchronous callee frames on a root fault; the
+// root async frame is left to its Future's drop path.
+func (m *Machine) sweepSyncFrames(base int) {
+	for len(m.frames) > base {
+		fr := m.frames[len(m.frames)-1]
+		m.frames = m.frames[:len(m.frames)-1]
+		if fr.f == nil {
+			m.sweepHeld(fr)
+			continue
+		}
+		if fr.f.Async {
+			continue
+		}
+		for _, l := range m.unwindSet(fr) {
+			v := fr.locals[l]
+			if v == nil || m.ownsNothing(fr.f.Locals[l].Type) {
+				continue
+			}
+			fr.locals[l] = nil
+			m.sweepRelease(v)
+		}
+		if len(fr.pending) > 0 {
+			m.sweepCrossings(fr)
+		}
+	}
+}
