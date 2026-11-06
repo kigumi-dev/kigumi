@@ -1,6 +1,6 @@
 -- src --
 import alloc from std/alloc
-import http from std/http
+import http from std/net/http
 import net from std/net
 import task from std/task
 import time from std/time

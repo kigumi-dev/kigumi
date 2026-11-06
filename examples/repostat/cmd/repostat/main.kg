@@ -33,11 +33,10 @@ for stat in rep.authors.take(3) {
 }
 
 if host.args().get(2) is Some(url) {
-    let client = host.net().http()
     let body = "repostat: ${rep.total} commits"
-    notify.send(client, url, body) || (e) => {
+    notify.send(host.net(), url, body) || (e) => {
         if e is notify.TimeoutError {
-            notify.send(client, url, body)?
+            notify.send(host.net(), url, body)?
         } else {
             fail e
         }

@@ -46,7 +46,7 @@ async fn pull(c: net.Conn) -> usize! {
 
 func TestAsyncHTTPServerQuiet(t *testing.T) {
 	res := checkBlocking(t, "single-thread-event-loop", `
-import http from std/http
+import http from std/net/http
 import net from std/net
 import task from std/task
 
@@ -63,13 +63,13 @@ async fn serve(l: net.Listener) -> Void! {
 }
 `)
 	if out := res.Render(); res.HasErrors() {
-		t.Fatalf("std/http must not reach a direct-blocking call from its server's async bodies:\n%s", out)
+		t.Fatalf("std/net/http must not reach a direct-blocking call from its server's async bodies:\n%s", out)
 	}
 }
 
 func TestAsyncHTTPClientConnectBlocksWithoutWorkers(t *testing.T) {
 	res := checkBlocking(t, "single-thread-event-loop", `
-import http from std/http
+import http from std/net/http
 import net from std/net
 import task from std/task
 

@@ -16,7 +16,7 @@ import (
 	"kigumi/internal/toolchain/driver"
 )
 
-const httpRawServerSrc = `import http from std/http
+const httpRawServerSrc = `import http from std/net/http
 import net from std/net
 import task from std/task
 
@@ -60,7 +60,7 @@ task.currentThreadExecutor().runToCompletion(root(listener, control))?
 print "stopped"
 `
 
-// httpRawCases are requests the std/http client refuses to produce; each is sent on its own connection.
+// httpRawCases are requests the std/net/http client refuses to produce; each is sent on its own connection.
 var httpRawCases = []struct{ name, send, want string }{
 	{"nul in value", "GET / HTTP/1.1\r\nHost: t\r\nX: a\x00b\r\n\r\n", "HTTP/1.1 400 "},
 	{"invalid utf8", "GET / HTTP/1.1\r\nHost: t\r\nX: \xff\xfe\r\n\r\n", "HTTP/1.1 400 "},
@@ -79,7 +79,7 @@ var httpRawCases = []struct{ name, send, want string }{
 	{"short body then half close", "POST / HTTP/1.1\r\nHost: t\r\nContent-Length: 10\r\n\r\nabc", "HTTP/1.1 400 "},
 }
 
-// TestHttpServerRawMalformed sends raw requests to a std/http server on both backends and checks each answer and that the connection closes after it.
+// TestHttpServerRawMalformed sends raw requests to a std/net/http server on both backends and checks each answer and that the connection closes after it.
 func TestHttpServerRawMalformed(t *testing.T) {
 	if os.Getenv("KIGUMI_HTTP_RAW_ROLE") == "vm" {
 		runHTTPRawVM(t)

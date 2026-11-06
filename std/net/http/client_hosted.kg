@@ -318,3 +318,14 @@ pub async fn Client.post(self, url: String, contentType: String, body: Bytes) ->
 pub async fn Client.postJson[T: json.Encode](self, url: String, value: T) -> Response! {
     await self.post(url, "application/json", (json.encode(value)?).toBytes())
 }
+
+/// Sends body as `text/plain` with POST to url and returns the response.
+pub async fn Client.post(self, url: String, body: String) -> Response! {
+    let t = parseUrl(url)?
+    let target = t.path
+    let mut session = (await self.open(url))?
+    let mut req = Request.new("POST", target)
+    req.headers.add("Content-Type", "text/plain")
+    req.body = body.toBytes()
+    await session.send(req)
+}

@@ -12,7 +12,7 @@ import (
 	"kigumi/internal/toolchain/driver"
 )
 
-// textAccelUse finds run fixtures that reach a std text function the VM accelerates in Go, directly or through std/json, std/http, std/fmt or std/cli.
+// textAccelUse finds run fixtures that reach a std text function the VM accelerates in Go, directly or through std/json, std/net/http, std/fmt or std/cli.
 var textAccelUse = regexp.MustCompile(`\.(trim|split|toUpper|toLower|tryTrim|trySplit|tryToUpper|tryToLower|contains|indexOf|lastIndexOf)\(|text\.|array\.(join|tryJoin)\(|StringBuilder|from std/(json|http|fmt|cli)`)
 
 // arrayAccelUse finds run fixtures that reach an array copy body the VM accelerates in Go, directly or through Map.keys / values.

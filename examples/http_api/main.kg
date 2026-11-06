@@ -1,6 +1,6 @@
 #!/usr/bin/env kigumi
 
-import http from std/http
+import http from std/net/http
 import net from std/net
 import task from std/task
 

@@ -39,7 +39,7 @@ var stdLayer = map[string]Layer{
 	"std/dl":              LayerPlatform,
 	"std/entropy":         LayerPlatform,
 	"std/fs":              LayerPlatform,
-	"std/http":            LayerPlatform,
+	"std/net/http":        LayerPlatform,
 	"std/net":             LayerPlatform,
 	"std/os":              LayerPlatform,
 	"std/random":          LayerPlatform,
