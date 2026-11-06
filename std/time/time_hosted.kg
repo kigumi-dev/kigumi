@@ -18,8 +18,11 @@ pub fn now() -> Instant {
         sec: 0
         nsec: 0
     })
-    _ = unsafe {
+    let rc = unsafe {
         clock_gettime(0, cv.ptr())
+    }
+    if rc != 0 {
+        panic("clock_gettime failed")
     }
     let ts = cv.get()
     Instant { ms: ts.sec.toInt() * 1000 + ts.nsec.toInt() / 1000000 }
@@ -31,8 +34,11 @@ pub fn monotonic() -> Monotonic {
         sec: 0
         nsec: 0
     })
-    _ = unsafe {
+    let rc = unsafe {
         clock_gettime(1, cv.ptr())
+    }
+    if rc != 0 {
+        panic("clock_gettime failed")
     }
     let ts = cv.get()
     Monotonic { ticks: ts.sec.toInt() * 1000 + ts.nsec.toInt() / 1000000 }
@@ -47,7 +53,10 @@ pub fn sleep(millis: i64) {
         sec: (millis / 1000).toIsize()
         nsec: (millis % 1000 * 1000000).toIsize()
     })
-    _ = unsafe {
+    let rc = unsafe {
         nanosleep(ffi.toConst(cv.ptr()), ffi.toMut(ffi.null[Timespec]()))
+    }
+    if rc != 0 {
+        panic("nanosleep failed")
     }
 }
