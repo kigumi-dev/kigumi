@@ -1,0 +1,150 @@
+import sha256 from std/crypto/sha256
+import subtle from std/crypto/subtle
+// EMSA-PSS-VERIFY with SHA-256 and MGF1-SHA-256 (RFC 8017 §9.1.2).
+import binary from std/encoding/binary
+
+/// How much salt a PSS signature carries. `Auto` reads it from the encoding,
+/// which is what TLS and X.509 callers accept.
+pub type SaltLength =
+    | Auto
+    | Exact(usize)
+
+const hLen: usize = 32
+
+/// MGF1 with SHA-256 over `seed`, producing `length` octets.
+pure fn mgf1(seed: Bytes, length: usize) -> Bytes {
+    let mut out = Array.empty[u8]()
+    let mut counter: u32 = 0
+    for out.len() < length {
+        let mut input = Array.empty[u8]()
+        let mut i: usize = 0
+        for i < seed.len() {
+            input.push(seed[i])
+            i = i + 1
+        }
+        binary.putU32Be(&mut input, counter)
+        let block = sha256.sum(Bytes.fromArray(&input))
+        let mut j: usize = 0
+        for j < block.len() && out.len() < length {
+            out.push(block[j])
+            j = j + 1
+        }
+        counter = counter + 1
+    }
+    Bytes.fromArray(&out)
+}
+
+/// All ones in the low `keep` bits; `keep` is in 1..=8.
+pure noalloc fn lowBitsMask(keep: usize) -> u8 {
+    let mut m: u8 = 0
+    let mut i: usize = 0
+    for i < keep {
+        m = (m << 1) | 1
+        i = i + 1
+    }
+    m
+}
+
+/// Whether `em` is a valid PSS encoding of `digest` for a modulus of
+/// `modBits` bits.
+pure fn emsaPssVerify(modBits: usize, em: Bytes, digest: Bytes, saltLength: SaltLength) -> Bool {
+    if digest.len() != hLen || modBits < 2 {
+        return false
+    }
+    let emBits = modBits - 1
+    let emLen = (emBits + 7) / 8
+    if emLen > em.len() || emLen < hLen + 2 {
+        return false
+    }
+    let start = em.len() - emLen
+    let mut lead: usize = 0
+    for lead < start {
+        if em[lead] != 0 {
+            return false
+        }
+        lead = lead + 1
+    }
+    let value = match em.slice(start, em.len()) {
+        Some(v) -> v
+        None -> return false
+    }
+    if value[emLen - 1] != 0xbc {
+        return false
+    }
+    let dbLen = emLen - hLen - 1
+    let masked = match value.slice(0, dbLen) {
+        Some(v) -> v
+        None -> return false
+    }
+    let h = match value.slice(dbLen, dbLen + hLen) {
+        Some(v) -> v
+        None -> return false
+    }
+    let topBits = 8 * emLen - emBits
+    let lowMask = lowBitsMask(8 - topBits)
+    if (masked[0] & ~lowMask) != 0 {
+        return false
+    }
+    let maskBytes = mgf1(h, dbLen)
+    let mut db = Array.empty[u8]()
+    let mut i: usize = 0
+    for i < dbLen {
+        db.push(masked[i] ^ maskBytes[i])
+        i = i + 1
+    }
+    db[0] = db[0] & lowMask
+
+    let saltLen = match saltLength {
+        Auto -> match autoSaltLength(&db) {
+            Some(v) -> v
+            None -> return false
+        }
+        Exact(v) -> {
+            if v > emLen - hLen - 2 {
+                return false
+            }
+            let psLen = dbLen - v - 1
+            let mut j: usize = 0
+            for j < psLen {
+                if db[j] != 0 {
+                    return false
+                }
+                j = j + 1
+            }
+            if db[psLen] != 1 {
+                return false
+            }
+            v
+        }
+    }
+
+    let saltStart = dbLen - saltLen
+    let mut salt = Array.empty[u8]()
+    let mut k = saltStart
+    for k < dbLen {
+        salt.push(db[k])
+        k = k + 1
+    }
+    let mut hasher = sha256.Hasher.new()
+    hasher.update(Bytes.zeros(8))
+    hasher.update(digest)
+    hasher.update(Bytes.fromArray(&salt))
+    let expected = hasher.finish()
+    subtle.constantTimeEq(h, expected)
+}
+
+/// The salt length implied by the 0x01 separator in DB, or None when the
+/// structure is not PS || 0x01 || salt.
+pure fn autoSaltLength(db: &Array[u8]) -> usize? {
+    let mut i: usize = 0
+    for i < db.len() {
+        if db[i] != 0 {
+            if db[i] != 1 {
+                return None
+            }
+            return Some(db.len() - i - 1)
+        }
+        i = i + 1
+    }
+    None
+}

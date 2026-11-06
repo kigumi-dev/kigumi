@@ -1,0 +1,141 @@
+// Little-endian 64-bit limb arithmetic shared by the RSA modular layer.
+//
+// A value below 2^(64*n) is `n` limbs; callers pass the length so every loop
+// has a bound fixed by the key size. Borrows are returned as 0/1 limbs
+// instead of booleans so the reduction paths can select with masks.
+/// The low 64 bits of a 128-bit value.
+pure noalloc fn lowHalf(x: u128) -> u64 {
+    (x & mask128).truncate[u64]()
+}
+
+/// The high 64 bits of a 128-bit value.
+pure noalloc fn highHalf(x: u128) -> u64 {
+    (x >> 64).truncate[u64]()
+}
+
+const mask128: u128 = 0xFFFFFFFFFFFFFFFF
+
+const zero64: u64 = 0
+
+/// One when a < b, zero otherwise.
+pure noalloc fn lt64(a: u64, b: u64) -> u64 {
+    let d = a.wrappingSub(b)
+    (((~a) & b) | (~(a ^ b) & d)) >> 63
+}
+
+/// Difference and borrow-out of a - b - bin, where bin is zero or one.
+pure noalloc fn subBorrow(a: u64, b: u64, bin: u64) -> (u64, u64) {
+    let t = a.wrappingSub(b)
+    let d = t.wrappingSub(bin)
+    (d, lt64(a, b) | lt64(t, bin))
+}
+
+/// Selects a when mask is zero and b when mask is all ones.
+pure noalloc fn sel64(mask: u64, a: u64, b: u64) -> u64 {
+    (a & ~mask) | (b & mask)
+}
+
+/// `n` limbs of zero.
+pure fn zeroLimbs(n: usize) -> Array[u64] {
+    Array.fill[u64](0, n)
+}
+
+/// The number of limbs a big-endian value of `bytes` octets occupies.
+pure noalloc fn limbCount(bytes: usize) -> usize {
+    (bytes + 7) / 8
+}
+
+/// The big-endian octets read into `n` little-endian limbs.
+pure fn limbsFromBytes(b: Bytes, n: usize) -> Array[u64] {
+    let mut out = zeroLimbs(n)
+    let k = b.len()
+    let mut i: usize = 0
+    for i < n {
+        let start = i * 8
+        if start < k {
+            let mut v: u64 = 0
+            let mut j: usize = 0
+            for j < 8 {
+                let pos = start + j
+                if pos < k {
+                    let byte = b[k - 1 - pos].toU64()
+                    v = v | byte.wrappingShiftLeft((j * 8).toU64())
+                }
+                j = j + 1
+            }
+            out[i] = v
+        }
+        i = i + 1
+    }
+    out
+}
+
+/// The `size` low big-endian octets of `a`; `size` must be at most `n*8`.
+pure fn bytesFromLimbs(a: &Array[u64], n: usize, size: usize) -> Bytes {
+    let total = n * 8
+    let drop = total - size
+    let mut out = Array.empty[u8]()
+    let mut i: usize = n
+    for i > 0 {
+        i = i - 1
+        let v = a[i]
+        let mut j: usize = 0
+        for j < 8 {
+            let at = i * 8 + j
+            if at >= drop {
+                let byte = v.wrappingShiftRight(((7 - j) * 8).toU64()) & 0xFF
+                out.push(byte.truncate[u8]())
+            }
+            j = j + 1
+        }
+    }
+    Bytes.fromArray(&out)
+}
+
+/// The bit length of a 64-bit value; zero has length zero.
+pure noalloc fn bitLen64(v: u64) -> usize {
+    let mut x = v
+    let mut n: usize = 0
+    for x != 0 {
+        x = x >> 1
+        n = n + 1
+    }
+    n
+}
+
+/// The bit length of a big-endian octet string with a nonzero first octet.
+pure noalloc fn byteBitLen(b: Bytes) -> usize {
+    if b.len() == 0 {
+        return 0
+    }
+    let mut first = b[0]
+    let mut bits: usize = 0
+    for first != 0 {
+        first = first >> 1
+        bits = bits + 1
+    }
+    (b.len() - 1) * 8 + bits
+}
+
+/// One when `a < b` over `n` limbs, zero otherwise.
+pure noalloc fn ltLimbs(a: &Array[u64], b: &Array[u64], n: usize) -> u64 {
+    let mut borrow: u64 = 0
+    let mut i: usize = 0
+    for i < n {
+        let (_, next) = subBorrow(a[i], b[i], borrow)
+        borrow = next
+        i = i + 1
+    }
+    borrow
+}
+
+/// Selects `a` when mask is zero and `b` when mask is all ones.
+pure fn selectLimbs(mask: u64, a: &Array[u64], b: &Array[u64], n: usize) -> Array[u64] {
+    let mut out = zeroLimbs(n)
+    let mut i: usize = 0
+    for i < n {
+        out[i] = sel64(mask, a[i], b[i])
+        i = i + 1
+    }
+    out
+}

@@ -1,0 +1,47 @@
+-- src --
+// Vectors: Wycheproof rsa_pss_2048_sha256_mgf1_32 and _mgf1_0 (C2SP testvectors_v1).
+import hex from std/encoding/hex
+import rsa from std/crypto/rsa
+
+fn show(r: Result[Bool, rsa.Error]) -> String {
+    match r {
+        Ok(v) -> "${v}"
+        Err(e) -> e.message()
+    }
+}
+
+fn main() -> Void! {
+    let pk = rsa.parsePkcs1(hex.decode("3082010a0282010100a2b451a07d0aa5f96e455671513550514a8a5b462ebef717094fa1fee82224e637f9746d3f7cafd31878d80325b6ef5a1700f65903b469429e89d6eac8845097b5ab393189db92512ed8a7711a1253facd20f79c15e8247f3d3e42e46e48c98e254a2fe9765313a03eff8f17e1a029397a1fa26a8dce26f490ed81299615d9814c22da610428e09c7d9658594266f5c021d0fceca08d945a12be82de4d1ece6b4c03145b5d3495d4ed5411eb878daf05fd7afc3e09ada0f1126422f590975a1969816f48698bcbba1b4d9cae79d460d8f9f85e7975005d9bc22c4e5ac0f7c1a45d12569a62807d3b9a02e5a530e773066f453d1f5b4c2e9cf7820283f742b9d50203010001")?)?
+    print "key ${pk.byteSize()} ${pk.bitSize()} ${pk.exponent()}"
+
+    let test = hex.decode("54657374")?
+    let sigTest = hex.decode("401eb03cdb47ca88033e3030f6bdecbac8f5c8fc1dd6a13d23d379ed9a2b309891d13d74fea9d21d159b9e6d8f37efa2489962e24555f56dd434ff1d31ce4f9f5abd3f22cbea8b691d6a11e44efb83e2bca155e6a164325e0fde2a8865afd5c9f51161a9d615f62af7ec2e31b3e5ab649c164490d31d88cfae35b84aea7925690f929a144b6d2f48e8fb894a52deecd1b9a6496990c4ecf1588699a42cacd10c53af350514e4291ea9a058e77f101e32c1c0cefa61d945f7bc931f8bd19e7ba3169358a60e5a8b0123bc3199b9fdcafe8e519c41ba675491a27b85e44ef2d77277c10fe107293c8290186913bc9a99b640d8da041b64f31eab1d35920985f4a5")?
+    print "pss-exact ${show(rsa.verifyPssSha256(pk, test, sigTest, rsa.SaltLength.Exact(32)))}"
+    print "pss-auto ${show(rsa.verifyPssSha256(pk, test, sigTest, rsa.SaltLength.Auto))}"
+    print "pss-wrong-message ${show(rsa.verifyPssSha256(pk, b"tesT", sigTest, rsa.SaltLength.Auto))}"
+
+    let noSalt = hex.decode("")?
+    let noSaltSig = hex.decode("20081f8894a1330c4d503f642880e3c30e398fc6235c24f1be752e2d49cd9493ac0cf999e275c4f89ff08f0d9ba4e264a332525a616d336bd9e822f41ab3f4fae2f48ec66c2e52642ed93b7cb944396fbaa727cbfdfc1f20aace99a6f2a74475c338f8d9f22a38cb5bc51752076503b3aef1e65e5a8f8583d9ae7378ded038cf516898ad06beb90a42b85764526fcea44f74258fa4efb1da253d337f65619181ceb832dfe285ce78ae6b15f204e23bab274e87445d9f5df97f41dc8e3a97736b62591d075744b2552f90bcf1b1393e1e7627ef1f985f2bbabd52e43a35d0ddf4c67126e391f922ef7b1bb1911cd6e1b303cb2910dd70672bbfb62ea4eaad725c")?
+    print "pss-salt0-auto ${show(rsa.verifyPssSha256(pk, noSalt, noSaltSig, rsa.SaltLength.Auto))}"
+    print "pss-salt0-exact32 ${show(rsa.verifyPssSha256(pk, noSalt, noSaltSig, rsa.SaltLength.Exact(32)))}"
+
+    let modified = hex.decode("67d1d1c0a398148625317c3f5e44b738bdf461c27a59594b39ebb2aebef233c7809379e54411411b82d2e7ac88f989b58373d532c758baea121878ce9759441738d121881c1fa2d04421f02dd565b12770d844611ed1873a0b64d822709a6b78d6d3892b294404bce6711001d6c3a54546c76a1d17819674b0be904497a233b466fe4becc832dee740f9ab79e5b9f5db0b0f9aac0084ba05cebf42303b5ca2ad95e3d61b29ed6475545c02e93e7b0e118af92f5cddb1faeb2cbc23c9e69c120e29df7fe31991e887b3b29e77688c60e80be65cccf3d7861a7a14c39e6a6e5645568e2cc5e4a17b75db1dd415aadb45e112a9b582b2ff6e82a43d7a7347b7b56d")?
+    print "pss-modified ${show(rsa.verifyPssSha256(pk, b"123400", modified, rsa.SaltLength.Auto))}"
+    print "pss-range ${show(rsa.verifyPssSha256(pk, test, hex.decode("a2b451a07d0aa5f96e455671513550514a8a5b462ebef717094fa1fee82224e637f9746d3f7cafd31878d80325b6ef5a1700f65903b469429e89d6eac8845097b5ab393189db92512ed8a7711a1253facd20f79c15e8247f3d3e42e46e48c98e254a2fe9765313a03eff8f17e1a029397a1fa26a8dce26f490ed81299615d9814c22da610428e09c7d9658594266f5c021d0fceca08d945a12be82de4d1ece6b4c03145b5d3495d4ed5411eb878daf05fd7afc3e09ada0f1126422f590975a1969816f48698bcbba1b4d9cae79d460d8f9f85e7975005d9bc22c4e5ac0f7c1a45d12569a62807d3b9a02e5a530e773066f453d1f5b4c2e9cf7820283f742b9d5")?, rsa.SaltLength.Auto))}"
+    print "pss-short ${show(rsa.verifyPssSha256(pk, test, hex.decode("401eb03cdb47ca88033e3030f6bdecbac8f5c8fc1dd6a13d23d379ed9a2b309891d13d74fea9d21d159b9e6d8f37efa2489962e24555f56dd434ff1d31ce4f9f5abd3f22cbea8b691d6a11e44efb83e2bca155e6a164325e0fde2a8865afd5c9f51161a9d615f62af7ec2e31b3e5ab649c164490d31d88cfae35b84aea7925690f929a144b6d2f48e8fb894a52deecd1b9a6496990c4ecf1588699a42cacd10c53af350514e4291ea9a058e77f101e32c1c0cefa61d945f7bc931f8bd19e7ba3169358a60e5a8b0123bc3199b9fdcafe8e519c41ba675491a27b85e44ef2d77277c10fe107293c8290186913bc9a99b640d8da041b64f31eab1d35920985f4")?, rsa.SaltLength.Auto))}"
+
+    let empty = hex.decode("")?
+    let emptySig = hex.decode("4f01e0c12b08625ecac89a69231906edf826380f37c959a96690d046316d68ffce9d5c471694fcebfc6b45534864689256e4fc81c78e583f675d0c94b449647451e81beff01a11a516d5e5ce3f1a910437cb8a3a5096b19fb15f4524a35b23d89cdba12cf5b71aac1047b28c562df7c5542c34ce23a182cf7e0e231934b17294799d44877a1d68ef1b8f073619b7618e6b7c22db20030d98cf591ffc3d4da5f58613ecd5ecfc3b40a1d02f40891ca43695cd4c088b05a8054c89c595a47e274816f35384226f74459ee63e25a1bfc03c360490552ec38343f8ace502f065303b00bc0ec320711b211fde92e57feb9013c3609342495ec0d7cabdec21e54acc38")?
+    print "pss-empty-auto ${show(rsa.verifyPssSha256(pk, empty, emptySig, rsa.SaltLength.Auto))}"
+}
+-- stdout --
+key 256 2048 65537
+pss-exact true
+pss-auto true
+pss-wrong-message false
+pss-salt0-auto true
+pss-salt0-exact32 false
+pss-modified false
+pss-range rsa: signature is not below the modulus
+pss-short rsa: signature length does not match the modulus
+pss-empty-auto true

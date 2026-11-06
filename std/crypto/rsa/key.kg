@@ -1,0 +1,114 @@
+// RSA public keys from PKCS#1 RSAPublicKey DER or raw big-endian n and e.
+import asn1 from std/crypto/asn1
+
+/// Smallest modulus accepted. Web PKI keys are at least 1024 bits; the
+/// lower bound only keeps small test keys usable.
+pub const minModulusBits: usize = 512
+
+/// Largest modulus accepted: 8192 bits, the top of the Web PKI range.
+pub const maxModulusBits: usize = 8192
+
+/// Largest public exponent accepted. Verification cost is logarithmic in e,
+/// so 32 bits covers every deployed key without allowing a hostile huge limb.
+pub const maxExponent: u64 = 0xFFFFFFFF
+
+/// An RSA public key: a big-endian modulus and an odd exponent in [3, 2^32-1].
+/// The fields stay private so every value passed the checks in `fromRaw`.
+pub type PublicKey = {
+    n Bytes
+    e u64
+}
+
+/// The big-endian modulus.
+pub pure fn PublicKey.modulus(self) -> Bytes {
+    self.n
+}
+
+/// The public exponent.
+pub pure fn PublicKey.exponent(self) -> u64 {
+    self.e
+}
+
+/// The modulus width in octets, which is also the signature width.
+pub pure fn PublicKey.byteSize(self) -> usize {
+    self.n.len()
+}
+
+/// The modulus width in bits.
+pub pure fn PublicKey.bitSize(self) -> usize {
+    byteBitLen(self.n)
+}
+
+/// Parses a DER `RSAPublicKey ::= SEQUENCE { modulus INTEGER, publicExponent INTEGER }`.
+///
+/// The whole input must be one element: trailing octets are refused.
+pub pure fn parsePkcs1(der: Bytes) -> Result[PublicKey, Error] {
+    let element = match asn1.parse(der) {
+        Ok(value) -> value
+        Err(_) -> fail Error.BadDer
+    }
+    if element.totalLen() != der.len() {
+        fail Error.BadDer
+    }
+    if !(element.tagClass is asn1.TagClass.Universal) || element.tag != 16 || !element.constructed {
+        fail Error.BadDer
+    }
+    let fields = match element.children() {
+        Ok(value) -> value
+        Err(_) -> fail Error.BadDer
+    }
+    if fields.len() != 2 {
+        fail Error.BadDer
+    }
+    let modulus = match fields[0].uintBytes() {
+        Ok(value) -> value
+        Err(_) -> fail Error.BadDer
+    }
+    let exponent = match fields[1].uintBytes() {
+        Ok(value) -> value
+        Err(_) -> fail Error.BadDer
+    }
+    fromRaw(modulus, exponent)
+}
+
+/// Builds a key from minimal big-endian magnitudes; leading zero octets,
+/// negative-looking empty values and even exponents are refused.
+pub pure fn fromRaw(modulus: Bytes, exponent: Bytes) -> Result[PublicKey, Error] {
+    if modulus.len() == 0 || modulus[0] == 0 {
+        fail Error.BadModulus
+    }
+    let bits = byteBitLen(modulus)
+    if bits < minModulusBits || bits > maxModulusBits {
+        fail Error.BadModulus
+    }
+    if (modulus[modulus.len() - 1] & 1) == 0 {
+        fail Error.BadModulus
+    }
+    if exponent.len() == 0 || exponent.len() > 8 || exponent[0] == 0 {
+        fail Error.BadExponent
+    }
+    let e = beU64(exponent)
+    if e < 3 || (e & 1) == 0 || e > maxExponent {
+        fail Error.BadExponent
+    }
+    Ok(PublicKey {
+        n: modulus
+        e: e
+    })
+}
+
+/// The Montgomery context for this key.
+pure fn modulusFor(public: PublicKey) -> Modulus {
+    let n = limbCount(public.n.len())
+    modulusFromLimbs(limbsFromBytes(public.n, n), n)
+}
+
+pure noalloc fn beU64(b: Bytes) -> u64 {
+    let mut v: u64 = 0
+    let mut i: usize = 0
+    for i < b.len() {
+        v = v.wrappingShiftLeft(8) | b[i].toU64()
+        i = i + 1
+    }
+    v
+}

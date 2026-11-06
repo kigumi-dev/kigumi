@@ -1,0 +1,47 @@
+// EMSA-PKCS1-v1_5 verification for SHA-256 (RFC 8017 §9.2).
+const digestInfoLen: usize = 19
+
+const digestLen: usize = 32
+
+/// DER `DigestInfo` prefix for SHA-256: SEQUENCE { AlgorithmIdentifier, OCTET STRING }.
+pure fn sha256DigestInfo() -> Array[u8] {
+    Array.of[u8](0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00, 0x04, 0x20)
+}
+
+/// Whether `em` is `0x00 || 0x01 || 0xff.. || 0x00 || DigestInfo(SHA-256, digest)`.
+///
+/// Every octet of the encoding is folded into one difference, so a malformed
+/// padding octet does not end the comparison early.
+pure fn emsaPkcs1v15Verify(em: Bytes, digest: Bytes) -> Bool {
+    if digest.len() != digestLen {
+        return false
+    }
+    let tLen = digestInfoLen + digestLen
+    let k = em.len()
+    if k < tLen + 11 {
+        return false
+    }
+    let psLen = k - tLen - 3
+    let prefix = sha256DigestInfo()
+    let mut diff: u8 = 0
+    diff = diff | em[0]
+    diff = diff | (em[1] ^ 1)
+    let mut i: usize = 0
+    for i < psLen {
+        diff = diff | (em[2 + i] ^ 0xff)
+        i = i + 1
+    }
+    diff = diff | em[2 + psLen]
+    let tStart = 3 + psLen
+    let mut j: usize = 0
+    for j < digestInfoLen {
+        diff = diff | (em[tStart + j] ^ prefix[j])
+        j = j + 1
+    }
+    let mut k2: usize = 0
+    for k2 < digestLen {
+        diff = diff | (em[tStart + digestInfoLen + k2] ^ digest[k2])
+        k2 = k2 + 1
+    }
+    diff == 0
+}

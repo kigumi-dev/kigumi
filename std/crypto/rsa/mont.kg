@@ -1,0 +1,191 @@
+// Montgomery arithmetic modulo an odd RSA modulus of any supported size.
+//
+// `R` is 2^(64*n). Both R mod m and R^2 mod m come from repeated doubling,
+// so no division routine is needed. Multiplication builds the full 2n-limb
+// product and folds the modulus back in with the standard word-at-a-time
+// reduction; the final value below 2m is brought into [0, m) with a masked
+// subtraction, so a signature value never steers a branch.
+/// A modulus with its Montgomery constants. `r` is R mod m, `r2` is R^2 mod m
+/// and `n0` is -m^-1 mod 2^64.
+type Modulus = {
+    n usize
+    m Array[u64]
+    n0 u64
+    r Array[u64]
+    r2 Array[u64]
+    one Array[u64]
+}
+
+/// The inverse of an odd 64-bit value modulo 2^64, by Newton iteration.
+pure noalloc fn inv64(a: u64) -> u64 {
+    let mut x = a
+    let two: u64 = 2
+    let mut i: usize = 0
+    for i < 6 {
+        x = x.wrappingMul(two.wrappingSub(a.wrappingMul(x)))
+        i = i + 1
+    }
+    x
+}
+
+/// a + a mod m, for a below m; the sum is below 2m.
+pure fn doubleMod(a: &Array[u64], m: &Array[u64], n: usize) -> Array[u64] {
+    let mut sum = zeroLimbs(n)
+    let mut carry: u64 = 0
+    let mut i: usize = 0
+    for i < n {
+        let s = a[i].toU128() + a[i].toU128() + carry.toU128()
+        sum[i] = lowHalf(s)
+        carry = highHalf(s)
+        i = i + 1
+    }
+    let mut diff = zeroLimbs(n)
+    let mut borrow: u64 = 0
+    let mut j: usize = 0
+    for j < n {
+        let (byte, next) = subBorrow(sum[j], m[j], borrow)
+        diff[j] = byte
+        borrow = next
+        j = j + 1
+    }
+    let any = carry | (borrow ^ 1)
+    let cond = (any | zero64.wrappingSub(any)) >> 63
+    selectLimbs(zero64.wrappingSub(cond), &sum, &diff, n)
+}
+
+/// Builds the Montgomery context for a modulus whose top limb is nonzero and
+/// whose low limb is odd.
+pure fn modulusFromLimbs(m: Array[u64], n: usize) -> Modulus {
+    let n0 = zero64.wrappingSub(inv64(m[0]))
+    let mut r = zeroLimbs(n)
+    r[0] = 1
+    let doublings = n * 64
+    let mut i: usize = 0
+    for i < doublings {
+        r = doubleMod(&r, &m, n)
+        i = i + 1
+    }
+    let mut r2 = r.clone()
+    i = 0
+    for i < doublings {
+        r2 = doubleMod(&r2, &m, n)
+        i = i + 1
+    }
+    let mut one = zeroLimbs(n)
+    one[0] = 1
+    Modulus {
+        n: n
+        m: m
+        n0: n0
+        r: r
+        r2: r2
+        one: one
+    }
+}
+
+/// The 2n-limb product of two n-limb values.
+pure fn mulLimbs(a: &Array[u64], b: &Array[u64], n: usize) -> Array[u64] {
+    let mut p = Array.fill[u64](0, 2 * n + 2)
+    let mut i: usize = 0
+    for i < n {
+        let ai = a[i].toU128()
+        let mut carry: u128 = 0
+        let mut j: usize = 0
+        for j < n {
+            let s = p[i + j].toU128() + ai * b[j].toU128() + carry
+            p[i + j] = lowHalf(s)
+            carry = s >> 64
+            j = j + 1
+        }
+        let mut k = i + n
+        let mut c = carry
+        for k < 2 * n + 2 {
+            let s = p[k].toU128() + c
+            p[k] = lowHalf(s)
+            c = s >> 64
+            k = k + 1
+        }
+        i = i + 1
+    }
+    p
+}
+
+/// Montgomery reduction of a 2n-limb product in place.
+pure fn montReduce(p: Array[u64], md: &Modulus) -> Array[u64] {
+    let mut t = p
+    let n = md.n
+    let two_n = 2 * n
+    let mut i: usize = 0
+    for i < n {
+        let q = t[i].wrappingMul(md.n0)
+        let mut carry: u128 = 0
+        let mut j: usize = 0
+        for j < n {
+            let s = t[i + j].toU128() + q.toU128() * md.m[j].toU128() + carry
+            t[i + j] = lowHalf(s)
+            carry = s >> 64
+            j = j + 1
+        }
+        let mut k = i + n
+        let mut c = carry
+        for k < two_n + 2 {
+            let s = t[k].toU128() + c
+            t[k] = lowHalf(s)
+            c = s >> 64
+            k = k + 1
+        }
+        i = i + 1
+    }
+    let mut diff = zeroLimbs(n)
+    let mut borrow: u64 = 0
+    let mut j: usize = 0
+    for j < n {
+        let (byte, next) = subBorrow(t[n + j], md.m[j], borrow)
+        diff[j] = byte
+        borrow = next
+        j = j + 1
+    }
+    let any = t[two_n] | (borrow ^ 1)
+    let cond = (any | zero64.wrappingSub(any)) >> 63
+    let mask = zero64.wrappingSub(cond)
+    let mut out = zeroLimbs(n)
+    let mut k: usize = 0
+    for k < n {
+        out[k] = sel64(mask, t[n + k], diff[k])
+        k = k + 1
+    }
+    out
+}
+
+/// a * b * R^-1 mod m, for a and b below m.
+pure fn montMul(a: &Array[u64], b: &Array[u64], md: &Modulus) -> Array[u64] {
+    montReduce(mulLimbs(a, b, md.n), md)
+}
+
+/// x * R mod m, converting into Montgomery form.
+pure fn toMont(x: &Array[u64], md: &Modulus) -> Array[u64] {
+    montMul(x, &md.r2, md)
+}
+
+/// x * R^-1 mod m, converting out of Montgomery form.
+pure fn fromMont(x: &Array[u64], md: &Modulus) -> Array[u64] {
+    montMul(x, &md.one, md)
+}
+
+/// base^e in Montgomery form for a public exponent below 2^32.
+///
+/// The exponent's bit length fixes the loop, and each step multiplies anyway
+/// and selects with a mask, so the work does not depend on the exponent bits.
+pure fn powMont(base: &Array[u64], e: u64, md: &Modulus) -> Array[u64] {
+    let mut acc = md.r.clone()
+    let bits = bitLen64(e)
+    let mut i = bits
+    for i > 0 {
+        i = i - 1
+        acc = montMul(&acc, &acc, md)
+        let bit = e.wrappingShiftRight(i.toU64()) & 1
+        let product = montMul(&acc, base, md)
+        acc = selectLimbs(zero64.wrappingSub(bit), &acc, &product, md.n)
+    }
+    acc
+}

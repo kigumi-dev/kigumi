@@ -1,0 +1,76 @@
+// RSA signature verification for Web PKI: RSASSA-PSS and RSASSA-PKCS1-v1_5
+// with SHA-256, over PKCS#1 public keys.
+//
+// Only verification is here. Every arithmetic operand is public, so the
+// exponent path depends on the (public) exponent and the final digest
+// comparison is constant time; no private key ever enters this package.
+import sha256 from std/crypto/sha256
+
+/// Why RSA verification was refused.
+pub type Error =
+    | BadDer
+    | BadModulus
+    | BadExponent
+    | BadSignatureLength
+    | SignatureOutOfRange
+    | BadDigestLength
+
+pub fn Error.message(self) -> String {
+    match self {
+        BadDer -> "rsa: invalid PKCS#1 public key"
+        BadModulus -> "rsa: invalid modulus"
+        BadExponent -> "rsa: invalid public exponent"
+        BadSignatureLength -> "rsa: signature length does not match the modulus"
+        SignatureOutOfRange -> "rsa: signature is not below the modulus"
+        BadDigestLength -> "rsa: digest must be 32 bytes"
+    }
+}
+
+/// RSASP1/RSAVP1: signature^e mod n, as a `k`-octet big-endian value.
+///
+/// Values at or above n are refused instead of reduced, matching the RFC's
+/// "signature representative out of range" check.
+pure fn rsaVp1(public: PublicKey, signature: Bytes) -> Result[Bytes, Error] {
+    let k = public.byteSize()
+    if signature.len() != k {
+        fail Error.BadSignatureLength
+    }
+    let n = limbCount(k)
+    let md = modulusFor(public)
+    let s = limbsFromBytes(signature, n)
+    if ltLimbs(&s, &md.m, n) == 0 {
+        fail Error.SignatureOutOfRange
+    }
+    let sMont = toMont(&s, &md)
+    let mMont = powMont(&sMont, public.exponent(), &md)
+    let m = fromMont(&mMont, &md)
+    Ok(bytesFromLimbs(&m, n, k))
+}
+
+/// RSASSA-PSS-VERIFY over a 32-byte SHA-256 digest.
+pub pure fn verifyPssSha256Digest(public: PublicKey, digest: Bytes, signature: Bytes, salt: SaltLength) -> Result[Bool, Error] {
+    if digest.len() != 32 {
+        fail Error.BadDigestLength
+    }
+    let em = rsaVp1(public, signature)?
+    Ok(emsaPssVerify(public.bitSize(), em, digest, salt))
+}
+
+/// RSASSA-PSS-VERIFY over the SHA-256 hash of `message`.
+pub pure fn verifyPssSha256(public: PublicKey, message: Bytes, signature: Bytes, salt: SaltLength) -> Result[Bool, Error] {
+    verifyPssSha256Digest(public, sha256.sum(message), signature, salt)
+}
+
+/// RSASSA-PKCS1-v1_5-VERIFY over a 32-byte SHA-256 digest.
+pub pure fn verifyPkcs1v15Sha256Digest(public: PublicKey, digest: Bytes, signature: Bytes) -> Result[Bool, Error] {
+    if digest.len() != 32 {
+        fail Error.BadDigestLength
+    }
+    let em = rsaVp1(public, signature)?
+    Ok(emsaPkcs1v15Verify(em, digest))
+}
+
+/// RSASSA-PKCS1-v1_5-VERIFY over the SHA-256 hash of `message`.
+pub pure fn verifyPkcs1v15Sha256(public: PublicKey, message: Bytes, signature: Bytes) -> Result[Bool, Error] {
+    verifyPkcs1v15Sha256Digest(public, sha256.sum(message), signature)
+}
