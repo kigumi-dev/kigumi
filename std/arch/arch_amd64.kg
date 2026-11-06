@@ -232,6 +232,9 @@ fn writeCr8(value: u64) {
 
 /// Reads a hardware random value; None when the CPU has no entropy ready.
 pub fn rdrand() -> u64? {
+    if (cpuid(1, 0).ecx & (1 << 30)) == 0 {
+        return None
+    }
     let r: Random = unsafe {
         asm {
             "rdrand {value}"

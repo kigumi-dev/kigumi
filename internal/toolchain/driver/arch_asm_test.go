@@ -1,9 +1,14 @@
 package driver_test
 
 import (
+	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"testing"
+
+	buildconfig "kigumi/internal/toolchain/config"
+	"kigumi/internal/toolchain/driver"
 )
 
 // TestArchCpuidAndRdtsc runs the x86-64 inline-assembly primitives natively;
@@ -60,5 +65,39 @@ fn main() {
 `
 	if exe := buildProgram(t, src); exe == "" {
 		t.Fatal("privileged primitive build produced no executable")
+	}
+}
+
+// TestArchAvailableOnFreestanding keeps std/arch importable on a target that
+// has no OS, and under --sys none, since it depends only on inline assembly.
+func TestArchAvailableOnFreestanding(t *testing.T) {
+	t.Parallel()
+	std, _ := filepath.Abs("../../../std")
+	for _, tc := range []struct {
+		name, target, sys string
+	}{
+		{"uefi", "x86_64-uefi", ""},
+		{"sys-none", "x86_64-linux-musl", "none"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"archgate\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
+			os.WriteFile(filepath.Join(root, "main.kg"), []byte("import arch from std/arch\n\nfn main() {\n    arch.pause()\n}\n"), 0o644)
+			target, err := buildconfig.ParseTarget(testCompiler(), tc.target, tc.sys)
+			if err != nil {
+				t.Fatal(err)
+			}
+			m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
+			if err != nil {
+				t.Fatal(err)
+			}
+			res, err := driver.Check(m)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if res.HasErrors() {
+				t.Fatalf("std/arch should be available on %s:\n%s", tc.target, res.Render())
+			}
+		})
 	}
 }
