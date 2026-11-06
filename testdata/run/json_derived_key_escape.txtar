@@ -1,0 +1,15 @@
+-- src --
+import json from std/json
+
+type R = {
+    pub a Int { json.name("k\u{1}x") }
+    pub b Int { json.name("\${x}") }
+}
+
+let enc = json.encode(R { a: 7, b: 8 })?
+print "encoded=${enc}"
+let r = json.decode[R](enc)?
+print "decoded=${r.a} ${r.b}"
+-- stdout --
+encoded={"k\u0001x":7,"${x}":8}
+decoded=7 8

@@ -7658,6 +7658,15 @@
       ]
     },
     {
+      "id": "run/json_derived_key_escape",
+      "kind": "run",
+      "path": "testdata/run/json_derived_key_escape.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/json_duplicate_members",
       "kind": "run",
       "path": "testdata/run/json_duplicate_members.txtar",

@@ -75,9 +75,9 @@ func jsonEncodeRecord(decl *Declaration, binder string) string {
 	fmt.Fprintf(&sb, "fn %s.toJson(self) -> json.Value {\n    let mut f = json.Fields.new()\n", binder)
 	for _, f := range decl.Fields {
 		if jsonOmitNone(f) {
-			fmt.Fprintf(&sb, "    if self.%s is Some(_) {\n        f.put(%q, self.%s.toJson())\n    }\n", f.Name, jsonKey(f), f.Name)
+			fmt.Fprintf(&sb, "    if self.%s is Some(_) {\n        f.put(%s, self.%s.toJson())\n    }\n", f.Name, kigumiQuote(jsonKey(f)), f.Name)
 		} else {
-			fmt.Fprintf(&sb, "    f.put(%q, self.%s.toJson())\n", jsonKey(f), f.Name)
+			fmt.Fprintf(&sb, "    f.put(%s, self.%s.toJson())\n", kigumiQuote(jsonKey(f)), f.Name)
 		}
 	}
 	sb.WriteString("    f.finish()\n}\n")
@@ -96,7 +96,7 @@ func jsonDecodeRecord(decl *Declaration, binder string) string {
 		if f.Type != nil && f.Type.WellKnown == WKOption {
 			reader = "optional"
 		}
-		fmt.Fprintf(&sb, " %s: o.%s(%q)?", f.Name, reader, jsonKey(f))
+		fmt.Fprintf(&sb, " %s: o.%s(%s)?", f.Name, reader, kigumiQuote(jsonKey(f)))
 	}
 	sb.WriteString(" })\n}\n")
 	return sb.String()
@@ -142,4 +142,32 @@ func jsonDecodeAdt(decl *Declaration, binder string) string {
 	}
 	sb.WriteString("    t.unknown()\n}\n")
 	return sb.String()
+}
+
+// kigumiQuote renders s as a Kigumi string literal. Go's %q emits \xNN
+// escapes, which Kigumi reads literally, and leaves ${...} to interpolate.
+func kigumiQuote(s string) string {
+	var b strings.Builder
+	b.WriteByte('"')
+	for _, r := range s {
+		switch r {
+		case '\\', '"', '$':
+			b.WriteByte('\\')
+			b.WriteRune(r)
+		case '\n':
+			b.WriteString("\\n")
+		case '\r':
+			b.WriteString("\\r")
+		case '\t':
+			b.WriteString("\\t")
+		default:
+			if r < 0x20 || r == 0x7f {
+				fmt.Fprintf(&b, "\\u{%x}", r)
+			} else {
+				b.WriteRune(r)
+			}
+		}
+	}
+	b.WriteByte('"')
+	return b.String()
 }
