@@ -22,7 +22,7 @@ type HSink['a, V] = {
 }
 
 fn HSink['a, V: FromRef[String]].take(mut self, k: &String) {
-    self.vs.push(V.fromRef(k))
+    self.vs.push(V.fromRef(k)) //~ ERROR a borrow cannot be stored into `self`
 }
 
 type Stash[V] = {
@@ -30,7 +30,7 @@ type Stash[V] = {
 }
 
 fn Stash[V: FromRef[String]].take(mut self, k: &String) {
-    self.vs.push(V.fromRef(k))
+    self.vs.push(V.fromRef(k)) //~ ERROR a borrow cannot be stored into `self`
 }
 
 fn holder[T: Take](mut t: T, k: String) {
@@ -74,6 +74,18 @@ useHolder()
 useReturned()
 useTwoLayer()
 -- expect --
+error[E2159]: a borrow cannot be stored into `self` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:22:5
+   |
+22 |     self.vs.push(V.fromRef(k)) //~ ERROR a borrow cannot be stored into `self`
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `self` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:30:5
+   |
+30 |     self.vs.push(V.fromRef(k)) //~ ERROR a borrow cannot be stored into `self`
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
 error[E2160]: a borrow cannot be stored into `T`: the checker does not track where its contents borrow from; it follows writes only into an array, fixed array, map, record or variant held in a local, a `&mut` parameter, or a reference bound once to one of those, so write through that local or store a value it can own
   --> main.kg:34:5
    |

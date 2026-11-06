@@ -40,7 +40,7 @@ type Bag[K, V] = {
 }
 
 fn Bag[K, V: FromRef[K]].addRef(mut self, k: &K) {
-    self.vs.push(V.fromRef(k))
+    self.vs.push(V.fromRef(k)) //~ ERROR a borrow cannot be stored into `self`
 }
 
 type Nest[K, V, W] = {
@@ -50,7 +50,7 @@ type Nest[K, V, W] = {
 }
 
 fn Nest[K, V: FromRef[K], W: Wrap[V]].add(mut self, k: &K) {
-    self.ws.push(W.wrap(V.fromRef(k)))
+    self.ws.push(W.wrap(V.fromRef(k))) //~ ERROR a borrow cannot be stored into `self`
 }
 
 fn addTo[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
@@ -177,6 +177,18 @@ fn tempRelay() -> usize {
     xs[1].s.len()
 }
 -- expect --
+error[E2159]: a borrow cannot be stored into `self` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:40:5
+   |
+40 |     self.vs.push(V.fromRef(k)) //~ ERROR a borrow cannot be stored into `self`
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `self` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:50:5
+   |
+50 |     self.ws.push(W.wrap(V.fromRef(k))) //~ ERROR a borrow cannot be stored into `self`
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 error[E2159]: a borrow cannot be stored into `dst` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
   --> main.kg:75:5
    |
