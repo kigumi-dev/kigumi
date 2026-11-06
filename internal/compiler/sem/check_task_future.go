@@ -37,7 +37,8 @@ func (r *Result) noteSpawnArgs(f FileID, n syntax.NodeID, call CallInfo) {
 }
 
 func (r *Result) taskFutureOf(f FileID, n syntax.NodeID, call CallInfo, ret TypeID) (taskFutureCall, bool) {
-	if rn := r.Types.Node(ret); rn.Kind != KNamed || rn.Ent != r.Types.futureEnt {
+	direct := r.Types.Kind(ret) == KNamed && r.Types.Node(ret).Ent == r.Types.futureEnt
+	if !direct && !r.containsFuture(ret, 0, map[EntityID]bool{}, map[TypeID]bool{}) {
 		return taskFutureCall{}, false
 	}
 	var params []TypeID
@@ -85,4 +86,59 @@ func (r *Result) checkTaskFutures(f FileID, calls []taskFutureCall) {
 			r.errAt(f, c.n, cTaskHandleReturned, r.TypeString(c.t), "an argument of a Future that is not awaited or spawned where it is built")
 		}
 	}
+}
+
+// containsFuture reports a value type that can carry a Future, including one
+// inside a record, variant, array or interface. It looks through type
+// arguments and declared fields without substituting, and is depth-capped so
+// recursive aliases cannot loop.
+func (r *Result) containsFuture(t TypeID, depth int, ents map[EntityID]bool, seen map[TypeID]bool) bool {
+	if t == 0 || t == TyPoison || depth > 24 || seen[t] {
+		return false
+	}
+	seen[t] = true
+	n := r.Types.Node(t)
+	if n.Kind == KNamed {
+		e := r.Entities[n.Ent]
+		if e.Kind == EntType && n.Ent == r.Types.futureEnt {
+			return true
+		}
+		if e.Kind == EntType && !ents[n.Ent] {
+			ents[n.Ent] = true
+			decl := r.typeDecl(n.Ent)
+			switch decl.Form {
+			case FormDefined:
+				if r.containsFuture(decl.Underlying, depth+1, ents, seen) {
+					return true
+				}
+			case FormRecord, FormResource:
+				for _, fld := range decl.Fields {
+					if r.containsFuture(r.field(fld).Type, depth+1, ents, seen) {
+						return true
+					}
+				}
+			case FormAdt:
+				for _, v := range decl.Variants {
+					for _, pt := range r.variant(v).Payload {
+						if r.containsFuture(pt, depth+1, ents, seen) {
+							return true
+						}
+					}
+				}
+			}
+			delete(ents, n.Ent)
+		}
+	}
+	if n.Kind == KIface {
+		return true
+	}
+	if r.containsFuture(n.Elem, depth+1, ents, seen) {
+		return true
+	}
+	for _, a := range n.Args {
+		if r.containsFuture(a, depth+1, ents, seen) {
+			return true
+		}
+	}
+	return false
 }

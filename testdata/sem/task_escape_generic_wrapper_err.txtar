@@ -1,0 +1,27 @@
+-- module --
+mir: planned
+-- src --
+import task from std/task
+
+type Box[T] = { pub v T }
+
+async fn leaf() -> Int { 1 }
+async fn wrapper(t: task.Task[Int]) -> Int { await t }
+
+fn mkbox[T](t: T, f: fn(T) -> Future[Int]) -> Box[Future[Int]] {
+    Box { v: f(t) }
+}
+
+async fn root() -> Int {
+    let t = task.spawn(leaf())
+    let b = mkbox(t, wrapper) //~ ERROR a Future that is not awaited or spawned
+    0
+}
+-- expect --
+error[E2203]: `Task[Int]` holds a `Task` handle and cannot leave the task that spawned it as an argument of a Future that is not awaited or spawned where it is built
+  --> main.kg:14:13
+   |
+14 |     let b = mkbox(t, wrapper) //~ ERROR a Future that is not awaited or spawned
+   |             ^^^^^^^^^^^^^^^^
+   = help: await the task there and pass on its result
+

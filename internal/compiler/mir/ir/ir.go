@@ -105,6 +105,9 @@ type Inst struct {
 	// Scoped marks one call's receiver-cell plumbing: an OpNewCell a backend
 	// may place in the frame, and the OpDrop that gives its content back.
 	Scoped bool
+	// AsyncRecv marks the receiver cell an async method call builds: its
+	// Future keeps the borrow until the Future is dropped.
+	AsyncRecv bool
 	// Fixed marks an OpBoxDirect of a compile-time value: both backends hand over its one immortal.
 	Fixed bool
 	// NoTrap marks a checked op or panic that cannot fire: a loop counter step or fixed-array index under its guard, a match's fall-through.

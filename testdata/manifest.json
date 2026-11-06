@@ -2200,6 +2200,15 @@
       ]
     },
     {
+      "id": "run/async_self_receiver",
+      "kind": "run",
+      "path": "testdata/run/async_self_receiver.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/async_spawn_in_defer",
       "kind": "run",
       "path": "testdata/run/async_spawn_in_defer.txtar",
@@ -11325,6 +11334,14 @@
       ]
     },
     {
+      "id": "sem/async_self_receiver_borrow_err",
+      "kind": "sem",
+      "path": "testdata/sem/async_self_receiver_borrow_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/async_self_replace_call",
       "kind": "sem",
       "path": "testdata/sem/async_self_replace_call.txtar",
@@ -16176,6 +16193,14 @@
       "id": "sem/task_detached_borrow_err",
       "kind": "sem",
       "path": "testdata/sem/task_detached_borrow_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/task_escape_generic_wrapper_err",
+      "kind": "sem",
+      "path": "testdata/sem/task_escape_generic_wrapper_err.txtar",
       "mode": [
         "check"
       ]

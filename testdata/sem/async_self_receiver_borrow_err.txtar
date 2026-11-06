@@ -1,0 +1,31 @@
+-- module --
+mir: planned
+-- src --
+type C = {
+    pub mut n Int
+}
+
+async fn C.abump(mut self) -> Int {
+    self.n = self.n + 1
+    self.n
+}
+
+fn bad() {
+    let mut x = C { n: 0 }
+    let f = x.abump()
+    x.n = 10 //~ ERROR `x` is exclusively borrowed and cannot be used here
+    let _ = f
+}
+-- expect --
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+  --> main.kg:13:5
+   |
+13 |     x.n = 10 //~ ERROR `x` is exclusively borrowed and cannot be used here
+   |     ^^^
+   = help: end the borrow first or use a copy
+note: `x` is borrowed here
+  --> main.kg:12:13
+   |
+12 |     let f = x.abump()
+   |             ^
+

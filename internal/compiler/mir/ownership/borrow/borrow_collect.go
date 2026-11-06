@@ -98,6 +98,12 @@ func (c *borrowCheck) collectInst(in midir.Inst) bool {
 			return false
 		}
 		return set(src, ok)
+	case midir.OpNewCell:
+		if !in.AsyncRecv {
+			return false
+		}
+		b, ok := c.cellBorrow(in.Dst)
+		return set(b, ok)
 	case midir.OpLendBox:
 		return set(c.lendBoxInfo(in), true)
 	case midir.OpArray:

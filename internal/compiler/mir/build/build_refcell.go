@@ -121,6 +121,14 @@ func (b *builder) lendCell(v midir.LocalID, t sem.TypeID, n syntax.NodeID, scope
 	return b.cellOver(b.emit(midir.Inst{Op: midir.OpBorrow, Dst: b.temp(t), Args: []midir.LocalID{v}, Index: 1, Node: n}), t, n, scoped)
 }
 
+// lendAsyncCell is lendCell for an async receiver: the Future owns this cell,
+// so the borrow stays live until the Future is dropped.
+func (b *builder) lendAsyncCell(v midir.LocalID, t sem.TypeID, n syntax.NodeID) midir.LocalID {
+	ref := b.emit(midir.Inst{Op: midir.OpBorrow, Dst: b.temp(t), Args: []midir.LocalID{v}, Index: 1, Node: n})
+	owned := b.emit(midir.Inst{Op: midir.OpShare, Dst: b.temp(t), Args: []midir.LocalID{ref}, Node: n})
+	return b.emit(midir.Inst{Op: midir.OpNewCell, Dst: b.temp(t), Args: []midir.LocalID{owned}, Node: n, AsyncRecv: true})
+}
+
 // The cell takes its own refcount; the borrow passed in owns none.
 func (b *builder) cellOver(ref midir.LocalID, t sem.TypeID, n syntax.NodeID, scoped bool) midir.LocalID {
 	owned := b.emit(midir.Inst{Op: midir.OpShare, Dst: b.temp(t), Args: []midir.LocalID{ref}, Node: n})

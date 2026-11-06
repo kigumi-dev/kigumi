@@ -29,7 +29,12 @@ func (b *builder) recvCell(base *hir.Expr, sync, inPlace bool) midir.LocalID {
 	} else {
 		v = b.expr(base)
 	}
-	cell := b.lendCell(v, rt, n, sync)
+	var cell midir.LocalID
+	if sync {
+		cell = b.lendCell(v, rt, n, true)
+	} else {
+		cell = b.lendAsyncCell(v, rt, n)
+	}
 	if sync {
 		b.argFixups = append(b.argFixups, argFixup{recv: &p, elemType: base.Type, retag: inner.Type, cell: cell, node: n, depth: len(b.scopes)})
 	}

@@ -1,0 +1,23 @@
+-- src --
+import task from std/task
+
+type C = {
+    pub mut n Int
+}
+
+async fn C.abump(mut self) -> Int {
+    self.n = self.n + 1
+    self.n
+}
+
+async fn use() -> Int {
+    let mut x = C { n: 0 }
+    let f = x.abump()
+    let v = await f
+    x.n = 10
+    v + x.n
+}
+
+print "${task.currentThreadExecutor().runToCompletion(use())}"
+-- stdout --
+11
