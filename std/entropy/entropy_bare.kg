@@ -1,0 +1,7 @@
+// A bare target has no OS entropy source; the package stays importable so
+// capability diagnostics can name the missing provider.
+fn fillEntropy(buf: *mut u8, n: usize) -> Void! {
+    _ = buf
+    _ = n
+    panic("entropy is not available on a bare target")
+}

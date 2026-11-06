@@ -5426,15 +5426,6 @@
       ]
     },
     {
-      "id": "run/explicit_main_http_fallback",
-      "kind": "run",
-      "path": "testdata/run/explicit_main_http_fallback.txtar",
-      "mode": [
-        "vm",
-        "native"
-      ]
-    },
-    {
       "id": "run/export_register_abi",
       "kind": "run",
       "path": "testdata/run/export_register_abi.txtar",
@@ -8578,24 +8569,6 @@
       ]
     },
     {
-      "id": "run/net_http_connect_refused",
-      "kind": "run",
-      "path": "testdata/run/net_http_connect_refused.txtar",
-      "mode": [
-        "vm",
-        "native"
-      ]
-    },
-    {
-      "id": "run/net_http_connect_sync_failure",
-      "kind": "run",
-      "path": "testdata/run/net_http_connect_sync_failure.txtar",
-      "mode": [
-        "vm",
-        "native"
-      ]
-    },
-    {
       "id": "run/net_port_url_checks",
       "kind": "run",
       "path": "testdata/run/net_port_url_checks.txtar",
@@ -10030,15 +10003,6 @@
       "id": "run/std_net_conn_read_huge",
       "kind": "run",
       "path": "testdata/run/std_net_conn_read_huge.txtar",
-      "mode": [
-        "vm",
-        "native"
-      ]
-    },
-    {
-      "id": "run/std_net_http_injection",
-      "kind": "run",
-      "path": "testdata/run/std_net_http_injection.txtar",
       "mode": [
         "vm",
         "native"

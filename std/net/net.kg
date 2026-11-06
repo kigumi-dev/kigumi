@@ -3,25 +3,3 @@
 @unsafeGuarantee(Copy, Send, Sync)
 pub type Net
 
-/// HTTP client, obtained from `Net.http()`.
-/// Safety: holds no per-client state; each request is independent, so sharing or duplicating the handle is free.
-@unsafeGuarantee(Copy, Send, Sync)
-pub type Http
-
-/// Result of an HTTP request.
-pub type Response = {
-    pub status Int
-}
-
-/// HTTP client with a 10 second timeout per request.
-pub fn Net.http(self) -> Http
-
-/// Error from an HTTP request.
-pub type Failure = {
-    pub text String
-}
-
-/// The failure text.
-pub fn Failure.message(self) -> String {
-    self.text
-}

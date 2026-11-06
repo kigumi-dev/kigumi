@@ -55,6 +55,14 @@ type Pollfd layout(C) = {
     pub revents i16
 }
 
+type Failure = {
+    text String
+}
+
+fn Failure.message(self) -> String {
+    self.text
+}
+
 fn fails(text: String) -> Failure {
     Failure { text: text }
 }
@@ -428,63 +436,6 @@ fn statusOf(line: Bytes) -> Int? {
     Some(n)
 }
 
-/// Sends body in a POST request to url over plain HTTP/1.1 (https is
-/// refused); a `[v6]:port` IPv6 literal is accepted, but a `user:pass@`
-/// authority and any control character or space in the host or path are
-/// rejected, since either could inject extra headers or a second request.
-/// The 10 second timeout bounds each connect, send and receive, not the whole request;
-/// the status line is read as bytes, so a non-UTF-8 reason phrase is not an Err.
-pub fn Http.post(self, url: String, body: String) -> Response! {
-    if url.startsWith("https://") {
-        fail fails("https is not supported in native builds")
-    }
-    if !url.startsWith("http://") {
-        fail fails("unsupported URL scheme")
-    }
-    let rest = url.sliceBytes(7, url.len()) || ""
-    let slash = indexOf(rest, "/")
-    let authority = if slash is Some(i) {
-        rest.sliceBytes(0, i) || ""
-    } else {
-        rest
-    }
-    let path = if slash is Some(i) {
-        rest.sliceBytes(i, rest.len()) || "/"
-    } else {
-        "/"
-    }
-    if hasUnsafeByte(path) {
-        fail fails("path contains a control character or a space")
-    }
-    // Checked on the whole authority, not just the host split out of it:
-    // a colon-free CRLF payload (no "/" before it) would otherwise land in
-    // parseAuthority's port half, which never reaches the wire but would
-    // fail with a misleading "cannot resolve host" instead of this.
-    if hasUnsafeByte(authority) {
-        fail fails("host contains a control character or a space")
-    }
-    let hp = parseAuthority(authority)?
-    let fd = connectTo(hp.host, hp.port, requestTimeoutSeconds())?
-    setTimeout(fd, requestTimeoutSeconds())
-    let request = "POST ${path} HTTP/1.1\r\nHost: ${hp.header}\r\nContent-Type: text/plain\r\nContent-Length: ${body.len()}\r\nConnection: close\r\n\r\n${body}"
-    let sent = sendAll(fd, request.toBytes())
-    if sent is Err(e) {
-        _ = unsafe {
-            close(fd)
-        }
-        fail e
-    }
-    let lineResult = readLine(fd)
-    _ = unsafe {
-        close(fd)
-    }
-    let line = lineResult?
-    if statusOf(line) is Some(status) {
-        return Response { status: status }
-    }
-    fail fails("malformed response")
-}
-
 /// TCP connection; `read`/`write` match std/io's Reader/Writer shape.
 pub type Conn = resource {
     fd i32
@@ -495,7 +446,7 @@ pub type Listener = resource {
     fd i32
 }
 
-/// Connects to host:port over IPv4, refusing a port outside 0..65535; no timeout (unlike Http.post, this
+/// Connects to host:port over IPv4, refusing a port outside 0..65535; no timeout; this
 /// call blocks until the OS gives up or a peer answers).
 pub fn Net.connect(self, host: String, port: Int) -> Conn! {
     if !validPort(port) {

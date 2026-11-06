@@ -49,7 +49,7 @@ func TestCapabilityProvisionRejectsOnEveryTarget(t *testing.T) {
 		want      []string
 	}{
 		{"sys none, no strict profile", hostArgsSrc, mustTarget(t, "", "none"), []string{"E1370", "HOST_ARGS", "host.args", "--sys none", "main"}},
-		{"wasi sockets", "let c = host.net().http()\nprint \"x\"\n", mustTarget(t, "wasm32-wasi", ""), []string{"E1370", "host.net", "wasi has no sockets"}},
+		{"wasi sockets", "let c = host.net().connect(\"127.0.0.1\", 1)\nprint \"x\"\n", mustTarget(t, "wasm32-wasi", ""), []string{"E1370", "host.net", "wasi has no sockets"}},
 		{"wasi worker threads", pool, mustTarget(t, "wasm32-wasi", ""), []string{"E1370", "TASK_THREAD_POOL_EXECUTOR", "task.threads", "wasi has no worker threads"}},
 		{"windows signals", "let s = host.signals()\nprint \"x\"\n", mustTarget(t, "x86_64-windows-gnu", ""), []string{"E1370", "host.signals", "windows has no POSIX signals"}},
 	}
@@ -78,7 +78,7 @@ func TestCapabilityProvisionAcceptsWhatTheTargetProvides(t *testing.T) {
 		{"hosted host.args", hostArgsSrc, buildconfig.HostTarget()},
 		{"wasi host.args", hostArgsSrc, mustTarget(t, "wasm32-wasi", "")},
 		{"hosted signals", "let s = host.signals()\nprint \"x\"\n", buildconfig.HostTarget()},
-		{"hosted net", "let c = host.net().http()\nprint \"x\"\n", buildconfig.HostTarget()},
+		{"hosted net", "let c = host.net().connect(\"127.0.0.1\", 1)\nprint \"x\"\n", buildconfig.HostTarget()},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

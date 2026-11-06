@@ -152,7 +152,6 @@ func (m *Machine) registerAll() {
 	m.registerBuild()
 	m.registerNet()
 	m.registerNetPoll()
-	m.registerNetHTTP()
 	m.registerEntropy()
 	m.registerMapSeed()
 	m.registerError()

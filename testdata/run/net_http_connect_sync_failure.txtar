@@ -1,8 +1,0 @@
--- src --
-let h = host.net().http()
-match h.post("http://[fe80::1%lo]:1/", "hi") {
-    Ok(r) -> print "ok status=${r.status}"
-    Err(e) -> print "err broken_pipe=${e.message().contains("Broken pipe")}"
-}
--- stdout --
-err broken_pipe=false
