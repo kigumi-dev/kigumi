@@ -136,3 +136,14 @@ func (m *Machine) sweepSyncFrames(base int) {
 		}
 	}
 }
+
+// rootSyncBase returns the frame above the root task's async frame, or -1
+// when the current call stack has no async root frame.
+func (m *Machine) rootSyncBase() int {
+	for i, fr := range m.frames {
+		if fr.f != nil && fr.f.Async {
+			return i + 1
+		}
+	}
+	return -1
+}

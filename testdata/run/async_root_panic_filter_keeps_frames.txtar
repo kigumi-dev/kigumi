@@ -21,7 +21,7 @@ fn keep(x: &Int) -> Bool {
     x > 1
 }
 
-// The root task keeps its own frames, so the callback's local is not dropped.
+// The root task keeps its async frame; the synchronous callback drops its local.
 async fn filterBoom(a: Array[Int]) -> Int {
     let local = Res { n: 800 }
     let r = a.filter((x: &Int) => keep(x))
@@ -31,6 +31,7 @@ async fn filterBoom(a: Array[Int]) -> Int {
 let ex = task.currentThreadExecutor()
 print "total ${ex.runToCompletion(filterBoom(Array.of(1, 2, 3, 4, 5)))}"
 -- stdout --
+drop res 900
 -- stderr --
 panic: mid-filter
 -- exit --

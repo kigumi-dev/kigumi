@@ -3,6 +3,15 @@ package vm
 // throw raises a copy of p, so the unwind owns the value it joins into.
 func (m *Machine) throw(p *Panic) {
 	m.closeOnPanic(p)
+	if m.cur != nil && m.cur.parent == nil {
+		if base := m.rootSyncBase(); base >= 0 {
+			outer := m.sweepFault
+			m.sweepFault = p
+			m.sweepSyncFrames(base)
+			p = m.sweepFault
+			m.sweepFault = outer
+		}
+	}
 	c := *p
 	m.inflight = &c
 	panic(&c)

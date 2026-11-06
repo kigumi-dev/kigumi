@@ -18,7 +18,7 @@ fn inner() {
     let _: Void = None.expect("sync")
 }
 
-// The root keeps its frames, sync callees included.
+// The root keeps its async frame, but a synchronous callee still drops its locals.
 async fn root() -> Int {
     let v = await tick()
     inner()
@@ -28,6 +28,7 @@ async fn root() -> Int {
 let ex = task.threadPoolExecutor(2)
 print "total ${ex.runToCompletion(root())}"
 -- stdout --
+drop 2
 -- stderr --
 panic: sync
 -- exit --

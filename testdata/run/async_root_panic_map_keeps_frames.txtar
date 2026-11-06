@@ -21,7 +21,7 @@ fn mk(x: &Int) -> Res {
     Res { n: x + 100 }
 }
 
-// The root task keeps its own frames, so only what the primitive was building is dropped.
+// The root task keeps its async frame; synchronous callee locals still drop.
 async fn mapBoom(a: Array[Int]) -> Int {
     let local = Res { n: 800 }
     let r = a.map((x: &Int) => mk(x))
@@ -31,6 +31,7 @@ async fn mapBoom(a: Array[Int]) -> Int {
 let ex = task.currentThreadExecutor()
 print "total ${ex.runToCompletion(mapBoom(Array.of(1, 2, 3, 4, 5)))}"
 -- stdout --
+drop res 900
 drop res 102
 drop res 101
 -- stderr --
