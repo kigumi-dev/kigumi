@@ -23,15 +23,15 @@ var rcCallSites = map[string]*regexp.Regexp{
 
 // Call sites of the count and cell runtime calls in the IR of every native run fixture, std included.
 var pinnedRCCalls = map[string]int{
-	"fixtures":         1015,
-	"rt_retain":        10230,
-	"rt_release":       74023,
-	"rt_release_outer": 30467,
-	"rt_drop":          44405,
-	"rt_cell_init":     6429,
-	"rt_cell_take":     2553,
-	"rt_setfield_swap": 567,
-	"rt_setindex_swap": 107,
+	"fixtures":         1034,
+	"rt_retain":        11303,
+	"rt_release":       79403,
+	"rt_release_outer": 34584,
+	"rt_drop":          47624,
+	"rt_cell_init":     7181,
+	"rt_cell_take":     2794,
+	"rt_setfield_swap": 921,
+	"rt_setindex_swap": 158,
 }
 
 // The same call sites over the fixtures that existed before the retain / release elimination, re-measured when a
@@ -49,6 +49,25 @@ var baselineRCCalls = map[string]int{
 }
 
 var addedAfterBaseline = map[string]bool{
+	"async_self_receiver.txtar":                     true,
+	"map_key_not_kept_ok.txtar":                     true,
+	"fs_path_api.txtar":                             true,
+	"crypto_sha256.txtar":                           true,
+	"crypto_sha512.txtar":                           true,
+	"crypto_hmac.txtar":                             true,
+	"crypto_hkdf.txtar":                             true,
+	"compress_flate_vectors.txtar":                  true,
+	"compress_gzip_vectors.txtar":                   true,
+	"compress_roundtrip.txtar":                      true,
+	"secret_buffer.txtar":                           true,
+	"secret_shift_select.txtar":                     true,
+	"io_buffered.txtar":                             true,
+	"http_gzip_client.txtar":                        true,
+	"task_panic_sync_drop.txtar":                    true,
+	"drop_panic_continues.txtar":                    true,
+	"json_derived_key_escape.txtar":                 true,
+	"json_duplicate_members.txtar":                  true,
+	"shell_quoting.txtar":                           true,
 	"atomic_paren_place.txtar":                      true,
 	"secret_debug.txtar":                            true,
 	"secret_ops.txtar":                              true,
