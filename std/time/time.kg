@@ -68,3 +68,13 @@ pub fn SystemClock.now(self) -> Instant {
 pub fn SystemClock.monotonic(self) -> Monotonic {
     monotonic()
 }
+
+/// This instant moved by d, saturating at the ends of the i64 range.
+pub pure fn Instant.add(self, d: Duration) -> Instant {
+    Instant { ms: self.ms.saturatingAdd(d.ms) }
+}
+
+/// This instant moved back by d, saturating at the ends of the i64 range.
+pub pure fn Instant.sub(self, d: Duration) -> Instant {
+    Instant { ms: self.ms.saturatingSub(d.ms) }
+}

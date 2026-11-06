@@ -10064,6 +10064,15 @@
       ]
     },
     {
+      "id": "run/std_time_duration",
+      "kind": "run",
+      "path": "testdata/run/std_time_duration.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/stdlib",
       "kind": "run",
       "path": "testdata/run/stdlib.txtar",

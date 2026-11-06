@@ -1,0 +1,25 @@
+-- src --
+import time from std/time
+
+fn main() {
+    let a = time.Duration.fromSeconds(2)
+    let b = time.Duration.fromMillis(500)
+    match a.compareTo(b) {
+        Ordering.Less -> print "less"
+        Ordering.Equal -> print "equal"
+        Ordering.Greater -> print "greater"
+    }
+    match a.compareTo(a) {
+        Ordering.Less -> print "less"
+        Ordering.Equal -> print "equal"
+        Ordering.Greater -> print "greater"
+    }
+    print "sub=${a.sub(b).millis()}"
+    let i = time.fromUnixMillis(1000)
+    print "add=${i.add(b).unixMillis()} sub=${i.sub(a).unixMillis()}"
+}
+-- stdout --
+greater
+equal
+sub=1500
+add=1500 sub=-1000

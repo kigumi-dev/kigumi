@@ -15682,6 +15682,16 @@
     "status": "ok"
   },
   {
+    "key": "time.Duration.compareTo",
+    "signature": "pure noalloc fn(Duration) -\u003e Ordering",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
     "key": "time.Duration.fromMillis",
     "signature": "pure noalloc fn(Int) -\u003e Duration",
     "has_body": true,
@@ -15722,6 +15732,26 @@
     "status": "ok"
   },
   {
+    "key": "time.Duration.sub",
+    "signature": "pure fn(Duration) -\u003e Duration",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.Instant.add",
+    "signature": "pure fn(Duration) -\u003e Instant",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "time.Instant.elapsedMillis",
     "signature": "fn() -\u003e Int",
     "has_body": true,
@@ -15744,6 +15774,16 @@
   {
     "key": "time.Instant.parts",
     "signature": "pure noalloc fn() -\u003e Parts",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.Instant.sub",
+    "signature": "pure fn(Duration) -\u003e Instant",
     "has_body": true,
     "kind": "",
     "vm": "gap",

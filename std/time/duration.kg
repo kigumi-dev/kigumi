@@ -27,3 +27,19 @@ pub pure noalloc fn Duration.seconds(self) -> i64 {
 pub pure fn Duration.add(self, other: Duration) -> Duration {
     Duration { ms: self.ms.saturatingAdd(other.ms) }
 }
+
+/// Orders two spans by length.
+pub pure noalloc fn Duration.compareTo(self, other: Duration) -> Ordering {
+    if self.ms < other.ms {
+        Ordering.Less
+    } else if self.ms > other.ms {
+        Ordering.Greater
+    } else {
+        Ordering.Equal
+    }
+}
+
+/// self minus other, saturating at the ends of the i64 range.
+pub pure fn Duration.sub(self, other: Duration) -> Duration {
+    Duration { ms: self.ms.saturatingSub(other.ms) }
+}
