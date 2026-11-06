@@ -1,0 +1,33 @@
+-- src --
+import alloc from std/alloc
+import io from std/io
+
+type Sink = {
+    pub hits alloc.Shared[Int]
+}
+
+fn Sink.write(mut self, data: Bytes) -> usize! {
+    self.hits.set(self.hits.get() + (data.len().toInt() || 0))
+    data.len()
+}
+
+fn summer() -> Void! {
+    let hits = alloc.Shared.new(0)
+    let mut w = io.BufWriter.new(Sink { hits: hits.clone() })
+    let _ = w.write("abc".toBytes())?
+    let _ = w.write("defg".toBytes())?
+    w.finish()?
+    print "wrote ${hits.get()}"
+}
+
+let mut r = io.BytesReader.new("hello".toBytes())
+print "full ${(io.readFull(&mut r, 3)?).len()} ${(io.readFull(&mut r, 2)?).len()}"
+match io.readFull(&mut r, 1) {
+    Ok(_) -> print "unexpected"
+    Err(_) -> print "short"
+}
+summer()?
+-- stdout --
+full 3 2
+short
+wrote 7

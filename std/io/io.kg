@@ -354,3 +354,68 @@ pure fn findIn(items: &Array[u8], sub: Bytes) -> usize? {
     }
     None
 }
+
+/// Reads exactly n bytes; fails with IoError when the input ends first.
+pub fn readFull[R: Reader](r: &mut R, n: usize) -> Bytes! {
+    let mut buf = Array.empty[u8]()
+    for buf.len() < n {
+        let before = buf.len()
+        let max = n - before
+        let got = r.read(&mut buf, max)?
+        checkReadLaw(got, max, before, buf.len())?
+        if got == 0 {
+            fail IoError { text: "unexpected end of input after ${before} of ${n} bytes" }
+        }
+    }
+    Bytes.fromArray(&buf)
+}
+
+/// A Writer that batches small writes and flushes them in one call. Call
+/// `flush` or `finish` before dropping it: a drop cannot report a failed write.
+pub type BufWriter = {
+    mut inner Writer
+    mut buf Array[u8]
+}
+
+/// Wraps inner with an empty batch.
+pub fn BufWriter.new(inner: Writer) -> BufWriter {
+    BufWriter {
+        inner: inner
+        buf: Array.empty[u8]()
+    }
+}
+
+/// Appends data to the batch; a batch of 8 KiB or more is flushed before this returns.
+pub fn BufWriter.write(mut self, data: Bytes) -> usize! {
+    for i in 0..data.len() {
+        self.buf.push(data.get(i) || 0)
+    }
+    if self.buf.len() >= 8192 {
+        self.flush()?
+    }
+    data.len()
+}
+
+/// Sends the current batch and clears it.
+pub fn BufWriter.flush(mut self) -> Void! {
+    if self.buf.len() == 0 {
+        return
+    }
+    let data = Bytes.fromArray(&self.buf)
+    self.buf = Array.empty[u8]()
+    let mut off: usize = 0
+    for off < data.len() {
+        let given = data.slice(off, data.len()) || "".toBytes()
+        let n = self.inner.write(given)?
+        checkWriteLaw(n, given.len())?
+        if n == 0 {
+            fail IoError { text: "BufWriter: write returned 0 with data remaining" }
+        }
+        off = off + n
+    }
+}
+
+/// Flushes the batch.
+pub fn BufWriter.finish(mut self) -> Void! {
+    self.flush()
+}

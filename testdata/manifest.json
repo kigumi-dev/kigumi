@@ -7658,6 +7658,15 @@
       ]
     },
     {
+      "id": "run/io_buffered",
+      "kind": "run",
+      "path": "testdata/run/io_buffered.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/is_consume_diverge_loop",
       "kind": "run",
       "path": "testdata/run/is_consume_diverge_loop.txtar",
