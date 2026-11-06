@@ -1,0 +1,222 @@
+/// Bytes in a ChaCha20 key (RFC 8439 §2.3).
+pub const keySize: usize = 32
+
+/// Bytes in a ChaCha20 nonce (RFC 8439's 96-bit nonce form).
+pub const nonceSize: usize = 12
+
+/// Bytes in one ChaCha20 keystream block.
+pub const blockSize: usize = 64
+
+/// The four words one quarter round returns.
+type Quad = {
+    a u32
+    b u32
+    c u32
+    d u32
+}
+
+/// Reports a bad key or nonce length for the raw entry points, which take
+/// `Bytes` rather than fixed-size types.
+fn checkLengths(key: Bytes, nonce: Bytes) {
+    if key.len() != keySize {
+        panic("chacha20: key must be 32 bytes")
+    }
+    if nonce.len() != nonceSize {
+        panic("chacha20: nonce must be 12 bytes")
+    }
+}
+
+/// The four-byte little-endian word at `at`.
+pure noalloc fn leWord(data: Bytes, at: usize) -> u32 {
+    let mut w = data[at].toU32()
+    w = w | (data[at + 1].toU32() << 8)
+    w = w | (data[at + 2].toU32() << 16)
+    w | (data[at + 3].toU32() << 24)
+}
+
+/// The four-byte little-endian word at `at` of an array the caller filled.
+pure noalloc fn arrayWord(data: &Array[u8], at: usize) -> u32 {
+    let mut w = data[at].toU32()
+    w = w | (data[at + 1].toU32() << 8)
+    w = w | (data[at + 2].toU32() << 16)
+    w | (data[at + 3].toU32() << 24)
+}
+
+/// RFC 8439 §2.1's quarter round on four words.
+pure noalloc fn quarterRound(a: u32, b: u32, c: u32, d: u32) -> Quad {
+    let a1 = a.wrappingAdd(b)
+    let d1 = (d ^ a1).rotateLeft(16)
+    let c1 = c.wrappingAdd(d1)
+    let b1 = (b ^ c1).rotateLeft(12)
+    let a2 = a1.wrappingAdd(b1)
+    let d2 = (d1 ^ a2).rotateLeft(8)
+    let c2 = c1.wrappingAdd(d2)
+    let b2 = (b1 ^ c2).rotateLeft(7)
+    Quad {
+        a: a2
+        b: b2
+        c: c2
+        d: d2
+    }
+}
+
+/// Fills `st` (sixteen words) with the ChaCha20 block for `counter`, after the
+/// twenty rounds and the feed-forward addition of the input state.
+pure fn fillBlock(mut st: &mut Array[u32], key: Bytes, counter: u32, nonce: Bytes) {
+    st[0] = 0x61707865
+    st[1] = 0x3320646E
+    st[2] = 0x79622D32
+    st[3] = 0x6B206574
+    st[4] = leWord(key, 0)
+    st[5] = leWord(key, 4)
+    st[6] = leWord(key, 8)
+    st[7] = leWord(key, 12)
+    st[8] = leWord(key, 16)
+    st[9] = leWord(key, 20)
+    st[10] = leWord(key, 24)
+    st[11] = leWord(key, 28)
+    st[12] = counter
+    st[13] = leWord(nonce, 0)
+    st[14] = leWord(nonce, 4)
+    st[15] = leWord(nonce, 8)
+
+    let mut round: usize = 0
+    for round < 10 {
+        let q0 = quarterRound(st[0], st[4], st[8], st[12])
+        st[0] = q0.a
+        st[4] = q0.b
+        st[8] = q0.c
+        st[12] = q0.d
+        let q1 = quarterRound(st[1], st[5], st[9], st[13])
+        st[1] = q1.a
+        st[5] = q1.b
+        st[9] = q1.c
+        st[13] = q1.d
+        let q2 = quarterRound(st[2], st[6], st[10], st[14])
+        st[2] = q2.a
+        st[6] = q2.b
+        st[10] = q2.c
+        st[14] = q2.d
+        let q3 = quarterRound(st[3], st[7], st[11], st[15])
+        st[3] = q3.a
+        st[7] = q3.b
+        st[11] = q3.c
+        st[15] = q3.d
+
+        let q4 = quarterRound(st[0], st[5], st[10], st[15])
+        st[0] = q4.a
+        st[5] = q4.b
+        st[10] = q4.c
+        st[15] = q4.d
+        let q5 = quarterRound(st[1], st[6], st[11], st[12])
+        st[1] = q5.a
+        st[6] = q5.b
+        st[11] = q5.c
+        st[12] = q5.d
+        let q6 = quarterRound(st[2], st[7], st[8], st[13])
+        st[2] = q6.a
+        st[7] = q6.b
+        st[8] = q6.c
+        st[13] = q6.d
+        let q7 = quarterRound(st[3], st[4], st[9], st[14])
+        st[3] = q7.a
+        st[4] = q7.b
+        st[9] = q7.c
+        st[14] = q7.d
+        round = round + 1
+    }
+
+    st[0] = st[0].wrappingAdd(0x61707865)
+    st[1] = st[1].wrappingAdd(0x3320646E)
+    st[2] = st[2].wrappingAdd(0x79622D32)
+    st[3] = st[3].wrappingAdd(0x6B206574)
+    st[4] = st[4].wrappingAdd(leWord(key, 0))
+    st[5] = st[5].wrappingAdd(leWord(key, 4))
+    st[6] = st[6].wrappingAdd(leWord(key, 8))
+    st[7] = st[7].wrappingAdd(leWord(key, 12))
+    st[8] = st[8].wrappingAdd(leWord(key, 16))
+    st[9] = st[9].wrappingAdd(leWord(key, 20))
+    st[10] = st[10].wrappingAdd(leWord(key, 24))
+    st[11] = st[11].wrappingAdd(leWord(key, 28))
+    st[12] = st[12].wrappingAdd(counter)
+    st[13] = st[13].wrappingAdd(leWord(nonce, 0))
+    st[14] = st[14].wrappingAdd(leWord(nonce, 4))
+    st[15] = st[15].wrappingAdd(leWord(nonce, 8))
+}
+
+/// The `at`-th keystream byte of a filled block, little-endian within each word.
+pure noalloc fn blockByte(st: &Array[u32], at: usize) -> u8 {
+    (st[at >> 2] >> ((at & 3) * 8)).truncate[u8]()
+}
+
+/// Serializes a filled block as its 64 keystream bytes.
+pure fn blockBytes(st: &Array[u32]) -> Bytes {
+    let mut out = ByteBuffer.tryNew(blockSize) || panic("out of memory")
+    let mut i: usize = 0
+    for i < blockSize {
+        out.set(i, blockByte(st, i))
+        i = i + 1
+    }
+    out.freeze()
+}
+
+/// The sixteen words of the ChaCha20 block for `counter` (RFC 8439 §2.3).
+pub pure fn chacha20BlockWords(key: Bytes, counter: u32, nonce: Bytes) -> Array[u32] {
+    checkLengths(key, nonce)
+    let mut st = Array.fill[u32](0, 16)
+    fillBlock(&mut st, key, counter, nonce)
+    st
+}
+
+/// The 64 keystream bytes of the ChaCha20 block for `counter` (RFC 8439 §2.3.2).
+pub pure fn chacha20Block(key: Bytes, counter: u32, nonce: Bytes) -> Bytes {
+    let st = chacha20BlockWords(key, counter, nonce)
+    blockBytes(&st)
+}
+
+/// XORs `data[start..end]` with the ChaCha20 keystream beginning at `counter`.
+/// Encryption and decryption are the same operation. The sixteen-word state is
+/// allocated once and refilled per block.
+pure fn xorRange(key: Bytes, counter: u32, nonce: Bytes, data: Bytes, start: usize, end: usize) -> Bytes {
+    checkLengths(key, nonce)
+    let mut out = ByteBuffer.tryNew(end - start) || panic("out of memory")
+    let mut st = Array.fill[u32](0, 16)
+    let mut ctr = counter
+    let mut at = start
+    for at < end {
+        fillBlock(&mut st, key, ctr, nonce)
+        let left = end - at
+        let take = if left < blockSize {
+            left
+        } else {
+            blockSize
+        }
+        let mut i: usize = 0
+        for i < take {
+            out.set(at - start + i, data[at + i] ^ blockByte(&st, i))
+            i = i + 1
+        }
+        at = at + take
+        ctr = ctr.wrappingAdd(1)
+    }
+    out.freeze()
+}
+
+/// ChaCha20 encryption of `data` with the block counter starting at `counter`
+/// (RFC 8439 §2.4). The output has the same length as the input.
+pub pure fn chacha20Xor(key: Bytes, counter: u32, nonce: Bytes, data: Bytes) -> Bytes {
+    xorRange(key, counter, nonce, data, 0, data.len())
+}
+
+/// The Poly1305 one-time key for an AEAD message: the first 32 bytes of the
+/// ChaCha20 block at counter zero (RFC 8439 §2.6).
+pub pure fn poly1305Key(key: Bytes, nonce: Bytes) -> Bytes {
+    let st = chacha20BlockWords(key, 0, nonce)
+    let mut out = ByteBuffer.tryNew(keySize) || panic("out of memory")
+    let mut i: usize = 0
+    for i < keySize {
+        out.set(i, blockByte(&st, i))
+        i = i + 1
+    }
+    out.freeze()
+}

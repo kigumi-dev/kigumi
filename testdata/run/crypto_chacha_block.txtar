@@ -1,0 +1,44 @@
+-- src --
+import chacha from std/crypto/chacha20poly1305
+import hex from std/encoding/hex
+
+fn show(b: Bytes) -> String {
+    hex.encode(b)
+}
+
+fn dec(s: String) -> Bytes {
+    hex.decode(s).expect("hex")
+}
+
+// RFC 8439 §2.3.2: the block function at counter 1
+let key = dec("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
+let nonce = dec("000000090000004a00000000")
+print "rfc-block ${show(chacha.chacha20Block(key, 1, nonce))}"
+
+// RFC 8439 §2.6.2: the Poly1305 one-time key is the first half of block 0
+let polyKey = chacha.poly1305Key(dec("808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f"), dec("000000000001020304050607"))
+print "rfc-polykey ${show(polyKey)}"
+
+// RFC 8439 §2.4.2: two full blocks and a partial third
+let plaintext = b"Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen would be it."
+let cipherNonce = dec("000000000000004a00000000")
+let cipher = chacha.chacha20Xor(key, 1, cipherNonce, plaintext)
+print "rfc-cipher ${show(cipher)}"
+print "roundtrip ${show(chacha.chacha20Xor(key, 1, cipherNonce, cipher))}"
+print "empty ${show(chacha.chacha20Xor(key, 1, cipherNonce, Bytes.zeros(0)))}"
+
+// A full 64-byte block at counter 7
+print "block64 ${show(chacha.chacha20Xor(key, 7, nonce, Bytes.fill(0x61, 64)))}"
+
+// The unclamped counter-zero block and the sizes the API promises
+print "counter0 ${show(chacha.chacha20Block(key, 0, cipherNonce))}"
+print "sizes ${chacha.keySize} ${chacha.nonceSize} ${chacha.blockSize}"
+-- stdout --
+rfc-block 10f1e7e4d13b5915500fdd1fa32071c4c7d1f4c733c068030422aa9ac3d46c4ed2826446079faa0914c2d705d98b02a2b5129cd1de164eb9cbd083e8a2503c4e
+rfc-polykey 8ad5a08b905f81cc815040274ab29471a833b637e3fd0da508dbb8e2fdd1a646
+rfc-cipher 6e2e359a2568f98041ba0728dd0d6981e97e7aec1d4360c20a27afccfd9fae0bf91b65c5524733ab8f593dabcd62b3571639d624e65152ab8f530c359f0861d807ca0dbf500d6a6156a38e088a22b65e52bc514d16ccf806818ce91ab77937365af90bbf74a35be6b40b8eedf2785e42874d
+roundtrip 4c616469657320616e642047656e746c656d656e206f662074686520636c617373206f66202739393a204966204920636f756c64206f6666657220796f75206f6e6c79206f6e652074697020666f7220746865206675747572652c2073756e73637265656e20776f756c642062652069742e
+empty 
+block64 abbec37736e8ebcd7762e9e49763c48adc1cd5eb9d6e736d7d2bbc2cc06eabb985c263e7ea19e0bd5fb101f2dbf420b733d6000a1a4f8b0d5e2abef6383178a4
+counter0 af051e40bba0354981329a806a140eafd258a22a6dcb4bb9f6569cb3efe2deaf837bd87ca20b5ba12081a306af0eb35c41a239d20dfc74c81771560d9c9c1e4b
+sizes 32 12 64

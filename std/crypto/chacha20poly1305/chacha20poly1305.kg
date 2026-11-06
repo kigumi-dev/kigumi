@@ -1,0 +1,106 @@
+// AEAD_CHACHA20_POLY1305 (RFC 8439 §2.8): ChaCha20 encryption with a
+// Poly1305 tag over the additional data and the ciphertext.
+//
+// `seal` returns the ciphertext followed by the 16-byte tag; `open` accepts
+// that same form. Both validate key, nonce and sealed length before doing any
+// work, and `open` compares tags in constant time and returns no plaintext
+// when they differ.
+import subtle from std/crypto/subtle
+
+/// Why an AEAD call was refused.
+pub type Error =
+    | BadKeySize
+    | BadNonceSize
+    | ShortInput
+    | TagMismatch
+
+/// A short, fixed explanation of the error.
+pub fn Error.message(self) -> String {
+    match self {
+        BadKeySize -> "chacha20poly1305: key must be 32 bytes"
+        BadNonceSize -> "chacha20poly1305: nonce must be 12 bytes"
+        ShortInput -> "chacha20poly1305: sealed input is shorter than the tag"
+        TagMismatch -> "chacha20poly1305: authentication tag mismatch"
+    }
+}
+
+/// Zeroes to the next multiple of sixteen.
+pure fn pad16(n: usize) -> usize {
+    (tagSize - n % tagSize) % tagSize
+}
+
+/// Encrypts `plaintext` and returns ciphertext followed by the tag, bound to
+/// `aad`. `key` is 32 bytes and `nonce` 12; a nonce MUST NOT repeat under one
+/// key.
+pub pure fn seal(key: Bytes, nonce: Bytes, aad: Bytes, plaintext: Bytes) -> Result[Bytes, Error] {
+    if key.len() != keySize {
+        return Err(Error.BadKeySize)
+    }
+    if nonce.len() != nonceSize {
+        return Err(Error.BadNonceSize)
+    }
+    let mut out = ByteBuffer.tryNew(plaintext.len() + tagSize) || panic("out of memory")
+    let mut mac = Poly1305.new(poly1305Key(key, nonce))
+    mac.update(aad)
+    mac.padZeros(pad16(aad.len()))
+
+    // Counter zero produced the one-time key; the message starts at one.
+    let mut st = Array.fill[u32](0, 16)
+    let mut counter: u32 = 1
+    let mut at: usize = 0
+    for at < plaintext.len() {
+        fillBlock(&mut st, key, counter, nonce)
+        let left = plaintext.len() - at
+        let take = if left < blockSize {
+            left
+        } else {
+            blockSize
+        }
+        let mut i: usize = 0
+        for i < take {
+            let b = plaintext[at + i] ^ blockByte(&st, i)
+            out.set(at + i, b)
+            mac.absorb(b)
+            i = i + 1
+        }
+        at = at + take
+        counter = counter.wrappingAdd(1)
+    }
+
+    mac.padZeros(pad16(plaintext.len()))
+    mac.absorbLengths(aad.len(), plaintext.len())
+    let tag = mac.finish()
+    let mut i: usize = 0
+    for i < tagSize {
+        out.set(plaintext.len() + i, tag[i])
+        i = i + 1
+    }
+    Ok(out.freeze())
+}
+
+/// Verifies the tag of `sealed` (ciphertext then tag) under `aad` and returns
+/// the plaintext only when it matches.
+pub pure fn open(key: Bytes, nonce: Bytes, aad: Bytes, sealed: Bytes) -> Result[Bytes, Error] {
+    if key.len() != keySize {
+        return Err(Error.BadKeySize)
+    }
+    if nonce.len() != nonceSize {
+        return Err(Error.BadNonceSize)
+    }
+    if sealed.len() < tagSize {
+        return Err(Error.ShortInput)
+    }
+    let textLen = sealed.len() - tagSize
+    let mut mac = Poly1305.new(poly1305Key(key, nonce))
+    mac.update(aad)
+    mac.padZeros(pad16(aad.len()))
+    mac.absorbRange(sealed, 0, textLen)
+    mac.padZeros(pad16(textLen))
+    mac.absorbLengths(aad.len(), textLen)
+    let tag = mac.finish()
+    let claimed = sealed.slice(textLen, sealed.len()).expect("tag range is within sealed")
+    if !subtle.constantTimeEq(tag, claimed) {
+        return Err(Error.TagMismatch)
+    }
+    Ok(xorRange(key, 1, nonce, sealed, 0, textLen))
+}

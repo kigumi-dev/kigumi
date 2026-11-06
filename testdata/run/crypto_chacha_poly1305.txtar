@@ -1,0 +1,49 @@
+-- src --
+import poly from std/crypto/chacha20poly1305
+import hex from std/encoding/hex
+
+fn show(b: Bytes) -> String {
+    hex.encode(b)
+}
+
+fn dec(s: String) -> Bytes {
+    hex.decode(s).expect("hex")
+}
+
+// RFC 8439 §2.5.2: a 34-byte message over three 16-byte blocks
+let key = dec("85d6be7857556d337f4452fe42d506a80103808afb0db2fd4abff6af4149f51b")
+let message = b"Cryptographic Forum Research Group"
+print "rfc-tag ${show(poly.sum(key, message))}"
+
+// Splitting the message across updates changes nothing
+let mut mac = poly.Poly1305.new(key)
+mac.update(dec("43727970746f6772617068696320466f"))
+mac.update(dec("72756d2052657365617263682047726f7570"))
+mac.update(Bytes.zeros(0))
+print "split ${show(mac.finish())}"
+
+// An empty message takes no block, so the tag is s alone
+print "empty ${show(poly.sum(key, Bytes.zeros(0)))}"
+
+print "verify ${poly.verify(key, message, dec("a8061dc1305136c6c22b8baf0c0127a9"))}"
+print "reject ${poly.verify(key, message, dec("a8061dc1305136c6c22b8baf0c0127a8"))}"
+print "tag-size ${poly.tagSize}"
+
+// A multi-block message with a different key
+let key2 = dec("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
+let data = Bytes.fill(0x7f, 100)
+print "multiblock ${show(poly.sum(key2, data))}"
+let mut chunks = poly.Poly1305.new(key2)
+chunks.update(data.slice(0, 33).expect("slice"))
+chunks.update(data.slice(33, 67).expect("slice"))
+chunks.update(data.slice(67, 100).expect("slice"))
+print "multiblock-split ${show(chunks.finish())}"
+-- stdout --
+rfc-tag a8061dc1305136c6c22b8baf0c0127a9
+split a8061dc1305136c6c22b8baf0c0127a9
+empty 0103808afb0db2fd4abff6af4149f51b
+verify true
+reject false
+tag-size 16
+multiblock b2bd99b40b5c8b7c91333dced0228f1d
+multiblock-split b2bd99b40b5c8b7c91333dced0228f1d

@@ -1,0 +1,332 @@
+import subtle from std/crypto/subtle
+
+/// Poly1305 one-time authenticator (RFC 8439 §2.5) under a 32-byte key, with
+/// no message bytes yet.
+///
+/// The accumulator uses five 26-bit limbs, so every product fits in u64, and
+/// the final reduction between `h` and `h + -p` is selected with a mask rather
+/// than a branch. No branch or index depends on the key or the message.
+pub type Poly1305 = {
+    mut h0 u32
+    mut h1 u32
+    mut h2 u32
+    mut h3 u32
+    mut h4 u32
+    r0 u32
+    r1 u32
+    r2 u32
+    r3 u32
+    r4 u32
+    s1 u32
+    s2 u32
+    s3 u32
+    s4 u32
+    pad0 u32
+    pad1 u32
+    pad2 u32
+    pad3 u32
+    mut buf Array[u8]
+    mut used usize
+}
+
+/// Low 26 bits of a limb.
+const limbMask: u32 = 0x3FFFFFF
+
+/// The implicit 2^128 bit of a full sixteen-byte block, in limb four.
+const highBit: u32 = 1 << 24
+
+/// Bytes of a Poly1305 key: `r` then `s`.
+const macKeySize: usize = 32
+
+/// Bytes of the tag.
+pub const tagSize: usize = 16
+
+/// A MAC that has consumed no message bytes yet.
+/// The key is `r` followed by `s`, clamped as RFC 8439 §2.5 requires.
+pub pure fn Poly1305.new(key: Bytes) -> Poly1305 {
+    if key.len() != macKeySize {
+        panic("poly1305: key must be 32 bytes")
+    }
+    // Clamp before splitting into limbs: r[3], r[7], r[11], r[15] lose their
+    // top four bits and r[4], r[8], r[12] their bottom two.
+    let c0 = leWord(key, 0) & 0x0FFFFFFF
+    let c1 = leWord(key, 4) & 0x0FFFFFFC
+    let c2 = leWord(key, 8) & 0x0FFFFFFC
+    let c3 = leWord(key, 12) & 0x0FFFFFFC
+    let w0 = c0.toU64()
+    let w1 = c1.toU64()
+    let w2 = c2.toU64()
+    let w3 = c3.toU64()
+    let mask = limbMask.toU64()
+    let r0 = (w0 & mask).truncate[u32]()
+    let r1 = ((w0 >> 26) | (w1 << 6)).truncate[u32]() & limbMask
+    let r2 = ((w1 >> 20) | (w2 << 12)).truncate[u32]() & limbMask
+    let r3 = ((w2 >> 14) | (w3 << 18)).truncate[u32]() & limbMask
+    let r4 = (w3 >> 8).truncate[u32]() & limbMask
+    Poly1305 {
+        h0: 0
+        h1: 0
+        h2: 0
+        h3: 0
+        h4: 0
+        r0: r0
+        r1: r1
+        r2: r2
+        r3: r3
+        r4: r4
+        s1: r1.wrappingMul(5)
+        s2: r2.wrappingMul(5)
+        s3: r3.wrappingMul(5)
+        s4: r4.wrappingMul(5)
+        pad0: leWord(key, 16)
+        pad1: leWord(key, 20)
+        pad2: leWord(key, 24)
+        pad3: leWord(key, 28)
+        buf: Array.fill[u8](0, tagSize)
+        used: 0
+    }
+}
+
+/// Adds message bytes.
+pub pure fn Poly1305.update(mut self, data: Bytes) {
+    self.absorbRange(data, 0, data.len())
+}
+
+/// Adds `data[start..end]` without slicing it, so ciphertext inside a sealed
+/// buffer is authenticated in place.
+pure fn Poly1305.absorbRange(mut self, data: Bytes, start: usize, end: usize) {
+    let mut at = start
+    if self.used > 0 {
+        for at < end && self.used < tagSize {
+            self.buf[self.used] = data[at]
+            self.used = self.used + 1
+            at = at + 1
+        }
+        if self.used == tagSize {
+            self.absorbBuffered()
+        }
+    }
+    for at + tagSize <= end {
+        self.absorbWords(leWord(data, at), leWord(data, at + 4), leWord(data, at + 8), leWord(data, at + 12), highBit)
+        at = at + tagSize
+    }
+    for at < end {
+        self.buf[self.used] = data[at]
+        self.used = self.used + 1
+        at = at + 1
+    }
+}
+
+/// Adds one message byte; the AEAD feeds ciphertext here as it is produced.
+pure fn Poly1305.absorb(mut self, b: u8) {
+    self.buf[self.used] = b
+    self.used = self.used + 1
+    if self.used == tagSize {
+        self.absorbBuffered()
+    }
+}
+
+/// Adds `count` zero bytes, the AEAD padding between fields.
+pure fn Poly1305.padZeros(mut self, count: usize) {
+    let mut left = count
+    if self.used > 0 {
+        let mut take = tagSize - self.used
+        if take > left {
+            take = left
+        }
+        let mut i: usize = 0
+        for i < take {
+            self.buf[self.used] = 0
+            self.used = self.used + 1
+            i = i + 1
+        }
+        left = left - take
+        if self.used == tagSize {
+            self.absorbBuffered()
+        }
+    }
+    for left >= tagSize {
+        self.absorbWords(0, 0, 0, 0, highBit)
+        left = left - tagSize
+    }
+    let mut i: usize = 0
+    for i < left {
+        self.buf[self.used] = 0
+        self.used = self.used + 1
+        i = i + 1
+    }
+}
+
+/// Adds the two 64-bit little-endian lengths that close an AEAD message.
+/// The caller has already completed any partial block with padding.
+pure fn Poly1305.absorbLengths(mut self, aadLen: usize, textLen: usize) {
+    let a = aadLen.toU64()
+    let c = textLen.toU64()
+    self.absorbWords(a.truncate[u32](), (a >> 32).truncate[u32](), c.truncate[u32](), (c >> 32).truncate[u32](), highBit)
+}
+
+/// Adds the sixteen bytes already buffered as a full message block.
+pure fn Poly1305.absorbBuffered(mut self) {
+    self.absorbWords(arrayWord(&self.buf, 0), arrayWord(&self.buf, 4), arrayWord(&self.buf, 8), arrayWord(&self.buf, 12), highBit)
+    self.used = 0
+}
+
+/// Adds one 16-byte block as four words plus the implicit 2^128 bit, which is
+/// zero for the final padded block (its 0x01 byte carries that bit instead).
+pure fn Poly1305.absorbWords(mut self, w0: u32, w1: u32, w2: u32, w3: u32, high: u32) {
+    let mask = limbMask.toU64()
+    let x0 = w0.toU64()
+    let x1 = w1.toU64()
+    let x2 = w2.toU64()
+    let x3 = w3.toU64()
+    let h0 = self.h0.toU64() + (x0 & mask)
+    let h1 = self.h1.toU64() + (((x0 >> 26) | (x1 << 6)) & mask)
+    let h2 = self.h2.toU64() + (((x1 >> 20) | (x2 << 12)) & mask)
+    let h3 = self.h3.toU64() + (((x2 >> 14) | (x3 << 18)) & mask)
+    let h4 = self.h4.toU64() + ((x3 >> 8) | high.toU64())
+
+    let r0 = self.r0.toU64()
+    let r1 = self.r1.toU64()
+    let r2 = self.r2.toU64()
+    let r3 = self.r3.toU64()
+    let r4 = self.r4.toU64()
+    let s1 = self.s1.toU64()
+    let s2 = self.s2.toU64()
+    let s3 = self.s3.toU64()
+    let s4 = self.s4.toU64()
+
+    let d0 = h0 * r0 + h1 * s4 + h2 * s3 + h3 * s2 + h4 * s1
+    let mut c = d0 >> 26
+    let d1 = h0 * r1 + h1 * r0 + h2 * s4 + h3 * s3 + h4 * s2 + c
+    let n0 = d0 & mask
+    c = d1 >> 26
+    let d2 = h0 * r2 + h1 * r1 + h2 * r0 + h3 * s4 + h4 * s3 + c
+    let n1 = d1 & mask
+    c = d2 >> 26
+    let d3 = h0 * r3 + h1 * r2 + h2 * r1 + h3 * r0 + h4 * s4 + c
+    let n2 = d2 & mask
+    c = d3 >> 26
+    let d4 = h0 * r4 + h1 * r3 + h2 * r2 + h3 * r1 + h4 * r0 + c
+    let n3 = d3 & mask
+    c = d4 >> 26
+    let n4 = d4 & mask
+
+    let carried = n0 + c * 5
+    self.h0 = (carried & mask).truncate[u32]()
+    self.h1 = (n1 + (carried >> 26)).truncate[u32]()
+    self.h2 = n2.truncate[u32]()
+    self.h3 = n3.truncate[u32]()
+    self.h4 = n4.truncate[u32]()
+}
+
+/// The tag of everything added so far, with the final reduction and the
+/// addition of `s` modulo 2^128 (RFC 8439 §2.5.2).
+pub pure fn Poly1305.finish(move self) -> Bytes {
+    let mut mac = self
+    if mac.used > 0 {
+        // The last block is the remaining bytes, a 0x01 byte at their end, and
+        // zeroes; that byte carries the 2^(8n) bit, so no implicit high bit.
+        mac.buf[mac.used] = 1
+        mac.used = mac.used + 1
+        for mac.used < tagSize {
+            mac.buf[mac.used] = 0
+            mac.used = mac.used + 1
+        }
+        mac.absorbWords(arrayWord(&mac.buf, 0), arrayWord(&mac.buf, 4), arrayWord(&mac.buf, 8), arrayWord(&mac.buf, 12), 0)
+        mac.used = 0
+    }
+
+    // Fully carry h.
+    let m = limbMask.toU64()
+    let mut h0 = mac.h0.toU64()
+    let mut h1 = mac.h1.toU64()
+    let mut h2 = mac.h2.toU64()
+    let mut h3 = mac.h3.toU64()
+    let mut h4 = mac.h4.toU64()
+    let mut c = h1 >> 26
+    h1 = h1 & m
+    h2 = h2 + c
+    c = h2 >> 26
+    h2 = h2 & m
+    h3 = h3 + c
+    c = h3 >> 26
+    h3 = h3 & m
+    h4 = h4 + c
+    c = h4 >> 26
+    h4 = h4 & m
+    h0 = h0 + c * 5
+    c = h0 >> 26
+    h0 = h0 & m
+    h1 = h1 + c
+
+    // Compute h + -p, where p = 2^130 - 5.
+    let mut g0 = h0 + 5
+    c = g0 >> 26
+    g0 = g0 & m
+    let mut g1 = h1 + c
+    c = g1 >> 26
+    g1 = g1 & m
+    let mut g2 = h2 + c
+    c = g2 >> 26
+    g2 = g2 & m
+    let mut g3 = h3 + c
+    c = g3 >> 26
+    g3 = g3 & m
+    let g4 = h4 + c
+    let negative = (g4.wrappingSub(1 << 26)) >> 63
+
+    // Select g (mask all ones) when h >= p, h (mask zero) otherwise. Neither
+    // the comparison nor the selection branches on the value.
+    let select = negative.wrappingSub(1)
+    let keep = ~select
+    h0 = (h0 & keep) | (g0 & select)
+    h1 = (h1 & keep) | (g1 & select)
+    h2 = (h2 & keep) | (g2 & select)
+    h3 = (h3 & keep) | (g3 & select)
+    h4 = (h4 & keep) | (g4 & m & select)
+
+    // h fits in 130 bits; write its low 128 bits, then add s with carries.
+    let w0 = (h0 | (h1 << 26)) & 0xFFFFFFFF
+    let w1 = ((h1 >> 6) | (h2 << 20)) & 0xFFFFFFFF
+    let w2 = ((h2 >> 12) | (h3 << 14)) & 0xFFFFFFFF
+    let w3 = ((h3 >> 18) | (h4 << 8)) & 0xFFFFFFFF
+    let f0 = w0 + mac.pad0.toU64()
+    let o0 = f0 & 0xFFFFFFFF
+    let f1 = w1 + mac.pad1.toU64() + (f0 >> 32)
+    let o1 = f1 & 0xFFFFFFFF
+    let f2 = w2 + mac.pad2.toU64() + (f1 >> 32)
+    let o2 = f2 & 0xFFFFFFFF
+    let f3 = w3 + mac.pad3.toU64() + (f2 >> 32)
+    let o3 = f3 & 0xFFFFFFFF
+
+    let mut out = ByteBuffer.tryNew(tagSize) || panic("out of memory")
+    out.set(0, o0.truncate[u8]())
+    out.set(1, (o0 >> 8).truncate[u8]())
+    out.set(2, (o0 >> 16).truncate[u8]())
+    out.set(3, (o0 >> 24).truncate[u8]())
+    out.set(4, o1.truncate[u8]())
+    out.set(5, (o1 >> 8).truncate[u8]())
+    out.set(6, (o1 >> 16).truncate[u8]())
+    out.set(7, (o1 >> 24).truncate[u8]())
+    out.set(8, o2.truncate[u8]())
+    out.set(9, (o2 >> 8).truncate[u8]())
+    out.set(10, (o2 >> 16).truncate[u8]())
+    out.set(11, (o2 >> 24).truncate[u8]())
+    out.set(12, o3.truncate[u8]())
+    out.set(13, (o3 >> 8).truncate[u8]())
+    out.set(14, (o3 >> 16).truncate[u8]())
+    out.set(15, (o3 >> 24).truncate[u8]())
+    out.freeze()
+}
+
+/// MAC of `data` under `key` in one call.
+pub pure fn sum(key: Bytes, data: Bytes) -> Bytes {
+    let mut mac = Poly1305.new(key)
+    mac.update(data)
+    mac.finish()
+}
+
+/// Whether `tag` is the MAC of `data` under `key`, compared in constant time.
+pub pure fn verify(key: Bytes, data: Bytes, tag: Bytes) -> Bool {
+    subtle.constantTimeEq(sum(key, data), tag)
+}
