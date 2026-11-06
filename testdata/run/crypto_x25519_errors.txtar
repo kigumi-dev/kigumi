@@ -1,0 +1,35 @@
+-- src --
+import x25519 from std/crypto/x25519
+
+fn main() -> Void! {
+    let good = x25519.publicKey(Bytes.zeros(32))?
+    match x25519.scalarMult(Bytes.zeros(31), good) {
+        Err(e) -> print "short-scalar ${e.message()}"
+        Ok(_) -> print "short-scalar accepted"
+    }
+    match x25519.scalarMult(good, Bytes.zeros(33)) {
+        Err(e) -> print "long-point ${e.message()}"
+        Ok(_) -> print "long-point accepted"
+    }
+    match x25519.baseMult(Bytes.zeros(0)) {
+        Err(e) -> print "empty-scalar ${e.message()}"
+        Ok(_) -> print "empty-scalar accepted"
+    }
+    match x25519.publicKey(Bytes.zeros(32)) {
+        Err(e) -> print "zero-scalar ${e.message()}"
+        Ok(v) -> print "zero-scalar ${v.len()}"
+    }
+    match x25519.sharedSecret(good, Bytes.zeros(31)) {
+        Err(e) -> print "short-peer ${e.message()}"
+        Ok(_) -> print "short-peer accepted"
+    }
+    print "sizes ${x25519.keySize} ${x25519.sharedSecretSize}"
+}
+
+-- stdout --
+short-scalar x25519: scalar must be 32 bytes
+long-point x25519: point must be 32 bytes
+empty-scalar x25519: scalar must be 32 bytes
+zero-scalar 32
+short-peer x25519: point must be 32 bytes
+sizes 32 32

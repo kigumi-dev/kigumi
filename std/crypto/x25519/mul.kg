@@ -1,0 +1,194 @@
+// Convolution and inversion over the limbs defined in `field.kg`.
+pure fn mul(a: Fe, b: Fe) -> Fe {
+    let f0 = a.l0
+    let f1 = a.l1
+    let f2 = a.l2
+    let f3 = a.l3
+    let f4 = a.l4
+    let f5 = a.l5
+    let f6 = a.l6
+    let f7 = a.l7
+    let f8 = a.l8
+    let f9 = a.l9
+    let f10 = a.l10
+    let f11 = a.l11
+    let g0 = b.l0
+    let g1 = b.l1
+    let g2 = b.l2
+    let g3 = b.l3
+    let g4 = b.l4
+    let g5 = b.l5
+    let g6 = b.l6
+    let g7 = b.l7
+    let g8 = b.l8
+    let g9 = b.l9
+    let g10 = b.l10
+    let g11 = b.l11
+    let h0 = f0 * g0 + 9728 * (f1 * g11 + f2 * g10 + f3 * g9 + f4 * g8 + f5 * g7 + f6 * g6 + f7 * g5 + f8 * g4 + f9 * g3 + f10 * g2 + f11 * g1)
+    let h1 = f0 * g1 + f1 * g0 + 9728 * (f2 * g11 + f3 * g10 + f4 * g9 + f5 * g8 + f6 * g7 + f7 * g6 + f8 * g5 + f9 * g4 + f10 * g3 + f11 * g2)
+    let h2 = f0 * g2 + f1 * g1 + f2 * g0 + 9728 * (f3 * g11 + f4 * g10 + f5 * g9 + f6 * g8 + f7 * g7 + f8 * g6 + f9 * g5 + f10 * g4 + f11 * g3)
+    let h3 = f0 * g3 + f1 * g2 + f2 * g1 + f3 * g0 + 9728 * (f4 * g11 + f5 * g10 + f6 * g9 + f7 * g8 + f8 * g7 + f9 * g6 + f10 * g5 + f11 * g4)
+    let h4 = f0 * g4 + f1 * g3 + f2 * g2 + f3 * g1 + f4 * g0 + 9728 * (f5 * g11 + f6 * g10 + f7 * g9 + f8 * g8 + f9 * g7 + f10 * g6 + f11 * g5)
+    let h5 = f0 * g5 + f1 * g4 + f2 * g3 + f3 * g2 + f4 * g1 + f5 * g0 + 9728 * (f6 * g11 + f7 * g10 + f8 * g9 + f9 * g8 + f10 * g7 + f11 * g6)
+    let h6 = f0 * g6 + f1 * g5 + f2 * g4 + f3 * g3 + f4 * g2 + f5 * g1 + f6 * g0 + 9728 * (f7 * g11 + f8 * g10 + f9 * g9 + f10 * g8 + f11 * g7)
+    let h7 = f0 * g7 + f1 * g6 + f2 * g5 + f3 * g4 + f4 * g3 + f5 * g2 + f6 * g1 + f7 * g0 + 9728 * (f8 * g11 + f9 * g10 + f10 * g9 + f11 * g8)
+    let h8 = f0 * g8 + f1 * g7 + f2 * g6 + f3 * g5 + f4 * g4 + f5 * g3 + f6 * g2 + f7 * g1 + f8 * g0 + 9728 * (f9 * g11 + f10 * g10 + f11 * g9)
+    let h9 = f0 * g9 + f1 * g8 + f2 * g7 + f3 * g6 + f4 * g5 + f5 * g4 + f6 * g3 + f7 * g2 + f8 * g1 + f9 * g0 + 9728 * (f10 * g11 + f11 * g10)
+    let h10 = f0 * g10 + f1 * g9 + f2 * g8 + f3 * g7 + f4 * g6 + f5 * g5 + f6 * g4 + f7 * g3 + f8 * g2 + f9 * g1 + f10 * g0 + 9728 * (f11 * g11)
+    let h11 = f0 * g11 + f1 * g10 + f2 * g9 + f3 * g8 + f4 * g7 + f5 * g6 + f6 * g5 + f7 * g4 + f8 * g3 + f9 * g2 + f10 * g1 + f11 * g0
+    normalize(Fe {
+        l0: h0
+        l1: h1
+        l2: h2
+        l3: h3
+        l4: h4
+        l5: h5
+        l6: h6
+        l7: h7
+        l8: h8
+        l9: h9
+        l10: h10
+        l11: h11
+    })
+}
+
+pure fn square(a: Fe) -> Fe {
+    let f0 = a.l0
+    let f1 = a.l1
+    let f2 = a.l2
+    let f3 = a.l3
+    let f4 = a.l4
+    let f5 = a.l5
+    let f6 = a.l6
+    let f7 = a.l7
+    let f8 = a.l8
+    let f9 = a.l9
+    let f10 = a.l10
+    let f11 = a.l11
+    let h0 = f0 * f0 + 9728 * (2 * f1 * f11 + 2 * f2 * f10 + 2 * f3 * f9 + 2 * f4 * f8 + 2 * f5 * f7 + f6 * f6)
+    let h1 = 2 * f0 * f1 + 9728 * (2 * f2 * f11 + 2 * f3 * f10 + 2 * f4 * f9 + 2 * f5 * f8 + 2 * f6 * f7)
+    let h2 = 2 * f0 * f2 + f1 * f1 + 9728 * (2 * f3 * f11 + 2 * f4 * f10 + 2 * f5 * f9 + 2 * f6 * f8 + f7 * f7)
+    let h3 = 2 * f0 * f3 + 2 * f1 * f2 + 9728 * (2 * f4 * f11 + 2 * f5 * f10 + 2 * f6 * f9 + 2 * f7 * f8)
+    let h4 = 2 * f0 * f4 + 2 * f1 * f3 + f2 * f2 + 9728 * (2 * f5 * f11 + 2 * f6 * f10 + 2 * f7 * f9 + f8 * f8)
+    let h5 = 2 * f0 * f5 + 2 * f1 * f4 + 2 * f2 * f3 + 9728 * (2 * f6 * f11 + 2 * f7 * f10 + 2 * f8 * f9)
+    let h6 = 2 * f0 * f6 + 2 * f1 * f5 + 2 * f2 * f4 + f3 * f3 + 9728 * (2 * f7 * f11 + 2 * f8 * f10 + f9 * f9)
+    let h7 = 2 * f0 * f7 + 2 * f1 * f6 + 2 * f2 * f5 + 2 * f3 * f4 + 9728 * (2 * f8 * f11 + 2 * f9 * f10)
+    let h8 = 2 * f0 * f8 + 2 * f1 * f7 + 2 * f2 * f6 + 2 * f3 * f5 + f4 * f4 + 9728 * (2 * f9 * f11 + f10 * f10)
+    let h9 = 2 * f0 * f9 + 2 * f1 * f8 + 2 * f2 * f7 + 2 * f3 * f6 + 2 * f4 * f5 + 9728 * (2 * f10 * f11)
+    let h10 = 2 * f0 * f10 + 2 * f1 * f9 + 2 * f2 * f8 + 2 * f3 * f7 + 2 * f4 * f6 + f5 * f5 + 9728 * (f11 * f11)
+    let h11 = 2 * f0 * f11 + 2 * f1 * f10 + 2 * f2 * f9 + 2 * f3 * f8 + 2 * f4 * f7 + 2 * f5 * f6
+    normalize(Fe {
+        l0: h0
+        l1: h1
+        l2: h2
+        l3: h3
+        l4: h4
+        l5: h5
+        l6: h6
+        l7: h7
+        l8: h8
+        l9: h9
+        l10: h10
+        l11: h11
+    })
+}
+
+/// Multiplies by a public constant small enough that a limb stays below 2^39.
+pure fn mulSmall(a: Fe, k: Int) -> Fe {
+    normalize(Fe {
+        l0: a.l0 * k
+        l1: a.l1 * k
+        l2: a.l2 * k
+        l3: a.l3 * k
+        l4: a.l4 * k
+        l5: a.l5 * k
+        l6: a.l6 * k
+        l7: a.l7 * k
+        l8: a.l8 * k
+        l9: a.l9 * k
+        l10: a.l10 * k
+        l11: a.l11 * k
+    })
+}
+
+pure fn squareN(a: Fe, n: usize) -> Fe {
+    let mut x = a
+    let mut i: usize = 0
+    for i < n {
+        x = square(x)
+        i = i + 1
+    }
+    x
+}
+
+/// Swaps x and y when `swap` is one, selected with a mask rather than a
+/// branch.
+pure fn cswap(a: Fe, b: Fe, swap: Int) -> (Fe, Fe) {
+    let m = 0 - swap
+    let d0 = (a.l0 ^ b.l0) & m
+    let d1 = (a.l1 ^ b.l1) & m
+    let d2 = (a.l2 ^ b.l2) & m
+    let d3 = (a.l3 ^ b.l3) & m
+    let d4 = (a.l4 ^ b.l4) & m
+    let d5 = (a.l5 ^ b.l5) & m
+    let d6 = (a.l6 ^ b.l6) & m
+    let d7 = (a.l7 ^ b.l7) & m
+    let d8 = (a.l8 ^ b.l8) & m
+    let d9 = (a.l9 ^ b.l9) & m
+    let d10 = (a.l10 ^ b.l10) & m
+    let d11 = (a.l11 ^ b.l11) & m
+    (Fe {
+        l0: a.l0 ^ d0
+        l1: a.l1 ^ d1
+        l2: a.l2 ^ d2
+        l3: a.l3 ^ d3
+        l4: a.l4 ^ d4
+        l5: a.l5 ^ d5
+        l6: a.l6 ^ d6
+        l7: a.l7 ^ d7
+        l8: a.l8 ^ d8
+        l9: a.l9 ^ d9
+        l10: a.l10 ^ d10
+        l11: a.l11 ^ d11
+    }, Fe {
+        l0: b.l0 ^ d0
+        l1: b.l1 ^ d1
+        l2: b.l2 ^ d2
+        l3: b.l3 ^ d3
+        l4: b.l4 ^ d4
+        l5: b.l5 ^ d5
+        l6: b.l6 ^ d6
+        l7: b.l7 ^ d7
+        l8: b.l8 ^ d8
+        l9: b.l9 ^ d9
+        l10: b.l10 ^ d10
+        l11: b.l11 ^ d11
+    })
+}
+
+/// z^(p - 2) = z^(2^255 - 21) by the standard addition chain.
+pure fn invert(z: Fe) -> Fe {
+    let t0 = square(z)
+    let t1 = square(t0)
+    let t2 = square(t1)
+    let t3 = mul(z, t2)
+    let t4 = mul(t0, t3)
+    let t5 = square(t4)
+    let t6 = mul(t3, t5)
+    let t7 = squareN(t6, 5)
+    let t8 = mul(t7, t6)
+    let t9 = squareN(t8, 10)
+    let t10 = mul(t9, t8)
+    let t11 = squareN(t10, 20)
+    let t12 = mul(t11, t10)
+    let t13 = squareN(t12, 10)
+    let t14 = mul(t13, t8)
+    let t15 = squareN(t14, 50)
+    let t16 = mul(t15, t14)
+    let t17 = squareN(t16, 100)
+    let t18 = mul(t17, t16)
+    let t19 = squareN(t18, 50)
+    let t20 = mul(t19, t14)
+    let t21 = squareN(t20, 5)
+    mul(t21, t4)
+}

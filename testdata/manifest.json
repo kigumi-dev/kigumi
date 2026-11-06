@@ -4337,6 +4337,24 @@
       ]
     },
     {
+      "id": "run/crypto_x25519_errors",
+      "kind": "run",
+      "path": "testdata/run/crypto_x25519_errors.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_x25519_rfc7748",
+      "kind": "run",
+      "path": "testdata/run/crypto_x25519_rfc7748.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/custom_eq",
       "kind": "run",
       "path": "testdata/run/custom_eq.txtar",

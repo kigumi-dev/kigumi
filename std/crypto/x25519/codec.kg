@@ -1,0 +1,191 @@
+// Byte encoding of the limbs defined in `field.kg`.
+/// Reads a 32-byte little-endian u-coordinate. Only bits 0..254 are read, so
+/// the RFC 7748 requirement to mask the top bit holds by construction.
+pure fn fromBytes(src: Bytes) -> Fe {
+    let mut l = FixedArray.filled[Int, limbCount](0)
+    let mut acc: Int = 0
+    let mut have: usize = 0
+    let mut at: usize = 0
+    let mut i: usize = 0
+    for i < limbCount {
+        let width: usize = if i == limbCount - 1 {
+            topBits
+        } else {
+            limbBits
+        }
+        for have < width {
+            acc = acc | (src[at].toInt() << have)
+            at = at + 1
+            have = have + 8
+        }
+        _ = l.set(i, acc & ((1 << width) - 1))
+        acc = acc >> width
+        have = have - width
+        i = i + 1
+    }
+    Fe {
+        l0: l[0]
+        l1: l[1]
+        l2: l[2]
+        l3: l[3]
+        l4: l[4]
+        l5: l[5]
+        l6: l[6]
+        l7: l[7]
+        l8: l[8]
+        l9: l[9]
+        l10: l[10]
+        l11: l[11]
+    }
+}
+
+/// Writes the unique representative in [0, p) as 32 little-endian bytes.
+pure fn toBytes(v: Fe) -> Bytes {
+    // Fold the bits above 254 with 2^255 = 19 mod p, then carry. The carry
+    // from this step can lift the top limb by at most one, so it stays in the
+    // thirteen-bit top range and the value is below 2^255.
+    let high = v.l11 >> topBits
+    let mut r0 = v.l0 + high * 19
+    let mut r1 = v.l1
+    let mut r2 = v.l2
+    let mut r3 = v.l3
+    let mut r4 = v.l4
+    let mut r5 = v.l5
+    let mut r6 = v.l6
+    let mut r7 = v.l7
+    let mut r8 = v.l8
+    let mut r9 = v.l9
+    let mut r10 = v.l10
+    let mut r11 = v.l11 & topMask
+    let c0 = r0 >> limbBits
+    r0 = r0 & limbMask
+    r1 = r1 + c0
+    let c1 = r1 >> limbBits
+    r1 = r1 & limbMask
+    r2 = r2 + c1
+    let c2 = r2 >> limbBits
+    r2 = r2 & limbMask
+    r3 = r3 + c2
+    let c3 = r3 >> limbBits
+    r3 = r3 & limbMask
+    r4 = r4 + c3
+    let c4 = r4 >> limbBits
+    r4 = r4 & limbMask
+    r5 = r5 + c4
+    let c5 = r5 >> limbBits
+    r5 = r5 & limbMask
+    r6 = r6 + c5
+    let c6 = r6 >> limbBits
+    r6 = r6 & limbMask
+    r7 = r7 + c6
+    let c7 = r7 >> limbBits
+    r7 = r7 & limbMask
+    r8 = r8 + c7
+    let c8 = r8 >> limbBits
+    r8 = r8 & limbMask
+    r9 = r9 + c8
+    let c9 = r9 >> limbBits
+    r9 = r9 & limbMask
+    r10 = r10 + c9
+    let c10 = r10 >> limbBits
+    r10 = r10 & limbMask
+    r11 = r11 + c10
+    let lift = r11 >> topBits
+    r11 = r11 & topMask
+    r0 = r0 + lift * 19
+
+    // r < 2^255. r >= p exactly when r + 19 overflows bit 254; in that case
+    // r + 19 - 2^255 equals r - p. Select between the two with a mask.
+    let mut s0 = r0 + 19
+    let mut s1 = r1
+    let mut s2 = r2
+    let mut s3 = r3
+    let mut s4 = r4
+    let mut s5 = r5
+    let mut s6 = r6
+    let mut s7 = r7
+    let mut s8 = r8
+    let mut s9 = r9
+    let mut s10 = r10
+    let mut s11 = r11
+    let d0 = s0 >> limbBits
+    s0 = s0 & limbMask
+    s1 = s1 + d0
+    let d1 = s1 >> limbBits
+    s1 = s1 & limbMask
+    s2 = s2 + d1
+    let d2 = s2 >> limbBits
+    s2 = s2 & limbMask
+    s3 = s3 + d2
+    let d3 = s3 >> limbBits
+    s3 = s3 & limbMask
+    s4 = s4 + d3
+    let d4 = s4 >> limbBits
+    s4 = s4 & limbMask
+    s5 = s5 + d4
+    let d5 = s5 >> limbBits
+    s5 = s5 & limbMask
+    s6 = s6 + d5
+    let d6 = s6 >> limbBits
+    s6 = s6 & limbMask
+    s7 = s7 + d6
+    let d7 = s7 >> limbBits
+    s7 = s7 & limbMask
+    s8 = s8 + d7
+    let d8 = s8 >> limbBits
+    s8 = s8 & limbMask
+    s9 = s9 + d8
+    let d9 = s9 >> limbBits
+    s9 = s9 & limbMask
+    s10 = s10 + d9
+    let d10 = s10 >> limbBits
+    s10 = s10 & limbMask
+    s11 = s11 + d10
+    let take = s11 >> topBits
+    s11 = s11 & topMask
+    let m = 0 - take
+
+    let mut limbs = FixedArray.filled[Int, limbCount](0)
+    _ = limbs.set(0, (r0 & ~m) | (s0 & m))
+    _ = limbs.set(1, (r1 & ~m) | (s1 & m))
+    _ = limbs.set(2, (r2 & ~m) | (s2 & m))
+    _ = limbs.set(3, (r3 & ~m) | (s3 & m))
+    _ = limbs.set(4, (r4 & ~m) | (s4 & m))
+    _ = limbs.set(5, (r5 & ~m) | (s5 & m))
+    _ = limbs.set(6, (r6 & ~m) | (s6 & m))
+    _ = limbs.set(7, (r7 & ~m) | (s7 & m))
+    _ = limbs.set(8, (r8 & ~m) | (s8 & m))
+    _ = limbs.set(9, (r9 & ~m) | (s9 & m))
+    _ = limbs.set(10, (r10 & ~m) | (s10 & m))
+    _ = limbs.set(11, (r11 & ~m) | (s11 & m))
+
+    // A selected value is either r < p or the wrapped r + 19 - 2^255, so it is
+    // below 2^255; one carry pass makes every limb canonical and its top
+    // carry is zero. Packing needs limbs below 2^22 because it ORs them.
+    let mut z: usize = 0
+    for z < limbCount - 1 {
+        let carry = limbs[z] >> limbBits
+        _ = limbs.set(z, limbs[z] & limbMask)
+        _ = limbs.set(z + 1, limbs[z + 1] + carry)
+        z = z + 1
+    }
+    _ = limbs.set(limbCount - 1, limbs[limbCount - 1] & topMask)
+
+    let mut bytes = FixedArray.filled[u8, 32](0)
+    let mut acc: Int = 0
+    let mut bits: usize = 0
+    let mut at: usize = 0
+    let mut t: usize = 0
+    for t < limbCount {
+        acc = acc | (limbs[t] << bits)
+        bits = bits + limbBits
+        for bits >= 8 && at < 32 {
+            _ = bytes.set(at, (acc & 0xff).toU8().expect("masked to one byte"))
+            acc = acc >> 8
+            bits = bits - 8
+            at = at + 1
+        }
+        t = t + 1
+    }
+    FixedArray.toBytes(bytes)
+}

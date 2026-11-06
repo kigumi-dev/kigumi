@@ -28,6 +28,7 @@ var stdLayer = map[string]Layer{
 	"std/crypto/sha512":           LayerAllocation,
 	"std/crypto/sha3":             LayerAllocation,
 	"std/crypto/chacha20poly1305": LayerAllocation,
+	"std/crypto/x25519":           LayerAllocation,
 	"std/crypto/hmac":             LayerAllocation,
 	"std/crypto/hkdf":             LayerAllocation,
 	"std/secret":                  LayerFoundation,

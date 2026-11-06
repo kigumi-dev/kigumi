@@ -1,0 +1,115 @@
+// X25519: the Diffie-Hellman function on Curve25519 (RFC 7748 §5).
+//
+// The Montgomery ladder runs the same 255 steps for every scalar; the scalar
+// bit only feeds a mask-based swap and the doubled-and-add formulas, and the
+// field helpers in `field.kg` keep every limb branchless. Only the native
+// backend gives a timing guarantee; the VM makes no such promise.
+/// Bytes of a scalar, u-coordinate or shared secret.
+pub const keySize: usize = 32
+
+/// Size of a shared secret, in bytes.
+pub const sharedSecretSize: usize = keySize
+
+/// Why an X25519 call was refused.
+pub type Error =
+    | BadScalarSize
+    | BadPointSize
+
+/// A short, fixed explanation of the error.
+pub fn Error.message(self) -> String {
+    match self {
+        BadScalarSize -> "x25519: scalar must be 32 bytes"
+        BadPointSize -> "x25519: point must be 32 bytes"
+    }
+}
+
+/// Multiplies `point` by the clamped `scalar`, as RFC 7748 defines X25519.
+/// Both arguments must be 32 bytes; the u-coordinate's top bit is masked.
+///
+/// An all-zero output means the peer point had small order; callers that need
+/// contributory behaviour MUST reject it.
+pub pure fn scalarMult(scalar: Bytes, point: Bytes) -> Result[Bytes, Error] {
+    if scalar.len() != keySize {
+        return Err(Error.BadScalarSize)
+    }
+    if point.len() != keySize {
+        return Err(Error.BadPointSize)
+    }
+    Ok(ladder(clamp(scalar), point))
+}
+
+/// Multiplies the Curve25519 base point (u = 9) by `scalar`.
+pub pure fn baseMult(scalar: Bytes) -> Result[Bytes, Error] {
+    scalarMult(scalar, basePoint())
+}
+
+/// The public key for `secret`: `baseMult` under its standard name.
+pub pure fn publicKey(secret: Bytes) -> Result[Bytes, Error] {
+    baseMult(secret)
+}
+
+/// The shared secret between `secret` and a 32-byte peer public key.
+pub pure fn sharedSecret(secret: Bytes, peerPublic: Bytes) -> Result[Bytes, Error] {
+    scalarMult(secret, peerPublic)
+}
+
+pure fn clamp(scalar: Bytes) -> FixedArray[u8, keySize] {
+    let mut e = FixedArray.filled[u8, keySize](0)
+    let mut i: usize = 0
+    for i < keySize {
+        _ = e.set(i, scalar[i])
+        i = i + 1
+    }
+    // RFC 7748 §5: clear the low three bits and bit 255, set bit 254.
+    _ = e.set(0, scalar[0] & 248)
+    _ = e.set(keySize - 1, (scalar[keySize - 1] & 127) | 64)
+    e
+}
+
+pure fn basePoint() -> Bytes {
+    let mut b = FixedArray.filled[u8, keySize](0)
+    _ = b.set(0, 9)
+    FixedArray.toBytes(b)
+}
+
+pure fn ladder(e: FixedArray[u8, keySize], point: Bytes) -> Bytes {
+    let x1 = fromBytes(point)
+    let mut x2 = one()
+    let mut z2 = zero()
+    let mut x3 = x1
+    let mut z3 = one()
+    let mut swap: Int = 0
+    let mut t: usize = 0
+    for t < 255 {
+        let pos = 254 - t
+        let bit = (e[pos >> 3].toInt() >> (pos & 7)) & 1
+        swap = swap ^ bit
+        let (nx2, nx3) = cswap(x2, x3, swap)
+        x2 = nx2
+        x3 = nx3
+        let (nz2, nz3) = cswap(z2, z3, swap)
+        z2 = nz2
+        z3 = nz3
+        swap = bit
+
+        let a = add(x2, z2)
+        let aa = square(a)
+        let b = sub(x2, z2)
+        let bb = square(b)
+        let ee = sub(aa, bb)
+        let c = add(x3, z3)
+        let d = sub(x3, z3)
+        let da = mul(d, a)
+        let cb = mul(c, b)
+        x3 = square(add(da, cb))
+        z3 = mul(x1, square(sub(da, cb)))
+        x2 = mul(aa, bb)
+        z2 = mul(ee, add(aa, mulSmall(ee, 121665)))
+        t = t + 1
+    }
+    let (finalX, finalY) = cswap(x2, x3, swap)
+    let (finalZ, finalW) = cswap(z2, z3, swap)
+    _ = finalY
+    _ = finalW
+    toBytes(mul(finalX, invert(finalZ)))
+}

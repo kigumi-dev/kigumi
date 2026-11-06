@@ -1,0 +1,74 @@
+-- src --
+import hex from std/encoding/hex
+import x25519 from std/crypto/x25519
+
+fn show(b: Bytes) -> String {
+    hex.encode(b)
+}
+
+fn main() -> Void! {
+    // RFC 7748 §5.2
+    let alicePriv = hex.decode("77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a")?
+    let alicePub = hex.decode("8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a")?
+    let bobPriv = hex.decode("5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb")?
+    let bobPub = hex.decode("de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f")?
+    print "alice-public ${show(x25519.publicKey(alicePriv)?)}"
+    print "bob-public ${show(x25519.publicKey(bobPriv)?)}"
+    print "alice-matches ${show(x25519.baseMult(alicePriv)?)}"
+    print "bob-matches ${show(x25519.baseMult(bobPriv)?)}"
+
+    // RFC 7748 §6.1
+    print "shared-ab ${show(x25519.sharedSecret(alicePriv, bobPub)?)}"
+    print "shared-ba ${show(x25519.sharedSecret(bobPriv, alicePub)?)}"
+
+    // RFC 7748 §5.2 additional scalar multiplication
+    let rfcScalar = hex.decode("a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4")?
+    let rfcPoint = hex.decode("e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c")?
+    print "rfc-scalarmult ${show(x25519.scalarMult(rfcScalar, rfcPoint)?)}"
+
+    // RFC 7748 §5.2, one iteration of k = X25519(k, u) from (9, 9)
+    let nine = hex.decode("0900000000000000000000000000000000000000000000000000000000000000")?
+    print "iterate-1 ${show(x25519.scalarMult(nine, nine)?)}"
+
+    // Clamping: the low three bits, bit 254 and bit 255 of the scalar cannot
+    // change the result.
+    let mut raw = Array.empty[u8]()
+    let mut i: usize = 0
+    for i < 32 {
+        raw.push(alicePriv[i])
+        i = i + 1
+    }
+    raw[0] = raw[0] | 7
+    raw[31] = (raw[31] | 0x80) & 0x3f
+    print "unclamped ${show(x25519.publicKey(Bytes.fromArray(&raw))?)}"
+
+    // The top bit of the u-coordinate is ignored; p + 2 therefore reads as 2.
+    let nonCanonical = hex.decode("efffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f")?
+    let two = hex.decode("0200000000000000000000000000000000000000000000000000000000000000")?
+    print "non-canonical ${show(x25519.scalarMult(alicePriv, nonCanonical)?)}"
+    print "canonical ${show(x25519.scalarMult(alicePriv, two)?)}"
+
+    // Small-order points give the all-zero output.
+    let zero = Bytes.zeros(32)
+    let one = hex.decode("0100000000000000000000000000000000000000000000000000000000000000")?
+    let minusOne = hex.decode("ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f")?
+    print "point-zero ${show(x25519.scalarMult(alicePriv, zero)?)}"
+    print "point-one ${show(x25519.scalarMult(alicePriv, one)?)}"
+    print "point-minus-one ${show(x25519.scalarMult(alicePriv, minusOne)?)}"
+}
+
+-- stdout --
+alice-public 8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a
+bob-public de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f
+alice-matches 8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a
+bob-matches de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f
+shared-ab 4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742
+shared-ba 4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742
+rfc-scalarmult c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552
+iterate-1 422c8e7a6227d7bca1350b3e2bb7279f7897b87bb6854b783c60e80311ae3079
+unclamped 8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a
+non-canonical e80c0be9d3a1c5d71edd6316e8c9115ca35397cd47109bd38e32864f1adecf4d
+canonical e80c0be9d3a1c5d71edd6316e8c9115ca35397cd47109bd38e32864f1adecf4d
+point-zero 0000000000000000000000000000000000000000000000000000000000000000
+point-one 0000000000000000000000000000000000000000000000000000000000000000
+point-minus-one 0000000000000000000000000000000000000000000000000000000000000000
