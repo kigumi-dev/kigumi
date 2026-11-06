@@ -1,7 +1,16 @@
 import kw from c/kw
 
-let sum = unsafe { kw.params(1, 1, 1, 1, 1, 1, 1, 1) }
-let m = unsafe { kw.match_(5) }
-let f = unsafe { kw.fail_(21) }
-let p = kw.Pair { type_: 1, match_: 2 }
+let sum = unsafe {
+    kw.params(1, 1, 1, 1, 1, 1, 1, 1)
+}
+let m = unsafe {
+    kw.match_(5)
+}
+let f = unsafe {
+    kw.fail_(21)
+}
+let p = kw.Pair {
+    type_: 1
+    match_: 2
+}
 print "${sum} ${m} ${f} ${p.type_ + p.match_} ${kw.is_}"

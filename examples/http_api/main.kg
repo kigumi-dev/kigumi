@@ -1,7 +1,7 @@
 #!/usr/bin/env kigumi
 
-import http from std/net/http
 import net from std/net
+import http from std/net/http
 import task from std/task
 
 type Greeting = {

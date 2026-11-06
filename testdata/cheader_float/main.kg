@@ -1,15 +1,35 @@
 import ffi from std/ffi
 import single from c/single
 
-let made = unsafe { single.cheaderf_make(0.1, 0.5, 0.2) }
+let made = unsafe {
+    single.cheaderf_make(0.1, 0.5, 0.2)
+}
 print "made ${made.tag} ${made.a} ${made.d} ${made.b} ${made.c}"
-let scaled = unsafe { single.cheaderf_scale(made, 3) }
+let scaled = unsafe {
+    single.cheaderf_scale(made, 3)
+}
 print "scaled ${scaled.tag} ${scaled.a} ${scaled.d} ${scaled.b} ${scaled.c}"
-let mine = single.Single { tag: 9, a: 1.5, d: 2.5, b: 0.75, c: 0.1 }
+let mine = single.Single {
+    tag: 9
+    a: 1.5
+    d: 2.5
+    b: 0.75
+    c: 0.1
+}
 print "sum ${unsafe { single.cheaderf_sum(mine) }} half ${unsafe { single.cheaderf_half(0.3) }}"
-let cSize = unsafe { single.cheaderf_sizeof() }
-let cAlign = unsafe { single.cheaderf_alignof() }
-let offA = unsafe { single.cheaderf_off_a() }
-let offB = unsafe { single.cheaderf_off_b() }
-let offC = unsafe { single.cheaderf_off_c() }
+let cSize = unsafe {
+    single.cheaderf_sizeof()
+}
+let cAlign = unsafe {
+    single.cheaderf_alignof()
+}
+let offA = unsafe {
+    single.cheaderf_off_a()
+}
+let offB = unsafe {
+    single.cheaderf_off_b()
+}
+let offC = unsafe {
+    single.cheaderf_off_c()
+}
 print "layout ${ffi.sizeOf(&mine)} ${cSize} ${ffi.alignOf(&mine)} ${cAlign} ${offA} ${offB} ${offC}"

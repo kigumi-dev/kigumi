@@ -1,6 +1,6 @@
-import dl from std/ffi/dl
 import entropy from std/entropy
 import ffi from std/ffi
+import dl from std/ffi/dl
 
 /// The dynamic loader.
 pub fn Host.dl(self) -> dl.Loader
