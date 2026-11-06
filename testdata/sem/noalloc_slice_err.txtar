@@ -1,0 +1,21 @@
+-- module --
+stage: driver
+-- src --
+noalloc fn f(a: &Array[Int]) -> Array[Int] {
+    a.slice(0, 1) || Array.empty[Int]()
+}
+
+fn main() {}
+-- expect --
+error[E907]: `slice` is not `noalloc`
+ --> main.kg:2:5
+  |
+2 |     a.slice(0, 1) || Array.empty[Int]()
+  |     ^^^^^^^^^^^^
+
+error[E907]: `empty` is not `noalloc`
+ --> main.kg:2:22
+  |
+2 |     a.slice(0, 1) || Array.empty[Int]()
+  |                      ^^^^^^^^^^^^^^^^^
+
