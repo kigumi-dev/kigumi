@@ -23,13 +23,31 @@ type outsideMutCall struct {
 	lent        map[EntityID]EntityID
 	// byRef: the access is a `&mut` argument, not a `mut self` receiver.
 	byRef bool
+	// enclosing is the innermost closure whose body contains base, 0 at declaration scope.
+	enclosing EntityID
 }
 
-func (c *checker) noteMutCapture(n syntax.NodeID, root EntityID) {
+// mutWriteSite is a write of a captured local: the node that writes, the closure whose body holds it (0 when the write
+// sits at declaration scope), and whether the write is itself a `mut self` call on the shared cell.
+type mutWriteSite struct {
+	node     syntax.NodeID
+	closure  EntityID
+	selfCall bool
+}
+
+func (c *checker) noteMutCapture(n syntax.NodeID, root EntityID, selfCall bool) {
 	if c.mutCaptures == nil {
-		c.mutCaptures = map[EntityID][]syntax.NodeID{}
+		c.mutCaptures = map[EntityID][]mutWriteSite{}
 	}
-	c.mutCaptures[root] = append(c.mutCaptures[root], n)
+	c.mutCaptures[root] = append(c.mutCaptures[root], mutWriteSite{node: n, closure: c.enclosingClosure(), selfCall: selfCall})
+}
+
+// enclosingClosure names the innermost lambda being checked, or 0 at declaration scope.
+func (c *checker) enclosingClosure() EntityID {
+	if len(c.lambdas) == 0 {
+		return 0
+	}
+	return c.lambdas[len(c.lambdas)-1].ent
 }
 
 func (c *checker) rootsHeldByClosure(roots []EntityID) bool {
@@ -60,13 +78,29 @@ func (c *checker) sharesLoop(a, b syntax.NodeID) bool {
 
 func (c *checker) settleExclusive() {
 	c.recheckErasures()
+	c.exclusiveArgs = c.exclusiveArgExprs()
 	for _, call := range c.outsideCalls {
 		c.settleOrDefer(call.roots, func() { c.settleOutsideCall(call) })
 	}
 	for _, s := range c.exclusiveSites {
 		c.settleOrDefer(s.roots, func() { c.settleExclusiveSite(s) })
 	}
+	// exclusiveArgs stays: a deferred settle (context fixpoint) can still run after this.
 	c.outsideCalls, c.exclusiveSites = nil, nil
+}
+
+// exclusiveArgExprs lists every argument of an exclusive call once, unwrapped so a span test sees the value itself.
+func (c *checker) exclusiveArgExprs() []syntax.NodeID {
+	var out []syntax.NodeID
+	for _, s := range c.exclusiveSites {
+		for _, a := range s.args {
+			if c.t.Kind(a) == syntax.NamedArg {
+				a = c.t.View(a).AsNamedArg().Value().ID()
+			}
+			out = append(out, c.t.Unparen(a))
+		}
+	}
+	return out
 }
 
 func (c *checker) settleOrDefer(roots []EntityID, settle func()) {

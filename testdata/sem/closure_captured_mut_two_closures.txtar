@@ -1,0 +1,80 @@
+-- app/t/t.kg --
+type Item = {
+    pub mut count Int
+}
+
+fn Item.update(mut self, delta: Int) {
+    self.count = self.count + delta
+}
+
+fn twoClosures() -> Int {
+    let mut item = Item { count: 0 }
+    let a = () => { item.update(1) } //~ ERROR a `mut self` call on `item` conflicts
+    let b = () => { item.update(2) } //~ ERROR a `mut self` call on `item` conflicts
+    a()
+    b()
+    item.count
+}
+
+fn twoClosuresWithReader() -> Int {
+    let mut item = Item { count: 0 }
+    let bump = () => { item.update(1) }
+    let peek = () => item.count
+    bump()
+    item.count
+}
+
+fn nestedThroughOuter() -> Int {
+    let mut item = Item { count: 0 }
+    let outer = () => {
+        let inner = () => { item.update(1) }
+        inner()
+        inner()
+    }
+    outer()
+    item.count
+}
+
+fn aliasThenDirectCall() -> Int {
+    let mut item = Item { count: 0 }
+    let bump = () => { item.update(1) }
+    let peek = () => item.count
+    let alias = bump
+    alias()
+    item.update(1) //~ ERROR a `mut self` call on `item` conflicts
+    item.count + peek()
+}
+-- expect --
+error[E980]: a `mut self` call on `item` conflicts with a closure that shares its identity cell
+  --> app/t/t.kg:11:21
+   |
+11 |     let a = () => { item.update(1) } //~ ERROR a `mut self` call on `item` conflicts
+   |                     ^^^^
+note: `item` is shared with a closure that writes it here
+  --> app/t/t.kg:12:21
+   |
+12 |     let b = () => { item.update(2) } //~ ERROR a `mut self` call on `item` conflicts
+   |                     ^^^^
+
+error[E980]: a `mut self` call on `item` conflicts with a closure that shares its identity cell
+  --> app/t/t.kg:12:21
+   |
+12 |     let b = () => { item.update(2) } //~ ERROR a `mut self` call on `item` conflicts
+   |                     ^^^^
+note: `item` is shared with a closure that writes it here
+  --> app/t/t.kg:11:21
+   |
+11 |     let a = () => { item.update(1) } //~ ERROR a `mut self` call on `item` conflicts
+   |                     ^^^^
+
+error[E980]: a `mut self` call on `item` conflicts with a closure that shares its identity cell
+  --> app/t/t.kg:43:5
+   |
+43 |     item.update(1) //~ ERROR a `mut self` call on `item` conflicts
+   |     ^^^^
+note: `item` is shared with a closure that writes it here
+  --> app/t/t.kg:39:24
+   |
+39 |     let bump = () => { item.update(1) }
+   |                        ^^^^
+

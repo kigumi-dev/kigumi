@@ -115,7 +115,9 @@ type checker struct {
 	pendingFieldEdges []pendingFieldEdge
 	exclusiveSites    []exclusiveSite
 	outsideCalls      []outsideMutCall
-	mutCaptures       map[EntityID][]syntax.NodeID
+	mutCaptures       map[EntityID][]mutWriteSite
+	// exclusiveArgs are the argument expressions of every exclusive call, whose closures cannot outlive the call.
+	exclusiveArgs []syntax.NodeID
 	exprState
 	// lentFrom maps a `for` or pattern binding over a `&mut` head to the head's root place.
 	lentFrom map[EntityID]lentRef

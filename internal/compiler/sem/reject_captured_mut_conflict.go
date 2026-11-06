@@ -5,17 +5,19 @@ import (
 	"kigumi/internal/lang/token"
 )
 
-// conservative by design, false positives accepted: a `mut self` call from outside
-// the capturing closure is rejected; a call from inside it creates the cell, so it's allowed.
+// Every `mut self` call on a captured local is settled against the closures that write it: the call is allowed only
+// from inside the writing closure's own body, so a call from declaration scope, from before the closure, or from
+// another closure over the same local is rejected.
 func (c *checker) checkCapturedMutConflict(base syntax.NodeID, root EntityID) {
+	enclosing := c.enclosingClosure()
 	if c.capturedHere(root) {
-		c.noteCaptureWrite(base, root)
-		return
+		c.noteCaptureWrite(base, root, true)
+	} else {
+		c.shareOutsideWrite(base, root)
 	}
-	c.shareOutsideWrite(base, root)
 	_, field := c.placeRoot(base)
 	roots, lent := c.exclusiveRoots(root, field)
-	c.outsideCalls = append(c.outsideCalls, outsideMutCall{base: base, root: root, field: field, roots: roots, lent: lent})
+	c.outsideCalls = append(c.outsideCalls, outsideMutCall{base: base, root: root, field: field, roots: roots, lent: lent, enclosing: enclosing})
 }
 
 // shareOutsideWrite moves the closures that copied root onto its identity cell so a `&mut` or `mut self` write outside

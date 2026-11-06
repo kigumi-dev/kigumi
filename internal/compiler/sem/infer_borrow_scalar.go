@@ -82,7 +82,7 @@ func (c *checker) markScalarBorrow(b scalarBorrow, written func(scalarBorrow, En
 
 func (c *checker) settledCaptureWrite(b scalarBorrow, ent EntityID) {
 	if b.captured {
-		c.promoteCaptures(b.inner, ent)
+		c.promoteCaptures(b.inner, ent, false)
 		return
 	}
 	c.shareOutsideWrite(b.inner, ent)

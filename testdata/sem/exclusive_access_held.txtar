@@ -120,8 +120,8 @@ fn twoLevels() {
 
 fn insideClosureBody() {
     let mut v = Item { count: 0 }
-    let inner = () => { v.update(1) }
-    let outer = () => { v.run(inner) } //~ ERROR a closure argument cannot capture `v`
+    let inner = () => { v.update(1) } //~ ERROR a `mut self` call on `v` conflicts
+    let outer = () => { v.run(inner) } //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
     outer()
 }
 
@@ -389,20 +389,42 @@ note: this closure captures `v`
 114 |     let inner = () => { v.update(1) }
     |                 ^^^^^^^^^^^^^^^^^^
 
+error[E980]: a `mut self` call on `v` conflicts with a closure that shares its identity cell
+   --> app/t/t.kg:122:25
+    |
+122 |     let inner = () => { v.update(1) } //~ ERROR a `mut self` call on `v` conflicts
+    |                         ^
+note: `v` is shared with a closure that writes it here
+   --> app/t/t.kg:123:25
+    |
+123 |     let outer = () => { v.run(inner) } //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
+    |                         ^
+
+error[E980]: a `mut self` call on `v` conflicts with a closure that shares its identity cell
+   --> app/t/t.kg:123:25
+    |
+123 |     let outer = () => { v.run(inner) } //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
+    |                         ^
+note: `v` is shared with a closure that writes it here
+   --> app/t/t.kg:122:25
+    |
+122 |     let inner = () => { v.update(1) } //~ ERROR a `mut self` call on `v` conflicts
+    |                         ^
+
 error[E979]: a closure argument cannot capture `v` while this call exclusively borrows it
    --> app/t/t.kg:123:31
     |
-123 |     let outer = () => { v.run(inner) } //~ ERROR a closure argument cannot capture `v`
+123 |     let outer = () => { v.run(inner) } //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
     |                               ^^^^^
 note: `v` is exclusively borrowed by this call
    --> app/t/t.kg:123:25
     |
-123 |     let outer = () => { v.run(inner) } //~ ERROR a closure argument cannot capture `v`
+123 |     let outer = () => { v.run(inner) } //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
     |                         ^
 note: this closure captures `v`
    --> app/t/t.kg:122:17
     |
-122 |     let inner = () => { v.update(1) }
+122 |     let inner = () => { v.update(1) } //~ ERROR a `mut self` call on `v` conflicts
     |                 ^^^^^^^^^^^^^^^^^^
 
 error[E980]: a `mut self` call on `v` conflicts with a closure that shares its identity cell

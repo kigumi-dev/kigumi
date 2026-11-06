@@ -31,7 +31,7 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 	} else if !c.isMutablePlace(lhs) {
 		c.reportImmutable(lhs)
 	} else if root := c.rootOf(lhs); root != 0 {
-		c.noteCaptureWrite(lhs, root)
+		c.noteCaptureWrite(lhs, root, false)
 	}
 	deferred := !op.IsCompoundAssign() && c.copyShape(lhs, rhs)
 	_, refTarget := c.r.MutRefElem(c.vars.resolve(target))

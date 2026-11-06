@@ -8,14 +8,14 @@ import (
 
 // promoteCaptures gives every closure that captured ent a shared cell, even
 // ones already closed: ctx.list aliases the backing array copied into ClosureInfo.
-func (c *checker) promoteCaptures(n syntax.NodeID, ent EntityID) {
+func (c *checker) promoteCaptures(n syntax.NodeID, ent EntityID, selfCall bool) {
 	sites := c.captureSites[ent]
 	c.markOpenWritten(ent)
 	if len(sites) == 0 || c.movedCaptureWrite(n, ent, sites) {
 		return
 	}
 	c.r.Entities[ent].Flags |= EfCapturedMut
-	c.noteMutCapture(n, ent)
+	c.noteMutCapture(n, ent, selfCall)
 	for _, site := range sites {
 		if site.ctx.list[site.idx].Mode == capCopy {
 			site.ctx.list[site.idx].Mode = capCell

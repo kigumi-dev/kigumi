@@ -75,7 +75,7 @@ func (c *checker) capturedHere(ent EntityID) bool {
 	return ok
 }
 
-func (c *checker) noteCaptureWrite(n syntax.NodeID, ent EntityID) {
+func (c *checker) noteCaptureWrite(n syntax.NodeID, ent EntityID, selfCall bool) {
 	// A write through a borrow changes the referent, not the local.
 	if c.r.Types.Kind(c.r.Entities[ent].Type) == KRef {
 		return
@@ -87,7 +87,7 @@ func (c *checker) noteCaptureWrite(n syntax.NodeID, ent EntityID) {
 	if c.capturedHere(ent) && c.r.Entities[ent].Kind != EntLocal {
 		c.edge(EffectEdge{Kind: EdgeMutateCaller, Target: ent, Node: n})
 	}
-	c.promoteCaptures(n, ent)
+	c.promoteCaptures(n, ent, selfCall)
 }
 
 // markImmediate records a lambda passed to a verified non-escaping parameter; only then may its
