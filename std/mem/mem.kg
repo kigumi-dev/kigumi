@@ -1,3 +1,4 @@
+// BoundedArray lives in std/array now; std/mem is Foundation and cannot re-export an Allocation package.
 /// The only compiler-known interior-mutable primitive: holds a T inline with no extra allocation, header, or lock; every accessor needs `unsafe`.
 /// Safety: moving an UnsafeCell[T] to another thread only ever moves the T inside, so doing so is sound exactly when T itself is.
 @unsafeGuarantee(Send when T: Send)
