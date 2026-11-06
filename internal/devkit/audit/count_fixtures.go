@@ -44,7 +44,7 @@ func countTestBlocks(repoRoot string) (int, error) {
 			return err
 		}
 		if d.IsDir() {
-			if d.Name() == "node_modules" || d.Name() == ".git" || d.Name() == "docs" {
+			if d.Name() == "node_modules" || d.Name() == ".git" || d.Name() == "docs" || d.Name() == "docs-new" || d.Name() == ".work" {
 				return fs.SkipDir
 			}
 			return nil

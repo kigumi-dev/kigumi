@@ -15,7 +15,7 @@ func nativeOnlyRefusal(why string) bool {
 	}
 	return strings.HasPrefix(why, "foreign function ") ||
 		strings.HasPrefix(why, "primitive ffi.") ||
-		strings.HasPrefix(why, "primitive dl.")
+		strings.HasPrefix(why, "primitive dl.") || strings.HasPrefix(why, "primitive ffi/dl.")
 }
 
 // vmRefusalError turns vm.Supports/SupportsTests' reason into the CLI

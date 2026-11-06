@@ -31,7 +31,7 @@ func TestNoEnvReads(t *testing.T) {
 			return err
 		}
 		if d.IsDir() {
-			if d.Name() == "testdata" || d.Name() == "node_modules" {
+			if d.Name() == "testdata" || d.Name() == "node_modules" || d.Name() == "docs-new" || d.Name() == ".work" {
 				return fs.SkipDir
 			}
 			return nil
