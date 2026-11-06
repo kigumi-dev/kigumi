@@ -1,0 +1,92 @@
+-- src --
+import gzip from std/compress/gzip
+import hex from std/encoding/hex
+
+fn hx(b: Bytes) -> String {
+    hex.encode(b)
+}
+
+fn head(b: Bytes) -> String {
+    let n = b.len()
+    if n <= 16 {
+        hx(b)
+    } else {
+        "${hx(b.slice(0, 8) || Bytes.zeros(0))}..${hx(b.slice(n - 8, n) || Bytes.zeros(0))}"
+    }
+}
+
+fn run(name: String, h: String) {
+    let raw = hex.decode(h).unwrap()
+    match gzip.decode(raw) {
+        Ok(b) -> print "${name} ok len=${b.len()} hex=${head(b)}"
+        Err(e) -> print "${name} err ${e.message()}"
+    }
+}
+
+fn main() {
+    run("empty", "1f8b08000000000002ff03000000000000000000")
+    run("hello", "1f8b08000000000002ffcb48cdc9c9070086a6103605000000")
+    run("hello-stored", "1f8b08000000000004ff010500faff68656c6c6f86a6103605000000")
+    run("dynamic", "1f8b08000000000002ff6360646266616563e7e0e4e2e6e1e5e3171014121611151397909492969195935750545256515553d7d0d4d2d6d1d5d33730343236313533b7b0b4b2b6b1b5b37770747276717573f7f0f4f2f6f1f5f30f080c0a0e090d0b8f888c8a8e898d8b4f484c4a4e494d4bcfc8cccacec9cdcb2f282c2a2e292d2bafa8acaaaea9adab6f686c6a6e696d6befe8eceaeee9edeb9f3071d2e42953a74d9f3173d6ec3973e7cd5fb070d1e2254b972d5fb172d5ea356bd7addfb071d3e62d5bb76ddfb173d7ee3d7bf7ed3f70f0d0e123478f1d3f71f2d4e93367cf9dbf70f1d2e52b57af5dbf71f3d6ed3b77efdd7ff0f0d1e3274f9f3d7ff1f2d5eb376fdfbdfff0f1d3e72f5fbf7dfff1f3d7ef3f7ffffd6718f5ffa8ff47fd3feaff51ff8ffa7f04fabf242355a1b03433395b21a928bf3c4f212dbf4221ab34b7a05821bf2cb54801249d935855a990929f3eaa74c0950200142860f5ae090000")
+    run("named-extra-comment", "1f8b081c0000000000ff02006162782e74787400686900cb4bcc4d4d512848acccc94f4c010095a3a1c30d000000")
+    run("header-crc", "1f8b08020000000000ff90c9cb4bcc4d4d512848acccc94f4c010095a3a1c30d000000")
+    run("two-members", "1f8b08000000000002ffcb48cdc9c9070086a61036050000001f8b08000000000002ffcb48cdc9c9070086a6103605000000")
+    run("crc-mismatch", "1f8b08000000000002ffcb48cdc9c9070079a6103605000000")
+    run("isize-mismatch", "1f8b08000000000002ffcb48cdc9c9070086a6103604000000")
+    run("header-crc-mismatch", "1f8b08020000000000ff91c9cb4bcc4d4d512848acccc94f4c010095a3a1c30d000000")
+    run("truncated", "1f8b08000000000002ffcb48cdc9c90700")
+    run("empty-input", "")
+    run("short-header", "1f8b")
+    run("bad-method", "1f8b070000000000000000")
+    run("reserved-flags", "1f8b08200000000000ff03000000000000000000")
+    let src = "the quick brown fox jumps over the lazy dog".toBytes()
+    let e1 = gzip.encode(src)
+    let e2 = gzip.encode(src)
+    print "encode-deterministic=${e1.equals(&e2)} len=${e1.len()} magic=${hx(e1.slice(0, 10) || Bytes.zeros(0))}"
+    match gzip.decode(e1) {
+        Ok(b) -> print "roundtrip=${b.equals(&src)}"
+        Err(e) -> print "roundtrip-err=${e.message()}"
+    }
+    let empty = gzip.encode(Bytes.zeros(0))
+    print "empty-encoded=${hx(empty)}"
+    match gzip.decode(empty) {
+        Ok(b) -> print "empty-roundtrip=${b.len()}"
+        Err(e) -> print "empty-err=${e.message()}"
+    }
+    let big = Bytes.fill(97, 20000)
+    let eb = gzip.encode(big)
+    print "repeated=${big.len()} compressed=${eb.len()}"
+    match gzip.decode(eb) {
+        Ok(b) -> print "repeated-roundtrip=${b.equals(&big)}"
+        Err(e) -> print "repeated-err=${e.message()}"
+    }
+    match gzip.decodeLimit(eb, 1000) {
+        Ok(b) -> print "limit-ok=${b.len()}"
+        Err(e) -> print "limit-err=${e.message()}"
+    }
+    print "crc32-empty=${gzip.crc32(Bytes.zeros(0))} crc32-abc=${gzip.crc32("abc".toBytes())}"
+}
+-- stdout --
+empty ok len=0 hex=
+hello ok len=5 hex=68656c6c6f
+hello-stored ok len=5 hex=68656c6c6f
+dynamic ok len=2478 hex=0001020304050607..6c617a7920646f67
+named-extra-comment ok len=13 hex=6e616d6564207061796c6f6164
+header-crc ok len=13 hex=6e616d6564207061796c6f6164
+two-members ok len=10 hex=68656c6c6f68656c6c6f
+crc-mismatch err gzip: CRC32 mismatch
+isize-mismatch err gzip: ISIZE mismatch
+header-crc-mismatch err gzip: header CRC mismatch
+truncated err gzip: trailer is shorter than 8 bytes
+empty-input err gzip: input holds no member
+short-header err gzip: header is shorter than its 10 fixed bytes
+bad-method err gzip: unsupported compression method 7
+reserved-flags err gzip: reserved header flag bits are set
+encode-deterministic=true len=61 magic=1f8b08000000000000ff
+roundtrip=true
+empty-encoded=1f8b08000000000000ff03000000000000000000
+empty-roundtrip=0
+repeated=20000 compressed=148
+repeated-roundtrip=true
+limit-err=flate: output exceeds the 1000 byte limit
+crc32-empty=0 crc32-abc=891568578

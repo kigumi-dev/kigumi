@@ -1,0 +1,115 @@
+-- src --
+import flate from std/compress/flate
+import hex from std/encoding/hex
+
+fn hx(b: Bytes) -> String {
+    hex.encode(b)
+}
+
+fn head(b: Bytes) -> String {
+    let n = b.len()
+    if n <= 16 {
+        hx(b)
+    } else {
+        "${hx(b.slice(0, 8) || Bytes.zeros(0))}..${hx(b.slice(n - 8, n) || Bytes.zeros(0))}"
+    }
+}
+
+fn run(name: String, h: String) {
+    let raw = hex.decode(h).unwrap()
+    match flate.inflate(raw) {
+        Ok(b) -> print "${name} ok len=${b.len()} hex=${head(b)}"
+        Err(e) -> print "${name} err ${e.message()}"
+    }
+}
+
+fn main() {
+    run("empty", "0300")
+    run("hello-fixed", "cb48cdc9c90700")
+    run("hello-stored", "010500faff68656c6c6f")
+    run("empty-stored", "010000ffff")
+    run("repeat-fixed", "4b4c4a4e1c45a368140d4d0400")
+    run("dynamic", "6360646266616563e7e0e4e2e6e1e5e3171014121611151397909492969195935750545256515553d7d0d4d2d6d1d5d33730343236313533b7b0b4b2b6b1b5b37770747276717573f7f0f4f2f6f1f5f30f080c0a0e090d0b8f888c8a8e898d8b4f484c4a4e494d4bcfc8cccacec9cdcb2f282c2a2e292d2bafa8acaaaea9adab6f686c6a6e696d6befe8eceaeee9edeb9f3071d2e42953a74d9f3173d6ec3973e7cd5fb070d1e2254b972d5fb172d5ea356bd7addfb071d3e62d5bb76ddfb173d7ee3d7bf7ed3f70f0d0e123478f1d3f71f2d4e93367cf9dbf70f1d2e52b57af5dbf71f3d6ed3b77efdd7ff0f0d1e3274f9f3d7ff1f2d5eb376fdfbdfff0f1d3e72f5fbf7dfff1f3d7ef3f7ffffd6718f5ffa8ff47fd3feaff51ff8ffa7f04fabf242355a1b03433395b21a928bf3c4f212dbf4221ab34b7a05821bf2cb54801249d935855a990929f3eaa74c0950200")
+    run("truncated", "cb48cdc9c9")
+    run("reserved-block", "07")
+    run("empty-input", "")
+    run("bad-distance", "030200")
+    let src = "the quick brown fox jumps over the lazy dog".toBytes()
+    let c = flate.deflate(src)
+    let c2 = flate.deflate(src)
+    print "deflate-deterministic=${c.equals(&c2)} len=${c.len()}"
+    match flate.inflate(c) {
+        Ok(b) -> print "roundtrip=${b.equals(&src)}"
+        Err(e) -> print "roundtrip-err=${e.message()}"
+    }
+    let mut arr = Array.empty[u8]()
+    let mut x: u32 = 2463534242
+    let mut i: usize = 0
+    for i < 20000 {
+        x = x ^ x.wrappingShiftLeft(13)
+        x = x ^ x.wrappingShiftRight(17)
+        x = x ^ x.wrappingShiftLeft(5)
+        arr.push((x >> 24).truncate[u8]())
+        i = i + 1
+    }
+    let noise = Bytes.fromArray(&arr)
+    let nc = flate.deflate(noise)
+    print "noise=${noise.len()} compressed=${nc.len()} bounded=${nc.len() <= noise.len() + 10}"
+    match flate.inflate(nc) {
+        Ok(b) -> print "noise-roundtrip=${b.equals(&noise)}"
+        Err(e) -> print "noise-err=${e.message()}"
+    }
+    match flate.inflateLimit(hex.decode("4b4c4a4e1c45a368140d4d0400").unwrap(), 100) {
+        Ok(b) -> print "limit-ok=${b.len()}"
+        Err(e) -> print "limit-err=${e.message()}"
+    }
+    let dyn = hex.decode("6360646266616563e7e0e4e2e6e1e5e3171014121611151397909492969195935750545256515553d7d0d4d2d6d1d5d33730343236313533b7b0b4b2b6b1b5b37770747276717573f7f0f4f2f6f1f5f30f080c0a0e090d0b8f888c8a8e898d8b4f484c4a4e494d4bcfc8cccacec9cdcb2f282c2a2e292d2bafa8acaaaea9adab6f686c6a6e696d6befe8eceaeee9edeb9f3071d2e42953a74d9f3173d6ec3973e7cd5fb070d1e2254b972d5fb172d5ea356bd7addfb071d3e62d5bb76ddfb173d7ee3d7bf7ed3f70f0d0e123478f1d3f71f2d4e93367cf9dbf70f1d2e52b57af5dbf71f3d6ed3b77efdd7ff0f0d1e3274f9f3d7ff1f2d5eb376fdfbdfff0f1d3e72f5fbf7dfff1f3d7ef3f7ffffd6718f5ffa8ff47fd3feaff51ff8ffa7f04fabf242355a1b03433395b21a928bf3c4f212dbf4221ab34b7a05821bf2cb54801249d935855a990929f3eaa74c0950200").unwrap()
+    let mut inf = flate.Inflater.new()
+    let mut k: usize = 0
+    for k < dyn.len() {
+        inf.update(dyn.slice(k, k + 1) || Bytes.zeros(0)).unwrap()
+        k = k + 1
+    }
+    let out = inf.finish().unwrap()
+    print "stream len=${out.len()} ${head(out)}"
+    let mut inf2 = flate.Inflater.new()
+    inf2.update(dyn.concat(hex.decode("cafebabe").unwrap())).unwrap()
+    let out2 = inf2.finish().unwrap()
+    print "remainder=${hx(inf2.remainder())} len=${out2.len()}"
+    let stored = hex.decode("010500faff68656c6c6f").unwrap()
+    let mut sinf = flate.Inflater.new()
+    let mut q: usize = 0
+    for q < stored.len() {
+        sinf.update(stored.slice(q, q + 1) || Bytes.zeros(0)).unwrap()
+        q = q + 1
+    }
+    print "stream-stored=${hx(sinf.finish().unwrap())}"
+    let padded = dyn.concat(hex.decode("cafebabe").unwrap())
+    let mut cinf = flate.Inflater.new()
+    let mut z: usize = 0
+    for z < padded.len() {
+        cinf.update(padded.slice(z, z + 1) || Bytes.zeros(0)).unwrap()
+        z = z + 1
+    }
+    print "chunked-remainder=${hx(cinf.remainder())} len=${cinf.finish().unwrap().len()}"
+}
+-- stdout --
+empty ok len=0 hex=
+hello-fixed ok len=5 hex=68656c6c6f
+hello-stored ok len=5 hex=68656c6c6f
+empty-stored ok len=0 hex=
+repeat-fixed ok len=960 hex=6162636162636162..6263616263616263
+dynamic ok len=2478 hex=0001020304050607..6c617a7920646f67
+truncated err flate: invalid Huffman code
+reserved-block err flate: reserved block type 3
+empty-input err flate: input ends in the middle of the stream
+bad-distance err flate: distance 1 reaches before the start of the output
+deflate-deterministic=true len=43
+roundtrip=true
+noise=20000 compressed=20005 bounded=true
+noise-roundtrip=true
+limit-err=flate: output exceeds the 100 byte limit
+stream len=2478 0001020304050607..6c617a7920646f67
+remainder=cafebabe len=2478
+stream-stored=68656c6c6f
+chunked-remainder=cafebabe len=2478

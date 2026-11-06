@@ -1,0 +1,210 @@
+/// gzip (RFC 1952) decoding and encoding over `std/compress/flate`.
+///
+/// `decode` checks the member header, the CRC32 and the ISIZE of every
+/// member, and accepts concatenated members. `encode` writes a single member
+/// with no name, timestamp or extra field, so its output is deterministic.
+import flate from std/compress/flate
+
+/// Largest output `decode` accepts, in bytes.
+pub const defaultLimit: usize = flate.defaultLimit
+
+/// Why a gzip member could not be decoded.
+pub type Error = {
+    pub text String
+}
+
+pub fn Error.message(self) -> String {
+    self.text
+}
+
+/// CRC-32 (ISO-HDLC, the polynomial gzip uses) of `data`.
+pub pure fn crc32(data: Bytes) -> u32 {
+    crc32Ref(&data)
+}
+
+fn crc32Ref(data: &Bytes) -> u32 {
+    let table = crcTable()
+    let mut crc: u32 = 0xffffffff
+    let mut i: usize = 0
+    for i < data.len() {
+        let idx = ((crc ^ data[i].toU32()) & 0xff).toUsize()
+        crc = table[idx] ^ (crc >> 8)
+        i = i + 1
+    }
+    crc ^ 0xffffffff
+}
+
+fn crcTable() -> Array[u32] {
+    let mut table = Array.fill[u32](0, 256)
+    let mut i: usize = 0
+    for i < 256 {
+        let mut c = i.truncate[u32]()
+        let mut k: usize = 0
+        for k < 8 {
+            if (c & 1) != 0 {
+                c = 0xedb88320 ^ (c >> 1)
+            } else {
+                c = c >> 1
+            }
+            k = k + 1
+        }
+        table[i] = c
+        i = i + 1
+    }
+    table
+}
+
+fn u32Le(data: &Bytes, at: usize) -> u32? {
+    if at > data.len() || data.len() - at < 4 {
+        return None
+    }
+    let a = data[at].toU32()
+    let b = data[at + 1].toU32()
+    let c = data[at + 2].toU32()
+    let d = data[at + 3].toU32()
+    Some(a | (b << 8) | (c << 16) | (d << 24))
+}
+
+fn putU32Le(out: &mut Array[u8], v: u32) {
+    out.push((v & 255).truncate[u8]())
+    out.push(((v >> 8) & 255).truncate[u8]())
+    out.push(((v >> 16) & 255).truncate[u8]())
+    out.push((v >> 24).truncate[u8]())
+}
+
+/// Decodes every gzip member in `data`, verifying each CRC32 and ISIZE, and
+/// refusing to produce more than the default limit.
+pub fn decode(data: Bytes) -> Bytes! {
+    decodeLimit(data, defaultLimit)
+}
+
+/// Same as `decode`, with an explicit output limit in bytes.
+pub fn decodeLimit(data: Bytes, limit: usize) -> Bytes! {
+    let mut out = Array.empty[u8]()
+    let mut rest = data
+    let mut members: usize = 0
+    for rest.len() > 0 {
+        if rest.len() < 10 {
+            fail Error { text: "gzip: header is shorter than its 10 fixed bytes" }
+        }
+        if rest[0] != 0x1f || rest[1] != 0x8b {
+            fail Error { text: "gzip: member does not start with 1f 8b" }
+        }
+        if rest[2] != 8 {
+            fail Error { text: "gzip: unsupported compression method ${rest[2]}" }
+        }
+        let flags = rest[3]
+        if (flags & 0xe0) != 0 {
+            fail Error { text: "gzip: reserved header flag bits are set" }
+        }
+        let mut p: usize = 10
+        if (flags & 4) != 0 {
+            if rest.len() - p < 2 {
+                fail Error { text: "gzip: extra field length is missing" }
+            }
+            let xlen = rest[p].toUsize() | (rest[p + 1].toUsize() << 8)
+            p = p + 2
+            if xlen > rest.len() - p {
+                fail Error { text: "gzip: extra field runs past the input" }
+            }
+            p = p + xlen
+        }
+        if (flags & 8) != 0 {
+            let mut end = p
+            let mut found = false
+            for end < rest.len() {
+                if rest[end] == 0 {
+                    found = true
+                    break
+                }
+                end = end + 1
+            }
+            if !found {
+                fail Error { text: "gzip: file name is not terminated" }
+            }
+            p = end + 1
+        }
+        if (flags & 16) != 0 {
+            let mut end = p
+            let mut found = false
+            for end < rest.len() {
+                if rest[end] == 0 {
+                    found = true
+                    break
+                }
+                end = end + 1
+            }
+            if !found {
+                fail Error { text: "gzip: comment is not terminated" }
+            }
+            p = end + 1
+        }
+        if (flags & 2) != 0 {
+            if rest.len() - p < 2 {
+                fail Error { text: "gzip: header CRC is missing" }
+            }
+            let want = rest[p].toUsize() | (rest[p + 1].toUsize() << 8)
+            let header = rest.slice(0, p) || Bytes.zeros(0)
+            let got = (crc32Ref(&header) & 0xffff).toUsize()
+            if want != got {
+                fail Error { text: "gzip: header CRC mismatch" }
+            }
+            p = p + 2
+        }
+        if out.len() > limit {
+            fail Error { text: "gzip: output exceeds the ${limit} byte limit" }
+        }
+        let r = flate.inflateFrom(rest, p, limit - out.len())?
+        if r.rest.len() < 8 {
+            fail Error { text: "gzip: trailer is shorter than 8 bytes" }
+        }
+        let wantCrc = u32Le(&r.rest, 0) || 0
+        let gotCrc = crc32Ref(&r.data)
+        if wantCrc != gotCrc {
+            fail Error { text: "gzip: CRC32 mismatch" }
+        }
+        let wantSize = u32Le(&r.rest, 4) || 0
+        let gotSize = r.data.len().truncate[u32]()
+        if wantSize != gotSize {
+            fail Error { text: "gzip: ISIZE mismatch" }
+        }
+        let mut i: usize = 0
+        for i < r.data.len() {
+            out.push(r.data[i])
+            i = i + 1
+        }
+        rest = r.rest.slice(8, r.rest.len()) || Bytes.zeros(0)
+        members = members + 1
+    }
+    if members == 0 {
+        fail Error { text: "gzip: input holds no member" }
+    }
+    Bytes.fromArray(&out)
+}
+
+/// Encodes `data` as one gzip member with a fixed header and a deflate body.
+pub fn encode(data: Bytes) -> Bytes {
+    let sum = crc32Ref(&data)
+    let size = data.len().truncate[u32]()
+    let body = flate.deflate(data)
+    let mut out = Array.empty[u8]()
+    out.push(0x1f)
+    out.push(0x8b)
+    out.push(8)
+    out.push(0)
+    let mut i: usize = 0
+    for i < 4 {
+        out.push(0)
+        i = i + 1
+    }
+    out.push(0)
+    out.push(255)
+    let mut j: usize = 0
+    for j < body.len() {
+        out.push(body[j])
+        j = j + 1
+    }
+    putU32Le(&mut out, sum)
+    putU32Le(&mut out, size)
+    Bytes.fromArray(&out)
+}

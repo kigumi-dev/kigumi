@@ -1,0 +1,874 @@
+/// DEFLATE (RFC 1951) decompression and a small deterministic encoder.
+///
+/// `inflate` accepts stored, fixed-Huffman and dynamic-Huffman blocks. Every
+/// malformed stream is reported as an `Error` instead of panicking, and the
+/// output is capped so a crafted stream cannot exhaust memory. `deflate`
+/// emits one fixed-Huffman block with greedy LZ77 matches, or stored blocks
+/// when that would be smaller; the same input always produces the same bytes.
+/// Largest output `inflate` and `Inflater.new` accept, in bytes.
+pub const defaultLimit: usize = 268435456
+
+/// Why a stream could not be decoded or a size limit was hit.
+pub type Error = {
+    pub text String
+}
+
+pub fn Error.message(self) -> String {
+    self.text
+}
+
+const stateBlock: u8 = 0
+const stateStoredLen: u8 = 1
+const stateStoredCopy: u8 = 2
+const stateDynamic: u8 = 3
+const stateCodeLengths: u8 = 4
+const stateLengths: u8 = 5
+const stateSymbols: u8 = 6
+const stateLengthExtra: u8 = 7
+const stateDistance: u8 = 8
+const stateDistExtra: u8 = 9
+const stateDone: u8 = 10
+
+const noSymbol: u32 = 999
+
+/// Bit cursor over a byte string, least-significant bit first.
+type Bits = {
+    mut data Bytes
+    mut pos usize
+    mut buf u64
+    mut cnt usize
+    mut ended Bool
+}
+
+fn Bits.fill(mut self, want: usize) {
+    for self.cnt < want && self.pos < self.data.len() {
+        self.buf = self.buf | (self.data[self.pos].toU64() << self.cnt)
+        self.pos = self.pos + 1
+        self.cnt = self.cnt + 8
+    }
+}
+
+/// Pulls bytes until `want` bits are buffered and returns how many are there.
+fn Bits.peek(mut self, want: usize) -> usize {
+    self.fill(want)
+    self.cnt
+}
+
+/// The next `n` bits as an integer; None when more input is needed and the
+/// stream has not been closed, so the caller can resume at the same point.
+fn Bits.take(mut self, n: usize) -> u32?! {
+    self.fill(n)
+    if self.cnt < n {
+        if self.ended {
+            fail Error { text: "flate: input ends in the middle of the stream" }
+        }
+        return Ok(None)
+    }
+    let one: u64 = 1
+    let mask = (one << n) - one
+    let v = (self.buf & mask).truncate[u32]()
+    self.buf = self.buf >> n
+    self.cnt = self.cnt - n
+    Ok(Some(v))
+}
+
+/// Drops the bits left in the current byte, as a stored block requires.
+fn Bits.alignByte(mut self) {
+    let drop = self.cnt % 8
+    self.buf = self.buf >> drop
+    self.cnt = self.cnt - drop
+}
+
+type Huff = {
+    counts Array[usize]
+    symbols Array[usize]
+}
+
+/// Canonical Huffman table from per-symbol code lengths (0 means unused).
+fn buildHuff(lens: &Array[usize], n: usize) -> Huff! {
+    let mut counts = Array.fill[usize](0, 16)
+    let mut i: usize = 0
+    for i < n {
+        let l = lens[i]
+        if l > 15 {
+            fail Error { text: "flate: Huffman code length ${l} is above 15" }
+        }
+        if l > 0 {
+            counts[l] = counts[l] + 1
+        }
+        i = i + 1
+    }
+    let mut left: usize = 1
+    let mut len: usize = 1
+    for len <= 15 {
+        left = left * 2
+        if counts[len] > left {
+            fail Error { text: "flate: Huffman code is oversubscribed" }
+        }
+        left = left - counts[len]
+        len = len + 1
+    }
+    let mut offs = Array.fill[usize](0, 16)
+    let mut sum: usize = 0
+    let mut len2: usize = 1
+    for len2 <= 15 {
+        offs[len2] = sum
+        sum = sum + counts[len2]
+        len2 = len2 + 1
+    }
+    let mut symbols = Array.fill[usize](0, sum)
+    let mut j: usize = 0
+    for j < n {
+        let l = lens[j]
+        if l > 0 {
+            symbols[offs[l]] = j
+            offs[l] = offs[l] + 1
+        }
+        j = j + 1
+    }
+    Huff {
+        counts: counts
+        symbols: symbols
+    }
+}
+
+fn lengthBases() -> Array[usize] {
+    Array.of[usize](3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258)
+}
+
+fn lengthExtras() -> Array[usize] {
+    Array.of[usize](0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0)
+}
+
+fn distanceBases() -> Array[usize] {
+    Array.of[usize](1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577)
+}
+
+fn distanceExtras() -> Array[usize] {
+    Array.of[usize](0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13)
+}
+
+/// The order the code-length alphabet's lengths appear in a dynamic header.
+fn codeLengthOrder() -> Array[usize] {
+    Array.of[usize](16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15)
+}
+
+/// Streaming DEFLATE decoder. Feed compressed chunks with `update`, then call
+/// `finish` for the decoded bytes; output accumulates in the decoder up to the
+/// limit rather than being handed out per chunk. `remainder` is what followed
+/// the stream in the input, which gzip uses for its trailer.
+pub type Inflater = {
+    mut bits Bits
+    mut out Array[u8]
+    mut limit usize
+    mut state u8
+    mut last Bool
+    mut storedLeft usize
+    mut hlit usize
+    mut hdist usize
+    mut hclen usize
+    mut clLens Array[usize]
+    mut clCounts Array[usize]
+    mut clSymbols Array[usize]
+    mut lens Array[usize]
+    mut idx usize
+    mut pendingSym u32
+    mut repeatLeft usize
+    mut repeatVal usize
+    mut litCounts Array[usize]
+    mut litSymbols Array[usize]
+    mut distCounts Array[usize]
+    mut distSymbols Array[usize]
+    mut matchLen usize
+    mut matchDist usize
+    mut pendingExtra usize
+    mut lenBase Array[usize]
+    mut lenExtra Array[usize]
+    mut distBase Array[usize]
+    mut distExtra Array[usize]
+}
+
+/// A decoder with the default output limit and no input yet.
+pub fn Inflater.new() -> Inflater {
+    Inflater.newLimit(defaultLimit)
+}
+
+/// A decoder that refuses to produce more than `limit` bytes.
+pub fn Inflater.newLimit(limit: usize) -> Inflater {
+    Inflater {
+        bits: Bits {
+            data: Bytes.zeros(0)
+            pos: 0
+            buf: 0
+            cnt: 0
+            ended: false
+        }
+        out: Array.empty[u8]()
+        limit: limit
+        state: stateBlock
+        last: false
+        storedLeft: 0
+        hlit: 0
+        hdist: 0
+        hclen: 0
+        clLens: Array.fill[usize](0, 19)
+        clCounts: Array.fill[usize](0, 16)
+        clSymbols: Array.empty[usize]()
+        lens: Array.empty[usize]()
+        idx: 0
+        pendingSym: noSymbol
+        repeatLeft: 0
+        repeatVal: 0
+        litCounts: Array.fill[usize](0, 16)
+        litSymbols: Array.empty[usize]()
+        distCounts: Array.fill[usize](0, 16)
+        distSymbols: Array.empty[usize]()
+        matchLen: 0
+        matchDist: 0
+        pendingExtra: 0
+        lenBase: lengthBases()
+        lenExtra: lengthExtras()
+        distBase: distanceBases()
+        distExtra: distanceExtras()
+    }
+}
+
+/// Appends compressed input and decodes as much as it allows.
+pub fn Inflater.update(mut self, chunk: Bytes) -> Void! {
+    self.feed(chunk)
+    _ = self.run()?
+}
+
+/// Marks the input complete and returns the decoded bytes.
+pub fn Inflater.finish(mut self) -> Bytes! {
+    self.bits.ended = true
+    if !self.run()? {
+        fail Error { text: "flate: input ends in the middle of the stream" }
+    }
+    Bytes.fromArray(&self.out)
+}
+
+/// Bytes of input that follow the end of the deflate stream: the gzip trailer
+/// or a concatenated member.
+pub fn Inflater.remainder(self) -> Bytes {
+    let start = self.streamEnd()
+    self.bits.data.slice(start, self.bits.data.len()) || Bytes.zeros(0)
+}
+
+fn Inflater.streamEnd(self) -> usize {
+    self.bits.pos - self.bits.cnt / 8
+}
+
+fn Inflater.feed(mut self, chunk: Bytes) {
+    // Keep the whole bytes still sitting in the bit buffer: dropping them
+    // would make `streamEnd` count past the start of `data`.
+    let keep = self.bits.pos - self.bits.cnt / 8
+    if keep > 0 && self.bits.pos * 2 >= self.bits.data.len() {
+        self.bits.data = self.bits.data.slice(keep, self.bits.data.len()) || Bytes.zeros(0)
+        self.bits.pos = self.bits.pos - keep
+    }
+    if self.bits.data.len() == 0 {
+        self.bits.data = chunk
+    } else {
+        self.bits.data = self.bits.data.concat(chunk)
+    }
+}
+
+fn Inflater.pushByte(mut self, b: u8) -> Void! {
+    if self.out.len() >= self.limit {
+        fail Error { text: "flate: output exceeds the ${self.limit} byte limit" }
+    }
+    self.out.push(b)
+}
+
+fn Inflater.countsOf(self, kind: u8, len: usize) -> usize {
+    if kind == 0 {
+        self.litCounts[len]
+    } else if kind == 1 {
+        self.distCounts[len]
+    } else {
+        self.clCounts[len]
+    }
+}
+
+fn Inflater.symbolOf(self, kind: u8, index: usize) -> usize {
+    if kind == 0 {
+        self.litSymbols[index]
+    } else if kind == 1 {
+        self.distSymbols[index]
+    } else {
+        self.clSymbols[index]
+    }
+}
+
+/// One canonical Huffman symbol from the table `kind` names. None means the
+/// buffered input is too short and more may still arrive.
+fn Inflater.decodeSym(mut self, kind: u8) -> u32?! {
+    let avail = self.bits.peek(15)
+    if avail < 15 && !self.bits.ended {
+        return Ok(None)
+    }
+    let maxLen = if avail < 15 {
+        avail
+    } else {
+        15
+    }
+    let mut code: u32 = 0
+    let mut first: u32 = 0
+    let mut index: usize = 0
+    let mut len: usize = 1
+    for len <= maxLen {
+        let bit = ((self.bits.buf >> (len - 1)) & 1).truncate[u32]()
+        code = (code << 1) | bit
+        let count = self.countsOf(kind, len)
+        if code >= first && (code - first).toUsize() < count {
+            let sym = self.symbolOf(kind, index + (code - first).toUsize())
+            self.bits.buf = self.bits.buf >> len
+            self.bits.cnt = self.bits.cnt - len
+            return Ok(Some(sym.truncate[u32]()))
+        }
+        index = index + count
+        first = (first + count.truncate[u32]()) << 1
+        len = len + 1
+    }
+    if avail < 15 && !self.bits.ended {
+        return Ok(None)
+    }
+    if avail == 0 {
+        fail Error { text: "flate: input ends in the middle of the stream" }
+    }
+    fail Error { text: "flate: invalid Huffman code" }
+}
+
+fn Inflater.useFixed(mut self) -> Void! {
+    let mut lens = Array.fill[usize](0, 288)
+    let mut i: usize = 0
+    for i < 288 {
+        lens[i] = if i < 144 {
+            8
+        } else if i < 256 {
+            9
+        } else if i < 280 {
+            7
+        } else {
+            8
+        }
+        i = i + 1
+    }
+    let h = buildHuff(&lens, 288)?
+    self.litCounts = move h.counts
+    self.litSymbols = move h.symbols
+    let dl = Array.fill[usize](5, 32)
+    let d = buildHuff(&dl, 32)?
+    self.distCounts = move d.counts
+    self.distSymbols = move d.symbols
+}
+
+/// Runs until the stream ends (true) or the buffered input runs out (false).
+fn Inflater.run(mut self) -> Bool! {
+    for true {
+        if self.state == stateDone {
+            return Ok(true)
+        }
+        if self.state == stateBlock {
+            let hdr = match self.bits.take(3)? {
+                Some(v) -> v
+                None -> return Ok(false)
+            }
+            self.last = (hdr & 1) == 1
+            let btype = hdr >> 1
+            if btype == 0 {
+                self.state = stateStoredLen
+            } else if btype == 1 {
+                self.useFixed()?
+                self.state = stateSymbols
+            } else if btype == 2 {
+                self.state = stateDynamic
+            } else {
+                fail Error { text: "flate: reserved block type 3" }
+            }
+        } else if self.state == stateStoredLen {
+            self.bits.alignByte()
+            let v = match self.bits.take(32)? {
+                Some(x) -> x
+                None -> return Ok(false)
+            }
+            let len = (v & 65535).toUsize()
+            if ((v & 65535) ^ 65535) != ((v >> 16) & 65535) {
+                fail Error { text: "flate: stored block length does not match its complement" }
+            }
+            self.storedLeft = len
+            self.state = stateStoredCopy
+        } else if self.state == stateStoredCopy {
+            if self.storedLeft == 0 {
+                self.state = if self.last {
+                    stateDone
+                } else {
+                    stateBlock
+                }
+            } else if self.bits.cnt == 0 && self.bits.pos < self.bits.data.len() {
+                let avail = self.bits.data.len() - self.bits.pos
+                let n = if avail < self.storedLeft {
+                    avail
+                } else {
+                    self.storedLeft
+                }
+                if self.out.len() + n > self.limit {
+                    fail Error { text: "flate: output exceeds the ${self.limit} byte limit" }
+                }
+                let mut k: usize = 0
+                for k < n {
+                    self.out.push(self.bits.data[self.bits.pos + k])
+                    k = k + 1
+                }
+                self.bits.pos = self.bits.pos + n
+                self.storedLeft = self.storedLeft - n
+            } else {
+                let b = match self.bits.take(8)? {
+                    Some(v) -> v
+                    None -> return Ok(false)
+                }
+                self.pushByte(b.truncate[u8]())?
+            }
+        } else if self.state == stateDynamic {
+            let v = match self.bits.take(14)? {
+                Some(x) -> x
+                None -> return Ok(false)
+            }
+            self.hlit = (v & 31).toUsize() + 257
+            self.hdist = ((v >> 5) & 31).toUsize() + 1
+            self.hclen = ((v >> 10) & 15).toUsize() + 4
+            if self.hlit > 286 {
+                fail Error { text: "flate: ${self.hlit} literal/length codes exceeds 286" }
+            }
+            self.lens = Array.fill[usize](0, self.hlit + self.hdist)
+            self.clLens = Array.fill[usize](0, 19)
+            self.idx = 0
+            self.state = stateCodeLengths
+        } else if self.state == stateCodeLengths {
+            let order = codeLengthOrder()
+            for self.idx < self.hclen {
+                let v = match self.bits.take(3)? {
+                    Some(x) -> x
+                    None -> return Ok(false)
+                }
+                self.clLens[order[self.idx]] = v.toUsize()
+                self.idx = self.idx + 1
+            }
+            let h = buildHuff(&self.clLens, 19)?
+            self.clCounts = move h.counts
+            self.clSymbols = move h.symbols
+            self.idx = 0
+            self.pendingSym = noSymbol
+            self.repeatLeft = 0
+            self.state = stateLengths
+        } else if self.state == stateLengths {
+            if self.pendingSym != noSymbol {
+                let sym = self.pendingSym
+                if sym == 16 {
+                    if self.idx == 0 {
+                        fail Error { text: "flate: code length 16 has no previous length to repeat" }
+                    }
+                    let v = match self.bits.take(2)? {
+                        Some(x) -> x
+                        None -> return Ok(false)
+                    }
+                    self.repeatVal = self.lens[self.idx - 1]
+                    self.repeatLeft = 3 + v.toUsize()
+                    self.pendingSym = noSymbol
+                } else if sym == 17 {
+                    let v = match self.bits.take(3)? {
+                        Some(x) -> x
+                        None -> return Ok(false)
+                    }
+                    self.repeatVal = 0
+                    self.repeatLeft = 3 + v.toUsize()
+                    self.pendingSym = noSymbol
+                } else if sym == 18 {
+                    let v = match self.bits.take(7)? {
+                        Some(x) -> x
+                        None -> return Ok(false)
+                    }
+                    self.repeatVal = 0
+                    self.repeatLeft = 11 + v.toUsize()
+                    self.pendingSym = noSymbol
+                } else {
+                    fail Error { text: "flate: invalid code length symbol ${sym}" }
+                }
+            } else if self.repeatLeft > 0 {
+                if self.idx >= self.lens.len() {
+                    fail Error { text: "flate: code length repeat overflows the table" }
+                }
+                self.lens[self.idx] = self.repeatVal
+                self.idx = self.idx + 1
+                self.repeatLeft = self.repeatLeft - 1
+            } else if self.idx >= self.lens.len() {
+                let h = buildHuff(&self.lens, self.lens.len())?
+                self.litCounts = move h.counts
+                self.litSymbols = move h.symbols
+                let mut dl = Array.fill[usize](0, self.hdist)
+                let mut i: usize = 0
+                for i < self.hdist {
+                    dl[i] = self.lens[self.hlit + i]
+                    i = i + 1
+                }
+                let d = buildHuff(&dl, self.hdist)?
+                self.distCounts = move d.counts
+                self.distSymbols = move d.symbols
+                self.state = stateSymbols
+            } else {
+                let sym = match self.decodeSym(2)? {
+                    Some(s) -> s
+                    None -> return Ok(false)
+                }
+                if sym < 16 {
+                    self.lens[self.idx] = sym.toUsize()
+                    self.idx = self.idx + 1
+                } else {
+                    self.pendingSym = sym
+                }
+            }
+        } else if self.state == stateSymbols {
+            let sym = match self.decodeSym(0)? {
+                Some(s) -> s
+                None -> return Ok(false)
+            }
+            if sym < 256 {
+                self.pushByte(sym.truncate[u8]())?
+            } else if sym == 256 {
+                self.state = if self.last {
+                    stateDone
+                } else {
+                    stateBlock
+                }
+            } else if sym <= 285 {
+                let idx = sym.toUsize() - 257
+                self.matchLen = self.lenBase[idx]
+                self.pendingExtra = self.lenExtra[idx]
+                self.state = stateLengthExtra
+            } else {
+                fail Error { text: "flate: invalid literal/length symbol ${sym}" }
+            }
+        } else if self.state == stateLengthExtra {
+            let v = match self.bits.take(self.pendingExtra)? {
+                Some(x) -> x
+                None -> return Ok(false)
+            }
+            self.matchLen = self.matchLen + v.toUsize()
+            self.state = stateDistance
+        } else if self.state == stateDistance {
+            let sym = match self.decodeSym(1)? {
+                Some(s) -> s
+                None -> return Ok(false)
+            }
+            if sym > 29 {
+                fail Error { text: "flate: invalid distance symbol ${sym}" }
+            }
+            let idx = sym.toUsize()
+            self.matchDist = self.distBase[idx]
+            self.pendingExtra = self.distExtra[idx]
+            self.state = stateDistExtra
+        } else {
+            let v = match self.bits.take(self.pendingExtra)? {
+                Some(x) -> x
+                None -> return Ok(false)
+            }
+            self.matchDist = self.matchDist + v.toUsize()
+            if self.matchDist == 0 || self.matchDist > self.out.len() {
+                fail Error { text: "flate: distance ${self.matchDist} reaches before the start of the output" }
+            }
+            if self.out.len() + self.matchLen > self.limit {
+                fail Error { text: "flate: output exceeds the ${self.limit} byte limit" }
+            }
+            let mut k: usize = 0
+            for k < self.matchLen {
+                let b = self.out[self.out.len() - self.matchDist]
+                self.out.push(b)
+                k = k + 1
+            }
+            self.state = stateSymbols
+        }
+    }
+    Ok(true)
+}
+
+/// What `inflateFrom` decoded, where the deflate stream ended, and the bytes
+/// that followed it.
+pub type InflateResult = {
+    pub data Bytes
+    pub end usize
+    pub rest Bytes
+}
+
+/// Decodes one raw DEFLATE stream with the default output limit. Bytes after
+/// the final block are ignored.
+pub fn inflate(data: Bytes) -> Bytes! {
+    inflateLimit(data, defaultLimit)
+}
+
+/// Decodes one raw DEFLATE stream, refusing to produce more than `limit` bytes.
+pub fn inflateLimit(data: Bytes, limit: usize) -> Bytes! {
+    let mut inf = Inflater.newLimit(limit)
+    inf.update(data)?
+    inf.finish()
+}
+
+/// Decodes the DEFLATE stream that starts at `start`, and reports the offset
+/// just past it plus the remaining bytes, so a container format can read what
+/// follows (the gzip trailer, or the next member).
+pub fn inflateFrom(data: Bytes, start: usize, limit: usize) -> InflateResult! {
+    if start > data.len() {
+        fail Error { text: "flate: start offset ${start} is past the ${data.len()} byte input" }
+    }
+    let mut inf = Inflater.newLimit(limit)
+    inf.bits.data = data
+    inf.bits.pos = start
+    inf.bits.ended = true
+    if !inf.run()? {
+        fail Error { text: "flate: input ends in the middle of the stream" }
+    }
+    let end = inf.streamEnd()
+    let rest = inf.bits.data.slice(end, inf.bits.data.len()) || Bytes.zeros(0)
+    InflateResult {
+        data: Bytes.fromArray(&inf.out)
+        end: end
+        rest: rest
+    }
+}
+
+/// Bit writer for the encoder, least-significant bit first.
+type Writer = {
+    mut out Array[u8]
+    mut buf u64
+    mut cnt usize
+}
+
+fn Writer.new() -> Writer {
+    Writer {
+        out: Array.empty[u8]()
+        buf: 0
+        cnt: 0
+    }
+}
+
+fn Writer.writeBits(mut self, value: u32, n: usize) {
+    self.buf = self.buf | (value.toU64() << self.cnt)
+    self.cnt = self.cnt + n
+    for self.cnt >= 8 {
+        self.out.push((self.buf & 255).truncate[u8]())
+        self.buf = self.buf >> 8
+        self.cnt = self.cnt - 8
+    }
+}
+
+fn Writer.flush(mut self) {
+    if self.cnt > 0 {
+        self.out.push((self.buf & 255).truncate[u8]())
+        self.buf = 0
+        self.cnt = 0
+    }
+}
+
+fn reverseBits(v: u32, n: usize) -> u32 {
+    let mut r: u32 = 0
+    let mut i: usize = 0
+    for i < n {
+        r = (r << 1) | ((v >> i) & 1)
+        i = i + 1
+    }
+    r
+}
+
+fn fixedCode(sym: usize) -> (u32, usize) {
+    let c0: usize = 0x30
+    let c1: usize = 0x190
+    let c2: usize = 0xc0
+    if sym < 144 {
+        ((c0 + sym).truncate[u32](), 8)
+    } else if sym < 256 {
+        ((c1 + sym - 144).truncate[u32](), 9)
+    } else if sym < 280 {
+        ((sym - 256).truncate[u32](), 7)
+    } else {
+        ((c2 + sym - 280).truncate[u32](), 8)
+    }
+}
+
+fn writeSymbol(w: &mut Writer, sym: usize) {
+    let (code, bits) = fixedCode(sym)
+    w.writeBits(reverseBits(code, bits), bits)
+}
+
+fn hash3(data: &Bytes, pos: usize) -> usize {
+    let a = data[pos].toUsize()
+    let b = data[pos + 1].toUsize()
+    let c = data[pos + 2].toUsize()
+    ((a << 10) ^ (b << 5) ^ c) & 32767
+}
+
+fn insertHash(data: &Bytes, pos: usize, head: &mut Array[usize]) {
+    if pos + 2 < data.len() {
+        head[hash3(data, pos)] = pos
+    }
+}
+
+/// Longest match for the three bytes at `pos` against the most recent earlier
+/// occurrence of the same hash, or (0, 0). One candidate keeps memory flat.
+fn findMatch(data: &Bytes, pos: usize, head: &Array[usize]) -> (usize, usize) {
+    let n = data.len()
+    if pos + 2 >= n {
+        return (0, 0)
+    }
+    let maxLen = if n - pos < 258 {
+        n - pos
+    } else {
+        258
+    }
+    let minPos = if pos > 32768 {
+        pos - 32768
+    } else {
+        0
+    }
+    let cand = head[hash3(data, pos)]
+    if cand >= pos || cand < minPos {
+        return (0, 0)
+    }
+    let mut l: usize = 0
+    for l < maxLen {
+        if data[cand + l] != data[pos + l] {
+            break
+        }
+        l = l + 1
+    }
+    if l >= 3 {
+        (l, pos - cand)
+    } else {
+        (0, 0)
+    }
+}
+
+fn writeLength(w: &mut Writer, len: usize, base: &Array[usize], extra: &Array[usize]) {
+    let mut i: usize = 0
+    for i < 28 {
+        if len < base[i + 1] {
+            writeSymbol(w, 257 + i)
+            let e = extra[i]
+            if e > 0 {
+                w.writeBits((len - base[i]).truncate[u32](), e)
+            }
+            return
+        }
+        i = i + 1
+    }
+    writeSymbol(w, 285)
+}
+
+fn writeDistance(w: &mut Writer, dist: usize, base: &Array[usize], extra: &Array[usize]) {
+    let mut i: usize = 0
+    for i < 29 {
+        if dist < base[i + 1] {
+            w.writeBits(reverseBits(i.truncate[u32](), 5), 5)
+            let e = extra[i]
+            if e > 0 {
+                w.writeBits((dist - base[i]).truncate[u32](), e)
+            }
+            return
+        }
+        i = i + 1
+    }
+    w.writeBits(reverseBits(29, 5), 5)
+    let e = extra[29]
+    if e > 0 {
+        w.writeBits((dist - base[29]).truncate[u32](), e)
+    }
+}
+
+/// One fixed-Huffman block over `data`, using greedy LZ77 matches.
+fn encodeFixed(data: &Bytes) -> Bytes {
+    let mut w = Writer.new()
+    w.writeBits(1, 1)
+    w.writeBits(1, 2)
+    let n = data.len()
+    let none = n
+    let mut head = Array.fill[usize](none, 32768)
+    let base = lengthBases()
+    let extra = lengthExtras()
+    let dbase = distanceBases()
+    let dextra = distanceExtras()
+    let mut pos: usize = 0
+    for pos < n {
+        let (mLen, mDist) = findMatch(data, pos, &head)
+        if mLen >= 3 {
+            writeLength(&mut w, mLen, &base, &extra)
+            writeDistance(&mut w, mDist, &dbase, &dextra)
+            let end = pos + mLen
+            for pos < end {
+                insertHash(data, pos, &mut head)
+                pos = pos + 1
+            }
+        } else {
+            writeSymbol(&mut w, data[pos].toUsize())
+            insertHash(data, pos, &mut head)
+            pos = pos + 1
+        }
+    }
+    writeSymbol(&mut w, 256)
+    w.flush()
+    Bytes.fromArray(&w.out)
+}
+
+/// Stored blocks, for input that the fixed-Huffman block would enlarge.
+fn encodeStored(data: &Bytes) -> Bytes {
+    let mut w = Writer.new()
+    let n = data.len()
+    let mut pos: usize = 0
+    if n == 0 {
+        w.writeBits(1, 1)
+        w.writeBits(0, 2)
+        w.flush()
+        return Bytes.fromArray(&w.out)
+    }
+    for pos < n {
+        let left = n - pos
+        let chunk = if left < 65535 {
+            left
+        } else {
+            65535
+        }
+        let final = pos + chunk == n
+        w.writeBits(if final {
+            1
+        } else {
+            0
+        }, 1)
+        w.writeBits(0, 2)
+        w.flush()
+        let len = chunk.truncate[u16]()
+        let inv = len ^ 65535
+        w.writeBits(len.toU32(), 16)
+        w.writeBits(inv.toU32(), 16)
+        let mut k: usize = 0
+        for k < chunk {
+            w.writeBits(data[pos + k].toU32(), 8)
+            k = k + 1
+        }
+        w.flush()
+        pos = pos + chunk
+    }
+    Bytes.fromArray(&w.out)
+}
+
+/// Compresses `data` deterministically. The result is a single fixed-Huffman
+/// block, or stored blocks when those are smaller.
+pub fn deflate(data: Bytes) -> Bytes {
+    let fixed = encodeFixed(&data)
+    if fixed.len() <= data.len() + 5 {
+        return fixed
+    }
+    let stored = encodeStored(&data)
+    if stored.len() < fixed.len() {
+        stored
+    } else {
+        fixed
+    }
+}

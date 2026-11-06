@@ -1,0 +1,81 @@
+-- src --
+import flate from std/compress/flate
+import gzip from std/compress/gzip
+
+fn roundtrip(name: String, data: Bytes) {
+    let c = flate.deflate(data)
+    let c2 = flate.deflate(data)
+    match flate.inflate(c) {
+        Ok(b) -> print "${name} flate ok=${b.equals(&data)} det=${c.equals(&c2)} size=${c.len()}"
+        Err(e) -> print "${name} flate err ${e.message()}"
+    }
+    let g = gzip.encode(data)
+    let g2 = gzip.encode(data)
+    match gzip.decode(g) {
+        Ok(b) -> print "${name} gzip ok=${b.equals(&data)} det=${g.equals(&g2)} size=${g.len()}"
+        Err(e) -> print "${name} gzip err ${e.message()}"
+    }
+}
+
+fn noise(n: usize, seed: u32) -> Bytes {
+    let mut out = Array.empty[u8]()
+    let mut x = seed
+    let mut i: usize = 0
+    for i < n {
+        x = x ^ x.wrappingShiftLeft(13)
+        x = x ^ x.wrappingShiftRight(17)
+        x = x ^ x.wrappingShiftLeft(5)
+        out.push((x >> 24).truncate[u8]())
+        i = i + 1
+    }
+    Bytes.fromArray(&out)
+}
+
+fn main() {
+    roundtrip("empty", Bytes.zeros(0))
+    roundtrip("one", "a".toBytes())
+    roundtrip("hello", "hello".toBytes())
+    roundtrip("repeat", "abc".repeat(1000).toBytes())
+    roundtrip("text", "the quick brown fox jumps over the lazy dog. ".repeat(50).toBytes())
+    let mut bytes = Array.empty[u8]()
+    let mut i: usize = 0
+    for i < 256 * 8 {
+        bytes.push((i % 256).truncate[u8]())
+        i = i + 1
+    }
+    roundtrip("binary", Bytes.fromArray(&bytes))
+
+    // 66000 incompressible bytes force the encoder's stored path, which splits
+    // at 65535; decoding that stream also covers multi-block stored input.
+    let big = noise(66000, 123456789)
+    let bc = flate.deflate(big)
+    print "noise=${big.len()} flate-size=${bc.len()} bounded=${bc.len() <= big.len() + 20}"
+    match flate.inflate(bc) {
+        Ok(b) -> print "noise flate-roundtrip=${b.equals(&big)}"
+        Err(e) -> print "noise flate-err=${e.message()}"
+    }
+    let small = noise(20000, 987654321)
+    let sg = gzip.encode(small)
+    print "noise gzip-size=${sg.len()} bounded=${sg.len() <= small.len() + 30}"
+    match gzip.decode(sg) {
+        Ok(b) -> print "noise gzip-roundtrip=${b.equals(&small)}"
+        Err(e) -> print "noise gzip-err=${e.message()}"
+    }
+}
+-- stdout --
+empty flate ok=true det=true size=2
+empty gzip ok=true det=true size=20
+one flate ok=true det=true size=3
+one gzip ok=true det=true size=21
+hello flate ok=true det=true size=7
+hello gzip ok=true det=true size=25
+repeat flate ok=true det=true size=25
+repeat gzip ok=true det=true size=43
+text flate ok=true det=true size=69
+text gzip ok=true det=true size=87
+binary flate ok=true det=true size=289
+binary gzip ok=true det=true size=307
+noise=66000 flate-size=66010 bounded=true
+noise flate-roundtrip=true
+noise gzip-size=20023 bounded=true
+noise gzip-roundtrip=true
