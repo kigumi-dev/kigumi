@@ -460,7 +460,7 @@ pub pure noalloc fn String.isEmpty(self) -> Bool {
 }
 
 /// The UTF-8 bytes of the string.
-pub pure noalloc fn String.bytes(self) -> Bytes
+pub pure fn String.bytes(self) -> Bytes
 
 /// The Unicode scalar values of the string, in order.
 pub pure fn String.chars(self) -> Array[Char] {
@@ -660,7 +660,7 @@ pub pure fn Bytes.fromArray(items: &Array[u8]) -> Bytes {
 pub pure fn Bytes.tryFromArray(items: &Array[u8]) -> Result[Bytes, AllocError]
 
 /// The UTF-8 bytes of the string.
-pub pure noalloc fn String.toBytes(self) -> Bytes
+pub pure fn String.toBytes(self) -> Bytes
 
 /// Interprets bytes as UTF-8; fails when they are not valid UTF-8.
 pub pure fn String.fromBytes(bytes: Bytes) -> String!

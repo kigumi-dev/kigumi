@@ -1,0 +1,15 @@
+-- module --
+stage: driver
+-- src --
+noalloc fn f(s: String) -> Bytes {
+    s.toBytes()
+}
+
+fn main() {}
+-- expect --
+error[E907]: `toBytes` is not `noalloc`
+ --> main.kg:2:5
+  |
+2 |     s.toBytes()
+  |     ^^^^^^^^^^
+
