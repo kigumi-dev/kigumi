@@ -9597,6 +9597,15 @@
       ]
     },
     {
+      "id": "run/shell_quoting",
+      "kind": "run",
+      "path": "testdata/run/shell_quoting.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/shell_signal_status",
       "kind": "run",
       "path": "testdata/run/shell_signal_status.txtar",

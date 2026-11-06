@@ -83,14 +83,22 @@ func (s *shellParser) doubleQuoted(tok uint32) []NodeID {
 	for s.pos < s.end {
 		switch s.src[s.pos] {
 		case '\\':
-			if s.pos+1 < s.end && s.src[s.pos+1] == '"' {
-				if s.pos > segStart {
-					parts = append(parts, s.text(segStart, s.pos))
-				}
-				s.pos += 2
-				return parts
+			start := s.pos
+			for s.pos < s.end && s.src[s.pos] == '\\' {
+				s.pos++
 			}
-			s.pos += 2
+			if s.pos < s.end && s.src[s.pos] == '"' {
+				if s.pos-start == 1 {
+					if start > segStart {
+						parts = append(parts, s.text(segStart, start))
+					}
+					s.pos++
+					return parts
+				}
+				// An even run is content; a longer odd run ends in a
+				// backslash-escaped quote inside the double-quoted shell word.
+				s.pos++
+			}
 		case '"':
 			if s.pos > segStart {
 				parts = append(parts, s.text(segStart, s.pos))

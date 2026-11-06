@@ -2,6 +2,7 @@ package hir
 
 import (
 	"fmt"
+	"strings"
 
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
@@ -93,7 +94,14 @@ func (l *lowerer) shellLit(n syntax.NodeID) *Expr {
 			for piece := range word.AsShellWord().Views() {
 				if piece.Kind() == syntax.ShellText {
 					text := piece.AsShellText()
-					out.Strs = append(out.Strs, "="+syntax.DecodeString(string(l.t.File.Src[text.Start():text.End()])))
+					src := l.t.File.Src
+					state := byte(0)
+					if start := word.Span().Start; start > 0 && int(start) < len(src) {
+						if src[int(start)-1] == '\'' || src[start-1] == '"' {
+							state = src[int(start)-1]
+						}
+					}
+					out.Strs = append(out.Strs, "="+shellUnescape(syntax.DecodeString(string(src[text.Start():text.End()])), state))
 					continue
 				}
 				out.Strs = append(out.Strs, "$")
@@ -102,4 +110,29 @@ func (l *lowerer) shellLit(n syntax.NodeID) *Expr {
 		}
 	}
 	return out
+}
+
+// shellUnescape applies POSIX backslash rules for the quote state: outside
+// quotes every backslash escapes the next byte; in double quotes only
+// backslash, quote, dollar, backtick and newline are escaped.
+func shellUnescape(s string, state byte) string {
+	if state == '\'' {
+		return s
+	}
+	var b strings.Builder
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c != '\\' || i+1 >= len(s) {
+			b.WriteByte(c)
+			continue
+		}
+		n := s[i+1]
+		if state == 0 || n == '\\' || n == '"' || n == '$' || n == '`' || n == '\n' {
+			b.WriteByte(n)
+			i++
+			continue
+		}
+		b.WriteByte(c)
+	}
+	return b.String()
 }

@@ -1,0 +1,35 @@
+-- src --
+import shell from std/shell
+import hex from std/encoding/hex
+
+fn dump(label: String, plan: shell.Plan) {
+    let mut n = 0
+    for st in shell.stages(&plan) {
+        for a in &st.argv {
+            if n == 1 {
+                print "${label}: [${hex.encode(a.toBytes())}]"
+            }
+            n = n + 1
+        }
+    }
+}
+
+dump("bs-space", $"echo a\\ b")
+dump("bs-backslash", $"echo a\\\\b")
+dump("dq-backslash", $"echo \"a\\\\b\"")
+dump("dq-squote", $"echo \"a'b\"")
+dump("bs-semi", $"echo a\\;b")
+let q = $"echo \"a\\\"b\""
+for st in shell.stages(&q) {
+    for a in &st.argv {
+        print "q: [${hex.encode(a.toBytes())}]"
+    }
+}
+-- stdout --
+bs-space: [612062]
+bs-backslash: [615c62]
+dq-backslash: [615c62]
+dq-squote: [612762]
+bs-semi: [613b62]
+q: [6563686f]
+q: [612262]
