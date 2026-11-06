@@ -111,7 +111,7 @@ func (r *Result) cRepresentable(t TypeID) bool {
 		return r.cRepresentable(r.underlyingRepr(t))
 	}
 	elem, _, ok := r.fixedArrayShape(t)
-	return ok && r.cNumeric(elem)
+	return ok && (r.cNumeric(elem) || r.wideInt(elem) && r.cHasInt128())
 }
 
 // fixedArrayShape recognizes FixedArray[elem, N] with N a literal length:

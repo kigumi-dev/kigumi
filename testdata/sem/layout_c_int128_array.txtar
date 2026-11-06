@@ -1,0 +1,14 @@
+-- module --
+stage: driver
+-- src --
+type Wide layout(C) = {
+    pub a FixedArray[u128, 2]
+    pub b FixedArray[i128, 2]
+}
+
+fn take(w: Wide) -> Wide {
+    w
+}
+
+fn main() {}
+-- expect --
