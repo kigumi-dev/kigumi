@@ -1,0 +1,47 @@
+-- lib/g.kg --
+interface FromRef[K] {
+    fn fromRef(k: &K) -> Self
+}
+type S['a] = { pub s &'a String }
+fn S['a].fromRef(k: &'a String) -> S['a] { S { s: k } }
+type Hold[W] = { pub v W }
+fn put[W: FromRef[String]](h: Hold[W], k: &String) -> Hold[W] {
+    Hold { v: W.fromRef(k) }
+}
+fn outer[W: FromRef[String]](h: Hold[W], k: String) -> Hold[W] {
+    put(h, &k)
+}
+-- expect --
+fn lib.S.fromRef(%k: &String) -> S['a] {
+  b0:
+    %t1 = copy(%k)
+    %t2 = record lib.S(%t1)
+    return %t2
+}
+fn lib.put(%h: Hold[W], %k: &String, %$w:W:fromRef: fn(&String) -> W) -> Hold[W] {
+  b0:
+    %t3 = copy(%k)
+    %t5 = copy(%$w:W:fromRef)
+    %t4 = callv(%t5, %t3)
+    %t6 = record lib.Hold(%t4)
+    drop(%$w:W:fromRef)
+    drop(%h)
+    return %t6
+}
+fn lib.outer(%h: Hold[W], %k: String, %$w:W:fromRef: fn(&String) -> W) -> Hold[W] {
+  b0:
+    %t3 = move(%h)
+    %t4 = borrow 0(%k)
+    %t5 = copy(%$w:W:fromRef)
+    %t6 = call lib.put(%t3, %t4, %t5)
+    drop(%$w:W:fromRef)
+    drop(%k)
+    nop
+    return %t6
+}
+error[borrow-escape]: a borrow cannot be stored
+ --> lib/g.kg:8:5
+  |
+8 |     Hold { v: W.fromRef(k) }
+  |     ^^^^^^^^^^^^^^^^^^^^^
+

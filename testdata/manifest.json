@@ -678,6 +678,14 @@
       ]
     },
     {
+      "id": "mir/generic_self_borrow_err",
+      "kind": "mir",
+      "path": "testdata/mir/generic_self_borrow_err.txtar",
+      "mode": [
+        "build"
+      ]
+    },
+    {
       "id": "mir/if_discard_ffi",
       "kind": "mir",
       "path": "testdata/mir/if_discard_ffi.txtar",
