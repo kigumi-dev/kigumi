@@ -1,0 +1,13 @@
+-- module --
+allocator: none
+-- src --
+extern(C) {
+    noalloc fn serial_putc(c: u8)
+}
+
+fn main() {
+    unsafe {
+        serial_putc(65)
+    }
+}
+-- expect --

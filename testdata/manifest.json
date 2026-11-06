@@ -14200,6 +14200,14 @@
       ]
     },
     {
+      "id": "sem/foreign_noalloc",
+      "kind": "sem",
+      "path": "testdata/sem/foreign_noalloc.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/foreign_wake",
       "kind": "sem",
       "path": "testdata/sem/foreign_wake.txtar",

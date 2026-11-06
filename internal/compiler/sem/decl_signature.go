@@ -74,8 +74,8 @@ func (r *Result) declareFn(id EntityID) {
 	if info.Export != "" && mods&EffAsync != 0 {
 		r.errAt(f, e.Node, cExportAsync, e.Name)
 	}
-	if info.Abi != "" && mods&(EffPure|EffNoalloc|EffAsync) != 0 {
-		r.errAt(f, e.Node, cForeignMods, effectsText(mods&(EffPure|EffNoalloc|EffAsync)))
+	if info.Abi != "" && mods&(EffPure|EffAsync) != 0 {
+		r.errAt(f, e.Node, cForeignMods, effectsText(mods&(EffPure|EffAsync)))
 	}
 	if info.Naked && mods != 0 {
 		r.errAt(f, e.Node, cNakedMods, effectsText(mods))

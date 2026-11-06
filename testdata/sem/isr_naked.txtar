@@ -59,7 +59,7 @@ error[E1082]: export(interrupt) handler `foreign` may block or reach unverified 
    |
 25 |     pub fn foreign() { //~ ERROR export(interrupt) handler `foreign` may block or reach unverified code
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   = help: give the callee a body the compiler can check: `noalloc` alone is no interrupt contract, and an extern(C) declaration cannot carry one yet
+   = help: give the callee a body the compiler can check: `noalloc` alone is no interrupt contract
    = help: `foreign` uses the root common interrupt configuration, which permits no MMIO or synchronization operation
 note: calls `raw`, which has no body the compiler can check and no reviewed interrupt contract
   --> main/main.kg:31:16
