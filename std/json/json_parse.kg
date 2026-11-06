@@ -137,7 +137,11 @@ fn Cursor.object(mut self) -> Value! {
             fail invalid()
         }
         self.pos = self.pos + 1
+        let before = fields.len()
         fields.set(key, self.value()?)
+        if fields.len() == before {
+            fail invalid()
+        }
         self.skipSpace()
         let b = self.peek()
         self.pos = self.pos + 1

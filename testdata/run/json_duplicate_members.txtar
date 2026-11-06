@@ -1,0 +1,16 @@
+-- src --
+import json from std/json
+
+fn tryParse(s: String) {
+    match json.parse(s) {
+        Ok(_) -> print "ok"
+        Err(_) -> print "err"
+    }
+}
+tryParse("{\"a\":1,\"a\":2}")
+tryParse("{\"a\":1,\"a\":1.0}")
+tryParse("{\"a\":1,\"b\":2}")
+-- stdout --
+err
+err
+ok
