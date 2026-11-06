@@ -28,6 +28,7 @@ func (lx *lexer) lineComment() {
 	for lx.pos < lx.end && lx.src[lx.pos] != '\n' {
 		lx.pos++
 	}
+	lx.commentUTF8(start)
 	lx.emit(kind, start, lx.pos)
 }
 
@@ -43,6 +44,7 @@ func (lx *lexer) blockComment() {
 			depth--
 			lx.pos += 2
 			if depth == 0 {
+				lx.commentUTF8(start)
 				lx.emit(token.BlockComment, start, lx.pos)
 				return
 			}
@@ -52,6 +54,12 @@ func (lx *lexer) blockComment() {
 	}
 	lx.errorf(start, lx.pos, "unterminated block comment")
 	lx.emit(token.BlockComment, start, lx.pos)
+}
+
+func (lx *lexer) commentUTF8(start int) {
+	if i, ok := invalidUTF8(lx.src[start:lx.pos]); ok {
+		lx.errorf(start+i, start+i+1, "comment contains invalid UTF-8")
+	}
 }
 
 func (lx *lexer) lexIdent() {

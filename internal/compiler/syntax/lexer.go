@@ -31,6 +31,17 @@ func Lex(src []byte, bag *diag.Bag) []token.Token {
 	return append(toks, lexRange(src, 0, len(src), bag, nil)...)
 }
 
+func invalidUTF8(src []byte) (int, bool) {
+	for i := 0; i < len(src); {
+		_, size := utf8.DecodeRune(src[i:])
+		if size == 1 && src[i] >= utf8.RuneSelf {
+			return i, true
+		}
+		i += size
+	}
+	return 0, false
+}
+
 func lexRange(src []byte, start, end int, bag *diag.Bag, hints map[int]interpInfo) []token.Token {
 	lx := &lexer{src: src, pos: start, end: end, diags: bag, hints: hints}
 	if start == 0 && bytes.HasPrefix(src, utf8BOM) {
