@@ -1,0 +1,32 @@
+-- src --
+import hex from std/encoding/hex
+import p256 from std/crypto/p256
+import sha256 from std/crypto/sha256
+
+fn show(b: Bytes) -> String {
+    hex.encode(b)
+}
+
+fn main() -> Void! {
+    // RFC 6979 appendix A.2.5, NIST P-256 with SHA-256.
+    let d = hex.decode("C9AFA9D845BA75166B5C215767B1D6934E50C3DB36E89B127B8A622B120F6721")?
+    let pubKey = p256.publicKey(d)?
+    print "signer ${show(pubKey)}"
+    print "sig-sample ${show(p256.signMessage(d, b"sample")?)}"
+    print "sig-test ${show(p256.signMessage(d, b"test")?)}"
+
+    // The prehashed entry point takes the SHA-256 digest directly.
+    print "sig-prehash ${show(p256.sign(d, sha256.sum(b"sample"))?)}"
+
+    // The published r || s for "sample", verified without signing first.
+    let published = hex.decode("EFD48B2AACB6A8FD1140DD9CD45E81D69D2C877B56AAF991C34D0EA84EAF3716F7CB1C942D657C41D436C7A1B6E29F65F3E900DBB9AFF4064DC4AB2F843ACDA8")?
+    print "verify-published ${p256.verifyMessage(pubKey, b"sample", published)?}"
+    print "verify-tampered-message ${p256.verifyMessage(pubKey, b"sampl3", published)?}"
+}
+-- stdout --
+signer 0460fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29fb67903fe1008b8bc99a41ae9e95628bc64f2f1b20c2d7e9f5177a3c294d4462299
+sig-sample efd48b2aacb6a8fd1140dd9cd45e81d69d2c877b56aaf991c34d0ea84eaf3716f7cb1c942d657c41d436c7a1b6e29f65f3e900dbb9aff4064dc4ab2f843acda8
+sig-test f1abb023518351cd71d881567b1ea663ed3efcf6c5132b354f28d3b0b7d38367019f4113742a2b14bd25926b49c649155f267e60d3814b4c0cc84250e46f0083
+sig-prehash efd48b2aacb6a8fd1140dd9cd45e81d69d2c877b56aaf991c34d0ea84eaf3716f7cb1c942d657c41d436c7a1b6e29f65f3e900dbb9aff4064dc4ab2f843acda8
+verify-published true
+verify-tampered-message false

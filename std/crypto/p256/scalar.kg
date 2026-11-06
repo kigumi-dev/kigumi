@@ -1,0 +1,16 @@
+// Scalar-side helpers: validity of a secret or signature value, and mapping a
+// 256-bit value into [0, n).
+/// One when 0 < v < n.
+pure noalloc fn validScalar(v: U256) -> Bool {
+    (ltU256(v, modValue(modulusN())) == 1) && (v.isZeroMask() == 0)
+}
+
+/// v mod n for v below 2^256; n is above 2^255, so one subtraction suffices.
+pure noalloc fn scalarReduce(v: U256) -> U256 {
+    reduceOnce(v, modulusN())
+}
+
+/// The scalar value of a 32-byte big-endian digest, reduced mod n.
+pure fn digestScalar(digest: Bytes) -> U256 {
+    scalarReduce(fromBytes(digest))
+}

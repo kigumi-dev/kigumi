@@ -1,0 +1,159 @@
+// 256-bit unsigned limbs and the modular primitives shared by the base field
+// and the scalar group of P-256.
+//
+// Four 64-bit limbs hold a value below 2^256. Every helper here is branchless
+// on its operands: borrows, carries and conditional subtractions become masks,
+// so no limb value steers control flow or a memory index.
+/// Four little-endian 64-bit limbs of a 256-bit integer.
+type U256 = {
+    l0 u64
+    l1 u64
+    l2 u64
+    l3 u64
+}
+
+/// A modulus with its Montgomery constants: R = 2^256, R2 = R^2 mod m,
+/// ONE = R mod m and N0 = -m^-1 mod 2^64.
+type Mod = {
+    m0 u64
+    m1 u64
+    m2 u64
+    m3 u64
+    n0 u64
+    r20 u64
+    r21 u64
+    r22 u64
+    r23 u64
+    o0 u64
+    o1 u64
+    o2 u64
+    o3 u64
+}
+
+const zero64: u64 = 0
+
+const mask64: u128 = 0xFFFFFFFFFFFFFFFF
+
+/// The low 64 bits of a 128-bit value.
+pure noalloc fn lowHalf(x: u128) -> u64 {
+    (x & mask64).truncate[u64]()
+}
+
+/// One when a < b, zero otherwise.
+pure noalloc fn lt64(a: u64, b: u64) -> u64 {
+    let d = a.wrappingSub(b)
+    (((~a) & b) | (~(a ^ b) & d)) >> 63
+}
+
+/// Sum and carry-out of a + b + cin, where cin is zero or one.
+pure noalloc fn addCarry(a: u64, b: u64, cin: u64) -> (u64, u64) {
+    let s = a.wrappingAdd(b)
+    let out = s.wrappingAdd(cin)
+    (out, lt64(s, a) | lt64(out, s))
+}
+
+/// Difference and borrow-out of a - b - bin, where bin is zero or one.
+pure noalloc fn subBorrow(a: u64, b: u64, bin: u64) -> (u64, u64) {
+    let t = a.wrappingSub(b)
+    let d = t.wrappingSub(bin)
+    (d, lt64(a, b) | lt64(t, bin))
+}
+
+/// All ones when a == b, zero otherwise.
+pure noalloc fn eqMask64(a: u64, b: u64) -> u64 {
+    let d = a ^ b
+    let nonzero = (d | zero64.wrappingSub(d)) >> 63
+    nonzero.wrappingSub(1)
+}
+
+/// All ones for a one bit, zero for a zero bit.
+pure noalloc fn bitMask(bit: u64) -> u64 {
+    zero64.wrappingSub(bit)
+}
+
+/// Selects a when mask is zero and b when mask is all ones.
+pure noalloc fn sel64(mask: u64, a: u64, b: u64) -> u64 {
+    (a & ~mask) | (b & mask)
+}
+
+/// The modulus as a limb value.
+pure noalloc fn modValue(md: Mod) -> U256 {
+    U256 {
+        l0: md.m0
+        l1: md.m1
+        l2: md.m2
+        l3: md.m3
+    }
+}
+
+pure noalloc fn U256.zero() -> U256 {
+    U256 {
+        l0: 0
+        l1: 0
+        l2: 0
+        l3: 0
+    }
+}
+
+pure noalloc fn U256.one() -> U256 {
+    U256 {
+        l0: 1
+        l1: 0
+        l2: 0
+        l3: 0
+    }
+}
+
+pure noalloc fn U256.isZeroMask(self) -> u64 {
+    eqMask64(self.l0 | self.l1 | self.l2 | self.l3, zero64)
+}
+
+pure noalloc fn U256.equals(self, other: U256) -> Bool {
+    let acc = (self.l0 ^ other.l0) | (self.l1 ^ other.l1) | (self.l2 ^ other.l2) | (self.l3 ^ other.l3)
+    acc == zero64
+}
+
+pure noalloc fn selectU256(mask: u64, a: U256, b: U256) -> U256 {
+    U256 {
+        l0: sel64(mask, a.l0, b.l0)
+        l1: sel64(mask, a.l1, b.l1)
+        l2: sel64(mask, a.l2, b.l2)
+        l3: sel64(mask, a.l3, b.l3)
+    }
+}
+
+/// Returns r - m when r >= m, for a five-limb r < 2m, and r otherwise.
+pure noalloc fn reduceFive(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, md: Mod) -> U256 {
+    let (d0, b0) = subBorrow(r0, md.m0, zero64)
+    let (d1, b1) = subBorrow(r1, md.m1, b0)
+    let (d2, b2) = subBorrow(r2, md.m2, b1)
+    let (d3, b3) = subBorrow(r3, md.m3, b2)
+    let (_, b4) = subBorrow(r4, zero64, b3)
+    let m = bitMask(b4)
+    U256 {
+        l0: sel64(m, d0, r0)
+        l1: sel64(m, d1, r1)
+        l2: sel64(m, d2, r2)
+        l3: sel64(m, d3, r3)
+    }
+}
+
+pure noalloc fn addMod(a: U256, b: U256, md: Mod) -> U256 {
+    let (s0, c0) = addCarry(a.l0, b.l0, zero64)
+    let (s1, c1) = addCarry(a.l1, b.l1, c0)
+    let (s2, c2) = addCarry(a.l2, b.l2, c1)
+    let (s3, c3) = addCarry(a.l3, b.l3, c2)
+    reduceFive(s0, s1, s2, s3, c3, md)
+}
+
+pure noalloc fn subMod(a: U256, b: U256, md: Mod) -> U256 {
+    let (t0, c0) = subBorrow(md.m0, b.l0, zero64)
+    let (t1, c1) = subBorrow(md.m1, b.l1, c0)
+    let (t2, c2) = subBorrow(md.m2, b.l2, c1)
+    let (t3, _) = subBorrow(md.m3, b.l3, c2)
+    let (s0, d0) = addCarry(a.l0, t0, zero64)
+    let (s1, d1) = addCarry(a.l1, t1, d0)
+    let (s2, d2) = addCarry(a.l2, t2, d1)
+    let (s3, d3) = addCarry(a.l3, t3, d2)
+    reduceFive(s0, s1, s2, s3, d3, md)
+}

@@ -1,0 +1,54 @@
+// RFC 6979 deterministic ECDSA nonces over HMAC-SHA-256.
+//
+// It seeds K and V from the private key and the reduced digest, then derives
+// each candidate as another HMAC of V. `skip` returns a later candidate, so
+// signing retries after r or s is zero without ever using randomness.
+import hmac from std/crypto/hmac
+import sha256 from std/crypto/sha256
+
+/// HMAC-SHA-256 of `data` under `key`.
+fn hmacBytes(key: Bytes, data: Bytes) -> Bytes {
+    hmac.sum[sha256.Hasher](key, data)
+}
+
+/// The `skip`-th valid nonce for `d` over `digest`, in 32 big-endian bytes.
+fn deterministicNonce(d: Bytes, digest: Bytes, skip: usize) -> Result[Bytes, Error] {
+    let md = modulusN()
+    let h = toBytes(reduceOnce(fromBytes(digest), md))
+    let mut v = Bytes.fill(1, 32)
+    let mut k = Bytes.zeros(32)
+    let mut round: usize = 0
+    for round < 2 {
+        let mut buf = Array.empty[u8]()
+        append(&mut buf, v)
+        buf.push(if round == 0 {
+            0
+        } else {
+            1
+        })
+        append(&mut buf, d)
+        append(&mut buf, h)
+        k = hmacBytes(k, Bytes.fromArray(&buf))
+        v = hmacBytes(k, v)
+        round = round + 1
+    }
+    let mut found: usize = 0
+    let mut attempt: usize = 0
+    for attempt < 1000 {
+        v = hmacBytes(k, v)
+        let cand = fromBytes(v)
+        if validScalar(cand) {
+            if found == skip {
+                return Ok(toBytes(cand))
+            }
+            found = found + 1
+        }
+        let mut buf = Array.empty[u8]()
+        append(&mut buf, v)
+        buf.push(0)
+        k = hmacBytes(k, Bytes.fromArray(&buf))
+        v = hmacBytes(k, v)
+        attempt = attempt + 1
+    }
+    Err(Error.NonceOutOfRange)
+}

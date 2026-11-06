@@ -4301,6 +4301,42 @@
       ]
     },
     {
+      "id": "run/crypto_p256_ecdh",
+      "kind": "run",
+      "path": "testdata/run/crypto_p256_ecdh.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_p256_ecdsa",
+      "kind": "run",
+      "path": "testdata/run/crypto_p256_ecdsa.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_p256_ecdsa_reject",
+      "kind": "run",
+      "path": "testdata/run/crypto_p256_ecdsa_reject.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_p256_points",
+      "kind": "run",
+      "path": "testdata/run/crypto_p256_points.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/crypto_sha256",
       "kind": "run",
       "path": "testdata/run/crypto_sha256.txtar",

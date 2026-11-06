@@ -1,0 +1,92 @@
+// Big-endian byte encoding for 256-bit values.
+//
+// A `U256` is four little-endian limbs; on the wire P-256 values are 32 bytes
+// big-endian, so `fromBytes` reads the last limb from the first byte.
+/// The big-endian value of the eight bytes at `off` in `b`.
+pure fn be64(b: Bytes, off: usize) -> u64 {
+    let mut v: u64 = 0
+    let mut i: usize = 0
+    for i < 8 {
+        v = v.wrappingShiftLeft(8) | b[off + i].toU64()
+        i = i + 1
+    }
+    v
+}
+
+/// Reads exactly 32 big-endian bytes; the caller checks the length.
+pure fn fromBytes(b: Bytes) -> U256 {
+    fromBytesAt(b, 0)
+}
+
+/// Reads the 32 big-endian bytes at `off`.
+pure fn fromBytesAt(b: Bytes, off: usize) -> U256 {
+    U256 {
+        l0: be64(b, off + 24)
+        l1: be64(b, off + 16)
+        l2: be64(b, off + 8)
+        l3: be64(b, off)
+    }
+}
+
+/// Appends one limb as eight big-endian bytes.
+pure fn pushU64(out: &mut Array[u8], v: u64) {
+    let mut x = v
+    let mut i: usize = 0
+    for i < 8 {
+        let byte = (x >> 56) & 255
+        out.push(byte.toU8().expect("masked to one byte"))
+        x = x.wrappingShiftLeft(8)
+        i = i + 1
+    }
+}
+
+/// The 32 big-endian bytes of a value below 2^256.
+pure fn toBytes(v: U256) -> Bytes {
+    let mut out = Array.empty[u8]()
+    pushU64(&mut out, v.l3)
+    pushU64(&mut out, v.l2)
+    pushU64(&mut out, v.l1)
+    pushU64(&mut out, v.l0)
+    Bytes.fromArray(&out)
+}
+
+/// One when a < b, zero otherwise.
+pure noalloc fn ltU256(a: U256, b: U256) -> u64 {
+    let (_, c0) = subBorrow(a.l0, b.l0, 0)
+    let (_, c1) = subBorrow(a.l1, b.l1, c0)
+    let (_, c2) = subBorrow(a.l2, b.l2, c1)
+    let (_, c3) = subBorrow(a.l3, b.l3, c2)
+    c3
+}
+
+/// a mod m for a below 2^256, when m is above 2^255 so one subtraction suffices.
+pure noalloc fn reduceOnce(a: U256, md: Mod) -> U256 {
+    let (d0, b0) = subBorrow(a.l0, md.m0, 0)
+    let (d1, b1) = subBorrow(a.l1, md.m1, b0)
+    let (d2, b2) = subBorrow(a.l2, md.m2, b1)
+    let (d3, b3) = subBorrow(a.l3, md.m3, b2)
+    let m = bitMask(b3)
+    U256 {
+        l0: sel64(m, d0, a.l0)
+        l1: sel64(m, d1, a.l1)
+        l2: sel64(m, d2, a.l2)
+        l3: sel64(m, d3, a.l3)
+    }
+}
+
+/// Appends every byte of `b`.
+pure fn append(out: &mut Array[u8], b: Bytes) {
+    let mut i: usize = 0
+    for i < b.len() {
+        out.push(b[i])
+        i = i + 1
+    }
+}
+
+/// The bytes of `a` followed by the bytes of `b`.
+pure fn concatBytes(a: Bytes, b: Bytes) -> Bytes {
+    let mut out = Array.empty[u8]()
+    append(&mut out, a)
+    append(&mut out, b)
+    Bytes.fromArray(&out)
+}

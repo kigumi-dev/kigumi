@@ -1,0 +1,195 @@
+// The P-256 group in Jacobian coordinates.
+//
+// A point is (X : Y : Z) for the affine (X/Z^2, Y/Z^3); Z = 0 is infinity.
+// Coordinates are held in Montgomery form for the base field. Addition and
+// doubling are the standard a = -3 formulas. Addition is made total with
+// masks: infinity operands, equal points and opposite points all resolve to
+// the right output without a branch on a coordinate.
+/// A Jacobian point; `z` is zero for infinity.
+type Point = {
+    x U256
+    y U256
+    z U256
+}
+
+pure noalloc fn curveB() -> U256 {
+    U256 {
+        l0: 0x3BCE3C3E27D2604B
+        l1: 0x651D06B0CC53B0F6
+        l2: 0xB3EBBD55769886BC
+        l3: 0x5AC635D8AA3A93E7
+    }
+}
+
+pure noalloc fn baseX() -> U256 {
+    U256 {
+        l0: 0xF4A13945D898C296
+        l1: 0x77037D812DEB33A0
+        l2: 0xF8BCE6E563A440F2
+        l3: 0x6B17D1F2E12C4247
+    }
+}
+
+pure noalloc fn baseY() -> U256 {
+    U256 {
+        l0: 0xCBB6406837BF51F5
+        l1: 0x2BCE33576B315ECE
+        l2: 0x8EE7EB4A7C0F9E16
+        l3: 0x4FE342E2FE1A7F9B
+    }
+}
+
+pure noalloc fn oneMont(md: Mod) -> U256 {
+    U256 {
+        l0: md.o0
+        l1: md.o1
+        l2: md.o2
+        l3: md.o3
+    }
+}
+
+pure noalloc fn infinity() -> Point {
+    Point {
+        x: U256.zero()
+        y: U256.zero()
+        z: U256.zero()
+    }
+}
+
+pure noalloc fn selectPoint(mask: u64, a: Point, b: Point) -> Point {
+    Point {
+        x: selectU256(mask, a.x, b.x)
+        y: selectU256(mask, a.y, b.y)
+        z: selectU256(mask, a.z, b.z)
+    }
+}
+
+/// The base point in Montgomery form.
+pure noalloc fn basePoint(md: Mod) -> Point {
+    Point {
+        x: toMont(baseX(), md)
+        y: toMont(baseY(), md)
+        z: oneMont(md)
+    }
+}
+
+/// 2P in Jacobian coordinates, with infinity preserved.
+pure noalloc fn doublePoint(p: Point, md: Mod) -> Point {
+    let delta = montMul(p.z, p.z, md)
+    let gamma = montMul(p.y, p.y, md)
+    let beta = montMul(p.x, gamma, md)
+    let t = montMul(subMod(p.x, delta, md), addMod(p.x, delta, md), md)
+    let alpha = addMod(addMod(t, t, md), t, md)
+    let beta2 = addMod(beta, beta, md)
+    let beta4 = addMod(beta2, beta2, md)
+    let beta8 = addMod(beta4, beta4, md)
+    let x3 = subMod(montMul(alpha, alpha, md), beta8, md)
+    let yz = addMod(p.y, p.z, md)
+    let z3 = subMod(subMod(montMul(yz, yz, md), gamma, md), delta, md)
+    let gamma2 = montMul(gamma, gamma, md)
+    let gamma4 = addMod(gamma2, gamma2, md)
+    let gamma8 = addMod(gamma4, gamma4, md)
+    let gamma16 = addMod(gamma8, gamma8, md)
+    let y3 = subMod(montMul(alpha, subMod(beta4, x3, md), md), gamma16, md)
+    let doubled = Point {
+        x: x3
+        y: y3
+        z: z3
+    }
+    selectPoint(p.z.isZeroMask(), doubled, infinity())
+}
+
+/// P + Q for any two points, including infinity and P == Q.
+pure noalloc fn addPoints(p: Point, q: Point, md: Mod) -> Point {
+    let z1z1 = montMul(p.z, p.z, md)
+    let z2z2 = montMul(q.z, q.z, md)
+    let u1 = montMul(p.x, z2z2, md)
+    let u2 = montMul(q.x, z1z1, md)
+    let s1 = montMul(montMul(p.y, q.z, md), z2z2, md)
+    let s2 = montMul(montMul(q.y, p.z, md), z1z1, md)
+    let h = subMod(u2, u1, md)
+    let r0 = subMod(s2, s1, md)
+    let r = addMod(r0, r0, md)
+    let h2 = addMod(h, h, md)
+    let ii = montMul(h2, h2, md)
+    let j = montMul(h, ii, md)
+    let v = montMul(u1, ii, md)
+    let x3 = subMod(subMod(montMul(r, r, md), j, md), addMod(v, v, md), md)
+    let sj = montMul(s1, j, md)
+    let y3 = subMod(montMul(r, subMod(v, x3, md), md), addMod(sj, sj, md), md)
+    let zz = addMod(p.z, q.z, md)
+    let z3 = montMul(subMod(subMod(montMul(zz, zz, md), z1z1, md), z2z2, md), h, md)
+    let sum = Point {
+        x: x3
+        y: y3
+        z: z3
+    }
+    let pi = p.z.isZeroMask()
+    let qi = q.z.isZeroMask()
+    let same = h.isZeroMask()
+    let opposite = same & ~r.isZeroMask()
+    let doubled = doublePoint(p, md)
+    let mut out = selectPoint(pi, sum, q)
+    out = selectPoint(qi, out, p)
+    let useDouble = same & ~opposite & ~pi & ~qi
+    selectPoint(useDouble, out, doubled)
+}
+
+pure noalloc fn scalarWord(k: U256, index: usize) -> u64 {
+    if index == 0 {
+        k.l0
+    } else if index == 1 {
+        k.l1
+    } else if index == 2 {
+        k.l2
+    } else {
+        k.l3
+    }
+}
+
+/// k * P with a fixed 256-step double-and-add. The scalar bit only picks
+/// between two complete results, so the step count and memory access pattern
+/// are independent of k.
+pure noalloc fn mulPoint(k: U256, p: Point, md: Mod) -> Point {
+    let mut r = infinity()
+    let mut t: usize = 0
+    for t < 256 {
+        let pos = 255 - t
+        let bit = (scalarWord(k, pos >> 6) >> (pos & 63)) & 1
+        r = doublePoint(r, md)
+        let next = addPoints(r, p, md)
+        r = selectPoint(bitMask(bit), r, next)
+        t = t + 1
+    }
+    r
+}
+
+/// The affine coordinates of a finite point, out of Montgomery form.
+pure noalloc fn affinePoint(p: Point, md: Mod) -> (U256, U256) {
+    let zinv = invP(p.z)
+    let zinv2 = montMul(zinv, zinv, md)
+    let x = fromMont(montMul(p.x, zinv2, md), md)
+    let y = fromMont(montMul(p.y, montMul(zinv2, zinv, md), md), md)
+    (x, y)
+}
+
+/// Whether (x, y), in normal form, satisfies y^2 = x^3 - 3x + b.
+pure noalloc fn onCurve(x: U256, y: U256, md: Mod) -> Bool {
+    let xm = toMont(x, md)
+    let ym = toMont(y, md)
+    let lhs = montMul(ym, ym, md)
+    let mut rhs = montMul(montMul(xm, xm, md), xm, md)
+    rhs = subMod(rhs, addMod(addMod(xm, xm, md), xm, md), md)
+    rhs = addMod(rhs, toMont(curveB(), md), md)
+    lhs.equals(rhs)
+}
+
+/// SEC1 uncompressed: 0x04 followed by the 32-byte X and Y.
+fn encodePoint(p: Point, md: Mod) -> Bytes {
+    let (x, y) = affinePoint(p, md)
+    let mut out = Array.empty[u8]()
+    out.push(4)
+    append(&mut out, toBytes(x))
+    append(&mut out, toBytes(y))
+    Bytes.fromArray(&out)
+}

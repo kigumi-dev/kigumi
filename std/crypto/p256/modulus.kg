@@ -1,0 +1,42 @@
+// The two P-256 moduli and their Montgomery constants.
+//
+// Each record carries m (four little-endian limbs), N0 = -m^-1 mod 2^64,
+// R2 = 2^512 mod m and ONE = R mod m, so the arithmetic in `limbs.kg` and
+// `mont.kg` needs nothing else.
+/// The prime of the base field, p = 2^256 - 2^224 + 2^192 + 2^96 - 1.
+pure noalloc fn modulusP() -> Mod {
+    Mod {
+        m0: 0xFFFFFFFFFFFFFFFF
+        m1: 0x00000000FFFFFFFF
+        m2: 0x0000000000000000
+        m3: 0xFFFFFFFF00000001
+        n0: 0x0000000000000001
+        r20: 0x0000000000000003
+        r21: 0xFFFFFFFBFFFFFFFF
+        r22: 0xFFFFFFFFFFFFFFFE
+        r23: 0x00000004FFFFFFFD
+        o0: 0x0000000000000001
+        o1: 0xFFFFFFFF00000000
+        o2: 0xFFFFFFFFFFFFFFFF
+        o3: 0x00000000FFFFFFFE
+    }
+}
+
+/// The order of the base point, n.
+pure noalloc fn modulusN() -> Mod {
+    Mod {
+        m0: 0xF3B9CAC2FC632551
+        m1: 0xBCE6FAADA7179E84
+        m2: 0xFFFFFFFFFFFFFFFF
+        m3: 0xFFFFFFFF00000000
+        n0: 0xCCD1C8AAEE00BC4F
+        r20: 0x83244C95BE79EEA2
+        r21: 0x4699799C49BD6FA6
+        r22: 0x2845B2392B6BEC59
+        r23: 0x66E12D94F3D95620
+        o0: 0x0C46353D039CDAAF
+        o1: 0x4319055258E8617B
+        o2: 0x0000000000000000
+        o3: 0x00000000FFFFFFFF
+    }
+}

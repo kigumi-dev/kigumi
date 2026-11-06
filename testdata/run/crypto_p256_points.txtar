@@ -1,0 +1,108 @@
+-- src --
+import hex from std/encoding/hex
+import p256 from std/crypto/p256
+
+fn main() -> Void! {
+    let d = hex.decode("C9AFA9D845BA75166B5C215767B1D6934E50C3DB36E89B127B8A622B120F6721")?
+    let g = p256.publicKey(d)?
+    let digest = hex.decode("0000000000000000000000000000000000000000000000000000000000000001")?
+    let good = p256.sign(d, digest)?
+    print "valid-g ${p256.isValidPublicKey(g)}"
+    print "valid-roundtrip ${p256.verify(g, digest, good)?}"
+
+    let offCurve = hex.decode("046B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C2964FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F6")?
+    print "valid-off-curve ${p256.isValidPublicKey(offCurve)}"
+    let nonCanonical = hex.decode("04FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5")?
+    print "valid-non-canonical ${p256.isValidPublicKey(nonCanonical)}"
+    let nonCanonicalY = hex.decode("046B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF")?
+    print "valid-non-canonical-y ${p256.isValidPublicKey(nonCanonicalY)}"
+    let compressed = hex.decode("026B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296")?
+    print "valid-compressed ${p256.isValidPublicKey(compressed)}"
+    print "valid-short ${p256.isValidPublicKey(Bytes.zeros(64))}"
+    print "valid-infinity ${p256.isValidPublicKey(b"\x00")}"
+    print "valid-zero ${p256.isValidPublicKey(Bytes.zeros(65))}"
+    let zeroPoint = hex.decode("0400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")?
+    print "valid-zero-point ${p256.isValidPublicKey(zeroPoint)}"
+
+    match p256.sharedSecret(d, offCurve) {
+        Err(e) -> print "ecdh-off-curve ${e.message()}"
+        Ok(_) -> print "ecdh-off-curve accepted"
+    }
+    match p256.sharedSecret(d, nonCanonical) {
+        Err(e) -> print "ecdh-non-canonical ${e.message()}"
+        Ok(_) -> print "ecdh-non-canonical accepted"
+    }
+    match p256.sharedSecret(d, compressed) {
+        Err(e) -> print "ecdh-compressed ${e.message()}"
+        Ok(_) -> print "ecdh-compressed accepted"
+    }
+    match p256.sharedSecret(d, b"\x00") {
+        Err(e) -> print "ecdh-infinity ${e.message()}"
+        Ok(_) -> print "ecdh-infinity accepted"
+    }
+    match p256.sharedSecret(d, Bytes.zeros(64)) {
+        Err(e) -> print "ecdh-short ${e.message()}"
+        Ok(_) -> print "ecdh-short accepted"
+    }
+    match p256.sharedSecret(Bytes.zeros(32), g) {
+        Err(e) -> print "ecdh-zero-secret ${e.message()}"
+        Ok(_) -> print "ecdh-zero-secret accepted"
+    }
+
+    let n = hex.decode("FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551")?
+    let cases = Array.of[Bytes](Bytes.zeros(32), n, hex.decode("FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632552")?, Bytes.zeros(31), Bytes.zeros(33))
+    for key in cases {
+        match p256.publicKey(key) {
+            Err(e) -> print "public-key ${e.message()}"
+            Ok(_) -> print "public-key accepted"
+        }
+    }
+
+    match p256.verify(offCurve, digest, good) {
+        Err(e) -> print "verify-off-curve ${e.message()}"
+        Ok(v) -> print "verify-off-curve ${v}"
+    }
+    match p256.verify(nonCanonical, digest, good) {
+        Err(e) -> print "verify-non-canonical ${e.message()}"
+        Ok(v) -> print "verify-non-canonical ${v}"
+    }
+    match p256.verify(zeroPoint, digest, good) {
+        Err(e) -> print "verify-zero-point ${e.message()}"
+        Ok(v) -> print "verify-zero-point ${v}"
+    }
+    match p256.verify(Bytes.zeros(64), digest, good) {
+        Err(e) -> print "verify-short-key ${e.message()}"
+        Ok(v) -> print "verify-short-key ${v}"
+    }
+    match p256.sign(d, Bytes.zeros(31)) {
+        Err(e) -> print "sign-short-digest ${e.message()}"
+        Ok(_) -> print "sign-short-digest accepted"
+    }
+}
+-- stdout --
+valid-g true
+valid-roundtrip true
+valid-off-curve false
+valid-non-canonical false
+valid-non-canonical-y false
+valid-compressed false
+valid-short false
+valid-infinity false
+valid-zero false
+valid-zero-point false
+ecdh-off-curve p256: point is not on the curve
+ecdh-non-canonical p256: invalid public key encoding
+ecdh-compressed p256: public key must be 65 bytes
+ecdh-infinity p256: point at infinity
+ecdh-short p256: public key must be 65 bytes
+ecdh-zero-secret p256: private key must be in [1, n)
+public-key p256: private key must be in [1, n)
+public-key p256: private key must be in [1, n)
+public-key p256: private key must be in [1, n)
+public-key p256: scalar must be 32 bytes
+public-key p256: scalar must be 32 bytes
+verify-off-curve p256: point is not on the curve
+verify-non-canonical p256: invalid public key encoding
+verify-zero-point p256: point is not on the curve
+verify-short-key p256: public key must be 65 bytes
+sign-short-digest p256: digest must be 32 bytes

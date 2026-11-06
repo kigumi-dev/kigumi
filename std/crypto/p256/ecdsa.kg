@@ -1,0 +1,38 @@
+// ECDSA over P-256 with SHA-256 sized digests and RFC 6979 nonces.
+fn signDigest(dNorm: U256, zNorm: U256, d: Bytes, digest: Bytes) -> Result[Bytes, Error] {
+    let mdP = modulusP()
+    let mdN = modulusN()
+    let g = basePoint(mdP)
+    let mut attempt: usize = 0
+    for attempt < 16 {
+        let nonce = deterministicNonce(d, digest, attempt)?
+        let k = fromBytes(nonce)
+        let (affineX, _) = affinePoint(mulPoint(k, g, mdP), mdP)
+        let r = scalarReduce(affineX)
+        if r.isZeroMask() == 0 {
+            let rd = montMul(toMont(r, mdN), toMont(dNorm, mdN), mdN)
+            let sum = addMod(rd, toMont(zNorm, mdN), mdN)
+            let s = fromMont(montMul(invN(toMont(k, mdN)), sum, mdN), mdN)
+            if s.isZeroMask() == 0 {
+                return Ok(concatBytes(toBytes(r), toBytes(s)))
+            }
+        }
+        attempt = attempt + 1
+    }
+    Err(Error.DegenerateSignature)
+}
+
+/// Whether (r, s) verifies `zNorm` against the public point `q`.
+pure noalloc fn verifyDigest(q: Point, zNorm: U256, rNorm: U256, sNorm: U256) -> Bool {
+    let mdN = modulusN()
+    let w = invN(toMont(sNorm, mdN))
+    let u1 = fromMont(montMul(toMont(zNorm, mdN), w, mdN), mdN)
+    let u2 = fromMont(montMul(toMont(rNorm, mdN), w, mdN), mdN)
+    let mdP = modulusP()
+    let sum = addPoints(mulPoint(u1, basePoint(mdP), mdP), mulPoint(u2, q, mdP), mdP)
+    if sum.z.isZeroMask() != 0 {
+        return false
+    }
+    let (affineX, _) = affinePoint(sum, mdP)
+    scalarReduce(affineX).equals(rNorm)
+}

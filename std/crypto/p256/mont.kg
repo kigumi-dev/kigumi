@@ -1,0 +1,194 @@
+// Montgomery multiplication for the moduli in `limbs.kg`.
+//
+// The product is accumulated in four rows of 64-bit limbs; each row adds one
+// word of `b` times the whole of `a`. Every partial sum stays below 2^128, so
+// a u128 holds it exactly. The reduction then folds a multiple of the modulus
+// into the low half, which leaves a value below 2m that one masked subtraction
+// brings into [0, m).
+/// a * b * R^-1 mod m, for a and b below m and R = 2^256.
+pure noalloc fn montMul(a: U256, b: U256, md: Mod) -> U256 {
+    let a0 = a.l0
+    let a1 = a.l1
+    let a2 = a.l2
+    let a3 = a.l3
+    let b0 = b.l0
+    let b1 = b.l1
+    let b2 = b.l2
+    let b3 = b.l3
+    let p0 = md.m0
+    let p1 = md.m1
+    let p2 = md.m2
+    let p3 = md.m3
+    let mut t0: u128 = 0
+    let mut t1: u128 = 0
+    let mut t2: u128 = 0
+    let mut t3: u128 = 0
+    let mut t4: u128 = 0
+    let mut t5: u128 = 0
+    let mut t6: u128 = 0
+    let mut t7: u128 = 0
+    let mut t8: u128 = 0
+
+    let mut c: u128 = 0
+    let s = t0 + a0.toU128() * b0.toU128() + c
+    t0 = s & mask64
+    c = s >> 64
+    let s1 = t1 + a1.toU128() * b0.toU128() + c
+    t1 = s1 & mask64
+    c = s1 >> 64
+    let s2 = t2 + a2.toU128() * b0.toU128() + c
+    t2 = s2 & mask64
+    c = s2 >> 64
+    let s3 = t3 + a3.toU128() * b0.toU128() + c
+    t3 = s3 & mask64
+    t4 = s3 >> 64
+
+    c = 0
+    let s4 = t1 + a0.toU128() * b1.toU128() + c
+    t1 = s4 & mask64
+    c = s4 >> 64
+    let s5 = t2 + a1.toU128() * b1.toU128() + c
+    t2 = s5 & mask64
+    c = s5 >> 64
+    let s6 = t3 + a2.toU128() * b1.toU128() + c
+    t3 = s6 & mask64
+    c = s6 >> 64
+    let s7 = t4 + a3.toU128() * b1.toU128() + c
+    t4 = s7 & mask64
+    t5 = s7 >> 64
+
+    c = 0
+    let s8 = t2 + a0.toU128() * b2.toU128() + c
+    t2 = s8 & mask64
+    c = s8 >> 64
+    let s9 = t3 + a1.toU128() * b2.toU128() + c
+    t3 = s9 & mask64
+    c = s9 >> 64
+    let s10 = t4 + a2.toU128() * b2.toU128() + c
+    t4 = s10 & mask64
+    c = s10 >> 64
+    let s11 = t5 + a3.toU128() * b2.toU128() + c
+    t5 = s11 & mask64
+    t6 = s11 >> 64
+
+    c = 0
+    let s12 = t3 + a0.toU128() * b3.toU128() + c
+    t3 = s12 & mask64
+    c = s12 >> 64
+    let s13 = t4 + a1.toU128() * b3.toU128() + c
+    t4 = s13 & mask64
+    c = s13 >> 64
+    let s14 = t5 + a2.toU128() * b3.toU128() + c
+    t5 = s14 & mask64
+    c = s14 >> 64
+    let s15 = t6 + a3.toU128() * b3.toU128() + c
+    t6 = s15 & mask64
+    t7 = s15 >> 64
+
+    let q0 = lowHalf(t0).wrappingMul(md.n0).toU128()
+    c = 0
+    let r0 = t0 + q0 * p0.toU128() + c
+    t0 = r0 & mask64
+    c = r0 >> 64
+    let r1 = t1 + q0 * p1.toU128() + c
+    t1 = r1 & mask64
+    c = r1 >> 64
+    let r2 = t2 + q0 * p2.toU128() + c
+    t2 = r2 & mask64
+    c = r2 >> 64
+    let r3 = t3 + q0 * p3.toU128() + c
+    t3 = r3 & mask64
+    c = r3 >> 64
+    let r4 = t4 + c
+    t4 = r4 & mask64
+    c = r4 >> 64
+    let r5 = t5 + c
+    t5 = r5 & mask64
+    c = r5 >> 64
+    let r6 = t6 + c
+    t6 = r6 & mask64
+    c = r6 >> 64
+    let r7 = t7 + c
+    t7 = r7 & mask64
+    t8 = t8 + (r7 >> 64)
+
+    let q1 = lowHalf(t1).wrappingMul(md.n0).toU128()
+    c = 0
+    let u0 = t1 + q1 * p0.toU128() + c
+    t1 = u0 & mask64
+    c = u0 >> 64
+    let u1 = t2 + q1 * p1.toU128() + c
+    t2 = u1 & mask64
+    c = u1 >> 64
+    let u2 = t3 + q1 * p2.toU128() + c
+    t3 = u2 & mask64
+    c = u2 >> 64
+    let u3 = t4 + q1 * p3.toU128() + c
+    t4 = u3 & mask64
+    c = u3 >> 64
+    let u4 = t5 + c
+    t5 = u4 & mask64
+    c = u4 >> 64
+    let u5 = t6 + c
+    t6 = u5 & mask64
+    c = u5 >> 64
+    let u6 = t7 + c
+    t7 = u6 & mask64
+    t8 = t8 + (u6 >> 64)
+
+    let q2 = lowHalf(t2).wrappingMul(md.n0).toU128()
+    c = 0
+    let v0 = t2 + q2 * p0.toU128() + c
+    t2 = v0 & mask64
+    c = v0 >> 64
+    let v1 = t3 + q2 * p1.toU128() + c
+    t3 = v1 & mask64
+    c = v1 >> 64
+    let v2 = t4 + q2 * p2.toU128() + c
+    t4 = v2 & mask64
+    c = v2 >> 64
+    let v3 = t5 + q2 * p3.toU128() + c
+    t5 = v3 & mask64
+    c = v3 >> 64
+    let v4 = t6 + c
+    t6 = v4 & mask64
+    c = v4 >> 64
+    let v5 = t7 + c
+    t7 = v5 & mask64
+    t8 = t8 + (v5 >> 64)
+
+    let q3 = lowHalf(t3).wrappingMul(md.n0).toU128()
+    c = 0
+    let w0 = t3 + q3 * p0.toU128() + c
+    t3 = w0 & mask64
+    c = w0 >> 64
+    let w1 = t4 + q3 * p1.toU128() + c
+    t4 = w1 & mask64
+    c = w1 >> 64
+    let w2 = t5 + q3 * p2.toU128() + c
+    t5 = w2 & mask64
+    c = w2 >> 64
+    let w3 = t6 + q3 * p3.toU128() + c
+    t6 = w3 & mask64
+    c = w3 >> 64
+    let w4 = t7 + c
+    t7 = w4 & mask64
+    t8 = t8 + (w4 >> 64)
+
+    reduceFive(lowHalf(t4), lowHalf(t5), lowHalf(t6), lowHalf(t7), lowHalf(t8), md)
+}
+
+/// x * R mod m, converting into Montgomery form.
+pure noalloc fn toMont(x: U256, md: Mod) -> U256 {
+    montMul(x, U256 {
+        l0: md.r20
+        l1: md.r21
+        l2: md.r22
+        l3: md.r23
+    }, md)
+}
+
+/// x * R^-1 mod m, converting out of Montgomery form.
+pure noalloc fn fromMont(x: U256, md: Mod) -> U256 {
+    montMul(x, U256.one(), md)
+}

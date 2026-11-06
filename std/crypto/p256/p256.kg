@@ -1,0 +1,155 @@
+// P-256 (secp256r1, NIST P-256): ECDH and ECDSA in pure Kigumi.
+//
+// Encodings are 32-byte big-endian for scalars, coordinates and digests, and
+// SEC1 uncompressed (0x04 || X || Y) for public keys. ECDSA takes a prehashed
+// 32-byte digest; `signMessage` / `verifyMessage` hash with SHA-256 first.
+//
+// The group has prime order n and cofactor 1, so every point that decodes on
+// the curve is in the group; only infinity and off-curve points are rejected.
+//
+// Scalar multiplication is a fixed 256-step loop with masked selects; only the
+// native backend turns that into a timing guarantee. The limb arithmetic
+// allocates nothing; encoding allocates the output bytes.
+import sha256 from std/crypto/sha256
+
+/// Bytes of a scalar, coordinate or digest.
+pub const scalarSize: usize = 32
+
+/// Bytes of an uncompressed public key.
+pub const publicKeySize: usize = 65
+
+/// Bytes of an ECDSA signature, r || s.
+pub const signatureSize: usize = 64
+
+/// Why a P-256 call was refused.
+pub type Error =
+    | BadScalarSize
+    | BadDigestSize
+    | BadSignatureSize
+    | BadPublicKeySize
+    | BadPublicKey
+    | BadPrivateKey
+    | NotOnCurve
+    | Infinity
+    | DegenerateSignature
+    | NonceOutOfRange
+
+pub fn Error.message(self) -> String {
+    match self {
+        BadScalarSize -> "p256: scalar must be 32 bytes"
+        BadDigestSize -> "p256: digest must be 32 bytes"
+        BadSignatureSize -> "p256: signature must be 64 bytes"
+        BadPublicKeySize -> "p256: public key must be 65 bytes"
+        BadPublicKey -> "p256: invalid public key encoding"
+        BadPrivateKey -> "p256: private key must be in [1, n)"
+        NotOnCurve -> "p256: point is not on the curve"
+        Infinity -> "p256: point at infinity"
+        DegenerateSignature -> "p256: degenerate signature"
+        NonceOutOfRange -> "p256: no nonce in range"
+    }
+}
+
+fn secretScalar(secret: Bytes) -> Result[U256, Error] {
+    if secret.len() != scalarSize {
+        return Err(Error.BadScalarSize)
+    }
+    let d = fromBytes(secret)
+    if !validScalar(d) {
+        return Err(Error.BadPrivateKey)
+    }
+    Ok(d)
+}
+
+fn decodePublic(public: Bytes, md: Mod) -> Result[Point, Error] {
+    if public.len() == 1 && public[0] == 0 {
+        return Err(Error.Infinity)
+    }
+    if public.len() != publicKeySize {
+        return Err(Error.BadPublicKeySize)
+    }
+    if public[0] != 4 {
+        return Err(Error.BadPublicKey)
+    }
+    let x = fromBytesAt(public, 1)
+    let y = fromBytesAt(public, 33)
+    let p = modValue(md)
+    if ltU256(x, p) == 0 || ltU256(y, p) == 0 {
+        return Err(Error.BadPublicKey)
+    }
+    if !onCurve(x, y, md) {
+        return Err(Error.NotOnCurve)
+    }
+    Ok(Point {
+        x: toMont(x, md)
+        y: toMont(y, md)
+        z: oneMont(md)
+    })
+}
+
+/// The SEC1 public key for a 32-byte secret.
+pub pure fn publicKey(secret: Bytes) -> Result[Bytes, Error] {
+    let d = secretScalar(secret)?
+    let md = modulusP()
+    Ok(encodePoint(mulPoint(d, basePoint(md), md), md))
+}
+
+/// Whether `public` is a valid SEC1 P-256 point.
+pub pure fn isValidPublicKey(public: Bytes) -> Bool {
+    match decodePublic(public, modulusP()) {
+        Ok(_) -> true
+        Err(_) -> false
+    }
+}
+
+/// The ECDH shared secret: the X coordinate of `secret * peerPublic`.
+pub pure fn sharedSecret(secret: Bytes, peerPublic: Bytes) -> Result[Bytes, Error] {
+    let d = secretScalar(secret)?
+    let md = modulusP()
+    let q = decodePublic(peerPublic, md)?
+    let shared = mulPoint(d, q, md)
+    if shared.z.isZeroMask() != 0 {
+        return Err(Error.Infinity)
+    }
+    let (affineX, _) = affinePoint(shared, md)
+    Ok(toBytes(affineX))
+}
+
+/// ECDSA over a 32-byte prehashed digest, with an RFC 6979 nonce.
+pub pure fn sign(secret: Bytes, digest: Bytes) -> Result[Bytes, Error] {
+    if digest.len() != scalarSize {
+        return Err(Error.BadDigestSize)
+    }
+    let d = secretScalar(secret)?
+    signDigest(d, digestScalar(digest), secret, digest)
+}
+
+/// ECDSA verification of a 32-byte prehashed digest.
+///
+/// A well-formed signature that does not match, or whose r or s is outside
+/// [1, n), is `Ok(false)`; only malformed encodings are errors.
+pub pure fn verify(public: Bytes, digest: Bytes, signature: Bytes) -> Result[Bool, Error] {
+    if digest.len() != scalarSize {
+        return Err(Error.BadDigestSize)
+    }
+    if signature.len() != signatureSize {
+        return Err(Error.BadSignatureSize)
+    }
+    let md = modulusP()
+    let q = decodePublic(public, md)?
+    let r = fromBytesAt(signature, 0)
+    let s = fromBytesAt(signature, 32)
+    if !validScalar(r) || !validScalar(s) {
+        return Ok(false)
+    }
+    Ok(verifyDigest(q, digestScalar(digest), r, s))
+}
+
+/// ECDSA over the SHA-256 hash of `message`.
+pub pure fn signMessage(secret: Bytes, message: Bytes) -> Result[Bytes, Error] {
+    sign(secret, sha256.sum(message))
+}
+
+/// ECDSA verification over the SHA-256 hash of `message`.
+pub pure fn verifyMessage(public: Bytes, message: Bytes, signature: Bytes) -> Result[Bool, Error] {
+    verify(public, sha256.sum(message), signature)
+}
