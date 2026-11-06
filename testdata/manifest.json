@@ -9460,6 +9460,15 @@
       ]
     },
     {
+      "id": "run/secret_buffer",
+      "kind": "run",
+      "path": "testdata/run/secret_buffer.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/secret_debug",
       "kind": "run",
       "path": "testdata/run/secret_debug.txtar",
@@ -16082,6 +16091,14 @@
       "id": "sem/scrutinee_wrapped_ref",
       "kind": "sem",
       "path": "testdata/sem/scrutinee_wrapped_ref.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/secret_buffer_opacity",
+      "kind": "sem",
+      "path": "testdata/sem/secret_buffer_opacity.txtar",
       "mode": [
         "check"
       ]
