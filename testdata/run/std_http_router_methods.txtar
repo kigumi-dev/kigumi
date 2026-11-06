@@ -1,0 +1,18 @@
+-- src --
+import http from std/http
+
+fn ok(_req: http.Request) -> http.Response! {
+    http.Response.ofText(200, "ok")
+}
+
+let h = http.Router.new().get("/x", ok).post("/x", ok).handler()
+let options = h(http.Request.new("OPTIONS", "/x"))?
+print "${options.status} ${options.header("Allow") || "none"}"
+let wrong = h(http.Request.new("PUT", "/x"))?
+print "${wrong.status} ${wrong.header("Allow") || "none"}"
+let missing = h(http.Request.new("GET", "/missing"))?
+print "${missing.status}"
+-- stdout --
+204 GET, HEAD, POST
+405 GET, HEAD, POST
+404

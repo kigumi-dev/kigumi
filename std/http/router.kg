@@ -112,11 +112,22 @@ fn unmatched(table: String, req: Request) -> Response! {
     for line in table.split("\n") {
         let parts = line.split(" ")
         if parts.len() == 2 && matchPattern(parts.get(1) || "", req.path) is Some(_) {
-            allowed.push(parts.get(0) || "")
+            let method = parts.get(0) || ""
+            if !allowed.contains(method) {
+                allowed.push(method)
+            }
+            if method == "GET" && !allowed.contains("HEAD") {
+                allowed.push("HEAD")
+            }
         }
     }
     if allowed.isEmpty() {
         return Response.ofText(404, "not found")
+    }
+    if req.method == "OPTIONS" {
+        let mut resp = Response.new(204)
+        resp.headers.add("Allow", joinComma(&allowed))
+        return resp
     }
     let mut resp = Response.ofText(405, "method not allowed")
     resp.headers.add("Allow", joinComma(&allowed))

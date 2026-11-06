@@ -9857,6 +9857,15 @@
       ]
     },
     {
+      "id": "run/std_http_router_methods",
+      "kind": "run",
+      "path": "testdata/run/std_http_router_methods.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/std_http_routing",
       "kind": "run",
       "path": "testdata/run/std_http_routing.txtar",
