@@ -63,7 +63,7 @@ print "stopped"
 // httpRawCases are requests the std/net/http client refuses to produce; each is sent on its own connection.
 var httpRawCases = []struct{ name, send, want string }{
 	{"nul in value", "GET / HTTP/1.1\r\nHost: t\r\nX: a\x00b\r\n\r\n", "HTTP/1.1 400 "},
-	{"invalid utf8", "GET / HTTP/1.1\r\nHost: t\r\nX: \xff\xfe\r\n\r\n", "HTTP/1.1 400 "},
+	{"obs text", "GET / HTTP/1.1\r\nHost: t\r\nX: \xff\xfe\r\n\r\n", "HTTP/1.1 200 "},
 	{"too many fields", "GET / HTTP/1.1\r\nHost: t\r\nA: 1\r\nB: 2\r\nC: 3\r\nD: 4\r\n\r\n", "HTTP/1.1 431 "},
 	{"space in host", "GET / HTTP/1.1\r\nHost: a b\r\n\r\n", "HTTP/1.1 400 "},
 	{"unbracketed ipv6 host", "GET / HTTP/1.1\r\nHost: a:b:c\r\n\r\n", "HTTP/1.1 400 "},

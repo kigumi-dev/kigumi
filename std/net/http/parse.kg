@@ -71,13 +71,28 @@ fn headEnd(data: &Bytes, from: usize) -> usize?! {
     None
 }
 
+// headText accepts RFC 9110 obs-text: a head that is not UTF-8 is read
+// byte-for-byte as Latin-1, which keeps every 0x80..0xFF value visible.
+fn headText(raw: Bytes) -> String {
+    if String.fromBytes(raw) is Ok(t) {
+        return t
+    }
+    let mut out = Array.empty[u8]()
+    for b in raw {
+        let c = b.toInt()
+        if c < 0x80 {
+            out.push(b)
+        } else {
+            out.push((0xC0 | (c >> 6)).toU8() || 0)
+            out.push((0x80 | (c & 0x3F)).toU8() || 0)
+        }
+    }
+    String.fromBytes(Bytes.fromArray(&out)) || ""
+}
+
 // parseHead reads a head ending in CRLF CRLF; maxFields bounds the header count.
 fn parseHead(raw: Bytes, maxFields: usize) -> Head! {
-    let text = if String.fromBytes(raw) is Ok(t) {
-        t
-    } else {
-        fail failure(400, "message head is not valid UTF-8")
-    }
+    let text = headText(raw)
     let lines = text.split("\r\n")
     let first = lines.get(0) || ""
     let mut headers = Headers.new()
