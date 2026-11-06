@@ -1,5 +1,5 @@
 #include "rt.h"
-#ifndef KIGUMI_FREESTANDING
+#if !defined(KIGUMI_BARE)
 #include <errno.h>
 #ifdef _WIN32
 #include <sys/stat.h>

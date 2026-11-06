@@ -23,6 +23,9 @@ func runtimeDefines(t buildconfig.Target, code compiled) []string {
 	if t.Freestanding() {
 		defs = append(defs, "KIGUMI_FREESTANDING")
 	}
+	if t.Bare() {
+		defs = append(defs, "KIGUMI_BARE")
+	}
 	if wantsTaskCatch(t) {
 		defs = append(defs, "KIGUMI_TASK_CATCH")
 	}
