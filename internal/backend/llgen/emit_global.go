@@ -3,7 +3,6 @@ package llgen
 import (
 	"fmt"
 	"math"
-	"math/big"
 	"strings"
 
 	midir "kigumi/internal/compiler/mir/ir"
@@ -116,13 +115,11 @@ func sectionClause(name string) string {
 // cLiteralText renders a literal as ct's LLVM constant text, for an export(C) static's initializer.
 func cLiteralText(lit sem.Literal, ct string) string {
 	if ct == "float" || ct == "double" {
-		f := 0.0
-		switch {
-		case lit.Float != nil:
-			f, _ = lit.Float.Float64()
-		case lit.Int != nil:
-			f, _ = new(big.Float).SetInt(lit.Int).Float64()
+		bits := 64
+		if ct == "float" {
+			bits = 32
 		}
+		f := literalFloat(lit, bits)
 		return fmt.Sprintf("0x%X", math.Float64bits(f))
 	}
 	if lit.Int == nil {

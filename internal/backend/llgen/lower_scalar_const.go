@@ -3,7 +3,6 @@ package llgen
 import (
 	"fmt"
 	"math"
-	"math/big"
 	"strconv"
 	"strings"
 
@@ -32,15 +31,11 @@ func scalarConstText(tt *sem.TypeTable, in midir.Inst) string {
 	case in.Str != "" && tt.IsInteger(in.Type):
 		return in.Str
 	case tt.IsFloat(in.Type):
-		f := 0.0
-		if lit.Float != nil {
-			f, _ = lit.Float.Float64()
-		} else if lit.Int != nil {
-			f, _ = new(big.Float).SetInt(lit.Int).Float64()
-		}
+		bits := 64
 		if in.Type == sem.TyF32 {
-			f = float64(float32(f))
+			bits = 32
 		}
+		f := literalFloat(lit, bits)
 		return fmt.Sprintf("0x%X", math.Float64bits(f))
 	case lit.Kind == sem.LitInt:
 		if lit.Int == nil {

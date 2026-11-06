@@ -51,12 +51,7 @@ func (e *emitter) litKey(in midir.Inst) (string, bool) {
 	case in.Str != "" && tt.IsInteger(in.Type):
 		return e.constNum(kInt, e.numKind(in.Type), in.Str), true
 	case tt.IsFloat(in.Type):
-		f := 0.0
-		if lit.Float != nil {
-			f, _ = lit.Float.Float64()
-		} else if lit.Int != nil {
-			f, _ = new(big.Float).SetInt(lit.Int).Float64()
-		}
+		f := literalFloat(lit, intBits(e.numKind(in.Type)))
 		return e.constNum(kFloat, e.numKind(in.Type), fmt.Sprintf("0x%X", math.Float64bits(f))), true
 	case lit.Kind == sem.LitInt && lit.Int != nil && tt.IsInteger(e.r.UnderlyingRepr(in.Type)) && tt.Width(e.r.UnderlyingRepr(in.Type)) == 128:
 		return e.constNum(kInt, e.numKind(in.Type), lit.Int.String()), true
@@ -136,4 +131,23 @@ func (e *emitter) shellItem(sb *strings.Builder, name string, payload []string) 
 func (e *emitter) callStd(sb *strings.Builder, pkg, name string, args []string) string {
 	fn := e.p.ByEnt[e.r.PackageMember(e.r.PackageByPath(pkg), name)]
 	return e.callBoxed(sb, fn, args)
+}
+
+// literalFloat rounds a literal once, directly to the target width.
+func literalFloat(lit sem.Literal, bits int) float64 {
+	var bf *big.Float
+	switch {
+	case lit.Float != nil:
+		bf = lit.Float
+	case lit.Int != nil:
+		bf = new(big.Float).SetInt(lit.Int)
+	default:
+		return 0
+	}
+	if bits == 32 {
+		f, _ := bf.Float32()
+		return float64(f)
+	}
+	f, _ := bf.Float64()
+	return f
 }

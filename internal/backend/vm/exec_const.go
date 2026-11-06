@@ -4,6 +4,7 @@ import (
 	"kigumi/internal/compiler/mir"
 	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
+	"math/big"
 )
 
 func (m *Machine) constant(in *midir.Inst) *obj {
@@ -17,8 +18,16 @@ func (m *Machine) constant(in *midir.Inst) *obj {
 		}
 		return mkInt(i, m.numKind(in.Type))
 	case tt.IsFloat(in.Type):
-		f := 0.0
-		if lit.Float != nil {
+		var f float64
+		if m.numKind(in.Type)&255 == 32 {
+			if lit.Float != nil {
+				v, _ := lit.Float.Float32()
+				f = float64(v)
+			} else if lit.Int != nil {
+				v, _ := new(big.Float).SetInt(lit.Int).Float32()
+				f = float64(v)
+			}
+		} else if lit.Float != nil {
 			f, _ = lit.Float.Float64()
 		} else if lit.Int != nil {
 			f, _ = lit.Int.Float64()
