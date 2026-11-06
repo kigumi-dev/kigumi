@@ -42,21 +42,11 @@ func (c *borrowCheck) valueResultSource(in midir.Inst) (*borrowInfo, bool) {
 			h, ok = c.keptArgBorrow(in.Dst, a)
 		case generic:
 			h, ok = c.holders[a]
-			if !ok {
-				h, ok = c.flowInfo(flowArg{arg: a})
-			}
 		}
-
 		if !ok {
 			continue
 		}
-		b := c.carriedBorrows(h)
-		if b == nil && !h.hasOwner && !h.empty {
-			// A generic result of a bare type parameter may keep an
-			// unnameable borrow from a reference argument.
-			b = h
-		}
-		if b != nil && !slices.Contains(found, b) {
+		if b := c.carriedBorrows(h); b != nil && !slices.Contains(found, b) {
 			found = append(found, b)
 			whole = whole && b == h
 		}
