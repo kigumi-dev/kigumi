@@ -157,6 +157,9 @@ func checkHTTPRaw(t *testing.T, cmd *exec.Cmd) {
 		if c.want != "" && strings.Count(got, "HTTP/1.1 ") != 1 {
 			t.Errorf("%s: want exactly one response before the close, got %q", c.name, got)
 		}
+		if c.want != "" && c.want[9] == '2' && !strings.Contains(got, "\r\nDate: ") {
+			t.Errorf("%s: response has no Date field: %q", c.name, got)
+		}
 	}
 	stop, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", control))
 	if err != nil {

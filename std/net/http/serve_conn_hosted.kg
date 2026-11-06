@@ -1,4 +1,5 @@
 import error from std/error
+import time from std/time
 
 type RequestLine = {
     method String
@@ -62,6 +63,7 @@ async fn Wire.reject(mut self, f: Failure, limits: Limits) {
     let body = f.text.toBytes()
     let mut headers = Headers.new()
     headers.add("Content-Type", "text/plain; charset=utf-8")
+    headers.add("Date", time.now().httpDate())
     if renderHead("HTTP/1.1 ${f.status} ${reason(f.status)}", &headers, Some(body.len()), true) is Ok(head) {
         _ = await self.writeAll(head.concat(body), deadlineIn(limits.writeTimeoutMillis))
     }
@@ -170,6 +172,10 @@ type Outgoing = {
 
 // renderResponse encodes resp; one that cannot be sent as given fails with a Failure.
 fn renderResponse(resp: Response, headOnly: Bool, close: Bool) -> Outgoing! {
+    let mut resp = resp
+    if resp.headers.get("Date") is None {
+        resp.headers.add("Date", time.now().httpDate())
+    }
     if resp.status < 200 || resp.status > 599 {
         fail failure(500, "invalid status ${resp.status}")
     }
