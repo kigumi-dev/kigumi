@@ -1,3 +1,6 @@
+import sha256 from std/crypto/sha256
+import x25519 from std/crypto/x25519
+import x509 from std/crypto/x509
 // A TLS 1.3 client (RFC 8446) over an existing `net.Conn`, with
 // AEAD_CHACHA20_POLY1305 and x25519 only.
 //
@@ -27,11 +30,8 @@
 // certificate chain must reach one of the supplied anchors.
 import binary from std/encoding/binary
 import net from std/net
-import sha256 from std/crypto/sha256
 import task from std/task
 import time from std/time
-import x25519 from std/crypto/x25519
-import x509 from std/crypto/x509
 
 /// Why a TLS operation failed.
 pub type Error =
@@ -231,8 +231,7 @@ pub fn Session.ready(self) -> Bool {
 }
 
 // ---- transport ----------------------------------------------------------
-
-type Filled = | More | Eof
+type Filled = More | Eof
 
 async fn Session.fill(mut self) -> Result[Filled, Error] {
     let mut chunk = Array.empty[u8]()
@@ -263,7 +262,9 @@ async fn Session.writeRaw(mut self, data: Bytes) -> Result[Void, Error] {
     for off < data.len() {
         let rest = data.slice(off, data.len()) || fail Error.Io("write slice out of bounds")
         match self.conn.pollWrite(rest) {
-            Ok(Some(n)) -> { off = off + n }
+            Ok(Some(n)) -> {
+                off = off + n
+            }
             Ok(None) -> await task.yieldNow()
             Err(e) -> fail Error.Io(e.message())
         }
@@ -349,7 +350,6 @@ async fn Session.readRecord(mut self) -> Result[Record, Error] {
 }
 
 // ---- handshake message stream ------------------------------------------
-
 fn Session.takeHandshake(mut self) -> Result[Message?, Error] {
     if self.hsBuf.len() < 4 {
         return None
@@ -423,7 +423,6 @@ async fn Session.sendAlert(mut self, level: u8, description: u8) {
 }
 
 // ---- handshake ----------------------------------------------------------
-
 async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
     if config.serverName == "" {
         fail Error.BadCertificate("server name is empty")
@@ -564,7 +563,6 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
 }
 
 // ---- application data ---------------------------------------------------
-
 fn Session.takeApplication(mut self, max: usize) -> Bytes {
     let n = if self.appBuf.len() < max {
         self.appBuf.len()
