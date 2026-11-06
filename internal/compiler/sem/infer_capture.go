@@ -82,7 +82,9 @@ func (c *checker) noteCaptureWrite(n syntax.NodeID, ent EntityID) {
 	}
 	c.noteLambdaWrite(ent)
 	c.noteLocalWrite(n, ent)
-	if c.capturedHere(ent) {
+	// Writing a local declared in this function changes no caller state; the
+	// closure's mutation is part of the local's value, not an external effect.
+	if c.capturedHere(ent) && c.r.Entities[ent].Kind != EntLocal {
 		c.edge(EffectEdge{Kind: EdgeMutateCaller, Target: ent, Node: n})
 	}
 	c.promoteCaptures(n, ent)

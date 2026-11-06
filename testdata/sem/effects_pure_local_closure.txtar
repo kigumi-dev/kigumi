@@ -1,0 +1,15 @@
+-- module --
+stage: driver
+-- src --
+pure fn counter() -> Int {
+    let mut n = 0
+    let bump = () => { n += 1 }
+    bump()
+    bump()
+    n
+}
+
+fn main() {
+    print "${counter()}"
+}
+-- expect --
