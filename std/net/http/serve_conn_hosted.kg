@@ -98,11 +98,12 @@ async fn serveConn(wire: Wire, handler: fn(Request) -> Response!, log: fn(String
             }
         }
         let close = req.close || stop.requested()
+        let version = req.version
         let headOnly = req.request.method == "HEAD"
         let target = req.request.target
         let method = req.request.method
         let resp = answer(handler, log, move req.request)
-        let out = match renderResponse(resp, headOnly, close) {
+        let out = match renderResponse(resp, version, headOnly, close) {
             Ok(o) -> o
             Err(e) -> {
                 log("http: ${method} ${target}: ${e.message()}")
@@ -121,6 +122,7 @@ async fn serveConn(wire: Wire, handler: fn(Request) -> Response!, log: fn(String
 // A request read off the wire, and whether its sender asked to close afterwards.
 type Incoming = {
     request Request
+    version String
     close Bool
 }
 
@@ -160,6 +162,7 @@ async fn Wire.readRequest(mut self, end: usize, limits: Limits, deadline: Deadli
     req.body = body
     Incoming {
         request: req
+        version: line.version
         close: close
     }
 }
@@ -171,7 +174,7 @@ type Outgoing = {
 }
 
 // renderResponse encodes resp; one that cannot be sent as given fails with a Failure.
-fn renderResponse(resp: Response, headOnly: Bool, close: Bool) -> Outgoing! {
+fn renderResponse(resp: Response, version: String, headOnly: Bool, close: Bool) -> Outgoing! {
     let mut resp = resp
     if resp.headers.get("Date") is None {
         resp.headers.add("Date", time.now().httpDate())
@@ -189,7 +192,7 @@ fn renderResponse(resp: Response, headOnly: Bool, close: Bool) -> Outgoing! {
     } else {
         Some(resp.body.len())
     }
-    let mut out = renderHead("HTTP/1.1 ${resp.status} ${reason(resp.status)}", &resp.headers, bodyLen, close)?
+    let mut out = renderHead("${version} ${resp.status} ${reason(resp.status)}", &resp.headers, bodyLen, close)?
     if !headOnly && bodyLen is Some(n) && n > 0 {
         out = out.concat(resp.body)
     }

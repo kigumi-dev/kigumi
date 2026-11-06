@@ -36,7 +36,7 @@ async fn raw(n: net.Net, port: Int, data: String) -> String! {
     let text = String.fromBytes(Bytes.fromArray(&got))?
     let mut out = ""
     for line in text.split("\r\n") {
-        if line.startsWith("HTTP/1.1") || line.startsWith("echo") || line.startsWith("request") || line.startsWith("Connection") || line.startsWith("malformed") || line.startsWith("missing") || line.startsWith("unsupported") || line.startsWith("bare") || line.startsWith("both") || line.startsWith("invalid") || line.startsWith("folded") || line.startsWith("header") {
+        if line.startsWith("HTTP/1.1") || line.startsWith("HTTP/1.0") || line.startsWith("echo") || line.startsWith("request") || line.startsWith("Connection") || line.startsWith("malformed") || line.startsWith("missing") || line.startsWith("unsupported") || line.startsWith("bare") || line.startsWith("both") || line.startsWith("invalid") || line.startsWith("folded") || line.startsWith("header") {
             out = if out == "" {
                 line
             } else {
@@ -132,7 +132,7 @@ HTTP/1.1 501 Not Implemented | Connection: close | unsupported transfer coding
 HTTP/1.1 431 Request Header Fields Too Large | Connection: close | request head too large
 HTTP/1.1 400 Bad Request | Connection: close | folded header line
 HTTP/1.1 200 OK | echo GET /echo []HTTP/1.1 200 OK | Connection: close | echo GET /second []
-HTTP/1.1 200 OK | Connection: close | echo GET /echo []
+HTTP/1.0 200 OK | Connection: close | echo GET /echo []
 HTTP/1.1 400 Bad Request | Connection: close | malformed chunked request on HTTP/1.0
 HTTP/1.1 200 OK | Connection: close | echo POST /echo []
 HTTP/1.1 400 Bad Request | Connection: close | malformed request line
