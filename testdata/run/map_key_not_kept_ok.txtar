@@ -1,0 +1,40 @@
+-- src --
+import map from std/map
+
+type VV['a] = {
+    pub data &'a Bytes
+    pub off usize
+}
+
+fn VV['a].byte(self) -> u8 {
+    self.data[self.off]
+}
+
+fn key(s: String) -> String { s }
+
+fn idx['a](b: &'a Bytes) -> map.Map[String, VV['a]] {
+    let mut m: map.Map[String, VV['a']] = map.empty()
+    m.set("mid", VV { data: b, off: 1 })
+    m.set("first", VV { data: b, off: 0 })
+    m
+}
+
+fn mapKeys() {
+    let buf = Bytes.fromArray(&Array.of(11, 22, 33, 44))
+    let mut m = idx(&buf)
+    m.remove(&key("zzz"))
+    let taken = m.take(&key("first"))
+    if taken is Some(t) { print "taken ${t.byte()}" }
+    let k = "mid"
+    if m.get(&k) is Some(v) { print "get ${v.byte()}" }
+    if m.get(&"mid") is Some(v) { print "lit ${v.byte()}" }
+    let named = m.take(&k)
+    print "left ${m.len()} ${named is Some(_)}"
+}
+
+mapKeys()
+-- stdout --
+taken 11
+get 22
+lit 22
+left 0 true

@@ -42,7 +42,7 @@ func (c *borrowCheck) targetFlows(ct callTarget) []storeFlow {
 		fl := storeFlow{target: t.arg, ref: t.target, byValue: t.holder, generic: kind == targetParam, callee: e, param: i, args: append(slotArgs(slots), args[min(len(slots), len(args)):]...)}
 		params := c.linkedParams(slots, i)
 		for j, v := range slots {
-			if i != j && kind != targetDeferred && sharesParam(params, v.params) && ct.stores(i, j) {
+			if i != j && kind != targetDeferred && sharesParam(params, v.params) && ct.stores(i, j) && !c.mapKeyNotKept(e, i, j) {
 				fl.values = append(fl.values, flowArg{arg: v.arg, contents: v.contents, param: j})
 			}
 		}
@@ -61,4 +61,19 @@ func (c *borrowCheck) targetFlows(ct callTarget) []storeFlow {
 		}
 	}
 	return out
+}
+
+// mapKeyNotKept is the std-map contract that take and remove look at the key
+// without storing it in the receiver. The kept summary cannot see that from
+// the body because the key type shares K with the map.
+func (c *borrowCheck) mapKeyNotKept(e sem.EntityID, target, value int) bool {
+	if target != 0 || value != 1 || c.p.R.Entity(e).Kind != sem.EntFn {
+		return false
+	}
+	ent := c.p.R.Entity(e)
+	if c.p.R.Packages[ent.Pkg].Path != "std/map" || ent.Name != "take" && ent.Name != "remove" {
+		return false
+	}
+	owner := c.p.R.Fn(e).Owner
+	return owner != 0 && c.p.R.Entity(owner).Name == "Map"
 }
