@@ -34,6 +34,7 @@ var stdLayer = map[string]Layer{
 	"std/secret":                  LayerFoundation,
 	"std/alloc":                   LayerAllocation,
 	"std/arch":                    LayerFoundation,
+	"std/atomic":                  LayerFoundation,
 	"std/encoding/binary":         LayerAllocation,
 	"std/encoding/base64":         LayerAllocation,
 	"std/encoding/hex":            LayerAllocation,
