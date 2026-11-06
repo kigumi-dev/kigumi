@@ -1,5 +1,6 @@
 -- src --
 import mem from std/mem
+import array from std/array
 
 type Res = resource {
     pub id Int
@@ -29,27 +30,27 @@ fn wrong_value(s: &mut mem.Uninit[Int]) {
     }
 }
 
-fn private_slots(b: &mem.BoundedArray[Int, 2]) {
+fn private_slots(b: &array.BoundedArray[Int, 2]) {
     let _ = b.slots //~ ERROR
 }
 
-fn wrong_capacity(a: mem.BoundedArray[Int, 2]) -> mem.BoundedArray[Int, 3] {
+fn wrong_capacity(a: array.BoundedArray[Int, 2]) -> array.BoundedArray[Int, 3] {
     a //~ ERROR expected `BoundedArray[Int, 3]`, found `BoundedArray[Int, 2]`
 }
 
-fn index_move_only(b: &mem.BoundedArray[Res, 2]) -> Res {
+fn index_move_only(b: &array.BoundedArray[Res, 2]) -> Res {
     b[0] //~ ERROR
 }
 
-fn get_move_only(b: &mem.BoundedArray[Res, 2]) {
+fn get_move_only(b: &array.BoundedArray[Res, 2]) {
     let _ = b.get(0) //~ ERROR
 }
 
-fn ignore_full(b: &mut mem.BoundedArray[Int, 2]) {
+fn ignore_full(b: &mut array.BoundedArray[Int, 2]) {
     b.tryPush(1) //~ ERROR unused
 }
 
-fn push_wrong(b: &mut mem.BoundedArray[Int, 2]) {
+fn push_wrong(b: &mut array.BoundedArray[Int, 2]) {
     let _ = b.tryPush("x") //~ ERROR expected `Int`, found `String`
 }
 noalloc fn make_slot() {
@@ -57,19 +58,19 @@ noalloc fn make_slot() {
 }
 
 noalloc fn make_array() {
-    let _ = mem.BoundedArray.new[Int, 2]() //~ ERROR `new` needs the allocator
+    let _ = array.BoundedArray.new[Int, 2]() //~ ERROR `new` needs the allocator
 }
 
-noalloc fn push_pop(b: &mut mem.BoundedArray[Int, 2], v: Int) -> Int {
+noalloc fn push_pop(b: &mut array.BoundedArray[Int, 2], v: Int) -> Int {
     _ = b.tryPush(v) //~ ERROR `tryPush` needs the allocator
     b.pop() || 0 //~ ERROR `pop` needs the allocator
 }
 
-noalloc fn read(b: &mem.BoundedArray[Int, 2]) -> Int {
+noalloc fn read(b: &array.BoundedArray[Int, 2]) -> Int {
     (b.get(0) || 0) + b[1] //~ ERROR `get` needs the allocator //~ ERROR `index` needs the allocator
 }
 
-noalloc fn no_storage(b: &mem.BoundedArray[Int, 2], s: &mut mem.Uninit[Int], owned: mem.BoundedArray[Int, 2]) -> usize {
+noalloc fn no_storage(b: &array.BoundedArray[Int, 2], s: &mut mem.Uninit[Int], owned: array.BoundedArray[Int, 2]) -> usize {
     unsafe {
         mem.initialize(s, 4)
         mem.dropInitialized(s)
@@ -79,112 +80,112 @@ noalloc fn no_storage(b: &mem.BoundedArray[Int, 2], s: &mut mem.Uninit[Int], own
 }
 -- expect --
 error[E914]: calling `initialize` requires an `unsafe { }` block
-  --> main/main.kg:12:5
+  --> main/main.kg:13:5
    |
-12 |     mem.initialize(s, 1) //~ ERROR calling `initialize` requires an `unsafe { }` block
+13 |     mem.initialize(s, 1) //~ ERROR calling `initialize` requires an `unsafe { }` block
    |     ^^^^^^^^^^^^^^^^^^^
 
 error[E914]: calling `takeInitialized` requires an `unsafe { }` block
-  --> main/main.kg:13:5
+  --> main/main.kg:14:5
    |
-13 |     mem.takeInitialized(s) //~ ERROR calling `takeInitialized` requires an `unsafe { }` block
+14 |     mem.takeInitialized(s) //~ ERROR calling `takeInitialized` requires an `unsafe { }` block
    |     ^^^^^^^^^^^^^^^^^^^^^
 
 error[E914]: calling `borrowInitialized` requires an `unsafe { }` block
-  --> main/main.kg:17:13
+  --> main/main.kg:18:13
    |
-17 |     let r = mem.borrowInitialized(s) //~ ERROR calling `borrowInitialized` requires an `unsafe { }` block
+18 |     let r = mem.borrowInitialized(s) //~ ERROR calling `borrowInitialized` requires an `unsafe { }` block
    |             ^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E914]: calling `dropInitialized` requires an `unsafe { }` block
-  --> main/main.kg:22:5
+  --> main/main.kg:23:5
    |
-22 |     mem.dropInitialized(s) //~ ERROR calling `dropInitialized` requires an `unsafe { }` block
+23 |     mem.dropInitialized(s) //~ ERROR calling `dropInitialized` requires an `unsafe { }` block
    |     ^^^^^^^^^^^^^^^^^^^^^
 
 error[E400]: expected `Int`, found `String`
-  --> main/main.kg:27:27
+  --> main/main.kg:28:27
    |
-27 |         mem.initialize(s, "text") //~ ERROR expected `Int`, found `String`
+28 |         mem.initialize(s, "text") //~ ERROR expected `Int`, found `String`
    |                           ^^^^^^
 
-error[E115]: `slots` is not visible here (private of package `std/mem`)
-  --> main/main.kg:32:13
+error[E115]: `slots` is not visible here (private of package `std/array`)
+  --> main/main.kg:33:13
    |
-32 |     let _ = b.slots //~ ERROR
+33 |     let _ = b.slots //~ ERROR
    |             ^^^^^^^
 
 error[E400]: expected `BoundedArray[Int, 3]`, found `BoundedArray[Int, 2]`
-  --> main/main.kg:36:5
+  --> main/main.kg:37:5
    |
-36 |     a //~ ERROR expected `BoundedArray[Int, 3]`, found `BoundedArray[Int, 2]`
+37 |     a //~ ERROR expected `BoundedArray[Int, 3]`, found `BoundedArray[Int, 2]`
    |     ^
 
 error[E1050]: reading `Res` out of an index by value needs `Copy`
-  --> main/main.kg:40:5
+  --> main/main.kg:41:5
    |
-40 |     b[0] //~ ERROR
+41 |     b[0] //~ ERROR
    |     ^^^
    = help: borrow it with `&`, or take it with `.takeAt`
 
 error[E300]: `Res` does not satisfy `Copy`: it is move-only
-  --> main/main.kg:44:13
+  --> main/main.kg:45:13
    |
-44 |     let _ = b.get(0) //~ ERROR
+45 |     let _ = b.get(0) //~ ERROR
    |             ^^^^^^^
 
 error[E700]: unused `Result[Void, CapacityFull[Int]]`
-  --> main/main.kg:48:5
+  --> main/main.kg:49:5
    |
-48 |     b.tryPush(1) //~ ERROR unused
+49 |     b.tryPush(1) //~ ERROR unused
    |     ^^^^^^^^^^^
    = help: use `?`, `||`, or `_ =`
 
 error[E400]: expected `Int`, found `String`
-  --> main/main.kg:52:23
+  --> main/main.kg:53:23
    |
-52 |     let _ = b.tryPush("x") //~ ERROR expected `Int`, found `String`
+53 |     let _ = b.tryPush("x") //~ ERROR expected `Int`, found `String`
    |                       ^^^
 
 error[E2246]: `uninit` needs the allocator, since this implementation keeps `Uninit` in heap cells
-  --> main/main.kg:55:13
+  --> main/main.kg:56:13
    |
-55 |     let _ = mem.uninit[Int]() //~ ERROR `uninit` needs the allocator
+56 |     let _ = mem.uninit[Int]() //~ ERROR `uninit` needs the allocator
    |             ^^^^^^^^^^^^^^^^
    = help: it is unavailable in noalloc code, under the recoverable-only profile, and outside an `allocator` block in an `--allocator none` build
 
 error[E2246]: `new` needs the allocator, since this implementation keeps `BoundedArray` in heap cells
-  --> main/main.kg:59:13
+  --> main/main.kg:60:13
    |
-59 |     let _ = mem.BoundedArray.new[Int, 2]() //~ ERROR `new` needs the allocator
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+60 |     let _ = array.BoundedArray.new[Int, 2]() //~ ERROR `new` needs the allocator
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = help: it is unavailable in noalloc code, under the recoverable-only profile, and outside an `allocator` block in an `--allocator none` build
 
 error[E2246]: `tryPush` needs the allocator, since this implementation keeps `BoundedArray` in heap cells
-  --> main/main.kg:63:9
+  --> main/main.kg:64:9
    |
-63 |     _ = b.tryPush(v) //~ ERROR `tryPush` needs the allocator
+64 |     _ = b.tryPush(v) //~ ERROR `tryPush` needs the allocator
    |         ^^^^^^^^^^^
    = help: it is unavailable in noalloc code, under the recoverable-only profile, and outside an `allocator` block in an `--allocator none` build
 
 error[E2246]: `pop` needs the allocator, since this implementation keeps `BoundedArray` in heap cells
-  --> main/main.kg:64:5
+  --> main/main.kg:65:5
    |
-64 |     b.pop() || 0 //~ ERROR `pop` needs the allocator
+65 |     b.pop() || 0 //~ ERROR `pop` needs the allocator
    |     ^^^^^^
    = help: it is unavailable in noalloc code, under the recoverable-only profile, and outside an `allocator` block in an `--allocator none` build
 
 error[E2246]: `get` needs the allocator, since this implementation keeps `BoundedArray` in heap cells
-  --> main/main.kg:68:6
+  --> main/main.kg:69:6
    |
-68 |     (b.get(0) || 0) + b[1] //~ ERROR `get` needs the allocator //~ ERROR `index` needs the allocator
+69 |     (b.get(0) || 0) + b[1] //~ ERROR `get` needs the allocator //~ ERROR `index` needs the allocator
    |      ^^^^^^^
    = help: it is unavailable in noalloc code, under the recoverable-only profile, and outside an `allocator` block in an `--allocator none` build
 
 error[E2246]: `index` needs the allocator, since this implementation keeps `BoundedArray` in heap cells
-  --> main/main.kg:68:23
+  --> main/main.kg:69:23
    |
-68 |     (b.get(0) || 0) + b[1] //~ ERROR `get` needs the allocator //~ ERROR `index` needs the allocator
+69 |     (b.get(0) || 0) + b[1] //~ ERROR `get` needs the allocator //~ ERROR `index` needs the allocator
    |                       ^^^
    = help: it is unavailable in noalloc code, under the recoverable-only profile, and outside an `allocator` block in an `--allocator none` build
 

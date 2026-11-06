@@ -3,10 +3,11 @@ mir: planned
 profile: recoverable-only
 -- src --
 import mem from std/mem
+import array from std/array
 
 export(C) {
     pub fn lib_array() -> u64 {
-        let b = mem.BoundedArray.new[i64, 2]() //~ ERROR `new` needs the allocator
+        let b = array.BoundedArray.new[i64, 2]() //~ ERROR `new` needs the allocator
         b.capacity().truncate[u64]()
     }
 
@@ -18,16 +19,16 @@ export(C) {
 fn main() -> Void! {}
 -- expect --
 error[E2246]: `new` needs the allocator, since this implementation keeps `BoundedArray` in heap cells
- --> main.kg:5:17
+ --> main.kg:6:17
   |
-5 |         let b = mem.BoundedArray.new[i64, 2]() //~ ERROR `new` needs the allocator
-  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+6 |         let b = array.BoundedArray.new[i64, 2]() //~ ERROR `new` needs the allocator
+  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   = help: it is unavailable in noalloc code, under the recoverable-only profile, and outside an `allocator` block in an `--allocator none` build
 
 error[E2246]: `uninit` needs the allocator, since this implementation keeps `Uninit` in heap cells
-  --> main.kg:10:17
+  --> main.kg:11:17
    |
-10 |         let _ = mem.uninit[i64]() //~ ERROR `uninit` needs the allocator
+11 |         let _ = mem.uninit[i64]() //~ ERROR `uninit` needs the allocator
    |                 ^^^^^^^^^^^^^^^^
    = help: it is unavailable in noalloc code, under the recoverable-only profile, and outside an `allocator` block in an `--allocator none` build
 

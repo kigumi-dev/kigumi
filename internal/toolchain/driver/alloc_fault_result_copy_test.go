@@ -28,7 +28,7 @@ func addResultCopyOps(ops map[string]tryWrapOp) map[string]tryWrapOp {
 		{"last", "", "let xs = Array.of(%[1]s)", "xs.last().unwrap()", 2, 0, false},
 		{"box_get", "import {Box} from std/alloc", "let xs = Box.new(%[1]s)", "xs.get()", 0, 0, false},
 		{"unsafe_cell_get", "import {UnsafeCell} from std/mem", "let xs = UnsafeCell.new(%[1]s)", "unsafe { xs.get() }", 0, 0, false},
-		{"uninit_copy", "import {BoundedArray} from std/mem", "let mut xs = BoundedArray.new[%[2]s, 1]()\n    xs.push(%[1]s)", "xs.get(0).unwrap()", 0, 0, false},
+		{"uninit_copy", "import {BoundedArray} from std/array", "let mut xs = BoundedArray.new[%[2]s, 1]()\n    xs.push(%[1]s)", "xs.get(0).unwrap()", 0, 0, false},
 		{"error_as", resultCopyError, "let xs: Error = CopyError { payload: %[1]s }", "error.as[CopyError[%[2]s]](&xs).unwrap().payload", 4, 4, false},
 		{"fixed_fill", "", "let xs = %[1]s", "FixedArray.filled[%[2]s, 1](xs)", 0, 0, true},
 	}

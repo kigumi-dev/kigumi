@@ -1,3 +1,5 @@
+import mem from std/mem
+
 /// What a full BoundedArray hands back instead of storing: the value itself, so a move-only element is not lost.
 pub type CapacityFull[T] = {
     pub value T
@@ -6,20 +8,20 @@ pub type CapacityFull[T] = {
 /// Up to N elements of T. A full array refuses a push and never grows, and N is part of the type.
 /// Its N slots are heap cells allocated once in `new`; dropping it drops the elements it holds and nothing else.
 pub type BoundedArray[T, const N: usize] = resource {
-    mut slots FixedArray[Uninit[T], N]
+    mut slots FixedArray[mem.Uninit[T], N]
     mut used usize
 }
 
 /// An empty array.
 pub pure fn BoundedArray.new[T, const N: usize]() -> BoundedArray[T, N] {
-    let mut slots = Array.tryWithCapacity[Uninit[T]](N) || panic("out of memory")
+    let mut slots = Array.tryWithCapacity[mem.Uninit[T]](N) || panic("out of memory")
     let mut i: usize = 0
     for i < N {
-        slots.push(uninit[T]())
+        slots.push(mem.uninit[T]())
         i = i + 1
     }
     BoundedArray {
-        slots: FixedArray.fromArrayMove[Uninit[T], N](slots).expect("one slot per capacity")
+        slots: FixedArray.fromArrayMove[mem.Uninit[T], N](slots).expect("one slot per capacity")
         used: 0
     }
 }
@@ -49,7 +51,7 @@ pub fn BoundedArray[T, N].tryPush(mut self, value: T) -> Result[Void, CapacityFu
     }
     let i = self.used
     unsafe {
-        initialize(&mut self.slots[i], value)
+        mem.initialize(&mut self.slots[i], value)
     }
     self.used = i + 1
 }
@@ -69,7 +71,7 @@ pub fn BoundedArray[T, N].pop(mut self) -> T? {
     let i = self.used - 1
     self.used = i
     unsafe {
-        Some(takeInitialized(&mut self.slots[i]))
+        Some(mem.takeInitialized(&mut self.slots[i]))
     }
 }
 
@@ -79,7 +81,7 @@ pub fn BoundedArray[T, N].at[R](self, index: usize, f: fn(&T) -> R) -> R? {
         return None
     }
     unsafe {
-        Some(f(borrowInitialized(&self.slots[index])))
+        Some(f(mem.borrowInitialized(&self.slots[index])))
     }
 }
 
@@ -89,9 +91,9 @@ pub fn BoundedArray[T, N].withMut[R](mut self, index: usize, f: fn(&mut T) -> R)
         return None
     }
     unsafe {
-        let mut value = takeInitialized(&mut self.slots[index])
+        let mut value = mem.takeInitialized(&mut self.slots[index])
         let out = f(&mut value)
-        initialize(&mut self.slots[index], value)
+        mem.initialize(&mut self.slots[index], value)
         Some(out)
     }
 }
@@ -102,7 +104,7 @@ pub fn BoundedArray[T: Copy, N].get(self, index: usize) -> T? {
         return None
     }
     unsafe {
-        Some(copyInitialized(&self.slots[index]))
+        Some(mem.copyInitialized(&self.slots[index]))
     }
 }
 
@@ -117,8 +119,8 @@ pub fn BoundedArray[T, N].set(mut self, index: usize, value: T) -> Bool {
         return false
     }
     unsafe {
-        dropInitialized(&mut self.slots[index])
-        initialize(&mut self.slots[index], value)
+        mem.dropInitialized(&mut self.slots[index])
+        mem.initialize(&mut self.slots[index], value)
     }
     true
 }
@@ -129,7 +131,7 @@ pub fn BoundedArray[T, N].clear(mut self) {
         let i = self.used - 1
         self.used = i
         unsafe {
-            dropInitialized(&mut self.slots[i])
+            mem.dropInitialized(&mut self.slots[i])
         }
     }
 }
@@ -149,7 +151,7 @@ fn BoundedArray[T, N].drop(move self) {
     let mut i: usize = 0
     for i < self.used {
         unsafe {
-            dropInitialized(&mut self.slots[i])
+            mem.dropInitialized(&mut self.slots[i])
         }
         i = i + 1
     }

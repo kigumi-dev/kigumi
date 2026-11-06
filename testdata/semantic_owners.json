@@ -950,6 +950,166 @@
     "status": "ok"
   },
   {
+    "key": "array.BoundedArray.at",
+    "signature": "fn(usize, fn(\u0026T) -\u003e R) -\u003e R?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.BoundedArray.capacity",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.BoundedArray.clear",
+    "signature": "fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.BoundedArray.drop",
+    "signature": "fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.BoundedArray.get",
+    "signature": "fn(usize) -\u003e T?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.BoundedArray.index",
+    "signature": "fn(usize) -\u003e T",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.BoundedArray.isEmpty",
+    "signature": "pure noalloc fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.BoundedArray.isFull",
+    "signature": "pure noalloc fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.BoundedArray.len",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.BoundedArray.new",
+    "signature": "pure fn() -\u003e BoundedArray[T, N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.BoundedArray.pop",
+    "signature": "fn() -\u003e T?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.BoundedArray.push",
+    "signature": "fn(T) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.BoundedArray.set",
+    "signature": "fn(usize, T) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.BoundedArray.toArray",
+    "signature": "fn() -\u003e Array[T]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.BoundedArray.tryPush",
+    "signature": "fn(T) -\u003e Result[Void, CapacityFull[T]]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.BoundedArray.withMut",
+    "signature": "fn(usize, fn(\u0026mut T) -\u003e R) -\u003e R?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "array.join",
     "signature": "pure fn(\u0026Array[String], String) -\u003e String",
     "has_body": true,
@@ -7583,166 +7743,6 @@
   {
     "key": "math.zero",
     "signature": "fn() -\u003e Float",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "mem.BoundedArray.at",
-    "signature": "fn(usize, fn(\u0026T) -\u003e R) -\u003e R?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "mem.BoundedArray.capacity",
-    "signature": "pure noalloc fn() -\u003e usize",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "mem.BoundedArray.clear",
-    "signature": "fn() -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "mem.BoundedArray.drop",
-    "signature": "fn() -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "mem.BoundedArray.get",
-    "signature": "fn(usize) -\u003e T?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "mem.BoundedArray.index",
-    "signature": "fn(usize) -\u003e T",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "mem.BoundedArray.isEmpty",
-    "signature": "pure noalloc fn() -\u003e Bool",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "mem.BoundedArray.isFull",
-    "signature": "pure noalloc fn() -\u003e Bool",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "mem.BoundedArray.len",
-    "signature": "pure noalloc fn() -\u003e usize",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "mem.BoundedArray.new",
-    "signature": "pure fn() -\u003e BoundedArray[T, N]",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "mem.BoundedArray.pop",
-    "signature": "fn() -\u003e T?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "mem.BoundedArray.push",
-    "signature": "fn(T) -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "mem.BoundedArray.set",
-    "signature": "fn(usize, T) -\u003e Bool",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "mem.BoundedArray.toArray",
-    "signature": "fn() -\u003e Array[T]",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "mem.BoundedArray.tryPush",
-    "signature": "fn(T) -\u003e Result[Void, CapacityFull[T]]",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "mem.BoundedArray.withMut",
-    "signature": "fn(usize, fn(\u0026mut T) -\u003e R) -\u003e R?",
     "has_body": true,
     "kind": "",
     "vm": "gap",

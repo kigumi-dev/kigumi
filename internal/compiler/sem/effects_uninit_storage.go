@@ -8,7 +8,7 @@ func (r *Result) reportEdge(e EffectEdge, mod Effects) {
 	r.reportContractEdge(e, mod)
 }
 
-// reportStorageAlloc reports e under the storage code when it calls into std/mem's Uninit or BoundedArray.
+// reportStorageAlloc reports e under the storage code when it calls into std/mem's Uninit or std/array's BoundedArray.
 func (r *Result) reportStorageAlloc(e EffectEdge) bool {
 	if e.Kind != EdgeCall {
 		return false

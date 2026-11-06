@@ -1,6 +1,7 @@
 -- src --
 import {Box} from std/alloc
-import {UnsafeCell, BoundedArray} from std/mem
+import {UnsafeCell} from std/mem
+import {BoundedArray} from std/array
 import error from std/error
 
 type Cell = { mut n Int }

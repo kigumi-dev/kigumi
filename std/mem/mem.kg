@@ -113,7 +113,7 @@ pub pure noalloc unsafe fn initialize[T](slot: &mut Uninit[T], value: T)
 pub pure noalloc unsafe fn borrowInitialized['a, T](slot: &'a Uninit[T]) -> &'a T
 
 /// A copy of the value in the slot. The caller rules out an empty slot.
-pure noalloc unsafe fn copyInitialized[T: Copy](slot: &Uninit[T]) -> T
+pub pure noalloc unsafe fn copyInitialized[T: Copy](slot: &Uninit[T]) -> T
 
 /// The value in the slot, exclusively. The caller rules out an empty slot and any other access while the borrow lives.
 pub pure noalloc unsafe fn borrowInitializedMut['a, T](slot: &'a mut Uninit[T]) -> &'a mut T

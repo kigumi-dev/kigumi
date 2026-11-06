@@ -1,5 +1,5 @@
 -- src --
-import mem from std/mem
+import array from std/array
 
 type Res = resource {
     pub id Int
@@ -14,7 +14,7 @@ type Pt = {
     pub y Int
 }
 
-fn fill(b: &mut mem.BoundedArray[Int, 64]) -> Int {
+fn fill(b: &mut array.BoundedArray[Int, 64]) -> Int {
     let mut n = 0
     let mut i = 0
     for i < 100 {
@@ -26,7 +26,7 @@ fn fill(b: &mut mem.BoundedArray[Int, 64]) -> Int {
     n
 }
 
-let mut b = mem.BoundedArray.new[Int, 3]()
+let mut b = array.BoundedArray.new[Int, 3]()
 print "${b.tryPush(1) is Ok(_)} ${b.tryPush(2) is Ok(_)} ${b.tryPush(3) is Ok(_)} ${b.tryPush(4) is Ok(_)} ${b.len()} ${b.capacity()} ${b.isFull()}"
 print "${b[0]} ${b[2]} ${b.get(1) || -1} ${b.get(3) || -1} ${b.pop() || -1} ${b.len()}"
 print "${b.toArray().len()} ${b.set(0, 50)} ${b.set(5, 1)} ${b[0]}"
@@ -35,10 +35,10 @@ print "${b[1]} ${b.withMut(9, (x: &mut Int) => 0) is None}"
 b.clear()
 print "${b.len()} ${b.isEmpty()} ${b.pop() is None}"
 
-let mut big = mem.BoundedArray.new[Int, 64]()
+let mut big = array.BoundedArray.new[Int, 64]()
 print "${fill(&mut big)} ${big.len()} ${big[63]} ${big.isFull()}"
 
-let mut words = mem.BoundedArray.new[String, 2]()
+let mut words = array.BoundedArray.new[String, 2]()
 words.push("a")
 _ = words.tryPush("b")
 match words.tryPush("c") {
@@ -47,16 +47,16 @@ match words.tryPush("c") {
 }
 print "${words.at(1, (w: &String) => w.len()) || 0} ${words.pop() || "-"} ${words.pop() || "-"} ${words.pop() || "-"}"
 
-let mut pts = mem.BoundedArray.new[Pt, 2]()
+let mut pts = array.BoundedArray.new[Pt, 2]()
 _ = pts.tryPush(Pt { x: 1, y: 2 })
 print "${pts[0].x} ${pts[0].y} ${pts.len()}"
 
-let mut opts = mem.BoundedArray.new[Int?, 2]()
+let mut opts = array.BoundedArray.new[Int?, 2]()
 _ = opts.tryPush(None)
 _ = opts.tryPush(Some(4))
 print "${opts[0] is None} ${opts[1] || -1}"
 
-let mut r = mem.BoundedArray.new[Res, 2]()
+let mut r = array.BoundedArray.new[Res, 2]()
 _ = r.tryPush(Res { id: 10 })
 _ = r.tryPush(Res { id: 11 })
 match r.tryPush(Res { id: 12 }) {
@@ -66,9 +66,9 @@ match r.tryPush(Res { id: 12 }) {
 print "${r.at(0, (x: &Res) => x.id) || -1} ${r.at(5, (x: &Res) => x.id) || -1}"
 print "set ${r.set(0, Res { id: 20 })}"
 print "popped ${(r.pop() || Res { id: -1 }).id}"
-let z = mem.BoundedArray.new[Int, 0]()
+let z = array.BoundedArray.new[Int, 0]()
 print "${z.len()} ${z.capacity()} ${z.isFull()}"
-let mut dropped = mem.BoundedArray.new[Res, 4]()
+let mut dropped = array.BoundedArray.new[Res, 4]()
 _ = dropped.tryPush(Res { id: 30 })
 _ = dropped.tryPush(Res { id: 31 })
 dropped.clear()

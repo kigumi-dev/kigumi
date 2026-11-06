@@ -40,8 +40,8 @@ var oomCovers = map[string]string{
 
 // oomInert are try functions with no allocation on their path, so no tick can be refused inside them.
 var oomInert = map[string]string{
-	"mem.trySecureErase":       "zeroes the region in place and builds no result of its own",
-	"mem.BoundedArray.tryPush": "fills a slot new already allocated; it fails only on a full array",
+	"mem.trySecureErase":         "zeroes the region in place and builds no result of its own",
+	"array.BoundedArray.tryPush": "fills a slot new already allocated; it fails only on a full array",
 }
 
 func TestEveryTryFunctionHasATwoCallSweep(t *testing.T) {

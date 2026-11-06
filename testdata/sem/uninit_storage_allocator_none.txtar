@@ -4,10 +4,11 @@ allocator: none
 -- src --
 import {AllocatorHandle} from std/alloc
 import mem from std/mem
+import array from std/array
 
 fn scoped(h: AllocatorHandle) -> usize {
     allocator h.scope() {
-        let mut b = mem.BoundedArray.new[Int, 2]()
+        let mut b = array.BoundedArray.new[Int, 2]()
         _ = b.tryPush(1)
         b.len()
     }
@@ -15,7 +16,7 @@ fn scoped(h: AllocatorHandle) -> usize {
 
 export(C) {
     pub fn lib_array() -> u64 {
-        let b = mem.BoundedArray.new[i64, 2]() //~ ERROR `new` needs the allocator
+        let b = array.BoundedArray.new[i64, 2]() //~ ERROR `new` needs the allocator
         b.capacity().truncate[u64]()
     }
 
@@ -27,16 +28,16 @@ export(C) {
 fn main() -> Void! {}
 -- expect --
 error[E2246]: `new` needs the allocator, since this implementation keeps `BoundedArray` in heap cells
-  --> main.kg:14:17
+  --> main.kg:15:17
    |
-14 |         let b = mem.BoundedArray.new[i64, 2]() //~ ERROR `new` needs the allocator
-   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+15 |         let b = array.BoundedArray.new[i64, 2]() //~ ERROR `new` needs the allocator
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = help: it is unavailable in noalloc code, under the recoverable-only profile, and outside an `allocator` block in an `--allocator none` build
 
 error[E2246]: `uninit` needs the allocator, since this implementation keeps `Uninit` in heap cells
-  --> main.kg:19:17
+  --> main.kg:20:17
    |
-19 |         let _ = mem.uninit[i64]() //~ ERROR `uninit` needs the allocator
+20 |         let _ = mem.uninit[i64]() //~ ERROR `uninit` needs the allocator
    |                 ^^^^^^^^^^^^^^^^
    = help: it is unavailable in noalloc code, under the recoverable-only profile, and outside an `allocator` block in an `--allocator none` build
 
