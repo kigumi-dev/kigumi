@@ -184,7 +184,7 @@ func (p *verifier) transferOwn(f *midir.Func, bid midir.BlockID, entry *ownquery
 			return broken(len(blk.Insts), "terminator reads %%%s after it was consumed", f.Locals[a].Name)
 		}
 	}
-	if blk.Term.Op == midir.TermReturn && !diverges(f, blk) {
+	if (blk.Term.Op == midir.TermReturn || blk.Term.Op == midir.TermUnreachable) && !diverges(f, blk) {
 		var left midir.LocalID
 		found := false
 		st.Each(func(l midir.LocalID, _ ownVerify) {
@@ -193,7 +193,11 @@ func (p *verifier) transferOwn(f *midir.Func, bid midir.BlockID, entry *ownquery
 			}
 		})
 		if found {
-			return broken(len(blk.Insts), "%%%s is still owned at return", f.Locals[left].Name)
+			where := "return"
+			if blk.Term.Op == midir.TermUnreachable {
+				where = "unreachable"
+			}
+			return broken(len(blk.Insts), "%%%s is still owned at "+where, f.Locals[left].Name)
 		}
 	}
 	return st, nil

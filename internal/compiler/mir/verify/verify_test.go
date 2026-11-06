@@ -111,6 +111,9 @@ func TestVerifyOwnership(t *testing.T) {
 	over := mirfixture.Fn("over", sem.TyUnit, locals, midir.Block{Insts: []midir.Inst{{Op: midir.OpMove, Dst: 1, Args: []midir.LocalID{0}}, {Op: midir.OpMove, Dst: 0, Args: []midir.LocalID{1}}, {Op: midir.OpMove, Dst: 0, Args: []midir.LocalID{1}}, unit}, Term: mirfixture.Ret(2)})
 	over.Params = []midir.LocalID{0}
 	expectRule(t, p, over, "ownership", "still holds a value")
+	unreachable := mirfixture.Fn("unreachable", sem.TyUnit, locals, midir.Block{Insts: []midir.Inst{unit}, Term: midir.Term{Op: midir.TermUnreachable}})
+	unreachable.Params = []midir.LocalID{0}
+	expectRule(t, p, unreachable, "ownership", "still owned at unreachable")
 }
 
 func TestVerifyDropOwned(t *testing.T) {
