@@ -25,6 +25,7 @@ __aeabi_fdiv
 __aeabi_fmul
 __aeabi_fsub
 __aeabi_l2d
+__aeabi_l2f
 __aeabi_ldivmod
 __aeabi_memclr
 __aeabi_memclr4
@@ -40,11 +41,13 @@ __aeabi_memset4
 __aeabi_memset8
 __aeabi_uidiv
 __aeabi_ul2d
+__aeabi_ul2f
 __aeabi_uldivmod
 __divdi3
 __dtoi64
 __errno_location
 __i64tod
+__i64tos
 __indirect_function_table
 __moddi3
 __multi3
@@ -53,6 +56,7 @@ __rt_udiv
 __rt_udiv64
 __stack_pointer
 __u64tod
+__u64tos
 __udivdi3
 __umoddi3
 _alldiv
