@@ -105,3 +105,13 @@ pub fn File.seekEnd(self, offset: i64) -> i64! {
 pub fn Files.stat(self, path: Path) -> Stat! {
     panic()
 }
+
+/// Tests for a directory; a bare target has no file system.
+pub fn Files.isDir(self, path: Path) -> Bool! {
+    panic()
+}
+
+/// Tests for a regular file; a bare target has no file system.
+pub fn Files.isFile(self, path: Path) -> Bool! {
+    panic()
+}

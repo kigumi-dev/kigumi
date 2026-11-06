@@ -96,6 +96,20 @@ func (m *Machine) registerFileReads() {
 		}
 		return m.ok(unitObj)
 	}
+	h["fs.Files.isDir"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		info, err := os.Stat(m.resolvePath(pathText(a[1])))
+		if err != nil {
+			return m.errMsg(shell.OSErrText(err))
+		}
+		return m.ok(mkBool(info.IsDir()))
+	}
+	h["fs.Files.isFile"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		info, err := os.Stat(m.resolvePath(pathText(a[1])))
+		if err != nil {
+			return m.errMsg(shell.OSErrText(err))
+		}
+		return m.ok(mkBool(info.Mode().IsRegular()))
+	}
 	h["fs.Files.stat"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		info, err := os.Stat(m.resolvePath(pathText(a[1])))
 		if err != nil {

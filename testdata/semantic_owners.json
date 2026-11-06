@@ -3701,6 +3701,26 @@
     "status": "ok"
   },
   {
+    "key": "fs.Files.isDir",
+    "signature": "fn(Path) -\u003e Bool!",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "fs.Files.isFile",
+    "signature": "fn(Path) -\u003e Bool!",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
     "key": "fs.Files.list",
     "signature": "fn(Path) -\u003e Array[Path]!",
     "has_body": true,

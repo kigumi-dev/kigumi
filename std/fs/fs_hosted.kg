@@ -482,3 +482,15 @@ pub fn Files.stat(self, path: Path) -> Stat! {
         size: end.toInt()
     }
 }
+
+/// Whether path names a directory.
+pub fn Files.isDir(self, path: Path) -> Bool! {
+    let st = self.stat(path)?
+    st.kind is Kind.Directory
+}
+
+/// Whether path names a regular file.
+pub fn Files.isFile(self, path: Path) -> Bool! {
+    let st = self.stat(path)?
+    st.kind is Kind.Regular
+}
