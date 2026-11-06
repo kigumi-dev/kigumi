@@ -2893,6 +2893,15 @@
       ]
     },
     {
+      "id": "run/atomic_u64",
+      "kind": "run",
+      "path": "testdata/run/atomic_u64.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/atomic_unsafe_cell",
       "kind": "run",
       "path": "testdata/run/atomic_unsafe_cell.txtar",
