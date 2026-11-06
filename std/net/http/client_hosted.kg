@@ -1,3 +1,4 @@
+import gzip from std/compress/gzip
 import json from std/json
 import net from std/net
 import task from std/task
@@ -209,6 +210,16 @@ async fn Wire.readResponse(mut self, headOnly: Bool, timeout: i64, maxBody: usiz
                 framingOf(&head.headers, false)?
             }
             let body = (await self.responseBody(framing, deadline, maxBody))?
+            let encoding = (head.headers.get("Content-Encoding") || "").trim().toLower()
+            let body = match encoding {
+                "" -> body
+                "identity" -> body
+                "gzip" -> match gzip.decodeLimit(body, maxBody) {
+                    Ok(decoded) -> decoded
+                    Err(e) -> fail MalformedResponse("gzip: ${e.message()}")
+                }
+                other -> fail MalformedResponse("unsupported content-encoding `${other}`")
+            }
             let mut resp = Response.new(status)
             resp.headers = move head.headers
             resp.body = body

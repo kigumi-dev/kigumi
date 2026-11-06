@@ -7100,6 +7100,15 @@
       ]
     },
     {
+      "id": "run/http_gzip_client",
+      "kind": "run",
+      "path": "testdata/run/http_gzip_client.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/if_let_refutable",
       "kind": "run",
       "path": "testdata/run/if_let_refutable.txtar",

@@ -1,0 +1,49 @@
+-- src --
+import gzip from std/compress/gzip
+import http from std/net/http
+import net from std/net
+import task from std/task
+
+async fn writeAll(conn: &mut net.Conn, data: Bytes) -> Void! {
+    let mut off: usize = 0
+    for off < data.len() {
+        match conn.pollWrite(data.slice(off, data.len()) || "".toBytes())? {
+            Some(n) -> { off = off + n }
+            None -> await task.yieldNow()
+        }
+    }
+}
+
+async fn replyOnce(listener: net.Listener, payload: Bytes) -> Void! {
+    let mut listener = listener
+    let mut conn = for {
+        if listener.pollAccept()? is Some(c) { break c }
+        await task.yieldNow()
+    }
+    let mut got = Array.empty[u8]()
+    for !Bytes.fromArray(&got).contains("\r\n\r\n".toBytes()) {
+        match conn.pollRead(&mut got, 4096)? {
+            Some(0) -> return
+            Some(_) -> {}
+            None -> await task.yieldNow()
+        }
+    }
+    let head = "HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Length: ${payload.len()}\r\nConnection: close\r\n\r\n".toBytes()
+    (await writeAll(&mut conn, head.concat(payload)))?
+}
+
+async fn root(n: net.Net, listener: net.Listener) -> Void! {
+    let port = listener.port()
+    let payload = gzip.encode("hello gzip".toBytes())
+    let peer = task.spawn(replyOnce(listener, payload))
+    let client = http.Client.new(n, task.BlockingPool.new(1))
+    let r = (await client.get("http://127.0.0.1:${port}/"))?
+    print "${r.status} [${r.text()?}]"
+    (await peer)?
+}
+
+let n = host.net()
+let listener = n.listen("127.0.0.1", 0)?
+task.currentThreadExecutor().runToCompletion(root(n, listener))?
+-- stdout --
+200 [hello gzip]
