@@ -1,0 +1,9 @@
+-- src --
+import math from std/math
+print "${math.pow(1.00000001, 1e8)}"
+print "${math.pow(2.0, 10.0)}"
+print "${math.pow(-2.0, 3.0)}"
+-- stdout --
+2.7182817983473573
+1024
+-8

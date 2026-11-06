@@ -10,8 +10,47 @@ pub pure noalloc fn ceil(x: Float) -> Float
 /// x rounded to the nearest integral value, halfway cases away from zero.
 pub pure noalloc fn round(x: Float) -> Float
 
-/// x raised to the power y.
-pub pure noalloc fn pow(x: Float, y: Float) -> Float
+/// x raised to the power y. Integral exponents use exact squaring; other
+/// exponents share `exp`/`log` so every backend agrees.
+pub pure fn pow(x: Float, y: Float) -> Float {
+    if isNaN(x) || isNaN(y) {
+        return nan()
+    }
+    if y == 0.0 {
+        return 1.0
+    }
+    if x == 1.0 {
+        return 1.0
+    }
+    if x == 0.0 {
+        return if y < 0.0 { inf() } else { 0.0 }
+    }
+    if x < 0.0 && y != trunc(y) {
+        return nan()
+    }
+    if y == trunc(y) && abs(y) <= 1024.0 {
+        return powInt(x, y.toInt() || 0)
+    }
+    let p = exp(y * log(abs(x)))
+    if x < 0.0 && (y / 2.0) != trunc(y / 2.0) {
+        return -p
+    }
+    p
+}
+
+fn powInt(base: Float, n: Int) -> Float {
+    let mut b = base
+    let mut e = if n < 0 { -n } else { n }
+    let mut r: Float = 1.0
+    for e > 0 {
+        if e % 2 == 1 {
+            r = r * b
+        }
+        b = b * b
+        e = e / 2
+    }
+    if n < 0 { 1.0 / r } else { r }
+}
 
 /// x truncated toward zero; None for NaN, an infinity or a value outside the Int range.
 pub pure noalloc fn toInt(x: Float) -> Int? {
