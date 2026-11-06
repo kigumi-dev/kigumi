@@ -1,0 +1,130 @@
+// The TLS 1.3 key schedule (RFC 8446 §7.1) over HKDF-SHA256.
+//
+// Only the (EC)DHE key exchange is implemented: there is no PSK and no early
+// data, so the early secret is the all-zero IKM with a zero salt. Every
+// derivation is labelled and every intermediate is an ordinary `Bytes`
+// value, which is what makes the RFC 8448 traces checkable.
+import hkdf from std/crypto/hkdf
+import hmac from std/crypto/hmac
+import sha256 from std/crypto/sha256
+
+/// Bytes in a SHA-256 digest, a traffic secret, a key or an IV prefix.
+pub const hashSize: usize = 32
+
+/// Bytes of a ChaCha20-Poly1305 key.
+pub const keySize: usize = 32
+
+/// Bytes of a record IV (the per-key prefix the sequence number is XORed into).
+pub const ivSize: usize = 12
+
+/// Bytes added to a ciphertext by the AEAD tag.
+pub const tagSize: usize = 16
+
+/// One direction's traffic secret and the record keys derived from it.
+pub type Direction = {
+    pub secret Bytes
+    pub key Bytes
+    pub iv Bytes
+}
+
+/// The handshake-stage secrets: both traffic directions plus the master
+/// secret the application-stage secrets come from.
+pub type HandshakeSecrets = {
+    pub client Direction
+    pub server Direction
+    pub master Bytes
+}
+
+/// The application-stage secrets for both directions.
+pub type ApplicationSecrets = {
+    pub client Direction
+    pub server Direction
+}
+
+/// Transcript-Hash("") for SHA-256: the hash an empty message list has.
+pub pure fn emptyTranscriptHash() -> Bytes {
+    sha256.sum(Bytes.zeros(0))
+}
+
+pure fn expandLabelRaw(secret: Bytes, label: String, context: Bytes, length: usize) -> Result[Bytes, hkdf.HkdfError] {
+    let prefixed = "tls13 ".concat(label)
+    if prefixed.len() > 255 || context.len() > 255 || length > 65535 {
+        return Err(hkdf.HkdfError { text: "hkdf: TLS label, context or length is out of range" })
+    }
+    let mut info = Array.empty[u8]()
+    putU16(&mut info, length.toU16() || 0)
+    putU8(&mut info, prefixed.len().toU8() || 0)
+    append(&mut info, prefixed.toBytes())
+    putU8(&mut info, context.len().toU8() || 0)
+    append(&mut info, context)
+    hkdf.expand[sha256.Hasher](secret, freeze(&info), length)
+}
+
+/// HKDF-Expand-Label(secret, label, context, length). Fails only when the
+/// request is outside HKDF's 255-digest limit or an allocation is refused.
+pub pure fn expandLabel(secret: Bytes, label: String, context: Bytes, length: usize) -> Result[Bytes, Error] {
+    match expandLabelRaw(secret, label, context, length) {
+        Ok(value) -> value
+        Err(e) -> fail Error.KeySchedule(e.message())
+    }
+}
+
+/// Derive-Secret(secret, label, transcriptHash).
+pub pure fn deriveSecret(secret: Bytes, label: String, transcriptHash: Bytes) -> Result[Bytes, Error] {
+    expandLabel(secret, label, transcriptHash, hashSize)
+}
+
+pure fn keysFor(secret: Bytes) -> Result[Direction, Error] {
+    let key = expandLabel(secret, "key", Bytes.zeros(0), keySize)?
+    let iv = expandLabel(secret, "iv", Bytes.zeros(0), ivSize)?
+    Ok(Direction {
+        secret: secret
+        key: key
+        iv: iv
+    })
+}
+
+/// HKDF-Extract(salt, ikm) with SHA-256.
+pub pure fn extract(salt: Bytes, ikm: Bytes) -> Bytes {
+    hkdf.extract[sha256.Hasher](salt, ikm)
+}
+
+/// The handshake secrets from the (EC)DHE shared secret and the transcript
+/// hash of ClientHello..ServerHello.
+pub pure fn deriveHandshake(sharedSecret: Bytes, transcriptHash: Bytes) -> Result[HandshakeSecrets, Error] {
+    let zeros = Bytes.zeros(hashSize)
+    let early = extract(zeros, zeros)
+    let derivedEarly = deriveSecret(early, "derived", emptyTranscriptHash())?
+    let handshake = extract(derivedEarly, sharedSecret)
+    let clientSecret = deriveSecret(handshake, "c hs traffic", transcriptHash)?
+    let serverSecret = deriveSecret(handshake, "s hs traffic", transcriptHash)?
+    let derivedHandshake = deriveSecret(handshake, "derived", emptyTranscriptHash())?
+    let master = extract(derivedHandshake, zeros)
+    Ok(HandshakeSecrets {
+        client: keysFor(clientSecret)?
+        server: keysFor(serverSecret)?
+        master: master
+    })
+}
+
+/// The application secrets from the master secret and the transcript hash
+/// through the server Finished.
+pub pure fn deriveApplication(master: Bytes, transcriptHash: Bytes) -> Result[ApplicationSecrets, Error] {
+    let clientSecret = deriveSecret(master, "c ap traffic", transcriptHash)?
+    let serverSecret = deriveSecret(master, "s ap traffic", transcriptHash)?
+    Ok(ApplicationSecrets {
+        client: keysFor(clientSecret)?
+        server: keysFor(serverSecret)?
+    })
+}
+
+/// The finished_key derived from a traffic secret.
+pub pure fn finishedKey(baseSecret: Bytes) -> Result[Bytes, Error] {
+    expandLabel(baseSecret, "finished", Bytes.zeros(0), hashSize)
+}
+
+/// The Finished verify_data: HMAC(finished_key, transcriptHash).
+pub pure fn finishedVerifyData(baseSecret: Bytes, transcriptHash: Bytes) -> Result[Bytes, Error] {
+    let key = finishedKey(baseSecret)?
+    hmac.sum[sha256.Hasher](key, transcriptHash)
+}

@@ -1,0 +1,685 @@
+-- src --
+// A scripted TLS 1.3 server over a loopback socket, built independently from
+// the client's session code, drives the full handshake and failure paths.
+import binary from std/encoding/binary
+import hex from std/encoding/hex
+import net from std/net
+import p256 from std/crypto/p256
+import sha256 from std/crypto/sha256
+import task from std/task
+import tls from std/net/tls
+import x509 from std/crypto/x509
+
+const ROOT = "3082019330820139a003020102020101300a06082a8648ce3d0403023030310f300d060355040a0c064b6967756d69311d301b06035504030c144b6967756d6920544c53205465737420526f6f743020170d3236313130363030303030305a180f32303534303332353030303030305a3030310f300d060355040a0c064b6967756d69311d301b06035504030c144b6967756d6920544c53205465737420526f6f743059301306072a8648ce3d020106082a8648ce3d0301070342000456288617c1b007e78bb5b6d887ee84d7f905065078935ba3e6ece0213b1a03add07e7c4e42a1ec6a295fd288d16452b4a2107fe53105766eef03408ad4486fa9a3423040300f0603551d130101ff040530030101ff300e0603551d0f0101ff040403020106301d0603551d0e041604149809187f1e20cecd2dd8d5ab7b5f105f867d351b300a06082a8648ce3d0403020348003045022042bf4931f52f7940ba11ffc6156cf68f72e7c775eaeb0dcc5854add148c691fb022100b533846a2deedef6e82f412e0f96a0e46f7bde105580dcd8a31eaf7293b5db7d"
+const LEAF = "308201d73082017da003020102020102300a06082a8648ce3d0403023030310f300d060355040a0c064b6967756d69311d301b06035504030c144b6967756d6920544c53205465737420526f6f74301e170d3236313130363030303030305a170d3436303130363030303030305a3025310f300d060355040a0c064b6967756d693112301006035504030c096c6f63616c686f73743059301306072a8648ce3d020106082a8648ce3d03010703420004bc0870a538e3fb058d1cace443fad8528291caf09c80eb487ee92b3c997a5812b4b0b0974173093dc5074f65642039d84ad647d8419acd0895ad9398afbe0df6a3819230818f300c0603551d130101ff04023000300e0603551d0f0101ff04040302078030130603551d25040c300a06082b06010505070301301a0603551d110413301182096c6f63616c686f737487047f000001301d0603551d0e04160414a8c71ec2c07c3f5672b82a0d7fde2c4c877e115c301f0603551d230418301680149809187f1e20cecd2dd8d5ab7b5f105f867d351b300a06082a8648ce3d0403020348003045022100f760b000410f26174fe148bd38aeeba025cb4244878fe89c02f034fe91f58cde022004f623302dd42ced2f3693393be6cebab3533295d4f0a47d2a19a08eced875fe"
+const EXPIRED = "308201d83082017da003020102020103300a06082a8648ce3d0403023030310f300d060355040a0c064b6967756d69311d301b06035504030c144b6967756d6920544c53205465737420526f6f74301e170d3230303130313030303030305a170d3231303130313030303030305a3025310f300d060355040a0c064b6967756d693112301006035504030c096c6f63616c686f73743059301306072a8648ce3d020106082a8648ce3d03010703420004ccf627c6e45fcc3c75a9277cfeb0e307a382c65c6099d85be24b47aa5d1a369b2a0594b1132bc065b1f95666d0d3e6195dab8fb76e9c9f18f33074241a8aa90ca3819230818f300c0603551d130101ff04023000300e0603551d0f0101ff04040302078030130603551d25040c300a06082b06010505070301301a0603551d110413301182096c6f63616c686f737487047f000001301d0603551d0e041604143780a1437ecc1919bbd1e42ec7b171f5e4351056301f0603551d230418301680149809187f1e20cecd2dd8d5ab7b5f105f867d351b300a06082a8648ce3d0403020349003046022100c2931ee604eeacb5a8378b79f52f5a7731f9a792b14c3d33bc89fb8fc0b932bf022100df86d77e9dba3235fc1b914097add5c503cde0ff1be04a967ecd4e749f0f4ceb"
+const LEAF_KEY = "d88a88882b51bedeca8e098d7322bcaa262676a902ba292bc4c69633508084b9"
+const EXPIRED_KEY = "0dfc8bc9c20a20872fc3372114a311c107302e70752bd550a2cb33a3660a8763"
+
+type Fail = {
+    text String
+}
+
+fn Fail.message(self) -> String {
+    self.text
+}
+
+fn dec(s: String) -> Bytes {
+    hex.decode(s).expect("hex")
+}
+
+fn u16At(b: Bytes, at: usize) -> usize {
+    (binary.u16Be(b, at).expect("u16")).toUsize()
+}
+
+fn u24At(b: Bytes, at: usize) -> usize {
+    (binary.uintBe(b, at, 3).expect("u24")).toUsize()
+}
+
+fn eqBytes(a: Bytes, b: Bytes) -> Bool {
+    a.equals(&b)
+}
+
+// ---- a minimal independent wire cursor ---------------------------------
+
+type Cursor = {
+    data Bytes
+    mut at usize
+}
+
+fn Cursor.new(data: Bytes) -> Cursor {
+    Cursor {
+        data: data
+        at: 0
+    }
+}
+
+fn Cursor.left(self) -> usize {
+    self.data.len() - self.at
+}
+
+fn Cursor.u8(mut self) -> usize! {
+    if self.left() < 1 {
+        fail Fail { text: "cursor: byte" }
+    }
+    let v = (self.data[self.at]).toUsize()
+    self.at = self.at + 1
+    v
+}
+
+fn Cursor.u16(mut self) -> usize! {
+    if self.left() < 2 {
+        fail Fail { text: "cursor: u16" }
+    }
+    let v = u16At(self.data, self.at)
+    self.at = self.at + 2
+    v
+}
+
+fn Cursor.u24(mut self) -> usize! {
+    if self.left() < 3 {
+        fail Fail { text: "cursor: u24" }
+    }
+    let v = u24At(self.data, self.at)
+    self.at = self.at + 3
+    v
+}
+
+fn Cursor.take(mut self, n: usize) -> Bytes! {
+    if self.left() < n {
+        fail Fail { text: "cursor: take ${n}" }
+    }
+    let v = self.data.slice(self.at, self.at + n).expect("slice")
+    self.at = self.at + n
+    v
+}
+
+fn Cursor.vec8(mut self) -> Bytes! {
+    let n = self.u8()?
+    self.take(n)
+}
+
+fn Cursor.vec16(mut self) -> Bytes! {
+    let n = self.u16()?
+    self.take(n)
+}
+
+// ---- byte builders -----------------------------------------------------
+
+fn put16(out: &mut Array[u8], v: usize) {
+    binary.putU16Be(out, (v.toU16() || 0))
+}
+
+fn put24(out: &mut Array[u8], v: usize) {
+    binary.putUintBe(out, v.toU64(), 3)
+}
+
+fn putBytes(out: &mut Array[u8], b: Bytes) {
+    let mut i: usize = 0
+    for i < b.len() {
+        out.push(b[i])
+        i = i + 1
+    }
+}
+
+fn hs(typ: u8, body: Bytes) -> Bytes {
+    let mut out = Array.empty[u8]()
+    out.push(typ)
+    put24(&mut out, body.len())
+    putBytes(&mut out, body)
+    Bytes.fromArray(&out)
+}
+
+fn ext(typ: u16, body: Array[u8]) -> Array[u8] {
+    let mut out = Array.empty[u8]()
+    put16(&mut out, typ.toUsize())
+    put16(&mut out, body.len())
+    out.appendAll(body)
+    out
+}
+
+fn block(exts: Array[u8]) -> Bytes {
+    let mut out = Array.empty[u8]()
+    put16(&mut out, exts.len())
+    out.appendAll(exts)
+    Bytes.fromArray(&out)
+}
+
+fn derInt(raw: Bytes) -> Array[u8] {
+    let mut start: usize = 0
+    for start + 1 < raw.len() && raw[start] == 0 {
+        start = start + 1
+    }
+    let mut out = Array.empty[u8]()
+    out.push(2)
+    let needsZero = (raw[start] & 0x80) != 0
+    out.push((raw.len() - start + (if needsZero { 1 } else { 0 })).toU8() || 0)
+    if needsZero {
+        out.push(0)
+    }
+    let mut i = start
+    for i < raw.len() {
+        out.push(raw[i])
+        i = i + 1
+    }
+    out
+}
+
+fn derSignature(rs: Bytes) -> Bytes {
+    let r = derInt(rs.slice(0, 32).expect("r"))
+    let s = derInt(rs.slice(32, 64).expect("s"))
+    let mut seq = Array.empty[u8]()
+    seq.appendAll(r)
+    seq.appendAll(s)
+    let mut out = Array.empty[u8]()
+    out.push(0x30)
+    out.push(seq.len().toU8() || 0)
+    out.appendAll(seq)
+    Bytes.fromArray(&out)
+}
+
+// ---- a buffered async connection for the server -----------------------
+
+type Wire = resource {
+    mut conn net.Conn
+    mut pending Bytes
+}
+
+type RawRecord = {
+    typ u8
+    header Bytes
+    payload Bytes
+}
+
+async fn Wire.fill(mut self) -> Bool! {
+    let mut chunk = Array.empty[u8]()
+    for true {
+        match self.conn.pollRead(&mut chunk, 16384) {
+            Ok(Some(0)) -> return false
+            Ok(Some(_)) -> {
+                self.pending = self.pending.concat(Bytes.fromArray(&chunk))
+                return true
+            }
+            Ok(None) -> await task.yieldNow()
+            Err(e) -> fail Fail { text: e.message() }
+        }
+    }
+    false
+}
+
+async fn Wire.need(mut self, n: usize) -> Void! {
+    for self.pending.len() < n {
+        if !(await self.fill())? {
+            fail Fail { text: "server: connection closed" }
+        }
+    }
+}
+
+async fn Wire.readRecord(mut self) -> RawRecord! {
+    (await self.need(5))?
+    let header = self.pending.slice(0, 5).expect("header")
+    let typ = header[0]
+    let length = u16At(header, 3)
+    (await self.need(5 + length))?
+    let payload = self.pending.slice(5, 5 + length).expect("payload")
+    self.pending = self.pending.slice(5 + length, self.pending.len()).expect("rest")
+    RawRecord {
+        typ: typ
+        header: header
+        payload: payload
+    }
+}
+
+async fn Wire.writeAll(mut self, data: Bytes) -> Void! {
+    let mut off: usize = 0
+    for off < data.len() {
+        let rest = data.slice(off, data.len()).expect("write slice")
+        match self.conn.pollWrite(rest) {
+            Ok(Some(n)) -> { off = off + n }
+            Ok(None) -> await task.yieldNow()
+            Err(e) -> fail Fail { text: e.message() }
+        }
+    }
+}
+
+// ---- parsed ClientHello -------------------------------------------------
+
+type ClientHello = {
+    sessionId Bytes
+    keyShare Bytes
+    serverName String
+    alpn String
+}
+
+fn parseClientHello(message: Bytes) -> ClientHello! {
+    if message.len() < 4 || message[0] != 1 {
+        fail Fail { text: "server: first message is not a ClientHello" }
+    }
+    let length = u24At(message, 1)
+    if message.len() != 4 + length {
+        fail Fail { text: "server: ClientHello length mismatch" }
+    }
+    let body = message.slice(4, 4 + length).expect("body")
+    let mut r = Cursor.new(body)
+    let version = r.u16()?
+    if version != 0x0303 {
+        fail Fail { text: "server: ClientHello legacy_version" }
+    }
+    _ = r.take(32)?
+    let sessionId = r.vec8()?
+    let suites = r.vec16()?
+    if suites.len() != 2 || u16At(suites, 0) != 0x1303 {
+        fail Fail { text: "server: client offered suites ${hex.encode(suites)}" }
+    }
+    let compression = r.vec8()?
+    if compression.len() != 1 || compression[0] != 0 {
+        fail Fail { text: "server: client compression" }
+    }
+    let exts = r.vec16()?
+    let mut er = Cursor.new(exts)
+    let mut shareFound = false
+    let mut keyShare = Bytes.zeros(0)
+    let mut sni = ""
+    let mut alpn = ""
+    let mut versionsFound = false
+    let mut sigsFound = false
+    let mut groupsFound = false
+    for er.left() > 0 {
+        let typ = er.u16()?
+        let data = er.vec16()?
+        if typ == 51 {
+            let mut kr = Cursor.new(data)
+            let list = kr.vec16()?
+            let mut lr = Cursor.new(list)
+            let group = lr.u16()?
+            let share = lr.vec16()?
+            if group != 0x001D || share.len() != 32 {
+                fail Fail { text: "server: key_share group or length" }
+            }
+            keyShare = share
+            shareFound = true
+        } else if typ == 0 {
+            let mut sr = Cursor.new(data)
+            let list = sr.vec16()?
+            let mut lr = Cursor.new(list)
+            let nameType = lr.u8()?
+            let name = lr.vec16()?
+            if nameType != 0 {
+                fail Fail { text: "server: SNI type" }
+            }
+            sni = String.fromBytes(name)?
+        } else if typ == 16 {
+            let mut ar = Cursor.new(data)
+            let list = ar.vec16()?
+            let mut lr = Cursor.new(list)
+            alpn = String.fromBytes(lr.vec8()?)?
+        } else if typ == 43 {
+            let mut vr = Cursor.new(data)
+            let list = vr.vec8()?
+            if list.len() != 2 || u16At(list, 0) != 0x0304 {
+                fail Fail { text: "server: supported_versions" }
+            }
+            versionsFound = true
+        } else if typ == 13 {
+            let mut sr = Cursor.new(data)
+            let list = sr.vec16()?
+            if list.len() != 4 || u16At(list, 0) != 0x0804 || u16At(list, 2) != 0x0403 {
+                fail Fail { text: "server: signature_algorithms" }
+            }
+            sigsFound = true
+        } else if typ == 10 {
+            let mut gr = Cursor.new(data)
+            let list = gr.vec16()?
+            if list.len() != 2 || u16At(list, 0) != 0x001D {
+                fail Fail { text: "server: supported_groups" }
+            }
+            groupsFound = true
+        }
+    }
+    if !shareFound || !versionsFound || !sigsFound || !groupsFound {
+        fail Fail { text: "server: a required ClientHello extension is missing" }
+    }
+    if sni == "" {
+        fail Fail { text: "server: SNI is empty" }
+    }
+    if alpn != "http/1.1" {
+        fail Fail { text: "server: ALPN `${alpn}`" }
+    }
+    ClientHello {
+        sessionId: sessionId
+        keyShare: keyShare
+        serverName: sni
+        alpn: alpn
+    }
+}
+
+// ---- server -------------------------------------------------------------
+
+type Mode = | Happy | WrongFinished | BadSuite | WrongOrder | EarlyData | PlainAlert | Oversized
+
+type ServerSecrets = {
+    handshake tls.HandshakeSecrets
+    application tls.ApplicationSecrets
+}
+
+async fn serverAccept(mut listener: net.Listener, mode: Mode, cert: Bytes, key: Bytes) -> Void! {
+    let pool = task.BlockingPool.new(1)
+    let pending = pool.run(() => listener.accept())?
+    let conn = (await pending)?
+    await serverRun(conn, mode, cert, key)
+}
+
+async fn serverRun(conn: net.Conn, mode: Mode, cert: Bytes, key: Bytes) -> Void! {
+    let mut wire = Wire { conn: conn, pending: Bytes.zeros(0) }
+    let first = (await wire.readRecord())?
+    if first.typ != 22 {
+        fail Fail { text: "server: ClientHello record type" }
+    }
+    let helloMsg = first.payload
+    let clientHello = parseClientHello(helloMsg)?
+
+    if mode is Mode.Oversized {
+        // A five-byte header claiming a 65535-byte record exceeds every cap.
+        (await wire.writeAll(Bytes.fromArray(&Array.of[u8](22, 0x03, 0x03, 0xff, 0xff))))?
+        return Ok(())
+    }
+
+    let serverSecret = dec("aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899")
+    let serverPublic = (x25519Public(serverSecret))?
+    let shared = (x25519Shared(serverSecret, clientHello.keyShare))?
+
+    // A middlebox-compatibility dummy change_cipher_spec before ServerHello.
+    let mut ccs = Array.empty[u8]()
+    ccs.push(1)
+    (await wire.writeAll(plainRecord(20, Bytes.fromArray(&ccs))))?
+
+    let mut shBody = Array.empty[u8]()
+    put16(&mut shBody, 0x0303)
+    // A fixed server random.
+    let mut i: usize = 0
+    for i < 32 {
+        shBody.push((0xA0 + i).toU8() || 0)
+        i = i + 1
+    }
+    shBody.push(clientHello.sessionId.len().toU8() || 0)
+    putBytes(&mut shBody, clientHello.sessionId)
+    if mode is Mode.BadSuite {
+        put16(&mut shBody, 0x1301)
+    } else {
+        put16(&mut shBody, 0x1303)
+    }
+    shBody.push(0)
+    let mut shExts = Array.empty[u8]()
+    shExts.appendAll(ext(43, byteArray(Bytes.fromArray(&Array.of[u8](0x03, 0x04)))))
+    let mut share = Array.empty[u8]()
+    put16(&mut share, 0x001D)
+    put16(&mut share, 32)
+    putBytes(&mut share, serverPublic)
+    shExts.appendAll(ext(51, share))
+    let mut shBlock = Array.empty[u8]()
+    put16(&mut shBlock, shExts.len())
+    shBlock.appendAll(shExts)
+    putBytes(&mut shBody, Bytes.fromArray(&shBlock))
+    let shMsg = hs(2, Bytes.fromArray(&shBody))
+
+    if mode is Mode.WrongOrder {
+        let certBody = certificateBody(cert)
+        (await wire.writeAll(plainRecord(22, hs(11, certBody))))?
+        return Ok(())
+    }
+    if mode is Mode.PlainAlert {
+        (await wire.writeAll(plainRecord(21, Bytes.fromArray(&Array.of[u8](2, 70)))))?
+        return Ok(())
+    }
+
+    let shRecord = plainRecord(22, shMsg)
+    (await wire.writeAll(shRecord))?
+
+    let transcript1 = sha256.sum(helloMsg.concat(shMsg))
+    let handshake = (tls.deriveHandshake(shared, transcript1))?
+
+    // EncryptedExtensions.
+    let mut eeExts = Array.empty[u8]()
+    let alpnBytes = "http/1.1".toBytes()
+    let mut alpnList = Array.empty[u8]()
+    alpnList.push(alpnBytes.len().toU8() || 0)
+    putBytes(&mut alpnList, alpnBytes)
+    let mut alpnBody = Array.empty[u8]()
+    put16(&mut alpnBody, alpnList.len())
+    alpnBody.appendAll(alpnList)
+    eeExts.appendAll(ext(16, alpnBody))
+    if mode is Mode.EarlyData {
+        eeExts.appendAll(ext(42, Array.empty[u8]()))
+    }
+    let eeMsg = hs(8, block(eeExts))
+    let certMsg = hs(11, certificateBody(cert))
+
+    let transcriptCv = sha256.sum(helloMsg.concat(shMsg).concat(eeMsg).concat(certMsg))
+    let signature = (p256.signMessage(key, tls.certificateVerifyMessage(transcriptCv)))?
+    let der = derSignature(signature)
+    let mut cvBody = Array.empty[u8]()
+    put16(&mut cvBody, 0x0403)
+    put16(&mut cvBody, der.len())
+    putBytes(&mut cvBody, der)
+    let cvMsg = hs(15, Bytes.fromArray(&cvBody))
+
+    let transcriptCv = sha256.sum(helloMsg.concat(shMsg).concat(eeMsg).concat(certMsg).concat(cvMsg))
+    let mut verify = (tls.finishedVerifyData(handshake.server.secret, transcriptCv))?
+    if mode is Mode.WrongFinished {
+        let mut flipped = Array.empty[u8]()
+        let mut k: usize = 0
+        for k < verify.len() {
+            flipped.push(if k == 0 { verify[k] ^ 1 } else { verify[k] })
+            k = k + 1
+        }
+        verify = Bytes.fromArray(&flipped)
+    }
+    let finMsg = hs(20, verify)
+
+    let flight = eeMsg.concat(certMsg).concat(cvMsg).concat(finMsg)
+    (await wire.writeAll((tls.sealRecord(handshake.server, 0, 22, flight))?))?
+    if mode is Mode.WrongFinished || mode is Mode.EarlyData {
+        return Ok(())
+    }
+
+    // Client Finished, sealed under the client handshake keys.
+    let finishedRecord = (await wire.readRecord())?
+    if finishedRecord.typ != 23 {
+        fail Fail { text: "server: client Finished record type ${finishedRecord.typ}" }
+    }
+    let opened = (tls.openRecord(handshake.client, 0, finishedRecord.header, finishedRecord.payload))?
+    if opened.typ != 22 || opened.payload.len() != 36 || opened.payload[0] != 20 {
+        fail Fail { text: "server: client Finished framing" }
+    }
+    let claimed = opened.payload.slice(4, 36).expect("verify")
+    let transcriptApp = sha256.sum(helloMsg.concat(shMsg).concat(eeMsg).concat(certMsg).concat(cvMsg).concat(finMsg))
+    let expected = (tls.finishedVerifyData(handshake.client.secret, transcriptApp))?
+    if !claimed.equals(&expected) {
+        fail Fail { text: "server: client Finished verify_data" }
+    }
+
+    let application = (tls.deriveApplication(handshake.master, transcriptApp))?
+    let request = (await wire.readRecord())?
+    if request.typ != 23 {
+        fail Fail { text: "server: application record type" }
+    }
+    let plain = (tls.openRecord(application.client, 0, request.header, request.payload))?
+    if plain.typ != 23 {
+        fail Fail { text: "server: inner application type" }
+    }
+    let text = String.fromBytes(plain.payload)?
+    if text != "hello tls" {
+        fail Fail { text: "server: request `${text}`" }
+    }
+    (await wire.writeAll((tls.sealRecord(application.server, 0, 23, "welcome".toBytes()))?))?
+    let mut close = Array.empty[u8]()
+    close.push(1)
+    close.push(0)
+    (await wire.writeAll((tls.sealRecord(application.server, 1, 21, Bytes.fromArray(&close)))?))?
+    Ok(())
+}
+
+fn plainRecord(typ: u8, payload: Bytes) -> Bytes {
+    let mut header = Array.empty[u8]()
+    header.push(typ)
+    put16(&mut header, 0x0303)
+    put16(&mut header, payload.len())
+    Bytes.fromArray(&header).concat(payload)
+}
+
+fn byteArray(b: Bytes) -> Array[u8] {
+    let mut out = Array.empty[u8]()
+    putBytes(&mut out, b)
+    out
+}
+
+fn certificateBody(cert: Bytes) -> Bytes {
+    let mut out = Array.empty[u8]()
+    out.push(0)
+    let mut list = Array.empty[u8]()
+    put24(&mut list, cert.len())
+    putBytes(&mut list, cert)
+    put16(&mut list, 0)
+    put24(&mut out, list.len())
+    out.appendAll(list)
+    Bytes.fromArray(&out)
+}
+
+import x25519 from std/crypto/x25519
+
+fn x25519Public(secret: Bytes) -> Bytes! {
+    match x25519.publicKey(secret) {
+        Ok(v) -> v
+        Err(e) -> fail Fail { text: e.message() }
+    }
+}
+
+fn x25519Shared(secret: Bytes, peer: Bytes) -> Bytes! {
+    match x25519.sharedSecret(secret, peer) {
+        Ok(v) -> v
+        Err(e) -> fail Fail { text: e.message() }
+    }
+}
+
+// ---- client side --------------------------------------------------------
+
+fn deterministicRandom(n: usize) -> Bytes! {
+    Bytes.fill(0x5a, n)
+}
+
+type Case = {
+    mode Mode
+    cert Bytes
+    key Bytes
+    serverName String
+    now Int
+    expect String
+}
+
+fn modeName(m: Mode) -> String {
+    match m {
+        Mode.Happy -> "happy"
+        Mode.WrongFinished -> "wrong-finished"
+        Mode.BadSuite -> "bad-suite"
+        Mode.WrongOrder -> "wrong-order"
+        Mode.EarlyData -> "early-data"
+        Mode.PlainAlert -> "plain-alert"
+        Mode.Oversized -> "oversized"
+    }
+}
+
+
+async fn runCase(n: net.Net, c: Case) -> String! {
+    let poolListen = task.BlockingPool.new(1)
+    let listener = (await poolListen.run(() => n.listen("127.0.0.1", 0)).unwrap())?
+    let port = listener.port()
+    let running = task.spawn(serverAccept(listener, c.mode, c.cert, c.key))
+    let poolConnect = task.BlockingPool.new(1)
+    let mut conn = (await poolConnect.run(() => n.connect("127.0.0.1", port)).unwrap())?
+    let root = (x509.parse(dec(ROOT)))?
+    let mut config = tls.Config.new(c.serverName, Array.of(root), (k) => deterministicRandom(k))
+    config.nowMillis = c.now
+    let connected = await (tls.Client.connect(conn, config))
+    let mut summary = ""
+    let session = match connected {
+        Ok(value) -> Some(value)
+        Err(e) -> {
+            summary = e.message()
+            None
+        }
+    }
+    if let Some(held) = session {
+        let mut s = held
+        match await s.write("hello tls".toBytes()) {
+            Ok(_) -> {}
+            Err(e) -> { summary = "write: ${e.message()}" }
+        }
+        if summary == "" {
+            let firstResult = await s.read(64)
+            match firstResult {
+                Ok(first) -> {
+                    let secondResult = await s.read(64)
+                    match secondResult {
+                        Ok(second) -> {
+                            let text = match String.fromBytes(first) {
+                                Ok(value) -> value
+                                Err(_) -> ""
+                            }
+                            if first.len() == 7 && text == "welcome" && second.len() == 0 {
+                                summary = "ok"
+                            } else {
+                                summary = "bad application data"
+                            }
+                        }
+                        Err(e) -> { summary = "read2: ${e.message()}" }
+                    }
+                }
+                Err(e) -> { summary = "read1: ${e.message()}" }
+            }
+        }
+        await s.close()
+    }
+    // A rejection case leaves the scripted server blocked on a closed
+    // socket; that failure is expected and is not part of the result.
+    _ = await running
+    summary
+}
+
+async fn run() -> Void! {
+    let n = host.net()
+    let now = 1794009600000
+    let root = (x509.parse(dec(ROOT)))?
+    _ = root
+    let cases = Array.of(
+        Case { mode: Mode.Happy, cert: dec(LEAF), key: dec(LEAF_KEY), serverName: "localhost", now: now, expect: "ok" }
+        Case { mode: Mode.WrongFinished, cert: dec(LEAF), key: dec(LEAF_KEY), serverName: "localhost", now: now, expect: "Finished" }
+        Case { mode: Mode.BadSuite, cert: dec(LEAF), key: dec(LEAF_KEY), serverName: "localhost", now: now, expect: "cipher" }
+        Case { mode: Mode.WrongOrder, cert: dec(LEAF), key: dec(LEAF_KEY), serverName: "localhost", now: now, expect: "unexpected" }
+        Case { mode: Mode.EarlyData, cert: dec(LEAF), key: dec(LEAF_KEY), serverName: "localhost", now: now, expect: "early" }
+        Case { mode: Mode.PlainAlert, cert: dec(LEAF), key: dec(LEAF_KEY), serverName: "localhost", now: now, expect: "alert" }
+        Case { mode: Mode.Oversized, cert: dec(LEAF), key: dec(LEAF_KEY), serverName: "localhost", now: now, expect: "record is larger" }
+        Case { mode: Mode.Happy, cert: dec(LEAF), key: dec(LEAF_KEY), serverName: "wrong.example", now: now, expect: "hostname" }
+        Case { mode: Mode.Happy, cert: dec(EXPIRED), key: dec(EXPIRED_KEY), serverName: "localhost", now: now, expect: "expired" }
+    )
+    let mut remaining = cases
+    for remaining.len() > 0 {
+        let c = remaining.takeAt(0) || fail Fail { text: "case" }
+        let name = modeName(c.mode)
+        let expect = c.expect
+        let outcome = (await runCase(n, c))?
+        let ok = outcome.contains(expect)
+        print "${name} => ${outcome} [${ok}]"
+    }
+}
+
+task.currentThreadExecutor().runToCompletion(run())?
+-- stdout --
+happy => ok [true]
+wrong-finished => tls: Finished verify_data does not match [true]
+bad-suite => tls: unsupported: server selected cipher suite 4865, only TLS_CHACHA20_POLY1305_SHA256 is supported [true]
+wrong-order => tls: unexpected message: expected ServerHello, got handshake type 11 [true]
+early-data => tls: unsupported: server accepted early data this client never offered [true]
+plain-alert => tls: peer sent alert 70 (level 2) [true]
+oversized => tls: record is larger than the configured limit [true]
+happy => tls: bad certificate: x509: certificate does not match hostname wrong.example [true]
+happy => tls: bad certificate: x509: certificate has expired [true]

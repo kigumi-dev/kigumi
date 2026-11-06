@@ -1,0 +1,124 @@
+// Server authentication for the TLS 1.3 client: chain validation through
+// `std/crypto/x509` and CertificateVerify signature checks.
+//
+// The RSA-PSS salt length is pinned to the digest length, as RFC 8446
+// requires for rsa_pss_rsae_sha256; ECDSA signatures arrive as DER
+// `ECDSA-Sig-Value` and are widened to the fixed r||s form `p256` takes.
+import asn1 from std/crypto/asn1
+import p256 from std/crypto/p256
+import rsa from std/crypto/rsa
+import sha256 from std/crypto/sha256
+import x509 from std/crypto/x509
+
+pure fn derScalar(e: asn1.Element) -> Result[Bytes, Error] {
+    if !(e.tagClass is asn1.TagClass.Universal) || e.tag != 2 || e.constructed {
+        fail Error.BadSignature
+    }
+    let raw = match e.uintBytes() {
+        Ok(value) -> value
+        Err(_) -> fail Error.BadSignature
+    }
+    if raw.len() > 32 {
+        fail Error.BadSignature
+    }
+    let mut out = Array.empty[u8]()
+    let mut pad = 32 - raw.len()
+    for pad > 0 {
+        out.push(0)
+        pad = pad - 1
+    }
+    let mut i: usize = 0
+    for i < raw.len() {
+        out.push(raw[i])
+        i = i + 1
+    }
+    freeze(&out)
+}
+
+/// Converts a DER ECDSA-Sig-Value to r || s, each 32 bytes.
+pub pure fn ecdsaDerToFixed(signature: Bytes) -> Result[Bytes, Error] {
+    let element = match asn1.parse(signature) {
+        Ok(value) -> value
+        Err(_) -> fail Error.BadSignature
+    }
+    if element.totalLen() != signature.len() {
+        fail Error.BadSignature
+    }
+    let fields = match element.children() {
+        Ok(value) -> value
+        Err(_) -> fail Error.BadSignature
+    }
+    if fields.len() != 2 {
+        fail Error.BadSignature
+    }
+    let r = derScalar(fields[0])?
+    let s = derScalar(fields[1])?
+    Ok(r.concat(s))
+}
+
+/// Verifies a CertificateVerify signature over the message built from the
+/// transcript hash. Only rsa_pss_rsae_sha256 and ecdsa_secp256r1_sha256 are
+/// accepted, and the scheme must match the leaf key's type.
+pub fn verifyCertificateVerify(leaf: &x509.Certificate, scheme: u16, signature: Bytes, transcriptHash: Bytes) -> Result[Void, Error] {
+    let message = certificateVerifyMessage(transcriptHash)
+    if scheme == rsaPssRsaeSha256 {
+        let key = match leaf.publicKey {
+            x509.PublicKey.Rsa(public) -> public
+            x509.PublicKey.EcP256(_) -> fail Error.BadSignature
+        }
+        let verdict = match rsa.verifyPssSha256(key, message, signature, rsa.SaltLength.Exact(32)) {
+            Ok(value) -> value
+            Err(_) -> fail Error.BadSignature
+        }
+        if !verdict {
+            fail Error.BadSignature
+        }
+        return Ok(())
+    }
+    if scheme == ecdsaSecp256r1Sha256 {
+        let public = match leaf.publicKey {
+            x509.PublicKey.EcP256(bytes) -> bytes
+            x509.PublicKey.Rsa(_) -> fail Error.BadSignature
+        }
+        let fixed = ecdsaDerToFixed(signature)?
+        let verdict = match p256.verify(public, sha256.sum(message), fixed) {
+            Ok(value) -> value
+            Err(_) -> fail Error.BadSignature
+        }
+        if !verdict {
+            fail Error.BadSignature
+        }
+        return Ok(())
+    }
+    fail Error.Unsupported("certificate signature scheme ${scheme} was not offered")
+}
+
+/// Parses and validates a server chain against `anchors` for `host` at
+/// `nowMillis`. The chain is leaf first, as the Certificate message carries
+/// it; intermediates and a root may be included.
+pub fn verifyServerChain(anchors: &Array[x509.Certificate], certificates: &Array[Bytes], host: String, nowMillis: Int) -> Result[x509.Certificate, Error] {
+    if certificates.len() == 0 {
+        fail Error.BadCertificate("server sent no certificate")
+    }
+    let mut chain = Array.empty[x509.Certificate]()
+    for der in certificates {
+        let cert = match x509.parse(der) {
+            Ok(value) -> value
+            Err(e) -> fail Error.BadCertificate(e.message())
+        }
+        chain.push(cert)
+    }
+    let leaf = &chain[0]
+    if leaf.extKeyUsage.present && !leaf.extKeyUsage.serverAuth && !leaf.extKeyUsage.anyPurpose {
+        fail Error.BadCertificate("leaf certificate is not valid for TLS server authentication")
+    }
+    if leaf.keyUsage.present && !leaf.keyUsage.digitalSignature {
+        fail Error.BadCertificate("leaf certificate does not allow digitalSignature")
+    }
+    match x509.verifyChain(anchors, &chain, host, nowMillis) {
+        Ok(_) -> {}
+        Err(e) -> fail Error.BadCertificate(e.message())
+    }
+    // Hand back the leaf; the caller verifies CertificateVerify with its key.
+    leaf.clone()
+}

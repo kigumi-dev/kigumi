@@ -10702,6 +10702,24 @@
       ]
     },
     {
+      "id": "run/tls_handshake",
+      "kind": "run",
+      "path": "testdata/run/tls_handshake.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/tls_schedule",
+      "kind": "run",
+      "path": "testdata/run/tls_schedule.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/to_float_callback",
       "kind": "run",
       "path": "testdata/run/to_float_callback.txtar",

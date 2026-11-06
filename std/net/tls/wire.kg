@@ -1,0 +1,178 @@
+// Byte cursor and builder for the TLS 1.3 wire formats (RFC 8446 §3).
+//
+// Every reader returns `MalformedHandshake` rather than panicking, so a
+// hostile peer can only shorten the connection. Bounds are checked before
+// slicing; lengths never wrap because each size is a usize compared against
+// the bytes left.
+import binary from std/encoding/binary
+
+/// A cursor over a borrowed byte string.
+pub type Reader = {
+    data Bytes
+    mut at usize
+}
+
+/// A cursor at the start of data.
+pub pure fn Reader.new(data: Bytes) -> Reader {
+    Reader {
+        data: data
+        at: 0
+    }
+}
+
+/// Bytes not consumed yet.
+pub pure noalloc fn Reader.remaining(self) -> usize {
+    if self.at > self.data.len() {
+        0
+    } else {
+        self.data.len() - self.at
+    }
+}
+
+/// Whether every byte has been consumed.
+pub pure noalloc fn Reader.done(self) -> Bool {
+    self.remaining() == 0
+}
+
+/// The next byte.
+pub pure fn Reader.u8(mut self) -> Result[u8, Error] {
+    if self.remaining() < 1 {
+        fail Error.MalformedHandshake("truncated byte")
+    }
+    let b = self.data[self.at]
+    self.at = self.at + 1
+    b
+}
+
+/// The next two bytes, big-endian.
+pub pure fn Reader.u16(mut self) -> Result[u16, Error] {
+    let b = self.take(2)?
+    binary.u16Be(b, 0) || fail Error.MalformedHandshake("truncated uint16")
+}
+
+/// The next three bytes, big-endian.
+pub pure fn Reader.u24(mut self) -> Result[usize, Error] {
+    let b = self.take(3)?
+    (binary.uintBe(b, 0, 3) || fail Error.MalformedHandshake("truncated uint24")).toUsize()
+}
+
+/// The next n bytes.
+pub pure fn Reader.take(mut self, n: usize) -> Result[Bytes, Error] {
+    if n > self.remaining() {
+        fail Error.MalformedHandshake("field of ${n} bytes runs past the message")
+    }
+    let b = self.data.slice(self.at, self.at + n) || fail Error.MalformedHandshake("slice out of bounds")
+    self.at = self.at + n
+    b
+}
+
+/// A vector prefixed by an 8-bit length.
+pub pure fn Reader.vec8(mut self) -> Result[Bytes, Error] {
+    let raw = self.u8()?
+    let n = raw.toUsize()
+    self.take(n)
+}
+
+/// A vector prefixed by a 16-bit length.
+pub pure fn Reader.vec16(mut self) -> Result[Bytes, Error] {
+    let raw = self.u16()?
+    let n = raw.toUsize()
+    self.take(n)
+}
+
+/// A vector prefixed by a 24-bit length.
+pub pure fn Reader.vec24(mut self) -> Result[Bytes, Error] {
+    let n = self.u24()?
+    self.take(n)
+}
+
+/// Refuses any bytes left over, which would mean the peer padded or
+/// appended a field this implementation does not understand.
+pub pure fn Reader.end(self, what: String) -> Result[Void, Error] {
+    if !self.done() {
+        fail Error.MalformedHandshake("${what} has ${self.remaining()} trailing bytes")
+    }
+}
+
+/// Appends one byte.
+pub pure fn putU8(out: &mut Array[u8], value: u8) {
+    out.push(value)
+}
+
+/// Appends a two-byte integer, big-endian.
+pub pure fn putU16(out: &mut Array[u8], value: u16) {
+    binary.putU16Be(out, value)
+}
+
+/// Appends a three-byte integer, big-endian.
+pub pure fn putU24(out: &mut Array[u8], value: usize) {
+    binary.putUintBe(out, value.toU64(), 3)
+}
+
+/// Appends a vector with an 8-bit length prefix.
+pub pure fn putVec8(out: &mut Array[u8], data: Bytes) {
+    putU8(out, data.len().toU8() || 0)
+    append(out, data)
+}
+
+/// Appends a vector with a 16-bit length prefix.
+pub pure fn putVec16(out: &mut Array[u8], data: Bytes) {
+    putU16(out, data.len().toU16() || 0)
+    append(out, data)
+}
+
+/// Appends every byte of data.
+pub pure fn append(out: &mut Array[u8], data: Bytes) {
+    let mut i: usize = 0
+    for i < data.len() {
+        out.push(data[i])
+        i = i + 1
+    }
+}
+
+/// The bytes of an array, without copying the elements twice.
+pub pure fn freeze(out: &Array[u8]) -> Bytes {
+    Bytes.fromArray(out)
+}
+
+/// One extension: type and opaque body.
+pub type Extension = {
+    pub typ u16
+    pub data Bytes
+}
+
+/// Parses a 16-bit-length-prefixed extension block. A duplicated type is
+/// refused; RFC 8446 §4.2 forbids a peer from sending one twice.
+pub pure fn parseExtensions(block: Bytes) -> Result[Array[Extension], Error] {
+    let mut r = Reader.new(block)
+    let mut out = Array.empty[Extension]()
+    for !r.done() {
+        let typ = r.u16()?
+        let data = r.vec16()?
+        let mut seen = false
+        for e in &out {
+            if e.typ == typ {
+                seen = true
+            }
+        }
+        if seen {
+            fail Error.MalformedHandshake("duplicate extension ${typ}")
+        }
+        out.push(Extension {
+            typ: typ
+            data: data
+        })
+    }
+    out
+}
+
+/// Appends one extension with a 16-bit outer length.
+pub pure fn putExtension(out: &mut Array[u8], typ: u16, body: Array[u8]) {
+    putU16(out, typ)
+    putU16(out, body.len().toU16() || 0)
+    let mut i: usize = 0
+    for i < body.len() {
+        out.push(body[i])
+        i = i + 1
+    }
+}

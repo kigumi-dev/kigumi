@@ -1,0 +1,394 @@
+// TLS 1.3 handshake messages (RFC 8446 §4): building the ClientHello and
+// parsing the server's flight.
+//
+// Parsing is deliberately narrow. A ServerHello must negotiate TLS 1.3 with
+// the one cipher suite this module implements and an x25519 key share; every
+// extension this implementation did not offer is refused, so a server
+// cannot smuggle in PSK resumption, early data or a renegotiation.
+import binary from std/encoding/binary
+
+/// Handshake message type numbers used here.
+pub const clientHelloType: u8 = 1
+
+pub const serverHelloType: u8 = 2
+
+pub const newSessionTicketType: u8 = 4
+
+pub const encryptedExtensionsType: u8 = 8
+
+pub const certificateType: u8 = 11
+
+pub const certificateRequestType: u8 = 13
+
+pub const certificateVerifyType: u8 = 15
+
+pub const finishedType: u8 = 20
+
+pub const keyUpdateType: u8 = 24
+
+/// Extension types.
+pub const serverNameExt: u16 = 0
+
+pub const supportedGroupsExt: u16 = 10
+
+pub const signatureAlgorithmsExt: u16 = 13
+
+pub const alpnExt: u16 = 16
+
+pub const preSharedKeyExt: u16 = 41
+
+pub const earlyDataExt: u16 = 42
+
+pub const supportedVersionsExt: u16 = 43
+
+pub const keyShareExt: u16 = 51
+
+/// Groups and signature schemes.
+pub const x25519Group: u16 = 0x001D
+
+pub const rsaPssRsaeSha256: u16 = 0x0804
+
+pub const ecdsaSecp256r1Sha256: u16 = 0x0403
+
+/// TLS_CHACHA20_POLY1305_SHA256.
+pub const chacha20Poly1305Sha256: u16 = 0x1303
+
+/// TLS 1.3 in the supported_versions encoding.
+pub const tls13Version: u16 = 0x0304
+
+/// The ServerHello.random value that marks a HelloRetryRequest.
+pub fn helloRetryRequestRandom() -> Bytes {
+    let raw = Array.of[u8](
+        0xcf, 0x21, 0xad, 0x74, 0xe5, 0x9a, 0x61, 0x11,
+        0xbe, 0x1d, 0x8c, 0x02, 0x1e, 0x65, 0xb8, 0x91,
+        0xc2, 0xa2, 0x11, 0x16, 0x7a, 0xbb, 0x8c, 0x5e,
+        0x07, 0x9e, 0x09, 0xe2, 0xc8, 0xa8, 0x33, 0x9c
+    )
+    Bytes.fromArray(&raw)
+}
+
+const spaces64: String = "                                                                "
+
+/// A complete handshake message: four-byte header followed by body.
+pub pure fn encodeHandshake(typ: u8, body: Bytes) -> Bytes {
+    let mut out = Array.empty[u8]()
+    putU8(&mut out, typ)
+    putU24(&mut out, body.len())
+    append(&mut out, body)
+    freeze(&out)
+}
+
+/// Whether a name is an address literal, which SNI must not carry.
+pub pure fn isIpLiteral(name: String) -> Bool {
+    if name.contains(":") {
+        return true
+    }
+    let parts = name.split(".")
+    if parts.len() != 4 {
+        return false
+    }
+    for part in &parts {
+        if part.len() == 0 || part.len() > 3 {
+            return false
+        }
+        let mut value: Int = 0
+        let mut i: usize = 0
+        for i < part.len() {
+            let c = part[i]
+            if c < 48 || c > 57 {
+                return false
+            }
+            value = value * 10 + (c.toInt() - 48)
+            i = i + 1
+        }
+        if value > 255 {
+            return false
+        }
+    }
+    true
+}
+
+// A vector body: its byte length followed by the bytes.
+pure fn wrap16(body: &Array[u8]) -> Array[u8] {
+    let mut out = Array.empty[u8]()
+    putU16(&mut out, body.len().toU16() || 0)
+    append(&mut out, freeze(body))
+    out
+}
+
+pure fn wrap8(body: &Array[u8]) -> Array[u8] {
+    let mut out = Array.empty[u8]()
+    putU8(&mut out, body.len().toU8() || 0)
+    append(&mut out, freeze(body))
+    out
+}
+
+/// Builds the ClientHello handshake message for an (EC)DHE-only TLS 1.3
+/// handshake with one x25519 key share.
+pub pure fn clientHello(random: Bytes, sessionId: Bytes, keyShare: Bytes, serverName: String, alpn: Array[String]) -> Result[Bytes, Error] {
+    if random.len() != 32 {
+        fail Error.MalformedHandshake("client random must be 32 bytes")
+    }
+    if sessionId.len() > 32 {
+        fail Error.MalformedHandshake("session id is longer than 32 bytes")
+    }
+    if keyShare.len() != 32 {
+        fail Error.MalformedHandshake("x25519 key share must be 32 bytes")
+    }
+    if alpn.len() == 0 {
+        fail Error.Unsupported("no ALPN protocol was offered")
+    }
+    let mut exts = Array.empty[u8]()
+
+    if serverName != "" && !isIpLiteral(serverName) {
+        let name = serverName.toBytes()
+        if name.len() > 65535 {
+            fail Error.MalformedHandshake("server name is too long")
+        }
+        let mut entry = Array.empty[u8]()
+        putU8(&mut entry, 0)
+        putVec16(&mut entry, name)
+        let mut list = Array.empty[u8]()
+        putVec16(&mut list, freeze(&entry))
+        putExtension(&mut exts, serverNameExt, list)
+    }
+
+    let mut groupList = Array.empty[u8]()
+    putU16(&mut groupList, x25519Group)
+    putExtension(&mut exts, supportedGroupsExt, wrap16(&groupList))
+
+    let mut schemes = Array.empty[u8]()
+    putU16(&mut schemes, rsaPssRsaeSha256)
+    putU16(&mut schemes, ecdsaSecp256r1Sha256)
+    putExtension(&mut exts, signatureAlgorithmsExt, wrap16(&schemes))
+
+    let mut protocols = Array.empty[u8]()
+    for p in &alpn {
+        let bytes = p.toBytes()
+        if p.len() == 0 || p.len() > 255 {
+            fail Error.MalformedHandshake("ALPN protocol names must be 1..255 bytes")
+        }
+        putVec8(&mut protocols, bytes)
+    }
+    putExtension(&mut exts, alpnExt, wrap16(&protocols))
+
+    let mut versions = Array.empty[u8]()
+    putU16(&mut versions, tls13Version)
+    putExtension(&mut exts, supportedVersionsExt, wrap8(&versions))
+
+    let mut shares = Array.empty[u8]()
+    putU16(&mut shares, x25519Group)
+    putVec16(&mut shares, keyShare)
+    putExtension(&mut exts, keyShareExt, wrap16(&shares))
+
+    let mut body = Array.empty[u8]()
+    putU16(&mut body, 0x0303)
+    append(&mut body, random)
+    putVec8(&mut body, sessionId)
+    let mut suites = Array.empty[u8]()
+    putU16(&mut suites, chacha20Poly1305Sha256)
+    putVec16(&mut body, freeze(&suites))
+    putU8(&mut body, 1)
+    putU8(&mut body, 0)
+    putVec16(&mut body, freeze(&exts))
+    Ok(encodeHandshake(clientHelloType, freeze(&body)))
+}
+
+/// The fields of a ServerHello this implementation acts on.
+pub type ParsedServerHello = {
+    pub random Bytes
+    pub sessionId Bytes
+    pub cipherSuite u16
+    pub keyShare Bytes
+}
+
+/// Parses and checks a ServerHello body (the four-byte handshake header
+/// already removed).
+pub pure fn parseServerHello(body: Bytes) -> Result[ParsedServerHello, Error] {
+    let mut r = Reader.new(body)
+    let version = r.u16()?
+    if version != 0x0303 {
+        fail Error.Unsupported("ServerHello legacy_version ${version} is not TLS 1.2")
+    }
+    let random = r.take(32)?
+    if random.equals(&helloRetryRequestRandom()) {
+        fail Error.Unsupported("server requested a HelloRetryRequest, which needs a second key share")
+    }
+    let sessionId = r.vec8()?
+    if sessionId.len() > 32 {
+        fail Error.MalformedHandshake("ServerHello session id is longer than 32 bytes")
+    }
+    let suite = r.u16()?
+    let compression = r.u8()?
+    if compression != 0 {
+        fail Error.MalformedHandshake("ServerHello compression method is not null")
+    }
+    let extBlock = r.vec16()?
+    r.end("ServerHello")?
+    let exts = parseExtensions(extBlock)?
+    let mut selectedVersion: u16 = 0
+    let mut keyShare: Bytes? = None
+    for e in &exts {
+        if e.typ == supportedVersionsExt {
+            if e.data.len() != 2 {
+                fail Error.MalformedHandshake("supported_versions in ServerHello must hold one version")
+            }
+            selectedVersion = binary.u16Be(e.data, 0) || 0
+        } else if e.typ == keyShareExt {
+            let mut kr = Reader.new(e.data)
+            let group = kr.u16()?
+            let share = kr.vec16()?
+            kr.end("key_share")?
+            if group != x25519Group {
+                fail Error.Unsupported("server selected key share group ${group}, only x25519 is supported")
+            }
+            if share.len() != 32 {
+                fail Error.MalformedHandshake("x25519 key share must be 32 bytes")
+            }
+            keyShare = Some(share)
+        } else if e.typ == preSharedKeyExt {
+            fail Error.Unsupported("server selected a PSK this client never offered")
+        } else if e.typ == earlyDataExt {
+            fail Error.Unsupported("server accepted early data this client never offered")
+        } else {
+            fail Error.Unsupported("unexpected ServerHello extension ${e.typ}")
+        }
+    }
+    if selectedVersion != tls13Version {
+        fail Error.Unsupported("server did not select TLS 1.3")
+    }
+    if suite != chacha20Poly1305Sha256 {
+        fail Error.Unsupported("server selected cipher suite ${suite}, only TLS_CHACHA20_POLY1305_SHA256 is supported")
+    }
+    let share = match keyShare {
+        Some(value) -> value
+        None -> fail Error.MalformedHandshake("ServerHello has no key_share")
+    }
+    Ok(ParsedServerHello {
+        random: random
+        sessionId: sessionId
+        cipherSuite: suite
+        keyShare: share
+    })
+}
+
+/// The negotiated ALPN protocol from EncryptedExtensions, if the server sent
+/// the extension.
+pub pure fn parseEncryptedExtensions(body: Bytes) -> Result[String?, Error] {
+    let mut r = Reader.new(body)
+    let extBlock = r.vec16()?
+    r.end("EncryptedExtensions")?
+    let exts = parseExtensions(extBlock)?
+    let mut selected: String? = None
+    for e in &exts {
+        if e.typ == alpnExt {
+            let mut ar = Reader.new(e.data)
+            let list = ar.vec16()?
+            ar.end("ALPN")?
+            let mut lr = Reader.new(list)
+            let first = lr.vec8()?
+            lr.end("ALPN protocol list")?
+            let protocol = match String.fromBytes(first) {
+                Ok(value) -> value
+                Err(_) -> fail Error.MalformedHandshake("ALPN protocol is not valid UTF-8")
+            }
+            selected = Some(protocol)
+        } else if e.typ == supportedGroupsExt {
+            // The server may state the groups it supports; it is
+            // informational and carries no negotiation.
+            let mut gr = Reader.new(e.data)
+            _ = gr.vec16()?
+            gr.end("supported_groups")?
+        } else if e.typ == serverNameExt {
+            // An empty server_name extension acknowledges SNI.
+            if e.data.len() != 0 {
+                fail Error.MalformedHandshake("server_name acknowledgement is not empty")
+            }
+        } else if e.typ == earlyDataExt {
+            fail Error.Unsupported("server accepted early data this client never offered")
+        } else {
+            fail Error.Unsupported("unexpected EncryptedExtensions extension ${e.typ}")
+        }
+    }
+    Ok(selected)
+}
+
+/// Parses a Certificate message into the chain's DER certificates, leaf
+/// first. Enforces the context, the outer byte cap and the certificate count.
+pub pure fn parseCertificate(body: Bytes, maxBytes: usize, maxCount: usize) -> Result[Array[Bytes], Error] {
+    if body.len() > maxBytes {
+        fail Error.BadCertificate("certificate message is larger than ${maxBytes} bytes")
+    }
+    let mut r = Reader.new(body)
+    let context = r.vec8()?
+    if context.len() != 0 {
+        fail Error.BadCertificate("server sent a non-empty certificate_request_context")
+    }
+    let list = r.vec24()?
+    r.end("Certificate")?
+    let mut lr = Reader.new(list)
+    let mut out = Array.empty[Bytes]()
+    for !lr.done() {
+        if out.len() >= maxCount {
+            fail Error.BadCertificate("certificate chain has more than ${maxCount} certificates")
+        }
+        let cert = lr.vec24()?
+        if cert.len() == 0 {
+            fail Error.BadCertificate("certificate entry is empty")
+        }
+        let ext = lr.vec16()?
+        let mut er = Reader.new(ext)
+        // Per-certificate extensions are parsed only to prove they are a
+        // well-formed list; none are required for server authentication.
+        for !er.done() {
+            let typ = er.u16()?
+            let data = er.vec16()?
+            if typ == earlyDataExt {
+                fail Error.Unsupported("early data in a certificate extension")
+            }
+            _ = data
+        }
+        out.push(cert)
+    }
+    if out.len() == 0 {
+        fail Error.BadCertificate("certificate chain is empty")
+    }
+    Ok(out)
+}
+
+/// A CertificateVerify message's scheme and signature.
+pub type ParsedCertificateVerify = {
+    pub scheme u16
+    pub signature Bytes
+}
+
+/// Parses a CertificateVerify body.
+pub pure fn parseCertificateVerify(body: Bytes) -> Result[ParsedCertificateVerify, Error] {
+    let mut r = Reader.new(body)
+    let scheme = r.u16()?
+    let signature = r.vec16()?
+    r.end("CertificateVerify")?
+    Ok(ParsedCertificateVerify {
+        scheme: scheme
+        signature: signature
+    })
+}
+
+/// Parses a Finished body.
+pub pure fn parseFinished(body: Bytes) -> Result[Bytes, Error] {
+    if body.len() != 32 {
+        fail Error.MalformedHandshake("Finished verify_data must be 32 bytes")
+    }
+    body
+}
+
+/// The bytes a CertificateVerify signature covers (RFC 8446 §4.4.3): 64
+/// spaces, the context string, a zero byte and the transcript hash.
+pub pure fn certificateVerifyMessage(transcriptHash: Bytes) -> Bytes {
+    let mut out = Array.empty[u8]()
+    append(&mut out, spaces64.toBytes())
+    append(&mut out, "TLS 1.3, server CertificateVerify".toBytes())
+    putU8(&mut out, 0)
+    append(&mut out, transcriptHash)
+    freeze(&out)
+}
