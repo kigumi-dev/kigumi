@@ -15975,6 +15975,14 @@
       ]
     },
     {
+      "id": "sem/task_detached_borrow_err",
+      "kind": "sem",
+      "path": "testdata/sem/task_detached_borrow_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/task_handle_escape_capture",
       "kind": "sem",
       "path": "testdata/sem/task_handle_escape_capture.txtar",

@@ -132,9 +132,47 @@ func analyzeBorrows(state *Analyzer, f *midir.Func) {
 	c.checkTempLeaves()
 }
 
+// checkDetachedSpawn rejects dropping the handle a spawned future would keep a borrow alive through. The child outlives
+// the statement, so a borrow captured by its future must stay live until the task ends.
+func (c *borrowCheck) checkDetachedSpawn(in midir.Inst, _ map[midir.LocalID]bool) {
+	if in.Op != midir.OpCall || in.Ent == 0 || c.p.R.Entity(in.Ent).Name != "spawn" || c.p.R.Entity(in.Ent).Kind != sem.EntFn || c.p.R.Packages[c.p.R.Entity(in.Ent).Pkg].Path != "std/task" {
+		return
+	}
+	if !c.resultOnlyDropped(in.Dst) {
+		return
+	}
+	for _, a := range in.Args {
+		if _, ok := c.holders[a]; ok {
+			c.report(in.Node, a, "borrow-escape", "a spawned task outlives this borrow; await the task or hand it off instead")
+			return
+		}
+	}
+}
+
+// resultOnlyDropped reports a value whose every use is a drop or release: binding the handle only to discard it still
+// lets the child outlive the borrow.
+func (c *borrowCheck) resultOnlyDropped(l midir.LocalID) bool {
+	for bi := range c.f.Blocks {
+		for _, ins := range c.f.Blocks[bi].Insts {
+			for _, a := range ins.Args {
+				if a == l && ins.Op != midir.OpDrop && ins.Op != midir.OpRelease {
+					return false
+				}
+			}
+		}
+		for _, a := range c.f.Blocks[bi].Term.Args {
+			if a == l {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // checkInst sees the holders live after in; a conflict is a touch of an owner whose borrow outlives in,
 // and a holder outside realAfter waits only on its own release, so only what may drop a value conflicts.
 func (c *borrowCheck) checkInst(in midir.Inst, liveAfter, realAfter map[midir.LocalID]bool) {
+	c.checkDetachedSpawn(in, liveAfter)
 	c.checkCapture(in)
 	c.checkTempKept(in)
 	c.checkRecvArgs(in)
