@@ -93,7 +93,7 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 		fp.RuntimeAbi = code.Abi
 		artifact.ReportStale(out, fp, stderr)
 		ok, err := artifact.Publish(out, func(staged string) error {
-			built, err := buildArchive(m.compiler, cc, args, inputs, dir, staged, opts.ccEnv, stderr)
+			built, err := buildArchive(m.compiler, cc, args, inputs, dir, staged, opts.ccEnv, stderr, opts.pinCompDir && t.COFF())
 			if err != nil || !built {
 				return err
 			}

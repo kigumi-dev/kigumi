@@ -10,6 +10,7 @@ import (
 	"kigumi/internal/toolchain/artifact"
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/native/link"
+	"kigumi/internal/toolchain/native/object"
 )
 
 // splitArchiveCFlags keeps linker-shaped flags out of buildArchive's compile-only step; zig cc corrupts objects when --gc-sections reaches a -c invocation.
@@ -25,7 +26,7 @@ func splitArchiveCFlags(flags []string) (compile, linkerLike []string) {
 }
 
 // buildArchive compiles each input to an object for the embedder to link (freestanding has no libc); dir/comp-dir is pinned so two builds don't diverge, and -ffunction/data-sections keeps the embedder's --gc-sections effective.
-func buildArchive(o buildconfig.CompilerOptions, cc, args, inputs []string, dir, out string, env []string, stderr io.Writer) (bool, error) {
+func buildArchive(o buildconfig.CompilerOptions, cc, args, inputs []string, dir, out string, env []string, stderr io.Writer, stripDebug bool) (bool, error) {
 	var objs []string
 	for i, in := range inputs {
 		rel, err := link.PinnedInput(o, dir, in)
@@ -34,6 +35,11 @@ func buildArchive(o buildconfig.CompilerOptions, cc, args, inputs []string, dir,
 		}
 		obj := fmt.Sprintf("obj%d.o", i)
 		cargs := append(append([]string{}, args...), "-ffreestanding", "-fno-stack-protector", "-ffunction-sections", "-fdata-sections", "-fdebug-compilation-dir=.")
+		if stripDebug {
+			// COFF CodeView names zig's cache object, whose temp path changes between the
+			// two reproducibility builds; without debug info the objects are byte-stable.
+			cargs = append(cargs, "-g0")
+		}
 		cargs = append(append(cargs, link.PrefixMapFlag(o)...), "-c", "-o", obj, rel)
 		cmd := exec.Command(cc[0], cargs...)
 		cmd.Dir = dir
@@ -43,6 +49,11 @@ func buildArchive(o buildconfig.CompilerOptions, cc, args, inputs []string, dir,
 		}
 		if err := cmd.Run(); err != nil {
 			return false, fmt.Errorf("compile %s: %w", filepath.Base(in), err)
+		}
+		if stripDebug {
+			if err := object.StripCOFFDebug(filepath.Join(dir, obj)); err != nil {
+				return false, err
+			}
 		}
 		objs = append(objs, obj)
 	}

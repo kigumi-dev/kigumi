@@ -2,7 +2,9 @@ package driver_test
 
 import (
 	"bytes"
+	"debug/pe"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -130,6 +132,55 @@ func TestBuildUEFITrivialProgram(t *testing.T) {
 	var buildErr bytes.Buffer
 	if ok, err := driver.BuildWith(m, out, &buildErr, driver.BuildOptions{Target: target}); err != nil || !ok {
 		t.Fatalf("build: %v\n%s", err, buildErr.String())
+	}
+}
+
+// TestBuildUEFILinksEFIApplication links the archive into an EFI application, so CI exercises the
+// symbol contract and COFF entry point instead of stopping at the archive.
+func TestBuildUEFILinksEFIApplication(t *testing.T) {
+	t.Parallel()
+	requireZig(t)
+	root := t.TempDir()
+	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"uefilink\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
+	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hi\"\n"), 0o644)
+	target, err := buildconfig.ParseTarget(testCompiler(), "x86_64-uefi", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	std, _ := filepath.Abs("../../../std")
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
+	if err != nil {
+		t.Fatal(err)
+	}
+	archive := filepath.Join(root, "app.a")
+	var buildErr bytes.Buffer
+	if ok, err := driver.BuildWith(m, archive, &buildErr, driver.BuildOptions{Target: target}); err != nil || !ok {
+		t.Fatalf("build: %v\n%s", err, buildErr.String())
+	}
+	shim, _ := filepath.Abs("testdata/uefi_shim.c")
+	obj := filepath.Join(root, "shim.obj")
+	cc := testCompiler().CCompiler()
+	run := func(name string, args ...string) {
+		t.Helper()
+		out, err := exec.Command(name, args...).CombinedOutput()
+		if err != nil {
+			t.Fatalf("%s %v: %v\n%s", name, args, err, out)
+		}
+	}
+	run(cc[0], "cc", "-target", "x86_64-uefi", "-ffreestanding", "-fno-stack-protector", "-fno-sanitize=all", "-mno-red-zone", "-c", shim, "-o", obj)
+	exe := filepath.Join(root, "BOOTX64.EFI")
+	run(cc[0], "lld-link", "/subsystem:efi_application", "/entry:efi_main", "/nodefaultlib", "/machine:x64", "/out:"+exe, obj, archive)
+	f, err := pe.Open(exe)
+	if err != nil {
+		t.Fatalf("open EFI image: %v", err)
+	}
+	defer f.Close()
+	hdr, ok := f.OptionalHeader.(*pe.OptionalHeader64)
+	if !ok {
+		t.Fatalf("EFI image is not PE32+")
+	}
+	if hdr.Subsystem != 10 {
+		t.Fatalf("EFI image subsystem = %d, want 10 (EFI application)", hdr.Subsystem)
 	}
 }
 

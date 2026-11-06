@@ -39,7 +39,7 @@ func TestDeterministicArchive(t *testing.T) {
 		}
 		out := filepath.Join(t.TempDir(), "bare.a")
 		var stderr bytes.Buffer
-		if ok, err := driver.BuildWith(m, out, &stderr, driver.BuildOptions{Target: target}); err != nil || !ok {
+		if ok, err := driver.BuildWith(m, out, &stderr, driver.BuildOptions{Target: target, Reproducible: true}); err != nil || !ok {
 			t.Fatalf("build %d: %v\n%s", i, err, stderr.String())
 		}
 		data, err := os.ReadFile(out)
@@ -50,6 +50,45 @@ func TestDeterministicArchive(t *testing.T) {
 	}
 	if !bytes.Equal(archives[0], archives[1]) {
 		t.Fatalf("two builds of the same module produced different archives (%d vs %d bytes)", len(archives[0]), len(archives[1]))
+	}
+}
+
+// TestDeterministicCOFFArchive builds the same UEFI module twice and expects
+// byte-identical archives. COFF debug info names zig's cache object, so the
+// object must be stripped of that temp path before archiving.
+func TestDeterministicCOFFArchive(t *testing.T) {
+	if testCompiler().CCompiler() == nil {
+		t.Skip("no C compiler")
+	}
+	std, _ := filepath.Abs("../../../std")
+	root := t.TempDir()
+	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"bare\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
+	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hi\"\n"), 0o644)
+	target, err := buildconfig.ParseTarget(testCompiler(), "x86_64-uefi", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var archives [][]byte
+	for i := range 2 {
+		t.Setenv("ZIG_GLOBAL_CACHE_DIR", filepath.Join(t.TempDir(), "zig-global"))
+		t.Setenv("ZIG_LOCAL_CACHE_DIR", filepath.Join(t.TempDir(), "zig-local"))
+		m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := filepath.Join(t.TempDir(), "bare.a")
+		var stderr bytes.Buffer
+		if ok, err := driver.BuildWith(m, out, &stderr, driver.BuildOptions{Target: target, Reproducible: true}); err != nil || !ok {
+			t.Fatalf("build %d: %v\n%s", i, err, stderr.String())
+		}
+		data, err := os.ReadFile(out)
+		if err != nil {
+			t.Fatal(err)
+		}
+		archives = append(archives, data)
+	}
+	if !bytes.Equal(archives[0], archives[1]) {
+		t.Fatalf("two UEFI builds produced different archives (%d vs %d bytes)", len(archives[0]), len(archives[1]))
 	}
 }
 
