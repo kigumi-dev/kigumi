@@ -9,6 +9,7 @@ func renderText(w io.Writer, r report) {
 	fmt.Fprintf(w, "release:    %s\n", r.Release)
 	fmt.Fprintf(w, "commit:     %s%s\n", r.Commit, dirtySuffix(r.Dirty))
 	fmt.Fprintf(w, "go:         %s\n", r.GoVersion)
+	printField(w, "module", r.Module)
 	printField(w, "std", r.Std)
 	printField(w, "target", r.Target)
 	printField(w, "c compiler", r.CCompiler)

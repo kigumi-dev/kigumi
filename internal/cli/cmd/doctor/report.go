@@ -21,6 +21,7 @@ type field struct {
 // report is the full doctor snapshot.
 type report struct {
 	version.Provenance
+	Module    field `json:"module"`
 	Std       field `json:"std"`
 	Target    field `json:"target"`
 	CCompiler field `json:"cCompiler"`
@@ -37,6 +38,7 @@ type report struct {
 // buildReport resolves the session and the host environment into a report.
 func buildReport(s session.Session) report {
 	r := report{Provenance: version.Current()}
+	r.Module = moduleField()
 	r.Std = stdField(s)
 	r.Target = targetField(s)
 	r.CCompiler = ccompilerField()
@@ -115,4 +117,22 @@ func modCacheField() field {
 		return field{Status: "unknown", Source: "os.UserCacheDir"}
 	}
 	return field{Value: dir + "/kigumi/mod", Source: "os.UserCacheDir()/kigumi/mod (no override today)", Status: "ok"}
+}
+
+// moduleField compares the manifest's `kigumi` version with the running toolchain.
+func moduleField() field {
+	mf, ok, err := module.ReadModFile(".")
+	if err != nil {
+		return field{Source: "mod.kg", Status: "invalid"}
+	}
+	if !ok {
+		return field{Source: "mod.kg", Status: "missing"}
+	}
+	if mf.Kigumi == "" {
+		return field{Source: "mod.kg", Status: "unversioned"}
+	}
+	if mf.Kigumi != version.Toolchain {
+		return field{Value: mf.Kigumi + " (toolchain " + version.Toolchain + ")", Source: "mod.kg", Status: "mismatch"}
+	}
+	return field{Value: mf.Kigumi, Source: "mod.kg", Status: "ok"}
 }
