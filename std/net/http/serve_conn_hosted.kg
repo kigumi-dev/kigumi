@@ -102,7 +102,13 @@ async fn serveConn(wire: Wire, handler: fn(Request) -> Response!, log: fn(String
         let headOnly = req.request.method == "HEAD"
         let target = req.request.target
         let method = req.request.method
-        let resp = answer(handler, log, move req.request)
+        let resp = if method == "OPTIONS" && target == "*" {
+            let mut options = Response.new(200)
+            options.headers.add("Allow", "GET, HEAD, POST, OPTIONS")
+            options
+        } else {
+            answer(handler, log, move req.request)
+        }
         let out = match renderResponse(resp, version, headOnly, close) {
             Ok(o) -> o
             Err(e) -> {
