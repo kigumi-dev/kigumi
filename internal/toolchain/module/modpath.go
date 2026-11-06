@@ -61,7 +61,7 @@ func subdirUnder(name, url string) string {
 	if i := strings.Index(u, "@"); i >= 0 && !strings.Contains(u[:i], "/") {
 		u = u[i+1:]
 	}
-	u = strings.TrimSuffix(strings.Replace(u, ":", "/", 1), "/")
+	u = strings.TrimSuffix(stripAuthorityPort(u), "/")
 	for _, form := range []string{u, strings.TrimSuffix(u, ".git")} {
 		segs := strings.Split(form, "/")
 		for i := range segs {
@@ -151,4 +151,25 @@ func versionAtLeast(have, want string) (bool, error) {
 		}
 	}
 	return true, nil
+}
+
+// stripAuthorityPort removes the :port from a URL authority without turning
+// it into a path separator; a bracketed IPv6 literal keeps its address.
+func stripAuthorityPort(u string) string {
+	slash := strings.IndexByte(u, '/')
+	authority, rest := u, ""
+	if slash >= 0 {
+		authority, rest = u[:slash], u[slash:]
+	}
+	if strings.HasPrefix(authority, "[") {
+		if close := strings.IndexByte(authority, ']'); close >= 0 {
+			after := authority[close+1:]
+			if strings.HasPrefix(after, ":") {
+				authority = authority[:close+1]
+			}
+		}
+	} else if colon := strings.LastIndexByte(authority, ':'); colon >= 0 {
+		authority = authority[:colon]
+	}
+	return authority + rest
 }
