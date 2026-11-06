@@ -35,3 +35,9 @@ func TestZigVersionFile(t *testing.T) {
 		t.Errorf("ZIG_VERSION is %q, Zig constant is %q; keep them in sync", got, Zig)
 	}
 }
+
+func TestDisplayNamesRelease(t *testing.T) {
+	if got := Display(); got == "" || got[:len(Release)] != Release {
+		t.Fatalf("Display() = %q, want it to start with %q", got, Release)
+	}
+}

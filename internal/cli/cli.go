@@ -68,7 +68,7 @@ func New() *cobra.Command {
 		diag.UseColor(color)
 		return nil
 	}
-	root.Version = version.Toolchain
+	root.Version = version.Display()
 	root.SetVersionTemplate("kigumi version {{.Version}}\n")
 	root.AddCommand(parse.New(), fmt.New(), check.New(), run.New(), test.New(), build.New(), doc.New(), schema.New(), get.New(), mod.New(), lsp.New(), explain.New(), doctor.New(), zig.New())
 	return root

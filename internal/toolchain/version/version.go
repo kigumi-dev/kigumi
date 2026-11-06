@@ -31,6 +31,24 @@ const (
 // (calling convention, layout, drop glue, ...); bump on any incompatible change, independent of Release.
 const AbiRevision = 1
 
+// Display is the one-line version `kigumi --version` prints: release, short
+// commit when the build has VCS metadata, and a dirty marker.
+func Display() string {
+	p := Current()
+	out := p.Release
+	if p.Commit != "" && p.Commit != "unknown" {
+		commit := p.Commit
+		if len(commit) > 12 {
+			commit = commit[:12]
+		}
+		out += " " + commit
+	}
+	if p.Dirty {
+		out += " dirty"
+	}
+	return out
+}
+
 // Provenance identifies the exact build: commit, dirty working tree and Go
 // toolchain, so CLI and LSP both report this instead of hard-coding a version string.
 type Provenance struct {
