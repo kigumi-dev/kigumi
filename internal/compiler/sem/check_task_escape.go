@@ -69,9 +69,17 @@ func (r *Result) namedHasTask(ent EntityID, args []TypeID, seen map[TypeID]bool)
 }
 
 func (r *Result) checkAsyncTaskReturn(f FileID, at syntax.NodeID, sig TypeID) {
-	if ret := r.Types.Node(sig).Elem; r.typeHasTask(ret, map[TypeID]bool{}) {
+	ret := r.Types.Node(sig).Elem
+	if r.typeHasTask(ret, map[TypeID]bool{}) || r.typeMayHideTask(ret) {
 		r.errAt(f, at, cTaskHandleReturned, r.TypeString(ret), "the result of an async fn")
 	}
+}
+
+// typeMayHideTask reports a result whose concrete shape is not known here: an
+// interface may have a Task-holding implementation and carry a handle out of
+// the spawning task.
+func (r *Result) typeMayHideTask(t TypeID) bool {
+	return t != 0 && t != TyPoison && r.Types.Kind(t) == KIface
 }
 
 func (r *Result) mutRefHasTask(t TypeID, subst map[EntityID]TypeID) bool {
