@@ -1,0 +1,10 @@
+-- src --
+import math from std/math
+
+print "${1.0 / math.abs(-0.0)}"
+print "${1.0 / math.abs(0.0)}"
+print "${math.abs(-2.5)}"
+-- stdout --
++Inf
++Inf
+2.5

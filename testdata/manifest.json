@@ -8136,6 +8136,15 @@
       ]
     },
     {
+      "id": "run/math_abs_zero",
+      "kind": "run",
+      "path": "testdata/run/math_abs_zero.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/math_fixed_width",
       "kind": "run",
       "path": "testdata/run/math_fixed_width.txtar",

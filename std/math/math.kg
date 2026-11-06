@@ -118,7 +118,9 @@ pub pure noalloc fn abs(x: Int) -> Int {
 
 /// Absolute value of x.
 pub pure noalloc fn abs(x: Float) -> Float {
-    if x < 0.0 {
+    if x == 0.0 {
+        0.0
+    } else if x < 0.0 {
         -x
     } else {
         x
