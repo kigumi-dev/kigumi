@@ -152,17 +152,34 @@ func (c *borrowCheck) checkDetachedSpawn(in midir.Inst, _ map[midir.LocalID]bool
 // resultOnlyDropped reports a value whose every use is a drop or release: binding the handle only to discard it still
 // lets the child outlive the borrow.
 func (c *borrowCheck) resultOnlyDropped(l midir.LocalID) bool {
-	for bi := range c.f.Blocks {
-		for _, ins := range c.f.Blocks[bi].Insts {
-			for _, a := range ins.Args {
-				if a == l && ins.Op != midir.OpDrop && ins.Op != midir.OpRelease {
-					return false
+	seen := map[midir.LocalID]bool{}
+	pending := []midir.LocalID{l}
+	for len(pending) > 0 {
+		cur := pending[0]
+		pending = pending[1:]
+		if seen[cur] {
+			continue
+		}
+		seen[cur] = true
+		for bi := range c.f.Blocks {
+			for _, ins := range c.f.Blocks[bi].Insts {
+				for _, a := range ins.Args {
+					if a != cur {
+						continue
+					}
+					switch ins.Op {
+					case midir.OpDrop, midir.OpRelease:
+					case midir.OpCopy, midir.OpMove, midir.OpAlias:
+						pending = append(pending, ins.Dst)
+					default:
+						return false
+					}
 				}
 			}
-		}
-		for _, a := range c.f.Blocks[bi].Term.Args {
-			if a == l {
-				return false
+			for _, a := range c.f.Blocks[bi].Term.Args {
+				if a == cur {
+					return false
+				}
 			}
 		}
 	}

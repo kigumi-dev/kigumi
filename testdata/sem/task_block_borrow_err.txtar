@@ -1,0 +1,28 @@
+-- module --
+stage: driver
+mir: planned
+-- src --
+import task from std/task
+
+async fn worker(mut xs: &mut Array[Int]) {
+    xs.push(9)
+}
+
+async fn parent() -> Int {
+    let mut xs = Array.of(1)
+    {
+        let child = task.spawn(worker(&mut xs))
+        _ = child
+    }
+    xs.push(2)
+    xs.len().toInt() || 0
+}
+
+fn main() {}
+-- expect --
+error[borrow-escape]: a spawned task outlives this borrow; await the task or hand it off instead
+  --> main.kg:10:21
+   |
+10 |         let child = task.spawn(worker(&mut xs))
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
