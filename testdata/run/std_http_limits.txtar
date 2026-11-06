@@ -8,6 +8,10 @@ fn echo(req: http.Request) -> http.Response! {
     http.Response.ofText(200, "echo ${req.method} ${req.path} [${req.text()?}]")
 }
 
+fn reset(_req: http.Request) -> http.Response! {
+    http.Response.new(205)
+}
+
 // Sends data as-is and reads until the server closes, summarizing each response's status line and body.
 async fn raw(n: net.Net, port: Int, data: String) -> String! {
     let pool = task.BlockingPool.new(1)
@@ -45,7 +49,7 @@ async fn raw(n: net.Net, port: Int, data: String) -> String! {
 
 async fn root(n: net.Net, listener: net.Listener) -> Void! {
     let port = listener.port()
-    let mut server = http.Server.new(http.Router.new().handle("POST", "/echo", echo).get("/echo", echo).get("/second", echo).handler(), (line) => print "log: ${line}")
+    let mut server = http.Server.new(http.Router.new().handle("POST", "/echo", echo).get("/echo", echo).get("/second", echo).get("/reset", reset).handler(), (line) => print "log: ${line}")
     server.limits = http.Limits {
         maxHeaderBytes: 256
         maxHeaders: 8
@@ -73,7 +77,12 @@ async fn root(n: net.Net, listener: net.Listener) -> Void! {
         "GET /echo HTTP/1.1\r\nHost: t\r\nX-Long: ${"a".repeat(300)}\r\n\r\n",
         "GET /echo HTTP/1.1\r\nHost: t\r\n A: folded\r\n\r\n",
         "GET /echo HTTP/1.1\r\nHost: t\r\n\r\nGET /second HTTP/1.1\r\nHost: t\r\nConnection: close\r\n\r\n",
-        "GET /echo HTTP/1.0\r\n\r\n"
+        "GET /echo HTTP/1.0\r\n\r\n",
+        "POST /echo HTTP/1.0\r\nHost: t\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\n",
+        "POST /echo HTTP/1.1\r\nHost: t\r\nExpect: 100-continue\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+        "GET /echo#frag HTTP/1.1\r\nHost: t\r\n\r\n",
+        "GET /echo HTTP/1.1\r\nHost: a b\r\n\r\n",
+        "GET /reset HTTP/1.1\r\nHost: t\r\nConnection: close\r\n\r\n"
     )
     for data in cases {
         let line = (await raw(n, port, data))?
@@ -124,6 +133,11 @@ HTTP/1.1 431 Request Header Fields Too Large | Connection: close | request head 
 HTTP/1.1 400 Bad Request | Connection: close | folded header line
 HTTP/1.1 200 OK | echo GET /echo []HTTP/1.1 200 OK | Connection: close | echo GET /second []
 HTTP/1.1 200 OK | Connection: close | echo GET /echo []
+HTTP/1.1 400 Bad Request | Connection: close | malformed chunked request on HTTP/1.0
+HTTP/1.1 200 OK | Connection: close | echo POST /echo []
+HTTP/1.1 400 Bad Request | Connection: close | malformed request line
+HTTP/1.1 400 Bad Request | Connection: close | malformed Host
+HTTP/1.1 205 Reset Content | Connection: close
 keep-alive 1: 200 echo GET /echo []
 keep-alive 2: 200 echo GET /second []
 stopped

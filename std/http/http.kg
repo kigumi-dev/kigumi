@@ -108,6 +108,7 @@ pub fn reason(status: Int) -> String {
         201 -> "Created"
         202 -> "Accepted"
         204 -> "No Content"
+        205 -> "Reset Content"
         301 -> "Moved Permanently"
         302 -> "Found"
         304 -> "Not Modified"

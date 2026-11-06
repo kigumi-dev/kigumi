@@ -20,6 +20,9 @@ fn parseRequestLine(line: String) -> RequestLine! {
     if !target.startsWith("/") && !(target == "*" && method == "OPTIONS") {
         fail failure(400, "unsupported request target")
     }
+    if target.contains("#") {
+        fail failure(400, "malformed request line")
+    }
     if version != "HTTP/1.1" && version != "HTTP/1.0" {
         if version.startsWith("HTTP/") {
             fail failure(505, "unsupported HTTP version")
@@ -131,13 +134,21 @@ async fn Wire.readRequest(mut self, end: usize, limits: Limits, deadline: Deadli
         fail failure(400, "malformed Host")
     }
     let framing = framingOf(&head.headers, true)?
+    if line.version == "HTTP/1.0" && framing is Chunked {
+        fail failure(400, "malformed chunked request on HTTP/1.0")
+    }
     if framing is Sized(n) {
         if n > limits.maxBodyBytes {
             fail failure(413, "request body too large")
         }
     }
     let expects = head.headers.get("Expect") || ""
-    if expects.toLower() == "100-continue" && !(framing is NoBody) && line.version == "HTTP/1.1" {
+    let sendsBody = if framing is Sized(n) {
+        n > 0
+    } else {
+        !(framing is NoBody)
+    }
+    if expects.toLower() == "100-continue" && sendsBody && line.version == "HTTP/1.1" {
         (await self.writeAll("HTTP/1.1 100 Continue\r\n\r\n".toBytes(), deadlineIn(limits.writeTimeoutMillis)))?
     }
     let body = (await self.readBody(framing, limits, deadline))?
