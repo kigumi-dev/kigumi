@@ -91,10 +91,8 @@ func (m *Machine) std(key string, a []*obj) *obj {
 		}
 		return mkInt(0, 64)
 	case "secret.selectU64":
-		if uint64(a0.i) == ^uint64(0) {
-			return mkInt(a1.i, 64)
-		}
-		return mkInt(a2.i, 64)
+		mask := uint64(a0.i)
+		return mkInt(int64((uint64(a1.i)&mask)|(uint64(a2.i)&^mask)), 64)
 	case "secret.eqBytes":
 		if len(a0.str()) != len(a1.str()) {
 			return mkInt(0, 64)

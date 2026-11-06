@@ -9388,6 +9388,15 @@
       ]
     },
     {
+      "id": "run/secret_shift_select",
+      "kind": "run",
+      "path": "testdata/run/secret_shift_select.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/secure_erase",
       "kind": "run",
       "path": "testdata/run/secure_erase.txtar",
