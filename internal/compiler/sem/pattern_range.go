@@ -9,7 +9,7 @@ func (c *checker) rangePattern(p syntax.NodeID, scrutinee TypeID) PatInfo {
 	r := c.t.View(p).AsPatRange()
 	lo, hi := r.Lo().ID(), r.Hi().ID()
 	tt := c.r.Types
-	if scrutinee != TyPoison && !tt.IsInteger(scrutinee) {
+	if scrutinee != TyPoison && !tt.IsInteger(scrutinee) && scrutinee != TyChar {
 		c.errAt(p, cRangePatternType, scrutinee)
 		c.setType(p, TyPoison)
 		scrutinee = TyPoison
@@ -50,7 +50,7 @@ func (c *checker) rangeBoundValue(n syntax.NodeID, scrutinee TypeID) bool {
 		return false
 	case tt.Kind(got) == KUntyped && c.adoptPendingPattern(n, scrutinee, got):
 	case tt.Kind(got) == KUntyped:
-		if !tt.IsInteger(scrutinee) {
+		if !tt.IsInteger(scrutinee) && scrutinee != TyChar {
 			return false
 		}
 		c.adopt(c.literalNode(n), scrutinee)

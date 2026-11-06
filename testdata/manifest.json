@@ -3690,6 +3690,15 @@
       ]
     },
     {
+      "id": "run/char_range_pattern",
+      "kind": "run",
+      "path": "testdata/run/char_range_pattern.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/cleanup_field_reserve_read",
       "kind": "run",
       "path": "testdata/run/cleanup_field_reserve_read.txtar",

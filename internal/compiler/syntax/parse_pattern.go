@@ -31,7 +31,14 @@ func (p *parser) patternAtom() NodeID {
 			return p.node2(PatRange, op, lit, p.rangeBound())
 		}
 		return p.node1(PatLit, tok, lit)
-	case p.at(token.Float), p.at(token.String), p.at(token.ByteString), p.at(token.Char),
+	case p.at(token.Char):
+		tok := p.pos
+		lit := p.literal()
+		if op, ok := p.rangeOp(); ok {
+			return p.node2(PatRange, op, lit, p.rangeBound())
+		}
+		return p.node1(PatLit, tok, lit)
+	case p.at(token.Float), p.at(token.String), p.at(token.ByteString),
 		p.at(token.KwTrue), p.at(token.KwFalse):
 		tok := p.pos
 		return p.node1(PatLit, tok, p.literal())
@@ -72,6 +79,8 @@ func (p *parser) rangeBound() NodeID {
 		return p.node1(Unary, tok, p.leaf(IntLit, p.advance()))
 	case p.at(token.Int):
 		return p.leaf(IntLit, p.advance())
+	case p.at(token.Char):
+		return p.leaf(CharLit, p.advance())
 	case p.at(token.Ident):
 		return p.leaf(Ident, p.advance())
 	}
