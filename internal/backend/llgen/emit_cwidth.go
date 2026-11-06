@@ -29,20 +29,20 @@ func (e *emitter) cWiden(sb *strings.Builder, raw string, t sem.TypeID, ct strin
 	t = e.r.UnderlyingRepr(t)
 	switch {
 	case ct == "float":
-		return Value{TFloat, raw}
+		return Value{Type: TFloat, Text: raw}
 	case ct == "double":
-		return Value{TDouble, raw}
+		return Value{Type: TDouble, Text: raw}
 	case tt.Kind(t) == sem.KPtr:
-		return Value{TCPtr, raw}
+		return Value{Type: TCPtr, Text: raw}
 	case ct == "i64":
-		return Value{TI64, raw}
+		return Value{Type: TI64, Text: raw}
 	}
 	w, ext := e.newTmp(), "sext"
 	if !tt.IsSigned(t) {
 		ext = "zext"
 	}
 	fmt.Fprintf(sb, "  %s = %s %s %s to i64\n", w, ext, ct, raw)
-	return Value{TI64, w}
+	return Value{Type: TI64, Text: w}
 }
 
 // cNarrow is cWiden's inverse: register value v of type t as C type ct.

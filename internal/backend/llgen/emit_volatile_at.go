@@ -56,13 +56,13 @@ func (e *emitter) widenFrom(sb *strings.Builder, raw, ty string, dst sem.TypeID)
 	switch {
 	case dst == sem.TyBool:
 		fmt.Fprintf(sb, "  %s = trunc i8 %s to i1\n", t, raw)
-		return Value{TI1, t}
+		return Value{Type: TI1, Text: t}
 	case ty == "i64":
-		return Value{TI64, raw}
+		return Value{Type: TI64, Text: raw}
 	case e.r.Types.IsSigned(dst):
 		fmt.Fprintf(sb, "  %s = sext %s %s to i64\n", t, ty, raw)
 	default:
 		fmt.Fprintf(sb, "  %s = zext %s %s to i64\n", t, ty, raw)
 	}
-	return Value{TI64, t}
+	return Value{Type: TI64, Text: t}
 }

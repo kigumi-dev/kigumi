@@ -16,7 +16,7 @@ func (e *emitter) rawConvertInst(sb *strings.Builder, f *midir.Func, in midir.In
 		if isSignedNk(e.numKind(e.operandType(f.Locals[in.Args[0]].Type))) {
 			op = "sitofp"
 		}
-		res = Value{TDouble, e.wideInstr(sb, "%s i64 %s to double", op, src.Text)}
+		res = Value{Type: TDouble, Text: e.wideInstr(sb, "%s i64 %s to double", op, src.Text)}
 	}
 	e.storeScalarResult(sb, f, in.Dst, res)
 	return true

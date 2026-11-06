@@ -31,7 +31,7 @@ func (e *emitter) exportWrapper(f *midir.Func) string {
 // exportArg hands C argument i, raw of type pt, to the body: in a register where its signature takes one, else boxed.
 func (e *emitter) exportArg(sb *strings.Builder, f *midir.Func, i int, pt sem.TypeID, raw, ct string) string {
 	if _, ok := e.ssigs[f].param(i); ok {
-		return e.cWiden(sb, raw, pt, ct).render()
+		return e.cWiden(sb, raw, pt, ct).Render()
 	}
 	// rt_unit() is immortal, so it stands in here: a trivial export(C) fn
 	// can end up as a signal handler, where malloc/free must not reenter.
@@ -46,7 +46,7 @@ func (e *emitter) exportCall(sb *strings.Builder, f *midir.Func, vals []string, 
 	r := e.newTmp()
 	if info, ok := e.ssigs[f].ret(); ok {
 		fmt.Fprintf(sb, "  %s = call %s %s(%s)\n", r, info.Ty, e.sym(f), strings.Join(vals, ", "))
-		return e.cNarrow(sb, Value{info.Ty, r}, rt, ct)
+		return e.cNarrow(sb, Value{Type: info.Ty, Text: r}, rt, ct)
 	}
 	fmt.Fprintf(sb, "  %s = call ptr %s(%s)\n", r, e.sym(f), strings.Join(vals, ", "))
 	out := ""

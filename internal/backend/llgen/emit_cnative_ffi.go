@@ -38,23 +38,25 @@ var ffiPrims = map[string]ffiLowering{
 	"std/ffi.writePtr": ffiWrite,
 }
 
-func ffiNull(*emitter, *strings.Builder, ffiArgs, sem.TypeID) Value { return Value{TCPtr, "null"} }
+func ffiNull(*emitter, *strings.Builder, ffiArgs, sem.TypeID) Value {
+	return Value{Type: TCPtr, Text: "null"}
+}
 
 func ffiIsNull(e *emitter, sb *strings.Builder, a ffiArgs, _ sem.TypeID) Value {
 	c := e.newTmp()
 	fmt.Fprintf(sb, "  %s = icmp eq ptr %s, null\n", c, a.reg(0, TCPtr).Text)
-	return Value{TI1, c}
+	return Value{Type: TI1, Text: c}
 }
 
 func ffiSamePtr(_ *emitter, _ *strings.Builder, a ffiArgs, _ sem.TypeID) Value {
-	return Value{TCPtr, a.reg(0, TCPtr).Text}
+	return Value{Type: TCPtr, Text: a.reg(0, TCPtr).Text}
 }
 
 func ffiOffset(e *emitter, sb *strings.Builder, a ffiArgs, _ sem.TypeID) Value {
 	base, n := a.reg(0, TCPtr), a.reg(1, TI64)
 	p := e.newTmp()
 	fmt.Fprintf(sb, "  %s = getelementptr i8, ptr %s, i64 %s\n", p, base.Text, n.Text)
-	return Value{TCPtr, p}
+	return Value{Type: TCPtr, Text: p}
 }
 
 func ffiRead(e *emitter, sb *strings.Builder, a ffiArgs, dst sem.TypeID) Value {

@@ -36,9 +36,9 @@ func (e *emitter) convertFloat(sb *strings.Builder, x Value, dnk int, out string
 	if dnk&512 != 0 {
 		return e.presentBits(sb, "true", e.bitsOf(sb, x.Text), out)
 	}
-	lo := e.fcmp(sb, "oge", TDouble, x, Value{TDouble, floatLit(-math.Exp2(63))})
-	hi := e.fcmp(sb, "olt", TDouble, x, Value{TDouble, floatLit(math.Exp2(63))})
-	ok := e.binOpT(sb, "and", TI1, Value{TI1, lo}, Value{TI1, hi})
+	lo := e.fcmp(sb, "oge", TDouble, x, Value{Type: TDouble, Text: floatLit(-math.Exp2(63))})
+	hi := e.fcmp(sb, "olt", TDouble, x, Value{Type: TDouble, Text: floatLit(math.Exp2(63))})
+	ok := e.binOpT(sb, "and", TI1, Value{Type: TI1, Text: lo}, Value{Type: TI1, Text: hi})
 	n, bits := e.newTmp(), e.newTmp()
 	fmt.Fprintf(sb, "  %s = fptosi double %s to i64\n  %s = select i1 %s, i64 %s, i64 0\n", n, x.Text, bits, ok, n)
 	return e.presentBits(sb, ok, bits, out)
@@ -91,7 +91,7 @@ func (e *emitter) inRange(sb *strings.Builder, v Value, snk, dnk int) string {
 	}
 	ok := "true"
 	for _, c := range conds {
-		ok = e.binOpT(sb, "and", TI1, Value{TI1, ok}, Value{TI1, c})
+		ok = e.binOpT(sb, "and", TI1, Value{Type: TI1, Text: ok}, Value{Type: TI1, Text: c})
 	}
 	return ok
 }
@@ -110,9 +110,9 @@ func intMax(nk int) uint64 {
 func (e *emitter) charFromInt(sb *strings.Builder, v Value, out string) Value {
 	lo := e.icmp(sb, "uge", TI64, v, vi64(0xD800))
 	hi := e.icmp(sb, "ule", TI64, v, vi64(0xDFFF))
-	surrogate := e.binOpT(sb, "and", TI1, Value{TI1, lo}, Value{TI1, hi})
+	surrogate := e.binOpT(sb, "and", TI1, Value{Type: TI1, Text: lo}, Value{Type: TI1, Text: hi})
 	scalar := e.icmp(sb, "ule", TI64, v, vi64(0x10FFFF))
-	ok := e.binOpT(sb, "and", TI1, Value{TI1, scalar}, Value{TI1, e.xorI1(sb, surrogate)})
+	ok := e.binOpT(sb, "and", TI1, Value{Type: TI1, Text: scalar}, Value{Type: TI1, Text: e.xorI1(sb, surrogate)})
 	bits := e.newTmp()
 	fmt.Fprintf(sb, "  %s = select i1 %s, i64 %s, i64 0\n", bits, ok, v.Text)
 	return e.presentBits(sb, ok, bits, out)

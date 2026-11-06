@@ -29,11 +29,11 @@ func (e *emitter) protoBuiltin(sb *strings.Builder, f *midir.Func, in midir.Inst
 	v := e.newTmp()
 	if hash {
 		fmt.Fprintf(sb, "  %s = call i64 %s(ptr %s)\n", v, e.protoSym(a, true), aggPtr(in.Args[0]))
-		e.storeScalarResult(sb, f, in.Dst, Value{TI64, v})
+		e.storeScalarResult(sb, f, in.Dst, Value{Type: TI64, Text: v})
 		return
 	}
 	fmt.Fprintf(sb, "  %s = call i1 %s(ptr %s, ptr %s)\n", v, e.protoSym(a, false), aggPtr(in.Args[0]), aggPtr(in.Args[1]))
-	e.storeScalarResult(sb, f, in.Dst, Value{TI1, v})
+	e.storeScalarResult(sb, f, in.Dst, Value{Type: TI1, Text: v})
 }
 
 func (e *emitter) protoHelper(a *aggInfo, hash bool) {
@@ -152,7 +152,7 @@ func (e *emitter) leafHash(sb *strings.Builder, f aggField, p string) string {
 	v, b := e.loadLeafScalar(sb, f, p), e.irb(sb)
 	switch f.Ty {
 	case TI64:
-		return b.Call(rtDHashInt, Value{TI64, v}, vi32(f.Nk)).Text
+		return b.Call(rtDHashInt, Value{Type: TI64, Text: v}, vi32(f.Nk)).Text
 	case TI1:
 		w := e.newTmp()
 		fmt.Fprintf(sb, "  %s = zext i1 %s to i32\n", w, v)
@@ -162,5 +162,5 @@ func (e *emitter) leafHash(sb *strings.Builder, f aggField, p string) string {
 	case TFloat:
 		return b.Call(rtDHashFloat, vdouble(e.extendFloat(sb, v)), vi32(f.Nk)).Text
 	}
-	return b.Call(rtDHashChar, Value{TI32, v}).Text
+	return b.Call(rtDHashChar, Value{Type: TI32, Text: v}).Text
 }

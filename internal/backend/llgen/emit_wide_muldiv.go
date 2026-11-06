@@ -28,21 +28,21 @@ func (e *emitter) wideMul(sb *strings.Builder, signed bool, l, r Value) Value {
 	fmt.Fprintf(sb, "  %s = call { i128, i1 } %s(i128 %s, i128 %s)\n", pair, fn, l.Text, r.Text)
 	fmt.Fprintf(sb, "  %s = extractvalue { i128, i1 } %s, 0\n  %s = extractvalue { i128, i1 } %s, 1\n", v, pair, o, pair)
 	e.overflowTrap(sb, o, "integer overflow")
-	return Value{TI128, v}
+	return Value{Type: TI128, Text: v}
 }
 
 func (e *emitter) wideDiv(sb *strings.Builder, signed, rem bool, l, r Value) Value {
-	e.overflowTrap(sb, e.icmp(sb, "eq", TI128, r, Value{TI128, "0"}), "division by zero")
+	e.overflowTrap(sb, e.icmp(sb, "eq", TI128, r, Value{Type: TI128, Text: "0"}), "division by zero")
 	fn := e.wideHelper("udivmod128", udivmod128IR)
 	if signed {
-		m1 := e.icmp(sb, "eq", TI128, r, Value{TI128, "-1"})
-		lo := e.icmp(sb, "eq", TI128, l, Value{TI128, wideMin})
-		e.overflowTrap(sb, e.binOpT(sb, "and", TI1, Value{TI1, m1}, Value{TI1, lo}), "integer overflow")
+		m1 := e.icmp(sb, "eq", TI128, r, Value{Type: TI128, Text: "-1"})
+		lo := e.icmp(sb, "eq", TI128, l, Value{Type: TI128, Text: wideMin})
+		e.overflowTrap(sb, e.binOpT(sb, "and", TI1, Value{Type: TI1, Text: m1}, Value{Type: TI1, Text: lo}), "integer overflow")
 		fn = e.wideHelper("sdivmod128", sdivmod128IR)
 	}
 	t := e.newTmp()
 	fmt.Fprintf(sb, "  %s = call i128 %s(i128 %s, i128 %s, i1 %t)\n", t, fn, l.Text, r.Text, rem)
-	return Value{TI128, t}
+	return Value{Type: TI128, Text: t}
 }
 
 const umulo128IR = `

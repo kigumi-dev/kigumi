@@ -39,7 +39,7 @@ func (e *emitter) scalarUnary(sb *strings.Builder, f *midir.Func, in midir.Inst)
 	var res Value
 	switch {
 	case ty == TI1 && in.Str == "!":
-		res = Value{TI1, e.xorI1(sb, v.Text)}
+		res = Value{Type: TI1, Text: e.xorI1(sb, v.Text)}
 	case ty == TI128:
 		var ok bool
 		if res, ok = e.wideUnary(sb, in.Str, nk, v); !ok {
@@ -50,7 +50,7 @@ func (e *emitter) scalarUnary(sb *strings.Builder, f *midir.Func, in midir.Inst)
 	case ty == TI64 && in.Str == "~":
 		res = e.bitNot(sb, nk, v)
 	case (ty == TDouble || ty == TFloat) && in.Str == "-":
-		res = Value{ty, e.fneg(sb, ty, v.Text)}
+		res = Value{Type: ty, Text: e.fneg(sb, ty, v.Text)}
 	default:
 		return false
 	}
@@ -66,9 +66,9 @@ func (e *emitter) nativeBinaryOp(sb *strings.Builder, op string, ty Type, nk int
 	}
 	switch op {
 	case "==":
-		return Value{TI1, e.icmp(sb, "eq", ty, l, r)}, true
+		return Value{Type: TI1, Text: e.icmp(sb, "eq", ty, l, r)}, true
 	case "!=":
-		return Value{TI1, e.icmp(sb, "ne", ty, l, r)}, true
+		return Value{Type: TI1, Text: e.icmp(sb, "ne", ty, l, r)}, true
 	}
 	if ty == TI128 {
 		return e.wideBinaryOp(sb, op, nk, l, r)
@@ -79,7 +79,7 @@ func (e *emitter) nativeBinaryOp(sb *strings.Builder, op string, ty Type, nk int
 	signed := isSignedNk(nk)
 	switch op {
 	case "<", "<=", ">", ">=":
-		return Value{TI1, e.icmp(sb, cmpCC(op, signed), ty, l, r)}, true
+		return Value{Type: TI1, Text: e.icmp(sb, cmpCC(op, signed), ty, l, r)}, true
 	case "+":
 		return e.checkedArith(sb, "add", nk, l, r), true
 	case "-":
@@ -89,11 +89,11 @@ func (e *emitter) nativeBinaryOp(sb *strings.Builder, op string, ty Type, nk int
 	case "/", "%":
 		return e.checkedDiv(sb, op, nk, l, r), true
 	case "&":
-		return Value{TI64, e.binOp(sb, "and", l, r)}, true
+		return Value{Type: TI64, Text: e.binOp(sb, "and", l, r)}, true
 	case "|":
-		return Value{TI64, e.binOp(sb, "or", l, r)}, true
+		return Value{Type: TI64, Text: e.binOp(sb, "or", l, r)}, true
 	case "^":
-		return Value{TI64, e.binOp(sb, "xor", l, r)}, true
+		return Value{Type: TI64, Text: e.binOp(sb, "xor", l, r)}, true
 	case "<<", ">>":
 		return e.checkedShift(sb, op, nk, l, r), true
 	}
@@ -105,27 +105,27 @@ func (e *emitter) nativeBinaryOp(sb *strings.Builder, op string, ty Type, nk int
 func (e *emitter) nativeFloatOp(sb *strings.Builder, op string, ty Type, l, r Value) (Value, bool) {
 	switch op {
 	case "==":
-		return Value{TI1, e.fcmp(sb, "oeq", ty, l, r)}, true
+		return Value{Type: TI1, Text: e.fcmp(sb, "oeq", ty, l, r)}, true
 	case "!=":
 		// rt_binop's "!=" is !(a==b) in C, true for NaN; "une" (not "one")
 		// matches that since it treats unordered as not-equal.
-		return Value{TI1, e.fcmp(sb, "une", ty, l, r)}, true
+		return Value{Type: TI1, Text: e.fcmp(sb, "une", ty, l, r)}, true
 	case "<":
-		return Value{TI1, e.fcmp(sb, "olt", ty, l, r)}, true
+		return Value{Type: TI1, Text: e.fcmp(sb, "olt", ty, l, r)}, true
 	case "<=":
-		return Value{TI1, e.fcmp(sb, "ole", ty, l, r)}, true
+		return Value{Type: TI1, Text: e.fcmp(sb, "ole", ty, l, r)}, true
 	case ">":
-		return Value{TI1, e.fcmp(sb, "ogt", ty, l, r)}, true
+		return Value{Type: TI1, Text: e.fcmp(sb, "ogt", ty, l, r)}, true
 	case ">=":
-		return Value{TI1, e.fcmp(sb, "oge", ty, l, r)}, true
+		return Value{Type: TI1, Text: e.fcmp(sb, "oge", ty, l, r)}, true
 	case "+":
-		return Value{ty, e.binOpT(sb, "fadd", ty, l, r)}, true
+		return Value{Type: ty, Text: e.binOpT(sb, "fadd", ty, l, r)}, true
 	case "-":
-		return Value{ty, e.binOpT(sb, "fsub", ty, l, r)}, true
+		return Value{Type: ty, Text: e.binOpT(sb, "fsub", ty, l, r)}, true
 	case "*":
-		return Value{ty, e.binOpT(sb, "fmul", ty, l, r)}, true
+		return Value{Type: ty, Text: e.binOpT(sb, "fmul", ty, l, r)}, true
 	case "/":
-		return Value{ty, e.binOpT(sb, "fdiv", ty, l, r)}, true
+		return Value{Type: ty, Text: e.binOpT(sb, "fdiv", ty, l, r)}, true
 	}
 	return Value{}, false
 }

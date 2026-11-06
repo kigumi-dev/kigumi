@@ -33,7 +33,7 @@ func (e *emitter) tryFixedInst(sb *strings.Builder, f *midir.Func, in midir.Inst
 	case in.Op == midir.OpSetIndex:
 		e.storeLeaf(sb, *a.Arr, e.elemPtr(sb, f, in, a, in.Args[0], in.Args[1], !in.NoTrap), in.Args[2])
 	case in.Op == midir.OpBuiltin && in.Str == "iter.len":
-		e.storeScalarResult(sb, f, in.Dst, Value{TI64, fmt.Sprint(a.Len)})
+		e.storeScalarResult(sb, f, in.Dst, Value{Type: TI64, Text: fmt.Sprint(a.Len)})
 	case in.Op == midir.OpBuiltin && strings.HasPrefix(in.Str, "iter.at"):
 		e.loadLeaf(sb, f, *a.Arr, e.elemPtr(sb, f, in, a, in.Args[0], in.Args[1], false), in.Dst)
 	default:

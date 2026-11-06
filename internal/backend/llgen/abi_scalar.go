@@ -126,20 +126,20 @@ func (e *emitter) calleeScalarSig(in midir.Inst) *scalarSig {
 // nativeArg hands a boxed argument over unboxed, releasing the box where the callee or the call site would have.
 func (e *emitter) nativeArg(sb *strings.Builder, in midir.Inst, i int, l midir.LocalID, info scalarInfo) string {
 	if e.isScalar(l) {
-		return e.loadNative(sb, l).render()
+		return e.loadNative(sb, l).Render()
 	}
 	p := e.load(sb, l)
 	v := e.unboxScalar(sb, info.Ty, p)
 	if !e.p.ParamLent(in.Ent, i) || e.boxTmp[l] {
 		e.releaseScalarBox(sb, info.Ty, p)
 	}
-	return v.render()
+	return v.Render()
 }
 
 func (e *emitter) nativeCallInto(sb *strings.Builder, dst midir.LocalID, sym string, args []string, r scalarInfo) {
 	t := e.newTmp()
 	fmt.Fprintf(sb, "  %s = call %s %s(%s)\n", t, r.Ty, sym, strings.Join(args, ", "))
-	v := Value{r.Ty, t}
+	v := Value{Type: r.Ty, Text: t}
 	if e.isScalar(dst) {
 		e.storeNative(sb, dst, v)
 		return
@@ -156,7 +156,7 @@ func (e *emitter) callNativeBoxed(sb *strings.Builder, f *midir.Func, s *scalarS
 			args[i] = "ptr " + v
 			continue
 		}
-		args[i] = e.unboxScalar(sb, info.Ty, v).render()
+		args[i] = e.unboxScalar(sb, info.Ty, v).Render()
 		if !e.p.ParamLent(f.Ent, i) {
 			e.releaseScalarBox(sb, info.Ty, v)
 		}
@@ -168,5 +168,5 @@ func (e *emitter) callNativeBoxed(sb *strings.Builder, f *midir.Func, s *scalarS
 		return t
 	}
 	fmt.Fprintf(sb, "  %s = call %s %s(%s)\n", t, r.Ty, e.sym(f), strings.Join(args, ", "))
-	return e.boxNative(sb, r, Value{r.Ty, t})
+	return e.boxNative(sb, r, Value{Type: r.Ty, Text: t})
 }

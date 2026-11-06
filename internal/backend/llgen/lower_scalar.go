@@ -51,7 +51,7 @@ func (e *emitter) loadNative(sb *strings.Builder, l midir.LocalID) Value {
 	info := e.scalar[l]
 	t := e.newTmp()
 	fmt.Fprintf(sb, "  %s = load %s, ptr %%l%d\n", t, info.Ty, l)
-	return Value{info.Ty, t}
+	return Value{Type: info.Ty, Text: t}
 }
 
 func (e *emitter) storeNative(sb *strings.Builder, l midir.LocalID, v Value) {
@@ -94,19 +94,19 @@ func (e *emitter) boolBox(sb *strings.Builder, bit string) string {
 func (e *emitter) unboxScalar(sb *strings.Builder, ty Type, ptrVal string) Value {
 	switch ty {
 	case TI64:
-		return Value{TI64, e.irb(sb).Call(rtIntVal, vptr(ptrVal)).Text}
+		return Value{Type: TI64, Text: e.irb(sb).Call(rtIntVal, vptr(ptrVal)).Text}
 	case TI128:
-		return e.joinWide(sb, Value{TI64, e.irb(sb).Call(rtInt128Lo, vptr(ptrVal)).Text}, Value{TI64, e.irb(sb).Call(rtInt128Hi, vptr(ptrVal)).Text})
+		return e.joinWide(sb, Value{Type: TI64, Text: e.irb(sb).Call(rtInt128Lo, vptr(ptrVal)).Text}, Value{Type: TI64, Text: e.irb(sb).Call(rtInt128Hi, vptr(ptrVal)).Text})
 	case TDouble:
-		return Value{TDouble, e.irb(sb).Call(rtFloatVal, vptr(ptrVal)).Text}
+		return Value{Type: TDouble, Text: e.irb(sb).Call(rtFloatVal, vptr(ptrVal)).Text}
 	case TFloat:
-		return Value{TFloat, e.narrowFloat(sb, e.irb(sb).Call(rtFloatVal, vptr(ptrVal)).Text)}
+		return Value{Type: TFloat, Text: e.narrowFloat(sb, e.irb(sb).Call(rtFloatVal, vptr(ptrVal)).Text)}
 	case TI1:
-		return Value{TI1, e.irb(sb).Call(rtTruth, vptr(ptrVal)).Text}
+		return Value{Type: TI1, Text: e.irb(sb).Call(rtTruth, vptr(ptrVal)).Text}
 	case TI32:
-		return Value{TI32, e.irb(sb).Call(rtCharVal, vptr(ptrVal)).Text}
+		return Value{Type: TI32, Text: e.irb(sb).Call(rtCharVal, vptr(ptrVal)).Text}
 	case TCPtr:
-		return Value{TCPtr, e.irb(sb).Call(rtPtrVal, vptr(ptrVal)).Text}
+		return Value{Type: TCPtr, Text: e.irb(sb).Call(rtPtrVal, vptr(ptrVal)).Text}
 	}
 	panic("llgen: unbox: unknown scalar type")
 }

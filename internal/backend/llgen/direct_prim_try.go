@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	rtDTry    = RuntimeFn{"rt_d_try", []Type{TI32, TI32, TPtr}, TPtr}
-	rtDTryOpt = RuntimeFn{"rt_d_try_opt", []Type{TI32, TI32, TPtr, TPtr}, TI32}
+	rtDTry    = RuntimeFn{Name: "rt_d_try", Params: []Type{TI32, TI32, TPtr}, Ret: TPtr}
+	rtDTryOpt = RuntimeFn{Name: "rt_d_try_opt", Params: []Type{TI32, TI32, TPtr, TPtr}, Ret: TI32}
 )
 
 // tryRefCall runs a try op that hands back its Ok payload bare, or null for AllocError, and builds the Result in place.

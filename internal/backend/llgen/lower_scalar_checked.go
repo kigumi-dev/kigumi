@@ -70,7 +70,7 @@ func (e *emitter) checkedDiv(sb *strings.Builder, op string, nk int, l, r Value)
 	if signed {
 		m1 := e.icmp(sb, "eq", TI64, r, vi64(-1))
 		lo := e.icmp(sb, "eq", TI64, l, vi64text(fmt.Sprint(intMin(nk))))
-		e.overflowTrap(sb, e.binOpT(sb, "and", TI1, Value{TI1, m1}, Value{TI1, lo}), "integer overflow")
+		e.overflowTrap(sb, e.binOpT(sb, "and", TI1, Value{Type: TI1, Text: m1}, Value{Type: TI1, Text: lo}), "integer overflow")
 	}
 	kind := map[string][2]string{"/": {"sdiv", "udiv"}, "%": {"srem", "urem"}}[op]
 	if signed {
@@ -98,7 +98,7 @@ func (e *emitter) checkedNeg(sb *strings.Builder, nk int, x Value) Value {
 	v := e.binOp(sb, "sub", vi64(0), x)
 	bad := e.icmp(sb, "eq", TI64, x, vi64text(fmt.Sprint(intMin(nk))))
 	if wide := e.outOfRange(sb, nk, v); wide != "false" {
-		bad = e.binOpT(sb, "or", TI1, Value{TI1, bad}, Value{TI1, wide})
+		bad = e.binOpT(sb, "or", TI1, Value{Type: TI1, Text: bad}, Value{Type: TI1, Text: wide})
 	}
 	e.overflowTrap(sb, bad, "integer overflow")
 	return vi64text(v)

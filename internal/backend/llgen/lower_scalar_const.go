@@ -21,7 +21,7 @@ func (e *emitter) scalarConst(sb *strings.Builder, in midir.Inst) bool {
 	if info.Ty == TI128 {
 		text = wideConstText(in)
 	}
-	e.storeNative(sb, in.Dst, Value{info.Ty, text})
+	e.storeNative(sb, in.Dst, Value{Type: info.Ty, Text: text})
 	return true
 }
 

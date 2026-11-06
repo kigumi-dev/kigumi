@@ -7,6 +7,9 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"kigumi/internal/backend/llgen/ir"
+	mirlayout "kigumi/internal/compiler/mir/layout"
 )
 
 // cDef is a parsed C function signature, parameter names stripped off.
@@ -97,6 +100,12 @@ func TestObjSlotMatchesC(t *testing.T) {
 	}
 	if got := string(m[1]); got != strconv.Itoa(objSlotBytes) {
 		t.Errorf("rt.h reserves %s bytes, llgen emits %d", got, objSlotBytes)
+	}
+	if ir.ObjSlotBytes != objSlotBytes {
+		t.Errorf("obj slot storage drifted: ir=%d llgen=%d", ir.ObjSlotBytes, objSlotBytes)
+	}
+	if ir.ObjSlotBytes != mirlayout.ObjSlotBytes {
+		t.Errorf("obj slot storage drifted: ir=%d mirlayout=%d", ir.ObjSlotBytes, mirlayout.ObjSlotBytes)
 	}
 	if !strings.Contains(header, "%rt_variant = type { ptr, ptr, i32, i32, "+objSlotType()+" }") {
 		t.Errorf("the emitted %%rt_variant does not reserve %s:\n%s", objSlotType(), header)

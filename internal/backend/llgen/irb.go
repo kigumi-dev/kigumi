@@ -1,158 +1,50 @@
 package llgen
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
+
+	"kigumi/internal/backend/llgen/ir"
 )
 
-// Type is an LLVM IR scalar type used by runtime call signatures.
-type Type uint8
+// The pure IR-building layer lives in llgen/ir; these aliases keep the
+// emitter's call sites unchanged.
+type (
+	Type       = ir.Type
+	Value      = ir.Value
+	RuntimeFn  = ir.RuntimeFn
+	StructType = ir.StructType
+	Builder    = ir.Builder
+)
 
 const (
-	TVoid Type = iota
-	TPtr
-	TI1
-	TI32
-	TI64
-	TDouble
-	// TObjSlot is the zeroed storage a descriptor reserves for an immortal
-	// value; RT_OBJ_SLOT in rt.h must agree with its size.
-	TObjSlot
-	TI8
-	TI16
-	TI128
-	TFloat
-	// TCPtr is a raw C pointer held in a register, unlike TPtr's runtime value.
-	TCPtr
+	TVoid    = ir.TVoid
+	TPtr     = ir.TPtr
+	TI1      = ir.TI1
+	TI32     = ir.TI32
+	TI64     = ir.TI64
+	TDouble  = ir.TDouble
+	TObjSlot = ir.TObjSlot
+	TI8      = ir.TI8
+	TI16     = ir.TI16
+	TI128    = ir.TI128
+	TFloat   = ir.TFloat
+	TCPtr    = ir.TCPtr
 )
-
-func (t Type) String() string {
-	switch t {
-	case TVoid:
-		return "void"
-	case TPtr, TCPtr:
-		return "ptr"
-	case TI1:
-		return "i1"
-	case TI32:
-		return "i32"
-	case TI64:
-		return "i64"
-	case TDouble:
-		return "double"
-	case TObjSlot:
-		return objSlotType()
-	case TI8:
-		return "i8"
-	case TI16:
-		return "i16"
-	case TI128:
-		return "i128"
-	case TFloat:
-		return "float"
-	default:
-		panic(fmt.Sprintf("irb: unknown type %d", t))
-	}
-}
-
-// Value is one typed LLVM operand: a register, a global, a constant, or
-// "null", paired with the type it is used at.
-type Value struct {
-	Type Type
-	Text string
-}
-
-func (v Value) render() string { return v.Type.String() + " " + v.Text }
-
-// RuntimeFn is one C runtime entry point's signature: the single source
-// the `declare` list and every call's argument check draw from.
-type RuntimeFn struct {
-	Name   string
-	Params []Type
-	Ret    Type
-}
-
-// StructType is an LLVM named struct type used by a descriptor global.
-type StructType struct {
-	Name   string
-	Fields []Type
-}
-
-// Builder emits typed LLVM IR into one function body, panicking on an
-// arity or type mismatch instead of emitting bad IR.
-type Builder struct {
-	sb   *strings.Builder
-	next func() string
-	note func(RuntimeFn)
-}
 
 // irb returns a Builder over sb, sharing the emitter's temporary counter.
 func (e *emitter) irb(sb *strings.Builder) Builder {
-	b := Builder{sb: sb, next: e.newTmp}
+	var note func(RuntimeFn)
 	if e.boxes != nil {
-		b.note = e.noteRuntimeCall
+		note = e.noteRuntimeCall
 	}
-	return b
+	return ir.NewBuilder(sb, e.newTmp, note)
 }
 
-// Call emits a call to fn and returns its result (TVoid, text "" for a
-// void callee).
-func (b Builder) Call(fn RuntimeFn, args ...Value) Value {
-	if fn.Ret == TVoid {
-		b.emit("", fn, args)
-		return Value{Type: TVoid}
-	}
-	t := b.next()
-	b.emit(t, fn, args)
-	return Value{Type: fn.Ret, Text: t}
-}
-
-// CallAs is Call for a caller that pre-assigns its own SSA register name
-// instead of taking one from the shared counter.
-func (b Builder) CallAs(dst string, fn RuntimeFn, args ...Value) { b.emit(dst, fn, args) }
-
-func (b Builder) emit(dst string, fn RuntimeFn, args []Value) {
-	if b.note != nil {
-		b.note(fn)
-	}
-	if len(args) != len(fn.Params) {
-		panic(fmt.Sprintf("irb: %s takes %d argument(s), got %d", fn.Name, len(fn.Params), len(args)))
-	}
-	parts := make([]string, len(args))
-	for i, a := range args {
-		if a.Type != fn.Params[i] {
-			panic(fmt.Sprintf("irb: %s argument %d: want %s, got %s", fn.Name, i, fn.Params[i], a.Type))
-		}
-		parts[i] = a.render()
-	}
-	if dst == "" {
-		fmt.Fprintf(b.sb, "  call %s @%s(%s)\n", fn.Ret, fn.Name, strings.Join(parts, ", "))
-		return
-	}
-	fmt.Fprintf(b.sb, "  %s = call %s @%s(%s)\n", dst, fn.Ret, fn.Name, strings.Join(parts, ", "))
-}
-
-// GlobalStruct defines a `global` of struct type st and returns name unchanged.
-func (b Builder) GlobalStruct(name string, st StructType, fields ...Value) string {
-	if len(fields) != len(st.Fields) {
-		panic(fmt.Sprintf("irb: %s takes %d field(s), got %d", st.Name, len(st.Fields), len(fields)))
-	}
-	parts := make([]string, len(fields))
-	for i, f := range fields {
-		if f.Type != st.Fields[i] {
-			panic(fmt.Sprintf("irb: %s field %d: want %s, got %s", st.Name, i, st.Fields[i], f.Type))
-		}
-		parts[i] = f.render()
-	}
-	fmt.Fprintf(b.sb, "%s = global %s { %s }\n", name, st.Name, strings.Join(parts, ", "))
-	return name
-}
-
-func vptr(text string) Value     { return Value{TPtr, text} }
-func vi32(n int) Value           { return Value{TI32, strconv.Itoa(n)} }
-func vi32text(text string) Value { return Value{TI32, text} }
-func vi64(n int) Value           { return Value{TI64, strconv.Itoa(n)} }
-func vi64text(text string) Value { return Value{TI64, text} }
-func vdouble(text string) Value  { return Value{TDouble, text} }
-func vobjslot() Value            { return Value{TObjSlot, "zeroinitializer"} }
+func vptr(text string) Value     { return Value{Type: TPtr, Text: text} }
+func vi32(n int) Value           { return Value{Type: TI32, Text: strconv.Itoa(n)} }
+func vi32text(text string) Value { return Value{Type: TI32, Text: text} }
+func vi64(n int) Value           { return Value{Type: TI64, Text: strconv.Itoa(n)} }
+func vi64text(text string) Value { return Value{Type: TI64, Text: text} }
+func vdouble(text string) Value  { return Value{Type: TDouble, Text: text} }
+func vobjslot() Value            { return Value{Type: TObjSlot, Text: "zeroinitializer"} }

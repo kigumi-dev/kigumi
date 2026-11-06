@@ -103,5 +103,5 @@ func (e *emitter) testVariant(sb *strings.Builder, f *midir.Func, a *aggInfo, in
 	fmt.Fprintf(sb, "  %s = load %s, ptr %s\n", tag, adtTag, e.tagPtr(sb, a, fmt.Sprintf("%%l%d", in.Args[0])))
 	c := e.newTmp()
 	fmt.Fprintf(sb, "  %s = icmp eq %s %s, %d\n", c, adtTag, tag, a.tagOf(in.Ent))
-	e.storeScalarResult(sb, f, in.Dst, Value{TI1, c})
+	e.storeScalarResult(sb, f, in.Dst, Value{Type: TI1, Text: c})
 }

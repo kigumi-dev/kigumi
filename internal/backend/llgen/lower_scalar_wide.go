@@ -39,7 +39,7 @@ func (e *emitter) splitWide(sb *strings.Builder, v string) (lo, hi Value) {
 func (e *emitter) joinWide(sb *strings.Builder, lo, hi Value) Value {
 	l, h, s, r := e.newTmp(), e.newTmp(), e.newTmp(), e.newTmp()
 	fmt.Fprintf(sb, "  %s = zext i64 %s to i128\n  %s = zext i64 %s to i128\n  %s = shl i128 %s, 64\n  %s = or i128 %s, %s\n", l, lo.Text, h, hi.Text, s, h, r, l, s)
-	return Value{TI128, r}
+	return Value{Type: TI128, Text: r}
 }
 
 func (e *emitter) wideInstr(sb *strings.Builder, format string, args ...any) string {
@@ -59,7 +59,7 @@ func (e *emitter) overflowTrap(sb *strings.Builder, flag, msg string) {
 func (e *emitter) checkedWide(sb *strings.Builder, intrinsic string, l, r Value) Value {
 	v, o := e.withOverflow(sb, intrinsic, "i128", l.Text, r.Text)
 	e.overflowTrap(sb, o, "integer overflow")
-	return Value{TI128, v}
+	return Value{Type: TI128, Text: v}
 }
 
 func (e *emitter) wideShift(sb *strings.Builder, op string, signed bool, l, count Value) Value {
@@ -68,7 +68,7 @@ func (e *emitter) wideShift(sb *strings.Builder, op string, signed bool, l, coun
 	e.irb(sb).Call(rtPanic, vptr(e.cstr("shift count out of range")))
 	fmt.Fprintf(sb, "  unreachable\n%s:\n", ok)
 	ext := e.wideInstr(sb, "zext i64 %s to i128", count.Text)
-	return e.shiftWide(sb, op, signed, l, Value{TI128, ext})
+	return e.shiftWide(sb, op, signed, l, Value{Type: TI128, Text: ext})
 }
 
 func (e *emitter) shiftWide(sb *strings.Builder, op string, signed bool, l, count Value) Value {
@@ -79,7 +79,7 @@ func (e *emitter) shiftWide(sb *strings.Builder, op string, signed bool, l, coun
 	case signed:
 		kind = "ashr"
 	}
-	return Value{TI128, e.wideInstr(sb, "%s i128 %s, %s", kind, l.Text, count.Text)}
+	return Value{Type: TI128, Text: e.wideInstr(sb, "%s i128 %s, %s", kind, l.Text, count.Text)}
 }
 
 // wideBinaryOp is nativeBinaryOp for i128 and u128; the order operators and ==/!= are already handled by the caller's width-generic cases.
@@ -93,7 +93,7 @@ func (e *emitter) wideBinaryOp(sb *strings.Builder, op string, nk int, l, r Valu
 	}
 	switch op {
 	case "<", "<=", ">", ">=":
-		return Value{TI1, e.icmp(sb, cmpCC(op, signed), TI128, l, r)}, true
+		return Value{Type: TI1, Text: e.icmp(sb, cmpCC(op, signed), TI128, l, r)}, true
 	case "+":
 		return e.checkedWide(sb, pick("sadd", "uadd"), l, r), true
 	case "-":
@@ -103,11 +103,11 @@ func (e *emitter) wideBinaryOp(sb *strings.Builder, op string, nk int, l, r Valu
 	case "/", "%":
 		return e.wideDiv(sb, signed, op == "%", l, r), true
 	case "&":
-		return Value{TI128, e.binOpT(sb, "and", TI128, l, r)}, true
+		return Value{Type: TI128, Text: e.binOpT(sb, "and", TI128, l, r)}, true
 	case "|":
-		return Value{TI128, e.binOpT(sb, "or", TI128, l, r)}, true
+		return Value{Type: TI128, Text: e.binOpT(sb, "or", TI128, l, r)}, true
 	case "^":
-		return Value{TI128, e.binOpT(sb, "xor", TI128, l, r)}, true
+		return Value{Type: TI128, Text: e.binOpT(sb, "xor", TI128, l, r)}, true
 	case "<<", ">>":
 		if r.Type == TI64 {
 			return e.wideShift(sb, op, signed, l, r), true
@@ -119,13 +119,13 @@ func (e *emitter) wideBinaryOp(sb *strings.Builder, op string, nk int, l, r Valu
 func (e *emitter) wideUnary(sb *strings.Builder, op string, nk int, v Value) (Value, bool) {
 	switch op {
 	case "-":
-		zero := Value{TI128, "0"}
+		zero := Value{Type: TI128, Text: "0"}
 		if isSignedNk(nk) {
 			return e.checkedWide(sb, "ssub", zero, v), true
 		}
 		return e.checkedWide(sb, "usub", zero, v), true
 	case "~":
-		return Value{TI128, e.binOpT(sb, "xor", TI128, v, Value{TI128, "-1"})}, true
+		return Value{Type: TI128, Text: e.binOpT(sb, "xor", TI128, v, Value{Type: TI128, Text: "-1"})}, true
 	}
 	return Value{}, false
 }

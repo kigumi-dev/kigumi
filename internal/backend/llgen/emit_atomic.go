@@ -29,7 +29,7 @@ func (e *emitter) tryAtomicInst(sb *strings.Builder, f *midir.Func, in midir.Ins
 	for _, a := range in.Args {
 		v, _ := e.scalarOperand(sb, f, a)
 		if v.Type == TI1 {
-			v = Value{TI8, e.zext(sb, v.Text, "i1", "i8")}
+			v = Value{Type: TI8, Text: e.zext(sb, v.Text, "i1", "i8")}
 		}
 		args = append(args, fmt.Sprintf("%s %s", v.Type, v.Text))
 	}
@@ -53,7 +53,7 @@ func (e *emitter) tryAtomicInst(sb *strings.Builder, f *midir.Func, in midir.Ins
 		fmt.Fprintf(sb, "  %s = trunc i8 %s to i1\n", t, res)
 		res = t
 	}
-	e.storeScalarResult(sb, f, in.Dst, Value{slot, res})
+	e.storeScalarResult(sb, f, in.Dst, Value{Type: slot, Text: res})
 	return true
 }
 

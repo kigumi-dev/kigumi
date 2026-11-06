@@ -9,16 +9,16 @@ import (
 )
 
 var (
-	rtDLen        = RuntimeFn{"rt_d_len", []Type{TPtr}, TI64}
-	rtDArrayLen   = RuntimeFn{"rt_d_array_len", []Type{TPtr}, TI64}
-	rtDMapSeed    = RuntimeFn{"rt_d_map_seed", nil, TI64}
-	rtDBytesGet   = RuntimeFn{"rt_d_bytes_get", []Type{TPtr, TI64, TPtr}, TI32}
-	rtDArrayGet   = RuntimeFn{"rt_d_array_get", []Type{TPtr, TI64, TPtr}, TI32}
-	rtDParseFloat = RuntimeFn{"rt_d_parse_float", []Type{TPtr, TPtr}, TI32}
-	rtDHashInt    = RuntimeFn{"rt_d_hash_int", []Type{TI64, TI32}, TI64}
-	rtDHashBool   = RuntimeFn{"rt_d_hash_bool", []Type{TI32}, TI64}
-	rtDHashChar   = RuntimeFn{"rt_d_hash_char", []Type{TI32}, TI64}
-	rtDHashFloat  = RuntimeFn{"rt_d_hash_float", []Type{TDouble, TI32}, TI64}
+	rtDLen        = RuntimeFn{Name: "rt_d_len", Params: []Type{TPtr}, Ret: TI64}
+	rtDArrayLen   = RuntimeFn{Name: "rt_d_array_len", Params: []Type{TPtr}, Ret: TI64}
+	rtDMapSeed    = RuntimeFn{Name: "rt_d_map_seed", Params: nil, Ret: TI64}
+	rtDBytesGet   = RuntimeFn{Name: "rt_d_bytes_get", Params: []Type{TPtr, TI64, TPtr}, Ret: TI32}
+	rtDArrayGet   = RuntimeFn{Name: "rt_d_array_get", Params: []Type{TPtr, TI64, TPtr}, Ret: TI32}
+	rtDParseFloat = RuntimeFn{Name: "rt_d_parse_float", Params: []Type{TPtr, TPtr}, Ret: TI32}
+	rtDHashInt    = RuntimeFn{Name: "rt_d_hash_int", Params: []Type{TI64, TI32}, Ret: TI64}
+	rtDHashBool   = RuntimeFn{Name: "rt_d_hash_bool", Params: []Type{TI32}, Ret: TI64}
+	rtDHashChar   = RuntimeFn{Name: "rt_d_hash_char", Params: []Type{TI32}, Ret: TI64}
+	rtDHashFloat  = RuntimeFn{Name: "rt_d_hash_float", Params: []Type{TDouble, TI32}, Ret: TI64}
 )
 
 func (e *emitter) directPrimCall(sb *strings.Builder, f *midir.Func, in midir.Inst) {
@@ -108,7 +108,7 @@ func (e *emitter) fromBits(sb *strings.Builder, ty Type, bits string) string {
 
 func (e *emitter) storeScalarBits(sb *strings.Builder, f *midir.Func, dst midir.LocalID, bits string) {
 	ty, _ := e.scalarType(f.Locals[dst].Type)
-	e.storeScalarResult(sb, f, dst, Value{ty, e.fromBits(sb, ty, bits)})
+	e.storeScalarResult(sb, f, dst, Value{Type: ty, Text: e.fromBits(sb, ty, bits)})
 }
 
 // The payload slot is written for None too, where the runtime left the bits zero.

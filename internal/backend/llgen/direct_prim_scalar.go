@@ -37,7 +37,7 @@ func (e *emitter) scalarPrimCall(sb *strings.Builder, f *midir.Func, in midir.In
 		return true
 	}
 	if in.DPrim == opdef.DPPow {
-		e.storeScalarResult(sb, f, in.Dst, Value{TDouble, e.libmPow(sb, args[0].Text, args[1].Text)})
+		e.storeScalarResult(sb, f, in.Dst, Value{Type: TDouble, Text: e.libmPow(sb, args[0].Text, args[1].Text)})
 		return true
 	}
 	if name, ok := mathIntrinsics[in.DPrim]; ok {
@@ -45,7 +45,7 @@ func (e *emitter) scalarPrimCall(sb *strings.Builder, f *midir.Func, in midir.In
 		for i, a := range args {
 			texts[i] = a.Text
 		}
-		e.storeScalarResult(sb, f, in.Dst, Value{TDouble, e.callIntrinsic(sb, name, "double", texts...)})
+		e.storeScalarResult(sb, f, in.Dst, Value{Type: TDouble, Text: e.callIntrinsic(sb, name, "double", texts...)})
 		return true
 	}
 	return false

@@ -18,7 +18,7 @@ func (e *emitter) directStatic(ent sem.EntityID) (Type, bool) {
 func (e *emitter) loadDirectStatic(sb *strings.Builder, ent sem.EntityID, ty Type) Value {
 	t := e.newTmp()
 	fmt.Fprintf(sb, "  %s = load %s, ptr %s\n", t, ty, e.globalSym(ent))
-	return Value{ty, t}
+	return Value{Type: ty, Text: t}
 }
 
 func (e *emitter) storeDirectStatic(sb *strings.Builder, ent sem.EntityID, v Value) {
