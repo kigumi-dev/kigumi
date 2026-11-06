@@ -61,6 +61,11 @@ func (r *Result) taskFutureOf(f FileID, n syntax.NodeID, call CallInfo, ret Type
 		}
 	case t.Kind(n) == syntax.CallExpr || t.Kind(n) == syntax.WsCallExpr:
 		params = r.Types.Node(r.Files[f].Types[t.View(n).AsCall().Callee().ID()]).Args
+		for a := range t.View(n).AsCall().Args().IDs() {
+			if at := r.Files[f].Types[a]; at != 0 && r.typeHasTask(at, map[TypeID]bool{}) {
+				return taskFutureCall{n, at, false}, true
+			}
+		}
 	}
 	var found taskFutureCall
 	ok := false

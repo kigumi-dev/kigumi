@@ -17,11 +17,25 @@ async fn root() -> Int {
     let b = mkbox(t, wrapper) //~ ERROR a Future that is not awaited or spawned
     0
 }
+
+async fn viaValue() -> Int {
+    let t = task.spawn(leaf())
+    let g = mkbox[task.Task[Int]]
+    let b = g(t, wrapper) //~ ERROR a Future that is not awaited or spawned
+    0
+}
 -- expect --
 error[E2203]: `Task[Int]` holds a `Task` handle and cannot leave the task that spawned it as an argument of a Future that is not awaited or spawned where it is built
   --> main.kg:14:13
    |
 14 |     let b = mkbox(t, wrapper) //~ ERROR a Future that is not awaited or spawned
    |             ^^^^^^^^^^^^^^^^
+   = help: await the task there and pass on its result
+
+error[E2203]: `Task[Int]` holds a `Task` handle and cannot leave the task that spawned it as an argument of a Future that is not awaited or spawned where it is built
+  --> main.kg:21:13
+   |
+21 |     let b = g(t, wrapper) //~ ERROR a Future that is not awaited or spawned
+   |             ^^^^^^^^^^^^
    = help: await the task there and pass on its result
 
