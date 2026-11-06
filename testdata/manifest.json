@@ -5039,6 +5039,15 @@
       ]
     },
     {
+      "id": "run/drop_panic_continues",
+      "kind": "run",
+      "path": "testdata/run/drop_panic_continues.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/drop_panic_hard_fault",
       "kind": "run",
       "path": "testdata/run/drop_panic_hard_fault.txtar",

@@ -1,0 +1,32 @@
+-- src --
+type A = resource {
+    pub id Int
+}
+
+type B = resource {
+    pub id Int
+}
+
+fn A.drop(move self) {
+    print "A ${self.id}"
+    let n: Int? = None
+    n.expect("drop boom")
+}
+
+fn B.drop(move self) {
+    print "B ${self.id}"
+}
+
+fn main() {
+    let a = A { id: 1 }
+    let b = B { id: 2 }
+    print "body"
+}
+-- stdout --
+body
+B 2
+A 1
+-- stderr --
+panic: drop boom
+-- exit --
+2
