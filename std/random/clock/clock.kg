@@ -1,0 +1,7 @@
+import random from std/random
+import time from std/time
+
+/// Generator seeded from the wall clock; a hosted-only convenience.
+pub fn fromClock() -> random.Rng {
+    random.seeded(time.now().unixMillis())
+}

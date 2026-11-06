@@ -49,7 +49,7 @@ func TestComptimeSandbox(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"ct\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
-	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import random from std/random\nlet n = comptime {\n    let mut r = random.fromClock()\n    r.nextInt(6)\n}\nprint \"${n}\"\n"), 0o644)
+	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import random from std/random\nimport clock from std/random/clock\nlet n = comptime {\n    let mut r = clock.fromClock()\n    r.nextInt(6)\n}\nprint \"${n}\"\n"), 0o644)
 	std, _ := filepath.Abs("../../../std")
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {

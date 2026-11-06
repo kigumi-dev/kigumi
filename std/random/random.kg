@@ -1,5 +1,3 @@
-import time from std/time
-
 /// Deterministic pseudo-random generator (splitmix64); a seed gives the same sequence on the VM and in native builds.
 pub type Rng = {
     mut state u64
@@ -25,11 +23,6 @@ fn Rng.next(mut self) -> u64 {
     z = (z ^ (z >> 30)).wrappingMul(13787848793156543929)
     z = (z ^ (z >> 27)).wrappingMul(10723151780598845931)
     z ^ (z >> 31)
-}
-
-/// Generator seeded from the clock.
-pub fn fromClock() -> Rng {
-    seeded(time.now().unixMillis())
 }
 
 /// Uniform integer in 0..bound; bound must be positive.

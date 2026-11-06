@@ -84,11 +84,9 @@ func TestPlatformUnavailableSysNone(t *testing.T) {
 	}
 }
 
-// TestPlatformUnavailableRandomFreestanding rejects std/random on a
-// freestanding target: fromClock() reads std/time, so random is Platform
-// like time itself, and a user who
-// never calls fromClock still cannot build for freestanding today.
-func TestPlatformUnavailableRandomFreestanding(t *testing.T) {
+// TestRandomSeededFreestanding keeps the deterministic half of std/random
+// available on a freestanding target; the clock helper is a separate platform package.
+func TestRandomSeededFreestanding(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"randbare\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
@@ -103,8 +101,8 @@ func TestPlatformUnavailableRandomFreestanding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !res.HasErrors() || !strings.Contains(res.Render(), "`std/random` is not available on a freestanding target") {
-		t.Fatalf("expected the freestanding diagnostic:\n%s", res.Render())
+	if res.HasErrors() {
+		t.Fatalf("seeded random should be available freestanding:\n%s", res.Render())
 	}
 }
 

@@ -13,8 +13,8 @@ const (
 	LayerTool
 )
 
-// stdLayer is the package-to-layer table. std/random is Platform, not
-// Foundation: fromClock() reads std/time.
+// stdLayer is the package-to-layer table. Seeded random is Foundation;
+// its clock helper lives in std/random/clock, which is Platform.
 var stdLayer = map[string]Layer{
 	"std/prelude":         LayerFoundation,
 	"std/math":            LayerFoundation,
@@ -36,13 +36,14 @@ var stdLayer = map[string]Layer{
 	"std/json":            LayerAllocation,
 	"std/io":              LayerAllocation,
 	"std/cli":             LayerPlatform,
-	"std/ffi/dl":              LayerPlatform,
+	"std/ffi/dl":          LayerPlatform,
 	"std/entropy":         LayerPlatform,
 	"std/fs":              LayerPlatform,
 	"std/net/http":        LayerPlatform,
 	"std/net":             LayerPlatform,
 	"std/os":              LayerPlatform,
-	"std/random":          LayerPlatform,
+	"std/random":          LayerFoundation,
+	"std/random/clock":    LayerPlatform,
 	"std/shell":           LayerPlatform,
 	"std/sys":             LayerPlatform,
 	"std/shell/coreutil":  LayerPlatform,
