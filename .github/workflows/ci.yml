@@ -196,6 +196,31 @@ jobs:
           ASAN_OPTIONS: ${{ matrix.asan }}
           KIGUMI_TEST_SHARD: ${{ matrix.index }}/${{ matrix.count }}
 
+  uefi-boot:
+    name: EFI link and boot (QEMU/OVMF)
+    needs: zig-version
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/kigumi/zig
+          key: kigumi-zig-${{ runner.os }}-${{ runner.arch }}-${{ needs.zig-version.outputs.version }}
+      - run: go run . zig install ${{ needs.zig-version.outputs.version }}
+      - run: echo "$HOME/.local/share/kigumi/zig/${{ needs.zig-version.outputs.version }}" >> "$GITHUB_PATH"
+      - run: sudo apt-get update && sudo apt-get install -y qemu-system-x86 ovmf
+      - run: |
+          OVMF=
+          for f in /usr/share/ovmf/OVMF.fd /usr/share/OVMF/OVMF_CODE*.fd; do
+            if [ -f "$f" ]; then OVMF=$f; break; fi
+          done
+          test -n "$OVMF"
+          KIGUMI_UEFI_BOOT=1 OVMF="$OVMF" go test -run TestUEFIBoots -count=1 -timeout 10m ./internal/toolchain/driver/
+
   benchmarks:
     name: benchmarks (observation only)
     needs: zig-version
