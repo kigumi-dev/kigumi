@@ -12,8 +12,6 @@ type blockJob struct {
 }
 
 func (m *Machine) offload(poolObj, work *obj) *obj {
-	p := poolObj.opaqueData().(*blockingPool)
-	p.inFlight.Add(1)
 	job := &blockJob{fin: make(chan struct{})}
 	lane := m.lane()
 	go lane.runBlocking(job, work)

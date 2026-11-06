@@ -26,6 +26,20 @@ typedef struct blocking_future {
     blocking_job* job;
 #endif
 } blocking_future;
+static int blocking_reserve(blocking_pool* p) {
+#ifdef KIGUMI_THREADS
+    int cur = KG_ALOAD(p->in_flight);
+    while (cur < p->capacity) {
+        if (atomic_compare_exchange_weak_explicit(&p->in_flight, &cur, cur + 1,
+                memory_order_acq_rel, memory_order_acquire)) return 1;
+    }
+    return 0;
+#else
+    if (p->in_flight >= p->capacity) return 0;
+    p->in_flight++;
+    return 1;
+#endif
+}
 static val blocking_capacity_exhausted(void) {
     rt_vdesc* d = find_variant(rt_find_type("BlockingError"), "CapacityExhausted");
     if (!d) return rt_err_msg("blocking pool capacity exhausted");
@@ -156,9 +170,12 @@ static val cap_blocking_pool_new(val a0) {
 // Under a thread-pool executor the closure runs on a thread of its own; under a single-thread executor, or with none, it runs here on the caller.
 static val cap_blocking_pool_run(val a0, val a1) {
     blocking_pool* p = (blocking_pool*)a0->u.op.data;
-    if (KG_ALOAD(p->in_flight) >= p->capacity) return blocking_capacity_exhausted();
     blocking_future* f = calloc(1, sizeof *f);
     if (!f) rt_panic("out of memory");
+    if (!blocking_reserve(p)) {
+        free(f);
+        return blocking_capacity_exhausted();
+    }
 #ifdef KG_BLOCKING_THREADS
     if (g_cur_task && g_cur_task->ex->nworkers > 0) {
         f->job = blocking_job_start(a1);
@@ -167,7 +184,6 @@ static val cap_blocking_pool_run(val a0, val a1) {
     {
         f->result = rt_callv(a1, 0, NULL);
     }
-    KG_INC(p->in_flight);
     f->pool = rt_retain(a0);
     return rt_ok(rt_opaque("BlockingFuture", f));
 }

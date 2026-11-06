@@ -20,14 +20,13 @@ func (m *Machine) registerBlocking() {
 	}
 	h["task.BlockingPool.run"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		pool := deref(a[0]).opaqueData().(*blockingPool)
-		if pool.inFlight.Load() >= int64(pool.capacity) {
+		if !reserveBlocking(pool) {
 			return m.blockingCapacityExhausted()
 		}
 		if m.cur != nil && m.cur.ex.workers > 0 {
 			return m.ok(m.offload(deref(a[0]), retain(deref(a[1]))))
 		}
 		r := m.callValue(a[1], nil)
-		pool.inFlight.Add(1)
 		return m.ok(mkOpaque("Future", &future{result: r, pool: retain(deref(a[0]))}))
 	}
 }
@@ -35,4 +34,16 @@ func (m *Machine) registerBlocking() {
 func (m *Machine) blockingCapacityExhausted() *obj {
 	e := mkVariant(m.variantOf(m.lookup("std/task", "BlockingError"), "CapacityExhausted"), nil)
 	return mkVariant(m.variantOf(m.r.Types.ResultEnt(), "Err"), []*obj{e})
+}
+
+func reserveBlocking(p *blockingPool) bool {
+	for {
+		cur := p.inFlight.Load()
+		if cur >= int64(p.capacity) {
+			return false
+		}
+		if p.inFlight.CompareAndSwap(cur, cur+1) {
+			return true
+		}
+	}
 }
