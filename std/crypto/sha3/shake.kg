@@ -1,0 +1,80 @@
+// SHAKE128/SHAKE256 (FIPS 202 §6.2): the extendable-output functions of the
+// same sponge, with the 0x1F domain suffix. `finish` pads once and returns
+// `outLen` bytes; `squeeze` keeps the state, so repeated calls continue the
+// one stream. They do not implement `hash.Digest`, whose `finish` takes no
+// output length.
+/// SHAKE128's sponge state.
+pub type Xof128 = {
+    mut c Core
+}
+
+/// A SHAKE128 state with no message bytes yet.
+pub pure fn Xof128.new() -> Xof128 {
+    Xof128 { c: Core.new(rate128) }
+}
+
+/// Adds message bytes.
+pub pure fn Xof128.update(mut self, data: Bytes) {
+    self.c.update(data)
+}
+
+/// Pads and returns the first `outLen` bytes of the output stream.
+pub pure fn Xof128.finish(move self, outLen: usize) -> Bytes {
+    let mut x = self
+    x.c.output(outLen, suffixShake)
+}
+
+/// Returns the next `outLen` bytes; the first call also pads.
+pub pure fn Xof128.squeeze(mut self, outLen: usize) -> Bytes {
+    self.c.output(outLen, suffixShake)
+}
+
+/// Bytes absorbed per permutation.
+pub pure noalloc fn Xof128.blockSize() -> usize {
+    rate128
+}
+
+/// SHAKE128 of `data`, `outLen` bytes long.
+pub pure fn shake128(data: Bytes, outLen: usize) -> Bytes {
+    let mut x = Xof128.new()
+    x.update(data)
+    x.finish(outLen)
+}
+
+/// SHAKE256's sponge state.
+pub type Xof256 = {
+    mut c Core
+}
+
+/// A SHAKE256 state with no message bytes yet.
+pub pure fn Xof256.new() -> Xof256 {
+    Xof256 { c: Core.new(rate256) }
+}
+
+/// Adds message bytes.
+pub pure fn Xof256.update(mut self, data: Bytes) {
+    self.c.update(data)
+}
+
+/// Pads and returns the first `outLen` bytes of the output stream.
+pub pure fn Xof256.finish(move self, outLen: usize) -> Bytes {
+    let mut x = self
+    x.c.output(outLen, suffixShake)
+}
+
+/// Returns the next `outLen` bytes; the first call also pads.
+pub pure fn Xof256.squeeze(mut self, outLen: usize) -> Bytes {
+    self.c.output(outLen, suffixShake)
+}
+
+/// Bytes absorbed per permutation.
+pub pure noalloc fn Xof256.blockSize() -> usize {
+    rate256
+}
+
+/// SHAKE256 of `data`, `outLen` bytes long.
+pub pure fn shake256(data: Bytes, outLen: usize) -> Bytes {
+    let mut x = Xof256.new()
+    x.update(data)
+    x.finish(outLen)
+}

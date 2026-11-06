@@ -1,0 +1,38 @@
+/// SHA3-512 (FIPS 202 §6.1): the 576-bit-rate sponge with the `0x06`
+/// domain suffix, squeezed to 64 bytes. Satisfies `hash.Digest`.
+pub type Hasher512 = {
+    mut c Core
+}
+
+/// A hasher with an empty sponge and no message bytes yet.
+pub pure fn Hasher512.new() -> Hasher512 {
+    Hasher512 { c: Core.new(rate512) }
+}
+
+/// Adds message bytes; buffers whole blocks and permutes each one.
+pub pure fn Hasher512.update(mut self, data: Bytes) {
+    self.c.update(data)
+}
+
+/// Appends the FIPS 202 padding and returns the 64-byte digest.
+pub pure fn Hasher512.finish(move self) -> Bytes {
+    let mut h = self
+    h.c.output(size512, suffixSha3)
+}
+
+/// Bytes absorbed per permutation; satisfies `hash.Digest`.
+pub pure noalloc fn Hasher512.blockSize() -> usize {
+    rate512
+}
+
+/// Bytes of output; satisfies `hash.Digest`.
+pub pure noalloc fn Hasher512.size() -> usize {
+    size512
+}
+
+/// SHA3-512 of `data` in one call.
+pub pure fn sum512(data: Bytes) -> Bytes {
+    let mut h = Hasher512.new()
+    h.update(data)
+    h.finish()
+}

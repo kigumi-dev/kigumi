@@ -4256,6 +4256,33 @@
       ]
     },
     {
+      "id": "run/crypto_chacha_aead",
+      "kind": "run",
+      "path": "testdata/run/crypto_chacha_aead.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_chacha_block",
+      "kind": "run",
+      "path": "testdata/run/crypto_chacha_block.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_chacha_poly1305",
+      "kind": "run",
+      "path": "testdata/run/crypto_chacha_poly1305.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/crypto_hkdf",
       "kind": "run",
       "path": "testdata/run/crypto_hkdf.txtar",
@@ -4277,6 +4304,24 @@
       "id": "run/crypto_sha256",
       "kind": "run",
       "path": "testdata/run/crypto_sha256.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_sha3_fips202",
+      "kind": "run",
+      "path": "testdata/run/crypto_sha3_fips202.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_sha3_shake",
+      "kind": "run",
+      "path": "testdata/run/crypto_sha3_shake.txtar",
       "mode": [
         "vm",
         "native"

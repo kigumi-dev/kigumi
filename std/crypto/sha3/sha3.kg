@@ -1,0 +1,141 @@
+// SHA-3 and SHAKE (FIPS 202), all four built on one Keccak-f[1600] sponge.
+// Only the rate and the domain-separation suffix differ: SHA3-256/SHA3-512
+// absorb the 0x06 suffix and squeeze a fixed 32/64 bytes, while SHAKE128/256
+// absorb the 0x1F suffix and squeeze as many bytes as the caller asks for.
+import binary from std/encoding/binary
+
+/// Bytes of SHA3-256 output.
+pub const size256: usize = 32
+
+/// Bytes of SHA3-512 output.
+pub const size512: usize = 64
+
+/// Sponge rate of SHAKE128, in bytes (1344-bit rate, 256-bit capacity).
+pub const rate128: usize = 168
+
+/// Sponge rate of SHA3-256 and SHAKE256, in bytes (1088/512 bits).
+pub const rate256: usize = 136
+
+/// Sponge rate of SHA3-512, in bytes (576/1024 bits).
+pub const rate512: usize = 72
+
+/// Domain-separation suffix of SHA3-256 and SHA3-512 (FIPS 202 §6.1).
+const suffixSha3: u8 = 0x06
+
+/// Domain-separation suffix of SHAKE128 and SHAKE256 (FIPS 202 §6.2).
+const suffixShake: u8 = 0x1F
+
+/// The sponge: 25 little-endian lanes plus the bytes not yet absorbed.
+/// `obuf`, `opos` and `started` carry only XOF squeeze progress, so a fixed
+/// Hasher leaves them at their initial values.
+type Core = {
+    mut a Array[u64]
+    mut buf Array[u8]
+    mut obuf Array[u8]
+    mut opos usize
+    mut started Bool
+    mut finalized Bool
+    rate usize
+    rotc Array[u64]
+    piln Array[usize]
+    rc Array[u64]
+}
+
+/// A zeroed sponge with `rate` bytes absorbed per permutation.
+pure fn Core.new(rate: usize) -> Core {
+    Core {
+        a: Array.fill[u64](0, 25)
+        buf: Array.empty()
+        obuf: Array.empty()
+        opos: 0
+        started: false
+        finalized: false
+        rate: rate
+        rotc: rotationConstants()
+        piln: laneOrder()
+        rc: roundConstants()
+    }
+}
+
+/// Buffers whole rate-sized blocks and absorbs each one. Which bytes reach
+/// `a` depends only on positions, never on the values.
+pure fn Core.update(mut self, data: Bytes) {
+    let mut i: usize = 0
+    for i < data.len() {
+        self.buf.push(data[i])
+        if self.buf.len() == self.rate {
+            self.absorbBlock()
+        }
+        i = i + 1
+    }
+}
+
+/// XORs one full block into the first `rate / 8` lanes and permutes.
+pure fn Core.absorbBlock(mut self) {
+    let lanes = self.rate / 8
+    let mut i: usize = 0
+    for i < lanes {
+        let mut lane: u64 = 0
+        let mut b: usize = 0
+        for b < 8 {
+            lane = lane | (self.buf[i * 8 + b].toU64() << (b * 8))
+            b = b + 1
+        }
+        self.a[i] = self.a[i] ^ lane
+        i = i + 1
+    }
+    self.permute()
+    self.buf = Array.empty()
+}
+
+/// Applies pad10*1 with the function's suffix and absorbs the final block.
+/// `buf` never holds a full block here (update absorbs those), so the suffix
+/// byte is at most the block's last byte; the final `1` bit therefore shares
+/// that byte when exactly one byte was free (FIPS 202 §B.2).
+pure fn Core.finishState(mut self, suffix: u8) {
+    let rate = self.rate
+    self.buf.push(suffix)
+    for self.buf.len() < rate {
+        self.buf.push(0)
+    }
+    self.buf[rate - 1] = self.buf[rate - 1] ^ 0x80
+    self.absorbBlock()
+    self.finalized = true
+}
+
+/// The first `rate` bytes of the state, little-endian, as the current
+/// squeeze block.
+pure fn Core.blockBytes(self) -> Array[u8] {
+    let mut out = Array.empty[u8]()
+    let lanes = self.rate / 8
+    let mut i: usize = 0
+    for i < lanes {
+        binary.putU64Le(&mut out, self.a[i])
+        i = i + 1
+    }
+    out
+}
+
+/// Pads on the first call, then reads `n` output bytes. Repeated calls
+/// continue the same stream, which is what makes SHAKE an extendable-output
+/// function rather than a fixed digest.
+pure fn Core.output(mut self, n: usize, suffix: u8) -> Bytes {
+    if !self.finalized {
+        self.finishState(suffix)
+    }
+    let mut out = Array.empty[u8]()
+    for out.len() < n {
+        if self.opos == self.obuf.len() {
+            if self.started {
+                self.permute()
+            }
+            let block = self.blockBytes()
+            self.obuf = block
+            self.opos = 0
+            self.started = true
+        }
+        out.push(self.obuf[self.opos])
+        self.opos = self.opos + 1
+    }
+    Bytes.fromArray(&out)
+}

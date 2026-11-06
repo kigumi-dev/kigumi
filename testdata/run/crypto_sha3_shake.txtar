@@ -1,0 +1,69 @@
+-- src --
+import hex from std/encoding/hex
+import sha3 from std/crypto/sha3
+
+fn show(b: Bytes) -> String {
+    hex.encode(b)
+}
+
+let empty = Bytes.zeros(0)
+let m200 = "a".repeat(200).toBytes()
+
+// FIPS 202 §6.2: SHAKE128 and SHAKE256 at several output lengths. Each
+// longer request starts with the shorter one because the output is a stream.
+print "shake128-empty-16 ${show(sha3.shake128(empty, 16))}"
+print "shake128-empty-32 ${show(sha3.shake128(empty, 32))}"
+print "shake128-abc-32 ${show(sha3.shake128(b"abc", 32))}"
+print "shake128-abc-64 ${show(sha3.shake128(b"abc", 64))}"
+print "shake128-abc-200 ${show(sha3.shake128(b"abc", 200))}"
+print "shake128-200a-32 ${show(sha3.shake128(m200, 32))}"
+print "shake256-empty-32 ${show(sha3.shake256(empty, 32))}"
+print "shake256-abc-32 ${show(sha3.shake256(b"abc", 32))}"
+print "shake256-abc-64 ${show(sha3.shake256(b"abc", 64))}"
+print "shake256-abc-200 ${show(sha3.shake256(b"abc", 200))}"
+print "shake256-200a-64 ${show(sha3.shake256(m200, 64))}"
+
+// update in pieces is the same stream as one call.
+let mut s = sha3.Xof128.new()
+s.update(b"a")
+s.update(b"bc")
+print "shake128-split ${show(s.finish(32))}"
+
+// Repeated squeeze continues one stream; seven plus twenty-five bytes are
+// the first thirty-two.
+let mut x = sha3.Xof128.new()
+x.update(b"abc")
+let p1 = x.squeeze(7)
+let p2 = x.squeeze(25)
+print "shake128-squeeze ${show(p1.concat(p2))}"
+
+// Byte-at-a-time squeezing crosses the rate boundary twice.
+let mut y = sha3.Xof256.new()
+y.update(b"abc")
+let mut all = Bytes.zeros(0)
+let mut i: usize = 0
+for i < 200 {
+    all = all.concat(y.squeeze(1))
+    i = i + 1
+}
+print "shake256-bytewise ${show(all)}"
+
+print "shake128-zero ${sha3.shake128(b"abc", 0).len()}"
+print "rates ${sha3.rate128} ${sha3.rate256} ${sha3.Xof128.blockSize()} ${sha3.Xof256.blockSize()}"
+-- stdout --
+shake128-empty-16 7f9c2ba4e88f827d616045507605853e
+shake128-empty-32 7f9c2ba4e88f827d616045507605853ed73b8093f6efbc88eb1a6eacfa66ef26
+shake128-abc-32 5881092dd818bf5cf8a3ddb793fbcba74097d5c526a6d35f97b83351940f2cc8
+shake128-abc-64 5881092dd818bf5cf8a3ddb793fbcba74097d5c526a6d35f97b83351940f2cc844c50af32acd3f2cdd066568706f509bc1bdde58295dae3f891a9a0fca578378
+shake128-abc-200 5881092dd818bf5cf8a3ddb793fbcba74097d5c526a6d35f97b83351940f2cc844c50af32acd3f2cdd066568706f509bc1bdde58295dae3f891a9a0fca5783789a41f8611214ce612394df286a62d1a2252aa94db9c538956c717dc2bed4f232a0294c857c730aa16067ac1062f1201fb0d377cfb9cde4c63599b27f3462bba4a0ed296c801f9ff7f57302bb3076ee145f97a32ae68e76ab66c48d51675bd49acc29082f5647584e6aa01b3f5af057805f973ff8ecb8b226ac32ada6f01c1fcd4818cb006aa5b4cd
+shake128-200a-32 70ac9b97e891be583e08929ce4cce50d346b05f9597356d6af94d4643d2af3b6
+shake256-empty-32 46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762f
+shake256-abc-32 483366601360a8771c6863080cc4114d8db44530f8f1e1ee4f94ea37e78b5739
+shake256-abc-64 483366601360a8771c6863080cc4114d8db44530f8f1e1ee4f94ea37e78b5739d5a15bef186a5386c75744c0527e1faa9f8726e462a12a4feb06bd8801e751e4
+shake256-abc-200 483366601360a8771c6863080cc4114d8db44530f8f1e1ee4f94ea37e78b5739d5a15bef186a5386c75744c0527e1faa9f8726e462a12a4feb06bd8801e751e41385141204f329979fd3047a13c5657724ada64d2470157b3cdc288620944d78dbcddbd912993f0913f164fb2ce95131a2d09a3e6d51cbfc622720d7a75c6334e8a2d7ec71a7cc29cf0ea610eeff1a588290a53000faa79932becec0bd3cd0b33a7e5d397fed1ada9442b99903f4dcfd8559ed3950faf40fe6f3b5d710ed3b677513771af6bfe119
+shake256-200a-64 e49647491c9d12d125a2f75826c96f6307d2fabebcbb9fb1616d76b09499380e8bcf60f72750879140e73fb7453a979b69d25efa8de613462f108ce7f2f1d7c5
+shake128-split 5881092dd818bf5cf8a3ddb793fbcba74097d5c526a6d35f97b83351940f2cc8
+shake128-squeeze 5881092dd818bf5cf8a3ddb793fbcba74097d5c526a6d35f97b83351940f2cc8
+shake256-bytewise 483366601360a8771c6863080cc4114d8db44530f8f1e1ee4f94ea37e78b5739d5a15bef186a5386c75744c0527e1faa9f8726e462a12a4feb06bd8801e751e41385141204f329979fd3047a13c5657724ada64d2470157b3cdc288620944d78dbcddbd912993f0913f164fb2ce95131a2d09a3e6d51cbfc622720d7a75c6334e8a2d7ec71a7cc29cf0ea610eeff1a588290a53000faa79932becec0bd3cd0b33a7e5d397fed1ada9442b99903f4dcfd8559ed3950faf40fe6f3b5d710ed3b677513771af6bfe119
+shake128-zero 0
+rates 168 136 168 136
