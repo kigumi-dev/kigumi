@@ -30,8 +30,17 @@ pub fn Rng.nextInt(mut self, bound: Int) -> Int {
     if bound <= 0 {
         panic()
     }
-    let step = self.next()
-    (step % (bound.toU64() || 1)).toInt() || 0
+    let b = bound.toU64() || 1
+    let zero: u64 = 0
+    // Reject the short top range so every result below bound is equally likely.
+    let limit = zero.wrappingSub(b) % b
+    for true {
+        let step = self.next()
+        if step >= limit {
+            return (step % b).toInt() || 0
+        }
+    }
+    0
 }
 
 /// Uniform Float in [0, 1).
