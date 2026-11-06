@@ -36,7 +36,7 @@ async fn watch(control: net.Listener, stop: http.Shutdown) -> Void! {
 }
 
 async fn root(listener: net.Listener, control: net.Listener) -> Void! {
-    let mut server = http.Server.new(http.Router.new().get("/", echo).post("/", echo).handler(), (line) => print "log: ${line}")
+    let mut server = http.Server.new(http.Router.new().get("/", echo).post("/", echo).handle("CONNECT", "t:443", echo).handler(), (line) => print "log: ${line}")
     server.limits = http.Limits {
         maxHeaderBytes: 1024
         maxHeaders: 4
@@ -71,9 +71,10 @@ var httpRawCases = []struct{ name, send, want string }{
 	{"negative length", "POST / HTTP/1.1\r\nHost: t\r\nContent-Length: -1\r\n\r\n", "HTTP/1.1 400 "},
 	{"list length", "POST / HTTP/1.1\r\nHost: t\r\nContent-Length: 1, 2\r\n\r\nab", "HTTP/1.1 400 "},
 	{"duplicate length", "POST / HTTP/1.1\r\nHost: t\r\nContent-Length: 1\r\nContent-Length: 2\r\n\r\nab", "HTTP/1.1 400 "},
+	{"absolute form", "GET http://t/ HTTP/1.1\r\nHost: t\r\nConnection: close\r\n\r\n", "HTTP/1.1 200 "},
+	{"connect authority", "CONNECT t:443 HTTP/1.1\r\nHost: t:443\r\nConnection: close\r\n\r\n", "HTTP/1.1 200 "},
 	{"options star", "OPTIONS * HTTP/1.1\r\nHost: t\r\nConnection: close\r\n\r\n", "HTTP/1.1 200 "},
 	{"leading zero length", "POST / HTTP/1.1\r\nHost: t\r\nContent-Length: 0000000000000003\r\nConnection: close\r\n\r\nabc", "HTTP/1.1 200 "},
-	{"absolute form", "GET http://t/ HTTP/1.1\r\nHost: t\r\n\r\n", "HTTP/1.1 400 "},
 	{"tab in request line", "GET\t/ HTTP/1.1\r\nHost: t\r\n\r\n", "HTTP/1.1 400 "},
 	{"slow head", "GET / HTTP/1.1\r\nHost: t\r\n", "HTTP/1.1 408 "},
 	{"idle", "", ""},

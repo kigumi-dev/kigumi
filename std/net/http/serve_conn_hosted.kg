@@ -18,7 +18,9 @@ fn parseRequestLine(line: String) -> RequestLine! {
     if !isToken(method) || target == "" || hasControlOrSpace(target) {
         fail failure(400, "malformed request line")
     }
-    if !target.startsWith("/") && !(target == "*" && method == "OPTIONS") {
+    let absolute = target.startsWith("http://") || target.startsWith("https://")
+    let authority = method == "CONNECT" && target != ""
+    if !target.startsWith("/") && !(target == "*" && method == "OPTIONS") && !absolute && !authority {
         fail failure(400, "unsupported request target")
     }
     if target.contains("#") {

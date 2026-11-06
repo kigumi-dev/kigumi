@@ -23,14 +23,23 @@ pub type Request = {
 
 /// A request with no headers and an empty body.
 pub fn Request.new(method: String, target: String) -> Request {
-    let q = indexOfByte(target, 63)
-    let path = if q is Some(i) {
-        target.sliceBytes(0, i) || target
+    // An absolute-form target keeps the raw URI in `target`; routing uses its
+    // origin-form path, as RFC 9112 3.2.2 requires.
+    let origin = if target.startsWith("http://") {
+        absolutePath(target, 7)
+    } else if target.startsWith("https://") {
+        absolutePath(target, 8)
     } else {
         target
     }
+    let q = indexOfByte(origin, 63)
+    let path = if q is Some(i) {
+        origin.sliceBytes(0, i) || origin
+    } else {
+        origin
+    }
     let query = if q is Some(i) {
-        target.sliceBytes(i + 1, target.len()) || ""
+        origin.sliceBytes(i + 1, origin.len()) || ""
     } else {
         ""
     }
@@ -161,4 +170,14 @@ fn decodeEscapes(text: String, plusIsSpace: Bool) -> String? {
         return Some(s)
     }
     None
+}
+
+// absolutePath returns the path of an absolute URI whose authority starts at
+// offset `start`, or "/" when it has none.
+fn absolutePath(target: String, start: usize) -> String {
+    let rest = target.sliceBytes(start, target.len()) || ""
+    match indexOfByte(rest, 47) {
+        Some(i) -> "/${rest.sliceBytes(i + 1, rest.len()) || ""}"
+        None -> "/"
+    }
 }
