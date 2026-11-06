@@ -1,0 +1,770 @@
+@note Hand-written C bodies of rt_std_dispatch.inc; std_dispatch_gen.go documents the directives.
+@section prelude
+@op LEN
+ return rt_int(a0->u.s.len, 64);
+@op STRING_TO_BYTES
+ return bytes_val(a0->u.s.data, a0->u.s.len);
+@op STRING_FROM_BYTES
+
+        if (!rt_utf8_valid(a0->u.s.data, a0->u.s.len)) return rt_err_msg("invalid UTF-8");
+        return rt_ok(strdup_val(a0->u.s.data, a0->u.s.len));
+@op STRING_TRY_FROM_BYTES
+ {
+        if (!rt_utf8_valid(a0->u.s.data, a0->u.s.len)) return rt_err_msg("invalid UTF-8");
+        char* d = strdup_or_null(a0->u.s.data, a0->u.s.len);
+        if (!d) return oom_error();
+        val v = rt_str_take_try(d, a0->u.s.len);
+        if (!v) {
+            free(d);
+            return oom_error();
+        }
+        val r = rt_variant_try(V_Ok, 1, &v);
+        if (!r) {
+            rt_release(v);
+            return oom_error();
+        }
+        return r;
+    }
+@op EQUALS
+ return rt_bool(a0->kind == K_FLOAT ? float_total_equal(a0->u.f, a1->u.f) : rt_equal(a0, a1));
+@op COMPARE_TO
+ return rt_ordering(a0->kind == K_FLOAT ? float_total_compare(a0->u.f, a1->u.f) : cmp_vals(a0, a1));
+@op HASH
+ return rt_int((int64_t)rt_hash_of(a0), 64);
+@op MAP_SEED
+ return rt_int((int64_t)map_seed(), 64);
+@op DISPLAY
+ return rt_display(a0);
+@op STRING_BYTES
+ return bytes_val(a0->u.s.data, a0->u.s.len);
+@op BYTES_TRY_ZEROS
+ {
+        int64_t n2 = a0->u.i;
+        if (n2 < 0) return alloc_error();
+        char* d = fault_tick() ? NULL : kg_calloc_n(n2);
+        if (!d) return alloc_error();
+        val v = rt_str_take_try(d, n2);
+        if (!v) {
+            free(d);
+            return alloc_error();
+        }
+        v->kind = K_BYTES;
+        return try_ok(v);
+    }
+@op BYTES_TRY_FROM_ARRAY
+ {
+        int64_t n2 = a0->u.arr.len;
+        char* d = fault_tick() ? NULL : malloc(n2 + 1);
+        if (!d) return alloc_error();
+        for (int64_t i = 0; i < n2; i++) d[i] = (char)rt_deref(a0->u.arr.items[i])->u.i;
+        d[n2] = 0;
+        val v = rt_str_take_try(d, n2);
+        if (!v) {
+            free(d);
+            return alloc_error();
+        }
+        v->kind = K_BYTES;
+        return try_ok(v);
+    }
+@op BYTES_TRY_CONCAT
+ {
+        int64_t l0 = a0->u.s.len, l1 = a1->u.s.len;
+        char* d = fault_tick() ? NULL : malloc(l0 + l1 + 1);
+        if (!d) return alloc_error();
+        memcpy(d, a0->u.s.data, l0);
+        memcpy(d + l0, a1->u.s.data, l1);
+        d[l0 + l1] = 0;
+        val v = rt_str_take_try(d, l0 + l1);
+        if (!v) {
+            free(d);
+            return alloc_error();
+        }
+        v->kind = K_BYTES;
+        return try_ok(v);
+    }
+@op ARRAY_TRY_MAP
+ {
+        val out = array_try_new(a0->u.arr.len);
+        if (!out) return alloc_error();
+        UNWIND_PUSH(u, unwind_release_out, NULL, out, 0);
+        for (int64_t i = 0; i < a0->u.arr.len; i++) {
+            val arg[1] = {a0->u.arr.items[i]};
+            out->u.arr.items[out->u.arr.len++] = rt_callv_lent(a1, 1, arg);
+        }
+        UNWIND_POP(u);
+        return try_ok(out);
+    }
+@op ARRAY_TRY_FILTER
+ {
+        val out = array_try_new(0);
+        if (!out) return alloc_error();
+        UNWIND_PUSH(u, unwind_release_out, NULL, out, 0);
+        for (int64_t i = 0; i < a0->u.arr.len; i++) {
+            val arg[1] = {a0->u.arr.items[i]};
+            val keep = rt_callv_lent(a1, 1, arg);
+            int kept = rt_deref(keep)->u.b;
+            rt_release(keep);
+            if (!kept) continue;
+            if (!try_grow(out, 1)) {
+                UNWIND_POP(u);
+                rt_release(out);
+                return alloc_error();
+            }
+            out->u.arr.items[out->u.arr.len++] = rt_copy(a0->u.arr.items[i]);
+        }
+        UNWIND_POP(u);
+        return try_ok(out);
+    }
+@op ARRAY_TRY_INSERT_AT
+ {
+        // The Ok wrapper is built before the array changes, so a refusal leaves it untouched.
+        uint64_t at = (uint64_t)a1->u.i, len = (uint64_t)a0->u.arr.len;
+        val fits = rt_bool(at <= len);
+        val done = rt_variant_try(V_Ok, 1, &fits);
+        if (!done) return alloc_error();
+        if (at > len) return done;
+        if (!try_grow(a0, 1)) {
+            rt_release(done);
+            return alloc_error();
+        }
+        for (uint64_t k = len; k > at; k--) a0->u.arr.items[k] = a0->u.arr.items[k - 1];
+        a0->u.arr.items[at] = rt_retain(a[2]);
+        a0->u.arr.len++;
+        return done;
+    }
+@op ARRAY_TRY_WITH_CAPACITY
+ {
+        val out = array_try_new(a0->u.i);
+        return out ? try_ok(out) : alloc_error();
+    }
+@op ARRAY_TRY_SLICE
+ {
+        int64_t s = a1->u.i, e = a2->u.i;
+        if (s < 0 || s > e || e > a0->u.arr.len) return try_ok(rt_none());
+        val out = array_try_copy(a0, s, e);
+        return out ? try_ok_some(out) : alloc_error();
+    }
+@op ALLOC_WRAP
+ return try_ok(rt_retain(a[0]));
+@op STRING_TRY_SLICE_BYTES
+ {
+        int64_t s = a1->u.i, e = a2->u.i, len = a0->u.s.len;
+        if (s < 0 || s > e || e > len || !boundary(a0->u.s.data, len, s) || !boundary(a0->u.s.data, len, e)) return try_ok(rt_none());
+        char* d = try_dup(a0->u.s.data + s, e - s);
+        if (!d) return alloc_error();
+        val v = rt_str_take_try(d, e - s);
+        if (!v) {
+            free(d);
+            return alloc_error();
+        }
+        return try_ok_some(v);
+    }
+@op BYTES_TRY_SLICE
+ {
+        int64_t s = a1->u.i, e = a2->u.i, len = a0->u.s.len;
+        if (s < 0 || s > e || e > len) return try_ok(rt_none());
+        char* d = try_dup(a0->u.s.data + s, e - s);
+        if (!d) return alloc_error();
+        val v = rt_str_take_try(d, e - s);
+        if (!v) {
+            free(d);
+            return alloc_error();
+        }
+        v->kind = K_BYTES;
+        return try_ok_some(v);
+    }
+@op MAP_TRY_CLONE
+ {
+        val out = record_try_new(a0->u.rec.type, a0->u.rec.n);
+        if (!out) return alloc_error();
+        for (int64_t i = 0; i < a0->u.rec.n; i++) {
+            if (!copy_slot_try(&out->u.rec.fields[i], a0->u.rec.fields[i])) {
+                rt_release(out);
+                return alloc_error();
+            }
+        }
+        return try_ok(out);
+    }
+@op OS_STRING_TRY_CLONE
+ {
+        val out = copy_try(a0);
+        return out ? try_ok(out) : alloc_error();
+    }
+@op MAP_TRY_ENTRIES
+ {
+        val keys = rt_deref(a0->u.rec.fields[0]), values = rt_deref(a0->u.rec.fields[1]);
+        rt_type* entry = rt_find_type("std/map.Entry");
+        if (!entry) rt_panic("a runtime-named type was dropped by reachability");
+        val out = array_try_new(keys->u.arr.len);
+        if (!out) return alloc_error();
+        for (int64_t i = 0; i < keys->u.arr.len; i++) {
+            val rec = record_try_new(entry, 2);
+            if (!rec) {
+                rt_release(out);
+                return alloc_error();
+            }
+            out->u.arr.items[i] = rec;
+            out->u.arr.len++;
+            if (!copy_slot_try(&rec->u.rec.fields[0], keys->u.arr.items[i]) || !copy_slot_try(&rec->u.rec.fields[1], values->u.arr.items[i])) {
+                rt_release(out);
+                return alloc_error();
+            }
+        }
+        return try_ok(out);
+    }
+@op MAP_TRY_EMPTY
+ return empty_record_try(rt_find_type("std/map.Map"), 5);
+@op STRING_BUILDER_TRY_NEW
+ return empty_record_try(rt_find_type("std/text.StringBuilder"), 1);
+@op STRING_TRY_CHARS
+ return try_string_chars(a0);
+@op ARRAY_TRY_SORTED_BY
+ return try_array_sorted_by(a0, a1);
+@op STRING_BUILDER_TRY_FREEZE
+ return try_builder_freeze(a0);
+@op DEBUG_TRY
+ return try_debug(a0);
+@op BYTE_BUFFER_SET
+
+        if (a1->u.i < 0 || a1->u.i >= a0->u.s.len) rt_panic("ByteBuffer.set: index out of range");
+        ((char*)a0->u.s.data)[a1->u.i] = (char)a2->u.i;
+        return rt_unit();
+@op BYTE_BUFFER_COPY_FROM
+ {
+        val src = a2;
+        int64_t at = a1->u.i, lo = rt_deref(a[3])->u.i, hi = rt_deref(a[4])->u.i;
+        if (lo < 0 || lo > hi || hi > src->u.s.len || at < 0 || at > a0->u.s.len - (hi - lo)) rt_panic("ByteBuffer.copyFrom: range out of bounds");
+        memcpy((char*)a0->u.s.data + at, src->u.s.data + lo, (size_t)(hi - lo));
+        return rt_unit();
+    }
+@op BYTE_BUFFER_FREEZE
+ return rt_retain(a0);
+@op BYTE_BUFFER_FREEZE_STRING
+
+        if (!rt_utf8_valid(a0->u.s.data, a0->u.s.len)) rt_panic("ByteBuffer.freezeString: invalid UTF-8");
+        a0->kind = K_STR;
+        return rt_retain(a0);
+@section array
+@op ARRAY_EMPTY
+ return rt_array(0, NULL);
+@op ARRAY_OF
+ return rt_retain(a0);
+@op ARRAY_PUSH
+
+        rt_push(a0, rt_retain(a[1]));
+        return rt_unit();
+@op ARRAY_GROW_BY
+ return rt_bool(try_grow(a0, (uint64_t)a1->u.i));
+@op ARRAY_PUSH_COPY
+ {
+        if (!try_grow(a0, 1)) return rt_bool(0);
+        val x = writable_inside(a1) ? copy_try(a1) : rt_retain(a1);
+        if (!x && a1) return rt_bool(0);
+        a0->u.arr.items[a0->u.arr.len++] = x;
+        return rt_bool(1);
+    }
+@op ARRAY_LEN
+ return rt_int(a0->u.arr.len, 64);
+@op ARRAY_GET
+ {
+        int64_t i = a1->u.i;
+        if (i < 0 || i >= a0->u.arr.len) return rt_none();
+        return rt_some(rt_copy(a0->u.arr.items[i]));
+    }
+@op ARRAY_FIRST
+
+        if (a0->u.arr.len == 0) return rt_none();
+        return rt_some(rt_copy(a0->u.arr.items[0]));
+@op ARRAY_LAST
+
+        if (a0->u.arr.len == 0) return rt_none();
+        return rt_some(rt_copy(a0->u.arr.items[a0->u.arr.len - 1]));
+@op ARRAY_WITH
+ {
+        int64_t i = a1->u.i;
+        if (i < 0 || i >= a0->u.arr.len) return rt_none();
+        val arg[1] = {a0->u.arr.items[i]};
+        return rt_some(rt_callv_lent(a2, 1, arg));
+    }
+@op ARRAY_WITH_MUT
+ {
+        int64_t i = a1->u.i;
+        if (i < 0 || i >= a0->u.arr.len) return rt_none();
+        // A scalar element aliases its obj on ordinary copy, so the
+        // callback writes through a cell rather than the element itself;
+        // the slot takes the cell's (possibly new) content back after.
+        val cell = rt_cell(a0->u.arr.items[i]);
+        val arg[1] = {cell};
+        UNWIND_PUSH(u, unwind_lend_back, a0, cell, i);
+        val r = rt_callv_lent(a2, 1, arg);
+        UNWIND_POP(u);
+        a0->u.arr.items[i] = cell->u.cell.v;
+        // free_obj on a cell releases its `.v`, already handed to the
+        // array slot above; detach it first so that release is a no-op.
+        cell->u.cell.v = NULL;
+        rt_release(cell);
+        return rt_some(r);
+    }
+@op ARRAY_TAKE_AT
+ {
+        int64_t i = a1->u.i;
+        if (i < 0 || i >= a0->u.arr.len) return rt_none();
+        val x = a0->u.arr.items[i];
+        if (i < a0->u.arr.len - 1 - i) {
+            for (int64_t j = i; j > 0; j--) a0->u.arr.items[j] = a0->u.arr.items[j - 1];
+            a0->u.arr.items++;
+            a0->u.arr.head++;
+            a0->u.arr.cap--;
+        } else {
+            for (int64_t j = i; j + 1 < a0->u.arr.len; j++) a0->u.arr.items[j] = a0->u.arr.items[j + 1];
+        }
+        a0->u.arr.len--;
+        return rt_some(x);
+    }
+@op OPTION_TAKE
+ {
+        if (a0->u.var.v != V_Some) return rt_none();
+        val x = rt_retain(a0->u.var.payload[0]);
+        rt_cellset(a[0], rt_none());
+        return rt_some(x);
+    }
+@section text
+@op TEXT_PARSE_FLOAT
+ {
+        double d;
+        if (!parse_float_text(a0, &d)) return rt_none();
+        return rt_some(rt_float(d, 64 | 512));
+    }
+@section os / fs
+@cap KIGUMI_CAP_HOST_SHELL host.shell
+@arm HOST_SHELL
+ return cap_host_shell();
+@stub HOST_SHELL
+@endcap
+@cap KIGUMI_CAP_HOST_ARGS host.args
+@arm HOST_ARGS
+ return cap_host_args();
+@stub HOST_ARGS
+@endcap
+@cap KIGUMI_CAP_HOST_FILES host.files
+@arm HOST_FILES
+ return cap_host_files();
+@stub HOST_FILES
+@endcap
+@cap KIGUMI_CAP_HOST_NET host.net
+@arm HOST_NET
+ return cap_host_net();
+@stub HOST_NET
+@endcap
+@cap KIGUMI_CAP_HOST_DL host.dl
+@arm HOST_DL
+ return cap_host_dl();
+@stub HOST_DL
+@endcap
+@cap KIGUMI_CAP_HOST_ENTROPY host.entropy
+@arm HOST_ENTROPY
+ return cap_host_entropy();
+@stub HOST_ENTROPY
+@endcap
+@cap KIGUMI_CAP_HOST_SIGNALS host.signals
+@arm HOST_SIGNALS
+ return cap_host_signals();
+@stub HOST_SIGNALS
+@endcap
+@cap KIGUMI_CAP_HOST_ARGS host.args
+@arm ARGS_GET
+ return cap_args_get(a1);
+@arm ARGS_GET_BYTES
+ return cap_args_get_bytes(a1);
+@stub ARGS_GET
+@stub ARGS_GET_BYTES
+@endcap
+@section ffi / crypto / dl
+@cap KIGUMI_CAP_FFI_CSTRING ffi.cstring
+@arm CSTRING_NEW
+ return cap_cstring_new(a0);
+@arm CSTRING_PTR
+ return cap_cstring_ptr(a0);
+@arm CSTRING_DROP
+ return cap_cstring_drop(a0);
+@stub CSTRING_NEW CSTRING_PTR CSTRING_DROP
+@endcap
+@cap KIGUMI_CAP_FFI_RAW ffi.raw
+@arm FFI_BYTES_FROM
+ return cap_ffi_bytes_from(a0, a1);
+@arm FFI_BYTES_PTR
+ return cap_ffi_bytes_ptr(a0);
+@stub FFI_BYTES_FROM FFI_BYTES_PTR
+@endcap
+@op BYTES_GET
+ {
+        int64_t i = a1->u.i;
+        if (i < 0 || i >= a0->u.s.len) return rt_none();
+        return rt_some(rt_int((uint8_t)a0->u.s.data[i], 8));
+    }
+@op SECRET_BARRIER_U64
+ return rt_int((int64_t)secret_barrier_u64((uint64_t)a0->u.i), 64);
+@op SECRET_MASK_NONZERO_U64
+ return rt_int((int64_t)secret_mask_nonzero_u64((uint64_t)a0->u.i), 64);
+@op SECRET_MASK_LT_U64
+ return rt_int((int64_t)secret_mask_lt_u64((uint64_t)a0->u.i, (uint64_t)a1->u.i), 64);
+@op SECRET_SELECT_U64
+ return rt_int((int64_t)secret_select_u64((uint64_t)a0->u.i, (uint64_t)a1->u.i, (uint64_t)a2->u.i), 64);
+@op SECRET_EQ_BYTES
+ return rt_int((int64_t)secret_eq_bytes(a0, a1), 64);
+@op SUBTLE_CT_EQ
+ return rt_bool(subtle_constant_time_eq(a0, a1));
+@cap KIGUMI_CAP_MEM_SECURE_ERASE mem.secure-erase
+@arm SECURE_ERASE
+ return cap_secure_erase(a0);
+@arm SECURE_ERASE_RAW
+ return cap_secure_erase_raw(a0, a1);
+@arm SECURE_ERASE_TRY
+ return cap_secure_erase_try(a0);
+@stub SECURE_ERASE SECURE_ERASE_RAW SECURE_ERASE_TRY
+@endcap
+@cap KIGUMI_CAP_HOST_DL host.dl
+@arm DL_SYMBOL_CALL
+ return cap_dl_symbol_call();
+@stub DL_SYMBOL_CALL
+@endcap
+@cap KIGUMI_CAP_HOST_STDIO host.stdio
+@arm HOST_STDIN
+ return cap_host_stdin();
+@arm HOST_STDOUT
+ return cap_host_stdout();
+@arm HOST_STDERR
+ return cap_host_stderr();
+@stub HOST_STDIN HOST_STDOUT HOST_STDERR
+@endcap
+@cap KIGUMI_CAP_FFI_PIN ffi.pin
+@arm PIN_NEW
+ return cap_pin_new(a[0]);
+@arm PIN_PTR
+ return cap_pin_ptr(a0);
+@arm PIN_WITH
+ return cap_pin_with(a0, a1);
+@stub PIN_NEW PIN_PTR PIN_WITH
+@endcap
+@op WITH_ADDRESS
+ return with_address(a[0], a0, a1);
+@cap KIGUMI_CAP_FFI_PIN ffi.pin
+@arm PIN_DROP
+ return cap_pin_drop(a0);
+@arm PIN_RELEASE
+ return cap_pin_release(a0);
+@arm PIN_RECLAIM
+ return cap_pin_reclaim(a0);
+@stub PIN_DROP PIN_RELEASE PIN_RECLAIM
+@endcap
+@cap KIGUMI_CAP_FFI_HANDLE_TABLE ffi.handle-table
+@arm HANDLE_TABLE_NEW
+ return cap_handle_table_new();
+@arm HANDLE_TABLE_INSERT
+ return cap_handle_table_insert(a0, a1);
+@arm HANDLE_TABLE_WITH
+ return cap_handle_table_with(a1, a2);
+@arm HANDLE_TABLE_REMOVE
+ return cap_handle_table_remove(a1);
+@arm HANDLE_TABLE_RECLAIM
+ return cap_handle_table_reclaim(a0, a1);
+@arm HANDLE_TABLE_CLOSE
+ return cap_handle_table_close(a0);
+@arm HANDLE_TABLE_DROP
+ return cap_handle_table_drop(a0);
+@arm HANDLE_RAW
+ return cap_handle_raw(a0);
+@arm HANDLE_DROP
+ return cap_handle_drop(a0);
+@stub HANDLE_TABLE_NEW HANDLE_TABLE_INSERT HANDLE_TABLE_WITH HANDLE_TABLE_REMOVE HANDLE_TABLE_RECLAIM HANDLE_TABLE_CLOSE HANDLE_TABLE_DROP HANDLE_RAW HANDLE_DROP
+@endcap
+@cap KIGUMI_CAP_FFI_RAW ffi.raw
+@arm FFI_STRING
+ return cap_ffi_string(a0);
+@arm FFI_STRING_LOSSY
+ return cap_ffi_string_lossy(a0);
+@arm FFI_STRING_CHECKED
+ return cap_ffi_string_checked(a0);
+@stub FFI_STRING FFI_STRING_LOSSY FFI_STRING_CHECKED
+@endcap
+@section task / alloc / net
+@cap KIGUMI_CAP_TASK_EXECUTOR task.executor
+@arm TASK_CURRENT_EXECUTOR
+ return rt_executor_new();
+@arm EXECUTOR_RUN_TO_COMPLETION
+ return rt_run_to_completion(a0, rt_retain(a1));
+@arm TASK_SPAWN
+ return rt_task_spawn(rt_retain(a0));
+@arm TASK_CANCEL
+ rt_task_cancel(a0); return rt_unit();
+@arm TASK_CANCEL_REQUESTED
+ return rt_bool(rt_cancel_requested());
+@arm TASK_THREAD_POOL_EXECUTOR
+ return rt_thread_pool_new(a0->u.i);
+@arm TASK_HANDOFF
+ return rt_task_handoff(a0, rt_retain(a1));
+@arm TASK_YIELD_NOW
+ return rt_task_yield_now();
+@stub TASK_CURRENT_EXECUTOR EXECUTOR_RUN_TO_COMPLETION TASK_SPAWN TASK_CANCEL TASK_CANCEL_REQUESTED TASK_THREAD_POOL_EXECUTOR TASK_HANDOFF TASK_YIELD_NOW
+@endcap
+@op ARENA_CREATE
+ {
+        arena* ar = (arena_fault_injected() || fault_tick()) ? NULL : calloc(1, sizeof *ar);
+        if (!ar) return oom_error();
+        ar->a.alloc = arena_alloc;
+        ar->a.free = arena_free;
+        return rt_ok(rt_opaque("AllocatorHandle", ar));
+    }
+@op ARENA_TRY_CREATE
+ {
+        arena* ar = (arena_fault_injected() || fault_tick()) ? NULL : calloc(1, sizeof *ar);
+        if (!ar) return alloc_error();
+        ar->a.alloc = arena_alloc;
+        ar->a.free = arena_free;
+        val h = opaque_try("AllocatorHandle", ar);
+        if (!h) {
+            free(ar);
+            return alloc_error();
+        }
+        return try_ok(h);
+    }
+@op ALLOCATOR_SCOPE
+ return opaque_in(&((arena*)a0->u.op.data)->a, "AllocatorScope", rt_retain(a0));
+@op ALLOCATOR_ALLOCATED
+ return rt_int((int64_t)((arena*)a0->u.op.data)->a.bytes, 64 | 256);
+@op SHARED_TRY_NEW
+ {
+        sctrl* c = fault_tick() ? NULL : calloc(1, sizeof *c);
+        if (!c) return alloc_error();
+        val cell = rt_cell_try(rt_retain(a0));
+        if (!cell) {
+            rt_release(a0);
+            free(c);
+            return alloc_error();
+        }
+        c->cell = cell;
+        c->alive = 1;
+        val sh = opaque_try("Shared", c);
+        if (!sh) {
+            rt_release(c->cell);
+            free(c);
+            return alloc_error();
+        }
+        c->shared = sh;
+        return try_ok(sh);
+    }
+@op SHARED_CLONE
+ return rt_retain(a0);
+@op SHARED_SET
+ {
+        sctrl* c = a0->u.op.data;
+        if (c->borrow != 0) rt_panic("Shared is already borrowed");
+        val cell = c->cell;
+        val old = cell->u.cell.v;
+        cell->u.cell.v = rt_retain(a1);
+        rt_release(old);
+        return rt_unit();
+    }
+@op SHARED_WITH
+ {
+        sctrl* c = a0->u.op.data;
+        if (c->borrow < 0) rt_panic("Shared is exclusively borrowed");
+        c->borrow++;
+        val arg[1] = {c->cell->u.cell.v};
+        UNWIND_PUSH(u, unwind_borrow_release, c, NULL, 0);
+        val r = rt_callv_lent(a1, 1, arg);
+        UNWIND_POP(u);
+        c->borrow--;
+        return r;
+    }
+@op SHARED_WITH_MUT
+ {
+        sctrl* c = a0->u.op.data;
+        if (c->borrow != 0) rt_panic("Shared is already borrowed");
+        c->borrow = -1;
+        // The callback writes through c->cell itself, same as any
+        // other &mut Cell store, instead of a snapshot of its content.
+        val arg[1] = {c->cell};
+        UNWIND_PUSH(u, unwind_borrow_free, c, NULL, 0);
+        val r = rt_callv_lent(a1, 1, arg);
+        UNWIND_POP(u);
+        c->borrow = 0;
+        return r;
+    }
+@op SHARED_TRY_GET
+ {
+        val content = ((sctrl*)a0->u.op.data)->cell->u.cell.v;
+        val copy = NULL;
+        if (!copy_slot_try(&copy, content)) return alloc_error();
+        return try_ok(copy);
+    }
+@op SHARED_TRY_DOWNGRADE
+ {
+        sctrl* c = a0->u.op.data;
+        val weak = opaque_try("Weak", c);
+        if (!weak) return alloc_error();
+        c->weak++;
+        return try_ok(weak);
+    }
+@op WEAK_UPGRADE
+ {
+        sctrl* c = a0->u.op.data;
+        return c->alive ? rt_some(rt_retain(c->shared)) : rt_none();
+    }
+@op BOX_TRY_NEW
+ {
+        val cell = rt_cell_try(rt_retain(a0));
+        if (!cell) {
+            rt_release(a0);
+            return alloc_error();
+        }
+        val box = opaque_try("Box", cell);
+        if (!box) {
+            rt_release(cell);
+            return alloc_error();
+        }
+        return try_ok(box);
+    }
+@op BOX_GET
+ return rt_copy(((val)a0->u.op.data)->u.cell.v);
+@op BOX_SET
+ {
+        val cell = (val)a0->u.op.data;
+        val old = cell->u.cell.v;
+        cell->u.cell.v = rt_retain(a1);
+        rt_release(old);
+        return rt_unit();
+    }
+@op BOX_WITH
+ {
+        val arg[1] = {((val)a0->u.op.data)->u.cell.v};
+        return rt_callv_lent(a1, 1, arg);
+    }
+@op BOX_WITH_MUT
+ {
+        val arg[1] = {(val)a0->u.op.data};
+        return rt_callv_lent(a1, 1, arg);
+    }
+@op BOX_INTO
+ return rt_retain(((val)a0->u.op.data)->u.cell.v);
+@cap KIGUMI_CAP_HOST_NET host.net
+@arm NET_LISTENER_DROP NET_CONN_DROP
+        return cap_net_conn_drop(a0);
+@stub NET_LISTENER_DROP NET_CONN_DROP
+@endcap
+@op BUILD_ONLY
+
+        rt_panic("std/build only runs inside `kigumi build`");
+        return NULL;
+@section math / misc
+@cap KIGUMI_CAP_HOST_ARGS host.args
+@arm ARGS_LEN
+ return cap_args_len();
+@stub ARGS_LEN
+@endcap
+@op MATH_SQRT
+ return rt_float(sqrt(a0->u.f), 64 | 512);
+@op MATH_FLOOR
+ return rt_float(floor(a0->u.f), 64 | 512);
+@op MATH_CEIL
+ return rt_float(ceil(a0->u.f), 64 | 512);
+@op MATH_ROUND
+ return rt_float(round(a0->u.f), 64 | 512);
+@op MATH_POW
+ return rt_float(pow(a0->u.f, a1->u.f), 64 | 512);
+@section int_fn reads the op name after the key's last '.', so a leading dot
+@section is enough; reusing it keeps the wrapping/rotate math in one place.
+@op WRAPPING_ADD
+ return int_fn(".wrappingAdd", a0, a1);
+@op WRAPPING_SUB
+ return int_fn(".wrappingSub", a0, a1);
+@op WRAPPING_MUL
+ return int_fn(".wrappingMul", a0, a1);
+@op WRAPPING_SHL
+ return int_fn(".wrappingShiftLeft", a0, a1);
+@op WRAPPING_SHR
+ return int_fn(".wrappingShiftRight", a0, a1);
+@op ROTATE_LEFT
+ return int_fn(".rotateLeft", a0, a1);
+@op ROTATE_RIGHT
+ return int_fn(".rotateRight", a0, a1);
+@op CHAR_FROM_INT
+ {
+        int64_t v = a0->u.i;
+        if (v < 0 || v > 0x10FFFF || (v >= 0xD800 && v <= 0xDFFF)) return rt_none();
+        return rt_some(rt_char((uint32_t)v));
+    }
+@op UCELL_NEW
+ return rt_opaque("UnsafeCell", rt_cell(rt_retain(a0)));
+@op UCELL_GET
+ return rt_copy(((val)a0->u.op.data)->u.cell.v);
+@op UCELL_SET
+ {
+        val cell = (val)a0->u.op.data;
+        val old = cell->u.cell.v;
+        cell->u.cell.v = rt_retain(a1);
+        rt_release(old);
+        return rt_unit();
+    }
+@op UCELL_ATOMIC_LOAD
+ return ucell_atomic('l', a0, NULL, NULL);
+@op UCELL_ATOMIC_STORE
+ return ucell_atomic('s', a0, a1, NULL);
+@op UCELL_ATOMIC_EXCHANGE
+ return ucell_atomic('x', a0, a1, NULL);
+@op UCELL_ATOMIC_COMPARE_EXCHANGE
+ return ucell_atomic('c', a0, a1, a2);
+@op UCELL_ATOMIC_ADD
+ return ucell_atomic('+', a0, a1, NULL);
+@op UCELL_ATOMIC_SUB
+ return ucell_atomic('-', a0, a1, NULL);
+@op UCELL_ATOMIC_AND
+ return ucell_atomic('&', a0, a1, NULL);
+@op UCELL_ATOMIC_OR
+ return ucell_atomic('|', a0, a1, NULL);
+@op UCELL_ATOMIC_XOR
+ return ucell_atomic('^', a0, a1, NULL);
+@op UNINIT_NEW
+ return rt_opaque("Uninit", rt_cell(NULL));
+@op UNINIT_INITIALIZE
+ {
+        ((val)a0->u.op.data)->u.cell.v = rt_retain(a1);
+        return rt_unit();
+    }
+@op UNINIT_BORROW
+ return rt_retain(uninit_filled(a0));
+@op UNINIT_COPY
+ return rt_copy(uninit_filled(a0));
+@op UNINIT_BORROW_MUT
+ return rt_retain((val)a0->u.op.data);
+@op UNINIT_TAKE
+ {
+        val cell = (val)a0->u.op.data;
+        val v = uninit_filled(a0);
+        cell->u.cell.v = NULL;
+        return v;
+    }
+@op UNINIT_DROP
+ {
+        val cell = (val)a0->u.op.data;
+        val old = cell->u.cell.v;
+        cell->u.cell.v = NULL;
+        rt_release(old);
+        return rt_unit();
+    }
+@op BLOCKING_POOL_NEW
+
+#if defined(KIGUMI_FREESTANDING) || !defined(KIGUMI_CAP_TASK_BLOCKING_POOL)
+        rt_panic("this build has no task.blocking-pool capability");
+        return NULL;
+#else
+        return cap_blocking_pool_new(a0);
+#endif
+@op BLOCKING_POOL_RUN
+
+#if defined(KIGUMI_FREESTANDING) || !defined(KIGUMI_CAP_TASK_BLOCKING_POOL)
+        rt_panic("this build has no task.blocking-pool capability");
+        return NULL;
+#else
+        return cap_blocking_pool_run(a0, a1);
+#endif

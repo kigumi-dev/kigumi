@@ -1,0 +1,34 @@
+-- src --
+import hex from std/encoding/hex
+import hash from std/crypto/hash
+import sha256 from std/crypto/sha256
+
+fn show(b: Bytes) -> String {
+    hex.encode(b)
+}
+
+// FIPS 180-4 / NIST CAVP の vector
+print "empty ${show(sha256.sum(Bytes.zeros(0)))}"
+print "abc ${show(sha256.sum(b"abc"))}"
+print "two-block ${show(sha256.sum("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq".toBytes()))}"
+print "million ${show(sha256.sum("a".repeat(1000000).toBytes()))}"
+
+// 分割して update しても同じ digest になる
+let mut h = sha256.Hasher.new()
+h.update(b"abcdbcdecdefdefgefghfghighijhijk")
+h.update(b"ijkljklmklmnlmnomnopnopq")
+print "split ${show(h.finish())}"
+
+print "sizes ${sha256.size} ${sha256.blockSize} ${sha256.Hasher.size()} ${sha256.Hasher.blockSize()}"
+print "genericsum ${show(hash.sum[sha256.Hasher](b"abc"))}"
+let pieces = Array.of[Bytes](b"a", b"b", b"c")
+print "sumall ${show(hash.sumAll[sha256.Hasher](&pieces))}"
+-- stdout --
+empty e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+abc ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
+two-block 248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1
+million cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0
+split 248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1
+sizes 32 64 32 64
+genericsum ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
+sumall ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad

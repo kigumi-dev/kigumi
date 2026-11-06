@@ -1,3 +1,4 @@
+// Generated from internal/compiler/mir/ops/stdops.reg and std_dispatch_bodies.txt by TestStdDispatchFresh; do not edit.
 val rt_std_id(int op, int n, val* a) {
     val a0 = n > 0 ? rt_deref(a[0]) : NULL, a1 = n > 1 ? rt_deref(a[1]) : NULL, a2 = n > 2 ? rt_deref(a[2]) : NULL;
     if (a0 && a0->kind == K_BOX && !op_stores_a0(op)) a0 = a0->u.box.v;

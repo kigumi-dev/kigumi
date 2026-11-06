@@ -4229,6 +4229,42 @@
       ]
     },
     {
+      "id": "run/crypto_hkdf",
+      "kind": "run",
+      "path": "testdata/run/crypto_hkdf.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_hmac",
+      "kind": "run",
+      "path": "testdata/run/crypto_hmac.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_sha256",
+      "kind": "run",
+      "path": "testdata/run/crypto_sha256.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_sha512",
+      "kind": "run",
+      "path": "testdata/run/crypto_sha512.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/custom_eq",
       "kind": "run",
       "path": "testdata/run/custom_eq.txtar",
@@ -8111,6 +8147,15 @@
       "id": "run/map_derived_key_move",
       "kind": "run",
       "path": "testdata/run/map_derived_key_move.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/map_key_not_kept_ok",
+      "kind": "run",
+      "path": "testdata/run/map_key_not_kept_ok.txtar",
       "mode": [
         "vm",
         "native"

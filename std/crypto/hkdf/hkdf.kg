@@ -1,0 +1,65 @@
+import hash from std/crypto/hash
+import hmac from std/crypto/hmac
+
+/// An HKDF failure: a request past the RFC 5869 §2.3 length limit, or a short
+/// final output slice.
+pub type HkdfError = {
+    pub text String
+}
+
+pub fn HkdfError.message(self) -> String {
+    self.text
+}
+
+/// Appends every byte of data to out.
+pure fn appendBytes(out: &mut Array[u8], data: Bytes) {
+    let mut i: usize = 0
+    for i < data.len() {
+        out.push(data[i])
+        i = i + 1
+    }
+}
+
+/// Extract step: a pseudorandom key of one digest from the input keying material.
+/// An empty salt means HashLen zero bytes, as RFC 5869 §2.2 specifies.
+pub pure fn extract[D: hash.Digest](salt: Bytes, ikm: Bytes) -> Bytes {
+    let s = if salt.len() == 0 {
+        Bytes.zeros(D.size())
+    } else {
+        salt
+    }
+    hmac.sum[D](s, ikm)
+}
+
+/// Expand step: length bytes of output keyed by prk and bound to info.
+/// Fails when length exceeds the RFC 5869 §2.3 limit of 255 digests.
+pub pure fn expand[D: hash.Digest](prk: Bytes, info: Bytes, length: usize) -> Result[Bytes, HkdfError] {
+    let n = D.size()
+    if length > n * 255 {
+        return Err(HkdfError { text: "hkdf: requested length exceeds 255 digests" })
+    }
+    let mut out = Array.empty[u8]()
+    let mut previous = Bytes.zeros(0)
+    // Counted from the block index: the last legal counter is 255, and `+ 1` on a
+    // u8 panics on overflow rather than wrapping.
+    let mut i: usize = 0
+    for out.len() < length {
+        let mut block = Array.empty[u8]()
+        appendBytes(&mut block, previous)
+        appendBytes(&mut block, info)
+        block.push((i + 1).toU8() || 0)
+        previous = hmac.sum[D](prk, Bytes.fromArray(&block))
+        appendBytes(&mut out, previous)
+        i = i + 1
+    }
+    let all = Bytes.fromArray(&out)
+    match all.slice(0, length) {
+        Some(b) -> Ok(b)
+        None -> Err(HkdfError { text: "hkdf: short output" })
+    }
+}
+
+/// Extract followed by expand, the usual one-call form.
+pub pure fn derive[D: hash.Digest](salt: Bytes, ikm: Bytes, info: Bytes, length: usize) -> Result[Bytes, HkdfError] {
+    expand[D](extract[D](salt, ikm), info, length)
+}

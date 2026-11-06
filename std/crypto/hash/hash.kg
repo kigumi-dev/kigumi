@@ -1,0 +1,28 @@
+/// The contract a cryptographic hash implements so that HMAC, HKDF and the
+/// rest of `std/crypto` never name a concrete algorithm.
+///
+/// `new` / `blockSize` / `size` have no receiver, so `Digest` can be used as a
+/// type parameter bound (`fn sum[D: Digest]`) but not as an existential value.
+pub interface Digest {
+    pure fn new() -> Self
+    pure noalloc fn blockSize() -> usize
+    pure noalloc fn size() -> usize
+    pure fn update(mut self, data: Bytes)
+    pure fn finish(move self) -> Bytes
+}
+
+/// Digest of `data` in one call.
+pub pure fn sum[D: Digest](data: Bytes) -> Bytes {
+    let mut h = D.new()
+    h.update(data)
+    h.finish()
+}
+
+/// Digest of the pieces in order, without joining them first.
+pub pure fn sumAll[D: Digest](pieces: &Array[Bytes]) -> Bytes {
+    let mut h = D.new()
+    for p in pieces {
+        h.update(p)
+    }
+    h.finish()
+}
