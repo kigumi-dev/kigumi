@@ -125,3 +125,151 @@ pub unsafe fn outb(port: u16, value: u8) {
         }
     }
 }
+
+type Random = {
+    value u64
+    ok u8
+}
+
+type Control = {
+    value u64
+}
+
+fn readCr0() -> u64 {
+    let r: Control = unsafe {
+        asm {
+            "mov {value}, cr0"
+            value: out(r11)
+        }
+    }
+    r.value
+}
+
+fn readCr2() -> u64 {
+    let r: Control = unsafe {
+        asm {
+            "mov {value}, cr2"
+            value: out(r11)
+        }
+    }
+    r.value
+}
+
+fn readCr3() -> u64 {
+    let r: Control = unsafe {
+        asm {
+            "mov {value}, cr3"
+            value: out(r11)
+        }
+    }
+    r.value
+}
+
+fn readCr4() -> u64 {
+    let r: Control = unsafe {
+        asm {
+            "mov {value}, cr4"
+            value: out(r11)
+        }
+    }
+    r.value
+}
+
+fn readCr8() -> u64 {
+    let r: Control = unsafe {
+        asm {
+            "mov {value}, cr8"
+            value: out(r11)
+        }
+    }
+    r.value
+}
+
+fn writeCr0(value: u64) {
+    unsafe {
+        asm {
+            "mov cr0, {value}"
+            value: in(r11) value
+        }
+    }
+}
+
+fn writeCr2(value: u64) {
+    unsafe {
+        asm {
+            "mov cr2, {value}"
+            value: in(r11) value
+        }
+    }
+}
+
+fn writeCr3(value: u64) {
+    unsafe {
+        asm {
+            "mov cr3, {value}"
+            value: in(r11) value
+        }
+    }
+}
+
+fn writeCr4(value: u64) {
+    unsafe {
+        asm {
+            "mov cr4, {value}"
+            value: in(r11) value
+        }
+    }
+}
+
+fn writeCr8(value: u64) {
+    unsafe {
+        asm {
+            "mov cr8, {value}"
+            value: in(r11) value
+        }
+    }
+}
+
+/// Reads a hardware random value; None when the CPU has no entropy ready.
+pub fn rdrand() -> u64? {
+    let r: Random = unsafe {
+        asm {
+            "rdrand {value}"
+            "setc {ok}"
+            value: out(r11)
+            ok: out(r10b)
+            options nostack
+        }
+    }
+    if r.ok == 0 {
+        None
+    } else {
+        Some(r.value)
+    }
+}
+
+/// Reads control register n; privileged.
+pub unsafe fn readCr(n: u32) -> usize {
+    let v = match n {
+        0 -> readCr0()
+        2 -> readCr2()
+        3 -> readCr3()
+        4 -> readCr4()
+        8 -> readCr8()
+        _ -> panic("control register must be 0, 2, 3, 4 or 8")
+    }
+    v.toUsize()
+}
+
+/// Writes control register n; privileged.
+pub unsafe fn writeCr(n: u32, value: usize) {
+    let v = value.toU64()
+    match n {
+        0 -> writeCr0(v)
+        2 -> writeCr2(v)
+        3 -> writeCr3(v)
+        4 -> writeCr4(v)
+        8 -> writeCr8(v)
+        _ -> panic("control register must be 0, 2, 3, 4 or 8")
+    }
+}

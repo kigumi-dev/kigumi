@@ -27,7 +27,7 @@ pure noalloc fn digitAt(t: &String, at: usize) -> Int {
 }
 
 /// Offset in `blocks` of the value for p, where each value is `digits`
-/// characters. The layout is described above; the tables live in width_index.kg, width_blocks.kg, grapheme_index.kg and grapheme_blocks.kg.
+/// characters. The layout is described in `unicode_tables.kg`, which holds the tables.
 pure noalloc fn valueOffset(index: &String, blocks: &String, digits: usize, p: Int) -> usize {
     let q = p.toUsize() || 0
     let block = q >> 7

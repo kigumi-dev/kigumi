@@ -1,5 +1,5 @@
 // Extended grapheme cluster boundaries, UAX #29 with the Indic conjunct rule
-// (GB9c). Properties come from the generated table files; unicode_lookup.kg describes the layout.
+// (GB9c). Properties come from the generated tables in unicode_tables.kg.
 /// What the scan remembers between scalars.
 type Scan = {
     prev Class
