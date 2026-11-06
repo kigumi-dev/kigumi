@@ -108,7 +108,7 @@ noalloc fn directVariantIntoAnArray(n: Int, mut xs: Array[Int?]) {
 }
 
 noalloc fn bytes(s: String) -> Bytes {
-    s.toBytes()
+    s.toBytes() //~ ERROR `toBytes` is not `noalloc`
 }
 
 noalloc fn pushes(mut xs: Array[Int]) {
@@ -243,6 +243,12 @@ error[E1610]: handing `Int?` to a slot that holds a reference allocates a box fo
 106 |     xs.push(Some(n)) //~ ERROR `push` is not `noalloc` //~ ERROR handing `Int?` to a slot that holds a reference allocates a box for it
     |             ^^^^^^
     = help: keep it in a value of its own, or drop the declaration
+
+error[E907]: `toBytes` is not `noalloc`
+   --> lib/na.kg:110:5
+    |
+110 |     s.toBytes() //~ ERROR `toBytes` is not `noalloc`
+    |     ^^^^^^^^^^
 
 error[E907]: `push` is not `noalloc`
    --> lib/na.kg:114:5
