@@ -1,0 +1,16 @@
+-- src --
+import http from std/net/http
+
+fn ok(_req: http.Request) -> http.Response! {
+    http.Response.ofText(200, "ok")
+}
+
+let h = http.Router.new().get("/café", ok).get("/a/b", ok).handler()
+for target in Array.of("/caf%C3%A9", "/a%2Fb", "/%zz") {
+    let resp = h(http.Request.new("GET", target))?
+    print "${target}: ${resp.status}"
+}
+-- stdout --
+/caf%C3%A9: 200
+/a%2Fb: 200
+/%zz: 400

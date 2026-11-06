@@ -111,6 +111,9 @@ fn hasPattern(patterns: String, path: String) -> Bool {
 }
 
 fn unmatched(table: String, req: Request) -> Response! {
+    if percentDecode(req.path) is None {
+        return Response.ofText(400, "invalid percent-encoding")
+    }
     let mut allowed = Array.empty[String]()
     for line in table.split("\n") {
         let parts = line.split(" ")
@@ -152,8 +155,9 @@ fn joinComma(items: &Array[String]) -> String {
 // Segments compare exactly, so `/a/` and `//a` stay distinct from `/a` and a
 // middleware reading req.path sees the same path the route matched.
 fn matchPattern(patternText: String, path: String) -> Array[Param]? {
+    let decoded = percentDecode(path) || return None
     let pattern = patternText.split("/")
-    let parts = path.split("/")
+    let parts = decoded.split("/")
     if pattern.len() != parts.len() {
         return None
     }
@@ -168,7 +172,7 @@ fn matchPattern(patternText: String, path: String) -> Array[Param]? {
             }
             params.push(Param {
                 name: want.sliceBytes(1, want.len() - 1) || ""
-                value: percentDecode(got) || return None
+                value: got
             })
         } else if want != got {
             return None

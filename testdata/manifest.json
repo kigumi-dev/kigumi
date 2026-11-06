@@ -9874,6 +9874,15 @@
       ]
     },
     {
+      "id": "run/std_http_router_percent",
+      "kind": "run",
+      "path": "testdata/run/std_http_router_percent.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/std_http_routing",
       "kind": "run",
       "path": "testdata/run/std_http_routing.txtar",
