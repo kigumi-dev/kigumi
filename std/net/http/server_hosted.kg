@@ -165,7 +165,11 @@ async fn Wire.readHead(mut self, limits: Limits, stop: Shutdown) -> HeadRead! {
         }
         match got {
             Got -> {}
-            Eof -> return Close
+            Eof -> return if started || self.pending.len() > 0 {
+                Reject(failure(400, "request head cut short"))
+            } else {
+                Close
+            }
             Stopped -> return Close
             Expired -> return if started {
                 Reject(failure(408, "request timed out"))

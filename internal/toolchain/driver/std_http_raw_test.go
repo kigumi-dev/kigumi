@@ -78,6 +78,7 @@ var httpRawCases = []struct{ name, send, want string }{
 	{"idle", "", ""},
 	{"garbage then request", "GARBAGE\r\n\r\nGET / HTTP/1.1\r\nHost: t\r\n\r\n", "HTTP/1.1 400 "},
 	{"short body then half close", "POST / HTTP/1.1\r\nHost: t\r\nContent-Length: 10\r\n\r\nabc", "HTTP/1.1 400 "},
+	{"incomplete head then half close", "GET / HTTP/1.1\r\nHost: t\r\n", "HTTP/1.1 400 "},
 }
 
 // TestHttpServerRawMalformed sends raw requests to a std/net/http server on both backends and checks each answer and that the connection closes after it.
@@ -149,7 +150,7 @@ func checkHTTPRaw(t *testing.T, cmd *exec.Cmd) {
 		t.Fatalf("no ports line\nstderr:\n%s", errOut.String())
 	}
 	for _, c := range httpRawCases {
-		got := rawHTTPExchange(t, port, c.send, c.name == "short body then half close")
+		got := rawHTTPExchange(t, port, c.send, c.name == "short body then half close" || c.name == "incomplete head then half close")
 		if !strings.HasPrefix(got, c.want) || (c.want == "" && got != "") {
 			t.Errorf("%s: got %q, want prefix %q", c.name, got, c.want)
 		}
