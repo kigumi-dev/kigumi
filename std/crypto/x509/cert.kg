@@ -1,0 +1,163 @@
+// Certificate, TBSCertificate and PEM decoding.
+import asn1 from std/crypto/asn1
+
+pure fn parseTime(e: asn1.Element) -> Result[asn1.Time, ParseError] {
+    if !universal(e) || e.constructed {
+        fail parseFailure("validity time must be a primitive universal time")
+    }
+    if e.tag == 23 {
+        match e.utcTime() {
+            Ok(value) -> Ok(value)
+            Err(err) -> fail parseFailure(err.message())
+        }
+    } else if e.tag == 24 {
+        match e.generalizedTime() {
+            Ok(value) -> Ok(value)
+            Err(err) -> fail parseFailure(err.message())
+        }
+    } else {
+        fail parseFailure("validity time must be UTCTime or GeneralizedTime")
+    }
+}
+
+pure fn parseValidity(e: asn1.Element) -> Result[Validity, ParseError] {
+    let fields = sequence(e)?
+    if fields.len() != 2 {
+        fail parseFailure("Validity must have two times")
+    }
+    Ok(Validity {
+        notBefore: parseTime(fields[0])?
+        notAfter: parseTime(fields[1])?
+    })
+}
+
+pure fn versionValue(e: asn1.Element) -> Result[Int, ParseError] {
+    if !(e.tagClass is asn1.TagClass.Context) || !e.constructed || e.tag != 0 {
+        fail parseFailure("version must be [0] EXPLICIT")
+    }
+    let fields = match e.children() {
+        Ok(value) -> value
+        Err(err) -> fail parseFailure(err.message())
+    }
+    if fields.len() != 1 {
+        fail parseFailure("version wrapper must hold one INTEGER")
+    }
+    let raw = uintOf(fields[0])?
+    if raw > 2 {
+        fail parseFailure("unsupported certificate version ${raw + 1}")
+    }
+    Ok((raw.toInt() || fail parseFailure("certificate version is too large")) + 1)
+}
+
+pure fn sameAlgorithm(a: SignatureAlgorithm, b: SignatureAlgorithm) -> Bool {
+    match a {
+        Sha256WithRsa -> b is SignatureAlgorithm.Sha256WithRsa
+        RsaPssSha256 -> b is SignatureAlgorithm.RsaPssSha256
+        EcdsaSha256 -> b is SignatureAlgorithm.EcdsaSha256
+    }
+}
+
+pure fn parseTbs(der: Bytes, tbs: asn1.Element, outerAlgorithm: SignatureAlgorithm, signature: Bytes) -> Result[Certificate, ParseError] {
+    let fields = sequence(tbs)?
+    let mut at: usize = 0
+    let mut version: Int = 1
+    if at < fields.len() && fields[at].tagClass is asn1.TagClass.Context && fields[at].tag == 0 {
+        version = versionValue(fields[at])?
+        at = at + 1
+    }
+    if fields.len() - at < 6 {
+        fail parseFailure("TBSCertificate is missing required fields")
+    }
+    let serial = uintBytesOf(fields[at])?
+    if serial.len() > 20 {
+        fail parseFailure("serial number is longer than 20 octets")
+    }
+    let innerAlgorithm = parseSignatureAlgorithm(fields[at + 1])?
+    if !sameAlgorithm(innerAlgorithm, outerAlgorithm) {
+        fail parseFailure("inner and outer signature algorithms differ")
+    }
+    let issuer = parseName(der, fields[at + 2])?
+    let validity = parseValidity(fields[at + 3])?
+    let subject = parseName(der, fields[at + 4])?
+    let publicKey = parseSubjectPublicKeyInfo(fields[at + 5])?
+    at = at + 6
+
+    let mut extensions = emptyExtensions()
+    for at < fields.len() {
+        let field = fields[at]
+        if !(field.tagClass is asn1.TagClass.Context) {
+            fail parseFailure("unexpected field after SubjectPublicKeyInfo")
+        }
+        match field.tag {
+            1 -> {}
+            2 -> {}
+            3 -> {
+                extensions = parseExtensions(field)?
+            }
+            _ -> fail parseFailure("unsupported optional TBSCertificate field [${field.tag}]")
+        }
+        at = at + 1
+    }
+
+    Ok(Certificate {
+        version: version
+        serial: serial
+        issuer: issuer
+        subject: subject
+        validity: validity
+        publicKey: publicKey
+        signatureAlgorithm: outerAlgorithm
+        basicConstraints: extensions.basicConstraints
+        keyUsage: extensions.keyUsage
+        extKeyUsage: move extensions.extKeyUsage
+        subjectAltNamesPresent: extensions.subjectAltNamesPresent
+        dnsNames: move extensions.dnsNames
+        ipAddresses: move extensions.ipAddresses
+        subjectKeyId: extensions.subjectKeyId
+        authorityKeyId: extensions.authorityKeyId
+        unsupportedCritical: move extensions.unsupportedCritical
+        tbs: rawElement(der, tbs)?
+        signature: signature
+    })
+}
+
+/// Parses one DER certificate. The whole input must be exactly one
+/// Certificate; trailing bytes and BER constructs are refused.
+pub pure fn parse(der: Bytes) -> Result[Certificate, ParseError] {
+    let root = match asn1.parse(der) {
+        Ok(value) -> value
+        Err(err) -> fail parseFailure(err.message())
+    }
+    if root.totalLen() != der.len() {
+        fail parseFailure("trailing bytes after the certificate")
+    }
+    let fields = sequence(root)?
+    if fields.len() != 3 {
+        fail parseFailure("Certificate must have three fields")
+    }
+    let outerAlgorithm = parseSignatureAlgorithm(fields[1])?
+    let bits = bitStringOf(fields[2])?
+    if bits.unusedBits != 0 {
+        fail parseFailure("signature BIT STRING must be byte aligned")
+    }
+    parseTbs(der, fields[0], outerAlgorithm, bits.bytes)
+}
+
+/// Parses every `CERTIFICATE` PEM block in `input`; other block labels are
+/// ignored. At least one certificate must be present.
+pub pure fn parsePem(input: String) -> Result[Array[Certificate], ParseError] {
+    let blocks = match asn1.parsePem(input) {
+        Ok(value) -> value
+        Err(err) -> fail parseFailure(err.message())
+    }
+    let mut out = Array.empty[Certificate]()
+    for block in blocks {
+        if block.label == "CERTIFICATE" {
+            out.push(parse(block.der)?)
+        }
+    }
+    if out.len() == 0 {
+        fail parseFailure("PEM input contains no CERTIFICATE block")
+    }
+    Ok(out)
+}

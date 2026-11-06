@@ -1,0 +1,75 @@
+// Distinguished Name decoding. Path building compares the complete DER
+// encoding, not a canonicalized attribute set; the decoded CN/O/OU fields
+// are for display and hostname fallback.
+import asn1 from std/crypto/asn1
+
+pure fn directoryString(e: asn1.Element) -> Result[String, ParseError] {
+    if !universal(e) || e.constructed {
+        fail parseFailure("name attribute value is not a primitive string")
+    }
+    match e.tag {
+        12 -> match e.utf8String() {
+            Ok(value) -> Ok(value)
+            Err(err) -> fail parseFailure(err.message())
+        }
+        19 -> match e.printableString() {
+            Ok(value) -> Ok(value)
+            Err(err) -> fail parseFailure(err.message())
+        }
+        22 -> match e.ia5String() {
+            Ok(value) -> Ok(value)
+            Err(err) -> fail parseFailure(err.message())
+        }
+        _ -> fail parseFailure("unsupported name attribute string type ${e.tag}")
+    }
+}
+
+/// Parses a DER `Name` (SEQUENCE OF SET OF AttributeTypeAndValue) and keeps
+/// the first CN, O and OU it sees. Empty RDNs and duplicate attributes are
+/// legal DER but do not add information here.
+pub pure fn parseName(der: Bytes, e: asn1.Element) -> Result[Name, ParseError] {
+    let raw = rawElement(der, e)?
+    let rdns = sequence(e)?
+    let mut commonName: String? = None
+    let mut organization: String? = None
+    let mut organizationalUnit: String? = None
+    let mut r: usize = 0
+    for r < rdns.len() {
+        let atoms = setOf(rdns[r])?
+        let mut a: usize = 0
+        for a < atoms.len() {
+            let parts = sequence(atoms[a])?
+            if parts.len() != 2 {
+                fail parseFailure("name attribute must have an OID and a value")
+            }
+            let oid = oidOf(parts[0])?
+            let value = directoryString(parts[1])?
+            match oid {
+                "2.5.4.3" -> {
+                    if commonName is None {
+                        commonName = Some(value)
+                    }
+                }
+                "2.5.4.10" -> {
+                    if organization is None {
+                        organization = Some(value)
+                    }
+                }
+                "2.5.4.11" -> {
+                    if organizationalUnit is None {
+                        organizationalUnit = Some(value)
+                    }
+                }
+                _ -> {}
+            }
+            a = a + 1
+        }
+        r = r + 1
+    }
+    Ok(Name {
+        raw: raw
+        commonName: commonName
+        organization: organization
+        organizationalUnit: organizationalUnit
+    })
+}

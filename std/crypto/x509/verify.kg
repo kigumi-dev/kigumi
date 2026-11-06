@@ -1,0 +1,262 @@
+// Signature verification, validity windows and hostname matching.
+//
+// RSA PKCS#1 v1.5 and PSS use the 32-byte SHA-256 digest of the
+// TBSCertificate, and ECDSA converts the DER `ECDSA-Sig-Value` to the
+// fixed-width r || s form that `std/crypto/p256` verifies.
+import asn1 from std/crypto/asn1
+import sha256 from std/crypto/sha256
+import rsa from std/crypto/rsa
+import p256 from std/crypto/p256
+
+pure fn floorDiv(a: Int, b: Int) -> Int {
+    let q = a / b
+    if a % b < 0 {
+        q - 1
+    } else {
+        q
+    }
+}
+
+// Howard Hinnant's days-from-civil-date algorithm, for days since 1970-01-01.
+pure fn daysFromCivil(year: Int, month: Int, day: Int) -> Int {
+    let y = year - (if month <= 2 {
+        1
+    } else {
+        0
+    })
+    let era = floorDiv(y, 400)
+    let yoe = y - era * 400
+    let mp = month + (if month > 2 {
+        -3
+    } else {
+        9
+    })
+    let doy = (153 * mp + 2) / 5 + day - 1
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy
+    era * 146097 + doe - 719468
+}
+
+pure fn timeMillis(t: asn1.Time) -> Int {
+    let days = daysFromCivil(t.year, t.month, t.day)
+    (days * 86400 + t.hour * 3600 + t.minute * 60 + t.second) * 1000
+}
+
+/// Milliseconds since 1970-01-01T00:00:00Z for the interval start.
+pub pure fn Validity.notBeforeMillis(self) -> Int {
+    timeMillis(self.notBefore)
+}
+
+/// Milliseconds since 1970-01-01T00:00:00Z for the interval end.
+pub pure fn Validity.notAfterMillis(self) -> Int {
+    timeMillis(self.notAfter)
+}
+
+/// Whether `nowMillis` lies in the closed interval [notBefore, notAfter].
+pub pure fn Validity.containsMillis(self, nowMillis: Int) -> Bool {
+    nowMillis >= self.notBeforeMillis() && nowMillis <= self.notAfterMillis()
+}
+
+/// Refuses a certificate outside its validity interval at `nowMillis`.
+pub fn Certificate.checkValidity(self, nowMillis: Int) -> Result[Void, ValidationError] {
+    if nowMillis < self.validity.notBeforeMillis() {
+        fail validationFailure("certificate is not yet valid")
+    }
+    if nowMillis > self.validity.notAfterMillis() {
+        fail validationFailure("certificate has expired")
+    }
+}
+
+pure fn scalar32(element: asn1.Element) -> Result[Bytes, ValidationError] {
+    let raw = match element.uintBytes() {
+        Ok(value) -> value
+        Err(err) -> fail validationFailure(err.message())
+    }
+    if raw.len() > 32 {
+        fail validationFailure("ECDSA integer is wider than 32 octets")
+    }
+    let mut out = Array.empty[u8]()
+    let mut pad = 32 - raw.len()
+    for pad > 0 {
+        out.push(0)
+        pad = pad - 1
+    }
+    let mut i: usize = 0
+    for i < raw.len() {
+        out.push(raw[i])
+        i = i + 1
+    }
+    Ok(Bytes.fromArray(&out))
+}
+
+pure fn ecdsaSignature(der: Bytes) -> Result[Bytes, ValidationError] {
+    let element = match asn1.parse(der) {
+        Ok(value) -> value
+        Err(err) -> fail validationFailure("ECDSA signature: ${err.message()}")
+    }
+    if element.totalLen() != der.len() {
+        fail validationFailure("ECDSA signature has trailing bytes")
+    }
+    let fields = match element.children() {
+        Ok(value) -> value
+        Err(err) -> fail validationFailure("ECDSA signature: ${err.message()}")
+    }
+    if fields.len() != 2 {
+        fail validationFailure("ECDSA signature must have two integers")
+    }
+    let r = scalar32(fields[0])?
+    let s = scalar32(fields[1])?
+    let mut out = Array.empty[u8]()
+    let mut i: usize = 0
+    for i < 32 {
+        out.push(r[i])
+        i = i + 1
+    }
+    let mut j: usize = 0
+    for j < 32 {
+        out.push(s[j])
+        j = j + 1
+    }
+    Ok(Bytes.fromArray(&out))
+}
+
+pure fn rsaVerdict(result: Result[Bool, rsa.Error]) -> Result[Void, ValidationError] {
+    match result {
+        Ok(true) -> Ok(())
+        Ok(false) -> fail validationFailure("signature does not verify")
+        Err(err) -> fail validationFailure(err.message())
+    }
+}
+
+pure fn ecdsaVerdict(result: Result[Bool, p256.Error]) -> Result[Void, ValidationError] {
+    match result {
+        Ok(true) -> Ok(())
+        Ok(false) -> fail validationFailure("signature does not verify")
+        Err(err) -> fail validationFailure(err.message())
+    }
+}
+
+/// Verifies the certificate signature with an explicitly supplied key.
+pub fn Certificate.verifySignature(self, key: PublicKey) -> Result[Void, ValidationError] {
+    let digest = sha256.sum(self.tbs)
+    match self.signatureAlgorithm {
+        Sha256WithRsa -> match key {
+            PublicKey.Rsa(publicKey) -> rsaVerdict(rsa.verifyPkcs1v15Sha256Digest(publicKey, digest, self.signature))
+            _ -> fail validationFailure("RSA signature requires an RSA issuer key")
+        }
+        RsaPssSha256 -> match key {
+            PublicKey.Rsa(publicKey) -> rsaVerdict(rsa.verifyPssSha256Digest(publicKey, digest, self.signature, rsa.SaltLength.Exact(32)))
+            _ -> fail validationFailure("RSA-PSS signature requires an RSA issuer key")
+        }
+        EcdsaSha256 -> match key {
+            PublicKey.EcP256(publicKey) -> ecdsaVerdict(p256.verify(publicKey, digest, ecdsaSignature(self.signature)?))
+            _ -> fail validationFailure("ECDSA signature requires a P-256 issuer key")
+        }
+    }
+}
+
+/// Verifies that `issuer` signed this certificate.
+pub fn Certificate.verifySignedBy(self, issuer: &Certificate) -> Result[Void, ValidationError] {
+    self.verifySignature(issuer.publicKey)
+}
+
+pure fn matchesDns(pattern: String, host: String) -> Bool {
+    let folded = pattern.toLower()
+    if folded == host {
+        return true
+    }
+    if !folded.startsWith("*.") {
+        return false
+    }
+    let suffix = match folded.sliceBytes(1, folded.len()) {
+        Some(value) -> value
+        None -> return false
+    }
+    if suffix.contains("*") {
+        return false
+    }
+    if host.len() <= suffix.len() || !host.endsWith(suffix) {
+        return false
+    }
+    let prefix = match host.sliceBytes(0, host.len() - suffix.len()) {
+        Some(value) -> value
+        None -> return false
+    }
+    if prefix.len() == 0 || prefix.contains(".") {
+        return false
+    }
+    let rest = match suffix.sliceBytes(1, suffix.len()) {
+        Some(value) -> value
+        None -> return false
+    }
+    rest.split(".").len() >= 2
+}
+
+pure fn parseIpv4(text: String) -> Bytes? {
+    let parts = text.split(".")
+    if parts.len() != 4 {
+        return None
+    }
+    let mut out = Array.empty[u8]()
+    let mut p: usize = 0
+    for p < parts.len() {
+        let part = parts[p]
+        if part.len() == 0 || part.len() > 3 {
+            return None
+        }
+        let mut value: Int = 0
+        let mut i: usize = 0
+        for i < part.len() {
+            let c = part[i]
+            if c < 48 || c > 57 {
+                return None
+            }
+            value = value * 10 + (c.toInt() - 48)
+            i = i + 1
+        }
+        if value > 255 {
+            return None
+        }
+        out.push(value.toU8() || return None)
+        p = p + 1
+    }
+    Some(Bytes.fromArray(&out))
+}
+
+/// Checks `host` against the certificate's subject alternative names. DNS
+/// comparison is ASCII case-insensitive and one leading `*.` label is
+/// accepted; an IPv4 host must match an iPAddress SAN octet for octet. When
+/// the SAN extension is absent the subject CN is the fallback.
+pub fn Certificate.verifyHostname(self, host: String) -> Result[Void, ValidationError] {
+    let name = host.trim().toLower()
+    if name.len() == 0 {
+        fail validationFailure("hostname is empty")
+    }
+    if let Some(address) = parseIpv4(name) {
+        let mut found = false
+        for candidate in &self.ipAddresses {
+            if candidate.equals(&address) {
+                found = true
+            }
+        }
+        if !found {
+            fail validationFailure("certificate does not contain an IP address SAN for ${host}")
+        }
+        return Ok(())
+    }
+
+    let mut found = false
+    if self.subjectAltNamesPresent {
+        for candidate in &self.dnsNames {
+            if matchesDns(candidate, name) {
+                found = true
+            }
+        }
+    } else if let Some(cn) = self.subject.commonName {
+        if matchesDns(cn, name) {
+            found = true
+        }
+    }
+    if !found {
+        fail validationFailure("certificate does not match hostname ${host}")
+    }
+}

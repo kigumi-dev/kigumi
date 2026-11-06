@@ -4472,6 +4472,15 @@
       ]
     },
     {
+      "id": "run/crypto_x509_pki",
+      "kind": "run",
+      "path": "testdata/run/crypto_x509_pki.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/custom_eq",
       "kind": "run",
       "path": "testdata/run/custom_eq.txtar",

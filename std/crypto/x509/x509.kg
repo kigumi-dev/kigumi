@@ -1,0 +1,174 @@
+// X.509 v3 certificate parsing and the small Web PKI subset used for
+// server-certificate path validation.
+//
+// The parser is strict DER through `std/crypto/asn1`: every element must be
+// minimally encoded, the whole input must be consumed, and unsupported
+// algorithms are refused. Validation is deliberately narrow: hostname
+// checks understand DNS SANs (exact and one-label wildcards) and IPv4 SANs,
+// path building requires exact DER name matches, and revocation, name
+// constraints, policy processing, proxy certificates and IPv6 addresses are
+// not implemented. Name attributes are decoded from UTF8String,
+// PrintableString and IA5String only. Callers that need more MUST add it
+// above this layer.
+import asn1 from std/crypto/asn1
+import rsa from std/crypto/rsa
+
+/// A public key carried by SubjectPublicKeyInfo.
+pub type PublicKey =
+    | Rsa(rsa.PublicKey)
+    | EcP256(Bytes)
+
+/// A signature algorithm this package can verify.
+pub type SignatureAlgorithm =
+    | Sha256WithRsa
+    | RsaPssSha256
+    | EcdsaSha256
+
+/// Extended-key-usage bits. `other` holds OIDs this package does not name;
+/// none of them imply TLS server authentication.
+pub type ExtKeyUsage = {
+    pub present Bool
+    pub serverAuth Bool
+    pub clientAuth Bool
+    pub codeSigning Bool
+    pub emailProtection Bool
+    pub timeStamping Bool
+    pub ocspSigning Bool
+    pub anyPurpose Bool
+    pub other Array[String]
+}
+
+/// Basic constraints; `present` is false when the extension is absent, in
+/// which case the certificate is not a CA.
+pub type BasicConstraints = {
+    pub present Bool
+    pub ca Bool
+    pub pathLen Int?
+}
+
+/// Key usage bits. When the extension is absent `present` is false and the
+/// certificate has no stated restriction.
+pub type KeyUsage = {
+    pub present Bool
+    pub digitalSignature Bool
+    pub contentCommitment Bool
+    pub keyEncipherment Bool
+    pub dataEncipherment Bool
+    pub keyAgreement Bool
+    pub keyCertSign Bool
+    pub crlSign Bool
+    pub encipherOnly Bool
+    pub decipherOnly Bool
+}
+
+/// A Distinguished Name. `raw` is the complete DER encoding and is what
+/// path building compares; the decoded attributes are informational.
+pub type Name = {
+    pub raw Bytes
+    pub commonName String?
+    pub organization String?
+    pub organizationalUnit String?
+}
+
+/// The certificate validity interval, in the ASN.1 calendar form.
+pub type Validity = {
+    pub notBefore asn1.Time
+    pub notAfter asn1.Time
+}
+
+/// A parsed X.509 certificate.
+///
+/// `unsupportedCritical` names critical extension OIDs the parser did not
+/// interpret; a validating caller MUST refuse such a certificate.
+pub type Certificate = {
+    pub version Int
+    pub serial Bytes
+    pub issuer Name
+    pub subject Name
+    pub validity Validity
+    pub publicKey PublicKey
+    pub signatureAlgorithm SignatureAlgorithm
+    pub basicConstraints BasicConstraints
+    pub keyUsage KeyUsage
+    pub extKeyUsage ExtKeyUsage
+    pub subjectAltNamesPresent Bool
+    pub dnsNames Array[String]
+    pub ipAddresses Array[Bytes]
+    pub subjectKeyId Bytes?
+    pub authorityKeyId Bytes?
+    pub unsupportedCritical Array[String]
+    tbs Bytes
+    signature Bytes
+}
+
+/// A DER or PEM decoding failure. `parse` and friends return this type, so
+/// a malformed certificate is never reported as a validation failure.
+pub type ParseError = {
+    pub text String
+}
+
+pub fn ParseError.message(self) -> String {
+    self.text
+}
+
+/// A refusal from signature, hostname, validity or path validation.
+pub type ValidationError = {
+    pub text String
+}
+
+pub fn ValidationError.message(self) -> String {
+    self.text
+}
+
+pure fn parseFailure(text: String) -> ParseError {
+    ParseError { text: "x509: ${text}" }
+}
+
+pure fn validationFailure(text: String) -> ValidationError {
+    ValidationError { text: "x509: ${text}" }
+}
+
+/// The DER bytes of the TBSCertificate, i.e. the signed data.
+pub pure fn Certificate.tbsCertificate(self) -> Bytes {
+    self.tbs
+}
+
+/// The signature bytes, without the BIT STRING unused-bit octet.
+pub pure fn Certificate.signatureValue(self) -> Bytes {
+    self.signature
+}
+
+/// A deep copy. Certificates own arrays, so they are not implicitly Copy;
+/// callers that place one certificate in several chains use this.
+pub pure fn Certificate.clone(self) -> Certificate {
+    Certificate {
+        version: self.version
+        serial: self.serial
+        issuer: self.issuer
+        subject: self.subject
+        validity: self.validity
+        publicKey: self.publicKey
+        signatureAlgorithm: self.signatureAlgorithm
+        basicConstraints: self.basicConstraints
+        keyUsage: self.keyUsage
+        extKeyUsage: ExtKeyUsage {
+            present: self.extKeyUsage.present
+            serverAuth: self.extKeyUsage.serverAuth
+            clientAuth: self.extKeyUsage.clientAuth
+            codeSigning: self.extKeyUsage.codeSigning
+            emailProtection: self.extKeyUsage.emailProtection
+            timeStamping: self.extKeyUsage.timeStamping
+            ocspSigning: self.extKeyUsage.ocspSigning
+            anyPurpose: self.extKeyUsage.anyPurpose
+            other: self.extKeyUsage.other.clone()
+        }
+        subjectAltNamesPresent: self.subjectAltNamesPresent
+        dnsNames: self.dnsNames.clone()
+        ipAddresses: self.ipAddresses.clone()
+        subjectKeyId: self.subjectKeyId
+        authorityKeyId: self.authorityKeyId
+        unsupportedCritical: self.unsupportedCritical.clone()
+        tbs: self.tbs
+        signature: self.signature
+    }
+}

@@ -1,0 +1,182 @@
+// AlgorithmIdentifier, SubjectPublicKeyInfo and signature-algorithm
+// decoding for the supported Web PKI algorithms.
+import asn1 from std/crypto/asn1
+import rsa from std/crypto/rsa
+import p256 from std/crypto/p256
+
+const oidMgf1 = "1.2.840.113549.1.1.8"
+const oidSha256 = "2.16.840.1.101.3.4.2.1"
+const oidPrime256v1 = "1.2.840.10045.3.1.7"
+
+type AlgorithmIdentifier = {
+    oid String
+    params asn1.Element?
+}
+
+pure fn parseAlgorithmIdentifier(e: asn1.Element) -> Result[AlgorithmIdentifier, ParseError] {
+    let fields = sequence(e)?
+    if fields.len() < 1 || fields.len() > 2 {
+        fail parseFailure("AlgorithmIdentifier must have one or two fields")
+    }
+    Ok(AlgorithmIdentifier {
+        oid: oidOf(fields[0])?
+        params: if fields.len() == 2 {
+            Some(fields[1])
+        } else {
+            None
+        }
+    })
+}
+
+pure fn nullOrAbsent(e: asn1.Element?) -> Result[Void, ParseError] {
+    match e {
+        None -> Ok(())
+        Some(value) -> requireNull(value)
+    }
+}
+
+pure fn requireSha256(e: asn1.Element) -> Result[Void, ParseError] {
+    let algorithm = parseAlgorithmIdentifier(e)?
+    if algorithm.oid != oidSha256 {
+        fail parseFailure("PSS hash algorithm must be SHA-256")
+    }
+    nullOrAbsent(algorithm.params)
+}
+
+pure fn explicitTag(e: asn1.Element, tag: usize) -> Result[asn1.Element, ParseError] {
+    if !(e.tagClass is asn1.TagClass.Context) || !e.constructed || e.tag != tag {
+        fail parseFailure("unexpected field in RSASSA-PSS parameters")
+    }
+    let children = match e.children() {
+        Ok(value) -> value
+        Err(err) -> fail parseFailure(err.message())
+    }
+    if children.len() != 1 {
+        fail parseFailure("explicitly tagged field must hold exactly one element")
+    }
+    Ok(children[0])
+}
+
+pure fn parsePssParameters(params: asn1.Element?) -> Result[SignatureAlgorithm, ParseError] {
+    let element = match params {
+        Some(value) -> value
+        None -> fail parseFailure("RSASSA-PSS requires parameters")
+    }
+    let fields = sequence(element)?
+    let mut hashSeen = false
+    let mut maskSeen = false
+    let mut saltSeen = false
+    let mut trailerSeen = false
+    let mut i: usize = 0
+    for i < fields.len() {
+        let field = fields[i]
+        if !(field.tagClass is asn1.TagClass.Context) || !field.constructed {
+            fail parseFailure("RSASSA-PSS parameter must be context tagged")
+        }
+        match field.tag {
+            0 -> {
+                if hashSeen {
+                    fail parseFailure("duplicate PSS hash algorithm")
+                }
+                requireSha256(explicitTag(field, 0)?)?
+                hashSeen = true
+            }
+            1 -> {
+                if maskSeen {
+                    fail parseFailure("duplicate PSS mask generation algorithm")
+                }
+                let mgf = parseAlgorithmIdentifier(explicitTag(field, 1)?)?
+                if mgf.oid != oidMgf1 {
+                    fail parseFailure("PSS mask generation algorithm must be MGF1")
+                }
+                let inner = match mgf.params {
+                    Some(value) -> value
+                    None -> fail parseFailure("MGF1 requires a hash algorithm")
+                }
+                requireSha256(inner)?
+                maskSeen = true
+            }
+            2 -> {
+                if saltSeen {
+                    fail parseFailure("duplicate PSS salt length")
+                }
+                if uintOf(explicitTag(field, 2)?)? != 32 {
+                    fail parseFailure("PSS salt length must be 32")
+                }
+                saltSeen = true
+            }
+            3 -> {
+                if trailerSeen {
+                    fail parseFailure("duplicate PSS trailer field")
+                }
+                if uintOf(explicitTag(field, 3)?)? != 1 {
+                    fail parseFailure("PSS trailer field must be 1")
+                }
+                trailerSeen = true
+            }
+            _ -> fail parseFailure("unsupported RSASSA-PSS parameter")
+        }
+        i = i + 1
+    }
+    if !hashSeen || !maskSeen || !saltSeen {
+        fail parseFailure("RSASSA-PSS parameters must specify SHA-256, MGF1-SHA-256 and salt 32")
+    }
+    Ok(SignatureAlgorithm.RsaPssSha256)
+}
+
+/// Decodes a signature AlgorithmIdentifier into one of the supported
+/// algorithms, rejecting unknown OIDs and malformed parameters.
+pub pure fn parseSignatureAlgorithm(e: asn1.Element) -> Result[SignatureAlgorithm, ParseError] {
+    let algorithm = parseAlgorithmIdentifier(e)?
+    match algorithm.oid {
+        "1.2.840.113549.1.1.11" -> {
+            nullOrAbsent(algorithm.params)?
+            Ok(SignatureAlgorithm.Sha256WithRsa)
+        }
+        "1.2.840.113549.1.1.10" -> parsePssParameters(algorithm.params)
+        "1.2.840.10045.4.3.2" -> {
+            if algorithm.params is Some(_) {
+                fail parseFailure("ecdsa-with-SHA256 parameters must be absent")
+            }
+            Ok(SignatureAlgorithm.EcdsaSha256)
+        }
+        _ -> fail parseFailure("unsupported signature algorithm ${algorithm.oid}")
+    }
+}
+
+/// Decodes SubjectPublicKeyInfo for RSA (PKCS#1 RSAPublicKey inside the BIT
+/// STRING) and named-curve P-256 (SEC1 uncompressed point).
+pub pure fn parseSubjectPublicKeyInfo(e: asn1.Element) -> Result[PublicKey, ParseError] {
+    let fields = sequence(e)?
+    if fields.len() != 2 {
+        fail parseFailure("SubjectPublicKeyInfo must have two fields")
+    }
+    let algorithm = parseAlgorithmIdentifier(fields[0])?
+    let bits = bitStringOf(fields[1])?
+    if bits.unusedBits != 0 {
+        fail parseFailure("subject public key BIT STRING must be byte aligned")
+    }
+    match algorithm.oid {
+        "1.2.840.113549.1.1.1" -> {
+            nullOrAbsent(algorithm.params)?
+            match rsa.parsePkcs1(bits.bytes) {
+                Ok(key) -> Ok(PublicKey.Rsa(key))
+                Err(err) -> fail parseFailure(err.message())
+            }
+        }
+        "1.2.840.10045.2.1" -> {
+            let curve = match algorithm.params {
+                Some(value) -> value
+                None -> fail parseFailure("EC public key requires a named curve")
+            }
+            if oidOf(curve)? != oidPrime256v1 {
+                fail parseFailure("only the P-256 named curve is supported")
+            }
+            if !p256.isValidPublicKey(bits.bytes) {
+                fail parseFailure("invalid P-256 public key")
+            }
+            Ok(PublicKey.EcP256(bits.bytes))
+        }
+        _ -> fail parseFailure("unsupported public key algorithm ${algorithm.oid}")
+    }
+}

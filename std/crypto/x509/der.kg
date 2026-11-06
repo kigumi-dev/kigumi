@@ -1,0 +1,104 @@
+// Shared DER helpers for the X.509 structures: tag checks, raw element
+// slicing, Distinguished Names and the primitive decoders from
+// `std/crypto/asn1` with their errors translated to `ParseError`.
+import asn1 from std/crypto/asn1
+
+pure fn universal(e: asn1.Element) -> Bool {
+    e.tagClass is asn1.TagClass.Universal
+}
+
+/// Requires `e` to be a universal SEQUENCE and returns its children.
+pure fn sequence(e: asn1.Element) -> Result[Array[asn1.Element], ParseError] {
+    if !universal(e) || e.tag != 16 || !e.constructed {
+        fail parseFailure("expected a SEQUENCE")
+    }
+    match e.children() {
+        Ok(children) -> Ok(children)
+        Err(err) -> fail parseFailure(err.message())
+    }
+}
+
+/// Requires `e` to be a universal SET and returns its children.
+pure fn setOf(e: asn1.Element) -> Result[Array[asn1.Element], ParseError] {
+    if !universal(e) || e.tag != 17 || !e.constructed {
+        fail parseFailure("expected a SET")
+    }
+    match e.children() {
+        Ok(children) -> Ok(children)
+        Err(err) -> fail parseFailure(err.message())
+    }
+}
+
+/// The complete DER encoding of `e`, which must lie inside `input`.
+pure fn rawElement(input: Bytes, e: asn1.Element) -> Result[Bytes, ParseError] {
+    match input.slice(e.offset, e.offset + e.totalLen()) {
+        Some(value) -> Ok(value)
+        None -> fail parseFailure("element bounds are inconsistent")
+    }
+}
+
+pure fn oidOf(e: asn1.Element) -> Result[String, ParseError] {
+    match e.oid() {
+        Ok(value) -> Ok(value)
+        Err(err) -> fail parseFailure(err.message())
+    }
+}
+
+pure fn uintOf(e: asn1.Element) -> Result[u64, ParseError] {
+    match e.uint() {
+        Ok(value) -> Ok(value)
+        Err(err) -> fail parseFailure(err.message())
+    }
+}
+
+pure fn uintBytesOf(e: asn1.Element) -> Result[Bytes, ParseError] {
+    match e.uintBytes() {
+        Ok(value) -> Ok(value)
+        Err(err) -> fail parseFailure(err.message())
+    }
+}
+
+pure fn octetsOf(e: asn1.Element) -> Result[Bytes, ParseError] {
+    match e.octets() {
+        Ok(value) -> Ok(value)
+        Err(err) -> fail parseFailure(err.message())
+    }
+}
+
+pure fn bitStringOf(e: asn1.Element) -> Result[asn1.BitString, ParseError] {
+    match e.bitString() {
+        Ok(value) -> Ok(value)
+        Err(err) -> fail parseFailure(err.message())
+    }
+}
+
+pure fn booleanOf(e: asn1.Element) -> Result[Bool, ParseError] {
+    match e.boolean() {
+        Ok(value) -> Ok(value)
+        Err(err) -> fail parseFailure(err.message())
+    }
+}
+
+pure fn requireNull(e: asn1.Element) -> Result[Void, ParseError] {
+    match e.nullValue() {
+        Ok(_) -> Ok(())
+        Err(err) -> fail parseFailure(err.message())
+    }
+}
+
+/// The content of an implicitly tagged IA5String, such as GeneralName's
+/// `dNSName [2] IA5String`.
+pure fn ia5Content(e: asn1.Element) -> Result[String, ParseError] {
+    let bytes = e.content
+    let mut i: usize = 0
+    for i < bytes.len() {
+        if bytes[i] >= 0x80 {
+            fail parseFailure("IA5String contains a non-ASCII octet")
+        }
+        i = i + 1
+    }
+    match String.fromBytes(bytes) {
+        Ok(value) -> Ok(value)
+        Err(_) -> fail parseFailure("IA5String is not valid text")
+    }
+}

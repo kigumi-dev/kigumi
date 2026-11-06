@@ -1,0 +1,99 @@
+// Path building and the policy checks of this package.
+//
+// `chain` is leaf first and does not include the trust anchor. Each adjacent
+// pair must have identical DER issuer/subject names and a valid signature;
+// the last certificate must be signed by one of `anchors`. Every issuing
+// certificate must be a CA, have keyCertSign when keyUsage is present, and
+// respect its basicConstraints pathLen. Trust anchors are checked the same
+// way (including expiry), so a v1 anchor without basicConstraints is
+// refused. Revocation, name constraints, policies and cross-signing beyond
+// the supplied anchor list are out of scope.
+
+pure fn certificateIsSelfSigned(cert: &Certificate) -> Bool {
+    if !cert.subject.raw.equals(&cert.issuer.raw) {
+        return false
+    }
+    match cert.verifySignature(cert.publicKey) {
+        Ok(_) -> true
+        Err(_) -> false
+    }
+}
+
+pure fn requireCertificateAuthority(cert: &Certificate, intermediatesBelow: usize) -> Result[Void, ValidationError] {
+    if !cert.basicConstraints.present || !cert.basicConstraints.ca {
+        fail validationFailure("issuer certificate is not a CA")
+    }
+    if cert.keyUsage.present && !cert.keyUsage.keyCertSign {
+        fail validationFailure("CA certificate keyUsage lacks keyCertSign")
+    }
+    if let Some(limit) = cert.basicConstraints.pathLen {
+        if intermediatesBelow > (limit.toUsize() || 0) {
+            fail validationFailure("basicConstraints pathLen ${limit} exceeded")
+        }
+    }
+}
+
+pure fn checkSupportedExtensions(cert: &Certificate) -> Result[Void, ValidationError] {
+    if cert.unsupportedCritical.len() != 0 {
+        fail validationFailure("certificate has an unsupported critical extension")
+    }
+    if cert.version < 3 {
+        fail validationFailure("only X.509 v3 certificates are accepted in a chain")
+    }
+}
+
+pure fn checkAnchor(cert: &Certificate, anchor: &Certificate, intermediatesBelow: usize, nowMillis: Int) -> Result[Void, ValidationError] {
+    match cert.verifySignedBy(anchor) {
+        Ok(_) -> {}
+        Err(_) -> fail validationFailure("certificate is not signed by a trust anchor")
+    }
+    anchor.checkValidity(nowMillis)?
+    checkSupportedExtensions(anchor)?
+    requireCertificateAuthority(anchor, intermediatesBelow)
+}
+
+/// Validates `chain` (leaf first, anchor excluded) at `nowMillis` for
+/// `host`, using `anchors` as trust roots.
+pub fn verifyChain(anchors: &Array[Certificate], chain: &Array[Certificate], host: String, nowMillis: Int) -> Result[Void, ValidationError] {
+    if chain.len() == 0 {
+        fail validationFailure("certificate chain is empty")
+    }
+    let leaf = &chain[0]
+    if certificateIsSelfSigned(leaf) {
+        fail validationFailure("leaf certificate is self-signed")
+    }
+    leaf.checkValidity(nowMillis)?
+    checkSupportedExtensions(leaf)?
+    leaf.verifyHostname(host)?
+
+    let mut i: usize = 0
+    for i < chain.len() {
+        let cert = &chain[i]
+        cert.checkValidity(nowMillis)?
+        checkSupportedExtensions(cert)?
+        let next = i + 1
+        if next < chain.len() {
+            let issuer = &chain[next]
+            if !cert.issuer.raw.equals(&issuer.subject.raw) {
+                fail validationFailure("issuer and subject names do not match")
+            }
+            requireCertificateAuthority(issuer, i)?
+            cert.verifySignedBy(issuer)?
+        } else {
+            let mut found = false
+            let mut a: usize = 0
+            for a < anchors.len() {
+                let anchor = &anchors[a]
+                if cert.issuer.raw.equals(&anchor.subject.raw) {
+                    checkAnchor(cert, anchor, chain.len() - 1, nowMillis)?
+                    found = true
+                }
+                a = a + 1
+            }
+            if !found {
+                fail validationFailure("certificate chain does not reach a trust anchor")
+            }
+        }
+        i = i + 1
+    }
+}
