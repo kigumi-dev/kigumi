@@ -1,4 +1,4 @@
-import binary from std/binary
+import binary from std/encoding/binary
 import ffi from std/ffi
 import mem from std/mem
 

@@ -1,5 +1,5 @@
 -- src --
-import binary from std/binary
+import binary from std/encoding/binary
 
 let data = b"abcd"
 print "${debug(&binary.u16Be(data, 18446744073709551615))}"

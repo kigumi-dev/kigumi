@@ -1,5 +1,5 @@
 -- src --
-import binary from std/binary
+import binary from std/encoding/binary
 import fmt from std/fmt
 import hex from std/encoding/hex
 
