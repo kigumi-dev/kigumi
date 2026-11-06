@@ -38,7 +38,7 @@ func llEscape(s string) string {
 func (e *emitter) numKind(t sem.TypeID) int { return mir.NumKind(e.r.Types, e.r.UnderlyingRepr(t)) }
 
 // Must mirror %rt_type and %rt_variant in the header (emit.go).
-var rtTypeStruct = StructType{Name: "%rt_type", Fields: []Type{TPtr, TI32, TI32, TPtr, TI32, TPtr, TPtr, TI64}}
+var rtTypeStruct = StructType{Name: "%rt_type", Fields: []Type{TPtr, TI32, TI32, TPtr, TI32, TPtr, TPtr, TI64, TI64}}
 var rtVariantStruct = StructType{Name: "%rt_variant", Fields: []Type{TPtr, TPtr, TI32, TI32, TObjSlot}}
 
 // Bit 10 of rt_convert's dnk parameter means "target is Char" (rt_core.c).
@@ -62,6 +62,19 @@ func (e *emitter) typeCount() int { return e.ntypes }
 
 // borrowFieldMask bits the fields declared as a borrow (`&'a T`), so
 // rt_release/rt_copy skip a field the record never owned.
+func (e *emitter) privateFieldMask(info *sem.TypeDeclInfo) uint64 {
+	if e.r.Packages[info.Home].Path != "std/secret" {
+		return 0
+	}
+	var mask uint64
+	for i, f := range info.Fields {
+		if e.r.Entity(f).Vis.Level == sem.VisPrivate {
+			mask |= 1 << uint(i)
+		}
+	}
+	return mask
+}
+
 func (e *emitter) borrowFieldMask(info *sem.TypeDeclInfo) uint64 {
 	var mask uint64
 	for i, f := range info.Fields {
@@ -126,7 +139,7 @@ func (e *emitter) data() string {
 		}
 		e.irb(&sb).GlobalStruct(name, rtTypeStruct,
 			vptr(e.cstr(e.r.Packages[x.Pkg].Path+"."+x.Name)), vi32(kind), vi32(len(info.Fields)),
-			vptr(fields), vi32(len(info.Variants)), vptr(variants), vptr(drop), vi64(int(e.borrowFieldMask(info))))
+			vptr(fields), vi32(len(info.Variants)), vptr(variants), vptr(drop), vi64(int(e.borrowFieldMask(info))), vi64(int(e.privateFieldMask(info))))
 		for i, v := range info.Variants {
 			e.irb(&sb).GlobalStruct(e.vdesc(v), rtVariantStruct, vptr(e.cstr(e.r.Entity(v).Name)), vptr(name), vi32(i), vi32(len(e.r.Variant(v).Payload)), vobjslot())
 		}
@@ -141,11 +154,11 @@ func (e *emitter) data() string {
 	for _, id := range descEnts {
 		ent, name := sem.EntityID(id), e.descs[sem.EntityID(id)]
 		if e.r.Entity(ent).Kind != sem.EntType {
-			e.irb(&sb).GlobalStruct(name, rtTypeStruct, vptr(e.cstr(e.r.Entity(ent).Name)), vi32(0), vi32(0), vptr("null"), vi32(0), vptr("null"), vptr("null"), vi64(0))
+			e.irb(&sb).GlobalStruct(name, rtTypeStruct, vptr(e.cstr(e.r.Entity(ent).Name)), vi32(0), vi32(0), vptr("null"), vi32(0), vptr("null"), vptr("null"), vi64(0), vi64(0))
 		}
 	}
 	for _, key := range slices.Sorted(maps.Keys(e.primDescs)) {
-		e.irb(&sb).GlobalStruct(e.primDescs[key], rtTypeStruct, vptr(e.cstr("prim")), vi32(0), vi32(0), vptr("null"), vi32(0), vptr("null"), vptr("null"), vi64(0))
+		e.irb(&sb).GlobalStruct(e.primDescs[key], rtTypeStruct, vptr(e.cstr("prim")), vi32(0), vi32(0), vptr("null"), vi32(0), vptr("null"), vptr("null"), vi64(0), vi64(0))
 	}
 	drops := make([]int, 0, len(e.stdDrops))
 	for ent := range e.stdDrops {

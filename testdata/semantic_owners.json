@@ -14302,6 +14302,916 @@
     "status": "ok"
   },
   {
+    "key": "secret.Choice.\u0026",
+    "signature": "pure noalloc fn(Choice, Choice) -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.Choice.ctEq",
+    "signature": "pure noalloc fn(Choice) -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.Choice.declassify",
+    "signature": "pure noalloc unsafe fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.Choice.selectU16",
+    "signature": "pure noalloc fn(SecretU16, SecretU16) -\u003e SecretU16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.Choice.selectU32",
+    "signature": "pure noalloc fn(SecretU32, SecretU32) -\u003e SecretU32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.Choice.selectU64",
+    "signature": "pure noalloc fn(SecretU64, SecretU64) -\u003e SecretU64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.Choice.selectU8",
+    "signature": "pure noalloc fn(SecretU8, SecretU8) -\u003e SecretU8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.Choice.|",
+    "signature": "pure noalloc fn(Choice, Choice) -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.Choice.~",
+    "signature": "pure noalloc fn(Choice) -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU16.\u0026",
+    "signature": "pure noalloc fn(SecretU16, SecretU16) -\u003e SecretU16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU16.^",
+    "signature": "pure noalloc fn(SecretU16, SecretU16) -\u003e SecretU16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU16.classify",
+    "signature": "pure noalloc fn(u16) -\u003e SecretU16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU16.ctEq",
+    "signature": "pure noalloc fn(SecretU16) -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU16.ctIsZero",
+    "signature": "pure noalloc fn() -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU16.ctLt",
+    "signature": "pure noalloc fn(SecretU16) -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU16.declassify",
+    "signature": "pure noalloc unsafe fn() -\u003e u16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU16.display",
+    "signature": "pure noalloc fn() -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU16.equals",
+    "signature": "pure noalloc fn(\u0026SecretU16) -\u003e Choice",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU16.hash",
+    "signature": "pure noalloc fn() -\u003e Choice",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU16.rotateLeft",
+    "signature": "pure noalloc fn(u32) -\u003e SecretU16",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU16.rotateRight",
+    "signature": "pure noalloc fn(u32) -\u003e SecretU16",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU16.shiftLeft",
+    "signature": "pure noalloc fn(u32) -\u003e SecretU16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU16.shiftRight",
+    "signature": "pure noalloc fn(u32) -\u003e SecretU16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU16.wrappingAdd",
+    "signature": "pure noalloc fn(SecretU16) -\u003e SecretU16",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU16.wrappingMul",
+    "signature": "pure noalloc fn(SecretU16) -\u003e SecretU16",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU16.wrappingSub",
+    "signature": "pure noalloc fn(SecretU16) -\u003e SecretU16",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU16.|",
+    "signature": "pure noalloc fn(SecretU16, SecretU16) -\u003e SecretU16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU16.~",
+    "signature": "pure noalloc fn(SecretU16) -\u003e SecretU16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU32.\u0026",
+    "signature": "pure noalloc fn(SecretU32, SecretU32) -\u003e SecretU32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU32.^",
+    "signature": "pure noalloc fn(SecretU32, SecretU32) -\u003e SecretU32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU32.classify",
+    "signature": "pure noalloc fn(u32) -\u003e SecretU32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU32.ctEq",
+    "signature": "pure noalloc fn(SecretU32) -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU32.ctIsZero",
+    "signature": "pure noalloc fn() -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU32.ctLt",
+    "signature": "pure noalloc fn(SecretU32) -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU32.declassify",
+    "signature": "pure noalloc unsafe fn() -\u003e u32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU32.display",
+    "signature": "pure noalloc fn() -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU32.equals",
+    "signature": "pure noalloc fn(\u0026SecretU32) -\u003e Choice",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU32.hash",
+    "signature": "pure noalloc fn() -\u003e Choice",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU32.rotateLeft",
+    "signature": "pure noalloc fn(u32) -\u003e SecretU32",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU32.rotateRight",
+    "signature": "pure noalloc fn(u32) -\u003e SecretU32",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU32.shiftLeft",
+    "signature": "pure noalloc fn(u32) -\u003e SecretU32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU32.shiftRight",
+    "signature": "pure noalloc fn(u32) -\u003e SecretU32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU32.wrappingAdd",
+    "signature": "pure noalloc fn(SecretU32) -\u003e SecretU32",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU32.wrappingMul",
+    "signature": "pure noalloc fn(SecretU32) -\u003e SecretU32",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU32.wrappingSub",
+    "signature": "pure noalloc fn(SecretU32) -\u003e SecretU32",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU32.|",
+    "signature": "pure noalloc fn(SecretU32, SecretU32) -\u003e SecretU32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU32.~",
+    "signature": "pure noalloc fn(SecretU32) -\u003e SecretU32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU64.\u0026",
+    "signature": "pure noalloc fn(SecretU64, SecretU64) -\u003e SecretU64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU64.^",
+    "signature": "pure noalloc fn(SecretU64, SecretU64) -\u003e SecretU64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU64.classify",
+    "signature": "pure noalloc fn(u64) -\u003e SecretU64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU64.ctEq",
+    "signature": "pure noalloc fn(SecretU64) -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU64.ctIsZero",
+    "signature": "pure noalloc fn() -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU64.ctLt",
+    "signature": "pure noalloc fn(SecretU64) -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU64.declassify",
+    "signature": "pure noalloc unsafe fn() -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU64.display",
+    "signature": "pure noalloc fn() -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU64.equals",
+    "signature": "pure noalloc fn(\u0026SecretU64) -\u003e Choice",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU64.hash",
+    "signature": "pure noalloc fn() -\u003e Choice",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU64.rotateLeft",
+    "signature": "pure noalloc fn(u32) -\u003e SecretU64",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU64.rotateRight",
+    "signature": "pure noalloc fn(u32) -\u003e SecretU64",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU64.shiftLeft",
+    "signature": "pure noalloc fn(u32) -\u003e SecretU64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU64.shiftRight",
+    "signature": "pure noalloc fn(u32) -\u003e SecretU64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU64.wrappingAdd",
+    "signature": "pure noalloc fn(SecretU64) -\u003e SecretU64",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU64.wrappingMul",
+    "signature": "pure noalloc fn(SecretU64) -\u003e SecretU64",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU64.wrappingSub",
+    "signature": "pure noalloc fn(SecretU64) -\u003e SecretU64",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU64.|",
+    "signature": "pure noalloc fn(SecretU64, SecretU64) -\u003e SecretU64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU64.~",
+    "signature": "pure noalloc fn(SecretU64) -\u003e SecretU64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU8.\u0026",
+    "signature": "pure noalloc fn(SecretU8, SecretU8) -\u003e SecretU8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU8.^",
+    "signature": "pure noalloc fn(SecretU8, SecretU8) -\u003e SecretU8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU8.classify",
+    "signature": "pure noalloc fn(u8) -\u003e SecretU8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU8.ctEq",
+    "signature": "pure noalloc fn(SecretU8) -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU8.ctIsZero",
+    "signature": "pure noalloc fn() -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU8.ctLt",
+    "signature": "pure noalloc fn(SecretU8) -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU8.declassify",
+    "signature": "pure noalloc unsafe fn() -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU8.display",
+    "signature": "pure noalloc fn() -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU8.equals",
+    "signature": "pure noalloc fn(\u0026SecretU8) -\u003e Choice",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU8.hash",
+    "signature": "pure noalloc fn() -\u003e Choice",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU8.rotateLeft",
+    "signature": "pure noalloc fn(u32) -\u003e SecretU8",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU8.rotateRight",
+    "signature": "pure noalloc fn(u32) -\u003e SecretU8",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU8.shiftLeft",
+    "signature": "pure noalloc fn(u32) -\u003e SecretU8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU8.shiftRight",
+    "signature": "pure noalloc fn(u32) -\u003e SecretU8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU8.wrappingAdd",
+    "signature": "pure noalloc fn(SecretU8) -\u003e SecretU8",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU8.wrappingMul",
+    "signature": "pure noalloc fn(SecretU8) -\u003e SecretU8",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU8.wrappingSub",
+    "signature": "pure noalloc fn(SecretU8) -\u003e SecretU8",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU8.|",
+    "signature": "pure noalloc fn(SecretU8, SecretU8) -\u003e SecretU8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU8.~",
+    "signature": "pure noalloc fn(SecretU8) -\u003e SecretU8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.barrierU64",
+    "signature": "pure noalloc fn(u64) -\u003e u64",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.ctEqBytes",
+    "signature": "pure noalloc fn(\u0026Bytes, \u0026Bytes) -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.eqBytes",
+    "signature": "pure noalloc fn(\u0026Bytes, \u0026Bytes) -\u003e u64",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.maskLtU64",
+    "signature": "pure noalloc fn(u64, u64) -\u003e u64",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.maskNonZeroU64",
+    "signature": "pure noalloc fn(u64) -\u003e u64",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.selectU64",
+    "signature": "pure noalloc fn(u64, u64, u64) -\u003e u64",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "shell.Building.endStage",
     "signature": "fn(String?) -\u003e Void",
     "has_body": true,

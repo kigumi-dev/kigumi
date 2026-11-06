@@ -78,6 +78,35 @@ func (m *Machine) std(key string, a []*obj) *obj {
 		return m.ok(mkStr(append([]byte{}, a0.str()...)))
 	// The VM has no timing guarantee to keep; this mirrors the algorithm
 	// for correctness only (subtle.kg's doc comment says so).
+	case "secret.barrierU64":
+		return mkInt(a0.i, 64)
+	case "secret.maskNonZeroU64":
+		if uint64(a0.i) != 0 {
+			return mkInt(-1, 64)
+		}
+		return mkInt(0, 64)
+	case "secret.maskLtU64":
+		if uint64(a0.i) < uint64(a1.i) {
+			return mkInt(-1, 64)
+		}
+		return mkInt(0, 64)
+	case "secret.selectU64":
+		if uint64(a0.i) == ^uint64(0) {
+			return mkInt(a1.i, 64)
+		}
+		return mkInt(a2.i, 64)
+	case "secret.eqBytes":
+		if len(a0.str()) != len(a1.str()) {
+			return mkInt(0, 64)
+		}
+		var diff byte
+		for i := range a0.str() {
+			diff |= a0.str()[i] ^ a1.str()[i]
+		}
+		if diff == 0 {
+			return mkInt(-1, 64)
+		}
+		return mkInt(0, 64)
 	case "crypto/subtle.constantTimeEq":
 		if len(a0.str()) != len(a1.str()) {
 			return mkBool(false)

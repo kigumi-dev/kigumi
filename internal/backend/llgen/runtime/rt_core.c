@@ -216,6 +216,32 @@ void rt_drop(val v) {
 #endif
 #include "rt_std_text.inc"
 #include "rt_mem.inc"
+// Portable reference for the VM parity test; native call sites use the
+// inline lowering once it exists, not these helpers.
+static uint64_t secret_barrier_u64(uint64_t x) {
+    volatile uint64_t v = x;
+    return v;
+}
+static uint64_t secret_mask_nonzero_u64(uint64_t x) {
+    return (uint64_t)0 - (uint64_t)(secret_barrier_u64(x) != 0);
+}
+static uint64_t secret_mask_lt_u64(uint64_t a, uint64_t b) {
+    return (uint64_t)0 - (uint64_t)(secret_barrier_u64(a) < secret_barrier_u64(b));
+}
+static uint64_t secret_select_u64(uint64_t m, uint64_t a, uint64_t b) {
+    m = secret_barrier_u64(m);
+    return (a & m) | (b & ~m);
+}
+static uint64_t secret_eq_bytes(val a, val b) {
+    int64_t n = a->u.s.len;
+    if (n != b->u.s.len) return 0;
+    volatile uint8_t diff = 0;
+    for (int64_t i = 0; i < n; i++) {
+        diff |= (uint8_t)a->u.s.data[i] ^ (uint8_t)b->u.s.data[i];
+    }
+    return (uint64_t)0 - (uint64_t)(diff == 0);
+}
+
 #include "rt_std_dispatch.inc"
 // rt_std is rt_callv's path for a std function value (rt_std_closure /
 // rt_std_bind carry the key, resolved fresh on every call); a static call

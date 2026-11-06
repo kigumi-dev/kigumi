@@ -161,6 +161,10 @@ static void display_record(buf* b, val v, int canon) {
         if (named) {
             rt_bputs(b, t->fields[i]);
             rt_bputs(b, ": ");
+            if ((t->private_fields >> i) & 1) {
+                rt_bputs(b, "<private>");
+                continue;
+            }
         }
         display_into(b, v->u.rec.fields[i], canon);
     }

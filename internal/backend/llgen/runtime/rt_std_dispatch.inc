@@ -513,6 +513,21 @@ val rt_std_id(int op, int n, val* a) {
         return rt_some(rt_int((uint8_t)a0->u.s.data[i], 8));
     }
 #endif
+#if defined(KIGUMI_OP_SECRET_BARRIER_U64)
+    case OP_SECRET_BARRIER_U64: return rt_int((int64_t)secret_barrier_u64((uint64_t)a0->u.i), 64);
+#endif
+#if defined(KIGUMI_OP_SECRET_MASK_NONZERO_U64)
+    case OP_SECRET_MASK_NONZERO_U64: return rt_int((int64_t)secret_mask_nonzero_u64((uint64_t)a0->u.i), 64);
+#endif
+#if defined(KIGUMI_OP_SECRET_MASK_LT_U64)
+    case OP_SECRET_MASK_LT_U64: return rt_int((int64_t)secret_mask_lt_u64((uint64_t)a0->u.i, (uint64_t)a1->u.i), 64);
+#endif
+#if defined(KIGUMI_OP_SECRET_SELECT_U64)
+    case OP_SECRET_SELECT_U64: return rt_int((int64_t)secret_select_u64((uint64_t)a0->u.i, (uint64_t)a1->u.i, (uint64_t)a2->u.i), 64);
+#endif
+#if defined(KIGUMI_OP_SECRET_EQ_BYTES)
+    case OP_SECRET_EQ_BYTES: return rt_int((int64_t)secret_eq_bytes(a0, a1), 64);
+#endif
 #if defined(KIGUMI_OP_SUBTLE_CT_EQ)
     case OP_SUBTLE_CT_EQ: return rt_bool(subtle_constant_time_eq(a0, a1));
 #endif

@@ -1,6 +1,10 @@
 package vm
 
-import "strings"
+import (
+	"strings"
+
+	"kigumi/internal/compiler/sem"
+)
 
 // displayRecord is `P { x: 1, y: 2 }`, or `(1, 2)` for a tuple; hashing keeps the bare `P { 1, 2 }` form.
 func (m *Machine) displayRecord(sb *strings.Builder, v *obj, canon bool) {
@@ -11,6 +15,7 @@ func (m *Machine) displayRecord(sb *strings.Builder, v *obj, canon bool) {
 	name := m.r.Entity(v.ent).Name
 	fields := m.r.TypeDecl(v.ent).Fields
 	named := !canon && len(fields) == len(v.fields)
+	private := m.r.Packages[m.r.Entity(v.ent).Pkg].Path == "std/secret"
 	if named && isTupleName(name) {
 		sb.WriteString("(")
 		for i, f := range v.fields {
@@ -32,6 +37,10 @@ func (m *Machine) displayRecord(sb *strings.Builder, v *obj, canon bool) {
 		if named {
 			sb.WriteString(m.r.Entity(fields[i]).Name)
 			sb.WriteString(": ")
+			if private && m.r.Entity(fields[i]).Vis.Level == sem.VisPrivate {
+				sb.WriteString("<private>")
+				continue
+			}
 		}
 		m.displayIntoCanon(sb, f, canon)
 	}
