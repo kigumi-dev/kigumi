@@ -24,7 +24,7 @@ func (p *printer) prefix(id syntax.NodeID) {
 // docLines prints the `///` lines of a declaration or field with any plain comments between them.
 func (p *printer) docLines(d syntax.DeclView) {
 	doc := d.Doc()
-	if !doc.Valid() {
+	if !doc.Valid() || p.cm.next > int(doc.Index()) {
 		return
 	}
 	for i := syntax.FirstDocTok(p.t, doc.Index()); i <= doc.Index(); i++ {

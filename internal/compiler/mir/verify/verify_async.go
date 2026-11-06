@@ -75,7 +75,17 @@ func verifyFrame(f *midir.Func) *Error {
 			return err
 		}
 	}
-	return check("panic cleanup", f.PanicDrop)
+	if err := check("panic cleanup", f.PanicDrop); err != nil {
+		return err
+	}
+	seen := map[midir.LocalID]bool{}
+	for _, l := range f.PanicDrop {
+		if seen[l] {
+			return &Error{Rule: "async", Msg: "panic cleanup drops local " + itoa(int(l)) + " twice"}
+		}
+		seen[l] = true
+	}
+	return nil
 }
 
 func awaitBefore(insts []midir.Inst) bool {

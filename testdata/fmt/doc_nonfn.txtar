@@ -1,0 +1,25 @@
+-- src --
+/// import doc
+pub import json from std/json
+/// test doc
+test "t" {
+}
+/// abi doc
+extern(C) { fn puts(s: *const u8) -> i32 }
+/// fn doc
+fn f() {
+}
+-- expect --
+/// import doc
+pub import json from std/json
+
+/// test doc
+test "t" {}
+
+/// abi doc
+extern(C) {
+    fn puts(s: *const u8) -> i32
+}
+
+/// fn doc
+fn f() {}

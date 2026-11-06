@@ -87,7 +87,7 @@ func (p *printer) file(root syntax.NodeID) {
 		if tv != nil {
 			p.importComments(tv)
 		} else {
-			p.flushComments(p.firstTok(d))
+			p.flushDocComments(p.firstTok(d))
 		}
 		p.withIndent(func() { p.decl(d) })
 		if tv != nil {
@@ -118,12 +118,15 @@ func (p *printer) decl(id syntax.NodeID) {
 	case syntax.ContextKeyDecl:
 		p.contextKeyDecl(id)
 	case syntax.ImportDecl:
+		p.docLines(p.t.View(id).AsDecl())
 		p.importDecl(id)
 	case syntax.TestDecl:
+		p.docLines(p.t.View(id).AsDecl())
 		d := p.t.View(id).AsTestDecl()
 		p.write("test " + d.Name().Text() + " ")
 		p.block(d.Body().ID())
 	case syntax.AbiBlock:
+		p.docLines(p.t.View(id).AsDecl())
 		p.abiBlock(id)
 	case syntax.ContractBlock:
 		d := p.t.View(id).AsContractBlock()
@@ -153,7 +156,7 @@ func (p *printer) declList(list syntax.NodeID) {
 		if c.Index() > 0 {
 			p.separateDecls(items.ItemID(c.Index()-1), d)
 		}
-		p.flushComments(p.firstTok(d))
+		p.flushDocComments(p.firstTok(d))
 		p.withIndent(func() { p.decl(d) })
 		p.endLine(d)
 	}

@@ -48,6 +48,9 @@ func TestVerifyAsync(t *testing.T) {
 			t.Fatal("fewer than two frame locals")
 		}},
 		{"cleanup lists", "cleanup lists for", func(t *testing.T, p *mir.Program, f *midir.Func) { f.Cleanup = f.Cleanup[:1] }},
+		{"duplicate panic cleanup", "drops local", func(t *testing.T, p *mir.Program, f *midir.Func) {
+			f.PanicDrop = []midir.LocalID{0, 0}
+		}},
 		{"cleanup of a local with no slot", "has no frame slot", func(t *testing.T, p *mir.Program, f *midir.Func) {
 			for i, s := range f.Slot {
 				if s < 0 {
