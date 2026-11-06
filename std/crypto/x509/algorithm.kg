@@ -1,8 +1,8 @@
 // AlgorithmIdentifier, SubjectPublicKeyInfo and signature-algorithm
 // decoding for the supported Web PKI algorithms.
 import asn1 from std/crypto/asn1
-import rsa from std/crypto/rsa
 import p256 from std/crypto/p256
+import rsa from std/crypto/rsa
 
 const oidMgf1 = "1.2.840.113549.1.1.8"
 const oidSha256 = "2.16.840.1.101.3.4.2.1"

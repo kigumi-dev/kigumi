@@ -8,7 +8,6 @@
 // way (including expiry), so a v1 anchor without basicConstraints is
 // refused. Revocation, name constraints, policies and cross-signing beyond
 // the supplied anchor list are out of scope.
-
 pure fn certificateIsSelfSigned(cert: &Certificate) -> Bool {
     if !cert.subject.raw.equals(&cert.issuer.raw) {
         return false

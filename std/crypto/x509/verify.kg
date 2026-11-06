@@ -4,9 +4,9 @@
 // TBSCertificate, and ECDSA converts the DER `ECDSA-Sig-Value` to the
 // fixed-width r || s form that `std/crypto/p256` verifies.
 import asn1 from std/crypto/asn1
-import sha256 from std/crypto/sha256
-import rsa from std/crypto/rsa
 import p256 from std/crypto/p256
+import rsa from std/crypto/rsa
+import sha256 from std/crypto/sha256
 
 pure fn floorDiv(a: Int, b: Int) -> Int {
     let q = a / b
