@@ -1,0 +1,104 @@
+-- src --
+import asn1 from std/crypto/asn1
+import hex from std/encoding/hex
+
+fn classText(c: asn1.TagClass) -> String {
+    match c {
+        asn1.TagClass.Universal -> "universal"
+        asn1.TagClass.Application -> "application"
+        asn1.TagClass.Context -> "context"
+        asn1.TagClass.Private -> "private"
+    }
+}
+
+fn header(label: String, input: String) -> Void! {
+    let e = asn1.parse(hex.decode(input)?)?
+    print "${label} ${classText(e.tagClass)} cons=${e.constructed} tag=${e.tag} len=${e.content.len()} off=${e.offset} hdr=${e.headerLen}"
+}
+
+fn main() -> Void! {
+    header("int5", "020105")?
+    header("null", "0500")?
+    header("long", "${"048180"}${"00".repeat(256)}")?
+    header("hightag", "9f810000")?
+    header("app", "4300")?
+
+    let i0 = asn1.parse(hex.decode("020100")?)?
+    let i1 = asn1.parse(hex.decode("020101")?)?
+    let i127 = asn1.parse(hex.decode("02017f")?)?
+    let i128 = asn1.parse(hex.decode("02020080")?)?
+    print "int0 [${hex.encode(i0.uintBytes()?)}] ${i0.uint()?}"
+    print "int1 [${hex.encode(i1.uintBytes()?)}] ${i1.uint()?}"
+    print "int127 [${hex.encode(i127.uintBytes()?)}] ${i127.uint()?}"
+    print "int128 [${hex.encode(i128.uintBytes()?)}] ${i128.uint()?}"
+
+    let bt = asn1.parse(hex.decode("0101ff")?)?
+    let bf = asn1.parse(hex.decode("010100")?)?
+    print "bool ${bt.boolean()?} ${bf.boolean()?}"
+    let nv = asn1.parse(hex.decode("0500")?)?
+    match nv.nullValue() {
+        Ok(_) -> print "null-value ok"
+        Err(e) -> print "null-value err ${e.message()}"
+    }
+
+    let oid = asn1.parse(hex.decode("06062a864886f70d")?)?
+    let oid2 = asn1.parse(hex.decode("0603883703")?)?
+    print "oid ${oid.oid()?} ${oid2.oid()?}"
+
+    let oct = asn1.parse(hex.decode("0403010203")?)?
+    print "octets ${hex.encode(oct.octets()?)}"
+    let bits = asn1.parse(hex.decode("030204f0")?)?
+    let bits0 = asn1.parse(hex.decode("030100")?)?
+    let bv = bits.bitString()?
+    let bv0 = bits0.bitString()?
+    print "bits [${hex.encode(bv.bytes)}] ${bv.unusedBits} [${hex.encode(bv0.bytes)}] ${bv0.unusedBits}"
+
+    let utf8 = asn1.parse(hex.decode("0c0368c3a9")?)?
+    let printable = asn1.parse(hex.decode("1306546573742031")?)?
+    let ia5 = asn1.parse(hex.decode("1603614062")?)?
+    print "strings ${utf8.utf8String()?} [${printable.printableString()?}] ${ia5.ia5String()?}"
+
+    let utc = asn1.parse(hex.decode("170d3235303130313132303030305a")?)?
+    let gen = asn1.parse(hex.decode("180f32303235303130313132303030305a")?)?
+    let t = utc.utcTime()?
+    let g = gen.generalizedTime()?
+    print "utc ${t.year}-${t.month}-${t.day} ${t.hour}:${t.minute}:${t.second}"
+    print "gen ${g.year}-${g.month}-${g.day} ${g.hour}:${g.minute}:${g.second}"
+
+    let seq = asn1.parse(hex.decode("30050201010500")?)?
+    let kids = seq.children()?
+    print "kids ${kids.len()} ${kids[0].offset} ${kids[1].offset} ${kids[0].uint()?}"
+    let nested = asn1.parse(hex.decode("300730030201050500")?)?
+    let outer = nested.children()?
+    let inner = outer[0].children()?
+    print "nested ${outer.len()} ${inner.len()} ${inner[0].offset} ${inner[0].uint()?}"
+    let all = asn1.parseAll(hex.decode("0201010500")?)?
+    print "parseall ${all.len()} ${all[0].tag} ${all[1].tag}"
+    let first = asn1.parse(hex.decode("0201010500")?)?
+    print "trailing ${first.content.len()} ${first.totalLen()}"
+    let second = asn1.parseAt(hex.decode("0201010500")?, 3)?
+    print "offset ${second.tag} ${second.offset} ${second.content.len()}"
+}
+-- stdout --
+int5 universal cons=false tag=2 len=1 off=0 hdr=2
+null universal cons=false tag=5 len=0 off=0 hdr=2
+long universal cons=false tag=4 len=128 off=0 hdr=3
+hightag context cons=false tag=128 len=0 off=0 hdr=4
+app application cons=false tag=3 len=0 off=0 hdr=2
+int0 [] 0
+int1 [01] 1
+int127 [7f] 127
+int128 [80] 128
+bool true false
+null-value ok
+oid 1.2.840.113549 2.999.3
+octets 010203
+bits [f0] 4 [] 0
+strings hé [Test 1] a@b
+utc 2025-1-1 12:0:0
+gen 2025-1-1 12:0:0
+kids 2 2 5 1
+nested 2 1 4 5
+parseall 2 2 5
+trailing 1 3
+offset 5 3 0

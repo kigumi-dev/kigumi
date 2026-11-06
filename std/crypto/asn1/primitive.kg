@@ -1,0 +1,243 @@
+// Primitive DER contents. Each decoder checks the universal tag, rejects the
+// BER constructed form, and validates the DER-specific content rules.
+/// A BIT STRING: `bytes` omits the unused-bit-count octet, and the last
+/// `unusedBits` bits of its last byte are zero.
+pub type BitString = {
+    pub bytes Bytes
+    pub unusedBits u8
+}
+
+pure fn requirePrimitive(element: Element, tag: usize) -> Result[Void, Error] {
+    if !(element.tagClass is Universal) {
+        fail asn1Error("expected a universal tag, found class ${classText(element.tagClass)}")
+    }
+    if element.tag != tag {
+        fail asn1Error("expected universal tag ${tag}, found ${element.tag}")
+    }
+    if element.constructed {
+        fail asn1Error("constructed encoding is not allowed for tag ${tag}")
+    }
+}
+
+pure fn classText(c: TagClass) -> String {
+    match c {
+        Universal -> "universal"
+        Application -> "application"
+        Context -> "context"
+        Private -> "private"
+    }
+}
+
+/// The non-negative INTEGER's big-endian magnitude, with the sign octet and
+/// redundant leading zero octets removed. Zero has empty magnitude.
+pub pure fn Element.uintBytes(self) -> Result[Bytes, Error] {
+    requirePrimitive(self, 2)?
+    let b = self.content
+    if b.len() == 0 {
+        fail asn1Error("INTEGER has empty content")
+    }
+    if (b[0] & 0x80) != 0 {
+        fail asn1Error("INTEGER is negative")
+    }
+    if b[0] == 0 {
+        if b.len() == 1 {
+            return Ok(Bytes.zeros(0))
+        }
+        if (b[1] & 0x80) == 0 {
+            fail asn1Error("INTEGER has a redundant leading zero octet")
+        }
+        return sliceOrFail(b, 1, b.len(), "INTEGER content")
+    }
+    Ok(b)
+}
+
+/// The non-negative INTEGER's magnitude as a u64.
+pub pure fn Element.uint(self) -> Result[u64, Error] {
+    let magnitude = self.uintBytes()?
+    if magnitude.len() > 8 {
+        fail asn1Error("INTEGER does not fit in 64 bits")
+    }
+    let mut value: u64 = 0
+    let mut i: usize = 0
+    for i < magnitude.len() {
+        value = (value << 8) | magnitude[i].toU64()
+        i = i + 1
+    }
+    Ok(value)
+}
+
+pub pure fn Element.boolean(self) -> Result[Bool, Error] {
+    requirePrimitive(self, 1)?
+    if self.content.len() != 1 {
+        fail asn1Error("BOOLEAN content must be one octet")
+    }
+    match self.content[0] {
+        0x00 -> Ok(false)
+        0xff -> Ok(true)
+        _ -> fail asn1Error("DER BOOLEAN must be 0x00 or 0xff")
+    }
+}
+
+pub pure fn Element.nullValue(self) -> Result[Void, Error] {
+    requirePrimitive(self, 5)?
+    if self.content.len() != 0 {
+        fail asn1Error("NULL content must be empty")
+    }
+}
+
+pub pure fn Element.octets(self) -> Result[Bytes, Error] {
+    requirePrimitive(self, 4)?
+    Ok(self.content)
+}
+
+/// The BIT STRING value; DER forbids the constructed form and nonzero
+/// padding bits.
+pub pure fn Element.bitString(self) -> Result[BitString, Error] {
+    requirePrimitive(self, 3)?
+    let b = self.content
+    if b.len() == 0 {
+        fail asn1Error("BIT STRING has no unused-bit-count octet")
+    }
+    let unused = b[0]
+    if unused > 7 {
+        fail asn1Error("BIT STRING unused-bit count exceeds 7")
+    }
+    if b.len() == 1 {
+        if unused != 0 {
+            fail asn1Error("empty BIT STRING cannot have unused bits")
+        }
+        return Ok(BitString {
+            bytes: Bytes.zeros(0)
+            unusedBits: 0
+        })
+    }
+    if unused != 0 {
+        let mask: u8 = (1 << unused.toUsize()) - 1
+        if (b[b.len() - 1] & mask) != 0 {
+            fail asn1Error("BIT STRING padding bits are not zero")
+        }
+    }
+    Ok(BitString {
+        bytes: sliceOrFail(b, 1, b.len(), "BIT STRING content")?
+        unusedBits: unused
+    })
+}
+
+pub pure fn Element.oid(self) -> Result[String, Error] {
+    requirePrimitive(self, 6)?
+    let b = self.content
+    if b.len() == 0 {
+        fail asn1Error("OBJECT IDENTIFIER has empty content")
+    }
+    let mut arcs = Array.empty[u64]()
+    let mut value: u64 = 0
+    let mut atStart = true
+    let mut i: usize = 0
+    for i < b.len() {
+        let octet = b[i]
+        if atStart && octet == 0x80 {
+            fail asn1Error("OBJECT IDENTIFIER subidentifier has a leading zero group")
+        }
+        let low = (octet & 0x7f).toU64()
+        if value > (9223372036854775807 - low) / 128 {
+            fail asn1Error("OBJECT IDENTIFIER arc is too large")
+        }
+        value = value * 128 + low
+        atStart = false
+        if (octet & 0x80) == 0 {
+            arcs.push(value)
+            value = 0
+            atStart = true
+        }
+        i = i + 1
+    }
+    if !atStart {
+        fail asn1Error("OBJECT IDENTIFIER subidentifier is truncated")
+    }
+    let first = arcs[0]
+    let mut root: u64 = 0
+    let mut second: u64 = 0
+    if first < 40 {
+        second = first
+    } else if first < 80 {
+        root = 1
+        second = first - 40
+    } else {
+        root = 2
+        second = first - 80
+    }
+    let mut out = "${root}.${second}"
+    let mut arc: usize = 1
+    for arc < arcs.len() {
+        out = "${out}.${arcs[arc]}"
+        arc = arc + 1
+    }
+    Ok(out)
+}
+
+pub pure fn Element.utf8String(self) -> Result[String, Error] {
+    requirePrimitive(self, 12)?
+    match String.fromBytes(self.content) {
+        Ok(value) -> Ok(value)
+        Err(_) -> fail asn1Error("UTF8String is not valid UTF-8")
+    }
+}
+
+pub pure fn Element.printableString(self) -> Result[String, Error] {
+    requirePrimitive(self, 19)?
+    let b = self.content
+    let mut i: usize = 0
+    for i < b.len() {
+        if !isPrintable(b[i]) {
+            fail asn1Error("PrintableString contains an octet outside its repertoire")
+        }
+        i = i + 1
+    }
+    stringOrFail(b, "PrintableString")
+}
+
+pub pure fn Element.ia5String(self) -> Result[String, Error] {
+    requirePrimitive(self, 22)?
+    let b = self.content
+    let mut i: usize = 0
+    for i < b.len() {
+        if b[i] >= 0x80 {
+            fail asn1Error("IA5String contains a non-ASCII octet")
+        }
+        i = i + 1
+    }
+    stringOrFail(b, "IA5String")
+}
+
+pure fn isPrintable(c: u8) -> Bool {
+    let v = c.toUsize()
+    (v >= 65 && v <= 90)
+        || (v >= 97 && v <= 122)
+        || (v >= 48 && v <= 57)
+        || c == 32
+        || c == 39
+        || c == 40
+        || c == 41
+        || c == 43
+        || c == 44
+        || c == 45
+        || c == 46
+        || c == 47
+        || c == 58
+        || c == 61
+        || c == 63
+}
+
+pure fn stringOrFail(b: Bytes, what: String) -> Result[String, Error] {
+    match String.fromBytes(b) {
+        Ok(value) -> Ok(value)
+        Err(_) -> fail asn1Error("${what} is not valid UTF-8")
+    }
+}
+
+pure fn sliceOrFail(b: Bytes, start: usize, end: usize, what: String) -> Result[Bytes, Error] {
+    match b.slice(start, end) {
+        Some(value) -> Ok(value)
+        None -> fail asn1Error("${what} is out of bounds")
+    }
+}

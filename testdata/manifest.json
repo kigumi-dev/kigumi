@@ -4256,6 +4256,42 @@
       ]
     },
     {
+      "id": "run/crypto_asn1_der",
+      "kind": "run",
+      "path": "testdata/run/crypto_asn1_der.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_asn1_der_errors",
+      "kind": "run",
+      "path": "testdata/run/crypto_asn1_der_errors.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_asn1_pem",
+      "kind": "run",
+      "path": "testdata/run/crypto_asn1_pem.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_asn1_primitive_errors",
+      "kind": "run",
+      "path": "testdata/run/crypto_asn1_primitive_errors.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/crypto_chacha_aead",
       "kind": "run",
       "path": "testdata/run/crypto_chacha_aead.txtar",

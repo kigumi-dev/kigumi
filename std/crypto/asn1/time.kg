@@ -1,0 +1,111 @@
+// UTCTime and GeneralizedTime in their DER forms: digits only, seconds
+// present, and the UTC designator Z. X.690 forbids offsets, fractions and
+// omitted seconds here.
+/// A validated calendar time; the DER time types carry no zone because DER
+/// requires UTC.
+pub type Time = {
+    pub year Int
+    pub month Int
+    pub day Int
+    pub hour Int
+    pub minute Int
+    pub second Int
+}
+
+/// UTCTime as YYMMDDHHMMSSZ; years 00-49 are 2000-2049, 50-99 are 1950-1999.
+pub pure fn Element.utcTime(self) -> Result[Time, Error] {
+    requirePrimitive(self, 23)?
+    let b = self.content
+    if b.len() != 13 {
+        fail asn1Error("UTCTime must be YYMMDDHHMMSSZ")
+    }
+    if b[12] != 90 {
+        fail asn1Error("DER UTCTime must end with Z")
+    }
+    let yy = digits(b, 0, 2)?
+    let year = if yy < 50 {
+        2000 + yy
+    } else {
+        1900 + yy
+    }
+    checkedTime(year, digits(b, 2, 2)?, digits(b, 4, 2)?, digits(b, 6, 2)?, digits(b, 8, 2)?, digits(b, 10, 2)?)
+}
+
+/// GeneralizedTime as YYYYMMDDHHMMSSZ; DER forbids fractional seconds and
+/// omitted seconds.
+pub pure fn Element.generalizedTime(self) -> Result[Time, Error] {
+    requirePrimitive(self, 24)?
+    let b = self.content
+    if b.len() != 15 {
+        fail asn1Error("GeneralizedTime must be YYYYMMDDHHMMSSZ")
+    }
+    if b[14] != 90 {
+        fail asn1Error("DER GeneralizedTime must end with Z")
+    }
+    checkedTime(digits(b, 0, 4)?, digits(b, 4, 2)?, digits(b, 6, 2)?, digits(b, 8, 2)?, digits(b, 10, 2)?, digits(b, 12, 2)?)
+}
+
+pure fn digits(b: Bytes, at: usize, count: usize) -> Result[Int, Error] {
+    let mut value: Int = 0
+    let mut i: usize = 0
+    for i < count {
+        let c = b[at + i]
+        if c < 48 || c > 57 {
+            fail asn1Error("time contains a non-digit")
+        }
+        value = value * 10 + (c.toInt() - 48)
+        i = i + 1
+    }
+    Ok(value)
+}
+
+pure fn checkedTime(year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int) -> Result[Time, Error] {
+    if month < 1 || month > 12 {
+        fail asn1Error("time month is out of range")
+    }
+    if day < 1 || day > daysInMonth(year, month) {
+        fail asn1Error("time day is out of range")
+    }
+    if hour > 23 {
+        fail asn1Error("time hour is out of range")
+    }
+    if minute > 59 {
+        fail asn1Error("time minute is out of range")
+    }
+    if second > 59 {
+        fail asn1Error("time second is out of range")
+    }
+    Ok(Time {
+        year: year
+        month: month
+        day: day
+        hour: hour
+        minute: minute
+        second: second
+    })
+}
+
+pure fn daysInMonth(year: Int, month: Int) -> Int {
+    match month {
+        1 -> 31
+        2 -> if isLeap(year) {
+            29
+        } else {
+            28
+        }
+        3 -> 31
+        4 -> 30
+        5 -> 31
+        6 -> 30
+        7 -> 31
+        8 -> 31
+        9 -> 30
+        10 -> 31
+        11 -> 30
+        _ -> 31
+    }
+}
+
+pure fn isLeap(year: Int) -> Bool {
+    (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
+}

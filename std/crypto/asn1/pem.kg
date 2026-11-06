@@ -1,0 +1,91 @@
+import base64 from std/encoding/base64
+import text from std/text
+
+/// One decoded PEM block. `label` is the text between `BEGIN ` and `-----`,
+/// and `der` is the base64 payload's bytes.
+pub type PemBlock = {
+    pub label String
+    pub der Bytes
+}
+
+/// Decodes every PEM block in `input`. Text outside blocks is ignored, lines
+/// are trimmed, empty lines are skipped, and each END label must match its
+/// BEGIN label.
+pub pure fn parsePem(input: String) -> Result[Array[PemBlock], Error] {
+    let mut out = Array.empty[PemBlock]()
+    let mut inBlock = false
+    let mut label = ""
+    let mut body = text.StringBuilder.new()
+    for line in text.lines(input) {
+        let s = line.trim()
+        if s.isEmpty() {
+            continue
+        }
+        if s.startsWith("-----BEGIN") {
+            if !(s.startsWith("-----BEGIN ") && s.endsWith("-----")) {
+                fail asn1Error("malformed PEM BEGIN line")
+            }
+            if inBlock {
+                fail asn1Error("PEM block ${label} contains a nested BEGIN")
+            }
+            label = headerLabel(s, true)?
+            inBlock = true
+            body = text.StringBuilder.new()
+        } else if s.startsWith("-----END") {
+            if !(s.startsWith("-----END ") && s.endsWith("-----")) {
+                fail asn1Error("malformed PEM END line")
+            }
+            if !inBlock {
+                fail asn1Error("PEM END line without a BEGIN")
+            }
+            let endLabel = headerLabel(s, false)?
+            if endLabel != label {
+                fail asn1Error("PEM label mismatch: BEGIN ${label}, END ${endLabel}")
+            }
+            let encoded = match body.freeze() {
+                Ok(value) -> value
+                Err(_) -> fail asn1Error("PEM body is not valid text")
+            }
+            if encoded.isEmpty() {
+                fail asn1Error("PEM block ${label} has an empty body")
+            }
+            let der = match base64.decode(encoded) {
+                Ok(value) -> value
+                Err(e) -> fail asn1Error("PEM base64: ${e.message()}")
+            }
+            out.push(PemBlock {
+                label: label
+                der: der
+            })
+            inBlock = false
+            label = ""
+            body = text.StringBuilder.new()
+        } else if inBlock {
+            body.push(s)
+        }
+    }
+    if inBlock {
+        fail asn1Error("PEM block ${label} has no END line")
+    }
+    Ok(out)
+}
+
+pure fn headerLabel(line: String, begin: Bool) -> Result[String, Error] {
+    let prefix = if begin {
+        "-----BEGIN "
+    } else {
+        "-----END "
+    }
+    let start = prefix.len()
+    let label = match line.sliceBytes(start, line.len() - 5) {
+        Some(value) -> value
+        None -> fail asn1Error("malformed PEM header")
+    }
+    if label.isEmpty() {
+        fail asn1Error("PEM label is empty")
+    }
+    if label.contains("-----") {
+        fail asn1Error("PEM label contains the boundary marker")
+    }
+    Ok(label)
+}

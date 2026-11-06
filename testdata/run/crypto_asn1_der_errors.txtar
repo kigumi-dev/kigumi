@@ -1,0 +1,69 @@
+-- src --
+import asn1 from std/crypto/asn1
+import hex from std/encoding/hex
+
+fn der(name: String, input: String) -> Void! {
+    let data = hex.decode(input)?
+    match asn1.parse(data) {
+        Ok(_) -> print "${name}: accepted"
+        Err(e) -> print "${name}: ${e.message()}"
+    }
+}
+
+fn main() -> Void! {
+    der("empty", "")?
+    der("truncated-identifier", "1f")?
+    der("truncated-length", "04")?
+    der("truncated-long-length", "0482")?
+    der("truncated-long-length-1", "048201")?
+    der("content-past-end", "04030102")?
+    der("nonminimal-short", "04810100")?
+    der("nonminimal-long", "04817f")?
+    der("leading-zero-length", "04820080")?
+    der("length-too-wide", "04890102030405060708")?
+    der("length-overflow", "0488ffffffffffffffff")?
+    der("reserved-length", "04ff")?
+    der("indefinite", "30800000")?
+    der("eoc", "0000")?
+    der("high-tag-leading-zero", "1f800100")?
+    der("high-tag-below-31", "1f0100")?
+    der("high-tag-truncated", "1f81")?
+    der("high-tag-overflow", "1f84ffffffff0000")?
+    der("short-content", "0201")?
+    match asn1.parseAll(hex.decode("0201050500")?) {
+        Ok(all) -> print "parse-all-ok: ${all.len()}"
+        Err(e) -> print "parse-all-ok: ${e.message()}"
+    }
+    match asn1.parseAt(hex.decode("020105")?, 3) {
+        Ok(_) -> print "offset-past-end: accepted"
+        Err(e) -> print "offset-past-end: ${e.message()}"
+    }
+    let prim = asn1.parse(hex.decode("020105")?)?
+    match prim.children() {
+        Ok(_) -> print "primitive-children: accepted"
+        Err(e) -> print "primitive-children: ${e.message()}"
+    }
+}
+-- stdout --
+empty: asn1: truncated element identifier
+truncated-identifier: asn1: truncated high-tag-number identifier
+truncated-length: asn1: truncated length
+truncated-long-length: asn1: truncated long-form length
+truncated-long-length-1: asn1: truncated long-form length
+content-past-end: asn1: content of 3 bytes runs past the input
+nonminimal-short: asn1: long-form length is not minimal
+nonminimal-long: asn1: long-form length is not minimal
+leading-zero-length: asn1: length has a redundant leading zero
+length-too-wide: asn1: length uses more than 8 octets
+length-overflow: asn1: length exceeds the supported range
+reserved-length: asn1: length octet 0xff is reserved
+indefinite: asn1: indefinite length is not allowed in DER
+eoc: asn1: end-of-contents is not allowed in DER
+high-tag-leading-zero: asn1: high-tag-number identifier has a leading zero group
+high-tag-below-31: asn1: tag number below 31 must use the low-tag-number form
+high-tag-truncated: asn1: truncated high-tag-number identifier
+high-tag-overflow: asn1: tag number exceeds 32 bits
+short-content: asn1: content of 1 bytes runs past the input
+parse-all-ok: 2
+offset-past-end: asn1: truncated element identifier
+primitive-children: asn1: a primitive element has no children

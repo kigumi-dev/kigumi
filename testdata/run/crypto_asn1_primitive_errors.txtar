@@ -1,0 +1,144 @@
+-- src --
+import asn1 from std/crypto/asn1
+import hex from std/encoding/hex
+
+fn check(name: String, input: String, kind: String) -> Void! {
+    let data = hex.decode(input)?
+    let e = asn1.parse(data)?
+    let result = match kind {
+        "uint" -> match e.uintBytes() {
+            Ok(_) -> "accepted"
+            Err(x) -> x.message()
+        }
+        "u64" -> match e.uint() {
+            Ok(_) -> "accepted"
+            Err(x) -> x.message()
+        }
+        "bool" -> match e.boolean() {
+            Ok(_) -> "accepted"
+            Err(x) -> x.message()
+        }
+        "null" -> match e.nullValue() {
+            Ok(_) -> "accepted"
+            Err(x) -> x.message()
+        }
+        "octet" -> match e.octets() {
+            Ok(_) -> "accepted"
+            Err(x) -> x.message()
+        }
+        "bit" -> match e.bitString() {
+            Ok(_) -> "accepted"
+            Err(x) -> x.message()
+        }
+        "oid" -> match e.oid() {
+            Ok(_) -> "accepted"
+            Err(x) -> x.message()
+        }
+        "utf8" -> match e.utf8String() {
+            Ok(_) -> "accepted"
+            Err(x) -> x.message()
+        }
+        "printable" -> match e.printableString() {
+            Ok(_) -> "accepted"
+            Err(x) -> x.message()
+        }
+        "ia5" -> match e.ia5String() {
+            Ok(_) -> "accepted"
+            Err(x) -> x.message()
+        }
+        "utc" -> match e.utcTime() {
+            Ok(_) -> "accepted"
+            Err(x) -> x.message()
+        }
+        "gen" -> match e.generalizedTime() {
+            Ok(_) -> "accepted"
+            Err(x) -> x.message()
+        }
+        _ -> "unknown kind"
+    }
+    print "${name}: ${result}"
+}
+
+fn main() -> Void! {
+    check("int-empty", "0200", "uint")?
+    check("int-negative", "0201ff", "uint")?
+    check("int-negative-128", "020180", "uint")?
+    check("int-redundant-zero", "0202007f", "uint")?
+    check("int-too-wide", "0209010000000000000000", "u64")?
+    check("int-wrong-tag", "0101ff", "uint")?
+
+    check("bool-length", "010200ff", "bool")?
+    check("bool-value", "010101", "bool")?
+    check("bool-constructed", "210101", "bool")?
+
+    check("null-nonempty", "050100", "null")?
+
+    check("octet-constructed", "240304010203", "octet")?
+
+    check("bit-empty", "0300", "bit")?
+    check("bit-unused-8", "03020800", "bit")?
+    check("bit-empty-unused", "030101", "bit")?
+    check("bit-padding", "030204f1", "bit")?
+    check("bit-constructed", "230100", "bit")?
+
+    check("oid-empty", "0600", "oid")?
+    check("oid-leading-zero", "060180", "oid")?
+    check("oid-truncated", "060181", "oid")?
+    check("oid-arc-too-large", "060affffffffffffffffff7f", "oid")?
+
+    check("utf8-invalid", "0c01ff", "utf8")?
+    check("printable-invalid", "130140", "printable")?
+    check("ia5-invalid", "1601ff", "ia5")?
+
+    check("utc-length", "170c32353031303131323030305a", "utc")?
+    check("utc-no-z", "170d32353031303131323030303030", "utc")?
+    check("utc-month", "170d3235313330313132303030305a", "utc")?
+    check("utc-day", "170d3235303233303132303030305a", "utc")?
+    check("utc-hour", "170d3235303130313234303030305a", "utc")?
+    check("utc-minute", "170d3235303130313132363030305a", "utc")?
+    check("utc-second", "170d3235303130313132303036305a", "utc")?
+    check("utc-non-digit", "170d3235303130313132303030ff5a", "utc")?
+
+    check("gen-length", "180d3230323530313031313230305a", "gen")?
+    check("gen-no-z", "180f323032353031303131323030303030", "gen")?
+    check("gen-fraction", "181132303235303130313132303030302e305a", "gen")?
+    check("gen-leap-1900", "180f31393030303232393132303030305a", "gen")?
+    check("gen-leap-2000", "180f32303030303232393132303030305a", "gen")?
+}
+-- stdout --
+int-empty: asn1: INTEGER has empty content
+int-negative: asn1: INTEGER is negative
+int-negative-128: asn1: INTEGER is negative
+int-redundant-zero: asn1: INTEGER has a redundant leading zero octet
+int-too-wide: asn1: INTEGER does not fit in 64 bits
+int-wrong-tag: asn1: expected universal tag 2, found 1
+bool-length: asn1: BOOLEAN content must be one octet
+bool-value: asn1: DER BOOLEAN must be 0x00 or 0xff
+bool-constructed: asn1: constructed encoding is not allowed for tag 1
+null-nonempty: asn1: NULL content must be empty
+octet-constructed: asn1: constructed encoding is not allowed for tag 4
+bit-empty: asn1: BIT STRING has no unused-bit-count octet
+bit-unused-8: asn1: BIT STRING unused-bit count exceeds 7
+bit-empty-unused: asn1: empty BIT STRING cannot have unused bits
+bit-padding: asn1: BIT STRING padding bits are not zero
+bit-constructed: asn1: constructed encoding is not allowed for tag 3
+oid-empty: asn1: OBJECT IDENTIFIER has empty content
+oid-leading-zero: asn1: OBJECT IDENTIFIER subidentifier has a leading zero group
+oid-truncated: asn1: OBJECT IDENTIFIER subidentifier is truncated
+oid-arc-too-large: asn1: OBJECT IDENTIFIER arc is too large
+utf8-invalid: asn1: UTF8String is not valid UTF-8
+printable-invalid: asn1: PrintableString contains an octet outside its repertoire
+ia5-invalid: asn1: IA5String contains a non-ASCII octet
+utc-length: asn1: UTCTime must be YYMMDDHHMMSSZ
+utc-no-z: asn1: DER UTCTime must end with Z
+utc-month: asn1: time month is out of range
+utc-day: asn1: time day is out of range
+utc-hour: asn1: time hour is out of range
+utc-minute: asn1: time minute is out of range
+utc-second: asn1: time second is out of range
+utc-non-digit: asn1: time contains a non-digit
+gen-length: asn1: GeneralizedTime must be YYYYMMDDHHMMSSZ
+gen-no-z: asn1: DER GeneralizedTime must end with Z
+gen-fraction: asn1: GeneralizedTime must be YYYYMMDDHHMMSSZ
+gen-leap-1900: asn1: time day is out of range
+gen-leap-2000: accepted

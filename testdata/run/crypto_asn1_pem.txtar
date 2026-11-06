@@ -1,0 +1,55 @@
+-- src --
+import asn1 from std/crypto/asn1
+import hex from std/encoding/hex
+
+fn pem(name: String, input: String) -> Void! {
+    match asn1.parsePem(input) {
+        Ok(blocks) -> {
+            let n = blocks.len()
+            let mut out = ""
+            for b in blocks {
+                out = "${out}[${b.label}:${hex.encode(b.der)}]"
+            }
+            print "${name}: ${n} ${out}"
+        }
+        Err(e) -> print "${name}: ${e.message()}"
+    }
+}
+
+fn main() -> Void! {
+    pem("one", "-----BEGIN TEST-----\nAQID\n-----END TEST-----\n")?
+    pem("whitespace", "  -----BEGIN TEST-----  \r\n\r\n   AQID   \r\n  -----END TEST-----  \r\n")?
+    pem("two", "preamble\n-----BEGIN A-----\nAQID\n-----END A-----\nnoise\n-----BEGIN B-----\nBAUG\n-----END B-----\npost\n")?
+    pem("mismatch", "-----BEGIN A-----\nAQID\n-----END B-----\n")?
+    pem("no-end", "-----BEGIN A-----\nAQID\n")?
+    pem("end-without-begin", "-----END A-----\n")?
+    pem("nested", "-----BEGIN A-----\n-----BEGIN B-----\nAQID\n-----END B-----\n-----END A-----\n")?
+    pem("bad-base64", "-----BEGIN A-----\n!!!!\n-----END A-----\n")?
+    pem("malformed-begin", "-----BEGIN A----\nAQID\n-----END A-----\n")?
+    pem("malformed-end", "-----BEGIN A-----\nAQID\n-----END A----\n")?
+    pem("empty-body", "-----BEGIN A-----\n-----END A-----\n")?
+    pem("trailing-bits", "-----BEGIN A-----\nAQJ=\n-----END A-----\n")?
+    pem("label-space", "-----BEGIN EC PARAMETERS-----\nAQID\n-----END EC PARAMETERS-----\n")?
+
+    let text = "-----BEGIN DATA-----\nMAMCAQE=\n-----END DATA-----\n"
+    let blocks = asn1.parsePem(text)?
+    let block = blocks[0]
+    let e = asn1.parse(block.der)?
+    let kids = e.children()?
+    print "nested-der: ${block.label} ${e.tag} ${kids[0].uint()?}"
+}
+-- stdout --
+one: 1 [TEST:010203]
+whitespace: 1 [TEST:010203]
+two: 2 [A:010203][B:040506]
+mismatch: asn1: PEM label mismatch: BEGIN A, END B
+no-end: asn1: PEM block A has no END line
+end-without-begin: asn1: PEM END line without a BEGIN
+nested: asn1: PEM block A contains a nested BEGIN
+bad-base64: asn1: PEM base64: base64: `!` is not in the alphabet
+malformed-begin: asn1: malformed PEM BEGIN line
+malformed-end: asn1: malformed PEM END line
+empty-body: asn1: PEM block A has an empty body
+trailing-bits: asn1: PEM base64: base64: the last character carries nonzero trailing bits
+label-space: 1 [EC PARAMETERS:010203]
+nested-der: DATA 16 1

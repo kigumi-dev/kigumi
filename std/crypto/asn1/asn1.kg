@@ -1,0 +1,218 @@
+// DER (X.690) element reader: definite lengths only, minimal length and
+// identifier encodings, and content bounds checked against the input.
+/// Class of an ASN.1 tag, from the two high bits of the identifier octet.
+pub type TagClass =
+    | Universal
+    | Application
+    | Context
+    | Private
+
+/// Why DER or PEM decoding was refused.
+pub type Error = {
+    pub text String
+}
+
+pub fn Error.message(self) -> String {
+    self.text
+}
+
+pure fn asn1Error(text: String) -> Error {
+    Error { text: "asn1: ${text}" }
+}
+
+/// One DER element. `content` is the slice after the identifier and length
+/// octets, and `offset` is the element's byte offset in the input.
+pub type Element = {
+    pub tagClass TagClass
+    pub constructed Bool
+    pub tag usize
+    pub content Bytes
+    pub offset usize
+    pub headerLen usize
+}
+
+/// Identifier and length octets plus content, in bytes. A parsed element's
+/// content always lies inside the input, so this cannot overflow.
+pub pure fn Element.totalLen(self) -> usize {
+    self.headerLen + self.content.len()
+}
+
+type Header = {
+    tagClass TagClass
+    constructed Bool
+    tag usize
+    length usize
+    headerLen usize
+}
+
+type CursorValue = {
+    value usize
+    next usize
+}
+
+/// Reads one element from the start of `input`; trailing bytes are ignored.
+pub pure fn parse(input: Bytes) -> Result[Element, Error] {
+    parseElementAt(input, 0, 0)
+}
+
+/// Reads one element at byte offset `at`; the returned offset is absolute and
+/// no prefix is copied.
+pub pure fn parseAt(input: Bytes, at: usize) -> Result[Element, Error] {
+    parseElementAt(input, at, 0)
+}
+
+/// Reads elements until the end of `input`; an empty input has no elements.
+pub pure fn parseAll(input: Bytes) -> Result[Array[Element], Error] {
+    parseAllAt(input, 0)
+}
+
+/// Reads the elements inside a constructed element's content.
+pub pure fn Element.children(self) -> Result[Array[Element], Error] {
+    if !self.constructed {
+        fail asn1Error("a primitive element has no children")
+    }
+    parseAllAt(self.content, self.offset + self.headerLen)
+}
+
+pure fn parseAllAt(input: Bytes, base: usize) -> Result[Array[Element], Error] {
+    let mut out = Array.empty[Element]()
+    let mut at: usize = 0
+    for at < input.len() {
+        let element = parseElementAt(input, at, base)?
+        at = at + element.totalLen()
+        out.push(element)
+    }
+    Ok(out)
+}
+
+pure fn parseElementAt(input: Bytes, at: usize, base: usize) -> Result[Element, Error] {
+    let header = parseHeader(input, at)?
+    if header.tagClass is Universal && header.tag == 0 {
+        fail asn1Error("end-of-contents is not allowed in DER")
+    }
+    let start = at + header.headerLen
+    if header.length > input.len() - start {
+        fail asn1Error("content of ${header.length} bytes runs past the input")
+    }
+    let content = match input.slice(start, start + header.length) {
+        Some(value) -> value
+        None -> fail asn1Error("content is out of bounds")
+    }
+    Ok(Element {
+        tagClass: header.tagClass
+        constructed: header.constructed
+        tag: header.tag
+        content: content
+        offset: base + at
+        headerLen: header.headerLen
+    })
+}
+
+pure fn parseHeader(input: Bytes, at: usize) -> Result[Header, Error] {
+    if at >= input.len() {
+        fail asn1Error("truncated element identifier")
+    }
+    let first = input[at]
+    let tagClass = match (first >> 6) & 3 {
+        0 -> Universal
+        1 -> Application
+        2 -> Context
+        _ -> Private
+    }
+    let constructed = (first & 32) != 0
+    let mut cursor = at + 1
+    let mut tag = (first & 31).toUsize()
+    if tag == 31 {
+        let info = parseHighTag(input, cursor)?
+        tag = info.value
+        cursor = info.next
+    }
+    let length = parseLength(input, cursor)?
+    Ok(Header {
+        tagClass: tagClass
+        constructed: constructed
+        tag: tag
+        length: length.value
+        headerLen: length.next - at
+    })
+}
+
+pure fn parseHighTag(input: Bytes, start: usize) -> Result[CursorValue, Error] {
+    let mut value: usize = 0
+    let mut cursor = start
+    let mut first = true
+    let mut done = false
+    for cursor < input.len() && !done {
+        let b = input[cursor].toUsize()
+        if first && b == 0x80 {
+            fail asn1Error("high-tag-number identifier has a leading zero group")
+        }
+        let low = b & 0x7f
+        if value > (4294967295 - low) / 128 {
+            fail asn1Error("tag number exceeds 32 bits")
+        }
+        value = value * 128 + low
+        first = false
+        cursor = cursor + 1
+        if b < 0x80 {
+            done = true
+        }
+    }
+    if !done {
+        fail asn1Error("truncated high-tag-number identifier")
+    }
+    if value < 31 {
+        fail asn1Error("tag number below 31 must use the low-tag-number form")
+    }
+    Ok(CursorValue {
+        value: value
+        next: cursor
+    })
+}
+
+pure fn parseLength(input: Bytes, at: usize) -> Result[CursorValue, Error] {
+    if at >= input.len() {
+        fail asn1Error("truncated length")
+    }
+    let first = input[at].toUsize()
+    if first < 0x80 {
+        return Ok(CursorValue {
+            value: first
+            next: at + 1
+        })
+    }
+    if first == 0x80 {
+        fail asn1Error("indefinite length is not allowed in DER")
+    }
+    if first == 0xff {
+        fail asn1Error("length octet 0xff is reserved")
+    }
+    let count = first & 0x7f
+    if count > 8 {
+        fail asn1Error("length uses more than 8 octets")
+    }
+    let start = at + 1
+    if count > input.len() - start {
+        fail asn1Error("truncated long-form length")
+    }
+    if input[start] == 0 {
+        fail asn1Error("length has a redundant leading zero")
+    }
+    let mut value: usize = 0
+    let mut i: usize = 0
+    for i < count {
+        let b = input[start + i].toUsize()
+        if value > (9223372036854775807 - b) / 256 {
+            fail asn1Error("length exceeds the supported range")
+        }
+        value = value * 256 + b
+        i = i + 1
+    }
+    if value < 0x80 {
+        fail asn1Error("long-form length is not minimal")
+    }
+    Ok(CursorValue {
+        value: value
+        next: start + count
+    })
+}
