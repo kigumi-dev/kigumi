@@ -31,7 +31,7 @@ func renderInto(sb *strings.Builder, src Sources, d Diagnostic) {
 		renderSnippet(sb, f, d.Loc.Span, d.Severity, width)
 	}
 	for _, h := range d.Help {
-		fmt.Fprintf(sb, "%s = %s %s\n", strings.Repeat(" ", width), paint(ansiCyan, "help:"), h)
+		fmt.Fprintf(sb, "%s = %s %s\n", strings.Repeat(" ", width), paint(ansiCyan, "help:"), escapeC0(h))
 	}
 	for _, n := range d.Notes {
 		renderHead(sb, n)
@@ -47,7 +47,7 @@ func renderHead(sb *strings.Builder, d Diagnostic) {
 	if d.Code != "" {
 		word += "[" + d.Code + "]"
 	}
-	fmt.Fprintf(sb, "%s%s\n", paint(severityColor(d.Severity), word), paint(ansiBold, ": "+d.Msg))
+	fmt.Fprintf(sb, "%s%s\n", paint(severityColor(d.Severity), word), paint(ansiBold, ": "+escapeC0(d.Msg)))
 }
 
 // renderSnippet positions the underline in display cells, not byte columns, since CJK/emoji/tab bytes vary in width.
@@ -57,7 +57,7 @@ func renderSnippet(sb *strings.Builder, f *token.File, span token.Span, sev Seve
 	fmt.Fprintf(sb, "%s%s %s:%d:%d\n", pad, paint(ansiBlue, "-->"), f.Name, line, col)
 	fmt.Fprintf(sb, "%s %s\n", pad, paint(ansiBlue, "|"))
 	num := strconv.Itoa(line)
-	lineText := f.LineText(line)
+	lineText := escapeC0(f.LineText(line))
 	fmt.Fprintf(sb, "%s%s %s %s\n", strings.Repeat(" ", width-len(num)), paint(ansiBlue, num), paint(ansiBlue, "|"), lineText)
 	lineStart := f.LineSpan(line).Start
 	leadCells := displayWidth(lineText[:int(span.Start-lineStart)])
@@ -89,4 +89,19 @@ func caretCells(f *token.File, span token.Span, line int) int {
 	text := f.LineText(line)
 	cells := displayWidth(text[int(span.Start-ls.Start):int(end-ls.Start)])
 	return max(cells, 1)
+}
+
+// escapeC0 keeps control bytes out of the terminal; tabs and newlines are
+// already meaningful in source snippets and stay as they are.
+func escapeC0(s string) string {
+	var out strings.Builder
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c < 0x20 && c != '\n' && c != '\t' || c == 0x7f {
+			fmt.Fprintf(&out, "\\x%02x", c)
+			continue
+		}
+		out.WriteByte(c)
+	}
+	return out.String()
 }

@@ -73,3 +73,14 @@ func contains(s, sub string) bool {
 	}
 	return false
 }
+
+func TestRenderEscapesControlBytes(t *testing.T) {
+	store := &token.SourceStore{}
+	f := token.NewFile("ctl.kg", []byte("let x = \x1b[31m\n"))
+	store.Add(f)
+	d := diag.Errorf(diag.At(f, token.Span{Start: 8, End: 9}), "bad \x1b[31m")
+	got := diag.Render(store, d)
+	if contains(got, "\x1b") {
+		t.Fatalf("diagnostic leaked a raw ESC: %q", got)
+	}
+}
