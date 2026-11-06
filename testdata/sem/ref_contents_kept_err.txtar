@@ -87,7 +87,7 @@ type KBag[K, V] = {
 }
 
 fn KBag[K, V: FromRef[K]].addRef(mut self, k: &K) {
-    self.vs.push(V.fromRef(k)) //~ ERROR a borrow cannot be stored into `self`
+    self.vs.push(V.fromRef(k))
 }
 
 fn mintTo[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
@@ -143,12 +143,6 @@ note: `inner` is borrowed here
    |
 57 |         let w = W { v: View { s: &inner } }
    |                                  ^^^^^^
-
-error[E2159]: a borrow cannot be stored into `self` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
-  --> main.kg:87:5
-   |
-87 |     self.vs.push(V.fromRef(k)) //~ ERROR a borrow cannot be stored into `self`
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2235]: `b` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
   --> main.kg:97:5

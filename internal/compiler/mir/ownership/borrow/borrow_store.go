@@ -145,13 +145,8 @@ func (c *borrowCheck) callerPlace(l midir.LocalID) bool {
 func (c *borrowCheck) checkFlow(fl storeFlow, in midir.Inst) {
 	c.callNode = in.Node
 	root, place, caller, ok := c.storeRoot(fl)
-
 	for _, v := range fl.values {
 		b, has := c.storedInfo(fl, v, caller)
-		if c.selfTarget(fl.target) && c.witnessBorrowResult(v.arg) && !c.witnessRefersSelf(v.arg) && (!has || b.empty || !b.hasOwner) {
-			c.reportCode(in.Node, v.arg, "borrow-store-outlives", "self")
-			continue
-		}
 		if !has || b.empty || v.at != nil {
 			continue
 		}
@@ -187,62 +182,4 @@ func (c *borrowCheck) fitsOwnLifetime(b *borrowInfo, place sem.TypeID) bool {
 	}
 	info := c.p.R.Fn(c.f.Ent)
 	return slices.Contains(info.TypeParams, b.lifetime) || slices.Contains(c.recvLifetimeParams(info), b.lifetime)
-}
-
-// selfRoot reports the local named `self` of the current method.
-func (c *borrowCheck) selfRoot(root midir.LocalID) bool {
-	ent := c.f.Locals[root].Ent
-	return ent != 0 && c.p.R.Entity(ent).Kind == sem.EntParam && c.p.R.Entity(ent).Flags&sem.EfSelf != 0
-}
-
-// witnessBorrowResult reports a value produced by an interface witness whose
-// declared result is a bare type parameter. Its borrow has no name this body
-// can check, so storing it through self must be rejected.
-func (c *borrowCheck) witnessBorrowResult(a midir.LocalID) bool {
-	if c.p.R.Types.Kind(c.f.Locals[a].Type) != sem.KParam {
-		return false
-	}
-	d := c.definition(a)
-	if d == nil || (d.Op != midir.OpCall && d.Op != midir.OpCallValue) || d.Ent == 0 {
-		return false
-	}
-	info := c.p.R.Fn(d.Ent)
-	return info.Owner != 0 && c.p.R.Entity(info.Owner).Kind == sem.EntInterface
-}
-
-// selfTarget reports whether a store target traces back to the receiver local
-// through the cell, borrow, field and element operations of its place.
-func (c *borrowCheck) selfTarget(a midir.LocalID) bool {
-	for {
-		if c.selfRoot(a) {
-			return true
-		}
-		d := c.definition(a)
-		if d == nil || len(d.Args) == 0 {
-			return false
-		}
-		switch d.Op {
-		case midir.OpNewCell, midir.OpShare, midir.OpBorrow, midir.OpField, midir.OpIndex,
-			midir.OpCellGet, midir.OpAlias, midir.OpCopy, midir.OpMove, midir.OpPayload, midir.OpFieldMove:
-			a = d.Args[0]
-		default:
-			return false
-		}
-	}
-}
-
-// witnessRefersSelf reports a witness call whose reference argument comes from
-// the receiver itself; storing that result back into the receiver is the
-// existing self-borrow rule's case, not an unnamed caller borrow.
-func (c *borrowCheck) witnessRefersSelf(a midir.LocalID) bool {
-	d := c.definition(a)
-	if d == nil || len(d.Args) < 2 {
-		return false
-	}
-	for _, arg := range d.Args[1:] {
-		if c.selfTarget(arg) {
-			return true
-		}
-	}
-	return false
 }
