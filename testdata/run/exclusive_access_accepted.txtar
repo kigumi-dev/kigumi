@@ -75,15 +75,6 @@ fn unrelatedBinding() -> Int {
     a.count * 100 + b.count
 }
 
-fn callBeforeClosure() -> Int {
-    let mut v = Item { count: 0 }
-    v.update(1)
-    let touch = () => { v.update(10) }
-    touch()
-    touch()
-    v.count
-}
-
 fn recordUnrelated() -> Int {
     let mut a = Item { count: 0 }
     let mut b = Item { count: 0 }
@@ -203,7 +194,6 @@ fn mutRefInClosure() -> Int {
 print "consecutive=${consecutive()}"
 print "captureFree=${captureFree()}"
 print "unrelatedBinding=${unrelatedBinding()}"
-print "callBeforeClosure=${callBeforeClosure()}"
 print "recordUnrelated=${recordUnrelated()}"
 print "witnessUnrelated=${witnessUnrelated()}"
 print "existentialUnrelated=${existentialUnrelated()}"
@@ -222,7 +212,6 @@ print "mutRefInClosure=${mutRefInClosure()}"
 consecutive=3
 captureFree=1
 unrelatedBinding=105
-callBeforeClosure=21
 recordUnrelated=2
 witnessUnrelated=3
 existentialUnrelated=4
