@@ -61,15 +61,19 @@ pub fn Router.use(move self, middleware: escaping fn(escaping fn(Request) -> Res
 /// `Allow` header when one does but not for this method; HEAD falls back to GET.
 pub fn Router.handler(move self) -> fn(Request) -> Response! {
     let mut table = ""
+    let mut heads = ""
     for r in &self.routes {
         table = "${table}${r.method} ${r.pattern}\n"
+        if r.method == "HEAD" {
+            heads = "${heads}${r.pattern}\n"
+        }
     }
     let mut h: fn(Request) -> Response! = (req: Request) => unmatched(table, req)
     let mut i = self.routes.len()
     for i > 0 {
         i = i - 1
         if self.routes.get(i) is Some(r) {
-            h = link(r, table, h)
+            h = link(r, heads, h)
         }
     }
     let mut j = self.layers.len()
@@ -84,9 +88,9 @@ pub fn Router.handler(move self) -> fn(Request) -> Response! {
 
 // Each route becomes one link of a chain, since a plain fn can capture Copy
 // values such as a String or another fn but not the route Array itself.
-fn link(r: Route, table: String, next: escaping fn(Request) -> Response!) -> fn(Request) -> Response! {
+fn link(r: Route, heads: String, next: escaping fn(Request) -> Response!) -> fn(Request) -> Response! {
     (req: Request) => {
-        if r.method == req.method || (req.method == "HEAD" && r.method == "GET" && !hasRoute(table, "HEAD", req.path)) {
+        if r.method == req.method || (req.method == "HEAD" && r.method == "GET" && !hasPattern(heads, req.path)) {
             if matchPattern(r.pattern, req.path) is Some(params) {
                 let mut routed = req
                 routed.params = params
@@ -97,10 +101,9 @@ fn link(r: Route, table: String, next: escaping fn(Request) -> Response!) -> fn(
     }
 }
 
-fn hasRoute(table: String, method: String, path: String) -> Bool {
-    for line in table.split("\n") {
-        let parts = line.split(" ")
-        if parts.len() == 2 && (parts.get(0) || "") == method && matchPattern(parts.get(1) || "", path) is Some(_) {
+fn hasPattern(patterns: String, path: String) -> Bool {
+    for pattern in patterns.split("\n") {
+        if pattern != "" && matchPattern(pattern, path) is Some(_) {
             return true
         }
     }
