@@ -204,9 +204,7 @@ key alloc.Shared.withMut
 op 66 SHARED_DOWNGRADE retired
 op 67 WEAK_UPGRADE primitive (named) -> option
 key alloc.Weak.upgrade
-op 68 NET_HTTP provider (named) -> named
-cap host.net
-key net.Net.http
+op 68 NET_HTTP retired
 op 69 NET_CONN_DROP provider (named) -> unit
 cap host.net
 key net.Conn.drop

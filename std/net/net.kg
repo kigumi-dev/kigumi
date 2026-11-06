@@ -2,4 +2,3 @@
 /// Safety: a stateless capability marker; every call it makes is independent, so sharing or duplicating it is free.
 @unsafeGuarantee(Copy, Send, Sync)
 pub type Net
-
