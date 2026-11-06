@@ -1,9 +1,9 @@
 -- src --
 import io from std/io
-import stdio from std/stdio
+import stdio from std/os
 import task from std/task
-import {stdout} from std/stdio
-import {stdout as out2} from std/stdio
+import {stdout} from std/os
+import {stdout as out2} from std/os
 
 pub type PrefixedWriter = {
     pub mut tag String

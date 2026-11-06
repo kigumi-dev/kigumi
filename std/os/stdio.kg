@@ -1,5 +1,4 @@
 import io from std/io
-import os from std/os
 
 /// Reads from the process's standard input.
 pub context stdin: io.Reader
@@ -19,7 +18,7 @@ pub type Stdio = {
 }
 
 /// The host's standard streams, from `stdio.hostStdio(host)`.
-pub fn hostStdio(host: os.Host) -> Stdio {
+pub fn hostStdio(host: Host) -> Stdio {
     Stdio {
         stdin: host.stdin()
         stdout: host.stdout()

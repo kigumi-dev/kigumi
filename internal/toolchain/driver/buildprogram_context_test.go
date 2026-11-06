@@ -15,7 +15,7 @@ func TestBuildProgramContextKeyRejected(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"ctxbp\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "build.kg"), []byte(strings.Join([]string{
 		"import build from std/build",
-		"import {stdout} from std/stdio",
+		"import {stdout} from std/os",
 		"",
 		"fn configure(b: build.Builder) -> Void! {",
 		"    _ = stdout.write(\"configuring\\n\".toBytes())?",
@@ -40,8 +40,8 @@ func TestBuildProgramContextOpenedInsideIsAccepted(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "build.kg"), []byte(strings.Join([]string{
 		"import build from std/build",
 		"import io from std/io",
-		"import stdio from std/stdio",
-		"import {stdout} from std/stdio",
+		"import stdio from std/os",
+		"import {stdout} from std/os",
 		"",
 		"fn configure(b: build.Builder) -> Void! {",
 		"    let streams = stdio.Stdio { stdin: io.BytesReader.new(\"\".toBytes()), stdout: io.BytesWriter.new(), stderr: io.BytesWriter.new() }",

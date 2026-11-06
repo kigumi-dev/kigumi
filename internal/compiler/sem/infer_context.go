@@ -157,14 +157,14 @@ func (c *checker) recordCtxValueRef(n syntax.NodeID, fn EntityID) {
 	c.r.ctxValueRefs = append(c.r.ctxValueRefs, ctxValueRef{ref: ctxNodeRef{File: c.f, Node: n}, target: fn})
 }
 
-// printCtxRequirement joins print's std/stdio dependency into CtxDirect as a
+// printCtxRequirement joins print's std/os dependency into CtxDirect as a
 // phantom: it never reads the value, so an unbound key never errors.
 func (c *checker) printCtxRequirement(n syntax.NodeID, name string) {
 	stdioName := "stdout"
 	if name == "eprint" {
 		stdioName = "stderr"
 	}
-	key := c.r.stdCtxKey("std/stdio", stdioName)
+	key := c.r.stdCtxKey("std/os", stdioName)
 	if key == 0 {
 		return
 	}

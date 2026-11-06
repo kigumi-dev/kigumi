@@ -22,10 +22,10 @@ func TestHoverContextRequiresFromPrint(t *testing.T) {
 		}
 		return h.Contents.(*protocol.MarkupContent).Value
 	}
-	if got := hoverAt(at(doc, 0, 4)); !strings.Contains(got, "requires: std/stdio.stdout") {
+	if got := hoverAt(at(doc, 0, 4)); !strings.Contains(got, "requires: std/os.stdout") {
 		t.Fatalf("hover on `greet` itself: %q", got)
 	}
-	if got := hoverAt(at(doc, 5, 5)); !strings.Contains(got, "requires: std/stdio.stdout") {
+	if got := hoverAt(at(doc, 5, 5)); !strings.Contains(got, "requires: std/os.stdout") {
 		t.Fatalf("hover on `wrapper`, which only calls greet: %q", got)
 	}
 }

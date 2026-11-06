@@ -1,6 +1,6 @@
 -- src --
-import stdio from std/stdio
-import {stdout} from std/stdio
+import stdio from std/os
+import {stdout} from std/os
 
 context token: String
 
