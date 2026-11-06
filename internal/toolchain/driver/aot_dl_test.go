@@ -12,7 +12,7 @@ import (
 	"kigumi/internal/toolchain/driver"
 )
 
-// TestAotDL loads libm with std/dl, calls two symbols through their typed
+// TestAotDL loads libm with std/ffi/dl, calls two symbols through their typed
 // Symbol values and sees a missing symbol as an error.
 func TestAotDL(t *testing.T) {
 	t.Parallel()
@@ -23,7 +23,7 @@ func TestAotDL(t *testing.T) {
 		t.Skip("no libm.so.6")
 	}
 	root := t.TempDir()
-	src := `import dl from std/dl
+	src := `import dl from std/ffi/dl
 
 type Sqrt = alias extern(C) fn(f64) -> f64
 
@@ -62,12 +62,12 @@ run() || (e) => print "failed: ${e.message()}"
 	}
 }
 
-// TestDLFreestanding rejects std/dl on a target without a dynamic loader.
+// TestDLFreestanding rejects std/ffi/dl on a target without a dynamic loader.
 func TestDLFreestanding(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"bare\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
-	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import dl from std/dl\n\nfn f(loader: dl.Loader) {\n    _ = loader.open(\"x\")\n}\n"), 0o644)
+	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import dl from std/ffi/dl\n\nfn f(loader: dl.Loader) {\n    _ = loader.open(\"x\")\n}\n"), 0o644)
 	target, _ := buildconfig.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	std, _ := filepath.Abs("../../../std")
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
@@ -78,7 +78,7 @@ func TestDLFreestanding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !res.HasErrors() || !strings.Contains(res.Render(), "`std/dl` is not available on a freestanding target") {
+	if !res.HasErrors() || !strings.Contains(res.Render(), "`std/ffi/dl` is not available on a freestanding target") {
 		t.Fatalf("expected the freestanding diagnostic:\n%s", res.Render())
 	}
 }

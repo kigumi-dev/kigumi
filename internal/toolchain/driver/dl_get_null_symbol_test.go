@@ -22,7 +22,7 @@ func TestDLGetNullValuedSymbol(t *testing.T) {
 		t.Skip("no C compiler")
 	}
 	root := t.TempDir()
-	const src = `import dl from std/dl
+	const src = `import dl from std/ffi/dl
 
 type VoidFn = alias extern(C) fn() -> Void
 

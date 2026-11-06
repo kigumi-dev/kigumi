@@ -37,7 +37,7 @@ var vmFFIGap = map[string]bool{
 	"ffi.readU8": true, "ffi.readI32": true, "ffi.readI64": true, "ffi.readF64": true, "ffi.writeU8": true,
 	"ffi.writeI32": true, "ffi.writeI64": true, "ffi.writeF64": true, "ffi.bytesFrom": true, "ffi.bytesPtr": true,
 	"ffi.readPtr": true, "ffi.writePtr": true, "ffi.secureEraseRaw": true,
-	"os.Host.dl": true, "dl.Symbol.call": true,
+	"os.Host.dl": true, "ffi/dl.Symbol.call": true,
 }
 
 // nativeLowered lists the primitives llgen expands at the call site

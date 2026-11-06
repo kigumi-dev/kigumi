@@ -10,7 +10,7 @@ import (
 	"kigumi/internal/toolchain/driver"
 )
 
-const dlSrc = "import dl from std/dl\n\nfn run() -> Void! {\n    let lib = host.dl().open(\"libm.so.6\")?\n    _ = lib\n}\n\nrun() || (e) => print \"failed\"\n"
+const dlSrc = "import dl from std/ffi/dl\n\nfn run() -> Void! {\n    let lib = host.dl().open(\"libm.so.6\")?\n    _ = lib\n}\n\nrun() || (e) => print \"failed\"\n"
 
 func TestEmitLLVMLinkageMatchesBuild(t *testing.T) {
 	zig := testCompiler().CCompiler()

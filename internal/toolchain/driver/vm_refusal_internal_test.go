@@ -12,7 +12,7 @@ func TestNativeOnlyRefusal(t *testing.T) {
 	}{
 		{"asm", true},
 		{"primitive os.Host.dl", true},
-		{"primitive dl.Symbol.call", true},
+		{"primitive ffi/dl.Symbol.call", true},
 		{"primitive ffi.CString.new", true},
 		{"primitive ffi.secureEraseRaw", true},
 		{"foreign function dlopen", true},

@@ -1150,166 +1150,6 @@
     "status": "ok"
   },
   {
-    "key": "binary.putU16Be",
-    "signature": "pure fn(\u0026mut Array[u8], u16) -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "binary.putU16Le",
-    "signature": "pure fn(\u0026mut Array[u8], u16) -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "binary.putU32Be",
-    "signature": "pure fn(\u0026mut Array[u8], u32) -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "binary.putU32Le",
-    "signature": "pure fn(\u0026mut Array[u8], u32) -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "binary.putU64Be",
-    "signature": "pure fn(\u0026mut Array[u8], u64) -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "binary.putU64Le",
-    "signature": "pure fn(\u0026mut Array[u8], u64) -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "binary.putUintBe",
-    "signature": "pure fn(\u0026mut Array[u8], u64, usize) -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "binary.putUintLe",
-    "signature": "pure fn(\u0026mut Array[u8], u64, usize) -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "binary.u16Be",
-    "signature": "pure fn(Bytes, usize) -\u003e u16?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "binary.u16Le",
-    "signature": "pure fn(Bytes, usize) -\u003e u16?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "binary.u32Be",
-    "signature": "pure fn(Bytes, usize) -\u003e u32?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "binary.u32Le",
-    "signature": "pure fn(Bytes, usize) -\u003e u32?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "binary.u64Be",
-    "signature": "pure fn(Bytes, usize) -\u003e u64?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "binary.u64Le",
-    "signature": "pure fn(Bytes, usize) -\u003e u64?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "binary.uintBe",
-    "signature": "pure fn(Bytes, usize, usize) -\u003e u64?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "binary.uintLe",
-    "signature": "pure fn(Bytes, usize, usize) -\u003e u64?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
     "key": "build.Artifact.addLink",
     "signature": "fn(String, String) -\u003e Void",
     "has_body": false,
@@ -2820,57 +2660,6 @@
     "status": "ok"
   },
   {
-    "key": "dl.Handle.drop",
-    "signature": "fn() -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "dl.Library.get",
-    "signature": "fn(String) -\u003e Symbol[T]!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "dl.Loader.open",
-    "signature": "fn(String) -\u003e Library!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "dl.Symbol.call",
-    "signature": "unsafe fn() -\u003e Void",
-    "has_body": false,
-    "kind": "provider",
-    "vm": "gap",
-    "native": "implemented",
-    "accelerated": false,
-    "status": "legacy-gap",
-    "reason": "ffi/dl: native-only; kigumi build diagnoses it on the VM"
-  },
-  {
-    "key": "dl.lastDlError",
-    "signature": "fn() -\u003e CError",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
     "key": "encoding/base64.DecodeError.message",
     "signature": "fn() -\u003e String",
     "has_body": true,
@@ -2943,6 +2732,166 @@
   {
     "key": "encoding/base64.value",
     "signature": "pure fn(u8, String) -\u003e Result[usize, DecodeError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "encoding/binary.putU16Be",
+    "signature": "pure fn(\u0026mut Array[u8], u16) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "encoding/binary.putU16Le",
+    "signature": "pure fn(\u0026mut Array[u8], u16) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "encoding/binary.putU32Be",
+    "signature": "pure fn(\u0026mut Array[u8], u32) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "encoding/binary.putU32Le",
+    "signature": "pure fn(\u0026mut Array[u8], u32) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "encoding/binary.putU64Be",
+    "signature": "pure fn(\u0026mut Array[u8], u64) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "encoding/binary.putU64Le",
+    "signature": "pure fn(\u0026mut Array[u8], u64) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "encoding/binary.putUintBe",
+    "signature": "pure fn(\u0026mut Array[u8], u64, usize) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "encoding/binary.putUintLe",
+    "signature": "pure fn(\u0026mut Array[u8], u64, usize) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "encoding/binary.u16Be",
+    "signature": "pure fn(Bytes, usize) -\u003e u16?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "encoding/binary.u16Le",
+    "signature": "pure fn(Bytes, usize) -\u003e u16?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "encoding/binary.u32Be",
+    "signature": "pure fn(Bytes, usize) -\u003e u32?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "encoding/binary.u32Le",
+    "signature": "pure fn(Bytes, usize) -\u003e u32?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "encoding/binary.u64Be",
+    "signature": "pure fn(Bytes, usize) -\u003e u64?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "encoding/binary.u64Le",
+    "signature": "pure fn(Bytes, usize) -\u003e u64?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "encoding/binary.uintBe",
+    "signature": "pure fn(Bytes, usize, usize) -\u003e u64?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "encoding/binary.uintLe",
+    "signature": "pure fn(Bytes, usize, usize) -\u003e u64?",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3671,6 +3620,57 @@
     "reason": "ffi/dl: native-only; kigumi build diagnoses it on the VM"
   },
   {
+    "key": "ffi/dl.Handle.drop",
+    "signature": "fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "ffi/dl.Library.get",
+    "signature": "fn(String) -\u003e Symbol[T]!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "ffi/dl.Loader.open",
+    "signature": "fn(String) -\u003e Library!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "ffi/dl.Symbol.call",
+    "signature": "unsafe fn() -\u003e Void",
+    "has_body": false,
+    "kind": "provider",
+    "vm": "gap",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "legacy-gap",
+    "reason": "ffi/dl: native-only; kigumi build diagnoses it on the VM"
+  },
+  {
+    "key": "ffi/dl.lastDlError",
+    "signature": "fn() -\u003e CError",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "fmt.hex",
     "signature": "pure fn(u64, usize) -\u003e String",
     "has_body": true,
@@ -4113,1056 +4113,6 @@
   {
     "key": "fs.seekTo",
     "signature": "fn(*mut u8, Int, i32) -\u003e Int!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Active.drop",
-    "signature": "fn() -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Client.get",
-    "signature": "fn(String) -\u003e Response!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Client.new",
-    "signature": "fn(Net, BlockingPool) -\u003e Client",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Client.open",
-    "signature": "fn(String) -\u003e Session!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Client.post",
-    "signature": "fn(String, String, Bytes) -\u003e Response!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Client.postJson",
-    "signature": "fn(String, T) -\u003e Response!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Client.send",
-    "signature": "fn(String, Request) -\u003e Response!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.ClientError.message",
-    "signature": "fn() -\u003e String",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Deadline.passed",
-    "signature": "fn() -\u003e Bool",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Dechunker.body",
-    "signature": "fn() -\u003e Bytes",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Dechunker.done",
-    "signature": "fn() -\u003e Bool",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Dechunker.new",
-    "signature": "fn() -\u003e Dechunker",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Dechunker.step",
-    "signature": "fn(\u0026Bytes, usize) -\u003e usize!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Failure.message",
-    "signature": "fn() -\u003e String",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Headers.add",
-    "signature": "fn(String, String) -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Headers.all",
-    "signature": "fn(String) -\u003e Array[String]",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Headers.entries",
-    "signature": "fn() -\u003e Array[Header]",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Headers.get",
-    "signature": "fn(String) -\u003e String?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Headers.len",
-    "signature": "fn() -\u003e usize",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Headers.new",
-    "signature": "fn() -\u003e Headers",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Headers.remove",
-    "signature": "fn(String) -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Headers.set",
-    "signature": "fn(String, String) -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Limits.connectionCap",
-    "signature": "fn() -\u003e Int",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Limits.defaults",
-    "signature": "fn() -\u003e Limits",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Request.header",
-    "signature": "fn(String) -\u003e String?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Request.json",
-    "signature": "fn() -\u003e T!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Request.new",
-    "signature": "fn(String, String) -\u003e Request",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Request.param",
-    "signature": "fn(String) -\u003e String?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Request.queryParam",
-    "signature": "fn(String) -\u003e String?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Request.text",
-    "signature": "fn() -\u003e String!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Response.header",
-    "signature": "fn(String) -\u003e String?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Response.json",
-    "signature": "fn() -\u003e T!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Response.new",
-    "signature": "fn(Int) -\u003e Response",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Response.ofJson",
-    "signature": "fn(Int, T) -\u003e Response!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Response.ofText",
-    "signature": "fn(Int, String) -\u003e Response",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Response.text",
-    "signature": "fn() -\u003e String!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Router.delete",
-    "signature": "fn(String, escaping fn(Request) -\u003e Response!) -\u003e Router",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Router.get",
-    "signature": "fn(String, escaping fn(Request) -\u003e Response!) -\u003e Router",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Router.handle",
-    "signature": "fn(String, String, escaping fn(Request) -\u003e Response!) -\u003e Router",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Router.handler",
-    "signature": "fn() -\u003e fn(Request) -\u003e Response!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Router.new",
-    "signature": "fn() -\u003e Router",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Router.post",
-    "signature": "fn(String, escaping fn(Request) -\u003e Response!) -\u003e Router",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Router.put",
-    "signature": "fn(String, escaping fn(Request) -\u003e Response!) -\u003e Router",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Router.use",
-    "signature": "fn(escaping fn(escaping fn(Request) -\u003e Response!) -\u003e fn(Request) -\u003e Response!) -\u003e Router",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Server.acceptUntil",
-    "signature": "fn(Listener, Shutdown, Shared[Int]) -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Server.new",
-    "signature": "fn(escaping fn(Request) -\u003e Response!, escaping fn(String) -\u003e Void) -\u003e Server",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Server.serve",
-    "signature": "fn(Listener, Shutdown) -\u003e Void!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Session.send",
-    "signature": "fn(Request) -\u003e Response!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Shutdown.clone",
-    "signature": "fn() -\u003e Shutdown",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Shutdown.new",
-    "signature": "fn() -\u003e Shutdown",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Shutdown.request",
-    "signature": "fn() -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Shutdown.requested",
-    "signature": "fn() -\u003e Bool",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Wire.consume",
-    "signature": "fn(usize) -\u003e Bytes",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Wire.fill",
-    "signature": "fn(Deadline, Shutdown) -\u003e Fill!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Wire.readBody",
-    "signature": "fn(Framing, Limits, Deadline) -\u003e Bytes!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Wire.readHead",
-    "signature": "fn(Limits, Shutdown) -\u003e HeadRead!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Wire.readRequest",
-    "signature": "fn(usize, Limits, Deadline) -\u003e Incoming!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Wire.readResponse",
-    "signature": "fn(Bool, Int, usize, usize) -\u003e Response!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Wire.reject",
-    "signature": "fn(Failure, Limits) -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Wire.responseBody",
-    "signature": "fn(Framing, Deadline, usize) -\u003e Bytes!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.Wire.writeAll",
-    "signature": "fn(Bytes, Deadline) -\u003e Void!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.answer",
-    "signature": "fn(fn(Request) -\u003e Response!, fn(String) -\u003e Void, Request) -\u003e Response",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.authorityEnd",
-    "signature": "fn(String) -\u003e usize",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.chunkSize",
-    "signature": "fn(Bytes) -\u003e usize!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.crlf",
-    "signature": "fn() -\u003e Bytes",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.deadlineIn",
-    "signature": "fn(Int) -\u003e Deadline",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.decodeEscapes",
-    "signature": "fn(String, Bool) -\u003e String?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.failure",
-    "signature": "fn(Int, String) -\u003e Failure",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.failureOf",
-    "signature": "fn(\u0026Error) -\u003e Failure?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.formDecode",
-    "signature": "fn(String) -\u003e String?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.framingOf",
-    "signature": "fn(\u0026Headers, Bool) -\u003e Framing!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.hasControlOrSpace",
-    "signature": "fn(String) -\u003e Bool",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.hasRoute",
-    "signature": "fn(String, String, String) -\u003e Bool",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.headEnd",
-    "signature": "fn(\u0026Bytes, usize) -\u003e usize?!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.hexValue",
-    "signature": "fn(u8) -\u003e Int?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.indexOfByte",
-    "signature": "fn(String, u8) -\u003e usize?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.isFieldValue",
-    "signature": "fn(String) -\u003e Bool",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.isToken",
-    "signature": "fn(String) -\u003e Bool",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.isTokenByte",
-    "signature": "fn(u8) -\u003e Bool",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.joinComma",
-    "signature": "fn(\u0026Array[String]) -\u003e String",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.lineAt",
-    "signature": "fn(\u0026Bytes, usize) -\u003e usize?!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.link",
-    "signature": "fn(Route, String, escaping fn(Request) -\u003e Response!) -\u003e fn(Request) -\u003e Response!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.matchPattern",
-    "signature": "fn(String, String) -\u003e Array[Param]?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.maxChunkLine",
-    "signature": "fn() -\u003e usize",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.noBodyStatus",
-    "signature": "fn(Int) -\u003e Bool",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.parseDecimal",
-    "signature": "fn(String) -\u003e usize?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.parseHead",
-    "signature": "fn(Bytes, usize) -\u003e Head!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.parseHex",
-    "signature": "fn(String) -\u003e usize?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.parseRequestLine",
-    "signature": "fn(String) -\u003e RequestLine!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.parseUrl",
-    "signature": "fn(String) -\u003e Target!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.pauseUntil",
-    "signature": "fn(Deadline, Shutdown) -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.percentDecode",
-    "signature": "fn(String) -\u003e String?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.rawCap",
-    "signature": "fn(usize, usize) -\u003e usize",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.readChunk",
-    "signature": "fn() -\u003e usize",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.reason",
-    "signature": "fn(Int) -\u003e String",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.renderHead",
-    "signature": "fn(String, \u0026Headers, usize?, Bool) -\u003e Bytes!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.renderResponse",
-    "signature": "fn(Response, Bool, Bool) -\u003e Outgoing!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.serveConn",
-    "signature": "fn(Wire, escaping fn(Request) -\u003e Response!, escaping fn(String) -\u003e Void, Limits, Shutdown, Active) -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.statusOf",
-    "signature": "fn(String) -\u003e Int?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.tokenByte",
-    "signature": "fn(u8) -\u003e Bool",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.trailerFieldOk",
-    "signature": "fn(\u0026Bytes) -\u003e Bool",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.unmatched",
-    "signature": "fn(String, Request) -\u003e Response!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.validHost",
-    "signature": "fn(String) -\u003e Bool",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.validPort",
-    "signature": "fn(String) -\u003e Bool",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "http.wantsClose",
-    "signature": "fn(\u0026Headers, String) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -8561,6 +7511,1066 @@
     "status": "ok"
   },
   {
+    "key": "net/http.Active.drop",
+    "signature": "fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Client.get",
+    "signature": "fn(String) -\u003e Response!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Client.new",
+    "signature": "fn(Net, BlockingPool) -\u003e Client",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Client.open",
+    "signature": "fn(String) -\u003e Session!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Client.post",
+    "signature": "fn(String, String, Bytes) -\u003e Response!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Client.post",
+    "signature": "fn(String, String) -\u003e Response!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Client.postJson",
+    "signature": "fn(String, T) -\u003e Response!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Client.send",
+    "signature": "fn(String, Request) -\u003e Response!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.ClientError.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Deadline.passed",
+    "signature": "fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Dechunker.body",
+    "signature": "fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Dechunker.done",
+    "signature": "fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Dechunker.new",
+    "signature": "fn() -\u003e Dechunker",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Dechunker.step",
+    "signature": "fn(\u0026Bytes, usize) -\u003e usize!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Failure.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Headers.add",
+    "signature": "fn(String, String) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Headers.all",
+    "signature": "fn(String) -\u003e Array[String]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Headers.entries",
+    "signature": "fn() -\u003e Array[Header]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Headers.get",
+    "signature": "fn(String) -\u003e String?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Headers.len",
+    "signature": "fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Headers.new",
+    "signature": "fn() -\u003e Headers",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Headers.remove",
+    "signature": "fn(String) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Headers.set",
+    "signature": "fn(String, String) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Limits.connectionCap",
+    "signature": "fn() -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Limits.defaults",
+    "signature": "fn() -\u003e Limits",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Request.header",
+    "signature": "fn(String) -\u003e String?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Request.json",
+    "signature": "fn() -\u003e T!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Request.new",
+    "signature": "fn(String, String) -\u003e Request",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Request.param",
+    "signature": "fn(String) -\u003e String?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Request.queryParam",
+    "signature": "fn(String) -\u003e String?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Request.text",
+    "signature": "fn() -\u003e String!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Response.header",
+    "signature": "fn(String) -\u003e String?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Response.json",
+    "signature": "fn() -\u003e T!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Response.new",
+    "signature": "fn(Int) -\u003e Response",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Response.ofJson",
+    "signature": "fn(Int, T) -\u003e Response!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Response.ofText",
+    "signature": "fn(Int, String) -\u003e Response",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Response.text",
+    "signature": "fn() -\u003e String!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Router.delete",
+    "signature": "fn(String, escaping fn(Request) -\u003e Response!) -\u003e Router",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Router.get",
+    "signature": "fn(String, escaping fn(Request) -\u003e Response!) -\u003e Router",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Router.handle",
+    "signature": "fn(String, String, escaping fn(Request) -\u003e Response!) -\u003e Router",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Router.handler",
+    "signature": "fn() -\u003e fn(Request) -\u003e Response!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Router.new",
+    "signature": "fn() -\u003e Router",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Router.post",
+    "signature": "fn(String, escaping fn(Request) -\u003e Response!) -\u003e Router",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Router.put",
+    "signature": "fn(String, escaping fn(Request) -\u003e Response!) -\u003e Router",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Router.use",
+    "signature": "fn(escaping fn(escaping fn(Request) -\u003e Response!) -\u003e fn(Request) -\u003e Response!) -\u003e Router",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Server.acceptUntil",
+    "signature": "fn(Listener, Shutdown, Shared[Int]) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Server.new",
+    "signature": "fn(escaping fn(Request) -\u003e Response!, escaping fn(String) -\u003e Void) -\u003e Server",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Server.serve",
+    "signature": "fn(Listener, Shutdown) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Session.send",
+    "signature": "fn(Request) -\u003e Response!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Shutdown.clone",
+    "signature": "fn() -\u003e Shutdown",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Shutdown.new",
+    "signature": "fn() -\u003e Shutdown",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Shutdown.request",
+    "signature": "fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Shutdown.requested",
+    "signature": "fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Wire.consume",
+    "signature": "fn(usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Wire.fill",
+    "signature": "fn(Deadline, Shutdown) -\u003e Fill!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Wire.readBody",
+    "signature": "fn(Framing, Limits, Deadline) -\u003e Bytes!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Wire.readHead",
+    "signature": "fn(Limits, Shutdown) -\u003e HeadRead!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Wire.readRequest",
+    "signature": "fn(usize, Limits, Deadline) -\u003e Incoming!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Wire.readResponse",
+    "signature": "fn(Bool, Int, usize, usize) -\u003e Response!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Wire.reject",
+    "signature": "fn(Failure, Limits) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Wire.responseBody",
+    "signature": "fn(Framing, Deadline, usize) -\u003e Bytes!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Wire.writeAll",
+    "signature": "fn(Bytes, Deadline) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.answer",
+    "signature": "fn(fn(Request) -\u003e Response!, fn(String) -\u003e Void, Request) -\u003e Response",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.authorityEnd",
+    "signature": "fn(String) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.chunkSize",
+    "signature": "fn(Bytes) -\u003e usize!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.crlf",
+    "signature": "fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.deadlineIn",
+    "signature": "fn(Int) -\u003e Deadline",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.decodeEscapes",
+    "signature": "fn(String, Bool) -\u003e String?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.failure",
+    "signature": "fn(Int, String) -\u003e Failure",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.failureOf",
+    "signature": "fn(\u0026Error) -\u003e Failure?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.formDecode",
+    "signature": "fn(String) -\u003e String?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.framingOf",
+    "signature": "fn(\u0026Headers, Bool) -\u003e Framing!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.hasControlOrSpace",
+    "signature": "fn(String) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.hasRoute",
+    "signature": "fn(String, String, String) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.headEnd",
+    "signature": "fn(\u0026Bytes, usize) -\u003e usize?!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.hexValue",
+    "signature": "fn(u8) -\u003e Int?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.indexOfByte",
+    "signature": "fn(String, u8) -\u003e usize?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.isFieldValue",
+    "signature": "fn(String) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.isToken",
+    "signature": "fn(String) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.isTokenByte",
+    "signature": "fn(u8) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.joinComma",
+    "signature": "fn(\u0026Array[String]) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.lineAt",
+    "signature": "fn(\u0026Bytes, usize) -\u003e usize?!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.link",
+    "signature": "fn(Route, String, escaping fn(Request) -\u003e Response!) -\u003e fn(Request) -\u003e Response!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.matchPattern",
+    "signature": "fn(String, String) -\u003e Array[Param]?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.maxChunkLine",
+    "signature": "fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.noBodyStatus",
+    "signature": "fn(Int) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.parseDecimal",
+    "signature": "fn(String) -\u003e usize?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.parseHead",
+    "signature": "fn(Bytes, usize) -\u003e Head!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.parseHex",
+    "signature": "fn(String) -\u003e usize?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.parseRequestLine",
+    "signature": "fn(String) -\u003e RequestLine!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.parseUrl",
+    "signature": "fn(String) -\u003e Target!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.pauseUntil",
+    "signature": "fn(Deadline, Shutdown) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.percentDecode",
+    "signature": "fn(String) -\u003e String?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.rawCap",
+    "signature": "fn(usize, usize) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.readChunk",
+    "signature": "fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.reason",
+    "signature": "fn(Int) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.renderHead",
+    "signature": "fn(String, \u0026Headers, usize?, Bool) -\u003e Bytes!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.renderResponse",
+    "signature": "fn(Response, Bool, Bool) -\u003e Outgoing!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.serveConn",
+    "signature": "fn(Wire, escaping fn(Request) -\u003e Response!, escaping fn(String) -\u003e Void, Limits, Shutdown, Active) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.statusOf",
+    "signature": "fn(String) -\u003e Int?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.tokenByte",
+    "signature": "fn(u8) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.trailerFieldOk",
+    "signature": "fn(\u0026Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.unmatched",
+    "signature": "fn(String, Request) -\u003e Response!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.validHost",
+    "signature": "fn(String) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.validPort",
+    "signature": "fn(String) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.wantsClose",
+    "signature": "fn(\u0026Headers, String) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "os.Args.get",
     "signature": "pure noalloc fn(usize) -\u003e String?",
     "has_body": false,
@@ -9044,6 +9054,16 @@
   {
     "key": "os.eintr",
     "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.hostStdio",
+    "signature": "fn(Host) -\u003e Stdio",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -15654,16 +15674,6 @@
   {
     "key": "sort.tryStable",
     "signature": "pure fn(\u0026Array[T], fn(\u0026T, \u0026T) -\u003e Ordering) -\u003e Result[Array[T], AllocError]",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "stdio.hostStdio",
-    "signature": "fn(Host) -\u003e Stdio",
     "has_body": true,
     "kind": "",
     "vm": "gap",

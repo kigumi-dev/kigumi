@@ -44,7 +44,7 @@ func TestResolveStdOpKind(t *testing.T) {
 		{"net.Net.http", KindProvider},
 		{"task.Executor.runToCompletion", KindProvider},
 		{"ffi.Pin.new", KindProvider},
-		{"dl.Symbol.call", KindProvider},
+		{"ffi/dl.Symbol.call", KindProvider},
 		{"build.Builder.request", KindProvider},
 	}
 	for _, c := range cases {

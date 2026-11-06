@@ -2,11 +2,11 @@ package sem
 
 import "kigumi/internal/compiler/syntax"
 
-// dlCall reports true when it typed the call itself (std/dl).
+// dlCall reports true when it typed the call itself (std/ffi/dl).
 func (c *checker) dlCall(n syntax.NodeID, fn EntityID, sig TypeID, inst []TypeID, recv TypeID, args []syntax.NodeID, want TypeID) (TypeID, bool) {
 	e := &c.r.Entities[fn]
 	info := c.r.Fn(fn)
-	if info.Owner == 0 || c.r.Packages[e.Pkg].Path != "std/dl" {
+	if info.Owner == 0 || c.r.Packages[e.Pkg].Path != "std/ffi/dl" {
 		return 0, false
 	}
 	tt := c.r.Types

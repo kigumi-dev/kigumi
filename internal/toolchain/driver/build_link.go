@@ -50,7 +50,7 @@ func (h hostLink) run(staged string) error {
 	if !link.IsZig(cc) {
 		linkArgs = append(linkArgs, "-lm")
 	}
-	if _, ok := m.Packages["std/dl"]; ok && !h.link.Static {
+	if _, ok := m.Packages["std/ffi/dl"]; ok && !h.link.Static {
 		linkArgs = append(linkArgs, "-ldl")
 	}
 	for _, l := range m.Links {

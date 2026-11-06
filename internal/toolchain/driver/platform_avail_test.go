@@ -38,7 +38,7 @@ func TestPlatformAvailableHosted(t *testing.T) {
 }
 
 // TestPlatformUnavailableFreestanding rejects std/time on a freestanding
-// target, generalizing the std/dl case (TestDLFreestanding) to the
+// target, generalizing the std/ffi/dl case (TestDLFreestanding) to the
 // package-to-layer table.
 func TestPlatformUnavailableFreestanding(t *testing.T) {
 	t.Parallel()

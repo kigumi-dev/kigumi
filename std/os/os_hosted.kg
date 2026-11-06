@@ -1,4 +1,4 @@
-import dl from std/dl
+import dl from std/ffi/dl
 import entropy from std/entropy
 import ffi from std/ffi
 

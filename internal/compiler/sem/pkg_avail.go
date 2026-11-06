@@ -36,7 +36,7 @@ var stdLayer = map[string]Layer{
 	"std/json":            LayerAllocation,
 	"std/io":              LayerAllocation,
 	"std/cli":             LayerPlatform,
-	"std/dl":              LayerPlatform,
+	"std/ffi/dl":              LayerPlatform,
 	"std/entropy":         LayerPlatform,
 	"std/fs":              LayerPlatform,
 	"std/net/http":        LayerPlatform,

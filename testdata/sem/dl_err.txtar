@@ -1,5 +1,5 @@
 -- app/t/t.kg --
-import dl from std/dl
+import dl from std/ffi/dl
 
 type Twice = alias extern(C) fn(i32) -> i32
 
@@ -51,7 +51,7 @@ error[E931]: `String` is not a C function pointer type
    |                                 ^^^^^^^^^^^
    = help: `dl.Symbol` needs `extern(C) fn(...) -> R`
 
-error[E103]: package `std/dl` has no visible `open`
+error[E103]: package `std/ffi/dl` has no visible `open`
   --> app/t/t.kg:15:15
    |
 15 |     let lib = dl.open("./libctor.so") //~ ERROR

@@ -14,7 +14,7 @@ var vmGaps = map[string]bool{
 	"std/ffi.readU8": true, "std/ffi.readI32": true, "std/ffi.readI64": true, "std/ffi.readF64": true, "std/ffi.writeU8": true,
 	"std/ffi.writeI32": true, "std/ffi.writeI64": true, "std/ffi.writeF64": true, "std/ffi.bytesFrom": true, "std/ffi.bytesPtr": true,
 	"std/ffi.readPtr": true, "std/ffi.writePtr": true, "std/ffi.secureEraseRaw": true,
-	"std/os.Host.dl": true, "std/dl.Symbol.call": true,
+	"std/os.Host.dl": true, "std/ffi/dl.Symbol.call": true,
 }
 
 // TestStdPrimitives pins the contract between std and the VM: every

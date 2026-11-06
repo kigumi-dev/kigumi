@@ -78,7 +78,7 @@ func TestCstringNulDlopenPath(t *testing.T) {
 	if _, err := exec.LookPath("cc"); err != nil {
 		t.Skip("no cc")
 	}
-	const src = `import dl from std/dl
+	const src = `import dl from std/ffi/dl
 
 let mid = "./libprobe.so".toBytes().concat(Bytes.zeros(1)).concat("/does/not/exist.so".toBytes())
 let path = String.fromBytes(mid) || "fallback"

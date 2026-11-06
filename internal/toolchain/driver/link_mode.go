@@ -56,7 +56,7 @@ var muslTriples = map[string]string{"amd64": "x86_64-linux-musl", "arm64": "aarc
 // loaderNeed names what this build calls that needs the dynamic loader, or "" when nothing does.
 func loaderNeed(code compiled) string {
 	if slices.Contains(code.Capabilities, opdef.CapHostDL.Macro()) {
-		return "std/dl is reached and dlopen needs the dynamic loader"
+		return "std/ffi/dl is reached and dlopen needs the dynamic loader"
 	}
 	for _, sym := range code.Foreign {
 		if sym == "dlopen" || sym == "dlmopen" {

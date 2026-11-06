@@ -19,7 +19,7 @@ func (p *callVerifier) declaredCallMismatch(f *midir.Func, in midir.Inst) string
 	params, ret, hidden, variadic := p.declaredSig(in.Ent)
 	name := p.R.Entity(in.Ent).Name
 	// A foreign symbol call is declared with only its receiver; its arguments and result come from a type argument.
-	typed := p.R.Entity(in.Ent).Flags&sem.EfStd != 0 && opdef.StdKey(p.R, in.Ent, true) == "dl.Symbol.call"
+	typed := p.R.Entity(in.Ent).Flags&sem.EfStd != 0 && opdef.StdKey(p.R, in.Ent, true) == "ffi/dl.Symbol.call"
 	if len(in.Args) < len(params) || (len(in.Args) > len(params)+hidden && !variadic && !typed) {
 		return "passes " + itoa(len(in.Args)) + " values to " + name + ", which takes " + itoa(len(params))
 	}

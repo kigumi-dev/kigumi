@@ -132,7 +132,7 @@ op 41 SUBTLE_CT_EQ primitive (bytes, bytes) -> bool
 key crypto/subtle.constantTimeEq
 op 42 DL_SYMBOL_CALL provider (named) -> any
 cap host.dl
-key dl.Symbol.call
+key ffi/dl.Symbol.call
 op 43 HOST_STDIN provider (named) -> named
 cap host.stdio
 key os.Host.stdin

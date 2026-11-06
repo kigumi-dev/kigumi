@@ -36,7 +36,7 @@ func (e *emitter) callEntity(sb *strings.Builder, f *midir.Func, in midir.Inst, 
 		return e.irb(sb).Call(rtCallSlot, vptr(args[0]), vi32(e.slotOf(iface, ent)), vi32(len(args)-1), vptr(arr), vi32(mode)).Text
 	}
 	key := e.stdKey(ent)
-	if key == "std/dl.Symbol.call" {
+	if key == "std/ffi/dl.Symbol.call" {
 		return e.dlCall(sb, f, in, args)
 	}
 	if key == "std/error.as" {

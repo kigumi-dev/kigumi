@@ -398,7 +398,7 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "ffi.bytesPtr")) return OP_FFI_BYTES_PTR;
     if (!strcmp(k, "prelude.Bytes.get")) return OP_BYTES_GET;
     if (!strcmp(k, "crypto/subtle.constantTimeEq")) return OP_SUBTLE_CT_EQ;
-    if (!strcmp(k, "dl.Symbol.call")) return OP_DL_SYMBOL_CALL;
+    if (!strcmp(k, "ffi/dl.Symbol.call")) return OP_DL_SYMBOL_CALL;
     if (!strcmp(k, "os.Host.stdin")) return OP_HOST_STDIN;
     if (!strcmp(k, "os.Host.stdout")) return OP_HOST_STDOUT;
     if (!strcmp(k, "ffi.Pin.new")) return OP_PIN_NEW;
