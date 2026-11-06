@@ -880,17 +880,13 @@ val rt_std_id(int op, int n, val* a) {
     case OP_BOX_INTO: return rt_retain(((val)a0->u.op.data)->u.cell.v);
 #endif
 #ifdef KIGUMI_CAP_HOST_NET
-#if defined(KIGUMI_OP_NET_HTTP)
-    case OP_NET_HTTP: return cap_net_http();
-#endif
 #if defined(KIGUMI_OP_NET_LISTENER_DROP) || defined(KIGUMI_OP_NET_CONN_DROP)
     case OP_NET_LISTENER_DROP:
     case OP_NET_CONN_DROP:
         return cap_net_conn_drop(a0);
 #endif
 #else
-#if defined(KIGUMI_OP_NET_HTTP) || defined(KIGUMI_OP_NET_LISTENER_DROP) || defined(KIGUMI_OP_NET_CONN_DROP)
-    case OP_NET_HTTP:
+#if defined(KIGUMI_OP_NET_LISTENER_DROP) || defined(KIGUMI_OP_NET_CONN_DROP)
     case OP_NET_LISTENER_DROP:
     case OP_NET_CONN_DROP:
         rt_panic("this build has no host.net capability");
