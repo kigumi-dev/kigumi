@@ -9496,6 +9496,15 @@
       ]
     },
     {
+      "id": "run/secret_index",
+      "kind": "run",
+      "path": "testdata/run/secret_index.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/secret_ops",
       "kind": "run",
       "path": "testdata/run/secret_ops.txtar",
