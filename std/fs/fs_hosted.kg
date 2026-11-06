@@ -447,39 +447,37 @@ fn seekTo(f: *mut u8, offset: i64, whence: i32) -> i64! {
 /// Metadata for path: directory, regular file with its byte size, or another entry.
 pub fn Files.stat(self, path: Path) -> Stat! {
     let c = ffi.CString.new(&path.text)?
-    let d = unsafe {
-        opendir(c.ptr())
+    let cv = ffi.CValue.new(FsMeta {
+        kind: 2
+        size: 0
+        mode: 0
+        mtimeMillis: 0
+    })
+    let rc = unsafe {
+        rt_fs_stat(c.ptr(), cv.ptr())
     }
-    if !ffi.isNull(ffi.toConst(d)) {
-        _ = unsafe {
-            closedir(d)
-        }
-        return Stat {
-            kind: Kind.Directory
-            size: 0
-        }
-    }
-    let mut file = self.open(path)?
-    if unsafe {
-        fseek(file.f, 0, 2)
-    } != 0 {
-        return Stat {
-            kind: Kind.Other
-            size: 0
+    if rc != 0 {
+        let code = 0 - rc
+        fail ffi.CError {
+            code: code
+            text: ffi.errorText(code)
         }
     }
-    let end = unsafe {
-        ftell(file.f)
-    }
-    if end < 0 {
-        return Stat {
-            kind: Kind.Other
-            size: 0
-        }
+    let m = cv.get()
+    let kind = match m.kind {
+        0 -> Kind.Regular
+        1 -> Kind.Directory
+        _ -> Kind.Other
     }
     Stat {
-        kind: Kind.Regular
-        size: end.toInt()
+        kind: kind
+        size: if m.kind == 0 {
+            m.size
+        } else {
+            0
+        }
+        mode: m.mode
+        mtimeMillis: m.mtimeMillis
     }
 }
 
@@ -493,4 +491,8 @@ pub fn Files.isDir(self, path: Path) -> Bool! {
 pub fn Files.isFile(self, path: Path) -> Bool! {
     let st = self.stat(path)?
     st.kind is Kind.Regular
+}
+
+extern(C) {
+    fn rt_fs_stat(path: *const u8, out: *mut FsMeta) -> i32
 }

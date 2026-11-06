@@ -11,6 +11,9 @@ let fstat = files.stat(file).unwrap()
 print "dir=${ds.kind is fs.Kind.Directory} ${ds.size}"
 print "file=${fstat.kind is fs.Kind.Regular} ${fstat.size}"
 print "pred=${files.isDir(dir).unwrap()} ${files.isFile(file).unwrap()}"
+let dev = files.stat(fs.Path.fromString("/dev/null").unwrap()).unwrap()
+print "dev=${dev.kind is fs.Kind.Other} ${dev.size}"
+print "mtime=${files.stat(file).unwrap().mtimeMillis > 0}"
 print "missing=${files.stat(fs.Path.fromString("/tmp/kigumi-std-fs-stat-nope").unwrap()) is Err(_)}"
 files.remove(file).unwrap()
 files.removeDir(dir).unwrap()
@@ -18,4 +21,6 @@ files.removeDir(dir).unwrap()
 dir=true 0
 file=true 3
 pred=true true
+dev=true 0
+mtime=true
 missing=true

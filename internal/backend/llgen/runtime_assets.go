@@ -17,6 +17,9 @@ var runtimeCore string
 //go:embed runtime/rt_float.c
 var runtimeFloat string
 
+//go:embed runtime/rt_fs.c
+var runtimeFS string
+
 //go:embed runtime/rt_sys_weak.c
 var runtimeSys string
 

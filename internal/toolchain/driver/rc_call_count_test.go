@@ -25,8 +25,8 @@ var rcCallSites = map[string]*regexp.Regexp{
 var pinnedRCCalls = map[string]int{
 	"fixtures":         1008,
 	"rt_retain":        10337,
-	"rt_release":       74368,
-	"rt_release_outer": 30260,
+	"rt_release":       74381,
+	"rt_release_outer": 30256,
 	"rt_drop":          44988,
 	"rt_cell_init":     6386,
 	"rt_cell_take":     2555,

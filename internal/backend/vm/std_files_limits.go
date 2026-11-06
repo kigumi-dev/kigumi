@@ -124,7 +124,9 @@ func (m *Machine) registerFileReads() {
 		}
 		stat := m.r.Types.Node(m.resultPayload(fn)).Ent
 		k := mkVariant(m.variantOf(m.lookup("std/fs", "Kind"), kind), nil)
-		return m.ok(mkRecord(stat, []*obj{k, mkInt(size, m.numKind(sem.TyI64))}))
+		mode := int64(info.Mode().Perm())
+		mtime := info.ModTime().UnixMilli()
+		return m.ok(mkRecord(stat, []*obj{k, mkInt(size, m.numKind(sem.TyI64)), mkInt(mode, 32), mkInt(mtime, 64)}))
 	}
 	h["fs.Files.rename"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		if err := os.Rename(m.resolvePath(pathText(a[1])), m.resolvePath(pathText(a[2]))); err != nil {

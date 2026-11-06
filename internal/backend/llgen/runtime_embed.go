@@ -17,7 +17,7 @@ var freestandingOS = map[string]bool{"freestanding": true, "uefi": true}
 
 // RuntimeFiles includes rt_signal_hosted.c only for hosted POSIX OSes, which alone have <signal.h>.
 func RuntimeFiles(sys, os string) []RuntimeFile {
-	files := []RuntimeFile{{"rt.h", runtimeHeader}, {"rt_internal.h", runtimeInternalHeader}, {"rt_std_ops.h", runtimeStdOps}, {"rt_core.c", runtimeCore}, {"rt_float.c", runtimeFloat}, {"rt_sys_weak.c", runtimeSys}}
+	files := []RuntimeFile{{"rt.h", runtimeHeader}, {"rt_internal.h", runtimeInternalHeader}, {"rt_std_ops.h", runtimeStdOps}, {"rt_core.c", runtimeCore}, {"rt_float.c", runtimeFloat}, {"rt_sys_weak.c", runtimeSys}, {"rt_fs.c", runtimeFS}}
 	files = append(files, capFiles...)
 	files = append(files, coreFragments...)
 	if sys != "none" && mirreach.PosixSignalOS(os) {
@@ -31,7 +31,7 @@ func RuntimeFiles(sys, os string) []RuntimeFile {
 
 // RuntimeSource is the whole runtime as one text, for tests that scan it.
 func RuntimeSource() string {
-	out := runtimeHeader + runtimeInternalHeader + runtimeStdOps + runtimeCore + runtimeFloat + runtimeSys
+	out := runtimeHeader + runtimeInternalHeader + runtimeStdOps + runtimeCore + runtimeFloat + runtimeSys + runtimeFS
 	for _, f := range append(slices.Clone(capFiles), coreFragments...) {
 		out += f.Src
 	}

@@ -79,4 +79,13 @@ pub type Kind =
 pub type Stat = {
     pub kind Kind
     pub size i64
+    pub mode u32
+    pub mtimeMillis i64
+}
+
+type FsMeta layout(C) = {
+    kind i32
+    size i64
+    mode u32
+    mtimeMillis i64
 }
