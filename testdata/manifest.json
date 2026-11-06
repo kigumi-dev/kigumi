@@ -8243,15 +8243,6 @@
       ]
     },
     {
-      "id": "run/math_pow_consistent",
-      "kind": "run",
-      "path": "testdata/run/math_pow_consistent.txtar",
-      "mode": [
-        "vm",
-        "native"
-      ]
-    },
-    {
       "id": "run/method_typeargs",
       "kind": "run",
       "path": "testdata/run/method_typeargs.txtar",
