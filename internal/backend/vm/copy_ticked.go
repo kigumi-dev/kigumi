@@ -125,7 +125,7 @@ func (c copier) value(v *obj) (*obj, bool) {
 		out := newObj(kBox)
 		out.i, out.inner = v.i, inner
 		m.chargeMemory(out)
-		return out, true
+		return m.inheritLabel(v, out), true
 	}
 	return m.copy(v), true
 }
@@ -153,5 +153,5 @@ func (c copier) shell(src *obj, allocs int, build func() *obj, borrowed func(int
 		out.fields[i] = f
 	}
 	c.m.chargeMemory(out)
-	return out, true
+	return c.m.inheritLabel(src, out), true
 }

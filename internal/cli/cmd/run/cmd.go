@@ -15,6 +15,7 @@ func New() *cobra.Command {
 		Args:                  cobra.MinimumNArgs(1),
 		RunE:                  session.RunE(parseOptions, run),
 	}
+	cmd.Flags().Bool("secret-san", false, "check constant-time shadow flow in the VM (std/secret)")
 	cmd.Flags().SetInterspersed(false)
 	return cmd
 }

@@ -47,6 +47,9 @@ func approxSize(v *obj) int64 {
 // a one-shot flag, so re-charging the same size is a no-op and a primitive
 // that grows a live receiver in place (Array.push) can bill the growth too.
 func (m *Machine) chargeMemory(v *obj) {
+	if m.trace != nil {
+		m.trace.alloc(v)
+	}
 	if !m.opts.Sandbox || m.opts.MemoryLimit <= 0 || v == nil {
 		return
 	}

@@ -21,14 +21,18 @@ func (m *Machine) releaseAt(v *obj, d int) {
 		return
 	}
 	if rc := atomic.LoadInt32(&v.rc); rc <= 0 {
+		m.trace.rcOp("release", v)
 		if rc == 0 && v.k == kFree {
 			noteFreedRelease()
 		}
 		return
 	}
 	if atomic.AddInt32(&v.rc, -1) == 0 {
+		m.trace.rcOp("release", v)
 		m.freeAt(v, d)
+		return
 	}
+	m.trace.rcOp("release", v)
 }
 
 // hostWins reports whether a std entity's host accelerator runs instead of its
@@ -40,6 +44,9 @@ func (m *Machine) hostWins(lowered bool) bool {
 func (m *Machine) free(v *obj) { m.freeAt(v, 0) }
 
 func (m *Machine) freeAt(v *obj, d int) {
+	if m.opts.SecretSan {
+		m.clearLabel(v)
+	}
 	switch v.k {
 	case kInt, kFloat, kChar:
 		tracked := v.live
@@ -119,21 +126,21 @@ func (m *Machine) copy(v *obj) *obj {
 			}
 		}
 		m.chargeMemory(c)
-		return c
+		return m.inheritLabel(v, c)
 	case kVariant:
 		c := mkVariant(v.ent, v.fields)
 		for i := range c.fields {
 			c.fields[i] = m.copy(c.fields[i])
 		}
 		m.chargeMemory(c)
-		return c
+		return m.inheritLabel(v, c)
 	case kArray:
 		c := mkArray(v.fields)
 		for i := range c.fields {
 			c.fields[i] = m.copy(c.fields[i])
 		}
 		m.chargeMemory(c)
-		return c
+		return m.inheritLabel(v, c)
 	case kRawArray:
 		return m.copyRaw(v)
 	case kBytes:
@@ -141,12 +148,12 @@ func (m *Machine) copy(v *obj) *obj {
 		// in place, and a shared slice would let it zero another copy too.
 		c := mkBytes(append([]byte(nil), v.str()...))
 		m.chargeMemory(c)
-		return c
+		return m.inheritLabel(v, c)
 	case kBox:
 		c := newObj(kBox)
 		c.i, c.inner = v.i, m.copy(v.inner)
 		m.chargeMemory(c)
-		return c
+		return m.inheritLabel(v, c)
 	}
 	return retain(v)
 }

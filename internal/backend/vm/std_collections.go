@@ -22,6 +22,7 @@ func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		m.chargeMemory(a0)
 		return unitObj
 	case "array.Array.growBy":
+		m.checkAllocSize(a1, key)
 		return mkBool(uint64(a1.i) < maxVMAlloc && m.growFor(key, a0, a1))
 	case "array.Array.pushCopy":
 		if !m.growFor(key, a0, nil) {
@@ -39,6 +40,7 @@ func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 	case "array.Array.len":
 		return mkInt(int64(len(a0.fields)), 64)
 	case "array.Array.get":
+		m.checkIndex(a1)
 		if a1.i < 0 || a1.i >= int64(len(a0.fields)) {
 			return m.none()
 		}
@@ -54,11 +56,13 @@ func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		}
 		return m.copiedResult(key, a0.fields[len(a0.fields)-1])
 	case "array.Array.with":
+		m.checkIndex(a1)
 		if a1.i < 0 || a1.i >= int64(len(a0.fields)) {
 			return m.none()
 		}
 		return m.some(m.callValueLent(a2, []*obj{a0.fields[a1.i]}))
 	case "array.Array.withMut", "prelude.FixedArray.withMut":
+		m.checkIndex(a1)
 		if a1.i < 0 || a1.i >= int64(len(a0.fields)) {
 			return m.none()
 		}
@@ -71,6 +75,7 @@ func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		}()
 		return m.some(m.callValueLent(a2, []*obj{cell}))
 	case "array.Array.takeAt":
+		m.checkIndex(a1)
 		i := a1.i
 		if i < 0 || i >= int64(len(a0.fields)) {
 			return m.none()

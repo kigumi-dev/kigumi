@@ -12,6 +12,8 @@ type RunOptions struct {
 	Stdin io.Reader
 	// NoAccel runs std bodies in Kigumi instead of the Go accelerators.
 	NoAccel bool
+	// SecretSan enables the VM's constant-time shadow checker.
+	SecretSan bool
 	// FaultInjectAt is a test-only hook; see vm.Options.FaultInjectAt.
 	FaultInjectAt int64
 	// Cwd is the directory relative paths resolve against; empty means the process directory.
@@ -46,7 +48,7 @@ func RunWith(m *Module, opts RunOptions, stdout, stderr io.Writer, args []string
 }
 
 func runVM(m *Module, a *Analysis, opts RunOptions, stdout, stderr io.Writer, args []string) (int, error) {
-	code, err := vm.Run(a.Prog, vm.Options{Args: args, Stdin: opts.Stdin, Cwd: m.cwdFor(opts.Cwd), NoAccel: opts.NoAccel, FaultInjectAt: opts.FaultInjectAt}, stdout, stderr)
+	code, err := vm.Run(a.Prog, vm.Options{Args: args, Stdin: opts.Stdin, Cwd: m.cwdFor(opts.Cwd), NoAccel: opts.NoAccel, SecretSan: opts.SecretSan, FaultInjectAt: opts.FaultInjectAt}, stdout, stderr)
 	if err != nil {
 		return 1, fmt.Errorf("%w", err)
 	}

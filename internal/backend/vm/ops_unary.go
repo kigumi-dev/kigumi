@@ -1,6 +1,18 @@
 package vm
 
+// unop is unopCore with the SecretSan label carried through: negation's
+// overflow check is a sink, and the result keeps the operand's label.
 func (m *Machine) unop(op string, a *obj) *obj {
+	if !m.opts.SecretSan {
+		return m.unopCore(op, a)
+	}
+	if op[0] == '-' && m.taintOf(a).tainted() {
+		m.secretSink("an overflow check", a)
+	}
+	return m.withTaint(m.unopCore(op, a), m.unopShadow(op, a))
+}
+
+func (m *Machine) unopCore(op string, a *obj) *obj {
 	a = deref(a)
 	switch op[0] {
 	case '!':
@@ -23,7 +35,15 @@ func (m *Machine) unop(op string, a *obj) *obj {
 	return nil
 }
 
+// cast is castCore with the label converted to the destination width.
 func (m *Machine) cast(a *obj, nk int) *obj {
+	if !m.opts.SecretSan {
+		return m.castCore(a, nk)
+	}
+	return m.withTaint(m.castCore(a, nk), m.castShadow(a, nk))
+}
+
+func (m *Machine) castCore(a *obj, nk int) *obj {
 	a = deref(a)
 	if nk&512 != 0 {
 		if a.k == kFloat {

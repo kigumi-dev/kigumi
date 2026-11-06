@@ -30,6 +30,13 @@ func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 		if m.p.ResultBoxed(f, *in) {
 			m.scalarTick(res)
 		}
+		if m.opts.SecretSan {
+			bodyRan := m.planFor(in, ic).kind == planLowered
+			if !bodyRan {
+				_, bodyRan = m.lowered(in.Ent)
+			}
+			res = m.postCall(in.Ent, args, res, bodyRan)
+		}
 	case midir.OpCallValue, midir.OpCallC:
 		if f.IsDirect(in.Args[0]) {
 			closure := m.closureCall(f, in)
@@ -40,10 +47,16 @@ func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 			if closure {
 				m.resultTick(res, args[1:])
 			}
+			if m.opts.SecretSan {
+				res = m.postCallValue(in.Ent, res)
+			}
 			break
 		}
 		m.argTicks(f, in, args)
 		res = m.callSite(in, args)
+		if m.opts.SecretSan {
+			res = m.postCallValue(in.Ent, res)
+		}
 	case midir.OpBuiltin:
 		if in.Str == "task.close" {
 			m.closeScopeAt(fr)
@@ -51,6 +64,9 @@ func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 			break
 		}
 		m.site, m.siteFn = in, f
+		if m.opts.SecretSan && (in.Str == "print" || in.Str == "eprint" || in.Str == "panic") {
+			m.checkHostIO(args, in.Str)
+		}
 		res = m.builtin(in.Str, args)
 		m.chargeMemory(res)
 	case midir.OpFutureNew:
@@ -64,12 +80,18 @@ func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 		m.aggTicks(f, in, args, 2)
 		res = mkRecord(in.Ent, args)
 		m.chargeMemory(res)
+		if m.opts.SecretSan {
+			res = m.withTaint(res, m.joinTaint(args))
+		}
 	case midir.OpVariant:
 		if len(args) > 0 {
 			m.aggTicks(f, in, args, 2)
 		}
 		res = mkVariant(in.Ent, args)
 		m.chargeMemory(res)
+		if m.opts.SecretSan {
+			res = m.withTaint(res, m.joinTaint(args))
+		}
 	case midir.OpFieldMove:
 		res = m.fieldMove(args[0], in.Index)
 	case midir.OpSetField:
@@ -77,6 +99,9 @@ func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 		r := deref(m.ownDirect(fr, in.Args[0], args[0]))
 		old := r.fields[in.Index]
 		r.fields[in.Index] = args[1]
+		if m.opts.SecretSan {
+			m.relabelContainer(r)
+		}
 		if !m.borrowField(r, in.Index) {
 			m.dropChecked(fr, old)
 		}
@@ -85,6 +110,9 @@ func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 		m.aggTicks(f, in, args, min(2, 1+len(args)))
 		res = mkArray(args)
 		m.chargeMemory(res)
+		if m.opts.SecretSan {
+			res = m.withTaint(res, m.joinTaint(args))
+		}
 	case midir.OpSetIndex:
 		m.storeTick(f, in, in.Args[2], args[2])
 		m.dropChecked(fr, m.setIndex(m.ownDirect(fr, in.Args[0], args[0]), args[1], args[2]))
@@ -95,7 +123,7 @@ func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 	case midir.OpUnbox:
 		v := args[0]
 		if v.k == kBox {
-			v = retain(v.inner)
+			v = m.deriveTaint(retain(v.inner), m.taintOf(v))
 		}
 		res = v
 	case midir.OpBox:
@@ -103,8 +131,8 @@ func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 		if v.k != kBox {
 			b := newObj(kBox)
 			b.i, b.inner = int64(in.Type), v
-			v = b
 			m.chargeMemory(b)
+			v = m.withTaint(b, m.taintOf(args[0]))
 		}
 		res = v
 	case midir.OpLendBox:
@@ -145,7 +173,13 @@ func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 		m.tick(1)
 		res = mkStr([]byte(sb.String()))
 		m.chargeMemory(res)
+		if m.opts.SecretSan {
+			res = m.withTaint(res, m.joinTaint(args))
+		}
 	case midir.OpShell:
+		if m.opts.SecretSan {
+			m.checkHostIO(args, "shell")
+		}
 		res = m.shellPlan(in, args)
 	case midir.OpPanic:
 		m.abort(in.Str)

@@ -140,6 +140,7 @@ func (m *Machine) resume(fu *future) (*obj, polled) {
 	leave := func() { m.frames = m.frames[:len(m.frames)-1] }
 	for {
 		blk := &f.Blocks[co.bid]
+		m.traceBlock(f, co.bid)
 		if len(blk.Insts) == 0 {
 			m.chargeStep()
 		}
@@ -168,6 +169,9 @@ func (m *Machine) resume(fu *future) (*obj, polled) {
 		case midir.TermJump:
 			co.bid, co.pc = blk.Term.Targets[0], 0
 		case midir.TermBranch:
+			if m.opts.SecretSan {
+				m.checkBranch(co.fr.locals[blk.Term.Args[0]])
+			}
 			if truth(co.fr.locals[blk.Term.Args[0]]) {
 				co.bid = blk.Term.Targets[0]
 			} else {

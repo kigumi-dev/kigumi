@@ -68,17 +68,24 @@ func rewriteInt(r *obj, idx int, v int64) {
 const scalarPoolMax = 512
 
 // newInt is mkInt that reuses an object this lane freed instead of allocating.
+// A traced run skips interning so RC events depend on the code, not on
+// whether a secret value happened to land in the interned range.
 func (m *Machine) newInt(i int64, nk int) *obj {
 	if nk == 0 {
 		nk = 64 | 256
 	}
-	if uint64(i-internMin) < internN {
+	if m.trace == nil && uint64(i-internMin) < internN {
 		if v := internInt(i, nk); v != nil {
 			return v
 		}
 	}
 	if v := m.recycled(); v != nil {
 		v.k, v.rc, v.i, v.numk = kInt, 1, i, int16(nk)
+		return v
+	}
+	if m.trace != nil {
+		v := newObj(kInt)
+		v.i, v.numk = i, int16(nk)
 		return v
 	}
 	return mkInt(i, nk)

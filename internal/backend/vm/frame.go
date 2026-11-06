@@ -77,6 +77,7 @@ func (m *Machine) run(fr *frame) *obj {
 	for {
 		blk := &f.Blocks[bid]
 		ics := fr.code.blocks[bid]
+		m.traceBlock(f, bid)
 		// An empty loop still has to run into the step limit.
 		if len(blk.Insts) == 0 {
 			m.chargeStep()
@@ -96,6 +97,9 @@ func (m *Machine) run(fr *frame) *obj {
 		case midir.TermJump:
 			bid = blk.Term.Targets[0]
 		case midir.TermBranch:
+			if m.opts.SecretSan {
+				m.checkBranch(fr.locals[blk.Term.Args[0]])
+			}
 			c := truth(fr.locals[blk.Term.Args[0]])
 			if c {
 				bid = blk.Term.Targets[0]

@@ -30,7 +30,7 @@ func TestNativeCopyPrimitivesUsePlans(t *testing.T) {
 		}
 	}
 	count := 0
-	err := filepath.WalkDir("../llgen/runtime", func(path string, entry os.DirEntry, err error) error {
+	err := filepath.WalkDir("../llgen/runtimegen/runtime", func(path string, entry os.DirEntry, err error) error {
 		if err != nil || entry.IsDir() || !strings.HasSuffix(path, ".c") && !strings.HasSuffix(path, ".inc") {
 			return err
 		}

@@ -5,6 +5,7 @@ package vm
 func (m *Machine) bytesStd(key string, a0, a1, a2 *obj) *obj {
 	switch key {
 	case "prelude.Bytes.tryZeros", "prelude.ByteBuffer.tryNew":
+		m.checkAllocSize(a0, key)
 		if uint64(a0.i) >= maxVMAlloc || m.planRefused(key) {
 			return m.allocError()
 		}
@@ -21,6 +22,7 @@ func (m *Machine) bytesStd(key string, a0, a1, a2 *obj) *obj {
 		}
 		return m.okPlanned(key, mkBytes(out))
 	case "prelude.Bytes.get":
+		m.checkIndex(a1)
 		if a1.i < 0 || a1.i >= int64(len(a0.str())) {
 			return m.none()
 		}

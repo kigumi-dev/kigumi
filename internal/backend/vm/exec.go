@@ -35,9 +35,11 @@ func (m *Machine) exec(fr *frame, in *midir.Inst, ic *instCode) {
 	case midir.OpShare:
 		v := loc[in.Args[0]]
 		if in.Copy && (!in.IfWritable || m.writableInside(v)) {
+			m.trace.rcOp("copy", v)
 			v = m.copyShared(f, in, ic, v)
 			m.chargeMemory(v)
 		} else {
+			m.trace.rcOp("retain", v)
 			v = retain(v)
 		}
 		loc[in.Dst] = v
@@ -74,13 +76,13 @@ func (m *Machine) exec(fr *frame, in *midir.Inst, ic *instCode) {
 		loc[in.Dst] = mkBool(v.k == kVariant && v.ent == in.Ent)
 		return
 	case midir.OpPayload:
-		loc[in.Dst] = retain(deref(loc[in.Args[0]]).fields[in.Index])
+		loc[in.Dst] = m.deriveTaint(retain(deref(loc[in.Args[0]]).fields[in.Index]), m.taintOf(loc[in.Args[0]]))
 		return
 	case midir.OpIndex:
 		loc[in.Dst] = m.index(loc[in.Args[0]], loc[in.Args[1]])
 		return
 	case midir.OpCellGet:
-		loc[in.Dst] = retain(loc[in.Args[0]].inner)
+		loc[in.Dst] = m.deriveTaint(retain(loc[in.Args[0]].inner), m.taintOf(loc[in.Args[0]]))
 		return
 	case midir.OpCall:
 		m.site, m.siteFn = in, f
@@ -88,7 +90,11 @@ func (m *Machine) exec(fr *frame, in *midir.Inst, ic *instCode) {
 			if m.opts.FaultInjectAt > 0 {
 				m.callTicks(f, in, loc)
 			}
-			loc[in.Dst] = m.callFrom(p.f, p.code, loc, in.Args)
+			var args []*obj
+			if m.opts.SecretSan {
+				args = m.gather(loc, in.Args)
+			}
+			loc[in.Dst] = m.postCall(in.Ent, args, m.callFrom(p.f, p.code, loc, in.Args), true)
 			return
 		}
 	}

@@ -130,7 +130,7 @@ func (m *Machine) copyRaw(v *obj) *obj {
 	r, src := out.rawArr(), v.rawArr()
 	r.elem, r.nk, r.raw = src.elem, src.nk, slices.Clone(src.raw)
 	m.chargeMemory(out)
-	return out
+	return m.inheritLabel(v, out)
 }
 
 func (m *Machine) rawWithMut(a []*obj) *obj {

@@ -5,11 +5,14 @@ package vm
 func (m *Machine) tryFamily(key string, a []*obj, a0, a1, a2 *obj) *obj {
 	switch key {
 	case "array.Array.tryWithCapacity":
+		m.checkAllocSize(a0, key)
 		if uint64(a0.i) >= maxVMAlloc || m.birthRefused(key, a0.i) {
 			return m.allocError()
 		}
 		return m.okTry(key, 1, newArray(key, a0.i, nil))
 	case "array.Array.trySlice":
+		m.checkIndex(a1)
+		m.checkIndex(a2)
 		if a1.i < 0 || a1.i > a2.i || a2.i > int64(len(a0.fields)) {
 			return m.okTry(key, 1, m.none())
 		}
@@ -46,6 +49,8 @@ func (m *Machine) tryFamily(key string, a []*obj, a0, a1, a2 *obj) *obj {
 	case "prelude.AllocError.wrap":
 		return m.okTry(key, 1, retain(a[0]))
 	case "prelude.String.trySliceBytes":
+		m.checkIndex(a1)
+		m.checkIndex(a2)
 		s, e := a1.i, a2.i
 		if s < 0 || s > e || e > int64(len(a0.str())) || !boundary(a0.str(), s) || !boundary(a0.str(), e) {
 			return m.okTry(key, 1, m.none())
@@ -55,6 +60,8 @@ func (m *Machine) tryFamily(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		}
 		return m.okPlanned(key, m.some(mkStr(append([]byte{}, a0.str()[s:e]...))))
 	case "prelude.Bytes.trySlice":
+		m.checkIndex(a1)
+		m.checkIndex(a2)
 		s, e := a1.i, a2.i
 		if s < 0 || s > e || e > int64(len(a0.str())) {
 			return m.okTry(key, 1, m.none())

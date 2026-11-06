@@ -22,7 +22,18 @@ func (m *Machine) checked(v int64, nk int, over bool) *obj {
 
 func (m *Machine) binop(op string, a, b *obj) *obj { return m.binopAs(bopOf(op), op, a, b) }
 
+// binopAs is binopCore with the SecretSan label in place: the operation's
+// value-dependent decisions are checked against the operands' labels, and the
+// result carries what the labels say it should.
 func (m *Machine) binopAs(c bop, op string, a, b *obj) *obj {
+	if !m.opts.SecretSan {
+		return m.binopCore(c, op, a, b)
+	}
+	m.checkBinopSinks(c, a, b)
+	return m.withTaint(m.binopCore(c, op, a, b), m.binopShadow(c, op, a, b))
+}
+
+func (m *Machine) binopCore(c bop, op string, a, b *obj) *obj {
 	a, b = deref(a), deref(b)
 	switch c {
 	case bopEq:

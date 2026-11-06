@@ -41,9 +41,13 @@ type shared struct {
 	cvalues      []*obj
 	handleTables []*handleTableState
 	sigWatch     map[string]chan os.Signal
-	mem          atomic.Int64
-	faultN       atomic.Int64
-	faultArmed   atomic.Bool
+	// shadows is SecretSan's value-label table (nil unless Options.SecretSan).
+	// A value can migrate to another lane with a task, so the table is shared.
+	shadowMu   sync.Mutex
+	shadows    map[*obj]shadow
+	mem        atomic.Int64
+	faultN     atomic.Int64
+	faultArmed atomic.Bool
 	// steps is shared by all lanes so a thread pool has one StepLimit.
 	steps atomic.Int64
 	// graph is written before the run starts and only read after.

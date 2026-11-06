@@ -11,6 +11,9 @@ func (m *Machine) callPlanned(in *midir.Inst, ic *instCode, args []*obj) *obj {
 	p := m.planFor(in, ic)
 	switch p.kind {
 	case planHost:
+		if m.opts.SecretSan && hostEffect(p.key) {
+			m.checkHostIO(args, p.key)
+		}
 		r := p.host(m, p.ent, args)
 		m.chargeMemory(r)
 		if p.lowered {
@@ -20,7 +23,7 @@ func (m *Machine) callPlanned(in *midir.Inst, ic *instCode, args []*obj) *obj {
 	case planStd:
 		r := m.std(p.key, args)
 		m.chargeMemory(r)
-		return r
+		return m.stdResultTaint(p.key, args, r)
 	}
 	return m.callEntity(in, args)
 }
@@ -46,6 +49,9 @@ func (m *Machine) callEntity(in *midir.Inst, args []*obj) *obj {
 			m.abort("`" + key + "` is not available at compile time")
 		}
 		if h, ok := m.hostFor(in.Prov, key); ok && m.hostWins(lowered) {
+			if m.opts.SecretSan && hostEffect(key) {
+				m.checkHostIO(args, key)
+			}
 			r := h(m, ent, args)
 			m.chargeMemory(r)
 			if lowered {
@@ -57,9 +63,10 @@ func (m *Machine) callEntity(in *midir.Inst, args []*obj) *obj {
 	if lowered {
 		return m.call(f, args)
 	}
-	r := m.std(m.stdKey(ent), args)
+	key := m.stdKey(ent)
+	r := m.std(key, args)
 	m.chargeMemory(r)
-	return r
+	return m.stdResultTaint(key, args, r)
 }
 
 // releaseOwned drops what the lowered body would have consumed.
@@ -115,7 +122,7 @@ func (m *Machine) callValue(fv *obj, args []*obj) *obj {
 		return m.asyncValueCall(fv, args)
 	}
 	if fv.cstd() != "" {
-		return m.callStdValue(fv, args)
+		return m.stdResultTaint(fv.cstd(), args, m.callStdValue(fv, args))
 	}
 	r := m.invoke(fv.cfn(), fv.cenv(), fv.bind, args)
 	m.resultTick(r, args)

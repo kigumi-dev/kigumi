@@ -11,15 +11,20 @@ import (
 )
 
 type options struct {
-	session session.Session
-	args    []string
+	session   session.Session
+	args      []string
+	secretSan bool
 }
 
 func parseOptions(cmd *cobra.Command, args []string) (options, error) {
 	if err := rejectSwallowedFlags(cmd, args); err != nil {
 		return options{}, err
 	}
-	return options{session: session.Read(cmd), args: dropDashDash(args)}, nil
+	secretSan, err := cmd.Flags().GetBool("secret-san")
+	if err != nil {
+		return options{}, err
+	}
+	return options{session: session.Read(cmd), args: dropDashDash(args), secretSan: secretSan}, nil
 }
 
 func scriptOptions(cmd *cobra.Command, args []string) (options, error) {

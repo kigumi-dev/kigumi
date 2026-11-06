@@ -60,6 +60,15 @@ type Options struct {
 	FaultInjectAt int64
 	// FaultArmOnEprint mirrors KIGUMI_FAIL_ALLOC_ARM: no tick counts until the first eprint returns.
 	FaultArmOnEprint bool
+	// SecretSan turns on the VM's shadow checker: a value produced by
+	// std/secret's classify is shadowed and reaching a sink aborts the run
+	// with a "SecretSan:" diagnostic. It is off by default and changes no
+	// semantics when false.
+	SecretSan bool
+	// Trace records the two-run trace (blocks, object-relative indices,
+	// allocation events and RC operations) CompareTraces compares. It is
+	// off by default.
+	Trace bool
 }
 
 // Machine is one lane of a run: the interpreter state below belongs to the
@@ -105,6 +114,8 @@ type Machine struct {
 	pending []*obj
 	// witnessed memoizes Supports' answer for a requirement and a method of its name.
 	witnessed map[[2]sem.EntityID]bool
+	// trace is the SecretSan two-run trace, nil unless Options.Trace is set.
+	trace *traceLog
 }
 
 // Run executes the program's entry and returns its exit code: 0, 1 for a
@@ -128,6 +139,9 @@ func runMachine(m *Machine, prog *mir.Program, errOut io.Writer) (int, error) {
 
 func newMachine(prog *mir.Program, opts Options, out, errOut io.Writer) *Machine {
 	m := &Machine{p: prog, r: prog.R, out: out, err: errOut, opts: opts, sh: newShared()}
+	if opts.Trace {
+		m.trace = &traceLog{}
+	}
 	if !opts.Sandbox {
 		prog.ContainsDropPanics()
 	}

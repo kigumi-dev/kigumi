@@ -12,7 +12,7 @@ func run(io session.IO, opts options) error {
 	if err != nil {
 		return err
 	}
-	code, err := driver.RunWith(m, driver.RunOptions{NoAccel: session.NoAccel()}, io.Out, io.Err, opts.args)
+	code, err := driver.RunWith(m, driver.RunOptions{NoAccel: session.NoAccel(), SecretSan: opts.secretSan}, io.Out, io.Err, opts.args)
 	if err != nil {
 		return errors.WrapErr(err, "run module")
 	}
