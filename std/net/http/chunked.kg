@@ -36,6 +36,14 @@ fn lineAt(data: &Bytes, from: usize) -> usize?! {
         if (data.get(i) || 0) == 13 && (data.get(i + 1) || 0) == 10 {
             return Some(i)
         }
+        if (data.get(i) || 0) == 10 {
+            fail failure(400, "bare LF in chunk line")
+        }
+        if (data.get(i) || 0) == 13 {
+            if i + 1 < data.len() && (data.get(i + 1) || 0) != 10 {
+                fail failure(400, "bare CR in chunk line")
+            }
+        }
         if i - from >= maxChunkLine() {
             fail failure(400, "chunk line too long")
         }
@@ -95,7 +103,7 @@ fn chunkSize(line: Bytes) -> usize! {
     } else {
         text
     }
-    parseHex(sizeText.trim()) || fail failure(400, "invalid chunk size")
+    parseHex(sizeText) || fail failure(400, "invalid chunk size")
 }
 
 // step decodes what it can from the front of data and returns how many bytes it used;

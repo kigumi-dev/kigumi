@@ -74,6 +74,8 @@ var httpRawCases = []struct{ name, send, want string }{
 	{"absolute form", "GET http://t/ HTTP/1.1\r\nHost: t\r\nConnection: close\r\n\r\n", "HTTP/1.1 200 "},
 	{"connect authority", "CONNECT t:443 HTTP/1.1\r\nHost: t:443\r\nConnection: close\r\n\r\n", "HTTP/1.1 200 "},
 	{"options star", "OPTIONS * HTTP/1.1\r\nHost: t\r\nConnection: close\r\n\r\n", "HTTP/1.1 200 "},
+	{"bare LF chunk trailer", "POST / HTTP/1.1\r\nHost: t\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n0\r\nX: y\n\r\n", "HTTP/1.1 400 "},
+	{"BWS chunk size", "POST / HTTP/1.1\r\nHost: t\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n 3\r\nabc\r\n0\r\n\r\n", "HTTP/1.1 400 "},
 	{"leading zero length", "POST / HTTP/1.1\r\nHost: t\r\nContent-Length: 0000000000000003\r\nConnection: close\r\n\r\nabc", "HTTP/1.1 200 "},
 	{"tab in request line", "GET\t/ HTTP/1.1\r\nHost: t\r\n\r\n", "HTTP/1.1 400 "},
 	{"slow head", "GET / HTTP/1.1\r\nHost: t\r\n", "HTTP/1.1 408 "},
