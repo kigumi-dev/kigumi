@@ -5,3 +5,49 @@
 /// Safety: a stateless capability marker; every call it makes is independent, so sharing or duplicating it is free.
 @unsafeGuarantee(Copy, Send, Sync)
 pub type Entropy
+
+import binary from std/encoding/binary
+import ffi from std/ffi
+import mem from std/mem
+
+extern(C) {
+    fn malloc(n: usize) -> *mut u8
+    fn free(p: *mut u8)
+}
+
+/// n cryptographically random bytes from the OS; the scratch buffer is erased before it is freed.
+pub fn Entropy.bytes(self, n: usize) -> Bytes! {
+    if n == 0 {
+        return "".toBytes()
+    }
+    let buf = unsafe {
+        malloc(n)
+    }
+    if ffi.isNull(ffi.toConst(buf)) {
+        fail ffi.lastError()
+    }
+    let filled = fillEntropy(buf, n)
+    if filled is Err(e) {
+        unsafe {
+            ffi.secureEraseRaw(buf, n)
+            free(buf)
+        }
+        fail e
+    }
+    let out = unsafe {
+        ffi.bytesFrom(ffi.toConst(buf), n)
+    }
+    unsafe {
+        ffi.secureEraseRaw(buf, n)
+        free(buf)
+    }
+    out
+}
+
+/// One random u64 from the OS.
+pub fn Entropy.u64(self) -> u64! {
+    let mut b = self.bytes(8)?
+    let v = binary.u64Be(b, 0) || 0
+    mem.secureErase(&mut b)
+    v
+}

@@ -1,18 +1,12 @@
-import binary from std/encoding/binary
 import ffi from std/ffi
-import mem from std/mem
 
 extern(C) {
     fn getrandom(buf: *mut u8, buflen: usize, flags: u32) -> isize
     fn open(path: *const u8, flags: i32, ...) -> i32
     fn read(fd: i32, buf: *mut u8, n: usize) -> isize
     fn close(fd: i32) -> i32
-    fn malloc(n: usize) -> *mut u8
-    fn free(p: *mut u8)
 }
 
-// getrandom(2) is unavailable on a kernel old enough to predate it; fill
-// the rest of the buffer by reading /dev/urandom instead.
 fn fillFromUrandom(buf: *mut u8, start: usize, n: usize) -> Void! {
     let path = "/dev/urandom"
     let c = ffi.CString.new(&path)?
@@ -43,18 +37,8 @@ fn fillFromUrandom(buf: *mut u8, start: usize, n: usize) -> Void! {
     }
 }
 
-/// n cryptographically random bytes from the OS: `getrandom(2)`, falling
-/// back to `/dev/urandom` when the syscall itself fails; the scratch buffer is erased before it is freed.
-pub fn Entropy.bytes(self, n: usize) -> Bytes! {
-    if n == 0 {
-        return "".toBytes()
-    }
-    let buf = unsafe {
-        malloc(n)
-    }
-    if ffi.isNull(ffi.toConst(buf)) {
-        fail ffi.lastError()
-    }
+/// Fills buf from getrandom(2), falling back to /dev/urandom for an old kernel.
+fn fillEntropy(buf: *mut u8, n: usize) -> Void! {
     let mut off: usize = 0
     for off < n {
         let got = unsafe {
@@ -69,29 +53,6 @@ pub fn Entropy.bytes(self, n: usize) -> Bytes! {
         off = off + (got.toUsize() || 0)
     }
     if off < n {
-        let filled = fillFromUrandom(buf, off, n)
-        if filled is Err(e) {
-            unsafe {
-                ffi.secureEraseRaw(buf, n)
-                free(buf)
-            }
-            fail e
-        }
+        fillFromUrandom(buf, off, n)?
     }
-    let out = unsafe {
-        ffi.bytesFrom(ffi.toConst(buf), n)
-    }
-    unsafe {
-        ffi.secureEraseRaw(buf, n)
-        free(buf)
-    }
-    out
-}
-
-/// One random u64 from the OS.
-pub fn Entropy.u64(self) -> u64! {
-    let mut b = self.bytes(8)?
-    let v = binary.u64Be(b, 0) || 0
-    mem.secureErase(&mut b)
-    v
 }

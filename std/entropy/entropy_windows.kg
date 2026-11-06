@@ -1,0 +1,14 @@
+import ffi from std/ffi
+
+extern(C) {
+    fn BCryptGenRandom(alg: *mut u8, buf: *mut u8, len: u32, flags: u32) -> i32
+}
+
+/// Fills buf with BCryptGenRandom and the system-preferred RNG.
+fn fillEntropy(buf: *mut u8, n: usize) -> Void! {
+    if unsafe {
+        BCryptGenRandom(ffi.toMut(ffi.null[u8]()), buf, n.toU32() || 0, 2)
+    } != 0 {
+        fail ffi.lastError()
+    }
+}

@@ -1,0 +1,13 @@
+import ffi from std/ffi
+
+extern(C) {
+    fn random_get(buf: *mut u8, len: usize) -> i32
+}
+
+fn fillEntropy(buf: *mut u8, n: usize) -> Void! {
+    if unsafe {
+        random_get(buf, n)
+    } != 0 {
+        fail ffi.lastError()
+    }
+}
