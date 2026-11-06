@@ -23,13 +23,13 @@ var rcCallSites = map[string]*regexp.Regexp{
 
 // Call sites of the count and cell runtime calls in the IR of every native run fixture, std included.
 var pinnedRCCalls = map[string]int{
-	"fixtures":         1040,
-	"rt_retain":        11409,
-	"rt_release":       80853,
+	"fixtures":         1046,
+	"rt_retain":        11646,
+	"rt_release":       82002,
 	"rt_release_outer": 34584,
-	"rt_drop":          48289,
-	"rt_cell_init":     7329,
-	"rt_cell_take":     2822,
+	"rt_drop":          49609,
+	"rt_cell_init":     7428,
+	"rt_cell_take":     2863,
 	"rt_setfield_swap": 921,
 	"rt_setindex_swap": 158,
 }
@@ -49,6 +49,12 @@ var baselineRCCalls = map[string]int{
 }
 
 var addedAfterBaseline = map[string]bool{
+	"crypto_x25519_rfc7748.txtar":                   true,
+	"crypto_x25519_errors.txtar":                    true,
+	"crypto_p256_ecdh.txtar":                        true,
+	"crypto_p256_ecdsa.txtar":                       true,
+	"crypto_p256_ecdsa_reject.txtar":                true,
+	"crypto_p256_points.txtar":                      true,
 	"crypto_chacha_aead.txtar":                      true,
 	"crypto_chacha_block.txtar":                     true,
 	"crypto_chacha_poly1305.txtar":                  true,
