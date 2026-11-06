@@ -43,7 +43,7 @@ pub pure noalloc fn OsString.equals(self, other: &OsString) -> Bool {
 }
 
 /// Hash of the units; satisfies `Hash`.
-pub pure noalloc fn OsString.hash(self) -> u64 {
+pub pure fn OsString.hash(self) -> u64 {
     self.units.hash()
 }
 

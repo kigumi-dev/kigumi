@@ -678,7 +678,7 @@ pub pure fn hash[T: Hash](value: &T) -> u64 {
 }
 
 /// Hash of the bytes; satisfies `Hash`.
-pub pure noalloc fn String.hash(self) -> u64
+pub pure fn String.hash(self) -> u64
 
 /// Byte-wise lexicographic comparison.
 pub pure noalloc fn String.compareTo(self, other: &String) -> Ordering
@@ -787,7 +787,7 @@ pub pure fn Bytes.tryConcat(self, other: Bytes) -> Result[Bytes, AllocError]
 pub pure noalloc fn i64.equals(self, other: &i64) -> Bool
 
 /// Hash of the value; satisfies `Hash`.
-pub pure noalloc fn i64.hash(self) -> u64
+pub pure fn i64.hash(self) -> u64
 
 /// Numeric three-way comparison.
 pub pure noalloc fn i64.compareTo(self, other: &i64) -> Ordering
@@ -796,7 +796,7 @@ pub pure noalloc fn i64.compareTo(self, other: &i64) -> Ordering
 pub pure noalloc fn i32.equals(self, other: &i32) -> Bool
 
 /// Hash of the value; satisfies `Hash`.
-pub pure noalloc fn i32.hash(self) -> u64
+pub pure fn i32.hash(self) -> u64
 
 /// Numeric three-way comparison.
 pub pure noalloc fn i32.compareTo(self, other: &i32) -> Ordering
@@ -805,7 +805,7 @@ pub pure noalloc fn i32.compareTo(self, other: &i32) -> Ordering
 pub pure noalloc fn u8.equals(self, other: &u8) -> Bool
 
 /// Hash of the value; satisfies `Hash`.
-pub pure noalloc fn u8.hash(self) -> u64
+pub pure fn u8.hash(self) -> u64
 
 /// Numeric three-way comparison.
 pub pure noalloc fn u8.compareTo(self, other: &u8) -> Ordering
@@ -814,91 +814,91 @@ pub pure noalloc fn u8.compareTo(self, other: &u8) -> Ordering
 pub pure noalloc fn usize.equals(self, other: &usize) -> Bool
 
 /// Hash of the value; satisfies `Hash`.
-pub pure noalloc fn usize.hash(self) -> u64
+pub pure fn usize.hash(self) -> u64
 
 /// Numeric three-way comparison.
 pub pure noalloc fn usize.compareTo(self, other: &usize) -> Ordering
 
 pub pure noalloc fn i8.equals(self, other: &i8) -> Bool
 
-pub pure noalloc fn i8.hash(self) -> u64
+pub pure fn i8.hash(self) -> u64
 
 pub pure noalloc fn i8.compareTo(self, other: &i8) -> Ordering
 
 pub pure noalloc fn i16.equals(self, other: &i16) -> Bool
 
-pub pure noalloc fn i16.hash(self) -> u64
+pub pure fn i16.hash(self) -> u64
 
 pub pure noalloc fn i16.compareTo(self, other: &i16) -> Ordering
 
 pub pure noalloc fn isize.equals(self, other: &isize) -> Bool
 
-pub pure noalloc fn isize.hash(self) -> u64
+pub pure fn isize.hash(self) -> u64
 
 pub pure noalloc fn isize.compareTo(self, other: &isize) -> Ordering
 
 pub pure noalloc fn u16.equals(self, other: &u16) -> Bool
 
-pub pure noalloc fn u16.hash(self) -> u64
+pub pure fn u16.hash(self) -> u64
 
 pub pure noalloc fn u16.compareTo(self, other: &u16) -> Ordering
 
 pub pure noalloc fn u32.equals(self, other: &u32) -> Bool
 
-pub pure noalloc fn u32.hash(self) -> u64
+pub pure fn u32.hash(self) -> u64
 
 pub pure noalloc fn u32.compareTo(self, other: &u32) -> Ordering
 
 pub pure noalloc fn u64.equals(self, other: &u64) -> Bool
 
-pub pure noalloc fn u64.hash(self) -> u64
+pub pure fn u64.hash(self) -> u64
 
 pub pure noalloc fn u64.compareTo(self, other: &u64) -> Ordering
 
 pub pure noalloc fn i128.equals(self, other: &i128) -> Bool
 
-pub pure noalloc fn i128.hash(self) -> u64
+pub pure fn i128.hash(self) -> u64
 
 pub pure noalloc fn i128.compareTo(self, other: &i128) -> Ordering
 
 pub pure noalloc fn u128.equals(self, other: &u128) -> Bool
 
-pub pure noalloc fn u128.hash(self) -> u64
+pub pure fn u128.hash(self) -> u64
 
 pub pure noalloc fn u128.compareTo(self, other: &u128) -> Ordering
 
 pub pure noalloc fn f64.equals(self, other: &f64) -> Bool
 
-pub pure noalloc fn f64.hash(self) -> u64
+pub pure fn f64.hash(self) -> u64
 
 pub pure noalloc fn f64.compareTo(self, other: &f64) -> Ordering
 
 pub pure noalloc fn f32.equals(self, other: &f32) -> Bool
 
-pub pure noalloc fn f32.hash(self) -> u64
+pub pure fn f32.hash(self) -> u64
 
 pub pure noalloc fn f32.compareTo(self, other: &f32) -> Ordering
 
 pub pure noalloc fn Bool.equals(self, other: &Bool) -> Bool
 
-pub pure noalloc fn Bool.hash(self) -> u64
+pub pure fn Bool.hash(self) -> u64
 
 pub pure noalloc fn Bool.compareTo(self, other: &Bool) -> Ordering
 
 pub pure noalloc fn Char.equals(self, other: &Char) -> Bool
 
-pub pure noalloc fn Char.hash(self) -> u64
+pub pure fn Char.hash(self) -> u64
 
 pub pure noalloc fn Char.compareTo(self, other: &Char) -> Ordering
 
 pub pure noalloc fn Bytes.equals(self, other: &Bytes) -> Bool
 
-pub pure noalloc fn Bytes.hash(self) -> u64
+pub pure fn Bytes.hash(self) -> u64
 
 pub pure noalloc fn Bytes.compareTo(self, other: &Bytes) -> Ordering
 
 pub pure noalloc fn Void.equals(self, other: &Void) -> Bool
 
-pub pure noalloc fn Void.hash(self) -> u64
+pub pure fn Void.hash(self) -> u64
 
 pub pure noalloc fn Void.compareTo(self, other: &Void) -> Ordering

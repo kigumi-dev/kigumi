@@ -1,0 +1,15 @@
+-- module --
+stage: driver
+-- src --
+noalloc fn h(s: String) -> u64 {
+    s.hash()
+}
+
+fn main() {}
+-- expect --
+error[E907]: `hash` is not `noalloc`
+ --> main.kg:2:5
+  |
+2 |     s.hash()
+  |     ^^^^^^^
+
