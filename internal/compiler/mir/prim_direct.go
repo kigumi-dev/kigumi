@@ -69,6 +69,12 @@ func (p *Program) PrimTypesFit(f *midir.Func, in midir.Inst, kind opdef.DirectPr
 		return len(in.Args) == 1 && arg(0) == sem.TyF64 && f.Locals[in.Dst].Type == sem.TyF64
 	case opdef.DPPow:
 		return len(in.Args) == 2 && arg(0) == sem.TyF64 && arg(1) == sem.TyF64 && f.Locals[in.Dst].Type == sem.TyF64
+	case opdef.DPSecretBarrier, opdef.DPSecretMaskNonZero:
+		return len(in.Args) == 1 && p.R.RegScalar(arg(0)) && shape == shapeScalar
+	case opdef.DPSecretMaskLt:
+		return len(in.Args) == 2 && p.R.RegScalar(arg(0)) && p.R.RegScalar(arg(1)) && shape == shapeScalar
+	case opdef.DPSecretSelect:
+		return len(in.Args) == 3 && p.R.RegScalar(arg(0)) && p.R.RegScalar(arg(1)) && p.R.RegScalar(arg(2)) && shape == shapeScalar
 	}
 	if kind == opdef.DPTryRef || kind == opdef.DPTryOpt {
 		return p.tryRefResult(f.Locals[in.Dst].Type, kind == opdef.DPTryOpt)

@@ -603,12 +603,16 @@ op 187 ARRAY_PUSH_COPY primitive (array, any) -> bool
 key array.Array.pushCopy
 
 op 188 SECRET_BARRIER_U64 primitive (int) -> int
+direct SecretBarrier
 key secret.barrierU64
 op 189 SECRET_MASK_NONZERO_U64 primitive (int) -> int
+direct SecretMaskNonZero
 key secret.maskNonZeroU64
 op 190 SECRET_MASK_LT_U64 primitive (int, int) -> int
+direct SecretMaskLt
 key secret.maskLtU64
 op 191 SECRET_SELECT_U64 primitive (int, int, int) -> int
+direct SecretSelect
 key secret.selectU64
 op 192 SECRET_EQ_BYTES primitive (bytes, bytes) -> int
 key secret.eqBytes

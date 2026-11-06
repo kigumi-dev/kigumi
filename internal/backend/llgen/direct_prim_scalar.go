@@ -18,6 +18,24 @@ func (e *emitter) scalarPrimCall(sb *strings.Builder, f *midir.Func, in midir.In
 		e.storeScalarResult(sb, f, in.Dst, e.wrappingOp(sb, in.DPrim, nk, args[0], args[1]))
 		return true
 	}
+	if in.DPrim >= opdef.DPSecretBarrier && in.DPrim <= opdef.DPSecretSelect {
+		x := args[0].Text
+		switch in.DPrim {
+		case opdef.DPSecretBarrier:
+			e.storeScalarResult(sb, f, in.Dst, vi64text(e.secretBarrier(sb, x)))
+		case opdef.DPSecretMaskNonZero:
+			t := e.newTmp()
+			fmt.Fprintf(sb, "  %s = icmp ne i64 %s, 0\n", t, x)
+			e.storeScalarResult(sb, f, in.Dst, vi64text(e.secretMask(sb, t, true)))
+		case opdef.DPSecretMaskLt:
+			t := e.newTmp()
+			fmt.Fprintf(sb, "  %s = icmp ult i64 %s, %s\n", t, x, args[1].Text)
+			e.storeScalarResult(sb, f, in.Dst, vi64text(e.secretMask(sb, t, true)))
+		case opdef.DPSecretSelect:
+			e.storeScalarResult(sb, f, in.Dst, vi64text(e.secretSelect(sb, x, args[1].Text, args[2].Text)))
+		}
+		return true
+	}
 	if in.DPrim == opdef.DPPow {
 		e.storeScalarResult(sb, f, in.Dst, Value{TDouble, e.libmPow(sb, args[0].Text, args[1].Text)})
 		return true
@@ -73,4 +91,37 @@ func (e *emitter) libmPow(sb *strings.Builder, x, y string) string {
 	t := e.newTmp()
 	fmt.Fprintf(sb, "  %s = call double @pow(double %s, double %s) nobuiltin\n", t, x, y)
 	return t
+}
+
+// secretBarrier keeps the optimiser from folding a mask back into a branch.
+func (e *emitter) secretBarrier(sb *strings.Builder, x string) string {
+	t := e.newTmp()
+	fmt.Fprintf(sb, "  %s = call i64 asm sideeffect \"\", \"=r,0\"(i64 %s)\n", t, x)
+	return t
+}
+
+// secretMask turns x (a boolean or masked value) into an all-ones/all-zeros mask.
+func (e *emitter) secretMask(sb *strings.Builder, x string, isBool ...bool) string {
+	v := x
+	if len(isBool) > 0 {
+		z := e.newTmp()
+		fmt.Fprintf(sb, "  %s = zext i1 %s to i64\n", z, x)
+		v = z
+	}
+	n := e.newTmp()
+	fmt.Fprintf(sb, "  %s = sub i64 0, %s\n", n, v)
+	return e.secretBarrier(sb, n)
+}
+
+func (e *emitter) secretSelect(sb *strings.Builder, m, a, b string) string {
+	mm := e.secretBarrier(sb, m)
+	t := e.newTmp()
+	fmt.Fprintf(sb, "  %s = and i64 %s, %s\n", t, mm, a)
+	nm := e.newTmp()
+	fmt.Fprintf(sb, "  %s = xor i64 %s, -1\n", nm, mm)
+	u := e.newTmp()
+	fmt.Fprintf(sb, "  %s = and i64 %s, %s\n", u, nm, b)
+	r := e.newTmp()
+	fmt.Fprintf(sb, "  %s = or i64 %s, %s\n", r, t, u)
+	return e.secretBarrier(sb, r)
 }
