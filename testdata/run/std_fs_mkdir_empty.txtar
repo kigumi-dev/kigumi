@@ -1,0 +1,10 @@
+-- src --
+import fs from std/fs
+
+let p = fs.Path.fromString("")?
+match host.files().mkdir(p) {
+    Ok(_) -> print "ok"
+    Err(_) -> print "err"
+}
+-- stdout --
+err

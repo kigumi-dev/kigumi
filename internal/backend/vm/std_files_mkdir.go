@@ -9,6 +9,9 @@ import (
 
 // mkdirAll creates each prefix of path like the native Files.mkdir: an existing entry is fine only if it opens as a directory.
 func (m *Machine) mkdirAll(path string) error {
+	if path == "" {
+		return syscall.ENOENT
+	}
 	cur := ""
 	for i, part := range strings.Split(path, "/") {
 		if i > 0 {

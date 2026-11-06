@@ -225,6 +225,15 @@ pub fn Files.readBytesUpTo(self, path: Path, limit: usize) -> Bytes! {
 
 /// Creates the directory at path and any missing parents; an existing directory is fine, an existing file is an error.
 pub fn Files.mkdir(self, path: Path) -> Void! {
+    if path.text == "" {
+        let c = ffi.CString.new(&path.text)?
+        if unsafe {
+            mkdir(c.ptr(), 493)
+        } != 0 {
+            fail ffi.lastError()
+        }
+        return
+    }
     let parts = path.text.split("/")
     let mut cur = ""
     for i in 0..parts.len() {

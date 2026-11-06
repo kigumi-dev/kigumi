@@ -9829,6 +9829,15 @@
       ]
     },
     {
+      "id": "run/std_fs_mkdir_empty",
+      "kind": "run",
+      "path": "testdata/run/std_fs_mkdir_empty.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/std_fs_rename_size",
       "kind": "run",
       "path": "testdata/run/std_fs_rename_size.txtar",
@@ -14670,6 +14679,14 @@
       ]
     },
     {
+      "id": "sem/layout_c_int128_array",
+      "kind": "sem",
+      "path": "testdata/sem/layout_c_int128_array.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/layout_err",
       "kind": "sem",
       "path": "testdata/sem/layout_err.txtar",
@@ -15198,9 +15215,25 @@
       ]
     },
     {
+      "id": "sem/noalloc_hash_err",
+      "kind": "sem",
+      "path": "testdata/sem/noalloc_hash_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/noalloc_panic_forms",
       "kind": "sem",
       "path": "testdata/sem/noalloc_panic_forms.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/noalloc_slice_err",
+      "kind": "sem",
+      "path": "testdata/sem/noalloc_slice_err.txtar",
       "mode": [
         "check"
       ]
