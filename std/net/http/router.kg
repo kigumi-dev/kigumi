@@ -61,21 +61,44 @@ pub fn Router.use(move self, middleware: escaping fn(escaping fn(Request) -> Res
 /// `Allow` header when one does but not for this method; HEAD falls back to GET.
 pub fn Router.handler(move self) -> fn(Request) -> Response! {
     let mut table = ""
-    let mut heads = ""
     for r in &self.routes {
         table = "${table}${r.method} ${r.pattern}\n"
-        if r.method == "HEAD" {
-            heads = "${heads}${r.pattern}\n"
-        }
     }
-    let mut h: fn(Request) -> Response! = (req: Request) => unmatched(table, req)
+    let mut getOnly: fn(Request) -> Response! = (req: Request) => unmatched(table, req)
+    let mut getForHead: fn(Request) -> Response! = (req: Request) => unmatched(table, req)
+    let mut other: fn(Request) -> Response! = (req: Request) => unmatched(table, req)
     let mut i = self.routes.len()
     for i > 0 {
         i = i - 1
         if self.routes.get(i) is Some(r) {
-            h = link(r, heads, h)
+            if r.method == "GET" {
+                getOnly = link(r, getOnly, false)
+                getForHead = link(r, getForHead, true)
+            } else if r.method != "HEAD" {
+                other = link(r, other, false)
+            }
         }
     }
+    // A HEAD request prefers a HEAD route, then a GET route; a second pass
+    // keeps the HEAD chain linear instead of rescanning the GET patterns.
+    let mut headChain = getForHead
+    let mut k = self.routes.len()
+    for k > 0 {
+        k = k - 1
+        if self.routes.get(k) is Some(r) && r.method == "HEAD" {
+            headChain = link(r, headChain, true)
+        }
+    }
+    let dispatch: fn(Request) -> Response! = (req: Request) => {
+        if req.method == "HEAD" {
+            headChain(req)
+        } else if req.method == "GET" {
+            getOnly(req)
+        } else {
+            other(req)
+        }
+    }
+    let mut h = dispatch
     let mut j = self.layers.len()
     for j > 0 {
         j = j - 1
@@ -88,9 +111,9 @@ pub fn Router.handler(move self) -> fn(Request) -> Response! {
 
 // Each route becomes one link of a chain, since a plain fn can capture Copy
 // values such as a String or another fn but not the route Array itself.
-fn link(r: Route, heads: String, next: escaping fn(Request) -> Response!) -> fn(Request) -> Response! {
+fn link(r: Route, next: escaping fn(Request) -> Response!, acceptHead: Bool) -> fn(Request) -> Response! {
     (req: Request) => {
-        if r.method == req.method || (req.method == "HEAD" && r.method == "GET" && !hasPattern(heads, req.path)) {
+        if r.method == req.method || (acceptHead && req.method == "HEAD" && r.method == "GET") {
             if matchPattern(r.pattern, req.path) is Some(params) {
                 let mut routed = req
                 routed.params = params
@@ -99,15 +122,6 @@ fn link(r: Route, heads: String, next: escaping fn(Request) -> Response!) -> fn(
         }
         next(req)
     }
-}
-
-fn hasPattern(patterns: String, path: String) -> Bool {
-    for pattern in patterns.split("\n") {
-        if pattern != "" && matchPattern(pattern, path) is Some(_) {
-            return true
-        }
-    }
-    false
 }
 
 fn unmatched(table: String, req: Request) -> Response! {
