@@ -85,6 +85,7 @@ func TestSemDriverFixtures(t *testing.T) {
 			root := t.TempDir()
 			os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"semdriver\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 			for name, body := range fx.files {
+				os.MkdirAll(filepath.Dir(filepath.Join(root, name)), 0o755)
 				os.WriteFile(filepath.Join(root, name), []byte(body), 0o644)
 			}
 			std, _ := filepath.Abs("../../../std")

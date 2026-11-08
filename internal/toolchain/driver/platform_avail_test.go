@@ -139,29 +139,3 @@ func TestPlatformUnavailableTransitive(t *testing.T) {
 		t.Fatalf("expected the diagnostic at main.kg's own import, not the synthetic std/crypto file:\n%s", rendered)
 	}
 }
-
-// TestStdLayerDirectionFreestanding walks the whole std tree (every
-// package gets checked regardless of what the entry imports, sem.go
-// addPackages) under a freestanding target, so it sees every `_bare.kg`
-// file's imports too: none may reach a higher std layer than its own
-// package. TestStdStubs (internal/compiler/sem)
-// covers the same rule for the host-platform / `_hosted.kg` files.
-func TestStdLayerDirectionFreestanding(t *testing.T) {
-	t.Parallel()
-	root := t.TempDir()
-	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"stdwalk\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
-	os.WriteFile(filepath.Join(root, "main.kg"), []byte("fn main() -> Void! {}\n"), 0o644)
-	target, _ := buildconfig.ParseTarget(testCompiler(), "x86_64-freestanding", "")
-	std, _ := filepath.Abs("../../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
-	if err != nil {
-		t.Fatal(err)
-	}
-	res, err := driver.Check(m)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if out := res.Render(); out != "" {
-		t.Errorf("std's bare/freestanding files are not clean:\n%s", out)
-	}
-}

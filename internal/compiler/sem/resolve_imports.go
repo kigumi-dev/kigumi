@@ -41,9 +41,11 @@ func (r *Result) resolveImport(f FileID, d syntax.NodeID) {
 		return
 	case platformBlocked:
 		r.errAt(f, s.Path, blockCode, offendingPath)
+		r.markImportFailed(f, t, s)
 		return
 	case artifactBlocked:
 		r.errAt(f, s.Path, cArtifactAvailability, artifactOffender, r.artifactName)
+		r.markImportFailed(f, t, s)
 		return
 	}
 	r.importEdges[from] = append(r.importEdges[from], target)

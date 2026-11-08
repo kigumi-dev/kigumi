@@ -16514,6 +16514,14 @@
       ]
     },
     {
+      "id": "sem/sys_none_hosted_type_err",
+      "kind": "sem",
+      "path": "testdata/sem/sys_none_hosted_type_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/target_platform_err",
       "kind": "sem",
       "path": "testdata/sem/target_platform_err.txtar",

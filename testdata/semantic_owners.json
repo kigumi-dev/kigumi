@@ -1150,6 +1150,156 @@
     "status": "ok"
   },
   {
+    "key": "atomic.AtomicBool.compareExchange",
+    "signature": "unsafe fn(Bool, Bool, AtomicOrder) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "atomic.AtomicBool.load",
+    "signature": "unsafe fn(AtomicOrder) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "atomic.AtomicBool.new",
+    "signature": "fn(Bool) -\u003e AtomicBool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "atomic.AtomicBool.store",
+    "signature": "unsafe fn(Bool, AtomicOrder) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "atomic.AtomicBool.swap",
+    "signature": "unsafe fn(Bool, AtomicOrder) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "atomic.AtomicU64.add",
+    "signature": "unsafe fn(u64, AtomicOrder) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "atomic.AtomicU64.and",
+    "signature": "unsafe fn(u64, AtomicOrder) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "atomic.AtomicU64.compareExchange",
+    "signature": "unsafe fn(u64, u64, AtomicOrder) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "atomic.AtomicU64.load",
+    "signature": "unsafe fn(AtomicOrder) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "atomic.AtomicU64.new",
+    "signature": "fn(u64) -\u003e AtomicU64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "atomic.AtomicU64.or",
+    "signature": "unsafe fn(u64, AtomicOrder) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "atomic.AtomicU64.store",
+    "signature": "unsafe fn(u64, AtomicOrder) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "atomic.AtomicU64.sub",
+    "signature": "unsafe fn(u64, AtomicOrder) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "atomic.AtomicU64.swap",
+    "signature": "unsafe fn(u64, AtomicOrder) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "atomic.AtomicU64.xor",
+    "signature": "unsafe fn(u64, AtomicOrder) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "build.Artifact.addLink",
     "signature": "fn(String, String) -\u003e Void",
     "has_body": false,
@@ -2650,12 +2800,3862 @@
     "status": "ok"
   },
   {
+    "key": "compress/flate.Bits.alignByte",
+    "signature": "fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.Bits.fill",
+    "signature": "fn(usize) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.Bits.peek",
+    "signature": "fn(usize) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.Bits.take",
+    "signature": "fn(usize) -\u003e u32?!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.Error.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.Inflater.countsOf",
+    "signature": "fn(u8, usize) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.Inflater.decodeSym",
+    "signature": "fn(u8) -\u003e u32?!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.Inflater.feed",
+    "signature": "fn(Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.Inflater.finish",
+    "signature": "fn() -\u003e Bytes!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.Inflater.new",
+    "signature": "fn() -\u003e Inflater",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.Inflater.newLimit",
+    "signature": "fn(usize) -\u003e Inflater",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.Inflater.pushByte",
+    "signature": "fn(u8) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.Inflater.remainder",
+    "signature": "fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.Inflater.run",
+    "signature": "fn() -\u003e Bool!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.Inflater.streamEnd",
+    "signature": "fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.Inflater.symbolOf",
+    "signature": "fn(u8, usize) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.Inflater.update",
+    "signature": "fn(Bytes) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.Inflater.useFixed",
+    "signature": "fn() -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.Writer.flush",
+    "signature": "fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.Writer.new",
+    "signature": "fn() -\u003e Writer",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.Writer.writeBits",
+    "signature": "fn(u32, usize) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.buildHuff",
+    "signature": "fn(\u0026Array[usize], usize) -\u003e Huff!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.codeLengthOrder",
+    "signature": "fn() -\u003e Array[usize]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.deflate",
+    "signature": "fn(Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.distanceBases",
+    "signature": "fn() -\u003e Array[usize]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.distanceExtras",
+    "signature": "fn() -\u003e Array[usize]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.encodeFixed",
+    "signature": "fn(\u0026Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.encodeStored",
+    "signature": "fn(\u0026Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.findMatch",
+    "signature": "fn(\u0026Bytes, usize, \u0026Array[usize]) -\u003e (usize, usize)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.fixedCode",
+    "signature": "fn(usize) -\u003e (u32, usize)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.hash3",
+    "signature": "fn(\u0026Bytes, usize) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.inflate",
+    "signature": "fn(Bytes) -\u003e Bytes!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.inflateFrom",
+    "signature": "fn(Bytes, usize, usize) -\u003e InflateResult!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.inflateLimit",
+    "signature": "fn(Bytes, usize) -\u003e Bytes!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.insertHash",
+    "signature": "fn(\u0026Bytes, usize, \u0026mut Array[usize]) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.lengthBases",
+    "signature": "fn() -\u003e Array[usize]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.lengthExtras",
+    "signature": "fn() -\u003e Array[usize]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.reverseBits",
+    "signature": "fn(u32, usize) -\u003e u32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.writeDistance",
+    "signature": "fn(\u0026mut Writer, usize, \u0026Array[usize], \u0026Array[usize]) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.writeLength",
+    "signature": "fn(\u0026mut Writer, usize, \u0026Array[usize], \u0026Array[usize]) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/flate.writeSymbol",
+    "signature": "fn(\u0026mut Writer, usize) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/gzip.Error.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/gzip.crc32",
+    "signature": "pure fn(Bytes) -\u003e u32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/gzip.crc32Ref",
+    "signature": "fn(\u0026Bytes) -\u003e u32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/gzip.crcTable",
+    "signature": "fn() -\u003e Array[u32]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/gzip.decode",
+    "signature": "fn(Bytes) -\u003e Bytes!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/gzip.decodeLimit",
+    "signature": "fn(Bytes, usize) -\u003e Bytes!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/gzip.encode",
+    "signature": "fn(Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/gzip.putU32Le",
+    "signature": "fn(\u0026mut Array[u8], u32) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/gzip.u32Le",
+    "signature": "fn(\u0026Bytes, usize) -\u003e u32?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.Element.bitString",
+    "signature": "pure fn() -\u003e Result[BitString, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.Element.boolean",
+    "signature": "pure fn() -\u003e Result[Bool, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.Element.children",
+    "signature": "pure fn() -\u003e Result[Array[Element], Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.Element.generalizedTime",
+    "signature": "pure fn() -\u003e Result[Time, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.Element.ia5String",
+    "signature": "pure fn() -\u003e Result[String, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.Element.nullValue",
+    "signature": "pure fn() -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.Element.octets",
+    "signature": "pure fn() -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.Element.oid",
+    "signature": "pure fn() -\u003e Result[String, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.Element.printableString",
+    "signature": "pure fn() -\u003e Result[String, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.Element.totalLen",
+    "signature": "pure fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.Element.uint",
+    "signature": "pure fn() -\u003e Result[u64, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.Element.uintBytes",
+    "signature": "pure fn() -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.Element.utcTime",
+    "signature": "pure fn() -\u003e Result[Time, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.Element.utf8String",
+    "signature": "pure fn() -\u003e Result[String, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.Error.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.asn1Error",
+    "signature": "pure fn(String) -\u003e Error",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.checkedTime",
+    "signature": "pure fn(Int, Int, Int, Int, Int, Int) -\u003e Result[Time, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.classText",
+    "signature": "pure fn(TagClass) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.daysInMonth",
+    "signature": "pure fn(Int, Int) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.digits",
+    "signature": "pure fn(Bytes, usize, usize) -\u003e Result[Int, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.headerLabel",
+    "signature": "pure fn(String, Bool) -\u003e Result[String, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.isLeap",
+    "signature": "pure fn(Int) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.isPrintable",
+    "signature": "pure fn(u8) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.parse",
+    "signature": "pure fn(Bytes) -\u003e Result[Element, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.parseAll",
+    "signature": "pure fn(Bytes) -\u003e Result[Array[Element], Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.parseAllAt",
+    "signature": "pure fn(Bytes, usize) -\u003e Result[Array[Element], Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.parseAt",
+    "signature": "pure fn(Bytes, usize) -\u003e Result[Element, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.parseElementAt",
+    "signature": "pure fn(Bytes, usize, usize) -\u003e Result[Element, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.parseHeader",
+    "signature": "pure fn(Bytes, usize) -\u003e Result[Header, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.parseHighTag",
+    "signature": "pure fn(Bytes, usize) -\u003e Result[CursorValue, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.parseLength",
+    "signature": "pure fn(Bytes, usize) -\u003e Result[CursorValue, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.parsePem",
+    "signature": "pure fn(String) -\u003e Result[Array[PemBlock], Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.requirePrimitive",
+    "signature": "pure fn(Element, usize) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.sliceOrFail",
+    "signature": "pure fn(Bytes, usize, usize, String) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.stringOrFail",
+    "signature": "pure fn(Bytes, String) -\u003e Result[String, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.Error.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.Poly1305.absorb",
+    "signature": "pure fn(u8) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.Poly1305.absorbBuffered",
+    "signature": "pure fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.Poly1305.absorbLengths",
+    "signature": "pure fn(usize, usize) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.Poly1305.absorbRange",
+    "signature": "pure fn(Bytes, usize, usize) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.Poly1305.absorbWords",
+    "signature": "pure fn(u32, u32, u32, u32, u32) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.Poly1305.finish",
+    "signature": "pure fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.Poly1305.new",
+    "signature": "pure fn(Bytes) -\u003e Poly1305",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.Poly1305.padZeros",
+    "signature": "pure fn(usize) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.Poly1305.update",
+    "signature": "pure fn(Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.arrayWord",
+    "signature": "pure noalloc fn(\u0026Array[u8], usize) -\u003e u32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.blockByte",
+    "signature": "pure noalloc fn(\u0026Array[u32], usize) -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.blockBytes",
+    "signature": "pure fn(\u0026Array[u32]) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.chacha20Block",
+    "signature": "pure fn(Bytes, u32, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.chacha20BlockWords",
+    "signature": "pure fn(Bytes, u32, Bytes) -\u003e Array[u32]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.chacha20Xor",
+    "signature": "pure fn(Bytes, u32, Bytes, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.checkLengths",
+    "signature": "fn(Bytes, Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.fillBlock",
+    "signature": "pure fn(\u0026mut Array[u32], Bytes, u32, Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.leWord",
+    "signature": "pure noalloc fn(Bytes, usize) -\u003e u32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.open",
+    "signature": "pure fn(Bytes, Bytes, Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.pad16",
+    "signature": "pure fn(usize) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.poly1305Key",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.quarterRound",
+    "signature": "pure noalloc fn(u32, u32, u32, u32) -\u003e Quad",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.seal",
+    "signature": "pure fn(Bytes, Bytes, Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.sum",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.verify",
+    "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.xorRange",
+    "signature": "pure fn(Bytes, u32, Bytes, Bytes, usize, usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/hash.sum",
+    "signature": "pure fn(Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/hash.sumAll",
+    "signature": "pure fn(\u0026Array[Bytes]) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/hkdf.HkdfError.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/hkdf.appendBytes",
+    "signature": "pure fn(\u0026mut Array[u8], Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/hkdf.derive",
+    "signature": "pure fn(Bytes, Bytes, Bytes, usize) -\u003e Result[Bytes, HkdfError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/hkdf.expand",
+    "signature": "pure fn(Bytes, Bytes, usize) -\u003e Result[Bytes, HkdfError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/hkdf.extract",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/hmac.Hmac.finish",
+    "signature": "pure fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/hmac.Hmac.new",
+    "signature": "pure fn(Bytes) -\u003e Hmac[D]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/hmac.Hmac.update",
+    "signature": "pure fn(Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/hmac.appendBytes",
+    "signature": "pure fn(\u0026mut Array[u8], Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/hmac.blockKey",
+    "signature": "pure fn(Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/hmac.padded",
+    "signature": "pure fn(Bytes, u8) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/hmac.sum",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/hmac.verify",
+    "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.Error.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.U256.equals",
+    "signature": "pure noalloc fn(U256) -\u003e Bool",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.U256.isZeroMask",
+    "signature": "pure noalloc fn() -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.U256.one",
+    "signature": "pure noalloc fn() -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.U256.zero",
+    "signature": "pure noalloc fn() -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.addCarry",
+    "signature": "pure noalloc fn(u64, u64, u64) -\u003e (u64, u64)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.addMod",
+    "signature": "pure noalloc fn(U256, U256, Mod) -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.addPoints",
+    "signature": "pure noalloc fn(Point, Point, Mod) -\u003e Point",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.affinePoint",
+    "signature": "pure noalloc fn(Point, Mod) -\u003e (U256, U256)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.append",
+    "signature": "pure fn(\u0026mut Array[u8], Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.basePoint",
+    "signature": "pure noalloc fn(Mod) -\u003e Point",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.baseX",
+    "signature": "pure noalloc fn() -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.baseY",
+    "signature": "pure noalloc fn() -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.be64",
+    "signature": "pure fn(Bytes, usize) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.bitMask",
+    "signature": "pure noalloc fn(u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.concatBytes",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.curveB",
+    "signature": "pure noalloc fn() -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.decodePublic",
+    "signature": "fn(Bytes, Mod) -\u003e Result[Point, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.deterministicNonce",
+    "signature": "fn(Bytes, Bytes, usize) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.digestScalar",
+    "signature": "pure fn(Bytes) -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.doublePoint",
+    "signature": "pure noalloc fn(Point, Mod) -\u003e Point",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.encodePoint",
+    "signature": "fn(Point, Mod) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.eqMask64",
+    "signature": "pure noalloc fn(u64, u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.fromBytes",
+    "signature": "pure fn(Bytes) -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.fromBytesAt",
+    "signature": "pure fn(Bytes, usize) -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.fromMont",
+    "signature": "pure noalloc fn(U256, Mod) -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.hmacBytes",
+    "signature": "fn(Bytes, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.infinity",
+    "signature": "pure noalloc fn() -\u003e Point",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.invN",
+    "signature": "pure noalloc fn(U256) -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.invP",
+    "signature": "pure noalloc fn(U256) -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.isValidPublicKey",
+    "signature": "pure fn(Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.lowHalf",
+    "signature": "pure noalloc fn(u128) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.lt64",
+    "signature": "pure noalloc fn(u64, u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.ltU256",
+    "signature": "pure noalloc fn(U256, U256) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.modValue",
+    "signature": "pure noalloc fn(Mod) -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.modulusN",
+    "signature": "pure noalloc fn() -\u003e Mod",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.modulusP",
+    "signature": "pure noalloc fn() -\u003e Mod",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.montMul",
+    "signature": "pure noalloc fn(U256, U256, Mod) -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.mulPoint",
+    "signature": "pure noalloc fn(U256, Point, Mod) -\u003e Point",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.onCurve",
+    "signature": "pure noalloc fn(U256, U256, Mod) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.oneMont",
+    "signature": "pure noalloc fn(Mod) -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.powMod",
+    "signature": "pure noalloc fn(U256, U256, Mod) -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.publicKey",
+    "signature": "pure fn(Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.pushU64",
+    "signature": "pure fn(\u0026mut Array[u8], u64) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.reduceFive",
+    "signature": "pure noalloc fn(u64, u64, u64, u64, u64, Mod) -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.reduceOnce",
+    "signature": "pure noalloc fn(U256, Mod) -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.scalarReduce",
+    "signature": "pure noalloc fn(U256) -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.scalarWord",
+    "signature": "pure noalloc fn(U256, usize) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.secretScalar",
+    "signature": "fn(Bytes) -\u003e Result[U256, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.sel64",
+    "signature": "pure noalloc fn(u64, u64, u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.selectPoint",
+    "signature": "pure noalloc fn(u64, Point, Point) -\u003e Point",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.selectU256",
+    "signature": "pure noalloc fn(u64, U256, U256) -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.sharedSecret",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.sign",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.signDigest",
+    "signature": "fn(U256, U256, Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.signMessage",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.subBorrow",
+    "signature": "pure noalloc fn(u64, u64, u64) -\u003e (u64, u64)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.subMod",
+    "signature": "pure noalloc fn(U256, U256, Mod) -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.toBytes",
+    "signature": "pure fn(U256) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.toMont",
+    "signature": "pure noalloc fn(U256, Mod) -\u003e U256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.validScalar",
+    "signature": "pure noalloc fn(U256) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.verify",
+    "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Result[Bool, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.verifyDigest",
+    "signature": "pure noalloc fn(Point, U256, U256, U256) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/p256.verifyMessage",
+    "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Result[Bool, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.Error.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.PublicKey.bitSize",
+    "signature": "pure fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.PublicKey.byteSize",
+    "signature": "pure fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.PublicKey.exponent",
+    "signature": "pure fn() -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.PublicKey.modulus",
+    "signature": "pure fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.autoSaltLength",
+    "signature": "pure fn(\u0026Array[u8]) -\u003e usize?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.beU64",
+    "signature": "pure noalloc fn(Bytes) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.bitLen64",
+    "signature": "pure noalloc fn(u64) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.byteBitLen",
+    "signature": "pure noalloc fn(Bytes) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.bytesFromLimbs",
+    "signature": "pure fn(\u0026Array[u64], usize, usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.doubleMod",
+    "signature": "pure fn(\u0026Array[u64], \u0026Array[u64], usize) -\u003e Array[u64]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.emsaPkcs1v15Verify",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.emsaPssVerify",
+    "signature": "pure fn(usize, Bytes, Bytes, SaltLength) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.fromMont",
+    "signature": "pure fn(\u0026Array[u64], \u0026Modulus) -\u003e Array[u64]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.fromRaw",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Result[PublicKey, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.highHalf",
+    "signature": "pure noalloc fn(u128) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.inv64",
+    "signature": "pure noalloc fn(u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.limbCount",
+    "signature": "pure noalloc fn(usize) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.limbsFromBytes",
+    "signature": "pure fn(Bytes, usize) -\u003e Array[u64]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.lowBitsMask",
+    "signature": "pure noalloc fn(usize) -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.lowHalf",
+    "signature": "pure noalloc fn(u128) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.lt64",
+    "signature": "pure noalloc fn(u64, u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.ltLimbs",
+    "signature": "pure noalloc fn(\u0026Array[u64], \u0026Array[u64], usize) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.mgf1",
+    "signature": "pure fn(Bytes, usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.modulusFor",
+    "signature": "pure fn(PublicKey) -\u003e Modulus",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.modulusFromLimbs",
+    "signature": "pure fn(Array[u64], usize) -\u003e Modulus",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.montMul",
+    "signature": "pure fn(\u0026Array[u64], \u0026Array[u64], \u0026Modulus) -\u003e Array[u64]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.montReduce",
+    "signature": "pure fn(Array[u64], \u0026Modulus) -\u003e Array[u64]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.mulLimbs",
+    "signature": "pure fn(\u0026Array[u64], \u0026Array[u64], usize) -\u003e Array[u64]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.parsePkcs1",
+    "signature": "pure fn(Bytes) -\u003e Result[PublicKey, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.powMont",
+    "signature": "pure fn(\u0026Array[u64], u64, \u0026Modulus) -\u003e Array[u64]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.rsaVp1",
+    "signature": "pure fn(PublicKey, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.sel64",
+    "signature": "pure noalloc fn(u64, u64, u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.selectLimbs",
+    "signature": "pure fn(u64, \u0026Array[u64], \u0026Array[u64], usize) -\u003e Array[u64]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.sha256DigestInfo",
+    "signature": "pure fn() -\u003e Array[u8]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.subBorrow",
+    "signature": "pure noalloc fn(u64, u64, u64) -\u003e (u64, u64)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.toMont",
+    "signature": "pure fn(\u0026Array[u64], \u0026Modulus) -\u003e Array[u64]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.verifyPkcs1v15Sha256",
+    "signature": "pure fn(PublicKey, Bytes, Bytes) -\u003e Result[Bool, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.verifyPkcs1v15Sha256Digest",
+    "signature": "pure fn(PublicKey, Bytes, Bytes) -\u003e Result[Bool, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.verifyPssSha256",
+    "signature": "pure fn(PublicKey, Bytes, Bytes, SaltLength) -\u003e Result[Bool, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.verifyPssSha256Digest",
+    "signature": "pure fn(PublicKey, Bytes, Bytes, SaltLength) -\u003e Result[Bool, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/rsa.zeroLimbs",
+    "signature": "pure fn(usize) -\u003e Array[u64]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha256.Hasher.blockSize",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha256.Hasher.compress",
+    "signature": "fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha256.Hasher.finish",
+    "signature": "pure fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha256.Hasher.new",
+    "signature": "pure fn() -\u003e Hasher",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha256.Hasher.size",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha256.Hasher.update",
+    "signature": "pure fn(Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha256.roundConstants",
+    "signature": "pure fn() -\u003e Array[u32]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha256.sum",
+    "signature": "pure fn(Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Core.absorbBlock",
+    "signature": "pure fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Core.blockBytes",
+    "signature": "pure fn() -\u003e Array[u8]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Core.finishState",
+    "signature": "pure fn(u8) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Core.new",
+    "signature": "pure fn(usize) -\u003e Core",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Core.output",
+    "signature": "pure fn(usize, u8) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Core.permute",
+    "signature": "pure fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Core.update",
+    "signature": "pure fn(Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Hasher256.blockSize",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Hasher256.finish",
+    "signature": "pure fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Hasher256.new",
+    "signature": "pure fn() -\u003e Hasher256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Hasher256.size",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Hasher256.update",
+    "signature": "pure fn(Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Hasher512.blockSize",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Hasher512.finish",
+    "signature": "pure fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Hasher512.new",
+    "signature": "pure fn() -\u003e Hasher512",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Hasher512.size",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Hasher512.update",
+    "signature": "pure fn(Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Xof128.blockSize",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Xof128.finish",
+    "signature": "pure fn(usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Xof128.new",
+    "signature": "pure fn() -\u003e Xof128",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Xof128.squeeze",
+    "signature": "pure fn(usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Xof128.update",
+    "signature": "pure fn(Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Xof256.blockSize",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Xof256.finish",
+    "signature": "pure fn(usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Xof256.new",
+    "signature": "pure fn() -\u003e Xof256",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Xof256.squeeze",
+    "signature": "pure fn(usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.Xof256.update",
+    "signature": "pure fn(Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.laneOrder",
+    "signature": "pure fn() -\u003e Array[usize]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.rotationConstants",
+    "signature": "pure fn() -\u003e Array[u64]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.roundConstants",
+    "signature": "pure fn() -\u003e Array[u64]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.shake128",
+    "signature": "pure fn(Bytes, usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.shake256",
+    "signature": "pure fn(Bytes, usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.sum256",
+    "signature": "pure fn(Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha3.sum512",
+    "signature": "pure fn(Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.Core.compress",
+    "signature": "pure fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.Core.finishWords",
+    "signature": "pure fn() -\u003e Array[u64]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.Core.new",
+    "signature": "pure fn(Array[u64]) -\u003e Core",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.Core.update",
+    "signature": "pure fn(Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.Hasher.blockSize",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.Hasher.finish",
+    "signature": "pure fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.Hasher.new",
+    "signature": "pure fn() -\u003e Hasher",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.Hasher.size",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.Hasher.update",
+    "signature": "pure fn(Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.Hasher384.blockSize",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.Hasher384.finish",
+    "signature": "pure fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.Hasher384.new",
+    "signature": "pure fn() -\u003e Hasher384",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.Hasher384.size",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.Hasher384.update",
+    "signature": "pure fn(Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.iv384",
+    "signature": "pure fn() -\u003e Array[u64]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.iv512",
+    "signature": "pure fn() -\u003e Array[u64]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.roundConstants",
+    "signature": "pure fn() -\u003e Array[u64]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.sum",
+    "signature": "pure fn(Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.sum384",
+    "signature": "pure fn(Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.wordsToBytes",
+    "signature": "pure fn(\u0026Array[u64], usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "crypto/subtle.constantTimeEq",
     "signature": "pure noalloc fn(Bytes, Bytes) -\u003e Bool",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
     "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.Error.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.add",
+    "signature": "pure fn(Fe, Fe) -\u003e Fe",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.baseMult",
+    "signature": "pure fn(Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.basePoint",
+    "signature": "pure fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.clamp",
+    "signature": "pure fn(Bytes) -\u003e FixedArray[u8, 32]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.cswap",
+    "signature": "pure fn(Fe, Fe, Int) -\u003e (Fe, Fe)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.fromBytes",
+    "signature": "pure fn(Bytes) -\u003e Fe",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.invert",
+    "signature": "pure fn(Fe) -\u003e Fe",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.ladder",
+    "signature": "pure fn(FixedArray[u8, 32], Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.mul",
+    "signature": "pure fn(Fe, Fe) -\u003e Fe",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.mulSmall",
+    "signature": "pure fn(Fe, Int) -\u003e Fe",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.normalize",
+    "signature": "pure fn(Fe) -\u003e Fe",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.one",
+    "signature": "pure fn() -\u003e Fe",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.publicKey",
+    "signature": "pure fn(Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.scalarMult",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.sharedSecret",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.square",
+    "signature": "pure fn(Fe) -\u003e Fe",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.squareN",
+    "signature": "pure fn(Fe, usize) -\u003e Fe",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.sub",
+    "signature": "pure fn(Fe, Fe) -\u003e Fe",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.toBytes",
+    "signature": "pure fn(Fe) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.zero",
+    "signature": "pure fn() -\u003e Fe",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.Certificate.checkValidity",
+    "signature": "fn(Int) -\u003e Result[Void, ValidationError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.Certificate.clone",
+    "signature": "pure fn() -\u003e Certificate",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.Certificate.signatureValue",
+    "signature": "pure fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.Certificate.tbsCertificate",
+    "signature": "pure fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.Certificate.verifyHostname",
+    "signature": "fn(String) -\u003e Result[Void, ValidationError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.Certificate.verifySignature",
+    "signature": "fn(PublicKey) -\u003e Result[Void, ValidationError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.Certificate.verifySignedBy",
+    "signature": "fn(\u0026Certificate) -\u003e Result[Void, ValidationError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.ParseError.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.ValidationError.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.Validity.containsMillis",
+    "signature": "pure fn(Int) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.Validity.notAfterMillis",
+    "signature": "pure fn() -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.Validity.notBeforeMillis",
+    "signature": "pure fn() -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.authorityKeyIdValue",
+    "signature": "pure fn(Bytes) -\u003e Result[Bytes, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.basicConstraintsValue",
+    "signature": "pure fn(Bytes) -\u003e Result[BasicConstraints, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.bitSet",
+    "signature": "pure fn(Bytes, usize) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.bitStringOf",
+    "signature": "pure fn(Element) -\u003e Result[BitString, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.booleanOf",
+    "signature": "pure fn(Element) -\u003e Result[Bool, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.certificateIsSelfSigned",
+    "signature": "pure fn(\u0026Certificate) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.checkAnchor",
+    "signature": "pure fn(\u0026Certificate, \u0026Certificate, usize, Int) -\u003e Result[Void, ValidationError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.checkSupportedExtensions",
+    "signature": "pure fn(\u0026Certificate) -\u003e Result[Void, ValidationError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.daysFromCivil",
+    "signature": "pure fn(Int, Int, Int) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.directoryString",
+    "signature": "pure fn(Element) -\u003e Result[String, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.ecdsaSignature",
+    "signature": "pure fn(Bytes) -\u003e Result[Bytes, ValidationError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.ecdsaVerdict",
+    "signature": "pure fn(Result[Bool, Error]) -\u003e Result[Void, ValidationError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.emptyExtensions",
+    "signature": "pure fn() -\u003e Extensions",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.explicitTag",
+    "signature": "pure fn(Element, usize) -\u003e Result[Element, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.extKeyUsageValue",
+    "signature": "pure fn(Bytes) -\u003e Result[ExtKeyUsage, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.floorDiv",
+    "signature": "pure fn(Int, Int) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.ia5Content",
+    "signature": "pure fn(Element) -\u003e Result[String, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.innerElement",
+    "signature": "pure fn(Bytes) -\u003e Result[Element, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.keyUsageValue",
+    "signature": "pure fn(Bytes) -\u003e Result[KeyUsage, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.matchesDns",
+    "signature": "pure fn(String, String) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.noBasicConstraints",
+    "signature": "pure fn() -\u003e BasicConstraints",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.noExtKeyUsage",
+    "signature": "pure fn() -\u003e ExtKeyUsage",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.noKeyUsage",
+    "signature": "pure fn() -\u003e KeyUsage",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.nullOrAbsent",
+    "signature": "pure fn(Element?) -\u003e Result[Void, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.octetsOf",
+    "signature": "pure fn(Element) -\u003e Result[Bytes, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.oidOf",
+    "signature": "pure fn(Element) -\u003e Result[String, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.parse",
+    "signature": "pure fn(Bytes) -\u003e Result[Certificate, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.parseAlgorithmIdentifier",
+    "signature": "pure fn(Element) -\u003e Result[AlgorithmIdentifier, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.parseExtensions",
+    "signature": "pure fn(Element) -\u003e Result[Extensions, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.parseFailure",
+    "signature": "pure fn(String) -\u003e ParseError",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.parseIpv4",
+    "signature": "pure fn(String) -\u003e Bytes?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.parseName",
+    "signature": "pure fn(Bytes, Element) -\u003e Result[Name, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.parsePem",
+    "signature": "pure fn(String) -\u003e Result[Array[Certificate], ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.parsePssParameters",
+    "signature": "pure fn(Element?) -\u003e Result[SignatureAlgorithm, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.parseSignatureAlgorithm",
+    "signature": "pure fn(Element) -\u003e Result[SignatureAlgorithm, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.parseSubjectPublicKeyInfo",
+    "signature": "pure fn(Element) -\u003e Result[PublicKey, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.parseTbs",
+    "signature": "pure fn(Bytes, Element, SignatureAlgorithm, Bytes) -\u003e Result[Certificate, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.parseTime",
+    "signature": "pure fn(Element) -\u003e Result[Time, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.parseValidity",
+    "signature": "pure fn(Element) -\u003e Result[Validity, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.rawElement",
+    "signature": "pure fn(Bytes, Element) -\u003e Result[Bytes, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.requireCertificateAuthority",
+    "signature": "pure fn(\u0026Certificate, usize) -\u003e Result[Void, ValidationError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.requireNull",
+    "signature": "pure fn(Element) -\u003e Result[Void, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.requireSha256",
+    "signature": "pure fn(Element) -\u003e Result[Void, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.rsaVerdict",
+    "signature": "pure fn(Result[Bool, Error]) -\u003e Result[Void, ValidationError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.sameAlgorithm",
+    "signature": "pure fn(SignatureAlgorithm, SignatureAlgorithm) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.scalar32",
+    "signature": "pure fn(Element) -\u003e Result[Bytes, ValidationError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.sequence",
+    "signature": "pure fn(Element) -\u003e Result[Array[Element], ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.setOf",
+    "signature": "pure fn(Element) -\u003e Result[Array[Element], ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.subjectAltNameValue",
+    "signature": "pure fn(Bytes, \u0026mut Array[String], \u0026mut Array[Bytes]) -\u003e Result[Void, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.subjectKeyIdValue",
+    "signature": "pure fn(Bytes) -\u003e Result[Bytes, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.timeMillis",
+    "signature": "pure fn(Time) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.uintBytesOf",
+    "signature": "pure fn(Element) -\u003e Result[Bytes, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.uintOf",
+    "signature": "pure fn(Element) -\u003e Result[u64, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.universal",
+    "signature": "pure fn(Element) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.validationFailure",
+    "signature": "pure fn(String) -\u003e ValidationError",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.verifyChain",
+    "signature": "fn(\u0026Array[Certificate], \u0026Array[Certificate], String, Int) -\u003e Result[Void, ValidationError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.versionValue",
+    "signature": "pure fn(Element) -\u003e Result[Int, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
     "accelerated": false,
     "status": "ok"
   },
@@ -2962,6 +6962,16 @@
   {
     "key": "entropy.eintr",
     "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "entropy.fillEntropy",
+    "signature": "fn(*mut u8, usize) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4001,6 +8011,26 @@
     "status": "ok"
   },
   {
+    "key": "fs.Path.extension",
+    "signature": "pure fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.Path.fileName",
+    "signature": "pure fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "fs.Path.fromOsString",
     "signature": "pure fn(\u0026OsString) -\u003e Path!",
     "has_body": true,
@@ -4013,6 +8043,66 @@
   {
     "key": "fs.Path.fromString",
     "signature": "pure fn(String) -\u003e Path!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.Path.isAbsolute",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.Path.join",
+    "signature": "pure fn(Path) -\u003e Path",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.Path.normalize",
+    "signature": "pure fn() -\u003e Path",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.Path.parent",
+    "signature": "pure fn() -\u003e Path",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.Path.stem",
+    "signature": "pure fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.Path.toOsString",
+    "signature": "pure fn() -\u003e OsString",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4191,6 +8281,46 @@
     "status": "ok"
   },
   {
+    "key": "io.BufWriter.finish",
+    "signature": "fn() -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "io.BufWriter.flush",
+    "signature": "fn() -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "io.BufWriter.new",
+    "signature": "fn(Writer) -\u003e BufWriter",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "io.BufWriter.write",
+    "signature": "fn(Bytes) -\u003e usize!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "io.BytesReader.new",
     "signature": "fn(Bytes) -\u003e BytesReader",
     "has_body": true,
@@ -4293,6 +8423,16 @@
   {
     "key": "io.readAll",
     "signature": "fn(\u0026mut R) -\u003e Bytes!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "io.readFull",
+    "signature": "fn(\u0026mut R, usize) -\u003e Bytes!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -5992,6 +10132,66 @@
   },
   {
     "key": "math.abs",
+    "signature": "pure noalloc fn(f32) -\u003e f32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.abs",
+    "signature": "pure noalloc fn(i128) -\u003e i128",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.abs",
+    "signature": "pure noalloc fn(u8) -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.abs",
+    "signature": "pure noalloc fn(u16) -\u003e u16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.abs",
+    "signature": "pure noalloc fn(u32) -\u003e u32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.abs",
+    "signature": "pure noalloc fn(u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.abs",
     "signature": "pure noalloc fn(Int) -\u003e Int",
     "has_body": true,
     "kind": "",
@@ -7111,16 +11311,6 @@
     "status": "ok"
   },
   {
-    "key": "net.Http.post",
-    "signature": "fn(String, String) -\u003e Response!",
-    "has_body": true,
-    "kind": "",
-    "vm": "implemented",
-    "native": "gap",
-    "accelerated": true,
-    "status": "ok"
-  },
-  {
     "key": "net.Listener.accept",
     "signature": "fn() -\u003e Conn!",
     "has_body": true,
@@ -7168,16 +11358,6 @@
     "vm": "implemented",
     "native": "gap",
     "accelerated": true,
-    "status": "ok"
-  },
-  {
-    "key": "net.Net.http",
-    "signature": "fn() -\u003e Http",
-    "has_body": false,
-    "kind": "provider",
-    "vm": "implemented",
-    "native": "implemented",
-    "accelerated": false,
     "status": "ok"
   },
   {
@@ -8131,6 +12311,16 @@
     "status": "ok"
   },
   {
+    "key": "net/http.absolutePath",
+    "signature": "fn(String, usize) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/http.answer",
     "signature": "fn(fn(Request) -\u003e Response!, fn(String) -\u003e Void, Request) -\u003e Response",
     "has_body": true,
@@ -8241,8 +12431,8 @@
     "status": "ok"
   },
   {
-    "key": "net/http.hasRoute",
-    "signature": "fn(String, String, String) -\u003e Bool",
+    "key": "net/http.headEnd",
+    "signature": "fn(\u0026Bytes, usize) -\u003e usize?!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -8251,8 +12441,8 @@
     "status": "ok"
   },
   {
-    "key": "net/http.headEnd",
-    "signature": "fn(\u0026Bytes, usize) -\u003e usize?!",
+    "key": "net/http.headText",
+    "signature": "fn(Bytes) -\u003e String",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -8332,7 +12522,7 @@
   },
   {
     "key": "net/http.link",
-    "signature": "fn(Route, String, escaping fn(Request) -\u003e Response!) -\u003e fn(Request) -\u003e Response!",
+    "signature": "fn(Route, escaping fn(Request) -\u003e Response!, Bool) -\u003e fn(Request) -\u003e Response!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -8482,7 +12672,7 @@
   },
   {
     "key": "net/http.renderResponse",
-    "signature": "fn(Response, Bool, Bool) -\u003e Outgoing!",
+    "signature": "fn(Response, String, Bool, Bool) -\u003e Outgoing!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -8563,6 +12753,766 @@
   {
     "key": "net/http.wantsClose",
     "signature": "fn(\u0026Headers, String) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Client.connect",
+    "signature": "fn(Conn, Config) -\u003e Result[Session, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Config.new",
+    "signature": "fn(String, Array[Certificate], escaping fn(usize) -\u003e Bytes!) -\u003e Config",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Error.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Reader.done",
+    "signature": "pure noalloc fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Reader.end",
+    "signature": "pure fn(String) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Reader.new",
+    "signature": "pure fn(Bytes) -\u003e Reader",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Reader.remaining",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Reader.take",
+    "signature": "pure fn(usize) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Reader.u16",
+    "signature": "pure fn() -\u003e Result[u16, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Reader.u24",
+    "signature": "pure fn() -\u003e Result[usize, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Reader.u8",
+    "signature": "pure fn() -\u003e Result[u8, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Reader.vec16",
+    "signature": "pure fn() -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Reader.vec24",
+    "signature": "pure fn() -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Reader.vec8",
+    "signature": "pure fn() -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Session.alpn",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Session.close",
+    "signature": "fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Session.ensure",
+    "signature": "fn(usize) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Session.fill",
+    "signature": "fn() -\u003e Result[Filled, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Session.nextHandshake",
+    "signature": "fn() -\u003e Result[Message, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Session.read",
+    "signature": "fn(usize) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Session.readRawRecord",
+    "signature": "fn() -\u003e Result[RawRecord, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Session.readRecord",
+    "signature": "fn() -\u003e Result[Record, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Session.ready",
+    "signature": "fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Session.runHandshake",
+    "signature": "fn(Config) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Session.sendAlert",
+    "signature": "fn(u8, u8) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Session.sendHandshake",
+    "signature": "fn(Bytes) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Session.takeApplication",
+    "signature": "fn(usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Session.takeHandshake",
+    "signature": "fn() -\u003e Result[Message?, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Session.write",
+    "signature": "fn(Bytes) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Session.writeRaw",
+    "signature": "fn(Bytes) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.alertDescription",
+    "signature": "fn(\u0026Error) -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.alertError",
+    "signature": "fn(Bytes) -\u003e Error",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.allZero",
+    "signature": "fn(Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.append",
+    "signature": "pure fn(\u0026mut Array[u8], Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.certificateVerifyMessage",
+    "signature": "pure fn(Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.clientHello",
+    "signature": "pure fn(Bytes, Bytes, Bytes, String, Array[String]) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.derScalar",
+    "signature": "pure fn(Element) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.deriveApplication",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Result[ApplicationSecrets, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.deriveHandshake",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Result[HandshakeSecrets, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.deriveSecret",
+    "signature": "pure fn(Bytes, String, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.ecdsaDerToFixed",
+    "signature": "pure fn(Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.emptyTranscriptHash",
+    "signature": "pure fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.encodeHandshake",
+    "signature": "pure fn(u8, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.equalConstantTime",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.expandLabel",
+    "signature": "pure fn(Bytes, String, Bytes, usize) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.expandLabelRaw",
+    "signature": "pure fn(Bytes, String, Bytes, usize) -\u003e Result[Bytes, HkdfError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.extract",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.finishedKey",
+    "signature": "pure fn(Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.finishedVerifyData",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.freeze",
+    "signature": "pure fn(\u0026Array[u8]) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.helloRetryRequestRandom",
+    "signature": "fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.isIpLiteral",
+    "signature": "pure fn(String) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.keysFor",
+    "signature": "pure fn(Bytes) -\u003e Result[Direction, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.noKeys",
+    "signature": "fn() -\u003e Direction",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.openRecord",
+    "signature": "pure fn(Direction, u64, Bytes, Bytes) -\u003e Result[Record, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.outboundAlert",
+    "signature": "fn(u8, u8) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.parseCertificate",
+    "signature": "pure fn(Bytes, usize, usize) -\u003e Result[Array[Bytes], Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.parseCertificateVerify",
+    "signature": "pure fn(Bytes) -\u003e Result[ParsedCertificateVerify, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.parseEncryptedExtensions",
+    "signature": "pure fn(Bytes) -\u003e Result[String?, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.parseExtensions",
+    "signature": "pure fn(Bytes) -\u003e Result[Array[Extension], Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.parseFinished",
+    "signature": "pure fn(Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.parseServerHello",
+    "signature": "pure fn(Bytes) -\u003e Result[ParsedServerHello, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.putExtension",
+    "signature": "pure fn(\u0026mut Array[u8], u16, Array[u8]) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.putU16",
+    "signature": "pure fn(\u0026mut Array[u8], u16) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.putU24",
+    "signature": "pure fn(\u0026mut Array[u8], usize) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.putU8",
+    "signature": "pure fn(\u0026mut Array[u8], u8) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.putVec16",
+    "signature": "pure fn(\u0026mut Array[u8], Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.putVec8",
+    "signature": "pure fn(\u0026mut Array[u8], Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.recordHeader",
+    "signature": "pure fn(u8, usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.recordNonce",
+    "signature": "pure fn(Bytes, u64) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.sealPlaintext",
+    "signature": "pure fn(u8, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.sealRecord",
+    "signature": "pure fn(Direction, u64, u8, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.verifyCertificateVerify",
+    "signature": "fn(\u0026Certificate, u16, Bytes, Bytes) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.verifyServerChain",
+    "signature": "fn(\u0026Array[Certificate], \u0026Array[Bytes], String, Int) -\u003e Result[Certificate, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.wrap16",
+    "signature": "pure fn(\u0026Array[u8]) -\u003e Array[u8]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.wrap8",
+    "signature": "pure fn(\u0026Array[u8]) -\u003e Array[u8]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -8863,7 +13813,7 @@
   },
   {
     "key": "os.OsString.hash",
-    "signature": "pure noalloc fn() -\u003e u64",
+    "signature": "pure fn() -\u003e u64",
     "has_body": true,
     "kind": "primitive",
     "vm": "implemented",
@@ -9263,7 +14213,7 @@
   },
   {
     "key": "prelude.Bool.hash",
-    "signature": "pure noalloc fn() -\u003e u64",
+    "signature": "pure fn() -\u003e u64",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -9433,7 +14383,7 @@
   },
   {
     "key": "prelude.Bytes.hash",
-    "signature": "pure noalloc fn() -\u003e u64",
+    "signature": "pure fn() -\u003e u64",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -9623,7 +14573,7 @@
   },
   {
     "key": "prelude.Char.hash",
-    "signature": "pure noalloc fn() -\u003e u64",
+    "signature": "pure fn() -\u003e u64",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -9973,7 +14923,7 @@
   },
   {
     "key": "prelude.String.bytes",
-    "signature": "pure noalloc fn() -\u003e Bytes",
+    "signature": "pure fn() -\u003e Bytes",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -10053,7 +15003,7 @@
   },
   {
     "key": "prelude.String.hash",
-    "signature": "pure noalloc fn() -\u003e u64",
+    "signature": "pure fn() -\u003e u64",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -10143,7 +15093,7 @@
   },
   {
     "key": "prelude.String.toBytes",
-    "signature": "pure noalloc fn() -\u003e Bytes",
+    "signature": "pure fn() -\u003e Bytes",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -10303,7 +15253,7 @@
   },
   {
     "key": "prelude.Void.hash",
-    "signature": "pure noalloc fn() -\u003e u64",
+    "signature": "pure fn() -\u003e u64",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -10343,7 +15293,7 @@
   },
   {
     "key": "prelude.f32.hash",
-    "signature": "pure noalloc fn() -\u003e u64",
+    "signature": "pure fn() -\u003e u64",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -10423,7 +15373,7 @@
   },
   {
     "key": "prelude.f64.hash",
-    "signature": "pure noalloc fn() -\u003e u64",
+    "signature": "pure fn() -\u003e u64",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -10523,7 +15473,7 @@
   },
   {
     "key": "prelude.i128.hash",
-    "signature": "pure noalloc fn() -\u003e u64",
+    "signature": "pure fn() -\u003e u64",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -10833,7 +15783,7 @@
   },
   {
     "key": "prelude.i16.hash",
-    "signature": "pure noalloc fn() -\u003e u64",
+    "signature": "pure fn() -\u003e u64",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -11143,7 +16093,7 @@
   },
   {
     "key": "prelude.i32.hash",
-    "signature": "pure noalloc fn() -\u003e u64",
+    "signature": "pure fn() -\u003e u64",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -11453,7 +16403,7 @@
   },
   {
     "key": "prelude.i64.hash",
-    "signature": "pure noalloc fn() -\u003e u64",
+    "signature": "pure fn() -\u003e u64",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -11763,7 +16713,7 @@
   },
   {
     "key": "prelude.i8.hash",
-    "signature": "pure noalloc fn() -\u003e u64",
+    "signature": "pure fn() -\u003e u64",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -12083,7 +17033,7 @@
   },
   {
     "key": "prelude.isize.hash",
-    "signature": "pure noalloc fn() -\u003e u64",
+    "signature": "pure fn() -\u003e u64",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -12423,7 +17373,7 @@
   },
   {
     "key": "prelude.u128.hash",
-    "signature": "pure noalloc fn() -\u003e u64",
+    "signature": "pure fn() -\u003e u64",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -12733,7 +17683,7 @@
   },
   {
     "key": "prelude.u16.hash",
-    "signature": "pure noalloc fn() -\u003e u64",
+    "signature": "pure fn() -\u003e u64",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -13043,7 +17993,7 @@
   },
   {
     "key": "prelude.u32.hash",
-    "signature": "pure noalloc fn() -\u003e u64",
+    "signature": "pure fn() -\u003e u64",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -13353,7 +18303,7 @@
   },
   {
     "key": "prelude.u64.hash",
-    "signature": "pure noalloc fn() -\u003e u64",
+    "signature": "pure fn() -\u003e u64",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -13663,7 +18613,7 @@
   },
   {
     "key": "prelude.u8.hash",
-    "signature": "pure noalloc fn() -\u003e u64",
+    "signature": "pure fn() -\u003e u64",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -13983,7 +18933,7 @@
   },
   {
     "key": "prelude.usize.hash",
-    "signature": "pure noalloc fn() -\u003e u64",
+    "signature": "pure fn() -\u003e u64",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -14302,8 +19252,8 @@
     "status": "ok"
   },
   {
-    "key": "random.fromClock",
-    "signature": "fn() -\u003e Rng",
+    "key": "random.seeded",
+    "signature": "pure fn(Int) -\u003e Rng",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14312,8 +19262,8 @@
     "status": "ok"
   },
   {
-    "key": "random.seeded",
-    "signature": "pure fn(Int) -\u003e Rng",
+    "key": "random/clock.fromClock",
+    "signature": "fn() -\u003e Rng",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14349,6 +19299,36 @@
     "vm": "gap",
     "native": "gap",
     "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.Choice.display",
+    "signature": "pure noalloc fn() -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.Choice.equals",
+    "signature": "pure noalloc fn(\u0026Choice) -\u003e Choice",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.Choice.hash",
+    "signature": "pure noalloc fn() -\u003e Choice",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
     "status": "ok"
   },
   {
@@ -14404,6 +19384,106 @@
   {
     "key": "secret.Choice.~",
     "signature": "pure noalloc fn(Choice) -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretBuffer.ctEq",
+    "signature": "pure noalloc fn(\u0026SecretBuffer) -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretBuffer.declassify",
+    "signature": "pure unsafe fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretBuffer.display",
+    "signature": "pure noalloc fn() -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretBuffer.drop",
+    "signature": "fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretBuffer.equals",
+    "signature": "pure noalloc fn(\u0026SecretBuffer) -\u003e Choice",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretBuffer.fromBytes",
+    "signature": "pure fn(Bytes) -\u003e SecretBuffer",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretBuffer.fromString",
+    "signature": "pure fn(String) -\u003e SecretBuffer",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretBuffer.hash",
+    "signature": "pure noalloc fn() -\u003e Choice",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretBuffer.len",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretIndex.from",
+    "signature": "pure noalloc fn(SecretU32) -\u003e SecretIndex[N]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -15192,6 +20272,26 @@
     "status": "ok"
   },
   {
+    "key": "secret.ctLookupU64",
+    "signature": "pure fn(\u0026FixedArray[u64, N], SecretIndex[N]) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.ctUpdateU64",
+    "signature": "pure fn(\u0026mut FixedArray[u64, N], SecretIndex[N], u64) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "secret.eqBytes",
     "signature": "pure noalloc fn(\u0026Bytes, \u0026Bytes) -\u003e u64",
     "has_body": false,
@@ -15228,6 +20328,46 @@
     "kind": "primitive",
     "vm": "implemented",
     "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.shiftCount16",
+    "signature": "fn(u32) -\u003e u16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.shiftCount32",
+    "signature": "fn(u32) -\u003e u32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.shiftCount64",
+    "signature": "fn(u32) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.shiftCount8",
+    "signature": "fn(u32) -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
     "accelerated": false,
     "status": "ok"
   },

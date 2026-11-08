@@ -1,0 +1,30 @@
+-- module --
+stage: driver
+triple: x86_64-linux-musl
+sys: none
+-- wire/wire.kg --
+import net from std/net
+import tls from std/net/tls
+
+pub fn send(conn: net.Conn, session: tls.Session) {}
+
+pub fn ping() {}
+-- src --
+import wire from semdriver/wire
+
+fn main() -> Void! {
+    wire.ping()
+}
+-- expect --
+error[E927]: `std/net` is not available with `--sys none`
+ --> wire/wire.kg:1:17
+  |
+1 | import net from std/net
+  |                 ^^^^^^^
+
+error[E927]: `std/net/tls` is not available with `--sys none`
+ --> wire/wire.kg:2:17
+  |
+2 | import tls from std/net/tls
+  |                 ^^^^^^^^^^^
+

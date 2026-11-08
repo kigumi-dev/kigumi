@@ -15,6 +15,11 @@ func (r *Result) packageNotFound(f FileID, t *syntax.Tree, s importSlots, path s
 		}
 		r.emitDiag(f, d)
 	}
+	r.markImportFailed(f, t, s)
+}
+
+// markImportFailed keeps a rejected import's bound names from cascading into E100 at every use.
+func (r *Result) markImportFailed(f FileID, t *syntax.Tree, s importSlots) {
 	if r.failedImports == nil {
 		r.failedImports = map[FileID]map[string]bool{}
 	}
