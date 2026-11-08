@@ -74,8 +74,8 @@ type BuildOptions struct {
 	LinkerScript string
 	LinkFlags    []string
 	Entry        string
-	// Reproducible builds m twice under buildReproducible instead of once,
-	// for the --reproducible flag.
+	// Reproducible builds m twice under buildReproducible instead of once, for the --reproducible flag;
+	// a COFF archive keeps the plain build's objects minus their debug sections and timestamp.
 	Reproducible bool
 	// Env (from shared.CCEnv) is the C compiler environment Reproducible's two internal builds run in; internal/toolchain/driver never reads the ambient env.
 	Env []string

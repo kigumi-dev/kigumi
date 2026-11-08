@@ -53,13 +53,10 @@ func TestDeterministicArchive(t *testing.T) {
 	}
 }
 
-// TestDeterministicCOFFArchive builds the same UEFI module twice and expects
-// byte-identical archives. COFF debug info names zig's cache object, so the
-// object must be stripped of that temp path before archiving.
+// TestDeterministicCOFFArchive builds the same UEFI module twice and expects byte-identical archives;
+// COFF debug info names zig's cache object, so the reproducible build strips it.
 func TestDeterministicCOFFArchive(t *testing.T) {
-	if testCompiler().CCompiler() == nil {
-		t.Skip("no C compiler")
-	}
+	requireZig(t)
 	std, _ := filepath.Abs("../../../std")
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"bare\"\n    kigumi: \"0.1\"\n}\n"), 0o644)

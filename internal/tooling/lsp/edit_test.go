@@ -68,8 +68,20 @@ func TestRenameAndCodeActions(t *testing.T) {
 	if !lines[2] || !lines[6] || !lines[7] {
 		t.Errorf("rename lines: %v", lines)
 	}
-	if _, err := s.Rename(ctx, &protocol.RenameParams{TextDocumentPositionParams: at, NewName: "not valid"}); err == nil {
-		t.Error("invalid identifier accepted")
+	for _, bad := range []string{"not valid", "fn", "match", "1st", "a-b", "\u0301a"} {
+		if _, err := s.Rename(ctx, &protocol.RenameParams{TextDocumentPositionParams: at, NewName: bad}); err == nil {
+			t.Errorf("rename to %q accepted", bad)
+		}
+	}
+	for _, good := range []string{"二倍", "cafe\u0301", "_x2"} {
+		edit, err := s.Rename(ctx, &protocol.RenameParams{TextDocumentPositionParams: at, NewName: good})
+		if err != nil {
+			t.Errorf("rename to %q: %v", good, err)
+			continue
+		}
+		if edits := edit.Changes[doc]; len(edits) != 3 || edits[0].NewText != good {
+			t.Errorf("rename to %q: %+v", good, edits)
+		}
 	}
 	stdAt := protocol.TextDocumentPositionParams{TextDocument: protocol.TextDocumentIdentifier{URI: doc}, Position: protocol.Position{Line: 9, Character: 12}}
 	if _, err := s.Rename(ctx, &protocol.RenameParams{TextDocumentPositionParams: stdAt, NewName: "Lower"}); err == nil || !strings.Contains(err.Error(), "module") {

@@ -46,13 +46,44 @@ jobs:
         if: matrix.index == '0'
 
   race:
-    name: race (${{ matrix.pkg }})
+    # KIGUMI_TEST_SHARD slices the corpus loops as in the hermetic job; the other tests run in every
+    # shard. The VM corpus alone outgrew one 45-minute race run.
+    name: race (${{ matrix.pkg }}, shard ${{ matrix.index }}/${{ matrix.count }})
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        pkg: [compiler/syntax, compiler/sem, compiler/mir, backend/vm]
+        include:
+          - pkg: compiler/syntax
+            index: "0"
+            count: "1"
+          - pkg: compiler/sem
+            index: "0"
+            count: "2"
+          - pkg: compiler/sem
+            index: "1"
+            count: "2"
+          - pkg: compiler/mir
+            index: "0"
+            count: "2"
+          - pkg: compiler/mir
+            index: "1"
+            count: "2"
+          - pkg: backend/vm
+            index: "0"
+            count: "4"
+          - pkg: backend/vm
+            index: "1"
+            count: "4"
+          - pkg: backend/vm
+            index: "2"
+            count: "4"
+          - pkg: backend/vm
+            index: "3"
+            count: "4"
+    env:
+      KIGUMI_TEST_SHARD: ${{ matrix.index }}/${{ matrix.count }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -159,7 +190,8 @@ jobs:
               -run 'TestSanitizerRuntimeIsActive|TestRuntimeCUnitContracts|TestAotCorpus|TestAotFFI|TestAotDL|TestAotAsm'
               -skip '^TestAotCorpus/(alloc_error|alloc_huge_requests|array_bulk|entropy_bytes_huge|entropy_bytes_huge_size|std_net_conn_read_huge|stack_overflow_panic|stack_overflow_task_alloc|stack_overflow_task_drop|stack_overflow_task_map)\.txtar$'
               ./internal/toolchain/driver/
-          # internal/cli and internal/devkit/bench each have one native-toolchain test, skipped by the hermetic job above.
+          # The zig-only tests outside the driver (internal/cli, internal/devkit/bench and the object
+          # strip tests in internal/toolchain/native), which the hermetic job above skips.
           - name: cli
             cflags: ""
             asan: ""
@@ -167,7 +199,7 @@ jobs:
             count: "1"
             driver: "no"
             zig: "yes"
-            cmd: go test -timeout 10m ./internal/cli/... ./internal/devkit/...
+            cmd: go test -timeout 10m ./internal/cli/... ./internal/devkit/... ./internal/toolchain/native/...
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5

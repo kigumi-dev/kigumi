@@ -13,14 +13,20 @@ index=${1:?shard index}
 count=${2:?shard count}
 pkg=${3:?package}
 
-# Keep these lists in sync with the tests that call fixture.Shard; a name must exist in the package.
+# fixture_tests must be exactly the tests that reach fixture.Shard; internal/arch derives that set
+# from the test sources and fails when this list drifts from it.
 fixture_tests='TestAotCorpus
-TestRunCorpusEngines
-TestSemDriverFixtures
-TestTextAcceleratorsMatchKigumiBodies
-TestArrayAcceleratorsMatchKigumiBodies'
-whole_tests='TestRCCallCounts
+TestArrayAcceleratorsMatchKigumiBodies
+TestConstFixturesEmitNatively
 TestCorpusOwnershipBeforeVerifier
+TestIRDump
+TestRunCorpusEngines
+TestRunCorpusVMCoverage
+TestSemDriverFixtures
+TestStaticFixturesEmitNatively
+TestTextAcceleratorsMatchKigumiBodies
+TestUnitSweepSemFixtures'
+whole_tests='TestRCCallCounts
 TestManifestFresh'
 
 list=$(go test -list '^Test' "$pkg")

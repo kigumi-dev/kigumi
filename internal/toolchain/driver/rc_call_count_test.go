@@ -37,12 +37,12 @@ var pinnedRCCalls = map[string]int{
 // The same call sites over the fixtures that existed before the retain / release elimination, re-measured when a
 // representation change (direct Option / Result) moved them; the totals for those fixtures must stay at or below these.
 var baselineRCCalls = map[string]int{
-	"fixtures":         527,
+	"fixtures":         528,
 	"rt_retain":        5267,
 	"rt_release":       51119,
 	"rt_release_outer": 12954,
 	"rt_drop":          26655,
-	"rt_cell_init":     2888,
+	"rt_cell_init":     2883,
 	"rt_cell_take":     2503,
 	"rt_setfield_swap": 203,
 	"rt_setindex_swap": 51,
@@ -241,8 +241,6 @@ var addedAfterBaseline = map[string]bool{
 	"truncate_method_value.txtar":                   true,
 	"text_trim_edge_longer.txtar":                   true,
 	"secure_erase_shared.txtar":                     true,
-	"net_http_connect_sync_failure.txtar":           true,
-	"net_http_connect_refused.txtar":                true,
 	"host_exit_on_worker_detached.txtar":            true,
 	"handle_table_many_inserts.txtar":               true,
 	"fs_error_text_parity.txtar":                    true,
@@ -585,6 +583,7 @@ var addedAfterBaseline = map[string]bool{
 	"witness_ref_kept_ok.txtar":                     true,
 	"witness_ref_kept_round_ok.txtar":               true,
 	"witness_ref_kept_round2_ok.txtar":              true,
+	"std_fs_mkdir_empty.txtar":                      true,
 }
 
 func TestRCCallCounts(t *testing.T) {
@@ -592,6 +591,15 @@ func TestRCCallCounts(t *testing.T) {
 	files, _ := filepath.Glob("../../../testdata/run/*.txtar")
 	if len(files) == 0 {
 		t.Fatal("no run fixtures")
+	}
+	inCorpus := map[string]bool{}
+	for _, path := range files {
+		inCorpus[filepath.Base(path)] = true
+	}
+	for name := range addedAfterBaseline {
+		if !inCorpus[name] {
+			t.Errorf("addedAfterBaseline lists %s, which is not a run fixture", name)
+		}
 	}
 	var mu sync.Mutex
 	totals := map[string]int{}
@@ -618,6 +626,9 @@ func TestRCCallCounts(t *testing.T) {
 				mu.Lock()
 				defer mu.Unlock()
 				compiled++
+				if !addedAfterBaseline[filepath.Base(path)] {
+					baseline["fixtures"]++
+				}
 				for name, re := range rcCallSites {
 					n := len(re.FindAllStringIndex(ir, -1))
 					totals[name] += n
@@ -629,7 +640,6 @@ func TestRCCallCounts(t *testing.T) {
 		}
 	})
 	totals["fixtures"] = compiled
-	baseline["fixtures"] = compiled - len(addedAfterBaseline)
 	t.Logf("totals: %v", totals)
 	for name, want := range pinnedRCCalls {
 		if totals[name] != want {

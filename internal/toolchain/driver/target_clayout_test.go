@@ -75,7 +75,8 @@ func TestCLayoutFollowsTargetAlignment(t *testing.T) {
 	}
 }
 
-// The embedded datalayout table agrees with the one the C compiler reports.
+// The datalayout table agrees with the C compiler on PATH for each triple it can target; a triple it
+// rejects is skipped by name.
 func TestTargetDataLayoutMatchesCompiler(t *testing.T) {
 	cc := testCompiler().CCompiler()
 	if cc == nil {
@@ -83,42 +84,58 @@ func TestTargetDataLayoutMatchesCompiler(t *testing.T) {
 	}
 	triples := []string{"x86_64-linux", "x86-linux", "x86-windows", "aarch64-linux", "riscv64-linux", "wasm32-wasi", "arm-linux-gnueabihf",
 		"x86_64-uefi", "x86-uefi", "aarch64-uefi", "arm-uefi"}
-	dir := t.TempDir()
-	src := filepath.Join(dir, "e.c")
+	src := filepath.Join(t.TempDir(), "e.c")
 	os.WriteFile(src, []byte("int x;\n"), 0o644)
-	re := regexp.MustCompile(`target datalayout = "([^"]*)"`)
 	for _, triple := range triples {
-		out := filepath.Join(dir, "e.ll")
-		args := append(cc[1:len(cc):len(cc)], "-target", triple, "-S", "-emit-llvm", "-o", out, src)
-		if b, err := exec.Command(cc[0], args...).CombinedOutput(); err != nil {
-			t.Skipf("%s cannot target %s: %v\n%s", cc[0], triple, err, b)
-		}
-		ll, _ := os.ReadFile(out)
-		m := re.FindSubmatch(ll)
-		if m == nil {
-			t.Fatalf("no datalayout in the IR for %s", triple)
-		}
-		parsed, err := buildconfig.ParseTarget(testCompiler(), triple, "")
-		if err != nil {
-			t.Fatal(err)
-		}
-		l := parsed.Layout()
-		for _, bits := range []int{8, 16, 32, 64, 128} {
-			if got, want := l.ScalarAlign(false, bits), target.ScalarAlignIn(string(m[1]), false, bits); got != want {
-				t.Errorf("%s: i%d align = %d, compiler says %d", triple, bits, got, want)
+		t.Run(triple, func(t *testing.T) {
+			parsed, err := buildconfig.ParseTarget(testCompiler(), triple, "")
+			if err != nil {
+				t.Fatal(err)
 			}
+			assertLayoutAgrees(t, parsed.Layout(), compilerDataLayout(t, cc, parsed.CompileTriple(), src))
+		})
+	}
+}
+
+// compilerDataLayout is the datalayout cc writes for an empty C file; a triple cc cannot target skips the test.
+func compilerDataLayout(t *testing.T, cc []string, triple, src string) string {
+	t.Helper()
+	out := filepath.Join(t.TempDir(), "e.ll")
+	args := append(cc[1:len(cc):len(cc)], "-target", triple, "-S", "-emit-llvm", "-o", out, src)
+	if b, err := exec.Command(cc[0], args...).CombinedOutput(); err != nil {
+		t.Skipf("%s cannot target %s: %v\n%s", cc[0], triple, err, b)
+	}
+	ll, _ := os.ReadFile(out)
+	m := regexp.MustCompile(`target datalayout = "([^"]*)"`).FindSubmatch(ll)
+	if m == nil {
+		t.Fatalf("no datalayout in the IR for %s", triple)
+	}
+	return string(m[1])
+}
+
+// assertLayoutAgrees compares the alignments a layout(C) record can use. A 32-bit target has no
+// __int128 field, and LLVM releases disagree on its unused i128 alignment for wasm32.
+func assertLayoutAgrees(t *testing.T, l target.Layout, reported string) {
+	t.Helper()
+	widths := []int{8, 16, 32, 64}
+	if l.PtrBits >= 64 {
+		widths = append(widths, 128)
+	}
+	for _, bits := range widths {
+		if got, want := l.ScalarAlign(false, bits), target.ScalarAlignIn(reported, false, bits); got != want {
+			t.Errorf("i%d align = %d, compiler says %d", bits, got, want)
 		}
-		for _, bits := range []int{32, 64} {
-			if got, want := l.ScalarAlign(true, bits), target.ScalarAlignIn(string(m[1]), true, bits); got != want {
-				t.Errorf("%s: f%d align = %d, compiler says %d", triple, bits, got, want)
-			}
+	}
+	for _, bits := range []int{32, 64} {
+		if got, want := l.ScalarAlign(true, bits), target.ScalarAlignIn(reported, true, bits); got != want {
+			t.Errorf("f%d align = %d, compiler says %d", bits, got, want)
 		}
-		if got, want := manglingMode(l.DataLayout()), manglingMode(string(m[1])); got != want {
-			t.Errorf("%s: mangling %q, compiler says %q", triple, got, want)
-		}
-		if got := l.PtrBits; got != 64 && got != 32 {
-			t.Errorf("%s: pointer width %d", triple, got)
-		}
+	}
+	if got, want := manglingMode(l.DataLayout()), manglingMode(reported); got != want {
+		t.Errorf("mangling %q, compiler says %q", got, want)
+	}
+	if got := l.PtrBits; got != 64 && got != 32 {
+		t.Errorf("pointer width %d", got)
 	}
 }
 

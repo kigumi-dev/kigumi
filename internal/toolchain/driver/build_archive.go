@@ -35,11 +35,6 @@ func buildArchive(o buildconfig.CompilerOptions, cc, args, inputs []string, dir,
 		}
 		obj := fmt.Sprintf("obj%d.o", i)
 		cargs := append(append([]string{}, args...), "-ffreestanding", "-fno-stack-protector", "-ffunction-sections", "-fdata-sections", "-fdebug-compilation-dir=.")
-		if stripDebug {
-			// COFF CodeView names zig's cache object, whose temp path changes between the
-			// two reproducibility builds; without debug info the objects are byte-stable.
-			cargs = append(cargs, "-g0")
-		}
 		cargs = append(append(cargs, link.PrefixMapFlag(o)...), "-c", "-o", obj, rel)
 		cmd := exec.Command(cc[0], cargs...)
 		cmd.Dir = dir
@@ -51,6 +46,8 @@ func buildArchive(o buildconfig.CompilerOptions, cc, args, inputs []string, dir,
 			return false, fmt.Errorf("compile %s: %w", filepath.Base(in), err)
 		}
 		if stripDebug {
+			// CodeView names zig's temp cache object, so only an object without its debug sections is
+			// byte-stable; compiling it as the plain build does keeps every other byte identical.
 			if err := object.StripCOFFDebug(filepath.Join(dir, obj)); err != nil {
 				return false, err
 			}

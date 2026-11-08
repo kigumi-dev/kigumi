@@ -7,13 +7,22 @@ import (
 	"testing"
 )
 
-// The driver package's shard selector must partition its tests: corpus loops run in every shard
-// (each takes its fixture slice), whole-corpus checks only in shard 0, everything else exactly once.
+// The driver package's shard selector must partition its tests: every test that slices its corpus
+// through fixture.Shard runs in every shard, whole-corpus checks only in shard 0, the rest exactly once.
 func TestShardScriptPartitionsDriverTests(t *testing.T) {
 	root := "../.."
 	pkg := "kigumi/internal/toolchain/driver"
-	fixtureTests := []string{"TestAotCorpus", "TestRunCorpusEngines", "TestSemDriverFixtures", "TestTextAcceleratorsMatchKigumiBodies", "TestArrayAcceleratorsMatchKigumiBodies"}
-	wholeTests := []string{"TestRCCallCounts", "TestCorpusOwnershipBeforeVerifier", "TestManifestFresh"}
+	fixtureTests := shardCallers(t, root, "../toolchain/driver", pkg)
+	wholeTests := []string{"TestRCCallCounts", "TestManifestFresh"}
+	if len(fixtureTests) == 0 {
+		t.Fatal("no driver test consults fixture.Shard; the call graph scan is broken")
+	}
+	for _, name := range wholeTests {
+		if contains(fixtureTests, name) {
+			t.Errorf("%s runs only in shard 0 but slices its corpus through fixture.Shard", name)
+		}
+	}
+	t.Logf("corpus-slicing tests: %v", fixtureTests)
 
 	existing := testNames(t, root, pkg)
 	count := map[string]int{}

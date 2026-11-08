@@ -7,23 +7,37 @@ import (
 	"runtime"
 	"testing"
 
+	"golang.org/x/sys/cpu"
+
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
 )
 
-// TestArchCpuidAndRdtsc runs the x86-64 inline-assembly primitives natively;
-// the VM cannot execute asm and the other architectures have stubs.
+// TestArchCpuidAndRdtsc runs the x86-64 inline-assembly primitives natively; rdrand must yield two
+// distinct values where CPUID reports it and None elsewhere.
 func TestArchCpuidAndRdtsc(t *testing.T) {
 	if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" {
 		t.Skip("std/arch's inline assembly is asserted for x86-64 Linux only")
 	}
 	src := `import arch from std/arch
 
+fn draw() -> u64? {
+    for _ in 0..10 {
+        if arch.rdrand() is Some(v) {
+            return Some(v)
+        }
+    }
+    None
+}
+
 fn main() {
     let c = arch.cpuid(0, 0)
     print "cpuid=${c.ebx > 0} ${c.edx > 0} ${c.ecx > 0}"
     print "tsc=${arch.rdtsc() > 0}"
     arch.pause()
+    let a = draw()
+    let b = draw()
+    print "rdrand=${a is Some(_)} ${a != b}"
 }
 `
 	exe := buildProgram(t, src)
@@ -31,7 +45,11 @@ fn main() {
 	if err != nil {
 		t.Fatalf("run: %v", err)
 	}
-	if got, want := string(out), "cpuid=true true true\ntsc=true\n"; got != want {
+	rdrand := "rdrand=false false\n"
+	if cpu.X86.HasRDRAND {
+		rdrand = "rdrand=true true\n"
+	}
+	if got, want := string(out), "cpuid=true true true\ntsc=true\n"+rdrand; got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 }
