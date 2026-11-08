@@ -151,10 +151,7 @@ pub fn decodeLimit(data: Bytes, limit: usize) -> Bytes! {
             }
             p = p + 2
         }
-        if out.len() > limit {
-            fail Error { text: "gzip: output exceeds the ${limit} byte limit" }
-        }
-        let r = flate.inflateFrom(rest, p, limit - out.len())?
+        let r = flate.inflateFrom(rest, p, out.len(), limit)?
         if r.rest.len() < 8 {
             fail Error { text: "gzip: trailer is shorter than 8 bytes" }
         }

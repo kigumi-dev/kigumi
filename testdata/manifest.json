@@ -3905,9 +3905,36 @@
       ]
     },
     {
+      "id": "run/compress_flate_interop_blocks",
+      "kind": "run",
+      "path": "testdata/run/compress_flate_interop_blocks.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/compress_flate_interop_levels",
+      "kind": "run",
+      "path": "testdata/run/compress_flate_interop_levels.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/compress_flate_vectors",
       "kind": "run",
       "path": "testdata/run/compress_flate_vectors.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/compress_gzip_interop",
+      "kind": "run",
+      "path": "testdata/run/compress_gzip_interop.txtar",
       "mode": [
         "vm",
         "native"
@@ -4412,6 +4439,15 @@
       "id": "run/crypto_rsa_pss",
       "kind": "run",
       "path": "testdata/run/crypto_rsa_pss.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_rsa_sizes",
+      "kind": "run",
+      "path": "testdata/run/crypto_rsa_sizes.txtar",
       "mode": [
         "vm",
         "native"

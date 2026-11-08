@@ -1,0 +1,160 @@
+/// Where `Inflater.run` resumes: `Stored` carries the bytes left in the block,
+/// `CodeLengthCodes` how many code-length code lengths are read, `Repeat` the
+/// run waiting for its extra bits, `LengthExtra` the length symbol minus 257,
+/// `Distance` the match length, and `DistanceExtra` that length and the
+/// distance symbol.
+type Step =
+    | BlockHeader
+    | StoredHeader
+    | Stored(usize)
+    | DynamicHeader
+    | CodeLengthCodes(usize)
+    | CodeLengths
+    | Repeat(Run)
+    | Symbols
+    | LengthExtra(usize)
+    | Distance(usize)
+    | DistanceExtra(usize, usize)
+    | Done
+
+/// Streaming DEFLATE decoder. Feed compressed chunks with `update`, then call
+/// `finish` for the decoded bytes; output accumulates in the decoder up to the
+/// limit rather than being handed out per chunk. `remainder` is what followed
+/// the stream in the input, which gzip uses for its trailer.
+pub type Inflater = {
+    mut bits Bits
+    mut out Array[u8]
+    limit usize
+    before usize
+    mut step Step
+    mut last Bool
+    mut header Lengths
+    mut codes Huff
+    mut lit Huff
+    mut dist Huff
+    lengths Ranges
+    distances Ranges
+}
+
+/// A decoder with the default output limit and no input yet.
+pub fn Inflater.new() -> Inflater {
+    Inflater.newLimit(defaultLimit)
+}
+
+/// A decoder that refuses to produce more than `limit` bytes.
+pub fn Inflater.newLimit(limit: usize) -> Inflater {
+    Inflater.within(0, limit)
+}
+
+/// A decoder whose output follows `before` bytes the caller already holds;
+/// both together may not exceed `limit`.
+fn Inflater.within(before: usize, limit: usize) -> Inflater {
+    Inflater {
+        bits: Bits {
+            data: Bytes.zeros(0)
+            pos: 0
+            buf: 0
+            cnt: 0
+            ended: false
+        }
+        out: Array.empty[u8]()
+        limit: limit
+        before: before
+        step: Step.BlockHeader
+        last: false
+        header: noLengths()
+        codes: emptyHuff()
+        lit: emptyHuff()
+        dist: emptyHuff()
+        lengths: lengthRanges()
+        distances: distanceRanges()
+    }
+}
+
+/// Appends compressed input and decodes as much as it allows.
+pub fn Inflater.update(mut self, chunk: Bytes) -> Void! {
+    self.feed(chunk)
+    _ = self.run()?
+}
+
+/// Marks the input complete and returns the decoded bytes.
+pub fn Inflater.finish(mut self) -> Bytes! {
+    self.bits.ended = true
+    if !self.run()? {
+        fail Error { text: "flate: input ends in the middle of the stream" }
+    }
+    Bytes.fromArray(&self.out)
+}
+
+/// Bytes of input that follow the end of the deflate stream: the gzip trailer
+/// or a concatenated member.
+pub fn Inflater.remainder(self) -> Bytes {
+    let start = self.streamEnd()
+    self.bits.data.slice(start, self.bits.data.len()) || Bytes.zeros(0)
+}
+
+fn Inflater.streamEnd(self) -> usize {
+    self.bits.pos - self.bits.cnt / 8
+}
+
+fn Inflater.feed(mut self, chunk: Bytes) {
+    // Keep the whole bytes still sitting in the bit buffer: dropping them
+    // would make `streamEnd` count past the start of `data`.
+    let keep = self.bits.pos - self.bits.cnt / 8
+    if keep > 0 && self.bits.pos * 2 >= self.bits.data.len() {
+        self.bits.data = self.bits.data.slice(keep, self.bits.data.len()) || Bytes.zeros(0)
+        self.bits.pos = self.bits.pos - keep
+    }
+    if self.bits.data.len() == 0 {
+        self.bits.data = chunk
+    } else {
+        self.bits.data = self.bits.data.concat(chunk)
+    }
+}
+
+/// Runs until the stream ends (true) or the buffered input runs out (false).
+/// Every step either completes or returns false having consumed nothing.
+fn Inflater.run(mut self) -> Bool! {
+    for true {
+        let progressed = match self.step {
+            Done -> return Ok(true)
+            BlockHeader -> self.readBlockHeader()?
+            StoredHeader -> self.readStoredHeader()?
+            Stored(left) -> self.copyStored(left)?
+            DynamicHeader -> self.readDynamicHeader()?
+            CodeLengthCodes(read) -> self.readCodeLengthCodes(read)?
+            CodeLengths -> self.readCodeLengths()?
+            Repeat(run) -> self.readRepeat(run)?
+            Symbols -> self.readSymbols()?
+            LengthExtra(index) -> self.readLengthExtra(index)?
+            Distance(length) -> self.readDistance(length)?
+            DistanceExtra(length, sym) -> self.copyMatch(length, sym)?
+        }
+        if !progressed {
+            return Ok(false)
+        }
+    }
+    Ok(true)
+}
+
+/// The step after the end of the current block.
+fn Inflater.blockEnd(self) -> Step {
+    if self.last {
+        Step.Done
+    } else {
+        Step.BlockHeader
+    }
+}
+
+/// Fails when `n` more output bytes would pass the limit.
+fn Inflater.reserve(self, n: usize) -> Void! {
+    let used = self.before + self.out.len()
+    if used > self.limit || n > self.limit - used {
+        fail Error { text: "flate: output exceeds the ${self.limit} byte limit" }
+    }
+}
+
+fn Inflater.pushByte(mut self, b: u8) -> Void! {
+    self.reserve(1)?
+    self.out.push(b)
+}

@@ -29,8 +29,24 @@ fn main() {
     run("hello-stored", "010500faff68656c6c6f")
     run("empty-stored", "010000ffff")
     run("repeat-fixed", "4b4c4a4e1c45a368140d4d0400")
-    run("dynamic", "6360646266616563e7e0e4e2e6e1e5e3171014121611151397909492969195935750545256515553d7d0d4d2d6d1d5d33730343236313533b7b0b4b2b6b1b5b37770747276717573f7f0f4f2f6f1f5f30f080c0a0e090d0b8f888c8a8e898d8b4f484c4a4e494d4bcfc8cccacec9cdcb2f282c2a2e292d2bafa8acaaaea9adab6f686c6a6e696d6befe8eceaeee9edeb9f3071d2e42953a74d9f3173d6ec3973e7cd5fb070d1e2254b972d5fb172d5ea356bd7addfb071d3e62d5bb76ddfb173d7ee3d7bf7ed3f70f0d0e123478f1d3f71f2d4e93367cf9dbf70f1d2e52b57af5dbf71f3d6ed3b77efdd7ff0f0d1e3274f9f3d7ff1f2d5eb376fdfbdfff0f1d3e72f5fbf7dfff1f3d7ef3f7ffffd6718f5ffa8ff47fd3feaff51ff8ffa7f04fabf242355a1b03433395b21a928bf3c4f212dbf4221ab34b7a05821bf2cb54801249d935855a990929f3eaa74c0950200")
+    run("fixed-binary", "6360646266616563e7e0e4e2e6e1e5e3171014121611151397909492969195935750545256515553d7d0d4d2d6d1d5d33730343236313533b7b0b4b2b6b1b5b37770747276717573f7f0f4f2f6f1f5f30f080c0a0e090d0b8f888c8a8e898d8b4f484c4a4e494d4bcfc8cccacec9cdcb2f282c2a2e292d2bafa8acaaaea9adab6f686c6a6e696d6befe8eceaeee9edeb9f3071d2e42953a74d9f3173d6ec3973e7cd5fb070d1e2254b972d5fb172d5ea356bd7addfb071d3e62d5bb76ddfb173d7ee3d7bf7ed3f70f0d0e123478f1d3f71f2d4e93367cf9dbf70f1d2e52b57af5dbf71f3d6ed3b77efdd7ff0f0d1e3274f9f3d7ff1f2d5eb376fdfbdfff0f1d3e72f5fbf7dfff1f3d7ef3f7ffffd6718f5ffa8ff47fd3feaff51ff8ffa7f04fabf242355a1b03433395b21a928bf3c4f212dbf4221ab34b7a05821bf2cb54801249d935855a990929f3eaa74c0950200")
+    run("dynamic", "edc8b10900200c00b0573c4ea143a1e0d2f75df502972c19122bb3465c76ed9ccf78efbdf7de7befbdf7de7bffeb0f")
     run("truncated", "cb48cdc9c9")
+    // dyn-*: hand-built dynamic blocks; zlib 1.3.1 reaches the same verdict on each.
+    run("dyn-cross-run", "0d83050100000040b6f27f04851b")
+    run("dyn-no-distances", "0580010900000040b678c7ff033206")
+    run("dyn-distance-without-codes", "0d80010900000040b6f27f04e10000")
+    run("dyn-empty-distance-code-at-end", "0de0010400000080200000000000000000000000000800000000000000000000000000000000000000780e")
+    run("dyn-unused-distance-code-at-end", "0dc0010100000040a0adfc1f4178")
+    run("dyn-incomplete", "05c081000000008020d6fc250e")
+    run("dyn-oversubscribed", "05c08100000000009056fe2300")
+    run("dyn-no-end-of-block", "05c08100000000009056fe2700")
+    run("dyn-hdist-31", "051e0000")
+    run("dyn-hlit-287", "f5000000")
+    run("dyn-repeat-first", "05000224")
+    run("dyn-repeat-overflow", "050080e4ff1f")
+    run("dyn-incomplete-code-lengths", "0580010900000080fa03")
+    run("dyn-truncated-lengths", "0d83050100000040")
     run("reserved-block", "07")
     run("empty-input", "")
     run("bad-distance", "030200")
@@ -63,7 +79,7 @@ fn main() {
         Ok(b) -> print "limit-ok=${b.len()}"
         Err(e) -> print "limit-err=${e.message()}"
     }
-    let dyn = hex.decode("6360646266616563e7e0e4e2e6e1e5e3171014121611151397909492969195935750545256515553d7d0d4d2d6d1d5d33730343236313533b7b0b4b2b6b1b5b37770747276717573f7f0f4f2f6f1f5f30f080c0a0e090d0b8f888c8a8e898d8b4f484c4a4e494d4bcfc8cccacec9cdcb2f282c2a2e292d2bafa8acaaaea9adab6f686c6a6e696d6befe8eceaeee9edeb9f3071d2e42953a74d9f3173d6ec3973e7cd5fb070d1e2254b972d5fb172d5ea356bd7addfb071d3e62d5bb76ddfb173d7ee3d7bf7ed3f70f0d0e123478f1d3f71f2d4e93367cf9dbf70f1d2e52b57af5dbf71f3d6ed3b77efdd7ff0f0d1e3274f9f3d7ff1f2d5eb376fdfbdfff0f1d3e72f5fbf7dfff1f3d7ef3f7ffffd6718f5ffa8ff47fd3feaff51ff8ffa7f04fabf242355a1b03433395b21a928bf3c4f212dbf4221ab34b7a05821bf2cb54801249d935855a990929f3eaa74c0950200").unwrap()
+    let dyn = hex.decode("edc8b10900200c00b0573c4ea143a1e0d2f75df502972c19122bb3465c76ed9ccf78efbdf7de7befbdf7de7bffeb0f").unwrap()
     let mut inf = flate.Inflater.new()
     let mut k: usize = 0
     for k < dyn.len() {
@@ -99,8 +115,23 @@ hello-fixed ok len=5 hex=68656c6c6f
 hello-stored ok len=5 hex=68656c6c6f
 empty-stored ok len=0 hex=
 repeat-fixed ok len=960 hex=6162636162636162..6263616263616263
-dynamic ok len=2478 hex=0001020304050607..6c617a7920646f67
-truncated err flate: invalid Huffman code
+fixed-binary ok len=2478 hex=0001020304050607..6c617a7920646f67
+dynamic ok len=4800 hex=68656c6c6f206865..6f20776f726c6420
+truncated err flate: input ends in the middle of the stream
+dyn-cross-run ok len=5 hex=6162616261
+dyn-no-distances ok len=3 hex=686921
+dyn-distance-without-codes err flate: invalid Huffman code
+dyn-empty-distance-code-at-end err flate: invalid Huffman code
+dyn-unused-distance-code-at-end err flate: invalid Huffman code
+dyn-incomplete err flate: Huffman code is incomplete
+dyn-oversubscribed err flate: Huffman code is oversubscribed
+dyn-no-end-of-block err flate: dynamic block has no end-of-block code
+dyn-hdist-31 err flate: 31 distance codes exceeds 30
+dyn-hlit-287 err flate: 287 literal/length codes exceeds 286
+dyn-repeat-first err flate: code length 16 has no previous length to repeat
+dyn-repeat-overflow err flate: code length repeat overflows the table
+dyn-incomplete-code-lengths err flate: Huffman code is incomplete
+dyn-truncated-lengths err flate: input ends in the middle of the stream
 reserved-block err flate: reserved block type 3
 empty-input err flate: input ends in the middle of the stream
 bad-distance err flate: distance 1 reaches before the start of the output
@@ -109,7 +140,7 @@ roundtrip=true
 noise=20000 compressed=20005 bounded=true
 noise-roundtrip=true
 limit-err=flate: output exceeds the 100 byte limit
-stream len=2478 0001020304050607..6c617a7920646f67
-remainder=cafebabe len=2478
+stream len=4800 68656c6c6f206865..6f20776f726c6420
+remainder=cafebabe len=4800
 stream-stored=68656c6c6f
-chunked-remainder=cafebabe len=2478
+chunked-remainder=cafebabe len=4800

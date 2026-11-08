@@ -1,0 +1,93 @@
+fn Inflater.copyStored(mut self, left: usize) -> Bool! {
+    if left == 0 {
+        self.step = self.blockEnd()
+        return Ok(true)
+    }
+    if self.bits.cnt == 0 && self.bits.pos < self.bits.data.len() {
+        let avail = self.bits.data.len() - self.bits.pos
+        let n = if avail < left {
+            avail
+        } else {
+            left
+        }
+        self.reserve(n)?
+        let mut k: usize = 0
+        for k < n {
+            self.out.push(self.bits.data[self.bits.pos + k])
+            k = k + 1
+        }
+        self.bits.pos = self.bits.pos + n
+        self.step = Step.Stored(left - n)
+        return Ok(true)
+    }
+    let b = match self.bits.take(8)? {
+        Some(v) -> v
+        None -> return Ok(false)
+    }
+    self.pushByte(b.truncate[u8]())?
+    self.step = Step.Stored(left - 1)
+    Ok(true)
+}
+
+/// Literals until a length symbol or the end of the block.
+fn Inflater.readSymbols(mut self) -> Bool! {
+    for true {
+        let sym = match self.lit.decode(&mut self.bits)? {
+            Some(s) -> s
+            None -> return Ok(false)
+        }
+        if sym < 256 {
+            self.pushByte(sym.truncate[u8]())?
+        } else if sym == 256 {
+            self.step = self.blockEnd()
+            return Ok(true)
+        } else if sym <= 285 {
+            self.step = Step.LengthExtra(sym.toUsize() - 257)
+            return Ok(true)
+        } else {
+            fail Error { text: "flate: invalid literal/length symbol ${sym}" }
+        }
+    }
+    Ok(true)
+}
+
+fn Inflater.readLengthExtra(mut self, index: usize) -> Bool! {
+    let v = match self.bits.take(self.lengths.extra[index])? {
+        Some(x) -> x
+        None -> return Ok(false)
+    }
+    self.step = Step.Distance(self.lengths.base[index] + v.toUsize())
+    Ok(true)
+}
+
+fn Inflater.readDistance(mut self, length: usize) -> Bool! {
+    let sym = match self.dist.decode(&mut self.bits)? {
+        Some(s) -> s
+        None -> return Ok(false)
+    }
+    if sym > 29 {
+        fail Error { text: "flate: invalid distance symbol ${sym}" }
+    }
+    self.step = Step.DistanceExtra(length, sym.toUsize())
+    Ok(true)
+}
+
+fn Inflater.copyMatch(mut self, length: usize, sym: usize) -> Bool! {
+    let v = match self.bits.take(self.distances.extra[sym])? {
+        Some(x) -> x
+        None -> return Ok(false)
+    }
+    let distance = self.distances.base[sym] + v.toUsize()
+    if distance > self.out.len() {
+        fail Error { text: "flate: distance ${distance} reaches before the start of the output" }
+    }
+    self.reserve(length)?
+    let mut k: usize = 0
+    for k < length {
+        let b = self.out[self.out.len() - distance]
+        self.out.push(b)
+        k = k + 1
+    }
+    self.step = Step.Symbols
+    Ok(true)
+}

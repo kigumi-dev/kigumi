@@ -1,0 +1,176 @@
+fn reverseBits(v: u32, n: usize) -> u32 {
+    let mut r: u32 = 0
+    let mut i: usize = 0
+    for i < n {
+        r = (r << 1) | ((v >> i) & 1)
+        i = i + 1
+    }
+    r
+}
+
+fn fixedCode(sym: usize) -> (u32, usize) {
+    let c0: usize = 0x30
+    let c1: usize = 0x190
+    let c2: usize = 0xc0
+    if sym < 144 {
+        ((c0 + sym).truncate[u32](), 8)
+    } else if sym < 256 {
+        ((c1 + sym - 144).truncate[u32](), 9)
+    } else if sym < 280 {
+        ((sym - 256).truncate[u32](), 7)
+    } else {
+        ((c2 + sym - 280).truncate[u32](), 8)
+    }
+}
+
+fn writeSymbol(w: &mut Writer, sym: usize) {
+    let (code, bits) = fixedCode(sym)
+    w.writeBits(reverseBits(code, bits), bits)
+}
+
+fn hash3(data: &Bytes, pos: usize) -> usize {
+    let a = data[pos].toUsize()
+    let b = data[pos + 1].toUsize()
+    let c = data[pos + 2].toUsize()
+    ((a << 10) ^ (b << 5) ^ c) & 32767
+}
+
+fn insertHash(data: &Bytes, pos: usize, head: &mut Array[usize?]) {
+    if pos + 2 < data.len() {
+        head[hash3(data, pos)] = Some(pos)
+    }
+}
+
+/// Longest match for the three bytes at `pos` against the most recent earlier
+/// occurrence of the same hash, or (0, 0). One candidate keeps memory flat.
+fn findMatch(data: &Bytes, pos: usize, head: &Array[usize?]) -> (usize, usize) {
+    let n = data.len()
+    if pos + 2 >= n {
+        return (0, 0)
+    }
+    let maxLen = if n - pos < 258 {
+        n - pos
+    } else {
+        258
+    }
+    let minPos = if pos > 32768 {
+        pos - 32768
+    } else {
+        0
+    }
+    let cand = match head[hash3(data, pos)] {
+        Some(c) -> c
+        None -> return (0, 0)
+    }
+    if cand < minPos {
+        return (0, 0)
+    }
+    let mut l: usize = 0
+    for l < maxLen {
+        if data[cand + l] != data[pos + l] {
+            break
+        }
+        l = l + 1
+    }
+    if l >= 3 {
+        (l, pos - cand)
+    } else {
+        (0, 0)
+    }
+}
+
+fn writeLength(w: &mut Writer, len: usize, lengths: &Ranges) {
+    let mut i: usize = 0
+    for i < 28 {
+        if len < lengths.base[i + 1] {
+            writeSymbol(w, 257 + i)
+            let e = lengths.extra[i]
+            if e > 0 {
+                w.writeBits((len - lengths.base[i]).truncate[u32](), e)
+            }
+            return
+        }
+        i = i + 1
+    }
+    writeSymbol(w, 285)
+}
+
+fn writeDistance(w: &mut Writer, dist: usize, distances: &Ranges) {
+    let mut i: usize = 0
+    for i < 29 && dist >= distances.base[i + 1] {
+        i = i + 1
+    }
+    w.writeBits(reverseBits(i.truncate[u32](), 5), 5)
+    let e = distances.extra[i]
+    if e > 0 {
+        w.writeBits((dist - distances.base[i]).truncate[u32](), e)
+    }
+}
+
+/// One fixed-Huffman block over `data`, using greedy LZ77 matches.
+fn encodeFixed(data: &Bytes) -> Bytes {
+    let mut w = Writer.new()
+    w.writeBits(1, 1)
+    w.writeBits(1, 2)
+    let n = data.len()
+    let mut head = Array.fill[usize?](None, 32768)
+    let lengths = lengthRanges()
+    let distances = distanceRanges()
+    let mut pos: usize = 0
+    for pos < n {
+        let (mLen, mDist) = findMatch(data, pos, &head)
+        if mLen >= 3 {
+            writeLength(&mut w, mLen, &lengths)
+            writeDistance(&mut w, mDist, &distances)
+            let end = pos + mLen
+            for pos < end {
+                insertHash(data, pos, &mut head)
+                pos = pos + 1
+            }
+        } else {
+            writeSymbol(&mut w, data[pos].toUsize())
+            insertHash(data, pos, &mut head)
+            pos = pos + 1
+        }
+    }
+    writeSymbol(&mut w, 256)
+    w.flush()
+    Bytes.fromArray(&w.out)
+}
+
+/// Stored blocks of at most 65535 bytes each; empty input is one empty block.
+fn encodeStored(data: &Bytes) -> Bytes {
+    let mut w = Writer.new()
+    let n = data.len()
+    let mut pos: usize = 0
+    for true {
+        let left = n - pos
+        let chunk = if left < 65535 {
+            left
+        } else {
+            65535
+        }
+        let final = pos + chunk == n
+        w.writeBits(if final {
+            1
+        } else {
+            0
+        }, 1)
+        w.writeBits(0, 2)
+        w.flush()
+        let len = chunk.truncate[u16]()
+        let inv = len ^ 65535
+        w.writeBits(len.toU32(), 16)
+        w.writeBits(inv.toU32(), 16)
+        let mut k: usize = 0
+        for k < chunk {
+            w.writeBits(data[pos + k].toU32(), 8)
+            k = k + 1
+        }
+        pos = pos + chunk
+        if final {
+            break
+        }
+    }
+    Bytes.fromArray(&w.out)
+}

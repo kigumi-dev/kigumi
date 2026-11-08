@@ -1,10 +1,5 @@
-// Montgomery arithmetic modulo an odd RSA modulus of any supported size.
-//
-// `R` is 2^(64*n). Both R mod m and R^2 mod m come from repeated doubling,
-// so no division routine is needed. Multiplication builds the full 2n-limb
-// product and folds the modulus back in with the standard word-at-a-time
-// reduction; the final value below 2m is brought into [0, m) with a masked
-// subtraction, so a signature value never steers a branch.
+// R is 2^(64*n); R mod m and R^2 mod m come from doubling and squaring so no division is needed,
+// and the last reduction step subtracts under a mask so a signature value never steers a branch.
 /// A modulus with its Montgomery constants. `r` is R mod m, `r2` is R^2 mod m
 /// and `n0` is -m^-1 mod 2^64.
 type Modulus = {
@@ -12,7 +7,7 @@ type Modulus = {
     m Array[u64]
     n0 u64
     r Array[u64]
-    r2 Array[u64]
+    mut r2 Array[u64]
     one Array[u64]
 }
 
@@ -53,34 +48,55 @@ pure fn doubleMod(a: &Array[u64], m: &Array[u64], n: usize) -> Array[u64] {
     selectLimbs(zero64.wrappingSub(cond), &sum, &diff, n)
 }
 
+/// R mod m. The modulus is odd with bit length L, so 2^(L-1) is below it and
+/// at most 64 doublings reach 2^(64*n).
+pure fn rModulo(m: &Array[u64], n: usize) -> Array[u64] {
+    let top = (n - 1) * 64 + bitLen64(m[n - 1]) - 1
+    let one: u64 = 1
+    let mut r = zeroLimbs(n)
+    r[top / 64] = one.wrappingShiftLeft((top % 64).toU64())
+    let mut bit = top
+    for bit < n * 64 {
+        r = doubleMod(&r, m, n)
+        bit = bit + 1
+    }
+    r
+}
+
+/// R^2 mod m, the Montgomery form of 2^(64*n), by squaring and doubling the
+/// form of 1 along the bits of 64*n.
+pure fn rSquared(md: &Modulus) -> Array[u64] {
+    let e = (md.n * 64).toU64()
+    let mut acc = md.r.clone()
+    let mut i = bitLen64(e)
+    for i > 0 {
+        i = i - 1
+        acc = montMul(&acc, &acc, md)
+        if (e.wrappingShiftRight(i.toU64()) & 1) == 1 {
+            acc = doubleMod(&acc, &md.m, md.n)
+        }
+    }
+    acc
+}
+
 /// Builds the Montgomery context for a modulus whose top limb is nonzero and
 /// whose low limb is odd.
 pure fn modulusFromLimbs(m: Array[u64], n: usize) -> Modulus {
     let n0 = zero64.wrappingSub(inv64(m[0]))
-    let mut r = zeroLimbs(n)
-    r[0] = 1
-    let doublings = n * 64
-    let mut i: usize = 0
-    for i < doublings {
-        r = doubleMod(&r, &m, n)
-        i = i + 1
-    }
-    let mut r2 = r.clone()
-    i = 0
-    for i < doublings {
-        r2 = doubleMod(&r2, &m, n)
-        i = i + 1
-    }
+    let r = rModulo(&m, n)
     let mut one = zeroLimbs(n)
     one[0] = 1
-    Modulus {
+    let mut md = Modulus {
         n: n
         m: m
         n0: n0
         r: r
-        r2: r2
+        r2: zeroLimbs(n)
         one: one
     }
+    let r2 = rSquared(&md)
+    md.r2 = r2
+    md
 }
 
 /// The 2n-limb product of two n-limb values.

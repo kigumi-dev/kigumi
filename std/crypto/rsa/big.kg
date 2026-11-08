@@ -1,8 +1,4 @@
-// Little-endian 64-bit limb arithmetic shared by the RSA modular layer.
-//
-// A value below 2^(64*n) is `n` limbs; callers pass the length so every loop
-// has a bound fixed by the key size. Borrows are returned as 0/1 limbs
-// instead of booleans so the reduction paths can select with masks.
+// Limb 0 holds the lowest 64 bits; borrows are 0/1 limbs, not Bools, so callers select with masks.
 /// The low 64 bits of a 128-bit value.
 pure noalloc fn lowHalf(x: u128) -> u64 {
     (x & mask128).truncate[u64]()
@@ -70,24 +66,14 @@ pure fn limbsFromBytes(b: Bytes, n: usize) -> Array[u64] {
     out
 }
 
-/// The `size` low big-endian octets of `a`; `size` must be at most `n*8`.
-pure fn bytesFromLimbs(a: &Array[u64], n: usize, size: usize) -> Bytes {
-    let total = n * 8
-    let drop = total - size
-    let mut out = Array.empty[u8]()
-    let mut i: usize = n
-    for i > 0 {
-        i = i - 1
-        let v = a[i]
-        let mut j: usize = 0
-        for j < 8 {
-            let at = i * 8 + j
-            if at >= drop {
-                let byte = v.wrappingShiftRight(((7 - j) * 8).toU64()) & 0xFF
-                out.push(byte.truncate[u8]())
-            }
-            j = j + 1
-        }
+/// `a` as `size` big-endian octets; `a` holds at least `limbCount(size)` limbs.
+pure fn bytesFromLimbs(a: &Array[u64], size: usize) -> Bytes {
+    let mut out = Array.fill[u8](0, size)
+    let mut pos: usize = 0
+    for pos < size {
+        let byte = a[pos / 8].wrappingShiftRight(((pos % 8) * 8).toU64()) & 0xFF
+        out[size - 1 - pos] = byte.truncate[u8]()
+        pos = pos + 1
     }
     Bytes.fromArray(&out)
 }

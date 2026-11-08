@@ -1,0 +1,181 @@
+/// A run in the code-length sequence: symbol 16 repeats the previous length
+/// 3-6 times, 17 writes 3-10 zeros and 18 writes 11-138 zeros.
+type Run =
+    | Previous
+    | ShortZeros
+    | LongZeros
+
+/// The run that code-length symbol 16, 17 or 18 starts.
+fn Run.of(sym: u32) -> Run {
+    if sym == 16 {
+        Run.Previous
+    } else if sym == 17 {
+        Run.ShortZeros
+    } else {
+        Run.LongZeros
+    }
+}
+
+/// The extra-bit count and the smallest repeat count of the run.
+fn Run.extent(self) -> (usize, usize) {
+    match self {
+        Previous -> (2, 3)
+        ShortZeros -> (3, 3)
+        LongZeros -> (7, 11)
+    }
+}
+
+/// The code lengths of a dynamic block (RFC 1951 §3.2.7): `hlit`
+/// literal/length lengths then `hdist` distance lengths, read as one sequence
+/// that a run may cross.
+type Lengths = {
+    hlit usize
+    hdist usize
+    hclen usize
+    mut codeLens Array[usize]
+    mut lens Array[usize]
+    mut filled usize
+}
+
+fn noLengths() -> Lengths {
+    Lengths {
+        hlit: 0
+        hdist: 0
+        hclen: 0
+        codeLens: Array.empty[usize]()
+        lens: Array.empty[usize]()
+        filled: 0
+    }
+}
+
+fn Inflater.readBlockHeader(mut self) -> Bool! {
+    let hdr = match self.bits.take(3)? {
+        Some(v) -> v
+        None -> return Ok(false)
+    }
+    self.last = (hdr & 1) == 1
+    let btype = hdr >> 1
+    if btype == 0 {
+        self.step = Step.StoredHeader
+    } else if btype == 1 {
+        self.lit = buildHuff(&fixedLitLengths(), 0, 288)?
+        self.dist = buildHuff(&Array.fill[usize](5, 32), 0, 32)?
+        self.step = Step.Symbols
+    } else if btype == 2 {
+        self.step = Step.DynamicHeader
+    } else {
+        fail Error { text: "flate: reserved block type 3" }
+    }
+    Ok(true)
+}
+
+fn Inflater.readStoredHeader(mut self) -> Bool! {
+    self.bits.alignByte()
+    let v = match self.bits.take(32)? {
+        Some(x) -> x
+        None -> return Ok(false)
+    }
+    if ((v & 65535) ^ 65535) != ((v >> 16) & 65535) {
+        fail Error { text: "flate: stored block length does not match its complement" }
+    }
+    self.step = Step.Stored((v & 65535).toUsize())
+    Ok(true)
+}
+
+fn Inflater.readDynamicHeader(mut self) -> Bool! {
+    let v = match self.bits.take(14)? {
+        Some(x) -> x
+        None -> return Ok(false)
+    }
+    let hlit = (v & 31).toUsize() + 257
+    let hdist = ((v >> 5) & 31).toUsize() + 1
+    if hlit > 286 {
+        fail Error { text: "flate: ${hlit} literal/length codes exceeds 286" }
+    }
+    if hdist > 30 {
+        fail Error { text: "flate: ${hdist} distance codes exceeds 30" }
+    }
+    self.header = Lengths {
+        hlit: hlit
+        hdist: hdist
+        hclen: ((v >> 10) & 15).toUsize() + 4
+        codeLens: Array.fill[usize](0, 19)
+        lens: Array.fill[usize](0, hlit + hdist)
+        filled: 0
+    }
+    self.step = Step.CodeLengthCodes(0)
+    Ok(true)
+}
+
+fn Inflater.readCodeLengthCodes(mut self, read: usize) -> Bool! {
+    let order = codeLengthOrder()
+    let mut i = read
+    for i < self.header.hclen {
+        let v = match self.bits.take(3)? {
+            Some(x) -> x
+            None -> {
+                self.step = Step.CodeLengthCodes(i)
+                return Ok(false)
+            }
+        }
+        self.header.codeLens[order[i]] = v.toUsize()
+        i = i + 1
+    }
+    self.codes = buildHuff(&self.header.codeLens, 0, 19)?
+    self.step = Step.CodeLengths
+    Ok(true)
+}
+
+fn Inflater.readCodeLengths(mut self) -> Bool! {
+    for self.header.filled < self.header.lens.len() {
+        let sym = match self.codes.decode(&mut self.bits)? {
+            Some(s) -> s
+            None -> return Ok(false)
+        }
+        if sym >= 16 {
+            self.step = Step.Repeat(Run.of(sym))
+            return Ok(true)
+        }
+        self.header.lens[self.header.filled] = sym.toUsize()
+        self.header.filled = self.header.filled + 1
+    }
+    let hlit = self.header.hlit
+    if self.header.lens[256] == 0 {
+        fail Error { text: "flate: dynamic block has no end-of-block code" }
+    }
+    self.lit = buildHuff(&self.header.lens, 0, hlit)?
+    self.dist = buildHuff(&self.header.lens, hlit, hlit + self.header.hdist)?
+    self.step = Step.Symbols
+    Ok(true)
+}
+
+fn Inflater.readRepeat(mut self, run: Run) -> Bool! {
+    let at = self.header.filled
+    let value = match run {
+        Previous -> {
+            if at == 0 {
+                fail Error { text: "flate: code length 16 has no previous length to repeat" }
+            }
+            self.header.lens[at - 1]
+        }
+        ShortZeros -> 0
+        LongZeros -> 0
+    }
+    let (bits, least) = run.extent()
+    let v = match self.bits.take(bits)? {
+        Some(x) -> x
+        None -> return Ok(false)
+    }
+    let count = least + v.toUsize()
+    if at + count > self.header.lens.len() {
+        fail Error { text: "flate: code length repeat overflows the table" }
+    }
+    let mut k: usize = 0
+    for k < count {
+        self.header.lens[at + k] = value
+        k = k + 1
+    }
+    self.header.filled = at + count
+    self.step = Step.CodeLengths
+    Ok(true)
+}

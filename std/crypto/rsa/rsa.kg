@@ -1,9 +1,4 @@
-// RSA signature verification for Web PKI: RSASSA-PSS and RSASSA-PKCS1-v1_5
-// with SHA-256, over PKCS#1 public keys.
-//
-// Only verification is here. Every arithmetic operand is public, so the
-// exponent path depends on the (public) exponent and the final digest
-// comparison is constant time; no private key ever enters this package.
+// Verification only: every operand is public, so just the final digest comparison is constant time.
 import sha256 from std/crypto/sha256
 
 /// Why RSA verification was refused.
@@ -44,7 +39,7 @@ pure fn rsaVp1(public: PublicKey, signature: Bytes) -> Result[Bytes, Error] {
     let sMont = toMont(&s, &md)
     let mMont = powMont(&sMont, public.exponent(), &md)
     let m = fromMont(&mMont, &md)
-    Ok(bytesFromLimbs(&m, n, k))
+    Ok(bytesFromLimbs(&m, k))
 }
 
 /// RSASSA-PSS-VERIFY over a 32-byte SHA-256 digest.

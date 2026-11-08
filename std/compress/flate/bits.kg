@@ -1,0 +1,83 @@
+/// Bit cursor over a byte string, least-significant bit first.
+type Bits = {
+    mut data Bytes
+    mut pos usize
+    mut buf u64
+    mut cnt usize
+    mut ended Bool
+}
+
+fn Bits.fill(mut self, want: usize) {
+    for self.cnt < want && self.pos < self.data.len() {
+        self.buf = self.buf | (self.data[self.pos].toU64() << self.cnt)
+        self.pos = self.pos + 1
+        self.cnt = self.cnt + 8
+    }
+}
+
+/// Pulls bytes until `want` bits are buffered and returns how many are there.
+fn Bits.peek(mut self, want: usize) -> usize {
+    self.fill(want)
+    self.cnt
+}
+
+/// The next `n` bits as an integer; None when more input is needed and the
+/// stream has not been closed, so the caller can resume at the same point.
+fn Bits.take(mut self, n: usize) -> u32?! {
+    self.fill(n)
+    if self.cnt < n {
+        if self.ended {
+            fail Error { text: "flate: input ends in the middle of the stream" }
+        }
+        return Ok(None)
+    }
+    let one: u64 = 1
+    let mask = (one << n) - one
+    let v = (self.buf & mask).truncate[u32]()
+    self.skip(n)
+    Ok(Some(v))
+}
+
+/// Drops `n` buffered bits.
+fn Bits.skip(mut self, n: usize) {
+    self.buf = self.buf >> n
+    self.cnt = self.cnt - n
+}
+
+/// Drops the bits left in the current byte, as a stored block requires.
+fn Bits.alignByte(mut self) {
+    self.skip(self.cnt % 8)
+}
+
+/// Bit writer for the encoder, least-significant bit first.
+type Writer = {
+    mut out Array[u8]
+    mut buf u64
+    mut cnt usize
+}
+
+fn Writer.new() -> Writer {
+    Writer {
+        out: Array.empty[u8]()
+        buf: 0
+        cnt: 0
+    }
+}
+
+fn Writer.writeBits(mut self, value: u32, n: usize) {
+    self.buf = self.buf | (value.toU64() << self.cnt)
+    self.cnt = self.cnt + n
+    for self.cnt >= 8 {
+        self.out.push((self.buf & 255).truncate[u8]())
+        self.buf = self.buf >> 8
+        self.cnt = self.cnt - 8
+    }
+}
+
+fn Writer.flush(mut self) {
+    if self.cnt > 0 {
+        self.out.push((self.buf & 255).truncate[u8]())
+        self.buf = 0
+        self.cnt = 0
+    }
+}
