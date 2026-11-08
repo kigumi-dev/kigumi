@@ -1,0 +1,31 @@
+-- src --
+import map from std/map
+
+let mut m = map.empty[String, Int]()
+m.set("a", 1)
+m.set("b", 2)
+m.set("c", 3)
+m.set("a", 10)
+print "after set ${debug(&m.keys())} ${debug(&m.values())}"
+_ = m.update("a", (old) => (old || 0) + 1)
+print "after update ${debug(&m.keys())} ${debug(&m.values())}"
+_ = m.update("d", (old) => (old || 0) + 4)
+print "after insert ${debug(&m.keys())} ${debug(&m.values())}"
+
+let mut counts = map.empty[Int, Int]()
+let mut i = 0
+for i < 2000 {
+    counts.set(i, i)
+    i = i + 1
+}
+let mut round = 0
+for round < 20000 {
+    _ = counts.update(7, (old) => (old || 0) + 1)
+    round = round + 1
+}
+print "count ${counts.getOr(&7, 0)} len ${counts.len()}"
+-- stdout --
+after set [a, b, c] [10, 2, 3]
+after update [a, b, c] [11, 2, 3]
+after insert [a, b, c, d] [11, 2, 3, 4]
+count 20007 len 2000

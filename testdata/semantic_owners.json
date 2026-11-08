@@ -21652,8 +21652,8 @@
     "status": "ok"
   },
   {
-    "key": "text.nextIncb",
-    "signature": "pure noalloc fn(\u0026Scan, Incb, Bool) -\u003e (Bool, Bool)",
+    "key": "text.nextLinker",
+    "signature": "pure noalloc fn(\u0026Scan, Incb) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",

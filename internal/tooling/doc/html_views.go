@@ -1,6 +1,7 @@
 package doc
 
 import (
+	"html"
 	"html/template"
 	"strings"
 )
@@ -81,6 +82,13 @@ type tocEntry struct {
 	ID    string
 	Text  string
 	Level int
+}
+
+// Href is the whole attribute: html/template would percent-encode a non-ASCII id in a URL context, but the heading carries it raw.
+func (e tocEntry) Href() template.HTMLAttr { return fragmentHref(e.ID) }
+
+func fragmentHref(id string) template.HTMLAttr {
+	return template.HTMLAttr(`href="#` + html.EscapeString(id) + `"`)
 }
 
 type pageData struct {

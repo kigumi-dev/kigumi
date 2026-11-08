@@ -64,7 +64,7 @@ val rt_iter_at(val it, int64_t i, int mode) {
         rt_type* tup = rt_find_type("Tuple2");
         if (mode == 1) {
             val f[2] = {keys->u.arr.items[i], vals->u.arr.items[i]};
-            return rt_record(tup, 2, f);
+            return rt_record_borrowed(tup, 2, f);
         }
         if (mode == 2) {
             val f[2] = {take_or_retain(&keys->u.arr.items[i]), take_or_retain(&vals->u.arr.items[i])};

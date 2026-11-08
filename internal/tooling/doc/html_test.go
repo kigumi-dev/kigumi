@@ -253,3 +253,40 @@ func toBytes(site map[string]string) map[string][]byte {
 	}
 	return out
 }
+
+func TestHTMLSiteNonASCIIHeadings(t *testing.T) {
+	site := renderSite(t, map[string]string{"u8": "# u8\n\n## 使い方\n\nCall it.\n\n## Café notes\n\nMore.\n"}, "demo")
+	page := site["u8.html"]
+	for _, id := range []string{"使い方", "café-notes"} {
+		if !strings.Contains(page, `<a href="#`+id+`">`) || !strings.Contains(page, `id="`+id+`"`) {
+			t.Errorf("TOC link and heading id disagree for %q:\n%s", id, page)
+		}
+	}
+	if err := doc.Publish(t.TempDir(), toBytes(site), doc.ValidateSite); err != nil {
+		t.Errorf("Publish: %v", err)
+	}
+}
+
+func TestHTMLSiteDevanagariHeadingAndLinks(t *testing.T) {
+	md := "# hi\n\n## हिन्दी\n\nSee [the heading](#हिन्दी) and [encoded](#%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80).\n"
+	site := renderSite(t, map[string]string{"hi": md}, "demo")
+	page := site["hi.html"]
+	if !strings.Contains(page, `id="हिन्दी"`) {
+		t.Errorf("combining marks were dropped from the heading id:\n%s", page)
+	}
+	if err := doc.Publish(t.TempDir(), toBytes(site), doc.ValidateSite); err != nil {
+		t.Errorf("Publish: %v", err)
+	}
+}
+
+func TestHTMLSiteHeadingIDsStayUnique(t *testing.T) {
+	site := renderSite(t, map[string]string{"dup": "# dup\n\n## a\n\n## a\n\n## a-2\n\n## kg-content\n"}, "demo")
+	for _, id := range []string{"a", "a-2", "a-2-2", "kg-content-2"} {
+		if strings.Count(site["dup.html"], `<h2 id="`+id+`">`) != 1 {
+			t.Errorf("heading id %q missing or repeated:\n%s", id, site["dup.html"])
+		}
+	}
+	if err := doc.Publish(t.TempDir(), toBytes(site), doc.ValidateSite); err != nil {
+		t.Errorf("Publish: %v", err)
+	}
+}

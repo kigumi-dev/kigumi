@@ -4,11 +4,25 @@ extern(C) {
     fn BCryptGenRandom(alg: *mut u8, buf: *mut u8, len: u32, flags: u32) -> i32
 }
 
-/// Fills buf with BCryptGenRandom and the system-preferred RNG.
+/// Fills buf with BCryptGenRandom and the system-preferred RNG; the length is a u32, so a large buffer is filled in 1 GiB steps.
 fn fillEntropy(buf: *mut u8, n: usize) -> Void! {
-    if unsafe {
-        BCryptGenRandom(ffi.toMut(ffi.null[u8]()), buf, n.toU32() || 0, 2)
-    } != 0 {
-        fail ffi.lastError()
+    let mut off: usize = 0
+    for off < n {
+        let left = n - off
+        let chunk = if left < 0x40000000 {
+            left
+        } else {
+            0x40000000
+        }
+        let status = unsafe {
+            BCryptGenRandom(ffi.toMut(ffi.null[u8]()), ffi.toMut(ffi.offset(ffi.toConst(buf), off.toInt() || 0)), chunk.toU32() || 0, 2)
+        }
+        if status != 0 {
+            fail ffi.CError {
+                code: status
+                text: "BCryptGenRandom failed with NTSTATUS ${status}"
+            }
+        }
+        off = off + chunk
     }
 }

@@ -1,5 +1,5 @@
 // Extended grapheme cluster boundaries, UAX #29 with the Indic conjunct rule
-// (GB9c). Properties come from the generated tables in unicode_tables.kg.
+// (GB9c, Unicode 18). Properties come from the generated tables in unicode_tables.kg.
 /// What the scan remembers between scalars.
 type Scan = {
     prev Class
@@ -10,9 +10,7 @@ type Scan = {
     pictChain Bool
     // A ZWJ closed a `Pict Extend*` run, so the next Pict joins it.
     zwjAfterPict Bool
-    // A consonant has been seen in this cluster (GB9c's left edge).
-    consonant Bool
-    // A linker followed that consonant, possibly with Extend/Linker between.
+    // The run so far is `Linker Extend*`, which GB9c joins to a following consonant.
     linker Bool
 }
 
@@ -22,7 +20,6 @@ pure noalloc fn start() -> Scan {
         riRun: 0
         pictChain: false
         zwjAfterPict: false
-        consonant: false
         linker: false
     }
 }
@@ -45,7 +42,7 @@ pure noalloc fn breaks(at: &Scan, next: Prop) -> Bool {
     if at.prev is Class.Prepend {
         return false
     }
-    // GB9c: Consonant [Extend Linker]* Linker [Extend Linker]* x Consonant.
+    // GB9c: Linker Extend* x Consonant.
     if at.linker && next.incb is Incb.IncbConsonant {
         return false
     }
@@ -79,14 +76,11 @@ pure noalloc fn hangulJoins(prev: Class, next: Class) -> Bool {
     }
 }
 
-// nextIncb advances the GB9c left-edge state. A link at a boundary does not
-// count, so a cluster that starts with a linker never joins a following consonant.
-pure noalloc fn nextIncb(prev: &Scan, incb: Incb, joined: Bool) -> (Bool, Bool) {
+pure noalloc fn nextLinker(prev: &Scan, incb: Incb) -> Bool {
     match incb {
-        IncbConsonant -> (true, false)
-        IncbLinker -> (prev.consonant, joined && prev.consonant)
-        IncbExtend -> (prev.consonant, prev.linker)
-        _ -> (false, false)
+        IncbLinker -> true
+        IncbExtend -> prev.linker
+        _ -> false
     }
 }
 
@@ -112,14 +106,12 @@ pure noalloc fn advance(at: &Scan, next: Prop, joined: Bool) -> Scan {
     } else {
         false
     }
-    let (incbConsonant, incbLinker) = nextIncb(at, next.incb, joined)
     Scan {
         prev: next.class
         riRun: run
         pictChain: chain
         zwjAfterPict: zwj
-        consonant: incbConsonant
-        linker: incbLinker
+        linker: nextLinker(at, next.incb)
     }
 }
 

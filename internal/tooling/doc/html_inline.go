@@ -67,22 +67,30 @@ func plainInline(text string) string {
 	return sb.String()
 }
 
-// uniqueAnchor dedups a base id the way GitHub's Markdown renderer does: the
-// first occurrence keeps the bare id, later ones get "-2", "-3", ...
+// uniqueAnchor dedups a base id like GitHub's renderer ("-2", "-3", ...) and skips ids already
+// taken; seen holds both the bases and the ids handed out.
 func uniqueAnchor(seen map[string]int, base string) string {
 	n := seen[base]
-	seen[base] = n + 1
-	if n == 0 {
-		return base
+	id := base
+	if n > 0 {
+		id = base + "-" + strconv.Itoa(n+1)
+		for seen[id] > 0 {
+			n++
+			id = base + "-" + strconv.Itoa(n+1)
+		}
 	}
-	return base + "-" + strconv.Itoa(n+1)
+	seen[base] = n + 1
+	if id != base {
+		seen[id]++
+	}
+	return id
 }
 
 func anchor(text string) string {
 	var sb strings.Builder
 	for _, r := range strings.ToLower(text) {
 		switch {
-		case unicode.IsLetter(r) || unicode.IsDigit(r) || r == '.' || r == '_' || r == '-':
+		case unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsMark(r) || r == '.' || r == '_' || r == '-':
 			sb.WriteRune(r)
 		case r == ' ':
 			sb.WriteByte('-')

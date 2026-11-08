@@ -23,7 +23,7 @@ fn main() {
 -- stdout --
 scalars=a|😀|b
 clusters=á|🇯🇵|👨‍👩‍👧‍👦|b
-virama-leading=2 joined=1
+virama-leading=1 joined=1
 width=1,2,0
 stringWidth=5
 vs16=2 text=1

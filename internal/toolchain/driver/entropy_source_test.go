@@ -12,10 +12,15 @@ var entropySourceRows = []struct {
 	{"x86_64-linux-musl", []string{"getrandom"}},
 	{"aarch64-macos", []string{"getentropy"}},
 	{"x86_64-windows-gnu", []string{"BCryptGenRandom"}},
-	{"wasm32-wasi", []string{"random_get"}},
+	{"wasm32-wasi", []string{"__wasi_random_get"}},
 	{"x86_64-freebsd", []string{"getentropy", "arc4random_buf"}},
 	{"x86_64-netbsd", []string{"getentropy", "arc4random_buf"}},
 	{"x86_64-openbsd", []string{"getentropy", "arc4random_buf"}},
+}
+
+var entropyCallShapes = map[string]string{
+	"BCryptGenRandom":   `declare i32 @BCryptGenRandom\(ptr, ptr, i32, i32\)`,
+	"__wasi_random_get": `declare zeroext i16 @__wasi_random_get\(ptr, i32\)`,
 }
 
 func TestEntropySourceOnEachHostedOS(t *testing.T) {
@@ -28,6 +33,9 @@ func TestEntropySourceOnEachHostedOS(t *testing.T) {
 			for _, name := range row.calls {
 				if !regexp.MustCompile(`call [^@\n]*@` + name + `\(`).MatchString(ir) {
 					t.Errorf("std/entropy on %s does not call %s", row.triple, name)
+				}
+				if shape, ok := entropyCallShapes[name]; ok && !regexp.MustCompile(shape).MatchString(ir) {
+					t.Errorf("std/entropy on %s calls %s with an unexpected signature", row.triple, name)
 				}
 			}
 		})

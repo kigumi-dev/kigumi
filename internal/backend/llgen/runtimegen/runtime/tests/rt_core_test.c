@@ -108,9 +108,48 @@ static void test_alloc_failure(void) {
     CHECK_LIVE(live);
 }
 
+static rt_vdesc probe_variant = {.name = "Probe"};
+
+static void build_record(val field) {
+    rt_release(rt_record(&dropped_type, 1, (val[]){field}));
+}
+static void build_record_borrowed(val field) {
+    rt_release(rt_record_borrowed(&dropped_type, 1, (val[]){field}));
+}
+static void build_array(val unused) {
+    (void)unused;
+    rt_release(rt_array(1, (val[]){NULL}));
+}
+static void build_variant(val unused) {
+    (void)unused;
+    rt_release(rt_variant(&probe_variant, 1, (val[]){NULL}));
+}
+
+// Fault tick on the second allocation, the element storage: the header is discarded and an owning
+// record releases its field; counts end level.
+static void test_constructor_storage_failure(void) {
+    void (*builders[])(val) = {build_record, build_array, build_variant, build_record_borrowed};
+    for (int k = 0; k < 4; k++) {
+        val field = k == 0 || k == 3 ? rt_int(1LL << 40, 0) : NULL;
+        g_fault_n = 0;
+        int64_t live = g_general.live - (field ? 1 : 0);
+#ifdef KIGUMI_RC_CHECK
+        long objs = g_live_objs - (field ? 1 : 0);
+#endif
+        CHECK(contained(builders[k], field) == 0);
+        if (k == 3) rt_release(field);
+        CHECK_LIVE(live);
+#ifdef KIGUMI_RC_CHECK
+        CHECK(g_live_objs == objs);
+#endif
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc > 1 && strcmp(argv[1], "allocfail") == 0) {
         test_alloc_failure();
+    } else if (argc > 1 && strcmp(argv[1], "recordfail") == 0) {
+        test_constructor_storage_failure();
     } else {
         test_value_and_copy();
         test_drop_hook();

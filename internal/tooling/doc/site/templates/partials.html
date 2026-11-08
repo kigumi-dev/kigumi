@@ -27,7 +27,7 @@
 <nav>
 <p class="toc-title">On this page</p>
 <ul class="toc-list">
-{{range .TOC}}<li class="toc-depth-{{.Level}}"><a href="#{{.ID}}">{{.Text}}</a></li>{{end}}
+{{range .TOC}}<li class="toc-depth-{{.Level}}"><a {{.Href}}>{{.Text}}</a></li>{{end}}
 </ul>
 </nav>
 </aside>
@@ -35,6 +35,6 @@
 
 {{define "mobile-toc"}}
 <details class="toc-mobile"><summary>On this page</summary><ul class="toc-list">
-{{range .TOC}}<li class="toc-depth-{{.Level}}"><a href="#{{.ID}}">{{.Text}}</a></li>{{end}}
+{{range .TOC}}<li class="toc-depth-{{.Level}}"><a {{.Href}}>{{.Text}}</a></li>{{end}}
 </ul></details>
 {{end}}

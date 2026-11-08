@@ -3,6 +3,7 @@ package doc
 import (
 	"fmt"
 	"io/fs"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -53,6 +54,15 @@ func ValidateSite(dir string) error {
 	return nil
 }
 
+// unescapeFragment decodes the percent-escapes a browser puts in a fragment; a malformed one stays as written.
+func unescapeFragment(frag string) string {
+	dec, err := url.PathUnescape(strings.TrimPrefix(frag, "#"))
+	if err != nil {
+		return strings.TrimPrefix(frag, "#")
+	}
+	return dec
+}
+
 func pageIDSet(htmlSrc string) (map[string]bool, string) {
 	ids := map[string]bool{}
 	for _, m := range idRe.FindAllStringSubmatch(htmlSrc, -1) {
@@ -85,7 +95,7 @@ func validateLinks(rel, htmlSrc string, pageIDs map[string]map[string]bool) erro
 		if !ok {
 			return fmt.Errorf("%s: broken link %q", rel, href)
 		}
-		if frag != "" && !ids[strings.TrimPrefix(frag, "#")] {
+		if frag != "" && !ids[strings.TrimPrefix(frag, "#")] && !ids[unescapeFragment(frag)] {
 			return fmt.Errorf("%s: missing fragment %q", rel, href)
 		}
 	}

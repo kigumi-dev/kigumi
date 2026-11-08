@@ -21,14 +21,20 @@ func TestRuntimeCUnitContracts(t *testing.T) {
 	rt, _ := filepath.Abs("../../backend/llgen/runtimegen/runtime")
 	dir := t.TempDir()
 	exe := filepath.Join(dir, "rt_core_test")
-	args := append(append([]string{}, cc[1:]...), "-I"+rt, "-g", "-O1",
-		"-DKIGUMI_TASK_CATCH", "-DKIGUMI_UNWIND", "-DKIGUMI_LEAK_CHECK", "-DKIGUMI_FAULT_INJECT")
-	args = append(args, strings.Fields(os.Getenv("KIGUMI_CFLAGS"))...)
-	args = append(args, filepath.Join(rt, "tests", "rt_core_test.c"), filepath.Join(rt, "rt_sys_weak.c"), filepath.Join(rt, "rt_float.c"), "-lm", "-o", exe)
-	if out, err := exec.Command(cc[0], args...).CombinedOutput(); err != nil {
-		t.Fatalf("build %s: %v\n%s", strings.Join(cc, " "), err, out)
+	build := func(exe string, extra ...string) {
+		args := append(append([]string{}, cc[1:]...), "-I"+rt, "-g", "-O1",
+			"-DKIGUMI_TASK_CATCH", "-DKIGUMI_UNWIND", "-DKIGUMI_LEAK_CHECK", "-DKIGUMI_FAULT_INJECT")
+		args = append(args, extra...)
+		args = append(args, strings.Fields(os.Getenv("KIGUMI_CFLAGS"))...)
+		args = append(args, filepath.Join(rt, "tests", "rt_core_test.c"), filepath.Join(rt, "rt_sys_weak.c"), filepath.Join(rt, "rt_float.c"), "-lm", "-o", exe)
+		if out, err := exec.Command(cc[0], args...).CombinedOutput(); err != nil {
+			t.Fatalf("build %s: %v\n%s", strings.Join(cc, " "), err, out)
+		}
 	}
-	run := func(mode string, env []string) (string, string, error) {
+	build(exe)
+	rcExe := filepath.Join(dir, "rt_core_test_rc")
+	build(rcExe, "-DKIGUMI_RC_CHECK")
+	run := func(exe, mode string, env []string) (string, string, error) {
 		cmd := exec.Command(exe)
 		if mode != "" {
 			cmd.Args = append(cmd.Args, mode)
@@ -39,10 +45,15 @@ func TestRuntimeCUnitContracts(t *testing.T) {
 		err := cmd.Run()
 		return stdout.String(), stderr.String(), err
 	}
-	if out, errOut, err := run("", nil); err != nil || out != "ok\n" {
+	if out, errOut, err := run(exe, "", nil); err != nil || out != "ok\n" {
 		t.Fatalf("plain harness: %v\nstdout:\n%s\nstderr:\n%s", err, out, errOut)
 	}
-	if out, errOut, err := run("allocfail", []string{"KIGUMI_FAIL_ALLOC_AT=1"}); err != nil || out != "ok\n" {
+	if out, errOut, err := run(exe, "allocfail", []string{"KIGUMI_FAIL_ALLOC_AT=1"}); err != nil || out != "ok\n" {
 		t.Fatalf("allocator-refusal harness: %v\nstdout:\n%s\nstderr:\n%s", err, out, errOut)
+	}
+	for _, e := range []string{exe, rcExe} {
+		if out, errOut, err := run(e, "recordfail", []string{"KIGUMI_FAIL_ALLOC_AT=2"}); err != nil || out != "ok\n" {
+			t.Fatalf("record field refusal (%s): %v\nstdout:\n%s\nstderr:\n%s", filepath.Base(e), err, out, errOut)
+		}
 	}
 }

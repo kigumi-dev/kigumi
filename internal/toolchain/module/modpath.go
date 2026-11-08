@@ -55,13 +55,19 @@ func RepoOf(r Require) (url, subdir string, ok bool) {
 // subdirUnder strips a url's repo part from a module name: the longest tail of the url's path that starts the name segment-wise; no overlap means the repo root.
 func subdirUnder(name, url string) string {
 	u := url
+	scheme := false
 	if i := strings.Index(u, "://"); i >= 0 {
-		u = u[i+3:]
+		u, scheme = u[i+3:], true
 	}
 	if i := strings.Index(u, "@"); i >= 0 && !strings.Contains(u[:i], "/") {
 		u = u[i+1:]
 	}
-	u = strings.TrimSuffix(stripAuthorityPort(u), "/")
+	if scheme {
+		u = stripAuthorityPort(u)
+	} else {
+		u = scpToPath(u)
+	}
+	u = strings.TrimSuffix(u, "/")
 	for _, form := range []string{u, strings.TrimSuffix(u, ".git")} {
 		segs := strings.Split(form, "/")
 		for i := range segs {
@@ -172,4 +178,13 @@ func stripAuthorityPort(u string) string {
 		authority = authority[:colon]
 	}
 	return authority + rest
+}
+
+// scpToPath turns the scp form host:path or host:/path into host/path; a colon after the first slash belongs to the path.
+func scpToPath(u string) string {
+	host, path, ok := strings.Cut(u, ":")
+	if !ok || strings.Contains(host, "/") {
+		return u
+	}
+	return host + "/" + strings.TrimPrefix(path, "/")
 }

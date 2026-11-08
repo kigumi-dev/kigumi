@@ -8459,6 +8459,15 @@
       ]
     },
     {
+      "id": "run/map_update_in_place",
+      "kind": "run",
+      "path": "testdata/run/map_update_in_place.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/match_mut_scrutinee_field",
       "kind": "run",
       "path": "testdata/run/match_mut_scrutinee_field.txtar",

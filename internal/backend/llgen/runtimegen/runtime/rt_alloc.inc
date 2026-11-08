@@ -142,6 +142,10 @@ static val alloc_in(rt_allocator* a, int kind) {
     v->al = a;
     return v;
 }
+static void discard_header(val v) {
+    LIVE_OBJ(v->kind, -1);
+    afree(v->al, v);
+}
 static val alloc(int kind) {
     return alloc_in(cur_alloc(), kind);
 }

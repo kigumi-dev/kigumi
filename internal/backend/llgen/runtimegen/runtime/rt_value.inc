@@ -163,6 +163,11 @@ val rt_opaque(const char* kind, void* data) {
     return v;
 }
 
+static void release_moved(val* items, int64_t n, uint64_t borrowed) {
+    for (int64_t i = 0; i < n; i++) {
+        if (items[i] && !(i < 64 && ((borrowed >> i) & 1))) rt_release(items[i]);
+    }
+}
 val rt_array(int64_t n, val* items) {
     val v = alloc(K_ARRAY);
     if (n == 0) {
@@ -173,7 +178,10 @@ val rt_array(int64_t n, val* items) {
     }
     v->u.arr.cap = n < 4 ? 4 : n;
     v->u.arr.items = amalloc(v->al, v->u.arr.cap * sizeof(val));
-    if (!v->u.arr.items) rt_panic("out of memory");
+    if (!v->u.arr.items) {
+        discard_header(v);
+        rt_panic("out of memory");
+    }
     for (int64_t i = 0; i < n; i++) v->u.arr.items[i] = items[i];
     v->u.arr.len = n;
     return v;
@@ -216,22 +224,28 @@ val rt_at(val a, int64_t i) {
 static int borrow_field(val r, int64_t i) {
     return r->kind == K_RECORD && i < 64 && ((r->u.rec.type->borrow_fields >> i) & 1);
 }
-val rt_record(rt_type* t, int64_t n, val* fields) {
+static val record_build(rt_type* t, int64_t n, val* fields, int owned) {
     if (!t) rt_panic("a runtime-named type was dropped by reachability");
     val v = alloc(K_RECORD);
     v->u.rec.type = t;
     v->u.rec.n = n;
     v->u.rec.fields = amalloc(v->al, (n ? n : 1) * sizeof(val));
     if (!v->u.rec.fields) {
-        // The header was allocated before the fields; a fatal OOM must not leave
-        // it live, or the live count at the fatal boundary is permanently off.
-        afree(v->al, v);
+        discard_header(v);
+        if (owned) release_moved(fields, n, t->borrow_fields);
         rt_panic("out of memory");
     }
     for (int64_t i = 0; i < n; i++) {
         v->u.rec.fields[i] = fields[i];
     }
     return v;
+}
+val rt_record(rt_type* t, int64_t n, val* fields) {
+    return record_build(t, n, fields, 1);
+}
+// For callers whose fields still belong to someone else: a refused allocation releases nothing.
+static val rt_record_borrowed(rt_type* t, int64_t n, val* fields) {
+    return record_build(t, n, fields, 0);
 }
 // Every payload-free variant's immortal, built before any Kigumi code
 // runs: an interrupt handler must never find one half-initialized.
@@ -298,7 +312,10 @@ val rt_variant(rt_vdesc* d, int64_t n, val* payload) {
     v->u.var.v = d;
     v->u.var.n = n;
     v->u.var.payload = amalloc(v->al, (n ? n : 1) * sizeof(val));
-    if (!v->u.var.payload) rt_panic("out of memory");
+    if (!v->u.var.payload) {
+        discard_header(v);
+        rt_panic("out of memory");
+    }
     for (int64_t i = 0; i < n; i++) {
         v->u.var.payload[i] = payload[i];
     }
@@ -585,7 +602,7 @@ val rt_copy(val v) {
     switch (v->kind) {
     case K_RECORD: {
         if (v->u.rec.type->kind == 1) return rt_retain(v);
-        val c = rt_record(v->u.rec.type, v->u.rec.n, v->u.rec.fields);
+        val c = rt_record_borrowed(v->u.rec.type, v->u.rec.n, v->u.rec.fields);
         uint64_t bf = v->u.rec.type->borrow_fields;
         for (int64_t i = 0; i < c->u.rec.n; i++) {
             if ((bf >> i) & 1) continue;

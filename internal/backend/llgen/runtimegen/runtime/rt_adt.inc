@@ -161,10 +161,6 @@ static char* try_dup(const char* s, int64_t len) {
     d[len] = 0;
     return d;
 }
-static void discard_header(val v) {
-    LIVE_OBJ(v->kind, -1);
-    afree(v->al, v);
-}
 static val array_try_new(int64_t cap) {
     if (cap < 0 || (uint64_t)cap > SIZE_MAX / sizeof(val) / 2) return NULL;
     val v = alloc_try(K_ARRAY);

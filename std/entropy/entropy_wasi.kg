@@ -1,13 +1,19 @@
 import ffi from std/ffi
 
 extern(C) {
-    fn random_get(buf: *mut u8, len: usize) -> i32
+    fn __wasi_random_get(buf: *mut u8, len: usize) -> u16
 }
 
+/// Fills buf with wasi random_get, which returns the errno instead of setting it.
 fn fillEntropy(buf: *mut u8, n: usize) -> Void! {
-    if unsafe {
-        random_get(buf, n)
-    } != 0 {
-        fail ffi.lastError()
+    let code = unsafe {
+        __wasi_random_get(buf, n)
+    }
+    if code != 0 {
+        let e = code.toI32()
+        fail ffi.CError {
+            code: e
+            text: ffi.errorText(e)
+        }
     }
 }

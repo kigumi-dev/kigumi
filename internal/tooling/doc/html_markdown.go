@@ -16,7 +16,7 @@ func markdownPage(md, selfDir string) (string, []tocEntry) {
 	var codeLang string
 	var codeLines []string
 	var toc []tocEntry
-	seen := map[string]int{}
+	seen := map[string]int{"kg-content": 1}
 	closePara := func() {
 		if inPara {
 			sb.WriteString("</p>\n")
@@ -64,7 +64,7 @@ func markdownPage(md, selfDir string) (string, []tocEntry) {
 			tag := "h" + strconv.Itoa(level)
 			sb.WriteString("<" + tag + " id=\"" + html.EscapeString(id) + "\">")
 			if level >= 2 && level <= 4 {
-				sb.WriteString(`<a class="heading-anchor" href="#` + html.EscapeString(id) + `" aria-label="Permalink: ` + html.EscapeString(plainInline(text)) + `" tabindex="-1">#</a>`)
+				sb.WriteString(`<a class="heading-anchor" ` + string(fragmentHref(id)) + ` aria-label="Permalink: ` + html.EscapeString(plainInline(text)) + `" tabindex="-1">#</a>`)
 			}
 			sb.WriteString(inline(text, selfDir) + "</" + tag + ">\n")
 		case strings.HasPrefix(line, "- "):
