@@ -1,0 +1,31 @@
+import ffi from std/ffi
+
+extern(C) {
+    fn getentropy(buf: *mut u8, len: usize) -> i32
+    fn arc4random_buf(buf: *mut u8, n: usize)
+}
+
+/// Fills buf with getentropy(2), at most 256 bytes a call; arc4random_buf(3), which cannot fail, fills what a failed call left.
+fn fillEntropy(buf: *mut u8, n: usize) -> Void! {
+    let mut off: usize = 0
+    for off < n {
+        let left = n - off
+        let chunk = if left < 256 {
+            left
+        } else {
+            256
+        }
+        let at = unsafe {
+            ffi.toMut(ffi.offset(ffi.toConst(buf), off.toInt() || 0))
+        }
+        if unsafe {
+            getentropy(at, chunk)
+        } != 0 {
+            unsafe {
+                arc4random_buf(at, left)
+            }
+            return
+        }
+        off = off + chunk
+    }
+}

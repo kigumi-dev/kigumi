@@ -19,6 +19,11 @@ var stdSysRows = []struct{ triple, sys string }{
 	{"wasm32-freestanding", ""},
 	{"wasm32-wasi", "posix"},
 	{"wasm32-wasi", "none"},
+	{"x86_64-freebsd", "posix"},
+	{"x86_64-netbsd", "posix"},
+	{"x86_64-openbsd", "posix"},
+	{"aarch64-macos", "posix"},
+	{"x86_64-windows-gnu", "posix"},
 }
 
 // Every std package is checked whatever the entry imports, so a hosted-only name

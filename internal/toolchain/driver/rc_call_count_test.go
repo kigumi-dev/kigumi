@@ -49,6 +49,8 @@ var baselineRCCalls = map[string]int{
 }
 
 var addedAfterBaseline = map[string]bool{
+	"tls_handshake.txtar":                           true,
+	"tls_schedule.txtar":                            true,
 	"atomic_u64.txtar":                              true,
 	"crypto_rsa_pss.txtar":                          true,
 	"crypto_rsa_pkcs1.txtar":                        true,
