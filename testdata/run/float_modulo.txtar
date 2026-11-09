@@ -8,9 +8,15 @@ print "${c}"
 print "${1e300 % 7.0}"
 print "${1e308 % 3.0}"
 print "${math.fmod(5.5, -2.0)}"
+let small: f32 = 1e20
+let seven: f32 = 7.0
+print "${small % seven}"
+print "${(1e30) % seven}"
 -- stdout --
 1.5
 -1.5
 1
 2
 1.5
+3
+1
