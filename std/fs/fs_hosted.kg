@@ -506,3 +506,8 @@ pub fn Files.isFile(self, path: Path) -> Bool! {
 extern(C) {
     fn rt_fs_stat(path: *const u8, out: *mut FsMeta) -> i32
 }
+
+/// Changes the permission bits of path to mode (before the umask, which chmod does not apply).
+pub fn Files.chmod(self, path: Path, mode: u32) -> Void! {
+    platform.chmodFile(path.text, mode)
+}

@@ -5,8 +5,8 @@ extern(C) {
 }
 
 /// Changes the permission bits of path to mode (before the umask, which chmod does not apply).
-pub fn Files.chmod(self, path: Path, mode: u32) -> Void! {
-    let c = ffi.CString.new(&path.text)?
+pub fn chmodFile(path: String, mode: u32) -> Void! {
+    let c = ffi.CString.new(&path)?
     if unsafe {
         chmod(c.ptr(), mode)
     } != 0 {

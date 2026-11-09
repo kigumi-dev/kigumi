@@ -5,8 +5,8 @@ extern(C) {
 }
 
 /// Changes the read-only bit of path to match mode's write bits.
-pub fn Files.chmod(self, path: Path, mode: u32) -> Void! {
-    let c = ffi.CString.new(&path.text)?
+pub fn chmodFile(path: String, mode: u32) -> Void! {
+    let c = ffi.CString.new(&path)?
     if unsafe {
         _chmod(c.ptr(), mode.toI32() || 0)
     } != 0 {

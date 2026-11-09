@@ -1,7 +1,7 @@
 import ffi from std/ffi
 
-/// Permission bits are not part of the WASI file model.
-pub fn Files.chmod(self, path: Path, mode: u32) -> Void! {
+/// Permission bits are not part of a bare target.
+pub fn chmodFile(path: String, mode: u32) -> Void! {
     fail ffi.CError {
         code: 0
         text: "chmod is not supported on this target"
