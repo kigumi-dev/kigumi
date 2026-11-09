@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 
 	"kigumi/internal/compiler/mir"
 	midir "kigumi/internal/compiler/mir/ir"
@@ -117,8 +118,9 @@ type Machine struct {
 	witnessed map[[2]sem.EntityID]bool
 	// trace is the SecretSan two-run trace, nil unless Options.Trace is set.
 	trace *traceLog
-	// procs holds the live OS processes spawned by std/proc, keyed by pid.
-	procs map[int64]*os.Process
+	// procsMu guards procs, the live OS processes std/proc spawned.
+	procsMu sync.Mutex
+	procs   map[int64]*os.Process
 }
 
 // Run executes the program's entry and returns its exit code: 0, 1 for a
