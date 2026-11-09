@@ -10,7 +10,7 @@ extern(C) {
     fn listen(fd: i32, backlog: i32) -> i32
     fn accept(fd: i32, addr: *mut u8, len: *mut u32) -> i32
     fn setsockopt(fd: i32, level: i32, name: i32, value: *const OptBox, len: u32) -> i32
-    fn setsockopt(fd: i32, level: i32, name: i32, value: *const Timeval, len: u32) -> i32
+    fn setsockopt(fd: i32, level: i32, name: i32, value: *const platform.Timeval, len: u32) -> i32
     fn getsockopt(fd: i32, level: i32, name: i32, value: *mut OptBox, len: *mut LenBox) -> i32
     fn getsockname(fd: i32, addr: *mut SockAddrIn, len: *mut LenBox) -> i32
     fn close(fd: i32) -> i32
@@ -95,10 +95,10 @@ fn connectSocket(s: i32, addr: *const u8, addrlen: u32, timeoutSeconds: i32) -> 
         }
     } else {
         let flags = unsafe {
-            fcntl(s, fcntlGetFl())
+            fcntl(s, platform.fcntlGetFl())
         }
         _ = unsafe {
-            fcntl(s, fcntlSetFl(), flags | oNonBlock())
+            fcntl(s, platform.fcntlSetFl(), flags | platform.oNonBlock())
         }
         let rc = unsafe {
             connect(s, addr, addrlen)
@@ -122,7 +122,7 @@ fn connectSocket(s: i32, addr: *const u8, addrlen: u32, timeoutSeconds: i32) -> 
                 unsafe {
                     ffi.writeRecord(pollFdPtr(pbuf), &Pollfd {
                         fd: s
-                        events: pollOut()
+                        events: platform.pollOut()
                         revents: 0
                     })
                 }
@@ -148,7 +148,7 @@ fn connectSocket(s: i32, addr: *const u8, addrlen: u32, timeoutSeconds: i32) -> 
             }
         }
         _ = unsafe {
-            fcntl(s, fcntlSetFl(), flags)
+            fcntl(s, platform.fcntlSetFl(), flags)
         }
         if outcome > 0 {
             fail ffi.CError {
@@ -171,7 +171,7 @@ fn connectSucceeded(s: i32) -> i32 {
     let errBoxed = ffi.CValue.new(errRaw)
     let lenBoxed = ffi.CValue.new(LenBox { v: errLen })
     _ = unsafe {
-        getsockopt(s, solSocket(), soError(), errBoxed.ptr(), lenBoxed.ptr())
+        getsockopt(s, platform.solSocket(), platform.soError(), errBoxed.ptr(), lenBoxed.ptr())
     }
     errBoxed.get().v
 }
@@ -238,7 +238,7 @@ fn sendAll(fd: i32, data: Bytes) -> Void! {
     let mut off: usize = 0
     for off < n {
         let w = unsafe {
-            send(fd, ffi.offset(ffi.bytesPtr(&data), off.toInt() || 0), n - off, msgNoSignal())
+            send(fd, ffi.offset(ffi.bytesPtr(&data), off.toInt() || 0), n - off, platform.msgNoSignal())
         }
         if w <= 0 {
             if w < 0 && ffi.errno() == platform.eintr() {
@@ -290,14 +290,14 @@ fn readLine(fd: i32) -> Bytes! {
 // is bounded separately, by connectSocket's poll(2) (SO_SNDTIMEO set
 // before connect() is not a portable connect timeout on its own).
 fn setTimeout(fd: i32, seconds: i32) {
-    let raw = timeoutValue(seconds)
+    let raw = platform.timeoutValue(seconds)
     let len = ffi.sizeOf(&raw).toU32() || 0
     let boxed = ffi.CValue.new(raw)
     _ = unsafe {
-        setsockopt(fd, solSocket(), soRcvTimeo(), ffi.toConst(boxed.ptr()), len)
+        setsockopt(fd, platform.solSocket(), platform.soRcvTimeo(), ffi.toConst(boxed.ptr()), len)
     }
     _ = unsafe {
-        setsockopt(fd, solSocket(), soSndTimeo(), ffi.toConst(boxed.ptr()), len)
+        setsockopt(fd, platform.solSocket(), platform.soSndTimeo(), ffi.toConst(boxed.ptr()), len)
     }
 }
 
@@ -516,7 +516,7 @@ pub fn Net.listen(self, host: String, port: Int) -> Listener! {
     let optLen = ffi.sizeOf(&optRaw).toU32() || 0
     let opt = ffi.CValue.new(optRaw)
     _ = unsafe {
-        setsockopt(fd, solSocket(), soReuseAddr(), ffi.toConst(opt.ptr()), optLen)
+        setsockopt(fd, platform.solSocket(), platform.soReuseAddr(), ffi.toConst(opt.ptr()), optLen)
     }
     let bound = unsafe {
         bind(fd, ai.addr, ai.addrlen)
@@ -631,7 +631,7 @@ pub fn Conn.write(mut self, data: Bytes) -> usize! {
     let mut w: isize = -1
     for w < 0 {
         w = unsafe {
-            send(self.fd, ffi.bytesPtr(&data), n, msgNoSignal())
+            send(self.fd, ffi.bytesPtr(&data), n, platform.msgNoSignal())
         }
         if w < 0 && ffi.errno() != platform.eintr() {
             fail ffi.lastError()
@@ -644,13 +644,13 @@ pub fn Conn.write(mut self, data: Bytes) -> usize! {
 // without the Conn or Listener having to remember it.
 fn setNonBlocking(fd: i32) -> Void! {
     let flags = unsafe {
-        fcntl(fd, fcntlGetFl())
+        fcntl(fd, platform.fcntlGetFl())
     }
     if flags < 0 {
         fail ffi.lastError()
     }
-    if (flags & oNonBlock()) == 0 && unsafe {
-        fcntl(fd, fcntlSetFl(), flags | oNonBlock())
+    if (flags & platform.oNonBlock()) == 0 && unsafe {
+        fcntl(fd, platform.fcntlSetFl(), flags | platform.oNonBlock())
     } < 0 {
         fail ffi.lastError()
     }
@@ -739,7 +739,7 @@ pub fn Conn.pollWrite(mut self, data: Bytes) -> usize?! {
     setNonBlocking(self.fd)?
     for true {
         let w = unsafe {
-            send(self.fd, ffi.bytesPtr(&data), n, msgNoSignal())
+            send(self.fd, ffi.bytesPtr(&data), n, platform.msgNoSignal())
         }
         if w >= 0 {
             return Some(w.toUsize() || 0)
