@@ -23,8 +23,8 @@ func (m *Machine) registerProc() {
 		}
 		cmd := exec.Command(program, argv...)
 		cmd.Stdin = os.Stdin
-		cmd.Stdout = m.out
-		cmd.Stderr = m.err
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
 		if err := cmd.Start(); err != nil {
 			return m.errMsg(err.Error())
 		}
