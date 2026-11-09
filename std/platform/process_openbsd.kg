@@ -1,5 +1,13 @@
 import ffi from std/ffi
-import platform from std/platform
+
+/// Why a process wait, spawn or signal failed at the OS layer.
+pub type ProcessError = {
+    pub text String
+}
+
+pub fn ProcessError.message(self) -> String {
+    self.text
+}
 
 extern(C) {
     fn fork() -> i32
@@ -22,16 +30,16 @@ fn hasNul(s: String) -> Bool {
 
 /// Spawns program with argv[0] = program and the given arguments, inheriting
 /// stdin, stdout and stderr. PATH lookup follows execvp.
-pub fn Processes.spawn(self, program: String, args: Array[String]) -> Process! {
+pub fn spawnProcess(program: String, args: Array[String]) -> i32! {
     if hasNul(program) {
-        fail Error { text: "process program contains a NUL byte" }
+        fail ProcessError { text: "process program contains a NUL byte" }
     }
     let mut argv = Array.empty[ffi.CString]()
     argv.push(ffi.CString.new(&program)?)
     for i in 0..args.len() {
         let arg = args.get(i) || ""
         if hasNul(arg) {
-            fail Error { text: "process argument contains a NUL byte" }
+            fail ProcessError { text: "process argument contains a NUL byte" }
         }
         argv.push(ffi.CString.new(&arg)?)
     }
@@ -42,7 +50,7 @@ pub fn Processes.spawn(self, program: String, args: Array[String]) -> Process! {
         malloc((n + 1) * ptrSize)
     }
     if ffi.isNull(ffi.toConst(table)) {
-        fail Error { text: "process spawn: out of memory" }
+        fail ProcessError { text: "process spawn: out of memory" }
     }
     let mut i: usize = 0
     for i < n {
@@ -72,13 +80,9 @@ pub fn Processes.spawn(self, program: String, args: Array[String]) -> Process! {
         free(table)
     }
     if pid < 0 {
-        fail Error { text: "process spawn failed: ${ffi.errorText(ffi.errno())}" }
+        fail ProcessError { text: "process spawn failed: ${ffi.errorText(ffi.errno())}" }
     }
-    Process {
-        pid: pid
-        waited: false
-        status: 0
-    }
+    pid
 }
 
 fn decodeStatus(raw: i32) -> Int {
@@ -89,24 +93,21 @@ fn decodeStatus(raw: i32) -> Int {
     }
 }
 
-/// Waits for the process and returns its exit code, or 128 + signal number
-/// when a signal ended it. Calling wait again returns the same status.
-pub fn Process.wait(mut self) -> Int! {
-    if self.waited {
-        return self.status
-    }
+/// Waits for pid and returns its exit code, or 128 + signal number when a
+/// signal ended it.
+pub fn waitProcess(pid: i32) -> Int! {
     let status = unsafe {
         malloc(4)
     }
     if ffi.isNull(ffi.toConst(status)) {
-        fail Error { text: "process wait: out of memory" }
+        fail ProcessError { text: "process wait: out of memory" }
     }
     let mut got: i32 = -1
     for true {
         got = unsafe {
-            waitpid(self.pid, status, 0)
+            waitpid(pid, status, 0)
         }
-        if got >= 0 || ffi.errno() != platform.eintr() {
+        if got >= 0 || ffi.errno() != eintr() {
             break
         }
     }
@@ -115,7 +116,7 @@ pub fn Process.wait(mut self) -> Int! {
         unsafe {
             free(status)
         }
-        fail Error { text: "process wait failed: ${why}" }
+        fail ProcessError { text: "process wait failed: ${why}" }
     }
     let raw = unsafe {
         ffi.readI32(ffi.cast[i32](ffi.toConst(status)))
@@ -123,20 +124,15 @@ pub fn Process.wait(mut self) -> Int! {
     unsafe {
         free(status)
     }
-    self.status = decodeStatus(raw)
-    self.waited = true
-    self.status
+    decodeStatus(raw)
 }
 
-/// Sends signal to the process. A process that already exited may still be
-/// signaled until it is waited for.
-pub fn Process.signal(self, signal: Signal) -> Void! {
-    if self.waited {
-        return
-    }
+/// Sends sig to pid. A process that already exited may still be signaled
+/// until it is waited for.
+pub fn signalProcess(pid: i32, sig: i32) -> Void! {
     if unsafe {
-        kill(self.pid, signal.number())
+        kill(pid, sig)
     } != 0 {
-        fail Error { text: "process signal failed: ${ffi.errorText(ffi.errno())}" }
+        fail ProcessError { text: "process signal failed: ${ffi.errorText(ffi.errno())}" }
     }
 }

@@ -1,0 +1,19 @@
+pub type ProcessError = {
+    pub text String
+}
+
+pub fn ProcessError.message(self) -> String {
+    self.text
+}
+
+pub fn spawnProcess(program: String, args: Array[String]) -> i32! {
+    fail ProcessError { text: "process spawning is not implemented on this target" }
+}
+
+pub fn waitProcess(pid: i32) -> Int! {
+    fail ProcessError { text: "process waiting is not implemented on this target" }
+}
+
+pub fn signalProcess(pid: i32, sig: i32) -> Void! {
+    fail ProcessError { text: "process signals are not implemented on this target" }
+}

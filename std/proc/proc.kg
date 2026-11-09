@@ -1,6 +1,9 @@
 /// Child processes. POSIX targets implement `spawn`, `wait` and `signal` with
-/// fork/execvp; other targets report `Error.Unsupported`. A process is not
-/// reaped until `wait` is called, so keep the handle and wait for it.
+/// fork/execvp through `std/platform`; other targets report
+/// `Error.Unsupported`. The VM has no fork, so process code is native-only.
+/// A process is not reaped until `wait` is called, so keep the handle and wait.
+import platform from std/platform
+
 pub type Signal =
     | Interrupt
     | Terminate
@@ -40,6 +43,40 @@ pub fn Process.id(self) -> i32 {
 
 pub fn Process.reaped(self) -> Bool {
     self.waited
+}
+
+pub fn Processes.spawn(self, program: String, args: Array[String]) -> Process! {
+    let pid = match platform.spawnProcess(program, args) {
+        Ok(pid) -> pid
+        Err(e) -> fail Error { text: e.message() }
+    }
+    Process {
+        pid: pid
+        waited: false
+        status: 0
+    }
+}
+
+pub fn Process.wait(mut self) -> Int! {
+    if self.waited {
+        return self.status
+    }
+    self.status = match platform.waitProcess(self.pid) {
+        Ok(status) -> status
+        Err(e) -> fail Error { text: e.message() }
+    }
+    self.waited = true
+    self.status
+}
+
+pub fn Process.signal(self, signal: Signal) -> Void! {
+    if self.waited {
+        return
+    }
+    match platform.signalProcess(self.pid, signal.number()) {
+        Ok(_) -> {}
+        Err(e) -> fail Error { text: e.message() }
+    }
 }
 
 /// Spawns program, waits for it, and returns its status.
