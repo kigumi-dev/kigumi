@@ -9793,6 +9793,15 @@
       ]
     },
     {
+      "id": "run/secret_declassify",
+      "kind": "run",
+      "path": "testdata/run/secret_declassify.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/secret_index",
       "kind": "run",
       "path": "testdata/run/secret_index.txtar",
