@@ -15,6 +15,7 @@ import (
 	"math/big"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -25,6 +26,8 @@ import (
 // TestHTTPSClientTalksToAGoServer exercises the whole std/net/http TlsClient
 // path: URL parsing, the TLS handshake, certificate validation against a
 // supplied root, an HTTP request over application data, and the response.
+// It runs the same program in the VM and, when a C toolchain is available,
+// natively.
 func TestHTTPSClientTalksToAGoServer(t *testing.T) {
 	t.Parallel()
 	root, leaf := testTLSChain(t)
@@ -36,22 +39,24 @@ func TestHTTPSClientTalksToAGoServer(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer ln.Close()
-	done := make(chan struct{})
 	go func() {
-		defer close(done)
-		conn, err := ln.Accept()
-		if err != nil {
-			return
-		}
-		defer conn.Close()
-		br := bufio.NewReader(conn)
 		for {
-			line, err := br.ReadString('\n')
-			if err != nil || line == "\r\n" {
-				break
+			conn, err := ln.Accept()
+			if err != nil {
+				return
 			}
+			go func() {
+				defer conn.Close()
+				br := bufio.NewReader(conn)
+				for {
+					line, err := br.ReadString('\n')
+					if err != nil || line == "\r\n" {
+						break
+					}
+				}
+				_, _ = conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\nhello"))
+			}()
 		}
-		_, _ = conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\nhello"))
 	}()
 
 	port := ln.Addr().(*net.TCPAddr).Port
@@ -84,12 +89,29 @@ task.currentThreadExecutor().runToCompletion(check())?
 	var out, errOut bytes.Buffer
 	code, err := driver.RunWith(m, driver.RunOptions{Cwd: t.TempDir()}, &out, &errOut, []string{"main/main.kg"})
 	if err != nil {
-		t.Fatalf("run: %v\n%s", err, errOut.String())
+		t.Fatalf("vm run: %v\n%s", err, errOut.String())
 	}
 	if code != 0 || out.String() != "200 hello\n" {
-		t.Fatalf("exit %d, stdout %q, stderr:\n%s", code, out.String(), errOut.String())
+		t.Fatalf("vm exit %d, stdout %q, stderr:\n%s", code, out.String(), errOut.String())
 	}
-	<-done
+	if testCompiler().CCompiler() == nil {
+		t.Log("no C compiler: native HTTPS run skipped")
+		return
+	}
+	exe := filepath.Join(t.TempDir(), "https-client")
+	var buildErr bytes.Buffer
+	if ok, err := driver.BuildWith(m, exe, &buildErr, driver.BuildOptions{}); err != nil || !ok {
+		t.Fatalf("native build: %v\n%s", err, buildErr.String())
+	}
+	cmd := exec.Command(exe)
+	cmd.Dir = t.TempDir()
+	binOut, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("native run: %v", err)
+	}
+	if string(binOut) != "200 hello\n" {
+		t.Fatalf("native stdout %q", binOut)
+	}
 }
 
 func writeTestModule(t *testing.T, dir, src string) {
@@ -148,9 +170,10 @@ func testTLSChain(t *testing.T) ([]byte, tls.Certificate) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: leafDER})
-	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: keyDER})
-	cert, err := tls.X509KeyPair(certPEM, keyPEM)
+	cert, err := tls.X509KeyPair(
+		pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: leafDER}),
+		pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: keyDER}),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
