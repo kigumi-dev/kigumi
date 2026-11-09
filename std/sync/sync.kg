@@ -1,0 +1,82 @@
+/// Small synchronization primitives built on `std/atomic`.
+///
+/// `Once` runs a closure once; `WaitGroup` counts unfinished work and waits
+/// without blocking the executor. A mutex is not provided: the language has
+/// no borrowed guard type yet, so expose shared mutable state through tasks
+/// and channels instead.
+import atomic from std/atomic
+import task from std/task
+
+/// Runs a closure at most once.
+/// Safety: every access goes through the atomic state, so sharing it is race-free.
+@unsafeGuarantee(Send, Sync)
+pub type Once = resource {
+    state atomic.AtomicU64
+}
+
+pub fn Once.new() -> Once {
+    Once { state: atomic.AtomicU64.new(0) }
+}
+
+/// Runs f once. A second caller waits for the first to finish and returns
+/// without running f. If f fails, the failure is returned to the caller that
+/// ran it and the once is complete.
+pub async fn Once.call(mut self, f: fn() -> Void!) -> Void! {
+    let prior = unsafe {
+        self.state.compareExchange(0, 1, atomic.RmwOrder.AcqRel)
+    }
+    if prior == 0 {
+        let result = f()
+        unsafe {
+            self.state.store(2, atomic.StoreOrder.Release)
+        }
+        return result
+    }
+    for unsafe {
+        self.state.load(atomic.LoadOrder.Acquire)
+    } != 2 {
+        await task.yieldNow()
+    }
+}
+
+/// Whether the closure has run (or failed).
+pub fn Once.done(self) -> Bool {
+    unsafe {
+        self.state.load(atomic.LoadOrder.Acquire)
+    } == 2
+}
+
+/// Counts work whose completion other tasks wait for.
+/// Safety: every access goes through the atomic count, so sharing it is race-free.
+@unsafeGuarantee(Send, Sync)
+pub type WaitGroup = resource {
+    count atomic.AtomicU64
+}
+
+pub fn WaitGroup.new() -> WaitGroup {
+    WaitGroup { count: atomic.AtomicU64.new(0) }
+}
+
+/// Adds n to the count; call before starting the work it represents.
+pub fn WaitGroup.add(self, n: u64) {
+    _ = unsafe {
+        self.count.add(n, atomic.RmwOrder.AcqRel)
+    }
+}
+
+/// Marks one unit complete. Calling it more often than add is a programming
+/// error: the count wraps rather than reporting it.
+pub fn WaitGroup.done(self) {
+    _ = unsafe {
+        self.count.sub(1, atomic.RmwOrder.AcqRel)
+    }
+}
+
+/// Waits until the count reaches zero, yielding the executor while it is nonzero.
+pub async fn WaitGroup.wait(self) {
+    for unsafe {
+        self.count.load(atomic.LoadOrder.Acquire)
+    } != 0 {
+        await task.yieldNow()
+    }
+}

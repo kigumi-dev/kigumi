@@ -1,0 +1,23 @@
+-- src --
+import task from std/task
+import sync from std/sync
+
+async fn check() -> Void! {
+    let mut once = sync.Once.new()
+    (await once.call(() => print "first"))?
+    (await once.call(() => print "second"))?
+    print "once done ${once.done()}"
+
+    let wg = sync.WaitGroup.new()
+    wg.add(2)
+    wg.done()
+    wg.done()
+    await wg.wait()
+    print "waitgroup done"
+}
+
+task.currentThreadExecutor().runToCompletion(check())?
+-- stdout --
+first
+once done true
+waitgroup done

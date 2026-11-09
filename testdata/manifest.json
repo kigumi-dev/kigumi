@@ -10704,6 +10704,15 @@
       ]
     },
     {
+      "id": "run/sync_once_waitgroup",
+      "kind": "run",
+      "path": "testdata/run/sync_once_waitgroup.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/task_panic_sync_drop",
       "kind": "run",
       "path": "testdata/run/task_panic_sync_drop.txtar",
