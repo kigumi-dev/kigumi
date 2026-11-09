@@ -18,7 +18,7 @@ pub fn ClientError.message(self) -> String {
         InvalidUrl(why) -> "invalid URL: ${why}"
         TimedOut -> "request timed out"
         MalformedResponse(why) -> "malformed response: ${why}"
-        Tls(why) -> "tls: ${why}"
+        Tls(why) -> why
         Closed -> "connection closed before the response"
     }
 }

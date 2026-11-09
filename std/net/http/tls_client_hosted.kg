@@ -1,7 +1,7 @@
-import net from std/net
-import task from std/task
-import tls from std/net/tls
 import x509 from std/crypto/x509
+import net from std/net
+import tls from std/net/tls
+import task from std/task
 
 /// An HTTPS/1.1 client over a TLS 1.3 session. `open` consumes the client; keep the returned
 /// `Session` to send several requests over one connection.

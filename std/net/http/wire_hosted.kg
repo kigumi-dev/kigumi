@@ -1,8 +1,8 @@
 import alloc from std/alloc
 import net from std/net
+import tls from std/net/tls
 import task from std/task
 import time from std/time
-import tls from std/net/tls
 
 /// A shutdown request shared between a Server and whoever stops it; clones see the same request.
 /// It is a single-thread cell, so a task holding one stays on its executor's thread.
@@ -28,8 +28,9 @@ pub fn Shutdown.requested(self) -> Bool {
     self.flag.get()
 }
 
-// A connection plus the bytes read from it but not consumed yet; a pipelined
-// second request waits here while the first one is answered.
+// A plain or TLS transport plus the bytes read from it but not consumed yet; a
+// pipelined second request waits here while the first one is answered. Exactly
+// one of conn and secure is Some; secure owns the TCP connection it reads.
 type Wire = resource {
     mut conn net.Conn?
     mut secure tls.Session?
@@ -106,7 +107,9 @@ async fn Wire.writeAll(mut self, data: Bytes, deadline: Deadline) -> Void! {
         let rest = data.slice(off, data.len()) || "".toBytes()
         if let Some(s) = &mut self.secure {
             match (await s.write(rest)) {
-                Ok(_) -> { off = data.len() }
+                Ok(_) -> {
+                    off = data.len()
+                }
                 Err(err) -> fail failure(400, err.message())
             }
         } else if let Some(c) = &mut self.conn {
