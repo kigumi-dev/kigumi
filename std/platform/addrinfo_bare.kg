@@ -1,5 +1,5 @@
 /// struct addrinfo as this platform lays it out.
-type AddrInfo layout(C) = {
+pub type AddrInfo layout(C) = {
     pub flags i32
     pub family i32
     pub socktype i32
@@ -11,7 +11,7 @@ type AddrInfo layout(C) = {
 }
 
 /// glibc's gai_strerror text, so a static musl build reads like the host C library.
-fn gaiText(code: i32) -> String {
+pub fn gaiText(code: i32) -> String {
     match code {
         -1 -> "Bad value for ai_flags"
         -2 -> "Name or service not known"

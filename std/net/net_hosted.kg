@@ -2,7 +2,7 @@ import ffi from std/ffi
 import platform from std/platform
 
 extern(C) {
-    fn getaddrinfo(host: *const u8, port: *const u8, hints: *const AddrInfo, out: *mut PtrBox) -> i32
+    fn getaddrinfo(host: *const u8, port: *const u8, hints: *const platform.AddrInfo, out: *mut PtrBox) -> i32
     fn freeaddrinfo(res: *const u8)
     fn socket(family: i32, socktype: i32, protocol: i32) -> i32
     fn connect(fd: i32, addr: *const u8, len: u32) -> i32
@@ -69,9 +69,9 @@ fn fails(text: String) -> Failure {
 }
 
 // getaddrinfo reports failure through its own EAI_* code space, not errno,
-// so its text comes from gaiText rather than ffi.lastError().
+// so its text comes from platform.gaiText rather than ffi.lastError().
 fn gaiFails(code: i32) -> Failure {
-    fails("cannot resolve host: ${gaiText(code)}")
+    fails("cannot resolve host: ${platform.gaiText(code)}")
 }
 
 fn pollFdPtr(buf: *mut u8) -> *mut Pollfd {
@@ -181,7 +181,7 @@ fn connectSucceeded(s: i32) -> i32 {
 fn connectTo(host: String, port: String, timeoutSeconds: i32) -> i32! {
     let h = ffi.CString.new(&host)?
     let p = ffi.CString.new(&port)?
-    let hints = ffi.CValue.new(AddrInfo {
+    let hints = ffi.CValue.new(platform.AddrInfo {
         flags: 0
         family: 0
         socktype: 1
@@ -204,7 +204,7 @@ fn connectTo(host: String, port: String, timeoutSeconds: i32) -> i32! {
     let mut lastErr = fails("cannot connect")
     for !ffi.isNull(cur) && fd < 0 {
         let ai = unsafe {
-            ffi.readRecord(ffi.cast[AddrInfo](cur))
+            ffi.readRecord(ffi.cast[platform.AddrInfo](cur))
         }
         let s = unsafe {
             socket(ai.family, ai.socktype, ai.protocol)
@@ -478,7 +478,7 @@ pub fn Net.listen(self, host: String, port: Int) -> Listener! {
     let portStr = "${port}"
     let h = ffi.CString.new(&host)?
     let p = ffi.CString.new(&portStr)?
-    let hints = ffi.CValue.new(AddrInfo {
+    let hints = ffi.CValue.new(platform.AddrInfo {
         flags: 0
         family: 2
         socktype: 1
@@ -500,7 +500,7 @@ pub fn Net.listen(self, host: String, port: Int) -> Listener! {
         fail fails("cannot resolve host")
     }
     let ai = unsafe {
-        ffi.readRecord(ffi.cast[AddrInfo](head))
+        ffi.readRecord(ffi.cast[platform.AddrInfo](head))
     }
     let fd = unsafe {
         socket(ai.family, ai.socktype, ai.protocol)

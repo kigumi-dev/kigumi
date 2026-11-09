@@ -4,8 +4,10 @@ extern(C) {
     fn gai_strerror(code: i32) -> *const u8
 }
 
-/// struct addrinfo as this platform lays it out.
-type AddrInfo layout(C) = {
+// struct addrinfo as this platform lays it out: OpenBSD's netdb.h puts
+// ai_addr before ai_canonname, the reverse of Darwin/FreeBSD/NetBSD/
+// Windows (which all match Linux/wasi's canonname-then-addr order).
+pub type AddrInfo layout(C) = {
     pub flags i32
     pub family i32
     pub socktype i32
@@ -16,7 +18,7 @@ type AddrInfo layout(C) = {
     pub next *const u8
 }
 
-fn gaiText(code: i32) -> String {
+pub fn gaiText(code: i32) -> String {
     unsafe {
         ffi.stringLossy(gai_strerror(code))
     }
