@@ -1,0 +1,46 @@
+/// Child processes. POSIX targets implement `spawn`, `wait` and `signal` with
+/// fork/execvp; other targets report `Error.Unsupported`. A process is not
+/// reaped until `wait` is called, so keep the handle and wait for it.
+pub type Signal =
+    | Interrupt
+    | Terminate
+    | Kill
+
+/// The signal number this platform's wait status reports.
+pub fn Signal.number(self) -> i32 {
+    match self {
+        Interrupt -> 2
+        Terminate -> 15
+        Kill -> 9
+    }
+}
+
+pub type Error = {
+    pub text String
+}
+
+pub fn Error.message(self) -> String {
+    self.text
+}
+
+/// A child process created by `spawn`; `pid` is public so a diagnostic can
+/// identify it before the first wait.
+pub type Process = {
+    pub pid i32
+    mut waited Bool
+    mut status Int
+}
+
+pub fn Process.id(self) -> i32 {
+    self.pid
+}
+
+pub fn Process.reaped(self) -> Bool {
+    self.waited
+}
+
+/// Spawns program, waits for it, and returns its status.
+pub fn run(program: String, args: Array[String]) -> Int! {
+    let mut child = spawn(program, args)?
+    child.wait()
+}

@@ -63,6 +63,7 @@ var stdLayer = map[string]Layer{
 	"std/net/tls":                 LayerPlatform,
 	"std/os":                      LayerPlatform,
 	"std/platform":                LayerPlatform,
+	"std/proc":                    LayerPlatform,
 	"std/random":                  LayerFoundation,
 	"std/random/clock":            LayerPlatform,
 	"std/shell":                   LayerPlatform,

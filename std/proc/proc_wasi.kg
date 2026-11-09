@@ -1,0 +1,12 @@
+/// Not available on this target yet.
+pub fn spawn(program: String, args: Array[String]) -> Process! {
+    fail Error { text: "process spawning is not implemented on Windows yet" }
+}
+
+pub fn Process.wait(mut self) -> Int! {
+    fail Error { text: "process waiting is not implemented on Windows yet" }
+}
+
+pub fn Process.signal(self, signal: Signal) -> Void! {
+    fail Error { text: "process signals are not implemented on Windows yet" }
+}

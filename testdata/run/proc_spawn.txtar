@@ -1,0 +1,15 @@
+-- src --
+import proc from std/proc
+
+let code = proc.run("/bin/sh", Array.of("-c", "exit 7"))?
+print "exit ${code}"
+let mut child = proc.spawn("/bin/sleep", Array.of("30"))?
+print "spawned ${child.id() > 0}"
+child.signal(proc.Signal.Terminate)?
+print "signalled ${child.wait()?}"
+print "reaped ${child.reaped()}"
+-- stdout --
+exit 7
+spawned true
+signalled 143
+reaped true

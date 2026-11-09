@@ -1,0 +1,135 @@
+import ffi from std/ffi
+
+extern(C) {
+    fn fork() -> i32
+    fn execvp(file: *const u8, argv: *const u8) -> i32
+    fn waitpid(pid: i32, status: *mut u8, options: i32) -> i32
+    fn kill(pid: i32, signal: i32) -> i32
+    fn malloc(n: usize) -> *mut u8
+    fn free(p: *mut u8)
+    fn _exit(code: i32) -> Never
+}
+
+fn hasNul(s: String) -> Bool {
+    for b in s.bytes() {
+        if b == 0 {
+            return true
+        }
+    }
+    false
+}
+
+/// Spawns program with argv[0] = program and the given arguments, inheriting
+/// stdin, stdout and stderr. PATH lookup follows execvp.
+pub fn spawn(program: String, args: Array[String]) -> Process! {
+    if hasNul(program) {
+        fail Error { text: "process program contains a NUL byte" }
+    }
+    let mut argv = Array.empty[ffi.CString]()
+    argv.push(ffi.CString.new(&program)?)
+    for i in 0..args.len() {
+        let arg = args.get(i) || ""
+        if hasNul(arg) {
+            fail Error { text: "process argument contains a NUL byte" }
+        }
+        argv.push(ffi.CString.new(&arg)?)
+    }
+    let n = argv.len()
+    let nullPtr = ffi.null[u8]()
+    let ptrSize = ffi.sizeOf(&nullPtr)
+    let table = unsafe {
+        malloc((n + 1) * ptrSize)
+    }
+    if ffi.isNull(ffi.toConst(table)) {
+        fail Error { text: "process spawn: out of memory" }
+    }
+    let mut i: usize = 0
+    for i < n {
+        unsafe {
+            ffi.writePtr(ffi.toMut(ffi.offset(ffi.toConst(table), (i * ptrSize).toInt() || 0)), argv[i].ptr())
+        }
+        i = i + 1
+    }
+    unsafe {
+        ffi.writePtr(ffi.toMut(ffi.offset(ffi.toConst(table), (n * ptrSize).toInt() || 0)), nullPtr)
+    }
+    let pid = unsafe {
+        fork()
+    }
+    if pid == 0 {
+        let prog = unsafe {
+            ffi.readPtr(ffi.toConst(table))
+        }
+        _ = unsafe {
+            execvp(prog, ffi.toConst(table))
+        }
+        unsafe {
+            _exit(127)
+        }
+    }
+    unsafe {
+        free(table)
+    }
+    if pid < 0 {
+        fail Error { text: "process spawn failed: ${ffi.errorText(ffi.errno())}" }
+    }
+    Process {
+        pid: pid
+        waited: false
+        status: 0
+    }
+}
+
+fn decodeStatus(raw: i32) -> Int {
+    if (raw & 127) == 0 {
+        ((raw >> 8) & 255).toInt()
+    } else {
+        128 + (raw & 127).toInt()
+    }
+}
+
+/// Waits for the process and returns its exit code, or 128 + signal number
+/// when a signal ended it. Calling wait again returns the same status.
+pub fn Process.wait(mut self) -> Int! {
+    if self.waited {
+        return self.status
+    }
+    let status = unsafe {
+        malloc(4)
+    }
+    if ffi.isNull(ffi.toConst(status)) {
+        fail Error { text: "process wait: out of memory" }
+    }
+    let got = unsafe {
+        waitpid(self.pid, status, 0)
+    }
+    if got < 0 {
+        let why = ffi.errorText(ffi.errno())
+        unsafe {
+            free(status)
+        }
+        fail Error { text: "process wait failed: ${why}" }
+    }
+    let raw = unsafe {
+        ffi.readI32(ffi.cast[i32](ffi.toConst(status)))
+    }
+    unsafe {
+        free(status)
+    }
+    self.status = decodeStatus(raw)
+    self.waited = true
+    self.status
+}
+
+/// Sends signal to the process. A process that already exited may still be
+/// signaled until it is waited for.
+pub fn Process.signal(self, signal: Signal) -> Void! {
+    if self.waited {
+        return
+    }
+    if unsafe {
+        kill(self.pid, signal.number())
+    } != 0 {
+        fail Error { text: "process signal failed: ${ffi.errorText(ffi.errno())}" }
+    }
+}

@@ -9415,6 +9415,17 @@
       ]
     },
     {
+      "id": "run/proc_spawn",
+      "kind": "run",
+      "path": "testdata/run/proc_spawn.txtar",
+      "mode": [
+        "native"
+      ],
+      "skip": {
+        "vm": "native-only"
+      }
+    },
+    {
       "id": "run/pure_erase_declared_param",
       "kind": "run",
       "path": "testdata/run/pure_erase_declared_param.txtar",
