@@ -19,6 +19,7 @@ type hostFn func(m *Machine, fn sem.EntityID, a []*obj) *obj
 // bodies of std/fs and std/os with Go accelerators.
 func (m *Machine) registerHost() {
 	m.host = map[string]hostFn{}
+	m.registerProc()
 	h := m.host
 	h["os.Host.args"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return mkOpaque("Args", nil) }
 	h["os.Host.files"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return mkOpaque("Files", nil) }
