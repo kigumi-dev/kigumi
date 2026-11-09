@@ -7361,6 +7361,15 @@
       ]
     },
     {
+      "id": "run/https_client_url",
+      "kind": "run",
+      "path": "testdata/run/https_client_url.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/if_let_refutable",
       "kind": "run",
       "path": "testdata/run/if_let_refutable.txtar",

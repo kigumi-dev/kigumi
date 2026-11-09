@@ -94,6 +94,7 @@ async fn Server.acceptUntil(self, listener: net.Listener, stop: Shutdown, count:
                 let active = Active { count: count.clone() }
                 let wire = Wire {
                     conn: conn
+                    secure: None
                     pending: "".toBytes()
                 }
                 _ = task.spawn(serveConn(wire, self.handler, self.log, self.limits, stop.clone(), active))

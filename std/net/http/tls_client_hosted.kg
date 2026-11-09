@@ -1,0 +1,83 @@
+import net from std/net
+import task from std/task
+import tls from std/net/tls
+import x509 from std/crypto/x509
+
+/// An HTTPS/1.1 client over a TLS 1.3 session. `open` consumes the client; keep the returned
+/// `Session` to send several requests over one connection.
+pub type TlsClient = {
+    net net.Net
+    pool task.BlockingPool
+    anchors Array[x509.Certificate]
+    random fn(usize) -> Bytes!
+    // Bounds each send and each response; connecting is bounded only by the OS.
+    pub mut timeoutMillis i64
+    // Responses larger than this fail instead of being buffered.
+    pub mut maxBodyBytes usize
+    // A response's status line and header fields, CRLFs included.
+    pub mut maxHeaderBytes usize
+}
+
+pub fn TlsClient.new(n: net.Net, pool: task.BlockingPool, anchors: Array[x509.Certificate], random: escaping fn(usize) -> Bytes!) -> TlsClient {
+    TlsClient {
+        net: n
+        pool: pool
+        anchors: anchors
+        random: random
+        timeoutMillis: 10000
+        maxBodyBytes: 16777216
+        maxHeaderBytes: 65536
+    }
+}
+
+/// Opens an HTTPS connection. The server name is taken from the URL authority, so an IP literal
+/// omits SNI exactly as RFC 6066 requires.
+pub async fn TlsClient.open(move self, url: String) -> Session! {
+    let t = parseTlsUrl(url)?
+    let n = self.net
+    let pool = move self.pool
+    let anchors = move self.anchors
+    let timeoutMillis = self.timeoutMillis
+    let maxBodyBytes = self.maxBodyBytes
+    let maxHeaderBytes = self.maxHeaderBytes
+    let host = t.host
+    let port = t.port
+    let pending = pool.run(() => n.connect(host, port))?
+    let conn = (await pending)?
+    let config = tls.Config.new(host, anchors, self.random)
+    let secure = match (await tls.Client.connect(conn, config)) {
+        Ok(s) -> s
+        Err(e) -> fail ClientError.Tls(e.message())
+    }
+    Session {
+        wire: Wire {
+            conn: None
+            secure: Some(secure)
+            pending: "".toBytes()
+        }
+        authority: t.authority
+        timeoutMillis: timeoutMillis
+        maxBodyBytes: maxBodyBytes
+        maxHeaderBytes: maxHeaderBytes
+        open: true
+    }
+}
+
+/// Sends req over a fresh HTTPS connection and reads the whole response.
+pub async fn TlsClient.send(move self, url: String, req: Request) -> Response! {
+    let mut session = (await self.open(url))?
+    await session.send(req)
+}
+
+pub async fn TlsClient.get(move self, url: String) -> Response! {
+    let target = (parseTlsUrl(url)?).path
+    await self.send(url, Request.new("GET", target))
+}
+
+pub async fn TlsClient.post(move self, url: String, contentType: String, body: Bytes) -> Response! {
+    let target = (parseTlsUrl(url)?).path
+    let mut req = Request.new("POST", target)
+    req.headers.add("Content-Type", contentType)
+    req.body = body
+    await self.send(url, req)
+}

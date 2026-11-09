@@ -1,0 +1,27 @@
+-- src --
+import http from std/net/http
+import task from std/task
+
+fn random(n: usize) -> Bytes! {
+    Bytes.zeros(n)
+}
+
+fn client() -> http.TlsClient {
+    http.TlsClient.new(host.net(), task.BlockingPool.new(1), Array.empty(), random)
+}
+
+async fn check() {
+    match await client().get("http://127.0.0.1/") {
+        Ok(_) -> print "unexpected"
+        Err(e) -> print e.message()
+    }
+    match await client().get("https://bad host/") {
+        Ok(_) -> print "unexpected"
+        Err(e) -> print e.message()
+    }
+}
+
+task.currentThreadExecutor().runToCompletion(check())
+-- stdout --
+invalid URL: only https:// URLs are supported
+invalid URL: bad authority or path

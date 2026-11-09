@@ -2,6 +2,7 @@ import alloc from std/alloc
 import net from std/net
 import task from std/task
 import time from std/time
+import tls from std/net/tls
 
 /// A shutdown request shared between a Server and whoever stops it; clones see the same request.
 /// It is a single-thread cell, so a task holding one stays on its executor's thread.
@@ -30,7 +31,8 @@ pub fn Shutdown.requested(self) -> Bool {
 // A connection plus the bytes read from it but not consumed yet; a pipelined
 // second request waits here while the first one is answered.
 type Wire = resource {
-    mut conn net.Conn
+    mut conn net.Conn?
+    mut secure tls.Session?
     mut pending Bytes
 }
 
@@ -68,12 +70,27 @@ async fn Wire.fill(mut self, deadline: Deadline, stop: Shutdown) -> Fill! {
         if deadline.passed() {
             return Expired
         }
-        if self.conn.pollRead(&mut chunk, readChunk())? is Some(n) {
-            if n == 0 {
-                return Eof
+        if let Some(s) = &mut self.secure {
+            match (await s.read(readChunk())) {
+                Ok(data) -> {
+                    if data.len() == 0 {
+                        return Eof
+                    }
+                    self.pending = self.pending.concat(data)
+                    return Got
+                }
+                Err(err) -> fail failure(400, err.message())
             }
-            self.pending = self.pending.concat(Bytes.fromArray(&chunk))
-            return Got
+        } else if let Some(c) = &mut self.conn {
+            if c.pollRead(&mut chunk, readChunk())? is Some(n) {
+                if n == 0 {
+                    return Eof
+                }
+                self.pending = self.pending.concat(Bytes.fromArray(&chunk))
+                return Got
+            }
+        } else {
+            return Eof
         }
         if stop.requested() {
             return Stopped
@@ -87,13 +104,22 @@ async fn Wire.writeAll(mut self, data: Bytes, deadline: Deadline) -> Void! {
     let mut off: usize = 0
     for off < data.len() {
         let rest = data.slice(off, data.len()) || "".toBytes()
-        if self.conn.pollWrite(rest)? is Some(n) {
-            off = off + n
-        } else {
-            if deadline.passed() {
-                fail failure(408, "write timed out")
+        if let Some(s) = &mut self.secure {
+            match (await s.write(rest)) {
+                Ok(_) -> { off = data.len() }
+                Err(err) -> fail failure(400, err.message())
             }
-            await task.yieldNow()
+        } else if let Some(c) = &mut self.conn {
+            if c.pollWrite(rest)? is Some(n) {
+                off = off + n
+            } else {
+                if deadline.passed() {
+                    fail failure(408, "write timed out")
+                }
+                await task.yieldNow()
+            }
+        } else {
+            fail failure(500, "connection is closed")
         }
     }
 }
