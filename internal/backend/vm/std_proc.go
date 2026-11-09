@@ -29,12 +29,12 @@ func (m *Machine) registerProc() {
 			return m.errMsg(err.Error())
 		}
 		pid := int64(cmd.Process.Pid)
-		m.procsMu.Lock()
-		if m.procs == nil {
-			m.procs = map[int64]*os.Process{}
+		m.sh.procMu.Lock()
+		if m.sh.procs == nil {
+			m.sh.procs = map[int64]*os.Process{}
 		}
-		m.procs[pid] = cmd.Process
-		m.procsMu.Unlock()
+		m.sh.procs[pid] = cmd.Process
+		m.sh.procMu.Unlock()
 		rec := mkRecord(m.lookup("std/proc", "Process"), []*obj{
 			mkInt(pid, m.numKind(sem.TyI32)),
 			mkBool(false),
@@ -48,10 +48,10 @@ func (m *Machine) registerProc() {
 		if rec.fields[1].b {
 			return m.ok(mkInt(rec.fields[2].i, m.numKind(sem.TyI64)))
 		}
-		m.procsMu.Lock()
-		proc := m.procs[pid]
-		delete(m.procs, pid)
-		m.procsMu.Unlock()
+		m.sh.procMu.Lock()
+		proc := m.sh.procs[pid]
+		delete(m.sh.procs, pid)
+		m.sh.procMu.Unlock()
 		if proc == nil {
 			return m.errMsg("process wait: unknown process")
 		}
@@ -75,9 +75,9 @@ func (m *Machine) registerProc() {
 			return m.ok(unitObj)
 		}
 		pid := deref(rec.fields[0]).i
-		m.procsMu.Lock()
-		proc := m.procs[pid]
-		m.procsMu.Unlock()
+		m.sh.procMu.Lock()
+		proc := m.sh.procs[pid]
+		m.sh.procMu.Unlock()
 		if proc == nil {
 			return m.errMsg("process signal: unknown process")
 		}

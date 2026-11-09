@@ -41,6 +41,9 @@ type shared struct {
 	cvalues      []*obj
 	handleTables []*handleTableState
 	sigWatch     map[string]chan os.Signal
+	// procMu guards procs, the live OS processes std/proc spawned.
+	procMu sync.Mutex
+	procs  map[int64]*os.Process
 	// shadows is SecretSan's value-label table (nil unless Options.SecretSan).
 	// A value can migrate to another lane with a task, so the table is shared.
 	shadowMu   sync.Mutex
