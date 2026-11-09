@@ -7298,6 +7298,15 @@
       ]
     },
     {
+      "id": "run/handle_table_wrong_receiver",
+      "kind": "run",
+      "path": "testdata/run/handle_table_wrong_receiver.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/hash_consistency",
       "kind": "run",
       "path": "testdata/run/hash_consistency.txtar",

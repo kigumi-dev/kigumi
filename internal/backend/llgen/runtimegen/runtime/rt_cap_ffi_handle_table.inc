@@ -44,7 +44,8 @@ static void handle_unpack(int64_t raw, int64_t* generation, int64_t* index) {
 }
 // Only an unsafe reclaim of a forged/stale RawHandle can fail this check;
 // a live FfiHandle otherwise always names a live slot.
-static int64_t handle_find(val h, handle_table** out) {
+static int64_t handle_find(val h, int64_t self_tbl, handle_table** out) {
+    if (h->u.rec.fields[0]->u.i != self_tbl) rt_panic("handle belongs to a different HandleTable");
     handle_table* t = g_handle_tables[h->u.rec.fields[0]->u.i - 1];
     int64_t generation, index;
     handle_unpack(h->u.rec.fields[1]->u.i, &generation, &index);
@@ -98,15 +99,15 @@ static val cap_handle_table_insert(val a0, val a1) {
     val f[2] = {rt_int(ti, 64 | 256), rt_int(handle_pack(t->slots[index].generation, index), 64 | 256)};
     return rt_make_record("FfiHandle", 2, f);
 }
-static val cap_handle_table_with(val a1, val a2) {
+static val cap_handle_table_with(val a0, val a1, val a2) {
     handle_table* t;
-    int64_t index = handle_find(a1, &t);
+    int64_t index = handle_find(a1, a0->u.rec.fields[0]->u.i, &t);
     val arg[1] = {t->slots[index].value};
     return rt_callv_lent(a2, 1, arg);
 }
-static val cap_handle_table_remove(val a1) {
+static val cap_handle_table_remove(val a0, val a1) {
     handle_table* t;
-    int64_t index = handle_find(a1, &t);
+    int64_t index = handle_find(a1, a0->u.rec.fields[0]->u.i, &t);
     val v = handle_free(t, index);
     // h is only lent, so the caller's scope-exit FfiHandle.drop still
     // runs; replace the id (never mutate it: literals are immortal).
@@ -155,7 +156,7 @@ static val cap_handle_raw(val a0) {
 static val cap_handle_drop(val a0) {
     if (a0->u.rec.fields[0]->u.i == 0) return rt_unit();
     handle_table* t;
-    int64_t index = handle_find(a0, &t);
+    int64_t index = handle_find(a0, a0->u.rec.fields[0]->u.i, &t);
     rt_release(handle_free(t, index));
     return rt_unit();
 }

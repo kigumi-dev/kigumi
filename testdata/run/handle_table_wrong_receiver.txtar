@@ -1,0 +1,15 @@
+-- src --
+import ffi from std/ffi
+
+print "start"
+let a: ffi.HandleTable[Int] = ffi.HandleTable.new()
+let b: ffi.HandleTable[Int] = ffi.HandleTable.new()
+let h = a.insert(7)
+_ = b.with(&h, (x: &Int) => x + 1)
+print "unreachable"
+-- stdout --
+start
+-- stderr --
+panic: handle belongs to a different HandleTable
+-- exit --
+2

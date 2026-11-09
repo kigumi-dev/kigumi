@@ -26,8 +26,11 @@ func (m *Machine) registerFFIHandle() {
 	table := func(m *Machine, v *obj) *handleTableState { return m.handleTable(tableIdx(v)) }
 	// Only an unsafe reclaim of a forged/stale RawHandle can fail this
 	// check; a live FfiHandle otherwise always names a live slot.
-	handleLoc := func(m *Machine, v *obj) (*handleTableState, int64) {
+	handleLoc := func(m *Machine, self, v *obj) (*handleTableState, int64) {
 		r := deref(v)
+		if deref(r.fields[0]).i != tableIdx(self) {
+			m.abort("handle belongs to a different HandleTable")
+		}
 		t := m.handleTable(deref(r.fields[0]).i)
 		gen, slot := unpackSlot(deref(r.fields[1]).i)
 		if slot < 0 || int(slot) >= len(t.slots) || !t.slots[slot].occupied || t.slots[slot].generation != gen {
@@ -63,11 +66,11 @@ func (m *Machine) registerFFIHandle() {
 		return mkRecord(m.lookup("std/ffi", "FfiHandle"), []*obj{mkInt(ti, m.numKind(sem.TyI64)), mkInt(raw, m.numKind(sem.TyI64))})
 	}
 	h["ffi.HandleTable.with"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		t, slot := handleLoc(m, a[1])
+		t, slot := handleLoc(m, a[0], a[1])
 		return m.callValueLent(a[2], []*obj{t.slots[slot].value})
 	}
 	h["ffi.HandleTable.remove"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		t, slot := handleLoc(m, a[1])
+		t, slot := handleLoc(m, a[0], a[1])
 		v := free(t, slot)
 		clearHandle(a[1])
 		return v
@@ -111,7 +114,7 @@ func (m *Machine) registerFFIHandle() {
 		if deref(a[0]).fields[0].i == 0 {
 			return unitObj
 		}
-		t, slot := handleLoc(m, a[0])
+		t, slot := handleLoc(m, a[0], a[0])
 		m.release(free(t, slot))
 		return unitObj
 	}

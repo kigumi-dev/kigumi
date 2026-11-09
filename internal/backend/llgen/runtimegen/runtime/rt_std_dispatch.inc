@@ -628,10 +628,10 @@ val rt_std_id(int op, int n, val* a) {
     case OP_HANDLE_TABLE_INSERT: return cap_handle_table_insert(a0, a1);
 #endif
 #if defined(KIGUMI_OP_HANDLE_TABLE_WITH)
-    case OP_HANDLE_TABLE_WITH: return cap_handle_table_with(a1, a2);
+    case OP_HANDLE_TABLE_WITH: return cap_handle_table_with(a0, a1, a2);
 #endif
 #if defined(KIGUMI_OP_HANDLE_TABLE_REMOVE)
-    case OP_HANDLE_TABLE_REMOVE: return cap_handle_table_remove(a1);
+    case OP_HANDLE_TABLE_REMOVE: return cap_handle_table_remove(a0, a1);
 #endif
 #if defined(KIGUMI_OP_HANDLE_TABLE_RECLAIM)
     case OP_HANDLE_TABLE_RECLAIM: return cap_handle_table_reclaim(a0, a1);

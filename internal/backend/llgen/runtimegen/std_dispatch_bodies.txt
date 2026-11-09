@@ -463,9 +463,9 @@
 @arm HANDLE_TABLE_INSERT
  return cap_handle_table_insert(a0, a1);
 @arm HANDLE_TABLE_WITH
- return cap_handle_table_with(a1, a2);
+ return cap_handle_table_with(a0, a1, a2);
 @arm HANDLE_TABLE_REMOVE
- return cap_handle_table_remove(a1);
+ return cap_handle_table_remove(a0, a1);
 @arm HANDLE_TABLE_RECLAIM
  return cap_handle_table_reclaim(a0, a1);
 @arm HANDLE_TABLE_CLOSE
