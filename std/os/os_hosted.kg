@@ -2,12 +2,19 @@ import entropy from std/entropy
 import ffi from std/ffi
 import dl from std/ffi/dl
 import platform from std/platform
+import proc from std/proc
 
 /// The dynamic loader.
 pub fn Host.dl(self) -> dl.Loader
 
 /// The CSPRNG; see `std/entropy`.
 pub fn Host.entropy(self) -> entropy.Entropy
+
+/// Child-process control; the capability is a stateless marker.
+pub fn Host.processes(self) -> proc.Processes {
+    proc.Processes {
+    }
+}
 
 extern(C) {
     fn read(fd: i32, buf: *mut u8, n: usize) -> isize

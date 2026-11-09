@@ -1,9 +1,10 @@
 -- src --
 import proc from std/proc
 
-let code = proc.run("/bin/sh", Array.of("-c", "exit 7"))?
+let processes = host.processes()
+let code = processes.run("/bin/sh", Array.of("-c", "exit 7"))?
 print "exit ${code}"
-let mut child = proc.spawn("/bin/sleep", Array.of("30"))?
+let mut child = processes.spawn("/bin/sleep", Array.of("30"))?
 print "spawned ${child.id() > 0}"
 child.signal(proc.Signal.Terminate)?
 print "signalled ${child.wait()?}"

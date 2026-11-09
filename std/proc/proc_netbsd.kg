@@ -22,7 +22,7 @@ fn hasNul(s: String) -> Bool {
 
 /// Spawns program with argv[0] = program and the given arguments, inheriting
 /// stdin, stdout and stderr. PATH lookup follows execvp.
-pub fn spawn(program: String, args: Array[String]) -> Process! {
+pub fn Processes.spawn(self, program: String, args: Array[String]) -> Process! {
     if hasNul(program) {
         fail Error { text: "process program contains a NUL byte" }
     }

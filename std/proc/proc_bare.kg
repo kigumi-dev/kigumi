@@ -1,5 +1,5 @@
 /// Not available on this target yet.
-pub fn spawn(program: String, args: Array[String]) -> Process! {
+pub fn Processes.spawn(self, program: String, args: Array[String]) -> Process! {
     fail Error { text: "process spawning is not implemented on Windows yet" }
 }
 

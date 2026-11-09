@@ -15,6 +15,9 @@ pub fn Signal.number(self) -> i32 {
     }
 }
 
+/// The process-spawning capability obtained from `host.processes()`.
+pub type Processes = {}
+
 pub type Error = {
     pub text String
 }
@@ -40,7 +43,7 @@ pub fn Process.reaped(self) -> Bool {
 }
 
 /// Spawns program, waits for it, and returns its status.
-pub fn run(program: String, args: Array[String]) -> Int! {
-    let mut child = spawn(program, args)?
+pub fn Processes.run(self, program: String, args: Array[String]) -> Int! {
+    let mut child = self.spawn(program, args)?
     child.wait()
 }
