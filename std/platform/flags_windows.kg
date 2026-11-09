@@ -1,0 +1,4 @@
+/// open(2) flags for creating a file for writing on this platform.
+pub fn createFlags() -> i32 {
+    769
+}

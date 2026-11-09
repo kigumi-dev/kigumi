@@ -51,7 +51,7 @@ pub fn Files.append(self, path: Path) -> File! {
 pub fn Files.createWithMode(self, path: Path, mode: u32) -> File! {
     let c = ffi.CString.new(&path.text)?
     let fd = unsafe {
-        open(c.ptr(), createFlags(), mode)
+        open(c.ptr(), platform.createFlags(), mode)
     }
     if fd < 0 {
         fail ffi.lastError()
@@ -312,7 +312,7 @@ pub fn Files.list(self, path: Path) -> Array[Path]! {
             break
         }
         let name = unsafe {
-            ffi.stringLossy(ffi.offset(ffi.toConst(e), direntNameOffset()))
+            ffi.stringLossy(ffi.offset(ffi.toConst(e), platform.direntNameOffset()))
         }
         if name != "." && name != ".." {
             names.push(name)

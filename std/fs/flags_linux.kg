@@ -1,4 +1,0 @@
-/// open(2) flags of this platform for creating a file for writing: O_WRONLY | O_CREAT | O_TRUNC.
-fn createFlags() -> i32 {
-    577
-}
