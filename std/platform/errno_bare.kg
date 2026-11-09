@@ -1,0 +1,29 @@
+/// errno(3) constants for a bare target: the POSIX numbers used by the
+/// freestanding runtime, so std packages still check without an OS.
+pub fn eexist() -> i32 {
+    17
+}
+
+pub fn eintr() -> i32 {
+    4
+}
+
+pub fn enotdir() -> i32 {
+    20
+}
+
+pub fn enoent() -> i32 {
+    2
+}
+
+pub fn eloop() -> i32 {
+    40
+}
+
+pub fn eagain() -> i32 {
+    11
+}
+
+pub fn einprogress() -> i32 {
+    115
+}
