@@ -1,4 +1,5 @@
 import gzip from std/compress/gzip
+import zlib from std/compress/zlib
 import json from std/json
 import net from std/net
 import task from std/task
@@ -231,6 +232,10 @@ async fn Wire.readResponse(mut self, headOnly: Bool, timeout: i64, maxBody: usiz
                 "gzip" -> match gzip.decodeLimit(body, maxBody) {
                     Ok(decoded) -> decoded
                     Err(e) -> fail MalformedResponse("gzip: ${e.message()}")
+                }
+                "deflate" -> match zlib.decodeLimit(body, maxBody) {
+                    Ok(decoded) -> decoded
+                    Err(e) -> fail MalformedResponse("deflate: ${e.message()}")
                 }
                 other -> fail MalformedResponse("unsupported content-encoding `${other}`")
             }

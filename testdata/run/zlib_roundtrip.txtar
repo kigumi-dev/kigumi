@@ -1,0 +1,15 @@
+-- src --
+import hex from std/encoding/hex
+import zlib from std/compress/zlib
+
+let known = hex.decode("789ccb48cdc9c90700062c0215").expect("hex")
+let knownText = String.fromBytes(zlib.decode(known)?) || "?"
+print knownText
+let encoded = zlib.encode("hello".toBytes())
+print hex.encode(encoded)
+let round = String.fromBytes(zlib.decode(encoded)?) || "?"
+print round
+-- stdout --
+hello
+789ccb48cdc9c90700062c0215
+hello

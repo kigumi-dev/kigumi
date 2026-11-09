@@ -7352,6 +7352,15 @@
       ]
     },
     {
+      "id": "run/http_deflate_client",
+      "kind": "run",
+      "path": "testdata/run/http_deflate_client.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/http_gzip_client",
       "kind": "run",
       "path": "testdata/run/http_gzip_client.txtar",
@@ -11326,6 +11335,15 @@
       "id": "run/witness_ref_kept_round_ok",
       "kind": "run",
       "path": "testdata/run/witness_ref_kept_round_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/zlib_roundtrip",
+      "kind": "run",
+      "path": "testdata/run/zlib_roundtrip.txtar",
       "mode": [
         "vm",
         "native"

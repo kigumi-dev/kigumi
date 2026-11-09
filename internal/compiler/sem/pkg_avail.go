@@ -44,6 +44,7 @@ var stdLayer = map[string]Layer{
 	"std/encoding/hex":            LayerAllocation,
 	"std/compress/flate":          LayerAllocation,
 	"std/compress/gzip":           LayerAllocation,
+	"std/compress/zlib":           LayerAllocation,
 	"std/fmt":                     LayerAllocation,
 	"std/error":                   LayerAllocation,
 	"std/array":                   LayerAllocation,

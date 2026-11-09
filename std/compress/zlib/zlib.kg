@@ -1,0 +1,107 @@
+/// zlib (RFC 1950) decoding and encoding over `std/compress/flate`.
+///
+/// `decode` accepts one stream with a 32 KiB window, no preset dictionary, and
+/// verifies the Adler-32 trailer. `encode` writes a fixed header and trailer,
+/// so equal input produces equal output.
+import flate from std/compress/flate
+
+/// Largest output `decode` accepts, in bytes.
+pub const defaultLimit: usize = flate.defaultLimit
+
+/// Why a zlib stream could not be decoded.
+pub type Error = {
+    pub text String
+}
+
+pub fn Error.message(self) -> String {
+    self.text
+}
+
+fn adler32Ref(data: &Bytes) -> u32 {
+    let mut a: u32 = 1
+    let mut b: u32 = 0
+    let mut i: usize = 0
+    for i < data.len() {
+        let stop = if data.len() - i < 5552 {
+            data.len()
+        } else {
+            i + 5552
+        }
+        for i < stop {
+            a = (a + data[i].toU32()) % 65521
+            b = (b + a) % 65521
+            i = i + 1
+        }
+    }
+    (b << 16) | a
+}
+
+fn u32Be(data: &Bytes, at: usize) -> u32? {
+    if at > data.len() || data.len() - at < 4 {
+        return None
+    }
+    let a = data[at].toU32()
+    let b = data[at + 1].toU32()
+    let c = data[at + 2].toU32()
+    let d = data[at + 3].toU32()
+    Some((a << 24) | (b << 16) | (c << 8) | d)
+}
+
+fn putU32Be(out: &mut Array[u8], v: u32) {
+    out.push((v >> 24).truncate[u8]())
+    out.push(((v >> 16) & 255).truncate[u8]())
+    out.push(((v >> 8) & 255).truncate[u8]())
+    out.push((v & 255).truncate[u8]())
+}
+
+/// Decodes one zlib stream with the default output limit.
+pub fn decode(data: Bytes) -> Bytes! {
+    decodeLimit(data, defaultLimit)
+}
+
+/// Decodes one zlib stream, refusing to produce more than `limit` bytes.
+pub fn decodeLimit(data: Bytes, limit: usize) -> Bytes! {
+    if data.len() < 6 {
+        fail Error { text: "zlib: input is shorter than its header and trailer" }
+    }
+    let cmf = data[0].toU32()
+    let flg = data[1].toU32()
+    if ((cmf << 8) | flg) % 31 != 0 {
+        fail Error { text: "zlib: header check bits do not match" }
+    }
+    if (cmf & 0x0f) != 8 {
+        fail Error { text: "zlib: unsupported compression method ${cmf & 0x0f}" }
+    }
+    if (cmf >> 4) > 7 {
+        fail Error { text: "zlib: window size is larger than 32 KiB" }
+    }
+    if (flg & 0x20) != 0 {
+        fail Error { text: "zlib: preset dictionaries are not supported" }
+    }
+    let r = flate.inflateFrom(data, 2, 0, limit)?
+    if r.rest.len() < 4 {
+        fail Error { text: "zlib: Adler-32 trailer is missing" }
+    }
+    let want = u32Be(&r.rest, 0) || 0
+    let got = adler32Ref(&r.data)
+    if want != got {
+        fail Error { text: "zlib: Adler-32 mismatch" }
+    }
+    r.data
+}
+
+/// Encodes `data` as one zlib stream with the fixed 0x789c header.
+pub fn encode(data: Bytes) -> Bytes {
+    let sum = adler32Ref(&data)
+    let body = flate.deflate(data)
+    let mut out = Array.empty[u8]()
+    out.push(0x78)
+    out.push(0x9c)
+    let mut i: usize = 0
+    for i < body.len() {
+        out.push(body[i])
+        i = i + 1
+    }
+    putU32Be(&mut out, sum)
+    Bytes.fromArray(&out)
+}
