@@ -173,6 +173,9 @@ func (p *parser) decl() NodeID {
 		p.errorf("contract blocks were removed from declarations (v2.6 B2); write `%s` on each fn", modsString(pf.mods))
 		return p.contractBlock(pf)
 	case pf.seen:
+		if pf.doc != 0 && pf.vis == 0 && pf.mods == 0 && len(pf.attrs) == 0 {
+			return p.stmt()
+		}
 		p.errorf("expected declaration after modifiers, found %s", p.describe())
 		p.recover()
 		return 0

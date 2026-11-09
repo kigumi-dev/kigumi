@@ -193,6 +193,8 @@ func (p *parser) endOfStatement() {
 	case p.at(token.Newline), p.at(token.Semicolon):
 		p.advance()
 	case p.at(token.RBrace), p.at(token.EOF):
+	case p.at(token.DocComment):
+		p.advance()
 	default:
 		p.errorf("expected end of statement, found %s", p.describe())
 		p.recover()

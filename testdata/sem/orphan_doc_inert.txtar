@@ -1,0 +1,16 @@
+-- module --
+mir: planned
+-- src --
+type A = Int /// trailing doc
+
+fn f() -> Int {
+    /// doc inside a block
+    let y = 2
+    y
+}
+
+/// top-level statement doc
+let x = f()
+_ = x
+print "ok"
+-- expect --

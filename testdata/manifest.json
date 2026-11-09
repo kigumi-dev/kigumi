@@ -15900,6 +15900,14 @@
       ]
     },
     {
+      "id": "sem/orphan_doc_inert",
+      "kind": "sem",
+      "path": "testdata/sem/orphan_doc_inert.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/orphan_generic_dynamic",
       "kind": "sem",
       "path": "testdata/sem/orphan_generic_dynamic.txtar",

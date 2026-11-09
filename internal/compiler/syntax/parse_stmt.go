@@ -30,6 +30,10 @@ func (p *parser) block() NodeID {
 }
 
 func (p *parser) stmt() NodeID {
+	for p.at(token.DocComment) {
+		p.advance()
+		p.skipNewlines()
+	}
 	switch {
 	case p.at(token.KwLet):
 		return p.letStmt()
