@@ -1,4 +1,0 @@
-/// errno(3) EINTR on this platform.
-fn eintr() -> i32 {
-    4
-}

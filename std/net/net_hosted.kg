@@ -1,4 +1,5 @@
 import ffi from std/ffi
+import platform from std/platform
 
 extern(C) {
     fn getaddrinfo(host: *const u8, port: *const u8, hints: *const AddrInfo, out: *mut PtrBox) -> i32
@@ -107,7 +108,7 @@ fn connectSocket(s: i32, addr: *const u8, addrlen: u32, timeoutSeconds: i32) -> 
         } else {
             ffi.errno()
         }
-        let pending = code == einprogress() || code == eintr()
+        let pending = code == platform.einprogress() || code == platform.eintr()
         let outcome = if code == 0 {
             0
         } else if !pending {
@@ -129,7 +130,7 @@ fn connectSocket(s: i32, addr: *const u8, addrlen: u32, timeoutSeconds: i32) -> 
                     poll(pbuf, 1, timeoutSeconds * 1000)
                 }
                 if r < 0 {
-                    if ffi.errno() == eintr() {
+                    if ffi.errno() == platform.eintr() {
                         continue
                     }
                     break
@@ -240,7 +241,7 @@ fn sendAll(fd: i32, data: Bytes) -> Void! {
             send(fd, ffi.offset(ffi.bytesPtr(&data), off.toInt() || 0), n - off, msgNoSignal())
         }
         if w <= 0 {
-            if w < 0 && ffi.errno() == eintr() {
+            if w < 0 && ffi.errno() == platform.eintr() {
                 continue
             }
             fail ffi.lastError()
@@ -261,7 +262,7 @@ fn readLine(fd: i32) -> Bytes! {
             read(fd, buf, 1)
         }
         if got < 0 {
-            if ffi.errno() == eintr() {
+            if ffi.errno() == platform.eintr() {
                 continue
             }
             unsafe {
@@ -552,7 +553,7 @@ pub fn Listener.accept(mut self) -> Conn! {
         fd = unsafe {
             accept(self.fd, ffi.toMut(ffi.null[u8]()), ffi.toMut(ffi.null[u32]()))
         }
-        if fd < 0 && ffi.errno() != eintr() {
+        if fd < 0 && ffi.errno() != platform.eintr() {
             fail ffi.lastError()
         }
     }
@@ -598,7 +599,7 @@ pub fn Conn.read(mut self, into: &mut Array[u8], max: usize) -> usize! {
         got = unsafe {
             read(self.fd, buf, max)
         }
-        if got < 0 && ffi.errno() != eintr() {
+        if got < 0 && ffi.errno() != platform.eintr() {
             unsafe {
                 free(buf)
             }
@@ -632,7 +633,7 @@ pub fn Conn.write(mut self, data: Bytes) -> usize! {
         w = unsafe {
             send(self.fd, ffi.bytesPtr(&data), n, msgNoSignal())
         }
-        if w < 0 && ffi.errno() != eintr() {
+        if w < 0 && ffi.errno() != platform.eintr() {
             fail ffi.lastError()
         }
     }
@@ -669,10 +670,10 @@ pub fn Listener.pollAccept(mut self) -> Conn?! {
             return Some(conn)
         }
         let code = ffi.errno()
-        if code == eagain() {
+        if code == platform.eagain() {
             return None
         }
-        if code != eintr() {
+        if code != platform.eintr() {
             fail ffi.lastError()
         }
     }
@@ -699,13 +700,13 @@ pub fn Conn.pollRead(mut self, into: &mut Array[u8], max: usize) -> usize?! {
         }
         if got < 0 {
             let code = ffi.errno()
-            if code == eagain() {
+            if code == platform.eagain() {
                 unsafe {
                     free(buf)
                 }
                 return None
             }
-            if code != eintr() {
+            if code != platform.eintr() {
                 unsafe {
                     free(buf)
                 }
@@ -744,10 +745,10 @@ pub fn Conn.pollWrite(mut self, data: Bytes) -> usize?! {
             return Some(w.toUsize() || 0)
         }
         let code = ffi.errno()
-        if code == eagain() {
+        if code == platform.eagain() {
             return None
         }
-        if code != eintr() {
+        if code != platform.eintr() {
             fail ffi.lastError()
         }
     }

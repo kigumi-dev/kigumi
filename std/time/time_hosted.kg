@@ -1,4 +1,5 @@
 import ffi from std/ffi
+import platform from std/platform
 
 // POSIX struct timespec is time_t + long; both are pointer-sized on Linux and
 // macOS, unlike i64, which the 32-bit Linux C ABI would truncate.
@@ -74,7 +75,7 @@ pub fn sleep(millis: i64) {
         let rc = unsafe {
             nanosleep(ffi.toConst(req.ptr()), ffi.toMut(ffi.null[Timespec]()))
         }
-        if rc == 0 || ffi.errno() != eintr() {
+        if rc == 0 || ffi.errno() != platform.eintr() {
             waiting = false
         } else {
             let left = millis - (monotonicNanos() - start) / 1000000

@@ -1,4 +1,5 @@
 import ffi from std/ffi
+import platform from std/platform
 
 type OpenFlags = {
     creat i32
@@ -66,7 +67,7 @@ fn writeAll(fd: i32, data: Bytes) {
             write(fd, ffi.offset(ffi.bytesPtr(&data), off.toInt() || 0), n - off)
         }
         if w <= 0 {
-            if w < 0 && ffi.errno() == eintr() {
+            if w < 0 && ffi.errno() == platform.eintr() {
                 continue
             }
             return
@@ -85,7 +86,7 @@ fn readAll(fd: i32) -> Bytes {
             read(fd, buf, 4096)
         }
         if got <= 0 {
-            if got < 0 && ffi.errno() == eintr() {
+            if got < 0 && ffi.errno() == platform.eintr() {
                 continue
             }
             break
@@ -109,7 +110,7 @@ fn readSome(fd: i32) -> Bytes? {
         got = unsafe {
             read(fd, buf, 4096)
         }
-        if got < 0 && ffi.errno() != eintr() {
+        if got < 0 && ffi.errno() != platform.eintr() {
             break
         }
     }
@@ -657,7 +658,7 @@ fn drain(linkRd: &Array[i32], errRd: &Array[i32], stRd: &Array[i32], pids: &Arra
         if unsafe {
             poll(pfds, slots.len(), -1)
         } < 0 {
-            if ffi.errno() == eintr() {
+            if ffi.errno() == platform.eintr() {
                 continue
             }
             break

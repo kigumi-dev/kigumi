@@ -1,5 +1,6 @@
 import array from std/array
 import ffi from std/ffi
+import platform from std/platform
 
 extern(C) {
     fn fopen(path: *const u8, mode: *const u8) -> *mut u8
@@ -248,7 +249,7 @@ pub fn Files.mkdir(self, path: Path) -> Void! {
         if unsafe {
             mkdir(c.ptr(), 493)
         } != 0 {
-            if ffi.errno() != eexist() {
+            if ffi.errno() != platform.eexist() {
                 fail ffi.lastError()
             }
             let d = unsafe {
@@ -256,13 +257,13 @@ pub fn Files.mkdir(self, path: Path) -> Void! {
             }
             if ffi.isNull(ffi.toConst(d)) {
                 let e = ffi.errno()
-                if e == enotdir() {
+                if e == platform.enotdir() {
                     fail ffi.lastError()
                 }
-                if e == enoent() || e == eloop() {
+                if e == platform.enoent() || e == platform.eloop() {
                     fail ffi.CError {
-                        code: eexist()
-                        text: ffi.errorText(eexist())
+                        code: platform.eexist()
+                        text: ffi.errorText(platform.eexist())
                     }
                 }
             } else {
@@ -298,7 +299,7 @@ pub fn Files.list(self, path: Path) -> Array[Path]! {
             readdir(d)
         }
         if ffi.isNull(ffi.toConst(e)) {
-            if ffi.errno() == eintr() {
+            if ffi.errno() == platform.eintr() {
                 continue
             }
             if ffi.errno() != 0 {

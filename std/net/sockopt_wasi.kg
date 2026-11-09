@@ -68,23 +68,7 @@ fn pollOut() -> i16 {
     2
 }
 
-/// errno(3) EINTR on this platform: wasi's own errno space
-/// (__WASI_ERRNO_INTR in wasi/api.h) numbers it 27, not musl/Linux's 4.
-fn eintr() -> i32 {
-    27
-}
-
-/// errno(3) EINPROGRESS on this platform.
-fn einprogress() -> i32 {
-    26
-}
-
 /// send(2) flags that make a write to a closed peer fail with EPIPE instead of raising SIGPIPE.
 fn msgNoSignal() -> i32 {
     0
-}
-
-/// errno(3) EAGAIN (equal to EWOULDBLOCK) on this platform.
-fn eagain() -> i32 {
-    6
 }

@@ -1,0 +1,35 @@
+/// errno(3) constants for this platform, shared by the OS-facing packages.
+/// errno(3) EEXIST.
+pub fn eexist() -> i32 {
+    17
+}
+
+/// errno(3) EINTR.
+pub fn eintr() -> i32 {
+    4
+}
+
+/// errno(3) ENOTDIR.
+pub fn enotdir() -> i32 {
+    20
+}
+
+/// errno(3) ENOENT.
+pub fn enoent() -> i32 {
+    2
+}
+
+/// errno(3) ELOOP.
+pub fn eloop() -> i32 {
+    114
+}
+
+/// errno(3) EAGAIN.
+pub fn eagain() -> i32 {
+    11
+}
+
+/// errno(3) EINPROGRESS.
+pub fn einprogress() -> i32 {
+    112
+}

@@ -1,6 +1,7 @@
 import entropy from std/entropy
 import ffi from std/ffi
 import dl from std/ffi/dl
+import platform from std/platform
 
 /// The dynamic loader.
 pub fn Host.dl(self) -> dl.Loader
@@ -37,7 +38,7 @@ export(C) {
                 write(fd, ffi.offset(p, off.toInt() || 0), n - off)
             }
             if w <= 0 {
-                if w < 0 && ffi.errno() == eintr() {
+                if w < 0 && ffi.errno() == platform.eintr() {
                     continue
                 }
                 return
@@ -81,7 +82,7 @@ pub fn Stdin.readAll(self) -> String! {
             read(0, buf, 65536)
         }
         if got < 0 {
-            if ffi.errno() == eintr() {
+            if ffi.errno() == platform.eintr() {
                 continue
             }
             unsafe {
@@ -115,7 +116,7 @@ pub fn Stdin.readLine(self) -> String?! {
             read(0, buf, 1)
         }
         if got < 0 {
-            if ffi.errno() == eintr() {
+            if ffi.errno() == platform.eintr() {
                 continue
             }
             unsafe {
@@ -170,7 +171,7 @@ pub fn Stdin.read(mut self, into: &mut Array[u8], max: usize) -> usize! {
         got = unsafe {
             read(0, buf, max)
         }
-        if got < 0 && ffi.errno() != eintr() {
+        if got < 0 && ffi.errno() != platform.eintr() {
             unsafe {
                 free(buf)
             }
@@ -220,7 +221,7 @@ pub fn Stdin.readSome(self, timeoutMs: Int) -> Bytes! {
             poll(pfd, 1, clampedMs.toI32() || 0)
         }
         if r < 0 {
-            if ffi.errno() == eintr() {
+            if ffi.errno() == platform.eintr() {
                 continue
             }
             unsafe {
@@ -247,7 +248,7 @@ pub fn Stdin.readSome(self, timeoutMs: Int) -> Bytes! {
         got = unsafe {
             read(0, buf, 65536)
         }
-        if got < 0 && ffi.errno() != eintr() {
+        if got < 0 && ffi.errno() != platform.eintr() {
             unsafe {
                 free(buf)
             }
@@ -288,7 +289,7 @@ pub fn Stdout.write(mut self, data: Bytes) -> usize! {
         w = unsafe {
             write(1, ffi.bytesPtr(&data), n)
         }
-        if w < 0 && ffi.errno() != eintr() {
+        if w < 0 && ffi.errno() != platform.eintr() {
             fail ffi.lastError()
         }
     }
@@ -306,7 +307,7 @@ pub fn Stderr.write(mut self, data: Bytes) -> usize! {
         w = unsafe {
             write(2, ffi.bytesPtr(&data), n)
         }
-        if w < 0 && ffi.errno() != eintr() {
+        if w < 0 && ffi.errno() != platform.eintr() {
             fail ffi.lastError()
         }
     }
