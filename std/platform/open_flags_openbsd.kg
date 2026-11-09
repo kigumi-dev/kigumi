@@ -1,0 +1,17 @@
+/// open(2) flag bits for the shell redirections on this platform.
+pub type OpenFlags = {
+    pub creat i32
+    pub trunc i32
+    pub append i32
+    pub wronly i32
+}
+
+/// open(2) flag bits of this platform: O_CREAT, O_TRUNC, O_APPEND, O_WRONLY.
+pub fn openFlags() -> OpenFlags {
+    OpenFlags {
+        creat: 512
+        trunc: 1024
+        append: 8
+        wronly: 1
+    }
+}

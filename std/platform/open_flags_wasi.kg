@@ -1,7 +1,15 @@
+/// open(2) flag bits for the shell redirections on this platform.
+pub type OpenFlags = {
+    pub creat i32
+    pub trunc i32
+    pub append i32
+    pub wronly i32
+}
+
 // open(2) flag bits of this platform: wasi-libc's __header_fcntl.h
 // shifts the WASI oflags into O_CREAT/O_TRUNC's low bits (__WASI_OFLAGS_
 // CREAT/TRUNC << 12) and uses the raw fdflags bit for O_APPEND/O_WRONLY.
-fn openFlags() -> OpenFlags {
+pub fn openFlags() -> OpenFlags {
     OpenFlags {
         creat: 4096
         trunc: 32768

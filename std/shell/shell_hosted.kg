@@ -1,13 +1,6 @@
 import ffi from std/ffi
 import platform from std/platform
 
-type OpenFlags = {
-    creat i32
-    trunc i32
-    append i32
-    wronly i32
-}
-
 extern(C) {
     fn fork() -> i32
     fn pipe(fds: *mut u8) -> i32
@@ -195,7 +188,7 @@ fn hasNul(s: String) -> Bool {
 // `2>&1 >out` sends stderr to the pipe and stdout to the file while
 // `>out 2>&1` sends both to the file.
 fn applyRedirs(redirs: &Array[Redir], statusfd: i32) -> Bool {
-    let flags = openFlags()
+    let flags = platform.openFlags()
     for r in redirs {
         if r.fd < 0 {
             report(statusfd, "invalid redirect file descriptor")
