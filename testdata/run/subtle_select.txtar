@@ -1,0 +1,29 @@
+-- src --
+import subtle from std/crypto/subtle
+
+print "${subtle.select(0xffffffffffffffff, 42, 7)}"
+print "${subtle.select(0, 42, 7)}"
+print "${subtle.selectU8(0xff, 9, 3)}"
+print "${subtle.selectU8(0, 9, 3)}"
+let mut dst = Array.of[u8](1, 2, 3)
+let src = Array.of[u8](9, 8, 7)
+subtle.copy(&mut dst, &src, 0xff)?
+print "${dst[0]} ${dst[1]} ${dst[2]}"
+subtle.copy(&mut dst, &src, 0)?
+print "${dst[0]} ${dst[1]} ${dst[2]}"
+let table = Array.of[u8](11, 22, 33, 44)
+print "${subtle.lookup(&table, 2)}"
+print "${subtle.lookup(&table, 9)}"
+print "${subtle.eqMaskU64(5, 5)}"
+print "${subtle.eqMaskU64(5, 6)}"
+-- stdout --
+42
+7
+9
+3
+9 8 7
+9 8 7
+33
+0
+18446744073709551615
+0

@@ -10684,6 +10684,15 @@
       ]
     },
     {
+      "id": "run/subtle_select",
+      "kind": "run",
+      "path": "testdata/run/subtle_select.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/task_panic_sync_drop",
       "kind": "run",
       "path": "testdata/run/task_panic_sync_drop.txtar",

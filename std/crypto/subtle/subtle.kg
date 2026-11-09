@@ -1,3 +1,53 @@
 /// Reports whether a and b have equal length and bytes, with no data-dependent branch or early exit.
 /// Only the C runtime gives that timing guarantee; the VM makes no such promise.
 pub pure noalloc fn constantTimeEq(a: Bytes, b: Bytes) -> Bool
+
+/// Why a constant-time buffer operation could not run.
+pub type Error = {
+    pub text String
+}
+
+pub fn Error.message(self) -> String {
+    self.text
+}
+
+/// Mask all ones when equal, all zero otherwise, with no data-dependent branch.
+pub pure noalloc fn eqMaskU64(a: u64, b: u64) -> u64 {
+    let x = a ^ b
+    ((x | (0.toU64() || 0).wrappingSub(x)) >> 63).wrappingSub(1)
+}
+
+/// `a` when mask is all ones and `b` when it is all zero; other masks blend bit by bit.
+pub pure noalloc fn select(mask: u64, a: u64, b: u64) -> u64 {
+    (a & mask) | (b & (mask ^ 0xffffffffffffffff))
+}
+
+/// `a` when mask is all ones and `b` when it is all zero.
+pub pure noalloc fn selectU8(mask: u8, a: u8, b: u8) -> u8 {
+    (a & mask) | (b & (mask ^ 0xff))
+}
+
+/// Copies src into dst under mask: src bytes where the mask is all ones, dst unchanged where it is zero.
+/// Fails when the lengths differ.
+pub pure fn copy(dst: &mut Array[u8], src: &Array[u8], mask: u64) -> Void! {
+    if dst.len() != src.len() {
+        fail Error { text: "subtle copy: source and destination lengths differ" }
+    }
+    let mut i: usize = 0
+    for i < dst.len() {
+        dst[i] = selectU8(mask.truncate[u8](), src[i], dst[i])
+        i = i + 1
+    }
+}
+
+/// Reads table[index] by touching every entry; an out-of-range index returns 0.
+pub pure noalloc fn lookup(table: &Array[u8], index: usize) -> u8 {
+    let want = index.toU64()
+    let mut out: u8 = 0
+    let mut i: usize = 0
+    for i < table.len() {
+        out = selectU8(eqMaskU64(i.toU64(), want).truncate[u8](), table[i], out)
+        i = i + 1
+    }
+    out
+}
