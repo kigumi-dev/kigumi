@@ -1,5 +1,9 @@
 -- src --
 import task from std/task
+
+async fn worker(wg: &sync.WaitGroup) -> Void {
+    wg.done()
+}
 import sync from std/sync
 
 async fn check() -> Void! {
@@ -14,6 +18,13 @@ async fn check() -> Void! {
     wg.done()
     await wg.wait()
     print "waitgroup done"
+
+    let wg2 = sync.WaitGroup.new()
+    wg2.add(1)
+    let t = task.spawn(worker(&wg2))
+    await t
+    await wg2.wait()
+    print "task done"
 }
 
 task.currentThreadExecutor().runToCompletion(check())?
@@ -21,3 +32,4 @@ task.currentThreadExecutor().runToCompletion(check())?
 first
 once done true
 waitgroup done
+task done
