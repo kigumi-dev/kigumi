@@ -59,7 +59,13 @@ func (c *borrowCheck) targetFlows(ct callTarget) []storeFlow {
 					plain = append(plain, origins...)
 				}
 				for _, a := range lit.Args {
-					out = append(out, storeFlow{target: a, ref: c.p.R.Types.Kind(c.f.Locals[a].Type) == sem.KRef, values: slices.Clone(plain), callee: e, param: i, args: args})
+					target := storeFlow{target: a, ref: c.p.R.Types.Kind(c.f.Locals[a].Type) == sem.KRef}
+					if _, _, _, ok := c.storeRoot(target); !ok {
+						continue
+					}
+					target.values = slices.Clone(plain)
+					target.callee, target.param, target.args = e, i, args
+					out = append(out, target)
 				}
 			}
 		}

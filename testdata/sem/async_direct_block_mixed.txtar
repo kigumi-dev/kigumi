@@ -23,13 +23,13 @@ note: calls `read`
   8 |     host.files().read(fs.Path.fromString("x")?)?
     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 note: calls `readBytesUpTo`
-   --> std/fs/fs_hosted.kg:128:22
+   --> std/fs/fs_hosted.kg:129:22
     |
-128 |     String.fromBytes(self.readBytesUpTo(path, defaultReadLimit)?)
+129 |     String.fromBytes(self.readBytesUpTo(path, defaultReadLimit)?)
     |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 note: calls `opendir`
-   --> std/fs/fs_hosted.kg:141:9
+   --> std/fs/fs_hosted.kg:142:9
     |
-141 |         opendir(c.ptr())
+142 |         opendir(c.ptr())
     |         ^^^^^^^^^^^^^^
 

@@ -117,6 +117,11 @@ func (c *borrowCheck) closureStoredFed(info *sem.FnInfo, callee *midir.Func, i i
 			if j >= len(args) || j >= len(c.declaredParams(callee.Ent)) {
 				continue
 			}
+			// A direct record or borrow is already carried by the ordinary call flow; only a
+			// call result needs the closure capture as an explicit destination.
+			if d := c.definition(c.valueSource(args[j])); d == nil || d.Op != midir.OpCall && d.Op != midir.OpCallValue && d.Op != midir.OpFutureNew {
+				continue
+			}
 			tie := tieValue
 			if c.p.R.Types.Kind(c.p.R.Entity(c.declaredParams(callee.Ent)[j]).Type) == sem.KRef {
 				tie = tieRef
