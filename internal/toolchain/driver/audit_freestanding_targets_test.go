@@ -31,6 +31,10 @@ const (
 		"fn pass[T](x: T) -> i32 {\n    let y = id(x)\n    1\n}\n\n" +
 		"export(C) {\n    pub fn run() -> i32 {\n        let a = FixedArray.filled[Int, 64](3)\n        pass(a)\n    }\n}\n"
 
+	nestedLayoutProgram = "import ffi from std/ffi\n\npub type Header layout(C) = {\n    pub magic u32\n    pub version u32\n}\n\n" +
+		"pub type Table layout(C) = {\n    pub header Header\n    pub value u64\n}\n\n" +
+		"export(C) {\n    pub fn probeNested(t: *const Table) -> u64 {\n        let table = unsafe { ffi.readRecord(t) }\n        table.value\n    }\n}\n"
+
 	arithmeticProgram = "export(C) {\n    pub fn mix(a: Int, b: Int, f: Float) -> Float {\n" +
 		"        (a / b + a % b).toFloat() * f\n    }\n\n" +
 		"    pub fn wide(a: u64, b: u64) -> i32 {\n        let x: u128 = a.toU128()\n        let y: u128 = b.toU128()\n        let z = x * y + x / (y + 1)\n        if z > x { 1 } else { 0 }\n    }\n}\n"
@@ -41,6 +45,7 @@ var freestandingTargetPrograms = []struct{ name, src string }{
 	{"large record through generic", largeAggregateProgram(40)},
 	{"fixed array through generic", fixedArrayProgram},
 	{"wide arithmetic", arithmeticProgram},
+	{"nested layout(C)", nestedLayoutProgram},
 }
 
 // Every freestanding target the table accepts, each as its own subtest so a regression names the target.

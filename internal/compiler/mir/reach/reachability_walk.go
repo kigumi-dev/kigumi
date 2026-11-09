@@ -29,7 +29,18 @@ func (w *reachWalk) markType(id sem.EntityID) {
 		return
 	}
 	w.rs.Types[id] = true
-	w.root(w.r.TypeDecl(id).Drop, RootDropGlue)
+	// A kept record's descriptor names the descriptors of its fields, so they are kept too.
+	decl := w.r.TypeDecl(id)
+	for _, f := range decl.Fields {
+		w.walkType(w.r.Entity(f).Type)
+	}
+	for _, v := range decl.Variants {
+		for _, payload := range w.r.Variant(v).Payload {
+			w.walkType(payload)
+		}
+	}
+	w.walkType(decl.Underlying)
+	w.root(decl.Drop, RootDropGlue)
 }
 
 // rt_error_as walks Context values by descriptor, so std/error.as keeps the type even when nothing builds one.

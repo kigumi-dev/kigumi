@@ -137,3 +137,30 @@ print "ok"
 		t.Error("Idle is never constructed, so its drop glue should not be emitted")
 	}
 }
+
+func TestReachableKeepsNestedLayoutFields(t *testing.T) {
+	const src = `
+pub type Header layout(C) = { pub magic u32 }
+pub type Table layout(C) = { pub header Header, pub value u64 }
+
+export(C) {
+    pub fn probeNested(t: *const Table) -> u64 { 0 }
+}
+
+fn main() -> Void {}
+`
+	main := &sem.Package{Path: "main"}
+	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
+	main.Files = []*syntax.Tree{main.Entry}
+	res := sem.CheckWith(&sem.Module{Packages: append(semfixture.LoadStd(t, "../../../../std"), main)}, schema.GenerateDerive)
+	if res.HasErrors() {
+		t.Fatalf("check errors:\n%s", res.Render())
+	}
+	prog := mirbuild.Program(res)
+	rs := mirreach.Reachable(prog.R, prog.Entry, prog.Funcs, prog.ByEnt)
+
+	header, table := entType(t, res, "Header"), entType(t, res, "Table")
+	if !rs.KeepType(table) || !rs.KeepType(header) {
+		t.Errorf("nested layout(C) descriptors: Table %v, Header %v", rs.KeepType(table), rs.KeepType(header))
+	}
+}
