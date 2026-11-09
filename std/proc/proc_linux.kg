@@ -1,4 +1,5 @@
 import ffi from std/ffi
+import platform from std/platform
 
 extern(C) {
     fn fork() -> i32
@@ -100,8 +101,14 @@ pub fn Process.wait(mut self) -> Int! {
     if ffi.isNull(ffi.toConst(status)) {
         fail Error { text: "process wait: out of memory" }
     }
-    let got = unsafe {
-        waitpid(self.pid, status, 0)
+    let mut got: i32 = -1
+    for true {
+        got = unsafe {
+            waitpid(self.pid, status, 0)
+        }
+        if got >= 0 || ffi.errno() != platform.eintr() {
+            break
+        }
     }
     if got < 0 {
         let why = ffi.errorText(ffi.errno())
