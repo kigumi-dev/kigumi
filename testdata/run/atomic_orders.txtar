@@ -1,0 +1,31 @@
+-- src --
+import atomic from std/atomic
+
+let a = atomic.AtomicU64.new(1)
+unsafe {
+    print "sub ${a.sub(2, atomic.RmwOrder.SeqCst)} ${a.load(atomic.LoadOrder.SeqCst)}"
+    a.store(0xff00, atomic.StoreOrder.Release)
+    print "swap ${a.swap(7, atomic.RmwOrder.AcqRel)} ${a.and(3, atomic.RmwOrder.Release)} ${a.or(8, atomic.RmwOrder.Acquire)}"
+    print "xor ${a.xor(1, atomic.RmwOrder.Relaxed)} ${a.load(atomic.LoadOrder.Acquire)}"
+    a.store(18446744073709551615, atomic.StoreOrder.Relaxed)
+    print "wrap ${a.add(2, atomic.RmwOrder.AcqRel)} ${a.load(atomic.LoadOrder.Relaxed)}"
+    print "cas ${a.compareExchange(1, 5, atomic.RmwOrder.Acquire)} ${a.compareExchange(0, 5, atomic.RmwOrder.Release)} ${a.load(atomic.LoadOrder.SeqCst)}"
+    a.store(3, atomic.StoreOrder.SeqCst)
+    print "rlx ${a.add(1, atomic.RmwOrder.Relaxed)} ${a.sub(1, atomic.RmwOrder.Acquire)} ${a.swap(9, atomic.RmwOrder.Relaxed)} ${a.load(atomic.LoadOrder.Relaxed)}"
+    let b = atomic.AtomicBool.new(true)
+    b.store(false, atomic.StoreOrder.Release)
+    print "bool ${b.swap(true, atomic.RmwOrder.Release)} ${b.compareExchange(false, false, atomic.RmwOrder.AcqRel)} ${b.load(atomic.LoadOrder.Acquire)}"
+    print "bool2 ${b.compareExchange(true, false, atomic.RmwOrder.SeqCst)} ${b.load(atomic.LoadOrder.Relaxed)}"
+    b.store(true, atomic.StoreOrder.Relaxed)
+    print "bool3 ${b.swap(false, atomic.RmwOrder.Acquire)} ${b.swap(true, atomic.RmwOrder.Relaxed)} ${b.load(atomic.LoadOrder.SeqCst)}"
+}
+-- stdout --
+sub 1 18446744073709551615
+swap 65280 7 3
+xor 11 10
+wrap 18446744073709551615 1
+cas 1 5 5
+rlx 3 4 3 9
+bool false true true
+bool2 true false
+bool3 true false true

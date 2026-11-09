@@ -1,0 +1,50 @@
+-- src --
+import atomic from std/atomic
+
+type Counter = {
+    a atomic.AtomicU64
+}
+
+fn make() -> atomic.AtomicU64 {
+    atomic.AtomicU64.new(1)
+}
+
+fn makeCounter() -> Counter {
+    Counter { a: atomic.AtomicU64.new(1) }
+}
+
+fn makeOption() -> Option[atomic.AtomicU64] {
+    Some(atomic.AtomicU64.new(1))
+}
+
+fn discard() {
+    make() //~ ERROR
+    makeCounter() //~ ERROR
+    makeOption() //~ ERROR
+    let kept = make()
+    _ = kept
+}
+
+print "ok"
+-- expect --
+error[E700]: unused `AtomicU64`
+  --> main/main.kg:20:5
+   |
+20 |     make() //~ ERROR
+   |     ^^^^^
+   = help: use `?`, `||`, or `_ =`
+
+error[E700]: unused `Counter`
+  --> main/main.kg:21:5
+   |
+21 |     makeCounter() //~ ERROR
+   |     ^^^^^^^^^^^^
+   = help: use `?`, `||`, or `_ =`
+
+error[E700]: unused `AtomicU64?`
+  --> main/main.kg:22:5
+   |
+22 |     makeOption() //~ ERROR
+   |     ^^^^^^^^^^^
+   = help: use `?`, `||`, or `_ =`
+

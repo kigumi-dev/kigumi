@@ -159,7 +159,7 @@ func (m *Machine) runTask(t *task, lane int) {
 	m.flushReleases()
 }
 
-// A sandbox abort is never contained; only a non-root fault sweeps frames, the root keeps its own.
+// A sandbox abort is never contained; a root fault sweeps only synchronous callee frames.
 func (m *Machine) pollTaskBody(t *task) (*obj, polled, *Panic) {
 	base := len(m.frames)
 	v, st, fault := m.pollContained(t)
@@ -172,8 +172,8 @@ func (m *Machine) pollTaskBody(t *task) (*obj, polled, *Panic) {
 		m.unwindFutures(t.fut)
 		fault, m.sweepFault = m.sweepFault, nil
 	} else {
-		// The root Future owns its async frame; synchronous callees still
-		// own their locals and must be released during the same fault.
+		// Only synchronous callees drop their locals; async frames of a
+		// root fault are not dropped.
 		m.sweepFault = fault
 		m.sweepSyncFrames(base)
 		fault, m.sweepFault = m.sweepFault, nil

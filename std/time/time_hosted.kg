@@ -44,19 +44,48 @@ pub fn monotonic() -> Monotonic {
     Monotonic { ticks: ts.sec.toInt() * 1000 + ts.nsec.toInt() / 1000000 }
 }
 
-/// Pauses the current thread for millis milliseconds.
+fn monotonicNanos() -> i64 {
+    let cv = ffi.CValue.new(Timespec {
+        sec: 0
+        nsec: 0
+    })
+    let rc = unsafe {
+        clock_gettime(1, cv.ptr())
+    }
+    if rc != 0 {
+        panic("clock_gettime failed")
+    }
+    let ts = cv.get()
+    ts.sec.toInt() * 1000000000 + ts.nsec.toInt()
+}
+
+/// Pauses the current thread for millis milliseconds; a signal handler running meanwhile does not shorten the pause.
 pub fn sleep(millis: i64) {
     if millis <= 0 {
         return
     }
-    let cv = ffi.CValue.new(Timespec {
+    let start = monotonicNanos()
+    let req = ffi.CValue.new(Timespec {
         sec: (millis / 1000).toIsize()
         nsec: (millis % 1000 * 1000000).toIsize()
     })
-    let rc = unsafe {
-        nanosleep(ffi.toConst(cv.ptr()), ffi.toMut(ffi.null[Timespec]()))
-    }
-    if rc != 0 {
-        panic("nanosleep failed")
+    let mut waiting = true
+    for waiting {
+        let rc = unsafe {
+            nanosleep(ffi.toConst(req.ptr()), ffi.toMut(ffi.null[Timespec]()))
+        }
+        if rc == 0 || ffi.errno() != eintr() {
+            waiting = false
+        } else {
+            let left = millis - (monotonicNanos() - start) / 1000000
+            if left <= 0 {
+                waiting = false
+            } else {
+                req.set(&Timespec {
+                    sec: (left / 1000).toIsize()
+                    nsec: (left % 1000 * 1000000).toIsize()
+                })
+            }
+        }
     }
 }

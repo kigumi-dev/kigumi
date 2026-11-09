@@ -1,0 +1,79 @@
+-- src --
+import fs from std/fs
+import net from std/net
+import task from std/task
+
+type Plain = resource {
+    fd i32
+}
+
+fn needsSend[T: Send](x: T) -> Int {
+    1
+}
+
+fn useFile(f: fs.File) -> Int {
+    needsSend(f)
+}
+
+fn useConn(c: net.Conn) -> Int {
+    needsSend(c)
+}
+
+fn useListener(l: net.Listener) -> Int {
+    needsSend(l)
+}
+
+fn usePlain(p: Plain) -> Int {
+    needsSend(p) //~ ERROR does not satisfy `Send`
+}
+
+async fn spawnFile(f: fs.File) -> Int {
+    let k = task.spawn(readFile(f))
+    await k
+}
+
+async fn readFile(f: fs.File) -> Int {
+    1
+}
+
+async fn spawnConn(c: net.Conn) -> Int {
+    let k = task.spawn(readConn(c))
+    await k
+}
+
+async fn readConn(c: net.Conn) -> Int {
+    1
+}
+
+async fn spawnListener(l: net.Listener) -> Int {
+    let k = task.spawn(readListener(l))
+    await k
+}
+
+async fn readListener(l: net.Listener) -> Int {
+    1
+}
+
+fn poolHandles(pool: task.BlockingPool, f: fs.File, c: net.Conn, l: net.Listener) {
+    _ = pool.run(() => {
+        _ = f
+        1
+    })
+    _ = pool.run(() => {
+        _ = c
+        2
+    })
+    _ = pool.run(() => {
+        _ = l
+        3
+    })
+}
+
+print "ok"
+-- expect --
+error[E300]: `Plain` does not satisfy `Send`: it cannot move to another thread
+  --> main/main.kg:26:5
+   |
+26 |     needsSend(p) //~ ERROR does not satisfy `Send`
+   |     ^^^^^^^^^^^
+

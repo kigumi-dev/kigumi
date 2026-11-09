@@ -1,0 +1,39 @@
+-- src --
+import atomic from std/atomic
+
+fn orders(a: atomic.AtomicU64) {
+    unsafe {
+        _ = a.load(atomic.LoadOrder.Release) //~ ERROR
+        _ = a.load(atomic.LoadOrder.AcqRel) //~ ERROR
+        a.store(1, atomic.StoreOrder.Acquire) //~ ERROR
+        a.store(1, atomic.StoreOrder.AcqRel) //~ ERROR
+        a.store(1, atomic.StoreOrder.SeqCst)
+    }
+}
+
+print "ok"
+-- expect --
+error[E510]: `LoadOrder` has no field or method `Release`
+ --> main/main.kg:5:20
+  |
+5 |         _ = a.load(atomic.LoadOrder.Release) //~ ERROR
+  |                    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E510]: `LoadOrder` has no field or method `AcqRel`
+ --> main/main.kg:6:20
+  |
+6 |         _ = a.load(atomic.LoadOrder.AcqRel) //~ ERROR
+  |                    ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E510]: `StoreOrder` has no field or method `Acquire`
+ --> main/main.kg:7:20
+  |
+7 |         a.store(1, atomic.StoreOrder.Acquire) //~ ERROR
+  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E510]: `StoreOrder` has no field or method `AcqRel`
+ --> main/main.kg:8:20
+  |
+8 |         a.store(1, atomic.StoreOrder.AcqRel) //~ ERROR
+  |                    ^^^^^^^^^^^^^^^^^^^^^^^^
+

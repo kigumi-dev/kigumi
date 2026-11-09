@@ -1,0 +1,33 @@
+-- src --
+import task from std/task
+
+fn nested() {
+    let pool = task.BlockingPool.new(1)
+    let outer = pool.run(() => {
+        let inner = pool.run(() => 1)
+        if inner is Err(task.BlockingError.CapacityExhausted) {
+            print "inner exhausted"
+        } else {
+            print "inner ok"
+        }
+        2
+    })
+    print "outer ${outer is Ok(_)}"
+    let again = pool.run(() => 3)
+    print "again while outer result alive ${again is Ok(_)}"
+}
+
+fn released() {
+    let pool = task.BlockingPool.new(1)
+    _ = pool.run(() => 2)
+    let again = pool.run(() => 3)
+    print "again after dropping result ${again is Ok(_)}"
+}
+
+nested()
+released()
+-- stdout --
+inner exhausted
+outer true
+again while outer result alive false
+again after dropping result true

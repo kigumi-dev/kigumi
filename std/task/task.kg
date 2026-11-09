@@ -36,7 +36,7 @@ pub context cancellation: Bool
 /// A bounded, root-owned boundary for running direct-blocking work from an async body instead of calling it bare.
 pub type BlockingPool
 
-/// `run`'s only failure: the pool already has `capacity` closures in flight.
+/// `run`'s only failure: the pool already has `capacity` results outstanding.
 pub type BlockingError = | CapacityExhausted
 
 pub fn BlockingError.message(self) -> String {
@@ -45,7 +45,7 @@ pub fn BlockingError.message(self) -> String {
     }
 }
 
-/// Creates a pool that runs at most capacity closures at once.
+/// Creates a pool that admits at most capacity closures at once; a closure holds its slot from `run` until its result Future is awaited or dropped, not merely until the closure returns.
 pub fn BlockingPool.new(capacity: usize) -> BlockingPool
 
 /// Runs work through the pool's boundary instead of a bare direct call; work may capture move-only values such as a File or Conn, and is consumed. Under a `threadPoolExecutor` it runs on a thread of its own, so awaiting the result suspends the task and the workers keep running other tasks; under `currentThreadExecutor`, or outside a running task, it runs on the caller before `run` returns. Dropping a result that is still pending waits for the closure, since blocking work cannot be interrupted.

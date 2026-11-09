@@ -1,0 +1,86 @@
+import mem from std/mem
+
+/// An atomic Bool.
+/// It is a resource, so keep it in a binding: a discarded atomic is an unused-value error. Orders are checked per operation, but every backend currently runs each operation as SeqCst, so a weaker order is not faster.
+/// Safety: every access goes through an atomic operation, so threads sharing a reference never race on the cell.
+@unsafeGuarantee(Send, Sync)
+pub type AtomicBool = resource {
+    cell mem.UnsafeCell[Bool]
+}
+
+/// An atomic Bool holding value.
+pub fn AtomicBool.new(value: Bool) -> AtomicBool {
+    AtomicBool { cell: mem.UnsafeCell.new(value) }
+}
+
+/// Atomically reads the value.
+pub unsafe fn AtomicBool.load(self, order: LoadOrder) -> Bool {
+    match order {
+        LoadOrder.Relaxed -> unsafe {
+            self.cell.atomicLoad(mem.AtomicOrder.Relaxed)
+        }
+        LoadOrder.Acquire -> unsafe {
+            self.cell.atomicLoad(mem.AtomicOrder.Acquire)
+        }
+        LoadOrder.SeqCst -> unsafe {
+            self.cell.atomicLoad(mem.AtomicOrder.SeqCst)
+        }
+    }
+}
+
+/// Atomically replaces the value.
+pub unsafe fn AtomicBool.store(self, value: Bool, order: StoreOrder) {
+    match order {
+        StoreOrder.Relaxed -> unsafe {
+            self.cell.atomicStore(value, mem.AtomicOrder.Relaxed)
+        }
+        StoreOrder.Release -> unsafe {
+            self.cell.atomicStore(value, mem.AtomicOrder.Release)
+        }
+        StoreOrder.SeqCst -> unsafe {
+            self.cell.atomicStore(value, mem.AtomicOrder.SeqCst)
+        }
+    }
+}
+
+/// Atomically replaces the value and returns the old one.
+pub unsafe fn AtomicBool.swap(self, value: Bool, order: RmwOrder) -> Bool {
+    match order {
+        RmwOrder.Relaxed -> unsafe {
+            self.cell.atomicExchange(value, mem.AtomicOrder.Relaxed)
+        }
+        RmwOrder.Acquire -> unsafe {
+            self.cell.atomicExchange(value, mem.AtomicOrder.Acquire)
+        }
+        RmwOrder.Release -> unsafe {
+            self.cell.atomicExchange(value, mem.AtomicOrder.Release)
+        }
+        RmwOrder.AcqRel -> unsafe {
+            self.cell.atomicExchange(value, mem.AtomicOrder.AcqRel)
+        }
+        RmwOrder.SeqCst -> unsafe {
+            self.cell.atomicExchange(value, mem.AtomicOrder.SeqCst)
+        }
+    }
+}
+
+/// Writes desired when the cell holds expected and returns the old value.
+pub unsafe fn AtomicBool.compareExchange(self, expected: Bool, desired: Bool, order: RmwOrder) -> Bool {
+    match order {
+        RmwOrder.Relaxed -> unsafe {
+            self.cell.atomicCompareExchange(expected, desired, mem.AtomicOrder.Relaxed)
+        }
+        RmwOrder.Acquire -> unsafe {
+            self.cell.atomicCompareExchange(expected, desired, mem.AtomicOrder.Acquire)
+        }
+        RmwOrder.Release -> unsafe {
+            self.cell.atomicCompareExchange(expected, desired, mem.AtomicOrder.Release)
+        }
+        RmwOrder.AcqRel -> unsafe {
+            self.cell.atomicCompareExchange(expected, desired, mem.AtomicOrder.AcqRel)
+        }
+        RmwOrder.SeqCst -> unsafe {
+            self.cell.atomicCompareExchange(expected, desired, mem.AtomicOrder.SeqCst)
+        }
+    }
+}

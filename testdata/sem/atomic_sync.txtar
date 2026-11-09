@@ -1,0 +1,31 @@
+-- src --
+import atomic from std/atomic
+
+type Plain = resource {
+    fd i32
+}
+
+fn needsSend[T: Send](x: T) -> Int {
+    1
+}
+
+fn needsSync[T: Sync](x: &T) -> Int {
+    1
+}
+
+fn useAtomics(a: atomic.AtomicU64, b: atomic.AtomicBool, p: Plain) -> Int {
+    _ = needsSync(&a)
+    _ = needsSync(&b)
+    _ = needsSend(a)
+    _ = needsSend(b)
+    needsSync(&p) //~ ERROR does not satisfy `Sync`
+}
+
+print "ok"
+-- expect --
+error[E300]: `Plain` does not satisfy `Sync`: it cannot be shared between threads
+  --> main/main.kg:20:5
+   |
+20 |     needsSync(&p) //~ ERROR does not satisfy `Sync`
+   |     ^^^^^^^^^^^^
+

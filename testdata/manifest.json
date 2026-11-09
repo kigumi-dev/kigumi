@@ -2866,9 +2866,27 @@
       ]
     },
     {
+      "id": "run/atomic_orders",
+      "kind": "run",
+      "path": "testdata/run/atomic_orders.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/atomic_paren_place",
       "kind": "run",
       "path": "testdata/run/atomic_paren_place.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/atomic_shared",
+      "kind": "run",
+      "path": "testdata/run/atomic_shared.txtar",
       "mode": [
         "vm",
         "native"
@@ -3031,6 +3049,15 @@
       "id": "run/blocking_pool_move_capture",
       "kind": "run",
       "path": "testdata/run/blocking_pool_move_capture.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/blocking_pool_nested",
+      "kind": "run",
+      "path": "testdata/run/blocking_pool_nested.txtar",
       "mode": [
         "vm",
         "native"
@@ -10747,6 +10774,15 @@
       ]
     },
     {
+      "id": "run/time_sleep_signal",
+      "kind": "run",
+      "path": "testdata/run/time_sleep_signal.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/tls_handshake",
       "kind": "run",
       "path": "testdata/run/tls_handshake.txtar",
@@ -11815,6 +11851,22 @@
       ]
     },
     {
+      "id": "sem/atomic_must_use",
+      "kind": "sem",
+      "path": "testdata/sem/atomic_must_use.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/atomic_order_invalid",
+      "kind": "sem",
+      "path": "testdata/sem/atomic_order_invalid.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/atomic_order_misuse",
       "kind": "sem",
       "path": "testdata/sem/atomic_order_misuse.txtar",
@@ -11826,6 +11878,14 @@
       "id": "sem/atomic_place_misuse",
       "kind": "sem",
       "path": "testdata/sem/atomic_place_misuse.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/atomic_sync",
+      "kind": "sem",
+      "path": "testdata/sem/atomic_sync.txtar",
       "mode": [
         "check"
       ]
@@ -16538,6 +16598,14 @@
       "id": "sem/static_value_kinds_rejected",
       "kind": "sem",
       "path": "testdata/sem/static_value_kinds_rejected.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/std_handle_send",
+      "kind": "sem",
+      "path": "testdata/sem/std_handle_send.txtar",
       "mode": [
         "check"
       ]

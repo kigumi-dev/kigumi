@@ -1,0 +1,32 @@
+-- src --
+import atomic from std/atomic
+import task from std/task
+
+fn bump(a: &atomic.AtomicU64, n: Int) -> Int {
+    let mut i = 0
+    for i < n {
+        unsafe {
+            _ = a.add(1, atomic.RmwOrder.SeqCst)
+        }
+        i = i + 1
+    }
+    n
+}
+
+async fn root() -> u64 {
+    let pool = task.BlockingPool.new(4)
+    let a = atomic.AtomicU64.new(0)
+    let f1 = pool.run(() => bump(&a, 20000)).expect("capacity")
+    let f2 = pool.run(() => bump(&a, 20000)).expect("capacity")
+    _ = bump(&a, 20000)
+    _ = await f1
+    _ = await f2
+    unsafe {
+        a.load(atomic.LoadOrder.SeqCst)
+    }
+}
+
+let ex = task.threadPoolExecutor(2)
+print "${ex.runToCompletion(root())}"
+-- stdout --
+60000

@@ -1,14 +1,13 @@
 -- src --
 import atomic from std/atomic
-import mem from std/mem
 
 let a = atomic.AtomicU64.new(1)
-print "${(unsafe { a.load(mem.AtomicOrder.SeqCst) })}"
-print "${(unsafe { a.add(2, mem.AtomicOrder.SeqCst) })} ${(unsafe { a.load(mem.AtomicOrder.SeqCst) })}"
-print "${(unsafe { a.compareExchange(3, 9, mem.AtomicOrder.SeqCst) })} ${(unsafe { a.load(mem.AtomicOrder.SeqCst) })}"
-print "${(unsafe { a.xor(3, mem.AtomicOrder.SeqCst) })}"
+print "${(unsafe { a.load(atomic.LoadOrder.SeqCst) })}"
+print "${(unsafe { a.add(2, atomic.RmwOrder.SeqCst) })} ${(unsafe { a.load(atomic.LoadOrder.SeqCst) })}"
+print "${(unsafe { a.compareExchange(3, 9, atomic.RmwOrder.SeqCst) })} ${(unsafe { a.load(atomic.LoadOrder.SeqCst) })}"
+print "${(unsafe { a.xor(3, atomic.RmwOrder.SeqCst) })}"
 let b = atomic.AtomicBool.new(false)
-print "${(unsafe { b.compareExchange(false, true, mem.AtomicOrder.SeqCst) })} ${(unsafe { b.load(mem.AtomicOrder.SeqCst) })}"
+print "${(unsafe { b.compareExchange(false, true, atomic.RmwOrder.SeqCst) })} ${(unsafe { b.load(atomic.LoadOrder.SeqCst) })}"
 -- stdout --
 1
 1 3

@@ -1,0 +1,17 @@
+-- src --
+import os from std/os
+import shell from std/shell
+import time from std/time
+
+let sigs = host.signals()
+sigs.watch(os.Signal.Interrupt).expect("watch")
+let sh = host.shell()
+_ = $"sh -c '(for i in $(seq 1 400); do kill -INT $PPID; sleep 0.002; done) >/dev/null 2>&1 &'" |> shell.run(sh)
+let start = time.monotonic()
+time.sleep(1000)
+let elapsed = start.elapsedMillis()
+print "slept ${elapsed >= 1000} ${elapsed < 1500}"
+print "pending ${sigs.pending(os.Signal.Interrupt)}"
+-- stdout --
+slept true true
+pending true

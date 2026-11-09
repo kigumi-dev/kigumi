@@ -1,0 +1,191 @@
+import mem from std/mem
+
+/// A 64-bit value whose loads, stores and updates are atomic.
+/// It is a resource, so keep it in a binding: a discarded atomic is an unused-value error. Orders are checked per operation, but every backend currently runs each operation as SeqCst, so a weaker order is not faster.
+/// Safety: every access goes through an atomic operation, so threads sharing a reference never race on the cell.
+@unsafeGuarantee(Send, Sync)
+pub type AtomicU64 = resource {
+    cell mem.UnsafeCell[u64]
+}
+
+/// An atomic cell holding value.
+pub fn AtomicU64.new(value: u64) -> AtomicU64 {
+    AtomicU64 { cell: mem.UnsafeCell.new(value) }
+}
+
+/// Atomically reads the value.
+pub unsafe fn AtomicU64.load(self, order: LoadOrder) -> u64 {
+    match order {
+        LoadOrder.Relaxed -> unsafe {
+            self.cell.atomicLoad(mem.AtomicOrder.Relaxed)
+        }
+        LoadOrder.Acquire -> unsafe {
+            self.cell.atomicLoad(mem.AtomicOrder.Acquire)
+        }
+        LoadOrder.SeqCst -> unsafe {
+            self.cell.atomicLoad(mem.AtomicOrder.SeqCst)
+        }
+    }
+}
+
+/// Atomically replaces the value.
+pub unsafe fn AtomicU64.store(self, value: u64, order: StoreOrder) {
+    match order {
+        StoreOrder.Relaxed -> unsafe {
+            self.cell.atomicStore(value, mem.AtomicOrder.Relaxed)
+        }
+        StoreOrder.Release -> unsafe {
+            self.cell.atomicStore(value, mem.AtomicOrder.Release)
+        }
+        StoreOrder.SeqCst -> unsafe {
+            self.cell.atomicStore(value, mem.AtomicOrder.SeqCst)
+        }
+    }
+}
+
+/// Atomically replaces the value and returns the old one.
+pub unsafe fn AtomicU64.swap(self, value: u64, order: RmwOrder) -> u64 {
+    match order {
+        RmwOrder.Relaxed -> unsafe {
+            self.cell.atomicExchange(value, mem.AtomicOrder.Relaxed)
+        }
+        RmwOrder.Acquire -> unsafe {
+            self.cell.atomicExchange(value, mem.AtomicOrder.Acquire)
+        }
+        RmwOrder.Release -> unsafe {
+            self.cell.atomicExchange(value, mem.AtomicOrder.Release)
+        }
+        RmwOrder.AcqRel -> unsafe {
+            self.cell.atomicExchange(value, mem.AtomicOrder.AcqRel)
+        }
+        RmwOrder.SeqCst -> unsafe {
+            self.cell.atomicExchange(value, mem.AtomicOrder.SeqCst)
+        }
+    }
+}
+
+/// Writes desired when the cell holds expected and returns the old value.
+pub unsafe fn AtomicU64.compareExchange(self, expected: u64, desired: u64, order: RmwOrder) -> u64 {
+    match order {
+        RmwOrder.Relaxed -> unsafe {
+            self.cell.atomicCompareExchange(expected, desired, mem.AtomicOrder.Relaxed)
+        }
+        RmwOrder.Acquire -> unsafe {
+            self.cell.atomicCompareExchange(expected, desired, mem.AtomicOrder.Acquire)
+        }
+        RmwOrder.Release -> unsafe {
+            self.cell.atomicCompareExchange(expected, desired, mem.AtomicOrder.Release)
+        }
+        RmwOrder.AcqRel -> unsafe {
+            self.cell.atomicCompareExchange(expected, desired, mem.AtomicOrder.AcqRel)
+        }
+        RmwOrder.SeqCst -> unsafe {
+            self.cell.atomicCompareExchange(expected, desired, mem.AtomicOrder.SeqCst)
+        }
+    }
+}
+
+/// Adds value modulo 2^64 and returns the old value.
+pub unsafe fn AtomicU64.add(self, value: u64, order: RmwOrder) -> u64 {
+    match order {
+        RmwOrder.Relaxed -> unsafe {
+            self.cell.atomicAdd(value, mem.AtomicOrder.Relaxed)
+        }
+        RmwOrder.Acquire -> unsafe {
+            self.cell.atomicAdd(value, mem.AtomicOrder.Acquire)
+        }
+        RmwOrder.Release -> unsafe {
+            self.cell.atomicAdd(value, mem.AtomicOrder.Release)
+        }
+        RmwOrder.AcqRel -> unsafe {
+            self.cell.atomicAdd(value, mem.AtomicOrder.AcqRel)
+        }
+        RmwOrder.SeqCst -> unsafe {
+            self.cell.atomicAdd(value, mem.AtomicOrder.SeqCst)
+        }
+    }
+}
+
+/// Subtracts value modulo 2^64 and returns the old value.
+pub unsafe fn AtomicU64.sub(self, value: u64, order: RmwOrder) -> u64 {
+    match order {
+        RmwOrder.Relaxed -> unsafe {
+            self.cell.atomicSub(value, mem.AtomicOrder.Relaxed)
+        }
+        RmwOrder.Acquire -> unsafe {
+            self.cell.atomicSub(value, mem.AtomicOrder.Acquire)
+        }
+        RmwOrder.Release -> unsafe {
+            self.cell.atomicSub(value, mem.AtomicOrder.Release)
+        }
+        RmwOrder.AcqRel -> unsafe {
+            self.cell.atomicSub(value, mem.AtomicOrder.AcqRel)
+        }
+        RmwOrder.SeqCst -> unsafe {
+            self.cell.atomicSub(value, mem.AtomicOrder.SeqCst)
+        }
+    }
+}
+
+/// Bitwise-ands value and returns the old value.
+pub unsafe fn AtomicU64.and(self, value: u64, order: RmwOrder) -> u64 {
+    match order {
+        RmwOrder.Relaxed -> unsafe {
+            self.cell.atomicAnd(value, mem.AtomicOrder.Relaxed)
+        }
+        RmwOrder.Acquire -> unsafe {
+            self.cell.atomicAnd(value, mem.AtomicOrder.Acquire)
+        }
+        RmwOrder.Release -> unsafe {
+            self.cell.atomicAnd(value, mem.AtomicOrder.Release)
+        }
+        RmwOrder.AcqRel -> unsafe {
+            self.cell.atomicAnd(value, mem.AtomicOrder.AcqRel)
+        }
+        RmwOrder.SeqCst -> unsafe {
+            self.cell.atomicAnd(value, mem.AtomicOrder.SeqCst)
+        }
+    }
+}
+
+/// Bitwise-ors value and returns the old value.
+pub unsafe fn AtomicU64.or(self, value: u64, order: RmwOrder) -> u64 {
+    match order {
+        RmwOrder.Relaxed -> unsafe {
+            self.cell.atomicOr(value, mem.AtomicOrder.Relaxed)
+        }
+        RmwOrder.Acquire -> unsafe {
+            self.cell.atomicOr(value, mem.AtomicOrder.Acquire)
+        }
+        RmwOrder.Release -> unsafe {
+            self.cell.atomicOr(value, mem.AtomicOrder.Release)
+        }
+        RmwOrder.AcqRel -> unsafe {
+            self.cell.atomicOr(value, mem.AtomicOrder.AcqRel)
+        }
+        RmwOrder.SeqCst -> unsafe {
+            self.cell.atomicOr(value, mem.AtomicOrder.SeqCst)
+        }
+    }
+}
+
+/// Bitwise-xors value and returns the old value.
+pub unsafe fn AtomicU64.xor(self, value: u64, order: RmwOrder) -> u64 {
+    match order {
+        RmwOrder.Relaxed -> unsafe {
+            self.cell.atomicXor(value, mem.AtomicOrder.Relaxed)
+        }
+        RmwOrder.Acquire -> unsafe {
+            self.cell.atomicXor(value, mem.AtomicOrder.Acquire)
+        }
+        RmwOrder.Release -> unsafe {
+            self.cell.atomicXor(value, mem.AtomicOrder.Release)
+        }
+        RmwOrder.AcqRel -> unsafe {
+            self.cell.atomicXor(value, mem.AtomicOrder.AcqRel)
+        }
+        RmwOrder.SeqCst -> unsafe {
+            self.cell.atomicXor(value, mem.AtomicOrder.SeqCst)
+        }
+    }
+}

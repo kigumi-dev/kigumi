@@ -1151,7 +1151,7 @@
   },
   {
     "key": "atomic.AtomicBool.compareExchange",
-    "signature": "unsafe fn(Bool, Bool, AtomicOrder) -\u003e Bool",
+    "signature": "unsafe fn(Bool, Bool, RmwOrder) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -1161,7 +1161,7 @@
   },
   {
     "key": "atomic.AtomicBool.load",
-    "signature": "unsafe fn(AtomicOrder) -\u003e Bool",
+    "signature": "unsafe fn(LoadOrder) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -1181,7 +1181,7 @@
   },
   {
     "key": "atomic.AtomicBool.store",
-    "signature": "unsafe fn(Bool, AtomicOrder) -\u003e Void",
+    "signature": "unsafe fn(Bool, StoreOrder) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -1191,7 +1191,7 @@
   },
   {
     "key": "atomic.AtomicBool.swap",
-    "signature": "unsafe fn(Bool, AtomicOrder) -\u003e Bool",
+    "signature": "unsafe fn(Bool, RmwOrder) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -1201,7 +1201,7 @@
   },
   {
     "key": "atomic.AtomicU64.add",
-    "signature": "unsafe fn(u64, AtomicOrder) -\u003e u64",
+    "signature": "unsafe fn(u64, RmwOrder) -\u003e u64",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -1211,7 +1211,7 @@
   },
   {
     "key": "atomic.AtomicU64.and",
-    "signature": "unsafe fn(u64, AtomicOrder) -\u003e u64",
+    "signature": "unsafe fn(u64, RmwOrder) -\u003e u64",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -1221,7 +1221,7 @@
   },
   {
     "key": "atomic.AtomicU64.compareExchange",
-    "signature": "unsafe fn(u64, u64, AtomicOrder) -\u003e u64",
+    "signature": "unsafe fn(u64, u64, RmwOrder) -\u003e u64",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -1231,7 +1231,7 @@
   },
   {
     "key": "atomic.AtomicU64.load",
-    "signature": "unsafe fn(AtomicOrder) -\u003e u64",
+    "signature": "unsafe fn(LoadOrder) -\u003e u64",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -1251,7 +1251,7 @@
   },
   {
     "key": "atomic.AtomicU64.or",
-    "signature": "unsafe fn(u64, AtomicOrder) -\u003e u64",
+    "signature": "unsafe fn(u64, RmwOrder) -\u003e u64",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -1261,7 +1261,7 @@
   },
   {
     "key": "atomic.AtomicU64.store",
-    "signature": "unsafe fn(u64, AtomicOrder) -\u003e Void",
+    "signature": "unsafe fn(u64, StoreOrder) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -1271,7 +1271,7 @@
   },
   {
     "key": "atomic.AtomicU64.sub",
-    "signature": "unsafe fn(u64, AtomicOrder) -\u003e u64",
+    "signature": "unsafe fn(u64, RmwOrder) -\u003e u64",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -1281,7 +1281,7 @@
   },
   {
     "key": "atomic.AtomicU64.swap",
-    "signature": "unsafe fn(u64, AtomicOrder) -\u003e u64",
+    "signature": "unsafe fn(u64, RmwOrder) -\u003e u64",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -1291,7 +1291,7 @@
   },
   {
     "key": "atomic.AtomicU64.xor",
-    "signature": "unsafe fn(u64, AtomicOrder) -\u003e u64",
+    "signature": "unsafe fn(u64, RmwOrder) -\u003e u64",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -22172,6 +22172,16 @@
     "status": "ok"
   },
   {
+    "key": "time.eintr",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "time.floorDiv",
     "signature": "pure noalloc fn(Int, Int) -\u003e Int",
     "has_body": true,
@@ -22229,6 +22239,16 @@
     "vm": "implemented",
     "native": "gap",
     "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "time.monotonicNanos",
+    "signature": "fn() -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
     "status": "ok"
   },
   {
