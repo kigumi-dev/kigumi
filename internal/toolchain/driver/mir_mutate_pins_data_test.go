@@ -87,7 +87,7 @@ opcode-any "main.show" b0/0 alias | i5
 `},
 	{"generics", "refs", `
 insert "main.tally" b7/16 share | i1 l"counts"
-index "std/net.soSndTimeo" b0/0 const | i2 i1
+index "std/platform.soSndTimeo" b0/0 const | i2 i1
 `},
 	{"direct_closure", "shape", `
 opcode-any "main.aggregates.closure1" b0/7 drop | i35

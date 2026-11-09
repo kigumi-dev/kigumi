@@ -12,7 +12,7 @@ import (
 	"kigumi/internal/toolchain/driver"
 )
 
-// TestWindowsAddrInfoLayout pins std/net/addrinfo_windows.kg's field order
+// TestWindowsAddrInfoLayout pins std/platform/addrinfo_windows.kg's field order
 // against mingw's ADDRINFOA (zig ships this header at
 // libc/include/any-windows-any/ws2tcpip.h):
 //
@@ -28,7 +28,7 @@ import (
 //	} ADDRINFOA,*PADDRINFOA;
 func TestWindowsAddrInfoLayout(t *testing.T) {
 	t.Parallel()
-	fields := parseLayoutCFields(t, windowsFile(t, "net", "addrinfo_windows.kg"), "AddrInfo")
+	fields := parseLayoutCFields(t, windowsFile(t, "platform", "addrinfo_windows.kg"), "AddrInfo")
 	wantOrder := []string{"flags", "family", "socktype", "protocol", "addrlen", "canonname", "addr", "next"}
 	var gotOrder []string
 	for _, f := range fields {
@@ -50,7 +50,7 @@ func TestWindowsAddrInfoLayout(t *testing.T) {
 	}
 }
 
-// TestWindowsDirentNameOffset pins std/fs/dirent_windows.kg against mingw's
+// TestWindowsDirentNameOffset pins std/platform/dirent_windows.kg against mingw's
 // dirent.h (any-windows-any/dirent.h):
 //
 //	struct dirent {
@@ -61,7 +61,7 @@ func TestWindowsAddrInfoLayout(t *testing.T) {
 //	};
 func TestWindowsDirentNameOffset(t *testing.T) {
 	t.Parallel()
-	src := windowsFile(t, "fs", "dirent_windows.kg")
+	src := windowsFile(t, "platform", "dirent_windows.kg")
 	m := regexp.MustCompile(`direntNameOffset\(\) -> Int \{\s*(\d+)\s*\}`).FindStringSubmatch(src)
 	if m == nil {
 		t.Fatalf("could not find direntNameOffset's literal body in:\n%s", src)

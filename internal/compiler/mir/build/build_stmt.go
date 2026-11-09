@@ -3,6 +3,7 @@ package build
 import (
 	"kigumi/internal/compiler/hir"
 	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
 )
 
@@ -84,6 +85,11 @@ func (b *builder) unparen(e *hir.Expr) *hir.Expr {
 func (b *builder) exprMoved(e *hir.Expr) midir.LocalID {
 	if b.isParen(e) || b.isSpread(e) {
 		return b.coerce(e.Coercion, e.Node, b.exprMoved(e.Args[0]))
+	}
+	if b.selfFieldMove(e) {
+		base := b.expr(e.Args[0])
+		v := b.emit(midir.Inst{Op: midir.OpFieldMove, Dst: b.temp(e.Type), Args: []midir.LocalID{base}, Index: e.Index, Node: e.Node})
+		return b.coerce(e.Coercion, e.Node, v)
 	}
 	v := b.transfer(e, b.exprRaw(e))
 	if e.Kind == hir.Fallback && e.HitLift {
@@ -171,4 +177,12 @@ func (b *builder) assignStmt(s *hir.Stmt) {
 		return
 	}
 	b.storePlace(p, b.exprMoved(s.Expr))
+}
+
+func (b *builder) selfFieldMove(e *hir.Expr) bool {
+	if e.Kind != hir.Field || len(e.Args) != 1 || e.Args[0].Kind != hir.Local || b.fn.Ent == 0 {
+		return false
+	}
+	info := b.r.Fn(b.fn.Ent)
+	return !b.r.IsCopy(e.Type) && info.Recv == sem.RecvMove && e.Args[0].Ent == info.SelfParam
 }

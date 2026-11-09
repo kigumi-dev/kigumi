@@ -89,7 +89,7 @@ f:
 }
 `), 0o644)
 					badAsm := filepath.Join(root, "bad.s")
-					args := append(append([]string{}, cc[1:]...), "-x", "ir", "-S", level, "-target", triple, badIR, "-o", badAsm)
+					args := append(append([]string{}, cc[1:]...), "-x", "ir", "-S", "-O0", "-target", triple, badIR, "-o", badAsm)
 					if out, err := exec.Command(cc[0], args...).CombinedOutput(); err != nil {
 						t.Fatalf("negative control: %v\n%s", err, out)
 					}

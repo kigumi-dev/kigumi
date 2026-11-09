@@ -1,0 +1,29 @@
+-- src --
+type Inner = resource {
+    pub id Int
+}
+
+fn Inner.drop(move self) {
+    print "inner drop ${self.id}"
+}
+
+type Outer = resource {
+    pub taken Inner
+    pub kept Inner
+}
+
+fn Outer.drop(move self) {
+    print "outer drop ${self.taken.id}"
+}
+
+fn Outer.take(move self) -> Inner {
+    self.taken
+}
+
+let o = Outer { taken: Inner { id: 7 }, kept: Inner { id: 2 } }
+let i = o.take()
+print "taken ${i.id}"
+-- stdout --
+inner drop 2
+taken 7
+inner drop 7

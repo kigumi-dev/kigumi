@@ -55,7 +55,11 @@ func (m *Machine) exec(fr *frame, in *midir.Inst, ic *instCode) {
 			loc[in.Args[0]] = nil
 		}
 		if v != nil && atomic.LoadInt32(&v.rc) >= 0 {
-			m.dropChecked(fr, v)
+			if in.Partial {
+				m.releasePartial(v)
+			} else {
+				m.dropChecked(fr, v)
+			}
 		}
 		return
 	case midir.OpBinary:

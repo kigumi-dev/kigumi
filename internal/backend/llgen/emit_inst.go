@@ -180,7 +180,11 @@ func (e *emitter) instBody(sb *strings.Builder, f *midir.Func, in midir.Inst) {
 		if f.Locals[in.Args[0]].Ent != 0 {
 			e.store(sb, in.Args[0], "null")
 		}
-		e.dropCall(sb, f, rtDrop, args[0])
+		if in.Partial {
+			e.dropCall(sb, f, rtDropPartial, args[0], true)
+		} else {
+			e.dropCall(sb, f, rtDrop, args[0])
+		}
 		return
 	case midir.OpPanic:
 		e.emitPanic(sb, in)

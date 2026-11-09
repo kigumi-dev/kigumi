@@ -129,6 +129,17 @@ func (c *checker) fieldMember(n syntax.NodeID) bool {
 func (c *checker) rejectTake(n syntax.NodeID, t TypeID, take fieldTake) bool {
 	mode := c.pathMode(n)
 	owner := c.pathDropOwner(n)
+	base := syntax.NodeID(0)
+	if owner != 0 && c.t.Kind(n) == syntax.MemberExpr {
+		base = c.t.View(n).AsMember().Base().ID()
+	}
+	if owner != 0 && !c.r.IsCopy(t) && c.dropSelf(base) {
+		if c.info.FieldMoves == nil {
+			c.info.FieldMoves = map[syntax.NodeID]bool{}
+		}
+		c.info.FieldMoves[n] = true
+		return false
+	}
 	switch {
 	case mode.borrowed() && fieldTakeRejects[take][mode] && !(owner != 0 && c.lentByCapture(n)):
 		c.rejectBorrowedTake(n, t, take)

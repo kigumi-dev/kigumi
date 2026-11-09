@@ -2,7 +2,9 @@ package driver_test
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
+	"sync"
 	"testing"
 
 	buildconfig "kigumi/internal/toolchain/config"
@@ -29,9 +31,39 @@ func requireZig(t *testing.T) {
 	}
 }
 
+var probeOnce sync.Once
+var probeOK bool
+
+// testCompiler uses a compiler only when it can link a trivial program. A
+// hosted image can ship clang without a linker; tests then take the same path
+// as one without a C toolchain instead of failing inside the driver.
 func testCompiler() buildconfig.CompilerOptions {
 	cwd, _ := os.Getwd()
 	home, _ := os.UserHomeDir()
 	cache, _ := os.UserCacheDir()
-	return buildconfig.CompilerOptions{Host: buildconfig.HostTarget(), CacheDir: cache, Cwd: cwd, PathDirs: filepath.SplitList(os.Getenv("PATH")), Home: home}
+	dirs := filepath.SplitList(os.Getenv("PATH"))
+	opts := buildconfig.CompilerOptions{Host: buildconfig.HostTarget(), CacheDir: cache, Cwd: cwd, PathDirs: dirs, Home: home}
+	if cc := opts.CCompiler(); cc != nil {
+		probeOnce.Do(func() { probeOK = linksTrivial(cc, cwd) })
+		if !probeOK {
+			opts.PathDirs = nil
+		}
+	}
+	return opts
+}
+
+func linksTrivial(cc []string, cwd string) bool {
+	dir, err := os.MkdirTemp("", "kigumi-cc-probe")
+	if err != nil {
+		return false
+	}
+	defer os.RemoveAll(dir)
+	src := filepath.Join(dir, "probe.c")
+	out := filepath.Join(dir, "probe")
+	if os.WriteFile(src, []byte("int main(void) { return 0; }\n"), 0o644) != nil {
+		return false
+	}
+	cmd := exec.Command(cc[0], append(append([]string{}, cc[1:]...), src, "-o", out)...)
+	cmd.Dir = cwd
+	return cmd.Run() == nil
 }

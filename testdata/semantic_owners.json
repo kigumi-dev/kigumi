@@ -3460,6 +3460,76 @@
     "status": "ok"
   },
   {
+    "key": "compress/zlib.Error.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/zlib.adler32Ref",
+    "signature": "fn(\u0026Bytes) -\u003e u32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/zlib.decode",
+    "signature": "fn(Bytes) -\u003e Bytes!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/zlib.decodeLimit",
+    "signature": "fn(Bytes, usize) -\u003e Bytes!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/zlib.encode",
+    "signature": "fn(Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/zlib.putU32Be",
+    "signature": "fn(\u0026mut Array[u8], u32) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "compress/zlib.u32Be",
+    "signature": "fn(\u0026Bytes, usize) -\u003e u32?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "crypto/asn1.Element.bitString",
     "signature": "pure fn() -\u003e Result[BitString, Error]",
     "has_body": true,
@@ -5930,12 +6000,72 @@
     "status": "ok"
   },
   {
+    "key": "crypto/subtle.Error.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "crypto/subtle.constantTimeEq",
     "signature": "pure noalloc fn(Bytes, Bytes) -\u003e Bool",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
     "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/subtle.copy",
+    "signature": "pure fn(\u0026mut Array[u8], \u0026Array[u8], u64) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/subtle.eqMaskU64",
+    "signature": "pure noalloc fn(u64, u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/subtle.lookup",
+    "signature": "pure noalloc fn(\u0026Array[u8], usize) -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/subtle.select",
+    "signature": "pure noalloc fn(u64, u64, u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/subtle.selectU8",
+    "signature": "pure noalloc fn(u8, u8, u8) -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
     "accelerated": false,
     "status": "ok"
   },
@@ -7140,16 +7270,6 @@
     "status": "ok"
   },
   {
-    "key": "entropy.eintr",
-    "signature": "fn() -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
     "key": "entropy.fillEntropy",
     "signature": "fn(*mut u8, usize) -\u003e Void!",
     "has_body": true,
@@ -8293,76 +8413,6 @@
   {
     "key": "fs.Path.toString",
     "signature": "pure noalloc fn() -\u003e String",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "fs.createFlags",
-    "signature": "fn() -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "fs.direntNameOffset",
-    "signature": "fn() -\u003e Int",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "fs.eexist",
-    "signature": "fn() -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "fs.eintr",
-    "signature": "fn() -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "fs.eloop",
-    "signature": "fn() -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "fs.enoent",
-    "signature": "fn() -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "fs.enotdir",
-    "signature": "fn() -\u003e i32",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -11581,58 +11631,8 @@
     "status": "ok"
   },
   {
-    "key": "net.eagain",
-    "signature": "fn() -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "net.einprogress",
-    "signature": "fn() -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "net.eintr",
-    "signature": "fn() -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
     "key": "net.fails",
     "signature": "fn(String) -\u003e Failure",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "net.fcntlGetFl",
-    "signature": "fn() -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "net.fcntlSetFl",
-    "signature": "fn() -\u003e i32",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -11661,16 +11661,6 @@
     "status": "ok"
   },
   {
-    "key": "net.gaiText",
-    "signature": "fn(i32) -\u003e String",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
     "key": "net.hasUnsafeByte",
     "signature": "fn(String) -\u003e Bool",
     "has_body": true,
@@ -11691,26 +11681,6 @@
     "status": "ok"
   },
   {
-    "key": "net.msgNoSignal",
-    "signature": "fn() -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "net.oNonBlock",
-    "signature": "fn() -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
     "key": "net.parseAuthority",
     "signature": "fn(String) -\u003e HostPort!",
     "has_body": true,
@@ -11723,16 +11693,6 @@
   {
     "key": "net.pollFdPtr",
     "signature": "fn(*mut u8) -\u003e *mut Pollfd",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "net.pollOut",
-    "signature": "fn() -\u003e i16",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -11791,68 +11751,8 @@
     "status": "ok"
   },
   {
-    "key": "net.soError",
-    "signature": "fn() -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "net.soRcvTimeo",
-    "signature": "fn() -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "net.soReuseAddr",
-    "signature": "fn() -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "net.soSndTimeo",
-    "signature": "fn() -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "net.solSocket",
-    "signature": "fn() -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
     "key": "net.statusOf",
     "signature": "fn(Bytes) -\u003e Int?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "net.timeoutValue",
-    "signature": "fn(i32) -\u003e Timeval",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -12401,6 +12301,56 @@
     "status": "ok"
   },
   {
+    "key": "net/http.TlsClient.get",
+    "signature": "fn(String) -\u003e Response!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.TlsClient.new",
+    "signature": "fn(Net, BlockingPool, Array[Certificate], escaping fn(usize) -\u003e Bytes!) -\u003e TlsClient",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.TlsClient.open",
+    "signature": "fn(String) -\u003e Session!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.TlsClient.post",
+    "signature": "fn(String, String, Bytes) -\u003e Response!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.TlsClient.send",
+    "signature": "fn(String, Request) -\u003e Response!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/http.Wire.consume",
     "signature": "fn(usize) -\u003e Bytes",
     "has_body": true,
@@ -12741,6 +12691,16 @@
     "status": "ok"
   },
   {
+    "key": "net/http.parseAuthority",
+    "signature": "fn(String, usize, usize) -\u003e Target!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/http.parseDecimal",
     "signature": "fn(String) -\u003e usize?",
     "has_body": true,
@@ -12773,6 +12733,16 @@
   {
     "key": "net/http.parseRequestLine",
     "signature": "fn(String) -\u003e RequestLine!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.parseTlsUrl",
+    "signature": "fn(String) -\u003e Target!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -13882,6 +13852,16 @@
     "status": "ok"
   },
   {
+    "key": "os.Host.processes",
+    "signature": "fn() -\u003e Processes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "os.Host.shell",
     "signature": "fn() -\u003e Shell",
     "has_body": false,
@@ -14182,16 +14162,6 @@
     "status": "ok"
   },
   {
-    "key": "os.eintr",
-    "signature": "fn() -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
     "key": "os.hostStdio",
     "signature": "fn(Host) -\u003e Stdio",
     "has_body": true,
@@ -14354,6 +14324,296 @@
   {
     "key": "path.stem",
     "signature": "pure fn(String) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.ProcessError.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.chmodFile",
+    "signature": "fn(String, u32) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.createFlags",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.decodeStatus",
+    "signature": "fn(i32) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.direntNameOffset",
+    "signature": "fn() -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.eagain",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.eexist",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.einprogress",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.eintr",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.eloop",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.enoent",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.enotdir",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.fcntlGetFl",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.fcntlSetFl",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.gaiText",
+    "signature": "fn(i32) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.hasNul",
+    "signature": "fn(String) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.msgNoSignal",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.oNonBlock",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.openFlags",
+    "signature": "fn() -\u003e OpenFlags",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.pollOut",
+    "signature": "fn() -\u003e i16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.signalProcess",
+    "signature": "fn(i32, i32) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.soError",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.soRcvTimeo",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.soReuseAddr",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.soSndTimeo",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.solSocket",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.spawnProcess",
+    "signature": "fn(String, Array[String]) -\u003e i32!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.timeoutValue",
+    "signature": "fn(i32) -\u003e Timeval",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.waitProcess",
+    "signature": "fn(i32) -\u003e Int!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -19402,6 +19662,86 @@
     "status": "ok"
   },
   {
+    "key": "proc.Error.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "proc.Process.id",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "proc.Process.reaped",
+    "signature": "fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "proc.Process.signal",
+    "signature": "fn(Signal) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "proc.Process.wait",
+    "signature": "fn() -\u003e Int!",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "proc.Processes.run",
+    "signature": "fn(String, Array[String]) -\u003e Int!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "proc.Processes.spawn",
+    "signature": "fn(String, Array[String]) -\u003e Process!",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "proc.Signal.number",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "random.Rng.next",
     "signature": "fn() -\u003e u64",
     "has_body": true,
@@ -19583,7 +19923,7 @@
   },
   {
     "key": "secret.SecretBuffer.declassify",
-    "signature": "pure unsafe fn() -\u003e Bytes",
+    "signature": "unsafe fn() -\u003e Bytes",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20712,16 +21052,6 @@
     "status": "ok"
   },
   {
-    "key": "shell.eintr",
-    "signature": "fn() -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
     "key": "shell.exitStatus",
     "signature": "fn(i32) -\u003e Int",
     "has_body": true,
@@ -20824,16 +21154,6 @@
   {
     "key": "shell.makePipeOrClean",
     "signature": "fn(\u0026Array[i32], \u0026Array[i32], \u0026Array[i32], \u0026Array[i32], \u0026Array[i32], \u0026Array[i32]) -\u003e Array[i32]!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "shell.openFlags",
-    "signature": "fn() -\u003e OpenFlags",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20994,6 +21314,76 @@
   {
     "key": "sort.tryStable",
     "signature": "pure fn(\u0026Array[T], fn(\u0026T, \u0026T) -\u003e Ordering) -\u003e Result[Array[T], AllocError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sync.Once.call",
+    "signature": "fn(escaping fn() -\u003e Void!) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sync.Once.done",
+    "signature": "fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sync.Once.new",
+    "signature": "fn() -\u003e Once",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sync.WaitGroup.add",
+    "signature": "fn(u64) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sync.WaitGroup.done",
+    "signature": "fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sync.WaitGroup.new",
+    "signature": "fn() -\u003e WaitGroup",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "sync.WaitGroup.wait",
+    "signature": "fn() -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -22164,16 +22554,6 @@
   {
     "key": "time.digits",
     "signature": "pure noalloc fn(String, usize, usize) -\u003e Int?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "time.eintr",
-    "signature": "fn() -\u003e i32",
     "has_body": true,
     "kind": "",
     "vm": "gap",

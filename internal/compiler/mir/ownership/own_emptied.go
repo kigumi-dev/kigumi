@@ -30,3 +30,12 @@ func (a *owner) emptied(root midir.LocalID, st *dstate) bool {
 	}
 	return true
 }
+
+func (a *owner) partial(root midir.LocalID, st *dstate) bool {
+	for _, child := range a.pl.children[root] {
+		if st.field.get(child) == ownMoved || st.val.get(child) == ownMoved || a.partial(child, st) {
+			return true
+		}
+	}
+	return false
+}

@@ -26,7 +26,7 @@ func (e *emitter) outerDropsFor(f *midir.Func) *outerDrops {
 	return &outerDrops{sets: map[int32][]midir.LocalID{}}
 }
 
-func (e *emitter) dropCall(sb *strings.Builder, f *midir.Func, plain RuntimeFn, v string) {
+func (e *emitter) dropCall(sb *strings.Builder, f *midir.Func, plain RuntimeFn, v string, partial ...bool) {
 	od := e.outer
 	if od == nil {
 		e.irb(sb).Call(plain, vptr(v))
@@ -35,7 +35,11 @@ func (e *emitter) dropCall(sb *strings.Builder, f *midir.Func, plain RuntimeFn, 
 	plan := e.p.UnwindPlanOf(f)
 	live := e.sweepLocals(plan.SetAt(e.at.blk, e.at.pc))
 	if len(live) == 0 {
-		e.irb(sb).Call(rtDropOuter, vptr(v))
+		if len(partial) > 0 && partial[0] {
+			e.irb(sb).Call(rtDropPartialOuter, vptr(v))
+		} else {
+			e.irb(sb).Call(rtDropOuter, vptr(v))
+		}
 		return
 	}
 	idx := plan.At[e.at.blk][e.at.pc]
@@ -43,7 +47,11 @@ func (e *emitter) dropCall(sb *strings.Builder, f *midir.Func, plain RuntimeFn, 
 		od.sets[idx] = live
 		od.order = append(od.order, idx)
 	}
-	r := e.irb(sb).Call(rtReleaseOuter, vptr(v)).Text
+	release := rtReleaseOuter
+	if len(partial) > 0 && partial[0] {
+		release = rtReleaseOuterPartial
+	}
+	r := e.irb(sb).Call(release, vptr(v)).Text
 	c, ok := e.newTmp(), e.newTmp()
 	fmt.Fprintf(sb, "  %s = icmp ne i32 %s, 0\n", c, r)
 	fmt.Fprintf(sb, "  br i1 %s, label %%ufail%d, label %%ucont%s\nucont%s:\n", c, idx, ok[2:], ok[2:])

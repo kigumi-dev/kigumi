@@ -104,6 +104,7 @@ func (a *owner) transfer(bid midir.BlockID, st *dstate, report bool) *dstate {
 			// a moved-out (null) one, so the fields still there are
 			// released the same way a whole value's would be.
 			in.Emptied = report && a.emptied(l, st)
+			in.Partial = report && a.partial(l, st)
 			st.val.set(l, ownUninit)
 			continue
 		case midir.OpMove:

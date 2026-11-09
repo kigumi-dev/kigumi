@@ -9361,6 +9361,15 @@
       ]
     },
     {
+      "id": "run/partial_self_take",
+      "kind": "run",
+      "path": "testdata/run/partial_self_take.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/pattern_move_variant",
       "kind": "run",
       "path": "testdata/run/pattern_move_variant.txtar",

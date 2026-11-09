@@ -43,7 +43,23 @@ func (m *Machine) hostWins(lowered bool) bool {
 
 func (m *Machine) free(v *obj) { m.freeAt(v, 0) }
 
-func (m *Machine) freeAt(v *obj, d int) {
+func (m *Machine) releasePartial(v *obj) {
+	if v == nil {
+		return
+	}
+	if rc := atomic.LoadInt32(&v.rc); rc <= 0 {
+		return
+	}
+	if atomic.AddInt32(&v.rc, -1) == 0 {
+		m.freePartial(v)
+	}
+}
+
+func (m *Machine) freePartial(v *obj) { m.freeAtMode(v, 0, true) }
+
+func (m *Machine) freeAt(v *obj, d int) { m.freeAtMode(v, d, false) }
+
+func (m *Machine) freeAtMode(v *obj, d int, skipHook bool) {
 	if m.opts.SecretSan {
 		m.clearLabel(v)
 	}
@@ -70,7 +86,9 @@ func (m *Machine) freeAt(v *obj, d int) {
 	switch v.k {
 	case kRecord:
 		setImmortal(v)
-		fault = m.runDropHook(v, nil)
+		if !skipHook {
+			fault = m.runDropHook(v, nil)
+		}
 		atomic.StoreInt32(&v.rc, 0)
 		for i := len(v.fields) - 1; i >= 0; i-- {
 			if !m.borrowField(v, i) {

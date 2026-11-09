@@ -65,6 +65,12 @@ func (c *checker) checkMoveOut(target syntax.NodeID, t, baseType TypeID, isField
 		c.errAt(target, cMoveDropType, name, baseType, name)
 		return false
 	}
+	if isField && !c.r.IsCopy(t) && c.dropSelf(c.t.View(target).AsMember().Base().ID()) {
+		if c.info.FieldMoves == nil {
+			c.info.FieldMoves = map[syntax.NodeID]bool{}
+		}
+		c.info.FieldMoves[target] = true
+	}
 	return !c.rejectTake(target, t, takeMoved)
 }
 
@@ -88,7 +94,11 @@ func (c *checker) dropSelf(n syntax.NodeID) bool {
 		return false
 	}
 	info := c.r.Fn(c.fn)
-	return info.Owner != 0 && c.r.typeDecl(info.Owner).Drop == c.fn && c.info.Uses[n] == info.SelfParam
+	if info.Owner == 0 || c.info.Uses[n] != info.SelfParam {
+		return false
+	}
+	t := c.r.Types.Node(c.vars.resolve(c.info.Types[n]))
+	return t.Kind == KNamed && t.Ent == info.Owner && (c.r.typeDecl(info.Owner).Drop == c.fn || info.Recv == RecvMove)
 }
 
 func (c *checker) capturedFieldRoot(field syntax.NodeID) (EntityID, bool) {

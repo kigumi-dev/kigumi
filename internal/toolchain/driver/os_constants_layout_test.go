@@ -12,7 +12,7 @@ import (
 	"kigumi/internal/toolchain/driver"
 )
 
-// TestSockoptConstants pins std/net/sockopt_<os>.kg's per-platform integer
+// TestSockoptConstants pins std/platform/sockopt_<os>.kg's per-platform integer
 // constants against the headers the driver's own zig toolchain ships
 // (libc/include/<target>/...).
 func TestSockoptConstants(t *testing.T) {
@@ -27,19 +27,19 @@ func TestSockoptConstants(t *testing.T) {
 		"darwin": {
 			{"solSocket", 0xffff}, {"soReuseAddr", 4},
 			{"soRcvTimeo", 0x1006}, {"soSndTimeo", 0x1005},
-			{"oNonBlock", 4}, {"pollOut", 4}, {"soError", 0x1007}, {"eintr", 4},
+			{"oNonBlock", 4}, {"pollOut", 4}, {"soError", 0x1007},
 		},
 		// generic-freebsd/sys/socket.h, fcntl.h, errno.h.
 		"freebsd": {
 			{"solSocket", 0xffff}, {"soReuseAddr", 4},
 			{"soRcvTimeo", 0x1006}, {"soSndTimeo", 0x1005},
-			{"oNonBlock", 4}, {"pollOut", 4}, {"soError", 0x1007}, {"eintr", 4},
+			{"oNonBlock", 4}, {"pollOut", 4}, {"soError", 0x1007},
 		},
 		// generic-musl/bits/socket.h, bits/fcntl.h, bits/errno.h.
 		"linux": {
 			{"solSocket", 1}, {"soReuseAddr", 2},
 			{"soRcvTimeo", 20}, {"soSndTimeo", 21},
-			{"oNonBlock", 2048}, {"pollOut", 4}, {"soError", 4}, {"eintr", 4},
+			{"oNonBlock", 2048}, {"pollOut", 4}, {"soError", 4},
 		},
 		// generic-netbsd/sys/socket.h: SO_RCVTIMEO/SO_SNDTIMEO were
 		// renumbered to 0x100c/0x100b; 0x1006/0x1005 are the retired
@@ -47,16 +47,16 @@ func TestSockoptConstants(t *testing.T) {
 		"netbsd": {
 			{"solSocket", 0xffff}, {"soReuseAddr", 4},
 			{"soRcvTimeo", 0x100c}, {"soSndTimeo", 0x100b},
-			{"oNonBlock", 4}, {"pollOut", 4}, {"soError", 0x1007}, {"eintr", 4},
+			{"oNonBlock", 4}, {"pollOut", 4}, {"soError", 0x1007},
 		},
 		// generic-openbsd/sys/socket.h, fcntl.h, errno.h.
 		"openbsd": {
 			{"solSocket", 0xffff}, {"soReuseAddr", 4},
 			{"soRcvTimeo", 0x1006}, {"soSndTimeo", 0x1005},
-			{"oNonBlock", 4}, {"pollOut", 4}, {"soError", 0x1007}, {"eintr", 4},
+			{"oNonBlock", 4}, {"pollOut", 4}, {"soError", 0x1007},
 		},
 		// wasm-wasi-musl/__header_sys_socket.h, __header_fcntl.h,
-		// __header_poll.h, wasi/api.h: solSocket/oNonBlock/pollOut/eintr
+		// __header_poll.h, wasi/api.h: solSocket/oNonBlock/pollOut
 		// have real wasi-libc values; soReuseAddr/soRcvTimeo/soSndTimeo/
 		// soError are undefined outside the wasip2 ABI this driver never
 		// targets, so these four keep musl's numbers as placeholders
@@ -64,21 +64,21 @@ func TestSockoptConstants(t *testing.T) {
 		"wasi": {
 			{"solSocket", 0x7fffffff}, {"soReuseAddr", 2},
 			{"soRcvTimeo", 20}, {"soSndTimeo", 21},
-			{"oNonBlock", 4}, {"pollOut", 2}, {"soError", 4}, {"eintr", 27},
+			{"oNonBlock", 4}, {"pollOut", 2}, {"soError", 4},
 		},
 		// any-windows-any/{winsock2.h,errno.h}: fcntl/poll aren't real
 		// Winsock operations, kept only so extern(C) calls type-check.
 		"windows": {
 			{"solSocket", 0xffff}, {"soReuseAddr", 4},
 			{"soRcvTimeo", 0x1006}, {"soSndTimeo", 0x1005},
-			{"oNonBlock", 4}, {"pollOut", 0x10}, {"soError", 0x1007}, {"eintr", 4},
+			{"oNonBlock", 4}, {"pollOut", 0x10}, {"soError", 0x1007},
 		},
 	}
 
 	for os, rows := range cases {
 		os, rows := os, rows
 		t.Run(os, func(t *testing.T) {
-			src := platformFile(t, "net", "sockopt_"+os+".kg")
+			src := platformFile(t, "platform", "sockopt_"+os+".kg")
 			for _, r := range rows {
 				got, ok := fnLiteralInt(src, r.fn)
 				if !ok {
@@ -93,7 +93,7 @@ func TestSockoptConstants(t *testing.T) {
 	}
 }
 
-// TestShellOpenFlagsConstants pins std/shell/flags_<os>.kg's OpenFlags
+// TestShellOpenFlagsConstants pins std/platform/open_flags_<os>.kg's OpenFlags
 // against the same headers.
 func TestShellOpenFlagsConstants(t *testing.T) {
 	type want struct{ creat, trunc, append, wronly int64 }
@@ -114,7 +114,7 @@ func TestShellOpenFlagsConstants(t *testing.T) {
 	for os, w := range cases {
 		os, w := os, w
 		t.Run(os, func(t *testing.T) {
-			src := platformFile(t, "shell", "flags_"+os+".kg")
+			src := platformFile(t, "platform", "open_flags_"+os+".kg")
 			fields := map[string]int64{"creat": w.creat, "trunc": w.trunc, "append": w.append, "wronly": w.wronly}
 			for name, want := range fields {
 				got, ok := recordFieldInt(src, name)
@@ -146,7 +146,7 @@ func TestShellOpenFlagsConstants(t *testing.T) {
 //		struct addrinfo *ai_next;
 //	};
 func TestOpenbsdAddrInfoLayout(t *testing.T) {
-	src := platformFile(t, "net", "addrinfo_openbsd.kg")
+	src := platformFile(t, "platform", "addrinfo_openbsd.kg")
 	fields := parseLayoutCFields(t, src, "AddrInfo")
 	wantOrder := []string{"flags", "family", "socktype", "protocol", "addrlen", "addr", "canonname", "next"}
 	var gotOrder []string
@@ -169,9 +169,9 @@ func TestOpenbsdAddrInfoLayout(t *testing.T) {
 	}
 }
 
-// TestFsOsShellErrnoConstants pins std/fs, std/os, std/shell and std/entropy's
-// per-OS errno_<os>.kg constants (eexist/eintr) against the same zig-shipped
-// headers.
+// TestFsOsShellErrnoConstants pins std/platform's per-OS errno_<os>.kg
+// constants (eexist/eintr) that std/fs, std/os, std/shell and std/entropy
+// consume against the same zig-shipped headers.
 func TestFsOsShellErrnoConstants(t *testing.T) {
 	// generic-{freebsd,netbsd,openbsd}/sys/errno.h, any-darwin-any/sys/
 	// errno.h, any-windows-any/errno.h, generic-musl/bits/errno.h: EINTR=4,
@@ -190,23 +190,14 @@ func TestFsOsShellErrnoConstants(t *testing.T) {
 
 	for os, want := range eintr {
 		os, want := os, want
-		t.Run("os_eintr_"+os, func(t *testing.T) {
-			checkFnLiteral(t, "os", "errno_"+os+".kg", "eintr", want)
-		})
-		t.Run("shell_eintr_"+os, func(t *testing.T) {
-			checkFnLiteral(t, "shell", "errno_"+os+".kg", "eintr", want)
-		})
-		t.Run("fs_eintr_"+os, func(t *testing.T) {
-			checkFnLiteral(t, "fs", "errno_"+os+".kg", "eintr", want)
-		})
-		t.Run("entropy_eintr_"+os, func(t *testing.T) {
-			checkFnLiteral(t, "entropy", "errno_"+os+".kg", "eintr", want)
+		t.Run("platform_eintr_"+os, func(t *testing.T) {
+			checkFnLiteral(t, "platform", "errno_"+os+".kg", "eintr", want)
 		})
 	}
 	for os, want := range eexist {
 		os, want := os, want
-		t.Run("fs_eexist_"+os, func(t *testing.T) {
-			checkFnLiteral(t, "fs", "errno_"+os+".kg", "eexist", want)
+		t.Run("platform_eexist_"+os, func(t *testing.T) {
+			checkFnLiteral(t, "platform", "errno_"+os+".kg", "eexist", want)
 		})
 	}
 	enoent := map[string]int64{
@@ -219,14 +210,14 @@ func TestFsOsShellErrnoConstants(t *testing.T) {
 	}
 	for os, want := range enoent {
 		os, want := os, want
-		t.Run("fs_enoent_"+os, func(t *testing.T) {
-			checkFnLiteral(t, "fs", "errno_"+os+".kg", "enoent", want)
+		t.Run("platform_enoent_"+os, func(t *testing.T) {
+			checkFnLiteral(t, "platform", "errno_"+os+".kg", "enoent", want)
 		})
 	}
 	for os, want := range eloop {
 		os, want := os, want
-		t.Run("fs_eloop_"+os, func(t *testing.T) {
-			checkFnLiteral(t, "fs", "errno_"+os+".kg", "eloop", want)
+		t.Run("platform_eloop_"+os, func(t *testing.T) {
+			checkFnLiteral(t, "platform", "errno_"+os+".kg", "eloop", want)
 		})
 	}
 }

@@ -579,7 +579,7 @@ static void raise_drop_fault(dstack* st) {
 #endif
 }
 // Starts freeing v, whose last reference is gone: runs its drop hook and, when it owns children, pushes a frame for them.
-static void drain_open(dstack* st, val v, int64_t pend) {
+static void drain_open(dstack* st, val v, int64_t pend, int skip_hook) {
     dframe fr = {v, 0, pend, 0, 0, 0, 0};
     int guarded = 0;
 #ifdef KG_CATCH
@@ -589,7 +589,7 @@ static void drain_open(dstack* st, val v, int64_t pend) {
         fr.outer = g_drop_depth == 0;
         fr.seen = g_fault_count;
         g_drop_depth++;
-        if (has_drop_hook(v)) {
+        if (!skip_hook && has_drop_hook(v)) {
             v->rc = -1;
             contained(run_drop_hook, v);
             v->rc = 0;
@@ -599,7 +599,7 @@ static void drain_open(dstack* st, val v, int64_t pend) {
     switch (v->kind) {
     case K_RECORD: {
         rt_type* t = v->u.rec.type;
-        if (!guarded && t->kind == 1 && t->drop) {
+        if (!skip_hook && !guarded && t->kind == 1 && t->drop) {
             v->rc = -1;
             val a[1] = {v};
             rt_invoke((adapter_fn)t->drop, NULL, 1, a);
