@@ -48,6 +48,20 @@ func (c *borrowCheck) targetFlows(ct callTarget) []storeFlow {
 		}
 		if lit := c.closureLiteral(t.arg); t.holder && lit != nil {
 			fl.values = append(c.closureFed(c.p.ByEnt[e], i, lit, fl.values), c.captureValues(lit)...)
+			if fed := c.closureStoredFed(info, c.p.ByEnt[e], i, lit, args); len(fed) > 0 {
+				fl.values = append(fl.values, fed...)
+				var plain []flowArg
+				for _, v := range fed {
+					origins := c.fedOrigins(v.arg, 8)
+					if origins == nil {
+						origins = []flowArg{{arg: v.arg}}
+					}
+					plain = append(plain, origins...)
+				}
+				for _, a := range lit.Args {
+					out = append(out, storeFlow{target: a, ref: c.p.R.Types.Kind(c.f.Locals[a].Type) == sem.KRef, values: slices.Clone(plain), callee: e, param: i, args: args})
+				}
+			}
 		}
 		if at := c.selfSources(e, i, slots); at != nil {
 			fl.values = append(fl.values, flowArg{arg: t.arg, contents: t.contents, param: i, at: at})

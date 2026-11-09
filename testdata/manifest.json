@@ -17348,6 +17348,14 @@
       ]
     },
     {
+      "id": "sem/witness_capture_store_err",
+      "kind": "sem",
+      "path": "testdata/sem/witness_capture_store_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/witness_interface_package",
       "kind": "sem",
       "path": "testdata/sem/witness_interface_package.txtar",

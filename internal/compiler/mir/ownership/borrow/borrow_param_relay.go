@@ -5,6 +5,7 @@ import (
 
 	mirflow "kigumi/internal/compiler/mir/flow"
 	midir "kigumi/internal/compiler/mir/ir"
+	"kigumi/internal/compiler/sem"
 )
 
 // paramIndex is the parameter of g that l is a copy of, or -1.
@@ -93,6 +94,37 @@ func (c *borrowCheck) closureFed(callee *midir.Func, i int, lit *midir.Inst, val
 		}
 		return true
 	})
+}
+
+// closureStoredFed are the callee arguments the closure in slot i stores into a capture: the callee passes them to a
+// closure parameter that paramOut says its body puts somewhere, so the caller's flow reaches that capture.
+func (c *borrowCheck) closureStoredFed(info *sem.FnInfo, callee *midir.Func, i int, lit *midir.Inst, args []midir.LocalID) []flowArg {
+	h := c.p.ByEnt[lit.Ent]
+	if callee == nil || h == nil || info == nil {
+		return nil
+	}
+	feeds, ok := c.callableFeeds(callee, i)
+	if !ok {
+		return nil
+	}
+	o := c.litOrigin(lit)
+	var out []flowArg
+	for p, params := range feeds {
+		if !c.paramOut(h, o.argParam(p)) {
+			continue
+		}
+		for _, j := range params {
+			if j >= len(args) || j >= len(c.declaredParams(callee.Ent)) {
+				continue
+			}
+			tie := tieValue
+			if c.p.R.Types.Kind(c.p.R.Entity(c.declaredParams(callee.Ent)[j]).Type) == sem.KRef {
+				tie = tieRef
+			}
+			out = append(out, flowArg{arg: args[j], tie: tie, param: j})
+		}
+	}
+	return out
 }
 
 // callableFeeds lists, for each argument position of the calls g makes through its parameter f, the parameters of g

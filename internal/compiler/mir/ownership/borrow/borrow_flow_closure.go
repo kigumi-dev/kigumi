@@ -92,6 +92,37 @@ func (c *borrowCheck) callableMayStore(l midir.LocalID) bool {
 	})
 }
 
+// fedOrigins are the borrow-carrying locals a closure-fed value was built from, so a store through a capture
+// checks the source rather than the container whose flowInfo is not a borrow origin.
+func (c *borrowCheck) fedOrigins(l midir.LocalID, depth int) []flowArg {
+	l = c.valueSource(l)
+	if depth <= 0 {
+		return []flowArg{{arg: l}}
+	}
+	d := c.definition(l)
+	if d == nil {
+		if c.p.R.Types.Kind(c.f.Locals[l].Type) == sem.KRef || c.f.Locals[l].Borrowed || c.keepsBorrows(l) {
+			return []flowArg{{arg: l}}
+		}
+		return nil
+	}
+	switch d.Op {
+	case midir.OpCopy, midir.OpMove, midir.OpAlias, midir.OpField, midir.OpIndex, midir.OpPayload, midir.OpUnbox:
+		if len(d.Args) > 0 {
+			return c.fedOrigins(d.Args[0], depth-1)
+		}
+	case midir.OpCall, midir.OpCallValue, midir.OpFutureNew:
+		var out []flowArg
+		for _, a := range d.Args {
+			out = append(out, c.fedOrigins(a, depth-1)...)
+		}
+		if out != nil {
+			return out
+		}
+	}
+	return []flowArg{{arg: l}}
+}
+
 // captureValues are the captures a closure's body may store under another capture, and the parts of a capture it may
 // store back under the same one; param -1 keeps the callee's own summaries off them.
 func (c *borrowCheck) captureValues(lit *midir.Inst) []flowArg {
