@@ -1,0 +1,16 @@
+-- src --
+import math from std/math
+
+print "${5.5 % 2.0}"
+let mut c: Float = -5.5
+c %= 2.0
+print "${c}"
+print "${1e300 % 7.0}"
+print "${1e308 % 3.0}"
+print "${math.fmod(5.5, -2.0)}"
+-- stdout --
+1.5
+-1.5
+1
+2
+1.5

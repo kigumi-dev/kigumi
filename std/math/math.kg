@@ -531,13 +531,7 @@ pub pure fn fract(x: Float) -> Float {
 
 /// The remainder of x / y with x's sign, as C's `fmod`. NaN when y is zero.
 pub pure fn fmod(x: Float, y: Float) -> Float {
-    if y == 0.0 || isNaN(x) || isNaN(y) || isInf(x) {
-        return nan()
-    }
-    if isInf(y) {
-        return x
-    }
-    x - trunc(x / y) * y
+    x % y
 }
 
 /// e raised to the power x. Zero underflows to 0.0 and overflow gives +Inf.

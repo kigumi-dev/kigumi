@@ -340,6 +340,8 @@ val rt_binop(const char* op, val a, val b) {
             return rt_float(x * y, a->nk);
         case '/':
             return rt_float(x / y, a->nk);
+        case '%':
+            return rt_float(fmod(x, y), a->nk);
         }
     }
     if (a->kind != K_INT) rt_panic("unsupported operands");

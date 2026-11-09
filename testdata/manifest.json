@@ -6567,6 +6567,15 @@
       ]
     },
     {
+      "id": "run/float_modulo",
+      "kind": "run",
+      "path": "testdata/run/float_modulo.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/float_nan",
       "kind": "run",
       "path": "testdata/run/float_nan.txtar",

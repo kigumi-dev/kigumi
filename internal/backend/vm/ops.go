@@ -67,6 +67,8 @@ func (m *Machine) binopCore(c bop, op string, a, b *obj) *obj {
 			return m.newFloat(x*y, a.nkind())
 		case bopDiv:
 			return m.newFloat(x/y, a.nkind())
+		case bopRem:
+			return m.newFloat(math.Mod(x, y), a.nkind())
 		}
 	}
 	switch c {
