@@ -41,9 +41,16 @@ func (e *emitter) cStruct(ent sem.EntityID) string {
 		}
 		fmt.Fprintf(&fields, "    %s f%d;\n", e.cLang(t), i)
 	}
-	attr := ""
+	var attrs []string
 	if info.Layout == "packed" {
-		attr = " __attribute__((packed))"
+		attrs = append(attrs, "packed")
+	}
+	if info.Align > 0 {
+		attrs = append(attrs, fmt.Sprintf("aligned(%d)", info.Align))
+	}
+	attr := ""
+	if len(attrs) > 0 {
+		attr = " __attribute__((" + strings.Join(attrs, ", ") + "))"
 	}
 	fmt.Fprintf(&e.shim.types, "struct %s {\n%s}%s;\n", name, fields.String(), attr)
 	return name

@@ -1,0 +1,11 @@
+-- src --
+import ffi from std/ffi
+
+type Wide16 layout(C, align: 16) = {
+    pub tag u8
+}
+
+let w = Wide16 { tag: 1 }
+print "${ffi.sizeOf(&w)} ${ffi.alignOf(&w)}"
+-- stdout --
+16 16

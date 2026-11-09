@@ -8108,6 +8108,15 @@
       ]
     },
     {
+      "id": "run/layout_align16",
+      "kind": "run",
+      "path": "testdata/run/layout_align16.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/leading_andor",
       "kind": "run",
       "path": "testdata/run/leading_andor.txtar",

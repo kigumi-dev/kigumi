@@ -67,10 +67,10 @@ func (r *Result) declareLayoutAlign(f FileID, info *TypeDeclInfo, item syntax.No
 
 func isPow2(n int64) bool { return n > 0 && n&(n-1) == 0 }
 
-// maxCAlign is the strictest alignment an ABI-safe type can need: 8 bytes
-// for fixed-width integers and f64, or the pointer width if wider.
+// maxCAlign is the C ABI's maximum useful struct alignment on the supported
+// targets; 16 covers i128 and the vector-aligned records clang accepts.
 func (r *Result) maxCAlign() int64 {
-	return int64(max(8, r.Types.PtrBits()/8))
+	return 16
 }
 
 // checkLayoutFields keeps a layout(C) record to C-representable fields:
