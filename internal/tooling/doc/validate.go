@@ -54,6 +54,16 @@ func ValidateSite(dir string) error {
 	return nil
 }
 
+// unescapePath decodes the percent-escapes a template writes into an href path;
+// a malformed one stays as written.
+func unescapePath(p string) string {
+	dec, err := url.PathUnescape(p)
+	if err != nil {
+		return p
+	}
+	return dec
+}
+
 // unescapeFragment decodes the percent-escapes a browser puts in a fragment; a malformed one stays as written.
 func unescapeFragment(frag string) string {
 	dec, err := url.PathUnescape(strings.TrimPrefix(frag, "#"))
@@ -87,6 +97,9 @@ func validateLinks(rel, htmlSrc string, pageIDs map[string]map[string]bool) erro
 		if i := strings.IndexByte(href, '#'); i >= 0 {
 			target, frag = href[:i], href[i:]
 		}
+		// Templates percent-encode the paths they build (a "(" becomes "%28"),
+		// so compare against the page names a browser would decode to.
+		target = unescapePath(target)
 		targetPage := rel
 		if target != "" {
 			targetPage = path.Join(path.Dir(rel), target)
@@ -102,8 +115,6 @@ func validateLinks(rel, htmlSrc string, pageIDs map[string]map[string]bool) erro
 	return nil
 }
 
-var mdLinkRe = regexp.MustCompile(`\]\(([^)]*)\)`)
-
 // ValidateMarkdownSite checks that every ".md" link in the plain-Markdown
 // output resolves to a file the run actually produced.
 func ValidateMarkdownSite(dir string) error {
@@ -116,17 +127,28 @@ func ValidateMarkdownSite(dir string) error {
 		if err != nil {
 			return err
 		}
-		for _, m := range mdLinkRe.FindAllStringSubmatch(string(b), -1) {
-			target := m[1]
+		for _, target := range linkTargets(string(b)) {
 			if _, ok := uriScheme(target); ok || !strings.HasSuffix(target, ".md") {
 				continue
 			}
-			if _, err := os.Stat(filepath.Join(dir, filepath.FromSlash(target))); err != nil {
+			if !markdownTargetExists(dir, p, target) {
 				return fmt.Errorf("%s: broken link %q", rel, target)
 			}
 		}
 		return nil
 	})
+}
+
+// markdownTargetExists reports whether a ".md" link resolves, reading it
+// relative to the page that carries it first and to the output root second.
+func markdownTargetExists(root, page, target string) bool {
+	rel := filepath.FromSlash(target)
+	for _, candidate := range []string{filepath.Join(filepath.Dir(page), rel), filepath.Join(root, rel)} {
+		if _, err := os.Stat(candidate); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 func mustRel(base, target string) string {

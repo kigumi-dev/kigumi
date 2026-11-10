@@ -27,11 +27,12 @@ func HTML(pages map[string]string, title string) (map[string]string, error) {
 	sort.Strings(paths)
 	indexName := IndexFileName(paths, ".html", "index.html")
 	groups := groupPackages(paths)
+	published := publishedPages(paths, indexName)
 
 	out := make(map[string]string, len(paths)+1)
 	for _, p := range paths {
 		selfDir := pageDir(p)
-		body, toc := markdownPage(pages[p], selfDir)
+		body, toc := markdownPage(pages[p], selfDir, published)
 		navGroups, navTitles := navView(groups, selfDir, p)
 		html, err := renderer.render(renderer.page, pageData{
 			Title:     p + " - " + title,
@@ -69,6 +70,18 @@ func HTML(pages map[string]string, title string) (map[string]string, error) {
 	}
 	out[indexName] = html
 	return out, nil
+}
+
+// publishedPages is the set of page paths the site serves: every package page
+// plus the generated index, under the name it was given after collision
+// resolution.
+func publishedPages(paths []string, indexName string) map[string]bool {
+	published := make(map[string]bool, len(paths)+1)
+	for _, p := range paths {
+		published[p] = true
+	}
+	published[strings.TrimSuffix(indexName, ".html")] = true
+	return published
 }
 
 // pageDir is the root-relative directory a page's file lives in; "" at the site root.

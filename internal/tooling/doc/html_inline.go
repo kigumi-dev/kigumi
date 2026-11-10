@@ -46,15 +46,14 @@ func plainInline(text string) string {
 			sb.WriteString(text[1 : 1+end])
 			text = text[end+2:]
 		case text[0] == '[':
-			mid := strings.Index(text, "](")
-			end := strings.IndexByte(text, ')')
-			if mid < 0 || end < mid {
+			l, ok := scanLink(text, 0)
+			if !ok {
 				sb.WriteByte(text[0])
 				text = text[1:]
 				continue
 			}
-			sb.WriteString(text[1:mid])
-			text = text[end+1:]
+			sb.WriteString(l.label)
+			text = text[l.end:]
 		default:
 			i := strings.IndexAny(text, "`[")
 			if i < 0 {

@@ -23,7 +23,9 @@ func run(io session.IO, opts options) error {
 	for _, path := range paths {
 		if err := formatOne(io, path, opts.write, opts.check, len(paths) > 1); err != nil {
 			failed = true
-			stdfmt.Fprintln(io.Err, strings.TrimRight(err.Error(), "\n"))
+			// fmt reports one line per file instead of returning the first
+			// error to exit.Execute, so it prefixes errors the same way.
+			stdfmt.Fprintln(io.Err, "kigumi: "+strings.TrimRight(err.Error(), "\n"))
 		}
 	}
 	if failed {

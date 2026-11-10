@@ -7,9 +7,11 @@ import (
 )
 
 // markdownPage converts the subset of Markdown the renderer emits into HTML,
-// resolving hrefs relative to selfDir and uniquing heading ids. It also returns
-// the second- and third-level headings for the on-page table of contents.
-func markdownPage(md, selfDir string) (string, []tocEntry) {
+// resolving hrefs relative to selfDir and uniquing heading ids. pages is the set
+// of pages the site publishes; a relative link outside it renders as text. It
+// also returns the second- and third-level headings for the on-page table of
+// contents.
+func markdownPage(md, selfDir string, pages map[string]bool) (string, []tocEntry) {
 	var sb strings.Builder
 	lines := strings.Split(md, "\n")
 	inCode, inList, inPara := false, false, false
@@ -66,14 +68,14 @@ func markdownPage(md, selfDir string) (string, []tocEntry) {
 			if level >= 2 && level <= 4 {
 				sb.WriteString(`<a class="heading-anchor" ` + string(fragmentHref(id)) + ` aria-label="Permalink: ` + html.EscapeString(plainInline(text)) + `" tabindex="-1">#</a>`)
 			}
-			sb.WriteString(inline(text, selfDir) + "</" + tag + ">\n")
+			sb.WriteString(inline(text, selfDir, pages) + "</" + tag + ">\n")
 		case strings.HasPrefix(line, "- "):
 			closePara()
 			if !inList {
 				sb.WriteString("<ul>\n")
 				inList = true
 			}
-			sb.WriteString("<li>" + inline(strings.TrimPrefix(line, "- "), selfDir) + "</li>\n")
+			sb.WriteString("<li>" + inline(strings.TrimPrefix(line, "- "), selfDir, pages) + "</li>\n")
 		case strings.TrimSpace(line) == "":
 			closePara()
 			closeList()
@@ -85,7 +87,7 @@ func markdownPage(md, selfDir string) (string, []tocEntry) {
 			} else {
 				sb.WriteString(" ")
 			}
-			sb.WriteString(inline(line, selfDir))
+			sb.WriteString(inline(line, selfDir, pages))
 		}
 	}
 	closePara()
@@ -95,13 +97,6 @@ func markdownPage(md, selfDir string) (string, []tocEntry) {
 	}
 	toc = trimTOC(toc)
 	return sb.String(), toc
-}
-
-// markdownToHTML is markdownPage without the TOC data, kept for callers that
-// only need the rendered body.
-func markdownToHTML(md, selfDir string) string {
-	body, _ := markdownPage(md, selfDir)
-	return body
 }
 
 func langClass(lang string) string {
