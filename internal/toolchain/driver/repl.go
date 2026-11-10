@@ -45,6 +45,7 @@ type Repl struct {
 	decls    string
 	bindings []ReplBinding
 	seq      int
+	prelude  bool
 	shell    bool
 	sess     *vm.Session
 }
@@ -111,7 +112,7 @@ func NewRepl(root string, opts ReplOptions) (*Repl, error) {
 		return nil, fmt.Errorf("repl: entry %q must be a root-relative file name", entry)
 	}
 	opts.Entry = entry
-	return &Repl{root: abs, load: opts.Load, vmOpts: opts.VM, out: opts.Out, err: opts.Err, entry: entry, decls: replPrelude}, nil
+	return &Repl{root: abs, load: opts.Load, vmOpts: opts.VM, out: opts.Out, err: opts.Err, entry: entry}, nil
 }
 
 // replPrelude is the shell-independent part of the session scope. The shell
@@ -206,7 +207,14 @@ func (r *Repl) Eval(src string, interactive bool) (EvalResult, error) {
 		}
 	}
 	needShell := replNeedsShell(src)
+	needPrelude := replNeedsPrelude(src)
 	declsTry := r.decls
+	if needPrelude && !r.prelude {
+		if declsTry != "" {
+			declsTry += "\n"
+		}
+		declsTry += replPrelude
+	}
 	if needShell && !r.shell {
 		if declsTry != "" {
 			declsTry += "\n"
@@ -228,6 +236,9 @@ func (r *Repl) Eval(src string, interactive bool) (EvalResult, error) {
 		r.decls = declsTry
 		if needShell {
 			r.shell = true
+		}
+		if needPrelude {
+			r.prelude = true
 		}
 		return EvalResult{}, nil
 	}
@@ -439,6 +450,9 @@ func (r *Repl) Eval(src string, interactive bool) (EvalResult, error) {
 	r.decls = declsTry
 	if needShell {
 		r.shell = true
+	}
+	if needPrelude {
+		r.prelude = true
 	}
 	r.seq++
 	r.setLastStatus(cellStatus)
@@ -744,4 +758,13 @@ func (r *Repl) Cancel() {
 	if r != nil && r.sess != nil {
 		r.sess.Cancel()
 	}
+}
+
+func replNeedsPrelude(src string) bool {
+	for _, name := range []string{"cd(", "pwd(", "setEnv(", "unsetEnv(", "env(", "args(", "exit("} {
+		if strings.Contains(src, name) {
+			return true
+		}
+	}
+	return false
 }
