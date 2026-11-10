@@ -1,6 +1,3 @@
--- engines --
-vm
-native
 -- src --
 fn pick[const N: i128]() -> i128 {
     N
