@@ -262,6 +262,14 @@
       ]
     },
     {
+      "id": "fmt/interp_comments",
+      "kind": "fmt",
+      "path": "testdata/fmt/interp_comments.txtar",
+      "mode": [
+        "format"
+      ]
+    },
+    {
       "id": "fmt/is_record_pattern",
       "kind": "fmt",
       "path": "testdata/fmt/is_record_pattern.txtar",
