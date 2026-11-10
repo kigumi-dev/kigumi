@@ -4840,6 +4840,396 @@
     "status": "ok"
   },
   {
+    "key": "crypto/mlkem.Error.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.addQ",
+    "signature": "pure noalloc fn(u16, u16) -\u003e u16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.basemul",
+    "signature": "pure fn(FixedArray[u16, 256], FixedArray[u16, 256]) -\u003e FixedArray[u16, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.bitOf",
+    "signature": "pure noalloc fn(Bytes, usize) -\u003e u32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.bitRev7",
+    "signature": "pure noalloc fn(usize) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.byteDecodeAt",
+    "signature": "pure noalloc fn(Bytes, usize, usize) -\u003e FixedArray[u16, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.byteEncode",
+    "signature": "pure fn(FixedArray[u16, 256], usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.bytesEqMask",
+    "signature": "pure noalloc fn(Bytes, Bytes) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.canonicalEncapsulationKey",
+    "signature": "pure fn(Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.compressPoly",
+    "signature": "pure noalloc fn(FixedArray[u16, 256], usize) -\u003e FixedArray[u16, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.decapsulate",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.decodeVector",
+    "signature": "pure fn(Bytes) -\u003e Array[FixedArray[u16, 256]]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.decompressPoly",
+    "signature": "pure noalloc fn(FixedArray[u16, 256], usize) -\u003e FixedArray[u16, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.encapsulate",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Result[Encapsulated, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.encodeVector",
+    "signature": "pure fn(Array[FixedArray[u16, 256]]) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.exactSlice",
+    "signature": "pure fn(Bytes, usize, usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.expandMatrix",
+    "signature": "pure fn(Bytes) -\u003e Array[FixedArray[u16, 256]]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.g",
+    "signature": "pure fn(Bytes, Bytes) -\u003e (Bytes, Bytes)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.invNtt",
+    "signature": "pure fn(FixedArray[u16, 256]) -\u003e FixedArray[u16, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.kPkeDecrypt",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.kPkeEncrypt",
+    "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.kPkeKeyGen",
+    "signature": "pure fn(Bytes) -\u003e (Bytes, Bytes)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.keyGen",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Result[KeyPair, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.modQ",
+    "signature": "pure noalloc fn(u32) -\u003e u16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.mulQ",
+    "signature": "pure noalloc fn(u16, u16) -\u003e u16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.ntt",
+    "signature": "pure fn(FixedArray[u16, 256]) -\u003e FixedArray[u16, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.nttVector",
+    "signature": "pure fn(Array[FixedArray[u16, 256]]) -\u003e Array[FixedArray[u16, 256]]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.oneByte",
+    "signature": "pure fn(u8) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.polyAdd",
+    "signature": "pure fn(FixedArray[u16, 256], FixedArray[u16, 256]) -\u003e FixedArray[u16, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.polySub",
+    "signature": "pure fn(FixedArray[u16, 256], FixedArray[u16, 256]) -\u003e FixedArray[u16, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.pow17",
+    "signature": "pure noalloc fn(usize) -\u003e u16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.prf",
+    "signature": "pure fn(Bytes, u8, usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.sampleNtt",
+    "signature": "pure fn(Bytes, u8, u8) -\u003e FixedArray[u16, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.samplePolyCbd",
+    "signature": "pure fn(Bytes, u8, usize) -\u003e FixedArray[u16, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.selectBytes",
+    "signature": "pure fn(u64, Bytes, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.subQ",
+    "signature": "pure noalloc fn(u16, u16) -\u003e u16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.zeroPoly",
+    "signature": "pure fn() -\u003e FixedArray[u16, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.zeroVector",
+    "signature": "pure fn() -\u003e Array[FixedArray[u16, 256]]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mlkem.zetas",
+    "signature": "pure fn() -\u003e FixedArray[u16, 128]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "crypto/p256.Error.message",
     "signature": "fn() -\u003e String",
     "has_body": true,
@@ -14331,6 +14721,26 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.Server.handshake",
+    "signature": "fn(Conn, ServerConfig) -\u003e Result[Session, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.ServerConfig.new",
+    "signature": "fn(Array[Bytes], ServerKey, escaping fn(usize) -\u003e Bytes!) -\u003e ServerConfig",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.Session.alpn",
     "signature": "fn() -\u003e String",
     "has_body": true,
@@ -14431,6 +14841,16 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.Session.runServerHandshake",
+    "signature": "fn(ServerConfig) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.Session.sendAlert",
     "signature": "fn(u8, u8) -\u003e Void",
     "has_body": true,
@@ -14442,6 +14862,16 @@
   },
   {
     "key": "net/tls.Session.sendHandshake",
+    "signature": "fn(Bytes) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Session.sendHandshakeFlight",
     "signature": "fn(Bytes) -\u003e Result[Void, Error]",
     "has_body": true,
     "kind": "",
@@ -14531,6 +14961,26 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.certificateMessage",
+    "signature": "pure fn(Array[Bytes]) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.certificateVerify",
+    "signature": "pure fn(Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.certificateVerifyMessage",
     "signature": "pure fn(Bytes) -\u003e Bytes",
     "has_body": true,
@@ -14561,8 +15011,28 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.derInteger",
+    "signature": "pure fn(Bytes) -\u003e Result[Array[u8], Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.derScalar",
     "signature": "pure fn(Element) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.derSignature",
+    "signature": "pure fn(Bytes) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14623,6 +15093,16 @@
   {
     "key": "net/tls.encodeHandshake",
     "signature": "pure fn(u8, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.encryptedExtensions",
+    "signature": "pure fn(String?) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14751,6 +15231,26 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.listHas16",
+    "signature": "pure fn(Bytes, u16) -\u003e Result[Bool, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.newSession",
+    "signature": "fn(Conn, usize, usize, usize) -\u003e Session",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.noKeys",
     "signature": "fn() -\u003e Direction",
     "has_body": true,
@@ -14801,6 +15301,16 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.parseClientHello",
+    "signature": "pure fn(Bytes) -\u003e Result[ParsedClientHello, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.parseEncryptedExtensions",
     "signature": "pure fn(Bytes) -\u003e Result[String?, Error]",
     "has_body": true,
@@ -14833,6 +15343,16 @@
   {
     "key": "net/tls.parseHelloRetryRequest",
     "signature": "pure fn(Bytes, u16, Array[Extension]) -\u003e Result[ServerReply, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.parseKeyShares",
+    "signature": "pure fn(Bytes) -\u003e Result[ChosenShare, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14943,6 +15463,26 @@
   {
     "key": "net/tls.sealRecord",
     "signature": "pure fn(Direction, u64, u8, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.selectAlpn",
+    "signature": "pure fn(\u0026Array[String], \u0026Array[String]) -\u003e Result[String?, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.serverHello",
+    "signature": "pure fn(Bytes, Bytes, u16, Bytes) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -21462,6 +22002,16 @@
     "status": "ok"
   },
   {
+    "key": "secret.SecretIndex.secret",
+    "signature": "pure noalloc fn() -\u003e SecretU32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "secret.SecretNat.declassify",
     "signature": "pure unsafe fn() -\u003e FixedArray[u64, N]",
     "has_body": true,
@@ -21854,6 +22404,16 @@
   {
     "key": "secret.SecretU32.shiftRight",
     "signature": "pure noalloc fn(u32) -\u003e SecretU32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU32.toU64",
+    "signature": "pure noalloc fn() -\u003e SecretU64",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -22414,6 +22974,336 @@
   {
     "key": "secret.shiftCount8",
     "signature": "fn(u32) -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.Block.empty",
+    "signature": "pure fn() -\u003e Block",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.Bucket.combine",
+    "signature": "pure fn(u64, \u0026Bucket) -\u003e Bucket",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.Bucket.empty",
+    "signature": "pure fn() -\u003e Bucket",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.MemoryStore.bucketCount",
+    "signature": "fn(usize) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.MemoryStore.leaves",
+    "signature": "fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.MemoryStore.levelCount",
+    "signature": "fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.MemoryStore.new",
+    "signature": "fn(usize) -\u003e MemoryStore!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.MemoryStore.readBucket",
+    "signature": "fn(usize, SecretU32) -\u003e Bucket",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.MemoryStore.writeBucket",
+    "signature": "fn(usize, SecretU32, Bucket) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousArray.access",
+    "signature": "fn(SecretIndex[N], u64, u64) -\u003e u64!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousArray.capacity",
+    "signature": "fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousArray.evict",
+    "signature": "fn(u64) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousArray.fetch",
+    "signature": "fn(u64, u64) -\u003e Found",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousArray.insertStash",
+    "signature": "fn(Block, u64) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousArray.merge",
+    "signature": "fn(Bucket, usize, u64) -\u003e Bucket",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousArray.nextLeaf",
+    "signature": "fn() -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousArray.nodeAt",
+    "signature": "fn(usize, u64) -\u003e SecretU32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousArray.read",
+    "signature": "fn(SecretIndex[N]) -\u003e u64!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousArray.verify",
+    "signature": "fn() -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousArray.withStore",
+    "signature": "fn(fn(\u0026S) -\u003e R) -\u003e R",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousArray.withStoreMut",
+    "signature": "fn(fn(\u0026mut S) -\u003e R) -\u003e R",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousArray.write",
+    "signature": "fn(SecretIndex[N], u64) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.OramError.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.flagMask",
+    "signature": "pure noalloc fn(u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.levelOf",
+    "signature": "pure noalloc fn(usize) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.levelOffset",
+    "signature": "pure noalloc fn(usize) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.maskEq",
+    "signature": "pure noalloc fn(u64, u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.maskZero",
+    "signature": "pure noalloc fn(u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.mix64",
+    "signature": "pure noalloc fn(u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.nextState",
+    "signature": "pure noalloc fn(u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.onMemory",
+    "signature": "fn(u64) -\u003e ObliviousArray[MemoryStore, N]!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.pick",
+    "signature": "pure noalloc fn(u64, u64, u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.withStore",
+    "signature": "fn(S, u64) -\u003e ObliviousArray[S, N]!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
