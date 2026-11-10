@@ -95,6 +95,15 @@ func TestEvalBuildRefusals(t *testing.T) {
 	_ = filepath.Join
 }
 
+func TestEvalBuildArtifactDirRefusesParentSegments(t *testing.T) {
+	for _, dir := range []string{"..", "../x", "cmd/../..", "cmd/../../x", "a/.."} {
+		_, err := evalBuild(t, "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n    let a = b.executable(\"app\", \""+dir+"\", b.request().target())?\n}\n", nil)
+		if err == nil || !strings.Contains(err.Error(), "root-relative") {
+			t.Errorf("executable dir %q: expected a root-relative refusal, got %v", dir, err)
+		}
+	}
+}
+
 // TestEvalBuildOutputNameRefusals covers BUILD-001/BUILD-002: an output
 // name of "." or ".." would resolve to the output directory itself or
 // its parent once joined, so declaration must reject it up front.

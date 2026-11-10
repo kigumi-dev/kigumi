@@ -17,6 +17,22 @@ func runVerify(io session.IO, opts options) error {
 		return errors.WrapErr(err, "read lock")
 	}
 	bad := 0
+	if mf, ok, err := module.ReadModFile(opts.root); err != nil {
+		return errors.WrapErr(err, "read manifest")
+	} else if ok {
+		local, err := opts.session.ReadLocal(opts.root)
+		if err != nil {
+			return errors.WrapErr(err, "read local overrides")
+		}
+		problems, err := module.LockDisagreements(session.CompilerOptions(), mf, local, lock)
+		if err != nil {
+			return errors.WrapErr(err, "select versions")
+		}
+		for _, p := range problems {
+			bad++
+			fmt.Fprintln(io.Out, p)
+		}
+	}
 	for _, name := range sortedNames(lock) {
 		e := lock.Entries[name]
 		dir, err := module.CacheDir(session.CompilerOptions(), module.Require{Name: name, Version: e.Version})

@@ -1,6 +1,7 @@
 package mod
 
 import (
+	stderrors "errors"
 	"fmt"
 
 	"kigumi/internal/base/errors"
@@ -10,7 +11,7 @@ import (
 	"kigumi/internal/toolchain/module"
 )
 
-// runTidy drops Requires (and their Replace/lock records) nothing imports; it never adds one, since an unknown import has no url to fetch.
+// runTidy drops Requires (and their Replace records) nothing imports. It never adds a Require, and it never locks: when the removal changes a selected version it lists the change and stops unless --update, leaving the new entry to `get`, which also shows the native diff.
 func runTidy(io session.IO, opts options) error {
 	mf, ok, err := module.ReadModFile(opts.root)
 	if err != nil {
@@ -19,7 +20,7 @@ func runTidy(io session.IO, opts options) error {
 	if !ok {
 		return &exit.UsageError{Err: errors.NewErrf("%s has no %s", opts.root, module.ManifestName)}
 	}
-	m, err := driver.LoadModule(opts.root, driver.LoadOptions{Test: true, NoDeps: true, Compiler: session.CompilerOptions()})
+	m, err := driver.LoadModule(opts.root, driver.LoadOptions{Test: true, NoDeps: true, NoLocal: opts.session.NoLocal || session.LocalOff(), Compiler: session.CompilerOptions()})
 	if err != nil {
 		return errors.WrapErr(err, "load module")
 	}
@@ -38,8 +39,39 @@ func runTidy(io session.IO, opts options) error {
 	if err != nil {
 		return errors.WrapErr(err, "read lock")
 	}
+	local, err := opts.session.ReadLocal(opts.root)
+	if err != nil {
+		return errors.WrapErr(err, "read local overrides")
+	}
+	kept := mf
+	kept.Requires = nil
+	for _, r := range mf.Requires {
+		if !unused[r.Name] {
+			kept.Requires = append(kept.Requires, r)
+		}
+	}
 	for name := range unused {
+		delete(local.Replaces, name)
 		delete(lock.Entries, name)
+	}
+	pruned, changes, err := module.PruneLock(session.CompilerOptions(), kept, local, lock)
+	var missing *module.MissingError
+	switch {
+	case stderrors.As(err, &missing):
+		fmt.Fprintf(io.Err, "%s; the lock is not checked against the new selection until then\n", err)
+	case err != nil:
+		return errors.WrapErr(err, "reselect versions")
+	default:
+		lock = pruned
+	}
+	if len(changes) > 0 {
+		for _, c := range changes {
+			fmt.Fprintf(io.Err, "selection changes: %s\n", c)
+		}
+		if !opts.update {
+			fmt.Fprintln(io.Err, "nothing was changed; rerun with --update to accept, then run `kigumi get` to lock the new versions")
+			return exit.Code(1)
+		}
 	}
 	if err := module.RemoveRequires(opts.root, unused); err != nil {
 		return errors.WrapErr(err, "edit manifest")

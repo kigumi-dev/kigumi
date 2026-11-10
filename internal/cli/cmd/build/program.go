@@ -53,7 +53,14 @@ func runProgram(io session.IO, opts options) error {
 		return exit.Code(1)
 	}
 	if opts.plan {
-		fmt.Fprint(io.Out, driver.PlanJSON(rg, p))
+		plan, stats := driver.PlanJSONWithStats(rg, p)
+		if len(stats.EntryErrors) > 0 {
+			for _, msg := range stats.EntryErrors {
+				fmt.Fprintln(io.Err, "build: "+msg)
+			}
+			return exit.Code(1)
+		}
+		fmt.Fprint(io.Out, plan)
 		return nil
 	}
 	secrets := map[string]string{}

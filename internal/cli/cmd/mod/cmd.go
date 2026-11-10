@@ -48,12 +48,14 @@ func replaceCmd() *cobra.Command {
 }
 
 func tidyCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "tidy",
 		Short: "Remove Requires that no package imports",
 		Args:  cobra.NoArgs,
 		RunE:  session.RunE(parseOptions, runTidy),
 	}
+	cmd.Flags().BoolP("update", "u", false, "accept the version changes removing a Require causes; run `kigumi get` afterwards to lock them")
+	return cmd
 }
 
 func verifyCmd() *cobra.Command {

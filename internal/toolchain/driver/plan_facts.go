@@ -20,6 +20,8 @@ type PlanStats struct {
 	DeriveHits, DeriveMisses int
 	// Provisions and ProvisionReused count capability provision tables built or shared across targets of one OS class.
 	Provisions, ProvisionReused int
+	// EntryErrors lists artifacts whose directory does not name exactly one entry file; the build cannot run them.
+	EntryErrors []string
 }
 
 // planFacts is what a plan reads from one artifact's analysis; reach is nil when the checker rejected the module.
@@ -79,6 +81,7 @@ func (c *planCache) artifactFacts(p *BuildProgram, a *buildgraph.Artifact, t bui
 	}
 	entry, err := scriptUnder(m, a.Dir)
 	if err != nil {
+		c.stats.EntryErrors = append(c.stats.EntryErrors, fmt.Sprintf("artifact %s: %s", a.Name, err))
 		return nil
 	}
 	m.Entry = entry

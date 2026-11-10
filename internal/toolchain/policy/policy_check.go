@@ -15,6 +15,14 @@ func LocalReplaceViolation(name, path, provenance string) Violation {
 	}
 }
 
+// UnusedLocalReplaceViolation is a development-time warning; --release already refuses every Replace.
+func UnusedLocalReplaceViolation(name, hint, provenance string) Violation {
+	return Violation{
+		ID:      "local-replace-unused",
+		Subject: fmt.Sprintf("Replace %s (%s) names a module nothing in the dependency graph requires%s", name, provenance, hint),
+	}
+}
+
 func UnlockedScriptViolation(scriptFile, lockPath string) Violation {
 	return Violation{
 		ID:      "release-unlocked-script",

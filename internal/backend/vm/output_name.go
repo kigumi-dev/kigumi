@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"slices"
 	"strings"
 
 	"kigumi/internal/toolchain/buildgraph"
@@ -74,4 +75,8 @@ func hasReservedPathComponent(dir string) bool {
 		}
 	}
 	return false
+}
+
+func hasParentSegment(dir string) bool {
+	return slices.Contains(strings.Split(dir, "/"), "..")
 }

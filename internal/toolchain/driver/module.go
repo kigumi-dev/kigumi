@@ -60,6 +60,8 @@ type Module struct {
 	// Violations are release-policy findings from loading (a local replacement,
 	// an unresolved native Link); policy.Evaluate classifies each under a BuildPolicy.
 	Violations []policy.Violation
+	// UnusedReplaces are development warnings for Replace records that match nothing in the graph.
+	UnusedReplaces []policy.Violation
 	// depInterrupt are the dependencies' Interrupt records, in the order the dependencies were loaded.
 	depInterrupt []sem.DepInterrupt
 	local        module.Local

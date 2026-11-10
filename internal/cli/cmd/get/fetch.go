@@ -62,6 +62,11 @@ func (f *fetcher) module(mf module.ModFile) error {
 			f.native(r.Name, depMf)
 		}
 	}
+	for name := range f.next.Entries {
+		if _, ok := sel.Requires[name]; !ok {
+			delete(f.next.Entries, name)
+		}
+	}
 	return nil
 }
 

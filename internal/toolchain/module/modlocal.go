@@ -61,7 +61,15 @@ func ParseLocal(f *token.File, dir string) (Local, []diag.Diagnostic) {
 	lc := Local{Replaces: map[string]string{}, Provenance: map[string]string{}}
 	recs, ds := ParseRecords(f, localFields)
 	for _, r := range recs {
-		p := r.Fields["path"]
+		name, p := r.Fields["name"], r.Fields["path"]
+		if err := ValidModuleName(name); err != nil {
+			ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, err.Error()))
+			continue
+		}
+		if _, dup := lc.Replaces[name]; dup {
+			ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, fmt.Sprintf("%s is replaced twice", name)))
+			continue
+		}
 		if p == "" {
 			ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, "Replace needs a path"))
 			continue
@@ -69,8 +77,8 @@ func ParseLocal(f *token.File, dir string) (Local, []diag.Diagnostic) {
 		if !filepath.IsAbs(p) {
 			p = filepath.Join(dir, p)
 		}
-		lc.Replaces[r.Fields["name"]] = p
-		lc.Provenance[r.Fields["name"]] = fmt.Sprintf("%s:%d", f.Name, f.Line(r.Span.Start))
+		lc.Replaces[name] = p
+		lc.Provenance[name] = fmt.Sprintf("%s:%d", f.Name, f.Line(r.Span.Start))
 	}
 	return lc, ds
 }

@@ -135,7 +135,7 @@ func (m *Machine) declareArtifact(a []*obj, kind string) *obj {
 			return m.errMsg("artifact " + name + " is declared twice")
 		}
 	}
-	if !bareOutputName(name) || dir == ".." || strings.HasPrefix(dir, "../") || filepath.IsAbs(dir) || hasReservedPathComponent(dir) {
+	if !bareOutputName(name) || hasParentSegment(dir) || filepath.IsAbs(dir) || hasReservedPathComponent(dir) {
 		return m.errMsg("artifact needs a bare name and a root-relative directory")
 	}
 	target, _ := deref(a[3]).opaqueData().(buildgraph.Target)

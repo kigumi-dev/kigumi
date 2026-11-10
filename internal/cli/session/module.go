@@ -1,6 +1,7 @@
 package session
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -74,6 +75,9 @@ func (s Session) load(target string, test, deferParse, whole bool, errOut io.Wri
 	}
 	if m.ReportDiagnostics(errOut) {
 		return nil, exit.Code(1)
+	}
+	for _, v := range m.UnusedReplaces {
+		fmt.Fprintf(errOut, "warning[%s]: %s\n", v.ID, v.Subject)
 	}
 	return m, nil
 }

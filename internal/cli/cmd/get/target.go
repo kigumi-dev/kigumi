@@ -82,15 +82,9 @@ func (t *target) fetch(io session.IO, git vcs.Git, opts options) error {
 			return errors.WrapErr(err, "read lock")
 		}
 	}
-	local, err := module.ReadLocal(session.CompilerOptions(), t.dir)
+	local, err := opts.session.ReadLocal(t.dir)
 	if err != nil {
 		return errors.WrapErr(err, "read local overrides")
-	}
-	if session.LocalOff() {
-		local = module.Local{Replaces: map[string]string{}}
-	}
-	if opts.session.NoLocal {
-		local = module.Local{Replaces: map[string]string{}}
 	}
 	before := snapshotNative(lock)
 	f := &fetcher{io: io, git: git, update: opts.update, lock: lock, local: local, next: module.Lock{Entries: map[string]module.LockEntry{}}, after: map[string]module.ModFile{}}

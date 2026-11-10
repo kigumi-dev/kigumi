@@ -77,6 +77,7 @@ func loadModule(root string, opts LoadOptions) (*Module, error) {
 		if err := m.loadDeps(opts, lock, enforceLock); err != nil {
 			return nil, err
 		}
+		m.checkUnusedReplace()
 	}
 	if opts.StdRoot != "" {
 		if err := m.indexTree(opts.StdRoot, "std", true, false, nil); err != nil {

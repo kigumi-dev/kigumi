@@ -56,6 +56,9 @@ func (g Git) Clone(r module.Require, dir string) (string, error) {
 	if err := os.WriteFile(filepath.Join(src, module.OriginFileName), []byte(commit+"\n"), 0o644); err != nil {
 		return "", errors.WrapErr(err, "record origin")
 	}
+	if err := clearIncomplete(dir); err != nil {
+		return "", err
+	}
 	if err := os.Rename(src, dir); err != nil {
 		// Another process may have published the same entry meanwhile.
 		if module.CacheReady(dir) {
@@ -129,4 +132,24 @@ func (g Git) LatestTag(r module.Require) (string, error) {
 	}
 	sort.Slice(versions, func(i, j int) bool { return module.CompareVersions(versions[i], versions[j]) < 0 })
 	return versions[len(versions)-1], nil
+}
+
+// clearIncomplete moves an unpublished dir aside and removes it only if the moved copy is still incomplete; a complete entry that another process published in between is put back, never deleted.
+func clearIncomplete(dir string) error {
+	if _, err := os.Lstat(dir); err != nil || module.CacheReady(dir) {
+		return nil
+	}
+	aside, err := os.MkdirTemp(filepath.Dir(dir), "incomplete-")
+	if err != nil {
+		return errors.WrapErr(err, "remove the incomplete cache entry")
+	}
+	defer os.RemoveAll(aside)
+	moved := filepath.Join(aside, "entry")
+	if err := os.Rename(dir, moved); err != nil {
+		return nil
+	}
+	if module.CacheReady(moved) {
+		os.Rename(moved, dir)
+	}
+	return nil
 }

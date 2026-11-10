@@ -202,3 +202,31 @@ func TestPlanJSONProvenanceOfOneEntryForTwoTargets(t *testing.T) {
 		t.Errorf("b's provenance = %+v, want derive:Eq", byName["b"])
 	}
 }
+
+func TestPlanReportsAnArtifactWithoutAnEntryFile(t *testing.T) {
+	root, out := t.TempDir(), t.TempDir()
+	write := func(rel, body string) {
+		os.MkdirAll(filepath.Dir(filepath.Join(root, rel)), 0o755)
+		os.WriteFile(filepath.Join(root, rel), []byte(body), 0o644)
+	}
+	write("mod.kg", "Module {\n    name: \"planentry\"\n    kigumi: \"0.1\"\n}\n")
+	write("cmd/other/main.kg", "print \"x\"\n")
+	write("build.kg", "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n    let a = b.executable(\"a\", \"cmd/nope\", b.request().target())?\n}\n")
+	std, _ := filepath.Abs("../../../std")
+	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
+	if err != nil || !ok {
+		t.Fatalf("load: %v %v", ok, err)
+	}
+	g, err := p.Run(buildconfig.HostTarget(), nil, out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rg, err := driver.ResolveGraph(testCompiler(), g, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, stats := driver.PlanJSONWithStats(rg, p)
+	if len(stats.EntryErrors) != 1 || stats.EntryErrors[0] != `artifact a: no entry file under "cmd/nope"` {
+		t.Fatalf("entry errors = %q", stats.EntryErrors)
+	}
+}
