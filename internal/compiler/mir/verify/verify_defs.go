@@ -69,15 +69,43 @@ func (p *verifier) verifyDefs(f *midir.Func) *Error {
 		}
 	}
 	seen[0] = true
+	// Reachability decides the definition state of most blocks. A block no edge
+	// targets was never attached to the CFG, so it may only read a local the
+	// body assigns somewhere; a dead block that does have predecessors is
+	// cleanup a lowering left behind, which may name slots only unreachable
+	// paths assign, and the reachable rules do not cover it.
+	preds := mirflow.Preds(f)
+	anyDef := d.anyDefined(live)
 	for bid := range f.Blocks {
-		if !seen[bid] {
-			continue
-		}
-		if err := d.check(midir.BlockID(bid), must[bid], may[bid]); err != nil {
-			return err
+		switch {
+		case seen[bid]:
+			if err := d.check(midir.BlockID(bid), must[bid], may[bid], false); err != nil {
+				return err
+			}
+		case len(preds[bid]) == 0:
+			if err := d.check(midir.BlockID(bid), anyDef, anyDef, true); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
+}
+
+// anyDefined is every local some instruction assigns, which is all an
+// unattached block can be held to.
+func (d *defFlow) anyDefined(live *edgeLive) wordSet {
+	var ids []int32
+	for _, blk := range d.f.Blocks {
+		for _, in := range blk.Insts {
+			if !in.Op.Yields() {
+				continue
+			}
+			if i := live.idx[in.Dst]; i >= 0 {
+				ids = append(ids, i)
+			}
+		}
+	}
+	return wordSetOf(ids)
 }
 
 // diverges reports a block that never reaches its terminator: a panic or
@@ -114,7 +142,7 @@ func (d *defFlow) defined(l midir.LocalID) bool {
 	return must
 }
 
-func (d *defFlow) check(bid midir.BlockID, inMust, inMay wordSet) *Error {
+func (d *defFlow) check(bid midir.BlockID, inMust, inMay wordSet, unattached bool) *Error {
 	f := d.f
 	d.cur++
 	d.must, d.may = inMust, inMay
@@ -124,6 +152,10 @@ func (d *defFlow) check(bid midir.BlockID, inMust, inMay wordSet) *Error {
 		for _, a := range in.Args {
 			// Every backend starts a named local null, so releasing one no path assigned is a no-op.
 			if in.Op == midir.OpDrop && f.Locals[a].Ent != 0 {
+				continue
+			}
+			// A temporary's slot is empty too, which an unattached block may release without assigning it.
+			if unattached && (in.Op == midir.OpDrop || in.Op == midir.OpRelease) {
 				continue
 			}
 			if !d.defined(a) {

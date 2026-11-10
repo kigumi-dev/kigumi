@@ -64,7 +64,7 @@ func (p *verifier) verifyFunc(f *midir.Func) error {
 		return err
 	}
 	if changed {
-		if err := runRules(f, []func(*midir.Func) *Error{p.verifyRefs, p.verifyVariants}); err != nil {
+		if err := runRules(f, []func(*midir.Func) *Error{p.verifyRefs, p.verifyVariants, p.verifyExclusive}); err != nil {
 			return err
 		}
 	}

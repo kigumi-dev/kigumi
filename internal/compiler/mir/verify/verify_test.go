@@ -93,6 +93,17 @@ func TestVerifyDefs(t *testing.T) {
 	expectRule(t, p, f, "defs", "reads %t1 before any definition")
 }
 
+// A block nothing targets was never attached to the CFG: nothing defines any
+// local for it, so a read there has to define its own operand first.
+func TestVerifyRejectsUndefInUnreachableBlock(t *testing.T) {
+	p := mirfixture.Program(t)
+	locals := []midir.Local{{Name: "t0", Type: sem.TyI64}, {Name: "undef", Type: sem.TyI64}}
+	f := mirfixture.Fn("dead", sem.TyI64, locals,
+		midir.Block{Insts: []midir.Inst{{Op: midir.OpConst, Dst: 0, Type: sem.TyI64, Lit: sem.Literal{Kind: sem.LitInt}}}, Term: mirfixture.Ret(0)},
+		midir.Block{Insts: []midir.Inst{{Op: midir.OpMove, Dst: 0, Args: []midir.LocalID{1}}}, Term: mirfixture.Ret(0)})
+	expectRule(t, p, f, "defs", "reads %undef before any definition")
+}
+
 func TestVerifyOwnership(t *testing.T) {
 	p := mirfixture.Program(t)
 	res := mirfixture.Resource(p)
