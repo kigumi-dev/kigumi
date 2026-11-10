@@ -23,15 +23,15 @@ var rcCallSites = map[string]*regexp.Regexp{
 
 // Call sites of the count and cell runtime calls in the IR of every native run fixture, std included.
 var pinnedRCCalls = map[string]int{
-	"fixtures":         1152,
-	"rt_retain":        16230,
-	"rt_release":       104458,
-	"rt_release_outer": 54563,
-	"rt_drop":          69017,
-	"rt_cell_init":     9542,
-	"rt_cell_take":     3599,
-	"rt_setfield_swap": 1113,
-	"rt_setindex_swap": 959,
+	"fixtures":         1158,
+	"rt_retain":        17740,
+	"rt_release":       109572,
+	"rt_release_outer": 64900,
+	"rt_drop":          74080,
+	"rt_cell_init":     10088,
+	"rt_cell_take":     3722,
+	"rt_setfield_swap": 1159,
+	"rt_setindex_swap": 1147,
 }
 
 // The same call sites over the fixtures that existed before the retain / release elimination, re-measured when a
@@ -110,9 +110,6 @@ var addedAfterBaseline = map[string]bool{
 	"shell_coreutil.txtar":                          true,
 	"shell_interp_path.txtar":                       true,
 	"std_http_101.txtar":                            true,
-	"crypto_mlkem_encapdecap.txtar":                 true,
-	"crypto_mlkem_errors.txtar":                     true,
-	"crypto_mlkem_keygen.txtar":                     true,
 	"path_oram.txtar":                               true,
 	"tls_server.txtar":                              true,
 	"tls_server_malformed.txtar":                    true,
