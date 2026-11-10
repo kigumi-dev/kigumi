@@ -16,8 +16,14 @@ type schemaOptions struct {
 	out         string
 }
 
+func parseOptions(cmd *cobra.Command, args []string) (string, error) { return args[0], nil }
+
 func parseSchemaOptions(cmd *cobra.Command, args []string) (schemaOptions, error) {
-	opts := schemaOptions{session: session.Read(cmd), target: args[0]}
+	target, err := parseOptions(cmd, args)
+	if err != nil {
+		return schemaOptions{}, err
+	}
+	opts := schemaOptions{session: session.Read(cmd), target: target}
 	opts.attr, _ = cmd.Flags().GetString("attr")
 	opts.allowErrors, _ = cmd.Flags().GetBool("allow-errors")
 	opts.out, _ = cmd.Flags().GetString("output")
@@ -33,7 +39,11 @@ type headerOptions struct {
 }
 
 func parseHeaderOptions(cmd *cobra.Command, args []string) (headerOptions, error) {
-	opts := headerOptions{session: session.Read(cmd), target: args[0]}
+	target, err := parseOptions(cmd, args)
+	if err != nil {
+		return headerOptions{}, err
+	}
+	opts := headerOptions{session: session.Read(cmd), target: target}
 	opts.guard, _ = cmd.Flags().GetString("guard")
 	opts.format, _ = cmd.Flags().GetString("format")
 	if opts.format != "text" && opts.format != "json" {

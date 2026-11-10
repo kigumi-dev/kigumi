@@ -8,9 +8,20 @@ import (
 	"kigumi/internal/cli/session"
 )
 
-// NewSchema is `kigumi emit-schema`: the machine-readable schema document a
+// New returns the requested emitter command: "schema" or "header".
+func New(kind string) *cobra.Command {
+	switch kind {
+	case "schema":
+		return newSchema()
+	case "header":
+		return newCHeader()
+	}
+	panic("unknown emitter " + kind)
+}
+
+// newSchema is `kigumi emit-schema`: the machine-readable schema document a
 // binding generator consumes.
-func NewSchema() *cobra.Command {
+func newSchema() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "emit-schema [--attr <pkg.name>] [--allow-errors] [-o <path>] <module-root>",
 		Short: "Emit the module's versioned Schema IR as the canonical binding schema JSON",
@@ -23,8 +34,8 @@ func NewSchema() *cobra.Command {
 	return cmd
 }
 
-// NewCHeader is `kigumi emit-c-header`: C declarations for the ABI boundary.
-func NewCHeader() *cobra.Command {
+// newCHeader is `kigumi emit-c-header`: C declarations for the ABI boundary.
+func newCHeader() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "emit-c-header [--format text|json] [--guard <macro>] [-o <path>] <module-root>",
 		Short: "Emit a C header declaring the module's extern/export(C) types and functions",

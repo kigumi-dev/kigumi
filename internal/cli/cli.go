@@ -73,7 +73,7 @@ func New() *cobra.Command {
 	}
 	root.Version = version.Display()
 	root.SetVersionTemplate("kigumi version {{.Version}}\n")
-	root.AddCommand(parse.New(), fmt.New(), check.New(), run.New(), repl.New(), test.New(), build.New(), doc.New(), schema.New(), expand.New(), emit.NewSchema(), emit.NewCHeader(), get.New(), mod.New(), lsp.New(), explain.New(), doctor.New(), zig.New())
+	root.AddCommand(parse.New(), fmt.New(), check.New(), run.New(), repl.New(), test.New(), build.New(), doc.New(), schema.New(), expand.New(), emit.New("schema"), emit.New("header"), get.New(), mod.New(), lsp.New(), explain.New(), doctor.New(), zig.New())
 	return root
 }
 
