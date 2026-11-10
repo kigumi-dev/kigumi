@@ -48,7 +48,7 @@ pure noalloc fn twoOverPiWindow(word: Int, offset: usize) -> u64 {
     if offset == 0 {
         return w
     }
-    (w << offset) | (next >> (64 - offset))
+    w.wrappingShiftLeft(offset.truncate[u64]()) | (next >> (64 - offset))
 }
 
 /// f / 2^254 * pi/2 for the 254-bit fraction f = (a, b, c, d), most significant word first, from the top 128 bits of f
@@ -76,12 +76,12 @@ pure noalloc fn timesHalfPi(a0: u64, b0: u64, c0: u64, d0: u64) -> HiLo {
     let top = if s == 0 {
         a
     } else {
-        (a << s) | (b >> (64 - s))
+        a.wrappingShiftLeft(s.truncate[u64]()) | (b >> (64 - s))
     }
     let next = if s == 0 {
         b
     } else {
-        (b << s) | (c >> (64 - s))
+        b.wrappingShiftLeft(s.truncate[u64]()) | (c >> (64 - s))
     }
     let (aHigh, aLow) = mul64(top, halfPiHigh)
     let (bHigh, bLow) = mul64(top, halfPiLow)
@@ -99,8 +99,8 @@ pure noalloc fn timesHalfPi(a0: u64, b0: u64, c0: u64, d0: u64) -> HiLo {
     }
     let one: u64 = 1
     let mut head = high >> cut
-    let restHigh = high & ((one << cut) - 1)
-    let half = one << (cut - 1)
+    let restHigh = high & (one.wrappingShiftLeft(cut.truncate[u64]()) - 1)
+    let half = one.wrappingShiftLeft((cut - 1).truncate[u64]())
     let up = restHigh > half || (restHigh == half && (low != 0 || (head & 1) == 1))
     let mut tailHigh = restHigh
     let mut tailLow = low
@@ -108,10 +108,10 @@ pure noalloc fn timesHalfPi(a0: u64, b0: u64, c0: u64, d0: u64) -> HiLo {
         head = head + 1
         let (tl, borrow) = sub64(0, low, 0)
         tailLow = tl
-        tailHigh = (one << cut) - restHigh - borrow
+        tailHigh = one.wrappingShiftLeft(cut.truncate[u64]()) - restHigh - borrow
     }
     let scale = -125 - shift.truncate[Int]() - s.truncate[Int]()
-    let tail = ((tailHigh << 42) | (tailLow >> 22)).toFloat() * 4194304.0 + (tailLow & 0x3FFFFF).toFloat()
+    let tail = (tailHigh.wrappingShiftLeft(42) | (tailLow >> 22)).toFloat() * 4194304.0 + (tailLow & 0x3FFFFF).toFloat()
     HiLo {
         hi: head.toFloat() * pow2(64 + cut.truncate[Int]() + scale)
         lo: signed(tail * pow2(scale), up)
@@ -148,23 +148,23 @@ pure noalloc fn leadingZeros(v: u64) -> usize {
     let mut x = v
     if (x >> 32) == 0 {
         n = n + 32
-        x = x << 32
+        x = x.wrappingShiftLeft(32)
     }
     if (x >> 48) == 0 {
         n = n + 16
-        x = x << 16
+        x = x.wrappingShiftLeft(16)
     }
     if (x >> 56) == 0 {
         n = n + 8
-        x = x << 8
+        x = x.wrappingShiftLeft(8)
     }
     if (x >> 60) == 0 {
         n = n + 4
-        x = x << 4
+        x = x.wrappingShiftLeft(4)
     }
     if (x >> 62) == 0 {
         n = n + 2
-        x = x << 2
+        x = x.wrappingShiftLeft(2)
     }
     if (x >> 63) == 0 {
         n = n + 1

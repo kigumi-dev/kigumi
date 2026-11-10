@@ -80,20 +80,20 @@ pure noalloc fn powFinite(y: Float, ix: u64, iy: u64, signBias: u64) -> Float {
 
 /// pow for a zero, infinite or NaN y.
 pure noalloc fn powSpecialY(x: Float, y: Float, ix: u64, iy: u64) -> Float {
-    if (iy << 1) == 0 || ix == oneBits {
+    if iy.wrappingShiftLeft(1) == 0 || ix == oneBits {
         return 1.0
     }
-    if (ix << 1) > (infBits << 1) || (iy << 1) > (infBits << 1) {
+    if ix.wrappingShiftLeft(1) > infBits.wrappingShiftLeft(1) || iy.wrappingShiftLeft(1) > infBits.wrappingShiftLeft(1) {
         return invalid(if isNaN(x) {
             x
         } else {
             y
         })
     }
-    if (ix << 1) == (oneBits << 1) {
+    if ix.wrappingShiftLeft(1) == oneBits.wrappingShiftLeft(1) {
         return 1.0
     }
-    if ((ix << 1) < (oneBits << 1)) == ((iy >> 63) == 0) {
+    if (ix.wrappingShiftLeft(1) < oneBits.wrappingShiftLeft(1)) == ((iy >> 63) == 0) {
         return 0.0
     }
     y * y
@@ -115,7 +115,7 @@ pure noalloc fn expTimesSign(x: Float, xtail: Float, signBias: u64) -> Float {
 
 /// Whether the pattern is a zero, an infinity or NaN.
 pure noalloc fn zeroInfNaN(i: u64) -> Bool {
-    (i << 1).wrappingSub(1) >= (infBits << 1) - 1
+    i.wrappingShiftLeft(1).wrappingSub(1) >= infBits.wrappingShiftLeft(1) - 1
 }
 
 /// 0 when the finite nonzero pattern iy is not an integer, 1 when it is odd and 2 when it is even.

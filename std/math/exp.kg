@@ -35,7 +35,7 @@ pure noalloc fn expReduced(x: Float, xtail: Float, signBias: u64, nearOverflow: 
     let k = kd - roundShift
     let r = x + k * negLn2HiN + k * negLn2LoN + xtail
     let (tail, tableBits) = expEntry(ki & 127)
-    let sbits = tableBits.wrappingAdd(ki.wrappingAdd(signBias) << 45)
+    let sbits = tableBits.wrappingAdd(ki.wrappingAdd(signBias).wrappingShiftLeft(45))
     let r2 = r * r
     let tmp = tail + r + r2 * (expC2 + r * expC3) + r2 * r2 * (expC4 + r * expC5)
     if nearOverflow {

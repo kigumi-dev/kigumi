@@ -3,15 +3,15 @@
 pub pure noalloc fn fmod(x: Float, y: Float) -> Float {
     let ux = toBits(x)
     let uy = toBits(y)
-    if (uy << 1) == 0 || isNaN(y) || exponentField(ux) == 0x7FF {
+    if uy.wrappingShiftLeft(1) == 0 || isNaN(y) || exponentField(ux) == 0x7FF {
         return invalid(if isNaN(x) {
             x
         } else {
             y
         })
     }
-    if (ux << 1) <= (uy << 1) {
-        if (ux << 1) == (uy << 1) {
+    if ux.wrappingShiftLeft(1) <= uy.wrappingShiftLeft(1) {
+        if ux.wrappingShiftLeft(1) == uy.wrappingShiftLeft(1) {
             return 0.0 * x
         }
         return x
@@ -28,7 +28,7 @@ pub pure noalloc fn fmod(x: Float, y: Float) -> Float {
             }
             mx = i
         }
-        mx = mx << 1
+        mx = mx.wrappingShiftLeft(1)
         ex = ex - 1
     }
     let i = mx.wrappingSub(ny.mantissa)
@@ -39,11 +39,11 @@ pub pure noalloc fn fmod(x: Float, y: Float) -> Float {
         mx = i
     }
     for (mx >> 52) == 0 {
-        mx = mx << 1
+        mx = mx.wrappingShiftLeft(1)
         ex = ex - 1
     }
     let magnitude = if ex > 0 {
-        (mx - implicitBit) | (ex.truncate[u64]() << 52)
+        (mx - implicitBit) | ex.truncate[u64]().wrappingShiftLeft(52)
     } else {
         mx >> (1 - ex).truncate[usize]()
     }
@@ -64,13 +64,13 @@ pure noalloc fn normalized(bits: u64) -> Normalized {
             exponent: e
         }
     }
-    let mut i = bits << 12
+    let mut i = bits.wrappingShiftLeft(12)
     for (i >> 63) == 0 {
         e = e - 1
-        i = i << 1
+        i = i.wrappingShiftLeft(1)
     }
     Normalized {
-        mantissa: bits << (1 - e).truncate[usize]()
+        mantissa: bits.wrappingShiftLeft((1 - e).truncate[u64]())
         exponent: e
     }
 }

@@ -37,7 +37,7 @@ pure noalloc fn exponentField(bits: u64) -> Int {
 
 /// 2^k for k in the normal range -1022..1023.
 pure noalloc fn pow2(k: Int) -> Float {
-    fromBits((k + 1023).truncate[u64]() << 52)
+    fromBits((k + 1023).truncate[u64]().wrappingShiftLeft(52))
 }
 
 /// x, negated when negative is set.

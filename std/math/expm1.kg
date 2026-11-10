@@ -70,7 +70,7 @@ pure noalloc fn expm1Reduced(x: Float, c: Float, k: Int) -> Float {
         }
         return 1.0 + 2.0 * (x - e)
     }
-    let twopk = fromBits((0x3FF + k).truncate[u64]() << 52)
+    let twopk = fromBits((0x3FF + k).truncate[u64]().wrappingShiftLeft(52))
     if k < 0 || k > 56 {
         let y = x - e + 1.0
         if k == 1024 {
@@ -78,7 +78,7 @@ pure noalloc fn expm1Reduced(x: Float, c: Float, k: Int) -> Float {
         }
         return y * twopk - 1.0
     }
-    let inverse = fromBits((0x3FF - k).truncate[u64]() << 52)
+    let inverse = fromBits((0x3FF - k).truncate[u64]().wrappingShiftLeft(52))
     if k < 20 {
         return (x - e + (1.0 - inverse)) * twopk
     }

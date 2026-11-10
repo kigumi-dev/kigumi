@@ -614,11 +614,11 @@ op 192 SECRET_EQ_BYTES primitive (bytes, bytes) -> int
 key secret.eqBytes
 op 193 SECRET_DECLASSIFY_BYTES primitive (bytes) -> bytes
 key secret.declassifyBytes
-op 195 MATH_TO_BITS primitive (float) -> int
+op 194 MATH_TO_BITS primitive (float) -> int
 isr inert
 direct ToBits
 key math.toBits
-op 196 MATH_FROM_BITS primitive (int) -> float
+op 195 MATH_FROM_BITS primitive (int) -> float
 isr inert
 direct FromBits
 key math.fromBits
