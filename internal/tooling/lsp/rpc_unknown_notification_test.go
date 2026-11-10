@@ -22,6 +22,9 @@ func TestUnimplementedNotificationKeepsTheConnection(t *testing.T) {
 	srv.Connect(ctx, jsonrpc2.NewStream(a))
 	_, conn, server := protocol.NewClient(ctx, &liveClient{changed: make(chan struct{}, 1)}, jsonrpc2.NewStream(b))
 	t.Cleanup(func() { a.Close(); b.Close(); srv.WaitIdle() })
+	if _, err := server.Initialize(ctx, initParams(uri.File(t.TempDir()))); err != nil {
+		t.Fatal(err)
+	}
 
 	if err := conn.Notify(ctx, "$/unknownThing", map[string]any{"x": 1}); err != nil {
 		t.Fatal(err)
