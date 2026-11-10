@@ -25,10 +25,7 @@ func TestParserCorpus(t *testing.T) {
 	if len(files) == 0 {
 		t.Fatal("no fixtures found")
 	}
-	for _, path := range files {
-		if !devfixture.Shard(filepath.Base(path)) {
-			continue
-		}
+	for _, path := range devfixture.Shards(files) {
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			raw, err := os.ReadFile(path)
 			if err != nil {

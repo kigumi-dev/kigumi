@@ -63,10 +63,7 @@ func TestIdempotent(t *testing.T) {
 	if len(files) == 0 {
 		t.Fatal("no parser fixtures")
 	}
-	for _, path := range files {
-		if !devfixture.Shard(filepath.Base(path)) {
-			continue
-		}
+	for _, path := range devfixture.Shards(files) {
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			src := readSrc(t, path)
 			tree := syntax.Parse(token.NewFile("a", []byte(src)))
@@ -138,10 +135,7 @@ func TestFmtCorpus(t *testing.T) {
 	if len(files) == 0 {
 		t.Fatal("no fmt fixtures")
 	}
-	for _, path := range files {
-		if !devfixture.Shard(filepath.Base(path)) {
-			continue
-		}
+	for _, path := range devfixture.Shards(files) {
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			raw, err := os.ReadFile(path)
 			if err != nil {

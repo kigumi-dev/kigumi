@@ -32,4 +32,17 @@ func TestBuildAudit(t *testing.T) {
 	if err := json.Unmarshal(b, &round); err != nil {
 		t.Fatalf("audit JSON does not parse back: %v", err)
 	}
+	totals, ok := round["totals"].(map[string]any)
+	if !ok {
+		t.Fatal("audit JSON has no totals object")
+	}
+	if _, ok := totals["skipSites"]; !ok {
+		t.Error("totals has no skipSites field")
+	}
+	if _, ok := totals["skips"]; ok {
+		t.Error("totals still calls source skip call sites \"skips\"")
+	}
+	if a.Totals.SkipSites == 0 {
+		t.Error("found zero .Skip call sites in the whole repository")
+	}
 }

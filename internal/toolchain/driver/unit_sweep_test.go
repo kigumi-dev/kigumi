@@ -229,10 +229,7 @@ func TestUnitSweepSemFixtures(t *testing.T) {
 	}
 	var tot sweepTotals
 	singles := 0
-	for _, p := range paths {
-		if !fixture.Shard(filepath.Base(p)) {
-			continue
-		}
+	for _, p := range fixture.Shards(paths) {
 		fx, ok := readSweepFixture(p)
 		if !ok {
 			continue

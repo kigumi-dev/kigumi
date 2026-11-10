@@ -34,10 +34,7 @@ func checkAcceleratorsMatchBodies(t *testing.T, use *regexp.Regexp, least int) {
 		t.Fatal("no run fixtures")
 	}
 	picked := 0
-	for _, path := range files {
-		if !fixture.Shard(filepath.Base(path)) {
-			continue
-		}
+	for _, path := range fixture.Shards(files) {
 		src, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)
@@ -77,7 +74,7 @@ func checkAcceleratorsMatchBodies(t *testing.T, use *regexp.Regexp, least int) {
 			}
 		})
 	}
-	if picked < fixture.ShardShare(least) {
+	if share := fixture.ShardShare(least); share > 0 && picked < share {
 		t.Fatalf("picked only %d fixtures", picked)
 	}
 }

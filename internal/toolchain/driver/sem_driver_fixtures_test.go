@@ -65,10 +65,7 @@ func TestSemDriverFixtures(t *testing.T) {
 		t.Fatal("no sem fixtures")
 	}
 	ran := 0
-	for _, path := range paths {
-		if !fixture.Shard(filepath.Base(path)) {
-			continue
-		}
+	for _, path := range fixture.Shards(paths) {
 		fx := parseSemDriverFixture(t, path)
 		if fx.opts["stage"] != "driver" {
 			continue

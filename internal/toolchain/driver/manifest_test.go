@@ -84,12 +84,6 @@ func runFixtures(t *testing.T) []fixture.Fixture {
 			Kind: "run",
 			Path: "testdata/run/" + base + ".txtar",
 		}
-		if fixtureEngines(path) == "native" {
-			fx.Mode = []string{"native"}
-			fx.Skip = map[string]string{"vm": "static-refusal"}
-			out[i] = fx
-			continue
-		}
 		t.Run(base, func(t *testing.T) {
 			t.Parallel()
 			c := checkedFixture(t, path)

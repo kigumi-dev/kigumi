@@ -75,6 +75,9 @@ match shell.run(plan, host.shell()) {
 // path with an embedded NUL must be rejected before dlopen runs, not
 // truncated into a shorter path that could open a real library on disk.
 func TestCstringNulDlopenPath(t *testing.T) {
+	if testCompiler().CCompiler() == nil {
+		t.Skip("no C compiler")
+	}
 	if _, err := exec.LookPath("cc"); err != nil {
 		t.Skip("no cc")
 	}

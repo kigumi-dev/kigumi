@@ -21,11 +21,8 @@ func TestFaultInjectionTryFamilyLeavesNothingLive(t *testing.T) {
 		t.Fatalf("found %d programs", len(files))
 	}
 	quiesce()
-	for _, path := range files {
+	for _, path := range devfixture.Shards(files) {
 		name := strings.TrimSuffix(filepath.Base(path), ".kg")
-		if !devfixture.Shard(name + ".kg") {
-			continue
-		}
 		t.Run(name, func(t *testing.T) {
 			src, err := os.ReadFile(path)
 			if err != nil {

@@ -4,8 +4,12 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
+	"strconv"
 	"strings"
 	"testing"
+
+	"kigumi/internal/devkit/fixture"
 )
 
 // TestCorpusLoopsConsultTheShardSelector keeps heavy fixture corpora divisible: a test file that
@@ -36,12 +40,45 @@ func TestCorpusLoopsConsultTheShardSelector(t *testing.T) {
 		if !strings.Contains(string(src), "filepath.Glob") || !corpusPath.Match(src) {
 			return nil
 		}
-		if !strings.Contains(string(src), ".Shard(") {
+		if !strings.Contains(string(src), ".Shards(") {
 			t.Errorf("%s globs a shared fixture corpus without slicing it through the fixture shard selector", path)
 		}
 		return nil
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+// Every corpus must split within one entry across the shards: a per-id hash put
+// nearly twice as many mir or parser fixtures in one shard as in another.
+func TestCorpusShardsBalance(t *testing.T) {
+	root := "../.."
+	for _, kind := range []string{"run", "sem", "mir", "parser", "fmt", "oom"} {
+		pattern := filepath.Join(root, "testdata", kind, "*.txtar")
+		if kind == "oom" {
+			pattern = filepath.Join(root, "testdata", kind, "*.kg")
+		}
+		files, err := filepath.Glob(pattern)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(files) == 0 {
+			t.Fatalf("no %s fixtures", kind)
+		}
+		counts := make([]int, 4)
+		total := 0
+		for shard := range 4 {
+			t.Setenv("KIGUMI_TEST_SHARD", strconv.Itoa(shard)+"/4")
+			counts[shard] = len(fixture.Shards(files))
+			total += counts[shard]
+		}
+		if total != len(files) {
+			t.Errorf("%s: shards cover %d of %d fixtures", kind, total, len(files))
+		}
+		least, most := slices.Min(counts), slices.Max(counts)
+		if most-least > 1 {
+			t.Errorf("%s: shard counts %v are not balanced", kind, counts)
+		}
 	}
 }

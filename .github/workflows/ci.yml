@@ -29,6 +29,10 @@ jobs:
         index: ["0", "1", "2", "3"]
     env:
       KIGUMI_TEST_SHARD: ${{ matrix.index }}/4
+      # TestCorpus* and the CLI/devkit native tests must see the no-toolchain path even though
+      # the runner image ships clang; internal/toolchain/config and internal/devkit/hosttool
+      # honour this gate.
+      KIGUMI_TEST_NO_CC: "1"
       # TestRunCorpusEngines also reruns each fixture of the shard under --secret-san.
       KIGUMI_SECRET_SAN_CORPUS: "1"
     steps:
@@ -40,7 +44,7 @@ jobs:
       - run: go run . fmt --check std testdata examples
       - run: go vet ./...
       - run: go list ./... | grep -v '^kigumi/internal/toolchain/driver$' | xargs go test -timeout 60m
-      - run: go test -timeout 60m -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} 4 kigumi/internal/toolchain/driver)" ./internal/toolchain/driver
+      - run: go test -timeout 60m -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} 4 kigumi/internal/toolchain/driver vm)" ./internal/toolchain/driver
       # The verifier's oracle: mutated MIR must never crash verify, llgen or the
       # VM. It needs no C toolchain, so the hermetic job can run it; the nightly
       # workflow keeps the longer pass.
@@ -82,6 +86,23 @@ jobs:
             index: "2"
             count: "4"
           - pkg: backend/vm
+            index: "3"
+            count: "4"
+          - pkg: backend/llgen
+            index: "0"
+            count: "1"
+          # The driver runs parallel builds and the VM; it was the concurrency-heaviest package
+          # missing from this matrix.
+          - pkg: toolchain/driver
+            index: "0"
+            count: "4"
+          - pkg: toolchain/driver
+            index: "1"
+            count: "4"
+          - pkg: toolchain/driver
+            index: "2"
+            count: "4"
+          - pkg: toolchain/driver
             index: "3"
             count: "4"
     env:
@@ -219,7 +240,7 @@ jobs:
       - run: echo "$HOME/.local/share/kigumi/zig/${{ needs.zig-version.outputs.version }}" >> "$GITHUB_PATH"
         if: matrix.zig == 'yes'
       - if: matrix.driver == 'yes'
-        run: go test -timeout 120m -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} ${{ matrix.count }} kigumi/internal/toolchain/driver)" ./internal/toolchain/driver/
+        run: go test -timeout 120m -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} ${{ matrix.count }} kigumi/internal/toolchain/driver aot)" ./internal/toolchain/driver/
         env:
           KIGUMI_CFLAGS: ${{ matrix.cflags }}
           ASAN_OPTIONS: ${{ matrix.asan }}

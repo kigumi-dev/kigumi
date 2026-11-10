@@ -179,10 +179,7 @@ func corpusFixtures(t *testing.T) (zero, nonzero []string) {
 	if len(files) == 0 {
 		t.Fatal("no run fixtures")
 	}
-	for _, path := range files {
-		if !devfixture.Shard(filepath.Base(path)) {
-			continue
-		}
+	for _, path := range devfixture.Shards(files) {
 		if readFixture(t, path).exit == 0 {
 			zero = append(zero, path)
 		} else {

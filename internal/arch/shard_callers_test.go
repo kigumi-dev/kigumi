@@ -27,7 +27,7 @@ type declGraph struct {
 }
 
 // shardCallers lists the Test functions of the package in dir (import path pkg) that reach
-// fixture.Shard through that directory's files or any devkit package.
+// fixture.Shards through that directory's files or any devkit package.
 func shardCallers(t *testing.T, root, dir, pkg string) []string {
 	t.Helper()
 	g := declGraph{refs: map[string][]string{}, methods: map[string][]string{}}
@@ -144,10 +144,10 @@ func (g *declGraph) scan(key, id string, imports map[string]string, n ast.Node) 
 	})
 }
 
-// reachingShard grows the set of declarations that reach fixture.Shard backwards along the
+// reachingShard grows the set of declarations that reach fixture.Shards backwards along the
 // references until it is stable, so a cycle between helpers cannot hide a caller.
 func (g *declGraph) reachingShard() map[string]bool {
-	reach := map[string]bool{fixturePkg + " Shard": true}
+	reach := map[string]bool{fixturePkg + " Shards": true}
 	reached := func(ref string) bool {
 		if name, ok := strings.CutPrefix(ref, "method "); ok {
 			return slices.ContainsFunc(g.methods[name], func(m string) bool { return reach[m] })

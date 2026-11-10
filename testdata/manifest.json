@@ -3760,7 +3760,7 @@
         "native"
       ],
       "skip": {
-        "vm": "static-refusal"
+        "vm": "native-only"
       }
     },
     {
@@ -3807,7 +3807,7 @@
         "native"
       ],
       "skip": {
-        "vm": "static-refusal"
+        "vm": "native-only"
       }
     },
     {
@@ -5924,7 +5924,7 @@
         "native"
       ],
       "skip": {
-        "vm": "static-refusal"
+        "vm": "native-only"
       }
     },
     {
@@ -5935,7 +5935,7 @@
         "native"
       ],
       "skip": {
-        "vm": "static-refusal"
+        "vm": "native-only"
       }
     },
     {
@@ -6045,7 +6045,7 @@
         "native"
       ],
       "skip": {
-        "vm": "static-refusal"
+        "vm": "native-only"
       }
     },
     {
@@ -6074,7 +6074,7 @@
         "native"
       ],
       "skip": {
-        "vm": "static-refusal"
+        "vm": "native-only"
       }
     },
     {
@@ -6094,7 +6094,7 @@
         "native"
       ],
       "skip": {
-        "vm": "static-refusal"
+        "vm": "native-only"
       }
     },
     {
@@ -6105,7 +6105,7 @@
         "native"
       ],
       "skip": {
-        "vm": "static-refusal"
+        "vm": "native-only"
       }
     },
     {
@@ -6611,7 +6611,7 @@
         "native"
       ],
       "skip": {
-        "vm": "static-refusal"
+        "vm": "native-only"
       }
     },
     {
@@ -6622,7 +6622,7 @@
         "native"
       ],
       "skip": {
-        "vm": "static-refusal"
+        "vm": "native-only"
       }
     },
     {
@@ -6966,7 +6966,7 @@
         "native"
       ],
       "skip": {
-        "vm": "static-refusal"
+        "vm": "native-only"
       }
     },
     {
@@ -9110,7 +9110,7 @@
         "native"
       ],
       "skip": {
-        "vm": "static-refusal"
+        "vm": "native-only"
       }
     },
     {
@@ -10327,7 +10327,7 @@
         "native"
       ],
       "skip": {
-        "vm": "static-refusal"
+        "vm": "native-only"
       }
     },
     {

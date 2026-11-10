@@ -10,13 +10,11 @@ import (
 var shardProbeFiles = map[string]string{
 	"internal/devkit/fixture/shard.go": `package fixture
 
-func Shard(id string) bool { return id != "" }
+func Shards(ids []string) []string { return ids }
 
 func Each(ids []string, f func(string)) {
-	for _, id := range ids {
-		if Shard(id) {
-			f(id)
-		}
+	for _, id := range Shards(ids) {
+		f(id)
 	}
 }
 `,
@@ -30,10 +28,8 @@ type corpus struct{ ids []string }
 func (c corpus) walk(f func(string)) { fixture.Each(c.ids, f) }
 
 func EachProbe(ids []string, f func(string)) {
-	for _, id := range ids {
-		if fixture.Shard(id) {
-			f(id)
-		}
+	for _, id := range fixture.Shards(ids) {
+		f(id)
 	}
 }
 `,
@@ -46,7 +42,7 @@ import (
 	"kigumi/probe"
 )
 
-func TestDirect(t *testing.T)   { _ = fixture.Shard("a") }
+func TestDirect(t *testing.T)   { _ = fixture.Shards([]string{"a"}) }
 func TestDevkit(t *testing.T)   { fixture.Each(nil, func(string) {}) }
 func TestIndirect(t *testing.T) { probe.EachProbe(nil, func(string) {}) }
 func TestPlain(t *testing.T)    { _ = fixture.Count(nil) }

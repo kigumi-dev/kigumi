@@ -22,10 +22,7 @@ func TestIRDump(t *testing.T) {
 	if len(files) == 0 {
 		t.Fatal("no run fixtures")
 	}
-	for _, path := range files {
-		if !devfixture.Shard(filepath.Base(path)) {
-			continue
-		}
+	for _, path := range devfixture.Shards(files) {
 		data, _ := os.ReadFile(path)
 		text := string(data)
 		i := strings.Index(text, "-- src --\n")

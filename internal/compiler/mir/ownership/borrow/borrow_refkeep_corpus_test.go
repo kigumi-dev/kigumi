@@ -55,10 +55,7 @@ func TestWitnessSetsKeepNoLess(t *testing.T) {
 		t.Fatal("no run or sem fixtures")
 	}
 	t.Run("corpus", func(t *testing.T) {
-		for _, path := range slices.Concat(run, planned) {
-			if !devfixture.Shard(filepath.Base(path)) {
-				continue
-			}
+		for _, path := range devfixture.Shards(slices.Concat(run, planned)) {
 			data, _ := os.ReadFile(path)
 			src, ok := corpusSource(string(data), strings.Contains(path, "/sem/"))
 			if !ok {

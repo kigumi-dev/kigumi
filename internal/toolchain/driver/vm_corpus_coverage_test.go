@@ -13,10 +13,7 @@ func TestRunCorpusVMCoverage(t *testing.T) {
 	if len(files) == 0 {
 		t.Fatal("no run fixtures")
 	}
-	for _, path := range files {
-		if !devfixture.Shard(filepath.Base(path)) {
-			continue
-		}
+	for _, path := range devfixture.Shards(files) {
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			t.Parallel()
 			declared := fixtureEngines(path)

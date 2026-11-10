@@ -12,13 +12,16 @@ import (
 	"unicode/utf8"
 )
 
-// PackageCounts is one Go package directory's test inventory.
+// PackageCounts is one Go package directory's test inventory. SkipSites counts
+// .Skip(/.Skipf( call sites in the test sources, not runtime skip events: a
+// shared helper counts once per call site and an environment-dependent skip is
+// invisible here. Runtime skips belong in a `go test -json` baseline instead.
 type PackageCounts struct {
 	Dir        string `json:"dir"`
 	Tests      int    `json:"tests"`
 	Benchmarks int    `json:"benchmarks"`
 	Fuzz       int    `json:"fuzz"`
-	Skips      int    `json:"skips"`
+	SkipSites  int    `json:"skipSites"`
 	HasTests   bool   `json:"hasTests"`
 }
 
@@ -41,7 +44,8 @@ func testKind(name string) string {
 }
 
 // CountGoTests tallies Test/Benchmark/Fuzz functions and .Skip( call sites
-// per package dir under repoRoot; skipDirs (by base name) are pruned.
+// (SkipSites, not runtime skip events) per package dir under repoRoot; skipDirs
+// (by base name) are pruned.
 func CountGoTests(repoRoot string, skipDirs ...string) ([]PackageCounts, error) {
 	byDir := map[string]*PackageCounts{}
 	fset := token.NewFileSet()
@@ -100,16 +104,16 @@ func CountGoTests(repoRoot string, skipDirs ...string) ([]PackageCounts, error) 
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Dir < out[j].Dir })
 	for i := range out {
-		n, err := countSkips(repoRoot, out[i].Dir)
+		n, err := countSkipSites(repoRoot, out[i].Dir)
 		if err != nil {
 			return nil, err
 		}
-		out[i].Skips = n
+		out[i].SkipSites = n
 	}
 	return out, nil
 }
 
-func countSkips(repoRoot, dir string) (int, error) {
+func countSkipSites(repoRoot, dir string) (int, error) {
 	files, err := filepath.Glob(filepath.Join(repoRoot, dir, "*_test.go"))
 	if err != nil {
 		return 0, err

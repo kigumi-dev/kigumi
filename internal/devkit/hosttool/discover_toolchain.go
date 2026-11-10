@@ -1,6 +1,7 @@
 package hosttool
 
 import (
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -15,8 +16,13 @@ type Toolchain struct {
 }
 
 // DiscoverToolchain probes look the same way internal/toolchain/driver picks a C
-// compiler (zig cc, falling back to clang), without importing it.
+// compiler (zig cc, falling back to clang), without importing it. KIGUMI_TEST_NO_CC
+// is the hermetic CI job's gate: it must see the no-toolchain path even when the
+// runner image ships clang.
 func DiscoverToolchain(look Lookup) Toolchain {
+	if os.Getenv("KIGUMI_TEST_NO_CC") != "" {
+		return Toolchain{}
+	}
 	_, zig := look("zig")
 	_, clang := look("clang")
 	return Toolchain{Zig: zig == nil, Clang: clang == nil}

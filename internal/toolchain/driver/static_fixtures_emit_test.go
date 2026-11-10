@@ -27,10 +27,7 @@ func emitFixturesNatively(t *testing.T, marker string, declares func(*sem.Result
 	if len(files) == 0 {
 		t.Fatal("no run fixtures")
 	}
-	for _, path := range files {
-		if !devfixture.Shard(filepath.Base(path)) {
-			continue
-		}
+	for _, path := range devfixture.Shards(files) {
 		data, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)

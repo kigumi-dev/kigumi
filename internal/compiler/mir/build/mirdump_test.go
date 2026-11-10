@@ -23,10 +23,7 @@ func TestMirDump(t *testing.T) {
 	if len(files) == 0 {
 		t.Fatal("no run fixtures")
 	}
-	for _, path := range files {
-		if !devfixture.Shard(filepath.Base(path)) {
-			continue
-		}
+	for _, path := range devfixture.Shards(files) {
 		res, _, _ := mirfixture.CheckFixture(t, path, std)
 		prog := mirbuild.Program(res)
 		os.WriteFile(filepath.Join(out, filepath.Base(path)+".mir"), []byte(prog.Dump()+prog.Render()), 0o644)

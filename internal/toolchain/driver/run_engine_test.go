@@ -21,10 +21,7 @@ func TestRunCorpusEngines(t *testing.T) {
 	}
 	var want, ran atomic.Int64
 	t.Cleanup(func() { t.Logf("vm: expect %d, ran %d", want.Load(), ran.Load()) })
-	for _, path := range files {
-		if !fixture.Shard(filepath.Base(path)) {
-			continue
-		}
+	for _, path := range fixture.Shards(files) {
 		id := fixtureID(path)
 		fx := manifest.ByID(id)
 		if fx == nil {

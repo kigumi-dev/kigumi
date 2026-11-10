@@ -18,7 +18,7 @@ type AuditTotals struct {
 	Tests          int `json:"tests"`
 	Benchmarks     int `json:"benchmarks"`
 	Fuzz           int `json:"fuzz"`
-	Skips          int `json:"skips"`
+	SkipSites      int `json:"skipSites"`
 	PackagesWithGo int `json:"packagesWithGo"`
 	UntestedGo     int `json:"untestedGoPackages"`
 }
@@ -38,7 +38,7 @@ func BuildAudit(repoRoot string, look hosttool.Lookup) (*Audit, error) {
 		a.Totals.Tests += p.Tests
 		a.Totals.Benchmarks += p.Benchmarks
 		a.Totals.Fuzz += p.Fuzz
-		a.Totals.Skips += p.Skips
+		a.Totals.SkipSites += p.SkipSites
 		a.Totals.PackagesWithGo++
 		if !p.HasTests {
 			a.Totals.UntestedGo++

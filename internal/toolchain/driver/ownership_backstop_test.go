@@ -22,10 +22,7 @@ func TestCorpusOwnershipBeforeVerifier(t *testing.T) {
 	if len(semPaths) == 0 || len(runPaths) == 0 {
 		t.Fatal("no sem or run fixtures")
 	}
-	for _, path := range semPaths {
-		if !devfixture.Shard(filepath.Base(path)) {
-			continue
-		}
+	for _, path := range devfixture.Shards(semPaths) {
 		t.Run("sem/"+strings.TrimSuffix(filepath.Base(path), ".txtar"), func(t *testing.T) {
 			t.Parallel()
 			fx := parseSemDriverFixture(t, path)
@@ -41,10 +38,7 @@ func TestCorpusOwnershipBeforeVerifier(t *testing.T) {
 		})
 	}
 	manifest := loadManifest(t)
-	for _, path := range runPaths {
-		if !devfixture.Shard(filepath.Base(path)) {
-			continue
-		}
+	for _, path := range devfixture.Shards(runPaths) {
 		id := fixtureID(path)
 		fx := manifest.ByID(id)
 		if fx == nil {

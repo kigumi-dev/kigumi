@@ -21,10 +21,7 @@ func TestVerifyCorpus(t *testing.T) {
 	if len(files) == 0 {
 		t.Fatal("no run fixtures")
 	}
-	for _, path := range files {
-		if !fixture.Shard(filepath.Base(path)) {
-			continue
-		}
+	for _, path := range fixture.Shards(files) {
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			t.Parallel()
 			res, _, _ := mirfixture.CheckFixture(t, path, semfixture.LoadStd(t, "../../../../std"))
