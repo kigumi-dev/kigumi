@@ -1,5 +1,7 @@
 package sem
 
+import "math/big"
+
 func (tt *TypeTable) Named(ent EntityID, args []TypeID) TypeID {
 	return tt.Intern(typeNode{Kind: KNamed, Ent: ent, Args: args})
 }
@@ -25,19 +27,36 @@ func (tt *TypeTable) Var(n uint32) TypeID { return tt.Intern(typeNode{Kind: KVar
 // ConstVal interns a const generic argument value: ty is its
 // declared type (usize, a fixed-width integer, Int or Bool).
 func (tt *TypeTable) ConstVal(v int64, ty TypeID) TypeID {
-	idx, ok := tt.constIndex[v]
+	return tt.ConstValBig(big.NewInt(v), ty)
+}
+
+// ConstValBig is ConstVal for a value wider than 64 bits, which an i128 or
+// u128 const parameter argument can carry.
+func (tt *TypeTable) ConstValBig(v *big.Int, ty TypeID) TypeID {
+	key := v.String()
+	idx, ok := tt.constIndex[key]
 	if !ok {
 		idx = uint32(len(tt.constVals))
-		tt.constVals = append(tt.constVals, v)
-		tt.constIndex[v] = idx
+		tt.constVals = append(tt.constVals, new(big.Int).Set(v))
+		tt.constIndex[key] = idx
 	}
 	return tt.Intern(typeNode{Kind: KConst, Var: idx, Elem: ty})
 }
 
-// ConstValue reads back a KConst type's value and declared type.
+// ConstValue reads back a KConst type's value and declared type, cut to the
+// low 64 bits for callers that only carry a width or a length; ConstValueBig
+// is the whole value.
 func (tt *TypeTable) ConstValue(t TypeID) (int64, TypeID) {
 	n := tt.nodes[t]
-	return tt.constVals[n.Var], n.Elem
+	v := tt.constVals[n.Var]
+	return v.Int64(), n.Elem
+}
+
+// ConstValueBig reads back a KConst type's value at full width and its
+// declared type.
+func (tt *TypeTable) ConstValueBig(t TypeID) (*big.Int, TypeID) {
+	n := tt.nodes[t]
+	return new(big.Int).Set(tt.constVals[n.Var]), n.Elem
 }
 
 // IsConst reports whether t is a const generic argument value.

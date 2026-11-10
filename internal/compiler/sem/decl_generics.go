@@ -29,7 +29,7 @@ func (r *Result) declareGenerics(f FileID, owner EntityID, list syntax.NodeID, s
 		if gp.Flags()&syntax.FlagConst != 0 {
 			ct := r.resolveType(f, scope, gp.Bound().ID(), posConst)
 			if ct != TyPoison && !r.allowedConstType(ct) {
-				r.errAt(f, g, r.abiCode(ct, cConstParamType), r.TypeString(ct))
+				r.errAt(f, g, cConstParamType, r.TypeString(ct))
 				ct = TyPoison
 			}
 			info := r.typeParam(id)

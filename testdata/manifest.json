@@ -7698,6 +7698,17 @@
       ]
     },
     {
+      "id": "run/int128_asm",
+      "kind": "run",
+      "path": "testdata/run/int128_asm.txtar",
+      "mode": [
+        "native"
+      ],
+      "skip": {
+        "vm": "native-only"
+      }
+    },
+    {
       "id": "run/int128_calls",
       "kind": "run",
       "path": "testdata/run/int128_calls.txtar",
@@ -7710,6 +7721,15 @@
       "id": "run/int128_comptime",
       "kind": "run",
       "path": "testdata/run/int128_comptime.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/int128_const_param",
+      "kind": "run",
+      "path": "testdata/run/int128_const_param.txtar",
       "mode": [
         "vm",
         "native"
@@ -15906,17 +15926,17 @@
       ]
     },
     {
-      "id": "sem/int128_layout_c_32bit",
+      "id": "sem/int128_abi_asm_const",
       "kind": "sem",
-      "path": "testdata/sem/int128_layout_c_32bit.txtar",
+      "path": "testdata/sem/int128_abi_asm_const.txtar",
       "mode": [
         "check"
       ]
     },
     {
-      "id": "sem/int128_reject",
+      "id": "sem/int128_layout_c_32bit",
       "kind": "sem",
-      "path": "testdata/sem/int128_reject.txtar",
+      "path": "testdata/sem/int128_layout_c_32bit.txtar",
       "mode": [
         "check"
       ]

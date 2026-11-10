@@ -36,6 +36,8 @@ func (e *emitter) cWiden(sb *strings.Builder, raw string, t sem.TypeID, ct strin
 		return Value{Type: TCPtr, Text: raw}
 	case ct == "i64":
 		return Value{Type: TI64, Text: raw}
+	case ct == "i128":
+		return Value{Type: TI128, Text: raw}
 	}
 	w, ext := e.newTmp(), "sext"
 	if !tt.IsSigned(t) {
@@ -59,11 +61,12 @@ func (e *emitter) cNarrow(sb *strings.Builder, v Value, t sem.TypeID, ct string)
 	return out
 }
 
-// cRegister reports a C argument or result type that crosses in a register: an integer narrower than 128 bits, a float or a pointer.
+// cRegister reports a C argument or result type that stays in registers: a
+// number (an i128 or u128 takes a register pair), a float or a pointer.
 func (e *emitter) cRegister(t sem.TypeID) bool {
 	tt := e.r.Types
 	t = e.r.UnderlyingRepr(t)
-	return tt.IsFloat(t) || tt.Kind(t) == sem.KPtr || tt.IsInteger(t) && t != sem.TyI128 && t != sem.TyU128
+	return tt.IsFloat(t) || tt.Kind(t) == sem.KPtr || tt.IsInteger(t)
 }
 
 // cIntABI is which C integers the target's ABI extends to a full register, as clang marks them signext or zeroext.

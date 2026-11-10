@@ -1,6 +1,12 @@
 import ffi from std/ffi
 import wide from c/wide
 
+export(C) {
+    pub fn kg_echo128(a: i128, b: u128) -> i128 {
+        a.wrappingAdd(b.toI128() || 0)
+    }
+}
+
 let made = unsafe {
     wide.cheader128_make(3, 5, -1, 11)
 }
@@ -27,3 +33,7 @@ let cAlign = unsafe {
     wide.cheader128_alignof()
 }
 print "layout ${ffi.sizeOf(&mine)} ${cSize} ${ffi.alignOf(&mine)} ${cAlign}"
+let sum = unsafe { wide.cheader128_add(mine.neg, mine.big) }
+let shifted = unsafe { wide.cheader128_shl(mine.big, 64) }
+print "scalar ${sum} ${shifted} ${unsafe { wide.cheader128_sign(mine.neg) }} ${unsafe { wide.cheader128_sign(mine.big.toI128() || 0) }}"
+print "echo ${unsafe { wide.cheader128_echo_call(mine.neg, 5) }}"

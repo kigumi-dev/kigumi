@@ -51,7 +51,9 @@ func TestAotHeaderImportInt128Fields(t *testing.T) {
 		"bumped 8 55340232221128654854 -55340232221128654854 12\n" +
 		"hi/lo 18446744073709551615 18446744073709551615\n" +
 		"again 2 0 -6 -1\n" +
-		"layout 64 64 16 16\n"
+		"layout 64 64 16 16\n" +
+		"scalar -6 340282366920938463444927863358058659840 -1 0\n" +
+		"echo 0\n"
 	if string(out) != want {
 		t.Errorf("got %q, want %q", out, want)
 	}

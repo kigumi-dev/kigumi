@@ -1,0 +1,90 @@
+-- src --
+type Halves layout(C) = {
+    pub lo u64
+    pub hi u64
+}
+
+type Wide layout(C) = {
+    pub v u128
+    pub w i128
+}
+
+type Id = i128
+
+extern(C) {
+    fn takes(x: i128) -> i32
+    fn gives() -> u128
+    fn viaPtr(f: extern(C) fn(Id) -> i32) -> i32
+    fn halves(h: Halves, w: Wide) -> i128
+}
+
+export(C) {
+    pub fn echo(x: u128) -> u64 {
+        0
+    }
+}
+
+fn counted[const N: i128]() -> i128 {
+    N
+}
+
+fn wide[const N: u128]() -> u128 {
+    N
+}
+
+const K: i128 = -170141183460469231731687303715884105728
+
+fn atK[const N: i128]() -> i128 {
+    N
+}
+
+fn forwarded[const N: i128]() -> i128 {
+    atK[K]()
+}
+
+fn ok(a: u128, b: i128) -> u128 {
+    _ = b
+    a
+}
+
+type One = {
+    pub v u128
+}
+
+fn operand(x: u128) -> u128 {
+    let r: One = unsafe {
+        asm {
+            ""
+            v: inout(freg) x
+        }
+    }
+    r.v
+}
+
+fn operandSigned(x: i128) -> i128 {
+    let r: One = unsafe {
+        asm {
+            ""
+            v: lateout(freg)
+            w: in(freg) x
+        }
+    }
+    (r.v.toI128() || 0) + 1
+}
+
+fn rejected(x: u128) {
+    unsafe {
+        asm {
+            "nop"
+            in(reg) x //~ ERROR `u128` does not fit a general register; use `freg`
+        }
+    }
+}
+
+-- expect --
+error[E936]: `u128` does not fit a general register; use `freg`
+  --> main/main.kg:78:13
+   |
+78 |             in(reg) x //~ ERROR `u128` does not fit a general register; use `freg`
+   |             ^^^^^^^^^
+

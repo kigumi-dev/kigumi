@@ -92,7 +92,14 @@ func (c *checker) asmOperandType(op *AsmOperand, arch *asmtable.Architecture) {
 		return
 	}
 	isPtr := tt.Kind(t) == KPtr || tt.IsCFn(t)
-	if !c.r.cNumeric(t) && !isPtr {
+	isWide := tt.IsInteger(t) && tt.Width(t) > 64
+	// A 128-bit integer needs a 128-bit vector register, which the backend
+	// only legalizes on a 64-bit target; no general register holds one.
+	if isWide && arch.PointerBits() < 64 {
+		c.errAt(op.Node, cInt128Unsupported, c.r.TypeString(t))
+		return
+	}
+	if !c.r.cNumeric(t) && !isWide && !isPtr {
 		c.errAt(op.Node, c.r.abiCode(t, cAsmOperandType), c.r.TypeString(t))
 		return
 	}
@@ -100,14 +107,19 @@ func (c *checker) asmOperandType(op *AsmOperand, arch *asmtable.Architecture) {
 	if !isPtr {
 		bits = tt.Bits(t, arch.PointerBits())
 	}
+	floatBits := arch.FloatBits()
 	r, explicit := arch.Register(op.Reg)
 	switch {
-	case op.Class && op.Reg == "freg" && !tt.IsFloat(t), explicit && r.Float && !tt.IsFloat(t):
+	case op.Class && op.Reg == "freg" && !tt.IsFloat(t) && bits != floatBits:
+		c.errAt(op.Node, cAsmWidth, c.r.TypeString(t), "a floating-point register")
+	case explicit && r.Float && !tt.IsFloat(t) && isWide:
+		c.errAt(op.Node, cAsmWidth, c.r.TypeString(t), "`"+op.Reg+"`; use `freg` for a 128-bit integer")
+	case explicit && r.Float && !tt.IsFloat(t):
 		c.errAt(op.Node, cAsmWidth, c.r.TypeString(t), "a floating-point register")
 	case op.Class && op.Reg == "reg" && tt.IsFloat(t):
 		c.errAt(op.Node, cAsmWidth, c.r.TypeString(t), "`reg`; use `freg`")
-	case op.Class && bits > arch.PointerBits():
-		c.errAt(op.Node, cAsmWidth, c.r.TypeString(t), "a general register")
+	case op.Class && op.Reg == "reg" && isWide:
+		c.errAt(op.Node, cAsmWidth, c.r.TypeString(t), "a general register; use `freg`")
 	case explicit && !r.Float && bits != r.Bits:
 		c.errAt(op.Node, cAsmRegisterWidth, op.Reg, itoa(r.Bits), c.r.TypeString(t), itoa(bits))
 	case explicit && r.Float && bits > r.Bits:

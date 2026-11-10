@@ -1,6 +1,7 @@
 package sem
 
 import (
+	"math/big"
 	"slices"
 	"strconv"
 	"strings"
@@ -111,9 +112,10 @@ type TypeTable struct {
 
 	optionEnt, resultEnt, arrayEnt, errorEnt, futureEnt EntityID
 	// constVals holds the distinct const generic argument values in
-	// first-seen order; constIndex dedups them to a stable index.
-	constVals  []int64
-	constIndex map[int64]uint32
+	// first-seen order; constIndex dedups them to a stable index. A value
+	// keeps its full width, so an i128 or u128 argument never truncates.
+	constVals  []*big.Int
+	constIndex map[string]uint32
 	escSets    []string
 	escIndex   map[string]uint32
 	// tupleEnt holds Tuple2..Tuple8 at indices 2..8; 0 and 1 are unused (a
@@ -140,7 +142,7 @@ func (tt *TypeTable) isTupleEnt(ent EntityID) bool {
 }
 
 func newTypeTable(ptrBits int) *TypeTable {
-	tt := &TypeTable{index: map[string]TypeID{}, ptrBits: ptrBits, align64: 8, constIndex: map[int64]uint32{}}
+	tt := &TypeTable{index: map[string]TypeID{}, ptrBits: ptrBits, align64: 8, constIndex: map[string]uint32{}}
 	tt.nodes = append(tt.nodes, typeNode{})
 	tt.props = append(tt.props, typeProps{})
 	tt.Intern(typeNode{Kind: KPoison})

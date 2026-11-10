@@ -32,3 +32,13 @@ struct Wide cheader128_bump(struct Wide w) {
     w.last += 1;
     return w;
 }
+
+__int128 cheader128_add(__int128 a, unsigned __int128 b) { return a + (__int128)b; }
+
+unsigned __int128 cheader128_shl(unsigned __int128 a, int n) { return a << n; }
+
+int cheader128_sign(__int128 a) { return a < 0 ? -1 : (a > 0); }
+
+extern __int128 kg_echo128(__int128 a, unsigned __int128 b);
+
+__int128 cheader128_echo_call(__int128 a, unsigned __int128 b) { return kg_echo128(a, b); }

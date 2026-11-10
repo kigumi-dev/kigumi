@@ -38,11 +38,7 @@ func (r *Result) coerceConstLit(f FileID, n syntax.NodeID, want TypeID) TypeID {
 		r.errAt(f, n, cLiteralOutOfRange, node.Tok().Text(), target)
 		return TyPoison
 	}
-	v := iv.Int64()
-	if !iv.IsInt64() {
-		v = int64(iv.Uint64())
-	}
-	return r.Types.ConstVal(v, target)
+	return r.Types.ConstValBig(iv, target)
 }
 
 // coerceNegConstLit evaluates a `-N` literal reached as a const generic argument.
@@ -66,11 +62,7 @@ func (r *Result) coerceNegConstLit(f FileID, n, lit syntax.NodeID, want TypeID) 
 		r.errAt(f, n, cLiteralOutOfRange, iv.String(), target)
 		return TyPoison
 	}
-	v := iv.Int64()
-	if !iv.IsInt64() {
-		v = int64(iv.Uint64())
-	}
-	return r.Types.ConstVal(v, target)
+	return r.Types.ConstValBig(iv, target)
 }
 
 func (r *Result) coerceConstValue(f FileID, n syntax.NodeID, v constValue, want TypeID) TypeID {
@@ -97,9 +89,5 @@ func (r *Result) coerceConstValue(f FileID, n syntax.NodeID, v constValue, want 
 		r.errAt(f, n, cLiteralOutOfRange, constIntText(v.Int), target)
 		return TyPoison
 	}
-	val := v.Int.Int64()
-	if !v.Int.IsInt64() {
-		val = int64(v.Int.Uint64())
-	}
-	return r.Types.ConstVal(val, target)
+	return r.Types.ConstValBig(v.Int, target)
 }

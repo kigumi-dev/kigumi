@@ -31,7 +31,7 @@ func (r *Result) checkAbiTypes(f FileID, n syntax.NodeID, s fnSlots, params []Ty
 
 func (r *Result) abiSafe(t TypeID) bool {
 	tt := r.Types
-	if t == TyPoison || r.cNumeric(t) || tt.Kind(t) == KPtr || tt.IsCFn(t) || r.cRecord(t) {
+	if t == TyPoison || r.cScalar(t) || tt.Kind(t) == KPtr || tt.IsCFn(t) || r.cRecord(t) {
 		return true
 	}
 	if n := tt.Node(t); n.Kind == KNamed && r.typeDecl(n.Ent).Form == FormDefined {
@@ -40,8 +40,14 @@ func (r *Result) abiSafe(t TypeID) bool {
 	return false
 }
 
-// cNumeric is a number C can carry; i128 and u128 have no C type to match.
+// cNumeric is a number every C target can carry; see cScalar for what a
+// particular target's C compiler adds.
 func (r *Result) cNumeric(t TypeID) bool { return r.Types.IsNumeric(t) && !r.wideInt(t) }
+
+// cScalar is a number C can carry on this target: i128 and u128 are
+// __int128 wherever the C compiler has it, which every 64-bit target here
+// does.
+func (r *Result) cScalar(t TypeID) bool { return r.cNumeric(t) || r.wideInt(t) && r.cHasInt128() }
 
 // wideInt reports whether t is i128 or u128, or is defined over one.
 func (r *Result) wideInt(t TypeID) bool {
@@ -49,9 +55,10 @@ func (r *Result) wideInt(t TypeID) bool {
 	return u == TyI128 || u == TyU128
 }
 
-// abiCode picks the diagnostic for a type a C position refuses: the 128-bit integers get their own.
+// abiCode picks the diagnostic for a type a C position refuses: a 128-bit
+// integer on a target whose C has no __int128 gets its own.
 func (r *Result) abiCode(t TypeID, c Code) Code {
-	if r.wideInt(t) {
+	if r.wideInt(t) && !r.cHasInt128() {
 		return cInt128Unsupported
 	}
 	return c

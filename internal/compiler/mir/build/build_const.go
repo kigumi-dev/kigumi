@@ -26,9 +26,9 @@ func (b *builder) constArg(a sem.ConstArg, n syntax.NodeID) midir.LocalID {
 		return b.emit(midir.Inst{Op: midir.OpCopy, Dst: b.temp(b.fn.Locals[l].Type), Args: []midir.LocalID{l}})
 	case sem.ConstArgLit:
 		if a.Type == sem.TyBool {
-			return b.emit(midir.Inst{Op: midir.OpConst, Dst: b.temp(a.Type), Lit: sem.Literal{Kind: sem.LitBool, Bool: a.Value != 0}, Type: a.Type, Node: n})
+			return b.emit(midir.Inst{Op: midir.OpConst, Dst: b.temp(a.Type), Lit: sem.Literal{Kind: sem.LitBool, Bool: a.Value.Sign() != 0}, Type: a.Type, Node: n})
 		}
-		return b.emit(midir.Inst{Op: midir.OpConst, Dst: b.temp(a.Type), Lit: sem.Literal{Kind: sem.LitInt, Int: big.NewInt(a.Value)}, Type: a.Type, Node: n})
+		return b.emit(midir.Inst{Op: midir.OpConst, Dst: b.temp(a.Type), Lit: sem.Literal{Kind: sem.LitInt, Int: new(big.Int).Set(a.Value)}, Type: a.Type, Node: n})
 	}
 	// Zero Kind means sem accepted a call it could not build a const
 	// argument for: a checker bug, not a user error.

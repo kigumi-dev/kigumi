@@ -32,6 +32,8 @@ func (e *emitter) cArg(sb *strings.Builder, v string, t sem.TypeID) string {
 	switch {
 	case tt.IsFloat(t):
 		return "double " + e.unbox(sb, v, t, "double")
+	case tt.IsInteger(t) && tt.CWidth(t) > 64:
+		return "i128 " + e.unbox(sb, v, t, "i128")
 	case tt.IsInteger(t) && tt.CWidth(t) > 32:
 		return "i64 " + e.unbox(sb, v, t, "i64")
 	case tt.IsInteger(t):

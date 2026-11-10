@@ -229,3 +229,15 @@ func TestInt128RecordField(t *testing.T) {
 		t.Errorf("a 32-bit target has no __int128 and should skip the record, got %q", it.text)
 	}
 }
+
+func TestInt128FunctionSignature(t *testing.T) {
+	chunk := "pub extern fn sum128(a: i128, b: u128) i128;"
+	it := classifyFn(chunk, map[string]string{}, map[string]bool{}, ABIFor("linux", "amd64"), nil)
+	if it.skip != "" || it.text != "fn sum128(a: i128, b: u128) -> i128" {
+		t.Errorf("amd64 should import a 128-bit signature by value, got skip=%q text=%q", it.skip, it.text)
+	}
+	it = classifyFn(chunk, map[string]string{}, map[string]bool{}, ABIFor("linux", "386"), nil)
+	if it.skip == "" {
+		t.Errorf("a 32-bit target has no __int128 to pass by value, got %q", it.text)
+	}
+}

@@ -121,12 +121,12 @@ func (r *Result) writeTypeNode(w *typeWriter, t TypeID) {
 	case KParam:
 		w.write(r.entityName(n.Ent))
 	case KConst:
-		v, ty := tt.ConstValue(t)
+		v, ty := tt.ConstValueBig(t)
 		if ty == TyBool {
-			w.write(map[int64]string{0: "false", 1: "true"}[v])
+			w.write(map[bool]string{false: "false", true: "true"}[v.Sign() != 0])
 			return
 		}
-		w.write(itoa64(v))
+		w.write(v.String())
 	case KVar:
 		if i := int(n.Var); i < len(r.varNames) && r.varNames[i] != "" {
 			w.write(r.varNames[i])

@@ -1,0 +1,36 @@
+-- engines --
+native
+-- src --
+type Wide = {
+    pub v u128
+}
+
+type Signed = {
+    pub v i128
+}
+
+fn roundTrip(x: u128) -> u128 {
+    let r: Wide = unsafe {
+        asm {
+            ""
+            v: inout(freg) x
+        }
+    }
+    r.v
+}
+
+fn roundTripSigned(x: i128) -> i128 {
+    let r: Signed = unsafe {
+        asm {
+            ""
+            v: inout(freg) x
+        }
+    }
+    r.v
+}
+
+let max: u128 = 340282366920938463463374607431768211455
+let min: i128 = -170141183460469231731687303715884105728
+print "${roundTrip(max)} ${roundTrip(0)} ${roundTripSigned(min)} ${roundTripSigned(-5)}"
+-- stdout --
+340282366920938463463374607431768211455 0 -170141183460469231731687303715884105728 -5

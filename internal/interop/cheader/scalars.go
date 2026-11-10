@@ -16,7 +16,8 @@ type ABI struct {
 	// CharUnsigned is true on arm/arm64, where plain `char` defaults to
 	// unsigned unlike x86/x86_64.
 	CharUnsigned bool
-	// Int128 is true where C has __int128: a record field may carry one, a parameter or result may not.
+	// Int128 is true where C has __int128, which a record field, a
+	// parameter and a result may all carry by value.
 	Int128 bool
 }
 
@@ -78,6 +79,9 @@ func mapScalar(word string, abi ABI) (string, bool) {
 		return "usize", true
 	case "isize", "c_ptrdiff_t":
 		return "isize", true
+	case "i128", "u128":
+		// A 32-bit target's C compiler has no __int128 to match.
+		return word, abi.Int128
 	case "f32":
 		return "f32", true
 	case "f64":

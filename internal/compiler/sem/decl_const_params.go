@@ -1,6 +1,10 @@
 package sem
 
-import "kigumi/internal/compiler/syntax"
+import (
+	"math/big"
+
+	"kigumi/internal/compiler/syntax"
+)
 
 // ConstArgKind says how a caller produces one hidden const-parameter
 // argument.
@@ -15,7 +19,7 @@ const (
 // witness arguments, mirroring WitnessArg's role for interface witnesses.
 type ConstArg struct {
 	Kind  ConstArgKind
-	Value int64
+	Value *big.Int
 	Type  TypeID
 	Local EntityID
 }
@@ -74,7 +78,7 @@ func (c *checker) constArgFromType(n syntax.NodeID, t TypeID) ConstArg {
 	tt := c.r.Types
 	switch tt.Kind(t) {
 	case KConst:
-		v, ty := tt.ConstValue(t)
+		v, ty := tt.ConstValueBig(t)
 		return ConstArg{Kind: ConstArgLit, Value: v, Type: ty}
 	case KParam:
 		if info := c.r.typeParam(tt.Node(t).Ent); info != nil && info.IsConst {
@@ -85,8 +89,8 @@ func (c *checker) constArgFromType(n syntax.NodeID, t TypeID) ConstArg {
 }
 
 // allowedConstType reports whether t is a legal const parameter type:
-// usize, a fixed-width integer, Int or Bool.
+// usize, a fixed-width integer (i128 and u128 included), Int or Bool.
 func (r *Result) allowedConstType(t TypeID) bool {
 	tt := r.Types
-	return t == TyBool || tt.IsInteger(t) && t != TyI128 && t != TyU128
+	return t == TyBool || tt.IsInteger(t)
 }
