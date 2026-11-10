@@ -1,6 +1,7 @@
 package sem
 
 import (
+	"math"
 	"math/big"
 
 	"kigumi/internal/lang/token"
@@ -30,6 +31,10 @@ func floatOp(tt *TypeTable, op token.Kind, x, y *big.Float, typ TypeID) (z, raw 
 		raw.Mul(x, y)
 	case token.Slash:
 		raw.Quo(x, y)
+	case token.Percent:
+		xf, _ := x.Float64()
+		yf, _ := y.Float64()
+		raw.SetFloat64(math.Mod(xf, yf))
 	default:
 		return nil, nil, false
 	}

@@ -82,7 +82,7 @@ func (r *Result) constFloatBinary(f FileID, n syntax.NodeID, op token.Kind, a, b
 		return constValue{}, false
 	}
 	at := cmp.Or(typ, want, TyF64)
-	if !floatArithOp(op) && !isComparison(op) || op == token.Percent {
+	if !floatArithOp(op) && !isComparison(op) {
 		r.errAt(f, n, cOperatorUndefined, op.String(), r.TypeString(at)+", "+r.TypeString(at))
 		return constValue{}, false
 	}

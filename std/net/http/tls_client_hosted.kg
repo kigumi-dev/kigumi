@@ -5,6 +5,13 @@ import task from std/task
 
 /// An HTTPS/1.1 client over a TLS 1.3 session. `open` consumes the client; keep the returned
 /// `Session` to send several requests over one connection.
+type ConnectOutcome = {
+    // A blocking connect's result crossing the pool without the non-Send
+    // `Error` interface in the closure's result type.
+    conn net.Conn?
+    failure String?
+}
+
 pub type TlsClient = {
     net net.Net
     pool task.BlockingPool
@@ -42,8 +49,28 @@ pub async fn TlsClient.open(move self, url: String) -> Session! {
     let maxHeaderBytes = self.maxHeaderBytes
     let host = t.host
     let port = t.port
-    let pending = pool.run(() => n.connect(host, port))?
-    let conn = (await pending)?
+    let pending = pool.run(() => match n.connect(host, port) {
+        Ok(c) -> ConnectOutcome {
+            conn: Some(c)
+            failure: None
+        }
+        Err(e) -> ConnectOutcome {
+            conn: None
+            failure: Some(e.message())
+        }
+    })?
+    let outcome = await pending
+    let ConnectOutcome {
+        conn
+        failure
+    } = outcome
+    let conn = match failure {
+        Some(why) -> fail ClientError.Tls(why)
+        None -> match conn {
+            Some(c) -> c
+            None -> fail ClientError.Closed
+        }
+    }
     let config = tls.Config.new(host, anchors, self.random)
     let secure = match (await tls.Client.connect(conn, config)) {
         Ok(s) -> s

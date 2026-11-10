@@ -34,6 +34,8 @@ pub fn cancelRequested() -> Bool
 pub context cancellation: Bool
 
 /// A bounded, root-owned boundary for running direct-blocking work from an async body instead of calling it bare.
+/// Safety: the pool's slots are synchronized, so a handle can move between workers.
+@unsafeGuarantee(Copy, Send, Sync)
 pub type BlockingPool
 
 /// `run`'s only failure: the pool already has `capacity` results outstanding.

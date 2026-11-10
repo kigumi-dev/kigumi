@@ -1286,6 +1286,14 @@
       ]
     },
     {
+      "id": "parser/comment_invalid_utf8",
+      "kind": "parser",
+      "path": "testdata/parser/comment_invalid_utf8.txtar",
+      "mode": [
+        "parse"
+      ]
+    },
+    {
       "id": "parser/comment_whitespace",
       "kind": "parser",
       "path": "testdata/parser/comment_whitespace.txtar",
@@ -1502,6 +1510,14 @@
       ]
     },
     {
+      "id": "parser/interp_comments_err",
+      "kind": "parser",
+      "path": "testdata/parser/interp_comments_err.txtar",
+      "mode": [
+        "parse"
+      ]
+    },
+    {
       "id": "parser/lambda_escaping_param",
       "kind": "parser",
       "path": "testdata/parser/lambda_escaping_param.txtar",
@@ -1617,6 +1633,22 @@
       "id": "parser/print_operator",
       "kind": "parser",
       "path": "testdata/parser/print_operator.txtar",
+      "mode": [
+        "parse"
+      ]
+    },
+    {
+      "id": "parser/shell_quote_states",
+      "kind": "parser",
+      "path": "testdata/parser/shell_quote_states.txtar",
+      "mode": [
+        "parse"
+      ]
+    },
+    {
+      "id": "parser/shell_quote_states_err",
+      "kind": "parser",
+      "path": "testdata/parser/shell_quote_states_err.txtar",
       "mode": [
         "parse"
       ]
@@ -3932,6 +3964,24 @@
       ]
     },
     {
+      "id": "run/closure_mut_self_after",
+      "kind": "run",
+      "path": "testdata/run/closure_mut_self_after.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/closure_mut_self_window",
+      "kind": "run",
+      "path": "testdata/run/closure_mut_self_window.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/closure_once",
       "kind": "run",
       "path": "testdata/run/closure_once.txtar",
@@ -4142,6 +4192,15 @@
       "id": "run/const_float",
       "kind": "run",
       "path": "testdata/run/const_float.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/const_float_f32_operands",
+      "kind": "run",
+      "path": "testdata/run/const_float_f32_operands.txtar",
       "mode": [
         "vm",
         "native"
@@ -8072,6 +8131,15 @@
       ]
     },
     {
+      "id": "run/interp_comment_brace",
+      "kind": "run",
+      "path": "testdata/run/interp_comment_brace.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/io_buffered",
       "kind": "run",
       "path": "testdata/run/io_buffered.txtar",
@@ -10185,6 +10253,15 @@
       "id": "run/shell_interp_argv",
       "kind": "run",
       "path": "testdata/run/shell_interp_argv.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/shell_quote_states",
+      "kind": "run",
+      "path": "testdata/run/shell_quote_states.txtar",
       "mode": [
         "vm",
         "native"
@@ -12792,9 +12869,25 @@
       ]
     },
     {
+      "id": "sem/closure_captured_mut_drop",
+      "kind": "sem",
+      "path": "testdata/sem/closure_captured_mut_drop.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/closure_captured_mut_two_closures",
       "kind": "sem",
       "path": "testdata/sem/closure_captured_mut_two_closures.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/closure_mut_self_window",
+      "kind": "sem",
+      "path": "testdata/sem/closure_mut_self_window.txtar",
       "mode": [
         "check"
       ]
@@ -12976,6 +13069,14 @@
       ]
     },
     {
+      "id": "sem/const_float_operand_type",
+      "kind": "sem",
+      "path": "testdata/sem/const_float_operand_type.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/const_float_range_err",
       "kind": "sem",
       "path": "testdata/sem/const_float_range_err.txtar",
@@ -13027,6 +13128,14 @@
       "id": "sem/const_qualified_package",
       "kind": "sem",
       "path": "testdata/sem/const_qualified_package.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/const_runtime_agree",
+      "kind": "sem",
+      "path": "testdata/sem/const_runtime_agree.txtar",
       "mode": [
         "check"
       ]
@@ -16459,6 +16568,14 @@
       "id": "sem/range_pattern",
       "kind": "sem",
       "path": "testdata/sem/range_pattern.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/range_pattern_char",
+      "kind": "sem",
+      "path": "testdata/sem/range_pattern_char.txtar",
       "mode": [
         "check"
       ]

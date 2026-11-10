@@ -11,8 +11,8 @@ const NarrowQuo = A8 / 300 //~ ERROR `300` does not fit `u8`
 const NarrowEq = A8 == 300 //~ ERROR `300` does not fit `u8`
 const NarrowAnd = I16 & 16777217 //~ ERROR `16777217` does not fit `i16`
 const NarrowSum = A8 + 300 //~ ERROR `300` does not fit `u8`
-const TypedRem = B % 2.0 //~ ERROR no operator `%` for (f32, f32)
-const UntypedRem = 5.5 % 2.0 //~ ERROR no operator `%` for (Float, Float)
+const TypedRem = B % 2.0
+const UntypedRem = 5.5 % 2.0
 const NegUnsigned = -A8 //~ ERROR unary `-` on unsigned `u8`
 const ZeroAtF32: f32 = 1.0 / (1.00000001 - 1.0) //~ ERROR division by zero in a constant expression
 const Overflow: f32 = (1.0e30 * 1.0e10) / 1.0e10 //~ ERROR does not fit `f32`
@@ -26,13 +26,13 @@ fn runtime(a: Int, b: f32, a8: u8, i16: i16) -> f32 {
     let narrowEq = a8 == 300 //~ ERROR `300` does not fit `u8`
     let narrowAnd = i16 & 16777217 //~ ERROR `16777217` does not fit `i16`
     let narrowSum = a8 + 300 //~ ERROR `300` does not fit `u8`
-    let typedRem = b % 2.0 //~ ERROR no operator `%` for (f32, f32)
-    let untypedRem = 5.5 % 2.0 //~ ERROR no operator `%` for (Float, Float)
+    let typedRem = b % 2.0
+    let untypedRem = 5.5 % 2.0
     let negUnsigned = -a8 //~ ERROR unary `-` on unsigned `u8`
     let zeroAtF32: f32 = 1.0 / (1.00000001 - 1.0) //~ ERROR division by zero in a constant expression
     let overflow: f32 = (1.0e30 * 1.0e10) / 1.0e10 //~ ERROR does not fit `f32`
     let mut rem: f32 = 5.5
-    rem %= 2.0 //~ ERROR no operator `%` for (f32, f32)
+    rem %= 2.0
     let negSum: f32 = 0.5 + -(0.001 + 0.004)
     let negConst: f32 = 0.004 + (-H)
     negSum + negConst + NegSum + NegConst
@@ -75,18 +75,6 @@ error[E402]: `300` does not fit `u8`
    |
 12 | const NarrowSum = A8 + 300 //~ ERROR `300` does not fit `u8`
    |                        ^^^
-
-error[E600]: no operator `%` for (f32, f32)
-  --> app/t/t.kg:13:18
-   |
-13 | const TypedRem = B % 2.0 //~ ERROR no operator `%` for (f32, f32)
-   |                  ^^^^^^^
-
-error[E600]: no operator `%` for (Float, Float)
-  --> app/t/t.kg:14:20
-   |
-14 | const UntypedRem = 5.5 % 2.0 //~ ERROR no operator `%` for (Float, Float)
-   |                    ^^^^^^^^^
 
 error[E608]: unary `-` on unsigned `u8`
   --> app/t/t.kg:15:21
@@ -144,18 +132,6 @@ error[E402]: `300` does not fit `u8`
 27 |     let narrowSum = a8 + 300 //~ ERROR `300` does not fit `u8`
    |                          ^^^
 
-error[E600]: no operator `%` for (f32, f32)
-  --> app/t/t.kg:28:20
-   |
-28 |     let typedRem = b % 2.0 //~ ERROR no operator `%` for (f32, f32)
-   |                    ^^^^^^^
-
-error[E600]: no operator `%` for (Float, Float)
-  --> app/t/t.kg:29:22
-   |
-29 |     let untypedRem = 5.5 % 2.0 //~ ERROR no operator `%` for (Float, Float)
-   |                      ^^^^^^^^^
-
 error[E608]: unary `-` on unsigned `u8`
   --> app/t/t.kg:30:23
    |
@@ -173,10 +149,4 @@ error[E402]: `1.000000015e+40` does not fit `f32`
    |
 32 |     let overflow: f32 = (1.0e30 * 1.0e10) / 1.0e10 //~ ERROR does not fit `f32`
    |                          ^^^^^^^^^^^^^^^
-
-error[E600]: no operator `%` for (f32, f32)
-  --> app/t/t.kg:34:5
-   |
-34 |     rem %= 2.0 //~ ERROR no operator `%` for (f32, f32)
-   |     ^^^^^^^^^^
 

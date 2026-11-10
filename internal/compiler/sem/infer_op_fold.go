@@ -122,7 +122,7 @@ func (c *checker) foldBinary(n syntax.NodeID, op token.Kind, lhs, rhs syntax.Nod
 	}
 	// Kigumi's float arithmetic is IEEE at runtime, so a folded expression must round like one.
 	lf, rf := ieeeFloat(tt, toFloat(lv), 0), ieeeFloat(tt, toFloat(rv), 0)
-	if lf.IsInf() || rf.IsInf() || op == token.Percent {
+	if lf.IsInf() || rf.IsInf() {
 		return 0
 	}
 	if op == token.Slash && rf.Sign() == 0 {
@@ -174,7 +174,7 @@ func (c *checker) compoundAssign(n, lhs, rhs syntax.NodeID, target TypeID) {
 			return
 		}
 		result = target
-	case target == r && (tt.IsInteger(target) || tt.IsNumeric(target) && op != token.Percent):
+	case target == r && tt.IsNumeric(target):
 		result = target
 	default:
 		c.operandMismatch(n, rhs, opText, target, r)
