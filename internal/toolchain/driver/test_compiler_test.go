@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 
@@ -31,12 +32,16 @@ func requireZig(t *testing.T) {
 	}
 }
 
-var probeOnce sync.Once
-var probeOK bool
+var (
+	probeMu    sync.Mutex
+	probeCache = map[string]bool{}
+)
 
 // testCompiler uses a compiler only when it can link a trivial program. A
 // hosted image can ship clang without a linker; tests then take the same path
-// as one without a C toolchain instead of failing inside the driver.
+// as one without a C toolchain instead of failing inside the driver. The
+// cache is keyed by the search path: tests that prepend a zig shim probe that
+// compiler and must not lend its result to the plain clang on PATH afterwards.
 func testCompiler() buildconfig.CompilerOptions {
 	cwd, _ := os.Getwd()
 	home, _ := os.UserHomeDir()
@@ -44,8 +49,15 @@ func testCompiler() buildconfig.CompilerOptions {
 	dirs := filepath.SplitList(os.Getenv("PATH"))
 	opts := buildconfig.CompilerOptions{Host: buildconfig.HostTarget(), CacheDir: cache, Cwd: cwd, PathDirs: dirs, Home: home}
 	if cc := opts.CCompiler(); cc != nil {
-		probeOnce.Do(func() { probeOK = linksTrivial(cc, cwd) })
-		if !probeOK {
+		key := strings.Join(dirs, string(os.PathListSeparator)) + "\x00" + cc[0]
+		probeMu.Lock()
+		ok, seen := probeCache[key]
+		if !seen {
+			ok = linksTrivial(cc, cwd)
+			probeCache[key] = ok
+		}
+		probeMu.Unlock()
+		if !ok {
 			opts.PathDirs = nil
 		}
 	}
