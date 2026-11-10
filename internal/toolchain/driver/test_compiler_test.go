@@ -1,16 +1,11 @@
 package driver_test
 
 import (
-	"fmt"
-	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
-	"time"
 
 	buildconfig "kigumi/internal/toolchain/config"
-	"kigumi/internal/toolchain/driver"
 	"kigumi/internal/toolchain/native/link"
 )
 
@@ -34,60 +29,9 @@ func requireZig(t *testing.T) {
 	}
 }
 
-var cCompilerOK bool
-
-// init probes once with the runner's own PATH, before any test swaps in a zig
-// shim: a hosted image can ship clang without a linker, and that result must
-// not depend on which test happens to call testCompiler first.
-func init() {
-	opts := testCompilerOptions()
-	if opts.CCompiler() != nil {
-		cCompilerOK = linksTrivial(opts)
-	}
-}
-
-func testCompilerOptions() buildconfig.CompilerOptions {
+func testCompiler() buildconfig.CompilerOptions {
 	cwd, _ := os.Getwd()
 	home, _ := os.UserHomeDir()
 	cache, _ := os.UserCacheDir()
 	return buildconfig.CompilerOptions{Host: buildconfig.HostTarget(), CacheDir: cache, Cwd: cwd, PathDirs: filepath.SplitList(os.Getenv("PATH")), Home: home}
-}
-
-// testCompiler uses a compiler only when the runner's compiler can build a
-// minimal module. Tests that need C then skip on a hermetic image without a
-// linker instead of failing inside the driver.
-func testCompiler() buildconfig.CompilerOptions {
-	opts := testCompilerOptions()
-	if opts.CCompiler() != nil && !cCompilerOK {
-		opts.PathDirs = nil
-	}
-	return opts
-}
-
-func linksTrivial(opts buildconfig.CompilerOptions) bool {
-	dir, err := os.MkdirTemp("", "kigumi-cc-probe")
-	if err != nil {
-		return false
-	}
-	defer os.RemoveAll(dir)
-	if os.WriteFile(filepath.Join(dir, "mod.kg"), []byte("Module {\n    name: \"probe\"\n    kigumi: \"0.1\"\n}\n"), 0o644) != nil {
-		return false
-	}
-	// A unique body defeats a cached artifact from an earlier probe, so the
-	// probe actually exercises the linker on every fresh test run.
-	body := fmt.Sprintf("let x = %d\n", time.Now().UnixNano())
-	if os.WriteFile(filepath.Join(dir, "main.kg"), []byte(body), 0o644) != nil {
-		return false
-	}
-	_, file, _, ok := runtime.Caller(0)
-	if !ok {
-		return false
-	}
-	std := filepath.Join(filepath.Dir(file), "..", "..", "..", "std")
-	m, err := driver.LoadModule(dir, driver.LoadOptions{Compiler: opts, StdRoot: std, Entry: "main.kg"})
-	if err != nil {
-		return false
-	}
-	built, err := driver.BuildWith(m, filepath.Join(dir, "probe"), io.Discard, driver.BuildOptions{})
-	return err == nil && built
 }

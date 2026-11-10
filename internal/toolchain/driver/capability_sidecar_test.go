@@ -53,7 +53,7 @@ func TestSidecarRecordsCapabilityReasonsForHostedBuild(t *testing.T) {
 }
 
 func TestSidecarRecordsCapabilityReasonsForReproducibleBuild(t *testing.T) {
-	out := buildWithTarget(t, buildconfig.HostTarget(), hostArgsSrc, driver.BuildOptions{Reproducible: true})
+	out := buildWithTarget(t, buildconfig.HostTarget(), hostArgsSrc, driver.BuildOptions{Reproducible: true, Env: os.Environ()})
 	requireReason(t, out, "host.args", "HOST_ARGS")
 }
 

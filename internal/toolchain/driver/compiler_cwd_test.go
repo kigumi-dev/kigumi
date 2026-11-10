@@ -113,7 +113,7 @@ func TestBuildResolvesRelativeCFlagsAgainstCompilerCwd(t *testing.T) {
 	m := cwdModule(t, testCompilerAt(cwd))
 	t.Chdir(t.TempDir())
 	var stderr bytes.Buffer
-	ok, err := driver.BuildWith(m, "prog", &stderr, driver.BuildOptions{Reproducible: true, CFlags: []string{"extra.c"}})
+	ok, err := driver.BuildWith(m, "prog", &stderr, driver.BuildOptions{Reproducible: true, Env: os.Environ(), CFlags: []string{"extra.c"}})
 	if err != nil || !ok {
 		t.Fatalf("build with a relative .c flag: %v\n%s", err, stderr.String())
 	}

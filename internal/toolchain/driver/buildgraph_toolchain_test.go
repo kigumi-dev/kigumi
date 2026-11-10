@@ -44,7 +44,7 @@ func TestBuildProgramToolchain(t *testing.T) {
 		t.Fatal(err)
 	}
 	var stderr bytes.Buffer
-	if err := driver.ExecuteGraph(p, rg, out, driver.ExecOptions{}, &stderr); err != nil {
+	if err := driver.ExecuteGraph(p, rg, out, driver.ExecOptions{ToolEnv: []string{"PATH=" + os.Getenv("PATH")}}, &stderr); err != nil {
 		t.Fatalf("execute: %v\n%s", err, stderr.String())
 	}
 	got, err := exec.Command(filepath.Join(out, "hello")).Output()
