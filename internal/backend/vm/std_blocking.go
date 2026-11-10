@@ -16,6 +16,7 @@ type blockingPool struct {
 func (m *Machine) registerBlocking() {
 	h := m.host
 	h["task.BlockingPool.new"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		m.allocHeader()
 		return mkOpaque("BlockingPool", &blockingPool{capacity: int(deref(a[0]).i)})
 	}
 	h["task.BlockingPool.run"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
@@ -27,6 +28,7 @@ func (m *Machine) registerBlocking() {
 			return m.ok(m.offload(deref(a[0]), retain(deref(a[1]))))
 		}
 		r := m.callValue(a[1], nil)
+		m.allocHeader()
 		return m.ok(mkOpaque("Future", &future{result: r, pool: retain(deref(a[0]))}))
 	}
 }

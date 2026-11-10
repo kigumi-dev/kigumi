@@ -38,6 +38,9 @@ type coro struct {
 }
 
 func (m *Machine) newFuture(args []*obj) *obj {
+	// rt_future_new ends with rt_opaque("Future", ...), one fatal allocation;
+	// take it before the args are retained so a refusal leaks nothing.
+	m.allocHeader()
 	for _, a := range args {
 		retain(a)
 	}

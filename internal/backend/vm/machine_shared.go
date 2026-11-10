@@ -48,7 +48,7 @@ type shared struct {
 	mmio         map[uint64]*obj
 	cvalues      []*obj
 	handleTables []*handleTableState
-	sigWatch     map[string]chan os.Signal
+	sigWatch     map[string]*sigWatch
 	// procMu guards procs, the live OS processes std/proc spawned.
 	procMu sync.Mutex
 	procs  map[int64]*os.Process

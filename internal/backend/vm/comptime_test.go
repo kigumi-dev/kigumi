@@ -29,6 +29,24 @@ func evalOneComptime(t *testing.T, src string) (sem.Literal, error) {
 	return vm.EvalComptime(prog, prog.Comptime[0])
 }
 
+// evalOneComptimeLimited is evalOneComptime with an explicit memory budget,
+// so a charge-model test runs at a scale far below the 64 MiB default.
+func evalOneComptimeLimited(t *testing.T, src string, memoryLimit int64) (sem.Literal, error) {
+	t.Helper()
+	res := checkSource(t, src)
+	if res.HasErrors() {
+		t.Fatalf("check errors:\n%s", res.Render())
+	}
+	prog := mirbuild.Program(res)
+	if len(prog.Comptime) != 1 {
+		t.Fatalf("got %d comptime blocks, want 1", len(prog.Comptime))
+	}
+	if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}); err != nil {
+		t.Fatalf("plan-rc: %v", err)
+	}
+	return vm.EvalComptimeLimited(prog, prog.Comptime[0], memoryLimit)
+}
+
 // A non-terminating comptime block is a bounded compiler error, not a hang:
 // the sandbox blocks host effects, and the step budget bounds CPU.
 func TestComptimeInfiniteLoopFailsInstead(t *testing.T) {
@@ -96,6 +114,48 @@ func TestComptimeMemoryLimitCatchesArrayPushGrowth(t *testing.T) {
 	_, err := evalOneComptime(t, "let x = comptime {\n    let mut a = Array.empty[Int]()\n    for i in 0..9000000 {\n        a.push(i)\n    }\n    a.len()\n}\nprint \"${x}\"\n")
 	if err == nil || !strings.Contains(err.Error(), "memory limit") {
 		t.Fatalf("err = %v, want a memory-budget diagnostic", err)
+	}
+}
+
+// An array element on the VM is a store slot plus the boxed value it points
+// at, so the budget must bill a cell, not the 8-byte slot alone: the same
+// block that fits in 128 bytes per element must be refused a budget of 8 or
+// 16 (MEM-3 billed only the slot and let ~4x the named limit through).
+func TestComptimeArrayChargeCoversBoxedCells(t *testing.T) {
+	const elems = 512
+	src := `let x = comptime {
+    let mut a = Array.empty[u8]()
+    let mut i = 0
+    for i < 512 {
+        a.push(1)
+        i = i + 1
+    }
+    a.len()
+}
+print "${x}"
+`
+	for _, tc := range []struct {
+		perElem int64
+		wantErr bool
+	}{
+		{8, true},
+		{16, true},
+		{128, false},
+	} {
+		lit, err := evalOneComptimeLimited(t, src, elems*tc.perElem)
+		if tc.wantErr {
+			if err == nil || !strings.Contains(err.Error(), "memory limit") {
+				t.Errorf("%d bytes per element: err = %v, want a memory-budget diagnostic", tc.perElem, err)
+			}
+			continue
+		}
+		if err != nil {
+			t.Errorf("%d bytes per element: err = %v, want success", tc.perElem, err)
+			continue
+		}
+		if lit.Int == nil || lit.Int.Int64() != elems {
+			t.Errorf("%d bytes per element: lit = %v, want %d", tc.perElem, lit, elems)
+		}
 	}
 }
 

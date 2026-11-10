@@ -12,6 +12,7 @@ type blockJob struct {
 }
 
 func (m *Machine) offload(poolObj, work *obj) *obj {
+	m.allocHeader()
 	job := &blockJob{fin: make(chan struct{})}
 	lane := m.lane()
 	go lane.runBlocking(job, work)

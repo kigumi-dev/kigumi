@@ -76,6 +76,7 @@ func (m *Machine) builtin(name string, args []*obj) *obj {
 		if len(m.allocStack) >= 64 {
 			m.abort("allocator blocks nested too deeply")
 		}
+		m.allocHeader()
 		m.allocStack = append(m.allocStack, st)
 		return mkOpaque("AllocGuard", retain(scope))
 	case "iter.len":

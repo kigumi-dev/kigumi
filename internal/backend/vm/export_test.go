@@ -32,6 +32,13 @@ func TrackLive(on bool) {
 
 func PauseLive(on bool) { liveTrack.Store(on) }
 
+// EvalComptimeLimited is EvalComptime with a chosen memory budget: a test can
+// pin the charge model at a scale that does not need 64 MiB of elements.
+func EvalComptimeLimited(prog *mir.Program, cf *mir.ComptimeFunc, memoryLimit int64) (sem.Literal, error) {
+	lit, _, err := evalComptimeBounded(prog, cf, memoryLimit)
+	return lit, err
+}
+
 func LiveObjects() int64 { return liveMade.Load() - liveFreed.Load() }
 
 func LiveStrays() int64 { return liveStray.Load() }

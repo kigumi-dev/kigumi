@@ -35,6 +35,7 @@ func (m *Machine) executorHasAgent(ex *executor) bool {
 // Admission is one linearization point: a child joins its parent's kid list
 // and its executor's queue under the same lock.
 func (m *Machine) startTask(ex *executor, fut *obj, mobile bool) *obj {
+	m.allocHeader()
 	m.sh.sched.Lock()
 	p := m.cur
 	t := &task{fut: fut, ex: ex, pex: p.ex, parent: p, lane: 0}

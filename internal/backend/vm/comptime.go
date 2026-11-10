@@ -58,11 +58,17 @@ func EvalComptime(prog *mir.Program, cf *mir.ComptimeFunc) (lit sem.Literal, err
 }
 
 func evalComptime(prog *mir.Program, cf *mir.ComptimeFunc) (lit sem.Literal, printed int, err error) {
+	return evalComptimeBounded(prog, cf, comptimeMemoryLimit)
+}
+
+// evalComptimeBounded is evalComptime with an explicit memory budget, so a
+// test can exercise the charge model without provoking a 64 MiB block.
+func evalComptimeBounded(prog *mir.Program, cf *mir.ComptimeFunc, memoryLimit int64) (lit sem.Literal, printed int, err error) {
 	if err := checkComptimeLiterals(prog, cf.Func); err != nil {
 		return lit, 0, err
 	}
 	var out byteCounter
-	m := newMachine(prog, Options{Sandbox: true, StepLimit: comptimeStepLimit, DepthLimit: comptimeDepthLimit, MemoryLimit: comptimeMemoryLimit}, &out, &out)
+	m := newMachine(prog, Options{Sandbox: true, StepLimit: comptimeStepLimit, DepthLimit: comptimeDepthLimit, MemoryLimit: memoryLimit}, &out, &out)
 	var v *obj
 	cerr := m.catchAtUser(func() { v = deref(m.call(cf.Func, nil)) })
 	if cerr != nil {

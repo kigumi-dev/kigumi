@@ -62,6 +62,9 @@ func (m *Machine) alloc(key string, a []*obj, a0, a1 *obj) *obj {
 		if a0.opaqueData().(*arenaState).closed {
 			m.abort("arena is closed")
 		}
+		// rt_std_dispatch.inc OP_ALLOCATOR_SCOPE builds the handle with
+		// opaque_in, one fatal allocation before the retained receiver.
+		m.allocHeader()
 		return mkOpaque("AllocatorScope", retain(a0))
 	case "alloc.AllocatorHandle.allocated":
 		return mkInt(0, 64|256)

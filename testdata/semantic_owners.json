@@ -14853,7 +14853,7 @@
   },
   {
     "key": "os.Signals.watch",
-    "signature": "fn(Signal) -\u003e Void!",
+    "signature": "fn(Signal) -\u003e Watch!",
     "has_body": true,
     "kind": "",
     "vm": "implemented",
@@ -14914,6 +14914,16 @@
   {
     "key": "os.Stdout.write",
     "signature": "fn(Bytes) -\u003e usize!",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "os.Watch.drop",
+    "signature": "fn() -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "implemented",

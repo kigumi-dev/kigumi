@@ -24,9 +24,16 @@ func newSupportIndex(prog *mir.Program) *supportIndex {
 	x := &supportIndex{m: m, memo: map[*midir.Func]*funcSupport{}}
 	for ent, f := range prog.ByEnt {
 		e := m.r.Entity(ent)
-		if e.Kind == sem.EntFn && m.r.TypeDecl(e.Parent).Drop == ent {
-			x.drops = append(x.drops, f)
+		if e.Kind != sem.EntFn || m.r.TypeDecl(e.Parent).Drop != ent {
+			continue
 		}
+		// A resource whose destructor the host answers (os.Watch.drop sends its
+		// unwatch itself) never runs its body on the VM, so its gaps are not the
+		// program's; the backend calls the host function instead of lowering it.
+		if h, _ := m.hostDrop(e.Parent); h != nil {
+			continue
+		}
+		x.drops = append(x.drops, f)
 	}
 	return x
 }

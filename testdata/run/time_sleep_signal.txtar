@@ -4,14 +4,19 @@ import shell from std/shell
 import time from std/time
 
 let sigs = host.signals()
-sigs.watch(os.Signal.Interrupt).expect("watch")
+// Watch is a guard: hold it for as long as the flag matters, since dropping it
+// restores the SIGINT disposition the watch replaced.
+let watched = sigs.watch(os.Signal.Interrupt).expect("watch")
 let sh = host.shell()
-_ = $"sh -c '(for i in $(seq 1 400); do kill -INT $PPID; sleep 0.002; done) >/dev/null 2>&1 &'" |> shell.run(sh)
+// wait, so no SIGINT is still in flight once the guard's scope ends: after the
+// drop the process would take the signal's default action.
+_ = $"sh -c '(for i in $(seq 1 400); do kill -INT $PPID; sleep 0.002; done) >/dev/null 2>&1 & wait'" |> shell.run(sh)
 let start = time.monotonic()
 time.sleep(1000)
 let elapsed = start.elapsedMillis()
 print "slept ${elapsed >= 1000} ${elapsed < 1500}"
 print "pending ${sigs.pending(os.Signal.Interrupt)}"
+_ = watched
 -- stdout --
 slept true true
 pending true

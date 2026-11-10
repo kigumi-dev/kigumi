@@ -109,6 +109,33 @@ fn main() {
 `,
 }
 
+// An `allocator` block's guard and an async Future are runtime headers native
+// builds with opaque_in/rt_opaque — one refusable allocation each. Neither op
+// has an Err form, so the refusal is fatal on both backends, unlike a try*
+// primitive whose refusal is reported. The eprint arms the sweep in both, so
+// only the guarded window is counted.
+var opaqueHeaderSources = map[string]string{
+	"allocator_block_scope": `import {Arena} from std/alloc
+fn main() -> Void! {
+    let a = Arena.create()?
+    eprint "go"
+    let n = allocator a.scope() { Bytes.tryZeros(16).unwrap().len() }
+    print "ok ${n}"
+}
+`,
+	"async_future_run": `import task from std/task
+async fn f() -> Result[Int, AllocError] {
+    let b = Bytes.tryZeros(4)?
+    Ok(b.len().toInt() || 0)
+}
+fn main() {
+    eprint "go"
+    let ex = task.currentThreadExecutor()
+    match ex.runToCompletion(f()) { Ok(n) -> print "ok ${n}", Err(_) -> print "err" }
+}
+`,
+}
+
 // Zero-field records, interpolated strings and Array growth take the same refusable allocations on both backends.
 func TestTickParityAgrees(t *testing.T) {
 	t.Parallel()
@@ -121,6 +148,24 @@ func TestTickParityAgrees(t *testing.T) {
 				t.Fatalf("vm: the first allocation was not refused: %v", vmExits)
 			}
 			if native := nativeSweepExits(t, m); !slices.Equal(vmExits, native) {
+				t.Errorf("fault sweep exits differ\nvm:     %v\nnative: %v", vmExits, native)
+			}
+		})
+	}
+}
+
+// Both headers are fatal when refused, so the sweep stays outside every try: the VM must refuse at the same N as native.
+func TestOpaqueHeaderTicksAgree(t *testing.T) {
+	t.Parallel()
+	for name, src := range opaqueHeaderSources {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			m := loadSweepModule(t, src, "")
+			vmExits := vmSweepExitsTo(t, m, bindSweep, true)
+			if vmExits[0] == 0 {
+				t.Fatalf("vm: the first allocation after eprint was not refused: %v", vmExits)
+			}
+			if native := nativeSweepExitsTo(t, m, bindSweep, true); !slices.Equal(vmExits, native) {
 				t.Errorf("fault sweep exits differ\nvm:     %v\nnative: %v", vmExits, native)
 			}
 		})

@@ -117,6 +117,7 @@ func (m *Machine) callValue(fv *obj, args []*obj) *obj {
 // asyncValueCall is rt_callv on an async fn/method value: it builds the lazy Future a direct call does, with a closure of
 // its own (fv is lent); the args, dedicated to this call, move into the Future.
 func (m *Machine) asyncValueCall(fv *obj, args []*obj) *obj {
+	m.allocHeader()
 	raw := newObj(kClosure)
 	rc, src := raw.clo(), fv.clo()
 	rc.fn, rc.stdKey, rc.lent, rc.prov, rc.dyn = src.fn, src.stdKey, src.lent, src.prov, src.dyn

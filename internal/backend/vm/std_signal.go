@@ -8,6 +8,14 @@ import (
 	"kigumi/internal/compiler/sem"
 )
 
+// sigWatch is one signal's live watch on the VM: the channel os/signal feeds
+// and how many std/os.Watch guards hold it. Native keeps the same per-signal
+// depth so an inner scope ending never un-watches an outer one.
+type sigWatch struct {
+	ch    chan os.Signal
+	depth int
+}
+
 // registerSignal gives the VM its own std/os.Signals: the Kigumi body
 // reaches libc's sigaction through extern(C), which the VM statically
 // refuses (OpCallC), so this drains Go's os/signal instead.
@@ -18,8 +26,13 @@ func (m *Machine) registerSignal() {
 		if m.opts.DenySignals {
 			m.abort("`Signals.watch` is not available under `kigumi test`")
 		}
-		m.signalChan(m.signalName(a[1]))
-		return m.ok(unitObj)
+		name := m.signalName(a[1])
+		m.signalChan(name)
+		return m.ok(mkRecord(m.lookup("std/os", "Watch"), []*obj{mkInt(int64(signalCodeOf(name)), 32)}))
+	}
+	h["os.Watch.drop"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		m.unwatchSignal(int(deref(deref(a[0]).fields[0]).i))
+		return unitObj
 	}
 	h["os.Signals.pending"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		ch, ok := m.watchedSignal(m.signalName(a[1]))
@@ -33,28 +46,67 @@ func (m *Machine) registerSignal() {
 // signalName reads the Signal variant's tag (Interrupt, Terminate, ...).
 func (m *Machine) signalName(a *obj) string { return m.r.Entity(deref(a).ent).Name }
 
-// signalChan installs os/signal.Notify on first watch; an unwatched signal
-// has no channel, so pending() just reports false.
+// signalChan installs os/signal.Notify on the first watch of name and counts
+// the ones already live; pending() only reports while a watch is held.
 func (m *Machine) signalChan(name string) chan os.Signal {
 	m.sh.store.Lock()
 	defer m.sh.store.Unlock()
 	if m.sh.sigWatch == nil {
-		m.sh.sigWatch = map[string]chan os.Signal{}
+		m.sh.sigWatch = map[string]*sigWatch{}
 	}
-	ch, ok := m.sh.sigWatch[name]
+	w, ok := m.sh.sigWatch[name]
 	if !ok {
-		ch = make(chan os.Signal, 1)
-		signal.Notify(ch, signalOf(name))
-		m.sh.sigWatch[name] = ch
+		w = &sigWatch{ch: make(chan os.Signal, 1)}
+		signal.Notify(w.ch, signalOf(name))
+		m.sh.sigWatch[name] = w
 	}
-	return ch
+	w.depth++
+	return w.ch
+}
+
+// unwatchSignal drops one guard's hold; the last one stops the notification,
+// so SIGINT/SIGTERM keep the Go runtime's terminating disposition again.
+func (m *Machine) unwatchSignal(code int) {
+	name := signalNameOfCode(code)
+	if name == "" {
+		return
+	}
+	m.sh.store.Lock()
+	defer m.sh.store.Unlock()
+	w, ok := m.sh.sigWatch[name]
+	if !ok {
+		return
+	}
+	if w.depth > 0 {
+		w.depth--
+	}
+	if w.depth > 0 {
+		return
+	}
+	signal.Stop(w.ch)
+	// Go keeps its own process-wide handler installed once Notify ran; Reset
+	// puts the platform default back, so SIGTERM terminates again (native's
+	// rt_sys_signal_unwatch restores the sigaction it saved for the same end).
+	signal.Reset(signalOf(name))
+	for {
+		select {
+		case <-w.ch:
+			continue
+		default:
+		}
+		break
+	}
+	delete(m.sh.sigWatch, name)
 }
 
 func (m *Machine) watchedSignal(name string) (chan os.Signal, bool) {
 	m.sh.store.Lock()
 	defer m.sh.store.Unlock()
-	ch, ok := m.sh.sigWatch[name]
-	return ch, ok
+	w, ok := m.sh.sigWatch[name]
+	if !ok {
+		return nil, false
+	}
+	return w.ch, true
 }
 
 func signalOf(name string) os.Signal {
@@ -67,6 +119,36 @@ func signalOf(name string) os.Signal {
 		return syscall.SIGWINCH
 	default:
 		return syscall.Signal(0)
+	}
+}
+
+// signalCodeOf is std/os.Signal's wire discriminant, the value its
+// `Signal.code` body hands the runtime.
+func signalCodeOf(name string) int {
+	switch name {
+	case "Interrupt":
+		return 0
+	case "Terminate":
+		return 1
+	case "WindowChange":
+		return 2
+	default:
+		return -1
+	}
+}
+
+// signalNameOfCode is the inverse; rt_signal_hosted.c's kg_signal_number is
+// the native twin of the pair.
+func signalNameOfCode(code int) string {
+	switch code {
+	case 0:
+		return "Interrupt"
+	case 1:
+		return "Terminate"
+	case 2:
+		return "WindowChange"
+	default:
+		return ""
 	}
 }
 

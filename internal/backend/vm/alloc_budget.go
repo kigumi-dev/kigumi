@@ -32,7 +32,11 @@ func approxSize(v *obj) int64 {
 	case kStr, kBytes:
 		return int64(len(v.str())) + objOverhead
 	case kArray, kRecord, kVariant, kClosure:
-		return int64(len(v.fields))*8 + objOverhead
+		// Native stores one element slot; the VM stores one *obj per element,
+		// so a cell costs its slot plus the object the slot points at. Charging
+		// the slot alone (len*8) let a block hold several times the memory its
+		// budget names, since every element was also a boxed value.
+		return int64(len(v.fields))*(8+objOverhead) + objOverhead
 	case kRawArray:
 		return int64(len(v.rawArr().raw))*8 + objOverhead
 	case kCell, kBox, kOpaque:
@@ -96,6 +100,18 @@ func (m *Machine) faultTick() bool {
 		return false
 	}
 	return m.sh.faultN.Add(1) == m.opts.FaultInjectAt
+}
+
+// allocHeader takes the one allocation native's rt_opaque charges for a
+// runtime header it hands to Kigumi code (an allocator scope guard, a Future,
+// a Task, an Executor). The op that creates the header has no Err form to
+// report a refusal, so it is fatal, exactly as native's alloc_in/rt_opaque
+// panic ("out of memory") through rt_panic. Callers run this before retaining
+// anything the header owns, so a refusal leaks no reference.
+func (m *Machine) allocHeader() {
+	if m.faultTick() {
+		m.abort("out of memory")
+	}
 }
 
 // stepBatch bounds reservations so the hot loop avoids an atomic per instruction.

@@ -15,6 +15,7 @@ fn Signal.code(self) -> i32 {
 
 extern(C) {
     fn rt_sys_signal_watch(which: i32) -> i32
+    fn rt_sys_signal_unwatch(which: i32) -> i32
     fn rt_sys_signal_pending(which: i32) -> i32
 }
 
@@ -23,19 +24,33 @@ extern(C) {
 @unsafeGuarantee(Copy, Send, Sync)
 pub type Signals
 
+/// A live watch on one signal: it owns the disposition `watch` installed, so
+/// a delivery only sets the pending flag until the guard is dropped.
+/// Safety: the runtime keeps one disposition per signal, so two copies of one
+/// guard would restore it twice; the type is not Copy and drop restores what
+/// this watch replaced.
+pub type Watch = resource {
+    which i32
+}
+
 /// Signal handling.
 pub fn Host.signals(self) -> Signals
 
 /// Starts watching which; a later delivery sets its pending flag until
 /// `pending` reads and clears it. The C handler only sets that flag
-/// (rt_signal_hosted.c), so it never re-enters this refcounted runtime.
-pub fn Signals.watch(self, which: Signal) -> Void! {
+/// (rt_signal_hosted.c), so it never re-enters this refcounted runtime. The
+/// returned guard owns the watch: keep it alive while the flag matters, and
+/// its drop restores the disposition `watch` replaced (the process default
+/// unless something else had installed a handler).
+pub fn Signals.watch(self, which: Signal) -> Watch! {
+    let code = which.code()
     let r = unsafe {
-        rt_sys_signal_watch(which.code())
+        rt_sys_signal_watch(code)
     }
     if r != 0 {
         fail ffi.lastError()
     }
+    Watch { which: code }
 }
 
 /// Whether which was delivered since the last call; clears the flag.
@@ -43,4 +58,12 @@ pub fn Signals.pending(self, which: Signal) -> Bool {
     unsafe {
         rt_sys_signal_pending(which.code())
     } != 0
+}
+
+/// Restores the disposition this watch replaced, so SIGINT/SIGTERM act on the
+/// process again unless another watch still holds the signal.
+pub fn Watch.drop(move self) {
+    unsafe {
+        _ = rt_sys_signal_unwatch(self.which)
+    }
 }

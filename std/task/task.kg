@@ -9,7 +9,7 @@ pub type Task[T]
 /// An executor that drives tasks on the thread calling it.
 pub fn currentThreadExecutor() -> Executor
 
-/// An executor with `workers` worker threads besides the one that drives it; migratable tasks run on any of them.
+/// An executor with `workers` (1 to 256) worker threads besides the one that drives it; migratable tasks run on any of them.
 pub fn threadPoolExecutor(workers: usize) -> Executor
 
 /// Starts the future as a child of the running task, but on this executor instead of the running task's own.

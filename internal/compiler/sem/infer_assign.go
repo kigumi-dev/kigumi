@@ -23,6 +23,7 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 	}
 	if staticEnt, ok := c.staticRootOf(lhs); ok {
 		c.checkStaticAssign(lhs, staticEnt)
+		c.staticStoreFrees(lhs, target)
 	} else if c.indexAssignUnsupported(lhs) {
 		c.errAt(lhs, cIndexAssignUnsupported)
 	} else if c.rejectViewAccess(lhs, accessAssign) {

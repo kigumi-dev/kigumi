@@ -34,12 +34,14 @@ func (m *Machine) threadPool(workers int64) *obj {
 	}
 	e := m.newExecutor(int(workers))
 	m.startWorkers(e)
+	m.allocHeader()
 	return mkOpaque("Executor", e)
 }
 
 func (m *Machine) registerTask() {
 	h := m.host
 	h["task.currentThreadExecutor"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		m.allocHeader()
 		return mkOpaque("Executor", m.newExecutor(0))
 	}
 	h["task.threadPoolExecutor"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
@@ -59,6 +61,7 @@ func (m *Machine) registerTask() {
 		return unitObj
 	}
 	h["task.yieldNow"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		m.allocHeader()
 		return mkOpaque("Future", &future{yield: 1})
 	}
 	h["task.cancelRequested"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
