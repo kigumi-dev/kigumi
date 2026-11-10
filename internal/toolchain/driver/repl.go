@@ -191,6 +191,7 @@ func (r *Repl) Eval(src string, interactive bool) (EvalResult, error) {
 		if incomplete, reason := syntax.Incomplete([]byte(src)); incomplete {
 			return EvalResult{Incomplete: true, Message: reason}, nil
 		}
+		r.setLastStatus(1)
 		return EvalResult{Message: msg, Status: 1}, nil
 	}
 	if cell.decls == "" && len(cell.body) == 0 && !cell.lastExpr {
@@ -218,6 +219,7 @@ func (r *Repl) Eval(src string, interactive bool) (EvalResult, error) {
 	if len(cell.body) == 0 && !cell.lastExpr {
 		// Declarations persist without running a cell.
 		if err := r.validate(declsTry); err != nil {
+			r.setLastStatus(1)
 			return EvalResult{Message: err.Error(), Status: 1}, nil
 		}
 		r.decls = declsTry
@@ -234,6 +236,7 @@ func (r *Repl) Eval(src string, interactive bool) (EvalResult, error) {
 		return EvalResult{}, err
 	}
 	if res.HasErrors() {
+		r.setLastStatus(1)
 		return EvalResult{Message: r.renderDiags(res, tree, cell), Status: 1}, nil
 	}
 	letEnts, _, _ := generatedCellLocals(m, res, tree, cellName)
@@ -327,6 +330,7 @@ func (r *Repl) Eval(src string, interactive bool) (EvalResult, error) {
 		}
 		drop := replOutputErrors(fres, ftree, outName, specs)
 		if len(drop) == 0 {
+			r.setLastStatus(1)
 			return EvalResult{Message: r.renderDiags(fres, ftree, cell), Status: 1}, nil
 		}
 		var nextOut []replOutField
@@ -353,6 +357,7 @@ func (r *Repl) Eval(src string, interactive bool) (EvalResult, error) {
 		}
 		r.sess = s
 	} else if err := r.sess.UseProgram(finalProg); err != nil {
+		r.setLastStatus(1)
 		return EvalResult{Message: "repl: session state is incompatible with this cell: " + err.Error(), Status: 1}, nil
 	} else {
 		for i := range r.bindings {
