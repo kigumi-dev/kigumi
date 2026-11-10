@@ -19,7 +19,12 @@ func (m *Machine) binop128(op string, a, b *obj) *obj {
 		}
 		switch {
 		case op == "<<":
-			return mkWide(shlW(x, uint(b.i)), nk)
+			r := shlW(x, uint(b.i))
+			back := shrW(r, uint(b.i))
+			if sg {
+				back = sarW(r, uint(b.i))
+			}
+			return m.overflow128(r, nk, back != x)
 		case sg:
 			return mkWide(sarW(x, uint(b.i)), nk)
 		}

@@ -1,0 +1,90 @@
+-- src --
+const C: usize = 3
+const C8: usize = 8
+const C63: usize = 63
+const C64: usize = 64
+const CB: usize = 1000
+
+fn main() {
+    let z = 1 >> C64 //~ ERROR shift count 64 is out of range for `usize`
+    let x: u8 = 1 >> C8 //~ ERROR shift count 8 is out of range for `u8`
+    let y: u8 = 0 << C8 //~ ERROR shift count 8 is out of range for `u8`
+    let w: u8 = 1 << C8 //~ ERROR shift count 8 is out of range for `u8`
+    let one: u8 = 1
+    let v = one >> C8 //~ ERROR shift count 8 is out of range for `u8`
+    let u = one << 8 //~ ERROR shift count 8 is out of range for `u8`
+    let t: i8 = -1 >> C8 //~ ERROR shift count 8 is out of range for `i8`
+    let s = 7 >> CB //~ ERROR shift count 1000 is out of range for `usize`
+    let mut m: u8 = 1
+    m <<= C8 //~ ERROR shift count 8 is out of range for `u8`
+    let fine = 1 << C63
+    let fine2 = one << 7
+    if false {
+        let a = 1 << (C - 4)
+        let b = 1 << (C / 0)
+        let d = 1 << (C << 70) //~ ERROR shift count 70 is out of range for `usize`
+        print "${a} ${b} ${d}"
+    }
+    print "${z} ${x} ${y} ${w} ${v} ${u} ${t} ${s} ${m} ${fine} ${fine2}"
+}
+-- expect --
+error[E2321]: shift count 64 is out of range for `usize`: it must be below 64
+ --> main/main.kg:8:18
+  |
+8 |     let z = 1 >> C64 //~ ERROR shift count 64 is out of range for `usize`
+  |                  ^^^
+
+error[E2321]: shift count 8 is out of range for `u8`: it must be below 8
+ --> main/main.kg:9:22
+  |
+9 |     let x: u8 = 1 >> C8 //~ ERROR shift count 8 is out of range for `u8`
+  |                      ^^
+
+error[E2321]: shift count 8 is out of range for `u8`: it must be below 8
+  --> main/main.kg:10:22
+   |
+10 |     let y: u8 = 0 << C8 //~ ERROR shift count 8 is out of range for `u8`
+   |                      ^^
+
+error[E2321]: shift count 8 is out of range for `u8`: it must be below 8
+  --> main/main.kg:11:22
+   |
+11 |     let w: u8 = 1 << C8 //~ ERROR shift count 8 is out of range for `u8`
+   |                      ^^
+
+error[E2321]: shift count 8 is out of range for `u8`: it must be below 8
+  --> main/main.kg:13:20
+   |
+13 |     let v = one >> C8 //~ ERROR shift count 8 is out of range for `u8`
+   |                    ^^
+
+error[E2321]: shift count 8 is out of range for `u8`: it must be below 8
+  --> main/main.kg:14:20
+   |
+14 |     let u = one << 8 //~ ERROR shift count 8 is out of range for `u8`
+   |                    ^
+
+error[E2321]: shift count 8 is out of range for `i8`: it must be below 8
+  --> main/main.kg:15:23
+   |
+15 |     let t: i8 = -1 >> C8 //~ ERROR shift count 8 is out of range for `i8`
+   |                       ^^
+
+error[E2321]: shift count 1000 is out of range for `usize`: it must be below 64
+  --> main/main.kg:16:18
+   |
+16 |     let s = 7 >> CB //~ ERROR shift count 1000 is out of range for `usize`
+   |                  ^^
+
+error[E2321]: shift count 8 is out of range for `u8`: it must be below 8
+  --> main/main.kg:18:11
+   |
+18 |     m <<= C8 //~ ERROR shift count 8 is out of range for `u8`
+   |           ^^
+
+error[E2321]: shift count 70 is out of range for `usize`: it must be below 64
+  --> main/main.kg:24:28
+   |
+24 |         let d = 1 << (C << 70) //~ ERROR shift count 70 is out of range for `usize`
+   |                            ^^
+

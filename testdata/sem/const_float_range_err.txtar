@@ -1,0 +1,45 @@
+-- src --
+const H: Float = 1 << 1024 //~ ERROR (309 digits)` does not fit `Float`
+const G: f32 = 1 << 128 //~ ERROR `340282366920938463463374607431768211456` does not fit `f32`
+const HOk: Float = 1 << 1023
+const GOk: f32 = 1 << 127
+
+fn main() {
+    let f: Float = 1 << 1024 //~ ERROR (309 digits)` does not fit `Float`
+    let k: Float = 1 << 5000 //~ ERROR (1506 digits)` does not fit `Float`
+    let g: f32 = 1 << 128 //~ ERROR `340282366920938463463374607431768211456` does not fit `f32`
+    let fOk: Float = 1 << 1023
+    let gOk: f32 = 1 << 127
+    print "${f} ${k} ${g} ${fOk} ${gOk} ${H} ${G} ${HOk} ${GOk}"
+}
+-- expect --
+error[E402]: `1797693134862315... (309 digits)` does not fit `Float`
+ --> main/main.kg:1:18
+  |
+1 | const H: Float = 1 << 1024 //~ ERROR (309 digits)` does not fit `Float`
+  |                  ^^^^^^^^^
+
+error[E402]: `340282366920938463463374607431768211456` does not fit `f32`
+ --> main/main.kg:2:16
+  |
+2 | const G: f32 = 1 << 128 //~ ERROR `340282366920938463463374607431768211456` does not fit `f32`
+  |                ^^^^^^^^
+
+error[E402]: `1797693134862315... (309 digits)` does not fit `Float`
+ --> main/main.kg:7:20
+  |
+7 |     let f: Float = 1 << 1024 //~ ERROR (309 digits)` does not fit `Float`
+  |                    ^^^^^^^^^
+
+error[E402]: `1412467032139426... (1506 digits)` does not fit `Float`
+ --> main/main.kg:8:20
+  |
+8 |     let k: Float = 1 << 5000 //~ ERROR (1506 digits)` does not fit `Float`
+  |                    ^^^^^^^^^
+
+error[E402]: `340282366920938463463374607431768211456` does not fit `f32`
+ --> main/main.kg:9:18
+  |
+9 |     let g: f32 = 1 << 128 //~ ERROR `340282366920938463463374607431768211456` does not fit `f32`
+  |                  ^^^^^^^^
+

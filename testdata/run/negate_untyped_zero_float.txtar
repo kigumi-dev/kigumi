@@ -1,0 +1,25 @@
+-- src --
+const Z = 0
+const ZF = 0.0
+
+fn inv(x: Float) -> Float { 1.0 / x }
+
+fn inv32(x: f32) -> f32 { 1.0 / x }
+
+let a: Float = -(0)
+let b: Float = -Z
+let c: Float = -(1 - 1)
+let d: f32 = -(0)
+let e: f32 = -Z
+let f: f32 = -(1 - 1)
+print "${a} ${b} ${c} ${d} ${e} ${f}"
+print "${inv(-(0))} ${inv(-Z)} ${inv(-(1 - 1))} ${inv(-ZF)}"
+print "${inv32(-(0))} ${inv32(-Z)} ${inv32(-(1 - 1))}"
+let i: Int = -Z
+let k: i8 = -(128)
+print "${i} ${k}"
+-- stdout --
+-0 -0 -0 -0 -0 -0
+-Inf -Inf -Inf -Inf
+-Inf -Inf -Inf
+0 -128

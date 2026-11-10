@@ -94,7 +94,7 @@ func (r *Result) coerceConstValue(f FileID, n syntax.NodeID, v constValue, want 
 		return TyPoison
 	}
 	if !r.intFits(v.Int, target) {
-		r.errAt(f, n, cLiteralOutOfRange, v.Int.String(), target)
+		r.errAt(f, n, cLiteralOutOfRange, constIntText(v.Int), target)
 		return TyPoison
 	}
 	val := v.Int.Int64()

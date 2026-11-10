@@ -67,8 +67,13 @@ func (e *emitter) wideShift(sb *strings.Builder, op string, signed bool, l, coun
 	fmt.Fprintf(sb, "  %s = icmp uge i64 %s, 128\n  br i1 %s, label %%%s, label %%%s\n%s:\n", c, count.Text, c, bad, ok, bad)
 	e.irb(sb).Call(rtPanic, vptr(e.cstr("shift count out of range")))
 	fmt.Fprintf(sb, "  unreachable\n%s:\n", ok)
-	ext := e.wideInstr(sb, "zext i64 %s to i128", count.Text)
-	return e.shiftWide(sb, op, signed, l, Value{Type: TI128, Text: ext})
+	c128 := Value{Type: TI128, Text: e.wideInstr(sb, "zext i64 %s to i128", count.Text)}
+	v := e.shiftWide(sb, op, signed, l, c128)
+	if op == "<<" {
+		back := e.shiftWide(sb, ">>", signed, v, c128)
+		e.overflowTrap(sb, e.icmp(sb, "ne", TI128, back, l), "integer overflow")
+	}
+	return v
 }
 
 func (e *emitter) shiftWide(sb *strings.Builder, op string, signed bool, l, count Value) Value {

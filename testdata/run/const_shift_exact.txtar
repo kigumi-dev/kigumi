@@ -1,0 +1,67 @@
+-- src --
+const B = (1 << 4095) >> 4090
+const Back: u8 = (1 << 9) >> 2
+const Mask: u64 = (1 << 64) - 1
+const Top: i64 = -(1 << 63)
+const Gone: u32 = 5 >> 40
+const AtWidth: u32 = (1 << 32) >> 1
+const Far = 8 >> 1000000
+const NegFar = -8 >> 1000000
+const Chain = ((1 << 200) + (1 << 100)) >> 150
+const Mixed: u16 = ((1 << 300) * 3 - (1 << 300)) >> 290
+const Edge = (1 << 65535) >> 65530
+const EdgeSub = ((1 << 65535) - 1) >> 65530
+const EdgeMul = ((1 << 32768) * (1 << 32767)) >> 65530
+const Count: usize = 4090
+const ByTyped = (1 << 4095) >> Count
+const ONE: u8 = 1
+const Seven = ONE << 7
+const NEG1: i64 = -1
+const MinI64 = NEG1 << 63
+const Wide: u128 = (1 << 200) >> 73
+static S1: Int = (1 << 4095) >> 4090
+static S2: u64 = (1 << 64) - 1
+static S3: i8 = -((1 << 4095) >> 4088)
+const C1: Int = comptime ((1 << 4095) >> 4090)
+const C2: u8 = comptime ((1 << 9) >> 2)
+const C3: Int = comptime { (1 << 70) >> 65 }
+const C4: Int = comptime { (1 << 4095) >> 4090 }
+const C5: u8 = comptime { ((1 << 300) * 3 - (1 << 300)) >> 294 }
+const C65: usize = 65
+const V: Int = (1 << 70) >> C65
+const W: u8 = (1 << 9) >> (C65 - 63)
+const CV: Int = comptime ((1 << 70) >> C65)
+
+fn widen(n: usize) -> Int {
+    (B << n) + Far + NegFar + Edge + EdgeSub + EdgeMul + ByTyped
+}
+
+fn take(x: Int) -> Int { x }
+
+fn dflt(a: Int = (1 << 4095) >> 4090) -> Int { a }
+
+print "${B} ${Back} ${Mask} ${Top}"
+print "${Gone} ${AtWidth} ${Chain} ${Mixed} ${Seven} ${MinI64}"
+print "${Wide}"
+print "${S1} ${S2} ${S3}"
+print "${C1} ${C2} ${C3} ${C4} ${C5}"
+let small: i8 = -B
+let byte: u8 = B
+print "${small} ${byte} ${widen(2)}"
+let ctx: Int = (1 << 70) >> 65
+let narrow: u8 = (1 << 9) >> 2
+let top = -(1 << 63)
+let x: u32 = 7
+let mixedRun = x + ((1 << 40) >> 20)
+print "${ctx} ${narrow} ${top} ${mixedRun} ${take((1 << 70) >> 65)} ${dflt()}"
+let lc = comptime ((1 << 70) >> C65)
+print "${V} ${W} ${CV} ${lc}"
+-- stdout --
+32 128 18446744073709551615 -9223372036854775808
+0 2147483648 1125899906842624 2048 128 -9223372036854775808
+170141183460469231731687303715884105728
+32 18446744073709551615 -128
+32 128 32 32 128
+-32 32 254
+32 128 -9223372036854775808 1048583 32 32
+32 128 32 32

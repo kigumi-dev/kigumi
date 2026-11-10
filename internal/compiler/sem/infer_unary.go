@@ -12,6 +12,9 @@ func (c *checker) synthUnary(n syntax.NodeID, want TypeID) TypeID {
 	if isNumericLiteral(c.t, n) {
 		return c.synthLiteral(n, want)
 	}
+	if t, ok := c.foldUntypedUnary(n, want); ok {
+		return t
+	}
 	operand := c.unaryOperand(u.Operand().ID(), op, want)
 	tt := c.r.Types
 	operand = c.readThrough(c.vars.resolve(operand))

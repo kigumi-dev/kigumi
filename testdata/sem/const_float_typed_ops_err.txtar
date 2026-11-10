@@ -1,0 +1,60 @@
+-- src --
+const XF: Float = 8
+const F: f32 = 5
+const Y = XF << 1 //~ ERROR no operator `<<` for (Float, {integer})
+const Z = 1 << XF //~ ERROR shift count must be `usize`, found `Float`
+
+fn main() {
+    let a = XF << 1 //~ ERROR
+    let b = XF % 3
+    let c = XF & 1 //~ ERROR
+    let d = ~XF //~ ERROR
+    let e = 1 << XF //~ ERROR
+    let f = F << 2 //~ ERROR
+    print "${a} ${b} ${c} ${d} ${e} ${f}"
+}
+-- expect --
+error[E600]: no operator `<<` for (Float, {integer})
+ --> main/main.kg:3:11
+  |
+3 | const Y = XF << 1 //~ ERROR no operator `<<` for (Float, {integer})
+  |           ^^^^^^^
+
+error[E609]: shift count must be `usize`, found `Float`
+ --> main/main.kg:4:16
+  |
+4 | const Z = 1 << XF //~ ERROR shift count must be `usize`, found `Float`
+  |                ^^
+
+error[E405]: `Float` and `usize` cannot be mixed
+ --> main/main.kg:7:13
+  |
+7 |     let a = XF << 1 //~ ERROR
+  |             ^^^^^^^
+  = help: convert explicitly
+
+error[E600]: no operator `&` for (Float, Float)
+ --> main/main.kg:9:13
+  |
+9 |     let c = XF & 1 //~ ERROR
+  |             ^^^^^^
+
+error[E600]: no operator `~` for (Float)
+  --> main/main.kg:10:13
+   |
+10 |     let d = ~XF //~ ERROR
+   |             ^^^
+
+error[E600]: no operator `<<` for (Float, Float)
+  --> main/main.kg:11:13
+   |
+11 |     let e = 1 << XF //~ ERROR
+   |             ^^^^^^^
+
+error[E405]: `f32` and `usize` cannot be mixed
+  --> main/main.kg:12:13
+   |
+12 |     let f = F << 2 //~ ERROR
+   |             ^^^^^^
+   = help: convert explicitly
+

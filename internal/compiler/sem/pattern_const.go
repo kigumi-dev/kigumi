@@ -24,6 +24,8 @@ func (c *checker) constPattern(p syntax.NodeID, ent EntityID, scrutinee TypeID, 
 	case !hasValue || got != scrutinee && !(tt.Kind(got) == KUntyped && tt.IsNumeric(scrutinee)):
 		c.errAt(p, cPatternLiteralType, e.Name, scrutinee)
 		c.setType(p, TyPoison)
+	case tt.Kind(got) == KUntyped && !c.r.constFits(c.f, p, c.r.constInfo(ent).Value, scrutinee):
+		c.setType(p, TyPoison)
 	}
 	return PatInfo{Kind: PatLiteral, Type: scrutinee}
 }

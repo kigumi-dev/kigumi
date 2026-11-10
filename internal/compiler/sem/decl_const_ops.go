@@ -10,9 +10,7 @@ import (
 func (r *Result) constUnary(f FileID, n syntax.NodeID, op token.Kind, v constValue) (constValue, bool) {
 	switch {
 	case op == token.Minus && v.Kind == constInt:
-		res, ok := r.typedConstInt(f, n, new(big.Int).Neg(v.Int), v.Typ)
-		res.Shift = v.Shift
-		return res, ok
+		return r.typedConstInt(f, n, new(big.Int).Neg(v.Int), v.Typ)
 	case op == token.Minus && v.Kind == constFloat:
 		return constValue{Kind: constFloat, Typ: v.Typ, Float: new(big.Float).SetPrec(floatPrec(r.Types, v.Typ)).Neg(v.Float)}, true
 	case op == token.Bang && v.Kind == constBool:
@@ -33,9 +31,12 @@ func (r *Result) constBinary(f FileID, n syntax.NodeID, op token.Kind, a, b cons
 		r.errAt(f, n, cConstNotComptime, "this operator")
 		return constValue{}, false
 	}
+	if op == token.Shl || op == token.Shr {
+		return r.constShift(f, n, op, a, b)
+	}
 	if a.Kind == constInt && b.Kind == constInt {
 		x, y := a.Int, b.Int
-		if op != token.Shl && op != token.Shr && constIntTooLarge(op, x, y) {
+		if op == token.Star && constProductTooWide(x, y) {
 			r.errAt(f, n, cConstTooLarge, maxConstBits)
 			return constValue{}, false
 		}
@@ -43,19 +44,9 @@ func (r *Result) constBinary(f FileID, n syntax.NodeID, op token.Kind, a, b cons
 		typ := a.Typ
 		if typ == 0 {
 			typ = b.Typ
-		} else if b.Typ != 0 && b.Typ != typ && op != token.Shl && op != token.Shr {
+		} else if b.Typ != 0 && b.Typ != typ {
 			r.errAt(f, n, cTypeMismatch, typ, b.Typ)
 			return constValue{}, false
-		}
-		shift := max(a.Shift, b.Shift)
-		if op == token.Shl || op == token.Shr {
-			typ = a.Typ
-			if !r.constShiftOK(f, n, x, y, typ, op == token.Shl) {
-				return constValue{}, false
-			}
-			if typ == 0 {
-				shift = max(shift, int(y.Int64()))
-			}
 		}
 		switch op {
 		case token.Plus:
@@ -66,7 +57,7 @@ func (r *Result) constBinary(f FileID, n syntax.NodeID, op token.Kind, a, b cons
 			z.Mul(x, y)
 		case token.Slash, token.Percent:
 			if y.Sign() == 0 {
-				r.errAt(f, n, cConstDivZero)
+				r.errAt(f, r.tree(f).View(n).AsBinary().Right().ID(), cConstDivZero)
 				return constValue{}, false
 			}
 			if op == token.Slash {
@@ -80,18 +71,12 @@ func (r *Result) constBinary(f FileID, n syntax.NodeID, op token.Kind, a, b cons
 			z.Or(x, y)
 		case token.Caret:
 			z.Xor(x, y)
-		case token.Shl:
-			z.Lsh(x, uint(y.Uint64()))
-		case token.Shr:
-			z.Rsh(x, uint(y.Uint64()))
 		case token.EqEq, token.NotEq, token.Lt, token.LtEq, token.Gt, token.GtEq:
 			return constValue{Kind: constBool, Bool: compareResult(op, x.Cmp(y))}, true
 		default:
 			return fail()
 		}
-		res, ok := r.typedConstInt(f, n, z, typ)
-		res.Shift = shift
-		return res, ok
+		return r.typedConstInt(f, n, z, typ)
 	}
 	if (a.Kind == constInt || a.Kind == constFloat) && (b.Kind == constInt || b.Kind == constFloat) {
 		typ := a.Typ
@@ -114,7 +99,7 @@ func (r *Result) constBinary(f FileID, n syntax.NodeID, op token.Kind, a, b cons
 			z.Mul(x, y)
 		case token.Slash:
 			if y.Sign() == 0 {
-				r.errAt(f, n, cConstDivZero)
+				r.errAt(f, r.tree(f).View(n).AsBinary().Right().ID(), cConstDivZero)
 				return constValue{}, false
 			}
 			z.Quo(x, y)
@@ -176,21 +161,4 @@ func compareResult(op token.Kind, c int) bool {
 		return c > 0
 	}
 	return c >= 0
-}
-
-const maxConstBits = 1 << 16
-
-// constIntTooLarge reports an operation whose result would pass maxConstBits, before it allocates.
-func constIntTooLarge(op token.Kind, x, y *big.Int) bool {
-	switch op {
-	case token.Shl:
-		return y.Sign() < 0 || !y.IsUint64() || y.Uint64() > maxConstBits
-	case token.Shr:
-		return y.Sign() < 0 || !y.IsUint64()
-	case token.Star:
-		return x.BitLen()+y.BitLen() > maxConstBits
-	case token.Plus, token.Minus:
-		return max(x.BitLen(), y.BitLen()) >= maxConstBits
-	}
-	return false
 }

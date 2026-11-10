@@ -1,0 +1,26 @@
+-- src --
+const C: usize = 3
+const C63: usize = 63
+const BITS: usize = 4
+const C65: usize = 65
+
+fn takeUsize(x: usize) -> usize { x }
+
+let n = 1 << C
+let m: usize = 2
+let s = n + m
+let t = takeUsize(n)
+let arr = Array.of(10, 20, 30, 40, 50, 60, 70, 80, 90)
+let k = 16 >> C
+let u = arr[k]
+let x: usize = 0x1234
+let mask = (1 << BITS) - 1
+let low = x & mask
+let size = 1 << C63
+print "${s} ${t} ${u} ${low} ${size} ${1 << C63}"
+let wide = (1 << 70) >> C65
+let i: i128 = wide
+print "${i}"
+-- stdout --
+10 8 30 4 9223372036854775808 9223372036854775808
+32

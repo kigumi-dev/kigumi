@@ -28,7 +28,9 @@ func (c *checker) mismatch(n syntax.NodeID, want, got TypeID) {
 		return
 	}
 	if tt.Kind(got) == KUntyped && !tt.IsNumeric(want) {
-		got = c.adopt(c.literalNode(n), defaultOf(got))
+		if got = c.adopt(c.literalNode(n), c.untypedInner(got, want)); got == TyPoison {
+			return
+		}
 	}
 	if tt.Kind(want) == KIface && !c.r.objectSafe(tt.Node(want).Ent) {
 		return
@@ -82,4 +84,17 @@ func (c *checker) fallThroughHelp(n syntax.NodeID, want, got TypeID) string {
 		return ""
 	}
 	return "not every path ends in a value; finish the block with the value to produce, or `return` it on each path"
+}
+
+// untypedInner is the numeric type an untyped value meets inside an Option or Result, else its default type.
+func (c *checker) untypedInner(got, want TypeID) TypeID {
+	tt := c.r.Types
+	inner, ok := tt.IsOption(want)
+	if !ok {
+		inner, _, ok = tt.IsResult(want)
+	}
+	if inner = c.vars.resolve(inner); ok && tt.IsNumeric(inner) {
+		return inner
+	}
+	return defaultOf(got)
 }

@@ -1,0 +1,193 @@
+-- src --
+const Folded: Int = (1 << 70) >> 65
+const Narrow: u8 = (1 << 9) >> 2
+const K8: u8 = 3
+const KS: isize = 3
+const KI8: i8 = 3
+const C60: usize = 60
+const C65: usize = 65
+const C8: usize = 8
+const C2: usize = 2
+
+fn take(x: Int) -> Int { x }
+fn ret() -> Int { (1 << 70) >> 65 }
+fn dflt(a: Int = (1 << 4095) >> 4090) -> Int { a }
+
+fn main() {
+    let folded = (1 << 70) >> 65
+    let far = (1 << 4095) >> 4090
+    let gone: u32 = 5 >> 40
+    let block = comptime { (1 << 4095) >> 4090 }
+    let ctx: Int = (1 << 70) >> 65
+    let ctxFar: Int = (1 << 4095) >> 4090
+    let narrow: u8 = (1 << 9) >> 2
+    let arg = take((1 << 70) >> 65)
+    let top = -(1 << 63)
+    let edgeSub = ((1 << 65535) - 1) >> 65530
+    let over: Int = (1 << 70) >> 5 //~ ERROR `36893488147419103232` does not fit `Int`
+    let narrowOver: u8 = (1 << 9) >> 1 //~ ERROR `256` does not fit `u8`
+    let neg = 1 << -1 //~ ERROR `-1` does not fit `usize`
+    let negR: Int = 8 >> -1 //~ ERROR `-1` does not fit `usize`
+    let beyond = 8 >> 18446744073709551616 //~ ERROR `18446744073709551616` does not fit `usize`
+    let byU8 = 1 << K8 //~ ERROR shift count must be `usize`, found `u8`
+    let limit = 1 << 65536 //~ ERROR limited to 65536 bits
+    let addOver = (1 << 65535) + (1 << 65535) //~ ERROR limited to 65536 bits
+    let byC65: Int = (1 << 70) >> C65 //~ ERROR `1180591620717411303424` does not fit `Int`
+    let byExpr: u8 = (1 << 9) >> (C65 - 63) //~ ERROR `512` does not fit `u8`
+    let lost: Int = -(1 << 63) - 1 //~ ERROR `-9223372036854775809` does not fit `Int`
+    let lost2 = -(-(1 << 63)) //~ ERROR `9223372036854775808` does not fit `Int`
+    let lost3: i8 = -(-(1 << 7)) //~ ERROR `128` does not fit `i8`
+    let lost4: Int = ((1 << 70) >> C8) * 4 //~ ERROR `1180591620717411303424` does not fit `Int`
+    let lost5: u8 = ((1 << 9) >> C2) * 2 //~ ERROR `512` does not fit `u8`
+    let big60: u8 = (1 << 70) >> C60 //~ ERROR `1180591620717411303424` does not fit `u8`
+    let byK8: Int = (1 << 70) >> K8 //~ ERROR `1180591620717411303424` does not fit `Int`
+    let byKS: u64 = ((1 << 70) >> KS) + 1 //~ ERROR `1180591620717411303424` does not fit `u64`
+    let byI8: Int = (1 << 70) >> KI8 //~ ERROR `1180591620717411303424` does not fit `Int`
+    let rk: u8 = 3
+    let byRuntime: Int = (1 << 70) >> rk //~ ERROR `1180591620717411303424` does not fit `Int`
+    let under: u8 = (1 << 9) >> (C65 - 66) //~ ERROR `512` does not fit `u8`
+    let one: Int = 1
+    let atWidth = one << 64 //~ ERROR shift count 64 is out of range for `Int`
+    let typedFar = (one << 4095) >> 4090 //~ ERROR shift count 4095 is out of range for `Int`
+    print "${folded} ${far} ${gone} ${block} ${ctx} ${ctxFar} ${narrow} ${arg} ${top} ${edgeSub}"
+    print "${atWidth} ${typedFar} ${Folded} ${Narrow} ${ret()} ${dflt()} ${byC65} ${byExpr} ${lost} ${lost2} ${lost3} ${lost4} ${lost5}"
+}
+-- expect --
+error[E402]: `36893488147419103232` does not fit `Int`
+  --> main/main.kg:26:21
+   |
+26 |     let over: Int = (1 << 70) >> 5 //~ ERROR `36893488147419103232` does not fit `Int`
+   |                     ^^^^^^^^^^^^^^
+
+error[E402]: `256` does not fit `u8`
+  --> main/main.kg:27:26
+   |
+27 |     let narrowOver: u8 = (1 << 9) >> 1 //~ ERROR `256` does not fit `u8`
+   |                          ^^^^^^^^^^^^^
+
+error[E402]: `-1` does not fit `usize`
+  --> main/main.kg:28:20
+   |
+28 |     let neg = 1 << -1 //~ ERROR `-1` does not fit `usize`
+   |                    ^^
+
+error[E402]: `-1` does not fit `usize`
+  --> main/main.kg:29:26
+   |
+29 |     let negR: Int = 8 >> -1 //~ ERROR `-1` does not fit `usize`
+   |                          ^^
+
+error[E402]: `18446744073709551616` does not fit `usize`
+  --> main/main.kg:30:23
+   |
+30 |     let beyond = 8 >> 18446744073709551616 //~ ERROR `18446744073709551616` does not fit `usize`
+   |                       ^^^^^^^^^^^^^^^^^^^^
+
+error[E609]: shift count must be `usize`, found `u8`
+  --> main/main.kg:31:21
+   |
+31 |     let byU8 = 1 << K8 //~ ERROR shift count must be `usize`, found `u8`
+   |                     ^^
+
+error[E2214]: constant integers are limited to 65536 bits
+  --> main/main.kg:32:17
+   |
+32 |     let limit = 1 << 65536 //~ ERROR limited to 65536 bits
+   |                 ^^^^^^^^^^
+
+error[E2214]: constant integers are limited to 65536 bits
+  --> main/main.kg:33:19
+   |
+33 |     let addOver = (1 << 65535) + (1 << 65535) //~ ERROR limited to 65536 bits
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E402]: `1180591620717411303424` does not fit `Int`
+  --> main/main.kg:34:23
+   |
+34 |     let byC65: Int = (1 << 70) >> C65 //~ ERROR `1180591620717411303424` does not fit `Int`
+   |                       ^^^^^^^
+
+error[E402]: `512` does not fit `u8`
+  --> main/main.kg:35:23
+   |
+35 |     let byExpr: u8 = (1 << 9) >> (C65 - 63) //~ ERROR `512` does not fit `u8`
+   |                       ^^^^^^
+
+error[E402]: `-9223372036854775809` does not fit `Int`
+  --> main/main.kg:36:21
+   |
+36 |     let lost: Int = -(1 << 63) - 1 //~ ERROR `-9223372036854775809` does not fit `Int`
+   |                     ^^^^^^^^^^^^^^
+
+error[E402]: `9223372036854775808` does not fit `Int`
+  --> main/main.kg:37:17
+   |
+37 |     let lost2 = -(-(1 << 63)) //~ ERROR `9223372036854775808` does not fit `Int`
+   |                 ^^^^^^^^^^^
+
+error[E402]: `128` does not fit `i8`
+  --> main/main.kg:38:21
+   |
+38 |     let lost3: i8 = -(-(1 << 7)) //~ ERROR `128` does not fit `i8`
+   |                     ^^^^^^^^^^
+
+error[E402]: `1180591620717411303424` does not fit `Int`
+  --> main/main.kg:39:24
+   |
+39 |     let lost4: Int = ((1 << 70) >> C8) * 4 //~ ERROR `1180591620717411303424` does not fit `Int`
+   |                        ^^^^^^^
+
+error[E402]: `512` does not fit `u8`
+  --> main/main.kg:40:23
+   |
+40 |     let lost5: u8 = ((1 << 9) >> C2) * 2 //~ ERROR `512` does not fit `u8`
+   |                       ^^^^^^
+
+error[E402]: `1180591620717411303424` does not fit `u8`
+  --> main/main.kg:41:22
+   |
+41 |     let big60: u8 = (1 << 70) >> C60 //~ ERROR `1180591620717411303424` does not fit `u8`
+   |                      ^^^^^^^
+
+error[E402]: `1180591620717411303424` does not fit `Int`
+  --> main/main.kg:42:22
+   |
+42 |     let byK8: Int = (1 << 70) >> K8 //~ ERROR `1180591620717411303424` does not fit `Int`
+   |                      ^^^^^^^
+
+error[E402]: `1180591620717411303424` does not fit `u64`
+  --> main/main.kg:43:23
+   |
+43 |     let byKS: u64 = ((1 << 70) >> KS) + 1 //~ ERROR `1180591620717411303424` does not fit `u64`
+   |                       ^^^^^^^
+
+error[E402]: `1180591620717411303424` does not fit `Int`
+  --> main/main.kg:44:22
+   |
+44 |     let byI8: Int = (1 << 70) >> KI8 //~ ERROR `1180591620717411303424` does not fit `Int`
+   |                      ^^^^^^^
+
+error[E402]: `1180591620717411303424` does not fit `Int`
+  --> main/main.kg:46:27
+   |
+46 |     let byRuntime: Int = (1 << 70) >> rk //~ ERROR `1180591620717411303424` does not fit `Int`
+   |                           ^^^^^^^
+
+error[E402]: `512` does not fit `u8`
+  --> main/main.kg:47:22
+   |
+47 |     let under: u8 = (1 << 9) >> (C65 - 66) //~ ERROR `512` does not fit `u8`
+   |                      ^^^^^^
+
+error[E2321]: shift count 64 is out of range for `Int`: it must be below 64
+  --> main/main.kg:49:26
+   |
+49 |     let atWidth = one << 64 //~ ERROR shift count 64 is out of range for `Int`
+   |                          ^^
+
+error[E2321]: shift count 4095 is out of range for `Int`: it must be below 64
+  --> main/main.kg:50:28
+   |
+50 |     let typedFar = (one << 4095) >> 4090 //~ ERROR shift count 4095 is out of range for `Int`
+   |                            ^^^^
+

@@ -68,7 +68,7 @@ func (c *checker) synthComptime(n syntax.NodeID) TypeID {
 	if !ok {
 		return TyPoison
 	}
-	if v.Kind == constInt || v.Kind == constFloat {
+	if v.Kind == constInt || v.Kind == constFloat || v.Kind == constBool {
 		c.info.Literals[n] = v
 		c.info.Literals[inner] = v
 	}

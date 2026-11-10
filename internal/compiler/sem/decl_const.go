@@ -57,13 +57,7 @@ func (r *Result) evalConstDecl(id EntityID) constValue {
 		r.errAt(e.File, e.Node, cConstPubNeedsType, e.Name)
 	}
 	r.Entities[id].Type = typ
-	if v.Kind == constInt && r.Types.IsInteger(typ) {
-		v.Typ = typ
-	}
-	if v.Kind == constFloat && r.Types.IsFloat(typ) {
-		v.Float = new(big.Float).SetPrec(floatPrec(r.Types, typ)).Set(v.Float)
-		v.Typ = typ
-	}
+	v = r.declaredConst(v, typ)
 	info.Value = v
 	info.State = constDone
 	return v
@@ -111,6 +105,10 @@ func (r *Result) evalConst(f FileID, n syntax.NodeID) (constValue, bool) {
 		v, ok := syntax.ParseInt(node.Tok().Text())
 		if !ok {
 			return fail("this literal")
+		}
+		if constTooWide(v) {
+			r.errAt(f, n, cConstTooLarge, maxConstBits)
+			return constValue{}, false
 		}
 		return constValue{Kind: constInt, Int: v}, true
 	case syntax.FloatLit:

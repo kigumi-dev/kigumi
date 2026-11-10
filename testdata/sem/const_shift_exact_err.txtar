@@ -1,0 +1,283 @@
+-- src --
+const Big: Int = 1 << 4095 //~ ERROR (1233 digits)` does not fit `Int`
+const Wide: u32 = 1 << 32 //~ ERROR `4294967296` does not fit `u32`
+const Short: Int = (1 << 4095) >> 4000 //~ ERROR `39614081257132168796771975168` does not fit `Int`
+const Small: u8 = (1 << 300) >> 292 //~ ERROR `256` does not fit `u8`
+const Low: i8 = -((1 << 300) >> 292) - 1 //~ ERROR `-257` does not fit `i8`
+const NegL = 1 << -1 //~ ERROR `-1` does not fit `usize`
+const NegR = (1 << 4095) >> -4090 //~ ERROR `-4090` does not fit `usize`
+const NegHuge = 1 << -(1 << 65535) //~ ERROR `-1001764965203423... (19729 digits)` does not fit `usize`
+const Beyond = 8 >> 18446744073709551616 //~ ERROR `18446744073709551616` does not fit `usize`
+const Limit = 1 << 65536 //~ ERROR limited to 65536 bits
+const Grown = (1 << 65535) << 1 //~ ERROR limited to 65536 bits
+const AddOver = (1 << 65535) + (1 << 65535) //~ ERROR limited to 65536 bits
+const MulOver = (1 << 32768) * (1 << 32768) //~ ERROR limited to 65536 bits
+const ONE: u8 = 1
+const AtWidth = ONE << 8 //~ ERROR shift count 8 is out of range for `u8`: it must be below 8
+const T: u32 = 5
+const AtWidthR = T >> 32 //~ ERROR shift count 32 is out of range for `u32`: it must be below 32
+const HugeCount = ONE << (1 << 65535) //~ ERROR `1001764965203423... (19729 digits)` does not fit `usize`
+const Spill = (ONE << 7) << 1 //~ ERROR `256` does not fit `u8`
+const I1: i64 = 1
+const Lost = I1 << 63 //~ ERROR `9223372036854775808` does not fit `Int`
+const U3: u64 = 3
+const LostU = U3 << 63 //~ ERROR `27670116110564327424` does not fit `u64`
+static S1: Int = 1 << 64 //~ ERROR `18446744073709551616` does not fit `Int`
+static S2: u8 = 1 >> -2 //~ ERROR `-2` does not fit `usize`
+static S3: u32 = T << 32 //~ ERROR shift count 32 is out of range for `u32`
+const C1: Int = comptime ((1 << 4095) >> 4000) //~ ERROR `39614081257132168796771975168` does not fit `Int`
+const C2: u8 = comptime (1 << -3) //~ ERROR `-3` does not fit `usize`
+const C3: Int = comptime { 1 << 70000 } //~ ERROR limited to 65536 bits
+const FL: Float = 2.0
+const K8: u8 = 3
+const K64: i64 = 2
+const NegK: i8 = -1
+const BadF = 1 << 2.0 //~ ERROR float literal `2` cannot be `usize`
+const BadTyped = 1 << FL //~ ERROR shift count must be `usize`, found `Float`
+const BadBool = 1 << true //~ ERROR shift count must be `usize`, found `Bool`
+const BadChar = 1 << 'a' //~ ERROR shift count must be `usize`, found `Char`
+const ByU8 = 1 << K8 //~ ERROR shift count must be `usize`, found `u8`
+const WideByU8: Int = (1 << 70) >> K8 //~ ERROR shift count must be `usize`, found `u8`
+const ByI64 = 1 << K64 //~ ERROR shift count must be `usize`, found `Int`
+const ByNeg = 1 << NegK //~ ERROR shift count must be `usize`, found `i8`
+const BadRecv = 2.0 << 1 //~ ERROR no operator `<<` for ({float}, {integer})
+const C60: usize = 60
+const C65: usize = 65
+const Big60: u8 = (1 << 70) >> C60 //~ ERROR `1024` does not fit `u8`
+const Under: u8 = (1 << 9) >> (C65 - 66) //~ ERROR `-1` does not fit `usize`
+const Late = (1 << 4095) >> 4000
+
+fn main() {
+    let x: Int = Late //~ ERROR `39614081257132168796771975168` does not fit `Int`
+    let y: u128 = Late << 40 //~ ERROR `43556142965880123323311949751266331066368` does not fit `u128`
+    print "${x} ${y}"
+}
+-- expect --
+error[E402]: `5221944407065762... (1233 digits)` does not fit `Int`
+ --> main/main.kg:1:18
+  |
+1 | const Big: Int = 1 << 4095 //~ ERROR (1233 digits)` does not fit `Int`
+  |                  ^^^^^^^^^
+
+error[E402]: `4294967296` does not fit `u32`
+ --> main/main.kg:2:19
+  |
+2 | const Wide: u32 = 1 << 32 //~ ERROR `4294967296` does not fit `u32`
+  |                   ^^^^^^^
+
+error[E402]: `39614081257132168796771975168` does not fit `Int`
+ --> main/main.kg:3:20
+  |
+3 | const Short: Int = (1 << 4095) >> 4000 //~ ERROR `39614081257132168796771975168` does not fit `Int`
+  |                    ^^^^^^^^^^^^^^^^^^^
+
+error[E402]: `256` does not fit `u8`
+ --> main/main.kg:4:19
+  |
+4 | const Small: u8 = (1 << 300) >> 292 //~ ERROR `256` does not fit `u8`
+  |                   ^^^^^^^^^^^^^^^^^
+
+error[E402]: `-257` does not fit `i8`
+ --> main/main.kg:5:17
+  |
+5 | const Low: i8 = -((1 << 300) >> 292) - 1 //~ ERROR `-257` does not fit `i8`
+  |                 ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E402]: `-1` does not fit `usize`
+ --> main/main.kg:6:19
+  |
+6 | const NegL = 1 << -1 //~ ERROR `-1` does not fit `usize`
+  |                   ^^
+
+error[E402]: `-4090` does not fit `usize`
+ --> main/main.kg:7:29
+  |
+7 | const NegR = (1 << 4095) >> -4090 //~ ERROR `-4090` does not fit `usize`
+  |                             ^^^^^
+
+error[E402]: `-1001764965203423... (19729 digits)` does not fit `usize`
+ --> main/main.kg:8:22
+  |
+8 | const NegHuge = 1 << -(1 << 65535) //~ ERROR `-1001764965203423... (19729 digits)` does not fit `usize`
+  |                      ^^^^^^^^^^^^
+
+error[E402]: `18446744073709551616` does not fit `usize`
+ --> main/main.kg:9:21
+  |
+9 | const Beyond = 8 >> 18446744073709551616 //~ ERROR `18446744073709551616` does not fit `usize`
+  |                     ^^^^^^^^^^^^^^^^^^^^
+
+error[E2214]: constant integers are limited to 65536 bits
+  --> main/main.kg:10:15
+   |
+10 | const Limit = 1 << 65536 //~ ERROR limited to 65536 bits
+   |               ^^^^^^^^^^
+
+error[E2214]: constant integers are limited to 65536 bits
+  --> main/main.kg:11:15
+   |
+11 | const Grown = (1 << 65535) << 1 //~ ERROR limited to 65536 bits
+   |               ^^^^^^^^^^^^^^^^^
+
+error[E2214]: constant integers are limited to 65536 bits
+  --> main/main.kg:12:17
+   |
+12 | const AddOver = (1 << 65535) + (1 << 65535) //~ ERROR limited to 65536 bits
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2214]: constant integers are limited to 65536 bits
+  --> main/main.kg:13:17
+   |
+13 | const MulOver = (1 << 32768) * (1 << 32768) //~ ERROR limited to 65536 bits
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2321]: shift count 8 is out of range for `u8`: it must be below 8
+  --> main/main.kg:15:24
+   |
+15 | const AtWidth = ONE << 8 //~ ERROR shift count 8 is out of range for `u8`: it must be below 8
+   |                        ^
+
+error[E2321]: shift count 32 is out of range for `u32`: it must be below 32
+  --> main/main.kg:17:23
+   |
+17 | const AtWidthR = T >> 32 //~ ERROR shift count 32 is out of range for `u32`: it must be below 32
+   |                       ^^
+
+error[E402]: `1001764965203423... (19729 digits)` does not fit `usize`
+  --> main/main.kg:18:26
+   |
+18 | const HugeCount = ONE << (1 << 65535) //~ ERROR `1001764965203423... (19729 digits)` does not fit `usize`
+   |                          ^^^^^^^^^^^
+
+error[E402]: `256` does not fit `u8`
+  --> main/main.kg:19:15
+   |
+19 | const Spill = (ONE << 7) << 1 //~ ERROR `256` does not fit `u8`
+   |               ^^^^^^^^^^^^^^^
+
+error[E402]: `9223372036854775808` does not fit `Int`
+  --> main/main.kg:21:14
+   |
+21 | const Lost = I1 << 63 //~ ERROR `9223372036854775808` does not fit `Int`
+   |              ^^^^^^^^
+
+error[E402]: `27670116110564327424` does not fit `u64`
+  --> main/main.kg:23:15
+   |
+23 | const LostU = U3 << 63 //~ ERROR `27670116110564327424` does not fit `u64`
+   |               ^^^^^^^^
+
+error[E402]: `18446744073709551616` does not fit `Int`
+  --> main/main.kg:24:18
+   |
+24 | static S1: Int = 1 << 64 //~ ERROR `18446744073709551616` does not fit `Int`
+   |                  ^^^^^^^
+
+error[E402]: `-2` does not fit `usize`
+  --> main/main.kg:25:22
+   |
+25 | static S2: u8 = 1 >> -2 //~ ERROR `-2` does not fit `usize`
+   |                      ^^
+
+error[E2321]: shift count 32 is out of range for `u32`: it must be below 32
+  --> main/main.kg:26:23
+   |
+26 | static S3: u32 = T << 32 //~ ERROR shift count 32 is out of range for `u32`
+   |                       ^^
+
+error[E402]: `39614081257132168796771975168` does not fit `Int`
+  --> main/main.kg:27:17
+   |
+27 | const C1: Int = comptime ((1 << 4095) >> 4000) //~ ERROR `39614081257132168796771975168` does not fit `Int`
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E402]: `-3` does not fit `usize`
+  --> main/main.kg:28:31
+   |
+28 | const C2: u8 = comptime (1 << -3) //~ ERROR `-3` does not fit `usize`
+   |                               ^^
+
+error[E2214]: constant integers are limited to 65536 bits
+  --> main/main.kg:29:28
+   |
+29 | const C3: Int = comptime { 1 << 70000 } //~ ERROR limited to 65536 bits
+   |                            ^^^^^^^^^^
+
+error[E403]: float literal `2` cannot be `usize`
+  --> main/main.kg:34:19
+   |
+34 | const BadF = 1 << 2.0 //~ ERROR float literal `2` cannot be `usize`
+   |                   ^^^
+
+error[E609]: shift count must be `usize`, found `Float`
+  --> main/main.kg:35:23
+   |
+35 | const BadTyped = 1 << FL //~ ERROR shift count must be `usize`, found `Float`
+   |                       ^^
+
+error[E609]: shift count must be `usize`, found `Bool`
+  --> main/main.kg:36:22
+   |
+36 | const BadBool = 1 << true //~ ERROR shift count must be `usize`, found `Bool`
+   |                      ^^^^
+
+error[E609]: shift count must be `usize`, found `Char`
+  --> main/main.kg:37:22
+   |
+37 | const BadChar = 1 << 'a' //~ ERROR shift count must be `usize`, found `Char`
+   |                      ^^^
+
+error[E609]: shift count must be `usize`, found `u8`
+  --> main/main.kg:38:19
+   |
+38 | const ByU8 = 1 << K8 //~ ERROR shift count must be `usize`, found `u8`
+   |                   ^^
+
+error[E609]: shift count must be `usize`, found `u8`
+  --> main/main.kg:39:36
+   |
+39 | const WideByU8: Int = (1 << 70) >> K8 //~ ERROR shift count must be `usize`, found `u8`
+   |                                    ^^
+
+error[E609]: shift count must be `usize`, found `Int`
+  --> main/main.kg:40:20
+   |
+40 | const ByI64 = 1 << K64 //~ ERROR shift count must be `usize`, found `Int`
+   |                    ^^^
+
+error[E609]: shift count must be `usize`, found `i8`
+  --> main/main.kg:41:20
+   |
+41 | const ByNeg = 1 << NegK //~ ERROR shift count must be `usize`, found `i8`
+   |                    ^^^^
+
+error[E600]: no operator `<<` for ({float}, {integer})
+  --> main/main.kg:42:17
+   |
+42 | const BadRecv = 2.0 << 1 //~ ERROR no operator `<<` for ({float}, {integer})
+   |                 ^^^^^^^^
+
+error[E402]: `1024` does not fit `u8`
+  --> main/main.kg:45:19
+   |
+45 | const Big60: u8 = (1 << 70) >> C60 //~ ERROR `1024` does not fit `u8`
+   |                   ^^^^^^^^^^^^^^^^
+
+error[E402]: `-1` does not fit `usize`
+  --> main/main.kg:46:32
+   |
+46 | const Under: u8 = (1 << 9) >> (C65 - 66) //~ ERROR `-1` does not fit `usize`
+   |                                ^^^^^^^^
+
+error[E402]: `39614081257132168796771975168` does not fit `Int`
+  --> main/main.kg:50:18
+   |
+50 |     let x: Int = Late //~ ERROR `39614081257132168796771975168` does not fit `Int`
+   |                  ^^^^
+
+error[E402]: `43556142965880123323311949751266331066368` does not fit `u128`
+  --> main/main.kg:51:19
+   |
+51 |     let y: u128 = Late << 40 //~ ERROR `43556142965880123323311949751266331066368` does not fit `u128`
+   |                   ^^^^^^^^^^
+

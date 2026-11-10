@@ -1,0 +1,24 @@
+-- src --
+import a from lib/a
+import { PF } from lib/a
+
+const XF: Float = 8
+const F: f32 = 5
+const YF = XF / 3
+
+fn takeFloat(x: Float) -> Float { x }
+
+fn half(x: f32) -> f32 { x / 2 }
+
+let v: Float = 3
+let b = XF + 1
+let n = -XF
+print "${XF / 3} ${F / 2} ${XF / 3 == 2} ${v + (XF / 3)} ${YF}"
+print "${takeFloat(b)} ${takeFloat(n)} ${v + (-XF)} ${XF * XF} ${XF - 0.5}"
+print "${a.PF / 4} ${PF / 4} ${-PF} ${PF * 2} ${half(F)}"
+-- lib/a/a.kg --
+pub const PF: Float = 10
+-- stdout --
+2.6666666666666665 2.5 false 5.666666666666666 2.6666666666666665
+9 -8 -5 64 7.5
+2.5 2.5 -10 20 2.5

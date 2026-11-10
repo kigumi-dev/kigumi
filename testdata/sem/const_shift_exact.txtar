@@ -1,0 +1,51 @@
+-- src --
+const B = (1 << 4095) >> 4090
+const Back: u8 = (1 << 9) >> 2
+const Mask: u64 = (1 << 64) - 1
+const Top: i64 = -(1 << 63)
+const Gone: u32 = 5 >> 40
+const AtWidth: u32 = (1 << 32) >> 1
+const Far = 8 >> 18446744073709551615
+const NegFar = -8 >> 18446744073709551615
+const Zero = 0 << 18446744073709551615
+const Chain = ((1 << 200) + (1 << 100)) >> 150
+const Mixed: u16 = ((1 << 300) * 3 - (1 << 300)) >> 290
+const Edge = (1 << 65535) >> 65530
+const EdgeSub = ((1 << 65535) - 1) >> 65530
+const EdgeMul = ((1 << 32768) * (1 << 32767)) >> 65530
+const Count: usize = 4090
+const ByTyped = (1 << 4095) >> Count
+const ONE: u8 = 1
+const Seven = ONE << 7
+const T: u32 = 5
+const Last = T >> 31
+const NEG1: i64 = -1
+const MinI64 = NEG1 << 63
+static S1: Int = (1 << 4095) >> 4090
+static S2: u64 = (1 << 64) - 1
+static S3: i8 = -((1 << 4095) >> 4088)
+const C1: Int = comptime ((1 << 4095) >> 4090)
+const C2: u8 = comptime ((1 << 9) >> 2)
+const C3: Int = comptime { (1 << 70) >> 65 }
+const C4: Int = comptime { (1 << 4095) >> 4090 }
+const C5: u8 = comptime { ((1 << 300) * 3 - (1 << 300)) >> 294 }
+const C65: usize = 65
+const V: Int = (1 << 70) >> C65
+const W: u8 = (1 << 9) >> (C65 - 63)
+const CV: Int = comptime ((1 << 70) >> C65)
+
+fn main() {
+    let a: u8 = B
+    let b: i8 = -B
+    let c: u128 = Chain
+    let d: Int = Far + NegFar + Zero + Edge + EdgeSub + EdgeMul + ByTyped
+    let e: u8 = Seven + Last.truncate[u8]()
+    print "${a} ${b} ${c} ${d} ${e} ${Back} ${Mask} ${Top} ${Gone} ${AtWidth} ${Mixed} ${MinI64}"
+    print "${S1} ${S2} ${S3} ${C1} ${C2} ${C3} ${C4} ${C5}"
+    let lc = comptime ((1 << 70) >> C65)
+    let x: Int = -(1 << 70) >> 10
+    let t: Int = (~(1 << 70)) >> 65
+    let b = (1 << 70) > (1 << 69)
+    print "${V} ${W} ${CV} ${lc} ${x} ${t} ${b}"
+}
+-- expect --

@@ -8,7 +8,7 @@ import (
 func (l *lowerer) binary(n syntax.NodeID) *Expr {
 	bin := l.t.View(n).AsBinary()
 	lhs, rhs := bin.Left().ID(), bin.Right().ID()
-	if lit, ok := l.r.LiteralOf(l.t, n); ok && (lit.Kind == sem.LitInt || lit.Kind == sem.LitFloat) {
+	if lit, ok := l.r.LiteralOf(l.t, n); ok && (lit.Kind == sem.LitInt || lit.Kind == sem.LitFloat || lit.Kind == sem.LitBool) {
 		return l.literal(n)
 	}
 	call := l.info.Calls[n]

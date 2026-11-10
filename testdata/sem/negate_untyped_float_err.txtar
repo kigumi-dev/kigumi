@@ -1,0 +1,48 @@
+-- src --
+const Z = 0
+
+fn first[T](a: T, b: T) -> T { a }
+
+fn main() {
+    let v1: Float = -(-(0)) //~ ERROR expected `Float`, found `Int`
+    let x: Float = 3.0
+    let q = x / -(0) //~ ERROR `Float` and `Int` cannot be mixed
+    let g: Float = first(-(0), -Z) //~ ERROR expected `Float`, found `Int`
+    let e: Float = -(0) + -(0) //~ ERROR expected `Float`, found `Int`
+    let o: Float? = -(0) //~ ERROR expected `Float?`, found `Int`
+    let d: Float = -(0)
+    let z: f32 = -Z
+    print "${d} ${z}"
+}
+-- expect --
+error[E400]: expected `Float`, found `Int`
+ --> main/main.kg:6:21
+  |
+6 |     let v1: Float = -(-(0)) //~ ERROR expected `Float`, found `Int`
+  |                     ^^^^^
+
+error[E405]: `Float` and `Int` cannot be mixed
+ --> main/main.kg:8:13
+  |
+8 |     let q = x / -(0) //~ ERROR `Float` and `Int` cannot be mixed
+  |             ^^^^^^^
+  = help: convert explicitly
+
+error[E400]: expected `Float`, found `Int`
+ --> main/main.kg:9:20
+  |
+9 |     let g: Float = first(-(0), -Z) //~ ERROR expected `Float`, found `Int`
+  |                    ^^^^^^^^^^^^^^
+
+error[E400]: expected `Float`, found `Int`
+  --> main/main.kg:10:20
+   |
+10 |     let e: Float = -(0) + -(0) //~ ERROR expected `Float`, found `Int`
+   |                    ^^^^^^^^^^
+
+error[E400]: expected `Float?`, found `Int`
+  --> main/main.kg:11:21
+   |
+11 |     let o: Float? = -(0) //~ ERROR expected `Float?`, found `Int`
+   |                     ^^^
+

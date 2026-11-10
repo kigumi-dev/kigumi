@@ -1,0 +1,12 @@
+-- src --
+let x: u64 = 3
+let n: usize = 63
+print "start"
+let c = x << n
+print "unreachable ${c}"
+-- stdout --
+start
+-- stderr --
+panic: integer overflow
+-- exit --
+2

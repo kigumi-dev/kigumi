@@ -130,7 +130,9 @@ static int64_t int_xor(int64_t x, int64_t y, int nk) {
 }
 static int64_t int_shl(int64_t x, int64_t y, int nk) {
     if (y < 0 || y >= bits_of(nk)) rt_panic("shift count out of range");
-    return checked_i64((int64_t)((uint64_t)x << y), nk, 0);
+    uint64_t v = (uint64_t)x << y;
+    int lost = is_signed(nk) ? ((int64_t)v >> y) != x : (v >> y) != (uint64_t)x;
+    return checked_i64((int64_t)v, nk, lost);
 }
 static int64_t int_shr(int64_t x, int64_t y, int nk) {
     if (y < 0 || y >= bits_of(nk)) rt_panic("shift count out of range");

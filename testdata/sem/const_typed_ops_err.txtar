@@ -12,12 +12,12 @@ const FLIP = ~X
 const ONE: u8 = 1
 const S = 1 << -1 //~ ERROR `-1` does not fit `usize`
 const T = 1 >> -3 //~ ERROR `-3` does not fit `usize`
-const WIDE = ONE << 8 //~ ERROR `a shift by 8` does not fit `u8`
-const HUGE = 1 << 100000000000 //~ ERROR `a shift by 100000000000` does not fit `Int`
+const WIDE = ONE << 8 //~ ERROR shift count 8 is out of range for `u8`
+const HUGE = 1 << 100000000000 //~ ERROR limited to 65536 bits
 const FINE = ONE << 7
-const L: Int = 8 >> 70 //~ ERROR `a shift by 70` does not fit `Int`
-const M: u32 = 5 >> 40 //~ ERROR `a shift by 40` does not fit `u32`
-const N = 8 >> 200 //~ ERROR `a shift by 200`
+const L: Int = 8 >> 70
+const M: u32 = 5 >> 40
+const N = 8 >> 200
 const OKS: Int = 8 >> 2
 const FINE2: u16 = 1 << 12
 
@@ -53,44 +53,26 @@ error[E400]: expected `u16`, found `u8`
   |                  ^
 
 error[E402]: `-1` does not fit `usize`
-  --> main/main.kg:12:11
+  --> main/main.kg:12:16
    |
 12 | const S = 1 << -1 //~ ERROR `-1` does not fit `usize`
-   |           ^^^^^^^
+   |                ^^
 
 error[E402]: `-3` does not fit `usize`
-  --> main/main.kg:13:11
+  --> main/main.kg:13:16
    |
 13 | const T = 1 >> -3 //~ ERROR `-3` does not fit `usize`
-   |           ^^^^^^^
+   |                ^^
 
-error[E402]: `a shift by 8` does not fit `u8`
-  --> main/main.kg:14:14
+error[E2321]: shift count 8 is out of range for `u8`: it must be below 8
+  --> main/main.kg:14:21
    |
-14 | const WIDE = ONE << 8 //~ ERROR `a shift by 8` does not fit `u8`
-   |              ^^^^^^^^
+14 | const WIDE = ONE << 8 //~ ERROR shift count 8 is out of range for `u8`
+   |                     ^
 
-error[E402]: `a shift by 100000000000` does not fit `Int`
+error[E2214]: constant integers are limited to 65536 bits
   --> main/main.kg:15:14
    |
-15 | const HUGE = 1 << 100000000000 //~ ERROR `a shift by 100000000000` does not fit `Int`
+15 | const HUGE = 1 << 100000000000 //~ ERROR limited to 65536 bits
    |              ^^^^^^^^^^^^^^^^^
-
-error[E402]: `a shift by 70` does not fit `Int`
-  --> main/main.kg:17:16
-   |
-17 | const L: Int = 8 >> 70 //~ ERROR `a shift by 70` does not fit `Int`
-   |                ^^^^^^^
-
-error[E402]: `a shift by 40` does not fit `u32`
-  --> main/main.kg:18:16
-   |
-18 | const M: u32 = 5 >> 40 //~ ERROR `a shift by 40` does not fit `u32`
-   |                ^^^^^^^
-
-error[E402]: `a shift by 200` does not fit `Int`
-  --> main/main.kg:19:11
-   |
-19 | const N = 8 >> 200 //~ ERROR `a shift by 200`
-   |           ^^^^^^^^
 

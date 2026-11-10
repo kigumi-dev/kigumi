@@ -1,0 +1,17 @@
+-- src --
+const B: Int = (1 << 4095) >> 4090
+let folded = (1 << 70) >> 65
+let far = (1 << 4095) >> 4090
+let gone: u32 = 5 >> 40
+let block = comptime { (1 << 4095) >> 4090 }
+print "${B} ${folded} ${far} ${gone} ${block}"
+let one: Int = 1
+let n: usize = 4095
+let big = one << n
+print "unreachable ${big}"
+-- stdout --
+32 32 32 0 32
+-- stderr --
+panic: shift count out of range
+-- exit --
+2

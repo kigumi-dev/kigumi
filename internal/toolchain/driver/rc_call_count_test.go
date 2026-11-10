@@ -605,6 +605,18 @@ var addedAfterBaseline = map[string]bool{
 	"async_handoff_nested_read.txtar":               true,
 	"async_handoff_returned_read.txtar":             true,
 	"blocking_pool_result_reads.txtar":              true,
+	"const_shift_exact.txtar":                       true,
+	"const_shift_runtime_panic.txtar":               true,
+	"int_shl_overflow_i64.txtar":                    true,
+	"int_shl_overflow_u64.txtar":                    true,
+	"int128_shl_overflow_u128.txtar":                true,
+	"int128_shl_overflow_i128.txtar":                true,
+	"int_shl_wide_edges.txtar":                      true,
+	"negate_untyped_zero_float.txtar":               true,
+	"shift_typed_count_default.txtar":               true,
+	"untyped_const_body.txtar":                      true,
+	"const_float_typed_int_value.txtar":             true,
+	"untyped_const_default_int.txtar":               true,
 }
 
 func TestRCCallCounts(t *testing.T) {

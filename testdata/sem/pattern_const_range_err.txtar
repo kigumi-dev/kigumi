@@ -1,0 +1,50 @@
+-- src --
+const K = 1 << 70
+const K2 = (1 << 64) + 32
+const K3 = 1 << 10
+const KF = 1 << 1024
+
+fn main() {
+    let x: Int = 0
+    match x {
+        K -> print "K" //~ ERROR `1180591620717411303424` does not fit `Int`
+        K2 -> print "K2" //~ ERROR `18446744073709551648` does not fit `Int`
+        K3 -> print "K3"
+        _ -> print "other"
+    }
+    let b: u8 = 3
+    match b {
+        K3 -> print "K3" //~ ERROR `1024` does not fit `u8`
+        _ -> print "other"
+    }
+    let f: Float = 0.0
+    match f {
+        KF -> print "KF" //~ ERROR does not fit `Float`
+        _ -> print "other"
+    }
+}
+-- expect --
+error[E402]: `1180591620717411303424` does not fit `Int`
+ --> main/main.kg:9:9
+  |
+9 |         K -> print "K" //~ ERROR `1180591620717411303424` does not fit `Int`
+  |         ^
+
+error[E402]: `18446744073709551648` does not fit `Int`
+  --> main/main.kg:10:9
+   |
+10 |         K2 -> print "K2" //~ ERROR `18446744073709551648` does not fit `Int`
+   |         ^^
+
+error[E402]: `1024` does not fit `u8`
+  --> main/main.kg:16:9
+   |
+16 |         K3 -> print "K3" //~ ERROR `1024` does not fit `u8`
+   |         ^^
+
+error[E402]: `1797693134862315... (309 digits)` does not fit `Float`
+  --> main/main.kg:21:9
+   |
+21 |         KF -> print "KF" //~ ERROR does not fit `Float`
+   |         ^^
+

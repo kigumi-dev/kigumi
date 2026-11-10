@@ -69,6 +69,9 @@ func (c *checker) coerceSteps(n syntax.NodeID, got, want TypeID) ([]CoStep, bool
 		}
 	}
 	if tt.Kind(got) == KUntyped {
+		if !c.fitsQuiet(c.literalNode(n), defaultOf(got)) {
+			return nil, false
+		}
 		steps, ok := c.coerceSteps(n, defaultOf(got), want)
 		if ok && len(steps) > 0 && steps[0].Kind != CoLiteral {
 			steps = append([]CoStep{{CoLiteral, defaultOf(got)}}, steps...)

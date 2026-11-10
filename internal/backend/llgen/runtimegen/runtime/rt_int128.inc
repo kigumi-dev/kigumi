@@ -189,7 +189,10 @@ static val w_binop(const char* op, val a, val b) {
     if (op[0] == '<' || op[0] == '>') {
         if (b->u.i < 0 || b->u.i >= 128) rt_panic("shift count out of range");
         unsigned n = (unsigned)b->u.i;
-        if (op[0] == '<') return w_box(w_shl(x, n), nk);
+        if (op[0] == '<') {
+            w128 r = w_shl(x, n);
+            return w_checked(r, nk, w_cmp_u(sg ? w_sar(r, n) : w_shr(r, n), x) != 0);
+        }
         return w_box(sg ? w_sar(x, n) : w_shr(x, n), nk);
     }
     w128 y = w_of(b), r, rem;

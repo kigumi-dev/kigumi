@@ -4148,6 +4148,15 @@
       ]
     },
     {
+      "id": "run/const_float_typed_int_value",
+      "kind": "run",
+      "path": "testdata/run/const_float_typed_int_value.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/const_float_typed_precision",
       "kind": "run",
       "path": "testdata/run/const_float_typed_precision.txtar",
@@ -4241,6 +4250,24 @@
       "id": "run/const_reach_unused_nested",
       "kind": "run",
       "path": "testdata/run/const_reach_unused_nested.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/const_shift_exact",
+      "kind": "run",
+      "path": "testdata/run/const_shift_exact.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/const_shift_runtime_panic",
+      "kind": "run",
+      "path": "testdata/run/const_shift_runtime_panic.txtar",
       "mode": [
         "vm",
         "native"
@@ -7784,6 +7811,24 @@
       ]
     },
     {
+      "id": "run/int128_shl_overflow_i128",
+      "kind": "run",
+      "path": "testdata/run/int128_shl_overflow_i128.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/int128_shl_overflow_u128",
+      "kind": "run",
+      "path": "testdata/run/int128_shl_overflow_u128.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/int128_text_hash",
       "kind": "run",
       "path": "testdata/run/int128_text_hash.txtar",
@@ -7976,6 +8021,33 @@
       "id": "run/int_saturating_unsigned",
       "kind": "run",
       "path": "testdata/run/int_saturating_unsigned.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/int_shl_overflow_i64",
+      "kind": "run",
+      "path": "testdata/run/int_shl_overflow_i64.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/int_shl_overflow_u64",
+      "kind": "run",
+      "path": "testdata/run/int_shl_overflow_u64.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/int_shl_wide_edges",
+      "kind": "run",
+      "path": "testdata/run/int_shl_wide_edges.txtar",
       "mode": [
         "vm",
         "native"
@@ -9040,6 +9112,15 @@
       "id": "run/named_variant_payload",
       "kind": "run",
       "path": "testdata/run/named_variant_payload.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/negate_untyped_zero_float",
+      "kind": "run",
+      "path": "testdata/run/negate_untyped_zero_float.txtar",
       "mode": [
         "vm",
         "native"
@@ -10137,6 +10218,15 @@
       ]
     },
     {
+      "id": "run/shift_typed_count_default",
+      "kind": "run",
+      "path": "testdata/run/shift_typed_count_default.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/slice_element_mut_ok",
       "kind": "run",
       "path": "testdata/run/slice_element_mut_ok.txtar",
@@ -11155,6 +11245,24 @@
       "id": "run/untyped_branch_operand",
       "kind": "run",
       "path": "testdata/run/untyped_branch_operand.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/untyped_const_body",
+      "kind": "run",
+      "path": "testdata/run/untyped_const_body.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/untyped_const_default_int",
+      "kind": "run",
+      "path": "testdata/run/untyped_const_default_int.txtar",
       "mode": [
         "vm",
         "native"
@@ -12868,6 +12976,22 @@
       ]
     },
     {
+      "id": "sem/const_float_range_err",
+      "kind": "sem",
+      "path": "testdata/sem/const_float_range_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/const_float_typed_ops_err",
+      "kind": "sem",
+      "path": "testdata/sem/const_float_typed_ops_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/const_generic_args_in_expr",
       "kind": "sem",
       "path": "testdata/sem/const_generic_args_in_expr.txtar",
@@ -12879,6 +13003,14 @@
       "id": "sem/const_generic_err",
       "kind": "sem",
       "path": "testdata/sem/const_generic_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/const_literal_limit_err",
+      "kind": "sem",
+      "path": "testdata/sem/const_literal_limit_err.txtar",
       "mode": [
         "check"
       ]
@@ -12900,9 +13032,33 @@
       ]
     },
     {
+      "id": "sem/const_shift_exact",
+      "kind": "sem",
+      "path": "testdata/sem/const_shift_exact.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/const_shift_exact_err",
+      "kind": "sem",
+      "path": "testdata/sem/const_shift_exact_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/const_shift_limit",
       "kind": "sem",
       "path": "testdata/sem/const_shift_limit.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/const_shift_runtime_err",
+      "kind": "sem",
+      "path": "testdata/sem/const_shift_runtime_err.txtar",
       "mode": [
         "check"
       ]
@@ -15884,6 +16040,14 @@
       ]
     },
     {
+      "id": "sem/negate_untyped_float_err",
+      "kind": "sem",
+      "path": "testdata/sem/negate_untyped_float_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/noalloc_hash_err",
       "kind": "sem",
       "path": "testdata/sem/noalloc_hash_err.txtar",
@@ -16031,6 +16195,14 @@
       "id": "sem/partial_move_err",
       "kind": "sem",
       "path": "testdata/sem/partial_move_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/pattern_const_range_err",
+      "kind": "sem",
+      "path": "testdata/sem/pattern_const_range_err.txtar",
       "mode": [
         "check"
       ]
@@ -16716,6 +16888,14 @@
       ]
     },
     {
+      "id": "sem/shift_const_count_err",
+      "kind": "sem",
+      "path": "testdata/sem/shift_const_count_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/shift_context",
       "kind": "sem",
       "path": "testdata/sem/shift_context.txtar",
@@ -17223,6 +17403,14 @@
       "id": "sem/unsafe_operand_move",
       "kind": "sem",
       "path": "testdata/sem/unsafe_operand_move.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/untyped_option_fit_err",
+      "kind": "sem",
+      "path": "testdata/sem/untyped_option_fit_err.txtar",
       "mode": [
         "check"
       ]

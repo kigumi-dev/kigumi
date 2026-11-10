@@ -21,6 +21,10 @@ func (c *checker) literalValue(n syntax.NodeID) TypeID {
 		if !ok {
 			return TyPoison
 		}
+		if constTooWide(i) {
+			c.errAt(n, cConstTooLarge, maxConstBits)
+			return TyPoison
+		}
 		v = constValue{Kind: constInt, Int: i}
 	case syntax.FloatLit:
 		f, ok := syntax.ParseFloat(node.Tok().Text())
@@ -33,7 +37,9 @@ func (c *checker) literalValue(n syntax.NodeID) TypeID {
 		if node.Tok().Kind() != token.Minus || !isNumericLiteral(c.t, inner) {
 			return 0
 		}
-		c.literalValue(inner)
+		if c.literalValue(inner) == TyPoison {
+			return TyPoison
+		}
 		iv := c.info.Literals[inner]
 		if iv.Kind == constInt {
 			v = constValue{Kind: constInt, Int: new(big.Int).Neg(iv.Int)}
@@ -69,7 +75,7 @@ func (c *checker) checkLiteralFits(n syntax.NodeID, target TypeID) bool {
 	switch {
 	case tt.IsInteger(target) && v.Kind == constInt:
 		if !c.r.intFits(v.Int, target) {
-			c.errAt(n, cLiteralOutOfRange, v.Int.String(), target)
+			c.errAt(n, cLiteralOutOfRange, constIntText(v.Int), target)
 			return false
 		}
 	case tt.IsInteger(target) && v.Kind == constFloat:
@@ -77,7 +83,7 @@ func (c *checker) checkLiteralFits(n syntax.NodeID, target TypeID) bool {
 		return false
 	case tt.IsFloat(target):
 		if v.Kind == constInt && !intExactAsFloat(v.Int, tt.Width(target)) {
-			c.errAt(n, cLiteralOutOfRange, v.Int.String(), target)
+			c.errAt(n, cLiteralOutOfRange, constIntText(v.Int), target)
 			return false
 		}
 		if v.Kind == constFloat && !floatFits(v.Float, tt.Width(target)) {
@@ -93,9 +99,12 @@ func (c *checker) checkLiteralFits(n syntax.NodeID, target TypeID) bool {
 }
 
 func intExactAsFloat(v *big.Int, bits int) bool {
-	mant := 53
+	mant, maxBits := 53, 1024
 	if bits == 32 {
-		mant = 24
+		mant, maxBits = 24, 128
+	}
+	if v.BitLen() > maxBits {
+		return false
 	}
 	f := new(big.Float).SetPrec(uint(mant)).SetInt(v)
 	back, _ := f.Int(nil)

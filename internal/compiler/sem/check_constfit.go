@@ -3,7 +3,6 @@ package sem
 import (
 	"math"
 	"math/big"
-	"strconv"
 
 	"kigumi/internal/compiler/syntax"
 )
@@ -16,12 +15,8 @@ func (r *Result) constFits(f FileID, n syntax.NodeID, v constValue, typ TypeID) 
 			r.errAt(f, n, cTypeMismatch, typ, v.Typ)
 			return false
 		}
-		if v.Typ == 0 && v.Shift >= tt.Width(typ) {
-			r.errAt(f, n, cLiteralOutOfRange, "a shift by "+strconv.Itoa(v.Shift), typ)
-			return false
-		}
 		if !r.intFits(v.Int, typ) {
-			r.errAt(f, n, cLiteralOutOfRange, v.Int.String(), typ)
+			r.errAt(f, n, cLiteralOutOfRange, constIntText(v.Int), typ)
 			return false
 		}
 	case tt.IsInteger(typ) && v.Kind == constFloat:
@@ -29,7 +24,7 @@ func (r *Result) constFits(f FileID, n syntax.NodeID, v constValue, typ TypeID) 
 		return false
 	case tt.IsFloat(typ) && v.Kind == constInt:
 		if !intExactAsFloat(v.Int, tt.Width(typ)) {
-			r.errAt(f, n, cLiteralOutOfRange, v.Int.String(), typ)
+			r.errAt(f, n, cLiteralOutOfRange, constIntText(v.Int), typ)
 			return false
 		}
 	case tt.IsFloat(typ) && v.Kind == constFloat:
@@ -44,6 +39,19 @@ func (r *Result) constFits(f FileID, n syntax.NodeID, v constValue, typ TypeID) 
 		return false
 	}
 	return true
+}
+
+// Up to 48 digits every i128 and u128 bound still prints whole.
+func constIntText(v *big.Int) string {
+	s := v.String()
+	digits := len(s)
+	if v.Sign() < 0 {
+		digits--
+	}
+	if digits <= 48 {
+		return s
+	}
+	return s[:len(s)-digits+16] + "... (" + itoa(digits) + " digits)"
 }
 
 // floatFits reports whether the literal is finite at the target width. Underflow to

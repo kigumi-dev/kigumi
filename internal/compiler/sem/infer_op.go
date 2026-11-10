@@ -18,6 +18,9 @@ func (c *checker) synthBinary(n syntax.NodeID, want TypeID) TypeID {
 		c.scopedChain(n)
 		return TyBool
 	}
+	if t, ok := c.foldUntypedBinary(n, want); ok {
+		return t
+	}
 	l, r := c.synthOperands(op, lhs, rhs, want)
 	tt := c.r.Types
 	if op == token.DotDot || op == token.DotDotEq {
@@ -68,6 +71,9 @@ func (c *checker) synthBinary(n syntax.NodeID, want TypeID) TypeID {
 		if tt.IsInteger(l) {
 			if r != TyUsize {
 				c.errAt(rhs, cShiftCountUsize, r)
+				return TyPoison
+			}
+			if !c.checkConstCount(rhs, l) {
 				return TyPoison
 			}
 			return c.builtinOp(n, op, l)

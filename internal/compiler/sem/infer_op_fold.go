@@ -82,6 +82,10 @@ func (c *checker) foldBinary(n syntax.NodeID, op token.Kind, lhs, rhs syntax.Nod
 		return 0
 	}
 	if lv.Kind == constInt && rv.Kind == constInt {
+		if op == token.Star && constProductTooWide(lv.Int, rv.Int) {
+			c.errAt(n, cConstTooLarge, maxConstBits)
+			return TyPoison
+		}
 		out := new(big.Int)
 		switch op {
 		case token.Plus:
@@ -108,6 +112,10 @@ func (c *checker) foldBinary(n syntax.NodeID, op token.Kind, lhs, rhs syntax.Nod
 			out.Xor(lv.Int, rv.Int)
 		default:
 			return 0
+		}
+		if constTooWide(out) {
+			c.errAt(n, cConstTooLarge, maxConstBits)
+			return TyPoison
 		}
 		c.info.Literals[n] = constValue{Kind: constInt, Int: out}
 		return TyUntypedInt
@@ -163,6 +171,9 @@ func (c *checker) compoundAssign(n, lhs, rhs syntax.NodeID, target TypeID) {
 	case (op == token.Shl || op == token.Shr) && tt.IsInteger(target):
 		if r != TyUsize {
 			c.errAt(rhs, cShiftCountUsize, r)
+			return
+		}
+		if !c.checkConstCount(rhs, target) {
 			return
 		}
 		result = target

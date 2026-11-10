@@ -1,0 +1,33 @@
+-- src --
+const X: Int = -(1 << 70) >> 10
+const T: Int = (~(1 << 70)) >> 65
+const B = (1 << 70) > (1 << 69)
+const K3 = 1 << 10
+const HOk: Float = 1 << 1023
+const GOk: f32 = 1 << 127
+
+fn pick(x: Int) -> String {
+    match x {
+        K3 -> "K3"
+        _ -> "other"
+    }
+}
+
+let x: Int = -(1 << 70) >> 10
+let t: Int = (~(1 << 70)) >> 65
+let b = (1 << 70) > (1 << 69)
+let eq = (1 << 64) == (1 << 64) + 0
+print "${X} ${T} ${B} ${x} ${t} ${b} ${eq}"
+let a: u8 = ~0
+let n = -(1 << 63)
+let g: i8 = -(1 << 7)
+print "${a} ${n} ${g}"
+print "${pick(1024)} ${pick(0)}"
+let f: Float = 1 << 1023
+let s: f32 = 1 << 127
+print "${f == HOk} ${s == GOk}"
+-- stdout --
+-1152921504606846976 -33 true -1152921504606846976 -33 true true
+255 -9223372036854775808 -128
+K3 other
+true true
