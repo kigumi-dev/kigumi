@@ -118,7 +118,7 @@ func TestParamStoreSitesComponentCost(t *testing.T) {
 	if c.siteRuns > 2*22*22 {
 		t.Errorf("rotation: %d summary runs for 22 parameters", c.siteRuns)
 	}
-	p, f = buildSites(t, rotationSource(60), 3*time.Second)
+	p, f = buildSites(t, rotationSource(60), 6*time.Second)
 	c = &borrowCheck{p: p.input, state: New(p.input, nil), f: f}
 	c.paramStoreSites(f, 0)
 	t.Logf("rotation of 60: %d summary runs", c.siteRuns)
