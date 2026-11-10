@@ -198,6 +198,9 @@ func (r *Repl) Eval(src string, interactive bool) (EvalResult, error) {
 		return EvalResult{}, nil
 	}
 	for _, let := range cell.lets {
+		if strings.HasPrefix(let.name, "__repl_") {
+			return EvalResult{Message: fmt.Sprintf("repl: `%s` is reserved for the evaluator", let.name), Status: 1}, nil
+		}
 		if r.binding(let.name) >= 0 {
 			return EvalResult{Message: fmt.Sprintf("repl: `%s` is already a session binding; choose a fresh name", let.name), Status: 1}, nil
 		}
