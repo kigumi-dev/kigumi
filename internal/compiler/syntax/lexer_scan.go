@@ -34,25 +34,14 @@ func (lx *lexer) lineComment() {
 
 func (lx *lexer) blockComment() {
 	start := lx.pos
-	depth := 0
-	for lx.pos < lx.end {
-		switch {
-		case lx.src[lx.pos] == '/' && lx.peekByte(1) == '*':
-			depth++
-			lx.pos += 2
-		case lx.src[lx.pos] == '*' && lx.peekByte(1) == '/':
-			depth--
-			lx.pos += 2
-			if depth == 0 {
-				lx.commentUTF8(start)
-				lx.emit(token.BlockComment, start, lx.pos)
-				return
-			}
-		default:
-			lx.pos++
-		}
+	end, closed := blockCommentEnd(lx.src, lx.pos, lx.end)
+	lx.pos = end
+	if !closed {
+		lx.errorf(start, lx.pos, "unterminated block comment")
+		lx.emit(token.BlockComment, start, lx.pos)
+		return
 	}
-	lx.errorf(start, lx.pos, "unterminated block comment")
+	lx.commentUTF8(start)
 	lx.emit(token.BlockComment, start, lx.pos)
 }
 

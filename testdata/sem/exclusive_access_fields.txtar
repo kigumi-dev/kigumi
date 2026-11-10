@@ -85,7 +85,7 @@ fn disjointClosureBeforeCall() -> Int {
 fn sameFieldClosureBeforeCall() -> Int {
     let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
     let touch = () => { p.a.update(1) }
-    p.a.tick() //~ ERROR a `mut self` call on `p` conflicts
+    p.a.tick()
     touch()
     p.a.count
 }
@@ -218,17 +218,6 @@ note: this closure captures `p`
    |
 65 |     p.a.run(() => { touchPair(&mut p) }) //~ ERROR a closure argument cannot capture `p`
    |             ^^^^^^^^^^^^^^^^^^^^^^^^
-
-error[E980]: a `mut self` call on `p` conflicts with a closure that shares its identity cell
-  --> app/t/t.kg:87:5
-   |
-87 |     p.a.tick() //~ ERROR a `mut self` call on `p` conflicts
-   |     ^^^
-note: `p` is shared with a closure that writes it here
-  --> app/t/t.kg:86:25
-   |
-86 |     let touch = () => { p.a.update(1) }
-   |                         ^^^
 
 error[E1051]: cannot see what this closure captures while `p` is exclusively borrowed by this call
    --> app/t/t.kg:126:15

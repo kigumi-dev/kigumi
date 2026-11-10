@@ -7,18 +7,38 @@ fn Item.update(mut self, delta: Int) {
     self.count = self.count + delta
 }
 
-fn conflict() {
+fn closureCalledAfter() {
     let mut item = Item { count: 0 }
     let touch = () => { item.update(1) }
-    item.update(1) //~ ERROR a `mut self` call on `item` conflicts
+    item.update(1)
     touch()
 }
 
-fn conflictViaReassign() {
+// touch only changes the storage the call holds, so its write is kept.
+fn closureCalledInArgument() {
+    let mut item = Item { count: 0 }
+    let touch = () => {
+        item.update(1)
+        1
+    }
+    item.update(touch())
+}
+
+fn reassignCalledAfter() {
     let mut item = Item { count: 0 }
     let reset = () => { item = Item { count: 0 } }
-    item.update(1) //~ ERROR a `mut self` call on `item` conflicts
+    item.update(1)
     reset()
+}
+
+// reset replaces item after the call read it, so the call's write would be lost.
+fn reassignCalledInArgument() {
+    let mut item = Item { count: 0 }
+    let reset = () => {
+        item = Item { count: 0 }
+        2
+    }
+    item.update(reset() + 1) //~ ERROR a `mut self` call on `item` conflicts
 }
 
 fn onlyThroughClosure() {
@@ -42,24 +62,13 @@ fn readOnlyCapture() {
 }
 -- expect --
 error[E980]: a `mut self` call on `item` conflicts with a closure that shares its identity cell
-  --> app/t/t.kg:12:5
+  --> app/t/t.kg:40:5
    |
-12 |     item.update(1) //~ ERROR a `mut self` call on `item` conflicts
+40 |     item.update(reset() + 1) //~ ERROR a `mut self` call on `item` conflicts
    |     ^^^^
 note: `item` is shared with a closure that writes it here
-  --> app/t/t.kg:11:25
+  --> app/t/t.kg:37:9
    |
-11 |     let touch = () => { item.update(1) }
-   |                         ^^^^
-
-error[E980]: a `mut self` call on `item` conflicts with a closure that shares its identity cell
-  --> app/t/t.kg:19:5
-   |
-19 |     item.update(1) //~ ERROR a `mut self` call on `item` conflicts
-   |     ^^^^
-note: `item` is shared with a closure that writes it here
-  --> app/t/t.kg:18:25
-   |
-18 |     let reset = () => { item = Item { count: 0 } }
-   |                         ^^^^
+37 |         item = Item { count: 0 }
+   |         ^^^^
 

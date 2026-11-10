@@ -1,0 +1,49 @@
+-- src --
+const A: f32 = 0.001
+const B: f32 = 0.004
+const K: f32 = 0.001 + 0.004
+const K2: f32 = A + B
+const K3: f32 = A + (0.001 + 0.004)
+const K4 = A + (0.001 + 0.004)
+const N: f32 = -0.1 + 0.3
+const D: Float = 0.1 + 0.2
+const T: f32 = 1.5
+const U = T * 2
+static S: f32 = 0.001 + 0.004
+const H = 0.004
+const Z = 0.0
+const NEG: f32 = 0.5 + -(0.001 + 0.004)
+const NEGH: f32 = 0.004 + (-H)
+const SUB: f32 = (1.0e-30 * 1.0e-15) * 1.0e30
+const SUB64 = 1.0e-310 * 1.0e10
+fn main() {
+    let c: f32 = 0.001 + 0.004
+    let a: f32 = 0.001
+    let b: f32 = 0.004
+    let d = a + b
+    let e = a + (0.001 + 0.004)
+    let n: f32 = -0.1 + 0.3
+    print "c=${c} d=${d} same=${c == d} K=${K == d} K2=${K2 == d} S=${S == d}"
+    print "K3=${K3 == e} K4=${K4 == e} N=${N == n} D=${D} U=${U}"
+    let neg: f32 = 0.5 + -(0.001 + 0.004)
+    let negh: f32 = 0.004 + (-H)
+    let half: f32 = 0.5
+    let h: f32 = 0.004
+    print "neg=${neg} ${NEG == neg} rt=${half + -(a + b)} negh=${negh} ${NEGH == negh} rt=${b + (-h)}"
+    let sub: f32 = (1.0e-30 * 1.0e-15) * 1.0e30
+    let tiny: f32 = 1.0e-30
+    let t15: f32 = 1.0e-15
+    let t30: f32 = 1.0e30
+    let d1 = 1.0e-310
+    let d2 = 1.0e10
+    print "sub=${sub} ${SUB == sub} rt=${(tiny * t15) * t30} sub64=${SUB64} rt=${d1 * d2}"
+    let nz = -(0.0 + Z)
+    let one = 1.0
+    print "negzero=${one / nz}"
+}
+-- stdout --
+c=0.0050000004 d=0.0050000004 same=true K=true K2=true S=true
+K3=true K4=true N=true D=0.30000000000000004 U=3
+neg=0.495 true rt=0.495 negh=0 true rt=0
+sub=1.4012985e-15 true rt=1.4012985e-15 sub64=9.999999999999969e-301 rt=9.999999999999969e-301
+negzero=-Inf

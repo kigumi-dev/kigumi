@@ -1,0 +1,31 @@
+-- src --
+let x = 1 // bad ÿ byte
+/* block þ */
+let y = /* nested /* Ã */ */ 2
+-- expect --
+File
+  Let
+    pattern: PatBind x
+    init: IntLit 1
+  Let
+    pattern: PatBind y
+    init: IntLit 2
+-- diagnostics --
+error[E2199]: comment contains invalid UTF-8
+ --> comment_invalid_utf8.txtar:1:18
+  |
+1 | let x = 1 // bad ÿ byte
+  |                  ^
+
+error[E2199]: comment contains invalid UTF-8
+ --> comment_invalid_utf8.txtar:2:10
+  |
+2 | /* block þ */
+  |          ^
+
+error[E2199]: comment contains invalid UTF-8
+ --> comment_invalid_utf8.txtar:3:22
+  |
+3 | let y = /* nested /* Ã */ */ 2
+  |                      ^
+

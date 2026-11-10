@@ -1,10 +1,13 @@
 package sem
 
-import "kigumi/internal/compiler/syntax"
+import (
+	"math/big"
 
-// rangePattern types `lo..hi` / `lo..=hi`: both bounds
-// are integer literals or named constants, adopted to the scrutinee's
-// integer type. Ranges never make an integer match exhaustive.
+	"kigumi/internal/compiler/syntax"
+)
+
+// rangePattern types `lo..hi` / `lo..=hi` over an integer or Char scrutinee; both bounds are literals or named
+// constants of its type. Ranges never make a match exhaustive.
 func (c *checker) rangePattern(p syntax.NodeID, scrutinee TypeID) PatInfo {
 	r := c.t.View(p).AsPatRange()
 	lo, hi := r.Lo().ID(), r.Hi().ID()
@@ -20,7 +23,7 @@ func (c *checker) rangePattern(p syntax.NodeID, scrutinee TypeID) PatInfo {
 		c.setType(p, TyPoison)
 		return PatInfo{Kind: PatWild, Type: TyPoison}
 	}
-	if c.info.Literals[c.literalNode(lo)].Int.Cmp(c.info.Literals[c.literalNode(hi)].Int) > 0 {
+	if l, h := c.rangeBoundOrdinal(lo), c.rangeBoundOrdinal(hi); l != nil && h != nil && l.Cmp(h) > 0 {
 		c.errAt(p, cRangePatternOrder)
 	}
 	return PatInfo{Kind: PatRange, Type: scrutinee}
@@ -60,4 +63,23 @@ func (c *checker) rangeBoundValue(n syntax.NodeID, scrutinee TypeID) bool {
 		return false
 	}
 	return c.info.Types[n] != TyPoison
+}
+
+// rangeBoundOrdinal is the value a checked bound stands for: an integer, or a character's code point.
+func (c *checker) rangeBoundOrdinal(n syntax.NodeID) *big.Int {
+	n = c.literalNode(n)
+	if v, ok := c.info.Literals[n]; ok && v.Kind == constInt {
+		return v.Int
+	}
+	switch c.t.Kind(n) {
+	case syntax.CharLit:
+		if ch, ok := syntax.DecodeChar(c.t.View(n).Tok().Text()); ok {
+			return big.NewInt(int64(ch))
+		}
+	case syntax.Ident:
+		if ent := c.info.Uses[n]; ent != 0 && c.r.Entities[ent].Kind == EntConst && c.r.constInfo(ent).Value.Kind == constChar {
+			return big.NewInt(int64(c.r.constInfo(ent).Value.Char))
+		}
+	}
+	return nil
 }

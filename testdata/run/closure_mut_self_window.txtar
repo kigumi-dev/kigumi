@@ -1,0 +1,165 @@
+-- src --
+type Item = {
+    pub mut count Int
+}
+
+fn Item.add(mut self, d: Int) {
+    self.count = self.count + d
+}
+
+fn Item.reset(mut self) {
+    self = Item { count: 1000 }
+}
+
+type Pair = {
+    pub mut a Item
+    pub mut b Item
+}
+
+fn Pair.resetA(mut self) {
+    self.a = Item { count: 1000 }
+}
+
+fn apply[F: FnOnce[fn() -> Int]](f: F) -> Int {
+    f()
+}
+
+fn index[F: FnOnce[fn() -> usize]](f: F) -> usize {
+    f()
+}
+
+fn same(x: Int) -> Int {
+    x
+}
+
+// The closures below run while the receiver is held but only change storage the method also holds, so its write is
+// kept; the last two evaluate the replacing closure before the call instead.
+
+fn invokedInArgument() -> Int {
+    let mut c = Item { count: 0 }
+    c.add((() => {
+        c.add(100)
+        7
+    })())
+    c.count
+}
+
+fn methodInArgument() -> Int {
+    let mut c = Item { count: 0 }
+    c.add(apply(() => {
+        c.add(100)
+        7
+    }))
+    c.count
+}
+
+fn fieldSetInArgument() -> Int {
+    let mut c = Item { count: 0 }
+    c.add(apply(() => {
+        c.count = 5000
+        7
+    }))
+    c.count
+}
+
+fn insideFieldReceiver() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    p.a.add(apply(() => {
+        p.a.count = 1000
+        p.a.add(10)
+        7
+    }))
+    p.a.count
+}
+
+fn otherFieldReplaced() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    p.a.add(apply(() => {
+        p.b = Item { count: 1000 }
+        7
+    }))
+    p.a.count + p.b.count
+}
+
+fn elementSetInIndex() -> Int {
+    let mut fa = FixedArray.filled[Item, 2](Item { count: 0 })
+    let f = () => {
+        fa[0].count = 1000
+        let z: usize = 0
+        z
+    }
+    fa[f()].add(7)
+    fa[0].count
+}
+
+fn elementMethodInIndex() -> Int {
+    let mut fa = FixedArray.filled[Item, 2](Item { count: 0 })
+    let f = () => {
+        fa[0].add(1000)
+        let z: usize = 0
+        z
+    }
+    fa[f()].add(7)
+    fa[0].count
+}
+
+fn rootReplacedBeforeCall() -> Int {
+    let mut c = Item { count: 0 }
+    let d = apply(() => {
+        c = Item { count: 1000 }
+        7
+    })
+    c.add(d)
+    c.count
+}
+
+fn indexReplacedBeforeCall() -> Int {
+    let mut fa = FixedArray.filled[Item, 2](Item { count: 0 })
+    let i = index(() => {
+        fa = FixedArray.filled[Item, 2](Item { count: 1000 })
+        let z: usize = 0
+        z
+    })
+    fa[i].add(7)
+    fa[0].count
+}
+
+fn bump[F: FnMut[fn() -> Void]](mut f: F) -> Int {
+    f()
+    1
+}
+
+fn calledClosureInArgument() -> Int {
+    let mut c = Item { count: 0 }
+    let touch = () => {
+        c.add(1)
+        1
+    }
+    c.add(touch())
+    c.count
+}
+
+fn closureInsideClosure() -> Int {
+    let mut c = Item { count: 0 }
+    let b = () => {
+        c.add(2)
+        2
+    }
+    let a = () => { c.add(b()) }
+    a()
+    c.count
+}
+
+fn madeInArgument() -> Int {
+    let mut c = Item { count: 0 }
+    c.add(bump(() => { c.add(5) }))
+    c.count
+}
+
+print "${invokedInArgument()} ${methodInArgument()} ${fieldSetInArgument()} ${insideFieldReceiver()} ${otherFieldReplaced()}"
+print "${elementSetInIndex()} ${elementMethodInIndex()} ${rootReplacedBeforeCall()} ${indexReplacedBeforeCall()}"
+print "${calledClosureInArgument()} ${closureInsideClosure()} ${madeInArgument()}"
+-- stdout --
+107 107 5007 1017 1007
+1007 1007 1007 1007
+2 4 6

@@ -9,7 +9,7 @@ fn Item.update(mut self, delta: Int) {
 
 fn beforeDefinition() -> Int {
     let mut item = Item { count: 0 }
-    item.update(1) //~ ERROR a `mut self` call on `item` conflicts
+    item.update(1)
     let touch = () => { item.update(1) }
     touch()
     item.count
@@ -17,11 +17,33 @@ fn beforeDefinition() -> Int {
 
 fn aliasBeforeDefinition() -> Int {
     let mut item = Item { count: 0 }
-    item.update(2) //~ ERROR a `mut self` call on `item` conflicts
+    item.update(2)
     let touch = () => { item.update(1) }
     let alias = touch
     alias()
     item.count
+}
+
+fn beforeDefinitionInLoop() -> Int {
+    let mut item = Item { count: 0 }
+    for _ in 0..2 {
+        item.update(1)
+        let touch = () => { item.update(1) }
+        touch()
+    }
+    item.count
+}
+
+// The closure made in the argument only changes the storage the call holds.
+fn definedInArgument() -> Int {
+    let mut item = Item { count: 0 }
+    item.update(bump(() => { item.update(5) }))
+    item.count
+}
+
+fn bump[F: FnMut[fn() -> Void]](mut f: F) -> Int {
+    f()
+    1
 }
 
 fn onlyThroughClosure() -> Int {
@@ -49,25 +71,3 @@ fn otherRootCapture() -> Int {
     item.count
 }
 -- expect --
-error[E980]: a `mut self` call on `item` conflicts with a closure that shares its identity cell
-  --> app/t/t.kg:11:5
-   |
-11 |     item.update(1) //~ ERROR a `mut self` call on `item` conflicts
-   |     ^^^^
-note: `item` is shared with a closure that writes it here
-  --> app/t/t.kg:12:25
-   |
-12 |     let touch = () => { item.update(1) }
-   |                         ^^^^
-
-error[E980]: a `mut self` call on `item` conflicts with a closure that shares its identity cell
-  --> app/t/t.kg:19:5
-   |
-19 |     item.update(2) //~ ERROR a `mut self` call on `item` conflicts
-   |     ^^^^
-note: `item` is shared with a closure that writes it here
-  --> app/t/t.kg:20:25
-   |
-20 |     let touch = () => { item.update(1) }
-   |                         ^^^^
-

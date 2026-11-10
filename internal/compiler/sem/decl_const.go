@@ -36,7 +36,11 @@ func (r *Result) evalConstDecl(id EntityID) constValue {
 		return constValue{}
 	}
 	info.State = constEvaluating
-	v, ok := r.evalConst(e.File, s.Value)
+	var declared TypeID
+	if s.Type != 0 {
+		declared = r.resolveType(e.File, r.fileScopes[e.File], s.Type, posConst)
+	}
+	v, ok := r.evalConstIn(e.File, s.Value, declared)
 	info = r.constInfo(id)
 	if !ok {
 		info.State = constFailed
@@ -48,7 +52,7 @@ func (r *Result) evalConstDecl(id EntityID) constValue {
 		typ = v.Typ
 	}
 	if s.Type != 0 {
-		typ = r.resolveType(e.File, r.fileScopes[e.File], s.Type, posConst)
+		typ = declared
 		if !r.constFits(e.File, s.Value, v, typ) {
 			info.State = constFailed
 			return constValue{}
@@ -134,8 +138,8 @@ func (r *Result) evalConst(f FileID, n syntax.NodeID) (constValue, bool) {
 		return constValue{Kind: constString, Str: syntax.DecodeString(raw[1 : len(raw)-1])}, true
 	case syntax.ByteStringLit:
 		return constValue{Kind: constBytes, Str: string(syntax.DecodeByteString(node.Tok().Text()))}, true
-	case syntax.Paren:
-		return r.evalConst(f, node.AsParen().Inner().ID())
+	case syntax.Paren, syntax.Unary, syntax.Binary:
+		return r.evalConstIn(f, n, 0)
 	case syntax.Ident:
 		ent := r.resolveValueName(f, r.fileScopes[f], r.identPath(f, n))
 		if ent == 0 {
@@ -152,22 +156,6 @@ func (r *Result) evalConst(f FileID, n syntax.NodeID) (constValue, bool) {
 		return v, v.Kind != constNone
 	case syntax.MemberExpr:
 		return r.evalQualifiedConst(f, n)
-	case syntax.Unary:
-		v, ok := r.evalConst(f, node.AsUnary().Operand().ID())
-		if !ok {
-			return v, false
-		}
-		return r.constUnary(f, n, node.Tok().Kind(), v)
-	case syntax.Binary:
-		a, ok := r.evalConst(f, node.AsBinary().Left().ID())
-		if !ok {
-			return a, false
-		}
-		b, ok := r.evalConst(f, node.AsBinary().Right().ID())
-		if !ok {
-			return b, false
-		}
-		return r.constBinary(f, n, node.Tok().Kind(), a, b)
 	}
 	if node.Kind() == syntax.ComptimeExpr {
 		r.errAt(f, n, cComptimeInitUntyped)

@@ -3,7 +3,19 @@ fn main() {
     let x = 1
     let a = "${ x // a } in a comment\n}"
     let b = "${ x /* } */ }"
-    print "${a}${b}"
+    let c = "${ x // }"
+    let d = "${ x /* /* } */ } */ + 2 }"
+    let e = "${ {
+        let y = x // { "}" }
+        y
+    } }"
+    let f = "${ x # " }"
+    let g = "${ x # { }"
+    let h = "${ {
+        let y = x # { "}" }
+        y
+    } }"
+    print "${a}${b}${c}${d}${e}${f}${g}${h}"
 }
 -- expect --
 File
@@ -22,33 +34,72 @@ File
       Let
         pattern: PatBind a
         init: StringLit "${ x // a } in a comment\n}"
-    let b = "${ x /* } */ }"
-    print "${a}${b}"
-}
-
           List
             Ident x
--- diagnostics --
-error[E2199]: unterminated string literal
- --> interp_comments.txtar:3:13
-  |
-3 |     let a = "${ x // a } in a comment\n}"
-  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-error[E2199]: unexpected `let` in interpolation
- --> interp_comments.txtar:4:5
-  |
-4 |     let b = "${ x /* } */ }"
-  |     ^^^
-
-error[E2199]: expected }, found end of file
- --> interp_comments.txtar:7:1
-  |
-7 | 
-  | ^
-note: `{` is opened here
- --> interp_comments.txtar:1:11
-  |
-1 | fn main() {
-  |           ^
-
+      Let
+        pattern: PatBind b
+        init: StringLit "${ x /* } */ }"
+          List
+            Ident x
+      Let
+        pattern: PatBind c
+        init: StringLit "${ x // }"
+          List
+            Ident x
+      Let
+        pattern: PatBind d
+        init: StringLit "${ x /* /* } */ } */ + 2 }"
+          List
+            Binary +
+              Ident x
+              IntLit 2
+      Let
+        pattern: PatBind e
+        init: StringLit "${ {
+        let y = x // { "}" }
+        y
+    } }"
+          List
+            Block
+              Let
+                pattern: PatBind y
+                init: Ident x
+              ExprStmt
+                Ident y
+      Let
+        pattern: PatBind f
+        init: StringLit "${ x # " }"
+          List
+            Ident x
+      Let
+        pattern: PatBind g
+        init: StringLit "${ x # { }"
+          List
+            Ident x
+      Let
+        pattern: PatBind h
+        init: StringLit "${ {
+        let y = x # { "}" }
+        y
+    } }"
+          List
+            Block
+              Let
+                pattern: PatBind y
+                init: Ident x
+              ExprStmt
+                Ident y
+      ExprStmt
+        WsCall
+          Ident print
+          List
+            StringLit "${a}${b}${c}${d}${e}${f}${g}${h}"
+              List
+                Ident a
+                Ident b
+                Ident c
+                Ident d
+                Ident e
+                Ident f
+                Ident g
+                Ident h

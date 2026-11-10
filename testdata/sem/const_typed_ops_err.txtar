@@ -3,7 +3,7 @@ const X: u8 = 200
 const Y = X + 100 //~ ERROR `300` does not fit `u8`
 const Z: u8 = 255
 const W = Z + 1 //~ ERROR `256` does not fit `u8`
-const NEG = -X //~ ERROR `-200` does not fit `u8`
+const NEG = -X //~ ERROR unary `-` on unsigned `u8`
 const BAD: u16 = X //~ ERROR expected `u16`, found `u8`
 const OK = X - 50
 const OK2: u8 = 100 + 100
@@ -40,10 +40,10 @@ error[E402]: `256` does not fit `u8`
 4 | const W = Z + 1 //~ ERROR `256` does not fit `u8`
   |           ^^^^^
 
-error[E402]: `-200` does not fit `u8`
+error[E608]: unary `-` on unsigned `u8`
  --> main/main.kg:5:13
   |
-5 | const NEG = -X //~ ERROR `-200` does not fit `u8`
+5 | const NEG = -X //~ ERROR unary `-` on unsigned `u8`
   |             ^^
 
 error[E400]: expected `u16`, found `u8`

@@ -1,0 +1,215 @@
+-- app/t/t.kg --
+type Item = {
+    pub mut count Int
+}
+
+fn Item.add(mut self, d: Int) {
+    self.count = self.count + d
+}
+
+fn Item.reset(mut self) {
+    self = Item { count: 1000 }
+}
+
+type Pair = {
+    pub mut a Item
+    pub mut b Item
+}
+
+fn Pair.resetA(mut self) {
+    self.a = Item { count: 1000 }
+}
+
+fn apply[F: FnOnce[fn() -> Int]](f: F) -> Int {
+    f()
+}
+
+fn index[F: FnOnce[fn() -> usize]](f: F) -> usize {
+    f()
+}
+
+fn same(x: Int) -> Int {
+    x
+}
+
+// Each closure runs after the receiver's root is read and replaces storage on the receiver's path, so the method's
+// write would land in the old storage.
+
+fn rootInArgument() -> Int {
+    let mut c = Item { count: 0 }
+    c.add(apply(() => { //~ ERROR a `mut self` call on `c` conflicts
+        c = Item { count: 1000 }
+        7
+    }))
+    c.count
+}
+
+fn rootInNestedArgument() -> Int {
+    let mut c = Item { count: 0 }
+    c.add(same(apply(() => { //~ ERROR a `mut self` call on `c` conflicts
+        c = Item { count: 1000 }
+        7
+    })))
+    c.count
+}
+
+fn replacingMethodInArgument() -> Int {
+    let mut c = Item { count: 0 }
+    c.add(apply(() => { //~ ERROR a `mut self` call on `c` conflicts
+        c.reset()
+        7
+    }))
+    c.count
+}
+
+fn fieldReceiverReplaced() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    p.a.add(apply(() => { //~ ERROR a `mut self` call on `p` conflicts
+        p.a = Item { count: 1000 }
+        7
+    }))
+    p.a.count
+}
+
+fn fieldReceiverRootReplaced() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    p.a.add(apply(() => { //~ ERROR a `mut self` call on `p` conflicts
+        p = Pair { a: Item { count: 1000 }, b: Item { count: 0 } }
+        7
+    }))
+    p.a.count
+}
+
+fn fieldReplacedByMethod() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    p.a.add(apply(() => { //~ ERROR a `mut self` call on `p` conflicts
+        p.resetA()
+        7
+    }))
+    p.a.count
+}
+
+fn rootReplacedInIndex() -> Int {
+    let mut fa = FixedArray.filled[Item, 2](Item { count: 0 })
+    let f = () => {
+        fa = FixedArray.filled[Item, 2](Item { count: 1000 })
+        let z: usize = 0
+        z
+    }
+    fa[f()].add(7) //~ ERROR a `mut self` call on `fa` conflicts
+    fa[0].count
+}
+
+fn rootReplacedInNestedIndex() -> Int {
+    let mut fa = FixedArray.filled[Item, 2](Item { count: 0 })
+    fa[index(() => { //~ ERROR a `mut self` call on `fa` conflicts
+        fa = FixedArray.filled[Item, 2](Item { count: 1000 })
+        let z: usize = 0
+        z
+    })].add(7)
+    fa[0].count
+}
+
+fn get() -> Pair {
+    Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+}
+
+// A receiver reached through a call is a temporary, not a place, so nothing is stored back.
+fn throughCall() {
+    get().a.add(7) //~ ERROR `add` takes `mut self` but the receiver is a temporary
+}
+-- expect --
+error[E980]: a `mut self` call on `c` conflicts with a closure that shares its identity cell
+  --> app/t/t.kg:39:5
+   |
+39 |     c.add(apply(() => { //~ ERROR a `mut self` call on `c` conflicts
+   |     ^
+note: `c` is shared with a closure that writes it here
+  --> app/t/t.kg:40:9
+   |
+40 |         c = Item { count: 1000 }
+   |         ^
+
+error[E980]: a `mut self` call on `c` conflicts with a closure that shares its identity cell
+  --> app/t/t.kg:48:5
+   |
+48 |     c.add(same(apply(() => { //~ ERROR a `mut self` call on `c` conflicts
+   |     ^
+note: `c` is shared with a closure that writes it here
+  --> app/t/t.kg:49:9
+   |
+49 |         c = Item { count: 1000 }
+   |         ^
+
+error[E980]: a `mut self` call on `c` conflicts with a closure that shares its identity cell
+  --> app/t/t.kg:57:5
+   |
+57 |     c.add(apply(() => { //~ ERROR a `mut self` call on `c` conflicts
+   |     ^
+note: `c` is shared with a closure that writes it here
+  --> app/t/t.kg:58:9
+   |
+58 |         c.reset()
+   |         ^
+
+error[E980]: a `mut self` call on `p` conflicts with a closure that shares its identity cell
+  --> app/t/t.kg:66:5
+   |
+66 |     p.a.add(apply(() => { //~ ERROR a `mut self` call on `p` conflicts
+   |     ^^^
+note: `p` is shared with a closure that writes it here
+  --> app/t/t.kg:67:9
+   |
+67 |         p.a = Item { count: 1000 }
+   |         ^^^
+
+error[E980]: a `mut self` call on `p` conflicts with a closure that shares its identity cell
+  --> app/t/t.kg:75:5
+   |
+75 |     p.a.add(apply(() => { //~ ERROR a `mut self` call on `p` conflicts
+   |     ^^^
+note: `p` is shared with a closure that writes it here
+  --> app/t/t.kg:76:9
+   |
+76 |         p = Pair { a: Item { count: 1000 }, b: Item { count: 0 } }
+   |         ^
+
+error[E980]: a `mut self` call on `p` conflicts with a closure that shares its identity cell
+  --> app/t/t.kg:84:5
+   |
+84 |     p.a.add(apply(() => { //~ ERROR a `mut self` call on `p` conflicts
+   |     ^^^
+note: `p` is shared with a closure that writes it here
+  --> app/t/t.kg:85:9
+   |
+85 |         p.resetA()
+   |         ^
+
+error[E980]: a `mut self` call on `fa` conflicts with a closure that shares its identity cell
+  --> app/t/t.kg:98:5
+   |
+98 |     fa[f()].add(7) //~ ERROR a `mut self` call on `fa` conflicts
+   |     ^^^^^
+note: `fa` is shared with a closure that writes it here
+  --> app/t/t.kg:94:9
+   |
+94 |         fa = FixedArray.filled[Item, 2](Item { count: 1000 })
+   |         ^^
+
+error[E980]: a `mut self` call on `fa` conflicts with a closure that shares its identity cell
+   --> app/t/t.kg:104:5
+    |
+104 |     fa[index(() => { //~ ERROR a `mut self` call on `fa` conflicts
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: `fa` is shared with a closure that writes it here
+   --> app/t/t.kg:105:9
+    |
+105 |         fa = FixedArray.filled[Item, 2](Item { count: 1000 })
+    |         ^^
+
+error[E516]: `add` takes `mut self` but the receiver is a temporary
+   --> app/t/t.kg:118:5
+    |
+118 |     get().a.add(7) //~ ERROR `add` takes `mut self` but the receiver is a temporary
+    |     ^^^^^^^
+

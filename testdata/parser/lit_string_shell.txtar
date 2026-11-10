@@ -124,9 +124,9 @@ File
           ShellWord
             ShellText "echo"
           ShellWord
-            ShellText "single ${notInterp}"
+            ShellText single "single ${notInterp}"
           ShellWord
-            ShellText "double "
+            ShellText double "double "
             ShellInterp
               Ident yes
           ShellWord

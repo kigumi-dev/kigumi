@@ -140,7 +140,7 @@ func (c *checker) callMethodOn(n, callee, base syntax.NodeID, recv, valueType Ty
 		return TyPoison
 	}
 	c.info.Uses[callee] = m
-	c.checkReceiver(base, recv, m)
+	c.checkReceiver(base, recv, m, args)
 	result := c.callFn(n, m, typeArgs, args, want, valueType, base)
 	if info.Recv == RecvMut {
 		c.checkReentrantCapture(base, args)
@@ -153,7 +153,7 @@ func (c *checker) callMethodOn(n, callee, base syntax.NodeID, recv, valueType Ty
 	return result
 }
 
-func (c *checker) checkReceiver(base syntax.NodeID, recv TypeID, m EntityID) {
+func (c *checker) checkReceiver(base syntax.NodeID, recv TypeID, m EntityID, args []syntax.NodeID) {
 	info := c.r.Fn(m)
 	name := c.r.Entities[m].Name
 	tt := c.r.Types
@@ -174,7 +174,7 @@ func (c *checker) checkReceiver(base syntax.NodeID, recv TypeID, m EntityID) {
 		} else if !c.isMutablePlace(base) {
 			c.reportRecvNotMutable(base, name)
 		} else if root := c.rootOf(base); root != 0 {
-			c.checkCapturedMutConflict(base, root)
+			c.checkCapturedMutConflict(base, root, m, args)
 		}
 		c.reserveMutRecv(base, m)
 		c.reserveMutDrain(base, m)

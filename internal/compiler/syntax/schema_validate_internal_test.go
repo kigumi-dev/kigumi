@@ -95,10 +95,6 @@ func checkLayout(t *testing.T, ks kindSchema) {
 		if len(ks.slots) != 2 || ks.slots[0].role != roleTok || !isNodeRole(ks.slots[1].role) {
 			t.Errorf("%s: layTokR needs a token slot and a node slot", ks.kind)
 		}
-	case laySpan:
-		if len(ks.slots) != 2 || ks.slots[0].role != roleInt || ks.slots[1].role != roleInt {
-			t.Errorf("%s: laySpan needs two int slots", ks.kind)
-		}
 	case layRec:
 		if len(ks.slots) == 0 {
 			t.Errorf("%s: layRec needs slots", ks.kind)
@@ -219,7 +215,7 @@ func checkNode(tr *Tree, id NodeID, ks kindSchema, report func(string, ...any)) 
 	}
 	val := func(i int) uint32 {
 		switch ks.layout {
-		case layL, layLR, layFlagR, layTokR, laySpan:
+		case layL, layLR, layFlagR, layTokR:
 			if i == 0 {
 				return n.Lhs
 			}

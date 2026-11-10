@@ -1,0 +1,52 @@
+-- src --
+fn main() {
+    let x = 1
+    let a = "${ x /* } }"
+    print a
+}
+-- expect --
+File
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: main
+    generics: -
+    params: List
+    ret: -
+    body: Block
+      Let
+        pattern: PatBind x
+        init: IntLit 1
+      Let
+        pattern: PatBind a
+        init: StringLit "${ x /* } }"
+    print a
+}
+
+          List
+            Ident x
+-- diagnostics --
+error[E2199]: unterminated string literal
+ --> interp_comments_err.txtar:3:13
+  |
+3 |     let a = "${ x /* } }"
+  |             ^^^^^^^^^^^^^
+
+error[E2199]: unterminated block comment
+ --> interp_comments_err.txtar:3:19
+  |
+3 |     let a = "${ x /* } }"
+  |                   ^^^^^^^
+
+error[E2199]: expected }, found end of file
+ --> interp_comments_err.txtar:6:1
+  |
+6 | 
+  | ^
+note: `{` is opened here
+ --> interp_comments_err.txtar:1:11
+  |
+1 | fn main() {
+  |           ^
+

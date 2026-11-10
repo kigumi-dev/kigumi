@@ -7,9 +7,7 @@ import (
 	"kigumi/internal/lang/token"
 )
 
-// A `mut self` call conflicts with a write of the same root that the call's own closure does not contain: a call from
-// declaration scope, from another closure over the same local (including one reached through a named alias), or from
-// before the writing closure's definition shares the identity cell with that closure.
+// An exclusive access conflicts with a write of the same root that can run while the access holds it.
 func (c *checker) settleOutsideCall(call outsideMutCall) {
 	callPos := c.t.Span(call.base).Start
 	for _, root := range call.roots {
@@ -31,27 +29,19 @@ func (c *checker) settleOutsideCall(call outsideMutCall) {
 	}
 }
 
-// writeReachesCall decides whether a write of this root conflicts with the call.
-//
-// A write inside a closure counts unless the call sits in that same closure's body or the closure is a callback the
-// callee cannot keep (a non-escaping argument, or a literal written inside an exclusive call's arguments). That makes
-// a `mut self` re-entry order-independent: a call before the closure's definition and a call through a second closure
-// over the same root both conflict.
-//
-// A plain write inside a closure (an assignment or a borrow), and every `&mut` argument, keeps the textual rule: it
-// only counts once the closure has actually been written before the access. A write at declaration scope keeps it too,
-// and is only judged against a call made there.
+// writeReachesCall decides whether a write of this root conflicts with the call. A `&mut` argument and an async call,
+// whose future holds the receiver past the call, are judged by where the write sits, not by when its closure can run.
 func (c *checker) writeReachesCall(w mutWriteSite, call outsideMutCall, callPos token.Pos) bool {
-	if w.closure == 0 {
+	switch {
+	case w.closure == 0:
 		return call.enclosing == 0 && c.wroteEarlier(w.node, call, callPos)
-	}
-	if c.insideClosureBody(w.closure, call.base) {
+	case c.insideClosureBody(w.closure, call.base):
 		return false
-	}
-	if c.argumentClosure(w.closure) {
+	case !call.byRef && !call.async:
+		return c.closureRunsDuring(w, call)
+	case c.argumentClosure(w.closure):
 		return false
-	}
-	if call.byRef || !w.selfCall && call.enclosing == 0 {
+	case call.byRef || !w.selfCall && call.enclosing == 0:
 		return c.wroteEarlier(w.node, call, callPos)
 	}
 	return true

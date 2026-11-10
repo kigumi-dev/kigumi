@@ -45,7 +45,7 @@ func (r *Result) declareStatic(id EntityID) {
 		info.Thunk, info.Init = r.newInitThunk(id, s.Thunk), s.Value
 		return
 	}
-	v, ok := r.evalConst(e.File, s.Value)
+	v, ok := r.evalConstIn(e.File, s.Value, typ)
 	if !ok {
 		return
 	}

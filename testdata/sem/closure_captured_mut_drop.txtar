@@ -1,0 +1,83 @@
+-- app/t/t.kg --
+type Item = {
+    pub mut count Int
+}
+
+fn Item.add(mut self, d: Int) {
+    self.count = self.count + d
+}
+
+type Guard[F: FnMut[fn() -> Void]] = resource {
+    pub cb F
+}
+
+fn Guard[F].drop(move self) {
+    let mut f = move self.cb
+    f()
+}
+
+fn dropInArgument() -> Int {
+    let mut c = Item { count: 0 }
+    let reset = () => { c = Item { count: 1000 } }
+    let g = Guard { cb: reset }
+    c.add({ //~ ERROR a `mut self` call on `c` conflicts
+        let t = g
+        7
+    })
+    c.count
+}
+
+fn guardBuiltInArgument() -> Int {
+    let mut c = Item { count: 0 }
+    c.add({ //~ ERROR a `mut self` call on `c` conflicts
+        let t = Guard { cb: () => { c = Item { count: 1000 } } }
+        7
+    })
+    c.count
+}
+
+fn dropBeforeCall() -> Int {
+    let mut c = Item { count: 0 }
+    let reset = () => { c = Item { count: 1000 } }
+    let g = Guard { cb: reset }
+    let v = {
+        let t = g
+        7
+    }
+    c.add(v)
+    c.count
+}
+
+fn plainBlockArgument() -> Int {
+    let mut c = Item { count: 0 }
+    let reset = () => { c = Item { count: 1000 } }
+    c.add({
+        let t = 3
+        t + 4
+    })
+    reset()
+    c.count
+}
+-- expect --
+error[E980]: a `mut self` call on `c` conflicts with a closure that shares its identity cell
+  --> app/t/t.kg:22:5
+   |
+22 |     c.add({ //~ ERROR a `mut self` call on `c` conflicts
+   |     ^
+note: `c` is shared with a closure that writes it here
+  --> app/t/t.kg:20:25
+   |
+20 |     let reset = () => { c = Item { count: 1000 } }
+   |                         ^
+
+error[E980]: a `mut self` call on `c` conflicts with a closure that shares its identity cell
+  --> app/t/t.kg:31:5
+   |
+31 |     c.add({ //~ ERROR a `mut self` call on `c` conflicts
+   |     ^
+note: `c` is shared with a closure that writes it here
+  --> app/t/t.kg:32:37
+   |
+32 |         let t = Guard { cb: () => { c = Item { count: 1000 } } }
+   |                                     ^
+

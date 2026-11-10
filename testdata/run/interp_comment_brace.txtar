@@ -1,0 +1,27 @@
+-- src --
+let x = 1
+print "${ x // }"
+print "${ x /* } */ + 1 }"
+print "${ x /* /* } */ } */ + 2 }"
+print "${ x // a } tail"
+let r = "${ {
+    let y = x // { }
+    y + 3
+} }"
+print r
+print "${ x # " }"
+print "${ x # /* }"
+let h = "${ {
+    let y = x # { "}" }
+    y + 4
+} }"
+print h
+-- stdout --
+1
+2
+3
+1 tail
+4
+1
+1
+5

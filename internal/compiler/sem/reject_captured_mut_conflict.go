@@ -5,19 +5,21 @@ import (
 	"kigumi/internal/lang/token"
 )
 
-// Every `mut self` call on a captured local is settled against the closures that write it: the call is allowed only
-// from inside the writing closure's own body, so a call from declaration scope, from before the closure, or from
-// another closure over the same local is rejected.
-func (c *checker) checkCapturedMutConflict(base syntax.NodeID, root EntityID) {
+// Every `mut self` call on a captured local is settled against the closures that write it, once their captures are final.
+func (c *checker) checkCapturedMutConflict(base syntax.NodeID, root, m EntityID, args []syntax.NodeID) {
 	enclosing := c.enclosingClosure()
 	if c.capturedHere(root) {
 		c.noteCaptureWrite(base, root, true)
+		if sites := c.mutCaptures[root]; len(sites) > 0 && sites[len(sites)-1].node == base {
+			sites[len(sites)-1].method = m
+		}
 	} else {
 		c.shareOutsideWrite(base, root)
 	}
 	_, field := c.placeRoot(base)
 	roots, lent := c.exclusiveRoots(root, field)
-	c.outsideCalls = append(c.outsideCalls, outsideMutCall{base: base, root: root, field: field, roots: roots, lent: lent, enclosing: enclosing})
+	async := c.r.Fn(m).Declared&EffAsync != 0
+	c.outsideCalls = append(c.outsideCalls, outsideMutCall{base: base, root: root, field: field, roots: roots, lent: lent, enclosing: enclosing, async: async, args: args})
 }
 
 // shareOutsideWrite moves the closures that copied root onto its identity cell so a `&mut` or `mut self` write outside

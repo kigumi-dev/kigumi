@@ -22,6 +22,9 @@ func (r *Result) constFits(f FileID, n syntax.NodeID, v constValue, typ TypeID) 
 	case tt.IsInteger(typ) && v.Kind == constFloat:
 		r.errAt(f, n, cLiteralFloatIntoInt, v.Float.Text('g', -1), typ)
 		return false
+	case tt.IsFloat(typ) && v.Typ != 0 && v.Typ != typ:
+		r.errAt(f, n, cTypeMismatch, typ, v.Typ)
+		return false
 	case tt.IsFloat(typ) && v.Kind == constInt:
 		if !intExactAsFloat(v.Int, tt.Width(typ)) {
 			r.errAt(f, n, cLiteralOutOfRange, constIntText(v.Int), typ)

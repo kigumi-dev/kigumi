@@ -23,8 +23,12 @@ type outsideMutCall struct {
 	lent        map[EntityID]EntityID
 	// byRef: the access is a `&mut` argument, not a `mut self` receiver.
 	byRef bool
+	// async: the call's future holds the receiver until it completes.
+	async bool
 	// enclosing is the innermost closure whose body contains base, 0 at declaration scope.
 	enclosing EntityID
+	// args of a `mut self` call run while it holds the receiver.
+	args []syntax.NodeID
 }
 
 // mutWriteSite is a write of a captured local: the node that writes, the closure whose body holds it (0 when the write
@@ -33,6 +37,8 @@ type mutWriteSite struct {
 	node     syntax.NodeID
 	closure  EntityID
 	selfCall bool
+	// method is the callee of a `mut self` call site.
+	method EntityID
 }
 
 func (c *checker) noteMutCapture(n syntax.NodeID, root EntityID, selfCall bool) {
@@ -80,6 +86,11 @@ func (c *checker) settleExclusive() {
 	c.recheckErasures()
 	c.exclusiveArgs = c.exclusiveArgExprs()
 	for _, call := range c.outsideCalls {
+		if !call.byRef && !call.async {
+			// ReplacesSelf is only final once every body is checked.
+			c.r.ctxDeferred = append(c.r.ctxDeferred, func() { c.settleOutsideCall(call) })
+			continue
+		}
 		c.settleOrDefer(call.roots, func() { c.settleOutsideCall(call) })
 	}
 	for _, s := range c.exclusiveSites {

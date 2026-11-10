@@ -39,7 +39,8 @@ func (t *Tree) computeSpan(id NodeID) token.Span {
 	n := t.nodes[id]
 	var sp token.Span
 	if n.Kind == ShellText {
-		return token.Span{Start: token.Pos(n.Lhs), End: token.Pos(n.Rhs)}
+		v := t.View(id).AsShellText()
+		return token.Span{Start: token.Pos(v.Start()), End: token.Pos(v.End())}
 	}
 	if n.Kind != Path && !isShellInner(n.Kind) {
 		sp = t.Toks[n.Tok].Span

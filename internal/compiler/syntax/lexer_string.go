@@ -10,11 +10,16 @@ import (
 func (lx *lexer) lexString() {
 	start := lx.pos
 	_, hinted := lx.hints[start]
-	end, ok := lx.scanString(lx.pos)
+	var end int
+	var ok bool
+	if n := len(lx.toks); n > 0 && lx.toks[n-1].Kind == token.Dollar {
+		end, ok = shellStringEnd(lx.src, lx.pos, lx.end, lx.scanEscape, lx.scanInterpolation)
+		hinted = false
+	} else {
+		end, ok = lx.scanString(lx.pos)
+	}
 	lx.pos = min(end, lx.end)
-	// A hinted end was already utf8.Valid-checked by the outermost string's
-	// initial whole-file lex; rechecking per nesting level would be the
-	// O(n²) re-walk the hint avoids.
+	// The outermost lex already checked a hinted string's UTF-8; rechecking per nesting level is the O(n²) walk hints avoid.
 	if !ok {
 		lx.errorf(start, lx.pos, "unterminated string literal")
 	} else if !hinted {
@@ -26,9 +31,8 @@ func (lx *lexer) lexString() {
 	lx.emit(token.String, start, lx.pos)
 }
 
-// lx.hints, when set, lets this skip straight to a known end instead of
-// rescanning: subExpr lexes a `${...}` body fresh at every nesting level, and
-// without the hint a string nested d levels deep would be walked d times.
+// lx.hints skip to a known end: subExpr lexes each `${...}` body afresh, so without them a string nested d levels deep
+// would be walked d times.
 func (lx *lexer) scanString(pos int) (int, bool) {
 	if info, ok := lx.hints[pos]; ok {
 		return info.end, info.closed
@@ -75,6 +79,8 @@ func (lx *lexer) scanInterpolation(pos int) (int, bool) {
 			var ok bool
 			if lx.byteStringPrefixAt(pos) {
 				pos, ok = lx.scanByteString(pos)
+			} else if shellQuoteAt(lx.src, pos) {
+				pos, ok = shellStringEnd(lx.src, pos, lx.end, lx.scanEscape, lx.scanInterpolation)
 			} else {
 				pos, ok = lx.scanString(pos)
 			}
@@ -87,23 +93,19 @@ func (lx *lexer) scanInterpolation(pos int) (int, bool) {
 				continue
 			}
 			pos++
+		case '#':
+			pos = interpLineCommentEnd(lx.src, pos+1, lx.end, depth)
+			continue
 		case '/':
 			if pos+1 < lx.end && lx.src[pos+1] == '/' {
-				pos += 2
-				for pos < lx.end && lx.src[pos] != '\n' {
-					pos++
-				}
+				pos = interpLineCommentEnd(lx.src, pos+2, lx.end, depth)
 				continue
 			}
 			if pos+1 < lx.end && lx.src[pos+1] == '*' {
-				pos += 2
-				for pos+1 < lx.end && !(lx.src[pos] == '*' && lx.src[pos+1] == '/') {
-					pos++
-				}
-				if pos+1 >= lx.end {
+				var closed bool
+				if pos, closed = blockCommentEnd(lx.src, pos, lx.end); !closed {
 					return pos, false
 				}
-				pos += 2
 				continue
 			}
 			pos++

@@ -77,7 +77,7 @@ func (c *checker) fallbackParts(n, lhs syntax.NodeID, l TypeID) (v, r TypeID, wi
 		ret := c.vars.resolve(tt.Node(sig).Elem)
 		if c.r.Fn(m).Recv == RecvMove && tt.Kind(ret) == KNamed && tt.Node(ret).Ent == branch {
 			c.r.useEntity(c.f, lhs, m)
-			c.checkReceiver(lhs, l, m)
+			c.checkReceiver(lhs, l, m, nil)
 			c.edge(EffectEdge{Kind: EdgeCall, Target: m, Node: n})
 			return tt.Node(ret).Args[0], tt.Node(ret).Args[1], m, true
 		}

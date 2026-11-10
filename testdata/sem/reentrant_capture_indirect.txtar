@@ -13,13 +13,13 @@ fn direct(mut v: Item) {
 
 fn indirect(mut v: Item) {
     let cb = () => { v.run(() => {}) }
-    v.run(cb) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
+    v.run(cb) //~ ERROR a closure argument cannot capture `v`
 }
 
 fn aliasIndirect(mut v: Item) {
     let cb = () => { v.run(() => {}) }
     let cb2 = cb
-    v.run(cb2) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
+    v.run(cb2) //~ ERROR a closure argument cannot capture `v`
 }
 
 fn fineIndirect(mut v: Item) {
@@ -88,26 +88,15 @@ note: this closure captures `v`
 10 |     v.run(() => { v.run(() => {}) }) //~ ERROR a closure argument cannot capture `v`
    |           ^^^^^^^^^^^^^^^^^^^^^
 
-error[E980]: a `mut self` call on `v` conflicts with a closure that shares its identity cell
-  --> app/t/t.kg:15:5
-   |
-15 |     v.run(cb) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
-   |     ^
-note: `v` is shared with a closure that writes it here
-  --> app/t/t.kg:14:22
-   |
-14 |     let cb = () => { v.run(() => {}) }
-   |                      ^
-
 error[E979]: a closure argument cannot capture `v` while this call exclusively borrows it
   --> app/t/t.kg:15:11
    |
-15 |     v.run(cb) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
+15 |     v.run(cb) //~ ERROR a closure argument cannot capture `v`
    |           ^^
 note: `v` is exclusively borrowed by this call
   --> app/t/t.kg:15:5
    |
-15 |     v.run(cb) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
+15 |     v.run(cb) //~ ERROR a closure argument cannot capture `v`
    |     ^
 note: this closure captures `v`
   --> app/t/t.kg:14:14
@@ -115,26 +104,15 @@ note: this closure captures `v`
 14 |     let cb = () => { v.run(() => {}) }
    |              ^^^^^^^^^^^^^^^^^^^^^
 
-error[E980]: a `mut self` call on `v` conflicts with a closure that shares its identity cell
-  --> app/t/t.kg:21:5
-   |
-21 |     v.run(cb2) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
-   |     ^
-note: `v` is shared with a closure that writes it here
-  --> app/t/t.kg:19:22
-   |
-19 |     let cb = () => { v.run(() => {}) }
-   |                      ^
-
 error[E979]: a closure argument cannot capture `v` while this call exclusively borrows it
   --> app/t/t.kg:21:11
    |
-21 |     v.run(cb2) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
+21 |     v.run(cb2) //~ ERROR a closure argument cannot capture `v`
    |           ^^^
 note: `v` is exclusively borrowed by this call
   --> app/t/t.kg:21:5
    |
-21 |     v.run(cb2) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
+21 |     v.run(cb2) //~ ERROR a closure argument cannot capture `v`
    |     ^
 note: this closure captures `v`
   --> app/t/t.kg:19:14

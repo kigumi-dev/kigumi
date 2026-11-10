@@ -16,7 +16,7 @@ const genChunkLines = 170
 
 func slotPos(l layout, i int) string {
 	switch l {
-	case layL, layLR, layFlagR, layTokR, laySpan:
+	case layL, layLR, layFlagR, layTokR:
 		if i == 0 {
 			return "v.lhs()"
 		}
@@ -75,7 +75,11 @@ func genKind(ks kindSchema) string {
 		case roleTok:
 			fmt.Fprintf(&b, "func (v %s) %s() TokenRef { return v.tokRef(%s) }\n", typ, s.name, pos)
 		case roleInt:
-			fmt.Fprintf(&b, "func (v %s) %s() uint32 { return %s }\n", typ, s.name, pos)
+			if s.goType != "" {
+				fmt.Fprintf(&b, "func (v %s) %s() %s { return %s(%s) }\n", typ, s.name, s.goType, s.goType, pos)
+			} else {
+				fmt.Fprintf(&b, "func (v %s) %s() uint32 { return %s }\n", typ, s.name, pos)
+			}
 		}
 	}
 	b.WriteString("\n")

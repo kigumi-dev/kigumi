@@ -1,0 +1,67 @@
+-- app/t/t.kg --
+const LOW: Char = 'a'
+const HIGH: Char = 'z'
+
+fn literals(c: Char) -> Int {
+    match c {
+        'z'..='a' -> 1 //~ ERROR range pattern's low bound is greater than its high bound
+        _ -> 0
+    }
+}
+
+fn constants(c: Char) -> Int {
+    match c {
+        HIGH..=LOW -> 1 //~ ERROR range pattern's low bound is greater than its high bound
+        _ -> 0
+    }
+}
+
+fn mixed(c: Char) -> Int {
+    match c {
+        'z'..LOW -> 1 //~ ERROR range pattern's low bound is greater than its high bound
+        _ -> 0
+    }
+}
+
+fn escapes(c: Char) -> Int {
+    match c {
+        '\u{7a}'..='\n' -> 1 //~ ERROR range pattern's low bound is greater than its high bound
+        _ -> 0
+    }
+}
+
+fn ordered(c: Char) -> Int {
+    match c {
+        'a'..='f' -> 1
+        LOW..HIGH -> 2
+        '0'..='9' -> 3
+        'q'..='q' -> 4
+        '\n'..'\u{7f}' -> 5
+        _ -> 0
+    }
+}
+-- expect --
+error[E825]: range pattern's low bound is greater than its high bound
+ --> app/t/t.kg:6:9
+  |
+6 |         'z'..='a' -> 1 //~ ERROR range pattern's low bound is greater than its high bound
+  |         ^^^^^^^^^
+
+error[E825]: range pattern's low bound is greater than its high bound
+  --> app/t/t.kg:13:9
+   |
+13 |         HIGH..=LOW -> 1 //~ ERROR range pattern's low bound is greater than its high bound
+   |         ^^^^^^^^^^
+
+error[E825]: range pattern's low bound is greater than its high bound
+  --> app/t/t.kg:20:9
+   |
+20 |         'z'..LOW -> 1 //~ ERROR range pattern's low bound is greater than its high bound
+   |         ^^^^^^^^
+
+error[E825]: range pattern's low bound is greater than its high bound
+  --> app/t/t.kg:27:9
+   |
+27 |         '\u{7a}'..='\n' -> 1 //~ ERROR range pattern's low bound is greater than its high bound
+   |         ^^^^^^^^^^^^^^^
+

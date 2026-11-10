@@ -95,7 +95,14 @@ func matchBrace(src []byte, pos, end int, out map[int]interpInfo) int {
 				return pos
 			}
 		case '"':
-			pos = skipString(src, pos, end, out)
+			if shellQuoteAt(src, pos) {
+				pos = skipShellString(src, pos, end, out)
+			} else {
+				pos = skipString(src, pos, end, out)
+			}
+			continue
+		case '#':
+			pos = interpLineCommentEnd(src, pos+1, end, depth)
 			continue
 		case '\'':
 			if n := charLiteralLen(src, pos, end); n > 0 {
@@ -104,13 +111,11 @@ func matchBrace(src []byte, pos, end int, out map[int]interpInfo) int {
 			}
 		case '/':
 			if pos+1 < end && src[pos+1] == '/' {
-				for pos < end && src[pos] != '\n' {
-					pos++
-				}
+				pos = interpLineCommentEnd(src, pos+2, end, depth)
 				continue
 			}
 			if pos+1 < end && src[pos+1] == '*' {
-				pos = skipBlockComment(src, pos, end)
+				pos, _ = blockCommentEnd(src, pos, end)
 				continue
 			}
 		}
@@ -179,27 +184,4 @@ func (p *parser) subExpr(start, end int) NodeID {
 	}
 	p.pos, p.noRecordLit = savedPos, savedNR
 	return e
-}
-
-// skipBlockComment advances past a (possibly nested) block comment.
-func skipBlockComment(src []byte, pos, end int) int {
-	depth := 0
-	for pos < end {
-		scanOps.Add(1)
-		if pos+1 < end && src[pos] == '/' && src[pos+1] == '*' {
-			depth++
-			pos += 2
-			continue
-		}
-		if pos+1 < end && src[pos] == '*' && src[pos+1] == '/' {
-			depth--
-			pos += 2
-			if depth == 0 {
-				return pos
-			}
-			continue
-		}
-		pos++
-	}
-	return pos
 }

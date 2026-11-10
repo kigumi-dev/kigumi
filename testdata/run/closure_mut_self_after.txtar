@@ -1,0 +1,94 @@
+-- src --
+type Counter = {
+    pub mut n Int
+}
+
+fn Counter.bump(mut self) {
+    self.n = self.n + 1
+}
+
+fn Counter.add(mut self, d: Int) {
+    self.n = self.n + d
+}
+
+type Guard[F: FnMut[fn() -> Void]] = resource {
+    pub cb F
+}
+
+fn Guard[F].drop(move self) {
+    let mut f = move self.cb
+    f()
+}
+
+fn dropBeforeCall() -> Int {
+    let mut c = Counter { n: 0 }
+    let reset = () => { c = Counter { n: 1000 } }
+    let g = Guard { cb: reset }
+    let v = {
+        let t = g
+        7
+    }
+    c.add(v)
+    c.n
+}
+
+fn beforeDefinition() -> Int {
+    let mut c = Counter { n: 0 }
+    c.bump()
+    let f = () => { c.bump() }
+    f()
+    c.n
+}
+
+fn aliasBeforeDefinition() -> Int {
+    let mut c = Counter { n: 0 }
+    c.bump()
+    let f = () => { c.bump() }
+    let g = f
+    g()
+    g()
+    c.n
+}
+
+fn twoClosures() -> Int {
+    let mut c = Counter { n: 0 }
+    let a = () => { c.bump() }
+    let b = () => { c.bump() }
+    a()
+    b()
+    b()
+    c.n
+}
+
+fn twoWriters() -> Int {
+    let mut c = Counter { n: 0 }
+    let a = () => { c.bump() }
+    let b = () => { c.n = c.n + 2 }
+    a()
+    b()
+    a()
+    a()
+    c.n
+}
+
+fn closureCalledAfter() -> Int {
+    let mut c = Counter { n: 0 }
+    let f = () => { c.bump() }
+    c.bump()
+    f()
+    c.n
+}
+
+fn inLoop() -> Int {
+    let mut c = Counter { n: 0 }
+    for _ in 0..3 {
+        c.bump()
+        let f = () => { c.bump() }
+        f()
+    }
+    c.n
+}
+
+print "${beforeDefinition()} ${aliasBeforeDefinition()} ${twoClosures()} ${twoWriters()} ${closureCalledAfter()} ${inLoop()} ${dropBeforeCall()}"
+-- stdout --
+2 3 3 5 2 6 1007

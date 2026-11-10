@@ -85,7 +85,8 @@ func (t *Tree) dump(d *dumper, id NodeID, label string) {
 			d.sb.WriteString(t.TokText(tk))
 		}
 	case ShellText:
-		fmt.Fprintf(&d.sb, " %q", t.File.Src[n.Lhs:n.Rhs])
+		v := t.View(id).AsShellText()
+		fmt.Fprintf(&d.sb, "%s %q", shellQuoteNames[v.Quote()], t.File.Src[v.Start():v.End()])
 	case ShellRedirect:
 		r := t.View(id).AsShellRedirect()
 		fmt.Fprintf(&d.sb, " %s fd=%d", redirNames[r.Op()], r.Fd())
@@ -129,7 +130,7 @@ func (t *Tree) dumpSlot(d *dumper, kind NodeKind, s slot, v uint32) {
 	}
 	switch s.role {
 	case roleInt:
-		if v == 0 || kind == ShellRedirect || kind == Param && name == "thunk" {
+		if v == 0 || kind == ShellRedirect || kind == ShellText || kind == Param && name == "thunk" {
 			return
 		}
 		text := fmt.Sprint(v)

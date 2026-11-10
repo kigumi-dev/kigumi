@@ -1,0 +1,90 @@
+-- src --
+let e0 = $"echo \"a\\\\\" b\""
+let e1 = $"echo 'it\'s'"
+let e2 = $"echo \"a\\"
+let e3 = $"echo a\u{3b}b"
+let e4 = $"echo a #note"
+-- expect --
+File
+  Let
+    pattern: PatBind e0
+    init: ShellLit "echo \"a\\\\\" b\""
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText double "a\\\\\\\\"
+          ShellWord
+            ShellText "b"
+  Let
+    pattern: PatBind e1
+    init: ShellLit "echo 'it\'s'"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText single "it"
+            ShellText "s"
+            ShellText single ""
+  Let
+    pattern: PatBind e2
+    init: ShellLit "echo \"a\\"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+  Let
+    pattern: PatBind e3
+    init: ShellLit "echo a\u{3b}b"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText "a"
+          ShellWord
+            ShellText "b"
+  Let
+    pattern: PatBind e4
+    init: ShellLit "echo a #note"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText "a"
+          ShellWord
+-- diagnostics --
+error[E2199]: unterminated double quote in shell literal
+ --> shell_quote_states_err.txtar:1:28
+  |
+1 | let e0 = $"echo \"a\\\\\" b\""
+  |                            ^^
+
+error[E2199]: unterminated single quote in shell literal
+ --> shell_quote_states_err.txtar:2:23
+  |
+2 | let e1 = $"echo 'it\'s'"
+  |                       ^
+
+error[E2199]: unterminated double quote in shell literal
+ --> shell_quote_states_err.txtar:3:17
+  |
+3 | let e2 = $"echo \"a\\"
+  |                 ^^^^^
+
+error[E2199]: `;` is not part of the portable shell dialect
+ --> shell_quote_states_err.txtar:4:18
+  |
+4 | let e3 = $"echo a\u{3b}b"
+  |                  ^
+
+error[E2199]: a `#` comment is not part of the portable shell dialect
+ --> shell_quote_states_err.txtar:5:19
+  |
+5 | let e4 = $"echo a #note"
+  |                   ^
+

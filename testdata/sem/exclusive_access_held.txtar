@@ -71,7 +71,7 @@ fn recordInline() {
 fn recordViaLet() {
     let mut v = Item { count: 0 }
     let b = Box { cb: () => { v.update(1) } }
-    v.runBox(b) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR an argument of this call holds a closure that captures `v`
+    v.runBox(b) //~ ERROR an argument of this call holds a closure that captures `v`
 }
 
 fn viaGenericCall() {
@@ -92,7 +92,7 @@ fn viaExistentialInline() {
 fn viaExistentialLet() {
     let mut v = Item { count: 0 }
     let c: Cb = Box { cb: () => { v.update(1) } }
-    v.runDyn(c) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR an argument of this call holds a closure that captures `v`
+    v.runDyn(c) //~ ERROR an argument of this call holds a closure that captures `v`
 }
 
 fn viaTuple() {
@@ -115,20 +115,20 @@ fn twoLevels() {
     let inner = () => { v.update(1) }
     let middle = () => { inner() }
     let outer = () => { middle() }
-    v.run(outer) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
+    v.run(outer) //~ ERROR a closure argument cannot capture `v`
 }
 
 fn insideClosureBody() {
     let mut v = Item { count: 0 }
-    let inner = () => { v.update(1) } //~ ERROR a `mut self` call on `v` conflicts
-    let outer = () => { v.run(inner) } //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
+    let inner = () => { v.update(1) }
+    let outer = () => { v.run(inner) } //~ ERROR a closure argument cannot capture `v`
     outer()
 }
 
 fn callAfterLoopClosure() {
     let mut v = Item { count: 0 }
     for _ in 0..2 {
-        v.update(1) //~ ERROR a `mut self` call on `v` conflicts
+        v.update(1)
         let touch = () => { v.update(1) }
         touch()
     }
@@ -160,7 +160,7 @@ fn lostInformation() {
     let touch = () => { v.update(1) }
     let mut c: Cb = Box { cb: () => {} }
     c = Box { cb: touch }
-    v.runDyn(c) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR cannot see which closures `c` holds
+    v.runDyn(c) //~ ERROR cannot see which closures `c` holds
 }
 
 fn forLoopAlias() {
@@ -184,7 +184,7 @@ fn lostInRecordField() {
     let touch = () => { v.update(1) }
     let mut c: Cb = Box { cb: () => {} }
     c = Box { cb: touch }
-    v.runHolder(Holder { c: c }) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR cannot see which closures `c` holds
+    v.runHolder(Holder { c: c }) //~ ERROR cannot see which closures `c` holds
 }
 -- expect --
 error[E2110]: an argument of this call holds a closure that captures `v`, which the call exclusively borrows
@@ -204,27 +204,16 @@ note: this closure captures `v`
 67 |     v.runBox(Box { cb: () => { v.update(1) } }) //~ ERROR an argument of this call holds a closure that captures `v`
    |                        ^^^^^^^^^^^^^^^^^^
 
-error[E980]: a `mut self` call on `v` conflicts with a closure that shares its identity cell
-  --> app/t/t.kg:73:5
-   |
-73 |     v.runBox(b) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR an argument of this call holds a closure that captures `v`
-   |     ^
-note: `v` is shared with a closure that writes it here
-  --> app/t/t.kg:72:31
-   |
-72 |     let b = Box { cb: () => { v.update(1) } }
-   |                               ^
-
 error[E2110]: an argument of this call holds a closure that captures `v`, which the call exclusively borrows
   --> app/t/t.kg:73:5
    |
-73 |     v.runBox(b) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR an argument of this call holds a closure that captures `v`
+73 |     v.runBox(b) //~ ERROR an argument of this call holds a closure that captures `v`
    |     ^
    = help: capture a copy in a separate binding, or end the call before the closure runs
 note: this argument holds a closure
   --> app/t/t.kg:73:14
    |
-73 |     v.runBox(b) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR an argument of this call holds a closure that captures `v`
+73 |     v.runBox(b) //~ ERROR an argument of this call holds a closure that captures `v`
    |              ^
 note: this closure captures `v`
   --> app/t/t.kg:72:23
@@ -283,27 +272,16 @@ note: this closure captures `v`
 88 |     v.runDyn(Box { cb: () => { v.update(1) } }) //~ ERROR an argument of this call holds a closure that captures `v`
    |                        ^^^^^^^^^^^^^^^^^^
 
-error[E980]: a `mut self` call on `v` conflicts with a closure that shares its identity cell
-  --> app/t/t.kg:94:5
-   |
-94 |     v.runDyn(c) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR an argument of this call holds a closure that captures `v`
-   |     ^
-note: `v` is shared with a closure that writes it here
-  --> app/t/t.kg:93:35
-   |
-93 |     let c: Cb = Box { cb: () => { v.update(1) } }
-   |                                   ^
-
 error[E2110]: an argument of this call holds a closure that captures `v`, which the call exclusively borrows
   --> app/t/t.kg:94:5
    |
-94 |     v.runDyn(c) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR an argument of this call holds a closure that captures `v`
+94 |     v.runDyn(c) //~ ERROR an argument of this call holds a closure that captures `v`
    |     ^
    = help: capture a copy in a separate binding, or end the call before the closure runs
 note: this argument holds a closure
   --> app/t/t.kg:94:14
    |
-94 |     v.runDyn(c) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR an argument of this call holds a closure that captures `v`
+94 |     v.runDyn(c) //~ ERROR an argument of this call holds a closure that captures `v`
    |              ^
 note: this closure captures `v`
   --> app/t/t.kg:93:27
@@ -362,26 +340,15 @@ note: this closure captures `r`
 109 |     r.runBox(Box { cb: () => { let _ = r.xs.len() } }) //~ ERROR an argument of this call holds a closure that captures `r`
     |                        ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-error[E980]: a `mut self` call on `v` conflicts with a closure that shares its identity cell
-   --> app/t/t.kg:117:5
-    |
-117 |     v.run(outer) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
-    |     ^
-note: `v` is shared with a closure that writes it here
-   --> app/t/t.kg:114:25
-    |
-114 |     let inner = () => { v.update(1) }
-    |                         ^
-
 error[E979]: a closure argument cannot capture `v` while this call exclusively borrows it
    --> app/t/t.kg:117:11
     |
-117 |     v.run(outer) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
+117 |     v.run(outer) //~ ERROR a closure argument cannot capture `v`
     |           ^^^^^
 note: `v` is exclusively borrowed by this call
    --> app/t/t.kg:117:5
     |
-117 |     v.run(outer) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
+117 |     v.run(outer) //~ ERROR a closure argument cannot capture `v`
     |     ^
 note: this closure captures `v`
    --> app/t/t.kg:114:17
@@ -389,54 +356,21 @@ note: this closure captures `v`
 114 |     let inner = () => { v.update(1) }
     |                 ^^^^^^^^^^^^^^^^^^
 
-error[E980]: a `mut self` call on `v` conflicts with a closure that shares its identity cell
-   --> app/t/t.kg:122:25
-    |
-122 |     let inner = () => { v.update(1) } //~ ERROR a `mut self` call on `v` conflicts
-    |                         ^
-note: `v` is shared with a closure that writes it here
-   --> app/t/t.kg:123:25
-    |
-123 |     let outer = () => { v.run(inner) } //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
-    |                         ^
-
-error[E980]: a `mut self` call on `v` conflicts with a closure that shares its identity cell
-   --> app/t/t.kg:123:25
-    |
-123 |     let outer = () => { v.run(inner) } //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
-    |                         ^
-note: `v` is shared with a closure that writes it here
-   --> app/t/t.kg:122:25
-    |
-122 |     let inner = () => { v.update(1) } //~ ERROR a `mut self` call on `v` conflicts
-    |                         ^
-
 error[E979]: a closure argument cannot capture `v` while this call exclusively borrows it
    --> app/t/t.kg:123:31
     |
-123 |     let outer = () => { v.run(inner) } //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
+123 |     let outer = () => { v.run(inner) } //~ ERROR a closure argument cannot capture `v`
     |                               ^^^^^
 note: `v` is exclusively borrowed by this call
    --> app/t/t.kg:123:25
     |
-123 |     let outer = () => { v.run(inner) } //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
+123 |     let outer = () => { v.run(inner) } //~ ERROR a closure argument cannot capture `v`
     |                         ^
 note: this closure captures `v`
    --> app/t/t.kg:122:17
     |
-122 |     let inner = () => { v.update(1) } //~ ERROR a `mut self` call on `v` conflicts
+122 |     let inner = () => { v.update(1) }
     |                 ^^^^^^^^^^^^^^^^^^
-
-error[E980]: a `mut self` call on `v` conflicts with a closure that shares its identity cell
-   --> app/t/t.kg:130:9
-    |
-130 |         v.update(1) //~ ERROR a `mut self` call on `v` conflicts
-    |         ^
-note: `v` is shared with a closure that writes it here
-   --> app/t/t.kg:131:29
-    |
-131 |         let touch = () => { v.update(1) }
-    |                             ^
 
 error[E979]: a closure argument cannot capture `v` while this call exclusively borrows it
    --> app/t/t.kg:142:19
@@ -498,27 +432,16 @@ note: this closure captures `v`
 154 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v`
     |           ^^^^^^^^^^^^^^^^^^
 
-error[E980]: a `mut self` call on `v` conflicts with a closure that shares its identity cell
-   --> app/t/t.kg:162:5
-    |
-162 |     v.runDyn(c) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR cannot see which closures `c` holds
-    |     ^
-note: `v` is shared with a closure that writes it here
-   --> app/t/t.kg:159:25
-    |
-159 |     let touch = () => { v.update(1) }
-    |                         ^
-
 error[E2111]: cannot see which closures `c` holds while `v` is exclusively borrowed by this call
    --> app/t/t.kg:162:14
     |
-162 |     v.runDyn(c) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR cannot see which closures `c` holds
+162 |     v.runDyn(c) //~ ERROR cannot see which closures `c` holds
     |              ^
     = help: build the value from literals or `let` bindings in this function, or pass a type that cannot hold a callable
 note: `v` is exclusively borrowed by this call
    --> app/t/t.kg:162:5
     |
-162 |     v.runDyn(c) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR cannot see which closures `c` holds
+162 |     v.runDyn(c) //~ ERROR cannot see which closures `c` holds
     |     ^
 
 error[E979]: a closure argument cannot capture `xs` while this call exclusively borrows it
@@ -537,31 +460,20 @@ note: this closure captures `xs`
 168 |         x.run(() => { xs.push(Item { count: 1 }) }) //~ ERROR a closure argument cannot capture `xs`
     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-error[E980]: a `mut self` call on `v` conflicts with a closure that shares its identity cell
-   --> app/t/t.kg:186:5
-    |
-186 |     v.runHolder(Holder { c: c }) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR cannot see which closures `c` holds
-    |     ^
-note: `v` is shared with a closure that writes it here
-   --> app/t/t.kg:183:25
-    |
-183 |     let touch = () => { v.update(1) }
-    |                         ^
-
 error[E2111]: cannot see which closures `c` holds while `v` is exclusively borrowed by this call
    --> app/t/t.kg:186:17
     |
-186 |     v.runHolder(Holder { c: c }) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR cannot see which closures `c` holds
+186 |     v.runHolder(Holder { c: c }) //~ ERROR cannot see which closures `c` holds
     |                 ^^^^^^^^^^^^^
     = help: build the value from literals or `let` bindings in this function, or pass a type that cannot hold a callable
 note: `v` is exclusively borrowed by this call
    --> app/t/t.kg:186:5
     |
-186 |     v.runHolder(Holder { c: c }) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR cannot see which closures `c` holds
+186 |     v.runHolder(Holder { c: c }) //~ ERROR cannot see which closures `c` holds
     |     ^
 note: its closures are not visible from here
    --> app/t/t.kg:186:29
     |
-186 |     v.runHolder(Holder { c: c }) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR cannot see which closures `c` holds
+186 |     v.runHolder(Holder { c: c }) //~ ERROR cannot see which closures `c` holds
     |                             ^
 

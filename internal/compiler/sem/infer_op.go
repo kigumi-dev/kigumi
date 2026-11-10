@@ -59,8 +59,12 @@ func (c *checker) synthBinary(n syntax.NodeID, want TypeID) TypeID {
 		return TyPoison
 	}
 	switch op {
-	case token.Plus, token.Minus, token.Star, token.Slash, token.Percent:
+	case token.Plus, token.Minus, token.Star, token.Slash:
 		if l == r && tt.IsNumeric(l) {
+			return c.builtinOp(n, op, l)
+		}
+	case token.Percent:
+		if l == r && tt.IsInteger(l) {
 			return c.builtinOp(n, op, l)
 		}
 	case token.Amp, token.Pipe, token.Caret:

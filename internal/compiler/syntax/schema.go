@@ -13,7 +13,6 @@ const (
 	layPath                // Extra[Lhs:Rhs] are token indices
 	layFlagR               // Lhs is a flag word, Rhs a child
 	layTokR                // Lhs is a token index, Rhs a child
-	laySpan                // Lhs and Rhs are byte offsets
 )
 
 type role uint8
@@ -34,6 +33,8 @@ type slot struct {
 	role  role
 	kinds kindSet
 	opt   bool
+	// goType names the type a roleInt accessor returns; empty means uint32.
+	goType string
 }
 
 // kindSchema declares one node kind; tok names the accessor for the node's own token.
@@ -107,6 +108,9 @@ func olst(name string, items kindSet) slot {
 func tk(name string) slot  { return slot{name: name, role: roleTok} }
 func otk(name string) slot { return slot{name: name, role: roleTok, opt: true} }
 func num(name string) slot { return slot{name: name, role: roleInt} }
+func numAs(name, goType string) slot {
+	return slot{name: name, role: roleInt, goType: goType}
+}
 func items(s kindSet) slot { return slot{name: "Items", role: roleItems, kinds: s} }
 func toks() slot           { return slot{name: "Toks", role: roleToks} }
 

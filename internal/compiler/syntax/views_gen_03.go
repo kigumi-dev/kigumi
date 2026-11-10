@@ -50,8 +50,9 @@ func (v ShellWordView) Str() TokenRef     { return v.Tok() }
 type ShellTextView struct{ View }
 
 func (v View) AsShellText() ShellTextView { return ShellTextView{v} }
-func (v ShellTextView) Start() uint32     { return v.lhs() }
-func (v ShellTextView) End() uint32       { return v.rhs() }
+func (v ShellTextView) Start() uint32     { return v.rec(0) }
+func (v ShellTextView) End() uint32       { return v.rec(1) }
+func (v ShellTextView) Quote() ShellQuote { return ShellQuote(v.rec(2)) }
 
 type ShellInterpView struct{ View }
 

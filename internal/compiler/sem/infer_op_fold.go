@@ -121,26 +121,23 @@ func (c *checker) foldBinary(n syntax.NodeID, op token.Kind, lhs, rhs syntax.Nod
 		return TyUntypedInt
 	}
 	// Kigumi's float arithmetic is IEEE at runtime, so a folded expression must round like one.
-	prec := floatPrec(tt, 0)
-	lf, rf := roundFloat(toFloat(lv), prec), roundFloat(toFloat(rv), prec)
-	out := new(big.Float).SetPrec(prec)
-	switch op {
-	case token.Plus:
-		out.Add(lf, rf)
-	case token.Minus:
-		out.Sub(lf, rf)
-	case token.Star:
-		out.Mul(lf, rf)
-	case token.Slash:
-		if rf.Sign() == 0 {
-			c.errAt(rhs, cConstDivZero)
-			return TyPoison
-		}
-		out.Quo(lf, rf)
-	default:
+	lf, rf := ieeeFloat(tt, toFloat(lv), 0), ieeeFloat(tt, toFloat(rv), 0)
+	if lf.IsInf() || rf.IsInf() || op == token.Percent {
 		return 0
 	}
-	c.info.Literals[n] = constValue{Kind: constFloat, Float: roundFloat(out, prec)}
+	if op == token.Slash && rf.Sign() == 0 {
+		c.errAt(rhs, cConstDivZero)
+		return TyPoison
+	}
+	out, raw, ok := floatOp(tt, op, lf, rf, 0)
+	switch {
+	case !ok:
+		return 0
+	case out.IsInf():
+		c.errAt(n, cLiteralOutOfRange, raw.Text('g', 10), TyF64)
+		return TyPoison
+	}
+	c.info.Literals[n] = constValue{Kind: constFloat, Float: out}
 	return TyUntypedFloat
 }
 
@@ -177,7 +174,7 @@ func (c *checker) compoundAssign(n, lhs, rhs syntax.NodeID, target TypeID) {
 			return
 		}
 		result = target
-	case target == r && (tt.IsNumeric(target) || tt.IsInteger(target)):
+	case target == r && (tt.IsInteger(target) || tt.IsNumeric(target) && op != token.Percent):
 		result = target
 	default:
 		c.operandMismatch(n, rhs, opText, target, r)

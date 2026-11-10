@@ -3,21 +3,23 @@ package syntax
 // word parses one argv element, stopping at unquoted whitespace or a shell operator.
 func (s *shellParser) word(tok uint32) NodeID {
 	var parts []NodeID
+	if c, _, _ := s.at(s.pos); c == '#' {
+		s.errorf(s.pos, "a `#` comment is not part of the portable shell dialect")
+		s.pos = s.end
+		return s.p.tree.addList(ShellWord, tok, parts)
+	}
 	for s.pos < s.end {
-		c := s.src[s.pos]
+		c, _, esc := s.at(s.pos)
 		switch {
-		case c == ' ' || c == '\t' || c == '|' || c == '<' || c == '>' || c == '&' || c == ';' ||
-			c == '(' || c == ')' || c == '`':
+		case isShellBreak(c):
 			return s.p.tree.addList(ShellWord, tok, parts)
+		case c == '"':
+			parts = append(parts, s.doubleQuoted(tok)...)
 		case c == '\'':
 			parts = append(parts, s.singleQuoted())
-		case c == '"' || (c == '\\' && s.pos+1 < s.end && s.src[s.pos+1] == '"'):
-			parts = append(parts, s.doubleQuoted(tok)...)
-		case c == '$':
-			if s.pos+1 < s.end && s.src[s.pos+1] == '{' {
-				parts = append(parts, s.interpolation(tok))
-				continue
-			}
+		case !esc && s.interpAt(s.pos):
+			parts = append(parts, s.interpolation(tok))
+		case !esc && c == '$':
 			s.errorf(s.pos, "`$name` expansion is not allowed; use `${name}`")
 			s.pos++
 		default:
@@ -27,96 +29,81 @@ func (s *shellParser) word(tok uint32) NodeID {
 	return s.p.tree.addList(ShellWord, tok, parts)
 }
 
-func (s *shellParser) text(start, end int) NodeID {
-	return s.p.tree.add(rawNode{Kind: ShellText, Lhs: uint32(start), Rhs: uint32(end)})
+func (s *shellParser) interpAt(pos int) bool {
+	return pos+1 < s.end && s.src[pos] == '$' && s.src[pos+1] == '{'
 }
 
+func (s *shellParser) text(start, end int, q ShellQuote) NodeID {
+	return s.p.tree.addRec(ShellText, 0, []uint32{uint32(start), uint32(end), uint32(q)})
+}
+
+func (s *shellParser) skipChar() {
+	_, n, _ := s.at(s.pos)
+	s.pos += n
+}
+
+// bareText reads unquoted text; a backslash escapes the next character, the `$` of an interpolation included, as
+// POSIX does for `\$`.
 func (s *shellParser) bareText() NodeID {
 	start := s.pos
 	for s.pos < s.end {
-		switch s.src[s.pos] {
-		case ' ', '\t', '|', '<', '>', '&', ';', '\'', '"', '$', '(', ')', '`':
-			return s.text(start, s.pos)
-		case '\\':
-			if s.pos+1 < s.end && s.src[s.pos+1] == '"' {
-				return s.text(start, s.pos)
-			}
-			// `\\x` in the source is one shell backslash escaping x; any other
-			// `\x` is a language escape that decodes to one character.
-			if s.pos+1 < s.end && s.src[s.pos+1] == '\\' {
-				s.pos += 3
-			} else {
-				s.pos += 2
-			}
-		default:
-			s.pos++
+		c, n, esc := s.at(s.pos)
+		if isShellBreak(c) || c == '\'' || c == '"' || !esc && c == '$' {
+			break
+		}
+		s.pos += n
+		if c == '\\' {
+			s.skipChar()
 		}
 	}
-	return s.text(start, min(s.pos, s.end))
+	return s.text(start, s.pos, ShellBare)
 }
 
 func (s *shellParser) singleQuoted() NodeID {
 	start := s.pos
-	s.pos++
-	for s.pos < s.end && s.src[s.pos] != '\'' {
-		s.pos++
+	s.skipChar()
+	seg := s.pos
+	for s.pos < s.end {
+		c, n, _ := s.at(s.pos)
+		if c == '\'' {
+			t := s.text(seg, s.pos, ShellSingle)
+			s.pos += n
+			return t
+		}
+		s.pos += n
 	}
-	if s.pos >= s.end {
-		s.errorf(start, "unterminated single quote in shell literal")
-		return s.text(start+1, s.end)
-	}
-	n := s.text(start+1, s.pos)
-	s.pos++
-	return n
+	s.errorf(start, "unterminated single quote in shell literal")
+	return s.text(seg, s.end, ShellSingle)
 }
 
-// doubleQuoted handles `\"..."\"` inside the language string: the quote itself
-// is escaped as `\"`, so we look for the escaped form.
+// doubleQuoted reads a double-quoted segment; a backslash escapes the next character for the scan, except that an
+// interpolation after it still interpolates.
 func (s *shellParser) doubleQuoted(tok uint32) []NodeID {
 	var parts []NodeID
 	start := s.pos
-	if s.src[s.pos] == '\\' {
-		s.pos++
+	s.skipChar()
+	seg := s.pos
+	flush := func() {
+		if s.pos > seg {
+			parts = append(parts, s.text(seg, s.pos, ShellDouble))
+		}
 	}
-	s.pos++
-	segStart := s.pos
 	for s.pos < s.end {
-		switch s.src[s.pos] {
-		case '\\':
-			start := s.pos
-			for s.pos < s.end && s.src[s.pos] == '\\' {
-				s.pos++
-			}
-			if s.pos < s.end && s.src[s.pos] == '"' {
-				if s.pos-start == 1 {
-					if start > segStart {
-						parts = append(parts, s.text(segStart, start))
-					}
-					s.pos++
-					return parts
-				}
-				// An even run is content; a longer odd run ends in a
-				// backslash-escaped quote inside the double-quoted shell word.
-				s.pos++
-			}
-		case '"':
-			if s.pos > segStart {
-				parts = append(parts, s.text(segStart, s.pos))
-			}
-			s.pos++
+		c, n, esc := s.at(s.pos)
+		switch {
+		case c == '"':
+			flush()
+			s.pos += n
 			return parts
-		case '$':
-			if s.pos+1 < s.end && s.src[s.pos+1] == '{' {
-				if s.pos > segStart {
-					parts = append(parts, s.text(segStart, s.pos))
-				}
-				parts = append(parts, s.interpolation(tok))
-				segStart = s.pos
-				continue
-			}
-			s.pos++
+		case !esc && s.interpAt(s.pos):
+			flush()
+			parts = append(parts, s.interpolation(tok))
+			seg = s.pos
 		default:
-			s.pos++
+			s.pos += n
+			if c == '\\' && !s.interpAt(s.pos) {
+				s.skipChar()
+			}
 		}
 	}
 	s.errorf(start, "unterminated double quote in shell literal")

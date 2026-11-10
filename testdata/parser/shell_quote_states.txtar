@@ -1,0 +1,282 @@
+-- src --
+let p0 = $"echo x\"a\\;b\""
+let p1 = $"echo 'a'b\\;c"
+let p2 = $"echo \"${x}\\;\""
+let p3 = $"echo \"a\"b\\;c"
+let p4 = $"echo a\\\"b c"
+let p5 = $"echo \"a\\\"b\""
+let p6 = $"echo \"a\\\\\"b"
+let p7 = $"echo \"a\\\\\\\"b\""
+let p8 = $"echo a\\${x}"
+let p9 = $"echo \"a\\${x}\""
+let p10 = $"echo \"\${x}\""
+let p11 = $"echo 'a\'"
+let p12 = $"echo a\'b c'"
+let p13 = $"echo a\u{5c}\u{5c}b"
+let p14 = $"echo a\tb"
+let p15 = $"echo a\nb"
+let p16 = $"echo a\u{20}b"
+let p17 = $"echo 'a'\"b\"c"
+let p18 = $"echo ${x}\\;"
+let p19 = $"echo \"\" ''"
+let p20 = $"echo a\$b\u{7c}c"
+let p21 = $"printf '${'"
+let p22 = $"printf '${ \"'"
+let p23 = $"printf '${x}'"
+let p24 = $"echo a#b '#c' \"#d\""
+-- expect --
+File
+  Let
+    pattern: PatBind p0
+    init: ShellLit "echo x\"a\\;b\""
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText "x"
+            ShellText double "a\\\\;b"
+  Let
+    pattern: PatBind p1
+    init: ShellLit "echo 'a'b\\;c"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText single "a"
+            ShellText "b\\\\;c"
+  Let
+    pattern: PatBind p2
+    init: ShellLit "echo \"${x}\\;\""
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellInterp
+              Ident x
+            ShellText double "\\\\;"
+  Let
+    pattern: PatBind p3
+    init: ShellLit "echo \"a\"b\\;c"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText double "a"
+            ShellText "b\\\\;c"
+  Let
+    pattern: PatBind p4
+    init: ShellLit "echo a\\\"b c"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText "a\\\\\\\"b"
+          ShellWord
+            ShellText "c"
+  Let
+    pattern: PatBind p5
+    init: ShellLit "echo \"a\\\"b\""
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText double "a\\\\\\\"b"
+  Let
+    pattern: PatBind p6
+    init: ShellLit "echo \"a\\\\\"b"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText double "a\\\\\\\\"
+            ShellText "b"
+  Let
+    pattern: PatBind p7
+    init: ShellLit "echo \"a\\\\\\\"b\""
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText double "a\\\\\\\\\\\\\\\"b"
+  Let
+    pattern: PatBind p8
+    init: ShellLit "echo a\\${x}"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText "a\\\\${x}"
+  Let
+    pattern: PatBind p9
+    init: ShellLit "echo \"a\\${x}\""
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText double "a\\\\"
+            ShellInterp
+              Ident x
+  Let
+    pattern: PatBind p10
+    init: ShellLit "echo \"\${x}\""
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText double "\\${x}"
+  Let
+    pattern: PatBind p11
+    init: ShellLit "echo 'a\'"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText single "a"
+  Let
+    pattern: PatBind p12
+    init: ShellLit "echo a\'b c'"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText "a"
+            ShellText single "b c"
+  Let
+    pattern: PatBind p13
+    init: ShellLit "echo a\u{5c}\u{5c}b"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText "a\\u{5c}\\u{5c}b"
+  Let
+    pattern: PatBind p14
+    init: ShellLit "echo a\tb"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText "a"
+          ShellWord
+            ShellText "b"
+  Let
+    pattern: PatBind p15
+    init: ShellLit "echo a\nb"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText "a"
+          ShellWord
+            ShellText "b"
+  Let
+    pattern: PatBind p16
+    init: ShellLit "echo a\u{20}b"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText "a"
+          ShellWord
+            ShellText "b"
+  Let
+    pattern: PatBind p17
+    init: ShellLit "echo 'a'\"b\"c"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText single "a"
+            ShellText double "b"
+            ShellText "c"
+  Let
+    pattern: PatBind p18
+    init: ShellLit "echo ${x}\\;"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellInterp
+              Ident x
+            ShellText "\\\\;"
+  Let
+    pattern: PatBind p19
+    init: ShellLit "echo \"\" ''"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+          ShellWord
+            ShellText single ""
+  Let
+    pattern: PatBind p20
+    init: ShellLit "echo a\$b\u{7c}c"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText "a\\$b"
+        ShellCmd
+          ShellWord
+            ShellText "c"
+  Let
+    pattern: PatBind p21
+    init: ShellLit "printf '${'"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "printf"
+          ShellWord
+            ShellText single "${"
+  Let
+    pattern: PatBind p22
+    init: ShellLit "printf '${ \"'"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "printf"
+          ShellWord
+            ShellText single "${ \\\""
+  Let
+    pattern: PatBind p23
+    init: ShellLit "printf '${x}'"
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "printf"
+          ShellWord
+            ShellText single "${x}"
+  Let
+    pattern: PatBind p24
+    init: ShellLit "echo a#b '#c' \"#d\""
+      ShellPlan
+        ShellCmd
+          ShellWord
+            ShellText "echo"
+          ShellWord
+            ShellText "a#b"
+          ShellWord
+            ShellText single "#c"
+          ShellWord
+            ShellText double "#d"

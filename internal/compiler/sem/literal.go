@@ -145,6 +145,8 @@ func defaultOf(t TypeID) TypeID {
 func (c *checker) adopt(n syntax.NodeID, target TypeID) TypeID {
 	if _, lit := c.info.Literals[n]; !lit {
 		c.adoptTails(n, target)
+	} else if !c.refoldFloat(n, target) {
+		return c.setType(n, TyPoison)
 	}
 	if c.checkLiteralFits(n, target) {
 		return c.setType(n, target)

@@ -63,7 +63,7 @@ func (c *checker) ifaceMember(n syntax.NodeID, t TypeID, name string) (req Entit
 
 func (c *checker) callRequirement(n, callee, base syntax.NodeID, recv TypeID, req EntityID, sig, iface TypeID, typeArgs []TypeID, args []syntax.NodeID, want TypeID) TypeID {
 	c.info.Uses[callee] = req
-	c.checkReceiver(base, recv, req)
+	c.checkReceiver(base, recv, req, args)
 	c.noteWitnessRecv(base, recv, req, iface)
 	c.noteSelfRecvCall(base, req, true, iface)
 	var paramEnt EntityID

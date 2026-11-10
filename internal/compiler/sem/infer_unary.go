@@ -21,6 +21,9 @@ func (c *checker) synthUnary(n syntax.NodeID, want TypeID) TypeID {
 	if operand == TyPoison {
 		return TyPoison
 	}
+	if t, ok := c.foldFloatNegation(n, u.Operand().ID(), op, operand); ok {
+		return t
+	}
 	if tt.Kind(operand) == KUntyped {
 		operand = c.adopt(c.literalNode(u.Operand().ID()), c.unaryLiteralTarget(operand, op, want))
 		if operand == TyPoison {

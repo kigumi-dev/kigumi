@@ -1,0 +1,70 @@
+-- src --
+import shell from std/shell
+import hex from std/encoding/hex
+
+fn dump(label: String, plan: shell.Plan) {
+    let mut n = 0
+    for st in shell.stages(&plan) {
+        for a in &st.argv {
+            if n > 0 {
+                print "${label}: [${hex.encode(a.toBytes())}]"
+            }
+            n = n + 1
+        }
+    }
+}
+
+let x = "v"
+dump("mixed-dq-bare", $"echo x\"a\\;b\"")
+dump("sq-then-bare", $"echo 'a'b\\;c")
+dump("interp-in-dq", $"echo \"${x}\\;\"")
+dump("dq-then-bare", $"echo \"a\"b\\;c")
+dump("bare-escaped-quote", $"echo a\\\"b c")
+dump("dq-escaped-quote", $"echo \"a\\\"b\"")
+dump("dq-even-run-closes", $"echo \"a\\\\\"b")
+dump("dq-backslash-and-quote", $"echo \"a\\\\\\\"b\"")
+dump("bare-backslash-before-interp", $"echo a\\${x}")
+dump("dq-backslash-before-interp", $"echo \"a\\${x}\"")
+dump("dollar-escape-in-dq", $"echo \"\${x}\"")
+dump("sq-closed-by-escape", $"echo 'a\'")
+dump("quote-escape-opens-sq", $"echo a\'b c'")
+dump("unicode-backslash", $"echo a\u{5c}\u{5c}b")
+dump("tab-escape-splits", $"echo a\tb")
+dump("newline-escape-splits", $"echo a\nb")
+dump("unicode-space-splits", $"echo a\u{20}b")
+dump("sq-dq-bare", $"echo 'a'\"b\"c")
+dump("interp-then-bare", $"echo ${x}\\;")
+dump("sq-dollar-brace", $"echo '${'")
+dump("sq-dollar-brace-quote", $"echo '${ \"'")
+dump("sq-interp-text", $"echo '${x}'")
+dump("hash-inside-words", $"echo a#b '#c' \"#d\"")
+-- stdout --
+mixed-dq-bare: [78615c3b62]
+sq-then-bare: [61623b63]
+interp-in-dq: [765c3b]
+dq-then-bare: [61623b63]
+bare-escaped-quote: [612262]
+bare-escaped-quote: [63]
+dq-escaped-quote: [612262]
+dq-even-run-closes: [615c62]
+dq-backslash-and-quote: [615c2262]
+bare-backslash-before-interp: [61247b787d]
+dq-backslash-before-interp: [615c76]
+dollar-escape-in-dq: [247b787d]
+sq-closed-by-escape: [61]
+quote-escape-opens-sq: [61622063]
+unicode-backslash: [615c62]
+tab-escape-splits: [61]
+tab-escape-splits: [62]
+newline-escape-splits: [61]
+newline-escape-splits: [62]
+unicode-space-splits: [61]
+unicode-space-splits: [62]
+sq-dq-bare: [616263]
+interp-then-bare: [763b]
+sq-dollar-brace: [247b]
+sq-dollar-brace-quote: [247b2022]
+sq-interp-text: [247b787d]
+hash-inside-words: [612362]
+hash-inside-words: [2363]
+hash-inside-words: [2364]

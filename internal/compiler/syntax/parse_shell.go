@@ -4,9 +4,8 @@ import (
 	"kigumi/internal/lang/token"
 )
 
-// shellLit parses `$"..."` into a ShellPlan. The literal body is read
-// byte by byte from the source so quoting and interpolation follow the
-// two-stage rule: language escapes stay raw, shell structure is decided here.
+// shellLit parses `$"..."` into a ShellPlan, reading the source a language character at a time (shellUnitAt) so the
+// pieces keep their raw escapes for DecodeShellText.
 func (p *parser) shellLit() NodeID {
 	dollar := p.expect(token.Dollar)
 	if !p.at(token.String) {
@@ -39,16 +38,15 @@ func (s *shellParser) plan(tok uint32) NodeID {
 	for {
 		cmds = append(cmds, s.command(tok))
 		s.skipSpace()
-		if s.pos < s.end && s.src[s.pos] == '|' {
-			if s.pos+1 < s.end && s.src[s.pos+1] == '|' {
-				s.errorf(s.pos, "`||` is not part of the portable shell dialect")
-				s.pos += 2
-				continue
-			}
-			s.pos++
-			continue
+		c, n, _ := s.at(s.pos)
+		if c != '|' {
+			break
 		}
-		break
+		if next, m, _ := s.at(s.pos + n); next == '|' {
+			s.errorf(s.pos, "`||` is not part of the portable shell dialect")
+			n += m
+		}
+		s.pos += n
 	}
 	if s.pos < s.end {
 		s.errorf(s.pos, "unsupported shell syntax")
@@ -57,8 +55,8 @@ func (s *shellParser) plan(tok uint32) NodeID {
 }
 
 func (s *shellParser) skipSpace() {
-	for s.pos < s.end && (s.src[s.pos] == ' ' || s.src[s.pos] == '\t') {
-		s.pos++
+	for c, n, _ := s.at(s.pos); c == ' ' || c == '\t' || c == '\n'; c, n, _ = s.at(s.pos) {
+		s.pos += n
 	}
 }
 
@@ -69,24 +67,25 @@ func (s *shellParser) command(tok uint32) NodeID {
 		if s.pos >= s.end {
 			break
 		}
-		c := s.src[s.pos]
+		c, n, _ := s.at(s.pos)
+		next, m, _ := s.at(s.pos + n)
 		switch {
 		case c == '|':
 			return s.p.tree.addList(ShellCmd, tok, parts)
-		case c == '&' && s.pos+1 < s.end && s.src[s.pos+1] == '&':
+		case c == '&' && next == '&':
 			s.errorf(s.pos, "`&&` is not part of the portable shell dialect")
-			s.pos += 2
+			s.pos += n + m
 		case c == '&' || c == ';' || c == '(' || c == ')' || c == '`':
 			s.errorf(s.pos, "`"+string(c)+"` is not part of the portable shell dialect")
-			s.pos++
-		case c == '<' || c == '>' || (c >= '0' && c <= '9' && s.isRedirectAfterDigits()):
+			s.pos += n
+		case c == '<' || c == '>' || isDigitRune(c) && s.isRedirectAfterDigits():
 			parts = append(parts, s.redirect(tok))
 		default:
 			before := s.pos
 			parts = append(parts, s.word(tok))
 			if s.pos == before {
 				s.errorf(s.pos, "unexpected character in shell literal")
-				s.pos++
+				s.pos += n
 			}
 		}
 	}
@@ -95,10 +94,11 @@ func (s *shellParser) command(tok uint32) NodeID {
 
 func (s *shellParser) isRedirectAfterDigits() bool {
 	i := s.pos
-	for i < s.end && s.src[i] >= '0' && s.src[i] <= '9' {
-		i++
+	c, n, _ := s.at(i)
+	for ; isDigitRune(c); c, n, _ = s.at(i) {
+		i += n
 	}
-	return i < s.end && (s.src[i] == '<' || s.src[i] == '>')
+	return c == '<' || c == '>'
 }
 
 // maxRedirectFd is far above any file descriptor a real process can have
@@ -111,35 +111,36 @@ func (s *shellParser) redirect(tok uint32) NodeID {
 	fd := uint32(0)
 	hasFd := false
 	tooBig := false
-	for s.pos < s.end && s.src[s.pos] >= '0' && s.src[s.pos] <= '9' {
+	c, n, _ := s.at(s.pos)
+	for ; isDigitRune(c); c, n, _ = s.at(s.pos) {
 		if fd > maxRedirectFd {
 			tooBig = true
 		} else {
-			fd = fd*10 + uint32(s.src[s.pos]-'0')
+			fd = fd*10 + uint32(c-'0')
 		}
-		s.pos++
+		s.pos += n
 		hasFd = true
 	}
 	if tooBig {
 		s.errorf(start, sprintf("redirect file descriptor is too large (max is %d)", maxRedirectFd))
 	}
 	op := RedirIn
-	if s.src[s.pos] == '>' {
+	if c == '>' {
 		op = RedirOut
 		if !hasFd {
 			fd = 1
 		}
 	}
-	s.pos++
-	if s.pos < s.end && s.src[s.pos] == '>' && op == RedirOut {
+	s.pos += n
+	if c, n, _ = s.at(s.pos); c == '>' && op == RedirOut {
 		op = RedirAppend
-		s.pos++
-	} else if s.pos < s.end && s.src[s.pos] == '<' && op == RedirIn {
+		s.pos += n
+	} else if c == '<' && op == RedirIn {
 		s.errorf(start, "here documents are not supported")
-		s.pos++
+		s.pos += n
 	}
-	if s.pos < s.end && s.src[s.pos] == '&' {
-		s.pos++
+	if c, n, _ = s.at(s.pos); c == '&' {
+		s.pos += n
 		if op == RedirIn {
 			op = RedirDupIn
 		} else {
@@ -147,7 +148,7 @@ func (s *shellParser) redirect(tok uint32) NodeID {
 		}
 	}
 	s.skipSpace()
-	if s.pos >= s.end || s.src[s.pos] == '|' {
+	if c, n, _ = s.at(s.pos); n == 0 || c == '|' {
 		s.errorf(start, "redirect needs a target")
 		return s.p.tree.addRec(ShellRedirect, tok, []uint32{op, fd, 0})
 	}

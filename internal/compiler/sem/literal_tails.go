@@ -2,14 +2,16 @@ package sem
 
 import "kigumi/internal/compiler/syntax"
 
-// adoptTails gives the untyped literals at the tails of an if / match / block target as well,
-// so an untyped branch value agrees with the type the whole expression takes.
+// adoptTails gives target to the parts of an untyped expression: the tails of an if / match / block,
+// so a branch value agrees with the whole, and the operands of a folded float operation.
 func (c *checker) adoptTails(n syntax.NodeID, target TypeID) {
 	if n == 0 || c.r.Types.Kind(c.info.Types[n]) != KUntyped {
 		return
 	}
 	var parts []syntax.NodeID
 	switch c.t.Kind(n) {
+	case syntax.Binary, syntax.Unary:
+		c.refoldFloat(n, target)
 	case syntax.Paren:
 		parts = []syntax.NodeID{c.t.View(n).AsParen().Inner().ID()}
 	case syntax.ComptimeExpr:

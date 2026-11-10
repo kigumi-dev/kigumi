@@ -617,6 +617,11 @@ var addedAfterBaseline = map[string]bool{
 	"untyped_const_body.txtar":                      true,
 	"const_float_typed_int_value.txtar":             true,
 	"untyped_const_default_int.txtar":               true,
+	"const_float_f32_operands.txtar":                true,
+	"interp_comment_brace.txtar":                    true,
+	"shell_quote_states.txtar":                      true,
+	"closure_mut_self_after.txtar":                  true,
+	"closure_mut_self_window.txtar":                 true,
 }
 
 func TestRCCallCounts(t *testing.T) {

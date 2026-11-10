@@ -16,7 +16,7 @@ var shellSchema = []kindSchema{
 	{ShellPlan, "ShellPlan", layList, "Str", []slot{items(set(ShellCmd))}},
 	{ShellCmd, "ShellCmd", layList, "Str", []slot{items(set(ShellWord, ShellRedirect))}},
 	{ShellWord, "ShellWord", layList, "Str", []slot{items(set(ShellText, ShellInterp))}},
-	{ShellText, "ShellText", laySpan, "", []slot{num("Start"), num("End")}},
+	{ShellText, "ShellText", layRec, "", []slot{num("Start"), num("End"), numAs("Quote", "ShellQuote")}},
 	{ShellInterp, "ShellInterp", layL, "Str", []slot{ch("Expr", exprSet)}},
 	{ShellRedirect, "ShellRedirect", layRec, "Str", []slot{num("Op"), num("Fd"), och("Target", set(ShellWord))}},
 }
