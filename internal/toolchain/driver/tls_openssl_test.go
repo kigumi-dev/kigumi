@@ -25,6 +25,15 @@ import text from std/text
 import tls from std/net/tls
 import x509 from std/crypto/x509
 
+/// A pool result cannot carry the Error box across threads, so failures cross as text.
+type Failure = {
+    text String
+}
+
+fn Failure.message(self) -> String {
+    self.text
+}
+
 async fn run() -> Void! {
     let rootPath = host.env("TLS_ROOT").expect("TLS_ROOT is set")
     let portText = host.env("TLS_PORT").expect("TLS_PORT is set")
@@ -32,11 +41,17 @@ async fn run() -> Void! {
     let files = host.files()
     let io = task.BlockingPool.new(1)
     let rootFilePath = fs.Path.fromString(rootPath)?
-    let rootText = (await io.run(() => files.read(rootFilePath)).unwrap())?
+    let rootText = (await io.run(() => match files.read(rootFilePath) {
+        Ok(text) -> Ok(text)
+        Err(e) -> Err(Failure { text: e.message() })
+    }).unwrap())?
     let anchors = (x509.parsePem(rootText))?
     let n = host.net()
     let pool = task.BlockingPool.new(1)
-    let mut conn = (await pool.run(() => n.connect("127.0.0.1", port)).unwrap())?
+    let mut conn = (await pool.run(() => match n.connect("127.0.0.1", port) {
+        Ok(conn) -> Ok(conn)
+        Err(e) -> Err(Failure { text: e.message() })
+    }).unwrap())?
     let mut config = tls.Config.new("localhost", anchors, (k) => host.entropy().bytes(k))
     let mut session = (await tls.Client.connect(conn, config))?
     print "alpn ${session.alpn()}"

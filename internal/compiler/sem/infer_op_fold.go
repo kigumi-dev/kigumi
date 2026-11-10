@@ -129,6 +129,9 @@ func (c *checker) foldBinary(n syntax.NodeID, op token.Kind, lhs, rhs syntax.Nod
 		c.errAt(rhs, cConstDivZero)
 		return TyPoison
 	}
+	if op == token.Percent && rf.Sign() == 0 {
+		return 0
+	}
 	out, raw, ok := floatOp(tt, op, lf, rf, 0)
 	switch {
 	case !ok:

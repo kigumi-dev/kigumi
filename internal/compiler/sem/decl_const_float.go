@@ -95,7 +95,7 @@ func (r *Result) constFloatBinary(f FileID, n syntax.NodeID, op token.Kind, a, b
 	if isComparison(op) {
 		return constValue{Kind: constBool, Bool: compareResult(op, x.Cmp(y))}, true
 	}
-	if op == token.Slash && y.Sign() == 0 {
+	if (op == token.Slash || op == token.Percent) && y.Sign() == 0 {
 		r.errAt(f, n, cConstDivZero)
 		return constValue{}, false
 	}
