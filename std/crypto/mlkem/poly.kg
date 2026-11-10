@@ -1,0 +1,153 @@
+// Byte encoding, compression and sampling for ML-KEM polynomials
+// (FIPS 203 §4.2).
+import sha3 from std/crypto/sha3
+
+/// Reads bit `index` (least significant bit first) of `b`.
+pure noalloc fn bitOf(b: Bytes, index: usize) -> u32 {
+    (b[index >> 3].toU32() >> (index & 7)) & 1
+}
+
+/// ByteDecode_d of the n*d/8 bytes at `offset` (FIPS 203 Algorithm 6).
+/// d = 12 reduces modulo q; smaller d keeps the raw d-bit value.
+pure noalloc fn byteDecodeAt(b: Bytes, offset: usize, d: usize) -> FixedArray[u16, n] {
+    let mut out = FixedArray.filled[u16, n](0)
+    let mut i: usize = 0
+    for i < n {
+        let mut v: u32 = 0
+        let mut j: usize = 0
+        for j < d {
+            let bit = i * d + j
+            let byte = b[offset + (bit >> 3)].toU32()
+            v = v | (((byte >> (bit & 7)) & 1) << j)
+            j = j + 1
+        }
+        out[i] = if d == 12 {
+            modQ(v)
+        } else {
+            v.toU16() || 0
+        }
+        i = i + 1
+    }
+    out
+}
+
+/// ByteEncode_d of a polynomial (FIPS 203 Algorithm 5).
+pure fn byteEncode(f: FixedArray[u16, n], d: usize) -> Bytes {
+    let mut out = Array.fill[u8](0, d * n / 8)
+    let mut acc: u32 = 0
+    let mut bits: usize = 0
+    let mut at: usize = 0
+    let mut i: usize = 0
+    for i < n {
+        acc = acc | (f[i].toU32() << bits)
+        bits = bits + d
+        for bits >= 8 {
+            out[at] = (acc & 0xff).toU8() || 0
+            at = at + 1
+            acc = acc >> 8
+            bits = bits - 8
+        }
+        i = i + 1
+    }
+    Bytes.fromArray(&out)
+}
+
+/// Compress_d applied to every coefficient, without a division instruction.
+pure noalloc fn compressPoly(f: FixedArray[u16, n], d: usize) -> FixedArray[u16, n] {
+    let mut out = FixedArray.filled[u16, n](0)
+    let one: u64 = 1
+    let mask = (one << d) - 1
+    let mut i: usize = 0
+    for i < n {
+        let scaled = (f[i].toU64() << d) + (modulusQ.toU64() >> 1)
+        out[i] = (((scaled * recipQ) >> recipShift) & mask).toU16() || 0
+        i = i + 1
+    }
+    out
+}
+
+/// Decompress_d applied to every coefficient.
+pure noalloc fn decompressPoly(f: FixedArray[u16, n], d: usize) -> FixedArray[u16, n] {
+    let mut out = FixedArray.filled[u16, n](0)
+    let one: u64 = 1
+    let half = one << (d - 1)
+    let mut i: usize = 0
+    for i < n {
+        let scaled = f[i].toU64() * modulusQ.toU64() + half
+        out[i] = (scaled >> d).toU16() || 0
+        i = i + 1
+    }
+    out
+}
+
+/// SHAKE256 with the 32-byte seed followed by the one-byte nonce.
+pure fn prf(seed: Bytes, nonce: u8, outLen: usize) -> Bytes {
+    let mut input = Array.empty[u8]()
+    for b in seed {
+        input.push(b)
+    }
+    input.push(nonce)
+    sha3.shake256(Bytes.fromArray(&input), outLen)
+}
+
+/// SamplePolyCBD_eta (FIPS 203 Algorithm 8) from the PRF stream.
+pure fn samplePolyCbd(seed: Bytes, nonce: u8, eta: usize) -> FixedArray[u16, n] {
+    let stream = prf(seed, nonce, 64 * eta)
+    let mut out = FixedArray.filled[u16, n](0)
+    let mut i: usize = 0
+    for i < n {
+        let mut x: u32 = 0
+        let mut y: u32 = 0
+        let mut j: usize = 0
+        for j < eta {
+            x = x + bitOf(stream, 2 * i * eta + j)
+            y = y + bitOf(stream, 2 * i * eta + eta + j)
+            j = j + 1
+        }
+        out[i] = subQ(x.toU16() || 0, y.toU16() || 0)
+        i = i + 1
+    }
+    out
+}
+
+/// SampleNTT (FIPS 203 Algorithm 7): the XOF stream over `rho || x || y`,
+/// read three bytes at a time, keeping the 12-bit values below q.
+///
+/// The loop is unbounded, as Appendix B recommends: a bound could turn an
+/// astronomically rare stream into an interoperability difference.
+pure fn sampleNtt(rho: Bytes, x: u8, y: u8) -> FixedArray[u16, n] {
+    let mut seed = Array.empty[u8]()
+    for b in rho {
+        seed.push(b)
+    }
+    seed.push(x)
+    seed.push(y)
+    let mut xof = sha3.Xof128.new()
+    xof.update(Bytes.fromArray(&seed))
+    let mut out = FixedArray.filled[u16, n](0)
+    let mut j: usize = 0
+    for j < n {
+        let chunk = xof.squeeze(sha3.rate128)
+        let mut at: usize = 0
+        for at < sha3.rate128 {
+            let c0 = chunk[at].toU32()
+            let c1 = chunk[at + 1].toU32()
+            let c2 = chunk[at + 2].toU32()
+            let d1 = c0 | ((c1 & 0x0f) << 8)
+            let d2 = (c1 >> 4) | (c2 << 4)
+            if d1 < modulusQ.toU32() && j < n {
+                out[j] = d1.toU16() || 0
+                j = j + 1
+            }
+            if d2 < modulusQ.toU32() && j < n {
+                out[j] = d2.toU16() || 0
+                j = j + 1
+            }
+            at = at + 3
+        }
+        if j >= n {
+            break
+        }
+    }
+    out
+}

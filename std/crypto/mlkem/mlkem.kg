@@ -1,0 +1,307 @@
+// ML-KEM-768 (FIPS 203): Module-Lattice-Based Key-Encapsulation Mechanism.
+//
+// The three entry points are the internal, randomness-explicit algorithms of
+// FIPS 203 §6: the caller supplies the two 32-byte key-generation seeds or
+// the 32-byte encapsulation randomness from its CSPRNG. Keeping the CSPRNG
+// out of this package lets it stay in the allocation layer used by `std`.
+//
+// Decapsulation is written against a constant-time boundary: the ciphertext
+// comparison produces a mask, and the shared secret is selected bytewise with
+// that mask. No branch or memory index depends on a secret. Only the native
+// backend provides a timing guarantee; the VM makes no such promise.
+import sha3 from std/crypto/sha3
+import subtle from std/crypto/subtle
+
+/// A freshly generated ML-KEM-768 key pair.
+pub type KeyPair = {
+    pub encapsulationKey Bytes
+    pub decapsulationKey Bytes
+}
+
+/// The shared secret and ciphertext produced by encapsulation.
+pub type Encapsulated = {
+    pub sharedSecret Bytes
+    pub ciphertext Bytes
+}
+
+/// One byte as a Bytes value.
+pure fn oneByte(v: u8) -> Bytes {
+    let b = FixedArray.filled[u8, 1](v)
+    FixedArray.toBytes(b)
+}
+
+/// A borrow-free copy of b[start:end]; the caller has checked the bounds.
+pure fn exactSlice(b: Bytes, start: usize, end: usize) -> Bytes {
+    b.slice(start, end) || panic("mlkem: internal slice out of range")
+}
+
+/// G: SHA3-512 expanded to two 32-byte halves.
+pure fn g(a: Bytes, b: Bytes) -> (Bytes, Bytes) {
+    let digest = sha3.sum512(a.concat(b))
+    (exactSlice(digest, 0, 32), exactSlice(digest, 32, 64))
+}
+
+/// The all-zero polynomial.
+pure fn zeroPoly() -> FixedArray[u16, n] {
+    FixedArray.filled[u16, n](0)
+}
+
+/// A k-long vector of zero polynomials.
+pure fn zeroVector() -> Array[FixedArray[u16, n]] {
+    Array.fill[FixedArray[u16, n]](zeroPoly(), k)
+}
+
+/// The k x k matrix A_hat, flattened row-major: entry (i, j) is at i*k + j.
+/// A_hat[i][j] = SampleNTT(rho || j || i) (FIPS 203 Algorithm 13 lines 3-7).
+pure fn expandMatrix(rho: Bytes) -> Array[FixedArray[u16, n]] {
+    let mut a = Array.fill[FixedArray[u16, n]](zeroPoly(), k * k)
+    let mut i: usize = 0
+    for i < k {
+        let mut j: usize = 0
+        for j < k {
+            a[i * k + j] = sampleNtt(rho, j.toU8() || 0, i.toU8() || 0)
+            j = j + 1
+        }
+        i = i + 1
+    }
+    a
+}
+
+/// NTT applied to every polynomial of a vector.
+pure fn nttVector(v: Array[FixedArray[u16, n]]) -> Array[FixedArray[u16, n]] {
+    let mut out = zeroVector()
+    let mut i: usize = 0
+    for i < k {
+        out[i] = ntt(v[i])
+        i = i + 1
+    }
+    out
+}
+
+/// ByteDecode12 applied k times, starting at offset 0.
+pure fn decodeVector(b: Bytes) -> Array[FixedArray[u16, n]] {
+    let mut out = zeroVector()
+    let mut i: usize = 0
+    for i < k {
+        out[i] = byteDecodeAt(b, polyBytes12 * i, 12)
+        i = i + 1
+    }
+    out
+}
+
+/// ByteEncode12 applied k times and concatenated.
+pure fn encodeVector(v: Array[FixedArray[u16, n]]) -> Bytes {
+    let mut out = Bytes.zeros(0)
+    let mut i: usize = 0
+    for i < k {
+        out = out.concat(byteEncode(v[i], 12))
+        i = i + 1
+    }
+    out
+}
+
+/// K-PKE.KeyGen (FIPS 203 Algorithm 13); returns (ek_PKE, dk_PKE).
+pure fn kPkeKeyGen(d: Bytes) -> (Bytes, Bytes) {
+    let (rho, sigma) = g(d, oneByte(k.toU8() || 0))
+    let a = expandMatrix(rho)
+    let mut s = zeroVector()
+    let mut e = zeroVector()
+    let mut nonce: usize = 0
+    let mut i: usize = 0
+    for i < k {
+        s[i] = samplePolyCbd(sigma, nonce.toU8() || 0, eta1)
+        nonce = nonce + 1
+        i = i + 1
+    }
+    i = 0
+    for i < k {
+        e[i] = samplePolyCbd(sigma, nonce.toU8() || 0, eta1)
+        nonce = nonce + 1
+        i = i + 1
+    }
+    let shat = nttVector(s)
+    let ehat = nttVector(e)
+    let mut t = zeroVector()
+    i = 0
+    for i < k {
+        let mut acc = zeroPoly()
+        let mut j: usize = 0
+        for j < k {
+            acc = polyAdd(acc, basemul(a[i * k + j], shat[j]))
+            j = j + 1
+        }
+        t[i] = polyAdd(acc, ehat[i])
+        i = i + 1
+    }
+    (encodeVector(t).concat(rho), encodeVector(shat))
+}
+
+/// K-PKE.Encrypt (FIPS 203 Algorithm 14).
+pure fn kPkeEncrypt(ek: Bytes, m: Bytes, r: Bytes) -> Bytes {
+    let that = decodeVector(ek)
+    let rho = exactSlice(ek, polyBytes12 * k, polyBytes12 * k + 32)
+    let a = expandMatrix(rho)
+    let mut y = zeroVector()
+    let mut e1 = zeroVector()
+    let mut nonce: usize = 0
+    let mut i: usize = 0
+    for i < k {
+        y[i] = samplePolyCbd(r, nonce.toU8() || 0, eta1)
+        nonce = nonce + 1
+        i = i + 1
+    }
+    i = 0
+    for i < k {
+        e1[i] = samplePolyCbd(r, nonce.toU8() || 0, eta2)
+        nonce = nonce + 1
+        i = i + 1
+    }
+    let e2 = samplePolyCbd(r, nonce.toU8() || 0, eta2)
+    let yhat = nttVector(y)
+    let mut u = zeroVector()
+    i = 0
+    for i < k {
+        // u = INTT(A^T o yhat) + e1, and (A^T)[i][j] is A[j][i].
+        let mut acc = zeroPoly()
+        let mut j: usize = 0
+        for j < k {
+            acc = polyAdd(acc, basemul(a[j * k + i], yhat[j]))
+            j = j + 1
+        }
+        u[i] = polyAdd(invNtt(acc), e1[i])
+        i = i + 1
+    }
+    let mut vAcc = zeroPoly()
+    i = 0
+    for i < k {
+        vAcc = polyAdd(vAcc, basemul(that[i], yhat[i]))
+        i = i + 1
+    }
+    let mu = decompressPoly(byteDecodeAt(m, 0, 1), 1)
+    let v = polyAdd(polyAdd(invNtt(vAcc), e2), mu)
+
+    let mut c = Bytes.zeros(0)
+    i = 0
+    for i < k {
+        c = c.concat(byteEncode(compressPoly(u[i], du), du))
+        i = i + 1
+    }
+    c.concat(byteEncode(compressPoly(v, dv), dv))
+}
+
+/// K-PKE.Decrypt (FIPS 203 Algorithm 15).
+pure fn kPkeDecrypt(dkPke: Bytes, c: Bytes) -> Bytes {
+    let shat = decodeVector(dkPke)
+    let mut u = zeroVector()
+    let mut i: usize = 0
+    for i < k {
+        u[i] = decompressPoly(byteDecodeAt(c, 32 * du * i, du), du)
+        i = i + 1
+    }
+    let v = decompressPoly(byteDecodeAt(c, 32 * du * k, dv), dv)
+    let mut acc = zeroPoly()
+    i = 0
+    for i < k {
+        acc = polyAdd(acc, basemul(shat[i], ntt(u[i])))
+        i = i + 1
+    }
+    let w = polySub(v, invNtt(acc))
+    byteEncode(compressPoly(w, 1), 1)
+}
+
+/// Whether ek is the canonical ByteEncode12 of its decoded coefficients,
+/// which is the modulus check of FIPS 203 §7.2.
+pure fn canonicalEncapsulationKey(ek: Bytes) -> Bool {
+    let body = exactSlice(ek, 0, polyBytes12 * k)
+    subtle.constantTimeEq(encodeVector(decodeVector(ek)), body)
+}
+
+/// All-ones when a and b hold the same bytes, all-zero otherwise, without an
+/// early exit. Both are the same length at every call site.
+pure noalloc fn bytesEqMask(a: Bytes, b: Bytes) -> u64 {
+    let mut diff: u64 = 0
+    let mut i: usize = 0
+    for i < a.len() {
+        diff = diff | (a[i] ^ b[i]).toU64()
+        i = i + 1
+    }
+    subtle.eqMaskU64(diff, 0)
+}
+
+/// Bytewise select of a under the mask's ones and b under its zeroes.
+pure fn selectBytes(mask: u64, a: Bytes, b: Bytes) -> Bytes {
+    let m = mask.truncate[u8]()
+    let mut out = Array.fill[u8](0, a.len())
+    let mut i: usize = 0
+    for i < a.len() {
+        out[i] = subtle.selectU8(m, a[i], b[i])
+        i = i + 1
+    }
+    Bytes.fromArray(&out)
+}
+
+/// ML-KEM.KeyGen_internal(d, z) (FIPS 203 Algorithm 16).
+///
+/// `d` and `z` must be 32 independent CSPRNG bytes each. They are secret:
+/// together they regenerate the decapsulation key.
+pub pure fn keyGen(d: Bytes, z: Bytes) -> Result[KeyPair, Error] {
+    if d.len() != seedSize || z.len() != seedSize {
+        return Err(Error.BadSeedSize)
+    }
+    let (ek, dkPke) = kPkeKeyGen(d)
+    let h = sha3.sum256(ek)
+    let dk = dkPke.concat(ek).concat(h).concat(z)
+    Ok(KeyPair {
+        encapsulationKey: ek
+        decapsulationKey: dk
+    })
+}
+
+/// ML-KEM.Encaps_internal(ek, m) (FIPS 203 Algorithm 17).
+///
+/// `m` must be 32 CSPRNG bytes and is secret until the ciphertext is returned.
+/// The encapsulation key is checked for length and canonical encoding first.
+pub pure fn encapsulate(ek: Bytes, m: Bytes) -> Result[Encapsulated, Error] {
+    if m.len() != seedSize {
+        return Err(Error.BadSeedSize)
+    }
+    if ek.len() != encapsulationKeySize {
+        return Err(Error.BadEncapsulationKeySize)
+    }
+    if !canonicalEncapsulationKey(ek) {
+        return Err(Error.NonCanonicalEncapsulationKey)
+    }
+    let (shared, r) = g(m, sha3.sum256(ek))
+    let ciphertext = kPkeEncrypt(ek, m, r)
+    Ok(Encapsulated {
+        sharedSecret: shared
+        ciphertext: ciphertext
+    })
+}
+
+/// ML-KEM.Decaps_internal(dk, c) (FIPS 203 Algorithm 18).
+///
+/// The decapsulation key is checked for length and for the stored H(ek) hash;
+/// the ciphertext is checked for length. A ciphertext that does not re-encrypt
+/// to itself is rejected implicitly: the returned secret is J(z || c), chosen
+/// with a mask rather than a branch.
+pub pure fn decapsulate(dk: Bytes, c: Bytes) -> Result[Bytes, Error] {
+    if dk.len() != decapsulationKeySize {
+        return Err(Error.BadDecapsulationKeySize)
+    }
+    if c.len() != ciphertextSize {
+        return Err(Error.BadCiphertextSize)
+    }
+    let ek = exactSlice(dk, polyBytes12 * k, 2 * polyBytes12 * k + 32)
+    let h = exactSlice(dk, 2 * polyBytes12 * k + 32, 2 * polyBytes12 * k + 64)
+    if !subtle.constantTimeEq(h, sha3.sum256(ek)) {
+        return Err(Error.DecapsulationKeyHashMismatch)
+    }
+    let dkPke = exactSlice(dk, 0, polyBytes12 * k)
+    let z = exactSlice(dk, 2 * polyBytes12 * k + 64, decapsulationKeySize)
+    let mPrime = kPkeDecrypt(dkPke, c)
+    let (sharedPrime, rPrime) = g(mPrime, h)
+    let rejected = sha3.shake256(z.concat(c), sharedSecretSize)
+    let cPrime = kPkeEncrypt(ek, mPrime, rPrime)
+    Ok(selectBytes(bytesEqMask(c, cPrime), sharedPrime, rejected))
+}

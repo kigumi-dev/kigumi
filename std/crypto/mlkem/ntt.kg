@@ -1,0 +1,175 @@
+// Arithmetic in Z_q and the ML-KEM NTT (FIPS 203 §4.3).
+//
+// Every reduction is a multiplication by a compile-time reciprocal followed
+// by a shift: no division instruction and no branch depends on a coefficient.
+// Indices come only from loop counters and the fixed zeta table, never from a
+// secret value.
+/// A polynomial or an NTT representation: 256 coefficients in [0, q).
+/// (FIPS 203 writes the type as Z_q^256.)
+/// The reciprocal of q for 64-bit division: floor(2^48 / q) + 1.
+/// For 0 <= x < 2^24, (x * recipQ) >> 48 is exactly floor(x / q).
+const recipQ: u64 = 84552411148
+
+/// The shift paired with recipQ.
+const recipShift: usize = 48
+
+/// x mod q for 0 <= x < 2^24, without a division instruction.
+pure noalloc fn modQ(x: u32) -> u16 {
+    let wide = x.toU64()
+    let quotient = (wide * recipQ) >> recipShift
+    (wide - quotient * modulusQ.toU64()).toU16() || 0
+}
+
+/// a + b mod q.
+pure noalloc fn addQ(a: u16, b: u16) -> u16 {
+    modQ(a.toU32() + b.toU32())
+}
+
+/// a - b mod q.
+pure noalloc fn subQ(a: u16, b: u16) -> u16 {
+    modQ(a.toU32() + modulusQ.toU32() - b.toU32())
+}
+
+/// a * b mod q.
+pure noalloc fn mulQ(a: u16, b: u16) -> u16 {
+    modQ(a.toU32() * b.toU32())
+}
+
+/// Reverses the low seven bits of i.
+pure noalloc fn bitRev7(i: usize) -> usize {
+    let mut out: usize = 0
+    let mut b: usize = 0
+    for b < 7 {
+        if ((i >> b) & 1) == 1 {
+            out = out | (1 << (6 - b))
+        }
+        b = b + 1
+    }
+    out
+}
+
+/// 17^e mod q, with a square-and-multiply over the public exponent.
+pure noalloc fn pow17(e: usize) -> u16 {
+    let mut acc: u16 = 1
+    let mut base: u16 = 17
+    let mut left = e
+    for left > 0 {
+        if (left & 1) == 1 {
+            acc = mulQ(acc, base)
+        }
+        base = mulQ(base, base)
+        left = left >> 1
+    }
+    acc
+}
+
+/// zetas[i] = 17^BitRev7(i) mod q for i in 0..128. The NTT starts at index
+/// 1; index 0 is the zeta of the first basemul pair.
+pure fn zetas() -> FixedArray[u16, 128] {
+    let mut out = FixedArray.filled[u16, 128](0)
+    let mut i: usize = 0
+    for i < 128 {
+        out[i] = pow17(bitRev7(i))
+        i = i + 1
+    }
+    out
+}
+
+/// The forward NTT (FIPS 203 Algorithm 9), in place on a copy.
+pure fn ntt(f: FixedArray[u16, n]) -> FixedArray[u16, n] {
+    let zeta = zetas()
+    let mut out = f
+    let mut i: usize = 1
+    let mut len: usize = 128
+    for len >= 2 {
+        let mut start: usize = 0
+        for start < n {
+            let z = zeta[i]
+            i = i + 1
+            let mut j: usize = start
+            for j < start + len {
+                let t = mulQ(z, out[j + len])
+                let a = out[j]
+                out[j] = addQ(a, t)
+                out[j + len] = subQ(a, t)
+                j = j + 1
+            }
+            start = start + 2 * len
+        }
+        len = len >> 1
+    }
+    out
+}
+
+/// The inverse NTT (FIPS 203 Algorithm 10), in place on a copy.
+pure fn invNtt(f: FixedArray[u16, n]) -> FixedArray[u16, n] {
+    let zeta = zetas()
+    let mut out = f
+    let mut i: usize = 127
+    let mut len: usize = 2
+    for len <= 128 {
+        let mut start: usize = 0
+        for start < n {
+            let z = zeta[i]
+            i = i - 1
+            let mut j: usize = start
+            for j < start + len {
+                let t = out[j]
+                let b = out[j + len]
+                out[j] = addQ(t, b)
+                out[j + len] = mulQ(z, subQ(b, t))
+                j = j + 1
+            }
+            start = start + 2 * len
+        }
+        len = len << 1
+    }
+    let mut j: usize = 0
+    for j < n {
+        out[j] = mulQ(out[j], 3303)
+        j = j + 1
+    }
+    out
+}
+
+/// Coordinate-wise sum of two polynomials.
+pure fn polyAdd(a: FixedArray[u16, n], b: FixedArray[u16, n]) -> FixedArray[u16, n] {
+    let mut out = FixedArray.filled[u16, n](0)
+    let mut i: usize = 0
+    for i < n {
+        out[i] = addQ(a[i], b[i])
+        i = i + 1
+    }
+    out
+}
+
+/// Coordinate-wise difference a - b.
+pure fn polySub(a: FixedArray[u16, n], b: FixedArray[u16, n]) -> FixedArray[u16, n] {
+    let mut out = FixedArray.filled[u16, n](0)
+    let mut i: usize = 0
+    for i < n {
+        out[i] = subQ(a[i], b[i])
+        i = i + 1
+    }
+    out
+}
+
+/// The product of two NTT representations (FIPS 203 Algorithms 11 and 12).
+pure fn basemul(a: FixedArray[u16, n], b: FixedArray[u16, n]) -> FixedArray[u16, n] {
+    let zeta = zetas()
+    let mut out = FixedArray.filled[u16, n](0)
+    let mut i: usize = 0
+    for i < 128 {
+        // gamma_i = 17^(2 BitRev7(i) + 1) = 17 * (17^BitRev7(i))^2.
+        let z = zeta[i]
+        let gamma = mulQ(17, mulQ(z, z))
+        let a0 = a[2 * i]
+        let a1 = a[2 * i + 1]
+        let b0 = b[2 * i]
+        let b1 = b[2 * i + 1]
+        out[2 * i] = addQ(mulQ(a0, b0), mulQ(mulQ(a1, b1), gamma))
+        out[2 * i + 1] = addQ(mulQ(a0, b1), mulQ(a1, b0))
+        i = i + 1
+    }
+    out
+}

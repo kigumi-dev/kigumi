@@ -672,6 +672,9 @@ var addedAfterBaseline = map[string]bool{
 	"shell_quote_states.txtar":                      true,
 	"closure_mut_self_after.txtar":                  true,
 	"closure_mut_self_window.txtar":                 true,
+	"crypto_mlkem_keygen.txtar":                     true,
+	"crypto_mlkem_encapdecap.txtar":                 true,
+	"crypto_mlkem_errors.txtar":                     true,
 }
 
 func TestRCCallCounts(t *testing.T) {

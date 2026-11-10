@@ -1,0 +1,74 @@
+-- src --
+import mlkem from std/crypto/mlkem
+import hex from std/encoding/hex
+
+fn main() -> Void! {
+    let kp = mlkem.keyGen(hex.decode("E582B7D75E6C80B05AE392A1FC9F7153B12390FD99930368CC67A768BAEBC8A0")?, hex.decode("1CDACB8740C0B87C4A379575F187B367CBFA3B300BF591B109F79816E9CBE8F0")?)?
+    let m = Bytes.zeros(32)
+
+    match mlkem.keyGen(Bytes.zeros(31), Bytes.zeros(32)) {
+        Ok(_) -> print "short d: unexpected success"
+        Err(e) -> print "short d: ${e.message()}"
+    }
+    match mlkem.encapsulate(Bytes.zeros(10), m) {
+        Ok(_) -> print "short ek: unexpected success"
+        Err(e) -> print "short ek: ${e.message()}"
+    }
+
+    // A 12-bit field of 0xff decodes modulo q and re-encodes differently.
+    let mut raw = Array.empty[u8]()
+    for b in kp.encapsulationKey {
+        raw.push(b)
+    }
+    raw[0] = 255
+    raw[1] = 255
+    raw[2] = 255
+    match mlkem.encapsulate(Bytes.fromArray(&raw), m) {
+        Ok(_) -> print "non-canonical ek: unexpected success"
+        Err(e) -> print "non-canonical ek: ${e.message()}"
+    }
+
+    match mlkem.decapsulate(Bytes.zeros(10), Bytes.zeros(1088)) {
+        Ok(_) -> print "short dk: unexpected success"
+        Err(e) -> print "short dk: ${e.message()}"
+    }
+
+    let enc = mlkem.encapsulate(kp.encapsulationKey, m)?
+    match mlkem.decapsulate(kp.decapsulationKey, Bytes.zeros(10)) {
+        Ok(_) -> print "short ciphertext: unexpected success"
+        Err(e) -> print "short ciphertext: ${e.message()}"
+    }
+
+    // Corrupting the stored H(ek) must be detected, not silently accepted.
+    let mut badDk = Array.empty[u8]()
+    for b in kp.decapsulationKey {
+        badDk.push(b)
+    }
+    // Byte 768k + 32 with k = 3 is the first byte of the stored H(ek).
+    badDk[2336] = badDk[2336] ^ 1
+    match mlkem.decapsulate(Bytes.fromArray(&badDk), enc.ciphertext) {
+        Ok(_) -> print "bad dk hash: unexpected success"
+        Err(e) -> print "bad dk hash: ${e.message()}"
+    }
+
+    // A modified ciphertext is rejected implicitly: a different secret, no error.
+    let mut ct = Array.empty[u8]()
+    for b in enc.ciphertext {
+        ct.push(b)
+    }
+    ct[0] = ct[0] ^ 1
+    let rejected = mlkem.decapsulate(kp.decapsulationKey, Bytes.fromArray(&ct))?
+    if hex.encode(rejected) != hex.encode(enc.sharedSecret) {
+        print "modified ciphertext: implicit rejection"
+    } else {
+        print "modified ciphertext: same secret"
+    }
+}
+-- stdout --
+short d: mlkem: randomness must be 32 bytes
+short ek: mlkem: encapsulation key must be 1184 bytes
+non-canonical ek: mlkem: encapsulation key is not canonically encoded
+short dk: mlkem: decapsulation key must be 2400 bytes
+short ciphertext: mlkem: ciphertext must be 1088 bytes
+bad dk hash: mlkem: decapsulation key hash does not match
+modified ciphertext: implicit rejection

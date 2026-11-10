@@ -1,0 +1,64 @@
+// ML-KEM-768 parameters and errors (FIPS 203, Table 2).
+//
+// This package implements one parameter set, ML-KEM-768: k = 3, eta1 = 2,
+// eta2 = 2, du = 10, dv = 4. The sizes are public and every length check
+// below runs before any secret is touched.
+/// Module dimension k.
+pub const k: usize = 3
+
+/// Polynomial degree n.
+pub const n: usize = 256
+
+/// Coefficients are taken modulo q.
+const modulusQ: u16 = 3329
+
+/// Coefficients per byte-encoded NTT polynomial: 12 bits * 256.
+const polyBytes12: usize = 384
+
+/// eta1 of ML-KEM-768.
+const eta1: usize = 2
+
+/// eta2 of ML-KEM-768.
+const eta2: usize = 2
+
+/// Ciphertext bits per coefficient of u.
+const du: usize = 10
+
+/// Ciphertext bits per coefficient of v.
+const dv: usize = 4
+
+/// Bytes of an encapsulation key: 384k + 32.
+pub const encapsulationKeySize: usize = polyBytes12 * k + 32
+
+/// Bytes of a decapsulation key: 768k + 96.
+pub const decapsulationKeySize: usize = 2 * polyBytes12 * k + 96
+
+/// Bytes of a ciphertext: 32(du k + dv).
+pub const ciphertextSize: usize = 32 * (du * k + dv)
+
+/// Bytes of a shared secret.
+pub const sharedSecretSize: usize = 32
+
+/// Bytes of a seed or of the encapsulation randomness m.
+pub const seedSize: usize = 32
+
+/// Why an ML-KEM call was refused.
+pub type Error =
+    | BadSeedSize
+    | BadEncapsulationKeySize
+    | BadDecapsulationKeySize
+    | BadCiphertextSize
+    | NonCanonicalEncapsulationKey
+    | DecapsulationKeyHashMismatch
+
+/// A short, fixed explanation of the error.
+pub fn Error.message(self) -> String {
+    match self {
+        BadSeedSize -> "mlkem: randomness must be 32 bytes"
+        BadEncapsulationKeySize -> "mlkem: encapsulation key must be 1184 bytes"
+        BadDecapsulationKeySize -> "mlkem: decapsulation key must be 2400 bytes"
+        BadCiphertextSize -> "mlkem: ciphertext must be 1088 bytes"
+        NonCanonicalEncapsulationKey -> "mlkem: encapsulation key is not canonically encoded"
+        DecapsulationKeyHashMismatch -> "mlkem: decapsulation key hash does not match"
+    }
+}

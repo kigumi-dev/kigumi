@@ -4611,6 +4611,33 @@
       ]
     },
     {
+      "id": "run/crypto_mlkem_encapdecap",
+      "kind": "run",
+      "path": "testdata/run/crypto_mlkem_encapdecap.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_mlkem_errors",
+      "kind": "run",
+      "path": "testdata/run/crypto_mlkem_errors.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_mlkem_keygen",
+      "kind": "run",
+      "path": "testdata/run/crypto_mlkem_keygen.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/crypto_p256_ecdh",
       "kind": "run",
       "path": "testdata/run/crypto_p256_ecdh.txtar",
