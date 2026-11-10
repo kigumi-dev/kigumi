@@ -48,7 +48,7 @@ declare ptr @rt_d_try(i32, i32, ptr)
 @".type.universe.Array" = global %rt_type { ptr @.p6, i32 0, i32 0, ptr null, i32 0, ptr null, ptr null, i64 0, i64 0 }
 @".type.golden.Point" = global %rt_type { ptr @.p7, i32 0, i32 2, ptr @".type.golden.Point.fields", i32 0, ptr null, ptr null, i64 0, i64 0 }
 @".type.golden.Point.fields" = global [2 x ptr] [ptr @.p8, ptr @.p9]
-@".type.std/map.Map" = global %rt_type { ptr @.p10, i32 4, i32 5, ptr @".type.std/map.Map.fields", i32 0, ptr null, ptr null, i64 0, i64 0 }
+@".type.std/map.Map" = global %rt_type { ptr @.p10, i32 4, i32 5, ptr @".type.std/map.Map.fields", i32 0, ptr null, ptr null, i64 0, i64 31 }
 @".type.std/map.Map.fields" = global [5 x ptr] [ptr @.p11, ptr @.p12, ptr @.p13, ptr @.p14, ptr @.p15]
 @".type.std/prelude.AllocError" = global %rt_type { ptr @.p16, i32 2, i32 0, ptr null, i32 1, ptr @".type.std/prelude.AllocError.variants", ptr null, i64 0, i64 0 }
 @".variant.std/prelude.AllocError.OutOfMemory" = global %rt_variant { ptr @.p17, ptr @".type.std/prelude.AllocError", i32 0, i32 0, [64 x i8] zeroinitializer }

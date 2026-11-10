@@ -28,7 +28,7 @@ declare i64 @rt_int_val(ptr)
 @".variant.universe.Result.Err" = global %rt_variant { ptr @.p5, ptr @".type.universe.Result", i32 1, i32 1, [64 x i8] zeroinitializer }
 @".type.universe.Result.variants" = global [2 x ptr] [ptr @".variant.universe.Result.Ok", ptr @".variant.universe.Result.Err"]
 @".type.universe.Array" = global %rt_type { ptr @.p6, i32 0, i32 0, ptr null, i32 0, ptr null, ptr null, i64 0, i64 0 }
-@".type.std/map.Map" = global %rt_type { ptr @.p7, i32 4, i32 5, ptr @".type.std/map.Map.fields", i32 0, ptr null, ptr null, i64 0, i64 0 }
+@".type.std/map.Map" = global %rt_type { ptr @.p7, i32 4, i32 5, ptr @".type.std/map.Map.fields", i32 0, ptr null, ptr null, i64 0, i64 31 }
 @".type.std/map.Map.fields" = global [5 x ptr] [ptr @.p8, ptr @.p9, ptr @.p10, ptr @.p11, ptr @.p12]
 @".type.std/prelude.AllocError" = global %rt_type { ptr @.p13, i32 2, i32 0, ptr null, i32 1, ptr @".type.std/prelude.AllocError.variants", ptr null, i64 0, i64 0 }
 @".variant.std/prelude.AllocError.OutOfMemory" = global %rt_variant { ptr @.p14, ptr @".type.std/prelude.AllocError", i32 0, i32 0, [64 x i8] zeroinitializer }
