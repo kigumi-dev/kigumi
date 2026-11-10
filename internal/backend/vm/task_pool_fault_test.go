@@ -69,11 +69,14 @@ async fn root() -> Int {
     let a = task.spawn(boom())
     let b = task.spawn(spin(2))
     let c = task.spawn(spin(3))
+    // Await the fault first: a scheduler that let b finish before the panic
+    // reached the root would make the absence of "b 2" a timing accident.
+    await a
     let x = await b
     print "b ${x}"
     let y = await c
     print "c ${y}"
-    await a
+    0
 }
 
 let ex = task.threadPoolExecutor(3)
