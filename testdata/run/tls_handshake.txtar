@@ -246,7 +246,9 @@ async fn Wire.writeAll(mut self, data: Bytes) -> Void! {
 
 type ClientHello = {
     sessionId Bytes
+    group usize
     keyShare Bytes
+    cookie Bytes?
     serverName String
     alpn String
 }
@@ -278,7 +280,9 @@ fn parseClientHello(message: Bytes) -> ClientHello! {
     let exts = r.vec16()?
     let mut er = Cursor.new(exts)
     let mut shareFound = false
+    let mut group: usize = 0
     let mut keyShare = Bytes.zeros(0)
+    let mut cookie: Bytes? = None
     let mut sni = ""
     let mut alpn = ""
     let mut versionsFound = false
@@ -290,14 +294,39 @@ fn parseClientHello(message: Bytes) -> ClientHello! {
         if typ == 51 {
             let mut kr = Cursor.new(data)
             let list = kr.vec16()?
-            let mut lr = Cursor.new(list)
-            let group = lr.u16()?
-            let share = lr.vec16()?
-            if group != 0x001D || share.len() != 32 {
-                fail Fail { text: "server: key_share group or length" }
+            if kr.left() != 0 {
+                fail Fail { text: "server: key_share trailing bytes" }
             }
+            let mut lr = Cursor.new(list)
+            let g = lr.u16()?
+            let share = lr.vec16()?
+            if lr.left() != 0 {
+                fail Fail { text: "server: more than one key share entry" }
+            }
+            if g == 0x001D {
+                if share.len() != 32 {
+                    fail Fail { text: "server: x25519 share length" }
+                }
+            } else if g == 0x0017 {
+                if share.len() != 65 {
+                    fail Fail { text: "server: secp256r1 share length" }
+                }
+            } else {
+                fail Fail { text: "server: key share group ${g}" }
+            }
+            group = g
             keyShare = share
             shareFound = true
+        } else if typ == 44 {
+            let mut cr = Cursor.new(data)
+            let value = cr.vec16()?
+            if cr.left() != 0 {
+                fail Fail { text: "server: cookie trailing bytes" }
+            }
+            if value.len() == 0 {
+                fail Fail { text: "server: empty cookie" }
+            }
+            cookie = Some(value)
         } else if typ == 0 {
             let mut sr = Cursor.new(data)
             let list = sr.vec16()?
@@ -330,7 +359,7 @@ fn parseClientHello(message: Bytes) -> ClientHello! {
         } else if typ == 10 {
             let mut gr = Cursor.new(data)
             let list = gr.vec16()?
-            if list.len() != 2 || u16At(list, 0) != 0x001D {
+            if list.len() != 4 || u16At(list, 0) != 0x001D || u16At(list, 2) != 0x0017 {
                 fail Fail { text: "server: supported_groups" }
             }
             groupsFound = true
@@ -347,7 +376,9 @@ fn parseClientHello(message: Bytes) -> ClientHello! {
     }
     ClientHello {
         sessionId: sessionId
+        group: group
         keyShare: keyShare
+        cookie: cookie
         serverName: sni
         alpn: alpn
     }
@@ -355,11 +386,64 @@ fn parseClientHello(message: Bytes) -> ClientHello! {
 
 // ---- server -------------------------------------------------------------
 
-type Mode = | Happy | WrongFinished | BadSuite | WrongOrder | EarlyData | PlainAlert | Oversized
+type Mode = | Happy | WrongFinished | BadSuite | WrongOrder | EarlyData | PlainAlert | Oversized | RetryP256 | RetryCookieOnly | RetryBadGroup | RetryReuseX25519 | RetryNoChange | RetryBadCookie | RetryServerGroupMismatch | SecondRetry
 
 type ServerSecrets = {
     handshake tls.HandshakeSecrets
     application tls.ApplicationSecrets
+}
+
+fn isRetryMode(mode: Mode) -> Bool {
+    match mode {
+        RetryP256 -> true
+        RetryCookieOnly -> true
+        RetryBadGroup -> true
+        RetryReuseX25519 -> true
+        RetryNoChange -> true
+        RetryBadCookie -> true
+        RetryServerGroupMismatch -> true
+        SecondRetry -> true
+        _ -> false
+    }
+}
+
+// The fixed ServerHello.random that marks a HelloRetryRequest.
+fn retryRandom() -> Bytes {
+    Bytes.fromArray(&Array.of[u8](0xcf, 0x21, 0xad, 0x74, 0xe5, 0x9a, 0x61, 0x11, 0xbe, 0x1d, 0x8c, 0x02, 0x1e, 0x65, 0xb8, 0x91, 0xc2, 0xa2, 0x11, 0x16, 0x7a, 0xbb, 0x8c, 0x5e, 0x07, 0x9e, 0x09, 0xe2, 0xc8, 0xa8, 0x33, 0x9c))
+}
+
+// A HelloRetryRequest with supported_versions, optionally a selected group
+// and a cookie. `trailing` appends a byte after the cookie vector, which the
+// client must refuse.
+fn hrrMessage(sessionId: Bytes, group: usize?, cookie: Bytes?, trailing: Bool) -> Bytes {
+    let mut body = Array.empty[u8]()
+    put16(&mut body, 0x0303)
+    putBytes(&mut body, retryRandom())
+    body.push(sessionId.len().toU8() || 0)
+    putBytes(&mut body, sessionId)
+    put16(&mut body, 0x1303)
+    body.push(0)
+    let mut exts = Array.empty[u8]()
+    exts.appendAll(ext(43, byteArray(Bytes.fromArray(&Array.of[u8](0x03, 0x04)))))
+    if let Some(g) = group {
+        let mut share = Array.empty[u8]()
+        put16(&mut share, g)
+        exts.appendAll(ext(51, share))
+    }
+    if let Some(c) = cookie {
+        let mut value = Array.empty[u8]()
+        put16(&mut value, c.len())
+        putBytes(&mut value, c)
+        if trailing {
+            value.push(0xee)
+        }
+        exts.appendAll(ext(44, value))
+    }
+    let mut blk = Array.empty[u8]()
+    put16(&mut blk, exts.len())
+    blk.appendAll(exts)
+    putBytes(&mut body, Bytes.fromArray(&blk))
+    hs(2, Bytes.fromArray(&body))
 }
 
 async fn serverAccept(mut listener: net.Listener, mode: Mode, cert: Bytes, key: Bytes) -> Void! {
@@ -376,7 +460,10 @@ async fn serverRun(conn: net.Conn, mode: Mode, cert: Bytes, key: Bytes) -> Void!
         fail Fail { text: "server: ClientHello record type" }
     }
     let helloMsg = first.payload
-    let clientHello = parseClientHello(helloMsg)?
+    let ch1 = parseClientHello(helloMsg)?
+    if let Some(_) = ch1.cookie {
+        fail Fail { text: "server: first ClientHello carries a cookie" }
+    }
 
     if mode is Mode.Oversized {
         // A five-byte header claiming a 65535-byte record exceeds every cap.
@@ -384,14 +471,116 @@ async fn serverRun(conn: net.Conn, mode: Mode, cert: Bytes, key: Bytes) -> Void!
         return Ok(())
     }
 
+    let mut prefix = helloMsg
+    let mut clientGroup = ch1.group
+    let mut clientShare = ch1.keyShare
+
+    if isRetryMode(mode) {
+        // The server's first flight is a HelloRetryRequest, preceded by the
+        // same middlebox-compatibility change_cipher_spec.
+        let mut ccs = Array.empty[u8]()
+        ccs.push(1)
+        (await wire.writeAll(plainRecord(20, Bytes.fromArray(&ccs))))?
+
+        let mut requestedGroup: usize? = None
+        let mut cookie: Bytes? = None
+        let mut trailing = false
+        let mut reject = false
+        if mode is Mode.RetryP256 {
+            requestedGroup = Some(0x0017)
+            cookie = Some(dec("c0ffee01"))
+        } else if mode is Mode.RetryServerGroupMismatch {
+            requestedGroup = Some(0x0017)
+            cookie = Some(dec("c0ffee01"))
+        } else if mode is Mode.RetryCookieOnly {
+            cookie = Some(dec("c0ffee01"))
+        } else if mode is Mode.RetryBadGroup {
+            requestedGroup = Some(0x0018)
+            reject = true
+        } else if mode is Mode.RetryReuseX25519 {
+            requestedGroup = Some(0x001D)
+            reject = true
+        } else if mode is Mode.RetryNoChange {
+            reject = true
+        } else if mode is Mode.RetryBadCookie {
+            cookie = Some(dec("c0ffee01"))
+            trailing = true
+            reject = true
+        } else {
+            // SecondRetry: a cookie-only request, then a second one.
+            cookie = Some(dec("c0ffee01"))
+        }
+        let hrr = hrrMessage(ch1.sessionId, requestedGroup, cookie, trailing)
+        (await wire.writeAll(plainRecord(22, hrr)))?
+        if reject {
+            return Ok(())
+        }
+        let expectedGroup = match requestedGroup {
+            Some(g) -> g
+            None -> 0x001D
+        }
+        let second = (await wire.readRecord())?
+        if second.typ != 22 {
+            fail Fail { text: "server: retried ClientHello record type" }
+        }
+        let ch2Msg = second.payload
+        let ch2 = parseClientHello(ch2Msg)?
+        if !ch2.sessionId.equals(&ch1.sessionId) {
+            fail Fail { text: "server: retried ClientHello session id" }
+        }
+        if ch2.serverName != ch1.serverName || ch2.alpn != ch1.alpn {
+            fail Fail { text: "server: retried ClientHello changed SNI or ALPN" }
+        }
+        if ch2.group != expectedGroup {
+            fail Fail { text: "server: retried ClientHello key share group ${ch2.group}" }
+        }
+        let expectedCookie = match cookie {
+            Some(value) -> value
+            None -> fail Fail { text: "server: retry without a cookie" }
+        }
+        let echoed = match ch2.cookie {
+            Some(value) -> value
+            None -> fail Fail { text: "server: retried ClientHello did not echo the cookie" }
+        }
+        if !echoed.equals(&expectedCookie) {
+            fail Fail { text: "server: retried ClientHello cookie mismatch" }
+        }
+        // RFC 8446 §4.4.1: the transcript replaces ClientHello1 with a
+        // message_hash, then carries the HelloRetryRequest and ClientHello2.
+        prefix = hs(254, sha256.sum(helloMsg)).concat(hrr).concat(ch2Msg)
+        clientGroup = ch2.group
+        clientShare = ch2.keyShare
+        if mode is Mode.SecondRetry {
+            let secondRetry = hrrMessage(ch1.sessionId, Some(0x0017), Some(expectedCookie), false)
+            (await wire.writeAll(plainRecord(22, secondRetry)))?
+            return Ok(())
+        }
+    }
+
     let serverSecret = dec("aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899")
-    let serverPublic = (x25519Public(serverSecret))?
-    let shared = (x25519Shared(serverSecret, clientHello.keyShare))?
+    let mut shareGroup = clientGroup
+    let mut serverPublic = if clientGroup == 0x0017 {
+        (p256Public(serverSecret))?
+    } else {
+        (x25519Public(serverSecret))?
+    }
+    if mode is Mode.RetryServerGroupMismatch {
+        // A ServerHello must keep the group the HelloRetryRequest selected.
+        shareGroup = 0x001D
+        serverPublic = (x25519Public(serverSecret))?
+    }
+    let shared = if clientGroup == 0x0017 {
+        (p256Shared(serverSecret, clientShare))?
+    } else {
+        (x25519Shared(serverSecret, clientShare))?
+    }
 
     // A middlebox-compatibility dummy change_cipher_spec before ServerHello.
-    let mut ccs = Array.empty[u8]()
-    ccs.push(1)
-    (await wire.writeAll(plainRecord(20, Bytes.fromArray(&ccs))))?
+    if !isRetryMode(mode) {
+        let mut ccs = Array.empty[u8]()
+        ccs.push(1)
+        (await wire.writeAll(plainRecord(20, Bytes.fromArray(&ccs))))?
+    }
 
     let mut shBody = Array.empty[u8]()
     put16(&mut shBody, 0x0303)
@@ -401,8 +590,8 @@ async fn serverRun(conn: net.Conn, mode: Mode, cert: Bytes, key: Bytes) -> Void!
         shBody.push((0xA0 + i).toU8() || 0)
         i = i + 1
     }
-    shBody.push(clientHello.sessionId.len().toU8() || 0)
-    putBytes(&mut shBody, clientHello.sessionId)
+    shBody.push(ch1.sessionId.len().toU8() || 0)
+    putBytes(&mut shBody, ch1.sessionId)
     if mode is Mode.BadSuite {
         put16(&mut shBody, 0x1301)
     } else {
@@ -412,8 +601,8 @@ async fn serverRun(conn: net.Conn, mode: Mode, cert: Bytes, key: Bytes) -> Void!
     let mut shExts = Array.empty[u8]()
     shExts.appendAll(ext(43, byteArray(Bytes.fromArray(&Array.of[u8](0x03, 0x04)))))
     let mut share = Array.empty[u8]()
-    put16(&mut share, 0x001D)
-    put16(&mut share, 32)
+    put16(&mut share, shareGroup)
+    put16(&mut share, serverPublic.len())
     putBytes(&mut share, serverPublic)
     shExts.appendAll(ext(51, share))
     let mut shBlock = Array.empty[u8]()
@@ -434,8 +623,12 @@ async fn serverRun(conn: net.Conn, mode: Mode, cert: Bytes, key: Bytes) -> Void!
 
     let shRecord = plainRecord(22, shMsg)
     (await wire.writeAll(shRecord))?
+    if mode is Mode.RetryServerGroupMismatch {
+        return Ok(())
+    }
 
-    let transcript1 = sha256.sum(helloMsg.concat(shMsg))
+    let transcriptBase = prefix.concat(shMsg)
+    let transcript1 = sha256.sum(transcriptBase)
     let handshake = (tls.deriveHandshake(shared, transcript1))?
 
     // EncryptedExtensions.
@@ -454,7 +647,7 @@ async fn serverRun(conn: net.Conn, mode: Mode, cert: Bytes, key: Bytes) -> Void!
     let eeMsg = hs(8, block(eeExts))
     let certMsg = hs(11, certificateBody(cert))
 
-    let transcriptCv = sha256.sum(helloMsg.concat(shMsg).concat(eeMsg).concat(certMsg))
+    let transcriptCv = sha256.sum(transcriptBase.concat(eeMsg).concat(certMsg))
     let signature = (p256.signMessage(key, tls.certificateVerifyMessage(transcriptCv)))?
     let der = derSignature(signature)
     let mut cvBody = Array.empty[u8]()
@@ -463,7 +656,7 @@ async fn serverRun(conn: net.Conn, mode: Mode, cert: Bytes, key: Bytes) -> Void!
     putBytes(&mut cvBody, der)
     let cvMsg = hs(15, Bytes.fromArray(&cvBody))
 
-    let transcriptCv = sha256.sum(helloMsg.concat(shMsg).concat(eeMsg).concat(certMsg).concat(cvMsg))
+    let transcriptCv = sha256.sum(transcriptBase.concat(eeMsg).concat(certMsg).concat(cvMsg))
     let mut verify = (tls.finishedVerifyData(handshake.server.secret, transcriptCv))?
     if mode is Mode.WrongFinished {
         let mut flipped = Array.empty[u8]()
@@ -492,7 +685,7 @@ async fn serverRun(conn: net.Conn, mode: Mode, cert: Bytes, key: Bytes) -> Void!
         fail Fail { text: "server: client Finished framing" }
     }
     let claimed = opened.payload.slice(4, 36).expect("verify")
-    let transcriptApp = sha256.sum(helloMsg.concat(shMsg).concat(eeMsg).concat(certMsg).concat(cvMsg).concat(finMsg))
+    let transcriptApp = sha256.sum(transcriptBase.concat(eeMsg).concat(certMsg).concat(cvMsg).concat(finMsg))
     let expected = (tls.finishedVerifyData(handshake.client.secret, transcriptApp))?
     if !claimed.equals(&expected) {
         fail Fail { text: "server: client Finished verify_data" }
@@ -561,6 +754,20 @@ fn x25519Shared(secret: Bytes, peer: Bytes) -> Bytes! {
     }
 }
 
+fn p256Public(secret: Bytes) -> Bytes! {
+    match p256.publicKey(secret) {
+        Ok(v) -> v
+        Err(e) -> fail Fail { text: e.message() }
+    }
+}
+
+fn p256Shared(secret: Bytes, peer: Bytes) -> Bytes! {
+    match p256.sharedSecret(secret, peer) {
+        Ok(v) -> v
+        Err(e) -> fail Fail { text: e.message() }
+    }
+}
+
 // ---- client side --------------------------------------------------------
 
 fn deterministicRandom(n: usize) -> Bytes! {
@@ -585,6 +792,14 @@ fn modeName(m: Mode) -> String {
         Mode.EarlyData -> "early-data"
         Mode.PlainAlert -> "plain-alert"
         Mode.Oversized -> "oversized"
+        Mode.RetryP256 -> "retry-p256"
+        Mode.RetryCookieOnly -> "retry-cookie"
+        Mode.RetryBadGroup -> "retry-bad-group"
+        Mode.RetryReuseX25519 -> "retry-reuse-x25519"
+        Mode.RetryNoChange -> "retry-no-change"
+        Mode.RetryBadCookie -> "retry-bad-cookie"
+        Mode.RetryServerGroupMismatch -> "retry-server-group"
+        Mode.SecondRetry -> "second-retry"
     }
 }
 
@@ -660,6 +875,14 @@ async fn run() -> Void! {
         Case { mode: Mode.Oversized, cert: dec(LEAF), key: dec(LEAF_KEY), serverName: "localhost", now: now, expect: "record is larger" }
         Case { mode: Mode.Happy, cert: dec(LEAF), key: dec(LEAF_KEY), serverName: "wrong.example", now: now, expect: "hostname" }
         Case { mode: Mode.Happy, cert: dec(EXPIRED), key: dec(EXPIRED_KEY), serverName: "localhost", now: now, expect: "expired" }
+        Case { mode: Mode.RetryP256, cert: dec(LEAF), key: dec(LEAF_KEY), serverName: "localhost", now: now, expect: "ok" }
+        Case { mode: Mode.RetryCookieOnly, cert: dec(LEAF), key: dec(LEAF_KEY), serverName: "localhost", now: now, expect: "ok" }
+        Case { mode: Mode.RetryBadGroup, cert: dec(LEAF), key: dec(LEAF_KEY), serverName: "localhost", now: now, expect: "group 24" }
+        Case { mode: Mode.RetryReuseX25519, cert: dec(LEAF), key: dec(LEAF_KEY), serverName: "localhost", now: now, expect: "already offered" }
+        Case { mode: Mode.RetryNoChange, cert: dec(LEAF), key: dec(LEAF_KEY), serverName: "localhost", now: now, expect: "would not change" }
+        Case { mode: Mode.RetryBadCookie, cert: dec(LEAF), key: dec(LEAF_KEY), serverName: "localhost", now: now, expect: "cookie has 1 trailing" }
+        Case { mode: Mode.RetryServerGroupMismatch, cert: dec(LEAF), key: dec(LEAF_KEY), serverName: "localhost", now: now, expect: "ServerHello selected key share group 29" }
+        Case { mode: Mode.SecondRetry, cert: dec(LEAF), key: dec(LEAF_KEY), serverName: "localhost", now: now, expect: "second HelloRetryRequest" }
     )
     let mut remaining = cases
     for remaining.len() > 0 {
@@ -683,3 +906,11 @@ plain-alert => tls: peer sent alert 70 (level 2) [true]
 oversized => tls: record is larger than the configured limit [true]
 happy => tls: bad certificate: x509: certificate does not match hostname wrong.example [true]
 happy => tls: bad certificate: x509: certificate has expired [true]
+retry-p256 => ok [true]
+retry-cookie => ok [true]
+retry-bad-group => tls: unsupported: server requested key share group 24, only x25519 and secp256r1 are supported [true]
+retry-reuse-x25519 => tls: malformed handshake: HelloRetryRequest requested x25519, which the first ClientHello already offered [true]
+retry-no-change => tls: malformed handshake: HelloRetryRequest would not change the ClientHello [true]
+retry-bad-cookie => tls: malformed handshake: cookie has 1 trailing bytes [true]
+retry-server-group => tls: malformed handshake: ServerHello selected key share group 29, but the ClientHello sent group 23 [true]
+second-retry => tls: unexpected message: server sent a second HelloRetryRequest [true]

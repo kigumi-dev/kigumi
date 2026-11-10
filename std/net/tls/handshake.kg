@@ -2,9 +2,15 @@
 // parsing the server's flight.
 //
 // Parsing is deliberately narrow. A ServerHello must negotiate TLS 1.3 with
-// the one cipher suite this module implements and an x25519 key share; every
-// extension this implementation did not offer is refused, so a server
-// cannot smuggle in PSK resumption, early data or a renegotiation.
+// the one cipher suite this module implements and a key share this client
+// offered; every extension this implementation did not offer is refused, so
+// a server cannot smuggle in PSK resumption, early data or a renegotiation.
+//
+// A HelloRetryRequest is recognised by its fixed random. It may request a
+// secp256r1 share (the first ClientHello offers only x25519) and attach a
+// cookie, both of which the second ClientHello carries; requesting a group
+// the client did not advertise, or one it already sent a share for, is
+// refused.
 import binary from std/encoding/binary
 
 /// Handshake message type numbers used here.
@@ -26,6 +32,10 @@ pub const finishedType: u8 = 20
 
 pub const keyUpdateType: u8 = 24
 
+/// The synthetic message that replaces ClientHello1 in the transcript after
+/// a HelloRetryRequest (RFC 8446 §4.4.1).
+pub const messageHashType: u8 = 254
+
 /// Extension types.
 pub const serverNameExt: u16 = 0
 
@@ -41,10 +51,14 @@ pub const earlyDataExt: u16 = 42
 
 pub const supportedVersionsExt: u16 = 43
 
+pub const cookieExt: u16 = 44
+
 pub const keyShareExt: u16 = 51
 
 /// Groups and signature schemes.
 pub const x25519Group: u16 = 0x001D
+
+pub const secp256r1Group: u16 = 0x0017
 
 pub const rsaPssRsaeSha256: u16 = 0x0804
 
@@ -127,17 +141,34 @@ pure fn wrap8(body: &Array[u8]) -> Result[Array[u8], Error] {
     Ok(out)
 }
 
-/// Builds the ClientHello handshake message for an (EC)DHE-only TLS 1.3
-/// handshake with one x25519 key share.
+/// Builds the first ClientHello handshake message for an (EC)DHE-only TLS
+/// 1.3 handshake with one x25519 key share. secp256r1 is advertised in
+/// supported_groups so a server may ask for it in a HelloRetryRequest.
 pub pure fn clientHello(random: Bytes, sessionId: Bytes, keyShare: Bytes, serverName: String, alpn: Array[String]) -> Result[Bytes, Error] {
+    clientHelloWithShare(x25519Group, random, sessionId, keyShare, None, serverName, alpn)
+}
+
+/// Builds a ClientHello with the key share for one group and an optional
+/// cookie. The supported_groups order is fixed, and the key share must be
+/// for one of those groups; the retried ClientHello carries the group the
+/// server selected instead of the initial x25519 share.
+pub pure fn clientHelloWithShare(group: u16, random: Bytes, sessionId: Bytes, keyShare: Bytes, cookie: Bytes?, serverName: String, alpn: Array[String]) -> Result[Bytes, Error] {
     if random.len() != 32 {
         fail Error.MalformedHandshake("client random must be 32 bytes")
     }
     if sessionId.len() > 32 {
         fail Error.MalformedHandshake("session id is longer than 32 bytes")
     }
-    if keyShare.len() != 32 {
-        fail Error.MalformedHandshake("x25519 key share must be 32 bytes")
+    if group != x25519Group && group != secp256r1Group {
+        fail Error.Unsupported("key share group ${group} is not supported")
+    }
+    let expectedShare: usize = if group == x25519Group {
+        32
+    } else {
+        65
+    }
+    if keyShare.len() != expectedShare {
+        fail Error.MalformedHandshake("group ${group} key share must be ${expectedShare} bytes")
     }
     if alpn.len() == 0 {
         fail Error.Unsupported("no ALPN protocol was offered")
@@ -159,6 +190,7 @@ pub pure fn clientHello(random: Bytes, sessionId: Bytes, keyShare: Bytes, server
 
     let mut groupList = Array.empty[u8]()
     putU16(&mut groupList, x25519Group)
+    putU16(&mut groupList, secp256r1Group)
     putExtension(&mut exts, supportedGroupsExt, wrap16(&groupList)?)?
 
     let mut schemes = Array.empty[u8]()
@@ -184,9 +216,18 @@ pub pure fn clientHello(random: Bytes, sessionId: Bytes, keyShare: Bytes, server
     putExtension(&mut exts, supportedVersionsExt, wrap8(&versions)?)?
 
     let mut shares = Array.empty[u8]()
-    putU16(&mut shares, x25519Group)
+    putU16(&mut shares, group)
     putVec16(&mut shares, keyShare)?
     putExtension(&mut exts, keyShareExt, wrap16(&shares)?)?
+
+    if let Some(value) = cookie {
+        if value.len() == 0 {
+            fail Error.MalformedHandshake("cookie from the HelloRetryRequest is empty")
+        }
+        let mut body = Array.empty[u8]()
+        putVec16(&mut body, value)?
+        putExtension(&mut exts, cookieExt, body)?
+    }
 
     let mut body = Array.empty[u8]()
     putU16(&mut body, 0x0303)
@@ -209,21 +250,39 @@ pub type ParsedServerHello = {
     pub random Bytes
     pub sessionId Bytes
     pub cipherSuite u16
+    /// The group of the key share the server selected; the client checks it
+    /// against the share it sent.
+    pub group u16
     pub keyShare Bytes
 }
 
+/// The fields of a HelloRetryRequest this implementation acts on.
+pub type HelloRetryRequest = {
+    pub sessionId Bytes
+    pub cipherSuite u16
+    /// The group the server asks a new key share for, when it named one.
+    pub selectedGroup u16?
+    /// The cookie the second ClientHello must echo, when the server set one.
+    pub cookie Bytes?
+}
+
+/// A server's first handshake reply: either a ServerHello that lets the key
+/// schedule start or a HelloRetryRequest that demands a second ClientHello.
+pub type ServerReply =
+    | Hello(ParsedServerHello)
+    | Retry(HelloRetryRequest)
+
 /// Parses and checks a ServerHello body (the four-byte handshake header
-/// already removed).
-pub pure fn parseServerHello(body: Bytes) -> Result[ParsedServerHello, Error] {
+/// already removed). The fixed ServerHello.random value marks a
+/// HelloRetryRequest, whose extensions are checked separately.
+pub pure fn parseServerHello(body: Bytes) -> Result[ServerReply, Error] {
     let mut r = Reader.new(body)
     let version = r.u16()?
     if version != 0x0303 {
         fail Error.Unsupported("ServerHello legacy_version ${version} is not TLS 1.2")
     }
     let random = r.take(32)?
-    if random.equals(&helloRetryRequestRandom()) {
-        fail Error.Unsupported("server requested a HelloRetryRequest, which needs a second key share")
-    }
+    let retry = random.equals(&helloRetryRequestRandom())
     let sessionId = r.vec8()?
     if sessionId.len() > 32 {
         fail Error.MalformedHandshake("ServerHello session id is longer than 32 bytes")
@@ -236,8 +295,15 @@ pub pure fn parseServerHello(body: Bytes) -> Result[ParsedServerHello, Error] {
     let extBlock = r.vec16()?
     r.end("ServerHello")?
     let exts = parseExtensions(extBlock)?
+    if suite != chacha20Poly1305Sha256 {
+        fail Error.Unsupported("server selected cipher suite ${suite}, only TLS_CHACHA20_POLY1305_SHA256 is supported")
+    }
+    if retry {
+        return parseHelloRetryRequest(sessionId, suite, exts)
+    }
     let mut selectedVersion: u16 = 0
     let mut keyShare: Bytes? = None
+    let mut group: u16 = 0
     for e in &exts {
         if e.typ == supportedVersionsExt {
             if e.data.len() != 2 {
@@ -246,14 +312,19 @@ pub pure fn parseServerHello(body: Bytes) -> Result[ParsedServerHello, Error] {
             selectedVersion = binary.u16Be(e.data, 0) || 0
         } else if e.typ == keyShareExt {
             let mut kr = Reader.new(e.data)
-            let group = kr.u16()?
+            group = kr.u16()?
             let share = kr.vec16()?
             kr.end("key_share")?
-            if group != x25519Group {
-                fail Error.Unsupported("server selected key share group ${group}, only x25519 is supported")
+            if group != x25519Group && group != secp256r1Group {
+                fail Error.Unsupported("server selected key share group ${group}, only x25519 and secp256r1 are supported")
             }
-            if share.len() != 32 {
-                fail Error.MalformedHandshake("x25519 key share must be 32 bytes")
+            let expected: usize = if group == x25519Group {
+                32
+            } else {
+                65
+            }
+            if share.len() != expected {
+                fail Error.MalformedHandshake("group ${group} key share must be ${expected} bytes")
             }
             keyShare = Some(share)
         } else if e.typ == preSharedKeyExt {
@@ -267,19 +338,75 @@ pub pure fn parseServerHello(body: Bytes) -> Result[ParsedServerHello, Error] {
     if selectedVersion != tls13Version {
         fail Error.Unsupported("server did not select TLS 1.3")
     }
-    if suite != chacha20Poly1305Sha256 {
-        fail Error.Unsupported("server selected cipher suite ${suite}, only TLS_CHACHA20_POLY1305_SHA256 is supported")
-    }
     let share = match keyShare {
         Some(value) -> value
         None -> fail Error.MalformedHandshake("ServerHello has no key_share")
     }
-    Ok(ParsedServerHello {
+    Ok(Hello(ParsedServerHello {
         random: random
         sessionId: sessionId
         cipherSuite: suite
+        group: group
         keyShare: share
-    })
+    }))
+}
+
+/// Checks the extensions of a HelloRetryRequest: supported_versions is
+/// mandatory, key_share may name one newly requested group, and cookie may
+/// carry an opaque value. Anything else, or a request that would not change
+/// the second ClientHello, is refused.
+pure fn parseHelloRetryRequest(sessionId: Bytes, suite: u16, exts: Array[Extension]) -> Result[ServerReply, Error] {
+    let mut versionFound = false
+    let mut selectedVersion: u16 = 0
+    let mut selectedGroup: u16? = None
+    let mut cookie: Bytes? = None
+    for e in &exts {
+        if e.typ == supportedVersionsExt {
+            if e.data.len() != 2 {
+                fail Error.MalformedHandshake("supported_versions in HelloRetryRequest must hold one version")
+            }
+            selectedVersion = binary.u16Be(e.data, 0) || 0
+            versionFound = true
+        } else if e.typ == keyShareExt {
+            // KeyShareHelloRetryRequest is just the selected group.
+            if e.data.len() != 2 {
+                fail Error.MalformedHandshake("HelloRetryRequest key_share must hold only the selected group")
+            }
+            let group = binary.u16Be(e.data, 0) || 0
+            if group != x25519Group && group != secp256r1Group {
+                fail Error.Unsupported("server requested key share group ${group}, only x25519 and secp256r1 are supported")
+            }
+            if group == x25519Group {
+                fail Error.MalformedHandshake("HelloRetryRequest requested x25519, which the first ClientHello already offered")
+            }
+            selectedGroup = Some(group)
+        } else if e.typ == cookieExt {
+            let mut cr = Reader.new(e.data)
+            let value = cr.vec16()?
+            cr.end("cookie")?
+            if value.len() == 0 {
+                fail Error.MalformedHandshake("HelloRetryRequest cookie is empty")
+            }
+            cookie = Some(value)
+        } else {
+            fail Error.Unsupported("unexpected HelloRetryRequest extension ${e.typ}")
+        }
+    }
+    if !versionFound {
+        fail Error.MalformedHandshake("HelloRetryRequest has no supported_versions")
+    }
+    if selectedVersion != tls13Version {
+        fail Error.Unsupported("server did not select TLS 1.3")
+    }
+    if (selectedGroup is None) && (cookie is None) {
+        fail Error.MalformedHandshake("HelloRetryRequest would not change the ClientHello")
+    }
+    Ok(Retry(HelloRetryRequest {
+        sessionId: sessionId
+        cipherSuite: suite
+        selectedGroup: selectedGroup
+        cookie: cookie
+    }))
 }
 
 /// The negotiated ALPN protocol from EncryptedExtensions, if the server sent

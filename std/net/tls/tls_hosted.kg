@@ -1,3 +1,4 @@
+import p256 from std/crypto/p256
 import sha256 from std/crypto/sha256
 import x25519 from std/crypto/x25519
 import binary from std/encoding/binary
@@ -59,6 +60,60 @@ fn allZero(b: Bytes) -> Bool {
         i = i + 1
     }
     diff == 0
+}
+
+/// The public half of an ephemeral ECDH secret for a group this client
+/// supports. The first ClientHello uses x25519; secp256r1 is only reached
+/// when a HelloRetryRequest selects it.
+fn ephemeralPublic(group: u16, secret: Bytes) -> Result[Bytes, Error] {
+    if group == x25519Group {
+        if secret.len() != x25519.keySize {
+            fail Error.MalformedHandshake("x25519 secret must be 32 bytes")
+        }
+        let public = match x25519.publicKey(secret) {
+            Ok(value) -> value
+            Err(e) -> fail Error.KeySchedule(e.message())
+        }
+        if allZero(public) {
+            fail Error.KeySchedule("x25519 public key is all zero")
+        }
+        Ok(public)
+    } else if group == secp256r1Group {
+        if secret.len() != p256.scalarSize {
+            fail Error.MalformedHandshake("secp256r1 secret must be 32 bytes")
+        }
+        match p256.publicKey(secret) {
+            Ok(value) -> Ok(value)
+            Err(e) -> fail Error.KeySchedule(e.message())
+        }
+    } else {
+        fail Error.Unsupported("key exchange group ${group} is not supported")
+    }
+}
+
+/// The ECDH shared secret for a group, with the peer's public key checked
+/// by the curve implementation.
+fn keyExchangeShared(group: u16, secret: Bytes, peer: Bytes) -> Result[Bytes, Error] {
+    if group == x25519Group {
+        if peer.len() != 32 {
+            fail Error.MalformedHandshake("x25519 key share must be 32 bytes")
+        }
+        let shared = match x25519.sharedSecret(secret, peer) {
+            Ok(value) -> value
+            Err(e) -> fail Error.KeySchedule(e.message())
+        }
+        if allZero(shared) {
+            fail Error.KeySchedule("x25519 shared secret is all zero")
+        }
+        Ok(shared)
+    } else if group == secp256r1Group {
+        match p256.sharedSecret(secret, peer) {
+            Ok(value) -> Ok(value)
+            Err(e) -> fail Error.KeySchedule(e.message())
+        }
+    } else {
+        fail Error.Unsupported("key exchange group ${group} is not supported")
+    }
 }
 
 /// One TLS session. It owns the connection; dropping the session closes it.
@@ -347,42 +402,77 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
     if sessionId.len() > 32 {
         fail Error.MalformedHandshake("session id from the random source is too long")
     }
-    let secret = match randomFn(32) {
+    let mut group = x25519Group
+    let mut secret = match randomFn(32) {
         Ok(value) -> value
         Err(e) -> fail Error.Random(e.message())
     }
-    if secret.len() != x25519.keySize {
-        fail Error.MalformedHandshake("x25519 secret must be 32 bytes")
-    }
-    let public = match x25519.publicKey(secret) {
-        Ok(value) -> value
-        Err(e) -> fail Error.KeySchedule(e.message())
-    }
-    if allZero(public) {
-        fail Error.KeySchedule("x25519 public key is all zero")
-    }
+    let mut public = ephemeralPublic(group, secret)?
     let offeredAlpn = alpn.clone()
-    let hello = clientHello(random, sessionId, public, serverName, alpn)?
+    let hello = clientHello(random, sessionId, public, serverName, offeredAlpn.clone())?
     (await self.writeRaw((sealPlaintext(handshakeType, hello))?))?
 
     let mut transcript = hello
-    let shMessage = (await self.nextHandshake())?
-    if shMessage.typ != serverHelloType {
-        fail Error.UnexpectedMessage("expected ServerHello, got handshake type ${shMessage.typ}")
+    let mut retried = false
+    let mut hrrSuite: u16 = 0
+    let mut serverHello: ParsedServerHello? = None
+    for true {
+        let message = (await self.nextHandshake())?
+        if message.typ != serverHelloType {
+            fail Error.UnexpectedMessage("expected ServerHello, got handshake type ${message.typ}")
+        }
+        match parseServerHello(message.body)? {
+            Retry(hrr) -> {
+                if retried {
+                    fail Error.UnexpectedMessage("server sent a second HelloRetryRequest")
+                }
+                if !hrr.sessionId.equals(&sessionId) {
+                    fail Error.MalformedHandshake("HelloRetryRequest did not echo the client session id")
+                }
+                // RFC 8446 §4.4.1: the transcript restarts with a synthetic
+                // message_hash over ClientHello1, followed by the
+                // HelloRetryRequest and the second ClientHello.
+                transcript = (encodeHandshake(messageHashType, sha256.sum(transcript))?).concat(message.raw)
+                let nextGroup = match hrr.selectedGroup {
+                    Some(value) -> value
+                    None -> group
+                }
+                if nextGroup != group {
+                    group = nextGroup
+                    secret = match randomFn(32) {
+                        Ok(value) -> value
+                        Err(e) -> fail Error.Random(e.message())
+                    }
+                    public = ephemeralPublic(group, secret)?
+                }
+                let retryHello = clientHelloWithShare(group, random, sessionId, public, hrr.cookie, serverName, offeredAlpn.clone())?
+                (await self.sendHandshake(retryHello))?
+                transcript = transcript.concat(retryHello)
+                hrrSuite = hrr.cipherSuite
+                retried = true
+            }
+            Hello(parsed) -> {
+                if !parsed.sessionId.equals(&sessionId) {
+                    fail Error.MalformedHandshake("ServerHello did not echo the client session id")
+                }
+                if parsed.group != group {
+                    fail Error.MalformedHandshake("ServerHello selected key share group ${parsed.group}, but the ClientHello sent group ${group}")
+                }
+                if retried && parsed.cipherSuite != hrrSuite {
+                    fail Error.MalformedHandshake("ServerHello changed the cipher suite from the HelloRetryRequest")
+                }
+                transcript = transcript.concat(message.raw)
+                serverHello = Some(parsed)
+                break
+            }
+        }
     }
-    let helloParsed = parseServerHello(shMessage.body)?
-    if !helloParsed.sessionId.equals(&sessionId) {
-        fail Error.MalformedHandshake("ServerHello did not echo the client session id")
+    let helloParsed = match serverHello {
+        Some(value) -> value
+        None -> fail Error.UnexpectedMessage("server sent no ServerHello")
     }
-    transcript = transcript.concat(shMessage.raw)
 
-    let shared = match x25519.sharedSecret(secret, helloParsed.keyShare) {
-        Ok(value) -> value
-        Err(e) -> fail Error.KeySchedule(e.message())
-    }
-    if allZero(shared) {
-        fail Error.KeySchedule("x25519 shared secret is all zero")
-    }
+    let shared = keyExchangeShared(group, secret, helloParsed.keyShare)?
     let secrets = match deriveHandshake(shared, sha256.sum(transcript)) {
         Ok(value) -> value
         Err(e) -> fail e
