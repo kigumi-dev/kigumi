@@ -12561,6 +12561,16 @@
     "status": "ok"
   },
   {
+    "key": "net/http.ConnectFailure.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/http.Deadline.passed",
     "signature": "fn() -\u003e Bool",
     "has_body": true,
@@ -13173,6 +13183,16 @@
   {
     "key": "net/http.chunkSize",
     "signature": "fn(Bytes) -\u003e usize!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.connectOnPool",
+    "signature": "fn(Net, String, Int) -\u003e Result[Conn, ConnectFailure]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14032,7 +14052,7 @@
   },
   {
     "key": "net/tls.encodeHandshake",
-    "signature": "pure fn(u8, Bytes) -\u003e Bytes",
+    "signature": "pure fn(u8, Bytes) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14232,7 +14252,7 @@
   },
   {
     "key": "net/tls.putExtension",
-    "signature": "pure fn(\u0026mut Array[u8], u16, Array[u8]) -\u003e Void",
+    "signature": "pure fn(\u0026mut Array[u8], u16, Array[u8]) -\u003e Result[Void, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14272,7 +14292,7 @@
   },
   {
     "key": "net/tls.putVec16",
-    "signature": "pure fn(\u0026mut Array[u8], Bytes) -\u003e Void",
+    "signature": "pure fn(\u0026mut Array[u8], Bytes) -\u003e Result[Void, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14282,7 +14302,7 @@
   },
   {
     "key": "net/tls.putVec8",
-    "signature": "pure fn(\u0026mut Array[u8], Bytes) -\u003e Void",
+    "signature": "pure fn(\u0026mut Array[u8], Bytes) -\u003e Result[Void, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14292,7 +14312,7 @@
   },
   {
     "key": "net/tls.recordHeader",
-    "signature": "pure fn(u8, usize) -\u003e Bytes",
+    "signature": "pure fn(u8, usize) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14352,7 +14372,7 @@
   },
   {
     "key": "net/tls.wrap16",
-    "signature": "pure fn(\u0026Array[u8]) -\u003e Array[u8]",
+    "signature": "pure fn(\u0026Array[u8]) -\u003e Result[Array[u8], Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14362,7 +14382,7 @@
   },
   {
     "key": "net/tls.wrap8",
-    "signature": "pure fn(\u0026Array[u8]) -\u003e Array[u8]",
+    "signature": "pure fn(\u0026Array[u8]) -\u003e Result[Array[u8], Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20663,7 +20683,7 @@
   },
   {
     "key": "secret.SecretBuffer.declassify",
-    "signature": "unsafe fn() -\u003e Bytes",
+    "signature": "pure unsafe fn() -\u003e Bytes",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20699,16 +20719,6 @@
     "vm": "implemented",
     "native": "implemented",
     "accelerated": true,
-    "status": "ok"
-  },
-  {
-    "key": "secret.SecretBuffer.fromBytes",
-    "signature": "pure fn(Bytes) -\u003e SecretBuffer",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
     "status": "ok"
   },
   {
@@ -21548,6 +21558,16 @@
     "kind": "",
     "vm": "gap",
     "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.declassifyBytes",
+    "signature": "pure fn(\u0026Bytes) -\u003e Bytes",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
     "accelerated": false,
     "status": "ok"
   },

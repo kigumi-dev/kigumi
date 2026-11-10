@@ -1,0 +1,29 @@
+-- src --
+import tls from std/net/tls
+
+fn accepted(name: String, count: Int) -> Bool {
+    let p = "a".repeat(255)
+    let mut alpn = Array.empty[String]()
+    let mut i = 0
+    for i < count {
+        alpn.push(p)
+        i = i + 1
+    }
+    let result = tls.clientHello("r".repeat(32).toBytes(), Bytes.zeros(0), "k".repeat(32).toBytes(), name, alpn)
+    match result {
+        Ok(_) -> true
+        Err(_) -> false
+    }
+}
+
+print "alpn255 ${accepted("", 255)}"
+print "alpn256 ${accepted("", 256)}"
+print "sni253 ${accepted("a".repeat(253), 1)}"
+print "sni254 ${accepted("a".repeat(254), 1)}"
+print "both ${accepted("a".repeat(253), 255)}"
+-- stdout --
+alpn255 true
+alpn256 false
+sni253 true
+sni254 false
+both false

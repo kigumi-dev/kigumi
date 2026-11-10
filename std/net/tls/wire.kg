@@ -109,14 +109,22 @@ pub pure fn putU24(out: &mut Array[u8], value: usize) {
     binary.putUintBe(out, value.toU64(), 3)
 }
 
-/// Appends a vector with an 8-bit length prefix.
-pub pure fn putVec8(out: &mut Array[u8], data: Bytes) {
+/// Appends a vector with an 8-bit length prefix, refusing a payload that
+/// does not fit the prefix.
+pub pure fn putVec8(out: &mut Array[u8], data: Bytes) -> Result[Void, Error] {
+    if data.len() > 255 {
+        fail Error.MalformedHandshake("vector of ${data.len()} bytes does not fit an 8-bit length")
+    }
     putU8(out, data.len().toU8() || 0)
     append(out, data)
 }
 
-/// Appends a vector with a 16-bit length prefix.
-pub pure fn putVec16(out: &mut Array[u8], data: Bytes) {
+/// Appends a vector with a 16-bit length prefix, refusing a payload that
+/// does not fit the prefix.
+pub pure fn putVec16(out: &mut Array[u8], data: Bytes) -> Result[Void, Error] {
+    if data.len() > 65535 {
+        fail Error.MalformedHandshake("vector of ${data.len()} bytes does not fit a 16-bit length")
+    }
     putU16(out, data.len().toU16() || 0)
     append(out, data)
 }
@@ -167,7 +175,10 @@ pub pure fn parseExtensions(block: Bytes) -> Result[Array[Extension], Error] {
 }
 
 /// Appends one extension with a 16-bit outer length.
-pub pure fn putExtension(out: &mut Array[u8], typ: u16, body: Array[u8]) {
+pub pure fn putExtension(out: &mut Array[u8], typ: u16, body: Array[u8]) -> Result[Void, Error] {
+    if body.len() > 65535 {
+        fail Error.MalformedHandshake("extension body of ${body.len()} bytes does not fit a 16-bit length")
+    }
     putU16(out, typ)
     putU16(out, body.len().toU16() || 0)
     let mut i: usize = 0

@@ -11382,6 +11382,15 @@
       ]
     },
     {
+      "id": "run/tls_clienthello_limits",
+      "kind": "run",
+      "path": "testdata/run/tls_clienthello_limits.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/tls_handshake",
       "kind": "run",
       "path": "testdata/run/tls_handshake.txtar",

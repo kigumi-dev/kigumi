@@ -37,12 +37,15 @@ pub type Record = {
 }
 
 /// A record's five-byte header.
-pub pure fn recordHeader(typ: u8, length: usize) -> Bytes {
+pub pure fn recordHeader(typ: u8, length: usize) -> Result[Bytes, Error] {
+    if length > 65535 {
+        fail Error.RecordOverflow
+    }
     let mut out = Array.empty[u8]()
     putU8(&mut out, typ)
     putU16(&mut out, legacyVersion)
     putU16(&mut out, length.toU16() || 0)
-    freeze(&out)
+    Ok(freeze(&out))
 }
 
 /// The per-record nonce: the IV with the record sequence number XORed into
@@ -80,7 +83,7 @@ pub pure fn sealRecord(keys: Direction, seq: u64, typ: u8, payload: Bytes) -> Re
     append(&mut inner, payload)
     putU8(&mut inner, typ)
     let innerBytes = freeze(&inner)
-    let header = recordHeader(protectedType, innerBytes.len() + tagSize)
+    let header = recordHeader(protectedType, innerBytes.len() + tagSize)?
     let sealed = match poly.seal(keys.key, nonce, header, innerBytes) {
         Ok(value) -> value
         Err(e) -> fail Error.BadRecord(e.message())
@@ -130,7 +133,8 @@ pub pure fn sealPlaintext(typ: u8, payload: Bytes) -> Result[Bytes, Error] {
     if payload.len() > maxPlaintext {
         fail Error.RecordOverflow
     }
-    Ok(recordHeader(typ, payload.len()).concat(payload))
+    let header = recordHeader(typ, payload.len())?
+    Ok(header.concat(payload))
 }
 
 /// Compares two equal-length byte strings without an early exit.

@@ -65,12 +65,15 @@ pub fn helloRetryRequestRandom() -> Bytes {
 const spaces64: String = "                                                                "
 
 /// A complete handshake message: four-byte header followed by body.
-pub pure fn encodeHandshake(typ: u8, body: Bytes) -> Bytes {
+pub pure fn encodeHandshake(typ: u8, body: Bytes) -> Result[Bytes, Error] {
+    if body.len() > 0xFFFFFF {
+        fail Error.HandshakeOverflow
+    }
     let mut out = Array.empty[u8]()
     putU8(&mut out, typ)
     putU24(&mut out, body.len())
     append(&mut out, body)
-    freeze(&out)
+    Ok(freeze(&out))
 }
 
 /// Whether a name is an address literal, which SNI must not carry.
@@ -104,18 +107,24 @@ pub pure fn isIpLiteral(name: String) -> Bool {
 }
 
 // A vector body: its byte length followed by the bytes.
-pure fn wrap16(body: &Array[u8]) -> Array[u8] {
+pure fn wrap16(body: &Array[u8]) -> Result[Array[u8], Error] {
+    if body.len() > 65535 {
+        fail Error.MalformedHandshake("vector of ${body.len()} bytes does not fit a 16-bit length")
+    }
     let mut out = Array.empty[u8]()
     putU16(&mut out, body.len().toU16() || 0)
     append(&mut out, freeze(body))
-    out
+    Ok(out)
 }
 
-pure fn wrap8(body: &Array[u8]) -> Array[u8] {
+pure fn wrap8(body: &Array[u8]) -> Result[Array[u8], Error] {
+    if body.len() > 255 {
+        fail Error.MalformedHandshake("vector of ${body.len()} bytes does not fit an 8-bit length")
+    }
     let mut out = Array.empty[u8]()
     putU8(&mut out, body.len().toU8() || 0)
     append(&mut out, freeze(body))
-    out
+    Ok(out)
 }
 
 /// Builds the ClientHello handshake message for an (EC)DHE-only TLS 1.3
@@ -137,25 +146,25 @@ pub pure fn clientHello(random: Bytes, sessionId: Bytes, keyShare: Bytes, server
 
     if serverName != "" && !isIpLiteral(serverName) {
         let name = serverName.toBytes()
-        if name.len() > 65535 {
-            fail Error.MalformedHandshake("server name is too long")
+        if name.len() > 253 {
+            fail Error.MalformedHandshake("server name is longer than 253 bytes")
         }
         let mut entry = Array.empty[u8]()
         putU8(&mut entry, 0)
-        putVec16(&mut entry, name)
+        putVec16(&mut entry, name)?
         let mut list = Array.empty[u8]()
-        putVec16(&mut list, freeze(&entry))
-        putExtension(&mut exts, serverNameExt, list)
+        putVec16(&mut list, freeze(&entry))?
+        putExtension(&mut exts, serverNameExt, list)?
     }
 
     let mut groupList = Array.empty[u8]()
     putU16(&mut groupList, x25519Group)
-    putExtension(&mut exts, supportedGroupsExt, wrap16(&groupList))
+    putExtension(&mut exts, supportedGroupsExt, wrap16(&groupList)?)?
 
     let mut schemes = Array.empty[u8]()
     putU16(&mut schemes, rsaPssRsaeSha256)
     putU16(&mut schemes, ecdsaSecp256r1Sha256)
-    putExtension(&mut exts, signatureAlgorithmsExt, wrap16(&schemes))
+    putExtension(&mut exts, signatureAlgorithmsExt, wrap16(&schemes)?)?
 
     let mut protocols = Array.empty[u8]()
     for p in &alpn {
@@ -163,30 +172,36 @@ pub pure fn clientHello(random: Bytes, sessionId: Bytes, keyShare: Bytes, server
         if p.len() == 0 || p.len() > 255 {
             fail Error.MalformedHandshake("ALPN protocol names must be 1..255 bytes")
         }
-        putVec8(&mut protocols, bytes)
+        putVec8(&mut protocols, bytes)?
     }
-    putExtension(&mut exts, alpnExt, wrap16(&protocols))
+    if protocols.len() > 65533 {
+        fail Error.MalformedHandshake("ALPN protocol list is longer than 65533 bytes")
+    }
+    putExtension(&mut exts, alpnExt, wrap16(&protocols)?)?
 
     let mut versions = Array.empty[u8]()
     putU16(&mut versions, tls13Version)
-    putExtension(&mut exts, supportedVersionsExt, wrap8(&versions))
+    putExtension(&mut exts, supportedVersionsExt, wrap8(&versions)?)?
 
     let mut shares = Array.empty[u8]()
     putU16(&mut shares, x25519Group)
-    putVec16(&mut shares, keyShare)
-    putExtension(&mut exts, keyShareExt, wrap16(&shares))
+    putVec16(&mut shares, keyShare)?
+    putExtension(&mut exts, keyShareExt, wrap16(&shares)?)?
 
     let mut body = Array.empty[u8]()
     putU16(&mut body, 0x0303)
     append(&mut body, random)
-    putVec8(&mut body, sessionId)
+    putVec8(&mut body, sessionId)?
     let mut suites = Array.empty[u8]()
     putU16(&mut suites, chacha20Poly1305Sha256)
-    putVec16(&mut body, freeze(&suites))
+    putVec16(&mut body, freeze(&suites))?
     putU8(&mut body, 1)
     putU8(&mut body, 0)
-    putVec16(&mut body, freeze(&exts))
-    Ok(encodeHandshake(clientHelloType, freeze(&body)))
+    if exts.len() > 65535 {
+        fail Error.MalformedHandshake("ClientHello extensions are longer than 65535 bytes")
+    }
+    putVec16(&mut body, freeze(&exts))?
+    Ok(encodeHandshake(clientHelloType, freeze(&body))?)
 }
 
 /// The fields of a ServerHello this implementation acts on.

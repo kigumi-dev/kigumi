@@ -445,7 +445,7 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
         Err(e) -> fail e
     }
     let clientVerify = finishedVerifyData(secrets.client.secret, sha256.sum(transcript))?
-    let clientFinished = encodeHandshake(finishedType, clientVerify)
+    let clientFinished = encodeHandshake(finishedType, clientVerify)?
     (await self.sendHandshake(clientFinished))?
 
     // From here the handshake keys are dead: both directions use the
