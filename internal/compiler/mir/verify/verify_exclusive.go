@@ -16,9 +16,11 @@ type liveMutBorrow struct {
 // exclusiveFlow carries the live `&mut` borrows of one function across its
 // blocks, together with the liveness that ends each of them.
 type exclusiveFlow struct {
-	f    *midir.Func
-	live [][]mirflow.Bitset // per block, live before each instruction and at exit
-	used []bool             // a local is read somewhere in the body
+	f      *midir.Func
+	live   []map[int]mirflow.Bitset // per block, live before each borrow and at exit
+	used   []bool                   // a local is read somewhere in the body
+	refIdx []int                    // compact index of each borrow reference local, -1 otherwise
+	refs   int
 }
 
 // verifyExclusive rejects a local borrowed mutably twice while the first
@@ -91,7 +93,18 @@ func hasMutBorrow(f *midir.Func) bool {
 }
 
 func newExclusiveFlow(f *midir.Func) *exclusiveFlow {
-	x := &exclusiveFlow{f: f, live: make([][]mirflow.Bitset, len(f.Blocks)), used: make([]bool, len(f.Locals))}
+	x := &exclusiveFlow{f: f, live: make([]map[int]mirflow.Bitset, len(f.Blocks)), used: make([]bool, len(f.Locals)), refIdx: make([]int, len(f.Locals))}
+	for i := range x.refIdx {
+		x.refIdx[i] = -1
+	}
+	for _, blk := range f.Blocks {
+		for _, in := range blk.Insts {
+			if isMutBorrow(&in) {
+				x.refIdx[in.Dst] = x.refs
+				x.refs++
+			}
+		}
+	}
 	x.liveness()
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
@@ -111,7 +124,7 @@ func newExclusiveFlow(f *midir.Func) *exclusiveFlow {
 // locals that cross a block edge without a definition.
 func (x *exclusiveFlow) liveness() {
 	f := x.f
-	words := (len(f.Locals) + 63) / 64
+	words := (x.refs + 63) / 64
 	entry := make([]mirflow.Bitset, len(f.Blocks))
 	for i := range entry {
 		entry[i] = make(mirflow.Bitset, words)
@@ -128,15 +141,15 @@ func (x *exclusiveFlow) liveness() {
 				}
 			}
 			for _, a := range blk.Term.Args {
-				live.Set(a)
+				x.mark(live, a)
 			}
 			for i := len(blk.Insts) - 1; i >= 0; i-- {
 				in := &blk.Insts[i]
 				if in.Op.Yields() {
-					live.Clear(in.Dst)
+					x.unmark(live, in.Dst)
 				}
 				for _, a := range in.Args {
-					live.Set(a)
+					x.mark(live, a)
 				}
 			}
 			if !slices.Equal(entry[bid], live) {
@@ -147,7 +160,6 @@ func (x *exclusiveFlow) liveness() {
 	}
 	for bid := range f.Blocks {
 		blk := &f.Blocks[bid]
-		before := make([]mirflow.Bitset, len(blk.Insts)+1)
 		at := make(mirflow.Bitset, words)
 		for _, t := range blk.Term.Targets {
 			for w, v := range entry[t] {
@@ -155,21 +167,23 @@ func (x *exclusiveFlow) liveness() {
 			}
 		}
 		for _, a := range blk.Term.Args {
-			at.Set(a)
+			x.mark(at, a)
 		}
-		before[len(blk.Insts)] = at
+		before := map[int]mirflow.Bitset{len(blk.Insts): at}
 		live := at
 		for i := len(blk.Insts) - 1; i >= 0; i-- {
 			next := make(mirflow.Bitset, words)
 			copy(next, live)
 			in := &blk.Insts[i]
 			if in.Op.Yields() {
-				next.Clear(in.Dst)
+				x.unmark(next, in.Dst)
 			}
 			for _, a := range in.Args {
-				next.Set(a)
+				x.mark(next, a)
 			}
-			before[i] = next
+			if isMutBorrow(in) {
+				before[i] = next
+			}
 			live = next
 		}
 		x.live[bid] = before
@@ -182,11 +196,11 @@ func (x *exclusiveFlow) transfer(bid midir.BlockID, active []liveMutBorrow, chec
 	blk := &x.f.Blocks[bid]
 	cur := active
 	for i := range blk.Insts {
-		cur = x.prune(cur, bid, i, false)
 		in := &blk.Insts[i]
-		if in.Op != midir.OpBorrow || in.Index != 1 || len(in.Args) != 1 {
+		if !isMutBorrow(in) {
 			continue
 		}
+		cur = x.prune(cur, bid, i, false)
 		base, ref := in.Args[0], in.Dst
 		for _, b := range cur {
 			if b.base == base {
@@ -207,15 +221,34 @@ func (x *exclusiveFlow) transfer(bid midir.BlockID, active []liveMutBorrow, chec
 // reference no instruction in the body reads is kept until its block ends, as
 // nothing inside the block proves the borrow over.
 func (x *exclusiveFlow) prune(active []liveMutBorrow, bid midir.BlockID, i int, exit bool) []liveMutBorrow {
-	live := x.live[bid][i]
+	live, ok := x.live[bid][i]
+	if !ok {
+		return active
+	}
 	kept := make([]liveMutBorrow, 0, len(active))
 	for _, b := range active {
-		if !live.Has(b.ref) && (exit || x.used[b.ref]) {
+		if idx := x.refIdx[b.ref]; idx >= 0 && !live.Has(midir.LocalID(idx)) && (exit || x.used[b.ref]) {
 			continue
 		}
 		kept = append(kept, b)
 	}
 	return kept
+}
+
+func (x *exclusiveFlow) mark(live mirflow.Bitset, l midir.LocalID) {
+	if i := x.refIdx[l]; i >= 0 {
+		live.Set(midir.LocalID(i))
+	}
+}
+
+func (x *exclusiveFlow) unmark(live mirflow.Bitset, l midir.LocalID) {
+	if i := x.refIdx[l]; i >= 0 {
+		live.Clear(midir.LocalID(i))
+	}
+}
+
+func isMutBorrow(in *midir.Inst) bool {
+	return in.Op == midir.OpBorrow && in.Index == 1 && len(in.Args) == 1
 }
 
 func mergeLiveMutBorrows(dst, src []liveMutBorrow) []liveMutBorrow {
