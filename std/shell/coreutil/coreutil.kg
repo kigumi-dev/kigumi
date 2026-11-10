@@ -5,7 +5,6 @@ import shell from std/shell
 // lines at `\n`; nothing assumes a UTF-8 input or a host locale unless the
 // API says so (`wcChars` is the decoded-text count, `wcBytes` the byte one).
 // Options are typed records, never GNU/POSIX flag strings.
-
 /// Which counts `wc` emits, in the order lines, words, bytes, chars.
 pub type WcOptions = {
     pub lines Bool

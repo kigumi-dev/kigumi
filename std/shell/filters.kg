@@ -2,7 +2,6 @@
 // oriented and shared by every stage runner, so no utility assumes a locale
 // or a valid UTF-8 input. Lines end at `\n`; every line a filter emits is
 // newline terminated, and an unterminated last line counts as a line.
-
 fn filterLineProblem(count: Int) -> String {
     if count < 0 {
         "line count must not be negative"
