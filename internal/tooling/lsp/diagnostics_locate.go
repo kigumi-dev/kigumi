@@ -1,11 +1,14 @@
 package lsp
 
 import (
+	"path/filepath"
+
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 
 	"kigumi/internal/lang/diag"
 	"kigumi/internal/lang/token"
+	"kigumi/internal/toolchain/driver"
 )
 
 // locatedDiag is a diagnostic filed under the file its location is in,
@@ -93,6 +96,38 @@ func (s *Server) diagnosticsByURI(snap *snapshot) urlDiagnostics {
 				out.diags[u] = append(out.diags[u], s.toDiagnostic(snap, l.file, l.d))
 			}
 		}
+	}
+	if snap.build != nil {
+		u := uri.File(filepath.Join(snap.root, driver.BuildFileName))
+		add(u)
+		f := snap.build.Tree.File
+		for _, d := range snap.build.Diagnostics() {
+			out.diags[u] = append(out.diags[u], buildDiagnostic(f, d))
+		}
+	}
+	return out
+}
+
+// buildDiagnostic converts a build.kg diagnostic; related information stays
+// inside build.kg, since the module snapshot's source store does not know the
+// build program's own parse.
+func buildDiagnostic(f *token.File, d diag.Diagnostic) protocol.Diagnostic {
+	msg := d.Msg
+	for _, h := range d.Help {
+		msg += "\nhelp: " + h
+	}
+	out := protocol.Diagnostic{Range: spanRange(f, d.Loc.Span), Severity: protocol.DiagnosticSeverity(d.Severity + 1), Source: protocol.NewOptional("kigumi"), Message: protocol.String(msg)}
+	if d.Code != "" {
+		out.Code = protocol.String(d.Code)
+	}
+	for _, n := range d.Notes {
+		if n.Loc.Source != 0 && n.Loc.Source != f.ID {
+			continue
+		}
+		out.RelatedInformation = append(out.RelatedInformation, protocol.DiagnosticRelatedInformation{
+			Location: protocol.Location{URI: uri.File(f.Name), Range: spanRange(f, n.Loc.Span)},
+			Message:  n.Msg,
+		})
 	}
 	return out
 }

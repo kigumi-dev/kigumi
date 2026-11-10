@@ -9,6 +9,8 @@ import (
 	"kigumi/internal/compiler/mir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
+	"kigumi/internal/lang/diag"
+	"kigumi/internal/lang/token"
 	"kigumi/internal/toolchain/buildgraph"
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/module"
@@ -42,60 +44,44 @@ func LoadBuildProgram(root string, opts LoadOptions) (*BuildProgram, bool, error
 	if err != nil {
 		return nil, true, err
 	}
-	mod := &sem.Module{}
-	for _, path := range m.Order {
-		p := m.Packages[path]
-		if !p.Std && p.Module == "" {
-			continue
-		}
-		sp := &sem.Package{Path: p.Path, Files: p.Files, Std: p.Std, Module: p.Module}
-		if p.Std {
-			sp.Module = "std"
-		}
-		mod.Packages = append(mod.Packages, sp)
-	}
-	for _, path := range importPaths(tree) {
-		if ip, ok := m.index.pkgs[path]; ok && !ip.std && ip.module == "" {
-			return nil, true, fmt.Errorf("%s cannot import %s, a package of the module it builds; call a helper a dependency exports or select a Framework", BuildFileName, path)
-		}
-	}
-	mod.Packages = append(mod.Packages, &sem.Package{Path: "build", Files: []*syntax.Tree{tree}})
-	mod.BuildProgram = "build"
-	a, err := (&Module{verifyPasses: opts.VerifyPasses}).analyze(mod, nil)
+	res, err := checkBuildFileContext(m, tree)
 	if err != nil {
 		return nil, true, err
 	}
-	res := a.Res
 	if res.HasErrors() {
 		return nil, true, fmt.Errorf("%s", res.Render())
 	}
-	configure, err := configureEntity(res)
-	if err != nil {
-		return nil, true, err
+	configure, d := configureEntity(res, tree)
+	if d != nil {
+		return nil, true, fmt.Errorf("%s", d.Msg)
 	}
 	return &BuildProgram{Module: m, Res: res, Configure: configure, Tree: tree, stdRoot: opts.StdRoot}, true, nil
 }
 
 // configureEntity finds `fn configure(b: build.Builder) -> Void!` and
 // checks its shape, the way the checker checks `main`.
-func configureEntity(res *sem.Result) (sem.EntityID, error) {
+func configureEntity(res *sem.Result, tree *syntax.Tree) (sem.EntityID, *diag.Diagnostic) {
+	at := func(sp token.Span, format string, args ...any) *diag.Diagnostic {
+		return &diag.Diagnostic{Severity: diag.Error, Loc: diag.At(tree.File, sp), Msg: fmt.Sprintf(format, args...)}
+	}
 	pkg := res.PackageByPath("build")
 	fn := res.PackageMember(pkg, "configure")
 	if fn == 0 || res.Entity(fn).Kind != sem.EntFn {
-		return 0, fmt.Errorf("%s needs `fn configure(b: build.Builder) -> Void!`", BuildFileName)
+		return 0, at(token.Span{}, "%s needs `fn configure(b: build.Builder) -> Void!`", BuildFileName)
 	}
+	sp := tree.Toks[res.Entity(fn).Tok].Span
 	info := res.Fn(fn)
 	if info.Set != 0 && len(res.Overloads[info.Set].Members) > 1 {
-		return 0, fmt.Errorf("%s declares configure %d times; keep the one taking build.Builder", BuildFileName, len(res.Overloads[info.Set].Members))
+		return 0, at(sp, "%s declares configure %d times; keep the one taking build.Builder", BuildFileName, len(res.Overloads[info.Set].Members))
 	}
 	sig := res.Types.Node(info.Sig)
 	ret, _, isResult := res.Types.IsResult(sig.Elem)
 	if info.Recv != sem.RecvNone || len(info.TypeParams) != 0 || len(info.Params) != 1 || !isResult || ret != sem.TyUnit || res.TypeString(sig.Args[0]) != "Builder" {
-		return 0, fmt.Errorf("%s: configure must be `fn configure(b: build.Builder) -> Void!`", BuildFileName)
+		return 0, at(sp, "%s: configure must be `fn configure(b: build.Builder) -> Void!`", BuildFileName)
 	}
 	for d := range res.Tree(res.Entity(fn).File).List(res.Tree(res.Entity(fn).File).Root).Views() {
 		if !d.Is(syntax.ImportDecl, syntax.FnDecl) {
-			return 0, fmt.Errorf("%s holds only imports and functions; put other code in a package", BuildFileName)
+			return 0, at(d.Span(), "%s holds only imports and functions; put other code in a package", BuildFileName)
 		}
 	}
 	return fn, nil

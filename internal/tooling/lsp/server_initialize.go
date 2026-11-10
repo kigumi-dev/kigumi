@@ -56,13 +56,16 @@ func (s *Server) Initialize(ctx context.Context, p *protocol.InitializeParams) (
 	}
 	prepareRename, foldersSupported := true, true
 	caps := protocol.ServerCapabilities{
-		TextDocumentSync:           protocol.TextDocumentSyncKindFull,
-		HoverProvider:              protocol.Boolean(true),
-		DefinitionProvider:         protocol.Boolean(true),
-		ImplementationProvider:     protocol.Boolean(true),
-		ReferencesProvider:         protocol.Boolean(true),
-		WorkspaceSymbolProvider:    protocol.Boolean(true),
-		CodeActionProvider:         protocol.Boolean(true),
+		TextDocumentSync:        protocol.TextDocumentSyncKindFull,
+		HoverProvider:           protocol.Boolean(true),
+		DefinitionProvider:      protocol.Boolean(true),
+		ImplementationProvider:  protocol.Boolean(true),
+		ReferencesProvider:      protocol.Boolean(true),
+		WorkspaceSymbolProvider: protocol.Boolean(true),
+		CodeActionProvider: &protocol.CodeActionOptions{CodeActionKinds: []protocol.CodeActionKind{
+			protocol.CodeActionKindQuickFix,
+			protocol.CodeActionKindSourceOrganizeImports,
+		}},
 		RenameProvider:             &protocol.RenameOptions{PrepareProvider: &prepareRename},
 		DocumentFormattingProvider: protocol.Boolean(true),
 		// No DocumentRangeFormattingProvider: Formatting always reformats

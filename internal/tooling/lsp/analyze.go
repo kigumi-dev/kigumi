@@ -17,9 +17,12 @@ import (
 
 // snapshot is immutable once cached under a key: it is replaced, never mutated.
 type snapshot struct {
-	root     string
-	mod      *driver.Module
-	res      *sem.Result
+	root string
+	mod  *driver.Module
+	res  *sem.Result
+	// build is root's build.kg parsed and checked alongside the module, nil
+	// when the module has none. It is never executed.
+	build    *driver.BuildFile
 	err      error
 	origins  map[string]fileOrigin
 	gen      uint64
@@ -122,6 +125,19 @@ func (s *Server) build(ctx context.Context, in *analysisInput) *snapshot {
 		s.logf(ctx, protocol.MessageTypeError, "check %s: %v", in.root, snap.err)
 	}
 	s.stage("checked", in)
+	// build.kg is not part of the module's packages, so check it separately
+	// against the same loaded std and dependencies; it is never run.
+	if in.ctx.Err() != nil {
+		return snap
+	}
+	if bf, ok, err := driver.CheckBuildFileIn(mod, in.overlay); err != nil {
+		if in.ctx.Err() == nil {
+			s.logf(ctx, protocol.MessageTypeError, "check %s: %v", driver.BuildFileName, err)
+		}
+	} else if ok {
+		snap.build = bf
+	}
+	s.stage("build", in)
 	return snap
 }
 
