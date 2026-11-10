@@ -15,5 +15,6 @@ func New() *cobra.Command {
 		RunE:  session.RunE(parseOptions, run),
 	}
 	session.ReleaseFlag(cmd)
+	session.AddDiagFlags(cmd)
 	return cmd
 }

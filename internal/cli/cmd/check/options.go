@@ -9,8 +9,13 @@ import (
 type options struct {
 	session session.Session
 	target  string
+	diag    session.DiagOptions
 }
 
 func parseOptions(cmd *cobra.Command, args []string) (options, error) {
-	return options{session: session.Read(cmd), target: args[0]}, nil
+	diag, err := session.ReadDiagOptions(cmd)
+	if err != nil {
+		return options{}, err
+	}
+	return options{session: session.Read(cmd), target: args[0], diag: diag}, nil
 }

@@ -74,6 +74,23 @@ func (r *Result) Render() string {
 	return sb.String()
 }
 
+// DiagnosticsAll lists every diagnostic Render prints, in the same order, for
+// a caller that needs the structure rather than the text. A replayed result
+// carries only its rendered text, so it lists nothing.
+func (r *Result) DiagnosticsAll() []diag.Diagnostic {
+	if r.replay != nil {
+		return nil
+	}
+	var out []diag.Diagnostic
+	for i := 1; i < len(r.Files); i++ {
+		if t := r.Files[i].Tree; r.parseFailed && t != nil {
+			out = append(out, slices.DeleteFunc(slices.Clone(t.Diags), func(d diag.Diagnostic) bool { return d.Severity != diag.Error })...)
+		}
+		out = append(out, r.Files[i].Diags...)
+	}
+	return out
+}
+
 // Source resolves a diagnostic location to one of the checked files, so
 // notes may point into other files (diag.Sources).
 func (r *Result) Source(id token.SourceID) *token.File { return r.sources.File(id) }

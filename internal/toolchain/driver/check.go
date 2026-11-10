@@ -7,6 +7,7 @@ import (
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
+	"kigumi/internal/lang/diag"
 	"kigumi/internal/toolchain/contract/schema"
 )
 
@@ -62,6 +63,26 @@ func (m *Module) Diagnostics() string {
 		}
 	}
 	return sb.String()
+}
+
+// ParseDiags lists the parse diagnostics Diagnostics prints, in the same
+// order, so a caller can render them itself.
+func (m *Module) ParseDiags() []diag.Diagnostic {
+	if m.settled != nil {
+		return nil
+	}
+	scope := m.buildScope()
+	var out []diag.Diagnostic
+	for _, p := range m.Order {
+		pkg := m.Packages[p]
+		if scope != nil && !pkg.Std && !pkg.Header && !scope[p] {
+			continue
+		}
+		for _, t := range pkg.Files {
+			out = append(out, t.Diags...)
+		}
+	}
+	return out
 }
 
 func renderTree(t *syntax.Tree) string {

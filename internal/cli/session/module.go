@@ -35,20 +35,28 @@ func (s Session) StdRoot() string {
 
 // Load reads the module root or entry file target under s.Policy; parse diagnostics go to errOut and end the command with 1.
 func (s Session) Load(target string, test bool, errOut io.Writer) (*driver.Module, error) {
-	return s.load(target, test, false, false, errOut)
+	return s.load(target, test, false, false, true, errOut)
 }
 
 // LoadWhole is Load for a command that describes the whole module even when the target names one entry file (doc, schema).
 func (s Session) LoadWhole(target string, test bool, errOut io.Writer) (*driver.Module, error) {
-	return s.load(target, test, false, true, errOut)
+	return s.load(target, test, false, true, true, errOut)
 }
 
 // LoadSettled is Load for a command that only needs the check outcome: an unchanged module answers from the package cache without parsing a source.
 func (s Session) LoadSettled(target string, test bool, errOut io.Writer) (*driver.Module, error) {
-	return s.load(target, test, true, false, errOut)
+	return s.load(target, test, true, false, true, errOut)
 }
 
-func (s Session) load(target string, test, deferParse, whole bool, errOut io.Writer) (*driver.Module, error) {
+// LoadReport is Load for a command that renders the module's diagnostics
+// itself, in the format the caller chose: it prints nothing and parses every
+// reachable file so the diagnostics keep their structure. A module that does
+// not parse comes back with HasParseErrors set instead of an error.
+func (s Session) LoadReport(target string, test bool) (*driver.Module, error) {
+	return s.load(target, test, false, false, false, nil)
+}
+
+func (s Session) load(target string, test, deferParse, whole, report bool, errOut io.Writer) (*driver.Module, error) {
 	root, entry := target, ""
 	if strings.HasSuffix(target, ".kg") {
 		if _, err := os.Stat(target); err != nil {
@@ -73,11 +81,13 @@ func (s Session) load(target string, test, deferParse, whole bool, errOut io.Wri
 	if err != nil {
 		return nil, errors.WrapErrf(err, "load module %s", root)
 	}
-	if m.ReportDiagnostics(errOut) {
-		return nil, exit.Code(1)
-	}
-	for _, v := range m.UnusedReplaces {
-		fmt.Fprintf(errOut, "warning[%s]: %s\n", v.ID, v.Subject)
+	if report {
+		if m.ReportDiagnostics(errOut) {
+			return nil, exit.Code(1)
+		}
+		for _, v := range m.UnusedReplaces {
+			fmt.Fprintf(errOut, "warning[%s]: %s\n", v.ID, v.Subject)
+		}
 	}
 	return m, nil
 }

@@ -24,7 +24,7 @@ func RenderAll(src Sources, ds []Diagnostic) string {
 }
 
 func renderInto(sb *strings.Builder, src Sources, d Diagnostic) {
-	f := src.Source(d.Loc.Source)
+	f := source(src, d.Loc.Source)
 	width := gutterWidth(src, d)
 	renderHead(sb, d)
 	if f != nil {
@@ -35,11 +35,20 @@ func renderInto(sb *strings.Builder, src Sources, d Diagnostic) {
 	}
 	for _, n := range d.Notes {
 		renderHead(sb, n)
-		if nf := src.Source(n.Loc.Source); nf != nil {
+		if nf := source(src, n.Loc.Source); nf != nil {
 			renderSnippet(sb, nf, n.Loc.Span, n.Severity, width)
 		}
 	}
 	sb.WriteByte('\n')
+}
+
+// source resolves a location, treating a nil Sources as one with no files so a
+// diagnostic with no source location (a release-policy finding) still renders.
+func source(src Sources, id token.SourceID) *token.File {
+	if src == nil {
+		return nil
+	}
+	return src.Source(id)
 }
 
 func renderHead(sb *strings.Builder, d Diagnostic) {
@@ -70,7 +79,7 @@ func renderSnippet(sb *strings.Builder, f *token.File, span token.Span, sev Seve
 func gutterWidth(src Sources, d Diagnostic) int {
 	width := 1
 	consider := func(loc Location) {
-		if f := src.Source(loc.Source); f != nil {
+		if f := source(src, loc.Source); f != nil {
 			width = max(width, len(strconv.Itoa(f.Line(loc.Span.Start))))
 		}
 	}
