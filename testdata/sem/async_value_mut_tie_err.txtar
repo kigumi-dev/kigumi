@@ -53,6 +53,8 @@ fn mkf(a: &mut Array[String]) -> Future[usize] {
     later()
 }
 
+// `detach` starts its Future and drops the handle. Handing it a future that holds a frame's `&Interface` view is two
+// faults: E2262 for the view's frame slot, borrow-escape for the borrow the unjoined task keeps.
 fn detach(f: Future[Int]) {
     let t = task.spawn(f)
 }
@@ -101,7 +103,7 @@ fn wrapperEscapes() -> Future[usize] {
 fn viewSpawned() {
     let a = acount
     let mut c = Counter { n: 5 }
-    detach(a(&mut c)) //~ ERROR a future holding an `&Interface` view made in this frame cannot be spawned
+    detach(a(&mut c)) //~ ERROR a future holding an `&Interface` view made in this frame cannot be spawned //~ ERROR a task the callee spawns
 }
 
 fn asyncThroughShapes(c: Bool) -> usize {
@@ -124,128 +126,134 @@ fn main() {
 }
 -- expect --
 error[E2198]: `z` is exclusively borrowed and cannot be used here
-  --> main.kg:61:5
+  --> main.kg:63:5
    |
-61 |     z = Array.of("n1", "n2") //~ ERROR `z` is exclusively borrowed and cannot be used here //~ ERROR `z` is borrowed and cannot be moved
+63 |     z = Array.of("n1", "n2") //~ ERROR `z` is exclusively borrowed and cannot be used here //~ ERROR `z` is borrowed and cannot be moved
    |     ^
    = help: end the borrow first or use a copy
 note: `z` is borrowed here
-  --> main.kg:60:15
+  --> main.kg:62:15
    |
-60 |     let h = m(&mut z)
+62 |     let h = m(&mut z)
    |               ^^^^^^
 
 error[move-while-borrowed]: `z` is borrowed and cannot be moved or dropped here
-  --> main.kg:61:5
+  --> main.kg:63:5
    |
-61 |     z = Array.of("n1", "n2") //~ ERROR `z` is exclusively borrowed and cannot be used here //~ ERROR `z` is borrowed and cannot be moved
+63 |     z = Array.of("n1", "n2") //~ ERROR `z` is exclusively borrowed and cannot be used here //~ ERROR `z` is borrowed and cannot be moved
    |     ^
 
 error[E2198]: `z` is exclusively borrowed and cannot be used here
-  --> main.kg:69:15
+  --> main.kg:71:15
    |
-69 |     let k = m(&mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+71 |     let k = m(&mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
    |               ^^^^^^
    = help: end the borrow first or use a copy
 note: `z` is borrowed here
-  --> main.kg:68:15
+  --> main.kg:70:15
    |
-68 |     let h = m(&mut z)
+70 |     let h = m(&mut z)
    |               ^^^^^^
 
 error[borrow-escape]: a borrow cannot be returned
-  --> main.kg:76:7
+  --> main.kg:78:7
    |
-76 |     m(&mut a) //~ ERROR a borrow cannot be returned
+78 |     m(&mut a) //~ ERROR a borrow cannot be returned
    |       ^^^^^^
 
 error[move-while-borrowed]: `a` is still borrowed when its scope ends here
-  --> main.kg:74:13
+  --> main.kg:76:13
    |
-74 |     let mut a = Array.of("1") //~ ERROR `a` is still borrowed when its scope ends here
+76 |     let mut a = Array.of("1") //~ ERROR `a` is still borrowed when its scope ends here
    |             ^
 
 error[E2198]: `z` is exclusively borrowed and cannot be used here
-  --> main.kg:82:5
+  --> main.kg:84:5
    |
-82 |     z = Array.of("n1", "n2") //~ ERROR `z` is exclusively borrowed and cannot be used here //~ ERROR `z` is borrowed and cannot be moved
+84 |     z = Array.of("n1", "n2") //~ ERROR `z` is exclusively borrowed and cannot be used here //~ ERROR `z` is borrowed and cannot be moved
    |     ^
    = help: end the borrow first or use a copy
 note: `z` is borrowed here
-  --> main.kg:81:13
+  --> main.kg:83:13
    |
-81 |     let h = mk(pl, &mut z)
+83 |     let h = mk(pl, &mut z)
    |             ^^^^^^^^^^^^^
 
 error[move-while-borrowed]: `z` is borrowed and cannot be moved or dropped here
-  --> main.kg:82:5
+  --> main.kg:84:5
    |
-82 |     z = Array.of("n1", "n2") //~ ERROR `z` is exclusively borrowed and cannot be used here //~ ERROR `z` is borrowed and cannot be moved
+84 |     z = Array.of("n1", "n2") //~ ERROR `z` is exclusively borrowed and cannot be used here //~ ERROR `z` is borrowed and cannot be moved
    |     ^
 
 error[E2198]: `z` is exclusively borrowed and cannot be used here
-  --> main.kg:89:5
+  --> main.kg:91:5
    |
-89 |     z.push("p") //~ ERROR `z` is exclusively borrowed and cannot be used here
+91 |     z.push("p") //~ ERROR `z` is exclusively borrowed and cannot be used here
    |     ^
    = help: end the borrow first or use a copy
 note: `z` is borrowed here
-  --> main.kg:88:13
+  --> main.kg:90:13
    |
-88 |     let h = runG(pl, &mut z)
+90 |     let h = runG(pl, &mut z)
    |             ^^^^^^^^^^^^^^^
 
 error[borrow-escape]: a borrow cannot be returned
-  --> main.kg:95:5
+  --> main.kg:97:5
    |
-95 |     mk(pl, &mut z) //~ ERROR a borrow cannot be returned
+97 |     mk(pl, &mut z) //~ ERROR a borrow cannot be returned
    |     ^^^^^^^^^^^^^
 
 error[move-while-borrowed]: `z` is still borrowed when its scope ends here
-  --> main.kg:94:13
+  --> main.kg:96:13
    |
-94 |     let mut z = Array.of("a") //~ ERROR `z` is still borrowed when its scope ends here
+96 |     let mut z = Array.of("a") //~ ERROR `z` is still borrowed when its scope ends here
    |             ^
 
-error[E2262]: a future holding an `&Interface` view made in this frame cannot be spawned or passed to a call that may spawn it, since the frame ends before the task may next run; pass `&T` of the concrete type, or await the future here
-   --> main.kg:101:5
+error[borrow-escape]: a task the callee spawns from this argument outlives this borrow; await that task in the callee, or pass a value that holds no borrow
+   --> main.kg:103:5
     |
-101 |     detach(a(&mut c)) //~ ERROR a future holding an `&Interface` view made in this frame cannot be spawned
+103 |     detach(a(&mut c)) //~ ERROR a future holding an `&Interface` view made in this frame cannot be spawned //~ ERROR a task the callee spawns
+    |     ^^^^^^^^^^^^^^^
+
+error[E2262]: a future holding an `&Interface` view made in this frame cannot be spawned or passed to a call that may spawn it, since the frame ends before the task may next run; pass `&T` of the concrete type, or await the future here
+   --> main.kg:103:5
+    |
+103 |     detach(a(&mut c)) //~ ERROR a future holding an `&Interface` view made in this frame cannot be spawned //~ ERROR a task the callee spawns
     |     ^^^^^^^^^^^^^^^
 
 error[E2198]: `z` is exclusively borrowed and cannot be used here
-   --> main.kg:112:5
+   --> main.kg:114:5
     |
-112 |     z.push("q") //~ ERROR `z` is exclusively borrowed and cannot be used here
+114 |     z.push("q") //~ ERROR `z` is exclusively borrowed and cannot be used here
     |     ^
     = help: end the borrow first or use a copy
 note: `z` is borrowed here
-   --> main.kg:111:16
+   --> main.kg:113:16
     |
-111 |     let h3 = m(&mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+113 |     let h3 = m(&mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
     |                ^^^^^^
 
 error[E2198]: `z` is exclusively borrowed and cannot be used here
-   --> main.kg:111:16
+   --> main.kg:113:16
     |
-111 |     let h3 = m(&mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+113 |     let h3 = m(&mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
     |                ^^^^^^
     = help: end the borrow first or use a copy
 note: `z` is borrowed here
-   --> main.kg:110:20
+   --> main.kg:112:20
     |
-110 |     let h2 = fs[0](&mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+112 |     let h2 = fs[0](&mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
     |                    ^^^^^^
 
 error[E2198]: `z` is exclusively borrowed and cannot be used here
-   --> main.kg:110:20
+   --> main.kg:112:20
     |
-110 |     let h2 = fs[0](&mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
+112 |     let h2 = fs[0](&mut z) //~ ERROR `z` is exclusively borrowed and cannot be used here
     |                    ^^^^^^
     = help: end the borrow first or use a copy
 note: `z` is borrowed here
-   --> main.kg:109:20
+   --> main.kg:111:20
     |
-109 |     let h1 = (r.f)(&mut z)
+111 |     let h1 = (r.f)(&mut z)
     |                    ^^^^^^
 

@@ -1,0 +1,102 @@
+-- module --
+mir: planned
+-- src --
+// A callee that starts a Task and leaves it in a place it was lent hands the caller a handle there. Each body below
+// lets that place go without joining the task, which still keeps the borrow the call was given.
+import task from std/task
+
+type Box = { pub mut t task.Task[Int]? }
+
+async fn count(xs: &Array[Int]) -> Int {
+    await task.yieldNow()
+    xs.len().toInt() || 0
+}
+
+fn put(slot: &mut Box, f: Future[Int]) {
+    slot.t = Some(task.spawn(f))
+}
+
+fn relay(slot: &mut Box, f: Future[Int]) {
+    put(slot, f)
+}
+
+fn pushTask(ts: &mut Array[task.Task[Int]], f: Future[Int]) {
+    ts.push(task.spawn(f))
+}
+
+fn fill[T](out: &mut Array[T], mk: fn() -> T) {
+    out.push(mk())
+}
+
+async fn direct() -> Int {
+    let xs = Array.of(1, 2, 3)
+    let mut b = Box { t: None }
+    put(&mut b, count(&xs)) //~ ERROR a task this call may start in the place it lends
+    xs.len().toInt() || 0
+}
+
+async fn relayed() -> Int {
+    let xs = Array.of(1, 2, 3)
+    let mut b = Box { t: None }
+    relay(&mut b, count(&xs)) //~ ERROR a task this call may start in the place it lends
+    0
+}
+
+async fn viaValue() -> Int {
+    let xs = Array.of(1, 2, 3)
+    let mut b = Box { t: None }
+    let p = put
+    p(&mut b, count(&xs)) //~ ERROR a task this call may start in the place it lends
+    0
+}
+
+async fn intoArray() -> Int {
+    let xs = Array.of(1, 2, 3)
+    let mut ts: Array[task.Task[Int]] = Array.empty()
+    pushTask(&mut ts, count(&xs)) //~ ERROR a task this call may start in the place it lends
+    0
+}
+
+async fn generic() -> Int {
+    let mut xs = Array.of(1, 2, 3)
+    let mut ts: Array[task.Task[Void]] = Array.empty()
+    fill(&mut ts, () => task.spawn(grow(&mut xs))) //~ ERROR a task this call may start in the place it lends
+    0
+}
+
+async fn grow(mut xs: &mut Array[Int]) {
+    xs.push(4)
+}
+
+fn main() {}
+-- expect --
+error[borrow-escape]: a task this call may start in the place it lends outlives this borrow; await the task before this body ends
+  --> main.kg:31:5
+   |
+31 |     put(&mut b, count(&xs)) //~ ERROR a task this call may start in the place it lends
+   |     ^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a task this call may start in the place it lends outlives this borrow; await the task before this body ends
+  --> main.kg:38:5
+   |
+38 |     relay(&mut b, count(&xs)) //~ ERROR a task this call may start in the place it lends
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a task this call may start in the place it lends outlives this borrow; await the task before this body ends
+  --> main.kg:46:5
+   |
+46 |     p(&mut b, count(&xs)) //~ ERROR a task this call may start in the place it lends
+   |     ^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a task this call may start in the place it lends outlives this borrow; await the task before this body ends
+  --> main.kg:53:5
+   |
+53 |     pushTask(&mut ts, count(&xs)) //~ ERROR a task this call may start in the place it lends
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a task this call may start in the place it lends outlives this borrow; await the task before this body ends
+  --> main.kg:60:5
+   |
+60 |     fill(&mut ts, () => task.spawn(grow(&mut xs))) //~ ERROR a task this call may start in the place it lends
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

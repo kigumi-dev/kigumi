@@ -1,0 +1,46 @@
+-- module --
+mir: planned
+-- src --
+// A branch that finds `o` empty, and a `for` loop's exit, which has moved every element out, leave nothing to join, so
+// the join check accepts both forms; E1290 still rejects them for the borrow held across the await.
+import task from std/task
+
+async fn count(xs: &Array[Int]) -> Int {
+    await task.yieldNow()
+    xs.len().toInt() || 0
+}
+
+async fn optionBranch() -> Int {
+    let xs = Array.of(1)
+    let o = Some(task.spawn(count(&xs)))
+    if o is Some(t) {
+        return await t //~ ERROR a borrow of `xs` is still live across this `await`
+    }
+    0
+}
+
+async fn arrayLoop() -> Int {
+    let xs = Array.of(1)
+    let mut ts: Array[task.Task[Int]] = Array.empty()
+    ts.push(task.spawn(count(&xs)))
+    let mut s = 0
+    for t in ts {
+        s += await t //~ ERROR a borrow of `xs` is still live across this `await`
+    }
+    s
+}
+
+fn main() {}
+-- expect --
+error[E1290]: a borrow of `xs` is still live across this `await`
+  --> main.kg:14:16
+   |
+14 |         return await t //~ ERROR a borrow of `xs` is still live across this `await`
+   |                ^^^^^^^
+
+error[E1290]: a borrow of `xs` is still live across this `await`
+  --> main.kg:25:14
+   |
+25 |         s += await t //~ ERROR a borrow of `xs` is still live across this `await`
+   |              ^^^^^^^
+

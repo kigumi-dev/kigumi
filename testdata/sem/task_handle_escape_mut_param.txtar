@@ -38,6 +38,17 @@ async fn spawned() -> Int {
     await c + await d + await f
 }
 
+async fn viaValue() -> Int {
+    let mut slot: Array[task.Task[Int]] = Array.of()
+    let g = fill
+    let c = task.spawn(g(&mut slot)) //~ ERROR `&mut Array[Task[Int]]` holds a `Task` handle
+    let mut r = await c
+    for t in slot {
+        r = r + await t
+    }
+    r
+}
+
 async fn generic() -> Int {
     let mut slot: Array[task.Task[Int]] = Array.of()
     let c = task.spawn(fillAny(&mut slot, () => task.spawn(leaf()))) //~ ERROR `&mut Array[Task[Int]]` holds a `Task` handle
@@ -90,9 +101,16 @@ error[E2203]: `&mut Box` holds a `Task` handle and cannot leave the task that sp
    = help: await the task there and pass on its result
 
 error[E2203]: `&mut Array[Task[Int]]` holds a `Task` handle and cannot leave the task that spawned it as a write through a `&mut` or `mut self` parameter of a Future that is not awaited where it is built
-  --> main/main.kg:42:24
+  --> main/main.kg:43:24
    |
-42 |     let c = task.spawn(fillAny(&mut slot, () => task.spawn(leaf()))) //~ ERROR `&mut Array[Task[Int]]` holds a `Task` handle
+43 |     let c = task.spawn(g(&mut slot)) //~ ERROR `&mut Array[Task[Int]]` holds a `Task` handle
+   |                        ^^^^^^^^^^^
+   = help: await the task there and pass on its result
+
+error[E2203]: `&mut Array[Task[Int]]` holds a `Task` handle and cannot leave the task that spawned it as a write through a `&mut` or `mut self` parameter of a Future that is not awaited where it is built
+  --> main/main.kg:53:24
+   |
+53 |     let c = task.spawn(fillAny(&mut slot, () => task.spawn(leaf()))) //~ ERROR `&mut Array[Task[Int]]` holds a `Task` handle
    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = help: await the task there and pass on its result
 

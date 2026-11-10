@@ -11,6 +11,7 @@ func (c *checker) explicitFnItem(n syntax.NodeID, fn EntityID, params []EntityID
 	c.info.Uses[n] = fn
 	from := len(c.constraints)
 	sig, inst, _ := c.instantiateFn(n, fn, typeArgs, 0)
+	c.noteTaskUse(n, fn, 0)
 	c.markValueInstance(from)
 	c.recordValueExpr(n, fn, inst, 0, from)
 	c.fnItemHidden(n, fn, inst)

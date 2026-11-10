@@ -1,0 +1,76 @@
+-- src --
+// A callee that awaits the Task inside an option or every Task in an array joins them, so the borrow ends there.
+import task from std/task
+
+async fn worker(mut xs: &mut Array[Int]) {
+    await task.yieldNow()
+    xs.push(9)
+    print "worker sees ${xs.len()} ${xs[0]}"
+}
+
+async fn waitOpt(o: task.Task[Void]?) {
+    if o is Some(t) {
+        await t
+    }
+}
+
+async fn waitMatch(o: task.Task[Void]?) -> Int {
+    match o {
+        Some(t) -> {
+            await t
+            1
+        }
+        None -> 0
+    }
+}
+
+async fn waitAll(ts: Array[task.Task[Void]]) {
+    for t in ts {
+        await t
+    }
+}
+
+async fn viaOption() -> Int {
+    let mut xs = Array.of(1)
+    await waitOpt(Some(task.spawn(worker(&mut xs))))
+    xs.push(2)
+    xs.len().toInt() || 0
+}
+
+async fn viaMatch() -> Int {
+    let mut xs = Array.of(3)
+    let n = await waitMatch(Some(task.spawn(worker(&mut xs))))
+    xs.push(2)
+    n + (xs.len().toInt() || 0)
+}
+
+async fn viaArray() -> Int {
+    let mut xs = Array.of(5)
+    let mut ys = Array.of(6)
+    let mut ts: Array[task.Task[Void]] = Array.empty()
+    ts.push(task.spawn(worker(&mut xs)))
+    ts.push(task.spawn(worker(&mut ys)))
+    await waitAll(ts)
+    xs.push(2)
+    (xs.len().toInt() || 0) + (ys.len().toInt() || 0)
+}
+
+async fn root() -> Int {
+    let a = await viaOption()
+    let b = await viaMatch()
+    let c = await viaArray()
+    print "${a} ${b} ${c}"
+    a + b + c
+}
+
+print "${task.currentThreadExecutor().runToCompletion(root())}"
+-- stdout --
+worker sees 2 1
+worker sees 2 3
+worker sees 2 5
+worker sees 2 6
+3 4 5
+12
+-- stderr --
+-- exit --
+0

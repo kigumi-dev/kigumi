@@ -1,0 +1,101 @@
+-- module --
+mir: planned
+-- src --
+// A closure is a callee like any fn: calling one that starts a task from `xs` and dropping what it returns loses the
+// task, and a generic conformer that hides a handle in an interface slot of the caller hands the caller that task.
+import task from std/task
+
+async fn worker(mut xs: &mut Array[Int]) {
+    await task.yieldNow()
+    xs.push(9)
+}
+
+type Box = { pub t task.Task[Void] }
+
+type Slot = { pub mut t task.Task[Void]? }
+
+interface Show {
+    fn value(self) -> Int
+}
+
+type Holder[T] = { pub t T }
+
+fn Holder[T].value(self) -> Int { 1 }
+
+fn hide[T](x: T, slot: &mut Show?) {
+    slot = Some(Holder { t: x })
+}
+
+fn go(f: Future[Void], slot: &mut Show?) {
+    hide(task.spawn(f), slot)
+}
+
+async fn dropped() -> Int {
+    let mut xs = Array.of(1)
+    let f = () => task.spawn(worker(&mut xs))
+    _ = f() //~ ERROR a spawned task outlives this borrow
+    1
+}
+
+async fn boxed() -> Int {
+    let mut xs = Array.of(1)
+    let f = () => Box { t: task.spawn(worker(&mut xs)) }
+    _ = f() //~ ERROR a spawned task outlives this borrow
+    1
+}
+
+async fn cancelled() -> Int {
+    let mut xs = Array.of(1)
+    let f = () => task.spawn(worker(&mut xs))
+    let t = f() //~ ERROR a spawned task outlives this borrow
+    t.cancel()
+    1
+}
+
+async fn hidden() -> Int {
+    let mut xs = Array.of(1)
+    let mut s: Show? = None
+    go(worker(&mut xs), &mut s) //~ ERROR a task this call may start in the place it lends
+    1
+}
+
+async fn takenOnce() -> Int {
+    let mut xs = Array.of(1)
+    let mut s = Slot { t: Some(task.spawn(worker(&mut xs))) } //~ ERROR a spawned task outlives this borrow
+    let h = s.t.take()
+    _ = h
+    1
+}
+
+fn main() {}
+-- expect --
+error[borrow-escape]: a spawned task outlives this borrow; await the task before this body ends, or pass it to a call that awaits it
+  --> main.kg:33:9
+   |
+33 |     _ = f() //~ ERROR a spawned task outlives this borrow
+   |         ^^
+
+error[borrow-escape]: a spawned task outlives this borrow; await the task before this body ends, or pass it to a call that awaits it
+  --> main.kg:40:9
+   |
+40 |     _ = f() //~ ERROR a spawned task outlives this borrow
+   |         ^^
+
+error[borrow-escape]: a spawned task outlives this borrow; await the task before this body ends, or pass it to a call that awaits it
+  --> main.kg:47:13
+   |
+47 |     let t = f() //~ ERROR a spawned task outlives this borrow
+   |             ^^
+
+error[borrow-escape]: a task this call may start in the place it lends outlives this borrow; await the task before this body ends
+  --> main.kg:55:5
+   |
+55 |     go(worker(&mut xs), &mut s) //~ ERROR a task this call may start in the place it lends
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a spawned task outlives this borrow; await the task before this body ends, or pass it to a call that awaits it
+  --> main.kg:61:32
+   |
+61 |     let mut s = Slot { t: Some(task.spawn(worker(&mut xs))) } //~ ERROR a spawned task outlives this borrow
+   |                                ^^^^^^^^^^^^^^^^^^^^^^^^^
+

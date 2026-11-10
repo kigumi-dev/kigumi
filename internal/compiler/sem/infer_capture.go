@@ -37,8 +37,7 @@ func (c *checker) noteCapture(n syntax.NodeID, ent EntityID, found ScopeID) {
 			// A non-immediate closure can escape its call, so a captured
 			// borrow-carrying value would outlive its owner.
 			c.errAt(n, cLifetimeEscapes, c.r.TypeString(e.Type), "a closure")
-		case c.r.typeHasTask(e.Type, map[TypeID]bool{}):
-			c.errAt(n, cTaskHandleCaptured, e.Name)
+		case c.r.rejectTaskHolder(c.f, n, e.Type, cTaskHandleCaptured, e.Name):
 		case c.restrictedEntity(ent):
 			c.errAt(n, cEscapingCaptured, c.r.Entities[c.aliasChase(ent)].Name, c.r.escapingForm(c.aliasChase(ent)))
 		}

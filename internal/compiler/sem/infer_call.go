@@ -14,6 +14,7 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 		want = 0
 	}
 	sig, inst, badTypeArgs := c.instantiateFn(n, fn, typeArgs, recv)
+	c.noteTaskUse(n, fn, recv)
 	from := len(*c.edges)
 	c.edge(EffectEdge{Kind: EdgeCall, Target: fn, Node: n})
 	c.callInvalidates()

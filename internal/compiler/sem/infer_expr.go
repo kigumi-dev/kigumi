@@ -149,6 +149,7 @@ func (c *checker) fnItemValue(n syntax.NodeID, set OverloadSetID) TypeID {
 		var inst []TypeID
 		from := len(c.constraints)
 		sig, inst, _ = c.instantiateFn(n, fn, nil, 0)
+		c.noteTaskUse(n, fn, 0)
 		c.markValueInstance(from)
 		c.recordValueExpr(n, fn, inst, 0, from)
 		c.fnItemHidden(n, fn, inst)

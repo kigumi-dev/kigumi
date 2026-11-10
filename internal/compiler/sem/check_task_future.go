@@ -1,17 +1,24 @@
 package sem
 
-import "kigumi/internal/compiler/syntax"
+import (
+	"slices"
+
+	"kigumi/internal/compiler/syntax"
+)
 
 const (
 	futureAwaited = 1 + iota
 	futureSpawned
 )
 
-// taskFutureCall is a call whose Future holds a `Task`; mut says it can also write one through `&mut` or `mut self`.
+// taskFutureCall is a call whose Future holds a `Task`; mut says it can also write one through `&mut` or `mut self`, and
+// ifaces that it holds one only through those interfaces.
 type taskFutureCall struct {
-	n   syntax.NodeID
-	t   TypeID
-	mut bool
+	n       syntax.NodeID
+	t       TypeID
+	mut     bool
+	ifaces  []TypeID
+	futures []TypeID
 }
 
 func (r *Result) markTaskFuture(f FileID, n syntax.NodeID, how uint8) {
@@ -36,12 +43,16 @@ func (r *Result) noteSpawnArgs(f FileID, n syntax.NodeID, call CallInfo) {
 	}
 }
 
-func (r *Result) taskFutureOf(f FileID, n syntax.NodeID, call CallInfo, ret TypeID) (taskFutureCall, bool) {
+// taskFutureOf lists the parameter types, and for a fn value the argument types, through which the Future holds a `Task`:
+// the first held directly, then the first an interface may hide, `&mut` first.
+func (r *Result) taskFutureOf(f FileID, n syntax.NodeID, call CallInfo, ret TypeID) []taskFutureCall {
 	direct := r.Types.Kind(ret) == KNamed && r.Types.Node(ret).Ent == r.Types.futureEnt
-	if !direct && !r.containsFuture(ret, 0, map[EntityID]bool{}, map[TypeID]bool{}) {
-		return taskFutureCall{}, false
+	if !direct && !r.holdsFuture(ret, true) {
+		return nil
 	}
+	structural := direct || r.holdsFuture(ret, false)
 	var params []TypeID
+	mutSelf := false
 	switch t := r.tree(f); {
 	case call.Callee != 0 && r.Entities[call.Callee].Kind == EntFn:
 		info := r.Fn(call.Callee)
@@ -54,50 +65,94 @@ func (r *Result) taskFutureOf(f FileID, n syntax.NodeID, call CallInfo, ret Type
 				params = append(params, r.Types.Subst(r.Entities[p].Type, subst))
 			}
 		}
-		if sp := info.SelfParam; sp != 0 && info.Recv == RecvMut {
-			if st := params[0]; r.typeHasTask(st, map[TypeID]bool{}) {
-				return taskFutureCall{n, st, true}, true
-			}
-		}
+		mutSelf = info.SelfParam != 0 && info.Recv == RecvMut
 	case t.Kind(n) == syntax.CallExpr || t.Kind(n) == syntax.WsCallExpr:
-		params = r.Types.Node(r.Files[f].Types[t.View(n).AsCall().Callee().ID()]).Args
+		params = slices.Clone(r.Types.Node(r.Files[f].Types[t.View(n).AsCall().Callee().ID()]).Args)
 		for a := range t.View(n).AsCall().Args().IDs() {
-			if at := r.Files[f].Types[a]; at != 0 && r.typeHasTask(at, map[TypeID]bool{}) {
-				return taskFutureCall{n, at, false}, true
+			if at := r.Files[f].Types[a]; at != 0 {
+				params = append(params, at)
 			}
 		}
 	}
-	var found taskFutureCall
-	ok := false
-	for _, p := range params {
-		if r.mutRefHasTask(p, nil) {
-			return taskFutureCall{n, p, true}, true
+	var found, hidden []taskFutureCall
+	for i, p := range params {
+		mut, h := true, r.mutRefHolding(p, nil)
+		if mutSelf && i == 0 {
+			h = r.taskHoldingOf(p)
 		}
-		if !ok && r.typeHasTask(p, map[TypeID]bool{}) {
-			found, ok = taskFutureCall{n, p, false}, true
+		if !h.any() {
+			mut, h = false, r.taskHoldingOf(p)
+		}
+		switch {
+		case h.hit:
+			found = append(found, taskFutureCall{n: n, t: p, mut: mut})
+		case len(h.ifaces) > 0:
+			hidden = append(hidden, taskFutureCall{n: n, t: p, mut: mut, ifaces: h.ifaces})
 		}
 	}
-	return found, ok
+	out := append(firstWriting(found), firstWriting(hidden)...)
+	if !structural {
+		futures := r.taskHoldingOf(ret).ifaces
+		for i := range out {
+			out[i].futures = futures
+		}
+	}
+	return out
 }
 
-// checkTaskFutures rejects a Future holding a handle unless it is awaited at once, or, when it cannot write one back, spawned at once.
+func firstWriting(calls []taskFutureCall) []taskFutureCall {
+	if i := slices.IndexFunc(calls, func(c taskFutureCall) bool { return c.mut }); i >= 0 {
+		return calls[i : i+1]
+	}
+	return calls[:min(len(calls), 1)]
+}
+
+// checkTaskFutures rejects a Future holding a handle unless it is awaited at once, or, when it cannot write one back,
+// spawned at once; a call holding one only through an interface waits for its implementers.
 func (r *Result) checkTaskFutures(f FileID, calls []taskFutureCall) {
+	done := map[syntax.NodeID]bool{}
 	for _, c := range calls {
+		var where string
 		switch how := r.taskFutureUse[taskEscapeKey{f, c.n}]; {
-		case how == futureAwaited, how == futureSpawned && !c.mut:
+		case done[c.n], how == futureAwaited, how == futureSpawned && !c.mut:
+			continue
 		case c.mut:
-			r.errAt(f, c.n, cTaskHandleReturned, r.TypeString(c.t), "a write through a `&mut` or `mut self` parameter of a Future that is not awaited where it is built")
+			where = "a write through a `&mut` or `mut self` parameter of a Future that is not awaited where it is built"
 		default:
-			r.errAt(f, c.n, cTaskHandleReturned, r.TypeString(c.t), "an argument of a Future that is not awaited or spawned where it is built")
+			where = "an argument of a Future that is not awaited or spawned where it is built"
 		}
+		done[c.n] = true
+		if len(c.ifaces) > 0 || len(c.futures) > 0 {
+			r.taskHidden = append(r.taskHidden, hiddenTaskSite{f: f, n: c.n, code: cTaskHandleReturned,
+				args: []any{r.TypeString(c.t), where}, ifaces: c.ifaces, futures: c.futures})
+			continue
+		}
+		r.errAt(f, c.n, cTaskHandleReturned, r.TypeString(c.t), where)
 	}
 }
 
-// containsFuture reports a value type that can carry a Future, including one
-// inside a record, variant, array or interface. It looks through type
-// arguments and declared fields without substituting, and is depth-capped so
-// recursive aliases cannot loop.
-func (r *Result) containsFuture(t TypeID, depth int, ents map[EntityID]bool, seen map[TypeID]bool) bool {
+type futureKey struct {
+	t     TypeID
+	iface bool
+}
+
+// holdsFuture is containsFuture from the top of t, kept per type.
+func (r *Result) holdsFuture(t TypeID, iface bool) bool {
+	k := futureKey{t, iface}
+	if v, ok := r.futureHolds[k]; ok {
+		return v
+	}
+	v := r.containsFuture(t, iface, 0, map[EntityID]bool{}, map[TypeID]bool{})
+	if r.futureHolds == nil {
+		r.futureHolds = map[futureKey]bool{}
+	}
+	r.futureHolds[k] = v
+	return v
+}
+
+// containsFuture reports a value type that can carry a Future, inside a record, variant, array or, with iface, an
+// interface; it does not substitute type arguments, and the depth cap stops recursive aliases.
+func (r *Result) containsFuture(t TypeID, iface bool, depth int, ents map[EntityID]bool, seen map[TypeID]bool) bool {
 	if t == 0 || t == TyPoison || depth > 24 || seen[t] {
 		return false
 	}
@@ -113,19 +168,19 @@ func (r *Result) containsFuture(t TypeID, depth int, ents map[EntityID]bool, see
 			decl := r.typeDecl(n.Ent)
 			switch decl.Form {
 			case FormDefined:
-				if r.containsFuture(decl.Underlying, depth+1, ents, seen) {
+				if r.containsFuture(decl.Underlying, iface, depth+1, ents, seen) {
 					return true
 				}
 			case FormRecord, FormResource:
 				for _, fld := range decl.Fields {
-					if r.containsFuture(r.field(fld).Type, depth+1, ents, seen) {
+					if r.containsFuture(r.field(fld).Type, iface, depth+1, ents, seen) {
 						return true
 					}
 				}
 			case FormAdt:
 				for _, v := range decl.Variants {
 					for _, pt := range r.variant(v).Payload {
-						if r.containsFuture(pt, depth+1, ents, seen) {
+						if r.containsFuture(pt, iface, depth+1, ents, seen) {
 							return true
 						}
 					}
@@ -135,13 +190,13 @@ func (r *Result) containsFuture(t TypeID, depth int, ents map[EntityID]bool, see
 		}
 	}
 	if n.Kind == KIface {
-		return true
+		return iface
 	}
-	if r.containsFuture(n.Elem, depth+1, ents, seen) {
+	if r.containsFuture(n.Elem, iface, depth+1, ents, seen) {
 		return true
 	}
 	for _, a := range n.Args {
-		if r.containsFuture(a, depth+1, ents, seen) {
+		if r.containsFuture(a, iface, depth+1, ents, seen) {
 			return true
 		}
 	}

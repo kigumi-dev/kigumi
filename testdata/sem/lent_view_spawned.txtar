@@ -1,6 +1,8 @@
 -- module --
 stage: driver
 -- src --
+// Two faults are reported apart. E2262 rejects spawning a future that holds a frame's `&Interface` view, awaited or
+// not; borrow-escape rejects a task left unjoined while it keeps a borrow, by this body or by the callee it goes to.
 import task from std/task
 
 interface Show {
@@ -100,63 +102,81 @@ fn drivesToEnd() -> Int {
     task.currentThreadExecutor().runToCompletion(show(&n))
 }
 -- expect --
-error[borrow-escape]: a spawned task outlives this borrow; await the task or hand it off instead
-  --> main.kg:26:13
+error[borrow-escape]: a spawned task outlives this borrow; await the task before this body ends, or pass it to a call that awaits it
+  --> main.kg:28:13
    |
-26 |     let c = task.spawn(show(&n))
+28 |     let c = task.spawn(show(&n))
    |             ^^^^^^^^^^^^^^^^^^
 
 error[E2262]: a future holding an `&Interface` view made in this frame cannot be spawned or passed to a call that may spawn it, since the frame ends before the task may next run; pass `&T` of the concrete type, or await the future here
-  --> main.kg:26:13
+  --> main.kg:28:13
    |
-26 |     let c = task.spawn(show(&n))
+28 |     let c = task.spawn(show(&n))
    |             ^^^^^^^^^^^^^^^^^^
 
-error[borrow-escape]: a spawned task outlives this borrow; await the task or hand it off instead
-  --> main.kg:37:13
+error[borrow-escape]: a spawned task outlives this borrow; await the task before this body ends, or pass it to a call that awaits it
+  --> main.kg:39:13
    |
-37 |     let c = task.spawn(showNum(&n))
+39 |     let c = task.spawn(showNum(&n))
    |             ^^^^^^^^^^^^^^^^^^^^^
 
-error[borrow-escape]: a spawned task outlives this borrow; await the task or hand it off instead
-  --> main.kg:44:13
+error[borrow-escape]: a spawned task outlives this borrow; await the task before this body ends, or pass it to a call that awaits it
+  --> main.kg:46:13
    |
-44 |     let c = task.spawn(f)
+46 |     let c = task.spawn(f)
    |             ^^^^^^^^^^^^
 
 error[E2262]: a future holding an `&Interface` view made in this frame cannot be spawned or passed to a call that may spawn it, since the frame ends before the task may next run; pass `&T` of the concrete type, or await the future here
-  --> main.kg:44:13
+  --> main.kg:46:13
    |
-44 |     let c = task.spawn(f)
+46 |     let c = task.spawn(f)
    |             ^^^^^^^^^^^^
 
-error[E2262]: a future holding an `&Interface` view made in this frame cannot be spawned or passed to a call that may spawn it, since the frame ends before the task may next run; pass `&T` of the concrete type, or await the future here
-  --> main.kg:54:5
+error[borrow-escape]: a task the callee spawns from this argument outlives this borrow; await that task in the callee, or pass a value that holds no borrow
+  --> main.kg:56:5
    |
-54 |     pass(show(&n))
+56 |     pass(show(&n))
    |     ^^^^^^^^^^^^
 
 error[E2262]: a future holding an `&Interface` view made in this frame cannot be spawned or passed to a call that may spawn it, since the frame ends before the task may next run; pass `&T` of the concrete type, or await the future here
-  --> main.kg:65:11
+  --> main.kg:56:5
    |
-65 |     await spawnLater(show(&n))
+56 |     pass(show(&n))
+   |     ^^^^^^^^^^^^
+
+error[borrow-escape]: a task the callee spawns from this argument outlives this borrow; await that task in the callee, or pass a value that holds no borrow
+  --> main.kg:67:11
+   |
+67 |     await spawnLater(show(&n))
    |           ^^^^^^^^^^^^^^^^^^
 
 error[E2262]: a future holding an `&Interface` view made in this frame cannot be spawned or passed to a call that may spawn it, since the frame ends before the task may next run; pass `&T` of the concrete type, or await the future here
-  --> main.kg:76:5
+  --> main.kg:67:11
    |
-76 |     runJob(Job { f: show(&n) })
+67 |     await spawnLater(show(&n))
+   |           ^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a task the callee spawns from this argument outlives this borrow; await that task in the callee, or pass a value that holds no borrow
+  --> main.kg:78:5
+   |
+78 |     runJob(Job { f: show(&n) })
    |     ^^^^^^^^^^^^^^^^^^^^^^^
 
-error[borrow-escape]: a spawned task outlives this borrow; await the task or hand it off instead
-  --> main.kg:91:13
+error[E2262]: a future holding an `&Interface` view made in this frame cannot be spawned or passed to a call that may spawn it, since the frame ends before the task may next run; pass `&T` of the concrete type, or await the future here
+  --> main.kg:78:5
    |
-91 |     let c = task.spawn(id(show(&n)))
+78 |     runJob(Job { f: show(&n) })
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a spawned task outlives this borrow; await the task before this body ends, or pass it to a call that awaits it
+  --> main.kg:93:13
+   |
+93 |     let c = task.spawn(id(show(&n)))
    |             ^^^^^^^^^^^^^^^^^^^^^
 
 error[E2262]: a future holding an `&Interface` view made in this frame cannot be spawned or passed to a call that may spawn it, since the frame ends before the task may next run; pass `&T` of the concrete type, or await the future here
-  --> main.kg:91:13
+  --> main.kg:93:13
    |
-91 |     let c = task.spawn(id(show(&n)))
+93 |     let c = task.spawn(id(show(&n)))
    |             ^^^^^^^^^^^^^^^^^^^^^
 

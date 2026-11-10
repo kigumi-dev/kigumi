@@ -152,6 +152,13 @@ type Result struct {
 	lifetimeEscapeSeen map[lifetimeEscapeKey]bool
 	taskEscapeSeen     map[taskEscapeKey]bool
 	taskFutureUse      map[taskEscapeKey]uint8
+	taskHidden         []hiddenTaskSite
+	taskImplementers   map[EntityID][]taskImpl
+	taskConversions    []taskConversion
+	taskInsts          map[EntityID][]taskInst
+	taskHolds          map[TypeID]bool
+	taskHoldings       map[TypeID]taskHolding
+	futureHolds        map[futureKey]bool
 	// provides maps a provider type's EntType entity to the context keys its
 	// fields supply, declared by `@provides(...)`.
 	provides map[EntityID][]ProvideBinding

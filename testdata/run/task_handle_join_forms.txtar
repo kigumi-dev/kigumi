@@ -1,0 +1,87 @@
+-- src --
+// A borrow a spawned task holds ends where the task is joined: awaited here, read back out of a record, or awaited
+// by a callee or a child task it is handed to, directly or through a fn value. An async fn may return an interface
+// that no Task-holding type is converted to.
+import task from std/task
+
+type Box = { pub n Int, pub t task.Task[Int] }
+
+interface Show {
+    fn value(self) -> Int
+}
+
+type Plain = { pub n Int }
+
+fn Plain.value(self) -> Int { self.n }
+
+async fn count(xs: &Array[Int]) -> Int {
+    await task.yieldNow()
+    xs.len().toInt() || 0
+}
+
+async fn push(mut xs: &mut Array[Int]) -> Int {
+    xs.push(7)
+    xs.len().toInt() || 0
+}
+
+async fn join(t: task.Task[Int]) -> Int {
+    await t
+}
+
+async fn direct() -> Int {
+    let mut xs = Array.of(1, 2)
+    let t = task.spawn(push(&mut xs))
+    let n = await t
+    n + (xs.len().toInt() || 0)
+}
+
+async fn inRecord() -> Int {
+    let xs = Array.of(1, 2, 3)
+    let b = Box { n: 10, t: task.spawn(count(&xs)) }
+    let k = b.n
+    let n = await b.t
+    n + k
+}
+
+async fn otherFrame() -> Int {
+    let xs = Array.of(1, 2, 3, 4)
+    let t = task.spawn(count(&xs))
+    await join(t)
+}
+
+async fn viaFnValue() -> Int {
+    let xs = Array.of(1, 2, 3, 4, 5)
+    let j = join
+    let t = task.spawn(count(&xs))
+    await j(t)
+}
+
+async fn spawnedJoin() -> Int {
+    let xs = Array.of(1, 2, 3, 4, 5, 6)
+    let t = task.spawn(count(&xs))
+    let w = task.spawn(join(t))
+    await w
+}
+
+async fn mkShow() -> Show {
+    Plain { n: 3 }
+}
+
+async fn root() -> Int {
+    let s = await mkShow()
+    let a = await direct()
+    let b = await inRecord()
+    let d = await otherFrame()
+    let e = await viaFnValue()
+    let f = await spawnedJoin()
+    print "${s.value()} ${a} ${b} ${d} ${e} ${f}"
+    a + b + d + e + f
+}
+
+print "${task.currentThreadExecutor().runToCompletion(root())}"
+-- stdout --
+3 6 13 4 5 6
+34
+-- stderr --
+-- exit --
+0

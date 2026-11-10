@@ -23,6 +23,7 @@ func (c *checker) finishWith(nested bool) {
 	if nested {
 		return
 	}
+	c.noteTaskUses()
 	c.closures = c.closures[:c.closureBase]
 	c.touched = c.touched[:c.touchedBase]
 }
@@ -54,6 +55,7 @@ func (c *checker) resolveTouched(nodes []syntax.NodeID) {
 				co.Steps[i].To = c.vars.resolve(co.Steps[i].To)
 			}
 			c.info.Coerce[n] = co
+			c.r.noteTaskConversions(c.fn, c.f, n, co)
 		}
 		if call, ok := c.info.Calls[n]; ok {
 			for i := range call.Inst {
@@ -66,9 +68,7 @@ func (c *checker) resolveTouched(nodes []syntax.NodeID) {
 			c.r.checkLifetimeEscapeType(c.f, n, c.info.Types[n], map[TypeID]bool{})
 			c.r.checkTaskEscapeCall(c.f, n, call)
 			c.r.noteSpawnArgs(c.f, n, call)
-			if fc, ok := c.r.taskFutureOf(c.f, n, call, c.info.Types[n]); ok {
-				futures = append(futures, fc)
-			}
+			futures = append(futures, c.r.taskFutureOf(c.f, n, call, c.info.Types[n])...)
 		}
 	}
 	c.r.checkTaskFutures(c.f, futures)

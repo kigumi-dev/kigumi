@@ -222,6 +222,12 @@ error[borrow-escape]: a borrow cannot be stored
 85 |     self.fs.push(show(&x))
    |     ^^^^^^^^^^^^^^^^^^^^
 
+error[borrow-escape]: a spawned task outlives this borrow; await the task before this body ends, or pass it to a call that awaits it
+  --> main.kg:91:13
+   |
+91 |     ts.push(task.spawn(bump(&mut x)))
+   |             ^^^^^^^^^^^^^^^^^^^^^^
+
 error[E2198]: `x` is exclusively borrowed and cannot be used here
   --> main.kg:92:5
    |

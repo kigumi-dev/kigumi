@@ -690,7 +690,7 @@ async fn forwardedFnReplacedThroughMut() -> Int {
 async fn closureOffloadsAndSpawns() -> Int {
     let pool = task.BlockingPool.new(1)
     let mut other = "o"
-    let c = () => { spawnTask(pool.run(() => { other = "x"; 1 }).unwrap()) } //~ ERROR closure captures
+    let c = () => { spawnTask(pool.run(() => { other = "x"; 1 }).unwrap()) } //~ ERROR closure captures //~ ERROR a task the callee spawns from this argument
     c()
     let r = &other //~ ERROR `other` is written by a closure that may still be running on another thread
     r.len().toInt() || 0
@@ -739,7 +739,7 @@ fn callBoxed(b: FnBox, h: Future[Int]) { (b.f)(h) }
 async fn spawningClosureRunInLoop() -> Int {
     let pool = task.BlockingPool.new(1)
     let mut other = "o"
-    let c = () => { spawnTask(pool.run(() => { other = "x"; 1 }).unwrap()) } //~ ERROR closure captures
+    let c = () => { spawnTask(pool.run(() => { other = "x"; 1 }).unwrap()) } //~ ERROR closure captures //~ ERROR a task the callee spawns from this argument
     for i in 0..1 {
         c() //~ ERROR `other` is written by a closure that may still be running on another thread
     }
@@ -1697,16 +1697,22 @@ note: the closure is handed off here
 681 |     forwardPlain(f, pool.run(() => { other = "x"; 1 }).unwrap())
     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+error[borrow-escape]: a task the callee spawns from this argument outlives this borrow; await that task in the callee, or pass a value that holds no borrow
+   --> main.kg:689:21
+    |
+689 |     let c = () => { spawnTask(pool.run(() => { other = "x"; 1 }).unwrap()) } //~ ERROR closure captures //~ ERROR a task the callee spawns from this argument
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 error[E413]: closure captures `other` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
    --> main.kg:689:31
     |
-689 |     let c = () => { spawnTask(pool.run(() => { other = "x"; 1 }).unwrap()) } //~ ERROR closure captures
+689 |     let c = () => { spawnTask(pool.run(() => { other = "x"; 1 }).unwrap()) } //~ ERROR closure captures //~ ERROR a task the callee spawns from this argument
     |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     = help: a plain `fn` cannot share a captured variable's cell; use it before writing `other`, or bind the closure without a `fn` type
 note: the plain `fn` leaves this closure here, and the enclosing body may write `other` before it runs
    --> main.kg:689:21
     |
-689 |     let c = () => { spawnTask(pool.run(() => { other = "x"; 1 }).unwrap()) } //~ ERROR closure captures
+689 |     let c = () => { spawnTask(pool.run(() => { other = "x"; 1 }).unwrap()) } //~ ERROR closure captures //~ ERROR a task the callee spawns from this argument
     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here
@@ -1721,16 +1727,22 @@ note: the closure is handed off here
 690 |     c()
     |     ^^
 
+error[borrow-escape]: a task the callee spawns from this argument outlives this borrow; await that task in the callee, or pass a value that holds no borrow
+   --> main.kg:738:21
+    |
+738 |     let c = () => { spawnTask(pool.run(() => { other = "x"; 1 }).unwrap()) } //~ ERROR closure captures //~ ERROR a task the callee spawns from this argument
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 error[E413]: closure captures `other` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
    --> main.kg:738:31
     |
-738 |     let c = () => { spawnTask(pool.run(() => { other = "x"; 1 }).unwrap()) } //~ ERROR closure captures
+738 |     let c = () => { spawnTask(pool.run(() => { other = "x"; 1 }).unwrap()) } //~ ERROR closure captures //~ ERROR a task the callee spawns from this argument
     |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     = help: a plain `fn` cannot share a captured variable's cell; use it before writing `other`, or bind the closure without a `fn` type
 note: the plain `fn` leaves this closure here, and the enclosing body may write `other` before it runs
    --> main.kg:738:21
     |
-738 |     let c = () => { spawnTask(pool.run(() => { other = "x"; 1 }).unwrap()) } //~ ERROR closure captures
+738 |     let c = () => { spawnTask(pool.run(() => { other = "x"; 1 }).unwrap()) } //~ ERROR closure captures //~ ERROR a task the callee spawns from this argument
     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2198]: `other` is written by a closure that may still be running on another thread, and cannot be used here

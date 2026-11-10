@@ -16,6 +16,13 @@ type Analyzer struct {
 	refKeeps    refKeepMemo
 	paramStores map[paramSlot]bool
 	ended       map[*midir.Func]*endedFacts
+	taskFates   taskFates
+	taskCalls   map[*midir.Func]srcSet
+	// taskStarts is whether a lowered body names a declaration that starts a Task (0 not known, 1 no, 2 yes), checked
+	// over taskStartsSeen bodies.
+	taskStarts     uint8
+	taskStartsSeen int
+	taskStarters   map[sem.EntityID]bool
 }
 
 func New(p *ownquery.Input, lookup BodyLookup) *Analyzer {

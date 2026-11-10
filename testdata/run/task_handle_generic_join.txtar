@@ -1,0 +1,63 @@
+-- src --
+// A generic may drop what its callable returns when the call binds no Task there, join a Task it is handed, or store
+// a value that is not a Task in a place it was lent; none of these leaves a task holding a borrow.
+import task from std/task
+
+type Slot = { pub mut n Int }
+
+async fn count(xs: &Array[Int]) -> Int {
+    await task.yieldNow()
+    xs.len().toInt() || 0
+}
+
+fn runAndDrop[T](f: fn() -> T) {
+    _ = f()
+}
+
+async fn joinIt[T](t: task.Task[T]) -> T {
+    await t
+}
+
+fn putOut[T](out: &mut T, f: fn() -> T) {
+    out = f()
+}
+
+fn putN(slot: &mut Slot, f: Future[Int]) {
+    slot.n = 7
+}
+
+async fn dropsResult() -> Int {
+    let xs = Array.of(1, 2)
+    runAndDrop(() => xs.len())
+    xs.len().toInt() || 0
+}
+
+async fn joinsHandle() -> Int {
+    let xs = Array.of(1, 2, 3, 4)
+    await joinIt(task.spawn(count(&xs)))
+}
+
+async fn storesValue() -> Int {
+    let xs = Array.of(1, 2, 3, 4, 5)
+    let mut n = 0
+    putOut(&mut n, () => xs.len().toInt() || 0)
+    let mut s = Slot { n: 0 }
+    putN(&mut s, count(&xs))
+    n + s.n
+}
+
+async fn root() -> Int {
+    let a = await dropsResult()
+    let c = await joinsHandle()
+    let d = await storesValue()
+    print "${a} ${c} ${d}"
+    a + c + d
+}
+
+print "${task.currentThreadExecutor().runToCompletion(root())}"
+-- stdout --
+2 4 12
+18
+-- stderr --
+-- exit --
+0

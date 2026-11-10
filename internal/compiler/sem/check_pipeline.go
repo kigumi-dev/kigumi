@@ -37,6 +37,7 @@ func (r *Result) phases() []func() {
 		r.checkBodies,
 		r.bindLateFieldCalls,
 		r.resolveRefCells,
+		r.reportHiddenTasks,
 		r.checkAccelKeys,
 		r.resolvePendingWitnessCallbacks,
 		// Must precede checkEffects: it appends hidden provider captures to

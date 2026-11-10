@@ -82,6 +82,8 @@ type checker struct {
 	sliceViews map[EntityID]syntax.NodeID
 	// valueExprs maps a method value expression to its own-generic instantiation, for the proof at calls through it.
 	valueExprs map[syntax.NodeID]*valueInstData
+	// taskUses are the generic fn uses whose bindings the full expression settles, for the task conversion check.
+	taskUses []taskUse
 	// holderVals, holderAlias, holderOther record, per local, the method values it is bound to, the locals it aliases,
 	// and whether it is ever assigned a non-method value, resolved flow-insensitively for the holder escape walk.
 	holderVals      map[EntityID][]*valueInstData

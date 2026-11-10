@@ -101,6 +101,11 @@ error[E2203]: `Show` holds a `Task` handle and cannot leave the task that spawne
 41 | async fn inInterface() -> Show { //~ ERROR `Show` holds a `Task` handle
    |                           ^^^^
    = help: await the task there and pass on its result
+note: `ShowHolder` holds a `Task` handle and is converted to `Show` here
+  --> main/main.kg:42:5
+   |
+42 |     ShowHolder { t: task.spawn(leaf()) }
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2203]: `Task[Int]` holds a `Task` handle and cannot leave the task that spawned it as the result of a spawned or root task
   --> main/main.kg:51:13

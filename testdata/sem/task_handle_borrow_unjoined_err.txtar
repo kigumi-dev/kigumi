@@ -1,0 +1,265 @@
+-- module --
+mir: planned
+-- src --
+// A Task handle keeps the borrows of the future it runs until it is joined. Each body below lets one go unjoined: it
+// drops a value holding the handle, or hands it to a callee that drops it or keeps it in a task it does not join.
+import task from std/task
+
+type Box = { pub n Int, pub mut t task.Task[Int] }
+type Job = { pub f Future[Int] }
+type Runner = { pub run fn(Future[Int]) -> Void }
+
+async fn leaf() -> Int { 1 }
+
+async fn count(xs: &Array[Int]) -> Int {
+    await task.yieldNow()
+    xs.len().toInt() || 0
+}
+
+fn sink[T](t: task.Task[T]) {}
+
+fn go(f: Future[Int]) {
+    _ = task.spawn(f)
+}
+
+async fn keep(t: task.Task[Int]) -> Int {
+    0
+}
+
+async fn maybe(f: Future[Int], b: Bool) -> Int {
+    let t = task.spawn(f)
+    if b {
+        return await t
+    }
+    0
+}
+
+fn runJob(j: Job) {
+    _ = task.spawn(j.f)
+}
+
+async fn inRecord() -> Int {
+    let xs = Array.of(1)
+    let b = Box { n: 1, t: task.spawn(count(&xs)) } //~ ERROR a spawned task outlives this borrow
+    _ = b
+    0
+}
+
+async fn overwritten() -> Int {
+    let xs = Array.of(1)
+    let mut b = Box { n: 1, t: task.spawn(count(&xs)) } //~ ERROR a spawned task outlives this borrow
+    b.t = task.spawn(leaf())
+    await b.t
+}
+
+async fn inOption() -> Int {
+    let xs = Array.of(1)
+    let o = Some(task.spawn(count(&xs))) //~ ERROR a spawned task outlives this borrow
+    0
+}
+
+async fn inArray() -> Int {
+    let xs = Array.of(1)
+    let ts = Array.of(task.spawn(count(&xs))) //~ ERROR a spawned task outlives this borrow //~ ERROR a borrow cannot go in element 0
+    0
+}
+
+async fn cancelled() -> Int {
+    let xs = Array.of(1)
+    let t = task.spawn(count(&xs)) //~ ERROR a spawned task outlives this borrow
+    t.cancel()
+    0
+}
+
+async fn sunk() -> Int {
+    let xs = Array.of(1)
+    sink(task.spawn(count(&xs))) //~ ERROR a spawned task outlives this borrow
+    0
+}
+
+async fn spawnedByCallee() -> Int {
+    let xs = Array.of(1)
+    go(count(&xs)) //~ ERROR a task the callee spawns from this argument
+    0
+}
+
+async fn droppedByAsyncCallee() -> Int {
+    let xs = Array.of(1)
+    await keep(task.spawn(count(&xs))) //~ ERROR a spawned task outlives this borrow
+}
+
+async fn droppedByChild() -> Int {
+    let xs = Array.of(1)
+    let t = task.spawn(count(&xs)) //~ ERROR a spawned task outlives this borrow
+    await task.spawn(keep(t))
+}
+
+async fn joinedOnOnePath() -> Int {
+    let xs = Array.of(1)
+    await maybe(count(&xs), true) //~ ERROR a task the callee spawns from this argument
+}
+
+async fn inJob() -> Int {
+    let xs = Array.of(1)
+    runJob(Job { f: count(&xs) }) //~ ERROR a task the callee spawns from this argument
+    0
+}
+
+async fn viaFnValue() -> Int {
+    let xs = Array.of(1)
+    let s = sink[Int]
+    s(task.spawn(count(&xs))) //~ ERROR a spawned task outlives this borrow
+    let g = go
+    g(count(&xs)) //~ ERROR a task the callee spawns from this argument
+    0
+}
+
+async fn viaUnknown(r: Runner) -> Int {
+    let xs = Array.of(1)
+    (r.run)(count(&xs)) //~ ERROR a value borrowing `xs` cannot go into shared storage
+    0
+}
+
+fn pick() -> fn(Future[Int]) -> Void {
+    go
+}
+
+async fn viaResult() -> Int {
+    let xs = Array.of(1)
+    pick()(count(&xs)) //~ ERROR a task the callee spawns from this argument //~ ERROR a value borrowing `xs` cannot go into shared storage
+    0
+}
+
+fn returned() -> task.Task[Int] {
+    let xs = Array.of(1) //~ ERROR `xs` is still borrowed when its scope ends here
+    task.spawn(count(&xs)) //~ ERROR a borrow cannot be returned
+}
+
+fn main() {}
+-- expect --
+error[borrow-escape]: a spawned task outlives this borrow; await the task before this body ends, or pass it to a call that awaits it
+  --> main.kg:40:28
+   |
+40 |     let b = Box { n: 1, t: task.spawn(count(&xs)) } //~ ERROR a spawned task outlives this borrow
+   |                            ^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a spawned task outlives this borrow; await the task before this body ends, or pass it to a call that awaits it
+  --> main.kg:47:32
+   |
+47 |     let mut b = Box { n: 1, t: task.spawn(count(&xs)) } //~ ERROR a spawned task outlives this borrow
+   |                                ^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a spawned task outlives this borrow; await the task before this body ends, or pass it to a call that awaits it
+  --> main.kg:54:18
+   |
+54 |     let o = Some(task.spawn(count(&xs))) //~ ERROR a spawned task outlives this borrow
+   |                  ^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a spawned task outlives this borrow; await the task before this body ends, or pass it to a call that awaits it
+  --> main.kg:60:23
+   |
+60 |     let ts = Array.of(task.spawn(count(&xs))) //~ ERROR a spawned task outlives this borrow //~ ERROR a borrow cannot go in element 0
+   |                       ^^^^^^^^^^^^^^^^^^^^
+
+error[E1581]: a borrow cannot go in element 0, an element of `Array[T]`: an element is released with the array and this borrow has no count to give; an array tracks a borrow only inside a value whose type takes a `['a]`, so wrap it in such a type, or store a value it can own
+  --> main.kg:60:14
+   |
+60 |     let ts = Array.of(task.spawn(count(&xs))) //~ ERROR a spawned task outlives this borrow //~ ERROR a borrow cannot go in element 0
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a spawned task outlives this borrow; await the task before this body ends, or pass it to a call that awaits it
+  --> main.kg:66:13
+   |
+66 |     let t = task.spawn(count(&xs)) //~ ERROR a spawned task outlives this borrow
+   |             ^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a spawned task outlives this borrow; await the task before this body ends, or pass it to a call that awaits it
+  --> main.kg:73:10
+   |
+73 |     sink(task.spawn(count(&xs))) //~ ERROR a spawned task outlives this borrow
+   |          ^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a task the callee spawns from this argument outlives this borrow; await that task in the callee, or pass a value that holds no borrow
+  --> main.kg:79:5
+   |
+79 |     go(count(&xs)) //~ ERROR a task the callee spawns from this argument
+   |     ^^^^^^^^^^^^
+
+error[borrow-escape]: a spawned task outlives this borrow; await the task before this body ends, or pass it to a call that awaits it
+  --> main.kg:85:16
+   |
+85 |     await keep(task.spawn(count(&xs))) //~ ERROR a spawned task outlives this borrow
+   |                ^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a spawned task outlives this borrow; await the task before this body ends, or pass it to a call that awaits it
+  --> main.kg:90:13
+   |
+90 |     let t = task.spawn(count(&xs)) //~ ERROR a spawned task outlives this borrow
+   |             ^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a task the callee spawns from this argument outlives this borrow; await that task in the callee, or pass a value that holds no borrow
+  --> main.kg:96:11
+   |
+96 |     await maybe(count(&xs), true) //~ ERROR a task the callee spawns from this argument
+   |           ^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a task the callee spawns from this argument outlives this borrow; await that task in the callee, or pass a value that holds no borrow
+   --> main.kg:101:5
+    |
+101 |     runJob(Job { f: count(&xs) }) //~ ERROR a task the callee spawns from this argument
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a spawned task outlives this borrow; await the task before this body ends, or pass it to a call that awaits it
+   --> main.kg:108:7
+    |
+108 |     s(task.spawn(count(&xs))) //~ ERROR a spawned task outlives this borrow
+    |       ^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a task the callee spawns from this argument outlives this borrow; await that task in the callee, or pass a value that holds no borrow
+   --> main.kg:110:5
+    |
+110 |     g(count(&xs)) //~ ERROR a task the callee spawns from this argument
+    |     ^^^^^^^^^^^
+
+error[E2158]: a value borrowing `xs` cannot go into shared storage: another handle to that storage can keep it after `xs` is gone
+   --> main.kg:116:5
+    |
+116 |     (r.run)(count(&xs)) //~ ERROR a value borrowing `xs` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `xs` is borrowed here
+   --> main.kg:116:19
+    |
+116 |     (r.run)(count(&xs)) //~ ERROR a value borrowing `xs` cannot go into shared storage
+    |                   ^^^
+
+error[borrow-escape]: a task the callee spawns from this argument outlives this borrow; await that task in the callee, or pass a value that holds no borrow
+   --> main.kg:126:5
+    |
+126 |     pick()(count(&xs)) //~ ERROR a task the callee spawns from this argument //~ ERROR a value borrowing `xs` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^
+
+error[E2158]: a value borrowing `xs` cannot go into shared storage: another handle to that storage can keep it after `xs` is gone
+   --> main.kg:126:5
+    |
+126 |     pick()(count(&xs)) //~ ERROR a task the callee spawns from this argument //~ ERROR a value borrowing `xs` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `xs` is borrowed here
+   --> main.kg:126:18
+    |
+126 |     pick()(count(&xs)) //~ ERROR a task the callee spawns from this argument //~ ERROR a value borrowing `xs` cannot go into shared storage
+    |                  ^^^
+
+error[borrow-escape]: a borrow cannot be returned
+   --> main.kg:132:22
+    |
+132 |     task.spawn(count(&xs)) //~ ERROR a borrow cannot be returned
+    |                      ^^^
+
+error[move-while-borrowed]: `xs` is still borrowed when its scope ends here
+   --> main.kg:131:9
+    |
+131 |     let xs = Array.of(1) //~ ERROR `xs` is still borrowed when its scope ends here
+    |         ^^
+

@@ -1,0 +1,146 @@
+-- module --
+mir: planned
+-- src --
+// A generic body is summarized under the callables each call hands it. Each call below binds a callable that starts a
+// task holding `xs` and one that drops what it is given, so the task outlives the borrow the call passed in.
+import task from std/task
+
+async fn worker(mut xs: &mut Array[Int]) {
+    await task.yieldNow()
+    xs.push(9)
+}
+
+fn apply[T](f: fn() -> T, g: fn(T) -> Void) {
+    g(f())
+}
+
+fn dropIt[T](t: T) {}
+
+type Eater = { pub n Int }
+
+fn Eater.eat[T](self, t: T) {}
+
+fn twice[T](f: fn() -> T, g: fn(T) -> Void) {
+    apply(f, g)
+}
+
+fn applyB[T, F: FnOnce[fn() -> T], G: FnOnce[fn(T) -> Void]](f: F, g: G) {
+    g(f())
+}
+
+type Ops[F, G] = { pub mk F, pub eat G }
+
+fn runOps[T, F: FnOnce[fn() -> T], G: FnOnce[fn(T) -> Void]](o: Ops[F, G]) {
+    let Ops { mk, eat } = o
+    eat(mk())
+}
+
+fn runAll[T, F: FnOnce[fn() -> T], G: FnMut[fn(T) -> Void]](fs: Array[F], g: G) {
+    for f in fs {
+        g(f())
+    }
+}
+
+fn feed[T](x: T, g: fn(T) -> Void) {
+    g(x)
+}
+
+async fn genericFn() -> Int {
+    let mut xs = Array.of(1)
+    apply(() => task.spawn(worker(&mut xs)), dropIt) //~ ERROR a task the callee spawns from this argument
+    1
+}
+
+async fn closureG() -> Int {
+    let mut xs = Array.of(1)
+    apply(() => task.spawn(worker(&mut xs)), (t) => {}) //~ ERROR a task the callee spawns from this argument
+    1
+}
+
+async fn methodValue() -> Int {
+    let mut xs = Array.of(1)
+    let e = Eater { n: 1 }
+    apply(() => task.spawn(worker(&mut xs)), e.eat) //~ ERROR a task the callee spawns from this argument
+    1
+}
+
+async fn twoFrames() -> Int {
+    let mut xs = Array.of(1)
+    twice(() => task.spawn(worker(&mut xs)), (t) => {}) //~ ERROR a task the callee spawns from this argument
+    1
+}
+
+async fn bounded() -> Int {
+    let mut xs = Array.of(1)
+    applyB(() => task.spawn(worker(&mut xs)), (t: task.Task[Void]) => {}) //~ ERROR a task the callee spawns from this argument
+    1
+}
+
+async fn recordOfCallables() -> Int {
+    let mut xs = Array.of(1)
+    runOps(Ops { mk: () => task.spawn(worker(&mut xs)), eat: (t: task.Task[Void]) => {} }) //~ ERROR with the callables this call passes
+    1
+}
+
+async fn arrayOfCallables() -> Int {
+    let mut xs = Array.of(1)
+    runAll(Array.of(() => task.spawn(worker(&mut xs))), (t: task.Task[Void]) => {}) //~ ERROR with the callables this call passes
+    1
+}
+
+async fn handleFed() -> Int {
+    let mut xs = Array.of(1)
+    feed(task.spawn(worker(&mut xs)), (t) => {}) //~ ERROR a spawned task outlives this borrow
+    1
+}
+
+fn main() {}
+-- expect --
+error[borrow-escape]: a task the callee spawns from this argument outlives this borrow; await that task in the callee, or pass a value that holds no borrow
+  --> main.kg:47:5
+   |
+47 |     apply(() => task.spawn(worker(&mut xs)), dropIt) //~ ERROR a task the callee spawns from this argument
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a task the callee spawns from this argument outlives this borrow; await that task in the callee, or pass a value that holds no borrow
+  --> main.kg:53:5
+   |
+53 |     apply(() => task.spawn(worker(&mut xs)), (t) => {}) //~ ERROR a task the callee spawns from this argument
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a task the callee spawns from this argument outlives this borrow; await that task in the callee, or pass a value that holds no borrow
+  --> main.kg:60:5
+   |
+60 |     apply(() => task.spawn(worker(&mut xs)), e.eat) //~ ERROR a task the callee spawns from this argument
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a task the callee spawns from this argument outlives this borrow; await that task in the callee, or pass a value that holds no borrow
+  --> main.kg:66:5
+   |
+66 |     twice(() => task.spawn(worker(&mut xs)), (t) => {}) //~ ERROR a task the callee spawns from this argument
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a task the callee spawns from this argument outlives this borrow; await that task in the callee, or pass a value that holds no borrow
+  --> main.kg:72:5
+   |
+72 |     applyB(() => task.spawn(worker(&mut xs)), (t: task.Task[Void]) => {}) //~ ERROR a task the callee spawns from this argument
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: with the callables this call passes, the callee leaves a task running that holds a borrow; await the task in the callee, or pass callables that do not start one
+  --> main.kg:78:5
+   |
+78 |     runOps(Ops { mk: () => task.spawn(worker(&mut xs)), eat: (t: task.Task[Void]) => {} }) //~ ERROR with the callables this call passes
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: with the callables this call passes, the callee leaves a task running that holds a borrow; await the task in the callee, or pass callables that do not start one
+  --> main.kg:84:5
+   |
+84 |     runAll(Array.of(() => task.spawn(worker(&mut xs))), (t: task.Task[Void]) => {}) //~ ERROR with the callables this call passes
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a spawned task outlives this borrow; await the task before this body ends, or pass it to a call that awaits it
+  --> main.kg:90:10
+   |
+90 |     feed(task.spawn(worker(&mut xs)), (t) => {}) //~ ERROR a spawned task outlives this borrow
+   |          ^^^^^^^^^^^^^^^^^^^^^^^^^
+

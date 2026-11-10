@@ -1,0 +1,119 @@
+-- module --
+mir: planned
+-- src --
+// A call whose result type is a type parameter may hand back a Task once the caller binds it to one. Each generic body
+// below drops such a result, so a call binding it to a Task that keeps a borrow is rejected where it binds it.
+import task from std/task
+
+type Slot[T] = { pub v T }
+
+fn Slot[T].take(move self) -> T {
+    self.v
+}
+
+fn pick[T](a: T, b: T) -> T {
+    a
+}
+
+async fn grow(mut xs: &mut Array[Int]) {
+    await task.yieldNow()
+    xs.push(9)
+}
+
+fn runAndDrop[T](f: fn() -> T) {
+    _ = f()
+}
+
+fn forward[T](f: fn() -> T) {
+    runAndDrop(f)
+}
+
+fn viaPick[T](mk: fn() -> T) {
+    let x = pick(mk(), mk())
+}
+
+fn viaSlot[T](mk: fn() -> T) {
+    let s = Slot { v: mk() }
+    _ = s.take()
+}
+
+async fn dropped() -> Int {
+    let mut xs = Array.of(1)
+    runAndDrop(() => task.spawn(grow(&mut xs))) //~ ERROR a task the callee spawns from this argument
+    0
+}
+
+async fn forwarded() -> Int {
+    let mut xs = Array.of(1)
+    forward(() => task.spawn(grow(&mut xs))) //~ ERROR a task the callee spawns from this argument
+    0
+}
+
+async fn picked() -> Int {
+    let mut xs = Array.of(1)
+    viaPick(() => task.spawn(grow(&mut xs))) //~ ERROR a task the callee spawns from this argument
+    0
+}
+
+async fn slotted() -> Int {
+    let mut xs = Array.of(1)
+    viaSlot(() => task.spawn(grow(&mut xs))) //~ ERROR a task the callee spawns from this argument
+    0
+}
+
+fn ownLocal[T](mk: fn(&Array[Int]) -> T) {
+    let ys = Array.of(1)
+    _ = mk(&ys)
+}
+
+async fn count(xs: &Array[Int]) -> Int {
+    await task.yieldNow()
+    xs.len().toInt() || 0
+}
+
+fn spawnCount(xs: &Array[Int]) -> task.Task[Int] {
+    task.spawn(count(xs)) //~ ERROR a borrow cannot be captured by a future
+}
+
+fn bound() {
+    ownLocal(spawnCount) //~ ERROR with the callables this call passes, the callee leaves a task running
+}
+
+fn main() {}
+-- expect --
+error[borrow-escape]: a task the callee spawns from this argument outlives this borrow; await that task in the callee, or pass a value that holds no borrow
+  --> main.kg:39:5
+   |
+39 |     runAndDrop(() => task.spawn(grow(&mut xs))) //~ ERROR a task the callee spawns from this argument
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a task the callee spawns from this argument outlives this borrow; await that task in the callee, or pass a value that holds no borrow
+  --> main.kg:45:5
+   |
+45 |     forward(() => task.spawn(grow(&mut xs))) //~ ERROR a task the callee spawns from this argument
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a task the callee spawns from this argument outlives this borrow; await that task in the callee, or pass a value that holds no borrow
+  --> main.kg:51:5
+   |
+51 |     viaPick(() => task.spawn(grow(&mut xs))) //~ ERROR a task the callee spawns from this argument
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a task the callee spawns from this argument outlives this borrow; await that task in the callee, or pass a value that holds no borrow
+  --> main.kg:57:5
+   |
+57 |     viaSlot(() => task.spawn(grow(&mut xs))) //~ ERROR a task the callee spawns from this argument
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a borrow cannot be captured by a future; the future may run after the borrowed value is gone, so pass the value itself
+  --> main.kg:72:16
+   |
+72 |     task.spawn(count(xs)) //~ ERROR a borrow cannot be captured by a future
+   |                ^^^^^^^^
+
+error[borrow-escape]: with the callables this call passes, the callee leaves a task running that holds a borrow; await the task in the callee, or pass callables that do not start one
+  --> main.kg:76:5
+   |
+76 |     ownLocal(spawnCount) //~ ERROR with the callables this call passes, the callee leaves a task running
+   |     ^^^^^^^^^^^^^^^^^^^
+

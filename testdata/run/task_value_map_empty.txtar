@@ -1,0 +1,18 @@
+-- src --
+// A map whose values are Tasks, built with no borrow anywhere: no Task here can outlive a borrow.
+import task from std/task
+import map from std/map
+
+async fn leaf() -> Int { 1 }
+
+async fn root() -> Int {
+    let m: map.Map[Int, task.Task[Int]] = map.empty()
+    m.len().toInt() || 0
+}
+
+print "${task.currentThreadExecutor().runToCompletion(root())}"
+-- stdout --
+0
+-- stderr --
+-- exit --
+0

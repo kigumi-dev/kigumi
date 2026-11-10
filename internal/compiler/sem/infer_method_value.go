@@ -7,6 +7,7 @@ func (c *checker) methodValue(n, base syntax.NodeID, valueType TypeID, m EntityI
 	info := c.r.Fn(m)
 	c.info.Uses[n] = m
 	c.info.Calls[n] = CallInfo{Kind: CallMethodValue, Callee: m, Recv: info.Recv}
+	c.noteTaskUse(n, m, valueType)
 	sig := c.r.memberSig(valueType, m)
 	c.rejectHiddenArgs(n, m)
 	async := info.Declared&EffAsync != 0

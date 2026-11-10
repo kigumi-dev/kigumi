@@ -1,0 +1,19 @@
+-- src --
+// A generic that drops an unrelated value of another type parameter does not touch the Task it hands back.
+import task from std/task
+async fn leaf() -> Int { 1 }
+fn firstKey[K: Copy](ks: &Array[K]) -> K? { ks.first() }
+fn keepV[K: Copy, V](ks: Array[K], v: V) -> V {
+    _ = firstKey(&ks)
+    v
+}
+async fn root() -> Int {
+    let t = keepV(Array.of(1), task.spawn(leaf()))
+    await t
+}
+print "${task.currentThreadExecutor().runToCompletion(root())}"
+-- stdout --
+1
+-- stderr --
+-- exit --
+0

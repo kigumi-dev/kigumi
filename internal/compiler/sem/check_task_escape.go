@@ -15,83 +15,21 @@ func (r *Result) isStdTaskEnt(ent EntityID, names ...string) bool {
 	return false
 }
 
-// typeHasTask reports whether a value of t can hold a `Task` handle; a closure's captures are checked where it is built.
-func (r *Result) typeHasTask(t TypeID, seen map[TypeID]bool) bool {
-	if t == 0 || t == TyPoison || seen[t] {
-		return false
-	}
-	seen[t] = true
-	n := r.Types.Node(t)
-	switch n.Kind {
-	case KFn, KClosure:
-		return false
-	case KNamed:
-		if r.Entities[n.Ent].Kind == EntType && r.isStdTaskEnt(n.Ent, "Task") {
-			return true
-		}
-		if r.Entities[n.Ent].Kind == EntType && r.namedHasTask(n.Ent, n.Args, seen) {
-			return true
-		}
-	}
-	if r.typeHasTask(n.Elem, seen) {
-		return true
-	}
-	for _, a := range n.Args {
-		if r.typeHasTask(a, seen) {
-			return true
-		}
-	}
-	return false
-}
-
-func (r *Result) namedHasTask(ent EntityID, args []TypeID, seen map[TypeID]bool) bool {
-	decl := r.typeDecl(ent)
-	subst := instSubst(decl.Params, args)
-	switch decl.Form {
-	case FormDefined:
-		return r.typeHasTask(r.Types.Subst(decl.Underlying, subst), seen)
-	case FormRecord, FormResource:
-		for _, fld := range decl.Fields {
-			if r.typeHasTask(r.Types.Subst(r.field(fld).Type, subst), seen) {
-				return true
-			}
-		}
-	case FormAdt:
-		for _, v := range decl.Variants {
-			for _, pt := range r.variant(v).Payload {
-				if r.typeHasTask(r.Types.Subst(pt, subst), seen) {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
 func (r *Result) checkAsyncTaskReturn(f FileID, at syntax.NodeID, sig TypeID) {
 	ret := r.Types.Node(sig).Elem
-	if r.typeHasTask(ret, map[TypeID]bool{}) || r.typeMayHideTask(ret) {
-		r.errAt(f, at, cTaskHandleReturned, r.TypeString(ret), "the result of an async fn")
-	}
+	r.rejectTaskHolder(f, at, ret, cTaskHandleReturned, r.TypeString(ret), "the result of an async fn")
 }
 
-// typeMayHideTask reports a result whose concrete shape is not known here: an
-// interface may have a Task-holding implementation and carry a handle out of
-// the spawning task.
-func (r *Result) typeMayHideTask(t TypeID) bool {
-	return t != 0 && t != TyPoison && r.Types.Kind(t) == KIface
-}
-
-func (r *Result) mutRefHasTask(t TypeID, subst map[EntityID]TypeID) bool {
+func (r *Result) mutRefHolding(t TypeID, subst map[EntityID]TypeID) taskHolding {
 	n := r.Types.Node(t)
 	if n.Kind != KRef || n.Flags&flagMut == 0 {
-		return false
+		return taskHolding{}
 	}
 	elem := n.Elem
 	if subst != nil {
 		elem = r.Types.Subst(elem, subst)
 	}
-	return r.typeHasTask(elem, map[TypeID]bool{})
+	return r.taskHoldingOf(elem)
 }
 
 // checkTaskEscapeCall rejects a task tree whose result would carry a handle to one of its own children out of it.
@@ -99,9 +37,8 @@ func (r *Result) checkTaskEscapeCall(f FileID, n syntax.NodeID, call CallInfo) {
 	if len(call.Inst) == 0 || !r.isStdTaskEnt(call.Callee, "spawn", "handoff", "runToCompletion") {
 		return
 	}
-	if t := call.Inst[0]; r.typeHasTask(t, map[TypeID]bool{}) {
-		r.errAt(f, n, cTaskHandleReturned, r.TypeString(t), "the result of a spawned or root task")
-	}
+	t := call.Inst[0]
+	r.rejectTaskHolder(f, n, t, cTaskHandleReturned, r.TypeString(t), "the result of a spawned or root task")
 }
 
 type taskEscapeKey struct {
@@ -113,18 +50,21 @@ func (r *Result) checkTaskEscapeArgs(f FileID, n syntax.NodeID, ent EntityID, ar
 	if !r.isAllocType(ent, "Shared") {
 		return
 	}
+	key := taskEscapeKey{f, n}
+	if r.taskEscapeSeen[key] {
+		return
+	}
 	for _, a := range args {
-		if r.typeHasTask(a, map[TypeID]bool{}) {
-			key := taskEscapeKey{f, n}
+		if !r.taskHoldingOf(a).any() {
+			continue
+		}
+		if r.rejectTaskHolder(f, n, a, cTaskHandleStored, r.TypeString(a), r.Entities[ent].Name) {
 			if r.taskEscapeSeen == nil {
 				r.taskEscapeSeen = map[taskEscapeKey]bool{}
 			}
-			if !r.taskEscapeSeen[key] {
-				r.taskEscapeSeen[key] = true
-				r.errAt(f, n, cTaskHandleStored, r.TypeString(a), r.Entities[ent].Name)
-			}
-			return
+			r.taskEscapeSeen[key] = true
 		}
+		return
 	}
 }
 

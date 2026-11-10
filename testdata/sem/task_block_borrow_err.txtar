@@ -20,7 +20,7 @@ async fn parent() -> Int {
 
 fn main() {}
 -- expect --
-error[borrow-escape]: a spawned task outlives this borrow; await the task or hand it off instead
+error[borrow-escape]: a spawned task outlives this borrow; await the task before this body ends, or pass it to a call that awaits it
   --> main.kg:10:21
    |
 10 |         let child = task.spawn(worker(&mut xs))

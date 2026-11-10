@@ -160,6 +160,12 @@ note: `x` is borrowed here
 91 |     let e = either(bump(&mut x))
    |                         ^^^^^^
 
+error[borrow-escape]: a spawned task outlives this borrow; await the task before this body ends, or pass it to a call that awaits it
+   --> main.kg:102:13
+    |
+102 |     let t = go(bump(&mut x))
+    |             ^^^^^^^^^^^^^^
+
 error[E2198]: `x` is exclusively borrowed and cannot be used here
    --> main.kg:103:5
     |

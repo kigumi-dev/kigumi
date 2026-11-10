@@ -1,0 +1,310 @@
+-- src --
+// An interface value hides a `Task` handle only when a type converted to it holds one, under the bindings that calls,
+// fn values and receivers give a generic conversion. `Show`, `Shown`, `Kept` and `Parked` are rejected where a handle
+// may not go; `Shape` and `Counted` are accepted.
+import task from std/task
+import {Shared} from std/alloc
+
+interface Show {
+    fn value(self) -> Int
+}
+
+type ShowHolder = {
+    pub t task.Task[Int]
+}
+
+fn ShowHolder.value(self) -> Int { 1 }
+
+interface Shape {
+    fn area(self) -> Int
+}
+
+type Square = {
+    pub side Int
+}
+
+fn Square.area(self) -> Int { self.side * self.side }
+
+type Card = {
+    pub s Show
+}
+
+async fn leaf() -> Int {
+    1
+}
+
+async fn inOption() -> Show? { //~ ERROR `Show?` holds a `Task` handle and cannot leave the task that spawned it as the result of an async fn
+    let s: Show = ShowHolder { t: task.spawn(leaf()) }
+    Some(s)
+}
+
+async fn inField() -> Card { //~ ERROR `Card` holds a `Task` handle
+    Card { s: ShowHolder { t: task.spawn(leaf()) } }
+}
+
+async fn shape() -> Shape {
+    Square { side: 3 }
+}
+
+async fn shapes() -> Array[Shape?] {
+    let s: Shape = Square { side: 2 }
+    Array.of(Some(s))
+}
+
+async fn stored() -> Int {
+    let s: Show = ShowHolder { t: task.spawn(leaf()) }
+    let cell = Shared.new(s) //~ ERROR `Show` holds a `Task` handle and cannot be stored in `Shared`
+    0
+}
+
+async fn storedShape() -> Int {
+    let s: Shape = Square { side: 4 }
+    let cell = Shared.new(s)
+    cell.with((v: &Shape) => v.area())
+}
+
+async fn captured() -> Int {
+    let s: Show = ShowHolder { t: task.spawn(leaf()) }
+    let f = () => s.value() //~ ERROR `s` holds a `Task` handle
+    0
+}
+
+async fn useShow(s: Show) -> Int {
+    s.value()
+}
+
+async fn useShape(s: Shape) -> Int {
+    s.area()
+}
+
+async fn bound() -> Int {
+    let s: Show = ShowHolder { t: task.spawn(leaf()) }
+    let f = useShow(s) //~ ERROR `Show` holds a `Task` handle and cannot leave the task that spawned it as an argument of a Future
+    let g = useShape(Square { side: 5 })
+    await f + await g
+}
+
+fn drive() {
+    let ex = task.currentThreadExecutor()
+    let a = ex.runToCompletion(inOption()) //~ ERROR as the result of a spawned or root task
+    let b = ex.runToCompletion(shape())
+}
+
+type Guard = {
+    pub t task.Task[Int]
+}
+
+fn Guard.area(self) -> Int { 0 }
+
+fn areaOf[T: Shape](x: &T) -> Int {
+    x.area()
+}
+
+async fn boundOnly() -> Int {
+    let g = Guard { t: task.spawn(leaf()) }
+    let n = areaOf(&g)
+    let s = await shape()
+    n + s.area() + await g.t
+}
+
+fn park(slot: &mut Show?) {
+    slot = Some(ShowHolder { t: task.spawn(leaf()) })
+}
+
+interface Shown {
+    fn value(self) -> Int
+}
+
+type Wrapped[T] = {
+    pub t T
+}
+
+fn Wrapped[T].value(self) -> Int { 1 }
+
+fn hideIn[T](x: T, slot: &mut Shown?) {
+    slot = Some(Wrapped { t: x })
+}
+
+fn wrapAny[T](x: T) -> Shown {
+    Wrapped { t: x }
+}
+
+async fn hiddenGeneric() -> Shown { //~ ERROR `Shown` holds a `Task` handle and cannot leave the task that spawned it as the result of an async fn
+    let mut s: Shown? = None
+    hideIn(task.spawn(leaf()), &mut s)
+    s.unwrap()
+}
+
+fn wrapsTask() -> Int {
+    let w = wrapAny(task.spawn(leaf()))
+    w.value()
+}
+
+interface Counted {
+    fn count(self) -> Int
+}
+
+type Tally[T] = {
+    pub v T
+}
+
+fn Tally[T].count(self) -> Int { 1 }
+
+fn tally[T](x: T) -> Counted {
+    Tally { v: x }
+}
+
+async fn counted() -> Counted {
+    tally(3)
+}
+
+interface Kept {
+    fn value(self) -> Int
+}
+
+type Keep[T] = {
+    pub t T
+}
+
+fn Keep[T].value(self) -> Int { 1 }
+
+fn keepIn[T](x: T, slot: &mut Kept?) {
+    slot = Some(Keep { t: x })
+}
+
+async fn viaValue() -> Kept { //~ ERROR `Kept` holds a `Task` handle and cannot leave the task that spawned it as the result of an async fn
+    let mut s: Kept? = None
+    let k: fn(task.Task[Int], &mut Kept?) -> Void = keepIn
+    k(task.spawn(leaf()), &mut s)
+    s.unwrap()
+}
+
+interface Parked {
+    fn value(self) -> Int
+}
+
+type Bay[T] = {
+    pub t T
+}
+
+fn Bay[T].value(self) -> Int { 1 }
+
+fn Bay[T].park(move self, slot: &mut Parked?) {
+    slot = Some(self)
+}
+
+async fn viaReceiver() -> Parked { //~ ERROR `Parked` holds a `Task` handle and cannot leave the task that spawned it as the result of an async fn
+    let mut s: Parked? = None
+    Bay { t: task.spawn(leaf()) }.park(&mut s)
+    s.unwrap()
+}
+
+-- expect --
+error[E2203]: `Show?` holds a `Task` handle and cannot leave the task that spawned it as the result of an async fn
+  --> main/main.kg:35:24
+   |
+35 | async fn inOption() -> Show? { //~ ERROR `Show?` holds a `Task` handle and cannot leave the task that spawned it as the result of an async fn
+   |                        ^^^^^
+   = help: await the task there and pass on its result
+note: `ShowHolder` holds a `Task` handle and is converted to `Show` here
+  --> main/main.kg:36:19
+   |
+36 |     let s: Show = ShowHolder { t: task.spawn(leaf()) }
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2203]: `Card` holds a `Task` handle and cannot leave the task that spawned it as the result of an async fn
+  --> main/main.kg:40:23
+   |
+40 | async fn inField() -> Card { //~ ERROR `Card` holds a `Task` handle
+   |                       ^^^^
+   = help: await the task there and pass on its result
+note: `ShowHolder` holds a `Task` handle and is converted to `Show` here
+  --> main/main.kg:36:19
+   |
+36 |     let s: Show = ShowHolder { t: task.spawn(leaf()) }
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2204]: `Show` holds a `Task` handle and cannot be stored in `Shared`, which may outlive the task that spawned it
+  --> main/main.kg:55:16
+   |
+55 |     let cell = Shared.new(s) //~ ERROR `Show` holds a `Task` handle and cannot be stored in `Shared`
+   |                ^^^^^^^^^^^^
+   = help: keep the handle in a local, record or array of that task
+note: `ShowHolder` holds a `Task` handle and is converted to `Show` here
+  --> main/main.kg:36:19
+   |
+36 |     let s: Show = ShowHolder { t: task.spawn(leaf()) }
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2205]: `s` holds a `Task` handle and cannot be captured by a closure that may outlive the task that spawned it
+  --> main/main.kg:67:19
+   |
+67 |     let f = () => s.value() //~ ERROR `s` holds a `Task` handle
+   |                   ^
+   = help: await the task first, or pass the closure to a parameter that does not keep it
+note: `ShowHolder` holds a `Task` handle and is converted to `Show` here
+  --> main/main.kg:36:19
+   |
+36 |     let s: Show = ShowHolder { t: task.spawn(leaf()) }
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2203]: `Show` holds a `Task` handle and cannot leave the task that spawned it as an argument of a Future that is not awaited or spawned where it is built
+  --> main/main.kg:81:13
+   |
+81 |     let f = useShow(s) //~ ERROR `Show` holds a `Task` handle and cannot leave the task that spawned it as an argument of a Future
+   |             ^^^^^^^^^
+   = help: await the task there and pass on its result
+note: `ShowHolder` holds a `Task` handle and is converted to `Show` here
+  --> main/main.kg:36:19
+   |
+36 |     let s: Show = ShowHolder { t: task.spawn(leaf()) }
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2203]: `Show?` holds a `Task` handle and cannot leave the task that spawned it as the result of a spawned or root task
+  --> main/main.kg:88:13
+   |
+88 |     let a = ex.runToCompletion(inOption()) //~ ERROR as the result of a spawned or root task
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: await the task there and pass on its result
+note: `ShowHolder` holds a `Task` handle and is converted to `Show` here
+  --> main/main.kg:36:19
+   |
+36 |     let s: Show = ShowHolder { t: task.spawn(leaf()) }
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2203]: `Shown` holds a `Task` handle and cannot leave the task that spawned it as the result of an async fn
+   --> main/main.kg:131:29
+    |
+131 | async fn hiddenGeneric() -> Shown { //~ ERROR `Shown` holds a `Task` handle and cannot leave the task that spawned it as the result of an async fn
+    |                             ^^^^^
+    = help: await the task there and pass on its result
+note: `Wrapped[T]` is converted to `Shown` here; an instantiation makes it `Wrapped[Task[Int]]`, which holds a `Task` handle
+   --> main/main.kg:124:17
+    |
+124 |     slot = Some(Wrapped { t: x })
+    |                 ^^^^^^^^^^^^^^
+
+error[E2203]: `Kept` holds a `Task` handle and cannot leave the task that spawned it as the result of an async fn
+   --> main/main.kg:174:24
+    |
+174 | async fn viaValue() -> Kept { //~ ERROR `Kept` holds a `Task` handle and cannot leave the task that spawned it as the result of an async fn
+    |                        ^^^^
+    = help: await the task there and pass on its result
+note: `Keep[T]` is converted to `Kept` here; an instantiation makes it `Keep[Task[Int]]`, which holds a `Task` handle
+   --> main/main.kg:171:17
+    |
+171 |     slot = Some(Keep { t: x })
+    |                 ^^^^^^^^^^^
+
+error[E2203]: `Parked` holds a `Task` handle and cannot leave the task that spawned it as the result of an async fn
+   --> main/main.kg:195:27
+    |
+195 | async fn viaReceiver() -> Parked { //~ ERROR `Parked` holds a `Task` handle and cannot leave the task that spawned it as the result of an async fn
+    |                           ^^^^^^
+    = help: await the task there and pass on its result
+note: `Bay[T]` is converted to `Parked` here; an instantiation makes it `Bay[Task[Int]]`, which holds a `Task` handle
+   --> main/main.kg:192:17
+    |
+192 |     slot = Some(self)
+    |                 ^^^^
+

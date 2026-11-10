@@ -1,0 +1,17 @@
+-- src --
+// A closure that starts a task with no borrow, mapped over an array: the handles it returns hold nothing borrowed.
+import task from std/task
+async fn leaf(n: Int) -> Int { await task.yieldNow(); n }
+async fn root() -> Int {
+    let ns = Array.of(1, 2, 3)
+    let ts = ns.map((n) => task.spawn(leaf(n + 0)))
+    let mut s = 0
+    for t in ts { s += await t }
+    s
+}
+print "${task.currentThreadExecutor().runToCompletion(root())}"
+-- stdout --
+6
+-- stderr --
+-- exit --
+0

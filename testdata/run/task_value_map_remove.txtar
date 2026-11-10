@@ -1,0 +1,28 @@
+-- src --
+// Removing a Task from a map drops its handle; with no borrow in it, the task outliving the call is allowed.
+import task from std/task
+import map from std/map
+
+async fn leaf(n: Int) -> Int {
+    await task.yieldNow()
+    n
+}
+
+async fn root() -> Int {
+    let mut m: map.Map[Int, task.Task[Int]] = map.empty()
+    m.set(1, task.spawn(leaf(4)))
+    m.set(2, task.spawn(leaf(5)))
+    m.remove(&1)
+    let mut s = m.len().toInt() || 0
+    if m.take(&2) is Some(t) {
+        s += await t
+    }
+    s
+}
+
+print "${task.currentThreadExecutor().runToCompletion(root())}"
+-- stdout --
+6
+-- stderr --
+-- exit --
+0
