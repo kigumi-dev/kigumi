@@ -1,7 +1,5 @@
 package sem
 
-import "strings"
-
 // mismatchLabels qualifies want/got with their declaring package when they share a bare name, so the message never
 // reads "expected `Widget`, found `Widget`".
 func (r *Result) mismatchLabels(want, got TypeID) (string, string) {
@@ -14,10 +12,10 @@ func (r *Result) mismatchLabels(want, got TypeID) (string, string) {
 	}
 	// Lifetime parameters of different declarations can both be spelled `'a`; qualify each with its declaring item.
 	if qualify := r.collidingLifetimeParams(want, got); qualify != nil {
-		var wsb, gsb strings.Builder
-		r.writeTypeQualifyingLifetimes(&wsb, want, qualify)
-		r.writeTypeQualifyingLifetimes(&gsb, got, qualify)
-		return wsb.String(), gsb.String()
+		ww, gw := newTypeWriter(), newTypeWriter()
+		r.writeTypeQualifyingLifetimes(ww, want, qualify)
+		r.writeTypeQualifyingLifetimes(gw, got, qualify)
+		return ww.str(), gw.str()
 	}
 	return r.TypeString(want), r.TypeString(got)
 }
@@ -44,49 +42,59 @@ func (r *Result) collidingLifetimeParams(a, b TypeID) map[EntityID]bool {
 	return out
 }
 
-func (r *Result) writeTypeQualifyingLifetimes(sb *strings.Builder, t TypeID, qualify map[EntityID]bool) {
+func (r *Result) writeTypeQualifyingLifetimes(w *typeWriter, t TypeID, qualify map[EntityID]bool) {
+	if w.spent() {
+		w.truncated = true
+		return
+	}
+	if w.depth >= typeRenderDepth {
+		w.write(typeRenderElision)
+		return
+	}
+	w.depth++
+	defer func() { w.depth-- }()
 	tt := r.Types
 	n := tt.nodes[t]
-	write := func(sb *strings.Builder, t TypeID) { r.writeTypeQualifyingLifetimes(sb, t, qualify) }
+	write := func(w *typeWriter, t TypeID) { r.writeTypeQualifyingLifetimes(w, t, qualify) }
 	switch {
 	case n.Kind == KParam && qualify[n.Ent]:
-		sb.WriteString(r.entityName(n.Ent))
-		sb.WriteString(" (")
-		sb.WriteString(r.entityName(r.Entities[n.Ent].Parent))
-		sb.WriteString(")")
+		w.write(r.entityName(n.Ent))
+		w.write(" (")
+		w.write(r.entityName(r.Entities[n.Ent].Parent))
+		w.write(")")
 		return
 	case n.Kind == KFn:
-		r.writeFnWith(sb, n, write)
+		r.writeFnWith(w, n, write)
 		return
 	case n.Kind == KRef:
-		sb.WriteString("&")
+		w.write("&")
 		if n.Lifetime != 0 && tt.nodes[n.Lifetime].Kind == KParam {
-			write(sb, n.Lifetime)
-			sb.WriteByte(' ')
+			write(w, n.Lifetime)
+			w.write(" ")
 		}
 		if n.Flags&flagMut != 0 {
-			sb.WriteString("mut ")
+			w.write("mut ")
 		}
-		write(sb, n.Elem)
+		write(w, n.Elem)
 		return
 	}
 	if n.Kind == KNamed || n.Kind == KIface {
 		if _, ok := tt.IsOption(t); !ok {
 			if _, _, ok := tt.IsResult(t); !ok && len(n.Args) > 0 {
-				sb.WriteString(r.entityName(n.Ent))
-				sb.WriteString("[")
+				w.write(r.entityName(n.Ent))
+				w.write("[")
 				for i, a := range n.Args {
 					if i > 0 {
-						sb.WriteString(", ")
+						w.write(", ")
 					}
-					r.writeTypeQualifyingLifetimes(sb, a, qualify)
+					r.writeTypeQualifyingLifetimes(w, a, qualify)
 				}
-				sb.WriteString("]")
+				w.write("]")
 				return
 			}
 		}
 	}
-	r.writeType(sb, t)
+	r.writeType(w, t)
 }
 
 func (r *Result) namedTypeEntity(t TypeID) EntityID {
@@ -108,14 +116,14 @@ func (r *Result) namedTypeEntity(t TypeID) EntityID {
 }
 
 func (r *Result) qualifiedTypeString(t TypeID, ent EntityID) string {
-	var sb strings.Builder
+	w := newTypeWriter()
 	if pkg := r.Entities[ent].Pkg; pkg != 0 && int(pkg) < len(r.Packages) {
 		if path := r.Packages[pkg].Path; path != "" {
-			sb.WriteString(path)
-			sb.WriteString(".")
+			w.write(path)
+			w.write(".")
 		}
 	}
-	sb.WriteString(r.entityName(ent))
-	r.writeArgs(&sb, r.Types.nodes[t].Args)
-	return sb.String()
+	w.write(r.entityName(ent))
+	r.writeArgs(w, r.Types.nodes[t].Args)
+	return w.str()
 }

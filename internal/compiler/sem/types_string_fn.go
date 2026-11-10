@@ -1,19 +1,17 @@
 package sem
 
-import "strings"
+func (r *Result) writeFn(w *typeWriter, n typeNode) { r.writeFnWith(w, n, r.writeType) }
 
-func (r *Result) writeFn(sb *strings.Builder, n typeNode) { r.writeFnWith(sb, n, r.writeType) }
-
-func (r *Result) writeFnWith(sb *strings.Builder, n typeNode, write func(*strings.Builder, TypeID)) {
+func (r *Result) writeFnWith(w *typeWriter, n typeNode, write func(*typeWriter, TypeID)) {
 	if n.Flags&fnEscaping != 0 {
-		sb.WriteString("escaping ")
+		w.write("escaping ")
 	}
 	if n.Flags&fnCAbi != 0 {
-		sb.WriteString("extern(C) ")
+		w.write("extern(C) ")
 	}
 	eff := Effects(n.Flags)
 	if n.Flags&fnEffectPoly != 0 {
-		sb.WriteString("pure? ")
+		w.write("pure? ")
 		eff &^= EffPure
 	}
 	for _, e := range []struct {
@@ -21,33 +19,33 @@ func (r *Result) writeFnWith(sb *strings.Builder, n typeNode, write func(*string
 		name string
 	}{{EffPure, "pure "}, {EffNoalloc, "noalloc "}, {EffAsync, "async "}, {EffUnsafe, "unsafe "}} {
 		if eff&e.bit != 0 {
-			sb.WriteString(e.name)
+			w.write(e.name)
 		}
 	}
-	sb.WriteString("fn(")
+	w.write("fn(")
 	for i, a := range n.Args {
 		if i > 0 {
-			sb.WriteString(", ")
+			w.write(", ")
 		}
 		if r.Types.escMarked(n.Var, i) {
-			sb.WriteString("escaping ")
+			w.write("escaping ")
 		}
 		if i == len(n.Args)-1 && n.Flags&fnVariadic != 0 {
-			sb.WriteString("...")
+			w.write("...")
 			if elem, ok := r.arrayElem(a); ok {
 				a = elem
 			}
 		}
-		write(sb, a)
+		write(w, a)
 	}
 	if n.Flags&fnCVariadic != 0 {
 		if len(n.Args) > 0 {
-			sb.WriteString(", ")
+			w.write(", ")
 		}
-		sb.WriteString("...")
+		w.write("...")
 	}
-	sb.WriteString(") -> ")
-	write(sb, n.Elem)
+	w.write(") -> ")
+	write(w, n.Elem)
 }
 
 func (r *Result) arrayElem(t TypeID) (TypeID, bool) {

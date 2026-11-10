@@ -88,6 +88,12 @@ type Result struct {
 	declScopes      map[EntityID]ScopeID
 	aliasState      map[EntityID]uint8
 	aliasParams     map[EntityID][]EntityID
+	// byValueMemo caches containsByValue answers for the current top-level checkFiniteSize walk; the type table is
+	// a DAG, so walking it per path is exponential in its depth.
+	byValueMemo     map[byValueKey]bool
+	byValueDirty    int
+	byValueDepth    int
+	finiteSizeSteps int
 	primEntity      map[TypeID]EntityID
 	variantNames    map[PackageID]map[string][]EntityID
 	conformMemo     map[conformKey]conformResult

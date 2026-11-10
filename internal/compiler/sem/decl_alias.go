@@ -42,6 +42,13 @@ func (r *Result) checkFiniteSize(id EntityID) {
 	if info.Size != sizeUnknown {
 		return
 	}
+	// The walk memoizes answers; a top-level check owns the memo so it never outgrows one walk.
+	if r.byValueDepth == 0 {
+		r.byValueMemo = nil
+		r.byValueDirty = 0
+	}
+	r.byValueDepth++
+	defer func() { r.byValueDepth-- }()
 	info.Size = sizeComputing
 	infinite := false
 	if info.Form == FormDefined && info.Underlying != 0 && r.containsByValue(info.Underlying, id) {
@@ -69,9 +76,41 @@ func (r *Result) checkFiniteSize(id EntityID) {
 	info.Size = sizeFinite
 }
 
+// byValueKey identifies a memoized "does t store target inline" query.
+type byValueKey struct {
+	t      TypeID
+	target EntityID
+}
+
 // containsByValue reports whether t stores target inline, walking records,
 // ADT payloads, and Option/Result but not heap containers: an ADT's payload sizes like a record field.
+//
+// The type table is a DAG, so `type P[T] = (T, T)` reached through `P[P[...]]` has two paths per level but one
+// node: walking every path is exponential in the nesting depth. Answers are memoized per (type, target) so one
+// walk costs a visit per node. An answer that consulted a type still being sized is provisional — that type's
+// size changes when its own walk ends — so it is returned but not memoized.
 func (r *Result) containsByValue(t TypeID, target EntityID) bool {
+	key := byValueKey{t: t, target: target}
+	if v, ok := r.byValueMemo[key]; ok {
+		return v
+	}
+	r.finiteSizeSteps++
+	mark := r.byValueDirty
+	v := r.containsByValueNode(t, target)
+	if r.byValueDirty == mark {
+		if r.byValueMemo == nil {
+			r.byValueMemo = map[byValueKey]bool{}
+		}
+		r.byValueMemo[key] = v
+	}
+	return v
+}
+
+// FiniteSizeSteps counts the containsByValue node evaluations a check spent sizing its types; a shared type DAG
+// must cost one visit per node, not one per path.
+func (r *Result) FiniteSizeSteps() int { return r.finiteSizeSteps }
+
+func (r *Result) containsByValueNode(t TypeID, target EntityID) bool {
 	n := r.Types.Node(t)
 	if n.Kind != KNamed {
 		return false
@@ -89,6 +128,7 @@ func (r *Result) containsByValue(t TypeID, target EntityID) bool {
 	}
 	info := r.typeDecl(n.Ent)
 	if info.Size == sizeComputing {
+		r.byValueDirty++
 		return true
 	}
 	if info.Form == FormOpaque {

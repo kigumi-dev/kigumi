@@ -2,7 +2,6 @@ package sem
 
 import (
 	"slices"
-	"strings"
 )
 
 // mismatchText labels want and got for E400. A lifetime the function being checked does not declare is qualified by
@@ -62,9 +61,9 @@ func (c *checker) foreignLifetimes(ts ...TypeID) map[EntityID]bool {
 }
 
 func (c *checker) lifetimeString(t TypeID, qualify map[EntityID]bool) string {
-	var sb strings.Builder
-	c.r.writeTypeQualifyingLifetimes(&sb, t, qualify)
-	return sb.String()
+	w := newTypeWriter()
+	c.r.writeTypeQualifyingLifetimes(w, t, qualify)
+	return w.str()
 }
 
 // namedLifetimes resolves t with each unbound lifetime variable standing for the parameter it instantiates.
