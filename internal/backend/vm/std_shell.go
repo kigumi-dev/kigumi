@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"io"
 	"strings"
 
 	"kigumi/internal/backend/vm/host/shell"
@@ -61,8 +62,10 @@ func atoi(s string) int64 {
 }
 
 // planOf turns a Plan record into the host plan by asking std/shell.stages
-// for the stage records, so word joining lives in one place.
-func (m *Machine) planOf(v *obj) (*shell.Plan, string) {
+// for the stage records, so word joining lives in one place. Every filter is
+// validated by the same std/shell.filterProblem the native runner uses, so
+// both engines reject the same options with the same message.
+func (m *Machine) planOf(v *obj, cwd string) (*shell.Plan, string) {
 	stages := m.callStd("std/shell", "stages", []*obj{v})
 	defer m.release(stages)
 	p := &shell.Plan{}
@@ -76,26 +79,67 @@ func (m *Machine) planOf(v *obj) (*shell.Plan, string) {
 			rr := deref(r)
 			st.Redirs = append(st.Redirs, shell.Redirect{Op: uint32(deref(rr.fields[0]).i), Fd: int(deref(rr.fields[1]).i), Target: string(deref(rr.fields[2]).str())})
 		}
-		if g := deref(rec.fields[2]); len(g.fields) == 1 {
-			pattern := deref(g.fields[0])
-			problem := m.callStd("std/shell", "grepProblem", []*obj{pattern})
+		if opt := deref(rec.fields[2]); len(opt.fields) == 1 {
+			f := deref(opt.fields[0])
+			problem := m.callStd("std/shell", "filterProblem", []*obj{f})
 			text := string(deref(problem).str())
 			m.release(problem)
 			if text != "" {
-				return nil, "invalid grep pattern: " + text
+				return nil, text
 			}
-			st.Filter = shell.GrepFilter(string(pattern.str()))
+			filter, why := m.filterOf(f, cwd)
+			if why != "" {
+				return nil, why
+			}
+			st.Filter = filter
 		}
 		p.Stages = append(p.Stages, st)
 	}
 	return p, ""
 }
 
+// filterOf turns a std/shell.Filter variant into the Go filter that runs it.
+// The payloads are the primitives the ADT declares, in declaration order.
+func (m *Machine) filterOf(f *obj, cwd string) (func(io.Reader, io.Writer) error, string) {
+	name := m.r.Entity(f.ent).Name
+	field := func(i int) *obj { return deref(f.fields[i]) }
+	boolAt := func(i int) bool { return field(i).b }
+	intAt := func(i int) int64 { return field(i).i }
+	strAt := func(i int) string { return string(field(i).str()) }
+	switch name {
+	case "Cat":
+		return shell.CatFilter(), ""
+	case "Head":
+		return shell.HeadFilter(int(intAt(0))), ""
+	case "Tail":
+		return shell.TailFilter(int(intAt(0))), ""
+	case "Wc":
+		return shell.WcFilter(boolAt(0), boolAt(1), boolAt(2), boolAt(3)), ""
+	case "Grep":
+		return shell.GrepFilter(strAt(0)), ""
+	case "Sort":
+		return shell.SortFilter(boolAt(0), boolAt(1)), ""
+	case "Uniq":
+		return shell.UniqFilter(boolAt(0), boolAt(1), boolAt(2)), ""
+	case "Cut":
+		fields := []int64{}
+		for _, v := range field(1).fields {
+			fields = append(fields, deref(v).i)
+		}
+		return shell.CutFilter([]byte(strAt(0)), fields), ""
+	case "Tr":
+		return shell.TrFilter([]byte(strAt(0)), []byte(strAt(1)), boolAt(2), boolAt(3)), ""
+	case "Tee":
+		return shell.TeeFilter(strAt(0), boolAt(1), cwd), ""
+	}
+	return nil, "unknown filter stage"
+}
+
 func (m *Machine) registerShell() {
 	h := m.host
 	h["os.Host.shell"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return mkOpaque("Shell", nil) }
 	h["shell.capture"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		plan, problem := m.planOf(a[0])
+		plan, problem := m.planOf(a[0], m.machineCwd())
 		if problem != "" {
 			return m.errMsg(problem)
 		}
@@ -107,7 +151,7 @@ func (m *Machine) registerShell() {
 		return m.ok(mkRecord(captured, []*obj{mkBytes(out), mkBytes(errOut)}))
 	}
 	h["shell.run"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		plan, problem := m.planOf(a[0])
+		plan, problem := m.planOf(a[0], m.machineCwd())
 		if problem != "" {
 			return m.errMsg(problem)
 		}
@@ -125,7 +169,7 @@ func (m *Machine) registerShell() {
 		return m.ok(mkRecord(result, []*obj{codes}))
 	}
 	h["shell.runHere"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		plan, problem := m.planOf(a[0])
+		plan, problem := m.planOf(a[0], m.machineCwd())
 		if problem != "" {
 			return m.errMsg(problem)
 		}

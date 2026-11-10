@@ -1,0 +1,467 @@
+// In-process filters behind `std/shell/coreutil`: the algorithms are byte
+// oriented and shared by every stage runner, so no utility assumes a locale
+// or a valid UTF-8 input. Lines end at `\n`; every line a filter emits is
+// newline terminated, and an unterminated last line counts as a line.
+
+fn filterLineProblem(count: Int) -> String {
+    if count < 0 {
+        "line count must not be negative"
+    } else {
+        ""
+    }
+}
+
+fn filterCutProblem(delim: &Bytes, fields: &Array[Int]) -> String {
+    if delim.len() == 0 {
+        return "cut needs a delimiter"
+    }
+    if fields.len() == 0 {
+        return "cut needs at least one field"
+    }
+    for field in fields {
+        if field < 1 {
+            return "cut fields are 1-based"
+        }
+    }
+    ""
+}
+
+fn filterTrProblem(from: &Bytes, to: &Bytes, delete: Bool) -> String {
+    if from.len() == 0 {
+        return "tr needs a source set"
+    }
+    if !delete && to.len() == 0 {
+        return "tr needs a replacement set"
+    }
+    ""
+}
+
+fn filterTeeProblem(path: &String) -> String {
+    if path.len() == 0 {
+        return "tee needs a path"
+    }
+    let b = path.bytes()
+    for i in 0..b.len() {
+        if (b.get(i) || 1) == 0 {
+            return "tee path contains a NUL byte"
+        }
+    }
+    ""
+}
+
+/// Why `f` cannot run as a filter, or "" when it can. The message is the
+/// whole run's error, so it names the option and never the line number.
+pub pure fn filterProblem(f: &Filter) -> String {
+    filterProblemOwned(filterClone(f))
+}
+
+fn filterProblemOwned(f: Filter) -> String {
+    match f {
+        Head(count) -> filterLineProblem(count)
+        Tail(count) -> filterLineProblem(count)
+        Wc(lines, words, bytes, chars) -> if lines || words || bytes || chars {
+            ""
+        } else {
+            "wc needs at least one count"
+        }
+        Grep(pattern) -> {
+            let problem = grepProblem(&pattern)
+            if problem != "" {
+                "invalid grep pattern: ${problem}"
+            } else {
+                ""
+            }
+        }
+        Uniq(_, repeated, unique) -> if repeated && unique {
+            "uniq cannot select both repeated and unique"
+        } else {
+            ""
+        }
+        Cut(delim, fields) -> {
+            let separator = delim.bytes()
+            filterCutProblem(&separator, &fields)
+        }
+        Tr(from, to, _, delete) -> {
+            let source = from.bytes()
+            let target = to.bytes()
+            filterTrProblem(&source, &target, delete)
+        }
+        Tee(path, _) -> filterTeeProblem(&path)
+        Cat -> ""
+        Sort(_, _) -> ""
+    }
+}
+
+fn lineEnds(input: &Bytes) -> Array[Bytes] {
+    let n = input.len()
+    let mut out = Array.empty[Bytes]()
+    let mut start: usize = 0
+    let mut i: usize = 0
+    for i < n {
+        if (input.get(i) || 0) == 10 {
+            out.push(input.slice(start, i) || "".toBytes())
+            start = i + 1
+        }
+        i += 1
+    }
+    if start < n {
+        out.push(input.slice(start, n) || "".toBytes())
+    }
+    out
+}
+
+fn pushDecimal(out: &mut Array[u8], value: usize) {
+    if value == 0 {
+        out.push(48)
+        return
+    }
+    let mut digits = Array.empty[u8]()
+    let mut n = value
+    for n > 0 {
+        let digit = (n % 10).toU8() || 0
+        digits.push(digit + 48)
+        n = n / 10
+    }
+    let mut i = digits.len()
+    for i > 0 {
+        i -= 1
+        out.push(digits.get(i) || 0)
+    }
+}
+
+fn pushBytes(out: &mut Array[u8], data: &Bytes) {
+    for i in 0..data.len() {
+        out.push(data.get(i) || 0)
+    }
+}
+
+fn pushLine(out: &mut Array[u8], line: &Bytes) {
+    pushBytes(out, line)
+    out.push(10)
+}
+
+fn compareBytes(a: &Bytes, b: &Bytes) -> Int {
+    let n = if a.len() < b.len() {
+        a.len()
+    } else {
+        b.len()
+    }
+    for i in 0..n {
+        let x = (a.get(i) || 0).toInt()
+        let y = (b.get(i) || 0).toInt()
+        if x < y {
+            return -1
+        }
+        if x > y {
+            return 1
+        }
+    }
+    if a.len() < b.len() {
+        -1
+    } else if a.len() > b.len() {
+        1
+    } else {
+        0
+    }
+}
+
+fn sortedLines(lines: &Array[Bytes], reverse: Bool) -> Array[Bytes] {
+    let mut out = Array.empty[Bytes]()
+    for line in lines {
+        let mut at: usize = 0
+        for at < out.len() {
+            let other = out.get(at) || "".toBytes()
+            let order = compareBytes(&line, &other)
+            let before = if reverse {
+                order > 0
+            } else {
+                order < 0
+            }
+            if before {
+                break
+            }
+            at += 1
+        }
+        _ = out.insertAt(at, line)
+    }
+    out
+}
+
+fn distinctLines(lines: &Array[Bytes]) -> Array[Bytes] {
+    let mut out = Array.empty[Bytes]()
+    for line in lines {
+        if out.len() == 0 {
+            out.push(line)
+            continue
+        }
+        let last = out.get(out.len() - 1) || "".toBytes()
+        if compareBytes(&last, &line) != 0 {
+            out.push(line)
+        }
+    }
+    out
+}
+
+fn uniqBytes(lines: &Array[Bytes], count: Bool, repeated: Bool, uniqueOnly: Bool) -> Bytes {
+    let mut out = Array.empty[u8]()
+    let mut i: usize = 0
+    for i < lines.len() {
+        let current = lines.get(i) || "".toBytes()
+        let mut j = i + 1
+        for j < lines.len() {
+            let next = lines.get(j) || "".toBytes()
+            if compareBytes(&current, &next) != 0 {
+                break
+            }
+            j += 1
+        }
+        let run = j - i
+        let keep = if repeated {
+            run > 1
+        } else if uniqueOnly {
+            run == 1
+        } else {
+            true
+        }
+        if keep {
+            if count {
+                pushDecimal(&mut out, run)
+                out.push(32)
+            }
+            pushLine(&mut out, &current)
+        }
+        i = j
+    }
+    Bytes.fromArray(&out)
+}
+
+fn indexOfBytes(haystack: &Bytes, needle: &Bytes) -> usize? {
+    if needle.len() == 0 || needle.len() > haystack.len() {
+        return None
+    }
+    for i in 0..(haystack.len() - needle.len() + 1) {
+        let mut hit = true
+        for k in 0..needle.len() {
+            if (haystack.get(i + k) || 0) != (needle.get(k) || 1) {
+                hit = false
+                break
+            }
+        }
+        if hit {
+            return Some(i)
+        }
+    }
+    None
+}
+
+fn cutLines(lines: &Array[Bytes], delim: &Bytes, fields: &Array[Int]) -> Bytes {
+    let mut out = Array.empty[u8]()
+    for line in lines {
+        // A line without the delimiter is passed through, field selection and all,
+        // as the line-oriented tools this mirrors do.
+        if indexOfBytes(&line, delim) is None {
+            pushLine(&mut out, &line)
+            continue
+        }
+        let mut pieces = Array.empty[Bytes]()
+        let mut start: usize = 0
+        for start <= line.len() {
+            let rest = line.slice(start, line.len()) || "".toBytes()
+            match indexOfBytes(&rest, delim) {
+                Some(offset) -> {
+                    pieces.push(line.slice(start, start + offset) || "".toBytes())
+                    start = start + offset + delim.len()
+                }
+                None -> {
+                    pieces.push(rest)
+                    break
+                }
+            }
+        }
+        let mut printed = false
+        for field in fields {
+            if field < 1 {
+                continue
+            }
+            let index = field.toUsize() || 0
+            if index > pieces.len() {
+                continue
+            }
+            if printed {
+                pushBytes(&mut out, delim)
+            }
+            pushBytes(&mut out, &(pieces.get(index - 1) || "".toBytes()))
+            printed = true
+        }
+        out.push(10)
+    }
+    Bytes.fromArray(&out)
+}
+
+fn indexOfByte(data: &Bytes, byte: u8) -> Int {
+    for i in 0..data.len() {
+        if (data.get(i) || 0) == byte {
+            return i.toInt() || 0
+        }
+    }
+    -1
+}
+
+fn translateBytes(input: &Bytes, from: &Bytes, to: &Bytes, squeeze: Bool, delete: Bool) -> Bytes {
+    let squeezeSet = if to.len() > 0 {
+        to
+    } else {
+        from
+    }
+    let mut out = Array.empty[u8]()
+    let mut last: Int = -1
+    for i in 0..input.len() {
+        let b = input.get(i) || 0
+        let at = indexOfByte(from, b)
+        if delete && at >= 0 {
+            continue
+        }
+        let mut translated = b
+        if at >= 0 && to.len() > 0 {
+            let index = at.toUsize() || 0
+            let pick = if index < to.len() {
+                index
+            } else {
+                to.len() - 1
+            }
+            translated = to.get(pick) || b
+        }
+        if squeeze && last == translated.toInt() && indexOfByte(squeezeSet, translated) >= 0 {
+            continue
+        }
+        out.push(translated)
+        last = translated.toInt()
+    }
+    Bytes.fromArray(&out)
+}
+
+fn countWords(input: &Bytes) -> usize {
+    let mut count: usize = 0
+    let mut inWord = false
+    for i in 0..input.len() {
+        let b = input.get(i) || 0
+        let space = b == 32 || b == 9 || b == 10 || b == 13 || b == 11 || b == 12
+        if space {
+            inWord = false
+        } else if !inWord {
+            count += 1
+            inWord = true
+        }
+    }
+    count
+}
+
+// Characters here are bytes that are not UTF-8 continuation bytes: a scalar
+// count that stays defined for input that is not valid UTF-8.
+fn countChars(input: &Bytes) -> usize {
+    let mut count: usize = 0
+    for i in 0..input.len() {
+        if ((input.get(i) || 0) & 192) != 128 {
+            count += 1
+        }
+    }
+    count
+}
+
+fn wcBytes(input: &Bytes, lines: Bool, words: Bool, size: Bool, chars: Bool) -> Bytes {
+    let mut fields = Array.empty[u8]()
+    let mut first = true
+    if lines {
+        pushDecimal(&mut fields, countLineBreaks(input))
+        first = false
+    }
+    if words {
+        if !first {
+            fields.push(32)
+        }
+        pushDecimal(&mut fields, countWords(input))
+        first = false
+    }
+    if size {
+        if !first {
+            fields.push(32)
+        }
+        pushDecimal(&mut fields, input.len())
+        first = false
+    }
+    if chars {
+        if !first {
+            fields.push(32)
+        }
+        pushDecimal(&mut fields, countChars(input))
+    }
+    fields.push(10)
+    Bytes.fromArray(&fields)
+}
+
+fn countLineBreaks(input: &Bytes) -> usize {
+    let mut n: usize = 0
+    for i in 0..input.len() {
+        if (input.get(i) || 0) == 10 {
+            n += 1
+        }
+    }
+    if input.len() > 0 && (input.get(input.len() - 1) || 0) != 10 {
+        n += 1
+    }
+    n
+}
+
+/// Runs the byte transformation `f` describes. A `Tee` filter's file side
+/// effect belongs to the runner, so it passes its input through unchanged.
+pub fn filterBytes(f: Filter, input: Bytes) -> Bytes {
+    match f {
+        Cat -> input
+        Head(count) -> {
+            let lines = lineEnds(&input)
+            let keep = count.toUsize() || 0
+            let mut out = Array.empty[u8]()
+            let mut i: usize = 0
+            for i < lines.len() && i < keep {
+                pushLine(&mut out, &(lines.get(i) || "".toBytes()))
+                i += 1
+            }
+            Bytes.fromArray(&out)
+        }
+        Tail(count) -> {
+            let lines = lineEnds(&input)
+            let keep = count.toUsize() || 0
+            let mut out = Array.empty[u8]()
+            let mut i = if keep < lines.len() {
+                lines.len() - keep
+            } else {
+                0
+            }
+            for i < lines.len() {
+                pushLine(&mut out, &(lines.get(i) || "".toBytes()))
+                i += 1
+            }
+            Bytes.fromArray(&out)
+        }
+        Wc(lines, words, size, chars) -> wcBytes(&input, lines, words, size, chars)
+        Grep(_) -> input
+        Sort(reverse, unique) -> {
+            let lines = lineEnds(&input)
+            let sorted = sortedLines(&lines, reverse)
+            let picked = if unique {
+                distinctLines(&sorted)
+            } else {
+                sorted
+            }
+            let mut out = Array.empty[u8]()
+            for line in &picked {
+                pushLine(&mut out, &line)
+            }
+            Bytes.fromArray(&out)
+        }
+        Uniq(count, repeated, unique) -> uniqBytes(&lineEnds(&input), count, repeated, unique)
+        Cut(delim, fields) -> cutLines(&lineEnds(&input), &delim.bytes(), &fields)
+        Tr(from, to, squeeze, delete) -> translateBytes(&input, &from.bytes(), &to.bytes(), squeeze, delete)
+        Tee(_, _) -> input
+    }
+}

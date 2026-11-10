@@ -1,0 +1,37 @@
+-- src --
+import shell from std/shell
+import fs from std/fs
+import os from std/os
+
+fn dump(label: String, plan: shell.Plan) {
+    for st in shell.stages(&plan) {
+        for a in &st.argv {
+            print "${label}: ${a}"
+        }
+    }
+}
+
+// §10.7: Path and OsString are standard shell interpolation types; each word
+// stays exactly one argv element, and neither value is consumed by the use.
+let p = fs.Path.fromString("x y")?
+let o = os.OsString.fromString("x y")
+dump("path", $"echo ${p}")
+dump("path-again", $"echo ${p}")
+dump("osstring", $"echo ${o}")
+dump("osstring-again", $"echo ${o}")
+dump("redirect", $"echo hi > ${p}")
+print "path still ${p.toString()}"
+print "osstring still ${o.toStringLossy()}"
+-- stdout --
+path: echo
+path: x y
+path-again: echo
+path-again: x y
+osstring: echo
+osstring: x y
+osstring-again: echo
+osstring-again: x y
+redirect: echo
+redirect: hi
+path still x y
+osstring still x y

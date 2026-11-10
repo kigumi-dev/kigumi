@@ -1,0 +1,213 @@
+-- src --
+import shell from std/shell
+import coreutil from std/shell/coreutil
+import fs from std/fs
+
+let sh = host.shell()
+
+fn captured(sh: shell.Shell, plan: shell.Plan) -> String {
+    match plan |> shell.capture(sh) {
+        Ok(c) -> String.fromBytes(c.stdout) || "?"
+        Err(e) -> "err: ${e.message()}"
+    }
+}
+
+fn show(label: String, sh: shell.Shell, plan: shell.Plan) {
+    print "${label}=[${captured(sh, plan)}]"
+}
+
+show("cat", sh, $"printf 'a\nb\n'" |> coreutil.cat)
+show("head", sh, $"printf 'a\nb\nc\n'" |> coreutil.head(2))
+show("head0", sh, $"printf 'a\nb\n'" |> coreutil.head(0))
+show("head9", sh, $"printf 'a\nb\n'" |> coreutil.head(9))
+show("tail", sh, $"printf 'a\nb\nc\n'" |> coreutil.tail(2))
+show("tail0", sh, $"printf 'a\nb\n'" |> coreutil.tail(0))
+show("tail9", sh, $"printf 'a\nb\n'" |> coreutil.tail(9))
+show("wc", sh, $"printf 'one two\nthree\n'" |> coreutil.wc)
+show("wcl", sh, $"printf 'one two\nthree\n'" |> coreutil.wcLines)
+show("wcw", sh, $"printf 'one two\nthree\n'" |> coreutil.wcWords)
+show("wcb", sh, $"printf 'one two\nthree\n'" |> coreutil.wcBytes)
+show("wcc", sh, $"printf %b 'caf\\0303\\0251\\n'" |> coreutil.wcChars)
+show("wcsel", sh, $"printf 'one two\n'" |> coreutil.wcWith(coreutil.WcOptions {
+    lines: false
+    words: true
+    bytes: false
+    chars: false
+}))
+show("sort", sh, $"printf 'b\na\nc\n'" |> coreutil.sort)
+show("sortr", sh, $"printf 'b\na\nc\n'" |> coreutil.sortWith(coreutil.SortOptions {
+    reverse: true
+    unique: false
+}))
+show("sortu", sh, $"printf 'b\na\nb\n'" |> coreutil.sortWith(coreutil.SortOptions {
+    reverse: false
+    unique: true
+}))
+show("uniq", sh, $"printf 'a\na\nb\n'" |> coreutil.uniq)
+show("uniqc", sh, $"printf 'a\na\nb\n'" |> coreutil.uniqWith(coreutil.UniqOptions {
+    count: true
+    repeated: false
+    unique: false
+}))
+show("uniqr", sh, $"printf 'a\na\nb\n'" |> coreutil.uniqWith(coreutil.UniqOptions {
+    count: false
+    repeated: true
+    unique: false
+}))
+show("uniqu", sh, $"printf 'a\na\nb\n'" |> coreutil.uniqWith(coreutil.UniqOptions {
+    count: false
+    repeated: false
+    unique: true
+}))
+show("cut", sh, $"printf 'a:b:c\nd:e:f\n'" |> coreutil.cut(coreutil.CutOptions {
+    delimiter: ":"
+    fields: Array.of(2, 1)
+}))
+show("cutmiss", sh, $"printf 'plain\nx:y\n'" |> coreutil.cut(coreutil.CutOptions {
+    delimiter: ":"
+    fields: Array.of(2)
+}))
+show("cutmulti", sh, $"printf 'a::b::c\n'" |> coreutil.cut(coreutil.CutOptions {
+    delimiter: "::"
+    fields: Array.of(3)
+}))
+show("tr", sh, $"printf 'abcabc'" |> coreutil.tr(coreutil.TrOptions {
+    from: "abc"
+    to: "xyz"
+    squeeze: false
+    delete: false
+}))
+show("trd", sh, $"printf 'hello world'" |> coreutil.tr(coreutil.TrOptions {
+    from: "aeiou"
+    to: ""
+    squeeze: false
+    delete: true
+}))
+show("trs", sh, $"printf 'aaab'" |> coreutil.tr(coreutil.TrOptions {
+    from: "a"
+    to: "b"
+    squeeze: true
+    delete: false
+}))
+
+let files = host.files()
+let teePath = fs.Path.fromString("coreutil-tee.txt")?
+defer(fail) _ = files.remove(teePath)
+show("tee", sh, $"printf 'x\ny\n'" |> coreutil.tee("coreutil-tee.txt"))
+print "tee-file=[${files.read(teePath)?}]"
+show("teeappend", sh, $"printf 'x\ny\n'" |> coreutil.teeWith(coreutil.TeeOptions {
+    path: "coreutil-tee.txt"
+    append: true
+}))
+print "tee-appended=[${files.read(teePath)?}]"
+
+show("head-neg", sh, $"printf 'a\n'" |> coreutil.head(-1))
+show("wc-none", sh, $"printf 'a\n'" |> coreutil.wcWith(coreutil.WcOptions {
+    lines: false
+    words: false
+    bytes: false
+    chars: false
+}))
+show("uniq-both", sh, $"printf 'a\n'" |> coreutil.uniqWith(coreutil.UniqOptions {
+    count: false
+    repeated: true
+    unique: true
+}))
+show("cut-nodelim", sh, $"printf 'a\n'" |> coreutil.cut(coreutil.CutOptions {
+    delimiter: ""
+    fields: Array.of(1)
+}))
+show("cut-zerofield", sh, $"printf 'a:b\n'" |> coreutil.cut(coreutil.CutOptions {
+    delimiter: ":"
+    fields: Array.of(0)
+}))
+show("tr-nosource", sh, $"printf 'a\n'" |> coreutil.tr(coreutil.TrOptions {
+    from: ""
+    to: "x"
+    squeeze: false
+    delete: false
+}))
+show("tee-nopath", sh, $"printf 'a\n'" |> coreutil.tee(""))
+-- stdout --
+cat=[a
+b
+]
+head=[a
+b
+]
+head0=[]
+head9=[a
+b
+]
+tail=[b
+c
+]
+tail0=[]
+tail9=[a
+b
+]
+wc=[2 3 14
+]
+wcl=[2
+]
+wcw=[3
+]
+wcb=[14
+]
+wcc=[5
+]
+wcsel=[2
+]
+sort=[a
+b
+c
+]
+sortr=[c
+b
+a
+]
+sortu=[a
+b
+]
+uniq=[a
+b
+]
+uniqc=[2 a
+1 b
+]
+uniqr=[a
+]
+uniqu=[b
+]
+cut=[b:a
+e:d
+]
+cutmiss=[plain
+y
+]
+cutmulti=[c
+]
+tr=[xyzxyz]
+trd=[hll wrld]
+trs=[b]
+tee=[x
+y
+]
+tee-file=[x
+y
+]
+teeappend=[x
+y
+]
+tee-appended=[x
+y
+x
+y
+]
+head-neg=[err: line count must not be negative]
+wc-none=[err: wc needs at least one count]
+uniq-both=[err: uniq cannot select both repeated and unique]
+cut-nodelim=[err: cut needs a delimiter]
+cut-zerofield=[err: cut fields are 1-based]
+tr-nosource=[err: tr needs a source set]
+tee-nopath=[err: tee needs a path]

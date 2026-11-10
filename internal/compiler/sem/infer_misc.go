@@ -46,7 +46,7 @@ func (c *checker) shellInterps(n syntax.NodeID) {
 		t := c.vars.resolve(c.synth(e))
 		tt := c.r.Types
 		switch {
-		case t == TyPoison, t == TyString, tt.IsInteger(t):
+		case t == TyPoison, t == TyString, tt.IsInteger(t), c.shellArgTextType(t):
 		case tt.Kind(t) == KUntyped && t == TyUntypedInt:
 			c.adopt(c.literalNode(e), TyI64)
 		default:
@@ -57,6 +57,23 @@ func (c *checker) shellInterps(n syntax.NodeID) {
 	for ch := range c.t.View(n).Children() {
 		c.shellInterps(ch.ID())
 	}
+}
+
+// shellArgTextType reports a std type with a standard shell interpolation:
+// `fs.Path` and `os.OsString` each convert to their text, as §10.7 lists.
+// The conversion itself is inserted by mir/build when it lowers the literal.
+func (c *checker) shellArgTextType(t TypeID) bool {
+	tt := c.r.Types
+	if tt.Kind(t) != KNamed {
+		return false
+	}
+	ent := tt.Node(t).Ent
+	if ent == 0 {
+		return false
+	}
+	e := c.r.Entity(ent)
+	pkg := c.r.Packages[e.Pkg].Path
+	return (pkg == "std/fs" && e.Name == "Path") || (pkg == "std/os" && e.Name == "OsString")
 }
 
 func (c *checker) synthComptime(n syntax.NodeID) TypeID {

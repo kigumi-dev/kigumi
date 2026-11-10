@@ -344,6 +344,8 @@ var addedAfterBaseline = map[string]bool{
 	"text_parse_whitespace.txtar":                   true,
 	"text_lines_crlf.txtar":                         true,
 	"shell_signal_status.txtar":                     true,
+	"shell_coreutil.txtar":                          true,
+	"shell_interp_path.txtar":                       true,
 	"shell_grep_dialect.txtar":                      true,
 	"shell_error_messages.txtar":                    true,
 	"parse_float_nul.txtar":                         true,

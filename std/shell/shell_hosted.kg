@@ -67,10 +67,10 @@ pub fn runHere(plan: Plan, sh: Shell) -> PipelineResult! {
                 fail Failure { text: "argument contains a NUL byte" }
             }
         }
-        if st.grep is Some(pattern) {
-            let problem = grepProblem(&pattern)
+        if st.filter is Some(f) {
+            let problem = filterProblem(f)
             if problem != "" {
-                fail Failure { text: "invalid grep pattern: ${problem}" }
+                fail Failure { text: problem }
             }
         }
     }
@@ -443,50 +443,10 @@ fn runChild(st: &Stage, infd: i32, outfd: i32, errfd: i32, statusfd: i32) -> Nev
             _exit(126)
         }
     }
-    if st.grep is Some(pattern) {
-        let re = unsafe {
-            malloc(512)
-        }
-        let c = match ffi.CString.new(&pattern) {
-            Ok(v) -> v
-            Err(_) -> {
-                report(statusfd, "invalid grep pattern")
-                unsafe {
-                    _exit(1)
-                }
-            }
-        }
-        if unsafe {
-            regcomp(re, c.ptr(), 1)
-        } != 0 {
-            report(statusfd, "invalid grep pattern")
-            unsafe {
-                _exit(1)
-            }
-        }
-        _ = unsafe {
-            close(statusfd)
-        }
-        let input = readAll(0)
-        let n = input.len()
-        let mut out: Array[u8] = Array.empty()
-        let mut start: usize = 0
-        for start < n {
-            let mut end = start
-            for end < n && (input.get(end) || 0) != 10 {
-                end += 1
-            }
-            if lineMatches(ffi.toConst(re), &input, start, end) {
-                for k in start..end {
-                    out.push(input.get(k) || 0)
-                }
-                out.push(10)
-            }
-            start = end + 1
-        }
-        writeAll(1, Bytes.fromArray(&out))
-        unsafe {
-            _exit(0)
+    if st.filter is Some(f) {
+        match f {
+            Grep(pattern) -> runGrep(&pattern, statusfd)
+            other -> runFilter(other, statusfd)
         }
     }
     let n = st.argv.len()
@@ -514,6 +474,108 @@ fn runChild(st: &Stage, infd: i32, outfd: i32, errfd: i32, statusfd: i32) -> Nev
     report(statusfd, "exec: ${ffi.errorText(ffi.errno())}")
     unsafe {
         _exit(127)
+    }
+}
+
+// A grep stage keeps using the C regex engine, so its dialect is the one
+// grepProblem accepted; the other filters are byte transformations.
+fn runGrep(pattern: &String, statusfd: i32) -> Never {
+    let re = unsafe {
+        malloc(512)
+    }
+    let c = match ffi.CString.new(pattern) {
+        Ok(v) -> v
+        Err(_) -> {
+            report(statusfd, "invalid grep pattern")
+            unsafe {
+                _exit(1)
+            }
+        }
+    }
+    if unsafe {
+        regcomp(re, c.ptr(), 1)
+    } != 0 {
+        report(statusfd, "invalid grep pattern")
+        unsafe {
+            _exit(1)
+        }
+    }
+    _ = unsafe {
+        close(statusfd)
+    }
+    let input = readAll(0)
+    let n = input.len()
+    let mut out: Array[u8] = Array.empty()
+    let mut start: usize = 0
+    for start < n {
+        let mut end = start
+        for end < n && (input.get(end) || 0) != 10 {
+            end += 1
+        }
+        if lineMatches(ffi.toConst(re), &input, start, end) {
+            for k in start..end {
+                out.push(input.get(k) || 0)
+            }
+            out.push(10)
+        }
+        start = end + 1
+    }
+    writeAll(1, Bytes.fromArray(&out))
+    unsafe {
+        _exit(0)
+    }
+}
+
+// Writes the input to `path` for a tee stage; the other filters have no
+// side effects, so their whole run is read, transform and write.
+fn writeTee(path: &String, append: Bool, data: Bytes, statusfd: i32) -> Bool {
+    let c = match ffi.CString.new(path) {
+        Ok(v) -> v
+        Err(_) -> {
+            report(statusfd, "tee path contains a NUL byte")
+            return false
+        }
+    }
+    let flags = platform.openFlags()
+    let mode = if append {
+        flags.wronly | flags.creat | flags.append
+    } else {
+        flags.wronly | flags.creat | flags.trunc
+    }
+    let fd = unsafe {
+        open(c.ptr(), mode, 420)
+    }
+    if fd < 0 {
+        report(statusfd, "cannot open ${path}: ${ffi.errorText(ffi.errno())}")
+        return false
+    }
+    writeAll(fd, data)
+    _ = unsafe {
+        close(fd)
+    }
+    true
+}
+
+fn runFilter(f: &Filter, statusfd: i32) -> Never {
+    let input = readAll(0)
+    match filterClone(f) {
+        Tee(path, append) -> {
+            if !writeTee(&path, append, input, statusfd) {
+                unsafe {
+                    _exit(1)
+                }
+            }
+            writeAll(1, input)
+        }
+        other -> {
+            writeAll(1, filterBytes(other, input))
+        }
+    }
+    _ = unsafe {
+        close(statusfd)
+    }
+    unsafe {
+        _exit(0)
     }
 }
 
@@ -592,10 +654,10 @@ fn runPlan(plan: &Plan) -> Run! {
                 fail Failure { text: "argument contains a NUL byte" }
             }
         }
-        if st.grep is Some(pattern) {
-            let problem = grepProblem(&pattern)
+        if st.filter is Some(f) {
+            let problem = filterProblem(f)
             if problem != "" {
-                fail Failure { text: "invalid grep pattern: ${problem}" }
+                fail Failure { text: problem }
             }
         }
     }

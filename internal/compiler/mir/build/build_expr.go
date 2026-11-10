@@ -4,6 +4,7 @@ import (
 	"kigumi/internal/compiler/hir"
 	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
+	"kigumi/internal/compiler/syntax"
 )
 
 // expr lowers an expression to a local holding its value, with the
@@ -187,7 +188,8 @@ func (b *builder) exprRaw(e *hir.Expr) midir.LocalID {
 	case hir.Shell:
 		in := midir.Inst{Op: midir.OpShell, Dst: b.temp(t), Strs: e.Strs, Node: n}
 		for i, a := range e.Args {
-			in.Args = append(in.Args, b.snapshot(b.expr(a), a, a.Node, e.Args[i+1:]...))
+			v := b.snapshot(b.expr(a), a, a.Node, e.Args[i+1:]...)
+			in.Args = append(in.Args, b.shellArgText(v, a.Type, a.Node))
 		}
 		return b.emit(in)
 	case hir.Comptime:
@@ -196,4 +198,47 @@ func (b *builder) exprRaw(e *hir.Expr) midir.LocalID {
 		return b.unit(n)
 	}
 	return b.emit(midir.Inst{Op: midir.OpPanic, Dst: b.temp(t), Str: e.Name, Node: n})
+}
+
+// shellArgText converts an interpolation whose type has a standard text form
+// to that text, so both engines see a String word like any other. §10.7 lists
+// `fs.Path` and `os.OsString` beside String and integers; the checker accepts
+// them and this call is their implementation. A plan word is a String, so an
+// OsString that is not valid UTF-8 keeps its display text (U+FFFD for the
+// undecodable bytes), the same lossy conversion `debug` shows.
+func (b *builder) shellArgText(v midir.LocalID, t sem.TypeID, n syntax.NodeID) midir.LocalID {
+	method := b.shellArgTextMethod(t)
+	if method == 0 {
+		return v
+	}
+	return b.emit(midir.Inst{Op: midir.OpCall, Dst: b.temp(sem.TyString), Ent: method, Args: []midir.LocalID{v}, Node: n})
+}
+
+// shellArgTextMethod is the zero-argument text method of a shell argument
+// type, or 0 when the type has none and lowers as it stands.
+func (b *builder) shellArgTextMethod(t sem.TypeID) sem.EntityID {
+	tt := b.r.Types
+	if tt.Kind(t) != sem.KNamed {
+		return 0
+	}
+	ent := tt.Node(t).Ent
+	if ent == 0 {
+		return 0
+	}
+	e := b.r.Entity(ent)
+	pkg := b.r.Packages[e.Pkg].Path
+	name := ""
+	switch {
+	case pkg == "std/fs" && e.Name == "Path":
+		name = "toString"
+	case pkg == "std/os" && e.Name == "OsString":
+		name = "toStringLossy"
+	default:
+		return 0
+	}
+	set, ok := b.r.TypeDecl(ent).Members[name]
+	if !ok || int(set) >= len(b.r.Overloads) || len(b.r.Overloads[set].Members) == 0 {
+		return 0
+	}
+	return b.r.Overloads[set].Members[0]
 }

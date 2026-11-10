@@ -9,7 +9,25 @@ pub type Item =
     | Word
     | Pipe
     | Redirect(Int, Int)
+    | Builtin(Filter)
+
+/// An in-process stage that transforms its input without running a program:
+/// the typed plans `std/shell/coreutil` builds. Payloads are kept primitive so
+/// this stage format can stay in `std/shell` while coreutil moves out.
+/// Payload order: `Wc` is lines/words/bytes/chars, `Sort` reverse/unique,
+/// `Uniq` count/repeated/unique, `Cut` delimiter/1-based fields, `Tr`
+/// from/to/squeeze/delete, and `Tee` path/append.
+pub type Filter =
+    | Cat
+    | Head(Int)
+    | Tail(Int)
+    | Wc(Bool, Bool, Bool, Bool)
     | Grep(String)
+    | Sort(Bool, Bool)
+    | Uniq(Bool, Bool, Bool)
+    | Cut(String, Array[Int])
+    | Tr(String, String, Bool, Bool)
+    | Tee(String, Bool)
 
 /// Command pipeline built from `$"..."` literals; nothing runs until it is piped into `run`, `capture` or `runHere`.
 pub type Plan = {
@@ -27,11 +45,11 @@ pub type Captured = {
     pub stderr Bytes
 }
 
-/// A stage of a plan: an external command, or a grep filter.
+/// A stage of a plan: an external command, or one in-process filter.
 pub type Stage = {
     pub argv Array[String]
     pub redirs Array[Redir]
-    pub grep String?
+    pub filter Filter?
 }
 
 /// A redirection of one stage: op is the `<` (1), `>` (2), `>>` (3), `<&` (4) or `>&` (5) form.
@@ -99,13 +117,13 @@ fn Building.endWord(mut self) {
     self.inWord = false
 }
 
-fn Building.endStage(mut self, grep: String?) {
+fn Building.endStage(mut self, filter: Filter?) {
     self.endWord()
-    if self.argv.len() > 0 || grep is Some(_) {
+    if self.argv.len() > 0 || filter is Some(_) {
         self.out.push(Stage {
             argv: self.argv.clone()
             redirs: self.redirs.clone()
-            grep: grep
+            filter: filter
         })
     }
     self.argv = Array.empty()
@@ -123,7 +141,7 @@ pub pure fn stages(plan: &Plan) -> Array[Stage] {
         rop: 0
         rfd: 0
     }
-    for item in plan.items {
+    for item in &plan.items {
         match item {
             Text(s) -> {
                 b.word = "${b.word}${s}"
@@ -141,12 +159,38 @@ pub pure fn stages(plan: &Plan) -> Array[Stage] {
             Pipe -> {
                 b.endStage(None)
             }
-            Grep(pattern) -> {
+            Builtin(f) -> {
                 b.endStage(None)
-                b.endStage(Some(pattern))
+                b.endStage(Some(filterClone(f)))
             }
         }
     }
     b.endStage(None)
     b.out
+}
+
+/// A copy of `f`, for a plan piece that is read from a borrowed list. String
+/// and Bool payloads copy; the field list is rebuilt element by element
+/// because `Array[Int]` is move-only.
+pub pure fn filterClone(f: &Filter) -> Filter {
+    match f {
+        Cat -> Cat
+        Head(count) -> Head(count)
+        Tail(count) -> Tail(count)
+        Wc(lines, words, bytes, chars) -> Wc(lines, words, bytes, chars)
+        Grep(pattern) -> Grep("${pattern}")
+        Sort(reverse, unique) -> Sort(reverse, unique)
+        Uniq(count, repeated, unique) -> Uniq(count, repeated, unique)
+        Cut(delim, fields) -> Cut("${delim}", filterFieldsClone(fields))
+        Tr(from, to, squeeze, delete) -> Tr("${from}", "${to}", squeeze, delete)
+        Tee(path, append) -> Tee("${path}", append)
+    }
+}
+
+fn filterFieldsClone(fields: &Array[Int]) -> Array[Int] {
+    let mut out = Array.empty[Int]()
+    for field in fields {
+        out.push(field)
+    }
+    out
 }

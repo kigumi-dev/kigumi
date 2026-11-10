@@ -10457,6 +10457,15 @@
       ]
     },
     {
+      "id": "run/shell_coreutil",
+      "kind": "run",
+      "path": "testdata/run/shell_coreutil.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/shell_error_messages",
       "kind": "run",
       "path": "testdata/run/shell_error_messages.txtar",
@@ -10478,6 +10487,15 @@
       "id": "run/shell_interp_argv",
       "kind": "run",
       "path": "testdata/run/shell_interp_argv.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/shell_interp_path",
+      "kind": "run",
+      "path": "testdata/run/shell_interp_path.txtar",
       "mode": [
         "vm",
         "native"

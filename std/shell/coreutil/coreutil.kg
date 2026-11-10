@@ -1,7 +1,143 @@
 import shell from std/shell
 
-/// Appends a grep stage that keeps the lines matching the regular
-/// expression pattern (`plan |> coreutil.grep("^a")`).
+// Portable in-process core utilities: stages that transform their input
+// without starting a program. Every utility is byte oriented and splits
+// lines at `\n`; nothing assumes a UTF-8 input or a host locale unless the
+// API says so (`wcChars` is the decoded-text count, `wcBytes` the byte one).
+// Options are typed records, never GNU/POSIX flag strings.
+
+/// Which counts `wc` emits, in the order lines, words, bytes, chars.
+pub type WcOptions = {
+    pub lines Bool
+    pub words Bool
+    pub bytes Bool
+    pub chars Bool
+}
+
+/// Ordering for `sortWith`: reverse the byte order, collapse equal lines, or both.
+pub type SortOptions = {
+    pub reverse Bool
+    pub unique Bool
+}
+
+/// Which runs of equal adjacent lines `uniqWith` keeps and whether it prefixes counts.
+pub type UniqOptions = {
+    pub count Bool
+    pub repeated Bool
+    pub unique Bool
+}
+
+/// Field selection for `cut`: a 1-based field list and the delimiter between fields.
+pub type CutOptions = {
+    pub delimiter String
+    pub fields Array[Int]
+}
+
+/// Byte translation for `tr`: map `from` to `to`, optionally deleting or squeezing.
+pub type TrOptions = {
+    pub from String
+    pub to String
+    pub squeeze Bool
+    pub delete Bool
+}
+
+/// Where `tee` writes its copy and whether it appends.
+pub type TeeOptions = {
+    pub path String
+    pub append Bool
+}
+
+fn push(plan: shell.Plan, filter: shell.Filter) -> shell.Plan {
+    shell.planPush(plan, shell.Item.Builtin(filter))
+}
+
+/// Copies its input through unchanged.
+pub pure fn cat(plan: shell.Plan) -> shell.Plan {
+    push(plan, shell.Filter.Cat)
+}
+
+/// Keeps the first `count` lines; a negative count fails the run.
+pub pure fn head(plan: shell.Plan, count: Int) -> shell.Plan {
+    push(plan, shell.Filter.Head(count))
+}
+
+/// Keeps the last `count` lines; a negative count fails the run.
+pub pure fn tail(plan: shell.Plan, count: Int) -> shell.Plan {
+    push(plan, shell.Filter.Tail(count))
+}
+
+/// Counts lines, words and bytes, the default `wc` selection.
+pub pure fn wc(plan: shell.Plan) -> shell.Plan {
+    push(plan, shell.Filter.Wc(true, true, true, false))
+}
+
+/// Counts lines only.
+pub pure fn wcLines(plan: shell.Plan) -> shell.Plan {
+    push(plan, shell.Filter.Wc(true, false, false, false))
+}
+
+/// Counts words only: runs of bytes other than ASCII space, tab, newline, CR, VT and FF.
+pub pure fn wcWords(plan: shell.Plan) -> shell.Plan {
+    push(plan, shell.Filter.Wc(false, true, false, false))
+}
+
+/// Counts bytes only.
+pub pure fn wcBytes(plan: shell.Plan) -> shell.Plan {
+    push(plan, shell.Filter.Wc(false, false, true, false))
+}
+
+/// Counts decoded-text characters only: bytes that are not UTF-8 continuation bytes.
+pub pure fn wcChars(plan: shell.Plan) -> shell.Plan {
+    push(plan, shell.Filter.Wc(false, false, false, true))
+}
+
+/// Counts what `options` selects, in the fixed order lines, words, bytes, chars.
+pub pure fn wcWith(plan: shell.Plan, options: WcOptions) -> shell.Plan {
+    push(plan, shell.Filter.Wc(options.lines, options.words, options.bytes, options.chars))
+}
+
+/// Appends a stage keeping the lines that match the regular expression `pattern`.
 pub pure fn grep(plan: shell.Plan, pattern: String) -> shell.Plan {
-    shell.planPush(plan, shell.Item.Grep(pattern))
+    push(plan, shell.Filter.Grep(pattern))
+}
+
+/// Sorts lines in ascending byte order, newline terminated.
+pub pure fn sort(plan: shell.Plan) -> shell.Plan {
+    push(plan, shell.Filter.Sort(false, false))
+}
+
+/// Sorts lines by `options`: byte order, optionally reversed and deduplicated.
+pub pure fn sortWith(plan: shell.Plan, options: SortOptions) -> shell.Plan {
+    push(plan, shell.Filter.Sort(options.reverse, options.unique))
+}
+
+/// Collapses runs of equal adjacent lines into one.
+pub pure fn uniq(plan: shell.Plan) -> shell.Plan {
+    push(plan, shell.Filter.Uniq(false, false, false))
+}
+
+/// Keeps the runs `options` selects; `count` prefixes each kept line with its run length.
+pub pure fn uniqWith(plan: shell.Plan, options: UniqOptions) -> shell.Plan {
+    push(plan, shell.Filter.Uniq(options.count, options.repeated, options.unique))
+}
+
+/// Selects the 1-based fields `options.fields` of every line, joined by `options.delimiter`.
+/// A line without the delimiter is copied through.
+pub pure fn cut(plan: shell.Plan, options: CutOptions) -> shell.Plan {
+    push(plan, shell.Filter.Cut(options.delimiter, options.fields.clone()))
+}
+
+/// Maps the bytes `options.from` to `options.to`, optionally deleting or squeezing them.
+pub pure fn tr(plan: shell.Plan, options: TrOptions) -> shell.Plan {
+    push(plan, shell.Filter.Tr(options.from, options.to, options.squeeze, options.delete))
+}
+
+/// Copies its input to `path`, truncating it, and passes the same bytes on.
+pub pure fn tee(plan: shell.Plan, path: String) -> shell.Plan {
+    push(plan, shell.Filter.Tee(path, false))
+}
+
+/// Copies its input to `options.path` and passes the same bytes on.
+pub pure fn teeWith(plan: shell.Plan, options: TeeOptions) -> shell.Plan {
+    push(plan, shell.Filter.Tee(options.path, options.append))
 }
