@@ -86,3 +86,23 @@ type LoadOptions struct {
 	// headerTriple, when set, is the triple Header records translate against instead of the default link's.
 	headerTriple *string
 }
+
+// loadOptions is the settings a follow-up load of the same module needs, so an
+// artifact build or a plan keeps the policy and toolchain flags the module was
+// loaded with instead of silently dropping them.
+func (m *Module) loadOptions() LoadOptions {
+	return LoadOptions{
+		StdRoot:      m.opts.StdRoot,
+		NoLocal:      m.opts.NoLocal,
+		Target:       m.target,
+		ZigPath:      m.opts.ZigPath,
+		ZigHome:      m.opts.ZigHome,
+		ZigIndexURL:  m.opts.ZigIndexURL,
+		ZigPublicKey: m.opts.ZigPublicKey,
+		Offline:      m.opts.Offline,
+		ZigNotice:    m.opts.ZigNotice,
+		VerifyPasses: m.opts.VerifyPasses,
+		PackageCache: m.opts.PackageCache,
+		Compiler:     m.compiler,
+	}
+}

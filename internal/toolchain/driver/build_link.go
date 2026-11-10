@@ -15,6 +15,7 @@ import (
 // hostLink is one hosted executable's compile-and-link step; args are the compile flags every input shares.
 type hostLink struct {
 	m              *Module
+	compiler       buildconfig.CompilerOptions
 	cc, args       []string
 	inputs         []string
 	dir            string
@@ -28,7 +29,7 @@ type hostLink struct {
 // run links h into staged. zig links libm itself and only for the symbols the program references, so -lm goes only to another compiler.
 func (h hostLink) run(staged string) error {
 	m, cc, opts, t := h.m, h.cc, h.opts, h.t
-	linkOut, linkInputsList, err := link.Inputs(m.compiler, opts.pinCompDir, h.dir, staged, h.inputs)
+	linkOut, linkInputsList, err := link.Inputs(h.compiler, opts.pinCompDir, h.dir, staged, h.inputs)
 	if err != nil {
 		return err
 	}
@@ -36,7 +37,7 @@ func (h hostLink) run(staged string) error {
 	linkArgs = append(linkArgs, linkInputsList...)
 	if opts.pinCompDir {
 		linkArgs = append(linkArgs, "-fdebug-compilation-dir=.")
-		linkArgs = append(linkArgs, link.PrefixMapFlag(m.compiler)...)
+		linkArgs = append(linkArgs, link.PrefixMapFlag(h.compiler)...)
 	}
 	if sectionGC(t) {
 		linkArgs = append(linkArgs, "-Wl,--gc-sections")

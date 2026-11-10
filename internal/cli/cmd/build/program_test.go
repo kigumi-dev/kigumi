@@ -41,3 +41,49 @@ func TestBuildPlanExitsNonZeroForAnArtifactWithoutAnEntry(t *testing.T) {
 		t.Fatalf("plan: exit %d, stdout %q, stderr %q", code, out, errOut)
 	}
 }
+
+// TestBuildProgramPlanHonorsNoLocal checks that the artifact facts reload the
+// module with the same --no-local the first load honored: a mod.local.kg that
+// points at a missing directory must not fail a plan that ignores it.
+func TestBuildProgramPlanHonorsNoLocal(t *testing.T) {
+	std, _ := filepath.Abs("../../../../std")
+	root := t.TempDir()
+	t.Setenv("XDG_CACHE_HOME", filepath.Join(root, "xdg"))
+	t.Setenv("KIGUMI_PKG_CACHE", filepath.Join(root, "pkg"))
+	t.Setenv("KIGUMI_LOCAL", "")
+	write := func(rel, body string) {
+		t.Helper()
+		full := filepath.Join(root, rel)
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	dep := filepath.Join(root, "repos", "dep")
+	write("repos/dep/mod.kg", string(clitest.Manifest("example.com/dep", "")))
+	write("repos/dep/dep.kg", "pub fn v() -> Int {\n    1\n}\n")
+	clitest.Git(t, dep, "init", "-q")
+	clitest.Git(t, dep, "add", "-A")
+	clitest.Git(t, dep, "commit", "-q", "-m", "one")
+	clitest.Git(t, dep, "tag", "v1.0.0")
+	write("app/mod.kg", string(clitest.Manifest("app", "Require {\n    name: \"example.com/dep\"\n    version: \"v1.0.0\"\n    url: \"file://"+dep+"\"\n}\n")))
+	write("app/main.kg", "import dep from example.com/dep\nprint \"${dep.v()}\"\n")
+	write("app/build.kg", "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n    let a = b.executable(\"app\", \"\", b.request().target())?\n}\n")
+	write("app/mod.local.kg", "Replace {\n    name: \"example.com/dep\"\n    path: \""+filepath.Join(root, "does-not-exist")+"\"\n}\n")
+	app := filepath.Join(root, "app")
+	if code, _, e := clitest.Execute(t, "--no-local", "get", app); code != 0 {
+		t.Fatalf("get --no-local: %s", e)
+	}
+	if code, _, e := clitest.Execute(t, "--std", std, "--no-local", "check", app); code != 0 {
+		t.Fatalf("check --no-local: %s", e)
+	}
+	code, out, errOut := clitest.Execute(t, "--std", std, "build", app, "--plan", "--no-local")
+	if code != 0 || !strings.Contains(out, `"name": "app"`) {
+		t.Fatalf("plan --no-local: exit %d, stdout %q, stderr %q", code, out, errOut)
+	}
+	if strings.Contains(errOut, "does-not-exist") {
+		t.Fatalf("the ignored mod.local.kg must not be read: %s", errOut)
+	}
+}

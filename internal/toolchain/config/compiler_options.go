@@ -18,6 +18,19 @@ type CompilerOptions struct {
 	PathDirs []string
 	// Home is the user's home directory, the base of the managed zig store.
 	Home string
+	// PrefixMaps rewrite the directory prefixes the C compiler embeds in its
+	// output (debug info, __FILE__, string literals), so a reproducible build
+	// names the same sources from any checkout, cache or cwd. When set, they
+	// replace the default Cwd map, which would otherwise also rewrite system
+	// headers under cwd. The last match wins, so a narrower directory must
+	// follow a wider one.
+	PrefixMaps []PrefixMap
+}
+
+// PrefixMap replaces Dir in an embedded path with Prefix.
+type PrefixMap struct {
+	Dir    string
+	Prefix string
 }
 
 // HostTarget is the machine kigumi runs on, the fallback for CompilerOptions.Host.

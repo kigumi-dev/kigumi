@@ -18,7 +18,7 @@ func runProgram(io session.IO, opts options) error {
 	if err != nil {
 		return &exit.UsageError{Err: err}
 	}
-	p, ok, err := driver.LoadBuildProgram(opts.root, driver.LoadOptions{StdRoot: s.StdRoot(), Policy: pol, ZigPath: session.ZigPath(), VerifyPasses: session.VerifyPasses(), Compiler: session.CompilerOptions()})
+	p, ok, err := driver.LoadBuildProgram(opts.root, driver.LoadOptions{StdRoot: s.StdRoot(), NoLocal: s.NoLocal || session.LocalOff(), Offline: s.Offline, Policy: pol, ZigPath: session.ZigPath(), ZigHome: session.ZigHome(), PackageCache: session.PackageCache(), VerifyPasses: session.VerifyPasses(), Compiler: session.CompilerOptions()})
 	if err != nil {
 		fmt.Fprint(io.Err, err.Error())
 		if !strings.HasSuffix(err.Error(), "\n") {

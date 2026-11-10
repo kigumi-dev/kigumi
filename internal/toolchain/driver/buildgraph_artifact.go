@@ -49,7 +49,11 @@ func buildArtifact(p *BuildProgram, rg *ResolvedGraph, idx int, filePath func(in
 		}
 	}
 	merge(idx)
-	m, err := LoadModule(p.Module.Root, LoadOptions{StdRoot: p.stdRoot, Target: t, Deny: a.Deny, Ceiling: a.Ceiling, ArtifactName: a.Name, VerifyPasses: p.Module.verifyPasses, Compiler: p.Module.compiler, RootDirs: []string{a.Dir}, ExtraSources: sources, ExtraLinks: links})
+	lo := p.Module.loadOptions()
+	lo.Target = t
+	lo.Deny, lo.Ceiling, lo.ArtifactName = a.Deny, a.Ceiling, a.Name
+	lo.RootDirs, lo.ExtraSources, lo.ExtraLinks = []string{a.Dir}, sources, links
+	m, err := LoadModule(p.Module.Root, lo)
 	if err != nil {
 		return fmt.Errorf("artifact %s: %w", a.Name, err)
 	}

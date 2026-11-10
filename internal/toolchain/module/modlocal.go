@@ -32,6 +32,11 @@ func ReadLocal(o buildconfig.CompilerOptions, dir string) (Local, error) {
 	if abs, err := o.Abs(dir); err == nil {
 		dir = abs
 	}
+	// Walk the real path, so opening a module through a symlink resolves the
+	// same file as its target instead of the symlink's lexical parent.
+	if real, err := filepath.EvalSymlinks(dir); err == nil {
+		dir = real
+	}
 	for d := filepath.Clean(dir); ; d = filepath.Dir(d) {
 		path := filepath.Join(d, LocalName)
 		src, ok, err := readFileMaybe(path)

@@ -52,13 +52,18 @@ func runTidy(io session.IO, opts options) error {
 	}
 	for name := range unused {
 		delete(local.Replaces, name)
-		delete(lock.Entries, name)
 	}
+	// Compare against the lock before dropping the removed Requires' own entries:
+	// a Require that only sets a version floor changes the selection when it goes,
+	// and that must be visible as a change rather than hidden by the deletion.
 	pruned, changes, err := module.PruneLock(session.CompilerOptions(), kept, local, lock)
 	var missing *module.MissingError
 	switch {
 	case stderrors.As(err, &missing):
 		fmt.Fprintf(io.Err, "%s; the lock is not checked against the new selection until then\n", err)
+		for name := range unused {
+			delete(lock.Entries, name)
+		}
 	case err != nil:
 		return errors.WrapErr(err, "reselect versions")
 	default:

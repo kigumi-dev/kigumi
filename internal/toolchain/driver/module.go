@@ -86,12 +86,15 @@ type Module struct {
 	lowerAll     bool
 	fileOrder    func(names []string)
 	compiler     buildconfig.CompilerOptions
-	index        *pkgIndex
-	idxStats     IndexStats
-	rootDirs     []string
-	rootImports  []string
-	allPackages  bool
-	allOwn       bool
+	// opts is the load this module came from, so a reload for an artifact or a
+	// plan keeps the policy and toolchain flags the first load honored.
+	opts        LoadOptions
+	index       *pkgIndex
+	idxStats    IndexStats
+	rootDirs    []string
+	rootImports []string
+	allPackages bool
+	allOwn      bool
 	// deferred marks a load whose reachable packages are not parsed yet (ensureParsed).
 	deferred bool
 	loadErr  error

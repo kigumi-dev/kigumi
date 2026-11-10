@@ -79,6 +79,53 @@ func (w *world) diamond() {
 	}
 }
 
+// floorDiamond: the root asks for dep v1.1.0 only to raise the floor and for mid v1.0.0, mid asks for dep v1.0.0, and only mid is imported.
+func (w *world) floorDiamond() {
+	w.repo("dep", map[string][2]string{"v1.0.0": {"", "100"}, "v1.1.0": {"", "110"}})
+	w.repo("mid", map[string][2]string{"v1.0.0": {w.require("dep", "v1.0.0"), "1"}})
+	w.write(filepath.Join(w.app, "mod.kg"), string(clitest.Manifest("app", w.require("dep", "v1.1.0")+w.require("mid", "v1.0.0"))))
+	w.write(filepath.Join(w.app, "main.kg"), "import mid from example.com/mid\nprint \"${mid.v()}\"\n")
+	if code, _, e := w.kigumi("get", w.app); code != 0 {
+		w.t.Fatalf("get: %s", e)
+	}
+}
+
+func TestModTidyKeepsAVersionFloorAndStops(t *testing.T) {
+	w := newWorld(t)
+	w.floorDiamond()
+	lock, manifest := w.read("mod.lock.kg"), w.read("mod.kg")
+	if !strings.Contains(lock, "version: \"v1.1.0\"") {
+		t.Fatalf("setup: dep should be locked at the root's floor v1.1.0:\n%s", lock)
+	}
+	code, _, e := w.kigumi("mod", "tidy", "-C", w.app)
+	if code != 1 {
+		t.Fatalf("tidy: exit %d: %s", code, e)
+	}
+	if !strings.Contains(e, "selection changes: example.com/dep v1.1.0 -> v1.0.0") {
+		t.Fatalf("removing the floor must be listed as a selection change: %s", e)
+	}
+	if w.read("mod.lock.kg") != lock || w.read("mod.kg") != manifest {
+		t.Fatal("a refused tidy must change nothing")
+	}
+}
+
+func TestModTidyUpdateAcceptsTheFloorDowngradeAndLeavesLockingToGet(t *testing.T) {
+	w := newWorld(t)
+	w.floorDiamond()
+	if code, _, e := w.kigumi("mod", "tidy", "-C", w.app, "--update"); code != 0 {
+		t.Fatalf("tidy --update: %s", e)
+	}
+	if strings.Contains(w.read("mod.kg"), "example.com/dep") || strings.Contains(w.read("mod.lock.kg"), "v1.1.0") {
+		t.Fatalf("the floor Require and its stale entry must go:\n%s\n%s", w.read("mod.kg"), w.read("mod.lock.kg"))
+	}
+	if code, _, e := w.kigumi("get", w.app); code != 0 {
+		t.Fatalf("get: %s", e)
+	}
+	if !strings.Contains(w.read("mod.lock.kg"), "example.com/dep") || !strings.Contains(w.read("mod.lock.kg"), "version: \"v1.0.0\"") {
+		t.Fatalf("get must lock the version mid selects:\n%s", w.read("mod.lock.kg"))
+	}
+}
+
 func TestModTidyListsASelectionChangeAndStops(t *testing.T) {
 	w := newWorld(t)
 	w.diamond()

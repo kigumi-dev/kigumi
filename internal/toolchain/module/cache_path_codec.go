@@ -7,6 +7,15 @@ import (
 	buildconfig "kigumi/internal/toolchain/config"
 )
 
+// CacheModulesDir is the directory holding one fetched copy per module@version.
+func CacheModulesDir(o buildconfig.CompilerOptions) (string, error) {
+	cache, err := o.CacheRoot()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(cache, "kigumi", "mod"), nil
+}
+
 // CacheDir is <cache>/kigumi/mod/<name>@<version> with uppercase letters escaped as !x, so names differing only by case stay apart on case-insensitive filesystems.
 func CacheDir(o buildconfig.CompilerOptions, r Require) (string, error) {
 	if err := ValidModuleName(r.Name); err != nil {
@@ -15,11 +24,11 @@ func CacheDir(o buildconfig.CompilerOptions, r Require) (string, error) {
 	if err := ValidVersion(r.Version); err != nil {
 		return "", err
 	}
-	cache, err := o.CacheRoot()
+	mods, err := CacheModulesDir(o)
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(cache, "kigumi", "mod", filepath.FromSlash(escapePath(r.Name))+"@"+escapePath(r.Version)), nil
+	return filepath.Join(mods, filepath.FromSlash(escapePath(r.Name))+"@"+escapePath(r.Version)), nil
 }
 
 func escapePath(s string) string {

@@ -23,7 +23,6 @@ type BuildProgram struct {
 	Res       *sem.Result
 	Configure sem.EntityID
 	Tree      *syntax.Tree
-	stdRoot   string
 	prog      *mir.Program
 }
 
@@ -55,7 +54,7 @@ func LoadBuildProgram(root string, opts LoadOptions) (*BuildProgram, bool, error
 	if d != nil {
 		return nil, true, fmt.Errorf("%s", d.Msg)
 	}
-	return &BuildProgram{Module: m, Res: res, Configure: configure, Tree: tree, stdRoot: opts.StdRoot}, true, nil
+	return &BuildProgram{Module: m, Res: res, Configure: configure, Tree: tree}, true, nil
 }
 
 // configureEntity finds `fn configure(b: build.Builder) -> Void!` and

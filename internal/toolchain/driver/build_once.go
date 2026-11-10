@@ -42,6 +42,10 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 		return false, err
 	}
 	defer os.RemoveAll(dir)
+	compiler := m.compiler
+	if opts.pinCompDir {
+		compiler.PrefixMaps = append(reproduciblePrefixMaps(m, dir), compiler.PrefixMaps...)
+	}
 	ll := filepath.Join(dir, "module.ll")
 	if err := os.WriteFile(ll, []byte(code.IR), 0o644); err != nil {
 		return false, err
@@ -93,7 +97,7 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 		fp.RuntimeAbi = code.Abi
 		artifact.ReportStale(out, fp, stderr)
 		ok, err := artifact.Publish(out, func(staged string) error {
-			built, err := buildArchive(m.compiler, cc, args, inputs, dir, staged, opts.ccEnv, stderr, opts.pinCompDir && t.COFF())
+			built, err := buildArchive(compiler, cc, args, inputs, dir, staged, opts.ccEnv, stderr, opts.pinCompDir && t.COFF())
 			if err != nil || !built {
 				return err
 			}
@@ -110,7 +114,7 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 		return true, artifact.WriteFingerprintSidecar(out, fp)
 	}
 	ok, err = artifact.Publish(out, func(staged string) error {
-		return hostLink{m: m, cc: cc, args: args, inputs: inputs, dir: dir, opts: opts, t: t, link: linkage, cflags: cflags, lflags: lflags, stderr: stderr}.run(staged)
+		return hostLink{m: m, compiler: compiler, cc: cc, args: args, inputs: inputs, dir: dir, opts: opts, t: t, link: linkage, cflags: cflags, lflags: lflags, stderr: stderr}.run(staged)
 	})
 	if err != nil || !ok {
 		return ok, err

@@ -75,7 +75,11 @@ func (c *planCache) provision(t buildconfig.Target) []artifact.CapabilityVerdict
 
 // artifactFacts scopes to a's own entry set so a sibling artifact's usage never leaks in.
 func (c *planCache) artifactFacts(p *BuildProgram, a *buildgraph.Artifact, t buildconfig.Target) *planFacts {
-	m, err := LoadModule(p.Module.Root, LoadOptions{StdRoot: p.stdRoot, Target: t, Deny: a.Deny, Ceiling: a.Ceiling, ArtifactName: a.Name, VerifyPasses: p.Module.verifyPasses, Compiler: p.Module.compiler, RootDirs: []string{a.Dir}})
+	lo := p.Module.loadOptions()
+	lo.Target = t
+	lo.Deny, lo.Ceiling, lo.ArtifactName = a.Deny, a.Ceiling, a.Name
+	lo.RootDirs = []string{a.Dir}
+	m, err := LoadModule(p.Module.Root, lo)
 	if err != nil {
 		return nil
 	}
