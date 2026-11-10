@@ -5,8 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
-	"sync"
 	"testing"
 
 	buildconfig "kigumi/internal/toolchain/config"
@@ -34,42 +32,37 @@ func requireZig(t *testing.T) {
 	}
 }
 
-var (
-	probeMu    sync.Mutex
-	probeCache = map[string]bool{}
-)
+var cCompilerOK bool
 
-// testCompiler uses a compiler only when it can link a trivial program. A
-// hosted image can ship clang without a linker; tests then take the same path
-// as one without a C toolchain instead of failing inside the driver. The
-// cache is keyed by the search path: tests that prepend a zig shim probe that
-// compiler and must not lend its result to the plain clang on PATH afterwards.
-func testCompiler() buildconfig.CompilerOptions {
+// init probes once with the runner's own PATH, before any test swaps in a zig
+// shim: a hosted image can ship clang without a linker, and that result must
+// not depend on which test happens to call testCompiler first.
+func init() {
+	opts := testCompilerOptions()
+	if opts.CCompiler() != nil {
+		cCompilerOK = linksTrivial(opts)
+	}
+}
+
+func testCompilerOptions() buildconfig.CompilerOptions {
 	cwd, _ := os.Getwd()
 	home, _ := os.UserHomeDir()
 	cache, _ := os.UserCacheDir()
-	dirs := filepath.SplitList(os.Getenv("PATH"))
-	opts := buildconfig.CompilerOptions{Host: buildconfig.HostTarget(), CacheDir: cache, Cwd: cwd, PathDirs: dirs, Home: home}
-	if cc := opts.CCompiler(); cc != nil {
-		key := strings.Join(dirs, string(os.PathListSeparator)) + "\x00" + cc[0]
-		probeMu.Lock()
-		ok, seen := probeCache[key]
-		if !seen {
-			ok = linksTrivial(opts, cwd)
-			probeCache[key] = ok
-		}
-		probeMu.Unlock()
-		if !ok {
-			opts.PathDirs = nil
-		}
+	return buildconfig.CompilerOptions{Host: buildconfig.HostTarget(), CacheDir: cache, Cwd: cwd, PathDirs: filepath.SplitList(os.Getenv("PATH")), Home: home}
+}
+
+// testCompiler uses a compiler only when the runner's compiler can build a
+// minimal module. Tests that need C then skip on a hermetic image without a
+// linker instead of failing inside the driver.
+func testCompiler() buildconfig.CompilerOptions {
+	opts := testCompilerOptions()
+	if opts.CCompiler() != nil && !cCompilerOK {
+		opts.PathDirs = nil
 	}
 	return opts
 }
 
-// linksTrivial builds a real minimal module: a compiler on PATH may link a
-// bare C file while the driver's host target or a reproducible build still
-// fails, so the probe exercises the same entry point the tests do.
-func linksTrivial(opts buildconfig.CompilerOptions, cwd string) bool {
+func linksTrivial(opts buildconfig.CompilerOptions) bool {
 	dir, err := os.MkdirTemp("", "kigumi-cc-probe")
 	if err != nil {
 		return false
