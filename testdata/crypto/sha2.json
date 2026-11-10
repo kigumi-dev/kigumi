@@ -1,0 +1,118 @@
+{
+  "primitive": "sha2",
+  "source": "NIST CAVP shabytetestvectors (SHA256ShortMsg, SHA256LongMsg, SHA384ShortMsg, SHA512ShortMsg, SHA512LongMsg) subset",
+  "vectors": [
+    {
+      "id": "sha256-short-0",
+      "op": "digest",
+      "alg": "sha256",
+      "message": "",
+      "expected": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "sha256-short-8",
+      "op": "digest",
+      "alg": "sha256",
+      "message": "d3",
+      "expected": "28969cdfa74a12c82f3bad960b0b000aca2ac329deea5c2328ebc6f2ba9802c1"
+    },
+    {
+      "id": "sha256-short-24",
+      "op": "digest",
+      "alg": "sha256",
+      "message": "b4190e",
+      "expected": "dff2e73091f6c05e528896c4c831b9448653dc2ff043528f6769437bc7b975c2"
+    },
+    {
+      "id": "sha256-short-64",
+      "op": "digest",
+      "alg": "sha256",
+      "message": "5738c929c4f4ccb6",
+      "expected": "963bb88f27f512777aab6c8b1a02c70ec0ad651d428f870036e1917120fb48bf"
+    },
+    {
+      "id": "sha256-short-160",
+      "op": "digest",
+      "alg": "sha256",
+      "message": "c1ef39cee58e78f6fcdc12e058b7f902acd1a93b",
+      "expected": "6dd52b0d8b48cc8146cebd0216fbf5f6ef7eeafc0ff2ff9d1422d6345555a142"
+    },
+    {
+      "id": "sha256-short-256",
+      "op": "digest",
+      "alg": "sha256",
+      "message": "09fc1accc230a205e4a208e64a8f204291f581a12756392da4b8c0cf5ef02b95",
+      "expected": "4f44c1c7fbebb6f9601829f3897bfd650c56fa07844be76489076356ac1886a4"
+    },
+    {
+      "id": "sha384-short-0",
+      "op": "digest",
+      "alg": "sha384",
+      "message": "",
+      "expected": "38b060a751ac96384cd9327eb1b1e36a21fdb71114be07434c0cc7bf63f6e1da274edebfe76f65fbd51ad2f14898b95b"
+    },
+    {
+      "id": "sha384-short-8",
+      "op": "digest",
+      "alg": "sha384",
+      "message": "c5",
+      "expected": "b52b72da75d0666379e20f9b4a79c33a329a01f06a2fb7865c9062a28c1de860ba432edfd86b4cb1cb8a75b46076e3b1"
+    },
+    {
+      "id": "sha384-short-32",
+      "op": "digest",
+      "alg": "sha384",
+      "message": "50e3853d",
+      "expected": "936a3c3991716ba4c413bc03de20f5ce1c63703b3a5bdb6ab558c9ff70d537e46eb4a15d9f2c85e68d8678de5682695e"
+    },
+    {
+      "id": "sha384-short-128",
+      "op": "digest",
+      "alg": "sha384",
+      "message": "e1bb967b5d379a4aa39050274d09bd93",
+      "expected": "3b04f96965ad2fbabd4df25d5d8c95589d069c312ee48539090b2d7b495d2446c31eb2b8f8ffb3012bdce065323d9f48"
+    },
+    {
+      "id": "sha512-short-0",
+      "op": "digest",
+      "alg": "sha512",
+      "message": "",
+      "expected": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
+    },
+    {
+      "id": "sha512-short-8",
+      "op": "digest",
+      "alg": "sha512",
+      "message": "21",
+      "expected": "3831a6a6155e509dee59a7f451eb35324d8f8f2df6e3708894740f98fdee23889f4de5adb0c5010dfb555cda77c8ab5dc902094c52de3278f35a75ebc25f093a"
+    },
+    {
+      "id": "sha512-short-24",
+      "op": "digest",
+      "alg": "sha512",
+      "message": "0a55db",
+      "expected": "7952585e5330cb247d72bae696fc8a6b0f7d0804577e347d99bc1b11e52f384985a428449382306a89261ae143c2f3fb613804ab20b42dc097e5bf4a96ef919b"
+    },
+    {
+      "id": "sha512-short-128",
+      "op": "digest",
+      "alg": "sha512",
+      "message": "cd67bd4054aaa3baa0db178ce232fd5a",
+      "expected": "0d8521f8f2f3900332d1a1a55c60ba81d04d28dfe8c504b6328ae787925fe0188f2ba91c3a9f0c1653c4bf0ada356455ea36fd31f8e73e3951cad4ebba8c6e04"
+    },
+    {
+      "id": "sha256-long-1304",
+      "op": "digest",
+      "alg": "sha256",
+      "message": "451101250ec6f26652249d59dc974b7361d571a8101cdfd36aba3b5854d3ae086b5fdd4597721b66e3c0dc5d8c606d9657d0e323283a5217d1f53f2f284f57b85c8a61ac8924711f895c5ed90ef17745ed2d728abd22a5f7a13479a462d71b56c19a74a40b655c58edfe0a188ad2cf46cbf30524f65d423c837dd1ff2bf462ac4198007345bb44dbb7b1c861298cdf61982a833afc728fae1eda2f87aa2c9480858bec",
+      "expected": "3c593aa539fdcdae516cdf2f15000f6634185c88f505b39775fb9ab137a10aa2"
+    },
+    {
+      "id": "sha512-long-1816",
+      "op": "digest",
+      "alg": "sha512",
+      "message": "4f05600950664d5190a2ebc29c9edb89c20079a4d3e6bc3b27d75e34e2fa3d02768502bd69790078598d5fcf3d6779bfed1284bbe5ad72fb456015181d9587d6e864c940564eaafb4f2fead4346ea09b6877d9340f6b82eb1515880872213da3ad88feba9f4f13817a71d6f90a1a17c43a15c038d988b5b29edffe2d6a062813cedbe852cde302b3e33b696846d2a8e36bd680efcc6cd3f9e9a4c1ae8cac10cc5244d131677140399176ed46700019a004a163806f7fa467fc4e17b4617bbd7641aaff7ff56396ba8c08a8be100b33a20b5daf134a2aefa5e1c3496770dcf6baa4f7bb",
+      "expected": "a9db490c708cc72548d78635aa7da79bb253f945d710e5cb677a474efc7c65a2aab45bc7ca1113c8ce0f3c32e1399de9c459535e8816521ab714b2a6cd200525"
+    }
+  ]
+}

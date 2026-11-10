@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "comment": "Checked-in subset of CAVP/Wycheproof vectors and a deterministic local X.509 PKI.",
+  "suites": [
+    {
+      "primitive": "sha2",
+      "source": "NIST CAVP shabytetestvectors (SHA256ShortMsg, SHA256LongMsg, SHA384ShortMsg, SHA512ShortMsg, SHA512LongMsg) subset",
+      "path": "sha2.json"
+    },
+    {
+      "primitive": "sha3",
+      "source": "NIST CAVP SHA-3 byte test vectors (SHA3_256ShortMsg, SHA3_512ShortMsg, SHA3_256LongMsg) plus FIPS 202 SHAKE examples",
+      "path": "sha3.json"
+    },
+    {
+      "primitive": "hmac",
+      "source": "C2SP Wycheproof hmac_sha256_test.json and hmac_sha512_test.json subset",
+      "path": "hmac.json"
+    },
+    {
+      "primitive": "hkdf",
+      "source": "C2SP Wycheproof hkdf_sha256_test.json and hkdf_sha512_test.json subset (RFC 5869 cases)",
+      "path": "hkdf.json"
+    },
+    {
+      "primitive": "chacha20poly1305",
+      "source": "C2SP Wycheproof chacha20_poly1305_test.json subset (RFC 8439 vectors and negatives)",
+      "path": "chacha20poly1305.json"
+    },
+    {
+      "primitive": "x25519",
+      "source": "C2SP Wycheproof x25519_test.json subset (RFC 7748/8037 vectors and edge cases)",
+      "path": "x25519.json"
+    },
+    {
+      "primitive": "p256",
+      "source": "C2SP Wycheproof ecdh_secp256r1_test.json, ecdsa_secp256r1_sha256_test.json and RFC 6979 A.2.5 subset",
+      "path": "p256.json"
+    },
+    {
+      "primitive": "rsa",
+      "source": "C2SP Wycheproof rsa_signature_2048_sha256_test.json and rsa_pss_2048_sha256_mgf1_32_test.json subset",
+      "path": "rsa.json"
+    },
+    {
+      "primitive": "x509",
+      "source": "Deterministic local test PKI generated with OpenSSL 3.5 (see testdata/run/crypto_x509_pki.txtar)",
+      "path": "x509.json"
+    }
+  ]
+}

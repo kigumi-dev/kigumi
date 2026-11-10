@@ -1,0 +1,66 @@
+{
+  "primitive": "hkdf",
+  "source": "C2SP Wycheproof hkdf_sha256_test.json and hkdf_sha512_test.json subset (RFC 5869 cases)",
+  "vectors": [
+    {
+      "id": "hkdf-sha256-tc1",
+      "op": "hkdf",
+      "alg": "sha256",
+      "ikm": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+      "salt": "000102030405060708090a0b0c",
+      "info": "f0f1f2f3f4f5f6f7f8f9",
+      "length": 42,
+      "expected": "3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865"
+    },
+    {
+      "id": "hkdf-sha256-tc2",
+      "op": "hkdf",
+      "alg": "sha256",
+      "ikm": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+      "salt": "",
+      "info": "",
+      "length": 42,
+      "expected": "8da4e775a563c18f715f802a063c5a31b8a11f5c5ee1879ec3454e5f3c738d2d9d201395faa4b61a96c8"
+    },
+    {
+      "id": "hkdf-sha256-tc3",
+      "op": "hkdf",
+      "alg": "sha256",
+      "ikm": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f",
+      "salt": "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeaf",
+      "info": "b0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
+      "length": 82,
+      "expected": "b11e398dc80327a1c8e7f78c596a49344f012eda2d4efad8a050cc4c19afa97c59045a99cac7827271cb41c65e590e09da3275600c2f09b8367793a9aca3db71cc30c58179ec3e87c14c01d5c1f3434f1d87"
+    },
+    {
+      "id": "hkdf-sha512-tc70",
+      "op": "hkdf",
+      "alg": "sha512",
+      "ikm": "9fb35c09d3efebdfe522d4875d9adac74ee7eb7b845432f1cb28a9c9a48ffe63bfea2fab94106d96eff39629cf57ef5e7c3e94fb95ff8057f0894c1f352806cd",
+      "salt": "100d0324664c4c02443fc97e5186e38a256133e825398d387fd6138acc8b47833f660f52c960b74bfeb30c38fba4b6e426c17dbef9d45e582ef2857afba229ae",
+      "info": "e7bd97cdac7d9e6b",
+      "length": 64,
+      "expected": "a50e6839375e2a7eabc5a3610a12225b4e1d6a1cc0b4f600a528cd26ef5fee12336e39c57a001620c8e4cb9414316b11f11861c314c3acef48251867a2327c9d"
+    },
+    {
+      "id": "hkdf-sha512-tc71",
+      "op": "hkdf",
+      "alg": "sha512",
+      "ikm": "c132ac861d00e8aa82470baf3be3851c9f77f96b19cc2c3eb5558c20915ad16cb45c50db9b230c5279bf7b38fbf50ce68b60d7b230530f3a5f4016883f217168",
+      "salt": "4c3582c867fab84ca075da5aef6b78b8db982ee4fe33fb4500294659aad63dd7677f2f256bf719c6796ea8fdf12c46863064875a529aeef9318f344335610f82",
+      "info": "7573b95f1d8ee5d0",
+      "length": 120,
+      "expected": "d93663825963a4a2328a6e56ee7d108de95b7c981c3e62dc8df40105e4995137ca8cfa91cbffb447ffd80b0b901578aaabc6c56b3aa66734fbe98b95c1125990e14533e13d049f025880fb2834c8e5e2bbc8719deb3b207429397c19beb0160f46441f95f8b11ab2ead32c64c12d9f46d6aaa58f9e685771"
+    },
+    {
+      "id": "hkdf-sha512-tc1",
+      "op": "hkdf",
+      "alg": "sha512",
+      "ikm": "24aeff2645e3e0f5494a9a102778c43a",
+      "salt": "",
+      "info": "",
+      "length": 20,
+      "expected": "dd2599840b09699c6200b5cba79002b3aa75c61b"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "primitive": "hmac",
+  "source": "C2SP Wycheproof hmac_sha256_test.json and hmac_sha512_test.json subset",
+  "vectors": [
+    {
+      "id": "hmac-sha256-tc1",
+      "op": "hmac",
+      "alg": "sha256",
+      "key": "1e225cafb90339bba1b24076d4206c3e79c355805d851682bc818baa4f5a7779",
+      "message": "",
+      "expected": "b175b57d89ea6cb606fb3363f2538abd73a4c00b4a1386905bac809004cf1933"
+    },
+    {
+      "id": "hmac-sha256-tc2",
+      "op": "hmac",
+      "alg": "sha256",
+      "key": "8159fd15133cd964c9a6964c94f0ea269a806fd9f43f0da58b6cd1b33d189b2a",
+      "message": "77",
+      "expected": "dfc5105d5eecf7ae7b8b8de3930e7659e84c4172f2555142f1e568fc1872ad93"
+    },
+    {
+      "id": "hmac-sha256-tc163",
+      "op": "hmac",
+      "alg": "sha256",
+      "key": "a349ac0a9f9f74e48e099cc3dbf9a9c9",
+      "message": "",
+      "expected": "3a8437b877b75cc08a4d8d7559a8fc6869a58c713da63d1d4b350d59b597e30c"
+    },
+    {
+      "id": "hmac-sha256-tc169",
+      "op": "hmac",
+      "alg": "sha256",
+      "key": "8a0c46eb8a2959e39865330079763341e7439dab149694ee57e0d61ec73d947e1d5301cd974e18a5e0d1cf0d2c37e8aadd9fd589d57ef32e47024a99bc3f70c077",
+      "message": "",
+      "expected": "f5bfb940561fb4db73ebba49bf2e4893bb0cca618a71b7ecf6aca38231e167ea"
+    },
+    {
+      "id": "hmac-sha512-tc1",
+      "op": "hmac",
+      "alg": "sha512",
+      "key": "5365244bb43f23f18dfc86c09d62db4741138bec1fbddc282d295e0a098eb5c3e37bd6f4cc16d5ce7d77b1d474a1eb4db313cc0c24e48992ac125196549df9a8",
+      "message": "",
+      "expected": "d0a556bd1afa8df1ebf9e3ee683a8a2450a7c83eba2daf2e2ff2f953f0cd64da216e67134cf55578b205c8a1e241ba1369516a5ef4298b9c1d31e9d59fc04fe4"
+    },
+    {
+      "id": "hmac-sha512-tc2",
+      "op": "hmac",
+      "alg": "sha512",
+      "key": "00698977f7102c67b594166919aa99dc3e58c7b6697a6422e238d04d2f57b2c74e4e84f5c4c6b792952df72f1c09244802f0bcf8752efb90e836110703bfa21c",
+      "message": "01",
+      "expected": "4d1609cc2c2f1ab5ddc35815ae1b5dc046f226bde17ec37a4c89ec46fbd31af2aeb810b196dffdd11924d3772bef26a7a542e0a1673b76b915d41cbd3df0f6a6"
+    },
+    {
+      "id": "hmac-sha512-tc163",
+      "op": "hmac",
+      "alg": "sha512",
+      "key": "14d93759fc28f3319ab74b8167c974e800f032344dc2747ec0f4945061a47827",
+      "message": "",
+      "expected": "68934dbe948d9a77a5e0a92ed98254fa3b6c93c8bf5eeaa912b7dfdf762b37192c5d8523bcab9ad71b09bf96d8454188d001c7f2077eb641199f5731b9f94669"
+    },
+    {
+      "id": "hmac-sha512-tc169",
+      "op": "hmac",
+      "alg": "sha512",
+      "key": "dd1e0bdbb6b60862176484f3669da531455f1cd714f999c29f08b851055fee8d72186d376c236f4e16cba7a25cba879fb2753deca4459aaebc6f6de625d99af330",
+      "message": "",
+      "expected": "7e4f7d844b3ba0e025b66de7cc6227bc50d4e174930251bfff3df36c3900b5b76b00095a896d0f96842e37b6134df40760307699534d6670f138974ee1c58d94"
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "primitive": "x25519",
+  "source": "C2SP Wycheproof x25519_test.json subset (RFC 7748/8037 vectors and edge cases)",
+  "vectors": [
+    {
+      "id": "tc1",
+      "op": "x25519",
+      "secret": "c8a9d5a91091ad851c668b0736c1c9a02936c0d3ad62670858088047ba057475",
+      "peerPublic": "504a36999f489cd2fdbc08baff3d88fa00569ba986cba22548ffde80f9806829",
+      "expected": "436a2c040cf45fea9b29a0cb81b1f41458f863d0d61b453d0a982720d6d61320"
+    },
+    {
+      "id": "tc2",
+      "op": "x25519",
+      "secret": "d85d8c061a50804ac488ad774ac716c3f5ba714b2712e048491379a500211958",
+      "peerPublic": "63aa40c6e38346c5caf23a6df0a5e6c80889a08647e551b3563449befcfc9733",
+      "expected": "279df67a7c4611db4708a0e8282b195e5ac0ed6f4b2f292c6fbd0acac30d1332"
+    },
+    {
+      "id": "tc34",
+      "op": "x25519",
+      "secret": "a8386f7f16c50731d64f82e6a170b142a4e34f31fd7768fcb8902925e7d1e25a",
+      "peerPublic": "0400000000000000000000000000000000000000000000000000000000000000",
+      "expected": "34b7e4fa53264420d9f943d15513902342b386b172a0b0b7c8b8f2dd3d669f59"
+    },
+    {
+      "id": "tc100",
+      "op": "x25519",
+      "secret": "a046e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449a44",
+      "peerPublic": "e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c",
+      "expected": "c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552"
+    },
+    {
+      "id": "tc102",
+      "op": "x25519",
+      "secret": "77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a",
+      "peerPublic": "de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f",
+      "expected": "4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742"
+    },
+    {
+      "id": "tc104",
+      "op": "x25519",
+      "secret": "60a3a4f130b98a5be4b1cedb7cb85584a3520e142d474dc9ccb909a073a9767f",
+      "peerPublic": "3b18df1e50b899ebd588c3161cbd3bf98ebcc2c1f7df53b811bd0e91b4d5153d",
+      "expected": "0900000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "public-tc100",
+      "op": "x25519-public",
+      "secret": "a046e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449a44",
+      "expected": "1c9fd88f45606d932a80c71824ae151d15d73e77de38e8e000852e614fae7019"
+    },
+    {
+      "id": "public-tc102",
+      "op": "x25519-public",
+      "secret": "77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a",
+      "expected": "8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a"
+    },
+    {
+      "id": "public-tc511",
+      "op": "x25519-public",
+      "secret": "a023cdd083ef5bb82f10d62e59e15a6800000000000000000000000000000050",
+      "expected": "0900000000000000000000000000000000000000000000000000000000000000"
+    }
+  ]
+}

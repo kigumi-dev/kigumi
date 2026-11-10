@@ -1,0 +1,69 @@
+{
+  "primitive": "chacha20poly1305",
+  "source": "C2SP Wycheproof chacha20_poly1305_test.json subset (RFC 8439 vectors and negatives)",
+  "vectors": [
+    {
+      "id": "seal-tc1",
+      "op": "chacha20poly1305-seal",
+      "key": "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f",
+      "nonce": "070000004041424344454647",
+      "aad": "50515253c0c1c2c3c4c5c6c7",
+      "plaintext": "4c616469657320616e642047656e746c656d656e206f662074686520636c617373206f66202739393a204966204920636f756c64206f6666657220796f75206f6e6c79206f6e652074697020666f7220746865206675747572652c2073756e73637265656e20776f756c642062652069742e",
+      "expected": "d31a8d34648e60db7b86afbc53ef7ec2a4aded51296e08fea9e2b5a736ee62d63dbea45e8ca9671282fafb69da92728b1a71de0a9e060b2905d6a5b67ecd3b3692ddbd7f2d778b8c9803aee328091b58fab324e4fad675945585808b4831d7bc3ff4def08e4b7a9de576d26586cec64b61161ae10b594f09e26a7e902ecbd0600691"
+    },
+    {
+      "id": "open-tc1",
+      "op": "chacha20poly1305-open",
+      "key": "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f",
+      "nonce": "070000004041424344454647",
+      "aad": "50515253c0c1c2c3c4c5c6c7",
+      "sealed": "d31a8d34648e60db7b86afbc53ef7ec2a4aded51296e08fea9e2b5a736ee62d63dbea45e8ca9671282fafb69da92728b1a71de0a9e060b2905d6a5b67ecd3b3692ddbd7f2d778b8c9803aee328091b58fab324e4fad675945585808b4831d7bc3ff4def08e4b7a9de576d26586cec64b61161ae10b594f09e26a7e902ecbd0600691",
+      "expected": "4c616469657320616e642047656e746c656d656e206f662074686520636c617373206f66202739393a204966204920636f756c64206f6666657220796f75206f6e6c79206f6e652074697020666f7220746865206675747572652c2073756e73637265656e20776f756c642062652069742e"
+    },
+    {
+      "id": "seal-tc2",
+      "op": "chacha20poly1305-seal",
+      "key": "80ba3192c803ce965ea371d5ff073cf0f43b6a2ab576b208426e11409c09b9b0",
+      "nonce": "4da5bf8dfd5852c1ea12379d",
+      "aad": "",
+      "plaintext": "",
+      "expected": "76acb342cf3166a5b63c0c0ea1383c8d"
+    },
+    {
+      "id": "open-tc2",
+      "op": "chacha20poly1305-open",
+      "key": "80ba3192c803ce965ea371d5ff073cf0f43b6a2ab576b208426e11409c09b9b0",
+      "nonce": "4da5bf8dfd5852c1ea12379d",
+      "aad": "",
+      "sealed": "76acb342cf3166a5b63c0c0ea1383c8d",
+      "expected": ""
+    },
+    {
+      "id": "seal-tc4",
+      "op": "chacha20poly1305-seal",
+      "key": "cc56b680552eb75008f5484b4cb803fa5063ebd6eab91f6ab6aef4916a766273",
+      "nonce": "99e23ec48985bccdeeab60f1",
+      "aad": "",
+      "plaintext": "2a",
+      "expected": "3acac27dec0968801e9f6eded69d807522"
+    },
+    {
+      "id": "open-tc4",
+      "op": "chacha20poly1305-open",
+      "key": "cc56b680552eb75008f5484b4cb803fa5063ebd6eab91f6ab6aef4916a766273",
+      "nonce": "99e23ec48985bccdeeab60f1",
+      "aad": "",
+      "sealed": "3acac27dec0968801e9f6eded69d807522",
+      "expected": "2a"
+    },
+    {
+      "id": "open-invalid-tc146",
+      "op": "chacha20poly1305-open",
+      "key": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+      "nonce": "000102030405060708090a0b",
+      "aad": "000102",
+      "sealed": "f5409bb729039d0814ac514054323f44",
+      "expected": "error:chacha20poly1305: authentication tag mismatch"
+    }
+  ]
+}
