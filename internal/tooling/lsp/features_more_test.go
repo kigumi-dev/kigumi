@@ -165,7 +165,7 @@ func TestSuggestionFix(t *testing.T) {
 // Scope-aware completion offers what is visible with its kind and type,
 // and not names from an unrelated inner scope.
 func TestScopeCompletion(t *testing.T) {
-	src := "fn helper(n: Int) -> Int {\n    n\n}\n\nlet total = 1\nprint \"${tot}\"\n"
+	src := "fn helper(helperParam: Int) -> Int {\n    helperParam\n}\n\nlet total = 1\nprint \"${tot}\"\n"
 	s, ctx, doc, _ := openModule(t, src)
 	items := completionLabels(t, s, ctx, doc, 5, 12)
 	if it, ok := items["total"]; !ok || it.Kind != protocol.CompletionItemKindVariable {
@@ -174,7 +174,7 @@ func TestScopeCompletion(t *testing.T) {
 	if it, ok := items["helper"]; !ok || it.Kind != protocol.CompletionItemKindFunction {
 		t.Fatalf("helper missing or not a function: %v", labelsOf(items))
 	}
-	if _, ok := items["n"]; ok {
+	if _, ok := items["helperParam"]; ok {
 		t.Fatalf("a parameter of another function leaked into completion")
 	}
 }

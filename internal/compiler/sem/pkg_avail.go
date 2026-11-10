@@ -38,6 +38,7 @@ var stdLayer = map[string]Layer{
 	"std/crypto/rsa":              LayerAllocation,
 	"std/crypto/x509":             LayerAllocation,
 	"std/secret":                  LayerFoundation,
+	"std/secret/oram":             LayerAllocation,
 	"std/alloc":                   LayerAllocation,
 	"std/arch":                    LayerFoundation,
 	"std/atomic":                  LayerFoundation,
