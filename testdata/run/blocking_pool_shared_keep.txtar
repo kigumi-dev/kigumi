@@ -4,7 +4,7 @@ import alloc from std/alloc
 fn churn() -> Int { let mut arr: Array[String] = Array.of("x"); for i in 100..400 { arr.push("w${i}") }; arr.len().toInt() || 0 }
 fn putIn(s: alloc.Shared[Future[Int]?], h: Future[Int]) { s.set(Some(h)) }
 async fn putAsync(s: alloc.Shared[Future[Int]?], h: Future[Int]) -> Int { s.set(Some(h)); 0 }
-fn startInto[F: FnOnce[fn() -> Int]](s: alloc.Shared[Future[Int]?], pool: task.BlockingPool, w: escaping F) { s.set(Some(pool.run(w).unwrap())) }
+fn startInto[F: FnOnce[fn() -> Int] + Send](s: alloc.Shared[Future[Int]?], pool: task.BlockingPool, w: escaping F) { s.set(Some(pool.run(w).unwrap())) }
 fn finish(h: Future[Int]) -> Int { 0 }
 fn seenOf(r: &String) -> String {
     let mut seen = Array.empty[usize]()
@@ -16,7 +16,7 @@ async fn droppedInBlock() -> String {
     let mut other = "o${churn()}"
     {
         let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
-        s.set(Some(pool.run(() => { for i in 0..300 { other = "b${i}${churn()}" }; 1 }).unwrap()))
+        s.set(Some(pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "b${i}${churn()}" }; 1 }).unwrap()))
     }
     seenOf(&other)
 }
@@ -24,41 +24,41 @@ async fn awaitedBeforeSet() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
     let s: alloc.Shared[Int?] = alloc.Shared.new(None)
-    s.set(Some(await pool.run(() => { for i in 0..300 { other = "a${i}${churn()}" }; 2 }).unwrap()))
+    s.set(Some(await pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "a${i}${churn()}" }; 2 }).unwrap()))
     "${seenOf(&other)} ${s.get() || 0}"
 }
 async fn setDroppingValue() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
     let s: alloc.Shared[Int?] = alloc.Shared.new(None)
-    s.set(Some(finish(pool.run(() => { for i in 0..300 { other = "d${i}${churn()}" }; 3 }).unwrap())))
+    s.set(Some(finish(pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "d${i}${churn()}" }; 3 }).unwrap())))
     seenOf(&other)
 }
 async fn helperConsumesShared() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
     let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
-    putIn(s, pool.run(() => { for i in 0..300 { other = "h${i}${churn()}" }; 4 }).unwrap())
+    putIn(s, pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "h${i}${churn()}" }; 4 }).unwrap())
     seenOf(&other)
 }
 async fn offloaderConsumesShared() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
     let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
-    startInto(s, pool, () => { for i in 0..300 { other = "s${i}${churn()}" }; 5 })
+    startInto(s, pool, () => { let mut mine = ""; for i in 0..300 { mine = "s${i}${churn()}" }; 5 })
     seenOf(&other)
 }
 async fn asyncHelperConsumesShared() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
     let s: alloc.Shared[Future[Int]?] = alloc.Shared.new(None)
-    let n = await putAsync(s, pool.run(() => { for i in 0..300 { other = "y${i}${churn()}" }; 6 }).unwrap())
+    let n = await putAsync(s, pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "y${i}${churn()}" }; 6 }).unwrap())
     "${seenOf(&other)} ${n}"
 }
 async fn awaitedFromNamedResult() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    let res = pool.run(() => { for i in 0..300 { other = "r${i}${churn()}" }; 7 })
+    let res = pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "r${i}${churn()}" }; 7 })
     let n = match res {
         Ok(f) -> await f,
         Err(e) -> 0
@@ -68,7 +68,7 @@ async fn awaitedFromNamedResult() -> String {
 async fn errArmFirst() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    let res = pool.run(() => { for i in 0..300 { other = "e${i}${churn()}" }; 8 })
+    let res = pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "e${i}${churn()}" }; 8 })
     let n = match res {
         Err(e) -> 0,
         Ok(f) -> await f
@@ -78,7 +78,7 @@ async fn errArmFirst() -> String {
 async fn droppedFromTemporaryResult() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    let n = match pool.run(() => { for i in 0..300 { other = "t${i}${churn()}" }; 9 }) {
+    let n = match pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "t${i}${churn()}" }; 9 }) {
         Ok(f) -> 1,
         Err(e) -> 0
     }
@@ -95,12 +95,12 @@ print ex.runToCompletion(awaitedFromNamedResult())
 print ex.runToCompletion(errArmFirst())
 print ex.runToCompletion(droppedFromTemporaryResult())
 -- stdout --
-[7] b299301
-[7] a299301 2
-[7] d299301
-[7] h299301
-[7] s299301
-[7] y299301 0
-[7] r299301 7
-[7] e299301 8
-[7] t299301 1
+[4] o301
+[4] o301 2
+[4] o301
+[4] o301
+[4] o301
+[4] o301 0
+[4] o301 7
+[4] o301 8
+[4] o301 1

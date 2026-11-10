@@ -11,12 +11,17 @@ type constraintCheck struct {
 	subst map[EntityID]TypeID
 	value bool
 	held  *valueInstData
+	site  EntityID
 }
 
 func (c *checker) deferConstraints(n syntax.NodeID, params []EntityID, inst []TypeID, subst map[EntityID]TypeID) {
+	site := c.fn
+	if len(c.lambdas) > 0 {
+		site = c.lambdas[len(c.lambdas)-1].ent
+	}
 	for i, p := range params {
 		if i < len(inst) && len(c.r.typeParam(p).Constraints) > 0 {
-			c.constraints = append(c.constraints, constraintCheck{n, p, inst[i], subst, false, nil})
+			c.constraints = append(c.constraints, constraintCheck{n, p, inst[i], subst, false, nil, site})
 		}
 	}
 }
@@ -47,6 +52,9 @@ func (c *checker) checkConstraints() {
 				}
 			}
 			if isFnKind(con.Kind) && c.rejectFnValueBound(cc.node, arg, con) {
+				continue
+			}
+			if c.deferThread(cc, arg, con) {
 				continue
 			}
 			if why := c.unsatisfied(arg, con); why != "" {
@@ -113,12 +121,12 @@ func (c *checker) unsatisfied(arg TypeID, con Constraint) string {
 		if c.r.isSend(arg) {
 			return ""
 		}
-		return "it cannot move to another thread"
+		return c.r.closureThreadWhy(arg, false, 0)
 	case CSync:
 		if c.r.isSync(arg) {
 			return ""
 		}
-		return "it cannot be shared between threads"
+		return c.r.closureThreadWhy(arg, true, 0)
 	case CFn, CFnMut, CFnOnce:
 		return c.fnUnsatisfied(arg, con)
 	}

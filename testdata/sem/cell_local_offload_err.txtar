@@ -1,5 +1,6 @@
 -- module --
 mir: planned
+send-bounds: off
 -- src --
 import task from std/task
 

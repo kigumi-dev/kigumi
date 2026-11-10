@@ -1,0 +1,98 @@
+-- src --
+import task from std/task
+
+// What a pool closure may take to the worker: copies, owned Send values, and a Send result.
+/// Safety: it holds only an Int, so moving it to the pool thread moves nothing shared.
+@unsafeGuarantee(Send)
+type Socket = resource {
+    pub fd Int
+}
+
+fn Socket.drop(move self) {
+    print "socket ${self.fd} dropped"
+}
+
+fn Socket.peek(self) -> Int { self.fd }
+
+type Failure = {
+    text String
+}
+
+fn Failure.message(self) -> String { self.text }
+
+fn fetch(fd: Int) -> Result[Socket, Failure] {
+    if fd < 0 {
+        return Err(Failure { text: "bad fd ${fd}" })
+    }
+    Ok(Socket { fd: fd })
+}
+
+fn compute() -> Int { 7 }
+
+context limit: Int
+
+@provides(limit)
+type Limits = {
+    pub limit Int
+}
+
+fn doubled() -> Int { limit * 2 }
+
+fn offloadSend[F: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, f: escaping F) -> Future[Int] {
+    pool.run(f).unwrap()
+}
+
+async fn root(label: String) -> String {
+    let pool = task.BlockingPool.new(4)
+    let n = 41
+    let a = await pool.run(() => n + 1).unwrap()
+    let name = "worker"
+    let xs = Array.of(1, 2, 3)
+    let b = await pool.run(move () => (name.len().toInt() || 0) + (xs.len().toInt() || 0)).unwrap()
+    let s = Socket { fd: 5 }
+    let w = move () => s.peek() * 2
+    let c = await pool.run(w).unwrap()
+    let got = await pool.run(() => fetch(7)).unwrap()
+    let d = match got {
+        Ok(sock) -> sock.peek(),
+        Err(e) -> -1
+    }
+    let bad = await pool.run(() => fetch(-2)).unwrap()
+    let e = match bad {
+        Ok(sock) -> sock.peek(),
+        Err(f) -> f.text.len().toInt() || 0
+    }
+    let k = 9
+    let g = await offloadSend(task.BlockingPool.new(1), () => k + 1)
+    let run = pool.run
+    let m = 6
+    let f = await run(() => m * 3).unwrap()
+    let h = await task.BlockingPool.new(1).run(compute).unwrap()
+    let item = compute
+    let i = await task.BlockingPool.new(1).run(item).unwrap()
+    let j = await offloadSend(task.BlockingPool.new(1), compute)
+    let l = context (Limits { limit: 4 }) {
+        await task.BlockingPool.new(1).run(() => doubled()).unwrap()
+    }
+    let m = await task.BlockingPool.new(1).run((compute)).unwrap()
+    let reader = await task.BlockingPool.new(1).run(() => {
+        let own = Socket { fd: 9 }
+        () => own.peek()
+    }).unwrap()
+    let o = reader()
+    "${label}: ${a} ${b} ${c} ${d} ${e} ${f} ${g} ${h} ${i} ${j} ${l} ${m} ${o}"
+}
+
+let threads = task.threadPoolExecutor(2)
+print threads.runToCompletion(root("threads"))
+let current = task.currentThreadExecutor()
+print current.runToCompletion(root("current"))
+-- stdout --
+socket 5 dropped
+socket 7 dropped
+socket 9 dropped
+threads: 42 9 10 7 9 18 10 7 7 7 8 7 9
+socket 5 dropped
+socket 7 dropped
+socket 9 dropped
+current: 42 9 10 7 9 18 10 7 7 7 8 7 9

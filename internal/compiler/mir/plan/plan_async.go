@@ -18,6 +18,7 @@ func planAsync(p *planner) error {
 		planFrame(f, p)
 		mirmobility.Classify(f, p.R)
 	}
+	mirmobility.PinLentReads(p.Program)
 	mirmobility.Refine(p.Program)
 	return nil
 }

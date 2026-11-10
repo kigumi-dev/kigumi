@@ -2011,6 +2011,33 @@
       ]
     },
     {
+      "id": "run/async_handoff_frame_read",
+      "kind": "run",
+      "path": "testdata/run/async_handoff_frame_read.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/async_handoff_nested_read",
+      "kind": "run",
+      "path": "testdata/run/async_handoff_nested_read.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/async_handoff_returned_read",
+      "kind": "run",
+      "path": "testdata/run/async_handoff_returned_read.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/async_method",
       "kind": "run",
       "path": "testdata/run/async_method.txtar",
@@ -2212,6 +2239,15 @@
       "id": "run/async_spawn_in_defer",
       "kind": "run",
       "path": "testdata/run/async_spawn_in_defer.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/async_spawn_lent_read",
+      "kind": "run",
+      "path": "testdata/run/async_spawn_lent_read.txtar",
       "mode": [
         "vm",
         "native"
@@ -3076,6 +3112,24 @@
       "id": "run/blocking_pool_panic",
       "kind": "run",
       "path": "testdata/run/blocking_pool_panic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/blocking_pool_result_reads",
+      "kind": "run",
+      "path": "testdata/run/blocking_pool_result_reads.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/blocking_pool_send_captures",
+      "kind": "run",
+      "path": "testdata/run/blocking_pool_send_captures.txtar",
       "mode": [
         "vm",
         "native"
@@ -16089,6 +16143,38 @@
       "id": "sem/pointer_box_scoped",
       "kind": "sem",
       "path": "testdata/sem/pointer_box_scoped.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/pool_lent_read_spawn",
+      "kind": "sem",
+      "path": "testdata/sem/pool_lent_read_spawn.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/pool_send_capture_err",
+      "kind": "sem",
+      "path": "testdata/sem/pool_send_capture_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/pool_send_capture_ok",
+      "kind": "sem",
+      "path": "testdata/sem/pool_send_capture_ok.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/pool_send_closure_chain",
+      "kind": "sem",
+      "path": "testdata/sem/pool_send_closure_chain.txtar",
       "mode": [
         "check"
       ]

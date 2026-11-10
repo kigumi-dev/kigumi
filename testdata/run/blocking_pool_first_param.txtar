@@ -5,7 +5,7 @@ type Store = { s alloc.Shared[Future[Int]?] }
 fn churn() -> Int { let mut arr: Array[String] = Array.of("x"); for i in 100..400 { arr.push("w${i}") }; arr.len().toInt() || 0 }
 fn dropShared(s: alloc.Shared[Future[Int]?]) {}
 fn same(s: alloc.Shared[Future[Int]?]) -> alloc.Shared[Future[Int]?] { s }
-fn startIn[F: FnOnce[fn() -> Int]](pool: task.BlockingPool, out: &mut Array[Future[Int]], w: escaping F) { out.push(pool.run(w).unwrap()) }
+fn startIn[F: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, out: &mut Array[Future[Int]], w: escaping F) { out.push(pool.run(w).unwrap()) }
 fn seenOf(r: &String) -> String {
     let mut seen = Array.empty[usize]()
     for j in 0..3000 { let l = r.len(); if seen.len() == 0 || seen[seen.len() - 1] != l { seen.push(l) } }
@@ -15,7 +15,7 @@ async fn paramCloneAwaited(p: alloc.Shared[Future[Int]?]) -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
     let t = p.clone()
-    let n = await pool.run(() => { for i in 0..300 { other = "c${i}${churn()}" }; 1 }).unwrap()
+    let n = await pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "c${i}${churn()}" }; 1 }).unwrap()
     t.set(Some(pool.run(() => n + 10).unwrap()))
     dropShared(t)
     "${seenOf(&other)} ${n}"
@@ -24,7 +24,7 @@ async fn paramAliasAwaited(p: alloc.Shared[Future[Int]?]) -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
     let t = p
-    let n = await pool.run(() => { for i in 0..300 { other = "a${i}${churn()}" }; 2 }).unwrap()
+    let n = await pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "a${i}${churn()}" }; 2 }).unwrap()
     t.set(Some(pool.run(() => n + 10).unwrap()))
     dropShared(t)
     "${seenOf(&other)} ${n}"
@@ -33,7 +33,7 @@ async fn paramHelperAliasAwaited(p: alloc.Shared[Future[Int]?]) -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
     let t = same(p)
-    let n = await pool.run(() => { for i in 0..300 { other = "h${i}${churn()}" }; 3 }).unwrap()
+    let n = await pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "h${i}${churn()}" }; 3 }).unwrap()
     t.set(Some(pool.run(() => n + 10).unwrap()))
     dropShared(t)
     "${seenOf(&other)} ${n}"
@@ -41,21 +41,21 @@ async fn paramHelperAliasAwaited(p: alloc.Shared[Future[Int]?]) -> String {
 async fn Store.selfFieldAwaited(self) -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    let n = await pool.run(() => { for i in 0..300 { other = "s${i}${churn()}" }; 4 }).unwrap()
+    let n = await pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "s${i}${churn()}" }; 4 }).unwrap()
     self.s.set(Some(pool.run(() => n + 10).unwrap()))
     "${seenOf(&other)} ${n}"
 }
 async fn paramFieldAwaited(st: Store) -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    let n = await pool.run(() => { for i in 0..300 { other = "f${i}${churn()}" }; 5 }).unwrap()
+    let n = await pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "f${i}${churn()}" }; 5 }).unwrap()
     st.s.set(Some(pool.run(() => n + 10).unwrap()))
     "${seenOf(&other)} ${n}"
 }
 async fn reassignedFirstParamAwaited(mut h: Future[Int]?) -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    h = Some(pool.run(() => { for i in 0..300 { other = "r${i}${churn()}" }; 6 }).unwrap())
+    h = Some(pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "r${i}${churn()}" }; 6 }).unwrap())
     let g = h
     let n = match g {
         Some(f) -> await f,
@@ -66,7 +66,7 @@ async fn reassignedFirstParamAwaited(mut h: Future[Int]?) -> String {
 async fn awaitedPayloadBesideParam(x: Future[Int]) -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    let o = Some(pool.run(() => { for i in 0..300 { other = "p${i}${churn()}" }; 7 }).unwrap())
+    let o = Some(pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "p${i}${churn()}" }; 7 }).unwrap())
     let n = match o {
         Some(f) -> await f,
         None -> 0
@@ -79,7 +79,7 @@ async fn plainLendBesideFirstParam(g: Future[Int]) -> String {
     let mut other = "o${churn()}"
     {
         let mut fs: Array[Future[Int]] = Array.empty()
-        startIn(pool, &mut fs, () => { for i in 0..300 { other = "l${i}${churn()}" }; 8 })
+        startIn(pool, &mut fs, () => { let mut mine = ""; for i in 0..300 { mine = "l${i}${churn()}" }; 8 })
     }
     let seen = seenOf(&other)
     "${seen} ${await g}"
@@ -97,11 +97,11 @@ print ex.runToCompletion(reassignedFirstParamAwaited(None))
 print ex.runToCompletion(awaitedPayloadBesideParam(nine()))
 print ex.runToCompletion(plainLendBesideFirstParam(nine()))
 -- stdout --
-[7] c299301 1
-[7] a299301 2
-[7] h299301 3
-[7] s299301 4
-[7] f299301 5
-[7] r299301 6
-[7] p299301 7 9
-[7] l299301 9
+[4] o301 1
+[4] o301 2
+[4] o301 3
+[4] o301 4
+[4] o301 5
+[4] o301 6
+[4] o301 7 9
+[4] o301 9

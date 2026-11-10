@@ -1,6 +1,8 @@
 -- src --
 import task from std/task
 
+/// Safety: it holds only an Int, so moving it to the pool thread moves nothing shared.
+@unsafeGuarantee(Send)
 type Res = resource {
     pub id Int
 }

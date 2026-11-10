@@ -119,6 +119,7 @@ func analyzeBorrows(state *Analyzer, f *midir.Func) {
 	c := &borrowCheck{p: p, f: f, state: state, holders: map[midir.LocalID]*borrowInfo{}, reported: map[reportKey]int{}, keptTemp: map[midir.LocalID]bool{}}
 	c.collect()
 	c.checkOffloads()
+	c.checkThreadBounds()
 	if len(c.holders) == 0 {
 		return
 	}

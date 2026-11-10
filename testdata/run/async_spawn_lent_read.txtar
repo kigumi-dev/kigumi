@@ -1,0 +1,101 @@
+-- src --
+import task from std/task
+import mem from std/mem
+import {Box} from std/alloc
+
+// root lends c in place to the closure it spawns a task with; root then stays on that task's lane, so the two
+// bumps never run at once even on a thread pool.
+/// For one thread at a time: Send (moving it moves the Int) but not Sync.
+type Counter = {
+    c mem.UnsafeCell[Int]
+}
+
+fn Counter.bump(self) -> Int {
+    unsafe { self.c.set(self.c.get() + 1) }
+    0
+}
+
+fn Counter.read(self) -> Int { unsafe { self.c.get() } }
+
+async fn worker[F: Fn[fn() -> Int]](f: F) -> Int {
+    for i in 0..30000 {
+        _ = f()
+        if i % 100 == 0 { await task.yieldNow() }
+    }
+    0
+}
+
+async fn root() -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(0) }
+    let w = () => c.bump()
+    let t = task.spawn(worker(w))
+    for j in 0..30000 {
+        _ = c.bump()
+        if j % 100 == 0 { await task.yieldNow() }
+    }
+    _ = await t
+    c.read()
+}
+
+// The same, with the spawn one lambda down.
+async fn rootViaLambda() -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(0) }
+    let launch = () => {
+        let w = () => c.bump()
+        task.spawn(worker(w))
+    }
+    let t = launch()
+    for j in 0..30000 {
+        _ = c.bump()
+        if j % 100 == 0 { await task.yieldNow() }
+    }
+    _ = await t
+    c.read()
+}
+
+// A Sync local read in place leaves the frame free to move, even to another executor.
+async fn sumWorker[F: Fn[fn() -> Int]](f: F) -> Int {
+    let mut s = 0
+    for i in 0..30000 {
+        s = s + f()
+        if i % 100 == 0 { await task.yieldNow() }
+    }
+    s
+}
+
+async fn rootSync() -> Int {
+    let b = Box.new(2)
+    let w = () => b.get()
+    let t = task.spawn(sumWorker(w))
+    let mut s = 0
+    for j in 0..30000 {
+        s = s + b.get()
+        if j % 100 == 0 { await task.yieldNow() }
+    }
+    s + await t
+}
+
+async fn top() -> Int {
+    let a = task.spawn(root())
+    await a
+}
+
+async fn topViaLambda() -> Int {
+    let a = task.spawn(rootViaLambda())
+    await a
+}
+
+async fn handSync(other: task.Executor) -> Int {
+    let a = other.handoff(rootSync())
+    await a
+}
+
+print "current ${task.currentThreadExecutor().runToCompletion(top())}"
+print "threads ${task.threadPoolExecutor(4).runToCompletion(top())}"
+print "lambda ${task.threadPoolExecutor(4).runToCompletion(topViaLambda())}"
+print "sync ${task.threadPoolExecutor(4).runToCompletion(handSync(task.threadPoolExecutor(2)))}"
+-- stdout --
+current 60000
+threads 60000
+lambda 60000
+sync 120000

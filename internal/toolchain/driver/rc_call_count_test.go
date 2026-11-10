@@ -599,6 +599,12 @@ var addedAfterBaseline = map[string]bool{
 	"secret_declassify.txtar":                       true,
 	"layout_align16.txtar":                          true,
 	"handle_table_wrong_receiver.txtar":             true,
+	"blocking_pool_send_captures.txtar":             true,
+	"async_handoff_frame_read.txtar":                true,
+	"async_spawn_lent_read.txtar":                   true,
+	"async_handoff_nested_read.txtar":               true,
+	"async_handoff_returned_read.txtar":             true,
+	"blocking_pool_result_reads.txtar":              true,
 }
 
 func TestRCCallCounts(t *testing.T) {

@@ -23,6 +23,7 @@ func (r *Result) checkImplicitMain(id EntityID) {
 	}
 	c.closeBlock()
 	c.escapeHolderUses(t.Root)
+	c.flushThreadChecks()
 	c.flushValueIfaceChecks()
 	c.settleExclusive()
 	c.settleInlineAt(true)

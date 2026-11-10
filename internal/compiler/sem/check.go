@@ -195,5 +195,6 @@ func (c *checker) checkBodyBlock(body syntax.NodeID) {
 	c.checkEscapeTailReturn(body)
 	c.finish()
 	c.escapeHolderUses(body)
+	c.flushThreadChecks()
 	c.flushValueIfaceChecks()
 }

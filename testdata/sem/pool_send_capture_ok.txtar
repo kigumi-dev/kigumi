@@ -1,0 +1,244 @@
+-- module --
+mir: planned
+-- src --
+import task from std/task
+
+/// Safety: it holds only an Int, so moving it to the pool thread moves nothing shared.
+@unsafeGuarantee(Send)
+type Socket = resource {
+    fd Int
+}
+
+fn Socket.peek(self) -> Int { self.fd }
+fn Socket.close(move self) -> Int { self.fd }
+
+type Failure = {
+    text String
+}
+
+fn Failure.message(self) -> String { self.text }
+
+fn compute() -> Int { 7 }
+
+context limit: Int
+
+@provides(limit)
+type Limits = {
+    pub limit Int
+}
+
+fn doubled() -> Int { limit * 2 }
+
+fn fetch(fd: Int) -> Result[Socket, Failure] {
+    if fd < 0 {
+        return Err(Failure { text: "bad fd" })
+    }
+    Ok(Socket { fd: fd })
+}
+
+fn offloadSend[F: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, f: escaping F) -> Future[Int] {
+    pool.run(f).unwrap()
+}
+
+async fn directInt(pool: task.BlockingPool) -> Int {
+    let n = 41
+    await pool.run(() => n + 1).unwrap()
+}
+
+async fn directSendValues(pool: task.BlockingPool) -> Int {
+    let s = Socket { fd: 3 }
+    let name = "w"
+    let xs = Array.of(1, 2, 3)
+    await pool.run(move () => s.close() + (name.len().toInt() || 0) + (xs.len().toInt() || 0)).unwrap()
+}
+
+async fn directMoveStored(pool: task.BlockingPool) -> Int {
+    let s = Socket { fd: 4 }
+    let w = move () => s.peek()
+    await pool.run(w).unwrap()
+}
+
+async fn directFnItem(pool: task.BlockingPool) -> Int {
+    await pool.run(compute).unwrap()
+}
+
+async fn directLocalFnItem(pool: task.BlockingPool) -> Int {
+    let g = compute
+    await pool.run(g).unwrap()
+}
+
+async fn directSendContext(pool: task.BlockingPool) -> Int {
+    context (Limits { limit: 4 }) {
+        await pool.run(() => doubled()).unwrap()
+    }
+}
+
+async fn directWrappedFn(pool: task.BlockingPool) -> Int {
+    await pool.run(() => compute()).unwrap()
+}
+
+async fn directSendResult(pool: task.BlockingPool) -> Int! {
+    let fd = 9
+    let got = await pool.run(() => fetch(fd)).unwrap()
+    let s = got?
+    s.close()
+}
+
+async fn directCellInside(pool: task.BlockingPool) -> Int {
+    await pool.run(() => {
+        let mut acc = 0
+        for i in 0..4 {
+            acc = acc + i
+        }
+        acc
+    }).unwrap()
+}
+
+async fn valueInt(pool: task.BlockingPool) -> Int {
+    let n = 5
+    let run = pool.run
+    await run(() => n * 2).unwrap()
+}
+
+async fn valueSendValue(pool: task.BlockingPool) -> Int {
+    let s = Socket { fd: 6 }
+    let run = pool.run
+    await run(() => s.close()).unwrap()
+}
+
+async fn helperInt(pool: task.BlockingPool) -> Int {
+    let n = 8
+    await offloadSend(pool, () => n + 2)
+}
+
+async fn helperFnItem(pool: task.BlockingPool) -> Int {
+    await offloadSend(pool, compute)
+}
+
+async fn valueSendContext(pool: task.BlockingPool) -> Int {
+    context (Limits { limit: 5 }) {
+        let run = pool.run
+        await run(() => doubled()).unwrap()
+    }
+}
+
+async fn valueFnItem(pool: task.BlockingPool) -> Int {
+    let run = pool.run
+    await run(compute).unwrap()
+}
+
+async fn readInOwnFrame(k: Int) -> Int {
+    let s = Socket { fd: k }
+    let w = () => s.peek()
+    await task.yieldNow()
+    let a = w()
+    await task.yieldNow()
+    a + s.peek()
+}
+
+async fn handOffOwnFrame(other: task.Executor) -> Int {
+    let t = other.handoff(readInOwnFrame(5))
+    await t
+}
+
+async fn readMovedAcross[F: FnOnce[fn() -> Int] + Send](w: escaping F) -> Int {
+    await task.yieldNow()
+    w()
+}
+
+async fn handOffMovedRead(other: task.Executor) -> Int {
+    let s = Socket { fd: 6 }
+    let w = move () => s.peek()
+    let t = other.handoff(readMovedAcross(w))
+    await t
+}
+
+async fn parenFnItem(pool: task.BlockingPool) -> Int {
+    await pool.run((compute)).unwrap()
+}
+
+async fn valueCapturedItem(pool: task.BlockingPool) -> Int {
+    let run = pool.run
+    let k = () => run(compute)
+    await k().unwrap()
+}
+
+async fn resultReadsOwnFrame(pool: task.BlockingPool) -> Int {
+    let g = await pool.run(() => {
+        let s = Socket { fd: 5 }
+        () => s.peek()
+    }).unwrap()
+    g()
+}
+
+async fn nestedReadInOwnFrame(k: Int) -> Int {
+    let s = Socket { fd: k }
+    let mk = () => {
+        () => s.peek()
+    }
+    let w = mk()
+    await task.yieldNow()
+    w() + s.peek()
+}
+
+async fn handOffNestedRead(other: task.Executor) -> Int {
+    let t = other.handoff(nestedReadInOwnFrame(5))
+    await t
+}
+
+async fn returnedByLambda(other: task.Executor) -> Int {
+    let t = other.handoff(readReturnedByLambda(5))
+    await t
+}
+
+async fn readReturnedByLambda(k: Int) -> Int {
+    let mk = () => {
+        let s = Socket { fd: k }
+        () => s.peek()
+    }
+    let w = mk()
+    await task.yieldNow()
+    w() + 1
+}
+
+async fn resultFromNestedLambda(pool: task.BlockingPool) -> Int {
+    let g = await pool.run(() => {
+        let mk = () => {
+            let s = Socket { fd: 5 }
+            () => s.peek()
+        }
+        mk()
+    }).unwrap()
+    g()
+}
+
+async fn resultReadsMovedLocal(pool: task.BlockingPool) -> Int {
+    let s = Socket { fd: 5 }
+    let g = await pool.run(move () => { () => s.peek() }).unwrap()
+    g()
+}
+
+fn shipWith[T: Send, F: Fn[fn() -> T] + Send](pool: task.BlockingPool, f: escaping F, extra: T) -> Future[T] {
+    pool.run(move () => {
+        let _ = f()
+        extra
+    }).unwrap()
+}
+
+async fn extraFromFinishedLambda(pool: task.BlockingPool) -> Int {
+    let mk = () => () => {
+        let s = Socket { fd: 5 }
+        () => s.peek()
+    }
+    let c1 = mk()
+    let c2 = mk()
+    let g = c1()
+    let h = await shipWith(pool, c2, g)
+    h()
+}
+
+async fn helperSendValue(pool: task.BlockingPool) -> Int {
+    let s = Socket { fd: 11 }
+    await offloadSend(pool, () => s.close())
+}
+-- expect --

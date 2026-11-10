@@ -3,6 +3,8 @@ import task from std/task
 import time from std/time
 
 // Dropping a pending result waits for the closure, so its captured value is released only afterwards.
+/// Safety: it holds only an Int, so moving it to the pool thread moves nothing shared.
+@unsafeGuarantee(Send)
 type Guard = resource {
     pub id Int
 }
@@ -15,7 +17,7 @@ async fn root() -> Int! {
     let pool = task.BlockingPool.new(2)
     {
         let g = Guard { id: 1 }
-        let fut = pool.run(() => {
+        let fut = pool.run(move () => {
             time.sleep(200)
             print "closure done ${g.id}"
             0

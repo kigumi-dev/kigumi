@@ -29,7 +29,7 @@ async fn stalled(n: net.Net, listener: net.Listener) -> Void! {
     let stop = http.Shutdown.new()
     let running = task.spawn(server.serve(listener, stop.clone()))
     let pool = task.BlockingPool.new(1)
-    let mut conn = (await pool.run(() => n.connect("127.0.0.1", port)).unwrap())?
+    let mut conn = await pool.run(() => n.connect("127.0.0.1", port).unwrap()).unwrap()
     _ = (await writeAll(&mut conn, "GET /big HTTP/1.1\r\nHost: t\r\n\r\n".toBytes()))?
     let start = time.monotonic()
     for start.elapsedMillis() < 800 {

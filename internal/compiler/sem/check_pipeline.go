@@ -42,6 +42,7 @@ func (r *Result) phases() []func() {
 		// Must precede checkEffects: it appends hidden provider captures to
 		// ClosureInfo.Captures, which computeDrop/computeDropOp read.
 		r.checkContextRequirements,
+		r.checkThreadBounds,
 		r.checkEffects,
 		r.checkInterruptHandlers,
 		r.checkAsyncDirectBlocking,

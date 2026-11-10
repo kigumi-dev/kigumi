@@ -29,7 +29,7 @@ func CheckHandoff(p *mir.Program) {
 				if ent == 0 || p.R.Fn(ent).Mobility != sem.MobilityExecutorBound {
 					continue
 				}
-				emitHandoffDiag(p, f, in.Node, p.R.Fn(ent).BoundBy)
+				emitHandoffDiag(p, f, in.Node, p.R.Fn(ent))
 			}
 		}
 	}
@@ -87,7 +87,7 @@ func (t *futureTrace) origin(l midir.LocalID) midir.LocalID {
 	return l
 }
 
-func emitHandoffDiag(p *mir.Program, f *midir.Func, node syntax.NodeID, boundBy string) {
+func emitHandoffDiag(p *mir.Program, f *midir.Func, node syntax.NodeID, bound *sem.FnInfo) {
 	c, ok := sem.CodeByName("handoff-executor-bound")
 	if !ok {
 		return
@@ -95,10 +95,16 @@ func emitHandoffDiag(p *mir.Program, f *midir.Func, node syntax.NodeID, boundBy 
 	if node == 0 {
 		node = p.R.Entity(f.Ent).Node
 	}
-	msg := sem.FillTemplate(c.Template, boundBy)
+	msg := sem.FillTemplate(c.Template, bound.BoundBy)
 	if c.Help != "" {
 		msg += "; " + c.Help
 	}
 	t := p.R.Tree(f.File)
-	f.Diags = append(f.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(node)), Msg: msg, Code: c.Num})
+	d := diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(node)), Msg: msg, Code: c.Num}
+	if rs := bound.BoundRead; rs.Closure != 0 {
+		x, cl := p.R.Entity(rs.Local), p.R.Entity(rs.Closure)
+		note := "`" + x.Name + "`, a `" + p.R.TypeString(x.Type) + "` that is not Sync, is read in place by this closure, which is handed to another task"
+		d.Notes = append(d.Notes, diag.Diagnostic{Severity: diag.Note, Loc: diag.At(p.R.Tree(cl.File).File, p.R.Tree(cl.File).Span(cl.Node)), Msg: note})
+	}
+	f.Diags = append(f.Diags, d)
 }

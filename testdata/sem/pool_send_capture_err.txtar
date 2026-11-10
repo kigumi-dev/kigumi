@@ -1,0 +1,456 @@
+-- src --
+import task from std/task
+import {Shared} from std/alloc
+
+type Handle = resource {
+    fd Int
+}
+
+fn Handle.close(self) -> Int { self.fd }
+
+/// Safety: it holds only an Int.
+@unsafeGuarantee(Send)
+type Socket = resource {
+    fd Int
+}
+
+fn Socket.peek(self) -> Int { self.fd }
+
+fn compute() -> Int { 7 }
+
+context counter: Shared[Int]
+
+@provides(counter)
+type Env = {
+    pub counter Shared[Int]
+}
+
+fn bump() -> Int {
+    counter.set(counter.get() + 1)
+    0
+}
+
+fn parsed() -> Int! { 3 }
+
+fn offloadSend[F: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, f: escaping F) -> Future[Int] {
+    pool.run(f).unwrap()
+}
+
+fn offloadAny[F: FnOnce[fn() -> Int]](pool: task.BlockingPool, f: escaping F) -> Future[Int] {
+    pool.run(f).unwrap() //~ ERROR `F` does not satisfy `Send`: it cannot move to another thread
+}
+
+async fn directShared(pool: task.BlockingPool) -> Int {
+    let c = Shared.new(0)
+    let c2 = c.clone()
+    let f = pool.run(() => { c2.set(c2.get() + 1); 0 }).unwrap() //~ ERROR it captures `c2`, a `Shared[Int]`, which cannot move to another thread
+    c.set(c.get() + 1)
+    await f
+}
+
+async fn directResource(pool: task.BlockingPool) -> Int {
+    let h = Handle { fd: 3 }
+    await pool.run(() => h.close()).unwrap() //~ ERROR it captures `h`, a `Handle`, which cannot move to another thread
+}
+
+fn directMutRef(pool: task.BlockingPool, out: &mut Array[Int]) -> Future[Int] {
+    pool.run(() => { //~ ERROR it captures `out`, a `&mut Array[Int]`, which cannot move to another thread
+        out.push(1) //~ ERROR closure cannot capture the borrow `out`
+        1
+    }).unwrap()
+}
+
+async fn directCell(pool: task.BlockingPool) -> Int {
+    let mut n = 0
+    let f = pool.run(() => { n = n + 1; n }).unwrap() //~ ERROR it shares `n` with the code around it through a cell
+    await f
+}
+
+async fn directCellWrittenAfter(pool: task.BlockingPool) -> Int {
+    let mut n = 1
+    let f = pool.run(() => n + 1).unwrap() //~ ERROR it shares `n` with the code around it through a cell
+    n = 5
+    (await f) + n
+}
+
+async fn directStoredRead(pool: task.BlockingPool) -> Int {
+    let s = Socket { fd: 4 }
+    let w = () => s.peek()
+    let f = pool.run(w).unwrap() //~ ERROR it reads `s` where the code around it keeps it
+    let mine = s.peek()
+    (await f) + mine
+}
+
+async fn directContext(pool: task.BlockingPool, c: Shared[Int]) -> Int {
+    context (Env { counter: c.clone() }) {
+        let f = pool.run(() => bump()).unwrap() //~ ERROR it captures the context provider bound around it, a `Env`, which cannot move to another thread
+        c.set(1)
+        let _ = await f
+    }
+    c.get()
+}
+
+async fn directSharedResult(pool: task.BlockingPool) -> Int {
+    let s = await pool.run(() => Shared.new(5)).unwrap() //~ ERROR `Shared[Int]` does not satisfy `Send`: it cannot move to another thread
+    s.get()
+}
+
+async fn directErrorResult(pool: task.BlockingPool) -> Int! {
+    (await pool.run(() => parsed()).unwrap())? //~ ERROR `Int!` does not satisfy `Send`: it cannot move to another thread
+}
+
+async fn valueShared(pool: task.BlockingPool) -> Int {
+    let c = Shared.new(0)
+    let c2 = c.clone()
+    let run = pool.run //~ ERROR it captures `c2`, a `Shared[Int]`, which cannot move to another thread
+    let f = run(() => { c2.set(1); 0 }).unwrap()
+    c.set(2)
+    await f
+}
+
+async fn valueResource(pool: task.BlockingPool) -> Int {
+    let h = Handle { fd: 5 }
+    let run = pool.run //~ ERROR it captures `h`, a `Handle`, which cannot move to another thread
+    await run(() => h.close()).unwrap()
+}
+
+fn valueMutRef(pool: task.BlockingPool, out: &mut Array[Int]) -> Future[Int] {
+    let run = pool.run //~ ERROR it captures `out`, a `&mut Array[Int]`, which cannot move to another thread
+    run(() => {
+        out.push(1) //~ ERROR closure cannot capture the borrow `out`
+        1
+    }).unwrap()
+}
+
+async fn valueContext(pool: task.BlockingPool, c: Shared[Int]) -> Int {
+    context (Env { counter: c.clone() }) {
+        let run = pool.run //~ ERROR it captures the context provider bound around it, a `Env`, which cannot move to another thread
+        let f = run(() => bump()).unwrap()
+        c.set(1)
+        let _ = await f
+    }
+    c.get()
+}
+
+async fn valueErasedFn(pool: task.BlockingPool, h: fn() -> Int) -> Int {
+    let run = pool.run //~ ERROR `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+    await run(h).unwrap()
+}
+
+fn valueFnItemEscapes(pool: task.BlockingPool) -> Int {
+    let run = pool.run //~ ERROR `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+    let kept = Some(run)
+    match kept {
+        Some(r) -> {
+            let _ = r(compute)
+        }
+        None -> {}
+    }
+    0
+}
+
+type Box2[R] = {
+    r R
+}
+
+async fn valueCapturedErased(pool: task.BlockingPool, h: fn() -> Int) -> Int {
+    let run = pool.run //~ ERROR `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+    let k = () => run(h)
+    await k().unwrap()
+}
+
+async fn valueFieldErased(pool: task.BlockingPool, h: fn() -> Int) -> Int {
+    let run = pool.run //~ ERROR `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+    let b = Box2 { r: run }
+    await (b.r)(h).unwrap()
+}
+
+type Pair[F] = {
+    f F
+}
+
+fn Pair[F: Fn[fn() -> Int] + Send + Copy].launch(self, pool: task.BlockingPool, g: escaping F) -> Future[Int] {
+    let f = self.f
+    pool.run(move () => f() + g()).unwrap()
+}
+
+fn Pair[F: Fn[fn() -> Int] + Send + Copy].launchOwned(move self, pool: task.BlockingPool, g: escaping F) -> Future[Int] {
+    let f = self.f
+    pool.run(move () => f() + g()).unwrap()
+}
+
+async fn erasedInReceiver(pool: task.BlockingPool, h: fn() -> Int) -> Int {
+    let p = Pair { f: h }
+    await p.launch(pool, compute) //~ ERROR `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+}
+
+async fn erasedInMovedReceiver(pool: task.BlockingPool, h: fn() -> Int) -> Int {
+    let p = Pair { f: h }
+    await p.launchOwned(pool, compute) //~ ERROR `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+}
+
+fn launchBoth[F: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, a: escaping F, b: escaping F) -> Future[Int] {
+    pool.run(b).unwrap()
+}
+
+fn launchSome[F: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, a: escaping F, bs: F?) -> Future[Int] {
+    match bs {
+        Some(b) -> pool.run(b).unwrap()
+        None -> pool.run(a).unwrap()
+    }
+}
+
+async fn itemBesideErased(pool: task.BlockingPool, h: fn() -> Int) -> Int {
+    await launchBoth(pool, compute, h) //~ ERROR `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+}
+
+async fn itemBesideErasedOption(pool: task.BlockingPool, h: fn() -> Int) -> Int {
+    await launchSome(pool, compute, Some(h)) //~ ERROR `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+}
+
+async fn holdAcross[F: FnOnce[fn() -> Int] + Send](w: escaping F) -> Int {
+    await task.yieldNow()
+    w()
+}
+
+async fn readAcrossFrames(other: task.Executor) -> Int {
+    let s = Socket { fd: 5 }
+    let w = () => s.peek()
+    let t = other.handoff(holdAcross(w)) //~ ERROR it reads `s` where the code around it keeps it
+    (await t) + s.peek()
+}
+
+async fn valueCell(pool: task.BlockingPool) -> Int {
+    let mut n = 0
+    let run = pool.run //~ ERROR it shares `n` with the code around it through a cell
+    let f = run(() => { n = n + 1; n }).unwrap()
+    await f
+}
+
+async fn helperShared(pool: task.BlockingPool) -> Int {
+    let c = Shared.new(0)
+    let c2 = c.clone()
+    let f = offloadSend(pool, () => { c2.set(1); 0 }) //~ ERROR it captures `c2`, a `Shared[Int]`, which cannot move to another thread
+    c.set(2)
+    await f
+}
+
+async fn helperResource(pool: task.BlockingPool) -> Int {
+    let h = Handle { fd: 6 }
+    await offloadSend(pool, () => h.close()) //~ ERROR it captures `h`, a `Handle`, which cannot move to another thread
+}
+
+fn helperMutRef(pool: task.BlockingPool, out: &mut Array[Int]) -> Future[Int] {
+    offloadSend(pool, () => { //~ ERROR it captures `out`, a `&mut Array[Int]`, which cannot move to another thread
+        out.push(1) //~ ERROR closure cannot capture the borrow `out`
+        1
+    })
+}
+
+async fn helperContext(pool: task.BlockingPool, c: Shared[Int]) -> Int {
+    context (Env { counter: c.clone() }) {
+        let f = offloadSend(pool, () => bump()) //~ ERROR it captures the context provider bound around it, a `Env`, which cannot move to another thread
+        c.set(1)
+        let _ = await f
+    }
+    c.get()
+}
+
+async fn helperCell(pool: task.BlockingPool) -> Int {
+    let mut n = 0
+    let f = offloadSend(pool, () => { n = n + 1; n }) //~ ERROR it shares `n` with the code around it through a cell
+    await f
+}
+-- expect --
+error[E300]: `F` does not satisfy `Send`: it cannot move to another thread
+  --> main/main.kg:39:5
+   |
+39 |     pool.run(f).unwrap() //~ ERROR `F` does not satisfy `Send`: it cannot move to another thread
+   |     ^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it captures `c2`, a `Shared[Int]`, which cannot move to another thread
+  --> main/main.kg:45:13
+   |
+45 |     let f = pool.run(() => { c2.set(c2.get() + 1); 0 }).unwrap() //~ ERROR it captures `c2`, a `Shared[Int]`, which cannot move to another thread
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it captures `h`, a `Handle`, which cannot move to another thread
+  --> main/main.kg:52:11
+   |
+52 |     await pool.run(() => h.close()).unwrap() //~ ERROR it captures `h`, a `Handle`, which cannot move to another thread
+   |           ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it captures `out`, a `&mut Array[Int]`, which cannot move to another thread
+  --> main/main.kg:56:5
+   |
+56 |     pool.run(() => { //~ ERROR it captures `out`, a `&mut Array[Int]`, which cannot move to another thread
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E412]: closure cannot capture the borrow `out`
+  --> main/main.kg:57:9
+   |
+57 |         out.push(1) //~ ERROR closure cannot capture the borrow `out`
+   |         ^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it shares `n` with the code around it through a cell, which cannot move to another thread
+  --> main/main.kg:64:13
+   |
+64 |     let f = pool.run(() => { n = n + 1; n }).unwrap() //~ ERROR it shares `n` with the code around it through a cell
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it shares `n` with the code around it through a cell, which cannot move to another thread
+  --> main/main.kg:70:13
+   |
+70 |     let f = pool.run(() => n + 1).unwrap() //~ ERROR it shares `n` with the code around it through a cell
+   |             ^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it reads `s` where the code around it keeps it; a `move` closure takes its own
+  --> main/main.kg:78:13
+   |
+78 |     let f = pool.run(w).unwrap() //~ ERROR it reads `s` where the code around it keeps it
+   |             ^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it captures the context provider bound around it, a `Env`, which cannot move to another thread
+  --> main/main.kg:85:17
+   |
+85 |         let f = pool.run(() => bump()).unwrap() //~ ERROR it captures the context provider bound around it, a `Env`, which cannot move to another thread
+   |                 ^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `Shared[Int]` does not satisfy `Send`: it cannot move to another thread
+  --> main/main.kg:93:19
+   |
+93 |     let s = await pool.run(() => Shared.new(5)).unwrap() //~ ERROR `Shared[Int]` does not satisfy `Send`: it cannot move to another thread
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `Int!` does not satisfy `Send`: it cannot move to another thread
+  --> main/main.kg:98:12
+   |
+98 |     (await pool.run(() => parsed()).unwrap())? //~ ERROR `Int!` does not satisfy `Send`: it cannot move to another thread
+   |            ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it captures `c2`, a `Shared[Int]`, which cannot move to another thread
+   --> main/main.kg:104:15
+    |
+104 |     let run = pool.run //~ ERROR it captures `c2`, a `Shared[Int]`, which cannot move to another thread
+    |               ^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it captures `h`, a `Handle`, which cannot move to another thread
+   --> main/main.kg:112:15
+    |
+112 |     let run = pool.run //~ ERROR it captures `h`, a `Handle`, which cannot move to another thread
+    |               ^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it captures `out`, a `&mut Array[Int]`, which cannot move to another thread
+   --> main/main.kg:117:15
+    |
+117 |     let run = pool.run //~ ERROR it captures `out`, a `&mut Array[Int]`, which cannot move to another thread
+    |               ^^^^^^^^
+
+error[E412]: closure cannot capture the borrow `out`
+   --> main/main.kg:119:9
+    |
+119 |         out.push(1) //~ ERROR closure cannot capture the borrow `out`
+    |         ^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it captures the context provider bound around it, a `Env`, which cannot move to another thread
+   --> main/main.kg:126:19
+    |
+126 |         let run = pool.run //~ ERROR it captures the context provider bound around it, a `Env`, which cannot move to another thread
+    |                   ^^^^^^^^
+
+error[E300]: `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+   --> main/main.kg:135:15
+    |
+135 |     let run = pool.run //~ ERROR `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+    |               ^^^^^^^^
+
+error[E300]: `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+   --> main/main.kg:140:15
+    |
+140 |     let run = pool.run //~ ERROR `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+    |               ^^^^^^^^
+
+error[E300]: `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+   --> main/main.kg:156:15
+    |
+156 |     let run = pool.run //~ ERROR `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+    |               ^^^^^^^^
+
+error[E300]: `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+   --> main/main.kg:162:15
+    |
+162 |     let run = pool.run //~ ERROR `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+    |               ^^^^^^^^
+
+error[E300]: `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+   --> main/main.kg:183:11
+    |
+183 |     await p.launch(pool, compute) //~ ERROR `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+    |           ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+   --> main/main.kg:188:11
+    |
+188 |     await p.launchOwned(pool, compute) //~ ERROR `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+   --> main/main.kg:203:11
+    |
+203 |     await launchBoth(pool, compute, h) //~ ERROR `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+   --> main/main.kg:207:11
+    |
+207 |     await launchSome(pool, compute, Some(h)) //~ ERROR `fn() -> Int` does not satisfy `Send`: it cannot move to another thread
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it reads `s` where the code around it keeps it; a `move` closure takes its own
+   --> main/main.kg:218:27
+    |
+218 |     let t = other.handoff(holdAcross(w)) //~ ERROR it reads `s` where the code around it keeps it
+    |                           ^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it shares `n` with the code around it through a cell, which cannot move to another thread
+   --> main/main.kg:224:15
+    |
+224 |     let run = pool.run //~ ERROR it shares `n` with the code around it through a cell
+    |               ^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it captures `c2`, a `Shared[Int]`, which cannot move to another thread
+   --> main/main.kg:232:13
+    |
+232 |     let f = offloadSend(pool, () => { c2.set(1); 0 }) //~ ERROR it captures `c2`, a `Shared[Int]`, which cannot move to another thread
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it captures `h`, a `Handle`, which cannot move to another thread
+   --> main/main.kg:239:11
+    |
+239 |     await offloadSend(pool, () => h.close()) //~ ERROR it captures `h`, a `Handle`, which cannot move to another thread
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it captures `out`, a `&mut Array[Int]`, which cannot move to another thread
+   --> main/main.kg:243:5
+    |
+243 |     offloadSend(pool, () => { //~ ERROR it captures `out`, a `&mut Array[Int]`, which cannot move to another thread
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E412]: closure cannot capture the borrow `out`
+   --> main/main.kg:244:9
+    |
+244 |         out.push(1) //~ ERROR closure cannot capture the borrow `out`
+    |         ^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it captures the context provider bound around it, a `Env`, which cannot move to another thread
+   --> main/main.kg:251:17
+    |
+251 |         let f = offloadSend(pool, () => bump()) //~ ERROR it captures the context provider bound around it, a `Env`, which cannot move to another thread
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it shares `n` with the code around it through a cell, which cannot move to another thread
+   --> main/main.kg:260:13
+    |
+260 |     let f = offloadSend(pool, () => { n = n + 1; n }) //~ ERROR it shares `n` with the code around it through a cell
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

@@ -15,7 +15,7 @@ fn reset(_req: http.Request) -> http.Response! {
 // Sends data as-is and reads until the server closes, summarizing each response's status line and body.
 async fn raw(n: net.Net, port: Int, data: String) -> String! {
     let pool = task.BlockingPool.new(1)
-    let mut conn = (await pool.run(() => n.connect("127.0.0.1", port)).unwrap())?
+    let mut conn = await pool.run(() => n.connect("127.0.0.1", port).unwrap()).unwrap()
     let bytes = data.toBytes()
     let mut off: usize = 0
     for off < bytes.len() {

@@ -14,9 +14,9 @@ func Classify(f *midir.Func, r *sem.Result) {
 	}
 	crossing := frameCrossing(f)
 	info := r.Fn(f.Ent)
-	info.Mobility, info.BoundBy = sem.MobilityMigratable, ""
+	info.Mobility, info.BoundBy, info.BoundRead = sem.MobilityMigratable, "", sem.ReadSite{}
 	for i, l := range f.Locals {
-		if !crossing[midir.LocalID(i)] || r.IsSend(l.Type) {
+		if !crossing[midir.LocalID(i)] || r.IsSendInFrame(l.Type, f.Ent) {
 			continue
 		}
 		info.Mobility, info.BoundBy = sem.MobilityExecutorBound, r.TypeString(l.Type)

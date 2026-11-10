@@ -1,0 +1,104 @@
+-- module --
+mir: planned
+-- src --
+import task from std/task
+import mem from std/mem
+import {Box} from std/alloc
+
+/// For one thread at a time: Send (moving it moves the Int) but not Sync.
+type Counter = {
+    c mem.UnsafeCell[Int]
+}
+
+fn Counter.bump(self) -> Int {
+    unsafe { self.c.set(self.c.get() + 1) }
+    0
+}
+
+fn Counter.read(self) -> Int { unsafe { self.c.get() } }
+
+async fn worker[F: Fn[fn() -> Int]](f: F) -> Int {
+    for i in 0..3000 {
+        _ = f()
+        if i % 100 == 0 { await task.yieldNow() }
+    }
+    0
+}
+
+// root lends c in place to the closure it spawns a task with, so root stays on the lane that task runs on.
+async fn root() -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(0) }
+    let w = () => c.bump() //~ NOTE `c`, a `Counter` that is not Sync, is read in place by this closure
+    let t = task.spawn(worker(w))
+    for j in 0..3000 {
+        _ = c.bump()
+        if j % 100 == 0 { await task.yieldNow() }
+    }
+    _ = await t
+    c.read()
+}
+
+async fn spawnRoot() -> Int {
+    let a = task.spawn(root())
+    await a
+}
+
+async fn handOffRoot(other: task.Executor) -> Int {
+    let a = other.handoff(root()) //~ ERROR this future is bound to one executor by `c`
+    await a
+}
+
+// The spawn sits one lambda down; the closure still reads root's c in place.
+async fn rootViaLambda() -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(0) }
+    let launch = () => {
+        let w = () => c.bump() //~ NOTE is read in place by this closure, which is handed to another task
+        task.spawn(worker(w))
+    }
+    let t = launch()
+    _ = c.bump()
+    _ = await t
+    c.read()
+}
+
+async fn handOffRootViaLambda(other: task.Executor) -> Int {
+    let a = other.handoff(rootViaLambda()) //~ ERROR this future is bound to one executor by `c`
+    await a
+}
+
+// A Sync local read in place the same way leaves the frame free to move.
+async fn rootSync() -> Int {
+    let b = Box.new(2)
+    let w = () => b.get()
+    let t = task.spawn(worker(w))
+    _ = await t
+    b.get()
+}
+
+async fn handOffRootSync(other: task.Executor) -> Int {
+    let a = other.handoff(rootSync())
+    await a
+}
+-- expect --
+error[E1462]: this future is bound to one executor by `c` and cannot be handed to another; start it on the running task's own executor with `task.spawn`
+  --> main.kg:44:13
+   |
+44 |     let a = other.handoff(root()) //~ ERROR this future is bound to one executor by `c`
+   |             ^^^^^^^^^^^^^^^^^^^
+note: `c`, a `Counter` that is not Sync, is read in place by this closure, which is handed to another task
+  --> main.kg:28:13
+   |
+28 |     let w = () => c.bump() //~ NOTE `c`, a `Counter` that is not Sync, is read in place by this closure
+   |             ^^^^^^^^^^^^^
+
+error[E1462]: this future is bound to one executor by `c` and cannot be handed to another; start it on the running task's own executor with `task.spawn`
+  --> main.kg:62:13
+   |
+62 |     let a = other.handoff(rootViaLambda()) //~ ERROR this future is bound to one executor by `c`
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: `c`, a `Counter` that is not Sync, is read in place by this closure, which is handed to another task
+  --> main.kg:52:17
+   |
+52 |         let w = () => c.bump() //~ NOTE is read in place by this closure, which is handed to another task
+   |                 ^^^^^^^^^^^^^
+

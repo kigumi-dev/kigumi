@@ -59,10 +59,15 @@ func keepProgram(t *testing.T) (*fixture, func(string) *midir.Func) { return src
 // srcProgram builds src as package main and finds a body by name, a method's too.
 func srcProgram(t *testing.T, src string) (*fixture, func(string) *midir.Func) {
 	t.Helper()
+	return stdProgram(t, semfixture.LoadStd(t, "../../../../../std"), src)
+}
+
+func stdProgram(t *testing.T, std []*sem.Package, src string) (*fixture, func(string) *midir.Func) {
+	t.Helper()
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
 	main.Files = []*syntax.Tree{main.Entry}
-	res := sem.CheckWith(&sem.Module{Packages: append(semfixture.LoadStd(t, "../../../../../std"), main)}, schema.GenerateDerive)
+	res := sem.CheckWith(&sem.Module{Packages: append(std, main)}, schema.GenerateDerive)
 	if res.HasErrors() {
 		t.Fatal(res.Render())
 	}

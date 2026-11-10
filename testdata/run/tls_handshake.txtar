@@ -364,8 +364,8 @@ type ServerSecrets = {
 
 async fn serverAccept(mut listener: net.Listener, mode: Mode, cert: Bytes, key: Bytes) -> Void! {
     let pool = task.BlockingPool.new(1)
-    let pending = pool.run(() => listener.accept())?
-    let conn = (await pending)?
+    let pending = pool.run(() => listener.accept().unwrap())?
+    let conn = await pending
     await serverRun(conn, mode, cert, key)
 }
 
@@ -591,11 +591,11 @@ fn modeName(m: Mode) -> String {
 
 async fn runCase(n: net.Net, c: Case) -> String! {
     let poolListen = task.BlockingPool.new(1)
-    let listener = (await poolListen.run(() => n.listen("127.0.0.1", 0)).unwrap())?
+    let listener = await poolListen.run(() => n.listen("127.0.0.1", 0).unwrap()).unwrap()
     let port = listener.port()
     let running = task.spawn(serverAccept(listener, c.mode, c.cert, c.key))
     let poolConnect = task.BlockingPool.new(1)
-    let mut conn = (await poolConnect.run(() => n.connect("127.0.0.1", port)).unwrap())?
+    let mut conn = await poolConnect.run(() => n.connect("127.0.0.1", port).unwrap()).unwrap()
     let root = (x509.parse(dec(ROOT)))?
     let mut config = tls.Config.new(c.serverName, Array.of(root), (k) => deterministicRandom(k))
     config.nowMillis = c.now

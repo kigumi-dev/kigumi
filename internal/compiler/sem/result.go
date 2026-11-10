@@ -74,8 +74,7 @@ type Result struct {
 	dropMemo        map[TypeID]EffectSummary
 	opDropMemo      map[TypeID]OpSummary
 	fatalFamily     map[string]bool
-	threadOpen      map[threadKey]int
-	threadLow       int
+	thread          threadState
 	pkgEntity       []EntityID
 	fileScopes      []ScopeID
 	implicitMain    map[PackageID]EntityID

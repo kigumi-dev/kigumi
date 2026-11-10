@@ -11,6 +11,18 @@ type threadKey struct {
 	sync bool
 }
 
+// threadState: closure marks a computation that read a closure's captures, which a later write or a context binding
+// can still extend until checkThreadBounds sets settled; until then its true lasts one top-level query (transient).
+type threadState struct {
+	open      map[threadKey]int
+	low       int
+	closure   bool
+	settled   bool
+	transient map[threadKey]bool
+	reads     map[TypeID][]ReadSite
+	checks    []pendingThread
+}
+
 // a type under computation counts as qualifying, so recursion resolves via the other parts;
 // such a provisional true is not memoized, since the open type may still prove false.
 func (r *Result) threadProp(t TypeID, sync bool) bool {
@@ -28,27 +40,39 @@ func (r *Result) threadProp(t TypeID, sync bool) bool {
 	case -1:
 		return false
 	}
+	st := &r.thread
 	key := threadKey{t, sync}
-	if depth, open := r.threadOpen[key]; open {
-		r.threadLow = min(r.threadLow, depth)
+	if ok, seen := st.transient[key]; seen {
+		return ok
+	}
+	if depth, open := st.open[key]; open {
+		st.low = min(st.low, depth)
 		return true
 	}
-	if r.threadOpen == nil {
-		r.threadOpen = map[threadKey]int{}
+	if st.open == nil {
+		st.open = map[threadKey]int{}
 	}
-	depth := len(r.threadOpen)
-	r.threadOpen[key] = depth
-	outerLow := r.threadLow
-	r.threadLow = depth
+	depth := len(st.open)
+	st.open[key] = depth
+	outerLow, outerClosure := st.low, st.closure
+	st.low, st.closure = depth, false
 	ok := r.computeThread(t, sync)
-	low := r.threadLow
-	delete(r.threadOpen, key)
-	r.threadLow = min(outerLow, low)
+	low, closure := st.low, st.closure
+	delete(st.open, key)
+	st.low, st.closure = min(outerLow, low), outerClosure || closure
 	switch {
 	case !ok:
 		*memo = -1
-	case low >= depth:
+	case low >= depth && (!closure || st.settled):
 		*memo = 1
+	case low >= depth:
+		if st.transient == nil {
+			st.transient = map[threadKey]bool{}
+		}
+		st.transient[key] = true
+	}
+	if len(st.open) == 0 {
+		st.transient = nil
 	}
 	return ok
 }
@@ -74,9 +98,10 @@ func (r *Result) computeThread(t TypeID, sync bool) bool {
 		}
 		return false
 	case KClosure:
+		r.thread.closure = true
 		info := r.closure(n.Ent)
 		for _, cap := range info.Captures {
-			if cap.Mode == capCell || !r.threadProp(r.Entities[cap.Local].Type, sync) {
+			if roleOf(cap) == roleCell || !r.threadProp(r.Entities[cap.Local].Type, sync) {
 				return false
 			}
 		}

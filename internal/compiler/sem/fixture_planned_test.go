@@ -38,6 +38,9 @@ func checkPlanned(t *testing.T, fx fixture) *sem.Result {
 			t.Fatalf("%s: a planned fixture holds a src section and std packages only", fx.path)
 		}
 	}
+	if fx.opt("send-bounds", "") == "off" {
+		std = plannedStd(t, std, "std/task/task.kg", unboundedPool(t, std))
+	}
 	target := buildconfig.HostTarget()
 	target.Allocator = fx.opt("allocator", "")
 	target.Profile = fx.opt("profile", "")
@@ -69,4 +72,19 @@ func plannedStd(t *testing.T, std, name, body string) string {
 		t.Fatal(err)
 	}
 	return std
+}
+
+// unboundedPool is std's task.kg with BlockingPool.run's Send bounds removed, so a fixture reaches the MIR check
+// sem otherwise stops in front of.
+func unboundedPool(t *testing.T, std string) string {
+	t.Helper()
+	src, err := os.ReadFile(filepath.Join(std, "task", "task.kg"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const bounded = "run[T: Send, F: FnOnce[fn() -> T] + Send]"
+	if !strings.Contains(string(src), bounded) {
+		t.Fatalf("std/task/task.kg no longer declares %s", bounded)
+	}
+	return strings.Replace(string(src), bounded, "run[T, F: FnOnce[fn() -> T]]", 1)
 }

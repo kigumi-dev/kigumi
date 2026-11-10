@@ -58,6 +58,22 @@ pub type Session = resource {
     mut open Bool
 }
 
+// An `Error` box cannot leave the pool thread, so a connect failure crosses back as its text.
+type ConnectFailure = {
+    text String
+}
+
+fn ConnectFailure.message(self) -> String {
+    self.text
+}
+
+fn connectOnPool(n: net.Net, host: String, port: Int) -> Result[net.Conn, ConnectFailure] {
+    match n.connect(host, port) {
+        Ok(c) -> Ok(c)
+        Err(e) -> Err(ConnectFailure { text: e.message() })
+    }
+}
+
 type Target = {
     host String
     port Int
@@ -145,7 +161,7 @@ pub async fn Client.open(self, url: String) -> Session! {
     let n = self.net
     let host = t.host
     let port = t.port
-    let pending = self.pool.run(() => n.connect(host, port))?
+    let pending = self.pool.run(() => connectOnPool(n, host, port))?
     let conn = (await pending)?
     Session {
         wire: Wire {

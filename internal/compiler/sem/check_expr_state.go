@@ -28,5 +28,7 @@ type exprState struct {
 	// eraseSites are the values marked lent to a call or bound to a local before they are checked.
 	eraseSites map[syntax.NodeID]eraseSite
 	// laterArgs are, per lambda argument, the arguments its call evaluates after it but checks before it.
-	laterArgs map[syntax.NodeID][]syntax.NodeID
+	laterArgs    map[syntax.NodeID][]syntax.NodeID
+	threadChecks []threadCheck
+	callFlows    map[syntax.NodeID]map[EntityID]*fnFlow
 }

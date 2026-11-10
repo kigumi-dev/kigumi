@@ -1,0 +1,30 @@
+-- src --
+import task from std/task
+
+// A closure that reads a Send local of its own frame moves with that frame, so the future can still be handed off.
+/// Safety: it holds only an Int.
+@unsafeGuarantee(Send)
+type Socket = resource {
+    fd Int
+}
+
+fn Socket.peek(self) -> Int { self.fd }
+
+async fn worker(k: Int) -> Int {
+    let s = Socket { fd: k }
+    let w = () => s.peek()
+    await task.yieldNow()
+    let a = w()
+    await task.yieldNow()
+    a + s.peek()
+}
+
+async fn root(other: task.Executor) -> Int {
+    let t = other.handoff(worker(5))
+    await t
+}
+
+let other = task.threadPoolExecutor(2)
+print "total ${task.threadPoolExecutor(2).runToCompletion(root(other))}"
+-- stdout --
+total 10

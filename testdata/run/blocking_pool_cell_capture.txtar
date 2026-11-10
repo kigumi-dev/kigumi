@@ -1,14 +1,14 @@
 -- src --
 import task from std/task
 fn churn() -> Int { let mut arr: Array[String] = Array.of("x"); for i in 100..400 { arr.push("w${i}") }; arr.len().toInt() || 0 }
-fn offload[F: FnOnce[fn() -> Int]](pool: task.BlockingPool, f: escaping F) -> Future[Int] { pool.run(f).unwrap() }
-async fn runOn[F: FnOnce[fn() -> Int]](pool: task.BlockingPool, f: escaping F) -> Int { await pool.run(f).unwrap() }
+fn offload[F: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, f: escaping F) -> Future[Int] { pool.run(f).unwrap() }
+async fn runOn[F: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, f: escaping F) -> Int { await pool.run(f).unwrap() }
 async fn borrowEndsFirst() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
     let r = &other
     let before = r.len()
-    let w = () => { for i in 0..300 { other = "x${i}${churn()}" }; 1 }
+    let w = () => { let mut mine = ""; for i in 0..300 { mine = "x${i}${churn()}" }; 1 }
     let fut = pool.run(w).unwrap()
     let n = await fut
     "${before} ${n} ${other}"
@@ -29,14 +29,14 @@ async fn copyCaptured() -> String {
 async fn awaitedBeforeBorrow() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    let n = await pool.run(() => { for i in 0..300 { other = "a${i}${churn()}" }; 2 }).unwrap()
+    let n = await pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "a${i}${churn()}" }; 2 }).unwrap()
     let r = &other
     "${r} ${n}"
 }
 async fn helperAwaited() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    let fut = offload(pool, () => { for i in 0..300 { other = "h${i}${churn()}" }; 3 })
+    let fut = offload(pool, () => { let mut mine = ""; for i in 0..300 { mine = "h${i}${churn()}" }; 3 })
     let n = await fut
     let r = &other
     "${r} ${n}"
@@ -44,7 +44,7 @@ async fn helperAwaited() -> String {
 async fn asyncHelperLazy() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    let f = runOn(pool, () => { for i in 0..300 { other = "y${i}${churn()}" }; 4 })
+    let f = runOn(pool, () => { let mut mine = ""; for i in 0..300 { mine = "y${i}${churn()}" }; 4 })
     let r = &other
     let seen = "${r}"
     let n = await f
@@ -53,7 +53,8 @@ async fn asyncHelperLazy() -> String {
 async fn readersShare() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    let fut = pool.run(() => { let mut t: usize = 0; for i in 0..300 { t = t + other.len() }; t.toInt() || 0 }).unwrap()
+    let snap = other
+    let fut = pool.run(() => { let mut t: usize = 0; for i in 0..300 { t = t + snap.len() }; t.toInt() || 0 }).unwrap()
     let r = &other
     let mut t: usize = 0
     for j in 0..300 { t = t + r.len() }
@@ -65,7 +66,7 @@ async fn methodValue() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
     let run = pool.run
-    let n = await run(() => { other = "m${churn()}"; 5 }).unwrap()
+    let n = await run(() => { let mut mine = ""; mine = "m${churn()}"; 5 }).unwrap()
     let r = &other
     "${r} ${n}"
 }
@@ -73,7 +74,7 @@ async fn droppedFirst() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
     {
-        let fut = pool.run(() => { for i in 0..300 { other = "d${i}${churn()}" }; 6 }).unwrap()
+        let fut = pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "d${i}${churn()}" }; 6 }).unwrap()
     }
     let r = &other
     "${r}"
@@ -82,8 +83,7 @@ async fn perIteration() -> String {
     let pool = task.BlockingPool.new(4)
     let mut futs = Array.empty[Future[Int]]()
     for i in 0..3 {
-        let mut acc = 0
-        futs.push(pool.run(() => { for j in 0..100 { acc = acc + j }; acc + i }).unwrap())
+        futs.push(pool.run(() => { let mut acc = 0; for j in 0..100 { acc = acc + j }; acc + i }).unwrap())
     }
     let mut t = 0
     for f in futs {
@@ -95,7 +95,7 @@ async fn waitIn(h: Future[Int]) -> Int { await h }
 async fn awaitedInHelper() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    let h = pool.run(() => { for i in 0..300 { other = "w${i}${churn()}" }; 7 }).unwrap()
+    let h = pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "w${i}${churn()}" }; 7 }).unwrap()
     let n = await waitIn(h)
     let r = &other
     "${r} ${n}"
@@ -103,7 +103,7 @@ async fn awaitedInHelper() -> String {
 async fn awaitedFromOption() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    let o = Some(pool.run(() => { for i in 0..300 { other = "p${i}${churn()}" }; 8 }).unwrap())
+    let o = Some(pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "p${i}${churn()}" }; 8 }).unwrap())
     let n = match o {
         Some(f) -> await f,
         None -> 0
@@ -121,7 +121,7 @@ async fn countedPassThrough() -> String {
         calls = calls + 1
         h
     }
-    let h2 = pass(pool.run(() => { for i in 0..300 { other = "c${i}${churn()}" }; 9 }).unwrap())
+    let h2 = pass(pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "c${i}${churn()}" }; 9 }).unwrap())
     let n = await h2
     let r = &other
     "${r} ${n} ${calls}"
@@ -129,7 +129,7 @@ async fn countedPassThrough() -> String {
 async fn awaitedInAppliedClosure() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    let h = pool.run(() => { for i in 0..300 { other = "a${i}${churn()}" }; 10 }).unwrap()
+    let h = pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "a${i}${churn()}" }; 10 }).unwrap()
     let n = await applyFuture(move () => waitIn(h))
     let r = &other
     "${r} ${n}"
@@ -138,7 +138,7 @@ async fn storedInOwnedCell() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
     let mut held = Array.empty[Future[Int]]()
-    let h = pool.run(() => { for i in 0..300 { other = "s${i}${churn()}" }; 11 }).unwrap()
+    let h = pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "s${i}${churn()}" }; 11 }).unwrap()
     let n = applyOnce(move () => {
         held.push(h)
         0
@@ -152,7 +152,7 @@ type Hd[F] = { pub f F }
 async fn storedThroughOuterThenAwaited() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    let h = pool.run(() => { for i in 0..300 { other = "t${i}${churn()}" }; 12 }).unwrap()
+    let h = pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "t${i}${churn()}" }; 12 }).unwrap()
     let n = {
         let mut held = Array.empty[Future[Int]]()
         let inner = (g: Future[Int]?) => {
@@ -177,7 +177,7 @@ async fn storedThroughOuterThenAwaited() -> String {
 async fn storedThroughFieldThenAwaited() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    let h = pool.run(() => { for i in 0..300 { other = "f${i}${churn()}" }; 13 }).unwrap()
+    let h = pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "f${i}${churn()}" }; 13 }).unwrap()
     let n = {
         let mut held = Array.empty[Future[Int]]()
         let hd = Hd { f: (g: Future[Int]?) => {
@@ -209,7 +209,7 @@ async fn forwardedToStoringClosure() -> String {
     let mut other = "o${churn()}"
     let mut held = Array.empty[Future[Int]]()
     let add = (h: Future[Int]) => { held.push(h) }
-    forwardTo(add, pool.run(() => { for i in 0..300 { other = "g${i}${churn()}" }; 1 }).unwrap())
+    forwardTo(add, pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "g${i}${churn()}" }; 1 }).unwrap())
     let r = &other
     let mut t: usize = 0
     for j in 0..300 { t = t + r.len() }
@@ -219,7 +219,7 @@ async fn forwardedTwiceToMoveLiteral() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
     let mut held = Array.empty[Future[Int]]()
-    forwardTwice(move (h: Future[Int]) => { held.push(h) }, pool.run(() => { for i in 0..300 { other = "m${i}${churn()}" }; 1 }).unwrap())
+    forwardTwice(move (h: Future[Int]) => { held.push(h) }, pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "m${i}${churn()}" }; 1 }).unwrap())
     let r = &other
     let mut t: usize = 0
     for j in 0..300 { t = t + r.len() }
@@ -230,7 +230,7 @@ async fn forwardedAsyncAwaited() -> String {
     let mut other = "o${churn()}"
     let mut held = Array.empty[Future[Int]]()
     let add = (h: Future[Int]) => { held.push(h) }
-    let fu = forwardAsync(add, pool.run(() => { for i in 0..300 { other = "y${i}${churn()}" }; 1 }).unwrap())
+    let fu = forwardAsync(add, pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "y${i}${churn()}" }; 1 }).unwrap())
     let n = await fu
     let r = &other
     let mut t: usize = 0
@@ -240,11 +240,11 @@ async fn forwardedAsyncAwaited() -> String {
 fn forwardPlain(f: fn(Future[Int]) -> Void, h: Future[Int]) { f(h) }
 fn dropTask(h: Future[Int]) { }
 fn helperDrops(h: Future[Int]) { forwardPlain(dropTask, h) }
-fn helperRunsAndDrops[F: FnOnce[fn() -> Int]](pool: task.BlockingPool, w: escaping F) { forwardPlain(dropTask, pool.run(w).unwrap()) }
+fn helperRunsAndDrops[F: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, w: escaping F) { forwardPlain(dropTask, pool.run(w).unwrap()) }
 async fn helperForwardsToDrop() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    helperDrops(pool.run(() => { for i in 0..300 { other = "d${i}${churn()}" }; 1 }).unwrap())
+    helperDrops(pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "d${i}${churn()}" }; 1 }).unwrap())
     let r = &other
     let mut t: usize = 0
     for j in 0..300 { t = t + r.len() }
@@ -253,7 +253,7 @@ async fn helperForwardsToDrop() -> String {
 async fn helperOffloadsAndDrops() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    helperRunsAndDrops(pool, () => { for i in 0..300 { other = "e${i}${churn()}" }; 1 })
+    helperRunsAndDrops(pool, () => { let mut mine = ""; for i in 0..300 { mine = "e${i}${churn()}" }; 1 })
     let r = &other
     let mut t: usize = 0
     for j in 0..300 { t = t + r.len() }
@@ -263,7 +263,7 @@ async fn forwardedFnKept() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
     let f: fn(Future[Int]) -> Void = dropTask
-    forwardPlain(f, pool.run(() => { for i in 0..300 { other = "k${i}${churn()}" }; 1 }).unwrap())
+    forwardPlain(f, pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "k${i}${churn()}" }; 1 }).unwrap())
     let r = &other
     let mut t: usize = 0
     for j in 0..300 { t = t + r.len() }
@@ -272,7 +272,7 @@ async fn forwardedFnKept() -> String {
 async fn closureOffloadsAndDrops() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    let c = () => { dropTask(pool.run(() => { for i in 0..300 { other = "q${i}${churn()}" }; 1 }).unwrap()) }
+    let c = () => { dropTask(pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "q${i}${churn()}" }; 1 }).unwrap()) }
     c()
     let r = &other
     let mut t: usize = 0
@@ -283,7 +283,7 @@ fn applyForwarder(g: fn(fn(Future[Int]) -> Void, Future[Int]) -> Void, f: fn(Fut
 async fn droppingClosureRunInLoop() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    let c = () => { dropTask(pool.run(() => { for i in 0..300 { other = "z${i}${churn()}" }; 1 }).unwrap()) }
+    let c = () => { dropTask(pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "z${i}${churn()}" }; 1 }).unwrap()) }
     for i in 0..1 {
         c()
     }
@@ -295,7 +295,7 @@ async fn droppingClosureRunInLoop() -> String {
 async fn dropPassedThroughForwarderParam() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    applyForwarder(forwardPlain, dropTask, pool.run(() => { for i in 0..300 { other = "v${i}${churn()}" }; 1 }).unwrap())
+    applyForwarder(forwardPlain, dropTask, pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "v${i}${churn()}" }; 1 }).unwrap())
     let r = &other
     let mut t: usize = 0
     for j in 0..300 { t = t + r.len() }
@@ -312,7 +312,7 @@ fn dropLaterIn(h: Future[Int]) { callAfter(move () => { dropTask(h) }) }
 async fn dropFnInArray() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    passInArray(callFirst, dropTask, pool.run(() => { for i in 0..300 { other = "u${i}${churn()}" }; 1 }).unwrap())
+    passInArray(callFirst, dropTask, pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "u${i}${churn()}" }; 1 }).unwrap())
     let r = &other
     let mut t: usize = 0
     for j in 0..300 { t = t + r.len() }
@@ -321,7 +321,7 @@ async fn dropFnInArray() -> String {
 async fn dropFnWrapped() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    passWrapped(callWrapped, dropTask, pool.run(() => { for i in 0..300 { other = "b${i}${churn()}" }; 1 }).unwrap())
+    passWrapped(callWrapped, dropTask, pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "b${i}${churn()}" }; 1 }).unwrap())
     let r = &other
     let mut t: usize = 0
     for j in 0..300 { t = t + r.len() }
@@ -330,7 +330,7 @@ async fn dropFnWrapped() -> String {
 async fn capturedDropRunLater() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    dropLaterIn(pool.run(() => { for i in 0..300 { other = "n${i}${churn()}" }; 1 }).unwrap())
+    dropLaterIn(pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "n${i}${churn()}" }; 1 }).unwrap())
     let r = &other
     let mut t: usize = 0
     for j in 0..300 { t = t + r.len() }
@@ -366,7 +366,7 @@ fn storeDropViaCapture(h: Future[Int]) {
 async fn storedDropThroughReturnedRef() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    storeDropViaReturnedRef(pool.run(() => { for i in 0..300 { other = "r${i}${churn()}" }; 1 }).unwrap())
+    storeDropViaReturnedRef(pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "r${i}${churn()}" }; 1 }).unwrap())
     let r = &other
     let mut t: usize = 0
     for j in 0..300 { t = t + r.len() }
@@ -375,7 +375,7 @@ async fn storedDropThroughReturnedRef() -> String {
 async fn storedDropThroughReturnedRefCall() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    storeDropViaReturnedRefCall(pool.run(() => { for i in 0..300 { other = "s${i}${churn()}" }; 1 }).unwrap())
+    storeDropViaReturnedRefCall(pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "s${i}${churn()}" }; 1 }).unwrap())
     let r = &other
     let mut t: usize = 0
     for j in 0..300 { t = t + r.len() }
@@ -384,7 +384,7 @@ async fn storedDropThroughReturnedRefCall() -> String {
 async fn storedDropThroughBranchRef() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    storeDropViaBranch(pool.run(() => { for i in 0..300 { other = "i${i}${churn()}" }; 1 }).unwrap(), true)
+    storeDropViaBranch(pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "i${i}${churn()}" }; 1 }).unwrap(), true)
     let r = &other
     let mut t: usize = 0
     for j in 0..300 { t = t + r.len() }
@@ -393,7 +393,7 @@ async fn storedDropThroughBranchRef() -> String {
 async fn storedDropByCapturingClosure() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    storeDropViaCapture(pool.run(() => { for i in 0..300 { other = "j${i}${churn()}" }; 1 }).unwrap())
+    storeDropViaCapture(pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "j${i}${churn()}" }; 1 }).unwrap())
     let r = &other
     let mut t: usize = 0
     for j in 0..300 { t = t + r.len() }
@@ -418,7 +418,7 @@ fn runClosureStoredParamDrop(h: Future[Int]) {
 async fn calleeStoresDropAndReturnsSlot() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    runPickedSlotDrop(pool.run(() => { for i in 0..300 { other = "p${i}${churn()}" }; 1 }).unwrap())
+    runPickedSlotDrop(pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "p${i}${churn()}" }; 1 }).unwrap())
     let r = &other
     let mut t: usize = 0
     for j in 0..300 { t = t + r.len() }
@@ -427,7 +427,7 @@ async fn calleeStoresDropAndReturnsSlot() -> String {
 async fn closureStoresDropThroughParam() -> String {
     let pool = task.BlockingPool.new(1)
     let mut other = "o${churn()}"
-    runClosureStoredParamDrop(pool.run(() => { for i in 0..300 { other = "c${i}${churn()}" }; 1 }).unwrap())
+    runClosureStoredParamDrop(pool.run(() => { let mut mine = ""; for i in 0..300 { mine = "c${i}${churn()}" }; 1 }).unwrap())
     let r = &other
     let mut t: usize = 0
     for j in 0..300 { t = t + r.len() }
@@ -469,37 +469,37 @@ print ex.runToCompletion(storedDropByCapturingClosure())
 print ex.runToCompletion(calleeStoresDropAndReturnsSlot())
 print ex.runToCompletion(closureStoresDropThroughParam())
 -- stdout --
-4 1 x299301
+4 1 o301
 1200 7 after
-a299301 2
-h299301 3
-o301 4 y299301
+o301 2
+o301 3
+o301 4 o301
 1200 1200 done
-m301 5
-d299301
+o301 5
+o301
 14853
-w299301 7
-p299301 8
-c299301 9 1
-a299301 10
-s299301 0 2100
-t299301 12
-f299301 13
-g299301 2100
-m299301 2100
-y299301 2100 14
-d299301 2100
-e299301 2100
-k299301 2100
-q299301 2100
-z299301 2100
-v299301 2100
-u299301 2100
-b299301 2100
-n299301 2100
-r299301 2100
-s299301 2100
-i299301 2100
-j299301 2100
-p299301 2100
-c299301 2100
+o301 7
+o301 8
+o301 9 1
+o301 10
+o301 0 1200
+o301 12
+o301 13
+o301 1200
+o301 1200
+o301 1200 14
+o301 1200
+o301 1200
+o301 1200
+o301 1200
+o301 1200
+o301 1200
+o301 1200
+o301 1200
+o301 1200
+o301 1200
+o301 1200
+o301 1200
+o301 1200
+o301 1200
+o301 1200

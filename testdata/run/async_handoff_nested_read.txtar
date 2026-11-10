@@ -1,0 +1,31 @@
+-- src --
+import task from std/task
+
+// The closure mk returns reads s, a local of worker's own frame, so the frame and the closure still move together.
+/// Safety: it holds only an Int.
+@unsafeGuarantee(Send)
+type Socket = resource {
+    fd Int
+}
+
+fn Socket.peek(self) -> Int { self.fd }
+
+async fn worker(k: Int) -> Int {
+    let s = Socket { fd: k }
+    let mk = () => {
+        () => s.peek()
+    }
+    let w = mk()
+    await task.yieldNow()
+    w() + s.peek()
+}
+
+async fn root(other: task.Executor) -> Int {
+    let t = other.handoff(worker(5))
+    await t
+}
+
+let other = task.threadPoolExecutor(2)
+print "total ${task.threadPoolExecutor(2).runToCompletion(root(other))}"
+-- stdout --
+total 10

@@ -13,7 +13,7 @@ import (
 	"kigumi/internal/toolchain/driver"
 )
 
-var semOnlyOptions = []string{"pending", "std", "deps", "blocking", "target", "ptr"}
+var semOnlyOptions = []string{"pending", "std", "deps", "blocking", "target", "ptr", "send-bounds"}
 
 // TestCorpusOwnershipBeforeVerifier: the verifier, ownership rule included, is a backstop no corpus program reaches.
 func TestCorpusOwnershipBeforeVerifier(t *testing.T) {

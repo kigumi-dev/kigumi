@@ -1,0 +1,51 @@
+-- src --
+import task from std/task
+
+// Each closure captures the two before it; judging Send of the last walks every one of them once.
+async fn root() -> Int {
+    let c0 = move () => 1
+    let c1 = move () => 2
+    let c2 = move () => c1() + c0()
+    let c3 = move () => c2() + c1()
+    let c4 = move () => c3() + c2()
+    let c5 = move () => c4() + c3()
+    let c6 = move () => c5() + c4()
+    let c7 = move () => c6() + c5()
+    let c8 = move () => c7() + c6()
+    let c9 = move () => c8() + c7()
+    let c10 = move () => c9() + c8()
+    let c11 = move () => c10() + c9()
+    let c12 = move () => c11() + c10()
+    let c13 = move () => c12() + c11()
+    let c14 = move () => c13() + c12()
+    let c15 = move () => c14() + c13()
+    let c16 = move () => c15() + c14()
+    let c17 = move () => c16() + c15()
+    let c18 = move () => c17() + c16()
+    let c19 = move () => c18() + c17()
+    let c20 = move () => c19() + c18()
+    let c21 = move () => c20() + c19()
+    let c22 = move () => c21() + c20()
+    let c23 = move () => c22() + c21()
+    let c24 = move () => c23() + c22()
+    let c25 = move () => c24() + c23()
+    let c26 = move () => c25() + c24()
+    let c27 = move () => c26() + c25()
+    let c28 = move () => c27() + c26()
+    let c29 = move () => c28() + c27()
+    let c30 = move () => c29() + c28()
+    let c31 = move () => c30() + c29()
+    let c32 = move () => c31() + c30()
+    let c33 = move () => c32() + c31()
+    let c34 = move () => c33() + c32()
+    let c35 = move () => c34() + c33()
+    let c36 = move () => c35() + c34()
+    let c37 = move () => c36() + c35()
+    let c38 = move () => c37() + c36()
+    let c39 = move () => c38() + c37()
+    let c40 = move () => c39() + c38()
+    await task.BlockingPool.new(1).run(c40).unwrap()
+}
+
+print "v ${task.currentThreadExecutor().runToCompletion(root())}"
+-- expect --

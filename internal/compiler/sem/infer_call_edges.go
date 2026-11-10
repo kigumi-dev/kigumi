@@ -18,6 +18,7 @@ func (c *checker) callbackEdges(n syntax.NodeID, fn EntityID, sig TypeID, args [
 			continue
 		}
 		declared := tt.Node(info.Sig).Args
+		c.noteCallFlows(n, fn, declared, i, a)
 		pt := c.vars.resolve(params[i])
 		if tt.Kind(pt) == KIface {
 			c.ifaceArgEdge(n, a, info, i)

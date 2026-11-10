@@ -1,6 +1,8 @@
 -- src --
 import task from std/task
 
+/// Safety: it holds only an Int, so moving it to the pool thread moves nothing shared.
+@unsafeGuarantee(Send)
 type Res = resource {
     pub id Int
 }
@@ -18,7 +20,7 @@ async fn useIt() -> Int {
     let r = Res { id: 7 }
     let fut = pool.run(() => consume(r)).unwrap()
     let keep = Res { id: 8 }
-    let fut2 = pool.run(() => keep.id).unwrap()
+    let fut2 = pool.run(move () => keep.id).unwrap()
     (await fut) + (await fut2)
 }
 

@@ -34,6 +34,7 @@ func buildFor(r *sem.Result, all bool, keep func(path string) bool) *mir.Program
 			mirmobility.Classify(f, r)
 		}
 	}
+	mirmobility.PinLentReads(p)
 	mirmobility.Refine(p)
 	mirmobility.CheckHandoff(p)
 	return p

@@ -73,7 +73,7 @@ func parseFixture(t *testing.T, path string) fixture {
 	}
 	for k := range fx.opts {
 		switch k {
-		case "entry", "test", "std", "deps", "target", "ptr", "pending", "blocking", "mir", "allocator", "profile", "stage", "triple", "sys":
+		case "entry", "test", "std", "deps", "target", "ptr", "pending", "blocking", "mir", "allocator", "profile", "stage", "triple", "sys", "send-bounds":
 		default:
 			t.Fatalf("%s: unknown module option %q", path, k)
 		}

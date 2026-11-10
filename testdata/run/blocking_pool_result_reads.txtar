@@ -1,0 +1,86 @@
+-- src --
+import task from std/task
+
+// A closure the pool work returns reads only locals of frames that have returned or of the work itself.
+/// Safety: it holds only an Int.
+@unsafeGuarantee(Send)
+type Socket = resource {
+    fd Int
+}
+
+fn Socket.drop(move self) {
+    print "dropped ${self.fd}"
+}
+
+fn Socket.peek(self) -> Int { self.fd }
+
+async fn nested() -> Int {
+    let g = await task.BlockingPool.new(1).run(() => {
+        let mk = () => {
+            let s = Socket { fd: 5 }
+            () => s.peek()
+        }
+        mk()
+    }).unwrap()
+    print "got"
+    g()
+}
+
+async fn arms(k: Int) -> Int {
+    let g = await task.BlockingPool.new(1).run(() => {
+        match k {
+            0 -> {
+                let s = Socket { fd: 6 }
+                Some(() => s.peek())
+            }
+            _ -> None
+        }
+    }).unwrap()
+    match g {
+        Some(f) -> f()
+        None -> 0
+    }
+}
+
+async fn moved() -> Int {
+    let s = Socket { fd: 7 }
+    let g = await task.BlockingPool.new(1).run(move () => { () => s.peek() }).unwrap()
+    print "got moved"
+    g()
+}
+
+fn ship[T: Send, F: Fn[fn() -> T] + Send](pool: task.BlockingPool, f: escaping F, extra: T) -> Future[T] {
+    pool.run(move () => {
+        let _ = f()
+        extra
+    }).unwrap()
+}
+
+async fn shipped() -> Int {
+    let mk = () => () => {
+        let s = Socket { fd: 8 }
+        () => s.peek()
+    }
+    let c1 = mk()
+    let c2 = mk()
+    let g = c1()
+    let h = await ship(task.BlockingPool.new(1), c2, g)
+    h()
+}
+
+print "nested ${task.threadPoolExecutor(2).runToCompletion(nested())}"
+print "arms ${task.threadPoolExecutor(2).runToCompletion(arms(0))}"
+print "moved ${task.threadPoolExecutor(2).runToCompletion(moved())}"
+print "shipped ${task.threadPoolExecutor(2).runToCompletion(shipped())}"
+-- stdout --
+got
+dropped 5
+nested 5
+dropped 6
+arms 6
+got moved
+dropped 7
+moved 7
+dropped 8
+dropped 8
+shipped 8

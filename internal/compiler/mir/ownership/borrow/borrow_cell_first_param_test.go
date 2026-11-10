@@ -2,11 +2,14 @@ package borrow
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
+	"kigumi/internal/devkit/semfixture"
+	"kigumi/internal/lang/token"
 )
 
 const firstParamSrc = `
@@ -35,6 +38,23 @@ async fn awaitsParam(mut x: Future[Int], o: Future[Int]?, b: Bool) -> Int {
 }
 `
 
+// unboundedPoolProgram strips BlockingPool.run's Send bounds so sem lets a cell-writing closure reach the in-flight check.
+func unboundedPoolProgram(t *testing.T, src string) (*fixture, func(string) *midir.Func) {
+	t.Helper()
+	std := semfixture.LoadStd(t, "../../../../../std")
+	for _, pkg := range std {
+		for i, tree := range pkg.Files {
+			text := strings.Replace(string(tree.File.Src), "run[T: Send, F: FnOnce[fn() -> T] + Send]", "run[T, F: FnOnce[fn() -> T]]", 1)
+			if text != string(tree.File.Src) {
+				pkg.Files[i] = syntax.Parse(token.NewFile(tree.File.Name, []byte(text)))
+				return stdProgram(t, std, src)
+			}
+		}
+	}
+	t.Fatal("std has no Send-bounded BlockingPool.run")
+	return nil, nil
+}
+
 func collected(p *fixture, g *midir.Func) *borrowCheck {
 	c := &borrowCheck{p: p.input, state: New(p.input, nil), f: g, holders: map[midir.LocalID]*borrowInfo{}, reported: map[reportKey]int{}, keptTemp: map[midir.LocalID]bool{}}
 	c.collect()
@@ -54,7 +74,7 @@ func firstOp(g *midir.Func, op midir.Opcode) midir.Inst {
 }
 
 func TestLentPlaceWithoutHolderLeavesFirstParam(t *testing.T) {
-	p, body := srcProgram(t, firstParamSrc)
+	p, body := unboundedPoolProgram(t, firstParamSrc)
 	g := body("lendsPlain")
 	c := collected(p, g)
 	in := calls(p, g, "startIn")[0]
@@ -66,7 +86,7 @@ func TestLentPlaceWithoutHolderLeavesFirstParam(t *testing.T) {
 }
 
 func TestOffloadFlowReachesFirstParam(t *testing.T) {
-	p, body := srcProgram(t, firstParamSrc)
+	p, body := unboundedPoolProgram(t, firstParamSrc)
 	g := body("reassigned")
 	c := collected(p, g)
 	if !handsOff(c.solveFlow(c.offloadSeed, c.offloadStep).ever[g.Params[0]]) {
@@ -78,7 +98,7 @@ func TestOffloadFlowReachesFirstParam(t *testing.T) {
 }
 
 func TestAwaitedParamKeepsItsCallersValue(t *testing.T) {
-	p, body := srcProgram(t, firstParamSrc)
+	p, body := unboundedPoolProgram(t, firstParamSrc)
 	g := body("awaitsParam")
 	c := collected(p, g)
 	if o, ok := c.awaitedPayloadOf(firstOp(g, midir.OpAwait).Args[0], map[midir.LocalID]bool{localNamed(t, g, "o"): true}); ok {
@@ -87,7 +107,7 @@ func TestAwaitedParamKeepsItsCallersValue(t *testing.T) {
 }
 
 func TestInFlightTouchOfFirstParamNeedsAResult(t *testing.T) {
-	p, body := srcProgram(t, firstParamSrc)
+	p, body := unboundedPoolProgram(t, firstParamSrc)
 	g := body("reassigned")
 	c := collected(p, g)
 	if c.touchesInFlight(midir.Inst{Op: midir.OpRelease, Args: []midir.LocalID{g.Params[0]}}, ownerRef{owner: g.Params[0]}) {

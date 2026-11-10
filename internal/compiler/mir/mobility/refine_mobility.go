@@ -47,7 +47,7 @@ func awaitedPin(p *mir.Program, f *midir.Func) (string, bool) {
 				}
 				continue
 			}
-			if ty := f.Locals[in.Args[0]].Type; !p.R.IsSend(ty) {
+			if ty := f.Locals[in.Args[0]].Type; !p.R.IsSendInFrame(ty, f.Ent) {
 				return p.R.TypeString(ty), true
 			}
 		}
