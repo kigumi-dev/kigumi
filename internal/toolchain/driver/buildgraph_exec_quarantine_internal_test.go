@@ -30,7 +30,7 @@ func TestRunToolStepKeepsStaleOutputOnNoOpSuccess(t *testing.T) {
 	}
 	filePath := func(id int) string { return filepath.Join(outDir, g.Files[id].Path) }
 	var stderr bytes.Buffer
-	err := runToolStep(rg, 0, filePath, ExecOptions{}, outDir, &stderr)
+	err := runToolStep(rg, 0, filePath, ExecOptions{}, outDir, nil, &stderr)
 	if err == nil {
 		t.Fatal("a tool that writes nothing must be refused, not silently satisfied by a stale file")
 	}
@@ -62,7 +62,7 @@ func TestRunToolStepCleansFreshOutputOnFailure(t *testing.T) {
 	}
 	filePath := func(id int) string { return filepath.Join(outDir, g.Files[id].Path) }
 	var stderr bytes.Buffer
-	if err := runToolStep(rg, 0, filePath, ExecOptions{}, outDir, &stderr); err == nil {
+	if err := runToolStep(rg, 0, filePath, ExecOptions{}, outDir, nil, &stderr); err == nil {
 		t.Fatal("a step that fails before writing all its outputs must be refused")
 	}
 	if _, err := os.Stat(filePath(0)); !os.IsNotExist(err) {

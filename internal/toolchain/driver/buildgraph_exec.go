@@ -44,6 +44,10 @@ func ExecuteGraph(p *BuildProgram, rg *ResolvedGraph, outDir string, opts ExecOp
 		return err
 	}
 	g := rg.Graph
+	// The action cache lives under the build's own output directory, so the
+	// tool environment needs no HOME and a later build into the same
+	// directory can reuse an unchanged tool's outputs.
+	cache := newActionCache(filepath.Join(outDir, actionCacheDirName))
 	for _, f := range g.Files {
 		// Re-check literal files at execution: the tree may have changed
 		// since configure ran, and a symlink must not lead outside.
@@ -72,7 +76,7 @@ func ExecuteGraph(p *BuildProgram, rg *ResolvedGraph, outDir string, opts ExecOp
 		var idx int
 		fmt.Sscanf(node[1:], "%d", &idx)
 		if node[0] == 't' {
-			if err := runToolStep(rg, idx, filePath, opts, outDir, stderr); err != nil {
+			if err := runToolStep(rg, idx, filePath, opts, outDir, cache, stderr); err != nil {
 				return err
 			}
 			continue
@@ -85,7 +89,8 @@ func ExecuteGraph(p *BuildProgram, rg *ResolvedGraph, outDir string, opts ExecOp
 }
 
 // runToolStep runs one registered tool or earlier-built artifact with $in/$out/$secret filled in; a secret is copied to a private file for the run and removed afterward.
-func runToolStep(rg *ResolvedGraph, idx int, filePath func(int) string, opts ExecOptions, outDir string, stderr io.Writer) error {
+// A step whose action key matches a recorded one restores that action's outputs instead of running, so an unchanged tool, argv, environment and input set never reruns.
+func runToolStep(rg *ResolvedGraph, idx int, filePath func(int) string, opts ExecOptions, outDir string, cache *actionCache, stderr io.Writer) error {
 	secrets := opts.Secrets
 	s := rg.Graph.ToolSteps[idx]
 	name := s.Tool
@@ -164,22 +169,53 @@ func runToolStep(rg *ResolvedGraph, idx int, filePath func(int) string, opts Exe
 		display = append(display, d)
 	}
 	outPaths := make([]string, len(s.Outputs))
+	outNames := make([]string, len(s.Outputs))
 	for i, o := range s.Outputs {
 		p := filePath(o)
 		if err := artifact.CheckOutputSlot(p); err != nil {
 			return fmt.Errorf("tool %s: %w", name, err)
 		}
 		outPaths[i] = p
+		outNames[i] = rg.Graph.Files[o].Path
+	}
+	// The child environment is canonicalized once: the action key hashes
+	// exactly what the process sees, so a reordered allowlist cannot split it.
+	// A bare tool name is resolved through the compiler options' search path,
+	// never the driver's own environment, and the resolved path is what both
+	// the action key digests and the launch runs.
+	program, resolvable := resolveProgram(rg.options, program)
+	env := artifact.CanonicalEnv(append(toolEnv(opts.ToolEnv, rg.Graph.Request.Target), extraEnv...))
+	fullArgs := append(append([]string{}, prefix...), args...)
+	fullDisplay := append(append([]string{}, prefix...), display...)
+	// The key hashes the step's arguments with their placeholders intact:
+	// resolved paths move with the output directory, while the content they
+	// name is covered by the input digests and the declared output names.
+	keyArgs := append(append([]string{}, prefix...), s.Args...)
+	// A step that takes a secret is never cached: the secret's bytes are not
+	// part of the key, and hashing them would record a fingerprint of it.
+	cacheable := cache != nil && resolvable && len(s.Secrets) == 0
+	var action artifact.Action
+	if cacheable {
+		action, cacheable = toolAction(cache, rg, s, program, keyArgs, env, filePath, outNames)
+	}
+	if cacheable {
+		key := action.Key()
+		if cache.lookup(key, outPaths) {
+			cache.stats.Hits++
+			fmt.Fprintf(stderr, "build: tool %s reuses cached outputs (action %s)\n", name, artifact.ShortHash(key))
+			return nil
+		}
+		cache.stats.Misses++
+	} else if cache != nil {
+		cache.stats.Uncacheable++
 	}
 	quarantined, err := artifact.Quarantine(outPaths)
 	if err != nil {
 		return fmt.Errorf("tool %s: quarantine a stale output: %w", name, err)
 	}
-	fullArgs := append(append([]string{}, prefix...), args...)
-	fullDisplay := append(append([]string{}, prefix...), display...)
 	cmd := exec.Command(program, fullArgs...)
 	cmd.Dir = outDir
-	cmd.Env = append(toolEnv(opts.ToolEnv, rg.Graph.Request.Target), extraEnv...)
+	cmd.Env = env
 	cmd.Stderr = stderr
 	cmd.Stdout = stderr
 	fmt.Fprintf(stderr, "build: tool %s runs trusted (no sandbox), env %s\n", name, envNames(cmd.Env))
@@ -196,5 +232,12 @@ func runToolStep(rg *ResolvedGraph, idx int, filePath func(int) string, opts Exe
 		}
 	}
 	artifact.DropQuarantined(quarantined)
+	if cacheable {
+		if err := cache.store(action.Key(), outPaths, outNames); err != nil {
+			fmt.Fprintf(stderr, "note: tool %s: its action was not recorded for reuse: %v\n", name, err)
+		} else {
+			cache.stats.Stores++
+		}
+	}
 	return nil
 }
