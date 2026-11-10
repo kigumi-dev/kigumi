@@ -11639,6 +11639,24 @@
       ]
     },
     {
+      "id": "run/tls_server",
+      "kind": "run",
+      "path": "testdata/run/tls_server.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/tls_server_malformed",
+      "kind": "run",
+      "path": "testdata/run/tls_server_malformed.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/to_float_callback",
       "kind": "run",
       "path": "testdata/run/to_float_callback.txtar",

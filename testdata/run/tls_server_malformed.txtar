@@ -1,0 +1,600 @@
+-- src --
+// Malformed input must fail closed on the server side. The pure parser cases
+// are deterministic and socket-free; the two socket cases drive a real
+// server with a hand-built ClientHello and a hand-built Finished so the
+// alert, the absence of a server flight, and the connection drop are
+// observable.
+import binary from std/encoding/binary
+import hex from std/encoding/hex
+import net from std/net
+import sha256 from std/crypto/sha256
+import task from std/task
+import tls from std/net/tls
+import x25519 from std/crypto/x25519
+import x509 from std/crypto/x509
+
+const ROOT = "3082019330820139a003020102020101300a06082a8648ce3d0403023030310f300d060355040a0c064b6967756d69311d301b06035504030c144b6967756d6920544c53205465737420526f6f743020170d3236313130363030303030305a180f32303534303332353030303030305a3030310f300d060355040a0c064b6967756d69311d301b06035504030c144b6967756d6920544c53205465737420526f6f743059301306072a8648ce3d020106082a8648ce3d0301070342000456288617c1b007e78bb5b6d887ee84d7f905065078935ba3e6ece0213b1a03add07e7c4e42a1ec6a295fd288d16452b4a2107fe53105766eef03408ad4486fa9a3423040300f0603551d130101ff040530030101ff300e0603551d0f0101ff040403020106301d0603551d0e041604149809187f1e20cecd2dd8d5ab7b5f105f867d351b300a06082a8648ce3d0403020348003045022042bf4931f52f7940ba11ffc6156cf68f72e7c775eaeb0dcc5854add148c691fb022100b533846a2deedef6e82f412e0f96a0e46f7bde105580dcd8a31eaf7293b5db7d"
+const LEAF = "308201d73082017da003020102020102300a06082a8648ce3d0403023030310f300d060355040a0c064b6967756d69311d301b06035504030c144b6967756d6920544c53205465737420526f6f74301e170d3236313130363030303030305a170d3436303130363030303030305a3025310f300d060355040a0c064b6967756d693112301006035504030c096c6f63616c686f73743059301306072a8648ce3d020106082a8648ce3d03010703420004bc0870a538e3fb058d1cace443fad8528291caf09c80eb487ee92b3c997a5812b4b0b0974173093dc5074f65642039d84ad647d8419acd0895ad9398afbe0df6a3819230818f300c0603551d130101ff04023000300e0603551d0f0101ff04040302078030130603551d25040c300a06082b06010505070301301a0603551d110413301182096c6f63616c686f737487047f000001301d0603551d0e04160414a8c71ec2c07c3f5672b82a0d7fde2c4c877e115c301f0603551d230418301680149809187f1e20cecd2dd8d5ab7b5f105f867d351b300a06082a8648ce3d0403020348003045022100f760b000410f26174fe148bd38aeeba025cb4244878fe89c02f034fe91f58cde022004f623302dd42ced2f3693393be6cebab3533295d4f0a47d2a19a08eced875fe"
+const LEAF_KEY = "d88a88882b51bedeca8e098d7322bcaa262676a902ba292bc4c69633508084b9"
+
+type Fail = {
+    text String
+}
+
+fn Fail.message(self) -> String {
+    self.text
+}
+
+fn dec(text: String) -> Bytes {
+    hex.decode(text).expect("hex")
+}
+
+fn deterministicRandom(n: usize) -> Bytes! {
+    Bytes.fill(0x7b, n)
+}
+
+fn put16(out: &mut Array[u8], value: usize) {
+    binary.putU16Be(out, value.toU16() || 0)
+}
+
+fn put24(out: &mut Array[u8], value: usize) {
+    binary.putUintBe(out, value.toU64(), 3)
+}
+
+fn putBytes(out: &mut Array[u8], data: Bytes) {
+    let mut i: usize = 0
+    for i < data.len() {
+        out.push(data[i])
+        i = i + 1
+    }
+}
+
+fn byteArray(data: Bytes) -> Array[u8] {
+    let mut out = Array.empty[u8]()
+    putBytes(&mut out, data)
+    out
+}
+
+fn hs(typ: u8, body: Bytes) -> Bytes {
+    let mut out = Array.empty[u8]()
+    out.push(typ)
+    put24(&mut out, body.len())
+    putBytes(&mut out, body)
+    Bytes.fromArray(&out)
+}
+
+fn ext(typ: u16, body: Array[u8]) -> Array[u8] {
+    let mut out = Array.empty[u8]()
+    put16(&mut out, typ.toUsize())
+    put16(&mut out, body.len())
+    out.appendAll(body)
+    out
+}
+
+fn vec8(body: Array[u8]) -> Array[u8] {
+    let mut out = Array.empty[u8]()
+    out.push(body.len().toU8() || 0)
+    out.appendAll(body)
+    out
+}
+
+fn vec16(body: Array[u8]) -> Array[u8] {
+    let mut out = Array.empty[u8]()
+    put16(&mut out, body.len())
+    out.appendAll(body)
+    out
+}
+
+fn u16Bytes(values: Array[u16]) -> Array[u8] {
+    let mut out = Array.empty[u8]()
+    for value in &values {
+        put16(&mut out, value.toUsize())
+    }
+    out
+}
+
+fn versionsExt(version: u16) -> Array[u8] {
+    let mut body = Array.empty[u8]()
+    body.push(2)
+    put16(&mut body, version.toUsize())
+    ext(43, body)
+}
+
+fn groupsExt(groups: Array[u16]) -> Array[u8] {
+    ext(10, vec16(u16Bytes(groups)))
+}
+
+fn sigsExt(schemes: Array[u16]) -> Array[u8] {
+    ext(13, vec16(u16Bytes(schemes)))
+}
+
+type ShareEntry = {
+    group u16
+    share Bytes
+}
+
+fn keyShareExt(entries: Array[ShareEntry]) -> Array[u8] {
+    let mut list = Array.empty[u8]()
+    for entry in &entries {
+        put16(&mut list, entry.group.toUsize())
+        list.appendAll(vec16(byteArray(entry.share)))
+    }
+    ext(51, vec16(list))
+}
+
+fn sniExt(name: String) -> Array[u8] {
+    let mut entry = Array.empty[u8]()
+    entry.push(0)
+    entry.appendAll(vec16(byteArray(name.toBytes())))
+    ext(0, vec16(entry))
+}
+
+fn alpnExt(protocols: Array[String]) -> Array[u8] {
+    let mut list = Array.empty[u8]()
+    for protocol in &protocols {
+        list.appendAll(vec8(byteArray(protocol.toBytes())))
+    }
+    ext(16, vec16(list))
+}
+
+fn x25519Share() -> ShareEntry {
+    ShareEntry {
+        group: 0x001D
+        share: Bytes.fill(0x22, 32)
+    }
+}
+
+fn baseExts() -> Array[u8] {
+    let mut exts = Array.empty[u8]()
+    exts.appendAll(versionsExt(0x0304))
+    exts.appendAll(groupsExt(Array.of[u16](0x001D, 0x0017)))
+    exts.appendAll(sigsExt(Array.of[u16](0x0403)))
+    exts.appendAll(keyShareExt(Array.of(x25519Share())))
+    exts
+}
+
+fn p256Exts() -> Array[u8] {
+    let mut exts = Array.empty[u8]()
+    exts.appendAll(versionsExt(0x0304))
+    exts.appendAll(groupsExt(Array.of[u16](0x0017)))
+    exts.appendAll(sigsExt(Array.of[u16](0x0403)))
+    exts.appendAll(keyShareExt(Array.of(ShareEntry {
+        group: 0x0017
+        share: Bytes.fill(0x33, 65)
+    })))
+    exts
+}
+
+fn extendedExts() -> Array[u8] {
+    let mut exts = baseExts()
+    exts.appendAll(sniExt("localhost"))
+    exts.appendAll(alpnExt(Array.of("http/1.1")))
+    exts
+}
+
+type HelloSpec = {
+    legacyVersion u16
+    suites Array[u16]
+    compression Array[u8]
+    exts Array[u8]
+}
+
+fn helloBody(spec: HelloSpec) -> Bytes {
+    let mut body = Array.empty[u8]()
+    put16(&mut body, spec.legacyVersion.toUsize())
+    putBytes(&mut body, Bytes.fill(0x11, 32))
+    body.push(0)
+    body.appendAll(vec16(u16Bytes(spec.suites)))
+    body.appendAll(vec8(spec.compression))
+    body.appendAll(vec16(spec.exts))
+    Bytes.fromArray(&body)
+}
+
+fn standardHello(exts: Array[u8]) -> Bytes {
+    hs(1, helloBody(HelloSpec {
+        legacyVersion: 0x0303
+        suites: Array.of[u16](0x1303)
+        compression: Array.of[u8](0)
+        exts: exts
+    }))
+}
+
+fn report(name: String, message: Bytes, expect: String) {
+    let body = message.slice(4, message.len()).expect("body")
+    let outcome = match tls.parseClientHello(body) {
+        Ok(parsed) -> "ok group ${parsed.group} sni `${parsed.serverName}` alpn ${parsed.alpn.len()}"
+        Err(e) -> e.message()
+    }
+    let ok = outcome.contains(expect)
+    print "${name} => ${outcome} [${ok}]"
+}
+
+fn parseCases() {
+    report("valid", standardHello(baseExts()), "ok group 29 sni `` alpn 0")
+    report("valid-sni-alpn", standardHello(extendedExts()), "ok group 29 sni `localhost` alpn 1")
+    report("valid-p256", standardHello(p256Exts()), "ok group 23")
+    report("legacy-version", hs(1, helloBody(HelloSpec { legacyVersion: 0x0301, suites: Array.of[u16](0x1303), compression: Array.of[u8](0), exts: baseExts() })), "legacy_version")
+    report("bad-suite", hs(1, helloBody(HelloSpec { legacyVersion: 0x0303, suites: Array.of[u16](0x1301), compression: Array.of[u8](0), exts: baseExts() })), "did not offer TLS_CHACHA")
+    report("empty-suites", hs(1, helloBody(HelloSpec { legacyVersion: 0x0303, suites: Array.empty[u16](), compression: Array.of[u8](0), exts: baseExts() })), "cipher suite list")
+    report("bad-compression", hs(1, helloBody(HelloSpec { legacyVersion: 0x0303, suites: Array.of[u16](0x1303), compression: Array.of[u8](1), exts: baseExts() })), "null compression")
+    let mut noVersions = Array.empty[u8]()
+    noVersions.appendAll(groupsExt(Array.of[u16](0x001D, 0x0017)))
+    noVersions.appendAll(sigsExt(Array.of[u16](0x0403)))
+    noVersions.appendAll(keyShareExt(Array.of(x25519Share())))
+    report("no-versions", standardHello(noVersions), "did not offer TLS 1.3")
+    let mut badVersion = Array.empty[u8]()
+    badVersion.appendAll(versionsExt(0x0303))
+    badVersion.appendAll(groupsExt(Array.of[u16](0x001D, 0x0017)))
+    badVersion.appendAll(sigsExt(Array.of[u16](0x0403)))
+    badVersion.appendAll(keyShareExt(Array.of(x25519Share())))
+    report("bad-version", standardHello(badVersion), "did not offer TLS 1.3")
+    let mut groupMismatch = Array.empty[u8]()
+    groupMismatch.appendAll(versionsExt(0x0304))
+    groupMismatch.appendAll(groupsExt(Array.of[u16](0x0017)))
+    groupMismatch.appendAll(sigsExt(Array.of[u16](0x0403)))
+    groupMismatch.appendAll(keyShareExt(Array.of(x25519Share())))
+    report("group-mismatch", standardHello(groupMismatch), "not in supported_groups")
+    let mut noSigs = Array.empty[u8]()
+    noSigs.appendAll(versionsExt(0x0304))
+    noSigs.appendAll(groupsExt(Array.of[u16](0x001D, 0x0017)))
+    noSigs.appendAll(keyShareExt(Array.of(x25519Share())))
+    report("no-sigs", standardHello(noSigs), "no signature_algorithms")
+    let mut badSig = Array.empty[u8]()
+    badSig.appendAll(versionsExt(0x0304))
+    badSig.appendAll(groupsExt(Array.of[u16](0x001D, 0x0017)))
+    badSig.appendAll(sigsExt(Array.of[u16](0x0804)))
+    badSig.appendAll(keyShareExt(Array.of(x25519Share())))
+    report("bad-sig", standardHello(badSig), "no ecdsa_secp256r1_sha256")
+    let mut shortShare = Array.empty[u8]()
+    shortShare.appendAll(versionsExt(0x0304))
+    shortShare.appendAll(groupsExt(Array.of[u16](0x001D, 0x0017)))
+    shortShare.appendAll(sigsExt(Array.of[u16](0x0403)))
+    shortShare.appendAll(keyShareExt(Array.of(ShareEntry { group: 0x001D, share: Bytes.fill(0x22, 31) })))
+    report("short-share", standardHello(shortShare), "x25519 key share must be 32")
+    let mut unknownGroup = Array.empty[u8]()
+    unknownGroup.appendAll(versionsExt(0x0304))
+    unknownGroup.appendAll(groupsExt(Array.of[u16](0x0018)))
+    unknownGroup.appendAll(sigsExt(Array.of[u16](0x0403)))
+    unknownGroup.appendAll(keyShareExt(Array.of(ShareEntry { group: 0x0018, share: Bytes.fill(0x22, 32) })))
+    report("unknown-group", standardHello(unknownGroup), "no key share")
+    let mut duplicateShare = Array.empty[u8]()
+    duplicateShare.appendAll(versionsExt(0x0304))
+    duplicateShare.appendAll(groupsExt(Array.of[u16](0x001D)))
+    duplicateShare.appendAll(sigsExt(Array.of[u16](0x0403)))
+    duplicateShare.appendAll(keyShareExt(Array.of(x25519Share(), x25519Share())))
+    report("duplicate-share", standardHello(duplicateShare), "lists group 29 twice")
+    let mut psk = baseExts()
+    psk.appendAll(ext(41, Array.empty[u8]()))
+    report("psk", standardHello(psk), "pre_shared_key")
+    let mut early = baseExts()
+    early.appendAll(ext(42, Array.empty[u8]()))
+    report("early-data", standardHello(early), "early data")
+    let mut cookie = baseExts()
+    cookie.appendAll(ext(44, vec16(byteArray(dec("c0ffee")))))
+    report("cookie", standardHello(cookie), "cookie")
+    let mut emptySni = baseExts()
+    emptySni.appendAll(sniExt(""))
+    report("empty-sni", standardHello(emptySni), "server_name is empty")
+    let mut emptyAlpn = baseExts()
+    emptyAlpn.appendAll(alpnExt(Array.empty[String]()))
+    report("empty-alpn", standardHello(emptyAlpn), "ALPN protocol list is empty")
+    let mut duplicateExt = baseExts()
+    duplicateExt.appendAll(versionsExt(0x0304))
+    report("duplicate-ext", standardHello(duplicateExt), "duplicate extension")
+    let valid = standardHello(baseExts())
+    let truncated = valid.slice(0, 5).expect("truncated")
+    report("truncated", truncated, "runs past the message")
+}
+
+// ---- raw wire -----------------------------------------------------------
+
+type Wire = resource {
+    mut conn net.Conn
+    mut pending Bytes
+}
+
+type RawRecord = {
+    typ u8
+    header Bytes
+    payload Bytes
+}
+
+async fn Wire.fill(mut self) -> Bool! {
+    let mut chunk = Array.empty[u8]()
+    for true {
+        match self.conn.pollRead(&mut chunk, 16384) {
+            Ok(Some(0)) -> return false
+            Ok(Some(_)) -> {
+                self.pending = self.pending.concat(Bytes.fromArray(&chunk))
+                return true
+            }
+            Ok(None) -> await task.yieldNow()
+            Err(e) -> fail Fail { text: e.message() }
+        }
+    }
+    false
+}
+
+async fn Wire.need(mut self, n: usize) -> Void! {
+    for self.pending.len() < n {
+        if !(await self.fill())? {
+            fail Fail { text: "client: connection closed" }
+        }
+    }
+}
+
+fn u16At(data: Bytes, at: usize) -> usize {
+    (binary.u16Be(data, at).expect("u16")).toUsize()
+}
+
+async fn Wire.readRecord(mut self) -> RawRecord! {
+    (await self.need(5))?
+    let header = self.pending.slice(0, 5).expect("header")
+    let typ = header[0]
+    let length = u16At(header, 3)
+    (await self.need(5 + length))?
+    let payload = self.pending.slice(5, 5 + length).expect("payload")
+    self.pending = self.pending.slice(5 + length, self.pending.len()).expect("rest")
+    RawRecord {
+        typ: typ
+        header: header
+        payload: payload
+    }
+}
+
+async fn Wire.writeAll(mut self, data: Bytes) -> Void! {
+    let mut off: usize = 0
+    for off < data.len() {
+        let rest = data.slice(off, data.len()).expect("write slice")
+        match self.conn.pollWrite(rest) {
+            Ok(Some(n)) -> { off = off + n }
+            Ok(None) -> await task.yieldNow()
+            Err(e) -> fail Fail { text: e.message() }
+        }
+    }
+}
+
+// ---- a real server with a scripted client -------------------------------
+
+fn serverConfig() -> tls.ServerConfig {
+    let mut config = tls.ServerConfig.new(Array.of(dec(LEAF)), tls.ServerKey.EcP256(dec(LEAF_KEY)), (k) => deterministicRandom(k))
+    config.alpn = Array.of("http/1.1")
+    config
+}
+
+async fn serveOnce(mut listener: net.Listener) -> String {
+    let pool = task.BlockingPool.new(1)
+    let pending = match pool.run(() => listener.accept().unwrap()) {
+        Ok(value) -> value
+        Err(e) -> return "accept: ${e.message()}"
+    }
+    let conn = await pending
+    let handshake = await tls.Server.handshake(conn, serverConfig())
+    match handshake {
+        Ok(_) -> "handshake accepted"
+        Err(e) -> "handshake: ${e.message()}"
+    }
+}
+
+async fn scriptedHelloCase(n: net.Net, name: String, payload: Bytes, description: u8, expect: String) -> String! {
+    let poolListen = task.BlockingPool.new(1)
+    let listener = await poolListen.run(() => n.listen("127.0.0.1", 0).unwrap()).unwrap()
+    let port = listener.port()
+    let running = task.spawn(serveOnce(listener))
+    let poolConnect = task.BlockingPool.new(1)
+    let conn = await poolConnect.run(() => n.connect("127.0.0.1", port).unwrap()).unwrap()
+    let mut wire = Wire { conn: conn, pending: Bytes.zeros(0) }
+    (await wire.writeAll((tls.sealPlaintext(22, payload))?))?
+    let first = (await wire.readRecord())?
+    let server = await running
+    if first.typ != 21 {
+        return "${name} => first record type ${first.typ}, not an alert"
+    }
+    if first.payload.len() != 2 || first.payload[0] != 2 || first.payload[1] != description {
+        return "${name} => alert ${hex.encode(first.payload)}"
+    }
+    if !server.contains(expect) {
+        return "${name} => server ${server}"
+    }
+    "${name} => ok"
+}
+
+async fn badHelloCase(n: net.Net) -> String! {
+    let hello = hs(1, helloBody(HelloSpec {
+        legacyVersion: 0x0303
+        suites: Array.of[u16](0x1301)
+        compression: Array.of[u8](0)
+        exts: baseExts()
+    }))
+    await scriptedHelloCase(n, "bad-hello", hello, 40, "did not offer TLS_CHACHA")
+}
+
+async fn extraHandshakeCase(n: net.Net) -> String! {
+    // A valid ClientHello followed by a plaintext Finished in the same
+    // record: nothing after the ClientHello may bypass the record layer.
+    let payload = standardHello(baseExts()).concat(hs(20, Bytes.zeros(32)))
+    await scriptedHelloCase(n, "extra-handshake", payload, 10, "plaintext handshake bytes follow the ClientHello")
+}
+
+type MsgCursor = {
+    data Bytes
+    mut at usize
+}
+
+fn MsgCursor.next(mut self) -> Bytes! {
+    if self.data.len() - self.at < 4 {
+        fail Fail { text: "client: truncated handshake message" }
+    }
+    let length = (self.data[self.at + 1].toUsize() << 16) | (self.data[self.at + 2].toUsize() << 8) | self.data[self.at + 3].toUsize()
+    let total = 4 + length
+    if self.data.len() - self.at < total {
+        fail Fail { text: "client: truncated handshake body" }
+    }
+    let raw = self.data.slice(self.at, self.at + total).expect("handshake slice")
+    self.at = self.at + total
+    raw
+}
+
+async fn wrongFinishedCase(n: net.Net) -> String! {
+    let poolListen = task.BlockingPool.new(1)
+    let listener = await poolListen.run(() => n.listen("127.0.0.1", 0).unwrap()).unwrap()
+    let port = listener.port()
+    let running = task.spawn(serveOnce(listener))
+    let poolConnect = task.BlockingPool.new(1)
+    let conn = await poolConnect.run(() => n.connect("127.0.0.1", port).unwrap()).unwrap()
+    let mut wire = Wire { conn: conn, pending: Bytes.zeros(0) }
+
+    let clientSecret = dec("aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899")
+    let clientPublic = match x25519.publicKey(clientSecret) {
+        Ok(value) -> value
+        Err(e) -> fail Fail { text: e.message() }
+    }
+    let hello = (tls.clientHello(Bytes.fill(0x33, 32), Bytes.fill(0x44, 32), clientPublic, "localhost", Array.of("http/1.1")))?
+    (await wire.writeAll((tls.sealPlaintext(22, hello))?))?
+
+    let mut serverHello = Bytes.zeros(0)
+    for serverHello.len() == 0 {
+        let record = (await wire.readRecord())?
+        if record.typ == 20 {
+            continue
+        }
+        if record.typ != 22 {
+            fail Fail { text: "client: expected ServerHello, got record type ${record.typ}" }
+        }
+        serverHello = record.payload
+    }
+    let parsed = match (tls.parseServerHello(serverHello.slice(4, serverHello.len()).expect("ServerHello body")))? {
+        tls.ServerReply.Hello(value) -> value
+        tls.ServerReply.Retry(_) -> fail Fail { text: "client: server sent a HelloRetryRequest" }
+    }
+    let shared = match x25519.sharedSecret(clientSecret, parsed.keyShare) {
+        Ok(value) -> value
+        Err(e) -> fail Fail { text: e.message() }
+    }
+    let secrets = (tls.deriveHandshake(shared, sha256.sum(hello.concat(serverHello))))?
+
+    let mut flightHeader = Bytes.zeros(0)
+    let mut flightPayload = Bytes.zeros(0)
+    for flightPayload.len() == 0 {
+        let record = (await wire.readRecord())?
+        if record.typ == 20 {
+            continue
+        }
+        if record.typ != 23 {
+            fail Fail { text: "client: expected a protected flight, got record type ${record.typ}" }
+        }
+        flightHeader = record.header
+        flightPayload = record.payload
+    }
+    let opened = (tls.openRecord(secrets.server, 0, flightHeader, flightPayload))?
+    if opened.typ != 22 {
+        fail Fail { text: "client: flight inner content type ${opened.typ}" }
+    }
+    let mut cursor = MsgCursor { data: opened.payload, at: 0 }
+    let mut transcript = hello.concat(serverHello)
+
+    let eeRaw = cursor.next()?
+    if eeRaw[0] != 8 {
+        fail Fail { text: "client: expected EncryptedExtensions" }
+    }
+    let selected = (tls.parseEncryptedExtensions(eeRaw.slice(4, eeRaw.len()).expect("EncryptedExtensions body")))?
+    match selected {
+        Some(protocol) -> if protocol != "http/1.1" {
+            fail Fail { text: "client: ALPN `${protocol}`" }
+        }
+        None -> fail Fail { text: "client: no ALPN was selected" }
+    }
+    transcript = transcript.concat(eeRaw)
+
+    let certRaw = cursor.next()?
+    if certRaw[0] != 11 {
+        fail Fail { text: "client: expected Certificate" }
+    }
+    let certificates = (tls.parseCertificate(certRaw.slice(4, certRaw.len()).expect("Certificate body"), 1048576, 16))?
+    let root = (x509.parse(dec(ROOT)))?
+    let anchors = Array.of(root)
+    let leaf = (tls.verifyServerChain(&anchors, &certificates, "localhost", 1794009600000))?
+    transcript = transcript.concat(certRaw)
+
+    let cvRaw = cursor.next()?
+    if cvRaw[0] != 15 {
+        fail Fail { text: "client: expected CertificateVerify" }
+    }
+    let cv = (tls.parseCertificateVerify(cvRaw.slice(4, cvRaw.len()).expect("CertificateVerify body")))?
+    (tls.verifyCertificateVerify(&leaf, cv.scheme, cv.signature, sha256.sum(transcript)))?
+    transcript = transcript.concat(cvRaw)
+
+    let finRaw = cursor.next()?
+    if finRaw[0] != 20 {
+        fail Fail { text: "client: expected Finished" }
+    }
+    let claimed = (tls.parseFinished(finRaw.slice(4, finRaw.len()).expect("Finished body")))?
+    let expected = (tls.finishedVerifyData(secrets.server.secret, sha256.sum(transcript)))?
+    if !tls.equalConstantTime(expected, claimed) {
+        fail Fail { text: "client: server Finished does not verify" }
+    }
+    transcript = transcript.concat(finRaw)
+    if cursor.at != opened.payload.len() {
+        fail Fail { text: "client: trailing bytes after the server flight" }
+    }
+
+    // A single flipped byte in verify_data: the record still authenticates,
+    // so the server must reject it on the constant-time compare.
+    let correct = (tls.finishedVerifyData(secrets.client.secret, sha256.sum(transcript)))?
+    let mut flipped = byteArray(correct)
+    flipped[0] = flipped[0] ^ 1
+    (await wire.writeAll((tls.sealRecord(secrets.client, 0, 22, hs(20, Bytes.fromArray(&flipped))))?))?
+
+    let alertRecord = (await wire.readRecord())?
+    let server = await running
+    if alertRecord.typ != 23 {
+        return "wrong-finished => record type ${alertRecord.typ}, not protected"
+    }
+    let alert = (tls.openRecord(secrets.server, 1, alertRecord.header, alertRecord.payload))?
+    if alert.typ != 21 || alert.payload.len() != 2 || alert.payload[0] != 2 || alert.payload[1] != 51 {
+        return "wrong-finished => alert ${hex.encode(alert.payload)} type ${alert.typ}"
+    }
+    if !server.contains("Finished verify_data does not match") {
+        return "wrong-finished => server ${server}"
+    }
+    "wrong-finished => ok"
+}
+
+async fn run() -> Void! {
+    parseCases()
+    let n = host.net()
+    let bad = (await badHelloCase(n))?
+    print bad
+    let extra = (await extraHandshakeCase(n))?
+    print extra
+    let wrong = (await wrongFinishedCase(n))?
+    print wrong
+}
+
+task.currentThreadExecutor().runToCompletion(run())?
+-- stdout --
+valid => ok group 29 sni `` alpn 0 [true]
+valid-sni-alpn => ok group 29 sni `localhost` alpn 1 [true]
+valid-p256 => ok group 23 sni `` alpn 0 [true]
+legacy-version => tls: malformed handshake: ClientHello legacy_version 769 is not TLS 1.2 [true]
+bad-suite => tls: unsupported: client did not offer TLS_CHACHA20_POLY1305_SHA256 [true]
+empty-suites => tls: malformed handshake: cipher suite list has 0 bytes [true]
+bad-compression => tls: malformed handshake: client did not offer the null compression method [true]
+no-versions => tls: unsupported: client did not offer TLS 1.3 [true]
+bad-version => tls: unsupported: client did not offer TLS 1.3 [true]
+group-mismatch => tls: malformed handshake: key_share group 29 is not in supported_groups [true]
+no-sigs => tls: malformed handshake: ClientHello has no signature_algorithms [true]
+bad-sig => tls: unsupported: client offered no ecdsa_secp256r1_sha256 signature scheme [true]
+short-share => tls: malformed handshake: x25519 key share must be 32 bytes [true]
+unknown-group => tls: unsupported: client offered no key share for x25519 or secp256r1 [true]
+duplicate-share => tls: malformed handshake: key_share lists group 29 twice [true]
+psk => tls: unsupported: pre_shared_key is not supported [true]
+early-data => tls: unsupported: early data is not supported [true]
+cookie => tls: malformed handshake: ClientHello carries a cookie without a HelloRetryRequest [true]
+empty-sni => tls: malformed handshake: server_name is empty [true]
+empty-alpn => tls: malformed handshake: ALPN protocol list is empty [true]
+duplicate-ext => tls: malformed handshake: duplicate extension 43 [true]
+truncated => tls: malformed handshake: field of 2 bytes runs past the message [true]
+bad-hello => ok
+extra-handshake => ok
+wrong-finished => ok

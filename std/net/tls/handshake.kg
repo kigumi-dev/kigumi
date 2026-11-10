@@ -245,6 +245,241 @@ pub pure fn clientHelloWithShare(group: u16, random: Bytes, sessionId: Bytes, ke
     Ok(encodeHandshake(clientHelloType, freeze(&body))?)
 }
 
+/// The fields of a ClientHello this implementation acts on.
+pub type ParsedClientHello = {
+    pub sessionId Bytes
+    /// The group whose share the server answers with: x25519 when the
+    /// client sent one, secp256r1 otherwise.
+    pub group u16
+    pub keyShare Bytes
+    /// The SNI host name, or "" when the extension is absent.
+    pub serverName String
+    /// The ALPN protocols the client offered, in its preference order.
+    pub alpn Array[String]
+}
+
+// Whether a big-endian 16-bit list holds `value`. An odd length means the
+// peer framed the list wrong, which is always a malformed message.
+pure fn listHas16(list: Bytes, value: u16) -> Result[Bool, Error] {
+    if list.len() % 2 != 0 {
+        fail Error.MalformedHandshake("16-bit list has ${list.len()} bytes")
+    }
+    let mut at: usize = 0
+    for at < list.len() {
+        if (binary.u16Be(list, at) || 0) == value {
+            return Ok(true)
+        }
+        at = at + 2
+    }
+    false
+}
+
+// The key share the server answers with.
+type ChosenShare = {
+    group u16
+    keyShare Bytes
+}
+
+// Parses one key_share entry list, preferring x25519 and refusing a group
+// the client listed twice.
+pure fn parseKeyShares(data: Bytes) -> Result[ChosenShare, Error] {
+    let mut r = Reader.new(data)
+    let list = r.vec16()?
+    r.end("key_share")?
+    let mut lr = Reader.new(list)
+    let mut haveX25519 = false
+    let mut x25519Share = Bytes.zeros(0)
+    let mut haveP256 = false
+    let mut p256Share = Bytes.zeros(0)
+    for !lr.done() {
+        let group = lr.u16()?
+        let share = lr.vec16()?
+        if group == x25519Group {
+            if haveX25519 {
+                fail Error.MalformedHandshake("key_share lists group ${group} twice")
+            }
+            if share.len() != 32 {
+                fail Error.MalformedHandshake("x25519 key share must be 32 bytes")
+            }
+            haveX25519 = true
+            x25519Share = share
+        } else if group == secp256r1Group {
+            if haveP256 {
+                fail Error.MalformedHandshake("key_share lists group ${group} twice")
+            }
+            if share.len() != 65 {
+                fail Error.MalformedHandshake("secp256r1 key share must be 65 bytes")
+            }
+            haveP256 = true
+            p256Share = share
+        }
+        // A group this server does not implement is skipped: RFC 8446 §4.2.8
+        // lets the server choose any group the client offered a share for.
+    }
+    if haveX25519 {
+        return Ok(ChosenShare {
+            group: x25519Group
+            keyShare: x25519Share
+        })
+    }
+    if haveP256 {
+        return Ok(ChosenShare {
+            group: secp256r1Group
+            keyShare: p256Share
+        })
+    }
+    fail Error.Unsupported("client offered no key share for x25519 or secp256r1")
+}
+
+/// Parses and checks a ClientHello body (the four-byte handshake header
+/// already removed) for a TLS 1.3 handshake with
+/// TLS_CHACHA20_POLY1305_SHA256 and an ecdsa_secp256r1_sha256 certificate.
+///
+/// The parse is strict about everything the server acts on and about the
+/// extensions TLS 1.3 requires. PSK resumption, early data and a cookie
+/// (which only a HelloRetryRequest may provoke) are refused rather than
+/// ignored, because this server cannot honour them. Extensions it does not
+/// recognise are skipped, as RFC 8446 §4.2 requires of a server.
+pub pure fn parseClientHello(body: Bytes) -> Result[ParsedClientHello, Error] {
+    let mut r = Reader.new(body)
+    let version = r.u16()?
+    if version != 0x0303 {
+        fail Error.MalformedHandshake("ClientHello legacy_version ${version} is not TLS 1.2")
+    }
+    _ = r.take(32)?
+    let sessionId = r.vec8()?
+    if sessionId.len() > 32 {
+        fail Error.MalformedHandshake("ClientHello session id is longer than 32 bytes")
+    }
+    let suites = r.vec16()?
+    if suites.len() == 0 || suites.len() % 2 != 0 {
+        fail Error.MalformedHandshake("cipher suite list has ${suites.len()} bytes")
+    }
+    if !(listHas16(suites, chacha20Poly1305Sha256)?) {
+        fail Error.Unsupported("client did not offer TLS_CHACHA20_POLY1305_SHA256")
+    }
+    let compression = r.vec8()?
+    if compression.len() == 0 {
+        fail Error.MalformedHandshake("ClientHello compression method list is empty")
+    }
+    let mut nullCompression = false
+    let mut ci: usize = 0
+    for ci < compression.len() {
+        if compression[ci] == 0 {
+            nullCompression = true
+        }
+        ci = ci + 1
+    }
+    if !nullCompression {
+        fail Error.MalformedHandshake("client did not offer the null compression method")
+    }
+    let extBlock = r.vec16()?
+    r.end("ClientHello")?
+    let exts = parseExtensions(extBlock)?
+
+    let mut versionFound = false
+    let mut sigsFound = false
+    let mut shareFound = false
+    let mut group: u16 = 0
+    let mut keyShare = Bytes.zeros(0)
+    let mut groupsFound = false
+    let mut groups = Bytes.zeros(0)
+    let mut serverName = ""
+    let mut alpn = Array.empty[String]()
+
+    for e in &exts {
+        if e.typ == supportedVersionsExt {
+            let mut vr = Reader.new(e.data)
+            let versions = vr.vec8()?
+            vr.end("supported_versions")?
+            versionFound = listHas16(versions, tls13Version)?
+        } else if e.typ == keyShareExt {
+            let parsed = parseKeyShares(e.data)?
+            group = parsed.group
+            keyShare = parsed.keyShare
+            shareFound = true
+        } else if e.typ == supportedGroupsExt {
+            let mut gr = Reader.new(e.data)
+            groups = gr.vec16()?
+            gr.end("supported_groups")?
+            if groups.len() % 2 != 0 {
+                fail Error.MalformedHandshake("supported_groups has ${groups.len()} bytes")
+            }
+            groupsFound = true
+        } else if e.typ == signatureAlgorithmsExt {
+            let mut sr = Reader.new(e.data)
+            let schemes = sr.vec16()?
+            sr.end("signature_algorithms")?
+            if !(listHas16(schemes, ecdsaSecp256r1Sha256)?) {
+                fail Error.Unsupported("client offered no ecdsa_secp256r1_sha256 signature scheme")
+            }
+            sigsFound = true
+        } else if e.typ == serverNameExt {
+            let mut nr = Reader.new(e.data)
+            let list = nr.vec16()?
+            nr.end("server_name")?
+            let mut lr = Reader.new(list)
+            let nameType = lr.u8()?
+            if nameType != 0 {
+                fail Error.MalformedHandshake("server_name type ${nameType} is not host_name")
+            }
+            let name = lr.vec16()?
+            lr.end("server_name list")?
+            if name.len() == 0 {
+                fail Error.MalformedHandshake("server_name is empty")
+            }
+            serverName = match String.fromBytes(name) {
+                Ok(value) -> value
+                Err(_) -> fail Error.MalformedHandshake("server_name is not valid UTF-8")
+            }
+        } else if e.typ == alpnExt {
+            let mut ar = Reader.new(e.data)
+            let list = ar.vec16()?
+            ar.end("ALPN")?
+            let mut lr = Reader.new(list)
+            for !lr.done() {
+                let protocol = lr.vec8()?
+                if protocol.len() == 0 {
+                    fail Error.MalformedHandshake("ALPN protocol name is empty")
+                }
+                let text = match String.fromBytes(protocol) {
+                    Ok(value) -> value
+                    Err(_) -> fail Error.MalformedHandshake("ALPN protocol is not valid UTF-8")
+                }
+                alpn.push(text)
+            }
+            if alpn.len() == 0 {
+                fail Error.MalformedHandshake("ALPN protocol list is empty")
+            }
+        } else if e.typ == preSharedKeyExt {
+            fail Error.Unsupported("pre_shared_key is not supported")
+        } else if e.typ == earlyDataExt {
+            fail Error.Unsupported("early data is not supported")
+        } else if e.typ == cookieExt {
+            fail Error.MalformedHandshake("ClientHello carries a cookie without a HelloRetryRequest")
+        }
+    }
+    if !versionFound {
+        fail Error.Unsupported("client did not offer TLS 1.3")
+    }
+    if !sigsFound {
+        fail Error.MalformedHandshake("ClientHello has no signature_algorithms")
+    }
+    if !shareFound {
+        fail Error.MalformedHandshake("ClientHello has no key_share")
+    }
+    if groupsFound && !(listHas16(groups, group)?) {
+        fail Error.MalformedHandshake("key_share group ${group} is not in supported_groups")
+    }
+    Ok(ParsedClientHello {
+        sessionId: sessionId
+        group: group
+        keyShare: keyShare
+        serverName: serverName
+        alpn: alpn
+    })
+}
+
 /// The fields of a ServerHello this implementation acts on.
 pub type ParsedServerHello = {
     pub random Bytes

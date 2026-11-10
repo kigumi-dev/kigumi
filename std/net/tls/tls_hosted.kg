@@ -139,7 +139,24 @@ pub type Session = resource {
 /// Runs the handshake over conn and returns a session ready for application
 /// data. Any failure closes the connection, so no plaintext path remains.
 pub async fn Client.connect(conn: net.Conn, config: Config) -> Result[Session, Error] {
-    let mut session = Session {
+    let mut session = newSession(conn, config.maxRecordBytes, config.maxHandshakeBytes, config.maxCertificateBytes)
+    match (await session.runHandshake(config)) {
+        Ok(_) -> {}
+        Err(e) -> {
+            // Best effort: the peer should learn the connection is over even
+            // when the failure was ours, then the session drops the socket.
+            await session.sendAlert(2, alertDescription(&e))
+            session.open = false
+            return Err(e)
+        }
+    }
+    Ok(session)
+}
+
+// A session with no keys installed, shared by the client and server entry
+// points so both start from the same bounded state.
+fn newSession(conn: net.Conn, maxRecordBytes: usize, maxHandshakeBytes: usize, maxCertificateBytes: usize) -> Session {
+    Session {
         conn: conn
         pending: Bytes.zeros(0)
         hsBuf: Array.empty[u8]()
@@ -152,22 +169,11 @@ pub async fn Client.connect(conn: net.Conn, config: Config) -> Result[Session, E
         writeProtected: false
         open: true
         established: false
-        maxRecordBytes: config.maxRecordBytes
-        maxHandshakeBytes: config.maxHandshakeBytes
-        maxCertificateBytes: config.maxCertificateBytes
+        maxRecordBytes: maxRecordBytes
+        maxHandshakeBytes: maxHandshakeBytes
+        maxCertificateBytes: maxCertificateBytes
         negotiatedProtocol: ""
     }
-    match (await session.runHandshake(config)) {
-        Ok(_) -> {}
-        Err(e) -> {
-            // Best effort: the peer should learn the connection is over even
-            // when the failure was ours, then the session drops the socket.
-            await session.sendAlert(2, alertDescription(&e))
-            session.open = false
-            return Err(e)
-        }
-    }
-    Ok(session)
 }
 
 /// The ALPN protocol the server selected, or "" when it did not send one.
@@ -359,6 +365,31 @@ async fn Session.sendHandshake(mut self, message: Bytes) -> Result[Void, Error] 
     await self.writeRaw(record)
 }
 
+// Sends a run of handshake messages as consecutive protected records,
+// fragmenting at the plaintext cap so a large certificate chain still
+// fits. A handshake message may span records (RFC 8446 §5.1); the peer
+// reassembles it from the stream.
+async fn Session.sendHandshakeFlight(mut self, flight: Bytes) -> Result[Void, Error] {
+    let mut off: usize = 0
+    for off < flight.len() {
+        let left = flight.len() - off
+        let take = if left < maxPlaintext {
+            left
+        } else {
+            maxPlaintext
+        }
+        if self.writeSeq == 18446744073709551615 {
+            fail Error.BadRecord("record sequence number exhausted")
+        }
+        let chunk = flight.slice(off, off + take) || fail Error.BadRecord("flight slice out of bounds")
+        let record = sealRecord(self.writeKeys, self.writeSeq, handshakeType, chunk)?
+        self.writeSeq = self.writeSeq.wrappingAdd(1)
+        (await self.writeRaw(record))?
+        off = off + take
+    }
+    Ok(())
+}
+
 async fn Session.sendAlert(mut self, level: u8, description: u8) {
     let body = outboundAlert(level, description)
     if !self.writeProtected {
@@ -470,6 +501,12 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
     let helloParsed = match serverHello {
         Some(value) -> value
         None -> fail Error.UnexpectedMessage("server sent no ServerHello")
+    }
+    // Everything after the ServerHello must arrive under the record layer
+    // this client is about to install; a plaintext message already buffered
+    // would otherwise be read as if it were protected.
+    if self.hsBuf.len() != 0 {
+        fail Error.UnexpectedMessage("plaintext handshake bytes follow the ServerHello")
     }
 
     let shared = keyExchangeShared(group, secret, helloParsed.keyShare)?

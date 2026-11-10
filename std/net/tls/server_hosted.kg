@@ -1,0 +1,361 @@
+// A TLS 1.3 server (RFC 8446) over an existing `net.Conn`, the mirror of
+// the client in tls_hosted.kg: TLS_CHACHA20_POLY1305_SHA256, an x25519 or
+// secp256r1 key share, and a certificate chain signed with a secp256r1 key.
+//
+// The handshake is a strict, certificate-authenticated exchange: no PSK, no
+// session resumption, no 0-RTT, no client certificate and no
+// HelloRetryRequest. A ClientHello that does not offer TLS 1.3 with
+// TLS_CHACHA20_POLY1305_SHA256 and an ecdsa_secp256r1_sha256 signature is
+// refused rather than downgraded, and there is no plaintext fallback.
+// Extensions the server does not recognise are skipped as RFC 8446 §4.2
+// requires; PSK, early data and a cookie are refused because this server
+// cannot honour them.
+//
+// `certificates` is the DER chain, leaf first; `key` is the leaf's secp256r1
+// scalar and is checked against the leaf's public key before anything is
+// sent, so a misconfigured pair fails instead of sending a flight the peer
+// cannot authenticate. Randomness comes from `ServerConfig.random`; a caller
+// that stores keys must pass a CSPRNG such as
+// `(n) => host.entropy().bytes(n)`. Tests pass a deterministic source
+// deliberately.
+//
+// The server flight is one protected run of EncryptedExtensions,
+// Certificate, CertificateVerify and Finished, fragmented at the plaintext
+// cap. The client Finished is checked in constant time; only then are the
+// application traffic keys installed. close_notify is end of stream, and on
+// any handshake failure a fatal alert is sent best-effort before the
+// connection is dropped.
+import p256 from std/crypto/p256
+import sha256 from std/crypto/sha256
+import x509 from std/crypto/x509
+import net from std/net
+
+/// The server's signing key. Only ECDSA P-256 is implemented, and the key
+/// must match the leaf certificate's public key.
+pub type ServerKey =
+    | EcP256(Bytes)
+
+/// Server settings. `certificates` is the DER chain leaf first, `key` signs
+/// CertificateVerify, and `random` must return cryptographically random
+/// bytes.
+pub type ServerConfig = {
+    pub certificates Array[Bytes]
+    pub key ServerKey
+    pub random fn(usize) -> Bytes!
+    // ALPN protocols in server preference order; an empty list disables
+    // ALPN. A client that offers protocols with no overlap is refused.
+    pub mut alpn Array[String]
+    // Largest TLSCiphertext accepted from the peer.
+    pub mut maxRecordBytes usize
+    // Largest handshake message accepted; it bounds the ClientHello and the
+    // certificate chain the server sends.
+    pub mut maxHandshakeBytes usize
+}
+
+/// A configuration with TLS 1.3 defaults and no ALPN. `certificates`, `key`
+/// and `random` are the mandatory capabilities.
+pub fn ServerConfig.new(certificates: Array[Bytes], key: ServerKey, random: escaping fn(usize) -> Bytes!) -> ServerConfig {
+    ServerConfig {
+        certificates: certificates
+        key: key
+        random: random
+        alpn: Array.empty[String]()
+        maxRecordBytes: maxCiphertext
+        maxHandshakeBytes: 1048576
+    }
+}
+
+/// The TLS server entry point: `Server.handshake(conn, config)`.
+pub type Server
+
+/// Runs the server side of the handshake over conn and returns a session
+/// ready for application data. Any failure closes the connection, so no
+/// plaintext path remains.
+pub async fn Server.handshake(conn: net.Conn, config: ServerConfig) -> Result[Session, Error] {
+    // The server never parses a Certificate message, so the client-side
+    // certificate cap is inert here and simply matches the handshake bound.
+    let mut session = newSession(conn, config.maxRecordBytes, config.maxHandshakeBytes, config.maxHandshakeBytes)
+    match (await session.runServerHandshake(config)) {
+        Ok(_) -> {}
+        Err(e) -> {
+            // Best effort: the peer should learn the connection is over even
+            // when the failure was ours, then the session drops the socket.
+            await session.sendAlert(2, alertDescription(&e))
+            session.open = false
+            return Err(e)
+        }
+    }
+    Ok(session)
+}
+
+// DER-encodes one ECDSA integer (RFC 3279): strip leading zero bytes, then
+// prefix 0x00 when the high bit would otherwise make it negative.
+pure fn derInteger(raw: Bytes) -> Result[Array[u8], Error] {
+    let mut start: usize = 0
+    for start + 1 < raw.len() && raw[start] == 0 {
+        start = start + 1
+    }
+    let mut body = Array.empty[u8]()
+    if (raw[start] & 0x80) != 0 {
+        body.push(0)
+    }
+    let mut i = start
+    for i < raw.len() {
+        body.push(raw[i])
+        i = i + 1
+    }
+    if body.len() > 127 {
+        fail Error.BadSignature
+    }
+    let mut out = Array.empty[u8]()
+    putU8(&mut out, 2)
+    putU8(&mut out, body.len().toU8() || 0)
+    append(&mut out, freeze(&body))
+    Ok(out)
+}
+
+// DER-encodes an ECDSA r || s signature as ECDSA-Sig-Value, which is what
+// CertificateVerify carries (RFC 8446 §4.4.3).
+pure fn derSignature(signature: Bytes) -> Result[Bytes, Error] {
+    if signature.len() != 64 {
+        fail Error.BadSignature
+    }
+    let r = derInteger(signature.slice(0, 32) || fail Error.BadSignature)?
+    let s = derInteger(signature.slice(32, 64) || fail Error.BadSignature)?
+    let mut body = Array.empty[u8]()
+    body.appendAll(r)
+    body.appendAll(s)
+    if body.len() > 127 {
+        fail Error.BadSignature
+    }
+    let mut out = Array.empty[u8]()
+    putU8(&mut out, 0x30)
+    putU8(&mut out, body.len().toU8() || 0)
+    append(&mut out, freeze(&body))
+    Ok(freeze(&out))
+}
+
+// The ServerHello: TLS 1.3, TLS_CHACHA20_POLY1305_SHA256, the echoed
+// session id and the server's key share.
+pure fn serverHello(random: Bytes, sessionId: Bytes, group: u16, keyShare: Bytes) -> Result[Bytes, Error] {
+    let mut versions = Array.empty[u8]()
+    putU16(&mut versions, tls13Version)
+    let mut exts = Array.empty[u8]()
+    putExtension(&mut exts, supportedVersionsExt, versions)?
+
+    let mut share = Array.empty[u8]()
+    putU16(&mut share, group)
+    putVec16(&mut share, keyShare)?
+    putExtension(&mut exts, keyShareExt, share)?
+
+    let mut body = Array.empty[u8]()
+    putU16(&mut body, 0x0303)
+    append(&mut body, random)
+    putVec8(&mut body, sessionId)?
+    putU16(&mut body, chacha20Poly1305Sha256)
+    putU8(&mut body, 0)
+    putVec16(&mut body, freeze(&exts))?
+    encodeHandshake(serverHelloType, freeze(&body))
+}
+
+// EncryptedExtensions, carrying only the selected ALPN protocol (if any).
+pure fn encryptedExtensions(alpn: String?) -> Result[Bytes, Error] {
+    let mut exts = Array.empty[u8]()
+    if let Some(protocol) = alpn {
+        let mut list = Array.empty[u8]()
+        putVec8(&mut list, protocol.toBytes())?
+        let mut body = Array.empty[u8]()
+        putVec16(&mut body, freeze(&list))?
+        putExtension(&mut exts, alpnExt, body)?
+    }
+    let mut message = Array.empty[u8]()
+    putVec16(&mut message, freeze(&exts))?
+    encodeHandshake(encryptedExtensionsType, freeze(&message))
+}
+
+// The Certificate message: an empty request context, then the chain leaf
+// first, each entry with an empty per-certificate extension list.
+pure fn certificateMessage(certificates: Array[Bytes]) -> Result[Bytes, Error] {
+    let mut list = Array.empty[u8]()
+    for der in &certificates {
+        if der.len() == 0 {
+            fail Error.BadCertificate("certificate entry is empty")
+        }
+        if der.len() > 0xFFFFFF {
+            fail Error.HandshakeOverflow
+        }
+        putU24(&mut list, der.len())
+        append(&mut list, der)
+        putU16(&mut list, 0)
+    }
+    if list.len() > 0xFFFFFF {
+        fail Error.HandshakeOverflow
+    }
+    let mut body = Array.empty[u8]()
+    putU8(&mut body, 0)
+    putU24(&mut body, list.len())
+    append(&mut body, freeze(&list))
+    encodeHandshake(certificateType, freeze(&body))
+}
+
+// CertificateVerify with an ecdsa_secp256r1_sha256 signature.
+pure fn certificateVerify(signature: Bytes) -> Result[Bytes, Error] {
+    let der = derSignature(signature)?
+    let mut body = Array.empty[u8]()
+    putU16(&mut body, ecdsaSecp256r1Sha256)
+    putVec16(&mut body, der)?
+    encodeHandshake(certificateVerifyType, freeze(&body))
+}
+
+// Chooses the first configured ALPN protocol the client offered. A client
+// that offers none, or a server with no protocols configured, negotiates
+// nothing; a client that offers protocols with no overlap is refused.
+pure fn selectAlpn(configured: &Array[String], offered: &Array[String]) -> Result[String?, Error] {
+    if configured.len() == 0 || offered.len() == 0 {
+        return Ok(None)
+    }
+    for preferred in configured {
+        for candidate in offered {
+            if preferred == candidate {
+                return Ok(Some(preferred))
+            }
+        }
+    }
+    fail Error.Unsupported("client and server have no ALPN protocol in common")
+}
+
+async fn Session.runServerHandshake(mut self, config: ServerConfig) -> Result[Void, Error] {
+    if config.certificates.len() == 0 {
+        fail Error.BadCertificate("no certificate chain was configured")
+    }
+    let key = match config.key {
+        EcP256(secret) -> secret
+    }
+    if key.len() != p256.scalarSize {
+        fail Error.BadCertificate("server key must be 32 bytes")
+    }
+    let public = match p256.publicKey(key) {
+        Ok(value) -> value
+        Err(e) -> fail Error.BadCertificate(e.message())
+    }
+    let leafDer = match config.certificates.get(0) {
+        Some(value) -> value
+        None -> fail Error.BadCertificate("no certificate chain was configured")
+    }
+    let leaf = match x509.parse(leafDer) {
+        Ok(value) -> value
+        Err(e) -> fail Error.BadCertificate(e.message())
+    }
+    let keyMatches = match leaf.publicKey {
+        x509.PublicKey.EcP256(certPublic) -> certPublic.equals(&public)
+        x509.PublicKey.Rsa(_) -> fail Error.Unsupported("an RSA server key is not implemented")
+    }
+    if !keyMatches {
+        fail Error.BadCertificate("server key does not match the leaf certificate")
+    }
+
+    let randomFn = config.random
+    let serverRandom = match randomFn(32) {
+        Ok(value) -> value
+        Err(e) -> fail Error.Random(e.message())
+    }
+    if serverRandom.len() != 32 {
+        fail Error.Random("random source returned ${serverRandom.len()} bytes, not 32")
+    }
+    if serverRandom.equals(&helloRetryRequestRandom()) {
+        fail Error.Random("random source produced the HelloRetryRequest value")
+    }
+    let secret = match randomFn(32) {
+        Ok(value) -> value
+        Err(e) -> fail Error.Random(e.message())
+    }
+    if secret.len() != 32 {
+        fail Error.Random("random source returned ${secret.len()} bytes, not 32")
+    }
+
+    // The ClientHello arrives in plaintext. Any CCS is skipped by
+    // readRecord, and any other record type is a handshake error.
+    let hello = (await self.nextHandshake())?
+    if hello.typ != clientHelloType {
+        fail Error.UnexpectedMessage("expected ClientHello, got handshake type ${hello.typ}")
+    }
+    let parsed = parseClientHello(hello.body)?
+    // Everything after the ClientHello must arrive under the record layer
+    // this server is about to install; a plaintext message already buffered
+    // would otherwise be read as if it were protected.
+    if self.hsBuf.len() != 0 {
+        fail Error.UnexpectedMessage("plaintext handshake bytes follow the ClientHello")
+    }
+    let mut transcript = hello.raw
+
+    let selectedAlpn = selectAlpn(&config.alpn, &parsed.alpn)?
+    let group = parsed.group
+    let serverPublic = ephemeralPublic(group, secret)?
+    let shared = keyExchangeShared(group, secret, parsed.keyShare)?
+
+    let serverHelloMessage = serverHello(serverRandom, parsed.sessionId, group, serverPublic)?
+    (await self.writeRaw((sealPlaintext(handshakeType, serverHelloMessage))?))?
+    transcript = transcript.concat(serverHelloMessage)
+
+    let secrets = match deriveHandshake(shared, sha256.sum(transcript)) {
+        Ok(value) -> value
+        Err(e) -> fail e
+    }
+    self.readKeys = secrets.client
+    self.writeKeys = secrets.server
+    self.readProtected = true
+    self.writeProtected = true
+    self.readSeq = 0
+    self.writeSeq = 0
+    if let Some(protocol) = selectedAlpn {
+        self.negotiatedProtocol = protocol
+    }
+
+    let eeMessage = encryptedExtensions(selectedAlpn)?
+    transcript = transcript.concat(eeMessage)
+
+    let certMessage = certificateMessage(config.certificates)?
+    if certMessage.len() > self.maxHandshakeBytes {
+        fail Error.HandshakeOverflow
+    }
+    transcript = transcript.concat(certMessage)
+
+    let signature = match p256.signMessage(key, certificateVerifyMessage(sha256.sum(transcript))) {
+        Ok(value) -> value
+        Err(e) -> fail Error.KeySchedule(e.message())
+    }
+    let cvMessage = certificateVerify(signature)?
+    transcript = transcript.concat(cvMessage)
+
+    let serverVerify = finishedVerifyData(secrets.server.secret, sha256.sum(transcript))?
+    let finishedMessage = encodeHandshake(finishedType, serverVerify)?
+    transcript = transcript.concat(finishedMessage)
+
+    let flight = eeMessage.concat(certMessage).concat(cvMessage).concat(finishedMessage)
+    (await self.sendHandshakeFlight(flight))?
+
+    // The client Finished is protected with the client handshake keys, so a
+    // forged or replayed one fails the AEAD tag or this constant-time check.
+    let clientFinished = (await self.nextHandshake())?
+    if clientFinished.typ != finishedType {
+        fail Error.UnexpectedMessage("expected Finished, got handshake type ${clientFinished.typ}")
+    }
+    let claimed = parseFinished(clientFinished.body)?
+    let expected = finishedVerifyData(secrets.client.secret, sha256.sum(transcript))?
+    if !equalConstantTime(expected, claimed) {
+        fail Error.BadFinished
+    }
+
+    // RFC 8446 §7.1: the application secrets cover the transcript through
+    // the server Finished, so the client Finished is not hashed in.
+    let application = match deriveApplication(secrets.master, sha256.sum(transcript)) {
+        Ok(value) -> value
+        Err(e) -> fail e
+    }
+    self.readKeys = application.client
+    self.writeKeys = application.server
+    self.readSeq = 0
+    self.writeSeq = 0
+    self.established = true
+    Ok(())
+}

@@ -1,0 +1,145 @@
+-- src --
+// A TLS 1.3 server over loopback sockets, driven by the module's own client.
+// Both sides run the real handshake: there is no scripted flight and no
+// loopback bypass. The server echoes one request, negotiates ALPN from its
+// own preference order, and treats a client close_notify as end of stream.
+import hex from std/encoding/hex
+import net from std/net
+import tls from std/net/tls
+import task from std/task
+import x509 from std/crypto/x509
+
+const ROOT = "3082019330820139a003020102020101300a06082a8648ce3d0403023030310f300d060355040a0c064b6967756d69311d301b06035504030c144b6967756d6920544c53205465737420526f6f743020170d3236313130363030303030305a180f32303534303332353030303030305a3030310f300d060355040a0c064b6967756d69311d301b06035504030c144b6967756d6920544c53205465737420526f6f743059301306072a8648ce3d020106082a8648ce3d0301070342000456288617c1b007e78bb5b6d887ee84d7f905065078935ba3e6ece0213b1a03add07e7c4e42a1ec6a295fd288d16452b4a2107fe53105766eef03408ad4486fa9a3423040300f0603551d130101ff040530030101ff300e0603551d0f0101ff040403020106301d0603551d0e041604149809187f1e20cecd2dd8d5ab7b5f105f867d351b300a06082a8648ce3d0403020348003045022042bf4931f52f7940ba11ffc6156cf68f72e7c775eaeb0dcc5854add148c691fb022100b533846a2deedef6e82f412e0f96a0e46f7bde105580dcd8a31eaf7293b5db7d"
+const LEAF = "308201d73082017da003020102020102300a06082a8648ce3d0403023030310f300d060355040a0c064b6967756d69311d301b06035504030c144b6967756d6920544c53205465737420526f6f74301e170d3236313130363030303030305a170d3436303130363030303030305a3025310f300d060355040a0c064b6967756d693112301006035504030c096c6f63616c686f73743059301306072a8648ce3d020106082a8648ce3d03010703420004bc0870a538e3fb058d1cace443fad8528291caf09c80eb487ee92b3c997a5812b4b0b0974173093dc5074f65642039d84ad647d8419acd0895ad9398afbe0df6a3819230818f300c0603551d130101ff04023000300e0603551d0f0101ff04040302078030130603551d25040c300a06082b06010505070301301a0603551d110413301182096c6f63616c686f737487047f000001301d0603551d0e04160414a8c71ec2c07c3f5672b82a0d7fde2c4c877e115c301f0603551d230418301680149809187f1e20cecd2dd8d5ab7b5f105f867d351b300a06082a8648ce3d0403020348003045022100f760b000410f26174fe148bd38aeeba025cb4244878fe89c02f034fe91f58cde022004f623302dd42ced2f3693393be6cebab3533295d4f0a47d2a19a08eced875fe"
+const LEAF_KEY = "d88a88882b51bedeca8e098d7322bcaa262676a902ba292bc4c69633508084b9"
+
+fn dec(text: String) -> Bytes {
+    hex.decode(text).expect("hex")
+}
+
+fn deterministicRandom(n: usize) -> Bytes! {
+    Bytes.fill(0x7b, n)
+}
+
+fn serverConfig() -> tls.ServerConfig {
+    let mut config = tls.ServerConfig.new(Array.of(dec(LEAF)), tls.ServerKey.EcP256(dec(LEAF_KEY)), (k) => deterministicRandom(k))
+    // The client offers only http/1.1, so server preference must fall through
+    // to the one protocol both sides speak.
+    config.alpn = Array.of("h2", "http/1.1")
+    config
+}
+
+type Mode = | Echo | PeerClose
+
+async fn serve(mut listener: net.Listener, mode: Mode) -> String {
+    let pool = task.BlockingPool.new(1)
+    let pending = match pool.run(() => listener.accept().unwrap()) {
+        Ok(value) -> value
+        Err(e) -> return "accept: ${e.message()}"
+    }
+    let conn = await pending
+    let handshake = await tls.Server.handshake(conn, serverConfig())
+    let mut session = match handshake {
+        Ok(value) -> value
+        Err(e) -> return "handshake: ${e.message()}"
+    }
+    let request = match await session.read(64) {
+        Ok(value) -> value
+        Err(e) -> {
+            await session.close()
+            return "read: ${e.message()}"
+        }
+    }
+    let text = String.fromBytes(request) || ""
+    if mode is Mode.Echo {
+        if text != "hello tls" {
+            await session.close()
+            return "request `${text}`"
+        }
+        match await session.write("welcome".toBytes()) {
+            Ok(_) -> {}
+            Err(e) -> {
+                await session.close()
+                return "write: ${e.message()}"
+            }
+        }
+        // The server closes; its close_notify is what the client reads next.
+        await session.close()
+        return "ok"
+    }
+    if text != "bye" {
+        await session.close()
+        return "request `${text}`"
+    }
+    // The client sent close_notify, so this read is end of stream.
+    let after = await session.read(64)
+    await session.close()
+    match after {
+        Ok(chunk) -> if chunk.len() == 0 {
+            "ok"
+        } else {
+            "data after the client close"
+        }
+        Err(e) -> "close: ${e.message()}"
+    }
+}
+
+async fn connect(n: net.Net, port: Int) -> tls.Session! {
+    let root = (x509.parse(dec(ROOT)))?
+    let anchors = Array.of(root)
+    let config = tls.Config.new("localhost", anchors, (k) => deterministicRandom(k))
+    let pool = task.BlockingPool.new(1)
+    let conn = await pool.run(() => n.connect("127.0.0.1", port).unwrap()).unwrap()
+    let session = (await tls.Client.connect(conn, config))?
+    session
+}
+
+async fn echoCase(n: net.Net) -> String! {
+    let pool = task.BlockingPool.new(1)
+    let listener = await pool.run(() => n.listen("127.0.0.1", 0).unwrap()).unwrap()
+    let port = listener.port()
+    let running = task.spawn(serve(listener, Mode.Echo))
+    let mut session = (await connect(n, port))?
+    let alpn = session.alpn()
+    (await session.write("hello tls".toBytes()))?
+    let first = (await session.read(64))?
+    let second = (await session.read(64))?
+    await session.close()
+    let server = await running
+    if server != "ok" {
+        return "echo => server ${server}"
+    }
+    let text = String.fromBytes(first) || ""
+    if text != "welcome" || second.len() != 0 {
+        return "echo => application data `${text}` then ${second.len()} bytes"
+    }
+    "echo => ok alpn ${alpn}"
+}
+
+async fn peerCloseCase(n: net.Net) -> String! {
+    let pool = task.BlockingPool.new(1)
+    let listener = await pool.run(() => n.listen("127.0.0.1", 0).unwrap()).unwrap()
+    let port = listener.port()
+    let running = task.spawn(serve(listener, Mode.PeerClose))
+    let mut session = (await connect(n, port))?
+    (await session.write("bye".toBytes()))?
+    await session.close()
+    let server = await running
+    if server != "ok" {
+        return "peer-close => server ${server}"
+    }
+    "peer-close => ok"
+}
+
+async fn run() -> Void! {
+    let n = host.net()
+    let echo = (await echoCase(n))?
+    print echo
+    let peerClose = (await peerCloseCase(n))?
+    print peerClose
+}
+
+task.currentThreadExecutor().runToCompletion(run())?
+-- stdout --
+echo => ok alpn http/1.1
+peer-close => ok

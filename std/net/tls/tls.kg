@@ -1,11 +1,11 @@
 import x509 from std/crypto/x509
-// A TLS 1.3 client (RFC 8446) over an existing `net.Conn`, with
-// AEAD_CHACHA20_POLY1305 and x25519 / secp256r1 ECDHE. `Client` and
-// `Session` need `net.Conn`, so they exist only on hosted targets
-// (tls_hosted.kg).
+// A TLS 1.3 client and server (RFC 8446) over an existing `net.Conn`, with
+// AEAD_CHACHA20_POLY1305 and x25519 / secp256r1 ECDHE. `Client`, `Server`
+// and `Session` need `net.Conn`, so they exist only on hosted targets
+// (tls_hosted.kg, server_hosted.kg).
 //
-// The handshake is a strict, certificate-authenticated exchange: no PSK, no
-// session resumption, no 0-RTT and no client certificate. One
+// The client handshake is a strict, certificate-authenticated exchange: no
+// PSK, no session resumption, no 0-RTT and no client certificate. One
 // HelloRetryRequest is handled: its cookie is echoed and the requested key
 // share replaces the initial x25519 one before the handshake continues; a
 // second HelloRetryRequest is refused. A server that does not select TLS 1.3
@@ -13,9 +13,20 @@ import x509 from std/crypto/x509
 // there is no plaintext fallback. The negotiated cipher suites are exactly
 // the one this module implements; everything else is an `Unsupported` error.
 //
-// Randomness comes from `Config.random`; a caller that stores keys must pass
-// a CSPRNG such as `(n) => host.entropy().bytes(n)`. Tests pass a
-// deterministic source deliberately.
+// The server handshake (`Server.handshake`) accepts a ClientHello that
+// offers TLS 1.3 with the same cipher suite and an
+// ecdsa_secp256r1_sha256 signature, and answers with ServerHello,
+// EncryptedExtensions, Certificate, CertificateVerify and Finished. The
+// configured chain is sent as-is and the configured secp256r1 key must match
+// the leaf. A client Finished is checked in constant time before the
+// application keys are installed. No HelloRetryRequest is sent: the server
+// answers whichever of x25519 and secp256r1 the client offered a share for,
+// and refuses a client that offers neither.
+//
+// Randomness comes from `Config.random` / `ServerConfig.random`; a caller
+// that stores keys must pass a CSPRNG such as
+// `(n) => host.entropy().bytes(n)`. Tests pass a deterministic source
+// deliberately.
 //
 // Record sizes are capped, handshake messages are bounded, and every
 // unexpected message type, extension or ordering is an `Error`. An inbound
@@ -26,10 +37,10 @@ import x509 from std/crypto/x509
 // Not implemented, and refused rather than negotiated down: PSK resumption
 // and 0-RTT, client certificates, KeyUpdate, record padding on send, and
 // every cipher suite other than TLS_CHACHA20_POLY1305_SHA256. The only
-// CertificateVerify schemes accepted are rsa_pss_rsae_sha256 and
-// ecdsa_secp256r1_sha256. NewSessionTicket messages are ignored. SNI is
-// omitted for an IP-literal server name, and a certificate chain must reach
-// one of the supplied anchors.
+// CertificateVerify schemes accepted are rsa_pss_rsae_sha256 (client side)
+// and ecdsa_secp256r1_sha256 (both sides). NewSessionTicket messages are
+// ignored by the client. SNI is omitted for an IP-literal server name, and a
+// certificate chain must reach one of the supplied anchors.
 import time from std/time
 
 /// Why a TLS operation failed.
