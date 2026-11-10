@@ -30,7 +30,7 @@ fn bad(x: u64, name: String) -> Out[u64] {
             "x {" //~ ERROR unbalanced `{`
             in(rbx) x //~ ERROR register `rbx` cannot be an operand: rbx is used internally by the code generator
             in(zzz) x //~ ERROR unknown register `zzz` for amd64
-            in(eax) x //~ ERROR `u64` does not fit `eax`, which is 32 bits
+            in(eax) x //~ ERROR an explicit register takes an operand of exactly its width: `eax` is 32 bits, but `u64` is 64 bits
             in(xmm0) x //~ ERROR `u64` does not fit a floating-point register
             in(reg) name //~ ERROR `String` is not an asm operand type
             in(rcx) //~ ERROR `in` needs a value
@@ -120,11 +120,12 @@ error[E933]: unknown register `zzz` for amd64
    |             ^^^^^^^^^
    = help: write a register name, `reg` or `freg`
 
-error[E936]: `u64` does not fit `eax`, which is 32 bits
+error[E975]: an explicit register takes an operand of exactly its width: `eax` is 32 bits, but `u64` is 64 bits
   --> app/t/t.kg:32:13
    |
-32 |             in(eax) x //~ ERROR `u64` does not fit `eax`, which is 32 bits
+32 |             in(eax) x //~ ERROR an explicit register takes an operand of exactly its width: `eax` is 32 bits, but `u64` is 64 bits
    |             ^^^^^^^^^
+   = help: use a 64-bit register or convert the value
 
 error[E936]: `u64` does not fit a floating-point register
   --> app/t/t.kg:33:13

@@ -220,11 +220,11 @@ func TestABIFor(t *testing.T) {
 
 func TestInt128RecordField(t *testing.T) {
 	chunk := "pub const Wide = extern struct {\n    tag: u8 = @import(\"std\").mem.zeroes(u8),\n    big: u128 = @import(\"std\").mem.zeroes(u128),\n    neg: i128 = @import(\"std\").mem.zeroes(i128),\n}"
-	it := classifyRecord(chunk, map[string]bool{}, map[string]bool{}, ABIFor("linux", "amd64"))
+	it := classifyRecord(chunk, map[string]string{}, map[string]bool{}, ABIFor("linux", "amd64"), nil)
 	if it.skip != "" || !strings.Contains(it.text, "pub big u128") || !strings.Contains(it.text, "pub neg i128") {
 		t.Errorf("amd64 should import 128-bit fields, got skip=%q text=%q", it.skip, it.text)
 	}
-	it = classifyRecord(chunk, map[string]bool{}, map[string]bool{}, ABIFor("linux", "386"))
+	it = classifyRecord(chunk, map[string]string{}, map[string]bool{}, ABIFor("linux", "386"), nil)
 	if it.skip == "" {
 		t.Errorf("a 32-bit target has no __int128 and should skip the record, got %q", it.text)
 	}

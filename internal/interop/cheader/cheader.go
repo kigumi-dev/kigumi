@@ -126,7 +126,7 @@ func Import(opts Options) (Result, error) {
 			return Result{Source: string(src), Skipped: mf.Skipped, FromCache: true, CachePath: genPath, Manifest: mf}, nil
 		}
 	}
-	full, baseline, err := translateBoth(run, opts.ZigPath, opts.Target, opts.HeaderPath)
+	full, baseline, err := translateBoth(run, opts.ZigPath, opts.Target, opts.HeaderPath, opts.ABI)
 	if err != nil {
 		return Result{}, fmt.Errorf("importing %s: %w", opts.HeaderPath, err)
 	}

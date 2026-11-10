@@ -1,6 +1,10 @@
 package sem
 
-import "kigumi/internal/compiler/syntax"
+import (
+	"strings"
+
+	"kigumi/internal/compiler/syntax"
+)
 
 type leaseWalk struct {
 	c        *checker
@@ -98,6 +102,42 @@ func (w *leaseWalk) call(n syntax.NodeID) {
 			}
 		}
 	}
+	// A callee the check cannot see through can store the pointer in state
+	// that outlives the call, which the direct assign/return/borrow forms
+	// above never see: `stash(h, p)` writes p into the record h points at,
+	// and `h` reaches the call as an ordinary `&mut` binding, not a borrow
+	// expression. Rejecting the hand-off itself closes the whole family
+	// (callee parameter, closure, field, Result) instead of enumerating
+	// syntax shapes. std is trusted (it is checked with these same rules)
+	// and a C declaration keeps C's own contract.
+	if name, ok := w.retainingCallee(callee); ok {
+		w.c.errAt(n, cLeasePassed, w.fn, name)
+	}
+}
+
+// retainingCallee names a call target that may retain a lease pointer: a
+// Kigumi body outside std, or a function value whose body is out of reach
+// here. Construction, intrinsics, std and extern(C) declarations pass.
+func (w *leaseWalk) retainingCallee(callee syntax.NodeID) (string, bool) {
+	ent := w.c.info.Uses[callee]
+	if ent == 0 {
+		return "", false
+	}
+	e := &w.c.r.Entities[ent]
+	switch e.Kind {
+	case EntFn:
+		path := w.c.r.Packages[e.Pkg].Path
+		if path == "std" || strings.HasPrefix(path, "std/") {
+			return "", false
+		}
+		if w.c.r.Fn(ent).Body == 0 {
+			return "", false
+		}
+		return e.Name, true
+	case EntClosure, EntLocal, EntParam, EntField, EntFieldParam:
+		return e.Name, true
+	}
+	return "", false
 }
 
 func (w *leaseWalk) store(n, target, value syntax.NodeID) {

@@ -109,7 +109,7 @@ func (c *checker) asmOperandType(op *AsmOperand, arch *asmtable.Architecture) {
 	case op.Class && bits > arch.PointerBits():
 		c.errAt(op.Node, cAsmWidth, c.r.TypeString(t), "a general register")
 	case explicit && !r.Float && bits != r.Bits:
-		c.errAt(op.Node, cAsmWidth, c.r.TypeString(t), "`"+op.Reg+"`, which is "+itoa(r.Bits)+" bits")
+		c.errAt(op.Node, cAsmRegisterWidth, op.Reg, itoa(r.Bits), c.r.TypeString(t), itoa(bits))
 	case explicit && r.Float && bits > r.Bits:
 		c.errAt(op.Node, cAsmWidth, c.r.TypeString(t), "`"+op.Reg+"`, which is "+itoa(r.Bits)+" bits")
 	}

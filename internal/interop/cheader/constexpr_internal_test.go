@@ -40,6 +40,17 @@ func TestEvalConst(t *testing.T) {
 		{"UINT32_C(__helpers.promoteIntLiteral(c_int, 4294967295, .decimal))", "u32", "4294967295"},
 		{"INT64_C(__helpers.promoteIntLiteral(c_int, 0xffffffffffffffff, .hex))", "u64", "18446744073709551615"},
 		{"UINT64_C(@as(c_int, 1)) << @as(c_int, 63)", "u64", "9223372036854775808"},
+		// An unsigned literal keeps C's unsigned conversion rank instead of
+		// falling back to the signed type that happens to fit.
+		{"__helpers.promoteIntLiteral(c_uint, 0x100000000, .hex)", "u64", "0x100000000"},
+		{"__helpers.promoteIntLiteral(c_ulong, 0x100000000, .hex)", "u64", "0x100000000"},
+		{"__helpers.promoteIntLiteral(c_uint, 0xFFFFFFFF, .hex)", "u32", "0xFFFFFFFF"},
+		// Character constants have C's int type; a scalar cast macro is one
+		// constant of the target type.
+		{"'A'", "i32", "65"},
+		{"'\\n'", "i32", "10"},
+		{"'\\x41'", "i32", "65"},
+		{"__helpers.cast(u8, @as(c_int, 200))", "u8", "200"},
 	}
 	for _, c := range cases {
 		typ, lit, ok := evalConst(c.in, abi)
@@ -47,7 +58,7 @@ func TestEvalConst(t *testing.T) {
 			t.Errorf("%s: got %s %s %v, want %s %s", c.in, typ, lit, ok, c.typ, c.lit)
 		}
 	}
-	for _, in := range []string{"@as(c_int, 2147483647) + @as(c_int, 1)", "@as(c_int, 1) / @as(c_int, 0)", "@as(c_int, 1) << @as(c_int, 32)", "foo", "@as(c_int, 1) +", `"\xff"`, `"\q"`, "UINT32_C(-@as(c_int, 1))", "UINT64_C(@as(c_int, 1)", "INT64_C(__helpers.promoteIntLiteral(c_int, 18446744073709551616, .decimal))", "UINT64_C"} {
+	for _, in := range []string{"@as(c_int, 2147483647) + @as(c_int, 1)", "@as(c_int, 1) / @as(c_int, 0)", "@as(c_int, 1) << @as(c_int, 32)", "foo", "@as(c_int, 1) +", `"\xff"`, `"\q"`, "UINT32_C(-@as(c_int, 1))", "UINT64_C(@as(c_int, 1)", "INT64_C(__helpers.promoteIntLiteral(c_int, 18446744073709551616, .decimal))", "UINT64_C", "'ab'", "'\\q'", "__helpers.cast(u16, @as(c_int, 70000))", "__helpers.cast(?*anyopaque, @as(c_int, 0))"} {
 		if _, _, ok := evalConst(in, abi); ok {
 			t.Errorf("%s: want rejection", in)
 		}

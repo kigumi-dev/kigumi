@@ -42,9 +42,17 @@ func zigVersionString(zigPath string) string {
 }
 
 // translateBoth runs translate-c on header and, for the baseline Generate
-// diffs against, on an empty file with the same flags.
-func translateBoth(run Runner, zigPath, target, header string) (full, baseline string, err error) {
-	fullOut, err := run(zigPath, target, header)
+// diffs against, on an empty file with the same flags. A signed-char target
+// gets a corrected copy of the header first (see charCorrectedHeader).
+func translateBoth(run Runner, zigPath, target, header string, abi ABI) (full, baseline string, err error) {
+	headerPath, cleanup, err := charCorrectedHeader(header, abi)
+	if err != nil {
+		return "", "", err
+	}
+	if cleanup != nil {
+		defer cleanup()
+	}
+	fullOut, err := run(zigPath, target, headerPath)
 	if err != nil {
 		return "", "", err
 	}

@@ -2,26 +2,30 @@ package cheader
 
 import "strings"
 
-func classifyConst(name, typ, literal string, abi ABI) item {
+func classifyConst(name, typ, literal string, abi ABI, renames map[string]string) item {
 	kt, ok := mapScalar(typ, abi)
 	if !ok {
 		return item{name: name, skip: "unsupported constant type `" + typ + "`"}
 	}
-	return item{kind: "const", name: name, text: "const " + name + ": " + kt + " = " + literal, scalar: kt, lit: literal}
+	out := emittedName(name, renames)
+	return item{kind: "const", name: out, text: "const " + out + ": " + kt + " = " + literal, scalar: kt, lit: literal}
 }
 
 // classifyBareConst disambiguates `pub const NAME = TARGET;`, which zig uses
 // for a plain alias, a function-pointer typedef, and a macro constant alike.
-func classifyBareConst(chunk string, known, opaque map[string]bool, vals map[string]cval, abi ABI) item {
+func classifyBareConst(chunk string, known map[string]string, opaque map[string]bool, vals map[string]cval, abi ABI, renames map[string]string) item {
 	m := reConstBare.FindStringSubmatch(chunk)
 	name, target := m[1], strings.TrimSpace(m[2])
 	switch {
+	case strings.HasPrefix(target, "__helpers.cast(?*") || strings.HasPrefix(target, "__helpers.cast(*"):
+		return item{name: name, skip: "pointer-valued macro (Kigumi has no pointer constant to spell it with)"}
 	case isIdent(target):
 		if v, ok := vals[target]; ok {
 			vals[name] = v
-			return item{kind: "const", name: name, text: "const " + name + ": " + v.typeName() + " = " + v.v.String()}
+			out := emittedName(name, renames)
+			return item{kind: "const", name: out, text: "const " + out + ": " + v.typeName() + " = " + v.v.String()}
 		}
-		return classifyAlias(name, target, known, opaque, abi)
+		return classifyAlias(name, target, known, opaque, abi, renames)
 	case looksLikeType(target):
 		// A function-pointer typedef (`Callback = ?*const fn (...) ...`):
 		// zig's `pub const` covers both values and types, so a pointer or
@@ -31,8 +35,9 @@ func classifyBareConst(chunk string, known, opaque map[string]bool, vals map[str
 			return item{name: name, skip: "unsupported function pointer type"}
 		}
 		friendly := stripTagPrefix(name)
-		known[friendly] = true
-		return item{kind: "alias", name: friendly, text: "type " + friendly + " = alias " + kt}
+		out := emittedName(friendly, renames)
+		known[friendly] = out
+		return item{kind: "alias", name: out, text: "type " + out + " = alias " + kt}
 	}
 	typ, lit, v, ok := evalConstEnv(target, abi, vals)
 	if !ok {
@@ -41,7 +46,8 @@ func classifyBareConst(chunk string, known, opaque map[string]bool, vals map[str
 	if v.v != nil {
 		vals[name] = v
 	}
-	return item{kind: "const", name: name, text: "const " + name + ": " + typ + " = " + lit}
+	out := emittedName(name, renames)
+	return item{kind: "const", name: out, text: "const " + out + ": " + typ + " = " + lit}
 }
 
 func looksLikeType(s string) bool {
@@ -59,17 +65,20 @@ func looksLikeType(s string) bool {
 // The classic C `typedef struct X { ... } X;` shape reaches here as its own
 // redundant alias chunk (X = struct_X) once the struct itself is emitted
 // under the stripped name X; that case is silently coalesced away.
-func classifyAlias(name, target string, known, opaque map[string]bool, abi ABI) item {
+func classifyAlias(name, target string, known map[string]string, opaque map[string]bool, abi ABI, renames map[string]string) item {
 	if kt, ok := mapScalar(target, abi); ok {
 		friendly := stripTagPrefix(name)
-		known[friendly] = true
-		return item{kind: "alias", name: friendly, text: "type " + friendly + " = alias " + kt, scalar: kt}
+		out := emittedName(friendly, renames)
+		known[friendly] = out
+		return item{kind: "alias", name: out, text: "type " + out + " = alias " + kt, scalar: kt}
 	}
 	resolved := target
-	if !known[resolved] {
-		if s := stripTagPrefix(target); known[s] {
-			resolved = s
-		} else {
+	emitted, ok := known[resolved]
+	if !ok {
+		if s := stripTagPrefix(target); s != resolved {
+			resolved, emitted = s, known[s]
+		}
+		if emitted == "" {
 			return item{name: name, skip: "alias to unresolved `" + target + "`"}
 		}
 	}
@@ -77,12 +86,13 @@ func classifyAlias(name, target string, known, opaque map[string]bool, abi ABI) 
 	if friendly == resolved {
 		return item{kind: "noop"}
 	}
-	known[friendly] = true
+	out := emittedName(friendly, renames)
+	known[friendly] = out
 	// An alias to an opaque name is itself pointer-only: `typedef struct
 	// Bitfield Bitfield2;` must reject a by-value `Bitfield2` just like
 	// `Bitfield`.
 	if opaque[resolved] {
 		opaque[friendly] = true
 	}
-	return item{kind: "alias", name: friendly, text: "type " + friendly + " = alias " + resolved}
+	return item{kind: "alias", name: out, text: "type " + out + " = alias " + emitted}
 }

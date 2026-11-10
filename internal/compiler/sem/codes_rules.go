@@ -106,6 +106,7 @@ var (
 	cReentrantCaptureUnknown = defineCode("E1051", "reentrant-capture-unknown", "cannot see what this closure captures while `{name}` is exclusively borrowed by this call; bind it to a named closure literal here, or pass it directly, so its captures are visible")
 	cCapturedMutSelfConflict = defineCode("E980", "captured-mut-self-conflict", "a `mut self` call on `{name}` conflicts with a closure that shares its identity cell")
 	cAmbiguousMember         = defineCode("E973", "ambiguous-member", "`{name}` is ambiguous between `{a}` and `{b}`; write a narrower helper generic function bound to only one of them and call through it")
+	cAsmRegisterWidth        = defineCode("E975", "asm-register-width", "an explicit register takes an operand of exactly its width: `{reg}` is {bits} bits, but `{type}` is {typebits} bits; use a {typebits}-bit register or convert the value")
 	cLayoutAlign             = defineCode("E974", "layout-align", "`layout(C, align: N)`'s alignment must be a power of two no greater than {max}, found `{n}`")
 
 	cImportUnused          = defineCode("W100", "import-unused", "unused import `{name}`")

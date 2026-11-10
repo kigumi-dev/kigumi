@@ -4,3 +4,5 @@ int params(int type, int pub, int defer, int test, int comptime, int var, int fn
 }
 int match(int in) { return in + 100; }
 int fail(int move) { return move * 2; }
+int mut_add(mut a, mut b) { return a + b; }
+int fn_t_sum(fn_t p) { return p.x; }

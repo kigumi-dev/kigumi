@@ -14978,6 +14978,14 @@
       ]
     },
     {
+      "id": "sem/ffi_lease_escape_callee_err",
+      "kind": "sem",
+      "path": "testdata/sem/ffi_lease_escape_callee_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/ffi_lease_escape_err",
       "kind": "sem",
       "path": "testdata/sem/ffi_lease_escape_err.txtar",

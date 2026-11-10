@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-var reCTok = regexp.MustCompile(`^(?:"(?:\\.|[^"\\])*"|@as|__helpers\.promoteIntLiteral|0[xXoObB][0-9a-fA-F_]+|[0-9][0-9_]*(?:\.[0-9_]*)?(?:[eE][+-]?[0-9]+)?|\.[a-z]+|[A-Za-z_][A-Za-z_0-9]*|<<|>>|\+\+|[-+*/%&|^~(),])`)
+var reCTok = regexp.MustCompile(`^(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|@as|__helpers\.promoteIntLiteral|__helpers\.cast|0[xXoObB][0-9a-fA-F_]+|[0-9][0-9_]*(?:\.[0-9_]*)?(?:[eE][+-]?[0-9]+)?|\.[a-z]+|[A-Za-z_][A-Za-z_0-9]*|<<|>>|\+\+|[-+*/%&|^~(),])`)
 
 type cparser struct {
 	toks []string

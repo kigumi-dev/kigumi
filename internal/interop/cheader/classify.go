@@ -29,11 +29,11 @@ var reExternFn = regexp.MustCompile(`(?s)^pub extern fn (\w+|@"[^"]+")\((.*)$`)
 var reBodiedFn = regexp.MustCompile(`^pub (?:inline )?fn (\w+)\(`)
 
 // classify turns one header-specific chunk into an item, consulting and
-// extending known (the Kigumi names already available for type references)
-// as struct, opaque and alias declarations are found. Chunks must be fed in
-// their original header order: a C declaration can only reference an
-// earlier one, so one forward pass is enough to resolve every reference.
-func classify(chunk string, known, opaque map[string]bool, vals map[string]cval, abi ABI) item {
+// extending known (the C spelling to Kigumi name map for this header's
+// types) in header order. renames carries the Kigumi names already chosen
+// for declarations whose C name is a Kigumi keyword.
+func classify(chunk string, known map[string]string, opaque map[string]bool, vals map[string]cval, abi ABI, renames map[string]string) item {
+	chunk = unquoteConstName(chunk)
 	switch {
 	case strings.Contains(chunk, "@compileError("):
 		return item{name: declName(chunk), skip: "unsupported C construct (zig could not translate it)"}
@@ -44,16 +44,16 @@ func classify(chunk string, known, opaque map[string]bool, vals map[string]cval,
 		name := reBodiedFn.FindStringSubmatch(chunk)[1]
 		return item{name: name, skip: "inline function or function-like macro (not a plain declaration)"}
 	case reExternFn.MatchString(chunk):
-		return classifyFn(chunk, known, opaque, abi)
+		return classifyFn(chunk, known, opaque, abi, renames)
 	case strings.Contains(chunk, "= extern struct {") || strings.Contains(chunk, "= extern union {"):
-		return classifyRecord(chunk, known, opaque, abi)
+		return classifyRecord(chunk, known, opaque, abi, renames)
 	case strings.Contains(chunk, "= opaque {"):
-		return classifyOpaque(chunk, known, opaque)
+		return classifyOpaque(chunk, known, opaque, renames)
 	case reConstTyped.MatchString(chunk):
 		m := reConstTyped.FindStringSubmatch(chunk)
-		return classifyConst(m[1], m[2], m[3], abi)
+		return classifyConst(m[1], m[2], m[3], abi, renames)
 	case reConstBare.MatchString(chunk):
-		return classifyBareConst(chunk, known, opaque, vals, abi)
+		return classifyBareConst(chunk, known, opaque, vals, abi, renames)
 	}
 	return item{name: declName(chunk), skip: "unrecognized declaration shape"}
 }
@@ -67,7 +67,22 @@ func declName(chunk string) string {
 	return "?"
 }
 
-func classifyFn(chunk string, known, opaque map[string]bool, abi ABI) item {
+// unquoteConstName drops zig's `@"name"` quoting on a `pub const` head, so a
+// declaration whose C name is a zig keyword (or merely one zig chose to
+// quote) reaches the same classification as any other.
+func unquoteConstName(chunk string) string {
+	rest, ok := strings.CutPrefix(chunk, `pub const @"`)
+	if !ok {
+		return chunk
+	}
+	i := strings.IndexByte(rest, '"')
+	if i < 0 {
+		return chunk
+	}
+	return "pub const " + rest[:i] + rest[i+1:]
+}
+
+func classifyFn(chunk string, known map[string]string, opaque map[string]bool, abi ABI, renames map[string]string) item {
 	m := reExternFn.FindStringSubmatch(chunk)
 	name, rest := unquoteIdent(m[1]), m[2]
 	closeIdx := matchParen("("+rest, 0)
@@ -117,7 +132,12 @@ func classifyFn(chunk string, known, opaque map[string]bool, abi ABI) item {
 	if variadic {
 		params = append(params, "...")
 	}
-	return item{kind: "fn", name: name, text: "fn " + name + "(" + strings.Join(params, ", ") + ") -> " + ret}
+	out := emittedName(name, renames)
+	it := item{kind: "fn", name: out, text: "fn " + out + "(" + strings.Join(params, ", ") + ") -> " + ret}
+	if out != name {
+		it.link = name
+	}
+	return it
 }
 
 // zig quotes a name that is a zig keyword as @"name".

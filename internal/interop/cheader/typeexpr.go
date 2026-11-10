@@ -5,10 +5,11 @@ import "strings"
 // mapType converts one zig translate-c type expression to a Kigumi ABI-safe
 // type, or ok=false when it uses a construct this importer does not
 // carry across (a fixed array, a C union, `c_longdouble`, an unresolved
-// identifier). known holds the Kigumi names already decided for this
-// header's structs, opaque types and aliases, so a field or parameter that
-// refers to one of them resolves instead of failing as "unknown".
-func mapType(s string, known, opaque map[string]bool, abi ABI) (string, bool) {
+// identifier). known maps the C spelling of this header's structs, opaque
+// types and aliases to the Kigumi name already decided for each, so a field
+// or parameter that refers to one of them resolves instead of failing as
+// "unknown" (a C name that is a Kigumi keyword resolves to its renamed form).
+func mapType(s string, known map[string]string, opaque map[string]bool, abi ABI) (string, bool) {
 	s = strings.TrimSpace(s)
 	s = strings.TrimPrefix(s, "noalias ")
 	// zig always spells a C pointer as a pointer to a pointee; each prefix
@@ -48,11 +49,13 @@ func mapType(s string, known, opaque map[string]bool, abi ABI) (string, bool) {
 		return t, true
 	}
 	if isIdent(s) {
-		if known[s] {
-			return s, true
+		if kt, ok := known[s]; ok {
+			return kt, true
 		}
-		if stripped := stripTagPrefix(s); known[stripped] {
-			return stripped, true
+		if stripped := stripTagPrefix(s); stripped != s {
+			if kt, ok := known[stripped]; ok {
+				return kt, true
+			}
 		}
 	}
 	return "", false
@@ -61,7 +64,7 @@ func mapType(s string, known, opaque map[string]bool, abi ABI) (string, bool) {
 // mapFnPointer converts the `fn (A, B) callconv(.c) R` tail left after a
 // pointer prefix (?*const, [*c], ...) was stripped, to
 // `extern(C) fn(A, B) -> R`.
-func mapFnPointer(s string, known, opaque map[string]bool, abi ABI) (string, bool) {
+func mapFnPointer(s string, known map[string]string, opaque map[string]bool, abi ABI) (string, bool) {
 	open := strings.IndexByte(s, '(')
 	if open < 0 {
 		return "", false
@@ -82,10 +85,15 @@ func mapFnPointer(s string, known, opaque map[string]bool, abi ABI) (string, boo
 			variadic = true
 			continue
 		}
-		// A function-pointer type's parameters are bare types, unlike a
-		// function declaration's named ones, and carried by value like any
-		// other C function parameter.
-		kt, ok := mapByValueType(p, known, opaque, abi)
+		// A function-pointer type's parameters are usually bare types, but a
+		// header that names them (`(*fn)(const char *s, ...)`) reaches here
+		// as `s: [*c]const u8`; strip that name the way classifyFn does. Both
+		// shapes are carried by value like any other C parameter.
+		ptyp := p
+		if _, typ, hasName := splitParam(p); hasName {
+			ptyp = typ
+		}
+		kt, ok := mapByValueType(ptyp, known, opaque, abi)
 		if !ok {
 			return "", false
 		}

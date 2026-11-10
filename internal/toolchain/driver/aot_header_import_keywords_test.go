@@ -42,7 +42,7 @@ func TestAotHeaderImportKeywordNames(t *testing.T) {
 	if err != nil {
 		t.Fatal(err, string(out))
 	}
-	if want := "36 105 42 3 4\n"; string(out) != want {
+	if want := "36 105 42 3 5 4 3\n"; string(out) != want {
 		t.Errorf("got %q, want %q", out, want)
 	}
 }

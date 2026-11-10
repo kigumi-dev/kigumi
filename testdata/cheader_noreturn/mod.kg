@@ -1,0 +1,9 @@
+Module {
+    name: "noreturn-lib"
+    kigumi: "0.1"
+}
+
+Header {
+    path: "h.h"
+    package: "libc"
+}

@@ -13,4 +13,10 @@ let p = kw.Pair {
     type_: 1
     match_: 2
 }
-print "${sum} ${m} ${f} ${p.type_ + p.match_} ${kw.is_}"
+let added = unsafe {
+    kw.mut_add(1, 2)
+}
+let fromFn = unsafe {
+    kw.fn_t_sum(kw.fn_ { x: 5 })
+}
+print "${sum} ${m} ${f} ${p.type_ + p.match_} ${fromFn} ${kw.is_} ${added}"

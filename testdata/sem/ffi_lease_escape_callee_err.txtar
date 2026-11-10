@@ -1,0 +1,73 @@
+-- src --
+import ffi from std/ffi
+
+type Holder = {
+    pub mut p *mut u8
+}
+
+fn stash(h: &mut Holder, p: *mut u8) {
+    h.p = p
+}
+
+// h reaches the callback as a plain `&mut` binding, not a borrow expression,
+// so only the callee hand-off itself closes this family of escapes.
+fn stashInto(h: &mut Holder, v: u8) -> *mut u8 {
+    let mut x: u8 = v
+    ffi.withAddress(&mut x, (p: *mut u8) => {
+        stash(h, p) //~ ERROR passes its leased pointer to `stash`
+    })
+    h.p
+}
+
+fn throughValue(cb: fn(*mut u8) -> Void, h: &mut Holder) {
+    let mut x: u8 = 1
+    ffi.withAddress(&mut x, (p: *mut u8) => {
+        cb(p) //~ ERROR passes its leased pointer to `cb`
+    })
+}
+
+fn throughClosure() -> Int {
+    let mut x: i32 = 7
+    let sink = (q: *mut i32) => {
+        let mut keep = Array.empty[*mut i32]()
+        keep.push(q)
+    }
+    ffi.withAddress(&mut x, (p: *mut i32) => {
+        sink(p) //~ ERROR passes its leased pointer to `sink`
+        0
+    })
+}
+
+// A local container stays inside the callback, and the std entry points that
+// read or write through the lease are the callback's whole purpose.
+fn ok() -> i32 {
+    let mut x: i32 = 7
+    ffi.withAddress(&mut x, (p: *mut i32) => unsafe {
+        let mut mine = Array.empty[*mut i32]()
+        mine.push(p)
+        ffi.writeI32(p, ffi.readI32(ffi.toConst(p)) + 1)
+        ffi.readI32(ffi.toConst(p))
+    })
+}
+-- expect --
+error[E2223]: `withAddress`'s callback passes its leased pointer to `stash`, whose body may keep it past the call
+  --> main/main.kg:16:9
+   |
+16 |         stash(h, p) //~ ERROR passes its leased pointer to `stash`
+   |         ^^^^^^^^^^
+   = help: keep the pointer inside the callback, or use a retained carrier (`ffi.Pin`) for data that must outlive this call
+
+error[E2223]: `withAddress`'s callback passes its leased pointer to `cb`, whose body may keep it past the call
+  --> main/main.kg:24:9
+   |
+24 |         cb(p) //~ ERROR passes its leased pointer to `cb`
+   |         ^^^^
+   = help: keep the pointer inside the callback, or use a retained carrier (`ffi.Pin`) for data that must outlive this call
+
+error[E2223]: `withAddress`'s callback passes its leased pointer to `sink`, whose body may keep it past the call
+  --> main/main.kg:35:9
+   |
+35 |         sink(p) //~ ERROR passes its leased pointer to `sink`
+   |         ^^^^^^
+   = help: keep the pointer inside the callback, or use a retained carrier (`ffi.Pin`) for data that must outlive this call
+

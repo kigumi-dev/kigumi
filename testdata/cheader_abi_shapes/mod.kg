@@ -1,0 +1,9 @@
+Module {
+    name: "cheader-abi-shapes"
+    kigumi: "0.1"
+}
+
+Header {
+    path: "h.h"
+    package: "shapes"
+}

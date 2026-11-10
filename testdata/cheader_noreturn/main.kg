@@ -1,0 +1,15 @@
+import libc from c/libc
+
+fn bail(code: i32) -> Never {
+    unsafe {
+        libc.exit(code)
+    }
+}
+
+fn dieOr(v: i32) -> i32 {
+    if v < 0 {
+        unsafe { libc.abort() }
+    } else {
+        v
+    }
+}

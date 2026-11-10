@@ -20,7 +20,7 @@ func bareOpaqueByValue(s string, opaque map[string]bool) bool {
 // importer skips the one declaration instead of emitting Kigumi source that
 // sem's own ABI checker (E924) would then refuse the moment the generated
 // package is merely imported.
-func mapByValueType(s string, known, opaque map[string]bool, abi ABI) (string, bool) {
+func mapByValueType(s string, known map[string]string, opaque map[string]bool, abi ABI) (string, bool) {
 	if bareOpaqueByValue(s, opaque) {
 		return "", false
 	}

@@ -89,9 +89,18 @@ func mapScalar(word string, abi ABI) (string, bool) {
 		return "u8", true
 	case "void":
 		return "Void", true
+	case "noreturn":
+		// zig translate-c spells a `_Noreturn`/`__attribute__((noreturn))`
+		// function's result this way, the same role Kigumi's Never plays.
+		return "Never", true
 	}
 	return "", false
 }
+
+// plainCharSigned reports whether C's plain `char` is signed on this target.
+// zig translate-c always spells a plain `char` as `u8`, so on a signed-char
+// target the importer has to recover the signedness from the C source.
+func (a ABI) plainCharSigned() bool { return !a.CharUnsigned }
 
 // stripTagPrefix drops the struct_/union_/enum_ tag prefix zig gives an
 // untypedef'd C tag, so `struct Point` and `typedef struct Point Point`

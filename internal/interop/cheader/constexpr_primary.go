@@ -25,6 +25,23 @@ func (p *cparser) primary() cval {
 			return p.fail()
 		}
 		return c
+	case t == "__helpers.cast":
+		p.expect("(")
+		typ := p.next()
+		p.expect(",")
+		v := p.binary(0)
+		p.expect(")")
+		kt, known := mapScalar(typ, p.abi)
+		if !known {
+			// A pointer target is C's NULL (or another pointer constant);
+			// Kigumi has no null pointer constant to spell it with.
+			return p.fail()
+		}
+		c, fit := scalarVal(kt, v.v)
+		if !fit {
+			return p.fail()
+		}
+		return c
 	case t == "__helpers.promoteIntLiteral":
 		p.expect("(")
 		typ := p.next()
@@ -47,6 +64,12 @@ func (p *cparser) primary() cval {
 			return v
 		}
 		return p.fail()
+	case t != "" && t[0] == '\'':
+		v, ok := charLiteralValue(t)
+		if !ok {
+			return p.fail()
+		}
+		return p.promote("c_int", v, false)
 	case t != "" && t[0] >= '0' && t[0] <= '9':
 		v, good := new(big.Int).SetString(t, 0)
 		if !good || strings.ContainsAny(t, ".") {
@@ -63,15 +86,88 @@ func isRadixLiteral(t string) bool {
 	return len(t) > 1 && t[0] == '0' && (strings.ContainsAny(t[1:2], "xXoObB") || !strings.ContainsAny(t, ".eE"))
 }
 
-// A hex or octal literal that overflows the signed type takes the unsigned one first, as in C.
+// charLiteralValue evaluates one C character constant (`'A'`, `'\n'`, `'\x41'`),
+// whose type in C is int.
+func charLiteralValue(tok string) (*big.Int, bool) {
+	if len(tok) < 3 || tok[0] != '\'' || tok[len(tok)-1] != '\'' {
+		return nil, false
+	}
+	body := tok[1 : len(tok)-1]
+	if body == "" {
+		return nil, false
+	}
+	var n int64
+	if body[0] != '\\' {
+		if len(body) != 1 || body[0] >= 0x80 {
+			return nil, false
+		}
+		n = int64(body[0])
+	} else {
+		esc := body[1:]
+		switch {
+		case len(esc) == 1:
+			switch esc[0] {
+			case 'n':
+				n = 10
+			case 't':
+				n = 9
+			case 'r':
+				n = 13
+			case 'a':
+				n = 7
+			case 'b':
+				n = 8
+			case 'f':
+				n = 12
+			case 'v':
+				n = 11
+			case '\\', '\'', '"', '?':
+				n = int64(esc[0])
+			case '0':
+				n = 0
+			default:
+				return nil, false
+			}
+		case len(esc) > 1 && esc[0] == 'x':
+			x, err := strconv.ParseInt(esc[1:], 16, 64)
+			if err != nil || x < 0 || x > 0xff {
+				return nil, false
+			}
+			n = x
+		case len(esc) > 1 && esc[0] >= '0' && esc[0] <= '7':
+			x, err := strconv.ParseInt(esc, 8, 64)
+			if err != nil || x < 0 || x > 0xff {
+				return nil, false
+			}
+			n = x
+		default:
+			return nil, false
+		}
+	}
+	return big.NewInt(n), true
+}
+
+// C's integer conversion rank picks a literal's type: an unsigned start
+// stays unsigned (a `u` suffix's literal climbs u32 -> u64), a hex or octal
+// literal may cross into unsigned, and a decimal one never does.
 func (p *cparser) promote(typ string, v *big.Int, radix bool) cval {
 	start, known := mapScalar(typ, p.abi)
 	if !known {
 		return p.fail()
 	}
-	order := []string{start, "i64", "u64"}
-	if radix && strings.HasPrefix(start, "i") && start != "isize" {
+	var order []string
+	switch {
+	case strings.HasPrefix(start, "u"):
+		order = []string{start, "u64"}
+	case start == "isize":
+		order = []string{"isize", "usize"}
+	case radix:
 		order = []string{start, "u" + start[1:], "i64", "u64"}
+	default:
+		// The decimal fallback keeps zig's UINT64_MAX spelling
+		// (`__UINT64_C(promoteIntLiteral(c_int, 18446744073709551615, ...))`)
+		// working; its suffix macro pins the unsigned type.
+		order = []string{start, "i64", "u64"}
 	}
 	for _, kt := range order {
 		if c, fit := scalarVal(kt, v); fit {
