@@ -74,8 +74,15 @@ func parseReplCell(src string) (*replCell, string) {
 		case item.Kind() == syntax.ExprStmt:
 			// A top-level control transfer is legal in a function but not
 			// as a cell's own command; reject it before wrapping.
-			if e := item.AsExprStmt().Expr(); replControlKind(e.Kind()) {
+			e := item.AsExprStmt().Expr()
+			if replControlKind(e.Kind()) {
 				return nil, fmt.Sprintf("cannot use `%s` at the top level of a REPL cell", e.Kind())
+			}
+			// An if without else and a for loop are statements. Treating
+			// them as displayed values would demand an else in the wrapper.
+			if e.Kind() == syntax.IfExpr && !e.AsIf().Else().Valid() || e.Kind() == syntax.ForExpr {
+				statements = append(statements, text)
+				continue
 			}
 			c.last = text
 			c.lastNode = item.ID()

@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"syscall"
@@ -29,6 +30,14 @@ func run(ioh session.IO, opts options) error {
 	}
 	compiler := session.CompilerOptions()
 	root := compiler.Cwd
+	if root != "" {
+		_ = os.Setenv("PWD", root)
+	}
+	if n, err := strconv.Atoi(os.Getenv("SHLVL")); err == nil {
+		_ = os.Setenv("SHLVL", strconv.Itoa(n+1))
+	} else {
+		_ = os.Setenv("SHLVL", "1")
+	}
 	r, err := driver.NewRepl(root, driver.ReplOptions{
 		Load: driver.LoadOptions{StdRoot: s.StdRoot(), Target: tgt, Compiler: compiler, Policy: s.Policy(), NoLocal: s.NoLocal},
 		VM:   vm.Options{Args: []string{"kgsh"}, Cwd: root, Stdin: os.Stdin},

@@ -121,6 +121,7 @@ const replPrelude = `import os from std/os
 
 fn cd(path: String) -> Void! {
     host.chdir(path)?
+    host.setEnv("PWD", host.cwd())?
 }
 
 fn pwd() -> String {
