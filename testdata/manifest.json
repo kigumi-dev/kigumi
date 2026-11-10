@@ -4342,6 +4342,15 @@
       ]
     },
     {
+      "id": "run/container_key_not_kept_ok",
+      "kind": "run",
+      "path": "testdata/run/container_key_not_kept_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/context_closure_calls_bound",
       "kind": "run",
       "path": "testdata/run/context_closure_calls_bound.txtar",
@@ -5146,6 +5155,15 @@
       "id": "run/direct_aggregate_mutation",
       "kind": "run",
       "path": "testdata/run/direct_aggregate_mutation.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/direct_call_kept_ok",
+      "kind": "run",
+      "path": "testdata/run/direct_call_kept_ok.txtar",
       "mode": [
         "vm",
         "native"
@@ -7027,6 +7045,15 @@
       "id": "run/fn_value_mut_ref",
       "kind": "run",
       "path": "testdata/run/fn_value_mut_ref.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/fn_value_param_part_ok",
+      "kind": "run",
+      "path": "testdata/run/fn_value_param_part_ok.txtar",
       "mode": [
         "vm",
         "native"
@@ -9951,6 +9978,15 @@
       ]
     },
     {
+      "id": "run/requirement_result_conformer_ok",
+      "kind": "run",
+      "path": "testdata/run/requirement_result_conformer_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/result_paren_tail",
       "kind": "run",
       "path": "testdata/run/result_paren_tail.txtar",
@@ -11112,9 +11148,81 @@
       ]
     },
     {
+      "id": "run/task_handle_generic_join",
+      "kind": "run",
+      "path": "testdata/run/task_handle_generic_join.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/task_handle_join_callee",
+      "kind": "run",
+      "path": "testdata/run/task_handle_join_callee.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/task_handle_join_forms",
+      "kind": "run",
+      "path": "testdata/run/task_handle_join_forms.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/task_panic_sync_drop",
       "kind": "run",
       "path": "testdata/run/task_panic_sync_drop.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/task_value_array_map",
+      "kind": "run",
+      "path": "testdata/run/task_value_array_map.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/task_value_generic_keep",
+      "kind": "run",
+      "path": "testdata/run/task_value_generic_keep.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/task_value_map_empty",
+      "kind": "run",
+      "path": "testdata/run/task_value_map_empty.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/task_value_map_remove",
+      "kind": "run",
+      "path": "testdata/run/task_value_map_remove.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/task_value_map_take",
+      "kind": "run",
+      "path": "testdata/run/task_value_map_take.txtar",
       "mode": [
         "vm",
         "native"
@@ -11760,6 +11868,15 @@
       ]
     },
     {
+      "id": "run/witness_generic_result_ok",
+      "kind": "run",
+      "path": "testdata/run/witness_generic_result_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/witness_ref_kept_ok",
       "kind": "run",
       "path": "testdata/run/witness_ref_kept_ok.txtar",
@@ -11781,6 +11898,15 @@
       "id": "run/witness_ref_kept_round_ok",
       "kind": "run",
       "path": "testdata/run/witness_ref_kept_round_ok.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/witness_set_sibling_ok",
+      "kind": "run",
+      "path": "testdata/run/witness_set_sibling_ok.txtar",
       "mode": [
         "vm",
         "native"
@@ -13324,6 +13450,14 @@
       ]
     },
     {
+      "id": "sem/container_key_not_kept_err",
+      "kind": "sem",
+      "path": "testdata/sem/container_key_not_kept_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/context_closure_chain_drop",
       "kind": "sem",
       "path": "testdata/sem/context_closure_chain_drop.txtar",
@@ -13783,6 +13917,14 @@
       "id": "sem/diag_variant_type_args",
       "kind": "sem",
       "path": "testdata/sem/diag_variant_type_args.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/direct_call_kept_err",
+      "kind": "sem",
+      "path": "testdata/sem/direct_call_kept_err.txtar",
       "mode": [
         "check"
       ]
@@ -14828,6 +14970,14 @@
       ]
     },
     {
+      "id": "sem/fn_param_assigned_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_param_assigned_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/fn_param_borrow_store_err",
       "kind": "sem",
       "path": "testdata/sem/fn_param_borrow_store_err.txtar",
@@ -15271,6 +15421,14 @@
       "id": "sem/fn_value_keep_view_err",
       "kind": "sem",
       "path": "testdata/sem/fn_value_keep_view_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/fn_value_param_part_err",
+      "kind": "sem",
+      "path": "testdata/sem/fn_value_param_part_err.txtar",
       "mode": [
         "check"
       ]
@@ -16964,6 +17122,14 @@
       ]
     },
     {
+      "id": "sem/requirement_result_conformer_err",
+      "kind": "sem",
+      "path": "testdata/sem/requirement_result_conformer_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/resolve_cycle",
       "kind": "sem",
       "path": "testdata/sem/resolve_cycle.txtar",
@@ -17308,6 +17474,30 @@
       ]
     },
     {
+      "id": "sem/task_handle_borrow_unjoined_err",
+      "kind": "sem",
+      "path": "testdata/sem/task_handle_borrow_unjoined_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/task_handle_bound_callables_err",
+      "kind": "sem",
+      "path": "testdata/sem/task_handle_bound_callables_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/task_handle_closure_result_err",
+      "kind": "sem",
+      "path": "testdata/sem/task_handle_closure_result_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/task_handle_escape_capture",
       "kind": "sem",
       "path": "testdata/sem/task_handle_escape_capture.txtar",
@@ -17319,6 +17509,14 @@
       "id": "sem/task_handle_escape_future",
       "kind": "sem",
       "path": "testdata/sem/task_handle_escape_future.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/task_handle_escape_iface",
+      "kind": "sem",
+      "path": "testdata/sem/task_handle_escape_iface.txtar",
       "mode": [
         "check"
       ]
@@ -17343,6 +17541,30 @@
       "id": "sem/task_handle_escape_shared",
       "kind": "sem",
       "path": "testdata/sem/task_handle_escape_shared.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/task_handle_generic_result_err",
+      "kind": "sem",
+      "path": "testdata/sem/task_handle_generic_result_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/task_handle_join_paths_err",
+      "kind": "sem",
+      "path": "testdata/sem/task_handle_join_paths_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/task_handle_stored_place_err",
+      "kind": "sem",
+      "path": "testdata/sem/task_handle_stored_place_err.txtar",
       "mode": [
         "check"
       ]
@@ -17988,6 +18210,14 @@
       ]
     },
     {
+      "id": "sem/witness_generic_result_err",
+      "kind": "sem",
+      "path": "testdata/sem/witness_generic_result_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/witness_interface_package",
       "kind": "sem",
       "path": "testdata/sem/witness_interface_package.txtar",
@@ -18031,6 +18261,14 @@
       "id": "sem/witness_ref_kept_round_err",
       "kind": "sem",
       "path": "testdata/sem/witness_ref_kept_round_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/witness_set_sibling_err",
+      "kind": "sem",
+      "path": "testdata/sem/witness_set_sibling_err.txtar",
       "mode": [
         "check"
       ]
