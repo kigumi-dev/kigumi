@@ -1,0 +1,7 @@
+# Host targets the release workflow builds. Keep sorted; one os/arch per line.
+# darwin and windows stay out until their platform-specific REPL and socket
+# code compiles; adding a line here adds the target to the workflow matrix and
+# the release manifest.
+linux/amd64
+linux/arm64
+linux/riscv64

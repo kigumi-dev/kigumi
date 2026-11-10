@@ -1,0 +1,362 @@
+name: release
+
+# Tag pushes publish a release. workflow_dispatch rebuilds an existing tag so
+# the pipeline can be rehearsed; it only creates the GitHub release when the
+# `publish` input is true.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to rebuild, e.g. v0.1.0.
+        required: true
+        type: string
+      publish:
+        description: Create or update the GitHub release (tag pushes always publish).
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GO_VERSION: "1.26"
+
+jobs:
+  validate:
+    name: validate release inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      version: ${{ steps.tag.outputs.version }}
+      commit: ${{ steps.source.outputs.commit }}
+      epoch: ${{ steps.source.outputs.epoch }}
+      matrix: ${{ steps.matrix.outputs.targets }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: resolve tag and version
+        id: tag
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          tag="${INPUT_TAG:-${GITHUB_REF_NAME}}"
+          case "$tag" in
+            v[0-9]*) ;;
+            *) echo "release tags must look like v<major>.<minor>.<patch>, got '$tag'" >&2; exit 1 ;;
+          esac
+          git fetch --quiet --tags origin
+          git rev-parse --quiet --verify "refs/tags/${tag}^{commit}" >/dev/null
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+      - name: check clean inputs
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          # A release must come from exactly the tagged tree: no modified,
+          # staged or untracked file may leak into the archives or binaries.
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "working tree is dirty; a release must be built from a clean checkout" >&2
+            git status --porcelain >&2
+            exit 1
+          fi
+          test "$(git describe --tags --exact-match 2>/dev/null || true)" = "$TAG" || {
+            echo "HEAD is not exactly tag $TAG" >&2
+            exit 1
+          }
+          go mod verify
+          test -f internal/toolchain/version/version.go
+          test -f .github/scripts/release/targets.txt
+          for header in rt.h rt_internal.h rt_std_ops.h rt_freestanding.h freestanding_symbols.txt; do
+            test -f "internal/backend/llgen/runtimegen/runtime/$header"
+          done
+
+      - name: check tag matches version.go
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        working-directory: .github/scripts/release
+        run: go run . version --root ../../.. --expect "$TAG"
+
+      - name: test release tool
+        working-directory: .github/scripts/release
+        run: go test ./...
+
+      - name: resolve commit and build matrix
+        id: matrix
+        working-directory: .github/scripts/release
+        run: |
+          set -euo pipefail
+          echo "targets=$(go run . targets --file targets.txt --json)" >> "$GITHUB_OUTPUT"
+
+      - name: resolve commit and source epoch
+        id: source
+        run: |
+          set -euo pipefail
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "epoch=$(git log -1 --format=%ct)" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: build ${{ matrix.goos }}/${{ matrix.goarch }}
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.validate.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          COMMIT: ${{ needs.validate.outputs.commit }}
+          EXT: ${{ matrix.binary }}
+        run: |
+          set -euo pipefail
+          mkdir -p stage dist
+          CGO_ENABLED=0 go build -trimpath -buildvcs=true -o "stage/${EXT}" .
+          # The binary must carry the tagged commit and no dirty marker; the
+          # SBOM step repeats this check for every target.
+          meta=$(go version -m "stage/${EXT}")
+          case "$meta" in
+            *"vcs.revision=${COMMIT}"*) ;;
+            *) echo "stage/${EXT}: missing vcs.revision=${COMMIT}" >&2; exit 1 ;;
+          esac
+          case "$meta" in
+            *"vcs.modified=true"*) echo "stage/${EXT}: dirty VCS metadata" >&2; exit 1 ;;
+          esac
+          cp LICENSE stage/
+          if [ -f README.md ]; then cp README.md stage/; fi
+
+      - name: archive
+        working-directory: .github/scripts/release
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          SUFFIX: ${{ matrix.suffix }}
+        run: |
+          set -euo pipefail
+          go run . archive \
+            --root ../../../stage \
+            --all \
+            --out "../../../dist/kigumi_${VERSION}_${SUFFIX}.tar.gz"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.suffix }}
+          path: |
+            stage/kigumi*
+            dist/*.tar.gz
+          if-no-files-found: error
+
+  package:
+    name: package and attest
+    needs: [validate, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: false
+
+      - name: stage artifacts
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          find artifacts -path '*/dist/*.tar.gz' -type f -exec cp {} dist/ \;
+          # Every target must have produced exactly one archive, and no job may
+          # have silently dropped its artifact.
+          target_count=$( ( cd .github/scripts/release && go run . targets --file targets.txt ) | wc -l )
+          archive_count=$(find dist -maxdepth 1 -type f -name 'kigumi_*.tar.gz' | wc -l)
+          test "$archive_count" -eq "$((target_count + 2))" || {
+            echo "want $((target_count + 2)) archives (targets plus headers and source), have $archive_count" >&2
+            find dist -maxdepth 1 -type f -printf '%f\n' >&2
+            exit 1
+          }
+          find artifacts -path '*/stage/kigumi*' -type f > /dev/null
+
+      - name: build prebuilt headers archive
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p headers/include
+          src=internal/backend/llgen/runtimegen/runtime
+          cp "$src/rt.h" "$src/rt_internal.h" "$src/rt_std_ops.h" "$src/rt_freestanding.h" headers/include/
+          cp "$src/freestanding_symbols.txt" headers/
+          ( cd .github/scripts/release && go run . version --root ../../.. ) > headers/VERSION
+          ( cd .github/scripts/release && go run . archive \
+              --root ../../../headers --all \
+              --prefix "kigumi_${VERSION}_headers" \
+              --out "../../../dist/kigumi_${VERSION}_headers.tar.gz" )
+
+      - name: build reproducible source archive
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          ( cd .github/scripts/release && go run . archive \
+              --root ../../.. --git \
+              --prefix "kigumi-${VERSION}" \
+              --out "../../../dist/kigumi_${VERSION}_source.tar.gz" )
+          # Determinism is a release property, not an accident: take the same
+          # snapshot twice and require byte equality.
+          ( cd .github/scripts/release && go run . archive \
+              --root ../../.. --git \
+              --prefix "kigumi-${VERSION}" \
+              --out "../../../dist/repro-check.tar.gz" )
+          cmp "dist/kigumi_${VERSION}_source.tar.gz" dist/repro-check.tar.gz
+          rm dist/repro-check.tar.gz
+
+      - name: generate SBOM
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          COMMIT: ${{ needs.validate.outputs.commit }}
+          EPOCH: ${{ needs.validate.outputs.epoch }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          args=()
+          while IFS= read -r -d '' binary; do
+            args+=(--binary "$(realpath "$binary")")
+          done < <(find artifacts -path '*/stage/kigumi*' -type f -print0)
+          test "${#args[@]}" -gt 0
+          ( cd .github/scripts/release && go run . sbom \
+              --out "$GITHUB_WORKSPACE/dist/SBOM.spdx.json" \
+              --version "$VERSION" \
+              --commit "$COMMIT" \
+              --created "$EPOCH" \
+              --repository "$REPOSITORY" \
+              "${args[@]}" )
+
+      - name: generate provenance statement
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          TAG: ${{ needs.validate.outputs.tag }}
+          COMMIT: ${{ needs.validate.outputs.commit }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          ( cd .github/scripts/release && go run . provenance \
+              --dir ../../../dist \
+              --out ../../../dist/provenance.json \
+              --repository "$REPOSITORY" \
+              --ref "refs/tags/$TAG" \
+              --commit "$COMMIT" \
+              --workflow "$REPOSITORY/.github/workflows/release.yml@refs/tags/$TAG" \
+              --run-id "$GITHUB_RUN_ID" \
+              --version "$VERSION" \
+              --targets-file targets.txt )
+
+      - name: generate manifest and checksums
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          TAG: ${{ needs.validate.outputs.tag }}
+          COMMIT: ${{ needs.validate.outputs.commit }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          go_version=$(go env GOVERSION)
+          ( cd .github/scripts/release && go run . generate \
+              --dir ../../../dist \
+              --root ../../.. \
+              --version "$VERSION" \
+              --tag "$TAG" \
+              --commit "$COMMIT" \
+              --go-version "$go_version" \
+              --repository "$REPOSITORY" \
+              --targets-file targets.txt )
+
+      - name: verify release
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          TAG: ${{ needs.validate.outputs.tag }}
+          COMMIT: ${{ needs.validate.outputs.commit }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          ( cd .github/scripts/release && go run . verify \
+              --dir ../../../dist \
+              --root ../../.. \
+              --version "$VERSION" \
+              --tag "$TAG" \
+              --commit "$COMMIT" \
+              --repository "$REPOSITORY" \
+              --targets-file targets.txt )
+
+      - name: attest build provenance
+        if: github.event_name == 'push' || inputs.publish
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-dist
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: publish GitHub release
+    needs: [validate, package]
+    if: github.event_name == 'push' || inputs.publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-dist
+          path: dist
+
+      - name: create release
+        env:
+          TAG: ${{ needs.validate.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh release create "$TAG" dist/* \
+            --repo "$REPOSITORY" \
+            --verify-tag \
+            --title "kigumi $TAG" \
+            --generate-notes
