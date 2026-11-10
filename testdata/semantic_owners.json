@@ -10481,6 +10481,26 @@
     "status": "ok"
   },
   {
+    "key": "math.absHighWord",
+    "signature": "pure noalloc fn(Float) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.add64",
+    "signature": "pure noalloc fn(u64, u64, u64) -\u003e (u64, u64)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "math.ceil",
     "signature": "pure noalloc fn(Float) -\u003e Float",
     "has_body": false,
@@ -10602,17 +10622,7 @@
   },
   {
     "key": "math.cos",
-    "signature": "pure fn(Float) -\u003e Float",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "math.cosSmall",
-    "signature": "fn(Float) -\u003e Float",
+    "signature": "pure noalloc fn(Float) -\u003e Float",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10622,7 +10632,7 @@
   },
   {
     "key": "math.cosh",
-    "signature": "pure fn(Float) -\u003e Float",
+    "signature": "pure noalloc fn(Float) -\u003e Float",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10632,7 +10642,7 @@
   },
   {
     "key": "math.exp",
-    "signature": "pure fn(Float) -\u003e Float",
+    "signature": "pure noalloc fn(Float) -\u003e Float",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10641,8 +10651,158 @@
     "status": "ok"
   },
   {
-    "key": "math.expSmall",
-    "signature": "fn(Float) -\u003e Float",
+    "key": "math.expEntry",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, u64)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.expEntry0",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, u64)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.expEntry1",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, u64)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.expEntry2",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, u64)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.expEntry3",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, u64)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.expEntry4",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, u64)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.expEntry5",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, u64)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.expEntry6",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, u64)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.expEntry7",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, u64)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.expReduced",
+    "signature": "pure noalloc fn(Float, Float, u64, Bool) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.expScaled",
+    "signature": "pure noalloc fn(Float, u64, u64) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.expTimesSign",
+    "signature": "pure noalloc fn(Float, Float, u64) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.expm1",
+    "signature": "pure noalloc fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.expm1Reduced",
+    "signature": "pure noalloc fn(Float, Float, Int) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.expo2",
+    "signature": "pure noalloc fn(Float, Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.exponentField",
+    "signature": "pure noalloc fn(u64) -\u003e Int",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10662,7 +10822,7 @@
   },
   {
     "key": "math.fmod",
-    "signature": "pure fn(Float, Float) -\u003e Float",
+    "signature": "pure noalloc fn(Float, Float) -\u003e Float",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10672,7 +10832,7 @@
   },
   {
     "key": "math.fract",
-    "signature": "pure fn(Float) -\u003e Float",
+    "signature": "pure noalloc fn(Float) -\u003e Float",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10681,8 +10841,38 @@
     "status": "ok"
   },
   {
+    "key": "math.fromBits",
+    "signature": "pure noalloc fn(u64) -\u003e Float",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "math.inf",
-    "signature": "pure fn() -\u003e Float",
+    "signature": "pure noalloc fn() -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.integerKind",
+    "signature": "pure noalloc fn(u64) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.invalid",
+    "signature": "pure noalloc fn(Float) -\u003e Float",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10692,7 +10882,7 @@
   },
   {
     "key": "math.isFinite",
-    "signature": "pure fn(Float) -\u003e Bool",
+    "signature": "pure noalloc fn(Float) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10702,7 +10892,7 @@
   },
   {
     "key": "math.isInf",
-    "signature": "pure fn(Float) -\u003e Bool",
+    "signature": "pure noalloc fn(Float) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10712,7 +10902,47 @@
   },
   {
     "key": "math.isNaN",
-    "signature": "pure fn(Float) -\u003e Bool",
+    "signature": "pure noalloc fn(Float) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.kernelCos",
+    "signature": "pure noalloc fn(Float, Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.kernelSin",
+    "signature": "pure noalloc fn(Float, Float, Bool) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.kernelTan",
+    "signature": "pure noalloc fn(Float, Float, Bool) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.leadingZeros",
+    "signature": "pure noalloc fn(u64) -\u003e usize",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10722,7 +10952,7 @@
   },
   {
     "key": "math.log",
-    "signature": "pure fn(Float) -\u003e Float",
+    "signature": "pure noalloc fn(Float) -\u003e Float",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10732,7 +10962,7 @@
   },
   {
     "key": "math.log10",
-    "signature": "pure fn(Float) -\u003e Float",
+    "signature": "pure noalloc fn(Float) -\u003e Float",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10742,7 +10972,167 @@
   },
   {
     "key": "math.log2",
-    "signature": "pure fn(Float) -\u003e Float",
+    "signature": "pure noalloc fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.log2Entry",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.log2Entry0",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.log2Entry1",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.log2Entry2",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.log2Entry3",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.log2Near1",
+    "signature": "pure noalloc fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.log2Reduced",
+    "signature": "pure noalloc fn(u64) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.logEntry",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.logEntry0",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.logEntry1",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.logEntry2",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.logEntry3",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.logEntry4",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.logEntry5",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.logEntry6",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.logEntry7",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float, Float)",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10752,7 +11142,47 @@
   },
   {
     "key": "math.logNear1",
-    "signature": "fn(Float) -\u003e Float",
+    "signature": "pure noalloc fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.logPattern",
+    "signature": "pure noalloc fn(Float) -\u003e u64?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.logReduced",
+    "signature": "pure noalloc fn(u64) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.logSpecial",
+    "signature": "pure noalloc fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.lowWordCleared",
+    "signature": "pure noalloc fn(Float) -\u003e Float",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10973,6 +11403,16 @@
   {
     "key": "math.min",
     "signature": "pure noalloc fn(usize, usize) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.mul64",
+    "signature": "pure noalloc fn(u64, u64) -\u003e (u64, u64)",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10982,7 +11422,37 @@
   },
   {
     "key": "math.nan",
-    "signature": "pure fn() -\u003e Float",
+    "signature": "pure noalloc fn() -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.nearMultiple",
+    "signature": "pure noalloc fn(Float, Bool, Int) -\u003e Reduced",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.normalized",
+    "signature": "pure noalloc fn(u64) -\u003e Normalized",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.overflow",
+    "signature": "pure noalloc fn(Bool) -\u003e Float",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10993,16 +11463,176 @@
   {
     "key": "math.pow",
     "signature": "pure noalloc fn(Float, Float) -\u003e Float",
-    "has_body": false,
-    "kind": "primitive",
-    "vm": "implemented",
-    "native": "implemented",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
     "accelerated": false,
     "status": "ok"
   },
   {
-    "key": "math.reduce",
-    "signature": "fn(Float) -\u003e Angle",
+    "key": "math.pow2",
+    "signature": "pure noalloc fn(Int) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.powFinite",
+    "signature": "pure noalloc fn(Float, u64, u64, u64) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.powLog",
+    "signature": "pure noalloc fn(u64) -\u003e HiLo",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.powLogEntry",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.powLogEntry0",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.powLogEntry1",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.powLogEntry2",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.powLogEntry3",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.powLogEntry4",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.powLogEntry5",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.powLogEntry6",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.powLogEntry7",
+    "signature": "pure noalloc fn(u64) -\u003e (Float, Float, Float)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.powSpecial",
+    "signature": "pure noalloc fn(Float, Float, u64, u64) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.powSpecialY",
+    "signature": "pure noalloc fn(Float, Float, u64, u64) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.remPio2",
+    "signature": "pure noalloc fn(Float) -\u003e Reduced",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.remPio2Large",
+    "signature": "pure noalloc fn(Float) -\u003e Reduced",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.remPio2Medium",
+    "signature": "pure noalloc fn(Float, u64) -\u003e Reduced",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -11021,8 +11651,8 @@
     "status": "ok"
   },
   {
-    "key": "math.scaleByPowerOfTwo",
-    "signature": "fn(Float, Float) -\u003e Float",
+    "key": "math.signed",
+    "signature": "pure noalloc fn(Float, Bool) -\u003e Float",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -11032,17 +11662,7 @@
   },
   {
     "key": "math.sin",
-    "signature": "pure fn(Float) -\u003e Float",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "math.sinSmall",
-    "signature": "fn(Float) -\u003e Float",
+    "signature": "pure noalloc fn(Float) -\u003e Float",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -11052,7 +11672,7 @@
   },
   {
     "key": "math.sinh",
-    "signature": "pure fn(Float) -\u003e Float",
+    "signature": "pure noalloc fn(Float) -\u003e Float",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -11071,8 +11691,18 @@
     "status": "ok"
   },
   {
+    "key": "math.sub64",
+    "signature": "pure noalloc fn(u64, u64, u64) -\u003e (u64, u64)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "math.tan",
-    "signature": "pure fn(Float) -\u003e Float",
+    "signature": "pure noalloc fn(Float) -\u003e Float",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -11082,11 +11712,31 @@
   },
   {
     "key": "math.tanh",
-    "signature": "pure fn(Float) -\u003e Float",
+    "signature": "pure noalloc fn(Float) -\u003e Float",
     "has_body": true,
     "kind": "",
     "vm": "gap",
     "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.timesHalfPi",
+    "signature": "pure noalloc fn(u64, u64, u64, u64) -\u003e HiLo",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.toBits",
+    "signature": "pure noalloc fn(Float) -\u003e u64",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
     "accelerated": false,
     "status": "ok"
   },
@@ -11111,8 +11761,8 @@
     "status": "ok"
   },
   {
-    "key": "math.trunc",
-    "signature": "pure fn(Float) -\u003e Float",
+    "key": "math.top12",
+    "signature": "pure noalloc fn(Float) -\u003e u64",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -11121,8 +11771,58 @@
     "status": "ok"
   },
   {
-    "key": "math.zero",
-    "signature": "fn() -\u003e Float",
+    "key": "math.trunc",
+    "signature": "pure noalloc fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.twoOverPiWindow",
+    "signature": "pure noalloc fn(Int, usize) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.twoOverPiWords",
+    "signature": "pure noalloc fn(Int) -\u003e (u64, u64)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.underflow",
+    "signature": "pure noalloc fn(Bool) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.withoutSign",
+    "signature": "pure noalloc fn(Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.zeroInfNaN",
+    "signature": "pure noalloc fn(u64) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",

@@ -242,6 +242,17 @@ static uint64_t secret_eq_bytes(val a, val b) {
     return (uint64_t)0 - (uint64_t)(diff == 0);
 }
 
+// A rounding of NaN returns the argument quiet with its payload, as the inline lowering and the VM do.
+static inline double rounded_nan(double (*f)(double), double x) {
+    if (x != x) {
+        uint64_t b;
+        memcpy(&b, &x, sizeof b);
+        b |= (uint64_t)1 << 51;
+        memcpy(&x, &b, sizeof x);
+        return x;
+    }
+    return f(x);
+}
 #include "rt_std_dispatch.inc"
 // rt_std is rt_callv's path for a std function value (rt_std_closure /
 // rt_std_bind carry the key, resolved fresh on every call); a static call

@@ -1,0 +1,76 @@
+// Ported from musl 1.2.5 src/math/fmod.c. Copyright (c) 2005-2020 Rich Felker, et al. SPDX-License-Identifier: MIT
+/// The remainder of x / y with x's sign, as C's `fmod`; exact, and NaN when y is zero, x is infinite or either is NaN.
+pub pure noalloc fn fmod(x: Float, y: Float) -> Float {
+    let ux = toBits(x)
+    let uy = toBits(y)
+    if (uy << 1) == 0 || isNaN(y) || exponentField(ux) == 0x7FF {
+        return invalid(if isNaN(x) {
+            x
+        } else {
+            y
+        })
+    }
+    if (ux << 1) <= (uy << 1) {
+        if (ux << 1) == (uy << 1) {
+            return 0.0 * x
+        }
+        return x
+    }
+    let nx = normalized(ux)
+    let ny = normalized(uy)
+    let mut mx = nx.mantissa
+    let mut ex = nx.exponent
+    for ex > ny.exponent {
+        let i = mx.wrappingSub(ny.mantissa)
+        if (i >> 63) == 0 {
+            if i == 0 {
+                return 0.0 * x
+            }
+            mx = i
+        }
+        mx = mx << 1
+        ex = ex - 1
+    }
+    let i = mx.wrappingSub(ny.mantissa)
+    if (i >> 63) == 0 {
+        if i == 0 {
+            return 0.0 * x
+        }
+        mx = i
+    }
+    for (mx >> 52) == 0 {
+        mx = mx << 1
+        ex = ex - 1
+    }
+    let magnitude = if ex > 0 {
+        (mx - implicitBit) | (ex.truncate[u64]() << 52)
+    } else {
+        mx >> (1 - ex).truncate[usize]()
+    }
+    fromBits(magnitude | (ux & signBit))
+}
+
+/// A finite nonzero |x| as mantissa * 2^(exponent - 1075) with the mantissa's bit 52 set; a subnormal gets an exponent below 1.
+type Normalized = {
+    mantissa u64
+    exponent Int
+}
+
+pure noalloc fn normalized(bits: u64) -> Normalized {
+    let mut e = exponentField(bits)
+    if e != 0 {
+        return Normalized {
+            mantissa: (bits & fractionMask) | implicitBit
+            exponent: e
+        }
+    }
+    let mut i = bits << 12
+    for (i >> 63) == 0 {
+        e = e - 1
+        i = i << 1
+    }
+    Normalized {
+        mantissa: bits << (1 - e).truncate[usize]()
+        exponent: e
+    }
+}

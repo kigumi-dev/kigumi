@@ -30,7 +30,7 @@ fn letter(n: Int) -> Int {
 }
 
 fn root(x: Float, y: Float) -> Float {
-    math.sqrt(x) + math.floor(y) + math.ceil(x) + math.round(y) + math.pow(x, y)
+    math.sqrt(x) + math.floor(y) + math.ceil(x) + math.round(y) + math.fromBits(math.toBits(y) + 1)
 }
 
 fn big(a: i128, b: i128) -> i128 {
@@ -57,15 +57,15 @@ func TestScalarArithmeticLowersToInlineIR(t *testing.T) {
 		}
 	}
 	for _, want := range []string{
-		"@llvm.ssub.with.overflow.i8(", "@llvm.smul.with.overflow.i8(", "@llvm.fshr.i32(", "@llvm.sqrt.f64(", "@pow(double",
+		"@llvm.ssub.with.overflow.i8(", "@llvm.smul.with.overflow.i8(", "@llvm.fshr.i32(", "@llvm.sqrt.f64(",
 		"fptosi double", "@kg.smulo128(", "@kg.sdivmod128(", "@kg.umulo128(", "@kg.udivmod128(",
 	} {
 		if !strings.Contains(ir, want) {
 			t.Errorf("the module lacks %s", want)
 		}
 	}
-	if !regexp.MustCompile(`call double @pow\([^)]*\) nobuiltin`).MatchString(fnBody(t, ir, "main.root")) {
-		t.Error("main.root must call libm pow as nobuiltin")
+	if root := fnBody(t, ir, "main.root"); !strings.Contains(root, "bitcast double") || !strings.Contains(root, "bitcast i64") {
+		t.Errorf("math.toBits and math.fromBits must lower to bitcasts:\n%s", root)
 	}
 	for _, helper := range []string{"@kg.udivmod128(", "@kg.umulo128("} {
 		if n := strings.Count(ir, "define internal i128 "+helper) + strings.Count(ir, "define internal { i128, i1 } "+helper); n != 1 {

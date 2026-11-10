@@ -228,9 +228,7 @@ key math.ceil
 op 76 MATH_ROUND primitive (float) -> float
 direct Round
 key math.round
-op 77 MATH_POW primitive (float, float) -> float
-direct Pow
-key math.pow
+op 77 MATH_POW retired
 op 78 STRING_SLICE_BYTES retired
 op 79 ARRAY_CLONE retired
 op 80 WRAPPING_ADD primitive (int, int) -> int
@@ -616,3 +614,11 @@ op 192 SECRET_EQ_BYTES primitive (bytes, bytes) -> int
 key secret.eqBytes
 op 193 SECRET_DECLASSIFY_BYTES primitive (bytes) -> bytes
 key secret.declassifyBytes
+op 195 MATH_TO_BITS primitive (float) -> int
+isr inert
+direct ToBits
+key math.toBits
+op 196 MATH_FROM_BITS primitive (int) -> float
+isr inert
+direct FromBits
+key math.fromBits

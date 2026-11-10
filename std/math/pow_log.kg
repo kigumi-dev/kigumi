@@ -1,0 +1,44 @@
+// Ported from the log_inline of musl 1.2.5 src/math/pow.c.
+// Copyright (c) 2018, Arm Limited. SPDX-License-Identifier: MIT
+const powLogOff: u64 = 0x3FE6955500000000
+const powLogA0: Float = -0.5
+const powLogA1: Float = -0.6666666666666679
+const powLogA2: Float = 0.5000000000000007
+const powLogA3: Float = 0.7999999995323976
+const powLogA4: Float = -0.6666666663487739
+const powLogA5: Float = -1.142909628459501
+const powLogA6: Float = 1.0000415263675542
+
+/// log(x) as hi + lo with about 68 correct bits, for the pattern of a positive x where a subnormal x has been rescaled by
+/// 2^52 and its exponent lowered by 52.
+pure noalloc fn powLog(ix: u64) -> HiLo {
+    let tmp = ix.wrappingSub(powLogOff)
+    let (invc, logc, logctail) = powLogEntry((tmp >> 45) & 127)
+    let k = (tmp.truncate[Int]() >> 52).toFloat()
+    let iz = ix.wrappingSub(tmp & 0xFFF0000000000000)
+    let z = fromBits(iz)
+    let zhi = fromBits(iz.wrappingAdd(0x80000000) & 0xFFFFFFFF00000000)
+    let zlo = z - zhi
+    let rhi = zhi * invc - 1.0
+    let rlo = zlo * invc
+    let r = rhi + rlo
+    let t1 = k * ln2Hi + logc
+    let t2 = t1 + r
+    let lo1 = k * ln2Lo + logctail
+    let lo2 = t1 - t2 + r
+    let ar = powLogA0 * r
+    let ar2 = r * ar
+    let ar3 = r * ar2
+    let arhi = powLogA0 * rhi
+    let arhi2 = rhi * arhi
+    let hi = t2 + arhi2
+    let lo3 = rlo * (ar + arhi)
+    let lo4 = t2 - hi + arhi2
+    let p = ar3 * (powLogA1 + r * powLogA2 + ar2 * (powLogA3 + r * powLogA4 + ar2 * (powLogA5 + r * powLogA6)))
+    let lo = lo1 + lo2 + lo3 + lo4 + p
+    let y = hi + lo
+    HiLo {
+        hi: y
+        lo: hi - y + lo
+    }
+}

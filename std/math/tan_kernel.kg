@@ -1,0 +1,55 @@
+// Ported from musl 1.2.5 src/math/__tan.c. Copyright 2004 Sun Microsystems, Inc. All Rights Reserved.
+// Permission to use, copy, modify, and distribute this software is freely granted, provided that this notice is preserved.
+const t0: Float = 0.3333333333333341
+const t1: Float = 0.13333333333320124
+const t2: Float = 0.05396825397622605
+const t3: Float = 0.021869488294859542
+const t4: Float = 0.0088632398235993
+const t5: Float = 0.0035920791075913124
+const t6: Float = 0.0014562094543252903
+const t7: Float = 0.0005880412408202641
+const t8: Float = 0.0002464631348184699
+const t9: Float = 7.817944429395571e-05
+const t10: Float = 7.140724913826082e-05
+const t11: Float = -1.8558637485527546e-05
+const t12: Float = 2.590730518636337e-05
+const pio4lo: Float = 3.061616997868383e-17
+
+/// tan(x + y) for |x| <= pi/4, or -1 / tan(x + y) when odd is set.
+pure noalloc fn kernelTan(x0: Float, y0: Float, odd: Bool) -> Float {
+    let big = absHighWord(x0) >= 0x3FE59428
+    let negative = (toBits(x0) >> 63) == 1
+    let mut x = x0
+    let mut y = y0
+    if big {
+        if negative {
+            x = -x
+            y = -y
+        }
+        x = (pio4 - x) + (pio4lo - y)
+        y = 0.0
+    }
+    let z = x * x
+    let w = z * z
+    let r = t1 + w * (t3 + w * (t5 + w * (t7 + w * (t9 + w * t11))))
+    let v = z * (t2 + w * (t4 + w * (t6 + w * (t8 + w * (t10 + w * t12)))))
+    let s = z * x
+    let rr = y + z * (s * (r + v) + y) + s * t0
+    let sum = x + rr
+    if big {
+        let sg = if odd {
+            -1.0
+        } else {
+            1.0
+        }
+        return signed(sg - 2.0 * (x + (rr - sum * sum / (sum + sg))), negative)
+    }
+    if !odd {
+        return sum
+    }
+    let sum0 = lowWordCleared(sum)
+    let rest = rr - (sum0 - x)
+    let a = -1.0 / sum
+    let a0 = lowWordCleared(a)
+    a0 + a * (1.0 + a0 * sum0 + a0 * rest)
+}

@@ -1,0 +1,123 @@
+-- src --
+import math from std/math
+import text from std/text
+
+print "sin(0.5) ${math.toBits(math.sin(0.5))}"
+print "cos(0.5) ${math.toBits(math.cos(0.5))}"
+print "tan(0.5) ${math.toBits(math.tan(0.5))}"
+print "sin(1e+22) ${math.toBits(math.sin(1e+22))}"
+print "cos(1e+22) ${math.toBits(math.cos(1e+22))}"
+print "tan(1e+22) ${math.toBits(math.tan(1e+22))}"
+print "sin(5.319372648326541e+255) ${math.toBits(math.sin(5.319372648326541e+255))}"
+print "cos(5.319372648326541e+255) ${math.toBits(math.cos(5.319372648326541e+255))}"
+print "tan(5.319372648326541e+255) ${math.toBits(math.tan(5.319372648326541e+255))}"
+print "sin(1.152921504606847e+18) ${math.toBits(math.sin(1.152921504606847e+18))}"
+print "cos(1.152921504606847e+18) ${math.toBits(math.cos(1.152921504606847e+18))}"
+print "tan(1.152921504606847e+18) ${math.toBits(math.tan(1.152921504606847e+18))}"
+print "sin(4.71238898038469) ${math.toBits(math.sin(4.71238898038469))}"
+print "cos(4.71238898038469) ${math.toBits(math.cos(4.71238898038469))}"
+print "tan(4.71238898038469) ${math.toBits(math.tan(4.71238898038469))}"
+print "exp(1.0) ${math.toBits(math.exp(1.0))}"
+print "exp(-745.0) ${math.toBits(math.exp(-745.0))}"
+print "exp(709.78) ${math.toBits(math.exp(709.78))}"
+print "exp(-0.5) ${math.toBits(math.exp(-0.5))}"
+print "log(2.0) ${math.toBits(math.log(2.0))}"
+print "log2(2.0) ${math.toBits(math.log2(2.0))}"
+print "log10(2.0) ${math.toBits(math.log10(2.0))}"
+print "log(1e-310) ${math.toBits(math.log(1e-310))}"
+print "log2(1e-310) ${math.toBits(math.log2(1e-310))}"
+print "log10(1e-310) ${math.toBits(math.log10(1e-310))}"
+print "log(0.9999999999999999) ${math.toBits(math.log(0.9999999999999999))}"
+print "log2(0.9999999999999999) ${math.toBits(math.log2(0.9999999999999999))}"
+print "log10(0.9999999999999999) ${math.toBits(math.log10(0.9999999999999999))}"
+print "sinh(1e-10) ${math.toBits(math.sinh(1e-10))}"
+print "cosh(1e-10) ${math.toBits(math.cosh(1e-10))}"
+print "tanh(1e-10) ${math.toBits(math.tanh(1e-10))}"
+print "sinh(0.75) ${math.toBits(math.sinh(0.75))}"
+print "cosh(0.75) ${math.toBits(math.cosh(0.75))}"
+print "tanh(0.75) ${math.toBits(math.tanh(0.75))}"
+print "sinh(30.0) ${math.toBits(math.sinh(30.0))}"
+print "cosh(30.0) ${math.toBits(math.cosh(30.0))}"
+print "tanh(30.0) ${math.toBits(math.tanh(30.0))}"
+print "pow(1.00000001, 100000000.0) ${math.toBits(math.pow(1.00000001, 100000000.0))}"
+print "pow(1.1, 50.0) ${math.toBits(math.pow(1.1, 50.0))}"
+print "pow(-1.5, 1001.0) ${math.toBits(math.pow(-1.5, 1001.0))}"
+print "pow(0.5, 1074.0) ${math.toBits(math.pow(0.5, 1074.0))}"
+print "fmod(5.5, 0.1) ${math.toBits(math.fmod(5.5, 0.1))}"
+print "fmod(1e+308, 3e-308) ${math.toBits(math.fmod(1e+308, 3e-308))}"
+print "fmod(-1e+22, 7.0) ${math.toBits(math.fmod(-1e+22, 7.0))}"
+print "toBits ${math.toBits(1.0)} ${math.toBits(-0.0)} ${math.toBits(math.inf())} ${math.toBits(5e-324)}"
+print "fromBits ${math.fromBits(4607182418800017408)} ${math.fromBits(9223372036854775808)} ${math.fromBits(9218868437227405311)} ${math.isNaN(math.fromBits(9221120237041090560))}"
+print "made ${math.toBits(math.nan())} ${math.toBits(math.log(-1.0))} ${math.toBits(math.log2(-math.inf()))} ${math.toBits(math.log10(-2.0))}"
+print "made ${math.toBits(math.sin(math.inf()))} ${math.toBits(math.tan(-math.inf()))} ${math.toBits(math.fmod(1.0, 0.0))} ${math.toBits(math.fmod(math.inf(), 2.0))} ${math.toBits(math.pow(-2.0, 0.5))}"
+let negQuiet = math.fromBits(0xFFF8000000000000)
+print "kept ${math.toBits(math.sinh(negQuiet))} ${math.toBits(math.cosh(negQuiet))} ${math.toBits(math.tanh(negQuiet))}"
+print "kept ${math.toBits(math.log10(math.fromBits(0x7FF0000000000001)))} ${math.toBits(math.log(math.fromBits(0x7FF0000000000001)))} ${math.toBits(math.log2(math.fromBits(0xFFF0000000000002)))}"
+print "kept ${math.toBits(math.sin(math.fromBits(0xFFF4000000000000)))} ${math.toBits(math.exp(math.fromBits(0x7FF0000000000003)))} ${math.toBits(math.fmod(math.fromBits(0x7FF4000000000000), 1.0))}"
+let minusOne = text.parseFloat("-1") || 0.0
+print "run ${math.toBits(math.log(minusOne))} ${math.toBits(math.sin(minusOne / 0.0))} ${math.toBits(math.pow(minusOne - 1.0, 0.5))} ${math.toBits(math.fmod(minusOne, 0.0))}"
+let sig = math.fromBits(0xFFF4000000000123)
+let sigRun = math.fromBits(text.parseUint("18443366373989024035") || 0)
+print "round ${math.toBits(math.floor(sig))} ${math.toBits(math.ceil(sig))} ${math.toBits(math.round(sig))} ${math.toBits(math.trunc(sig))} ${math.toBits(math.fract(sig))}"
+print "round ${math.toBits(math.floor(sigRun))} ${math.toBits(math.ceil(sigRun))} ${math.toBits(math.round(sigRun))} ${math.toBits(math.trunc(sigRun))} ${math.toBits(math.fract(sigRun))}"
+print "fract ${math.toBits(math.fract(math.inf()))} ${math.toBits(math.fract(-math.inf()))} ${math.toBits(math.fract(minusOne / 0.0))}"
+let posRun = math.fromBits(text.parseUint("9221120237041090561") || 0)
+let negRun = math.fromBits(text.parseUint("18444492273895866370") || 0)
+print "pow ${math.toBits(math.pow(posRun, negRun))} ${math.toBits(math.pow(negRun, posRun))} ${math.toBits(math.pow(math.fromBits(0x7FF8000000000005), math.fromBits(0xFFF8000000000006)))}"
+-- stdout --
+sin(0.5) 4602308182625945072
+cos(0.5) 4606079780542709072
+tan(0.5) 4603095874924660554
+sin(1e+22) 13829223199258964887
+cos(1e+22) 4602887919370356980
+tan(1e+22) 13833386221037335128
+sin(5.319372648326541e+255) 4607182418800017408
+cos(5.319372648326541e+255) 13556198710138610223
+tan(5.319372648326541e+255) 14104600760957752886
+sin(1.152921504606847e+18) 13829029079414105692
+cos(1.152921504606847e+18) 13826562429657377095
+tan(1.152921504606847e+18) 4609397457514588547
+sin(4.71238898038469) 13830554455654793216
+cos(4.71238898038469) 13594811712176818698
+tan(4.71238898038469) 4842309746246977827
+exp(1.0) 4613303445314885481
+exp(-745.0) 1
+exp(709.78) 9218844034771735220
+exp(-0.5) 4603638362051417610
+log(2.0) 4604418534313441775
+log2(2.0) 4607182418800017408
+log10(2.0) 4599094494223104511
+log(1e-310) 13872861916001309960
+log2(1e-310) 13875615950524163574
+log10(1e-310) 13867533230720155648
+log(0.9999999999999999) 13591863675404156928
+log2(0.9999999999999999) 13593857396625343230
+log10(0.9999999999999999) 13586176430389519631
+sinh(1e-10) 4457293557087583675
+cosh(1e-10) 4607182418800017408
+tanh(1e-10) 4457293557087583675
+sinh(0.75) 4605581990200329872
+cosh(0.75) 4608509554331080360
+tanh(0.75) 4603896132715868712
+sinh(30.0) 4797301478507948269
+cosh(30.0) 4797301478507948269
+tanh(30.0) 4607182418800017408
+pow(1.00000001, 100000000.0) 4613303445247079989
+pow(1.1, 50.0) 4637961063831958992
+pow(-1.5, 1001.0) 16467238709996546291
+pow(0.5, 1074.0) 1
+fmod(5.5, 0.1) 4591870180066957700
+fmod(1e+308, 3e-308) 1108384067313296
+fmod(-1e+22, 7.0) 13839561654909534208
+toBits 4607182418800017408 9223372036854775808 9218868437227405312 1
+fromBits 1 -0 1.7976931348623157e+308 true
+made 9221120237041090560 9221120237041090560 9221120237041090560 9221120237041090560
+made 9221120237041090560 9221120237041090560 9221120237041090560 9221120237041090560 9221120237041090560
+kept 9221120237041090560 9221120237041090560 18444492273895866368
+kept 9218868437227405313 9221120237041090561 18444492273895866370
+kept 18445618173802708992 9221120237041090563 9222246136947933184
+run 9221120237041090560 9221120237041090560 9221120237041090560 9221120237041090560
+round 18445618173802709283 18445618173802709283 18445618173802709283 18445618173802709283 18445618173802709283
+round 18445618173802709283 18445618173802709283 18445618173802709283 18445618173802709283 18445618173802709283
+fract 9221120237041090560 9221120237041090560 9221120237041090560
+pow 9221120237041090561 18444492273895866370 9221120237041090565

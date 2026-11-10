@@ -1,0 +1,41 @@
+/// Whether x is the result of an undefined operation. NaN is the only value unequal to itself.
+pub pure noalloc fn isNaN(x: Float) -> Bool {
+    x != x
+}
+
+/// Whether x is an infinity of either sign.
+pub pure noalloc fn isInf(x: Float) -> Bool {
+    toBits(x).wrappingShiftLeft(1) == 0xFFE0000000000000
+}
+
+/// Whether x is neither NaN nor an infinity.
+pub pure noalloc fn isFinite(x: Float) -> Bool {
+    (toBits(x).wrappingShiftRight(52) & 0x7FF) != 0x7FF
+}
+
+/// x with its fractional part removed, rounding toward zero.
+pub pure noalloc fn trunc(x: Float) -> Float {
+    if x < 0.0 {
+        ceil(x)
+    } else {
+        floor(x)
+    }
+}
+
+/// The fractional part of x, with x's sign; NaN for an infinity.
+pub pure noalloc fn fract(x: Float) -> Float {
+    if !isFinite(x) {
+        return invalid(x)
+    }
+    x - trunc(x)
+}
+
+/// The quiet NaN with a clear sign and an empty payload.
+pub pure noalloc fn nan() -> Float {
+    fromBits(0x7FF8000000000000)
+}
+
+/// Positive infinity.
+pub pure noalloc fn inf() -> Float {
+    fromBits(0x7FF0000000000000)
+}

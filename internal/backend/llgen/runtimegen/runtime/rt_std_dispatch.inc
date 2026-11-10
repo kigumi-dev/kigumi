@@ -916,16 +916,28 @@ val rt_std_id(int op, int n, val* a) {
     case OP_MATH_SQRT: return rt_float(sqrt(a0->u.f), 64 | 512);
 #endif
 #if defined(KIGUMI_OP_MATH_FLOOR)
-    case OP_MATH_FLOOR: return rt_float(floor(a0->u.f), 64 | 512);
+    case OP_MATH_FLOOR: return rt_float(rounded_nan(floor, a0->u.f), 64 | 512);
 #endif
 #if defined(KIGUMI_OP_MATH_CEIL)
-    case OP_MATH_CEIL: return rt_float(ceil(a0->u.f), 64 | 512);
+    case OP_MATH_CEIL: return rt_float(rounded_nan(ceil, a0->u.f), 64 | 512);
 #endif
 #if defined(KIGUMI_OP_MATH_ROUND)
-    case OP_MATH_ROUND: return rt_float(round(a0->u.f), 64 | 512);
+    case OP_MATH_ROUND: return rt_float(rounded_nan(round, a0->u.f), 64 | 512);
 #endif
-#if defined(KIGUMI_OP_MATH_POW)
-    case OP_MATH_POW: return rt_float(pow(a0->u.f, a1->u.f), 64 | 512);
+#if defined(KIGUMI_OP_MATH_TO_BITS)
+    case OP_MATH_TO_BITS: {
+        uint64_t b;
+        memcpy(&b, &a0->u.f, sizeof b);
+        return rt_int((int64_t)b, 64);
+    }
+#endif
+#if defined(KIGUMI_OP_MATH_FROM_BITS)
+    case OP_MATH_FROM_BITS: {
+        uint64_t b = (uint64_t)a0->u.i;
+        double d;
+        memcpy(&d, &b, sizeof d);
+        return rt_float(d, 64 | 512);
+    }
 #endif
     // int_fn reads the op name after the key's last '.', so a leading dot
     // is enough; reusing it keeps the wrapping/rotate math in one place.

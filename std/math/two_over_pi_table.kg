@@ -1,0 +1,30 @@
+// The ipio2 table of musl 1.2.5 src/math/__rem_pio2_large.c in 64-bit words. Copyright (C) 1993 by Sun Microsystems, Inc.
+// All rights reserved. Developed at SunSoft. Permission to use, copy, modify, and distribute this software is freely granted, provided that this notice is preserved.
+/// Words j and j + 1 of the bits of 2/pi after the binary point, counted from 1; word 0 and the words past the table are
+/// zero.
+pure noalloc fn twoOverPiWords(j: Int) -> (u64, u64) {
+    match j {
+        0 -> (0, 0xA2F9836E4E441529)
+        1 -> (0xA2F9836E4E441529, 0xFC2757D1F534DDC0)
+        2 -> (0xFC2757D1F534DDC0, 0xDB6295993C439041)
+        3 -> (0xDB6295993C439041, 0xFE5163ABDEBBC561)
+        4 -> (0xFE5163ABDEBBC561, 0xB7246E3A424DD2E0)
+        5 -> (0xB7246E3A424DD2E0, 0x06492EEA09D1921C)
+        6 -> (0x06492EEA09D1921C, 0xFE1DEB1CB129A73E)
+        7 -> (0xFE1DEB1CB129A73E, 0xE88235F52EBB4484)
+        8 -> (0xE88235F52EBB4484, 0xE99C7026B45F7E41)
+        9 -> (0xE99C7026B45F7E41, 0x3991D639835339F4)
+        10 -> (0x3991D639835339F4, 0x9C845F8BBDF9283B)
+        11 -> (0x9C845F8BBDF9283B, 0x1FF897FFDE05980F)
+        12 -> (0x1FF897FFDE05980F, 0xEF2F118B5A0A6D1F)
+        13 -> (0xEF2F118B5A0A6D1F, 0x6D367ECF27CB09B7)
+        14 -> (0x6D367ECF27CB09B7, 0x4F463F669E5FEA2D)
+        15 -> (0x4F463F669E5FEA2D, 0x7527BAC7EBE5F17B)
+        16 -> (0x7527BAC7EBE5F17B, 0x3D0739F78A5292EA)
+        17 -> (0x3D0739F78A5292EA, 0x6BFB5FB11F8D5D08)
+        18 -> (0x6BFB5FB11F8D5D08, 0x56033046FC7B6BAB)
+        19 -> (0x56033046FC7B6BAB, 0xF0CFBC209AF4361D)
+        20 -> (0xF0CFBC209AF4361D, 0)
+        _ -> (0, 0)
+    }
+}

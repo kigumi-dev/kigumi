@@ -33,7 +33,7 @@ func TestRegistryTablesArePopulated(t *testing.T) {
 			elems++
 		}
 	}
-	if directs != 41 || callbacks != 12 || elems < 3 {
+	if directs != 42 || callbacks != 12 || elems < 3 {
 		t.Errorf("tables hold %d direct ops, %d callbacks, %d element ops", directs, callbacks, elems)
 	}
 }

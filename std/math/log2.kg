@@ -1,0 +1,72 @@
+// Ported from musl 1.2.5 src/math/log2.c.
+// Copyright (c) 2018, Arm Limited. SPDX-License-Identifier: MIT
+const invLn2Hi: Float = 1.4426950407214463
+const invLn2Lo: Float = 1.6751713164886512e-10
+const log2Near1Low: u64 = 0x3FEEA4AF00000000
+const log2Near1Span: u64 = 0x3FF0B55900000000 - log2Near1Low
+const log2B0: Float = -0.7213475204444817
+const log2B1: Float = 0.48089834696298744
+const log2B2: Float = -0.360673760222145
+const log2B3: Float = 0.2885390081805197
+const log2B4: Float = -0.24044917405728863
+const log2B5: Float = 0.2060992861022954
+const log2B6: Float = -0.18033596705327856
+const log2B7: Float = 0.1603032746063156
+const log2B8: Float = -0.14483316576701266
+const log2B9: Float = 0.13046826811283835
+const log2A0: Float = -0.7213475204444882
+const log2A1: Float = 0.4808983469629985
+const log2A2: Float = -0.36067375954075914
+const log2A3: Float = 0.2885390073180969
+const log2A4: Float = -0.2404693555628422
+const log2A5: Float = 0.2061202382173603
+
+/// Base-2 logarithm of x, with an error below 0.55 ulp and exact at powers of two: -Inf at zero, NaN for a negative x,
+/// and a NaN argument returned quiet.
+pub pure noalloc fn log2(x: Float) -> Float {
+    let ix = toBits(x)
+    if ix.wrappingSub(log2Near1Low) < log2Near1Span {
+        return log2Near1(x)
+    }
+    match logPattern(x) {
+        Some(iz) -> log2Reduced(iz)
+        None -> logSpecial(x)
+    }
+}
+
+/// log2(x) for x in [1 - 0x1.5b51p-5, 1 + 0x1.6ab2p-5].
+pure noalloc fn log2Near1(x: Float) -> Float {
+    if x == 1.0 {
+        return 0.0
+    }
+    let r = x - 1.0
+    let rhi = lowWordCleared(r)
+    let rlo = r - rhi
+    let hi = rhi * invLn2Hi
+    let lo = rlo * invLn2Hi + r * invLn2Lo
+    let r2 = r * r
+    let r4 = r2 * r2
+    let p = r2 * (log2B0 + r * log2B1)
+    let y = hi + p
+    let lo2 = lo + (hi - y + p)
+    y + (lo2 + r4 * (log2B2 + r * log2B3 + r2 * (log2B4 + r * log2B5) + r4 * (log2B6 + r * log2B7 + r2 * (log2B8 + r * log2B9))))
+}
+
+pure noalloc fn log2Reduced(ix: u64) -> Float {
+    let tmp = ix.wrappingSub(logOff)
+    let (invc, logc, chi, clo) = log2Entry(tmp.wrappingShiftRight(46) & 63)
+    let k = tmp.truncate[Int]().wrappingShiftRight(52).toFloat()
+    let z = fromBits(ix.wrappingSub(tmp & 0xFFF0000000000000))
+    let r = (z - chi - clo) * invc
+    let rhi = lowWordCleared(r)
+    let rlo = r - rhi
+    let t1 = rhi * invLn2Hi
+    let t2 = rlo * invLn2Hi + r * invLn2Lo
+    let t3 = k + logc
+    let hi = t3 + t1
+    let lo = t3 - hi + t1 + t2
+    let r2 = r * r
+    let r4 = r2 * r2
+    let p = log2A0 + r * log2A1 + r2 * (log2A2 + r * log2A3) + r4 * (log2A4 + r * log2A5)
+    lo + r2 * p + hi
+}

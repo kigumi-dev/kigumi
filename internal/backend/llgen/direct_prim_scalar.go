@@ -36,8 +36,8 @@ func (e *emitter) scalarPrimCall(sb *strings.Builder, f *midir.Func, in midir.In
 		}
 		return true
 	}
-	if in.DPrim == opdef.DPPow {
-		e.storeScalarResult(sb, f, in.Dst, Value{Type: TDouble, Text: e.libmPow(sb, args[0].Text, args[1].Text)})
+	if in.DPrim == opdef.DPToBits || in.DPrim == opdef.DPFromBits {
+		e.storeScalarResult(sb, f, in.Dst, e.floatBitcast(sb, in.DPrim, args[0].Text))
 		return true
 	}
 	if name, ok := mathIntrinsics[in.DPrim]; ok {
@@ -45,10 +45,25 @@ func (e *emitter) scalarPrimCall(sb *strings.Builder, f *midir.Func, in midir.In
 		for i, a := range args {
 			texts[i] = a.Text
 		}
-		e.storeScalarResult(sb, f, in.Dst, Value{Type: TDouble, Text: e.callIntrinsic(sb, name, "double", texts...)})
+		v := e.callIntrinsic(sb, name, "double", texts...)
+		if in.DPrim != opdef.DPSqrt {
+			v = e.quietNaNArgument(sb, texts[0], v)
+		}
+		e.storeScalarResult(sb, f, in.Dst, Value{Type: TDouble, Text: v})
 		return true
 	}
 	return false
+}
+
+// quietNaNArgument makes a rounding of NaN return the argument quiet with its payload; libm's floor returns a signaling
+// NaN as it is, and the choice is made on the bits because LLVM treats NaN payloads in float selects as free.
+func (e *emitter) quietNaNArgument(sb *strings.Builder, x, rounded string) string {
+	b, r, sh, isNaN, q, sel, out := e.newTmp(), e.newTmp(), e.newTmp(), e.newTmp(), e.newTmp(), e.newTmp(), e.newTmp()
+	fmt.Fprintf(sb, "  %s = bitcast double %s to i64\n  %s = bitcast double %s to i64\n", b, x, r, rounded)
+	fmt.Fprintf(sb, "  %s = shl i64 %s, 1\n  %s = icmp ugt i64 %s, -9007199254740992\n", sh, b, isNaN, sh)
+	fmt.Fprintf(sb, "  %s = or i64 %s, 2251799813685248\n  %s = select i1 %s, i64 %s, i64 %s\n", q, b, sel, isNaN, q, r)
+	fmt.Fprintf(sb, "  %s = bitcast i64 %s to double\n", out, sel)
+	return out
 }
 
 func (e *emitter) wrappingOp(sb *strings.Builder, prim opdef.DirectPrim, nk int, l, r Value) Value {
@@ -85,12 +100,14 @@ func (e *emitter) wrappingOp(sb *strings.Builder, prim opdef.DirectPrim, nk int,
 	return vi64text(e.widenInt(sb, nk, v))
 }
 
-// libmPow calls libm's pow as nobuiltin: pow is not correctly rounded, so LLVM must not fold it with the compiler's own libm.
-func (e *emitter) libmPow(sb *strings.Builder, x, y string) string {
-	e.foreign["pow"] = "declare double @pow(double, double)"
+func (e *emitter) floatBitcast(sb *strings.Builder, prim opdef.DirectPrim, x string) Value {
 	t := e.newTmp()
-	fmt.Fprintf(sb, "  %s = call double @pow(double %s, double %s) nobuiltin\n", t, x, y)
-	return t
+	if prim == opdef.DPToBits {
+		fmt.Fprintf(sb, "  %s = bitcast double %s to i64\n", t, x)
+		return vi64text(t)
+	}
+	fmt.Fprintf(sb, "  %s = bitcast i64 %s to double\n", t, x)
+	return vdouble(t)
 }
 
 // secretBarrier keeps the optimiser from folding a mask back into a branch.

@@ -1,0 +1,91 @@
+// Ported from musl 1.2.5 src/math/log.c.
+// Copyright (c) 2018, Arm Limited. SPDX-License-Identifier: MIT
+const ln2Hi: Float = 0.6931471805598903
+const ln2Lo: Float = 5.497923018708371e-14
+const logOff: u64 = 0x3FE6000000000000
+const logNear1Low: u64 = 0x3FEE000000000000
+const logNear1Span: u64 = 0x3FF1090000000000 - logNear1Low
+const logB0: Float = -0.5
+const logB1: Float = 0.3333333333333352
+const logB2: Float = -0.24999999999998432
+const logB3: Float = 0.19999999999320328
+const logB4: Float = -0.16666666669929706
+const logB5: Float = 0.14285715076560868
+const logB6: Float = -0.12499997863982555
+const logB7: Float = 0.11110712032936046
+const logB8: Float = -0.10000486757818193
+const logB9: Float = 0.09181994006195467
+const logB10: Float = -0.08328363062289341
+const logA0: Float = -0.5000000000000001
+const logA1: Float = 0.33333333331825593
+const logA2: Float = -0.2499999999622955
+const logA3: Float = 0.20000304511814496
+const logA4: Float = -0.16667054827627667
+
+/// Natural logarithm of x, with an error below 0.52 ulp: -Inf at zero, NaN for a negative x, and a NaN argument
+/// returned quiet.
+pub pure noalloc fn log(x: Float) -> Float {
+    let ix = toBits(x)
+    if ix.wrappingSub(logNear1Low) < logNear1Span {
+        return logNear1(x)
+    }
+    match logPattern(x) {
+        Some(iz) -> logReduced(iz)
+        None -> logSpecial(x)
+    }
+}
+
+/// log(x) for x in [1 - 2^-4, 1 + 0x1.09p-4], where log(x) is small and the table's offset would cancel.
+pure noalloc fn logNear1(x: Float) -> Float {
+    if x == 1.0 {
+        return 0.0
+    }
+    let r = x - 1.0
+    let r2 = r * r
+    let r3 = r * r2
+    let y = r3 * (logB1 + r * logB2 + r2 * logB3 + r3 * (logB4 + r * logB5 + r2 * logB6 + r3 * (logB7 + r * logB8 + r2 * logB9 + r3 * logB10)))
+    let w = r * 134217728.0
+    let rhi = r + w - w
+    let rlo = r - rhi
+    let hh = rhi * rhi * logB0
+    let hi = r + hh
+    let lo = r - hi + hh + logB0 * rlo * (rhi + r)
+    y + lo + hi
+}
+
+pure noalloc fn logReduced(ix: u64) -> Float {
+    let tmp = ix.wrappingSub(logOff)
+    let (invc, logc, chi, clo) = logEntry(tmp.wrappingShiftRight(45) & 127)
+    let k = tmp.truncate[Int]().wrappingShiftRight(52).toFloat()
+    let z = fromBits(ix.wrappingSub(tmp & 0xFFF0000000000000))
+    let r = (z - chi - clo) * invc
+    let w = k * ln2Hi + logc
+    let hi = w + r
+    let lo = w - hi + r + k * ln2Lo
+    let r2 = r * r
+    lo + r2 * logA0 + r * r2 * (logA1 + r * logA2 + r2 * (logA3 + r * logA4)) + hi
+}
+
+/// The pattern the table reduction takes for a positive finite x, with a subnormal rescaled by 2^52 and its exponent
+/// lowered by 52; None for every other x.
+pure noalloc fn logPattern(x: Float) -> u64? {
+    let ix = toBits(x)
+    if ix.wrappingSub(implicitBit) < normalSpan {
+        return Some(ix)
+    }
+    if ix == 0 || ix >= implicitBit {
+        return None
+    }
+    Some((toBits(x * 4503599627370496.0) & 0x7FFFFFFFFFFFFFFF).wrappingSub(0x0340000000000000))
+}
+
+/// log and log2 of a zero, a negative, an infinity or NaN.
+pure noalloc fn logSpecial(x: Float) -> Float {
+    if x == 0.0 {
+        return -inf()
+    }
+    if x == inf() {
+        return x
+    }
+    invalid(x)
+}

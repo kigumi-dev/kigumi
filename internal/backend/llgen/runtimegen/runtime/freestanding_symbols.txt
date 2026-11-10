@@ -72,7 +72,6 @@ memcmp
 memcpy
 memmove
 memset
-pow
 realloc
 round
 rt_sys_close

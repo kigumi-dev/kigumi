@@ -1,0 +1,117 @@
+// Ported from musl 1.2.5 src/math/__rem_pio2.c. Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
+// Developed at SunSoft, a Sun Microsystems, Inc. business. Permission to use, copy, modify, and distribute this software is freely granted, provided that this notice is preserved.
+const pio4: Float = 0.7853981633974483
+const invPio2: Float = 0.6366197723675814
+const pio2a: Float = 1.5707963267341256
+const pio2aTail: Float = 6.077100506506192e-11
+const pio2b: Float = 6.077100506303966e-11
+const pio2bTail: Float = 2.0222662487959506e-21
+const pio2c: Float = 2.0222662487111665e-21
+const pio2cTail: Float = 8.4784276603689e-32
+
+/// x - n * pi/2 as the pair y0 + y1 with |y0| <= pi/4; callers need only n mod 4.
+type Reduced = {
+    n Int
+    y0 Float
+    y1 Float
+}
+
+/// x reduced by pi/2 for |x| > pi/4: one subtraction near the first four multiples, Cody and Waite's method with pi/2 cut
+/// into three 33-bit parts below 2^20 * pi/2, and `remPio2Large` above.
+pure noalloc fn remPio2(x: Float) -> Reduced {
+    let ix = absHighWord(x)
+    let negative = (toBits(x) >> 63) == 1
+    if ix <= 0x400F6A7A {
+        if (ix & 0xFFFFF) == 0x921FB {
+            return remPio2Medium(x, ix)
+        }
+        if ix <= 0x4002D97C {
+            return nearMultiple(x, negative, 1)
+        }
+        return nearMultiple(x, negative, 2)
+    }
+    if ix <= 0x401C463B {
+        if ix <= 0x4015FDBC {
+            if ix == 0x4012D97C {
+                return remPio2Medium(x, ix)
+            }
+            return nearMultiple(x, negative, 3)
+        }
+        if ix == 0x401921FB {
+            return remPio2Medium(x, ix)
+        }
+        return nearMultiple(x, negative, 4)
+    }
+    if ix < 0x413921FB {
+        return remPio2Medium(x, ix)
+    }
+    if ix >= 0x7FF00000 {
+        let z = x - x
+        return Reduced {
+            n: 0
+            y0: z
+            y1: z
+        }
+    }
+    remPio2Large(x)
+}
+
+/// x - k * pi/2 for |x| within pi/4 of k * pi/2, where one subtraction of the 33-bit head keeps 85 bits.
+pure noalloc fn nearMultiple(x: Float, negative: Bool, k: Int) -> Reduced {
+    let kf = k.toFloat()
+    if !negative {
+        let z = x - kf * pio2a
+        let y0 = z - kf * pio2aTail
+        return Reduced {
+            n: k
+            y0: y0
+            y1: (z - y0) - kf * pio2aTail
+        }
+    }
+    let z = x + kf * pio2a
+    let y0 = z + kf * pio2aTail
+    Reduced {
+        n: -k
+        y0: y0
+        y1: (z - y0) + kf * pio2aTail
+    }
+}
+
+pure noalloc fn remPio2Medium(x: Float, ix: u64) -> Reduced {
+    let mut f = x * invPio2 + roundShift - roundShift
+    let mut n = f.toInt() || 0
+    let mut r = x - f * pio2a
+    let mut w = f * pio2aTail
+    if r - w < -pio4 {
+        n = n - 1
+        f = f - 1.0
+        r = x - f * pio2a
+        w = f * pio2aTail
+    } else if r - w > pio4 {
+        n = n + 1
+        f = f + 1.0
+        r = x - f * pio2a
+        w = f * pio2aTail
+    }
+    let mut y0 = r - w
+    let ex = (ix >> 20).truncate[Int]()
+    if ex - exponentField(toBits(y0)) > 16 {
+        let t = r
+        w = f * pio2b
+        r = t - w
+        w = f * pio2bTail - ((t - r) - w)
+        y0 = r - w
+        if ex - exponentField(toBits(y0)) > 49 {
+            let t2 = r
+            w = f * pio2c
+            r = t2 - w
+            w = f * pio2cTail - ((t2 - r) - w)
+            y0 = r - w
+        }
+    }
+    Reduced {
+        n: n
+        y0: y0
+        y1: (r - y0) - w
+    }
+}

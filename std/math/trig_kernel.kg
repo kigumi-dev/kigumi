@@ -1,0 +1,38 @@
+// Ported from musl 1.2.5 src/math/__sin.c and __cos.c. Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
+// Developed at SunSoft, a Sun Microsystems, Inc. business. Permission to use, copy, modify, and distribute this software is freely granted, provided that this notice is preserved.
+const s1: Float = -0.16666666666666632
+const s2: Float = 0.00833333333332249
+const s3: Float = -0.0001984126982985795
+const s4: Float = 2.7557313707070068e-06
+const s5: Float = -2.5050760253406863e-08
+const s6: Float = 1.58969099521155e-10
+
+const c1: Float = 0.0416666666666666
+const c2: Float = -0.001388888888887411
+const c3: Float = 2.480158728947673e-05
+const c4: Float = -2.7557314351390663e-07
+const c5: Float = 2.087572321298175e-09
+const c6: Float = -1.1359647557788195e-11
+
+/// sin(x + y) for |x| <= pi/4, where y is the tail of a reduced argument when hasTail is set.
+pure noalloc fn kernelSin(x: Float, y: Float, hasTail: Bool) -> Float {
+    let z = x * x
+    let w = z * z
+    let r = s2 + z * (s3 + z * s4) + z * w * (s5 + z * s6)
+    let v = z * x
+    if !hasTail {
+        x + v * (s1 + z * r)
+    } else {
+        x - ((z * (0.5 * y - v * r) - y) - v * s1)
+    }
+}
+
+/// cos(x + y) for |x| <= pi/4.
+pure noalloc fn kernelCos(x: Float, y: Float) -> Float {
+    let z = x * x
+    let w = z * z
+    let r = z * (c1 + z * (c2 + z * c3)) + w * w * (c4 + z * (c5 + z * c6))
+    let hz = 0.5 * z
+    let one = 1.0 - hz
+    one + (((1.0 - one) - hz) + (z * r - x * y))
+}

@@ -67,8 +67,10 @@ func (p *Program) PrimTypesFit(f *midir.Func, in midir.Inst, kind opdef.DirectPr
 		return len(in.Args) == 1 && p.numericOrChar(arg(0)) && shape != shapeNone && p.numericOrChar(p.leafOf(f.Locals[in.Dst].Type))
 	case opdef.DPSqrt, opdef.DPFloor, opdef.DPCeil, opdef.DPRound:
 		return len(in.Args) == 1 && arg(0) == sem.TyF64 && f.Locals[in.Dst].Type == sem.TyF64
-	case opdef.DPPow:
-		return len(in.Args) == 2 && arg(0) == sem.TyF64 && arg(1) == sem.TyF64 && f.Locals[in.Dst].Type == sem.TyF64
+	case opdef.DPToBits:
+		return len(in.Args) == 1 && arg(0) == sem.TyF64 && f.Locals[in.Dst].Type == sem.TyU64
+	case opdef.DPFromBits:
+		return len(in.Args) == 1 && arg(0) == sem.TyU64 && f.Locals[in.Dst].Type == sem.TyF64
 	case opdef.DPSecretBarrier, opdef.DPSecretMaskNonZero:
 		return len(in.Args) == 1 && p.R.RegScalar(arg(0)) && shape == shapeScalar
 	case opdef.DPSecretMaskLt:

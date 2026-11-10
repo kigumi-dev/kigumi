@@ -1,0 +1,65 @@
+// Ported from musl 1.2.5 src/math/sinh.c, cosh.c, tanh.c and __expo2.c.
+// Copyright (c) 2005-2020 Rich Felker, et al. SPDX-License-Identifier: MIT
+/// Hyperbolic sine of x.
+pub pure noalloc fn sinh(x: Float) -> Float {
+    let h = signed(0.5, (toBits(x) >> 63) == 1)
+    let ax = withoutSign(x)
+    let w = absHighWord(x)
+    if w >= 0x40862E42 {
+        return expo2(ax, 2.0 * h)
+    }
+    let t = expm1(ax)
+    if w >= 0x3FF00000 {
+        return h * (t + t / (t + 1.0))
+    }
+    if w < 0x3E500000 {
+        return x
+    }
+    h * (2.0 * t - t * t / (t + 1.0))
+}
+
+/// Hyperbolic cosine of x.
+pub pure noalloc fn cosh(x: Float) -> Float {
+    let ax = withoutSign(x)
+    let w = absHighWord(x)
+    if w < 0x3FE62E42 {
+        if w < 0x3E500000 {
+            return 1.0
+        }
+        let t = expm1(ax)
+        return 1.0 + t * t / (2.0 * (1.0 + t))
+    }
+    if w < 0x40862E42 {
+        let t = exp(ax)
+        return 0.5 * (t + 1.0 / t)
+    }
+    expo2(ax, 1.0)
+}
+
+/// Hyperbolic tangent of x.
+pub pure noalloc fn tanh(x: Float) -> Float {
+    let ax = withoutSign(x)
+    let w = absHighWord(x)
+    let t = if w > 0x3FE193EA {
+        if w > 0x40340000 {
+            1.0 - 0.0 / ax
+        } else {
+            1.0 - 2.0 / (expm1(2.0 * ax) + 2.0)
+        }
+    } else if w > 0x3FD058AE {
+        let e = expm1(2.0 * ax)
+        e / (e + 2.0)
+    } else if w >= 0x00100000 {
+        let e = expm1(-2.0 * ax)
+        -e / (e + 2.0)
+    } else {
+        ax
+    }
+    signed(t, (toBits(x) >> 63) == 1)
+}
+
+/// exp(x) * sign / 2 for x >= log(Float max), as exp(x - 2043 ln2) * 2^1021 * 2^1021 so the scale overflows only at the end.
+pure noalloc fn expo2(x: Float, sign: Float) -> Float {
+    let scale = fromBits(0x7FC0000000000000)
+    exp(x - 1416.0996898839683) * (sign * scale) * scale
+}

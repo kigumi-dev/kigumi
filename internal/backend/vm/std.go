@@ -39,7 +39,7 @@ func (m *Machine) std(key string, a []*obj) *obj {
 	if r := m.memStd(key, a, a0, a1); r != nil {
 		return r
 	}
-	if r := m.mathFn(key, a0, a1); r != nil {
+	if r := m.mathFn(key, a0); r != nil {
 		return r
 	}
 	if r := m.bytesStd(key, a0, a1, a2); r != nil {

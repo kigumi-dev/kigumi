@@ -1,0 +1,136 @@
+// Ported from musl 1.2.5 src/math/pow.c.
+// Copyright (c) 2018, Arm Limited. SPDX-License-Identifier: MIT
+const oneBits: u64 = 0x3FF0000000000000
+const infBits: u64 = 0x7FF0000000000000
+const powSignBias: u64 = 0x40000
+
+/// x raised to the power y, with an error below 0.54 ulp. Special operands follow C99 F.9.4.4: 1 when y is a zero or x is
+/// 1, even beside a NaN; NaN for a negative finite x with a finite non-integral y; for a zero or infinite x, an infinity
+/// or a zero by the sign of y, negative only when x is negative and y an odd integer; a signed infinity or zero on
+/// overflow and underflow.
+pub pure noalloc fn pow(x: Float, y: Float) -> Float {
+    let ix = toBits(x)
+    let iy = toBits(y)
+    if (ix >> 52).wrappingSub(1) >= 0x7FE || ((iy >> 52) & 0x7FF).wrappingSub(0x3BE) >= 0x80 {
+        powSpecial(x, y, ix, iy)
+    } else {
+        powFinite(y, ix, iy, 0)
+    }
+}
+
+/// pow when x is zero, subnormal, infinite, NaN or negative, or |y| is below 2^-65, at least 2^63 or NaN.
+pure noalloc fn powSpecial(x: Float, y: Float, ix0: u64, iy: u64) -> Float {
+    let mut signBias: u64 = 0
+    let mut ix = ix0
+    let topy = iy >> 52
+    if zeroInfNaN(iy) {
+        return powSpecialY(x, y, ix, iy)
+    }
+    if zeroInfNaN(ix) {
+        let x2 = signed(x * x, (ix >> 63) == 1 && integerKind(iy) == 1)
+        return if (iy >> 63) == 1 {
+            1.0 / x2
+        } else {
+            x2
+        }
+    }
+    if (ix >> 63) == 1 {
+        let yint = integerKind(iy)
+        if yint == 0 {
+            return invalid(x)
+        }
+        if yint == 1 {
+            signBias = powSignBias
+        }
+        ix = ix & 0x7FFFFFFFFFFFFFFF
+    }
+    if (topy & 0x7FF).wrappingSub(0x3BE) >= 0x80 {
+        if ix == oneBits {
+            return 1.0
+        }
+        if (topy & 0x7FF) < 0x3BE {
+            return if ix > oneBits {
+                1.0 + y
+            } else {
+                1.0 - y
+            }
+        }
+        return if (ix > oneBits) == (topy < 0x800) {
+            overflow(false)
+        } else {
+            underflow(false)
+        }
+    }
+    if (ix >> 52) == 0 {
+        ix = (toBits(x * 4503599627370496.0) & 0x7FFFFFFFFFFFFFFF).wrappingSub(0x0340000000000000)
+    }
+    powFinite(y, ix, iy, signBias)
+}
+
+/// exp(y * log(x)) for the pattern ix of a positive normal x (or a subnormal one rescaled as in powLog), negated when
+/// signBias is set.
+pure noalloc fn powFinite(y: Float, ix: u64, iy: u64, signBias: u64) -> Float {
+    let l = powLog(ix)
+    let yhi = fromBits(iy & 0xFFFFFFFFF8000000)
+    let ylo = y - yhi
+    let lhi = fromBits(toBits(l.hi) & 0xFFFFFFFFF8000000)
+    let llo = l.hi - lhi + l.lo
+    expTimesSign(yhi * lhi, ylo * lhi + y * llo, signBias)
+}
+
+/// pow for a zero, infinite or NaN y.
+pure noalloc fn powSpecialY(x: Float, y: Float, ix: u64, iy: u64) -> Float {
+    if (iy << 1) == 0 || ix == oneBits {
+        return 1.0
+    }
+    if (ix << 1) > (infBits << 1) || (iy << 1) > (infBits << 1) {
+        return invalid(if isNaN(x) {
+            x
+        } else {
+            y
+        })
+    }
+    if (ix << 1) == (oneBits << 1) {
+        return 1.0
+    }
+    if ((ix << 1) < (oneBits << 1)) == ((iy >> 63) == 0) {
+        return 0.0
+    }
+    y * y
+}
+
+/// exp(x + xtail), negated when signBias is set, for the product y * log(x).
+pure noalloc fn expTimesSign(x: Float, xtail: Float, signBias: u64) -> Float {
+    let abstop = top12(x) & 0x7FF
+    if abstop < 0x3C9 {
+        signed(1.0 + x, signBias != 0)
+    } else if abstop < 0x409 {
+        expReduced(x, xtail, signBias, abstop >= 0x408)
+    } else if (toBits(x) >> 63) == 1 {
+        underflow(signBias != 0)
+    } else {
+        overflow(signBias != 0)
+    }
+}
+
+/// Whether the pattern is a zero, an infinity or NaN.
+pure noalloc fn zeroInfNaN(i: u64) -> Bool {
+    (i << 1).wrappingSub(1) >= (infBits << 1) - 1
+}
+
+/// 0 when the finite nonzero pattern iy is not an integer, 1 when it is odd and 2 when it is even.
+pure noalloc fn integerKind(iy: u64) -> Int {
+    let e = exponentField(iy)
+    if e < 0x3FF {
+        return 0
+    }
+    if e > 0x3FF + 52 {
+        return 2
+    }
+    let shift = (0x3FF + 52 - e).truncate[usize]()
+    let bit: u64 = 1
+    if (iy & ((bit << shift) - 1)) != 0 {
+        return 0
+    }
+    2 - ((iy >> shift) & 1).truncate[Int]()
+}

@@ -1,0 +1,50 @@
+-- src --
+import math from std/math
+
+print "fmod(5.5, 0.1) = ${math.fmod(5.5, 0.1)}"
+print "fmod(1e+17, 3.0) = ${math.fmod(1e+17, 3.0)}"
+print "fmod(1e+308, 3.0) = ${math.fmod(1e+308, 3.0)}"
+print "fmod(1e+308, 3e-308) = ${math.fmod(1e+308, 3e-308)}"
+print "fmod(1.7976931348623157e+308, 1.1) = ${math.fmod(1.7976931348623157e+308, 1.1)}"
+print "fmod(-7.5, 2.0) = ${math.fmod(-7.5, 2.0)}"
+print "fmod(7.5, -2.0) = ${math.fmod(7.5, -2.0)}"
+print "fmod(-7.5, -2.0) = ${math.fmod(-7.5, -2.0)}"
+print "fmod(-0.0, 1.0) = ${math.fmod(-0.0, 1.0)}"
+print "fmod(1.0, 1e+300) = ${math.fmod(1.0, 1e+300)}"
+print "fmod(3.0, 3.0) = ${math.fmod(3.0, 3.0)}"
+print "fmod(-3.0, 3.0) = ${math.fmod(-3.0, 3.0)}"
+print "fmod(1.5e-323, 1e-323) = ${math.fmod(1.5e-323, 1e-323)}"
+print "fmod(1e-310, 3e-311) = ${math.fmod(1e-310, 3e-311)}"
+print "fmod(6.0, 5e-324) = ${math.fmod(6.0, 5e-324)}"
+print "fmod(123456789.0, 0.001) = ${math.fmod(123456789.0, 0.001)}"
+print "fmod(-1e+22, 7.0) = ${math.fmod(-1e+22, 7.0)}"
+print "fmod(inf(), 1.0) = ${math.fmod(math.inf(), 1.0)}"
+print "fmod(1.0, 0.0) = ${math.fmod(1.0, 0.0)}"
+print "fmod(1.0, inf()) = ${math.fmod(1.0, math.inf())}"
+print "fmod(-2.5, -inf()) = ${math.fmod(-2.5, -math.inf())}"
+print "fmod(nan(), 1.0) = ${math.fmod(math.nan(), 1.0)}"
+print "fmod(1.0, nan()) = ${math.fmod(1.0, math.nan())}"
+-- stdout --
+fmod(5.5, 0.1) = 0.0999999999999997
+fmod(1e+17, 3.0) = 1
+fmod(1e+308, 3.0) = 2
+fmod(1e+308, 3e-308) = 5.476144900572913e-309
+fmod(1.7976931348623157e+308, 1.1) = 0.456556366123285
+fmod(-7.5, 2.0) = -1.5
+fmod(7.5, -2.0) = 1.5
+fmod(-7.5, -2.0) = -1.5
+fmod(-0.0, 1.0) = -0
+fmod(1.0, 1e+300) = 1
+fmod(3.0, 3.0) = 0
+fmod(-3.0, 3.0) = -0
+fmod(1.5e-323, 1e-323) = 5e-324
+fmod(1e-310, 3e-311) = 1.0000000000004e-311
+fmod(6.0, 5e-324) = 0
+fmod(123456789.0, 0.001) = 0.0009999974300393183
+fmod(-1e+22, 7.0) = -4
+fmod(inf(), 1.0) = NaN
+fmod(1.0, 0.0) = NaN
+fmod(1.0, inf()) = 1
+fmod(-2.5, -inf()) = -2.5
+fmod(nan(), 1.0) = NaN
+fmod(1.0, nan()) = NaN

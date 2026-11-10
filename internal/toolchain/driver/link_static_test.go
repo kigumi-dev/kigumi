@@ -74,7 +74,7 @@ func TestHostLinkForms(t *testing.T) {
 	}
 	requireZig(t) // the default link form is a static musl binary, which only zig ships
 	const plain = "print \"hello\"\n"
-	const pow = "import math from std/math\nlet x = 2.0\nprint \"${math.pow(x, 10.0)}\"\n"
+	const libm = "extern(C) {\n    fn nextafter(x: f64, y: f64) -> f64\n}\n\nlet x = 1.0\nlet r = unsafe {\n    nextafter(x, 2.0)\n}\nprint \"${r}\"\n"
 	t.Run("default", func(t *testing.T) {
 		var r driver.BuildReport
 		exe := buildSrcWith(t, plain, driver.BuildOptions{Report: &r})
@@ -96,11 +96,11 @@ func TestHostLinkForms(t *testing.T) {
 		}
 	})
 	t.Run("dynamic with libm", func(t *testing.T) {
-		exe := buildSrcWith(t, pow, driver.BuildOptions{Link: driver.LinkDynamic})
+		exe := buildSrcWith(t, libm, driver.BuildOptions{Link: driver.LinkDynamic})
 		if facts := readELF(t, exe); !slices.Contains(facts.libs, "libm.so.6") {
-			t.Errorf("math.pow built --link dynamic needs libm: %+v", facts)
+			t.Errorf("a nextafter call built --link dynamic needs libm: %+v", facts)
 		}
-		if got := runExe(t, exe); got != "1024\n" {
+		if got := runExe(t, exe); got != "1.0000000000000002\n" {
 			t.Errorf("output %q", got)
 		}
 	})

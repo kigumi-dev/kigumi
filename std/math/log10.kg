@@ -1,0 +1,53 @@
+// Ported from musl 1.2.5 src/math/log10.c. Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
+// Developed at SunSoft, a Sun Microsystems, Inc. business. Permission to use, copy, modify, and distribute this software is freely granted, provided that this notice is preserved.
+const invLn10Hi: Float = 0.4342944818781689
+const invLn10Lo: Float = 2.5082946711645275e-11
+const log10Of2Hi: Float = 0.30102999566361177
+const log10Of2Lo: Float = 3.694239077158931e-13
+const lg1: Float = 0.6666666666666735
+const lg2: Float = 0.3999999999940942
+const lg3: Float = 0.2857142874366239
+const lg4: Float = 0.22222198432149784
+const lg5: Float = 0.1818357216161805
+const lg6: Float = 0.15313837699209373
+const lg7: Float = 0.14798198605116586
+
+/// Base-10 logarithm of x, with an error below 1 ulp: -Inf at zero, NaN for a negative x; a positive NaN is returned as
+/// it is and a negative one quiet, as musl does.
+pub pure noalloc fn log10(x: Float) -> Float {
+    let mut bits = toBits(x)
+    let mut hx = bits.wrappingShiftRight(32)
+    let mut k: Int = 0
+    if hx < 0x00100000 || hx.wrappingShiftRight(31) != 0 {
+        if bits.wrappingShiftLeft(1) == 0 {
+            return -1.0 / (x * x)
+        }
+        if hx.wrappingShiftRight(31) != 0 {
+            return invalid(x)
+        }
+        k = -54
+        bits = toBits(x * 18014398509481984.0)
+        hx = bits.wrappingShiftRight(32)
+    } else if hx >= 0x7FF00000 {
+        return x
+    } else if hx == 0x3FF00000 && bits.wrappingShiftLeft(32) == 0 {
+        return 0.0
+    }
+    hx = hx.wrappingAdd(0x3FF00000 - 0x3FE6A09E)
+    k = k.wrappingAdd(hx.wrappingShiftRight(20).truncate[Int]().wrappingSub(0x3FF))
+    hx = (hx & 0xFFFFF).wrappingAdd(0x3FE6A09E)
+    let f = fromBits(hx.wrappingShiftLeft(32) | (bits & 0xFFFFFFFF)) - 1.0
+    let hfsq = 0.5 * f * f
+    let s = f / (2.0 + f)
+    let z = s * s
+    let w = z * z
+    let rr = z * (lg1 + w * (lg3 + w * (lg5 + w * lg7))) + w * (lg2 + w * (lg4 + w * lg6))
+    let hi = lowWordCleared(f - hfsq)
+    let lo = f - hi - hfsq + s * (hfsq + rr)
+    let valHi = hi * invLn10Hi
+    let dk = k.toFloat()
+    let y = dk * log10Of2Hi
+    let valLo = dk * log10Of2Lo + (lo + hi) * invLn10Lo + lo * invLn10Hi
+    let sum = y + valHi
+    valLo + ((y - sum) + valHi) + sum
+}

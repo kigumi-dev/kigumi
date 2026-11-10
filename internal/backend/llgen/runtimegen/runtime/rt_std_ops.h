@@ -196,8 +196,10 @@ enum std_op {
     OP_SECRET_SELECT_U64 = 191,
     OP_SECRET_EQ_BYTES = 192,
     OP_SECRET_DECLASSIFY_BYTES = 193,
+    OP_MATH_TO_BITS = 195,
+    OP_MATH_FROM_BITS = 196,
 };
-#define RT_STD_OPS_RETIRED_CASES case OP_BYTES_SLICE: case OP_BYTES_ZEROS: case OP_BYTES_FILL: case OP_BYTES_FROM_ARRAY: case OP_BYTES_CONCAT: case OP_SHARED_NEW: case OP_SHARED_GET: case OP_SHARED_DOWNGRADE: case OP_NET_HTTP: case OP_STRING_SLICE_BYTES: case OP_ARRAY_CLONE: case OP_BYTES_TRY_FILL: case OP_ARRAY_TRY_COPY_RANGE: case OP_ARRAY_TRY_REVERSE: case OP_STRING_TRY_CONCAT: case OP_ARRAY_TRY_CONCAT: case OP_ARRAY_TRY_APPEND_ALL: case OP_ARRAY_TRY_CLONE: case OP_BOX_NEW: case OP_STRING_TRY_TRIM: case OP_STRING_TRY_TO_UPPER: case OP_STRING_TRY_TO_LOWER: case OP_STRING_TRY_SPLIT: case OP_TEXT_TRY_LINES: case OP_TEXT_TRY_GRAPHEMES: case OP_TEXT_TRY_REPLACE: case OP_TEXT_TRY_TRIM_PREFIX: case OP_TEXT_TRY_TRIM_SUFFIX: case OP_ARRAY_TRY_JOIN: case OP_STRING_BUILDER_TRY_PUSH: case OP_STRING_BUILDER_TRY_PUSH_BYTE: case OP_BYTES_INDEX_OF: case OP_STRING_CONTAINS: case OP_BYTES_LAST_INDEX_OF:
+#define RT_STD_OPS_RETIRED_CASES case OP_BYTES_SLICE: case OP_BYTES_ZEROS: case OP_BYTES_FILL: case OP_BYTES_FROM_ARRAY: case OP_BYTES_CONCAT: case OP_SHARED_NEW: case OP_SHARED_GET: case OP_SHARED_DOWNGRADE: case OP_NET_HTTP: case OP_MATH_POW: case OP_STRING_SLICE_BYTES: case OP_ARRAY_CLONE: case OP_BYTES_TRY_FILL: case OP_ARRAY_TRY_COPY_RANGE: case OP_ARRAY_TRY_REVERSE: case OP_STRING_TRY_CONCAT: case OP_ARRAY_TRY_CONCAT: case OP_ARRAY_TRY_APPEND_ALL: case OP_ARRAY_TRY_CLONE: case OP_BOX_NEW: case OP_STRING_TRY_TRIM: case OP_STRING_TRY_TO_UPPER: case OP_STRING_TRY_TO_LOWER: case OP_STRING_TRY_SPLIT: case OP_TEXT_TRY_LINES: case OP_TEXT_TRY_GRAPHEMES: case OP_TEXT_TRY_REPLACE: case OP_TEXT_TRY_TRIM_PREFIX: case OP_TEXT_TRY_TRIM_SUFFIX: case OP_ARRAY_TRY_JOIN: case OP_STRING_BUILDER_TRY_PUSH: case OP_STRING_BUILDER_TRY_PUSH_BYTE: case OP_BYTES_INDEX_OF: case OP_STRING_CONTAINS: case OP_BYTES_LAST_INDEX_OF: case OP_RESERVED_193: case OP_RESERVED_194:
 #ifndef KIGUMI_OP_SELECT
 #define KIGUMI_OP_LEN
 #define KIGUMI_OP_STRING_TO_BYTES
@@ -267,7 +269,6 @@ enum std_op {
 #define KIGUMI_OP_MATH_FLOOR
 #define KIGUMI_OP_MATH_CEIL
 #define KIGUMI_OP_MATH_ROUND
-#define KIGUMI_OP_MATH_POW
 #define KIGUMI_OP_WRAPPING_ADD
 #define KIGUMI_OP_WRAPPING_SUB
 #define KIGUMI_OP_WRAPPING_MUL
@@ -359,6 +360,8 @@ enum std_op {
 #define KIGUMI_OP_SECRET_SELECT_U64
 #define KIGUMI_OP_SECRET_EQ_BYTES
 #define KIGUMI_OP_SECRET_DECLASSIFY_BYTES
+#define KIGUMI_OP_MATH_TO_BITS
+#define KIGUMI_OP_MATH_FROM_BITS
 #define KIGUMI_STD_DYNAMIC
 #endif
 #ifdef KIGUMI_STD_DYNAMIC
@@ -429,7 +432,6 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "math.floor")) return OP_MATH_FLOOR;
     if (!strcmp(k, "math.ceil")) return OP_MATH_CEIL;
     if (!strcmp(k, "math.round")) return OP_MATH_ROUND;
-    if (!strcmp(k, "math.pow")) return OP_MATH_POW;
     if (!strcmp(k, "prelude.Char.fromInt")) return OP_CHAR_FROM_INT;
     if (!strcmp(k, "ffi.stringLossy")) return OP_FFI_STRING_LOSSY;
     if (!strcmp(k, "mem.UnsafeCell.new")) return OP_UCELL_NEW;
@@ -514,6 +516,8 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "secret.selectU64")) return OP_SECRET_SELECT_U64;
     if (!strcmp(k, "secret.eqBytes")) return OP_SECRET_EQ_BYTES;
     if (!strcmp(k, "secret.declassifyBytes")) return OP_SECRET_DECLASSIFY_BYTES;
+    if (!strcmp(k, "math.toBits")) return OP_MATH_TO_BITS;
+    if (!strcmp(k, "math.fromBits")) return OP_MATH_FROM_BITS;
     const char* dot = strrchr(k, '.');
     if (dot) {
         const char* m = dot + 1;

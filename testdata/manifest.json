@@ -8851,6 +8851,15 @@
       ]
     },
     {
+      "id": "run/math_bits_parity",
+      "kind": "run",
+      "path": "testdata/run/math_bits_parity.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/math_fixed_width",
       "kind": "run",
       "path": "testdata/run/math_fixed_width.txtar",
@@ -8872,6 +8881,42 @@
       "id": "run/math_float_minmax_zero",
       "kind": "run",
       "path": "testdata/run/math_float_minmax_zero.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/math_fmod_exact",
+      "kind": "run",
+      "path": "testdata/run/math_fmod_exact.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/math_pow_consistent",
+      "kind": "run",
+      "path": "testdata/run/math_pow_consistent.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/math_pow_special",
+      "kind": "run",
+      "path": "testdata/run/math_pow_special.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/math_trig_reduction",
+      "kind": "run",
+      "path": "testdata/run/math_trig_reduction.txtar",
       "mode": [
         "vm",
         "native"
@@ -16077,6 +16122,22 @@
       "id": "sem/match_patterns",
       "kind": "sem",
       "path": "testdata/sem/match_patterns.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/math_isr_inert",
+      "kind": "sem",
+      "path": "testdata/sem/math_isr_inert.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/math_named_args",
+      "kind": "sem",
+      "path": "testdata/sem/math_named_args.txtar",
       "mode": [
         "check"
       ]

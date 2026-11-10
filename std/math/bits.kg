@@ -1,0 +1,74 @@
+// Helpers over the IEEE 754 pattern, after the fdlibm and musl macros the ported code was written with.
+const signBit: u64 = 0x8000000000000000
+const fractionMask: u64 = 0xFFFFFFFFFFFFF
+const implicitBit: u64 = 0x10000000000000
+
+/// The span of the positive normal patterns above implicitBit.
+const normalSpan: u64 = 0x7FF0000000000000 - implicitBit
+
+/// 1.5 * 2^52: adding and then subtracting it rounds a Float of magnitude below 2^51 to an integer.
+const roundShift: Float = 6755399441055744.0
+
+/// hi + lo, with lo below half an ulp of hi.
+type HiLo = {
+    hi Float
+    lo Float
+}
+
+/// The sign and exponent bits of x, as musl's top12.
+pure noalloc fn top12(x: Float) -> u64 {
+    toBits(x) >> 52
+}
+
+/// The high 32 bits of x's pattern without the sign, as fdlibm's GET_HIGH_WORD masked to |x|.
+pure noalloc fn absHighWord(x: Float) -> u64 {
+    (toBits(x) >> 32) & 0x7FFFFFFF
+}
+
+/// x with the low 32 bits of its pattern cleared, as fdlibm's SET_LOW_WORD(x, 0).
+pure noalloc fn lowWordCleared(x: Float) -> Float {
+    fromBits(toBits(x) & 0xFFFFFFFF00000000)
+}
+
+/// The biased exponent field of a pattern.
+pure noalloc fn exponentField(bits: u64) -> Int {
+    ((bits >> 52) & 0x7FF).truncate[Int]()
+}
+
+/// 2^k for k in the normal range -1022..1023.
+pure noalloc fn pow2(k: Int) -> Float {
+    fromBits((k + 1023).truncate[u64]() << 52)
+}
+
+/// x, negated when negative is set.
+pure noalloc fn signed(x: Float, negative: Bool) -> Float {
+    if negative {
+        -x
+    } else {
+        x
+    }
+}
+
+/// The infinity a finite result overflows to, as musl's __math_oflow.
+pure noalloc fn overflow(negative: Bool) -> Float {
+    signed(inf(), negative)
+}
+
+/// The zero a finite result underflows to, as musl's __math_uflow.
+pure noalloc fn underflow(negative: Bool) -> Float {
+    signed(0.0, negative)
+}
+
+/// The NaN of an operation undefined at x: x made quiet when it is NaN, as musl's __math_invalid, and otherwise the
+/// canonical `nan()`, whose bits do not depend on the backend or on constant folding.
+pure noalloc fn invalid(x: Float) -> Float {
+    if x != x {
+        return fromBits(toBits(x) | 0x8000000000000)
+    }
+    nan()
+}
+
+/// |x| by clearing the sign bit, which `abs` leaves on a NaN.
+pure noalloc fn withoutSign(x: Float) -> Float {
+    fromBits(toBits(x) & 0x7FFFFFFFFFFFFFFF)
+}

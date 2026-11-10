@@ -1,0 +1,59 @@
+// Ported from musl 1.2.5 src/math/sin.c, cos.c and tan.c. Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
+// Developed at SunPro, a Sun Microsystems, Inc. business. Permission to use, copy, modify, and distribute this software is freely granted, provided that this notice is preserved.
+/// Sine of x in radians; NaN for an infinity or NaN.
+pub pure noalloc fn sin(x: Float) -> Float {
+    let ix = absHighWord(x)
+    if ix <= 0x3FE921FB {
+        if ix < 0x3E500000 {
+            return x
+        }
+        return kernelSin(x, 0.0, false)
+    }
+    if ix >= 0x7FF00000 {
+        return invalid(x)
+    }
+    let r = remPio2(x)
+    match r.n & 3 {
+        0 -> kernelSin(r.y0, r.y1, true)
+        1 -> kernelCos(r.y0, r.y1)
+        2 -> -kernelSin(r.y0, r.y1, true)
+        _ -> -kernelCos(r.y0, r.y1)
+    }
+}
+
+/// Cosine of x in radians; NaN for an infinity or NaN.
+pub pure noalloc fn cos(x: Float) -> Float {
+    let ix = absHighWord(x)
+    if ix <= 0x3FE921FB {
+        if ix < 0x3E46A09E {
+            return 1.0
+        }
+        return kernelCos(x, 0.0)
+    }
+    if ix >= 0x7FF00000 {
+        return invalid(x)
+    }
+    let r = remPio2(x)
+    match r.n & 3 {
+        0 -> kernelCos(r.y0, r.y1)
+        1 -> -kernelSin(r.y0, r.y1, true)
+        2 -> -kernelCos(r.y0, r.y1)
+        _ -> kernelSin(r.y0, r.y1, true)
+    }
+}
+
+/// Tangent of x in radians; NaN for an infinity or NaN. No Float is a pole, so the result is always finite.
+pub pure noalloc fn tan(x: Float) -> Float {
+    let ix = absHighWord(x)
+    if ix <= 0x3FE921FB {
+        if ix < 0x3E400000 {
+            return x
+        }
+        return kernelTan(x, 0.0, false)
+    }
+    if ix >= 0x7FF00000 {
+        return invalid(x)
+    }
+    let r = remPio2(x)
+    kernelTan(r.y0, r.y1, (r.n & 1) == 1)
+}

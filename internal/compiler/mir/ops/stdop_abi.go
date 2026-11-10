@@ -31,7 +31,7 @@ const (
 	DPFloor
 	DPCeil
 	DPRound
-	DPPow
+	DPToBits
 	DPTryRef
 	DPTryOpt
 	DPMapSeed
@@ -39,13 +39,15 @@ const (
 	DPSecretMaskNonZero
 	DPSecretMaskLt
 	DPSecretSelect
+	DPFromBits
 )
 
 var directPrimByName = map[string]DirectPrim{
 	"Len": DPLen, "ArrayLen": DPArrayLen, "BytesGet": DPBytesGet, "ArrayGet": DPArrayGet,
 	"ArrayFirst": DPArrayFirst, "ArrayLast": DPArrayLast, "CharFromInt": DPCharFromInt, "ParseFloat": DPParseFloat,
 	"WrapAdd": DPWrapAdd, "WrapSub": DPWrapSub, "WrapMul": DPWrapMul, "WrapShl": DPWrapShl, "WrapShr": DPWrapShr,
-	"Rotl": DPRotl, "Rotr": DPRotr, "Sqrt": DPSqrt, "Floor": DPFloor, "Ceil": DPCeil, "Round": DPRound, "Pow": DPPow,
+	"Rotl": DPRotl, "Rotr": DPRotr, "Sqrt": DPSqrt, "Floor": DPFloor, "Ceil": DPCeil, "Round": DPRound,
+	"ToBits": DPToBits, "FromBits": DPFromBits,
 	"TryRef": DPTryRef, "TryOpt": DPTryOpt, "MapSeed": DPMapSeed,
 	"SecretBarrier": DPSecretBarrier, "SecretMaskNonZero": DPSecretMaskNonZero,
 	"SecretMaskLt": DPSecretMaskLt, "SecretSelect": DPSecretSelect,

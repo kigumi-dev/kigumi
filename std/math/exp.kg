@@ -1,0 +1,73 @@
+// Ported from musl 1.2.5 src/math/exp.c and the exp_inline of pow.c.
+// Copyright (c) 2018, Arm Limited. SPDX-License-Identifier: MIT
+const invLn2N: Float = 184.6649652337873
+const negLn2HiN: Float = -0.005415212348111709
+const negLn2LoN: Float = -1.2864023111638346e-14
+const expC2: Float = 0.49999999999996786
+const expC3: Float = 0.16666666666665886
+const expC4: Float = 0.0416666808410674
+const expC5: Float = 0.008333335853059549
+
+/// e raised to the power x, with an error below 0.52 ulp. Overflow gives +Inf and underflow a subnormal or 0.
+pub pure noalloc fn exp(x: Float) -> Float {
+    let abstop = top12(x) & 0x7FF
+    if abstop < 0x3C9 {
+        1.0 + x
+    } else if abstop < 0x409 {
+        expReduced(x, 0.0, 0, abstop >= 0x408)
+    } else if toBits(x) == 0xFFF0000000000000 {
+        0.0
+    } else if abstop >= 0x7FF {
+        1.0 + x
+    } else if (toBits(x) >> 63) == 1 {
+        underflow(false)
+    } else {
+        overflow(false)
+    }
+}
+
+/// exp(x + xtail), negated when signBias is set, for 2^-54 <= |x| < 1024 and |xtail| < 2^-15; nearOverflow is set for
+/// |x| >= 512, where the scale may leave the normal range.
+pure noalloc fn expReduced(x: Float, xtail: Float, signBias: u64, nearOverflow: Bool) -> Float {
+    let z = invLn2N * x
+    let kd = z + roundShift
+    let ki = toBits(kd)
+    let k = kd - roundShift
+    let r = x + k * negLn2HiN + k * negLn2LoN + xtail
+    let (tail, tableBits) = expEntry(ki & 127)
+    let sbits = tableBits.wrappingAdd(ki.wrappingAdd(signBias) << 45)
+    let r2 = r * r
+    let tmp = tail + r + r2 * (expC2 + r * expC3) + r2 * r2 * (expC4 + r * expC5)
+    if nearOverflow {
+        expScaled(tmp, sbits, ki)
+    } else {
+        let scale = fromBits(sbits)
+        scale + scale * tmp
+    }
+}
+
+/// scale * (1 + tmp) where scale's exponent field in sbits has overflowed by up to 460 or underflowed, rounding once in
+/// the subnormal range.
+pure noalloc fn expScaled(tmp: Float, sbits: u64, ki: u64) -> Float {
+    if (ki & 0x80000000) == 0 {
+        let scale = fromBits(sbits.wrappingSub(0x3F10000000000000))
+        return 5.486124068793689e+303 * (scale + scale * tmp)
+    }
+    let shifted = sbits.wrappingAdd(0x3FE0000000000000)
+    let scale = fromBits(shifted)
+    let mut y = scale + scale * tmp
+    if abs(y) < 1.0 {
+        let one = if y < 0.0 {
+            -1.0
+        } else {
+            1.0
+        }
+        let lo = scale - y + scale * tmp
+        let hi = one + y
+        y = (hi + (one - hi + y + lo)) - one
+        if y == 0.0 {
+            y = fromBits(shifted & signBit)
+        }
+    }
+    2.2250738585072014e-308 * y
+}

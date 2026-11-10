@@ -207,7 +207,7 @@ func TestVerifyOperandsAndTags(t *testing.T) {
 	call := midir.Inst{Op: midir.OpCall, Ent: sqrt, Dst: 0, Args: []midir.LocalID{1}}
 	call.Prim = 7
 	expectRule(t, p, mirfixture.Fn("tags", sem.TyF64, f64, midir.Block{Insts: []midir.Inst{call}, Term: mirfixture.Ret(0)}), "stdop", "runtime op tags")
-	unit := midir.Inst{Op: midir.OpUnit, Dst: 0, DPrim: opdef.DPPow}
+	unit := midir.Inst{Op: midir.OpUnit, Dst: 0, DPrim: opdef.DPToBits}
 	expectRule(t, p, mirfixture.Fn("dprim", sem.TyUnit, []midir.Local{{Name: "t0", Type: sem.TyUnit}}, midir.Block{Insts: []midir.Inst{unit}, Term: mirfixture.Ret(0)}), "stdop", "direct result tag")
 }
 

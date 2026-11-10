@@ -1,0 +1,33 @@
+-- src --
+import math from std/math
+
+export(interrupt) {
+    pub fn useLog() {
+        let _ = math.log(2.0)
+    }
+    pub fn useLog2() {
+        let _ = math.log2(2.0)
+    }
+    pub fn useLog10() {
+        let _ = math.log10(2.0)
+    }
+    pub fn useIsInf() {
+        let _ = math.isInf(2.0)
+    }
+    pub fn useIsFinite() {
+        let _ = math.isFinite(2.0)
+    }
+    pub fn useIsNaN() {
+        let _ = math.isNaN(2.0)
+    }
+    pub fn useNaN() {
+        let _ = math.nan()
+    }
+    pub fn useInf() {
+        let _ = math.inf()
+    }
+    pub fn useBits() {
+        let _ = math.fromBits(math.toBits(2.0))
+    }
+}
+-- expect --

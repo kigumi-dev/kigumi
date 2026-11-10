@@ -279,7 +279,7 @@ func editPrim(s *site) string {
 		}
 		in.Prov = s.prov()
 	default:
-		in.DPrim = opdef.DirectPrim(s.r.Intn(int(opdef.DPPow) + 2))
+		in.DPrim = opdef.DirectPrim(s.r.Intn(int(opdef.DPToBits) + 2))
 	}
 	return fmt.Sprintf("%s primitive tags of %s changed", s.where(), in.Op)
 }

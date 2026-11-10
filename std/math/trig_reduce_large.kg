@@ -1,0 +1,173 @@
+const low62: u64 = 0x3FFFFFFFFFFFFFFF
+const halfPiHigh: u64 = 0xC90FDAA22168C234
+const halfPiLow: u64 = 0xC4C6628B80DC1CD1
+
+/// remPio2 for |x| >= 2^20 * pi/2, by Payne and Hanek's method. With |x| = m * 2^e, the bits of 2/pi worth 2^(e - 1) and
+/// below give x * 2/pi mod 4; a 256-bit window of them leaves an error under 2^-200, far below the 2^-62 closest approach
+/// of a Float to a multiple of pi/2.
+pure noalloc fn remPio2Large(x: Float) -> Reduced {
+    let u = toBits(x) & 0x7FFFFFFFFFFFFFFF
+    let m = (u & fractionMask) | implicitBit
+    let start = exponentField(u) - 1075 + 62
+    let word = start / 64
+    let offset = (start % 64).truncate[usize]()
+    let (h3, d) = mul64(m, twoOverPiWindow(word + 3, offset))
+    let (h2, l2) = mul64(m, twoOverPiWindow(word + 2, offset))
+    let (h1, l1) = mul64(m, twoOverPiWindow(word + 1, offset))
+    let (c, carry2) = add64(l2, h3, 0)
+    let (b, carry1) = add64(l1, h2, carry2)
+    let a = m.wrappingMul(twoOverPiWindow(word, offset)).wrappingAdd(h1).wrappingAdd(carry1)
+    let mut n = (a >> 62).truncate[Int]()
+    let above = ((a >> 61) & 1) == 1
+    let r = if above {
+        n = n + 1
+        let (nd, borrowD) = sub64(0, d, 0)
+        let (nc, borrowC) = sub64(0, c, borrowD)
+        let (nb, borrowB) = sub64(0, b, borrowC)
+        let (na, _) = sub64(0, a & low62, borrowB)
+        timesHalfPi(na & low62, nb, nc, nd)
+    } else {
+        timesHalfPi(a & low62, b, c, d)
+    }
+    let negative = (toBits(x) >> 63) == 1
+    let flip = above != negative
+    Reduced {
+        n: if negative {
+            -n
+        } else {
+            n
+        }
+        y0: signed(r.hi, flip)
+        y1: signed(r.lo, flip)
+    }
+}
+
+/// 64 bits of 2/pi starting `offset` bits into word `word` of `twoOverPiWords`.
+pure noalloc fn twoOverPiWindow(word: Int, offset: usize) -> u64 {
+    let (w, next) = twoOverPiWords(word)
+    if offset == 0 {
+        return w
+    }
+    (w << offset) | (next >> (64 - offset))
+}
+
+/// f / 2^254 * pi/2 for the 254-bit fraction f = (a, b, c, d), most significant word first, from the top 128 bits of f
+/// times pi/2 in 128-bit fixed point.
+pure noalloc fn timesHalfPi(a0: u64, b0: u64, c0: u64, d0: u64) -> HiLo {
+    let mut a = a0
+    let mut b = b0
+    let mut c = c0
+    let mut d = d0
+    let mut shift: usize = 0
+    for a == 0 && shift < 256 {
+        a = b
+        b = c
+        c = d
+        d = 0
+        shift = shift + 64
+    }
+    if shift == 256 {
+        return HiLo {
+            hi: 0.0
+            lo: 0.0
+        }
+    }
+    let s = leadingZeros(a)
+    let top = if s == 0 {
+        a
+    } else {
+        (a << s) | (b >> (64 - s))
+    }
+    let next = if s == 0 {
+        b
+    } else {
+        (b << s) | (c >> (64 - s))
+    }
+    let (aHigh, aLow) = mul64(top, halfPiHigh)
+    let (bHigh, bLow) = mul64(top, halfPiLow)
+    let (cHigh, cLow) = mul64(next, halfPiHigh)
+    let (dHigh, _) = mul64(next, halfPiLow)
+    let (mid, c1) = add64(dHigh, bLow, 0)
+    let (_, c2) = add64(mid, cLow, 0)
+    let (low1, c3) = add64(aLow, bHigh, c1)
+    let (low, c4) = add64(low1, cHigh, c2)
+    let high = aHigh + c3 + c4
+    let cut: usize = if (high >> 63) == 1 {
+        11
+    } else {
+        10
+    }
+    let one: u64 = 1
+    let mut head = high >> cut
+    let restHigh = high & ((one << cut) - 1)
+    let half = one << (cut - 1)
+    let up = restHigh > half || (restHigh == half && (low != 0 || (head & 1) == 1))
+    let mut tailHigh = restHigh
+    let mut tailLow = low
+    if up {
+        head = head + 1
+        let (tl, borrow) = sub64(0, low, 0)
+        tailLow = tl
+        tailHigh = (one << cut) - restHigh - borrow
+    }
+    let scale = -125 - shift.truncate[Int]() - s.truncate[Int]()
+    let tail = ((tailHigh << 42) | (tailLow >> 22)).toFloat() * 4194304.0 + (tailLow & 0x3FFFFF).toFloat()
+    HiLo {
+        hi: head.toFloat() * pow2(64 + cut.truncate[Int]() + scale)
+        lo: signed(tail * pow2(scale), up)
+    }
+}
+
+/// x * y as its high and low words, from the products of the 32-bit halves.
+pure noalloc fn mul64(x: u64, y: u64) -> (u64, u64) {
+    let x0 = x & 0xFFFFFFFF
+    let x1 = x >> 32
+    let y0 = y & 0xFFFFFFFF
+    let y1 = y >> 32
+    let w0 = x0 * y0
+    let t = x1 * y0 + (w0 >> 32)
+    let w1 = (t & 0xFFFFFFFF) + x0 * y1
+    (x1 * y1 + (t >> 32) + (w1 >> 32), x.wrappingMul(y))
+}
+
+/// x + y + carry with the carry out (Hacker's Delight, 2-16).
+pure noalloc fn add64(x: u64, y: u64, carry: u64) -> (u64, u64) {
+    let sum = x.wrappingAdd(y).wrappingAdd(carry)
+    (sum, ((x & y) | ((x | y) & ~sum)) >> 63)
+}
+
+/// x - y - borrow with the borrow out (Hacker's Delight, 2-16).
+pure noalloc fn sub64(x: u64, y: u64, borrow: u64) -> (u64, u64) {
+    let diff = x.wrappingSub(y).wrappingSub(borrow)
+    (diff, ((~x & y) | (~(x ^ y) & diff)) >> 63)
+}
+
+/// Leading zero bits of a nonzero v.
+pure noalloc fn leadingZeros(v: u64) -> usize {
+    let mut n: usize = 0
+    let mut x = v
+    if (x >> 32) == 0 {
+        n = n + 32
+        x = x << 32
+    }
+    if (x >> 48) == 0 {
+        n = n + 16
+        x = x << 16
+    }
+    if (x >> 56) == 0 {
+        n = n + 8
+        x = x << 8
+    }
+    if (x >> 60) == 0 {
+        n = n + 4
+        x = x << 4
+    }
+    if (x >> 62) == 0 {
+        n = n + 2
+        x = x << 2
+    }
+    if (x >> 63) == 0 {
+        n = n + 1
+    }
+    n
+}

@@ -178,6 +178,7 @@ func (m *Machine) registerAll() {
 	m.registerExit()
 	m.registerTextAccel()
 	m.registerArrayAccel()
+	m.registerMath()
 	m.indexHostByOp()
 }
 
