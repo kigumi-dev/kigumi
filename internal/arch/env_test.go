@@ -13,7 +13,7 @@ import (
 // intrinsic (the VM) that exposes the environment to Kigumi programs.
 // The devkit is test-only (TestDevkitStaysOutOfProductCode); its shard knob selects a CI slice of
 // the corpus and never reaches product code.
-var envAllowed = []string{"internal/cli/", "internal/backend/vm/std_host.go", "internal/devkit/fixture/shard.go"}
+var envAllowed = []string{"internal/cli/", "internal/backend/vm/std_host.go", "internal/devkit/fixture/shard.go", "internal/devkit/hosttool/discover_toolchain.go", "internal/toolchain/config/compiler_tools.go"}
 
 // processAllowed lists the files that may resolve a path against the process cwd, search PATH or ask for the home directory.
 // The rule: a main package, or the CLI's one reader (session/compiler_options.go), reads the process once and passes the facts down; no library file falls back to the process.

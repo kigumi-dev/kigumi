@@ -3,7 +3,6 @@ package run
 import (
 	stderrors "errors"
 
-	"kigumi/internal/backend/vm"
 	"kigumi/internal/base/errors"
 	"kigumi/internal/cli/exit"
 	"kigumi/internal/cli/session"
@@ -19,7 +18,7 @@ func run(io session.IO, opts options) error {
 	if err != nil {
 		// A module with no entry file is the caller's target problem, not a VM refusal: `check` accepts the same module,
 		// so `run` has to name what is missing instead of leaking the interpreter's wording.
-		if stderrors.Is(err, vm.ErrNoEntry) {
+		if stderrors.Is(err, driver.ErrNoEntry) {
 			return errors.NewErrf("no entry file (main.kg) in module %s", m.Root)
 		}
 		return errors.WrapErr(err, "run module")

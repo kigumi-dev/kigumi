@@ -164,11 +164,6 @@ func buildFileFailure(tree *syntax.Tree, err error) *BuildFile {
 func parseBuildFile(root string, overlay map[string][]byte) (*syntax.Tree, bool, error) {
 	path := filepath.Join(root, BuildFileName)
 	src, ok := overlay[path]
-	if !ok && len(overlay) > 0 {
-		if abs, err := filepath.Abs(path); err == nil {
-			src, ok = overlay[abs]
-		}
-	}
 	if !ok {
 		var err error
 		src, err = os.ReadFile(path)

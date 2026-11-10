@@ -6,6 +6,9 @@ import (
 	"kigumi/internal/backend/vm"
 )
 
+// ErrNoEntry marks a module with no entry file, so the CLI can name the missing file.
+var ErrNoEntry = vm.ErrNoEntry
+
 // RunOptions is what the CLI resolved for one run.
 type RunOptions struct {
 	// Stdin replaces the process stdin when not nil.

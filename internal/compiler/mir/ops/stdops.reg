@@ -631,6 +631,8 @@ key alloc.Block.get
 op 199 BLOCK_SET primitive (named, int, int) -> unit
 key alloc.Block.set
 op 200 ALLOCATOR_RESET primitive (named) -> result
+type std/alloc Busy
 key alloc.AllocatorHandle.reset
 op 201 ALLOCATOR_CLOSE primitive (named) -> result
+type std/alloc Busy
 key alloc.AllocatorHandle.close
