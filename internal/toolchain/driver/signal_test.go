@@ -53,7 +53,7 @@ const signalSrc = `import os from std/os
 import time from std/time
 
 let sig = host.signals()
-sig.watch(os.Signal.Interrupt)?
+let _watch = sig.watch(os.Signal.Interrupt)?
 print "watching"
 let mut n = 0
 let mut got = false
