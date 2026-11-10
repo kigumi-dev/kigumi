@@ -2,11 +2,14 @@ package driver_test
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sync/atomic"
+	"syscall"
 	"testing"
+	"time"
 
 	"kigumi/internal/devkit/fixture"
 	"kigumi/internal/toolchain/driver"
@@ -71,20 +74,30 @@ func runAot(t *testing.T, path string, fx *fixture.Fixture, live map[string]int6
 	if err != nil || !ok {
 		t.Fatalf("build: %v\n%s", err, buildErr.String())
 	}
-	cmd := exec.Command(exe, "one", "two")
-	cmd.Dir = t.TempDir()
-	if live != nil {
-		cmd.Env = append(os.Environ(), "KIGUMI_LIVE_REPORT=1")
-	}
 	var out, errOut bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &out, &errOut
 	code := 0
-	if err := cmd.Run(); err != nil {
+	for attempt := 0; ; attempt++ {
+		out.Reset()
+		errOut.Reset()
+		cmd := exec.Command(exe, "one", "two")
+		cmd.Dir = t.TempDir()
+		if live != nil {
+			cmd.Env = append(os.Environ(), "KIGUMI_LIVE_REPORT=1")
+		}
+		cmd.Stdout, cmd.Stderr = &out, &errOut
+		err := cmd.Run()
+		if err == nil {
+			break
+		}
 		if ee, isExit := err.(*exec.ExitError); isExit {
 			code = ee.ExitCode()
-		} else {
-			t.Fatal(err)
+			break
 		}
+		if errors.Is(err, syscall.ETXTBSY) && attempt < 100 {
+			time.Sleep(10 * time.Millisecond)
+			continue
+		}
+		t.Fatal(err)
 	}
 	stderr := errOut.String()
 	if live != nil {
