@@ -57,7 +57,7 @@ func RunTestsReporting(prog *mir.Program, opts TestRunOptions, out, errOut io.Wr
 		w := newEventWriter(out, opts.JSON)
 		for _, tc := range cases {
 			if opts.JSON {
-				w.emit(testEvent{Type: "testList", ID: tc.id.String(), File: tc.site.File, Line: tc.site.Line})
+				w.emit(testCaseEvent{FormatVersion: TestEventFormatVersion, Type: "testList", ID: tc.id.String(), File: tc.site.File, Line: tc.site.Line})
 				continue
 			}
 			fmt.Fprintf(out, "%s\t%s:%d\n", tc.id, tc.site.File, tc.site.Line)
@@ -66,7 +66,7 @@ func RunTestsReporting(prog *mir.Program, opts TestRunOptions, out, errOut io.Wr
 	}
 
 	w := newEventWriter(out, opts.JSON)
-	w.emit(testEvent{Type: "suiteStart", Total: len(cases)})
+	w.emit(suiteStartEvent{FormatVersion: TestEventFormatVersion, Type: "suiteStart", Total: len(cases)})
 	suiteStart := time.Now()
 	var deadline time.Time
 	if opts.SuiteTimeout > 0 {
@@ -80,7 +80,7 @@ func RunTestsReporting(prog *mir.Program, opts TestRunOptions, out, errOut io.Wr
 	for _, tc := range cases {
 		if !deadline.IsZero() && time.Now().After(deadline) {
 			skipped++
-			w.emit(testEvent{Type: "testSkip", ID: tc.id.String(), File: tc.site.File, Line: tc.site.Line, Message: "suite timeout exceeded"})
+			w.emit(testCaseEvent{FormatVersion: TestEventFormatVersion, Type: "testSkip", ID: tc.id.String(), File: tc.site.File, Line: tc.site.Line, Message: "suite timeout exceeded"})
 			if !opts.JSON {
 				fmt.Fprintf(out, "SKIP %s (suite timeout exceeded)\n", tc.id.Name)
 			}
@@ -92,33 +92,34 @@ func RunTestsReporting(prog *mir.Program, opts TestRunOptions, out, errOut io.Wr
 			}
 			switch {
 			case opts.JSON:
-				w.emit(testEvent{Type: "testOutput", ID: tc.id.String(), Stream: stream, Message: string(data)})
+				w.emit(testOutputEvent{FormatVersion: TestEventFormatVersion, Type: "testOutput", ID: tc.id.String(), Stream: stream, Message: string(data)})
 			case stream == "stderr":
 				errOut.Write(data)
 			default:
 				out.Write(data)
 			}
 		}
-		var outcome, message string
-		var site mir.Site
-		var took time.Duration
-		var fresh *Machine
-		var hardErr error
+		var res testOutcome
 		if ok, why := support.check(tc.f); !ok {
-			outcome, message = "fail", unsupportedText(opts, why)
+			res.outcome, res.message = "fail", unsupportedText(opts, why)
 			if !opts.JSON {
-				sink("stderr", []byte(tc.id.Name+": "+message+"\n"))
+				sink("stderr", []byte(tc.id.Name+": "+res.message+"\n"))
 			}
 		} else {
 			m.resetStatics()
-			outcome, message, site, took, fresh, hardErr = runOneTest(m, tc.f, tc.id.Name, opts.PerTestTimeout, opts.JSON, sink)
+			res = runOneTest(m, tc.f, tc.id.Name, opts.PerTestTimeout, opts.JSON)
 		}
-		if hardErr != nil {
-			return failed, hardErr
+		if res.hardErr != nil {
+			return failed, res.hardErr
 		}
-		if fresh != nil {
-			m = fresh
+		if res.fresh != nil {
+			m = res.fresh
 		}
+		// Replay what the test wrote in the order it wrote it, so a captured stdout+stderr keeps its interleaving.
+		for _, c := range res.chunks {
+			sink(c.stream, c.data)
+		}
+		outcome, message, site, took := res.outcome, res.message, res.site, res.took
 		if outcome == "fail" || outcome == "timeout" {
 			failed++
 			failures = append(failures, testFailure{id: tc.id.String(), file: cmp.Or(site.File, tc.site.File), line: cmp.Or(site.Line, tc.site.Line)})
@@ -129,7 +130,7 @@ func RunTestsReporting(prog *mir.Program, opts TestRunOptions, out, errOut io.Wr
 		if site == (mir.Site{}) {
 			site = tc.site
 		}
-		w.emit(testEvent{Type: eventType(outcome), ID: tc.id.String(), File: site.File, Line: site.Line, DurationMS: took.Milliseconds(), Message: message})
+		w.emit(testCaseEvent{FormatVersion: TestEventFormatVersion, Type: eventType(outcome), ID: tc.id.String(), File: site.File, Line: site.Line, DurationMS: took.Milliseconds(), Message: message})
 		if !opts.JSON {
 			writePlainLine(out, outcome, tc.id.Name)
 		}
@@ -137,7 +138,7 @@ func RunTestsReporting(prog *mir.Program, opts TestRunOptions, out, errOut io.Wr
 	if !opts.JSON {
 		writeSummary(out, passed, failed, skipped, failures)
 	}
-	w.emit(testEvent{Type: "suiteEnd", Total: len(cases), Passed: passed, Failed: failed, Skipped: skipped, DurationMS: time.Since(suiteStart).Milliseconds()})
+	w.emit(suiteEndEvent{FormatVersion: TestEventFormatVersion, Type: "suiteEnd", Total: len(cases), Passed: passed, Failed: failed, Skipped: skipped, DurationMS: time.Since(suiteStart).Milliseconds()})
 	return failed + skipped, nil
 }
 

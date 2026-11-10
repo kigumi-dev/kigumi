@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"kigumi/internal/cli/clitest"
+	"kigumi/internal/cli/exit"
 )
 
 // `run` documents [flags] before the entry file and must reject one placed after,
@@ -18,11 +19,11 @@ func TestRunFlagAfterEntryFile(t *testing.T) {
 	os.WriteFile(file, []byte("print \"ok\"\n"), 0o644)
 
 	code, _, errOut := clitest.Execute(t, "--std", std, "run", "--target", "bogus-triple-xyz", file)
-	if code != 2 {
+	if code != exit.Value {
 		t.Fatalf("--target before the entry file: exit %d, stderr %q", code, errOut)
 	}
 	code, _, errOut = clitest.Execute(t, "--std", std, "run", file, "--target", "bogus-triple-xyz")
-	if code != 2 || !strings.Contains(errOut, "--target") {
+	if code != exit.Usage || !strings.Contains(errOut, "--target") {
 		t.Fatalf("--target after the entry file: exit %d, stderr %q", code, errOut)
 	}
 	code, out, _ := clitest.Execute(t, "--std", std, "run", file, "extra", "positional")

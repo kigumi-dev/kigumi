@@ -1,6 +1,8 @@
 package vm
 
 import (
+	"strings"
+
 	"kigumi/internal/compiler/mir"
 	midir "kigumi/internal/compiler/mir/ir"
 )
@@ -12,11 +14,15 @@ type TestID struct {
 	Name    string
 }
 
+// String renders <package>::<name>, or <module>/<package>::<name> when the package path does not already name the
+// module: a module root that is also the only package must not repeat its own name.
 func (id TestID) String() string {
 	switch {
 	case id.Module == "" && id.Package == "":
 		return id.Name
 	case id.Module == "":
+		return id.Package + "::" + id.Name
+	case id.Package == id.Module, strings.HasPrefix(id.Package, id.Module+"/"):
 		return id.Package + "::" + id.Name
 	default:
 		return id.Module + "/" + id.Package + "::" + id.Name

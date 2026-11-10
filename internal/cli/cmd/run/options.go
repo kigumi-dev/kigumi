@@ -27,8 +27,10 @@ func parseOptions(cmd *cobra.Command, args []string) (options, error) {
 	return options{session: session.Read(cmd), args: dropDashDash(args), secretSan: secretSan}, nil
 }
 
+// scriptOptions is the shebang path `kigumi file.kg [args]`: everything after the script is its argv, but a literal "--"
+// is the option terminator every other entry mode consumes, so the script must not see it either.
 func scriptOptions(cmd *cobra.Command, args []string) (options, error) {
-	return options{session: session.Read(cmd), args: args}, nil
+	return options{session: session.Read(cmd), args: dropDashDash(args)}, nil
 }
 
 // rejectSwallowedFlags reports the first token in args[1:] naming a flag of cmd, which SetInterspersed(false) would

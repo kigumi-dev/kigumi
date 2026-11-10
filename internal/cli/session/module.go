@@ -67,7 +67,7 @@ func (s Session) load(target string, test, deferParse, whole bool, errOut io.Wri
 	}
 	tgt, err := s.Target()
 	if err != nil {
-		return nil, &exit.UsageError{Err: err}
+		return nil, &exit.ValueError{Err: err}
 	}
 	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: s.StdRoot(), Test: test, Entry: entry, NoLocal: s.NoLocal || LocalOff(), Target: tgt, Policy: s.Policy(), ZigPath: ZigPath(), ZigHome: ZigHome(), Offline: s.Offline, VerifyPasses: VerifyPasses(), Compiler: CompilerOptions(), PackageCache: PackageCache(), DeferParse: deferParse, UnitCheck: deferParse && UnitCheck(), NoSettled: !UnitCheck(), LazyStd: UnitCheck(), AllOwnPackages: whole})
 	if err != nil {
@@ -82,12 +82,15 @@ func (s Session) load(target string, test, deferParse, whole bool, errOut io.Wri
 	return m, nil
 }
 
-// packageEntry turns a package directory inside a module (`cmd/app`) into main.kg or its only .kg file; anything else passes through.
+// packageEntry turns a package directory inside a module (`cmd/app`) into main.kg or its only .kg file; anything else
+// passes through. Only a manifest makes the enclosing directory a module here: a directory that merely sits under a
+// `cmd/` root of an unrelated checkout (Go tooling, say) stays its own root, which is what the same path spelled
+// relatively already does.
 func packageEntry(dir string) string {
 	if module.IsModuleRoot(dir) {
 		return dir
 	}
-	if _, ok := module.FindModuleRoot(dir); !ok {
+	if _, ok := manifestRoot(dir); !ok {
 		return dir
 	}
 	names, _ := filepath.Glob(filepath.Join(dir, "*.kg"))
@@ -100,6 +103,18 @@ func packageEntry(dir string) string {
 		return names[0]
 	}
 	return dir
+}
+
+// manifestRoot walks up from dir to the nearest directory holding mod.kg.
+func manifestRoot(dir string) (string, bool) {
+	for d := filepath.Clean(dir); ; d = filepath.Dir(d) {
+		if _, err := os.Stat(filepath.Join(d, module.ManifestName)); err == nil {
+			return d, true
+		}
+		if filepath.Dir(d) == d {
+			return "", false
+		}
+	}
 }
 
 // moduleRoot is the nearest ancestor of entry holding mod.kg or cmd/, else entry's own directory (script mode).

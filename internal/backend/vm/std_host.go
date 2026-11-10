@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"unicode/utf8"
 
 	"kigumi/internal/compiler/sem"
@@ -157,6 +158,10 @@ func (m *Machine) stdinReader() *bufio.Reader {
 		r := m.opts.Stdin
 		if r == nil {
 			r = os.Stdin
+			if stdinWasClosed() {
+				// The runtime substituted /dev/null for the closed descriptor: an unreadable stdin, not an empty one.
+				r = errReader{syscall.EBADF}
+			}
 		}
 		m.sh.stdinSrc = r
 		m.sh.stdin = bufio.NewReader(r)

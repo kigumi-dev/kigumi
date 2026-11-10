@@ -27,11 +27,11 @@ func parseOptions(cmd *cobra.Command, args []string) (options, error) {
 		if st, err := os.Stat(a); err == nil && (st.IsDir() || strings.HasSuffix(a, ".kg")) {
 			opts.target = a
 		} else if strings.HasSuffix(a, ".kg") {
-			return opts, &exit.UsageError{Err: errors.NewErrf("no such file: %s", a)}
+			return opts, &exit.ValueError{Err: errors.NewErrf("no such file: %s", a)}
 		} else if opts.add == "" {
 			opts.add = a
 		} else {
-			return opts, &exit.UsageError{Err: errors.NewErrf("%s is neither a module path nor an existing module root or script", a)}
+			return opts, &exit.ValueError{Err: errors.NewErrf("%s is neither a module path nor an existing module root or script", a)}
 		}
 	}
 	f := cmd.Flags()

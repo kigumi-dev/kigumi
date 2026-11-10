@@ -21,7 +21,7 @@ func runInit(io session.IO, opts options) error {
 		name = filepath.Base(abs)
 	}
 	if err := module.WriteManifest(opts.root, name); err != nil {
-		return &exit.UsageError{Err: err}
+		return &exit.ValueError{Err: err}
 	}
 	fmt.Fprintf(io.Err, "wrote %s\n", filepath.Join(opts.root, module.ManifestName))
 	return nil

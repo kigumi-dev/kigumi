@@ -27,12 +27,14 @@ func (m *Machine) builtin(name string, args []*obj) *obj {
 	case "print", "eprint":
 		line := append([]byte(m.display(args[0])), '\n')
 		if name == "eprint" {
-			m.writeErr(line)
+			if _, err := m.writeErr(line); err != nil {
+				m.noteWriteError("stderr", err)
+			}
 			if m.opts.FaultArmOnEprint && m.sh.faultArmed.CompareAndSwap(false, true) {
 				m.sh.faultN.Store(0)
 			}
-		} else {
-			m.writeOut(line)
+		} else if _, err := m.writeOut(line); err != nil {
+			m.noteWriteError("stdout", err)
 		}
 		return unitObj
 	case "panic":

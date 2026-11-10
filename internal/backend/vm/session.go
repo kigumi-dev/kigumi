@@ -267,10 +267,16 @@ func (s *Session) Close() {
 }
 
 // checkCancel is the instruction loop's cancellation check: the shared flag
-// is read once every cancelEvery instructions.
+// and the timeout drain budget are read once every cancelEvery instructions.
 func (m *Machine) checkCancel() {
 	m.cancelTicks++
-	if m.cancelTicks&(cancelEvery-1) == 0 && m.sh.cancel.Load() {
+	if m.cancelTicks&(cancelEvery-1) != 0 {
+		return
+	}
+	if m.sh.cancel.Load() {
+		panic(&Cancelled{})
+	}
+	if m.sh.drainLeft.Load() != 0 && m.sh.drainLeft.Add(-cancelEvery) <= 0 {
 		panic(&Cancelled{})
 	}
 }

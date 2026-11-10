@@ -36,7 +36,7 @@ func openTarget(path string, lock bool) (*target, error) {
 		return nil, errors.WrapErr(err, "read manifest")
 	}
 	if !ok {
-		return nil, &exit.UsageError{Err: errors.NewErrf("%s has no %s; run `kigumi mod init` or name a script", path, module.ManifestName)}
+		return nil, &exit.ValueError{Err: errors.NewErrf("%s has no %s; run `kigumi mod init` or name a script", path, module.ManifestName)}
 	}
 	return &target{dir: path, manifest: mf, lockPath: filepath.Join(path, module.LockName)}, nil
 }
@@ -51,7 +51,7 @@ func (t *target) add(io session.IO, git vcs.Git, spec, url string) error {
 	name, version, _ := strings.Cut(spec, "@")
 	r := module.Require{Name: name, Version: version, URL: url}
 	if _, _, ok := module.RepoOf(r); !ok {
-		return &exit.UsageError{Err: errors.NewErrf("cannot derive where %s lives; give --url", name)}
+		return &exit.ValueError{Err: errors.NewErrf("cannot derive where %s lives; give --url", name)}
 	}
 	if r.Version == "" {
 		v, err := git.LatestTag(r)
@@ -67,7 +67,7 @@ func (t *target) add(io session.IO, git vcs.Git, spec, url string) error {
 		err = module.AppendRequire(t.dir, r)
 	}
 	if err != nil {
-		return &exit.UsageError{Err: err}
+		return &exit.ValueError{Err: err}
 	}
 	fmt.Fprintf(io.Err, "added %s %s\n", r.Name, r.Version)
 	t.manifest.Requires = append(t.manifest.Requires, r)

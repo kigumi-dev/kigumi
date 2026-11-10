@@ -18,7 +18,7 @@ func runTidy(io session.IO, opts options) error {
 		return errors.WrapErr(err, "read manifest")
 	}
 	if !ok {
-		return &exit.UsageError{Err: errors.NewErrf("%s has no %s", opts.root, module.ManifestName)}
+		return &exit.ValueError{Err: errors.NewErrf("%s has no %s", opts.root, module.ManifestName)}
 	}
 	m, err := driver.LoadModule(opts.root, driver.LoadOptions{Test: true, NoDeps: true, NoLocal: opts.session.NoLocal || session.LocalOff(), Compiler: session.CompilerOptions()})
 	if err != nil {

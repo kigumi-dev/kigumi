@@ -1,10 +1,10 @@
 package test
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 
+	"kigumi/internal/base/errors"
+	"kigumi/internal/cli/exit"
 	"kigumi/internal/cli/session"
 	"kigumi/internal/toolchain/driver"
 )
@@ -24,8 +24,9 @@ func parseOptions(cmd *cobra.Command, args []string) (options, error) {
 	opts.tests.PerTestTimeout, _ = f.GetDuration("timeout")
 	opts.tests.SuiteTimeout, _ = f.GetDuration("suite-timeout")
 	opts.tests.JSON, _ = f.GetBool("json")
+	// A negative bound would silently mean "no bound", which is the opposite of what it reads as.
 	if opts.tests.PerTestTimeout < 0 || opts.tests.SuiteTimeout < 0 {
-		return opts, fmt.Errorf("--timeout and --suite-timeout must not be negative")
+		return opts, &exit.ValueError{Err: errors.NewErr("--timeout and --suite-timeout must not be negative")}
 	}
 	return opts, nil
 }

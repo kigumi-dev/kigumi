@@ -31,7 +31,7 @@ func run(io session.IO, opts options) error {
 	}
 	tgt, err := opts.session.Target()
 	if err != nil {
-		return &exit.UsageError{Err: err}
+		return &exit.ValueError{Err: err}
 	}
 	target := tgt.Triple
 	if target == "" {

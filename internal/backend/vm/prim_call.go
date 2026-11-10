@@ -5,6 +5,11 @@ import "kigumi/internal/compiler/sem"
 // callPrim answers a call with the host function h, or the bodiless primitive key when h is nil;
 // SecretSan and the two-run trace see every primitive's arguments here and nowhere else.
 func (m *Machine) callPrim(ent sem.EntityID, key string, h hostFn, args []*obj) *obj {
+	// A timed-out test that is still unwinding must not reach a host effect: a write it has not begun yet would land
+	// after the report.
+	if h != nil && m.sh.effectsOff.Load() && hostEffect(key) {
+		panic(&Cancelled{})
+	}
 	if m.opts.SecretSan || m.trace != nil {
 		m.primSinks(key, h != nil, args)
 		defer m.watchBranching(primArgTable[key], args)()

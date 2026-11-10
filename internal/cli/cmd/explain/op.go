@@ -22,7 +22,7 @@ func explainOp(io session.IO, s session.Session, name, target string) error {
 	}
 	id, ok := findFn(res, name)
 	if !ok {
-		return &exit.UsageError{Err: errors.NewErrf("no function %q (write it as pkg/path.Name)", name)}
+		return &exit.ValueError{Err: errors.NewErrf("no function %q (write it as pkg/path.Name)", name)}
 	}
 	printOpSummary(io.Out, res, id, name)
 	return nil

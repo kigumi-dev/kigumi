@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"kigumi/internal/cli/clitest"
+	"kigumi/internal/cli/exit"
 )
 
 // TestBuildProgramCLI prints the plan of a build.kg-driven module and
@@ -18,7 +19,7 @@ func TestBuildProgramCLI(t *testing.T) {
 	if code != 0 || !strings.Contains(out, "\"big\"") || !strings.Contains(out, "\"order\"") {
 		t.Fatalf("plan: exit %d\n%s%s", code, out, errOut)
 	}
-	if code, _, _ := clitest.Execute(t, "--std", std, "build", "-o", "x", example); code != 2 {
+	if code, _, _ := clitest.Execute(t, "--std", std, "build", "-o", "x", example); code != exit.Usage {
 		t.Fatalf("-o with a build.kg should be a usage error, exit %d", code)
 	}
 	if _, err := os.Stat(filepath.Join(example, "app")); err == nil {

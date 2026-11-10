@@ -12,11 +12,26 @@ import (
 	"kigumi/internal/base/errors"
 )
 
-// UsageError marks a mistake in flags or arguments; it exits with 2.
+// Usage is EX_USAGE: the command line itself is malformed (an unknown flag or command, a wrong number of arguments,
+// flags that contradict each other), so the caller, not the module being built, is what has to change.
+const Usage = 64
+
+// Value is the exit code of a value the command understood but rejected: a name outside an enum, a negative count, a
+// path that is not a module. It stays apart from Usage so a caller can tell "you typed the invocation wrong" from
+// "that particular value is no good", and so a program's panic (2, the native runtime's code too) never reads as one.
+const Value = 2
+
+// UsageError marks a malformed invocation; it exits with Usage.
 type UsageError struct{ Err error }
 
 func (e *UsageError) Error() string { return e.Err.Error() }
 func (e *UsageError) Unwrap() error { return e.Err }
+
+// ValueError marks a rejected flag or argument value; it exits with Value.
+type ValueError struct{ Err error }
+
+func (e *ValueError) Error() string { return e.Err.Error() }
+func (e *ValueError) Unwrap() error { return e.Err }
 
 // Error ends the process with Code after the command has reported everything itself.
 type Error struct{ Code int }
@@ -28,7 +43,8 @@ func Code(code int) error { return &Error{Code: code} }
 // Internal is the exit code of a panic escaping a command, kept apart from 2 so a crash never reads as a usage mistake.
 const Internal = 70
 
-// Execute runs root and returns 0, 2 for a usage error, Error's code, Internal for a panic, or 1 after printing the error.
+// Execute runs root and returns 0, Usage for a malformed invocation, Value for a rejected value, Error's code, Internal
+// for a panic, or 1 after printing the error.
 func Execute(root *cobra.Command, debug func() bool) (code int) {
 	root.SetFlagErrorFunc(func(_ *cobra.Command, err error) error { return &UsageError{Err: err} })
 	markUsageErrors(root)
@@ -52,7 +68,12 @@ func Execute(root *cobra.Command, debug func() bool) (code int) {
 	var usage *UsageError
 	if errors.As(err, &usage) {
 		fmt.Fprintf(os.Stderr, "kigumi: %v\n", err)
-		return 2
+		return Usage
+	}
+	var value *ValueError
+	if errors.As(err, &value) {
+		fmt.Fprintf(os.Stderr, "kigumi: %v\n", err)
+		return Value
 	}
 	PrintError(os.Stderr, err, debug != nil && debug())
 	return 1

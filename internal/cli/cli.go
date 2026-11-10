@@ -64,7 +64,7 @@ func New() *cobra.Command {
 		mode, _ := cmd.Flags().GetString("color")
 		color, err := session.Color(mode, os.Stderr)
 		if err != nil {
-			return &exit.UsageError{Err: err}
+			return &exit.ValueError{Err: err}
 		}
 		diag.UseColor(color)
 		return nil

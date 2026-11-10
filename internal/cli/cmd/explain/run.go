@@ -34,5 +34,5 @@ func run(io session.IO, opts options) error {
 		}
 		return nil
 	}
-	return &exit.UsageError{Err: errors.NewErrf("unknown diagnostic code %q; `kigumi explain` lists them", name)}
+	return &exit.ValueError{Err: errors.NewErrf("unknown diagnostic code %q; `kigumi explain` lists them", name)}
 }

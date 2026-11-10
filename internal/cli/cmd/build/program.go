@@ -16,7 +16,7 @@ func runProgram(io session.IO, opts options) error {
 	pol := s.Policy()
 	target, err := s.Target()
 	if err != nil {
-		return &exit.UsageError{Err: err}
+		return &exit.ValueError{Err: err}
 	}
 	p, ok, err := driver.LoadBuildProgram(opts.root, driver.LoadOptions{StdRoot: s.StdRoot(), NoLocal: s.NoLocal || session.LocalOff(), Offline: s.Offline, Policy: pol, ZigPath: session.ZigPath(), ZigHome: session.ZigHome(), PackageCache: session.PackageCache(), VerifyPasses: session.VerifyPasses(), Compiler: session.CompilerOptions()})
 	if err != nil {
@@ -67,7 +67,7 @@ func runProgram(io session.IO, opts options) error {
 	for _, spec := range opts.secrets {
 		name, path, ok := strings.Cut(spec, "=")
 		if !ok {
-			return &exit.UsageError{Err: errors.NewErrf("--secret takes name=file, not %q", spec)}
+			return &exit.ValueError{Err: errors.NewErrf("--secret takes name=file, not %q", spec)}
 		}
 		secrets[name] = path
 	}

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"kigumi/internal/cli/clitest"
+	"kigumi/internal/cli/exit"
 )
 
 func TestCommands(t *testing.T) {
@@ -45,14 +46,14 @@ func TestCommands(t *testing.T) {
 	if code, out, _ = clitest.Execute(t); code != 0 || !strings.Contains(out, "Usage:") {
 		t.Fatalf("no arguments: exit %d, stdout %q", code, out)
 	}
-	if code, _, _ = clitest.Execute(t, "bogus"); code != 2 {
-		t.Fatalf("unknown command: exit %d", code)
+	if code, _, _ = clitest.Execute(t, "bogus"); code != exit.Usage {
+		t.Fatalf("unknown command: exit %d, want %d (EX_USAGE)", code, exit.Usage)
 	}
-	if code, _, _ = clitest.Execute(t, "check"); code != 2 {
-		t.Fatalf("missing argument: exit %d", code)
+	if code, _, _ = clitest.Execute(t, "check"); code != exit.Usage {
+		t.Fatalf("missing argument: exit %d, want %d (EX_USAGE)", code, exit.Usage)
 	}
-	if code, _, _ = clitest.Execute(t, "--bogus"); code != 2 {
-		t.Fatalf("unknown flag: exit %d", code)
+	if code, _, _ = clitest.Execute(t, "--bogus"); code != exit.Usage {
+		t.Fatalf("unknown flag: exit %d, want %d (EX_USAGE)", code, exit.Usage)
 	}
 	if code, _, _ = clitest.Execute(t, "check", filepath.Join(dir, "missing")); code != 1 {
 		t.Fatalf("missing module: exit %d", code)

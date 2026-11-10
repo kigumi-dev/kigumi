@@ -26,7 +26,7 @@ func run(ioh session.IO, opts options) error {
 	s := opts.sess
 	tgt, err := s.Target()
 	if err != nil {
-		return &exit.UsageError{Err: err}
+		return &exit.ValueError{Err: err}
 	}
 	compiler := session.CompilerOptions()
 	root := compiler.Cwd

@@ -6,6 +6,7 @@ import (
 	"os"
 	"sync"
 	"sync/atomic"
+	"syscall"
 
 	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
@@ -31,6 +32,8 @@ type shared struct {
 	// moves it; every lane sees the move.
 	cwdMu sync.RWMutex
 	cwd   string
+	// writeFail is the first print/eprint that could not be written, reported once when the entry returns.
+	writeFail *writeFailure
 	// derived covers the tables the lanes fill in lazily from the program.
 	derived    sync.Mutex
 	codes      sync.Map
@@ -61,6 +64,12 @@ type shared struct {
 	// cancel asks the instruction loops to abort; a session sets it from
 	// another goroutine and clears it when the interrupted cell settles.
 	cancel atomic.Bool
+	// effectsOff refuses host effects: a test whose timeout already stands may still be unwinding, and an effect it
+	// has not begun yet would land after the report.
+	effectsOff atomic.Bool
+	// drainLeft is the instruction budget a timed-out test may still run: enough for the statement it is in to
+	// finish (so its output and panic are reportable), not enough for a runaway loop to outlive the report.
+	drainLeft atomic.Int64
 	// graph is written before the run starts and only read after.
 	graph *buildgraph.Graph
 }
@@ -100,6 +109,10 @@ func (m *Machine) underlyingRepr(t sem.TypeID) sem.TypeID {
 func (m *Machine) writeOut(b []byte) (int, error) {
 	m.sh.out.Lock()
 	defer m.sh.out.Unlock()
+	// The runtime turns a closed fd 1 into /dev/null before main, so this is the only place the loss can be noticed.
+	if f, ok := m.out.(*os.File); ok && f == os.Stdout && stdoutWasClosed() {
+		return 0, syscall.EBADF
+	}
 	return m.out.Write(b)
 }
 

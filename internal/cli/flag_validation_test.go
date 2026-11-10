@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"kigumi/internal/cli/clitest"
+	"kigumi/internal/cli/exit"
 )
 
 // An unrecognized --color value must be a usage error rather than
@@ -41,16 +42,16 @@ func TestBuildRejectsBuildProgramFlagsWithoutOne(t *testing.T) {
 	os.WriteFile(file, []byte("fn main() -> Void! {}\n"), 0o644)
 	out := filepath.Join(dir, "a.out")
 
-	if code, _, errOut := clitest.Execute(t, "--std", std, "build", "--plan", "-o", out, file); code != 2 || !strings.Contains(errOut, "--plan") {
+	if code, _, errOut := clitest.Execute(t, "--std", std, "build", "--plan", "-o", out, file); code != exit.Usage || !strings.Contains(errOut, "--plan") {
 		t.Fatalf("build --plan without build.kg: exit %d, stderr %q", code, errOut)
 	}
 	if _, err := os.Stat(out); err == nil {
 		t.Fatal("build --plan without build.kg must not build anything")
 	}
-	if code, _, errOut := clitest.Execute(t, "--std", std, "build", "--out-dir", dir, "-o", out, file); code != 2 || !strings.Contains(errOut, "--out-dir") {
+	if code, _, errOut := clitest.Execute(t, "--std", std, "build", "--out-dir", dir, "-o", out, file); code != exit.Usage || !strings.Contains(errOut, "--out-dir") {
 		t.Fatalf("build --out-dir without build.kg: exit %d, stderr %q", code, errOut)
 	}
-	if code, _, errOut := clitest.Execute(t, "--std", std, "build", "--secret", "x=/nonexistent", "-o", out, file); code != 2 || !strings.Contains(errOut, "--secret") {
+	if code, _, errOut := clitest.Execute(t, "--std", std, "build", "--secret", "x=/nonexistent", "-o", out, file); code != exit.Usage || !strings.Contains(errOut, "--secret") {
 		t.Fatalf("build --secret without build.kg: exit %d, stderr %q", code, errOut)
 	}
 }
@@ -64,7 +65,7 @@ func TestFmtCheckWriteMutuallyExclusive(t *testing.T) {
 	os.WriteFile(file, []byte(src), 0o644)
 
 	code, _, errOut := clitest.Execute(t, "fmt", "--check", "-w", file)
-	if code != 2 || !strings.Contains(errOut, "--check") || !strings.Contains(errOut, "--write") {
+	if code != exit.Usage || !strings.Contains(errOut, "--check") || !strings.Contains(errOut, "--write") {
 		t.Fatalf("fmt --check -w: exit %d, stderr %q", code, errOut)
 	}
 	got, err := os.ReadFile(file)

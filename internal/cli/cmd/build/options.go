@@ -39,7 +39,7 @@ func parseOptions(cmd *cobra.Command, args []string) (options, error) {
 	link, _ := f.GetString("link")
 	mode, err := driver.ParseLinkMode(link)
 	if err != nil {
-		return opts, &exit.UsageError{Err: err}
+		return opts, &exit.ValueError{Err: err}
 	}
 	opts.shape.link = mode
 	opts.shape.sizeMin, _ = f.GetBool("size-min")

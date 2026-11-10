@@ -43,7 +43,7 @@ func runJSON(io session.IO, opts options) error {
 		return errors.WrapErr(err, "read manifest")
 	}
 	if !ok {
-		return &exit.UsageError{Err: errors.NewErrf("%s has no %s", opts.root, module.ManifestName)}
+		return &exit.ValueError{Err: errors.NewErrf("%s has no %s", opts.root, module.ManifestName)}
 	}
 	lock, err := module.ReadLock(opts.root)
 	if err != nil {

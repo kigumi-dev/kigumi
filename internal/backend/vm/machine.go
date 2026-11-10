@@ -2,6 +2,7 @@ package vm
 
 import (
 	"cmp"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -9,6 +10,7 @@ import (
 	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
+	"kigumi/internal/lang/diag"
 )
 
 // Panic is a program abort; Site is the panicking instruction's user frame, zero when none (e.g. out of memory).
@@ -127,12 +129,16 @@ type Machine struct {
 	rootArena  *arenaState
 }
 
+// ErrNoEntry is a program the VM was asked to run without an entry function; callers name the missing file instead of
+// passing the VM's own wording on.
+var ErrNoEntry = stderrors.New("vm: program has no entry")
+
 // Run executes the program's entry and returns its exit code: 0, 1 for a
 // main that fails with an Error, the code of an ExitError that reaches the
 // entry or of `host.exit`, 2 for a panic.
 func Run(prog *mir.Program, opts Options, out, errOut io.Writer) (int, error) {
 	if prog.Entry == nil {
-		return 1, fmt.Errorf("vm: program has no entry")
+		return 1, ErrNoEntry
 	}
 	return runMachine(newMachine(prog, opts, out, errOut), prog, errOut)
 }
@@ -143,7 +149,16 @@ func runMachine(m *Machine, prog *mir.Program, errOut io.Writer) (int, error) {
 		res := m.call(prog.Entry, nil)
 		code = m.exitCode(res)
 	})
-	return settleRun(code, err, errOut)
+	code, err = settleRun(code, err, errOut)
+	if err != nil {
+		return code, err
+	}
+	// Output the program could not write is a failed run, reported once here: print/eprint have no error channel.
+	if f := m.writeFailureOf(); f != nil {
+		fmt.Fprintf(errOut, "%s: write %s: %v\n", diag.Prefix("error"), f.stream, f.err)
+		return 1, nil
+	}
+	return code, nil
 }
 
 func newMachine(prog *mir.Program, opts Options, out, errOut io.Writer) *Machine {

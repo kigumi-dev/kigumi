@@ -51,7 +51,7 @@ func runModule(io session.IO, opts options) error {
 	}
 	target, err := s.Target()
 	if err != nil {
-		return &exit.UsageError{Err: err}
+		return &exit.ValueError{Err: err}
 	}
 	if opts.emit {
 		var emitted driver.BuildReport
