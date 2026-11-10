@@ -1,3 +1,22 @@
+import ffi from std/ffi
+
+// Windows process control. A HANDLE is a pointer-sized value, but Windows
+// keeps kernel handle values within 32 bits and sign-extends them, so the
+// platform token std/proc carries in its i32 `pid` slot is the duplicated
+// process handle truncated to i32 (`handleToken`); `tokenHandle` widens it
+// back with the sign extension the Win32 ABI expects. The handle is the
+// ownership record: it keeps the process object alive after the child exits,
+// so a wait can still read the exit code, and closing it is the one place the
+// child is forgotten. Passing the handle through the token, rather than
+// opening the process by pid on each call, avoids both a process-wide
+// pid-to-handle table with its lock and the pid-reuse race that a table-free
+// OpenProcess would have after the child object is deleted.
+//
+// Every Win32 entry point below takes HANDLE as `usize` and BOOL as `i32`;
+// both are ABI-identical to their C declarations on the Windows targets this
+// platform file builds for, and stay expressible without a pointer/integer
+// cast the language does not have. The STARTUPINFOA cb field comes from
+// ffi.sizeOf, so the same source is right with 4-byte and 8-byte pointers.
 pub type ProcessError = {
     pub text String
 }
@@ -6,18 +25,420 @@ pub fn ProcessError.message(self) -> String {
     self.text
 }
 
+/// The outcome of a `WaitForSingleObject` on a process handle.
+pub type WaitOutcome =
+    | Exited
+    | StillRunning
+    | Failed
+
+/// WAIT_OBJECT_0, WAIT_TIMEOUT and everything else (WAIT_FAILED included),
+/// as waitOutcome reports them.
+const waitObject0: u32 = 0
+
+const waitTimeout: u32 = 258
+
+const waitInfinite: u32 = 0xFFFFFFFF
+
+/// ERROR_ACCESS_DENIED, which TerminateProcess reports for a child that has
+/// already exited.
+const errorAccessDenied: u32 = 5
+
+/// PROCESS_TERMINATE | PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE. The
+/// duplicated control handle needs exactly these rights: kill, exit code and
+/// wait. Nothing else from the PROCESS_ALL_ACCESS handle CreateProcess returns.
+const processControlAccess: u32 = 0x00101001
+
+/// STARTUPINFOA (processthreadsapi.h), with HANDLE and LP*STR as pointer-sized
+/// integers so the record needs no pointer field setup for an all-zero value.
+pub type StartupInfoA layout(C) = {
+    pub mut cb u32
+    pub reserved isize
+    pub desktop isize
+    pub title isize
+    pub x u32
+    pub y u32
+    pub xSize u32
+    pub ySize u32
+    pub xChars u32
+    pub yChars u32
+    pub fillAttribute u32
+    pub flags u32
+    pub showWindow u16
+    pub reserved2Count u16
+    pub reserved2 isize
+    pub stdInput usize
+    pub stdOutput usize
+    pub stdError usize
+}
+
+/// PROCESS_INFORMATION (processthreadsapi.h).
+pub type ProcessInformation layout(C) = {
+    pub process usize
+    pub thread usize
+    pub processId u32
+    pub threadId u32
+}
+
+extern(C) {
+    fn CreateProcessA(app: *const u8, cmd: *mut u8, processAttrs: *const u8, threadAttrs: *const u8, inherit: i32, flags: u32, env: *const u8, cwd: *const u8, startup: *const StartupInfoA, info: *mut ProcessInformation) -> i32
+    fn CloseHandle(handle: usize) -> i32
+    fn DuplicateHandle(sourceProcess: usize, source: usize, targetProcess: usize, target: *mut usize, access: u32, inherit: i32, options: u32) -> i32
+    fn GetCurrentProcess() -> usize
+    fn WaitForSingleObject(handle: usize, millis: u32) -> u32
+    fn GetExitCodeProcess(handle: usize, code: *mut u32) -> i32
+    fn TerminateProcess(handle: usize, code: u32) -> i32
+    fn GetLastError() -> u32
+}
+
+fn hasNul(s: String) -> Bool {
+    let mut i: usize = 0
+    for i < s.len() {
+        if s[i] == 0 {
+            return true
+        }
+        i = i + 1
+    }
+    false
+}
+
+fn needsQuoting(arg: String) -> Bool {
+    if arg.len() == 0 {
+        return true
+    }
+    let mut i: usize = 0
+    for i < arg.len() {
+        let c = arg[i]
+        if c == 32 || c == 9 || c == 34 {
+            return true
+        }
+        i = i + 1
+    }
+    false
+}
+
+/// The bytes `quoteArgument` will write, computed first so the builder can be
+/// sized exactly: every backslash run that ends at a quote or at the end of
+/// the argument is doubled, and the whole argument gains two quote bytes.
+fn quotedLength(arg: String) -> usize {
+    let mut n: usize = 2
+    let mut backslashes: usize = 0
+    let mut i: usize = 0
+    for i < arg.len() {
+        let c = arg[i]
+        if c == 92 {
+            backslashes = backslashes + 1
+        } else if c == 34 {
+            n = n + backslashes * 2 + 2
+            backslashes = 0
+        } else {
+            n = n + backslashes + 1
+            backslashes = 0
+        }
+        i = i + 1
+    }
+    n + backslashes * 2
+}
+
+/// Quotes one command-line argument the way CommandLineToArgvW splits them:
+/// an argument with a space, a tab or a quote (or no bytes at all) is wrapped
+/// in quotes, quotes are escaped, and the backslashes before a quote or the
+/// closing quote are doubled so they stay backslashes.
+pub pure fn quoteArgument(arg: String) -> String! {
+    if !needsQuoting(arg) {
+        return arg
+    }
+    let mut out = ByteBuffer.tryNew(quotedLength(arg)) || fail ProcessError { text: "process spawn: out of memory" }
+    let mut at: usize = 0
+    out.set(at, 34)
+    at = at + 1
+    let mut backslashes: usize = 0
+    let mut i: usize = 0
+    for i < arg.len() {
+        let c = arg[i]
+        if c == 92 {
+            backslashes = backslashes + 1
+        } else if c == 34 {
+            let mut k: usize = 0
+            for k < backslashes * 2 + 1 {
+                out.set(at, 92)
+                at = at + 1
+                k = k + 1
+            }
+            out.set(at, 34)
+            at = at + 1
+            backslashes = 0
+        } else {
+            let mut k: usize = 0
+            for k < backslashes {
+                out.set(at, 92)
+                at = at + 1
+                k = k + 1
+            }
+            out.set(at, c)
+            at = at + 1
+            backslashes = 0
+        }
+        i = i + 1
+    }
+    let mut k: usize = 0
+    for k < backslashes * 2 {
+        out.set(at, 92)
+        at = at + 1
+        k = k + 1
+    }
+    out.set(at, 34)
+    at = at + 1
+    out.freezeString()
+}
+
+/// The lpCommandLine for program and args. The program is argv[0] and is
+/// resolved through PATH by CreateProcessA itself, like execvp, because the
+/// caller passes a null lpApplicationName.
+pub pure fn commandLine(program: String, args: Array[String]) -> String! {
+    if hasNul(program) {
+        fail ProcessError { text: "process program contains a NUL byte" }
+    }
+    let mut line = quoteArgument(program)?
+    let mut i: usize = 0
+    for i < args.len() {
+        let arg = args.get(i) || ""
+        if hasNul(arg) {
+            fail ProcessError { text: "process argument contains a NUL byte" }
+        }
+        line = "${line} ${quoteArgument(arg)?}"
+        i = i + 1
+    }
+    line
+}
+
+/// The wait status a child reports when Windows terminated it for signal sig:
+/// the POSIX 128 + number convention, so `wait` means the same on every
+/// target. Interrupt is not deliverable: Windows has no equivalent of SIGINT
+/// for an arbitrary child, so it and any other number fail explicitly rather
+/// than silently picking a termination code.
+pub pure fn signalStatus(sig: i32) -> Int! {
+    if sig == 15 || sig == 9 {
+        return 128 + sig.toInt()
+    }
+    fail ProcessError { text: "Windows cannot deliver signal ${sig}; only Terminate and Kill are supported" }
+}
+
+/// Which transition a WaitForSingleObject result describes. Only WAIT_OBJECT_0
+/// means the child exited and its exit code is ready; WAIT_TIMEOUT means the
+/// handle is still live; WAIT_FAILED and any result a process handle cannot
+/// produce leave the handle in doubt.
+pub pure fn waitOutcome(result: u32) -> WaitOutcome {
+    if result == waitObject0 {
+        WaitOutcome.Exited
+    } else if result == waitTimeout {
+        WaitOutcome.StillRunning
+    } else {
+        WaitOutcome.Failed
+    }
+}
+
+/// The platform token for an owned process handle: Windows keeps handle values
+/// within 32 bits and sign-extends them, so the low word is the whole identity
+/// for a token that has to fit std/proc's i32 pid slot.
+pub pure fn handleToken(handle: usize) -> i32 {
+    handle.truncate[i32]()
+}
+
+/// The handle a token names, widened with the sign extension Win32 expects for
+/// a 32-bit handle.
+pub pure fn tokenHandle(token: i32) -> usize {
+    token.toIsize().truncate[usize]()
+}
+
+/// Text for a Win32 error code. `ffi.errorText` reads the C errno, which
+/// GetLastError does not set, so process errors translate their own codes.
+pub pure fn winErrorText(code: u32) -> String {
+    match code {
+        2 -> "the system cannot find the file specified"
+        3 -> "the system cannot find the path specified"
+        5 -> "access is denied"
+        6 -> "the handle is invalid"
+        8 -> "not enough memory"
+        11 -> "the executable is not a valid application"
+        13 -> "the data is invalid"
+        14 -> "not enough memory"
+        87 -> "the parameter is incorrect"
+        127 -> "the specified procedure could not be found"
+        193 -> "not a valid Win32 application"
+        206 -> "the filename or extension is too long"
+        267 -> "the directory name is invalid"
+        1314 -> "a required privilege is not held by the client"
+        _ -> "Windows error ${code}"
+    }
+}
+
+/// A zeroed STARTUPINFOA whose cb is the record's own C size, so it stays
+/// right on the 32-bit Windows targets as well as on x64.
+fn blankStartupInfo() -> StartupInfoA {
+    let mut info = StartupInfoA {
+        cb: 0
+        reserved: 0
+        desktop: 0
+        title: 0
+        x: 0
+        y: 0
+        xSize: 0
+        ySize: 0
+        xChars: 0
+        yChars: 0
+        fillAttribute: 0
+        flags: 0
+        showWindow: 0
+        reserved2Count: 0
+        reserved2: 0
+        stdInput: 0
+        stdOutput: 0
+        stdError: 0
+    }
+    info.cb = ffi.sizeOf(&info).toU32() || 0
+    info
+}
+
+/// Spawns program with argv[0] = program and the given arguments, inheriting
+/// stdin, stdout and stderr. The full-access process handle CreateProcess
+/// returns is replaced by a duplicated handle carrying only wait, exit-code
+/// and terminate rights; the duplicate is not inheritable, so a grandchild
+/// cannot keep its parent's control handle open, and the original is closed
+/// before returning. The duplicate's token is what waitProcess,
+/// tryWaitProcess and signalProcess consume, and the successful wait or the
+/// last reaping call closes it. If the duplicate cannot be made, the child is
+/// terminated and its original handle closed before the error is returned, so
+/// a failed spawn leaves no process behind.
 pub fn spawnProcess(program: String, args: Array[String]) -> i32! {
-    fail ProcessError { text: "process spawning is not implemented on this target" }
+    let line = commandLine(program, args)?
+    let cmd = ffi.CString.new(&line)?
+    let startup = ffi.CValue.new(blankStartupInfo())
+    let info = ffi.CValue.new(ProcessInformation {
+        process: 0
+        thread: 0
+        processId: 0
+        threadId: 0
+    })
+    let started = unsafe {
+        CreateProcessA(ffi.null[u8](), ffi.toMut(cmd.ptr()), ffi.null[u8](), ffi.null[u8](), 1, 0, ffi.null[u8](), ffi.null[u8](), ffi.toConst(startup.ptr()), info.ptr())
+    }
+    if started == 0 {
+        let why = unsafe {
+            GetLastError()
+        }
+        fail ProcessError { text: "process spawn failed: ${winErrorText(why)}" }
+    }
+    let created = info.get()
+    // The thread handle is not needed: the process handle also signals exit.
+    _ = unsafe {
+        CloseHandle(created.thread)
+    }
+    let current = unsafe {
+        GetCurrentProcess()
+    }
+    let mut control: usize = 0
+    let duplicated = ffi.withAddress(&mut control, (target: *mut usize) => unsafe {
+        DuplicateHandle(current, created.process, current, target, processControlAccess, 0, 0)
+    })
+    let duplicateError = unsafe {
+        GetLastError()
+    }
+    if duplicated == 0 {
+        // Spawn failed after the child started: it would otherwise keep
+        // running with nobody owning it, so stop it before reporting.
+        _ = unsafe {
+            TerminateProcess(created.process, 1)
+        }
+        _ = unsafe {
+            CloseHandle(created.process)
+        }
+        fail ProcessError { text: "process spawn: DuplicateHandle failed: ${winErrorText(duplicateError)}" }
+    }
+    _ = unsafe {
+        CloseHandle(created.process)
+    }
+    handleToken(control)
 }
 
+fn exitCodeOf(handle: usize) -> Int! {
+    let mut code: u32 = 0
+    let got = ffi.withAddress(&mut code, (out: *mut u32) => unsafe {
+        GetExitCodeProcess(handle, out)
+    })
+    if got == 0 {
+        let why = unsafe {
+            GetLastError()
+        }
+        _ = unsafe {
+            CloseHandle(handle)
+        }
+        fail ProcessError { text: "process wait failed: ${winErrorText(why)}" }
+    }
+    code.toInt()
+}
+
+/// Waits for the child the token names and returns its exit code. A child
+/// terminated by signalProcess reports 128 + the signal number. The handle is
+/// closed exactly once, on the success path and on the path that reports the
+/// failure, so a failed wait cannot leak it.
 pub fn waitProcess(pid: i32) -> Int! {
-    fail ProcessError { text: "process waiting is not implemented on this target" }
+    let handle = tokenHandle(pid)
+    let result = unsafe {
+        WaitForSingleObject(handle, waitInfinite)
+    }
+    if waitOutcome(result) != WaitOutcome.Exited {
+        let why = unsafe {
+            GetLastError()
+        }
+        _ = unsafe {
+            CloseHandle(handle)
+        }
+        fail ProcessError { text: "process wait failed: ${winErrorText(why)}" }
+    }
+    exitCodeOf(handle)
 }
 
+/// Reports the child's exit code once it has exited without blocking, or None
+/// while it still runs. The process handle keeps the exited child's object
+/// alive, so the exit code is still readable when the child exited before the
+/// call; the handle is closed when the code is taken.
 pub fn tryWaitProcess(pid: i32) -> Int?! {
-    fail ProcessError { text: "process waiting is not implemented on this target" }
+    let handle = tokenHandle(pid)
+    let result = unsafe {
+        WaitForSingleObject(handle, 0)
+    }
+    match waitOutcome(result) {
+        WaitOutcome.StillRunning -> None
+        WaitOutcome.Exited -> Some(exitCodeOf(handle)?)
+        WaitOutcome.Failed -> {
+            let why = unsafe {
+                GetLastError()
+            }
+            _ = unsafe {
+                CloseHandle(handle)
+            }
+            fail ProcessError { text: "process wait failed: ${winErrorText(why)}" }
+        }
+    }
 }
 
+/// Sends sig to the child. A child that already exited is not a failure:
+/// TerminateProcess refuses it with ERROR_ACCESS_DENIED, the Windows analogue
+/// of ESRCH. The handle is kept, so the exit code stays readable through the
+/// following wait, which also closes it.
 pub fn signalProcess(pid: i32, sig: i32) -> Void! {
-    fail ProcessError { text: "process signals are not implemented on this target" }
+    let status = signalStatus(sig)?
+    let handle = tokenHandle(pid)
+    if unsafe {
+        TerminateProcess(handle, status.toU32() || 0)
+    } != 0 {
+        return
+    }
+    let why = unsafe {
+        GetLastError()
+    }
+    if why == errorAccessDenied {
+        return
+    }
+    fail ProcessError { text: "process signal failed: ${winErrorText(why)}" }
 }

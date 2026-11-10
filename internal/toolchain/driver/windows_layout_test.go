@@ -141,6 +141,7 @@ func parseLayoutCFields(t *testing.T, src, typeName string) []layoutCField {
 			continue
 		}
 		rest := strings.TrimSpace(strings.TrimPrefix(line, "pub "))
+		rest = strings.TrimSpace(strings.TrimPrefix(rest, "mut "))
 		parts := strings.SplitN(rest, " ", 2)
 		if len(parts) != 2 {
 			t.Fatalf("unexpected field line %q", line)

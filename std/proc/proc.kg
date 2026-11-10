@@ -1,13 +1,17 @@
 /// Child processes. POSIX targets implement `spawn`, `wait` and `signal` with
-/// fork/execvp through `std/platform`; other targets report
-/// `Error.Unsupported`. The VM has no fork, so process code is native-only.
+/// fork/execvp through `std/platform`; Windows uses CreateProcessA and an owned,
+/// duplicated process handle; other targets report that spawning is not
+/// implemented there. The VM has no fork, so process code is native-only.
 /// A child inherits the process's working directory and environment, including
-/// the changes `Host.chdir`, `Host.setEnv` and `Host.unsetEnv` make.
+/// the changes `Host.chdir`, `Host.setEnv` and `Host.unsetEnv` make, and its
+/// stdin, stdout and stderr.
 ///
 /// A `Process` is a resource: dropping the handle while the child still runs
 /// sends it `Signal.Kill` and reaps it, so an abandoned or cancelled wait
 /// leaves no process and no zombie behind. Use `wait`, `tryWait`, `waitTimeout`
-/// or `waitAsync` to collect the exit status explicitly.
+/// or `waitAsync` to collect the exit status explicitly. Every target reports
+/// a signalled child as 128 + the signal number, and Windows reports the same
+/// status for a child it terminated.
 import platform from std/platform
 import task from std/task
 import time from std/time
@@ -17,7 +21,10 @@ pub type Signal =
     | Terminate
     | Kill
 
-/// The signal number this platform's wait status reports.
+/// The signal number this platform's wait status reports. Windows has no
+/// POSIX signals: it delivers `Terminate` and `Kill` by terminating the child,
+/// and `Interrupt` fails explicitly there because Windows cannot raise SIGINT
+/// in another process.
 pub fn Signal.number(self) -> i32 {
     match self {
         Interrupt -> 2
@@ -38,8 +45,11 @@ pub fn Error.message(self) -> String {
 }
 
 /// A child process created by `spawn`; `pid` is public so a diagnostic can
-/// identify it before the first wait. The handle owns the child: its drop
-/// kills a still-running child and reaps it.
+/// identify it before the first wait. It is the platform's process token: a
+/// pid on POSIX, and a duplicated process handle on Windows, where Windows
+/// identifies a process for waiting and signalling by handle rather than by
+/// pid. The handle owns the child: its drop kills a still-running child and
+/// reaps it.
 /// Safety: the handle names one child process, and moving it to another
 /// thread transfers that one owner.
 @unsafeGuarantee(Send)
@@ -49,6 +59,8 @@ pub type Process = resource {
     mut status Int
 }
 
+/// The platform process token, the same value as `pid`: a pid on POSIX and a
+/// duplicated process handle on Windows.
 pub fn Process.id(self) -> i32 {
     self.pid
 }
