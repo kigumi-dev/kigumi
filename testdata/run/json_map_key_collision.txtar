@@ -1,0 +1,43 @@
+-- src --
+import json from std/json
+import map from std/map
+
+fn ints(text: String) {
+    match json.decode[map.Map[Int, Int]](text) {
+        Ok(m) -> print "${text}: ok ${m.len()}"
+        Err(e) -> print "${text}: err ${e.message()}"
+    }
+}
+
+fn floats(text: String) {
+    match json.decode[map.Map[Float, Int]](text) {
+        Ok(m) -> print "${text}: ok ${m.len()}"
+        Err(e) -> print "${text}: err ${e.message()}"
+    }
+}
+
+ints("{\"1\":10,\"01\":20,\" 1 \":30}")
+ints("{\"0\":10,\"-0\":20}")
+ints("{\"+1\":10}")
+ints("{\"00\":10}")
+ints("{\"1\":10,\"2\":20}")
+ints("{\"-1\":10}")
+floats("{\"1.0\":1,\"1\":2}")
+floats("{\"1e2\":1,\"100\":2}")
+floats("{\"01\":1}")
+floats("{\"-0.0\":1,\"0.0\":2}")
+floats("{\"1.5\":1,\"1.25\":2}")
+floats("{\"1.0\":5}")
+-- stdout --
+{"1":10,"01":20," 1 ":30}: err expected an integer key, found "01"
+{"0":10,"-0":20}: err expected an integer key, found "-0"
+{"+1":10}: err expected an integer key, found "+1"
+{"00":10}: err expected an integer key, found "00"
+{"1":10,"2":20}: ok 2
+{"-1":10}: ok 1
+{"1.0":1,"1":2}: err JSON member name "1" names the same map key as an earlier member
+{"1e2":1,"100":2}: err JSON member name "100" names the same map key as an earlier member
+{"01":1}: err expected a number key, found "01"
+{"-0.0":1,"0.0":2}: err JSON member name "0.0" names the same map key as an earlier member
+{"1.5":1,"1.25":2}: ok 2
+{"1.0":5}: ok 1

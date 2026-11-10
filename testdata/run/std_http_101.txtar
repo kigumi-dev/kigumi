@@ -1,0 +1,75 @@
+-- src --
+import http from std/net/http
+import net from std/net
+import task from std/task
+
+fn early(_req: http.Request) -> http.Response! {
+    let mut r = http.Response.ofText(101, "switch")
+    r.headers.add("Upgrade", "websocket")
+    r.headers.add("Connection", "Upgrade")
+    r
+}
+
+fn normal(_req: http.Request) -> http.Response! {
+    http.Response.ofText(200, "ok")
+}
+
+// Sends data as-is and reads until the server closes, keeping the lines that
+// show the status, the upgrade fields and whether a body was sent.
+async fn raw(n: net.Net, port: Int, data: String) -> String! {
+    let pool = task.BlockingPool.new(1)
+    let mut conn = await pool.run(() => n.connect("127.0.0.1", port).unwrap()).unwrap()
+    let bytes = data.toBytes()
+    let mut off: usize = 0
+    for off < bytes.len() {
+        if conn.pollWrite(bytes.slice(off, bytes.len()) || "".toBytes())? is Some(w) {
+            off = off + w
+        } else {
+            await task.yieldNow()
+        }
+    }
+    let mut got = Array.empty[u8]()
+    for true {
+        match conn.pollRead(&mut got, 4096)? {
+            Some(0) -> break
+            Some(_) -> {}
+            None -> await task.yieldNow()
+        }
+    }
+    let text = String.fromBytes(Bytes.fromArray(&got))?
+    let mut out = ""
+    for line in text.split("\r\n") {
+        if line.startsWith("HTTP/1.1") || line.startsWith("Upgrade:") || line.startsWith("Connection:") || line == "switch" || line.startsWith("Content-Length:") {
+            out = if out == "" {
+                line
+            } else {
+                "${out} | ${line}"
+            }
+        }
+    }
+    out
+}
+
+async fn root(n: net.Net, listener: net.Listener) -> Void! {
+    let port = listener.port()
+    let routes = http.Router.new().get("/early", early).get("/normal", normal)
+    let mut server = http.Server.new(routes.handler(), (line) => print "log: ${line}")
+    let stop = http.Shutdown.new()
+    let running = task.spawn(server.serve(listener, stop.clone()))
+    let earlyHead = (await raw(n, port, "GET /early HTTP/1.1\r\nHost: t\r\nConnection: close\r\n\r\n"))?
+    print earlyHead
+    let normalHead = (await raw(n, port, "GET /normal HTTP/1.1\r\nHost: t\r\nConnection: close\r\n\r\n"))?
+    print normalHead
+    stop.request()
+    (await running)?
+    print "stopped"
+}
+
+let n = host.net()
+let listener = n.listen("127.0.0.1", 0)?
+let ex = task.currentThreadExecutor()
+ex.runToCompletion(root(n, listener))?
+-- stdout --
+HTTP/1.1 101 Switching Protocols | Upgrade: websocket | Connection: close
+HTTP/1.1 200 OK | Content-Length: 2 | Connection: close
+stopped

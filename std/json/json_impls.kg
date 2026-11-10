@@ -16,6 +16,9 @@ pub fn i64.fromJson(value: Value) -> Int! {
 }
 
 pub fn i64.fromKeyText(s: String) -> Int! {
+    if !canonicalIntegerText(s, true) {
+        fail Error { text: "expected an integer key, found \"${s}\"" }
+    }
     text.parseInt(s) || fail Error { text: "expected an integer key, found \"${s}\"" }
 }
 
@@ -144,6 +147,9 @@ pub fn u64.fromJson(value: Value) -> u64! {
 }
 
 pub fn u64.fromKeyText(s: String) -> u64! {
+    if !canonicalIntegerText(s, false) {
+        fail Error { text: "expected an integer key, found \"${s}\"" }
+    }
     text.parseUint(s) || fail Error { text: "expected an integer key, found \"${s}\"" }
 }
 
@@ -165,6 +171,9 @@ pub fn usize.fromJson(value: Value) -> usize! {
 }
 
 pub fn usize.fromKeyText(s: String) -> usize! {
+    if !canonicalIntegerText(s, false) {
+        fail Error { text: "expected an integer key, found \"${s}\"" }
+    }
     let n = text.parseUint(s) || fail Error { text: "expected an integer key, found \"${s}\"" }
     Ok(n.toUsize())
 }
@@ -214,6 +223,9 @@ pub fn i128.fromJson(value: Value) -> i128! {
 }
 
 pub fn i128.fromKeyText(s: String) -> i128! {
+    if !canonicalIntegerText(s, true) {
+        fail Error { text: "expected an integer key, found \"${s}\"" }
+    }
     text.parseI128(s) || fail Error { text: "expected an integer key, found \"${s}\"" }
 }
 
@@ -243,6 +255,9 @@ pub fn u128.fromJson(value: Value) -> u128! {
 }
 
 pub fn u128.fromKeyText(s: String) -> u128! {
+    if !canonicalIntegerText(s, false) {
+        fail Error { text: "expected an integer key, found \"${s}\"" }
+    }
     text.parseU128(s) || fail Error { text: "expected an integer key, found \"${s}\"" }
 }
 
@@ -268,6 +283,9 @@ pub fn f64.fromJson(value: Value) -> Float! {
 }
 
 pub fn f64.fromKeyText(s: String) -> Float! {
+    if !canonicalNumberText(s) {
+        fail Error { text: "expected a number key, found \"${s}\"" }
+    }
     text.parseFloat(s) || fail Error { text: "expected a number key, found \"${s}\"" }
 }
 
@@ -442,7 +460,11 @@ pub fn Map[K: DecodeKey + Eq + Hash, V: Decode].fromJson(value: Value) -> Map[K,
             let mut out = empty[K, V]()
             for key in source.keys() {
                 let v = source.take(&key) || Value.Null
-                out.set(K.fromKeyText(key)?, V.fromJson(v)?)
+                let k = K.fromKeyText(key)?
+                if out.contains(&k) {
+                    fail Error { text: "JSON member name \"${key}\" names the same map key as an earlier member" }
+                }
+                out.set(k, V.fromJson(v)?)
             }
             Ok(out)
         }
@@ -605,4 +627,84 @@ pub fn FixedArray[T: Decode, const N: usize].fromJson(value: Value) -> FixedArra
         }
         other -> mismatch("array", other)
     }
+}
+
+/// True when s is the canonical decimal spelling of an integer: no surrounding
+/// whitespace, no `+`, no leading zeros and, unless allowNegative, no sign.
+/// Map member names are matched verbatim, so a loose parse would let distinct
+/// names such as "1", "01" and " 1 " denote the same key.
+fn canonicalIntegerText(s: String, allowNegative: Bool) -> Bool {
+    let n = s.len()
+    if n == 0 {
+        return false
+    }
+    let mut i: usize = 0
+    if s[0] == 45 {
+        if !allowNegative {
+            return false
+        }
+        i = 1
+        if i == n {
+            return false
+        }
+    }
+    let digitsStart = i
+    for i < n && s[i] >= 48 && s[i] <= 57 {
+        i = i + 1
+    }
+    if i != n || i == digitsStart {
+        return false
+    }
+    if s[digitsStart] == 48 && i - digitsStart > 1 {
+        return false
+    }
+    // "-0" and "0" are the same value; only the unsigned spelling is canonical.
+    !(s[0] == 45 && i - digitsStart == 1 && s[digitsStart] == 48)
+}
+
+/// True when s is a JSON number in canonical decimal spelling: no leading
+/// zeros, no surrounding whitespace and no `+` except in an exponent.
+fn canonicalNumberText(s: String) -> Bool {
+    let n = s.len()
+    if n == 0 {
+        return false
+    }
+    let mut i: usize = 0
+    if s[0] == 45 {
+        i = 1
+    }
+    let digitsStart = i
+    for i < n && s[i] >= 48 && s[i] <= 57 {
+        i = i + 1
+    }
+    if i == digitsStart {
+        return false
+    }
+    if s[digitsStart] == 48 && i - digitsStart > 1 {
+        return false
+    }
+    if i < n && s[i] == 46 {
+        i = i + 1
+        let fracStart = i
+        for i < n && s[i] >= 48 && s[i] <= 57 {
+            i = i + 1
+        }
+        if i == fracStart {
+            return false
+        }
+    }
+    if i < n && (s[i] == 101 || s[i] == 69) {
+        i = i + 1
+        if i < n && (s[i] == 43 || s[i] == 45) {
+            i = i + 1
+        }
+        let exponentStart = i
+        for i < n && s[i] >= 48 && s[i] <= 57 {
+            i = i + 1
+        }
+        if i == exponentStart {
+            return false
+        }
+    }
+    i == n
 }

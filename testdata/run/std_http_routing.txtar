@@ -194,8 +194,7 @@ outer in GET /early
 inner in GET /early
 inner out
 outer out
-log: http: GET /early: invalid status 101
-GET /early: 500 [internal server error] seen=0 allow=-
+GET /early: 101 [] seen=2 allow=-
 outer in POST /sum
 inner in POST /sum
 inner out

@@ -8302,6 +8302,15 @@
       ]
     },
     {
+      "id": "run/json_map_key_collision",
+      "kind": "run",
+      "path": "testdata/run/json_map_key_collision.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/json_map_keys",
       "kind": "run",
       "path": "testdata/run/json_map_keys.txtar",
@@ -10800,6 +10809,15 @@
       "id": "run/std_fs_stat",
       "kind": "run",
       "path": "testdata/run/std_fs_stat.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/std_http_101",
+      "kind": "run",
+      "path": "testdata/run/std_http_101.txtar",
       "mode": [
         "vm",
         "native"

@@ -187,6 +187,16 @@ fn renderResponse(resp: Response, version: String, headOnly: Bool, close: Bool) 
     if resp.headers.get("Date") is None {
         resp.headers.add("Date", time.now().httpDate())
     }
+    if resp.status == 101 {
+        // 101 is the final status of a protocol switch, not an internal error.
+        // std/net/http has no connection-takeover API, so the head is sent and
+        // the connection closes instead of continuing as HTTP.
+        let out = renderHead("${version} 101 ${reason(101)}", &resp.headers, None, true)?
+        return Ok(Outgoing {
+            data: out
+            close: true
+        })
+    }
     if resp.status < 200 || resp.status > 599 {
         fail failure(500, "invalid status ${resp.status}")
     }

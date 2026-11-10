@@ -104,6 +104,7 @@ pub fn failure(status: Int, text: String) -> Failure {
 pub fn reason(status: Int) -> String {
     match status {
         100 -> "Continue"
+        101 -> "Switching Protocols"
         200 -> "OK"
         201 -> "Created"
         202 -> "Accepted"
