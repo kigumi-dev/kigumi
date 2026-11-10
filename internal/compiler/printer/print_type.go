@@ -58,6 +58,15 @@ func (p *printer) layoutArgs(list syntax.ListView) {
 }
 
 func (p *printer) typ(id syntax.NodeID) {
+	if id == 0 {
+		return
+	}
+	p.leadingInline(id)
+	p.typNode(id)
+	p.trailingInline(id)
+}
+
+func (p *printer) typNode(id syntax.NodeID) {
 	v := p.t.View(id)
 	switch v.Kind() {
 	case syntax.TypePath:

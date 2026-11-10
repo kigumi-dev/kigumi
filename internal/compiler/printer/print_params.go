@@ -16,10 +16,16 @@ func (p *printer) paramsStack(list syntax.NodeID) bool {
 			return true
 		}
 	}
-	first, last := p.t.View(items.ItemID(0)).Tok().Index(), p.t.View(items.ItemID(items.Len()-1)).Tok().Index()
-	for first > 0 && p.t.Toks[first-1].Kind != token.LParen {
-		first--
+	first := p.firstTok(items.ItemID(0))
+	if open := p.parenBefore(first); open > 0 {
+		first = open + 1
+	} else {
+		first = p.t.View(items.ItemID(0)).Tok().Index()
+		for first > 0 && p.t.Toks[first-1].Kind != token.LParen {
+			first--
+		}
 	}
+	last := p.lastTok(items.ItemID(items.Len() - 1))
 	for i := first; i < last; i++ {
 		if k := p.t.Toks[i].Kind; k == token.Comment || k == token.BlockComment {
 			return true

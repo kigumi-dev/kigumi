@@ -118,6 +118,30 @@
       ]
     },
     {
+      "id": "fmt/comment_call_inline",
+      "kind": "fmt",
+      "path": "testdata/fmt/comment_call_inline.txtar",
+      "mode": [
+        "format"
+      ]
+    },
+    {
+      "id": "fmt/comment_call_multiline",
+      "kind": "fmt",
+      "path": "testdata/fmt/comment_call_multiline.txtar",
+      "mode": [
+        "format"
+      ]
+    },
+    {
+      "id": "fmt/comment_decorator",
+      "kind": "fmt",
+      "path": "testdata/fmt/comment_decorator.txtar",
+      "mode": [
+        "format"
+      ]
+    },
+    {
       "id": "fmt/comment_import_names",
       "kind": "fmt",
       "path": "testdata/fmt/comment_import_names.txtar",
@@ -137,6 +161,22 @@
       "id": "fmt/comment_in_continuation",
       "kind": "fmt",
       "path": "testdata/fmt/comment_in_continuation.txtar",
+      "mode": [
+        "format"
+      ]
+    },
+    {
+      "id": "fmt/comment_inline_positions",
+      "kind": "fmt",
+      "path": "testdata/fmt/comment_inline_positions.txtar",
+      "mode": [
+        "format"
+      ]
+    },
+    {
+      "id": "fmt/comment_line_end",
+      "kind": "fmt",
+      "path": "testdata/fmt/comment_line_end.txtar",
       "mode": [
         "format"
       ]

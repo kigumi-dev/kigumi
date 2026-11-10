@@ -10,18 +10,30 @@ func (p *printer) recordLit(id syntax.NodeID) {
 	p.expr(r.Head().ID())
 	entries := r.Fields()
 	closing := p.lastTok(id)
-	if entries.Len() == 1 && !p.anyCommentIn(p.lastTok(r.Head().ID())+1, closing) {
-		p.write(" { ")
-		p.recordEntry(entries.ItemID(0))
-		p.write(" }")
-		return
+	open, _ := p.bracePairAfter(int(p.lastTok(r.Head().ID()) + 1))
+	if entries.Len() == 1 {
+		e := entries.ItemID(0)
+		if !p.noteLineBreak(open+1, closing) {
+			p.write(" { ")
+			p.inlineBlocks(open+1, p.firstTok(e), false, true)
+			p.recordEntry(e)
+			p.inlineBlocks(p.lastTok(e)+1, closing, true, false)
+			p.write(" }")
+			return
+		}
 	}
 	p.write(" {")
-	p.newline()
+	p.openBraceComment(open)
 	p.indent++
-	for e := range entries.IDs() {
+	ids := entries.AppendIDs(nil)
+	for i, e := range ids {
+		next := closing
+		if i+1 < len(ids) {
+			next = p.firstTok(ids[i+1])
+		}
 		p.flushComments(p.firstTok(e))
 		p.withIndent(func() { p.recordEntry(e) })
+		p.inlineBlocks(p.lastTok(e)+1, next, true, false)
 		p.trailing(p.lastTok(e), true)
 		p.newline()
 	}
@@ -45,12 +57,7 @@ func (p *printer) recordEntry(e syntax.NodeID) {
 // tupleLit prints `(a, b, ...)`; a single element keeps its trailing comma
 // so it reparses as a tuple and not a grouped expression.
 func (p *printer) tupleLit(id syntax.NodeID) {
-	p.write("(")
-	p.exprList(id)
-	if p.t.List(id).Len() == 1 {
-		p.write(",")
-	}
-	p.write(")")
+	p.exprListDelimited(id, p.firstTok(id), p.lastTok(id), p.t.List(id).Len() == 1)
 }
 
 func (p *printer) lambda(id syntax.NodeID) {

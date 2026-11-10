@@ -27,43 +27,104 @@ func (p *printer) docLines(d syntax.DeclView) {
 	if !doc.Valid() || p.cm.next > int(doc.Index()) {
 		return
 	}
-	for i := syntax.FirstDocTok(p.t, doc.Index()); i <= doc.Index(); i++ {
+	start := syntax.FirstDocTok(p.t, doc.Index())
+	for i := start; i <= doc.Index(); i++ {
 		switch p.t.Toks[i].Kind {
 		case token.DocComment, token.Comment, token.BlockComment:
 			p.write(p.tok(i))
 			p.newline()
 		}
 	}
+	// A comment the attribute lines own can sit before the doc block once the
+	// doc moves above the attributes; print it beside the header, not skip it.
+	p.flushComments(start)
 	p.skipTo(doc.Index() + 1)
 }
 
 func (p *printer) attrs(list syntax.ListView) {
+	views := make([]syntax.View, 0, list.Len())
+	for v := range list.Views() {
+		views = append(views, v)
+	}
 	var impls []syntax.NodeID
-	for a := range list.Views() {
-		if a.Kind() == syntax.UnsafeGuarantee {
-			p.unsafeGuarantee(a.ID())
-			p.attrLineEnd(a.ID())
+	// deferLineEnd holds the comments that ended impl lines printed below,
+	// where they cannot stay; they move just above the merged line.
+	var deferLineEnd []string
+	for i, v := range views {
+		if v.Kind() == syntax.UnsafeGuarantee {
+			p.unsafeGuarantee(v.ID())
+			p.attrLineEnd(v.ID())
 			continue
 		}
-		attr := a.AsAttr()
+		attr := v.AsAttr()
 		if attr.Path().Join(".") == "impl" {
-			impls = attr.Args().AppendIDs(impls)
+			impls = append(impls, v.ID())
+			if i < len(views)-1 {
+				if c, ok := p.takeLineEnd(v.ID()); ok {
+					deferLineEnd = append(deferLineEnd, c)
+				}
+			}
 			continue
 		}
 		p.attr(attr)
-		p.attrLineEnd(a.ID())
+		p.attrLineEnd(v.ID())
 	}
-	if len(impls) > 0 {
-		p.write("@impl(")
-		for i, e := range impls {
-			if i > 0 {
-				p.write(", ")
-			}
-			p.expr(e)
-		}
-		p.write(")")
+	if len(impls) == 0 {
+		return
+	}
+	// The merged `@impl(...)` line cannot hold the comments of the separate
+	// lines it replaces, so they move above it; the last one keeps its line.
+	last := impls[len(impls)-1]
+	p.flushComments(p.firstTok(last))
+	for _, c := range deferLineEnd {
+		p.write(c)
 		p.newline()
 	}
+	// A comment that ends the last impl entry's line inside the parentheses
+	// stays on the merged line, after the closed argument list.
+	lastEntryComment, hasLastEntryComment := p.takeArgLineEnd(last)
+	p.write("@impl(")
+	first := true
+	for _, id := range impls {
+		for _, e := range p.t.View(id).AsAttr().Args().AppendIDs(nil) {
+			if !first {
+				p.write(", ")
+			}
+			first = false
+			p.expr(e)
+		}
+	}
+	p.write(")")
+	if hasLastEntryComment {
+		p.write(" " + lastEntryComment)
+	}
+	p.attrLineEnd(last)
+}
+
+// takeArgLineEnd consumes the line comment that ends the last argument entry
+// of an attribute, skipping the comma the printer writes itself.
+func (p *printer) takeArgLineEnd(id syntax.NodeID) (string, bool) {
+	ids := p.t.View(id).AsAttr().Args().AppendIDs(nil)
+	if len(ids) == 0 {
+		return "", false
+	}
+	j, ok := p.sameLineComment(p.lastTok(ids[len(ids)-1]), true)
+	if !ok || p.hasCommentBefore(j) {
+		return "", false
+	}
+	p.cm.next = int(j) + 1
+	return p.tok(j), true
+}
+
+// takeLineEnd consumes the comment that ends the line of the attribute id and
+// returns its text, so a later layout can print it in its new place.
+func (p *printer) takeLineEnd(id syntax.NodeID) (string, bool) {
+	j, ok := p.sameLineComment(p.lastTok(id), false)
+	if !ok || p.hasCommentBefore(j) {
+		return "", false
+	}
+	p.cm.next = int(j) + 1
+	return p.tok(j), true
 }
 
 // attrLineEnd ends an attribute's line with its comment and keeps the own-line comments that follow it above the next attribute or the declaration.
@@ -76,11 +137,18 @@ func (p *printer) attrLineEnd(id syntax.NodeID) {
 
 func (p *printer) attr(a syntax.AttrView) {
 	p.write("@" + a.Path().Join("."))
-	if args := a.Args(); args.Valid() {
+	args := a.Args()
+	if !args.Valid() {
+		return
+	}
+	open := p.lparenAfter(p.lastTok(a.Path().ID()))
+	if open == 0 {
 		p.write("(")
 		p.exprList(args.ID())
 		p.write(")")
+		return
 	}
+	p.exprListDelimited(args.ID(), open, p.lastTok(a.ID()), false)
 }
 
 func (p *printer) visibility(v syntax.VisibilityView) {
@@ -116,6 +184,7 @@ func (p *printer) fnDecl(id syntax.NodeID) {
 	if f.Mods()&syntax.ModBareErr != 0 {
 		p.write(" !")
 	} else if ret := f.Ret(); ret.Valid() && (stray || !p.isVoidType(ret.ID())) {
+		p.inlineBlocks(p.lastTok(f.Params().ID())+1, p.firstTok(ret.ID()), true, false)
 		p.write(" -> ")
 		p.typ(ret.ID())
 	}
@@ -123,6 +192,7 @@ func (p *printer) fnDecl(id syntax.NodeID) {
 		p.write(" !")
 	}
 	if body := f.Body(); body.Valid() {
+		p.inlineBlocks(uint32(p.cm.next), p.firstTok(body.ID()), true, false)
 		p.write(" ")
 		p.block(body.ID())
 	}

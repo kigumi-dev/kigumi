@@ -36,7 +36,7 @@ func (p *printer) emptyBlock(id syntax.NodeID) {
 		return
 	}
 	p.write("{")
-	p.newline()
+	p.openBraceComment(p.firstTok(id))
 	p.indent++
 	p.flushComments(closing)
 	p.indent--

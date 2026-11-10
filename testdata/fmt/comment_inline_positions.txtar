@@ -1,0 +1,39 @@
+-- src --
+import /* binding */ json from std/json // imported
+
+static mut /* static name */ S: Int = 0
+const /* const name */ K: Int = 1
+
+type R = {
+    pub a Int
+}
+
+fn positions(x: Int, xs: Array[Int]) -> Bool {
+    let one = R { a: 1 /* only */ }
+    let many = R { a: 1 /* first */, b: 2 /* second */ }
+    let grouped = (x /* grouped */)
+    for i in 0..3 /* head */ {}
+    let cast = x as /* cast */ u8
+    x is /* type */ Int
+}
+-- expect --
+import /* binding */ json from std/json // imported
+
+static mut /* static name */ S: Int = 0
+const /* const name */ K: Int = 1
+
+type R = {
+    pub a Int
+}
+
+fn positions(x: Int, xs: Array[Int]) -> Bool {
+    let one = R { a: 1 /* only */ }
+    let many = R {
+        a: 1 /* first */
+        b: 2 /* second */
+    }
+    let grouped = (x /* grouped */)
+    for i in 0..3 /* head */ {}
+    let cast = x as /* cast */ u8
+    x is /* type */ Int
+}

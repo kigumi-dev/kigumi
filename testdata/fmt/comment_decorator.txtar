@@ -1,0 +1,64 @@
+-- src --
+@derive(Eq) // derive line
+@repr(C) // repr line
+pub type Pair = {
+    pub a Int
+    pub b Int
+}
+
+@derive(Eq, /* why */ Hash) // args comment
+pub fn first() {}
+
+/// documented
+@derive(Eq) // after doc
+pub fn second() {}
+
+@derive(Eq) // before doc
+/// moved above the attribute
+pub fn third() {}
+
+@impl(Display) // dropped entry line
+@impl(
+    Debug, // last entry line
+)
+pub fn fourth() {}
+
+@unsafeGuarantee(Send) // guarantee line
+pub type Handle = resource {
+    fd i32
+}
+
+fn params(@unsafeGuarantee(Send) /* before name */ x: Int) {}
+-- expect --
+@derive(Eq) // derive line
+@repr(C) // repr line
+pub type Pair = {
+    pub a Int
+    pub b Int
+}
+
+@derive(Eq, /* why */ Hash) // args comment
+pub fn first() {}
+
+/// documented
+@derive(Eq) // after doc
+pub fn second() {}
+
+/// moved above the attribute
+// before doc
+@derive(Eq)
+pub fn third() {}
+
+// dropped entry line
+@impl(Display, Debug) // last entry line
+pub fn fourth() {}
+
+@unsafeGuarantee(Send) // guarantee line
+pub type Handle = resource {
+    fd i32
+}
+
+fn params(
+    /* before name */
+    @unsafeGuarantee(Send) x: Int,
+) {}

@@ -4,6 +4,7 @@ import (
 	devfixture "kigumi/internal/devkit/fixture"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"sort"
 	"strings"
@@ -174,6 +175,47 @@ func hasSyntaxError(tree *syntax.Tree) bool {
 		}
 	}
 	return false
+}
+
+// TestFormattingKeepsEveryComment fails when formatting loses or duplicates a
+// comment in a fixture corpus. Comments may move (an attribute reordered or a
+// list put one element per line) but each must survive exactly once.
+func TestFormattingKeepsEveryComment(t *testing.T) {
+	for _, kind := range []string{"fmt", "parser"} {
+		files, err := filepath.Glob("../../../testdata/" + kind + "/*.txtar")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(files) == 0 {
+			t.Fatalf("no %s fixtures", kind)
+		}
+		for _, path := range devfixture.Shards(files) {
+			t.Run(kind+"/"+filepath.Base(path), func(t *testing.T) {
+				src := readSrc(t, path)
+				tree := syntax.Parse(token.NewFile("a", []byte(src)))
+				if hasSyntaxError(tree) {
+					t.Skip("fixture has errors")
+				}
+				got := printer.Print(tree)
+				if want, have := commentTexts(src), commentTexts(got); !reflect.DeepEqual(want, have) {
+					t.Errorf("comments changed\n--- want ---\n%q\n--- got ---\n%q\n--- output ---\n%s", want, have, got)
+				}
+			})
+		}
+	}
+}
+
+// commentTexts is every comment token's text, sorted so a comment may move
+// between lines but a lost or duplicated one still shows up as a difference.
+func commentTexts(src string) []string {
+	var out []string
+	for _, tk := range syntax.Parse(token.NewFile("x", []byte(src))).Toks {
+		if tk.Kind.IsTrivia() && tk.Kind != token.Newline {
+			out = append(out, tk.Text([]byte(src)))
+		}
+	}
+	sort.Strings(out)
+	return out
 }
 
 func readSrc(t *testing.T, path string) string {

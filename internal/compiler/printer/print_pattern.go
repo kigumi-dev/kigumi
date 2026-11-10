@@ -3,6 +3,15 @@ package printer
 import "kigumi/internal/compiler/syntax"
 
 func (p *printer) pattern(id syntax.NodeID) {
+	if id == 0 {
+		return
+	}
+	p.leadingInline(id)
+	p.patternNode(id)
+	p.trailingInline(id)
+}
+
+func (p *printer) patternNode(id syntax.NodeID) {
 	v := p.t.View(id)
 	switch v.Kind() {
 	case syntax.PatWildcard, syntax.PatBind:

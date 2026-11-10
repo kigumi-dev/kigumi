@@ -3,13 +3,13 @@ package printer
 import "kigumi/internal/compiler/syntax"
 
 func (p *printer) fields(fields syntax.ListView) {
-	_, closing := p.bracePairAfter(p.cm.next)
+	open, closing := p.bracePairAfter(p.cm.next)
 	if fields.Len() == 0 {
-		p.commentsOrEmpty(closing)
+		p.commentsOrEmpty(open, closing)
 		return
 	}
 	p.write("{")
-	p.newline()
+	p.openBraceComment(open)
 	p.indent++
 	for i, fv := range fields.Enumerate() {
 		f := fv.AsField()
@@ -39,13 +39,13 @@ func (p *printer) fields(fields syntax.ListView) {
 }
 
 // commentsOrEmpty prints `{}` for a body with nothing in it, or the comments alone when it holds some.
-func (p *printer) commentsOrEmpty(closing uint32) {
+func (p *printer) commentsOrEmpty(open, closing uint32) {
 	if !p.hasCommentBefore(closing) {
 		p.write("{}")
 		return
 	}
 	p.write("{")
-	p.newline()
+	p.openBraceComment(open)
 	p.indent++
 	p.flushComments(closing)
 	p.indent--

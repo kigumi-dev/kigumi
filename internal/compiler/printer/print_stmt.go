@@ -11,7 +11,7 @@ func (p *printer) block(id syntax.NodeID) {
 		return
 	}
 	p.write("{")
-	p.newline()
+	p.openBraceComment(p.firstTok(id))
 	p.indent++
 	for c := stmts.Cursor(); c.Next(); {
 		s := c.ID()
@@ -127,12 +127,14 @@ func (p *printer) matchExpr(id syntax.NodeID) {
 	m := p.t.View(id).AsMatch()
 	p.write("match ")
 	p.expr(m.Scrutinee().ID())
+	open, _ := p.bracePairAfter(int(p.lastTok(m.Scrutinee().ID()) + 1))
 	p.write(" {")
-	p.newline()
+	p.openBraceComment(open)
 	p.indent++
 	var last uint32
 	for v := range m.Arms().Views() {
 		arm := v.AsArm()
+		p.leadingInline(arm.ID())
 		p.flushComments(p.firstTok(arm.ID()))
 		p.pattern(arm.Pattern().ID())
 		if guard := arm.Guard(); guard.Valid() {

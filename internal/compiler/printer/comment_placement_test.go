@@ -64,7 +64,7 @@ func TestMultiLineStatementKeepsEveryComment(t *testing.T) {
 				t.Errorf("%s: comment %q lost or duplicated:\n%s", name, line[i:], once)
 			}
 		}
-		if twice := format(once); name != "decorated" && twice != once {
+		if twice := format(once); twice != once {
 			t.Errorf("%s: second run differs:\n%s", name, twice)
 		}
 	}

@@ -1,0 +1,44 @@
+-- src --
+fn multiline(x: Int, y: Int) -> Int {
+    let a = call(
+        x, // first
+        /* before second */ y, // second
+    ) // tail
+    let b = call(x, /* same line */ y)
+    let c = call(
+        x /* before comma */,
+        y /* after comma */,
+    )
+    let t = (
+        x, // tuple first
+        y, // tuple second
+    )
+    let u = (x /* u1 */, y /* u2 */)
+    let v = call(
+        if x > 0 { 1 } else { 2 } /* broken arg */,
+    )
+    a + b + c
+}
+-- expect --
+fn multiline(x: Int, y: Int) -> Int {
+    let a = call(
+        x, // first
+        /* before second */
+        y, // second
+    ) // tail
+    let b = call(x, /* same line */ y)
+    let c = call(x /* before comma */, y /* after comma */)
+    let t = (
+        x, // tuple first
+        y, // tuple second
+    )
+    let u = (x /* u1 */, y /* u2 */)
+    let v = call(
+        if x > 0 {
+            1
+        } else {
+            2
+        } /* broken arg */,
+    )
+    a + b + c
+}

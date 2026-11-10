@@ -87,7 +87,7 @@ func (p *printer) file(root syntax.NodeID) {
 		if tv != nil {
 			p.importComments(tv)
 		} else {
-			p.flushDocComments(p.firstTok(d))
+			p.flushDeclHeader(d)
 		}
 		p.withIndent(func() { p.decl(d) })
 		if tv != nil {
@@ -143,20 +143,20 @@ func (p *printer) decl(id syntax.NodeID) {
 
 func (p *printer) declList(list syntax.NodeID) {
 	items := p.t.List(list)
-	_, closing := p.bracePairAfter(p.cm.next)
+	open, closing := p.bracePairAfter(p.cm.next)
 	if items.Len() == 0 {
-		p.commentsOrEmpty(closing)
+		p.commentsOrEmpty(open, closing)
 		return
 	}
 	p.write("{")
-	p.newline()
+	p.openBraceComment(p.braceBefore(p.firstTok(items.ItemID(0))))
 	p.indent++
 	for c := items.Cursor(); c.Next(); {
 		d := c.ID()
 		if c.Index() > 0 {
 			p.separateDecls(items.ItemID(c.Index()-1), d)
 		}
-		p.flushDocComments(p.firstTok(d))
+		p.flushDeclHeader(d)
 		p.withIndent(func() { p.decl(d) })
 		p.endLine(d)
 	}

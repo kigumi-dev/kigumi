@@ -1,6 +1,8 @@
 package printer
 
 import (
+	"strings"
+
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/lang/token"
 )
@@ -18,6 +20,12 @@ func (p *printer) expr(id syntax.NodeID) {
 	if id == 0 {
 		return
 	}
+	p.leadingInline(id)
+	p.exprNode(id)
+	p.trailingInline(id)
+}
+
+func (p *printer) exprNode(id syntax.NodeID) {
 	v := p.t.View(id)
 	switch v.Kind() {
 	case syntax.Ident, syntax.IntLit, syntax.FloatLit, syntax.CharLit, syntax.BoolLit:
@@ -33,7 +41,9 @@ func (p *printer) expr(id syntax.NodeID) {
 			return
 		}
 		p.write("(")
+		p.inlineBlocks(p.firstTok(id)+1, p.firstTok(inner.ID()), false, true)
 		p.expr(inner.ID())
+		p.inlineBlocks(p.lastTok(inner.ID())+1, p.lastTok(id), true, false)
 		p.write(")")
 	case syntax.Unary:
 		u := v.AsUnary()
@@ -183,6 +193,10 @@ func (p *printer) keywordOperand(v syntax.View) syntax.View {
 // source keeps its own line, indented once for the whole chain.
 func (p *printer) member(name syntax.TokenRef, dot string) {
 	if nameTok := name.Index(); nameTok >= 2 && p.t.Toks[nameTok-2].Kind == token.Newline {
+		if j := p.pendingLineComment(nameTok - 1); j > 0 {
+			p.write(" " + p.tok(j))
+			p.cm.next = int(j) + 1
+		}
 		p.newline()
 		if !p.chain {
 			p.indent++
@@ -190,5 +204,25 @@ func (p *printer) member(name syntax.TokenRef, dot string) {
 		}
 		p.flushComments(uint32(nameTok - 1))
 	}
+	// A block comment that ends the receiver keeps a space before the dot so
+	// the two tokens do not fuse.
+	if strings.HasSuffix(p.sb.String(), "*/") {
+		p.write(" ")
+	}
 	p.write(dot + name.Text())
+}
+
+// pendingLineComment is the first unprinted line comment before limit that
+// ends the line it is on, so a chain segment keeps the comment beside it.
+func (p *printer) pendingLineComment(limit uint32) uint32 {
+	for i := p.cm.next; i < int(limit) && i < len(p.t.Toks); i++ {
+		if p.t.Toks[i].Kind != token.Comment {
+			continue
+		}
+		if i > 0 && p.t.Toks[i-1].Kind == token.Newline {
+			return 0
+		}
+		return uint32(i)
+	}
+	return 0
 }

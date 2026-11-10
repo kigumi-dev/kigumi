@@ -79,6 +79,17 @@ func (p *printer) skipTo(limit uint32) {
 	}
 }
 
+// flushDeclHeader prints the free-standing comments above a declaration but
+// stops before its attributes, so a comment that ended an attribute's line is
+// printed with that attribute and the doc block keeps its place above them.
+func (p *printer) flushDeclHeader(d syntax.NodeID) {
+	limit := p.firstTok(d)
+	if attrs := p.t.View(d).AsDecl().Attrs(); attrs.Valid() && attrs.Len() > 0 {
+		limit = p.firstTok(attrs.ItemID(0))
+	}
+	p.flushDocComments(limit)
+}
+
 // blankBefore reports whether the token at i is preceded by an empty line.
 func (p *printer) blankBefore(i int) bool {
 	if i == 0 {

@@ -20,9 +20,31 @@ func (p *printer) binary(id syntax.NodeID) {
 	case token.DotDot, token.DotDotEq:
 		p.write(b.Op().Text())
 	default:
-		p.write(" " + b.Op().Text() + " ")
+		p.write(" " + b.Op().Text())
+		if c, ok := p.takeLineEndOp(b.Op().Index()); ok {
+			p.write(" " + c)
+			p.indent++
+			p.newline()
+			p.expr(b.Right().ID())
+			p.indent--
+			return
+		}
+		p.write(" ")
 	}
+	p.inlineBlocks(b.Op().Index()+1, p.firstTok(b.Right().ID()), false, true)
 	p.expr(b.Right().ID())
+}
+
+// takeLineEndOp consumes the comment that ends the operator's line, so the
+// right operand moves to the next line with the comment still beside the
+// operator instead of trailing the whole statement.
+func (p *printer) takeLineEndOp(op uint32) (string, bool) {
+	j, ok := p.sameLineComment(op, false)
+	if !ok || p.hasCommentBefore(j) {
+		return "", false
+	}
+	p.cm.next = int(j) + 1
+	return p.tok(j), true
 }
 
 // isLeadingOp reports whether k's canonical multiline form leads with the

@@ -1,0 +1,70 @@
+-- src --
+fn braces(x: Int) { // body open
+    if x > 0 { // then open
+        print "a"
+    } else { // else open
+        print "b"
+    }
+    match x { // match open
+        1 -> 2
+        _ -> 3
+    } // match close
+}
+
+type Rec = { // record open
+    pub a Int // field a
+} // record close
+
+extern(C) { // extern open
+    fn abs(x: i32) -> i32 // abs
+}
+
+fn expressions(x: Int, xs: Array[Int]) -> Int {
+    let sum = x + // trailing operator
+        1
+    let inline = x + /* before operand */ 1
+    let chain = xs
+        .map(f) // segment one
+        .filter(g) // segment two
+    let member = xs /* before dot */ .len()
+    let borrow = & /* before borrow */ x
+    return /* before value */ sum
+}
+
+fn signatures() /* before arrow */ -> Int { 1 }
+-- expect --
+fn braces(x: Int) { // body open
+    if x > 0 { // then open
+        print "a"
+    } else { // else open
+        print "b"
+    }
+    match x { // match open
+        1 -> 2
+        _ -> 3
+    } // match close
+}
+
+type Rec = { // record open
+    pub a Int // field a
+} // record close
+
+extern(C) { // extern open
+    fn abs(x: i32) -> i32 // abs
+}
+
+fn expressions(x: Int, xs: Array[Int]) -> Int {
+    let sum = x + // trailing operator
+        1
+    let inline = x + /* before operand */ 1
+    let chain = xs
+        .map(f) // segment one
+        .filter(g) // segment two
+    let member = xs /* before dot */ .len()
+    let borrow = & /* before borrow */ x
+    return /* before value */ sum
+}
+
+fn signatures() /* before arrow */ -> Int {
+    1
+}

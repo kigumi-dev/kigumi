@@ -5,7 +5,9 @@ import "kigumi/internal/compiler/syntax"
 func (p *printer) constDecl(id syntax.NodeID) {
 	p.prefix(id)
 	d := p.t.View(id).AsConstDecl()
-	p.write("const " + d.Name().Text())
+	p.write("const ")
+	p.inlineBlocks(uint32(p.cm.next), d.Name().Index(), false, true)
+	p.write(d.Name().Text())
 	if typ := d.Type(); typ.Valid() {
 		p.write(": ")
 		p.typ(typ.ID())
@@ -20,6 +22,7 @@ func (p *printer) staticDecl(id syntax.NodeID) {
 	if d.Flags()&syntax.FlagMut != 0 {
 		p.write("mut ")
 	}
+	p.inlineBlocks(uint32(p.cm.next), d.Name().Index(), false, true)
 	p.write(d.Name().Text() + ": ")
 	p.typ(d.Type().ID())
 	if value := d.Value(); value.Valid() {
@@ -30,7 +33,9 @@ func (p *printer) staticDecl(id syntax.NodeID) {
 func (p *printer) contextKeyDecl(id syntax.NodeID) {
 	p.prefix(id)
 	d := p.t.View(id).AsContextKeyDecl()
-	p.write("context " + d.Name().Text() + ": ")
+	p.write("context ")
+	p.inlineBlocks(uint32(p.cm.next), d.Name().Index(), false, true)
+	p.write(d.Name().Text() + ": ")
 	p.typ(d.Type().ID())
 }
 
@@ -44,6 +49,7 @@ func (p *printer) importDecl(id syntax.NodeID) {
 	if binding.Kind() == syntax.List {
 		p.importNames(id, binding.AsList().AppendIDs(nil))
 	} else {
+		p.inlineBlocks(uint32(p.cm.next), binding.Tok().Index(), false, true)
 		p.write(binding.Tok().Text())
 	}
 	p.write(" from " + d.Path().Join("/"))
