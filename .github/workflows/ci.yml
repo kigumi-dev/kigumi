@@ -29,6 +29,8 @@ jobs:
         index: ["0", "1", "2", "3"]
     env:
       KIGUMI_TEST_SHARD: ${{ matrix.index }}/4
+      # TestRunCorpusEngines also reruns each fixture of the shard under --secret-san.
+      KIGUMI_SECRET_SAN_CORPUS: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5

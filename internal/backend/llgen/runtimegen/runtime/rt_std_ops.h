@@ -195,6 +195,7 @@ enum std_op {
     OP_SECRET_MASK_LT_U64 = 190,
     OP_SECRET_SELECT_U64 = 191,
     OP_SECRET_EQ_BYTES = 192,
+    OP_SECRET_DECLASSIFY_BYTES = 193,
 };
 #define RT_STD_OPS_RETIRED_CASES case OP_BYTES_SLICE: case OP_BYTES_ZEROS: case OP_BYTES_FILL: case OP_BYTES_FROM_ARRAY: case OP_BYTES_CONCAT: case OP_SHARED_NEW: case OP_SHARED_GET: case OP_SHARED_DOWNGRADE: case OP_NET_HTTP: case OP_STRING_SLICE_BYTES: case OP_ARRAY_CLONE: case OP_BYTES_TRY_FILL: case OP_ARRAY_TRY_COPY_RANGE: case OP_ARRAY_TRY_REVERSE: case OP_STRING_TRY_CONCAT: case OP_ARRAY_TRY_CONCAT: case OP_ARRAY_TRY_APPEND_ALL: case OP_ARRAY_TRY_CLONE: case OP_BOX_NEW: case OP_STRING_TRY_TRIM: case OP_STRING_TRY_TO_UPPER: case OP_STRING_TRY_TO_LOWER: case OP_STRING_TRY_SPLIT: case OP_TEXT_TRY_LINES: case OP_TEXT_TRY_GRAPHEMES: case OP_TEXT_TRY_REPLACE: case OP_TEXT_TRY_TRIM_PREFIX: case OP_TEXT_TRY_TRIM_SUFFIX: case OP_ARRAY_TRY_JOIN: case OP_STRING_BUILDER_TRY_PUSH: case OP_STRING_BUILDER_TRY_PUSH_BYTE: case OP_BYTES_INDEX_OF: case OP_STRING_CONTAINS: case OP_BYTES_LAST_INDEX_OF:
 #ifndef KIGUMI_OP_SELECT
@@ -357,6 +358,7 @@ enum std_op {
 #define KIGUMI_OP_SECRET_MASK_LT_U64
 #define KIGUMI_OP_SECRET_SELECT_U64
 #define KIGUMI_OP_SECRET_EQ_BYTES
+#define KIGUMI_OP_SECRET_DECLASSIFY_BYTES
 #define KIGUMI_STD_DYNAMIC
 #endif
 #ifdef KIGUMI_STD_DYNAMIC
@@ -511,6 +513,7 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "secret.maskLtU64")) return OP_SECRET_MASK_LT_U64;
     if (!strcmp(k, "secret.selectU64")) return OP_SECRET_SELECT_U64;
     if (!strcmp(k, "secret.eqBytes")) return OP_SECRET_EQ_BYTES;
+    if (!strcmp(k, "secret.declassifyBytes")) return OP_SECRET_DECLASSIFY_BYTES;
     const char* dot = strrchr(k, '.');
     if (dot) {
         const char* m = dot + 1;

@@ -115,6 +115,8 @@ type Machine struct {
 	// cancelTicks counts instructions for the session's cancellation check;
 	// the shared flag is read every cancelEvery ticks.
 	cancelTicks int
+	// branching holds the callbacks whose results the running primitives branch on (SecretSan).
+	branching []*obj
 	// witnessed memoizes Supports' answer for a requirement and a method of its name.
 	witnessed map[[2]sem.EntityID]bool
 	// trace is the SecretSan two-run trace, nil unless Options.Trace is set.

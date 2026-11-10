@@ -52,7 +52,7 @@ type shared struct {
 	// shadows is SecretSan's value-label table (nil unless Options.SecretSan).
 	// A value can migrate to another lane with a task, so the table is shared.
 	shadowMu   sync.Mutex
-	shadows    map[*obj]shadow
+	shadows    map[*obj]label
 	mem        atomic.Int64
 	faultN     atomic.Int64
 	faultArmed atomic.Bool

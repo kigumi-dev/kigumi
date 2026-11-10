@@ -48,7 +48,7 @@ func CheckFixture(t *testing.T, path string, std []*sem.Package) (*sem.Result, s
 	var head string
 	for _, s := range parseTxtar(string(data)) {
 		switch s.name {
-		case "expect", "stdout", "stderr", "exit", "engines":
+		case "expect", "stdout", "stderr", "exit", "engines", "secret-san":
 			continue
 		}
 		if s.name != "src" && (!strings.HasSuffix(s.name, ".kg") || filepath.Base(s.name) == "mod.kg") {

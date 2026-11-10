@@ -614,3 +614,5 @@ direct SecretSelect
 key secret.selectU64
 op 192 SECRET_EQ_BYTES primitive (bytes, bytes) -> int
 key secret.eqBytes
+op 193 SECRET_DECLASSIFY_BYTES primitive (bytes) -> bytes
+key secret.declassifyBytes

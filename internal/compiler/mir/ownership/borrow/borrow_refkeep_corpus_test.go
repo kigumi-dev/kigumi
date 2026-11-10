@@ -108,7 +108,7 @@ func corpusSource(data string, semFixture bool) (string, bool) {
 			if !strings.Contains(body, "mir: planned") {
 				return "", false
 			}
-		case "stdout", "stderr", "exit", "engines", "expect":
+		case "stdout", "stderr", "exit", "engines", "expect", "secret-san":
 		default:
 			return "", false
 		}

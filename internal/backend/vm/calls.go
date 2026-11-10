@@ -11,19 +11,13 @@ func (m *Machine) callPlanned(in *midir.Inst, ic *instCode, args []*obj) *obj {
 	p := m.planFor(in, ic)
 	switch p.kind {
 	case planHost:
-		if m.opts.SecretSan && hostEffect(p.key) {
-			m.checkHostIO(args, p.key)
-		}
-		r := p.host(m, p.ent, args)
-		m.chargeMemory(r)
+		r := m.callPrim(p.ent, p.key, p.host, args)
 		if p.lowered {
 			m.releaseOwned(p.ent, args)
 		}
 		return r
 	case planStd:
-		r := m.std(p.key, args)
-		m.chargeMemory(r)
-		return m.stdResultTaint(p.key, args, r)
+		return m.callPrim(p.ent, p.key, nil, args)
 	}
 	return m.callEntity(in, args)
 }
@@ -49,11 +43,7 @@ func (m *Machine) callEntity(in *midir.Inst, args []*obj) *obj {
 			m.abort("`" + key + "` is not available at compile time")
 		}
 		if h, ok := m.hostFor(in.Prov, key); ok && m.hostWins(lowered) {
-			if m.opts.SecretSan && hostEffect(key) {
-				m.checkHostIO(args, key)
-			}
-			r := h(m, ent, args)
-			m.chargeMemory(r)
+			r := m.callPrim(ent, key, h, args)
 			if lowered {
 				m.releaseOwned(ent, args)
 			}
@@ -63,10 +53,7 @@ func (m *Machine) callEntity(in *midir.Inst, args []*obj) *obj {
 	if lowered {
 		return m.call(f, args)
 	}
-	key := m.stdKey(ent)
-	r := m.std(key, args)
-	m.chargeMemory(r)
-	return m.stdResultTaint(key, args, r)
+	return m.callPrim(ent, m.stdKey(ent), nil, args)
 }
 
 // releaseOwned drops what the lowered body would have consumed.
@@ -81,10 +68,8 @@ func (m *Machine) releaseOwned(fn sem.EntityID, args []*obj) {
 // stdKey names a bodiless std function the way the runtime's table does.
 func (m *Machine) stdKey(fn sem.EntityID) string { return opdef.StdKey(m.r, fn, true) }
 
-// closure builds a function value: a lowered body with its captures (or
-// bound witnesses) in the environment, or a std primitive by key. A witness
-// bound to a std function (rt_std_bind) follows callEntity's priority: the
-// host accelerator wins over a real body when both exist.
+// closure builds a function value from a lowered body and its captures, or a std primitive by key;
+// a witness bound to a std function (rt_std_bind) lets the host accelerator win over a body, as callEntity does.
 func (m *Machine) closure(in *midir.Inst, ic *instCode, caps []*obj) *obj {
 	c := newObj(kClosure)
 	cl := c.clo()
@@ -122,7 +107,7 @@ func (m *Machine) callValue(fv *obj, args []*obj) *obj {
 		return m.asyncValueCall(fv, args)
 	}
 	if fv.cstd() != "" {
-		return m.stdResultTaint(fv.cstd(), args, m.callStdValue(fv, args))
+		return m.callStdValue(fv, args)
 	}
 	r := m.invoke(fv.cfn(), fv.cenv(), fv.bind, args)
 	m.resultTick(r, args)

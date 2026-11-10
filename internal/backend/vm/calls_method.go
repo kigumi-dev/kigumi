@@ -59,8 +59,7 @@ func (m *Machine) dispatch(fn sem.EntityID, all []*obj) *obj {
 			m.abort("`" + key + "` is not available at compile time")
 		}
 		if h, ok := m.hostForEnt(fn, key); ok && m.hostWins(lowered) {
-			r := h(m, fn, all)
-			m.chargeMemory(r)
+			r := m.callPrim(fn, key, h, all)
 			m.releaseArgs(fn, all)
 			return r
 		}
@@ -68,8 +67,7 @@ func (m *Machine) dispatch(fn sem.EntityID, all []*obj) *obj {
 	if lowered {
 		return m.invoke(f, nil, false, all)
 	}
-	r := m.std(m.stdKey(fn), all)
-	m.chargeMemory(r)
+	r := m.callPrim(fn, m.stdKey(fn), nil, all)
 	m.releaseArgs(fn, all)
 	return r
 }

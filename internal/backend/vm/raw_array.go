@@ -146,6 +146,7 @@ func (m *Machine) rawWithMut(a []*obj) *obj {
 	defer func() {
 		inner := cell.inner
 		cell.inner = nil
+		m.joinWrite(base, inner)
 		if base.k == kRawArray && r.store(i, inner) {
 			m.release(inner)
 			m.release(cell)

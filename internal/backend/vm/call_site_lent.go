@@ -28,7 +28,11 @@ func (m *Machine) callValueAs(fv *obj, args []*obj, lent, given uint32) *obj {
 
 // callValueLent is how a primitive calls its callback: every argument is a borrow of what the primitive holds.
 func (m *Machine) callValueLent(fv *obj, args []*obj) *obj {
-	return m.callValueAs(fv, args, 1<<31-1, 0)
+	r := m.callValueAs(fv, args, 1<<31-1, 0)
+	if m.opts.SecretSan || m.trace != nil {
+		m.checkCallbackBranch(fv, r)
+	}
+	return r
 }
 
 func (m *Machine) callSite(in *midir.Inst, args []*obj) *obj {

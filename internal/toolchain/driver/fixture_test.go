@@ -26,9 +26,8 @@ func fixtureID(path string) string {
 	return "run/" + strings.TrimSuffix(filepath.Base(path), ".txtar")
 }
 
-// loadRunFixture writes a testdata/run fixture's source sections under a
-// fresh module root (`-- src --` is main/main.kg) and returns the expected
-// stdout, stderr and exit code.
+// loadRunFixture writes a testdata/run fixture's source sections under a fresh module root (`-- src --` is
+// main/main.kg) and returns the expected stdout, stderr and exit code.
 func loadRunFixture(t testing.TB, path string) (root, wantOut, wantErr string, wantExit int) {
 	t.Helper()
 	data, err := os.ReadFile(path)
@@ -50,8 +49,8 @@ func loadRunFixture(t testing.TB, path string) (root, wantOut, wantErr string, w
 			wantErr = body
 		case "exit":
 			wantExit, _ = strconv.Atoi(strings.TrimSpace(body))
-		case "engines":
-			// Consumed by fixtureEngines, not written as a file.
+		case "engines", "secret-san":
+			// Consumed by fixtureEngines and checkSecretSanRun, not written as a file.
 		default:
 			file := name
 			if file == "src" {
@@ -76,11 +75,8 @@ func loadRunFixture(t testing.TB, path string) (root, wantOut, wantErr string, w
 	return root, wantOut, wantErr, wantExit
 }
 
-// fixtureEngines reads a testdata/run fixture's optional `-- engines --`
-// section: "" (absent) runs everywhere, "native" only under TestAotCorpus
-// (a real extern(C) declaration the VM statically refuses, so
-// TestRunCorpus and TestRunCorpusEngines would otherwise have nothing
-// consistent to assert).
+// fixtureEngines reads a run fixture's optional `-- engines --` section: absent runs everywhere, "native" only under
+// TestAotCorpus (a real extern(C) declaration the VM statically refuses leaves the VM tests nothing to assert).
 func fixtureEngines(path string) string {
 	data, err := os.ReadFile(path)
 	if err != nil {

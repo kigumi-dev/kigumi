@@ -16,13 +16,8 @@ func (m *Machine) callStdValue(fv *obj, args []*obj) *obj {
 	// conversion) is dispatched as if called directly.
 	site, siteFn := m.site, m.siteFn
 	m.site, m.siteFn = m.valueSite(fv, len(fv.cenv().fields))
-	var r *obj
-	if h, ok := m.hostFor(fv.cprov(), fv.cstd()); ok {
-		r = h(m, fv.ent, all)
-	} else {
-		r = m.std(fv.cstd(), all)
-	}
-	m.chargeMemory(r)
+	h, _ := m.hostFor(fv.cprov(), fv.cstd())
+	r := m.callPrim(fv.ent, fv.cstd(), h, all)
 	m.site, m.siteFn = site, siteFn
 	if !stdHash(fv) {
 		m.scalarTick(r)

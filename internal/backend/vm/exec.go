@@ -77,16 +77,16 @@ func (m *Machine) exec(fr *frame, in *midir.Inst, ic *instCode) {
 		return
 	case midir.OpIsVariant:
 		v := deref(loc[in.Args[0]])
-		loc[in.Dst] = mkBool(v.k == kVariant && v.ent == in.Ent)
+		loc[in.Dst] = m.tagTest(loc[in.Args[0]], v.k == kVariant && v.ent == in.Ent)
 		return
 	case midir.OpPayload:
-		loc[in.Dst] = m.deriveTaint(retain(deref(loc[in.Args[0]]).fields[in.Index]), m.taintOf(loc[in.Args[0]]))
+		loc[in.Dst] = m.deriveTaint(retain(deref(loc[in.Args[0]]).fields[in.Index]), m.chainLabel(loc[in.Args[0]]))
 		return
 	case midir.OpIndex:
 		loc[in.Dst] = m.index(loc[in.Args[0]], loc[in.Args[1]])
 		return
 	case midir.OpCellGet:
-		loc[in.Dst] = m.deriveTaint(retain(loc[in.Args[0]].inner), m.taintOf(loc[in.Args[0]]))
+		loc[in.Dst] = m.deriveTaint(retain(loc[in.Args[0]].inner), m.chainLabel(loc[in.Args[0]]))
 		return
 	case midir.OpCall:
 		m.site, m.siteFn = in, f
@@ -94,11 +94,7 @@ func (m *Machine) exec(fr *frame, in *midir.Inst, ic *instCode) {
 			if m.opts.FaultInjectAt > 0 {
 				m.callTicks(f, in, loc)
 			}
-			var args []*obj
-			if m.opts.SecretSan {
-				args = m.gather(loc, in.Args)
-			}
-			loc[in.Dst] = m.postCall(in.Ent, args, m.callFrom(p.f, p.code, loc, in.Args), true)
+			loc[in.Dst] = m.postCall(in.Ent, m.callFrom(p.f, p.code, loc, in.Args))
 			return
 		}
 	}

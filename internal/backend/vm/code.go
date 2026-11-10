@@ -121,13 +121,13 @@ func (m *Machine) planCall(in *midir.Inst) *callPlan {
 			return nil
 		}
 		if h, ok := m.hostFor(in.Prov, key); ok && m.hostWins(lowered) {
-			return &callPlan{kind: planHost, host: h, ent: ent, lowered: lowered}
+			return &callPlan{kind: planHost, host: h, ent: ent, key: key, lowered: lowered}
 		}
 	}
 	if lowered {
 		return &callPlan{kind: planLowered, f: f, code: m.codeFor(f)}
 	}
-	return &callPlan{kind: planStd, key: m.stdKey(ent)}
+	return &callPlan{kind: planStd, ent: ent, key: m.stdKey(ent)}
 }
 
 func (m *Machine) gather(loc []*obj, ids []midir.LocalID) []*obj {

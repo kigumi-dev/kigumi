@@ -77,7 +77,7 @@ func (m *Machine) typeEnt(t sem.TypeID) sem.EntityID {
 
 func (m *Machine) field(r *obj, i int) *obj {
 	m.traceIndex("field", r, int64(i))
-	pt := m.taintOf(r)
+	pt := m.chainLabel(r)
 	r = deref(r)
 	if r.k == kBox {
 		r = r.inner
@@ -85,12 +85,11 @@ func (m *Machine) field(r *obj, i int) *obj {
 	return m.deriveTaint(retain(r.fields[i]), pt)
 }
 
-// fieldMove takes field i out of r without a retain: r's slot goes nil,
-// which release already treats as a no-op, so the field is dropped once
-// through whichever of r or the returned value reaches a drop first.
+// fieldMove takes field i out of r without a retain; the nil slot left behind makes release a no-op there,
+// so the field is dropped once, by whichever of r or the result is dropped first.
 func (m *Machine) fieldMove(r *obj, i int) *obj {
 	m.traceIndex("fieldmove", r, int64(i))
-	pt := m.taintOf(r)
+	pt := m.chainLabel(r)
 	r = deref(r)
 	if r.k == kBox {
 		r = r.inner

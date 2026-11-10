@@ -2,6 +2,7 @@ package vm
 
 import (
 	"io"
+	"strconv"
 
 	"kigumi/internal/compiler/mir"
 	"kigumi/internal/compiler/sem"
@@ -49,4 +50,24 @@ func RunReleasing(prog *mir.Program, opts Options, out, errOut io.Writer, atExit
 		m.release(res)
 	})
 	return settleRun(code, err, errOut)
+}
+
+// SinkRoles maps "op#position" to the sink role primArgTable or builtinTable gives that argument.
+func SinkRoles() map[string]string {
+	out := map[string]string{}
+	add := func(op string, args []primArg) {
+		for _, a := range args {
+			name := map[argRole]string{roleIndex: "index", roleSize: "size", roleAddress: "address", roleBranches: "branch"}[a.role]
+			if name != "" {
+				out[op+"#"+strconv.Itoa(a.at)] = name
+			}
+		}
+	}
+	for op, args := range primArgTable {
+		add(op, args)
+	}
+	for op, b := range builtinTable {
+		add(op, b.args)
+	}
+	return out
 }

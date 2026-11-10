@@ -1,14 +1,13 @@
 package vm
 
-// index is indexCore with the SecretSan checks: a secret index is a sink, and
-// an element of a shadowed aggregate carries the aggregate's label.
+// index is indexCore with the SecretSan checks: a secret index is a sink, and an element carries its aggregate's label.
 func (m *Machine) index(base, idx *obj) *obj {
 	m.traceIndexAt("index", base, idx)
 	if !m.opts.SecretSan {
 		return m.indexCore(base, idx)
 	}
 	m.checkIndex(idx)
-	return m.deriveTaint(m.indexCore(base, idx), m.taintOf(base))
+	return m.deriveTaint(m.indexCore(base, idx), m.chainLabel(base))
 }
 
 func (m *Machine) indexCore(base, idx *obj) *obj {
@@ -64,40 +63,15 @@ func (m *Machine) indexCore(base, idx *obj) *obj {
 	return retain(base.fields[i])
 }
 
-// setIndex is setIndexCore with the SecretSan index check and a recomputed
-// label for the container after the store.
+// setIndex is setIndexCore with the SecretSan index sink; the stored value's label joins the container's.
 func (m *Machine) setIndex(base, idx, v *obj) *obj {
 	m.traceIndexAt("setindex", base, idx)
 	if !m.opts.SecretSan {
 		return m.setIndexCore(base, idx, v)
 	}
 	m.checkIndex(idx)
-	old := m.setIndexCore(base, idx, v)
-	m.relabelContainer(base)
-	return old
-}
-
-// relabelContainer recomputes an aggregate's coarse label from its elements,
-// so overwriting a secret element with a public one stops shadowing the whole.
-func (m *Machine) relabelContainer(v *obj) {
-	v = derefRaw(v)
-	if v == nil {
-		return
-	}
-	switch v.k {
-	case kArray:
-		var t shadow
-		for _, e := range v.fields {
-			t = t.merge(m.taintOf(e))
-		}
-		m.replaceLabel(v, t)
-	case kRecord, kVariant:
-		var t shadow
-		for _, e := range v.fields {
-			t = t.merge(m.taintOf(e))
-		}
-		m.replaceLabel(v, t)
-	}
+	m.joinWrite(base, v)
+	return m.setIndexCore(base, idx, v)
 }
 
 func (m *Machine) setIndexCore(base, idx, v *obj) *obj {

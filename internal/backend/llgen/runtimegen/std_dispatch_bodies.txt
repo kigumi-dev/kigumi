@@ -412,6 +412,8 @@
  return rt_int((int64_t)secret_select_u64((uint64_t)a0->u.i, (uint64_t)a1->u.i, (uint64_t)a2->u.i), 64);
 @op SECRET_EQ_BYTES
  return rt_int((int64_t)secret_eq_bytes(a0, a1), 64);
+@op SECRET_DECLASSIFY_BYTES
+ return bytes_val(a0->u.s.data, a0->u.s.len);
 @op SUBTLE_CT_EQ
  return rt_bool(subtle_constant_time_eq(a0, a1));
 @cap KIGUMI_CAP_MEM_SECURE_ERASE mem.secure-erase

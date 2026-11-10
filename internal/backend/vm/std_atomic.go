@@ -15,21 +15,24 @@ func (m *Machine) atomicApply(op string, get func() *obj, set func(*obj), boxes 
 	if boxes != nil && m.opts.FaultInjectAt > 0 {
 		m.tick(boxes(op, old, args))
 	}
+	in, was := m.joinTaint(args), m.taintOf(old)
 	if op == "store" {
-		set(scalarCopy(deref(args[0])))
+		set(m.withTaint(scalarCopy(deref(args[0])), in))
 		return unitObj
 	}
-	res := scalarCopy(old)
+	res := m.withTaint(scalarCopy(old), was)
 	switch op {
 	case "load":
 	case "exchange":
-		set(scalarCopy(deref(args[0])))
+		set(m.withTaint(scalarCopy(deref(args[0])), in))
 	case "compareExchange":
 		if scalarEqual(old, deref(args[0])) {
-			set(scalarCopy(deref(args[1])))
+			set(m.withTaint(scalarCopy(deref(args[1])), in.merge(was)))
+		} else if in.tainted() {
+			set(m.withTaint(scalarCopy(old), in.merge(was)))
 		}
 	default:
-		set(mkInt(atomicInt(op, old.i, deref(args[0]).i, old.nkind()), old.nkind()))
+		set(m.withTaint(mkInt(atomicInt(op, old.i, deref(args[0]).i, old.nkind()), old.nkind()), in.merge(was)))
 	}
 	return res
 }

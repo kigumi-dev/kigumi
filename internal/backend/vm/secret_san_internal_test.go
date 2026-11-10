@@ -2,9 +2,8 @@ package vm
 
 import "testing"
 
-// TestSecretSanSelectShadow pins the select rule M4 asks for: a mask that is
-// secret does not shadow a bit where both arms agree (a public zero in both
-// arms clears it), while a bit where the arms differ follows the mask.
+// TestSecretSanSelectShadow pins the public select rule: a secret mask leaves a bit where both arms agree
+// unshadowed, while a bit where the arms differ follows the mask.
 func TestSecretSanSelectShadow(t *testing.T) {
 	m := &Machine{opts: Options{SecretSan: true}, sh: newShared()}
 	pub := func(v int64) *obj {

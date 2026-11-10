@@ -10014,6 +10014,15 @@
       ]
     },
     {
+      "id": "run/secret_buffer_declassify",
+      "kind": "run",
+      "path": "testdata/run/secret_buffer_declassify.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/secret_debug",
       "kind": "run",
       "path": "testdata/run/secret_debug.txtar",
@@ -10044,6 +10053,132 @@
       "id": "run/secret_ops",
       "kind": "run",
       "path": "testdata/run/secret_ops.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/secret_san_bytes_loop",
+      "kind": "run",
+      "path": "testdata/run/secret_san_bytes_loop.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/secret_san_containers",
+      "kind": "run",
+      "path": "testdata/run/secret_san_containers.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/secret_san_declassify_labelled",
+      "kind": "run",
+      "path": "testdata/run/secret_san_declassify_labelled.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/secret_san_filter",
+      "kind": "run",
+      "path": "testdata/run/secret_san_filter.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/secret_san_length",
+      "kind": "run",
+      "path": "testdata/run/secret_san_length.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/secret_san_map_key",
+      "kind": "run",
+      "path": "testdata/run/secret_san_map_key.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/secret_san_match",
+      "kind": "run",
+      "path": "testdata/run/secret_san_match.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/secret_san_record_eq",
+      "kind": "run",
+      "path": "testdata/run/secret_san_record_eq.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/secret_san_result_param",
+      "kind": "run",
+      "path": "testdata/run/secret_san_result_param.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/secret_san_shift_count",
+      "kind": "run",
+      "path": "testdata/run/secret_san_shift_count.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/secret_san_sort",
+      "kind": "run",
+      "path": "testdata/run/secret_san_sort.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/secret_san_static_atomic",
+      "kind": "run",
+      "path": "testdata/run/secret_san_static_atomic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/secret_san_unsafecell",
+      "kind": "run",
+      "path": "testdata/run/secret_san_unsafecell.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/secret_san_xor_branch",
+      "kind": "run",
+      "path": "testdata/run/secret_san_xor_branch.txtar",
       "mode": [
         "vm",
         "native"
@@ -16912,6 +17047,14 @@
       "id": "sem/scrutinee_wrapped_ref",
       "kind": "sem",
       "path": "testdata/sem/scrutinee_wrapped_ref.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/secret_buffer_move",
+      "kind": "sem",
+      "path": "testdata/sem/secret_buffer_move.txtar",
       "mode": [
         "check"
       ]

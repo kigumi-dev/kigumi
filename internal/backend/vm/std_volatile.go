@@ -37,7 +37,7 @@ func (m *Machine) volatileReadAt(addr int64) *obj {
 	v := m.sh.mmio[uint64(addr)]
 	m.sh.store.Unlock()
 	if v != nil {
-		return scalarCopy(v)
+		return m.withTaint(scalarCopy(v), m.taintOf(v))
 	}
 	t := m.siteFn.Locals[m.site.Dst].Type
 	if t == sem.TyBool {
@@ -52,5 +52,5 @@ func (m *Machine) volatileWriteAt(addr int64, v *obj) {
 	if m.sh.mmio == nil {
 		m.sh.mmio = map[uint64]*obj{}
 	}
-	m.sh.mmio[uint64(addr)] = scalarCopy(v)
+	m.sh.mmio[uint64(addr)] = m.withTaint(scalarCopy(v), m.taintOf(v))
 }

@@ -30,13 +30,7 @@ func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 		if m.p.ResultBoxed(f, *in) {
 			m.scalarTick(res)
 		}
-		if m.opts.SecretSan {
-			bodyRan := m.planFor(in, ic).kind == planLowered
-			if !bodyRan {
-				_, bodyRan = m.lowered(in.Ent)
-			}
-			res = m.postCall(in.Ent, args, res, bodyRan)
-		}
+		res = m.postCall(in.Ent, res)
 	case midir.OpCallValue, midir.OpCallC:
 		if f.IsDirect(in.Args[0]) {
 			closure := m.closureCall(f, in)
@@ -47,16 +41,12 @@ func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 			if closure {
 				m.resultTick(res, args[1:])
 			}
-			if m.opts.SecretSan {
-				res = m.postCallValue(in.Ent, res)
-			}
+			res = m.postCall(in.Ent, res)
 			break
 		}
 		m.argTicks(f, in, args)
 		res = m.callSite(in, args)
-		if m.opts.SecretSan {
-			res = m.postCallValue(in.Ent, res)
-		}
+		res = m.postCall(in.Ent, res)
 	case midir.OpBuiltin:
 		if in.Str == "task.close" {
 			m.closeScopeAt(fr)
@@ -64,10 +54,7 @@ func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 			break
 		}
 		m.site, m.siteFn = in, f
-		if m.opts.SecretSan && (in.Str == "print" || in.Str == "eprint" || in.Str == "panic") {
-			m.checkHostIO(args, in.Str)
-		}
-		res = m.builtin(in.Str, args)
+		res = m.callBuiltin(in.Str, args)
 		m.chargeMemory(res)
 	case midir.OpFutureNew:
 		res = m.newFuture(args)
@@ -99,9 +86,7 @@ func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 		r := deref(m.ownDirect(fr, in.Args[0], args[0]))
 		old := r.fields[in.Index]
 		r.fields[in.Index] = args[1]
-		if m.opts.SecretSan {
-			m.relabelContainer(r)
-		}
+		m.joinWrite(r, args[1])
 		if !m.borrowField(r, in.Index) {
 			m.dropChecked(fr, old)
 		}
@@ -119,11 +104,11 @@ func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 		return
 	case midir.OpIsType:
 		v := deref(args[0])
-		res = mkBool(v.k == kBox && m.typeEnt(v.dynType()) == in.Ent)
+		res = m.tagTest(args[0], v.k == kBox && m.typeEnt(v.dynType()) == in.Ent)
 	case midir.OpUnbox:
 		v := args[0]
 		if v.k == kBox {
-			v = m.deriveTaint(retain(v.inner), m.taintOf(v))
+			v = m.deriveTaint(retain(v.inner), m.chainLabel(v))
 		}
 		res = v
 	case midir.OpBox:
@@ -173,9 +158,7 @@ func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 		m.tick(1)
 		res = mkStr([]byte(sb.String()))
 		m.chargeMemory(res)
-		if m.opts.SecretSan {
-			res = m.withTaint(res, m.joinTaint(args))
-		}
+		res = m.labelResult(resultDeep, nil, args, res)
 	case midir.OpShell:
 		if m.opts.SecretSan {
 			m.checkHostIO(args, "shell")

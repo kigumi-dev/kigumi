@@ -33,6 +33,9 @@ func (m *Machine) crossCopy(t sem.TypeID, v *obj) *obj {
 		}
 	}
 	m.chargeMemory(c)
+	if m.opts.SecretSan {
+		m.mergeLabel(c, m.chainLabel(v))
+	}
 	return c
 }
 

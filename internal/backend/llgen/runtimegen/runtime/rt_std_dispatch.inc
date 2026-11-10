@@ -529,6 +529,9 @@ val rt_std_id(int op, int n, val* a) {
 #if defined(KIGUMI_OP_SECRET_EQ_BYTES)
     case OP_SECRET_EQ_BYTES: return rt_int((int64_t)secret_eq_bytes(a0, a1), 64);
 #endif
+#if defined(KIGUMI_OP_SECRET_DECLASSIFY_BYTES)
+    case OP_SECRET_DECLASSIFY_BYTES: return bytes_val(a0->u.s.data, a0->u.s.len);
+#endif
 #if defined(KIGUMI_OP_SUBTLE_CT_EQ)
     case OP_SUBTLE_CT_EQ: return rt_bool(subtle_constant_time_eq(a0, a1));
 #endif

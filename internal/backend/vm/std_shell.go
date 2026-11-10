@@ -19,7 +19,7 @@ func (m *Machine) callStd(pkg, name string, args []*obj) *obj {
 	if f, ok := m.lowered(fn); ok {
 		return m.call(f, args)
 	}
-	return m.std(m.stdKey(fn), args)
+	return m.callPrim(fn, m.stdKey(fn), nil, args)
 }
 
 // shellPlan lowers a shell literal the way llgen does: std/shell.planNew

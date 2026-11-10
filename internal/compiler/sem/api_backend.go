@@ -145,3 +145,7 @@ func (tt *TypeTable) IsTupleEnt(ent EntityID) bool { return tt.isTupleEnt(ent) }
 // MapEntity is mapEntity, exported for the backends that recognize a Map
 // container at runtime.
 func (r *Result) MapEntity() EntityID { return r.mapEntity() }
+
+// HoldsElements is holdsElements for a backend: a value of t is its own storage (a record, a variant, an Array or
+// FixedArray), as opposed to an opaque handle whose contents the runtime keeps elsewhere.
+func (r *Result) HoldsElements(t TypeID) bool { return r.holdsElements(t) }

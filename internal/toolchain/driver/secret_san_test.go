@@ -8,9 +8,8 @@ import (
 	"kigumi/internal/toolchain/driver"
 )
 
-// TestSecretSanThroughDriver runs M4's hooks on a module the driver loaded
-// and analyzed, so the test covers the same program the CLI would run rather
-// than a hand-built MIR fixture.
+// TestSecretSanThroughDriver runs the SecretSan hooks on a module the driver loaded and analyzed,
+// the program the CLI would run.
 func TestSecretSanThroughDriver(t *testing.T) {
 	const src = `import secret from std/secret
 

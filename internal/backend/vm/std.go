@@ -76,8 +76,6 @@ func (m *Machine) std(key string, a []*obj) *obj {
 			return m.errMsg("out of memory")
 		}
 		return m.ok(mkStr(append([]byte{}, a0.str()...)))
-	// The VM has no timing guarantee to keep; this mirrors the algorithm
-	// for correctness only (subtle.kg's doc comment says so).
 	case "secret.barrierU64":
 		return mkInt(a0.i, 64)
 	case "secret.maskNonZeroU64":
@@ -105,6 +103,9 @@ func (m *Machine) std(key string, a []*obj) *obj {
 			return mkInt(-1, 64)
 		}
 		return mkInt(0, 64)
+	case "secret.declassifyBytes":
+		return mkBytes(append([]byte(nil), a0.str()...))
+	// The VM keeps no timing guarantee; this mirrors the algorithm for its result only.
 	case "crypto/subtle.constantTimeEq":
 		if len(a0.str()) != len(a1.str()) {
 			return mkBool(false)

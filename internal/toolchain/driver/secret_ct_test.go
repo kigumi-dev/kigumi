@@ -12,9 +12,8 @@ import (
 	"kigumi/internal/toolchain/driver"
 )
 
-// TestSecretPrimitivesHaveNoSecretBranches compiles the generated IR with a
-// system clang (skipped when no clang is installed) and checks the lowered
-// secret functions for conditional branches and division on three targets.
+// TestSecretPrimitivesHaveNoSecretBranches compiles the generated IR with clang or zig cc
+// and checks the lowered secret functions for conditional branches and division on three targets.
 func TestSecretPrimitivesHaveNoSecretBranches(t *testing.T) {
 	t.Parallel()
 	cc := ctCompiler()
@@ -57,9 +56,7 @@ print "${(unsafe { secret_safe(x, y).declassify() })}"
 		for _, level := range []string{"-O1", "-O2"} {
 			t.Run(triple+"/"+level, func(t *testing.T) {
 				asm := filepath.Join(root, triple+level+".s")
-				args := append(append([]string{}, cc[1:]...), "-x", "ir", "-S", level, "-target", triple, irFile, "-o", asm)
-				cmd := exec.Command(cc[0], args...)
-				if out, err := cmd.CombinedOutput(); err != nil {
+				if out, err := ctAssemble(cc, level, triple, irFile, asm); err != nil {
 					t.Fatalf("%v: %v\n%s", cc, err, out)
 				}
 				data, err := os.ReadFile(asm)
@@ -89,8 +86,7 @@ f:
 }
 `), 0o644)
 					badAsm := filepath.Join(root, "bad.s")
-					args := append(append([]string{}, cc[1:]...), "-x", "ir", "-S", "-O0", "-target", triple, badIR, "-o", badAsm)
-					if out, err := exec.Command(cc[0], args...).CombinedOutput(); err != nil {
+					if out, err := ctAssemble(cc, "-O0", triple, badIR, badAsm); err != nil {
 						t.Fatalf("negative control: %v\n%s", err, out)
 					}
 					raw, _ := os.ReadFile(badAsm)
@@ -140,6 +136,12 @@ func ctSecretFunctions(asm string) []ctAsmFunc {
 		out = append(out, *cur)
 	}
 	return out
+}
+
+// ctAssemble lets the .ll extension select LLVM IR: zig cc rejects `-x ir`, which clang alone accepts.
+func ctAssemble(cc []string, level, triple, in, out string) ([]byte, error) {
+	args := append(append([]string{}, cc[1:]...), "-S", level, "-target", triple, in, "-o", out)
+	return exec.Command(cc[0], args...).CombinedOutput()
 }
 
 func ctCompiler() []string {

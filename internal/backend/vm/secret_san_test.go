@@ -92,9 +92,8 @@ fn wrapping_add_zero(s: u64) -> u64 { s.wrappingAdd(0) }
 fn main() { and_zero(1) }
 `
 
-// TestSecretSanBitRules pins the bit-precise part of the label: AND with a
-// public zero clears it, OR with a public zero keeps it, and shifts move the
-// bits with the value. Arithmetic is conservative on purpose.
+// TestSecretSanBitRules pins the bit-precise labels: AND with a public zero clears them, OR keeps them,
+// shifts move them with the value, and arithmetic is conservative.
 func TestSecretSanBitRules(t *testing.T) {
 	prog := secretSanProgram(t, secretSanBitsSrc)
 	full := ^uint64(0)
@@ -124,9 +123,8 @@ func TestSecretSanBitRules(t *testing.T) {
 	}
 }
 
-// TestSecretSanSinks is the negative control set: each function feeds a
-// secret argument into one of M4's sinks and must fail with the diagnostic
-// naming it. The same function before the checker (off by default) succeeds.
+// TestSecretSanSinks feeds a secret argument into each sink and expects the diagnostic naming it;
+// the same call with a public argument succeeds.
 func TestSecretSanSinks(t *testing.T) {
 	const src = `fn leak_branch(s: u64) -> u64 {
     if s > 3 { 1 } else { 2 }
@@ -226,67 +224,5 @@ func TestSecretSanOffByDefault(t *testing.T) {
 	}
 	if got := out.String(); got != "20\n" {
 		t.Errorf("stdout %q, want %q", got, "20\n")
-	}
-}
-
-const secretSanTraceSrc = `import secret from std/secret
-
-// The same public input and two different secret inputs: every block,
-// index, allocation and RC operation must match.
-fn ct_trace(a: u32, b: u32) -> u32 {
-    let x = secret.SecretU32.classify(a)
-    let y = secret.SecretU32.classify(b)
-    let lt = x.ctLt(y)
-    (unsafe { lt.selectU32(x, y).declassify() })
-}
-
-// A branch on a secret changes the executed blocks.
-fn leak_trace_branch(a: u64, b: u64) -> u64 {
-    if a < b { 1 } else { 2 }
-}
-
-// A secret index leaves the blocks alone but changes an access.
-fn leak_trace_index(i: usize) -> u64 {
-    let xs = Array.of[u64](10, 20, 30, 40)
-    xs[i]
-}
-
-// A secret-sized allocation leaves the blocks alone but changes an
-// allocation event's size.
-fn leak_trace_alloc(n: usize) -> usize {
-    Bytes.zeros(n).len()
-}
-
-fn main() {
-    ct_trace(1, 2)
-}
-`
-
-// TestSecretSanTwoRunTrace is the two-run mode: a constant-time function
-// traces identically with two secret inputs, and a branch or index that
-// depends on one makes the traces differ.
-func TestSecretSanTwoRunTrace(t *testing.T) {
-	prog := secretSanProgram(t, secretSanTraceSrc)
-
-	if err := vm.CompareTraces(prog, vm.Options{}, "ct_trace", []int64{1, 2}, []int64{1, 3}, nil, nil); err != nil {
-		t.Fatalf("constant-time function traced differently: %v", err)
-	}
-
-	if err := vm.CompareTraces(prog, vm.Options{}, "leak_trace_branch", []int64{1, 2}, []int64{2, 1}, nil, nil); err == nil {
-		t.Fatal("branch on a secret produced equal traces")
-	} else if !strings.Contains(err.Error(), "executed blocks") {
-		t.Fatalf("branch mismatch reported %q", err)
-	}
-
-	if err := vm.CompareTraces(prog, vm.Options{}, "leak_trace_index", []int64{0}, []int64{2}, nil, nil); err == nil {
-		t.Fatal("secret index produced equal traces")
-	} else if !strings.Contains(err.Error(), "object-relative indices") {
-		t.Fatalf("index mismatch reported %q", err)
-	}
-
-	if err := vm.CompareTraces(prog, vm.Options{}, "leak_trace_alloc", []int64{1}, []int64{2}, nil, nil); err == nil {
-		t.Fatal("secret-sized allocation produced equal traces")
-	} else if !strings.Contains(err.Error(), "allocations") {
-		t.Fatalf("allocation mismatch reported %q", err)
 	}
 }

@@ -60,6 +60,7 @@ func TestRunCorpusEngines(t *testing.T) {
 			if code != wantExit {
 				t.Errorf("exit %d, want %d\nstderr:\n%s", code, wantExit, errOut.String())
 			}
+			checkSecretSanRun(t, m, path, args, out.String(), errOut.String(), code)
 		})
 	}
 }
