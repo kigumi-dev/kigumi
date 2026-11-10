@@ -12,6 +12,7 @@ import (
 
 // A new entry here must also be classified in stdReplacesReceiver when it can replace the receiver's content.
 var bodilessStdMutSelf = []string{
+	"alloc.Block.set",
 	"alloc.Box.set", "alloc.Box.withMut",
 	"array.Array.growBy", "array.Array.push", "array.Array.pushCopy", "array.Array.takeAt", "array.Array.tryInsertAt", "array.Array.withMut",
 	"prelude.ByteBuffer.copyFrom", "prelude.ByteBuffer.copyFromString", "prelude.ByteBuffer.set",
