@@ -102,7 +102,7 @@ func matchBrace(src []byte, pos, end int, out map[int]interpInfo) int {
 			}
 			continue
 		case '#':
-			pos = interpLineCommentEnd(src, pos+1, end, depth)
+			pos = interpLineCommentEnd(src, pos+1, end)
 			continue
 		case '\'':
 			if n := charLiteralLen(src, pos, end); n > 0 {
@@ -111,7 +111,7 @@ func matchBrace(src []byte, pos, end int, out map[int]interpInfo) int {
 			}
 		case '/':
 			if pos+1 < end && src[pos+1] == '/' {
-				pos = interpLineCommentEnd(src, pos+2, end, depth)
+				pos = interpLineCommentEnd(src, pos+2, end)
 				continue
 			}
 			if pos+1 < end && src[pos+1] == '*' {

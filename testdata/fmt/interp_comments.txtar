@@ -1,0 +1,16 @@
+-- src --
+fn main() {
+    let x = 1
+    let line = "${ x // a } must not close the interpolation
+}"
+    let block = "${ x /* } */ + 1 }"
+    print "${line}${block}"
+}
+-- expect --
+fn main() {
+    let x = 1
+    let line = "${ x // a } must not close the interpolation
+}"
+    let block = "${ x /* } */ + 1 }"
+    print "${line}${block}"
+}

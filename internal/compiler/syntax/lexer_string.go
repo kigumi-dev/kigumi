@@ -94,11 +94,11 @@ func (lx *lexer) scanInterpolation(pos int) (int, bool) {
 			}
 			pos++
 		case '#':
-			pos = interpLineCommentEnd(lx.src, pos+1, lx.end, depth)
+			pos = interpLineCommentEnd(lx.src, pos+1, lx.end)
 			continue
 		case '/':
 			if pos+1 < lx.end && lx.src[pos+1] == '/' {
-				pos = interpLineCommentEnd(lx.src, pos+2, lx.end, depth)
+				pos = interpLineCommentEnd(lx.src, pos+2, lx.end)
 				continue
 			}
 			if pos+1 < lx.end && lx.src[pos+1] == '*' {

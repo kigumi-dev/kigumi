@@ -1,16 +1,20 @@
 -- src --
 fn main() {
     let x = 1
-    let a = "${ x // a } in a comment\n}"
+    let a = "${ x // a } in a comment
+}"
     let b = "${ x /* } */ }"
-    let c = "${ x // }"
+    let c = "${ x // }
+}"
     let d = "${ x /* /* } */ } */ + 2 }"
     let e = "${ {
         let y = x // { "}" }
         y
     } }"
-    let f = "${ x # " }"
-    let g = "${ x # { }"
+    let f = "${ x # }
+}"
+    let g = "${ x # { }
+}"
     let h = "${ {
         let y = x # { "}" }
         y
@@ -33,7 +37,8 @@ File
         init: IntLit 1
       Let
         pattern: PatBind a
-        init: StringLit "${ x // a } in a comment\n}"
+        init: StringLit "${ x // a } in a comment
+}"
           List
             Ident x
       Let
@@ -43,7 +48,8 @@ File
             Ident x
       Let
         pattern: PatBind c
-        init: StringLit "${ x // }"
+        init: StringLit "${ x // }
+}"
           List
             Ident x
       Let
@@ -68,12 +74,14 @@ File
                 Ident y
       Let
         pattern: PatBind f
-        init: StringLit "${ x # " }"
+        init: StringLit "${ x # }
+}"
           List
             Ident x
       Let
         pattern: PatBind g
-        init: StringLit "${ x # { }"
+        init: StringLit "${ x # { }
+}"
           List
             Ident x
       Let

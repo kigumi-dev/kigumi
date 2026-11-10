@@ -22,10 +22,10 @@ func blockCommentEnd(src []byte, pos, end int) (int, bool) {
 	return pos, false
 }
 
-// interpLineCommentEnd returns where a line comment inside `${...}` stops: at the newline, or at the brace that
-// closes the interpolation (depth 1), which a comment cannot hide since the sub-lexer ends there too.
-func interpLineCommentEnd(src []byte, pos, end, depth int) int {
-	for pos < end && src[pos] != '\n' && (depth > 1 || src[pos] != '}') {
+// interpLineCommentEnd returns where a line comment inside `${...}` stops. A line comment runs to the end of the
+// physical line, so a brace inside it is comment text and cannot close the interpolation.
+func interpLineCommentEnd(src []byte, pos, end int) int {
+	for pos < end && src[pos] != '\n' {
 		pos++
 	}
 	return pos
