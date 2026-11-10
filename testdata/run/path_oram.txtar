@@ -1,0 +1,117 @@
+-- src --
+import secret from std/secret
+import oram from std/secret/oram
+
+// A storage adapter that records every level/index pair it is asked for. The
+// adapter is a fixture: production adapters (SGX/CVM) implement the same
+// interface over authenticated, padded pages.
+type TraceStore = resource {
+    mut buckets Array[oram.Bucket]
+    mut depth usize
+    mut log Array[usize]
+}
+
+fn TraceStore.new(leaves: usize) -> TraceStore {
+    let total = 2 * leaves - 1
+    TraceStore {
+        buckets: Array.fill[oram.Bucket](oram.Bucket.empty(), total),
+        depth: oram.levelOf(leaves),
+        log: Array.empty[usize]()
+    }
+}
+
+fn TraceStore.bucketCount(self, level: usize) -> usize {
+    if level > self.depth {
+        return 0
+    }
+    let one: usize = 1
+    one << level
+}
+
+fn TraceStore.readBucket(mut self, level: usize, index: secret.SecretU32) -> oram.Bucket {
+    let want = unsafe { index.declassify() }.toU64()
+    let count = self.bucketCount(level)
+    let mut out = oram.Bucket.empty()
+    let mut j: usize = 0
+    for j < count {
+        self.log.push(level * 1000000 + j * 2)
+        let candidate = self.buckets.get(oram.levelOffset(level) + j) || oram.Bucket.empty()
+        out = out.combine(oram.maskEq(j.toU64(), want), &candidate)
+        j = j + 1
+    }
+    out
+}
+
+fn TraceStore.writeBucket(mut self, level: usize, index: secret.SecretU32, bucket: oram.Bucket) {
+    let want = unsafe { index.declassify() }.toU64()
+    let count = self.bucketCount(level)
+    let mut j: usize = 0
+    for j < count {
+        self.log.push(level * 1000000 + j * 2 + 1)
+        let at = oram.levelOffset(level) + j
+        let mut current = self.buckets.get(at) || oram.Bucket.empty()
+        self.buckets[at] = current.combine(oram.maskEq(j.toU64(), want), &bucket)
+        j = j + 1
+    }
+}
+
+fn TraceStore.sameTrace(self, other: &TraceStore) -> Bool {
+    self.log.equals(&other.log)
+}
+
+fn TraceStore.traceLen(self) -> usize {
+    self.log.len()
+}
+
+fn ix(i: u32) -> secret.SecretIndex[8] {
+    secret.SecretIndex[8].from(secret.SecretU32.classify(i))
+}
+
+// The access pattern is a function of N and the operation, not of the secret
+// index: two fresh arrays that write different indices see the same trace.
+let mut left = oram.withStore[TraceStore, 8](TraceStore.new(8), 7)?
+let mut right = oram.withStore[TraceStore, 8](TraceStore.new(8), 7)?
+left.write(ix(1), 11)?
+right.write(ix(6), 22)?
+let same = left.withStore((a: &TraceStore) => right.withStore((b: &TraceStore) => a.sameTrace(b)))
+let steps = left.withStore((a: &TraceStore) => a.traceLen())
+print "shape=${same} steps=${steps}"
+
+// Correctness: every value survives repeated writes and reads, and the
+// position map and block positions stay consistent.
+let mut table = oram.onMemory[8](3)?
+let mut i: u32 = 0
+for i < 8 {
+    table.write(ix(i), i.toU64().wrappingMul(11))?
+    i = i + 1
+}
+table.write(ix(4), 999)?
+i = 0
+let mut ok: u64 = 1
+for i < 8 {
+    let want = if i == 4 { 999 } else { i.toU64().wrappingMul(11) }
+    if table.read(ix(i))? != want {
+        ok = 0
+    }
+    i = i + 1
+}
+table.verify()?
+print "data=${ok}"
+
+// A size the controller does not support is an explicit error, not a
+// truncation or a silently padded tree.
+let bad = oram.onMemory[7](1)
+let tooBig = oram.onMemory[33554432](1)
+print "unsupported=${(bad is Err(_)) && (tooBig is Err(_))}"
+
+// An adapter built for a different tree shape is refused instead of being
+// indexed out of range.
+let wrongShape = oram.withStore[TraceStore, 8](TraceStore.new(4), 1)
+print "mismatch=${wrongShape is Err(_)}"
+print "path-oram-ok"
+-- stdout --
+shape=true steps=60
+data=1
+unsupported=true
+mismatch=true
+path-oram-ok

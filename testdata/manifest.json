@@ -9803,6 +9803,15 @@
       ]
     },
     {
+      "id": "run/path_oram",
+      "kind": "run",
+      "path": "testdata/run/path_oram.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/pattern_move_variant",
       "kind": "run",
       "path": "testdata/run/pattern_move_variant.txtar",
