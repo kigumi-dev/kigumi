@@ -1,14 +1,16 @@
 package driver_test
 
 import (
+	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
 
 	buildconfig "kigumi/internal/toolchain/config"
+	"kigumi/internal/toolchain/driver"
 	"kigumi/internal/toolchain/native/link"
 )
 
@@ -53,7 +55,7 @@ func testCompiler() buildconfig.CompilerOptions {
 		probeMu.Lock()
 		ok, seen := probeCache[key]
 		if !seen {
-			ok = linksTrivial(cc, cwd)
+			ok = linksTrivial(opts, cwd)
 			probeCache[key] = ok
 		}
 		probeMu.Unlock()
@@ -64,18 +66,30 @@ func testCompiler() buildconfig.CompilerOptions {
 	return opts
 }
 
-func linksTrivial(cc []string, cwd string) bool {
+// linksTrivial builds a real minimal module: a compiler on PATH may link a
+// bare C file while the driver's host target or a reproducible build still
+// fails, so the probe exercises the same entry point the tests do.
+func linksTrivial(opts buildconfig.CompilerOptions, cwd string) bool {
 	dir, err := os.MkdirTemp("", "kigumi-cc-probe")
 	if err != nil {
 		return false
 	}
 	defer os.RemoveAll(dir)
-	src := filepath.Join(dir, "probe.c")
-	out := filepath.Join(dir, "probe")
-	if os.WriteFile(src, []byte("int main(void) { return 0; }\n"), 0o644) != nil {
+	if os.WriteFile(filepath.Join(dir, "mod.kg"), []byte("Module {\n    name: \"probe\"\n    kigumi: \"0.1\"\n}\n"), 0o644) != nil {
 		return false
 	}
-	cmd := exec.Command(cc[0], append(append([]string{}, cc[1:]...), src, "-o", out)...)
-	cmd.Dir = cwd
-	return cmd.Run() == nil
+	if os.WriteFile(filepath.Join(dir, "main.kg"), []byte("let x = 1\n"), 0o644) != nil {
+		return false
+	}
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		return false
+	}
+	std := filepath.Join(filepath.Dir(file), "..", "..", "..", "std")
+	m, err := driver.LoadModule(dir, driver.LoadOptions{Compiler: opts, StdRoot: std, Entry: "main.kg"})
+	if err != nil {
+		return false
+	}
+	built, err := driver.BuildWith(m, filepath.Join(dir, "probe"), io.Discard, driver.BuildOptions{})
+	return err == nil && built
 }
