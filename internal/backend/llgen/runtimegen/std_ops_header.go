@@ -6,11 +6,19 @@ import (
 )
 
 // Op is one std op as the runtime artifacts see it: the registry facts that
-// fix `enum std_op`, the KIGUMI_OP_ case guards and the key resolver.
+// fix `enum std_op`, the KIGUMI_OP_ case guards, the key resolver, and the
+// capability that guards the op's C body.
 type Op struct {
-	ID                       int
-	Name                     string
-	Retired                  bool
+	ID      int
+	Name    string
+	Retired bool
+	// Provider marks an op needing a Target/Capability (the VM's host table).
+	Provider bool
+	// Cap is the registry capability, "" for an op every target provides.
+	Cap string
+	// CapMacros are Cap's macro and the macros of the capabilities Cap needs;
+	// a capability-guarded C body mentions one of them.
+	CapMacros                []string
 	Keys, Suffixes, Prefixes []string
 }
 

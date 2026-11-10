@@ -18,14 +18,35 @@ func Supports(prog *mir.Program) (bool, string) {
 	return supportsFrom(prog, prog.Entry)
 }
 
-// Implements reports whether the VM has an implementation of a bodiless
-// std function: a host accelerator or a Go primitive.
-func Implements(prog *mir.Program, fn sem.EntityID) bool {
+// ImplementationKind says how the VM runs a bodiless std function: a host
+// accelerator registered under its key, a primitive the key dispatcher
+// answers, or not at all (the zero value).
+type ImplementationKind uint8
+
+const (
+	ImplementedHost ImplementationKind = iota + 1
+	ImplementedPrimitive
+)
+
+// Implementation reports how the VM runs a bodiless std function, for the
+// runtime op manifest and for Implements.
+func Implementation(prog *mir.Program, fn sem.EntityID) ImplementationKind {
 	m := &Machine{p: prog, r: prog.R, host: map[string]hostFn{}, sh: newShared()}
 	m.registerAll()
 	key := m.stdKey(fn)
-	_, hosted := m.hostForEnt(fn, key)
-	return hosted || m.primitiveKnown(key)
+	if _, hosted := m.hostForEnt(fn, key); hosted {
+		return ImplementedHost
+	}
+	if m.primitiveKnown(key) {
+		return ImplementedPrimitive
+	}
+	return 0
+}
+
+// Implements reports whether the VM has an implementation of a bodiless
+// std function: a host accelerator or a Go primitive.
+func Implements(prog *mir.Program, fn sem.EntityID) bool {
+	return Implementation(prog, fn) != 0
 }
 
 // SupportsTests is Supports over every test block instead of the entry.
