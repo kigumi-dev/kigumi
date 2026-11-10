@@ -1,0 +1,108 @@
+-- src --
+import bigint from std/crypto/bigint
+import secret from std/secret
+
+fn n1(v: u64) -> secret.SecretNat[1] {
+    secret.SecretNat[1].fromLimbs(FixedArray.filled[u64, 1](v))
+}
+fn n2(l0: u64, l1: u64) -> secret.SecretNat[2] {
+    let mut a = FixedArray.filled[u64, 2](0)
+    a[0] = l0
+    a[1] = l1
+    secret.SecretNat[2].fromLimbs(a)
+}
+fn n4(l0: u64, l1: u64, l2: u64, l3: u64) -> secret.SecretNat[4] {
+    let mut a = FixedArray.filled[u64, 4](0)
+    a[0] = l0
+    a[1] = l1
+    a[2] = l2
+    a[3] = l3
+    secret.SecretNat[4].fromLimbs(a)
+}
+fn show1(x: secret.SecretNat[1]) -> String {
+    "${(unsafe { x.declassify() })[0]}"
+}
+fn show2(x: secret.SecretNat[2]) -> String {
+    let l = unsafe { x.declassify() }
+    "${l[1]} ${l[0]}"
+}
+fn show4(x: secret.SecretNat[4]) -> String {
+    let l = unsafe { x.declassify() }
+    "${l[3]} ${l[2]} ${l[1]} ${l[0]}"
+}
+
+// One limb: the smallest supported width.
+let m1 = bigint.modulus[1](bigint.Nat.fromU64(97)).expect("m1")
+print "n1 ${show1(m1.add(n1(45), n1(67)))} ${show1(m1.sub(n1(45), n1(67)))} ${show1(m1.mul(n1(45), n1(67)))} ${show1(m1.pow(n1(5), n1(3)))} ${show1(m1.inv(n1(45)))}"
+print "n1wrap ${show1(m1.add(n1(96), n1(1)))} ${show1(m1.sub(n1(0), n1(1)))} ${show1(m1.pow(n1(0), n1(0)))} ${show1(m1.pow(n1(0), n1(5)))} ${show1(m1.mul(n1(0), n1(45)))} ${show1(m1.inv(n1(1)))}"
+
+// Smallest odd modulus and the largest one-limb modulus.
+let m3 = bigint.modulus[1](bigint.Nat.fromU64(3)).expect("m3")
+print "n1small ${show1(m3.add(n1(2), n1(2)))} ${show1(m3.mul(n1(2), n1(2)))} ${show1(m3.pow(n1(2), n1(3)))} ${show1(m3.inv(n1(2)))} ${show1(m3.sub(n1(0), n1(1)))}"
+let mMax = bigint.modulus[1](bigint.Nat.fromU64(0xffffffffffffffff)).expect("mmax")
+print "n1max ${show1(mMax.add(n1(0xfffffffffffffffe), n1(2)))} ${show1(mMax.mul(n1(0xffffffffffffffff), n1(0xffffffffffffffff)))} ${show1(mMax.inv(n1(2)))} ${show1(mMax.sub(n1(1), n1(2)))}"
+
+// Two limbs: m = 2^127 - 1, exponents and values span both words.
+let m2 = bigint.modulus[2](bigint.Nat.fromLimbs(Array.of[u64](0xffffffffffffffff, 0x7fffffffffffffff))).expect("m2")
+let a2 = n2(0x123456789abcdef0, 0x0fedcba987654321)
+let b2 = n2(0xdeadbeefcafebabe, 0x0123456789abcdef)
+let e2 = n2(0x0123456789abcdef, 0x0fedcba987654321)
+print "n2add ${show2(m2.add(a2, b2))}"
+print "n2sub ${show2(m2.sub(a2, b2))}"
+print "n2mul ${show2(m2.mul(a2, b2))}"
+print "n2pow ${show2(m2.pow(a2, e2))}"
+print "n2inv ${show2(m2.inv(a2))}"
+
+// Four limbs: the P-256 base field prime.
+let m4 = bigint.modulus[4](bigint.Nat.fromLimbs(Array.of[u64](0xffffffffffffffff, 0xffffffff, 0, 0xffffffff00000001))).expect("m4")
+let a4 = n4(0x8899aabbccddeeff, 0xf011223344556677, 0x78899aabbccddeef, 0x1122334455667)
+let b4 = n4(0x9abcdef012345678, 0x9abcdef012345678, 0xabcdef012345678, 0xfedcba987654321)
+let e4 = n4(0xcafebabe, 0xdeadbeef, 0, 0)
+print "n4add ${show4(m4.add(a4, b4))}"
+print "n4sub ${show4(m4.sub(a4, b4))}"
+print "n4mul ${show4(m4.mul(a4, b4))}"
+print "n4pow ${show4(m4.pow(a4, e4))}"
+print "n4inv ${show4(m4.inv(a4))}"
+print "n4pow0 ${show4(m4.pow(a4, n4(0, 0, 0, 0)))}"
+print "n4inv3 ${show4(m4.inv(n4(3, 0, 0, 0)))}"
+
+// Unsupported moduli fail explicitly instead of wrapping or guessing a width.
+print "even ${match bigint.modulus[1](bigint.Nat.fromU64(98)) { Ok(_) -> "accepted", Err(e) -> e.message() }}"
+print "short ${match bigint.modulus[2](bigint.Nat.fromU64(97)) { Ok(_) -> "accepted", Err(e) -> e.message() }}"
+print "one ${match bigint.modulus[1](bigint.Nat.fromU64(1)) { Ok(_) -> "accepted", Err(e) -> e.message() }}"
+print "empty ${match bigint.modulus[0](bigint.Nat.fromU64(3)) { Ok(_) -> "accepted", Err(e) -> e.message() }}"
+
+// Fixed-width conversions.
+print "fromu64 ${show2(secret.SecretNat[2].fromU64(0xffffffffffffffff))}"
+print "frombytes ${show2(secret.SecretNat[2].fromBytesBE(&Bytes.fromArray(&Array.of[u8](1, 0))).expect("bytes"))}"
+let tooWide = match secret.SecretNat[2].fromBytesBE(&Bytes.zeros(17)) {
+    Ok(_) -> "accepted"
+    Err(e) -> e.message()
+}
+print "wide ${tooWide}"
+print "zerowidth ${secret.SecretNat[0].fromU64(7).limbCount()} ${secret.SecretNat[0].zero().limbCount()}"
+-- stdout --
+n1 15 75 8 28 69
+n1wrap 0 96 1 0 0 1
+n1small 1 1 2 2 2
+n1max 1 0 9223372036854775808 18446744073709551614
+n2add 1229782938247303440 17357459451966888366
+n2sub 1065811879814329649 3712821556670243890
+n2mul 6089386944598317902 5444556860591726765
+n2pow 6596229314979806069 6625560124319091743
+n2inv 5391835177775725086 14533499237621548278
+n4add 1148098826417641864 9459381777438225768 10001933073723800816 2546374010599523703
+n4sub 17299248077770593095 7911905060078585975 6148613351445434366 17139798357735741574
+n4mul 2722805824814713959 4033122628030102366 7352340260311994499 10665271348358480785
+n4pow 15095907828524402089 3491015488857286185 10720288379137660477 7516483519124305200
+n4inv 9133843920756344461 5469701418541287045 27992783960308538 11728376786404040517
+n4pow0 0 0 0 1
+n4inv3 12297829379609722880 12297829382473034410 12297829385336345941 6148914691236517205
+even bigint: Montgomery modulus must be odd
+short bigint: modulus does not occupy the requested number of limbs
+one bigint: modulus must be greater than one
+empty bigint: modulus width must be at least one limb
+fromu64 0 18446744073709551615
+frombytes 0 256
+wide secret: value does not fit N limbs
+zerowidth 0 0

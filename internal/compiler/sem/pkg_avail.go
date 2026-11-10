@@ -32,6 +32,7 @@ var stdLayer = map[string]Layer{
 	"std/crypto/hmac":             LayerAllocation,
 	"std/crypto/hkdf":             LayerAllocation,
 	"std/crypto/asn1":             LayerAllocation,
+	"std/crypto/bigint":           LayerAllocation,
 	"std/crypto/p256":             LayerAllocation,
 	"std/crypto/rsa":              LayerAllocation,
 	"std/crypto/x509":             LayerAllocation,

@@ -1,0 +1,443 @@
+// Montgomery modular arithmetic for fixed-width naturals.
+//
+// Every loop bound here is the public limb count N or 64*N, every conditional
+// subtraction becomes a mask, and no operand selects a branch or a memory
+// index. Conversion in and out of Montgomery form uses R = 2^(64*N) and the
+// constants are derived by doubling, so the constructor never divides and a
+// modulus that cannot be represented in N limbs is refused explicitly.
+//
+// Inputs to `add`, `sub`, `mul`, `pow` and `inv` must already be in [0, m).
+// `SecretNat` does not carry that invariant in its type, so a value built by
+// `fromLimbs` is the caller's responsibility.
+//
+// The timing shape is checked by `internal/toolchain/driver/bigint_ct_test.go`
+// on x86_64, aarch64 and riscv64 at -O1 and -O2, and by the interpreter step
+// count in `internal/backend/vm/bigint_shape_test.go`. Other targets have no
+// such guarantee. Speculative execution and instruction latency are out of
+// scope.
+import secret from std/secret
+
+/// Why a modulus was refused.
+pub type ModulusError =
+    | ZeroWidth
+    | UnsupportedSize
+    | EvenModulus
+    | DegenerateModulus
+
+pub fn ModulusError.message(self) -> String {
+    match self {
+        ZeroWidth -> "bigint: modulus width must be at least one limb"
+        UnsupportedSize -> "bigint: modulus does not occupy the requested number of limbs"
+        EvenModulus -> "bigint: Montgomery modulus must be odd"
+        DegenerateModulus -> "bigint: modulus must be greater than one"
+    }
+}
+
+/// A modulus that occupies exactly N little-endian 64-bit limbs, with its
+/// Montgomery constants: `n0` is -m^-1 mod 2^64, `r` is R mod m, `r2` is
+/// R^2 mod m and `one` is 1.
+pub type Modulus[const N: usize] = {
+    m FixedArray[u64, N]
+    n0 u64
+    r FixedArray[u64, N]
+    r2 FixedArray[u64, N]
+    one FixedArray[u64, N]
+}
+
+const mask128: u128 = 0xFFFFFFFFFFFFFFFF
+
+const zero64: u64 = 0
+
+/// The low 64 bits of a 128-bit value.
+pure noalloc fn low64(x: u128) -> u64 {
+    (x & mask128).truncate[u64]()
+}
+
+/// All ones when a == b, zero otherwise; branchless.
+pure noalloc fn eqMask64(a: u64, b: u64) -> u64 {
+    let d = a ^ b
+    let nonzero = (d | zero64.wrappingSub(d)) >> 63
+    nonzero.wrappingSub(1)
+}
+
+/// `a` when mask is zero and `b` when mask is all ones.
+pure noalloc fn sel64(mask: u64, a: u64, b: u64) -> u64 {
+    (a & ~mask) | (b & mask)
+}
+
+/// The inverse of an odd 64-bit value modulo 2^64, by Newton iteration.
+pure noalloc fn inv64(a: u64) -> u64 {
+    let mut x = a
+    let two: u64 = 2
+    let mut i: usize = 0
+    for i < 6 {
+        x = x.wrappingMul(two.wrappingSub(a.wrappingMul(x)))
+        i = i + 1
+    }
+    x
+}
+
+/// a + b, returning the sum and its carry out of the top limb.
+pure fn addRaw[const N: usize](a: &FixedArray[u64, N], b: &FixedArray[u64, N]) -> (FixedArray[u64, N], u64) {
+    let mut sum = FixedArray.filled[u64, N](0)
+    let mut carry: u64 = 0
+    let mut i: usize = 0
+    for i < N {
+        let s = a[i].toU128() + b[i].toU128() + carry.toU128()
+        sum[i] = low64(s)
+        carry = (s >> 64).truncate[u64]()
+        i = i + 1
+    }
+    (sum, carry)
+}
+
+/// a - b, returning the difference and the borrow out of the top limb.
+pure fn subRaw[const N: usize](a: &FixedArray[u64, N], b: &FixedArray[u64, N]) -> (FixedArray[u64, N], u64) {
+    let mut diff = FixedArray.filled[u64, N](0)
+    let mut borrow: u64 = 0
+    let mut i: usize = 0
+    for i < N {
+        let x = a[i]
+        let y = b[i]
+        let t = x.wrappingSub(y)
+        diff[i] = t.wrappingSub(borrow)
+        borrow = lt64(x, y) | lt64(t, borrow)
+        i = i + 1
+    }
+    (diff, borrow)
+}
+
+/// (a + b) mod m, for a and b below m: one masked subtraction of m.
+pure fn addMod[const N: usize](a: &FixedArray[u64, N], b: &FixedArray[u64, N], m: &FixedArray[u64, N]) -> FixedArray[u64, N] {
+    let (sum, carry) = addRaw(a, b)
+    let (diff, borrow) = subRaw(&sum, m)
+    let mask = zero64.wrappingSub(carry | (borrow ^ 1))
+    let mut out = FixedArray.filled[u64, N](0)
+    let mut i: usize = 0
+    for i < N {
+        out[i] = sel64(mask, sum[i], diff[i])
+        i = i + 1
+    }
+    out
+}
+
+/// (a - b) mod m, for a and b below m: add m under the borrow mask.
+pure fn subMod[const N: usize](a: &FixedArray[u64, N], b: &FixedArray[u64, N], m: &FixedArray[u64, N]) -> FixedArray[u64, N] {
+    let (diff, borrow) = subRaw(a, b)
+    let mask = zero64.wrappingSub(borrow)
+    let mut out = FixedArray.filled[u64, N](0)
+    let mut carry: u64 = 0
+    let mut i: usize = 0
+    for i < N {
+        let s = diff[i].toU128() + (m[i] & mask).toU128() + carry.toU128()
+        out[i] = low64(s)
+        carry = (s >> 64).truncate[u64]()
+        i = i + 1
+    }
+    out
+}
+
+/// All ones when a < b over N limbs, zero otherwise.
+pure fn ltLimbs[const N: usize](a: &FixedArray[u64, N], b: &FixedArray[u64, N]) -> u64 {
+    let mut borrow: u64 = 0
+    let mut i: usize = 0
+    for i < N {
+        let t = a[i].wrappingSub(b[i])
+        borrow = lt64(a[i], b[i]) | lt64(t, borrow)
+        i = i + 1
+    }
+    borrow
+}
+
+/// `a` when mask is zero and `b` when mask is all ones.
+pure fn selectLimbs[const N: usize](mask: u64, a: &FixedArray[u64, N], b: &FixedArray[u64, N]) -> FixedArray[u64, N] {
+    let mut out = FixedArray.filled[u64, N](0)
+    let mut i: usize = 0
+    for i < N {
+        out[i] = sel64(mask, a[i], b[i])
+        i = i + 1
+    }
+    out
+}
+
+/// The 2N-limb schoolbook product of two N-limb values.
+pure fn mulLimbs[const N: usize](a: &FixedArray[u64, N], b: &FixedArray[u64, N]) -> Array[u64] {
+    let mut p = Array.fill[u64](0, 2 * N + 2)
+    let mut i: usize = 0
+    for i < N {
+        let ai = a[i].toU128()
+        let mut carry: u128 = 0
+        let mut j: usize = 0
+        for j < N {
+            let s = p[i + j].toU128() + ai * b[j].toU128() + carry
+            p[i + j] = low64(s)
+            carry = s >> 64
+            j = j + 1
+        }
+        let mut k = i + N
+        let mut c = carry
+        for k < 2 * N + 2 {
+            let s = p[k].toU128() + c
+            p[k] = low64(s)
+            c = s >> 64
+            k = k + 1
+        }
+        i = i + 1
+    }
+    p
+}
+
+/// Montgomery reduction of a 2N-limb product with one masked final subtraction.
+pure fn montReduce[const N: usize](p: Array[u64], md: &Modulus[N]) -> FixedArray[u64, N] {
+    let mut t = p
+    let twoN = 2 * N
+    let mut i: usize = 0
+    for i < N {
+        let q = t[i].wrappingMul(md.n0)
+        let mut carry: u128 = 0
+        let mut j: usize = 0
+        for j < N {
+            let s = t[i + j].toU128() + q.toU128() * md.m[j].toU128() + carry
+            t[i + j] = low64(s)
+            carry = s >> 64
+            j = j + 1
+        }
+        let mut k = i + N
+        let mut c = carry
+        for k < twoN + 2 {
+            let s = t[k].toU128() + c
+            t[k] = low64(s)
+            c = s >> 64
+            k = k + 1
+        }
+        i = i + 1
+    }
+    let mut diff = FixedArray.filled[u64, N](0)
+    let mut borrow: u64 = 0
+    let mut j: usize = 0
+    for j < N {
+        let x = t[N + j]
+        let y = md.m[j]
+        let d = x.wrappingSub(y)
+        diff[j] = d.wrappingSub(borrow)
+        borrow = lt64(x, y) | lt64(d, borrow)
+        j = j + 1
+    }
+    let any = t[twoN] | (borrow ^ 1)
+    let cond = (any | zero64.wrappingSub(any)) >> 63
+    let mask = zero64.wrappingSub(cond)
+    let mut out = FixedArray.filled[u64, N](0)
+    let mut k: usize = 0
+    for k < N {
+        out[k] = sel64(mask, t[N + k], diff[k])
+        k = k + 1
+    }
+    out
+}
+
+/// a * b * R^-1 mod m, for a and b below m.
+pure fn montMul[const N: usize](a: &FixedArray[u64, N], b: &FixedArray[u64, N], md: &Modulus[N]) -> FixedArray[u64, N] {
+    montReduce(mulLimbs(a, b), md)
+}
+
+/// x * R mod m.
+pure fn toMont[const N: usize](x: &FixedArray[u64, N], md: &Modulus[N]) -> FixedArray[u64, N] {
+    montMul(x, &md.r2, md)
+}
+
+/// x * R^-1 mod m.
+pure fn fromMont[const N: usize](x: &FixedArray[u64, N], md: &Modulus[N]) -> FixedArray[u64, N] {
+    montMul(x, &md.one, md)
+}
+
+/// The limbs of a secret value, copied for the fixed-width kernel below.
+pure fn limbsOf[const N: usize](x: secret.SecretNat[N]) -> FixedArray[u64, N] {
+    let mut out = FixedArray.filled[u64, N](0)
+    let mut i: usize = 0
+    for i < N {
+        out[i] = x.limb(i)
+        i = i + 1
+    }
+    out
+}
+
+/// Builds the Montgomery context for `m`, which must be odd and occupy exactly
+/// N limbs. A modulus that is zero, even, one limb shorter or N == 0 is an
+/// explicit error rather than a silent wrap.
+pub fn modulus[const N: usize](m: Nat) -> Result[Modulus[N], ModulusError] {
+    if N == 0 {
+        return Err(ModulusError.ZeroWidth)
+    }
+    if m.limbCount() != N {
+        return Err(ModulusError.UnsupportedSize)
+    }
+    if (m.limb(0) & 1) == 0 {
+        return Err(ModulusError.EvenModulus)
+    }
+    if m.bitLen() < 2 {
+        return Err(ModulusError.DegenerateModulus)
+    }
+    let mut limbs = FixedArray.filled[u64, N](0)
+    let mut i: usize = 0
+    for i < N {
+        limbs[i] = m.limb(i)
+        i = i + 1
+    }
+    let n0 = zero64.wrappingSub(inv64(limbs[0]))
+    let mut one = FixedArray.filled[u64, N](0)
+    one[0] = 1
+    let mut r = one
+    let mut k: usize = 0
+    for k < N * 64 {
+        r = addMod(&r, &r, &limbs)
+        k = k + 1
+    }
+    let mut r2 = r
+    let mut j: usize = 0
+    for j < N * 64 {
+        r2 = addMod(&r2, &r2, &limbs)
+        j = j + 1
+    }
+    Ok(Modulus {
+        m: limbs
+        n0: n0
+        r: r
+        r2: r2
+        one: one
+    })
+}
+
+/// (a + b) mod m. Both operands must be below m.
+pub fn Modulus[N].add(self, a: secret.SecretNat[N], b: secret.SecretNat[N]) -> secret.SecretNat[N] {
+    let x = limbsOf(a)
+    let y = limbsOf(b)
+    secret.SecretNat.fromLimbs(addMod(&x, &y, &self.m))
+}
+
+/// (a - b) mod m. Both operands must be below m.
+pub fn Modulus[N].sub(self, a: secret.SecretNat[N], b: secret.SecretNat[N]) -> secret.SecretNat[N] {
+    let x = limbsOf(a)
+    let y = limbsOf(b)
+    secret.SecretNat.fromLimbs(subMod(&x, &y, &self.m))
+}
+
+/// (a * b) mod m. Both operands must be below m.
+pub fn Modulus[N].mul(self, a: secret.SecretNat[N], b: secret.SecretNat[N]) -> secret.SecretNat[N] {
+    let x = limbsOf(a)
+    let xMont = toMont(&x, &self)
+    let y = limbsOf(b)
+    secret.SecretNat.fromLimbs(montMul(&xMont, &y, &self))
+}
+
+/// base^exponent mod m. The exponent is scanned over the full 64*N bits, so the
+/// loop and the multiplications do not depend on its value. The base must be
+/// below m.
+pub fn Modulus[N].pow(self, base: secret.SecretNat[N], exponent: secret.SecretNat[N]) -> secret.SecretNat[N] {
+    let b = limbsOf(base)
+    let baseMont = toMont(&b, &self)
+    let mut acc = self.r
+    let mut word: usize = N
+    for word > 0 {
+        word = word - 1
+        let bits = exponent.limb(word)
+        let mut bitAt: usize = 64
+        for bitAt > 0 {
+            bitAt = bitAt - 1
+            acc = montMul(&acc, &acc, &self)
+            let product = montMul(&acc, &baseMont, &self)
+            let bit = bits.wrappingShiftRight(bitAt.toU64()) & 1
+            acc = selectLimbs(zero64.wrappingSub(bit), &acc, &product)
+        }
+    }
+    secret.SecretNat.fromLimbs(fromMont(&acc, &self))
+}
+
+/// x / 2 for an even value.
+pure fn shr1[const N: usize](x: &FixedArray[u64, N]) -> FixedArray[u64, N] {
+    let mut out = FixedArray.filled[u64, N](0)
+    let mut i: usize = 0
+    for i < N {
+        let next = if i + 1 < N {
+            x[i + 1]
+        } else {
+            0
+        }
+        out[i] = (x[i] >> 1) | next.wrappingShiftLeft(63)
+        i = i + 1
+    }
+    out
+}
+
+/// x / 2 mod m for odd m: x/2 when x is even and (x+m)/2 when it is odd, with
+/// the choice made by a mask.
+pure fn halfMod[const N: usize](x: &FixedArray[u64, N], m: &FixedArray[u64, N]) -> FixedArray[u64, N] {
+    let (sum, carry) = addRaw(x, m)
+    let mut odd = FixedArray.filled[u64, N](0)
+    let mut i: usize = 0
+    for i < N {
+        let next = if i + 1 < N {
+            sum[i + 1]
+        } else {
+            carry
+        }
+        odd[i] = (sum[i] >> 1) | next.wrappingShiftLeft(63)
+        i = i + 1
+    }
+    let even = shr1(x)
+    let mask = zero64.wrappingSub(x[0] & 1)
+    selectLimbs(mask, &even, &odd)
+}
+
+/// All ones when every limb is zero except limb 0 being one, i.e. the value is 1.
+pure fn isOneMask[const N: usize](x: &FixedArray[u64, N]) -> u64 {
+    let mut mask = eqMask64(x[0], 1)
+    let mut i: usize = 1
+    for i < N {
+        mask = mask & eqMask64(x[i], 0)
+        i = i + 1
+    }
+    mask
+}
+
+/// a^-1 mod m when gcd(a, m) is one, and an unspecified value otherwise. The
+/// binary extended gcd runs a fixed 4*64*N steps; every conditional halving and
+/// subtraction is a mask, so the trace does not depend on `a` or the modulus.
+pub fn Modulus[N].inv(self, a: secret.SecretNat[N]) -> secret.SecretNat[N] {
+    let mut u = limbsOf(a)
+    let mut v = self.m
+    let mut x1 = self.one
+    let mut x2 = FixedArray.filled[u64, N](0)
+    let total = 4 * N * 64
+    let mut step: usize = 0
+    for step < total {
+        let done = isOneMask(&u) | isOneMask(&v)
+        let active = ~done
+        let uEven = eqMask64(u[0] & 1, 0) & active
+        let vEven = eqMask64(v[0] & 1, 0) & active & ~uEven
+        let uHalf = shr1(&u)
+        let x1Half = halfMod(&x1, &self.m)
+        let vHalf = shr1(&v)
+        let x2Half = halfMod(&x2, &self.m)
+        let u1 = selectLimbs(uEven, &u, &uHalf)
+        let y1 = selectLimbs(uEven, &x1, &x1Half)
+        let v1 = selectLimbs(vEven, &v, &vHalf)
+        let y2 = selectLimbs(vEven, &x2, &x2Half)
+        let lt = zero64.wrappingSub(ltLimbs(&u1, &v1))
+        let (uSub, _) = subRaw(&u1, &v1)
+        let (vSub, _) = subRaw(&v1, &u1)
+        let u2 = selectLimbs(lt, &uSub, &u1)
+        let v2 = selectLimbs(lt, &v1, &vSub)
+        let x1Sub = subMod(&y1, &y2, &self.m)
+        let x2Sub = subMod(&y2, &y1, &self.m)
+        let x1b = selectLimbs(lt, &x1Sub, &y1)
+        let x2b = selectLimbs(lt, &y2, &x2Sub)
+        let subMask = ~(uEven | vEven) & active
+        u = selectLimbs(subMask, &u1, &u2)
+        v = selectLimbs(subMask, &v1, &v2)
+        x1 = selectLimbs(subMask, &y1, &x1b)
+        x2 = selectLimbs(subMask, &y2, &x2b)
+        step = step + 1
+    }
+    let vDone = isOneMask(&v)
+    secret.SecretNat.fromLimbs(selectLimbs(vDone, &x1, &x2))
+}

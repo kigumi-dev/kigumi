@@ -1,0 +1,275 @@
+// Arbitrary-precision unsigned integers over little-endian 64-bit limbs.
+//
+// `Nat` is for public values only. Nothing here is constant time: addition
+// and multiplication walk the operands' public lengths and division is not
+// provided at all. Secret arithmetic uses `SecretNat` in `std/secret` with
+// the Montgomery helpers in `modulus.kg`.
+/// Why a `Nat` operation was refused.
+pub type NatError =
+    | Underflow
+    | TooManyBytes
+    | TooSmall
+
+pub fn NatError.message(self) -> String {
+    match self {
+        Underflow -> "bigint: subtraction would go below zero"
+        TooManyBytes -> "bigint: value does not fit the requested byte length"
+        TooSmall -> "bigint: encoding needs more bytes"
+    }
+}
+
+/// An unsigned integer as little-endian 64-bit limbs, with no high zero limb.
+/// Zero has no limbs.
+pub type Nat = {
+    limbs Array[u64]
+}
+
+/// The bit length of a 64-bit value; zero has length zero.
+pure noalloc fn bitLen64(v: u64) -> usize {
+    let mut x = v
+    let mut n: usize = 0
+    for x != 0 {
+        x = x >> 1
+        n = n + 1
+    }
+    n
+}
+
+/// `limbs` without its high zero limbs.
+pure fn trim(limbs: Array[u64]) -> Array[u64] {
+    let mut n = limbs.len()
+    for n > 0 {
+        if limbs[n - 1] != 0 {
+            break
+        }
+        n = n - 1
+    }
+    if n == limbs.len() {
+        return limbs
+    }
+    let mut out = Array.empty[u64]()
+    let mut i: usize = 0
+    for i < n {
+        out.push(limbs[i])
+        i = i + 1
+    }
+    out
+}
+
+/// Zero.
+pub pure fn Nat.zero() -> Nat {
+    Nat { limbs: Array.empty[u64]() }
+}
+
+/// The public value `v`.
+pub pure fn Nat.fromU64(v: u64) -> Nat {
+    let mut limbs = Array.empty[u64]()
+    if v != 0 {
+        limbs.push(v)
+    }
+    Nat { limbs: limbs }
+}
+
+/// The value of `limbs`, high zero limbs dropped.
+pub pure fn Nat.fromLimbs(limbs: Array[u64]) -> Nat {
+    Nat { limbs: trim(limbs) }
+}
+
+/// A big-endian byte string read as an unsigned integer.
+pub pure fn Nat.fromBytes(b: &Bytes) -> Nat {
+    let mut limbs = Array.fill[u64](0, (b.len() + 7) >> 3)
+    let mut pos: usize = 0
+    let mut at: usize = 0
+    for at < ((b.len() + 7) >> 3) {
+        let mut k: usize = 0
+        let mut word: u64 = 0
+        for k < 8 {
+            if pos < b.len() {
+                let byte = b[b.len() - 1 - pos].toU64()
+                word = word | byte.wrappingShiftLeft((k * 8).toU64())
+                pos = pos + 1
+            }
+            k = k + 1
+        }
+        limbs[at] = word
+        at = at + 1
+    }
+    Nat.fromLimbs(limbs)
+}
+
+/// The number of significant bits.
+pure noalloc fn bitLenNat(n: &Nat) -> usize {
+    let mut top = n.limbs.len()
+    for top > 0 {
+        if n.limbs[top - 1] != 0 {
+            break
+        }
+        top = top - 1
+    }
+    if top == 0 {
+        return 0
+    }
+    (top - 1) * 64 + bitLen64(n.limbs[top - 1])
+}
+
+/// The number of significant bits.
+pub pure noalloc fn Nat.bitLen(self) -> usize {
+    bitLenNat(&self)
+}
+
+/// The number of bytes a big-endian encoding needs.
+pub pure fn Nat.byteLen(self) -> usize {
+    (self.bitLen() + 7) >> 3
+}
+
+/// Whether the value is zero.
+pub pure noalloc fn Nat.isZero(self) -> Bool {
+    self.bitLen() == 0
+}
+
+/// How many limbs the value occupies.
+pub pure noalloc fn Nat.limbCount(self) -> usize {
+    self.limbs.len()
+}
+
+/// The limb at `index`, or zero past the end.
+pub pure noalloc fn Nat.limb(self, index: usize) -> u64 {
+    if index >= self.limbs.len() {
+        return 0
+    }
+    self.limbs[index]
+}
+
+/// The value as exactly `size` big-endian bytes. A size that cannot hold the
+/// value is an explicit error instead of a truncation.
+pub pure fn Nat.toBytes(self, size: usize) -> Result[Bytes, NatError] {
+    if self.bitLen() > size * 8 {
+        return Err(NatError.TooSmall)
+    }
+    let mut out = Array.fill[u8](0, size)
+    let mut idx: usize = 0
+    let mut at: usize = 0
+    let mut within: usize = 0
+    for idx < size {
+        let byte = self.limb(at).wrappingShiftRight((within * 8).toU64())
+        out[size - 1 - idx] = (byte & 0xFF).truncate[u8]()
+        idx = idx + 1
+        within = within + 1
+        if within == 8 {
+            within = 0
+            at = at + 1
+        }
+    }
+    Bytes.fromArray(&out)
+}
+
+/// The sum of two public integers.
+pub pure fn Nat.add(self, other: Nat) -> Nat {
+    let a = self.limbs.len()
+    let b = other.limbs.len()
+    let n = if a > b {
+        a
+    } else {
+        b
+    }
+    let mut out = Array.fill[u64](0, n + 1)
+    let mut carry: u64 = 0
+    let mut i: usize = 0
+    for i < n {
+        let s = self.limb(i).toU128() + other.limb(i).toU128() + carry.toU128()
+        out[i] = (s & 0xFFFFFFFFFFFFFFFF).truncate[u64]()
+        carry = (s >> 64).truncate[u64]()
+        i = i + 1
+    }
+    out[n] = carry
+    Nat.fromLimbs(out)
+}
+
+/// `self - other`, failing when `other` is larger.
+pub pure fn Nat.sub(self, other: Nat) -> Result[Nat, NatError] {
+    if ltNat(&self, &other) {
+        return Err(NatError.Underflow)
+    }
+    let n = self.limbs.len()
+    let mut out = Array.fill[u64](0, n)
+    let mut borrow: u64 = 0
+    let mut i: usize = 0
+    for i < n {
+        let a = self.limb(i)
+        let b = other.limb(i)
+        let t = a.wrappingSub(b)
+        let d = t.wrappingSub(borrow)
+        out[i] = d
+        borrow = lt64(a, b) | lt64(t, borrow)
+        i = i + 1
+    }
+    Ok(Nat.fromLimbs(out))
+}
+
+/// The product of two public integers.
+pub pure fn Nat.mul(self, other: Nat) -> Nat {
+    let a = self.limbs.len()
+    let b = other.limbs.len()
+    if a == 0 || b == 0 {
+        return Nat.zero()
+    }
+    let mut out = Array.fill[u64](0, a + b + 1)
+    let mut i: usize = 0
+    for i < a {
+        let ai = self.limbs[i].toU128()
+        let mut carry: u128 = 0
+        let mut j: usize = 0
+        for j < b {
+            let s = out[i + j].toU128() + ai * other.limbs[j].toU128() + carry
+            out[i + j] = (s & 0xFFFFFFFFFFFFFFFF).truncate[u64]()
+            carry = s >> 64
+            j = j + 1
+        }
+        out[i + b] = carry.truncate[u64]()
+        i = i + 1
+    }
+    Nat.fromLimbs(out)
+}
+
+/// Whether `a` is below `b`.
+pure noalloc fn ltNat(a: &Nat, b: &Nat) -> Bool {
+    let ab = bitLenNat(a)
+    let bb = bitLenNat(b)
+    if ab != bb {
+        return ab < bb
+    }
+    let n = if a.limbs.len() > b.limbs.len() {
+        a.limbs.len()
+    } else {
+        b.limbs.len()
+    }
+    let mut i = n
+    for i > 0 {
+        i = i - 1
+        let x = if i < a.limbs.len() {
+            a.limbs[i]
+        } else {
+            0
+        }
+        let y = if i < b.limbs.len() {
+            b.limbs[i]
+        } else {
+            0
+        }
+        if x != y {
+            return x < y
+        }
+    }
+    false
+}
+
+/// Whether `self` is below `other`.
+pub pure noalloc fn Nat.lt(self, other: Nat) -> Bool {
+    ltNat(&self, &other)
+}
+
+/// One when a < b, zero otherwise; branchless.
+pure noalloc fn lt64(a: u64, b: u64) -> u64 {
+    let d = a.wrappingSub(b)
+    (((~a) & b) | (~(a ^ b) & d)) >> 63
+}

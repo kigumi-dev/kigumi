@@ -1,0 +1,46 @@
+-- src --
+import bigint from std/crypto/bigint
+
+fn limbs(n: bigint.Nat) -> String {
+    let mut out = ""
+    let mut i: usize = 0
+    for i < n.limbCount() {
+        out = "${out} ${n.limb(i)}"
+        i = i + 1
+    }
+    out
+}
+
+fn max() -> bigint.Nat { bigint.Nat.fromU64(0xffffffffffffffff) }
+
+print "bitlen ${bigint.Nat.zero().bitLen()} ${bigint.Nat.fromU64(1).bitLen()} ${bigint.Nat.fromU64(255).bitLen()} ${bigint.Nat.fromU64(256).bitLen()}"
+let wide = bigint.Nat.fromBytes(&Bytes.fromArray(&Array.of[u8](1, 0)))
+print "wide ${wide.bitLen()} ${wide.byteLen()} ${wide.limbCount()}${limbs(bigint.Nat.fromBytes(&Bytes.fromArray(&Array.of[u8](1, 0))))}"
+print "add${limbs(max().add(bigint.Nat.fromU64(1)))}"
+print "mul${limbs(max().mul(max()))}"
+print "sub${limbs(max().add(bigint.Nat.fromU64(1)).sub(max()).expect("sub"))}"
+print "lt ${bigint.Nat.fromU64(1).lt(bigint.Nat.fromU64(2))} ${bigint.Nat.fromU64(2).lt(bigint.Nat.fromU64(2))} ${bigint.Nat.fromU64(2).lt(bigint.Nat.fromU64(1))}"
+let under = match bigint.Nat.fromU64(1).sub(bigint.Nat.fromU64(2)) {
+    Ok(_) -> "accepted"
+    Err(_) -> "rejected"
+}
+print "under ${under}"
+let encoded = max().add(bigint.Nat.fromU64(1)).toBytes(9).expect("bytes")
+print "bytes ${encoded.len()} ${encoded.get(0) || 0} ${encoded.get(8) || 0}"
+let tooSmall = match max().toBytes(1) {
+    Ok(_) -> "accepted"
+    Err(_) -> "rejected"
+}
+print "narrow ${tooSmall}"
+print "zero ${bigint.Nat.zero().isZero()} ${bigint.Nat.fromU64(5).isZero()} ${bigint.Nat.zero().limb(0)}"
+-- stdout --
+bitlen 0 1 8 9
+wide 9 2 1 256
+add 0 1
+mul 1 18446744073709551614
+sub 1
+lt true false false
+under rejected
+bytes 9 1 0
+narrow rejected
+zero true false 0

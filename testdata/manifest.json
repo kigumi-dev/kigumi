@@ -4548,6 +4548,24 @@
       ]
     },
     {
+      "id": "run/crypto_bigint_modulus",
+      "kind": "run",
+      "path": "testdata/run/crypto_bigint_modulus.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_bigint_nat",
+      "kind": "run",
+      "path": "testdata/run/crypto_bigint_nat.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/crypto_chacha_aead",
       "kind": "run",
       "path": "testdata/run/crypto_chacha_aead.txtar",
