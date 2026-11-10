@@ -31,12 +31,35 @@ func approxSize(v *obj) int64 {
 	switch v.k {
 	case kStr, kBytes:
 		return int64(len(v.str())) + objOverhead
-	case kArray, kRecord, kVariant, kClosure:
-		// Native stores one element slot; the VM stores one *obj per element,
-		// so a cell costs its slot plus the object the slot points at. Charging
-		// the slot alone (len*8) let a block hold several times the memory its
-		// budget names, since every element was also a boxed value.
-		return int64(len(v.fields))*(8+objOverhead) + objOverhead
+	case kArray:
+		// An array slot always holds one pointer; a scalar element also holds
+		// the object that pointer names, charged per slot even when the VM
+		// interns it. Aggregate elements charge their own object instead.
+		n := int64(len(v.fields))*8 + objOverhead
+		for _, f := range v.fields {
+			if f == nil {
+				continue
+			}
+			switch f.k {
+			case kInt, kFloat, kChar:
+				n += objOverhead
+			}
+		}
+		return n
+	case kRecord, kVariant, kClosure:
+		// Record fields share the same slot layout; only a fresh scalar adds
+		// a boxed object, while an interned scalar is already accounted.
+		n := int64(len(v.fields))*8 + objOverhead
+		for _, f := range v.fields {
+			if f == nil || f.rc < 0 {
+				continue
+			}
+			switch f.k {
+			case kInt, kFloat, kChar:
+				n += objOverhead
+			}
+		}
+		return n
 	case kRawArray:
 		return int64(len(v.rawArr().raw))*8 + objOverhead
 	case kCell, kBox, kOpaque:
