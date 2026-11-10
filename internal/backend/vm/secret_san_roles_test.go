@@ -46,6 +46,9 @@ var sinkProbes = []sinkProbe{
 	{"task.threadPoolExecutor", 0, "size", "_ = task.threadPoolExecutor(s)"},
 	{"array.Array.tryFilter", 1, "branch", "_ = Array.of[usize](1, 2).filter((v: &usize) => v == s)"},
 	{"array.trySortedBy", 1, "branch", "_ = sort.stable(&Array.of[usize](1, 2), (a: &usize, b: &usize) => s.compareTo(a))"},
+	{"alloc.Block.tryNew", 0, "size", "_ = alloc.Block.tryNew(s)"},
+	{"alloc.Block.get", 1, "index", "let b = alloc.Block.new(4)\n    _ = b.get(s)"},
+	{"alloc.Block.set", 1, "index", "let mut b = alloc.Block.new(4)\n    b.set(s, 1)"},
 	{"volatile.read", 0, "address", "_ = unsafe { mem.volatileReadAt[u64](s) }"},
 	{"volatile.write", 0, "address", "unsafe { mem.volatileWriteAt(s, 1) }"},
 }
@@ -68,7 +71,7 @@ var sinkText = map[string]string{"index": "an index", "size": "an allocation siz
 // name: dropping a role from a table fails its probe, and a role without a probe fails here.
 func TestSinkRolesHaveProbes(t *testing.T) {
 	var src strings.Builder
-	src.WriteString("import mem from std/mem\nimport sort from std/sort\nimport task from std/task\n\ntype Cell = {\n    pub mut v u64\n}\n\n")
+	src.WriteString("import alloc from std/alloc\nimport mem from std/mem\nimport sort from std/sort\nimport task from std/task\n\ntype Cell = {\n    pub mut v u64\n}\n\n")
 	src.WriteString("fn cells() -> Array[Cell] {\n    Array.of(Cell { v: 1 }, Cell { v: 2 })\n}\n\n")
 	for i, p := range sinkProbes {
 		fmt.Fprintf(&src, "fn probe%d(s: usize) {\n    %s\n}\n\n", i, p.body)
