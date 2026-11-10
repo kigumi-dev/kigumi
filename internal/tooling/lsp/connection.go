@@ -21,7 +21,7 @@ func (s *Server) Connect(ctx context.Context, stream jsonrpc2.Stream) jsonrpc2.C
 		}
 		return resp, err
 	}
-	conn.Go(ctx, protocol.CancelHandler(orderedHandler(handler)))
+	conn.Go(ctx, protocol.CancelHandler(orderedHandler(s.life.gate(handler))))
 	return conn
 }
 

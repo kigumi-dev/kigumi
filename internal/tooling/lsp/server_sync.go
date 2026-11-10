@@ -75,6 +75,9 @@ func (s *Server) DidClose(ctx context.Context, p *protocol.DidCloseTextDocumentP
 	defer s.mu.Unlock()
 	delete(s.docs, p.TextDocument.URI)
 	delete(s.docVersions, p.TextDocument.URI)
+	s.shiftMu.Lock()
+	delete(s.shifts, p.TextDocument.URI)
+	s.shiftMu.Unlock()
 	s.analyze(ctx, p.TextDocument.URI)
 	return nil
 }

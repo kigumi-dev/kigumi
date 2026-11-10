@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 
@@ -57,12 +56,15 @@ type Server struct {
 	depIndex map[string]map[string]bool
 	// documentChanges: client declared workspace.workspaceEdit.documentChanges.
 	documentChanges bool
+	life            *lifecycle
+	shiftMu         sync.Mutex
+	shifts          map[uri.URI]*shiftEntry
 }
 
 const DefaultDebounce = 150 * time.Millisecond
 
 func New(stdRoot string) *Server {
-	return &Server{stdRoot: stdRoot, docs: map[uri.URI]string{}, docVersions: map[uri.URI]int32{}, published: map[string]map[uri.URI]bool{}, snaps: map[string]*snapshot{}, last: map[string]*snapshot{}, states: map[string]*rootState{}, pending: map[string]uri.URI{}, debounce: DefaultDebounce, depIndex: map[string]map[string]bool{}, docSyms: map[uri.URI]docSymbols{}, pkgSyms: map[string]pkgSymbols{}}
+	return &Server{stdRoot: stdRoot, docs: map[uri.URI]string{}, docVersions: map[uri.URI]int32{}, published: map[string]map[uri.URI]bool{}, snaps: map[string]*snapshot{}, last: map[string]*snapshot{}, states: map[string]*rootState{}, pending: map[string]uri.URI{}, debounce: DefaultDebounce, depIndex: map[string]map[string]bool{}, life: newLifecycle(), docSyms: map[uri.URI]docSymbols{}, pkgSyms: map[string]pkgSymbols{}}
 }
 
 // WithDebounce sets the edit coalescing window; zero analyzes inside DidChange.
@@ -94,17 +96,27 @@ func (s *Server) WithTarget(t buildconfig.Target) *Server {
 	return s
 }
 
-// Serve speaks the protocol on stdin/stdout until the client hangs up.
+// Serve speaks the protocol on stdin/stdout until the client sends exit or hangs up.
 func Serve(stdRoot string, target buildconfig.Target, cache string, o buildconfig.CompilerOptions, lazyStd bool) error {
 	if o.Cwd == "" {
 		return stderrors.New("lsp: CompilerOptions.Cwd is required; the caller fills it from the process")
 	}
-	conn := New(stdRoot).WithTarget(target).WithPackageCache(cache, o).WithLazyStd(lazyStd).Connect(context.Background(), jsonrpc2.NewStream(stdio{}))
-	<-conn.Done()
-	if err := conn.Err(); err != nil && err != io.EOF {
-		return err
+	s := New(stdRoot).WithTarget(target).WithPackageCache(cache, o).WithLazyStd(lazyStd)
+	return s.serve(stdio{})
+}
+
+// serve returns right after exit without closing the connection: its reader may be parked on a stdin the client keeps open.
+func (s *Server) serve(rwc io.ReadWriteCloser) error {
+	conn := s.Connect(context.Background(), newRecoveringStream(rwc))
+	select {
+	case <-conn.Done():
+		if err := conn.Err(); err != nil && err != io.EOF {
+			return err
+		}
+		return nil
+	case <-s.life.exited:
+		return s.life.exitErr()
 	}
-	return nil
 }
 
 func (s *Server) Shutdown(context.Context) error {
