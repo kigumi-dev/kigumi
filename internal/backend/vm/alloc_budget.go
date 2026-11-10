@@ -35,14 +35,13 @@ func approxSize(v *obj) int64 {
 		// An array slot always holds one pointer; a scalar element also holds
 		// the object that pointer names, charged per slot even when the VM
 		// interns it. Aggregate elements charge their own object instead.
+		// Arrays are homogeneous, so the first element decides the element
+		// charge without walking a growing array on every push.
 		n := int64(len(v.fields))*8 + objOverhead
-		for _, f := range v.fields {
-			if f == nil {
-				continue
-			}
-			switch f.k {
+		if len(v.fields) > 0 {
+			switch v.fields[0].k {
 			case kInt, kFloat, kChar:
-				n += objOverhead
+				n += int64(len(v.fields)) * objOverhead
 			}
 		}
 		return n
