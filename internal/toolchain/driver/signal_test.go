@@ -165,7 +165,7 @@ import test from std/test
 
 test "signal watch is refused under kigumi test" {
     let sig = host.signals()
-    sig.watch(os.Signal.Interrupt)?
+    let _watch = sig.watch(os.Signal.Interrupt)?
 }
 
 test "no signal handler was installed" {

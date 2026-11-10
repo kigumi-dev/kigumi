@@ -42,6 +42,8 @@ var oomCovers = map[string]string{
 var oomInert = map[string]string{
 	"mem.trySecureErase":         "zeroes the region in place and builds no result of its own",
 	"array.BoundedArray.tryPush": "fills a slot new already allocated; it fails only on a full array",
+	"platform.tryWaitProcess":    "wraps waitpid's scalar status and allocates nothing",
+	"proc.Process.tryWait":       "forwards the platform wait status and allocates nothing",
 }
 
 func TestEveryTryFunctionHasATwoCallSweep(t *testing.T) {
