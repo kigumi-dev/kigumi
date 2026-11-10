@@ -111,6 +111,6 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 	fp := CurrentFingerprint(t, link.ZigVersionOf(cc))
 	withProvenance(&fp, m, t, code)
 	return artifact.PublishWithFingerprint(out, fp, func(staged string) error {
-		return hostLink{m: m, cc: cc, args: args, inputs: inputs, dir: dir, opts: opts, t: t, link: linkage, cflags: cflags, lflags: lflags, stderr: stderr}.run(staged)
+		return hostLink{m: m, compiler: compiler, cc: cc, args: args, inputs: inputs, dir: dir, opts: opts, t: t, link: linkage, cflags: cflags, lflags: lflags, stderr: stderr}.run(staged)
 	})
 }
