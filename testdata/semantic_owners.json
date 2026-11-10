@@ -3960,6 +3960,466 @@
     "status": "ok"
   },
   {
+    "key": "crypto/bigint.Modulus.add",
+    "signature": "fn(SecretNat[N], SecretNat[N]) -\u003e SecretNat[N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.Modulus.inv",
+    "signature": "fn(SecretNat[N]) -\u003e SecretNat[N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.Modulus.mul",
+    "signature": "fn(SecretNat[N], SecretNat[N]) -\u003e SecretNat[N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.Modulus.pow",
+    "signature": "fn(SecretNat[N], SecretNat[N]) -\u003e SecretNat[N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.Modulus.sub",
+    "signature": "fn(SecretNat[N], SecretNat[N]) -\u003e SecretNat[N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.ModulusError.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.Nat.add",
+    "signature": "pure fn(Nat) -\u003e Nat",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.Nat.bitLen",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.Nat.byteLen",
+    "signature": "pure fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.Nat.fromBytes",
+    "signature": "pure fn(\u0026Bytes) -\u003e Nat",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.Nat.fromLimbs",
+    "signature": "pure fn(Array[u64]) -\u003e Nat",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.Nat.fromU64",
+    "signature": "pure fn(u64) -\u003e Nat",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.Nat.isZero",
+    "signature": "pure noalloc fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.Nat.limb",
+    "signature": "pure noalloc fn(usize) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.Nat.limbCount",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.Nat.lt",
+    "signature": "pure noalloc fn(Nat) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.Nat.mul",
+    "signature": "pure fn(Nat) -\u003e Nat",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.Nat.sub",
+    "signature": "pure fn(Nat) -\u003e Result[Nat, NatError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.Nat.toBytes",
+    "signature": "pure fn(usize) -\u003e Result[Bytes, NatError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.Nat.zero",
+    "signature": "pure fn() -\u003e Nat",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.NatError.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.addMod",
+    "signature": "pure fn(\u0026FixedArray[u64, N], \u0026FixedArray[u64, N], \u0026FixedArray[u64, N]) -\u003e FixedArray[u64, N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.addRaw",
+    "signature": "pure fn(\u0026FixedArray[u64, N], \u0026FixedArray[u64, N]) -\u003e (FixedArray[u64, N], u64)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.bitLen64",
+    "signature": "pure noalloc fn(u64) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.bitLenNat",
+    "signature": "pure noalloc fn(\u0026Nat) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.eqMask64",
+    "signature": "pure noalloc fn(u64, u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.fromMont",
+    "signature": "pure fn(\u0026FixedArray[u64, N], \u0026Modulus[N]) -\u003e FixedArray[u64, N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.halfMod",
+    "signature": "pure fn(\u0026FixedArray[u64, N], \u0026FixedArray[u64, N]) -\u003e FixedArray[u64, N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.inv64",
+    "signature": "pure noalloc fn(u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.isOneMask",
+    "signature": "pure fn(\u0026FixedArray[u64, N]) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.limbsOf",
+    "signature": "pure fn(SecretNat[N]) -\u003e FixedArray[u64, N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.low64",
+    "signature": "pure noalloc fn(u128) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.lt64",
+    "signature": "pure noalloc fn(u64, u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.ltLimbs",
+    "signature": "pure fn(\u0026FixedArray[u64, N], \u0026FixedArray[u64, N]) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.ltNat",
+    "signature": "pure noalloc fn(\u0026Nat, \u0026Nat) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.modulus",
+    "signature": "fn(Nat) -\u003e Result[Modulus[N], ModulusError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.montMul",
+    "signature": "pure fn(\u0026FixedArray[u64, N], \u0026FixedArray[u64, N], \u0026Modulus[N]) -\u003e FixedArray[u64, N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.montReduce",
+    "signature": "pure fn(Array[u64], \u0026Modulus[N]) -\u003e FixedArray[u64, N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.mulLimbs",
+    "signature": "pure fn(\u0026FixedArray[u64, N], \u0026FixedArray[u64, N]) -\u003e Array[u64]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.sel64",
+    "signature": "pure noalloc fn(u64, u64, u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.selectLimbs",
+    "signature": "pure fn(u64, \u0026FixedArray[u64, N], \u0026FixedArray[u64, N]) -\u003e FixedArray[u64, N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.shr1",
+    "signature": "pure fn(\u0026FixedArray[u64, N]) -\u003e FixedArray[u64, N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.subMod",
+    "signature": "pure fn(\u0026FixedArray[u64, N], \u0026FixedArray[u64, N], \u0026FixedArray[u64, N]) -\u003e FixedArray[u64, N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.subRaw",
+    "signature": "pure fn(\u0026FixedArray[u64, N], \u0026FixedArray[u64, N]) -\u003e (FixedArray[u64, N], u64)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.toMont",
+    "signature": "pure fn(\u0026FixedArray[u64, N], \u0026Modulus[N]) -\u003e FixedArray[u64, N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/bigint.trim",
+    "signature": "pure fn(Array[u64]) -\u003e Array[u64]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "crypto/chacha20poly1305.Error.message",
     "signature": "fn() -\u003e String",
     "has_body": true,
@@ -20902,6 +21362,16 @@
     "status": "ok"
   },
   {
+    "key": "secret.NatError.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "secret.SecretBuffer.ctEq",
     "signature": "pure noalloc fn(\u0026SecretBuffer) -\u003e Choice",
     "has_body": true,
@@ -20984,6 +21454,76 @@
   {
     "key": "secret.SecretIndex.from",
     "signature": "pure noalloc fn(SecretU32) -\u003e SecretIndex[N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretNat.declassify",
+    "signature": "pure unsafe fn() -\u003e FixedArray[u64, N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretNat.fromBytesBE",
+    "signature": "pure fn(\u0026Bytes) -\u003e Result[SecretNat[N], NatError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretNat.fromLimbs",
+    "signature": "pure fn(FixedArray[u64, N]) -\u003e SecretNat[N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretNat.fromU64",
+    "signature": "pure fn(u64) -\u003e SecretNat[N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretNat.limb",
+    "signature": "pure fn(usize) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretNat.limbCount",
+    "signature": "pure fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretNat.zero",
+    "signature": "pure fn() -\u003e SecretNat[N]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
