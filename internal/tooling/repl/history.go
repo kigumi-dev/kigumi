@@ -39,18 +39,6 @@ func NewHistory(path string) (*History, error) {
 	return h, nil
 }
 
-// DefaultHistoryPath returns $XDG_STATE_HOME/kigumi/history or
-// ~/.local/state/kigumi/history.
-func DefaultHistoryPath() string {
-	if d := os.Getenv("XDG_STATE_HOME"); d != "" {
-		return filepath.Join(d, "kigumi", "history")
-	}
-	if h, err := os.UserHomeDir(); err == nil {
-		return filepath.Join(h, ".local", "state", "kigumi", "history")
-	}
-	return ""
-}
-
 // Add records line and appends it to disk, suppressing duplicates.
 func (h *History) Add(line string) {
 	line = strings.TrimRight(line, "\r\n")

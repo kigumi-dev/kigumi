@@ -67,12 +67,16 @@ func NewRepl(root string, opts ReplOptions) (*Repl, error) {
 		root = opts.Root
 	}
 	if root == "" {
-		root = "."
+		root = opts.Load.Compiler.Cwd
 	}
-	abs, err := filepath.Abs(root)
-	if err != nil {
-		return nil, err
+	if root == "" {
+		return nil, fmt.Errorf("repl: module root is required")
 	}
+	cwd := opts.Load.Compiler.Cwd
+	if !filepath.IsAbs(root) && cwd != "" {
+		root = filepath.Join(cwd, root)
+	}
+	abs := root
 	st, err := os.Stat(abs)
 	if err != nil {
 		return nil, err
@@ -80,10 +84,8 @@ func NewRepl(root string, opts ReplOptions) (*Repl, error) {
 	if !st.IsDir() {
 		return nil, fmt.Errorf("repl: %s is not a directory", abs)
 	}
-	if opts.Load.StdRoot != "" && !filepath.IsAbs(opts.Load.StdRoot) {
-		if std, err := filepath.Abs(opts.Load.StdRoot); err == nil {
-			opts.Load.StdRoot = std
-		}
+	if opts.Load.StdRoot != "" && !filepath.IsAbs(opts.Load.StdRoot) && cwd != "" {
+		opts.Load.StdRoot = filepath.Join(cwd, opts.Load.StdRoot)
 	}
 	opts.Load.Compiler.Cwd = abs
 	if opts.VM.Cwd == "" {

@@ -62,6 +62,8 @@ var allowed = map[string][]string{
 	"toolchain/zig/source":          {"toolchain/zig/store"},
 	"interop/cheader":               {"toolchain/zig"},
 	"devkit/fixture":                {},
+	"devkit/pty":                    {},
+	"tooling/repl":                  {},
 	"devkit/hosttool":               {},
 	"devkit/audit":                  {"devkit/fixture", "devkit/hosttool"},
 	"devkit/bench":                  {"toolchain/version", "devkit/hosttool"},
@@ -77,6 +79,7 @@ var allowed = map[string][]string{
 	"cli/cmd/fmt":                   {"cli/session", "cli/exit", "toolchain/driver", "base/errors", "base/fsx"},
 	"cli/cmd/check":                 {"cli/session", "cli/exit", "toolchain/driver", "base/errors", "toolchain/policy"},
 	"cli/cmd/run":                   {"cli/session", "cli/exit", "toolchain/driver", "base/errors"},
+	"cli/cmd/repl":                  {"cli/session", "cli/exit", "toolchain/driver", "backend/vm", "compiler/syntax", "tooling/repl", "toolchain/config"},
 	"cli/cmd/test":                  {"cli/session", "cli/exit", "toolchain/driver", "base/errors"},
 	"cli/cmd/build":                 {"cli/session", "cli/exit", "toolchain/driver", "base/errors", "toolchain/contract/schema", "toolchain/policy"},
 	"cli/cmd/lsp":                   {"cli/session", "base/errors", "tooling/lsp"},
@@ -89,7 +92,7 @@ var allowed = map[string][]string{
 	"cli/cmd/zig":                   {"cli/session", "base/errors", "toolchain/version", "compiler/sem", "toolchain/zig", "toolchain/zig/store", "toolchain/zig/fetch", "toolchain/zig/source", "toolchain/module"},
 	"toolchain/contract/schema":     {"lang/token", "lang/diag", "compiler/syntax", "compiler/sem", "toolchain/version", "base/platform"},
 	"tooling/doc":                   {"lang/token", "lang/diag", "compiler/syntax", "compiler/sem", "toolchain/driver", "base/errors", "toolchain/version", "toolchain/contract/schema", "base/fsx"},
-	"cli":                           {"toolchain/version", "cli/cmd/build", "cli/cmd/check", "cli/cmd/doc", "cli/cmd/doctor", "cli/cmd/fmt", "cli/cmd/get", "cli/cmd/lsp", "cli/cmd/mod", "cli/cmd/parse", "cli/cmd/run", "cli/cmd/schema", "cli/cmd/test", "cli/exit", "base/errors", "cli/cmd/explain", "cli/session", "lang/diag", "cli/cmd/zig"},
+	"cli":                           {"toolchain/version", "cli/cmd/build", "cli/cmd/check", "cli/cmd/doc", "cli/cmd/doctor", "cli/cmd/fmt", "cli/cmd/get", "cli/cmd/lsp", "cli/cmd/mod", "cli/cmd/parse", "cli/cmd/run", "cli/cmd/repl", "cli/cmd/schema", "cli/cmd/test", "cli/exit", "base/errors", "cli/cmd/explain", "cli/session", "lang/diag", "cli/cmd/zig"},
 }
 
 func TestDependencyDAG(t *testing.T) {
