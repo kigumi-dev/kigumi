@@ -9799,9 +9799,27 @@
       ]
     },
     {
+      "id": "run/proc_handle",
+      "kind": "run",
+      "path": "testdata/run/proc_handle.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/proc_spawn",
       "kind": "run",
       "path": "testdata/run/proc_spawn.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/proc_wait_cancel",
+      "kind": "run",
+      "path": "testdata/run/proc_wait_cancel.txtar",
       "mode": [
         "vm",
         "native"

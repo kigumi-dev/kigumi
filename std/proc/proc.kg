@@ -3,8 +3,14 @@
 /// `Error.Unsupported`. The VM has no fork, so process code is native-only.
 /// A child inherits the process's working directory and environment, including
 /// the changes `Host.chdir`, `Host.setEnv` and `Host.unsetEnv` make.
-/// A process is not reaped until `wait` is called, so keep the handle and wait.
+///
+/// A `Process` is a resource: dropping the handle while the child still runs
+/// sends it `Signal.Kill` and reaps it, so an abandoned or cancelled wait
+/// leaves no process and no zombie behind. Use `wait`, `tryWait`, `waitTimeout`
+/// or `waitAsync` to collect the exit status explicitly.
 import platform from std/platform
+import task from std/task
+import time from std/time
 
 pub type Signal =
     | Interrupt
@@ -32,8 +38,12 @@ pub fn Error.message(self) -> String {
 }
 
 /// A child process created by `spawn`; `pid` is public so a diagnostic can
-/// identify it before the first wait.
-pub type Process = {
+/// identify it before the first wait. The handle owns the child: its drop
+/// kills a still-running child and reaps it.
+/// Safety: the handle names one child process, and moving it to another
+/// thread transfers that one owner.
+@unsafeGuarantee(Send)
+pub type Process = resource {
     pub pid i32
     mut waited Bool
     mut status Int
@@ -43,8 +53,18 @@ pub fn Process.id(self) -> i32 {
     self.pid
 }
 
+/// Whether the child has been reaped and its status recorded.
 pub fn Process.reaped(self) -> Bool {
     self.waited
+}
+
+/// The exit status once the child has been reaped, or None while it still runs.
+pub fn Process.exitStatus(self) -> Int? {
+    if self.waited {
+        Some(self.status)
+    } else {
+        None
+    }
 }
 
 pub fn Processes.spawn(self, program: String, args: Array[String]) -> Process! {
@@ -59,6 +79,9 @@ pub fn Processes.spawn(self, program: String, args: Array[String]) -> Process! {
     }
 }
 
+/// Waits until the child exits and returns its status. A signal already
+/// raised inside a blocking wait does not lose the status: the wait is
+/// restarted until the child is really reaped.
 pub fn Process.wait(mut self) -> Int! {
     if self.waited {
         return self.status
@@ -71,6 +94,75 @@ pub fn Process.wait(mut self) -> Int! {
     self.status
 }
 
+/// Reports the exit status without blocking, or None while the child still
+/// runs. The first call that observes the exit reaps the child and records
+/// the status, so a later `wait` returns it without a second wait.
+pub fn Process.tryWait(mut self) -> Int?! {
+    if self.waited {
+        return Some(self.status)
+    }
+    let status = match platform.tryWaitProcess(self.pid) {
+        Ok(status) -> status
+        Err(e) -> fail Error { text: e.message() }
+    }
+    match status {
+        Some(code) -> {
+            self.status = code
+            self.waited = true
+            Some(code)
+        }
+        None -> None
+    }
+}
+
+/// Waits at most millis milliseconds. Some is the exit status when the child
+/// exits in time. None means the deadline passed or the calling task was
+/// cancelled: the child was sent `Signal.Kill` and reaped before None was
+/// returned, so it is never left running or as a zombie; `exitStatus` then
+/// holds the killed status.
+pub fn Process.waitTimeout(mut self, millis: i64) -> Int?! {
+    if self.waited {
+        return Some(self.status)
+    }
+    let start = time.monotonic()
+    for true {
+        match self.tryWait()? {
+            Some(code) -> return Some(code)
+            None -> {}
+        }
+        if task.cancelRequested() || millis <= 0 || start.elapsedMillis() >= millis {
+            self.killAndReap()
+            return None
+        }
+        // Poll at 1 ms: a timeout is approximate by that much, and a
+        // cancellation or a fast exit is noticed in the same window.
+        time.sleep(1)
+    }
+    None
+}
+
+/// Waits until the child exits without blocking the executor, yielding
+/// between polls. If the calling task is cancelled while it waits, the
+/// handle's drop kills and reaps the child, so cancellation leaves no
+/// process or zombie behind. Use `wait` from work that may block; this
+/// variant spends its turn checking the kernel and handing the executor
+/// back, so a long wait costs CPU but never occupies a worker.
+pub async fn Process.waitAsync(mut self) -> Int! {
+    if self.waited {
+        return self.status
+    }
+    for true {
+        match self.tryWait()? {
+            Some(code) -> return code
+            None -> {}
+        }
+        await task.yieldNow()
+    }
+    self.status
+}
+
+/// Sends signal to the child unless it has already been reaped. A child that
+/// exited between the last observation and the signal is not an error.
 pub fn Process.signal(self, signal: Signal) -> Void! {
     if self.waited {
         return
@@ -79,6 +171,33 @@ pub fn Process.signal(self, signal: Signal) -> Void! {
         Ok(_) -> {}
         Err(e) -> fail Error { text: e.message() }
     }
+}
+
+/// Sends `Signal.Kill` to the child; `signal(Signal.Kill)` with the error kept.
+pub fn Process.kill(self) -> Void! {
+    self.signal(Signal.Kill)
+}
+
+/// Sends `Signal.Kill` and reaps the child, ignoring an already-dead child;
+/// the path the drop and a timed-out wait take to leave nothing behind.
+fn Process.killAndReap(mut self) {
+    if self.waited {
+        return
+    }
+    match self.kill() {
+        Ok(_) -> {}
+        Err(_) -> {}
+    }
+    match self.wait() {
+        Ok(_) -> {}
+        Err(_) -> {}
+    }
+}
+
+/// Kills a still-running child and reaps it, so dropping an unawaited handle
+/// never leaks a process or a zombie.
+pub fn Process.drop(move self) {
+    self.killAndReap()
 }
 
 /// Spawns program, waits for it, and returns its status.

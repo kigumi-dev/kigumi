@@ -1,0 +1,49 @@
+-- src --
+import fs from std/fs
+import proc from std/proc
+
+let processes = host.processes()
+let files = host.files()
+
+let runCode = processes.run("/bin/sh", Array.of("-c", "exit 7"))?
+print "run ${runCode}"
+
+let mut normal = processes.spawn("/bin/sh", Array.of("-c", "exit 3"))?
+print "normal ${normal.wait()?}"
+print "normal-reaped ${normal.reaped()}"
+
+let mut victim = processes.spawn("/bin/sleep", Array.of("30"))?
+victim.kill()?
+print "killed ${victim.wait()?}"
+
+// The timeout kills and reaps the child, so the handle is terminal and its
+// /proc entry is gone instead of staying a zombie.
+let mut slow = processes.spawn("/bin/sleep", Array.of("30"))?
+let slowPid = slow.id()
+let timed = slow.waitTimeout(50)?
+print "timed-out ${timed is None}"
+print "timeout-reaped ${slow.reaped()}"
+match slow.exitStatus() {
+    Some(code) -> print "timeout-status ${code}"
+    None -> print "timeout-status none"
+}
+let slowPath = fs.Path.fromString("/proc/${slowPid}/stat")?
+print "timeout-zombie ${files.exists(slowPath)}"
+
+// Dropping a live handle kills and reaps it too, so an abandoned spawn does
+// not leave a process behind.
+let abandoned = processes.spawn("/bin/sleep", Array.of("30"))?
+let abandonedPid = abandoned.id()
+abandoned.drop()
+let abandonedPath = fs.Path.fromString("/proc/${abandonedPid}/stat")?
+print "drop-zombie ${files.exists(abandonedPath)}"
+-- stdout --
+run 7
+normal 3
+normal-reaped true
+killed 137
+timed-out true
+timeout-reaped true
+timeout-status 137
+timeout-zombie false
+drop-zombie false

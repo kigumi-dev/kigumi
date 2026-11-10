@@ -1,0 +1,34 @@
+-- src --
+import fs from std/fs
+import proc from std/proc
+import task from std/task
+
+// Parks on the child with waitAsync and keeps ownership of the handle.
+async fn hold(mut child: proc.Process) -> Int! {
+    await child.waitAsync()
+}
+
+// The parent's single yield lets hold reach its first suspension point, then
+// cancelling the task drops its handle, which kills and reaps the child.
+async fn root(child: proc.Process) -> Int! {
+    let t = task.spawn(hold(child))
+    await task.yieldNow()
+    t.cancel()
+    _ = await t
+    0
+}
+
+let processes = host.processes()
+let files = host.files()
+let mut child = processes.spawn("/bin/sleep", Array.of("30"))?
+let pid = child.id()
+let ex = task.currentThreadExecutor()
+let result = ex.runToCompletion(root(child))
+print "result ${result?}"
+let stat = fs.Path.fromString("/proc/${pid}/stat")?
+print "cancel-zombie ${files.exists(stat)}"
+-- stdout --
+result 0
+cancel-zombie false
+-- exit --
+0

@@ -15522,6 +15522,16 @@
     "status": "ok"
   },
   {
+    "key": "platform.tryWaitProcess",
+    "signature": "fn(i32) -\u003e Int?!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "platform.waitProcess",
     "signature": "fn(i32) -\u003e Int!",
     "has_body": true,
@@ -20582,8 +20592,48 @@
     "status": "ok"
   },
   {
+    "key": "proc.Process.drop",
+    "signature": "fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "proc.Process.exitStatus",
+    "signature": "fn() -\u003e Int?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "proc.Process.id",
     "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "proc.Process.kill",
+    "signature": "fn() -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "proc.Process.killAndReap",
+    "signature": "fn() -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20612,6 +20662,16 @@
     "status": "ok"
   },
   {
+    "key": "proc.Process.tryWait",
+    "signature": "fn() -\u003e Int?!",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
     "key": "proc.Process.wait",
     "signature": "fn() -\u003e Int!",
     "has_body": true,
@@ -20619,6 +20679,26 @@
     "vm": "implemented",
     "native": "gap",
     "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "proc.Process.waitAsync",
+    "signature": "fn() -\u003e Int!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "proc.Process.waitTimeout",
+    "signature": "fn(Int) -\u003e Int?!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
     "status": "ok"
   },
   {

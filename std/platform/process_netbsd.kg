@@ -127,12 +127,60 @@ pub fn waitProcess(pid: i32) -> Int! {
     decodeStatus(raw)
 }
 
-/// Sends sig to pid. A process that already exited may still be signaled
-/// until it is waited for.
+/// Reports pid's exit code once it has exited without blocking, or None while
+/// it still runs. A wait for a pid someone already reaped is not retried: the
+/// caller owns the child, so ECHILD stays an error instead of inventing a
+/// status.
+pub fn tryWaitProcess(pid: i32) -> Int?! {
+    let status = unsafe {
+        malloc(4)
+    }
+    if ffi.isNull(ffi.toConst(status)) {
+        fail ProcessError { text: "process wait: out of memory" }
+    }
+    let mut got: i32 = -1
+    for true {
+        // WNOHANG is 1 on every POSIX target this package builds for.
+        got = unsafe {
+            waitpid(pid, status, 1)
+        }
+        if got >= 0 || ffi.errno() != eintr() {
+            break
+        }
+    }
+    if got == 0 {
+        unsafe {
+            free(status)
+        }
+        return None
+    }
+    if got < 0 {
+        let why = ffi.errorText(ffi.errno())
+        unsafe {
+            free(status)
+        }
+        fail ProcessError { text: "process wait failed: ${why}" }
+    }
+    let raw = unsafe {
+        ffi.readI32(ffi.cast[i32](ffi.toConst(status)))
+    }
+    unsafe {
+        free(status)
+    }
+    Some(decodeStatus(raw))
+}
+
+/// Sends sig to pid. A process that exited between the caller's check and the
+/// signal is already gone; ESRCH is not a failure there. A child that exited
+/// but has not been waited for is a zombie, which kill still accepts.
 pub fn signalProcess(pid: i32, sig: i32) -> Void! {
     if unsafe {
         kill(pid, sig)
     } != 0 {
+        // errno(3) ESRCH: no process or zombie with that pid.
+        if ffi.errno() == 3 {
+            return
+        }
         fail ProcessError { text: "process signal failed: ${ffi.errorText(ffi.errno())}" }
     }
 }

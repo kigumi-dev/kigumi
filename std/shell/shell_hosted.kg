@@ -610,8 +610,25 @@ fn exitStatus(pid: i32) -> Int {
     let st = unsafe {
         malloc(4)
     }
-    _ = unsafe {
-        waitpid(pid, st, 0)
+    if ffi.isNull(ffi.toConst(st)) {
+        return 128
+    }
+    // A signal can interrupt the wait before the child is reaped; retrying is
+    // required, or the status would be lost and the stage left a zombie.
+    let mut got: i32 = -1
+    for true {
+        got = unsafe {
+            waitpid(pid, st, 0)
+        }
+        if got >= 0 || ffi.errno() != platform.eintr() {
+            break
+        }
+    }
+    if got < 0 {
+        unsafe {
+            free(st)
+        }
+        return 128
     }
     let code = unsafe {
         ffi.readI32(ffi.cast[i32](ffi.toConst(st)))
