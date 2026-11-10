@@ -26,8 +26,11 @@ const (
 	WKOption WellKnown = "option"
 	WKResult WellKnown = "result"
 	WKArray  WellKnown = "array"
-	WKFuture WellKnown = "future"
-	WKError  WellKnown = "error"
+	// WKFixedArray is `FixedArray[T, N]`: Args[0] the element type,
+	// Args[1] a TRConst carrying N in Value.
+	WKFixedArray WellKnown = "fixedArray"
+	WKFuture     WellKnown = "future"
+	WKError      WellKnown = "error"
 )
 
 // TypeRef is one node of the structured type graph; Display is for logs
@@ -43,6 +46,11 @@ type TypeRef struct {
 	Params    []*TypeRef  `json:"params,omitempty"`
 	Mutable   bool        `json:"mutable,omitempty"`
 	Lifetime  *TypeRef    `json:"lifetime,omitempty"`
+	// Value is a TRConst node's literal value in decimal; Display is not
+	// re-parsed for it.
+	Value string `json:"value,omitempty"`
+	// Variadic marks a C `...` signature (TRFn).
+	Variadic bool `json:"variadic,omitempty"`
 }
 
 // DeclRef names a declaration by stable ID (id.go), never a process-local

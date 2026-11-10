@@ -1,6 +1,10 @@
 package schema
 
-import "kigumi/internal/compiler/sem"
+import (
+	"strconv"
+
+	"kigumi/internal/compiler/sem"
+)
 
 // typeRef recurses into t's generic/const arguments and element type; nil
 // for NoType.
@@ -32,7 +36,7 @@ func typeRef(res *sem.Result, t sem.TypeID) *TypeRef {
 		if n.Kind == sem.KClosure {
 			kind = TRClosure
 		}
-		ref := &TypeRef{Kind: kind, Display: display, Elem: typeRef(res, n.Elem)}
+		ref := &TypeRef{Kind: kind, Display: display, Elem: typeRef(res, n.Elem), Variadic: n.Flags&sem.FnCVariadic != 0}
 		for _, a := range n.Args {
 			ref.Params = append(ref.Params, typeRef(res, a))
 		}
@@ -40,9 +44,12 @@ func typeRef(res *sem.Result, t sem.TypeID) *TypeRef {
 	case sem.KRef:
 		return &TypeRef{Kind: TRBorrow, Display: display, Elem: typeRef(res, n.Elem), Mutable: res.Types.RefMut(t), Lifetime: typeRef(res, n.Lifetime)}
 	case sem.KPtr:
-		return &TypeRef{Kind: TRPointer, Display: display, Elem: typeRef(res, n.Elem)}
+		// A KPtr node's only flag is its mutability, so a nonzero flag set is
+		// exactly `*mut T`; the IR keeps it because a C emitter needs `const`.
+		return &TypeRef{Kind: TRPointer, Display: display, Elem: typeRef(res, n.Elem), Mutable: n.Flags != 0}
 	case sem.KConst:
-		return &TypeRef{Kind: TRConst, Display: display}
+		value, _ := res.Types.ConstValue(t)
+		return &TypeRef{Kind: TRConst, Display: display, Value: strconv.FormatInt(value, 10)}
 	default:
 		return &TypeRef{Kind: TRPoison, Display: display}
 	}
@@ -60,6 +67,9 @@ func wellKnownOf(res *sem.Result, ent sem.EntityID) WellKnown {
 		return WKFuture
 	case res.Types.ErrorEnt():
 		return WKError
+	}
+	if ent != 0 && ent == res.LangItem("FixedArray") {
+		return WKFixedArray
 	}
 	return WKNone
 }

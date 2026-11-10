@@ -3,6 +3,7 @@ package schema
 import (
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
+	"kigumi/internal/lang/token"
 )
 
 // Options narrows a Build to one declaration attribute (`--attr`) and
@@ -35,14 +36,14 @@ func Build(m ModuleScope, res *sem.Result, opt Options) (*Module, map[sem.Entity
 		scope = append(scope, path)
 		for _, t := range p.Files {
 			for d := range t.List(t.Root).IDs() {
-				decl, ent, ok := buildDeclaration(res, t, d, path)
-				if !ok || (opt.Attr != "" && !hasMetadata(decl.Metadata, opt.Attr)) {
+				if t.Kind(d) == syntax.AbiBlock {
+					abi := abiContext(t, d)
+					for item := range t.View(d).AsAbiBlock().Decls().IDs() {
+						buildInto(&decls, byEntity, res, t, item, path, opt, abi)
+					}
 					continue
 				}
-				decls = append(decls, decl)
-				if ent != 0 {
-					byEntity[ent] = decl
-				}
+				buildInto(&decls, byEntity, res, t, d, path, opt, nil)
 			}
 		}
 	}
@@ -57,6 +58,42 @@ func hasMetadata(items []Metadata, name string) bool {
 		}
 	}
 	return false
+}
+
+// buildInto appends d's declaration when it is a kind the IR covers and the
+// --attr filter keeps it; abi is set for a declaration nested in an ABI block.
+func buildInto(decls *[]*Declaration, byEntity map[sem.EntityID]*Declaration, res *sem.Result, t *syntax.Tree, d syntax.NodeID, pkg string, opt Options, abi *ABI) {
+	decl, ent, ok := buildDeclaration(res, t, d, pkg)
+	if !ok || (opt.Attr != "" && !hasMetadata(decl.Metadata, opt.Attr)) {
+		return
+	}
+	if abi != nil {
+		if decl.ABI == nil {
+			decl.ABI = abi
+		}
+		if decl.Kind == KindType && decl.Form == typeFormName(sem.FormOpaque) {
+			decl.Opaque = true
+		}
+	}
+	*decls = append(*decls, decl)
+	if ent != 0 {
+		byEntity[ent] = decl
+	}
+}
+
+// abiContext reads an `extern(...)`/`export(...)` block's kind and first ABI
+// name, the context every declaration nested in it inherits.
+func abiContext(t *syntax.Tree, block syntax.NodeID) *ABI {
+	blk := t.View(block).AsAbiBlock()
+	abis := blk.Abis()
+	if abis.Len() == 0 {
+		return nil
+	}
+	kind := "export"
+	if blk.Tok().Kind() == token.KwExtern {
+		kind = "extern"
+	}
+	return &ABI{Block: kind, Name: abis.At(0).Tok().Text()}
 }
 
 func originOf(t *syntax.Tree, d syntax.NodeID) Origin {

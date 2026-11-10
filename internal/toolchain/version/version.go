@@ -21,11 +21,20 @@ const (
 	ModJSONFormatVersion   = 1
 	BuildPlanFormatVersion = 1
 	DoctorFormatVersion    = 1
+	// ExpandFormatVersion wraps `kigumi expand --format json`; CHeaderFormatVersion
+	// wraps `kigumi emit-c-header --format json`.
+	ExpandFormatVersion  = 1
+	CHeaderFormatVersion = 1
 	// SchemaIRFormatMajor/Minor version internal/toolchain/contract/schema's envelope; a minor
 	// bump only adds fields or node kinds an older reader can ignore.
 	SchemaIRFormatMajor = 1
-	SchemaIRFormatMinor = 3
+	SchemaIRFormatMinor = 4
 )
+
+// CanonicalABIVersion names the WASI release whose Canonical ABI the Schema
+// IR's lowering follows (language spec §13.5); emit-schema reports it so a
+// consumer never assumes a version from the schema alone.
+const CanonicalABIVersion = "0.3"
 
 // AbiRevision names the native Kigumi ABI generation this compiler emits
 // (calling convention, layout, drop glue, ...); bump on any incompatible change, independent of Release.

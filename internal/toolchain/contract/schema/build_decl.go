@@ -52,9 +52,34 @@ func buildFn(res *sem.Result, t *syntax.Tree, ent sem.EntityID, decl *Declaratio
 	}
 	decl.Metadata = metadataOf(res, t, info.Metadata)
 	decl.Contracts = contractsOf(res, ent)
+	decl.ABI = abiOf(res, ent)
+	if sig := res.Types.Node(info.Sig); info.Sig != 0 && sig.Kind == sem.KFn {
+		if sig.Elem != sem.TyUnit && sig.Elem != sem.TyNever {
+			decl.Return = typeRef(res, sig.Elem)
+		}
+	}
 	for _, p := range info.Params {
 		decl.Params = append(decl.Params, buildMember(res, t, p, res.Local(p).Metadata))
 	}
+}
+
+// abiOf names the foreign block ent sits in; nil for a Kigumi-only function.
+func abiOf(res *sem.Result, ent sem.EntityID) *ABI {
+	info := res.Fn(ent)
+	block, name := "", ""
+	switch {
+	case info.Abi != "":
+		block, name = "extern", info.Abi
+	case info.Export != "":
+		block, name = "export", info.Export
+	default:
+		return nil
+	}
+	return &ABI{Block: block, Name: name, Symbol: res.FnLinkNameOf(ent), Naked: info.Naked, Variadic: cVariadic(res, info.Sig)}
+}
+
+func cVariadic(res *sem.Result, sig sem.TypeID) bool {
+	return sig != 0 && res.Types.Node(sig).Flags&sem.FnCVariadic != 0
 }
 
 func buildType(res *sem.Result, t *syntax.Tree, ent sem.EntityID, decl *Declaration) {
@@ -62,6 +87,11 @@ func buildType(res *sem.Result, t *syntax.Tree, ent sem.EntityID, decl *Declarat
 	decl.Kind = KindType
 	decl.Metadata = metadataOf(res, t, info.Metadata)
 	decl.SchemaDecl = schemaDeclOf(res, ent)
+	decl.Form = typeFormName(info.Form)
+	decl.Layout, decl.Align = info.Layout, info.Align
+	if info.Form == sem.FormDefined {
+		decl.Underlying = typeRef(res, info.Underlying)
+	}
 	for _, p := range info.Params {
 		m := buildMember(res, t, p, nil)
 		m.Const = res.TypeParam(p).IsConst
@@ -93,6 +123,23 @@ func buildVariant(res *sem.Result, t *syntax.Tree, v sem.EntityID) *Variant {
 		variant.Payload = append(variant.Payload, &Member{ID: memberID(variant.ID, pname), Name: pname, Type: typeRef(res, pt), Metadata: []Metadata{}, Copy: res.IsCopy(pt)})
 	}
 	return variant
+}
+
+// typeFormName names info.Form's shape as a stable IR string.
+func typeFormName(form sem.TypeForm) string {
+	switch form {
+	case sem.FormRecord:
+		return "record"
+	case sem.FormResource:
+		return "resource"
+	case sem.FormAdt:
+		return "adt"
+	case sem.FormOpaque:
+		return "opaque"
+	case sem.FormDefined:
+		return "defined"
+	}
+	return ""
 }
 
 // availabilityOf reads fileName's own platform tag; nil means untagged

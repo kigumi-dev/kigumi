@@ -48,6 +48,38 @@ type Declaration struct {
 	Origin       Origin              `json:"origin"`
 	SchemaDecl   *SchemaDecl         `json:"schemaDecl,omitempty"`
 	Availability *TargetAvailability `json:"availability,omitempty"`
+	// Return is a function or method's result type; nil means Void or Never.
+	Return *TypeRef `json:"return,omitempty"`
+	// Form names a type declaration's shape ("record", "resource", "adt",
+	// "opaque", "defined"); empty for a non-type.
+	Form string `json:"form,omitempty"`
+	// Underlying is a defined type's representation (`type A = T`).
+	Underlying *TypeRef `json:"underlying,omitempty"`
+	// Layout is a `layout(...)` tag: "C" or "packed"; empty otherwise.
+	Layout string `json:"layout,omitempty"`
+	// Align is `layout(C, align: N)`'s N, 0 when unset.
+	Align int64 `json:"align,omitempty"`
+	// Opaque marks a foreign type a `extern(...)` block declares with no
+	// body: C sees an incomplete struct, never its fields.
+	Opaque bool `json:"opaque,omitempty"`
+	// ABI marks a declaration placed in an `extern(...)` or `export(...)`
+	// block; nil for a Kigumi-only declaration.
+	ABI *ABI `json:"abi,omitempty"`
+}
+
+// ABI names the foreign block a declaration belongs to and the external
+// details a binding generator needs.
+type ABI struct {
+	// Block is "extern" or "export".
+	Block string `json:"block"`
+	// Name is the ABI name written in the block: "C", or "interrupt".
+	Name string `json:"name"`
+	// Symbol is the external spelling (`@linkName` or the source name).
+	Symbol string `json:"symbol,omitempty"`
+	// Naked marks `export(C, naked)`: a body made of one asm block.
+	Naked bool `json:"naked,omitempty"`
+	// Variadic marks a C `...` signature.
+	Variadic bool `json:"variadic,omitempty"`
 }
 
 // TargetAvailability is a declaration's platform-file tag; nil means

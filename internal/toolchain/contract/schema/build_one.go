@@ -37,6 +37,7 @@ func buildSynthesizedType(res *sem.Result, ent sem.EntityID) *Declaration {
 	}
 	decl := &Declaration{Package: builtinPkg, Kind: KindType, Name: e.Name, Visibility: visibilityOf(e.Vis.Level)}
 	info := res.TypeDecl(ent)
+	decl.Form = typeFormName(info.Form)
 	for _, p := range info.Params {
 		m := buildMember(res, nil, p, nil)
 		m.Const = res.TypeParam(p).IsConst

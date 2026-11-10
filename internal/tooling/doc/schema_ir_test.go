@@ -39,7 +39,7 @@ const schemaIRProbeGolden = `{
   "envelope": {
     "format": "kigumi.schema",
     "major": 1,
-    "minor": 3,
+    "minor": 4,
     "compiler": "0.1",
     "target": "x86_64-linux",
     "scope": [
@@ -78,7 +78,8 @@ const schemaIRProbeGolden = `{
         "file": "main.kg",
         "line": 1,
         "generated": false
-      }
+      },
+      "form": "record"
     },
     {
       "id": "main#type:Shape",
@@ -113,7 +114,8 @@ const schemaIRProbeGolden = `{
         "file": "main.kg",
         "line": 6,
         "generated": false
-      }
+      },
+      "form": "adt"
     },
     {
       "id": "main#fn:double",
@@ -145,6 +147,11 @@ const schemaIRProbeGolden = `{
         "file": "main.kg",
         "line": 9,
         "generated": false
+      },
+      "return": {
+        "kind": "prim",
+        "display": "Int",
+        "prim": "Int"
       }
     }
   ]
