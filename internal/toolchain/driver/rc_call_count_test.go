@@ -23,15 +23,15 @@ var rcCallSites = map[string]*regexp.Regexp{
 
 // Call sites of the count and cell runtime calls in the IR of every native run fixture, std included.
 var pinnedRCCalls = map[string]int{
-	"fixtures":         1078,
-	"rt_retain":        15123,
-	"rt_release":       98093,
-	"rt_release_outer": 48092,
-	"rt_drop":          63564,
-	"rt_cell_init":     8821,
-	"rt_cell_take":     3390,
-	"rt_setfield_swap": 1015,
-	"rt_setindex_swap": 864,
+	"fixtures":         1146,
+	"rt_retain":        16090,
+	"rt_release":       103868,
+	"rt_release_outer": 54005,
+	"rt_drop":          68816,
+	"rt_cell_init":     9509,
+	"rt_cell_take":     3589,
+	"rt_setfield_swap": 1103,
+	"rt_setindex_swap": 959,
 }
 
 // The same call sites over the fixtures that existed before the retain / release elimination, re-measured when a
@@ -42,10 +42,10 @@ var baselineRCCalls = map[string]int{
 	"rt_release":       51119,
 	"rt_release_outer": 12954,
 	"rt_drop":          26655,
-	"rt_cell_init":     2883,
+	"rt_cell_init":     3220,
 	"rt_cell_take":     2503,
 	"rt_setfield_swap": 203,
-	"rt_setindex_swap": 51,
+	"rt_setindex_swap": 127,
 }
 
 var addedAfterBaseline = map[string]bool{
@@ -100,6 +100,16 @@ var addedAfterBaseline = map[string]bool{
 	"fn_value_param_part_ok.txtar":                  true,
 	"direct_call_kept_ok.txtar":                     true,
 	"container_key_not_kept_ok.txtar":               true,
+	"alloc_arena_closed.txtar":                      true,
+	"alloc_block_arena.txtar":                       true,
+	"alloc_block_huge.txtar":                        true,
+	"alloc_clone_in.txtar":                          true,
+	"json_map_key_collision.txtar":                  true,
+	"secret_debug_containers.txtar":                 true,
+	"secret_san_debug.txtar":                        true,
+	"shell_coreutil.txtar":                          true,
+	"shell_interp_path.txtar":                       true,
+	"std_http_101.txtar":                            true,
 	"fs_path_api.txtar":                             true,
 	"crypto_sha256.txtar":                           true,
 	"crypto_sha512.txtar":                           true,
