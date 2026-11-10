@@ -32,8 +32,7 @@ import net from std/net
 
 /// The server's signing key. Only ECDSA P-256 is implemented, and the key
 /// must match the leaf certificate's public key.
-pub type ServerKey =
-    | EcP256(Bytes)
+pub type ServerKey = | EcP256(Bytes)
 
 /// Server settings. `certificates` is the DER chain leaf first, `key` signs
 /// CertificateVerify, and `random` must return cryptographically random
