@@ -60,21 +60,30 @@ func (e *emitter) descOfType(t sem.TypeID) string {
 
 func (e *emitter) typeCount() int { return e.ntypes }
 
-// borrowFieldMask bits the fields declared as a borrow (`&'a T`), so
-// rt_release/rt_copy skip a field the record never owned.
+// privateFieldMask bits the fields no debug/Display rendering may show: a
+// field's value stays private to its package, so both backends print
+// <private> in its place instead of the value.
 func (e *emitter) privateFieldMask(info *sem.TypeDeclInfo) uint64 {
-	if e.r.Packages[info.Home].Path != "std/secret" {
-		return 0
-	}
 	var mask uint64
+	private := false
 	for i, f := range info.Fields {
 		if e.r.Entity(f).Vis.Level == sem.VisPrivate {
-			mask |= 1 << uint(i)
+			private = true
+			if i < 64 {
+				mask |= 1 << uint(i)
+			}
 		}
+	}
+	// One mask word cannot name every field of a wider record: mark it all-private (display_into reads ^0 that
+	// way when nfields > 64), so a private field past the 64th still stays out of debug.
+	if private && len(info.Fields) > 64 {
+		return ^uint64(0)
 	}
 	return mask
 }
 
+// borrowFieldMask bits the fields declared as a borrow (`&'a T`), so
+// rt_release/rt_copy skip a field the record never owned.
 func (e *emitter) borrowFieldMask(info *sem.TypeDeclInfo) uint64 {
 	var mask uint64
 	for i, f := range info.Fields {

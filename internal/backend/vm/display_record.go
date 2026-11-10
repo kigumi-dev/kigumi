@@ -15,7 +15,7 @@ func (m *Machine) displayRecord(sb *strings.Builder, v *obj, canon bool) {
 	name := m.r.Entity(v.ent).Name
 	fields := m.r.TypeDecl(v.ent).Fields
 	named := !canon && len(fields) == len(v.fields)
-	private := m.r.Packages[m.r.Entity(v.ent).Pkg].Path == "std/secret"
+	hideAll := named && m.widePrivateRecord(fields)
 	if named && isTupleName(name) {
 		sb.WriteString("(")
 		for i, f := range v.fields {
@@ -37,7 +37,7 @@ func (m *Machine) displayRecord(sb *strings.Builder, v *obj, canon bool) {
 		if named {
 			sb.WriteString(m.r.Entity(fields[i]).Name)
 			sb.WriteString(": ")
-			if private && m.r.Entity(fields[i]).Vis.Level == sem.VisPrivate {
+			if hideAll || m.r.Entity(fields[i]).Vis.Level == sem.VisPrivate {
 				sb.WriteString("<private>")
 				continue
 			}
@@ -45,6 +45,21 @@ func (m *Machine) displayRecord(sb *strings.Builder, v *obj, canon bool) {
 		m.displayIntoCanon(sb, f, canon)
 	}
 	sb.WriteString(" }")
+}
+
+// widePrivateRecord reports a record too wide for the one-word private-field mask the native descriptor carries.
+// The first 64 fields could be marked but the rest could not, so a record with any private field hides every
+// field: redacting too much is safe, and both backends then say the same thing.
+func (m *Machine) widePrivateRecord(fields []sem.EntityID) bool {
+	if len(fields) <= 64 {
+		return false
+	}
+	for _, f := range fields {
+		if m.r.Entity(f).Vis.Level == sem.VisPrivate {
+			return true
+		}
+	}
+	return false
 }
 
 func isTupleName(name string) bool {

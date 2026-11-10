@@ -67,7 +67,7 @@ fn interp_len(s: u64) -> usize {
 }
 
 fn declassify_buffer(s: u64) -> Bytes {
-    let buf = secret.SecretBuffer.fromBytes("k${s}".toBytes())
+    let buf = secret.SecretBuffer.fromString("k${s}")
     unsafe { buf.declassify() }
 }
 

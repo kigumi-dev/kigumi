@@ -107,8 +107,9 @@ struct rt_type {
     // borrow_fields bits the fields holding a borrow (`&'a T`);
     // rt_release/rt_copy skip them, since the record never owns them.
     uint64_t borrow_fields;
-    // private_fields marks fields a secret-bearing type must not expose
-    // through debug, which prints <private> instead of the value.
+    // private_fields bits the fields a type keeps private; debug and the
+    // derived Display print <private> instead of their value, as the
+    // compiler-side display does.
     uint64_t private_fields;
 };
 // nullary is this variant's payload-free value: immortal, filled once by

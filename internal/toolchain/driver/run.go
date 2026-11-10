@@ -42,9 +42,18 @@ func RunWith(m *Module, opts RunOptions, stdout, stderr io.Writer, args []string
 		return 1, nil
 	}
 	if err := VMRefusal(a); err != nil {
-		return 1, err
+		return 1, secretSanRefusal(err, opts.SecretSan)
 	}
 	return runVM(m, a, opts, stdout, stderr, args)
+}
+
+// secretSanRefusal keeps `kigumi build` from standing in for a shadow check: only the VM carries the
+// secret labels, so a program the VM refuses cannot be checked at all. Without the flag the error is unchanged.
+func secretSanRefusal(refusal error, secretSan bool) error {
+	if !secretSan {
+		return refusal
+	}
+	return fmt.Errorf("--secret-san cannot check this program, and the native build has no shadow checker: %w", refusal)
 }
 
 func runVM(m *Module, a *Analysis, opts RunOptions, stdout, stderr io.Writer, args []string) (int, error) {

@@ -1,6 +1,9 @@
 package driver_test
 
 import (
+	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -70,5 +73,35 @@ fn main() {
 		t.Fatal("branch on a secret produced equal traces")
 	} else if !strings.Contains(err.Error(), "executed blocks") {
 		t.Fatalf("branch mismatch reported %q", err)
+	}
+}
+
+// TestSecretSanRefusesNativeOnlyPrograms keeps --secret-san from being answered with `kigumi build`: the secret
+// labels live only in the VM, so a program it cannot run is unchecked and the check must fail closed instead.
+func TestSecretSanRefusesNativeOnlyPrograms(t *testing.T) {
+	std, _ := filepath.Abs("../../../std")
+	root := t.TempDir()
+	mod := "Module {\n    name: \"secretsanasm\"\n    kigumi: \"0.1\"\n}\n"
+	os.WriteFile(filepath.Join(root, "mod.kg"), []byte(mod), 0o644)
+	os.WriteFile(filepath.Join(root, "main.kg"), []byte(asmNumericLabelSrc), 0o644)
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var out, errOut bytes.Buffer
+	if _, err := driver.RunWith(m, driver.RunOptions{SecretSan: true}, &out, &errOut, nil); err == nil ||
+		!strings.Contains(err.Error(), "--secret-san cannot check this program") ||
+		!strings.Contains(err.Error(), "no shadow checker") {
+		t.Fatalf("want a fail-closed --secret-san refusal, got %v", err)
+	}
+	if out.Len() != 0 {
+		t.Errorf("a refused run wrote %q", out.String())
+	}
+
+	// Without the flag the native-only guidance is unchanged.
+	if _, err := driver.RunWith(m, driver.RunOptions{}, &out, &errOut, nil); err == nil ||
+		!strings.Contains(err.Error(), "native-only") {
+		t.Fatalf("plain refusal changed: %v", err)
 	}
 }

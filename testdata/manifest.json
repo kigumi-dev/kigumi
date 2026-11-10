@@ -10158,6 +10158,15 @@
       ]
     },
     {
+      "id": "run/secret_debug_containers",
+      "kind": "run",
+      "path": "testdata/run/secret_debug_containers.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/secret_declassify",
       "kind": "run",
       "path": "testdata/run/secret_declassify.txtar",
@@ -10197,6 +10206,15 @@
       "id": "run/secret_san_containers",
       "kind": "run",
       "path": "testdata/run/secret_san_containers.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/secret_san_debug",
+      "kind": "run",
+      "path": "testdata/run/secret_san_debug.txtar",
       "mode": [
         "vm",
         "native"
@@ -17379,6 +17397,14 @@
       "id": "sem/secret_buffer_opacity",
       "kind": "sem",
       "path": "testdata/sem/secret_buffer_opacity.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/secret_json",
+      "kind": "sem",
+      "path": "testdata/sem/secret_json.txtar",
       "mode": [
         "check"
       ]

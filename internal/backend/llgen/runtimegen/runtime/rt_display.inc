@@ -161,7 +161,10 @@ static void display_record(buf* b, val v, int canon) {
         if (named) {
             rt_bputs(b, t->fields[i]);
             rt_bputs(b, ": ");
-            if ((t->private_fields >> i) & 1) {
+            // One mask word cannot name every field of a record wider than 64; the compiler marks such a
+            // record all-private, so a nonzero mask hides every field there instead of shifting past 63.
+            int hidden = t->nfields > 64 ? t->private_fields != 0 : ((t->private_fields >> i) & 1);
+            if (hidden) {
                 rt_bputs(b, "<private>");
                 continue;
             }
