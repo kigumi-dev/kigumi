@@ -27,6 +27,9 @@ type Program struct {
 	unlowered  []bool
 	// Skipped lists the bodies lowering needed that sem left unchecked; the program is unusable when it is non-empty.
 	Skipped []sem.EntityID
+	// Moves records the move-analysis roots for bodies that consumed a value.
+	// A REPL probe reads it to decide which session parameters survived a cell.
+	Moves map[*midir.Func][]midir.LocalID
 	// NativeBoxes reports scalar allocations made by native lowering; profiles require this hook.
 	NativeBoxes func(*Program) NativeBoxSites
 }

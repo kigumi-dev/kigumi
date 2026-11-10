@@ -11,14 +11,14 @@ pub type Item =
     | Redirect(Int, Int)
     | Grep(String)
 
-/// Command pipeline built from `$"..."` literals; nothing runs until it is piped into `run` or `capture`.
+/// Command pipeline built from `$"..."` literals; nothing runs until it is piped into `run`, `capture` or `runHere`.
 pub type Plan = {
     mut items Array[Item]
 }
 
 /// Exit statuses of every stage of a pipeline that was run.
 pub type PipelineResult = {
-    statuses Array[Int]
+    pub statuses Array[Int]
 }
 
 /// Output collected by `capture`.

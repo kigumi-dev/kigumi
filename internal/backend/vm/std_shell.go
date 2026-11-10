@@ -99,7 +99,7 @@ func (m *Machine) registerShell() {
 		if problem != "" {
 			return m.errMsg(problem)
 		}
-		out, errOut, _, err := shell.Run(plan, m.opts.Cwd)
+		out, errOut, _, err := shell.Run(plan, m.machineCwd())
 		if err != nil {
 			return m.errMsg(err.Error())
 		}
@@ -111,12 +111,28 @@ func (m *Machine) registerShell() {
 		if problem != "" {
 			return m.errMsg(problem)
 		}
-		out, errOut, statuses, err := shell.Run(plan, m.opts.Cwd)
+		out, errOut, statuses, err := shell.Run(plan, m.machineCwd())
 		if err != nil {
 			return m.errMsg(err.Error())
 		}
 		m.writeOut(out)
 		m.writeErr(errOut)
+		codes := mkArray(nil)
+		for _, st := range statuses {
+			codes.fields = append(codes.fields, mkInt(int64(st), 64|256))
+		}
+		result := m.r.Types.Node(m.resultPayload(fn)).Ent
+		return m.ok(mkRecord(result, []*obj{codes}))
+	}
+	h["shell.runHere"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		plan, problem := m.planOf(a[0])
+		if problem != "" {
+			return m.errMsg(problem)
+		}
+		statuses, err := shell.RunHere(plan, m.machineCwd(), m.opts.Stdin, m.out, m.err)
+		if err != nil {
+			return m.errMsg(err.Error())
+		}
 		codes := mkArray(nil)
 		for _, st := range statuses {
 			codes.fields = append(codes.fields, mkInt(int64(st), 64|256))

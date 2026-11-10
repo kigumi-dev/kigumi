@@ -1,6 +1,8 @@
 /// Child processes. POSIX targets implement `spawn`, `wait` and `signal` with
 /// fork/execvp through `std/platform`; other targets report
 /// `Error.Unsupported`. The VM has no fork, so process code is native-only.
+/// A child inherits the process's working directory and environment, including
+/// the changes `Host.chdir`, `Host.setEnv` and `Host.unsetEnv` make.
 /// A process is not reaped until `wait` is called, so keep the handle and wait.
 import platform from std/platform
 

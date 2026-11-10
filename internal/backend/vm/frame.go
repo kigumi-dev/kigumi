@@ -81,9 +81,11 @@ func (m *Machine) run(fr *frame) *obj {
 		// An empty loop still has to run into the step limit.
 		if len(blk.Insts) == 0 {
 			m.chargeStep()
+			m.checkCancel()
 		}
 		for k := range blk.Insts {
 			m.chargeStep()
+			m.checkCancel()
 			fr.blk, fr.pc = bid, k
 			if len(fr.pending) > 0 {
 				m.settleSources(fr, &blk.Insts[k])

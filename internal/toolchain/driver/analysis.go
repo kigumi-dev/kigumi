@@ -1,6 +1,7 @@
 package driver
 
 import (
+	"fmt"
 	"kigumi/internal/backend/llgen"
 	"kigumi/internal/compiler/mir"
 	mirbuild "kigumi/internal/compiler/mir/build"
@@ -59,6 +60,11 @@ func (m *Module) analyze(mod *sem.Module, gen sem.DeriveGenerator) (*Analysis, e
 
 // analyzeCore is analyze without recording artifacts; keep, when set, limits which own packages are lowered up front.
 func (m *Module) analyzeCore(mod *sem.Module, gen sem.DeriveGenerator, keep func(path string) bool) (*Analysis, error) {
+	return m.analyzeCoreRoot(mod, gen, keep, 0)
+}
+
+// analyzeCoreRoot is analyzeCore with an entry function that is not main.
+func (m *Module) analyzeCoreRoot(mod *sem.Module, gen sem.DeriveGenerator, keep func(path string) bool, root sem.EntityID) (*Analysis, error) {
 	m.stats.Check++
 	if gen == nil {
 		gen = schema.GenerateDerive
@@ -74,12 +80,12 @@ func (m *Module) analyzeCore(mod *sem.Module, gen sem.DeriveGenerator, keep func
 	}
 	m.stats.MIR++
 	var err error
-	if a.Prog, err = buildProgram(res, progOptions{strict: m.target.StrictStack, budgetKiB: m.target.StackBudgetKiB, verifyEach: m.verifyPasses, lowerAll: m.lowerAll, rootKeep: keep, target: m.target}); err != nil {
+	if a.Prog, err = buildProgram(res, progOptions{strict: m.target.StrictStack, budgetKiB: m.target.StackBudgetKiB, verifyEach: m.verifyPasses, lowerAll: m.lowerAll, rootKeep: keep, target: m.target, root: root}); err != nil {
 		return nil, err
 	}
 	// Several cmd/ scripts each have an implicit main; the module's entry
 	// names the one a program starts from.
-	if m.Entry != "" {
+	if root == 0 && m.Entry != "" {
 		for _, ent := range res.ImplicitMains() {
 			if res.Tree(res.Entity(ent).File).File.Name == m.Entry {
 				a.Prog.Entry = a.Prog.ByEnt[ent]
@@ -100,11 +106,18 @@ type progOptions struct {
 	rootKeep func(path string) bool
 	// target is what the program is built for, which the native lowering's boxes depend on.
 	target buildconfig.Target
+	// root overrides the entry function; a REPL cell is not an implicit or explicit main.
+	root sem.EntityID
 }
 
 // buildProgram returns a program with diagnostics unverified.
 func buildProgram(res *sem.Result, o progOptions) (*mir.Program, error) {
 	prog := lowerProgram(res, o.lowerAll, o.rootKeep)
+	if o.root != 0 {
+		// The REPL cell is reached by the host with its bindings as
+		// arguments; the ordinary entry verifier expects a main/Host entry.
+		prog.Entry = nil
+	}
 	if res.HasErrors() || len(prog.Skipped) > 0 {
 		return prog, nil
 	}
@@ -121,6 +134,9 @@ func buildProgram(res *sem.Result, o progOptions) (*mir.Program, error) {
 	}
 	for _, c := range claimDiags(prog) {
 		res.Files[c.File].Diags = append(res.Files[c.File].Diags, c.Diag)
+	}
+	if o.root != 0 {
+		prog.Entry = prog.ByEnt[o.root]
 	}
 	return prog, nil
 }
@@ -176,3 +192,106 @@ func (m *Module) Stats() Stats { return m.stats }
 // LastAnalysis is the most recent Analyze result for this module, nil
 // before any call; a resource report reads it instead of re-analyzing.
 func (m *Module) LastAnalysis() *Analysis { return m.lastAnalysis }
+
+// AnalyzeRoot checks and lowers m with root as the entry function. It is the
+// REPL's cell path: the generated cell has no implicit or explicit main.
+func AnalyzeRoot(m *Module, root sem.EntityID) (*Analysis, error) {
+	mod, err := m.semModule()
+	if err != nil {
+		return nil, err
+	}
+	a, err := m.analyzeCoreRoot(mod, nil, nil, root)
+	if a != nil {
+		m.recordPackages(a.Res, a.Prog != nil)
+	}
+	return a, err
+}
+
+// AnalyzeRootName checks m and lowers the named function in pkgPath as the
+// entry. The REPL knows the generated cell by name, not by an id that would
+// move when a cell's output type is added.
+func AnalyzeRootName(m *Module, pkgPath, name string) (*Analysis, error) {
+	mod, err := m.semModule()
+	if err != nil {
+		return nil, err
+	}
+	m.stats.Check++
+	res := sem.CheckWith(mod, schema.GenerateDerive)
+	if m.HasParseErrors() {
+		res.FailParse()
+	}
+	a := &Analysis{Res: res, Provenance: schema.BuildProvenance(res, nil)}
+	m.lastAnalysis = a
+	if res.HasErrors() {
+		m.recordPackages(res, false)
+		return a, nil
+	}
+	pkg := res.PackageByPath(pkgPath)
+	ent := res.PackageMember(pkg, name)
+	if ent == 0 {
+		m.recordPackages(res, false)
+		return a, fmt.Errorf("repl: generated function %q not found in package %q", name, pkgPath)
+	}
+	m.stats.MIR++
+	a.Prog, err = buildProgram(res, progOptions{
+		strict:     m.target.StrictStack,
+		budgetKiB:  m.target.StackBudgetKiB,
+		verifyEach: m.verifyPasses,
+		lowerAll:   m.lowerAll,
+		target:     m.target,
+		root:       ent,
+	})
+	if err != nil {
+		return nil, err
+	}
+	m.recordPackages(res, a.Prog != nil)
+	return a, nil
+}
+
+// CheckLazyRoot checks m with std bodies the cell never names left unchecked;
+// it retries eagerly when a skipped body was needed. A REPL cell needs only the
+// checked result before lowering its own generated root.
+func CheckLazyRoot(m *Module) (*sem.Result, error) {
+	mod, err := m.semModule()
+	if err != nil {
+		return nil, err
+	}
+	mod.LazyBodies = func(path string) bool { p := m.Packages[path]; return p != nil && p.Std }
+	res := sem.CheckWith(mod, schema.GenerateDerive)
+	if m.HasParseErrors() {
+		res.FailParse()
+	}
+	if res.LazyMissed() {
+		m.unitStats.LazyRetries++
+		return CheckOnly(m)
+	}
+	m.unitStats.Lazy++
+	m.unitStats.SkippedBodies += res.SkippedBodies()
+	m.recordPackages(res, false)
+	return res, nil
+}
+
+// LowerCheckedRoot lowers root from an already checked result and records the
+// analysis. It is the no-repeat-check path for a REPL cell.
+func (m *Module) LowerCheckedRoot(res *sem.Result, root sem.EntityID) (*Analysis, error) {
+	a := &Analysis{Res: res, Provenance: schema.BuildProvenance(res, nil)}
+	m.lastAnalysis = a
+	if res.HasErrors() {
+		return a, nil
+	}
+	m.stats.MIR++
+	var err error
+	a.Prog, err = buildProgram(res, progOptions{
+		strict:     m.target.StrictStack,
+		budgetKiB:  m.target.StackBudgetKiB,
+		verifyEach: m.verifyPasses,
+		lowerAll:   m.lowerAll,
+		target:     m.target,
+		root:       root,
+	})
+	if err != nil {
+		return nil, err
+	}
+	m.recordPackages(res, a.Prog != nil)
+	return a, nil
+}

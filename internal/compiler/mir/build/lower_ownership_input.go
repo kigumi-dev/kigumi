@@ -16,9 +16,12 @@ func newOwnershipInput(p *lowering) *ownquery.Input {
 }
 
 // analyzeOwnership runs the move analysis and, on what it saw, the captured-read check, then drops the guard marks both read.
-func analyzeOwnership(p *ownquery.Input, f *midir.Func, ghosts *ghostSet) {
+func analyzeOwnership(p *ownquery.Input, f *midir.Func, ghosts *ghostSet, record func(*midir.Func, []ownquery.MoveEvent)) {
 	if moves, ok := ownquery.Analyze(p, f, ghosts.runs); ok {
 		borrowpass.CheckReadCaptures(p, f, moves)
+		if record != nil {
+			record(f, moves)
+		}
 	}
 	ownquery.ClearGuardMarks(f)
 }

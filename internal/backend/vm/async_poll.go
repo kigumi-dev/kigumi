@@ -143,6 +143,7 @@ func (m *Machine) resume(fu *future) (*obj, polled) {
 		m.traceBlock(f, co.bid)
 		if len(blk.Insts) == 0 {
 			m.chargeStep()
+			m.checkCancel()
 		}
 		for co.pc < len(blk.Insts) {
 			in := &blk.Insts[co.pc]
@@ -155,6 +156,7 @@ func (m *Machine) resume(fu *future) (*obj, polled) {
 				continue
 			}
 			m.chargeStep()
+			m.checkCancel()
 			co.fr.blk, co.fr.pc = co.bid, co.pc
 			if len(co.fr.pending) > 0 {
 				m.settleSources(&co.fr, in)

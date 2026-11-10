@@ -84,7 +84,7 @@ func (p *lowering) build(hf *hir.Func) *midir.Func {
 	p.top[f] = p.cur
 	b.lowerGhosts()
 	b.ghostRuns.hoistRefReleases(p.input, f)
-	analyzeOwnership(p.input, f, &b.ghostRuns)
+	analyzeOwnership(p.input, f, &b.ghostRuns, p.noteMoves)
 	b.ghostRuns.drop(f)
 	p.checkBorrowsOf(f)
 	return f

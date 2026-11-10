@@ -2,8 +2,11 @@ import fs from std/fs
 import net from std/net
 import shell from std/shell
 
-/// The process environment; `host` is the predeclared instance in the entry file.
-/// Safety: a stateless capability marker; every call it makes is independent, so sharing or duplicating it is free.
+/// The process environment and working directory; `host` is the predeclared instance in the entry file.
+/// Its mutating methods (`chdir`, `setEnv`, `unsetEnv`) change process-wide state that later
+/// cells and child processes inherit, so callers coordinate those effects themselves.
+/// Safety: a stateless capability marker; it owns nothing, so sharing or duplicating it is free
+/// (the process-wide calls it exposes may still race each other).
 @unsafeGuarantee(Copy, Send, Sync)
 pub type Host
 

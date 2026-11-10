@@ -28,7 +28,7 @@ func (b *builder) comptime(e *hir.Expr) midir.LocalID {
 	v := cb.detach(cb.expr(inner))
 	cb.exitScope()
 	cb.returnValue(v)
-	analyzeOwnership(b.p.input, f, &cb.ghostRuns)
+	analyzeOwnership(b.p.input, f, &cb.ghostRuns, b.p.noteMoves)
 	b.p.checkBorrowsOf(f)
 	slot := len(b.p.Comptime)
 	dst := b.emit(midir.Inst{Op: midir.OpBuiltin, Dst: b.temp(e.Type), Str: "comptime", Index: slot, Node: e.Node})

@@ -26,6 +26,10 @@ extern(C) {
     fn strlen(s: *const u8) -> usize
     fn malloc(n: usize) -> *mut u8
     fn free(p: *mut u8)
+    fn chdir(path: *const u8) -> i32
+    fn getcwd(buf: *mut u8, size: usize) -> *mut u8
+    fn setenv(name: *const u8, value: *const u8, overwrite: i32) -> i32
+    fn unsetenv(name: *const u8) -> i32
 }
 
 // struct pollfd, the same shape std/shell/shell_hosted.kg's Pollfd uses.
@@ -347,4 +351,64 @@ fn Host.envBytes(self, name: String) -> Bytes? {
     Some(unsafe {
         ffi.bytesFrom(p, strlen(p))
     })
+}
+
+/// Changes the working directory of the process and of the children it later starts.
+/// A relative path resolves against the current working directory.
+pub fn Host.chdir(self, path: String) -> Void! {
+    let c = ffi.CString.new(&path)?
+    if unsafe {
+        chdir(c.ptr())
+    } != 0 {
+        fail ffi.lastError()
+    }
+}
+
+/// The process's current working directory, with invalid UTF-8 replaced like
+/// `ffi.stringLossy`; empty only when the directory cannot be read.
+pub fn Host.cwd(self) -> String {
+    let cap: usize = 65536
+    let buf = unsafe {
+        malloc(cap)
+    }
+    if ffi.isNull(ffi.toConst(buf)) {
+        return ""
+    }
+    let p = unsafe {
+        getcwd(buf, cap)
+    }
+    if ffi.isNull(ffi.toConst(p)) {
+        unsafe {
+            free(buf)
+        }
+        return ""
+    }
+    let text = unsafe {
+        ffi.stringLossy(ffi.toConst(p))
+    }
+    unsafe {
+        free(buf)
+    }
+    text
+}
+
+/// Sets an environment variable for this process and the children it later starts.
+pub fn Host.setEnv(self, name: String, value: String) -> Void! {
+    let n = ffi.CString.new(&name)?
+    let v = ffi.CString.new(&value)?
+    if unsafe {
+        setenv(n.ptr(), v.ptr(), 1)
+    } != 0 {
+        fail ffi.lastError()
+    }
+}
+
+/// Removes an environment variable from this process and the children it later starts.
+pub fn Host.unsetEnv(self, name: String) -> Void! {
+    let n = ffi.CString.new(&name)?
+    if unsafe {
+        unsetenv(n.ptr())
+    } != 0 {
+        fail ffi.lastError()
+    }
 }

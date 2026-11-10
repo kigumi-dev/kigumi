@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"syscall"
 )
 
@@ -116,6 +117,157 @@ func closeAll(fs []*os.File) {
 	for _, f := range fs {
 		f.Close()
 	}
+}
+
+// RunHere runs the plan in the foreground: stage 0 reads the given stdin,
+// the last stage writes the given stdout and every stage writes the given
+// stderr, so an interactive command keeps the terminal while a caller with
+// buffers still sees the output. Nothing is captured or re-written by the
+// runner, and statuses come back in stage order. A startup failure stops
+// and reaps the stages already started.
+func RunHere(p *Plan, cwd string, stdin io.Reader, stdout, stderr io.Writer) (statuses []int, err error) {
+	for _, st := range p.Stages {
+		for _, a := range st.Argv {
+			if strings.IndexByte(a, 0) >= 0 {
+				return nil, errors.New("argument contains a NUL byte")
+			}
+		}
+	}
+	if stdin == nil {
+		stdin = os.Stdin
+	}
+	if stdout == nil {
+		stdout = os.Stdout
+	}
+	if stderr == nil {
+		stderr = os.Stderr
+	}
+	var streamMu sync.Mutex
+	stdout, stderr = inheritWriter(stdout, &streamMu), inheritWriter(stderr, &streamMu)
+	input := stdin
+	var upstream *os.File
+	var runs []*stageRun
+	last := len(p.Stages) - 1
+	for i, st := range p.Stages {
+		final := i == last
+		if st.Filter != nil {
+			upstream = nil
+			fin := input
+			f := st.Filter
+			done := make(chan error, 1)
+			if final {
+				go func() {
+					done <- f(fin, stdout)
+				}()
+				runs = append(runs, &stageRun{done: done})
+				continue
+			}
+			pr, pw := io.Pipe()
+			go func() {
+				ferr := f(fin, pw)
+				pw.CloseWithError(ferr)
+				done <- ferr
+			}()
+			runs = append(runs, &stageRun{done: done, out: pr})
+			input = pr
+			continue
+		}
+		if len(st.Argv) == 0 {
+			continue
+		}
+		cmd := exec.Command(st.Argv[0], st.Argv[1:]...)
+		cmd.Dir = cwd
+		var pr, pw *os.File
+		out := any(stdout)
+		if !final {
+			var perr error
+			pr, pw, perr = os.Pipe()
+			if perr != nil {
+				return nil, abortRunHere(runs, perr)
+			}
+			out = pw
+		}
+		fds := fdTable{input, out, stderr}
+		opened, rerr := applyRedirects(&fds, st.Redirs, cwd)
+		if rerr != nil {
+			if pw != nil {
+				pw.Close()
+			}
+			if pr != nil {
+				pr.Close()
+			}
+			closeAll(opened)
+			return nil, abortRunHere(runs, rerr)
+		}
+		cmd.Stdin, cmd.Stdout, cmd.Stderr = asReader(fds[0]), asWriter(fds[1]), asWriter(fds[2])
+		serr := cmd.Start()
+		if pw != nil {
+			pw.Close()
+		}
+		closeAll(opened)
+		// The child has its own descriptor now, as in Run.
+		if upstream != nil {
+			upstream.Close()
+			upstream = nil
+		}
+		if serr != nil {
+			if pr != nil {
+				pr.Close()
+			}
+			return nil, abortRunHere(runs, errors.New("exec: "+OSErrText(serr)))
+		}
+		runs = append(runs, &stageRun{cmd: cmd, out: pr})
+		if !final {
+			input, upstream = pr, pr
+		}
+	}
+	for _, r := range runs {
+		if r.cmd != nil {
+			werr := r.cmd.Wait()
+			code := 0
+			if ee, ok := werr.(*exec.ExitError); ok {
+				code = exitCode(ee)
+			} else if werr != nil && err == nil {
+				err = werr
+			}
+			statuses = append(statuses, code)
+			continue
+		}
+		if ferr := <-r.done; ferr != nil && err == nil {
+			err = ferr
+		}
+		statuses = append(statuses, 0)
+	}
+	return statuses, err
+}
+
+// abortRunHere is abortPlan for a foreground run, which has no captured
+// output to return: only the startup error matters.
+func abortRunHere(runs []*stageRun, rerr error) error {
+	_, _, _, err := abortPlan(runs, rerr)
+	return err
+}
+
+// inheritWriter keeps an *os.File as-is so the child gets the descriptor
+// itself, and serializes the writes of the copy goroutines os/exec starts
+// for any other writer. Several stages' stderr and a filter's stdout can be
+// copied at once, so without the lock a buffer would race.
+func inheritWriter(w io.Writer, mu *sync.Mutex) io.Writer {
+	if _, ok := w.(*os.File); ok {
+		return w
+	}
+	return &lockedWriter{mu: mu, w: w}
+}
+
+type lockedWriter struct {
+	mu *sync.Mutex
+	w  io.Writer
+}
+
+func (l *lockedWriter) Write(p []byte) (int, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.w.Write(p)
 }
 
 // abortPlan stops and reaps every stage already started: it closes each

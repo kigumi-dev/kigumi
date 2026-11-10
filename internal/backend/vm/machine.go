@@ -112,6 +112,9 @@ type Machine struct {
 	curLane int
 	// pending holds releases this lane owes once it leaves the scheduler lock.
 	pending []*obj
+	// cancelTicks counts instructions for the session's cancellation check;
+	// the shared flag is read every cancelEvery ticks.
+	cancelTicks int
 	// witnessed memoizes Supports' answer for a requirement and a method of its name.
 	witnessed map[[2]sem.EntityID]bool
 	// trace is the SecretSan two-run trace, nil unless Options.Trace is set.
@@ -139,6 +142,7 @@ func runMachine(m *Machine, prog *mir.Program, errOut io.Writer) (int, error) {
 
 func newMachine(prog *mir.Program, opts Options, out, errOut io.Writer) *Machine {
 	m := &Machine{p: prog, r: prog.R, out: out, err: errOut, opts: opts, sh: newShared()}
+	m.sh.cwd = absoluteCwd(opts.Cwd)
 	if opts.Trace {
 		m.trace = &traceLog{}
 	}

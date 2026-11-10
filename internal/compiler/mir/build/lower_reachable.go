@@ -132,3 +132,18 @@ func (p *lowering) calleeBody(ent sem.EntityID) (*midir.Func, bool) {
 	f, ok := p.ByEnt[ent]
 	return f, ok
 }
+
+// noteMoves keeps the roots the move analysis found for the REPL's cell probe.
+func (p *lowering) noteMoves(f *midir.Func, moves []ownquery.MoveEvent) {
+	if len(moves) == 0 {
+		return
+	}
+	if p.Moves == nil {
+		p.Moves = map[*midir.Func][]midir.LocalID{}
+	}
+	out := p.Moves[f]
+	for root := range ownquery.MovedRoots(p.input, f, moves) {
+		out = append(out, root)
+	}
+	p.Moves[f] = out
+}

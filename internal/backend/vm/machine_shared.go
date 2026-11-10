@@ -26,6 +26,11 @@ type shared struct {
 	in       sync.Mutex
 	stdin    *bufio.Reader
 	stdinSrc io.Reader
+	// cwd is the directory the program's relative paths resolve against. It
+	// starts at Options.Cwd (the process directory when empty) and Host.chdir
+	// moves it; every lane sees the move.
+	cwdMu sync.RWMutex
+	cwd   string
 	// derived covers the tables the lanes fill in lazily from the program.
 	derived    sync.Mutex
 	codes      sync.Map
@@ -53,6 +58,9 @@ type shared struct {
 	faultArmed atomic.Bool
 	// steps is shared by all lanes so a thread pool has one StepLimit.
 	steps atomic.Int64
+	// cancel asks the instruction loops to abort; a session sets it from
+	// another goroutine and clears it when the interrupted cell settles.
+	cancel atomic.Bool
 	// graph is written before the run starts and only read after.
 	graph *buildgraph.Graph
 }

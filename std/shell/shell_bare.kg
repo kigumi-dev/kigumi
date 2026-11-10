@@ -7,3 +7,8 @@ pub fn capture(plan: Plan, sh: Shell) -> Captured! {
 pub fn run(plan: Plan, sh: Shell) -> PipelineResult! {
     panic()
 }
+
+/// Runs the plan in the foreground; a bare target has no processes or terminal.
+pub fn runHere(plan: Plan, sh: Shell) -> PipelineResult! {
+    panic()
+}

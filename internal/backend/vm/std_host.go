@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"unicode/utf8"
 
@@ -52,6 +53,33 @@ func (m *Machine) registerHost() {
 			return m.some(mkBytes([]byte(v)))
 		}
 		return m.none()
+	}
+	h["os.Host.chdir"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		target := m.resolvePath(string(deref(a[1]).str()))
+		if err := os.Chdir(target); err != nil {
+			return m.errMsg(err.Error())
+		}
+		if wd, err := os.Getwd(); err == nil {
+			m.setMachineCwd(wd)
+		} else {
+			m.setMachineCwd(target)
+		}
+		return m.ok(unitObj)
+	}
+	h["os.Host.cwd"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		return mkStr([]byte(utf8Lossy(m.machineCwd())))
+	}
+	h["os.Host.setEnv"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		if err := os.Setenv(string(deref(a[1]).str()), string(deref(a[2]).str())); err != nil {
+			return m.errMsg(err.Error())
+		}
+		return m.ok(unitObj)
+	}
+	h["os.Host.unsetEnv"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		if err := os.Unsetenv(string(deref(a[1]).str())); err != nil {
+			return m.errMsg(err.Error())
+		}
+		return m.ok(unitObj)
 	}
 	h["os.Stdin.readAll"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		out, err := m.stdinAll()
@@ -137,8 +165,43 @@ func (m *Machine) stdinReader() *bufio.Reader {
 }
 
 func (m *Machine) resolvePath(p string) string {
-	if p == "" || m.opts.Cwd == "" || strings.HasPrefix(p, "/") {
+	cwd := m.machineCwd()
+	if p == "" || cwd == "" || strings.HasPrefix(p, "/") {
 		return p
 	}
-	return m.opts.Cwd + "/" + p
+	return cwd + "/" + p
+}
+
+// absoluteCwd is the program's starting directory: Options.Cwd when set,
+// the process directory otherwise, always absolute so Host.cwd answers the
+// same way a native build's getcwd does.
+func absoluteCwd(dir string) string {
+	if dir == "" {
+		wd, err := os.Getwd()
+		if err != nil {
+			return ""
+		}
+		return wd
+	}
+	if filepath.IsAbs(dir) {
+		return filepath.Clean(dir)
+	}
+	wd, err := os.Getwd()
+	if err != nil {
+		return filepath.Clean(dir)
+	}
+	return filepath.Clean(filepath.Join(wd, dir))
+}
+
+// machineCwd is shared, so a chdir in one lane is visible to every lane.
+func (m *Machine) machineCwd() string {
+	m.sh.cwdMu.RLock()
+	defer m.sh.cwdMu.RUnlock()
+	return m.sh.cwd
+}
+
+func (m *Machine) setMachineCwd(dir string) {
+	m.sh.cwdMu.Lock()
+	defer m.sh.cwdMu.Unlock()
+	m.sh.cwd = dir
 }

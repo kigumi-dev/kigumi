@@ -13761,6 +13761,16 @@
     "status": "ok"
   },
   {
+    "key": "os.Host.chdir",
+    "signature": "fn(String) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
     "key": "os.Host.clock",
     "signature": "fn() -\u003e SystemClock",
     "has_body": true,
@@ -13768,6 +13778,16 @@
     "vm": "gap",
     "native": "gap",
     "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.Host.cwd",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
     "status": "ok"
   },
   {
@@ -13862,6 +13882,16 @@
     "status": "ok"
   },
   {
+    "key": "os.Host.setEnv",
+    "signature": "fn(String, String) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
     "key": "os.Host.shell",
     "signature": "fn() -\u003e Shell",
     "has_body": false,
@@ -13909,6 +13939,16 @@
     "vm": "implemented",
     "native": "implemented",
     "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.Host.unsetEnv",
+    "signature": "fn(String) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
     "status": "ok"
   },
   {
@@ -21249,6 +21289,16 @@
     "vm": "gap",
     "native": "gap",
     "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.runHere",
+    "signature": "fn(Plan, Shell) -\u003e PipelineResult!",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
     "status": "ok"
   },
   {

@@ -52,6 +52,131 @@ pub fn run(plan: Plan, sh: Shell) -> PipelineResult! {
     PipelineResult { statuses: move r.statuses }
 }
 
+/// Runs the plan in the foreground with the process's own stdin, stdout and
+/// stderr, so the first stage reads the terminal and the last writes it; no
+/// output is captured or written by the runner. Fails when a command cannot start.
+pub fn runHere(plan: Plan, sh: Shell) -> PipelineResult! {
+    let stages = stages(&plan)
+    let n = stages.len()
+    if n == 0 {
+        return PipelineResult { statuses: Array.empty() }
+    }
+    for st in &stages {
+        for a in st.argv {
+            if hasNul(a) {
+                fail Failure { text: "argument contains a NUL byte" }
+            }
+        }
+        if st.grep is Some(pattern) {
+            let problem = grepProblem(&pattern)
+            if problem != "" {
+                fail Failure { text: "invalid grep pattern: ${problem}" }
+            }
+        }
+    }
+    // linkRd[i] / linkWr[i] join stage i-1 to stage i. Stage 0 reads fd 0
+    // and the last stage writes fd 1, both inherited from the process.
+    let mut linkRd: Array[i32] = Array.of(-1)
+    let mut linkWr: Array[i32] = Array.of(-1)
+    let mut errRd: Array[i32] = Array.empty()
+    let mut errWr: Array[i32] = Array.empty()
+    let mut stRd: Array[i32] = Array.empty()
+    let mut stWr: Array[i32] = Array.empty()
+    for i in 1..n {
+        let link = makePipeOrClean(&linkRd, &linkWr, &errRd, &errWr, &stRd, &stWr)?
+        linkRd.push(fdAt(&link, 0))
+        linkWr.push(fdAt(&link, 1))
+    }
+    for i in 0..n {
+        let status = makePipeOrClean(&linkRd, &linkWr, &errRd, &errWr, &stRd, &stWr)?
+        stRd.push(fdAt(&status, 0))
+        stWr.push(fdAt(&status, 1))
+        _ = unsafe {
+            fcntl(fdAt(&status, 1), 2, 1)
+        }
+    }
+    let mut pids: Array[i32] = Array.empty()
+    let mut i: usize = 0
+    for st in stages {
+        let infd = if i == 0 {
+            0
+        } else {
+            fdAt(&linkRd, i)
+        }
+        let outfd = if i + 1 == n {
+            1
+        } else {
+            fdAt(&linkWr, i + 1)
+        }
+        let pid = unsafe {
+            fork()
+        }
+        if pid < 0 {
+            let text = "process startup failed: ${ffi.errorText(ffi.errno())}"
+            for p in pids {
+                _ = unsafe {
+                    kill(p, 9)
+                }
+                _ = exitStatus(p)
+            }
+            closeAllPipes(&linkRd, &linkWr, &errRd, &errWr, &stRd, &stWr, -1)
+            fail Failure { text: text }
+        }
+        if pid == 0 {
+            for j in 1..n {
+                if fdAt(&linkRd, j) != infd {
+                    _ = unsafe {
+                        close(fdAt(&linkRd, j))
+                    }
+                }
+                if fdAt(&linkWr, j) != outfd {
+                    _ = unsafe {
+                        close(fdAt(&linkWr, j))
+                    }
+                }
+            }
+            for j in 0..n {
+                if j != i {
+                    _ = unsafe {
+                        close(fdAt(&stWr, j))
+                    }
+                }
+                _ = unsafe {
+                    close(fdAt(&stRd, j))
+                }
+            }
+            runChild(&st, infd, outfd, 2, fdAt(&stWr, i))
+        }
+        pids.push(pid)
+        i = i + 1
+    }
+    for j in 1..n {
+        _ = unsafe {
+            close(fdAt(&linkWr, j))
+        }
+        _ = unsafe {
+            close(fdAt(&linkRd, j))
+        }
+    }
+    closeAll(&stWr)
+    let mut failure: String? = None
+    for j in 0..n {
+        let b = readAll(fdAt(&stRd, j))
+        if failure is None && b.len() > 0 {
+            failure = Some(String.fromBytes(b) || "process startup failed")
+        }
+    }
+    closeAll(&stRd)
+    let mut statuses: Array[Int] = Array.empty()
+    for j in 0..n {
+        statuses.push(exitStatus(fdAt(&pids, j)))
+    }
+    if failure is Some(text) {
+        fail Failure { text: text }
+    }
+    PipelineResult { statuses: statuses }
+}
+
 fn writeAll(fd: i32, data: Bytes) {
     let n = data.len()
     let mut off: usize = 0

@@ -41,3 +41,23 @@ pub fn Host.env(self, name: String) -> String? {
 fn Host.envBytes(self, name: String) -> Bytes? {
     panic()
 }
+
+/// Changes the process's working directory; a bare target has no file system.
+pub fn Host.chdir(self, path: String) -> Void! {
+    panic()
+}
+
+/// The process's working directory; a bare target has none.
+pub fn Host.cwd(self) -> String {
+    panic()
+}
+
+/// Sets an environment variable for this process; a bare target has no environment.
+pub fn Host.setEnv(self, name: String, value: String) -> Void! {
+    panic()
+}
+
+/// Removes an environment variable from this process; a bare target has no environment.
+pub fn Host.unsetEnv(self, name: String) -> Void! {
+    panic()
+}
