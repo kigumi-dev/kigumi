@@ -18,11 +18,14 @@ type FieldInfo struct {
 }
 
 // MetaRef is one metadata attribute: the schema function it names and
-// its constant arguments.
+// its constant arguments. Unresolved marks an item the checker could not
+// attribute to a `@schema` function (E254, or a name lookup that found
+// nothing); tooling reports it instead of silently dropping the attribute.
 type MetaRef struct {
-	Head EntityID
-	Node syntax.NodeID
-	Args []Literal
+	Head       EntityID
+	Node       syntax.NodeID
+	Args       []Literal
+	Unresolved bool
 }
 
 type VariantInfo struct {

@@ -2,10 +2,12 @@ package schema_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
 	"kigumi/internal/toolchain/contract/schema"
+	"kigumi/internal/toolchain/version"
 )
 
 const escapingSrc = `
@@ -64,8 +66,8 @@ func TestBuildParamEscapingJSON(t *testing.T) {
 	if !strings.Contains(text, `"escaping":true`) {
 		t.Fatalf("no escaping field in %s", text)
 	}
-	if !strings.Contains(text, `"minor":2`) {
-		t.Fatalf("envelope minor not bumped in %s", text)
+	if want := fmt.Sprintf(`"minor":%d`, version.SchemaIRFormatMinor); !strings.Contains(text, want) {
+		t.Fatalf("envelope %s not in %s", want, text)
 	}
 	if strings.Count(text, `"escaping"`) != 3 {
 		t.Fatalf("want escaping on exactly three params, got %d in %s", strings.Count(text, `"escaping"`), text)

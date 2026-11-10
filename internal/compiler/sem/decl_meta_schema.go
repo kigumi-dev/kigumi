@@ -3,16 +3,19 @@ package sem
 import "kigumi/internal/compiler/syntax"
 
 // checkSchemas re-validates and re-checks duplicates for field metadata
-// once signatures are known (resolveMetadata ran before they existed).
-func (r *Result) checkSchemas(f FileID, refs []MetaRef) {
+// once signatures are known (resolveMetadata ran before they existed). It
+// returns refs with Unresolved set on the items that are not schema calls.
+func (r *Result) checkSchemas(f FileID, refs []MetaRef) []MetaRef {
 	t := r.tree(f)
 	seen := map[string]bool{}
-	for _, m := range refs {
+	for i := range refs {
+		m := &refs[i]
 		path := t.View(m.Node).AsMetaItem().Path()
 		key := path.Join(".")
 		if m.Head != 0 {
 			if !r.isSchema(m.Head) {
 				r.errAt(f, path.ID(), cAttrNotSchema, key)
+				m.Unresolved = true
 				continue
 			}
 			if seen[key] && !r.schemaRepeatable(m.Head) {
@@ -21,6 +24,7 @@ func (r *Result) checkSchemas(f FileID, refs []MetaRef) {
 		}
 		seen[key] = true
 	}
+	return refs
 }
 
 // isSchema accepts a function whose return type is marked `@schema`; a

@@ -52,7 +52,7 @@ func (r *Result) declareAttrs() {
 				info := r.typeDecl(EntityID(id))
 				info.Metadata = r.metaAttrs(e.File, s.Attrs, true)
 				for _, fld := range info.Fields {
-					r.checkSchemas(e.File, r.field(fld).Metadata)
+					r.field(fld).Metadata = r.checkSchemas(e.File, r.field(fld).Metadata)
 				}
 				r.declareGuarantee(EntityID(id), ug)
 			} else if ug != 0 {

@@ -10,9 +10,11 @@ import (
 func metadataOf(res *sem.Result, t *syntax.Tree, refs []sem.MetaRef) []Metadata {
 	out := make([]Metadata, 0, len(refs))
 	for _, m := range refs {
-		item := Metadata{Name: dottedName(t, m.Node)}
-		if ref := declRefOf(res, m.Head); ref != nil {
-			item.SchemaID = ref.ID
+		item := Metadata{Name: dottedName(t, m.Node), Unresolved: m.Unresolved}
+		if !m.Unresolved {
+			if ref := declRefOf(res, m.Head); ref != nil {
+				item.SchemaID = ref.ID
+			}
 		}
 		for _, lit := range m.Args {
 			item.Args = append(item.Args, literalValue(lit))

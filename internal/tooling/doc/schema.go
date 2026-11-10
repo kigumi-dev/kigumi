@@ -20,9 +20,13 @@ type Declaration struct {
 	Signature  string      `json:"signature"`
 	Doc        string      `json:"doc,omitempty"`
 	Attributes []Attribute `json:"attributes"`
-	Params     []Member    `json:"params,omitempty"`
-	Fields     []Member    `json:"fields,omitempty"`
-	Variants   []Variant   `json:"variants,omitempty"`
+	// UnresolvedAttributes names metadata items written on the declaration
+	// that the checker could not resolve to a `@schema` function (E254), so
+	// `--allow-errors` output never looks like the declaration carries none.
+	UnresolvedAttributes []string  `json:"unresolvedAttributes,omitempty"`
+	Params               []Member  `json:"params,omitempty"`
+	Fields               []Member  `json:"fields,omitempty"`
+	Variants             []Variant `json:"variants,omitempty"`
 }
 
 // Variant is one constructor of an ADT with its named payload.
@@ -40,6 +44,9 @@ type Member struct {
 	Name       string      `json:"name"`
 	Type       string      `json:"type"`
 	Attributes []Attribute `json:"attributes"`
+	// UnresolvedAttributes mirrors Declaration.UnresolvedAttributes for a
+	// parameter or field.
+	UnresolvedAttributes []string `json:"unresolvedAttributes,omitempty"`
 }
 
 // Declarations lists the module's own declarations in source order; attr,
@@ -53,7 +60,7 @@ func Declarations(m *driver.Module, res *sem.Result, attr string) []Declaration 
 		}
 		for _, t := range p.Files {
 			for d := range t.List(t.Root).IDs() {
-				if decl, ok := declaration(res, t, d); ok && (attr == "" || hasAttr(decl.Attributes, attr)) {
+				if decl, ok := declaration(res, t, d); ok && (attr == "" || decl.hasAttribute(attr)) {
 					decl.Package = path
 					out = append(out, decl)
 				}
@@ -61,6 +68,21 @@ func Declarations(m *driver.Module, res *sem.Result, attr string) []Declaration 
 		}
 	}
 	return out
+}
+
+// hasAttribute keeps a `--attr` filter matching an unresolved item too: the
+// declaration is precisely what a generator asking for that attribute wants
+// to see when it cannot be resolved.
+func (d Declaration) hasAttribute(name string) bool {
+	if hasAttr(d.Attributes, name) {
+		return true
+	}
+	for _, n := range d.UnresolvedAttributes {
+		if n == name {
+			return true
+		}
+	}
+	return false
 }
 
 func hasAttr(attrs []Attribute, name string) bool {
@@ -87,18 +109,20 @@ func declaration(res *sem.Result, t *syntax.Tree, d syntax.NodeID) (Declaration,
 			decl.Kind = "method"
 			decl.Name = res.Entity(info.Owner).Name + "." + e.Name
 		}
-		decl.Attributes = attributes(res, t, info.Metadata)
+		decl.Attributes, decl.UnresolvedAttributes = attributes(t, info.Metadata)
 		for _, p := range info.Params {
 			pe := res.Entity(p)
-			decl.Params = append(decl.Params, Member{Name: pe.Name, Type: res.ParamTypeString(p), Attributes: attributes(res, t, res.Local(p).Metadata)})
+			attrs, unresolved := attributes(t, res.Local(p).Metadata)
+			decl.Params = append(decl.Params, Member{Name: pe.Name, Type: res.ParamTypeString(p), Attributes: attrs, UnresolvedAttributes: unresolved})
 		}
 	case sem.EntType:
 		info := res.TypeDecl(ent)
 		decl.Kind = "type"
-		decl.Attributes = attributes(res, t, info.Metadata)
+		decl.Attributes, decl.UnresolvedAttributes = attributes(t, info.Metadata)
 		for _, f := range info.Fields {
 			fe := res.Entity(f)
-			decl.Fields = append(decl.Fields, Member{Name: fe.Name, Type: res.TypeString(fe.Type), Attributes: attributes(res, t, res.Field(f).Metadata)})
+			attrs, unresolved := attributes(t, res.Field(f).Metadata)
+			decl.Fields = append(decl.Fields, Member{Name: fe.Name, Type: res.TypeString(fe.Type), Attributes: attrs, UnresolvedAttributes: unresolved})
 		}
 		for _, v := range info.Variants {
 			vi := res.Variant(v)
@@ -114,13 +138,13 @@ func declaration(res *sem.Result, t *syntax.Tree, d syntax.NodeID) (Declaration,
 		}
 	case sem.EntConst:
 		decl.Kind = "const"
-		decl.Attributes = attributes(res, t, res.Const(ent).Metadata)
+		decl.Attributes, decl.UnresolvedAttributes = attributes(t, res.Const(ent).Metadata)
 	case sem.EntStatic:
 		decl.Kind = "static"
 		if res.Static(ent).Mut {
 			decl.Kind = "static mut"
 		}
-		decl.Attributes = attributes(res, t, res.Static(ent).Metadata)
+		decl.Attributes, decl.UnresolvedAttributes = attributes(t, res.Static(ent).Metadata)
 	case sem.EntInterface:
 		decl.Kind = "interface"
 	default:
@@ -129,16 +153,26 @@ func declaration(res *sem.Result, t *syntax.Tree, d syntax.NodeID) (Declaration,
 	return decl, true
 }
 
-func attributes(res *sem.Result, t *syntax.Tree, refs []sem.MetaRef) []Attribute {
+// attributes splits metadata refs into the resolved ones and the names of
+// the ones the checker could not attribute to a `@schema` function. The
+// unresolved names stay visible so `--allow-errors` output never reads as
+// "this declaration has no metadata" while its signature still shows `@...`.
+func attributes(t *syntax.Tree, refs []sem.MetaRef) ([]Attribute, []string) {
 	out := []Attribute{}
+	var unresolved []string
 	for _, m := range refs {
-		a := Attribute{Name: t.View(m.Node).AsMetaItem().Path().Join("."), Args: []any{}}
+		name := t.View(m.Node).AsMetaItem().Path().Join(".")
+		if m.Unresolved {
+			unresolved = append(unresolved, name)
+			continue
+		}
+		a := Attribute{Name: name, Args: []any{}}
 		for _, lit := range m.Args {
 			a.Args = append(a.Args, literalJSON(lit))
 		}
 		out = append(out, a)
 	}
-	return out
+	return out, unresolved
 }
 
 func literalJSON(lit sem.Literal) any {

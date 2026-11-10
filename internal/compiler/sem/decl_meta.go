@@ -84,18 +84,21 @@ func (r *Result) resolveMetadata(f FileID, fld, meta syntax.NodeID) []MetaRef {
 			r.errAt(f, item, cMetadataDuplicate, key)
 		}
 		seen[key] = true
-		if head != 0 {
-			r.Files[f].Uses[item] = head
-			if sigReady && !r.isSchema(head) {
-				r.errAt(f, path, cAttrNotSchema, pathText(t, path, "."))
-				continue
-			}
-		}
-		ref := MetaRef{Head: head, Node: item}
+		// A ref that could not be attributed to a schema function is kept with
+		// Unresolved set: dropping it made `kigumi schema` print an empty
+		// attributes list next to a signature that still named the attribute.
+		ref := MetaRef{Head: head, Node: item, Unresolved: head == 0}
 		for a := range mi.Args().IDs() {
 			if v, ok := r.evalConst(f, a); ok {
 				lit, _ := v.literal()
 				ref.Args = append(ref.Args, lit)
+			}
+		}
+		if head != 0 {
+			r.Files[f].Uses[item] = head
+			if sigReady && !r.isSchema(head) {
+				r.errAt(f, path, cAttrNotSchema, pathText(t, path, "."))
+				ref.Unresolved = true
 			}
 		}
 		out = append(out, ref)

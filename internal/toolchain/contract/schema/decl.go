@@ -81,12 +81,15 @@ type Variant struct {
 	Payload []*Member `json:"payload,omitempty"`
 }
 
-// Metadata is one resolved item (`json.name("id")`); SchemaID is the
-// resolved schema's stable identity, never re-derived from Name.
+// Metadata is one item (`json.name("id")`); SchemaID is the resolved
+// schema's stable identity, never re-derived from Name. Unresolved marks an
+// item the checker could not attribute to a `@schema` function: SchemaID is
+// then empty and a generator must not treat the item as declared metadata.
 type Metadata struct {
-	SchemaID string `json:"schemaId"`
-	Name     string `json:"name"`
-	Args     []any  `json:"args,omitempty"`
+	SchemaID   string `json:"schemaId"`
+	Name       string `json:"name"`
+	Args       []any  `json:"args,omitempty"`
+	Unresolved bool   `json:"unresolved,omitempty"`
 }
 
 // SchemaDecl marks a type declared `@schema`: the identity other
