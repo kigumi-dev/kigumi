@@ -1,6 +1,7 @@
 package driver
 
 import (
+	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -25,10 +26,15 @@ type PackageCacheStats struct {
 
 // packageCache stores API artifacts by digest, key-to-digest records and settled check results; a read that fails to verify is a miss, never an error.
 type packageCache struct {
-	dir    string
-	stats  PackageCacheStats
-	writes int
-	limit  int64
+	dir   string
+	stats PackageCacheStats
+	limit int64
+	// key seals every record, so a file this account's toolchain did not write is a miss and not a diagnostic a later check prints.
+	key []byte
+	// trusted marks dir prepared: this account owns it, it is owner-only, and key is loaded.
+	trusted bool
+	// bytes is the store's accounted size, kept in accountFile.
+	bytes int64
 }
 
 func newPackageCache(dir string) *packageCache {
@@ -36,6 +42,23 @@ func newPackageCache(dir string) *packageCache {
 		return nil
 	}
 	return &packageCache{dir: dir}
+}
+
+// ready prepares the cache directory on first use: created 0700, tightened if it was left wider, refused when another account owns it,
+// and sealed with the per-cache key. A false return turns the cache off for this run, which only costs a recomputation.
+func (c *packageCache) ready() bool {
+	if c.trusted {
+		return true
+	}
+	if !ownerOnlyDir(c.dir) {
+		return false
+	}
+	key, err := cacheKey(c.dir)
+	if err != nil {
+		return false
+	}
+	c.key, c.bytes, c.trusted = key, c.loadAccount(), true
+	return true
 }
 
 // DefaultPackageCache is where the CLI keeps the package cache, beside the fetched-module cache.
@@ -69,27 +92,41 @@ func sumHex(b []byte) string {
 	return hex.EncodeToString(s[:])
 }
 
-// putSealed writes v under a checksum, so a torn or edited file reads back as a miss.
+// seal is the keyed checksum a record is stored under: a torn file fails it, and so does a whole record another account wrote, since
+// the key never leaves this account's owner-only cache directory.
+func (c *packageCache) seal(body []byte) string {
+	m := hmac.New(sha256.New, c.key)
+	m.Write(body)
+	return hex.EncodeToString(m.Sum(nil))
+}
+
+// putSealed writes v under the key's checksum, so a torn, edited or foreign file reads back as a miss.
 func (c *packageCache) putSealed(kind, name string, v any) bool {
+	if !c.ready() {
+		return false
+	}
 	body, err := json.Marshal(v)
 	if err != nil {
 		return false
 	}
-	b, err := json.Marshal(sealedFile{Sum: sumHex(body), Body: body})
+	b, err := json.Marshal(sealedFile{Sum: c.seal(body), Body: body})
 	if err != nil || writeAtomic(c.path(kind, name), b) != nil {
 		return false
 	}
-	c.noteWrite()
+	c.noteWrite(len(b))
 	return true
 }
 
 func (c *packageCache) getSealed(kind, name string, v any) bool {
+	if !c.ready() {
+		return false
+	}
 	b, err := os.ReadFile(c.path(kind, name))
 	if err != nil {
 		return false
 	}
 	var f sealedFile
-	if json.Unmarshal(b, &f) != nil || f.Sum != sumHex(f.Body) || json.Unmarshal(f.Body, v) != nil {
+	if json.Unmarshal(b, &f) != nil || !hmac.Equal([]byte(f.Sum), []byte(c.seal(f.Body))) || json.Unmarshal(f.Body, v) != nil {
 		c.stats.Corrupt++
 		return false
 	}
@@ -101,6 +138,9 @@ type keyRecord struct {
 	Digest string `json:"digest"`
 	// Clean marks a package that checked with no diagnostic, so a later run may skip it while its key holds.
 	Clean bool `json:"clean,omitempty"`
+	// CSymbols lists the C link names the package declares: E2218 is a rule about the whole module, so a replay has to know which names a
+	// package it skips would bring into the check.
+	CSymbols []string `json:"cSymbols,omitempty"`
 }
 
 func (c *packageCache) lookup(key string) (keyRecord, bool) {
@@ -117,10 +157,10 @@ func (c *packageCache) putAPI(body []byte) (digest string, fresh, ok bool) {
 	if c.hasAPI(digest) {
 		return digest, false, true
 	}
-	if writeAtomic(c.path("api", digest), body) != nil {
+	if !c.ready() || writeAtomic(c.path("api", digest), body) != nil {
 		return digest, true, false
 	}
-	c.noteWrite()
+	c.noteWrite(len(body))
 	return digest, true, true
 }
 
@@ -142,22 +182,66 @@ func (c *packageCache) hasAPI(digest string) bool {
 
 const (
 	cacheLimitBytes = 256 << 20
-	pruneEvery      = 128
+	// accountFile names the small record of how many bytes the store holds, so a write never has to walk it to find out.
+	accountFile = "account.json"
+	// cacheKeyFile holds the per-cache secret every record is sealed with.
+	cacheKeyFile = "key"
+	cacheKeyLen  = 32
 )
 
-// noteWrite counts a store write and prunes on the first one and every pruneEvery-th after, so a long editor session stays bounded as well as a one-shot command.
-func (c *packageCache) noteWrite() {
-	c.writes++
-	if c.writes%pruneEvery == 1 {
-		c.prune()
-	}
-}
+var cacheKinds = []string{"pkg", "api", "check", "unit"}
 
-// prune keeps the store under its limit; a removed entry is only a later miss.
-func (c *packageCache) prune() {
+// pruneCache is module.PruneCache through a variable, so a test can pin that a write under the limit walks nothing.
+var pruneCache = module.PruneCache
+
+// noteWrite accounts the n bytes just stored and prunes once the store passes its limit; the accounted size only grows by what this
+// cache writes, so a directory holding someone else's files is never walked on the strength of its entry count.
+func (c *packageCache) noteWrite(n int) {
+	c.bytes += int64(n)
+	c.saveAccount()
 	limit := c.limit
 	if limit == 0 {
 		limit = cacheLimitBytes
 	}
-	c.stats.Pruned += module.PruneCache(c.dir, []string{"pkg", "api", "check", "unit"}, limit)
+	if c.bytes > limit {
+		c.prune()
+	}
+}
+
+// prune drops the oldest files until the store is back under three quarters of its limit and takes the walk's own total as the new
+// account, which is the only time the whole store is visited.
+func (c *packageCache) prune() {
+	if !c.ready() {
+		return
+	}
+	limit := c.limit
+	if limit == 0 {
+		limit = cacheLimitBytes
+	}
+	pruned, remaining := pruneCache(c.dir, cacheKinds, limit)
+	c.stats.Pruned += pruned
+	c.bytes = remaining
+	c.saveAccount()
+}
+
+// loadAccount reads the accounted size; a store with no account is one this version has not written to yet.
+func (c *packageCache) loadAccount() int64 {
+	var acc struct {
+		Bytes int64 `json:"bytes"`
+	}
+	b, err := os.ReadFile(filepath.Join(c.dir, accountFile))
+	if err != nil || json.Unmarshal(b, &acc) != nil || acc.Bytes < 0 {
+		return 0
+	}
+	return acc.Bytes
+}
+
+func (c *packageCache) saveAccount() {
+	b, err := json.Marshal(struct {
+		Bytes int64 `json:"bytes"`
+	}{c.bytes})
+	if err != nil {
+		return
+	}
+	_ = writeAtomic(filepath.Join(c.dir, accountFile), b)
 }

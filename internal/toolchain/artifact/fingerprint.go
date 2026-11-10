@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 
+	"kigumi/internal/base/fsx"
 	"kigumi/internal/toolchain/contract/schema"
 )
 
@@ -74,13 +75,14 @@ func OrNone(v string) string {
 func FingerprintSidecarPath(out string) string { return out + ".kgabi.json" }
 
 // WriteFingerprintSidecar records fp next to a build output (an archive,
-// or any artifact a later build might consider reusing).
+// or any artifact a later build might consider reusing). It replaces the
+// sidecar atomically, so a reader never parses half of one.
 func WriteFingerprintSidecar(out string, fp Fingerprint) error {
 	b, err := json.MarshalIndent(fp, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(FingerprintSidecarPath(out), b, 0o644)
+	return fsx.WriteFileAtomic(FingerprintSidecarPath(out), b, 0o644)
 }
 
 // ReadFingerprintSidecar reads back what WriteFingerprintSidecar wrote; ok

@@ -18,8 +18,9 @@ type cachedFile struct {
 }
 
 // PruneCache drops the oldest files under dir's kind directories once they pass limit, down to three quarters of it, and removes torn
-// temporary files; it returns how many it dropped.
-func PruneCache(dir string, kinds []string, limit int64) int {
+// temporary files. It returns how many files it dropped and how many bytes remain, which is what the caller keeps as the store's
+// accounted size instead of walking the directory on every write.
+func PruneCache(dir string, kinds []string, limit int64) (pruned int, remaining int64) {
 	var files []cachedFile
 	var total int64
 	for _, kind := range kinds {
@@ -43,10 +44,9 @@ func PruneCache(dir string, kinds []string, limit int64) int {
 		})
 	}
 	if total <= limit {
-		return 0
+		return 0, total
 	}
 	slices.SortFunc(files, func(a, b cachedFile) int { return a.mtime.Compare(b.mtime) })
-	pruned := 0
 	for _, f := range files {
 		if total <= limit/4*3 {
 			break
@@ -56,5 +56,5 @@ func PruneCache(dir string, kinds []string, limit int64) int {
 			pruned++
 		}
 	}
-	return pruned
+	return pruned, total
 }

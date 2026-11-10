@@ -2,6 +2,7 @@ package driver
 
 import (
 	"encoding/json"
+	"slices"
 
 	"kigumi/internal/compiler/sem"
 )
@@ -55,16 +56,36 @@ func (m *Module) clean(o unitOutcome, path string) bool {
 
 func digestUsable(d string) bool { return d != "" && d != "error" && d != "absent" }
 
+// packageCSymbols lists the C link names path declares, sorted: a record carries them so a replay knows which names a package it skips
+// would have brought into the check.
+func packageCSymbols(res *sem.Result, path string) []string {
+	var names []string
+	for id := range res.Entities {
+		e := &res.Entities[id]
+		if e.Kind != sem.EntFn || e.File == 0 || int(e.Pkg) >= len(res.Packages) || res.Packages[e.Pkg].Path != path {
+			continue
+		}
+		info := res.Fn(sem.EntityID(id))
+		if info.Abi == "" && info.Export == "" {
+			continue
+		}
+		names = append(names, res.FnLinkNameOf(sem.EntityID(id)))
+	}
+	slices.Sort(names)
+	return slices.Compact(names)
+}
+
 // recordPackage stores the artifact and key record of one checked package, and corrects the clean mark of an existing record.
 func (m *Module) recordPackage(o unitOutcome, path, key string, depsOK bool) PackageStatus {
 	c := m.pkgCache
 	st := PackageStatus{Path: path, Key: key}
 	clean := depsOK && m.clean(o, path)
 	st.Clean = clean
+	cSymbols := packageCSymbols(o.res, path)
 	if rec, ok := c.lookup(key); ok {
 		c.stats.ArtifactHits++
 		st.Hit, st.Digest = true, rec.Digest
-		if clean != rec.Clean && c.putSealed("pkg", key, keyRecord{Path: path, Digest: rec.Digest, Clean: clean}) {
+		if clean != rec.Clean && c.putSealed("pkg", key, keyRecord{Path: path, Digest: rec.Digest, Clean: clean, CSymbols: cSymbols}) {
 			c.stats.RecordWrites++
 		}
 		return st
@@ -82,7 +103,7 @@ func (m *Module) recordPackage(o unitOutcome, path, key string, depsOK bool) Pac
 	if err != nil {
 		return st
 	}
-	if digest, fresh, ok := c.putAPI(body); ok && c.putSealed("pkg", key, keyRecord{Path: path, Digest: digest, Clean: clean}) {
+	if digest, fresh, ok := c.putAPI(body); ok && c.putSealed("pkg", key, keyRecord{Path: path, Digest: digest, Clean: clean, CSymbols: cSymbols}) {
 		c.stats.RecordWrites++
 		st.Digest, st.Written = digest, fresh
 		if fresh {

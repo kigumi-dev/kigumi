@@ -64,12 +64,43 @@ func runtimeFlagSet(t buildconfig.Target, code compiled, cflags []string) []stri
 	return slices.Compact(slices.Sorted(slices.Values(flags)))
 }
 
+// layoutFlagPrefixes are the C flags that move a struct's size, a field's alignment or the calling convention, so an archive compiled
+// under one cannot share the runtime compiled without it. Flags that leave the layout alone (-O, -D, -I, -Wall) stay out.
+var layoutFlagPrefixes = []string{
+	"-fshort-", "-fpack-struct", "-freg-struct-return", "-fpcc-struct-return",
+	"-funsigned-char", "-fsigned-char",
+	"-malign-double", "-mno-align-double", "-mstructure-size-boundary",
+	"-mabi=", "-m32", "-m64", "-mx32", "-msoft-float", "-mhard-float",
+}
+
+// layoutFlags picks the cflags that change the C data layout the runtime is compiled for.
+func layoutFlags(cflags []string) []string {
+	var out []string
+	for _, f := range cflags {
+		for _, p := range layoutFlagPrefixes {
+			if strings.HasPrefix(f, p) {
+				out = append(out, f)
+				break
+			}
+		}
+	}
+	return out
+}
+
+// runtimeFingerprint hashes what a runtime object and the code lowered against it must agree on beyond the registry and value layout:
+// the macro set, the target it is compiled for and the user flags that change its layout. Two targets or two -fshort-enums builds
+// therefore never share a fingerprint, so mixing their archives is E1880 instead of a silent layout disagreement.
+func runtimeFingerprint(t buildconfig.Target, flags, cflags []string) string {
+	inputs := append(slices.Clone(flags), "target="+targetIdentity(t))
+	return llgen.CurrentAbiFingerprint(version.AbiRevision, append(inputs, layoutFlags(cflags)...))
+}
+
 // abiDefine is the -D that compiles fp into the runtime object; the quotes make the macro a string literal.
 func abiDefine(fp string) string { return "-D" + abiMacro + "=\"" + fp + "\"" }
 
 // withRuntimeABI binds the fingerprint for code built on t with cflags into its IR and records it on code.
 func withRuntimeABI(t buildconfig.Target, code compiled, cflags []string) compiled {
-	code.Abi = llgen.CurrentAbiFingerprint(version.AbiRevision, runtimeFlagSet(t, code, cflags))
+	code.Abi = runtimeFingerprint(t, runtimeFlagSet(t, code, cflags), cflags)
 	code.Output = code.Output.BindAbi(code.Abi)
 	return code
 }

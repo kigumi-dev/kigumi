@@ -14,6 +14,15 @@ import (
 
 func explainCapabilities(io session.IO, s session.Session, target string) error {
 	if fp, ok := artifactFingerprint(target); ok {
+		tgt, err := s.Target()
+		if err != nil {
+			return &exit.UsageError{Err: err}
+		}
+		// The sidecar is a file like any other, so it is only worth reading when this toolchain could have written it: a target or
+		// ABI another build recorded is a stale artifact, not something to report as this toolchain's own capabilities.
+		if reasons := driver.ToolchainMatch(fp, tgt); len(reasons) > 0 {
+			return errors.NewErrf("artifact %s is stale: %s; rebuild it, or pass --target for an artifact built for another target", target, reasons[0])
+		}
 		fmt.Fprintf(io.Out, "artifact %s (target %s)\n", target, fp.Target)
 		printCapabilities(io.Out, fp.CapabilityProvision, fp.CapabilityReasons)
 		return nil

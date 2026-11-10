@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"kigumi/internal/base/fsx"
 )
 
 // Reproduce builds twice, each in a fresh directory with its own compiler cache, and publishes out only when both outputs match byte for byte.
@@ -42,16 +44,17 @@ func Reproduce(out string, env []string, build func(out string, env []string) (b
 	if off, equal := firstDiffOffset(data[0], data[1]); !equal {
 		return false, fmt.Errorf("build is not reproducible: %s differs at byte offset %d (%d vs %d bytes)", name, off, len(data[0]), len(data[1]))
 	}
+	if sidecar != nil {
+		// The sidecar goes down first: out never exists without the fingerprint that describes it.
+		if err := fsx.WriteFileAtomic(FingerprintSidecarPath(out), sidecar, 0o644); err != nil {
+			return false, err
+		}
+	}
 	if err := WriteOutput(out, data[0], mode); err != nil {
 		return false, err
 	}
 	if err := os.Chmod(out, mode); err != nil {
 		return false, err
-	}
-	if sidecar != nil {
-		if err := os.WriteFile(FingerprintSidecarPath(out), sidecar, 0o644); err != nil {
-			return false, err
-		}
 	}
 	return true, nil
 }

@@ -33,6 +33,8 @@ type unitPlan struct {
 	upward   bool
 	anyErr   bool
 	comptime bool
+	// replayedC holds the C link names the replayed records carry, so a run that declares one of them can ask for the whole module.
+	replayedC map[string]bool
 }
 
 func (m *Module) checkUnits() (*sem.Result, bool) {
@@ -132,6 +134,12 @@ func (u *unitPlan) replay(i int) bool {
 		u.digests[p] = rec.Digest
 		u.status[p] = PackageStatus{Path: p, Key: keys[p], Digest: rec.Digest, Hit: true, Replayed: true, Clean: true}
 		u.m.unitStats.bump(&u.m.unitStats.Replayed, p)
+		for _, name := range rec.CSymbols {
+			if u.replayedC == nil {
+				u.replayedC = map[string]bool{}
+			}
+			u.replayedC[name] = true
+		}
 	}
 	return true
 }

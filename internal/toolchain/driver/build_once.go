@@ -94,9 +94,9 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 			args = append(args, "-fPIE")
 		}
 		fp := CurrentFingerprint(t, link.ZigVersionOf(cc))
-		fp.RuntimeAbi = code.Abi
+		withProvenance(&fp, m, t, code)
 		artifact.ReportStale(out, fp, stderr)
-		ok, err := artifact.Publish(out, func(staged string) error {
+		return artifact.PublishWithFingerprint(out, fp, func(staged string) error {
 			built, err := buildArchive(compiler, cc, args, inputs, dir, staged, opts.ccEnv, stderr, opts.pinCompDir && t.COFF())
 			if err != nil || !built {
 				return err
@@ -107,19 +107,10 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 			}
 			return audit.Archive(m.compiler, ar, staged, out, llgen.FreestandingSymbols(), m.Manifest.Embedder)
 		})
-		if err != nil || !ok {
-			return ok, err
-		}
-		withProvenance(&fp, m, t, code)
-		return true, artifact.WriteFingerprintSidecar(out, fp)
-	}
-	ok, err = artifact.Publish(out, func(staged string) error {
-		return hostLink{m: m, compiler: compiler, cc: cc, args: args, inputs: inputs, dir: dir, opts: opts, t: t, link: linkage, cflags: cflags, lflags: lflags, stderr: stderr}.run(staged)
-	})
-	if err != nil || !ok {
-		return ok, err
 	}
 	fp := CurrentFingerprint(t, link.ZigVersionOf(cc))
 	withProvenance(&fp, m, t, code)
-	return true, artifact.WriteFingerprintSidecar(out, fp)
+	return artifact.PublishWithFingerprint(out, fp, func(staged string) error {
+		return hostLink{m: m, cc: cc, args: args, inputs: inputs, dir: dir, opts: opts, t: t, link: linkage, cflags: cflags, lflags: lflags, stderr: stderr}.run(staged)
+	})
 }

@@ -1,6 +1,10 @@
 package driver
 
-import "slices"
+import (
+	"slices"
+
+	"kigumi/internal/compiler/sem"
+)
 
 // run checks the components together with the imports they need in one semantic run, then records each package.
 func (u *unitPlan) run(batch []int) error {
@@ -22,6 +26,12 @@ func (u *unitPlan) run(batch []int) error {
 	u.runs++
 	m.unitStats.Runs++
 	res := a.Res
+	if u.hasReplayedC(unitCSymbols(res, unit)) {
+		// E2218 is a rule about the whole module (one definition and one signature per C name), so a unit that declares a name a replayed
+		// package also declares cannot be judged without it: the check goes to the whole module, which sees both sides.
+		u.upward = true
+		return nil
+	}
 	if res.HasErrors() {
 		u.anyErr = true
 	}
@@ -68,6 +78,32 @@ func sortedInts(in []int) []int {
 	out := slices.Clone(in)
 	slices.Sort(out)
 	return out
+}
+
+// unitCSymbols lists the C link names this run's own packages declare: the names E2218 keys its per-module map on.
+func unitCSymbols(res *sem.Result, unit map[string]bool) []string {
+	var names []string
+	for id := range res.Entities {
+		e := &res.Entities[id]
+		if e.Kind != sem.EntFn || e.File == 0 || int(e.Pkg) >= len(res.Packages) || !unit[res.Packages[e.Pkg].Path] {
+			continue
+		}
+		info := res.Fn(sem.EntityID(id))
+		if info.Abi != "" || info.Export != "" {
+			names = append(names, res.FnLinkNameOf(sem.EntityID(id)))
+		}
+	}
+	return names
+}
+
+// hasReplayedC says one of these names is also declared by a package this plan answered from its record.
+func (u *unitPlan) hasReplayedC(names []string) bool {
+	for _, name := range names {
+		if u.replayedC[name] {
+			return true
+		}
+	}
+	return false
 }
 
 // demote withdraws the clean record of a package that reported something after all, and sends the check to the whole module.

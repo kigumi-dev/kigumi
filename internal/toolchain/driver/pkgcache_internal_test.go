@@ -128,7 +128,7 @@ func TestPackageCachePrunesOldestOnceOverLimit(t *testing.T) {
 func TestPackageCacheKeepsStoreUnderLimit(t *testing.T) {
 	c := newPackageCache(t.TempDir())
 	c.limit = 6000
-	for i := range pruneEvery*3 + 5 {
+	for i := range 200 {
 		c.putAPI([]byte(strings.Repeat("y", 300) + fmt.Sprint(i)))
 	}
 	if c.stats.Pruned == 0 {
