@@ -1,0 +1,40 @@
+-- src --
+pub type View['a] = {
+    pub value &'a String
+}
+
+interface Maker['a] {
+    fn mk(self, value: &String) -> View['a]
+}
+
+type Worker = {
+    pub n Int
+}
+
+fn Worker.mk['a](self, value: &'a String) -> View['a] {
+    View { value: value }
+}
+
+fn keeps['a, W: Maker['a]](worker: W, keep: &'a String) -> Array[View['a]] {
+    let mut out = Array.of(worker.mk(keep))
+    out.push(worker.mk(keep))
+    out
+}
+
+fn usesLocal['a, W: Maker['a]](worker: W) -> usize {
+    let local = "local${40 + 2}"
+    let v = worker.mk(&local)
+    v.value.len()
+}
+
+let keep = "keep"
+let ks = keeps(Worker { n: 2 }, &keep)
+let junk = "junk${1 + 2}"
+let w = Worker { n: 3 }
+let local = "direct"
+let v = w.mk(&local)
+print "keeps ${ks.len()} ${ks[0].value} ${ks[1].value}"
+print "local ${usesLocal(Worker { n: 4 })} ${v.value} ${junk}"
+-- stdout --
+keeps 2 keep keep
+local 7 direct junk3

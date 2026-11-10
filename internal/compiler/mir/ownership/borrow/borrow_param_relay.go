@@ -10,12 +10,16 @@ import (
 
 // paramIndex is the parameter of g that l is a copy of, or -1.
 func paramIndex(g *midir.Func, defs map[midir.LocalID]*midir.Inst, l midir.LocalID) int {
-	l = copiedFrom(defs, l)
+	l = copiedFrom(g, defs, l)
 	return slices.Index(g.Params, l)
 }
 
-func copiedFrom(defs map[midir.LocalID]*midir.Inst, l midir.LocalID) midir.LocalID {
+// copiedFrom is the local l copies; it stops at a parameter of g, whose definitions in the body are not its whole value.
+func copiedFrom(g *midir.Func, defs map[midir.LocalID]*midir.Inst, l midir.LocalID) midir.LocalID {
 	for range 8 {
+		if slices.Contains(g.Params, l) {
+			break
+		}
 		d := defs[l]
 		if d == nil || len(d.Args) == 0 || d.Op != midir.OpCopy && d.Op != midir.OpMove && d.Op != midir.OpAlias {
 			break
@@ -26,16 +30,17 @@ func copiedFrom(defs map[midir.LocalID]*midir.Inst, l midir.LocalID) midir.Local
 }
 
 func (c *borrowCheck) relayCallee(g *midir.Func, defs map[midir.LocalID]*midir.Inst, l midir.LocalID, kind siteKind) []relayTarget {
-	return c.relayTargets(g, defs, l, kind, 8)
+	return c.relayTargets(g, defs, l, false, kind, 8)
 }
 
-func (c *borrowCheck) relayTargets(g *midir.Func, defs map[midir.LocalID]*midir.Inst, l midir.LocalID, kind siteKind, depth int) []relayTarget {
-	if kind == siteOut && !c.calleeKeepsBorrow(g.Locals[l].Type) {
+// relayTargets are where calling l, or a callable l holds, hands a value on.
+func (c *borrowCheck) relayTargets(g *midir.Func, defs map[midir.LocalID]*midir.Inst, l midir.LocalID, held bool, kind siteKind, depth int) []relayTarget {
+	if kind == siteOut && !held && !c.calleeKeepsBorrow(g.Locals[l].Type) {
 		return nil
 	}
-	origins, ok := c.calleeOrigins(g, defs, l)
-	if ok && origins[0].isParam {
-		return []relayTarget{{kind: relayParam, param: origins[0].param}}
+	origins, ok := c.argOrigins(g, defs, l, held)
+	if ok && len(origins) > 0 && origins[0].isParam {
+		return []relayTarget{{kind: relayParam, param: origins[0].param, held: origins[0].held}}
 	}
 	if !ok || depth == 0 {
 		return []relayTarget{{kind: relayUnknown}}

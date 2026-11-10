@@ -108,6 +108,14 @@ func (c *borrowCheck) futureHandleSource(in midir.Inst) (*borrowInfo, bool) {
 // args[0] as the witness; a closure or fn pointer only reaches valueResultSource and rejectUntrackedResult.
 func (c *borrowCheck) callValueLifetimeSource(in midir.Inst) (*borrowInfo, bool) {
 	c.callNode = in.Node
+	b, ok := c.valueCallSource(in)
+	if b, ok := c.withTies(in, b, ok, c.refKeptTie(in)); ok {
+		return b, true
+	}
+	return c.rejectUntrackedResult(in)
+}
+
+func (c *borrowCheck) valueCallSource(in midir.Inst) (*borrowInfo, bool) {
 	if b, ok := c.signatureLifetimeSource(in); ok {
 		return b, true
 	}
@@ -119,10 +127,7 @@ func (c *borrowCheck) callValueLifetimeSource(in midir.Inst) (*borrowInfo, bool)
 			return b, true
 		}
 	}
-	if b, ok := c.valueResultSource(in); ok {
-		return b, true
-	}
-	return c.rejectUntrackedResult(in)
+	return c.valueResultSource(in)
 }
 
 // rejectUntrackedResult is the shared fallback for a call whose result could not

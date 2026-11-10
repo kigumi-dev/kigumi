@@ -1,0 +1,149 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = {
+    pub s &'a String
+}
+
+pub type Sink['a] = {
+    pub mut items &'a mut Array[V['a]]
+}
+
+fn keepSwap['a](x: &'a String, y: &'a String, k: Sink['a]) {
+    k.items.push(V { s: y })
+}
+
+fn keepFirst['a](x: &'a String, y: &'a String, k: Sink['a]) {
+    k.items.push(V { s: x })
+}
+
+fn mkV['a](s: &'a String) -> V['a] {
+    V { s: s }
+}
+
+fn putLast['a](out: &mut V['a], items: &'a Array[String]) {
+    for s in items {
+        out = mkV(s)
+    }
+}
+
+fn apply['a](g: fn(V['a]) -> Void, x: V['a]) {
+    g(x)
+}
+
+fn swapped['a](k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    keepSwap(&loc, k.items[0].s, k)
+}
+
+fn swappedValue['a](k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    let g = keepSwap
+    g(&loc, k.items[0].s, k)
+}
+
+fn first['a](k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    keepFirst(&loc, k.items[0].s, k) //~ ERROR a borrow cannot be stored into `k` here
+}
+
+fn firstValue['a](k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    let g = keepFirst
+    g(&loc, k.items[0].s, k) //~ ERROR a borrow cannot be stored into `k` here
+}
+
+fn viewOut() -> usize {
+    let base = "q"
+    let mut items = Array.of("a${1}", "bcd${2}")
+    let mut out = mkV(&base)
+    putLast(&mut out, &items)
+    items = Array.of("zzz${3}") //~ ERROR `items` is borrowed and cannot be mutated here //~ ERROR `items` is borrowed and cannot be moved or dropped here
+    out.s.len()
+}
+
+fn captured['a](k: Sink['a]) {
+    let loc = "local"
+    apply((x: V['a]) => { k.items.push(x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `k` here
+}
+
+type Sack['a] = {
+    pub mut items Array[V['a]]
+}
+
+fn viaClosure['a](s: &mut Sack['a], x: V['a]) {
+    apply((y: V['a]) => { s.items.push(y) }, x)
+}
+
+fn closureStore() -> usize {
+    let base = "q"
+    let mut sack = Sack { items: Array.of(V { s: &base }) }
+    let mut loc = "loc${1}"
+    viaClosure(&mut sack, V { s: &loc })
+    loc = "changed" //~ ERROR `loc` is borrowed and cannot be mutated here //~ ERROR `loc` is borrowed and cannot be moved or dropped here
+    sack.items[1].s.len()
+}
+
+let text = "hello"
+let mut items = Array.of(V { s: &text })
+swapped(Sink { items: &mut items })
+swappedValue(Sink { items: &mut items })
+first(Sink { items: &mut items })
+firstValue(Sink { items: &mut items })
+captured(Sink { items: &mut items })
+print "${items.len()} ${viewOut()} ${closureStore()}"
+-- expect --
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:44:5
+   |
+44 |     keepFirst(&loc, k.items[0].s, k) //~ ERROR a borrow cannot be stored into `k` here
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:50:5
+   |
+50 |     g(&loc, k.items[0].s, k) //~ ERROR a borrow cannot be stored into `k` here
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `items` is borrowed and cannot be mutated here
+  --> main.kg:58:5
+   |
+58 |     items = Array.of("zzz${3}") //~ ERROR `items` is borrowed and cannot be mutated here //~ ERROR `items` is borrowed and cannot be moved or dropped here
+   |     ^^^^^
+   = help: end the borrow first or use a copy
+note: `items` is borrowed here
+  --> main.kg:57:23
+   |
+57 |     putLast(&mut out, &items)
+   |                       ^^^^^^
+
+error[move-while-borrowed]: `items` is borrowed and cannot be moved or dropped here
+  --> main.kg:58:5
+   |
+58 |     items = Array.of("zzz${3}") //~ ERROR `items` is borrowed and cannot be mutated here //~ ERROR `items` is borrowed and cannot be moved or dropped here
+   |     ^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:64:5
+   |
+64 |     apply((x: V['a]) => { k.items.push(x) }, V { s: &loc }) //~ ERROR a borrow cannot be stored into `k` here
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `loc` is borrowed and cannot be mutated here
+  --> main.kg:80:5
+   |
+80 |     loc = "changed" //~ ERROR `loc` is borrowed and cannot be mutated here //~ ERROR `loc` is borrowed and cannot be moved or dropped here
+   |     ^^^
+   = help: end the borrow first or use a copy
+note: `loc` is borrowed here
+  --> main.kg:79:34
+   |
+79 |     viaClosure(&mut sack, V { s: &loc })
+   |                                  ^^^^
+
+error[move-while-borrowed]: `loc` is borrowed and cannot be moved or dropped here
+  --> main.kg:80:5
+   |
+80 |     loc = "changed" //~ ERROR `loc` is borrowed and cannot be mutated here //~ ERROR `loc` is borrowed and cannot be moved or dropped here
+   |     ^^^
+

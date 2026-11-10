@@ -36,26 +36,37 @@ func hasFlow(fs []flowArg, v flowArg) bool {
 	})
 }
 
-// refKeptTie is the borrows of what call in lends that the callee may keep in a result holding a borrow; a Future or
-// Task result keeps its arguments through summaryTie already.
+// refKeptTie is the borrows of what call in lends that a fn it may run keeps in a result able to hold one, by refKeeps
+// and an implementation's own signature; a Future or Task result keeps its arguments through summaryTie already.
 func (c *borrowCheck) refKeptTie(in midir.Inst) []*borrowInfo {
-	if !in.Op.Yields() || !c.facts().HoldsBorrow(c.f.Locals[in.Dst].Type) {
+	if !in.Op.Yields() || !c.mayHold(c.f.Locals[in.Dst].Type) {
 		return nil
 	}
-	s := c.calleeRefKeeps(in.Ent, c.refBindSite(in.Ent, in.Args))
-	if !s.keepsAny() {
-		return nil
-	}
-	info := c.p.R.Fn(in.Ent)
-	slots := c.callSlots(info, in.Args, 0)
+	generic := !c.facts().HoldsBorrow(c.f.Locals[in.Dst].Type)
 	var out []*borrowInfo
-	for j := range slots {
-		for _, kind := range []refKind{refOwn, refHeld} {
-			if !s.keepsResult(j, kind) {
-				continue
-			}
-			if b, ok := c.tieInfo(c.keptArg(info, slots, j, kind, s.keepsExcl(j)), false, false); ok {
-				out = append(out, b)
+	for _, t := range c.flowCallees(in) {
+		s := c.calleeRefKeeps(t.ent, c.refBindSite(t.ent, t.args))
+		if t.erased {
+			s = s.join(c.declaredRefKeeps(t.ent))
+		}
+		if !s.keepsAny() {
+			continue
+		}
+		info := c.p.R.Fn(t.ent)
+		slots := c.callSlots(info, t.args, 0)
+		for j := range slots {
+			for _, kind := range []refKind{refOwn, refHeld} {
+				if !s.keepsResult(j, kind) {
+					continue
+				}
+				b, ok := c.tieInfo(c.keptArg(info, slots, j, kind, s.keepsExcl(j)), false, false)
+				if ok && generic {
+					b = c.carriedBorrows(b)
+					ok = b != nil
+				}
+				if ok {
+					out = append(out, b)
+				}
 			}
 		}
 	}

@@ -52,7 +52,8 @@ func (p *verifier) verifyEntities(f *midir.Func) *Error {
 					want = "a type"
 				}
 			case midir.OpClosure:
-				if k := kindOf(in.Ent); !((k == sem.EntClosure && p.ByEnt[in.Ent] != nil) || ((in.Str == "method" || in.Str == "witness" || in.Str == "applied") && k == sem.EntFn)) {
+				form, k := in.Form(), kindOf(in.Ent)
+				if !(form == midir.FormClosure && k == sem.EntClosure && p.ByEnt[in.Ent] != nil || (form == midir.FormMethod || form == midir.FormWitness || form == midir.FormApplied) && k == sem.EntFn) {
 					want = "a lowered closure, or a method for a method value"
 				}
 			case midir.OpAsm:

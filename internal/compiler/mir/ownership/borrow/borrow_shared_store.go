@@ -87,13 +87,14 @@ func (c *borrowCheck) keptParams(x *sinkCtx, in midir.Inst, t sinkTarget) []sem.
 	return out
 }
 
-// bindAt binds each callable parameter of t's fn that call in passes only fn items and closures x can name.
+// bindAt binds each parameter of t's fn able to hold a callable that call in passes only fn items and closures x can
+// name, to those.
 func (c *borrowCheck) bindAt(x *sinkCtx, in midir.Inst, t sinkTarget) map[int][]sem.EntityID {
 	var out map[int][]sem.EntityID
 	declared := c.declaredParams(t.ent)
 	for k, a := range in.Args {
 		for _, q := range t.bind(k) {
-			if !c.callableNode(c.p.R.Entity(q).Type) {
+			if !c.typeRuns(c.p.R.Entity(q).Type, runsCallable) {
 				continue
 			}
 			if ents, ok := c.callablesIn(x, a); ok {

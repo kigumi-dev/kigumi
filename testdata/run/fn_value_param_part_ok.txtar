@@ -1,0 +1,92 @@
+-- src --
+import {Shared} from std/alloc
+
+pub type V['a] = {
+    pub s &'a String
+}
+
+pub type Sink['a] = {
+    pub mut items &'a mut Array[V['a]]
+}
+
+pub type Box[F] = {
+    pub cb F
+}
+
+fn nop['a](x: &'a String, k: Sink['a]) {
+}
+
+fn keep['a](x: &'a String, k: Sink['a]) {
+    k.items.push(V { s: x })
+}
+
+fn viaField['a](b: Box[fn(&'a String, Sink['a]) -> Void], x: &'a String, k: Sink['a]) {
+    (b.cb)(x, k)
+}
+
+fn viaIndex['a](fs: Array[fn(&'a String, Sink['a]) -> Void], x: &'a String, k: Sink['a]) {
+    fs[0](x, k)
+}
+
+fn boxed['a](x: &'a String, k: Sink['a]) {
+    viaField(Box { cb: nop }, x, k)
+}
+
+fn boxedKeep['a](x: &'a String, k: Sink['a]) {
+    viaField(Box { cb: keep }, x, k)
+}
+
+fn listed['a](x: &'a String, k: Sink['a]) {
+    viaIndex(Array.of(nop, keep), x, k)
+}
+
+async fn grow(a: &mut Array[String]) -> usize {
+    a.push("b")
+    a.len()
+}
+
+fn putIn(s: Shared[Future[usize]?], f: Future[usize]) {
+    s.set(Some(f))
+}
+
+fn drop2(s: Shared[Future[usize]?], f: Future[usize]) {
+}
+
+fn handOn(b: Box[fn(Shared[Future[usize]?], Future[usize]) -> Void], s: Shared[Future[usize]?], f: Future[usize]) {
+    (b.cb)(s, f)
+}
+
+fn quietHand(s: Shared[Future[usize]?]) {
+    let mut a = Array.of("x")
+    handOn(Box { cb: drop2 }, s, grow(&mut a))
+}
+
+fn copiedUntouched['a](b: Box[fn(&'a String, Sink['a]) -> Void], k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    let b2 = b
+    (b2.cb)(&loc, k)
+}
+
+fn copiedKeep['a](b: Box[fn(&'a String, Sink['a]) -> Void], x: &'a String, k: Sink['a]) {
+    let b2 = b
+    (b2.cb)(x, k)
+}
+
+let text = "hello"
+let more = "more"
+let mut items = Array.of(V { s: &text })
+boxed(&more, Sink { items: &mut items })
+boxedKeep(&more, Sink { items: &mut items })
+listed(&more, Sink { items: &mut items })
+copiedUntouched(Box { cb: nop }, Sink { items: &mut items })
+copiedKeep(Box { cb: keep }, &text, Sink { items: &mut items })
+quietHand(Shared.new(None))
+print "${items.len()}"
+for v in &items {
+    print "${v.s}"
+}
+-- stdout --
+3
+hello
+more
+hello

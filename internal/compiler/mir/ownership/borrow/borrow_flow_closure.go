@@ -15,9 +15,12 @@ func (c *borrowCheck) closureLiteral(l midir.LocalID) *midir.Inst {
 	return nil
 }
 
-// defThrough is the instruction of opcode op that l is a copy of.
+// defThrough is the instruction of opcode op that l is a copy of; a parameter holds the caller's value, not its definition.
 func (c *borrowCheck) defThrough(l midir.LocalID, op midir.Opcode) *midir.Inst {
 	for range 8 {
+		if slices.Contains(c.f.Params, l) {
+			return nil
+		}
 		d := c.soleDef(l)
 		switch {
 		case d == nil:

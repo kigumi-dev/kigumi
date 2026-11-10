@@ -17,21 +17,21 @@ func (b *builder) methodValue(e *hir.Expr, recv midir.LocalID, t sem.TypeID) mid
 		return b.appliedValue(e, recv, t)
 	}
 	async := b.r.Fn(e.Ent).Declared&sem.EffAsync != 0
-	return b.emit(midir.Inst{Op: midir.OpClosure, Dst: b.temp(t), Ent: e.Ent, Args: []midir.LocalID{recv}, Str: "method", Async: async, Node: e.Node})
+	return b.emit(midir.Inst{Op: midir.OpClosure, Dst: b.temp(t), Ent: e.Ent, Args: []midir.LocalID{recv}, Str: midir.FormMethod.Tag(), Async: async, Node: e.Node})
 }
 
 func (b *builder) requirementValue(e *hir.Expr, recv midir.LocalID, t sem.TypeID) midir.LocalID {
 	if e.Witness == 0 {
-		return b.emit(midir.Inst{Op: midir.OpClosure, Dst: b.temp(t), Ent: e.Ent, Args: []midir.LocalID{recv}, Str: "method", Node: e.Node})
+		return b.emit(midir.Inst{Op: midir.OpClosure, Dst: b.temp(t), Ent: e.Ent, Args: []midir.LocalID{recv}, Str: midir.FormMethod.Tag(), Node: e.Node})
 	}
-	return b.emit(midir.Inst{Op: midir.OpClosure, Dst: b.temp(t), Ent: e.Ent, Args: []midir.LocalID{b.witnessLocal(e.Witness), recv}, Str: "witness", Node: e.Node})
+	return b.emit(midir.Inst{Op: midir.OpClosure, Dst: b.temp(t), Ent: e.Ent, Args: []midir.LocalID{b.witnessLocal(e.Witness), recv}, Str: midir.FormWitness.Tag(), Node: e.Node})
 }
 
 // A method value over a constrained generic holds the method bound to its witnesses and the receiver, applied at each call.
 func (b *builder) appliedValue(e *hir.Expr, recv midir.LocalID, t sem.TypeID) midir.LocalID {
 	async := b.r.Fn(e.Ent).Declared&sem.EffAsync != 0
 	bound := b.emit(midir.Inst{Op: midir.OpBind, Dst: b.temp(b.r.Fn(e.Ent).Sig), Ent: e.Ent, Args: b.witnessArgs(e.Passes, e.Node), Async: async, Node: e.Node})
-	return b.emit(midir.Inst{Op: midir.OpClosure, Dst: b.temp(t), Ent: e.Ent, Args: []midir.LocalID{bound, recv}, Str: "applied", Async: async, Node: e.Node})
+	return b.emit(midir.Inst{Op: midir.OpClosure, Dst: b.temp(t), Ent: e.Ent, Args: []midir.LocalID{bound, recv}, Str: midir.FormApplied.Tag(), Async: async, Node: e.Node})
 }
 
 // A closure-typed method value owns its receiver: a binding or temporary moves in, a field moves out of its owner.

@@ -29,7 +29,8 @@ func (c *borrowCheck) refRoots(g *midir.Func, defs map[midir.LocalID][]*midir.In
 	return out
 }
 
-// borrowedPlaces are the locals a borrow is taken of, followed back through the projections and cell reads naming them.
+// borrowedPlaces are the locals a borrow is taken of, followed back through the projections, cell reads and copies naming
+// them: a copy of an element view borrows the element.
 func borrowedPlaces(g *midir.Func, defs map[midir.LocalID][]*midir.Inst) map[midir.LocalID]bool {
 	out := map[midir.LocalID]bool{}
 	var mark func(midir.LocalID)
@@ -40,7 +41,7 @@ func borrowedPlaces(g *midir.Func, defs map[midir.LocalID][]*midir.Inst) map[mid
 		out[l] = true
 		for _, d := range defs[l] {
 			switch d.Op {
-			case midir.OpField, midir.OpFieldMove, midir.OpIndex, midir.OpPayload, midir.OpCellGet, midir.OpAlias:
+			case midir.OpField, midir.OpFieldMove, midir.OpIndex, midir.OpPayload, midir.OpCellGet, midir.OpAlias, midir.OpCopy, midir.OpMove:
 				mark(d.Args[0])
 			}
 		}

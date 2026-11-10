@@ -19,9 +19,11 @@ func (c *borrowCheck) targetCarry(ct callTarget) []storeFlow {
 	info := c.p.R.Fn(ct.ent)
 	var targets []storeFlow
 	var values []flowArg
+	var stores []func(int) bool
 	for i, s := range c.callSlots(info, ct.args, 0) {
 		if s.target || s.holder {
 			targets = append(targets, storeFlow{target: s.arg, ref: s.target, byValue: s.holder, callee: ct.ent, param: i})
+			stores = append(stores, ct.storesInto(i, c.holderLiteral(s) != nil))
 			continue
 		}
 		if i == 0 && info.Recv != sem.RecvNone || c.p.R.Types.Kind(s.exact) == sem.KRef {
@@ -33,9 +35,9 @@ func (c *borrowCheck) targetCarry(ct callTarget) []storeFlow {
 		}
 	}
 	var out []storeFlow
-	for _, fl := range targets {
+	for k, fl := range targets {
 		for _, v := range values {
-			if ct.stores(fl.param, v.param) {
+			if stores[k](v.param) {
 				fl.values = append(fl.values, flowArg{arg: v.arg})
 			}
 		}

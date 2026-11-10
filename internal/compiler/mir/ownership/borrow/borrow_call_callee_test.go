@@ -43,7 +43,7 @@ func TestCallFlowsResolveCallee(t *testing.T) {
 				continue
 			}
 			ts := c.flowCallees(in)
-			if len(ts) != 1 || len(ts[0].args) != 2 || ts[0].kept != nil || in.Ent != 0 {
+			if len(ts) != 1 || len(ts[0].args) != 2 || ts[0].kept != c.keptStoreSummary(ts[0].ent, nil) || in.Ent != 0 {
 				t.Fatalf("direct future callees = %+v, instruction = %+v", ts, in)
 			}
 			e, args := ts[0].ent, ts[0].args

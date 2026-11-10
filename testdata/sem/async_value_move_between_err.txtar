@@ -48,16 +48,16 @@ fn viaValue() -> Array[Future[Int]] {
     let mut a = Array.empty[Future[Int]]() //~ ERROR `a` is still borrowed when its scope ends here
     let mut b = Array.empty[Future[Int]]()
     let w = fw
-    w(acount, &mut a, &mut b, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned //~ ERROR a borrow of `a` cannot be stored back into `a` //~ ERROR a borrow of `b` cannot be stored back into `b`
-    b //~ ERROR `b` is borrowed and cannot be moved or dropped here
+    w(acount, &mut a, &mut b, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    b
 }
 
 fn viaDirect() -> Array[Future[Int]] {
     let mut c = Counter { n: 5 }
     let mut a = Array.empty[Future[Int]]() //~ ERROR `a` is still borrowed when its scope ends here
     let mut b = Array.empty[Future[Int]]()
-    fw(acount, &mut a, &mut b, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned //~ ERROR a borrow of `a` cannot be stored back into `a` //~ ERROR a borrow of `b` cannot be stored back into `b`
-    b //~ ERROR `b` is borrowed and cannot be moved or dropped here
+    fw(acount, &mut a, &mut b, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
+    b
 }
 
 fn local() -> Array[Future[Int]] {
@@ -96,7 +96,7 @@ fn main() {
 error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
   --> main.kg:48:5
    |
-48 |     w(acount, &mut a, &mut b, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned //~ ERROR a borrow of `a` cannot be stored back into `a` //~ ERROR a borrow of `b` cannot be stored back into `b`
+48 |     w(acount, &mut a, &mut b, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[move-while-borrowed]: `a` is still borrowed when its scope ends here
@@ -105,28 +105,10 @@ error[move-while-borrowed]: `a` is still borrowed when its scope ends here
 45 |     let mut a = Array.empty[Future[Int]]() //~ ERROR `a` is still borrowed when its scope ends here
    |             ^
 
-error[move-while-borrowed]: `b` is borrowed and cannot be moved or dropped here
-  --> main.kg:49:5
-   |
-49 |     b //~ ERROR `b` is borrowed and cannot be moved or dropped here
-   |     ^
-
-error[borrow-escape]: a borrow of `a` cannot be stored back into `a`
-  --> main.kg:48:5
-   |
-48 |     w(acount, &mut a, &mut b, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned //~ ERROR a borrow of `a` cannot be stored back into `a` //~ ERROR a borrow of `b` cannot be stored back into `b`
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-error[borrow-escape]: a borrow of `b` cannot be stored back into `b`
-  --> main.kg:48:5
-   |
-48 |     w(acount, &mut a, &mut b, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned //~ ERROR a borrow of `a` cannot be stored back into `a` //~ ERROR a borrow of `b` cannot be stored back into `b`
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
   --> main.kg:56:5
    |
-56 |     fw(acount, &mut a, &mut b, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned //~ ERROR a borrow of `a` cannot be stored back into `a` //~ ERROR a borrow of `b` cannot be stored back into `b`
+56 |     fw(acount, &mut a, &mut b, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[move-while-borrowed]: `a` is still borrowed when its scope ends here
@@ -134,24 +116,6 @@ error[move-while-borrowed]: `a` is still borrowed when its scope ends here
    |
 54 |     let mut a = Array.empty[Future[Int]]() //~ ERROR `a` is still borrowed when its scope ends here
    |             ^
-
-error[move-while-borrowed]: `b` is borrowed and cannot be moved or dropped here
-  --> main.kg:57:5
-   |
-57 |     b //~ ERROR `b` is borrowed and cannot be moved or dropped here
-   |     ^
-
-error[borrow-escape]: a borrow of `a` cannot be stored back into `a`
-  --> main.kg:56:5
-   |
-56 |     fw(acount, &mut a, &mut b, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned //~ ERROR a borrow of `a` cannot be stored back into `a` //~ ERROR a borrow of `b` cannot be stored back into `b`
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-error[borrow-escape]: a borrow of `b` cannot be stored back into `b`
-  --> main.kg:56:5
-   |
-56 |     fw(acount, &mut a, &mut b, &mut c) //~ ERROR an `&Interface` view made in this function lives in its frame and cannot be returned //~ ERROR a borrow of `a` cannot be stored back into `a` //~ ERROR a borrow of `b` cannot be stored back into `b`
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
   --> main.kg:65:5

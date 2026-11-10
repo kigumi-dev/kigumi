@@ -1,0 +1,67 @@
+-- src --
+interface FromRef[K] {
+    fn fromRef(k: &K) -> Self
+}
+
+type View['a] = {
+    pub s &'a String
+}
+
+fn View['a].fromRef(k: &'a String) -> View['a] {
+    View { s: k }
+}
+
+type Tag = {
+    pub n usize
+}
+
+fn Tag.fromRef(k: &String) -> Tag {
+    Tag { n: k.len() }
+}
+
+fn mk[K, V: FromRef[K]](k: &K) -> V {
+    V.fromRef(k)
+}
+
+fn mkOpt[K, V: FromRef[K]](k: &K) -> V? {
+    Some(V.fromRef(k))
+}
+
+fn mkArr[K, V: FromRef[K]](k: &K) -> Array[V] {
+    Array.of(V.fromRef(k))
+}
+
+fn relayRef[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    let v: V = mk(k)
+    dst.push(v)
+    if mkOpt(k) is Some(w) {
+        dst.push(w)
+    }
+    for x in mkArr(k) {
+        dst.push(x)
+    }
+}
+
+fn ownTag[K, V: FromRef[K]](dst: &mut Array[V], k: K) {
+    let v: V = mk(&k)
+    dst.push(v)
+    if mkOpt(&k) is Some(w) {
+        dst.push(w)
+    }
+}
+
+fn go() {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    relayRef(&mut xs, &name)
+    let mut ts = Array.of(Tag { n: 0 })
+    ownTag(&mut ts, "kept")
+    let t: Tag = mk(&"literal")
+    print "views ${xs.len()} ${xs[1].s} ${xs[3].s}"
+    print "tags ${ts.len()} ${ts[1].n} ${ts[2].n} ${t.n}"
+}
+
+go()
+-- stdout --
+views 4 named named
+tags 3 4 4 7

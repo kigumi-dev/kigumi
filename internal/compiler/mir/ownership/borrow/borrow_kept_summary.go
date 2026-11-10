@@ -195,5 +195,6 @@ func (c *borrowCheck) keptStep(k *keptCtx, in midir.Inst) {
 				into(a, lent(i))
 			}
 		}
+		c.keptCaptures(k, in)
 	}
 }

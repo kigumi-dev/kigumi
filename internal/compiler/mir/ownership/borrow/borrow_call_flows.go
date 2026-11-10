@@ -33,7 +33,8 @@ func (c *borrowCheck) targetFlows(ct callTarget) []storeFlow {
 			continue
 		}
 		kind := c.targetKindOf(t.arg)
-		if t.holder && c.closureLiteral(t.arg) != nil {
+		lit := c.holderLiteral(t)
+		if lit != nil {
 			kind = targetLifetime
 		}
 		if kind == targetNone {
@@ -41,12 +42,13 @@ func (c *borrowCheck) targetFlows(ct callTarget) []storeFlow {
 		}
 		fl := storeFlow{target: t.arg, ref: t.target, byValue: t.holder, generic: kind == targetParam, callee: e, param: i, args: append(slotArgs(slots), args[min(len(slots), len(args)):]...)}
 		params := c.linkedParams(slots, i)
+		stores := ct.storesInto(i, lit != nil)
 		for j, v := range slots {
-			if i != j && kind != targetDeferred && sharesParam(params, v.params) && ct.stores(i, j) && !c.mapKeyNotKept(e, i, j) {
+			if i != j && kind != targetDeferred && sharesParam(params, v.params) && stores(j) {
 				fl.values = append(fl.values, flowArg{arg: v.arg, contents: v.contents, param: j})
 			}
 		}
-		if lit := c.closureLiteral(t.arg); t.holder && lit != nil {
+		if lit != nil {
 			fl.values = append(c.closureFed(c.p.ByEnt[e], i, lit, fl.values), c.captureValues(lit)...)
 			if fed := c.closureStoredFed(info, c.p.ByEnt[e], i, lit, args); len(fed) > 0 {
 				fl.values = append(fl.values, fed...)
@@ -72,7 +74,7 @@ func (c *borrowCheck) targetFlows(ct callTarget) []storeFlow {
 		if at := c.selfSources(e, i, slots); at != nil {
 			fl.values = append(fl.values, flowArg{arg: t.arg, contents: t.contents, param: i, at: at})
 		}
-		fl.values = append(fl.values, c.tieValues(info, slots, t, fl.values)...)
+		fl.values = append(fl.values, c.tieValues(info, slots, t, fl.values, stores)...)
 		if kind != targetDeferred {
 			fl.values = append(fl.values, c.refKeptValues(e, args, slots, i, fl.values)...)
 		}
@@ -83,17 +85,10 @@ func (c *borrowCheck) targetFlows(ct callTarget) []storeFlow {
 	return out
 }
 
-// mapKeyNotKept is the std-map contract that take and remove look at the key
-// without storing it in the receiver. The kept summary cannot see that from
-// the body because the key type shares K with the map.
-func (c *borrowCheck) mapKeyNotKept(e sem.EntityID, target, value int) bool {
-	if target != 0 || value != 1 || c.p.R.Entity(e).Kind != sem.EntFn {
-		return false
+// holderLiteral is the closure literal a holder slot passes, whose captures are its place.
+func (c *borrowCheck) holderLiteral(t callSlot) *midir.Inst {
+	if !t.holder {
+		return nil
 	}
-	ent := c.p.R.Entity(e)
-	if c.p.R.Packages[ent.Pkg].Path != "std/map" || ent.Name != "take" && ent.Name != "remove" {
-		return false
-	}
-	owner := c.p.R.Fn(e).Owner
-	return owner != 0 && c.p.R.Entity(owner).Name == "Map"
+	return c.closureLiteral(t.arg)
 }

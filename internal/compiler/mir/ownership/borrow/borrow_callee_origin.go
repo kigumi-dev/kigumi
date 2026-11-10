@@ -7,11 +7,12 @@ import (
 	"kigumi/internal/compiler/sem"
 )
 
-// calleeOrigin is one thing a call through a function value runs: a parameter of the caller, or the fn or closure ent
-// with the operands its value binds around the call's arguments (layers, innermost first).
+// calleeOrigin is one thing a call through a function value runs: a parameter of the caller (held, a callable read out
+// of it), or the fn or closure ent with the operands its value binds around the call's arguments (layers, innermost first).
 type calleeOrigin struct {
 	param   int
 	isParam bool
+	held    bool
 	ent     sem.EntityID
 	body    *midir.Func
 	layers  []binding
@@ -22,27 +23,37 @@ func (c *borrowCheck) originOf(e sem.EntityID, layers ...binding) calleeOrigin {
 	return calleeOrigin{ent: e, body: c.p.ByEnt[e], layers: layers, known: true}
 }
 
-// calleeOrigin is the parameter, closure, method value, bind or applied method value l copies; fn items are left to
-// fnItemOrigins, and a witness method value runs a body only its witness knows.
+// calleeOrigin is the parameter, closure, method value, bind or applied method value l copies or is read out of a
+// parameter; fn items are left to fnItemOrigins, and a witness method value runs a body only its witness knows.
 func (c *borrowCheck) calleeOrigin(g *midir.Func, defs map[midir.LocalID]*midir.Inst, l midir.LocalID) calleeOrigin {
 	if i := paramIndex(g, defs, l); i >= 0 {
+		if c.assignedParam(g, g.Params[i]) {
+			return calleeOrigin{}
+		}
 		return calleeOrigin{param: i, isParam: true}
 	}
-	l = copiedFrom(defs, l)
+	if i, ok := c.heldParam(g, defs, l); ok {
+		return calleeOrigin{param: i, isParam: true, held: true}
+	}
+	l = copiedFrom(g, defs, l)
 	d := defs[l]
 	if d == nil || g.Locals[l].Cell {
 		return calleeOrigin{}
 	}
-	switch {
-	case d.Op == midir.OpBind:
+	if d.Op == midir.OpBind {
 		return c.originOf(d.Ent, bindingOf(d, d.Args))
-	case d.Op == midir.OpClosure && d.Str == "applied" && len(d.Args) == 2:
-		w := defs[copiedFrom(defs, d.Args[0])]
+	}
+	switch d.Form() {
+	case midir.FormApplied:
+		if len(d.Args) != 2 {
+			return calleeOrigin{}
+		}
+		w := defs[copiedFrom(g, defs, d.Args[0])]
 		if w == nil || w.Op != midir.OpBind || w.Ent != d.Ent {
 			return calleeOrigin{}
 		}
 		return c.originOf(d.Ent, bindingOf(d, d.Args[1:]), bindingOf(w, w.Args))
-	case d.Op == midir.OpClosure && (d.Str == "" || d.Str == "method"):
+	case midir.FormClosure, midir.FormMethod:
 		return c.originOf(d.Ent, bindingOf(d, d.Args))
 	}
 	return calleeOrigin{}
@@ -87,11 +98,11 @@ func (c *borrowCheck) within(g *midir.Func) *borrowCheck {
 	return &borrowCheck{p: c.p, f: g, state: c.state}
 }
 
-func (c *borrowCheck) frameCallee(g *midir.Func, defs map[midir.LocalID]*midir.Inst, l midir.LocalID, depth int) bool {
-	if !c.calleeKeepsBorrow(g.Locals[l].Type) {
+func (c *borrowCheck) frameCallee(g *midir.Func, defs map[midir.LocalID]*midir.Inst, l midir.LocalID, held bool, depth int) bool {
+	if !held && !c.calleeKeepsBorrow(g.Locals[l].Type) {
 		return false
 	}
-	origins, ok := c.calleeOrigins(g, defs, l)
+	origins, ok := c.argOrigins(g, defs, l, held)
 	if !ok || depth == 0 {
 		return true
 	}

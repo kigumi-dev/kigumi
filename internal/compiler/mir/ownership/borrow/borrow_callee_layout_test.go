@@ -99,7 +99,7 @@ func roles(g *midir.Func, ls []midir.LocalID) []string {
 	defs := mirflow.SoleDefs(g)
 	var out []string
 	for _, l := range ls {
-		l = copiedFrom(defs, l)
+		l = copiedFrom(g, defs, l)
 		switch d := defs[l]; {
 		case slices.Contains(g.Params, l):
 			out = append(out, "param "+g.Locals[l].Name)

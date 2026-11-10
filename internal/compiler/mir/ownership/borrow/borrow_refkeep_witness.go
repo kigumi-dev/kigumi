@@ -51,39 +51,22 @@ func (c *borrowCheck) witnessUses() map[sem.EntityID][]witnessUse {
 // witnessSet are the callables witness w of fn e is bound to across the program's uses of e, through callers that pass
 // their own witness on; nil when some use cannot be followed. A fn the program never instantiates has none.
 func (c *borrowCheck) witnessSet(e sem.EntityID, w int) []boundFn {
-	m := &c.state.refKeeps
-	key := witnessKey{e, w}
-	if fns, ok := m.witnesses[key]; ok {
-		return fns
+	en := c.witnessSolve(witnessKey{e, w})
+	switch {
+	case !en.ok:
+		return nil
+	case en.fns == nil:
+		return []boundFn{}
 	}
-	fns, ok := c.witnessReach(key, map[witnessKey]bool{})
-	if !ok {
-		fns = nil
-	} else if fns == nil {
-		fns = []boundFn{}
-	}
-	if m.witnesses == nil {
-		m.witnesses = map[witnessKey][]boundFn{}
-	}
-	m.witnesses[key] = fns
-	if witnessProbe != nil {
-		var wide []boundFn
-		for _, impl := range c.implementers(c.p.R.Fn(e).Witnesses[w].Req) {
-			wide = append(wide, boundFn{ent: impl})
-		}
-		witnessProbe(c, fns, wide)
-	}
-	return fns
+	return en.fns
 }
 
 // witnessProbe, when a test sets it, sees each witnessSet answer next to every implementation of its requirement.
 var witnessProbe func(c *borrowCheck, narrow, wide []boundFn)
 
-func (c *borrowCheck) witnessReach(key witnessKey, seen map[witnessKey]bool) ([]boundFn, bool) {
-	if seen[key] {
-		return nil, true
-	}
-	seen[key] = true
+// witnessReach joins what each use of key's fn binds witness key.w to, reading a caller's own witness through
+// witnessSolve; false when some use cannot be followed.
+func (c *borrowCheck) witnessReach(key witnessKey) ([]boundFn, bool) {
 	var out []boundFn
 	for _, u := range c.witnessUses()[key.fn] {
 		if u.escape || u.first+key.w >= len(u.args) {
@@ -92,15 +75,15 @@ func (c *borrowCheck) witnessReach(key witnessKey, seen map[witnessKey]bool) ([]
 		failed := false
 		defs := allDefs(u.g)
 		n := len(c.declaredParams(u.g.Ent))
-		v := defView{defs: func(l midir.LocalID) []*midir.Inst { return defs[l] }, param: func(l midir.LocalID) []boundFn {
+		v := defView{defs: func(l midir.LocalID) []*midir.Inst { return defs[l] }, params: u.g.Params, param: func(l midir.LocalID) []boundFn {
 			hidden := c.hiddenLocals(u.g.Ent)
 			w := slices.Index(hidden, u.g.Locals[l].Ent)
 			if c.p.R.Entity(u.g.Ent).Kind != sem.EntFn || w < 0 || !slices.Contains(u.g.Params, l) || slices.Index(u.g.Params, l) < n {
 				return nil
 			}
-			fns, ok := c.witnessReach(witnessKey{u.g.Ent, w}, seen)
-			failed = failed || !ok
-			return append([]boundFn{}, fns...)
+			en := c.witnessSolve(witnessKey{u.g.Ent, w})
+			failed = failed || !en.ok
+			return append([]boundFn{}, en.fns...)
 		}}
 		fns := c.refItems(v, u.args[u.first+key.w], 8)
 		if fns == nil || failed {
@@ -108,5 +91,5 @@ func (c *borrowCheck) witnessReach(key witnessKey, seen map[witnessKey]bool) ([]
 		}
 		out = append(out, fns...)
 	}
-	return out, true
+	return uniqueFns(out), true
 }

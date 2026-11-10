@@ -127,7 +127,7 @@ fn viaMutReceiver() -> usize {
     let mut xs = Array.of(View { s: &name })
     for i in 0..1 {
         let mut keys = Keys { ks: Array.of("k${i}"), vs: Array.of(View { s: &name }) } //~ ERROR `keys` is borrowed and cannot be mutated //~ ERROR `keys` is still borrowed when its scope ends
-        keys.addMutSelf(&mut xs) //~ ERROR `keys` is borrowed and cannot be mutated //~ ERROR a borrow of `keys` cannot be stored back into `keys`
+        keys.addMutSelf(&mut xs) //~ ERROR `keys` is borrowed and cannot be mutated
     }
     xs.len()
 }
@@ -233,22 +233,16 @@ error[move-while-borrowed]: `keys` is still borrowed when its scope ends here
 126 |         let mut keys = Keys { ks: Array.of("k${i}"), vs: Array.of(View { s: &name }) } //~ ERROR `keys` is borrowed and cannot be mutated //~ ERROR `keys` is still borrowed when its scope ends
     |                 ^^^^
 
-error[borrow-escape]: a borrow of `keys` cannot be stored back into `keys`
-   --> main.kg:127:9
-    |
-127 |         keys.addMutSelf(&mut xs) //~ ERROR `keys` is borrowed and cannot be mutated //~ ERROR a borrow of `keys` cannot be stored back into `keys`
-    |         ^^^^^^^^^^^^^^^^^^^^^^^
-
 error[E2198]: `keys` is borrowed and cannot be mutated here
    --> main.kg:127:9
     |
-127 |         keys.addMutSelf(&mut xs) //~ ERROR `keys` is borrowed and cannot be mutated //~ ERROR a borrow of `keys` cannot be stored back into `keys`
+127 |         keys.addMutSelf(&mut xs) //~ ERROR `keys` is borrowed and cannot be mutated
     |         ^^^^
     = help: end the borrow first or use a copy
 note: `keys` is borrowed here
    --> main.kg:127:9
     |
-127 |         keys.addMutSelf(&mut xs) //~ ERROR `keys` is borrowed and cannot be mutated //~ ERROR a borrow of `keys` cannot be stored back into `keys`
+127 |         keys.addMutSelf(&mut xs) //~ ERROR `keys` is borrowed and cannot be mutated
     |         ^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2198]: `keys` is borrowed and cannot be mutated here
@@ -260,7 +254,7 @@ error[E2198]: `keys` is borrowed and cannot be mutated here
 note: `keys` is borrowed here
    --> main.kg:127:9
     |
-127 |         keys.addMutSelf(&mut xs) //~ ERROR `keys` is borrowed and cannot be mutated //~ ERROR a borrow of `keys` cannot be stored back into `keys`
+127 |         keys.addMutSelf(&mut xs) //~ ERROR `keys` is borrowed and cannot be mutated
     |         ^^^^^^^^^^^^^^^^^^^^^^^
 
 error[borrow-escape]: a borrow of `c` cannot be stored back into `c`

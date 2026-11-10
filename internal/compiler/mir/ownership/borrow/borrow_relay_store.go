@@ -51,16 +51,16 @@ func (c *borrowCheck) relayStoreValues(in midir.Inst) []relayStore {
 		}
 		return out
 	}
-	param := -1
+	param, held := -1, false
 	if ok && origins[0].isParam {
-		param = origins[0].param
+		param, held = origins[0].param, origins[0].held
 	}
 	var out []relayStore
 	sig := c.slotFnType(c.f.Locals[in.Args[0]].Type)
 	for k, a := range in.Args[1:] {
 		decl, _ := c.callParam(c.f, in, k+1)
 		if v, ok := c.relayValue(a, decl, c.p.R.Types.FnParamKeepsRef(sig, k), nil); ok {
-			if c.flowBorrow(a, !v.contents) == nil || param >= 0 && c.boundCalleeQuiet(c.f, param, k) {
+			if c.flowBorrow(a, !v.contents) == nil || param >= 0 && c.boundCalleeQuiet(c.f, param, k, held) {
 				continue
 			}
 			out = append(out, relayStore{v, c.callerLifetimeParam(sig, k)})

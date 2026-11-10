@@ -1,6 +1,8 @@
 package borrow
 
 import (
+	"slices"
+
 	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
@@ -25,7 +27,7 @@ func (s fnItems) join(o fnItems) fnItems {
 // and a call result its callee's signature relays from an argument.
 func (c *borrowCheck) fnItemOrigins(l midir.LocalID, depth int) fnItems {
 	defs := c.defsOf(l)
-	if depth == 0 || len(defs) == 0 || c.f.Locals[l].Cell {
+	if depth == 0 || len(defs) == 0 || c.f.Locals[l].Cell || slices.Contains(c.f.Params, l) {
 		return fnItems{}
 	}
 	out := knownItems()
@@ -82,7 +84,7 @@ func (c *borrowCheck) builtItems(l midir.LocalID, path []sem.PartStep, depth int
 		return knownItems()
 	}
 	defs := c.defsOf(l)
-	if depth == 0 || len(defs) == 0 {
+	if depth == 0 || len(defs) == 0 || slices.Contains(c.f.Params, l) {
 		return fnItems{}
 	}
 	writes, ok := c.partWrites(l)

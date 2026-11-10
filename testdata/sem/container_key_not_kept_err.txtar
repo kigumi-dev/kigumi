@@ -1,0 +1,96 @@
+-- module --
+mir: planned
+-- src --
+type VV['a] = {
+    pub data &'a Bytes
+    pub off usize
+}
+
+fn VV['a].byte(self) -> u8 {
+    self.data[self.off]
+}
+
+type Bag[K: Eq, V] = {
+    mut keys Array[K]
+    mut vals Array[V]
+}
+
+fn Bag[K: Eq, V].put(mut self, key: K, value: V) {
+    self.keys.push(key)
+    self.vals.push(value)
+}
+
+fn Bag[K: Eq, V].take(mut self, key: &K) -> V? {
+    let mut i: usize = 0
+    for i < self.keys.len() {
+        if (&self.keys[i]).equals(key) {
+            _ = self.keys.takeAt(i)
+            return self.vals.takeAt(i)
+        }
+        i = i + 1
+    }
+    None
+}
+
+fn Bag[K: Eq, V].remove(mut self, key: &K) {
+    _ = self.take(key)
+}
+
+fn key(s: String) -> String {
+    s
+}
+
+fn idx['a](b: &'a Bytes) -> Bag[String, VV['a]] {
+    let mut m: Bag[String, VV['a]] = Bag { keys: Array.empty(), vals: Array.empty() }
+    m.put("mid", VV { data: b, off: 1 })
+    m.put("first", VV { data: b, off: 0 })
+    m
+}
+
+fn bagKeys() {
+    let buf = Bytes.fromArray(&Array.of(11, 22, 33, 44))
+    let mut m = idx(&buf)
+    m.remove(&key("zzz"))
+    let taken = m.take(&key("first"))
+    if taken is Some(t) {
+        print "taken ${t.byte()}"
+    }
+    let named = m.take(&"mid")
+    m.put("again", VV { data: &buf, off: 3 })
+    let k = "again"
+    let again = m.take(&k)
+    if again is Some(a) {
+        print "again ${a.byte()}"
+    }
+    print "left ${m.keys.len()} ${named is Some(_)}"
+}
+
+type Ref['a] = {
+    pub s &'a String
+}
+
+type Seen['a] = {
+    mut last Array[Ref['a]]
+}
+
+fn Seen['a].look(mut self, key: &'a String) -> usize {
+    self.last.push(Ref { s: key })
+    self.last.len()
+}
+
+fn seenKeys() -> usize {
+    let first = "first"
+    let mut s = Seen { last: Array.of(Ref { s: &first }) }
+    let n = s.look(&key("temp")) //~ ERROR keeps a borrow of a temporary
+    n + s.last.len()
+}
+
+bagKeys()
+print "${seenKeys()}"
+-- expect --
+error[E2235]: `s` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:81:13
+   |
+81 |     let n = s.look(&key("temp")) //~ ERROR keeps a borrow of a temporary
+   |             ^^^^^^^^^^^^^^^^^^
+

@@ -23,6 +23,7 @@ type Analyzer struct {
 	taskStarts     uint8
 	taskStartsSeen int
 	taskStarters   map[sem.EntityID]bool
+	assigned       map[*midir.Func]map[midir.LocalID]bool
 }
 
 func New(p *ownquery.Input, lookup BodyLookup) *Analyzer {

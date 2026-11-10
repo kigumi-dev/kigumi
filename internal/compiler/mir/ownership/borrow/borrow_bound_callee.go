@@ -8,7 +8,7 @@ import (
 	"kigumi/internal/compiler/sem"
 )
 
-func (c *borrowCheck) boundCalleeQuiet(g *midir.Func, param, slot int) bool {
+func (c *borrowCheck) boundCalleeQuiet(g *midir.Func, param, slot int, held bool) bool {
 	e := c.p.R.Entity(g.Ent)
 	if e.Kind != sem.EntFn || e.Vis.Level != sem.VisPrivate || c.p.R.Fn(g.Ent).Export != "" {
 		return false
@@ -28,7 +28,7 @@ func (c *borrowCheck) boundCalleeQuiet(g *midir.Func, param, slot int) bool {
 					return false
 				}
 				seen = true
-				if !c.siteArgQuiet(caller, defs, in.Args[param], slot) {
+				if !c.siteArgQuiet(caller, defs, in.Args[param], slot, held) {
 					return false
 				}
 			}
@@ -50,9 +50,10 @@ func (c *borrowCheck) namesBody(e, ent sem.EntityID) bool {
 	return !settled || slices.Contains(ws, ent)
 }
 
-// siteArgQuiet reports whether every callee the callable argument a of caller may be keeps nothing it is given at slot.
-func (c *borrowCheck) siteArgQuiet(caller *midir.Func, defs map[midir.LocalID]*midir.Inst, a midir.LocalID, slot int) bool {
-	origins, ok := c.calleeOrigins(caller, defs, a)
+// siteArgQuiet reports whether every callee the callable argument a of caller may be, or hold, keeps nothing it is given
+// at slot.
+func (c *borrowCheck) siteArgQuiet(caller *midir.Func, defs map[midir.LocalID]*midir.Inst, a midir.LocalID, slot int, held bool) bool {
+	origins, ok := c.argOrigins(caller, defs, a, held)
 	return ok && !slices.ContainsFunc(origins, func(o calleeOrigin) bool { return !c.boundArgQuiet(o, slot) })
 }
 

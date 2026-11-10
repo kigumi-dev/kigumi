@@ -1,0 +1,68 @@
+-- module --
+mir: planned
+-- src --
+pub type View['a] = {
+    pub value &'a String
+}
+
+interface Maker['a] {
+    fn mk(self, value: &String) -> View['a]
+}
+
+type Worker = {
+    pub n Int
+}
+
+fn Worker.mk['a](self, value: &'a String) -> View['a] {
+    View { value: value }
+}
+
+fn keeps['a, W: Maker['a]](worker: W, keep: &'a String) -> Array[View['a]] {
+    let mut out = Array.of(worker.mk(keep))
+    out.push(worker.mk(keep))
+    out
+}
+
+fn usesLocal['a, W: Maker['a]](worker: W) -> usize {
+    let local = "local${40 + 2}"
+    let v = worker.mk(&local)
+    v.value.len()
+}
+
+fn returned['a, W: Maker['a]](worker: W, keep: &'a String) -> Array[View['a]] {
+    let local = "local${40 + 2}" //~ ERROR `local` is still borrowed when its scope ends here
+    let mut out = Array.of(worker.mk(keep)) //~ ERROR a borrow cannot be returned
+    out.push(worker.mk(&local))
+    out
+}
+
+fn pushed['a, W: Maker['a]](worker: W, out: &mut Array[View['a]]) {
+    let local = "local${40 + 2}"
+    out.push(worker.mk(&local)) //~ ERROR a borrow cannot be stored into `out` here
+}
+
+let keep = "keep"
+let vs = returned(Worker { n: 0 }, &keep)
+let mut ws = Array.of(View { value: &keep })
+pushed(Worker { n: 1 }, &mut ws)
+let ks = keeps(Worker { n: 2 }, &keep)
+print "${vs.len()} ${ws.len()} ${ks.len()} ${usesLocal(Worker { n: 3 })}"
+-- expect --
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:31:19
+   |
+31 |     let mut out = Array.of(worker.mk(keep)) //~ ERROR a borrow cannot be returned
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `local` is still borrowed when its scope ends here
+  --> main.kg:30:9
+   |
+30 |     let local = "local${40 + 2}" //~ ERROR `local` is still borrowed when its scope ends here
+   |         ^^^^^
+
+error[E2159]: a borrow cannot be stored into `out` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:38:5
+   |
+38 |     out.push(worker.mk(&local)) //~ ERROR a borrow cannot be stored into `out` here
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+

@@ -1,0 +1,310 @@
+-- module --
+mir: planned
+-- src --
+import {Shared} from std/alloc
+
+pub type V['a] = {
+    pub s &'a String
+}
+
+pub type Sink['a] = {
+    pub mut items &'a mut Array[V['a]]
+}
+
+pub type Box[F] = {
+    pub mut cb F
+}
+
+pub type Outer[F] = {
+    pub inner Box[F]
+    pub n Int
+}
+
+fn nop['a](x: &'a String, k: Sink['a]) {
+}
+
+fn keep['a](x: &'a String, k: Sink['a]) {
+    k.items.push(V { s: x })
+}
+
+fn viaField['a](b: Box[fn(&'a String, Sink['a]) -> Void], x: &'a String, k: Sink['a]) {
+    (b.cb)(x, k)
+}
+
+fn viaIndex['a](fs: Array[fn(&'a String, Sink['a]) -> Void], x: &'a String, k: Sink['a]) {
+    fs[0](x, k)
+}
+
+fn boxed['a](x: &'a String, k: Sink['a]) {
+    viaField(Box { cb: nop }, x, k)
+}
+
+fn boxedKeep['a](x: &'a String, k: Sink['a]) {
+    viaField(Box { cb: keep }, x, k)
+}
+
+fn listed['a](x: &'a String, k: Sink['a]) {
+    viaIndex(Array.of(nop, keep), x, k)
+}
+
+async fn grow(a: &mut Array[String]) -> usize {
+    a.push("b")
+    a.len()
+}
+
+fn putIn(s: Shared[Future[usize]?], f: Future[usize]) {
+    s.set(Some(f))
+}
+
+fn drop2(s: Shared[Future[usize]?], f: Future[usize]) {
+}
+
+fn handOn(b: Box[fn(Shared[Future[usize]?], Future[usize]) -> Void], s: Shared[Future[usize]?], f: Future[usize]) {
+    (b.cb)(s, f)
+}
+
+fn quietHand(s: Shared[Future[usize]?]) {
+    let mut a = Array.of("x")
+    handOn(Box { cb: drop2 }, s, grow(&mut a))
+}
+
+fn setCb['a](b: &mut Box[fn(&'a String, Sink['a]) -> Void]) {
+    b.cb = keep
+}
+
+fn copiedSet['a](b: Box[fn(&'a String, Sink['a]) -> Void], k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    let mut b2 = b
+    b2.cb = keep
+    (b2.cb)(&loc, k) //~ ERROR a value borrowing `loc` cannot be passed as
+}
+
+fn copiedLent['a](b: Box[fn(&'a String, Sink['a]) -> Void], k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    let mut b2 = b
+    setCb(&mut b2)
+    (b2.cb)(&loc, k) //~ ERROR a value borrowing `loc` cannot be passed as
+}
+
+fn copiedArray['a](fs: Array[fn(&'a String, Sink['a]) -> Void], k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    let mut fs2 = fs
+    fs2[0] = keep
+    fs2[0](&loc, k) //~ ERROR a value borrowing `loc` cannot be passed as
+}
+
+fn copiedPart['a](b: Outer[fn(&'a String, Sink['a]) -> Void], k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    let mut c = b.inner
+    c.cb = keep
+    (c.cb)(&loc, k) //~ ERROR a value borrowing `loc` cannot be passed as
+}
+
+fn copiedUntouched['a](b: Box[fn(&'a String, Sink['a]) -> Void], k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    let b2 = b
+    (b2.cb)(&loc, k)
+}
+
+fn handOnCopied(b: Box[fn(Shared[Future[usize]?], Future[usize]) -> Void], s: Shared[Future[usize]?], f: Future[usize]) {
+    let mut b2 = b
+    b2.cb = putIn
+    (b2.cb)(s, f)
+}
+
+fn quietCopied(s: Shared[Future[usize]?]) {
+    let mut a = Array.of("x")
+    handOnCopied(Box { cb: drop2 }, s, grow(&mut a)) //~ ERROR a value borrowing `a` cannot go into shared storage
+}
+
+fn unbound['a](b: Box[fn(V['a]) -> Void]) {
+    let loc = "frame-local"
+    (b.cb)(V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+}
+
+fn unboundIndex['a](fs: Array[fn(V['a]) -> Void]) {
+    let loc = "frame-local"
+    fs[0](V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+}
+
+fn unboundLoop['a](fs: Array[fn(V['a]) -> Void]) {
+    let loc = "frame-local"
+    for f in fs {
+        f(V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+    }
+}
+
+fn storingHand(s: Shared[Future[usize]?]) {
+    let mut a = Array.of("x")
+    handOn(Box { cb: putIn }, s, grow(&mut a)) //~ ERROR a value borrowing `a` cannot go into shared storage
+}
+
+let text = "hello"
+let more = "more"
+let mut items = Array.of(V { s: &text })
+boxed(&more, Sink { items: &mut items })
+boxedKeep(&more, Sink { items: &mut items })
+listed(&more, Sink { items: &mut items })
+copiedSet(Box { cb: nop }, Sink { items: &mut items }) //~ ERROR a value borrowing `items` cannot go into shared storage
+copiedLent(Box { cb: nop }, Sink { items: &mut items }) //~ ERROR a value borrowing `items` cannot go into shared storage
+copiedArray(Array.of(nop), Sink { items: &mut items }) //~ ERROR a value borrowing `items` cannot go into shared storage
+copiedPart(Outer { inner: Box { cb: nop }, n: 0 }, Sink { items: &mut items }) //~ ERROR a value borrowing `items` cannot go into shared storage
+copiedUntouched(Box { cb: nop }, Sink { items: &mut items })
+print "${items.len()}"
+-- expect --
+error[E2320]: a value borrowing `loc` cannot be passed as `&'a String`: `'a` belongs to the caller and outlives this call
+  --> main.kg:76:5
+   |
+76 |     (b2.cb)(&loc, k) //~ ERROR a value borrowing `loc` cannot be passed as
+   |     ^^^^^^^^^^^^^^^
+   = help: pass a borrow the caller lent, or give the function value a plain `&` parameter, which cannot keep the borrow
+note: `loc` is borrowed here
+  --> main.kg:76:13
+   |
+76 |     (b2.cb)(&loc, k) //~ ERROR a value borrowing `loc` cannot be passed as
+   |             ^^^^
+
+error[E2320]: a value borrowing `loc` cannot be passed as `&'a String`: `'a` belongs to the caller and outlives this call
+  --> main.kg:83:5
+   |
+83 |     (b2.cb)(&loc, k) //~ ERROR a value borrowing `loc` cannot be passed as
+   |     ^^^^^^^^^^^^^^^
+   = help: pass a borrow the caller lent, or give the function value a plain `&` parameter, which cannot keep the borrow
+note: `loc` is borrowed here
+  --> main.kg:83:13
+   |
+83 |     (b2.cb)(&loc, k) //~ ERROR a value borrowing `loc` cannot be passed as
+   |             ^^^^
+
+error[E2320]: a value borrowing `loc` cannot be passed as `&'a String`: `'a` belongs to the caller and outlives this call
+  --> main.kg:90:5
+   |
+90 |     fs2[0](&loc, k) //~ ERROR a value borrowing `loc` cannot be passed as
+   |     ^^^^^^^^^^^^^^
+   = help: pass a borrow the caller lent, or give the function value a plain `&` parameter, which cannot keep the borrow
+note: `loc` is borrowed here
+  --> main.kg:90:12
+   |
+90 |     fs2[0](&loc, k) //~ ERROR a value borrowing `loc` cannot be passed as
+   |            ^^^^
+
+error[E2320]: a value borrowing `loc` cannot be passed as `&'a String`: `'a` belongs to the caller and outlives this call
+  --> main.kg:97:5
+   |
+97 |     (c.cb)(&loc, k) //~ ERROR a value borrowing `loc` cannot be passed as
+   |     ^^^^^^^^^^^^^^
+   = help: pass a borrow the caller lent, or give the function value a plain `&` parameter, which cannot keep the borrow
+note: `loc` is borrowed here
+  --> main.kg:97:12
+   |
+97 |     (c.cb)(&loc, k) //~ ERROR a value borrowing `loc` cannot be passed as
+   |            ^^^^
+
+error[E2158]: a value borrowing `a` cannot go into shared storage: another handle to that storage can keep it after `a` is gone
+   --> main.kg:114:5
+    |
+114 |     handOnCopied(Box { cb: drop2 }, s, grow(&mut a)) //~ ERROR a value borrowing `a` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `a` is borrowed here
+   --> main.kg:114:45
+    |
+114 |     handOnCopied(Box { cb: drop2 }, s, grow(&mut a)) //~ ERROR a value borrowing `a` cannot go into shared storage
+    |                                             ^^^^^^
+
+error[E2158]: a value borrowing `loc` cannot go into shared storage: another handle to that storage can keep it after `loc` is gone
+   --> main.kg:119:5
+    |
+119 |     (b.cb)(V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `loc` is borrowed here
+   --> main.kg:119:19
+    |
+119 |     (b.cb)(V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+    |                   ^^^^
+
+error[E2158]: a value borrowing `loc` cannot go into shared storage: another handle to that storage can keep it after `loc` is gone
+   --> main.kg:124:5
+    |
+124 |     fs[0](V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `loc` is borrowed here
+   --> main.kg:124:18
+    |
+124 |     fs[0](V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+    |                  ^^^^
+
+error[E2158]: a value borrowing `loc` cannot go into shared storage: another handle to that storage can keep it after `loc` is gone
+   --> main.kg:130:9
+    |
+130 |         f(V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+    |         ^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `loc` is borrowed here
+   --> main.kg:130:18
+    |
+130 |         f(V { s: &loc }) //~ ERROR a value borrowing `loc` cannot go into shared storage
+    |                  ^^^^
+
+error[E2158]: a value borrowing `a` cannot go into shared storage: another handle to that storage can keep it after `a` is gone
+   --> main.kg:136:5
+    |
+136 |     handOn(Box { cb: putIn }, s, grow(&mut a)) //~ ERROR a value borrowing `a` cannot go into shared storage
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `a` is borrowed here
+   --> main.kg:136:39
+    |
+136 |     handOn(Box { cb: putIn }, s, grow(&mut a)) //~ ERROR a value borrowing `a` cannot go into shared storage
+    |                                       ^^^^^^
+
+error[E2158]: a value borrowing `items` cannot go into shared storage: another handle to that storage can keep it after `items` is gone
+   --> main.kg:148:1
+    |
+148 | copiedPart(Outer { inner: Box { cb: nop }, n: 0 }, Sink { items: &mut items }) //~ ERROR a value borrowing `items` cannot go into shared storage
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `items` is borrowed here
+   --> main.kg:148:66
+    |
+148 | copiedPart(Outer { inner: Box { cb: nop }, n: 0 }, Sink { items: &mut items }) //~ ERROR a value borrowing `items` cannot go into shared storage
+    |                                                                  ^^^^^^^^^^
+
+error[E2158]: a value borrowing `items` cannot go into shared storage: another handle to that storage can keep it after `items` is gone
+   --> main.kg:147:1
+    |
+147 | copiedArray(Array.of(nop), Sink { items: &mut items }) //~ ERROR a value borrowing `items` cannot go into shared storage
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `items` is borrowed here
+   --> main.kg:147:42
+    |
+147 | copiedArray(Array.of(nop), Sink { items: &mut items }) //~ ERROR a value borrowing `items` cannot go into shared storage
+    |                                          ^^^^^^^^^^
+
+error[E2158]: a value borrowing `items` cannot go into shared storage: another handle to that storage can keep it after `items` is gone
+   --> main.kg:146:1
+    |
+146 | copiedLent(Box { cb: nop }, Sink { items: &mut items }) //~ ERROR a value borrowing `items` cannot go into shared storage
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `items` is borrowed here
+   --> main.kg:146:43
+    |
+146 | copiedLent(Box { cb: nop }, Sink { items: &mut items }) //~ ERROR a value borrowing `items` cannot go into shared storage
+    |                                           ^^^^^^^^^^
+
+error[E2158]: a value borrowing `items` cannot go into shared storage: another handle to that storage can keep it after `items` is gone
+   --> main.kg:145:1
+    |
+145 | copiedSet(Box { cb: nop }, Sink { items: &mut items }) //~ ERROR a value borrowing `items` cannot go into shared storage
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
+note: `items` is borrowed here
+   --> main.kg:145:42
+    |
+145 | copiedSet(Box { cb: nop }, Sink { items: &mut items }) //~ ERROR a value borrowing `items` cannot go into shared storage
+    |                                          ^^^^^^^^^^
+

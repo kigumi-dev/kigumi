@@ -12,9 +12,12 @@ const (
 	relayUnknown
 )
 
+// relayTarget is where a site hands a value on: nowhere, unknown code, or the callable parameter param brings, held
+// for a callable read out of that parameter.
 type relayTarget struct {
 	kind  relayKind
 	param int
+	held  bool
 }
 
 func (c *borrowCheck) relaySite(g *midir.Func, defs map[midir.LocalID]*midir.Inst, s paramStore, args paramLocals, kind siteKind, depth int) []paramStore {
@@ -27,7 +30,7 @@ func (c *borrowCheck) relaySite(g *midir.Func, defs map[midir.LocalID]*midir.Ins
 		return []paramStore{s}
 	}
 	var out []paramStore
-	for _, target := range c.relayTargets(g, defs, a, kind, depth) {
+	for _, target := range c.relayTargets(g, defs, a, s.callee.held, kind, depth) {
 		next := s
 		next.callee = target
 		out = append(out, next)
@@ -41,7 +44,7 @@ func (c *borrowCheck) frameTarget(g *midir.Func, defs map[midir.LocalID]*midir.I
 		return false
 	case relayParam:
 		a, ok := args(target.param)
-		return !ok || c.frameCallee(g, defs, a, depth)
+		return !ok || c.frameCallee(g, defs, a, target.held, depth)
 	default:
 		return true
 	}

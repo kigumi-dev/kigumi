@@ -1,0 +1,64 @@
+-- src --
+pub type V['a] = {
+    pub s &'a String
+}
+
+pub type Sink['a] = {
+    pub mut items &'a mut Array[V['a]]
+}
+
+fn keepSwap['a](x: &'a String, y: &'a String, k: Sink['a]) {
+    k.items.push(V { s: y })
+}
+
+fn keepFirst['a](x: &'a String, y: &'a String, k: Sink['a]) {
+    k.items.push(V { s: x })
+}
+
+fn mkV['a](s: &'a String) -> V['a] {
+    V { s: s }
+}
+
+fn putLast['a](out: &mut V['a], items: &'a Array[String]) {
+    for s in items {
+        out = mkV(s)
+    }
+}
+
+fn apply['a](g: fn(V['a]) -> Void, x: V['a]) {
+    g(x)
+}
+
+fn swapped['a](k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    keepSwap(&loc, k.items[0].s, k)
+}
+
+fn swappedValue['a](k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    let g = keepSwap
+    g(&loc, k.items[0].s, k)
+}
+
+fn viewOut() -> usize {
+    let base = "q"
+    let items = Array.of("a${1}", "bcd${2}")
+    let mut out = mkV(&base)
+    putLast(&mut out, &items)
+    out.s.len()
+}
+
+let text = "hello"
+let mut items = Array.of(V { s: &text })
+swapped(Sink { items: &mut items })
+swappedValue(Sink { items: &mut items })
+let junk = "junk${1 + 2}"
+print "${items.len()} ${viewOut()} ${junk}"
+for v in &items {
+    print "${v.s}"
+}
+-- stdout --
+3 4 junk3
+hello
+hello
+hello

@@ -187,12 +187,12 @@ func (c *borrowCheck) collectBuiltin(in midir.Inst) {
 	}
 }
 
-// collectBuiltinCarry passes an owned argument's untagged borrow on to a result that may take one
-// of its Futures, Tasks or closures, as a `for` element moved out of an owned container.
+// collectBuiltinCarry passes an owned argument's untagged borrow on to a result that may take one of its Futures, Tasks,
+// closures or type parameter values borrowing this frame, as a `for` element moved out of an owned container.
 func (c *borrowCheck) collectBuiltinCarry(in midir.Inst, ret sem.TypeID) {
 	for _, a := range in.Args {
 		t := c.f.Locals[a].Type
-		if c.p.R.Types.Kind(t) == sem.KRef || c.resultMayCarryLifetime(t) || !c.mayCarry(ret, t) {
+		if c.p.R.Types.Kind(t) == sem.KRef || c.resultMayCarryLifetime(t) || !c.mayCarry(ret, t) && !c.projectsOwned(ret, a) {
 			continue
 		}
 		if b, ok := c.holders[a]; ok {

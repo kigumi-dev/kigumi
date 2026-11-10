@@ -8,13 +8,15 @@ import (
 )
 
 // refKeepMemo holds refKeeps by bound body, scc the entries whose call-graph component is still open, and the
-// witnessSet answers with the uses they are read from.
+// witnessSet answers with the uses they are read from, wscc those of a cycle still being solved.
 type refKeepMemo struct {
 	sums      map[keptKey]*refKeepEntry
 	scc       sccStack[keptKey]
 	low       int
 	uses      map[sem.EntityID][]witnessUse
-	witnesses map[witnessKey][]boundFn
+	witnesses map[witnessKey]*witnessEntry
+	wscc      sccStack[witnessKey]
+	wlow      int
 }
 
 type refKeepEntry struct {

@@ -1,0 +1,123 @@
+-- module --
+mir: planned
+-- src --
+interface FromRef[K] {
+    fn fromRef(k: &K) -> Self
+}
+
+type View['a] = {
+    pub s &'a String
+}
+
+fn View['a].fromRef(k: &'a String) -> View['a] {
+    View { s: k }
+}
+
+type Tag = {
+    pub n usize
+}
+
+fn Tag.fromRef(k: &String) -> Tag {
+    Tag { n: k.len() }
+}
+
+type Quiet[V] = {
+    pub v V?
+    pub n usize
+}
+
+fn Quiet[V: FromRef[String]].fromRef(k: &String) -> Quiet[V] {
+    Quiet { v: None, n: k.len() }
+}
+
+type Pair[V] = {
+    pub v V
+    pub n usize
+}
+
+fn Pair[V: FromRef[String]].fromRef(k: &String) -> Pair[V] {
+    Pair { v: V.fromRef(k), n: k.len() }
+}
+
+fn addTo[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    dst.push(V.fromRef(k))
+}
+
+fn ownLocalQuiet[K, V: FromRef[K]](dst: &mut Array[V], k: K) {
+    addTo(dst, &k)
+}
+
+fn quietTwice[V: FromRef[String]](q: &mut Array[Quiet[V]], r: &mut Array[Quiet[V]], k1: String, k2: String) {
+    ownLocalQuiet(q, k1)
+    ownLocalQuiet(r, k2)
+}
+
+fn countDownTag[K, V: FromRef[K]](dst: &mut Array[V], k: K, n: Int) {
+    if n > 0 {
+        countDownTag(dst, k, n - 1)
+    } else {
+        addTo(dst, &k)
+    }
+}
+
+fn ownLocal[K, V: FromRef[K]](dst: &mut Array[V], k: K) {
+    addTo(dst, &k) //~ ERROR a borrow cannot be stored into `dst` here
+}
+
+fn quietThenPair[V: FromRef[String]](q: &mut Array[Quiet[V]], p: &mut Array[Pair[V]], k1: String, k2: String) {
+    ownLocal(q, k1)
+    ownLocal(p, k2)
+}
+
+fn ownLocalSwapped[K, V: FromRef[K]](dst: &mut Array[V], k: K) {
+    addTo(dst, &k) //~ ERROR a borrow cannot be stored into `dst` here
+}
+
+fn pairThenQuiet[V: FromRef[String]](q: &mut Array[Quiet[V]], p: &mut Array[Pair[V]], k1: String, k2: String) {
+    ownLocalSwapped(p, k2)
+    ownLocalSwapped(q, k1)
+}
+
+fn countDown[K, V: FromRef[K]](dst: &mut Array[V], k: K, n: Int) {
+    if n > 0 {
+        countDown(dst, k, n - 1)
+    } else {
+        addTo(dst, &k) //~ ERROR a borrow cannot be stored into `dst` here
+    }
+}
+
+fn go() {
+    let name = "named"
+    let mut qs = Array.of(Quiet { v: Some(View { s: &name }), n: 0 })
+    let mut rs = Array.of(Quiet { v: Some(View { s: &name }), n: 0 })
+    let mut ps = Array.of(Pair { v: View { s: &name }, n: 0 })
+    quietThenPair(&mut qs, &mut ps, "aaaa", "bbbbbbbb")
+    pairThenQuiet(&mut qs, &mut ps, "aaaa", "bbbbbbbb")
+    quietTwice(&mut qs, &mut rs, "aaaa", "bb")
+    let mut vs = Array.of(View { s: &name })
+    countDown(&mut vs, "gone", 2)
+    let mut ts = Array.of(Tag { n: 0 })
+    countDownTag(&mut ts, "kept", 2)
+    print "${qs.len()} ${ps.len()} ${vs.len()} ${ts.len()}"
+}
+
+go()
+-- expect --
+error[E2159]: a borrow cannot be stored into `dst` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:61:5
+   |
+61 |     addTo(dst, &k) //~ ERROR a borrow cannot be stored into `dst` here
+   |     ^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `dst` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:70:5
+   |
+70 |     addTo(dst, &k) //~ ERROR a borrow cannot be stored into `dst` here
+   |     ^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `dst` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:82:9
+   |
+82 |         addTo(dst, &k) //~ ERROR a borrow cannot be stored into `dst` here
+   |         ^^^^^^^^^^^^^
+

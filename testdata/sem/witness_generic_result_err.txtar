@@ -1,0 +1,126 @@
+-- module --
+mir: planned
+-- src --
+interface FromRef[K] {
+    fn fromRef(k: &K) -> Self
+}
+
+type View['a] = {
+    pub s &'a String
+}
+
+fn View['a].fromRef(k: &'a String) -> View['a] {
+    View { s: k }
+}
+
+type Tag = {
+    pub n usize
+}
+
+fn Tag.fromRef(k: &String) -> Tag {
+    Tag { n: k.len() }
+}
+
+fn mk[K, V: FromRef[K]](k: &K) -> V {
+    V.fromRef(k)
+}
+
+fn mkOpt[K, V: FromRef[K]](k: &K) -> V? {
+    Some(V.fromRef(k))
+}
+
+fn mkArr[K, V: FromRef[K]](k: &K) -> Array[V] {
+    Array.of(V.fromRef(k))
+}
+
+fn relayRef[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    let v: V = mk(k)
+    dst.push(v)
+    if mkOpt(k) is Some(w) {
+        dst.push(w)
+    }
+    for x in mkArr(k) {
+        dst.push(x)
+    }
+}
+
+fn ownTag[K, V: FromRef[K]](dst: &mut Array[V], k: K) {
+    let v: V = mk(&k)
+    dst.push(v)
+    if mkOpt(&k) is Some(w) {
+        dst.push(w)
+    }
+}
+
+fn own[K, V: FromRef[K]](dst: &mut Array[V], k: K) {
+    let v: V = mk(&k)
+    dst.push(v) //~ ERROR a borrow cannot be stored into `dst` here
+}
+
+fn ownOpt[K, V: FromRef[K]](dst: &mut Array[V], k: K) {
+    if mkOpt(&k) is Some(v) { dst.push(v) } //~ ERROR a borrow cannot be stored into `dst` here
+}
+
+fn ownArr[K, V: FromRef[K]](dst: &mut Array[V], k: K) {
+    for v in mkArr(&k) { dst.push(v) } //~ ERROR a borrow cannot be stored into `dst` here
+}
+
+fn returned[K, V: FromRef[K]](k: K) -> V { //~ ERROR `k` is still borrowed when its scope ends here
+    mk(&k) //~ ERROR a borrow cannot be returned
+}
+
+fn viewLen['a](v: View['a]) -> usize {
+    v.s.len()
+}
+
+fn go() {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    own(&mut xs, "gone-one")
+    ownOpt(&mut xs, "gone-two")
+    ownArr(&mut xs, "gone-three")
+    let n = viewLen(returned("gone-four")) //~ ERROR a borrow returned through this call cannot be traced to an owner
+    relayRef(&mut xs, &name)
+    let mut ts = Array.of(Tag { n: 0 })
+    ownTag(&mut ts, "kept")
+    print "${xs.len()} ${ts.len()} ${n}"
+}
+
+go()
+-- expect --
+error[E2159]: a borrow cannot be stored into `dst` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:54:5
+   |
+54 |     dst.push(v) //~ ERROR a borrow cannot be stored into `dst` here
+   |     ^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `dst` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:58:31
+   |
+58 |     if mkOpt(&k) is Some(v) { dst.push(v) } //~ ERROR a borrow cannot be stored into `dst` here
+   |                               ^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `dst` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:62:26
+   |
+62 |     for v in mkArr(&k) { dst.push(v) } //~ ERROR a borrow cannot be stored into `dst` here
+   |                          ^^^^^^^^^^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:66:5
+   |
+66 |     mk(&k) //~ ERROR a borrow cannot be returned
+   |     ^^^^^
+
+error[move-while-borrowed]: `k` is still borrowed when its scope ends here
+  --> main.kg:65:31
+   |
+65 | fn returned[K, V: FromRef[K]](k: K) -> V { //~ ERROR `k` is still borrowed when its scope ends here
+   |                               ^^^^
+
+error[E1040]: a borrow returned through this call cannot be traced to an owner; give the callee's signature a named lifetime connecting its parameter to its return type
+  --> main.kg:79:21
+   |
+79 |     let n = viewLen(returned("gone-four")) //~ ERROR a borrow returned through this call cannot be traced to an owner
+   |                     ^^^^^^^^^^^^^^^^^^^^
+

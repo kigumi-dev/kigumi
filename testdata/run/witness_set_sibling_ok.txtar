@@ -1,0 +1,80 @@
+-- src --
+interface FromRef[K] {
+    fn fromRef(k: &K) -> Self
+}
+
+type View['a] = {
+    pub s &'a String
+}
+
+fn View['a].fromRef(k: &'a String) -> View['a] {
+    View { s: k }
+}
+
+type Tag = {
+    pub n usize
+}
+
+fn Tag.fromRef(k: &String) -> Tag {
+    Tag { n: k.len() }
+}
+
+type Quiet[V] = {
+    pub v V?
+    pub n usize
+}
+
+fn Quiet[V: FromRef[String]].fromRef(k: &String) -> Quiet[V] {
+    Quiet { v: None, n: k.len() }
+}
+
+type Pair[V] = {
+    pub v V
+    pub n usize
+}
+
+fn Pair[V: FromRef[String]].fromRef(k: &String) -> Pair[V] {
+    Pair { v: V.fromRef(k), n: k.len() }
+}
+
+fn addTo[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    dst.push(V.fromRef(k))
+}
+
+fn ownLocalQuiet[K, V: FromRef[K]](dst: &mut Array[V], k: K) {
+    addTo(dst, &k)
+}
+
+fn quietTwice[V: FromRef[String]](q: &mut Array[Quiet[V]], r: &mut Array[Quiet[V]], k1: String, k2: String) {
+    ownLocalQuiet(q, k1)
+    ownLocalQuiet(r, k2)
+}
+
+fn countDownTag[K, V: FromRef[K]](dst: &mut Array[V], k: K, n: Int) {
+    if n > 0 {
+        countDownTag(dst, k, n - 1)
+    } else {
+        addTo(dst, &k)
+    }
+}
+
+fn siblings() {
+    let name = "named"
+    let mut qs = Array.of(Quiet { v: Some(View { s: &name }), n: 0 })
+    let mut rs = Array.of(Quiet { v: Some(View { s: &name }), n: 0 })
+    quietTwice(&mut qs, &mut rs, "aaaa", "bb")
+    let mut ts = Array.of(Tag { n: 0 })
+    countDownTag(&mut ts, "kept", 2)
+    let mut ps = Array.of(Pair { v: View { s: &name }, n: 0 })
+    addTo(&mut qs, &name)
+    addTo(&mut ps, &name)
+    addTo(&mut ps, &name)
+    addTo(&mut qs, &name)
+    print "quiet ${qs.len()} ${qs[1].n} ${rs[1].n} tag ${ts[1].n}"
+    print "pair ${ps.len()} ${ps[2].v.s} ${ps[2].n}"
+}
+
+siblings()
+-- stdout --
+quiet 4 4 2 tag 4
+pair 3 named 5

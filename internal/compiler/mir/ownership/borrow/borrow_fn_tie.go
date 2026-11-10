@@ -13,7 +13,11 @@ func (c *borrowCheck) tiedCallSource(in midir.Inst) (*borrowInfo, bool) {
 	b, ok := c.calleeSource(in)
 	tie, done := c.fnTie(in)
 	tie = append(tie, c.summaryTie(in, done)...)
-	tie = append(tie, c.refKeptTie(in)...)
+	return c.withTies(in, b, ok, append(tie, c.refKeptTie(in)...))
+}
+
+// withTies merges tie into what call in's result borrows, b when ok.
+func (c *borrowCheck) withTies(in midir.Inst, b *borrowInfo, ok bool, tie []*borrowInfo) (*borrowInfo, bool) {
 	if len(tie) == 0 {
 		return b, ok
 	}
@@ -54,7 +58,8 @@ func (c *borrowCheck) fnTie(in midir.Inst) (out []*borrowInfo, args []midir.Loca
 	return out, args
 }
 
-func (c *borrowCheck) tieValues(info *sem.FnInfo, slots []callSlot, t callSlot, have []flowArg) []flowArg {
+// tieValues are the arguments a passed fn value may build what slot t receives from, of the slots stores lets reach it.
+func (c *borrowCheck) tieValues(info *sem.FnInfo, slots []callSlot, t callSlot, have []flowArg, stores func(int) bool) []flowArg {
 	var out []flowArg
 	decl := t.exact
 	if decl == 0 && info.SelfParam != 0 {
@@ -63,11 +68,20 @@ func (c *borrowCheck) tieValues(info *sem.FnInfo, slots []callSlot, t callSlot, 
 	want := c.wantOf(decl)
 	want.params = t.params
 	for _, v := range c.tieArgs(info, slots, want) {
-		if v.arg != t.arg && !slices.ContainsFunc(have, func(h flowArg) bool { return h.arg == v.arg }) {
+		if v.arg != t.arg && slotStores(slots, v.arg, stores) && !slices.ContainsFunc(have, func(h flowArg) bool { return h.arg == v.arg }) {
 			out = append(out, v)
 		}
 	}
 	return out
+}
+
+func slotStores(slots []callSlot, a midir.LocalID, stores func(int) bool) bool {
+	for j, s := range slots {
+		if s.arg == a && stores(j) {
+			return true
+		}
+	}
+	return false
 }
 
 // carriesBorrowMaker reports whether a value of type t holds, in an argument, element, field or payload, a function

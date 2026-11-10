@@ -183,7 +183,7 @@ func (c *borrowCheck) captureStores(g *midir.Func, defs map[midir.LocalID][]*mid
 }
 
 // bodySeeds are the facts in itself gives its result: a fn item, bound fn or closure literal, and opaqueFact for a
-// global or a callable a call hands back by value, which may be one its callee made.
+// global or a callable a call hands back by value, which may be one its callee made unless handsBackArgs.
 func (c *borrowCheck) bodySeeds(g *midir.Func, in midir.Inst) []uint32 {
 	switch {
 	case in.Op == midir.OpFnItem, in.Op == midir.OpBind, in.Op == midir.OpClosure && c.p.R.Entity(in.Ent).Kind == sem.EntClosure:
@@ -191,7 +191,7 @@ func (c *borrowCheck) bodySeeds(g *midir.Func, in midir.Inst) []uint32 {
 	case in.Op == midir.OpGlobalGet:
 		return []uint32{opaqueFact}
 	case bodyRoles[in.Op] == roleCall && in.Op.Yields() && c.p.R.Types.Kind(g.Locals[in.Dst].Type) != sem.KRef &&
-		c.typeRuns(g.Locals[in.Dst].Type, runsCallable):
+		c.typeRuns(g.Locals[in.Dst].Type, runsCallable) && !c.handsBackArgs(in):
 		return []uint32{opaqueFact}
 	}
 	return nil

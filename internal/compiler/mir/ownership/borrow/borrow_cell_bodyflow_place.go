@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	midir "kigumi/internal/compiler/mir/ir"
+	ownquery "kigumi/internal/compiler/mir/ownership"
 	"kigumi/internal/compiler/sem"
 )
 
@@ -106,4 +107,13 @@ func (c *borrowCheck) boundParams(ents []sem.EntityID, in midir.Inst, k int) []s
 		}
 	}
 	return out
+}
+
+// handsBackArgs reports a direct call to a fn whose declared result holds a callable only through type parameters it has
+// no means to make a value of, so every callable in the result came in through an argument.
+func (c *borrowCheck) handsBackArgs(in midir.Inst) bool {
+	if in.Op != midir.OpCall || in.Ent == 0 || c.p.R.Entity(in.Ent).Kind != sem.EntFn || c.ifaceRequirement(in.Ent) || ownquery.IsAsyncBody(c.p.R, in.Ent) {
+		return false
+	}
+	return !c.typeRuns(c.p.R.Types.Node(c.p.R.Fn(in.Ent).Sig).Elem, runsCallable)
 }

@@ -5,17 +5,24 @@ import (
 	"kigumi/internal/compiler/sem"
 )
 
-// callTarget is a fn a call runs and the arguments its declared parameters take; kept, set when a function value reaches
-// the fn, narrows its signature's flows to what its body stores, as the erasure proofs of such values do.
+// callTarget is a fn a call runs and the arguments its declared parameters take; kept, the fn's body summary when it has
+// one, narrows its signature's flows to what its body stores, as the erasure proofs of function values do.
 type callTarget struct {
 	ent  sem.EntityID
 	args []midir.LocalID
 	kept *keptSummary
+	// erased marks an implementation run through a requirement, whose signature need not name what this one ties.
+	erased bool
 }
 
 // stores reports whether the fn may put argument j, or what it lends, into the place of argument i.
 func (t callTarget) stores(i, j int) bool {
 	return t.kept == nil || t.kept.storesInto(i, j) || t.kept.movesInto(i, j)
+}
+
+// storesInto is stores into slot i; kept does not follow a store into a closure's captures, which closureFed narrows.
+func (t callTarget) storesInto(i int, closure bool) func(j int) bool {
+	return func(j int) bool { return closure || t.stores(i, j) }
 }
 
 // flowCallees are the fns call in may run. A value call runs the fns calleeOrigins names, each with the parameters its
@@ -26,7 +33,7 @@ func (c *borrowCheck) flowCallees(in midir.Inst) []callTarget {
 		if in.Ent != 0 && c.ifaceRequirement(in.Ent) {
 			return c.requirementTargets(in.Ent, in.Args)
 		}
-		return c.fnTarget(in.Ent, in.Args, false)
+		return c.fnTarget(in.Ent, in.Args)
 	case midir.OpCallValue, midir.OpFutureNew:
 	default:
 		return nil
@@ -39,10 +46,10 @@ func (c *borrowCheck) flowCallees(in midir.Inst) []callTarget {
 		if c.ifaceRequirement(in.Ent) {
 			return c.requirementTargets(in.Ent, args)
 		}
-		return c.fnTarget(in.Ent, args, false)
+		return c.fnTarget(in.Ent, args)
 	}
 	if d := c.definition(callee); d != nil && d.Op == midir.OpFnItem {
-		return c.fnTarget(d.Ent, args, false)
+		return c.fnTarget(d.Ent, args)
 	}
 	origins, ok := c.calleeOrigins(c.f, c.soleDefMap(), callee)
 	if !ok {
@@ -51,19 +58,18 @@ func (c *borrowCheck) flowCallees(in midir.Inst) []callTarget {
 	var out []callTarget
 	for _, o := range origins {
 		if !o.isParam {
-			out = append(out, c.fnTarget(o.ent, o.params(args), true)...)
+			out = append(out, c.fnTarget(o.ent, o.params(args))...)
 		}
 	}
 	return out
 }
 
-// requirementTargets are the implementations a call through a requirement may run: a bodyless requirement carries no
-// store in its signature, so each implementation is checked by what its own body stores. The requirement alone when none
-// is sealed, which keeps the call opaque.
+// requirementTargets are the implementations a call through a requirement may run, each checked by its own body and
+// signature; the requirement alone when none is sealed, which keeps the call opaque.
 func (c *borrowCheck) requirementTargets(req sem.EntityID, args []midir.LocalID) []callTarget {
 	out := make([]callTarget, 0, 1)
 	for _, w := range c.implementers(req) {
-		out = append(out, callTarget{ent: w, args: args, kept: c.keptStoreSummary(w, nil)})
+		out = append(out, callTarget{ent: w, args: args, kept: c.keptStoreSummary(w, c.siteBind(w, args)), erased: true})
 	}
 	if len(out) == 0 {
 		return []callTarget{{ent: req, args: args}}
@@ -71,13 +77,9 @@ func (c *borrowCheck) requirementTargets(req sem.EntityID, args []midir.LocalID)
 	return out
 }
 
-func (c *borrowCheck) fnTarget(e sem.EntityID, args []midir.LocalID, value bool) []callTarget {
+func (c *borrowCheck) fnTarget(e sem.EntityID, args []midir.LocalID) []callTarget {
 	if e == 0 || c.p.R.Entity(e).Kind != sem.EntFn {
 		return nil
 	}
-	t := callTarget{ent: e, args: args}
-	if value {
-		t.kept = c.keptStoreSummary(e, c.siteBind(e, args))
-	}
-	return []callTarget{t}
+	return []callTarget{{ent: e, args: args, kept: c.keptStoreSummary(e, c.siteBind(e, args))}}
 }

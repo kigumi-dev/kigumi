@@ -60,21 +60,22 @@ func (b fnBind) with(o fnBind) fnBind {
 	return out
 }
 
-// defView is how refItems reads a body: the definitions of a local, and what an undefined one (a parameter) is bound to.
+// defView is how refItems reads a body: the definitions of a local, its parameters, and what a parameter is bound to.
 type defView struct {
-	defs  func(midir.LocalID) []*midir.Inst
-	param func(midir.LocalID) []boundFn
+	defs   func(midir.LocalID) []*midir.Inst
+	params []midir.LocalID
+	param  func(midir.LocalID) []boundFn
 }
 
 // siteView reads the body being checked, its own witnesses bound to what the program instantiates them with.
 func (c *borrowCheck) siteView() defView {
 	n := len(c.declaredParams(c.f.Ent))
-	return defView{defs: c.defsOf, param: func(l midir.LocalID) []boundFn { return c.ownWitness(c.f, n, l) }}
+	return defView{defs: c.defsOf, params: c.f.Params, param: func(l midir.LocalID) []boundFn { return c.ownWitness(c.f, n, l) }}
 }
 
 func (c *borrowCheck) keptView(k *keptCtx) defView {
 	n := len(c.declaredParams(k.g.Ent))
-	return defView{defs: func(l midir.LocalID) []*midir.Inst { return k.defs[l] }, param: func(l midir.LocalID) []boundFn {
+	return defView{defs: func(l midir.LocalID) []*midir.Inst { return k.defs[l] }, params: k.g.Params, param: func(l midir.LocalID) []boundFn {
 		if i := k.slot(l); i >= 0 && k.refs != nil {
 			if fns, ok := k.refs.bind[i]; ok {
 				return fns
@@ -95,27 +96,32 @@ func (c *borrowCheck) ownWitness(g *midir.Func, n int, l midir.LocalID) []boundF
 	return nil
 }
 
-// refItems are the callables l may hold through copies, fn items, bound witnesses and closure literals; nil if any
-// value it can hold is something else.
+// refItems are the callables l may hold through copies, fn items, bound witnesses and closure literals, a parameter's
+// binding joined with what the body assigns it; nil if any value it can hold is something else.
 func (c *borrowCheck) refItems(v defView, l midir.LocalID, depth int) []boundFn {
 	defs := v.defs(l)
-	if len(defs) == 0 {
-		return v.param(l)
+	out := []boundFn{}
+	if slices.Contains(v.params, l) {
+		bound := v.param(l)
+		if bound == nil || len(defs) == 0 {
+			return bound
+		}
+		out = append(out, bound...)
 	}
-	if depth == 0 {
+	if depth == 0 || len(defs) == 0 {
 		return nil
 	}
-	out := []boundFn{}
 	for _, d := range defs {
 		var fns []boundFn
+		form := d.Form()
 		switch {
 		case d.Op == midir.OpFnItem:
 			fns = []boundFn{{ent: d.Ent}}
-		case d.Op == midir.OpBind, d.Op == midir.OpClosure && c.p.R.Entity(d.Ent).Kind == sem.EntClosure:
+		case d.Op == midir.OpBind, form == midir.FormClosure && c.p.R.Entity(d.Ent).Kind == sem.EntClosure:
 			fns = []boundFn{{ent: d.Ent, sub: c.hiddenBind(v, d.Ent, d.Args, depth-1)}}
-		case d.Op == midir.OpClosure && d.Str == "method":
+		case form == midir.FormMethod:
 			fns = []boundFn{{ent: d.Ent, lead: 1}}
-		case d.Op == midir.OpClosure && (d.Str == "applied" || d.Str == "witness") && len(d.Args) == 2:
+		case (form == midir.FormApplied || form == midir.FormWitness) && len(d.Args) == 2:
 			inner := c.refItems(v, d.Args[0], depth-1)
 			if inner != nil {
 				fns = []boundFn{}
