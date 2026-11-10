@@ -57,8 +57,25 @@ func (m *Machine) builtin(name string, args []*obj) *obj {
 	case "fixed.fill":
 		return m.fillFixed(name, args[0], deref(args[1]).i)
 	case "alloc.push":
-		// The VM allocates from Go; an `allocator` block only scopes.
-		return mkOpaque("AllocatorScope", nil)
+		// One AllocGuard marks this dynamic extent: it pushes the arena on
+		// creation and pops it when its final release ends the block.
+		scope := deref(args[0])
+		handle, _ := scope.opaqueData().(*obj)
+		if handle == nil {
+			m.abort("allocator scope has no handle")
+		}
+		st, _ := handle.opaqueData().(*arenaState)
+		if st == nil {
+			m.abort("allocator scope has no arena")
+		}
+		if st.closed {
+			m.abort("arena is closed")
+		}
+		if len(m.allocStack) >= 64 {
+			m.abort("allocator blocks nested too deeply")
+		}
+		m.allocStack = append(m.allocStack, st)
+		return mkOpaque("AllocGuard", retain(scope))
 	case "iter.len":
 		it := derefRaw(args[0])
 		switch it.k {

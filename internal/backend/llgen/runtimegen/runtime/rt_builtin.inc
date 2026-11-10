@@ -27,6 +27,7 @@ val rt_builtin(const char* name, int n, val* args) {
         val scope = rt_deref(args[0]);
         if (g_alloc_sp + 1 >= 64) rt_panic("allocator blocks nested too deeply");
         arena* ar = (arena*)rt_deref((val)scope->u.op.data)->u.op.data;
+        if (ar->a.closed) rt_panic("arena is closed");
         g_alloc_stack[++g_alloc_sp] = &ar->a;
         return opaque_in(&((arena*)((val)scope->u.op.data)->u.op.data)->a, "AllocGuard", rt_retain(scope));
     }

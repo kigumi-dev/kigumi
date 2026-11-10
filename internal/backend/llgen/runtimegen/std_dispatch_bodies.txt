@@ -531,9 +531,57 @@
         return try_ok(h);
     }
 @op ALLOCATOR_SCOPE
- return opaque_in(&((arena*)a0->u.op.data)->a, "AllocatorScope", rt_retain(a0));
+ {
+        arena* ar = (arena*)a0->u.op.data;
+        if (ar->a.closed) rt_panic("arena is closed");
+        return opaque_in(&ar->a, "AllocatorScope", rt_retain(a0));
+    }
 @op ALLOCATOR_ALLOCATED
  return rt_int((int64_t)((arena*)a0->u.op.data)->a.bytes, 64 | 256);
+@op BLOCK_TRY_NEW
+ {
+        val b = block_try_new(a0->u.i);
+        return b ? try_ok(b) : alloc_error();
+    }
+@op BLOCK_LEN
+ return rt_int((int64_t)((rt_block*)a0->u.op.data)->len, 64 | 256);
+@op BLOCK_GET
+ {
+        rt_block* b = (rt_block*)a0->u.op.data;
+        if (a1->u.i < 0 || (size_t)a1->u.i >= b->len) rt_panic_index(a1->u.i, (int64_t)b->len, "Block.get");
+        return rt_int((int64_t)b->data[a1->u.i], 8);
+    }
+@op BLOCK_SET
+ {
+        rt_block* b = (rt_block*)a0->u.op.data;
+        if (a1->u.i < 0 || (size_t)a1->u.i >= b->len) rt_panic_index(a1->u.i, (int64_t)b->len, "Block.set");
+        b->data[a1->u.i] = (unsigned char)a2->u.i;
+        return rt_unit();
+    }
+@op ALLOCATOR_RESET
+ {
+        arena* ar = (arena*)a0->u.op.data;
+        if (ar->a.closed) rt_panic("arena is closed");
+        if (ar->a.live != 0) {
+            val n = rt_int(ar->a.live, 64 | 256);
+            return rt_err_val(rt_make_record("Busy", 1, &n));
+        }
+        arena_release_chunks(ar);
+        return rt_ok(rt_unit());
+    }
+@op ALLOCATOR_CLOSE
+ {
+        arena* ar = (arena*)a0->u.op.data;
+        if (ar->a.live != 0) {
+            val n = rt_int(ar->a.live, 64 | 256);
+            return rt_err_val(rt_make_record("Busy", 1, &n));
+        }
+        if (!ar->a.closed) {
+            ar->a.closed = 1;
+            arena_release_chunks(ar);
+        }
+        return rt_ok(rt_unit());
+    }
 @op SHARED_TRY_NEW
  {
         sctrl* c = fault_tick() ? NULL : calloc(1, sizeof *c);

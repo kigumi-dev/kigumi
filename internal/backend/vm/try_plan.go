@@ -28,6 +28,7 @@ var tryPlans = map[string]tryPlan{
 	"alloc.Shared.tryNew":          {own: 3, layers: 1},
 	"alloc.Shared.tryDowngrade":    {own: 1, layers: 1},
 	"alloc.Box.tryNew":             {own: 2, layers: 1},
+	"alloc.Block.tryNew":           {own: 2, layers: 1},
 	"alloc.Shared.tryGet":          {layers: 1, copy: copyOk},
 	"map.Map.tryClone":             {layers: 1, copy: copyOk},
 	"os.OsString.tryClone":         {layers: 1, copy: copyOk},

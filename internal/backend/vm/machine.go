@@ -121,6 +121,10 @@ type Machine struct {
 	witnessed map[[2]sem.EntityID]bool
 	// trace is the SecretSan two-run trace, nil unless Options.Trace is set.
 	trace *traceLog
+	// allocStack is the active `allocator` blocks' arenas, innermost last;
+	// rootArena backs allocation outside any block.
+	allocStack []*arenaState
+	rootArena  *arenaState
 }
 
 // Run executes the program's entry and returns its exit code: 0, 1 for a

@@ -1728,6 +1728,42 @@
       ]
     },
     {
+      "id": "run/alloc_arena_closed",
+      "kind": "run",
+      "path": "testdata/run/alloc_arena_closed.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/alloc_block_arena",
+      "kind": "run",
+      "path": "testdata/run/alloc_block_arena.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/alloc_block_huge",
+      "kind": "run",
+      "path": "testdata/run/alloc_block_huge.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/alloc_clone_in",
+      "kind": "run",
+      "path": "testdata/run/alloc_clone_in.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/alloc_error",
       "kind": "run",
       "path": "testdata/run/alloc_error.txtar",
@@ -12023,6 +12059,14 @@
       "id": "sem/accel_key_collision",
       "kind": "sem",
       "path": "testdata/sem/accel_key_collision.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/alloc_clone_in_no_clone",
+      "kind": "sem",
+      "path": "testdata/sem/alloc_clone_in_no_clone.txtar",
       "mode": [
         "check"
       ]

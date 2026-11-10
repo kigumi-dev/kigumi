@@ -29,6 +29,7 @@ var tryWrapOps = addResultCopyOps(map[string]tryWrapOp{
 	"shared_get":       {imports: "import {Shared} from std/alloc\n\ntype Cell = {\n    mut n Int\n}", setup: "let s = Shared.new(Cell { n: 1 })", call: "s.tryGet()"},
 	"shared_downgrade": {imports: "import {Shared} from std/alloc", setup: "let s = Shared.new(1)", call: "s.tryDowngrade()"},
 	"box_new":          {imports: "import {Box} from std/alloc", call: "Box.tryNew(41)", fn: "Box.tryNew[Int]", args: "41"},
+	"block_new":        {imports: "import {Block} from std/alloc", call: "Block.tryNew(4)", fn: "Block.tryNew", args: "4"},
 	"map_clone":        {imports: "import map from std/map", setup: "let mut m = map.empty[Int, Int]()\n    m.set(1, 10)", call: "m.tryClone()"},
 	"map_try_empty":    {imports: "import map from std/map", call: "map.tryEmpty[Int, Int]()", fn: "map.tryEmpty[Int, Int]"},
 	"builder_new":      {imports: "import text from std/text", call: "text.StringBuilder.tryNew()", fn: "text.StringBuilder.tryNew"},

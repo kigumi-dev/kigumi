@@ -389,7 +389,11 @@ static void free_opaque(val v) {
     const char* kind = v->u.op.kind;
     void* d = v->u.op.data;
     if (!strcmp(kind, "AllocatorHandle")) arena_close((arena*)d);
-    else if (!strcmp(kind, "Uninit")) {
+    else if (!strcmp(kind, "Block")) {
+        rt_block* b = d;
+        afree(b->al, b->data);
+        free(b);
+    } else if (!strcmp(kind, "Uninit")) {
         ((val)d)->u.cell.v = NULL;
         rt_release((val)d);
     } else if (!strcmp(kind, "Weak")) {
@@ -526,7 +530,11 @@ static void free_storage(val v) {
     }
     LIVE_OBJ(v->kind, -1);
 #ifdef KIGUMI_RC_CHECK
+    // Quarantine keeps the object's storage, but its allocation is logically
+    // over: count it out of the origin allocator so an arena's live total is
+    // the same in checking and normal builds.
     v->kind = 0;
+    if (v->al) KG_DEC(v->al->live);
 #else
     afree(v->al, v);
 #endif

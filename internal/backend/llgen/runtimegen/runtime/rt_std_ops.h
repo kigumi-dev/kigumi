@@ -198,6 +198,12 @@ enum std_op {
     OP_SECRET_DECLASSIFY_BYTES = 193,
     OP_MATH_TO_BITS = 194,
     OP_MATH_FROM_BITS = 195,
+    OP_BLOCK_TRY_NEW = 196,
+    OP_BLOCK_LEN = 197,
+    OP_BLOCK_GET = 198,
+    OP_BLOCK_SET = 199,
+    OP_ALLOCATOR_RESET = 200,
+    OP_ALLOCATOR_CLOSE = 201,
 };
 #define RT_STD_OPS_RETIRED_CASES case OP_BYTES_SLICE: case OP_BYTES_ZEROS: case OP_BYTES_FILL: case OP_BYTES_FROM_ARRAY: case OP_BYTES_CONCAT: case OP_SHARED_NEW: case OP_SHARED_GET: case OP_SHARED_DOWNGRADE: case OP_NET_HTTP: case OP_MATH_POW: case OP_STRING_SLICE_BYTES: case OP_ARRAY_CLONE: case OP_BYTES_TRY_FILL: case OP_ARRAY_TRY_COPY_RANGE: case OP_ARRAY_TRY_REVERSE: case OP_STRING_TRY_CONCAT: case OP_ARRAY_TRY_CONCAT: case OP_ARRAY_TRY_APPEND_ALL: case OP_ARRAY_TRY_CLONE: case OP_BOX_NEW: case OP_STRING_TRY_TRIM: case OP_STRING_TRY_TO_UPPER: case OP_STRING_TRY_TO_LOWER: case OP_STRING_TRY_SPLIT: case OP_TEXT_TRY_LINES: case OP_TEXT_TRY_GRAPHEMES: case OP_TEXT_TRY_REPLACE: case OP_TEXT_TRY_TRIM_PREFIX: case OP_TEXT_TRY_TRIM_SUFFIX: case OP_ARRAY_TRY_JOIN: case OP_STRING_BUILDER_TRY_PUSH: case OP_STRING_BUILDER_TRY_PUSH_BYTE: case OP_BYTES_INDEX_OF: case OP_STRING_CONTAINS: case OP_BYTES_LAST_INDEX_OF:
 #ifndef KIGUMI_OP_SELECT
@@ -362,6 +368,12 @@ enum std_op {
 #define KIGUMI_OP_SECRET_DECLASSIFY_BYTES
 #define KIGUMI_OP_MATH_TO_BITS
 #define KIGUMI_OP_MATH_FROM_BITS
+#define KIGUMI_OP_BLOCK_TRY_NEW
+#define KIGUMI_OP_BLOCK_LEN
+#define KIGUMI_OP_BLOCK_GET
+#define KIGUMI_OP_BLOCK_SET
+#define KIGUMI_OP_ALLOCATOR_RESET
+#define KIGUMI_OP_ALLOCATOR_CLOSE
 #define KIGUMI_STD_DYNAMIC
 #endif
 #ifdef KIGUMI_STD_DYNAMIC
@@ -518,6 +530,12 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "secret.declassifyBytes")) return OP_SECRET_DECLASSIFY_BYTES;
     if (!strcmp(k, "math.toBits")) return OP_MATH_TO_BITS;
     if (!strcmp(k, "math.fromBits")) return OP_MATH_FROM_BITS;
+    if (!strcmp(k, "alloc.Block.tryNew")) return OP_BLOCK_TRY_NEW;
+    if (!strcmp(k, "alloc.Block.len")) return OP_BLOCK_LEN;
+    if (!strcmp(k, "alloc.Block.get")) return OP_BLOCK_GET;
+    if (!strcmp(k, "alloc.Block.set")) return OP_BLOCK_SET;
+    if (!strcmp(k, "alloc.AllocatorHandle.reset")) return OP_ALLOCATOR_RESET;
+    if (!strcmp(k, "alloc.AllocatorHandle.close")) return OP_ALLOCATOR_CLOSE;
     const char* dot = strrchr(k, '.');
     if (dot) {
         const char* m = dot + 1;

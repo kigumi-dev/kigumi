@@ -34,6 +34,61 @@ pub noalloc fn AllocatorHandle.scope(self) -> AllocatorScope
 /// Bytes handed out by this allocator so far; the VM reports 0.
 pub fn AllocatorHandle.allocated(self) -> Int
 
+/// Why `AllocatorHandle.reset` or `AllocatorHandle.close` refused: allocations made through the
+/// arena are still live, so freeing its chunks now would invalidate them.
+/// The VM attributes only explicit Blocks to an arena; native also counts the
+/// bookkeeping objects an allocator block allocates from it.
+pub type Busy = {
+    pub outstanding usize
+}
+
+/// Frees the arena's chunks and keeps it usable. Reports Busy while one of
+/// its allocations is live; resetting a closed arena panics, because close
+/// is terminal.
+pub fn AllocatorHandle.reset(self) -> Result[Void, Busy]
+
+/// Frees the arena once its last allocation is gone; calling it again on the
+/// same arena is a no-op. Reports Busy while one of its allocations is live.
+pub fn AllocatorHandle.close(self) -> Result[Void, Busy]
+
+/// A raw block of zeroed bytes owned by the allocator that made it: dropping
+/// it returns the storage there, and the block keeps that allocator alive, so
+/// `reset` and `close` report Busy until it drops.
+pub type Block
+
+/// Allocates n zeroed bytes from the current allocator.
+pub fn Block.tryNew(n: usize) -> Result[Block, AllocError]
+
+/// Allocates n zeroed bytes from the current allocator; panics when it refuses.
+pub fn Block.new(n: usize) -> Block {
+    Block.tryNew(n) || panic("out of memory")
+}
+
+/// The byte count of the block.
+pub pure noalloc fn Block.len(self) -> usize
+
+/// The byte at index; panics when index is past the end.
+pub pure noalloc fn Block.get(self, index: usize) -> u8
+
+/// Replaces the byte at index; panics when index is past the end.
+pub pure noalloc fn Block.set(mut self, index: usize, value: u8)
+
+/// A type whose `clone` builds a fresh value through the current allocator,
+/// which is what `cloneIn` needs to build a copy in another arena.
+pub interface AllocClone {
+    fn clone(self) -> Self
+}
+
+/// Copies value into target's arena: clone runs under a scope for target, so
+/// the copy's storage belongs to target and keeps it alive until it drops,
+/// while value stays with the caller. Only a type with an allocator-building
+/// `clone` (Array, Map) can be copied.
+pub fn cloneIn[T: AllocClone](value: &T, target: &AllocatorHandle) -> T {
+    allocator target.scope() {
+        value.clone()
+    }
+}
+
 /// Wraps a value in a shared cell.
 pub fn Shared.new[T](value: T) -> Shared[T] {
     Shared.tryNew(value) || panic("out of memory")

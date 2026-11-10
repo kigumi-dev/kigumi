@@ -1,0 +1,56 @@
+-- src --
+import {Arena, AllocatorHandle, Block} from std/alloc
+
+fn busyReset(arena: &AllocatorHandle) -> String {
+    let block = allocator arena.scope() {
+        Block.new(4)
+    }
+    let text = match arena.reset() {
+        Ok(_) -> "reset ok"
+        Err(e) -> "reset busy ${e.outstanding}"
+    }
+    // The block stays live past the reset, so the arena reports it.
+    "${text} ${block.len()}"
+}
+
+fn main() -> Void! {
+    let arena = Arena.create()?
+    print busyReset(&arena)
+    let dropped = {
+        let b = allocator arena.scope() {
+            Block.new(5)
+        }
+        b.len()
+    }
+    print "${dropped}"
+    let reset = match arena.reset() {
+        Ok(_) -> "reset ok"
+        Err(e) -> "reset busy ${e.outstanding}"
+    }
+    print reset
+    let writable = allocator arena.scope() {
+        let mut b = Block.new(3)
+        b.set(0, 7)
+        b.set(2, 9)
+        b.len() == 3 && b.get(0) == 7 && b.get(1) == 0 && b.get(2) == 9
+    }
+    print "${writable}"
+    let closed = match arena.close() {
+        Ok(_) -> "close ok"
+        Err(e) -> "close busy ${e.outstanding}"
+    }
+    print closed
+    let again = match arena.close() {
+        Ok(_) -> "close ok"
+        Err(e) -> "close busy ${e.outstanding}"
+    }
+    print again
+}
+
+-- stdout --
+reset busy 1 4
+5
+reset ok
+true
+close ok
+close ok

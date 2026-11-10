@@ -749,10 +749,64 @@ val rt_std_id(int op, int n, val* a) {
     }
 #endif
 #if defined(KIGUMI_OP_ALLOCATOR_SCOPE)
-    case OP_ALLOCATOR_SCOPE: return opaque_in(&((arena*)a0->u.op.data)->a, "AllocatorScope", rt_retain(a0));
+    case OP_ALLOCATOR_SCOPE: {
+        arena* ar = (arena*)a0->u.op.data;
+        if (ar->a.closed) rt_panic("arena is closed");
+        return opaque_in(&ar->a, "AllocatorScope", rt_retain(a0));
+    }
 #endif
 #if defined(KIGUMI_OP_ALLOCATOR_ALLOCATED)
     case OP_ALLOCATOR_ALLOCATED: return rt_int((int64_t)((arena*)a0->u.op.data)->a.bytes, 64 | 256);
+#endif
+#if defined(KIGUMI_OP_BLOCK_TRY_NEW)
+    case OP_BLOCK_TRY_NEW: {
+        val b = block_try_new(a0->u.i);
+        return b ? try_ok(b) : alloc_error();
+    }
+#endif
+#if defined(KIGUMI_OP_BLOCK_LEN)
+    case OP_BLOCK_LEN: return rt_int((int64_t)((rt_block*)a0->u.op.data)->len, 64 | 256);
+#endif
+#if defined(KIGUMI_OP_BLOCK_GET)
+    case OP_BLOCK_GET: {
+        rt_block* b = (rt_block*)a0->u.op.data;
+        if (a1->u.i < 0 || (size_t)a1->u.i >= b->len) rt_panic_index(a1->u.i, (int64_t)b->len, "Block.get");
+        return rt_int((int64_t)b->data[a1->u.i], 8);
+    }
+#endif
+#if defined(KIGUMI_OP_BLOCK_SET)
+    case OP_BLOCK_SET: {
+        rt_block* b = (rt_block*)a0->u.op.data;
+        if (a1->u.i < 0 || (size_t)a1->u.i >= b->len) rt_panic_index(a1->u.i, (int64_t)b->len, "Block.set");
+        b->data[a1->u.i] = (unsigned char)a2->u.i;
+        return rt_unit();
+    }
+#endif
+#if defined(KIGUMI_OP_ALLOCATOR_RESET)
+    case OP_ALLOCATOR_RESET: {
+        arena* ar = (arena*)a0->u.op.data;
+        if (ar->a.closed) rt_panic("arena is closed");
+        if (ar->a.live != 0) {
+            val n = rt_int(ar->a.live, 64 | 256);
+            return rt_err_val(rt_make_record("Busy", 1, &n));
+        }
+        arena_release_chunks(ar);
+        return rt_ok(rt_unit());
+    }
+#endif
+#if defined(KIGUMI_OP_ALLOCATOR_CLOSE)
+    case OP_ALLOCATOR_CLOSE: {
+        arena* ar = (arena*)a0->u.op.data;
+        if (ar->a.live != 0) {
+            val n = rt_int(ar->a.live, 64 | 256);
+            return rt_err_val(rt_make_record("Busy", 1, &n));
+        }
+        if (!ar->a.closed) {
+            ar->a.closed = 1;
+            arena_release_chunks(ar);
+        }
+        return rt_ok(rt_unit());
+    }
 #endif
 #if defined(KIGUMI_OP_SHARED_TRY_NEW)
     case OP_SHARED_TRY_NEW: {

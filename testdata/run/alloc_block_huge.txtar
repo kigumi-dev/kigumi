@@ -1,0 +1,9 @@
+-- src --
+import {Block} from std/alloc
+
+// Sizes near usize's top are refused before any allocation, on both engines.
+let huge = Block.tryNew(9223372036854775808)
+let empty = Block.tryNew(0)
+print "${huge is Err(AllocError.OutOfMemory)} ${empty is Ok(_)}"
+-- stdout --
+true true

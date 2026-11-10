@@ -622,3 +622,15 @@ op 195 MATH_FROM_BITS primitive (int) -> float
 isr inert
 direct FromBits
 key math.fromBits
+op 196 BLOCK_TRY_NEW primitive (int) -> result
+key alloc.Block.tryNew
+op 197 BLOCK_LEN primitive (named) -> int
+key alloc.Block.len
+op 198 BLOCK_GET primitive (named, int) -> int
+key alloc.Block.get
+op 199 BLOCK_SET primitive (named, int, int) -> unit
+key alloc.Block.set
+op 200 ALLOCATOR_RESET primitive (named) -> result
+key alloc.AllocatorHandle.reset
+op 201 ALLOCATOR_CLOSE primitive (named) -> result
+key alloc.AllocatorHandle.close

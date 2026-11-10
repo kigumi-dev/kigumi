@@ -1,0 +1,16 @@
+-- src --
+import {Arena, cloneIn} from std/alloc
+
+fn main() -> Void! {
+    let arena = Arena.create()?
+    // Int has no allocator-building `clone`, so it cannot be copied into an arena.
+    let n = cloneIn(1, &arena) //~ ERROR does not satisfy `AllocClone`
+    print "${n}"
+}
+-- expect --
+error[E300]: `Int` does not satisfy `AllocClone`: missing `fn clone(self) -> Int`
+ --> main/main.kg:6:13
+  |
+6 |     let n = cloneIn(1, &arena) //~ ERROR does not satisfy `AllocClone`
+  |             ^^^^^^^^^^^^^^^^^
+

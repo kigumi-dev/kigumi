@@ -103,12 +103,19 @@ static void* arena_alloc(rt_allocator* a, size_t n) {
     KG_INC(a->live);
     return p;
 }
-static void arena_drop_chunks(arena* ar) {
+// release_chunks keeps the arena handle itself alive, so reset and close can
+// drop every chunk while the handle's later drop still frees it exactly once.
+static void arena_release_chunks(arena* ar) {
     for (chunk* c = ar->head; c;) {
         chunk* nx = c->next;
         free(c);
         c = nx;
     }
+    ar->head = NULL;
+    ar->a.bytes = 0;
+}
+static void arena_drop_chunks(arena* ar) {
+    arena_release_chunks(ar);
     free(ar);
 }
 // Live objects keep the chunks; a closed arena is freed by its last object.
@@ -120,6 +127,13 @@ static void arena_close(arena* ar) {
     ar->a.closed = 1;
     if (ar->a.live == 0) arena_drop_chunks(ar);
 }
+// A Block owns one zeroed region from its origin allocator and keeps only
+// that allocator's live count, so reset/close see it as outstanding.
+typedef struct rt_block {
+    rt_allocator* al;
+    unsigned char* data;
+    size_t len;
+} rt_block;
 #ifdef KIGUMI_RC_CHECK
 static long g_live_objs;
 static long g_live_kinds[K_PTR + 1];
@@ -140,6 +154,36 @@ static val alloc_in(rt_allocator* a, int kind) {
     v->rc = 1;
     v->owned = 0;
     v->al = a;
+    return v;
+}
+static val alloc_in_try(rt_allocator* a, int kind);
+static val block_try_new(int64_t n) {
+    if (n < 0 || (uint64_t)n > SIZE_MAX / 2) return NULL;
+    rt_allocator* a = cur_alloc();
+    // Reaching a closed arena is a contract violation, not an OOM.
+    if (a->closed) rt_panic("arena is closed");
+    size_t bytes = (size_t)n;
+    unsigned char* p = amalloc(a, bytes ? bytes : 1);
+    if (!p) return NULL;
+    memset(p, 0, bytes);
+    rt_block* b = malloc(sizeof *b);
+    if (!b) {
+        afree(a, p);
+        return NULL;
+    }
+    b->al = a;
+    b->data = p;
+    b->len = bytes;
+    // The handle itself comes from the root allocator, so it adds no arena
+    // live count of its own: one Block is exactly one outstanding allocation.
+    val v = alloc_in_try(&g_general, K_OPAQUE);
+    if (!v) {
+        afree(a, p);
+        free(b);
+        return NULL;
+    }
+    v->u.op.kind = "Block";
+    v->u.op.data = b;
     return v;
 }
 static void discard_header(val v) {

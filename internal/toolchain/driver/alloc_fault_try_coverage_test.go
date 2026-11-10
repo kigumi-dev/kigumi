@@ -29,7 +29,7 @@ var oomCovers = map[string]string{
 	"prelude.tryDebug":     "debug",
 	"os.OsString.tryClone": "os_string_try_clone", "os.OsString.tryToStringLossy": "os_string_try_to_string_lossy",
 	"alloc.Arena.tryCreate": "arena_create", "alloc.Shared.tryNew": "shared_new", "alloc.Shared.tryGet": "shared_get",
-	"alloc.Shared.tryDowngrade": "shared_downgrade", "alloc.Box.tryNew": "box_new",
+	"alloc.Shared.tryDowngrade": "shared_downgrade", "alloc.Box.tryNew": "box_new", "alloc.Block.tryNew": "block_new",
 	"map.Map.tryClone": "map_clone", "map.tryEmpty": "map_try_empty", "map.Map.trySet": "map_set_new_key",
 	"map.Map.tryEntries": "map_entries", "map.Map.tryKeys": "map_keys", "map.Map.tryValues": "map_values",
 	"text.StringBuilder.tryNew": "builder_new", "text.StringBuilder.tryPush": "builder_push", "text.StringBuilder.tryPushByte": "builder_push_byte",

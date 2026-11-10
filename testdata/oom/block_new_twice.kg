@@ -1,0 +1,17 @@
+import {Block} from std/alloc
+
+fn run() {
+    let n: usize = 4
+    eprint "go"
+    let r1 = Block.tryNew(n)
+    let r = Block.tryNew(n)
+    if r is Err(_) || r1 is Err(_) {
+        if n == 4 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

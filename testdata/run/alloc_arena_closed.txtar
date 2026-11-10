@@ -1,0 +1,16 @@
+-- src --
+import {Arena} from std/alloc
+
+fn main() -> Void! {
+    let arena = Arena.create()?
+    match arena.close() {
+        Ok(_) -> {}
+        Err(_) -> {}
+    }
+    // close is terminal, so reset is a contract violation.
+    _ = arena.reset()
+}
+-- stderr --
+panic: arena is closed
+-- exit --
+2

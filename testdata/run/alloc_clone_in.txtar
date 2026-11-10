@@ -1,0 +1,26 @@
+-- src --
+import map from std/map
+import {Arena, cloneIn, Block} from std/alloc
+
+fn main() -> Void! {
+    let arena = Arena.create()?
+    let base = Array.of(1, 2, 3)
+    let copy = cloneIn(&base, &arena)
+    print "${copy.len()} ${copy[0]} ${copy[1]} ${copy[2]}"
+    let words = Array.of("a", "b")
+    let more = cloneIn(&words, &arena)
+    print "${more.len()} ${more[0]}${more[1]}"
+    let mut counts = map.tryEmpty[Int, Int]().unwrap()
+    counts.set(1, 10)
+    let counted = cloneIn(&counts, &arena)
+    print "${counted.len()} ${counted.get(&1) || 0}"
+    let block = allocator arena.scope() {
+        Block.new(2)
+    }
+    print "${block.len()}"
+}
+-- stdout --
+3 1 2 3
+2 ab
+1 10
+2
