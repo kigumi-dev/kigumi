@@ -1,11 +1,13 @@
 package driver_test
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
@@ -71,7 +73,10 @@ func linksTrivial(opts buildconfig.CompilerOptions) bool {
 	if os.WriteFile(filepath.Join(dir, "mod.kg"), []byte("Module {\n    name: \"probe\"\n    kigumi: \"0.1\"\n}\n"), 0o644) != nil {
 		return false
 	}
-	if os.WriteFile(filepath.Join(dir, "main.kg"), []byte("let x = 1\n"), 0o644) != nil {
+	// A unique body defeats a cached artifact from an earlier probe, so the
+	// probe actually exercises the linker on every fresh test run.
+	body := fmt.Sprintf("let x = %d\n", time.Now().UnixNano())
+	if os.WriteFile(filepath.Join(dir, "main.kg"), []byte(body), 0o644) != nil {
 		return false
 	}
 	_, file, _, ok := runtime.Caller(0)
