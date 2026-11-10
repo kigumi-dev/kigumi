@@ -10,6 +10,26 @@
     "status": "ok"
   },
   {
+    "key": "alloc.AllocatorHandle.close",
+    "signature": "fn() -\u003e Result[Void, Busy]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "alloc.AllocatorHandle.reset",
+    "signature": "fn() -\u003e Result[Void, Busy]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "alloc.AllocatorHandle.scope",
     "signature": "noalloc fn() -\u003e AllocatorScope",
     "has_body": false,
@@ -32,6 +52,56 @@
   {
     "key": "alloc.Arena.tryCreate",
     "signature": "fn() -\u003e Result[AllocatorHandle, AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "alloc.Block.get",
+    "signature": "pure noalloc fn(usize) -\u003e u8",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "alloc.Block.len",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "alloc.Block.new",
+    "signature": "fn(usize) -\u003e Block",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "alloc.Block.set",
+    "signature": "pure noalloc fn(usize, u8) -\u003e Void",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "alloc.Block.tryNew",
+    "signature": "fn(usize) -\u003e Result[Block, AllocError]",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -266,6 +336,16 @@
     "kind": "primitive",
     "vm": "implemented",
     "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "alloc.cloneIn",
+    "signature": "fn(\u0026T, \u0026AllocatorHandle) -\u003e T",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
     "accelerated": false,
     "status": "ok"
   },
@@ -9411,6 +9491,26 @@
     "status": "ok"
   },
   {
+    "key": "json.canonicalIntegerText",
+    "signature": "fn(String, Bool) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "json.canonicalNumberText",
+    "signature": "fn(String) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "json.decode",
     "signature": "fn(String) -\u003e T!",
     "has_body": true,
@@ -13991,6 +14091,16 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.clientHelloWithShare",
+    "signature": "pure fn(u16, Bytes, Bytes, Bytes, Bytes?, String, Array[String]) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.derScalar",
     "signature": "pure fn(Element) -\u003e Result[Bytes, Error]",
     "has_body": true,
@@ -14053,6 +14163,16 @@
   {
     "key": "net/tls.encodeHandshake",
     "signature": "pure fn(u8, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.ephemeralPublic",
+    "signature": "fn(u16, Bytes) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14151,6 +14271,16 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.keyExchangeShared",
+    "signature": "fn(u16, Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.keysFor",
     "signature": "pure fn(Bytes) -\u003e Result[Direction, Error]",
     "has_body": true,
@@ -14241,8 +14371,18 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.parseHelloRetryRequest",
+    "signature": "pure fn(Bytes, u16, Array[Extension]) -\u003e Result[ServerReply, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.parseServerHello",
-    "signature": "pure fn(Bytes) -\u003e Result[ParsedServerHello, Error]",
+    "signature": "pure fn(Bytes) -\u003e Result[ServerReply, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -21663,7 +21803,7 @@
   },
   {
     "key": "shell.Building.endStage",
-    "signature": "fn(String?) -\u003e Void",
+    "signature": "fn(Filter?) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -21802,6 +21942,66 @@
     "status": "ok"
   },
   {
+    "key": "shell.compareBytes",
+    "signature": "fn(\u0026Bytes, \u0026Bytes) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.countChars",
+    "signature": "fn(\u0026Bytes) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.countLineBreaks",
+    "signature": "fn(\u0026Bytes) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.countWords",
+    "signature": "fn(\u0026Bytes) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.cutLines",
+    "signature": "fn(\u0026Array[Bytes], \u0026Bytes, \u0026Array[Int]) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.distinctLines",
+    "signature": "fn(\u0026Array[Bytes]) -\u003e Array[Bytes]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "shell.drain",
     "signature": "fn(\u0026Array[i32], \u0026Array[i32], \u0026Array[i32], \u0026Array[i32], usize) -\u003e Run!",
     "has_body": true,
@@ -21842,6 +22042,96 @@
     "status": "ok"
   },
   {
+    "key": "shell.filterBytes",
+    "signature": "fn(Filter, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.filterClone",
+    "signature": "pure fn(\u0026Filter) -\u003e Filter",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.filterCutProblem",
+    "signature": "fn(\u0026Bytes, \u0026Array[Int]) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.filterFieldsClone",
+    "signature": "fn(\u0026Array[Int]) -\u003e Array[Int]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.filterLineProblem",
+    "signature": "fn(Int) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.filterProblem",
+    "signature": "pure fn(\u0026Filter) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.filterProblemOwned",
+    "signature": "fn(Filter) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.filterTeeProblem",
+    "signature": "fn(\u0026String) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.filterTrProblem",
+    "signature": "fn(\u0026Bytes, \u0026Bytes, Bool) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "shell.grepProblem",
     "signature": "pure fn(\u0026String) -\u003e String",
     "has_body": true,
@@ -21854,6 +22144,26 @@
   {
     "key": "shell.hasNul",
     "signature": "fn(String) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.indexOfByte",
+    "signature": "fn(\u0026Bytes, u8) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.indexOfBytes",
+    "signature": "fn(\u0026Bytes, \u0026Bytes) -\u003e usize?",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -21894,6 +22204,16 @@
   {
     "key": "shell.isRepeat",
     "signature": "fn(Int) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.lineEnds",
+    "signature": "fn(\u0026Bytes) -\u003e Array[Bytes]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -21972,6 +22292,36 @@
     "status": "ok"
   },
   {
+    "key": "shell.pushBytes",
+    "signature": "fn(\u0026mut Array[u8], \u0026Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.pushDecimal",
+    "signature": "fn(\u0026mut Array[u8], usize) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.pushLine",
+    "signature": "fn(\u0026mut Array[u8], \u0026Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "shell.readAll",
     "signature": "fn(i32) -\u003e Bytes",
     "has_body": true,
@@ -22022,6 +22372,26 @@
     "status": "ok"
   },
   {
+    "key": "shell.runFilter",
+    "signature": "fn(\u0026Filter, i32) -\u003e Never",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.runGrep",
+    "signature": "fn(\u0026String, i32) -\u003e Never",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "shell.runHere",
     "signature": "fn(Plan, Shell) -\u003e PipelineResult!",
     "has_body": true,
@@ -22042,8 +22412,48 @@
     "status": "ok"
   },
   {
+    "key": "shell.sortedLines",
+    "signature": "fn(\u0026Array[Bytes], Bool) -\u003e Array[Bytes]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "shell.stages",
     "signature": "pure fn(\u0026Plan) -\u003e Array[Stage]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.translateBytes",
+    "signature": "fn(\u0026Bytes, \u0026Bytes, \u0026Bytes, Bool, Bool) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.uniqBytes",
+    "signature": "fn(\u0026Array[Bytes], Bool, Bool, Bool) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.wcBytes",
+    "signature": "fn(\u0026Bytes, Bool, Bool, Bool, Bool) -\u003e Bytes",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -22062,8 +22472,198 @@
     "status": "ok"
   },
   {
+    "key": "shell.writeTee",
+    "signature": "fn(\u0026String, Bool, Bytes, i32) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell/coreutil.cat",
+    "signature": "pure fn(Plan) -\u003e Plan",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell/coreutil.cut",
+    "signature": "pure fn(Plan, CutOptions) -\u003e Plan",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "shell/coreutil.grep",
     "signature": "pure fn(Plan, String) -\u003e Plan",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell/coreutil.head",
+    "signature": "pure fn(Plan, Int) -\u003e Plan",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell/coreutil.push",
+    "signature": "fn(Plan, Filter) -\u003e Plan",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell/coreutil.sort",
+    "signature": "pure fn(Plan) -\u003e Plan",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell/coreutil.sortWith",
+    "signature": "pure fn(Plan, SortOptions) -\u003e Plan",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell/coreutil.tail",
+    "signature": "pure fn(Plan, Int) -\u003e Plan",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell/coreutil.tee",
+    "signature": "pure fn(Plan, String) -\u003e Plan",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell/coreutil.teeWith",
+    "signature": "pure fn(Plan, TeeOptions) -\u003e Plan",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell/coreutil.tr",
+    "signature": "pure fn(Plan, TrOptions) -\u003e Plan",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell/coreutil.uniq",
+    "signature": "pure fn(Plan) -\u003e Plan",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell/coreutil.uniqWith",
+    "signature": "pure fn(Plan, UniqOptions) -\u003e Plan",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell/coreutil.wc",
+    "signature": "pure fn(Plan) -\u003e Plan",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell/coreutil.wcBytes",
+    "signature": "pure fn(Plan) -\u003e Plan",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell/coreutil.wcChars",
+    "signature": "pure fn(Plan) -\u003e Plan",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell/coreutil.wcLines",
+    "signature": "pure fn(Plan) -\u003e Plan",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell/coreutil.wcWith",
+    "signature": "pure fn(Plan, WcOptions) -\u003e Plan",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell/coreutil.wcWords",
+    "signature": "pure fn(Plan) -\u003e Plan",
     "has_body": true,
     "kind": "",
     "vm": "gap",

@@ -37,7 +37,7 @@ var pinnedRCCalls = map[string]int{
 // The same call sites over the fixtures that existed before the retain / release elimination, re-measured when a
 // representation change (direct Option / Result) moved them; the totals for those fixtures must stay at or below these.
 var baselineRCCalls = map[string]int{
-	"fixtures":         528,
+	"fixtures":         529,
 	"rt_retain":        5267,
 	"rt_release":       51119,
 	"rt_release_outer": 12954,
