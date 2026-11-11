@@ -1,0 +1,107 @@
+// Parameters of the SLH-DSA-SHA2 parameter sets (FIPS 205 Table 2).
+//
+// Both 128-bit SHA2 sets share n = 16, w = 16, len1 = 2n, len2 = 3 and
+// len = 2n + 3. They differ in the hypertree height h, the layer count d, the
+// XMSS tree height h' = h / d, the FORS height a, the number of FORS trees k
+// and the digest length m.
+/// Security parameter n: bytes of every hash value and seed.
+pub const n: usize = 16
+
+/// lg(w): bits per hash chain.
+pub const lgw: usize = 4
+
+/// w: chains take values in 0 .. 15.
+pub const w: usize = 16
+
+/// Number of WOTS+ chains for the message.
+pub const len1: usize = 2 * n
+
+/// Number of WOTS+ chains for the checksum.
+pub const len2: usize = 3
+
+/// Total WOTS+ chains.
+pub const len: usize = len1 + len2
+
+/// Bytes of a public key: PK.seed || PK.root.
+pub const publicKeySize: usize = 2 * n
+
+/// Bytes of a secret key: SK.seed || SK.prf || PK.seed || PK.root.
+pub const secretKeySize: usize = 4 * n
+
+/// Bytes of a key-generation seed.
+pub const seedSize: usize = n
+
+/// The shape of one parameter set.
+pub type Params = {
+    pub h usize
+    pub d usize
+    pub hPrime usize
+    pub a usize
+    pub k usize
+    pub m usize
+}
+
+/// SLH-DSA-SHA2-128s: h = 63, d = 7, h' = 9, a = 12, k = 14, m = 30.
+pub pure fn params128s() -> Params {
+    Params {
+        h: 63
+        d: 7
+        hPrime: 9
+        a: 12
+        k: 14
+        m: 30
+    }
+}
+
+/// SLH-DSA-SHA2-128f: h = 66, d = 22, h' = 3, a = 6, k = 33, m = 34.
+pub pure fn params128f() -> Params {
+    Params {
+        h: 66
+        d: 22
+        hPrime: 3
+        a: 6
+        k: 33
+        m: 34
+    }
+}
+
+/// Bytes of a signature: (1 + k(1 + a) + h + d * len) * n.
+pub pure fn signatureSize(p: Params) -> usize {
+    (1 + p.k * (1 + p.a) + p.h + p.d * len) * n
+}
+
+/// Bytes of the message digest part signed by FORS: ceil(k * a / 8).
+pub pure fn mdSize(p: Params) -> usize {
+    (p.k * p.a + 7) / 8
+}
+
+/// Bytes of the tree index part of the digest: ceil((h - h') / 8).
+pub pure fn treeIndexSize(p: Params) -> usize {
+    (p.h - p.hPrime + 7) / 8
+}
+
+/// Bytes of the leaf index part of the digest: ceil(h' / 8).
+pub pure fn leafIndexSize(p: Params) -> usize {
+    (p.hPrime + 7) / 8
+}
+
+/// Why an SLH-DSA call was refused.
+pub type Error =
+    | BadSeedSize
+    | BadSecretKeySize
+    | BadPublicKeySize
+    | BadRandomnessSize
+    | BadSignatureSize
+    | ContextTooLong
+
+/// A short, fixed explanation of the error.
+pub fn Error.message(self) -> String {
+    match self {
+        BadSeedSize -> "slhdsa: key generation seeds must be 16 bytes"
+        BadSecretKeySize -> "slhdsa: secret key must be 64 bytes"
+        BadPublicKeySize -> "slhdsa: public key must be 32 bytes"
+        BadRandomnessSize -> "slhdsa: additional randomness must be 16 bytes"
+        BadSignatureSize -> "slhdsa: signature has the wrong length"
+        ContextTooLong -> "slhdsa: context must be at most 255 bytes"
+    }
+}

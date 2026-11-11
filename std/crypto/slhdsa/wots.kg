@@ -1,0 +1,134 @@
+// WOTS+ (FIPS 205 §5) over the SHA2-128 hash functions.
+/// The first `outLen` base-2^b digits of `x` (FIPS 205 Algorithm 4).
+pub pure fn base2b(x: Bytes, b: usize, outLen: usize) -> Array[usize] {
+    let mut out = Array.empty[usize]()
+    let mut inPos: usize = 0
+    let mut bits: usize = 0
+    let mut total: u64 = 0
+    let one: usize = 1
+    let mask: u64 = ((one << b) - 1).toU64()
+    let mut k: usize = 0
+    for k < outLen {
+        for bits < b {
+            total = ((total << 8) | x[inPos].toU64()) & 0xffff
+            inPos = inPos + 1
+            bits = bits + 8
+        }
+        bits = bits - b
+        out.push(((total >> bits) & mask).toUsize())
+        k = k + 1
+    }
+    out
+}
+
+/// Append `src` to `dst`.
+pub pure fn append(dst: &mut Array[u8], src: Bytes) {
+    let mut i: usize = 0
+    for i < src.len() {
+        dst.push(src[i])
+        i = i + 1
+    }
+}
+
+/// wotsChain(X, i, s, PK.seed, ADRS) (FIPS 205 Algorithm 5).
+pub pure fn wotsChain(x: Bytes, start: usize, steps: usize, mid: FixedArray[u32, 8], adrsIn: Adrs) -> Bytes {
+    let mut tmp = x
+    let mut j = start
+    for j < start + steps {
+        let mut a = adrsIn.copy()
+        a.setHashAddress(narrowU32(j))
+        tmp = hashF(mid, a, tmp)
+        j = j + 1
+    }
+    tmp
+}
+
+/// The secret value of chain `i` (FIPS 205 Algorithm 6 lines 1-6).
+pure fn wotsSkValue(mid: FixedArray[u32, 8], skSeed: Bytes, adrsIn: Adrs, i: usize) -> Bytes {
+    let mut skAdrs = adrsIn.copy()
+    skAdrs.setTypeAndClear(wotsPrf)
+    skAdrs.setKeyPairAddress(adrsIn.getKeyPairAddress())
+    skAdrs.setChainAddress(narrowU32(i))
+    hashPrf(mid, skAdrs, skSeed)
+}
+
+/// wots_wotsPkGen(SK.seed, PK.seed, ADRS) (FIPS 205 Algorithm 6).
+pub pure fn wotsPkGen(skSeed: Bytes, mid: FixedArray[u32, 8], adrsIn: Adrs) -> Bytes {
+    let mut parts = Array.empty[u8]()
+    let mut i: usize = 0
+    for i < len {
+        let sk = wotsSkValue(mid, skSeed, adrsIn, i)
+        let mut a = adrsIn.copy()
+        a.setChainAddress(narrowU32(i))
+        append(&mut parts, wotsChain(sk, 0, w - 1, mid, a))
+        i = i + 1
+    }
+    let mut pkAdrs = adrsIn.copy()
+    pkAdrs.setTypeAndClear(wotsPk)
+    pkAdrs.setKeyPairAddress(adrsIn.getKeyPairAddress())
+    hashTLen(mid, pkAdrs, Bytes.fromArray(&parts))
+}
+
+/// The message digits and checksum digits that wots_sign and wots_pkFromSig
+/// both derive from an n-byte message (FIPS 205 Algorithms 7-8 lines 1-7).
+pure fn messageDigits(message: Bytes) -> Array[usize] {
+    let mut digits = base2b(message, lgw, len1)
+    let mut csum: usize = 0
+    let mut i: usize = 0
+    for i < digits.len() {
+        csum = csum + (w - 1 - digits[i])
+        i = i + 1
+    }
+    let shifted = (csum << 4) & 0xffff
+    let checkBytes = checksumBytes(shifted)
+    let extra = base2b(checkBytes, lgw, len2)
+    i = 0
+    for i < extra.len() {
+        digits.push(extra[i])
+        i = i + 1
+    }
+    digits
+}
+
+/// The two-byte big-endian encoding of the checksum (FIPS 205 Algorithm 7
+/// line 7: toByte(csum, ceil(len2 * lgw / 8))).
+pure fn checksumBytes(value: usize) -> Bytes {
+    let v = value.truncate[u16]()
+    let mut out = Array.empty[u8]()
+    out.push((v >> 8).truncate[u8]())
+    out.push(v.truncate[u8]())
+    Bytes.fromArray(&out)
+}
+
+/// wots_sign(M, SK.seed, PK.seed, ADRS) (FIPS 205 Algorithm 7).
+pub pure fn wotsSign(message: Bytes, skSeed: Bytes, mid: FixedArray[u32, 8], adrsIn: Adrs) -> Bytes {
+    let digits = messageDigits(message)
+    let mut out = Array.empty[u8]()
+    let mut i: usize = 0
+    for i < len {
+        let sk = wotsSkValue(mid, skSeed, adrsIn, i)
+        let mut a = adrsIn.copy()
+        a.setChainAddress(narrowU32(i))
+        append(&mut out, wotsChain(sk, 0, digits[i], mid, a))
+        i = i + 1
+    }
+    Bytes.fromArray(&out)
+}
+
+/// wots_wotsPkFromSig(sig, M, PK.seed, ADRS) (FIPS 205 Algorithm 8).
+pub pure fn wotsPkFromSig(sig: Bytes, message: Bytes, mid: FixedArray[u32, 8], adrsIn: Adrs) -> Bytes {
+    let digits = messageDigits(message)
+    let mut parts = Array.empty[u8]()
+    let mut i: usize = 0
+    for i < len {
+        let mut a = adrsIn.copy()
+        a.setChainAddress(narrowU32(i))
+        let node = wotsChain(exactSlice(sig, i * n, (i + 1) * n), digits[i], w - 1 - digits[i], mid, a)
+        append(&mut parts, node)
+        i = i + 1
+    }
+    let mut pkAdrs = adrsIn.copy()
+    pkAdrs.setTypeAndClear(wotsPk)
+    pkAdrs.setKeyPairAddress(adrsIn.getKeyPairAddress())
+    hashTLen(mid, pkAdrs, Bytes.fromArray(&parts))
+}

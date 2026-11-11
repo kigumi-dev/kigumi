@@ -1,0 +1,117 @@
+// The 22-byte compressed address ADRS_c of the SLH-DSA SHA2 parameter sets
+// (FIPS 205 §11.2, Table 3).
+//
+// A compressed address is
+//   layer (1) || tree (8) || type (1) || keyPair (4) || word2 (4) || word3 (4)
+// where the last three words are interpreted by `type`. Changing the type
+// clears those twelve bytes, as `setTypeAndClear` requires.
+import binary from std/encoding/binary
+
+/// Address types (FIPS 205 §4.2).
+pub const wotsHash: u32 = 0
+
+pub const wotsPk: u32 = 1
+pub const tree: u32 = 2
+pub const forsTree: u32 = 3
+pub const forsRoots: u32 = 4
+pub const wotsPrf: u32 = 5
+pub const forsPrf: u32 = 6
+
+/// A compressed address and its fields.
+pub type Adrs = {
+    mut layer u32
+    mut tree u64
+    mut typ u32
+    mut keyPair u32
+    mut word2 u32
+    mut word3 u32
+}
+
+/// The all-zero address.
+pub pure fn Adrs.new() -> Adrs {
+    Adrs {
+        layer: 0
+        tree: 0
+        typ: 0
+        keyPair: 0
+        word2: 0
+        word3: 0
+    }
+}
+
+/// A copy of this address.
+pub pure fn Adrs.copy(self) -> Adrs {
+    Adrs {
+        layer: self.layer
+        tree: self.tree
+        typ: self.typ
+        keyPair: self.keyPair
+        word2: self.word2
+        word3: self.word3
+    }
+}
+
+/// Sets the layer address.
+pub pure fn Adrs.setLayerAddress(mut self, layer: u32) {
+    self.layer = layer
+}
+
+/// Sets the eight-byte tree address.
+pub pure fn Adrs.setTreeAddress(mut self, tree: u64) {
+    self.tree = tree
+}
+
+/// Sets the type and clears the twelve bytes the type interprets.
+pub pure fn Adrs.setTypeAndClear(mut self, typ: u32) {
+    self.typ = typ
+    self.keyPair = 0
+    self.word2 = 0
+    self.word3 = 0
+}
+
+/// Sets the key-pair address.
+pub pure fn Adrs.setKeyPairAddress(mut self, keyPair: u32) {
+    self.keyPair = keyPair
+}
+
+/// The key-pair address.
+pub pure fn Adrs.getKeyPairAddress(self) -> u32 {
+    self.keyPair
+}
+
+/// Sets the chain address of a WOTS_HASH address.
+pub pure fn Adrs.setChainAddress(mut self, chain: u32) {
+    self.word2 = chain
+}
+
+/// Sets the hash address of a WOTS_HASH address.
+pub pure fn Adrs.setHashAddress(mut self, hash: u32) {
+    self.word3 = hash
+}
+
+/// Sets the tree height of a TREE or FORS_TREE address.
+pub pure fn Adrs.setTreeHeight(mut self, height: u32) {
+    self.word2 = height
+}
+
+/// Sets the tree index of a TREE or FORS_TREE address.
+pub pure fn Adrs.setTreeIndex(mut self, index: u32) {
+    self.word3 = index
+}
+
+/// The tree index of a TREE or FORS_TREE address.
+pub pure fn Adrs.getTreeIndex(self) -> u32 {
+    self.word3
+}
+
+/// The compressed 22-byte encoding.
+pub pure fn Adrs.bytes(self) -> Bytes {
+    let mut out = Array.empty[u8]()
+    binary.putUintBe(&mut out, self.layer.toU64(), 1)
+    binary.putUintBe(&mut out, self.tree, 8)
+    binary.putUintBe(&mut out, self.typ.toU64(), 1)
+    binary.putUintBe(&mut out, self.keyPair.toU64(), 4)
+    binary.putUintBe(&mut out, self.word2.toU64(), 4)
+    binary.putUintBe(&mut out, self.word3.toU64(), 4)
+    Bytes.fromArray(&out)
+}

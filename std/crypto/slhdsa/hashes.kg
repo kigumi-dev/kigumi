@@ -1,0 +1,82 @@
+// The six hash functions of SLH-DSA-SHA2 at security category 1 (FIPS 205
+// §11.2.1), expressed over the fixed-prefix SHA-256 from `kg`.
+//
+//   H_msg(R, PK.seed, PK.root, M) =
+//       MGF1-SHA-256(R || PK.seed || SHA-256(R || PK.seed || PK.root || M), m)
+//   PRF(PK.seed, SK.seed, ADRS) =
+//       Trunc_n(SHA-256(PK.seed || toByte(0, 64 - n) || ADRS_c || SK.seed))
+//   PRF_msg(SK.prf, opt_rand, M) = Trunc_n(HMAC-SHA-256(SK.prf, opt_rand || M))
+//   F(PK.seed, ADRS, M1) = Trunc_n(SHA-256(PK.seed || zeros || ADRS_c || M1))
+//   H(PK.seed, ADRS, M2) = the same over two n-byte halves
+//   T_len(PK.seed, ADRS, M) = the same over len * n bytes
+/// MGF1-SHA-256 (RFC 8017 B.2.1): `want` bytes of the counter-mode stream.
+pure fn mgf1(seed: Bytes, want: usize) -> Bytes {
+    let mut out = Array.empty[u8]()
+    let mut counter: u32 = 0
+    for out.len() < want {
+        let block = digest(seed.concat(binaryU32(counter)))
+        let mut i: usize = 0
+        for i < block.len() {
+            out.push(block[i])
+            i = i + 1
+        }
+        counter = counter + 1
+    }
+    let bytes = Bytes.fromArray(&out)
+    exactSlice(bytes, 0, want)
+}
+
+/// Four bytes, big-endian.
+pure fn binaryU32(v: u32) -> Bytes {
+    let mut out = Array.empty[u8]()
+    out.push((v >> 24).truncate[u8]())
+    out.push((v >> 16).truncate[u8]())
+    out.push((v >> 8).truncate[u8]())
+    out.push(v.truncate[u8]())
+    Bytes.fromArray(&out)
+}
+
+/// HMAC-SHA-256 (FIPS 198-1) with the 64-byte SHA-256 block.
+pure fn hmacSha256(key: Bytes, message: Bytes) -> Bytes {
+    let mut ipad = Array.fill[u8](0x36, blockSize)
+    let mut opad = Array.fill[u8](0x5c, blockSize)
+    let mut i: usize = 0
+    for i < key.len() {
+        ipad[i] = key[i] ^ 0x36
+        opad[i] = key[i] ^ 0x5c
+        i = i + 1
+    }
+    let inner = digest(Bytes.fromArray(&ipad).concat(message))
+    digest(Bytes.fromArray(&opad).concat(inner))
+}
+
+/// Trunc_n of HMAC-SHA-256(SK.prf, opt_rand || M).
+pub pure fn hashPrfMsg(skPrf: Bytes, optRand: Bytes, message: Bytes) -> Bytes {
+    exactSlice(hmacSha256(skPrf, optRand.concat(message)), 0, n)
+}
+
+/// MGF1-SHA-256(R || PK.seed || SHA-256(R || PK.seed || PK.root || M), m).
+pub pure fn hashHMsg(r: Bytes, seed: Bytes, root: Bytes, message: Bytes, m: usize) -> Bytes {
+    let inner = digest(r.concat(seed).concat(root).concat(message))
+    mgf1(r.concat(seed).concat(inner), m)
+}
+
+/// PRF(PK.seed, SK.seed, ADRS).
+pub pure fn hashPrf(mid: FixedArray[u32, 8], adrs: Adrs, skSeed: Bytes) -> Bytes {
+    hashPrefixed(mid, adrs.bytes(), skSeed, n)
+}
+
+/// F(PK.seed, ADRS, M1).
+pub pure fn hashF(mid: FixedArray[u32, 8], adrs: Adrs, m1: Bytes) -> Bytes {
+    hashPrefixed(mid, adrs.bytes(), m1, n)
+}
+
+/// H(PK.seed, ADRS, left || right).
+pub pure fn hashH(mid: FixedArray[u32, 8], adrs: Adrs, left: Bytes, right: Bytes) -> Bytes {
+    hashPrefixed(mid, adrs.bytes(), left.concat(right), n)
+}
+
+/// T_len(PK.seed, ADRS, M).
+pub pure fn hashTLen(mid: FixedArray[u32, 8], adrs: Adrs, parts: Bytes) -> Bytes {
+    hashPrefixed(mid, adrs.bytes(), parts, n)
+}

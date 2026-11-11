@@ -1,0 +1,15 @@
+// Explicit narrowing from usize with a diagnostic instead of a silent wrap.
+/// `x` as a u32; traps if it does not fit.
+pub pure fn narrowU32(x: usize) -> u32 {
+    x.toU32() || panic("slhdsa: value does not fit in u32")
+}
+
+/// `x` as a u16; traps if it does not fit.
+pub pure fn narrowU16(x: usize) -> u16 {
+    x.toU16() || panic("slhdsa: value does not fit in u16")
+}
+
+/// `x` as a u8; traps if it does not fit.
+pub pure fn narrowU8(x: usize) -> u8 {
+    x.toU8() || panic("slhdsa: value does not fit in u8")
+}

@@ -1,0 +1,102 @@
+// FORS (FIPS 205 §8) over the SHA2-128 hash functions.
+/// 2^a as a usize.
+pure fn treeLeaves(p: Params) -> usize {
+    pow2(p.a)
+}
+
+/// 2^shift.
+pure fn pow2(shift: usize) -> usize {
+    let mut value: usize = 1
+    let mut i: usize = 0
+    for i < shift {
+        value = value * 2
+        i = i + 1
+    }
+    value
+}
+
+/// fors_forsSkGen(SK.seed, PK.seed, ADRS, idx) (FIPS 205 Algorithm 14).
+pure fn forsSkGen(skSeed: Bytes, mid: FixedArray[u32, 8], adrsIn: Adrs, idx: usize) -> Bytes {
+    let mut skAdrs = adrsIn.copy()
+    skAdrs.setTypeAndClear(forsPrf)
+    skAdrs.setKeyPairAddress(adrsIn.getKeyPairAddress())
+    skAdrs.setTreeIndex(narrowU32(idx))
+    hashPrf(mid, skAdrs, skSeed)
+}
+
+/// fors_forsNode(SK.seed, i, z, PK.seed, ADRS) (FIPS 205 Algorithm 15).
+pure fn forsNode(p: Params, skSeed: Bytes, i: usize, z: usize, mid: FixedArray[u32, 8], adrsIn: Adrs) -> Bytes {
+    if z == 0 {
+        let sk = forsSkGen(skSeed, mid, adrsIn, i)
+        let mut a = adrsIn.copy()
+        a.setTreeHeight(0)
+        a.setTreeIndex(narrowU32(i))
+        return hashF(mid, a, sk)
+    }
+    let left = forsNode(p, skSeed, 2 * i, z - 1, mid, adrsIn)
+    let right = forsNode(p, skSeed, 2 * i + 1, z - 1, mid, adrsIn)
+    let mut a = adrsIn.copy()
+    a.setTreeHeight(narrowU32(z))
+    a.setTreeIndex(narrowU32(i))
+    hashH(mid, a, left, right)
+}
+
+/// fors_sign(md, SK.seed, PK.seed, ADRS) (FIPS 205 Algorithm 16).
+pub pure fn forsSign(p: Params, md: Bytes, skSeed: Bytes, mid: FixedArray[u32, 8], adrsIn: Adrs) -> Bytes {
+    let indices = base2b(md, p.a, p.k)
+    let leaves = treeLeaves(p)
+    let mut out = Array.empty[u8]()
+    let mut i: usize = 0
+    for i < p.k {
+        let idx = indices[i]
+        append(&mut out, forsSkGen(skSeed, mid, adrsIn, i * leaves + idx))
+        let mut j: usize = 0
+        for j < p.a {
+            let s = (idx >> j) ^ 1
+            let auth = forsNode(p, skSeed, i * pow2(p.a - j) + s, j, mid, adrsIn)
+            append(&mut out, auth)
+            j = j + 1
+        }
+        i = i + 1
+    }
+    Bytes.fromArray(&out)
+}
+
+/// fors_forsPkFromSig(sig, md, PK.seed, ADRS) (FIPS 205 Algorithm 17).
+pub pure fn forsPkFromSig(p: Params, sig: Bytes, md: Bytes, mid: FixedArray[u32, 8], adrsIn: Adrs) -> Bytes {
+    let indices = base2b(md, p.a, p.k)
+    let leaves = treeLeaves(p)
+    let stride = (p.a + 1) * n
+    let mut roots = Array.empty[u8]()
+    let mut i: usize = 0
+    for i < p.k {
+        let idx = indices[i]
+        let base = i * stride
+        let sk = exactSlice(sig, base, base + n)
+        let mut a = adrsIn.copy()
+        a.setTreeHeight(0)
+        a.setTreeIndex(narrowU32(i * leaves + idx))
+        let mut current = hashF(mid, a, sk)
+        a = adrsIn.copy()
+        let mut j: usize = 0
+        for j < p.a {
+            let auth = exactSlice(sig, base + (1 + j) * n, base + (2 + j) * n)
+            let next = (i * leaves + idx) >> (j + 1)
+            let mut parent = a.copy()
+            parent.setTreeHeight(narrowU32(j + 1))
+            parent.setTreeIndex(narrowU32(next))
+            if ((idx >> j) & 1) == 0 {
+                current = hashH(mid, parent, current, auth)
+            } else {
+                current = hashH(mid, parent, auth, current)
+            }
+            j = j + 1
+        }
+        append(&mut roots, current)
+        i = i + 1
+    }
+    let mut rootsAdrs = adrsIn.copy()
+    rootsAdrs.setTypeAndClear(forsRoots)
+    rootsAdrs.setKeyPairAddress(adrsIn.getKeyPairAddress())
+    hashTLen(mid, rootsAdrs, Bytes.fromArray(&roots))
+}

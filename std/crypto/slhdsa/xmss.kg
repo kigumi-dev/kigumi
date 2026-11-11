@@ -1,0 +1,57 @@
+// XMSS (FIPS 205 §6) over WOTS+.
+/// xmss_xmssNode(SK.seed, i, z, PK.seed, ADRS) (FIPS 205 Algorithm 9).
+pub pure fn xmssNode(p: Params, skSeed: Bytes, i: usize, z: usize, mid: FixedArray[u32, 8], adrsIn: Adrs) -> Bytes {
+    if z == 0 {
+        let mut a = adrsIn.copy()
+        a.setTypeAndClear(wotsHash)
+        a.setKeyPairAddress(narrowU32(i))
+        return wotsPkGen(skSeed, mid, a)
+    }
+    let left = xmssNode(p, skSeed, 2 * i, z - 1, mid, adrsIn)
+    let right = xmssNode(p, skSeed, 2 * i + 1, z - 1, mid, adrsIn)
+    let mut a = adrsIn.copy()
+    a.setTypeAndClear(tree)
+    a.setTreeHeight(narrowU32(z))
+    a.setTreeIndex(narrowU32(i))
+    hashH(mid, a, left, right)
+}
+
+/// xmss_sign(M, SK.seed, idx, PK.seed, ADRS) (FIPS 205 Algorithm 10).
+pub pure fn xmssSign(p: Params, message: Bytes, skSeed: Bytes, idx: usize, mid: FixedArray[u32, 8], adrsIn: Adrs) -> Bytes {
+    let mut a = adrsIn.copy()
+    a.setTypeAndClear(wotsHash)
+    a.setKeyPairAddress(narrowU32(idx))
+    let mut out = Array.empty[u8]()
+    append(&mut out, wotsSign(message, skSeed, mid, a))
+    let mut j: usize = 0
+    for j < p.hPrime {
+        let sibling = (idx >> j) ^ 1
+        append(&mut out, xmssNode(p, skSeed, sibling, j, mid, adrsIn))
+        j = j + 1
+    }
+    Bytes.fromArray(&out)
+}
+
+/// xmss_xmssPkFromSig(idx, SIG_XMSS, M, PK.seed, ADRS) (FIPS 205 Algorithm 11).
+pub pure fn xmssPkFromSig(p: Params, idx: usize, sig: Bytes, message: Bytes, mid: FixedArray[u32, 8], adrsIn: Adrs) -> Bytes {
+    let wotsLen = len * n
+    let mut a = adrsIn.copy()
+    a.setTypeAndClear(wotsHash)
+    a.setKeyPairAddress(narrowU32(idx))
+    let mut current = wotsPkFromSig(exactSlice(sig, 0, wotsLen), message, mid, a)
+    let mut k: usize = 0
+    for k < p.hPrime {
+        let auth = exactSlice(sig, wotsLen + k * n, wotsLen + (k + 1) * n)
+        let mut parent = adrsIn.copy()
+        parent.setTypeAndClear(tree)
+        parent.setTreeHeight(narrowU32(k + 1))
+        parent.setTreeIndex(narrowU32(idx >> (k + 1)))
+        if ((idx >> k) & 1) == 0 {
+            current = hashH(mid, parent, current, auth)
+        } else {
+            current = hashH(mid, parent, auth, current)
+        }
+        k = k + 1
+    }
+    current
+}

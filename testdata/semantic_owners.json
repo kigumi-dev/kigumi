@@ -7500,6 +7500,816 @@
     "status": "ok"
   },
   {
+    "key": "crypto/slhdsa.Adrs.bytes",
+    "signature": "pure fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.Adrs.copy",
+    "signature": "pure fn() -\u003e Adrs",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.Adrs.getKeyPairAddress",
+    "signature": "pure fn() -\u003e u32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.Adrs.getTreeIndex",
+    "signature": "pure fn() -\u003e u32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.Adrs.new",
+    "signature": "pure fn() -\u003e Adrs",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.Adrs.setChainAddress",
+    "signature": "pure fn(u32) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.Adrs.setHashAddress",
+    "signature": "pure fn(u32) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.Adrs.setKeyPairAddress",
+    "signature": "pure fn(u32) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.Adrs.setLayerAddress",
+    "signature": "pure fn(u32) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.Adrs.setTreeAddress",
+    "signature": "pure fn(u64) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.Adrs.setTreeHeight",
+    "signature": "pure fn(u32) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.Adrs.setTreeIndex",
+    "signature": "pure fn(u32) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.Adrs.setTypeAndClear",
+    "signature": "pure fn(u32) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.Error.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.append",
+    "signature": "pure fn(\u0026mut Array[u8], Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.base2b",
+    "signature": "pure fn(Bytes, usize, usize) -\u003e Array[usize]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.binaryU32",
+    "signature": "pure fn(u32) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.checkedSign",
+    "signature": "pure fn(Params, Bytes, Bytes, Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.checksumBytes",
+    "signature": "pure fn(usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.compress",
+    "signature": "pure fn(FixedArray[u32, 8], FixedArray[u8, 64]) -\u003e FixedArray[u32, 8]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.digest",
+    "signature": "pure fn(Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.exactSlice",
+    "signature": "pure fn(Bytes, usize, usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.finish",
+    "signature": "pure fn(FixedArray[u32, 8], usize, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.forsNode",
+    "signature": "pure fn(Params, Bytes, usize, usize, FixedArray[u32, 8], Adrs) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.forsPkFromSig",
+    "signature": "pure fn(Params, Bytes, Bytes, FixedArray[u32, 8], Adrs) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.forsSign",
+    "signature": "pure fn(Params, Bytes, Bytes, FixedArray[u32, 8], Adrs) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.forsSkGen",
+    "signature": "pure fn(Bytes, FixedArray[u32, 8], Adrs, usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.hashF",
+    "signature": "pure fn(FixedArray[u32, 8], Adrs, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.hashH",
+    "signature": "pure fn(FixedArray[u32, 8], Adrs, Bytes, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.hashHMsg",
+    "signature": "pure fn(Bytes, Bytes, Bytes, Bytes, usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.hashPrefixed",
+    "signature": "pure fn(FixedArray[u32, 8], Bytes, Bytes, usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.hashPrf",
+    "signature": "pure fn(FixedArray[u32, 8], Adrs, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.hashPrfMsg",
+    "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.hashTLen",
+    "signature": "pure fn(FixedArray[u32, 8], Adrs, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.hmacSha256",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.htSign",
+    "signature": "pure fn(Params, Bytes, Bytes, u64, u64, FixedArray[u32, 8]) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.htVerify",
+    "signature": "pure fn(Params, Bytes, Bytes, FixedArray[u32, 8], u64, u64, Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.initialState",
+    "signature": "pure fn() -\u003e FixedArray[u32, 8]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.keyGen128f",
+    "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Result[KeyPair, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.keyGen128s",
+    "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Result[KeyPair, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.keyGenChecked",
+    "signature": "pure fn(Params, Bytes, Bytes, Bytes) -\u003e Result[KeyPair, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.keyGenInternal",
+    "signature": "pure fn(Params, Bytes, Bytes, Bytes) -\u003e KeyPair",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.leafIndexSize",
+    "signature": "pure fn(Params) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.lowMask",
+    "signature": "pure fn(usize) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.mdSize",
+    "signature": "pure fn(Params) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.messageDigest",
+    "signature": "pure fn(Params, Bytes, Bytes, Bytes, Bytes) -\u003e Digest",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.messageDigits",
+    "signature": "pure fn(Bytes) -\u003e Array[usize]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.mgf1",
+    "signature": "pure fn(Bytes, usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.midState",
+    "signature": "pure fn(Bytes) -\u003e FixedArray[u32, 8]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.mprime",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.narrowU16",
+    "signature": "pure fn(usize) -\u003e u16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.narrowU32",
+    "signature": "pure fn(usize) -\u003e u32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.narrowU8",
+    "signature": "pure fn(usize) -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.params128f",
+    "signature": "pure fn() -\u003e Params",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.params128s",
+    "signature": "pure fn() -\u003e Params",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.pow2",
+    "signature": "pure fn(usize) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.signDeterministic",
+    "signature": "pure fn(Params, Bytes, Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.signDeterministic128f",
+    "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.signDeterministic128s",
+    "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.signHedged",
+    "signature": "pure fn(Params, Bytes, Bytes, Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.signInternal",
+    "signature": "pure fn(Params, Bytes, Bytes, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.signWithRandomness128f",
+    "signature": "pure fn(Bytes, Bytes, Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.signWithRandomness128s",
+    "signature": "pure fn(Bytes, Bytes, Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.signatureSize",
+    "signature": "pure fn(Params) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.stateFromBlock",
+    "signature": "pure fn(FixedArray[u8, 64]) -\u003e FixedArray[u32, 8]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.toInt",
+    "signature": "pure fn(Bytes) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.treeIndexSize",
+    "signature": "pure fn(Params) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.treeLeaves",
+    "signature": "pure fn(Params) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.verify",
+    "signature": "pure fn(Params, Bytes, Bytes, Bytes, Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.verify128f",
+    "signature": "pure fn(Bytes, Bytes, Bytes, Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.verify128s",
+    "signature": "pure fn(Bytes, Bytes, Bytes, Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.verifyInternal",
+    "signature": "pure fn(Params, Bytes, Bytes, Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.wotsChain",
+    "signature": "pure fn(Bytes, usize, usize, FixedArray[u32, 8], Adrs) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.wotsPkFromSig",
+    "signature": "pure fn(Bytes, Bytes, FixedArray[u32, 8], Adrs) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.wotsPkGen",
+    "signature": "pure fn(Bytes, FixedArray[u32, 8], Adrs) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.wotsSign",
+    "signature": "pure fn(Bytes, Bytes, FixedArray[u32, 8], Adrs) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.wotsSkValue",
+    "signature": "pure fn(FixedArray[u32, 8], Bytes, Adrs, usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.xmssNode",
+    "signature": "pure fn(Params, Bytes, usize, usize, FixedArray[u32, 8], Adrs) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.xmssPkFromSig",
+    "signature": "pure fn(Params, usize, Bytes, Bytes, FixedArray[u32, 8], Adrs) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.xmssSign",
+    "signature": "pure fn(Params, Bytes, Bytes, usize, FixedArray[u32, 8], Adrs) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/slhdsa.zeroState",
+    "signature": "pure fn() -\u003e FixedArray[u32, 8]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "crypto/subtle.Error.message",
     "signature": "fn() -\u003e String",
     "has_body": true,

@@ -64,6 +64,7 @@ type cryptoVector struct {
 	Chain      []string `json:"chain"`
 	Host       string   `json:"host"`
 	NowMillis  int64    `json:"nowMillis"`
+	Engines    string   `json:"engines"`
 	Expected   *string  `json:"expected"`
 }
 
@@ -137,6 +138,9 @@ func loadCryptoCorpus(t *testing.T) *cryptoManifest {
 			if !supportedCryptoOp(v.Op) {
 				t.Fatalf("%s/%s: unsupported operation %q", suite.Primitive, v.ID, v.Op)
 			}
+			if v.Engines != "" && v.Engines != "both" && v.Engines != "native" {
+				t.Fatalf("%s/%s: engines must be \"both\" or \"native\", got %q", suite.Primitive, v.ID, v.Engines)
+			}
 			if err := validateCryptoVector(v); err != nil {
 				t.Fatalf("%s/%s: %v", suite.Primitive, v.ID, err)
 			}
@@ -166,7 +170,8 @@ func supportedCryptoOp(op string) bool {
 		"x25519", "x25519-public", "p256-public", "p256-ecdh",
 		"p256-ecdsa-sign", "p256-ecdsa-verify",
 		"rsa-pkcs1-sha256-verify", "rsa-pss-sha256-verify",
-		"x509-parse", "x509-chain":
+		"x509-parse", "x509-chain",
+		"slhdsa-keygen", "slhdsa-sign", "slhdsa-verify":
 		return true
 	}
 	return false
@@ -231,6 +236,30 @@ func validateCryptoVector(v *cryptoVector) error {
 		if v.Key == "" || v.Signature == "" {
 			return fmt.Errorf("RSA verification needs a key and signature")
 		}
+	case "slhdsa-keygen":
+		if v.Alg != "sha2-128s" && v.Alg != "sha2-128f" {
+			return fmt.Errorf("unsupported SLH-DSA parameter set %q", v.Alg)
+		}
+		if len(v.Key) != 96 {
+			return fmt.Errorf("slhdsa keygen needs 48 bytes of seeds")
+		}
+		if len(v.Secret) == 0 || len(v.Public) == 0 {
+			return fmt.Errorf("slhdsa keygen needs the expected secret and public keys")
+		}
+	case "slhdsa-sign":
+		if v.Alg != "sha2-128s" && v.Alg != "sha2-128f" {
+			return fmt.Errorf("unsupported SLH-DSA parameter set %q", v.Alg)
+		}
+		if len(v.Secret) != 128 || len(v.Public) != 64 || v.Signature == "" {
+			return fmt.Errorf("slhdsa sign needs a 64-byte secret key, a 32-byte public key and the expected signature")
+		}
+	case "slhdsa-verify":
+		if v.Alg != "sha2-128s" && v.Alg != "sha2-128f" {
+			return fmt.Errorf("unsupported SLH-DSA parameter set %q", v.Alg)
+		}
+		if len(v.Public) != 64 || v.Signature == "" {
+			return fmt.Errorf("slhdsa verify needs a 32-byte public key and a signature")
+		}
 	case "x509-parse":
 		if v.DER == "" {
 			return fmt.Errorf("x509 parse needs a DER certificate")
@@ -246,7 +275,7 @@ func validateCryptoVector(v *cryptoVector) error {
 // buildCryptoProgram lowers every vector to one Kigumi program. A single
 // compilation and run per engine keeps the corpus cheap; the printed lines are
 // mapped back to vector ids by parseCryptoResults.
-func buildCryptoProgram(t *testing.T, m *cryptoManifest) string {
+func buildCryptoProgram(t *testing.T, m *cryptoManifest, native bool) string {
 	t.Helper()
 	imports := map[string]string{
 		"hex": "std/encoding/hex",
@@ -287,6 +316,8 @@ func buildCryptoProgram(t *testing.T, m *cryptoManifest) string {
 				imports["rsa"] = "std/crypto/rsa"
 			case "x509-parse", "x509-chain":
 				imports["x509"] = "std/crypto/x509"
+			case "slhdsa-keygen", "slhdsa-sign", "slhdsa-verify":
+				imports["slhdsa"] = "std/crypto/slhdsa"
 			}
 		}
 	}
@@ -322,6 +353,9 @@ fn subjectSummary(cert: x509.Certificate) -> String {
 	idx := 0
 	for _, suite := range m.Suites {
 		for _, v := range suite.Vectors {
+			if !native && v.Engines == "native" {
+				continue
+			}
 			fmt.Fprintf(&b, "    // %s/%s\n", suite.Primitive, v.ID)
 			emitCryptoVector(&b, v, idx)
 			idx++
@@ -439,6 +473,8 @@ func emitCryptoVector(b *strings.Builder, v cryptoVector, idx int) {
 		b.WriteString("        Err(err) -> \"error:${err.message()}\"\n")
 		b.WriteString("    }\n")
 		fmt.Fprintf(b, "    print %q\n", v.ID+"\t${result"+fmt.Sprint(idx)+"}")
+	case "slhdsa-keygen", "slhdsa-sign", "slhdsa-verify":
+		emitSLHDSAVector(b, v, idx)
 	case "x509-chain":
 		for i, der := range v.Roots {
 			fmt.Fprintf(b, "    let anchor%d_%d = x509.parse(%s).expect(\"x509 anchor\")\n", idx, i, hexArg(der))
@@ -462,6 +498,43 @@ func emitCryptoVector(b *strings.Builder, v cryptoVector, idx int) {
 		}
 		emitResultVoid(b, v.ID, idx, fmt.Sprintf("x509.verifyChain(&anchors%d, &chain%d, %q, %d)",
 			idx, idx, v.Host, v.NowMillis))
+	}
+}
+
+func emitSLHDSASuffix(alg string) string {
+	if alg == "sha2-128s" {
+		return "128s"
+	}
+	return "128f"
+}
+
+func emitSLHDSABytes(b *strings.Builder, id string, idx int, value string) {
+	fmt.Fprintf(b, "    let slh%d = b(%q)\n", idx, value)
+}
+
+func emitSLHDSAVector(b *strings.Builder, v cryptoVector, idx int) {
+	suffix := emitSLHDSASuffix(v.Alg)
+	switch v.Op {
+	case "slhdsa-keygen":
+		emitSLHDSABytes(b, v.ID, idx, v.Key)
+		fmt.Fprintf(b, "    let seeds%d = slh%d\n", idx, idx)
+		fmt.Fprintf(b, "    let kp%d = slhdsa.keyGen%s(seeds%d.slice(0, 16).expect(\"skSeed\"), seeds%d.slice(16, 32).expect(\"skPrf\"), seeds%d.slice(32, 48).expect(\"pkSeed\")).expect(\"slhdsa keygen\")\n", idx, suffix, idx, idx, idx)
+		fmt.Fprintf(b, "    let ok%d = hex.encode(kp%d.secretKey) == %q && hex.encode(kp%d.publicKey) == %q\n", idx, idx, v.Secret, idx, v.Public)
+		fmt.Fprintf(b, "    print %q\n", v.ID+"\t${ok"+fmt.Sprint(idx)+"}")
+	case "slhdsa-sign":
+		emitSLHDSABytes(b, v.ID, idx, v.Secret)
+		emitSLHDSABytes(b, v.ID, idx+1, v.Message)
+		fmt.Fprintf(b, "    let ctx%d = b(%q)\n", idx, v.AAD)
+		fmt.Fprintf(b, "    let sig%d = slhdsa.signDeterministic%s(slh%d, ctx%d, slh%d).expect(\"slhdsa sign\")\n", idx, suffix, idx+1, idx, idx)
+		fmt.Fprintf(b, "    let ok%d = hex.encode(sig%d) == %q\n", idx, idx, v.Signature)
+		fmt.Fprintf(b, "    print %q\n", v.ID+"\t${ok"+fmt.Sprint(idx)+"}")
+	case "slhdsa-verify":
+		emitSLHDSABytes(b, v.ID, idx, v.Public)
+		emitSLHDSABytes(b, v.ID, idx+1, v.Message)
+		emitSLHDSABytes(b, v.ID, idx+2, v.Signature)
+		fmt.Fprintf(b, "    let ctx%d = b(%q)\n", idx, v.AAD)
+		fmt.Fprintf(b, "    let ok%d = slhdsa.verify%s(slh%d, ctx%d, slh%d, slh%d)\n", idx, suffix, idx+1, idx, idx+2, idx)
+		fmt.Fprintf(b, "    print %q\n", v.ID+"\t${ok"+fmt.Sprint(idx)+"}")
 	}
 }
 
@@ -513,10 +586,10 @@ func buildAndRunCryptoNative(t *testing.T, root string, m *driver.Module) map[st
 	return parseCryptoResults(t, out.String())
 }
 
-func TestCryptoConformance(t *testing.T) {
-	corpus := loadCryptoCorpus(t)
-	source := buildCryptoProgram(t, corpus)
-
+// loadCryptoProgram writes one generated program into its own module root and
+// loads it, so the VM and native runs cannot share lowered state.
+func loadCryptoProgram(t *testing.T, source string) (string, *driver.Module) {
+	t.Helper()
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, "main"), 0o755); err != nil {
 		t.Fatal(err)
@@ -525,30 +598,45 @@ func TestCryptoConformance(t *testing.T) {
 	if err := os.WriteFile(sourcePath, []byte(source), 0o644); err != nil {
 		t.Fatal(err)
 	}
-
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../../std", Entry: "main/main.kg"})
 	if err != nil {
 		t.Fatalf("load generated crypto program (%s): %v", sourcePath, err)
 	}
-	vm := runCryptoProgram(t, root, m)
+	return root, m
+}
+
+func TestCryptoConformance(t *testing.T) {
+	corpus := loadCryptoCorpus(t)
+
+	// SLH-DSA signing and key generation at the 128s parameters take minutes on
+	// the VM, so those vectors declare `"engines": "native"`; the VM program
+	// leaves them out and the native program includes them.
+	vmRoot, vmModule := loadCryptoProgram(t, buildCryptoProgram(t, corpus, false))
+	vm := runCryptoProgram(t, vmRoot, vmModule)
 
 	var native map[string]string
 	if testCompiler().CCompiler() == nil {
 		t.Log("native engine skipped: no C compiler")
 	} else {
-		native = buildAndRunCryptoNative(t, root, m)
+		nativeRoot, nativeModule := loadCryptoProgram(t, buildCryptoProgram(t, corpus, true))
+		native = buildAndRunCryptoNative(t, nativeRoot, nativeModule)
 	}
 
 	for _, suite := range corpus.Suites {
 		for _, v := range suite.Vectors {
 			v := v
 			t.Run(suite.Primitive+"/"+v.ID, func(t *testing.T) {
-				if got, ok := vm[v.ID]; !ok {
-					t.Errorf("%s/%s: vm emitted no result", suite.Primitive, v.ID)
-				} else if got != *v.Expected {
-					t.Errorf("%s/%s: vm = %q, want %q", suite.Primitive, v.ID, got, *v.Expected)
+				if v.Engines != "native" {
+					if got, ok := vm[v.ID]; !ok {
+						t.Errorf("%s/%s: vm emitted no result", suite.Primitive, v.ID)
+					} else if got != *v.Expected {
+						t.Errorf("%s/%s: vm = %q, want %q", suite.Primitive, v.ID, got, *v.Expected)
+					}
 				}
 				if native == nil {
+					if v.Engines == "native" {
+						t.Logf("%s/%s: native-only vector not run; no C compiler", suite.Primitive, v.ID)
+					}
 					return
 				}
 				if got, ok := native[v.ID]; !ok {

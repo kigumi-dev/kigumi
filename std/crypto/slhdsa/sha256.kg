@@ -1,0 +1,239 @@
+// SHA-256 (FIPS 180-4) for SLH-DSA's fixed-prefix calls.
+//
+// The SLH-DSA-SHA2 instantiations hash PK.seed || toByte(0, 64 - n) || ADRS
+// || data. For the 128-bit parameter sets that prefix begins with a full
+// 64-byte block that depends only on PK.seed, so `midState` compresses it
+// once per operation and `hashPrefixed` starts every later call from that
+// state. `digest` handles the remaining blocks and the FIPS 180-4 padding.
+//
+// The compression function keeps its message schedule and round constants in
+// local `FixedArray`s. Local fixed arrays stay in registers/stack; a field of a
+// heap value would send every index through the runtime's boxed accessors,
+// which makes the millions of hashes in signing noticeably slower.
+import binary from std/encoding/binary
+
+/// Bytes of a SHA-256 digest.
+pub const digestSize: usize = 32
+
+/// Bytes per SHA-256 block.
+pub const blockSize: usize = 64
+
+/// A zeroed 8-word SHA-256 state.
+pure fn zeroState() -> FixedArray[u32, 8] {
+    FixedArray.filled[u32, 8](0)
+}
+
+/// The FIPS 180-4 initial state.
+pure fn initialState() -> FixedArray[u32, 8] {
+    let mut h = FixedArray.filled[u32, 8](0)
+    h[0] = 0x6a09e667
+    h[1] = 0xbb67ae85
+    h[2] = 0x3c6ef372
+    h[3] = 0xa54ff53a
+    h[4] = 0x510e527f
+    h[5] = 0x9b05688c
+    h[6] = 0x1f83d9ab
+    h[7] = 0x5be0cd19
+    h
+}
+
+/// One compression of `block` into `h` (FIPS 180-4 §6.2.2).
+pure fn compress(h: FixedArray[u32, 8], block: FixedArray[u8, 64]) -> FixedArray[u32, 8] {
+    let mut w = FixedArray.filled[u32, 64](0)
+    let mut k = FixedArray.filled[u32, 64](0)
+    k[0] = 0x428a2f98
+    k[1] = 0x71374491
+    k[2] = 0xb5c0fbcf
+    k[3] = 0xe9b5dba5
+    k[4] = 0x3956c25b
+    k[5] = 0x59f111f1
+    k[6] = 0x923f82a4
+    k[7] = 0xab1c5ed5
+    k[8] = 0xd807aa98
+    k[9] = 0x12835b01
+    k[10] = 0x243185be
+    k[11] = 0x550c7dc3
+    k[12] = 0x72be5d74
+    k[13] = 0x80deb1fe
+    k[14] = 0x9bdc06a7
+    k[15] = 0xc19bf174
+    k[16] = 0xe49b69c1
+    k[17] = 0xefbe4786
+    k[18] = 0x0fc19dc6
+    k[19] = 0x240ca1cc
+    k[20] = 0x2de92c6f
+    k[21] = 0x4a7484aa
+    k[22] = 0x5cb0a9dc
+    k[23] = 0x76f988da
+    k[24] = 0x983e5152
+    k[25] = 0xa831c66d
+    k[26] = 0xb00327c8
+    k[27] = 0xbf597fc7
+    k[28] = 0xc6e00bf3
+    k[29] = 0xd5a79147
+    k[30] = 0x06ca6351
+    k[31] = 0x14292967
+    k[32] = 0x27b70a85
+    k[33] = 0x2e1b2138
+    k[34] = 0x4d2c6dfc
+    k[35] = 0x53380d13
+    k[36] = 0x650a7354
+    k[37] = 0x766a0abb
+    k[38] = 0x81c2c92e
+    k[39] = 0x92722c85
+    k[40] = 0xa2bfe8a1
+    k[41] = 0xa81a664b
+    k[42] = 0xc24b8b70
+    k[43] = 0xc76c51a3
+    k[44] = 0xd192e819
+    k[45] = 0xd6990624
+    k[46] = 0xf40e3585
+    k[47] = 0x106aa070
+    k[48] = 0x19a4c116
+    k[49] = 0x1e376c08
+    k[50] = 0x2748774c
+    k[51] = 0x34b0bcb5
+    k[52] = 0x391c0cb3
+    k[53] = 0x4ed8aa4a
+    k[54] = 0x5b9cca4f
+    k[55] = 0x682e6ff3
+    k[56] = 0x748f82ee
+    k[57] = 0x78a5636f
+    k[58] = 0x84c87814
+    k[59] = 0x8cc70208
+    k[60] = 0x90befffa
+    k[61] = 0xa4506ceb
+    k[62] = 0xbef9a3f7
+    k[63] = 0xc67178f2
+
+    let mut i: usize = 0
+    for i < 16 {
+        w[i] = (block[i * 4].toU32() << 24) | (block[i * 4 + 1].toU32() << 16) | (block[i * 4 + 2].toU32() << 8) | block[i * 4 + 3].toU32()
+        i = i + 1
+    }
+    i = 16
+    for i < 64 {
+        let x = w[i - 15]
+        let y = w[i - 2]
+        let s0 = x.rotateRight(7) ^ x.rotateRight(18) ^ (x >> 3)
+        let s1 = y.rotateRight(17) ^ y.rotateRight(19) ^ (y >> 10)
+        w[i] = w[i - 16].wrappingAdd(s0).wrappingAdd(w[i - 7]).wrappingAdd(s1)
+        i = i + 1
+    }
+    let mut a = h[0]
+    let mut b = h[1]
+    let mut c = h[2]
+    let mut d = h[3]
+    let mut e = h[4]
+    let mut f = h[5]
+    let mut g = h[6]
+    let mut hh = h[7]
+    i = 0
+    for i < 64 {
+        let s1 = e.rotateRight(6) ^ e.rotateRight(11) ^ e.rotateRight(25)
+        let ch = (e & f) ^ ((e ^ 0xffffffff) & g)
+        let t1 = hh.wrappingAdd(s1).wrappingAdd(ch).wrappingAdd(k[i]).wrappingAdd(w[i])
+        let s0 = a.rotateRight(2) ^ a.rotateRight(13) ^ a.rotateRight(22)
+        let maj = (a & b) ^ (a & c) ^ (b & c)
+        let t2 = s0.wrappingAdd(maj)
+        hh = g
+        g = f
+        f = e
+        e = d.wrappingAdd(t1)
+        d = c
+        c = b
+        b = a
+        a = t1.wrappingAdd(t2)
+        i = i + 1
+    }
+    let mut out = FixedArray.filled[u32, 8](0)
+    out[0] = h[0].wrappingAdd(a)
+    out[1] = h[1].wrappingAdd(b)
+    out[2] = h[2].wrappingAdd(c)
+    out[3] = h[3].wrappingAdd(d)
+    out[4] = h[4].wrappingAdd(e)
+    out[5] = h[5].wrappingAdd(f)
+    out[6] = h[6].wrappingAdd(g)
+    out[7] = h[7].wrappingAdd(hh)
+    out
+}
+
+/// The state after absorbing the 64-byte `block` into the initial state.
+pure fn stateFromBlock(block: FixedArray[u8, 64]) -> FixedArray[u32, 8] {
+    compress(initialState(), block)
+}
+
+/// The state after absorbing `seed || toByte(0, 64 - seed.len())`, the fixed
+/// first block of every F/H/T/PRF call. `seed` is `n` bytes with n <= 64.
+pub pure fn midState(seed: Bytes) -> FixedArray[u32, 8] {
+    let mut block = FixedArray.filled[u8, 64](0)
+    let mut i: usize = 0
+    for i < seed.len() {
+        block[i] = seed[i]
+        i = i + 1
+    }
+    stateFromBlock(block)
+}
+
+/// FIPS 180-4 padding and finalization of `data`, starting from `state` after
+/// `prefixLen` bytes that are already absorbed. `prefixLen` is a multiple of
+/// the block size.
+pure fn finish(state: FixedArray[u32, 8], prefixLen: usize, data: Bytes) -> Bytes {
+    let total = prefixLen + data.len()
+    let mut h = state
+    let mut off: usize = 0
+    for off + 64 <= data.len() {
+        let mut block = FixedArray.filled[u8, 64](0)
+        let mut i: usize = 0
+        for i < 64 {
+            block[i] = data[off + i]
+            i = i + 1
+        }
+        h = compress(h, block)
+        off = off + 64
+    }
+    let rem = data.len() - off
+    let mut block = FixedArray.filled[u8, 64](0)
+    let mut i: usize = 0
+    for i < rem {
+        block[i] = data[off + i]
+        i = i + 1
+    }
+    block[rem] = 0x80
+    if rem >= 56 {
+        h = compress(h, block)
+        block = FixedArray.filled[u8, 64](0)
+    }
+    let mut bits = total * 8
+    let mut i: usize = 0
+    for i < 8 {
+        block[63 - i] = bits.truncate[u8]()
+        bits = bits >> 8
+        i = i + 1
+    }
+    h = compress(h, block)
+    let mut out = Array.empty[u8]()
+    i = 0
+    for i < 8 {
+        binary.putU32Be(&mut out, h[i])
+        i = i + 1
+    }
+    Bytes.fromArray(&out)
+}
+
+/// SHA-256 of `data`.
+pub pure fn digest(data: Bytes) -> Bytes {
+    finish(initialState(), 0, data)
+}
+
+/// Trunc_n of SHA-256(PK.seed || toByte(0, 64 - n) || ADRS || data), where
+/// `mid` is `midState(PK.seed)` and `adrs` is the compressed 22-byte address.
+pub pure fn hashPrefixed(mid: FixedArray[u32, 8], adrs: Bytes, data: Bytes, n: usize) -> Bytes {
+    let full = finish(mid, 64, adrs.concat(data))
+    exactSlice(full, 0, n)
+}
+
+/// A borrow-free copy of `b[start:end]`; the caller has checked the bounds.
+pure fn exactSlice(b: Bytes, start: usize, end: usize) -> Bytes {
+    b.slice(start, end) || panic("slhdsa: internal slice out of range")
+}

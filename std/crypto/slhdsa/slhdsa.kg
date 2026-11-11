@@ -1,0 +1,254 @@
+import subtle from std/crypto/subtle
+
+// SLH-DSA with SHA2 at security category 1 (FIPS 205).
+//
+// Two parameter sets are provided: SLH-DSA-SHA2-128s (small signatures, slow
+// signing) and SLH-DSA-SHA2-128f (fast signing, larger signatures). Both use
+// the standard serialization from FIPS 205 §9:
+//
+//   PK = PK.seed || PK.root                                    32 bytes
+//   SK = SK.seed || SK.prf || PK.seed || PK.root               64 bytes
+//   SIG = R || SIG_FORS || SIG_HT              7856 or 17088 bytes
+//
+// Key generation and signing take their randomness from the caller, as in
+// `std/crypto/mlkem`: `keyGen*` takes the three n-byte seeds, and
+// `signWithRandomness*` takes the n-byte additional randomizer of the hedged
+// variant. `signDeterministic*` follows the deterministic variant, which uses
+// PK.seed as opt_rand.
+/// A freshly generated SLH-DSA key pair.
+pub type KeyPair = {
+    pub secretKey Bytes
+    pub publicKey Bytes
+}
+
+/// 2^bits - 1 as a u64, for bits in 0 .. 64.
+pure fn lowMask(bits: usize) -> u64 {
+    let mut m: u64 = 1
+    let mut i: usize = 0
+    for i < bits {
+        m = m << 1
+        i = i + 1
+    }
+    m - 1
+}
+
+/// toInt(X, len) of at most eight bytes (FIPS 205 Algorithm 2).
+pure fn toInt(x: Bytes) -> u64 {
+    let mut total: u64 = 0
+    let mut i: usize = 0
+    for i < x.len() {
+        total = (total << 8) | x[i].toU64()
+        i = i + 1
+    }
+    total
+}
+
+/// SLH-DSA.KeyGen_internal(SK.seed, SK.prf, PK.seed) (Algorithm 18).
+pure fn keyGenInternal(p: Params, skSeed: Bytes, skPrf: Bytes, pkSeed: Bytes) -> KeyPair {
+    let mid = midState(pkSeed)
+    let mut a = Adrs.new()
+    a.setLayerAddress(narrowU32(p.d - 1))
+    let root = xmssNode(p, skSeed, 0, p.hPrime, mid, a)
+    KeyPair {
+        secretKey: skSeed.concat(skPrf).concat(pkSeed).concat(root)
+        publicKey: pkSeed.concat(root)
+    }
+}
+
+/// The message digest, tree index and leaf index extracted from H_msg
+/// (FIPS 205 Algorithm 19 lines 5-10).
+type Digest = {
+    md Bytes
+    treeIndex u64
+    leafIndex u64
+}
+
+/// H_msg and the bit extraction shared by signing and verification.
+pure fn messageDigest(p: Params, r: Bytes, pkSeed: Bytes, root: Bytes, message: Bytes) -> Digest {
+    let digest = hashHMsg(r, pkSeed, root, message, p.m)
+    let mdLen = mdSize(p)
+    let treeLen = treeIndexSize(p)
+    let leafLen = leafIndexSize(p)
+    Digest {
+        md: exactSlice(digest, 0, mdLen)
+        treeIndex: toInt(exactSlice(digest, mdLen, mdLen + treeLen)) & lowMask(p.h - p.hPrime)
+        leafIndex: toInt(exactSlice(digest, mdLen + treeLen, mdLen + treeLen + leafLen)) & lowMask(p.hPrime)
+    }
+}
+
+/// ht_sign(M, SK.seed, PK.seed, idx_tree, idx_leaf) (Algorithm 12).
+pure fn htSign(p: Params, message: Bytes, skSeed: Bytes, treeIndexIn: u64, leafIndexIn: u64, mid: FixedArray[u32, 8]) -> Bytes {
+    let mut treeIndex = treeIndexIn
+    let mut leafIndex = leafIndexIn
+    let mut a = Adrs.new()
+    a.setTreeAddress(treeIndex)
+    let mut out = Array.empty[u8]()
+    let mut sig = xmssSign(p, message, skSeed, leafIndex.toUsize(), mid, a)
+    append(&mut out, sig)
+    let mut root = xmssPkFromSig(p, leafIndex.toUsize(), sig, message, mid, a)
+    let per = (p.hPrime + len) * n
+    let mut j: usize = 1
+    for j < p.d {
+        leafIndex = treeIndex & lowMask(p.hPrime)
+        treeIndex = treeIndex >> p.hPrime
+        a.setLayerAddress(narrowU32(j))
+        a.setTreeAddress(treeIndex)
+        sig = xmssSign(p, root, skSeed, leafIndex.toUsize(), mid, a)
+        append(&mut out, sig)
+        if j < p.d - 1 {
+            root = xmssPkFromSig(p, leafIndex.toUsize(), sig, root, mid, a)
+        }
+        j = j + 1
+    }
+    Bytes.fromArray(&out)
+}
+
+/// ht_verify(M, SIG_HT, PK.seed, idx_tree, idx_leaf, PK.root) (Algorithm 13).
+pure fn htVerify(p: Params, message: Bytes, sig: Bytes, mid: FixedArray[u32, 8], treeIndexIn: u64, leafIndexIn: u64, root: Bytes) -> Bool {
+    let mut treeIndex = treeIndexIn
+    let mut leafIndex = leafIndexIn
+    let per = (p.hPrime + len) * n
+    let mut a = Adrs.new()
+    a.setTreeAddress(treeIndex)
+    let mut current = xmssPkFromSig(p, leafIndex.toUsize(), exactSlice(sig, 0, per), message, mid, a)
+    let mut j: usize = 1
+    for j < p.d {
+        leafIndex = treeIndex & lowMask(p.hPrime)
+        treeIndex = treeIndex >> p.hPrime
+        a.setLayerAddress(narrowU32(j))
+        a.setTreeAddress(treeIndex)
+        current = xmssPkFromSig(p, leafIndex.toUsize(), exactSlice(sig, j * per, (j + 1) * per), current, mid, a)
+        j = j + 1
+    }
+    subtle.constantTimeEq(current, root)
+}
+
+/// SLH-DSA.Sign_internal(M, SK, addrand) (Algorithm 19).
+pub pure fn signInternal(p: Params, message: Bytes, secretKey: Bytes, addrand: Bytes) -> Bytes {
+    let skSeed = exactSlice(secretKey, 0, n)
+    let skPrf = exactSlice(secretKey, n, 2 * n)
+    let pkSeed = exactSlice(secretKey, 2 * n, 3 * n)
+    let root = exactSlice(secretKey, 3 * n, 4 * n)
+    let mid = midState(pkSeed)
+    let mut a = Adrs.new()
+    let r = hashPrfMsg(skPrf, addrand, message)
+    let d = messageDigest(p, r, pkSeed, root, message)
+    a.setTreeAddress(d.treeIndex)
+    a.setTypeAndClear(forsTree)
+    a.setKeyPairAddress(narrowU32(d.leafIndex.toUsize()))
+    let forsSig = forsSign(p, d.md, skSeed, mid, a)
+    let forsPk = forsPkFromSig(p, forsSig, d.md, mid, a)
+    let htSig = htSign(p, forsPk, skSeed, d.treeIndex, d.leafIndex, mid)
+    r.concat(forsSig).concat(htSig)
+}
+
+/// SLH-DSA.Verify_internal(M, SIG, PK) (Algorithm 20).
+pub pure fn verifyInternal(p: Params, message: Bytes, signature: Bytes, publicKey: Bytes) -> Bool {
+    if signature.len() != signatureSize(p) || publicKey.len() != publicKeySize {
+        return false
+    }
+    let pkSeed = exactSlice(publicKey, 0, n)
+    let root = exactSlice(publicKey, n, 2 * n)
+    let mid = midState(pkSeed)
+    let r = exactSlice(signature, 0, n)
+    let forsLen = p.k * (1 + p.a) * n
+    let forsSig = exactSlice(signature, n, n + forsLen)
+    let htSig = exactSlice(signature, n + forsLen, signature.len())
+    let d = messageDigest(p, r, pkSeed, root, message)
+    let mut a = Adrs.new()
+    a.setTreeAddress(d.treeIndex)
+    a.setTypeAndClear(forsTree)
+    a.setKeyPairAddress(narrowU32(d.leafIndex.toUsize()))
+    let forsPk = forsPkFromSig(p, forsSig, d.md, mid, a)
+    htVerify(p, forsPk, htSig, mid, d.treeIndex, d.leafIndex, root)
+}
+
+/// M' = toByte(0, 1) || toByte(|ctx|, 1) || ctx || M (Algorithm 22 line 8).
+pure fn mprime(ctx: Bytes, message: Bytes) -> Bytes {
+    let mut prefix = Array.empty[u8]()
+    prefix.push(0)
+    prefix.push(narrowU8(ctx.len()))
+    append(&mut prefix, ctx)
+    append(&mut prefix, message)
+    Bytes.fromArray(&prefix)
+}
+
+/// SLH-DSA.KeyGen for SLH-DSA-SHA2-128s from three 16-byte seeds.
+pub pure fn keyGen128s(skSeed: Bytes, skPrf: Bytes, pkSeed: Bytes) -> Result[KeyPair, Error] {
+    keyGenChecked(params128s(), skSeed, skPrf, pkSeed)
+}
+
+/// SLH-DSA.KeyGen for SLH-DSA-SHA2-128f from three 16-byte seeds.
+pub pure fn keyGen128f(skSeed: Bytes, skPrf: Bytes, pkSeed: Bytes) -> Result[KeyPair, Error] {
+    keyGenChecked(params128f(), skSeed, skPrf, pkSeed)
+}
+
+/// Shared length checks and key generation.
+pure fn keyGenChecked(p: Params, skSeed: Bytes, skPrf: Bytes, pkSeed: Bytes) -> Result[KeyPair, Error] {
+    if skSeed.len() != seedSize || skPrf.len() != seedSize || pkSeed.len() != seedSize {
+        return Err(Error.BadSeedSize)
+    }
+    Ok(keyGenInternal(p, skSeed, skPrf, pkSeed))
+}
+
+/// SLH-DSA.Sign (deterministic variant) for SLH-DSA-SHA2-128s.
+pub pure fn signDeterministic128s(message: Bytes, ctx: Bytes, secretKey: Bytes) -> Result[Bytes, Error] {
+    signDeterministic(params128s(), message, ctx, secretKey)
+}
+
+/// SLH-DSA.Sign (deterministic variant) for SLH-DSA-SHA2-128f.
+pub pure fn signDeterministic128f(message: Bytes, ctx: Bytes, secretKey: Bytes) -> Result[Bytes, Error] {
+    signDeterministic(params128f(), message, ctx, secretKey)
+}
+
+/// The deterministic signing variant, shared by both parameter sets.
+pure fn signDeterministic(p: Params, message: Bytes, ctx: Bytes, secretKey: Bytes) -> Result[Bytes, Error] {
+    checkedSign(p, message, ctx, secretKey, exactSlice(secretKey, 2 * n, 3 * n))
+}
+
+/// SLH-DSA.Sign (hedged variant) for SLH-DSA-SHA2-128s.
+pub pure fn signWithRandomness128s(message: Bytes, ctx: Bytes, secretKey: Bytes, optRand: Bytes) -> Result[Bytes, Error] {
+    signHedged(params128s(), message, ctx, secretKey, optRand)
+}
+
+/// SLH-DSA.Sign (hedged variant) for SLH-DSA-SHA2-128f.
+pub pure fn signWithRandomness128f(message: Bytes, ctx: Bytes, secretKey: Bytes, optRand: Bytes) -> Result[Bytes, Error] {
+    signHedged(params128f(), message, ctx, secretKey, optRand)
+}
+
+/// The hedged signing variant, shared by both parameter sets.
+pure fn signHedged(p: Params, message: Bytes, ctx: Bytes, secretKey: Bytes, optRand: Bytes) -> Result[Bytes, Error] {
+    if optRand.len() != n {
+        return Err(Error.BadRandomnessSize)
+    }
+    checkedSign(p, message, ctx, secretKey, optRand)
+}
+
+/// Length checks and the call to the internal signing algorithm.
+pure fn checkedSign(p: Params, message: Bytes, ctx: Bytes, secretKey: Bytes, optRand: Bytes) -> Result[Bytes, Error] {
+    if ctx.len() > 255 {
+        return Err(Error.ContextTooLong)
+    }
+    if secretKey.len() != secretKeySize {
+        return Err(Error.BadSecretKeySize)
+    }
+    Ok(signInternal(p, mprime(ctx, message), secretKey, optRand))
+}
+
+/// SLH-DSA.Verify for SLH-DSA-SHA2-128s.
+pub pure fn verify128s(message: Bytes, ctx: Bytes, signature: Bytes, publicKey: Bytes) -> Bool {
+    verify(params128s(), message, ctx, signature, publicKey)
+}
+
+/// SLH-DSA.Verify for SLH-DSA-SHA2-128f.
+pub pure fn verify128f(message: Bytes, ctx: Bytes, signature: Bytes, publicKey: Bytes) -> Bool {
+    verify(params128f(), message, ctx, signature, publicKey)
+}
+
+/// The shared verification entry point.
+pure fn verify(p: Params, message: Bytes, ctx: Bytes, signature: Bytes, publicKey: Bytes) -> Bool {
+    if ctx.len() > 255 || publicKey.len() != publicKeySize {
+        return false
+    }
+    verifyInternal(p, mprime(ctx, message), signature, publicKey)
+}

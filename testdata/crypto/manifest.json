@@ -46,6 +46,11 @@
       "primitive": "x509",
       "source": "Deterministic local test PKI generated with OpenSSL 3.5 (see testdata/run/crypto_x509_pki.txtar)",
       "path": "x509.json"
+    },
+    {
+      "primitive": "slhdsa",
+      "source": "NIST ACVP SLH-DSA-keyGen/sigGen/sigVer FIPS205 subset (SHA2-128s and SHA2-128f), plus malformed-signature cases",
+      "path": "slhdsa.json"
     }
   ]
 }
