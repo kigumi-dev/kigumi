@@ -45,6 +45,17 @@ This keeps a group move to a `git mv` plus manifest regeneration.
 Shards hash IDs, not paths, so moving a fixture between groups never reshuffles
 CI. Tests pass corpus paths through `fixture.ShardPaths`.
 
+Current groups:
+
+| Kind | Groups |
+|---|---|
+| `run` | `async`, `compiler`, `concurrency`, `errors`, `ffi`, `language`, `modules`, `ownership`, `runtime`, `std`, `types` |
+| `sem` | `async`, `diagnostics`, `effects`, `ffi`, `modules`, `ownership`, `runtime`, `std`, `types` |
+| `mir` | `borrow`, `codegen`, `lifetime`, `move` |
+| `parser` | `declarations`, `diagnostics`, `expressions`, `literals`, `patterns`, `statements` |
+| `fmt` | `comments`, `declarations`, `expressions`, `literals`, `statements`, `types` |
+| `oom` | `alloc`, `array`, `builder`, `bytes`, `map`, `os`, `shared`, `string`, `text` |
+
 ### Manifest
 
 `testdata/manifest.json` is generated; do not hand-edit it. Schema 2 entries

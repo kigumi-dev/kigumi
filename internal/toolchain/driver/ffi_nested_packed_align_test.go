@@ -14,7 +14,7 @@ import (
 // record nested inside a layout(packed) record must have its own
 // generated reader/writer honor the reduced alignment the outer packing
 // gives its address, not the record's own natural alignment. Wrong
-// values don't surface in testdata/run/ffi_nested_packed.txtar on
+// values don't surface in the ffi_nested_packed run fixture on
 // x86-64 at -O1 (the host tolerates the misaligned access), so this
 // inspects the generated LLVM IR align annotations directly.
 func TestFFINestedPackedAlign(t *testing.T) {

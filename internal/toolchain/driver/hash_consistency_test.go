@@ -9,7 +9,7 @@ import (
 	"kigumi/internal/toolchain/driver"
 )
 
-// TestHashConsistency runs testdata/run/hash_consistency.txtar on the VM
+// TestHashConsistency runs the hash_consistency run fixture on the VM
 // directly and on the native build, so a hash() drift between the two
 // engines fails here even when it would not fail the shared-fixture checks.
 func TestHashConsistency(t *testing.T) {
