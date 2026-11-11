@@ -46,7 +46,7 @@ func (m *Module) addHeaders(dir string, mf module.ModFile) error {
 		}
 		res, err := m.importHeader(cheader.Options{
 			ZigPath:    zigPath,
-			ABI:        cheader.ABIFor(m.target.OS, m.target.Arch),
+			ABI:        cheader.ABIForLayout(m.target.Layout()),
 			HeaderPath: headerPath,
 			Root:       dir,
 			Abs:        m.compiler.Abs,

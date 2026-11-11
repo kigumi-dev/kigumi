@@ -6,14 +6,24 @@ import (
 )
 
 // dataLayouts are LLVM's datalayout strings as zig cc reports them, keyed by
-// architecture; windowsDataLayouts holds the ones Windows changes.
+// architecture; windowsDataLayouts holds the ones Windows changes. The first
+// component is the byte order ("e" little, "E" big), which the table must
+// agree with (BigEndian), and the p: entries give the pointer layout.
 var dataLayouts = map[string]string{
-	"amd64":   "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128",
-	"386":     "e-m:e-p:32:32-p270:32:32-p271:32:32-p272:64:64-i128:128-f64:32:64-f80:32-n8:16:32-S128",
-	"arm64":   "e-m:e-p270:32:32-p271:32:32-p272:64:64-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128-Fn32",
-	"riscv64": "e-m:e-p:64:64-i64:64-i128:128-n32:64-S128",
-	"wasm32":  "e-m:e-p:32:32-p10:8:8-p20:8:8-i64:64-i128:128-n32:64-S128-ni:1:10:20",
-	"arm":     "e-m:e-p:32:32-Fi8-i64:64-v128:64:128-a:0:32-n32-S64",
+	"amd64":    "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128",
+	"386":      "e-m:e-p:32:32-p270:32:32-p271:32:32-p272:64:64-i128:128-f64:32:64-f80:32-n8:16:32-S128",
+	"arm64":    "e-m:e-p270:32:32-p271:32:32-p272:64:64-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128-Fn32",
+	"riscv64":  "e-m:e-p:64:64-i64:64-i128:128-n32:64-S128",
+	"wasm32":   "e-m:e-p:32:32-p10:8:8-p20:8:8-i64:64-i128:128-n32:64-S128-ni:1:10:20",
+	"arm":      "e-m:e-p:32:32-Fi8-i64:64-v128:64:128-a:0:32-n32-S64",
+	"mips":     "E-m:m-p:32:32-i8:8:32-i16:16:32-i64:64-n32-S64",
+	"mipsle":   "e-m:m-p:32:32-i8:8:32-i16:16:32-i64:64-n32-S64",
+	"mips64":   "E-m:e-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128",
+	"mips64le": "e-m:e-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128",
+	"ppc64":    "E-m:e-Fn32-i64:64-i128:128-n32:64-S128-v256:256:256-v512:512:512",
+	"ppc64le":  "e-m:e-Fn32-i64:64-i128:128-n32:64-S128-v256:256:256-v512:512:512",
+	"s390x":    "E-m:e-i1:8:16-i8:8:16-i64:64-f128:64-v128:64-a:8:16-n32:64",
+	"loong64":  "e-m:e-p:64:64-i64:64-i128:128-n32:64-S128",
 }
 
 // windowsDataLayouts follows what zig cc reports for COFF targets: the mangling

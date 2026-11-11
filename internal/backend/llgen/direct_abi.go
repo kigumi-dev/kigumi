@@ -7,11 +7,22 @@ import (
 	midir "kigumi/internal/compiler/mir/ir"
 )
 
-// aggByValueBytes: up to two machine words travels as a first-class value,
-// above it as a pointer to caller storage the callee copies in.
-const aggByValueBytes = 16
+// aggByValueBytes is the largest aggregate the direct ABI passes as a
+// first-class value: two machine words, capped by the C ABI's own aggregate
+// register limit (the Microsoft x64 convention moves at most 8 bytes). A
+// larger aggregate travels as a pointer to caller storage the callee copies
+// in.
+func (e *emitter) aggByValueBytes() int {
+	n := 2 * e.layout.PtrBits / 8
+	if lim := e.layout.ABI.AggregateRegBytes; lim > 0 && lim < n {
+		n = lim
+	}
+	return n
+}
 
-func byValueAgg(a *aggInfo) bool { return a.Size <= aggByValueBytes && !a.holdsArray() }
+func (e *emitter) byValueAgg(a *aggInfo) bool {
+	return a.Size <= int64(e.aggByValueBytes()) && !a.holdsArray()
+}
 
 // A nil entry means that position stays a val.
 type aggSig struct {
@@ -61,7 +72,7 @@ func (e *emitter) sigHeader(f *midir.Func, s *aggSig) string {
 		ret = r.Ty.String()
 	}
 	if s != nil && s.Ret != nil {
-		if byValueAgg(s.Ret) {
+		if e.byValueAgg(s.Ret) {
 			ret = s.Ret.Name
 		} else {
 			ret, params = "void", append(params, "ptr %sret")
@@ -76,7 +87,7 @@ func (e *emitter) sigHeader(f *midir.Func, s *aggSig) string {
 			params = append(params, fmt.Sprintf("%s %%p%d", info.Ty, i))
 			continue
 		}
-		if a := s.param(i); a != nil && byValueAgg(a) {
+		if a := s.param(i); a != nil && e.byValueAgg(a) {
 			params = append(params, fmt.Sprintf("%s %%p%d", a.Name, i))
 			continue
 		}
@@ -108,7 +119,7 @@ func (e *emitter) storeParams(sb *strings.Builder, f *midir.Func, s *aggSig) {
 			continue
 		}
 		e.requireDirect(prm, "parameter")
-		if byValueAgg(a) {
+		if e.byValueAgg(a) {
 			fmt.Fprintf(sb, "  store %s %%p%d, ptr %s\n", a.Name, i, aggPtr(prm))
 			continue
 		}

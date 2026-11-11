@@ -132,9 +132,22 @@ func (t Target) COFF() bool { return t.OS == "uefi" }
 // means no OS services; a host-OS bare archive still uses that OS's own headers and ABI.
 func (t Target) Bare() bool { return t.Freestanding() || t.Sys == "none" }
 
-// Layout is the width-dependent view of the target for the checker and
-// the backend.
-func (t Target) Layout() target.Layout { return target.ForArch(t.OS, t.Arch) }
+// Layout is the width-dependent and C-ABI view of the target for the
+// checker, the backend and the header importer; the triple's ABI segment
+// picks the C library variant (Windows msvc makes long double a double).
+func (t Target) Layout() target.Layout {
+	return target.ForOSABI(t.OS, t.Arch, t.ABISegment())
+}
+
+// ABISegment is the triple's optional third component ("gnu", "msvc",
+// "musl", ...); "" leaves the platform's default C library ABI.
+func (t Target) ABISegment() string {
+	parts := strings.Split(t.Triple, "-")
+	if len(parts) < 3 {
+		return ""
+	}
+	return parts[2]
+}
 
 // NoDefaultAllocator reports the `--allocator none` profile.
 func (t Target) NoDefaultAllocator() bool { return t.Allocator == "none" }

@@ -1,7 +1,6 @@
 package llgen
 
 import (
-	"cmp"
 	"fmt"
 	"strings"
 
@@ -69,14 +68,6 @@ func (e *emitter) cRegister(t sem.TypeID) bool {
 	return tt.IsFloat(t) || tt.Kind(t) == sem.KPtr || tt.IsInteger(t)
 }
 
-// cIntABI is which C integers the target's ABI extends to a full register, as clang marks them signext or zeroext.
-type cIntABI struct{ narrow, word bool }
-
-// The 64-bit Arm ABI outside Apple and the Windows x64 ABI leave narrow integers unextended; RV64 sign-extends 32-bit ones too.
-func cIntABIFor(arch, os string) cIntABI {
-	return cIntABI{narrow: !(arch == "arm64" && os != "darwin") && !(cmp.Or(arch, "amd64") == "amd64" && os == "windows"), word: arch == "riscv64"}
-}
-
 // cExt is the extension attribute of C integer type t on this target: RV64 makes u32 signext as well.
 func (e *emitter) cExt(t sem.TypeID) string {
 	tt := e.r.Types
@@ -85,7 +76,7 @@ func (e *emitter) cExt(t sem.TypeID) string {
 		return ""
 	}
 	switch w := tt.CWidth(t); {
-	case w > 32, w == 32 && !e.cabi.word, w < 32 && !e.cabi.narrow:
+	case w > 32, w == 32 && !e.layout.ABI.WordExtends, w < 32 && !e.layout.ABI.NarrowExtends:
 		return ""
 	case w == 32 || tt.IsSigned(t):
 		return " signext"

@@ -45,7 +45,7 @@ func (e *emitter) mainOkTag(a *aggInfo) int {
 func (e *emitter) callDirectMain(sb *strings.Builder, main string) {
 	a := e.directSig(e.p.Entry).Ret
 	slot := e.stackSlot(sb, a.Name)
-	if byValueAgg(a) {
+	if e.byValueAgg(a) {
 		v := e.newTmp()
 		fmt.Fprintf(sb, "  %s = call %s %s()\n  store %s %s, ptr %s\n", v, a.Name, main, a.Name, v, slot)
 	} else {

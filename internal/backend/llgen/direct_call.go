@@ -9,7 +9,7 @@ import (
 
 func (e *emitter) aggArg(sb *strings.Builder, a *aggInfo, l midir.LocalID) string {
 	e.requireDirect(l, "argument")
-	if byValueAgg(a) {
+	if e.byValueAgg(a) {
 		return a.Name + " " + e.aggValue(sb, a, aggPtr(l))
 	}
 	return "ptr " + aggPtr(l)
@@ -36,7 +36,7 @@ func (e *emitter) directCall(sb *strings.Builder, f *midir.Func, in midir.Inst, 
 }
 
 func (e *emitter) retSlot(sb *strings.Builder, s *aggSig) (args []string, out string) {
-	if s != nil && s.Ret != nil && !byValueAgg(s.Ret) {
+	if s != nil && s.Ret != nil && !e.byValueAgg(s.Ret) {
 		out = e.stackSlot(sb, s.Ret.Name)
 		args = append(args, "ptr "+out)
 	}
@@ -49,7 +49,7 @@ func (e *emitter) callInto(sb *strings.Builder, dst midir.LocalID, sym string, a
 		t := e.newTmp()
 		fmt.Fprintf(sb, "  %s = call ptr %s(%s)\n", t, sym, strings.Join(args, ", "))
 		e.storeMaybeScalar(sb, dst, t)
-	case byValueAgg(ret):
+	case e.byValueAgg(ret):
 		v := e.newTmp()
 		fmt.Fprintf(sb, "  %s = call %s %s(%s)\n", v, ret.Name, sym, strings.Join(args, ", "))
 		fmt.Fprintf(sb, "  store %s %s, ptr %s\n", ret.Name, v, aggPtr(dst))
@@ -97,7 +97,7 @@ func (e *emitter) releaseBoxed(sb *strings.Builder, ptrs []string) {
 
 func (e *emitter) returnAgg(sb *strings.Builder, a *aggInfo, l midir.LocalID) {
 	e.requireDirect(l, "result")
-	if byValueAgg(a) {
+	if e.byValueAgg(a) {
 		fmt.Fprintf(sb, "  ret %s %s\n", a.Name, e.aggValue(sb, a, aggPtr(l)))
 		return
 	}

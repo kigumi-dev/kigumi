@@ -11,13 +11,17 @@ import (
 	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
+	"kigumi/internal/lang/target"
 )
 
 // prepareEmitter is the emitter EmitProgram lowers with, its scalar ABI planned.
 func prepareEmitter(p *mir.Program, opts EmitOptions) *emitter {
 	e := &emitter{p: p, r: p.R, strs: map[string]string{}, descs: map[sem.EntityID]string{}, vdescs: map[sem.EntityID]string{}, foreign: map[string]string{}, stdDrops: map[sem.EntityID]bool{}, cio: map[string]bool{}, fnItems: map[string]fnItem{}, stdBindOf: map[string]string{}, constVals: map[string]constVal{}, constShape: map[string]constVal{}, immortalStatics: map[sem.EntityID]bool{}, constIndex: map[string]int{}, aggs: map[sem.TypeID]*aggInfo{}, aggDone: map[sem.TypeID]bool{}, refDone: map[string]bool{}, sigs: map[*midir.Func]*aggSig{}, wrapNeed: map[wrapperKey]bool{}, wrapDone: map[wrapperKey]bool{}, freestanding: opts.Freestanding, entrySymbol: opts.EntrySymbol, symPrefix: opts.SymbolPrefix, reachable: opts.Reachable, shim: newCshim()}
 	e.catch = e.wantsCatch(opts)
-	e.cabi = cIntABIFor(opts.Arch, opts.OS)
+	e.layout = opts.Layout
+	if e.layout.Arch == "" {
+		e.layout = target.Default()
+	}
 	if opts.AbiCheck {
 		e.abiSym = e.cstr(AbiPlaceholder)
 	}

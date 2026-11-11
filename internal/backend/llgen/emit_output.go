@@ -3,6 +3,7 @@ package llgen
 import (
 	"kigumi/internal/compiler/mir"
 	mirreach "kigumi/internal/compiler/mir/reach"
+	"kigumi/internal/lang/target"
 )
 
 // Emit renders the whole program as one LLVM module.
@@ -42,8 +43,11 @@ type EmitOptions struct {
 	AbiCheck bool
 	// Catch lets the build unwind on a panic; it also needs the runtime built with KIGUMI_TASK_CATCH.
 	Catch bool
-	// Arch and OS name the target as the driver does (amd64, riscv64, ...; linux, darwin, ...); "" is amd64 and linux.
-	Arch, OS string
+	// Layout is the target's C layout and calling convention (pointer width,
+	// integer extension, aggregate limit). The zero value is
+	// target.Default(), 64-bit x86 on Linux, which every direct llgen test
+	// relies on.
+	Layout target.Layout
 }
 
 func EmitWith(p *mir.Program, opts EmitOptions) string { return EmitProgram(p, opts).IR }

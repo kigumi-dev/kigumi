@@ -35,16 +35,45 @@ func candidateLibraryNames(hostOS, name string) []string {
 	}
 }
 
-// defaultLibraryDirs is searched after a Link's own Search path.
-func defaultLibraryDirs(hostOS string) []string {
+// debianMultiarch names the directory the Debian family puts an
+// architecture's libraries in; a missing entry means the distribution has
+// no such directory, not that the architecture is unsupported.
+var debianMultiarch = map[string]string{
+	"amd64":    "x86_64-linux-gnu",
+	"arm64":    "aarch64-linux-gnu",
+	"riscv64":  "riscv64-linux-gnu",
+	"386":      "i386-linux-gnu",
+	"arm":      "arm-linux-gnueabihf",
+	"ppc64":    "powerpc64-linux-gnu",
+	"ppc64le":  "powerpc64le-linux-gnu",
+	"s390x":    "s390x-linux-gnu",
+	"loong64":  "loongarch64-linux-gnu",
+	"mips":     "mips-linux-gnu",
+	"mipsle":   "mipsel-linux-gnu",
+	"mips64":   "mips64-linux-gnuabi64",
+	"mips64le": "mips64el-linux-gnuabi64",
+}
+
+// defaultLibraryDirs is searched after a Link's own Search path; the
+// multiarch directory follows the host's architecture from the target
+// layout rather than a hardcoded pair of x86 names.
+func defaultLibraryDirs(hostOS, arch string) []string {
 	switch hostOS {
 	case "darwin":
 		return []string{"/usr/lib", "/usr/local/lib", "/opt/homebrew/lib"}
 	case "windows":
 		return nil
-	default:
-		return []string{"/usr/lib", "/usr/lib/x86_64-linux-gnu", "/usr/lib/aarch64-linux-gnu", "/usr/lib64", "/lib", "/lib/x86_64-linux-gnu", "/usr/local/lib"}
 	}
+	multi := debianMultiarch[arch]
+	dirs := []string{"/usr/lib"}
+	if multi != "" {
+		dirs = append(dirs, "/usr/lib/"+multi)
+	}
+	dirs = append(dirs, "/usr/lib64", "/lib")
+	if multi != "" {
+		dirs = append(dirs, "/lib/"+multi)
+	}
+	return append(dirs, "/usr/local/lib")
 }
 
 // IsHostTarget reports whether t names no cross-compilation: ResolveLinkIdentity's
@@ -61,8 +90,9 @@ func ResolveLinkIdentity(o buildconfig.CompilerOptions, lib Library, t buildconf
 	if lib.Name == "" || !IsHostTarget(o, t) {
 		return id, false
 	}
-	hostOS := o.HostOrAmbient().OS
-	dirs := defaultLibraryDirs(hostOS)
+	host := o.HostOrAmbient()
+	hostOS := host.OS
+	dirs := defaultLibraryDirs(hostOS, host.Arch)
 	if lib.Search != "" {
 		dirs = append([]string{lib.Search}, dirs...)
 	}

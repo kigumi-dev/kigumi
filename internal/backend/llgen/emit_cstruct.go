@@ -65,6 +65,12 @@ func (e *emitter) cLayoutOf(t sem.TypeID) (size, align int64) {
 	return (off + maxAlign - 1) / maxAlign * maxAlign, maxAlign
 }
 
+// recordSlot is the alloca spec for one C record: its C size, aligned to its
+// own C alignment (the target's, not a fixed 16).
+func recordSlot(size, align int64) string {
+	return fmt.Sprintf("i8, i64 %d, align %d", size, max(align, 1))
+}
+
 // shimCall: extra are arguments the shim takes before the record pointers
 // (a function pointer).
 func (e *emitter) shimCall(sb *strings.Builder, shim string, sig sem.TypeID, extra, args []string) string {
@@ -72,14 +78,14 @@ func (e *emitter) shimCall(sb *strings.Builder, shim string, sig sem.TypeID, ext
 	vals := append([]string{}, extra...)
 	out := ""
 	if e.isCRecord(sn.Elem) {
-		size, _ := e.cLayoutOf(sn.Elem)
-		out = e.stackSlot(sb, fmt.Sprintf("i8, i64 %d, align 16", size))
+		size, align := e.cLayoutOf(sn.Elem)
+		out = e.stackSlot(sb, recordSlot(size, align))
 		vals = append(vals, "ptr "+out)
 	}
 	for i, pt := range sn.Args {
 		if e.isCRecord(pt) {
-			size, _ := e.cLayoutOf(pt)
-			b := e.stackSlot(sb, fmt.Sprintf("i8, i64 %d, align 16", size))
+			size, align := e.cLayoutOf(pt)
+			b := e.stackSlot(sb, recordSlot(size, align))
 			fmt.Fprintf(sb, "  call void %s(ptr %s, ptr %s)\n", e.cWriter(e.r.Types.Node(pt).Ent, 0), b, args[i])
 			vals = append(vals, "ptr "+b)
 			continue

@@ -7,6 +7,7 @@ import (
 	midir "kigumi/internal/compiler/mir/ir"
 	mirreach "kigumi/internal/compiler/mir/reach"
 	"kigumi/internal/compiler/sem"
+	"kigumi/internal/lang/target"
 )
 
 type emitter struct {
@@ -15,7 +16,7 @@ type emitter struct {
 	cancelFlag   string
 	hoisting     bool
 	freestanding bool
-	cabi         cIntABI
+	layout       target.Layout
 	entrySymbol  string
 	reachable    *mirreach.Reachability
 	r            *sem.Result

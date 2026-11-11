@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"kigumi/internal/lang/target"
 )
 
 func zigOrSkip(t *testing.T) string {
@@ -239,5 +241,37 @@ func TestInt128FunctionSignature(t *testing.T) {
 	it = classifyFn(chunk, map[string]string{}, map[string]bool{}, ABIFor("linux", "386"), nil)
 	if it.skip == "" {
 		t.Errorf("a 32-bit target has no __int128 to pass by value, got %q", it.text)
+	}
+}
+
+// TestABIForLayout checks the importer's facts come from the target's C
+// model rather than a second per-arch table: plain char's signedness
+// follows both the architecture and the OS, and a 32-bit target imports no
+// 128-bit value even where its compiler has __int128.
+func TestABIForLayout(t *testing.T) {
+	if got := ABIForLayout(target.ForArch("linux", "riscv64")); !got.CharUnsigned || got.Long32 || !got.Int128 {
+		t.Errorf("riscv64: got %+v, want unsigned char, 64-bit long and __int128", got)
+	}
+	if ABIForLayout(target.ForArch("wasi", "wasm32")).Int128 {
+		t.Error("wasm32 imports no 128-bit value: the checker rejects one on a 32-bit target")
+	}
+	if got := ABIForLayout(target.ForArch("linux", "arm64")); !got.CharUnsigned || !got.Int128 {
+		t.Errorf("linux/arm64: got %+v, want unsigned char and __int128", got)
+	}
+	if got := ABIForLayout(target.ForArch("windows", "arm64")); got.CharUnsigned {
+		t.Errorf("windows/arm64: got %+v, plain char is signed under the Microsoft ABI", got)
+	}
+	if got := ABIForLayout(target.ForArch("uefi", "amd64")); !got.LLP64 || !got.Long32 || got.CharUnsigned {
+		t.Errorf("uefi/amd64: got %+v, want LLP64 with a 32-bit long", got)
+	}
+	if got := ABIForLayout(target.ForArch("linux", "s390x")); !got.CharUnsigned || got.Long32 || !got.Int128 {
+		t.Errorf("s390x: got %+v, want unsigned char, 64-bit long and __int128", got)
+	}
+	for _, c := range []struct{ os, arch string }{
+		{"linux", "amd64"}, {"windows", "amd64"}, {"linux", "arm64"}, {"wasi", "wasm32"}, {"linux", "386"}, {"linux", "arm"},
+	} {
+		if got, want := ABIFor(c.os, c.arch), ABIForLayout(target.ForArch(c.os, c.arch)); got != want {
+			t.Errorf("%s/%s: ABIFor = %+v, ABIForLayout = %+v", c.os, c.arch, got, want)
+		}
 	}
 }

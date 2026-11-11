@@ -1,6 +1,10 @@
 package cheader
 
-import "strings"
+import (
+	"strings"
+
+	"kigumi/internal/lang/target"
+)
 
 // ABI is the handful of C ABI facts that vary by target and that this
 // importer's fixed scalar table depends on: everything else in a C ABI
@@ -13,23 +17,30 @@ type ABI struct {
 	// Long32 is true wherever C's long is 32 bits: LLP64 and every ILP32
 	// target (386, arm, wasm32), but not the LP64 hosts.
 	Long32 bool
-	// CharUnsigned is true on arm/arm64, where plain `char` defaults to
-	// unsigned unlike x86/x86_64.
+	// CharUnsigned is true where plain `char` is unsigned: the Arm ABIs
+	// outside Apple and Windows, RISC-V, s390x and PowerPC.
 	CharUnsigned bool
 	// Int128 is true where C has __int128, which a record field, a
 	// parameter and a result may all carry by value.
 	Int128 bool
 }
 
-// ABIFor derives ABI facts from the same os/arch names internal/toolchain/config.Target
-// uses (amd64, arm64, riscv64, 386, arm; linux, darwin, windows, ...).
-func ABIFor(os, arch string) ABI {
-	llp64 := os == "windows"
+// ABIFor is ABIForLayout for an os/arch pair spelled the way
+// internal/toolchain/config.Target uses (amd64, arm64, riscv64, 386, arm;
+// linux, darwin, windows, ...).
+func ABIFor(os, arch string) ABI { return ABIForLayout(target.ForArch(os, arch)) }
+
+// ABIForLayout reads the importer's facts off the target's C model: the
+// width of `long`, plain char's signedness and whether __int128 exists.
+// Int128 stays false on a 32-bit target even where the compiler has the
+// type (wasm32 does), because the checker rejects a 128-bit value there, so
+// importing one would only turn a valid header into a semantic error.
+func ABIForLayout(l target.Layout) ABI {
 	return ABI{
-		LLP64:        llp64,
-		Long32:       llp64 || arch == "386" || arch == "arm" || arch == "wasm32",
-		CharUnsigned: arch == "arm64" || arch == "arm",
-		Int128:       arch == "amd64" || arch == "arm64" || arch == "riscv64",
+		LLP64:        l.PtrBits == 64 && l.C.LongBits == 32,
+		Long32:       l.C.LongBits == 32,
+		CharUnsigned: l.C.CharUnsigned,
+		Int128:       l.C.Int128 && l.PtrBits >= 64,
 	}
 }
 

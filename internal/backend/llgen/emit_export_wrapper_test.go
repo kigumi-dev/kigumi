@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/backend/llgen"
+	"kigumi/internal/lang/target"
 )
 
 const narrowCSrc = `
@@ -50,12 +51,18 @@ func TestNarrowCIntegersCarryExtensionAttributes(t *testing.T) {
 		{"amd64", "windows", []string{
 			"define i8 @k_i8(i8 %a0)", "declare i8 @take(i8, i16, i32)", "call i8 (i8, i16, i32) @take(i8 ",
 		}},
+		{"amd64", "uefi", []string{
+			"define i8 @k_i8(i8 %a0)", "declare i8 @take(i8, i16, i32)", "call i8 (i8, i16, i32) @take(i8 ",
+		}},
+		{"386", "uefi", []string{
+			"define signext i8 @k_i8(i8 %a0)", "declare zeroext i8 @take(i8 signext, i16 zeroext, i32)",
+		}},
 		{"arm64", "linux", []string{
 			"define i8 @k_i8(i8 %a0)", "define i16 @k_u16(i16 %a0)", "declare i8 @take(i8, i16, i32)", "call i8 (i8, i16, i32) @take(i8 ",
 		}},
 	}
 	for _, c := range cases {
-		ir := llgen.EmitWith(prog, llgen.EmitOptions{Arch: c.arch, OS: c.os})
+		ir := llgen.EmitWith(prog, llgen.EmitOptions{Layout: target.ForArch(c.os, c.arch)})
 		for _, want := range c.want {
 			if !strings.Contains(ir, want) {
 				t.Errorf("%s-%s: missing %q in IR", c.arch, c.os, want)

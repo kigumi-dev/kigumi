@@ -17,8 +17,8 @@ func TestForArchKnown(t *testing.T) {
 	}
 }
 
-// TestForArchUnknownPanics: an arch outside archBits must not silently
-// default to 64 bit.
+// TestForArchUnknownPanics: an arch outside the layout table must not
+// silently default to 64 bit.
 func TestForArchUnknownPanics(t *testing.T) {
 	defer func() {
 		if recover() == nil {
