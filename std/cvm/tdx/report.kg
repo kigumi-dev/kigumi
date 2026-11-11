@@ -1,0 +1,163 @@
+// TDREPORT parsing and structural verification.
+import sha512 from std/crypto/sha512
+
+/// REPORTMACSTRUCT: the first 256 bytes of a TDREPORT.
+pub type ReportMac = {
+    pub reportType u32
+    pub reportSubtype u32
+    pub cpuSvn Bytes
+    pub teeTcbInfoHash Bytes
+    pub teeInfoHash Bytes
+    pub reportData Bytes
+    pub mac Bytes
+}
+
+/// TEE_TCB_INFO: the measured TDX module / SEAM image description.
+pub type TeeTcbInfo = {
+    pub valid u64
+    pub teeTcbSvn Bytes
+    pub mrSeam Bytes
+    pub mrSignerSeam Bytes
+    pub attributes u64
+    pub teeTcbSvn2 Bytes
+}
+
+/// TDINFO: the TD's identity and runtime measurement registers.
+pub type TdInfo = {
+    pub attributes u64
+    pub xfam u64
+    pub mrTd Bytes
+    pub mrConfigId Bytes
+    pub mrOwner Bytes
+    pub mrOwnerConfig Bytes
+    pub rtmr Array[Bytes]
+    pub servTdHash Bytes
+}
+
+/// A parsed 1024-byte TDREPORT.
+pub type TdReport = {
+    pub mac ReportMac
+    pub teeTcbInfo TeeTcbInfo
+    pub tdInfo TdInfo
+    raw Bytes
+}
+
+/// Offsets inside a TDREPORT.
+const macOff: usize = 0
+
+const cpuSvnOff: usize = 16
+const teeTcbInfoHashOff: usize = 32
+const teeInfoHashOff: usize = 80
+const reportDataOff: usize = 128
+const macTagOff: usize = 224
+const tcbInfoOff: usize = 256
+const tcbReservedOff: usize = 495
+const tcbReservedSize: usize = 17
+const tdInfoOff: usize = 512
+const tdAttributesOff: usize = 512
+const xfamOff: usize = 520
+const mrTdOff: usize = 528
+const mrConfigIdOff: usize = 576
+const mrOwnerOff: usize = 624
+const mrOwnerConfigOff: usize = 672
+const rtmr0Off: usize = 720
+const servTdHashOff: usize = 912
+const tdReservedOff: usize = 960
+const tdReservedSize: usize = 64
+
+/// Bits the TDX 1.5 TD attributes word defines; all others are reserved.
+const attributeKnownMask: u64 = 1 | (1 << 28) | (1 << 30) | (1 << 31)
+
+/// Parses a TDREPORT. The exact length, the report type, reserved bytes and
+/// the TD attribute word are checked; the MAC is returned unverified because
+/// only the platform can key it. `checkIntegrity` then checks the SHA-384
+/// bindings.
+pub pure fn TdReport.parse(data: Bytes) -> Result[TdReport, Error] {
+    if data.len() != reportSize {
+        fail failure(BadLength, "TDREPORT must be ${reportSize} bytes, got ${data.len()}")
+    }
+    let reportType = leU32(data, 0)
+    let reportSubtype = leU32(data, 4)
+    if reportType != reportTypeTdx || reportSubtype != 0 {
+        fail failure(BadReportType, "report type ${reportType}/${reportSubtype} is not TDX TDREPORT0")
+    }
+    requireZero(data, 8, 8, "REPORTMACSTRUCT.reserved1")?
+    requireZero(data, 192, 32, "REPORTMACSTRUCT.reserved2")?
+    requireZero(data, tcbReservedOff, tcbReservedSize, "TEE_TCB_INFO.reserved")?
+    requireZero(data, tdReservedOff, tdReservedSize, "TDINFO.reserved")?
+
+    let attributes = leU64(data, tdAttributesOff)
+    if (attributes & ~attributeKnownMask) != 0 {
+        fail failure(BadAttributes, "TD attributes contain reserved bits")
+    }
+
+    let report = TdReport {
+        mac: ReportMac {
+            reportType: reportType
+            reportSubtype: reportSubtype
+            cpuSvn: bytesAt(data, cpuSvnOff, 16)
+            teeTcbInfoHash: bytesAt(data, teeTcbInfoHashOff, registerSize)
+            teeInfoHash: bytesAt(data, teeInfoHashOff, registerSize)
+            reportData: bytesAt(data, reportDataOff, 64)
+            mac: bytesAt(data, macTagOff, 32)
+        }
+        teeTcbInfo: TeeTcbInfo {
+            valid: leU64(data, tcbInfoOff)
+            teeTcbSvn: bytesAt(data, tcbInfoOff + 8, 16)
+            mrSeam: bytesAt(data, tcbInfoOff + 24, registerSize)
+            mrSignerSeam: bytesAt(data, tcbInfoOff + 72, registerSize)
+            attributes: leU64(data, tcbInfoOff + 120)
+            teeTcbSvn2: bytesAt(data, tcbInfoOff + 128, 16)
+        }
+        tdInfo: TdInfo {
+            attributes: attributes
+            xfam: leU64(data, xfamOff)
+            mrTd: bytesAt(data, mrTdOff, registerSize)
+            mrConfigId: bytesAt(data, mrConfigIdOff, registerSize)
+            mrOwner: bytesAt(data, mrOwnerOff, registerSize)
+            mrOwnerConfig: bytesAt(data, mrOwnerConfigOff, registerSize)
+            rtmr: Array.of[Bytes](bytesAt(data, rtmr0Off, registerSize), bytesAt(data, rtmr0Off + registerSize, registerSize), bytesAt(data, rtmr0Off + registerSize * 2, registerSize), bytesAt(data, rtmr0Off + registerSize * 3, registerSize))
+            servTdHash: bytesAt(data, servTdHashOff, registerSize)
+        }
+        raw: data
+    }
+    Ok(report)
+}
+
+/// Checks that REPORTMACSTRUCT's two SHA-384 fields name the TEE_TCB_INFO and
+/// TDINFO bytes that follow. This detects corruption and naive splicing, not
+/// an attacker who can rewrite the unkeyed hashes; use a signed quote for
+/// authenticity.
+pub pure fn TdReport.checkIntegrity(self) -> Result[Void, Error] {
+    let tcb = bytesAt(self.raw, tcbInfoOff, teeTcbInfoSize)
+    let tcbHash = sha512.sum384(tcb)
+    if !tcbHash.equals(&self.mac.teeTcbInfoHash) {
+        fail failure(BadHashBinding, "TEE_TCB_INFO does not match tee_tcb_info_hash")
+    }
+    let info = bytesAt(self.raw, tdInfoOff, tdInfoSize)
+    let infoHash = sha512.sum384(info)
+    if !infoHash.equals(&self.mac.teeInfoHash) {
+        fail failure(BadHashBinding, "TDINFO does not match tee_info_hash")
+    }
+    Ok(())
+}
+
+/// Whether the TD attributes word carries the DEBUG bit (bit 0). A debug TD
+/// has no confidentiality and MUST be refused by a production policy.
+pub pure fn TdReport.isDebug(self) -> Bool {
+    (self.tdInfo.attributes & 1) != 0
+}
+
+/// Whether SEPT_VE_DISABLE (bit 28) is set, i.e. the TD asked the module to
+/// keep #VE from being injected by the host for EPT violations.
+pub pure fn TdReport.septVeDisable(self) -> Bool {
+    ((self.tdInfo.attributes >> 28) & 1) != 0
+}
+
+/// A copy of RTMR `index`; None when `index` is not 0..3.
+pub pure fn TdReport.rtmr(self, index: usize) -> Bytes? {
+    if index >= 4 {
+        return None
+    }
+    Some(self.tdInfo.rtmr[index])
+}

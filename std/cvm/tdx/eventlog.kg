@@ -1,0 +1,254 @@
+// TD event log parsing and RTMR replay.
+//
+// The TDX virtual firmware records its measurements with the TCG PC Client
+// "crypto agile" log format (TCG_PCR_EVENT2 entries behind a Spec ID Event03
+// header, as used for the CCEL table) and extends the same digests into an
+// RTMR. An event log is unauthenticated evidence: a verifier replays it from
+// zero and compares the resulting registers with the ones in a signed quote.
+//
+// TDX maps TCG PCRs to measurement registers as the UEFI specification does:
+// PCR 1 and 7 to RTMR0, PCR 2..6 to RTMR1, PCR 8..15 to RTMR2. PCR 0 names
+// MRTD, which the TDX module fixes at build time and which no event extends;
+// RTMR3 has no assigned PCR in this mapping. Events for any other PCR are
+// refused rather than silently dropped.
+import sha512 from std/crypto/sha512
+
+/// TPM algorithm ids used by the log.
+pub const algSha1: u16 = 0x0004
+
+pub const algSha256: u16 = 0x000B
+pub const algSha384: u16 = 0x000C
+pub const algSha512: u16 = 0x000D
+
+/// TCG event type EV_NO_ACTION: it is recorded but never extended.
+pub const eventTypeNoAction: u32 = 0x00000003
+
+/// The 16-byte signature of a crypto-agile Spec ID Event03 header.
+const specIdSignature: String = "Spec ID Event03"
+
+/// One digest in an event.
+pub type Digest = {
+    pub alg u16
+    pub value Bytes
+}
+
+/// One TCG_PCR_EVENT2.
+pub type Event = {
+    pub pcrIndex u32
+    pub eventType u32
+    pub digests Array[Digest]
+    pub data Bytes
+}
+
+/// A parsed TD event log and the algorithm table from its header.
+pub type EventLog = {
+    pub specVersionMajor u8
+    pub specVersionMinor u8
+    pub events Array[Event]
+}
+
+/// Four replayed measurement registers.
+pub type Rtmr = {
+    pub values Array[Bytes]
+}
+
+type AlgSize = {
+    alg u16
+    size usize
+}
+
+/// Parses a crypto-agile TD event log. The header is required; unknown hash
+/// algorithms are recorded with their declared size so a later replay can
+/// still diagnose the log, but duplicate algorithms are refused.
+pub pure fn EventLog.parse(data: Bytes) -> Result[EventLog, Error] {
+    if data.len() < 28 {
+        fail failure(BadLength, "event log is shorter than a Spec ID Event03 header")
+    }
+    if !data.matchesAt(specIdSignature.toBytes(), 0) || data[15] != 0 {
+        fail failure(BadEventLog, "event log does not start with a Spec ID Event03 header")
+    }
+    let minor = data[20]
+    let major = data[21]
+    let algCount = leU32(data, 24)
+    if algCount == 0 || algCount > 16 {
+        fail failure(BadEventLog, "header lists ${algCount} digest algorithms")
+    }
+    let mut at: usize = 28
+    if algCount.toUsize() > (data.len() - at) / 4 {
+        fail failure(BadEventLog, "digest algorithm table runs past the header")
+    }
+    let mut algs = Array.empty[AlgSize]()
+    let mut i: usize = 0
+    for i < algCount.toUsize() {
+        let alg = leU16(data, at)
+        let size = leU16(data, at + 2).toUsize()
+        at = at + 4
+        if size == 0 || size > 64 {
+            fail failure(BadEventLog, "digest size ${size} for algorithm ${alg} is invalid")
+        }
+        let mut j: usize = 0
+        for j < algs.len() {
+            if algs[j].alg == alg {
+                fail failure(BadEventLog, "digest algorithm ${alg} is listed twice")
+            }
+            j = j + 1
+        }
+        algs.push(AlgSize {
+            alg: alg
+            size: size
+        })
+        i = i + 1
+    }
+    if at >= data.len() {
+        fail failure(BadLength, "event log ends inside the header")
+    }
+    let vendorSize = data[at].toUsize()
+    at = at + 1
+    if vendorSize > data.len() - at {
+        fail failure(BadEventLog, "vendor info runs past the header")
+    }
+    at = at + vendorSize
+
+    let mut events = Array.empty[Event]()
+    for at < data.len() {
+        let remaining = data.len() - at
+        if remaining < 12 {
+            fail failure(BadEventLog, "event header is truncated at offset ${at}")
+        }
+        let pcrIndex = leU32(data, at)
+        let eventType = leU32(data, at + 4)
+        let digestCount = leU32(data, at + 8).toUsize()
+        at = at + 12
+        if digestCount == 0 || digestCount > 32 {
+            fail failure(BadEventLog, "event at ${at - 12} has ${digestCount} digests")
+        }
+        let mut digests = Array.empty[Digest]()
+        let mut d: usize = 0
+        for d < digestCount {
+            if data.len() - at < 2 {
+                fail failure(BadEventLog, "digest algorithm is truncated at offset ${at}")
+            }
+            let alg = leU16(data, at)
+            at = at + 2
+            let mut k: usize = 0
+            for k < digests.len() {
+                if digests[k].alg == alg {
+                    fail failure(BadEventLog, "event lists algorithm ${alg} twice")
+                }
+                k = k + 1
+            }
+            let size = match digestSize(&algs, alg) {
+                Some(value) -> value
+                None -> fail failure(BadEventLog, "event uses algorithm ${alg} absent from the header")
+            }
+            if data.len() - at < size {
+                fail failure(BadEventLog, "digest value runs past the log at offset ${at}")
+            }
+            digests.push(Digest {
+                alg: alg
+                value: bytesAt(data, at, size)
+            })
+            at = at + size
+            d = d + 1
+        }
+        if data.len() - at < 4 {
+            fail failure(BadEventLog, "event data length is truncated at offset ${at}")
+        }
+        let dataSize = leU32(data, at).toUsize()
+        at = at + 4
+        if dataSize > data.len() - at {
+            fail failure(BadEventLog, "event data of ${dataSize} bytes runs past the log")
+        }
+        events.push(Event {
+            pcrIndex: pcrIndex
+            eventType: eventType
+            digests: digests
+            data: bytesAt(data, at, dataSize)
+        })
+        at = at + dataSize
+    }
+    Ok(EventLog {
+        specVersionMajor: major
+        specVersionMinor: minor
+        events: events
+    })
+}
+
+pure fn digestSize(algs: &Array[AlgSize], alg: u16) -> usize? {
+    let mut i: usize = 0
+    for i < algs.len() {
+        if algs[i].alg == alg {
+            return Some(algs[i].size)
+        }
+        i = i + 1
+    }
+    None
+}
+
+pure fn sha384Digest(digests: &Array[Digest]) -> Bytes? {
+    let mut i: usize = 0
+    for i < digests.len() {
+        if digests[i].alg == algSha384 {
+            return Some(digests[i].value)
+        }
+        i = i + 1
+    }
+    None
+}
+
+pure fn rtmrIndex(pcr: u32) -> u32? {
+    match pcr {
+        1 | 7 -> Some(0)
+        2..6 -> Some(1)
+        8..15 -> Some(2)
+        _ -> None
+    }
+}
+
+/// Replays `log` from zero. Only EV_NO_ACTION entries are skipped; any PCR
+/// the TDX mapping cannot extend into an RTMR is refused, and every extended
+/// event must carry a SHA-384 digest.
+pub pure fn EventLog.replay(self) -> Result[Rtmr, Error] {
+    let mut values = Array.of[Bytes](Bytes.zeros(registerSize), Bytes.zeros(registerSize), Bytes.zeros(registerSize), Bytes.zeros(registerSize))
+    let mut e: usize = 0
+    for e < self.events.len() {
+        if self.events[e].eventType != eventTypeNoAction {
+            let index = match rtmrIndex(self.events[e].pcrIndex) {
+                Some(value) -> value
+                None -> fail failure(BadPcrIndex, "PCR ${self.events[e].pcrIndex} has no RTMR mapping")
+            }
+            let digest = match sha384Digest(&self.events[e].digests) {
+                Some(value) -> value
+                None -> fail failure(MissingSha384, "event ${e} carries no SHA-384 digest")
+            }
+            let chain = values[index.toUsize()].concat(digest)
+            values[index.toUsize()] = sha512.sum384(chain)
+        }
+        e = e + 1
+    }
+    Ok(Rtmr { values: values })
+}
+
+/// A copy of replay register `index`; None when `index` is not 0..3.
+pub pure fn Rtmr.value(self, index: usize) -> Bytes? {
+    if index >= 4 {
+        return None
+    }
+    Some(self.values[index])
+}
+
+/// Requires every replayed register to equal the corresponding one from a
+/// report or quote. Reports always carry four registers.
+pub pure fn Rtmr.verify(self, expected: &Array[Bytes]) -> Result[Void, Error] {
+    if expected.len() != 4 {
+        fail failure(BadLength, "expected ${expected.len()} RTMRs, need 4")
+    }
+    let mut i: usize = 0
+    for i < 4 {
+        if !self.values[i].equals(&expected[i]) {
+            fail failure(RtmrMismatch, "RTMR${i} does not match the event log replay")
+        }
+        i = i + 1
+    }
+    Ok(())
+}

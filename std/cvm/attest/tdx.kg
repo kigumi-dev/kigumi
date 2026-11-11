@@ -1,0 +1,266 @@
+// Verifier-facing interfaces for CVM evidence.
+//
+// `Claims` is what a TD report or quote says about the workload, `Policy` is
+// the separate business decision applied to those claims, and `verify*`
+// functions do the cryptography and event-log replay. This mirrors the
+// dcap-qvl split between claims and policy: `verifyTdxQuote` proves that the
+// quote is signed by its attestation key and that the TD is not in debug
+// mode, while `Policy` decides which MRTD / RTMR / REPORTDATA values are
+// acceptable. A TDREPORT has no readable MAC key, so `verifyTdxReport` only
+// checks internal consistency and never sets `authenticated`.
+import sha512 from std/crypto/sha512
+import tdx from std/cvm/tdx
+
+/// Why evidence was refused.
+pub type TdxCode =
+    | EvidenceInvalid
+    | EvidenceNotSigned
+    | PolicyRejected
+    | EventLogMismatch
+    | BadReportData
+    | UnsupportedEvidence
+
+pub type TdxError = {
+    pub code TdxCode
+    pub text String
+}
+
+pub fn TdxCode.name(self) -> String {
+    match self {
+        EvidenceInvalid -> "evidence-invalid"
+        EvidenceNotSigned -> "evidence-not-signed"
+        PolicyRejected -> "policy-rejected"
+        EventLogMismatch -> "event-log-mismatch"
+        BadReportData -> "bad-report-data"
+        UnsupportedEvidence -> "unsupported-evidence"
+    }
+}
+
+pub fn TdxError.message(self) -> String {
+    self.text
+}
+
+pure fn tdxFailure(code: TdxCode, text: String) -> TdxError {
+    TdxError {
+        code: code
+        text: "attest: ${text}"
+    }
+}
+
+pure fn tdxEvidenceFailure(err: tdx.Error) -> TdxError {
+    TdxError {
+        code: EvidenceInvalid
+        text: err.message()
+    }
+}
+
+/// The 64-byte value a guest places in TD REPORTDATA so that a report or
+/// quote is bound to a caller-chosen challenge.
+pub type ReportData = {
+    pub bytes Bytes
+}
+
+/// Bytes of a REPORTDATA value.
+pub const reportDataSize: usize = 64
+
+/// Wraps exactly 64 bytes; shorter or longer inputs are refused rather than
+/// padded, because padding would silently weaken the binding.
+pub pure fn ReportData.of(bytes: Bytes) -> Result[ReportData, TdxError] {
+    if bytes.len() != reportDataSize {
+        fail tdxFailure(BadReportData, "report data must be ${reportDataSize} bytes, got ${bytes.len()}")
+    }
+    Ok(ReportData { bytes: bytes })
+}
+
+/// SHA-512 of a nonce, the usual way to fill 64 bytes from a shorter
+/// challenge. This is a convenience, not a protocol: callers that need a
+/// domain-separated construction pass the digest to `ReportData.of`.
+pub pure fn ReportData.fromNonce(nonce: Bytes) -> ReportData {
+    ReportData { bytes: sha512.sum(nonce) }
+}
+
+/// Which evidence produced the claims.
+pub type TdxEvidenceKind =
+    | TdxReport
+    | TdxQuote
+    | SnpIdBlock
+
+/// The verifier's view of a TD. `authenticated` is true only when a quote
+/// signature was checked; a bare TDREPORT is consistent but unauthenticated.
+pub type TdxClaims = {
+    pub kind TdxEvidenceKind
+    pub authenticated Bool
+    pub debug Bool
+    pub reportData Bytes
+    pub mrTd Bytes
+    pub rtmr Array[Bytes]
+    pub mrConfigId Bytes
+    pub mrOwner Bytes
+    pub mrOwnerConfig Bytes
+    pub launchDigest Bytes?
+}
+
+/// One RTMR requirement: register `index` must equal `value`.
+pub type RtmrRule = {
+    pub index usize
+    pub value Bytes
+}
+
+/// Measurement, freshness and debug requirements. `None` means the field is
+/// not constrained; an empty `requireRtmr` constrains no register.
+/// `allowUnauthenticated` is false by default: a bare TDREPORT cannot prove
+/// which TD produced it, so a verifier accepts one only when it explicitly
+/// opts in (for example to debug a guest locally).
+pub type TdxPolicy = {
+    pub mut requireReportData ReportData?
+    pub mut requireMrTd Bytes?
+    pub mut requireRtmr Array[RtmrRule]
+    pub mut rejectDebug Bool
+    pub mut allowUnauthenticated Bool
+}
+
+/// The default production policy: refuse a debug TD, constrain nothing else.
+/// A real deployment adds MRTD / RTMR expectations and a REPORTDATA nonce.
+pub pure fn TdxPolicy.production() -> TdxPolicy {
+    TdxPolicy {
+        requireReportData: None
+        requireMrTd: None
+        requireRtmr: Array.empty()
+        rejectDebug: true
+        allowUnauthenticated: false
+    }
+}
+
+/// Applies `policy` to claims. Every configured check must pass; the first
+/// failure is returned.
+pub pure fn TdxPolicy.check(self, claims: &TdxClaims) -> Result[Void, TdxError] {
+    if self.rejectDebug && claims.debug {
+        fail tdxFailure(PolicyRejected, "TD is in debug mode")
+    }
+    match self.requireReportData {
+        Some(expected) -> {
+            if !expected.bytes.equals(&claims.reportData) {
+                fail tdxFailure(PolicyRejected, "REPORTDATA does not match the expected value")
+            }
+        }
+        None -> {}
+    }
+    match self.requireMrTd {
+        Some(expected) -> {
+            if !expected.equals(&claims.mrTd) {
+                fail tdxFailure(PolicyRejected, "MRTD does not match the expected measurement")
+            }
+        }
+        None -> {}
+    }
+    let mut i: usize = 0
+    for i < self.requireRtmr.len() {
+        let rule = &self.requireRtmr[i]
+        if rule.index >= claims.rtmr.len() {
+            fail tdxFailure(PolicyRejected, "RTMR${rule.index} is out of range")
+        }
+        if rule.value.len() != tdx.registerSize {
+            fail tdxFailure(PolicyRejected, "RTMR${rule.index} expectation is not 48 bytes")
+        }
+        if !rule.value.equals(&claims.rtmr[rule.index]) {
+            fail tdxFailure(PolicyRejected, "RTMR${rule.index} does not match the expected value")
+        }
+        i = i + 1
+    }
+    Ok(())
+}
+
+pure fn claimsFromReport(report: &tdx.TdReport) -> TdxClaims {
+    TdxClaims {
+        kind: TdxEvidenceKind.TdxReport
+        authenticated: false
+        debug: (report.tdInfo.attributes & 1) != 0
+        reportData: report.mac.reportData
+        mrTd: report.tdInfo.mrTd
+        rtmr: report.tdInfo.rtmr.clone()
+        mrConfigId: report.tdInfo.mrConfigId
+        mrOwner: report.tdInfo.mrOwner
+        mrOwnerConfig: report.tdInfo.mrOwnerConfig
+        launchDigest: None
+    }
+}
+
+pure fn claimsFromQuote(quote: &tdx.Quote) -> TdxClaims {
+    TdxClaims {
+        kind: TdxEvidenceKind.TdxQuote
+        authenticated: true
+        debug: (quote.report.attributes & 1) != 0
+        reportData: quote.report.reportData
+        mrTd: quote.report.mrTd
+        rtmr: quote.report.rtmr.clone()
+        mrConfigId: quote.report.mrConfigId
+        mrOwner: quote.report.mrOwner
+        mrOwnerConfig: quote.report.mrOwnerConfig
+        launchDigest: None
+    }
+}
+
+/// A TDREPORT's fields as claims, after checking the report's internal hash
+/// bindings. The report is unauthenticated: its MAC cannot be verified
+/// outside the platform, so only a quote proves which TD produced it.
+pub pure fn verifyTdxReport(report: tdx.TdReport, policy: &TdxPolicy) -> Result[TdxClaims, TdxError] {
+    if !policy.allowUnauthenticated {
+        fail tdxFailure(EvidenceNotSigned, "a TDREPORT has no verifiable MAC; use a quote or allow unauthenticated evidence")
+    }
+    let claims = claimsFromReport(&report)
+    match report.checkIntegrity() {
+        Ok(_) -> {}
+        Err(err) -> fail tdxEvidenceFailure(err)
+    }
+    policy.check(&claims)?
+    Ok(claims)
+}
+
+/// Verifies a quote's ECDSA signature and then applies `policy`. This does
+/// not validate the PCK chain to Intel's root or the TCB collateral; callers
+/// that need a full DCAP verdict do that separately with the exposed
+/// certification data.
+pub pure fn verifyTdxQuote(quote: tdx.Quote, policy: &TdxPolicy) -> Result[TdxClaims, TdxError] {
+    let claims = claimsFromQuote(&quote)
+    let checked = quote.clone()
+    match checked.verifySignature() {
+        Ok(_) -> {}
+        Err(err) -> fail tdxEvidenceFailure(err)
+    }
+    policy.check(&claims)?
+    Ok(claims)
+}
+
+/// `verifyTdxQuote` plus a strict event-log replay: the replayed RTMRs must
+/// equal the quote's registers exactly. A log that has grown past the quote
+/// must be truncated to the quote's extent by the caller before this call.
+pub pure fn verifyTdxQuoteWithLog(quote: tdx.Quote, log: tdx.EventLog, policy: &TdxPolicy) -> Result[TdxClaims, TdxError] {
+    let claims = verifyTdxQuote(quote, policy)?
+    let replayed = match log.replay() {
+        Ok(value) -> value
+        Err(err) -> fail tdxEvidenceFailure(err)
+    }
+    match replayed.verify(&claims.rtmr) {
+        Ok(_) -> {}
+        Err(err) -> fail tdxFailure(EventLogMismatch, err.message())
+    }
+    Ok(claims)
+}
+
+/// Evidence a caller can hand to a verifier. SNP evidence is named so the
+/// interface is stable, but verifying it is not implemented: the SNP report
+/// parser and P-384 are missing from this std.
+pub type TdxEvidence =
+    | TdxReport(tdx.TdReport)
+    | TdxQuote(tdx.Quote)
+    | SnpIdBlock
+
+/// Dispatches on the evidence kind. `SnpIdBlock` is refused explicitly rather
+/// than treated as unverified success.
+pub pure fn verifyTdxEvidence(evidence: TdxEvidence, policy: &TdxPolicy) -> Result[TdxClaims, TdxError] {
+    match evidence {
+        TdxEvidence.TdxReport(report) -> verifyTdxReport(report, policy)
+        TdxEvidence.TdxQuote(quote) -> verifyTdxQuote(quote, policy)
+        TdxEvidence.SnpIdBlock -> fail tdxFailure(UnsupportedEvidence, "SNP evidence verification is not implemented")
+    }
+}

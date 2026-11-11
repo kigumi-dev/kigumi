@@ -1,0 +1,351 @@
+// TDX v4 quote envelope: header, 584-byte TD report body, and signature data.
+//
+// Layout (Intel DCAP Quote Library API, Appendix A.3):
+//   0x000  quote header, 48 bytes
+//   0x030  TD report body, 584 bytes (sha384-covered by the signature)
+//   0x278  signature data length, u32 little-endian
+//   0x27c  signature data: quote signature, attestation key, certification data
+//
+// `verifySignature` checks the ECDSA P-256 signature over the header and the
+// report body with the attestation key carried in the envelope. That is the
+// check that makes the report contents authentic; the attestation key's own
+// trust comes from the QE report and the PCK chain, which
+// `verifyQeSignature` binds to the key but does not anchor. A caller that
+// needs a full DCAP verdict must additionally validate the PCK chain against
+// a pinned Intel root and apply Intel's TCB collateral, which this package
+// does not ship.
+import p256 from std/crypto/p256
+import sha256 from std/crypto/sha256
+import x509 from std/crypto/x509
+
+/// The 48-byte v4 quote header.
+pub type Header = {
+    pub version u16
+    pub keyType u16
+    pub teeType u32
+    pub qeSvn u16
+    pub pceSvn u16
+    pub qeVendorId Bytes
+    pub userData Bytes
+}
+
+/// The 584-byte TD report body inside a v4 quote. Unlike a TDREPORT it omits
+/// TEE_TCB_INFO, TDINFO's reserved tail and the MAC; the first 48 bytes are
+/// the TEE_TCB_SVN, and the measurements follow in TDX register order.
+pub type QuoteReport = {
+    pub teeTcbSvn Bytes
+    pub mrSeam Bytes
+    pub mrSignerSeam Bytes
+    pub seamAttributes u64
+    pub attributes u64
+    pub xfam u64
+    pub mrTd Bytes
+    pub mrConfigId Bytes
+    pub mrOwner Bytes
+    pub mrOwnerConfig Bytes
+    pub rtmr Array[Bytes]
+    pub reportData Bytes
+}
+
+/// Certification data type 6: the QE report, its signature, the QE auth data
+/// and the PCK certificate chain that vouches for the QE.
+pub type QeCertification = {
+    pub report Bytes
+    pub signature Bytes
+    pub authData Bytes
+    pub pckCertChain Bytes
+}
+
+/// Certification data carried after the attestation key.
+pub type CertificationData =
+    | PckCertChain(Bytes)
+    | QeReport(QeCertification)
+    | Unknown(tag: u16, data: Bytes)
+
+/// A parsed v4 quote.
+pub type Quote = {
+    pub header Header
+    pub report QuoteReport
+    pub quoteSignature Bytes
+    pub attestationKey Bytes
+    pub certificationData CertificationData
+    signed Bytes
+}
+
+/// Offsets inside the quote.
+const sigLengthOff: usize = quoteHeaderSize + quoteReportSize
+
+const sigDataOff: usize = sigLengthOff + 4
+
+/// Offsets inside the 584-byte quote report body.
+const qrTeeTcbSvnOff: usize = 0
+
+const qrMrSeamOff: usize = 16
+const qrMrSignerSeamOff: usize = 64
+const qrSeamAttributesOff: usize = 112
+const qrAttributesOff: usize = 120
+const qrXfamOff: usize = 128
+const qrMrTdOff: usize = 136
+const qrMrConfigIdOff: usize = 184
+const qrMrOwnerOff: usize = 232
+const qrMrOwnerConfigOff: usize = 280
+const qrRtmr0Off: usize = 328
+const qrReportDataOff: usize = 520
+
+/// Parses a v4 TDX quote. The envelope must end exactly after the declared
+/// signature data, and every nested length is bounds checked.
+pub pure fn Quote.parse(data: Bytes) -> Result[Quote, Error] {
+    if data.len() < sigDataOff {
+        fail failure(BadLength, "quote is shorter than a v4 header and TD report")
+    }
+    let version = leU16(data, quoteVersionOffset)
+    if version != 4 {
+        fail failure(UnsupportedVersion, "quote version ${version} is not supported (need 4)")
+    }
+    let keyType = leU16(data, quoteKeyTypeOffset)
+    if keyType != keyTypeEcdsaP256 && keyType != keyTypeEcdsaP384 {
+        fail failure(BadKeyType, "quote attestation key type ${keyType} is not ECDSA")
+    }
+    let teeType = leU32(data, quoteTeeTypeOffset)
+    if teeType != teeTypeTdx {
+        fail failure(BadTeeType, "quote TEE type 0x${teeType} is not TDX")
+    }
+    let signatureSize: usize = if keyType == keyTypeEcdsaP256 {
+        64
+    } else {
+        96
+    }
+    let declared = leU32(data, sigLengthOff).toUsize()
+    if declared > data.len() - sigDataOff {
+        fail failure(BadLength, "signature data of ${declared} bytes runs past the quote")
+    }
+    if declared != data.len() - sigDataOff {
+        fail failure(BadLength, "quote has ${data.len() - sigDataOff - declared} trailing bytes")
+    }
+    if declared < signatureSize * 2 + 2 + 4 {
+        fail failure(BadLength, "signature data is too short for a quote signature and key")
+    }
+
+    let reportBytes = bytesAt(data, quoteHeaderSize, quoteReportSize)
+    let attributes = leU64(reportBytes, qrAttributesOff)
+    if (attributes & ~attributeKnownMask) != 0 {
+        fail failure(BadAttributes, "quote TD attributes contain reserved bits")
+    }
+
+    let sigBase = sigDataOff
+    let quoteSignature = bytesAt(data, sigBase, signatureSize)
+    let attestationKey = bytesAt(data, sigBase + signatureSize, signatureSize)
+    let certBase = sigBase + signatureSize * 2
+    let certType = leU16(data, certBase)
+    let certLength = leU32(data, certBase + 2).toUsize()
+    if certLength > declared - signatureSize * 2 - 6 {
+        fail failure(BadCertificationData, "certification data runs past the signature data")
+    }
+    if certLength != declared - signatureSize * 2 - 6 {
+        fail failure(BadCertificationData, "certification data does not fill the signature data")
+    }
+    let certBytes = bytesAt(data, certBase + 6, certLength)
+    let certificationData = match certType {
+        5 -> CertificationData.PckCertChain(certBytes)
+        6 -> parseQeCertification(certBytes)?
+        _ -> CertificationData.Unknown(certType, certBytes)
+    }
+
+    Ok(Quote {
+        header: Header {
+            version: version
+            keyType: keyType
+            teeType: teeType
+            qeSvn: leU16(data, quoteQeSvnOffset)
+            pceSvn: leU16(data, quotePceSvnOffset)
+            qeVendorId: bytesAt(data, quoteQeVendorIdOffset, 16)
+            userData: bytesAt(data, quoteUserDataOffset, 20)
+        }
+        report: QuoteReport {
+            teeTcbSvn: bytesAt(reportBytes, qrTeeTcbSvnOff, 16)
+            mrSeam: bytesAt(reportBytes, qrMrSeamOff, registerSize)
+            mrSignerSeam: bytesAt(reportBytes, qrMrSignerSeamOff, registerSize)
+            seamAttributes: leU64(reportBytes, qrSeamAttributesOff)
+            attributes: attributes
+            xfam: leU64(reportBytes, qrXfamOff)
+            mrTd: bytesAt(reportBytes, qrMrTdOff, registerSize)
+            mrConfigId: bytesAt(reportBytes, qrMrConfigIdOff, registerSize)
+            mrOwner: bytesAt(reportBytes, qrMrOwnerOff, registerSize)
+            mrOwnerConfig: bytesAt(reportBytes, qrMrOwnerConfigOff, registerSize)
+            rtmr: Array.of[Bytes](bytesAt(reportBytes, qrRtmr0Off, registerSize), bytesAt(reportBytes, qrRtmr0Off + registerSize, registerSize), bytesAt(reportBytes, qrRtmr0Off + registerSize * 2, registerSize), bytesAt(reportBytes, qrRtmr0Off + registerSize * 3, registerSize))
+            reportData: bytesAt(reportBytes, qrReportDataOff, 64)
+        }
+        quoteSignature: quoteSignature
+        attestationKey: attestationKey
+        certificationData: certificationData
+        signed: bytesAt(data, 0, quoteHeaderSize + quoteReportSize)
+    })
+}
+
+pure fn parseQeCertification(data: Bytes) -> Result[CertificationData, Error] {
+    if data.len() < 384 + 64 + 2 + 2 + 4 {
+        fail failure(BadCertificationData, "QE certification data is truncated")
+    }
+    let report = bytesAt(data, 0, 384)
+    let signature = bytesAt(data, 384, 64)
+    let authLength = leU16(data, 448).toUsize()
+    if authLength > data.len() - 450 {
+        fail failure(BadCertificationData, "QE auth data runs past the certification data")
+    }
+    let authData = bytesAt(data, 450, authLength)
+    let innerBase = 450 + authLength
+    if data.len() - innerBase < 6 {
+        fail failure(BadCertificationData, "PCK certificate data is missing")
+    }
+    let innerType = leU16(data, innerBase)
+    let innerLength = leU32(data, innerBase + 2).toUsize()
+    if innerLength != data.len() - innerBase - 6 {
+        fail failure(BadCertificationData, "PCK certificate data length does not match the envelope")
+    }
+    let chain = bytesAt(data, innerBase + 6, innerLength)
+    if innerType != 5 {
+        fail failure(BadCertificationData, "QE certification data carries chain type ${innerType}, need 5")
+    }
+    Ok(CertificationData.QeReport(QeCertification {
+        report: report
+        signature: signature
+        authData: authData
+        pckCertChain: chain
+    }))
+}
+
+/// A deep copy. `Quote` owns arrays, so a caller that both verifies and
+/// inspects it (or verifies it twice) uses this rather than relying on a move.
+pub pure fn Quote.clone(self) -> Quote {
+    Quote {
+        header: Header {
+            version: self.header.version
+            keyType: self.header.keyType
+            teeType: self.header.teeType
+            qeSvn: self.header.qeSvn
+            pceSvn: self.header.pceSvn
+            qeVendorId: self.header.qeVendorId
+            userData: self.header.userData
+        }
+        report: QuoteReport {
+            teeTcbSvn: self.report.teeTcbSvn
+            mrSeam: self.report.mrSeam
+            mrSignerSeam: self.report.mrSignerSeam
+            seamAttributes: self.report.seamAttributes
+            attributes: self.report.attributes
+            xfam: self.report.xfam
+            mrTd: self.report.mrTd
+            mrConfigId: self.report.mrConfigId
+            mrOwner: self.report.mrOwner
+            mrOwnerConfig: self.report.mrOwnerConfig
+            rtmr: self.report.rtmr.clone()
+            reportData: self.report.reportData
+        }
+        quoteSignature: self.quoteSignature
+        attestationKey: self.attestationKey
+        certificationData: match self.certificationData {
+            CertificationData.PckCertChain(chain) -> CertificationData.PckCertChain(chain)
+            CertificationData.QeReport(qe) -> CertificationData.QeReport(QeCertification {
+                report: qe.report
+                signature: qe.signature
+                authData: qe.authData
+                pckCertChain: qe.pckCertChain
+            })
+            CertificationData.Unknown(tag, data) -> CertificationData.Unknown(tag, data)
+        }
+        signed: self.signed
+    }
+}
+
+/// Verifies the quote signature over `header || TD report` with the
+/// envelope's attestation key. P-384 quotes parse but fail here with
+/// `UnsupportedAlgorithm`, because `std/crypto` has no P-384.
+pub pure fn verifyQuoteSignature(quote: &Quote) -> Result[Void, Error] {
+    if quote.header.keyType != keyTypeEcdsaP256 {
+        fail failure(UnsupportedAlgorithm, "P-384 quote signatures are not implemented")
+    }
+    let public = Bytes.fill(4, 1).concat(quote.attestationKey)
+    match p256.verifyMessage(public, quote.signed, quote.quoteSignature) {
+        Ok(true) -> Ok(())
+        Ok(false) -> fail failure(SignatureInvalid, "quote signature does not match the attestation key")
+        Err(err) -> fail failure(BadSignature, err.message())
+    }
+}
+
+/// `verifyQuoteSignature` as a consuming method.
+pub pure fn Quote.verifySignature(self) -> Result[Void, Error] {
+    verifyQuoteSignature(&self)
+}
+
+/// The PEM-encoded PCK chain carried by a type 6 quote, if any.
+pub pure fn Quote.pckCertChain(self) -> Bytes? {
+    match self.certificationData {
+        CertificationData.QeReport(qe) -> Some(qe.pckCertChain)
+        CertificationData.PckCertChain(chain) -> Some(chain)
+        CertificationData.Unknown(_, _) -> None
+    }
+}
+
+/// Verifies the QE report signature with the leaf certificate of the PCK
+/// chain embedded in the quote, then checks that the QE report's REPORTDATA
+/// is the published binding `SHA-256(attestation key) || SHA-256(QE auth
+/// data)`. The chain is NOT anchored here; a caller that trusts only Intel
+/// must validate it with `x509.verifyChain` and a pinned root.
+pub pure fn verifyQeReportSignature(quote: &Quote) -> Result[Void, Error] {
+    if quote.header.keyType != keyTypeEcdsaP256 {
+        fail failure(UnsupportedAlgorithm, "P-384 QE report signatures are not implemented")
+    }
+    let qe = match &quote.certificationData {
+        CertificationData.QeReport(value) -> value
+        _ -> fail failure(BadCertificationData, "quote does not carry a QE report")
+    }
+    let chainText = match String.fromBytes(qe.pckCertChain) {
+        Ok(value) -> value
+        Err(_) -> fail failure(BadCertificationData, "PCK chain is not UTF-8 PEM")
+    }
+    let chain = match x509.parsePem(chainText) {
+        Ok(value) -> value
+        Err(err) -> fail failure(BadCertificationData, err.message())
+    }
+    if chain.len() == 0 {
+        fail failure(BadCertificationData, "PCK chain is empty")
+    }
+    let leaf = &chain[0]
+    let public = match &leaf.publicKey {
+        x509.PublicKey.EcP256(value) -> value
+        x509.PublicKey.Rsa(_) -> fail failure(UnsupportedAlgorithm, "PCK leaf key is not P-256")
+    }
+    match p256.verifyMessage(public, qe.report, qe.signature) {
+        Ok(true) -> {}
+        Ok(false) -> fail failure(SignatureInvalid, "QE report signature does not match the PCK leaf")
+        Err(err) -> fail failure(BadSignature, err.message())
+    }
+    let keyDigest = sha256.sum(quote.attestationKey)
+    let authDigest = sha256.sum(qe.authData)
+    if !keyDigest.equals(&bytesAt(qe.report, 320, 32)) {
+        fail failure(QeReportMismatch, "QE report does not bind the attestation key")
+    }
+    if !authDigest.equals(&bytesAt(qe.report, 352, 32)) {
+        fail failure(QeReportMismatch, "QE report does not bind the QE auth data")
+    }
+    Ok(())
+}
+
+/// `verifyQeReportSignature` as a consuming method.
+pub pure fn Quote.verifyQeSignature(self) -> Result[Void, Error] {
+    verifyQeReportSignature(&self)
+}
+
+/// Whether the quote's TD attributes carry the DEBUG bit. A debug TD has no
+/// confidentiality.
+pub pure fn Quote.isDebug(self) -> Bool {
+    (self.report.attributes & 1) != 0
+}
+
+/// A copy of RTMR `index`; None when `index` is not 0..3.
+pub pure fn Quote.rtmr(self, index: usize) -> Bytes? {
+    if index >= 4 {
+        return None
+    }
+    Some(self.report.rtmr[index])
+}

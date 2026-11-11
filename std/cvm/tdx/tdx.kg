@@ -1,0 +1,164 @@
+// Intel TDX attestation structures: the 1024-byte TDREPORT, the RTMR event
+// log, and the v4 TDX quote envelope. See the Intel TDX Module ABI
+// specification (TDG.MR.REPORT, REPORTMACSTRUCT, TEE_TCB_INFO, TDINFO), the
+// TDX Virtual Firmware Design Guide (TD event log) and the Intel DCAP Quote
+// Library API (v4 quote layout).
+//
+// The parser is strict about every field the specification fixes: the exact
+// structure lengths, the report type, reserved bytes, and the SHA-384 hash
+// bindings between REPORTMACSTRUCT and the following TEE_TCB_INFO / TDINFO.
+// A TDREPORT's MAC is keyed by TDX module and platform secrets that a guest
+// cannot read, so this package never claims to authenticate a bare TDREPORT;
+// authenticity comes from a TDX quote, whose ECDSA signature `quote.verify`
+// checks. `TdReport.checkIntegrity` only checks internal consistency.
+/// Why a TDX structure was refused.
+pub type Code =
+    | BadLength
+    | BadReportType
+    | BadReserved
+    | BadHashBinding
+    | BadAttributes
+    | BadPcrIndex
+    | BadEventLog
+    | MissingSha384
+    | RtmrMismatch
+    | UnsupportedVersion
+    | BadTeeType
+    | BadKeyType
+    | BadCertificationData
+    | BadSignature
+    | SignatureInvalid
+    | QeReportMismatch
+    | UnsupportedAlgorithm
+    | BadIdBlock
+    | BadAuthorKey
+
+/// A parse or verification failure. `text` is stable enough to log; `code`
+/// is what callers branch on.
+pub type Error = {
+    pub code Code
+    pub text String
+}
+
+pub fn Code.name(self) -> String {
+    match self {
+        BadLength -> "bad-length"
+        BadReportType -> "bad-report-type"
+        BadReserved -> "bad-reserved"
+        BadHashBinding -> "bad-hash-binding"
+        BadAttributes -> "bad-attributes"
+        BadPcrIndex -> "bad-pcr-index"
+        BadEventLog -> "bad-event-log"
+        MissingSha384 -> "missing-sha384"
+        RtmrMismatch -> "rtmr-mismatch"
+        UnsupportedVersion -> "unsupported-version"
+        BadTeeType -> "bad-tee-type"
+        BadKeyType -> "bad-key-type"
+        BadCertificationData -> "bad-certification-data"
+        BadSignature -> "bad-signature"
+        SignatureInvalid -> "signature-invalid"
+        QeReportMismatch -> "qe-report-mismatch"
+        UnsupportedAlgorithm -> "unsupported-algorithm"
+        BadIdBlock -> "bad-id-block"
+        BadAuthorKey -> "bad-author-key"
+    }
+}
+
+pub fn Error.message(self) -> String {
+    self.text
+}
+
+pub pure fn failure(code: Code, text: String) -> Error {
+    Error {
+        code: code
+        text: "tdx: ${text}"
+    }
+}
+
+/// Bytes of a TDREPORT.
+pub const reportSize: usize = 1024
+
+/// Bytes of the TDREPORT REPORTMACSTRUCT.
+pub const macStructSize: usize = 256
+
+/// Bytes of TEE_TCB_INFO inside a TDREPORT.
+pub const teeTcbInfoSize: usize = 239
+
+/// Bytes of TDINFO inside a TDREPORT.
+pub const tdInfoSize: usize = 512
+
+/// Bytes of the TD report body carried by a v4 quote.
+pub const quoteReportSize: usize = 584
+
+/// Bytes of a v4 quote header.
+pub const quoteHeaderSize: usize = 48
+
+/// Bytes of an RTMR or measurement register.
+pub const registerSize: usize = 48
+
+/// Bytes of a TD attribute word.
+pub const attributeSize: usize = 8
+
+/// TDX report type for TDREPORT0 and the TD report inside a quote.
+const reportTypeTdx: u32 = 0
+
+/// TDX quote TEE type.
+pub const teeTypeTdx: u32 = 0x81
+
+/// Attestation key type: ECDSA P-256.
+pub const keyTypeEcdsaP256: u16 = 2
+
+/// Attestation key type: ECDSA P-384. Parsed but not verifiable here because
+/// `std/crypto` does not implement P-384 yet.
+pub const keyTypeEcdsaP384: u16 = 3
+
+/// v4 quote header offsets, from the start of the header.
+pub const quoteVersionOffset: usize = 0
+
+pub const quoteKeyTypeOffset: usize = 2
+pub const quoteTeeTypeOffset: usize = 4
+pub const quoteQeSvnOffset: usize = 8
+pub const quotePceSvnOffset: usize = 10
+pub const quoteQeVendorIdOffset: usize = 12
+pub const quoteUserDataOffset: usize = 28
+
+pure fn leU16(data: Bytes, at: usize) -> u16 {
+    data[at].toU16() | (data[at + 1].toU16() << 8)
+}
+
+pure fn leU32(data: Bytes, at: usize) -> u32 {
+    let b0 = data[at].toU32()
+    let b1 = data[at + 1].toU32() << 8
+    let b2 = data[at + 2].toU32() << 16
+    let b3 = data[at + 3].toU32() << 24
+    b0 | b1 | b2 | b3
+}
+
+pure fn leU64(data: Bytes, at: usize) -> u64 {
+    leU32(data, at).toU64() | (leU32(data, at + 4).toU64() << 32)
+}
+
+pure fn allZero(data: Bytes) -> Bool {
+    let mut i: usize = 0
+    for i < data.len() {
+        if data[i] != 0 {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}
+
+pure fn bytesAt(data: Bytes, at: usize, len: usize) -> Bytes {
+    match data.slice(at, at + len) {
+        Some(value) -> value
+        None -> Bytes.zeros(0)
+    }
+}
+
+pure fn requireZero(data: Bytes, at: usize, len: usize, name: String) -> Result[Void, Error] {
+    if !allZero(bytesAt(data, at, len)) {
+        fail failure(BadReserved, "${name} must be all zero")
+    }
+    Ok(())
+}
