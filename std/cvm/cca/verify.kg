@@ -1,0 +1,78 @@
+// Cross-token checks for delegated CCA evidence.
+//
+// A Realm Attestation Token is self-signed by the RAK, so on its own it only
+// proves that whoever holds the RAK signed the claims. Trust comes from the
+// platform token: its binding claim is the hash of the exact COSE_Key bytes
+// carried by the realm token. `Collection.verifyBinding` checks that digest
+// before any signature is treated as meaningful.
+pub pure fn platformProfileIsDelegated(profile: String) -> Bool {
+    if profile.contains(";direct") {
+        return false
+    }
+    profile.startsWith("tag:arm.com,2026:cca_platform#2.0.0")
+        || profile.startsWith("tag:arm.com,2026:cca_platform#2.1.0")
+        || profile.startsWith("tag:arm.com,2024:cca_platform#2.0.0")
+}
+
+/// Verifies that the platform token's binding claim names the realm token's
+/// Realm Attestation Key. Both the older `eat_nonce` binding and the newer
+/// workload-binding claim are checked when present; at least one must exist.
+pub pure fn verifyCollectionBinding(collection: &Collection) -> Result[Void, Error] {
+    let platform = match collection.platform {
+        Some(value) -> value
+        None -> fail Unsupported("delegated CCA evidence requires a platform token")
+    }
+    let digest = match claimsPublicKeyDigest(&collection.realm.claims) {
+        Some(value) -> value
+        None -> fail Unsupported("direct CCA realm token has no Realm Attestation Key")
+    }
+    match platform.claims.profile {
+        Some(profile) -> {
+            if !platformProfileIsDelegated(profile) {
+                fail Unsupported("CCA platform profile ${profile}")
+            }
+        }
+        None -> fail Malformed("platform token has no profile")
+    }
+    // The workload-binding claim is the current binding; the older eat_nonce
+    // form is accepted when no workload binding is present. When both exist
+    // the challenge may be a relying-party nonce (the HESRAK profile), so it
+    // is not required to repeat the RAK digest.
+    let binding = match platform.claims.workloadBinding {
+        Some(value) -> value
+        None -> match platform.claims.challenge {
+            Some(value) -> value
+            None -> fail Malformed("platform token has no binding claim")
+        }
+    }
+    if !binding.equals(&digest) {
+        fail Forged("platform binding does not name the realm key")
+    }
+    Ok(())
+}
+
+/// Checks the optional realm profile claim against the profiles this package
+/// understands. An absent profile is allowed because the platform profile may
+/// describe both layers.
+pub pure fn checkClaimsProfile(claims: &Claims) -> Result[Void, Error] {
+    match claims.profile {
+        Some(profile) -> {
+            if profile == realmProfile {
+                Ok(())
+            } else if profile == "tag:arm.com,2024:realm#2.0.0" {
+                Ok(())
+            } else {
+                fail Unsupported("CCA realm profile ${profile}")
+            }
+        }
+        None -> Ok(())
+    }
+}
+
+pub pure fn Collection.verifyBinding(self) -> Result[Void, Error] {
+    verifyCollectionBinding(&self)
+}
+
+pub pure fn Claims.checkProfile(self) -> Result[Void, Error] {
+    checkClaimsProfile(&self)
+}

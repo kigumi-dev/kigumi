@@ -1,0 +1,73 @@
+// CMW collection parsing for delegated CCA evidence.
+//
+// The reference profile wraps one platform token and one realm token in
+// `#6.907({44234: [263, bstr], 44241: [263, bstr]})`. Earlier drafts used tag
+// 399 with the same entry labels; both are accepted. Each entry carries a
+// byte string whose content is the full tagged COSE_Sign1, so the nested
+// parser sees exactly the bytes the attester signed.
+pub type Collection = {
+    pub platform PlatformToken?
+    pub realm Token
+    pub raw Bytes
+}
+
+pure fn readEntry(cursor: &mut Cursor) -> Result[Bytes, Error] {
+    let count = cursor.readArrayHeader()?
+    if count != 2 {
+        fail Malformed("CMW entry must hold two items")
+    }
+    let format = cursor.readInteger()?
+    if format != coapCbor {
+        fail Malformed("CMW entry content format ${format}")
+    }
+    cursor.readByteString()
+}
+
+/// Parses a CCA CMW collection. The realm token is mandatory; the platform
+/// token is optional so a caller can parse a realm token before the platform
+/// half is available, but verification requires it for delegated evidence.
+pub pure fn Collection.parse(data: Bytes) -> Result[Collection, Error] {
+    let mut cursor = Cursor { data: data, at: 0 }
+    let tag = cursor.readTag()?
+    if tag != collectionTag && tag != legacyCollectionTag {
+        fail UnsupportedVersion(tag.toInt() || fail Unsupported("CCA collection tag"))
+    }
+    let pairs = cursor.readMapHeader()?
+    let mut platform: PlatformToken? = None
+    let mut realm: Token? = None
+    let mut i: usize = 0
+    for i < pairs {
+        let label = match cursor.readLabel()? {
+            Some(label) -> label
+            None -> 0
+        }
+        match label {
+            44234 -> {
+                if platform is Some(_) {
+                    fail Malformed("duplicate CCA platform entry")
+                }
+                platform = Some(PlatformToken.parse(readEntry(&mut cursor)?)?)
+            }
+            44241 -> {
+                if realm is Some(_) {
+                    fail Malformed("duplicate CCA realm entry")
+                }
+                realm = Some(Token.parse(readEntry(&mut cursor)?)?)
+            }
+            _ -> cursor.skipValue(64)?
+        }
+        i = i + 1
+    }
+    if !cursor.finished() {
+        fail Malformed("CMW collection trailing bytes")
+    }
+    let realmToken = match realm {
+        Some(value) -> value
+        None -> fail Malformed("CMW collection has no realm token")
+    }
+    Ok(Collection {
+        platform: platform
+        realm: realmToken
+        raw: data
+    })
+}

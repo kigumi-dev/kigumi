@@ -1,0 +1,284 @@
+// A small definite-length CBOR reader.
+//
+// The CCA profile requires definite-length strings, arrays and maps. The
+// reader rejects indefinite lengths and every truncated item; it does not
+// attempt to be a general CBOR library because the token layout needs only
+// integers, byte strings, text strings, arrays, maps and tags. Unknown items
+// can be skipped, so a token carrying claims this package does not know is
+// still accepted.
+type Cursor = {
+    data Bytes
+    mut at usize
+}
+
+type Head = {
+    major u8
+    arg u64
+}
+
+pure fn Cursor.byte(mut self) -> Result[u8, Error] {
+    if self.at >= self.data.len() {
+        fail Truncated("CBOR item")
+    }
+    let value = self.data[self.at]
+    self.at = self.at + 1
+    Ok(value)
+}
+
+pure fn Cursor.take(mut self, count: usize) -> Result[Bytes, Error] {
+    if count > self.data.len() - self.at {
+        fail Truncated("CBOR item")
+    }
+    let value = match self.data.slice(self.at, self.at + count) {
+        Some(value) -> value
+        None -> fail Truncated("CBOR item")
+    }
+    self.at = self.at + count
+    Ok(value)
+}
+
+pure fn Cursor.uint(mut self, count: usize) -> Result[u64, Error] {
+    let bytes = self.take(count)?
+    let mut value: u64 = 0
+    let mut i: usize = 0
+    for i < count {
+        value = (value << 8) | bytes[i].toU64()
+        i = i + 1
+    }
+    Ok(value)
+}
+
+pure fn Cursor.head(mut self) -> Result[Head, Error] {
+    let first = self.byte()?
+    let major = first >> 5
+    let additional = first & 0x1F
+    let arg = match additional {
+        0 -> 0
+        1 -> 1
+        2 -> 2
+        3 -> 3
+        4 -> 4
+        5 -> 5
+        6 -> 6
+        7 -> 7
+        8 -> 8
+        9 -> 9
+        10 -> 10
+        11 -> 11
+        12 -> 12
+        13 -> 13
+        14 -> 14
+        15 -> 15
+        16 -> 16
+        17 -> 17
+        18 -> 18
+        19 -> 19
+        20 -> 20
+        21 -> 21
+        22 -> 22
+        23 -> 23
+        24 -> self.uint(1)?
+        25 -> self.uint(2)?
+        26 -> self.uint(4)?
+        27 -> self.uint(8)?
+        28 -> fail Malformed("CBOR additional information")
+        29 -> fail Malformed("CBOR additional information")
+        30 -> fail Malformed("CBOR additional information")
+        _ -> fail Unsupported("indefinite-length CBOR item")
+    }
+    Ok(Head { major: major, arg: arg })
+}
+
+pure fn Cursor.requireMajor(mut self, want: u8, what: String) -> Result[Head, Error] {
+    let head = self.head()?
+    if head.major != want {
+        fail Malformed(what)
+    }
+    Ok(head)
+}
+
+/// Reads one byte string and returns its contents.
+pub pure fn Cursor.readByteString(mut self) -> Result[Bytes, Error] {
+    let head = self.requireMajor(2, "CBOR byte string")?
+    if head.arg > self.data.len().toU64() - self.at.toU64() {
+        fail Truncated("CBOR byte string")
+    }
+    self.take(head.arg.toUsize())
+}
+
+/// Reads one text string and decodes it as UTF-8.
+pub pure fn Cursor.readTextString(mut self) -> Result[String, Error] {
+    let head = self.requireMajor(3, "CBOR text string")?
+    if head.arg > self.data.len().toU64() - self.at.toU64() {
+        fail Truncated("CBOR text string")
+    }
+    let bytes = self.take(head.arg.toUsize())?
+    match String.fromBytes(bytes) {
+        Ok(text) -> Ok(text)
+        Err(_) -> fail Malformed("CBOR text string")
+    }
+}
+
+/// Reads an unsigned integer.
+pub pure fn Cursor.readUnsigned(mut self) -> Result[u64, Error] {
+    let head = self.requireMajor(0, "CBOR unsigned integer")?
+    Ok(head.arg)
+}
+
+/// Reads a signed integer (CBOR major type 0 or 1).
+pub pure fn Cursor.readInteger(mut self) -> Result[Int, Error] {
+    let head = self.head()?
+    match head.major {
+        0 -> Ok(head.arg.toInt() || fail Malformed("CBOR integer"))
+        1 -> {
+            let value = head.arg.toInt() || fail Malformed("CBOR integer")
+            Ok(-1 - value)
+        }
+        _ -> fail Malformed("CBOR integer")
+    }
+}
+
+/// Reads an integer claim label. Text-string labels are consumed and reported
+/// as `None`; every other label must be an integer.
+pub pure fn Cursor.readLabel(mut self) -> Result[Int?, Error] {
+    let head = self.head()?
+    match head.major {
+        0 -> Ok(Some(head.arg.toInt() || fail Malformed("CBOR label")))
+        1 -> {
+            let value = head.arg.toInt() || fail Malformed("CBOR label")
+            Ok(Some(-1 - value))
+        }
+        3 -> {
+            if head.arg > self.data.len().toU64() - self.at.toU64() {
+                fail Truncated("CBOR text label")
+            }
+            let _ = self.take(head.arg.toUsize())?
+            Ok(None)
+        }
+        _ -> fail Malformed("CBOR label")
+    }
+}
+
+/// Reads an array header and returns the number of items.
+pub pure fn Cursor.readArrayHeader(mut self) -> Result[usize, Error] {
+    let head = self.requireMajor(4, "CBOR array")?
+    Ok(head.arg.toUsize())
+}
+
+/// Reads a map header and returns the number of pairs.
+pub pure fn Cursor.readMapHeader(mut self) -> Result[usize, Error] {
+    let head = self.requireMajor(5, "CBOR map")?
+    Ok(head.arg.toUsize())
+}
+
+/// Reads a tag number.
+pub pure fn Cursor.readTag(mut self) -> Result[u64, Error] {
+    let head = self.requireMajor(6, "CBOR tag")?
+    Ok(head.arg)
+}
+
+/// Skips one complete CBOR item, including nested arrays and maps. `depth`
+/// bounds nesting so a hostile token cannot exhaust the call stack.
+pub pure fn Cursor.skipValue(mut self, depth: usize) -> Result[Void, Error] {
+    if depth == 0 {
+        fail Unsupported("CBOR nesting deeper than 64")
+    }
+    let head = self.head()?
+    match head.major {
+        0 -> {}
+        1 -> {}
+        2 -> {
+            if head.arg > self.data.len().toU64() - self.at.toU64() {
+                fail Truncated("CBOR byte string")
+            }
+            self.take(head.arg.toUsize())?
+        }
+        3 -> {
+            if head.arg > self.data.len().toU64() - self.at.toU64() {
+                fail Truncated("CBOR text string")
+            }
+            self.take(head.arg.toUsize())?
+        }
+        4 -> {
+            let mut i: u64 = 0
+            for i < head.arg {
+                self.skipValue(depth - 1)?
+                i = i + 1
+            }
+        }
+        5 -> {
+            let mut i: u64 = 0
+            for i < head.arg * 2 {
+                self.skipValue(depth - 1)?
+                i = i + 1
+            }
+        }
+        6 -> {
+            self.skipValue(depth - 1)?
+        }
+        _ -> {}
+    }
+    Ok(())
+}
+
+/// Whether the cursor has consumed every byte.
+pub pure fn Cursor.finished(self) -> Bool {
+    self.at == self.data.len()
+}
+
+/// The number of unread bytes.
+pub pure fn Cursor.remaining(self) -> usize {
+    self.data.len() - self.at
+}
+
+/// Appends a definite-length CBOR head for `arg`.
+pub pure fn putHead(out: &mut Array[u8], major: u8, arg: u64) {
+    let prefix = major << 5
+    if arg < 24 {
+        out.push(prefix | arg.truncate[u8]())
+    } else if arg <= 0xFF {
+        out.push(prefix | 24)
+        out.push(arg.truncate[u8]())
+    } else if arg <= 0xFFFF {
+        out.push(prefix | 25)
+        out.push((arg >> 8).truncate[u8]())
+        out.push(arg.truncate[u8]())
+    } else if arg <= 0xFFFFFFFF {
+        out.push(prefix | 26)
+        out.push((arg >> 24).truncate[u8]())
+        out.push((arg >> 16).truncate[u8]())
+        out.push((arg >> 8).truncate[u8]())
+        out.push(arg.truncate[u8]())
+    } else {
+        out.push(prefix | 27)
+        out.push((arg >> 56).truncate[u8]())
+        out.push((arg >> 48).truncate[u8]())
+        out.push((arg >> 40).truncate[u8]())
+        out.push((arg >> 32).truncate[u8]())
+        out.push((arg >> 24).truncate[u8]())
+        out.push((arg >> 16).truncate[u8]())
+        out.push((arg >> 8).truncate[u8]())
+        out.push(arg.truncate[u8]())
+    }
+}
+
+/// Appends `value` as a CBOR byte string.
+pub pure fn putByteString(out: &mut Array[u8], value: Bytes) {
+    putHead(out, 2, value.len().toU64())
+    appendBytes(out, value)
+}
+
+/// Appends `value` as a CBOR text string.
+pub pure fn putTextString(out: &mut Array[u8], value: String) {
+    putHead(out, 3, value.len().toU64())
+    appendBytes(out, value.toBytes())
+}
+
+/// Appends all bytes of `value`, without another length prefix.
+pub pure fn appendBytes(out: &mut Array[u8], value: Bytes) {
+    let mut i: usize = 0
+    for i < value.len() {
+        out.push(value[i])
+        i = i + 1
+    }
+}

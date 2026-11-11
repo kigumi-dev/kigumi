@@ -1,0 +1,351 @@
+// Realm and platform claim sets.
+//
+// The realm claim set is the COSE_Sign1 payload of a Realm Attestation Token.
+// Every mandatory claim from draft-ffm-rats-cca-token is validated: the
+// nonce, instance ID and personalisation value lengths, the RIM and REM
+// lengths against the declared hash algorithm, the MEC/LFA enumerations and
+// the COSE_Key encoding. Claims this package does not know are skipped, as
+// EAT requires, but a duplicate known claim is refused so a token cannot
+// carry two values for one label.
+pub type Claims = {
+    pub challenge Bytes
+    pub profile String?
+    pub instanceId Bytes
+    pub personalizationValue Bytes
+    pub initialMeasurement Bytes
+    pub extensibleMeasurements Array[Bytes]
+    pub hashAlgorithm HashAlgorithm
+    pub publicKey CoseKey?
+    pub publicKeyHashAlgorithm HashAlgorithm?
+    pub mecPolicy u8
+    pub lfaPolicy u8?
+    pub devicesTokenHash Bytes?
+    /// The exact claim-set bytes the token payload carried.
+    pub claimSet Bytes
+}
+
+pub type PlatformClaims = {
+    pub challenge Bytes?
+    pub workloadBinding Bytes?
+    pub profile String?
+    pub claimSet Bytes
+}
+
+pure fn bit(value: i64) -> u64 {
+    match value {
+        10 -> 1
+        256 -> 2
+        265 -> 4
+        44235 -> 8
+        44236 -> 16
+        44237 -> 32
+        44238 -> 64
+        44239 -> 128
+        44240 -> 256
+        44243 -> 512
+        44244 -> 1024
+        44257 -> 2048
+        2408 -> 4096
+        _ -> 0
+    }
+}
+
+/// Parses a realm claim set.
+pub pure fn parseClaims(claimSet: Bytes) -> Result[Claims, Error] {
+    let mut cursor = Cursor { data: claimSet, at: 0 }
+    let pairs = cursor.readMapHeader()?
+    let mut challenge: Bytes? = None
+    let mut profile: String? = None
+    let mut instanceId: Bytes? = None
+    let mut personalizationValue: Bytes? = None
+    let mut initialMeasurement: Bytes? = None
+    let mut extensibleMeasurements: Array[Bytes]? = None
+    let mut hashAlgorithm: HashAlgorithm? = None
+    let mut publicKey: CoseKey? = None
+    let mut publicKeyHashAlgorithm: HashAlgorithm? = None
+    let mut mecPolicy: u8? = None
+    let mut lfaPolicy: u8? = None
+    let mut devicesTokenHash: Bytes? = None
+    let mut seen: u64 = 0
+
+    let mut i: usize = 0
+    for i < pairs {
+        let label = match cursor.readLabel()? {
+            Some(label) -> label
+            None -> 0
+        }
+        let known: Bool = label == claimChallenge
+            || label == claimInstanceId
+            || label == claimProfile
+            || label == claimPersonalizationValue
+            || label == claimHashAlgorithm
+            || label == claimPublicKey
+            || label == claimInitialMeasurement
+            || label == claimExtensibleMeasurements
+            || label == claimPublicKeyHashAlgorithm
+            || label == claimMecPolicy
+            || label == claimLfaPolicy
+            || label == claimDevicesTokenHash
+        if known {
+            let mask = bit(label)
+            if (seen & mask) != 0 {
+                fail Malformed("duplicate realm claim ${label}")
+            }
+            seen = seen | mask
+        }
+        match label {
+            10 -> { challenge = Some(cursor.readByteString()?) }
+            256 -> { instanceId = Some(cursor.readByteString()?) }
+            265 -> { profile = Some(cursor.readTextString()?) }
+            44235 -> { personalizationValue = Some(cursor.readByteString()?) }
+            44236 -> { hashAlgorithm = Some(HashAlgorithm.parse(cursor.readTextString()?)?) }
+            44237 -> {
+                let encoded = cursor.readByteString()?
+                publicKey = Some(parseCoseKey(encoded)?)
+            }
+            44238 -> { initialMeasurement = Some(cursor.readByteString()?) }
+            44239 -> {
+                let count = cursor.readArrayHeader()?
+                if count != 4 {
+                    fail Malformed("REM array must hold four measurements")
+                }
+                let mut values = Array.empty[Bytes]()
+                let mut j: usize = 0
+                for j < count {
+                    values.push(cursor.readByteString()?)
+                    j = j + 1
+                }
+                extensibleMeasurements = Some(values)
+            }
+            44240 -> {
+                publicKeyHashAlgorithm = Some(HashAlgorithm.parse(cursor.readTextString()?)?)
+            }
+            44243 -> {
+                let value = cursor.readUnsigned()?
+                if value > 1 {
+                    fail Malformed("MEC policy ${value}")
+                }
+                mecPolicy = Some(value.truncate[u8]())
+            }
+            44244 -> {
+                let value = cursor.readUnsigned()?
+                if value > 1 {
+                    fail Malformed("LFA policy ${value}")
+                }
+                lfaPolicy = Some(value.truncate[u8]())
+            }
+            44257 -> { devicesTokenHash = Some(cursor.readByteString()?) }
+            _ -> cursor.skipValue(64)?
+        }
+        i = i + 1
+    }
+    if !cursor.finished() {
+        fail Malformed("realm claim-set trailing bytes")
+    }
+
+    let algorithm = match hashAlgorithm {
+        Some(value) -> value
+        None -> fail Malformed("missing realm hash algorithm")
+    }
+    let challengeValue = match challenge {
+        Some(value) -> value
+        None -> fail Malformed("missing realm challenge")
+    }
+    if challengeValue.len() != 64 {
+        fail BadSize("realm challenge", challengeValue.len())
+    }
+    let instanceIdValue = match instanceId {
+        Some(value) -> value
+        None -> fail Malformed("missing realm instance ID")
+    }
+    if instanceIdValue.len() != 33 {
+        fail BadSize("realm instance ID", instanceIdValue.len())
+    }
+    if instanceIdValue[0] != 1 {
+        fail Malformed("realm instance ID type")
+    }
+    let personalizationValueValue = match personalizationValue {
+        Some(value) -> value
+        None -> fail Malformed("missing realm personalisation value")
+    }
+    if personalizationValueValue.len() != 64 {
+        fail BadSize("realm personalisation value", personalizationValueValue.len())
+    }
+    let initialMeasurementValue = match initialMeasurement {
+        Some(value) -> value
+        None -> fail Malformed("missing realm initial measurement")
+    }
+    if initialMeasurementValue.len() != algorithm.size() {
+        fail BadSize("realm initial measurement", initialMeasurementValue.len())
+    }
+    let extensibleValues = match extensibleMeasurements {
+        Some(value) -> value
+        None -> fail Malformed("missing realm extensible measurements")
+    }
+    let mut j: usize = 0
+    for j < extensibleValues.len() {
+        if extensibleValues[j].len() != algorithm.size() {
+            fail BadSize("realm extensible measurement", extensibleValues[j].len())
+        }
+        j = j + 1
+    }
+    let mecValue = match mecPolicy {
+        Some(value) -> value
+        None -> fail Malformed("missing realm MEC policy")
+    }
+    match devicesTokenHash {
+        Some(value) -> {
+            if value.len() != algorithm.size() {
+                fail BadSize("realm devices token hash", value.len())
+            }
+        }
+        None -> {}
+    }
+    match publicKey {
+        Some(_) -> {
+            if publicKeyHashAlgorithm is None {
+                fail Malformed("missing realm public key hash algorithm")
+            }
+        }
+        None -> {
+            if publicKeyHashAlgorithm is Some(_) {
+                fail Malformed("realm public key hash algorithm without a public key")
+            }
+        }
+    }
+
+    Ok(Claims {
+        challenge: challengeValue
+        profile: profile
+        instanceId: instanceIdValue
+        personalizationValue: personalizationValueValue
+        initialMeasurement: initialMeasurementValue
+        extensibleMeasurements: extensibleValues
+        hashAlgorithm: algorithm
+        publicKey: publicKey
+        publicKeyHashAlgorithm: publicKeyHashAlgorithm
+        mecPolicy: mecValue
+        lfaPolicy: lfaPolicy
+        devicesTokenHash: devicesTokenHash
+        claimSet: claimSet
+    })
+}
+
+/// Parses the claim set of a CCA Platform token.
+pub pure fn parsePlatformClaims(claimSet: Bytes) -> Result[PlatformClaims, Error] {
+    let mut cursor = Cursor { data: claimSet, at: 0 }
+    let pairs = cursor.readMapHeader()?
+    let mut challenge: Bytes? = None
+    let mut workloadBinding: Bytes? = None
+    let mut profile: String? = None
+    let mut seen: u64 = 0
+
+    let mut i: usize = 0
+    for i < pairs {
+        let label = match cursor.readLabel()? {
+            Some(label) -> label
+            None -> 0
+        }
+        let known: Bool = label == platformChallenge || label == platformWorkloadBinding || label == claimProfile
+        if known {
+            let mask = bit(label)
+            if (seen & mask) != 0 {
+                fail Malformed("duplicate platform claim ${label}")
+            }
+            seen = seen | mask
+        }
+        match label {
+            10 -> { challenge = Some(cursor.readByteString()?) }
+            2408 -> { workloadBinding = Some(cursor.readByteString()?) }
+            265 -> { profile = Some(cursor.readTextString()?) }
+            _ -> cursor.skipValue(64)?
+        }
+        i = i + 1
+    }
+    if !cursor.finished() {
+        fail Malformed("platform claim-set trailing bytes")
+    }
+    match challenge {
+        Some(value) -> {
+            if !isHashSized(value) {
+                fail BadSize("platform challenge", value.len())
+            }
+        }
+        None -> {}
+    }
+    match workloadBinding {
+        Some(value) -> {
+            if !isHashSized(value) {
+                fail BadSize("platform workload binding", value.len())
+            }
+        }
+        None -> {}
+    }
+    if challenge is None && workloadBinding is None {
+        fail Malformed("platform claim set has no binding value")
+    }
+    Ok(PlatformClaims {
+        challenge: challenge
+        workloadBinding: workloadBinding
+        profile: profile
+        claimSet: claimSet
+    })
+}
+
+/// REM `index`, or None when `index` is not 0..3.
+pub pure fn Claims.rem(self, index: usize) -> Bytes? {
+    if index >= self.extensibleMeasurements.len() {
+        return None
+    }
+    Some(self.extensibleMeasurements[index])
+}
+
+/// The digest of the Realm Public Key claim, computed with the algorithm the
+/// token names. This is the value a delegated CCA Platform token must carry
+/// as its binding.
+pub pure fn claimsPublicKeyDigest(claims: &Claims) -> Bytes? {
+    let key = match claims.publicKey {
+        Some(value) -> value
+        None -> return None
+    }
+    let algorithm = match claims.publicKeyHashAlgorithm {
+        Some(value) -> value
+        None -> return None
+    }
+    Some(algorithm.hash(key.encoded))
+}
+
+/// True when the challenge equals `nonce` exactly.
+pub pure fn claimsChallengeEquals(claims: &Claims, nonce: Bytes) -> Bool {
+    claims.challenge.equals(&nonce)
+}
+
+/// True when the RIM and all four REMs equal the supplied values.
+pub pure fn claimsMeasurementEquals(claims: &Claims, initial: Bytes, extensible: &Array[Bytes]) -> Bool {
+    if !claims.initialMeasurement.equals(&initial) {
+        return false
+    }
+    if extensible.len() != claims.extensibleMeasurements.len() {
+        return false
+    }
+    let mut i: usize = 0
+    for i < extensible.len() {
+        if !claims.extensibleMeasurements[i].equals(&extensible[i]) {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}
+
+pub pure fn Claims.publicKeyDigest(self) -> Bytes? {
+    claimsPublicKeyDigest(&self)
+}
+
+pub pure fn Claims.challengeEquals(self, nonce: Bytes) -> Bool {
+    claimsChallengeEquals(&self, nonce)
+}
+
+pub pure fn Claims.measurementEquals(self, initial: Bytes, extensible: &Array[Bytes]) -> Bool {
+    claimsMeasurementEquals(&self, initial, extensible)
+}

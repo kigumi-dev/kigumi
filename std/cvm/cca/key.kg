@@ -1,0 +1,150 @@
+// COSE_Key parsing for the realm attestation key (RAK).
+//
+// The CCA reference profile carries the RAK public key as a byte string whose
+// content is a CBOR COSE_Key. Only EC2 keys on P-256, P-384 and P-521 are
+// accepted: those are the curves the profile's ECDSA algorithms use, and
+// accepting an uninterpretable key type would let a token claim a binding it
+// cannot prove. P-384 and P-521 keys parse, but only an external verifier can
+// check signatures with them because `std/crypto` implements P-256 alone.
+pub type CoseKey = {
+    pub kty Int
+    pub curve Int
+    pub x Bytes
+    pub y Bytes
+    pub algorithm Int?
+    /// The exact COSE_Key bytes inside the claim; the platform binding hashes
+    /// these bytes.
+    pub encoded Bytes
+}
+
+const ktyEc2: Int = 2
+
+const curveP256: Int = 1
+
+const curveP384: Int = 2
+
+const curveP521: Int = 3
+
+pure fn keyCoordinateSize(curve: Int) -> Result[usize, Error] {
+    if curve == curveP256 {
+        return Ok(32)
+    }
+    if curve == curveP384 {
+        return Ok(48)
+    }
+    if curve == curveP521 {
+        return Ok(66)
+    }
+    fail Unsupported("COSE_Key curve ${curve}")
+}
+
+pure fn allZero(value: Bytes) -> Bool {
+    let mut i: usize = 0
+    for i < value.len() {
+        if value[i] != 0 {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}
+
+/// Parses the contents of the Realm Public Key claim.
+pub pure fn parseCoseKey(encoded: Bytes) -> Result[CoseKey, Error] {
+    let mut cursor = Cursor { data: encoded, at: 0 }
+    let pairs = cursor.readMapHeader()?
+    let mut kty: Int? = None
+    let mut curve: Int? = None
+    let mut x: Bytes? = None
+    let mut y: Bytes? = None
+    let mut algorithm: Int? = None
+    let mut seen: u64 = 0
+
+    let mut i: usize = 0
+    for i < pairs {
+        let label = match cursor.readLabel()? {
+            Some(label) -> label
+            None -> 0
+        }
+        let bit: u64 = match label {
+            1 -> 1
+            3 -> 2
+            -1 -> 4
+            -2 -> 8
+            -3 -> 16
+            _ -> 0
+        }
+        if bit != 0 {
+            if (seen & bit) != 0 {
+                fail Malformed("duplicate COSE_Key label")
+            }
+            seen = seen | bit
+        }
+        match label {
+            1 -> { kty = Some(cursor.readInteger()?) }
+            3 -> { algorithm = Some(cursor.readInteger()?) }
+            -1 -> { curve = Some(cursor.readInteger()?) }
+            -2 -> { x = Some(cursor.readByteString()?) }
+            -3 -> { y = Some(cursor.readByteString()?) }
+            _ -> cursor.skipValue(64)?
+        }
+        i = i + 1
+    }
+    if !cursor.finished() {
+        fail Malformed("COSE_Key trailing bytes")
+    }
+    let ktyValue = match kty {
+        Some(value) -> value
+        None -> fail Malformed("COSE_Key kty")
+    }
+    if ktyValue != ktyEc2 {
+        fail Unsupported("COSE_Key kty ${ktyValue}")
+    }
+    let curveValue = match curve {
+        Some(value) -> value
+        None -> fail Malformed("COSE_Key crv")
+    }
+    let size = keyCoordinateSize(curveValue)?
+    let xValue = match x {
+        Some(value) -> value
+        None -> fail Malformed("COSE_Key x")
+    }
+    let yValue = match y {
+        Some(value) -> value
+        None -> fail Malformed("COSE_Key y")
+    }
+    if xValue.len() != size {
+        fail BadSize("COSE_Key x", xValue.len())
+    }
+    if yValue.len() != size {
+        fail BadSize("COSE_Key y", yValue.len())
+    }
+    if allZero(xValue) && allZero(yValue) {
+        fail Malformed("COSE_Key coordinate")
+    }
+    Ok(CoseKey {
+        kty: ktyValue
+        curve: curveValue
+        x: xValue
+        y: yValue
+        algorithm: algorithm
+        encoded: encoded
+    })
+}
+
+/// The SEC1 uncompressed encoding used by `std/crypto/p256`. Only P-256 keys
+/// have a representation here; other curves return `None`.
+pub pure fn CoseKey.sec1(self) -> Bytes? {
+    if self.curve != curveP256 || self.x.len() != 32 || self.y.len() != 32 {
+        return None
+    }
+    let mut out = Array.of[u8](4)
+    appendBytes(&mut out, self.x)
+    appendBytes(&mut out, self.y)
+    Some(Bytes.fromArray(&out))
+}
+
+/// Whether this key is an EC2 P-256 key.
+pub pure fn CoseKey.isP256(self) -> Bool {
+    self.kty == ktyEc2 && self.curve == curveP256 && self.x.len() == 32 && self.y.len() == 32
+}

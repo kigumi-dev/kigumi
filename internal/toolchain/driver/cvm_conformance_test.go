@@ -50,6 +50,9 @@ type cvmVector struct {
 	IdKeyDigest     string   `json:"idKeyDigest"`
 	AuthorKeyDigest string   `json:"authorKeyDigest"`
 	Debug           bool     `json:"debug"`
+	Nonce           string   `json:"nonce"`
+	Rim             string   `json:"rim"`
+	Rems            []string `json:"rems"`
 	Expected        string   `json:"expected"`
 }
 
@@ -160,6 +163,15 @@ func validateCvmVector(v *cvmVector) error {
 		if v.Hex == "" || len(v.Rtmrs) != 1 {
 			return fmt.Errorf("needs a quote and one RTMR value")
 		}
+	case "cca-token", "cca-collection", "cca-collection-binding", "attest-cca",
+		"attest-cca-reject-platform", "attest-cca-reject-realm", "attest-cca-no-platform":
+		if v.Hex == "" {
+			return fmt.Errorf("needs a CCA token or collection")
+		}
+	case "attest-cca-separated":
+		if v.Hex == "" || v.Hex2 == "" {
+			return fmt.Errorf("needs a realm token and a platform token")
+		}
 	case "evidence-snp":
 	case "idblock":
 		if v.Hex == "" || v.Hex2 == "" {
@@ -172,9 +184,10 @@ func validateCvmVector(v *cvmVector) error {
 }
 
 func buildCvmProgram(m *cvmManifest) string {
-	names := []string{"attest", "hex", "sha512", "snp", "tdx"}
+	names := []string{"attest", "cca", "hex", "sha512", "snp", "tdx"}
 	imports := map[string]string{
 		"attest": "std/cvm/attest",
+		"cca":    "std/cvm/cca",
 		"hex":    "std/encoding/hex",
 		"sha512": "std/crypto/sha512",
 		"snp":    "std/cvm/snp",
@@ -222,6 +235,59 @@ fn snpCode(err: snp.Error) -> String {
         snp.Error.Unsupported(_) -> "unsupported"
         snp.Error.Unsigned -> "unsigned"
         snp.Error.Forged(_) -> "forged"
+    }
+}
+
+fn ccaCode(err: cca.Error) -> String {
+    match err {
+        cca.Error.Truncated(_) -> "truncated"
+        cca.Error.BadSize(_, _) -> "bad-size"
+        cca.Error.UnsupportedVersion(_) -> "unsupported-version"
+        cca.Error.UnsupportedAlgorithm(_) -> "unsupported-algorithm"
+        cca.Error.Malformed(_) -> "malformed"
+        cca.Error.Unsupported(_) -> "unsupported"
+        cca.Error.Forged(_) -> "forged"
+        cca.Error.PolicyFailure(_) -> "policy"
+    }
+}
+
+fn attestCode(err: attest.Error) -> String {
+    match err {
+        attest.Error.Cca(error) -> "cca-${ccaCode(error)}"
+        attest.Error.Snp(_) -> "snp"
+        attest.Error.PolicyFailure(_) -> "policy"
+        attest.Error.Unsupported(_) -> "unsupported"
+        attest.Error.Forged(_) -> "forged"
+    }
+}
+
+fn verifyCcaEs256(algorithm: Int, key: &cca.CoseKey, signed: Bytes, signature: Bytes) -> Result[Bool, cca.Error] {
+    cca.verifyEs256(algorithm, key, signed, signature)
+}
+
+fn rejectCcaEs256(algorithm: Int, key: &cca.CoseKey, signed: Bytes, signature: Bytes) -> Result[Bool, cca.Error] {
+    let _ = algorithm
+    let _ = key
+    let _ = signed
+    let _ = signature
+    Ok(false)
+}
+
+fn acceptPlatform(algorithm: Int, signed: Bytes, signature: Bytes) -> Result[Bool, cca.Error] {
+    Ok(algorithm == -7 && signed.len() > 0 && signature.len() == 64)
+}
+
+fn rejectPlatform(algorithm: Int, signed: Bytes, signature: Bytes) -> Result[Bool, cca.Error] {
+    let _ = algorithm
+    let _ = signed
+    let _ = signature
+    Ok(false)
+}
+
+fn ccaDigest(claims: &cca.Claims) -> String {
+    match cca.claimsPublicKeyDigest(claims) {
+        Some(value) -> hex.encode(value)
+        None -> "none"
     }
 }
 `)
@@ -365,6 +431,79 @@ func emitCvmVector(b *strings.Builder, v cvmVector, idx int) {
         }
         Err(err) -> "error:${err.code.name()}"
     }`, hexArg(v.Hex), v.Rtmrs[0]))
+	case "cca-token":
+		emit(fmt.Sprintf(`match cca.Token.parse(%s) {
+        Ok(token) -> match cca.checkClaimsProfile(&token.claims) {
+            Ok(_) -> match cca.verifyToken(&token, verifyCcaEs256) {
+                Ok(_) -> "ok alg=${token.claims.hashAlgorithm.name()} rim=${hex.encode(token.claims.initialMeasurement)} rem0=${hex.encode(token.claims.extensibleMeasurements[0])} mec=${token.claims.mecPolicy} lfa=${token.claims.lfaPolicy || 9} digest=${ccaDigest(&token.claims)}"
+                Err(err) -> "error:${ccaCode(err)}"
+            }
+            Err(err) -> "error:${ccaCode(err)}"
+        }
+        Err(err) -> "error:${ccaCode(err)}"
+    }`, hexArg(v.Hex)))
+	case "cca-collection":
+		emit(fmt.Sprintf(`match cca.Collection.parse(%s) {
+        Ok(collection) -> "ok platform=${p(collection.platform is Some(_))} rim=${hex.encode(collection.realm.claims.initialMeasurement)} binding=${ccaDigest(&collection.realm.claims)}"
+        Err(err) -> "error:${ccaCode(err)}"
+    }`, hexArg(v.Hex)))
+	case "cca-collection-binding":
+		emit(fmt.Sprintf(`match cca.Collection.parse(%s) {
+        Ok(collection) -> match cca.verifyToken(&collection.realm, verifyCcaEs256) {
+            Ok(_) -> match collection.platform {
+                Some(platform) -> match cca.verifyCoseSign1Keyless(&platform.cose, acceptPlatform) {
+                    Ok(_) -> match cca.verifyCollectionBinding(&collection) {
+                        Ok(_) -> "ok binding=${ccaDigest(&collection.realm.claims)}"
+                        Err(err) -> "error:${ccaCode(err)}"
+                    }
+                    Err(err) -> "error:${ccaCode(err)}"
+                }
+                None -> "error:unsupported"
+            }
+            Err(err) -> "error:${ccaCode(err)}"
+        }
+        Err(err) -> "error:${ccaCode(err)}"
+    }`, hexArg(v.Hex)))
+	case "attest-cca", "attest-cca-reject-platform", "attest-cca-reject-realm",
+		"attest-cca-no-platform", "attest-cca-separated":
+		nonceLine := ""
+		if v.Nonce != "" {
+			nonceLine += fmt.Sprintf("    if %q != \"\" { policy.nonce = Some(b(%q)) }\n", v.Nonce, v.Nonce)
+		}
+		rimLine := ""
+		if v.Rim != "" {
+			rimLine += fmt.Sprintf("    if %q != \"\" { policy.initialMeasurement = Some(b(%q)) }\n", v.Rim, v.Rim)
+		}
+		remLine := ""
+		if len(v.Rems) > 0 {
+			items := make([]string, 0, len(v.Rems))
+			for _, h := range v.Rems {
+				items = append(items, hexArg(h))
+			}
+			remLine = fmt.Sprintf("    policy.extensibleMeasurements = Some(Array.of(%s))\n", strings.Join(items, ", "))
+		}
+		realmVerifier := "verifyCcaEs256"
+		if v.Op == "attest-cca-reject-realm" {
+			realmVerifier = "rejectCcaEs256"
+		}
+		platformVerifier := "acceptPlatform"
+		if v.Op == "attest-cca-reject-platform" {
+			platformVerifier = "rejectPlatform"
+		}
+		evidence := "attest.verifyCcaCollection(" + hexArg(v.Hex) + ", &policy, " + realmVerifier + ", " + platformVerifier + ")"
+		if v.Op == "attest-cca-separated" {
+			evidence = "attest.verifyCca(&attest.CcaEvidence { realm: " + hexArg(v.Hex) + ", platform: Some(" + hexArg(v.Hex2) + ") }, &policy, " + realmVerifier + ", " + platformVerifier + ")"
+		}
+		if v.Op == "attest-cca-no-platform" {
+			evidence = "attest.verifyCca(&attest.CcaEvidence { realm: " + hexArg(v.Hex) + ", platform: None }, &policy, " + realmVerifier + ", " + platformVerifier + ")"
+		}
+		emit(fmt.Sprintf(`{
+    let mut policy = attest.CcaPolicy.open()
+%s%s%s    match %s {
+        Ok(claims) -> "ok rim=${hex.encode(claims.initialMeasurement)} rem0=${hex.encode(claims.extensibleMeasurements[0])} mec=${claims.mecPolicy}"
+        Err(err) -> "error:${attestCode(err)}"
+    }
+}`, nonceLine, rimLine, remLine, evidence))
 	case "evidence-snp":
 		emit(`{
         let policy = attest.TdxPolicy.production()

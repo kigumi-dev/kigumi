@@ -1,0 +1,217 @@
+/// Arm CCA Realm attestation evidence hooks.
+///
+/// `verifyCca` keeps the same split as the SNP surface: the token signature is
+/// established by caller-supplied boundaries, the platform-to-realm binding is
+/// checked here because it is part of the evidence's integrity, and `CcaPolicy`
+/// is business policy over the resulting claims. A realm token that is not
+/// bound to a verified platform token is never reported as verified: the RAK
+/// is self-asserted inside the realm token, so the platform binding is what
+/// makes it trustworthy.
+import cca from std/cvm/cca
+
+/// Raw CCA evidence. `platform` is required for the delegated reference model;
+/// a realm token alone has no trust anchor.
+pub type CcaEvidence = {
+    pub realm Bytes
+    pub platform Bytes?
+}
+
+/// The checks applied after the realm and platform tokens are verified and
+/// their binding is established.
+///
+/// `nonce` must equal the 64-byte realm challenge. `initialMeasurement` and
+/// `extensibleMeasurements` are exact matches when present. `allowLfa` permits
+/// the optional LFA policy value 1. `requirePrivateMec` demands the private MEC
+/// policy (1) instead of the shared default (0).
+pub type CcaPolicy = {
+    pub mut nonce Bytes?
+    pub mut initialMeasurement Bytes?
+    pub mut extensibleMeasurements Array[Bytes]?
+    pub mut allowLfa Bool
+    pub mut requirePrivateMec Bool
+}
+
+/// The permissive defaults: no measurement pinning and LFA allowed. The
+/// nonce is still mandatory at the API's caller, because freshness cannot be
+/// inferred from the evidence.
+pub pure fn CcaPolicy.open() -> CcaPolicy {
+    CcaPolicy {
+        nonce: None
+        initialMeasurement: None
+        extensibleMeasurements: None
+        allowLfa: true
+        requirePrivateMec: false
+    }
+}
+
+/// Pins the nonce, RIM and all four REMs and refuses LFA.
+pub pure fn CcaPolicy.strict(nonce: Bytes, initialMeasurement: Bytes, extensibleMeasurements: Array[Bytes]) -> CcaPolicy {
+    CcaPolicy {
+        nonce: Some(nonce)
+        initialMeasurement: Some(initialMeasurement)
+        extensibleMeasurements: Some(extensibleMeasurements)
+        allowLfa: false
+        requirePrivateMec: false
+    }
+}
+
+/// The realm facts a verified policy sees. This is a copy of the parsed
+/// claim fields, so the caller keeps the evidence policy separate from the
+/// raw token representation.
+pub type CcaClaims = {
+    pub challenge Bytes
+    pub profile String?
+    pub instanceId Bytes
+    pub personalizationValue Bytes
+    pub initialMeasurement Bytes
+    pub extensibleMeasurements Array[Bytes]
+    pub hashAlgorithm cca.HashAlgorithm
+    pub publicKeyDigest Bytes?
+    pub mecPolicy u8
+    pub lfaPolicy u8?
+    pub devicesTokenHash Bytes?
+}
+
+pure fn summarize(claims: &cca.Claims) -> CcaClaims {
+    let mut measurements = Array.empty[Bytes]()
+    let mut i: usize = 0
+    for i < claims.extensibleMeasurements.len() {
+        measurements.push(claims.extensibleMeasurements[i])
+        i = i + 1
+    }
+    CcaClaims {
+        challenge: claims.challenge
+        profile: claims.profile
+        instanceId: claims.instanceId
+        personalizationValue: claims.personalizationValue
+        initialMeasurement: claims.initialMeasurement
+        extensibleMeasurements: measurements
+        hashAlgorithm: claims.hashAlgorithm
+        publicKeyDigest: cca.claimsPublicKeyDigest(claims)
+        mecPolicy: claims.mecPolicy
+        lfaPolicy: claims.lfaPolicy
+        devicesTokenHash: claims.devicesTokenHash
+    }
+}
+
+pure fn checkCcaPolicy(claims: &CcaClaims, policy: &CcaPolicy) -> Result[Void, Error] {
+    match policy.nonce {
+        Some(nonce) -> {
+            if !claims.challenge.equals(&nonce) {
+                fail PolicyFailure("CCA realm challenge does not match the expected nonce")
+            }
+        }
+        None -> {}
+    }
+    match policy.initialMeasurement {
+        Some(measurement) -> {
+            if !claims.initialMeasurement.equals(&measurement) {
+                fail PolicyFailure("CCA realm initial measurement does not match")
+            }
+        }
+        None -> {}
+    }
+    match policy.extensibleMeasurements {
+        Some(measurements) -> {
+            if measurements.len() != 4 {
+                fail PolicyFailure("CCA policy must pin exactly four REM values")
+            }
+            if claims.extensibleMeasurements.len() != measurements.len() {
+                fail PolicyFailure("CCA realm extensible measurements do not match")
+            }
+            let mut i: usize = 0
+            for i < measurements.len() {
+                if !claims.extensibleMeasurements[i].equals(&measurements[i]) {
+                    fail PolicyFailure("CCA realm extensible measurements do not match")
+                }
+                i = i + 1
+            }
+        }
+        None -> {}
+    }
+    if !policy.allowLfa && claims.lfaPolicy is Some(1) {
+        fail PolicyFailure("CCA LFA policy is enabled")
+    }
+    if policy.requirePrivateMec && claims.mecPolicy != 1 {
+        fail PolicyFailure("CCA MEC policy is not private")
+    }
+    Ok(())
+}
+
+pure fn verifyParsed(
+    collection: cca.Collection,
+    policy: &CcaPolicy,
+    realmVerifier: fn(Int, &cca.CoseKey, Bytes, Bytes) -> Result[Bool, cca.Error],
+    platformVerifier: fn(Int, Bytes, Bytes) -> Result[Bool, cca.Error],
+) -> Result[CcaClaims, Error] {
+    let claims = summarize(&collection.realm.claims)
+    match cca.checkClaimsProfile(&collection.realm.claims) {
+        Ok(_) -> {}
+        Err(error) -> fail Cca(error)
+    }
+    match cca.verifyToken(&collection.realm, realmVerifier) {
+        Ok(_) -> {}
+        Err(error) -> fail Cca(error)
+    }
+    match cca.verifyCollectionBinding(&collection) {
+        Ok(_) -> {}
+        Err(error) -> fail Cca(error)
+    }
+    match collection.platform {
+        Some(platform) -> {
+            match cca.verifyCoseSign1Keyless(&platform.cose, platformVerifier) {
+                Ok(_) -> {}
+                Err(error) -> fail Cca(error)
+            }
+        }
+        None -> fail Unsupported("delegated CCA evidence requires a platform token")
+    }
+    checkCcaPolicy(&claims, policy)?
+    Ok(claims)
+}
+
+/// Verifies separated realm and platform token bytes.
+///
+/// `realmVerifier` establishes the RAK signature and receives the RAK public
+/// key from the (already parsed and size-checked) claims. `platformVerifier`
+/// establishes the platform signature; because the platform token has no key
+/// claim, that callback must be bound to the trusted CPAK/PAK by the caller.
+/// This function never accepts a realm token on its own.
+pub fn verifyCca(
+    evidence: &CcaEvidence,
+    policy: &CcaPolicy,
+    realmVerifier: fn(Int, &cca.CoseKey, Bytes, Bytes) -> Result[Bool, cca.Error],
+    platformVerifier: fn(Int, Bytes, Bytes) -> Result[Bool, cca.Error],
+) -> Result[CcaClaims, Error] {
+    let realm = match cca.Token.parse(evidence.realm) {
+        Ok(value) -> value
+        Err(error) -> fail Cca(error)
+    }
+    let platform = match evidence.platform {
+        Some(raw) -> match cca.PlatformToken.parse(raw) {
+            Ok(value) -> Some(value)
+            Err(error) -> fail Cca(error)
+        }
+        None -> None
+    }
+    let collection = cca.Collection {
+        platform: platform
+        realm: realm
+        raw: evidence.realm
+    }
+    verifyParsed(collection, policy, realmVerifier, platformVerifier)
+}
+
+/// Parses and verifies a CMW collection (`#6.907` or legacy `#6.399`).
+pub fn verifyCcaCollection(
+    collectionBytes: Bytes,
+    policy: &CcaPolicy,
+    realmVerifier: fn(Int, &cca.CoseKey, Bytes, Bytes) -> Result[Bool, cca.Error],
+    platformVerifier: fn(Int, Bytes, Bytes) -> Result[Bool, cca.Error],
+) -> Result[CcaClaims, Error] {
+    let collection = match cca.Collection.parse(collectionBytes) {
+        Ok(value) -> value
+        Err(error) -> fail Cca(error)
+    }
+    verifyParsed(collection, policy, realmVerifier, platformVerifier)
+}

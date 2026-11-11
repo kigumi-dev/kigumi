@@ -11,11 +11,13 @@
 /// so `verifyCertificateChain` reports `Unsupported` instead of parsing a
 /// chain it cannot validate.
 import snp from std/cvm/snp
+import cca from std/cvm/cca
 import sha512 from std/crypto/sha512
 
 /// Why verification or policy evaluation failed.
 pub type Error =
     | Snp(snp.Error)
+    | Cca(cca.Error)
     | PolicyFailure(String)
     | Unsupported(String)
     | Forged(String)
@@ -23,6 +25,7 @@ pub type Error =
 pub fn Error.message(self) -> String {
     match self {
         Snp(error) -> "attest: ${error.message()}"
+        Cca(error) -> "attest: ${error.message()}"
         PolicyFailure(why) -> "attest: policy: ${why}"
         Unsupported(why) -> "attest: unsupported: ${why}"
         Forged(why) -> "attest: forged ${why}"

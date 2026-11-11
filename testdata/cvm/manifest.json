@@ -21,6 +21,11 @@
       "primitive": "snp-idblock",
       "source": "Deterministic SNP ID block and ID auth with fixed P-384 keys, parsed by the merged std/cvm/snp surface",
       "path": "snp_idblock.json"
+    },
+    {
+      "primitive": "cca-realm-token",
+      "source": "Deterministic Arm CCA Realm Attestation Token, CCA Platform token and CMW collection generated with fixed P-256 keys; the realm signature is checked by the merged std/cvm/cca ES256 boundary and the platform signature is a boundary function in the conformance program.",
+      "path": "cca_token.json"
     }
   ]
 }

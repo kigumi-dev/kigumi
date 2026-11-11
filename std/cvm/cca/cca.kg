@@ -1,0 +1,156 @@
+/// Arm Confidential Compute Architecture (CCA) realm attestation evidence.
+///
+/// The wire format follows draft-ffm-rats-cca-token: a Realm Attestation
+/// Token (RAT) is a tagged COSE_Sign1 whose payload is the realm claim set,
+/// and the reference profile presents it in a CMW collection together with a
+/// CCA Platform token. The parser accepts the current collection tag 907 and
+/// the earlier tag 399, both with the platform entry 0xACCA / realm entry
+/// 0xACD1.
+///
+/// Parsing establishes structure only. `Token.verify` is the signature
+/// boundary and requires a verifier supplied by the caller; `verifyEs256`
+/// checks ES256 with the realm key carried by the token. ES384 and ES512
+/// tokens are parsed but cannot be verified by `std/crypto`, so they fail
+/// with `Unsupported` instead of being accepted without a signature check.
+import sha256 from std/crypto/sha256
+import sha512 from std/crypto/sha512
+
+/// Current CMW collection tag (`#6.907`).
+pub const collectionTag: u64 = 907
+
+/// Earlier CCA collection tag (`#6.399`), still seen in deployed tokens.
+pub const legacyCollectionTag: u64 = 399
+
+/// Tagged COSE_Sign1 (`#6.18`).
+pub const coseSign1Tag: u64 = 18
+
+/// CMW map key for the CCA Platform token.
+pub const platformEntry: i64 = 44234
+
+/// CMW map key for the CCA Realm state token.
+pub const realmEntry: i64 = 44241
+
+/// CoAP content format used by each CMW entry.
+pub const coapCbor: i64 = 263
+
+/// EAT nonce (`eat_nonce`).
+pub const claimChallenge: i64 = 10
+
+/// EAT nonce on a CCA Platform token (32, 48 or 64 bytes).
+pub const platformChallenge: i64 = 10
+
+/// EAT ueid / realm instance ID.
+pub const claimInstanceId: i64 = 256
+
+/// EAT profile.
+pub const claimProfile: i64 = 265
+
+/// Realm personalisation value.
+pub const claimPersonalizationValue: i64 = 44235
+
+/// Realm hash algorithm ID.
+pub const claimHashAlgorithm: i64 = 44236
+
+/// Realm public key (a bstr holding a COSE_Key).
+pub const claimPublicKey: i64 = 44237
+
+/// Realm initial measurement (RIM).
+pub const claimInitialMeasurement: i64 = 44238
+
+/// Realm extensible measurements (REM[4]).
+pub const claimExtensibleMeasurements: i64 = 44239
+
+/// Realm public key hash algorithm ID.
+pub const claimPublicKeyHashAlgorithm: i64 = 44240
+
+/// Realm MEC policy.
+pub const claimMecPolicy: i64 = 44243
+
+/// Realm LFA policy.
+pub const claimLfaPolicy: i64 = 44244
+
+/// Realm devices token hash.
+pub const claimDevicesTokenHash: i64 = 44257
+
+/// CCA Platform workload binding.
+pub const platformWorkloadBinding: i64 = 2408
+
+/// Realm profile value defined by the 2026 reference profile.
+pub const realmProfile: String = "tag:arm.com,2026:realm#2.0.0"
+
+/// Why CCA evidence was refused.
+pub type Error =
+    | Truncated(String)
+    | Malformed(String)
+    | BadSize(String, usize)
+    | Unsupported(String)
+    | UnsupportedAlgorithm(Int)
+    | UnsupportedVersion(Int)
+    | Forged(String)
+    | PolicyFailure(String)
+
+pub fn Error.message(self) -> String {
+    match self {
+        Truncated(what) -> "cca: ${what} is truncated"
+        Malformed(what) -> "cca: malformed ${what}"
+        BadSize(what, got) -> "cca: ${what} has ${got} bytes"
+        Unsupported(what) -> "cca: unsupported ${what}"
+        UnsupportedAlgorithm(algorithm) -> "cca: unsupported COSE algorithm ${algorithm}"
+        UnsupportedVersion(version) -> "cca: unsupported version ${version}"
+        Forged(what) -> "cca: forged ${what}"
+        PolicyFailure(why) -> "cca: policy: ${why}"
+    }
+}
+
+/// The digest algorithms the CCA reference profile can carry.
+pub type HashAlgorithm =
+    | Sha256
+    | Sha384
+    | Sha512
+
+/// Parses the Named Information hash name carried by the token.
+pub pure fn HashAlgorithm.parse(text: String) -> Result[HashAlgorithm, Error] {
+    if text == "sha-256" {
+        return Ok(HashAlgorithm.Sha256)
+    }
+    if text == "sha-384" {
+        return Ok(HashAlgorithm.Sha384)
+    }
+    if text == "sha-512" {
+        return Ok(HashAlgorithm.Sha512)
+    }
+    fail Unsupported("CCA hash algorithm ${text}")
+}
+
+/// The digest length in bytes.
+pub pure fn HashAlgorithm.size(self) -> usize {
+    match self {
+        Sha256 -> 32
+        Sha384 -> 48
+        Sha512 -> 64
+    }
+}
+
+/// The Named Information hash name.
+pub pure fn HashAlgorithm.name(self) -> String {
+    match self {
+        Sha256 -> "sha-256"
+        Sha384 -> "sha-384"
+        Sha512 -> "sha-512"
+    }
+}
+
+/// Hashes `data` with this algorithm.
+pub pure fn HashAlgorithm.hash(self, data: Bytes) -> Bytes {
+    match self {
+        Sha256 -> sha256.sum(data)
+        Sha384 -> sha512.sum384(data)
+        Sha512 -> sha512.sum(data)
+    }
+}
+
+/// Whether a measurement or hash claim has a size the reference profile
+/// allows (32, 48 or 64 bytes).
+pub pure fn isHashSized(value: Bytes) -> Bool {
+    value.len() == 32 || value.len() == 48 || value.len() == 64
+}
