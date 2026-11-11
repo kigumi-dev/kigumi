@@ -9,7 +9,7 @@ import (
 	"kigumi/internal/toolchain/driver"
 )
 
-// TestAotHeaderImport covers its own fixture: testdata/cheader/sample.h
+// TestAotHeaderImport covers its own fixture: testdata/native/header_import/basic/sample.h
 // declares a struct, an enum, three functions (one taking and returning the
 // enum, to keep its members' type pinned to the enum's own) and an integer
 // macro; mod.kg's `Header` record imports it as `c/sample`, and helper.c
@@ -23,7 +23,7 @@ func TestAotHeaderImport(t *testing.T) {
 	if _, err := exec.LookPath("zig"); err != nil {
 		t.Skip("no zig")
 	}
-	root, err := filepath.Abs("../../../testdata/cheader")
+	root, err := filepath.Abs("../../../testdata/native/header_import/basic")
 	if err != nil {
 		t.Fatal(err)
 	}

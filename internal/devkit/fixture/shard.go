@@ -52,6 +52,31 @@ func Shards(ids []string) []string {
 	return out
 }
 
+// ShardPaths splits a corpus path list by fixture id instead of by path: the
+// physical group is not part of an id, so moving a fixture between groups must
+// not reshuffle the CI shards. Each path is mapped through IDFromPath, Shards
+// selects the ids, and the matching paths are returned in their input order.
+func ShardPaths(paths []string) []string {
+	if len(paths) == 0 {
+		return paths
+	}
+	ids := make([]string, len(paths))
+	for i, p := range paths {
+		ids[i] = IDFromPath(p)
+	}
+	picked := make(map[string]bool, len(ids))
+	for _, id := range Shards(ids) {
+		picked[id] = true
+	}
+	out := make([]string, 0, len(picked))
+	for i, id := range ids {
+		if picked[id] {
+			out = append(out, paths[i])
+		}
+	}
+	return out
+}
+
 // ShardShare is the share of a whole-corpus minimum that one shard should still find. A
 // minimum smaller than the shard count yields 0: the matching entries may all land in another
 // shard, so a caller asserting "at least k ran" must treat 0 as no assertion.

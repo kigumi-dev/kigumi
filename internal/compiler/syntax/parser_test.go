@@ -18,14 +18,14 @@ import (
 // `-- expect --` section holding the tree dump followed by diagnostics.
 // UPDATE=1 go test ./internal/compiler/syntax rewrites the expectations.
 func TestParserCorpus(t *testing.T) {
-	files, err := filepath.Glob("../../../testdata/parser/*.txtar")
+	files, err := devfixture.Corpus("../../..", "parser")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(files) == 0 {
 		t.Fatal("no fixtures found")
 	}
-	for _, path := range devfixture.Shards(files) {
+	for _, path := range devfixture.ShardPaths(files) {
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			raw, err := os.ReadFile(path)
 			if err != nil {

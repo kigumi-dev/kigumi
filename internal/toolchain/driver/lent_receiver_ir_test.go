@@ -7,7 +7,7 @@ import (
 
 // A callee that never replaces its receiver gets a view over the place: no retain, no taking the content back, no store afterwards.
 func TestLentReceiverBuildsNoWriteBack(t *testing.T) {
-	ir := fixtureIR(t, "../../../testdata/run/mut_self_lent_receiver.txtar")
+	ir := fixtureIR(t, fixturePath(t, "run/mut_self_lent_receiver"))
 	for _, name := range []string{"main.viaArgs", "main.bumpTwice"} {
 		body := functionBody(t, ir, name)
 		if !strings.Contains(body, "@rt_cell_init") {

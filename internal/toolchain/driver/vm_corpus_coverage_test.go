@@ -9,11 +9,14 @@ import (
 
 // TestRunCorpusVMCoverage checks every testdata/run fixture either runs on the VM or declares why not in `-- engines --`.
 func TestRunCorpusVMCoverage(t *testing.T) {
-	files, _ := filepath.Glob("../../../testdata/run/*.txtar")
+	files, err := devfixture.Corpus("../../..", "run")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(files) == 0 {
 		t.Fatal("no run fixtures")
 	}
-	for _, path := range devfixture.Shards(files) {
+	for _, path := range devfixture.ShardPaths(files) {
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			t.Parallel()
 			declared := fixtureEngines(path)

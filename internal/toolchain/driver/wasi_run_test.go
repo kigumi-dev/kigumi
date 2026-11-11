@@ -118,7 +118,7 @@ func runWasiProbe(t *testing.T, node, runner string, target buildconfig.Target, 
 	root, want := t.TempDir(), probe.want
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"wasirun\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	if probe.fixture != "" {
-		fxRoot, fxWant, _, _ := loadRunFixture(t, "../../../testdata/run/"+probe.fixture+".txtar")
+		fxRoot, fxWant, _, _ := loadRunFixture(t, fixturePath(t, "run/"+probe.fixture))
 		src, err := os.ReadFile(filepath.Join(fxRoot, "main", "main.kg"))
 		if err != nil {
 			t.Fatal(err)

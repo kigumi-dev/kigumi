@@ -16,7 +16,7 @@ func TestAotHeaderImportKeywordNames(t *testing.T) {
 	if _, err := exec.LookPath("zig"); err != nil {
 		t.Skip("no zig")
 	}
-	root, err := filepath.Abs("../../../testdata/cheader_keywords")
+	root, err := filepath.Abs("../../../testdata/native/header_import/keywords")
 	if err != nil {
 		t.Fatal(err)
 	}

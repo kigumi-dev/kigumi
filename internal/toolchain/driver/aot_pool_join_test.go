@@ -28,7 +28,7 @@ func TestAotAbortedRootJoinsOrphanedPool(t *testing.T) {
 }
 
 func runJoinCheck(t *testing.T, fixture, panicText string) {
-	root, _, _, _ := loadRunFixture(t, "../../../testdata/run/"+fixture+".txtar")
+	root, _, _, _ := loadRunFixture(t, fixturePath(t, "run/"+fixture))
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../../std", Entry: "main/main.kg"})
 	if err != nil {
 		t.Fatal(err)
@@ -76,7 +76,7 @@ func TestAotAbortedRootJoinsEveryWorker(t *testing.T) {
 		{"async_thread_cancel_live_pool", "panic: the root task was cancelled", 3},
 	} {
 		t.Run(c.fixture, func(t *testing.T) {
-			root, _, _, _ := loadRunFixture(t, "../../../testdata/run/"+c.fixture+".txtar")
+			root, _, _, _ := loadRunFixture(t, fixturePath(t, "run/"+c.fixture))
 			hook := filepath.Join(root, "join_hook.h")
 			if err := os.WriteFile(hook, []byte(joinCountHook), 0o644); err != nil {
 				t.Fatal(err)

@@ -15,6 +15,7 @@ import (
 	mirplan "kigumi/internal/compiler/mir/plan"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
+	devfixture "kigumi/internal/devkit/fixture"
 	"kigumi/internal/devkit/semfixture"
 	"kigumi/internal/lang/token"
 	"kigumi/internal/toolchain/contract/schema"
@@ -23,6 +24,16 @@ import (
 type fixture struct {
 	src, stdout string
 	exit        int
+}
+
+// runFixturePath locates a run fixture by name, independent of its group.
+func runFixturePath(t *testing.T, name string) string {
+	t.Helper()
+	path, err := devfixture.Find("../../..", "run/"+name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return path
 }
 
 func readFixture(t *testing.T, path string) fixture {
@@ -76,7 +87,7 @@ func checkSource(t *testing.T, src string) *sem.Result {
 // AOT corpus prints for the same source; the HIR dump pins what the
 // checker decided.
 func TestScalarSlice(t *testing.T) {
-	fx := readFixture(t, "../../../testdata/run/hir_scalar.txtar")
+	fx := readFixture(t, runFixturePath(t, "hir_scalar"))
 	res := checkSource(t, fx.src)
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
@@ -105,7 +116,7 @@ func TestScalarSlice(t *testing.T) {
 	if out.String() != fx.stdout {
 		t.Errorf("stdout mismatch\n--- got ---\n%s--- want ---\n%s", out.String(), fx.stdout)
 	}
-	golden := filepath.Join("..", "..", "..", "testdata", "hir", "scalar.hir")
+	golden := filepath.Join("..", "..", "..", "testdata", "golden", "hir", "scalar.hir")
 	if os.Getenv("UPDATE") != "" {
 		os.WriteFile(golden, []byte(dump.String()), 0o644)
 	}

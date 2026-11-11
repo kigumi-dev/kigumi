@@ -18,7 +18,7 @@ func TestByteBoxesAllocateNothingNatively(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			fx := parseSemDriverFixture(t, "../../../testdata/sem/"+c.name+".txtar")
+			fx := parseSemDriverFixture(t, fixturePath(t, "sem/"+c.name))
 			src := fx.files["main.kg"]
 			if strings.Count(src, c.before) != 1 {
 				t.Fatal("missing unique arming point")

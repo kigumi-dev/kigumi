@@ -10,7 +10,7 @@ import (
 )
 
 func TestWitnessPrefersInterfacePackage(t *testing.T) {
-	fx := parseFixture(t, "../../../testdata/sem/witness_interface_package.txtar")
+	fx := parseFixture(t, semFixture(t, "witness_interface_package"))
 	res := sem.CheckWith(buildModule(t, fx), schema.GenerateDerive)
 	got := map[string][]string{}
 	for _, f := range res.Files {

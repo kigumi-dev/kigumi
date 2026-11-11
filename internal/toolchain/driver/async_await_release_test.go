@@ -18,7 +18,7 @@ import (
 
 // awaitLoopModule is async_await_release_loop with n iterations; a parent that kept every awaited child would grow with n.
 func awaitLoopModule(t *testing.T, n string) *driver.Module {
-	root, _, _, _ := loadRunFixture(t, "../../../testdata/run/async_await_release_loop.txtar")
+	root, _, _, _ := loadRunFixture(t, fixturePath(t, "run/async_await_release_loop"))
 	main := filepath.Join(root, "main", "main.kg")
 	src, err := os.ReadFile(main)
 	if err != nil {

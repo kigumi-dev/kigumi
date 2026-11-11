@@ -10,9 +10,21 @@ import (
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/compiler/syntax"
+	devfixture "kigumi/internal/devkit/fixture"
 	"kigumi/internal/devkit/semfixture"
 	"kigumi/internal/lang/token"
 )
+
+// semFixture locates a sem fixture by name, so the test does not depend on
+// which group holds it.
+func semFixture(t *testing.T, name string) string {
+	t.Helper()
+	path, err := devfixture.Find("../../..", "sem/"+name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
 
 // A fixture is one txtar file: an optional `-- module --`
 // section of key: value lines, source sections named by their root-relative

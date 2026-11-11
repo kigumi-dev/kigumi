@@ -46,7 +46,7 @@ func TestUnwoundInFlightCallsDropEachOwnerOnce(t *testing.T) {
 		"async_task_panic_map_partial_order",
 	} {
 		t.Run(name, func(t *testing.T) {
-			fx := readFixture(t, "../../../testdata/run/"+name+".txtar")
+			fx := readFixture(t, runFixturePath(t, name))
 			out, _, freedUses, strays := runTracked(t, fx.src)
 			if out != fx.stdout {
 				t.Errorf("stdout\n%s\nwant\n%s", out, fx.stdout)

@@ -110,7 +110,7 @@ fn main() {
 
 func fixtureSource(t *testing.T, name string) string {
 	t.Helper()
-	data, err := os.ReadFile("../../../testdata/sem/" + name + ".txtar")
+	data, err := os.ReadFile(fixturePath(t, "sem/"+name))
 	if err != nil {
 		t.Fatal(err)
 	}

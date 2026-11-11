@@ -14,7 +14,7 @@ import (
 func TestRootBridgeDeclarationOrder(t *testing.T) {
 	for _, name := range []string{"async_root_bridge_flow", "async_root_bridge_value", "async_root_bridge_scope"} {
 		t.Run(name, func(t *testing.T) {
-			fx := parseFixture(t, "../../../testdata/sem/"+name+".txtar")
+			fx := parseFixture(t, semFixture(t, name))
 			idx := -1
 			for i, s := range fx.sections {
 				if s.name == "app/t/t.kg" {

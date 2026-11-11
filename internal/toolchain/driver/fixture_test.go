@@ -21,9 +21,21 @@ func loadManifest(t testing.TB) *fixture.Manifest {
 	return m
 }
 
-// fixtureID turns a testdata/run fixture path into its manifest id.
+// fixtureID turns a fixture path into its manifest id, which ignores the
+// physical group the file lives in.
 func fixtureID(path string) string {
-	return "run/" + strings.TrimSuffix(filepath.Base(path), ".txtar")
+	return fixture.IDFromPath(path)
+}
+
+// fixturePath locates a fixture by id ("run/<name>", "sem/<name>") so a test
+// names the id rather than a corpus directory.
+func fixturePath(t testing.TB, id string) string {
+	t.Helper()
+	path, err := fixture.Find("../../../testdata", id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return path
 }
 
 // loadRunFixture writes a testdata/run fixture's source sections under a fresh module root (`-- src --` is

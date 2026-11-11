@@ -50,7 +50,7 @@ func generatedOutputDigest(t *testing.T) string {
 
 func TestGeneratorVersionPinsOutput(t *testing.T) {
 	got := fmt.Sprintf("version %d\ndigest %s\n", schema.GeneratorVersion, generatedOutputDigest(t))
-	golden := "../../../../testdata/schema/generator_output.golden"
+	golden := "../../../../testdata/golden/schema/generator_output.golden"
 	if os.Getenv("UPDATE") == "1" {
 		if err := os.WriteFile(golden, []byte(got), 0o644); err != nil {
 			t.Fatal(err)

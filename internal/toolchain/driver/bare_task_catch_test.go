@@ -47,7 +47,7 @@ func TestBareBuildContainsTaskPanic(t *testing.T) {
 		"async_task_cancel_drop_panic_chain",
 	} {
 		t.Run(fixture, func(t *testing.T) {
-			root, wantOut, wantErr, wantExit := loadRunFixture(t, "../../../testdata/run/"+fixture+".txtar")
+			root, wantOut, wantErr, wantExit := loadRunFixture(t, fixturePath(t, "run/"+fixture))
 			m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../../std", Entry: "main/main.kg", Target: target})
 			if err != nil {
 				t.Fatal(err)

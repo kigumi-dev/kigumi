@@ -22,7 +22,7 @@ func TestIRGolden(t *testing.T) {
 	for _, name := range irGoldenFixtures {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			got := pinnedIR(compileGolden(t, filepath.Join("../../../testdata/run", name+".txtar")), irGoldenModule)
+			got := pinnedIR(compileGolden(t, fixturePath(t, "run/"+name)), irGoldenModule)
 			path := filepath.Join("testdata", "ir", name+".ll")
 			if update {
 				if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {

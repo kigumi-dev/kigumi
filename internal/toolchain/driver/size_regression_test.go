@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	buildconfig "kigumi/internal/toolchain/config"
@@ -93,7 +94,7 @@ func TestExecutableSizeRegression(t *testing.T) {
 			name += "/size-min"
 		}
 		t.Run(name, func(t *testing.T) {
-			root, _, _, _ := loadRunFixture(t, filepath.Join("../../../testdata/run", p.fixture))
+			root, _, _, _ := loadRunFixture(t, fixturePath(t, "run/"+strings.TrimSuffix(p.fixture, ".txtar")))
 			m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../../std", Entry: "main/main.kg"})
 			if err != nil {
 				t.Fatal(err)

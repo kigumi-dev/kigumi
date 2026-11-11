@@ -16,12 +16,15 @@ import (
 // A refused allocation inside a try* call returns Err, and the Err run frees everything the unfaulted run does: the same live-object count at exit.
 // Runs share the global live counters, so they go one after another.
 func TestFaultInjectionTryFamilyLeavesNothingLive(t *testing.T) {
-	files, _ := filepath.Glob("../../../testdata/oom/*.kg")
+	files, err := devfixture.Corpus("../../..", "oom")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(files) < 20 {
 		t.Fatalf("found %d programs", len(files))
 	}
 	quiesce()
-	for _, path := range devfixture.Shards(files) {
+	for _, path := range devfixture.ShardPaths(files) {
 		name := strings.TrimSuffix(filepath.Base(path), ".kg")
 		t.Run(name, func(t *testing.T) {
 			src, err := os.ReadFile(path)

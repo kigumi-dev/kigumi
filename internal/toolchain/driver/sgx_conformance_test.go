@@ -17,7 +17,7 @@ import (
 // PCK chains and TCB/QE identity collateral compiled once and run on the VM
 // and the native backend. Every malformed or forged vector expects an exact
 // error code, so a parser that starts accepting it fails here.
-const sgxCorpus = "../../../testdata/sgx"
+const sgxCorpus = "../../../testdata/conformance/sgx"
 
 type sgxManifest struct {
 	Schema  int        `json:"schema"`
@@ -83,7 +83,7 @@ func loadSgxCorpus(t *testing.T) *sgxManifest {
 		seenPrimitive[suite.Primitive] = true
 		clean := filepath.Clean(suite.Path)
 		if clean != suite.Path || suite.Path == "" || strings.HasPrefix(clean, "..") || filepath.IsAbs(clean) {
-			t.Fatalf("%s: vector path %q must be a relative file inside testdata/sgx", suite.Primitive, suite.Path)
+			t.Fatalf("%s: vector path %q must be a relative file inside testdata/conformance/sgx", suite.Primitive, suite.Path)
 		}
 		usedFiles[clean] = true
 		raw, err := os.ReadFile(filepath.Join(base, clean))
@@ -132,7 +132,7 @@ func loadSgxCorpus(t *testing.T) *sgxManifest {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") || usedFiles[entry.Name()] {
 			continue
 		}
-		t.Errorf("testdata/sgx/%s is not referenced by manifest.json", entry.Name())
+		t.Errorf("testdata/conformance/sgx/%s is not referenced by manifest.json", entry.Name())
 	}
 	return &m
 }

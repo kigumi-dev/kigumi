@@ -9,6 +9,22 @@ import (
 	"strings"
 )
 
+// GroupFromPath returns the single directory under testdata/<kind> that holds
+// path, or "" when the fixture sits directly in the kind directory.
+func GroupFromPath(p string) string {
+	parts := strings.Split(filepath.ToSlash(filepath.Clean(p)), "/")
+	for i := 0; i+2 < len(parts); i++ {
+		if parts[i] != "testdata" {
+			continue
+		}
+		if i+3 >= len(parts) {
+			return ""
+		}
+		return parts[i+2]
+	}
+	return ""
+}
+
 // Consistency reports every manifest/disk/catalog mismatch, one error each.
 func Consistency(repoRoot string, m *Manifest) []error {
 	var errs []error
@@ -32,11 +48,40 @@ func Consistency(repoRoot string, m *Manifest) []error {
 		}
 	}
 
+	basenames := map[string]string{} // kind/name -> path, to catch two groups claiming one id
 	for _, fx := range m.Fixtures {
-		base := strings.TrimSuffix(path.Base(fx.Path), ".txtar")
-		if fx.ID != fx.Kind+"/"+base || fx.Path != "testdata/"+fx.Kind+"/"+base+".txtar" {
-			errs = append(errs, fmt.Errorf("manifest entry %q: path %q and id %q do not agree on kind and name", fx.ID, fx.Path, fx.ID))
+		kind, base, ok := strings.Cut(fx.ID, "/")
+		if !ok || kind != fx.Kind || base == "" {
+			errs = append(errs, fmt.Errorf("manifest entry %q: id and kind %q do not agree", fx.ID, fx.Kind))
+			continue
 		}
+		if prev, dup := basenames[fx.ID]; dup {
+			errs = append(errs, fmt.Errorf("manifest entry %q: basename collides with %s", fx.ID, prev))
+		}
+		basenames[fx.ID] = fx.Path
+
+		ext := Ext(fx.Kind)
+		prefix := path.Join("testdata", fx.Kind) + "/"
+		if !strings.HasPrefix(fx.Path, prefix) || filepath.Ext(fx.Path) != ext {
+			errs = append(errs, fmt.Errorf("manifest entry %q: path %q must live under %s and end in %s", fx.ID, fx.Path, prefix, ext))
+			continue
+		}
+		if got := strings.TrimSuffix(path.Base(fx.Path), ext); got != base {
+			errs = append(errs, fmt.Errorf("manifest entry %q: path %q names %q", fx.ID, fx.Path, got))
+		}
+		rel := strings.TrimPrefix(fx.Path, prefix)
+		depth := strings.Count(rel, "/")
+		if depth > 1 {
+			errs = append(errs, fmt.Errorf("manifest entry %q: path %q nests deeper than kind/group", fx.ID, fx.Path))
+		}
+		group := GroupFromPath(fx.Path)
+		if fx.Group != group {
+			errs = append(errs, fmt.Errorf("manifest entry %q: group %q does not match path %q (want %q)", fx.ID, fx.Group, fx.Path, group))
+		}
+		if fx.Stage == "" || !slices.Contains(StageUniverse[fx.Kind], fx.Stage) {
+			errs = append(errs, fmt.Errorf("manifest entry %q: stage %q is not a stage of kind %q", fx.ID, fx.Stage, fx.Kind))
+		}
+
 		modes, known := EngineUniverse[fx.Kind]
 		if !known {
 			errs = append(errs, fmt.Errorf("manifest entry %q: unknown fixture kind %q", fx.ID, fx.Kind))
@@ -67,6 +112,30 @@ func Consistency(repoRoot string, m *Manifest) []error {
 			if _, known := m.Reasons[reason]; !known {
 				errs = append(errs, fmt.Errorf("%s: skip reason %q for %s is not in the reason catalog", fx.ID, reason, engine))
 			}
+		}
+
+		if fx.Kind != "oom" {
+			if fx.Pair != "" || len(fx.Covers) > 0 {
+				errs = append(errs, fmt.Errorf("manifest entry %q: pair/covers belong to oom fixtures only", fx.ID))
+			}
+			continue
+		}
+		if len(fx.Covers) > 0 && fx.Pair == "" {
+			errs = append(errs, fmt.Errorf("manifest entry %q: covers %v but has no pair fixture", fx.ID, fx.Covers))
+		}
+		if fx.Pair == "" {
+			continue
+		}
+		pair := m.ByID(fx.Pair)
+		switch {
+		case pair == nil:
+			errs = append(errs, fmt.Errorf("manifest entry %q: pair %q has no manifest entry", fx.ID, fx.Pair))
+		case pair.Kind != "oom":
+			errs = append(errs, fmt.Errorf("manifest entry %q: pair %q has kind %q, want oom", fx.ID, fx.Pair, pair.Kind))
+		case pair.Group != fx.Group:
+			errs = append(errs, fmt.Errorf("manifest entry %q: pair %q is in group %q, want %q", fx.ID, fx.Pair, pair.Group, fx.Group))
+		case pair.Pair != fx.ID:
+			errs = append(errs, fmt.Errorf("manifest entry %q: pair %q points back to %q", fx.ID, fx.Pair, pair.Pair))
 		}
 	}
 	return errs

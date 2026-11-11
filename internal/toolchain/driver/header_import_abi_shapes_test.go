@@ -11,7 +11,7 @@ import (
 	"kigumi/internal/toolchain/driver"
 )
 
-// testdata/cheader_abi_shapes/h.h holds the header shapes that used to be
+// testdata/native/header_import/abi_shapes/h.h holds the header shapes that used to be
 // dropped whole: a self-referential struct, a mutually recursive pair, a
 // forward typedef, `#pragma pack`/packed/aligned records (with the field
 // align(N) annotations zig translate-c emits for them) and named
@@ -20,7 +20,7 @@ func TestHeaderImportABIShapes(t *testing.T) {
 	if _, err := exec.LookPath("zig"); err != nil {
 		t.Skip("no zig")
 	}
-	root, err := filepath.Abs("../../../testdata/cheader_abi_shapes")
+	root, err := filepath.Abs("../../../testdata/native/header_import/abi_shapes")
 	if err != nil {
 		t.Fatal(err)
 	}

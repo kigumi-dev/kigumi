@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	"kigumi/internal/devkit/fixture"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -694,7 +695,10 @@ var addedAfterBaseline = map[string]bool{
 
 func TestRCCallCounts(t *testing.T) {
 	manifest := loadManifest(t)
-	files, _ := filepath.Glob("../../../testdata/run/*.txtar")
+	files, err := fixture.Corpus("../../..", "run")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(files) == 0 {
 		t.Fatal("no run fixtures")
 	}

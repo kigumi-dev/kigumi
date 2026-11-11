@@ -17,7 +17,7 @@ func TestHeaderImportUnsupportedOnly(t *testing.T) {
 	if _, err := exec.LookPath("zig"); err != nil {
 		t.Skip("no zig")
 	}
-	root, err := filepath.Abs("../../../testdata/cheader_unsupported")
+	root, err := filepath.Abs("../../../testdata/native/header_import/unsupported")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +61,7 @@ func TestHeaderImportUnsupportedOnlyUnreachable(t *testing.T) {
 	if _, err := exec.LookPath("zig"); err != nil {
 		t.Skip("no zig")
 	}
-	root, err := filepath.Abs("../../../testdata/cheader_unsupported")
+	root, err := filepath.Abs("../../../testdata/native/header_import/unsupported")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestBuildDiagnosticsNotDuplicated(t *testing.T) {
 	if _, err := exec.LookPath("zig"); err != nil {
 		t.Skip("no zig")
 	}
-	root, err := filepath.Abs("../../../testdata/cheader_unsupported")
+	root, err := filepath.Abs("../../../testdata/native/header_import/unsupported")
 	if err != nil {
 		t.Fatal(err)
 	}

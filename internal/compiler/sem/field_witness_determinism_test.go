@@ -13,7 +13,7 @@ import (
 // byte-identical diagnostics each time, catching unstable map iteration.
 func TestFieldWitnessDeterministic(t *testing.T) {
 	for _, name := range []string{"async_root_bridge", "async_root_bridge_witness", "async_root_bridge_closure", "async_root_bridge_summary", "async_root_bridge_late", "async_root_bridge_order", "async_root_bridge_nested", "async_root_bridge_result", "async_root_bridge_copy", "async_root_bridge_param_nested", "async_root_bridge_fnbound", "async_root_bridge_flow", "async_root_bridge_value", "async_root_bridge_scope"} {
-		t.Run(name, func(t *testing.T) { checkDeterministic(t, "../../../testdata/sem/"+name+".txtar") })
+		t.Run(name, func(t *testing.T) { checkDeterministic(t, semFixture(t, name)) })
 	}
 }
 
@@ -38,7 +38,7 @@ func checkDeterministic(t *testing.T, path string) {
 }
 
 func TestMethodFieldWriteFixpointTerminates(t *testing.T) {
-	fx := parseFixture(t, "../../../testdata/sem/async_root_bridge.txtar")
+	fx := parseFixture(t, semFixture(t, "async_root_bridge"))
 	mod := buildModule(t, fx)
 	done := make(chan struct{})
 	go func() {

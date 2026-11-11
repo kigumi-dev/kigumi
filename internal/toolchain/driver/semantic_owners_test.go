@@ -55,7 +55,7 @@ var nativeLowered = map[string]bool{
 	"simd.Vec.add": true, "simd.Vec.sub": true, "simd.Vec.mul": true,
 }
 
-// TestSemanticOwnersFresh diffs testdata/semantic_owners.json against std
+// TestSemanticOwnersFresh diffs testdata/golden/semantic_owners.json against std
 // (UPDATE=1 regenerates it) and fails a bodiless declaration with no backend.
 func TestSemanticOwnersFresh(t *testing.T) {
 	res := sem.CheckWith(&sem.Module{Packages: semfixture.LoadStd(t, "../../../std")}, schema.GenerateDerive)
@@ -111,7 +111,7 @@ func TestSemanticOwnersFresh(t *testing.T) {
 		t.Fatalf("only %d std entries found; std not loaded as std?", len(entries))
 	}
 
-	path := "../../../testdata/semantic_owners.json"
+	path := "../../../testdata/golden/semantic_owners.json"
 	gotJSON, err := json.MarshalIndent(entries, "", "  ")
 	if err != nil {
 		t.Fatal(err)

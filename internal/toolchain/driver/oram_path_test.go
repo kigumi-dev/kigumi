@@ -19,7 +19,7 @@ func TestPathOramShapesAndData(t *testing.T) {
 	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
-	path := "../../../testdata/run/path_oram.txtar"
+	path := fixturePath(t, "run/path_oram")
 	root, wantOut, wantErr, wantExit := loadRunFixture(t, path)
 
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../../std", Entry: "main/main.kg"})

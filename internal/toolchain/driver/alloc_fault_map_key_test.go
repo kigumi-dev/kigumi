@@ -19,7 +19,7 @@ const mapIntKeySweep = 200
 // The program recoverable_map_int_key_ok accepts must turn every refused allocation into its Err, on both backends.
 func TestRecoverableMapIntKeySurvivesSweep(t *testing.T) {
 	t.Parallel()
-	data, err := os.ReadFile("../../../testdata/sem/recoverable_map_int_key_ok.txtar")
+	data, err := os.ReadFile(fixturePath(t, "sem/recoverable_map_int_key_ok"))
 	if err != nil {
 		t.Fatal(err)
 	}

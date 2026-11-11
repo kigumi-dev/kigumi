@@ -17,12 +17,18 @@ var semOnlyOptions = []string{"pending", "std", "deps", "blocking", "target", "p
 
 // TestCorpusOwnershipBeforeVerifier: the verifier, ownership rule included, is a backstop no corpus program reaches.
 func TestCorpusOwnershipBeforeVerifier(t *testing.T) {
-	semPaths, _ := filepath.Glob("../../../testdata/sem/*.txtar")
-	runPaths, _ := filepath.Glob("../../../testdata/run/*.txtar")
+	semPaths, err := devfixture.Corpus("../../..", "sem")
+	if err != nil {
+		t.Fatal(err)
+	}
+	runPaths, err := devfixture.Corpus("../../..", "run")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(semPaths) == 0 || len(runPaths) == 0 {
 		t.Fatal("no sem or run fixtures")
 	}
-	for _, path := range devfixture.Shards(semPaths) {
+	for _, path := range devfixture.ShardPaths(semPaths) {
 		t.Run("sem/"+strings.TrimSuffix(filepath.Base(path), ".txtar"), func(t *testing.T) {
 			t.Parallel()
 			fx := parseSemDriverFixture(t, path)
@@ -38,7 +44,7 @@ func TestCorpusOwnershipBeforeVerifier(t *testing.T) {
 		})
 	}
 	manifest := loadManifest(t)
-	for _, path := range devfixture.Shards(runPaths) {
+	for _, path := range devfixture.ShardPaths(runPaths) {
 		id := fixtureID(path)
 		fx := manifest.ByID(id)
 		if fx == nil {

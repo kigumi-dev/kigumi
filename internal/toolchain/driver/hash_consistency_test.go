@@ -13,7 +13,7 @@ import (
 // directly and on the native build, so a hash() drift between the two
 // engines fails here even when it would not fail the shared-fixture checks.
 func TestHashConsistency(t *testing.T) {
-	path := "../../../testdata/run/hash_consistency.txtar"
+	path := fixturePath(t, "run/hash_consistency")
 	root, wantOut, _, _ := loadRunFixture(t, path)
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../../std", Entry: "main/main.kg"})
 	if err != nil {

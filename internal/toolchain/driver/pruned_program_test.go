@@ -33,7 +33,7 @@ func TestPrunedProgramMatchesWhole(t *testing.T) {
 
 func prunedOrWhole(t *testing.T, name string, whole bool) (reach, ir string) {
 	load := func() *driver.Module {
-		root, _, _, _ := loadRunFixture(t, "../../../testdata/run/"+name+".txtar")
+		root, _, _, _ := loadRunFixture(t, fixturePath(t, "run/"+name))
 		m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../../std", Entry: "main/main.kg"})
 		if err != nil {
 			t.Fatal(err)

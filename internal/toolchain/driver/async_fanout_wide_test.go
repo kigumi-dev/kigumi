@@ -16,7 +16,7 @@ import (
 
 // fanOutModule is async_fanout_wide with n children per shape; a scope that copies or rescans its kids per child is quadratic in n.
 func fanOutModule(t *testing.T, n int) (*driver.Module, string) {
-	root, _, _, _ := loadRunFixture(t, "../../../testdata/run/async_fanout_wide.txtar")
+	root, _, _, _ := loadRunFixture(t, fixturePath(t, "run/async_fanout_wide"))
 	main := filepath.Join(root, "main", "main.kg")
 	src, err := os.ReadFile(main)
 	if err != nil {

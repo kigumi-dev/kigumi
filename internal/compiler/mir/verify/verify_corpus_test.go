@@ -17,11 +17,14 @@ import (
 // std included: a program the builder produces without diagnostics has to
 // satisfy the contract, and ask for no conformance sem had not settled before sealing the witness table.
 func TestVerifyCorpus(t *testing.T) {
-	files, _ := filepath.Glob("../../../../testdata/run/*.txtar")
+	files, err := fixture.Corpus("../../../..", "run")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(files) == 0 {
 		t.Fatal("no run fixtures")
 	}
-	for _, path := range fixture.Shards(files) {
+	for _, path := range fixture.ShardPaths(files) {
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			t.Parallel()
 			res, _, _ := mirfixture.CheckFixture(t, path, semfixture.LoadStd(t, "../../../../std"))

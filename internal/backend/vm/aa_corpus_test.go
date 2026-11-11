@@ -175,11 +175,14 @@ func preparedProg(t *testing.T, fx fixture, gate *liveGate, unsupported *atomic.
 }
 
 func corpusFixtures(t *testing.T) (zero, nonzero []string) {
-	files, _ := filepath.Glob("../../../testdata/run/*.txtar")
+	files, err := devfixture.Corpus("../../..", "run")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(files) == 0 {
 		t.Fatal("no run fixtures")
 	}
-	for _, path := range devfixture.Shards(files) {
+	for _, path := range devfixture.ShardPaths(files) {
 		if readFixture(t, path).exit == 0 {
 			zero = append(zero, path)
 		} else {

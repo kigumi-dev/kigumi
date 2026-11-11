@@ -97,7 +97,7 @@ func TestPlanPrintsCapabilityReasons(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	golden := "../../../testdata/plan/capability_reasons.golden.json"
+	golden := "../../../testdata/golden/plan/capability_reasons.golden.json"
 	if os.Getenv("UPDATE") == "1" {
 		os.MkdirAll(filepath.Dir(golden), 0o755)
 		if err := os.WriteFile(golden, append(out, '\n'), 0o644); err != nil {

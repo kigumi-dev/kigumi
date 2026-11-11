@@ -13,7 +13,7 @@ import (
 // named Eq/Ord/Hash total order for NaN and -0.0 and on the IEEE operators,
 // including through a generic T: Eq/Ord dispatch.
 func TestFloatTotalEqOrd(t *testing.T) {
-	path := "../../../testdata/run/float_total_eq_ord.txtar"
+	path := fixturePath(t, "run/float_total_eq_ord")
 	root, wantOut, _, _ := loadRunFixture(t, path)
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../../std", Entry: "main/main.kg"})
 	if err != nil {

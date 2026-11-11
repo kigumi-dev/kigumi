@@ -18,7 +18,7 @@ func TestHeaderImportNoreturnResults(t *testing.T) {
 	if _, err := exec.LookPath("zig"); err != nil {
 		t.Skip("no zig")
 	}
-	root, err := filepath.Abs("../../../testdata/cheader_noreturn")
+	root, err := filepath.Abs("../../../testdata/native/header_import/noreturn")
 	if err != nil {
 		t.Fatal(err)
 	}

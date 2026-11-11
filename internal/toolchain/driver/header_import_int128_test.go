@@ -21,7 +21,7 @@ func TestAotHeaderImportInt128Fields(t *testing.T) {
 	if buildconfig.HostTarget().Arch != "amd64" && buildconfig.HostTarget().Arch != "arm64" {
 		t.Skip("host C compiler may lack __int128")
 	}
-	root, err := filepath.Abs("../../../testdata/cheader_int128")
+	root, err := filepath.Abs("../../../testdata/native/header_import/int128")
 	if err != nil {
 		t.Fatal(err)
 	}

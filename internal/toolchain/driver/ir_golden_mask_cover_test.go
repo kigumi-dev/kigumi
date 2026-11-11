@@ -1,7 +1,6 @@
 package driver_test
 
 import (
-	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -21,7 +20,7 @@ func TestPinnedIRSeesLayoutAndSignatureChanges(t *testing.T) {
 	} {
 		ir, ok := irs[m.fixture]
 		if !ok {
-			ir = compileGolden(t, filepath.Join("../../../testdata/run", m.fixture+".txtar"))
+			ir = compileGolden(t, fixturePath(t, "run/"+m.fixture))
 			irs[m.fixture] = ir
 		}
 		if !strings.Contains(ir, m.old) {

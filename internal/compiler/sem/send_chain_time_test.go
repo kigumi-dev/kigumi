@@ -11,7 +11,7 @@ import (
 // TestClosureChainSendTime pins the Send judgement of a closure capturing a chain of closures to one walk of the chain:
 // judged once per path it takes minutes at this depth, judged once per closure well under a second beyond std.
 func TestClosureChainSendTime(t *testing.T) {
-	fx := parseFixture(t, "../../../testdata/sem/pool_send_closure_chain.txtar")
+	fx := parseFixture(t, semFixture(t, "pool_send_closure_chain"))
 	mod := buildModule(t, fx)
 	done := make(chan *sem.Result, 1)
 	start := time.Now()

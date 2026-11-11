@@ -39,7 +39,7 @@ func TestEngineParity(t *testing.T) {
 	for _, name := range parityFixtures {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			path := "../../../testdata/run/" + name + ".txtar"
+			path := fixturePath(t, "run/"+name)
 			root, wantOut, wantErr, wantExit := loadRunFixture(t, path)
 			vmOut, vmErr, vmCode := runFixtureVM(t, root)
 			nativeOut, nativeErr, nativeCode := runFixtureNative(t, root)

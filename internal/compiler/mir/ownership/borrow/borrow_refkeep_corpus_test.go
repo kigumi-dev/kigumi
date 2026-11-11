@@ -49,13 +49,19 @@ func TestWitnessSetsKeepNoLess(t *testing.T) {
 		}
 	}
 	std := semfixture.LoadStd(t, "../../../../../std")
-	run, _ := filepath.Glob("../../../../../testdata/run/*.txtar")
-	planned, _ := filepath.Glob("../../../../../testdata/sem/*.txtar")
+	run, err := devfixture.Corpus("../../../../..", "run")
+	if err != nil {
+		t.Fatal(err)
+	}
+	planned, err := devfixture.Corpus("../../../../..", "sem")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(run) == 0 || len(planned) == 0 {
 		t.Fatal("no run or sem fixtures")
 	}
 	t.Run("corpus", func(t *testing.T) {
-		for _, path := range devfixture.Shards(slices.Concat(run, planned)) {
+		for _, path := range devfixture.ShardPaths(slices.Concat(run, planned)) {
 			data, _ := os.ReadFile(path)
 			src, ok := corpusSource(string(data), strings.Contains(path, "/sem/"))
 			if !ok {

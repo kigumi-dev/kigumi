@@ -23,11 +23,14 @@ func TestConstFixturesEmitNatively(t *testing.T) {
 
 func emitFixturesNatively(t *testing.T, marker string, declares func(*sem.Result) bool) {
 	manifest := loadManifest(t)
-	files, _ := filepath.Glob("../../../testdata/run/*.txtar")
+	files, err := devfixture.Corpus("../../..", "run")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(files) == 0 {
 		t.Fatal("no run fixtures")
 	}
-	for _, path := range devfixture.Shards(files) {
+	for _, path := range devfixture.ShardPaths(files) {
 		data, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)

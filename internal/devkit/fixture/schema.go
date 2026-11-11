@@ -3,11 +3,13 @@ package fixture
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 )
 
-// SchemaVersion is the manifest format this package reads and writes.
-const SchemaVersion = 1
+// SchemaVersion is the manifest format this package reads and writes. Schema 2
+// adds the physical group, the corpus stage and the OOM pair/covers metadata.
+const SchemaVersion = 2
 
 // StderrMatch says how a fixture's stderr is checked; the zero value means
 // exact comparison against the fixture's own "-- stderr --" section.
@@ -20,8 +22,12 @@ type StderrMatch struct {
 type Fixture struct {
 	ID     string            `json:"id"`
 	Kind   string            `json:"kind"`
+	Group  string            `json:"group"` // first directory under testdata/<kind>, "" when flat
+	Stage  string            `json:"stage"` // corpus phase: parse, check, driver, planned, mir, format, run, fault
 	Path   string            `json:"path"`
 	Mode   []string          `json:"mode"`
+	Pair   string            `json:"pair,omitempty"`   // OOM fixture whose second call must also be swept
+	Covers []string          `json:"covers,omitempty"` // std try functions this OOM fixture sweeps
 	Stderr *StderrMatch      `json:"stderr,omitempty"`
 	Skip   map[string]string `json:"skip,omitempty"` // excluded engine/target -> reason code
 }
@@ -41,6 +47,17 @@ var EngineUniverse = map[string][]string{
 	"sem":    {"check"},
 	"mir":    {"build"},
 	"fmt":    {"format"},
+	"oom":    {"fault"},
+}
+
+// StageUniverse lists every stage a fixture of the kind may declare.
+var StageUniverse = map[string][]string{
+	"run":    {"run"},
+	"parser": {"parse"},
+	"sem":    {"check", "driver", "planned"},
+	"mir":    {"mir"},
+	"fmt":    {"format"},
+	"oom":    {"fault"},
 }
 
 // Load reads and parses a manifest file.
@@ -52,6 +69,9 @@ func Load(path string) (*Manifest, error) {
 	var m Manifest
 	if err := json.Unmarshal(b, &m); err != nil {
 		return nil, err
+	}
+	if m.Schema != SchemaVersion {
+		return nil, fmt.Errorf("%s: manifest schema %d, want %d (regenerate with UPDATE=1 go test -run TestManifestFresh ./internal/toolchain/driver/)", path, m.Schema, SchemaVersion)
 	}
 	return &m, nil
 }

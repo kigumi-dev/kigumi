@@ -19,7 +19,7 @@ func TestAotHeaderImportLibc(t *testing.T) {
 	if _, err := exec.LookPath("zig"); err != nil {
 		t.Skip("no zig")
 	}
-	root, err := filepath.Abs("../../../testdata/cheader_libc")
+	root, err := filepath.Abs("../../../testdata/native/header_import/libc")
 	if err != nil {
 		t.Fatal(err)
 	}

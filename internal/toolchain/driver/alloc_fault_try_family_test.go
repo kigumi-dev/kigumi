@@ -11,10 +11,9 @@ import (
 	"testing"
 
 	"kigumi/internal/backend/vm"
+	"kigumi/internal/devkit/fixture"
 	"kigumi/internal/toolchain/driver"
 )
-
-const oomDir = "../../../testdata/oom"
 
 // The fixtures eprint once after their setup, which arms the tick counter, so a refused tick lands inside the call and nowhere else.
 var tryFamilyWindow = regexp.MustCompile(`^E+O{3,}$`)
@@ -23,9 +22,9 @@ const tryFamilySweep = 160
 
 func oomSources(t *testing.T) map[string]string {
 	t.Helper()
-	files, err := filepath.Glob(filepath.Join(oomDir, "*.kg"))
+	files, err := fixture.Corpus("../../..", "oom")
 	if err != nil || len(files) < 20 {
-		t.Fatalf("found %d programs in %s: %v", len(files), oomDir, err)
+		t.Fatalf("found %d programs: %v", len(files), err)
 	}
 	out := map[string]string{}
 	for _, f := range files {

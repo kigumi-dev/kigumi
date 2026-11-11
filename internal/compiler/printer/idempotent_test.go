@@ -57,14 +57,14 @@ func TestPrintDeepNestingStaysFast(t *testing.T) {
 // TestIdempotent checks fmt(fmt(s)) == fmt(s) and parse(fmt(s)) == parse(s)
 // via tree dumps; fixtures under testdata/fmt also pin canonical output.
 func TestIdempotent(t *testing.T) {
-	files, err := filepath.Glob("../../../testdata/parser/*.txtar")
+	files, err := devfixture.Corpus("../../..", "parser")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(files) == 0 {
 		t.Fatal("no parser fixtures")
 	}
-	for _, path := range devfixture.Shards(files) {
+	for _, path := range devfixture.ShardPaths(files) {
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			src := readSrc(t, path)
 			tree := syntax.Parse(token.NewFile("a", []byte(src)))
@@ -129,14 +129,14 @@ func normalizeImports(dump string) string {
 }
 
 func TestFmtCorpus(t *testing.T) {
-	files, err := filepath.Glob("../../../testdata/fmt/*.txtar")
+	files, err := devfixture.Corpus("../../..", "fmt")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(files) == 0 {
 		t.Fatal("no fmt fixtures")
 	}
-	for _, path := range devfixture.Shards(files) {
+	for _, path := range devfixture.ShardPaths(files) {
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			raw, err := os.ReadFile(path)
 			if err != nil {
@@ -182,14 +182,14 @@ func hasSyntaxError(tree *syntax.Tree) bool {
 // list put one element per line) but each must survive exactly once.
 func TestFormattingKeepsEveryComment(t *testing.T) {
 	for _, kind := range []string{"fmt", "parser"} {
-		files, err := filepath.Glob("../../../testdata/" + kind + "/*.txtar")
+		files, err := devfixture.Corpus("../../..", kind)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if len(files) == 0 {
 			t.Fatalf("no %s fixtures", kind)
 		}
-		for _, path := range devfixture.Shards(files) {
+		for _, path := range devfixture.ShardPaths(files) {
 			t.Run(kind+"/"+filepath.Base(path), func(t *testing.T) {
 				src := readSrc(t, path)
 				tree := syntax.Parse(token.NewFile("a", []byte(src)))

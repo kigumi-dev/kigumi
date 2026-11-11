@@ -19,11 +19,14 @@ func TestMirDump(t *testing.T) {
 		t.Skip("set MIRDUMP_DIR to write one MIR dump per run fixture")
 	}
 	std := semfixture.LoadStd(t, "../../../../std")
-	files, _ := filepath.Glob("../../../../testdata/run/*.txtar")
+	files, err := devfixture.Corpus("../../../..", "run")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(files) == 0 {
 		t.Fatal("no run fixtures")
 	}
-	for _, path := range devfixture.Shards(files) {
+	for _, path := range devfixture.ShardPaths(files) {
 		res, _, _ := mirfixture.CheckFixture(t, path, std)
 		prog := mirbuild.Program(res)
 		os.WriteFile(filepath.Join(out, filepath.Base(path)+".mir"), []byte(prog.Dump()+prog.Render()), 0o644)

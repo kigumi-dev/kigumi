@@ -22,7 +22,7 @@ type FixtureCounts struct {
 func CountFixtures(repoRoot string) (FixtureCounts, error) {
 	fc := FixtureCounts{ByKind: map[string]int{}}
 	for _, kind := range fixture.Kinds {
-		files, err := filepath.Glob(filepath.Join(repoRoot, "testdata", kind, "*.txtar"))
+		files, err := fixture.Corpus(repoRoot, kind)
 		if err != nil {
 			return fc, err
 		}

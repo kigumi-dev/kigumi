@@ -16,14 +16,14 @@ import (
 // TestSemCorpus runs every testdata/sem fixture against its annotations and
 // its -- expect -- section; UPDATE=1 rewrites the expect section.
 func TestSemCorpus(t *testing.T) {
-	files, err := filepath.Glob("../../../testdata/sem/*.txtar")
+	files, err := devfixture.Corpus("../../..", "sem")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(files) == 0 {
 		t.Fatal("no fixtures under testdata/sem")
 	}
-	for _, path := range devfixture.Shards(files) {
+	for _, path := range devfixture.ShardPaths(files) {
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			t.Parallel()
 			fx := parseFixture(t, path)

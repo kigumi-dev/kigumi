@@ -18,11 +18,14 @@ func TestIRDump(t *testing.T) {
 		t.Skip("set IRDUMP_DIR to write one IR dump per run fixture")
 	}
 	std, _ := filepath.Abs("../../../std")
-	files, _ := filepath.Glob("../../../testdata/run/*.txtar")
+	files, err := devfixture.Corpus("../../..", "run")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(files) == 0 {
 		t.Fatal("no run fixtures")
 	}
-	for _, path := range devfixture.Shards(files) {
+	for _, path := range devfixture.ShardPaths(files) {
 		data, _ := os.ReadFile(path)
 		text := string(data)
 		i := strings.Index(text, "-- src --\n")

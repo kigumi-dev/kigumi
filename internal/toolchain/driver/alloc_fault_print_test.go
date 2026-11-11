@@ -29,7 +29,7 @@ func buildFaultInjected(t *testing.T, m *driver.Module) string {
 
 func TestFaultInjectionPrintAllocatesNothing(t *testing.T) {
 	t.Parallel()
-	root, wantOut, wantErr, _ := loadRunFixture(t, "../../../testdata/run/print_write_path.txtar")
+	root, wantOut, wantErr, _ := loadRunFixture(t, fixturePath(t, "run/print_write_path"))
 	src, err := os.ReadFile(filepath.Join(root, "main", "main.kg"))
 	if err != nil {
 		t.Fatal(err)

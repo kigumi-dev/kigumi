@@ -92,8 +92,11 @@ fn main() -> Void! {
 // Covers every mir/run fixture; verifyDirect, run through Apply, is the actual crossing check.
 func TestPlanDirectCorpus(t *testing.T) {
 	var files []string
-	for _, glob := range []string{"../../../../testdata/mir/*.txtar", "../../../../testdata/run/*.txtar"} {
-		fs, _ := filepath.Glob(glob)
+	for _, kind := range []string{"mir", "run"} {
+		fs, err := fixture.Corpus("../../../..", kind)
+		if err != nil {
+			t.Fatal(err)
+		}
 		files = append(files, fs...)
 	}
 	if len(files) == 0 {
@@ -111,7 +114,7 @@ func TestPlanDirectCorpus(t *testing.T) {
 			t.Error("no fixture needed a single crossing, so the insertion step is dead")
 		}
 	})
-	for _, path := range fixture.Shards(files) {
+	for _, path := range fixture.ShardPaths(files) {
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			t.Parallel()
 			res, _, _ := mirfixture.CheckFixture(t, path, semfixture.LoadStd(t, "../../../../std"))

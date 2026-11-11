@@ -23,7 +23,7 @@ func TestLibraryCheckKeepsMIRDiagnostics(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.fixture, func(t *testing.T) {
-			lib := libraryOf(t, "../../../testdata/sem/"+c.fixture+".txtar")
+			lib := libraryOf(t, fixturePath(t, "sem/"+c.fixture))
 			check := func(lowerAll bool) string {
 				root := t.TempDir()
 				os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"lib\"\n    kigumi: \"0.1\"\n}\n"), 0o644)

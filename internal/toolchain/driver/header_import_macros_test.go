@@ -16,7 +16,7 @@ func TestHeaderImportMacroValues(t *testing.T) {
 	if _, err := exec.LookPath("zig"); err != nil {
 		t.Skip("no zig")
 	}
-	root, err := filepath.Abs("../../../testdata/cheader_macros")
+	root, err := filepath.Abs("../../../testdata/native/header_import/macros")
 	if err != nil {
 		t.Fatal(err)
 	}

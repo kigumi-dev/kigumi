@@ -18,7 +18,7 @@ import (
 // RTMR event-log and SNP ID-block vectors compiled once and run on the VM and
 // the native backend. Malformed and forged vectors expect the exact error
 // code, so a parser that starts accepting them fails here.
-const cvmCorpus = "../../../testdata/cvm"
+const cvmCorpus = "../../../testdata/conformance/cvm"
 
 type cvmManifest struct {
 	Schema  int        `json:"schema"`
@@ -86,7 +86,7 @@ func loadCvmCorpus(t *testing.T) *cvmManifest {
 		seenPrimitive[suite.Primitive] = true
 		clean := filepath.Clean(suite.Path)
 		if clean != suite.Path || suite.Path == "" || strings.HasPrefix(clean, "..") || filepath.IsAbs(clean) {
-			t.Fatalf("%s: vector path %q must be a relative file inside testdata/cvm", suite.Primitive, suite.Path)
+			t.Fatalf("%s: vector path %q must be a relative file inside testdata/conformance/cvm", suite.Primitive, suite.Path)
 		}
 		usedFiles[clean] = true
 		raw, err := os.ReadFile(filepath.Join(base, clean))
@@ -135,7 +135,7 @@ func loadCvmCorpus(t *testing.T) *cvmManifest {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") || usedFiles[entry.Name()] {
 			continue
 		}
-		t.Errorf("testdata/cvm/%s is not referenced by manifest.json", entry.Name())
+		t.Errorf("testdata/conformance/cvm/%s is not referenced by manifest.json", entry.Name())
 	}
 	return &m
 }

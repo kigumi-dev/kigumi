@@ -49,7 +49,7 @@ func TestMapSeedRaceKeepsOneSeed(t *testing.T) {
 	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
-	data, err := os.ReadFile("../../../testdata/run/map_thread_seed.txtar")
+	data, err := os.ReadFile(fixturePath(t, "run/map_thread_seed"))
 	if err != nil {
 		t.Fatal(err)
 	}

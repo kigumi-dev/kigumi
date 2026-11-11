@@ -36,7 +36,7 @@ func functionBody(t *testing.T, ir, name string) string {
 
 // An f32 is an LLVM float in locals, parameters, results and direct record fields, not a double rounded after each operation.
 func TestF32NativeRegisters(t *testing.T) {
-	ir := fixtureIR(t, "../../../testdata/run/f32_native_register.txtar")
+	ir := fixtureIR(t, fixturePath(t, "run/f32_native_register"))
 	mix := functionBody(t, ir, "main.mix")
 	if !strings.Contains(mix, "(float %p0, float %p1)") || !strings.HasPrefix(mix, "define float ") {
 		t.Errorf("mix does not take and return float:\n%s", mix)

@@ -29,12 +29,15 @@ func TestArrayAcceleratorsMatchKigumiBodies(t *testing.T) {
 
 func checkAcceleratorsMatchBodies(t *testing.T, use *regexp.Regexp, least int) {
 	manifest := loadManifest(t)
-	files, _ := filepath.Glob("../../../testdata/run/*.txtar")
+	files, err := fixture.Corpus("../../..", "run")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(files) == 0 {
 		t.Fatal("no run fixtures")
 	}
 	picked := 0
-	for _, path := range fixture.Shards(files) {
+	for _, path := range fixture.ShardPaths(files) {
 		src, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)

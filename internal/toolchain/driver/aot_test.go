@@ -22,7 +22,10 @@ func TestAotCorpus(t *testing.T) {
 		t.Skip("no C compiler")
 	}
 	manifest := loadManifest(t)
-	files, _ := filepath.Glob("../../../testdata/run/*.txtar")
+	files, err := fixture.Corpus("../../..", "run")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(files) == 0 {
 		t.Fatal("no run fixtures")
 	}
@@ -37,7 +40,7 @@ func TestAotCorpus(t *testing.T) {
 		}
 		t.Logf("native: expect %d, ran %d", want.Load(), ran.Load())
 	})
-	for _, path := range fixture.Shards(files) {
+	for _, path := range fixture.ShardPaths(files) {
 		id := fixtureID(path)
 		fx := manifest.ByID(id)
 		if fx == nil {

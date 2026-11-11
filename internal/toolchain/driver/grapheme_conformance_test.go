@@ -78,7 +78,7 @@ func TestGraphemeBreakConformance(t *testing.T) {
 }
 
 func graphemeConformanceProgram(t *testing.T) (string, int) {
-	data, err := os.ReadFile("../../../testdata/unicode/GraphemeBreakTest-18.0.0.txt")
+	data, err := os.ReadFile("../../../testdata/conformance/unicode/GraphemeBreakTest-18.0.0.txt")
 	if err != nil {
 		t.Fatal(err)
 	}

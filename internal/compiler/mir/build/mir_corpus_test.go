@@ -22,14 +22,17 @@ func TestMirCorpus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load testdata/manifest.json: %v", err)
 	}
-	files, _ := filepath.Glob("../../../../testdata/mir/*.txtar")
+	files, err := fixture.Corpus("../../../..", "mir")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(files) == 0 {
 		t.Fatal("no mir fixtures")
 	}
 	var ran atomic.Int64
 	t.Cleanup(func() { t.Logf("mir: %d/%d fixtures passed", ran.Load(), len(files)) })
-	for _, path := range fixture.Shards(files) {
-		id := "mir/" + strings.TrimSuffix(filepath.Base(path), ".txtar")
+	for _, path := range fixture.ShardPaths(files) {
+		id := fixture.IDFromPath(path)
 		if manifest.ByID(id) == nil {
 			t.Fatalf("%s: no manifest entry (run UPDATE=1 go test -run TestManifestFresh ./internal/toolchain/driver/)", id)
 		}

@@ -15,13 +15,16 @@ import (
 // manifest excludes from "vm" is left to TestAotCorpus instead.
 func TestRunCorpusEngines(t *testing.T) {
 	manifest := loadManifest(t)
-	files, _ := filepath.Glob("../../../testdata/run/*.txtar")
+	files, err := fixture.Corpus("../../..", "run")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(files) == 0 {
 		t.Fatal("no run fixtures")
 	}
 	var want, ran atomic.Int64
 	t.Cleanup(func() { t.Logf("vm: expect %d, ran %d", want.Load(), ran.Load()) })
-	for _, path := range fixture.Shards(files) {
+	for _, path := range fixture.ShardPaths(files) {
 		id := fixtureID(path)
 		fx := manifest.ByID(id)
 		if fx == nil {

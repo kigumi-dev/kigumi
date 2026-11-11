@@ -32,7 +32,7 @@ const (
 
 func analyzeFixture(t testing.TB, name string) *mir.Program {
 	t.Helper()
-	root, _, _, _ := loadRunFixture(t, "../../../testdata/run/"+name)
+	root, _, _, _ := loadRunFixture(t, fixturePath(t, "run/"+strings.TrimSuffix(name, ".txtar")))
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../../std", Entry: "main/main.kg"})
 	if err != nil {
 		t.Fatal(err)

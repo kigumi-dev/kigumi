@@ -10,7 +10,7 @@ import (
 func TestCancelDeferRunsAreDeterministic(t *testing.T) {
 	for _, name := range []string{"async_cancel_defer", "async_cancel_defer_stages", "async_cancel_defer_observed", "async_cancel_defer_positions", "async_cancel_defer_panic"} {
 		t.Run(name, func(t *testing.T) {
-			root, want, _, wantExit := loadRunFixture(t, "../../../testdata/run/"+name+".txtar")
+			root, want, _, wantExit := loadRunFixture(t, fixturePath(t, "run/"+name))
 			var first string
 			for i := 0; i < 2; i++ {
 				m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../../std", Entry: "main/main.kg"})
