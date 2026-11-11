@@ -31,7 +31,7 @@ func fixtureID(path string) string {
 // names the id rather than a corpus directory.
 func fixturePath(t testing.TB, id string) string {
 	t.Helper()
-	path, err := fixture.Find("../../../testdata", id)
+	path, err := fixture.Find("../../..", id)
 	if err != nil {
 		t.Fatal(err)
 	}

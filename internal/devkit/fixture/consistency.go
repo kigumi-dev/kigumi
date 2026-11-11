@@ -78,6 +78,9 @@ func Consistency(repoRoot string, m *Manifest) []error {
 		if fx.Group != group {
 			errs = append(errs, fmt.Errorf("manifest entry %q: group %q does not match path %q (want %q)", fx.ID, fx.Group, fx.Path, group))
 		}
+		if group == "misc" {
+			errs = append(errs, fmt.Errorf("manifest entry %q: group %q is not a responsibility; assign the nearest real group", fx.ID, group))
+		}
 		if fx.Stage == "" || !slices.Contains(StageUniverse[fx.Kind], fx.Stage) {
 			errs = append(errs, fmt.Errorf("manifest entry %q: stage %q is not a stage of kind %q", fx.ID, fx.Stage, fx.Kind))
 		}

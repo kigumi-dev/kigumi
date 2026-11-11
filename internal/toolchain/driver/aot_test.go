@@ -6,6 +6,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"slices"
+	"strconv"
+	"strings"
 	"sync/atomic"
 	"syscall"
 	"testing"
@@ -30,16 +34,8 @@ func TestAotCorpus(t *testing.T) {
 		t.Fatal("no run fixtures")
 	}
 	var want, ran atomic.Int64
-	var live map[string]int64
-	if countsNativeLive() {
-		live = loadNativeLive(t)
-	}
-	t.Cleanup(func() {
-		if live != nil {
-			finishNativeLive(t, live)
-		}
-		t.Logf("native: expect %d, ran %d", want.Load(), ran.Load())
-	})
+	reportLive := countsNativeLive()
+	t.Cleanup(func() { t.Logf("native: expect %d, ran %d", want.Load(), ran.Load()) })
 	for _, path := range fixture.ShardPaths(files) {
 		id := fixtureID(path)
 		fx := manifest.ByID(id)
@@ -60,12 +56,21 @@ func TestAotCorpus(t *testing.T) {
 					ran.Add(1)
 				}
 			}()
-			runAot(t, path, fx, live)
+			runAot(t, path, fx, reportLive)
 		})
 	}
 }
 
-func runAot(t *testing.T, path string, fx *fixture.Fixture, live map[string]int64) {
+// countsNativeLive is true when the AOT build turns on the RC check, which makes
+// the runtime report the number of live objects at exit.
+func countsNativeLive() bool {
+	return slices.Contains(strings.Fields(os.Getenv("KIGUMI_CFLAGS")), "-DKIGUMI_RC_CHECK")
+}
+
+// nativeLiveLine is the RC check's report; the exit-0 corpus must print zero.
+var nativeLiveLine = regexp.MustCompile(`(?m)^kigumi-live: (\d+)\n`)
+
+func runAot(t *testing.T, path string, fx *fixture.Fixture, reportLive bool) {
 	root, wantOut, wantErr, wantExit := loadRunFixture(t, path)
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../../std", Entry: "main/main.kg"})
 	if err != nil {
@@ -84,7 +89,7 @@ func runAot(t *testing.T, path string, fx *fixture.Fixture, live map[string]int6
 		errOut.Reset()
 		cmd := exec.Command(exe, "one", "two")
 		cmd.Dir = t.TempDir()
-		if live != nil {
+		if reportLive {
 			cmd.Env = append(os.Environ(), "KIGUMI_LIVE_REPORT=1")
 		}
 		cmd.Stdout, cmd.Stderr = &out, &errOut
@@ -103,11 +108,15 @@ func runAot(t *testing.T, path string, fx *fixture.Fixture, live map[string]int6
 		t.Fatal(err)
 	}
 	stderr := errOut.String()
-	if live != nil {
-		var n int64
-		var counted bool
-		if stderr, n, counted = splitNativeLive(stderr); counted {
-			noteNativeLive(t, filepath.Base(path), n, live)
+	if reportLive {
+		m := nativeLiveLine.FindStringSubmatch(stderr)
+		if m == nil {
+			t.Errorf("no kigumi-live report; build with -DKIGUMI_RC_CHECK to check live objects")
+		} else {
+			if n, _ := strconv.Atoi(m[1]); n != 0 {
+				t.Errorf("%d objects live at exit, want 0", n)
+			}
+			stderr = nativeLiveLine.ReplaceAllString(stderr, "")
 		}
 	}
 	noValuePlaceholder(t, out.String())
