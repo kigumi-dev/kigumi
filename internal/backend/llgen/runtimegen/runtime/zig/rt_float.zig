@@ -29,6 +29,9 @@ pub const panic = struct {
         _ = err;
         @trap();
     }
+    pub fn loadUninstantiableType() noreturn {
+        @trap();
+    }
     pub fn outOfBounds(index: usize, len: usize) noreturn {
         _ = index;
         _ = len;
