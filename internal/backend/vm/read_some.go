@@ -3,16 +3,14 @@ package vm
 import (
 	"io"
 	"os"
-
-	"golang.org/x/sys/unix"
 )
 
 // readSome waits up to timeoutMs for stdin to have data, then makes one
 // Read call and returns what it got: nil with no error on timeout, io.EOF
-// when stdin is closed. It waits with poll(2) on the raw descriptor
-// instead of a goroutine race, so a timeout never strands a blocked read
-// that a later call would collide with; a source that isn't a file (only
-// possible in tests) skips the wait and reads directly.
+// when stdin is closed. It waits on the raw descriptor (poll(2) on Unix, a
+// waitable handle on Windows) instead of a goroutine race, so a timeout never
+// strands a blocked read that a later call would collide with; a source that
+// isn't a file (only possible in tests) skips the wait and reads directly.
 func (m *Machine) readSome(timeoutMs int64) ([]byte, error) {
 	m.sh.in.Lock()
 	defer m.sh.in.Unlock()
@@ -39,23 +37,8 @@ func (m *Machine) readSome(timeoutMs int64) ([]byte, error) {
 	return buf[:n], nil
 }
 
-// pollReadable is poll(2) on one descriptor, retried across EINTR.
-func pollReadable(fd int, timeoutMs int64) (bool, error) {
-	if timeoutMs < 0 {
-		timeoutMs = 0
-	}
-	fds := []unix.PollFd{{Fd: int32(fd), Events: unix.POLLIN}}
-	for {
-		n, err := unix.Poll(fds, int(timeoutMs))
-		if err == unix.EINTR {
-			continue
-		}
-		if err != nil {
-			return false, err
-		}
-		return n > 0, nil
-	}
-}
+// pollReadable is platform-specific: poll(2) on Unix, a waitable handle on
+// Windows.
 
 func (m *Machine) stdinAll() ([]byte, error) {
 	m.sh.in.Lock()

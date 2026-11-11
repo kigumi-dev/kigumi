@@ -132,6 +132,41 @@ jobs:
       - run: go test ./...
         working-directory: .github/scripts/release
 
+  cross:
+    # The release list now carries darwin and windows targets, so every such
+    # target must keep compiling. The test binaries cannot run on this runner;
+    # -c proves the platform build tags also cover the tests that exercise the
+    # code, which a plain package build would not.
+    name: cross-compile ${{ matrix.goos }}/${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+          - goos: windows
+            goarch: arm64
+    env:
+      CGO_ENABLED: "0"
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+      - run: go build ./...
+      - run: mkdir -p /tmp/cross-tests
+      - run: go test -c -o /tmp/cross-tests/repl.test ./internal/tooling/repl
+      - run: go test -c -o /tmp/cross-tests/replcli.test ./internal/cli/cmd/repl
+      - run: go test -c -o /tmp/cross-tests/vm.test ./internal/backend/vm
+
   audit:
     name: test audit
     runs-on: ubuntu-latest

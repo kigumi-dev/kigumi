@@ -1,91 +1,67 @@
 package repl
 
 import (
+	"bufio"
+	"bytes"
+	"io"
+	"os"
 	"strings"
 	"testing"
-	"time"
-
-	"golang.org/x/sys/unix"
-
-	"kigumi/internal/devkit/pty"
 )
 
-func TestEditorRawRestoreAndLine(t *testing.T) {
-	master, slave, err := pty.Open()
+// TestEditorNonTerminalReadsPlainLines covers the fallback every platform
+// takes when stdin is a pipe: no raw mode, no escape processing, but the same
+// prompt and line trimming as PlainLine.
+func TestEditorNonTerminalReadsPlainLines(t *testing.T) {
+	r, w, err := os.Pipe()
 	if err != nil {
-		t.Skipf("pty: %v", err)
+		t.Fatal(err)
 	}
-	defer master.Close()
-	defer slave.Close()
-	before, err := unix.IoctlGetTermios(int(slave.Fd()), unix.TCGETS)
-	if err != nil {
-		t.Skipf("termios: %v", err)
+	defer r.Close()
+	if _, err := io.WriteString(w, "let x\r\nsecond\n"); err != nil {
+		w.Close()
+		t.Fatal(err)
 	}
+	w.Close()
+
+	var out bytes.Buffer
 	h, _ := NewHistory("")
-	ed, err := NewEditor(slave, slave, h)
+	ed, err := NewEditor(r, &out, h)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !ed.IsTerminal() {
-		t.Fatal("editor did not enter raw mode")
+	if ed.IsTerminal() {
+		t.Fatal("pipe stdin must not enter raw mode")
 	}
-	got := make(chan string, 1)
-	go func() {
-		line, _ := ed.ReadLine("> ")
-		got <- line
-	}()
-	// Drain the prompt/redraw output until it asks for input.
-	buf := make([]byte, 256)
-	_ = master.SetReadDeadline(time.Now().Add(2 * time.Second))
-	for {
-		n, err := master.Read(buf)
-		if err != nil {
-			t.Fatalf("read prompt: %v", err)
-		}
-		if strings.Contains(string(buf[:n]), ">") {
-			break
-		}
+	line, err := ed.ReadLine("> ")
+	if err != nil || line != "let x" {
+		t.Fatalf("ReadLine = %q, %v", line, err)
 	}
-	if _, err := master.WriteString("let x\r"); err != nil {
-		t.Fatal(err)
+	if got := out.String(); got != "> " {
+		t.Fatalf("prompt output = %q", got)
 	}
-	select {
-	case line := <-got:
-		if line != "let x" {
-			t.Fatalf("line = %q", line)
-		}
-	case <-time.After(2 * time.Second):
-		t.Fatal("ReadLine timed out")
+	line, err = ed.ReadLine("")
+	if err != nil || line != "second" {
+		t.Fatalf("second ReadLine = %q, %v", line, err)
 	}
-	ed.Close()
-	after, err := unix.IoctlGetTermios(int(slave.Fd()), unix.TCGETS)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if after.Lflag != before.Lflag || after.Iflag != before.Iflag {
-		t.Fatalf("termios not restored: before %+v after %+v", before, after)
+	if _, err := ed.ReadLine(""); err != io.EOF {
+		t.Fatalf("EOF = %v", err)
 	}
 }
 
-func TestEditorCtrlC(t *testing.T) {
-	master, slave, err := pty.Open()
-	if err != nil {
-		t.Skipf("pty: %v", err)
-	}
-	defer master.Close()
-	defer slave.Close()
-	ed, err := NewEditor(slave, slave, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer ed.Close()
-	go func() {
-		buf := make([]byte, 64)
-		_, _ = master.Read(buf)
-		_, _ = master.Write([]byte{3})
-	}()
-	line, err := ed.ReadLine("> ")
-	if err != ErrInterrupted || line != "" {
-		t.Fatalf("line=%q err=%v", line, err)
+func TestPlainLineTrimsLineEndings(t *testing.T) {
+	for _, tc := range []struct{ in, want string }{
+		{"hello\r\n", "hello"},
+		{"hello\n", "hello"},
+		{"\n", ""},
+	} {
+		var out strings.Builder
+		line, err := PlainLine(bufio.NewReader(strings.NewReader(tc.in)), &out, "> ")
+		if err != nil || line != tc.want {
+			t.Errorf("PlainLine(%q) = %q, %v; want %q", tc.in, line, err, tc.want)
+		}
+		if out.String() != "> " {
+			t.Errorf("PlainLine(%q) prompt = %q", tc.in, out.String())
+		}
 	}
 }

@@ -57,7 +57,12 @@ func (m *Machine) signalChan(name string) chan os.Signal {
 	w, ok := m.sh.sigWatch[name]
 	if !ok {
 		w = &sigWatch{ch: make(chan os.Signal, 1)}
-		signal.Notify(w.ch, signalOf(name))
+		// Windows has no SIGWINCH, so windowChangeSignal returns 0 and this
+		// watch stays silent rather than handing signal.Notify an invalid
+		// signal.
+		if sig := signalOf(name); sig != syscall.Signal(0) {
+			signal.Notify(w.ch, sig)
+		}
 		m.sh.sigWatch[name] = w
 	}
 	w.depth++
@@ -87,7 +92,9 @@ func (m *Machine) unwatchSignal(code int) {
 	// Go keeps its own process-wide handler installed once Notify ran; Reset
 	// puts the platform default back, so SIGTERM terminates again (native's
 	// rt_sys_signal_unwatch restores the sigaction it saved for the same end).
-	signal.Reset(signalOf(name))
+	if sig := signalOf(name); sig != syscall.Signal(0) {
+		signal.Reset(sig)
+	}
 	for {
 		select {
 		case <-w.ch:
@@ -116,7 +123,7 @@ func signalOf(name string) os.Signal {
 	case "Terminate":
 		return syscall.SIGTERM
 	case "WindowChange":
-		return syscall.SIGWINCH
+		return windowChangeSignal()
 	default:
 		return syscall.Signal(0)
 	}

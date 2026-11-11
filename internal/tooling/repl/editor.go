@@ -10,20 +10,18 @@ import (
 	"io"
 	"os"
 	"strings"
-	"unicode/utf8"
-
-	"golang.org/x/sys/unix"
 )
 
 // ErrInterrupted is returned when the user presses Ctrl-C at the prompt.
 var ErrInterrupted = errors.New("interrupted")
 
 // Editor reads lines from a terminal in raw mode and restores the original
-// termios state on Close.
+// terminal state on Close. Each platform supplies termState and the two
+// functions that enter and leave raw mode (editor_unix.go, editor_windows.go).
 type Editor struct {
 	in       *os.File
 	out      io.Writer
-	saved    *unix.Termios
+	saved    *termState
 	raw      bool
 	history  *History
 	reader   *bufio.Reader
@@ -38,23 +36,13 @@ func (e *Editor) SetCompleter(f func(string) []string) { e.complete = f }
 // line reader; Close then has nothing to restore.
 func NewEditor(in *os.File, out io.Writer, hist *History) (*Editor, error) {
 	e := &Editor{in: in, out: out, history: hist, reader: bufio.NewReader(in)}
-	term, err := unix.IoctlGetTermios(int(in.Fd()), unix.TCGETS)
-	if err != nil {
-		return e, nil
+	// A pipe or file has no terminal state to change; it falls through to the
+	// plain line reader below. The same is true when the platform refuses raw
+	// mode, so the REPL stays usable on every host.
+	if state, err := enableRaw(in, out); err == nil {
+		e.saved = state
+		e.raw = true
 	}
-	e.saved = term
-	raw := *term
-	raw.Iflag &^= unix.IGNBRK | unix.BRKINT | unix.PARMRK | unix.ISTRIP | unix.INLCR | unix.IGNCR | unix.ICRNL | unix.IXON
-	raw.Oflag &^= unix.OPOST
-	raw.Lflag &^= unix.ECHO | unix.ECHONL | unix.ICANON | unix.ISIG | unix.IEXTEN
-	raw.Cflag &^= unix.CSIZE | unix.PARENB
-	raw.Cflag |= unix.CS8
-	raw.Cc[unix.VMIN] = 1
-	raw.Cc[unix.VTIME] = 0
-	if err := unix.IoctlSetTermios(int(in.Fd()), unix.TCSETS, &raw); err != nil {
-		return e, nil
-	}
-	e.raw = true
 	return e, nil
 }
 
@@ -66,7 +54,7 @@ func (e *Editor) Close() {
 	if e == nil || !e.raw || e.saved == nil {
 		return
 	}
-	_ = unix.IoctlSetTermios(int(e.in.Fd()), unix.TCSETS, e.saved)
+	_ = restoreRaw(e.saved)
 	e.raw = false
 }
 
@@ -239,5 +227,3 @@ func PlainLine(r *bufio.Reader, out io.Writer, prompt string) (string, error) {
 	}
 	return strings.TrimRight(line, "\r\n"), nil
 }
-
-var _ = utf8.RuneLen

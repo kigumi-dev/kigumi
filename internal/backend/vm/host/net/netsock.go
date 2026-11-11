@@ -2,14 +2,35 @@
 // std/net's socket layer. It works directly on raw file descriptors, the
 // same currency std/net/net_hosted.kg's extern(C) body uses, so a
 // Conn/Listener's `fd` field means the same thing under every backend.
+//
+// The public API carries the descriptor as an int on every host. Unix keeps
+// the descriptor as-is; Windows has to widen it to a SOCKET handle and back,
+// so the conversions live in netsock_unix.go and netsock_windows.go next to
+// the platform calls that need them.
 package net
 
 import (
+	"errors"
 	"fmt"
 	stdnet "net"
 	"strconv"
 	"syscall"
 )
+
+// errFDOverflow reports a socket handle that cannot round-trip through the
+// int the Kigumi side stores.
+var errFDOverflow = errors.New("socket handle does not fit in an int")
+
+// resultFD narrows a freshly opened handle for the public API and closes it
+// when the handle cannot be represented.
+func resultFD(fd osFD) (int, error) {
+	n, err := apiFD(fd)
+	if err != nil {
+		_ = closeFD(fd)
+		return -1, err
+	}
+	return n, nil
+}
 
 // Dial resolves host:port over IPv4 and returns a connected socket's fd.
 func Dial(host string, port int64) (int, error) {
@@ -21,17 +42,17 @@ func Dial(host string, port int64) (int, error) {
 	if ip4 == nil {
 		return -1, fmt.Errorf("%s does not resolve to an IPv4 address", host)
 	}
-	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_STREAM, 0)
+	fd, err := openSocket()
 	if err != nil {
 		return -1, err
 	}
 	sa := &syscall.SockaddrInet4{Port: addr.Port}
 	copy(sa.Addr[:], ip4)
-	if err := syscall.Connect(fd, sa); err != nil {
-		syscall.Close(fd)
+	if err := connectFD(fd, sa); err != nil {
+		_ = closeFD(fd)
 		return -1, err
 	}
-	return fd, nil
+	return resultFD(fd)
 }
 
 // Listen binds host:port (SO_REUSEADDR set) over IPv4 and starts listening;
@@ -52,36 +73,47 @@ func Listen(host string, port int64) (int, error) {
 	if ip4 == nil {
 		return -1, fmt.Errorf("%s does not resolve to an IPv4 address", host)
 	}
-	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_STREAM, 0)
+	fd, err := openSocket()
 	if err != nil {
 		return -1, err
 	}
-	if err := syscall.SetsockoptInt(fd, syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1); err != nil {
-		syscall.Close(fd)
+	if err := reuseAddrFD(fd); err != nil {
+		_ = closeFD(fd)
 		return -1, err
 	}
 	sa := &syscall.SockaddrInet4{Port: int(port)}
 	copy(sa.Addr[:], ip4)
-	if err := syscall.Bind(fd, sa); err != nil {
-		syscall.Close(fd)
+	if err := bindFD(fd, sa); err != nil {
+		_ = closeFD(fd)
 		return -1, err
 	}
-	if err := syscall.Listen(fd, 16); err != nil {
-		syscall.Close(fd)
+	if err := listenFD(fd, 16); err != nil {
+		_ = closeFD(fd)
 		return -1, err
 	}
-	return fd, nil
+	return resultFD(fd)
 }
 
 // Accept blocks for the next connection on a listening fd.
 func Accept(fd int) (int, error) {
-	nfd, _, err := syscall.Accept(fd)
-	return nfd, err
+	h, err := osFDOf(fd)
+	if err != nil {
+		return -1, err
+	}
+	nfd, err := acceptFD(h)
+	if err != nil {
+		return -1, err
+	}
+	return resultFD(nfd)
 }
 
 // Port is the local port a bound fd holds, or 0 when it cannot be read.
 func Port(fd int) int {
-	sa, err := syscall.Getsockname(fd)
+	h, err := osFDOf(fd)
+	if err != nil {
+		return 0
+	}
+	sa, err := getsocknameFD(h)
 	if err != nil {
 		return 0
 	}
@@ -92,33 +124,59 @@ func Port(fd int) int {
 }
 
 // Read fills buf and reports how many bytes came in; 0, nil is EOF.
-func Read(fd int, buf []byte) (int, error) { return syscall.Read(fd, buf) }
+func Read(fd int, buf []byte) (int, error) {
+	h, err := osFDOf(fd)
+	if err != nil {
+		return 0, err
+	}
+	return readFD(h, buf)
+}
 
 // Write may send fewer bytes than given, like the POSIX call it wraps.
-func Write(fd int, data []byte) (int, error) { return syscall.Write(fd, data) }
+func Write(fd int, data []byte) (int, error) {
+	h, err := osFDOf(fd)
+	if err != nil {
+		return 0, err
+	}
+	return writeFD(h, data)
+}
 
 // Close closes fd; the caller reports the error or ignores it, matching
 // close(2)'s two Kigumi-side callers (an explicit close and a drop).
-func Close(fd int) error { return syscall.Close(fd) }
+func Close(fd int) error {
+	h, err := osFDOf(fd)
+	if err != nil {
+		return err
+	}
+	return closeFD(h)
+}
 
 // TryAccept accepts without blocking; ok is false when no connection is waiting.
 // Both the listener and the accepted fd are left non-blocking, as net_hosted.kg leaves them.
 func TryAccept(fd int) (nfd int, ok bool, err error) {
-	if err := syscall.SetNonblock(fd, true); err != nil {
+	h, err := osFDOf(fd)
+	if err != nil {
+		return -1, false, err
+	}
+	if err := setNonblockFD(h, true); err != nil {
 		return -1, false, err
 	}
 	for {
-		nfd, _, err = syscall.Accept(fd)
-		switch err {
-		case nil:
-			if err := syscall.SetNonblock(nfd, true); err != nil {
-				syscall.Close(nfd)
+		accepted, err := acceptFD(h)
+		switch {
+		case err == nil:
+			if err := setNonblockFD(accepted, true); err != nil {
+				_ = closeFD(accepted)
+				return -1, false, err
+			}
+			nfd, err := resultFD(accepted)
+			if err != nil {
 				return -1, false, err
 			}
 			return nfd, true, nil
-		case syscall.EAGAIN:
+		case wouldBlock(err):
 			return -1, false, nil
-		case syscall.EINTR:
+		case interrupted(err):
 			continue
 		}
 		return -1, false, err
@@ -127,17 +185,21 @@ func TryAccept(fd int) (nfd int, ok bool, err error) {
 
 // TryRead reads without blocking; ok is false when no input is ready yet.
 func TryRead(fd int, buf []byte) (n int, ok bool, err error) {
-	if err := syscall.SetNonblock(fd, true); err != nil {
+	h, err := osFDOf(fd)
+	if err != nil {
+		return 0, false, err
+	}
+	if err := setNonblockFD(h, true); err != nil {
 		return 0, false, err
 	}
 	for {
-		n, err = syscall.Read(fd, buf)
-		switch err {
-		case nil:
+		n, err = readFD(h, buf)
+		switch {
+		case err == nil:
 			return n, true, nil
-		case syscall.EAGAIN:
+		case wouldBlock(err):
 			return 0, false, nil
-		case syscall.EINTR:
+		case interrupted(err):
 			continue
 		}
 		return 0, false, err
@@ -146,17 +208,21 @@ func TryRead(fd int, buf []byte) (n int, ok bool, err error) {
 
 // TryWrite sends without blocking; ok is false when the send buffer is full.
 func TryWrite(fd int, data []byte) (n int, ok bool, err error) {
-	if err := syscall.SetNonblock(fd, true); err != nil {
+	h, err := osFDOf(fd)
+	if err != nil {
+		return 0, false, err
+	}
+	if err := setNonblockFD(h, true); err != nil {
 		return 0, false, err
 	}
 	for {
-		n, err = syscall.Write(fd, data)
-		switch err {
-		case nil:
+		n, err = writeFD(h, data)
+		switch {
+		case err == nil:
 			return n, true, nil
-		case syscall.EAGAIN:
+		case wouldBlock(err):
 			return 0, false, nil
-		case syscall.EINTR:
+		case interrupted(err):
 			continue
 		}
 		return 0, false, err

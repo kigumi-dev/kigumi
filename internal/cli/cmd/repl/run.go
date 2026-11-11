@@ -157,7 +157,7 @@ func runInteractive(r *driver.Repl, ioh session.IO, opts options, compiler build
 		ed.SetCompleter(r.Completions)
 	}
 	sigc := make(chan os.Signal, 4)
-	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGWINCH)
+	signal.Notify(sigc, replSignals()...)
 	stop := make(chan struct{})
 	var evaluating atomic.Bool
 	go func() {
