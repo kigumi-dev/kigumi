@@ -76,7 +76,9 @@ and those must not be run with `UPDATE=1` in the same change.
 
 Stage is derived from the kind (`parse`, `mir`, `format`, `run`, `fault`) or,
 for `sem`, from the fixture's `-- module --` header: `stage: driver` and
-`mir: planned` become `driver` and `planned`, everything else is `check`.
+`mir: planned` become `driver` and `planned`, everything else is `check`. A
+fixture carrying both headers is `driver`, because that is the later stage that
+runs it.
 
 ### The fault corpus
 
