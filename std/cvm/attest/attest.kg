@@ -162,12 +162,7 @@ pure fn checkPolicy(report: &snp.Report, policy: &Policy) -> Result[Void, Error]
 /// `idVerifier` is the same boundary for the ID block and ID key signatures
 /// when launch evidence is present. Passing a verifier that returns false
 /// yields `Forged`; a report the firmware did not sign yields `Snp(Unsigned)`.
-pub fn verify(
-    evidence: &Evidence,
-    policy: &Policy,
-    reportVerifier: fn(Bytes, &snp.Signature) -> Result[Bool, snp.Error],
-    idVerifier: fn(&snp.EcdsaPublicKey, Bytes, &snp.Signature) -> Result[Bool, snp.Error],
-) -> Result[snp.Claims, Error] {
+pub fn verify(evidence: &Evidence, policy: &Policy, reportVerifier: fn(Bytes, &snp.Signature) -> Result[Bool, snp.Error], idVerifier: fn(&snp.EcdsaPublicKey, Bytes, &snp.Signature) -> Result[Bool, snp.Error]) -> Result[snp.Claims, Error] {
     let report = match snp.parseReport(evidence.report) {
         Ok(value) -> value
         Err(error) -> fail Snp(error)

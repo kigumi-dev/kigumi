@@ -33,18 +33,12 @@ pub type TicketStore = {
 
 /// A second handle to the same table.
 pub fn TicketStore.clone(self) -> TicketStore {
-    TicketStore {
-        inner: self.inner.clone()
-    }
+    TicketStore { inner: self.inner.clone() }
 }
 
 /// An empty ticket table.
 pub fn TicketStore.new() -> TicketStore {
-    TicketStore {
-        inner: alloc.Shared.new(TicketState {
-            entries: Array.empty[StoredTicket]()
-        })
-    }
+    TicketStore { inner: alloc.Shared.new(TicketState { entries: Array.empty[StoredTicket]() }) }
 }
 
 /// Records a freshly issued ticket. The caller generates a unique identity.

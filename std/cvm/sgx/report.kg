@@ -18,7 +18,6 @@
 // A parsed report has had its size, reserved ranges and the reserved
 // `misc_select` bits checked. Attribute flags are left raw because callers
 // compare them through the QE identity masks in `tcb.kg`.
-
 /// A structurally valid SGX report body. The record owns no arrays of
 /// records, only byte strings, so copying one does not duplicate the input.
 pub type Report = {

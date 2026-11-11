@@ -13,7 +13,6 @@
 // PCK chain steps succeeded. It does not claim that CRL/OCSP was checked,
 // that the TCB Info or QvE Identity signatures were verified, or that the
 // host supplied fresh collateral.
-
 /// Overall status of a verified quote.
 pub type Status =
     | Good

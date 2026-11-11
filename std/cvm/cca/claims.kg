@@ -52,7 +52,10 @@ pure fn bit(value: i64) -> u64 {
 
 /// Parses a realm claim set.
 pub pure fn parseClaims(claimSet: Bytes) -> Result[Claims, Error] {
-    let mut cursor = Cursor { data: claimSet, at: 0 }
+    let mut cursor = Cursor {
+        data: claimSet
+        at: 0
+    }
     let pairs = cursor.readMapHeader()?
     let mut challenge: Bytes? = None
     let mut profile: String? = None
@@ -94,16 +97,28 @@ pub pure fn parseClaims(claimSet: Bytes) -> Result[Claims, Error] {
             seen = seen | mask
         }
         match label {
-            10 -> { challenge = Some(cursor.readByteString()?) }
-            256 -> { instanceId = Some(cursor.readByteString()?) }
-            265 -> { profile = Some(cursor.readTextString()?) }
-            44235 -> { personalizationValue = Some(cursor.readByteString()?) }
-            44236 -> { hashAlgorithm = Some(HashAlgorithm.parse(cursor.readTextString()?)?) }
+            10 -> {
+                challenge = Some(cursor.readByteString()?)
+            }
+            256 -> {
+                instanceId = Some(cursor.readByteString()?)
+            }
+            265 -> {
+                profile = Some(cursor.readTextString()?)
+            }
+            44235 -> {
+                personalizationValue = Some(cursor.readByteString()?)
+            }
+            44236 -> {
+                hashAlgorithm = Some(HashAlgorithm.parse(cursor.readTextString()?)?)
+            }
             44237 -> {
                 let encoded = cursor.readByteString()?
                 publicKey = Some(parseCoseKey(encoded)?)
             }
-            44238 -> { initialMeasurement = Some(cursor.readByteString()?) }
+            44238 -> {
+                initialMeasurement = Some(cursor.readByteString()?)
+            }
             44239 -> {
                 let count = cursor.readArrayHeader()?
                 if count != 4 {
@@ -134,7 +149,9 @@ pub pure fn parseClaims(claimSet: Bytes) -> Result[Claims, Error] {
                 }
                 lfaPolicy = Some(value.truncate[u8]())
             }
-            44257 -> { devicesTokenHash = Some(cursor.readByteString()?) }
+            44257 -> {
+                devicesTokenHash = Some(cursor.readByteString()?)
+            }
             _ -> cursor.skipValue(64)?
         }
         i = i + 1
@@ -233,7 +250,10 @@ pub pure fn parseClaims(claimSet: Bytes) -> Result[Claims, Error] {
 
 /// Parses the claim set of a CCA Platform token.
 pub pure fn parsePlatformClaims(claimSet: Bytes) -> Result[PlatformClaims, Error] {
-    let mut cursor = Cursor { data: claimSet, at: 0 }
+    let mut cursor = Cursor {
+        data: claimSet
+        at: 0
+    }
     let pairs = cursor.readMapHeader()?
     let mut challenge: Bytes? = None
     let mut workloadBinding: Bytes? = None
@@ -255,9 +275,15 @@ pub pure fn parsePlatformClaims(claimSet: Bytes) -> Result[PlatformClaims, Error
             seen = seen | mask
         }
         match label {
-            10 -> { challenge = Some(cursor.readByteString()?) }
-            2408 -> { workloadBinding = Some(cursor.readByteString()?) }
-            265 -> { profile = Some(cursor.readTextString()?) }
+            10 -> {
+                challenge = Some(cursor.readByteString()?)
+            }
+            2408 -> {
+                workloadBinding = Some(cursor.readByteString()?)
+            }
+            265 -> {
+                profile = Some(cursor.readTextString()?)
+            }
             _ -> cursor.skipValue(64)?
         }
         i = i + 1

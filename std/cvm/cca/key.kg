@@ -51,7 +51,10 @@ pure fn allZero(value: Bytes) -> Bool {
 
 /// Parses the contents of the Realm Public Key claim.
 pub pure fn parseCoseKey(encoded: Bytes) -> Result[CoseKey, Error] {
-    let mut cursor = Cursor { data: encoded, at: 0 }
+    let mut cursor = Cursor {
+        data: encoded
+        at: 0
+    }
     let pairs = cursor.readMapHeader()?
     let mut kty: Int? = None
     let mut curve: Int? = None
@@ -81,11 +84,21 @@ pub pure fn parseCoseKey(encoded: Bytes) -> Result[CoseKey, Error] {
             seen = seen | bit
         }
         match label {
-            1 -> { kty = Some(cursor.readInteger()?) }
-            3 -> { algorithm = Some(cursor.readInteger()?) }
-            -1 -> { curve = Some(cursor.readInteger()?) }
-            -2 -> { x = Some(cursor.readByteString()?) }
-            -3 -> { y = Some(cursor.readByteString()?) }
+            1 -> {
+                kty = Some(cursor.readInteger()?)
+            }
+            3 -> {
+                algorithm = Some(cursor.readInteger()?)
+            }
+            -1 -> {
+                curve = Some(cursor.readInteger()?)
+            }
+            -2 -> {
+                x = Some(cursor.readByteString()?)
+            }
+            -3 -> {
+                y = Some(cursor.readByteString()?)
+            }
             _ -> cursor.skipValue(64)?
         }
         i = i + 1

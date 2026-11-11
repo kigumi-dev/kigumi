@@ -61,7 +61,6 @@ pure fn statusFromText(text: String) -> Result[TcbStatus, Error] {
 }
 
 // JSON shapes. The derived decoders ignore fields this package does not name.
-
 type SgxComponentJson = {
     pub svn u8
 }
@@ -115,7 +114,6 @@ type QeIdentityJson = {
 // `std` packages cannot use compiler-derived JSON codecs (the generator is
 // disabled for std), so the mirrors implement Decode explicitly. They are the
 // only handwritten codecs in this package, and every one is field-for-field.
-
 fn SgxComponentJson.fromJson(value: json.Value) -> SgxComponentJson! {
     let mut o = json.Record.expect(value, "sgx TCB component")?
     Ok(SgxComponentJson { svn: o.field("svn")? })

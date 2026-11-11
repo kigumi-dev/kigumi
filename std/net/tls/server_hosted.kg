@@ -1,3 +1,6 @@
+import p256 from std/crypto/p256
+import sha256 from std/crypto/sha256
+import x509 from std/crypto/x509
 // A TLS 1.3 server (RFC 8446) over an existing `net.Conn`, the mirror of
 // the client in tls_hosted.kg: TLS_CHACHA20_POLY1305_SHA256, an x25519 or
 // secp256r1 key share, and a certificate chain signed with a secp256r1 key.
@@ -27,9 +30,6 @@
 // handshake failure a fatal alert is sent best-effort before the connection
 // is dropped.
 import binary from std/encoding/binary
-import p256 from std/crypto/p256
-import sha256 from std/crypto/sha256
-import x509 from std/crypto/x509
 import net from std/net
 import time from std/time
 

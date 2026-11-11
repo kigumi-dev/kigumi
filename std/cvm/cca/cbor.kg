@@ -86,7 +86,10 @@ pure fn Cursor.head(mut self) -> Result[Head, Error] {
         30 -> fail Malformed("CBOR additional information")
         _ -> fail Unsupported("indefinite-length CBOR item")
     }
-    Ok(Head { major: major, arg: arg })
+    Ok(Head {
+        major: major
+        arg: arg
+    })
 }
 
 pure fn Cursor.requireMajor(mut self, want: u8, what: String) -> Result[Head, Error] {

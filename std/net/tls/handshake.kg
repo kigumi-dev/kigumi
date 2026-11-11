@@ -1,3 +1,4 @@
+import sha256 from std/crypto/sha256
 // TLS 1.3 handshake messages (RFC 8446 §4): building the ClientHello and
 // parsing the server's flight.
 //
@@ -15,7 +16,6 @@
 // the client did not advertise, or one it already sent a share for, is
 // refused.
 import binary from std/encoding/binary
-import sha256 from std/crypto/sha256
 
 /// Handshake message type numbers used here.
 pub const clientHelloType: u8 = 1

@@ -566,4 +566,3 @@ pub pure fn keyInfoIsValid(raw: u32) -> Bool {
 pub pure fn tcbIsPresent(tcb: TcbVersion) -> Bool {
     tcb.raw != 0
 }
-

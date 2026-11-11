@@ -27,7 +27,10 @@ pure fn readEntry(cursor: &mut Cursor) -> Result[Bytes, Error] {
 /// token is optional so a caller can parse a realm token before the platform
 /// half is available, but verification requires it for delegated evidence.
 pub pure fn Collection.parse(data: Bytes) -> Result[Collection, Error] {
-    let mut cursor = Cursor { data: data, at: 0 }
+    let mut cursor = Cursor {
+        data: data
+        at: 0
+    }
     let tag = cursor.readTag()?
     if tag != collectionTag && tag != legacyCollectionTag {
         fail UnsupportedVersion(tag.toInt() || fail Unsupported("CCA collection tag"))

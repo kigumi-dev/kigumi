@@ -138,12 +138,7 @@ pure fn checkCcaPolicy(claims: &CcaClaims, policy: &CcaPolicy) -> Result[Void, E
     Ok(())
 }
 
-pure fn verifyParsed(
-    collection: cca.Collection,
-    policy: &CcaPolicy,
-    realmVerifier: fn(Int, &cca.CoseKey, Bytes, Bytes) -> Result[Bool, cca.Error],
-    platformVerifier: fn(Int, Bytes, Bytes) -> Result[Bool, cca.Error],
-) -> Result[CcaClaims, Error] {
+pure fn verifyParsed(collection: cca.Collection, policy: &CcaPolicy, realmVerifier: fn(Int, &cca.CoseKey, Bytes, Bytes) -> Result[Bool, cca.Error], platformVerifier: fn(Int, Bytes, Bytes) -> Result[Bool, cca.Error]) -> Result[CcaClaims, Error] {
     let claims = summarize(&collection.realm.claims)
     match cca.checkClaimsProfile(&collection.realm.claims) {
         Ok(_) -> {}
@@ -177,12 +172,7 @@ pure fn verifyParsed(
 /// establishes the platform signature; because the platform token has no key
 /// claim, that callback must be bound to the trusted CPAK/PAK by the caller.
 /// This function never accepts a realm token on its own.
-pub fn verifyCca(
-    evidence: &CcaEvidence,
-    policy: &CcaPolicy,
-    realmVerifier: fn(Int, &cca.CoseKey, Bytes, Bytes) -> Result[Bool, cca.Error],
-    platformVerifier: fn(Int, Bytes, Bytes) -> Result[Bool, cca.Error],
-) -> Result[CcaClaims, Error] {
+pub fn verifyCca(evidence: &CcaEvidence, policy: &CcaPolicy, realmVerifier: fn(Int, &cca.CoseKey, Bytes, Bytes) -> Result[Bool, cca.Error], platformVerifier: fn(Int, Bytes, Bytes) -> Result[Bool, cca.Error]) -> Result[CcaClaims, Error] {
     let realm = match cca.Token.parse(evidence.realm) {
         Ok(value) -> value
         Err(error) -> fail Cca(error)
@@ -203,12 +193,7 @@ pub fn verifyCca(
 }
 
 /// Parses and verifies a CMW collection (`#6.907` or legacy `#6.399`).
-pub fn verifyCcaCollection(
-    collectionBytes: Bytes,
-    policy: &CcaPolicy,
-    realmVerifier: fn(Int, &cca.CoseKey, Bytes, Bytes) -> Result[Bool, cca.Error],
-    platformVerifier: fn(Int, Bytes, Bytes) -> Result[Bool, cca.Error],
-) -> Result[CcaClaims, Error] {
+pub fn verifyCcaCollection(collectionBytes: Bytes, policy: &CcaPolicy, realmVerifier: fn(Int, &cca.CoseKey, Bytes, Bytes) -> Result[Bool, cca.Error], platformVerifier: fn(Int, Bytes, Bytes) -> Result[Bool, cca.Error]) -> Result[CcaClaims, Error] {
     let collection = match cca.Collection.parse(collectionBytes) {
         Ok(value) -> value
         Err(error) -> fail Cca(error)

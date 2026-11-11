@@ -106,10 +106,16 @@ pub pure fn parseKeyResponse(raw: Bytes) -> Result[DerivedKeyResponse, Error] {
             Some(value) -> value
             None -> fail Truncated("derived key")
         }
-        return Ok(DerivedKeyResponse { status: status, key: Some(key) })
+        return Ok(DerivedKeyResponse {
+            status: status
+            key: Some(key)
+        })
     }
     if status == keyStatusInvalidParameters || status == keyStatusInvalidKeySelection {
-        return Ok(DerivedKeyResponse { status: status, key: None })
+        return Ok(DerivedKeyResponse {
+            status: status
+            key: None
+        })
     }
     fail Malformed("key response status")
 }

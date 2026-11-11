@@ -49,7 +49,10 @@ pure fn signatureSize(algorithm: Int) -> Result[usize, Error] {
 }
 
 pure fn parseProtected(bytes: Bytes) -> Result[Int, Error] {
-    let mut cursor = Cursor { data: bytes, at: 0 }
+    let mut cursor = Cursor {
+        data: bytes
+        at: 0
+    }
     let pairs = cursor.readMapHeader()?
     let mut algorithm: Int? = None
     let mut seen: Bool = false
@@ -94,7 +97,10 @@ pub pure fn sigStructure(protectedHeader: Bytes, payload: Bytes) -> Bytes {
 
 /// Parses a tagged COSE_Sign1 envelope without interpreting its payload.
 pub pure fn parseCoseSign1(data: Bytes) -> Result[CoseSign1, Error] {
-    let mut cursor = Cursor { data: data, at: 0 }
+    let mut cursor = Cursor {
+        data: data
+        at: 0
+    }
     let tag = cursor.readTag()?
     if tag != coseSign1Tag {
         fail Malformed("COSE_Sign1 tag ${tag}")
@@ -143,25 +149,27 @@ pub pure fn parseCoseSign1(data: Bytes) -> Result[CoseSign1, Error] {
 pub pure fn Token.parse(data: Bytes) -> Result[Token, Error] {
     let cose = parseCoseSign1(data)?
     let claims = parseClaims(cose.payload)?
-    Ok(Token { cose: cose, claims: claims })
+    Ok(Token {
+        cose: cose
+        claims: claims
+    })
 }
 
 /// Parses a CCA Platform token and its platform claim set.
 pub pure fn PlatformToken.parse(data: Bytes) -> Result[PlatformToken, Error] {
     let cose = parseCoseSign1(data)?
     let claims = parsePlatformClaims(cose.payload)?
-    Ok(PlatformToken { cose: cose, claims: claims })
+    Ok(PlatformToken {
+        cose: cose
+        claims: claims
+    })
 }
 
 /// Verifies a token signature with a caller-supplied boundary. The verifier
 /// receives the algorithm, the trusted key, the `Sig_structure` and the
 /// signature. Returning false is `Forged`; returning an error preserves the
 /// verifier's reason.
-pub pure fn CoseSign1.verify(
-    self,
-    key: &CoseKey,
-    verify: fn(Int, &CoseKey, Bytes, Bytes) -> Result[Bool, Error],
-) -> Result[Void, Error] {
+pub pure fn CoseSign1.verify(self, key: &CoseKey, verify: fn(Int, &CoseKey, Bytes, Bytes) -> Result[Bool, Error]) -> Result[Void, Error] {
     match verify(self.algorithm, key, self.signed, self.signature) {
         Ok(true) -> Ok(())
         Ok(false) -> fail Forged("COSE_Sign1 signature")
@@ -171,10 +179,7 @@ pub pure fn CoseSign1.verify(
 
 /// Verifies a COSE_Sign1 whose verification key the caller already trusts.
 /// No key travels in the token; `verify` must close over the pinned key.
-pub pure fn CoseSign1.verifyKeyless(
-    self,
-    verify: fn(Int, Bytes, Bytes) -> Result[Bool, Error],
-) -> Result[Void, Error] {
+pub pure fn CoseSign1.verifyKeyless(self, verify: fn(Int, Bytes, Bytes) -> Result[Bool, Error]) -> Result[Void, Error] {
     match verify(self.algorithm, self.signed, self.signature) {
         Ok(true) -> Ok(())
         Ok(false) -> fail Forged("COSE_Sign1 signature")
@@ -201,10 +206,7 @@ pub pure fn Token.verifyEs256(self) -> Result[Void, Error] {
 }
 
 /// Verifies a realm token through an arbitrary verifier.
-pub pure fn Token.verify(
-    self,
-    verify: fn(Int, &CoseKey, Bytes, Bytes) -> Result[Bool, Error],
-) -> Result[Void, Error] {
+pub pure fn Token.verify(self, verify: fn(Int, &CoseKey, Bytes, Bytes) -> Result[Bool, Error]) -> Result[Void, Error] {
     let key = match self.claims.publicKey {
         Some(value) -> value
         None -> fail Unsupported("direct CCA realm token has no Realm Attestation Key")
@@ -217,11 +219,7 @@ pub pure fn Token.verify(
 }
 
 /// Borrowing form of `CoseSign1.verify`.
-pub pure fn verifyCoseSign1(
-    cose: &CoseSign1,
-    key: &CoseKey,
-    verify: fn(Int, &CoseKey, Bytes, Bytes) -> Result[Bool, Error],
-) -> Result[Void, Error] {
+pub pure fn verifyCoseSign1(cose: &CoseSign1, key: &CoseKey, verify: fn(Int, &CoseKey, Bytes, Bytes) -> Result[Bool, Error]) -> Result[Void, Error] {
     match verify(cose.algorithm, key, cose.signed, cose.signature) {
         Ok(true) -> Ok(())
         Ok(false) -> fail Forged("COSE_Sign1 signature")
@@ -230,10 +228,7 @@ pub pure fn verifyCoseSign1(
 }
 
 /// Borrowing form of `CoseSign1.verifyKeyless`.
-pub pure fn verifyCoseSign1Keyless(
-    cose: &CoseSign1,
-    verify: fn(Int, Bytes, Bytes) -> Result[Bool, Error],
-) -> Result[Void, Error] {
+pub pure fn verifyCoseSign1Keyless(cose: &CoseSign1, verify: fn(Int, Bytes, Bytes) -> Result[Bool, Error]) -> Result[Void, Error] {
     match verify(cose.algorithm, cose.signed, cose.signature) {
         Ok(true) -> Ok(())
         Ok(false) -> fail Forged("COSE_Sign1 signature")
@@ -243,10 +238,7 @@ pub pure fn verifyCoseSign1Keyless(
 
 /// Borrowing form of `Token.verify`: verifies the RAK signature with the key
 /// carried by the claim set.
-pub pure fn verifyToken(
-    token: &Token,
-    verify: fn(Int, &CoseKey, Bytes, Bytes) -> Result[Bool, Error],
-) -> Result[Void, Error] {
+pub pure fn verifyToken(token: &Token, verify: fn(Int, &CoseKey, Bytes, Bytes) -> Result[Bool, Error]) -> Result[Void, Error] {
     let key = match token.claims.publicKey {
         Some(value) -> value
         None -> fail Unsupported("direct CCA realm token has no Realm Attestation Key")
@@ -271,12 +263,7 @@ pub pure fn verifyTokenEs256(token: &Token) -> Result[Void, Error] {
 ///
 /// This is a verifier boundary that can be passed directly to `Token.verify`
 /// or used for a platform token whose key the caller pins.
-pub pure fn verifyEs256(
-    algorithm: Int,
-    key: &CoseKey,
-    signed: Bytes,
-    signature: Bytes,
-) -> Result[Bool, Error] {
+pub pure fn verifyEs256(algorithm: Int, key: &CoseKey, signed: Bytes, signature: Bytes) -> Result[Bool, Error] {
     if algorithm != es256 {
         fail UnsupportedAlgorithm(algorithm)
     }

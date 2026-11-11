@@ -1,3 +1,4 @@
+import sha512 from std/crypto/sha512
 // The SNP launch ID block and its authentication information structure.
 //
 // An ID block is 96 bytes (ABI 56860 Table 75) and is signed as a whole with
@@ -7,7 +8,6 @@
 // strict about sizes, algorithms and reserved bytes; it never manufactures a
 // key from an all-zero region.
 import binary from std/encoding/binary
-import sha512 from std/crypto/sha512
 
 pure fn readU32(raw: Bytes, at: usize, field: String) -> Result[u32, Error] {
     binary.u32Le(raw, at) || fail Malformed(field)
@@ -31,7 +31,11 @@ pure fn parseWireSignature(raw: Bytes, at: usize, field: String) -> Result[Signa
     if !allZero(reserved) {
         fail ReservedNonZero(field)
     }
-    Ok(Signature { r: r, s: s, reserved: reserved })
+    Ok(Signature {
+        r: r
+        s: s
+        reserved: reserved
+    })
 }
 
 pure fn parsePublicKey(raw: Bytes, at: usize, field: String) -> Result[EcdsaPublicKey?, Error] {
@@ -55,7 +59,12 @@ pure fn parsePublicKey(raw: Bytes, at: usize, field: String) -> Result[EcdsaPubl
     if allZero(x) && allZero(y) {
         fail Malformed(field)
     }
-    Ok(Some(EcdsaPublicKey { curve: curve, x: x, y: y, raw: encoded }))
+    Ok(Some(EcdsaPublicKey {
+        curve: curve
+        x: x
+        y: y
+        raw: encoded
+    }))
 }
 
 /// Parses the 96-byte ID block.
@@ -133,12 +142,7 @@ pub pure fn parseIdAuth(raw: Bytes) -> Result[IdAuth, Error] {
 ///
 /// The SHA-384 input for the ID-block signature is exactly the 96-byte ID
 /// block. The author signature covers the 1028-byte encoded ID public key.
-pub fn verifyIdBlock(
-    idBlock: &IdBlock,
-    idAuth: &IdAuth,
-    authorKeyEnabled: Bool,
-    verify: fn(&EcdsaPublicKey, Bytes, &Signature) -> Result[Bool, Error],
-) -> Result[Void, Error] {
+pub fn verifyIdBlock(idBlock: &IdBlock, idAuth: &IdAuth, authorKeyEnabled: Bool, verify: fn(&EcdsaPublicKey, Bytes, &Signature) -> Result[Bool, Error]) -> Result[Void, Error] {
     if !scalarIsCanonical(idAuth.idBlockSignature.r) || !scalarIsCanonical(idAuth.idBlockSignature.s) {
         fail Forged("ID block signature scalar")
     }
