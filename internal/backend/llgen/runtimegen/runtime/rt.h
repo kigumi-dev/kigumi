@@ -200,7 +200,7 @@ int rt_utf8_valid(const char* s, int64_t n);
 rt_type* rt_find_type(const char* name);
 int rt_equal(val a, val b);
 
-// ---- rt_float.c: shortest round-trip formatting, correctly rounded parsing ----
+// ---- Zig rt_float: shortest round-trip formatting, correctly rounded parsing ----
 void rt_format_float(double x, int f32, char* out, size_t n);
 int rt_parse_f64(const char* s, const char** end, double* out, int* erange);
 int rt_parse_f32(const char* s, const char** end, float* out, int* erange);

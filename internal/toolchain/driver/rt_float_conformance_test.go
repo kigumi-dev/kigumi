@@ -14,10 +14,10 @@ import (
 	"testing"
 )
 
-// rtFloatHarness drives internal/backend/llgen/runtimegen/runtime/rt_float.c directly (it
-// depends on nothing else in the runtime, per its own header comment), so
-// this compiles just that one file plus a thin line-protocol wrapper
-// instead of building a whole kigumi program. Protocol, one request per
+// rtFloatHarness drives internal/backend/llgen/runtimegen/runtime/zig/rt_float.zig
+// directly (it depends on nothing else in the runtime), so this compiles just
+// that Zig object plus a thin line-protocol C wrapper instead of building a
+// whole kigumi program. Protocol, one request per
 // line: "F <0|1> <hex bits>" formats (0=f64, 1=f32) and replies with the
 // text; "P <0|1> <string>" parses and replies "<ok> <hex bits> <consumed>
 // <erange>".
@@ -83,10 +83,7 @@ func compileRtFloatHarness(t *testing.T) string {
 	if err := os.WriteFile(harness, []byte(rtFloatHarnessSrc), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	rtFloat, err := filepath.Abs("../../backend/llgen/runtimegen/runtime/rt_float.c")
-	if err != nil {
-		t.Fatal(err)
-	}
+	rtFloat := buildZigFloatObject(t, dir)
 	out := filepath.Join(dir, "rt_float_harness")
 	args := append(append([]string{}, cc[1:]...), "-O2", "-o", out, harness, rtFloat)
 	cmd := exec.Command(cc[0], args...)
@@ -122,8 +119,8 @@ func runRtFloatHarness(t *testing.T, bin string, requests []string) []string {
 	return lines
 }
 
-// TestRtFloatFormatConformance covers handoff 3.7 item 12: rt_float.c's
-// Dragon4 shortest-digit formatter must produce exactly what Go's
+// TestRtFloatFormatConformance covers handoff 3.7 item 12: the Zig float
+// runtime's Dragon4 shortest-digit formatter must produce exactly what Go's
 // strconv.FormatFloat(f, 'g', -1, bits) does, since internal/backend/vm formats floats
 // that way (internal/backend/vm/display.go) and native must agree byte for byte.
 func TestRtFloatFormatConformance(t *testing.T) {
@@ -152,7 +149,7 @@ func TestRtFloatFormatConformance(t *testing.T) {
 
 	// Exhaustive over every exact power of two (not sampled): this is the
 	// shape that caught f32 2^-12 needing a pinned tie-break exception
-	// (see rt_float.c).
+	// (see float/dragon4.zig).
 	for exp := 1; exp <= 254; exp++ {
 		reqs = append(reqs, fmt.Sprintf("F 1 %x", uint32(exp)<<23))
 	}
@@ -229,8 +226,8 @@ func TestRtFloatFormatConformance(t *testing.T) {
 // 12: rt_parse_f64/rt_parse_f32's big-integer "Algorithm M" must round
 // exactly like a correctly rounded strtod/strtof (Go's strconv.ParseFloat
 // is also correctly rounded, so it is a valid oracle for plain decimal
-// text, which is all rt_float.c's reduced grammar accepts — see the
-// no-hex-floats, no-NaN-payload note on rt_parse_generic in rt_float.c).
+// text, which is all the Zig module's reduced grammar accepts — see the
+// no-hex-floats, no-NaN-payload note on parseGeneric in float/algorithm_m.zig).
 func TestRtFloatParseConformance(t *testing.T) {
 	t.Parallel()
 	bin := compileRtFloatHarness(t)

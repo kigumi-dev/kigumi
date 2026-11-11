@@ -20,13 +20,14 @@ func TestRuntimeCUnitContracts(t *testing.T) {
 	}
 	rt, _ := filepath.Abs("../../backend/llgen/runtimegen/runtime")
 	dir := t.TempDir()
+	rtFloat := buildZigFloatObject(t, dir)
 	exe := filepath.Join(dir, "rt_core_test")
 	build := func(exe string, extra ...string) {
 		args := append(append([]string{}, cc[1:]...), "-I"+rt, "-g", "-O1",
 			"-DKIGUMI_TASK_CATCH", "-DKIGUMI_UNWIND", "-DKIGUMI_LEAK_CHECK", "-DKIGUMI_FAULT_INJECT")
 		args = append(args, extra...)
 		args = append(args, strings.Fields(os.Getenv("KIGUMI_CFLAGS"))...)
-		args = append(args, filepath.Join(rt, "tests", "rt_core_test.c"), filepath.Join(rt, "rt_sys_weak.c"), filepath.Join(rt, "rt_float.c"), "-lm", "-o", exe)
+		args = append(args, filepath.Join(rt, "tests", "rt_core_test.c"), filepath.Join(rt, "rt_sys_weak.c"), rtFloat, "-lm", "-o", exe)
 		if out, err := exec.Command(cc[0], args...).CombinedOutput(); err != nil {
 			t.Fatalf("build %s: %v\n%s", strings.Join(cc, " "), err, out)
 		}

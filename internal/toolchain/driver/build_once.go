@@ -67,6 +67,20 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 			inputs = append(inputs, path)
 		}
 	}
+	for _, f := range llgen.RuntimeZigFiles() {
+		path := filepath.Join(dir, filepath.FromSlash(f.Name))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			return false, err
+		}
+		if err := os.WriteFile(path, []byte(f.Src), 0o644); err != nil {
+			return false, err
+		}
+	}
+	zrt, err := compileZigRuntime(m, cc, t, dir, opts.ccEnv, stderr)
+	if err != nil {
+		return false, err
+	}
+	inputs = append(inputs, zrt.object)
 	inputs = append(inputs, m.Sources...)
 	args := append(append(cc[1:], "-Wno-override-module"), codegenFlags(t, opts.SizeMin)...)
 	if t.CompileTriple() != "" {
@@ -93,7 +107,7 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 			// A wasm object compiled position-independent imports __memory_base and __table_base from the linker.
 			args = append(args, "-fPIE")
 		}
-		fp := CurrentFingerprint(t, link.ZigVersionOf(cc))
+		fp := CurrentFingerprint(t, zigRuntimeVersion(cc, zrt))
 		withProvenance(&fp, m, t, code)
 		artifact.ReportStale(out, fp, stderr)
 		return artifact.PublishWithFingerprint(out, fp, func(staged string) error {
@@ -108,7 +122,7 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 			return audit.Archive(m.compiler, ar, staged, out, llgen.FreestandingSymbols(), m.Manifest.Embedder)
 		})
 	}
-	fp := CurrentFingerprint(t, link.ZigVersionOf(cc))
+	fp := CurrentFingerprint(t, zigRuntimeVersion(cc, zrt))
 	withProvenance(&fp, m, t, code)
 	return artifact.PublishWithFingerprint(out, fp, func(staged string) error {
 		return hostLink{m: m, compiler: compiler, cc: cc, args: args, inputs: inputs, dir: dir, opts: opts, t: t, link: linkage, cflags: cflags, lflags: lflags, stderr: stderr}.run(staged)

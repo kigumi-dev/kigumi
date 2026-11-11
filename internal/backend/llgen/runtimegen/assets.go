@@ -14,8 +14,17 @@ var runtimeStdOps string
 //go:embed runtime/rt_core.c
 var runtimeCore string
 
-//go:embed runtime/rt_float.c
-var runtimeFloat string
+//go:embed runtime/zig/rt_float.zig
+var zigRtFloat string
+
+//go:embed runtime/zig/float/bignum.zig
+var zigFloatBignum string
+
+//go:embed runtime/zig/float/dragon4.zig
+var zigFloatDragon4 string
+
+//go:embed runtime/zig/float/algorithm_m.zig
+var zigFloatAlgorithmM string
 
 //go:embed runtime/rt_fs.c
 var runtimeFS string

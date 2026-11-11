@@ -67,12 +67,13 @@ func buildWideHarness(t *testing.T, source string) func(n string) string {
 	}
 	rt, _ := filepath.Abs("../../backend/llgen/runtimegen/runtime")
 	dir := t.TempDir()
+	rtFloat := buildZigFloatObject(t, dir)
 	src := filepath.Join(dir, "harness.c")
 	if err := os.WriteFile(src, []byte(source), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	exe := filepath.Join(dir, "harness")
-	args := append(append([]string{}, cc[1:]...), "-I"+rt, "-DKIGUMI_TASK_CATCH", "-DKIGUMI_UNWIND", "-DKIGUMI_LEAK_CHECK", src, filepath.Join(rt, "rt_sys_weak.c"), filepath.Join(rt, "rt_float.c"), "-o", exe, "-lm")
+	args := append(append([]string{}, cc[1:]...), "-I"+rt, "-DKIGUMI_TASK_CATCH", "-DKIGUMI_UNWIND", "-DKIGUMI_LEAK_CHECK", src, filepath.Join(rt, "rt_sys_weak.c"), rtFloat, "-o", exe, "-lm")
 	if out, err := exec.Command(cc[0], args...).CombinedOutput(); err != nil {
 		t.Fatalf("build harness: %v\n%s", err, out)
 	}

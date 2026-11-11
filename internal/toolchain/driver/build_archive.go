@@ -29,6 +29,18 @@ func splitArchiveCFlags(flags []string) (compile, linkerLike []string) {
 func buildArchive(o buildconfig.CompilerOptions, cc, args, inputs []string, dir, out string, env []string, stderr io.Writer, stripDebug bool) (bool, error) {
 	var objs []string
 	for i, in := range inputs {
+		if filepath.Ext(in) == ".o" {
+			// The Zig runtime object arrives already compiled for this target.
+			// A COFF reproducible build must still apply the same strip to every
+			// member, so the reproducible archive is the plain one stripped.
+			if stripDebug {
+				if err := object.StripCOFFDebug(in); err != nil {
+					return false, err
+				}
+			}
+			objs = append(objs, in)
+			continue
+		}
 		rel, err := link.PinnedInput(o, dir, in)
 		if err != nil {
 			return false, err

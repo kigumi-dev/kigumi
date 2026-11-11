@@ -4,7 +4,8 @@ package runtimegen
 
 import "slices"
 
-// RuntimeFile is one C source or header of the runtime.
+// RuntimeFile is one source or header of the runtime: a C translation unit or
+// header the C compiler takes, or a Zig source `zig build-obj` compiles.
 type RuntimeFile struct {
 	Name, Src string
 }
@@ -19,7 +20,7 @@ var posixSignalOS = map[string]bool{"linux": true, "darwin": true, "freebsd": tr
 
 // Files includes rt_signal_hosted.c only for hosted POSIX OSes, which alone have <signal.h>.
 func Files(sys, os string) []RuntimeFile {
-	files := []RuntimeFile{{"rt.h", runtimeHeader}, {"rt_internal.h", runtimeInternalHeader}, {"rt_std_ops.h", runtimeStdOps}, {"rt_core.c", runtimeCore}, {"rt_float.c", runtimeFloat}, {"rt_sys_weak.c", runtimeSys}, {"rt_fs.c", runtimeFS}}
+	files := []RuntimeFile{{"rt.h", runtimeHeader}, {"rt_internal.h", runtimeInternalHeader}, {"rt_std_ops.h", runtimeStdOps}, {"rt_core.c", runtimeCore}, {"rt_sys_weak.c", runtimeSys}, {"rt_fs.c", runtimeFS}}
 	files = append(files, capFiles...)
 	files = append(files, coreFragments...)
 	if sys != "none" && posixSignalOS[os] {
@@ -31,9 +32,23 @@ func Files(sys, os string) []RuntimeFile {
 	return files
 }
 
-// Source is the whole runtime as one text, for tests that scan it.
+// ZigFiles are the runtime's Zig translation units. They are not C compile
+// inputs: the build materialises them and runs `zig build-obj` once, then
+// links the resulting object beside the C ones. Names keep the `zig/` prefix
+// so the relative imports inside the module resolve as written.
+func ZigFiles() []RuntimeFile {
+	return []RuntimeFile{
+		{"zig/rt_float.zig", zigRtFloat},
+		{"zig/float/bignum.zig", zigFloatBignum},
+		{"zig/float/dragon4.zig", zigFloatDragon4},
+		{"zig/float/algorithm_m.zig", zigFloatAlgorithmM},
+	}
+}
+
+// Source is the C runtime as one text, for tests that scan it; the Zig
+// translation units are separate and have no C preprocessor to scan.
 func Source() string {
-	out := runtimeHeader + runtimeInternalHeader + runtimeStdOps + runtimeCore + runtimeFloat + runtimeSys + runtimeFS
+	out := runtimeHeader + runtimeInternalHeader + runtimeStdOps + runtimeCore + runtimeSys + runtimeFS
 	for _, f := range append(slices.Clone(capFiles), coreFragments...) {
 		out += f.Src
 	}
