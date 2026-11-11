@@ -51,10 +51,15 @@ func (p *parser) parsePrefix() prefix {
 			p.skipNewlines()
 		case p.at(token.KwPub):
 			v := p.visibility()
-			if pf.vis != 0 {
+			switch {
+			case pf.vis == 0:
+				pf.vis = v
+			case p.sameVisibility(pf.vis, v):
+				p.warnRedundant(p.visibilitySpan(v), "duplicate visibility")
+			default:
 				p.errorAt(p.tree.Span(v), "conflicting visibility modifiers")
+				pf.vis = v
 			}
-			pf.vis = v
 		case p.at(token.KwPure):
 			tok := p.tok()
 			p.advance()
@@ -64,13 +69,13 @@ func (p *parser) parsePrefix() prefix {
 				bit = ModPureVar
 			}
 			if pf.mods&(ModPure|ModPureVar) != 0 {
-				p.warnAt(tok.Span, "duplicate modifier")
+				p.warnRedundantModifier(tok.Span)
 			}
 			pf.mods |= bit
 		case p.at(token.KwNoalloc), p.at(token.KwAsync), p.at(token.KwUnsafe):
 			bit := modBit(p.tok().Kind)
 			if pf.mods&bit != 0 {
-				p.warnAt(p.tok().Span, "duplicate modifier")
+				p.warnRedundantModifier(p.tok().Span)
 			}
 			pf.mods |= bit
 			p.advance()

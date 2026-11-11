@@ -21,6 +21,9 @@ func Parse(f *token.File) *Tree {
 		for j := range p.tree.Diags[i].Notes {
 			p.tree.Diags[i].Notes[j].Loc.Source = f.ID
 		}
+		for j := range p.tree.Diags[i].Fixes {
+			p.tree.Diags[i].Fixes[j].Loc.Source = f.ID
+		}
 	}
 	return p.tree
 }
@@ -154,8 +157,78 @@ func (p *parser) report(d diag.Diagnostic) {
 	p.bag.Add(d)
 }
 
-func (p *parser) warnAt(span token.Span, msg string) {
-	p.bag.Add(diag.Warnf(diag.Location{Span: span}, msg))
+// warnRedundantModifier reports a repeated modifier and attaches the safe fix
+// that deletes the second spelling together with the whitespace before it.
+func (p *parser) warnRedundantModifier(span token.Span) {
+	p.warnRedundant(span, "duplicate modifier")
+}
+
+// warnRedundant reports a repeated prefix element; the fix removes the second
+// spelling together with the whitespace before it.
+func (p *parser) warnRedundant(span token.Span, msg string) {
+	src := p.tree.File.Src
+	start, end := int(span.Start), int(span.End)
+	// `pure?` duplicates warn on the keyword alone; take the marker too.
+	if end < len(src) && src[end] == '?' {
+		end++
+	}
+	for start > 0 && (src[start-1] == ' ' || src[start-1] == '\t') {
+		start--
+	}
+	fix := diag.Fix{
+		Title: "Remove duplicate modifier",
+		Loc:   diag.Location{Span: token.Span{Start: token.Pos(start), End: token.Pos(end)}},
+	}
+	d := diag.Warnf(diag.Location{Span: span}, msg)
+	d.Code = RedundantModifierCode
+	d.Fixes = []diag.Fix{fix}
+	p.bag.Add(d)
+}
+
+// visibilitySpan widens a visibility node to its closing parenthesis: the
+// Span of a qualifierless `pub(module)` would otherwise stop after `pub`,
+// and a fix built from it would leave `(module)` behind.
+func (p *parser) visibilitySpan(id NodeID) token.Span {
+	sp := p.tree.Span(id)
+	if p.tree.nodes[id].Lhs == 0 {
+		return sp
+	}
+	src := p.tree.File.Src
+	end := int(sp.End)
+	for end < len(src) && src[end] != ')' && src[end] != '\n' {
+		end++
+	}
+	if end < len(src) && src[end] == ')' {
+		end++
+	}
+	return token.Span{Start: sp.Start, End: token.Pos(end)}
+}
+
+// sameVisibility reports whether two visibility nodes name the same
+// visibility, so repeating it is redundant rather than conflicting. The
+// qualifier lives in Lhs and the `pub(in path)` path in Rhs.
+func (p *parser) sameVisibility(a, b NodeID) bool {
+	na, nb := p.tree.nodes[a], p.tree.nodes[b]
+	if (na.Lhs == 0) != (nb.Lhs == 0) {
+		return false
+	}
+	if na.Lhs != 0 {
+		src := p.tree.File.Src
+		if p.tree.Toks[na.Lhs].Text(src) != p.tree.Toks[nb.Lhs].Text(src) {
+			return false
+		}
+	}
+	if (na.Rhs == 0) != (nb.Rhs == 0) {
+		return false
+	}
+	return na.Rhs == 0 || p.sameText(NodeID(na.Rhs), NodeID(nb.Rhs))
+}
+
+// sameText reports whether two nodes spell the same token sequence.
+func (p *parser) sameText(a, b NodeID) bool {
+	as, bs := p.tree.Span(a), p.tree.Span(b)
+	src := p.tree.File.Src
+	return as.End <= token.Pos(len(src)) && bs.End <= token.Pos(len(src)) && string(src[as.Start:as.End]) == string(src[bs.Start:bs.End])
 }
 
 func (p *parser) spanFrom(start uint32) token.Span {

@@ -57,6 +57,7 @@ func (r *Result) phases() []func() {
 		r.checkForeignWake,
 		r.checkNomono,
 		r.reportUnused,
+		r.reportEqHash,
 		r.emit,
 	}
 }

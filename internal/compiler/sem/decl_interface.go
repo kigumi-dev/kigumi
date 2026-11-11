@@ -44,7 +44,7 @@ func (r *Result) declareRequirements(id EntityID) {
 			r.errAt(f, fs.Body, cIfaceDefaultBody)
 		}
 		if fs.Vis != 0 {
-			r.errAt(f, fs.Vis, cVisRedundantPub)
+			r.errFix(f, fs.Vis, r.removeNodeGap(f, fs.Vis, "Remove redundant `pub`"), cVisRedundantPub)
 		}
 		if fs.Mods&syntax.ModAsync != 0 {
 			r.errAt(f, m, cIfaceAsyncReq)

@@ -56,14 +56,14 @@ func (p *parser) fnType(escaping bool) NodeID {
 				bit = ModPureVar
 			}
 			if mods&(ModPure|ModPureVar) != 0 {
-				p.warnAt(tok.Span, "duplicate modifier")
+				p.warnRedundantModifier(tok.Span)
 			}
 			mods |= bit
 			continue
 		case p.at(token.KwNoalloc), p.at(token.KwUnsafe):
 			bit := modBit(p.tok().Kind)
 			if mods&bit != 0 {
-				p.warnAt(p.tok().Span, "duplicate modifier")
+				p.warnRedundantModifier(p.tok().Span)
 			}
 			mods |= bit
 			p.advance()

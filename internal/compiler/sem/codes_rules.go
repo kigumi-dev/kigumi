@@ -111,11 +111,13 @@ var (
 
 	cImportUnused          = defineCode("W100", "import-unused", "unused import `{name}`")
 	cVisRedundantPub       = defineCode("W200", "vis-redundant-pub", "redundant `pub` on an interface requirement")
+	cRedundantModifier     = defineCode("W201", "redundant-modifier", "duplicate modifier")
 	cImplDuplicate         = defineCode("W300", "impl-duplicate", "duplicate `@impl({iface})` after alias expansion")
 	cUnusedValue           = defineCode("W400", "unused-value", "unused value of type `{type}`")
 	cUnreachableCode       = defineCode("W401", "unreachable-code", "unreachable statement")
 	cEqNoneLint            = defineCode("W600", "eq-none-lint", "prefer `{fix}`")
 	cFallbackOptionBool    = defineCode("W601", "fallback-option-bool", "`Option[Bool] ||`: `Some(false)` is a hit")
+	cEqHashMismatch        = defineCode("W602", "eq-hash-mismatch", "`{name}` defines `{defined}` but `{missing}` is derived; a derived `{missing}` can disagree with a custom `{defined}`; write both from the same rule, or let the compiler derive both")
 	cLetElseIrrefutable    = defineCode("W800", "let-else-irrefutable", "pattern is irrefutable; `else` is never taken")
 	cMatchUnreachable      = defineCode("W801", "match-unreachable", "unreachable pattern")
 	cIsAlwaysTrue          = defineCode("W802", "is-always-true", "`{place}` is already known to be `{ctor}`")

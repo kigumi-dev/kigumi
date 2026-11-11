@@ -87,6 +87,19 @@ func (r *Result) removeLine(f FileID, n syntax.NodeID, title string) diag.Fix {
 	return diag.Fix{Title: title, Loc: diag.At(t.File, token.Span{Start: t.File.LineSpan(t.File.Line(sp.Start)).Start, End: end})}
 }
 
+// removeNodeGap deletes n and the horizontal whitespace after it, so removing
+// a `pub` prefix leaves the following modifier or name at the same column.
+func (r *Result) removeNodeGap(f FileID, n syntax.NodeID, title string) diag.Fix {
+	t := r.Files[f].Tree
+	sp := t.Span(n)
+	src := t.File.Src
+	end := int(sp.End)
+	for end < len(src) && (src[end] == ' ' || src[end] == '\t') {
+		end++
+	}
+	return diag.Fix{Title: title, Loc: diag.At(t.File, token.Span{Start: sp.Start, End: token.Pos(end)})}
+}
+
 func (r *Result) insertAt(f FileID, tok uint32, title, text string) diag.Fix {
 	start := r.Files[f].Tree.Toks[tok].Span.Start
 	return diag.Fix{Title: title, Loc: diag.At(r.Files[f].Tree.File, token.Span{Start: start, End: start}), NewText: text}

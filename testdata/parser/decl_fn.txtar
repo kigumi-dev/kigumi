@@ -364,7 +364,7 @@ File
     ret: -
     body: Block
 -- diagnostics --
-warning: duplicate modifier
+warning[W201]: duplicate modifier
  --> decl_fn.txtar:4:6
   |
 4 | pure pure fn g() {}
