@@ -1,3 +1,0 @@
-import core from build_program/core
-
-print "${core.one()}"

@@ -30,7 +30,7 @@ func writeModDir(t *testing.T, root, name string) {
 func TestLoadExampleCatalog(t *testing.T) {
 	root := t.TempDir()
 	writeModDir(t, root, "hello")
-	writeCatalog(t, root, `{"examples":[{"name":"hello","kind":"tutorial","oracle":"run-output","backends":["vm","native"],"shows":"says hi"}]}`)
+	writeCatalog(t, root, `{"examples":[{"name":"hello","kind":"tutorial","order":1,"level":"beginner","oracle":"run-output","backends":["vm","native"],"features":["lang.entry"],"shows":"says hi"}]}`)
 	catalog, names, err := driver.LoadExampleCatalog(root)
 	if err != nil {
 		t.Fatal(err)
@@ -45,7 +45,7 @@ func TestLoadExampleCatalogRejectsUndeclaredExample(t *testing.T) {
 	root := t.TempDir()
 	writeModDir(t, root, "hello")
 	writeModDir(t, root, "mystery")
-	writeCatalog(t, root, `{"examples":[{"name":"hello","kind":"tutorial","oracle":"run-output","backends":["vm","native"],"shows":"says hi"}]}`)
+	writeCatalog(t, root, `{"examples":[{"name":"hello","kind":"tutorial","order":1,"level":"beginner","oracle":"run-output","backends":["vm","native"],"features":["lang.entry"],"shows":"says hi"}]}`)
 	if _, _, err := driver.LoadExampleCatalog(root); err == nil {
 		t.Fatal("expected an error for the undeclared mystery example")
 	}
@@ -53,7 +53,7 @@ func TestLoadExampleCatalogRejectsUndeclaredExample(t *testing.T) {
 
 func TestLoadExampleCatalogRejectsEntryWithoutDirectory(t *testing.T) {
 	root := t.TempDir()
-	writeCatalog(t, root, `{"examples":[{"name":"ghost","kind":"tutorial","oracle":"run-output","backends":["vm","native"],"shows":"x"}]}`)
+	writeCatalog(t, root, `{"examples":[{"name":"ghost","kind":"tutorial","order":1,"level":"beginner","oracle":"run-output","backends":["vm","native"],"features":["lang.entry"],"shows":"x"}]}`)
 	if _, _, err := driver.LoadExampleCatalog(root); err == nil {
 		t.Fatal("expected an error for a catalog entry with no matching directory")
 	}
@@ -62,16 +62,18 @@ func TestLoadExampleCatalogRejectsEntryWithoutDirectory(t *testing.T) {
 func TestLoadExampleCatalogRejectsMissingReason(t *testing.T) {
 	root := t.TempDir()
 	writeModDir(t, root, "hello")
-	writeCatalog(t, root, `{"examples":[{"name":"hello","kind":"tutorial","oracle":"test-only","backends":["vm"],"shows":"x"}]}`)
+	writeCatalog(t, root, `{"examples":[{"name":"hello","kind":"tutorial","order":1,"level":"beginner","oracle":"test-only","backends":["vm"],"features":["lang.entry"],"shows":"x"}]}`)
 	if _, _, err := driver.LoadExampleCatalog(root); err == nil {
 		t.Fatal("expected an error: a non-run-output oracle needs a reason")
 	}
 }
 
-// TestExamplesReadmeMatchesCatalog checks that examples/README.md and examples/catalog.json name the same examples.
+// TestExamplesReadmeMatchesCatalog checks that the examples/README.md table is
+// exactly the catalog rendered in reading order: no missing, extra or stale
+// row, and the Covers column matches the catalog's features.
 func TestExamplesReadmeMatchesCatalog(t *testing.T) {
 	root, _ := filepath.Abs("../../../examples")
-	_, names, err := driver.LoadExampleCatalog(root)
+	catalog, names, err := driver.LoadExampleCatalog(root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,17 +81,25 @@ func TestExamplesReadmeMatchesCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range names {
-		if !strings.Contains(string(readme), "["+name+"]("+name+"/)") {
-			t.Errorf("examples/README.md has no table row for %q", name)
+	want := driver.RenderExamplesTable(catalog, names)
+	if !strings.Contains(string(readme), want) {
+		t.Errorf("examples/README.md table does not match the catalog; want:\n%s\n--- readme ---\n%s", want, readme)
+	}
+	rows := 0
+	for _, line := range strings.Split(string(readme), "\n") {
+		if strings.HasPrefix(line, "| [") {
+			rows++
 		}
+	}
+	if rows != len(names) {
+		t.Errorf("examples/README.md has %d example rows, catalog has %d", rows, len(names))
 	}
 }
 
 func TestLoadExampleCatalogRejectsUnknownKind(t *testing.T) {
 	root := t.TempDir()
 	writeModDir(t, root, "hello")
-	writeCatalog(t, root, `{"examples":[{"name":"hello","kind":"mystery","oracle":"run-output","backends":["vm"],"shows":"x"}]}`)
+	writeCatalog(t, root, `{"examples":[{"name":"hello","kind":"mystery","order":1,"level":"beginner","oracle":"run-output","backends":["vm"],"features":["lang.entry"],"shows":"x"}]}`)
 	if _, _, err := driver.LoadExampleCatalog(root); err == nil {
 		t.Fatal("expected an error for an unknown kind")
 	}

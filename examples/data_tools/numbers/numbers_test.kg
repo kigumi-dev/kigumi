@@ -1,0 +1,13 @@
+import test from std/test
+
+test "percent rounds to nearest" {
+    test.expectEq(percent(1, 3), 33)?
+    test.expectEq(percent(2, 3), 67)?
+    test.expectEq(percent(5, 0), 0)?
+}
+
+test "average rounds to nearest" {
+    test.expectEq(average(7, 3), 2)?
+    test.expectEq(average(5, 2), 3)?
+    test.expectEq(average(4, 0), 0)?
+}

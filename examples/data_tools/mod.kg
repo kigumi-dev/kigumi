@@ -1,0 +1,10 @@
+Module {
+    name: "data_tools"
+    kigumi: "0.1"
+    zig: "0.17.0"
+}
+Require {
+    name: "units"
+    version: "v0.1.0"
+    url: "https://example.invalid/units.git"
+}

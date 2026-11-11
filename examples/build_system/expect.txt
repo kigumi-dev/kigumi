@@ -1,0 +1,1 @@
+budget=700 sum=2240 half=1120 newest=500 range=120 full=true

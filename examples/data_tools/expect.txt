@@ -1,0 +1,21 @@
+label=release min=2
+6 commits across 5 days
+average 1 commit/day
+Alice: 3 commits (50%)
+Bob: 2 commits (33%)
+2 authors shown
+rejected: bad fixture line 1
+report.txt: 2 lines
+grep Alice: 1 line(s)
+{"total_commits":6,"active_days":5,"top":"Alice"}
+Rank fixture authors from stdin.
+
+Usage: data_tools [flags] <label>
+
+Arguments:
+  <label>  name of this report
+
+Flags:
+  -m, --min <int>  hide authors below this many commits
+  -h, --help       Show this help
+

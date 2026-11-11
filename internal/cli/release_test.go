@@ -12,7 +12,7 @@ import (
 // under development and fails under --release, with the same violation id in both.
 func TestCheckReleasePolicy(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
-	dependency, _ := filepath.Abs("../../examples/dependency")
+	dependency, _ := filepath.Abs("../../examples/data_tools")
 
 	code, _, errOut := clitest.Execute(t, "--std", std, "check", dependency)
 	if code != 0 {
@@ -35,7 +35,7 @@ func TestCheckReleasePolicy(t *testing.T) {
 // accepts the flag and still emits IR.
 func TestBuildReleaseEmitLLVM(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
-	hello, _ := filepath.Abs("../../examples/hello/main.kg")
+	hello := writeHello(t)
 
 	code, out, errOut := clitest.Execute(t, "--std", std, "build", "--release", "--emit-llvm", hello)
 	if code != 0 {
@@ -53,7 +53,7 @@ func TestBuildReleaseEmitLLVM(t *testing.T) {
 // mod.local.kg before linking anything.
 func TestBuildReleaseRejectsLocalReplace(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
-	dependency, _ := filepath.Abs("../../examples/dependency")
+	dependency, _ := filepath.Abs("../../examples/data_tools")
 
 	code, _, errOut := clitest.Execute(t, "--std", std, "build", "--release", "--emit-llvm", dependency)
 	if code != 1 {

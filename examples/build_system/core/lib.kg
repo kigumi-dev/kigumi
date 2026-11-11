@@ -1,0 +1,129 @@
+/// Q16.16 fixed-point helpers and a ring buffer for a freestanding target.
+/// The arithmetic needs no allocator or operating system.
+/// The Q16.16 representation of 1.0.
+pub const one: Int = 65536
+
+/// x clamped into [lo, hi].
+pub pure fn clamp(x: Int, lo: Int, hi: Int) -> Int {
+    if x < lo {
+        lo
+    } else if x > hi {
+        hi
+    } else {
+        x
+    }
+}
+
+/// x multiplied by a Q16.16 factor, truncated toward zero.
+pub pure fn scale(x: Int, factor: Int) -> Int {
+    x * factor / one
+}
+
+/// Linear interpolation from a to b by a Q16.16 fraction t.
+pub pure fn lerp(a: Int, b: Int, t: Int) -> Int {
+    a + scale(b - a, t)
+}
+
+/// A fixed-capacity ring of recent samples, oldest overwritten first.
+pub type Ring = {
+    mut slots Array[Int]
+    mut head usize
+    mut count usize
+}
+
+/// A ring of capacity zeroed slots; a zero capacity keeps nothing.
+pub fn ring(capacity: usize) -> Ring {
+    let mut slots = Array.empty[Int]()
+    for _ in 0..capacity {
+        slots.push(0)
+    }
+    Ring {
+        slots: slots
+        head: 0
+        count: 0
+    }
+}
+
+/// Overwrites the oldest slot with value.
+pub fn Ring.push(mut self, value: Int) {
+    let n = self.slots.len()
+    if n == 0 {
+        return
+    }
+    self.slots[self.head] = value
+    self.head = (self.head + 1) % n
+    if self.count < n {
+        self.count = self.count + 1
+    }
+}
+
+/// The sample order places back from the oldest stored one.
+fn Ring.at(self, order: usize) -> Int {
+    let n = self.slots.len()
+    self.slots[(self.head + n - self.count + order) % n]
+}
+
+/// How many samples the ring holds before overwriting.
+pub fn Ring.capacity(self) -> usize {
+    self.slots.len()
+}
+
+/// Whether every slot holds a pushed sample.
+pub fn Ring.isFull(self) -> Bool {
+    self.count == self.slots.len()
+}
+
+/// The most recently pushed sample, or 0 before the first push.
+pub fn Ring.newest(self) -> Int {
+    let n = self.slots.len()
+    if self.count == 0 || n == 0 {
+        return 0
+    }
+    self.slots[(self.head + n - 1) % n]
+}
+
+/// The sum of the stored samples in push order.
+pub fn Ring.sum(self) -> Int {
+    let n = self.slots.len()
+    let mut total = 0
+    for i in 0..self.count {
+        total = total + self.slots[(self.head + n - self.count + i) % n]
+    }
+    total
+}
+
+/// The smallest stored sample, or 0 when empty.
+pub fn Ring.min(self) -> Int {
+    if self.count == 0 {
+        return 0
+    }
+    let mut low = self.at(0)
+    for i in 1..self.count {
+        let value = self.at(i)
+        low = if value < low {
+            value
+        } else {
+            low
+        }
+    }
+    low
+}
+
+/// The largest stored sample, or 0 when empty.
+pub fn Ring.max(self) -> Int {
+    if self.count == 0 {
+        return 0
+    }
+    let mut high = self.at(0)
+    for i in 1..self.count {
+        let value = self.at(i)
+        high = if value > high {
+            value
+        } else {
+            high
+        }
+    }
+    high
+}
+
+fn main() {}

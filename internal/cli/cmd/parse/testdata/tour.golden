@@ -1,0 +1,1224 @@
+File
+  ImportDecl
+    binding: Ident error
+    path: Path std.error
+  ImportDecl
+    binding: List
+      Ident Display
+    path: Path std.fmt
+  ImportDecl
+    binding: Ident text
+    path: Path std.text
+  ImportDecl
+    binding: List
+      Ident Ticket
+    path: Path tour.model
+  ImportDecl
+    binding: List
+      Ident banner
+      Ident clip
+    path: Path tour.text
+  ConstDecl
+    name: TOUR
+    value: StringLit "tour"
+  Let
+    pattern: PatBind host
+    init: StringLit "kigumi"
+  Let
+    flags: mut
+    pattern: PatBind stops
+    init: IntLit 0
+  Assign +=
+    Ident stops
+    IntLit 1
+  Assign =
+    Ident _
+    Call
+      Member len
+        Ident TOUR
+      List
+  ExprStmt
+    WsCall
+      Ident eprint
+      List
+        StringLit "note: stderr is ignored by the run-output oracle"
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "1. entry: ${host} ${TOUR}, stop ${stops}"
+          List
+            Ident host
+            Ident TOUR
+            Ident stops
+  Let
+    pattern: PatBind i8v
+    type: TypePath
+      Path i8
+    init: Unary -
+      IntLit 128
+  Let
+    pattern: PatBind i16v
+    type: TypePath
+      Path i16
+    init: IntLit 32767
+  Let
+    pattern: PatBind i32v
+    type: TypePath
+      Path i32
+    init: Unary -
+      IntLit 2147483648
+  Let
+    pattern: PatBind i64v
+    type: TypePath
+      Path i64
+    init: IntLit 9223372036854775807
+  Let
+    pattern: PatBind u8v
+    type: TypePath
+      Path u8
+    init: IntLit 255
+  Let
+    pattern: PatBind u16v
+    type: TypePath
+      Path u16
+    init: IntLit 65535
+  Let
+    pattern: PatBind u32v
+    type: TypePath
+      Path u32
+    init: IntLit 4294967295
+  Let
+    pattern: PatBind u64v
+    type: TypePath
+      Path u64
+    init: IntLit 18446744073709551615
+  Let
+    pattern: PatBind usizev
+    type: TypePath
+      Path usize
+    init: IntLit 42
+  Let
+    pattern: PatBind isizev
+    type: TypePath
+      Path isize
+    init: Unary -
+      IntLit 42
+  Let
+    pattern: PatBind f32v
+    type: TypePath
+      Path f32
+    init: FloatLit 1.5
+  Let
+    pattern: PatBind f64v
+    type: TypePath
+      Path Float
+    init: FloatLit 2.25
+  Let
+    pattern: PatBind bytev
+    type: TypePath
+      Path byte
+    init: IntLit 0x41
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "2. widths: i8=${i8v} i16=${i16v} i32=${i32v} i64=${i64v} u8=${u8v} u16=${u16v} u32=${u32v} u64=${u64v} usize=${usizev} isize=${isizev} f32=${f32v} Float=${f64v} byte=${bytev}"
+          List
+            Ident i8v
+            Ident i16v
+            Ident i32v
+            Ident i64v
+            Ident u8v
+            Ident u16v
+            Ident u32v
+            Ident u64v
+            Ident usizev
+            Ident isizev
+            Ident f32v
+            Ident f64v
+            Ident bytev
+  Let
+    pattern: PatBind sum
+    init: Call
+      Member addWithOverflow
+        Ident u8v
+      List
+        IntLit 1
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "   wrap=${u8v.wrappingAdd(200)} rotate=${u8v.rotateLeft(3)} saturate=${i16v.saturatingAdd(1)}"
+          List
+            Call
+              Member wrappingAdd
+                Ident u8v
+              List
+                IntLit 200
+            Call
+              Member rotateLeft
+                Ident u8v
+              List
+                IntLit 3
+            Call
+              Member saturatingAdd
+                Ident i16v
+              List
+                IntLit 1
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "   overflow=${sum.value}/${sum.overflowed} checked=${300.toU8() || 0}/${65.toU8() || 0}"
+          List
+            Member value
+              Ident sum
+            Member overflowed
+              Ident sum
+            Binary ||
+              Call
+                Member toU8
+                  IntLit 300
+                List
+              IntLit 0
+            Binary ||
+              Call
+                Member toU8
+                  IntLit 65
+                List
+              IntLit 0
+  Let
+    pattern: PatBind wide
+    type: TypePath
+      Path i128
+    init: IntLit 170141183460469231731687303715884105727
+  Let
+    pattern: PatBind uwide
+    type: TypePath
+      Path u128
+    init: IntLit 340282366920938463463374607431768211455
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "   i128=${wide} plus1=${wide.wrappingAdd(1)} u128=${uwide} high=${uwide >> 64}"
+          List
+            Ident wide
+            Call
+              Member wrappingAdd
+                Ident wide
+              List
+                IntLit 1
+            Ident uwide
+            Binary >>
+              Ident uwide
+              IntLit 64
+  Let
+    pattern: PatBind word
+    init: StringLit "Kigumi 言語"
+  Let
+    pattern: PatBind raw
+    type: TypePath
+      Path Bytes
+    init: Call
+      Member bytes
+        Ident word
+      List
+  Let
+    pattern: PatBind scalars
+    type: TypePath
+      Path Array
+      List
+        TypePath
+          Path Char
+    init: Call
+      Member chars
+        Ident word
+      List
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "3. text: bytes=${raw.len()} chars=${scalars.len()} first=${raw[0]} last=${scalars[scalars.len() - 1]}"
+          List
+            Call
+              Member len
+                Ident raw
+              List
+            Call
+              Member len
+                Ident scalars
+              List
+            Bracket
+              Ident raw
+              List
+                IntLit 0
+            Bracket
+              Ident scalars
+              List
+                Binary -
+                  Call
+                    Member len
+                      Ident scalars
+                    List
+                  IntLit 1
+  Let
+    pattern: PatBind clusters
+    init: Call
+      Member graphemes
+        Ident text
+      List
+        StringLit "a👍🏽b"
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "   graphemes=${clusters.len()} middle=${clusters[1]} back=${String.fromBytes(raw) || "<invalid>"} clip=${clip(word, 6)}"
+          List
+            Call
+              Member len
+                Ident clusters
+              List
+            Bracket
+              Ident clusters
+              List
+                IntLit 1
+            Binary ||
+              Call
+                Member fromBytes
+                  Ident String
+                List
+                  Ident raw
+              StringLit "<invalid>"
+            Call
+              Ident clip
+              List
+                Ident word
+                IntLit 6
+  Let
+    flags: mut
+    pattern: PatBind sb
+    init: Call
+      Member new
+        Member StringBuilder
+          Ident text
+      List
+  ExprStmt
+    Call
+      Member push
+        Ident sb
+      List
+        StringLit "built from ${clusters.len()} clusters"
+          List
+            Call
+              Member len
+                Ident clusters
+              List
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "   builder=${sb.freeze() || "<invalid>"}"
+          List
+            Binary ||
+              Call
+                Member freeze
+                  Ident sb
+                List
+              StringLit "<invalid>"
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "   buffer=${banner("tour", word) || "<oom>"}"
+          List
+            Binary ||
+              Call
+                Ident banner
+                List
+                  StringLit "tour"
+                  Ident word
+              StringLit "<oom>"
+  Let
+    flags: mut
+    pattern: PatBind ticket
+    init: Call
+      Member new
+        Ident Ticket
+      List
+        IntLit 7
+        StringLit "wire the tour"
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "4. record: ${ticket.display()} status=${ticket.status().display()}"
+          List
+            Call
+              Member display
+                Ident ticket
+              List
+            Call
+              Member display
+                Call
+                  Member status
+                    Ident ticket
+                  List
+              List
+  Assign =
+    Ident _
+    Call
+      Member advance
+        Ident ticket
+      List
+  Let
+    pattern: PatBind stage
+    init: Call
+      Member advance
+        Ident ticket
+      List
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "   advanced twice: ${ticket.display()} final=${stage.display()}"
+          List
+            Call
+              Member display
+                Ident ticket
+              List
+            Call
+              Member display
+                Ident stage
+              List
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: classify
+    generics: -
+    params: List
+      Param n
+        type: TypePath
+          Path Int
+    ret: TypePath
+      Path String
+    body: Block
+      ExprStmt
+        Match
+          Ident n
+          List
+            Arm
+              pattern: PatOr
+                PatLit
+                  Unary -
+                    IntLit 1
+                PatLit
+                  IntLit 0
+                PatLit
+                  IntLit 1
+              body: StringLit "unit"
+            Arm
+              pattern: PatRange ..=
+                IntLit 2
+                IntLit 9
+              body: StringLit "digit"
+            Arm
+              pattern: PatWildcard _
+              body: StringLit "wide"
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: head
+    generics: -
+    params: List
+      Param xs
+        type: TypePath
+          Path Array
+          List
+            TypePath
+              Path String
+    ret: TypePath
+      Path String
+    body: Block
+      Let
+        pattern: PatCtor
+          Path Some
+          List
+            PatBind first
+        init: Call
+          Member first
+            Ident xs
+          List
+        else: Block
+          ExprStmt
+            Return
+              StringLit "<empty>"
+      ExprStmt
+        Ident first
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "5. patterns: ${classify(-1)} ${classify(5)} ${classify(42)} head=${head(Array.of("first"))}"
+          List
+            Call
+              Ident classify
+              List
+                Unary -
+                  IntLit 1
+            Call
+              Ident classify
+              List
+                IntLit 5
+            Call
+              Ident classify
+              List
+                IntLit 42
+            Call
+              Ident head
+              List
+                Call
+                  Member of
+                    Ident Array
+                  List
+                    StringLit "first"
+  TypeDecl
+    name: Locker
+    body: RecordBody
+      Field tag
+        type: TypeOptional
+          TypePath
+            Path String
+  Let
+    pattern: PatBind name
+    type: TypeOptional
+      TypePath
+        Path String
+    init: Call
+      Ident Some
+      List
+        StringLit "A-17"
+  ExprStmt
+    IfLet
+      pattern: PatCtor
+        Path Some
+        List
+          PatBind tag
+      init: Ident name
+      then: Block
+        ExprStmt
+          WsCall
+            Ident print
+            List
+              StringLit "   if let=${tag}"
+                List
+                  Ident tag
+  ExprStmt
+    If
+      cond: Is
+        Ident name
+        PatCtor
+          Path Some
+          List
+            PatBind tag
+      then: Block
+        ExprStmt
+          WsCall
+            Ident print
+            List
+              StringLit "   is=${tag} len=${name?.len() || 0}"
+                List
+                  Ident tag
+                  Binary ||
+                    Call
+                      OptMember len
+                        Ident name
+                      List
+                    IntLit 0
+  Let
+    pattern: PatBind maybe
+    type: TypeOptional
+      TypePath
+        Path Locker
+    init: Call
+      Ident Some
+      List
+        RecordLit
+          Ident Locker
+          List
+            FieldInit tag
+              Ident name
+  Let
+    pattern: PatBind nested
+    type: TypeOptional
+      TypeOptional
+        TypePath
+          Path String
+    init: OptMember tag
+      Ident maybe
+  Let
+    pattern: PatBind shown
+    init: Match
+      Ident nested
+      List
+        Arm
+          pattern: PatCtor
+            Path Some
+            List
+              PatCtor
+                Path Some
+                List
+                  PatBind t
+          body: StringLit "some(some(${t}))"
+            List
+              Ident t
+        Arm
+          pattern: PatCtor
+            Path Some
+            List
+              PatCtor
+                Path None
+          body: StringLit "some(none)"
+        Arm
+          pattern: PatCtor
+            Path None
+          body: StringLit "none"
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "   optional=${shown}"
+          List
+            Ident shown
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: repeated
+    generics: List
+      GenericParam T
+        List
+          TypePath
+            Path Display
+      GenericParam N const
+        TypePath
+          Path usize
+    params: List
+      Param value
+        type: TypePath
+          Path T
+    ret: TypePath
+      Path String
+    body: Block
+      Let
+        flags: mut
+        pattern: PatBind out
+        init: Call
+          Member new
+            Member StringBuilder
+              Ident text
+          List
+      Let
+        flags: mut
+        pattern: PatBind i
+        type: TypePath
+          Path usize
+        init: IntLit 0
+      ExprStmt
+        For
+          head: Binary <
+            Ident i
+            Ident N
+          body: Block
+            ExprStmt
+              Call
+                Member push
+                  Ident out
+                List
+                  StringLit "${value.display()} "
+                    List
+                      Call
+                        Member display
+                          Ident value
+                        List
+            Assign =
+              Ident i
+              Binary +
+                Ident i
+                IntLit 1
+      ExprStmt
+        Binary ||
+          Call
+            Member freeze
+              Ident out
+            List
+          StringLit ""
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: adder
+    generics: -
+    params: List
+      Param base
+        type: TypePath
+          Path Int
+    ret: TypeFn
+      params: List
+        TypePath
+          Path Int
+      ret: TypePath
+        Path Int
+    body: Block
+      ExprStmt
+        Lambda
+          List
+            Param x
+          Binary +
+            Ident x
+            Ident base
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "6. generics: repeat=${repeated[Ticket, 2](ticket)}"
+          List
+            Call
+              Bracket
+                Ident repeated
+                List
+                  Ident Ticket
+                  IntLit 2
+              List
+                Ident ticket
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "   closures=${Array.of(1, 2, 3).map((x) => x * 2).fold(0, (a, b) => a + b)} adder=${adder(10)(5)}"
+          List
+            Call
+              Member fold
+                Call
+                  Member map
+                    Call
+                      Member of
+                        Ident Array
+                      List
+                        IntLit 1
+                        IntLit 2
+                        IntLit 3
+                  List
+                    Lambda
+                      List
+                        Param x
+                      Binary *
+                        Ident x
+                        IntLit 2
+              List
+                IntLit 0
+                Lambda
+                  List
+                    Param a
+                    Param b
+                  Binary +
+                    Ident a
+                    Ident b
+            Call
+              Call
+                Ident adder
+                List
+                  IntLit 10
+              List
+                IntLit 5
+  TypeDecl
+    name: ParseError
+    body: AdtBody
+      Variant NotANumber
+        List
+          VariantField text named
+            TypePath
+              Path String
+      Variant TooBig
+        List
+          VariantField n named
+            TypePath
+              Path Int
+  FnDecl
+    attrs: -
+    vis: -
+    recv: TypePath
+      Path ParseError
+    name: message
+    generics: -
+    params: List
+      Param self
+        flags: self
+    ret: TypePath
+      Path String
+    body: Block
+      ExprStmt
+        Match
+          Ident self
+          List
+            Arm
+              pattern: PatCtor
+                Path NotANumber
+                List
+                  PatBind t
+              body: StringLit "not a number: ${t}"
+                List
+                  Ident t
+            Arm
+              pattern: PatCtor
+                Path TooBig
+                List
+                  PatBind n
+              body: StringLit "too big: ${n}"
+                List
+                  Ident n
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: parseSmall
+    generics: -
+    params: List
+      Param s
+        type: TypePath
+          Path String
+    ret: TypePath
+      Path Result
+      List
+        TypePath
+          Path Int
+        TypePath
+          Path ParseError
+    body: Block
+      Let
+        pattern: PatBind n
+        init: Binary ||
+          Call
+            Member parseInt
+              Ident text
+            List
+              Ident s
+          Fail
+            Call
+              Ident NotANumber
+              List
+                Ident s
+      ExprStmt
+        If
+          cond: Binary >
+            Ident n
+            IntLit 99
+          then: Block
+            ExprStmt
+              Fail
+                Call
+                  Ident TooBig
+                  List
+                    Ident n
+      ExprStmt
+        Ident n
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: load
+    generics: -
+    params: List
+      Param s
+        type: TypePath
+          Path String
+    ret: TypePath
+      Path Result
+      List
+        TypePath
+          Path Int
+        TypePath
+          Path ParseError
+    body: Block
+      Let
+        pattern: PatBind n
+        init: Try
+          Call
+            Ident parseSmall
+            List
+              Ident s
+      ExprStmt
+        Ident n
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "7. errors: load=${load("42") || -1}"
+          List
+            Binary ||
+              Call
+                Ident load
+                List
+                  StringLit "42"
+              Unary -
+                IntLit 1
+  Let
+    pattern: PatBind fallback
+    init: Binary ||
+      Call
+        Ident load
+        List
+          StringLit "1000"
+      Lambda
+        List
+          Param e
+        Block
+          ExprStmt
+            WsCall
+              Ident print
+              List
+                StringLit "   fallback: ${error.context(e, "load").message()}"
+                  List
+                    Call
+                      Member message
+                        Call
+                          Member context
+                            Ident error
+                          List
+                            Ident e
+                            StringLit "load"
+                      List
+          ExprStmt
+            Unary -
+              IntLit 1
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "   fallback=${fallback}"
+          List
+            Ident fallback
+  ExprStmt
+    Match
+      Call
+        Ident load
+        List
+          StringLit "abc"
+      List
+        Arm
+          pattern: PatCtor
+            Path Ok
+            List
+              PatBind n
+          body: WsCall
+            Ident print
+            List
+              StringLit "   parsed ${n}"
+                List
+                  Ident n
+        Arm
+          pattern: PatCtor
+            Path Err
+            List
+              PatBind e
+          body: Block
+            ExprStmt
+              Match
+                Call
+                  Bracket
+                    Member as
+                      Ident error
+                    List
+                      Ident ParseError
+                  List
+                    Borrow
+                      Ident e
+                List
+                  Arm
+                    pattern: PatCtor
+                      Path Some
+                      List
+                        PatCtor
+                          Path NotANumber
+                          List
+                            PatBind t
+                    body: WsCall
+                      Ident print
+                      List
+                        StringLit "   as=NotANumber(${t})"
+                          List
+                            Ident t
+                  Arm
+                    pattern: PatCtor
+                      Path Some
+                      List
+                        PatCtor
+                          Path TooBig
+                          List
+                            PatBind n
+                    body: WsCall
+                      Ident print
+                      List
+                        StringLit "   as=TooBig(${n})"
+                          List
+                            Ident n
+                  Arm
+                    pattern: PatCtor
+                      Path None
+                    body: WsCall
+                      Ident print
+                      List
+                        StringLit "   as=none"
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: firstBig
+    generics: -
+    params: List
+      Param xs
+        type: TypePath
+          Path Array
+          List
+            TypePath
+              Path Int
+    ret: TypePath
+      Path Int
+    body: Block
+      ExprStmt
+        For
+          pattern: PatBind x
+          head: Ident xs
+          body: Block
+            ExprStmt
+              If
+                cond: Binary >
+                  Ident x
+                  IntLit 3
+                then: Block
+                  ExprStmt
+                    Return
+                      Ident x
+      ExprStmt
+        IntLit 0
+  Let
+    flags: mut
+    pattern: PatBind i
+    init: IntLit 0
+  Let
+    flags: mut
+    pattern: PatBind evens
+    init: IntLit 0
+  ExprStmt
+    For
+      head: Binary <
+        Ident i
+        IntLit 10
+      body: Block
+        Assign +=
+          Ident i
+          IntLit 1
+        ExprStmt
+          If
+            cond: Binary ==
+              Binary %
+                Ident i
+                IntLit 2
+              IntLit 1
+            then: Block
+              ExprStmt
+                Continue
+        Assign +=
+          Ident evens
+          IntLit 1
+        ExprStmt
+          If
+            cond: Binary ==
+              Ident evens
+              IntLit 3
+            then: Block
+              ExprStmt
+                Break
+  Let
+    pattern: PatBind found
+    init: For
+      body: Block
+        Assign +=
+          Ident i
+          IntLit 1
+        ExprStmt
+          If
+            cond: Binary >
+              Ident i
+              IntLit 12
+            then: Block
+              ExprStmt
+                Break
+                  Ident i
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "8. loops: i=${i} evens=${evens} found=${found} firstBig=${firstBig(Array.of(3, 4, 5))}"
+          List
+            Ident i
+            Ident evens
+            Ident found
+            Call
+              Ident firstBig
+              List
+                Call
+                  Member of
+                    Ident Array
+                  List
+                    IntLit 3
+                    IntLit 4
+                    IntLit 5
+  ConstDecl
+    name: STEPS
+    value: IntLit 5
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: rule
+    generics: -
+    params: List
+      Param n
+        type: TypePath
+          Path Int
+    ret: TypePath
+      Path Int
+    body: Block
+      ExprStmt
+        Binary %
+          Paren
+            Binary +
+              Binary *
+                Ident n
+                IntLit 7
+              IntLit 3
+          IntLit 11
+  Let
+    pattern: PatBind table
+    init: Comptime
+      Block
+        Let
+          flags: mut
+          pattern: PatBind line
+          init: StringLit ""
+        ExprStmt
+          For
+            pattern: PatBind n
+            head: Binary ..
+              IntLit 0
+              Ident STEPS
+            body: Block
+              Assign =
+                Ident line
+                StringLit "${line}${rule(n)} "
+                  List
+                    Ident line
+                    Call
+                      Ident rule
+                      List
+                        Ident n
+        ExprStmt
+          Ident line
+  TypeDecl
+    name: Light
+    body: AdtBody
+      Variant Red
+      Variant Green
+      Variant Amber
+  FnDecl
+    attrs: -
+    vis: -
+    recv: TypePath
+      Path Light
+    name: next
+    generics: -
+    params: List
+      Param self
+        flags: self
+    ret: TypePath
+      Path Light
+    body: Block
+      ExprStmt
+        Match
+          Ident self
+          List
+            Arm
+              pattern: PatCtor
+                Path Red
+              body: Ident Green
+            Arm
+              pattern: PatCtor
+                Path Green
+              body: Ident Amber
+            Arm
+              pattern: PatCtor
+                Path Amber
+              body: Ident Red
+  Let
+    flags: mut
+    pattern: PatBind light
+    init: Ident Red
+  Let
+    flags: mut
+    pattern: PatBind elapsed
+    init: IntLit 0
+  Let
+    flags: mut
+    pattern: PatBind story
+    init: StringLit ""
+  Let
+    pattern: PatBind stopped
+    init: For
+      body: Block
+        Assign =
+          Ident story
+          StringLit "${story}${debug(&light)} "
+            List
+              Ident story
+              Call
+                Ident debug
+                List
+                  Borrow
+                    Ident light
+        Assign +=
+          Ident elapsed
+          IntLit 1
+        ExprStmt
+          If
+            cond: Binary >=
+              Ident elapsed
+              IntLit 8
+            then: Block
+              ExprStmt
+                Break
+                  Ident elapsed
+        Assign =
+          Ident light
+          Call
+            Member next
+              Ident light
+            List
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "9. comptime table: ${table}"
+          List
+            Ident table
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "   lights: ${story}stopped at ${stopped} ticks"
+          List
+            Ident story
+            Ident stopped

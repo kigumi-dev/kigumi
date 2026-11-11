@@ -1,0 +1,82 @@
+import array from std/array
+import json from std/json
+import {Commit, tally} from data_tools/parse
+
+/// Anything the report can render as one line.
+pub interface Display {
+    fn display(self) -> String
+}
+
+@impl(Display)
+pub type AuthorStat = {
+    pub name String
+    pub commits Int
+}
+
+/// Renders one author stat; the Display method delegates here.
+pub pure fn display(stat: AuthorStat) -> String {
+    "${stat.name}: ${stat.commits} commits"
+}
+
+pub pure fn AuthorStat.display(self) -> String {
+    display(self)
+}
+
+/// What one run of the tool found in the fixture.
+pub type Report = {
+    pub total Int
+    pub days Int
+    pub authors Array[AuthorStat]
+}
+
+/// The compact JSON summary. This metadata is read by the schema-driven
+/// encoder; `label` stays human-facing and is omitted while it is None.
+pub type Digest = {
+    pub total Int {
+        json.name("total_commits")
+    }
+
+    pub days Int {
+        json.name("active_days")
+    }
+
+    pub top String? {
+        json.omitNone()
+    }
+
+    pub label String? {
+        json.omitNone()
+    }
+}
+
+/// Tallies authors and days of the same commits, ranked by count then name.
+/// Encodes here, where the derived `toJson` is visible to this package.
+pub(module) fn digest(rep: &Report) -> String! {
+    let summary = Digest {
+        total: rep.total
+        days: rep.days
+        top: rep.authors.with(0, (a: &AuthorStat) => a.name) || None
+        label: None
+    }
+    json.encode(summary)
+}
+
+pub pure fn build(commits: Array[Commit]) -> Report {
+    let authors = tally(commits.map((c) => c.author))
+    let days = tally(commits.map((c) => c.day))
+    let stats = authors.entries().map((e) => AuthorStat {
+        name: e.key
+        commits: e.value
+    })
+    Report {
+        total: commits.len().toInt() || 0
+        days: days.len().toInt() || 0
+        authors: array.sortedBy(&stats, (a, b) => {
+            if a.commits != b.commits {
+                b.commits.compareTo(a.commits)
+            } else {
+                a.name.compareTo(&b.name)
+            }
+        })
+    }
+}

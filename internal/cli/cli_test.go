@@ -12,15 +12,15 @@ import (
 
 func TestCommands(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
-	code, _, _ := clitest.Execute(t, "--std", std, "check", "../../examples/repostat")
+	code, _, _ := clitest.Execute(t, "--std", std, "check", "../../examples/data_tools")
 	if code != 0 {
-		t.Fatalf("check repostat: exit %d", code)
+		t.Fatalf("check data_tools: exit %d", code)
 	}
-	if code, out, _ := clitest.Execute(t, "--std", std, "../../examples/hello/main.kg"); code != 0 || out != "Hello, Kigumi!\n" {
+	if code, out, _ := clitest.Execute(t, "--std", std, "../../examples/tour/main.kg"); code != 0 || !strings.HasPrefix(out, "1. entry:") {
 		t.Fatalf("run root-level entry: exit %d, stdout %q", code, out)
 	}
-	if code, _, errOut := clitest.Execute(t, "--std", std, "check", "../../examples/repostat/cmd/repostat/main.kg"); code != 0 {
-		t.Fatalf("check repostat entry file: exit %d, stderr %q", code, errOut)
+	if code, _, errOut := clitest.Execute(t, "--std", std, "check", "../../examples/data_tools/main.kg"); code != 0 {
+		t.Fatalf("check data_tools entry file: exit %d, stderr %q", code, errOut)
 	}
 	dir := t.TempDir()
 	os.MkdirAll(filepath.Join(dir, "main"), 0o755)
@@ -62,6 +62,17 @@ func TestCommands(t *testing.T) {
 
 // A nonexistent .kg entry file must fail like a nonexistent module root does,
 // not load an empty or unrelated module and report success.
+// writeHello writes a one-line entry file for tests that only need a tiny
+// program, without pinning them to any example's output.
+func writeHello(t *testing.T) string {
+	t.Helper()
+	file := filepath.Join(t.TempDir(), "hello.kg")
+	if err := os.WriteFile(file, []byte("print \"Hello, Kigumi!\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return file
+}
+
 func TestMissingEntryFile(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	dir := t.TempDir()

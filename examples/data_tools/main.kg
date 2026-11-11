@@ -1,0 +1,96 @@
+#!/usr/bin/env kigumi
+
+// Rank `author<TAB>day` lines from stdin; write and grep a report, then print JSON.
+
+import cli from std/cli
+import error from std/error
+import fs from std/fs
+import os from std/os
+import shell from std/shell
+import {grep} from std/shell/coreutil
+import text from std/text
+import numbers from data_tools/numbers
+import {Commit, ParseError, parseAll, trimLine} from data_tools/parse
+import report from data_tools/report
+import {formatCount, plural} from units
+
+// `trimLine` is pub(super) of data_tools/parse, visible to this parent package.
+fn parseStrict(input: String) -> Array[Commit]! {
+    parseAll(input)?
+}
+
+fn rejection(input: String) -> String {
+    match parseStrict(input) {
+        Ok(_) -> "accepted"
+        Err(e) -> match error.as[ParseError](&e) {
+            Some(pe) -> "rejected: ${pe.message()}"
+            None -> "unknown error"
+        }
+    }
+}
+
+fn helpText() -> String! {
+    // A synthetic argv renders the same declarations as `--help`.
+    let argv = Array.of(os.OsString.fromString("--help"))
+    let mut min = 1
+    let mut label = ""
+    let mut p = cli.Parser.new("data_tools", &argv, about: "Rank fixture authors from stdin.")
+    p.flag("min", &mut min, help: "hide authors below this many commits", short: "m")
+    p.arg("label", &mut label, help: "name of this report")
+    match p.finish()? {
+        cli.Outcome.Help(text) -> text
+        cli.Outcome.Run -> ""
+    }
+}
+
+fn main() -> Void! {
+    let mut minCommits = 1
+    let mut rawLabel = ""
+    let mut p = cli.Parser.fromArgs("data_tools", host.args(), about: "Rank fixture authors from stdin.")
+    p.flag("min", &mut minCommits, help: "hide authors below this many commits", short: "m")
+    p.arg("label", &mut rawLabel, help: "name of this report")
+    match p.finish()? {
+        cli.Outcome.Help(text) -> {
+            print text
+            return
+        }
+        cli.Outcome.Run -> {}
+    }
+
+    let input = host.stdin().readAll()?
+    let commits = parseAll(input)?
+    let rep = report.build(commits)
+
+    // Paths stay relative; an OsString keeps the file name opaque once.
+    let files = host.files()
+    let namePath = fs.Path.fromString("report.txt")?
+    let opaque = namePath.toOsString()
+    let path = fs.Path.fromOsString(&opaque)?
+
+    print "label=${trimLine(rawLabel)} min=${minCommits}"
+    print "${formatCount(rep.total, "commit")} across ${formatCount(rep.days, "day")}"
+    print "average ${formatCount(numbers.average(rep.total, rep.days), "commit")}/day"
+    let mut shown = 0
+    let mut body = ""
+    for stat in &rep.authors {
+        if stat.commits < minCommits {
+            continue
+        }
+        shown += 1
+        print "${stat.display()} (${numbers.percent(stat.commits, rep.total)}%)"
+        body = "${body}${stat.display()}\n"
+    }
+    print "${plural(shown, "author", "authors")} shown"
+    print rejection("not-a-commit")
+
+    files.writeText(path, body)?
+    let back = files.read(path)?
+    print "report.txt: ${formatCount(text.lines(back).len().toInt() || 0, "line")}"
+
+    let matches = ($"cat report.txt" |> grep("^Alice")) |> shell.capture(host.shell())?
+    print "grep Alice: ${text.lines(String.fromBytes(matches.stdout)?).len().toInt() || 0} line(s)"
+    files.remove(path)?
+
+    print report.digest(&rep)?
+    print helpText()?
+}

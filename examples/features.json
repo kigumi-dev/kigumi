@@ -1,0 +1,217 @@
+{
+  "required": [
+    {
+      "tag": "lang.entry",
+      "shows": "an entry file, the implicit main, and eprint"
+    },
+    {
+      "tag": "lang.binding",
+      "shows": "const, let, let mut and `_ = expr`"
+    },
+    {
+      "tag": "lang.numeric",
+      "shows": "the integer widths including i128/u128, usize/isize, f32 and byte"
+    },
+    {
+      "tag": "lang.numeric.i128",
+      "shows": "128-bit integer arithmetic on a target whose C has __int128"
+    },
+    {
+      "tag": "lang.numeric.ops",
+      "shows": "wrapping/rotate/saturating/overflow methods and checked conversions"
+    },
+    {
+      "tag": "lang.text",
+      "shows": "String, Bytes, Char, bytes()/chars() and text.graphemes()"
+    },
+    {
+      "tag": "lang.text.buffers",
+      "shows": "StringBuilder and ByteBuffer"
+    },
+    {
+      "tag": "lang.record",
+      "shows": "records, private fields, methods and Display"
+    },
+    {
+      "tag": "lang.adt",
+      "shows": "a sum type with exhaustive match"
+    },
+    {
+      "tag": "lang.pattern",
+      "shows": "alternative, range, if let, let else and is patterns"
+    },
+    {
+      "tag": "lang.option",
+      "shows": "`?.` and the doubled `T??`"
+    },
+    {
+      "tag": "lang.generics",
+      "shows": "interface bounds, const generics and closures"
+    },
+    {
+      "tag": "lang.error",
+      "shows": "a custom Error, `?`, `||`, fail, context and error.as"
+    },
+    {
+      "tag": "lang.loop",
+      "shows": "`for cond`, `for x in`, `for {}` with a value break"
+    },
+    {
+      "tag": "lang.comptime",
+      "shows": "a comptime block folded into literals"
+    },
+    {
+      "tag": "mem.resource",
+      "shows": "resource drop/close, defer and defer(fail)"
+    },
+    {
+      "tag": "mem.move",
+      "shows": "partial move of a field and reinitialization"
+    },
+    {
+      "tag": "mem.borrow",
+      "shows": "&T/&mut T, disjoint field borrows and a named lifetime"
+    },
+    {
+      "tag": "mem.rc",
+      "shows": "Shared[T] with Weak[T] breaking a cycle"
+    },
+    {
+      "tag": "mem.box",
+      "shows": "Box[T] owning a value"
+    },
+    {
+      "tag": "mem.arena",
+      "shows": "an allocator block and Arena scope"
+    },
+    {
+      "tag": "mem.effects",
+      "shows": "noalloc and pure? functions"
+    },
+    {
+      "tag": "mem.fixed",
+      "shows": "FixedArray and BoundedArray"
+    },
+    {
+      "tag": "io.cli",
+      "shows": "std/cli flags, positionals and help"
+    },
+    {
+      "tag": "io.stdin",
+      "shows": "host.stdin() input"
+    },
+    {
+      "tag": "io.fs",
+      "shows": "fs.Path/fs.Files and OsString"
+    },
+    {
+      "tag": "io.shell",
+      "shows": "a $\"...\" command plan with grep"
+    },
+    {
+      "tag": "io.json",
+      "shows": "json field metadata and schema-driven encode"
+    },
+    {
+      "tag": "module.visibility",
+      "shows": "pub(super) and pub(module)"
+    },
+    {
+      "tag": "module.require",
+      "shows": "Require in mod.kg and Replace in mod.local.kg"
+    },
+    {
+      "tag": "module.test",
+      "shows": "_test.kg blocks run by kigumi test"
+    },
+    {
+      "tag": "async.future",
+      "shows": "async fn, await, task.spawn and the executor"
+    },
+    {
+      "tag": "async.cancel",
+      "shows": "structured children and cooperative cancellation"
+    },
+    {
+      "tag": "async.blocking",
+      "shows": "a blocking pool boundary with capacity accounting and async awaits"
+    },
+    {
+      "tag": "sync.atomic",
+      "shows": "std/atomic or std/sync coordination"
+    },
+    {
+      "tag": "ffi.extern",
+      "shows": "extern(C) declarations"
+    },
+    {
+      "tag": "ffi.layout",
+      "shows": "a layout(C) struct crossing the boundary"
+    },
+    {
+      "tag": "ffi.export",
+      "shows": "an export(C) callback called from C"
+    },
+    {
+      "tag": "ffi.memory",
+      "shows": "CString/CValue/Pin at the foreign boundary"
+    },
+    {
+      "tag": "ffi.link",
+      "shows": "Header/Source/Link records and @linkName/@section"
+    },
+    {
+      "tag": "ffi.asm",
+      "shows": "inline asm or a naked function"
+    },
+    {
+      "tag": "ffi.dl",
+      "shows": "std/ffi/dl resolving a symbol"
+    },
+    {
+      "tag": "build.graph",
+      "shows": "build.kg with a Framework, a Tool and multiple artifacts"
+    },
+    {
+      "tag": "build.freestanding",
+      "shows": "a freestanding library archive for --sys none"
+    },
+    {
+      "tag": "build.reproducible",
+      "shows": "the --reproducible byte-for-byte variant"
+    },
+    {
+      "tag": "net.http",
+      "shows": "an HTTP server and client on loopback with routing, middleware, JSON and shutdown"
+    },
+    {
+      "tag": "secret.ct",
+      "shows": "SecretU, Choice and ctEq/ctLt/select"
+    },
+    {
+      "tag": "secret.buffer",
+      "shows": "SecretBuffer and SecretIndex ctLookup/ctUpdate"
+    },
+    {
+      "tag": "crypto.hash",
+      "shows": "SHA-256 and HMAC"
+    }
+  ],
+  "blocked": [
+    {
+      "tag": "net.tls",
+      "blocked_by": "TEST-TLS",
+      "note": "no local TLS fixture exists for the run-output harness"
+    },
+    {
+      "tag": "build.uefi",
+      "blocked_by": "TEST-UEFI",
+      "note": "UEFI boot has no stdout oracle; the r11/r12 boot tests cover it"
+    },
+    {
+      "tag": "module.visibility.pub-in",
+      "blocked_by": "E133",
+      "note": "`pub(in ...)` was removed in v2.8; the compiler reports E133 and testdata/sem/visibility_pkg.txtar pins that"
+    }
+  ]
+}

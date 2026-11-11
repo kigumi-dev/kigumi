@@ -65,31 +65,36 @@ func TestExamples(t *testing.T) {
 
 func TestLoadModule(t *testing.T) {
 	t.Parallel()
-	m, err := driver.LoadModule("../../../examples/repostat", driver.LoadOptions{Compiler: testCompiler(), Test: true})
+	m, err := driver.LoadModule("../../../examples/data_tools", driver.LoadOptions{Compiler: testCompiler(), Test: true})
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"repostat/cmd/repostat", "repostat/notify", "repostat/parse", "repostat/report"}
+	want := map[string]int{"data_tools": 1, "data_tools/numbers": 2, "data_tools/parse": 2, "data_tools/report": 1, "units": 1}
 	if len(m.Order) != len(want) {
-		t.Fatalf("packages = %v, want %v", m.Order, want)
+		t.Fatalf("packages = %v, want the %d own packages %v", m.Order, len(want), want)
 	}
-	for i, p := range want {
-		if m.Order[i] != p {
-			t.Errorf("package %d = %q, want %q", i, m.Order[i], p)
+	for _, p := range m.Order {
+		if _, ok := want[p]; !ok {
+			t.Errorf("unexpected own package %q", p)
 		}
 	}
-	if n := len(m.Packages["repostat/parse"].Files); n != 2 {
-		t.Errorf("repostat/parse has %d files with tests, want 2", n)
+	for p, n := range want {
+		if got := len(m.Packages[p].Files); got != n {
+			t.Errorf("%s has %d files with tests, want %d", p, got, n)
+		}
 	}
 	if d := m.Diagnostics(); d != "" {
 		t.Errorf("unexpected diagnostics:\n%s", d)
 	}
-	noTest, err := driver.LoadModule("../../../examples/repostat", driver.LoadOptions{Compiler: testCompiler()})
+	noTest, err := driver.LoadModule("../../../examples/data_tools", driver.LoadOptions{Compiler: testCompiler()})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n := len(noTest.Packages["repostat/parse"].Files); n != 1 {
-		t.Errorf("repostat/parse has %d files without tests, want 1", n)
+	if n := len(noTest.Packages["data_tools/parse"].Files); n != 1 {
+		t.Errorf("data_tools/parse has %d files without tests, want 1", n)
+	}
+	if n := len(noTest.Packages["data_tools/numbers"].Files); n != 1 {
+		t.Errorf("data_tools/numbers has %d files without tests, want 1", n)
 	}
 }
 

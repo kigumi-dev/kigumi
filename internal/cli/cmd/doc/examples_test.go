@@ -16,7 +16,7 @@ func TestDocExamples(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("doc examples: exit %d\n%s", code, errOut)
 	}
-	for _, want := range []string{"# Examples", "### hello", "### repostat"} {
+	for _, want := range []string{"# Examples", "### tour", "### data_tools"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q in:\n%s", want, out)
 		}

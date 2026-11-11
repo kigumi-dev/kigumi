@@ -1,0 +1,63 @@
+import map from std/map
+import text from std/text
+
+/// One `author<TAB>day` line of the fixture log.
+pub type Commit = {
+    pub author String
+    pub day String
+}
+
+/// Why a fixture line could not become a Commit.
+pub type ParseError = BadLine(line: Int) | Empty
+
+pub fn ParseError.message(self) -> String {
+    match self {
+        BadLine(line) -> "bad fixture line ${line}"
+        Empty -> "empty fixture"
+    }
+}
+
+/// `pub(super)`: only the parent package data_tools may call this.
+/// `pub(in ...)` is rejected (E133), so module scope is `pub(module)`.
+pub(super) pure fn trimLine(line: String) -> String {
+    line.trim()
+}
+
+fn splitLine(no: Int, line: String) -> Result[Commit, ParseError] {
+    let parts = line.split("\t")
+    if parts.len() != 2 {
+        fail BadLine(no)
+    }
+    Commit {
+        author: parts.get(0) || ""
+        day: parts.get(1) || ""
+    }
+}
+
+/// Parses every non-blank line; a line without a tab fails as BadLine.
+pub pure fn parseAll(input: String) -> Result[Array[Commit], ParseError] {
+    let mut commits = Array.empty[Commit]()
+    let mut no = 0
+    for raw in text.lines(input) {
+        no += 1
+        let line = trimLine(raw)
+        if line.isEmpty() {
+            continue
+        }
+        commits.push(splitLine(no, line)?)
+    }
+    if commits.isEmpty() {
+        fail Empty
+    }
+    commits
+}
+
+/// Counts each distinct key; the report tallies authors and days this way.
+pub pure fn tally[K: Eq + Hash](keys: Array[K]) -> map.Map[K, Int] {
+    let mut counts = map.empty[K, Int]()
+    for key in keys {
+        let count = (counts.get(&key) || 0) + 1
+        counts.set(key, count)
+    }
+    counts
+}

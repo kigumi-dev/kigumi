@@ -16,10 +16,10 @@ func TestExamplesCatalogMarkdown(t *testing.T) {
 	}
 	for _, want := range []string{
 		"# Examples",
-		"### hello",
-		"### repostat",
-		"oracle: `test-only`",
-		"no main.kg/expect.txt at the module root",
+		"### tour",
+		"### data_tools",
+		"oracle: `build-graph`",
+		"covers: `",
 	} {
 		if !strings.Contains(md, want) {
 			t.Errorf("missing %q in:\n%s", want, md)

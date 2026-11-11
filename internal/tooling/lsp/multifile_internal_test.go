@@ -36,7 +36,7 @@ func applyEdits(t *testing.T, text string, edits []protocol.TextEdit) string {
 func TestRenameTouchesEveryFileOfTheModule(t *testing.T) {
 	for _, versioned := range []bool{false, true} {
 		root := t.TempDir()
-		copyTree(t, "../../../examples/repostat", root)
+		copyTree(t, "../../../examples/data_tools", root)
 		s, ctx, _ := startServer(t, root, 0)
 		s.documentChanges = versioned
 		parse := filepath.Join(root, "parse", "parse.kg")

@@ -1,5 +1,0 @@
-// The dependency lives in this repo; a published module would be fetched instead.
-Replace {
-    name: "greet"
-    path: "./greet"
-}

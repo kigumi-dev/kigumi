@@ -1,0 +1,20 @@
+  close ticket 1
+  drop ticket 1
+  defer on exit
+  rollback
+  defer on exit
+  drop ticket 2
+  error limit 1
+refilled 5
+  drop ticket 3
+  drop ticket 2
+borrowed 1 1 slice 1 2
+box 3 3
+  pool beta:9 hits 1
+largest probe
+cycle strong alive true
+cycle weak alive false
+  logging 3
+noalloc 16 pure 6 mixed 4
+fixed 4 5 bounded 3/3 10 full true
+  kept 9 reset ok close ok again ok

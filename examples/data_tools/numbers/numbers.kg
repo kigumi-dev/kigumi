@@ -1,0 +1,17 @@
+/// Whole percentage of part in whole, rounded to nearest.
+pub pure fn percent(part: Int, whole: Int) -> Int {
+    if whole <= 0 {
+        0
+    } else {
+        (part * 200 + whole) / (whole * 2)
+    }
+}
+
+/// Commits per active day, rounded to nearest.
+pub pure fn average(total: Int, days: Int) -> Int {
+    if days <= 0 {
+        0
+    } else {
+        (total * 2 + days) / (days * 2)
+    }
+}

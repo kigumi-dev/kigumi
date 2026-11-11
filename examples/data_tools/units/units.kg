@@ -1,0 +1,13 @@
+/// Formats a count with its noun in the right number, e.g. `1 commit`.
+pub pure fn plural(n: Int, one: String, many: String) -> String {
+    if n == 1 {
+        "${n} ${one}"
+    } else {
+        "${n} ${many}"
+    }
+}
+
+/// The regular plural of noun, e.g. `3 commits`.
+pub pure fn formatCount(n: Int, noun: String) -> String {
+    plural(n, noun, "${noun}s")
+}

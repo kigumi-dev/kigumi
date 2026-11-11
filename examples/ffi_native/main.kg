@@ -1,0 +1,231 @@
+#!/usr/bin/env kigumi
+
+import ffi from std/ffi
+import dl from std/ffi/dl
+import helper from c/helper
+
+// The C ABI and the low-level boundary. mod.kg imports native/helper.h as
+// the package `c/helper`, compiles native/helper.c and links libm. This
+// example is native-only; the naked export and the inline asm are also
+// Linux x86-64 only, since they encode that calling convention by hand.
+
+// ---------------------------------------------------------------------------
+// Section 1: layout(C) records travel by value in both directions.
+// ---------------------------------------------------------------------------
+
+// A layout(C) record is the Kigumi view of a C struct: declaration order,
+// natural C alignment and calling convention. `Vec2` is imported from the
+// header, so its fields are checked against the same declaration as C's.
+
+// ffi.sizeOf/alignOf describe the Kigumi layout(C) record; helper.c reports
+// C's sizeof for the same struct, and the two must agree byte for byte.
+let corner = helper.Vec2 {
+    x: 3.0
+    y: 4.0
+}
+print "size=${ffi.sizeOf(&corner)}/${unsafe { helper.vec2_sizeof() }} align=${ffi.alignOf(&corner)}"
+
+// A struct by value in and out: two doubles in registers, a struct back.
+let scaled = unsafe {
+    helper.vec2_scale(helper.Vec2 {
+        x: 3.0
+        y: 4.0
+    }, 2.0)
+}
+print "scale=${scaled.x},${scaled.y}"
+
+// The same record by value, returning a scalar that helper.c computes with
+// libm's sqrt, which is why mod.kg links `m`.
+let length = unsafe {
+    helper.vec2_length(helper.Vec2 {
+        x: 3.0
+        y: 4.0
+    })
+}
+print "length=${length}"
+
+// ---------------------------------------------------------------------------
+// Section 2: export(C) functions are C symbols Kigumi defines.
+// ---------------------------------------------------------------------------
+// A Kigumi-owned value does not need layout(C): Pin carries it as userdata,
+// and only Kigumi ever interprets the pointer.
+type Job = {
+    pub label String
+    pub weight i64
+}
+
+export(C) {
+    // walk() calls this once per step; the prints are the proof that C
+    // re-entered Kigumi through the function pointer it was handed.
+    pub fn kg_visit(step: i32) -> i32 {
+        print "callback step=${step}"
+        step * 2
+    }
+
+    // @linkName fixes the C symbol, so helper.c can call kg_native_score
+    // even though the Kigumi name is nativeScore.
+    @linkName("kg_native_score")
+    pub fn nativeScore(x: i32) -> i32 {
+        x * 10
+    }
+
+    // A userdata pointer from Pin[T].ptr is opaque to C: helper.c passes it
+    // straight back and never dereferences it.
+    pub fn kg_report(userdata: *mut u8) -> i64 {
+        unsafe {
+            ffi.Pin.with(userdata, (job: &Job) => job.weight * 10)
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Section 3: target-specific code. A naked function has no prologue and no
+// epilogue, so its whole body is one asm block and it must return itself.
+// x86-64 System V passes the first integer argument in rdi and returns in
+// rax; C declares `int64_t kg_naked_triple(int64_t)`.
+// ---------------------------------------------------------------------------
+export(C, naked) {
+    pub fn kg_naked_triple(x: i64) -> i64 {
+        asm {
+            "lea rax, [rdi + rdi * 2]"
+            "ret"
+        }
+    }
+}
+
+// Inline asm inside a normal function is checked against its operands: the
+// template can only name labels declared below it, and `Out` carries the
+// written register back as a record. `pure` requires the memory promises.
+fn shiftAsm(x: u64) -> Out[u64] {
+    unsafe {
+        asm {
+            "shl {value}, {n}"
+            value: inout(reg) x
+            n: const 4
+            options nomem, nostack, pure, preserves_flags
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Section 4: C-side state, then strings and records across the boundary.
+// ---------------------------------------------------------------------------
+
+// The header import writes the extern(C) declarations for every C function;
+// a hand-written block declares one libc symbol the header does not wrap.
+extern(C) {
+    fn strlen(text: *const u8) -> usize
+}
+
+// The counter lives in helper.c's data segment; each call observes the
+// previous one, unlike a per-call temporary.
+let first = unsafe {
+    helper.counter_next()
+}
+let second = unsafe {
+    helper.counter_next()
+}
+let third = unsafe {
+    helper.counter_next()
+}
+let peeked = unsafe {
+    helper.counter_peek()
+}
+print "counter=${first},${second},${third} peek=${peeked}"
+
+// ---------------------------------------------------------------------------
+// Section 5: ffi.CString, ffi.CValue and ffi.Pin, one each.
+// ---------------------------------------------------------------------------
+
+// CString owns a NUL-terminated copy of a Kigumi String and frees it on
+// drop; the pointer is valid only while the CString lives.
+let name = "kigumi"
+let cname = ffi.CString.new(&name)?
+let bytes = unsafe {
+    strlen(cname.ptr())
+}
+print "cstring bytes=${bytes}"
+
+// C allocates with malloc; ffi.string copies to Kigumi memory before the
+// C buffer is freed, so no pointer outlives its owner.
+let raw = unsafe {
+    helper.greeting_for(cname.ptr())
+}
+let greeting = unsafe {
+    ffi.string(ffi.toConst(raw))
+}
+unsafe {
+    helper.greeting_free(ffi.toMut(ffi.toConst(raw)))
+}
+print "malloc=${greeting}"
+
+// CValue is C-heap memory holding one layout(C) value. C writes through
+// the pointer and get() reads the bytes back as a Kigumi record.
+let cell = ffi.CValue.new(helper.Vec2 {
+    x: 1.0
+    y: 2.0
+})
+unsafe {
+    helper.vec2_shift(cell.ptr(), 4.0, 5.0)
+}
+let moved = cell.get()
+print "cvalue=${moved.x},${moved.y}"
+
+// Pin keeps a Kigumi value alive for as long as C needs the pointer. The
+// pointer is opaque: only kg_report's Pin.with makes it a Job again.
+let job = Job {
+    label: "pinned"
+    weight: 7
+}
+let pin = ffi.Pin.new(job)
+let reported = unsafe {
+    helper.call_report(pin.ptr())
+}
+print "pin=${reported} label=${job.label}"
+
+// ---------------------------------------------------------------------------
+// Section 6: C calls back through a function pointer, by name, and through
+// a naked symbol. All three return into this program's stdout.
+// ---------------------------------------------------------------------------
+
+// walk's parameter is the header's `visit_fn`, an extern(C) function
+// pointer, so the exported function converts at the call site.
+let total = unsafe {
+    helper.walk(kg_visit, 3)
+}
+print "walk total=${total}"
+
+// helper.c calls kg_native_score(4) and adds one on the C side.
+let score = unsafe {
+    helper.call_named_score(4)
+}
+print "linkName=${score}"
+
+// The naked symbol works through C and through a Kigumi function pointer.
+let tripled = unsafe {
+    helper.call_naked_triple(14)
+}
+let triplePtr: extern(C) fn(i64) -> i64 = kg_naked_triple
+let tripledAgain = unsafe {
+    triplePtr(5)
+}
+print "naked=${tripled},${tripledAgain}"
+
+// Inline asm: 5 << 4. `Out` is the record an asm block writes its outputs
+// into; destructuring it is the only way to read a register result.
+let shifted = shiftAsm(5)
+print "asm=${shifted.value}"
+
+// ---------------------------------------------------------------------------
+// Section 7: std/ffi/dl resolves a symbol at run time. host.dl() is the
+// entry file's dynamic-loader capability, like fs and net; the symbol is a
+// typed extern(C) function pointer and each call needs unsafe.
+// ---------------------------------------------------------------------------
+type Abs = alias extern(C) fn(i32) -> i32
+
+let libc = host.dl().open("libc.so.6")?
+let absSym: dl.Symbol[Abs] = libc.get("abs")?
+print "dl abs=${unsafe { absSym.call(-40) }}"
+
+// A last line summarizing the boundary: every section above ran.
+print "ffi native ok"

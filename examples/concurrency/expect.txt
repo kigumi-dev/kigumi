@@ -1,0 +1,22 @@
+future: built, nothing has run yet
+future: running first
+future: child spawned
+future: running child
+futures: first then child
+cancel: parent leaves without awaiting
+cancel: honours requested=true still=true
+cancel: dropped honours
+cancel: ignores computed 10
+cancel: dropped ignores
+structured: 0
+cancel: cooperates saw the request
+cancel: explicit cancel returned 42
+explicit: 0
+blocking: refused: blocking pool capacity exhausted
+blocking: awaiting the result
+blocking: crunch = 2982
+offload: 2982
+atomic: 4 workers, counter 4, swap saw 4
+once: first caller ran it
+once: done=true
+tally: 4

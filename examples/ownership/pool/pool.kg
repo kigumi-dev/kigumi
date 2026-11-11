@@ -1,0 +1,58 @@
+// A pool: Box owns each item, Shared accounts for hits, Weak observes the stats.
+import {Box, Shared, Weak} from std/alloc
+
+pub type Item = {
+    pub name String
+    pub size Int
+}
+
+pub type Stats = {
+    pub mut hits Int
+}
+
+pub type Pool = {
+    mut items Array[Box[Item]]
+    stats Shared[Stats]
+}
+
+pub fn item(name: String, size: Int) -> Item {
+    Item {
+        name: name
+        size: size
+    }
+}
+
+pub fn Pool.new() -> Pool {
+    Pool {
+        items: Array.empty[Box[Item]]()
+        stats: Shared.new(Stats { hits: 0 })
+    }
+}
+
+pub fn Pool.add(mut self, name: String, size: Int) {
+    self.items.push(Box.new(item(name, size)))
+}
+
+pub fn Pool.observer(self) -> Weak[Stats] {
+    self.stats.downgrade()
+}
+
+pub fn Pool.touch(mut self) {
+    self.stats.withMut((s: &mut Stats) => {
+        s.hits = s.hits + 1
+    })
+}
+
+// Exactly one named lifetime 'a: both arguments are borrowed for 'a and the
+// result borrows from one of them.
+pub fn larger['a](a: &'a Item, b: &'a Item) -> &'a Item {
+    if a.size >= b.size {
+        a
+    } else {
+        b
+    }
+}
+
+pub fn Pool.describe(self, index: usize) -> String {
+    self.items[index].with((it: &Item) => "${it.name}:${it.size}")
+}

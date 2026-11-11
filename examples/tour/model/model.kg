@@ -1,0 +1,38 @@
+import {Display} from std/fmt
+
+/// A ticket's lifecycle stage; std/fmt derives its display.
+@impl(Display)
+pub type Stage = Queued | Running | Shipped
+
+/// A work item. `stage` is private: only this package reads or sets it.
+@impl(Display)
+pub type Ticket = {
+    pub id Int
+    pub title String
+    mut stage Stage
+}
+
+pub pure fn Ticket.new(id: Int, title: String) -> Ticket {
+    Ticket {
+        id: id
+        title: title
+        stage: Queued
+    }
+}
+
+pub pure fn Ticket.status(self) -> Stage {
+    self.stage
+}
+
+pub fn Ticket.advance(mut self) -> Stage {
+    self.stage = match self.stage {
+        Queued -> Running
+        Running -> Shipped
+        Shipped -> Shipped
+    }
+    self.stage
+}
+
+pub pure fn Ticket.display(self) -> String {
+    "#${self.id} ${self.title} [${self.stage.display()}]"
+}

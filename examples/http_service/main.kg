@@ -1,0 +1,244 @@
+#!/usr/bin/env kigumi
+
+#
+# Both ends of HTTP/1.1 in one program: a JSON service on a loopback port the
+# kernel picks, and the client that exercises it. Nothing here needs TLS;
+# std/net/tls and http.TlsClient are the https path and stay out of scope.
+
+import json from std/json
+import net from std/net
+import http from std/net/http
+import task from std/task
+import time from std/time
+
+// ------------------------------------------------------------------- payloads
+type Greeting = {
+    pub message String
+}
+
+// Field metadata renames the JSON keys on both sides: what postJson encodes
+// under "qty" is what Request.json decodes back into quantity.
+type Order = {
+    pub item String
+
+    pub quantity Int {
+        json.name("qty")
+    }
+}
+
+type Quote = {
+    pub item String
+
+    pub total Int {
+        json.name("total_cents")
+    }
+}
+
+type Card = {
+    pub id String
+    pub title String
+}
+
+// ------------------------------------------------------------------ handlers
+
+// GET /greet/{name}: the {name} segment arrives decoded as a path parameter.
+fn greet(req: http.Request) -> http.Response! {
+    let name = req.param("name") || "stranger"
+    http.Response.ofJson(200, Greeting { message: "hello, ${name}" })
+}
+
+// POST /orders: the JSON body is decoded into Order by the request itself. A
+// malformed body already fails with 400 inside Request.json; a business rule
+// breaks with an explicit Failure, which the server sends as its status.
+fn createOrder(req: http.Request) -> http.Response! {
+    let order = req.json[Order]()?
+    if order.quantity <= 0 {
+        fail http.failure(422, "quantity must be positive")
+    }
+    // Schema-driven encode: the record's metadata chooses the key names.
+    let quote = Quote {
+        item: order.item
+        total: order.quantity * 3
+    }
+    let mut resp = http.Response.new(201)
+    resp.headers.add("Content-Type", "application/json")
+    resp.headers.add("Location", "/orders/${order.quantity}")
+    resp.body = (json.encode(quote)?).toBytes()
+    resp
+}
+
+// GET /cards/{id}: a conditional request. A matching If-None-Match earns a 304
+// with no body, which is cheaper than re-sending the representation.
+fn card(req: http.Request) -> http.Response! {
+    let id = req.param("id") || "0"
+    let tag = "\"card-${id}-v2\""
+    if req.header("If-None-Match") is Some(seen) && seen == tag {
+        let mut resp = http.Response.new(304)
+        resp.headers.add("ETag", tag)
+        return resp
+    }
+    let mut resp = (http.Response.ofJson(200, Card {
+        id: id
+        title: "card ${id}"
+    }))?
+    resp.headers.add("ETag", tag)
+    resp
+}
+
+// GET /slow: a handler that sits on the executor for 200 ms so the client can
+// show what its own timeout does. Nothing about the reply matters here.
+fn slow(req: http.Request) -> http.Response! {
+    _ = req
+    time.sleep(200)
+    http.Response.ofText(200, "late")
+}
+
+// ----------------------------------------------------------------- middleware
+
+// A small checksum of the request line, used as its label. A counter or a
+// clock reading would be volatile; hashing method and path keeps the header
+// client-visible and still identical on every run. Two exchanges of the same
+// method and path therefore share an id, as the two card calls below show.
+fn fingerprint(method: String, path: String) -> Int {
+    let mut h = 7
+    for b in method.bytes() {
+        h = (h * 31 + b.toInt()) % 9973
+    }
+    for b in path.bytes() {
+        h = (h * 31 + b.toInt()) % 9973
+    }
+    h
+}
+
+// One middleware around every route, unmatched ones included: it names the
+// request, then stamps that name and a caching policy onto the response, so a
+// client can see the layer ran even for a 404 or 405.
+fn withRequestId(next: escaping fn(http.Request) -> http.Response!) -> fn(http.Request) -> http.Response! {
+    (req: http.Request) => {
+        let id = "req-${fingerprint(req.method, req.path)}"
+        let mut resp = next(req)?
+        resp.headers.set("X-Request-Id", id)
+        resp.headers.set("Cache-Control", "no-store")
+        resp
+    }
+}
+
+fn makeRouter() -> http.Router {
+    // The router owns 404 (no path matches), 405 with Allow (path matches but
+    // not the method), 204 for OPTIONS on a matched path, and HEAD via GET.
+    http.Router.new()
+        .get("/greet/{name}", greet)
+        .post("/orders", createOrder)
+        .get("/cards/{id}", card)
+        .get("/slow", slow)
+        .use(withRequestId)
+}
+
+// -------------------------------------------------------------------- output
+
+// One line per call: status, the headers that matter here and the body. Date
+// is skipped because it changes every second; a missing Connection means the
+// HTTP/1.1 default, which is a persistent connection.
+fn show(label: String, resp: http.Response) {
+    let mut body = resp.text() || "<not utf-8>"
+    if body == "" {
+        body = "-"
+    }
+    let id = resp.header("X-Request-Id") || "-"
+    let kind = resp.header("Content-Type") || "-"
+    let allow = resp.header("Allow") || "-"
+    let etag = resp.header("ETag") || "-"
+    let len = resp.header("Content-Length") || "-"
+    let conn = resp.header("Connection") || "keep-alive"
+    let cache = resp.header("Cache-Control") || "-"
+    print "${label} -> ${resp.status} id=${id} type=${kind} allow=${allow} etag=${etag} len=${len} conn=${conn} cache=${cache} body=${body}"
+}
+
+// ------------------------------------------------------------------ scenario
+async fn exercise(n: net.Net, listener: net.Listener) -> Void! {
+    let base = "http://127.0.0.1:${listener.port()}"
+    let mut server = http.Server.new(makeRouter().handler(), (line) => print "server: ${line}")
+    // Explicit per-request bounds on the server side: 2 s to read a request,
+    // 2 s to write its response, after which the connection is dropped.
+    server.limits.readTimeoutMillis = 2000
+    server.limits.writeTimeoutMillis = 2000
+    let stop = http.Shutdown.new()
+    let serving = task.spawn(server.serve(listener, stop.clone()))
+    let mut client = http.Client.new(n, task.BlockingPool.new(1))
+
+    // Plain calls: Client.get/postJson open a connection, send and close it.
+    // A %20 in the path is decoded before the route sees the parameter.
+    show("GET /greet/ada", (await client.get("${base}/greet/ada"))?)
+    show("GET /greet/ada%20lovelace", (await client.get("${base}/greet/ada%20lovelace"))?)
+    show("POST /orders tea x4", (await client.postJson("${base}/orders", Order {
+        item: "tea"
+        quantity: 4
+    }))?)
+    // A body that does not decode as Order fails inside Request.json with a
+    // 400 Failure; a body that decodes but breaks a rule fails with our 422.
+    // The server answers a Failure itself, so these two replies carry no
+    // X-Request-Id: the middleware only stamps responses it sees.
+    show("POST /orders (bad json)", (await client.post("${base}/orders", "application/json", "{bad json".toBytes()))?)
+    show("POST /orders tea x0", (await client.postJson("${base}/orders", Order {
+        item: "tea"
+        quantity: 0
+    }))?)
+
+    // Router fallbacks: an unknown path is 404, a known path with the wrong
+    // method is 405 plus Allow, and OPTIONS on it is 204 with no body.
+    show("GET /missing", (await client.get("${base}/missing"))?)
+    show("POST /greet/ada", (await client.send("${base}/greet/ada", http.Request.new("POST", "/greet/ada")))?)
+    show("OPTIONS /orders", (await client.send("${base}/orders", http.Request.new("OPTIONS", "/orders")))?)
+
+    // HEAD runs the GET handler and sends only the head, so Content-Length is
+    // visible while the body stays empty.
+    show("HEAD /greet/ada", (await client.send("${base}/greet/ada", http.Request.new("HEAD", "/greet/ada")))?)
+
+    // The same card twice: the second request is conditional and gets a 304.
+    show("GET /cards/7", (await client.get("${base}/cards/7"))?)
+    let mut conditional = http.Request.new("GET", "/cards/7")
+    conditional.headers.add("If-None-Match", "\"card-7-v2\"")
+    show("GET /cards/7 (cached)", (await client.send("${base}/cards/7", conditional))?)
+
+    // Framing: nothing here streams. The handler returns a whole response, so
+    // the server buffers it and sends Content-Length (chunked responses have no
+    // writer in this API); request bodies may still arrive chunked and are
+    // fully decoded into Request.body before a handler runs. What this section
+    // does show is the other half of HTTP/1.1 persistence: one Session carries
+    // several requests in turn with no Connection header, so the first two
+    // share a TCP connection. The third asks for Connection: close, after
+    // which the session is finished and any further send fails with Closed.
+    let mut session = (await client.open(base))?
+    show("reuse 1 /greet/one", (await session.send(http.Request.new("GET", "/greet/one")))?)
+    show("reuse 2 /greet/two", (await session.send(http.Request.new("GET", "/greet/two")))?)
+    let mut last = http.Request.new("GET", "/greet/three")
+    last.headers.add("Connection", "close")
+    show("reuse 3 /greet/three (close)", (await session.send(last))?)
+    let afterClose = await session.send(http.Request.new("GET", "/greet/four"))
+    let why = match afterClose {
+        Ok(_) -> "unexpectedly open"
+        Err(e) -> e.message()
+    }
+    print "reuse 4 /greet/four -> ${why}"
+
+    // An explicit per-request timeout on the client. The handler sleeps for
+    // 200 ms on the one executor thread, so the client's 25 ms deadline has
+    // passed by the time it is polled again and the send fails as TimedOut.
+    client.timeoutMillis = 25
+    let late = await client.get("${base}/slow")
+    let lateText = match late {
+        Ok(_) -> "unexpectedly fast"
+        Err(e) -> e.message()
+    }
+    print "GET /slow (25 ms) -> ${lateText}"
+
+    // Graceful shutdown: stop accepting and close each connection once its
+    // current exchange is done; await the server task to see it finish.
+    stop.request()
+    (await serving)?
+    print "shutdown: listener closed, exchanges drained"
+}
+
+let n = host.net()
+let listener = n.listen("127.0.0.1", 0)?
+task.currentThreadExecutor().runToCompletion(exercise(n, listener))?

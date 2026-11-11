@@ -1,5 +1,0 @@
-Module {
-    name: "game_of_life"
-    kigumi: "0.1"
-    zig: "0.17.0"
-}

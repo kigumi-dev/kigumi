@@ -12,10 +12,10 @@ import (
 	"kigumi/internal/lang/token"
 )
 
-// exampleSnapshot analyzes examples/repostat (several packages, an interface and its implementer, std imports).
+// exampleSnapshot analyzes examples/data_tools (several packages, an interface and its implementer, std imports).
 func exampleSnapshot(t *testing.T) (*Server, *snapshot) {
 	t.Helper()
-	root, _ := filepath.Abs("../../../examples/repostat")
+	root, _ := filepath.Abs("../../../examples/data_tools")
 	std, _ := filepath.Abs("../../../std")
 	s := newServer(std).WithDebounce(0)
 	s.roots = []string{root}
@@ -23,7 +23,7 @@ func exampleSnapshot(t *testing.T) (*Server, *snapshot) {
 	defer s.mu.Unlock()
 	snap := s.refresh(t.Context(), root, "", false)
 	if snap.res == nil || snap.res.HasErrors() {
-		t.Fatalf("examples/repostat must analyze cleanly: %v", snap.err)
+		t.Fatalf("examples/data_tools must analyze cleanly: %v", snap.err)
 	}
 	return s, snap
 }
@@ -32,7 +32,7 @@ func TestPositionIndexMatchesTheScan(t *testing.T) {
 	_, snap := exampleSnapshot(t)
 	checked := 0
 	for _, p := range snap.mod.Order {
-		if p != "repostat/report" && p != "repostat/parse" && p != "std/array" {
+		if p != "data_tools/report" && p != "data_tools/parse" && p != "std/array" {
 			continue
 		}
 		for _, tree := range snap.mod.Packages[p].Files {

@@ -18,7 +18,7 @@ func TestRunE2ESmoke(t *testing.T) {
 	work := t.TempDir()
 
 	var out bytes.Buffer
-	if err := RunE2E(E2EOptions{Lookup: exec.LookPath, RepoRoot: repoRoot, Module: "examples/hello", StdRoot: "std", WorkDir: work}, &out); err != nil {
+	if err := RunE2E(E2EOptions{Lookup: exec.LookPath, RepoRoot: repoRoot, Module: "examples/tour", StdRoot: "std", WorkDir: work}, &out); err != nil {
 		t.Fatalf("RunE2E: %v\n%s", err, out.String())
 	}
 
@@ -56,7 +56,7 @@ func TestRunE2ESmoke(t *testing.T) {
 
 func TestRunE2EWithoutLookupFails(t *testing.T) {
 	var out bytes.Buffer
-	err := RunE2E(E2EOptions{RepoRoot: t.TempDir(), Module: "examples/hello", StdRoot: "std", WorkDir: t.TempDir()}, &out)
+	err := RunE2E(E2EOptions{RepoRoot: t.TempDir(), Module: "examples/tour", StdRoot: "std", WorkDir: t.TempDir()}, &out)
 	if err == nil || !strings.Contains(err.Error(), "no tool search path given") {
 		t.Fatalf("RunE2E with a nil Lookup = %v, want the no tool search path error", err)
 	}

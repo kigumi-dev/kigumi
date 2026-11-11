@@ -1,0 +1,17 @@
+size=16/16 align=8
+scale=6,8
+length=5
+counter=1,2,3 peek=3
+cstring bytes=6
+malloc=hello, kigumi
+cvalue=5,7
+pin=70 label=pinned
+callback step=0
+callback step=1
+callback step=2
+walk total=6
+linkName=41
+naked=42,15
+asm=80
+dl abs=40
+ffi native ok

@@ -1,0 +1,17 @@
+GET /greet/ada -> 200 id=req-6615 type=application/json allow=- etag=- len=24 conn=close cache=no-store body={"message":"hello, ada"}
+GET /greet/ada%20lovelace -> 200 id=req-8405 type=application/json allow=- etag=- len=33 conn=close cache=no-store body={"message":"hello, ada lovelace"}
+POST /orders tea x4 -> 201 id=req-4247 type=application/json allow=- etag=- len=31 conn=close cache=no-store body={"item":"tea","total_cents":12}
+POST /orders (bad json) -> 400 id=- type=text/plain; charset=utf-8 allow=- etag=- len=31 conn=close cache=- body=invalid JSON body: invalid JSON
+POST /orders tea x0 -> 422 id=- type=text/plain; charset=utf-8 allow=- etag=- len=25 conn=close cache=- body=quantity must be positive
+GET /missing -> 404 id=req-2761 type=text/plain; charset=utf-8 allow=- etag=- len=9 conn=close cache=no-store body=not found
+POST /greet/ada -> 405 id=req-7560 type=text/plain; charset=utf-8 allow=GET, HEAD etag=- len=18 conn=close cache=no-store body=method not allowed
+OPTIONS /orders -> 204 id=req-2834 type=- allow=POST etag=- len=- conn=close cache=no-store body=-
+HEAD /greet/ada -> 200 id=req-2157 type=application/json allow=- etag=- len=24 conn=close cache=no-store body=-
+GET /cards/7 -> 200 id=req-8723 type=application/json allow=- etag="card-7-v2" len=27 conn=close cache=no-store body={"id":"7","title":"card 7"}
+GET /cards/7 (cached) -> 304 id=req-8723 type=- allow=- etag="card-7-v2" len=- conn=close cache=no-store body=-
+reuse 1 /greet/one -> 200 id=req-437 type=application/json allow=- etag=- len=24 conn=keep-alive cache=no-store body={"message":"hello, one"}
+reuse 2 /greet/two -> 200 id=req-5531 type=application/json allow=- etag=- len=24 conn=keep-alive cache=no-store body={"message":"hello, two"}
+reuse 3 /greet/three (close) -> 200 id=req-7717 type=application/json allow=- etag=- len=26 conn=close cache=no-store body={"message":"hello, three"}
+reuse 4 /greet/four -> connection closed before the response
+GET /slow (25 ms) -> request timed out
+shutdown: listener closed, exchanges drained

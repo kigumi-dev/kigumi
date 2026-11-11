@@ -13,7 +13,7 @@ import (
 
 func main() {
 	repoRoot := flag.String("repo-root", ".", "repository root (holds go.mod and main.go)")
-	module := flag.String("module", "examples/fizzbuzz", "module or example to check/build/run, relative to -repo-root")
+	module := flag.String("module", "examples/tour", "module or example to check/build/run, relative to -repo-root")
 	std := flag.String("std", "std", "std root, relative to -repo-root")
 	workDir := flag.String("work-dir", "", "scratch directory for the built compiler and artifact (default: a temp dir this run creates and removes)")
 	out := flag.String("out", "", "output file for the JSON Lines events (default: stdout)")

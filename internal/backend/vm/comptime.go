@@ -15,7 +15,7 @@ import (
 // block with a diagnostic instead of hanging the compiler, overflowing the
 // Go stack or exhausting host RAM. Steps and bytes rather than wall clock
 // or live RSS, so the same source fails the same way on every machine.
-// examples/comptime needs ~28M steps for its naive fib(30); its string
+// A naive comptime fib(30) needs ~28M steps; its string
 // table is under 1KiB, so comptimeMemoryLimit leaves that fixture ample
 // headroom while still catching runaway growth (alloc_budget.go) quickly.
 const (

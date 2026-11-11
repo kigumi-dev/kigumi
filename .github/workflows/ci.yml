@@ -356,7 +356,7 @@ jobs:
       # The Go microbenchmarks, as Go's own versioned test2json.
       - run: go test -run '^$' -bench . -benchtime=1x -json ./internal/compiler/syntax/ ./internal/compiler/sem/ ./internal/compiler/mir/ ./internal/backend/vm/ ./internal/backend/llgen/ > bench-micro.json
       # The process-level runner, as versioned JSON Lines.
-      - run: go run ./cmd/e2ebench -module examples/fizzbuzz > bench-e2e.jsonl
+      - run: go run ./cmd/e2ebench -module examples/tour > bench-e2e.jsonl
       - uses: actions/upload-artifact@v4
         with:
           name: benchmarks-${{ github.sha }}
@@ -387,6 +387,6 @@ jobs:
     needs: zig-version
     uses: ./.github/workflows/kigumi-test.yml
     with:
-      module-root: examples/repostat
+      module-root: examples/data_tools
       kigumi-version: local
       zig-version: ${{ needs.zig-version.outputs.version }}

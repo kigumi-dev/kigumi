@@ -15,9 +15,9 @@ func TestHelp(t *testing.T) {
 }
 
 func TestDumpsTree(t *testing.T) {
-	code, out, errOut := clitest.Execute(t, "parse", "../../../../examples/hello/main.kg")
+	code, out, errOut := clitest.Execute(t, "parse", "../../../../examples/tour/main.kg")
 	if code != 0 || errOut != "" {
 		t.Fatalf("exit %d, stderr %q", code, errOut)
 	}
-	clitest.Golden(t, "hello.golden", out)
+	clitest.Golden(t, "tour.golden", out)
 }

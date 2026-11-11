@@ -8,11 +8,11 @@ import (
 	"kigumi/internal/toolchain/driver"
 )
 
-// TestRepostatChecks: the example type-checks against the std stubs with
+// TestDataToolsChecks: the example type-checks against the std stubs with
 // no diagnostics at all.
-func TestRepostatChecks(t *testing.T) {
+func TestDataToolsChecks(t *testing.T) {
 	t.Parallel()
-	m, err := driver.LoadModule("../../../examples/repostat", driver.LoadOptions{Compiler: testCompiler(), Test: true, StdRoot: "../../../std"})
+	m, err := driver.LoadModule("../../../examples/data_tools", driver.LoadOptions{Compiler: testCompiler(), Test: true, StdRoot: "../../../std"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,10 +28,10 @@ func TestRepostatChecks(t *testing.T) {
 	}
 }
 
-// TestRepostatTests runs the example's `test` blocks on the VM.
-func TestRepostatTests(t *testing.T) {
+// TestDataToolsTests runs the example's `test` blocks on the VM.
+func TestDataToolsTests(t *testing.T) {
 	t.Parallel()
-	m, err := driver.LoadModule("../../../examples/repostat", driver.LoadOptions{Compiler: testCompiler(), Test: true, StdRoot: "../../../std"})
+	m, err := driver.LoadModule("../../../examples/data_tools", driver.LoadOptions{Compiler: testCompiler(), Test: true, StdRoot: "../../../std"})
 	if err != nil {
 		t.Fatal(err)
 	}

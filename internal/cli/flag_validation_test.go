@@ -14,7 +14,7 @@ import (
 // silently falling back to auto-detection.
 func TestColorFlagValidation(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
-	hello, _ := filepath.Abs("../../examples/hello/main.kg")
+	hello := writeHello(t)
 
 	if code, _, errOut := clitest.Execute(t, "--color", "banana", "--std", std, "run", hello); code != 2 || !strings.Contains(errOut, "--color") {
 		t.Fatalf("--color banana: exit %d, stderr %q", code, errOut)
@@ -26,7 +26,7 @@ func TestColorFlagValidation(t *testing.T) {
 
 func TestBuildLinkFlagValidation(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
-	hello, _ := filepath.Abs("../../examples/hello/main.kg")
+	hello := writeHello(t)
 	out := filepath.Join(t.TempDir(), "a.out")
 	if code, _, errOut := clitest.Execute(t, "--std", std, "build", "--link", "banana", "-o", out, hello); code != 2 || !strings.Contains(errOut, "link") {
 		t.Fatalf("--link banana: exit %d, stderr %q", code, errOut)

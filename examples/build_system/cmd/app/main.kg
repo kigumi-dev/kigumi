@@ -1,0 +1,24 @@
+#!/usr/bin/env kigumi
+
+// build_budget comes from the C source the build program generated; the ring
+// and fixed-point arithmetic come from the freestanding `core` library.
+import core from build_system/core
+
+extern(C) {
+    fn build_budget() -> i64
+}
+
+fn samples(budget: Int) -> core.Ring {
+    let mut ring = core.ring(4)
+    for i in 0..6 {
+        ring.push(core.clamp(budget - i * 40, 0, budget))
+    }
+    ring
+}
+
+let budget = unsafe {
+    build_budget()
+}
+let ring = samples(budget)
+let half = core.lerp(0, ring.sum(), core.one / 2)
+print "budget=${budget} sum=${ring.sum()} half=${half} newest=${ring.newest()} range=${ring.max() - ring.min()} full=${ring.isFull()}"

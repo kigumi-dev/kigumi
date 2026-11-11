@@ -14,7 +14,7 @@ import (
 // refuses the single-artifact flags with it.
 func TestBuildProgramCLI(t *testing.T) {
 	std, _ := filepath.Abs("../../../../std")
-	example, _ := filepath.Abs("../../../../examples/build_program")
+	example, _ := filepath.Abs("../../../../examples/build_system")
 	code, out, errOut := clitest.Execute(t, "--std", std, "build", "--plan", example, "--", "--big")
 	if code != 0 || !strings.Contains(out, "\"big\"") || !strings.Contains(out, "\"order\"") {
 		t.Fatalf("plan: exit %d\n%s%s", code, out, errOut)

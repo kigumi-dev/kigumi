@@ -1,0 +1,170 @@
+#!/usr/bin/env kigumi
+
+// Concurrency: a future is lazy until awaited, children are structured, and
+// every executor is an explicit value. The same program runs under the hosted
+// profile and under `--blocking-executor isr`: nothing here needs OS threads.
+import alloc from std/alloc
+import atomic from std/atomic
+import sync from std/sync
+import task from std/task
+
+// ---------------------------------------------------------------------------
+// Lazy futures and spawn
+// ---------------------------------------------------------------------------
+async fn label(name: String) -> String {
+    print "future: running ${name}"
+    name
+}
+
+async fn futures() -> String {
+    let lazy = label("first")
+    print "future: built, nothing has run yet"
+    let first = await lazy
+    let child = task.spawn(label("child"))
+    print "future: child spawned"
+    let second = await child
+    "${first} then ${second}"
+}
+
+// ---------------------------------------------------------------------------
+// Structured children and cancellation
+// A child the parent never awaits is cancelled when the parent's scope closes,
+// and the executor joins it before the root future completes.
+// ---------------------------------------------------------------------------
+type Guard = resource {
+    name String
+}
+
+fn Guard.drop(move self) {
+    print "cancel: dropped ${self.name}"
+}
+
+// The request was made before this task ever polled, yet both checks see it:
+// cancellation is sticky, and it survives until the task observes it.
+async fn honours() -> Int {
+    let guard = Guard { name: "honours" }
+    let first = task.cancelRequested()
+    let second = task.cancelRequested()
+    print "cancel: honours requested=${first} still=${second}"
+    0
+}
+
+// This child ignores the request. Its synchronous work finishes, then the
+// next suspension point abandons the frame and drops the guard.
+async fn ignores() -> Int {
+    let guard = Guard { name: "ignores" }
+    let mut total = 0
+    for i in 1..=4 {
+        total = total + i
+    }
+    print "cancel: ignores computed ${total}"
+    await task.yieldNow()
+    print "cancel: ignores resumed"
+    total
+}
+
+async fn structured() -> Int {
+    let a = task.spawn(honours())
+    let b = task.spawn(ignores())
+    print "cancel: parent leaves without awaiting"
+    0
+}
+
+// `Task.cancel` asks a task to stop at its next suspension point. A task that
+// has not polled yet still observes the sticky request and leaves through its
+// own return, so awaiting it yields that value instead of a cancellation.
+async fn cooperates() -> Int {
+    if task.cancelRequested() {
+        print "cancel: cooperates saw the request"
+        return 42
+    }
+    print "cancel: cooperates ran unrequested"
+    0
+}
+
+async fn explicit() -> Int {
+    let job = task.spawn(cooperates())
+    job.cancel()
+    let value = await job
+    print "cancel: explicit cancel returned ${value}"
+    0
+}
+
+// ---------------------------------------------------------------------------
+// The blocking pool
+// `run` crosses the pool's boundary instead of calling the work directly, and
+// a slot stays held from `run` until the result is awaited or dropped. An
+// executor with worker threads would run the closure on one of them, keeping
+// the driving task free; the current-thread executor, and strict profiles
+// such as `--blocking-executor isr`, run it on the caller instead.
+// ---------------------------------------------------------------------------
+fn crunch(seed: Int) -> Int {
+    let mut total = 0
+    for i in 1..=2000 {
+        total = (total + i * seed) % 1000003
+    }
+    total
+}
+
+async fn offload() -> Int {
+    let pool = task.BlockingPool.new(1)
+    let first = pool.run(() => crunch(3)) || {
+        print "blocking: pool refused the first job"
+        return 0
+    }
+    match pool.run(() => crunch(5)) {
+        Ok(_) -> print "blocking: second job accepted"
+        Err(e) -> print "blocking: refused: ${e.message()}"
+    }
+    print "blocking: awaiting the result"
+    let value = await first
+    print "blocking: crunch = ${value}"
+    value
+}
+
+// ---------------------------------------------------------------------------
+// Atomic state and one-shot coordination
+// Four children share one AtomicU64; the count is read after every child has
+// been awaited, so the output does not depend on scheduling order.
+// ---------------------------------------------------------------------------
+async fn bump(counter: alloc.Shared[atomic.AtomicU64]) -> Int {
+    counter.withMut((cell) => {
+        unsafe {
+            let _ = cell.add(1, atomic.RmwOrder.AcqRel)
+        }
+    })
+    1
+}
+
+async fn tally() -> Int {
+    let counter = alloc.Shared.new(atomic.AtomicU64.new(0))
+    let a = task.spawn(bump(counter.clone()))
+    let b = task.spawn(bump(counter.clone()))
+    let c = task.spawn(bump(counter.clone()))
+    let d = task.spawn(bump(counter.clone()))
+    let mut workers = 0
+    workers = workers + await a
+    workers = workers + await b
+    workers = workers + await c
+    workers = workers + await d
+    let total = counter.with((cell) => unsafe {
+        cell.load(atomic.LoadOrder.Acquire)
+    })
+    let seen = counter.withMut((cell) => unsafe {
+        cell.swap(0, atomic.RmwOrder.AcqRel)
+    })
+    print "atomic: ${workers} workers, counter ${total}, swap saw ${seen}"
+
+    let mut once = sync.Once.new()
+    _ = await once.call(() => print "once: first caller ran it")
+    _ = await once.call(() => print "once: second caller skipped it")
+    print "once: done=${once.done()}"
+    total.toInt() || 0
+}
+
+let ex = task.currentThreadExecutor()
+print "futures: ${ex.runToCompletion(futures())}"
+print "structured: ${ex.runToCompletion(structured())}"
+print "explicit: ${ex.runToCompletion(explicit())}"
+print "offload: ${ex.runToCompletion(offload())}"
+print "tally: ${ex.runToCompletion(tally())}"

@@ -1,0 +1,26 @@
+import text from std/text
+
+/// "[title] body" assembled in a fixed ByteBuffer; allocation failure is reportable.
+pub pure fn banner(title: String, body: String) -> Result[String, AllocError] {
+    let mut buf = ByteBuffer.tryNew(title.len() + body.len() + 4)?
+    buf.set(0, 91)
+    buf.copyFromString(1, title, 0, title.len())
+    buf.set(1 + title.len(), 93)
+    buf.set(2 + title.len(), 32)
+    buf.copyFromString(3 + title.len(), body, 0, body.len())
+    AllocError.wrap(buf.freezeString())
+}
+
+/// The first `max` graphemes, with an ellipsis when s is longer.
+pub pure fn clip(s: String, max: usize) -> String {
+    let parts = text.graphemes(s)
+    if parts.len() <= max {
+        return s
+    }
+    let mut out = text.StringBuilder.new()
+    for part in parts[0..max] {
+        out.push(part)
+    }
+    out.push("...")
+    out.freeze() || s
+}

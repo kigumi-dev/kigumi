@@ -1,0 +1,19 @@
+Module {
+    name: "ffi_native"
+    kigumi: "0.1"
+    zig: "0.17.0"
+}
+
+// Import native/helper.h as the package `c/helper`: every struct becomes a
+// `layout(C)` record and every function an `extern(C)` declaration, so no
+// signature is written twice.
+Header {
+    path: "native/helper.h"
+    package: "helper"
+}
+
+// Compile the C implementation into the binary next to the generated code.
+Source { c: "native/helper.c" }
+
+// helper.c calls sqrt, so the link step needs the C math library.
+Link { library: "m" }

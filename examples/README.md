@@ -1,52 +1,70 @@
 # Examples
 
-Each directory is a small Kigumi module: `mod.kg` marks the module root,
-`main.kg` next to it is the entry script, and libraries sit in their own
-directories (see `testing/numbers/`). Every `main.kg` starts with
-`#!/usr/bin/env kigumi` and is executable, so it can run directly, through the
-VM, or as a native executable:
+Eight examples, each built around one theme. Read them in `order`: every one
+is a complete Kigumi module with `mod.kg` at its root, a runnable `main.kg`
+(or a `build.kg` build program), and a deterministic expected output where the
+harness can run it.
 
 ```
-./examples/hello/main.kg
-kigumi run examples/hello
-kigumi build examples/hello -o hello && ./hello
-kigumi test examples/testing
+./examples/tour/main.kg                      # a shebang entry runs directly
+kigumi run examples/tour                     # through the VM
+kigumi build examples/tour -o tour && ./tour # as a native executable
+kigumi test examples/data_tools              # its *_test.kg blocks
+kigumi build examples/build_system --out-dir /tmp/bs -- --big
 ```
 
-`catalog.json` declares what each example is checked by: `run-output` runs it
-through the VM and as a native build and compares stdout against
-`expect.txt`, `test-only` relies on its `_test.kg` blocks instead, and
-`build-graph` is driven by its own `build.kg`-specific test. `go test
-./internal/toolchain/driver` checks every example against its catalog entry, so a
-missing or unreadable `expect.txt` fails the build unless the catalog says
-why; the examples double as an end-to-end test suite. `args.txt` and
-`stdin.txt` supply arguments and input where an example needs them.
+## Catalog
 
-Start at the top and read down.
+`catalog.json` is the single source for the table below and for the harness:
 
-| Example | Shows |
-|---|---|
-| [hello](hello/) | The smallest program. |
-| [basics](basics/) | Bindings, integers and floats, `if`/`match`, ranges, strings. |
-| [fizzbuzz](fizzbuzz/) | Functions and `if` as an expression. |
-| [fibonacci](fibonacci/) | Recursion and loops with mutable bindings. |
-| [records_and_variants](records_and_variants/) | Records with methods, sum types, `match` and `is` patterns. |
-| [closures](closures/) | Lambdas, captures, `map`/`filter`/`fold`, generic function composition. |
-| [generics](generics/) | Interfaces, generic functions with bounds, boxed interface values, `Map`. |
-| [errors](errors/) | Error variants, `?`, `||` fallbacks, `fail`, `error.context`. |
-| [resources](resources/) | Resource types with `drop`/`close`, `defer` and `defer(fail)`. |
-| [sorting](sorting/) | `sortedBy` with comparison closures, `compareTo`. |
-| [cli_args](cli_args/) | Reading command line arguments with `std/cli`: flags, positional arguments and help (`args.txt`). |
-| [word_count](word_count/) | Reading stdin, `Map` tallies, sorting entries (`stdin.txt`). |
-| [file_io](file_io/) | `fs`: directories, writing, reading, listing, removing. |
-| [json](json/) | Encoding records with field metadata. |
-| [shell_pipeline](shell_pipeline/) | `$"..."` command plans, `grep` stages, capturing output. |
-| [testing](testing/) | A library package with `_test.kg` blocks run by `kigumi test`. |
-| [game_of_life](game_of_life/) | A larger program: consts, `usize` indices, nested loops. |
-| [dependency](dependency/) | `mod.kg` with `Require`, `mod.local.kg` with `Replace`: importing another module's packages. |
-| [ffi](ffi/) | Calling C functions through `extern(C)` (`kigumi build` only). |
-| [async](async/) | `async fn` calls as lazy futures, `await`, `task.spawn`, and the current-thread executor. |
-| [http_api](http_api/) | `std/http`: a JSON API with routing, path parameters and middleware, called by the client in the same program, then shut down. |
-| [comptime](comptime/) | `comptime { }` blocks evaluated by the compiler into literals. |
-| [build_program](build_program/) | `build.kg`: a freestanding library, a registered tool generating C, and a host executable from one graph (`kigumi build` only). |
-| [repostat](repostat/) | The example program from the language spec: shell, JSON, allocators, several packages. |
+- `order` / `level`: reading order, independent of directory names.
+- `entry`: the entry file under the example root.
+- `oracle`: `run-output` (run and compare stdout with `expect.txt`),
+  `test-only` (only `_test.kg` checks), or `build-graph` (driven by `build.kg`).
+- `backends`: `vm`, `native`, or both. A native-only example still type-checks.
+- `modes`: extra runner modes, such as `secret-san` (VM constant-time shadow
+  checker), `blocking-executor` (the strict async profile) or `reproducible`
+  (a build-graph byte-for-byte rebuild).
+- `requires`: capability codes (`c-compiler`, `filesystem`, `shell`,
+  `network-loopback`, `linux-x86-64`); a missing capability skips the example
+  with that code instead of silently passing.
+- `features`: canonical tags from `features.json`.
+- `blocked_by`: in `features.json`, an unimplemented spec ID that no example
+  may claim. Blocked features are not faked.
+
+`features.json` lists every tag some example must demonstrate plus the blocked
+tags and their IDs (for example `pub(in ...)` was removed in v2.8 and reports
+`E133`, so it is blocked rather than written into an example).
+
+## Files the harness uses
+
+`expect.txt` is the exact stdout the example must print, on every declared
+backend and mode. `args.txt` (whitespace-separated) supplies argv and
+`stdin.txt` supplies input. The runner uses a fresh temporary working directory,
+so examples write only relative paths and never print temp names, ports or
+timestamps.
+
+| Example | Level | Shows | Covers |
+|---|---|---|---|
+| [tour](tour/) | beginner | A guided tour of Kigumi: entry, numeric widths, text, records, patterns, generics, errors, loops and comptime. | lang.entry, lang.binding, lang.numeric, lang.numeric.i128, lang.numeric.ops, lang.text, lang.text.buffers, lang.record, lang.adt, lang.pattern, lang.option, lang.generics, lang.error, lang.loop, lang.comptime |
+| [ownership](ownership/) | intermediate | Ownership and memory: resources, defer, partial moves, borrows, Box, Shared/Weak, arenas and stack arrays. | mem.resource, mem.move, mem.borrow, mem.rc, mem.box, mem.arena, mem.effects, mem.fixed |
+| [data_tools](data_tools/) | intermediate | A data tool: std/cli, stdin, files, a shell pipeline, JSON/schema, visibility, Require/Replace and module tests. | io.cli, io.stdin, io.fs, io.shell, io.json, module.visibility, module.require, module.test, lang.error |
+| [concurrency](concurrency/) | advanced | Async, await, task.spawn, structured children, cancellation, a blocking pool and atomics. | async.future, async.cancel, async.blocking, sync.atomic |
+| [ffi_native](ffi_native/) | advanced | The C ABI: Header/Source/Link, extern(C), layout(C), export(C), CString/CValue/Pin, asm and dl. | ffi.extern, ffi.layout, ffi.export, ffi.memory, ffi.link, ffi.asm, ffi.dl |
+| [build_system](build_system/) | advanced | build.kg: a Framework, a code-generating Tool, a freestanding archive and a linked host executable. | build.graph, build.freestanding, build.reproducible |
+| [http_service](http_service/) | advanced | std/net/http: a loopback server and client with routing, middleware, JSON, status codes, timeouts and shutdown. | net.http, io.json |
+| [secret](secret/) | advanced | std/secret and std/crypto: SecretU, Choice, constant-time compare/select, SecretBuffer, SecretIndex, SHA-256 and HMAC. | secret.ct, secret.buffer, crypto.hash |
+
+## Checking the examples
+
+```
+go test ./internal/toolchain/driver -run 'TestExamples|TestExampleModules|TestUnitExamplesMatchWholeCheck|TestExampleCoverage|TestExampleDensity|TestExamplesReadmeMatchesCatalog|TestBuildProgramExample'
+kigumi fmt --check examples
+```
+
+`TestExampleModules` runs each run-output example on its backends and modes,
+`TestBuildProgramExample` executes each build-graph example, `TestExamples`
+parses and formats every `.kg`, `TestUnitExamplesMatchWholeCheck` compares unit
+and whole-module checks, `TestExampleCoverage` checks `features.json` against
+the catalog, and `TestExampleDensity` keeps the set from decaying into
+fragments or growing into one unreadable program.

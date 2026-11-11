@@ -1,0 +1,166 @@
+#!/usr/bin/env kigumi
+
+// Ownership and memory: resources, moves, borrows, ARC, effects and arenas.
+
+import {Arena, Block, Box, Busy, Shared, Weak} from std/alloc
+import {BoundedArray} from std/array
+import test from std/test
+import pool from ownership/pool
+
+// 1. A resource is move-only: close moves and may fail, drop is the fallback,
+// defer runs on every exit and defer(fail) only when the scope fails.
+type Ticket = resource {
+    pub id Int
+}
+
+fn Ticket.drop(move self) {
+    print "  drop ticket ${self.id}"
+}
+
+fn Ticket.close(move self) -> Void! {
+    print "  close ticket ${self.id}"
+}
+
+fn hold(id: Int, limit: Int) -> Void! {
+    let t = Ticket { id: id }
+    defer print "  defer on exit"
+    defer(fail) print "  rollback"
+    if limit < 2 {
+        fail test.failure("limit ${limit}")
+    }
+    t.close()?
+}
+
+hold(1, 3) || (e) => print "  error ${e.message()}"
+hold(2, 1) || (e) => print "  error ${e.message()}"
+
+// 2. Partial move: one field leaves the record; a fresh value restores it.
+type Shelf = {
+    pub mut slot Ticket
+    pub label String
+}
+
+{
+    let mut shelf = Shelf {
+        slot: Ticket { id: 3 }
+        label: "spare"
+    }
+    let taken = move shelf.slot
+    shelf.slot = Ticket { id: 2 }
+    print "refilled ${taken.id + shelf.slot.id}"
+}
+
+// 3. &T reads, &mut T writes through a method, two disjoint fields are exclusive
+// at once, and a slice is a read-only view.
+type Pair = {
+    pub mut a Array[u8]
+    pub mut b Array[u8]
+}
+
+let mut pair = Pair {
+    a: Array.empty[u8]()
+    b: Array.empty[u8]()
+}
+let r = &mut pair.a
+let s = &mut pair.b
+r.push(1)
+s.push(2)
+let shared = &pair.a
+let slice = pair.b[0..1]
+print "borrowed ${shared.len()} ${pair.b.len()} slice ${slice.len()} ${slice[0]}"
+
+// 4. A Box owns one value: with lends it, withMut changes it, into returns it.
+let mut cell = Box.new(Array.of(1, 2))
+cell.withMut((xs: &mut Array[Int]) => xs.push(3))
+print "box ${cell.with((xs: &Array[Int]) => xs.len())} ${cell.into().len()}"
+
+// 5. The pool boxes items, accounts in a Shared cell and lends a Weak observer.
+let mut p = pool.Pool.new()
+p.add("alpha", 3)
+p.add("beta", 9)
+p.touch()
+let watcher = p.observer()
+match watcher.upgrade() {
+    Some(s) -> print "  pool ${p.describe(1)} hits ${s.get().hits}"
+    None -> print "  pool gone"
+}
+
+// 6. The named-lifetime accessor borrows both items for 'a and returns one.
+let probe = pool.item("probe", 5)
+print "largest ${pool.larger(&pool.item("small", 2), &probe).name}"
+
+// 7. A strong self-cycle leaks its cell; a Weak back edge breaks the cycle.
+type Node = {
+    pub mut next Shared[Node]?
+    pub mut back Weak[Node]?
+}
+
+fn ring(strongBack: Bool) -> Weak[Node] {
+    let a = Shared.new(Node {
+        next: None
+        back: None
+    })
+    let copy = a.clone()
+    a.withMut((n: &mut Node) => {
+        if strongBack {
+            n.next = Some(copy.clone())
+        } else {
+            n.back = Some(copy.downgrade())
+        }
+    })
+    a.downgrade()
+}
+
+print "cycle strong alive ${ring(true).upgrade() is Some(_)}"
+print "cycle weak alive ${ring(false).upgrade() is Some(_)}"
+
+// 8. noalloc promises no allocation and FixedArray keeps its length in the type;
+// pure? carries a pure or an effectful callee through the same field.
+type View = {
+    pub render pure? fn(Int) -> Int
+}
+
+let quiet = View { render: (x: Int) => x * 2 }
+let noisy = View { render: (x: Int) => {
+    print "  logging ${x}"
+    x + 1
+} }
+
+noalloc fn stackSum(seed: Int) -> Int {
+    let mut fa = FixedArray.filled[Int, 3](seed)
+    fa[1] = fa[0] + 1
+    let mut s = 0
+    for x in fa {
+        s = s + x
+    }
+    s + (fa.len().toInt() || 0)
+}
+
+let mut fixed = FixedArray.filled[Int, 4](0)
+fixed[0] = 5
+let mut bounded = BoundedArray[Int, 3].new()
+bounded.push(10)
+bounded.push(20)
+bounded.push(30)
+print "noalloc ${stackSum(4)} pure ${quiet.render(3)} mixed ${noisy.render(3)}"
+print "fixed ${fixed.len()} ${fixed.get(0) || -1} bounded ${bounded.len()}/${bounded.capacity()} ${bounded.get(0) || -1} full ${bounded.tryPush(40) is Err(_)}"
+
+// 9. An allocator block sends its allocations to the arena; a nested block shares
+// that arena, and reset/close report whether anything is still live.
+fn arenaState(r: Result[Void, Busy]) -> String {
+    match r {
+        Ok(_) -> "ok"
+        Err(_) -> "busy"
+    }
+}
+
+let arena = Arena.create()?
+let kept = allocator arena.scope() {
+    let mut b = Block.new(4)
+    b.set(0, 7)
+    let inner = allocator arena.scope() {
+        Block.new(2).len()
+    }
+    b.get(0).toInt() + (inner.toInt() || 0)
+}
+print "  kept ${kept} reset ${arenaState(arena.reset())} close ${arenaState(arena.close())} again ${arenaState(arena.close())}"

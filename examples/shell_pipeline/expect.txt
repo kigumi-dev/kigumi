@@ -1,3 +1,0 @@
-match: apple
-match: avocado
-pipeline ok
