@@ -21,6 +21,9 @@ func (m *Machine) std(key string, a []*obj) *obj {
 		return nil
 	}
 	a0, a1, a2 := arg(0), arg(1), arg(2)
+	if r := m.simdFn(key, a, a0, a1); r != nil {
+		return r
+	}
 	if r := m.collection(key, a, a0, a1, a2); r != nil {
 		return r
 	}

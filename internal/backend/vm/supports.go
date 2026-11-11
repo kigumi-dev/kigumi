@@ -150,6 +150,8 @@ func (m *Machine) supportsInst(in *midir.Inst) string {
 // knownPrimitives lists branch witnesses dispatched by OpBuiltin, so they carry no registry entry of their own.
 var knownPrimitives = map[string]bool{
 	"prelude.Bool.branch": true, "prelude.Option.branch": true, "prelude.Result.branch": true,
+	"simd.Vec.splat": true, "simd.Vec.fromArray": true, "simd.Vec.toArray": true,
+	"simd.Vec.add": true, "simd.Vec.sub": true, "simd.Vec.mul": true,
 }
 
 // primitiveKnown also accepts KindPrimitive registry entries and `.to...` conversions, which callEntity lowers without a registry entry.

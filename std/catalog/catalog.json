@@ -62,6 +62,7 @@
     {"path": "std/secret/oram", "layer": "allocation", "stability": "experimental", "audience": "user", "support": "best-effort", "visibility": "public", "availability": {"sys": ["freestanding", "none", "hosted"], "targets": ["all"]}},
     {"path": "std/shell", "layer": "platform", "stability": "stable", "audience": "user", "support": "supported", "visibility": "public", "availability": {"sys": ["hosted"], "targets": ["all"]}},
     {"path": "std/shell/coreutil", "layer": "platform", "stability": "provisional", "audience": "internal", "support": "best-effort", "visibility": "internal", "availability": {"sys": ["hosted"], "targets": ["all"]}},
+    {"path": "std/simd", "layer": "foundation", "stability": "provisional", "audience": "user", "support": "best-effort", "visibility": "public", "availability": {"sys": ["freestanding", "none", "hosted"], "targets": ["all"]}},
     {"path": "std/sort", "layer": "allocation", "stability": "stable", "audience": "user", "support": "supported", "visibility": "public", "availability": {"sys": ["freestanding", "none", "hosted"], "targets": ["all"]}},
     {"path": "std/sync", "layer": "foundation", "stability": "stable", "audience": "user", "support": "supported", "visibility": "public", "availability": {"sys": ["freestanding", "none", "hosted"], "targets": ["all"]}},
     {"path": "std/sys", "layer": "platform", "stability": "stable", "audience": "user", "support": "best-effort", "visibility": "public", "availability": {"sys": ["hosted"], "targets": ["all"]}},

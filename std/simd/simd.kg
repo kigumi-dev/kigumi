@@ -1,0 +1,39 @@
+/// Exactly N lanes of T, held as one 128-bit vector: a lane-wise add,
+/// subtract or multiply lowers to one instruction on x86-64 and AArch64 and
+/// falls back to a lane loop elsewhere. N times T's width must be 128 bits,
+/// and T must be i8, i16, i32, i64, u8, u16, u32, u64, f32 or f64.
+pub type Vec[T, const N: usize] = {
+    mut lanes FixedArray[T, N]
+}
+
+/// A vector with value in every lane.
+pub pure noalloc fn Vec.splat[T: Copy, const N: usize](value: T) -> Vec[T, N]
+
+/// The vector holding lanes, the same bits in the same order.
+pub pure fn Vec.fromArray[T: Copy, const N: usize](lanes: FixedArray[T, N]) -> Vec[T, N] {
+    Vec { lanes: lanes }
+}
+
+/// This vector's lanes as a FixedArray, the same bits in the same order.
+pub pure noalloc fn Vec[T, N].toArray(move self) -> FixedArray[T, N] {
+    self.lanes
+}
+
+/// The lane at index; traps when index is out of range.
+pub pure fn Vec[T: Copy, N].lane(self, index: usize) -> T {
+    self.lanes[index]
+}
+
+/// Replaces the lane at index; traps when index is out of range.
+pub pure fn Vec[T: Copy, N].setLane(mut self, index: usize, value: T) {
+    self.lanes[index] = value
+}
+
+/// The lane-wise sum, wrapping at the lane's width for integer lanes.
+pub pure noalloc fn Vec[T: Copy, N].add(self, other: Vec[T, N]) -> Vec[T, N]
+
+/// The lane-wise difference, wrapping at the lane's width for integer lanes.
+pub pure noalloc fn Vec[T: Copy, N].sub(self, other: Vec[T, N]) -> Vec[T, N]
+
+/// The lane-wise product, wrapping at the lane's width for integer lanes.
+pub pure noalloc fn Vec[T: Copy, N].mul(self, other: Vec[T, N]) -> Vec[T, N]

@@ -25,7 +25,12 @@ func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 	case midir.OpCall:
 		m.callTicks(f, in, fr.locals)
 		m.tryBare = in.DPrim == opdef.DPTryRef || in.DPrim == opdef.DPTryOpt
+		prevRet := m.callRet
+		if int(in.Dst) < len(f.Locals) {
+			m.callRet = f.Locals[in.Dst].Type
+		}
 		res = m.callPlanned(in, ic, args)
+		m.callRet = prevRet
 		m.tryBare = false
 		if m.p.ResultBoxed(f, *in) {
 			m.scalarTick(res)

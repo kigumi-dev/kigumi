@@ -86,6 +86,9 @@ type Machine struct {
 	// site is the call being dispatched, for primitives whose meaning
 	// depends on the argument types at the call (ffi.sizeOf).
 	site *midir.Inst
+	// callRet is the result type of the call being dispatched, for a
+	// primitive whose generic result the arguments do not name (Vec.splat).
+	callRet sem.TypeID
 	// tryBare: the call being dispatched returns its Ok payload without the Result variant (rt_d_try).
 	tryBare    bool
 	siteFn     *midir.Func

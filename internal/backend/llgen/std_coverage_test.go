@@ -17,6 +17,8 @@ var lowered = map[string]bool{
 	"error.as": true, "mem.volatileRead": true, "mem.volatileWrite": true, "mem.volatileReadAt": true, "mem.volatileWriteAt": true,
 	"mem.atomicLoad": true, "mem.atomicStore": true, "mem.atomicExchange": true, "mem.atomicCompareExchange": true, "mem.atomicAdd": true,
 	"mem.atomicSub": true, "mem.atomicAnd": true, "mem.atomicOr": true, "mem.atomicXor": true,
+	"simd.Vec.splat": true, "simd.Vec.fromArray": true, "simd.Vec.toArray": true,
+	"simd.Vec.add": true, "simd.Vec.sub": true, "simd.Vec.mul": true,
 }
 
 // conversionKey matches the numeric `toX` methods, which callEntity lowers

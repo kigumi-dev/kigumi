@@ -108,6 +108,7 @@ var (
 	cAmbiguousMember         = defineCode("E973", "ambiguous-member", "`{name}` is ambiguous between `{a}` and `{b}`; write a narrower helper generic function bound to only one of them and call through it")
 	cAsmRegisterWidth        = defineCode("E975", "asm-register-width", "an explicit register takes an operand of exactly its width: `{reg}` is {bits} bits, but `{type}` is {typebits} bits; use a {typebits}-bit register or convert the value")
 	cLayoutAlign             = defineCode("E974", "layout-align", "`layout(C, align: N)`'s alignment must be a power of two no greater than {max}, found `{n}`")
+	cSimdShape               = defineCode("E976", "simd-shape", "`{type}` cannot be a SIMD vector: {why}")
 
 	cImportUnused          = defineCode("W100", "import-unused", "unused import `{name}`")
 	cVisRedundantPub       = defineCode("W200", "vis-redundant-pub", "redundant `pub` on an interface requirement")

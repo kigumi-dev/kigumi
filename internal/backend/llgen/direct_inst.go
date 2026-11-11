@@ -61,6 +61,9 @@ func (e *emitter) tryDirectInst(sb *strings.Builder, f *midir.Func, in midir.Ins
 			return true
 		}
 	case midir.OpCall:
+		if e.trySimdCall(sb, f, in) {
+			return true
+		}
 		if in.DPrim != opdef.DPNone {
 			e.directPrimCall(sb, f, in)
 			return true
