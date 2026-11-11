@@ -52,7 +52,7 @@ var allowed = map[string][]string{
 	"compiler/mir/unwind":           {"compiler/mir/ir", "compiler/mir/flow", "compiler/sem"},
 	"compiler/mir/mobility":         {"lang/diag", "compiler/syntax", "compiler/sem", "compiler/mir", "compiler/mir/flow", "compiler/mir/ir", "compiler/mir/ops"},
 	"compiler/mir/build":            {"lang/diag", "compiler/syntax", "compiler/sem", "compiler/hir", "compiler/mir", "compiler/mir/ir", "compiler/mir/mobility", "compiler/mir/ops", "compiler/mir/ownership", "compiler/mir/ownership/borrow", "compiler/mir/reach"},
-	"backend/llgen":                 {"lang/token", "lang/diag", "compiler/syntax", "compiler/sem", "compiler/mir", "compiler/sem/asmtable", "compiler/mir/ops", "compiler/mir/ir", "compiler/mir/layout", "compiler/mir/ownership", "compiler/mir/reach", "compiler/mir/unwind", "backend/llgen/ir", "backend/llgen/runtimegen"},
+	"backend/llgen":                 {"lang/token", "lang/diag", "lang/target", "compiler/syntax", "compiler/sem", "compiler/mir", "compiler/sem/asmtable", "compiler/mir/ops", "compiler/mir/ir", "compiler/mir/layout", "compiler/mir/ownership", "compiler/mir/reach", "compiler/mir/unwind", "backend/llgen/ir", "backend/llgen/runtimegen"},
 	"backend/llgen/ir":              {},
 	"backend/llgen/runtimegen":      {},
 	"base/hashkey":                  {},
@@ -61,7 +61,7 @@ var allowed = map[string][]string{
 	"toolchain/zig/fetch":           {"toolchain/zig/store"},
 	"devkit/zigrelease":             {"toolchain/zig/fetch"},
 	"toolchain/zig/source":          {"toolchain/zig/store"},
-	"interop/cheader":               {"toolchain/zig"},
+	"interop/cheader":               {"toolchain/zig", "lang/target"},
 	"devkit/fixture":                {},
 	"devkit/pty":                    {},
 	"tooling/repl":                  {},
@@ -92,10 +92,11 @@ var allowed = map[string][]string{
 	"cli/cmd/mod":                   {"cli/session", "cli/exit", "toolchain/driver", "base/errors", "toolchain/version", "toolchain/module"},
 	"cli/cmd/zig":                   {"cli/session", "base/errors", "toolchain/version", "compiler/sem", "toolchain/zig", "toolchain/zig/store", "toolchain/zig/fetch", "toolchain/zig/source", "toolchain/module"},
 	"cli/cmd/expand":                {"cli/session", "cli/exit", "toolchain/driver", "toolchain/contract/schema", "toolchain/version", "base/errors"},
+	"cli/cmd/lint":                  {"base/errors", "base/fsx", "cli/exit", "cli/session", "compiler/sem", "lang/diag", "toolchain/driver"},
 	"cli/cmd/emit":                  {"cli/session", "cli/exit", "toolchain/driver", "toolchain/contract/schema", "toolchain/version", "compiler/sem", "base/errors"},
 	"toolchain/contract/schema":     {"lang/token", "lang/diag", "compiler/syntax", "compiler/sem", "toolchain/version", "base/platform"},
 	"tooling/doc":                   {"lang/token", "lang/diag", "compiler/syntax", "compiler/sem", "toolchain/driver", "base/errors", "toolchain/version", "toolchain/contract/schema", "base/fsx"},
-	"cli":                           {"toolchain/version", "cli/cmd/build", "cli/cmd/check", "cli/cmd/doc", "cli/cmd/doctor", "cli/cmd/fmt", "cli/cmd/get", "cli/cmd/lsp", "cli/cmd/mod", "cli/cmd/parse", "cli/cmd/run", "cli/cmd/repl", "cli/cmd/schema", "cli/cmd/test", "cli/exit", "base/errors", "cli/cmd/explain", "cli/session", "lang/diag", "cli/cmd/zig", "cli/cmd/expand", "cli/cmd/emit"},
+	"cli":                           {"toolchain/version", "cli/cmd/build", "cli/cmd/check", "cli/cmd/doc", "cli/cmd/doctor", "cli/cmd/fmt", "cli/cmd/get", "cli/cmd/lsp", "cli/cmd/mod", "cli/cmd/parse", "cli/cmd/run", "cli/cmd/repl", "cli/cmd/schema", "cli/cmd/test", "cli/exit", "base/errors", "cli/cmd/explain", "cli/session", "lang/diag", "cli/cmd/zig", "cli/cmd/expand", "cli/cmd/emit", "cli/cmd/lint"},
 }
 
 func TestDependencyDAG(t *testing.T) {
