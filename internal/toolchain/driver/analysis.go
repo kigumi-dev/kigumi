@@ -163,11 +163,13 @@ func buildProgram(res *sem.Result, o progOptions) (*mir.Program, error) {
 	prog.Resources = resbound.Compute(prog.R, prog.Funcs, prog.ByEnt)
 	resbound.SettleAsync(prog.R, prog.Funcs, prog.Resources)
 	prog.Diags = append(prog.Diags, resbound.CheckBudget(prog.R, prog.ByEnt, prog.Resources, resbound.Options{Strict: o.strict, BudgetKiB: o.budgetKiB})...)
-	for _, d := range prog.Diags {
-		res.AppendDiag(d.File, d.Diag)
-	}
-	for _, c := range claimDiags(prog) {
-		res.AppendDiag(c.File, c.Diag)
+	if !res.Sealed() {
+		for _, d := range prog.Diags {
+			res.AppendDiag(d.File, d.Diag)
+		}
+		for _, c := range claimDiags(prog) {
+			res.AppendDiag(c.File, c.Diag)
+		}
 	}
 	if o.root != 0 {
 		prog.Entry = prog.ByEnt[o.root]
@@ -197,11 +199,13 @@ func lowerProgram(res *sem.Result, all bool, keep func(path string) bool) *mir.P
 	default:
 		prog = mirbuild.Program(res)
 	}
-	for _, f := range prog.Funcs {
-		res.AppendDiags(f.File, f.Diags)
-	}
-	for _, cf := range prog.Comptime {
-		res.AppendDiags(cf.Func.File, cf.Func.Diags)
+	if !res.Sealed() {
+		for _, f := range prog.Funcs {
+			res.AppendDiags(f.File, f.Diags)
+		}
+		for _, cf := range prog.Comptime {
+			res.AppendDiags(cf.Func.File, cf.Func.Diags)
+		}
 	}
 	return prog
 }
