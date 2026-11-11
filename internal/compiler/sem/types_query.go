@@ -26,8 +26,10 @@ func (tt *TypeTable) IsSigned(t TypeID) bool {
 	return (t >= TyI8 && t <= TyI128) || t == TyIsize || tt.IsFloat(t)
 }
 
-// Width is the bit width of a numeric type; usize and isize are 64 bits on
-// every target.
+// Width is the bit width of a numeric type; usize and isize stay 64 bits on
+// every target, which is the width their arithmetic and literals use. Only
+// the C boundary narrows them to the target's pointer width (CWidth), where
+// checkCRange traps a value that does not fit size_t or ptrdiff_t.
 func (tt *TypeTable) Width(t TypeID) int { return tt.Bits(t, 64) }
 
 // PtrBits is the target pointer width.

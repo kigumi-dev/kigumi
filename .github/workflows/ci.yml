@@ -148,6 +148,10 @@ jobs:
             goarch: amd64
           - goos: darwin
             goarch: arm64
+          - goos: linux
+            goarch: "386"
+          - goos: linux
+            goarch: arm
           - goos: windows
             goarch: amd64
           - goos: windows
@@ -290,6 +294,12 @@ jobs:
       # holds the pinned zig, not the runner image's clang.
       - run: echo "$HOME/.local/share/kigumi/zig/${{ needs.zig-version.outputs.version }}" >> "$GITHUB_PATH"
         if: matrix.zig == 'yes'
+      # linux/386 runs on the amd64 kernel; linux/arm needs the user-mode
+      # emulator for the AOT smoke test that executes what it cross-built.
+      - if: matrix.driver == 'yes'
+        run: sudo apt-get update && sudo apt-get install -y qemu-user
+      - if: matrix.driver == 'yes'
+        run: go test -run '^TestTarget32CrossBuildRuns$' -count=1 -timeout 10m ./internal/toolchain/driver/
       - if: matrix.driver == 'yes'
         run: go test -timeout 120m -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} ${{ matrix.count }} kigumi/internal/toolchain/driver aot)" ./internal/toolchain/driver/
         env:
@@ -319,7 +329,7 @@ jobs:
           key: kigumi-zig-${{ runner.os }}-${{ runner.arch }}-${{ needs.zig-version.outputs.version }}
       - run: go run . zig install ${{ needs.zig-version.outputs.version }}
       - run: echo "$HOME/.local/share/kigumi/zig/${{ needs.zig-version.outputs.version }}" >> "$GITHUB_PATH"
-      - run: sudo apt-get update && sudo apt-get install -y qemu-system-x86 ovmf
+      - run: sudo apt-get update && sudo apt-get install -y qemu-system-x86 ovmf ovmf-ia32 qemu-user
       - run: |
           OVMF=
           for f in /usr/share/ovmf/OVMF.fd /usr/share/OVMF/OVMF_CODE*.fd; do

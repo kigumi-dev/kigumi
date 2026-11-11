@@ -27,18 +27,18 @@ func (e *emitter) markLent(sb *strings.Builder, in midir.Inst, nbound int, captu
 // lentMask sets bit i when call argument i lands in a parameter of ent that only borrows it: a function's lent
 // parameter beside the nbound operands its env binds, or a closure's `&T` parameter. Bit 31 marks the mask as complete.
 func (e *emitter) lentMask(ent sem.EntityID, trails bool, nbound int) int {
-	mask := 1 << 31
+	mask := uint32(1) << 31
 	switch e.r.Entity(ent).Kind {
 	case sem.EntFn:
 		for i := 0; midir.ArgParam(trails, nbound, i) < e.paramCount(ent) && i < 31; i++ {
 			if e.p.ParamLent(ent, midir.ArgParam(trails, nbound, i)) {
-				mask |= 1 << i
+				mask |= 1 << uint(i)
 			}
 		}
 	case sem.EntClosure:
 		for i, prm := range e.r.Closure(ent).Params {
 			if i < 31 && e.r.Types.Kind(e.r.Entity(prm).Type) == sem.KRef {
-				mask |= 1 << i
+				mask |= 1 << uint(i)
 			}
 		}
 	}

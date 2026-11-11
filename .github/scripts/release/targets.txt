@@ -3,7 +3,9 @@
 # and adding one adds the target to the workflow matrix and release manifest.
 darwin/amd64
 darwin/arm64
+linux/386
 linux/amd64
+linux/arm
 linux/arm64
 linux/riscv64
 windows/amd64

@@ -2,6 +2,7 @@ package vm_test
 
 import (
 	"bytes"
+	"math"
 	"testing"
 
 	"kigumi/internal/backend/vm"
@@ -42,7 +43,7 @@ func TestDirectCrossingsKeepTheLiveTotalFlat(t *testing.T) {
 		t.Fatal(err)
 	}
 	var out, errOut bytes.Buffer
-	opts := vm.Options{Sandbox: true, StepLimit: 1 << 40, DepthLimit: 100, MemoryLimit: 1 << 20}
+	opts := vm.Options{Sandbox: true, StepLimit: math.MaxInt, DepthLimit: 100, MemoryLimit: 1 << 20}
 	code, err := vm.Run(prog, opts, &out, &errOut)
 	if err != nil || code != 0 || out.String() != "9999900000\n" {
 		t.Fatalf("exit %d err %v stdout %q stderr %q", code, err, out.String(), errOut.String())

@@ -113,17 +113,68 @@ static int64_t int_mul(int64_t x, int64_t y, int nk) {
     }
     return checked_i64(r, nk, over);
 }
+// A 32-bit target lowers `/` and `%` on a 64-bit value to a compiler-rt
+// call (__alldiv, __aeabi_ldivmod), which a freestanding or UEFI archive
+// cannot expect its embedder to supply; the shift-subtract loop keeps them
+// self-contained there. A 64-bit target keeps the hardware instruction.
+#if UINTPTR_MAX < UINT64_MAX
+static uint64_t udivmod64(uint64_t a, uint64_t b, int rem) {
+    uint64_t q = 0, r = 0;
+    if (b == 0) rt_panic("division by zero");
+    for (int i = 63; i >= 0; i--) {
+        int carry = (int)(r >> 63);
+        r = (r << 1) | ((a >> i) & 1);
+        if (carry || r >= b) {
+            r -= b;
+            q |= (uint64_t)1 << i;
+        }
+    }
+    return rem ? r : q;
+}
+static int64_t divmod64(int64_t x, int64_t y, int rem) {
+    uint64_t ux = x < 0 ? 0 - (uint64_t)x : (uint64_t)x;
+    uint64_t uy = y < 0 ? 0 - (uint64_t)y : (uint64_t)y;
+    uint64_t r = udivmod64(ux, uy, rem);
+    if (rem ? x < 0 : (x < 0) != (y < 0)) r = 0 - r;
+    return (int64_t)r;
+}
+#endif
+#if defined(_M_IX86)
+// The x86 MSVC C ABI (UEFI included) names its 64-bit division helpers
+// __alldiv/__aulldiv/__allrem/__aullrem instead of the __divdi3 family, and
+// no compiler-rt build for the target supplies them, so the runtime defines
+// the four from the same loop. The asm label keeps COFF's leading underscore
+// from decorating the names a second time.
+int64_t __alldiv(int64_t, int64_t) __asm__("__alldiv");
+int64_t __alldiv(int64_t x, int64_t y) { return divmod64(x, y, 0); }
+int64_t __allrem(int64_t, int64_t) __asm__("__allrem");
+int64_t __allrem(int64_t x, int64_t y) { return divmod64(x, y, 1); }
+uint64_t __aulldiv(uint64_t, uint64_t) __asm__("__aulldiv");
+uint64_t __aulldiv(uint64_t x, uint64_t y) { return udivmod64(x, y, 0); }
+uint64_t __aullrem(uint64_t, uint64_t) __asm__("__aullrem");
+uint64_t __aullrem(uint64_t x, uint64_t y) { return udivmod64(x, y, 1); }
+#endif
 static int64_t int_div(int64_t x, int64_t y, int nk) {
     if (y == 0) rt_panic("division by zero");
     if (is_signed(nk) && y == -1 && x == min_of(nk)) rt_panic("integer overflow");
+#if UINTPTR_MAX < UINT64_MAX
+    if (is_signed(nk)) return divmod64(x, y, 0);
+    return (int64_t)udivmod64((uint64_t)x, (uint64_t)y, 0);
+#else
     if (is_signed(nk)) return x / y;
     return (int64_t)((uint64_t)x / (uint64_t)y);
+#endif
 }
 static int64_t int_mod(int64_t x, int64_t y, int nk) {
     if (y == 0) rt_panic("division by zero");
     if (is_signed(nk) && y == -1 && x == min_of(nk)) rt_panic("integer overflow");
+#if UINTPTR_MAX < UINT64_MAX
+    if (is_signed(nk)) return divmod64(x, y, 1);
+    return (int64_t)udivmod64((uint64_t)x, (uint64_t)y, 1);
+#else
     if (is_signed(nk)) return x % y;
     return (int64_t)((uint64_t)x % (uint64_t)y);
+#endif
 }
 static int64_t int_xor(int64_t x, int64_t y, int nk) {
     return checked_i64(x ^ y, nk, 0);
