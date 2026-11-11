@@ -1,9 +1,11 @@
 // The TLS 1.3 key schedule (RFC 8446 §7.1) over HKDF-SHA256.
 //
-// Only the (EC)DHE key exchange is implemented: there is no PSK and no early
-// data, so the early secret is the all-zero IKM with a zero salt. Every
-// derivation is labelled and every intermediate is an ordinary `Bytes`
-// value, which is what makes the RFC 8448 traces checkable.
+// Both the (EC)DHE and the PSK key exchange are implemented. With no PSK the
+// early secret is HKDF-Extract(0, 0); with a resumption PSK it is
+// HKDF-Extract(0, PSK), which also yields the early (0-RTT) traffic secret
+// and the binder key. Every derivation is labelled and every intermediate is
+// an ordinary `Bytes` value, which is what makes the RFC 8448 traces
+// checkable.
 import hkdf from std/crypto/hkdf
 import hmac from std/crypto/hmac
 import sha256 from std/crypto/sha256
@@ -89,22 +91,69 @@ pub pure fn extract(salt: Bytes, ikm: Bytes) -> Bytes {
     hkdf.extract[sha256.Hasher](salt, ikm)
 }
 
-/// The handshake secrets from the (EC)DHE shared secret and the transcript
-/// hash of ClientHello..ServerHello.
-pub pure fn deriveHandshake(sharedSecret: Bytes, transcriptHash: Bytes) -> Result[HandshakeSecrets, Error] {
-    let zeros = Bytes.zeros(hashSize)
-    let early = extract(zeros, zeros)
+/// The early secret from a resumption PSK (RFC 8446 §7.1).
+pub pure fn earlySecret(psk: Bytes) -> Bytes {
+    extract(Bytes.zeros(hashSize), psk)
+}
+
+// The handshake stage from an early secret, the (EC)DHE shared secret and
+// the transcript hash of ClientHello..ServerHello.
+pure fn handshakeSecrets(early: Bytes, sharedSecret: Bytes, transcriptHash: Bytes) -> Result[HandshakeSecrets, Error] {
     let derivedEarly = deriveSecret(early, "derived", emptyTranscriptHash())?
     let handshake = extract(derivedEarly, sharedSecret)
     let clientSecret = deriveSecret(handshake, "c hs traffic", transcriptHash)?
     let serverSecret = deriveSecret(handshake, "s hs traffic", transcriptHash)?
     let derivedHandshake = deriveSecret(handshake, "derived", emptyTranscriptHash())?
-    let master = extract(derivedHandshake, zeros)
+    let master = extract(derivedHandshake, Bytes.zeros(hashSize))
     Ok(HandshakeSecrets {
         client: keysFor(clientSecret)?
         server: keysFor(serverSecret)?
         master: master
     })
+}
+
+/// The handshake secrets from the (EC)DHE shared secret and the transcript
+/// hash of ClientHello..ServerHello, with no PSK.
+pub pure fn deriveHandshake(sharedSecret: Bytes, transcriptHash: Bytes) -> Result[HandshakeSecrets, Error] {
+    handshakeSecrets(extract(Bytes.zeros(hashSize), Bytes.zeros(hashSize)), sharedSecret, transcriptHash)
+}
+
+/// The handshake secrets for a psk_dhe_ke handshake: the early secret comes
+/// from the resumption PSK and the handshake secret still mixes the (EC)DHE
+/// shared secret, so a compromised ticket alone cannot decrypt the session.
+pub pure fn deriveHandshakePsk(psk: Bytes, sharedSecret: Bytes, transcriptHash: Bytes) -> Result[HandshakeSecrets, Error] {
+    handshakeSecrets(earlySecret(psk), sharedSecret, transcriptHash)
+}
+
+/// The client early traffic secret and record keys for 0-RTT, covering the
+/// full ClientHello (RFC 8446 §7.1).
+pub pure fn deriveEarlyTraffic(psk: Bytes, transcriptHash: Bytes) -> Result[Direction, Error] {
+    let secret = deriveSecret(earlySecret(psk), "c e traffic", transcriptHash)?
+    keysFor(secret)
+}
+
+/// The binder key derived from a resumption PSK.
+pub pure fn binderKey(psk: Bytes) -> Result[Bytes, Error] {
+    deriveSecret(earlySecret(psk), "res binder", emptyTranscriptHash())
+}
+
+/// The Finished-style value a ClientHello binder carries: HMAC over
+/// Transcript-Hash(Truncate(ClientHello)) under the binder key.
+pub pure fn binderVerifyData(psk: Bytes, truncatedTranscriptHash: Bytes) -> Result[Bytes, Error] {
+    let key = expandLabel(binderKey(psk)?, "finished", Bytes.zeros(0), hashSize)?
+    hmac.sum[sha256.Hasher](key, truncatedTranscriptHash)
+}
+
+/// Derive-Secret(Master Secret, "res master", transcript through the client
+/// Finished), the root of every resumption PSK.
+pub pure fn deriveResumptionMaster(master: Bytes, transcriptHash: Bytes) -> Result[Bytes, Error] {
+    deriveSecret(master, "res master", transcriptHash)
+}
+
+/// The per-ticket PSK: HKDF-Expand-Label(resumption_master_secret,
+/// "resumption", ticket_nonce, 32).
+pub pure fn resumptionPsk(resumptionMaster: Bytes, ticketNonce: Bytes) -> Result[Bytes, Error] {
+    expandLabel(resumptionMaster, "resumption", ticketNonce, hashSize)
 }
 
 /// The application secrets from the master secret and the transcript hash

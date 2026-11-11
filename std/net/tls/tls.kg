@@ -4,24 +4,32 @@ import x509 from std/crypto/x509
 // and `Session` need `net.Conn`, so they exist only on hosted targets
 // (tls_hosted.kg, server_hosted.kg).
 //
-// The client handshake is a strict, certificate-authenticated exchange: no
-// PSK, no session resumption, no 0-RTT and no client certificate. One
-// HelloRetryRequest is handled: its cookie is echoed and the requested key
-// share replaces the initial x25519 one before the handshake continues; a
-// second HelloRetryRequest is refused. A server that does not select TLS 1.3
-// with TLS_CHACHA20_POLY1305_SHA256 is refused rather than downgraded, and
-// there is no plaintext fallback. The negotiated cipher suites are exactly
-// the one this module implements; everything else is an `Unsupported` error.
+// The client handshake is a strict, authenticated exchange. Without a ticket
+// it verifies the server chain and CertificateVerify against the configured
+// anchors; with a `Config.session` ticket it offers psk_dhe_ke resumption and,
+// when the ticket allows it, 0-RTT early data. A server that asks for a
+// client certificate gets the configured ECDSA P-256 chain and a
+// CertificateVerify; without one it sends an empty Certificate and the
+// server decides. One HelloRetryRequest is handled: its cookie is echoed and
+// the requested key share replaces the initial x25519 one before the
+// handshake continues; a second HelloRetryRequest is refused, and a retry
+// after 0-RTT is a fatal error. A server that does not select TLS 1.3 with
+// TLS_CHACHA20_POLY1305_SHA256 is refused rather than downgraded, and there
+// is no plaintext fallback. The negotiated cipher suites are exactly the one
+// this module implements; everything else is an `Unsupported` error.
 //
 // The server handshake (`Server.handshake`) accepts a ClientHello that
 // offers TLS 1.3 with the same cipher suite and an
-// ecdsa_secp256r1_sha256 signature, and answers with ServerHello,
-// EncryptedExtensions, Certificate, CertificateVerify and Finished. The
-// configured chain is sent as-is and the configured secp256r1 key must match
-// the leaf. A client Finished is checked in constant time before the
-// application keys are installed. No HelloRetryRequest is sent: the server
-// answers whichever of x25519 and secp256r1 the client offered a share for,
-// and refuses a client that offers neither.
+// ecdsa_secp256r1_sha256 signature (or a valid resumption PSK), and answers
+// with ServerHello, EncryptedExtensions, optional CertificateRequest,
+// optional Certificate/CertificateVerify and Finished. Resumption state
+// lives in a `TicketStore`; NewSessionTicket messages are issued after the
+// handshake, and a 0-RTT ticket is single use. A replayed, expired or
+// over-limit 0-RTT offer is a fatal error. A client Finished is checked in
+// constant time before the application keys are installed. No
+// HelloRetryRequest is sent: the server answers whichever of x25519 and
+// secp256r1 the client offered a share for, and refuses a client that offers
+// neither.
 //
 // Randomness comes from `Config.random` / `ServerConfig.random`; a caller
 // that stores keys must pass a CSPRNG such as
@@ -34,13 +42,13 @@ import x509 from std/crypto/x509
 // session stops reading. On a handshake failure a fatal alert is sent
 // best-effort before the connection is dropped.
 //
-// Not implemented, and refused rather than negotiated down: PSK resumption
-// and 0-RTT, client certificates, KeyUpdate, record padding on send, and
+// Not implemented, and refused rather than negotiated down: TLS 1.2,
+// KeyUpdate, record padding on send, post-handshake authentication, and
 // every cipher suite other than TLS_CHACHA20_POLY1305_SHA256. The only
 // CertificateVerify schemes accepted are rsa_pss_rsae_sha256 (client side)
-// and ecdsa_secp256r1_sha256 (both sides). NewSessionTicket messages are
-// ignored by the client. SNI is omitted for an IP-literal server name, and a
-// certificate chain must reach one of the supplied anchors.
+// and ecdsa_secp256r1_sha256 (both sides). SNI is omitted for an IP-literal
+// server name, and a certificate chain must reach one of the supplied
+// anchors.
 import time from std/time
 
 /// Why a TLS operation failed.
@@ -61,6 +69,10 @@ pub type Error =
     | Io(String)
     | Random(String)
     | KeySchedule(String)
+    | TicketReplay
+    | TicketExpired
+    | EarlyDataRejected(String)
+    | ClientAuthRequired
 
 /// A short, fixed explanation of the error.
 pub fn Error.message(self) -> String {
@@ -81,6 +93,41 @@ pub fn Error.message(self) -> String {
         Io(why) -> "tls: ${why}"
         Random(why) -> "tls: random source failed: ${why}"
         KeySchedule(why) -> "tls: key schedule: ${why}"
+        TicketReplay -> "tls: session ticket was replayed"
+        TicketExpired -> "tls: session ticket is expired or outside its age window"
+        EarlyDataRejected(why) -> "tls: early data was rejected: ${why}"
+        ClientAuthRequired -> "tls: the server requires a client certificate"
+    }
+}
+
+/// A client authentication key. Only ECDSA P-256 is implemented, and the
+/// key must match the leaf of the configured client certificate chain.
+pub type ClientKey = | EcP256(Bytes)
+
+/// A resumption ticket a client can offer on a later connection. The PSK is
+/// derived from the NewSessionTicket nonce and never leaves the process.
+pub type SessionTicket = {
+    pub serverName String
+    pub alpn String
+    pub ticket Bytes
+    pub psk Bytes
+    pub lifetimeMillis Int
+    pub issuedAtMillis Int
+    pub ageAdd u32
+    pub maxEarlyData usize
+}
+
+/// A copy of the ticket, so one client can offer it on a later connection.
+pub fn SessionTicket.clone(self) -> SessionTicket {
+    SessionTicket {
+        serverName: self.serverName
+        alpn: self.alpn
+        ticket: self.ticket
+        psk: self.psk
+        lifetimeMillis: self.lifetimeMillis
+        issuedAtMillis: self.issuedAtMillis
+        ageAdd: self.ageAdd
+        maxEarlyData: self.maxEarlyData
     }
 }
 
@@ -102,6 +149,17 @@ pub type Config = {
     pub mut maxHandshakeBytes usize
     // Largest Certificate message accepted.
     pub mut maxCertificateBytes usize
+    // A ticket to offer for PSK resumption. It is ignored when it names a
+    // different server, ALPN protocol or curve, or when it has expired.
+    pub mut session SessionTicket?
+    // 0-RTT bytes sent with the ClientHello when the ticket allows them.
+    pub mut earlyData Bytes
+    // Oldest ticket age at which this client still attempts 0-RTT.
+    pub mut earlyDataMaxAgeMillis Int
+    // Client certificate chain, DER leaf first, sent when the server asks.
+    pub mut clientCertificates Array[Bytes]
+    // The key that signs the client CertificateVerify.
+    pub mut clientKey ClientKey?
 }
 
 /// A configuration with TLS 1.3 defaults, ALPN "http/1.1" and the current
@@ -116,5 +174,10 @@ pub fn Config.new(serverName: String, anchors: Array[x509.Certificate], random: 
         maxRecordBytes: maxCiphertext
         maxHandshakeBytes: 1048576
         maxCertificateBytes: 1048576
+        session: None
+        earlyData: Bytes.zeros(0)
+        earlyDataMaxAgeMillis: 60000
+        clientCertificates: Array.empty[Bytes]()
+        clientKey: None
     }
 }

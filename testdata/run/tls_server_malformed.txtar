@@ -268,7 +268,7 @@ fn parseCases() {
     report("psk", standardHello(psk), "pre_shared_key")
     let mut early = baseExts()
     early.appendAll(ext(42, Array.empty[u8]()))
-    report("early-data", standardHello(early), "early data")
+    report("early-data", standardHello(early), "early_data")
     let mut cookie = baseExts()
     cookie.appendAll(ext(44, vec16(byteArray(dec("c0ffee")))))
     report("cookie", standardHello(cookie), "cookie")
@@ -463,7 +463,7 @@ async fn wrongFinishedCase(n: net.Net) -> String! {
         }
         serverHello = record.payload
     }
-    let parsed = match (tls.parseServerHello(serverHello.slice(4, serverHello.len()).expect("ServerHello body")))? {
+    let parsed = match (tls.parseServerHello(serverHello.slice(4, serverHello.len()).expect("ServerHello body"), false))? {
         tls.ServerReply.Hello(value) -> value
         tls.ServerReply.Retry(_) -> fail Fail { text: "client: server sent a HelloRetryRequest" }
     }
@@ -498,7 +498,7 @@ async fn wrongFinishedCase(n: net.Net) -> String! {
         fail Fail { text: "client: expected EncryptedExtensions" }
     }
     let selected = (tls.parseEncryptedExtensions(eeRaw.slice(4, eeRaw.len()).expect("EncryptedExtensions body")))?
-    match selected {
+    match selected.alpn {
         Some(protocol) -> if protocol != "http/1.1" {
             fail Fail { text: "client: ALPN `${protocol}`" }
         }
@@ -588,8 +588,8 @@ bad-sig => tls: unsupported: client offered no ecdsa_secp256r1_sha256 signature 
 short-share => tls: malformed handshake: x25519 key share must be 32 bytes [true]
 unknown-group => tls: unsupported: client offered no key share for x25519 or secp256r1 [true]
 duplicate-share => tls: malformed handshake: key_share lists group 29 twice [true]
-psk => tls: unsupported: pre_shared_key is not supported [true]
-early-data => tls: unsupported: early data is not supported [true]
+psk => tls: unsupported: pre_shared_key was offered without psk_dhe_ke [true]
+early-data => tls: malformed handshake: early_data was offered without a pre_shared_key [true]
 cookie => tls: malformed handshake: ClientHello carries a cookie without a HelloRetryRequest [true]
 empty-sni => tls: malformed handshake: server_name is empty [true]
 empty-alpn => tls: malformed handshake: ALPN protocol list is empty [true]

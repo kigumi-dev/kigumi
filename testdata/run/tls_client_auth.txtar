@@ -1,0 +1,145 @@
+-- src --
+// TLS 1.3 client authentication over loopback sockets: the server requests a
+// certificate, the client answers with its P-256 chain and a
+// CertificateVerify, and the server validates the chain, the usage and the
+// signature. A client without a credential is refused rather than admitted.
+import hex from std/encoding/hex
+import net from std/net
+import task from std/task
+import tls from std/net/tls
+import x509 from std/crypto/x509
+
+const CA = "308201b130820157a00302010202146ad2bbf44ddf36e4f64dcc360694f4294afe655c300a06082a8648ce3d04030230253123302106035504030c1a4b6967756d6920544c5320526573756d7074696f6e20526f6f743020170d3236313131313031333730355a180f32303534303332393031333730355a30253123302106035504030c1a4b6967756d6920544c5320526573756d7074696f6e20526f6f743059301306072a8648ce3d020106082a8648ce3d03010703420004d78720fcadb5e66100e62718590cd5b13e90ef62da9198d8a84f4195537da3103582f0ad01ba277cb6982c97223ba07bbc73437093ae42026e75a2c884cbd5ffa3633061301d0603551d0e041604144d80d1d752f5c5189d16b4953378ca9c39d539d0301f0603551d230418301680144d80d1d752f5c5189d16b4953378ca9c39d539d0300f0603551d130101ff040530030101ff300e0603551d0f0101ff040403020106300a06082a8648ce3d0403020348003045022100a19169e3b0f828e061689e1a6439b8414a80d1beaaf0586100f26634c129201c022047d3f125c4c6c2dd7f7150aa9814e75b4d8a9cb053e2f6c1ab8134217f593711"
+const SERVER = "308201ca30820170a00302010202144f328d47857b325e3de85c78593b321d93ea5b95300a06082a8648ce3d04030230253123302106035504030c1a4b6967756d6920544c5320526573756d7074696f6e20526f6f743020170d3236313131313031333730355a180f32303534303332393031333730355a30143112301006035504030c096c6f63616c686f73743059301306072a8648ce3d020106082a8648ce3d030107034200044181ba385d0a6c3493a80847814c598ff23a61814de38e9f48c8676c8775eb85289ebde90189ac7163061182da67307d1be2354df7011ae9232f4a41b19e9423a3818c308189300c0603551d130101ff04023000300e0603551d0f0101ff04040302078030130603551d25040c300a06082b0601050507030130140603551d11040d300b82096c6f63616c686f7374301d0603551d0e041604147916992e82fbab827b850a4099814ff31673603f301f0603551d230418301680144d80d1d752f5c5189d16b4953378ca9c39d539d0300a06082a8648ce3d040302034800304502210086b71750a3de850afc0b74d8c049119b4410eeb8b8eee0f0821e67daaf8eda10022042920fa94f89ebdf880578e84e49a6bba9d9ac614bf08560d7f67da919192a92"
+const SERVER_KEY = "179f6244a3702a818aa6fefe5649fa5d4c7d2871bbe1a7aa982caee2874e30a9"
+const CLIENT = "308201c53082016aa00302010202144f328d47857b325e3de85c78593b321d93ea5b96300a06082a8648ce3d04030230253123302106035504030c1a4b6967756d6920544c5320526573756d7074696f6e20526f6f743020170d3236313131313031333730355a180f32303534303332393031333730355a3011310f300d06035504030c06636c69656e743059301306072a8648ce3d020106082a8648ce3d03010703420004ad79d735498d0668f6628264e38a43aebe25d909abb9c7562b190ee525de4022033214e5342c7ad12334dbcf311c65a35ae1d0aeb747940cb348e25df2efb5eea38189308186300c0603551d130101ff04023000300e0603551d0f0101ff04040302078030130603551d25040c300a06082b0601050507030230110603551d11040a30088206636c69656e74301d0603551d0e04160414672864da45ba01f02b47e35218f8ef77255801e7301f0603551d230418301680144d80d1d752f5c5189d16b4953378ca9c39d539d0300a06082a8648ce3d0403020349003046022100967964ec80a76f0b03d97dbaba51f515c0cb5bfa12884409b0da63be3ad109f40221008a7d73346172e2440d3939232624a06d264f8d623a91d217013bcac2e7c1ce92"
+const CLIENT_KEY = "9fde2a2944c84d8fb9c6c5994ff89cb49c6b1c45dbcb2592d27f2cc6a7da45fe"
+
+fn dec(text: String) -> Bytes {
+    hex.decode(text).expect("hex")
+}
+
+fn deterministicRandom(n: usize) -> Bytes! {
+    host.entropy().bytes(n)
+}
+
+fn serverConfig() -> tls.ServerConfig {
+    let mut config = tls.ServerConfig.new(Array.of(dec(SERVER)), tls.ServerKey.EcP256(dec(SERVER_KEY)), (k) => deterministicRandom(k))
+    config.alpn = Array.of("http/1.1")
+    config.requireClientAuth = true
+    config.clientAnchors = Array.of((x509.parse(dec(CA)).expect("CA parses")).clone())
+    config
+}
+
+type Fail = {
+    text String
+}
+
+fn Fail.message(self) -> String {
+    self.text
+}
+
+async fn serve(mut listener: net.Listener) -> String {
+    let pool = task.BlockingPool.new(1)
+    let pending = match pool.run(() => listener.accept().unwrap()) {
+        Ok(value) -> value
+        Err(e) -> return "accept: ${e.message()}"
+    }
+    let conn = await pending
+    let mut session = match await tls.Server.handshake(conn, serverConfig()) {
+        Ok(value) -> value
+        Err(e) -> return "handshake: ${e.message()}"
+    }
+    let got = match await session.read(64) {
+        Ok(value) -> value
+        Err(e) -> {
+            await session.close()
+            return "read: ${e.message()}"
+        }
+    }
+    let text = String.fromBytes(got) || ""
+    if text != "mutual" {
+        await session.close()
+        return "request `${text}`"
+    }
+    match await session.write("accepted".toBytes()) {
+        Ok(_) -> {}
+        Err(e) -> {
+            await session.close()
+            return "write: ${e.message()}"
+        }
+    }
+    await session.close()
+    "ok"
+}
+
+async fn connect(n: net.Net, port: Int, withCredential: Bool) -> tls.Session! {
+    let mut config = tls.Config.new("localhost", Array.of((x509.parse(dec(CA)).expect("CA parses")).clone()), (k) => deterministicRandom(k))
+    config.alpn = Array.of("http/1.1")
+    if withCredential {
+        config.clientCertificates = Array.of(dec(CLIENT))
+        config.clientKey = Some(tls.ClientKey.EcP256(dec(CLIENT_KEY)))
+    }
+    let pool = task.BlockingPool.new(1)
+    let conn = await pool.run(() => n.connect("127.0.0.1", port).unwrap()).unwrap()
+    let session = (await tls.Client.connect(conn, config))?
+    session
+}
+
+async fn acceptedCase(n: net.Net) -> String! {
+    let pool = task.BlockingPool.new(1)
+    let listener = await pool.run(() => n.listen("127.0.0.1", 0).unwrap()).unwrap()
+    let port = listener.port()
+    let running = task.spawn(serve(listener))
+    let mut session = match await connect(n, port, true) {
+        Ok(value) -> value
+        Err(e) -> {
+            let server = await running
+            return "connect-error ${e.message()}; server ${server}"
+        }
+    }
+    let wrote = await session.write("mutual".toBytes())
+    let outcome = match wrote {
+        Ok(_) -> await session.read(64)
+        Err(e) -> Err(e)
+    }
+    let response = match outcome {
+        Ok(value) -> String.fromBytes(value) || ""
+        Err(e) -> "read ${e.message()}"
+    }
+    await session.close()
+    let server = await running
+    "client-auth => ${response} ${server}"
+}
+
+async fn rejectedCase(n: net.Net) -> String! {
+    let pool = task.BlockingPool.new(1)
+    let listener = await pool.run(() => n.listen("127.0.0.1", 0).unwrap()).unwrap()
+    let port = listener.port()
+    let running = task.spawn(serve(listener))
+    let outcome = await connect(n, port, false)
+    let rejected = match outcome {
+        Err(_) -> true
+        Ok(value) -> {
+            let mut session = value
+            let after = await session.read(64)
+            await session.close()
+            after is Err(_)
+        }
+    }
+    let server = await running
+    "client-auth-missing => client ${rejected}; server ${server.contains("requires a client certificate")}"
+}
+
+async fn run() -> Void! {
+    let n = host.net()
+    let acceptedText = (await acceptedCase(n))?
+    print acceptedText
+    let rejectedText = (await rejectedCase(n))?
+    print rejectedText
+}
+
+task.currentThreadExecutor().runToCompletion(run())?
+-- stdout --
+client-auth => accepted ok
+client-auth-missing => client true; server true

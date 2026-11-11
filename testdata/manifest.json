@@ -11675,6 +11675,15 @@
       ]
     },
     {
+      "id": "run/tls_client_auth",
+      "kind": "run",
+      "path": "testdata/run/tls_client_auth.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/tls_clienthello_limits",
       "kind": "run",
       "path": "testdata/run/tls_clienthello_limits.txtar",
@@ -11687,6 +11696,15 @@
       "id": "run/tls_handshake",
       "kind": "run",
       "path": "testdata/run/tls_handshake.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/tls_resumption",
+      "kind": "run",
+      "path": "testdata/run/tls_resumption.txtar",
       "mode": [
         "vm",
         "native"

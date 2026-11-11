@@ -50,6 +50,12 @@ pub pure fn Reader.u16(mut self) -> Result[u16, Error] {
     binary.u16Be(b, 0) || fail Error.MalformedHandshake("truncated uint16")
 }
 
+/// The next four bytes, big-endian.
+pub pure fn Reader.u32(mut self) -> Result[u32, Error] {
+    let b = self.take(4)?
+    binary.u32Be(b, 0) || fail Error.MalformedHandshake("truncated uint32")
+}
+
 /// The next three bytes, big-endian.
 pub pure fn Reader.u24(mut self) -> Result[usize, Error] {
     let b = self.take(3)?
@@ -102,6 +108,11 @@ pub pure fn putU8(out: &mut Array[u8], value: u8) {
 /// Appends a two-byte integer, big-endian.
 pub pure fn putU16(out: &mut Array[u8], value: u16) {
     binary.putU16Be(out, value)
+}
+
+/// Appends a four-byte integer, big-endian.
+pub pure fn putU32(out: &mut Array[u8], value: u32) {
+    binary.putU32Be(out, value)
 }
 
 /// Appends a three-byte integer, big-endian.

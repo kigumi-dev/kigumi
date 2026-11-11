@@ -3,8 +3,11 @@
 //
 // Parsing is deliberately narrow. A ServerHello must negotiate TLS 1.3 with
 // the one cipher suite this module implements and a key share this client
-// offered; every extension this implementation did not offer is refused, so
-// a server cannot smuggle in PSK resumption, early data or a renegotiation.
+// offered; pre_shared_key is accepted only when the client offered one, and
+// an extension the client did not offer is refused. ClientHello parsing
+// covers psk_dhe_ke resumption, early_data, client authentication messages,
+// NewSessionTicket and binder verification, each with the bounds and
+// ordering rules RFC 8446 states.
 //
 // A HelloRetryRequest is recognised by its fixed random. It may request a
 // secp256r1 share (the first ClientHello offers only x25519) and attach a
@@ -12,6 +15,7 @@
 // the client did not advertise, or one it already sent a share for, is
 // refused.
 import binary from std/encoding/binary
+import sha256 from std/crypto/sha256
 
 /// Handshake message type numbers used here.
 pub const clientHelloType: u8 = 1
@@ -53,6 +57,10 @@ pub const supportedVersionsExt: u16 = 43
 
 pub const cookieExt: u16 = 44
 
+pub const pskKeyExchangeModesExt: u16 = 45
+
+pub const certificateAuthoritiesExt: u16 = 47
+
 pub const keyShareExt: u16 = 51
 
 /// Groups and signature schemes.
@@ -66,6 +74,9 @@ pub const ecdsaSecp256r1Sha256: u16 = 0x0403
 
 /// TLS_CHACHA20_POLY1305_SHA256.
 pub const chacha20Poly1305Sha256: u16 = 0x1303
+
+/// psk_dhe_ke, the only PSK key exchange mode this implementation offers.
+pub const pskDheKe: u8 = 1
 
 /// TLS 1.3 in the supported_versions encoding.
 pub const tls13Version: u16 = 0x0304
@@ -148,11 +159,32 @@ pub pure fn clientHello(random: Bytes, sessionId: Bytes, keyShare: Bytes, server
     clientHelloWithShare(x25519Group, random, sessionId, keyShare, None, serverName, alpn)
 }
 
+/// A resumption offer carried by the ClientHello: the ticket identity, its
+/// obfuscated age, the PSK the binder is derived from, and whether the
+/// client wants to send 0-RTT data.
+pub type PskOffer = {
+    pub identity Bytes
+    pub obfuscatedAge u32
+    pub psk Bytes
+    pub earlyData Bool
+}
+
 /// Builds a ClientHello with the key share for one group and an optional
 /// cookie. The supported_groups order is fixed, and the key share must be
 /// for one of those groups; the retried ClientHello carries the group the
 /// server selected instead of the initial x25519 share.
 pub pure fn clientHelloWithShare(group: u16, random: Bytes, sessionId: Bytes, keyShare: Bytes, cookie: Bytes?, serverName: String, alpn: Array[String]) -> Result[Bytes, Error] {
+    buildClientHello(group, random, sessionId, keyShare, cookie, serverName, alpn, None)
+}
+
+/// Builds a ClientHello that offers one resumption PSK, optionally with
+/// early data. The pre_shared_key extension is last, as RFC 8446 §4.2.11
+/// requires, and its binder is computed over the truncated ClientHello.
+pub pure fn clientHelloPsk(group: u16, random: Bytes, sessionId: Bytes, keyShare: Bytes, cookie: Bytes?, serverName: String, alpn: Array[String], offer: PskOffer) -> Result[Bytes, Error] {
+    buildClientHello(group, random, sessionId, keyShare, cookie, serverName, alpn, Some(offer))
+}
+
+pure fn buildClientHello(group: u16, random: Bytes, sessionId: Bytes, keyShare: Bytes, cookie: Bytes?, serverName: String, alpn: Array[String], offer: PskOffer?) -> Result[Bytes, Error] {
     if random.len() != 32 {
         fail Error.MalformedHandshake("client random must be 32 bytes")
     }
@@ -229,6 +261,34 @@ pub pure fn clientHelloWithShare(group: u16, random: Bytes, sessionId: Bytes, ke
         putExtension(&mut exts, cookieExt, body)?
     }
 
+    if let Some(pskOffer) = offer {
+        if pskOffer.identity.len() == 0 {
+            fail Error.MalformedHandshake("resumption ticket identity is empty")
+        }
+        let mut modes = Array.empty[u8]()
+        putU8(&mut modes, pskDheKe)
+        putExtension(&mut exts, pskKeyExchangeModesExt, wrap8(&modes)?)?
+
+        if pskOffer.earlyData {
+            putExtension(&mut exts, earlyDataExt, Array.empty[u8]())?
+        }
+
+        let mut identities = Array.empty[u8]()
+        putVec16(&mut identities, pskOffer.identity)?
+        putU32(&mut identities, pskOffer.obfuscatedAge)
+        let mut binders = Array.empty[u8]()
+        putU8(&mut binders, 32)
+        let mut zero = 0
+        for zero < 32 {
+            binders.push(0)
+            zero = zero + 1
+        }
+        let mut pskBody = Array.empty[u8]()
+        putVec16(&mut pskBody, freeze(&identities))?
+        putVec16(&mut pskBody, freeze(&binders))?
+        putExtension(&mut exts, preSharedKeyExt, pskBody)?
+    }
+
     let mut body = Array.empty[u8]()
     putU16(&mut body, 0x0303)
     append(&mut body, random)
@@ -242,7 +302,38 @@ pub pure fn clientHelloWithShare(group: u16, random: Bytes, sessionId: Bytes, ke
         fail Error.MalformedHandshake("ClientHello extensions are longer than 65535 bytes")
     }
     putVec16(&mut body, freeze(&exts))?
-    Ok(encodeHandshake(clientHelloType, freeze(&body))?)
+    let message = encodeHandshake(clientHelloType, freeze(&body))?
+    match offer {
+        Some(pskOffer) -> {
+            // Truncate(ClientHello) removes the binders list, that is its
+            // two-byte length and the single binder entry.
+            if message.len() < 35 {
+                fail Error.MalformedHandshake("ClientHello is too short to carry a binder")
+            }
+            let truncated = message.slice(0, message.len() - 35) || fail Error.MalformedHandshake("binder slice out of bounds")
+            let binder = binderVerifyData(pskOffer.psk, sha256.sum(truncated))?
+            let mut sealed = Array.empty[u8]()
+            append(&mut sealed, message.slice(0, message.len() - 32) || fail Error.MalformedHandshake("binder slice out of bounds"))
+            append(&mut sealed, binder)
+            Ok(freeze(&sealed))
+        }
+        None -> Ok(message)
+    }
+}
+
+/// One pre_shared_key identity: the opaque ticket and its obfuscated age.
+pub type PskIdentity = {
+    pub identity Bytes
+    pub obfuscatedAge u32
+}
+
+/// The pre_shared_key offer of a ClientHello. `bindersAt` is the offset in
+/// the ClientHello body of the binders vector, so a server can hash the
+/// truncated ClientHello without re-parsing it.
+pub type ParsedPsk = {
+    pub identities Array[PskIdentity]
+    pub binders Array[Bytes]
+    pub bindersAt usize
 }
 
 /// The fields of a ClientHello this implementation acts on.
@@ -256,6 +347,10 @@ pub type ParsedClientHello = {
     pub serverName String
     /// The ALPN protocols the client offered, in its preference order.
     pub alpn Array[String]
+    /// The resumption offer, or None when the client sent no pre_shared_key.
+    pub psk ParsedPsk?
+    /// Whether the client offered 0-RTT early data.
+    pub earlyData Bool
 }
 
 // Whether a big-endian 16-bit list holds `value`. An odd length means the
@@ -331,14 +426,82 @@ pure fn parseKeyShares(data: Bytes) -> Result[ChosenShare, Error] {
     fail Error.Unsupported("client offered no key share for x25519 or secp256r1")
 }
 
+// Parses PreSharedKeyExtension.client_hello. `bodyLen` is the length of the
+// enclosing ClientHello body, which locates the binders vector because the
+// pre_shared_key extension must be last.
+pure fn parsePskExtension(data: Bytes, bodyLen: usize) -> Result[ParsedPsk, Error] {
+    let mut r = Reader.new(data)
+    let identitiesBlock = r.vec16()?
+    let mut ir = Reader.new(identitiesBlock)
+    let mut identities = Array.empty[PskIdentity]()
+    for !ir.done() {
+        let identity = ir.vec16()?
+        if identity.len() == 0 {
+            fail Error.MalformedHandshake("pre_shared_key identity is empty")
+        }
+        let age = ir.u32()?
+        identities.push(PskIdentity {
+            identity: identity
+            obfuscatedAge: age
+        })
+    }
+    if identities.len() == 0 {
+        fail Error.MalformedHandshake("pre_shared_key has no identities")
+    }
+    let bindersBlock = r.vec16()?
+    r.end("pre_shared_key")?
+    if bindersBlock.len() + 2 > bodyLen {
+        fail Error.MalformedHandshake("pre_shared_key binders run past the ClientHello")
+    }
+    let mut br = Reader.new(bindersBlock)
+    let mut binders = Array.empty[Bytes]()
+    for !br.done() {
+        let binder = br.vec8()?
+        if binder.len() != 32 {
+            fail Error.MalformedHandshake("PSK binder must be 32 bytes")
+        }
+        binders.push(binder)
+    }
+    if binders.len() != identities.len() {
+        fail Error.MalformedHandshake("pre_shared_key has ${identities.len()} identities and ${binders.len()} binders")
+    }
+    Ok(ParsedPsk {
+        identities: identities
+        binders: binders
+        bindersAt: bodyLen - 2 - bindersBlock.len()
+    })
+}
+
+/// The Transcript-Hash(Truncate(ClientHello)) a binder is computed over.
+/// `bindersAtBody` is the offset of the binders vector within the
+/// ClientHello body, before the four-byte handshake header.
+pub pure fn clientHelloBinderHash(fullHello: Bytes, bindersAtBody: usize) -> Result[Bytes, Error] {
+    let end = bindersAtBody + 4
+    if end > fullHello.len() {
+        fail Error.MalformedHandshake("binder truncation point is past the ClientHello")
+    }
+    let truncated = fullHello.slice(0, end) || fail Error.MalformedHandshake("binder slice out of bounds")
+    Ok(sha256.sum(truncated))
+}
+
+/// Checks one PSK binder in constant time.
+pub pure fn verifyPskBinder(fullHello: Bytes, bindersAtBody: usize, psk: Bytes, binder: Bytes) -> Result[Void, Error] {
+    let hash = clientHelloBinderHash(fullHello, bindersAtBody)?
+    let expected = binderVerifyData(psk, hash)?
+    if !equalConstantTime(expected, binder) {
+        fail Error.BadSignature
+    }
+    Ok(())
+}
+
 /// Parses and checks a ClientHello body (the four-byte handshake header
 /// already removed) for a TLS 1.3 handshake with
 /// TLS_CHACHA20_POLY1305_SHA256 and an ecdsa_secp256r1_sha256 certificate.
 ///
 /// The parse is strict about everything the server acts on and about the
-/// extensions TLS 1.3 requires. PSK resumption, early data and a cookie
-/// (which only a HelloRetryRequest may provoke) are refused rather than
-/// ignored, because this server cannot honour them. Extensions it does not
+/// extensions TLS 1.3 requires. A pre_shared_key offer is parsed together
+/// with its psk_dhe_ke mode and binders; a cookie (which only a
+/// HelloRetryRequest may provoke) is refused. Extensions the server does not
 /// recognise are skipped, as RFC 8446 §4.2 requires of a server.
 pub pure fn parseClientHello(body: Bytes) -> Result[ParsedClientHello, Error] {
     let mut r = Reader.new(body)
@@ -386,6 +549,9 @@ pub pure fn parseClientHello(body: Bytes) -> Result[ParsedClientHello, Error] {
     let mut groups = Bytes.zeros(0)
     let mut serverName = ""
     let mut alpn = Array.empty[String]()
+    let mut pskData: Bytes? = None
+    let mut pskModesFound = false
+    let mut earlyData = false
 
     for e in &exts {
         if e.typ == supportedVersionsExt {
@@ -452,17 +618,45 @@ pub pure fn parseClientHello(body: Bytes) -> Result[ParsedClientHello, Error] {
                 fail Error.MalformedHandshake("ALPN protocol list is empty")
             }
         } else if e.typ == preSharedKeyExt {
-            fail Error.Unsupported("pre_shared_key is not supported")
+            pskData = Some(e.data)
+        } else if e.typ == pskKeyExchangeModesExt {
+            let mut mr = Reader.new(e.data)
+            let modes = mr.vec8()?
+            mr.end("psk_key_exchange_modes")?
+            let mut i: usize = 0
+            for i < modes.len() {
+                if modes[i] == pskDheKe {
+                    pskModesFound = true
+                }
+                i = i + 1
+            }
         } else if e.typ == earlyDataExt {
-            fail Error.Unsupported("early data is not supported")
+            if e.data.len() != 0 {
+                fail Error.MalformedHandshake("early_data in a ClientHello must be empty")
+            }
+            earlyData = true
         } else if e.typ == cookieExt {
             fail Error.MalformedHandshake("ClientHello carries a cookie without a HelloRetryRequest")
         }
     }
+    if earlyData && (pskData is None) {
+        fail Error.MalformedHandshake("early_data was offered without a pre_shared_key")
+    }
+    let mut psk: ParsedPsk? = None
+    if let Some(data) = pskData {
+        let last = &exts[exts.len() - 1]
+        if last.typ != preSharedKeyExt {
+            fail Error.MalformedHandshake("pre_shared_key is not the last ClientHello extension")
+        }
+        if !pskModesFound {
+            fail Error.Unsupported("pre_shared_key was offered without psk_dhe_ke")
+        }
+        psk = Some(parsePskExtension(data, body.len())?)
+    }
     if !versionFound {
         fail Error.Unsupported("client did not offer TLS 1.3")
     }
-    if !sigsFound {
+    if !sigsFound && (psk is None) {
         fail Error.MalformedHandshake("ClientHello has no signature_algorithms")
     }
     if !shareFound {
@@ -477,6 +671,8 @@ pub pure fn parseClientHello(body: Bytes) -> Result[ParsedClientHello, Error] {
         keyShare: keyShare
         serverName: serverName
         alpn: alpn
+        psk: psk
+        earlyData: earlyData
     })
 }
 
@@ -489,6 +685,8 @@ pub type ParsedServerHello = {
     /// against the share it sent.
     pub group u16
     pub keyShare Bytes
+    /// The pre_shared_key identity the server selected, when it resumed.
+    pub selectedIdentity u16?
 }
 
 /// The fields of a HelloRetryRequest this implementation acts on.
@@ -509,8 +707,10 @@ pub type ServerReply =
 
 /// Parses and checks a ServerHello body (the four-byte handshake header
 /// already removed). The fixed ServerHello.random value marks a
-/// HelloRetryRequest, whose extensions are checked separately.
-pub pure fn parseServerHello(body: Bytes) -> Result[ServerReply, Error] {
+/// HelloRetryRequest, whose extensions are checked separately. A
+/// pre_shared_key extension is accepted only when this client actually
+/// offered one.
+pub pure fn parseServerHello(body: Bytes, pskOffered: Bool) -> Result[ServerReply, Error] {
     let mut r = Reader.new(body)
     let version = r.u16()?
     if version != 0x0303 {
@@ -539,6 +739,7 @@ pub pure fn parseServerHello(body: Bytes) -> Result[ServerReply, Error] {
     let mut selectedVersion: u16 = 0
     let mut keyShare: Bytes? = None
     let mut group: u16 = 0
+    let mut selectedIdentity: u16? = None
     for e in &exts {
         if e.typ == supportedVersionsExt {
             if e.data.len() != 2 {
@@ -563,9 +764,15 @@ pub pure fn parseServerHello(body: Bytes) -> Result[ServerReply, Error] {
             }
             keyShare = Some(share)
         } else if e.typ == preSharedKeyExt {
-            fail Error.Unsupported("server selected a PSK this client never offered")
+            if !pskOffered {
+                fail Error.Unsupported("server selected a PSK this client never offered")
+            }
+            if e.data.len() != 2 {
+                fail Error.MalformedHandshake("ServerHello pre_shared_key must hold one identity")
+            }
+            selectedIdentity = Some(binary.u16Be(e.data, 0) || 0)
         } else if e.typ == earlyDataExt {
-            fail Error.Unsupported("server accepted early data this client never offered")
+            fail Error.Unsupported("early_data belongs in EncryptedExtensions, not ServerHello")
         } else {
             fail Error.Unsupported("unexpected ServerHello extension ${e.typ}")
         }
@@ -583,6 +790,7 @@ pub pure fn parseServerHello(body: Bytes) -> Result[ServerReply, Error] {
         cipherSuite: suite
         group: group
         keyShare: share
+        selectedIdentity: selectedIdentity
     }))
 }
 
@@ -644,14 +852,24 @@ pure fn parseHelloRetryRequest(sessionId: Bytes, suite: u16, exts: Array[Extensi
     }))
 }
 
-/// The negotiated ALPN protocol from EncryptedExtensions, if the server sent
-/// the extension.
-pub pure fn parseEncryptedExtensions(body: Bytes) -> Result[String?, Error] {
+/// The negotiated EncryptedExtensions fields this client acts on.
+pub type EncryptedExtensions = {
+    /// The selected ALPN protocol, or None when the server sent none.
+    pub alpn String?
+    /// Whether the server accepted the client's 0-RTT offer.
+    pub earlyData Bool
+}
+
+/// Parses EncryptedExtensions: the ALPN selection and the early_data
+/// acknowledgement. Extensions that carry no negotiation are checked and
+/// ignored; anything else is refused.
+pub pure fn parseEncryptedExtensions(body: Bytes) -> Result[EncryptedExtensions, Error] {
     let mut r = Reader.new(body)
     let extBlock = r.vec16()?
     r.end("EncryptedExtensions")?
     let exts = parseExtensions(extBlock)?
     let mut selected: String? = None
+    let mut earlyData = false
     for e in &exts {
         if e.typ == alpnExt {
             let mut ar = Reader.new(e.data)
@@ -677,24 +895,39 @@ pub pure fn parseEncryptedExtensions(body: Bytes) -> Result[String?, Error] {
                 fail Error.MalformedHandshake("server_name acknowledgement is not empty")
             }
         } else if e.typ == earlyDataExt {
-            fail Error.Unsupported("server accepted early data this client never offered")
+            if e.data.len() != 0 {
+                fail Error.MalformedHandshake("early_data acknowledgement is not empty")
+            }
+            earlyData = true
         } else {
             fail Error.Unsupported("unexpected EncryptedExtensions extension ${e.typ}")
         }
     }
-    Ok(selected)
+    Ok(EncryptedExtensions {
+        alpn: selected
+        earlyData: earlyData
+    })
 }
 
 /// Parses a Certificate message into the chain's DER certificates, leaf
-/// first. Enforces the context, the outer byte cap and the certificate count.
+/// first. Enforces the empty server request context, the outer byte cap and
+/// the certificate count.
 pub pure fn parseCertificate(body: Bytes, maxBytes: usize, maxCount: usize) -> Result[Array[Bytes], Error] {
+    parseCertificateResponse(body, maxBytes, maxCount, Bytes.zeros(0), true)
+}
+
+/// Parses a Certificate message whose certificate_request_context must equal
+/// `expectedContext`. `requireNonEmpty` is true for a server chain and false
+/// for a client that answered CertificateRequest with no suitable
+/// certificate.
+pub pure fn parseCertificateResponse(body: Bytes, maxBytes: usize, maxCount: usize, expectedContext: Bytes, requireNonEmpty: Bool) -> Result[Array[Bytes], Error] {
     if body.len() > maxBytes {
         fail Error.BadCertificate("certificate message is larger than ${maxBytes} bytes")
     }
     let mut r = Reader.new(body)
     let context = r.vec8()?
-    if context.len() != 0 {
-        fail Error.BadCertificate("server sent a non-empty certificate_request_context")
+    if !context.equals(&expectedContext) {
+        fail Error.BadCertificate("certificate_request_context does not match the request")
     }
     let list = r.vec24()?
     r.end("Certificate")?
@@ -711,7 +944,7 @@ pub pure fn parseCertificate(body: Bytes, maxBytes: usize, maxCount: usize) -> R
         let ext = lr.vec16()?
         let mut er = Reader.new(ext)
         // Per-certificate extensions are parsed only to prove they are a
-        // well-formed list; none are required for server authentication.
+        // well-formed list; none are required for authentication.
         for !er.done() {
             let typ = er.u16()?
             let data = er.vec16()?
@@ -722,10 +955,110 @@ pub pure fn parseCertificate(body: Bytes, maxBytes: usize, maxCount: usize) -> R
         }
         out.push(cert)
     }
-    if out.len() == 0 {
+    if requireNonEmpty && out.len() == 0 {
         fail Error.BadCertificate("certificate chain is empty")
     }
     Ok(out)
+}
+
+/// A CertificateRequest this client can answer.
+pub type ParsedCertificateRequest = {
+    /// The opaque context the Certificate message must echo.
+    pub context Bytes
+    /// The signature schemes the server will accept.
+    pub schemes Array[u16]
+}
+
+/// Parses a CertificateRequest body: the request context, the mandatory
+/// signature_algorithms list and optional certificate_authorities. An
+/// extension this implementation does not know is skipped; early data in a
+/// CertificateRequest is refused.
+pub pure fn parseCertificateRequest(body: Bytes) -> Result[ParsedCertificateRequest, Error] {
+    let mut r = Reader.new(body)
+    let context = r.vec8()?
+    let extBlock = r.vec16()?
+    r.end("CertificateRequest")?
+    let exts = parseExtensions(extBlock)?
+    let mut schemesFound = false
+    let mut schemes = Array.empty[u16]()
+    for e in &exts {
+        if e.typ == signatureAlgorithmsExt {
+            let mut sr = Reader.new(e.data)
+            let list = sr.vec16()?
+            sr.end("signature_algorithms")?
+            if list.len() % 2 != 0 {
+                fail Error.MalformedHandshake("signature_algorithms has ${list.len()} bytes")
+            }
+            let mut at: usize = 0
+            for at < list.len() {
+                schemes.push(binary.u16Be(list, at) || 0)
+                at = at + 2
+            }
+            if schemes.len() == 0 {
+                fail Error.MalformedHandshake("CertificateRequest signature_algorithms is empty")
+            }
+            schemesFound = true
+        } else if e.typ == certificateAuthoritiesExt {
+            let mut cr = Reader.new(e.data)
+            let names = cr.vec16()?
+            cr.end("certificate_authorities")?
+            let mut nr = Reader.new(names)
+            for !nr.done() {
+                _ = nr.vec16()?
+            }
+        } else if e.typ == earlyDataExt {
+            fail Error.MalformedHandshake("early_data in a CertificateRequest")
+        }
+    }
+    if !schemesFound {
+        fail Error.MalformedHandshake("CertificateRequest has no signature_algorithms")
+    }
+    Ok(ParsedCertificateRequest {
+        context: context
+        schemes: schemes
+    })
+}
+
+/// A NewSessionTicket this client acts on.
+pub type ParsedNewSessionTicket = {
+    pub lifetime u32
+    pub ageAdd u32
+    pub nonce Bytes
+    pub ticket Bytes
+    pub maxEarlyData u32
+}
+
+/// Parses a NewSessionTicket body (RFC 8446 §4.6.1). A lifetime of zero
+/// deletes the ticket. Unknown extensions are skipped; early_data carries
+/// the maximum 0-RTT size.
+pub pure fn parseNewSessionTicket(body: Bytes) -> Result[ParsedNewSessionTicket, Error] {
+    let mut r = Reader.new(body)
+    let lifetime = r.u32()?
+    let ageAdd = r.u32()?
+    let nonce = r.vec8()?
+    let ticket = r.vec16()?
+    if ticket.len() == 0 {
+        fail Error.MalformedHandshake("NewSessionTicket identity is empty")
+    }
+    let extBlock = r.vec16()?
+    r.end("NewSessionTicket")?
+    let exts = parseExtensions(extBlock)?
+    let mut maxEarlyData: u32 = 0
+    for e in &exts {
+        if e.typ == earlyDataExt {
+            if e.data.len() != 4 {
+                fail Error.MalformedHandshake("early_data in NewSessionTicket must be 4 bytes")
+            }
+            maxEarlyData = binary.u32Be(e.data, 0) || 0
+        }
+    }
+    Ok(ParsedNewSessionTicket {
+        lifetime: lifetime
+        ageAdd: ageAdd
+        nonce: nonce
+        ticket: ticket
+        maxEarlyData: maxEarlyData
+    })
 }
 
 /// A CertificateVerify message's scheme and signature.
@@ -757,10 +1090,139 @@ pub pure fn parseFinished(body: Bytes) -> Result[Bytes, Error] {
 /// The bytes a CertificateVerify signature covers (RFC 8446 §4.4.3): 64
 /// spaces, the context string, a zero byte and the transcript hash.
 pub pure fn certificateVerifyMessage(transcriptHash: Bytes) -> Bytes {
+    certificateVerifyMessageFor("TLS 1.3, server CertificateVerify", transcriptHash)
+}
+
+/// The CertificateVerify input for the client role.
+pub pure fn clientCertificateVerifyMessage(transcriptHash: Bytes) -> Bytes {
+    certificateVerifyMessageFor("TLS 1.3, client CertificateVerify", transcriptHash)
+}
+
+pure fn certificateVerifyMessageFor(context: String, transcriptHash: Bytes) -> Bytes {
     let mut out = Array.empty[u8]()
     append(&mut out, spaces64.toBytes())
-    append(&mut out, "TLS 1.3, server CertificateVerify".toBytes())
+    append(&mut out, context.toBytes())
     putU8(&mut out, 0)
     append(&mut out, transcriptHash)
     freeze(&out)
+}
+
+/// A Certificate message with an explicit certificate_request_context and a
+/// chain leaf first. Each entry carries an empty per-certificate extension
+/// list.
+pub pure fn certificateMessage(context: Bytes, certificates: Array[Bytes]) -> Result[Bytes, Error] {
+    let mut list = Array.empty[u8]()
+    for der in &certificates {
+        if der.len() == 0 {
+            fail Error.BadCertificate("certificate entry is empty")
+        }
+        if der.len() > 0xFFFFFF {
+            fail Error.HandshakeOverflow
+        }
+        putU24(&mut list, der.len())
+        append(&mut list, der)
+        putU16(&mut list, 0)
+    }
+    if list.len() > 0xFFFFFF {
+        fail Error.HandshakeOverflow
+    }
+    let mut body = Array.empty[u8]()
+    putVec8(&mut body, context)?
+    putU24(&mut body, list.len())
+    append(&mut body, freeze(&list))
+    encodeHandshake(certificateType, freeze(&body))
+}
+
+/// DER-encodes one ECDSA integer (RFC 3279): strip leading zero bytes, then
+/// prefix 0x00 when the high bit would otherwise make it negative.
+pure fn derInteger(raw: Bytes) -> Result[Array[u8], Error] {
+    let mut start: usize = 0
+    for start + 1 < raw.len() && raw[start] == 0 {
+        start = start + 1
+    }
+    let mut body = Array.empty[u8]()
+    if (raw[start] & 0x80) != 0 {
+        body.push(0)
+    }
+    let mut i = start
+    for i < raw.len() {
+        body.push(raw[i])
+        i = i + 1
+    }
+    if body.len() > 127 {
+        fail Error.BadSignature
+    }
+    let mut out = Array.empty[u8]()
+    putU8(&mut out, 2)
+    putU8(&mut out, body.len().toU8() || 0)
+    append(&mut out, freeze(&body))
+    Ok(out)
+}
+
+// DER-encodes an ECDSA r || s signature as ECDSA-Sig-Value, which is what
+// CertificateVerify carries (RFC 8446 §4.4.3).
+pure fn derSignature(signature: Bytes) -> Result[Bytes, Error] {
+    if signature.len() != 64 {
+        fail Error.BadSignature
+    }
+    let r = derInteger(signature.slice(0, 32) || fail Error.BadSignature)?
+    let s = derInteger(signature.slice(32, 64) || fail Error.BadSignature)?
+    let mut body = Array.empty[u8]()
+    body.appendAll(r)
+    body.appendAll(s)
+    if body.len() > 127 {
+        fail Error.BadSignature
+    }
+    let mut out = Array.empty[u8]()
+    putU8(&mut out, 0x30)
+    putU8(&mut out, body.len().toU8() || 0)
+    append(&mut out, freeze(&body))
+    Ok(freeze(&out))
+}
+
+/// A CertificateVerify message carrying an ecdsa_secp256r1_sha256 signature
+/// over the supplied message bytes.
+pub pure fn certificateVerifyMessageWithSignature(scheme: u16, signature: Bytes) -> Result[Bytes, Error] {
+    if scheme != ecdsaSecp256r1Sha256 {
+        fail Error.Unsupported("certificate signature scheme ${scheme} is not implemented")
+    }
+    let der = derSignature(signature)?
+    let mut body = Array.empty[u8]()
+    putU16(&mut body, scheme)
+    putVec16(&mut body, der)?
+    encodeHandshake(certificateVerifyType, freeze(&body))
+}
+
+/// A CertificateRequest asking for an ECDSA P-256 client certificate. The
+/// context is empty during the handshake.
+pub pure fn certificateRequestMessage(context: Bytes, schemes: Array[u16]) -> Result[Bytes, Error] {
+    let mut list = Array.empty[u8]()
+    for scheme in &schemes {
+        putU16(&mut list, scheme)
+    }
+    let mut extBody = Array.empty[u8]()
+    putVec16(&mut extBody, freeze(&list))?
+    let mut exts = Array.empty[u8]()
+    putExtension(&mut exts, signatureAlgorithmsExt, extBody)?
+    let mut body = Array.empty[u8]()
+    putVec8(&mut body, context)?
+    putVec16(&mut body, freeze(&exts))?
+    encodeHandshake(certificateRequestType, freeze(&body))
+}
+
+/// A NewSessionTicket carrying one resumption PSK identity.
+pub pure fn newSessionTicketMessage(lifetime: u32, ageAdd: u32, nonce: Bytes, ticket: Bytes, maxEarlyData: u32) -> Result[Bytes, Error] {
+    let mut exts = Array.empty[u8]()
+    if maxEarlyData > 0 {
+        let mut early = Array.empty[u8]()
+        putU32(&mut early, maxEarlyData)
+        putExtension(&mut exts, earlyDataExt, early)?
+    }
+    let mut body = Array.empty[u8]()
+    putU32(&mut body, lifetime)
+    putU32(&mut body, ageAdd)
+    putVec8(&mut body, nonce)?
+    putVec16(&mut body, ticket)?
+    putVec16(&mut body, freeze(&exts))?
+    encodeHandshake(newSessionTicketType, freeze(&body))
 }

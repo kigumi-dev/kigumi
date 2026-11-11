@@ -60,7 +60,17 @@ pub pure fn ecdsaDerToFixed(signature: Bytes) -> Result[Bytes, Error] {
 /// transcript hash. Only rsa_pss_rsae_sha256 and ecdsa_secp256r1_sha256 are
 /// accepted, and the scheme must match the leaf key's type.
 pub fn verifyCertificateVerify(leaf: &x509.Certificate, scheme: u16, signature: Bytes, transcriptHash: Bytes) -> Result[Void, Error] {
-    let message = certificateVerifyMessage(transcriptHash)
+    verifyCertificateVerifyFor(leaf, scheme, signature, transcriptHash, "TLS 1.3, server CertificateVerify")
+}
+
+/// Verifies a client CertificateVerify, whose context string differs from
+/// the server's (RFC 8446 §4.4.3).
+pub fn verifyClientCertificateVerify(leaf: &x509.Certificate, scheme: u16, signature: Bytes, transcriptHash: Bytes) -> Result[Void, Error] {
+    verifyCertificateVerifyFor(leaf, scheme, signature, transcriptHash, "TLS 1.3, client CertificateVerify")
+}
+
+fn verifyCertificateVerifyFor(leaf: &x509.Certificate, scheme: u16, signature: Bytes, transcriptHash: Bytes, context: String) -> Result[Void, Error] {
+    let message = certificateVerifyMessageFor(context, transcriptHash)
     if scheme == rsaPssRsaeSha256 {
         let key = match leaf.publicKey {
             x509.PublicKey.Rsa(public) -> public
@@ -120,5 +130,49 @@ pub fn verifyServerChain(anchors: &Array[x509.Certificate], certificates: &Array
         Err(e) -> fail Error.BadCertificate(e.message())
     }
     // Hand back the leaf; the caller verifies CertificateVerify with its key.
+    leaf.clone()
+}
+
+/// Parses and validates a client chain against `anchors` at `nowMillis`.
+///
+/// A client certificate has no server hostname, so the name check runs
+/// against the leaf's own first DNS SAN (or common name) purely to satisfy
+/// the path validator's host parameter; the chain, validity, CA constraints
+/// and clientAuth usage are the properties this call enforces.
+pub fn verifyClientChain(anchors: &Array[x509.Certificate], certificates: &Array[Bytes], nowMillis: Int) -> Result[x509.Certificate, Error] {
+    if certificates.len() == 0 {
+        fail Error.BadCertificate("client sent no certificate")
+    }
+    if anchors.len() == 0 {
+        fail Error.BadCertificate("no client trust anchors were supplied")
+    }
+    let mut chain = Array.empty[x509.Certificate]()
+    for der in certificates {
+        let cert = match x509.parse(der) {
+            Ok(value) -> value
+            Err(e) -> fail Error.BadCertificate(e.message())
+        }
+        chain.push(cert)
+    }
+    let leaf = &chain[0]
+    if leaf.extKeyUsage.present && !leaf.extKeyUsage.clientAuth && !leaf.extKeyUsage.anyPurpose {
+        fail Error.BadCertificate("leaf certificate is not valid for TLS client authentication")
+    }
+    if leaf.keyUsage.present && !leaf.keyUsage.digitalSignature {
+        fail Error.BadCertificate("leaf certificate does not allow digitalSignature")
+    }
+    let mut name = ""
+    if leaf.dnsNames.len() != 0 {
+        name = leaf.dnsNames[0]
+    } else if let Some(cn) = leaf.subject.commonName {
+        name = cn
+    }
+    if name == "" {
+        fail Error.BadCertificate("client certificate has no name to validate")
+    }
+    match x509.verifyChain(anchors, &chain, name, nowMillis) {
+        Ok(_) -> {}
+        Err(e) -> fail Error.BadCertificate(e.message())
+    }
     leaf.clone()
 }

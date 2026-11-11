@@ -1,6 +1,7 @@
 import p256 from std/crypto/p256
 import sha256 from std/crypto/sha256
 import x25519 from std/crypto/x25519
+import x509 from std/crypto/x509
 import binary from std/encoding/binary
 import net from std/net
 import task from std/task
@@ -48,6 +49,10 @@ fn alertDescription(e: &Error) -> u8 {
         RecordOverflow -> 22
         HandshakeOverflow -> 50
         BadRecord(_) -> 50
+        TicketReplay -> 47
+        TicketExpired -> 47
+        EarlyDataRejected(_) -> 47
+        ClientAuthRequired -> 116
         _ -> 80
     }
 }
@@ -134,6 +139,35 @@ pub type Session = resource {
     maxHandshakeBytes usize
     maxCertificateBytes usize
     mut negotiatedProtocol String
+    mut serverName String
+    // The resumption master secret and the tickets the peer issued. Both
+    // are only meaningful after the handshake.
+    mut resumptionMaster Bytes
+    mut resumptionTranscript Bytes
+    mut ticket SessionTicket?
+    mut resumedSession Bool
+    mut nowMillis Int
+    // 0-RTT state: client early write keys or server early read keys. The
+    // sequence numbers are separate from the handshake and application
+    // spaces, as RFC 8446 §5.3 requires.
+    mut earlyReadKeys Direction
+    mut earlyWriteKeys Direction
+    mut earlyReadSeq u64
+    mut earlyWriteSeq u64
+    mut earlyReadOpen Bool
+    mut earlyWriteOpen Bool
+    mut earlyOk Bool
+    mut sentEarlyData Bool
+    // A record read while probing for 0-RTT but not decrypted under the
+    // early keys, replayed to the handshake reader.
+    mut pendingRaw RawRecord?
+}
+
+/// A raw record as it arrived, before any protection is removed.
+pub type RawRecord = {
+    typ u8
+    header Bytes
+    payload Bytes
 }
 
 /// Runs the handshake over conn and returns a session ready for application
@@ -173,6 +207,21 @@ fn newSession(conn: net.Conn, maxRecordBytes: usize, maxHandshakeBytes: usize, m
         maxHandshakeBytes: maxHandshakeBytes
         maxCertificateBytes: maxCertificateBytes
         negotiatedProtocol: ""
+        serverName: ""
+        resumptionMaster: Bytes.zeros(0)
+        resumptionTranscript: Bytes.zeros(0)
+        ticket: None
+        resumedSession: false
+        nowMillis: 0
+        earlyReadKeys: noKeys()
+        earlyWriteKeys: noKeys()
+        earlyReadSeq: 0
+        earlyWriteSeq: 0
+        earlyReadOpen: false
+        earlyWriteOpen: false
+        earlyOk: false
+        sentEarlyData: false
+        pendingRaw: None
     }
 }
 
@@ -184,6 +233,22 @@ pub fn Session.alpn(self) -> String {
 /// Whether the handshake completed and the session was not closed.
 pub fn Session.ready(self) -> Bool {
     self.established && self.open
+}
+
+/// Whether this session resumed from a PSK, so no server certificate was
+/// sent.
+pub fn Session.resumed(self) -> Bool {
+    self.resumedSession
+}
+
+/// Whether the server accepted the 0-RTT data this client offered.
+pub fn Session.earlyDataAccepted(self) -> Bool {
+    self.earlyOk
+}
+
+/// The newest resumption ticket the server issued, if any.
+pub fn Session.resumptionTicket(self) -> SessionTicket? {
+    self.ticket
 }
 
 // ---- transport ----------------------------------------------------------
@@ -225,12 +290,6 @@ async fn Session.writeRaw(mut self, data: Bytes) -> Result[Void, Error] {
             Err(e) -> fail Error.Io(e.message())
         }
     }
-}
-
-type RawRecord = {
-    typ u8
-    header Bytes
-    payload Bytes
 }
 
 async fn Session.readRawRecord(mut self) -> Result[RawRecord, Error] {
@@ -282,7 +341,13 @@ async fn Session.readRawRecord(mut self) -> Result[RawRecord, Error] {
 
 async fn Session.readRecord(mut self) -> Result[Record, Error] {
     for true {
-        let raw = (await self.readRawRecord())?
+        let raw = match self.pendingRaw {
+            Some(value) -> {
+                self.pendingRaw = None
+                value
+            }
+            None -> (await self.readRawRecord())?
+        }
         if raw.typ == changeCipherSpecType {
             if raw.payload.len() != 1 || raw.payload[0] != 1 {
                 fail Error.BadRecord("change_cipher_spec must carry exactly one 0x01 byte")
@@ -408,17 +473,25 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
     if config.serverName == "" {
         fail Error.BadCertificate("server name is empty")
     }
-    if config.anchors.len() == 0 {
-        fail Error.BadCertificate("no trust anchors were supplied")
-    }
     if config.alpn.len() == 0 {
         fail Error.Unsupported("no ALPN protocol was configured")
     }
+    let nowMillis = config.nowMillis
     let randomFn = config.random
+    let serverName = config.serverName
     let anchors = move config.anchors
     let alpn = move config.alpn
-    let serverName = config.serverName
-    let nowMillis = config.nowMillis
+    let sessionOffer = move config.session
+    let earlyPayload = move config.earlyData
+    let earlyMaxAge = config.earlyDataMaxAgeMillis
+    let clientCertificates = move config.clientCertificates
+    let clientKey = move config.clientKey
+    if sessionOffer is None && anchors.len() == 0 {
+        fail Error.BadCertificate("no trust anchors were supplied")
+    }
+    self.nowMillis = nowMillis
+    self.serverName = serverName
+
     let random = match randomFn(32) {
         Ok(value) -> value
         Err(e) -> fail Error.Random(e.message())
@@ -440,8 +513,53 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
     }
     let mut public = ephemeralPublic(group, secret)?
     let offeredAlpn = alpn.clone()
-    let hello = clientHello(random, sessionId, public, serverName, offeredAlpn.clone())?
+
+    // A ticket is offered only to the server and protocol that issued it,
+    // while it is live, and 0-RTT is attempted only inside its age window.
+    let mut pskOffer: PskOffer? = None
+    let mut pskValue = Bytes.zeros(0)
+    let mut earlyBytes = Bytes.zeros(0)
+    if let Some(ticket) = sessionOffer {
+        let age = nowMillis - ticket.issuedAtMillis
+        let live = ticket.lifetimeMillis > 0 && age >= 0 && age <= ticket.lifetimeMillis
+        let mut sameAlpn = ticket.alpn == ""
+        for candidate in &alpn {
+            if candidate == ticket.alpn {
+                sameAlpn = true
+            }
+        }
+        if ticket.serverName == serverName && sameAlpn && live {
+            pskValue = ticket.psk
+            if earlyPayload.len() != 0 && age <= earlyMaxAge && earlyPayload.len().toU64() <= ticket.maxEarlyData.toU64() {
+                earlyBytes = earlyPayload
+            }
+            let obfuscated = (((age.toU64() || 0) + ticket.ageAdd.toU64()) & 0xffffffff).toU32() || 0
+            pskOffer = Some(PskOffer {
+                identity: ticket.ticket
+                obfuscatedAge: obfuscated
+                psk: ticket.psk
+                earlyData: earlyBytes.len() != 0
+            })
+        }
+    }
+    let mut pskActive = pskOffer is Some(_)
+
+    let hello = match pskOffer {
+        Some(offer) -> clientHelloPsk(group, random, sessionId, public, None, serverName, offeredAlpn.clone(), offer)?
+        None -> clientHello(random, sessionId, public, serverName, offeredAlpn.clone())?
+    }
     (await self.writeRaw((sealPlaintext(handshakeType, hello))?))?
+
+    // 0-RTT records follow the ClientHello immediately, under the early
+    // traffic secret, which is the only key the server can use before it
+    // answers.
+    if earlyBytes.len() != 0 {
+        self.earlyWriteKeys = deriveEarlyTraffic(pskValue, sha256.sum(hello))?
+        self.earlyWriteSeq = 0
+        self.earlyWriteOpen = true
+        self.sentEarlyData = true
+        (await self.sendEarlyData(earlyBytes))?
+    }
 
     let mut transcript = hello
     let mut retried = false
@@ -452,10 +570,13 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
         if message.typ != serverHelloType {
             fail Error.UnexpectedMessage("expected ServerHello, got handshake type ${message.typ}")
         }
-        match parseServerHello(message.body)? {
+        match parseServerHello(message.body, pskActive)? {
             Retry(hrr) -> {
                 if retried {
                     fail Error.UnexpectedMessage("server sent a second HelloRetryRequest")
+                }
+                if self.sentEarlyData {
+                    fail Error.EarlyDataRejected("a HelloRetryRequest cannot be combined with 0-RTT")
                 }
                 if !hrr.sessionId.equals(&sessionId) {
                     fail Error.MalformedHandshake("HelloRetryRequest did not echo the client session id")
@@ -476,6 +597,9 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
                     }
                     public = ephemeralPublic(group, secret)?
                 }
+                // A second ClientHello never carries the PSK: the server
+                // did not select it in the first exchange.
+                pskActive = false
                 let retryHello = clientHelloWithShare(group, random, sessionId, public, hrr.cookie, serverName, offeredAlpn.clone())?
                 (await self.sendHandshake(retryHello))?
                 transcript = transcript.concat(retryHello)
@@ -502,6 +626,18 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
         Some(value) -> value
         None -> fail Error.UnexpectedMessage("server sent no ServerHello")
     }
+    let resumed = match helloParsed.selectedIdentity {
+        Some(index) -> {
+            if !pskActive || index != 0 {
+                fail Error.MalformedHandshake("server selected PSK identity ${index}, which was not offered")
+            }
+            true
+        }
+        None -> false
+    }
+    if !resumed {
+        self.earlyOk = false
+    }
     // Everything after the ServerHello must arrive under the record layer
     // this client is about to install; a plaintext message already buffered
     // would otherwise be read as if it were protected.
@@ -510,7 +646,11 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
     }
 
     let shared = keyExchangeShared(group, secret, helloParsed.keyShare)?
-    let secrets = match deriveHandshake(shared, sha256.sum(transcript)) {
+    let secrets = match if resumed {
+        deriveHandshakePsk(pskValue, shared, sha256.sum(transcript))
+    } else {
+        deriveHandshake(shared, sha256.sum(transcript))
+    } {
         Ok(value) -> value
         Err(e) -> fail e
     }
@@ -520,13 +660,14 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
     self.writeProtected = true
     self.readSeq = 0
     self.writeSeq = 0
+    self.resumedSession = resumed
 
     let eeMessage = (await self.nextHandshake())?
     if eeMessage.typ != encryptedExtensionsType {
         fail Error.UnexpectedMessage("expected EncryptedExtensions, got handshake type ${eeMessage.typ}")
     }
-    let selected = parseEncryptedExtensions(eeMessage.body)?
-    if let Some(protocol) = selected {
+    let ee = parseEncryptedExtensions(eeMessage.body)?
+    if let Some(protocol) = ee.alpn {
         let mut offered = false
         for candidate in &offeredAlpn {
             if candidate == protocol {
@@ -538,42 +679,126 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
         }
         self.negotiatedProtocol = protocol
     }
+    if ee.earlyData {
+        if !resumed || !self.sentEarlyData {
+            fail Error.Unsupported("server accepted early data this client never offered")
+        }
+        self.earlyOk = true
+    }
     transcript = transcript.concat(eeMessage.raw)
 
-    let certMessage = (await self.nextHandshake())?
-    if certMessage.typ != certificateType {
-        fail Error.UnexpectedMessage("expected Certificate, got handshake type ${certMessage.typ}")
+    // A CertificateRequest may precede the server's authentication flight
+    // (or its Finished, on resumption).
+    let mut request: ParsedCertificateRequest? = None
+    let mut next = (await self.nextHandshake())?
+    if next.typ == certificateRequestType {
+        request = Some(parseCertificateRequest(next.body)?)
+        transcript = transcript.concat(next.raw)
+        next = (await self.nextHandshake())?
     }
-    let certificates = parseCertificate(certMessage.body, self.maxCertificateBytes, 16)?
-    let leaf = verifyServerChain(&anchors, &certificates, serverName, nowMillis)?
-    transcript = transcript.concat(certMessage.raw)
 
-    let cvMessage = (await self.nextHandshake())?
-    if cvMessage.typ != certificateVerifyType {
-        fail Error.UnexpectedMessage("expected CertificateVerify, got handshake type ${cvMessage.typ}")
-    }
-    let cv = parseCertificateVerify(cvMessage.body)?
-    verifyCertificateVerify(&leaf, cv.scheme, cv.signature, sha256.sum(transcript))?
-    transcript = transcript.concat(cvMessage.raw)
+    if resumed {
+        if next.typ != finishedType {
+            fail Error.UnexpectedMessage("expected Finished for a resumed handshake, got handshake type ${next.typ}")
+        }
+    } else {
+        if next.typ != certificateType {
+            fail Error.UnexpectedMessage("expected Certificate, got handshake type ${next.typ}")
+        }
+        let certificates = parseCertificate(next.body, self.maxCertificateBytes, 16)?
+        let leaf = verifyServerChain(&anchors, &certificates, serverName, nowMillis)?
+        transcript = transcript.concat(next.raw)
 
-    let finishedMessage = (await self.nextHandshake())?
-    if finishedMessage.typ != finishedType {
-        fail Error.UnexpectedMessage("expected Finished, got handshake type ${finishedMessage.typ}")
+        let cvMessage = (await self.nextHandshake())?
+        if cvMessage.typ != certificateVerifyType {
+            fail Error.UnexpectedMessage("expected CertificateVerify, got handshake type ${cvMessage.typ}")
+        }
+        let cv = parseCertificateVerify(cvMessage.body)?
+        verifyCertificateVerify(&leaf, cv.scheme, cv.signature, sha256.sum(transcript))?
+        transcript = transcript.concat(cvMessage.raw)
+
+        next = (await self.nextHandshake())?
+        if next.typ != finishedType {
+            fail Error.UnexpectedMessage("expected Finished, got handshake type ${next.typ}")
+        }
     }
-    let claimed = parseFinished(finishedMessage.body)?
+
+    let claimed = parseFinished(next.body)?
     let expected = finishedVerifyData(secrets.server.secret, sha256.sum(transcript))?
     if !equalConstantTime(expected, claimed) {
         fail Error.BadFinished
     }
-    transcript = transcript.concat(finishedMessage.raw)
+    transcript = transcript.concat(next.raw)
 
+    // RFC 8446 §7.1: application secrets cover the transcript through the
+    // server Finished, before any client authentication flight.
     let application = match deriveApplication(secrets.master, sha256.sum(transcript)) {
         Ok(value) -> value
         Err(e) -> fail e
     }
-    let clientVerify = finishedVerifyData(secrets.client.secret, sha256.sum(transcript))?
+
+    if let Some(cr) = request {
+        let hasCredential = clientCertificates.len() != 0 && clientKey is Some(_)
+        if hasCredential {
+            let mut schemeOffered = false
+            for scheme in &cr.schemes {
+                if scheme == ecdsaSecp256r1Sha256 {
+                    schemeOffered = true
+                }
+            }
+            if !schemeOffered {
+                fail Error.Unsupported("server requested no signature scheme the client key can produce")
+            }
+            let leafDer = clientCertificates.get(0) || fail Error.BadCertificate("client certificate chain is empty")
+            let leaf = match x509.parse(leafDer) {
+                Ok(value) -> value
+                Err(e) -> fail Error.BadCertificate(e.message())
+            }
+            let key = match clientKey {
+                Some(value) -> value
+                None -> fail Error.ClientAuthRequired
+            }
+            let secret = match key {
+                ClientKey.EcP256(secret) -> secret
+            }
+            let public = match leaf.publicKey {
+                x509.PublicKey.EcP256(bytes) -> bytes
+                x509.PublicKey.Rsa(_) -> fail Error.Unsupported("an RSA client key is not implemented")
+            }
+            let expectedPublic = match p256.publicKey(secret) {
+                Ok(value) -> value
+                Err(_) -> fail Error.BadSignature
+            }
+            if !public.equals(&expectedPublic) {
+                fail Error.BadCertificate("client key does not match the leaf certificate")
+            }
+            let responseMessage = certificateMessage(cr.context, clientCertificates.clone())?
+            transcript = transcript.concat(responseMessage)
+            (await self.sendHandshake(responseMessage))?
+            // RFC 8446 §4.4.3: the client signature covers the transcript
+            // through the client Certificate message just sent.
+            let signature = match p256.signMessage(secret, clientCertificateVerifyMessage(sha256.sum(transcript))) {
+                Ok(value) -> value
+                Err(e) -> fail Error.KeySchedule(e.message())
+            }
+            let verifyMessage = certificateVerifyMessageWithSignature(ecdsaSecp256r1Sha256, signature)?
+            transcript = transcript.concat(verifyMessage)
+            (await self.sendHandshake(verifyMessage))?
+        } else {
+            // RFC 8446 §4.4.2: a client with no suitable certificate sends
+            // an empty Certificate message. The server decides whether that
+            // is acceptable.
+            let empty = certificateMessage(cr.context, Array.empty[Bytes]())?
+            transcript = transcript.concat(empty)
+            (await self.sendHandshake(empty))?
+        }
+    }
+
+    let finalHash = sha256.sum(transcript)
+    let clientVerify = finishedVerifyData(secrets.client.secret, finalHash)?
     let clientFinished = encodeHandshake(finishedType, clientVerify)?
     (await self.sendHandshake(clientFinished))?
+    transcript = transcript.concat(clientFinished)
 
     // From here the handshake keys are dead: both directions use the
     // application traffic secrets, whose sequence numbers restart at zero.
@@ -581,7 +806,81 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
     self.readKeys = application.server
     self.writeSeq = 0
     self.readSeq = 0
+    let resumption = deriveResumptionMaster(secrets.master, sha256.sum(transcript))?
+    self.resumptionMaster = resumption
+    self.resumptionTranscript = sha256.sum(transcript)
     self.established = true
+}
+
+/// Sends 0-RTT plaintext under the early traffic keys, fragmenting at the
+/// plaintext cap. The early sequence number is separate from the handshake
+/// and application spaces.
+async fn Session.sendEarlyData(mut self, data: Bytes) -> Result[Void, Error] {
+    let mut off: usize = 0
+    for off < data.len() {
+        let left = data.len() - off
+        let take = if left < maxPlaintext {
+            left
+        } else {
+            maxPlaintext
+        }
+        if self.earlyWriteSeq == 18446744073709551615 {
+            fail Error.BadRecord("early record sequence number exhausted")
+        }
+        let chunk = data.slice(off, off + take) || fail Error.Io("early write slice out of bounds")
+        let record = sealRecord(self.earlyWriteKeys, self.earlyWriteSeq, applicationDataType, chunk)?
+        self.earlyWriteSeq = self.earlyWriteSeq.wrappingAdd(1)
+        (await self.writeRaw(record))?
+        off = off + take
+    }
+    Ok(())
+}
+
+/// Server side of 0-RTT: reads protected records under the early traffic
+/// keys until one fails to authenticate (the client's first handshake
+/// record), then hands that record back to the handshake reader.
+///
+/// `limit` bounds the plaintext kept for the application; `keep` false
+/// discards a rejected offer under the same keys. Exceeding the limit is a
+/// fatal `EarlyDataRejected`, never a truncated delivery.
+async fn Session.drainEarlyData(mut self, limit: usize, keep: Bool) -> Result[Void, Error] {
+    let mut total: usize = 0
+    for true {
+        let raw = (await self.readRawRecord())?
+        if raw.typ != protectedType {
+            // Not a 0-RTT record: replay it to the handshake path.
+            self.pendingRaw = Some(raw)
+            return Ok(())
+        }
+        if self.earlyReadSeq == 18446744073709551615 {
+            fail Error.BadRecord("early record sequence number exhausted")
+        }
+        let opened = openRecord(self.earlyReadKeys, self.earlyReadSeq, raw.header, raw.payload)
+        match opened {
+            Ok(record) -> {
+                if record.typ != applicationDataType {
+                    fail Error.BadRecord("early record has inner content type ${record.typ}")
+                }
+                if keep {
+                    if total + record.payload.len() > limit {
+                        fail Error.EarlyDataRejected("early data exceeds the ticket limit")
+                    }
+                    if record.payload.len() != 0 {
+                        self.appBuf = self.appBuf.concat(record.payload)
+                    }
+                    total = total + record.payload.len()
+                }
+                self.earlyReadSeq = self.earlyReadSeq.wrappingAdd(1)
+            }
+            Err(_) -> {
+                // The first record under the handshake keys cannot open with
+                // the early keys; leave it for nextHandshake.
+                self.pendingRaw = Some(raw)
+                return Ok(())
+            }
+        }
+    }
+    Ok(())
 }
 
 // ---- application data ---------------------------------------------------
@@ -614,8 +913,23 @@ pub async fn Session.read(mut self, max: usize) -> Result[Bytes, Error] {
         }
         if let Some(message) = self.takeHandshake()? {
             if message.typ == newSessionTicketType {
-                // A session ticket is legal after the handshake and is
-                // ignored: this client does not implement resumption.
+                if self.resumptionMaster.len() == 0 {
+                    fail Error.UnexpectedMessage("NewSessionTicket before the handshake finished")
+                }
+                let parsed = parseNewSessionTicket(message.body)?
+                if parsed.lifetime != 0 {
+                    let psk = resumptionPsk(self.resumptionMaster, parsed.nonce)?
+                    self.ticket = Some(SessionTicket {
+                        serverName: self.serverName
+                        alpn: self.negotiatedProtocol
+                        ticket: parsed.ticket
+                        psk: psk
+                        lifetimeMillis: parsed.lifetime.toInt() * 1000
+                        issuedAtMillis: self.nowMillis
+                        ageAdd: parsed.ageAdd
+                        maxEarlyData: parsed.maxEarlyData.toUsize()
+                    })
+                }
                 continue
             } else if message.typ == keyUpdateType {
                 fail Error.Unsupported("KeyUpdate is not implemented")
