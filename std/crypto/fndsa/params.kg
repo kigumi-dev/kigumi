@@ -29,7 +29,7 @@ pub const saltSize: usize = 40
 /// Bytes of the compressed s2 field.
 pub const compressedSize: usize = signatureSize - 1 - saltSize
 
-/// Bytes of the PRG seed derived by `sign`.
+/// Bytes of a key-generation or signing seed.
 pub const seedSize: usize = 56
 
 /// Header byte of a Falcon-512 public key (0x00 + logn, format 0).

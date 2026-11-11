@@ -1,0 +1,524 @@
+// Falcon-512 key generation by the recursive NTRU solver.
+//
+// f and g are sampled from the Falcon Gaussian distribution, the NTRU
+// equation f*G - g*F = q is solved exactly over Z[x]/(x^512 + 1), and the
+// result is reduced until it fits the private-key coefficient bounds. The
+// public key is h = g/f mod q.
+import sha3 from std/crypto/sha3
+
+/// A polynomial with fixed-capacity big coefficients; only the first `len`
+/// entries are meaningful.
+/// The zero polynomial.
+pure fn bigPolyZero() -> FixedArray[Big, n] {
+    FixedArray.filled[Big, n](bigZero())
+}
+
+/// Converts i64 coefficients to big coefficients.
+pure fn bigPolyFromI64(a: Array[i64]) -> FixedArray[Big, n] {
+    let mut out = bigPolyZero()
+    let mut i: usize = 0
+    for i < a.len() {
+        out[i] = bigFromI64(a[i])
+        i = i + 1
+    }
+    out
+}
+
+/// Whether every coefficient fits comfortably in i64 for the i128 fast path.
+pure fn fitsSmallPoly(a: &FixedArray[Big, n], len: usize) -> Bool {
+    let mut i: usize = 0
+    for i < len {
+        if bigBitLen(&a[i]) > 55 {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}
+
+/// Negacyclic product using i128 accumulators when both operands are small.
+pure fn karamulSmall(a: &FixedArray[Big, n], b: &FixedArray[Big, n], len: usize) -> FixedArray[Big, n] {
+    let mut av = FixedArray.filled[i64, n](0)
+    let mut bv = FixedArray.filled[i64, n](0)
+    let mut i: usize = 0
+    for i < len {
+        av[i] = bigToI64(&a[i]) || 0
+        bv[i] = bigToI64(&b[i]) || 0
+        i = i + 1
+    }
+    let mut acc = FixedArray.filled[i128, n](0)
+    i = 0
+    for i < len {
+        let ai = av[i].toI128()
+        let mut j: usize = 0
+        for j < len {
+            let p = ai * bv[j].toI128()
+            let k = i + j
+            if k < len {
+                acc[k] = acc[k] + p
+            } else {
+                acc[k - len] = acc[k - len] - p
+            }
+            j = j + 1
+        }
+        i = i + 1
+    }
+    let mut out = bigPolyZero()
+    i = 0
+    for i < len {
+        out[i] = bigFromI128(acc[i])
+        i = i + 1
+    }
+    out
+}
+
+/// Negacyclic product of the first `len` coefficients.
+pure fn karamulBig(a: &FixedArray[Big, n], b: &FixedArray[Big, n], len: usize) -> FixedArray[Big, n] {
+    if fitsSmallPoly(a, len) && fitsSmallPoly(b, len) {
+        return karamulSmall(a, b, len)
+    }
+    let mut out = bigPolyZero()
+    let mut i: usize = 0
+    for i < len {
+        let ai = a[i]
+        let mut j: usize = 0
+        for j < len {
+            let p = bigMul(&ai, &b[j])
+            let k = i + j
+            if k < len {
+                out[k] = bigAdd(&out[k], &p)
+            } else {
+                out[k - len] = bigSub(&out[k - len], &p)
+            }
+            j = j + 1
+        }
+        i = i + 1
+    }
+    out
+}
+
+/// The field norm of a, projected to half the degree.
+pure fn fieldNorm(a: &FixedArray[Big, n], len: usize) -> FixedArray[Big, n] {
+    let half = len / 2
+    let mut even = bigPolyZero()
+    let mut odd = bigPolyZero()
+    let mut i: usize = 0
+    for i < half {
+        even[i] = a[2 * i]
+        odd[i] = a[2 * i + 1]
+        i = i + 1
+    }
+    let ee = karamulBig(&even, &even, half)
+    let oo = karamulBig(&odd, &odd, half)
+    let mut out = bigPolyZero()
+    i = 0
+    for i < half {
+        out[i] = ee[i]
+        i = i + 1
+    }
+    i = 0
+    for i < half - 1 {
+        out[i + 1] = bigSub(&out[i + 1], &oo[i])
+        i = i + 1
+    }
+    out[0] = bigAdd(&out[0], &oo[half - 1])
+    out
+}
+
+/// The lift of a polynomial from degree n to degree 2n.
+pure fn liftBig(a: &FixedArray[Big, n], len: usize) -> FixedArray[Big, n] {
+    let mut out = bigPolyZero()
+    let mut i: usize = 0
+    for i < len {
+        out[2 * i] = a[i]
+        i = i + 1
+    }
+    out
+}
+
+/// The Galois conjugate a(-x).
+pure fn galoisConj(a: &FixedArray[Big, n], len: usize) -> FixedArray[Big, n] {
+    let mut out = bigPolyZero()
+    let mut i: usize = 0
+    for i < len {
+        if (i & 1) == 0 {
+            out[i] = a[i]
+        } else {
+            out[i] = bigNeg(a[i])
+        }
+        i = i + 1
+    }
+    out
+}
+
+/// The maximum bitsize of the first `len` coefficients.
+pure fn polyBitsize(a: &FixedArray[Big, n], len: usize) -> usize {
+    let mut best: usize = 0
+    let mut i: usize = 0
+    for i < len {
+        let b = bigBitsize(&a[i])
+        if b > best {
+            best = b
+        }
+        i = i + 1
+    }
+    best
+}
+
+/// A Float array from big coefficients shifted right by `shift`.
+pure fn shiftedToFloat(a: &FixedArray[Big, n], len: usize, shift: usize) -> Array[Float] {
+    let mut out = Array.empty[Float]()
+    let mut i: usize = 0
+    for i < len {
+        out.push(bigToFloat(&bigShr(&a[i], shift)))
+        i = i + 1
+    }
+    out
+}
+
+/// The complex array of a big polynomial shifted right by `shift`.
+pure fn shiftedFft(a: &FixedArray[Big, n], len: usize, shift: usize) -> Array[C] {
+    fft(shiftedToFloat(a, len, shift))
+}
+
+/// Rounds a Float to a Big half-to-even.
+pure fn roundBig(x: Float) -> Big {
+    bigFromI64(roundEven(x))
+}
+
+/// Whether every coefficient is zero.
+pure fn allZero(a: &FixedArray[Big, n], len: usize) -> Bool {
+    let mut i: usize = 0
+    for i < len {
+        if !bigIsZero(&a[i]) {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}
+
+/// Babai-reduces (F, G) against (f, g), following the reference Reduce.
+pure fn reduceBig(f: &FixedArray[Big, n], g: &FixedArray[Big, n], ff: &FixedArray[Big, n], gg: &FixedArray[Big, n], len: usize) -> (FixedArray[Big, n], FixedArray[Big, n]) {
+    let size = {
+        let a = polyBitsize(f, len)
+        let b = polyBitsize(g, len)
+        let m = if a > b {
+            a
+        } else {
+            b
+        }
+        if m < 53 {
+            53
+        } else {
+            m
+        }
+    }
+    let fa = shiftedFft(f, len, size - 53)
+    let ga = shiftedFft(g, len, size - 53)
+    let den = fftAdd(fftMul(copyFft(&fa), fftAdj(copyFft(&fa))), fftMul(copyFft(&ga), fftAdj(copyFft(&ga))))
+    let mut fval = bigPolyZero()
+    let mut gval = bigPolyZero()
+    let mut i: usize = 0
+    for i < len {
+        fval[i] = ff[i]
+        gval[i] = gg[i]
+        i = i + 1
+    }
+    let mut iter: usize = 0
+    for iter < 4 * len {
+        let szf = polyBitsize(&fval, len)
+        let szg = polyBitsize(&gval, len)
+        let ms = if szf > szg {
+            szf
+        } else {
+            szg
+        }
+        let bigSize = if ms < 53 {
+            53
+        } else {
+            ms
+        }
+        if bigSize < size {
+            break
+        }
+        let faBig = shiftedFft(&fval, len, bigSize - 53)
+        let gaBig = shiftedFft(&gval, len, bigSize - 53)
+        let num = fftAdd(fftMul(copyFft(&faBig), fftAdj(copyFft(&fa))), fftMul(copyFft(&gaBig), fftAdj(copyFft(&ga))))
+        let kf = ifft(fftDiv(num, copyFft(&den)))
+        let mut k = bigPolyZero()
+        let mut j: usize = 0
+        for j < len {
+            k[j] = roundBig(kf[j])
+            j = j + 1
+        }
+        if allZero(&k, len) {
+            break
+        }
+        let fk = karamulBig(f, &k, len)
+        let gk = karamulBig(g, &k, len)
+        j = 0
+        for j < len {
+            let shift = bigSize - size
+            fval[j] = bigSub(&fval[j], &bigShl(&fk[j], shift))
+            gval[j] = bigSub(&gval[j], &bigShl(&gk[j], shift))
+            j = j + 1
+        }
+        iter = iter + 1
+    }
+    (fval, gval)
+}
+
+/// Solves f*G - g*F = q for the first `len` coefficients.
+pure fn ntruSolve(f: &FixedArray[Big, n], g: &FixedArray[Big, n], len: usize) -> Result[(FixedArray[Big, n], FixedArray[Big, n]), Error] {
+    if len == 1 {
+        let (d, u, v) = bigXgcd(&f[0], &g[0])
+        if !bigEq(&d, &bigOne()) {
+            return Err(Error.InvalidSecretKey)
+        }
+        let mut uu = u
+        let mut vv = v
+        if f[0].neg {
+            uu = bigNeg(uu)
+        }
+        if g[0].neg {
+            vv = bigNeg(vv)
+        }
+        let qb = bigFromI64(q.toInt())
+        let mut ff = bigPolyZero()
+        let mut gg = bigPolyZero()
+        ff[0] = bigNeg(bigMul(&qb, &vv))
+        gg[0] = bigMul(&qb, &uu)
+        Ok((ff, gg))
+    } else {
+        let half = len / 2
+        let fp = fieldNorm(f, len)
+        let gp = fieldNorm(g, len)
+        let (fpBig, gpBig) = ntruSolve(&fp, &gp, half)?
+        let ff = karamulBig(&liftBig(&fpBig, half), &galoisConj(g, len), len)
+        let gg = karamulBig(&liftBig(&gpBig, half), &galoisConj(f, len), len)
+        let red = reduceBig(f, g, &ff, &gg, len)
+        Ok(red)
+    }
+}
+
+/// The squared Gram-Schmidt norm check of NTRUGen.
+pure fn gsNormOk(f: Array[i64], g: Array[i64]) -> Bool {
+    let mut sqfg: Float = 0.0
+    let mut fv = Array.empty[Float]()
+    let mut gv = Array.empty[Float]()
+    let mut i: usize = 0
+    for i < n {
+        let a = f[i].toFloat()
+        let b = g[i].toFloat()
+        sqfg = sqfg + a * a + b * b
+        fv.push(a)
+        gv.push(b)
+        i = i + 1
+    }
+    let adjf = polyAdj(copyPoly(&fv))
+    let adjg = polyAdj(copyPoly(&gv))
+    let ff = polyMul(copyPoly(&fv), copyPoly(&adjf))
+    let gg = polyMul(copyPoly(&gv), copyPoly(&adjg))
+    let ffgg = polyAdd(ff, gg)
+    let ft = polyDiv(copyPoly(&adjg), copyPoly(&ffgg))
+    let gt = polyDiv(copyPoly(&adjf), copyPoly(&ffgg))
+    let mut sq: Float = 0.0
+    i = 0
+    for i < n {
+        sq = sq + ft[i] * ft[i] + gt[i] * gt[i]
+        i = i + 1
+    }
+    let qf: Float = 12289.0
+    let sqfg2 = qf * qf * sq
+    let bound = 1.17 * 1.17 * qf
+    let m = if sqfg > sqfg2 {
+        sqfg
+    } else {
+        sqfg2
+    }
+    m <= bound
+}
+
+/// Samples one small polynomial, summing eight samples per coefficient.
+pure fn genPoly(prg: &mut Prg) -> Array[i64] {
+    let sig: Float = 1.43300980528773
+    let mut raw = Array.empty[i64]()
+    let mut i: usize = 0
+    for i < 4096 {
+        raw.push(samplerZ(0.0, sig, sig - 0.001, prg))
+        i = i + 1
+    }
+    let mut out = Array.empty[i64]()
+    i = 0
+    for i < n {
+        let mut s: i64 = 0
+        let mut j: usize = 0
+        for j < 8 {
+            s = s + raw[i * 8 + j]
+            j = j + 1
+        }
+        out.push(s)
+        i = i + 1
+    }
+    out
+}
+
+/// Writes a signed fixed-width field, most significant bit first.
+pure fn putSigned(mut out: Array[u8], mut pos: usize, v: i64, bits: usize) -> (Array[u8], usize) {
+    let mask: i64 = (1 << bits) - 1
+    let mut i: usize = 0
+    for i < bits {
+        let bit = (((v & mask) >> (bits - 1 - i)) & 1) != 0
+        if bit {
+            let at = pos >> 3
+            let shift = 7 - (pos & 7)
+            out[at] = out[at] | ((1 << shift).toU8() || 0)
+        }
+        pos = pos + 1
+        i = i + 1
+    }
+    (out, pos)
+}
+
+/// Packs f, g and F into the Falcon private-key encoding.
+pure fn packSecret(f: Array[i64], g: Array[i64], ff: Array[i64]) -> Bytes {
+    let mut out = Array.fill[u8](0, secretKeySize)
+    out[0] = secretKeyHeader
+    let mut pos: usize = 8
+    let mut i: usize = 0
+    for i < n {
+        let (o0, p0) = putSigned(out, pos, f[i], 6)
+        out = o0
+        pos = p0
+        i = i + 1
+    }
+    i = 0
+    for i < n {
+        let (o1, p1) = putSigned(out, pos, g[i], 6)
+        out = o1
+        pos = p1
+        i = i + 1
+    }
+    i = 0
+    for i < n {
+        let (o2, p2) = putSigned(out, pos, ff[i], 8)
+        out = o2
+        pos = p2
+        i = i + 1
+    }
+    Bytes.fromArray(&out)
+}
+
+/// Whether every coefficient fits in a signed field of `bits` bits.
+pure fn fitsSigned(a: Array[i64], bits: usize) -> Bool {
+    let lim: i64 = (1 << (bits - 1)) - 1
+    let mut i: usize = 0
+    for i < a.len() {
+        if a[i] < 0 - lim || a[i] > lim {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}
+
+/// Exact check that f*G - g*F = q using i64 coefficients.
+pure fn ntruHoldsPublic(f: &Array[i64], g: &Array[i64], F: &Array[i64], G: &Array[i64]) -> Bool {
+    let a = convSmall(f, G)
+    let b = convSmall(g, F)
+    let mut i: usize = 0
+    for i < n {
+        let d = a[i] - b[i]
+        if i == 0 {
+            if d != q.toInt() {
+                return false
+            }
+        } else if d != 0 {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}
+
+/// Generates a Falcon-512 key pair from a 56-byte seed.
+pub pure fn generateKeyPair(seed: Bytes) -> Result[KeyPair, Error] {
+    if seed.len() != seedSize {
+        return Err(Error.BadSeedSize)
+    }
+    let baseSeed = sha3.shake256("fndsa-keygen-v1".toBytes().concat(seed), seedSize)
+    let mut attempt: usize = 0
+    for attempt < 32 {
+        let mut mix = Array.empty[u8]()
+        mix.push(attempt.toU8() || 0)
+        let aseed = sha3.shake256(baseSeed.concat(Bytes.fromArray(&mix)), seedSize)
+        let mut prg = Prg.new(aseed)
+        let f = genPoly(&mut prg)
+        let g = genPoly(&mut prg)
+        attempt = attempt + 1
+        if !fitsSigned(copyI64(&f), 6) || !fitsSigned(copyI64(&g), 6) {
+            continue
+        }
+        if !gsNormOk(copyI64(&f), copyI64(&g)) {
+            continue
+        }
+        let fBig = bigPolyFromI64(copyI64(&f))
+        let gBig = bigPolyFromI64(copyI64(&g))
+        let solved = ntruSolve(&fBig, &gBig, n)
+        let (fb, gb) = match solved {
+            Ok(v) -> v
+            Err(_) -> continue
+        }
+        let mut fcoef = Array.empty[i64]()
+        let mut gcoef = Array.empty[i64]()
+        let mut ok = true
+        let mut i: usize = 0
+        for i < n {
+            let fi = bigToI64(&fb[i])
+            let gi = bigToI64(&gb[i])
+            match (fi, gi) {
+                (Some(a), Some(b)) -> {
+                    fcoef.push(a)
+                    gcoef.push(b)
+                }
+                _ -> {
+                    ok = false
+                    break
+                }
+            }
+            i = i + 1
+        }
+        if !ok || fcoef.len() != n {
+            continue
+        }
+        if !fitsSigned(copyI64(&fcoef), 8) {
+            continue
+        }
+        if !fitsSigned(copyI64(&gcoef), 8) {
+            continue
+        }
+        if !ntruHoldsPublic(&f, &g, &fcoef, &gcoef) {
+            continue
+        }
+        let mut fMod = Array.empty[u16]()
+        let mut gMod = Array.empty[u16]()
+        i = 0
+        for i < n {
+            fMod.push(toModQ(f[i]))
+            gMod.push(toModQ(g[i]))
+            i = i + 1
+        }
+        let h = match divZq(gMod, fMod) {
+            Some(v) -> v
+            None -> continue
+        }
+        let pk = encodePublicKey(h)
+        let sk = packSecret(f, g, fcoef)
+        return Ok(KeyPair {
+            publicKey: pk
+            secretKey: sk
+        })
+    }
+    Err(Error.SigningFailed)
+}

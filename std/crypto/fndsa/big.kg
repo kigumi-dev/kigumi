@@ -1,0 +1,596 @@
+// Fixed-capacity signed big integers for Falcon key generation.
+//
+// The recursive NTRU solver needs exact integers that reach a few thousand
+// bits before Babai reduction; 128 limbs (8192 bits) covers the reference
+// intermediates at n = 512. A `Big` is a Copy record so polynomials are
+// `FixedArray[Big, 512]`. Arithmetic is schoolbook and not constant time; it
+// processes public key-generation intermediates.
+/// Limbs per value.
+pub const bigLimbs: usize = 128
+
+/// Working capacity for Knuth division.
+const wideLimbs: usize = 132
+
+/// A signed 8192-bit integer.
+pub type Big = {
+    pub mut neg Bool
+    pub mut n usize
+    pub mut limbs FixedArray[u64, bigLimbs]
+}
+
+/// Zero.
+pub pure fn bigZero() -> Big {
+    Big {
+        neg: false
+        n: 0
+        limbs: FixedArray.filled[u64, bigLimbs](0)
+    }
+}
+
+/// One.
+pub pure fn bigOne() -> Big {
+    let mut b = bigZero()
+    b.limbs[0] = 1
+    b.n = 1
+    b
+}
+
+/// The value of a 64-bit signed integer.
+pub pure fn bigFromI64(v: i64) -> Big {
+    let mut b = bigZero()
+    if v == 0 {
+        return b
+    }
+    if v < 0 {
+        b.neg = true
+        b.limbs[0] = (0 - v).toU64() || 0
+    } else {
+        b.limbs[0] = v.toU64() || 0
+    }
+    b.n = 1
+    b
+}
+
+/// Trims the limb count and normalises the sign of zero.
+pure fn bigTrim(mut b: Big) -> Big {
+    let mut n = b.n
+    for n > 0 {
+        if b.limbs[n - 1] != 0 {
+            break
+        }
+        n = n - 1
+    }
+    b.n = n
+    if n == 0 {
+        b.neg = false
+    }
+    b
+}
+
+/// Whether the value is zero.
+pub pure noalloc fn bigIsZero(a: &Big) -> Bool {
+    a.n == 0
+}
+
+/// A copy.
+pub pure fn bigClone(a: &Big) -> Big {
+    Big {
+        neg: a.neg
+        n: a.n
+        limbs: a.limbs
+    }
+}
+
+/// Negation.
+pub pure fn bigNeg(a: Big) -> Big {
+    let mut b = a
+    if b.n != 0 {
+        b.neg = !b.neg
+    }
+    b
+}
+
+/// Absolute value.
+pub pure fn bigAbs(a: Big) -> Big {
+    let mut b = a
+    b.neg = false
+    b
+}
+
+/// |a| < |b|.
+pub pure noalloc fn bigLtAbs(a: &Big, b: &Big) -> Bool {
+    if a.n != b.n {
+        return a.n < b.n
+    }
+    let mut i = a.n
+    for i > 0 {
+        i = i - 1
+        if a.limbs[i] != b.limbs[i] {
+            return a.limbs[i] < b.limbs[i]
+        }
+    }
+    false
+}
+
+/// Whether a == b.
+pub pure noalloc fn bigEq(a: &Big, b: &Big) -> Bool {
+    if a.neg != b.neg || a.n != b.n {
+        return false
+    }
+    let mut i: usize = 0
+    for i < a.n {
+        if a.limbs[i] != b.limbs[i] {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}
+
+/// a + b.
+pub pure fn bigAdd(a: &Big, b: &Big) -> Big {
+    if a.neg == b.neg {
+        let mut out = bigZero()
+        let n = if a.n > b.n {
+            a.n
+        } else {
+            b.n
+        }
+        let mut carry: u64 = 0
+        let mut i: usize = 0
+        for i < n {
+            let x = if i < a.n {
+                a.limbs[i]
+            } else {
+                0
+            }
+            let y = if i < b.n {
+                b.limbs[i]
+            } else {
+                0
+            }
+            let s = x.toU128() + y.toU128() + carry.toU128()
+            out.limbs[i] = (s & 0xFFFFFFFFFFFFFFFF).truncate[u64]()
+            carry = (s >> 64).truncate[u64]()
+            i = i + 1
+        }
+        if n >= bigLimbs {
+            panic("bigAdd overflow")
+        }
+        out.limbs[n] = carry
+        out.n = n + 1
+        out.neg = a.neg
+        bigTrim(out)
+    } else if bigLtAbs(a, b) {
+        let mut out = bigZero()
+        let mut borrow: u64 = 0
+        let mut i: usize = 0
+        for i < b.n {
+            let x = b.limbs[i]
+            let y = if i < a.n {
+                a.limbs[i]
+            } else {
+                0
+            }
+            let d = x.wrappingSub(y).wrappingSub(borrow)
+            borrow = if x < y || (x == y && borrow != 0) {
+                1
+            } else {
+                0
+            }
+            out.limbs[i] = d
+            i = i + 1
+        }
+        out.n = b.n
+        out.neg = b.neg
+        bigTrim(out)
+    } else {
+        let mut out = bigZero()
+        let mut borrow: u64 = 0
+        let mut i: usize = 0
+        for i < a.n {
+            let x = a.limbs[i]
+            let y = if i < b.n {
+                b.limbs[i]
+            } else {
+                0
+            }
+            let d = x.wrappingSub(y).wrappingSub(borrow)
+            borrow = if x < y || (x == y && borrow != 0) {
+                1
+            } else {
+                0
+            }
+            out.limbs[i] = d
+            i = i + 1
+        }
+        out.n = a.n
+        out.neg = a.neg
+        bigTrim(out)
+    }
+}
+
+/// a - b.
+pub pure fn bigSub(a: &Big, b: &Big) -> Big {
+    let nb = bigNeg(bigClone(b))
+    bigAdd(a, &nb)
+}
+
+/// a * b.
+pub pure fn bigMul(a: &Big, b: &Big) -> Big {
+    let mut out = bigZero()
+    if a.n == 0 || b.n == 0 {
+        return out
+    }
+    let mut i: usize = 0
+    for i < a.n {
+        let ai = a.limbs[i].toU128()
+        let mut carry: u128 = 0
+        let mut j: usize = 0
+        for j < b.n {
+            let prod = ai.mulWithOverflow(b.limbs[j].toU128())
+            if prod.overflowed {
+                panic("bigMul product overflow")
+            }
+            let s1 = out.limbs[i + j].toU128().addWithOverflow(prod.value)
+            let s2 = s1.value.addWithOverflow(carry)
+            if s1.overflowed || s2.overflowed {
+                panic("bigMul sum overflow")
+            }
+            let t = s2.value
+            out.limbs[i + j] = (t & 0xFFFFFFFFFFFFFFFF).truncate[u64]()
+            carry = t >> 64
+            j = j + 1
+        }
+        if i + b.n >= bigLimbs {
+            panic("bigMul overflow")
+        }
+        out.limbs[i + b.n] = carry.truncate[u64]()
+        i = i + 1
+    }
+    out.n = a.n + b.n
+    out.neg = a.neg != b.neg
+    bigTrim(out)
+}
+
+/// a << n.
+pub pure fn bigShl(a: &Big, n: usize) -> Big {
+    if a.n == 0 {
+        return bigClone(a)
+    }
+    let mut out = bigZero()
+    let word = n >> 6
+    let bit = n & 63
+    let mut i: usize = 0
+    for i < a.n {
+        let v = a.limbs[i]
+        let dst = i + word
+        if dst + 1 >= bigLimbs {
+            panic("bigShl overflow")
+        }
+        if bit == 0 {
+            out.limbs[dst] = v
+        } else {
+            out.limbs[dst] = out.limbs[dst] | v.wrappingShiftLeft(bit.toU64())
+            out.limbs[dst + 1] = out.limbs[dst + 1] | (v >> (64 - bit))
+        }
+        i = i + 1
+    }
+    out.n = a.n + word + 1
+    out.neg = a.neg
+    bigTrim(out)
+}
+
+/// Floor division by 2^n.
+pub pure fn bigShr(a: &Big, n: usize) -> Big {
+    if a.n == 0 {
+        return bigZero()
+    }
+    let mut out = bigZero()
+    let word = n >> 6
+    let bit = n & 63
+    let mut dropped = false
+    let mut i: usize = 0
+    for i < word {
+        if i < a.n && a.limbs[i] != 0 {
+            dropped = true
+        }
+        i = i + 1
+    }
+    let count = if a.n > word {
+        a.n - word
+    } else {
+        0
+    }
+    i = 0
+    for i < count {
+        let src = i + word
+        let mut v = a.limbs[src] >> bit
+        if bit != 0 {
+            let next = if src + 1 < a.n {
+                a.limbs[src + 1]
+            } else {
+                0
+            }
+            v = v | next.wrappingShiftLeft((64 - bit).toU64())
+            let one: u64 = 1
+            if (a.limbs[src] & ((one << bit) - 1)) != 0 {
+                dropped = true
+            }
+        }
+        out.limbs[i] = v
+        i = i + 1
+    }
+    out.n = count
+    out.neg = a.neg
+    out = bigTrim(out)
+    if a.neg && dropped {
+        out = bigAdd(&out, &bigOne())
+        out.neg = true
+    }
+    out
+}
+
+/// Bit i of the magnitude.
+pure noalloc fn bigBit(a: &Big, i: usize) -> u64 {
+    let w = i >> 6
+    if w >= a.n {
+        return 0
+    }
+    (a.limbs[w] >> (i & 63)) & 1
+}
+
+/// 2^n.
+pure fn bigPow2(n: usize) -> Big {
+    let mut b = bigZero()
+    let w = n >> 6
+    let one: u64 = 1
+    b.limbs[w] = one << (n & 63)
+    b.n = w + 1
+    b
+}
+
+/// Leading zero bits of a 64-bit value (64 for zero).
+pure noalloc fn clz64(v: u64) -> usize {
+    if v == 0 {
+        return 64
+    }
+    let mut x = v
+    let mut n: usize = 0
+    for (x & 0x8000000000000000) == 0 {
+        x = x << 1
+        n = n + 1
+    }
+    n
+}
+
+/// Unsigned division with remainder (Knuth Algorithm D over 64-bit limbs).
+pub pure fn bigDivMod(a: &Big, b: &Big) -> (Big, Big) {
+    if bigIsZero(b) {
+        panic("bigDivMod: division by zero")
+    }
+    if bigLtAbs(a, b) {
+        return (bigZero(), bigClone(a))
+    }
+    if b.n == 1 {
+        let d = b.limbs[0].toU128()
+        let mut q = bigZero()
+        let mut r: u128 = 0
+        let mut i = a.n
+        for i > 0 {
+            i = i - 1
+            let cur = (r << 64) | a.limbs[i].toU128()
+            q.limbs[i] = (cur / d).truncate[u64]()
+            r = cur % d
+        }
+        q.n = a.n
+        let mut rr = bigZero()
+        rr.limbs[0] = r.truncate[u64]()
+        rr.n = 1
+        let qq = bigTrim(q)
+        let rr2 = bigTrim(rr)
+        let qsign = a.neg != b.neg
+        let mut qq2 = qq
+        qq2.neg = qsign && !bigIsZero(&qq2)
+        return (qq2, rr2)
+    }
+    // Normalize so the divisor's top bit is set.
+    let shift = clz64(b.limbs[b.n - 1])
+    let ua = bigShl(a, shift)
+    let vb = bigShl(b, shift)
+    let n = vb.n
+    if ua.n < n {
+        return (bigZero(), bigClone(a))
+    }
+    let m = ua.n - n
+    let mut u = FixedArray.filled[u64, wideLimbs](0)
+    let mut v = FixedArray.filled[u64, wideLimbs](0)
+    let mut i: usize = 0
+    for i < ua.n {
+        u[i] = ua.limbs[i]
+        i = i + 1
+    }
+    i = 0
+    for i < n {
+        v[i] = vb.limbs[i]
+        i = i + 1
+    }
+    let mut q = FixedArray.filled[u64, wideLimbs](0)
+    let vtop = v[n - 1].toU128()
+    let vnext = v[n - 2].toU128()
+    let b64: u128 = 18446744073709551616
+    let mut j = m + 1
+    for j > 0 {
+        j = j - 1
+        let num = (u[j + n].toU128() << 64) | u[j + n - 1].toU128()
+        let mut qhat = num / vtop
+        let mut rhat = num % vtop
+        for qhat >= b64 {
+            qhat = qhat - 1
+            rhat = rhat + vtop
+        }
+        for qhat * vnext > ((rhat << 64) | u[j + n - 2].toU128()) {
+            qhat = qhat - 1
+            rhat = rhat + vtop
+            if rhat >= b64 {
+                break
+            }
+        }
+        // u[j..j+n] -= qhat * v
+        let mut carry: u128 = 0
+        let mut borrow: u128 = 0
+        i = 0
+        for i < n {
+            let p = qhat * v[i].toU128() + carry
+            carry = p >> 64
+            let plo = p & 0xFFFFFFFFFFFFFFFF
+            let ui = u[j + i].toU128()
+            let total = plo + borrow
+            if ui >= total {
+                u[j + i] = (ui - total).truncate[u64]()
+                borrow = 0
+            } else {
+                u[j + i] = (b64 + ui - total).truncate[u64]()
+                borrow = 1
+            }
+            i = i + 1
+        }
+        let top = u[j + n].toU128()
+        let sub = carry + borrow
+        if top >= sub {
+            u[j + n] = (top - sub).truncate[u64]()
+        } else {
+            // The estimate was one too high: add the divisor back.
+            qhat = qhat - 1
+            let mut c: u128 = 0
+            i = 0
+            for i < n {
+                let s = u[j + i].toU128() + v[i].toU128() + c
+                u[j + i] = s.truncate[u64]()
+                c = s >> 64
+                i = i + 1
+            }
+            u[j + n] = (u[j + n].toU128() + c).truncate[u64]()
+        }
+        q[j] = qhat.truncate[u64]()
+    }
+    let mut qq = bigZero()
+    i = 0
+    for i <= m {
+        qq.limbs[i] = q[i]
+        i = i + 1
+    }
+    qq.n = m + 1
+    let mut rr = bigZero()
+    i = 0
+    for i < n {
+        rr.limbs[i] = u[i]
+        i = i + 1
+    }
+    rr.n = n
+    let mut qq2 = bigTrim(qq)
+    let rr2 = bigTrim(bigShr(&bigTrim(rr), shift))
+    qq2.neg = (a.neg != b.neg) && !bigIsZero(&qq2)
+    (qq2, rr2)
+}
+
+/// Unsigned extended GCD: d = u*a + v*b.
+pub pure fn bigXgcd(a: &Big, b: &Big) -> (Big, Big, Big) {
+    let mut r0 = bigAbs(bigClone(a))
+    let mut r1 = bigAbs(bigClone(b))
+    let mut s0 = bigOne()
+    let mut s1 = bigZero()
+    let mut t0 = bigZero()
+    let mut t1 = bigOne()
+    for !bigIsZero(&r1) {
+        let (q, r2) = bigDivMod(&r0, &r1)
+        let qs = bigMul(&q, &s1)
+        let qt = bigMul(&q, &t1)
+        let s2 = bigSub(&s0, &qs)
+        let t2 = bigSub(&t0, &qt)
+        r0 = r1
+        r1 = r2
+        s0 = s1
+        s1 = s2
+        t0 = t1
+        t1 = t2
+    }
+    (r0, s0, t0)
+}
+
+/// The value as a Float.
+pub pure fn bigToFloat(a: &Big) -> Float {
+    let mut v: Float = 0.0
+    let mut i = a.n
+    for i > 0 {
+        i = i - 1
+        v = v * 18446744073709551616.0 + a.limbs[i].toFloat()
+    }
+    if a.neg {
+        -v
+    } else {
+        v
+    }
+}
+
+/// The exact bit length of |a|.
+pub pure noalloc fn bigBitLen(a: &Big) -> usize {
+    let mut n = a.n
+    for n > 0 {
+        if a.limbs[n - 1] != 0 {
+            break
+        }
+        n = n - 1
+    }
+    if n == 0 {
+        return 0
+    }
+    let mut bits = (n - 1) * 64
+    let mut top = a.limbs[n - 1]
+    for top != 0 {
+        top = top >> 1
+        bits = bits + 1
+    }
+    bits
+}
+
+/// The bit length rounded up to a multiple of 8, as Falcon's Reduce uses it.
+pub pure noalloc fn bigBitsize(a: &Big) -> usize {
+    ((bigBitLen(a) + 7) >> 3) << 3
+}
+
+/// The value as i64 when it fits.
+pub pure fn bigToI64(a: &Big) -> i64? {
+    if bigBitLen(a) > 63 {
+        return None
+    }
+    let v = a.limbs[0]
+    if a.neg {
+        Some(0 - (v.toInt() || 0))
+    } else {
+        Some(v.toInt() || 0)
+    }
+}
+
+/// The value of an i128.
+pub pure fn bigFromI128(v: i128) -> Big {
+    let mut b = bigZero()
+    if v == 0 {
+        return b
+    }
+    let neg = v < 0
+    let mut mag: u128 = v.toU128() || 0
+    if neg {
+        mag = (0 - v).toU128() || 0
+    }
+    b.neg = neg
+    b.limbs[0] = (mag & 0xFFFFFFFFFFFFFFFF).truncate[u64]()
+    let hi = (mag >> 64).truncate[u64]()
+    if hi != 0 {
+        b.limbs[1] = hi
+        b.n = 2
+    } else {
+        b.n = 1
+    }
+    b
+}

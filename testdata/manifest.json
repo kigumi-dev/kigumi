@@ -4633,6 +4633,15 @@
       ]
     },
     {
+      "id": "run/crypto_fndsa_keygen",
+      "kind": "run",
+      "path": "testdata/run/crypto_fndsa_keygen.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/crypto_fndsa_sign",
       "kind": "run",
       "path": "testdata/run/crypto_fndsa_sign.txtar",
