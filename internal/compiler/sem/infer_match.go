@@ -17,6 +17,7 @@ func (c *checker) synthMatch(n syntax.NodeID, want TypeID) TypeID {
 	c.info.Narrow[n] = entry
 	place := c.factPlace(subject)
 	var excluded []NarrowFact
+	excludedSeen := map[NarrowFact]bool{}
 	var joined []NarrowFact
 	live := 0
 	scrutineeRp := c.restrictedAliasOf(subject)
@@ -24,8 +25,11 @@ func (c *checker) synthMatch(n syntax.NodeID, want TypeID) TypeID {
 	for _, arm := range arms {
 		s := matchArm(c.t, arm)
 		saved := c.scope
-		c.facts = append(c.snapshotFacts()[:0], entry...)
-		c.addFacts(excluded)
+		c.facts = append(c.facts[:0], entry...)
+		// The excluded facts are the same prefix every arm, so append them
+		// directly: addFacts would dedupe each of them against the whole list,
+		// making an N-arm match O(N³).
+		c.facts = append(c.facts, excluded...)
 		c.pushScope(ScopeArm, arm)
 		c.checkPatternOn(s.Pattern, subject, scrutinee, false, c.scope)
 		c.taintPatternBindings(s.Pattern, scrutineeRp)
@@ -37,7 +41,13 @@ func (c *checker) synthMatch(n syntax.NodeID, want TypeID) TypeID {
 			c.branch--
 			c.addFacts(gp)
 		} else {
-			excluded = append(excluded, neg...)
+			for _, f := range neg {
+				if excludedSeen[f] {
+					continue
+				}
+				excludedSeen[f] = true
+				excluded = append(excluded, f)
+			}
 		}
 		t := c.checkBranch(n, s.Body, want, valuePos)
 		c.onceArm(once, t)

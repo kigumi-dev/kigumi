@@ -16,11 +16,13 @@ func (m *Module) scan(f *indexedFile) error {
 		if _, err := m.source(f); err != nil {
 			return err
 		}
-		f.hash, f.imports, f.scanned = contentHash(f.src), scanImports(f.src), true
+		f.hash, f.imports = scanSource(f.display, f.src)
+		f.scanned = true
 		m.index.memo.put(f.abs, f.size, f.mtime, f.ctime, f.hash, f.imports)
 		return nil
 	}
-	f.hash, f.imports, f.scanned = contentHash(f.src), scanImports(f.src), true
+	f.hash, f.imports = scanSource(f.display, f.src)
+	f.scanned = true
 	if !f.overlay {
 		m.index.memo.put(f.abs, f.size, f.mtime, f.ctime, f.hash, f.imports)
 	}

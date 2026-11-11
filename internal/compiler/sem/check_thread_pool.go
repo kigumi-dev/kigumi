@@ -1,6 +1,10 @@
 package sem
 
-import "kigumi/internal/compiler/syntax"
+import (
+	"strings"
+
+	"kigumi/internal/compiler/syntax"
+)
 
 // threadPoolKey names the one std function that starts worker threads;
 // mir.ThreadPoolKey is the same string on the backend side.
@@ -42,11 +46,42 @@ func (r *Result) threadPoolBlockedCode() (Code, bool) {
 	return Code{}, false
 }
 
+// entityByStdKey resolves a stdKey ("task.threadPoolExecutor") through the
+// package scope, and remembers the answer: the call check asks for the pool
+// once per call site, so scanning every entity (and building its key) per call
+// made a trivial module's check quadratic in the module size.
 func (r *Result) entityByStdKey(key string) EntityID {
-	for id := 1; id < len(r.Entities); id++ {
-		e := &r.Entities[id]
-		if e.Kind == EntFn && r.Packages[e.Pkg].Std && r.stdKey(EntityID(id)) == key {
-			return EntityID(id)
+	if id, ok := r.stdKeyMemo[key]; ok {
+		return id
+	}
+	id := r.lookupStdKey(key)
+	if r.stdKeyMemo == nil {
+		r.stdKeyMemo = map[string]EntityID{}
+	}
+	r.stdKeyMemo[key] = id
+	return id
+}
+
+func (r *Result) lookupStdKey(key string) EntityID {
+	dot := strings.IndexByte(key, '.')
+	last := strings.LastIndexByte(key, '.')
+	if dot <= 0 || last < dot {
+		return 0
+	}
+	pkg, ok := r.pathIndex["std/"+key[:dot]]
+	if !ok {
+		return 0
+	}
+	b, ok := r.Scopes[r.Packages[pkg].Scope].Names[key[last+1:]]
+	if !ok {
+		return 0
+	}
+	if b.Ent != 0 && r.Entities[b.Ent].Kind == EntFn && r.stdKey(b.Ent) == key {
+		return b.Ent
+	}
+	for _, m := range r.Overloads[b.Set].Members {
+		if r.Entities[m].Kind == EntFn && r.stdKey(m) == key {
+			return m
 		}
 	}
 	return 0

@@ -29,6 +29,34 @@ func (c *checker) checkMatch(n syntax.NodeID, scrutineeNode syntax.NodeID, scrut
 		}
 	}
 	synthetic := len(rows)
+	// rowsByHead indexes the arm rows by head constructor, so an arm is judged
+	// against the rows that can share its head instead of every row seen so far:
+	// a flat match over N variants stays linear, not N².
+	var rowsByHead map[string][]int
+	var wildRows []int
+	indexRow := func(i int) {
+		if rows[i][0].kind == pWild {
+			wildRows = append(wildRows, i)
+			return
+		}
+		if rowsByHead == nil {
+			rowsByHead = map[string][]int{}
+		}
+		rowsByHead[rows[i][0].key] = append(rowsByHead[rows[i][0].key], i)
+	}
+	candidates := func(head pat) [][]pat {
+		if head.kind == pWild {
+			return rows[synthetic:]
+		}
+		cand := make([][]pat, 0, len(wildRows)+len(rowsByHead[head.key]))
+		for _, i := range wildRows {
+			cand = append(cand, rows[i])
+		}
+		for _, i := range rowsByHead[head.key] {
+			cand = append(cand, rows[i])
+		}
+		return cand
+	}
 	guarded, brokenArm := false, false
 	for i, arm := range arms {
 		s := matchArm(c.t, arm)
@@ -39,7 +67,7 @@ func (c *checker) checkMatch(n syntax.NodeID, scrutineeNode syntax.NodeID, scrut
 		}
 		reachable := false
 		for _, alt := range alts {
-			reachable = reachable || c.useful(rows[synthetic:], []pat{alt}, types)
+			reachable = reachable || c.useful(newMatrix(candidates(alt)), []pat{alt}, types)
 		}
 		if !reachable {
 			c.errAt(s.Pattern, cMatchUnreachable)
@@ -51,6 +79,7 @@ func (c *checker) checkMatch(n syntax.NodeID, scrutineeNode syntax.NodeID, scrut
 		}
 		for _, alt := range alts {
 			rows = append(rows, []pat{alt})
+			indexRow(len(rows) - 1)
 		}
 	}
 	if scrutinee == TyNever {
@@ -58,7 +87,7 @@ func (c *checker) checkMatch(n syntax.NodeID, scrutineeNode syntax.NodeID, scrut
 		return
 	}
 	for len(info.Missing) < 3 {
-		w, ok := c.missing(rows, types)
+		w, ok := c.missing(newMatrix(rows), types)
 		if ok {
 			break
 		}

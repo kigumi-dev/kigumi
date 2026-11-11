@@ -357,3 +357,49 @@ func TestUnitsOffIgnoresSettledReplay(t *testing.T) {
 		t.Fatalf("check: %v\n%s", err, res.Render())
 	}
 }
+
+// TestCommentEditKeepsSettledReplay pins that a comment added after the last
+// token changes no key: it cannot change a diagnostic, so the clean check still
+// replays and no package is parsed or checked again.
+func TestCommentEditKeepsSettledReplay(t *testing.T) {
+	t.Parallel()
+	root, cache := t.TempDir(), t.TempDir()
+	writeGraph(t, root, graphFiles())
+	recordStatuses(t, root, cache, "cmd/app/main.kg")
+	mid := graphFiles()["mid/mid.kg"] + "\n// a comment after the last token\n"
+	writeGraph(t, root, map[string]string{"mid/mid.kg": mid})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: stdRoot(t), Entry: "cmd/app/main.kg", PackageCache: cache, DeferParse: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := driver.Check(m)
+	if err != nil || res.HasErrors() {
+		t.Fatalf("check: %v", err)
+	}
+	if st := m.PackageCacheStats(); st.SettledHits != 1 || m.Stats().Check != 0 || m.IndexStats().PackagesParsed != 0 {
+		t.Fatalf("a comment-only edit keeps the settled check: %+v %+v %+v", st, m.Stats(), m.IndexStats())
+	}
+}
+
+// TestCommentLineShiftUnsettles pins the other side: a comment that moves the
+// code changes the line numbers a diagnostic would print, so the check runs
+// again rather than replaying positions that no longer exist.
+func TestCommentLineShiftUnsettles(t *testing.T) {
+	t.Parallel()
+	root, cache := t.TempDir(), t.TempDir()
+	writeGraph(t, root, graphFiles())
+	recordStatuses(t, root, cache, "cmd/app/main.kg")
+	mid := "// a comment before the code\n" + graphFiles()["mid/mid.kg"]
+	writeGraph(t, root, map[string]string{"mid/mid.kg": mid})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: stdRoot(t), Entry: "cmd/app/main.kg", PackageCache: cache, DeferParse: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := driver.Check(m)
+	if err != nil || res.HasErrors() {
+		t.Fatalf("check: %v", err)
+	}
+	if st := m.PackageCacheStats(); st.SettledHits != 0 || m.Stats().Check == 0 || m.IndexStats().PackagesParsed == 0 {
+		t.Fatalf("a line shift must not replay the settled check: %+v %+v %+v", st, m.Stats(), m.IndexStats())
+	}
+}

@@ -76,6 +76,10 @@ type Result struct {
 	mod       *Module
 	sources   *token.SourceStore
 	langItems map[string]EntityID
+	// stdKeyMemo caches entityByStdKey answers for this check, including misses.
+	stdKeyMemo map[string]EntityID
+	// ctorMemo caches a column type's constructors, which every match arm asks for.
+	ctorMemo map[TypeID]*ctorEntry
 
 	langItemMissing map[string]bool
 	dropMemo        map[TypeID]EffectSummary

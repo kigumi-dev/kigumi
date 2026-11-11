@@ -4,11 +4,41 @@ import (
 	"kigumi/internal/compiler/syntax"
 )
 
+// ctorEntry is a column type's constructors, memoized for the check: every arm
+// of a match and every variant of an exhaustive walk asks for the same ADT, and
+// rebuilding a variant list per arm is quadratic in the arm count.
+type ctorEntry struct {
+	set      []ctorDesc
+	complete bool
+	byKey    map[string]int
+}
+
 // ctorSet lists the constructors of a column type; complete is false for
 // unbounded domains (numbers, strings, existentials, opaque types).
 func (c *checker) ctorSet(t TypeID) ([]ctorDesc, bool) {
-	tt := c.r.Types
+	e := c.ctorEntry(t)
+	return e.set, e.complete
+}
+
+func (c *checker) ctorEntry(t TypeID) *ctorEntry {
 	t = c.vars.resolve(t)
+	if e, ok := c.r.ctorMemo[t]; ok {
+		return e
+	}
+	set, complete := c.buildCtorSet(t)
+	e := &ctorEntry{set: set, complete: complete, byKey: make(map[string]int, len(set))}
+	for i, d := range set {
+		e.byKey[d.key] = i
+	}
+	if c.r.ctorMemo == nil {
+		c.r.ctorMemo = map[TypeID]*ctorEntry{}
+	}
+	c.r.ctorMemo[t] = e
+	return e
+}
+
+func (c *checker) buildCtorSet(t TypeID) ([]ctorDesc, bool) {
+	tt := c.r.Types
 	if t == TyBool {
 		return []ctorDesc{{key: "true", name: "true"}, {key: "false", name: "false"}}, true
 	}
@@ -49,11 +79,9 @@ func recordKey(e EntityID) string  { return "r" + itoa(int(e)) }
 
 // argTypes gives the column types introduced by specializing on h.
 func (c *checker) argTypes(t TypeID, h pat) []TypeID {
-	set, _ := c.ctorSet(t)
-	for _, d := range set {
-		if d.key == h.key {
-			return append([]TypeID{}, d.args...)
-		}
+	e := c.ctorEntry(t)
+	if i, ok := e.byKey[h.key]; ok {
+		return e.set[i].args
 	}
 	return wildTypes(len(h.args))
 }

@@ -11,7 +11,7 @@ import (
 	buildconfig "kigumi/internal/toolchain/config"
 )
 
-const memoVersion = 3
+const memoVersion = 4
 
 // racyWindow keeps a file whose mtime is this close to the time it was read out of the memo: a later edit could keep the same size and mtime tick.
 const racyWindow = 2 * time.Second
