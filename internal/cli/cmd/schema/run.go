@@ -6,11 +6,24 @@ import (
 	"kigumi/internal/base/errors"
 	"kigumi/internal/cli/exit"
 	"kigumi/internal/cli/session"
+	"kigumi/internal/toolchain/catalog"
 	"kigumi/internal/toolchain/driver"
 	"kigumi/internal/tooling/doc"
 )
 
 func run(io session.IO, opts options) error {
+	if opts.catalog {
+		c, err := catalog.Generate(opts.session.StdRoot())
+		if err != nil {
+			return errors.WrapErr(err, "generate std catalog")
+		}
+		out, err := catalog.JSON(c)
+		if err != nil {
+			return err
+		}
+		_, err = io.Out.Write(out)
+		return err
+	}
 	m, err := opts.session.LoadWhole(opts.target, true, io.Err)
 	if err != nil {
 		return err

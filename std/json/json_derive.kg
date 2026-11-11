@@ -1,28 +1,34 @@
 import map from std/map
 
 /// Builder the derived `toJson` of a record uses: fields in declaration order, `omitNone` fields skipped when None.
+/// Internal SPI: the `toJson` generator writes through this builder.
 pub type Fields = {
     mut fields map.Map[String, Value]
 }
 
+/// Internal SPI: starts the builder for one derived `toJson`.
 pub fn Fields.new() -> Fields {
     Fields { fields: map.empty[String, Value]() }
 }
 
+/// Internal SPI: appends one field to a derived `toJson`.
 pub fn Fields.put(mut self, key: String, value: Value) {
     self.fields.set(key, value)
 }
 
+/// Internal SPI: turns the builder into the object a derived `toJson` returns.
 pub fn Fields.finish(move self) -> Value {
     Value.Object(move self.fields)
 }
 
 /// The object a derived `fromJson` of a record reads; fields are taken out by their JSON key.
+/// Internal SPI: the `fromJson` generator reads records through it.
 pub type Record = {
     pub owner String
     mut fields map.Map[String, Value]
 }
 
+/// Internal SPI: checks and wraps the object a derived `fromJson` reads.
 pub fn Record.expect(value: Value, typeName: String) -> Record! {
     match value {
         Value.Object(m) -> Ok(Record {
@@ -33,6 +39,7 @@ pub fn Record.expect(value: Value, typeName: String) -> Record! {
     }
 }
 
+/// Internal SPI: decodes one required field in a derived `fromJson`.
 pub fn Record.field[T: Decode](mut self, key: String) -> T! {
     match self.fields.take(&key) {
         Some(v) -> T.fromJson(v)
@@ -40,6 +47,7 @@ pub fn Record.field[T: Decode](mut self, key: String) -> T! {
     }
 }
 
+/// Internal SPI: decodes one optional field in a derived `fromJson`.
 pub fn Record.optional[T: Decode](mut self, key: String) -> Option[T]! {
     match self.fields.take(&key) {
         Some(v) -> Option[T].fromJson(v)
@@ -48,10 +56,12 @@ pub fn Record.optional[T: Decode](mut self, key: String) -> Option[T]! {
 }
 
 /// A variant as JSON: its name as a string, or `{"Name": [payload...]}` when it carries one.
+/// Internal SPI: encodes one ADT variant for a derived `toJson`.
 pub fn tag(variant: String) -> Value {
     Value.Text(variant)
 }
 
+/// Internal SPI: encodes an ADT variant with its payload for a derived `toJson`.
 pub fn tagged(variant: String, payload: Array[Value]) -> Value {
     let mut fields = map.empty[String, Value]()
     fields.set(variant, Value.List(payload))
@@ -59,12 +69,14 @@ pub fn tagged(variant: String, payload: Array[Value]) -> Value {
 }
 
 /// The variant a derived `fromJson` of an ADT reads: the name and its payload values in order.
+/// Internal SPI: the `fromJson` generator reads ADT variants through it.
 pub type Tagged = {
     pub owner String
     pub name String
     mut payload Array[Value]
 }
 
+/// Internal SPI: checks and wraps the variant a derived `fromJson` reads.
 pub fn Tagged.expect(value: Value, typeName: String) -> Tagged! {
     match value {
         Value.Text(name) -> Ok(Tagged {
@@ -93,6 +105,7 @@ pub fn Tagged.expect(value: Value, typeName: String) -> Tagged! {
 }
 
 /// Checks the payload count of the variant named in the JSON.
+/// Internal SPI: validates arity in a derived `fromJson`.
 pub fn Tagged.arity(self, count: Int) -> Void! {
     if (self.payload.len().toInt() || 0) != count {
         fail Error { text: "`${self.name}` takes ${count} payload value(s), found ${self.payload.len()}" }
@@ -100,6 +113,7 @@ pub fn Tagged.arity(self, count: Int) -> Void! {
 }
 
 /// Takes the next payload value, in order.
+/// Internal SPI: decodes a payload value in a derived `fromJson`.
 pub fn Tagged.next[T: Decode](mut self) -> T! {
     match self.payload.takeAt(0) {
         Some(v) -> T.fromJson(v)
@@ -107,6 +121,7 @@ pub fn Tagged.next[T: Decode](mut self) -> T! {
     }
 }
 
+/// Internal SPI: reports an unrecognized variant in a derived `fromJson`.
 pub fn Tagged.unknown[T](self) -> T! {
     fail Error { text: "`${self.name}` is not a variant of ${self.owner}" }
 }

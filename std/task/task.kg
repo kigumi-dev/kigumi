@@ -16,6 +16,7 @@ pub fn threadPoolExecutor(workers: usize) -> Executor
 pub fn Executor.handoff[T](self, future: Future[T]) -> Task[T]
 
 /// Drives the future, and everything it spawns, to a terminal state.
+/// Internal SPI: the generated root bridge calls this.
 pub fn Executor.runToCompletion[T](self, future: Future[T]) -> T
 
 /// Starts the future as a child task. Its panic is raised where it is awaited; if nothing awaits it, the panic cancels the parent and its other children, and the parent fails with it.
@@ -31,6 +32,7 @@ pub fn yieldNow() -> Future[Void]
 pub fn cancelRequested() -> Bool
 
 /// `cancelRequested` read as a context key; the executor binds it to every task, and `context (...)` cannot override it.
+/// Internal SPI: the task runtime supplies this key.
 pub context cancellation: Bool
 
 /// A bounded, root-owned boundary for running direct-blocking work from an async body instead of calling it bare.

@@ -1,6 +1,10 @@
 package sem
 
-import "kigumi/internal/compiler/syntax"
+import (
+	"sort"
+
+	"kigumi/internal/compiler/syntax"
+)
 
 // Layer is a std package's dependency layer: Foundation/Allocation need no
 // OS, Platform needs one, Tool is build-sandbox only.
@@ -78,6 +82,25 @@ var stdLayer = map[string]Layer{
 	"std/shell/coreutil":          LayerPlatform,
 	"std/time":                    LayerPlatform,
 	"std/build":                   LayerTool,
+}
+
+// StdLayerFor returns path's layer and whether the table lists it. The
+// catalog validator reads this table so a package cannot document a layer
+// the resolver does not enforce.
+func StdLayerFor(path string) (Layer, bool) {
+	l, ok := stdLayer[path]
+	return l, ok
+}
+
+// StdLayerPaths lists every package in the layer table, sorted, so a catalog
+// can prove it covers each one.
+func StdLayerPaths() []string {
+	paths := make([]string, 0, len(stdLayer))
+	for path := range stdLayer {
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+	return paths
 }
 
 // Runs before resolveImports binds anything, so the graph is

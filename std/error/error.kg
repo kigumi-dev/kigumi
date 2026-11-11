@@ -34,4 +34,5 @@ pub fn cause(e: Error) -> Error? {
 /// or one wrapped by context() anywhere down the chain (first match wins).
 /// E must be a concrete Copy type implementing Error, extracted from behind
 /// a shared borrow, so a move-only E is rejected.
+/// Internal SPI: `?` lowering calls this; user code uses `as` as well.
 pub fn as[E](e: &Error) -> E?

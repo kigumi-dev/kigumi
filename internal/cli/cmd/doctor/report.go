@@ -45,6 +45,7 @@ type report struct {
 	Module      manifest     `json:"module"`
 	Diagnostics []diagnostic `json:"diagnostics"`
 	Std         field        `json:"std"`
+	Catalog     catalogField `json:"catalog"`
 	Target      field        `json:"target"`
 	CCompiler   field        `json:"cCompiler"`
 	Zig         field        `json:"zig"`
@@ -66,6 +67,9 @@ func buildReport(s session.Session) report {
 		r.Diagnostics = []diagnostic{}
 	}
 	r.Std = stdField(s)
+	var diags []diagnostic
+	r.Catalog, diags = catalogReport(s.StdRoot())
+	r.Diagnostics = append(r.Diagnostics, diags...)
 	r.Target = targetField(s)
 	r.CCompiler = ccompilerField()
 	r.Zig = zigField()

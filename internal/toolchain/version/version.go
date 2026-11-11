@@ -21,6 +21,8 @@ const (
 	ModJSONFormatVersion   = 1
 	BuildPlanFormatVersion = 1
 	DoctorFormatVersion    = 1
+	// CatalogFormatVersion wraps `kigumi doctor --catalog` and `kigumi schema --catalog`.
+	CatalogFormatVersion = 1
 	// ExpandFormatVersion wraps `kigumi expand --format json`; CHeaderFormatVersion
 	// wraps `kigumi emit-c-header --format json`.
 	ExpandFormatVersion  = 1

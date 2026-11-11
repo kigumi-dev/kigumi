@@ -11,6 +11,7 @@ func renderText(w io.Writer, r report) {
 	fmt.Fprintf(w, "go:         %s\n", r.GoVersion)
 	printField(w, "module", r.Module.field)
 	printField(w, "std", r.Std)
+	printField(w, "catalog", r.Catalog.field)
 	printField(w, "target", r.Target)
 	printField(w, "c compiler", r.CCompiler)
 	printField(w, "zig", r.Zig)

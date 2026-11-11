@@ -4,9 +4,11 @@ import io from std/io
 pub context stdin: io.Reader
 
 /// Writes to the process's standard output; `print` depends on it directly.
+/// Internal SPI: the compiler binds this key for `print`.
 pub context stdout: io.Writer
 
 /// Writes to the process's standard error; `eprint` depends on it directly.
+/// Internal SPI: the compiler binds this key for `eprint`.
 pub context stderr: io.Writer
 
 /// Bundles stdin, stdout and stderr for a single `context (...)` provider; the three keys stay separate requirements, so a print-only function never needs `stdin` authority.

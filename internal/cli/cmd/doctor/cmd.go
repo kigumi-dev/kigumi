@@ -15,5 +15,6 @@ func New() *cobra.Command {
 		RunE:  session.RunE(parseOptions, run),
 	}
 	cmd.Flags().String("format", "text", "output format: text (default) or json")
+	cmd.Flags().Bool("catalog", false, "print the std/exp package catalog as JSON and exit")
 	return cmd
 }
