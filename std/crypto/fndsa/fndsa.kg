@@ -1,0 +1,33 @@
+// FN-DSA (FIPS 206 draft) over the Falcon-512 parameter set.
+//
+// SCOPE (SEC-24): this package implements the Falcon-512 verification and
+// signing half of FN-DSA. Verification follows the Falcon-512 encoding and
+// norm bound. Signing accepts a Falcon-512 private key (f, g, F), recovers G
+// modulo q, and samples the signature with the reference Fourier sampler.
+// Key generation is not implemented: the required recursive NTRU solver did
+// not reach a correct, tested state for this change, and returning a canned
+// or unchecked key would be fake output. `publicKeyOf` derives h from an
+// existing valid secret key, so signing tests use the published Falcon-512
+// known-answer keys.
+//
+// Randomness is explicit: `sign` expands the caller's 40-byte salt together
+// with the message through SHAKE256 and a ChaCha20 PRG, so a signature is a
+// pure function of its inputs. Verification is public-data-only and does not
+// promise constant time; signing uses secret indices and inherits the
+// backend's timing behaviour.
+/// The public entry point: verify a padded Falcon-512 signature.
+pub pure fn verify(publicKey: Bytes, message: Bytes, signature: Bytes) -> Result[Bool, Error] {
+    verifySignature(publicKey, message, signature)
+}
+
+/// Deterministically signs `message` with the 40-byte `salt`.
+///
+/// The signature is a pure function of the secret key, message and salt.
+pub pure fn sign(secretKey: Bytes, message: Bytes, salt: Bytes) -> Result[Bytes, Error] {
+    signMessage(secretKey, message, salt)
+}
+
+/// Derives the Falcon-512 public key from a secret key.
+pub pure fn publicKeyOf(secretKey: Bytes) -> Result[Bytes, Error] {
+    derivePublicKey(secretKey)
+}

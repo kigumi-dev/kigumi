@@ -1,0 +1,148 @@
+// The Falcon NTT over Z_q[x]/(x^512 + 1), used to recover G from a packed
+// secret key. The split/merge structure mirrors the reference implementation.
+/// q as a signed 64-bit value.
+const qi: i64 = 12289
+
+/// 2^{-1} mod q.
+const i2: u16 = 6145
+
+/// A square root of -1 mod q.
+const sqr1: u16 = 1479
+
+/// Reduces a signed value into [0, q).
+pure noalloc fn modQ(v: i64) -> u16 {
+    let mut r = v % qi
+    if r < 0 {
+        r = r + qi
+    }
+    r.toU16() || 0
+}
+
+/// x mod q for an unsigned product below 2^32.
+pure noalloc fn modQu(v: u32) -> u16 {
+    (v % q).toU16() || 0
+}
+
+/// The modular inverse of a non-zero residue.
+pure fn invQ(a: u16) -> u16 {
+    let mut t: i64 = 0
+    let mut newt: i64 = 1
+    let mut r: i64 = qi
+    let mut newr: i64 = a.toInt()
+    for newr != 0 {
+        let qq = r / newr
+        let tmp = t - qq * newt
+        t = newt
+        newt = tmp
+        let tmp2 = r - qq * newr
+        r = newr
+        newr = tmp2
+    }
+    if t < 0 {
+        t = t + qi
+    }
+    t.toU16() || 0
+}
+
+/// Splits f into even and odd coefficient arrays.
+pure fn splitZq(f: Array[u16]) -> (Array[u16], Array[u16]) {
+    let n = f.len()
+    let mut even = Array.empty[u16]()
+    let mut odd = Array.empty[u16]()
+    let mut i: usize = 0
+    for i < n / 2 {
+        even.push(f[2 * i])
+        odd.push(f[2 * i + 1])
+        i = i + 1
+    }
+    (even, odd)
+}
+
+/// Interleaves even and odd arrays.
+pure fn mergeZq(f0: Array[u16], f1: Array[u16]) -> Array[u16] {
+    let mut out = Array.empty[u16]()
+    let mut i: usize = 0
+    for i < f0.len() {
+        out.push(f0[i])
+        out.push(f1[i])
+        i = i + 1
+    }
+    out
+}
+
+/// The forward NTT.
+pub pure fn nttPoly(f: Array[u16]) -> Array[u16] {
+    let n = f.len()
+    if n > 2 {
+        let roots = rootsZq(n)
+        let (even, odd) = splitZq(f)
+        let e = nttPoly(even)
+        let o = nttPoly(odd)
+        let mut out = Array.empty[u16]()
+        let mut i: usize = 0
+        for i < n / 2 {
+            let w = roots[2 * i].toInt()
+            let t = w * o[i].toInt()
+            out.push(modQ(e[i].toInt() + t))
+            out.push(modQ(e[i].toInt() - t))
+            i = i + 1
+        }
+        out
+    } else {
+        let a0 = f[0].toInt()
+        let a1 = f[1].toInt()
+        Array.of[u16](modQ((a0 + sqr1.toInt() * a1) % qi), modQ((a0 - sqr1.toInt() * a1) % qi))
+    }
+}
+
+/// The inverse NTT.
+pub pure fn inttPoly(f: Array[u16]) -> Array[u16] {
+    let n = f.len()
+    if n > 2 {
+        let roots = rootsZq(n)
+        let mut e = Array.empty[u16]()
+        let mut o = Array.empty[u16]()
+        let mut i: usize = 0
+        for i < n / 2 {
+            let s = f[2 * i].toInt() + f[2 * i + 1].toInt()
+            let d = f[2 * i].toInt() - f[2 * i + 1].toInt()
+            e.push(modQ((i2.toInt() * s) % qi))
+            o.push(modQ(((i2.toInt() * d) % qi) * invQ(roots[2 * i]).toInt()))
+            i = i + 1
+        }
+        mergeZq(inttPoly(e), inttPoly(o))
+    } else {
+        let x0 = f[0].toInt()
+        let x1 = f[1].toInt()
+        Array.of[u16](modQ((i2.toInt() * (x0 + x1)) % qi), modQ(((i2.toInt() * (x0 - x1)) % qi) * invQ(sqr1).toInt()))
+    }
+}
+
+/// Product in Z_q[x]/(x^n + 1).
+pub pure fn mulZq(a: Array[u16], b: Array[u16]) -> Array[u16] {
+    let an = nttPoly(a)
+    let bn = nttPoly(b)
+    let mut out = Array.empty[u16]()
+    let mut i: usize = 0
+    for i < an.len() {
+        out.push(modQu(an[i].toU32() * bn[i].toU32()))
+        i = i + 1
+    }
+    inttPoly(out)
+}
+
+/// Quotient in Z_q[x]/(x^n + 1); `b` must have no zero NTT coefficient.
+pub pure fn divZq(a: Array[u16], b: Array[u16]) -> Array[u16]? {
+    let an = nttPoly(a)
+    let bn = nttPoly(b)
+    let mut out = Array.empty[u16]()
+    let mut i: usize = 0
+    for i < an.len() {
+        if bn[i] == 0 {
+            return None
+        }
+        out.push(modQu(an[i].toU32() * invQ(bn[i]).toU32()))
+        i = i + 1
+    }
+    Some(inttPoly(out))
+}

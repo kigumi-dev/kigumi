@@ -4633,6 +4633,24 @@
       ]
     },
     {
+      "id": "run/crypto_fndsa_sign",
+      "kind": "run",
+      "path": "testdata/run/crypto_fndsa_sign.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_fndsa_verify",
+      "kind": "run",
+      "path": "testdata/run/crypto_fndsa_verify.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/crypto_hkdf",
       "kind": "run",
       "path": "testdata/run/crypto_hkdf.txtar",

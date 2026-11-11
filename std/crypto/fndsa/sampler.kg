@@ -1,0 +1,290 @@
+// Falcon's deterministic PRG (ChaCha20 with a 56-byte seed) and the
+// discrete Gaussian sampler over Z.
+//
+// The PRG is exactly the one from the Falcon reference implementation:
+// eight ChaCha20 blocks are produced at a time and interleaved word by word.
+// The sampler uses the reference 72-bit reverse cumulative distribution
+// table and the same integer exponential approximation, so a signature is a
+// pure function of the seed and the secret key.
+import math from std/math
+
+// The Falcon signing PRG state.
+pub type Prg = {
+    s FixedArray[u32, 14]
+    mut ctr u64
+    mut buf Array[u8]
+    mut pos usize
+}
+
+/// Reads a 32-bit little-endian word.
+pure noalloc fn wordAt(b: Bytes, at: usize) -> u32 {
+    let mut w = b[at].toU32()
+    w = w | (b[at + 1].toU32() << 8)
+    w = w | (b[at + 2].toU32() << 16)
+    w | (b[at + 3].toU32() << 24)
+}
+
+/// The four outputs of one ChaCha20 quarter round.
+type Quad = {
+    a u32
+    b u32
+    c u32
+    d u32
+}
+
+/// RFC 8439 §2.1's quarter round.
+pure noalloc fn quarterRound(a: u32, b: u32, c: u32, d: u32) -> Quad {
+    let a1 = a.wrappingAdd(b)
+    let d1 = (d ^ a1).rotateLeft(16)
+    let c1 = c.wrappingAdd(d1)
+    let b1 = (b ^ c1).rotateLeft(12)
+    let a2 = a1.wrappingAdd(b1)
+    let d2 = (d1 ^ a2).rotateLeft(8)
+    let c2 = c1.wrappingAdd(d2)
+    let b2 = (b1 ^ c2).rotateLeft(7)
+    Quad {
+        a: a2
+        b: b2
+        c: c2
+        d: d2
+    }
+}
+
+/// One ChaCha20 block for the Falcon state words and counter.
+pure fn prgBlock(s: FixedArray[u32, 14], ctr: u64) -> FixedArray[u32, 16] {
+    let mut st = FixedArray.filled[u32, 16](0)
+    st[0] = 0x61707865
+    st[1] = 0x3320646E
+    st[2] = 0x79622D32
+    st[3] = 0x6B206574
+    let mut i: usize = 0
+    for i < 10 {
+        st[4 + i] = s[i]
+        i = i + 1
+    }
+    st[14] = s[10] ^ ((ctr & 0xFFFFFFFF).toU32() || 0)
+    st[15] = s[11] ^ ((ctr >> 32).toU32() || 0)
+    let init = st
+    let mut round: usize = 0
+    for round < 10 {
+        let q0 = quarterRound(st[0], st[4], st[8], st[12])
+        st[0] = q0.a
+        st[4] = q0.b
+        st[8] = q0.c
+        st[12] = q0.d
+        let q1 = quarterRound(st[1], st[5], st[9], st[13])
+        st[1] = q1.a
+        st[5] = q1.b
+        st[9] = q1.c
+        st[13] = q1.d
+        let q2 = quarterRound(st[2], st[6], st[10], st[14])
+        st[2] = q2.a
+        st[6] = q2.b
+        st[10] = q2.c
+        st[14] = q2.d
+        let q3 = quarterRound(st[3], st[7], st[11], st[15])
+        st[3] = q3.a
+        st[7] = q3.b
+        st[11] = q3.c
+        st[15] = q3.d
+        let q4 = quarterRound(st[0], st[5], st[10], st[15])
+        st[0] = q4.a
+        st[5] = q4.b
+        st[10] = q4.c
+        st[15] = q4.d
+        let q5 = quarterRound(st[1], st[6], st[11], st[12])
+        st[1] = q5.a
+        st[6] = q5.b
+        st[11] = q5.c
+        st[12] = q5.d
+        let q6 = quarterRound(st[2], st[7], st[8], st[13])
+        st[2] = q6.a
+        st[7] = q6.b
+        st[8] = q6.c
+        st[13] = q6.d
+        let q7 = quarterRound(st[3], st[4], st[9], st[14])
+        st[3] = q7.a
+        st[4] = q7.b
+        st[9] = q7.c
+        st[14] = q7.d
+        round = round + 1
+    }
+    i = 0
+    for i < 16 {
+        st[i] = st[i].wrappingAdd(init[i])
+        i = i + 1
+    }
+    st
+}
+
+/// A new PRG from a 56-byte seed.
+pub pure fn Prg.new(seed: Bytes) -> Prg {
+    let mut s = FixedArray.filled[u32, 14](0)
+    let mut i: usize = 0
+    for i < 14 {
+        s[i] = wordAt(seed, 4 * i)
+        i = i + 1
+    }
+    let ctr = s[12].toU64() | (s[13].toU64() << 32)
+    Prg {
+        s: s
+        ctr: ctr
+        buf: Array.empty[u8]()
+        pos: 0
+    }
+}
+
+/// Appends one 512-byte chunk: eight blocks interleaved word by word.
+pure fn Prg.refill(mut self) {
+    let mut words = FixedArray.filled[u32, 128](0)
+    let mut i: usize = 0
+    for i < 8 {
+        let b = prgBlock(self.s, self.ctr)
+        let mut w: usize = 0
+        for w < 16 {
+            words[i + 8 * w] = b[w]
+            w = w + 1
+        }
+        self.ctr = self.ctr.wrappingAdd(1)
+        i = i + 1
+    }
+    let mut at: usize = 0
+    for at < 128 {
+        let v = words[at]
+        self.buf.push((v & 0xFF).toU8() || 0)
+        self.buf.push(((v >> 8) & 0xFF).toU8() || 0)
+        self.buf.push(((v >> 16) & 0xFF).toU8() || 0)
+        self.buf.push(((v >> 24) & 0xFF).toU8() || 0)
+        at = at + 1
+    }
+}
+
+/// The next `k` pseudorandom bytes.
+pub pure fn Prg.randomBytes(mut self, k: usize) -> Bytes {
+    for self.buf.len() - self.pos < k {
+        self.refill()
+    }
+    let mut out = Array.empty[u8]()
+    let mut i: usize = 0
+    for i < k {
+        out.push(self.buf[self.pos + i])
+        i = i + 1
+    }
+    self.pos = self.pos + k
+    Bytes.fromArray(&out)
+}
+
+/// The next byte.
+pure fn Prg.byte(mut self) -> u8 {
+    self.randomBytes(1)[0]
+}
+
+/// RCDT[i], the reference 72-bit reverse cumulative distribution table.
+fn rcdt(i: usize) -> u128 {
+    let table = Array.of[u128](3024686241123004913666, 1564742784480091954050, 636254429462080897535, 199560484645026482916, 47667343854657281903, 8595902006365044063, 1163297957344668388, 117656387352093658, 8867391802663976, 496969357462633, 20680885154299, 638331848991, 14602316184, 247426747, 3104126, 28824, 198, 1)
+    table[i]
+}
+
+/// Number of RCDT entries.
+const rcdtLen: usize = 18
+
+/// The 72-bit integer formed by `k` random little-endian bytes.
+pure fn randomU128(prg: &mut Prg, k: usize) -> u128 {
+    let b = prg.randomBytes(k)
+    let mut u: u128 = 0
+    let mut i: usize = 0
+    for i < k {
+        u = u | (b[i].toU128() << (8 * i))
+        i = i + 1
+    }
+    u
+}
+
+/// Samples z0 from the half-Gaussian with the reference RCDT.
+pure fn baseSampler(prg: &mut Prg) -> u32 {
+    let u = randomU128(prg, 9)
+    let mut z0: u32 = 0
+    let mut i: usize = 0
+    for i < rcdtLen {
+        if u < rcdt(i) {
+            z0 = z0 + 1
+        }
+        i = i + 1
+    }
+    z0
+}
+
+/// The coefficients of the reference integer approximation of exp(-x).
+fn cTable(i: usize) -> u64 {
+    let table = Array.of[u64](0x00000004741183A3, 0x00000036548CFC06, 0x0000024FDCBF140A, 0x0000171D939DE045, 0x0000D00CF58F6F84, 0x000680681CF796E3, 0x002D82D8305B0FEA, 0x011111110E066FD0, 0x0555555555070F00, 0x155555555581FF00, 0x400000000002B400, 0x7FFFFFFFFFFF4800, 0x8000000000000000)
+    table[i]
+}
+
+/// 2^63 * ccs * exp(-x), approximated with the reference polynomial.
+pure fn approxExp(x: Float, ccs: Float) -> u64 {
+    let two63: Float = 9223372036854775808.0
+    let mut y: u128 = cTable(0).toU128()
+    let z0 = (x * two63).toInt() || 0
+    let z: u128 = (z0.toU64() || 0).toU128()
+    let mut i: usize = 1
+    for i < 13 {
+        y = cTable(i).toU128() - ((z * y) >> 63)
+        i = i + 1
+    }
+    let c = (((ccs * two63).toInt() || 0).toU64() || 0).toU128()
+    y = ((c << 1) * y) >> 63
+    y.toU64() || 0
+}
+
+/// One bit, set with probability about ccs * exp(-x).
+pure fn berExp(x: Float, ccs: Float, prg: &mut Prg) -> Bool {
+    let ln2: Float = 0.69314718056
+    let iln2: Float = 1.44269504089
+    let mut s = (x * iln2).toInt() || 0
+    let r = x - s.toFloat() * ln2
+    if s > 63 {
+        s = 63
+    }
+    let sh: usize = (s.toU64() || 0).toUsize()
+    let ae = approxExp(r, ccs)
+    if ae == 0 {
+        return false
+    }
+    let z = (ae - 1) >> sh
+    let mut w: i32 = 0
+    let mut i: i64 = 56
+    for i >= 0 {
+        let p = prg.byte().toI32()
+        w = p - (((z >> (i.toU64() || 0).toUsize()) & 0xFF).toI32() || 0)
+        if w != 0 {
+            break
+        }
+        i = i - 8
+    }
+    w < 0
+}
+
+/// Samples from the discrete Gaussian D_{Z, mu, sigma}.
+pub pure fn samplerZ(mu: Float, sigma: Float, sigmin: Float, prg: &mut Prg) -> i64 {
+    let s = math.floor(mu).toInt() || 0
+    let r = mu - s.toFloat()
+    let dss = 1.0 / (2.0 * sigma * sigma)
+    let ccs = sigmin / sigma
+    let two: Float = 2.0
+    let one: Float = 1.0
+    let mut loopCount: usize = 0
+    for loopCount < 100000 {
+        let z0 = baseSampler(prg)
+        let b = (prg.byte() & 1).toInt()
+        let z = b + ((b * 2) - 1) * z0.toInt()
+        let diff = z.toFloat() - r
+        let mut x = diff * diff * dss
+        let z0f = z0.toFloat()
+        x = x - (z0f * z0f) * 0.15086504887537272
+        if berExp(x, ccs, prg) {
+            return z + s
+        }
+        loopCount = loopCount + 1
+    }
+    s
+}

@@ -1,0 +1,419 @@
+import sha3 from std/crypto/sha3
+// Falcon-512 secret-key decoding and deterministic signing.
+//
+// The packed key holds f, g and F; G is recomputed modulo q exactly as the
+// reference implementation does. Signing hashes the salt and message to a
+// point in Z_q[x]/(x^512 + 1), samples a short preimage with the Falcon
+// Fourier sampler, and compresses s1 with Falcon's unary encoding.
+import math from std/math
+
+/// The four small polynomials of a Falcon-512 trapdoor.
+pub type Secret = {
+    f Array[i64]
+    g Array[i64]
+    ff Array[i64]
+    gg Array[i64]
+}
+
+/// Falcon-512's signature standard deviation.
+const sigma: Float = 165.7366171829776
+
+/// Falcon-512's lower bound on the per-coordinate standard deviation.
+const sigmin: Float = 1.2778336969128337
+
+/// Reads `bits` bits big-endian from a byte at a bit offset.
+pure noalloc fn skBit(data: Bytes, at: usize) -> u32 {
+    (data[at >> 3].toU32() >> (7 - (at & 7))) & 1
+}
+
+/// Decodes a signed fixed-width field and rejects the forbidden minimum.
+pure fn decodeSigned(data: Bytes, offset: usize, count: usize, bits: usize) -> Result[Array[i64], Error] {
+    let mask: u32 = (1 << bits) - 1
+    let signBit: u32 = 1 << (bits - 1)
+    let mut out = Array.empty[i64]()
+    let mut i: usize = 0
+    for i < count {
+        let mut v: u32 = 0
+        let mut k: usize = 0
+        for k < bits {
+            v = (v << 1) | skBit(data, offset * 8 + i * bits + k)
+            k = k + 1
+        }
+        let mut x = v.toInt()
+        if (v & signBit) != 0 {
+            x = x - (mask + 1).toInt()
+        }
+        if x == 0 - (signBit.toInt()) {
+            return Err(Error.NonCanonicalSecretKey)
+        }
+        out.push(x)
+        i = i + 1
+    }
+    Ok(out)
+}
+
+/// Lifts a small signed value into [0, q).
+pure fn toModQ(v: i64) -> u16 {
+    let mut r = v % q.toInt()
+    if r < 0 {
+        r = r + q.toInt()
+    }
+    r.toU16() || 0
+}
+
+/// The exact negacyclic integer product of two small polynomials.
+pure fn convSmall(a: &Array[i64], b: &Array[i64]) -> Array[i64] {
+    let mut out = Array.fill[i64](0, n)
+    let mut i: usize = 0
+    for i < n {
+        let ai = a[i]
+        let mut j: usize = 0
+        for j < n {
+            let p = ai * b[j]
+            let k = i + j
+            if k < n {
+                out[k] = out[k] + p
+            } else {
+                out[k - n] = out[k - n] - p
+            }
+            j = j + 1
+        }
+        i = i + 1
+    }
+    out
+}
+
+/// Whether f*G - g*F is exactly q in Z[x]/(x^n + 1).
+pure fn ntruHolds(f: &Array[i64], g: &Array[i64], F: &Array[i64], G: &Array[i64]) -> Bool {
+    let a = convSmall(f, G)
+    let b = convSmall(g, F)
+    let mut i: usize = 0
+    for i < n {
+        let d = a[i] - b[i]
+        if i == 0 {
+            if d != q.toInt() {
+                return false
+            }
+        } else if d != 0 {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}
+
+/// A copy of an i64 array.
+pure fn copyI64(a: &Array[i64]) -> Array[i64] {
+    let mut out = Array.empty[i64]()
+    let mut i: usize = 0
+    for i < a.len() {
+        out.push(a[i])
+        i = i + 1
+    }
+    out
+}
+
+/// Decodes and validates a Falcon-512 secret key.
+pub pure fn decodeSecret(secretKey: Bytes) -> Result[Secret, Error] {
+    if secretKey.len() != secretKeySize {
+        return Err(Error.BadSecretKeySize)
+    }
+    if secretKey[0] != secretKeyHeader {
+        return Err(Error.BadSecretKeyHeader)
+    }
+    let f = decodeSigned(secretKey, 1, n, 6)?
+    let g = decodeSigned(secretKey, 1 + 384, n, 6)?
+    let ff = decodeSigned(secretKey, 1 + 768, n, 8)?
+    let mut fMod = Array.empty[u16]()
+    let mut gMod = Array.empty[u16]()
+    let mut ffMod = Array.empty[u16]()
+    let mut i: usize = 0
+    for i < n {
+        fMod.push(toModQ(f[i]))
+        gMod.push(toModQ(g[i]))
+        ffMod.push(toModQ(ff[i]))
+        i = i + 1
+    }
+    let gF = mulZq(gMod, ffMod)
+    let maybeG = divZq(gF, fMod)
+    let ggMod = match maybeG {
+        Some(v) -> v
+        None -> return Err(Error.InvalidSecretKey)
+    }
+    let mut gg = Array.empty[i64]()
+    i = 0
+    for i < n {
+        let c = centerQ(ggMod[i])
+        if c < -127 || c > 127 {
+            return Err(Error.InvalidSecretKey)
+        }
+        gg.push(c.toInt())
+        i = i + 1
+    }
+    if !ntruHolds(&f, &g, &ff, &gg) {
+        return Err(Error.InvalidSecretKey)
+    }
+    Ok(Secret {
+        f: f
+        g: g
+        ff: ff
+        gg: gg
+    })
+}
+
+/// Encodes a modulo-q polynomial as a 14-bit public key.
+pure fn encodePublicKey(h: Array[u16]) -> Bytes {
+    let mut out = Array.fill[u8](0, publicKeySize)
+    out[0] = publicKeyHeader
+    let mut pos: usize = 8
+    let mut i: usize = 0
+    for i < n {
+        let v = h[i].toU32()
+        let mut b: usize = 0
+        for b < 14 {
+            let bit = (v >> (13 - b)) & 1
+            if bit != 0 {
+                let at = pos + b
+                let shift = 7 - (at & 7)
+                out[at >> 3] = out[at >> 3] | ((1 << shift).toU8() || 0)
+            }
+            b = b + 1
+        }
+        pos = pos + 14
+        i = i + 1
+    }
+    Bytes.fromArray(&out)
+}
+
+/// Derives the public key from a secret key.
+pub pure fn derivePublicKey(secretKey: Bytes) -> Result[Bytes, Error] {
+    let sk = decodeSecret(secretKey)?
+    let mut fMod = Array.empty[u16]()
+    let mut gMod = Array.empty[u16]()
+    let mut i: usize = 0
+    for i < n {
+        fMod.push(toModQ(sk.f[i]))
+        gMod.push(toModQ(sk.g[i]))
+        i = i + 1
+    }
+    let h = divZq(gMod, fMod)
+    match h {
+        Some(v) -> Ok(encodePublicKey(v))
+        None -> Err(Error.InvalidSecretKey)
+    }
+}
+
+/// Round half to even, matching the reference `rint`.
+pure fn roundEven(x: Float) -> i64 {
+    let f = math.floor(x)
+    let d = x - f
+    if d < 0.5 {
+        f.toInt() || 0
+    } else if d > 0.5 {
+        (f + 1.0).toInt() || 0
+    } else {
+        let fi = f.toInt() || 0
+        if fi % 2 == 0 {
+            fi
+        } else {
+            fi + 1
+        }
+    }
+}
+
+/// Writes one bit into a fixed byte array, most significant bit first.
+pure fn putBit(mut out: Array[u8], pos: usize, bit: Bool) -> Array[u8] {
+    if bit {
+        let at = pos >> 3
+        let shift = 7 - (pos & 7)
+        out[at] = out[at] | ((1 << shift).toU8() || 0)
+    }
+    out
+}
+
+/// Falcon's compressed signature encoding of s1, or None if it overflows.
+pure fn compressS1(s1: Array[i64]) -> Array[u8]? {
+    let total = compressedSize * 8
+    let mut out = Array.fill[u8](0, compressedSize)
+    let mut pos: usize = 0
+    let mut i: usize = 0
+    for i < n {
+        if pos + 8 > total {
+            return None
+        }
+        let coef = s1[i]
+        let negative = coef < 0
+        let mut mag = coef
+        if negative {
+            mag = 0 - mag
+        }
+        out = putBit(out, pos, negative)
+        pos = pos + 1
+        let low = mag & 0x7F
+        let mut b: usize = 0
+        for b < 7 {
+            let bit = ((low >> (6 - b)) & 1) != 0
+            out = putBit(out, pos, bit)
+            pos = pos + 1
+            b = b + 1
+        }
+        let high = mag >> 7
+        let mut k: i64 = 0
+        for k < high {
+            if pos >= total {
+                return None
+            }
+            pos = pos + 1
+            k = k + 1
+        }
+        if pos >= total {
+            return None
+        }
+        out = putBit(out, pos, true)
+        pos = pos + 1
+        i = i + 1
+    }
+    Some(out)
+}
+
+/// Converts a hash point to floating-point coefficients.
+pure fn pointToFloat(c: FixedArray[u16, n]) -> Array[Float] {
+    let mut out = Array.empty[Float]()
+    let mut i: usize = 0
+    for i < n {
+        out.push(c[i].toInt().toFloat())
+        i = i + 1
+    }
+    out
+}
+
+/// Converts a signed small polynomial to floating-point coefficients.
+pure fn signedToFloat(a: Array[i64]) -> Array[Float] {
+    let mut out = Array.empty[Float]()
+    let mut i: usize = 0
+    for i < a.len() {
+        out.push(a[i].toFloat())
+        i = i + 1
+    }
+    out
+}
+
+/// Deterministically signs `message` with a 40-byte salt.
+///
+/// The signature is a pure function of the secret key, message and salt.
+/// A caller that needs fresh signatures supplies a fresh salt.
+pub pure fn signMessage(secretKey: Bytes, message: Bytes, salt: Bytes) -> Result[Bytes, Error] {
+    if salt.len() != saltSize {
+        return Err(Error.BadMessageNonceSize)
+    }
+    let sk = decodeSecret(secretKey)?
+    let f = signedToFloat(copyI64(&sk.f))
+    let g = signedToFloat(copyI64(&sk.g))
+    let ff = signedToFloat(copyI64(&sk.ff))
+    let gg = signedToFloat(copyI64(&sk.gg))
+    let a = fft(copyPoly(&g))
+    // b is -f in the reference basis.
+    let b = fft(polyNeg(copyPoly(&f)))
+    let c = fft(copyPoly(&gg))
+    let d = fft(polyNeg(copyPoly(&ff)))
+    // Gram matrix of [[g, -f], [G, -F]] in coefficient domain.
+    let g00 = polyAdd(polyMul(copyPoly(&g), polyAdj(copyPoly(&g))), polyMul(copyPoly(&f), polyAdj(copyPoly(&f))))
+    let g01 = polyAdd(polyMul(copyPoly(&g), polyAdj(copyPoly(&gg))), polyMul(copyPoly(&f), polyAdj(copyPoly(&ff))))
+    let g10 = polyAdd(polyMul(copyPoly(&gg), polyAdj(copyPoly(&g))), polyMul(copyPoly(&ff), polyAdj(copyPoly(&f))))
+    let g11 = polyAdd(polyMul(copyPoly(&gg), polyAdj(copyPoly(&gg))), polyMul(copyPoly(&ff), polyAdj(copyPoly(&ff))))
+    let mut levels = Array.fill[C](C {
+        re: 0.0
+        im: 0.0
+    }, treeLevels * levelWidth)
+    levels = buildTree(fft(g00), fft(g01), fft(g10), fft(g11), 0, 0, sigma, levels)
+    let point = hashToPoint(salt, message)
+    let pointFft = fft(pointToFloat(point))
+    let qf: Float = 12289.0
+    let qc = C {
+        re: qf
+        im: 0.0
+    }
+    let mut t0 = Array.empty[C]()
+    let mut t1 = Array.empty[C]()
+    let mut i: usize = 0
+    for i < n {
+        t0.push(cDiv(cMul(pointFft[i], d[i]), qc))
+        t1.push(cDiv(cNeg(cMul(pointFft[i], b[i])), qc))
+        i = i + 1
+    }
+    let baseSeed = sha3.shake256("fndsa-sign-v1".toBytes().concat(salt).concat(message), seedSize)
+    let mut attempt: usize = 0
+    for attempt < 64 {
+        let mut mix = Array.empty[u8]()
+        let v = attempt.toU8() || 0
+        mix.push(v)
+        let attemptSeed = sha3.shake256(copyBytes(&baseSeed).concat(Bytes.fromArray(&mix)), seedSize)
+        let mut prg = Prg.new(attemptSeed)
+        let (z0, z1) = ffSampling(copyFft(&t0), copyFft(&t1), &levels, 0, 0, n, sigmin, &mut prg)
+        let v0 = fftAdd(fftMul(copyFft(&z0), copyFft(&a)), fftMul(copyFft(&z1), copyFft(&c)))
+        let v1 = fftAdd(fftMul(copyFft(&z0), copyFft(&b)), fftMul(copyFft(&z1), copyFft(&d)))
+        let v0c = ifft(v0)
+        let v1c = ifft(v1)
+        let mut s0 = Array.empty[i64]()
+        let mut s1 = Array.empty[i64]()
+        let mut norm: i64 = 0
+        let mut j: usize = 0
+        for j < n {
+            let a0 = roundEven(v0c[j])
+            let a1 = roundEven(v1c[j])
+            let d0 = point[j].toInt() - a0
+            let d1 = 0 - a1
+            norm = norm + d0 * d0 + d1 * d1
+            s0.push(d0)
+            s1.push(d1)
+            j = j + 1
+        }
+        _ = s0
+        if norm <= signatureNormBound {
+            match compressS1(s1) {
+                Some(enc) -> {
+                    let mut out = Array.empty[u8]()
+                    out.push(signatureHeader)
+                    let mut k: usize = 0
+                    for k < salt.len() {
+                        out.push(salt[k])
+                        k = k + 1
+                    }
+                    k = 0
+                    for k < enc.len() {
+                        out.push(enc[k])
+                        k = k + 1
+                    }
+                    return Ok(Bytes.fromArray(&out))
+                }
+                None -> {}
+            }
+        }
+        attempt = attempt + 1
+    }
+    Err(Error.SigningFailed)
+}
+
+/// A copy of a Bytes value, so a seed can be reused.
+pure fn copyBytes(b: &Bytes) -> Bytes {
+    let mut out = Array.empty[u8]()
+    let mut i: usize = 0
+    for i < b.len() {
+        out.push(b[i])
+        i = i + 1
+    }
+    Bytes.fromArray(&out)
+}
+
+/// Negates a complex value.
+pure fn cNeg(a: C) -> C {
+    C {
+        re: -a.re
+        im: -a.im
+    }
+}
+
+/// A copy of a coefficient array (alias for readability at call sites).
+pure fn polyCopy(a: &Array[Float]) -> Array[Float] {
+    copyPoly(a)
+}

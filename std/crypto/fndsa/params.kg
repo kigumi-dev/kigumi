@@ -1,0 +1,80 @@
+// FN-DSA / Falcon-512 parameters and errors (FIPS 206 draft, Falcon-512).
+//
+// The modulo-q ring is Z_q[x]/(x^512 + 1) with q = 12289. Public keys are the
+// 14-bits-per-coefficient encoding of h = g/f; signatures are a 40-byte salt
+// followed by a compressed pair (s0, s1) whose squared norm is below
+// `signatureNormBound`. Secret keys use the Falcon private-key encoding of
+// f, g and F; G is recovered modulo q.
+/// Ring degree.
+pub const n: usize = 512
+
+/// log2(n).
+pub const logn: usize = 9
+
+/// The modulus q.
+pub const q: u32 = 12289
+
+/// Bytes of a public key, including the 0x09 header.
+pub const publicKeySize: usize = 897
+
+/// Bytes of a secret key, including the 0x59 header.
+pub const secretKeySize: usize = 1281
+
+/// Bytes of a padded Falcon-512 signature: header, salt and compressed s2.
+pub const signatureSize: usize = 656
+
+/// Bytes of the signature salt.
+pub const saltSize: usize = 40
+
+/// Bytes of the compressed s2 field.
+pub const compressedSize: usize = signatureSize - 1 - saltSize
+
+/// Bytes of the PRG seed derived by `sign`.
+pub const seedSize: usize = 56
+
+/// Header byte of a Falcon-512 public key (0x00 + logn, format 0).
+pub const publicKeyHeader: u8 = 0x09
+
+/// Header byte of a Falcon-512 secret key (0x50 + logn).
+pub const secretKeyHeader: u8 = 0x59
+
+/// Header byte of a Falcon-512 signature (0x30 + logn).
+pub const signatureHeader: u8 = 0x39
+
+/// Upper bound on ||s0||^2 + ||s1||^2, Falcon-512.
+pub const signatureNormBound: i64 = 34034726
+
+/// Why a Falcon-512 call was refused.
+pub type Error =
+    | BadPublicKeySize
+    | BadSecretKeySize
+    | BadSignatureSize
+    | BadPublicKeyHeader
+    | BadSecretKeyHeader
+    | BadSignatureHeader
+    | NonCanonicalPublicKey
+    | NonCanonicalSecretKey
+    | NonCanonicalSignature
+    | InvalidSecretKey
+    | BadSeedSize
+    | BadMessageNonceSize
+    | SigningFailed
+
+/// A short, fixed explanation of the error.
+pub fn Error.message(self) -> String {
+    match self {
+        BadPublicKeySize -> "fndsa: public key must be 897 bytes"
+        BadSecretKeySize -> "fndsa: secret key must be 1281 bytes"
+        BadSignatureSize -> "fndsa: signature must be 656 bytes"
+        BadPublicKeyHeader -> "fndsa: invalid public key header"
+        BadSecretKeyHeader -> "fndsa: invalid secret key header"
+        BadSignatureHeader -> "fndsa: invalid signature header"
+        NonCanonicalPublicKey -> "fndsa: public key is not canonical"
+        NonCanonicalSecretKey -> "fndsa: secret key is not canonical"
+        NonCanonicalSignature -> "fndsa: signature is not canonically encoded"
+        InvalidSecretKey -> "fndsa: secret key does not satisfy the NTRU equation"
+        BadSeedSize -> "fndsa: seed must be 56 bytes"
+        BadMessageNonceSize -> "fndsa: message nonce must be 40 bytes"
+        SigningFailed -> "fndsa: signing rejected every candidate"
+    }
+}

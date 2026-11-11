@@ -1,0 +1,277 @@
+// Complex FFT over R[x]/(x^512 + 1), used by Falcon signing.
+//
+// The split/merge recursion and the root ordering follow the Falcon
+// reference implementation so that the numerical result matches it.
+/// A complex number with IEEE-754 binary64 parts.
+pub type C = {
+    pub re Float
+    pub im Float
+}
+
+/// The zero complex number.
+pure fn czero() -> C {
+    C {
+        re: 0.0
+        im: 0.0
+    }
+}
+
+/// a + b.
+pure fn cAdd(a: C, b: C) -> C {
+    C {
+        re: a.re + b.re
+        im: a.im + b.im
+    }
+}
+
+/// a - b.
+pure fn cSub(a: C, b: C) -> C {
+    C {
+        re: a.re - b.re
+        im: a.im - b.im
+    }
+}
+
+/// a * b.
+pure fn cMul(a: C, b: C) -> C {
+    C {
+        re: a.re * b.re - a.im * b.im
+        im: a.re * b.im + a.im * b.re
+    }
+}
+
+/// a / b.
+pure fn cDiv(a: C, b: C) -> C {
+    let d = b.re * b.re + b.im * b.im
+    C {
+        re: (a.re * b.re + a.im * b.im) / d
+        im: (a.im * b.re - a.re * b.im) / d
+    }
+}
+
+/// The complex conjugate of a.
+pure fn cAdj(a: C) -> C {
+    C {
+        re: a.re
+        im: -a.im
+    }
+}
+
+/// Splits f into its even and odd coefficient arrays.
+pure fn splitPoly(f: &Array[Float]) -> (Array[Float], Array[Float]) {
+    let mut even = Array.empty[Float]()
+    let mut odd = Array.empty[Float]()
+    let mut i: usize = 0
+    for i < f.len() / 2 {
+        even.push(f[2 * i])
+        odd.push(f[2 * i + 1])
+        i = i + 1
+    }
+    (even, odd)
+}
+
+/// Interleaves f0 and f1: f0[0], f1[0], f0[1], f1[1], ...
+pure fn merge(f0: Array[Float], f1: Array[Float]) -> Array[Float] {
+    let mut out = Array.empty[Float]()
+    let mut i: usize = 0
+    for i < f0.len() {
+        out.push(f0[i])
+        out.push(f1[i])
+        i = i + 1
+    }
+    out
+}
+
+/// A copy of a coefficient array.
+pub pure fn copyPoly(a: &Array[Float]) -> Array[Float] {
+    let mut out = Array.empty[Float]()
+    let mut i: usize = 0
+    for i < a.len() {
+        out.push(a[i])
+        i = i + 1
+    }
+    out
+}
+
+/// A copy of an FFT array.
+pub pure fn copyFft(a: &Array[C]) -> Array[C] {
+    let mut out = Array.empty[C]()
+    let mut i: usize = 0
+    for i < a.len() {
+        out.push(a[i])
+        i = i + 1
+    }
+    out
+}
+
+/// The FFT of a coefficient array whose length is a power of two.
+pub pure fn fft(f: Array[Float]) -> Array[C] {
+    let n = f.len()
+    if n > 2 {
+        let (even, odd) = splitPoly(&f)
+        let f0 = fft(even)
+        let f1 = fft(odd)
+        mergeFft(f0, f1)
+    } else {
+        Array.of[C](C {
+            re: f[0]
+            im: f[1]
+        }, C {
+            re: f[0]
+            im: -f[1]
+        })
+    }
+}
+
+/// Splits an FFT into its two half-size FFTs.
+pure fn splitFft(f: &Array[C]) -> (Array[C], Array[C]) {
+    let n = f.len()
+    let w = rootsFft(n)
+    let mut even = Array.empty[C]()
+    let mut odd = Array.empty[C]()
+    let mut i: usize = 0
+    for i < n / 2 {
+        even.push(C {
+            re: 0.5 * (f[2 * i].re + f[2 * i + 1].re)
+            im: 0.5 * (f[2 * i].im + f[2 * i + 1].im)
+        })
+        let d = C {
+            re: 0.5 * (f[2 * i].re - f[2 * i + 1].re)
+            im: 0.5 * (f[2 * i].im - f[2 * i + 1].im)
+        }
+        odd.push(cMul(d, cAdj(w[2 * i])))
+        i = i + 1
+    }
+    (even, odd)
+}
+
+/// Merges two half-size FFTs into one.
+pub pure fn mergeFft(f0: Array[C], f1: Array[C]) -> Array[C] {
+    let n = 2 * f0.len()
+    let w = rootsFft(n)
+    let mut out = Array.empty[C]()
+    let mut i: usize = 0
+    for i < n / 2 {
+        let a = cMul(w[2 * i], f1[i])
+        out.push(cAdd(f0[i], a))
+        out.push(cSub(f0[i], a))
+        i = i + 1
+    }
+    out
+}
+
+/// The inverse FFT.
+pub pure fn ifft(f: Array[C]) -> Array[Float] {
+    let n = f.len()
+    if n > 2 {
+        let (even, odd) = splitFft(&f)
+        let f0 = ifft(even)
+        let f1 = ifft(odd)
+        merge(f0, f1)
+    } else {
+        Array.of[Float](f[0].re, f[0].im)
+    }
+}
+
+/// Coefficient-wise sum.
+pub pure fn polyAdd(a: Array[Float], b: Array[Float]) -> Array[Float] {
+    let mut out = Array.empty[Float]()
+    let mut i: usize = 0
+    for i < a.len() {
+        out.push(a[i] + b[i])
+        i = i + 1
+    }
+    out
+}
+
+/// Coefficient-wise difference.
+pub pure fn polySub(a: Array[Float], b: Array[Float]) -> Array[Float] {
+    let mut out = Array.empty[Float]()
+    let mut i: usize = 0
+    for i < a.len() {
+        out.push(a[i] - b[i])
+        i = i + 1
+    }
+    out
+}
+
+/// Coefficient-wise negation.
+pub pure fn polyNeg(a: Array[Float]) -> Array[Float] {
+    let mut out = Array.empty[Float]()
+    let mut i: usize = 0
+    for i < a.len() {
+        out.push(-a[i])
+        i = i + 1
+    }
+    out
+}
+
+/// Pointwise product of two FFTs.
+pub pure fn fftMul(a: Array[C], b: Array[C]) -> Array[C] {
+    let mut out = Array.empty[C]()
+    let mut i: usize = 0
+    for i < a.len() {
+        out.push(cMul(a[i], b[i]))
+        i = i + 1
+    }
+    out
+}
+
+/// Pointwise quotient of two FFTs.
+pub pure fn fftDiv(a: Array[C], b: Array[C]) -> Array[C] {
+    let mut out = Array.empty[C]()
+    let mut i: usize = 0
+    for i < a.len() {
+        out.push(cDiv(a[i], b[i]))
+        i = i + 1
+    }
+    out
+}
+
+/// Pointwise sum of two FFTs.
+pub pure fn fftAdd(a: Array[C], b: Array[C]) -> Array[C] {
+    let mut out = Array.empty[C]()
+    let mut i: usize = 0
+    for i < a.len() {
+        out.push(cAdd(a[i], b[i]))
+        i = i + 1
+    }
+    out
+}
+
+/// Pointwise difference of two FFTs.
+pub pure fn fftSub(a: Array[C], b: Array[C]) -> Array[C] {
+    let mut out = Array.empty[C]()
+    let mut i: usize = 0
+    for i < a.len() {
+        out.push(cSub(a[i], b[i]))
+        i = i + 1
+    }
+    out
+}
+
+/// Pointwise conjugate of an FFT.
+pub pure fn fftAdj(a: Array[C]) -> Array[C] {
+    let mut out = Array.empty[C]()
+    let mut i: usize = 0
+    for i < a.len() {
+        out.push(cAdj(a[i]))
+        i = i + 1
+    }
+    out
+}
+
+/// Product of two coefficient arrays.
+pub pure fn polyMul(a: Array[Float], b: Array[Float]) -> Array[Float] {
+    ifft(fftMul(fft(a), fft(b)))
+}
+
+/// Quotient of two coefficient arrays.
+pub pure fn polyDiv(a: Array[Float], b: Array[Float]) -> Array[Float] {
+    ifft(fftDiv(fft(a), fft(b)))
+}
+
+/// Adjoint (a(-x)) of a coefficient array.
+pub pure fn polyAdj(a: Array[Float]) -> Array[Float] {
+    ifft(fftAdj(fft(a)))
+}

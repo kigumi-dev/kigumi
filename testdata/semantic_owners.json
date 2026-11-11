@@ -4690,6 +4690,1096 @@
     "status": "ok"
   },
   {
+    "key": "crypto/fndsa.Error.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.Prg.byte",
+    "signature": "pure fn() -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.Prg.new",
+    "signature": "pure fn(Bytes) -\u003e Prg",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.Prg.randomBytes",
+    "signature": "pure fn(usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.Prg.refill",
+    "signature": "pure fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.addQ",
+    "signature": "pure noalloc fn(u16, u16) -\u003e u16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.approxExp",
+    "signature": "pure fn(Float, Float) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.baseSampler",
+    "signature": "pure fn(\u0026mut Prg) -\u003e u32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.berExp",
+    "signature": "pure fn(Float, Float, \u0026mut Prg) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.bitAt",
+    "signature": "pure noalloc fn(\u0026Bytes, usize) -\u003e u32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.buildTree",
+    "signature": "pure fn(Array[C], Array[C], Array[C], Array[C], usize, usize, Float, Array[C]) -\u003e Array[C]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.cAdd",
+    "signature": "pure fn(C, C) -\u003e C",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.cAdj",
+    "signature": "pure fn(C) -\u003e C",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.cDiv",
+    "signature": "pure fn(C, C) -\u003e C",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.cMul",
+    "signature": "pure fn(C, C) -\u003e C",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.cNeg",
+    "signature": "pure fn(C) -\u003e C",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.cSub",
+    "signature": "pure fn(C, C) -\u003e C",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.cTable",
+    "signature": "fn(usize) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.centerQ",
+    "signature": "pure noalloc fn(u16) -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.compressS1",
+    "signature": "pure fn(Array[Int]) -\u003e Array[u8]?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.convSmall",
+    "signature": "pure fn(\u0026Array[Int], \u0026Array[Int]) -\u003e Array[Int]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.copyBytes",
+    "signature": "pure fn(\u0026Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.copyFft",
+    "signature": "pure fn(\u0026Array[C]) -\u003e Array[C]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.copyI64",
+    "signature": "pure fn(\u0026Array[Int]) -\u003e Array[Int]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.copyPoly",
+    "signature": "pure fn(\u0026Array[Float]) -\u003e Array[Float]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.czero",
+    "signature": "pure fn() -\u003e C",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.decodePublicKey",
+    "signature": "pure fn(Bytes) -\u003e Result[FixedArray[u16, 512], Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.decodeSecret",
+    "signature": "pure fn(Bytes) -\u003e Result[Secret, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.decodeSigned",
+    "signature": "pure fn(Bytes, usize, usize, usize) -\u003e Result[Array[Int], Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.decompressSignature",
+    "signature": "pure fn(Bytes) -\u003e Result[FixedArray[i32, 512], Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.derivePublicKey",
+    "signature": "pure fn(Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.divZq",
+    "signature": "pure fn(Array[u16], Array[u16]) -\u003e Array[u16]?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.encodePublicKey",
+    "signature": "pure fn(Array[u16]) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.ffSampling",
+    "signature": "pure fn(Array[C], Array[C], \u0026Array[C], usize, usize, usize, Float, \u0026mut Prg) -\u003e (Array[C], Array[C])",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.fft",
+    "signature": "pure fn(Array[Float]) -\u003e Array[C]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.fftAdd",
+    "signature": "pure fn(Array[C], Array[C]) -\u003e Array[C]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.fftAdj",
+    "signature": "pure fn(Array[C]) -\u003e Array[C]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.fftDiv",
+    "signature": "pure fn(Array[C], Array[C]) -\u003e Array[C]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.fftMul",
+    "signature": "pure fn(Array[C], Array[C]) -\u003e Array[C]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.fftSub",
+    "signature": "pure fn(Array[C], Array[C]) -\u003e Array[C]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.hashToPoint",
+    "signature": "pure fn(Bytes, Bytes) -\u003e FixedArray[u16, 512]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.ifft",
+    "signature": "pure fn(Array[C]) -\u003e Array[Float]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.inttPoly",
+    "signature": "pure fn(Array[u16]) -\u003e Array[u16]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.invQ",
+    "signature": "pure fn(u16) -\u003e u16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.leafSigma",
+    "signature": "pure fn(Float, Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.merge",
+    "signature": "pure fn(Array[Float], Array[Float]) -\u003e Array[Float]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.mergeFft",
+    "signature": "pure fn(Array[C], Array[C]) -\u003e Array[C]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.mergeZq",
+    "signature": "pure fn(Array[u16], Array[u16]) -\u003e Array[u16]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.modQ",
+    "signature": "pure noalloc fn(Int) -\u003e u16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.modQ",
+    "signature": "pure noalloc fn(u32) -\u003e u16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.modQu",
+    "signature": "pure noalloc fn(u32) -\u003e u16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.mulPoly",
+    "signature": "pure fn(FixedArray[u16, 512], FixedArray[u16, 512]) -\u003e FixedArray[u16, 512]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.mulZq",
+    "signature": "pure fn(Array[u16], Array[u16]) -\u003e Array[u16]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.nodePoly",
+    "signature": "pure fn(\u0026Array[C], usize, usize, usize) -\u003e Array[C]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.ntruHolds",
+    "signature": "pure fn(\u0026Array[Int], \u0026Array[Int], \u0026Array[Int], \u0026Array[Int]) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.nttPoly",
+    "signature": "pure fn(Array[u16]) -\u003e Array[u16]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.pointToFloat",
+    "signature": "pure fn(FixedArray[u16, 512]) -\u003e Array[Float]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.polyAdd",
+    "signature": "pure fn(Array[Float], Array[Float]) -\u003e Array[Float]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.polyAdj",
+    "signature": "pure fn(Array[Float]) -\u003e Array[Float]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.polyCopy",
+    "signature": "pure fn(\u0026Array[Float]) -\u003e Array[Float]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.polyDiv",
+    "signature": "pure fn(Array[Float], Array[Float]) -\u003e Array[Float]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.polyMul",
+    "signature": "pure fn(Array[Float], Array[Float]) -\u003e Array[Float]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.polyNeg",
+    "signature": "pure fn(Array[Float]) -\u003e Array[Float]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.polySub",
+    "signature": "pure fn(Array[Float], Array[Float]) -\u003e Array[Float]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.prgBlock",
+    "signature": "pure fn(FixedArray[u32, 14], u64) -\u003e FixedArray[u32, 16]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.publicKeyOf",
+    "signature": "pure fn(Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.putBit",
+    "signature": "pure fn(Array[u8], usize, Bool) -\u003e Array[u8]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.quarterRound",
+    "signature": "pure noalloc fn(u32, u32, u32, u32) -\u003e Quad",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.randomU128",
+    "signature": "pure fn(\u0026mut Prg, usize) -\u003e u128",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.rcdt",
+    "signature": "fn(usize) -\u003e u128",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.readBits",
+    "signature": "pure noalloc fn(\u0026Bytes, usize, usize) -\u003e u32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.rootsFft",
+    "signature": "pure fn(usize) -\u003e Array[C]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.rootsFft128",
+    "signature": "pure fn() -\u003e Array[C]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.rootsFft16",
+    "signature": "pure fn() -\u003e Array[C]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.rootsFft2",
+    "signature": "pure fn() -\u003e Array[C]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.rootsFft256",
+    "signature": "pure fn() -\u003e Array[C]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.rootsFft32",
+    "signature": "pure fn() -\u003e Array[C]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.rootsFft4",
+    "signature": "pure fn() -\u003e Array[C]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.rootsFft512",
+    "signature": "pure fn() -\u003e Array[C]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.rootsFft64",
+    "signature": "pure fn() -\u003e Array[C]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.rootsFft8",
+    "signature": "pure fn() -\u003e Array[C]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.rootsZq",
+    "signature": "pure fn(usize) -\u003e Array[u16]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.rootsZq128",
+    "signature": "pure fn() -\u003e Array[u16]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.rootsZq16",
+    "signature": "pure fn() -\u003e Array[u16]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.rootsZq2",
+    "signature": "pure fn() -\u003e Array[u16]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.rootsZq256",
+    "signature": "pure fn() -\u003e Array[u16]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.rootsZq32",
+    "signature": "pure fn() -\u003e Array[u16]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.rootsZq4",
+    "signature": "pure fn() -\u003e Array[u16]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.rootsZq512",
+    "signature": "pure fn() -\u003e Array[u16]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.rootsZq64",
+    "signature": "pure fn() -\u003e Array[u16]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.rootsZq8",
+    "signature": "pure fn() -\u003e Array[u16]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.roundEven",
+    "signature": "pure fn(Float) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.samplerZ",
+    "signature": "pure fn(Float, Float, Float, \u0026mut Prg) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.sign",
+    "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.signMessage",
+    "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.signedToFloat",
+    "signature": "pure fn(Array[Int]) -\u003e Array[Float]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.skBit",
+    "signature": "pure noalloc fn(Bytes, usize) -\u003e u32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.splitFft",
+    "signature": "pure fn(\u0026Array[C]) -\u003e (Array[C], Array[C])",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.splitPoly",
+    "signature": "pure fn(\u0026Array[Float]) -\u003e (Array[Float], Array[Float])",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.splitZq",
+    "signature": "pure fn(Array[u16]) -\u003e (Array[u16], Array[u16])",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.storeNode",
+    "signature": "pure fn(Array[C], usize, usize, Array[C]) -\u003e Array[C]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.subQ",
+    "signature": "pure noalloc fn(u16, u16) -\u003e u16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.toModQ",
+    "signature": "pure fn(Int) -\u003e u16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.toPoly",
+    "signature": "pure fn(FixedArray[i32, 512]) -\u003e FixedArray[u16, 512]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.trailingZero",
+    "signature": "pure noalloc fn(\u0026Bytes, usize) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.verify",
+    "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Result[Bool, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.verifySignature",
+    "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Result[Bool, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.wordAt",
+    "signature": "pure noalloc fn(Bytes, usize) -\u003e u32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/fndsa.zeroPoly",
+    "signature": "pure fn() -\u003e FixedArray[u16, 512]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "crypto/hash.sum",
     "signature": "pure fn(Bytes) -\u003e Bytes",
     "has_body": true,

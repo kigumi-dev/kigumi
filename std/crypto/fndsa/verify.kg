@@ -1,0 +1,49 @@
+// Falcon-512 verification.
+//
+// The verifier recomputes s0 = c - s1*h mod q from the public key and the
+// message, checks that both halves of the signature are short, and otherwise
+// treats the signature as invalid. Nothing here is secret.
+/// Verifies a padded Falcon-512 signature.
+///
+/// A well-formed but wrong signature is `Ok(false)`; only a malformed key or
+/// signature encoding is an error.
+pub pure fn verifySignature(publicKey: Bytes, message: Bytes, signature: Bytes) -> Result[Bool, Error] {
+    if signature.len() != signatureSize {
+        return Err(Error.BadSignatureSize)
+    }
+    if signature[0] != signatureHeader {
+        return Err(Error.BadSignatureHeader)
+    }
+    let h = decodePublicKey(publicKey)?
+    let nonce = signature.slice(1, 1 + saltSize) || panic("fndsa: salt slice")
+    let enc = signature.slice(1 + saltSize, signatureSize) || panic("fndsa: signature slice")
+    let s1 = decompressSignature(enc)?
+    let c = hashToPoint(nonce, message)
+    let s1Poly = toPoly(s1)
+    let sh = mulPoly(s1Poly, h)
+    let mut norm: i64 = 0
+    let mut i: usize = 0
+    for i < n {
+        let s0 = centerQ(subQ(c[i], sh[i]))
+        let v = s1[i].toInt()
+        norm = norm + s0.toInt() * s0.toInt() + v * v
+        i = i + 1
+    }
+    Ok(norm <= signatureNormBound)
+}
+
+/// Lifts signed small coefficients into [0, q).
+pub pure fn toPoly(v: FixedArray[i32, n]) -> FixedArray[u16, n] {
+    let mut out = zeroPoly()
+    let mut i: usize = 0
+    for i < n {
+        let x = v[i]
+        if x < 0 {
+            out[i] = (x + (q.toI32() || 0)).toU16() || 0
+        } else {
+            out[i] = x.toU16() || 0
+        }
+        i = i + 1
+    }
+    out
+}

@@ -1,0 +1,200 @@
+// Modulo-q polynomial arithmetic, key decoding and the Falcon signature
+// decompressor.
+//
+// Verification never needs a secret, so the multiplication below is the
+// straightforward negacyclic schoolbook product: it is easy to audit and
+// fast enough for one 512-coefficient product.
+import sha3 from std/crypto/sha3
+
+/// The zero polynomial.
+pub pure fn zeroPoly() -> FixedArray[u16, n] {
+    FixedArray.filled[u16, n](0)
+}
+
+/// x mod q.
+pure noalloc fn modQ(v: u32) -> u16 {
+    (v % q).toU16() || 0
+}
+
+/// a + b mod q.
+pure noalloc fn addQ(a: u16, b: u16) -> u16 {
+    let s = a.toU32() + b.toU32()
+    if s >= q {
+        (s - q).toU16() || 0
+    } else {
+        s.toU16() || 0
+    }
+}
+
+/// a - b mod q.
+pure noalloc fn subQ(a: u16, b: u16) -> u16 {
+    let av = a.toU32()
+    let bv = b.toU32()
+    if av >= bv {
+        (av - bv).toU16() || 0
+    } else {
+        (av + q - bv).toU16() || 0
+    }
+}
+
+/// The negacyclic product a*b in Z_q[x]/(x^n + 1).
+pub pure fn mulPoly(a: FixedArray[u16, n], b: FixedArray[u16, n]) -> FixedArray[u16, n] {
+    let mut acc = FixedArray.filled[i64, n](0)
+    let mut i: usize = 0
+    for i < n {
+        let ai = a[i].toInt()
+        let mut j: usize = 0
+        for j < n {
+            let p = ai * b[j].toInt()
+            let k = i + j
+            if k < n {
+                acc[k] = acc[k] + p
+            } else {
+                acc[k - n] = acc[k - n] - p
+            }
+            j = j + 1
+        }
+        i = i + 1
+    }
+    let mut out = zeroPoly()
+    i = 0
+    for i < n {
+        let mut v = acc[i] % q.toInt()
+        if v < 0 {
+            v = v + q.toInt()
+        }
+        out[i] = v.toU16() || 0
+        i = i + 1
+    }
+    out
+}
+
+/// Bit `at`, counted from the most significant bit of byte zero.
+pure noalloc fn bitAt(data: &Bytes, at: usize) -> u32 {
+    (data[at >> 3].toU32() >> (7 - (at & 7))) & 1
+}
+
+/// Reads `bits` bits big-endian from `data` starting at bit `pos`.
+pure noalloc fn readBits(data: &Bytes, pos: usize, bits: usize) -> u32 {
+    let mut v: u32 = 0
+    let mut k: usize = 0
+    for k < bits {
+        v = (v << 1) | bitAt(data, pos + k)
+        k = k + 1
+    }
+    v
+}
+
+/// Whether every bit from `pos` to the end of the buffer is zero.
+pure noalloc fn trailingZero(data: &Bytes, pos: usize) -> Bool {
+    let mut at = pos
+    for at < data.len() * 8 {
+        if bitAt(data, at) != 0 {
+            return false
+        }
+        at = at + 1
+    }
+    true
+}
+
+/// Decodes the 897-byte public key (header included) into h.
+pub pure fn decodePublicKey(pk: Bytes) -> Result[FixedArray[u16, n], Error] {
+    if pk.len() != publicKeySize {
+        return Err(Error.BadPublicKeySize)
+    }
+    if pk[0] != publicKeyHeader {
+        return Err(Error.BadPublicKeyHeader)
+    }
+    let mut out = zeroPoly()
+    let mut i: usize = 0
+    for i < n {
+        let v = readBits(&pk, 8 + i * 14, 14)
+        if v >= q {
+            return Err(Error.NonCanonicalPublicKey)
+        }
+        out[i] = v.toU16() || 0
+        i = i + 1
+    }
+    Ok(out)
+}
+
+/// The Falcon signature decompressor. `enc` is the 615-byte compressed s2.
+pub pure fn decompressSignature(enc: Bytes) -> Result[FixedArray[i32, n], Error] {
+    if enc.len() != compressedSize {
+        return Err(Error.BadSignatureSize)
+    }
+    let total = enc.len() * 8
+    let mut out = FixedArray.filled[i32, n](0)
+    let mut pos: usize = 0
+    let mut i: usize = 0
+    for i < n {
+        if pos + 8 > total {
+            return Err(Error.NonCanonicalSignature)
+        }
+        let negative = bitAt(&enc, pos) != 0
+        pos = pos + 1
+        let low = readBits(&enc, pos, 7)
+        pos = pos + 7
+        let mut high: u32 = 0
+        let mut closed = false
+        for pos < total {
+            let bit = bitAt(&enc, pos)
+            pos = pos + 1
+            if bit != 0 {
+                closed = true
+                break
+            }
+            high = high + 1
+            if high > (1 << 20) {
+                return Err(Error.NonCanonicalSignature)
+            }
+        }
+        if !closed {
+            return Err(Error.NonCanonicalSignature)
+        }
+        let mag = low + (high << 7)
+        if negative && mag == 0 {
+            return Err(Error.NonCanonicalSignature)
+        }
+        if negative {
+            out[i] = 0 - (mag.toI32() || 0)
+        } else {
+            out[i] = mag.toI32() || 0
+        }
+        i = i + 1
+    }
+    if !trailingZero(&enc, pos) {
+        return Err(Error.NonCanonicalSignature)
+    }
+    Ok(out)
+}
+
+/// SHAKE256(nonce || message) read two bytes at a time, rejecting values at
+/// or above 5q and reducing the accepted ones modulo q.
+pub pure fn hashToPoint(nonce: Bytes, message: Bytes) -> FixedArray[u16, n] {
+    let mut xof = sha3.Xof256.new()
+    xof.update(nonce)
+    xof.update(message)
+    let mut out = zeroPoly()
+    let mut i: usize = 0
+    let limit: u32 = 5 * q
+    for i < n {
+        let pair = xof.squeeze(2)
+        let v = (pair[0].toU32() << 8) | pair[1].toU32()
+        if v < limit {
+            out[i] = modQ(v)
+            i = i + 1
+        }
+    }
+    out
+}
+
+/// The centered representative of v in (-q/2, q/2].
+pub pure noalloc fn centerQ(v: u16) -> i32 {
+    let x = v.toI32()
+    if x > ((q.toI32() || 0) / 2) {
+        x - (q.toI32() || 0)
+    } else {
+        x
+    }
+}

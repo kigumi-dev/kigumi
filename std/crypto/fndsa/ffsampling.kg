@@ -1,0 +1,104 @@
+// Falcon's fast Fourier sampling: the LDL tree and the trapdoor sampler.
+//
+// The tree is stored level by level in one flat array of 10*512 complex
+// values. Level d holds 2^d internal nodes, each with a 512/2^d coefficient
+// L10 polynomial; level 9 holds the normalized leaf variances.
+import math from std/math
+
+/// Number of tree levels: internal levels 0..8 plus leaves at 9.
+const treeLevels: usize = 10
+
+/// Values per level.
+const levelWidth: usize = 512
+
+/// Scales a leaf variance into the standard deviation used by the sampler.
+pure fn leafSigma(variance: Float, sigma: Float) -> Float {
+    sigma / math.sqrt(variance)
+}
+
+/// Stores one L10 polynomial at the flat node position.
+pure fn storeNode(mut levels: Array[C], depth: usize, node: usize, poly: Array[C]) -> Array[C] {
+    let base = depth * levelWidth + node * poly.len()
+    let mut i: usize = 0
+    for i < poly.len() {
+        levels[base + i] = poly[i]
+        i = i + 1
+    }
+    levels
+}
+
+/// Builds the flat LDL tree from the four FFT entries of a 2x2 Gram matrix.
+pub pure fn buildTree(g00: Array[C], g01: Array[C], g10: Array[C], g11: Array[C], depth: usize, node: usize, sigma: Float, mut levels: Array[C]) -> Array[C] {
+    let m = g00.len()
+    _ = g01
+    if m == 1 {
+        let idx = depth * levelWidth + node
+        levels[idx] = C {
+            re: leafSigma(g00[0].re, sigma)
+            im: 0.0
+        }
+        return levels
+    }
+    // LDL: L10 = G10/G00, D11 = G11 - L10*conj(L10)*G00.
+    let l10 = fftDiv(g10, copyFft(&g00))
+    let d11 = fftSub(g11, fftMul(fftMul(copyFft(&l10), fftAdj(copyFft(&l10))), copyFft(&g00)))
+    let d00 = g00
+    levels = storeNode(levels, depth, node, copyFft(&l10))
+    if m == 2 {
+        // The two children are single real variances.
+        let leaf = (depth + 1) * levelWidth + 2 * node
+        levels[leaf] = C {
+            re: leafSigma(d00[0].re, sigma)
+            im: 0.0
+        }
+        levels[leaf + 1] = C {
+            re: leafSigma(d11[0].re, sigma)
+            im: 0.0
+        }
+        return levels
+    }
+    let (d00e, d00o) = splitFft(&d00)
+    let d00e2 = copyFft(&d00e)
+    let left = buildTree(d00e, copyFft(&d00o), fftAdj(copyFft(&d00o)), d00e2, depth + 1, 2 * node, sigma, levels)
+    let (d11e, d11o) = splitFft(&d11)
+    let d11e2 = copyFft(&d11e)
+    buildTree(d11e, copyFft(&d11o), fftAdj(copyFft(&d11o)), d11e2, depth + 1, 2 * node + 1, sigma, left)
+}
+
+/// One node's L10, copied out of the flat tree.
+pure fn nodePoly(levels: &Array[C], depth: usize, node: usize, m: usize) -> Array[C] {
+    let base = depth * levelWidth + node * m
+    let mut out = Array.empty[C]()
+    let mut i: usize = 0
+    for i < m {
+        out.push(levels[base + i])
+        i = i + 1
+    }
+    out
+}
+
+/// Samples z close to t with the flat LDL tree and the Falcon Gaussian
+/// sampler. `m` is the transform length at this node.
+pub pure fn ffSampling(t0: Array[C], t1: Array[C], levels: &Array[C], depth: usize, node: usize, m: usize, sigmin: Float, prg: &mut Prg) -> (Array[C], Array[C]) {
+    if m == 1 {
+        let sigma = levels[depth * levelWidth + node].re
+        let z0 = samplerZ(t0[0].re, sigma, sigmin, prg)
+        let z1 = samplerZ(t1[0].re, sigma, sigmin, prg)
+        (Array.of[C](C {
+            re: z0.toFloat()
+            im: 0.0
+        }), Array.of[C](C {
+            re: z1.toFloat()
+            im: 0.0
+        }))
+    } else {
+        let (t1e, t1o) = splitFft(&t1)
+        let (z1e, z1o) = ffSampling(t1e, t1o, levels, depth + 1, 2 * node + 1, m / 2, sigmin, prg)
+        let z1 = mergeFft(z1e, z1o)
+        let l10 = nodePoly(levels, depth, node, m)
+        let t0b = fftAdd(t0, fftMul(fftSub(t1, copyFft(&z1)), l10))
+        let (t0e, t0o) = splitFft(&t0b)
+        let (z0e, z0o) = ffSampling(t0e, t0o, levels, depth + 1, 2 * node, m / 2, sigmin, prg)
+        (mergeFft(z0e, z0o), z1)
+    }
+}
