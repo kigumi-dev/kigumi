@@ -22412,6 +22412,16 @@
     "status": "ok"
   },
   {
+    "key": "secret.Choice.mask",
+    "signature": "pure noalloc fn() -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "secret.Choice.selectU16",
     "signature": "pure noalloc fn(SecretU16, SecretU16) -\u003e SecretU16",
     "has_body": true,
@@ -22529,6 +22539,16 @@
     "vm": "implemented",
     "native": "implemented",
     "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretBuffer.fromBytes",
+    "signature": "pure fn(Bytes) -\u003e SecretBuffer",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
     "status": "ok"
   },
   {
@@ -23553,7 +23573,7 @@
   },
   {
     "key": "secret/oram.Block.empty",
-    "signature": "pure fn() -\u003e Block",
+    "signature": "pure fn(usize) -\u003e Block",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -23573,7 +23593,77 @@
   },
   {
     "key": "secret/oram.Bucket.empty",
-    "signature": "pure fn() -\u003e Bucket",
+    "signature": "pure fn(usize) -\u003e Bucket",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.MemoryPageStore.bucketCount",
+    "signature": "fn(usize) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.MemoryPageStore.corrupt",
+    "signature": "fn(usize, usize, usize) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.MemoryPageStore.leafCount",
+    "signature": "fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.MemoryPageStore.new",
+    "signature": "fn(usize) -\u003e MemoryPageStore!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.MemoryPageStore.readPage",
+    "signature": "fn(usize, SecretU32, usize) -\u003e Bytes!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.MemoryPageStore.split",
+    "signature": "fn(usize) -\u003e Split[MemoryPageStore]!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.MemoryPageStore.writePage",
+    "signature": "fn(usize, SecretU32, Bytes) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -23622,8 +23712,38 @@
     "status": "ok"
   },
   {
+    "key": "secret/oram.MemoryStore.payloadBytes",
+    "signature": "fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "secret/oram.MemoryStore.readBucket",
-    "signature": "fn(usize, SecretU32) -\u003e Bucket",
+    "signature": "fn(usize, SecretU32) -\u003e Bucket!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.MemoryStore.split",
+    "signature": "fn(usize, usize) -\u003e Split[MemoryStore]!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.MemoryStore.withBlockBytes",
+    "signature": "fn(usize, usize) -\u003e MemoryStore!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -23633,17 +23753,7 @@
   },
   {
     "key": "secret/oram.MemoryStore.writeBucket",
-    "signature": "fn(usize, SecretU32, Bucket) -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "secret/oram.ObliviousArray.access",
-    "signature": "fn(SecretIndex[N], u64, u64) -\u003e u64!",
+    "signature": "fn(usize, SecretU32, Bucket) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -23662,58 +23772,8 @@
     "status": "ok"
   },
   {
-    "key": "secret/oram.ObliviousArray.evict",
-    "signature": "fn(u64) -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "secret/oram.ObliviousArray.fetch",
-    "signature": "fn(u64, u64) -\u003e Found",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "secret/oram.ObliviousArray.insertStash",
-    "signature": "fn(Block, u64) -\u003e Void!",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "secret/oram.ObliviousArray.merge",
-    "signature": "fn(Bucket, usize, u64) -\u003e Bucket",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "secret/oram.ObliviousArray.nextLeaf",
-    "signature": "fn() -\u003e u64",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "secret/oram.ObliviousArray.nodeAt",
-    "signature": "fn(usize, u64) -\u003e SecretU32",
+    "key": "secret/oram.ObliviousArray.levelCount",
+    "signature": "fn() -\u003e usize",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -23734,6 +23794,16 @@
   {
     "key": "secret/oram.ObliviousArray.verify",
     "signature": "fn() -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousArray.withStore",
+    "signature": "fn(S, u64) -\u003e ObliviousArray[S, N]!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -23772,8 +23842,558 @@
     "status": "ok"
   },
   {
+    "key": "secret/oram.ObliviousBuffer.access",
+    "signature": "fn(SecretU32, Payload, u64) -\u003e Payload!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousBuffer.capacity",
+    "signature": "fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousBuffer.fetchMapEntry",
+    "signature": "fn(usize, SecretU32) -\u003e MapState!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousBuffer.finishMapEntry",
+    "signature": "fn(usize, MapState) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousBuffer.levelCount",
+    "signature": "fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousBuffer.nextLeaf",
+    "signature": "fn(usize) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousBuffer.payloadBytes",
+    "signature": "fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousBuffer.read",
+    "signature": "fn(SecretIndex[N]) -\u003e Payload!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousBuffer.readSecret",
+    "signature": "fn(SecretIndex[N]) -\u003e SecretBuffer!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousBuffer.treeEvict",
+    "signature": "fn(usize, u64) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousBuffer.treeFetch",
+    "signature": "fn(usize, u64, u64) -\u003e Found!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousBuffer.treeInsert",
+    "signature": "fn(usize, Block, u64) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousBuffer.verify",
+    "signature": "fn() -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousBuffer.withStore",
+    "signature": "fn(S, u64, usize) -\u003e ObliviousBuffer[S, N]!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousBuffer.withStore",
+    "signature": "fn(fn(\u0026S) -\u003e R) -\u003e R",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousBuffer.withStoreMut",
+    "signature": "fn(fn(\u0026mut S) -\u003e R) -\u003e R",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousBuffer.write",
+    "signature": "fn(SecretIndex[N], Payload) -\u003e Payload!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.ObliviousBuffer.writeSecret",
+    "signature": "fn(SecretIndex[N], SecretBuffer) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "secret/oram.OramError.message",
     "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.Payload.empty",
+    "signature": "pure fn(usize) -\u003e Payload",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.Payload.leaf",
+    "signature": "pure fn(SecretU32) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.Payload.leafAt",
+    "signature": "pure fn(usize) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.Payload.select",
+    "signature": "pure fn(u64, Payload, Payload) -\u003e Payload",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.Payload.setLeaf",
+    "signature": "pure fn(SecretU32, u64) -\u003e Payload",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.Payload.setLeafAt",
+    "signature": "pure fn(usize, u64) -\u003e Payload",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.Payload.value",
+    "signature": "pure fn(usize, u64) -\u003e Payload",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.SealedStore.bucketCount",
+    "signature": "fn(usize) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.SealedStore.drop",
+    "signature": "fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.SealedStore.initialize",
+    "signature": "fn() -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.SealedStore.new",
+    "signature": "fn(P, SecretBuffer, u64, usize, usize) -\u003e SealedStore[P]!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.SealedStore.openPage",
+    "signature": "fn(usize, u64, Bytes) -\u003e Bucket!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.SealedStore.payloadBytes",
+    "signature": "fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.SealedStore.readBucket",
+    "signature": "fn(usize, SecretU32) -\u003e Bucket!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.SealedStore.recordBytes",
+    "signature": "fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.SealedStore.sealPage",
+    "signature": "fn(usize, u64, Bucket) -\u003e Bytes!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.SealedStore.split",
+    "signature": "fn(usize, usize) -\u003e Split[SealedStore[P]]!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.SealedStore.withInner",
+    "signature": "fn(fn(\u0026P) -\u003e R) -\u003e R",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.SealedStore.withInnerMut",
+    "signature": "fn(fn(\u0026mut P) -\u003e R) -\u003e R",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.SealedStore.withKeyBytes",
+    "signature": "fn(P, Bytes, u64, usize, usize) -\u003e SealedStore[P]!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.SealedStore.writeBucket",
+    "signature": "fn(usize, SecretU32, Bucket) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.Tree.blockBad",
+    "signature": "fn(Block, u64, u64, u64, u64, u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.Tree.evict",
+    "signature": "fn(u64) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.Tree.fetch",
+    "signature": "fn(u64, u64) -\u003e Found!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.Tree.insertStash",
+    "signature": "fn(Block, u64) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.Tree.merge",
+    "signature": "fn(Bucket, usize, u64) -\u003e Bucket",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.Tree.new",
+    "signature": "fn(S, usize, usize) -\u003e Tree[S]!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.Tree.nodeAt",
+    "signature": "fn(usize, u64) -\u003e SecretU32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.Tree.payloadOk",
+    "signature": "fn(Payload, u64, u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.Tree.verify",
+    "signature": "fn(usize) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.allMask",
+    "signature": "pure noalloc fn() -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.bucketBytes",
+    "signature": "pure fn(usize) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.bufferOnMemory",
+    "signature": "fn(u64, usize) -\u003e ObliviousBuffer[MemoryStore, N]!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.choiceMask",
+    "signature": "pure noalloc fn(Choice) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.copyBytes",
+    "signature": "fn(Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.decodeBucket",
+    "signature": "pure fn(Bytes, usize) -\u003e Bucket!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.encodeBucket",
+    "signature": "pure fn(Bucket, usize) -\u003e Bytes",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -23842,8 +24462,38 @@
     "status": "ok"
   },
   {
+    "key": "secret/oram.mixNonce",
+    "signature": "fn(u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.nextPowerOfTwo",
+    "signature": "pure noalloc fn(usize) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "secret/oram.nextState",
     "signature": "pure noalloc fn(u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.nonceFor",
+    "signature": "fn(u64, u64) -\u003e Bytes",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -23862,6 +24512,26 @@
     "status": "ok"
   },
   {
+    "key": "secret/oram.pageAad",
+    "signature": "fn(usize, u64) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.pageIndex",
+    "signature": "fn(usize) -\u003e SecretU32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "secret/oram.pick",
     "signature": "pure noalloc fn(u64, u64, u64) -\u003e u64",
     "has_body": true,
@@ -23872,8 +24542,58 @@
     "status": "ok"
   },
   {
-    "key": "secret/oram.withStore",
-    "signature": "fn(S, u64) -\u003e ObliviousArray[S, N]!",
+    "key": "secret/oram.readU64At",
+    "signature": "pure fn(Bytes, usize) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.sealedBuffer",
+    "signature": "fn(SecretBuffer, u64, usize) -\u003e SealedStore[MemoryPageStore]!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.sealedMemory",
+    "signature": "fn(SecretBuffer, u64) -\u003e SealedStore[MemoryPageStore]!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.selectBytes",
+    "signature": "pure fn(u64, Bytes, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.wipeBytes",
+    "signature": "fn(Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret/oram.writeU64To",
+    "signature": "pure fn(\u0026mut Array[u8], u64) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
