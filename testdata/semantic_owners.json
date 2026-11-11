@@ -9280,6 +9280,1266 @@
     "status": "ok"
   },
   {
+    "key": "cvm/attest.Error.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/attest.Policy.strict",
+    "signature": "pure fn(Bytes) -\u003e Policy",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/attest.ReportData.fromNonce",
+    "signature": "pure fn(Bytes) -\u003e ReportData",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/attest.ReportData.of",
+    "signature": "pure fn(Bytes) -\u003e Result[ReportData, TdxError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/attest.TdxCode.name",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/attest.TdxError.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/attest.TdxPolicy.check",
+    "signature": "pure fn(\u0026TdxClaims) -\u003e Result[Void, TdxError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/attest.TdxPolicy.production",
+    "signature": "pure fn() -\u003e TdxPolicy",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/attest.checkIdEvidence",
+    "signature": "pure fn(\u0026Report, \u0026IdBlock, \u0026IdAuth) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/attest.checkPolicy",
+    "signature": "pure fn(\u0026Report, \u0026Policy) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/attest.claimsFromQuote",
+    "signature": "pure fn(\u0026Quote) -\u003e TdxClaims",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/attest.claimsFromReport",
+    "signature": "pure fn(\u0026TdReport) -\u003e TdxClaims",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/attest.parseIdAuth",
+    "signature": "pure fn(Bytes?) -\u003e Result[IdAuth?, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/attest.parseIdBlock",
+    "signature": "pure fn(Bytes?) -\u003e Result[IdBlock?, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/attest.tdxEvidenceFailure",
+    "signature": "pure fn(Error) -\u003e TdxError",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/attest.tdxFailure",
+    "signature": "pure fn(TdxCode, String) -\u003e TdxError",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/attest.verify",
+    "signature": "fn(\u0026Evidence, \u0026Policy, fn(Bytes, \u0026Signature) -\u003e Result[Bool, Error], fn(\u0026EcdsaPublicKey, Bytes, \u0026Signature) -\u003e Result[Bool, Error]) -\u003e Result[Claims, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/attest.verifyCertificateChain",
+    "signature": "fn(Bytes, Bytes, Int) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/attest.verifyTdxEvidence",
+    "signature": "pure fn(TdxEvidence, \u0026TdxPolicy) -\u003e Result[TdxClaims, TdxError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/attest.verifyTdxQuote",
+    "signature": "pure fn(Quote, \u0026TdxPolicy) -\u003e Result[TdxClaims, TdxError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/attest.verifyTdxQuoteWithLog",
+    "signature": "pure fn(Quote, EventLog, \u0026TdxPolicy) -\u003e Result[TdxClaims, TdxError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/attest.verifyTdxReport",
+    "signature": "pure fn(TdReport, \u0026TdxPolicy) -\u003e Result[TdxClaims, TdxError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.EcdsaPublicKey.bytes",
+    "signature": "pure fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.Error.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.GuestFieldSelect.familyId",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.GuestFieldSelect.guestPolicy",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.GuestFieldSelect.guestSvn",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.GuestFieldSelect.imageId",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.GuestFieldSelect.launchMitVector",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.GuestFieldSelect.measurement",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.GuestFieldSelect.tcbVersion",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.GuestPolicy.abiMajor",
+    "signature": "pure fn() -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.GuestPolicy.abiMinor",
+    "signature": "pure fn() -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.GuestPolicy.ciphertextHidingDram",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.GuestPolicy.cxlAllowed",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.GuestPolicy.debugAllowed",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.GuestPolicy.memAes256Xts",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.GuestPolicy.migrateMaAllowed",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.GuestPolicy.pageSwapDisabled",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.GuestPolicy.raplDisabled",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.GuestPolicy.singleSocketRequired",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.GuestPolicy.smtAllowed",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.IdBlock.signedBytes",
+    "signature": "pure fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.KeyInfo.authorKeyEnabled",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.KeyInfo.maskChipKey",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.KeyInfo.signingKey",
+    "signature": "pure fn() -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.PlatformInfo.aliasCheckComplete",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.PlatformInfo.ciphertextHidingEnabled",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.PlatformInfo.eccEnabled",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.PlatformInfo.raplDisabled",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.PlatformInfo.smtEnabled",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.PlatformInfo.tioEnabled",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.PlatformInfo.tsmeEnabled",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.Report.claims",
+    "signature": "pure fn() -\u003e Claims",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.Report.measurementEquals",
+    "signature": "pure fn(Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.Report.reportDataEquals",
+    "signature": "pure fn(Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.Report.signedBytes",
+    "signature": "pure fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.Signature.isZero",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.TcbVersion.bootLoader",
+    "signature": "pure fn() -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.TcbVersion.fmc",
+    "signature": "pure fn() -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.TcbVersion.microcode",
+    "signature": "pure fn() -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.TcbVersion.snp",
+    "signature": "pure fn() -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.TcbVersion.tee",
+    "signature": "pure fn() -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.TcbVersion.turinBootLoader",
+    "signature": "pure fn() -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.TcbVersion.turinSnp",
+    "signature": "pure fn() -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.TcbVersion.turinTee",
+    "signature": "pure fn() -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.allZero",
+    "signature": "pure fn(Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.coordinateIsCanonical",
+    "signature": "pure fn(Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.encodeKeyRequest",
+    "signature": "pure fn(\u0026DerivedKeyRequest) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.guestPolicyIsValid",
+    "signature": "pure fn(u64) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.idBlockSliceAt",
+    "signature": "pure fn(Bytes, usize, usize, String) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.keyInfoIsValid",
+    "signature": "pure fn(u32) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.leWord",
+    "signature": "pure fn(Bytes, usize) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.p384OrderLimb",
+    "signature": "pure noalloc fn(usize) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.p384PrimeLimb",
+    "signature": "pure noalloc fn(usize) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.parseCommittedVersion",
+    "signature": "pure fn(Bytes) -\u003e Result[FirmwareVersion, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.parseIdAuth",
+    "signature": "pure fn(Bytes) -\u003e Result[IdAuth, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.parseIdBlock",
+    "signature": "pure fn(Bytes) -\u003e Result[IdBlock, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.parseKeyRequest",
+    "signature": "pure fn(Bytes) -\u003e Result[DerivedKeyRequest, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.parseKeyResponse",
+    "signature": "pure fn(Bytes) -\u003e Result[DerivedKeyResponse, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.parsePublicKey",
+    "signature": "pure fn(Bytes, usize, String) -\u003e Result[EcdsaPublicKey?, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.parseReport",
+    "signature": "pure fn(Bytes) -\u003e Result[Report, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.parseSignature",
+    "signature": "pure fn(Bytes, usize, String) -\u003e Result[Signature, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.parseVersion",
+    "signature": "pure fn(Bytes) -\u003e Result[FirmwareVersion, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.parseWireSignature",
+    "signature": "pure fn(Bytes, usize, String) -\u003e Result[Signature, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.platformInfoIsValid",
+    "signature": "pure fn(u64) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.readU32",
+    "signature": "pure fn(Bytes, usize, String) -\u003e Result[u32, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.readU64",
+    "signature": "pure fn(Bytes, usize, String) -\u003e Result[u64, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.reportSliceAt",
+    "signature": "pure fn(Bytes, usize, usize, String) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.scalarIsCanonical",
+    "signature": "pure fn(Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.tcbIsPresent",
+    "signature": "pure fn(TcbVersion) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.u32At",
+    "signature": "pure fn(Bytes, usize, String) -\u003e Result[u32, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.u64At",
+    "signature": "pure fn(Bytes, usize, String) -\u003e Result[u64, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.verifyIdBlock",
+    "signature": "fn(\u0026IdBlock, \u0026IdAuth, Bool, fn(\u0026EcdsaPublicKey, Bytes, \u0026Signature) -\u003e Result[Bool, Error]) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/snp.verifyReportSignature",
+    "signature": "fn(\u0026Report, fn(Bytes, \u0026Signature) -\u003e Result[Bool, Error]) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.Code.name",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.Error.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.EventLog.parse",
+    "signature": "pure fn(Bytes) -\u003e Result[EventLog, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.EventLog.replay",
+    "signature": "pure fn() -\u003e Result[Rtmr, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.Quote.clone",
+    "signature": "pure fn() -\u003e Quote",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.Quote.isDebug",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.Quote.parse",
+    "signature": "pure fn(Bytes) -\u003e Result[Quote, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.Quote.pckCertChain",
+    "signature": "pure fn() -\u003e Bytes?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.Quote.rtmr",
+    "signature": "pure fn(usize) -\u003e Bytes?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.Quote.verifyQeSignature",
+    "signature": "pure fn() -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.Quote.verifySignature",
+    "signature": "pure fn() -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.Rtmr.value",
+    "signature": "pure fn(usize) -\u003e Bytes?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.Rtmr.verify",
+    "signature": "pure fn(\u0026Array[Bytes]) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.TdReport.checkIntegrity",
+    "signature": "pure fn() -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.TdReport.isDebug",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.TdReport.parse",
+    "signature": "pure fn(Bytes) -\u003e Result[TdReport, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.TdReport.rtmr",
+    "signature": "pure fn(usize) -\u003e Bytes?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.TdReport.septVeDisable",
+    "signature": "pure fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.allZero",
+    "signature": "pure fn(Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.bytesAt",
+    "signature": "pure fn(Bytes, usize, usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.digestSize",
+    "signature": "pure fn(\u0026Array[AlgSize], u16) -\u003e usize?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.failure",
+    "signature": "pure fn(Code, String) -\u003e Error",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.leU16",
+    "signature": "pure fn(Bytes, usize) -\u003e u16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.leU32",
+    "signature": "pure fn(Bytes, usize) -\u003e u32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.leU64",
+    "signature": "pure fn(Bytes, usize) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.parseQeCertification",
+    "signature": "pure fn(Bytes) -\u003e Result[CertificationData, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.requireZero",
+    "signature": "pure fn(Bytes, usize, usize, String) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.rtmrIndex",
+    "signature": "pure fn(u32) -\u003e u32?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.sha384Digest",
+    "signature": "pure fn(\u0026Array[Digest]) -\u003e Bytes?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.verifyQeReportSignature",
+    "signature": "pure fn(\u0026Quote) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/tdx.verifyQuoteSignature",
+    "signature": "pure fn(\u0026Quote) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "encoding/base64.DecodeError.message",
     "signature": "fn() -\u003e String",
     "has_body": true,
@@ -16061,6 +17321,16 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.Reader.u32",
+    "signature": "pure fn() -\u003e Result[u32, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.Reader.u8",
     "signature": "pure fn() -\u003e Result[u8, Error]",
     "has_body": true,
@@ -16141,6 +17411,26 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.Session.drainEarlyData",
+    "signature": "fn(usize, Bool) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Session.earlyDataAccepted",
+    "signature": "fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.Session.ensure",
     "signature": "fn(usize) -\u003e Result[Void, Error]",
     "has_body": true,
@@ -16211,6 +17501,26 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.Session.resumed",
+    "signature": "fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Session.resumptionTicket",
+    "signature": "fn() -\u003e SessionTicket?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.Session.runHandshake",
     "signature": "fn(Config) -\u003e Result[Void, Error]",
     "has_body": true,
@@ -16233,6 +17543,16 @@
   {
     "key": "net/tls.Session.sendAlert",
     "signature": "fn(u8, u8) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Session.sendEarlyData",
+    "signature": "fn(Bytes) -\u003e Result[Void, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -16301,6 +17621,56 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.SessionTicket.clone",
+    "signature": "fn() -\u003e SessionTicket",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.TicketStore.clone",
+    "signature": "fn() -\u003e TicketStore",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.TicketStore.consume",
+    "signature": "fn(Bytes, Int, Bool, Int) -\u003e Result[StoredTicket?, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.TicketStore.insert",
+    "signature": "fn(StoredTicket) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.TicketStore.new",
+    "signature": "fn() -\u003e TicketStore",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.alertDescription",
     "signature": "fn(\u0026Error) -\u003e u8",
     "has_body": true,
@@ -16341,8 +17711,8 @@
     "status": "ok"
   },
   {
-    "key": "net/tls.certificateMessage",
-    "signature": "pure fn(Array[Bytes]) -\u003e Result[Bytes, Error]",
+    "key": "net/tls.binderKey",
+    "signature": "pure fn(Bytes) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -16351,8 +17721,38 @@
     "status": "ok"
   },
   {
-    "key": "net/tls.certificateVerify",
-    "signature": "pure fn(Bytes) -\u003e Result[Bytes, Error]",
+    "key": "net/tls.binderVerifyData",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.buildClientHello",
+    "signature": "pure fn(u16, Bytes, Bytes, Bytes, Bytes?, String, Array[String], PskOffer?) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.certificateMessage",
+    "signature": "pure fn(Bytes, Array[Bytes]) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.certificateRequestMessage",
+    "signature": "pure fn(Bytes, Array[u16]) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -16371,8 +17771,58 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.certificateVerifyMessageFor",
+    "signature": "pure fn(String, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.certificateVerifyMessageWithSignature",
+    "signature": "pure fn(u16, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.clientCertificateVerifyMessage",
+    "signature": "pure fn(Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.clientHello",
     "signature": "pure fn(Bytes, Bytes, Bytes, String, Array[String]) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.clientHelloBinderHash",
+    "signature": "pure fn(Bytes, usize) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.clientHelloPsk",
+    "signature": "pure fn(u16, Bytes, Bytes, Bytes, Bytes?, String, Array[String], PskOffer) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -16431,6 +17881,16 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.deriveEarlyTraffic",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Result[Direction, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.deriveHandshake",
     "signature": "pure fn(Bytes, Bytes) -\u003e Result[HandshakeSecrets, Error]",
     "has_body": true,
@@ -16441,8 +17901,38 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.deriveHandshakePsk",
+    "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Result[HandshakeSecrets, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.deriveResumptionMaster",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.deriveSecret",
     "signature": "pure fn(Bytes, String, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.earlySecret",
+    "signature": "pure fn(Bytes) -\u003e Bytes",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -16482,7 +17972,7 @@
   },
   {
     "key": "net/tls.encryptedExtensions",
-    "signature": "pure fn(String?) -\u003e Result[Bytes, Error]",
+    "signature": "pure fn(String?, Bool) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -16571,6 +18061,16 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.handshakeSecrets",
+    "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Result[HandshakeSecrets, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.helloRetryRequestRandom",
     "signature": "fn() -\u003e Bytes",
     "has_body": true,
@@ -16631,6 +18131,16 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.newSessionTicketMessage",
+    "signature": "pure fn(u32, u32, Bytes, Bytes, u32) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.noKeys",
     "signature": "fn() -\u003e Direction",
     "has_body": true,
@@ -16671,6 +18181,26 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.parseCertificateRequest",
+    "signature": "pure fn(Bytes) -\u003e Result[ParsedCertificateRequest, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.parseCertificateResponse",
+    "signature": "pure fn(Bytes, usize, usize, Bytes, Bool) -\u003e Result[Array[Bytes], Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.parseCertificateVerify",
     "signature": "pure fn(Bytes) -\u003e Result[ParsedCertificateVerify, Error]",
     "has_body": true,
@@ -16692,7 +18222,7 @@
   },
   {
     "key": "net/tls.parseEncryptedExtensions",
-    "signature": "pure fn(Bytes) -\u003e Result[String?, Error]",
+    "signature": "pure fn(Bytes) -\u003e Result[EncryptedExtensions, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -16741,8 +18271,28 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.parseNewSessionTicket",
+    "signature": "pure fn(Bytes) -\u003e Result[ParsedNewSessionTicket, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.parsePskExtension",
+    "signature": "pure fn(Bytes, usize) -\u003e Result[ParsedPsk, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.parseServerHello",
-    "signature": "pure fn(Bytes) -\u003e Result[ServerReply, Error]",
+    "signature": "pure fn(Bytes, Bool) -\u003e Result[ServerReply, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -16773,6 +18323,16 @@
   {
     "key": "net/tls.putU24",
     "signature": "pure fn(\u0026mut Array[u8], usize) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.putU32",
+    "signature": "pure fn(\u0026mut Array[u8], u32) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -16831,6 +18391,16 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.resumptionPsk",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.sealPlaintext",
     "signature": "pure fn(u8, Bytes) -\u003e Result[Bytes, Error]",
     "has_body": true,
@@ -16862,7 +18432,7 @@
   },
   {
     "key": "net/tls.serverHello",
-    "signature": "pure fn(Bytes, Bytes, u16, Bytes) -\u003e Result[Bytes, Error]",
+    "signature": "pure fn(Bytes, Bytes, u16, Bytes, u16?) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -16873,6 +18443,46 @@
   {
     "key": "net/tls.verifyCertificateVerify",
     "signature": "fn(\u0026Certificate, u16, Bytes, Bytes) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.verifyCertificateVerifyFor",
+    "signature": "fn(\u0026Certificate, u16, Bytes, Bytes, String) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.verifyClientCertificateVerify",
+    "signature": "fn(\u0026Certificate, u16, Bytes, Bytes) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.verifyClientChain",
+    "signature": "fn(\u0026Array[Certificate], \u0026Array[Bytes], Int) -\u003e Result[Certificate, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.verifyPskBinder",
+    "signature": "pure fn(Bytes, usize, Bytes, Bytes) -\u003e Result[Void, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
