@@ -4894,6 +4894,33 @@
       ]
     },
     {
+      "id": "run/cvm_attest_snp",
+      "kind": "run",
+      "path": "testdata/run/cvm_attest_snp.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/cvm_snp_idblock_key",
+      "kind": "run",
+      "path": "testdata/run/cvm_snp_idblock_key.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/cvm_snp_report",
+      "kind": "run",
+      "path": "testdata/run/cvm_snp_report.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/debug_fallback_borrow",
       "kind": "run",
       "path": "testdata/run/debug_fallback_borrow.txtar",

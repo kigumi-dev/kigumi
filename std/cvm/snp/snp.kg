@@ -1,0 +1,569 @@
+/// AMD SEV-SNP guest-side protocol surface: attestation reports, the launch
+/// ID block and its authentication structure, and the guest derived-key
+/// request/response wire formats.
+///
+/// This package is the AMD SEV-SNP Firmware ABI (56860) Tier 0 subset. It
+/// parses and validates wire data; it does not issue `SNP_GUEST_REQUEST`
+/// itself, and it does not claim a signature is valid unless the caller
+/// supplies the ECDSA P-384 verifier through `verifyReportSignature` or
+/// `verifyIdBlock`. `std/crypto` has no P-384 implementation, so the
+/// certificate-chain entry point in `std/cvm/attest` reports
+/// `Unsupported` instead of accepting an unverified chain.
+///
+/// All integer fields are little-endian, as the firmware defines them.
+/// A structurally invalid input is always an error: malformed reports,
+/// impossible signatures and inconsistent key information are rejected
+/// during parsing, never silently repaired.
+import binary from std/encoding/binary
+
+/// Size of an `ATTESTATION_REPORT`, signature included.
+pub const reportSize: usize = 0x4A0
+
+/// Bytes covered by the report signature (offsets 0h through 29Fh).
+pub const reportSignedSize: usize = 0x2A0
+
+/// Offset of the signature inside the report.
+pub const reportSignatureOffset: usize = 0x2A0
+
+/// Size of the ID block handed to `SNP_LAUNCH_FINISH`.
+pub const idBlockSize: usize = 0x60
+
+/// Size of the ID authentication information structure.
+pub const idAuthSize: usize = 0x1000
+
+/// Size of an encoded ECDSA P-384 public key.
+pub const idPublicKeySize: usize = 0x404
+
+/// Size of a `MSG_KEY_REQ` request.
+pub const keyRequestSize: usize = 0x28
+
+/// Size of a `MSG_KEY_RSP` response.
+pub const keyResponseSize: usize = 0x40
+
+/// The only signing algorithm AMD's SNP firmware defines.
+pub const signatureAlgorithmEcdsaP384Sha384: u32 = 1
+
+/// The only curve encoding AMD's SNP firmware defines.
+pub const curveP384: u32 = 2
+
+/// Why a wire structure was refused.
+pub type Error =
+    | Truncated(field: String)
+    | BadSize(expected: usize, got: usize)
+    | UnsupportedVersion(version: u32)
+    | UnsupportedAlgorithm(algorithm: u32)
+    | ReservedNonZero(field: String)
+    | Malformed(field: String)
+    | Unsupported(feature: String)
+    | Unsigned
+    | Forged(field: String)
+
+pub fn Error.message(self) -> String {
+    match self {
+        Truncated(field) -> "snp: ${field} is truncated"
+        BadSize(expected, got) -> "snp: expected ${expected} bytes, got ${got}"
+        UnsupportedVersion(version) -> "snp: unsupported version ${version}"
+        UnsupportedAlgorithm(algorithm) -> "snp: unsupported algorithm ${algorithm}"
+        ReservedNonZero(field) -> "snp: reserved bytes are not zero in ${field}"
+        Malformed(field) -> "snp: malformed ${field}"
+        Unsupported(feature) -> "snp: unsupported ${feature}"
+        Unsigned -> "snp: the report is not signed"
+        Forged(field) -> "snp: forged or inconsistent ${field}"
+    }
+}
+
+/// A TCB security version number. The packed layout depends on the CPU
+/// family, so the raw value is authoritative; the named accessors expose
+/// both the Milan/Genoa and the Turin layouts.
+pub type TcbVersion = {
+    pub raw u64
+}
+
+/// `BOOT_LOADER` in the Milan/Genoa layout.
+pub pure fn TcbVersion.bootLoader(self) -> u8 {
+    (self.raw & 0xFF).truncate[u8]()
+}
+
+/// `TEE` (PSP OS SVN) in the Milan/Genoa and Turin layouts.
+pub pure fn TcbVersion.tee(self) -> u8 {
+    ((self.raw >> 8) & 0xFF).truncate[u8]()
+}
+
+/// `SNP` firmware SVN in the Milan/Genoa layout (bits 55:48).
+pub pure fn TcbVersion.snp(self) -> u8 {
+    ((self.raw >> 48) & 0xFF).truncate[u8]()
+}
+
+/// `MICROCODE` in every layout (bits 63:56).
+pub pure fn TcbVersion.microcode(self) -> u8 {
+    ((self.raw >> 56) & 0xFF).truncate[u8]()
+}
+
+/// `FMC` firmware SVN in the Turin layout (bits 7:0).
+pub pure fn TcbVersion.fmc(self) -> u8 {
+    (self.raw & 0xFF).truncate[u8]()
+}
+
+/// `BOOT_LOADER` in the Turin layout (bits 15:8).
+pub pure fn TcbVersion.turinBootLoader(self) -> u8 {
+    ((self.raw >> 8) & 0xFF).truncate[u8]()
+}
+
+/// `TEE` in the Turin layout (bits 23:16).
+pub pure fn TcbVersion.turinTee(self) -> u8 {
+    ((self.raw >> 16) & 0xFF).truncate[u8]()
+}
+
+/// `SNP` firmware SVN in the Turin layout (bits 31:24).
+pub pure fn TcbVersion.turinSnp(self) -> u8 {
+    ((self.raw >> 24) & 0xFF).truncate[u8]()
+}
+
+/// The guest policy bound at launch. Bit 17 is reserved and must be one;
+/// the parser enforces that, so this record cannot represent an invalid
+/// policy.
+pub type GuestPolicy = {
+    pub raw u64
+}
+
+pub pure fn GuestPolicy.abiMinor(self) -> u8 {
+    (self.raw & 0xFF).truncate[u8]()
+}
+
+pub pure fn GuestPolicy.abiMajor(self) -> u8 {
+    ((self.raw >> 8) & 0xFF).truncate[u8]()
+}
+
+pub pure fn GuestPolicy.smtAllowed(self) -> Bool {
+    (self.raw & (1 << 16)) != 0
+}
+
+pub pure fn GuestPolicy.migrateMaAllowed(self) -> Bool {
+    (self.raw & (1 << 18)) != 0
+}
+
+pub pure fn GuestPolicy.debugAllowed(self) -> Bool {
+    (self.raw & (1 << 19)) != 0
+}
+
+pub pure fn GuestPolicy.singleSocketRequired(self) -> Bool {
+    (self.raw & (1 << 20)) != 0
+}
+
+pub pure fn GuestPolicy.cxlAllowed(self) -> Bool {
+    (self.raw & (1 << 21)) != 0
+}
+
+pub pure fn GuestPolicy.memAes256Xts(self) -> Bool {
+    (self.raw & (1 << 22)) != 0
+}
+
+pub pure fn GuestPolicy.raplDisabled(self) -> Bool {
+    (self.raw & (1 << 23)) != 0
+}
+
+pub pure fn GuestPolicy.ciphertextHidingDram(self) -> Bool {
+    (self.raw & (1 << 24)) != 0
+}
+
+pub pure fn GuestPolicy.pageSwapDisabled(self) -> Bool {
+    (self.raw & (1 << 25)) != 0
+}
+
+/// The `PLATFORM_INFO` field.
+pub type PlatformInfo = {
+    pub raw u64
+}
+
+pub pure fn PlatformInfo.smtEnabled(self) -> Bool {
+    (self.raw & 1) != 0
+}
+
+pub pure fn PlatformInfo.tsmeEnabled(self) -> Bool {
+    (self.raw & (1 << 1)) != 0
+}
+
+pub pure fn PlatformInfo.eccEnabled(self) -> Bool {
+    (self.raw & (1 << 2)) != 0
+}
+
+pub pure fn PlatformInfo.raplDisabled(self) -> Bool {
+    (self.raw & (1 << 3)) != 0
+}
+
+pub pure fn PlatformInfo.ciphertextHidingEnabled(self) -> Bool {
+    (self.raw & (1 << 4)) != 0
+}
+
+pub pure fn PlatformInfo.aliasCheckComplete(self) -> Bool {
+    (self.raw & (1 << 5)) != 0
+}
+
+pub pure fn PlatformInfo.tioEnabled(self) -> Bool {
+    (self.raw & (1 << 7)) != 0
+}
+
+/// The `KEY_INFO` field at report offset 48h.
+pub type KeyInfo = {
+    pub raw u32
+}
+
+pub pure fn KeyInfo.authorKeyEnabled(self) -> Bool {
+    (self.raw & 1) != 0
+}
+
+pub pure fn KeyInfo.maskChipKey(self) -> Bool {
+    (self.raw & 2) != 0
+}
+
+/// 0 = VCEK, 1 = VLEK, 7 = none; 2 through 6 are reserved.
+pub pure fn KeyInfo.signingKey(self) -> u8 {
+    ((self.raw >> 2) & 0x7).truncate[u8]()
+}
+
+/// A firmware `CurrentVersion` or `CommittedVersion`.
+pub type FirmwareVersion = {
+    pub build u8
+    pub minor u8
+    pub major u8
+}
+
+/// An ECDSA P-384 signature as the SNP wire format encodes it: each scalar
+/// is zero-extended little-endian in 72 bytes, followed by reserved bytes.
+pub type Signature = {
+    pub r Bytes
+    pub s Bytes
+    pub reserved Bytes
+}
+
+/// Whether both signature scalars are zero.
+pub pure fn Signature.isZero(self) -> Bool {
+    allZero(self.r) && allZero(self.s)
+}
+
+/// The signed portion of an attestation report and its parsed fields.
+pub type Report = {
+    pub version u32
+    pub guestSvn u32
+    pub policy GuestPolicy
+    pub familyId Bytes
+    pub imageId Bytes
+    pub vmpl u32
+    pub signatureAlgorithm u32
+    pub currentTcb TcbVersion
+    pub platformInfo PlatformInfo
+    pub keyInfo KeyInfo
+    pub reportData Bytes
+    pub measurement Bytes
+    pub hostData Bytes
+    pub idKeyDigest Bytes
+    pub authorKeyDigest Bytes
+    pub reportId Bytes
+    pub reportIdMa Bytes
+    pub reportedTcb TcbVersion
+    pub cpuidFamilyId u8?
+    pub cpuidModelId u8?
+    pub cpuidStepping u8?
+    pub chipId Bytes
+    pub committedTcb TcbVersion
+    pub currentVersion FirmwareVersion
+    pub committedVersion FirmwareVersion
+    pub launchTcb TcbVersion
+    pub launchMitVector u64?
+    pub currentMitVector u64?
+    pub signature Signature
+    signed Bytes
+}
+
+/// The report bytes covered by the report signature.
+pub pure fn Report.signedBytes(self) -> Bytes {
+    self.signed
+}
+
+/// True when `nonce` is exactly the 64-byte REPORT_DATA.
+pub pure fn Report.reportDataEquals(self, nonce: Bytes) -> Bool {
+    self.reportData.equals(&nonce)
+}
+
+/// True when `measurement` is exactly the 48-byte MEASUREMENT.
+pub pure fn Report.measurementEquals(self, measurement: Bytes) -> Bool {
+    self.measurement.equals(&measurement)
+}
+
+/// The verifier-facing summary of a parsed report.
+pub type Claims = {
+    pub version u32
+    pub guestSvn u32
+    pub measurement Bytes
+    pub reportData Bytes
+    pub familyId Bytes
+    pub imageId Bytes
+    pub guestPolicy u64
+    pub vmpl u32
+    pub currentTcb u64
+    pub reportedTcb u64
+    pub chipId Bytes
+    pub reportId Bytes
+    pub idKeyDigest Bytes
+    pub authorKeyDigest Bytes
+    pub debugAllowed Bool
+    pub smtAllowed Bool
+}
+
+/// Extracts the claims a policy can evaluate. This performs no signature
+/// verification; use `verifyReportSignature` first.
+pub pure fn Report.claims(self) -> Claims {
+    Claims {
+        version: self.version
+        guestSvn: self.guestSvn
+        measurement: self.measurement
+        reportData: self.reportData
+        familyId: self.familyId
+        imageId: self.imageId
+        guestPolicy: self.policy.raw
+        vmpl: self.vmpl
+        currentTcb: self.currentTcb.raw
+        reportedTcb: self.reportedTcb.raw
+        chipId: self.chipId
+        reportId: self.reportId
+        idKeyDigest: self.idKeyDigest
+        authorKeyDigest: self.authorKeyDigest
+        debugAllowed: self.policy.debugAllowed()
+        smtAllowed: self.policy.smtAllowed()
+    }
+}
+
+/// The ID block from `SNP_LAUNCH_FINISH`.
+pub type IdBlock = {
+    pub launchDigest Bytes
+    pub familyId Bytes
+    pub imageId Bytes
+    pub version u32
+    pub guestSvn u32
+    pub policy GuestPolicy
+    raw Bytes
+}
+
+/// The ID block bytes that the launch flow signs.
+pub pure fn IdBlock.signedBytes(self) -> Bytes {
+    self.raw
+}
+
+/// An ECDSA P-384 public key as the ID authentication structure encodes it.
+pub type EcdsaPublicKey = {
+    pub curve u32
+    pub x Bytes
+    pub y Bytes
+    raw Bytes
+}
+
+/// The public key bytes whose SHA-384 digest the report's ID_KEY_DIGEST
+/// covers.
+pub pure fn EcdsaPublicKey.bytes(self) -> Bytes {
+    self.raw
+}
+
+/// The ID authentication information structure.
+pub type IdAuth = {
+    pub idKeyAlgorithm u32
+    pub authKeyAlgorithm u32
+    pub idBlockSignature Signature
+    pub idKey EcdsaPublicKey
+    pub idKeySignature Signature
+    pub authorKey EcdsaPublicKey?
+    raw Bytes
+}
+
+/// How a derived key's root is selected.
+pub type RootKeySelect =
+    | Vcek
+    | Vmrk
+
+/// The `KEY_SEL` field added in ABI 1.54.
+pub type KeySelect =
+    | Auto
+    | Vcek
+    | Vlek
+
+/// The `GUEST_FIELD_SELECT` bitmask.
+pub type GuestFieldSelect = {
+    pub raw u64
+}
+
+pub pure fn GuestFieldSelect.guestPolicy(self) -> Bool {
+    (self.raw & 1) != 0
+}
+
+pub pure fn GuestFieldSelect.imageId(self) -> Bool {
+    (self.raw & (1 << 1)) != 0
+}
+
+pub pure fn GuestFieldSelect.familyId(self) -> Bool {
+    (self.raw & (1 << 2)) != 0
+}
+
+pub pure fn GuestFieldSelect.measurement(self) -> Bool {
+    (self.raw & (1 << 3)) != 0
+}
+
+pub pure fn GuestFieldSelect.guestSvn(self) -> Bool {
+    (self.raw & (1 << 4)) != 0
+}
+
+pub pure fn GuestFieldSelect.tcbVersion(self) -> Bool {
+    (self.raw & (1 << 5)) != 0
+}
+
+pub pure fn GuestFieldSelect.launchMitVector(self) -> Bool {
+    (self.raw & (1 << 6)) != 0
+}
+
+/// A `MSG_KEY_REQ` request.
+pub type DerivedKeyRequest = {
+    pub rootKeySelect RootKeySelect
+    pub keySelect KeySelect
+    pub guestFieldSelect GuestFieldSelect
+    pub vmpl u32
+    pub guestSvn u32
+    pub tcbVersion TcbVersion
+    pub launchMitVector u64?
+}
+
+/// A `MSG_KEY_RSP` response. `key` is present only for status 0.
+pub type DerivedKeyResponse = {
+    pub status u32
+    pub key Bytes?
+}
+
+/// Whether every byte is zero.
+pub pure fn allZero(value: Bytes) -> Bool {
+    let mut i: usize = 0
+    for i < value.len() {
+        if value[i] != 0 {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}
+
+/// The six little-endian limbs of the P-384 group order.
+pure noalloc fn p384OrderLimb(index: usize) -> u64 {
+    match index {
+        0 -> 0xECEC196ACCC52973
+        1 -> 0x581A0DB248B0A77A
+        2 -> 0xC7634D81F4372DDF
+        3 -> 0xFFFFFFFFFFFFFFFF
+        4 -> 0xFFFFFFFFFFFFFFFF
+        _ -> 0xFFFFFFFFFFFFFFFF
+    }
+}
+
+/// The six little-endian limbs of the P-384 base-field prime.
+pure noalloc fn p384PrimeLimb(index: usize) -> u64 {
+    match index {
+        0 -> 0x00000000FFFFFFFF
+        1 -> 0xFFFFFFFF00000000
+        2 -> 0xFFFFFFFFFFFFFFFE
+        3 -> 0xFFFFFFFFFFFFFFFF
+        4 -> 0xFFFFFFFFFFFFFFFF
+        _ -> 0xFFFFFFFFFFFFFFFF
+    }
+}
+
+pure fn leWord(value: Bytes, at: usize) -> u64 {
+    binary.uintLe(value, at, 8) || 0
+}
+
+/// Whether a 72-byte zero-extended little-endian scalar is in [1, n).
+pub pure fn scalarIsCanonical(value: Bytes) -> Bool {
+    if value.len() != 72 {
+        return false
+    }
+    let mut i: usize = 48
+    for i < 72 {
+        if value[i] != 0 {
+            return false
+        }
+        i = i + 1
+    }
+    let mut nonzero = false
+    let mut j: usize = 0
+    for j < 48 {
+        if value[j] != 0 {
+            nonzero = true
+        }
+        j = j + 1
+    }
+    if !nonzero {
+        return false
+    }
+    let mut limb: usize = 6
+    for limb > 0 {
+        limb = limb - 1
+        let word = leWord(value, limb * 8)
+        let order = p384OrderLimb(limb)
+        if word < order {
+            return true
+        }
+        if word > order {
+            return false
+        }
+    }
+    false
+}
+
+/// Whether a 72-byte zero-extended little-endian coordinate is in [0, p).
+pub pure fn coordinateIsCanonical(value: Bytes) -> Bool {
+    if value.len() != 72 {
+        return false
+    }
+    let mut i: usize = 48
+    for i < 72 {
+        if value[i] != 0 {
+            return false
+        }
+        i = i + 1
+    }
+    let mut limb: usize = 6
+    for limb > 0 {
+        limb = limb - 1
+        let word = leWord(value, limb * 8)
+        let prime = p384PrimeLimb(limb)
+        if word < prime {
+            return true
+        }
+        if word > prime {
+            return false
+        }
+    }
+    false
+}
+
+/// Whether `policy` has no reserved bits set and the mandatory bit 17.
+pub pure fn guestPolicyIsValid(raw: u64) -> Bool {
+    if (raw & (1 << 17)) == 0 {
+        return false
+    }
+    (raw >> 26) == 0
+}
+
+/// Whether `info` has no reserved platform bits set.
+pub pure fn platformInfoIsValid(raw: u64) -> Bool {
+    (raw >> 8) == 0
+}
+
+/// Whether `info` has no reserved key bits set and a defined signing key.
+pub pure fn keyInfoIsValid(raw: u32) -> Bool {
+    if (raw >> 5) != 0 {
+        return false
+    }
+    let signingKey = (raw >> 2) & 0x7
+    signingKey != 3 && signingKey != 4 && signingKey != 5 && signingKey != 6
+}
+
+/// Whether a TCB value is non-zero; a zero TCB cannot describe firmware.
+pub pure fn tcbIsPresent(tcb: TcbVersion) -> Bool {
+    tcb.raw != 0
+}
+

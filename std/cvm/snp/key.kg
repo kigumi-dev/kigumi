@@ -1,0 +1,115 @@
+// MSG_KEY_REQ / MSG_KEY_RSP wire formats (ABI 56860 Tables 19-21).
+//
+// The request says which root key, guest fields, VMPL, SVN and TCB version
+// the firmware must mix into the derived key. The response carries a 32-byte
+// key only when the firmware status is zero. This package models the bytes;
+// the transport (`SNP_GUEST_REQUEST` through the GHCB) belongs to the caller
+// because it needs hardware-specific VC handling.
+import binary from std/encoding/binary
+
+/// The pre-1.56 request size, still accepted by older firmware.
+pub const keyRequestSizeLegacy: usize = 0x20
+
+/// Offset of the derived key inside MSG_KEY_RSP.
+pub const keyResponseKeyOffset: usize = 0x20
+
+/// Firmware status for a malformed key request.
+pub const keyStatusInvalidParameters: u32 = 0x16
+
+/// Firmware status for an unavailable or forbidden key selection.
+pub const keyStatusInvalidKeySelection: u32 = 0x27
+
+/// Parses a MSG_KEY_REQ request. Both the 32-byte form (before the launch
+/// mitigation vector field) and the current 40-byte form are accepted.
+pub pure fn parseKeyRequest(raw: Bytes) -> Result[DerivedKeyRequest, Error] {
+    if raw.len() != keyRequestSize && raw.len() != keyRequestSizeLegacy {
+        fail BadSize(keyRequestSize, raw.len())
+    }
+    let flags = binary.u32Le(raw, 0x00) || fail Malformed("key request flags")
+    if (flags >> 3) != 0 {
+        fail ReservedNonZero("key request flags")
+    }
+    let reserved = binary.u32Le(raw, 0x04) || fail Malformed("key request reserved")
+    if reserved != 0 {
+        fail ReservedNonZero("key request reserved")
+    }
+    let rootKeySelect = match flags & 1 {
+        0 -> RootKeySelect.Vcek
+        _ -> RootKeySelect.Vmrk
+    }
+    let keySelect = match (flags >> 1) & 0x3 {
+        0 -> KeySelect.Auto
+        1 -> KeySelect.Vcek
+        2 -> KeySelect.Vlek
+        _ -> fail Malformed("key select")
+    }
+    let guestFieldRaw = binary.u64Le(raw, 0x08) || fail Malformed("guest field select")
+    if (guestFieldRaw >> 7) != 0 {
+        fail ReservedNonZero("guest field select")
+    }
+    let vmpl = binary.u32Le(raw, 0x10) || fail Malformed("key request VMPL")
+    if vmpl > 3 {
+        fail Malformed("key request VMPL")
+    }
+    let guestSvn = binary.u32Le(raw, 0x14) || fail Malformed("key request guest SVN")
+    let tcb = binary.u64Le(raw, 0x18) || fail Malformed("key request TCB")
+    let mut launchMitVector: u64? = None
+    if raw.len() == keyRequestSize {
+        launchMitVector = Some(binary.u64Le(raw, 0x20) || fail Malformed("launch mitigation vector"))
+    }
+    Ok(DerivedKeyRequest {
+        rootKeySelect: rootKeySelect
+        keySelect: keySelect
+        guestFieldSelect: GuestFieldSelect { raw: guestFieldRaw }
+        vmpl: vmpl
+        guestSvn: guestSvn
+        tcbVersion: TcbVersion { raw: tcb }
+        launchMitVector: launchMitVector
+    })
+}
+
+/// Encodes a request in the current 40-byte form.
+pub pure fn encodeKeyRequest(request: &DerivedKeyRequest) -> Bytes {
+    let mut out = Array.empty[u8]()
+    let root: u32 = match request.rootKeySelect {
+        RootKeySelect.Vcek -> 0
+        RootKeySelect.Vmrk -> 1
+    }
+    let select: u32 = match request.keySelect {
+        KeySelect.Auto -> 0
+        KeySelect.Vcek -> 1
+        KeySelect.Vlek -> 2
+    }
+    binary.putU32Le(&mut out, root | (select << 1))
+    binary.putU32Le(&mut out, 0)
+    binary.putU64Le(&mut out, request.guestFieldSelect.raw)
+    binary.putU32Le(&mut out, request.vmpl)
+    binary.putU32Le(&mut out, request.guestSvn)
+    binary.putU64Le(&mut out, request.tcbVersion.raw)
+    let mitigation = match request.launchMitVector {
+        Some(value) -> value
+        None -> 0
+    }
+    binary.putU64Le(&mut out, mitigation)
+    Bytes.fromArray(&out)
+}
+
+/// Parses a MSG_KEY_RSP response. A zero status means the 32-byte key at
+/// offset 20h is present; the two defined failure statuses carry no key.
+pub pure fn parseKeyResponse(raw: Bytes) -> Result[DerivedKeyResponse, Error] {
+    if raw.len() != keyResponseSize {
+        fail BadSize(keyResponseSize, raw.len())
+    }
+    let status = binary.u32Le(raw, 0x00) || fail Malformed("key response status")
+    if status == 0 {
+        let key = match raw.slice(keyResponseKeyOffset, keyResponseKeyOffset + 32) {
+            Some(value) -> value
+            None -> fail Truncated("derived key")
+        }
+        return Ok(DerivedKeyResponse { status: status, key: Some(key) })
+    }
+    if status == keyStatusInvalidParameters || status == keyStatusInvalidKeySelection {
+        return Ok(DerivedKeyResponse { status: status, key: None })
+    }
+    fail Malformed("key response status")
+}

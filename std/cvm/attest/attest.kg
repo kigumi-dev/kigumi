@@ -1,0 +1,217 @@
+/// Policy evaluation for AMD SEV-SNP attestation evidence.
+///
+/// The verifier is split the same way dcap-qvl separates quote claims from
+/// policy: `verify` establishes the evidence's integrity through the supplied
+/// ECDSA P-384 boundary and returns `snp.Claims`; `Policy` is business policy
+/// evaluated over those claims. Neither half silently accepts unverified
+/// evidence.
+///
+/// Certificate chains are deliberately a separate boundary. AMD VCEK/VLEK
+/// chains are ECDSA P-384 X.509 and `std/crypto/x509` has no P-384 support,
+/// so `verifyCertificateChain` reports `Unsupported` instead of parsing a
+/// chain it cannot validate.
+import snp from std/cvm/snp
+import sha512 from std/crypto/sha512
+
+/// Why verification or policy evaluation failed.
+pub type Error =
+    | Snp(snp.Error)
+    | PolicyFailure(String)
+    | Unsupported(String)
+    | Forged(String)
+
+pub fn Error.message(self) -> String {
+    match self {
+        Snp(error) -> "attest: ${error.message()}"
+        PolicyFailure(why) -> "attest: policy: ${why}"
+        Unsupported(why) -> "attest: unsupported: ${why}"
+        Forged(why) -> "attest: forged ${why}"
+    }
+}
+
+/// The bytes a verifier is asked to establish. The report is mandatory; the
+/// ID block and its authentication structure are present only when the guest
+/// was launched with `ID_BLOCK_EN`.
+pub type Evidence = {
+    pub report Bytes
+    pub idBlock Bytes?
+    pub idAuth Bytes?
+}
+
+/// The checks applied after the evidence's integrity is established.
+///
+/// `nonce` and `measurement` are exact matches when present. `minimumTcb`
+/// compares the packed `CURRENT_TCB` value; callers that need component-wise
+/// comparison for a particular CPU family should use the `TcbVersion`
+/// accessors on the report before calling this. `requireIdBlock` demands
+/// launch evidence even when the caller supplied none.
+pub type Policy = {
+    pub nonce Bytes?
+    pub measurement Bytes?
+    pub allowDebug Bool
+    pub allowSmt Bool
+    pub vmpl u32?
+    pub minimumTcb u64?
+    pub requireIdBlock Bool
+}
+
+/// The conservative default: an exact measurement, no debugging and no SMT,
+/// and launch ID evidence required.
+pub pure fn Policy.strict(measurement: Bytes) -> Policy {
+    Policy {
+        nonce: None
+        measurement: Some(measurement)
+        allowDebug: false
+        allowSmt: false
+        vmpl: None
+        minimumTcb: None
+        requireIdBlock: true
+    }
+}
+
+pure fn parseIdBlock(value: Bytes?) -> Result[snp.IdBlock?, Error] {
+    match value {
+        Some(raw) -> match snp.parseIdBlock(raw) {
+            Ok(block) -> Ok(Some(block))
+            Err(error) -> fail Snp(error)
+        }
+        None -> Ok(None)
+    }
+}
+
+pure fn parseIdAuth(value: Bytes?) -> Result[snp.IdAuth?, Error] {
+    match value {
+        Some(raw) -> match snp.parseIdAuth(raw) {
+            Ok(auth) -> Ok(Some(auth))
+            Err(error) -> fail Snp(error)
+        }
+        None -> Ok(None)
+    }
+}
+
+pure fn checkIdEvidence(report: &snp.Report, block: &snp.IdBlock, auth: &snp.IdAuth) -> Result[Void, Error] {
+    if !block.policy.raw.equals(&report.policy.raw) {
+        fail Forged("ID block policy does not match the report")
+    }
+    let keyDigest = sha512.sum384(auth.idKey.bytes())
+    if !keyDigest.equals(&report.idKeyDigest) {
+        fail Forged("ID key digest does not match the report")
+    }
+    if report.keyInfo.authorKeyEnabled() {
+        let authorKey = match auth.authorKey {
+            Some(key) -> key
+            None -> fail Forged("author key is missing")
+        }
+        let authorDigest = sha512.sum384(authorKey.bytes())
+        if !authorDigest.equals(&report.authorKeyDigest) {
+            fail Forged("author key digest does not match the report")
+        }
+    }
+    Ok(())
+}
+
+pure fn checkPolicy(report: &snp.Report, policy: &Policy) -> Result[Void, Error] {
+    match policy.nonce {
+        Some(nonce) -> {
+            if !report.reportDataEquals(nonce) {
+                fail PolicyFailure("REPORT_DATA does not match the expected nonce")
+            }
+        }
+        None -> {}
+    }
+    match policy.measurement {
+        Some(measurement) -> {
+            if !report.measurementEquals(measurement) {
+                fail PolicyFailure("MEASUREMENT does not match")
+            }
+        }
+        None -> {}
+    }
+    if !policy.allowDebug && report.policy.debugAllowed() {
+        fail PolicyFailure("debugging is enabled")
+    }
+    if !policy.allowSmt && report.policy.smtAllowed() {
+        fail PolicyFailure("SMT is enabled")
+    }
+    match policy.vmpl {
+        Some(expected) -> {
+            if report.vmpl != expected {
+                fail PolicyFailure("VMPL ${report.vmpl} is not ${expected}")
+            }
+        }
+        None -> {}
+    }
+    match policy.minimumTcb {
+        Some(floor) -> {
+            if report.currentTcb.raw < floor {
+                fail PolicyFailure("CURRENT_TCB is below the required floor")
+            }
+        }
+        None -> {}
+    }
+    Ok(())
+}
+
+/// Verifies a report and returns its claims.
+///
+/// `reportVerifier` is the ECDSA P-384 boundary over the SHA-384 digest of
+/// bytes 0h..29Fh; the caller binds it to the VCEK/VLEK key it trusts.
+/// `idVerifier` is the same boundary for the ID block and ID key signatures
+/// when launch evidence is present. Passing a verifier that returns false
+/// yields `Forged`; a report the firmware did not sign yields `Snp(Unsigned)`.
+pub fn verify(
+    evidence: &Evidence,
+    policy: &Policy,
+    reportVerifier: fn(Bytes, &snp.Signature) -> Result[Bool, snp.Error],
+    idVerifier: fn(&snp.EcdsaPublicKey, Bytes, &snp.Signature) -> Result[Bool, snp.Error],
+) -> Result[snp.Claims, Error] {
+    let report = match snp.parseReport(evidence.report) {
+        Ok(value) -> value
+        Err(error) -> fail Snp(error)
+    }
+    let block = parseIdBlock(evidence.idBlock)?
+    let auth = parseIdAuth(evidence.idAuth)?
+    match block {
+        Some(idBlock) -> {
+            let idAuth = match auth {
+                Some(value) -> value
+                None -> fail PolicyFailure("ID block authentication is missing")
+            }
+            checkIdEvidence(&report, &idBlock, &idAuth)?
+            match snp.verifyIdBlock(&idBlock, &idAuth, report.keyInfo.authorKeyEnabled(), idVerifier) {
+                Ok(_) -> {}
+                Err(error) -> fail Snp(error)
+            }
+        }
+        None -> {
+            if auth is Some(_) {
+                fail PolicyFailure("ID block is missing but its authentication was supplied")
+            }
+            if policy.requireIdBlock {
+                fail PolicyFailure("launch ID block evidence is required")
+            }
+        }
+    }
+    match snp.verifyReportSignature(&report, reportVerifier) {
+        Ok(_) -> {}
+        Err(error) -> fail Snp(error)
+    }
+    checkPolicy(&report, policy)?
+    Ok(report.claims())
+}
+
+/// The certificate-chain boundary. AMD VCEK/VLEK certificates are ECDSA
+/// P-384 X.509, which this `std` cannot verify yet; the call fails with
+/// `Unsupported` rather than treating a host-supplied chain as trusted.
+pub fn verifyCertificateChain(chain: Bytes, anchor: Bytes, nowMillis: Int) -> Result[Void, Error] {
+    if chain.len() == 0 {
+        fail PolicyFailure("certificate chain is empty")
+    }
+    if anchor.len() == 0 {
+        fail PolicyFailure("trust anchor is empty")
+    }
+    if nowMillis < 0 {
+        fail PolicyFailure("negative verification time")
+    }
+    fail Unsupported("AMD SEV-SNP VCEK/VLEK certificate chains need ECDSA P-384 X.509, which std/crypto/x509 does not implement")
+}

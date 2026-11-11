@@ -1,0 +1,167 @@
+// The SNP launch ID block and its authentication information structure.
+//
+// An ID block is 96 bytes (ABI 56860 Table 75) and is signed as a whole with
+// the ID key. The 4096-byte authentication structure (Table 76) carries the
+// ID-block signature, the ID public key, the ID-key signature and, when the
+// launch enabled it, the author key that certifies the ID key. Parsing is
+// strict about sizes, algorithms and reserved bytes; it never manufactures a
+// key from an all-zero region.
+import binary from std/encoding/binary
+import sha512 from std/crypto/sha512
+
+pure fn readU32(raw: Bytes, at: usize, field: String) -> Result[u32, Error] {
+    binary.u32Le(raw, at) || fail Malformed(field)
+}
+
+pure fn readU64(raw: Bytes, at: usize, field: String) -> Result[u64, Error] {
+    binary.u64Le(raw, at) || fail Malformed(field)
+}
+
+pure fn idBlockSliceAt(raw: Bytes, at: usize, len: usize, field: String) -> Result[Bytes, Error] {
+    match raw.slice(at, at + len) {
+        Some(value) -> Ok(value)
+        None -> fail Truncated(field)
+    }
+}
+
+pure fn parseWireSignature(raw: Bytes, at: usize, field: String) -> Result[Signature, Error] {
+    let r = idBlockSliceAt(raw, at, 72, field)?
+    let s = idBlockSliceAt(raw, at + 72, 72, field)?
+    let reserved = idBlockSliceAt(raw, at + 144, 368, field)?
+    if !allZero(reserved) {
+        fail ReservedNonZero(field)
+    }
+    Ok(Signature { r: r, s: s, reserved: reserved })
+}
+
+pure fn parsePublicKey(raw: Bytes, at: usize, field: String) -> Result[EcdsaPublicKey?, Error] {
+    let encoded = idBlockSliceAt(raw, at, idPublicKeySize, field)?
+    if allZero(encoded) {
+        return Ok(None)
+    }
+    let curve = readU32(encoded, 0, field)?
+    if curve != curveP384 {
+        fail UnsupportedAlgorithm(curve)
+    }
+    let x = idBlockSliceAt(encoded, 4, 72, field)?
+    let y = idBlockSliceAt(encoded, 76, 72, field)?
+    let reserved = idBlockSliceAt(encoded, 148, 880, field)?
+    if !allZero(reserved) {
+        fail ReservedNonZero(field)
+    }
+    if !coordinateIsCanonical(x) || !coordinateIsCanonical(y) {
+        fail Malformed(field)
+    }
+    if allZero(x) && allZero(y) {
+        fail Malformed(field)
+    }
+    Ok(Some(EcdsaPublicKey { curve: curve, x: x, y: y, raw: encoded }))
+}
+
+/// Parses the 96-byte ID block.
+pub pure fn parseIdBlock(raw: Bytes) -> Result[IdBlock, Error] {
+    if raw.len() != idBlockSize {
+        fail BadSize(idBlockSize, raw.len())
+    }
+    let version = readU32(raw, 0x50, "ID block version")?
+    if version != 1 {
+        fail UnsupportedVersion(version)
+    }
+    let policyRaw = readU64(raw, 0x58, "ID block policy")?
+    if !guestPolicyIsValid(policyRaw) {
+        fail Malformed("ID block policy")
+    }
+    Ok(IdBlock {
+        launchDigest: idBlockSliceAt(raw, 0x00, 48, "launch digest")?
+        familyId: idBlockSliceAt(raw, 0x30, 16, "family ID")?
+        imageId: idBlockSliceAt(raw, 0x40, 16, "image ID")?
+        version: version
+        guestSvn: readU32(raw, 0x54, "guest SVN")?
+        policy: GuestPolicy { raw: policyRaw }
+        raw: raw
+    })
+}
+
+/// Parses the 4096-byte ID authentication information structure.
+///
+/// The author key is `None` when its region is all zero, which is the normal
+/// encoding when `AUTHOR_KEY_EN` is zero. The caller supplies that flag when
+/// verifying (`verifyIdBlock`), because it lives in the launch context and in
+/// the attestation report, not in this structure.
+pub pure fn parseIdAuth(raw: Bytes) -> Result[IdAuth, Error] {
+    if raw.len() != idAuthSize {
+        fail BadSize(idAuthSize, raw.len())
+    }
+    let idKeyAlgorithm = readU32(raw, 0x000, "ID key algorithm")?
+    if idKeyAlgorithm != signatureAlgorithmEcdsaP384Sha384 {
+        fail UnsupportedAlgorithm(idKeyAlgorithm)
+    }
+    let authKeyAlgorithm = readU32(raw, 0x004, "author key algorithm")?
+    if authKeyAlgorithm != signatureAlgorithmEcdsaP384Sha384 && authKeyAlgorithm != 0 {
+        fail UnsupportedAlgorithm(authKeyAlgorithm)
+    }
+    if !allZero(idBlockSliceAt(raw, 0x008, 56, "ID auth reserved")?) {
+        fail ReservedNonZero("ID auth reserved")
+    }
+    let idBlockSignature = parseWireSignature(raw, 0x040, "ID block signature")?
+    let idKey = match parsePublicKey(raw, 0x240, "ID public key")? {
+        Some(key) -> key
+        None -> fail Malformed("ID public key")
+    }
+    if !allZero(idBlockSliceAt(raw, 0x644, 60, "ID key reserved")?) {
+        fail ReservedNonZero("ID key reserved")
+    }
+    let idKeySignature = parseWireSignature(raw, 0x680, "ID key signature")?
+    let authorKey = parsePublicKey(raw, 0x880, "author public key")?
+    if !allZero(idBlockSliceAt(raw, 0xC84, 892, "author key reserved")?) {
+        fail ReservedNonZero("author key reserved")
+    }
+    Ok(IdAuth {
+        idKeyAlgorithm: idKeyAlgorithm
+        authKeyAlgorithm: authKeyAlgorithm
+        idBlockSignature: idBlockSignature
+        idKey: idKey
+        idKeySignature: idKeySignature
+        authorKey: authorKey
+        raw: raw
+    })
+}
+
+/// Verifies the ID-block signature and, when enabled, the author signature
+/// over the ID key. `verify` is the same ECDSA P-384 boundary as
+/// `verifyReportSignature`, supplied by the caller.
+///
+/// The SHA-384 input for the ID-block signature is exactly the 96-byte ID
+/// block. The author signature covers the 1028-byte encoded ID public key.
+pub fn verifyIdBlock(
+    idBlock: &IdBlock,
+    idAuth: &IdAuth,
+    authorKeyEnabled: Bool,
+    verify: fn(&EcdsaPublicKey, Bytes, &Signature) -> Result[Bool, Error],
+) -> Result[Void, Error] {
+    if !scalarIsCanonical(idAuth.idBlockSignature.r) || !scalarIsCanonical(idAuth.idBlockSignature.s) {
+        fail Forged("ID block signature scalar")
+    }
+    let blockDigest = sha512.sum384(idBlock.raw)
+    match verify(&idAuth.idKey, blockDigest, &idAuth.idBlockSignature) {
+        Ok(true) -> {}
+        Ok(false) -> fail Forged("ID block signature")
+        Err(error) -> fail error
+    }
+    if authorKeyEnabled {
+        let authorKey = match idAuth.authorKey {
+            Some(key) -> key
+            None -> fail Malformed("author public key")
+        }
+        if !scalarIsCanonical(idAuth.idKeySignature.r) || !scalarIsCanonical(idAuth.idKeySignature.s) {
+            fail Forged("ID key signature scalar")
+        }
+        let keyDigest = sha512.sum384(idAuth.idKey.raw)
+        match verify(&authorKey, keyDigest, &idAuth.idKeySignature) {
+            Ok(true) -> {}
+            Ok(false) -> fail Forged("ID key signature")
+            Err(error) -> fail error
+        }
+    }
+    Ok(())
+}

@@ -1,0 +1,202 @@
+// Attestation report parsing and the signature-verification boundary.
+//
+// The layout follows AMD SEV-SNP Firmware ABI 56860 Table 23. Versions 2
+// through 5 share one 1184-byte frame; version 3 added the CPUID fields and
+// version 5 added the mitigation-vector fields. Every version-specific
+// reserved range is checked instead of being ignored, so a report cannot
+// smuggle data in fields the firmware defines as zero.
+import binary from std/encoding/binary
+import sha512 from std/crypto/sha512
+
+pure fn u32At(raw: Bytes, at: usize, field: String) -> Result[u32, Error] {
+    binary.u32Le(raw, at) || fail Malformed(field)
+}
+
+pure fn u64At(raw: Bytes, at: usize, field: String) -> Result[u64, Error] {
+    binary.u64Le(raw, at) || fail Malformed(field)
+}
+
+pure fn reportSliceAt(raw: Bytes, at: usize, len: usize, field: String) -> Result[Bytes, Error] {
+    match raw.slice(at, at + len) {
+        Some(value) -> Ok(value)
+        None -> fail Truncated(field)
+    }
+}
+
+pure fn parseVersion(raw: Bytes) -> Result[FirmwareVersion, Error] {
+    Ok(FirmwareVersion {
+        build: raw[0x1E8]
+        minor: raw[0x1E9]
+        major: raw[0x1EA]
+    })
+}
+
+pure fn parseCommittedVersion(raw: Bytes) -> Result[FirmwareVersion, Error] {
+    Ok(FirmwareVersion {
+        build: raw[0x1EC]
+        minor: raw[0x1ED]
+        major: raw[0x1EE]
+    })
+}
+
+pure fn parseSignature(raw: Bytes, at: usize, field: String) -> Result[Signature, Error] {
+    let r = reportSliceAt(raw, at, 72, field)?
+    let s = reportSliceAt(raw, at + 72, 72, field)?
+    let reserved = reportSliceAt(raw, at + 144, 368, field)?
+    if !allZero(reserved) {
+        fail ReservedNonZero(field)
+    }
+    Ok(Signature { r: r, s: s, reserved: reserved })
+}
+
+/// Parses one complete `ATTESTATION_REPORT`.
+///
+/// The returned report has already been checked for a supported version and
+/// signature algorithm, canonical reserved bytes, a valid guest policy and
+/// platform/key information, and a signature frame consistent with the
+/// report's signing key. This is structural validation only: call
+/// `verifyReportSignature` with an ECDSA P-384 verifier to establish that
+/// the report really came from the CPU.
+pub pure fn parseReport(raw: Bytes) -> Result[Report, Error] {
+    if raw.len() != reportSize {
+        fail BadSize(reportSize, raw.len())
+    }
+    let version = u32At(raw, 0x00, "version")?
+    if version < 2 || version > 5 {
+        fail UnsupportedVersion(version)
+    }
+    let signatureAlgorithm = u32At(raw, 0x34, "signature algorithm")?
+    if signatureAlgorithm != signatureAlgorithmEcdsaP384Sha384 {
+        fail UnsupportedAlgorithm(signatureAlgorithm)
+    }
+    let vmpl = u32At(raw, 0x30, "VMPL")?
+    if vmpl > 3 && vmpl != 0xFFFFFFFF {
+        fail Malformed("VMPL")
+    }
+
+    let policyRaw = u64At(raw, 0x08, "guest policy")?
+    if !guestPolicyIsValid(policyRaw) {
+        fail Malformed("guest policy")
+    }
+    let platformRaw = u64At(raw, 0x40, "platform info")?
+    if !platformInfoIsValid(platformRaw) {
+        fail ReservedNonZero("platform info")
+    }
+    let keyRaw = u32At(raw, 0x48, "key info")?
+    if !keyInfoIsValid(keyRaw) {
+        fail Malformed("key info")
+    }
+    let keyInfo = KeyInfo { raw: keyRaw }
+
+    if !allZero(reportSliceAt(raw, 0x4C, 4, "report reserved0")?) {
+        fail ReservedNonZero("report reserved0")
+    }
+    if !allZero(reportSliceAt(raw, 0x1EB, 1, "current version reserved")?) {
+        fail ReservedNonZero("current version reserved")
+    }
+    if !allZero(reportSliceAt(raw, 0x1EF, 1, "committed version reserved")?) {
+        fail ReservedNonZero("committed version reserved")
+    }
+
+    let mut cpuidFamilyId: u8? = None
+    let mut cpuidModelId: u8? = None
+    let mut cpuidStepping: u8? = None
+    if version == 2 {
+        if !allZero(reportSliceAt(raw, 0x188, 24, "CPUID reserved")?) {
+            fail ReservedNonZero("CPUID reserved")
+        }
+    } else {
+        cpuidFamilyId = Some(raw[0x188])
+        cpuidModelId = Some(raw[0x189])
+        cpuidStepping = Some(raw[0x18A])
+        if !allZero(reportSliceAt(raw, 0x18B, 21, "CPUID reserved")?) {
+            fail ReservedNonZero("CPUID reserved")
+        }
+    }
+
+    let signature = parseSignature(raw, reportSignatureOffset, "report signature")?
+    if keyInfo.maskChipKey() {
+        if !signature.isZero() {
+            fail Forged("signature for a masked chip key")
+        }
+    } else {
+        if keyInfo.signingKey() == 7 {
+            fail Forged("signing key selection")
+        }
+        if !scalarIsCanonical(signature.r) || !scalarIsCanonical(signature.s) {
+            fail Forged("report signature scalar")
+        }
+    }
+
+    let mut launchMitVector: u64? = None
+    let mut currentMitVector: u64? = None
+    if version == 5 {
+        launchMitVector = Some(u64At(raw, 0x1F8, "launch mitigation vector")?)
+        currentMitVector = Some(u64At(raw, 0x200, "current mitigation vector")?)
+        if !allZero(reportSliceAt(raw, 0x208, 152, "mitigation reserved")?) {
+            fail ReservedNonZero("mitigation reserved")
+        }
+    } else if !allZero(reportSliceAt(raw, 0x1F8, 168, "report reserved")?) {
+        fail ReservedNonZero("report reserved")
+    }
+
+    let currentTcb = TcbVersion { raw: u64At(raw, 0x38, "current TCB")? }
+    if !tcbIsPresent(currentTcb) {
+        fail Malformed("current TCB")
+    }
+
+    Ok(Report {
+        version: version
+        guestSvn: u32At(raw, 0x04, "guest SVN")?
+        policy: GuestPolicy { raw: policyRaw }
+        familyId: reportSliceAt(raw, 0x10, 16, "family ID")?
+        imageId: reportSliceAt(raw, 0x20, 16, "image ID")?
+        vmpl: vmpl
+        signatureAlgorithm: signatureAlgorithm
+        currentTcb: currentTcb
+        platformInfo: PlatformInfo { raw: platformRaw }
+        keyInfo: keyInfo
+        reportData: reportSliceAt(raw, 0x50, 64, "report data")?
+        measurement: reportSliceAt(raw, 0x90, 48, "measurement")?
+        hostData: reportSliceAt(raw, 0xC0, 32, "host data")?
+        idKeyDigest: reportSliceAt(raw, 0xE0, 48, "ID key digest")?
+        authorKeyDigest: reportSliceAt(raw, 0x110, 48, "author key digest")?
+        reportId: reportSliceAt(raw, 0x140, 32, "report ID")?
+        reportIdMa: reportSliceAt(raw, 0x160, 32, "migration report ID")?
+        reportedTcb: TcbVersion { raw: u64At(raw, 0x180, "reported TCB")? }
+        cpuidFamilyId: cpuidFamilyId
+        cpuidModelId: cpuidModelId
+        cpuidStepping: cpuidStepping
+        chipId: reportSliceAt(raw, 0x1A0, 64, "chip ID")?
+        committedTcb: TcbVersion { raw: u64At(raw, 0x1E0, "committed TCB")? }
+        currentVersion: parseVersion(raw)?
+        committedVersion: parseCommittedVersion(raw)?
+        launchTcb: TcbVersion { raw: u64At(raw, 0x1F0, "launch TCB")? }
+        launchMitVector: launchMitVector
+        currentMitVector: currentMitVector
+        signature: signature
+        signed: reportSliceAt(raw, 0, reportSignedSize, "signed report")?
+    })
+}
+
+/// Verifies the report signature over bytes 0h..29Fh.
+///
+/// `verify` receives the SHA-384 digest and the parsed signature; the caller
+/// binds it to the VCEK or VLEK public key obtained from a trusted
+/// certificate chain. Returning false is reported as `Forged`. A report the
+/// firmware chose not to sign (`MASK_CHIP_KEY`) is reported as `Unsigned`
+/// rather than being accepted.
+pub fn verifyReportSignature(
+    report: &Report,
+    verify: fn(Bytes, &Signature) -> Result[Bool, Error],
+) -> Result[Void, Error] {
+    if report.keyInfo.maskChipKey() || report.keyInfo.signingKey() == 7 {
+        fail Unsigned
+    }
+    let digest = sha512.sum384(report.signed)
+    match verify(digest, &report.signature) {
+        Ok(true) -> Ok(())
+        Ok(false) -> fail Forged("report signature")
+        Err(error) -> Err(error)
+    }
+}
