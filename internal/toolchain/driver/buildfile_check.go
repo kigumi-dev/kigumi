@@ -150,6 +150,7 @@ func checkBuildFileContext(m *Module, tree *syntax.Tree) (*sem.Result, error) {
 	if err != nil {
 		return nil, err
 	}
+	a.Snapshot()
 	return a.Res, nil
 }
 

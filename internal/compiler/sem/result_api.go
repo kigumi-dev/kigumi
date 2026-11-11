@@ -39,9 +39,6 @@ func (r *Result) Diagnostics(t *syntax.Tree) []diag.Diagnostic {
 	return slices.Clone(f.Diags)
 }
 
-// FailParse makes the result an error for a build whose source did not parse, so no pass after the checker sees a missing node.
-func (r *Result) FailParse() { r.parseFailed = true }
-
 func (r *Result) HasErrors() bool {
 	if r.replay != nil {
 		return r.replay.hasErrors

@@ -101,6 +101,7 @@ func newResult(mod *Module) *Result {
 		layerCeiling:    LayerShortName[mod.LayerCeiling],
 		hasCeiling:      mod.LayerCeiling != "",
 		artifactName:    mod.ArtifactName,
+		parseFailed:     mod.ParseFailed,
 		arch:            cmp.Or(mod.Arch, "amd64"),
 		pathIndex:       map[string]PackageID{},
 		fileIndex:       map[*syntax.Tree]FileID{},

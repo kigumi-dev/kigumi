@@ -16,10 +16,31 @@ import (
 
 // Analysis is the checked view of a module, published complete and never written afterward.
 type Analysis struct {
+	// Res is the builder view that lowers the program. Once the analysis is
+	// published, Snapshot is the read-only artifact consumers should keep; the
+	// Result refuses later builder diagnostics (sem.AppendDiag panics).
 	Res *sem.Result
 	// Prog is nil when the checker reported errors.
 	Prog       *mir.Program
 	Provenance []schema.GeneratedArtifact
+	// snapshot is the immutable view Snapshot publishes after the last phase
+	// (MIR lowering, capability provision) appended its diagnostics.
+	snapshot *sem.AnalysisSnapshot
+	// provision caches the reachability a target's capability check produced,
+	// so Check followed by Build on one shared analysis checks it once.
+	provision map[string]*mirreach.Reachability
+}
+
+// Snapshot returns the immutable published view of the checked module. The
+// first call freezes Res, so no later phase can append to it.
+func (a *Analysis) Snapshot() *sem.AnalysisSnapshot {
+	if a == nil || a.Res == nil {
+		return nil
+	}
+	if a.snapshot == nil {
+		a.snapshot = a.Res.Snapshot()
+	}
+	return a.snapshot
 }
 
 // Stats counts the phase runs of one module, so a test can pin that one
@@ -38,6 +59,22 @@ func Analyze(m *Module) (*Analysis, error) {
 // AnalyzeWith is Analyze with an explicit sem.DeriveGenerator (nil keeps
 // Analyze's default); a caller overrides it to compare generators or check a module that can't derive.
 func AnalyzeWith(m *Module, gen sem.DeriveGenerator) (*Analysis, error) {
+	// A session attached by the caller answers for the same content; a lazy or
+	// generator-specific run is not cacheable and falls through.
+	if gen == nil {
+		if a, ok := m.reuseAnalysis(); ok {
+			return a, nil
+		}
+	}
+	a, err := analyzeWith(m, gen)
+	if err == nil && gen == nil {
+		m.rememberAnalysis(a)
+	}
+	return a, err
+}
+
+// analyzeWith is AnalyzeWith without the session cache.
+func analyzeWith(m *Module, gen sem.DeriveGenerator) (*Analysis, error) {
 	if m.lazyStd && !m.lowerAll {
 		if a, ok, err := m.analyzeLazyStd(gen); ok || err != nil {
 			return a, err
@@ -70,9 +107,6 @@ func (m *Module) analyzeCoreRoot(mod *sem.Module, gen sem.DeriveGenerator, keep 
 		gen = schema.GenerateDerive
 	}
 	res := sem.CheckWith(mod, gen)
-	if m.HasParseErrors() {
-		res.FailParse()
-	}
 	a := &Analysis{Res: res, Provenance: schema.BuildProvenance(res, nil)}
 	m.lastAnalysis = a
 	if res.HasErrors() {
@@ -130,10 +164,10 @@ func buildProgram(res *sem.Result, o progOptions) (*mir.Program, error) {
 	resbound.SettleAsync(prog.R, prog.Funcs, prog.Resources)
 	prog.Diags = append(prog.Diags, resbound.CheckBudget(prog.R, prog.ByEnt, prog.Resources, resbound.Options{Strict: o.strict, BudgetKiB: o.budgetKiB})...)
 	for _, d := range prog.Diags {
-		res.Files[d.File].Diags = append(res.Files[d.File].Diags, d.Diag)
+		res.AppendDiag(d.File, d.Diag)
 	}
 	for _, c := range claimDiags(prog) {
-		res.Files[c.File].Diags = append(res.Files[c.File].Diags, c.Diag)
+		res.AppendDiag(c.File, c.Diag)
 	}
 	if o.root != 0 {
 		prog.Entry = prog.ByEnt[o.root]
@@ -164,10 +198,10 @@ func lowerProgram(res *sem.Result, all bool, keep func(path string) bool) *mir.P
 		prog = mirbuild.Program(res)
 	}
 	for _, f := range prog.Funcs {
-		res.Files[f.File].Diags = append(res.Files[f.File].Diags, f.Diags...)
+		res.AppendDiags(f.File, f.Diags)
 	}
 	for _, cf := range prog.Comptime {
-		res.Files[cf.Func.File].Diags = append(res.Files[cf.Func.File].Diags, cf.Func.Diags...)
+		res.AppendDiags(cf.Func.File, cf.Func.Diags)
 	}
 	return prog
 }
@@ -203,6 +237,7 @@ func AnalyzeRoot(m *Module, root sem.EntityID) (*Analysis, error) {
 	a, err := m.analyzeCoreRoot(mod, nil, nil, root)
 	if a != nil {
 		m.recordPackages(a.Res, a.Prog != nil)
+		a.Snapshot()
 	}
 	return a, err
 }
@@ -217,11 +252,9 @@ func AnalyzeRootName(m *Module, pkgPath, name string) (*Analysis, error) {
 	}
 	m.stats.Check++
 	res := sem.CheckWith(mod, schema.GenerateDerive)
-	if m.HasParseErrors() {
-		res.FailParse()
-	}
 	a := &Analysis{Res: res, Provenance: schema.BuildProvenance(res, nil)}
 	m.lastAnalysis = a
+	defer a.Snapshot()
 	if res.HasErrors() {
 		m.recordPackages(res, false)
 		return a, nil
@@ -258,9 +291,6 @@ func CheckLazyRoot(m *Module) (*sem.Result, error) {
 	}
 	mod.LazyBodies = func(path string) bool { p := m.Packages[path]; return p != nil && p.Std }
 	res := sem.CheckWith(mod, schema.GenerateDerive)
-	if m.HasParseErrors() {
-		res.FailParse()
-	}
 	if res.LazyMissed() {
 		m.unitStats.LazyRetries++
 		return CheckOnly(m)
@@ -276,6 +306,7 @@ func CheckLazyRoot(m *Module) (*sem.Result, error) {
 func (m *Module) LowerCheckedRoot(res *sem.Result, root sem.EntityID) (*Analysis, error) {
 	a := &Analysis{Res: res, Provenance: schema.BuildProvenance(res, nil)}
 	m.lastAnalysis = a
+	defer a.Snapshot()
 	if res.HasErrors() {
 		return a, nil
 	}

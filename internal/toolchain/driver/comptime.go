@@ -18,8 +18,7 @@ func foldComptime(prog *mir.Program) error {
 	}
 	res := prog.R
 	for _, ce := range vm.FoldComptime(prog) {
-		f := &res.Files[ce.Site.File]
-		f.Diags = append(f.Diags, comptimeDiag(res, ce))
+		res.AppendDiag(ce.Site.File, comptimeDiag(res, ce))
 	}
 	return nil
 }

@@ -51,10 +51,12 @@ func compile(m *Module, stderr io.Writer, t buildconfig.Target, opts llgen.EmitO
 		return compiled{}, false, err
 	}
 	if a.Res.HasErrors() {
+		a.Snapshot()
 		io.WriteString(stderr, a.Res.Render())
 		return compiled{}, false, nil
 	}
 	reach := a.checkProvision(t)
+	a.Snapshot()
 	if a.Res.HasErrors() {
 		io.WriteString(stderr, a.Res.Render())
 		return compiled{}, false, nil

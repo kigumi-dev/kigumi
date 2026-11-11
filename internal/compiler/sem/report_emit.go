@@ -105,6 +105,9 @@ func (r *Result) diagSpan(f FileID, span token.Span, c Code, args ...any) (diag.
 }
 
 func (r *Result) emitDiag(f FileID, d diag.Diagnostic) {
+	if r.sealed {
+		panic("sem: diagnostic after the Result was published")
+	}
 	r.Files[f].Diags = append(r.Files[f].Diags, d)
 }
 

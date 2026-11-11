@@ -20,6 +20,10 @@ type PackageInfo struct {
 	tests     map[string]EntityID
 }
 
+// Result is the checked module. The checker builds it; Snapshot seals it into
+// the immutable AnalysisSnapshot. The exported tables are the builder's
+// working state: a caller treats them as read-only once the result is
+// published, and builder appends after Snapshot panic.
 type Result struct {
 	Types      *TypeTable
 	Entities   []Entity
@@ -43,7 +47,10 @@ type Result struct {
 	// Comptime lists the blocks the driver must evaluate before lowering.
 	Comptime []ComptimeSite
 
-	parseFailed     bool
+	parseFailed bool
+	// sealed marks a published result; AppendDiag refuses after this point.
+	sealed          bool
+	snapshot        *AnalysisSnapshot
 	replay          *replayedCheck
 	target          Target
 	noDefault       bool

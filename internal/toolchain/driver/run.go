@@ -40,6 +40,7 @@ func RunWith(m *Module, opts RunOptions, stdout, stderr io.Writer, args []string
 	if err != nil {
 		return 1, err
 	}
+	a.Snapshot()
 	if a.Res.HasErrors() {
 		io.WriteString(stderr, a.Res.Render())
 		return 1, nil
@@ -78,6 +79,7 @@ func RunTestsWith(m *Module, opts RunOptions, stdout, stderr io.Writer) (int, er
 	if err != nil {
 		return 1, err
 	}
+	a.Snapshot()
 	if a.Res.HasErrors() {
 		io.WriteString(stderr, a.Res.Render())
 		return 1, nil

@@ -18,7 +18,10 @@ func CheckForEditor(m *Module) (*sem.Result, error) {
 func CheckForEditorContext(ctx context.Context, m *Module) (*sem.Result, error) {
 	m.cancel = func() bool { return ctx.Err() != nil }
 	defer func() { m.cancel = nil }()
-	res, err := CheckOnly(m)
+	res, err := checkOnly(m)
+	if res != nil {
+		defer res.Snapshot()
+	}
 	if err == nil && res.Cancelled() {
 		return nil, ctx.Err()
 	}
@@ -27,9 +30,7 @@ func CheckForEditorContext(ctx context.Context, m *Module) (*sem.Result, error) 
 	}
 	built, found := editorDiags(m)
 	for _, c := range found {
-		if f := res.File(built.Tree(c.File)); f != nil {
-			f.Diags = append(f.Diags, c.Diag)
-		}
+		res.AppendTreeDiag(built.Tree(c.File), c.Diag)
 	}
 	return res, nil
 }

@@ -37,6 +37,7 @@ func RunTestsReportingWith(m *Module, opts TestRunOptions, stdout, stderr io.Wri
 	if err != nil {
 		return 1, err
 	}
+	a.Snapshot()
 	if a.Res.HasErrors() {
 		io.WriteString(stderr, a.Res.Render())
 		return 1, nil

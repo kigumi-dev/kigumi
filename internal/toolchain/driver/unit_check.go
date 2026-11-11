@@ -14,6 +14,7 @@ func CheckUnits(m *Module) (*sem.Result, error) {
 		return Check(m)
 	}
 	if res, ok := m.checkUnits(); ok {
+		res.Snapshot()
 		return res, nil
 	}
 	m.unitStats.Fallbacks++

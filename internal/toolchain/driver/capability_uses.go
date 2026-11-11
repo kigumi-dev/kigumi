@@ -1,6 +1,8 @@
 package driver
 
 import (
+	"fmt"
+
 	"kigumi/internal/compiler/mir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	mirreach "kigumi/internal/compiler/mir/reach"
@@ -32,8 +34,20 @@ func capabilityUses(p *mir.Program, reach *mirreach.Reachability, plat mirreach.
 }
 
 func (a *Analysis) checkProvision(t buildconfig.Target) *mirreach.Reachability {
+	key := fmt.Sprintf("%+v", t)
+	if a.provision == nil {
+		a.provision = map[string]*mirreach.Reachability{}
+	}
+	if reach, ok := a.provision[key]; ok {
+		return reach
+	}
 	reach := mirreach.Reachable(a.Prog.R, a.Prog.Entry, a.Prog.Funcs, a.Prog.ByEnt)
-	a.Res.CheckCapabilityProvision(capabilityUses(a.Prog, reach, capabilityPlatform(t)))
-	a.warnTaskPanicFatal(t, reach)
+	// A published analysis is read-only: a target first seen after publication
+	// still gets its reachability, but cannot add diagnostics to the snapshot.
+	if !a.Res.Sealed() {
+		a.Res.CheckCapabilityProvision(capabilityUses(a.Prog, reach, capabilityPlatform(t)))
+		a.warnTaskPanicFatal(t, reach)
+	}
+	a.provision[key] = reach
 	return reach
 }

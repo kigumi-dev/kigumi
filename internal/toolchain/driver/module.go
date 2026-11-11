@@ -109,6 +109,11 @@ type Module struct {
 	unitCheck   bool
 	lazyStd     bool
 	unitStats   UnitStats
+	// session shares one analysis across Check/Run/Build; nil until attached.
+	session *CompilationSession
+	// parseSnapshot caches ParseSnapshot for the current package set.
+	parseSnapshot  *syntax.ParseSnapshot
+	parsedPackages int
 }
 
 // cwdFor is the directory a run uses: the run's own choice, else the options'.

@@ -25,7 +25,10 @@ type Package struct {
 }
 
 type Module struct {
-	Packages      []*Package
+	Packages []*Package
+	// Name is the root module's name from mod.kg; "" for a manifest-less
+	// directory. It is part of the content-derived module identity.
+	Name          string
 	Target        Target
 	NestedModules []string
 	// Sources numbers files across the module so diagnostics can point into any of them.
@@ -63,6 +66,10 @@ type Module struct {
 	Deny         []string
 	LayerCeiling string
 	ArtifactName string
+	// ParseFailed says a scoped file has a parse error; the checker records it
+	// in the result so no phase after it sees a missing node. The driver sets
+	// it from Module.HasParseErrors before calling CheckWith.
+	ParseFailed bool
 	// Cancel is polled between phases and before each body; true stops the check.
 	Cancel func() bool
 	// LazyBodies names the packages whose bodies are checked only when an eagerly checked body names them.

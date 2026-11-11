@@ -14,7 +14,9 @@ import (
 // Check runs the semantic checker over a loaded module, adding a build's E1370.
 func Check(m *Module) (*sem.Result, error) {
 	if m.settled != nil {
-		return sem.ReplayResult(m.settled.Render, false), nil
+		res := sem.ReplayResult(m.settled.Render, false)
+		res.Snapshot()
+		return res, nil
 	}
 	a, err := m.analyzeForCheck()
 	if err != nil {
@@ -26,6 +28,7 @@ func Check(m *Module) (*sem.Result, error) {
 	if !a.Res.HasErrors() {
 		m.storeSettled(a, a.Res.Render())
 	}
+	a.Snapshot()
 	return a.Res, nil
 }
 
@@ -34,6 +37,17 @@ func Check(m *Module) (*sem.Result, error) {
 // starts the VM. Files with parse errors are checked as far as their
 // recovered trees allow.
 func CheckOnly(m *Module) (*sem.Result, error) {
+	res, err := checkOnly(m)
+	if err != nil {
+		return nil, err
+	}
+	res.Snapshot()
+	return res, nil
+}
+
+// checkOnly is CheckOnly before publication: a caller that appends editor
+// diagnostics still holds the builder.
+func checkOnly(m *Module) (*sem.Result, error) {
 	mod, err := m.semModule()
 	if err != nil {
 		return nil, err
@@ -135,7 +149,8 @@ func (m *Module) semModuleOf(keep func(path string) bool) (*sem.Module, error) {
 	if m.loadErr != nil {
 		return nil, m.loadErr
 	}
-	mod := &sem.Module{Sources: m.fileStore(), Cancel: m.cancel}
+	mod := &sem.Module{Sources: m.fileStore(), Cancel: m.cancel, Name: m.Name}
+	mod.ParseFailed = m.HasParseErrors()
 	if m.target.Freestanding() {
 		mod.Target = sem.Freestanding
 	}
