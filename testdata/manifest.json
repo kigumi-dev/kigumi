@@ -8,9 +8,9 @@
     {
       "id": "fmt/adt_leading_bar",
       "kind": "fmt",
-      "group": "",
+      "group": "types",
       "stage": "format",
-      "path": "testdata/fmt/adt_leading_bar.txtar",
+      "path": "testdata/fmt/types/adt_leading_bar.txtar",
       "mode": [
         "format"
       ]
@@ -18,9 +18,9 @@
     {
       "id": "fmt/adt_single_variant",
       "kind": "fmt",
-      "group": "",
+      "group": "types",
       "stage": "format",
-      "path": "testdata/fmt/adt_single_variant.txtar",
+      "path": "testdata/fmt/types/adt_single_variant.txtar",
       "mode": [
         "format"
       ]
@@ -28,9 +28,9 @@
     {
       "id": "fmt/andor_leading",
       "kind": "fmt",
-      "group": "",
+      "group": "expressions",
       "stage": "format",
-      "path": "testdata/fmt/andor_leading.txtar",
+      "path": "testdata/fmt/expressions/andor_leading.txtar",
       "mode": [
         "format"
       ]
@@ -38,9 +38,9 @@
     {
       "id": "fmt/andor_multiline_rhs",
       "kind": "fmt",
-      "group": "",
+      "group": "expressions",
       "stage": "format",
-      "path": "testdata/fmt/andor_multiline_rhs.txtar",
+      "path": "testdata/fmt/expressions/andor_multiline_rhs.txtar",
       "mode": [
         "format"
       ]
@@ -48,9 +48,9 @@
     {
       "id": "fmt/andor_singleline_chain",
       "kind": "fmt",
-      "group": "",
+      "group": "expressions",
       "stage": "format",
-      "path": "testdata/fmt/andor_singleline_chain.txtar",
+      "path": "testdata/fmt/expressions/andor_singleline_chain.txtar",
       "mode": [
         "format"
       ]
@@ -58,9 +58,9 @@
     {
       "id": "fmt/andor_trailing",
       "kind": "fmt",
-      "group": "",
+      "group": "expressions",
       "stage": "format",
-      "path": "testdata/fmt/andor_trailing.txtar",
+      "path": "testdata/fmt/expressions/andor_trailing.txtar",
       "mode": [
         "format"
       ]
@@ -68,9 +68,9 @@
     {
       "id": "fmt/asm",
       "kind": "fmt",
-      "group": "",
+      "group": "literals",
       "stage": "format",
-      "path": "testdata/fmt/asm.txtar",
+      "path": "testdata/fmt/literals/asm.txtar",
       "mode": [
         "format"
       ]
@@ -78,9 +78,9 @@
     {
       "id": "fmt/assign_comments",
       "kind": "fmt",
-      "group": "",
+      "group": "statements",
       "stage": "format",
-      "path": "testdata/fmt/assign_comments.txtar",
+      "path": "testdata/fmt/statements/assign_comments.txtar",
       "mode": [
         "format"
       ]
@@ -88,9 +88,9 @@
     {
       "id": "fmt/assign_newline",
       "kind": "fmt",
-      "group": "",
+      "group": "statements",
       "stage": "format",
-      "path": "testdata/fmt/assign_newline.txtar",
+      "path": "testdata/fmt/statements/assign_newline.txtar",
       "mode": [
         "format"
       ]
@@ -98,9 +98,9 @@
     {
       "id": "fmt/break_value",
       "kind": "fmt",
-      "group": "",
+      "group": "statements",
       "stage": "format",
-      "path": "testdata/fmt/break_value.txtar",
+      "path": "testdata/fmt/statements/break_value.txtar",
       "mode": [
         "format"
       ]
@@ -108,9 +108,9 @@
     {
       "id": "fmt/byte_string_in_interpolation",
       "kind": "fmt",
-      "group": "",
+      "group": "literals",
       "stage": "format",
-      "path": "testdata/fmt/byte_string_in_interpolation.txtar",
+      "path": "testdata/fmt/literals/byte_string_in_interpolation.txtar",
       "mode": [
         "format"
       ]
@@ -118,9 +118,9 @@
     {
       "id": "fmt/call_forms",
       "kind": "fmt",
-      "group": "",
+      "group": "expressions",
       "stage": "format",
-      "path": "testdata/fmt/call_forms.txtar",
+      "path": "testdata/fmt/expressions/call_forms.txtar",
       "mode": [
         "format"
       ]
@@ -128,9 +128,9 @@
     {
       "id": "fmt/canonical",
       "kind": "fmt",
-      "group": "",
+      "group": "literals",
       "stage": "format",
-      "path": "testdata/fmt/canonical.txtar",
+      "path": "testdata/fmt/literals/canonical.txtar",
       "mode": [
         "format"
       ]
@@ -138,9 +138,9 @@
     {
       "id": "fmt/comment_blocks_and_attrs",
       "kind": "fmt",
-      "group": "",
+      "group": "comments",
       "stage": "format",
-      "path": "testdata/fmt/comment_blocks_and_attrs.txtar",
+      "path": "testdata/fmt/comments/comment_blocks_and_attrs.txtar",
       "mode": [
         "format"
       ]
@@ -148,9 +148,9 @@
     {
       "id": "fmt/comment_call_inline",
       "kind": "fmt",
-      "group": "",
+      "group": "comments",
       "stage": "format",
-      "path": "testdata/fmt/comment_call_inline.txtar",
+      "path": "testdata/fmt/comments/comment_call_inline.txtar",
       "mode": [
         "format"
       ]
@@ -158,9 +158,9 @@
     {
       "id": "fmt/comment_call_multiline",
       "kind": "fmt",
-      "group": "",
+      "group": "comments",
       "stage": "format",
-      "path": "testdata/fmt/comment_call_multiline.txtar",
+      "path": "testdata/fmt/comments/comment_call_multiline.txtar",
       "mode": [
         "format"
       ]
@@ -168,9 +168,9 @@
     {
       "id": "fmt/comment_decorator",
       "kind": "fmt",
-      "group": "",
+      "group": "comments",
       "stage": "format",
-      "path": "testdata/fmt/comment_decorator.txtar",
+      "path": "testdata/fmt/comments/comment_decorator.txtar",
       "mode": [
         "format"
       ]
@@ -178,9 +178,9 @@
     {
       "id": "fmt/comment_import_names",
       "kind": "fmt",
-      "group": "",
+      "group": "comments",
       "stage": "format",
-      "path": "testdata/fmt/comment_import_names.txtar",
+      "path": "testdata/fmt/comments/comment_import_names.txtar",
       "mode": [
         "format"
       ]
@@ -188,9 +188,9 @@
     {
       "id": "fmt/comment_import_order",
       "kind": "fmt",
-      "group": "",
+      "group": "comments",
       "stage": "format",
-      "path": "testdata/fmt/comment_import_order.txtar",
+      "path": "testdata/fmt/comments/comment_import_order.txtar",
       "mode": [
         "format"
       ]
@@ -198,9 +198,9 @@
     {
       "id": "fmt/comment_in_continuation",
       "kind": "fmt",
-      "group": "",
+      "group": "comments",
       "stage": "format",
-      "path": "testdata/fmt/comment_in_continuation.txtar",
+      "path": "testdata/fmt/comments/comment_in_continuation.txtar",
       "mode": [
         "format"
       ]
@@ -208,9 +208,9 @@
     {
       "id": "fmt/comment_inline_positions",
       "kind": "fmt",
-      "group": "",
+      "group": "comments",
       "stage": "format",
-      "path": "testdata/fmt/comment_inline_positions.txtar",
+      "path": "testdata/fmt/comments/comment_inline_positions.txtar",
       "mode": [
         "format"
       ]
@@ -218,9 +218,9 @@
     {
       "id": "fmt/comment_line_end",
       "kind": "fmt",
-      "group": "",
+      "group": "comments",
       "stage": "format",
-      "path": "testdata/fmt/comment_line_end.txtar",
+      "path": "testdata/fmt/comments/comment_line_end.txtar",
       "mode": [
         "format"
       ]
@@ -228,9 +228,9 @@
     {
       "id": "fmt/comment_line_end_elements",
       "kind": "fmt",
-      "group": "",
+      "group": "comments",
       "stage": "format",
-      "path": "testdata/fmt/comment_line_end_elements.txtar",
+      "path": "testdata/fmt/comments/comment_line_end_elements.txtar",
       "mode": [
         "format"
       ]
@@ -238,9 +238,9 @@
     {
       "id": "fmt/comment_record_literal",
       "kind": "fmt",
-      "group": "",
+      "group": "comments",
       "stage": "format",
-      "path": "testdata/fmt/comment_record_literal.txtar",
+      "path": "testdata/fmt/comments/comment_record_literal.txtar",
       "mode": [
         "format"
       ]
@@ -248,9 +248,9 @@
     {
       "id": "fmt/comment_variant_payload_and_end",
       "kind": "fmt",
-      "group": "",
+      "group": "comments",
       "stage": "format",
-      "path": "testdata/fmt/comment_variant_payload_and_end.txtar",
+      "path": "testdata/fmt/comments/comment_variant_payload_and_end.txtar",
       "mode": [
         "format"
       ]
@@ -258,9 +258,9 @@
     {
       "id": "fmt/const_generic",
       "kind": "fmt",
-      "group": "",
+      "group": "types",
       "stage": "format",
-      "path": "testdata/fmt/const_generic.txtar",
+      "path": "testdata/fmt/types/const_generic.txtar",
       "mode": [
         "format"
       ]
@@ -268,9 +268,9 @@
     {
       "id": "fmt/default_params_layout",
       "kind": "fmt",
-      "group": "",
+      "group": "types",
       "stage": "format",
-      "path": "testdata/fmt/default_params_layout.txtar",
+      "path": "testdata/fmt/types/default_params_layout.txtar",
       "mode": [
         "format"
       ]
@@ -278,9 +278,9 @@
     {
       "id": "fmt/defer_fail",
       "kind": "fmt",
-      "group": "",
+      "group": "statements",
       "stage": "format",
-      "path": "testdata/fmt/defer_fail.txtar",
+      "path": "testdata/fmt/statements/defer_fail.txtar",
       "mode": [
         "format"
       ]
@@ -288,9 +288,9 @@
     {
       "id": "fmt/defined_type",
       "kind": "fmt",
-      "group": "",
+      "group": "declarations",
       "stage": "format",
-      "path": "testdata/fmt/defined_type.txtar",
+      "path": "testdata/fmt/declarations/defined_type.txtar",
       "mode": [
         "format"
       ]
@@ -298,9 +298,9 @@
     {
       "id": "fmt/doc_comments",
       "kind": "fmt",
-      "group": "",
+      "group": "comments",
       "stage": "format",
-      "path": "testdata/fmt/doc_comments.txtar",
+      "path": "testdata/fmt/comments/doc_comments.txtar",
       "mode": [
         "format"
       ]
@@ -308,9 +308,9 @@
     {
       "id": "fmt/doc_nonfn",
       "kind": "fmt",
-      "group": "",
+      "group": "comments",
       "stage": "format",
-      "path": "testdata/fmt/doc_nonfn.txtar",
+      "path": "testdata/fmt/comments/doc_nonfn.txtar",
       "mode": [
         "format"
       ]
@@ -318,9 +318,9 @@
     {
       "id": "fmt/escaping_lambda_param",
       "kind": "fmt",
-      "group": "",
+      "group": "literals",
       "stage": "format",
-      "path": "testdata/fmt/escaping_lambda_param.txtar",
+      "path": "testdata/fmt/literals/escaping_lambda_param.txtar",
       "mode": [
         "format"
       ]
@@ -328,9 +328,9 @@
     {
       "id": "fmt/escaping_param",
       "kind": "fmt",
-      "group": "",
+      "group": "literals",
       "stage": "format",
-      "path": "testdata/fmt/escaping_param.txtar",
+      "path": "testdata/fmt/literals/escaping_param.txtar",
       "mode": [
         "format"
       ]
@@ -338,9 +338,9 @@
     {
       "id": "fmt/escaping_type_param",
       "kind": "fmt",
-      "group": "",
+      "group": "literals",
       "stage": "format",
-      "path": "testdata/fmt/escaping_type_param.txtar",
+      "path": "testdata/fmt/literals/escaping_type_param.txtar",
       "mode": [
         "format"
       ]
@@ -348,9 +348,9 @@
     {
       "id": "fmt/fn_void_forms",
       "kind": "fmt",
-      "group": "",
+      "group": "declarations",
       "stage": "format",
-      "path": "testdata/fmt/fn_void_forms.txtar",
+      "path": "testdata/fmt/declarations/fn_void_forms.txtar",
       "mode": [
         "format"
       ]
@@ -358,9 +358,9 @@
     {
       "id": "fmt/for_record_pattern",
       "kind": "fmt",
-      "group": "",
+      "group": "statements",
       "stage": "format",
-      "path": "testdata/fmt/for_record_pattern.txtar",
+      "path": "testdata/fmt/statements/for_record_pattern.txtar",
       "mode": [
         "format"
       ]
@@ -368,9 +368,9 @@
     {
       "id": "fmt/import_rename",
       "kind": "fmt",
-      "group": "",
+      "group": "declarations",
       "stage": "format",
-      "path": "testdata/fmt/import_rename.txtar",
+      "path": "testdata/fmt/declarations/import_rename.txtar",
       "mode": [
         "format"
       ]
@@ -378,9 +378,9 @@
     {
       "id": "fmt/interp_comments",
       "kind": "fmt",
-      "group": "",
+      "group": "comments",
       "stage": "format",
-      "path": "testdata/fmt/interp_comments.txtar",
+      "path": "testdata/fmt/comments/interp_comments.txtar",
       "mode": [
         "format"
       ]
@@ -388,9 +388,9 @@
     {
       "id": "fmt/is_record_pattern",
       "kind": "fmt",
-      "group": "",
+      "group": "expressions",
       "stage": "format",
-      "path": "testdata/fmt/is_record_pattern.txtar",
+      "path": "testdata/fmt/expressions/is_record_pattern.txtar",
       "mode": [
         "format"
       ]
@@ -398,9 +398,9 @@
     {
       "id": "fmt/lifetime",
       "kind": "fmt",
-      "group": "",
+      "group": "declarations",
       "stage": "format",
-      "path": "testdata/fmt/lifetime.txtar",
+      "path": "testdata/fmt/declarations/lifetime.txtar",
       "mode": [
         "format"
       ]
@@ -408,9 +408,9 @@
     {
       "id": "fmt/lit_byte_string",
       "kind": "fmt",
-      "group": "",
+      "group": "literals",
       "stage": "format",
-      "path": "testdata/fmt/lit_byte_string.txtar",
+      "path": "testdata/fmt/literals/lit_byte_string.txtar",
       "mode": [
         "format"
       ]
@@ -418,9 +418,9 @@
     {
       "id": "fmt/method_type_args",
       "kind": "fmt",
-      "group": "",
+      "group": "expressions",
       "stage": "format",
-      "path": "testdata/fmt/method_type_args.txtar",
+      "path": "testdata/fmt/expressions/method_type_args.txtar",
       "mode": [
         "format"
       ]
@@ -428,9 +428,9 @@
     {
       "id": "fmt/named_args",
       "kind": "fmt",
-      "group": "",
+      "group": "expressions",
       "stage": "format",
-      "path": "testdata/fmt/named_args.txtar",
+      "path": "testdata/fmt/expressions/named_args.txtar",
       "mode": [
         "format"
       ]
@@ -438,9 +438,9 @@
     {
       "id": "fmt/pattern_range",
       "kind": "fmt",
-      "group": "",
+      "group": "types",
       "stage": "format",
-      "path": "testdata/fmt/pattern_range.txtar",
+      "path": "testdata/fmt/types/pattern_range.txtar",
       "mode": [
         "format"
       ]
@@ -448,9 +448,9 @@
     {
       "id": "fmt/prefix_operator_spacing",
       "kind": "fmt",
-      "group": "",
+      "group": "expressions",
       "stage": "format",
-      "path": "testdata/fmt/prefix_operator_spacing.txtar",
+      "path": "testdata/fmt/expressions/prefix_operator_spacing.txtar",
       "mode": [
         "format"
       ]
@@ -458,9 +458,9 @@
     {
       "id": "fmt/shebang",
       "kind": "fmt",
-      "group": "",
+      "group": "literals",
       "stage": "format",
-      "path": "testdata/fmt/shebang.txtar",
+      "path": "testdata/fmt/literals/shebang.txtar",
       "mode": [
         "format"
       ]
@@ -468,9 +468,9 @@
     {
       "id": "fmt/tuple",
       "kind": "fmt",
-      "group": "",
+      "group": "literals",
       "stage": "format",
-      "path": "testdata/fmt/tuple.txtar",
+      "path": "testdata/fmt/literals/tuple.txtar",
       "mode": [
         "format"
       ]
@@ -478,9 +478,9 @@
     {
       "id": "fmt/unit",
       "kind": "fmt",
-      "group": "",
+      "group": "literals",
       "stage": "format",
-      "path": "testdata/fmt/unit.txtar",
+      "path": "testdata/fmt/literals/unit.txtar",
       "mode": [
         "format"
       ]
@@ -488,9 +488,9 @@
     {
       "id": "mir/affine_type_param_borrow_move",
       "kind": "mir",
-      "group": "",
+      "group": "move",
       "stage": "mir",
-      "path": "testdata/mir/affine_type_param_borrow_move.txtar",
+      "path": "testdata/mir/move/affine_type_param_borrow_move.txtar",
       "mode": [
         "build"
       ]
@@ -498,9 +498,9 @@
     {
       "id": "mir/affine_type_param_copy_ok",
       "kind": "mir",
-      "group": "",
+      "group": "move",
       "stage": "mir",
-      "path": "testdata/mir/affine_type_param_copy_ok.txtar",
+      "path": "testdata/mir/move/affine_type_param_copy_ok.txtar",
       "mode": [
         "build"
       ]
@@ -508,9 +508,9 @@
     {
       "id": "mir/affine_type_param_double_consume",
       "kind": "mir",
-      "group": "",
+      "group": "move",
       "stage": "mir",
-      "path": "testdata/mir/affine_type_param_double_consume.txtar",
+      "path": "testdata/mir/move/affine_type_param_double_consume.txtar",
       "mode": [
         "build"
       ]
@@ -518,9 +518,9 @@
     {
       "id": "mir/basic",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/basic.txtar",
+      "path": "testdata/mir/codegen/basic.txtar",
       "mode": [
         "build"
       ]
@@ -528,9 +528,9 @@
     {
       "id": "mir/borrow",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/borrow.txtar",
+      "path": "testdata/mir/borrow/borrow.txtar",
       "mode": [
         "build"
       ]
@@ -538,9 +538,9 @@
     {
       "id": "mir/borrow_across_await",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/borrow_across_await.txtar",
+      "path": "testdata/mir/borrow/borrow_across_await.txtar",
       "mode": [
         "build"
       ]
@@ -548,9 +548,9 @@
     {
       "id": "mir/borrow_capture_move",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/borrow_capture_move.txtar",
+      "path": "testdata/mir/borrow/borrow_capture_move.txtar",
       "mode": [
         "build"
       ]
@@ -558,9 +558,9 @@
     {
       "id": "mir/borrow_capture_move_once",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/borrow_capture_move_once.txtar",
+      "path": "testdata/mir/borrow/borrow_capture_move_once.txtar",
       "mode": [
         "build"
       ]
@@ -568,9 +568,9 @@
     {
       "id": "mir/borrow_field_move",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/borrow_field_move.txtar",
+      "path": "testdata/mir/borrow/borrow_field_move.txtar",
       "mode": [
         "build"
       ]
@@ -578,9 +578,9 @@
     {
       "id": "mir/borrow_generic_slot_err",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/borrow_generic_slot_err.txtar",
+      "path": "testdata/mir/borrow/borrow_generic_slot_err.txtar",
       "mode": [
         "build"
       ]
@@ -588,9 +588,9 @@
     {
       "id": "mir/borrow_payload_lent_param_err",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/borrow_payload_lent_param_err.txtar",
+      "path": "testdata/mir/borrow/borrow_payload_lent_param_err.txtar",
       "mode": [
         "build"
       ]
@@ -598,9 +598,9 @@
     {
       "id": "mir/borrow_projection_conflict",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/borrow_projection_conflict.txtar",
+      "path": "testdata/mir/borrow/borrow_projection_conflict.txtar",
       "mode": [
         "build"
       ]
@@ -608,9 +608,9 @@
     {
       "id": "mir/borrow_record_variant_move",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/borrow_record_variant_move.txtar",
+      "path": "testdata/mir/borrow/borrow_record_variant_move.txtar",
       "mode": [
         "build"
       ]
@@ -618,9 +618,9 @@
     {
       "id": "mir/borrow_variant_holder",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/borrow_variant_holder.txtar",
+      "path": "testdata/mir/borrow/borrow_variant_holder.txtar",
       "mode": [
         "build"
       ]
@@ -628,9 +628,9 @@
     {
       "id": "mir/borrow_with_mut",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/borrow_with_mut.txtar",
+      "path": "testdata/mir/borrow/borrow_with_mut.txtar",
       "mode": [
         "build"
       ]
@@ -638,9 +638,9 @@
     {
       "id": "mir/borrowed_existential_lendbox",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/borrowed_existential_lendbox.txtar",
+      "path": "testdata/mir/borrow/borrowed_existential_lendbox.txtar",
       "mode": [
         "build"
       ]
@@ -648,9 +648,9 @@
     {
       "id": "mir/borrowed_self",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/borrowed_self.txtar",
+      "path": "testdata/mir/borrow/borrowed_self.txtar",
       "mode": [
         "build"
       ]
@@ -658,9 +658,9 @@
     {
       "id": "mir/box_move_err",
       "kind": "mir",
-      "group": "",
+      "group": "move",
       "stage": "mir",
-      "path": "testdata/mir/box_move_err.txtar",
+      "path": "testdata/mir/move/box_move_err.txtar",
       "mode": [
         "build"
       ]
@@ -668,9 +668,9 @@
     {
       "id": "mir/comptime_multi_block",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/comptime_multi_block.txtar",
+      "path": "testdata/mir/codegen/comptime_multi_block.txtar",
       "mode": [
         "build"
       ]
@@ -678,9 +678,9 @@
     {
       "id": "mir/dead_code_after_return",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/dead_code_after_return.txtar",
+      "path": "testdata/mir/codegen/dead_code_after_return.txtar",
       "mode": [
         "build"
       ]
@@ -688,9 +688,9 @@
     {
       "id": "mir/default_arg_borrow",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/default_arg_borrow.txtar",
+      "path": "testdata/mir/codegen/default_arg_borrow.txtar",
       "mode": [
         "build"
       ]
@@ -698,9 +698,9 @@
     {
       "id": "mir/default_arg_generic",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/default_arg_generic.txtar",
+      "path": "testdata/mir/codegen/default_arg_generic.txtar",
       "mode": [
         "build"
       ]
@@ -708,9 +708,9 @@
     {
       "id": "mir/default_arg_params",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/default_arg_params.txtar",
+      "path": "testdata/mir/codegen/default_arg_params.txtar",
       "mode": [
         "build"
       ]
@@ -718,9 +718,9 @@
     {
       "id": "mir/defer_assign_cleanup",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/defer_assign_cleanup.txtar",
+      "path": "testdata/mir/codegen/defer_assign_cleanup.txtar",
       "mode": [
         "build"
       ]
@@ -728,9 +728,9 @@
     {
       "id": "mir/defer_second_binding",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/defer_second_binding.txtar",
+      "path": "testdata/mir/codegen/defer_second_binding.txtar",
       "mode": [
         "build"
       ]
@@ -738,9 +738,9 @@
     {
       "id": "mir/disjoint_field_borrow",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/disjoint_field_borrow.txtar",
+      "path": "testdata/mir/borrow/disjoint_field_borrow.txtar",
       "mode": [
         "build"
       ]
@@ -748,9 +748,9 @@
     {
       "id": "mir/early_return",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/early_return.txtar",
+      "path": "testdata/mir/codegen/early_return.txtar",
       "mode": [
         "build"
       ]
@@ -758,9 +758,9 @@
     {
       "id": "mir/else_if_is_unreached_drop",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/else_if_is_unreached_drop.txtar",
+      "path": "testdata/mir/codegen/else_if_is_unreached_drop.txtar",
       "mode": [
         "build"
       ]
@@ -768,9 +768,9 @@
     {
       "id": "mir/empty_push_return",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/empty_push_return.txtar",
+      "path": "testdata/mir/codegen/empty_push_return.txtar",
       "mode": [
         "build"
       ]
@@ -778,9 +778,9 @@
     {
       "id": "mir/escape_immediate_branch",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/escape_immediate_branch.txtar",
+      "path": "testdata/mir/borrow/escape_immediate_branch.txtar",
       "mode": [
         "build"
       ]
@@ -788,9 +788,9 @@
     {
       "id": "mir/escape_immediate_span",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/escape_immediate_span.txtar",
+      "path": "testdata/mir/borrow/escape_immediate_span.txtar",
       "mode": [
         "build"
       ]
@@ -798,9 +798,9 @@
     {
       "id": "mir/eval_order_snapshot",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/eval_order_snapshot.txtar",
+      "path": "testdata/mir/codegen/eval_order_snapshot.txtar",
       "mode": [
         "build"
       ]
@@ -808,9 +808,9 @@
     {
       "id": "mir/fallback_diverge",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/fallback_diverge.txtar",
+      "path": "testdata/mir/codegen/fallback_diverge.txtar",
       "mode": [
         "build"
       ]
@@ -818,9 +818,9 @@
     {
       "id": "mir/fix_closure_erase_pure",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/fix_closure_erase_pure.txtar",
+      "path": "testdata/mir/codegen/fix_closure_erase_pure.txtar",
       "mode": [
         "build"
       ]
@@ -828,9 +828,9 @@
     {
       "id": "mir/fix_lead_ownfield",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/fix_lead_ownfield.txtar",
+      "path": "testdata/mir/codegen/fix_lead_ownfield.txtar",
       "mode": [
         "build"
       ]
@@ -838,9 +838,9 @@
     {
       "id": "mir/fix_self_closure_cell",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/fix_self_closure_cell.txtar",
+      "path": "testdata/mir/codegen/fix_self_closure_cell.txtar",
       "mode": [
         "build"
       ]
@@ -848,9 +848,9 @@
     {
       "id": "mir/fn_value_keep_async_err",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/fn_value_keep_async_err.txtar",
+      "path": "testdata/mir/codegen/fn_value_keep_async_err.txtar",
       "mode": [
         "build"
       ]
@@ -858,9 +858,9 @@
     {
       "id": "mir/fn_value_keep_bound_err",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/fn_value_keep_bound_err.txtar",
+      "path": "testdata/mir/codegen/fn_value_keep_bound_err.txtar",
       "mode": [
         "build"
       ]
@@ -868,9 +868,9 @@
     {
       "id": "mir/fn_value_keep_store_err",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/fn_value_keep_store_err.txtar",
+      "path": "testdata/mir/codegen/fn_value_keep_store_err.txtar",
       "mode": [
         "build"
       ]
@@ -878,9 +878,9 @@
     {
       "id": "mir/fn_value_keep_view_err",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/fn_value_keep_view_err.txtar",
+      "path": "testdata/mir/codegen/fn_value_keep_view_err.txtar",
       "mode": [
         "build"
       ]
@@ -888,9 +888,9 @@
     {
       "id": "mir/for_borrow_move_err",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/for_borrow_move_err.txtar",
+      "path": "testdata/mir/codegen/for_borrow_move_err.txtar",
       "mode": [
         "build"
       ]
@@ -898,9 +898,9 @@
     {
       "id": "mir/for_borrowed_array",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/for_borrowed_array.txtar",
+      "path": "testdata/mir/codegen/for_borrowed_array.txtar",
       "mode": [
         "build"
       ]
@@ -908,9 +908,9 @@
     {
       "id": "mir/if_discard_ffi",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/if_discard_ffi.txtar",
+      "path": "testdata/mir/codegen/if_discard_ffi.txtar",
       "mode": [
         "build"
       ]
@@ -918,9 +918,9 @@
     {
       "id": "mir/if_let_refutable",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/if_let_refutable.txtar",
+      "path": "testdata/mir/codegen/if_let_refutable.txtar",
       "mode": [
         "build"
       ]
@@ -928,9 +928,9 @@
     {
       "id": "mir/let_else_chain",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/let_else_chain.txtar",
+      "path": "testdata/mir/codegen/let_else_chain.txtar",
       "mode": [
         "build"
       ]
@@ -938,9 +938,9 @@
     {
       "id": "mir/let_mut_copy_write",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/let_mut_copy_write.txtar",
+      "path": "testdata/mir/codegen/let_mut_copy_write.txtar",
       "mode": [
         "build"
       ]
@@ -948,9 +948,9 @@
     {
       "id": "mir/lifetime_borrow_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_borrow_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_borrow_err.txtar",
       "mode": [
         "build"
       ]
@@ -958,9 +958,9 @@
     {
       "id": "mir/lifetime_branch_ambiguous_scope_exit_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_branch_ambiguous_scope_exit_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_branch_ambiguous_scope_exit_err.txtar",
       "mode": [
         "build"
       ]
@@ -968,9 +968,9 @@
     {
       "id": "mir/lifetime_branch_mixed_kind_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_branch_mixed_kind_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_branch_mixed_kind_err.txtar",
       "mode": [
         "build"
       ]
@@ -978,9 +978,9 @@
     {
       "id": "mir/lifetime_branch_same_kind_inherited_tracked",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_branch_same_kind_inherited_tracked.txtar",
+      "path": "testdata/mir/lifetime/lifetime_branch_same_kind_inherited_tracked.txtar",
       "mode": [
         "build"
       ]
@@ -988,9 +988,9 @@
     {
       "id": "mir/lifetime_branch_same_kind_owned_tracked",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_branch_same_kind_owned_tracked.txtar",
+      "path": "testdata/mir/lifetime/lifetime_branch_same_kind_owned_tracked.txtar",
       "mode": [
         "build"
       ]
@@ -998,9 +998,9 @@
     {
       "id": "mir/lifetime_callvalue_caller_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_callvalue_caller_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_callvalue_caller_err.txtar",
       "mode": [
         "build"
       ]
@@ -1008,9 +1008,9 @@
     {
       "id": "mir/lifetime_callvalue_composite",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_callvalue_composite.txtar",
+      "path": "testdata/mir/lifetime/lifetime_callvalue_composite.txtar",
       "mode": [
         "build"
       ]
@@ -1018,9 +1018,9 @@
     {
       "id": "mir/lifetime_callvalue_untracked_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_callvalue_untracked_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_callvalue_untracked_err.txtar",
       "mode": [
         "build"
       ]
@@ -1028,9 +1028,9 @@
     {
       "id": "mir/lifetime_erase_relay",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_erase_relay.txtar",
+      "path": "testdata/mir/lifetime/lifetime_erase_relay.txtar",
       "mode": [
         "build"
       ]
@@ -1038,9 +1038,9 @@
     {
       "id": "mir/lifetime_future_multi_owner",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_future_multi_owner.txtar",
+      "path": "testdata/mir/lifetime/lifetime_future_multi_owner.txtar",
       "mode": [
         "build"
       ]
@@ -1048,9 +1048,9 @@
     {
       "id": "mir/lifetime_future_tracked",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_future_tracked.txtar",
+      "path": "testdata/mir/lifetime/lifetime_future_tracked.txtar",
       "mode": [
         "build"
       ]
@@ -1058,9 +1058,9 @@
     {
       "id": "mir/lifetime_generic_call_tracked",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_generic_call_tracked.txtar",
+      "path": "testdata/mir/lifetime/lifetime_generic_call_tracked.txtar",
       "mode": [
         "build"
       ]
@@ -1068,9 +1068,9 @@
     {
       "id": "mir/lifetime_generic_call_untracked_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_generic_call_untracked_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_generic_call_untracked_err.txtar",
       "mode": [
         "build"
       ]
@@ -1078,9 +1078,9 @@
     {
       "id": "mir/lifetime_generic_multi_param_ambiguous_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_generic_multi_param_ambiguous_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_generic_multi_param_ambiguous_err.txtar",
       "mode": [
         "build"
       ]
@@ -1088,9 +1088,9 @@
     {
       "id": "mir/lifetime_generic_multi_param_mismatch_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_generic_multi_param_mismatch_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_generic_multi_param_mismatch_err.txtar",
       "mode": [
         "build"
       ]
@@ -1098,9 +1098,9 @@
     {
       "id": "mir/lifetime_generic_multi_param_tracked",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_generic_multi_param_tracked.txtar",
+      "path": "testdata/mir/lifetime/lifetime_generic_multi_param_tracked.txtar",
       "mode": [
         "build"
       ]
@@ -1108,9 +1108,9 @@
     {
       "id": "mir/lifetime_multi_param_ambiguous_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_multi_param_ambiguous_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_multi_param_ambiguous_err.txtar",
       "mode": [
         "build"
       ]
@@ -1118,9 +1118,9 @@
     {
       "id": "mir/lifetime_param_composite_escape_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_param_composite_escape_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_param_composite_escape_err.txtar",
       "mode": [
         "build"
       ]
@@ -1128,9 +1128,9 @@
     {
       "id": "mir/lifetime_param_direct_escape_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_param_direct_escape_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_param_direct_escape_err.txtar",
       "mode": [
         "build"
       ]
@@ -1138,9 +1138,9 @@
     {
       "id": "mir/lifetime_param_receiver_escape_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_param_receiver_escape_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_param_receiver_escape_err.txtar",
       "mode": [
         "build"
       ]
@@ -1148,9 +1148,9 @@
     {
       "id": "mir/lifetime_param_receiver_record_escape_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_param_receiver_record_escape_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_param_receiver_record_escape_err.txtar",
       "mode": [
         "build"
       ]
@@ -1158,9 +1158,9 @@
     {
       "id": "mir/lifetime_receiver_escape_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_receiver_escape_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_receiver_escape_err.txtar",
       "mode": [
         "build"
       ]
@@ -1168,9 +1168,9 @@
     {
       "id": "mir/lifetime_receiver_param_ambiguous_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_receiver_param_ambiguous_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_receiver_param_ambiguous_err.txtar",
       "mode": [
         "build"
       ]
@@ -1178,9 +1178,9 @@
     {
       "id": "mir/lifetime_scope_exit_future_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_scope_exit_future_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_scope_exit_future_err.txtar",
       "mode": [
         "build"
       ]
@@ -1188,9 +1188,9 @@
     {
       "id": "mir/lifetime_scope_exit_mut_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_scope_exit_mut_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_scope_exit_mut_err.txtar",
       "mode": [
         "build"
       ]
@@ -1198,9 +1198,9 @@
     {
       "id": "mir/lifetime_scope_exit_plain_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_scope_exit_plain_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_scope_exit_plain_err.txtar",
       "mode": [
         "build"
       ]
@@ -1208,9 +1208,9 @@
     {
       "id": "mir/lifetime_scope_exit_view_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_scope_exit_view_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_scope_exit_view_err.txtar",
       "mode": [
         "build"
       ]
@@ -1218,9 +1218,9 @@
     {
       "id": "mir/lifetime_witness_ambiguous_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_witness_ambiguous_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_witness_ambiguous_err.txtar",
       "mode": [
         "build"
       ]
@@ -1228,9 +1228,9 @@
     {
       "id": "mir/lifetime_witness_receiver_return_mismatch_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_witness_receiver_return_mismatch_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_witness_receiver_return_mismatch_err.txtar",
       "mode": [
         "build"
       ]
@@ -1238,9 +1238,9 @@
     {
       "id": "mir/lifetime_witness_receiver_return_tracked",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_witness_receiver_return_tracked.txtar",
+      "path": "testdata/mir/lifetime/lifetime_witness_receiver_return_tracked.txtar",
       "mode": [
         "build"
       ]
@@ -1248,9 +1248,9 @@
     {
       "id": "mir/lifetime_witness_static_ambiguous_err",
       "kind": "mir",
-      "group": "",
+      "group": "lifetime",
       "stage": "mir",
-      "path": "testdata/mir/lifetime_witness_static_ambiguous_err.txtar",
+      "path": "testdata/mir/lifetime/lifetime_witness_static_ambiguous_err.txtar",
       "mode": [
         "build"
       ]
@@ -1258,9 +1258,9 @@
     {
       "id": "mir/loop_never",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/loop_never.txtar",
+      "path": "testdata/mir/codegen/loop_never.txtar",
       "mode": [
         "build"
       ]
@@ -1268,9 +1268,9 @@
     {
       "id": "mir/method_value_field_borrowed",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/method_value_field_borrowed.txtar",
+      "path": "testdata/mir/codegen/method_value_field_borrowed.txtar",
       "mode": [
         "build"
       ]
@@ -1278,9 +1278,9 @@
     {
       "id": "mir/method_value_field_move",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/method_value_field_move.txtar",
+      "path": "testdata/mir/codegen/method_value_field_move.txtar",
       "mode": [
         "build"
       ]
@@ -1288,9 +1288,9 @@
     {
       "id": "mir/method_value_field_reinit",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/method_value_field_reinit.txtar",
+      "path": "testdata/mir/codegen/method_value_field_reinit.txtar",
       "mode": [
         "build"
       ]
@@ -1298,9 +1298,9 @@
     {
       "id": "mir/method_value_mut_ref_escape_err",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/method_value_mut_ref_escape_err.txtar",
+      "path": "testdata/mir/codegen/method_value_mut_ref_escape_err.txtar",
       "mode": [
         "build"
       ]
@@ -1308,9 +1308,9 @@
     {
       "id": "mir/method_value_owned_move",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/method_value_owned_move.txtar",
+      "path": "testdata/mir/codegen/method_value_owned_move.txtar",
       "mode": [
         "build"
       ]
@@ -1318,9 +1318,9 @@
     {
       "id": "mir/move_track_ownership",
       "kind": "mir",
-      "group": "",
+      "group": "move",
       "stage": "mir",
-      "path": "testdata/mir/move_track_ownership.txtar",
+      "path": "testdata/mir/move/move_track_ownership.txtar",
       "mode": [
         "build"
       ]
@@ -1328,9 +1328,9 @@
     {
       "id": "mir/mut_ref_recv_field",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/mut_ref_recv_field.txtar",
+      "path": "testdata/mir/borrow/mut_ref_recv_field.txtar",
       "mode": [
         "build"
       ]
@@ -1338,9 +1338,9 @@
     {
       "id": "mir/nested_ctor_field",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/nested_ctor_field.txtar",
+      "path": "testdata/mir/codegen/nested_ctor_field.txtar",
       "mode": [
         "build"
       ]
@@ -1348,9 +1348,9 @@
     {
       "id": "mir/nominal_scalar_direct_option",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/nominal_scalar_direct_option.txtar",
+      "path": "testdata/mir/codegen/nominal_scalar_direct_option.txtar",
       "mode": [
         "build"
       ]
@@ -1358,9 +1358,9 @@
     {
       "id": "mir/own_await",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/own_await.txtar",
+      "path": "testdata/mir/codegen/own_await.txtar",
       "mode": [
         "build"
       ]
@@ -1368,9 +1368,9 @@
     {
       "id": "mir/ownership",
       "kind": "mir",
-      "group": "",
+      "group": "move",
       "stage": "mir",
-      "path": "testdata/mir/ownership.txtar",
+      "path": "testdata/mir/move/ownership.txtar",
       "mode": [
         "build"
       ]
@@ -1378,9 +1378,9 @@
     {
       "id": "mir/partial_move_closure_capture",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/partial_move_closure_capture.txtar",
+      "path": "testdata/mir/borrow/partial_move_closure_capture.txtar",
       "mode": [
         "build"
       ]
@@ -1388,9 +1388,9 @@
     {
       "id": "mir/partial_move_drop",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/partial_move_drop.txtar",
+      "path": "testdata/mir/borrow/partial_move_drop.txtar",
       "mode": [
         "build"
       ]
@@ -1398,9 +1398,9 @@
     {
       "id": "mir/pattern_move_loop",
       "kind": "mir",
-      "group": "",
+      "group": "move",
       "stage": "mir",
-      "path": "testdata/mir/pattern_move_loop.txtar",
+      "path": "testdata/mir/move/pattern_move_loop.txtar",
       "mode": [
         "build"
       ]
@@ -1408,9 +1408,9 @@
     {
       "id": "mir/pattern_move_variant",
       "kind": "mir",
-      "group": "",
+      "group": "move",
       "stage": "mir",
-      "path": "testdata/mir/pattern_move_variant.txtar",
+      "path": "testdata/mir/move/pattern_move_variant.txtar",
       "mode": [
         "build"
       ]
@@ -1418,9 +1418,9 @@
     {
       "id": "mir/range_value_cursor",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/range_value_cursor.txtar",
+      "path": "testdata/mir/codegen/range_value_cursor.txtar",
       "mode": [
         "build"
       ]
@@ -1428,9 +1428,9 @@
     {
       "id": "mir/reborrow_alias",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/reborrow_alias.txtar",
+      "path": "testdata/mir/borrow/reborrow_alias.txtar",
       "mode": [
         "build"
       ]
@@ -1438,9 +1438,9 @@
     {
       "id": "mir/reborrow_async",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/reborrow_async.txtar",
+      "path": "testdata/mir/borrow/reborrow_async.txtar",
       "mode": [
         "build"
       ]
@@ -1448,9 +1448,9 @@
     {
       "id": "mir/reborrow_conflict",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/reborrow_conflict.txtar",
+      "path": "testdata/mir/borrow/reborrow_conflict.txtar",
       "mode": [
         "build"
       ]
@@ -1458,9 +1458,9 @@
     {
       "id": "mir/reborrow_generic_escape",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/reborrow_generic_escape.txtar",
+      "path": "testdata/mir/borrow/reborrow_generic_escape.txtar",
       "mode": [
         "build"
       ]
@@ -1468,9 +1468,9 @@
     {
       "id": "mir/ref_field_move",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/ref_field_move.txtar",
+      "path": "testdata/mir/borrow/ref_field_move.txtar",
       "mode": [
         "build"
       ]
@@ -1478,9 +1478,9 @@
     {
       "id": "mir/reinit",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/reinit.txtar",
+      "path": "testdata/mir/borrow/reinit.txtar",
       "mode": [
         "build"
       ]
@@ -1488,9 +1488,9 @@
     {
       "id": "mir/result_paren_tail",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/result_paren_tail.txtar",
+      "path": "testdata/mir/codegen/result_paren_tail.txtar",
       "mode": [
         "build"
       ]
@@ -1498,9 +1498,9 @@
     {
       "id": "mir/self_closure_reassign_adt",
       "kind": "mir",
-      "group": "",
+      "group": "move",
       "stage": "mir",
-      "path": "testdata/mir/self_closure_reassign_adt.txtar",
+      "path": "testdata/mir/move/self_closure_reassign_adt.txtar",
       "mode": [
         "build"
       ]
@@ -1508,9 +1508,9 @@
     {
       "id": "mir/self_closure_reassign_resource",
       "kind": "mir",
-      "group": "",
+      "group": "move",
       "stage": "mir",
-      "path": "testdata/mir/self_closure_reassign_resource.txtar",
+      "path": "testdata/mir/move/self_closure_reassign_resource.txtar",
       "mode": [
         "build"
       ]
@@ -1518,9 +1518,9 @@
     {
       "id": "mir/spread_borrow_copy",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/spread_borrow_copy.txtar",
+      "path": "testdata/mir/borrow/spread_borrow_copy.txtar",
       "mode": [
         "build"
       ]
@@ -1528,9 +1528,9 @@
     {
       "id": "mir/static_borrow_escape_err",
       "kind": "mir",
-      "group": "",
+      "group": "borrow",
       "stage": "mir",
-      "path": "testdata/mir/static_borrow_escape_err.txtar",
+      "path": "testdata/mir/borrow/static_borrow_escape_err.txtar",
       "mode": [
         "build"
       ]
@@ -1538,9 +1538,9 @@
     {
       "id": "mir/static_scalar_store",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/static_scalar_store.txtar",
+      "path": "testdata/mir/codegen/static_scalar_store.txtar",
       "mode": [
         "build"
       ]
@@ -1548,9 +1548,9 @@
     {
       "id": "mir/unit_bare_return",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/unit_bare_return.txtar",
+      "path": "testdata/mir/codegen/unit_bare_return.txtar",
       "mode": [
         "build"
       ]
@@ -1558,9 +1558,9 @@
     {
       "id": "mir/unit_ok_fallthrough",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/unit_ok_fallthrough.txtar",
+      "path": "testdata/mir/codegen/unit_ok_fallthrough.txtar",
       "mode": [
         "build"
       ]
@@ -1568,9 +1568,9 @@
     {
       "id": "mir/variadic_value_spread_move",
       "kind": "mir",
-      "group": "",
+      "group": "codegen",
       "stage": "mir",
-      "path": "testdata/mir/variadic_value_spread_move.txtar",
+      "path": "testdata/mir/codegen/variadic_value_spread_move.txtar",
       "mode": [
         "build"
       ]
@@ -3356,9 +3356,9 @@
     {
       "id": "parser/abi_block_missing_name",
       "kind": "parser",
-      "group": "",
+      "group": "declarations",
       "stage": "parse",
-      "path": "testdata/parser/abi_block_missing_name.txtar",
+      "path": "testdata/parser/declarations/abi_block_missing_name.txtar",
       "mode": [
         "parse"
       ]
@@ -3366,9 +3366,9 @@
     {
       "id": "parser/asm",
       "kind": "parser",
-      "group": "",
+      "group": "literals",
       "stage": "parse",
-      "path": "testdata/parser/asm.txtar",
+      "path": "testdata/parser/literals/asm.txtar",
       "mode": [
         "parse"
       ]
@@ -3376,9 +3376,9 @@
     {
       "id": "parser/bom_start",
       "kind": "parser",
-      "group": "",
+      "group": "literals",
       "stage": "parse",
-      "path": "testdata/parser/bom_start.txtar",
+      "path": "testdata/parser/literals/bom_start.txtar",
       "mode": [
         "parse"
       ]
@@ -3386,9 +3386,9 @@
     {
       "id": "parser/byte_string_in_interpolation",
       "kind": "parser",
-      "group": "",
+      "group": "literals",
       "stage": "parse",
-      "path": "testdata/parser/byte_string_in_interpolation.txtar",
+      "path": "testdata/parser/literals/byte_string_in_interpolation.txtar",
       "mode": [
         "parse"
       ]
@@ -3396,9 +3396,9 @@
     {
       "id": "parser/byte_string_in_interpolation_err",
       "kind": "parser",
-      "group": "",
+      "group": "literals",
       "stage": "parse",
-      "path": "testdata/parser/byte_string_in_interpolation_err.txtar",
+      "path": "testdata/parser/literals/byte_string_in_interpolation_err.txtar",
       "mode": [
         "parse"
       ]
@@ -3406,9 +3406,9 @@
     {
       "id": "parser/call_forms",
       "kind": "parser",
-      "group": "",
+      "group": "expressions",
       "stage": "parse",
-      "path": "testdata/parser/call_forms.txtar",
+      "path": "testdata/parser/expressions/call_forms.txtar",
       "mode": [
         "parse"
       ]
@@ -3416,9 +3416,9 @@
     {
       "id": "parser/call_forms_errors",
       "kind": "parser",
-      "group": "",
+      "group": "expressions",
       "stage": "parse",
-      "path": "testdata/parser/call_forms_errors.txtar",
+      "path": "testdata/parser/expressions/call_forms_errors.txtar",
       "mode": [
         "parse"
       ]
@@ -3426,9 +3426,9 @@
     {
       "id": "parser/chained_operator_diag",
       "kind": "parser",
-      "group": "",
+      "group": "expressions",
       "stage": "parse",
-      "path": "testdata/parser/chained_operator_diag.txtar",
+      "path": "testdata/parser/expressions/chained_operator_diag.txtar",
       "mode": [
         "parse"
       ]
@@ -3436,9 +3436,9 @@
     {
       "id": "parser/char_in_interpolation",
       "kind": "parser",
-      "group": "",
+      "group": "literals",
       "stage": "parse",
-      "path": "testdata/parser/char_in_interpolation.txtar",
+      "path": "testdata/parser/literals/char_in_interpolation.txtar",
       "mode": [
         "parse"
       ]
@@ -3446,9 +3446,9 @@
     {
       "id": "parser/comment_invalid_utf8",
       "kind": "parser",
-      "group": "",
+      "group": "diagnostics",
       "stage": "parse",
-      "path": "testdata/parser/comment_invalid_utf8.txtar",
+      "path": "testdata/parser/diagnostics/comment_invalid_utf8.txtar",
       "mode": [
         "parse"
       ]
@@ -3456,9 +3456,9 @@
     {
       "id": "parser/comment_whitespace",
       "kind": "parser",
-      "group": "",
+      "group": "literals",
       "stage": "parse",
-      "path": "testdata/parser/comment_whitespace.txtar",
+      "path": "testdata/parser/literals/comment_whitespace.txtar",
       "mode": [
         "parse"
       ]
@@ -3466,9 +3466,9 @@
     {
       "id": "parser/condition_call_record_literal",
       "kind": "parser",
-      "group": "",
+      "group": "expressions",
       "stage": "parse",
-      "path": "testdata/parser/condition_call_record_literal.txtar",
+      "path": "testdata/parser/expressions/condition_call_record_literal.txtar",
       "mode": [
         "parse"
       ]
@@ -3476,9 +3476,9 @@
     {
       "id": "parser/const_generic",
       "kind": "parser",
-      "group": "",
+      "group": "declarations",
       "stage": "parse",
-      "path": "testdata/parser/const_generic.txtar",
+      "path": "testdata/parser/declarations/const_generic.txtar",
       "mode": [
         "parse"
       ]
@@ -3486,9 +3486,9 @@
     {
       "id": "parser/decl_context",
       "kind": "parser",
-      "group": "",
+      "group": "declarations",
       "stage": "parse",
-      "path": "testdata/parser/decl_context.txtar",
+      "path": "testdata/parser/declarations/decl_context.txtar",
       "mode": [
         "parse"
       ]
@@ -3496,9 +3496,9 @@
     {
       "id": "parser/decl_escaping_param",
       "kind": "parser",
-      "group": "",
+      "group": "declarations",
       "stage": "parse",
-      "path": "testdata/parser/decl_escaping_param.txtar",
+      "path": "testdata/parser/declarations/decl_escaping_param.txtar",
       "mode": [
         "parse"
       ]
@@ -3506,9 +3506,9 @@
     {
       "id": "parser/decl_fn",
       "kind": "parser",
-      "group": "",
+      "group": "declarations",
       "stage": "parse",
-      "path": "testdata/parser/decl_fn.txtar",
+      "path": "testdata/parser/declarations/decl_fn.txtar",
       "mode": [
         "parse"
       ]
@@ -3516,9 +3516,9 @@
     {
       "id": "parser/decl_fn_void",
       "kind": "parser",
-      "group": "",
+      "group": "declarations",
       "stage": "parse",
-      "path": "testdata/parser/decl_fn_void.txtar",
+      "path": "testdata/parser/declarations/decl_fn_void.txtar",
       "mode": [
         "parse"
       ]
@@ -3526,9 +3526,9 @@
     {
       "id": "parser/decl_fn_void_errors",
       "kind": "parser",
-      "group": "",
+      "group": "declarations",
       "stage": "parse",
-      "path": "testdata/parser/decl_fn_void_errors.txtar",
+      "path": "testdata/parser/declarations/decl_fn_void_errors.txtar",
       "mode": [
         "parse"
       ]
@@ -3536,9 +3536,9 @@
     {
       "id": "parser/decl_misc",
       "kind": "parser",
-      "group": "",
+      "group": "declarations",
       "stage": "parse",
-      "path": "testdata/parser/decl_misc.txtar",
+      "path": "testdata/parser/declarations/decl_misc.txtar",
       "mode": [
         "parse"
       ]
@@ -3546,9 +3546,9 @@
     {
       "id": "parser/decl_static",
       "kind": "parser",
-      "group": "",
+      "group": "declarations",
       "stage": "parse",
-      "path": "testdata/parser/decl_static.txtar",
+      "path": "testdata/parser/declarations/decl_static.txtar",
       "mode": [
         "parse"
       ]
@@ -3556,9 +3556,9 @@
     {
       "id": "parser/decl_type",
       "kind": "parser",
-      "group": "",
+      "group": "declarations",
       "stage": "parse",
-      "path": "testdata/parser/decl_type.txtar",
+      "path": "testdata/parser/declarations/decl_type.txtar",
       "mode": [
         "parse"
       ]
@@ -3566,9 +3566,9 @@
     {
       "id": "parser/decl_unsafe_guarantee",
       "kind": "parser",
-      "group": "",
+      "group": "declarations",
       "stage": "parse",
-      "path": "testdata/parser/decl_unsafe_guarantee.txtar",
+      "path": "testdata/parser/declarations/decl_unsafe_guarantee.txtar",
       "mode": [
         "parse"
       ]
@@ -3576,9 +3576,9 @@
     {
       "id": "parser/errors_errdefer",
       "kind": "parser",
-      "group": "",
+      "group": "diagnostics",
       "stage": "parse",
-      "path": "testdata/parser/errors_errdefer.txtar",
+      "path": "testdata/parser/diagnostics/errors_errdefer.txtar",
       "mode": [
         "parse"
       ]
@@ -3586,9 +3586,9 @@
     {
       "id": "parser/errors_leading_andor",
       "kind": "parser",
-      "group": "",
+      "group": "diagnostics",
       "stage": "parse",
-      "path": "testdata/parser/errors_leading_andor.txtar",
+      "path": "testdata/parser/diagnostics/errors_leading_andor.txtar",
       "mode": [
         "parse"
       ]
@@ -3596,9 +3596,9 @@
     {
       "id": "parser/errors_mixing",
       "kind": "parser",
-      "group": "",
+      "group": "diagnostics",
       "stage": "parse",
-      "path": "testdata/parser/errors_mixing.txtar",
+      "path": "testdata/parser/diagnostics/errors_mixing.txtar",
       "mode": [
         "parse"
       ]
@@ -3606,9 +3606,9 @@
     {
       "id": "parser/errors_recovery",
       "kind": "parser",
-      "group": "",
+      "group": "diagnostics",
       "stage": "parse",
-      "path": "testdata/parser/errors_recovery.txtar",
+      "path": "testdata/parser/diagnostics/errors_recovery.txtar",
       "mode": [
         "parse"
       ]
@@ -3616,9 +3616,9 @@
     {
       "id": "parser/errors_unsafe_guarantee",
       "kind": "parser",
-      "group": "",
+      "group": "diagnostics",
       "stage": "parse",
-      "path": "testdata/parser/errors_unsafe_guarantee.txtar",
+      "path": "testdata/parser/diagnostics/errors_unsafe_guarantee.txtar",
       "mode": [
         "parse"
       ]
@@ -3626,9 +3626,9 @@
     {
       "id": "parser/errors_v26",
       "kind": "parser",
-      "group": "",
+      "group": "diagnostics",
       "stage": "parse",
-      "path": "testdata/parser/errors_v26.txtar",
+      "path": "testdata/parser/diagnostics/errors_v26.txtar",
       "mode": [
         "parse"
       ]
@@ -3636,9 +3636,9 @@
     {
       "id": "parser/expr_call",
       "kind": "parser",
-      "group": "",
+      "group": "expressions",
       "stage": "parse",
-      "path": "testdata/parser/expr_call.txtar",
+      "path": "testdata/parser/expressions/expr_call.txtar",
       "mode": [
         "parse"
       ]
@@ -3646,9 +3646,9 @@
     {
       "id": "parser/expr_ops",
       "kind": "parser",
-      "group": "",
+      "group": "expressions",
       "stage": "parse",
-      "path": "testdata/parser/expr_ops.txtar",
+      "path": "testdata/parser/expressions/expr_ops.txtar",
       "mode": [
         "parse"
       ]
@@ -3656,9 +3656,9 @@
     {
       "id": "parser/fix_syntax_invalid_utf8",
       "kind": "parser",
-      "group": "",
+      "group": "statements",
       "stage": "parse",
-      "path": "testdata/parser/fix_syntax_invalid_utf8.txtar",
+      "path": "testdata/parser/statements/fix_syntax_invalid_utf8.txtar",
       "mode": [
         "parse"
       ]
@@ -3666,9 +3666,9 @@
     {
       "id": "parser/fix_syntax_redirect_fd_overflow",
       "kind": "parser",
-      "group": "",
+      "group": "statements",
       "stage": "parse",
-      "path": "testdata/parser/fix_syntax_redirect_fd_overflow.txtar",
+      "path": "testdata/parser/statements/fix_syntax_redirect_fd_overflow.txtar",
       "mode": [
         "parse"
       ]
@@ -3676,9 +3676,9 @@
     {
       "id": "parser/generic_bracket_newline",
       "kind": "parser",
-      "group": "",
+      "group": "declarations",
       "stage": "parse",
-      "path": "testdata/parser/generic_bracket_newline.txtar",
+      "path": "testdata/parser/declarations/generic_bracket_newline.txtar",
       "mode": [
         "parse"
       ]
@@ -3686,9 +3686,9 @@
     {
       "id": "parser/identifier_combining",
       "kind": "parser",
-      "group": "",
+      "group": "literals",
       "stage": "parse",
-      "path": "testdata/parser/identifier_combining.txtar",
+      "path": "testdata/parser/literals/identifier_combining.txtar",
       "mode": [
         "parse"
       ]
@@ -3696,9 +3696,9 @@
     {
       "id": "parser/import_rename",
       "kind": "parser",
-      "group": "",
+      "group": "declarations",
       "stage": "parse",
-      "path": "testdata/parser/import_rename.txtar",
+      "path": "testdata/parser/declarations/import_rename.txtar",
       "mode": [
         "parse"
       ]
@@ -3706,9 +3706,9 @@
     {
       "id": "parser/increment_suffix",
       "kind": "parser",
-      "group": "",
+      "group": "expressions",
       "stage": "parse",
-      "path": "testdata/parser/increment_suffix.txtar",
+      "path": "testdata/parser/expressions/increment_suffix.txtar",
       "mode": [
         "parse"
       ]
@@ -3716,9 +3716,9 @@
     {
       "id": "parser/interp_comments",
       "kind": "parser",
-      "group": "",
+      "group": "literals",
       "stage": "parse",
-      "path": "testdata/parser/interp_comments.txtar",
+      "path": "testdata/parser/literals/interp_comments.txtar",
       "mode": [
         "parse"
       ]
@@ -3726,9 +3726,9 @@
     {
       "id": "parser/interp_comments_err",
       "kind": "parser",
-      "group": "",
+      "group": "literals",
       "stage": "parse",
-      "path": "testdata/parser/interp_comments_err.txtar",
+      "path": "testdata/parser/literals/interp_comments_err.txtar",
       "mode": [
         "parse"
       ]
@@ -3736,9 +3736,9 @@
     {
       "id": "parser/lambda_escaping_param",
       "kind": "parser",
-      "group": "",
+      "group": "expressions",
       "stage": "parse",
-      "path": "testdata/parser/lambda_escaping_param.txtar",
+      "path": "testdata/parser/expressions/lambda_escaping_param.txtar",
       "mode": [
         "parse"
       ]
@@ -3746,9 +3746,9 @@
     {
       "id": "parser/lifetime",
       "kind": "parser",
-      "group": "",
+      "group": "declarations",
       "stage": "parse",
-      "path": "testdata/parser/lifetime.txtar",
+      "path": "testdata/parser/declarations/lifetime.txtar",
       "mode": [
         "parse"
       ]
@@ -3756,9 +3756,9 @@
     {
       "id": "parser/lit_byte_string",
       "kind": "parser",
-      "group": "",
+      "group": "literals",
       "stage": "parse",
-      "path": "testdata/parser/lit_byte_string.txtar",
+      "path": "testdata/parser/literals/lit_byte_string.txtar",
       "mode": [
         "parse"
       ]
@@ -3766,9 +3766,9 @@
     {
       "id": "parser/lit_byte_string_err",
       "kind": "parser",
-      "group": "",
+      "group": "literals",
       "stage": "parse",
-      "path": "testdata/parser/lit_byte_string_err.txtar",
+      "path": "testdata/parser/literals/lit_byte_string_err.txtar",
       "mode": [
         "parse"
       ]
@@ -3776,9 +3776,9 @@
     {
       "id": "parser/lit_byte_string_err_short_hex",
       "kind": "parser",
-      "group": "",
+      "group": "literals",
       "stage": "parse",
-      "path": "testdata/parser/lit_byte_string_err_short_hex.txtar",
+      "path": "testdata/parser/literals/lit_byte_string_err_short_hex.txtar",
       "mode": [
         "parse"
       ]
@@ -3786,9 +3786,9 @@
     {
       "id": "parser/lit_string_escape_unicode_err",
       "kind": "parser",
-      "group": "",
+      "group": "literals",
       "stage": "parse",
-      "path": "testdata/parser/lit_string_escape_unicode_err.txtar",
+      "path": "testdata/parser/literals/lit_string_escape_unicode_err.txtar",
       "mode": [
         "parse"
       ]
@@ -3796,9 +3796,9 @@
     {
       "id": "parser/lit_string_shell",
       "kind": "parser",
-      "group": "",
+      "group": "literals",
       "stage": "parse",
-      "path": "testdata/parser/lit_string_shell.txtar",
+      "path": "testdata/parser/literals/lit_string_shell.txtar",
       "mode": [
         "parse"
       ]
@@ -3806,9 +3806,9 @@
     {
       "id": "parser/match_arm_assign",
       "kind": "parser",
-      "group": "",
+      "group": "patterns",
       "stage": "parse",
-      "path": "testdata/parser/match_arm_assign.txtar",
+      "path": "testdata/parser/patterns/match_arm_assign.txtar",
       "mode": [
         "parse"
       ]
@@ -3816,9 +3816,9 @@
     {
       "id": "parser/migrate_declarations",
       "kind": "parser",
-      "group": "",
+      "group": "statements",
       "stage": "parse",
-      "path": "testdata/parser/migrate_declarations.txtar",
+      "path": "testdata/parser/statements/migrate_declarations.txtar",
       "mode": [
         "parse"
       ]
@@ -3826,9 +3826,9 @@
     {
       "id": "parser/migrate_statements",
       "kind": "parser",
-      "group": "",
+      "group": "statements",
       "stage": "parse",
-      "path": "testdata/parser/migrate_statements.txtar",
+      "path": "testdata/parser/statements/migrate_statements.txtar",
       "mode": [
         "parse"
       ]
@@ -3836,9 +3836,9 @@
     {
       "id": "parser/named_args",
       "kind": "parser",
-      "group": "",
+      "group": "expressions",
       "stage": "parse",
-      "path": "testdata/parser/named_args.txtar",
+      "path": "testdata/parser/expressions/named_args.txtar",
       "mode": [
         "parse"
       ]
@@ -3846,9 +3846,9 @@
     {
       "id": "parser/named_args_ws_call",
       "kind": "parser",
-      "group": "",
+      "group": "expressions",
       "stage": "parse",
-      "path": "testdata/parser/named_args_ws_call.txtar",
+      "path": "testdata/parser/expressions/named_args_ws_call.txtar",
       "mode": [
         "parse"
       ]
@@ -3856,9 +3856,9 @@
     {
       "id": "parser/pattern_or",
       "kind": "parser",
-      "group": "",
+      "group": "patterns",
       "stage": "parse",
-      "path": "testdata/parser/pattern_or.txtar",
+      "path": "testdata/parser/patterns/pattern_or.txtar",
       "mode": [
         "parse"
       ]
@@ -3866,9 +3866,9 @@
     {
       "id": "parser/pattern_range",
       "kind": "parser",
-      "group": "",
+      "group": "patterns",
       "stage": "parse",
-      "path": "testdata/parser/pattern_range.txtar",
+      "path": "testdata/parser/patterns/pattern_range.txtar",
       "mode": [
         "parse"
       ]
@@ -3876,9 +3876,9 @@
     {
       "id": "parser/print_operator",
       "kind": "parser",
-      "group": "",
+      "group": "expressions",
       "stage": "parse",
-      "path": "testdata/parser/print_operator.txtar",
+      "path": "testdata/parser/expressions/print_operator.txtar",
       "mode": [
         "parse"
       ]
@@ -3886,9 +3886,9 @@
     {
       "id": "parser/shell_quote_states",
       "kind": "parser",
-      "group": "",
+      "group": "literals",
       "stage": "parse",
-      "path": "testdata/parser/shell_quote_states.txtar",
+      "path": "testdata/parser/literals/shell_quote_states.txtar",
       "mode": [
         "parse"
       ]
@@ -3896,9 +3896,9 @@
     {
       "id": "parser/shell_quote_states_err",
       "kind": "parser",
-      "group": "",
+      "group": "literals",
       "stage": "parse",
-      "path": "testdata/parser/shell_quote_states_err.txtar",
+      "path": "testdata/parser/literals/shell_quote_states_err.txtar",
       "mode": [
         "parse"
       ]
@@ -3906,9 +3906,9 @@
     {
       "id": "parser/stmt_control",
       "kind": "parser",
-      "group": "",
+      "group": "statements",
       "stage": "parse",
-      "path": "testdata/parser/stmt_control.txtar",
+      "path": "testdata/parser/statements/stmt_control.txtar",
       "mode": [
         "parse"
       ]
@@ -3916,9 +3916,9 @@
     {
       "id": "parser/stmt_defer_fail",
       "kind": "parser",
-      "group": "",
+      "group": "statements",
       "stage": "parse",
-      "path": "testdata/parser/stmt_defer_fail.txtar",
+      "path": "testdata/parser/statements/stmt_defer_fail.txtar",
       "mode": [
         "parse"
       ]
@@ -3926,9 +3926,9 @@
     {
       "id": "parser/string_bad_unicode_escape",
       "kind": "parser",
-      "group": "",
+      "group": "literals",
       "stage": "parse",
-      "path": "testdata/parser/string_bad_unicode_escape.txtar",
+      "path": "testdata/parser/literals/string_bad_unicode_escape.txtar",
       "mode": [
         "parse"
       ]
@@ -3936,9 +3936,9 @@
     {
       "id": "parser/test_contextual_call",
       "kind": "parser",
-      "group": "",
+      "group": "expressions",
       "stage": "parse",
-      "path": "testdata/parser/test_contextual_call.txtar",
+      "path": "testdata/parser/expressions/test_contextual_call.txtar",
       "mode": [
         "parse"
       ]
@@ -3946,9 +3946,9 @@
     {
       "id": "parser/tuple",
       "kind": "parser",
-      "group": "",
+      "group": "patterns",
       "stage": "parse",
-      "path": "testdata/parser/tuple.txtar",
+      "path": "testdata/parser/patterns/tuple.txtar",
       "mode": [
         "parse"
       ]
@@ -3956,9 +3956,9 @@
     {
       "id": "parser/unclosed_opener",
       "kind": "parser",
-      "group": "",
+      "group": "diagnostics",
       "stage": "parse",
-      "path": "testdata/parser/unclosed_opener.txtar",
+      "path": "testdata/parser/diagnostics/unclosed_opener.txtar",
       "mode": [
         "parse"
       ]
@@ -3966,9 +3966,9 @@
     {
       "id": "parser/unit",
       "kind": "parser",
-      "group": "",
+      "group": "literals",
       "stage": "parse",
-      "path": "testdata/parser/unit.txtar",
+      "path": "testdata/parser/literals/unit.txtar",
       "mode": [
         "parse"
       ]
