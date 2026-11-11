@@ -24,10 +24,7 @@ type edit struct {
 // time so alternate fixes of the same diagnostic never race. It reports
 // whether any file changed.
 func applySafeFixes(m *driver.Module, ds []diag.Diagnostic) (bool, error) {
-	root, err := filepath.Abs(m.Root)
-	if err != nil {
-		return false, errors.WrapErr(err, "resolve module root")
-	}
+	root := filepath.Clean(m.Root)
 	external := externalSources(m)
 	byPath := map[string][]edit{}
 	seen := map[string]bool{}
