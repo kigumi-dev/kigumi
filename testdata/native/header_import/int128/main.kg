@@ -33,7 +33,11 @@ let cAlign = unsafe {
     wide.cheader128_alignof()
 }
 print "layout ${ffi.sizeOf(&mine)} ${cSize} ${ffi.alignOf(&mine)} ${cAlign}"
-let sum = unsafe { wide.cheader128_add(mine.neg, mine.big) }
-let shifted = unsafe { wide.cheader128_shl(mine.big, 64) }
+let sum = unsafe {
+    wide.cheader128_add(mine.neg, mine.big)
+}
+let shifted = unsafe {
+    wide.cheader128_shl(mine.big, 64)
+}
 print "scalar ${sum} ${shifted} ${unsafe { wide.cheader128_sign(mine.neg) }} ${unsafe { wide.cheader128_sign(mine.big.toI128() || 0) }}"
 print "echo ${unsafe { wide.cheader128_echo_call(mine.neg, 5) }}"

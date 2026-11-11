@@ -8,7 +8,9 @@ fn bail(code: i32) -> Never {
 
 fn dieOr(v: i32) -> i32 {
     if v < 0 {
-        unsafe { libc.abort() }
+        unsafe {
+            libc.abort()
+        }
     } else {
         v
     }

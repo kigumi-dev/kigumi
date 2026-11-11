@@ -1,8 +1,14 @@
 import ffi from std/ffi
 import shapes from c/shapes
 
-let p1 = shapes.P1 { c: 1, x: 2 }
-let p2 = shapes.P2 { c: 1, x: 2 }
+let p1 = shapes.P1 {
+    c: 1
+    x: 2
+}
+let p2 = shapes.P2 {
+    c: 1
+    x: 2
+}
 let a16 = shapes.A16 { c: 1 }
 
 print "${ffi.sizeOf(&p1)}/${ffi.alignOf(&p1)} ${ffi.sizeOf(&p2)}/${ffi.alignOf(&p2)} ${ffi.sizeOf(&a16)}/${ffi.alignOf(&a16)}"
