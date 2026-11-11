@@ -4651,6 +4651,42 @@
       ]
     },
     {
+      "id": "run/crypto_mldsa_acvp_verify",
+      "kind": "run",
+      "path": "testdata/run/crypto_mldsa_acvp_verify.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_mldsa_errors",
+      "kind": "run",
+      "path": "testdata/run/crypto_mldsa_errors.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_mldsa_keygen",
+      "kind": "run",
+      "path": "testdata/run/crypto_mldsa_keygen.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/crypto_mldsa_signverify",
+      "kind": "run",
+      "path": "testdata/run/crypto_mldsa_signverify.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/crypto_mlkem_encapdecap",
       "kind": "run",
       "path": "testdata/run/crypto_mlkem_encapdecap.txtar",

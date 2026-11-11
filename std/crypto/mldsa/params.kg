@@ -1,0 +1,103 @@
+// ML-DSA-65 parameters and errors (FIPS 204, Table 1).
+//
+// One parameter set is implemented: ML-DSA-65 has k = 6 rows, l = 5 columns,
+// eta = 4, tau = 49, gamma1 = 2^19 and gamma2 = (q - 1) / 32. Every length
+// check below runs before any secret is touched.
+/// Polynomial degree n.
+pub const n: usize = 256
+
+/// Matrix rows, and the length of s2, t, w and the hint vector.
+pub const k: usize = 6
+
+/// Matrix columns, and the length of s1, y and z.
+pub const l: usize = 5
+
+/// The prime modulus q = 8380417 = 2^23 - 2^13 + 1.
+pub const modulusQ: i64 = 8380417
+
+/// Coefficients dumped by Power2Round.
+pub const droppedBits: usize = 13
+
+/// The small secret bound eta.
+pub const eta: i64 = 4
+
+/// Number of non-zero coefficients in the challenge polynomial.
+pub const tau: usize = 49
+
+/// The rejection bound beta = tau * eta.
+pub const beta: i64 = 196
+
+/// The masking bound gamma1 = 2^19.
+pub const gamma1: i64 = 524288
+
+/// The decomposition modulus gamma2 = (q - 1) / 32.
+pub const gamma2: i64 = 261888
+
+/// Maximum number of one-bits in the hint vector.
+pub const omega: usize = 55
+
+/// Bytes of the challenge hash c_tilde: lambda / 4 with lambda = 192.
+pub const challengeSize: usize = 48
+
+/// Bytes of a key-generation seed xi.
+pub const seedSize: usize = 32
+
+/// Bytes of the per-signature randomness rnd.
+pub const randomnessSize: usize = 32
+
+/// Bytes of a hash output used for tr, mu and rho''.
+pub const hashSize: usize = 64
+
+/// Bytes of a packed eta polynomial: 4 bits per coefficient.
+const polyEtaSize: usize = 128
+
+/// Bytes of a packed t1 polynomial: 10 bits per coefficient.
+const polyT1Size: usize = 320
+
+/// Bytes of a packed t0 polynomial: 13 bits per coefficient.
+const polyT0Size: usize = 416
+
+/// Bytes of a packed z polynomial: 20 bits per coefficient.
+const polyZSize: usize = 640
+
+/// Bytes of a packed w1 polynomial: 4 bits per coefficient.
+const polyW1Size: usize = 128
+
+/// Bytes of a public key: rho plus t1.
+pub const publicKeySize: usize = 32 + k * polyT1Size
+
+/// Bytes of a secret key: rho, K, tr, s1, s2 and t0.
+pub const secretKeySize: usize = 32 + 32 + 64 + l * polyEtaSize + k * polyEtaSize + k * polyT0Size
+
+/// Bytes of a signature: c_tilde, z and the hint vector.
+pub const signatureSize: usize = challengeSize + l * polyZSize + omega + k
+
+/// The longest accepted context string (FIPS 204 §5.2).
+pub const maxContextSize: usize = 255
+
+/// Why an ML-DSA call was refused.
+pub type Error =
+    | BadSeedSize
+    | BadRandomnessSize
+    | BadPublicKeySize
+    | BadSecretKeySize
+    | BadSignatureSize
+    | BadContextSize
+    | NonCanonicalSecretKey
+    | MalformedSignature
+    | SigningFailed
+
+/// A short, fixed explanation of the error.
+pub fn Error.message(self) -> String {
+    match self {
+        BadSeedSize -> "mldsa: seed must be 32 bytes"
+        BadRandomnessSize -> "mldsa: randomness must be empty or 32 bytes"
+        BadPublicKeySize -> "mldsa: public key must be 1952 bytes"
+        BadSecretKeySize -> "mldsa: secret key must be 4032 bytes"
+        BadSignatureSize -> "mldsa: signature must be 3309 bytes"
+        BadContextSize -> "mldsa: context must be at most 255 bytes"
+        NonCanonicalSecretKey -> "mldsa: secret key is not canonically encoded"
+        MalformedSignature -> "mldsa: signature encoding is malformed"
+        SigningFailed -> "mldsa: signing did not find an accepted masking vector"
+    }
+}

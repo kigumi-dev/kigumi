@@ -1,0 +1,564 @@
+// Polynomial arithmetic, NTT, rounding and bit packing for ML-DSA-65
+// (FIPS 204 §7 and Algorithms 41-47).
+//
+// Coefficients are i64 values reduced modulo q. The NTT is the ordinary
+// 256-point negacyclic transform; because the reference representation only
+// needs agreement modulo q, no Montgomery scaling is involved. The inverse
+// transform includes the 1/256 factor, so pointwise multiplication is exact.
+import sha3 from std/crypto/sha3
+
+/// The inverse of 256 modulo q.
+const inverseN: i64 = 8347681
+
+/// 0xff as i64.
+const byteMask: i64 = 255
+
+/// x mod q in [0, q). The negative-remainder correction is a mask, not a
+/// branch, so a secret coefficient does not steer control flow here.
+pure noalloc fn modQ(x: i64) -> i64 {
+    let r = x % modulusQ
+    let negative = (r >> 63) & modulusQ
+    r + negative
+}
+
+/// The centered representative of x mod q, in (-q/2, q/2], also by mask.
+pure noalloc fn centerQ(x: i64) -> i64 {
+    let r = modQ(x)
+    let overHalf = (((modulusQ / 2) - r) >> 63) & modulusQ
+    r - overHalf
+}
+
+/// The all-zero polynomial.
+pure fn zeroPoly() -> FixedArray[i64, n] {
+    FixedArray.filled[i64, n](0)
+}
+
+/// A k- or l-long vector of zero polynomials.
+pure fn zeroVector(length: usize) -> Array[FixedArray[i64, n]] {
+    Array.fill[FixedArray[i64, n]](zeroPoly(), length)
+}
+
+/// Reverses the low eight bits of i.
+pure noalloc fn bitRev8(i: usize) -> usize {
+    let mut out: usize = 0
+    let mut b: usize = 0
+    for b < 8 {
+        out = (out << 1) | ((i >> b) & 1)
+        b = b + 1
+    }
+    out
+}
+
+/// base^exp mod q by square-and-multiply. The exponent is public.
+pure noalloc fn powMod(base: i64, exp: usize) -> i64 {
+    let mut acc: i64 = 1
+    let mut b = modQ(base)
+    let mut e = exp
+    for e > 0 {
+        if (e & 1) == 1 {
+            acc = modQ(acc * b)
+        }
+        b = modQ(b * b)
+        e = e >> 1
+    }
+    acc
+}
+
+/// zetas[i] = 1753^BitRev8(i) mod q; index 0 is unused by the butterflies.
+pure noalloc fn zetaAt(i: usize) -> i64 {
+    powMod(1753, bitRev8(i))
+}
+
+/// The forward NTT (FIPS 204 Algorithm 41).
+pure fn ntt(f: FixedArray[i64, n]) -> FixedArray[i64, n] {
+    let mut a = f
+    let mut k: usize = 0
+    let mut len: usize = 128
+    for len > 0 {
+        let mut start: usize = 0
+        for start < n {
+            k = k + 1
+            let z = zetaAt(k)
+            let mut j = start
+            for j < start + len {
+                let t = modQ(z * a[j + len])
+                let aj = a[j]
+                a[j] = modQ(aj + t)
+                a[j + len] = modQ(aj - t)
+                j = j + 1
+            }
+            start = start + 2 * len
+        }
+        len = len >> 1
+    }
+    a
+}
+
+/// The inverse NTT (FIPS 204 Algorithm 42), normalized by 1/n.
+pure fn invNtt(f: FixedArray[i64, n]) -> FixedArray[i64, n] {
+    let mut a = f
+    let mut k: usize = n
+    let mut len: usize = 1
+    for len < n {
+        let mut start: usize = 0
+        for start < n {
+            k = k - 1
+            let z = modQ(-zetaAt(k))
+            let mut j = start
+            for j < start + len {
+                let t = a[j]
+                let b = a[j + len]
+                a[j] = modQ(t + b)
+                a[j + len] = modQ((t - b) * z)
+                j = j + 1
+            }
+            start = start + 2 * len
+        }
+        len = len << 1
+    }
+    let mut i: usize = 0
+    for i < n {
+        a[i] = modQ(a[i] * inverseN)
+        i = i + 1
+    }
+    a
+}
+
+/// Coordinate-wise difference.
+pure fn polySub(a: FixedArray[i64, n], b: FixedArray[i64, n]) -> FixedArray[i64, n] {
+    let mut out = zeroPoly()
+    let mut i: usize = 0
+    for i < n {
+        out[i] = modQ(a[i] - b[i])
+        i = i + 1
+    }
+    out
+}
+
+/// Coordinate-wise product of NTT representations.
+pure fn polyMul(a: FixedArray[i64, n], b: FixedArray[i64, n]) -> FixedArray[i64, n] {
+    let mut out = zeroPoly()
+    let mut i: usize = 0
+    for i < n {
+        out[i] = modQ(a[i] * b[i])
+        i = i + 1
+    }
+    out
+}
+
+/// out += a * b, coefficient by coefficient (all three in NTT domain).
+pure fn polyMulAdd(out: FixedArray[i64, n], a: FixedArray[i64, n], b: FixedArray[i64, n]) -> FixedArray[i64, n] {
+    let mut acc = out
+    let mut i: usize = 0
+    for i < n {
+        acc[i] = modQ(acc[i] + a[i] * b[i])
+        i = i + 1
+    }
+    acc
+}
+
+/// The centered representative of every coefficient.
+pure fn centerPoly(p: FixedArray[i64, n]) -> FixedArray[i64, n] {
+    let mut out = zeroPoly()
+    let mut i: usize = 0
+    for i < n {
+        out[i] = centerQ(p[i])
+        i = i + 1
+    }
+    out
+}
+
+/// Whether some coefficient has absolute value at least bound. Every
+/// coefficient is inspected, so the loop itself does not leak the position
+/// of the first offender through an early exit.
+pure noalloc fn chkNorm(p: FixedArray[i64, n], bound: i64) -> Bool {
+    let mut bad = false
+    let mut i: usize = 0
+    for i < n {
+        if p[i] <= -bound || p[i] >= bound {
+            bad = true
+        }
+        i = i + 1
+    }
+    bad
+}
+
+/// Power2Round (FIPS 204 Algorithm 35): a = a1 * 2^d + a0 with
+/// -2^(d-1) < a0 <= 2^(d-1). Assumes a is reduced.
+pure noalloc fn power2Round(a: i64) -> (i64, i64) {
+    let a1 = (a + (1 << (droppedBits - 1)) - 1) >> droppedBits
+    (a1, a - (a1 << droppedBits))
+}
+
+/// Decompose (FIPS 204 Algorithm 36) for gamma2 = (q-1)/32.
+pure noalloc fn decompose(a: i64) -> (i64, i64) {
+    let mut a1 = (a + 127) >> 7
+    a1 = (a1 * 1025 + (1 << 21)) >> 22
+    a1 = a1 & 15
+    let mut a0 = a - a1 * 2 * gamma2
+    a0 = a0 - (((((modulusQ - 1) / 2) - a0) >> 31) & modulusQ)
+    (a1, a0)
+}
+
+/// MakeHint (FIPS 204 Algorithm 39).
+pure noalloc fn makeHint(a0: i64, a1: i64) -> i64 {
+    if a0 > gamma2 || a0 < -gamma2 || (a0 == -gamma2 && a1 != 0) {
+        1
+    } else {
+        0
+    }
+}
+
+/// UseHint (FIPS 204 Algorithm 40) for gamma2 = (q-1)/32.
+pure noalloc fn useHint(a: i64, hint: i64) -> i64 {
+    let (a1, a0) = decompose(modQ(a))
+    if hint == 0 {
+        return a1
+    }
+    if a0 > 0 {
+        (a1 + 1) & 15
+    } else {
+        (a1 - 1) & 15
+    }
+}
+
+/// A borrow-free copy of b[start:end]; the caller has checked the bounds.
+pure fn exactSlice(b: Bytes, start: usize, end: usize) -> Bytes {
+    b.slice(start, end) || panic("mldsa: internal slice out of range")
+}
+
+/// The one-byte encoding of v.
+pure fn oneByte(v: u8) -> Bytes {
+    let b = FixedArray.filled[u8, 1](v)
+    FixedArray.toBytes(b)
+}
+
+/// The two-byte little-endian encoding of a nonce.
+pure fn nonceBytes(v: usize) -> Bytes {
+    let mut out = Array.empty[u8]()
+    out.push((v & 0xff).truncate[u8]())
+    out.push(((v >> 8) & 0xff).truncate[u8]())
+    Bytes.fromArray(&out)
+}
+
+/// RejNTTPoly (FIPS 204 Algorithm 30): SHAKE128 of rho || col || row, read
+/// three bytes at a time, keeping 23-bit values below q.
+pure fn sampleA(rho: Bytes, col: u8, row: u8) -> FixedArray[i64, n] {
+    let mut seed = Array.empty[u8]()
+    for b in rho {
+        seed.push(b)
+    }
+    seed.push(col)
+    seed.push(row)
+    let mut xof = sha3.Xof128.new()
+    xof.update(Bytes.fromArray(&seed))
+    let mut out = zeroPoly()
+    let mut j: usize = 0
+    let mut round: usize = 0
+    for round < 1000 {
+        if j >= n {
+            break
+        }
+        let chunk = xof.squeeze(sha3.rate128)
+        let mut at: usize = 0
+        for at < sha3.rate128 {
+            let t = chunk[at].toInt() | (chunk[at + 1].toInt() << 8) | (chunk[at + 2].toInt() << 16)
+            let v = t & 0x7fffff
+            if v < modulusQ && j < n {
+                out[j] = v
+                j = j + 1
+            }
+            at = at + 3
+        }
+    }
+    out
+}
+
+/// RejBoundedPoly for eta = 4 (FIPS 204 Algorithm 31): SHAKE256 of
+/// seed || nonce, four bits at a time, keeping values below 2*eta + 1.
+pure fn sampleEta(seed: Bytes, nonce: usize) -> FixedArray[i64, n] {
+    let input = seed.concat(nonceBytes(nonce))
+    let mut xof = sha3.Xof256.new()
+    xof.update(input)
+    let mut out = zeroPoly()
+    let mut j: usize = 0
+    let mut round: usize = 0
+    for round < 1000 {
+        if j >= n {
+            break
+        }
+        let chunk = xof.squeeze(sha3.rate256)
+        let mut at: usize = 0
+        for at < sha3.rate256 {
+            let b = chunk[at].toInt()
+            let low = b & 15
+            let high = (b >> 4) & 15
+            if low < 2 * eta + 1 && j < n {
+                out[j] = eta - low
+                j = j + 1
+            }
+            if high < 2 * eta + 1 && j < n {
+                out[j] = eta - high
+                j = j + 1
+            }
+            at = at + 1
+        }
+    }
+    out
+}
+
+/// ExpandMask (FIPS 204 Algorithm 34): a polynomial with coefficients in
+/// [-(gamma1 - 1), gamma1] from 20-bit packed output.
+pure fn sampleGamma1(seed: Bytes, nonce: usize) -> FixedArray[i64, n] {
+    let input = seed.concat(nonceBytes(nonce))
+    let stream = sha3.shake256(input, polyZSize)
+    let raw = unpackBits(stream, 0, 20)
+    let mut out = zeroPoly()
+    let mut i: usize = 0
+    for i < n {
+        out[i] = gamma1 - raw[i]
+        i = i + 1
+    }
+    out
+}
+
+/// SampleInBall (FIPS 204 Algorithm 29): tau coefficients in {-1, 1}.
+pure fn sampleInBall(seed: Bytes) -> FixedArray[i64, n] {
+    let mut xof = sha3.Xof256.new()
+    xof.update(seed)
+    let mut block = xof.squeeze(sha3.rate256)
+    let mut signs: u64 = 0
+    let mut s: usize = 0
+    for s < 8 {
+        signs = signs | (block[s].toU64() << (8 * s))
+        s = s + 1
+    }
+    let mut pos: usize = 8
+    let mut c = zeroPoly()
+    let mut i: usize = n - tau
+    for i < n {
+        let mut chosen: usize = 0
+        let mut guard: usize = 0
+        for guard < 1000000 {
+            if pos >= block.len() {
+                block = xof.squeeze(sha3.rate256)
+                pos = 0
+            }
+            let b = block[pos].toUsize()
+            pos = pos + 1
+            if b <= i {
+                chosen = b
+                break
+            }
+        }
+        c[i] = c[chosen]
+        let sign = (signs & 1).truncate[i64]()
+        c[chosen] = 1 - 2 * sign
+        signs = signs >> 1
+        i = i + 1
+    }
+    c
+}
+
+/// Bit-packs offset - vals[i] into `bits` bits per coefficient. FIPS 204
+/// encodes small signed values as the distance below a positive bound.
+pure fn packSigned(vals: FixedArray[i64, n], bits: usize, offset: i64) -> Bytes {
+    let mut out = Array.fill[u8](0, bits * n / 8)
+    let mut acc: i64 = 0
+    let mut have: usize = 0
+    let mut at: usize = 0
+    let mut i: usize = 0
+    for i < n {
+        acc = acc | ((offset - vals[i]) << have)
+        have = have + bits
+        for have >= 8 {
+            out[at] = (acc & byteMask).truncate[u8]()
+            at = at + 1
+            acc = acc >> 8
+            have = have - 8
+        }
+        i = i + 1
+    }
+    Bytes.fromArray(&out)
+}
+
+/// Bit-packs non-negative vals[i] into `bits` bits per coefficient.
+pure fn packUnsigned(vals: FixedArray[i64, n], bits: usize) -> Bytes {
+    let mut out = Array.fill[u8](0, bits * n / 8)
+    let mut acc: i64 = 0
+    let mut have: usize = 0
+    let mut at: usize = 0
+    let mut i: usize = 0
+    for i < n {
+        acc = acc | (vals[i] << have)
+        have = have + bits
+        for have >= 8 {
+            out[at] = (acc & byteMask).truncate[u8]()
+            at = at + 1
+            acc = acc >> 8
+            have = have - 8
+        }
+        i = i + 1
+    }
+    Bytes.fromArray(&out)
+}
+
+/// Reads n little-endian `bits`-bit fields starting at `start`.
+pure fn unpackBits(data: Bytes, start: usize, bits: usize) -> FixedArray[i64, n] {
+    let mut out = zeroPoly()
+    let mut acc: i64 = 0
+    let mut have: usize = 0
+    let mut pos: usize = start
+    let mask: i64 = (1 << bits) - 1
+    let mut i: usize = 0
+    for i < n {
+        for have < bits {
+            acc = acc | (data[pos].toInt() << have)
+            pos = pos + 1
+            have = have + 8
+        }
+        out[i] = acc & mask
+        acc = acc >> bits
+        have = have - bits
+        i = i + 1
+    }
+    out
+}
+
+/// Packs t1 (10 bits, unsigned).
+pure fn packT1(t1: FixedArray[i64, n]) -> Bytes {
+    packUnsigned(t1, 10)
+}
+
+/// Unpacks t1 (10 bits, unsigned).
+pure fn unpackT1(data: Bytes, start: usize) -> FixedArray[i64, n] {
+    unpackBits(data, start, 10)
+}
+
+/// Packs an eta-bounded polynomial (4 bits, offset by eta).
+pure fn packEta(p: FixedArray[i64, n]) -> Bytes {
+    packSigned(p, 4, eta)
+}
+
+/// Unpacks an eta-bounded polynomial and rejects non-canonical nibbles.
+pure fn unpackEta(data: Bytes, start: usize) -> FixedArray[i64, n]? {
+    let raw = unpackBits(data, start, 4)
+    let mut out = zeroPoly()
+    let mut i: usize = 0
+    for i < n {
+        if raw[i] > 2 * eta {
+            return None
+        }
+        out[i] = eta - raw[i]
+        i = i + 1
+    }
+    Some(out)
+}
+
+/// Packs a t0 polynomial (13 bits, offset by 2^(d-1)).
+pure fn packT0(t0: FixedArray[i64, n]) -> Bytes {
+    packSigned(t0, 13, 1 << (droppedBits - 1))
+}
+
+/// Unpacks a t0 polynomial (13 bits, offset by 2^(d-1)).
+pure fn unpackT0(data: Bytes, start: usize) -> FixedArray[i64, n] {
+    let raw = unpackBits(data, start, 13)
+    let mut out = zeroPoly()
+    let mut i: usize = 0
+    for i < n {
+        out[i] = (1 << (droppedBits - 1)) - raw[i]
+        i = i + 1
+    }
+    out
+}
+
+/// Packs a z polynomial (20 bits, offset by gamma1).
+pure fn packZ(z: FixedArray[i64, n]) -> Bytes {
+    packSigned(z, 20, gamma1)
+}
+
+/// Unpacks a z polynomial (20 bits, offset by gamma1).
+pure fn unpackZ(data: Bytes, start: usize) -> FixedArray[i64, n] {
+    let raw = unpackBits(data, start, 20)
+    let mut out = zeroPoly()
+    let mut i: usize = 0
+    for i < n {
+        out[i] = gamma1 - raw[i]
+        i = i + 1
+    }
+    out
+}
+
+/// Packs w1 (4 bits, values 0..15).
+pure fn packW1(w1: FixedArray[i64, n]) -> Bytes {
+    packUnsigned(w1, 4)
+}
+
+/// Packs a hint vector: sorted coefficient indices followed by k cumulative
+/// counts, with zero padding up to omega entries.
+pure fn packHint(hint: &Array[FixedArray[i64, n]]) -> Bytes {
+    let mut out = Array.fill[u8](0, omega + k)
+    let mut at: usize = 0
+    let mut r: usize = 0
+    for r < k {
+        let mut j: usize = 0
+        for j < n {
+            if hint[r][j] != 0 {
+                out[at] = j.truncate[u8]()
+                at = at + 1
+            }
+            j = j + 1
+        }
+        out[omega + r] = at.truncate[u8]()
+        r = r + 1
+    }
+    Bytes.fromArray(&out)
+}
+
+/// Unpacks a hint vector and enforces the canonical encoding (ordered,
+/// in-range indices, zero padding), as FIPS 204 §7.2 requires.
+pure fn unpackHint(data: Bytes, start: usize) -> Array[FixedArray[i64, n]]? {
+    let mut hint = Array.fill[FixedArray[i64, n]](zeroPoly(), k)
+    let mut at: usize = 0
+    let mut r: usize = 0
+    for r < k {
+        let end = data[start + omega + r].toUsize()
+        if end < at || end > omega {
+            return None
+        }
+        let mut j: usize = at
+        for j < end {
+            if j > at && data[start + j] <= data[start + j - 1] {
+                return None
+            }
+            hint[r][data[start + j].toUsize()] = 1
+            j = j + 1
+        }
+        at = end
+        r = r + 1
+    }
+    let mut j: usize = at
+    for j < omega {
+        if data[start + j] != 0 {
+            return None
+        }
+        j = j + 1
+    }
+    Some(hint)
+}
+
+/// Whether every coefficient of the hint vector is 0 or 1.
+pure fn validHint(hint: &Array[FixedArray[i64, n]]) -> Bool {
+    let mut r: usize = 0
+    for r < k {
+        let mut j: usize = 0
+        for j < n {
+            if hint[r][j] != 0 && hint[r][j] != 1 {
+                return false
+            }
+            j = j + 1
+        }
+        r = r + 1
+    }
+    true
+}

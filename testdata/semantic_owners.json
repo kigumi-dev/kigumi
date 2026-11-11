@@ -4840,6 +4840,576 @@
     "status": "ok"
   },
   {
+    "key": "crypto/mldsa.Error.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.bitRev8",
+    "signature": "pure noalloc fn(usize) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.centerPoly",
+    "signature": "pure fn(FixedArray[Int, 256]) -\u003e FixedArray[Int, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.centerQ",
+    "signature": "pure noalloc fn(Int) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.chkNorm",
+    "signature": "pure noalloc fn(FixedArray[Int, 256], Int) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.decompose",
+    "signature": "pure noalloc fn(Int) -\u003e (Int, Int)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.decomposeVector",
+    "signature": "pure fn(\u0026Array[FixedArray[Int, 256]]) -\u003e (Array[FixedArray[Int, 256]], Array[FixedArray[Int, 256]])",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.exactSlice",
+    "signature": "pure fn(Bytes, usize, usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.expandA",
+    "signature": "pure fn(Bytes) -\u003e Array[FixedArray[Int, 256]]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.expandS",
+    "signature": "pure fn(Bytes) -\u003e (Array[FixedArray[Int, 256]], Array[FixedArray[Int, 256]])",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.hintWeight",
+    "signature": "pure fn(\u0026Array[FixedArray[Int, 256]]) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.invNtt",
+    "signature": "pure fn(FixedArray[Int, 256]) -\u003e FixedArray[Int, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.keyGen",
+    "signature": "pure fn(Bytes) -\u003e Result[KeyPair, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.makeHint",
+    "signature": "pure noalloc fn(Int, Int) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.matrixVector",
+    "signature": "pure fn(\u0026Array[FixedArray[Int, 256]], \u0026Array[FixedArray[Int, 256]]) -\u003e Array[FixedArray[Int, 256]]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.messagePrime",
+    "signature": "pure fn(Bytes, Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.modQ",
+    "signature": "pure noalloc fn(Int) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.nonceBytes",
+    "signature": "pure fn(usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.ntt",
+    "signature": "pure fn(FixedArray[Int, 256]) -\u003e FixedArray[Int, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.nttVector",
+    "signature": "pure fn(Array[FixedArray[Int, 256]]) -\u003e Array[FixedArray[Int, 256]]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.oneByte",
+    "signature": "pure fn(u8) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.packEta",
+    "signature": "pure fn(FixedArray[Int, 256]) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.packHint",
+    "signature": "pure fn(\u0026Array[FixedArray[Int, 256]]) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.packPublicKey",
+    "signature": "pure fn(Bytes, \u0026Array[FixedArray[Int, 256]]) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.packSecretKey",
+    "signature": "pure fn(Bytes, Bytes, Bytes, \u0026Array[FixedArray[Int, 256]], \u0026Array[FixedArray[Int, 256]], \u0026Array[FixedArray[Int, 256]]) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.packSignature",
+    "signature": "pure fn(Bytes, \u0026Array[FixedArray[Int, 256]], \u0026Array[FixedArray[Int, 256]]) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.packSigned",
+    "signature": "pure fn(FixedArray[Int, 256], usize, Int) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.packT0",
+    "signature": "pure fn(FixedArray[Int, 256]) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.packT1",
+    "signature": "pure fn(FixedArray[Int, 256]) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.packUnsigned",
+    "signature": "pure fn(FixedArray[Int, 256], usize) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.packW1",
+    "signature": "pure fn(FixedArray[Int, 256]) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.packZ",
+    "signature": "pure fn(FixedArray[Int, 256]) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.polyMul",
+    "signature": "pure fn(FixedArray[Int, 256], FixedArray[Int, 256]) -\u003e FixedArray[Int, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.polyMulAdd",
+    "signature": "pure fn(FixedArray[Int, 256], FixedArray[Int, 256], FixedArray[Int, 256]) -\u003e FixedArray[Int, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.polySub",
+    "signature": "pure fn(FixedArray[Int, 256], FixedArray[Int, 256]) -\u003e FixedArray[Int, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.powMod",
+    "signature": "pure noalloc fn(Int, usize) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.power2Round",
+    "signature": "pure noalloc fn(Int) -\u003e (Int, Int)",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.sampleA",
+    "signature": "pure fn(Bytes, u8, u8) -\u003e FixedArray[Int, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.sampleEta",
+    "signature": "pure fn(Bytes, usize) -\u003e FixedArray[Int, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.sampleGamma1",
+    "signature": "pure fn(Bytes, usize) -\u003e FixedArray[Int, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.sampleInBall",
+    "signature": "pure fn(Bytes) -\u003e FixedArray[Int, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.sign",
+    "signature": "pure fn(Bytes, Bytes, Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.unpackBits",
+    "signature": "pure fn(Bytes, usize, usize) -\u003e FixedArray[Int, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.unpackEta",
+    "signature": "pure fn(Bytes, usize) -\u003e FixedArray[Int, 256]?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.unpackHint",
+    "signature": "pure fn(Bytes, usize) -\u003e Array[FixedArray[Int, 256]]?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.unpackPublicKey",
+    "signature": "pure fn(Bytes) -\u003e (Bytes, Array[FixedArray[Int, 256]])",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.unpackSecretKey",
+    "signature": "pure fn(Bytes) -\u003e (Bytes, Bytes, Bytes, Array[FixedArray[Int, 256]], Array[FixedArray[Int, 256]], Array[FixedArray[Int, 256]])?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.unpackSignature",
+    "signature": "pure fn(Bytes) -\u003e (Bytes, Array[FixedArray[Int, 256]], Array[FixedArray[Int, 256]])?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.unpackT0",
+    "signature": "pure fn(Bytes, usize) -\u003e FixedArray[Int, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.unpackT1",
+    "signature": "pure fn(Bytes, usize) -\u003e FixedArray[Int, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.unpackZ",
+    "signature": "pure fn(Bytes, usize) -\u003e FixedArray[Int, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.useHint",
+    "signature": "pure noalloc fn(Int, Int) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.validHint",
+    "signature": "pure fn(\u0026Array[FixedArray[Int, 256]]) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.verify",
+    "signature": "pure fn(Bytes, Bytes, Bytes, Bytes) -\u003e Result[Bool, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.zeroPoly",
+    "signature": "pure fn() -\u003e FixedArray[Int, 256]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.zeroVector",
+    "signature": "pure fn(usize) -\u003e Array[FixedArray[Int, 256]]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/mldsa.zetaAt",
+    "signature": "pure noalloc fn(usize) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "crypto/mlkem.Error.message",
     "signature": "fn() -\u003e String",
     "has_body": true,

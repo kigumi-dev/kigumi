@@ -1,0 +1,505 @@
+// ML-DSA-65 (FIPS 204): Module-Lattice-Based Digital Signature Algorithm.
+//
+// The two entry points keep the CSPRNG outside the package. `keyGen` takes
+// the 32-byte seed xi; `sign` takes the caller's 32-byte per-signature
+// randomness (or an empty value for the deterministic variant). Verification
+// needs no randomness.
+//
+// Control flow up to the masking loop is independent of secret values:
+// unpacking, hashing, matrix expansion and arithmetic reductions do not
+// branch on coefficients. The rejection decision itself necessarily depends
+// on secret values, and the norm scans inspect every coefficient instead of
+// exiting at the first offender. Only the native backend can offer a timing
+// guarantee for the fixed-cost parts; the VM makes none.
+import sha3 from std/crypto/sha3
+import subtle from std/crypto/subtle
+
+/// A freshly generated ML-DSA-65 key pair.
+pub type KeyPair = {
+    pub publicKey Bytes
+    pub secretKey Bytes
+}
+
+/// Expands the k x l matrix A_hat from rho (FIPS 204 Algorithm 32).
+/// Entry (r, s) is SampleNTT(rho || s || r), already in NTT form.
+pure fn expandA(rho: Bytes) -> Array[FixedArray[i64, n]] {
+    let mut a = Array.fill[FixedArray[i64, n]](zeroPoly(), k * l)
+    let mut r: usize = 0
+    for r < k {
+        let mut s: usize = 0
+        for s < l {
+            a[r * l + s] = sampleA(rho, s.truncate[u8](), r.truncate[u8]())
+            s = s + 1
+        }
+        r = r + 1
+    }
+    a
+}
+
+/// ExpandS (FIPS 204 Algorithm 33): s1 from nonces 0..l-1 and s2 from
+/// nonces l..l+k-1.
+pure fn expandS(seed: Bytes) -> (Array[FixedArray[i64, n]], Array[FixedArray[i64, n]]) {
+    let mut s1 = zeroVector(l)
+    let mut s2 = zeroVector(k)
+    let mut i: usize = 0
+    for i < l {
+        s1[i] = sampleEta(seed, i)
+        i = i + 1
+    }
+    i = 0
+    for i < k {
+        s2[i] = sampleEta(seed, l + i)
+        i = i + 1
+    }
+    (s1, s2)
+}
+
+/// Applies the forward NTT to every polynomial.
+pure fn nttVector(v: Array[FixedArray[i64, n]]) -> Array[FixedArray[i64, n]] {
+    let mut out = v
+    let mut i: usize = 0
+    for i < out.len() {
+        out[i] = ntt(out[i])
+        i = i + 1
+    }
+    out
+}
+
+/// A_hat o v, then the inverse NTT, for a k-long result.
+pure fn matrixVector(a: &Array[FixedArray[i64, n]], v: &Array[FixedArray[i64, n]]) -> Array[FixedArray[i64, n]] {
+    let mut out = zeroVector(k)
+    let mut r: usize = 0
+    for r < k {
+        let mut acc = zeroPoly()
+        let mut s: usize = 0
+        for s < l {
+            acc = polyMulAdd(acc, a[r * l + s], v[s])
+            s = s + 1
+        }
+        out[r] = invNtt(acc)
+        r = r + 1
+    }
+    out
+}
+
+/// Splits a vector into HighBits and LowBits with Decompose.
+pure fn decomposeVector(v: &Array[FixedArray[i64, n]]) -> (Array[FixedArray[i64, n]], Array[FixedArray[i64, n]]) {
+    let mut high = Array.fill[FixedArray[i64, n]](zeroPoly(), v.len())
+    let mut low = Array.fill[FixedArray[i64, n]](zeroPoly(), v.len())
+    let mut r: usize = 0
+    for r < v.len() {
+        let mut h = zeroPoly()
+        let mut lo = zeroPoly()
+        let mut j: usize = 0
+        for j < n {
+            let (a1, a0) = decompose(modQ(v[r][j]))
+            h[j] = a1
+            lo[j] = a0
+            j = j + 1
+        }
+        high[r] = h
+        low[r] = lo
+        r = r + 1
+    }
+    (high, low)
+}
+
+/// Number of one-bits in the hint vector, or omega + 1 once it overflows.
+pure fn hintWeight(hint: &Array[FixedArray[i64, n]]) -> usize {
+    let mut total: usize = 0
+    let mut r: usize = 0
+    for r < hint.len() {
+        let mut j: usize = 0
+        for j < n {
+            if hint[r][j] != 0 {
+                total = total + 1
+            }
+            j = j + 1
+        }
+        r = r + 1
+    }
+    total
+}
+
+/// Packs the public key: rho || t1.
+pure fn packPublicKey(rho: Bytes, t1: &Array[FixedArray[i64, n]]) -> Bytes {
+    let mut out = rho
+    let mut i: usize = 0
+    for i < k {
+        out = out.concat(packT1(t1[i]))
+        i = i + 1
+    }
+    out
+}
+
+/// The rho and t1 of a public key; the caller checked the length.
+pure fn unpackPublicKey(pk: Bytes) -> (Bytes, Array[FixedArray[i64, n]]) {
+    let rho = exactSlice(pk, 0, 32)
+    let mut t1 = zeroVector(k)
+    let mut i: usize = 0
+    for i < k {
+        t1[i] = unpackT1(pk, 32 + i * 320)
+        i = i + 1
+    }
+    (rho, t1)
+}
+
+/// Packs the secret key: rho || K || tr || s1 || s2 || t0.
+pure fn packSecretKey(rho: Bytes, key: Bytes, tr: Bytes, s1: &Array[FixedArray[i64, n]], s2: &Array[FixedArray[i64, n]], t0: &Array[FixedArray[i64, n]]) -> Bytes {
+    let mut out = rho.concat(key).concat(tr)
+    let mut i: usize = 0
+    for i < l {
+        out = out.concat(packEta(s1[i]))
+        i = i + 1
+    }
+    i = 0
+    for i < k {
+        out = out.concat(packEta(s2[i]))
+        i = i + 1
+    }
+    i = 0
+    for i < k {
+        out = out.concat(packT0(t0[i]))
+        i = i + 1
+    }
+    out
+}
+
+/// Unpacks a secret key; None if an eta field is not canonical.
+pure fn unpackSecretKey(sk: Bytes) -> (Bytes, Bytes, Bytes, Array[FixedArray[i64, n]], Array[FixedArray[i64, n]], Array[FixedArray[i64, n]])? {
+    let rho = exactSlice(sk, 0, 32)
+    let key = exactSlice(sk, 32, 64)
+    let tr = exactSlice(sk, 64, 128)
+    let mut s1 = zeroVector(l)
+    let mut s2 = zeroVector(k)
+    let mut t0 = zeroVector(k)
+    let mut at: usize = 128
+    let mut i: usize = 0
+    for i < l {
+        s1[i] = unpackEta(sk, at) || return None
+        at = at + 128
+        i = i + 1
+    }
+    i = 0
+    for i < k {
+        s2[i] = unpackEta(sk, at) || return None
+        at = at + 128
+        i = i + 1
+    }
+    i = 0
+    for i < k {
+        t0[i] = unpackT0(sk, at)
+        at = at + 416
+        i = i + 1
+    }
+    (rho, key, tr, s1, s2, t0)
+}
+
+/// Packs a signature: c_tilde || z || hint.
+pure fn packSignature(challenge: Bytes, z: &Array[FixedArray[i64, n]], hint: &Array[FixedArray[i64, n]]) -> Bytes {
+    let mut out = challenge
+    let mut i: usize = 0
+    for i < l {
+        out = out.concat(packZ(z[i]))
+        i = i + 1
+    }
+    out.concat(packHint(hint))
+}
+
+/// Unpacks a signature; None for a malformed hint encoding.
+pure fn unpackSignature(sig: Bytes) -> (Bytes, Array[FixedArray[i64, n]], Array[FixedArray[i64, n]])? {
+    let challenge = exactSlice(sig, 0, challengeSize)
+    let mut z = zeroVector(l)
+    let mut i: usize = 0
+    for i < l {
+        z[i] = unpackZ(sig, challengeSize + i * 640)
+        i = i + 1
+    }
+    let hint = unpackHint(sig, challengeSize + l * 640) || return None
+    (challenge, z, hint)
+}
+
+/// The message representative M' for the pure ML-DSA interface.
+pure fn messagePrime(context: Bytes, message: Bytes) -> Bytes {
+    oneByte(0).concat(oneByte(context.len().truncate[u8]())).concat(context).concat(message)
+}
+
+/// ML-DSA.KeyGen_internal(xi) (FIPS 204 Algorithm 6).
+///
+/// `seed` must be 32 CSPRNG bytes; it is secret and regenerates the whole
+/// key pair.
+pub pure fn keyGen(seed: Bytes) -> Result[KeyPair, Error] {
+    if seed.len() != seedSize {
+        return Err(Error.BadSeedSize)
+    }
+    let expanded = sha3.shake256(seed.concat(oneByte(k.truncate[u8]())).concat(oneByte(l.truncate[u8]())), 128)
+    let rho = exactSlice(expanded, 0, 32)
+    let rhoPrime = exactSlice(expanded, 32, 96)
+    let key = exactSlice(expanded, 96, 128)
+    let a = expandA(rho)
+    let (s1, s2) = expandS(rhoPrime)
+    let s1Hat = nttVector(s1.clone())
+    let mut t = zeroVector(k)
+    let mut r: usize = 0
+    for r < k {
+        let mut acc = zeroPoly()
+        let mut s: usize = 0
+        for s < l {
+            acc = polyMulAdd(acc, a[r * l + s], s1Hat[s])
+            s = s + 1
+        }
+        let base = invNtt(acc)
+        let mut p = zeroPoly()
+        let mut j: usize = 0
+        for j < n {
+            p[j] = modQ(base[j] + s2[r][j])
+            j = j + 1
+        }
+        t[r] = p
+        r = r + 1
+    }
+    let mut t1 = zeroVector(k)
+    let mut t0 = zeroVector(k)
+    r = 0
+    for r < k {
+        let mut high = zeroPoly()
+        let mut low = zeroPoly()
+        let mut j: usize = 0
+        for j < n {
+            let (a1, a0) = power2Round(t[r][j])
+            high[j] = a1
+            low[j] = a0
+            j = j + 1
+        }
+        t1[r] = high
+        t0[r] = low
+        r = r + 1
+    }
+    let pk = packPublicKey(rho, &t1)
+    let tr = sha3.shake256(pk, 64)
+    let sk = packSecretKey(rho, key, tr, &s1, &s2, &t0)
+    Ok(KeyPair {
+        publicKey: pk
+        secretKey: sk
+    })
+}
+
+/// ML-DSA.Sign_internal(sk, M', rnd) (FIPS 204 Algorithm 7).
+///
+/// `context` is at most 255 bytes; `randomness` must be 32 bytes for the
+/// hedged variant or empty for the deterministic variant, in which case 32
+/// zero bytes are used as FIPS 204 requires.
+pub pure fn sign(secretKey: Bytes, message: Bytes, context: Bytes, randomness: Bytes) -> Result[Bytes, Error] {
+    if secretKey.len() != secretKeySize {
+        return Err(Error.BadSecretKeySize)
+    }
+    if context.len() > maxContextSize {
+        return Err(Error.BadContextSize)
+    }
+    if randomness.len() != 0 && randomness.len() != randomnessSize {
+        return Err(Error.BadRandomnessSize)
+    }
+    let rnd = if randomness.len() == randomnessSize {
+        randomness
+    } else {
+        Bytes.zeros(randomnessSize)
+    }
+    let (rho, key, tr, s1, s2, t0) = match unpackSecretKey(secretKey) {
+        Some(v) -> v
+        None -> return Err(Error.NonCanonicalSecretKey)
+    }
+    let pre = messagePrime(context, message)
+    let mut h = sha3.Xof256.new()
+    h.update(tr)
+    h.update(pre)
+    let mu = h.finish(hashSize)
+    let mut h2 = sha3.Xof256.new()
+    h2.update(key)
+    h2.update(rnd)
+    h2.update(mu)
+    let rhoPrime = h2.finish(hashSize)
+
+    let a = expandA(rho)
+    let s1Hat = nttVector(s1.clone())
+    let s2Hat = nttVector(s2.clone())
+    let t0Hat = nttVector(t0.clone())
+    let mut nonce: usize = 0
+    let mut attempt: usize = 0
+    for attempt < 1000 {
+        let mut y = zeroVector(l)
+        let mut i: usize = 0
+        for i < l {
+            y[i] = sampleGamma1(rhoPrime, l * nonce + i)
+            i = i + 1
+        }
+        let yHat = nttVector(y.clone())
+        let w = matrixVector(&a, &yHat)
+        let (w1, w0) = decomposeVector(&w)
+        let mut w1Bytes = Bytes.zeros(0)
+        i = 0
+        for i < k {
+            w1Bytes = w1Bytes.concat(packW1(w1[i]))
+            i = i + 1
+        }
+        let mut h3 = sha3.Xof256.new()
+        h3.update(mu)
+        h3.update(w1Bytes)
+        let challenge = h3.finish(challengeSize)
+        let c = sampleInBall(challenge)
+        let cHat = ntt(c)
+
+        let mut z = zeroVector(l)
+        let mut rejected = false
+        i = 0
+        for i < l {
+            let cs1 = centerPoly(invNtt(polyMul(cHat, s1Hat[i])))
+            let mut zi = zeroPoly()
+            let mut j: usize = 0
+            for j < n {
+                zi[j] = centerQ(y[i][j] + cs1[j])
+                j = j + 1
+            }
+            if chkNorm(zi, gamma1 - beta) {
+                rejected = true
+            }
+            z[i] = zi
+            i = i + 1
+        }
+        if rejected {
+            nonce = nonce + 1
+            continue
+        }
+
+        let mut low = zeroVector(k)
+        let mut ct0 = zeroVector(k)
+        i = 0
+        for i < k {
+            let cs2 = centerPoly(invNtt(polyMul(cHat, s2Hat[i])))
+            let mut lo = zeroPoly()
+            let mut j: usize = 0
+            for j < n {
+                lo[j] = centerQ(w0[i][j] - cs2[j])
+                j = j + 1
+            }
+            if chkNorm(lo, gamma2 - beta) {
+                rejected = true
+            }
+            low[i] = lo
+            let t = centerPoly(invNtt(polyMul(cHat, t0Hat[i])))
+            if chkNorm(t, gamma2) {
+                rejected = true
+            }
+            ct0[i] = t
+            i = i + 1
+        }
+        if rejected {
+            nonce = nonce + 1
+            continue
+        }
+
+        let mut hint = Array.fill[FixedArray[i64, n]](zeroPoly(), k)
+        i = 0
+        for i < k {
+            let mut hb = zeroPoly()
+            let mut j: usize = 0
+            for j < n {
+                hb[j] = makeHint(low[i][j] + ct0[i][j], w1[i][j])
+                j = j + 1
+            }
+            hint[i] = hb
+            i = i + 1
+        }
+        if hintWeight(&hint) > omega {
+            nonce = nonce + 1
+            continue
+        }
+        return Ok(packSignature(challenge, &z, &hint))
+    }
+    Err(Error.SigningFailed)
+}
+
+/// ML-DSA.Verify_internal(pk, M', sigma) (FIPS 204 Algorithm 8).
+///
+/// Returns Ok(true) for a valid signature and Ok(false) when the signature
+/// is well formed but does not verify. Length errors, a non-canonical secret
+/// key, and a malformed signature encoding are reported as errors.
+pub pure fn verify(publicKey: Bytes, message: Bytes, context: Bytes, signature: Bytes) -> Result[Bool, Error] {
+    if publicKey.len() != publicKeySize {
+        return Err(Error.BadPublicKeySize)
+    }
+    if signature.len() != signatureSize {
+        return Err(Error.BadSignatureSize)
+    }
+    if context.len() > maxContextSize {
+        return Err(Error.BadContextSize)
+    }
+    let (rho, t1) = unpackPublicKey(publicKey)
+    let (challenge, z, hint) = match unpackSignature(signature) {
+        Some(v) -> v
+        None -> return Err(Error.MalformedSignature)
+    }
+    let mut i: usize = 0
+    for i < l {
+        if chkNorm(z[i], gamma1 - beta) {
+            return Err(Error.MalformedSignature)
+        }
+        i = i + 1
+    }
+    if !validHint(&hint) {
+        return Err(Error.MalformedSignature)
+    }
+
+    let pre = messagePrime(context, message)
+    let mut h = sha3.Xof256.new()
+    h.update(sha3.shake256(publicKey, 64))
+    h.update(pre)
+    let mu = h.finish(hashSize)
+
+    let a = expandA(rho)
+    let c = sampleInBall(challenge)
+    let cHat = ntt(c)
+    let zHat = nttVector(z.clone())
+    let mut t1Hat = zeroVector(k)
+    i = 0
+    for i < k {
+        let mut shifted = zeroPoly()
+        let mut j: usize = 0
+        for j < n {
+            shifted[j] = modQ(t1[i][j] << droppedBits)
+            j = j + 1
+        }
+        t1Hat[i] = ntt(shifted)
+        i = i + 1
+    }
+    let mut w1 = zeroVector(k)
+    i = 0
+    for i < k {
+        let mut acc = zeroPoly()
+        let mut s: usize = 0
+        for s < l {
+            acc = polyMulAdd(acc, a[i * l + s], zHat[s])
+            s = s + 1
+        }
+        acc = polySub(acc, polyMul(cHat, t1Hat[i]))
+        let w = invNtt(acc)
+        let mut high = zeroPoly()
+        let mut j: usize = 0
+        for j < n {
+            high[j] = useHint(w[j], hint[i][j])
+            j = j + 1
+        }
+        w1[i] = high
+        i = i + 1
+    }
+    let mut w1Bytes = Bytes.zeros(0)
+    i = 0
+    for i < k {
+        w1Bytes = w1Bytes.concat(packW1(w1[i]))
+        i = i + 1
+    }
+    let mut h4 = sha3.Xof256.new()
+    h4.update(mu)
+    h4.update(w1Bytes)
+    let expected = h4.finish(challengeSize)
+    Ok(subtle.constantTimeEq(challenge, expected))
+}
