@@ -1,0 +1,439 @@
+// TCB and QE identity collateral, evaluated the way dcap-qvl does: the quote
+// supplies the CPU SVN, PCE SVN and QE SVN, and caller-supplied Intel PCS
+// collateral supplies the levels those values must reach.
+//
+// `TcbInfo` mirrors the `tcbInfo` document (SGX TCB Info v3/v4): the
+// FMSPC plus an ordered list of TCB levels. Intel lists levels from newest
+// to oldest, so the first level whose sixteen `sgxtcbcomponents` are all at
+// or below the quote's `cpu_svn` and whose `pcesvn` is at or below the
+// quote's PCE SVN wins. No matching level means out of date.
+//
+// `QeIdentity` mirrors the `enclaveIdentity` part of the QvE Identity
+// document: the masked MISCSELECT/ATTRIBUTES comparison, MR_SIGNER and
+// ISV_PROD_ID, then the first `isvsvn` TCB level at or below the QE report's
+// ISV SVN. The JSON signature over the collateral is the caller's
+// responsibility; this package does not fetch or authenticate PCS responses.
+import hex from std/encoding/hex
+import json from std/json
+
+/// The TCB status strings Intel PCS publishes, in increasing severity.
+pub type TcbStatus =
+    | UpToDate
+    | ConfigurationNeeded
+    | SWHardeningNeeded
+    | ConfigurationAndSWHardeningNeeded
+    | OutOfDate
+    | Revoked
+
+pub fn TcbStatus.name(self) -> String {
+    match self {
+        TcbStatus.UpToDate -> "up-to-date"
+        TcbStatus.ConfigurationNeeded -> "configuration-needed"
+        TcbStatus.SWHardeningNeeded -> "sw-hardening-needed"
+        TcbStatus.ConfigurationAndSWHardeningNeeded -> "configuration-and-sw-hardening-needed"
+        TcbStatus.OutOfDate -> "out-of-date"
+        TcbStatus.Revoked -> "revoked"
+    }
+}
+
+/// Ordering for choosing the worse of two statuses in a verification result.
+pub pure fn TcbStatus.rank(self) -> Int {
+    match self {
+        TcbStatus.UpToDate -> 0
+        TcbStatus.ConfigurationNeeded -> 1
+        TcbStatus.SWHardeningNeeded -> 2
+        TcbStatus.ConfigurationAndSWHardeningNeeded -> 3
+        TcbStatus.OutOfDate -> 4
+        TcbStatus.Revoked -> 5
+    }
+}
+
+pure fn statusFromText(text: String) -> Result[TcbStatus, Error] {
+    match text {
+        "UpToDate" -> Ok(TcbStatus.UpToDate)
+        "ConfigurationNeeded" -> Ok(TcbStatus.ConfigurationNeeded)
+        "SWHardeningNeeded" -> Ok(TcbStatus.SWHardeningNeeded)
+        "ConfigurationAndSWHardeningNeeded" -> Ok(TcbStatus.ConfigurationAndSWHardeningNeeded)
+        "OutOfDate" -> Ok(TcbStatus.OutOfDate)
+        "Revoked" -> Ok(TcbStatus.Revoked)
+        _ -> fail failure(BadTcbInfo, "unknown TCB status `${text}`")
+    }
+}
+
+// JSON shapes. The derived decoders ignore fields this package does not name.
+
+type SgxComponentJson = {
+    pub svn u8
+}
+
+type SgxTcbJson = {
+    pub sgxtcbcomponents Array[SgxComponentJson]
+    pub pcesvn u16
+}
+
+type TcbLevelJson = {
+    pub tcb SgxTcbJson
+    pub tcbDate String?
+    pub tcbStatus String
+    pub advisoryIDs Array[String]?
+}
+
+type TcbInfoDocJson = {
+    pub fmspc String
+    pub tcbLevels Array[TcbLevelJson]
+}
+
+type TcbInfoJson = {
+    pub tcbInfo TcbInfoDocJson
+}
+
+type QeTcbJson = {
+    pub isvsvn u16
+}
+
+type QeTcbLevelJson = {
+    pub tcb QeTcbJson
+    pub tcbDate String?
+    pub tcbStatus String
+    pub advisoryIDs Array[String]?
+}
+
+type QeIdentityDocJson = {
+    pub miscselect String
+    pub miscselectMask String
+    pub attributes String
+    pub attributesMask String
+    pub mrsigner String
+    pub isvprodid u16
+    pub tcbLevels Array[QeTcbLevelJson]
+}
+
+type QeIdentityJson = {
+    pub enclaveIdentity QeIdentityDocJson
+}
+
+// `std` packages cannot use compiler-derived JSON codecs (the generator is
+// disabled for std), so the mirrors implement Decode explicitly. They are the
+// only handwritten codecs in this package, and every one is field-for-field.
+
+fn SgxComponentJson.fromJson(value: json.Value) -> SgxComponentJson! {
+    let mut o = json.Record.expect(value, "sgx TCB component")?
+    Ok(SgxComponentJson { svn: o.field("svn")? })
+}
+
+fn SgxTcbJson.fromJson(value: json.Value) -> SgxTcbJson! {
+    let mut o = json.Record.expect(value, "sgx TCB")?
+    Ok(SgxTcbJson {
+        sgxtcbcomponents: o.field("sgxtcbcomponents")?
+        pcesvn: o.field("pcesvn")?
+    })
+}
+
+fn TcbLevelJson.fromJson(value: json.Value) -> TcbLevelJson! {
+    let mut o = json.Record.expect(value, "TCB level")?
+    Ok(TcbLevelJson {
+        tcb: o.field("tcb")?
+        tcbDate: o.optional("tcbDate")?
+        tcbStatus: o.field("tcbStatus")?
+        advisoryIDs: o.optional("advisoryIDs")?
+    })
+}
+
+fn TcbInfoDocJson.fromJson(value: json.Value) -> TcbInfoDocJson! {
+    let mut o = json.Record.expect(value, "TCB Info")?
+    Ok(TcbInfoDocJson {
+        fmspc: o.field("fmspc")?
+        tcbLevels: o.field("tcbLevels")?
+    })
+}
+
+fn TcbInfoJson.fromJson(value: json.Value) -> TcbInfoJson! {
+    let mut o = json.Record.expect(value, "TCB Info document")?
+    Ok(TcbInfoJson { tcbInfo: o.field("tcbInfo")? })
+}
+
+fn QeTcbJson.fromJson(value: json.Value) -> QeTcbJson! {
+    let mut o = json.Record.expect(value, "QE TCB")?
+    Ok(QeTcbJson { isvsvn: o.field("isvsvn")? })
+}
+
+fn QeTcbLevelJson.fromJson(value: json.Value) -> QeTcbLevelJson! {
+    let mut o = json.Record.expect(value, "QE TCB level")?
+    Ok(QeTcbLevelJson {
+        tcb: o.field("tcb")?
+        tcbDate: o.optional("tcbDate")?
+        tcbStatus: o.field("tcbStatus")?
+        advisoryIDs: o.optional("advisoryIDs")?
+    })
+}
+
+fn QeIdentityDocJson.fromJson(value: json.Value) -> QeIdentityDocJson! {
+    let mut o = json.Record.expect(value, "QvE Identity")?
+    Ok(QeIdentityDocJson {
+        miscselect: o.field("miscselect")?
+        miscselectMask: o.field("miscselectMask")?
+        attributes: o.field("attributes")?
+        attributesMask: o.field("attributesMask")?
+        mrsigner: o.field("mrsigner")?
+        isvprodid: o.field("isvprodid")?
+        tcbLevels: o.field("tcbLevels")?
+    })
+}
+
+fn QeIdentityJson.fromJson(value: json.Value) -> QeIdentityJson! {
+    let mut o = json.Record.expect(value, "QvE Identity document")?
+    Ok(QeIdentityJson { enclaveIdentity: o.field("enclaveIdentity")? })
+}
+
+/// One SGX TCB level: sixteen component SVNs and the PCE SVN they require.
+pub type TcbLevel = {
+    pub components Array[u8]
+    pub pceSvn u16
+    pub tcbDate String?
+    pub status TcbStatus
+    pub advisoryIds Array[String]
+}
+
+/// The parts of a TCB Info document a verifier uses.
+pub type TcbInfo = {
+    pub fmspc Bytes
+    pub tcbLevels Array[TcbLevel]
+}
+
+/// What a quote's CPU / PCE SVNs reached in the collateral.
+pub type TcbEvaluation = {
+    pub matched Bool
+    pub status TcbStatus
+    pub tcbDate String?
+    pub advisoryIds Array[String]
+}
+
+pure fn decodeTcbLevel(level: &TcbLevelJson) -> Result[TcbLevel, Error] {
+    if level.tcb.sgxtcbcomponents.len() != 16 {
+        fail failure(BadTcbInfo, "TCB level has ${level.tcb.sgxtcbcomponents.len()} components, need 16")
+    }
+    let mut components = Array.empty[u8]()
+    let mut i: usize = 0
+    for i < 16 {
+        components.push(level.tcb.sgxtcbcomponents[i].svn)
+        i = i + 1
+    }
+    Ok(TcbLevel {
+        components: components
+        pceSvn: level.tcb.pcesvn
+        tcbDate: level.tcbDate
+        status: statusFromText(level.tcbStatus)?
+        advisoryIds: match &level.advisoryIDs {
+            Some(ids) -> ids.clone()
+            None -> Array.empty[String]()
+        }
+    })
+}
+
+/// Parses an Intel TCB Info JSON document. The wrapper tolerates the PCS
+/// response's `signature` field; the collateral signature is not checked
+/// here. A missing wrapper, a malformed FMSPC or a level with the wrong
+/// number of components is refused.
+pub fn TcbInfo.parse(text: String) -> Result[TcbInfo, Error] {
+    let doc = match json.decode[TcbInfoJson](text) {
+        Ok(value) -> value
+        Err(err) -> fail failure(BadTcbInfo, err.message())
+    }
+    let fmspc = match hex.decode(doc.tcbInfo.fmspc) {
+        Ok(value) -> value
+        Err(err) -> fail failure(BadTcbInfo, "FMSPC: ${err.message()}")
+    }
+    if fmspc.len() != 6 {
+        fail failure(BadTcbInfo, "FMSPC must be 6 bytes, got ${fmspc.len()}")
+    }
+    if doc.tcbInfo.tcbLevels.len() == 0 {
+        fail failure(BadTcbInfo, "TCB Info has no TCB levels")
+    }
+    let mut levels = Array.empty[TcbLevel]()
+    let mut i: usize = 0
+    for i < doc.tcbInfo.tcbLevels.len() {
+        levels.push(decodeTcbLevel(&doc.tcbInfo.tcbLevels[i])?)
+        i = i + 1
+    }
+    Ok(TcbInfo {
+        fmspc: fmspc
+        tcbLevels: levels
+    })
+}
+
+/// Whether `cpuSvn` reaches every one of `level`'s sixteen components.
+pure fn componentsReach(cpuSvn: Bytes, level: &TcbLevel) -> Bool {
+    if cpuSvn.len() != 16 {
+        return false
+    }
+    let mut i: usize = 0
+    for i < 16 {
+        if cpuSvn[i] < level.components[i] {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}
+
+/// Finds the first TCB level the quote's SVNs reach. Intel orders levels from
+/// newest to oldest, so the first match is the strongest claim the collateral
+/// supports.
+pub fn TcbInfo.evaluate(self, cpuSvn: Bytes, pceSvn: u16) -> TcbEvaluation {
+    let mut i: usize = 0
+    for i < self.tcbLevels.len() {
+        let level = &self.tcbLevels[i]
+        if pceSvn >= level.pceSvn && componentsReach(cpuSvn, level) {
+            return TcbEvaluation {
+                matched: true
+                status: level.status
+                tcbDate: level.tcbDate
+                advisoryIds: level.advisoryIds.clone()
+            }
+        }
+        i = i + 1
+    }
+    TcbEvaluation {
+        matched: false
+        status: TcbStatus.OutOfDate
+        tcbDate: None
+        advisoryIds: Array.empty[String]()
+    }
+}
+
+/// One QE TCB level, selected by the QE report's ISV SVN.
+pub type QeTcbLevel = {
+    pub isvSvn u16
+    pub tcbDate String?
+    pub status TcbStatus
+    pub advisoryIds Array[String]
+}
+
+/// The parts of a QvE Identity document a verifier uses. `attributes`,
+/// `attributesMask`, `mrSigner` and `isvProdId` are already decoded.
+pub type QeIdentity = {
+    pub miscSelect u32
+    pub miscSelectMask u32
+    pub attributes Bytes
+    pub attributesMask Bytes
+    pub mrSigner Bytes
+    pub isvProdId u16
+    pub tcbLevels Array[QeTcbLevel]
+}
+
+/// What the QE report reached in the identity collateral.
+pub type QeIdentityEvaluation = {
+    pub matched Bool
+    pub status TcbStatus
+    pub isvSvn u16
+    pub tcbDate String?
+    pub advisoryIds Array[String]
+}
+
+pure fn decodeHexField(text: String, field: String, expected: usize, code: Code) -> Result[Bytes, Error] {
+    let value = match hex.decode(text) {
+        Ok(bytes) -> bytes
+        Err(err) -> fail failure(code, "${field}: ${err.message()}")
+    }
+    if value.len() != expected {
+        fail failure(code, "${field} must be ${expected} bytes, got ${value.len()}")
+    }
+    Ok(value)
+}
+
+pure fn decodeWordField(text: String, field: String) -> Result[u32, Error] {
+    let value = match hex.decode(text) {
+        Ok(bytes) -> bytes
+        Err(err) -> fail failure(BadQeIdentity, "${field}: ${err.message()}")
+    }
+    if value.len() != 4 {
+        fail failure(BadQeIdentity, "${field} must be 4 bytes, got ${value.len()}")
+    }
+    Ok(((value[0].toU32() << 24) | (value[1].toU32() << 16) | (value[2].toU32() << 8) | value[3].toU32()))
+}
+
+/// Parses a QvE Identity JSON document. The `signature` wrapper field is
+/// tolerated; the collateral signature is not checked here.
+pub fn QeIdentity.parse(text: String) -> Result[QeIdentity, Error] {
+    let doc = match json.decode[QeIdentityJson](text) {
+        Ok(value) -> value
+        Err(err) -> fail failure(BadQeIdentity, err.message())
+    }
+    if doc.enclaveIdentity.tcbLevels.len() == 0 {
+        fail failure(BadQeIdentity, "QE Identity has no TCB levels")
+    }
+    let mut levels = Array.empty[QeTcbLevel]()
+    let mut i: usize = 0
+    for i < doc.enclaveIdentity.tcbLevels.len() {
+        let level = &doc.enclaveIdentity.tcbLevels[i]
+        levels.push(QeTcbLevel {
+            isvSvn: level.tcb.isvsvn
+            tcbDate: level.tcbDate
+            status: statusFromText(level.tcbStatus)?
+            advisoryIds: match &level.advisoryIDs {
+                Some(ids) -> ids.clone()
+                None -> Array.empty[String]()
+            }
+        })
+        i = i + 1
+    }
+    Ok(QeIdentity {
+        miscSelect: decodeWordField(doc.enclaveIdentity.miscselect, "miscselect")?
+        miscSelectMask: decodeWordField(doc.enclaveIdentity.miscselectMask, "miscselectMask")?
+        attributes: decodeHexField(doc.enclaveIdentity.attributes, "attributes", 16, BadQeIdentity)?
+        attributesMask: decodeHexField(doc.enclaveIdentity.attributesMask, "attributesMask", 16, BadQeIdentity)?
+        mrSigner: decodeHexField(doc.enclaveIdentity.mrsigner, "mrsigner", 32, BadQeIdentity)?
+        isvProdId: doc.enclaveIdentity.isvprodid
+        tcbLevels: levels
+    })
+}
+
+pure fn maskedAttributesMatch(report: Bytes, expected: Bytes, mask: Bytes) -> Bool {
+    let mut i: usize = 0
+    for i < 16 {
+        if (report[i] & mask[i]) != (expected[i] & mask[i]) {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}
+
+/// Checks the QE report against the identity and returns the QE TCB level.
+/// A MISCSELECT, ATTRIBUTES, MR_SIGNER or ISV_PROD_ID mismatch is
+/// `QeIdentityMismatch`; an ISV SVN below every level is out of date.
+pub fn QeIdentity.evaluate(self, report: &Report) -> Result[QeIdentityEvaluation, Error] {
+    if (report.miscSelect & self.miscSelectMask) != (self.miscSelect & self.miscSelectMask) {
+        fail failure(QeIdentityMismatch, "QE report MISCSELECT does not match the identity")
+    }
+    if !maskedAttributesMatch(report.attributes, self.attributes, self.attributesMask) {
+        fail failure(QeIdentityMismatch, "QE report ATTRIBUTES do not match the identity")
+    }
+    if !report.mrSigner.equals(&self.mrSigner) {
+        fail failure(QeIdentityMismatch, "QE report MR_SIGNER does not match the identity")
+    }
+    if report.isvProdId != self.isvProdId {
+        fail failure(QeIdentityMismatch, "QE report ISV_PROD_ID does not match the identity")
+    }
+    let mut i: usize = 0
+    for i < self.tcbLevels.len() {
+        let level = &self.tcbLevels[i]
+        if report.isvSvn >= level.isvSvn {
+            return Ok(QeIdentityEvaluation {
+                matched: true
+                status: level.status
+                isvSvn: report.isvSvn
+                tcbDate: level.tcbDate
+                advisoryIds: level.advisoryIds.clone()
+            })
+        }
+        i = i + 1
+    }
+    Ok(QeIdentityEvaluation {
+        matched: false
+        status: TcbStatus.OutOfDate
+        isvSvn: report.isvSvn
+        tcbDate: None
+        advisoryIds: Array.empty[String]()
+    })
+}

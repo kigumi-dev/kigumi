@@ -1,0 +1,186 @@
+// The PCK certificate-chain boundary.
+//
+// Intel's SGX PCK chain is leaf (P-256) -> PCK Platform / Processor CA
+// (P-256) -> Intel SGX Root CA (P-384). `std/crypto/x509` verifies ECDSA
+// P-256 with SHA-256 and RSA, but has no P-384. This module therefore
+// validates the P-256 hops and requires the caller to pin the anchor; a
+// P-384 certificate in the chain or anchor is refused with
+// `UnsupportedAlgorithm`, never accepted as trusted.
+//
+// The quote's QE report signature is checked against the leaf before this
+// module runs, so the leaf's authenticity rests on the path this module
+// validates and on the caller's pinned anchor. Revocation (CRL/OCSP) and
+// Intel root cross-signing are out of scope for Tier 0.
+import x509 from std/crypto/x509
+
+/// A parsed PCK chain, leaf first. The anchor is not part of the chain.
+pub type Chain = {
+    pub certificates Array[x509.Certificate]
+}
+
+/// P-384 appears in DER as the named curve `1.3.132.0.34`
+/// (06 05 2B 81 04 00 22) or as ecdsa-with-SHA384 `1.2.840.10045.4.3.3`
+/// (06 08 2A 86 48 CE 3D 04 03 03). Scanning for either is conservative: a
+/// random key byte sequence could only cause a refusal, never acceptance.
+pure noalloc fn hasP384Oid(der: Bytes) -> Bool {
+    let mut i: usize = 0
+    for i < der.len() {
+        if i + 7 <= der.len() && der[i] == 0x06 && der[i + 1] == 0x05 && der[i + 2] == 0x2B && der[i + 3] == 0x81 && der[i + 4] == 0x04 && der[i + 5] == 0x00 && der[i + 6] == 0x22 {
+            return true
+        }
+        if i + 10 <= der.len() && der[i] == 0x06 && der[i + 1] == 0x08 && der[i + 2] == 0x2A && der[i + 3] == 0x86 && der[i + 4] == 0x48 && der[i + 5] == 0xCE && der[i + 6] == 0x3D && der[i + 7] == 0x04 && der[i + 8] == 0x03 && der[i + 9] == 0x03 {
+            return true
+        }
+        i = i + 1
+    }
+    false
+}
+
+pure fn classifyParseError(err: x509.ParseError) -> Error {
+    let text = err.message()
+    if text.contains("P-384") || text.contains("P-256") || text.contains("unsupported") {
+        failure(UnsupportedAlgorithm, "PCK certificate: ${text}")
+    } else {
+        failure(BadPckChain, "PCK certificate: ${text}")
+    }
+}
+
+pure fn decodePem(pem: Bytes, what: String) -> Result[String, Error] {
+    match String.fromBytes(pem) {
+        Ok(text) -> Ok(text)
+        Err(_) -> fail failure(BadPckChain, "${what} is not UTF-8 PEM")
+    }
+}
+
+/// Parses every CERTIFICATE block of a PEM chain. The input must contain at
+/// least one certificate; a P-384 certificate anywhere is refused rather than
+/// silently skipped.
+pub fn parseChain(pem: Bytes) -> Result[Chain, Error] {
+    if pem.len() == 0 {
+        fail failure(BadPckChain, "PCK chain is empty")
+    }
+    if hasP384Oid(pem) {
+        fail failure(UnsupportedAlgorithm, "PCK chain uses P-384, which std/crypto/x509 cannot verify")
+    }
+    let text = decodePem(pem, "PCK chain")?
+    let certificates = match x509.parsePem(text) {
+        Ok(value) -> value
+        Err(err) -> fail classifyParseError(err)
+    }
+    if certificates.len() == 0 {
+        fail failure(BadPckChain, "PCK chain has no certificate")
+    }
+    Ok(Chain { certificates: certificates })
+}
+
+/// Parses the caller's pinned anchor set. Intel's root is P-384, so a caller
+/// that pins it gets `UnsupportedAlgorithm` until P-384 verification exists;
+/// the alternative is to pin the intermediate or a locally trusted root.
+pub fn parseAnchors(pem: String) -> Result[Array[x509.Certificate], Error] {
+    let bytes = pem.toBytes()
+    if bytes.len() == 0 {
+        fail failure(MissingTrustAnchor, "trust anchor set is empty")
+    }
+    if hasP384Oid(bytes) {
+        fail failure(UnsupportedAlgorithm, "trust anchor uses P-384, which std/crypto/x509 cannot verify")
+    }
+    let certificates = match x509.parsePem(pem) {
+        Ok(value) -> value
+        Err(err) -> fail classifyParseError(err)
+    }
+    if certificates.len() == 0 {
+        fail failure(MissingTrustAnchor, "trust anchor set has no certificate")
+    }
+    Ok(certificates)
+}
+
+/// The leaf certificate's key, or `UnsupportedAlgorithm` when it is not a
+/// P-256 EC key.
+pub pure fn Chain.leafPublicKey(self) -> Result[Bytes, Error] {
+    if self.certificates.len() == 0 {
+        fail failure(BadPckChain, "PCK chain has no leaf")
+    }
+    let leaf = &self.certificates[0]
+    match &leaf.publicKey {
+        x509.PublicKey.EcP256(value) -> Ok(value)
+        x509.PublicKey.Rsa(_) -> fail failure(UnsupportedAlgorithm, "PCK leaf key is not P-256")
+    }
+}
+
+pure fn requireCertificateAuthority(cert: &x509.Certificate, intermediatesBelow: usize) -> Result[Void, Error] {
+    if !cert.basicConstraints.present || !cert.basicConstraints.ca {
+        fail failure(PckChainMismatch, "PCK issuer certificate is not a CA")
+    }
+    if cert.keyUsage.present && !cert.keyUsage.keyCertSign {
+        fail failure(PckChainMismatch, "PCK CA certificate keyUsage lacks keyCertSign")
+    }
+    match cert.basicConstraints.pathLen {
+        Some(limit) -> {
+            if intermediatesBelow > (limit.toUsize() || 0) {
+                fail failure(PckChainMismatch, "PCK CA pathLen ${limit} exceeded")
+            }
+        }
+        None -> {}
+    }
+    Ok(())
+}
+
+pure fn checkValidity(cert: &x509.Certificate, nowMillis: Int, what: String) -> Result[Void, Error] {
+    match cert.checkValidity(nowMillis) {
+        Ok(_) -> Ok(())
+        Err(err) -> fail failure(BadPckChain, "${what}: ${err.message()}")
+    }
+}
+
+pure fn checkSignature(cert: &x509.Certificate, issuer: &x509.Certificate) -> Result[Void, Error] {
+    match cert.verifySignedBy(issuer) {
+        Ok(_) -> Ok(())
+        Err(err) -> fail failure(PckChainMismatch, "PCK certificate signature does not verify: ${err.message()}")
+    }
+}
+
+/// Validates the chain's P-256 hops at `nowMillis` and requires the last
+/// certificate to be signed by one of `anchors`. Every issuing certificate
+/// must be a CA with keyCertSign when keyUsage is present and must respect
+/// basicConstraints pathLen. The anchor is checked for validity and authority
+/// too, so an expired or non-CA pin is refused.
+pub fn Chain.verify(self, anchors: &Array[x509.Certificate], nowMillis: Int) -> Result[Void, Error] {
+    if self.certificates.len() == 0 {
+        fail failure(BadPckChain, "PCK chain has no certificate")
+    }
+    if anchors.len() == 0 {
+        fail failure(MissingTrustAnchor, "no PCK trust anchor was supplied")
+    }
+    let mut i: usize = 0
+    for i < self.certificates.len() {
+        let cert = &self.certificates[i]
+        checkValidity(cert, nowMillis, "PCK certificate")?
+        let next = i + 1
+        if next < self.certificates.len() {
+            let issuer = &self.certificates[next]
+            if !cert.issuer.raw.equals(&issuer.subject.raw) {
+                fail failure(PckChainMismatch, "PCK issuer and subject names do not match")
+            }
+            requireCertificateAuthority(issuer, i)?
+            checkSignature(cert, issuer)?
+        } else {
+            let mut found = false
+            let mut a: usize = 0
+            for a < anchors.len() {
+                let anchor = &anchors[a]
+                if cert.issuer.raw.equals(&anchor.subject.raw) {
+                    checkValidity(anchor, nowMillis, "PCK trust anchor")?
+                    requireCertificateAuthority(anchor, self.certificates.len() - 1)?
+                    checkSignature(cert, anchor)?
+                    found = true
+                }
+                a = a + 1
+            }
+            if !found {
+                fail failure(PckChainMismatch, "PCK chain does not reach a pinned trust anchor")
+            }
+        }
+        i = i + 1
+    }
+    Ok(())
+}

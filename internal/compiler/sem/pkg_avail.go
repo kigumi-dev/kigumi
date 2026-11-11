@@ -46,6 +46,7 @@ var stdLayer = map[string]Layer{
 	"std/crypto/x509":             LayerAllocation,
 	"std/cvm/attest":              LayerAllocation,
 	"std/cvm/cca":                 LayerAllocation,
+	"std/cvm/sgx":                 LayerAllocation,
 	"std/cvm/snp":                 LayerAllocation,
 	"std/cvm/tdx":                 LayerAllocation,
 	"std/secret":                  LayerFoundation,

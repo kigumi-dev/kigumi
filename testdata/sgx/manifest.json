@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "comment": "Deterministic Intel SGX DCAP Tier 0 vectors generated from fixed P-256/P-384 keys; no hardware is involved and no vector marks an unverified structure as valid.",
+  "suites": [
+    {
+      "primitive": "sgx-quote-parse",
+      "source": "Deterministic SGX v3 quote signed with a fixed P-256 attestation key; structure per Intel DCAP Quote Library API",
+      "path": "sgx_quote_parse.json"
+    },
+    {
+      "primitive": "sgx-quote-signature",
+      "source": "Quote signature checks over header || report with fixed P-256 keys",
+      "path": "sgx_quote_signature.json"
+    },
+    {
+      "primitive": "sgx-qe",
+      "source": "QE report binding and signature with a fixed P-256 PCK leaf",
+      "path": "sgx_qe.json"
+    },
+    {
+      "primitive": "sgx-pck",
+      "source": "P-256 PCK chain path validation with fixed certificates; P-384 is refused, not ignored",
+      "path": "sgx_pck.json"
+    },
+    {
+      "primitive": "sgx-tcb",
+      "source": "Intel TCB Info JSON shapes evaluated against a fixed CPU SVN",
+      "path": "sgx_tcb.json"
+    },
+    {
+      "primitive": "sgx-verify",
+      "source": "End-to-end DCAP verification: quote + QE + P-256 PCK chain + TCB/QE identity",
+      "path": "sgx_verify.json"
+    }
+  ]
+}

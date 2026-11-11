@@ -1,0 +1,88 @@
+// The 384-byte SGX report body, used both inside a DCAP quote and as the QE
+// report.
+//
+// Layout (Intel SGX SDK `sgx_report_body_t`, little-endian integers):
+//   0x000  cpu_svn          16
+//   0x010  misc_select       4
+//   0x014  reserved1        28
+//   0x030  attributes       16
+//   0x040  mr_enclave       32
+//   0x060  reserved2        32
+//   0x080  mr_signer        32
+//   0x0A0  reserved3        96
+//   0x100  isv_prod_id      2
+//   0x102  isv_svn          2
+//   0x104  reserved4        60
+//   0x140  report_data      64
+//
+// A parsed report has had its size, reserved ranges and the reserved
+// `misc_select` bits checked. Attribute flags are left raw because callers
+// compare them through the QE identity masks in `tcb.kg`.
+
+/// A structurally valid SGX report body. The record owns no arrays of
+/// records, only byte strings, so copying one does not duplicate the input.
+pub type Report = {
+    pub cpuSvn Bytes
+    pub miscSelect u32
+    pub attributes Bytes
+    pub mrEnclave Bytes
+    pub mrSigner Bytes
+    pub isvProdId u16
+    pub isvSvn u16
+    pub reportData Bytes
+}
+
+/// `misc_select` bit 0: EXINFO. Every other bit is reserved.
+const miscSelectKnownBits: u32 = 0x1
+
+/// Parses one report body. Reserved bytes must be zero and `misc_select` may
+/// not carry reserved bits, so a quote cannot smuggle data through fields the
+/// architecture defines as fixed.
+pub pure fn Report.parse(raw: Bytes) -> Result[Report, Error] {
+    if raw.len() != reportSize {
+        fail failure(BadLength, "report must be ${reportSize} bytes, got ${raw.len()}")
+    }
+    requireZero(raw, 0x14, 28, "report reserved1")?
+    requireZero(raw, 0x60, 32, "report reserved2")?
+    requireZero(raw, 0xA0, 96, "report reserved3")?
+    requireZero(raw, 0x104, 60, "report reserved4")?
+    let miscSelect = u32At(raw, 0x10, "misc_select")?
+    if (miscSelect & ~miscSelectKnownBits) != 0 {
+        fail failure(BadMiscSelect, "misc_select has reserved bits set")
+    }
+    Ok(Report {
+        cpuSvn: sliceAt(raw, 0x00, 16, "cpu_svn")?
+        miscSelect: miscSelect
+        attributes: sliceAt(raw, 0x30, 16, "attributes")?
+        mrEnclave: sliceAt(raw, 0x40, 32, "mr_enclave")?
+        mrSigner: sliceAt(raw, 0x80, 32, "mr_signer")?
+        isvProdId: u16At(raw, 0x100, "isv_prod_id")?
+        isvSvn: u16At(raw, 0x102, "isv_svn")?
+        reportData: sliceAt(raw, 0x140, 64, "report_data")?
+    })
+}
+
+/// Whether attribute flag bit `index` is set. Bits 0..7 are the first byte
+/// of the flags word; bit 1 is DEBUG and bit 2 is MODE64BIT.
+pure fn attributeBit(attributes: Bytes, index: usize) -> Bool {
+    let byte = index / 8
+    if byte >= attributes.len() {
+        return false
+    }
+    ((attributes[byte].toU32() >> (index % 8)) & 1) != 0
+}
+
+/// The DEBUG attribute. A production verifier refuses it.
+pub pure fn Report.debug(self) -> Bool {
+    attributeBit(self.attributes, 1)
+}
+
+/// The MODE64BIT attribute.
+pub pure fn Report.mode64(self) -> Bool {
+    attributeBit(self.attributes, 2)
+}
+
+/// Whether `nonce` is exactly the 64-byte REPORT_DATA.
+pub pure fn Report.reportDataEquals(self, nonce: Bytes) -> Bool {
+    self.reportData.equals(&nonce)
+}

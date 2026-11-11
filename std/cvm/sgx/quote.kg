@@ -1,0 +1,211 @@
+// The SGX DCAP quote envelope: a 48-byte header, the 384-byte SGX report
+// body, and the signature data (quote signature, attestation key, and the
+// certification data that links the quote to a QE and a PCK chain).
+//
+// Layout (Intel SGX ECDSA Quote Library API, quote version 3, which is
+// ECDSA P-256 fixed):
+//   0x000  quote header, 48 bytes: version, key type, reserved, QE/PCE SVN,
+//          QE vendor ID, user data
+//   0x030  SGX report body, 384 bytes
+//   0x1B0  signature data length, u32 little-endian
+//   0x1B4  signature data: quote signature, attestation key, certification data
+//
+// `verifySignature` checks the ECDSA P-256 signature over header || report
+// with the attestation key carried in the envelope. That only proves the
+// quote body was signed by that key; the key's own trust comes from the QE
+// report and the PCK chain, which `verifyQe` and `Chain.verify` handle. A
+// P-384 attestation key is refused at parse time with `UnsupportedKeyType`;
+// `std/crypto` has no P-384.
+import p256 from std/crypto/p256
+
+/// The 48-byte quote header.
+pub type Header = {
+    pub version u16
+    pub keyType u16
+    pub teeType u32
+    pub qeSvn u16
+    pub pceSvn u16
+    pub qeVendorId Bytes
+    pub userData Bytes
+}
+
+/// Certification data type 6: the QE report, its signature, the QE auth data
+/// and the PCK certificate chain that vouches for the QE.
+pub type QeCertification = {
+    pub report Bytes
+    pub signature Bytes
+    pub authData Bytes
+    pub pckCertChain Bytes
+}
+
+/// Certification data carried after the attestation key.
+pub type CertificationData =
+    | PckCertChain(Bytes)
+    | QeReport(QeCertification)
+    | Unknown(tag: u16, data: Bytes)
+
+/// A parsed SGX quote. `signed` is the exact header || report range the quote
+/// signature covers.
+pub type Quote = {
+    pub header Header
+    pub report Report
+    pub quoteSignature Bytes
+    pub attestationKey Bytes
+    pub certificationData CertificationData
+    signed Bytes
+}
+
+const sigLengthOff: usize = quoteHeaderSize + reportSize
+
+const sigDataOff: usize = sigLengthOff + 4
+
+const certPrefixSize: usize = 6
+
+/// Offset of the QE report inside certification data type 6.
+const qeReportOff: usize = 0
+
+/// Offset of the QE report signature inside certification data type 6.
+const qeSignatureOff: usize = reportSize
+
+/// Parses an SGX v3 (ECDSA P-256) quote. Version 4 unified quotes and P-384
+/// keys are refused explicitly rather than misread. The envelope must end
+/// exactly after the declared signature data, and every nested length is
+/// bounds checked before it is used.
+pub pure fn Quote.parse(data: Bytes) -> Result[Quote, Error] {
+    if data.len() < sigDataOff {
+        fail failure(BadLength, "quote is shorter than a header, report and signature length")
+    }
+    let version = u16At(data, 0, "quote version")?
+    if version == quoteVersionUnified {
+        fail failure(UnsupportedVersion, "version 4 unified quotes are not implemented; this package verifies SGX v3 ECDSA-256 quotes")
+    }
+    if version != quoteVersionEcdsa256 {
+        fail failure(UnsupportedVersion, "quote version ${version} is not supported (need SGX v3)")
+    }
+    let keyType = u16At(data, 2, "attestation key type")?
+    if keyType != keyTypeEcdsaP256 {
+        fail failure(UnsupportedKeyType, "SGX v3 quote keys must be ECDSA P-256; key type ${keyType} is not implemented")
+    }
+    let teeType = u32At(data, 4, "TEE type")?
+    if teeType != teeTypeSgx {
+        fail failure(BadTeeType, "quote TEE type / v3 reserved field is 0x${teeType}, not SGX")
+    }
+
+    let declaredWord = u32At(data, sigLengthOff, "signature data length")?
+    let declared = declaredWord.toUsize()
+    let available = data.len() - sigDataOff
+    if declared > available {
+        fail failure(BadLength, "signature data of ${declared} bytes runs past the quote")
+    }
+    if declared != available {
+        fail failure(BadLength, "quote has ${available - declared} trailing bytes")
+    }
+    if declared < signatureSize * 2 + certPrefixSize {
+        fail failure(BadLength, "signature data is too short for a quote signature, key and certification data")
+    }
+
+    let report = Report.parse(sliceAt(data, quoteHeaderSize, reportSize, "SGX report")?)?
+
+    let quoteSignature = sliceAt(data, sigDataOff, signatureSize, "quote signature")?
+    let attestationKey = sliceAt(data, sigDataOff + signatureSize, signatureSize, "attestation key")?
+    let certBase = sigDataOff + signatureSize * 2
+    let certType = u16At(data, certBase, "certification data type")?
+    let certLengthWord = u32At(data, certBase + 2, "certification data length")?
+    let certLength = certLengthWord.toUsize()
+    if certLength != declared - signatureSize * 2 - certPrefixSize {
+        fail failure(BadCertificationData, "certification data length does not fill the signature data")
+    }
+    let certBytes = sliceAt(data, certBase + certPrefixSize, certLength, "certification data")?
+    let certificationData = match certType {
+        5 -> CertificationData.PckCertChain(certBytes)
+        6 -> CertificationData.QeReport(parseQeCertification(certBytes)?)
+        _ -> CertificationData.Unknown(certType, certBytes)
+    }
+
+    Ok(Quote {
+        header: Header {
+            version: version
+            keyType: keyType
+            teeType: teeType
+            qeSvn: u16At(data, 8, "QE SVN")?
+            pceSvn: u16At(data, 10, "PCE SVN")?
+            qeVendorId: sliceAt(data, 12, 16, "QE vendor ID")?
+            userData: sliceAt(data, 28, 20, "quote user data")?
+        }
+        report: report
+        quoteSignature: quoteSignature
+        attestationKey: attestationKey
+        certificationData: certificationData
+        signed: sliceAt(data, 0, quoteHeaderSize + reportSize, "signed quote body")?
+    })
+}
+
+pure fn parseQeCertification(data: Bytes) -> Result[QeCertification, Error] {
+    if data.len() < reportSize + signatureSize + 2 + certPrefixSize {
+        fail failure(BadCertificationData, "QE certification data is truncated")
+    }
+    let report = sliceAt(data, qeReportOff, reportSize, "QE report")?
+    let signature = sliceAt(data, qeSignatureOff, signatureSize, "QE report signature")?
+    let authLengthWord = u16At(data, reportSize + signatureSize, "QE auth data length")?
+    let authLength = authLengthWord.toUsize()
+    let authOff = reportSize + signatureSize + 2
+    if authLength > data.len() - authOff {
+        fail failure(BadCertificationData, "QE auth data runs past the certification data")
+    }
+    let authData = sliceAt(data, authOff, authLength, "QE auth data")?
+    let innerBase = authOff + authLength
+    if data.len() - innerBase < certPrefixSize {
+        fail failure(BadCertificationData, "PCK certificate data is missing")
+    }
+    let innerType = u16At(data, innerBase, "PCK certificate data type")?
+    let innerLengthWord = u32At(data, innerBase + 2, "PCK certificate data length")?
+    let innerLength = innerLengthWord.toUsize()
+    if innerLength != data.len() - innerBase - certPrefixSize {
+        fail failure(BadCertificationData, "PCK certificate data length does not fill the envelope")
+    }
+    if innerType != 5 {
+        fail failure(BadCertificationData, "QE certification data carries chain type ${innerType}, need 5")
+    }
+    Ok(QeCertification {
+        report: report
+        signature: signature
+        authData: authData
+        pckCertChain: sliceAt(data, innerBase + certPrefixSize, innerLength, "PCK certificate chain")?
+    })
+}
+
+/// Verifies the quote signature over header || report with the envelope's
+/// attestation key. A manually constructed P-384 header fails here with
+/// `UnsupportedAlgorithm`; `std/crypto` has no P-384 implementation.
+pub pure fn verifyQuoteSignature(quote: &Quote) -> Result[Void, Error] {
+    if quote.header.keyType != keyTypeEcdsaP256 {
+        fail failure(UnsupportedAlgorithm, "P-384 SGX quote signatures are not implemented")
+    }
+    let public = Bytes.fill(4, 1).concat(quote.attestationKey)
+    match p256.verifyMessage(public, quote.signed, quote.quoteSignature) {
+        Ok(true) -> Ok(())
+        Ok(false) -> fail failure(SignatureInvalid, "quote signature does not match the attestation key")
+        Err(err) -> fail failure(BadSignature, err.message())
+    }
+}
+
+/// `verifyQuoteSignature` as a consuming method.
+pub pure fn Quote.verifySignature(self) -> Result[Void, Error] {
+    verifyQuoteSignature(&self)
+}
+
+/// The QE certification data, copied field by field (the bytes are shared,
+/// not duplicated). Quotes that carry only a type 5 PCK chain (no QE report)
+/// cannot prove the attestation key's origin and are refused.
+pub pure fn qeCertificationOf(quote: &Quote) -> Result[QeCertification, Error] {
+    match &quote.certificationData {
+        CertificationData.QeReport(qe) -> Ok(QeCertification {
+            report: qe.report
+            signature: qe.signature
+            authData: qe.authData
+            pckCertChain: qe.pckCertChain
+        })
+        CertificationData.PckCertChain(_) -> fail failure(MissingQeReport, "quote carries a PCK chain but no QE report")
+        CertificationData.Unknown(tag, _) -> fail failure(BadCertificationData, "unknown certification data type ${tag}")
+    }
+}

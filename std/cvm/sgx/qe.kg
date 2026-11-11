@@ -1,0 +1,58 @@
+// The QE report signature boundary.
+//
+// A DCAP quote's certification data type 6 carries the QE report, its ECDSA
+// P-256 signature, the QE auth data, and the PCK chain. `verify` checks, in
+// order:
+//
+//   1. the QE report body parses with zero reserved fields;
+//   2. REPORT_DATA equals SHA-256(attestation public key x||y) ||
+//      SHA-256(QE auth data), which binds the quoting enclave to the key
+//      that signed the quote;
+//   3. the QE report signature verifies with the leaf key of the PCK chain.
+//
+// It does not yet say the PCK chain is trusted: that is `pck.Chain.verify`
+// against a pinned anchor. Keeping the two steps separate is what lets the
+// tests show a valid QE signature on an untrusted chain without marking the
+// quote as authenticated.
+import p256 from std/crypto/p256
+import sha256 from std/crypto/sha256
+
+/// A verified QE report and the chain that carried its key.
+pub type Verified = {
+    pub report Report
+    pub authData Bytes
+    pub chain Chain
+}
+
+/// The 64-byte REPORT_DATA binding: key digest first, auth-data digest second.
+pub pure fn qeReportData(attestationKey: Bytes, authData: Bytes) -> Result[Bytes, Error] {
+    if attestationKey.len() != attestationKeySize {
+        fail failure(BadLength, "attestation key must be ${attestationKeySize} bytes")
+    }
+    Ok(sha256.sum(attestationKey).concat(sha256.sum(authData)))
+}
+
+/// Verifies one type-6 QE certification record. The returned chain is parsed
+/// and its leaf signed the report, but it is not anchored here.
+pub pure fn verifyQe(qe: &QeCertification, attestationKey: Bytes) -> Result[Verified, Error] {
+    let report = Report.parse(qe.report)?
+    if qe.signature.len() != signatureSize {
+        fail failure(BadSignature, "QE report signature must be ${signatureSize} bytes")
+    }
+    let expected = qeReportData(attestationKey, qe.authData)?
+    if !report.reportData.equals(&expected) {
+        fail failure(QeReportMismatch, "QE report REPORT_DATA does not bind the attestation key and QE auth data")
+    }
+    let chain = parseChain(qe.pckCertChain)?
+    let leafKey = chain.leafPublicKey()?
+    match p256.verifyMessage(leafKey, qe.report, qe.signature) {
+        Ok(true) -> {}
+        Ok(false) -> fail failure(SignatureInvalid, "QE report signature does not match the PCK leaf")
+        Err(err) -> fail failure(BadSignature, err.message())
+    }
+    Ok(Verified {
+        report: report
+        authData: qe.authData
+        chain: chain
+    })
+}

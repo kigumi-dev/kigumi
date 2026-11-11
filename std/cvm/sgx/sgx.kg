@@ -1,0 +1,191 @@
+// Intel SGX DCAP Tier 0: quote parsing, the QE report / PCK chain boundary,
+// TCB and QE identity claims, and a dcap-qvl-style verification result.
+//
+// This package deliberately stops at the boundary `std` can actually prove.
+// The SGX quote and QE report signatures are ECDSA P-256 over SHA-256, which
+// `std/crypto/p256` verifies. Intel's SGX Root CA is ECDSA P-384, which
+// `std/crypto/x509` cannot verify; `pck.verify` therefore refuses a P-384
+// anchor or chain with `UnsupportedAlgorithm` instead of treating a
+// host-supplied chain as trusted. Quotes whose header selects P-384 parse but
+// fail verification with the same code. This is not a hardware claim: every
+// vector in the tests is generated locally from fixed keys.
+import binary from std/encoding/binary
+
+/// Why an SGX structure or verification was refused. `code` is the stable
+/// value callers branch on; `text` carries the specific field or reason.
+pub type Code =
+    | BadLength
+    | BadReserved
+    | UnsupportedVersion
+    | UnsupportedKeyType
+    | BadTeeType
+    | BadMiscSelect
+    | BadSignature
+    | BadCertificationData
+    | SignatureInvalid
+    | QeReportMismatch
+    | QeIdentityMismatch
+    | MissingQeReport
+    | BadPckChain
+    | PckChainMismatch
+    | UnsupportedAlgorithm
+    | BadTcbInfo
+    | BadQeIdentity
+    | PolicyRejected
+    | MissingTrustAnchor
+
+pub fn Code.name(self) -> String {
+    match self {
+        BadLength -> "bad-length"
+        BadReserved -> "bad-reserved"
+        UnsupportedVersion -> "unsupported-version"
+        UnsupportedKeyType -> "unsupported-key-type"
+        BadTeeType -> "bad-tee-type"
+        BadMiscSelect -> "bad-misc-select"
+        BadSignature -> "bad-signature"
+        BadCertificationData -> "bad-certification-data"
+        SignatureInvalid -> "signature-invalid"
+        QeReportMismatch -> "qe-report-mismatch"
+        QeIdentityMismatch -> "qe-identity-mismatch"
+        MissingQeReport -> "missing-qe-report"
+        BadPckChain -> "bad-pck-chain"
+        PckChainMismatch -> "pck-chain-mismatch"
+        UnsupportedAlgorithm -> "unsupported-algorithm"
+        BadTcbInfo -> "bad-tcb-info"
+        BadQeIdentity -> "bad-qe-identity"
+        PolicyRejected -> "policy-rejected"
+        MissingTrustAnchor -> "missing-trust-anchor"
+    }
+}
+
+/// A parse, chain or verification failure: a stable code plus a message that
+/// names the field or reason.
+pub type Error = {
+    pub code Code
+    pub text String
+}
+
+pub fn Error.message(self) -> String {
+    self.text
+}
+
+pub pure fn failure(code: Code, text: String) -> Error {
+    Error {
+        code: code
+        text: "sgx: ${text}"
+    }
+}
+
+/// Bytes of the DCAP quote header.
+pub const quoteHeaderSize: usize = 48
+
+/// Bytes of the SGX report body carried by a v3/v4 quote, and of a QE report.
+pub const reportSize: usize = 384
+
+/// Bytes of an ECDSA P-256 quote or QE report signature (r || s).
+pub const signatureSize: usize = 64
+
+/// Bytes of an ECDSA P-256 attestation public key (x || y, no SEC1 prefix).
+pub const attestationKeySize: usize = 64
+
+/// Quote version selecting ECDSA P-256.
+pub const quoteVersionEcdsa256: u16 = 3
+
+/// Version 4 unified quotes (TDX/SGX). Refused explicitly: the SGX v3
+/// header layout this package parses does not describe them.
+pub const quoteVersionUnified: u16 = 4
+
+/// Attestation key type: ECDSA P-256.
+pub const keyTypeEcdsaP256: u16 = 2
+
+/// Attestation key type: ECDSA P-384.
+pub const keyTypeEcdsaP384: u16 = 3
+
+/// TEE type of an SGX quote. TDX uses 0x81 and refuses this package.
+pub const teeTypeSgx: u32 = 0
+
+/// Whether every byte is zero.
+pub pure fn allZero(value: Bytes) -> Bool {
+    let mut i: usize = 0
+    for i < value.len() {
+        if value[i] != 0 {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}
+
+/// The `len` bytes at `at`; `Truncated` rather than a zero-filled slice when
+/// the range runs past the end.
+pub pure fn sliceAt(value: Bytes, at: usize, len: usize, field: String) -> Result[Bytes, Error] {
+    if at > value.len() || len > value.len() - at {
+        fail failure(BadLength, "${field} is truncated")
+    }
+    match value.slice(at, at + len) {
+        Some(slice) -> Ok(slice)
+        None -> fail failure(BadLength, "${field} is truncated")
+    }
+}
+
+/// Refuses a defined reserved range that is not all zero.
+pub pure fn requireZero(value: Bytes, at: usize, len: usize, field: String) -> Result[Void, Error] {
+    let slice = sliceAt(value, at, len, field)?
+    if !allZero(slice) {
+        fail failure(BadReserved, "${field} must be all zero")
+    }
+    Ok(())
+}
+
+/// Little-endian u16 at `at`, or `BadLength`.
+pub pure fn u16At(value: Bytes, at: usize, field: String) -> Result[u16, Error] {
+    match binary.u16Le(value, at) {
+        Some(word) -> Ok(word)
+        None -> fail failure(BadLength, "${field} is truncated")
+    }
+}
+
+/// Little-endian u32 at `at`, or `BadLength`.
+pub pure fn u32At(value: Bytes, at: usize, field: String) -> Result[u32, Error] {
+    match binary.u32Le(value, at) {
+        Some(word) -> Ok(word)
+        None -> fail failure(BadLength, "${field} is truncated")
+    }
+}
+
+/// One byte of Intel's QE vendor ID (939A7233F79C4CA9940A0DB3957F0607).
+pure noalloc fn intelQeVendorByte(index: usize) -> u8 {
+    match index {
+        0 -> 0x93
+        1 -> 0x9A
+        2 -> 0x72
+        3 -> 0x33
+        4 -> 0xF7
+        5 -> 0x9C
+        6 -> 0x4C
+        7 -> 0xA9
+        8 -> 0x94
+        9 -> 0x0A
+        10 -> 0x0D
+        11 -> 0xB3
+        12 -> 0x95
+        13 -> 0x7F
+        14 -> 0x06
+        _ -> 0x07
+    }
+}
+
+/// Whether `vendorId` is Intel's QE vendor ID.
+pub pure fn isIntelQeVendorId(vendorId: Bytes) -> Bool {
+    if vendorId.len() != 16 {
+        return false
+    }
+    let mut i: usize = 0
+    for i < 16 {
+        if vendorId[i] != intelQeVendorByte(i) {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}

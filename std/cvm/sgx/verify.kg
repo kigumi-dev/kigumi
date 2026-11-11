@@ -1,0 +1,289 @@
+// A dcap-qvl-style SGX verifier: cryptographic checks fail with a typed
+// error, while TCB and QE TCB outcomes become a status plus advisory IDs.
+//
+// `verify` always anchors the PCK chain to caller-supplied PEM anchors. There
+// is no mode that returns a success after checking only the quote signature:
+// a caller that wants the pieces does that explicitly with `Quote.parse`,
+// `verifyQe` and `Chain.verify`. The default policy rejects debugging
+// and a non-Intel QE vendor, and requires a verification time so certificate
+// validity windows are enforced.
+//
+// The result is deliberately smaller than Intel QVL's: it carries the quote
+// claims, the TCB and QE TCB levels, the FMSPC, and whether the quote, QE and
+// PCK chain steps succeeded. It does not claim that CRL/OCSP was checked,
+// that the TCB Info or QvE Identity signatures were verified, or that the
+// host supplied fresh collateral.
+
+/// Overall status of a verified quote.
+pub type Status =
+    | Good
+    | ConfigNeeded
+    | SWHardeningNeeded
+    | ConfigurationAndSWHardeningNeeded
+    | OutOfDate
+    | Revoked
+
+pub fn Status.name(self) -> String {
+    match self {
+        Status.Good -> "ok"
+        Status.ConfigNeeded -> "config-needed"
+        Status.SWHardeningNeeded -> "sw-hardening-needed"
+        Status.ConfigurationAndSWHardeningNeeded -> "config-and-sw-hardening-needed"
+        Status.OutOfDate -> "out-of-date"
+        Status.Revoked -> "revoked"
+    }
+}
+
+pub pure fn Status.rank(self) -> Int {
+    match self {
+        Status.Good -> 0
+        Status.ConfigNeeded -> 1
+        Status.SWHardeningNeeded -> 2
+        Status.ConfigurationAndSWHardeningNeeded -> 3
+        Status.OutOfDate -> 4
+        Status.Revoked -> 5
+    }
+}
+
+pure fn fromTcb(status: TcbStatus) -> Status {
+    match status {
+        TcbStatus.UpToDate -> Status.Good
+        TcbStatus.ConfigurationNeeded -> Status.ConfigNeeded
+        TcbStatus.SWHardeningNeeded -> Status.SWHardeningNeeded
+        TcbStatus.ConfigurationAndSWHardeningNeeded -> Status.ConfigurationAndSWHardeningNeeded
+        TcbStatus.OutOfDate -> Status.OutOfDate
+        TcbStatus.Revoked -> Status.Revoked
+    }
+}
+
+pure fn worse(a: Status, b: Status) -> Status {
+    if b.rank() > a.rank() {
+        b
+    } else {
+        a
+    }
+}
+
+/// The verifier's view of an enclave plus the QE that signed its quote.
+pub type Claims = {
+    pub cpuSvn Bytes
+    pub miscSelect u32
+    pub attributes Bytes
+    pub mrEnclave Bytes
+    pub mrSigner Bytes
+    pub isvProdId u16
+    pub isvSvn u16
+    pub reportData Bytes
+    pub debug Bool
+    pub qeSvn u16
+    pub pceSvn u16
+    pub qeMrSigner Bytes?
+    pub qeIsvProdId u16?
+    pub qeIsvSvn u16?
+}
+
+/// Business policy. Every `None` field is unconstrained. `pckAnchorsPem` and
+/// `pckNowMillis` are mandatory: a PCK chain cannot be trusted without an
+/// anchor, and a certificate cannot be accepted without a time.
+pub type Policy = {
+    pub mut requireReportData Bytes?
+    pub mut requireMrEnclave Bytes?
+    pub mut requireMrSigner Bytes?
+    pub mut requireIsvProdId u16?
+    pub mut requireIsvSvn u16?
+    pub mut requireFmspc Bytes?
+    pub mut allowDebug Bool
+    pub mut requireIntelQeVendor Bool
+    pub mut pckAnchorsPem String
+    pub mut pckNowMillis Int
+    pub mut tcbInfo TcbInfo?
+    pub mut qeIdentity QeIdentity?
+}
+
+/// A conservative default: no debugging, Intel QE vendor required, and the
+/// given anchors and time for the PCK chain. Measurement, nonce, FMSPC and
+/// collateral expectations stay unconstrained until the caller sets them.
+pub pure fn Policy.production(anchorsPem: String, nowMillis: Int) -> Policy {
+    Policy {
+        requireReportData: None
+        requireMrEnclave: None
+        requireMrSigner: None
+        requireIsvProdId: None
+        requireIsvSvn: None
+        requireFmspc: None
+        allowDebug: false
+        requireIntelQeVendor: true
+        pckAnchorsPem: anchorsPem
+        pckNowMillis: nowMillis
+        tcbInfo: None
+        qeIdentity: None
+    }
+}
+
+/// The QVL-style outcome. `status` is the worst TCB / QE TCB level the
+/// collateral supports; cryptographic or policy failures are `Error`s
+/// instead, never a permissive status.
+pub type VerificationResult = {
+    pub status Status
+    pub claims Claims
+    pub quoteVerified Bool
+    pub qeVerified Bool
+    pub pckChainVerified Bool
+    pub tcb TcbEvaluation?
+    pub qe QeIdentityEvaluation?
+    pub fmspc Bytes?
+    pub advisoryIds Array[String]
+}
+
+pure fn expectBytes(value: Bytes?, expected: usize, field: String) -> Result[Void, Error] {
+    match value {
+        Some(bytes) -> {
+            if bytes.len() != expected {
+                fail failure(PolicyRejected, "${field} must be ${expected} bytes, got ${bytes.len()}")
+            }
+        }
+        None -> {}
+    }
+    Ok(())
+}
+
+pure fn checkClaims(claims: &Claims, policy: &Policy) -> Result[Void, Error] {
+    expectBytes(policy.requireReportData, 64, "required REPORT_DATA")?
+    if policy.requireReportData is Some(bytes) {
+        if !claims.reportData.equals(&bytes) {
+            fail failure(PolicyRejected, "REPORT_DATA does not match the expected nonce")
+        }
+    }
+    expectBytes(policy.requireMrEnclave, 32, "required MR_ENCLAVE")?
+    if policy.requireMrEnclave is Some(bytes) {
+        if !claims.mrEnclave.equals(&bytes) {
+            fail failure(PolicyRejected, "MR_ENCLAVE does not match")
+        }
+    }
+    expectBytes(policy.requireMrSigner, 32, "required MR_SIGNER")?
+    if policy.requireMrSigner is Some(bytes) {
+        if !claims.mrSigner.equals(&bytes) {
+            fail failure(PolicyRejected, "MR_SIGNER does not match")
+        }
+    }
+    if policy.requireIsvProdId is Some(value) {
+        if claims.isvProdId != value {
+            fail failure(PolicyRejected, "ISV_PROD_ID ${claims.isvProdId} is not ${value}")
+        }
+    }
+    if policy.requireIsvSvn is Some(value) {
+        if claims.isvSvn != value {
+            fail failure(PolicyRejected, "ISV_SVN ${claims.isvSvn} is not ${value}")
+        }
+    }
+    if !policy.allowDebug && claims.debug {
+        fail failure(PolicyRejected, "enclave is in debug mode")
+    }
+    Ok(())
+}
+
+pure fn pushUnique(ids: &mut Array[String], id: String) {
+    let mut i: usize = 0
+    for i < ids.len() {
+        if ids[i].equals(&id) {
+            return
+        }
+        i = i + 1
+    }
+    ids.push(id)
+}
+
+pure fn appendUnique(ids: &mut Array[String], more: &Array[String]) {
+    let mut i: usize = 0
+    for i < more.len() {
+        pushUnique(ids, more[i])
+        i = i + 1
+    }
+}
+
+pure fn claimsOf(quoteReport: &Report, qeReport: &Report, qeSvn: u16, pceSvn: u16) -> Claims {
+    Claims {
+        cpuSvn: quoteReport.cpuSvn
+        miscSelect: quoteReport.miscSelect
+        attributes: quoteReport.attributes
+        mrEnclave: quoteReport.mrEnclave
+        mrSigner: quoteReport.mrSigner
+        isvProdId: quoteReport.isvProdId
+        isvSvn: quoteReport.isvSvn
+        reportData: quoteReport.reportData
+        debug: quoteReport.debug()
+        qeSvn: qeSvn
+        pceSvn: pceSvn
+        qeMrSigner: Some(qeReport.mrSigner)
+        qeIsvProdId: Some(qeReport.isvProdId)
+        qeIsvSvn: Some(qeReport.isvSvn)
+    }
+}
+
+/// Verifies an SGX DCAP quote end to end: quote signature, QE report binding
+/// and signature, PCK chain to the pinned anchors, then policy, TCB and QE
+/// identity. A P-384 quote, PCK certificate or anchor is refused with
+/// `UnsupportedAlgorithm`.
+pub fn verify(quoteBytes: Bytes, policy: &Policy) -> Result[VerificationResult, Error] {
+    let quote = Quote.parse(quoteBytes)?
+    verifyQuoteSignature(&quote)?
+    if policy.requireIntelQeVendor && !isIntelQeVendorId(quote.header.qeVendorId) {
+        fail failure(PolicyRejected, "QE vendor ID is not Intel's")
+    }
+    let qe = qeCertificationOf(&quote)?
+    let verified = verifyQe(&qe, quote.attestationKey)?
+    let anchors = parseAnchors(policy.pckAnchorsPem)?
+    let qeReport = move verified.report
+    let chain = move verified.chain
+    chain.verify(&anchors, policy.pckNowMillis)?
+    let claims = claimsOf(&quote.report, &qeReport, quote.header.qeSvn, quote.header.pceSvn)
+    checkClaims(&claims, policy)?
+
+    let mut status = Status.Good
+    let mut advisoryIds = Array.empty[String]()
+    let mut tcbEvaluation: TcbEvaluation? = None
+    let mut qeEvaluation: QeIdentityEvaluation? = None
+    let mut fmspc: Bytes? = None
+
+    match &policy.qeIdentity {
+        Some(identity) -> {
+            let evaluation = identity.evaluate(&qeReport)?
+            status = worse(status, fromTcb(evaluation.status))
+            appendUnique(&mut advisoryIds, &evaluation.advisoryIds)
+            qeEvaluation = Some(evaluation)
+        }
+        None -> {}
+    }
+
+    match &policy.tcbInfo {
+        Some(info) -> {
+            if policy.requireFmspc is Some(expected) {
+                if !info.fmspc.equals(&expected) {
+                    fail failure(PolicyRejected, "TCB Info FMSPC does not match the required value")
+                }
+            }
+            let evaluation = info.evaluate(claims.cpuSvn, claims.pceSvn)
+            status = worse(status, fromTcb(evaluation.status))
+            appendUnique(&mut advisoryIds, &evaluation.advisoryIds)
+            fmspc = Some(info.fmspc)
+            tcbEvaluation = Some(evaluation)
+        }
+        None -> {
+            if policy.requireFmspc is Some(_) {
+                fail failure(PolicyRejected, "an FMSPC requirement needs TCB Info collateral")
+            }
+        }
+    }
+
+    Ok(VerificationResult {
+        status: status
+        claims: claims
+        quoteVerified: true
+        qeVerified: true
+        pckChainVerified: true
+        tcb: tcbEvaluation
+        qe: qeEvaluation
+        fmspc: fmspc
+        advisoryIds: advisoryIds
+    })
+}
