@@ -1,12 +1,15 @@
 package driver
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
+	"time"
 
 	"kigumi/internal/toolchain/artifact"
 )
@@ -213,15 +216,23 @@ func runToolStep(rg *ResolvedGraph, idx int, filePath func(int) string, opts Exe
 	if err != nil {
 		return fmt.Errorf("tool %s: quarantine a stale output: %w", name, err)
 	}
-	cmd := exec.Command(program, fullArgs...)
-	cmd.Dir = outDir
-	cmd.Env = env
-	cmd.Stderr = stderr
-	cmd.Stdout = stderr
-	fmt.Fprintf(stderr, "build: tool %s runs trusted (no sandbox), env %s\n", name, envNames(cmd.Env))
-	if err := cmd.Run(); err != nil {
+	fmt.Fprintf(stderr, "build: tool %s runs trusted (no sandbox), env %s\n", name, envNames(env))
+	var runErr error
+	for attempt := 0; attempt < 100; attempt++ {
+		cmd := exec.Command(program, fullArgs...)
+		cmd.Dir = outDir
+		cmd.Env = env
+		cmd.Stderr = stderr
+		cmd.Stdout = stderr
+		runErr = cmd.Run()
+		if runErr == nil || !errors.Is(runErr, syscall.ETXTBSY) {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if runErr != nil {
 		artifact.RestoreQuarantined(outPaths, quarantined)
-		return fmt.Errorf("tool %s (%s %s) failed: %w", name, program, strings.Join(fullDisplay, " "), err)
+		return fmt.Errorf("tool %s (%s %s) failed: %w", name, program, strings.Join(fullDisplay, " "), runErr)
 	}
 	for _, o := range s.Outputs {
 		p := filePath(o)
