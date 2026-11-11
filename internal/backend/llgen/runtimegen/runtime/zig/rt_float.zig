@@ -25,6 +25,10 @@ pub const panic = struct {
         _ = err;
         call("attempt to unwrap error", null);
     }
+    pub fn unexpectedErrorCode(err: anyerror) noreturn {
+        _ = err;
+        @trap();
+    }
     pub fn outOfBounds(index: usize, len: usize) noreturn {
         _ = index;
         _ = len;
