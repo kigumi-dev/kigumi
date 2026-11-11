@@ -1,12 +1,12 @@
-package plan
+package mir
 
 import (
 	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 )
 
-// simdCallOps are the std/simd functions the native backend lowers at their
-// call site; their vector arguments and result stay in registers, never boxes.
+// simdCallOps are the std/simd functions lowered without a runtime entry:
+// their vector operands and result are direct-carried values, never boxes.
 var simdCallOps = map[string]bool{
 	"simd.Vec.splat":     true,
 	"simd.Vec.fromArray": true,
@@ -16,7 +16,7 @@ var simdCallOps = map[string]bool{
 	"simd.Vec.mul":       true,
 }
 
-// isSimdCall reports whether in calls one of those lowered functions.
-func (p *planner) isSimdCall(in midir.Inst) bool {
+// SimdCall reports whether in is one of those calls.
+func (p *Program) SimdCall(in midir.Inst) bool {
 	return in.Op == midir.OpCall && simdCallOps[opdef.StdKey(p.R, in.Ent, true)]
 }

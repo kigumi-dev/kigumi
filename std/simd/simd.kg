@@ -10,14 +10,10 @@ pub type Vec[T, const N: usize] = {
 pub pure noalloc fn Vec.splat[T: Copy, const N: usize](value: T) -> Vec[T, N]
 
 /// The vector holding lanes, the same bits in the same order.
-pub pure fn Vec.fromArray[T: Copy, const N: usize](lanes: FixedArray[T, N]) -> Vec[T, N] {
-    Vec { lanes: lanes }
-}
+pub pure noalloc fn Vec.fromArray[T: Copy, const N: usize](lanes: FixedArray[T, N]) -> Vec[T, N]
 
 /// This vector's lanes as a FixedArray, the same bits in the same order.
-pub pure noalloc fn Vec[T, N].toArray(move self) -> FixedArray[T, N] {
-    self.lanes
-}
+pub pure noalloc fn Vec[T, N].toArray(self) -> FixedArray[T, N]
 
 /// The lane at index; traps when index is out of range.
 pub pure fn Vec[T: Copy, N].lane(self, index: usize) -> T {

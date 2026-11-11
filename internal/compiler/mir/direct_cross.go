@@ -10,6 +10,12 @@ import (
 func (p *Program) ArgPos(f *midir.Func, in midir.Inst, i int) sem.TypeID {
 	switch in.Op {
 	case midir.OpCall:
+		if p.SimdCall(in) && f.DirectPlanned() {
+			if i < len(in.Args) && p.R.DirectAgg(f.Locals[in.Args[i]].Type) {
+				return f.Locals[in.Args[i]].Type
+			}
+			return 0
+		}
 		fn, ok := p.ByEnt[in.Ent]
 		if !ok {
 			return 0
@@ -50,6 +56,12 @@ func (p *Program) ArgPos(f *midir.Func, in midir.Inst, i int) sem.TypeID {
 func (p *Program) DstPos(f *midir.Func, in midir.Inst) sem.TypeID {
 	switch in.Op {
 	case midir.OpCall:
+		if p.SimdCall(in) && f.DirectPlanned() {
+			if int(in.Dst) < len(f.Locals) && p.R.DirectAgg(f.Locals[in.Dst].Type) {
+				return f.Locals[in.Dst].Type
+			}
+			return 0
+		}
 		fn, ok := p.ByEnt[in.Ent]
 		if !ok {
 			return p.primResult(f, in)

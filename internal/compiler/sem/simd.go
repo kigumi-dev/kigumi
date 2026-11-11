@@ -10,7 +10,7 @@ import (
 const SimdVecBits = 128
 
 // SimdElem reports whether t is a lane type a 128-bit vector holds on every
-// supported target, or 0 when it is not.
+// supported target.
 func (r *Result) SimdElem(t TypeID) bool {
 	switch t {
 	case TyI8, TyU8, TyI16, TyU16, TyI32, TyU32, TyI64, TyU64, TyF32, TyF64:
@@ -60,11 +60,13 @@ func (r *Result) SimdVecProblem(t TypeID) string {
 // a Vec that no 128-bit register can hold, before the backend has to.
 func (c *checker) checkSimdVectors(n syntax.NodeID, sig, recv TypeID) {
 	r := c.r
+	seen := map[TypeID]bool{}
 	var walk func(TypeID)
 	walk = func(t TypeID) {
-		if t == 0 {
+		if t == 0 || seen[t] {
 			return
 		}
+		seen[t] = true
 		if why := r.SimdVecProblem(t); why != "" {
 			c.errAt(n, cSimdShape, r.TypeString(t), why)
 			return
@@ -72,13 +74,14 @@ func (c *checker) checkSimdVectors(n syntax.NodeID, sig, recv TypeID) {
 		for _, a := range r.Types.Node(t).Args {
 			walk(a)
 		}
+		walk(r.Types.Node(t).Elem)
 	}
 	walk(recv)
 	walk(sig)
 }
 
-// simdCallKey names a bodiless std/simd function by the key the backends lower.
-// It is set only for a call directly to std/simd.
+// inStdSimd reports whether fn is declared in std/simd, the only package
+// whose call signatures the vector shape rule checks.
 func (c *checker) inStdSimd(fn EntityID) bool {
 	e := c.r.Entity(fn)
 	return e.Kind == EntFn && c.r.Packages[e.Pkg].Path == "std/simd"

@@ -41,7 +41,7 @@ func (p *planner) markDirectUse(f *midir.Func, in midir.Inst, out []bool) {
 	case midir.OpField, midir.OpFieldMove, midir.OpSetField:
 		out[in.Args[0]] = true
 	case midir.OpCall:
-		if p.isSimdCall(in) {
+		if p.SimdCall(in) {
 			out[in.Dst] = true
 			for _, a := range in.Args {
 				out[a] = true
