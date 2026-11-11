@@ -40,7 +40,24 @@ func (m *Module) loadDeps(opts LoadOptions, lock module.Lock, enforceLock bool) 
 				return err
 			}
 			entry, locked := lock.Entries[r.Name]
-			if !locked || entry.Version != r.Version {
+			if vendored, ok := m.local.Vendored[r.Name]; ok && m.local.Vendor != "" {
+				// vendor/ is part of the checkout: compare it with its own
+				// manifest, and still require the lock to name this version.
+				if !locked || entry.Version != r.Version {
+					if enforceLock {
+						return fmt.Errorf("%s %s is not in %s; run `kigumi get` to lock it", r.Name, r.Version, module.LockName)
+					}
+				} else if want := module.RepoURLKey(r); entry.URL != "" && want != "" && entry.URL != want {
+					return fmt.Errorf("%s %s is fetched from %s but %s locked %s; run `kigumi get` to accept the new source", r.Name, r.Version, want, module.LockName, entry.URL)
+				}
+				hash, err := module.ContentTreeHash(depDir)
+				if err != nil {
+					return err
+				}
+				if hash != vendored.Hash {
+					return fmt.Errorf("%s %s in %s does not match %s; edit the dependency in its module, not in vendor/, or run `kigumi mod vendor` again", r.Name, r.Version, depDir, filepath.Join(m.local.Vendor, module.VendorFileName))
+				}
+			} else if !locked || entry.Version != r.Version {
 				if enforceLock {
 					return fmt.Errorf("%s %s is not in %s; run `kigumi get` to lock it", r.Name, r.Version, module.LockName)
 				}

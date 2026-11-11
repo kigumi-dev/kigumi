@@ -14,7 +14,7 @@ func New() *cobra.Command {
 		Short: "Manage the module manifest (mod.kg) and lock file",
 	}
 	cmd.PersistentFlags().StringP("chdir", "C", ".", "module root to operate on")
-	cmd.AddCommand(initCmd(), addCmd(), replaceCmd(), tidyCmd(), verifyCmd(), jsonCmd())
+	cmd.AddCommand(initCmd(), addCmd(), replaceCmd(), tidyCmd(), verifyCmd(), jsonCmd(), vendorCmd(), renameCmd())
 	return cmd
 }
 
@@ -73,5 +73,23 @@ func jsonCmd() *cobra.Command {
 		Short: "Print the manifest and lock file as JSON",
 		Args:  cobra.NoArgs,
 		RunE:  session.RunE(parseOptions, runJSON),
+	}
+}
+
+func vendorCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "vendor",
+		Short: "Copy the locked dependencies into vendor/ and write vendor/modules.txt",
+		Args:  cobra.NoArgs,
+		RunE:  session.RunE(parseOptions, runVendor),
+	}
+}
+
+func renameCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "rename <new module path> | <old module path> <new module path>",
+		Short: "Rename this module (with one argument) or a module it names, rewriting every import",
+		Args:  cobra.RangeArgs(1, 2),
+		RunE:  session.RunE(parseOptions, runRename),
 	}
 }

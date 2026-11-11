@@ -19,11 +19,26 @@ var localFields = map[string][]string{"Replace": {"name", "path"}}
 
 // Local is a parsed mod.local.kg: replaced module names mapped to absolute
 // directories. Provenance carries the same keys mapped to "file:line" of
-// the Replace record, for release-mode diagnostics.
+// the Replace record, for release-mode diagnostics. Vendor and Vendored
+// describe the root's vendor directory when WithVendor attached one.
 type Local struct {
 	File       string
 	Replaces   map[string]string
 	Provenance map[string]string
+	Vendor     string
+	Vendored   map[string]VendorEntry
+}
+
+// WithVendor attaches root's vendor tree, when it has one, so dependency
+// resolution reads `vendor/<module path>` instead of the cache. A tree
+// without vendor/modules.txt is not ours and is ignored.
+func (l Local) WithVendor(root string) (Local, error) {
+	v, ok, err := ReadVendor(root)
+	if err != nil || !ok {
+		return l, err
+	}
+	l.Vendor, l.Vendored = v.Dir, v.Entries
+	return l, nil
 }
 
 // ReadLocal finds the nearest mod.local.kg at or above dir.

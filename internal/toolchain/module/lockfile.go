@@ -92,13 +92,26 @@ func WriteLockFile(path string, lk Lock) error {
 
 // TreeHash digests every regular file under dir (path and content) into
 // "h1:<sha256 hex>", so a tampered or truncated cache entry is detectable.
-func TreeHash(dir string) (string, error) {
+func TreeHash(dir string) (string, error) { return treeHash(dir, nil) }
+
+// ContentTreeHash digests a module's content the way TreeHash does but
+// leaves out .kigumi-origin, which names the commit a cache copy came from
+// rather than belonging to the module. A vendored copy has no marker, so this
+// is the hash `kigumi mod vendor` records and verifies.
+func ContentTreeHash(dir string) (string, error) {
+	return treeHash(dir, func(rel string) bool { return rel == OriginFileName })
+}
+
+func treeHash(dir string, skip func(rel string) bool) (string, error) {
 	h := sha256.New()
 	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			return err
 		}
 		rel, _ := filepath.Rel(dir, path)
+		if skip != nil && skip(filepath.ToSlash(rel)) {
+			return nil
+		}
 		data, err := os.ReadFile(path)
 		if err != nil {
 			return err

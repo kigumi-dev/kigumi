@@ -36,6 +36,9 @@ func ValidModuleName(name string) error {
 	if canon := CanonicalModuleName(name); canon != name {
 		return fmt.Errorf("module name %q is not canonical; the host segment is lowercase (did you mean %q?)", name, canon)
 	}
+	if _, err := PathMajor(name); err != nil {
+		return err
+	}
 	return nil
 }
 

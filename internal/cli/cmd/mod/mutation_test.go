@@ -101,7 +101,7 @@ func TestModInitEmptyManifestRejected(t *testing.T) {
 
 func TestModTidyDropsTheCommentOfARemovedRequire(t *testing.T) {
 	app := t.TempDir()
-	manifestSrc := "Module {\n    name: \"github.com/acme/app\"\n    kigumi: \"0.1\"\n}\n\n// used by the importer\nRequire {\n    name: \"github.com/acme/unused\"\n    version: \"v2.0.0\"\n}\n\n// keeps its comment\nRequire {\n    name: \"github.com/acme/lib\"\n    version: \"v1.0.0\"\n}\n"
+	manifestSrc := "Module {\n    name: \"github.com/acme/app\"\n    kigumi: \"0.1\"\n}\n\n// used by the importer\nRequire {\n    name: \"github.com/acme/unused/v2\"\n    version: \"v2.0.0\"\n}\n\n// keeps its comment\nRequire {\n    name: \"github.com/acme/lib\"\n    version: \"v1.0.0\"\n}\n"
 	os.WriteFile(filepath.Join(app, "mod.kg"), []byte(manifestSrc), 0o644)
 	os.WriteFile(filepath.Join(app, "main.kg"), []byte("import {one} from github.com/acme/lib\nprint \"${one()}\"\n"), 0o644)
 	if code, _, errOut := clitest.Execute(t, "mod", "tidy", "-C", app); code != 0 {
@@ -128,7 +128,7 @@ func TestModReplaceRejectsMissingDirectory(t *testing.T) {
 func TestModTidyKeepsTheHeadingOfARequireGroup(t *testing.T) {
 	app := t.TempDir()
 	head := "Module {\n    name: \"github.com/acme/app\"\n    kigumi: \"0.1\"\n}\n\n// dependencies\n"
-	manifestSrc := head + "Require {\n    name: \"github.com/acme/unused\"\n    version: \"v2.0.0\"\n}\nRequire {\n    name: \"github.com/acme/lib\"\n    version: \"v1.0.0\"\n}\n"
+	manifestSrc := head + "Require {\n    name: \"github.com/acme/unused/v2\"\n    version: \"v2.0.0\"\n}\nRequire {\n    name: \"github.com/acme/lib\"\n    version: \"v1.0.0\"\n}\n"
 	os.WriteFile(filepath.Join(app, "mod.kg"), []byte(manifestSrc), 0o644)
 	os.WriteFile(filepath.Join(app, "main.kg"), []byte("import {one} from github.com/acme/lib\nprint \"${one()}\"\n"), 0o644)
 	if code, _, errOut := clitest.Execute(t, "mod", "tidy", "-C", app); code != 0 {

@@ -32,18 +32,21 @@ func TestModCommands(t *testing.T) {
 	if code, _, errOut := clitest.Execute(t, "mod", "replace", "-C", app, "github.com/acme/lib", "../lib"); code != 0 {
 		t.Fatalf("replace: %s", errOut)
 	}
-	if code, _, errOut := clitest.Execute(t, "mod", "add", "-C", app, "github.com/acme/unused", "v2.0.0"); code != 0 {
+	if code, _, errOut := clitest.Execute(t, "mod", "add", "-C", app, "github.com/acme/unused/v2", "v2.0.0"); code != 0 {
 		t.Fatalf("add: %s", errOut)
 	}
 	mf, _ := os.ReadFile(filepath.Join(app, "mod.kg"))
-	if !strings.Contains(string(mf), "kigumi: \"0.1\"") || strings.Contains(string(mf), "Replace") || !strings.Contains(string(mf), "acme/unused") {
+	if !strings.Contains(string(mf), "kigumi: \"0.1\"") || strings.Contains(string(mf), "Replace") || !strings.Contains(string(mf), "acme/unused/v2") {
 		t.Fatalf("manifest after add:\n%s", mf)
+	}
+	if code, _, errOut := clitest.Execute(t, "mod", "add", "-C", app, "github.com/acme/other", "v2.0.0"); code != 2 || !strings.Contains(errOut, "/v2") {
+		t.Fatalf("a v2 tag on an unsuffixed path must be a usage error naming /v2, exit %d: %s", code, errOut)
 	}
 	if local, err := os.ReadFile(filepath.Join(app, "mod.local.kg")); err != nil || !strings.Contains(string(local), "path: \"../lib\"") {
 		t.Fatalf("local override: %v\n%s", err, local)
 	}
 	os.WriteFile(filepath.Join(app, "main.kg"), []byte("import {one} from github.com/acme/lib\nprint \"${one()}\"\n"), 0o644)
-	if code, out, errOut := clitest.Execute(t, "mod", "tidy", "-C", app); code != 0 || !strings.Contains(errOut, "removed github.com/acme/unused") {
+	if code, out, errOut := clitest.Execute(t, "mod", "tidy", "-C", app); code != 0 || !strings.Contains(errOut, "removed github.com/acme/unused/v2") {
 		t.Fatalf("tidy: exit %d %q %q", code, out, errOut)
 	}
 	if code, out, _ := clitest.Execute(t, "mod", "json", "-C", app); code != 0 || !strings.Contains(out, "\"local\"") || !strings.Contains(out, "acme/lib") {

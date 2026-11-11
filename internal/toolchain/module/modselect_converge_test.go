@@ -34,9 +34,9 @@ func TestSelectVersionsOrderIndependent(t *testing.T) {
 	putManifest(t, "p", "v1.0.0", "Require { name: \"m\", version: \"v1.1.0\" }\n")
 	putManifest(t, "q", "v1.0.0", "Require { name: \"r\", version: \"v1.0.0\" }\n")
 	putManifest(t, "r", "v1.0.0", "Require { name: \"m\", version: \"v1.9.0\" }\n")
-	putManifest(t, "m", "v1.1.0", "Require { name: \"z\", version: \"v3.0.0\" }\n")
+	putManifest(t, "m", "v1.1.0", "Require { name: \"z/v3\", version: \"v3.0.0\" }\n")
 	putManifest(t, "m", "v1.9.0", "")
-	putManifest(t, "z", "v3.0.0", "")
+	putManifest(t, "z/v3", "v3.0.0", "")
 
 	pFirst := module.ModFile{Requires: []module.Require{
 		{Name: "p", Version: "v1.0.0"},
@@ -61,7 +61,7 @@ func TestSelectVersionsOrderIndependent(t *testing.T) {
 	if selA.Requires["m"].Version != "v1.9.0" {
 		t.Fatalf("m should resolve to the newer v1.9.0, got %+v", selA.Requires["m"])
 	}
-	if _, ok := selA.Requires["z"]; ok {
+	if _, ok := selA.Requires["z/v3"]; ok {
 		t.Fatalf("z is only required by the superseded m v1.1.0 and must not survive: %+v", selA.Requires)
 	}
 }

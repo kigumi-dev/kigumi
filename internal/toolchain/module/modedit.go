@@ -16,6 +16,9 @@ import (
 // WriteManifest creates root/mod.kg naming the module and the toolchain
 // version it is written for; it refuses to overwrite one.
 func WriteManifest(root, name string) error {
+	if err := ValidModuleName(name); err != nil {
+		return err
+	}
 	path := filepath.Join(root, ManifestName)
 	if _, err := os.Stat(path); err == nil {
 		return fmt.Errorf("%s already exists", path)

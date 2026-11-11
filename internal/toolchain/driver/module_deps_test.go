@@ -31,15 +31,28 @@ func TestDependencyConflict(t *testing.T) {
 	write("app", "mod.kg", manifest("github.com/acme/app", "Require { name: \"github.com/acme/lib\", version: \"v1.0.0\" }\nRequire { name: \"github.com/acme/mid\", version: \"v0.1.0\" }\n"))
 	write("app", "mod.local.kg", []byte("Replace { name: \"github.com/acme/lib\", path: \"../lib\" }\nReplace { name: \"github.com/acme/mid\", path: \"../mid\" }\n"))
 	write("app", "main.kg", []byte("import {two} from github.com/acme/mid\nprint \"${two()}\"\n"))
-	// Minimal version selection reconciles v1.0.0 (app) with v1.1.0 (mid);
-	// a different major (no major suffix) is refused instead.
+	// Minimal version selection reconciles v1.0.0 (app) with v1.1.0 (mid).
 	m0, err := driver.LoadModule(filepath.Join(root, "app"), driver.LoadOptions{Compiler: testCompiler()})
 	if err != nil || m0.Selected["github.com/acme/lib"].Version != "v1.1.0" {
 		t.Fatalf("selection: %v %+v", err, m0.Selected)
 	}
+	// A v2 module is a different path from the v1 one (/v2), so both are
+	// selected side by side instead of conflicting.
+	write("libv2", "mod.kg", manifest("github.com/acme/lib/v2", ""))
+	write("libv2", "lib.kg", []byte("pub fn two_lib() -> Int {\n    2\n}\n"))
+	write("mid", "mod.kg", manifest("github.com/acme/mid", "Require { name: \"github.com/acme/lib\", version: \"v1.1.0\" }\nRequire { name: \"github.com/acme/lib/v2\", version: \"v2.0.0\" }\n"))
+	write("app", "mod.local.kg", []byte("Replace { name: \"github.com/acme/lib\", path: \"../lib\" }\nReplace { name: \"github.com/acme/lib/v2\", path: \"../libv2\" }\nReplace { name: \"github.com/acme/mid\", path: \"../mid\" }\n"))
+	m1, err := driver.LoadModule(filepath.Join(root, "app"), driver.LoadOptions{Compiler: testCompiler()})
+	if err != nil {
+		t.Fatalf("a /v2 module must coexist with the unsuffixed one: %v", err)
+	}
+	if m1.Selected["github.com/acme/lib"].Version != "v1.1.0" || m1.Selected["github.com/acme/lib/v2"].Version != "v2.0.0" {
+		t.Fatalf("major-suffixed selection: %+v", m1.Selected)
+	}
+	// A v2 tag on an unsuffixed path is refused with the path to use instead.
 	write("mid", "mod.kg", manifest("github.com/acme/mid", "Require { name: \"github.com/acme/lib\", version: \"v2.0.0\" }\n"))
-	if _, err := driver.LoadModule(filepath.Join(root, "app"), driver.LoadOptions{Compiler: testCompiler()}); err == nil || !strings.Contains(err.Error(), "different major versions cannot be mixed") {
-		t.Fatalf("major mix not reported: %v", err)
+	if _, err := driver.LoadModule(filepath.Join(root, "app"), driver.LoadOptions{Compiler: testCompiler()}); err == nil || !strings.Contains(err.Error(), "must be github.com/acme/lib/v2") {
+		t.Fatalf("a v2 tag without the suffix was not reported: %v", err)
 	}
 	// A required name nested under the root's own name must not be rejected as an overlap by name alone.
 	write("app", "mod.kg", manifest("github.com/acme/app", "Require { name: \"github.com/acme/app/sub\", version: \"v1.0.0\" }\n"))

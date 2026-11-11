@@ -40,5 +40,12 @@ func checkRequire(r module.Require, url string) error {
 	if strings.HasPrefix(r.Version, "-") {
 		return errors.NewErrf("dependency %s: refusing version %q: it starts with `-`", r.Name, r.Version)
 	}
+	if r.Version == "" {
+		// LatestTag is resolving the version; there is nothing to check yet.
+		return nil
+	}
+	if err := module.CheckVersionForName(r.Name, r.Version); err != nil {
+		return errors.NewErrf("dependency %s %s: %v", r.Name, r.Version, err)
+	}
 	return nil
 }

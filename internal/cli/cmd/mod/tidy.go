@@ -43,6 +43,9 @@ func runTidy(io session.IO, opts options) error {
 	if err != nil {
 		return errors.WrapErr(err, "read local overrides")
 	}
+	if local, err = local.WithVendor(opts.root); err != nil {
+		return errors.WrapErr(err, "read vendor tree")
+	}
 	kept := mf
 	kept.Requires = nil
 	for _, r := range mf.Requires {

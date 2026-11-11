@@ -41,13 +41,20 @@ func modFileOf(recs []Record, module bool) (ModFile, []diag.Diagnostic) {
 				mf.ZigSpan = r.Span
 			}
 		case "Require":
+			versionOK := true
 			if r.Fields["version"] == "" {
 				ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, "Require needs a version"))
+				versionOK = false
 			} else if err := ValidVersion(r.Fields["version"]); err != nil {
 				ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, err.Error()))
+				versionOK = false
 			}
 			if err := ValidModuleName(r.Fields["name"]); err != nil {
 				ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, err.Error()))
+			} else if versionOK {
+				if err := CheckVersionForName(r.Fields["name"], r.Fields["version"]); err != nil {
+					ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, err.Error()))
+				}
 			}
 			mf.Requires = append(mf.Requires, Require{Name: r.Fields["name"], Version: r.Fields["version"], URL: r.Fields["url"]})
 		case "Replace":

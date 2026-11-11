@@ -53,6 +53,11 @@ func loadModule(root string, opts LoadOptions) (*Module, error) {
 			return nil, err
 		}
 	}
+	// A vendored tree is part of the checkout, not a local override: it applies
+	// under --no-local too, and pins what the build compiles.
+	if m.local, err = m.local.WithVendor(root); err != nil {
+		return nil, err
+	}
 	if !opts.NoDeps {
 		lock, err := module.ReadLock(root)
 		if err != nil {

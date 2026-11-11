@@ -33,20 +33,24 @@ func CanonicalModuleName(name string) string {
 }
 
 // RepoOf derives a module name's clone URL and subdirectory; a Require's explicit url wins, and the subdirectory is whatever the name carries beyond it.
+// A major version suffix is not a repository subdirectory at the repo root
+// (`example.com/mod/v2` tags as `v2.0.0` there); a nested module keeps it
+// (`example.com/mono/tool/v2` lives in tool/v2 and tags as tool/v2/v2.0.0).
 func RepoOf(r Require) (url, subdir string, ok bool) {
+	base, major, _ := splitPathMajor(r.Name)
 	if r.URL != "" {
-		return r.URL, subdirUnder(r.Name, r.URL), true
+		return r.URL, withMajor(subdirUnder(base, r.URL), major), true
 	}
-	segs := strings.Split(r.Name, "/")
-	if !HasHost(r.Name) {
+	segs := strings.Split(base, "/")
+	if !HasHost(base) {
 		return "", "", false
 	}
 	if knownHosts[strings.ToLower(segs[0])] && len(segs) >= 3 {
-		return "https://" + strings.Join(segs[:3], "/") + ".git", strings.Join(segs[3:], "/"), true
+		return "https://" + strings.Join(segs[:3], "/") + ".git", withMajor(strings.Join(segs[3:], "/"), major), true
 	}
 	for i, s := range segs {
 		if strings.HasSuffix(s, ".git") && i > 0 {
-			return "https://" + strings.Join(segs[:i+1], "/"), strings.Join(segs[i+1:], "/"), true
+			return "https://" + strings.Join(segs[:i+1], "/"), withMajor(strings.Join(segs[i+1:], "/"), major), true
 		}
 	}
 	return "", "", false

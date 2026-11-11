@@ -60,24 +60,42 @@ func manifestFor(name string, requires ...string) string {
 }
 
 // A manifest cycle is an error with the chain, whether or not any package
-// imports across it; mixing two majors of one module is refused.
+// imports across it; v2 belongs to a `/v2` module path, so it coexists with
+// v1 instead of being treated as the same module.
 func TestSelectionRejectsCycleAndMajorMix(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	writeModule(t, filepath.Join(root, "a"), manifestFor("example.com/a", "example.com/b", "v1.0.0"))
 	writeModule(t, filepath.Join(root, "b"), manifestFor("example.com/b", "example.com/a", "v1.0.0"))
-	writeModule(t, filepath.Join(root, "c"), manifestFor("example.com/c", "example.com/x", "v2.0.0"))
+	writeModule(t, filepath.Join(root, "c"), manifestFor("example.com/c", "example.com/x/v2", "v2.0.0"))
 	writeModule(t, filepath.Join(root, "x"), manifestFor("example.com/x"))
+	writeModule(t, filepath.Join(root, "xv2"), manifestFor("example.com/x/v2"))
 	local := module.Local{Replaces: map[string]string{
 		"example.com/a": filepath.Join(root, "a"), "example.com/b": filepath.Join(root, "b"),
 		"example.com/c": filepath.Join(root, "c"), "example.com/x": filepath.Join(root, "x"),
+		"example.com/x/v2": filepath.Join(root, "xv2"),
 	}}
 	app := module.ModFile{Name: "example.com/app", Requires: []module.Require{{Name: "example.com/a", Version: "v1.0.0"}}}
 	if _, err := module.SelectVersions(testCompiler(), app, local); err == nil || !strings.Contains(err.Error(), "dependency cycle: example.com/a -> example.com/b -> example.com/a") {
 		t.Fatalf("cycle: %v", err)
 	}
-	mixed := module.ModFile{Name: "example.com/app", Requires: []module.Require{{Name: "example.com/x", Version: "v1.2.0"}, {Name: "example.com/c", Version: "v1.0.0"}}}
-	if _, err := module.SelectVersions(testCompiler(), mixed, local); err == nil || !strings.Contains(err.Error(), "different major versions cannot be mixed") {
+	both := module.ModFile{Name: "example.com/app", Requires: []module.Require{
+		{Name: "example.com/x", Version: "v1.2.0"},
+		{Name: "example.com/x/v2", Version: "v2.0.0"},
+	}}
+	sel, err := module.SelectVersions(testCompiler(), both, local)
+	if err != nil {
+		t.Fatalf("v1 and /v2 are separate modules and must coexist: %v", err)
+	}
+	if sel.Requires["example.com/x"].Version != "v1.2.0" || sel.Requires["example.com/x/v2"].Version != "v2.0.0" {
+		t.Fatalf("suffixed selection: %+v", sel.Requires)
+	}
+	// A hand-built manifest that skips parsing still cannot mix majors on one path.
+	mixed := module.ModFile{Name: "example.com/app", Requires: []module.Require{
+		{Name: "example.com/x", Version: "v1.2.0"},
+		{Name: "example.com/x", Version: "v2.0.0"},
+	}}
+	if _, err := module.SelectVersions(testCompiler(), mixed, local); err == nil || !strings.Contains(err.Error(), "different module paths") {
 		t.Fatalf("major mix: %v", err)
 	}
 }

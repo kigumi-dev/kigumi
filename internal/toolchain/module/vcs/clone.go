@@ -124,6 +124,10 @@ func (g Git) LatestTag(r module.Require) (string, error) {
 	for _, line := range bytes.Split(out, []byte("\n")) {
 		_, ref, ok := strings.Cut(string(line), "\t")
 		if v, has := strings.CutPrefix(ref, prefix); ok && has && strings.HasPrefix(v, "v") && !strings.Contains(v, "-") && !strings.Contains(v, "/") {
+			// A /vN path only takes vN tags; an unsuffixed path only v0 and v1.
+			if module.CheckVersionForName(r.Name, v) != nil {
+				continue
+			}
 			versions = append(versions, v)
 		}
 	}

@@ -2,6 +2,7 @@ package module
 
 import (
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -121,7 +122,32 @@ func SelectVersions(o buildconfig.CompilerOptions, root ModFile, local Local) (*
 			sel.Requires[name], sel.By[name] = r, by[name]
 		}
 	}
+	if err := checkVendor(local, sel); err != nil {
+		return nil, err
+	}
 	return sel, nil
+}
+
+// checkVendor refuses a vendored tree that disagrees with what selection
+// picks, so a build never silently uses a stale copy. Modules a Replace
+// resolves locally are not vendored and are skipped.
+func checkVendor(local Local, sel *Selection) error {
+	if local.Vendor == "" {
+		return nil
+	}
+	for _, name := range sel.Names() {
+		if _, replaced := local.Replaces[name]; replaced {
+			continue
+		}
+		e, ok := local.Vendored[name]
+		if !ok {
+			return fmt.Errorf("%s %s is selected but not in %s; run `kigumi mod vendor`", name, sel.Requires[name].Version, filepath.Join(local.Vendor, VendorFileName))
+		}
+		if want := sel.Requires[name].Version; e.Version != want {
+			return fmt.Errorf("%s is vendored at %s but selection picks %s; run `kigumi get` and `kigumi mod vendor`", name, e.Version, want)
+		}
+	}
+	return nil
 }
 
 // findCycle walks the manifest graph from root and returns the first cycle
@@ -166,7 +192,10 @@ func (s *Selection) Names() []string {
 }
 
 // versionNewer says whether a is a newer tag than b. Two commit hashes
-// only agree when equal, and a hash never compares with a tag.
+// only agree when equal, and a hash never compares with a tag. v0 and v1
+// share one unsuffixed module path, so they compare normally; any other
+// major difference means two module paths that the manifest should have
+// spelled with a `/vN` suffix.
 func versionNewer(a, b Require) (bool, error) {
 	if a.Version == b.Version {
 		return false, nil
@@ -174,10 +203,9 @@ func versionNewer(a, b Require) (bool, error) {
 	if IsCommitHash(a.Version) || IsCommitHash(b.Version) {
 		return false, fmt.Errorf("a commit hash cannot be reconciled with another version")
 	}
-	// Without a major suffix in module names, a higher major is
-	// a different API, not a newer version of the same one.
-	if majorOf(a.Version) != majorOf(b.Version) {
-		return false, fmt.Errorf("different major versions cannot be mixed")
+	ma, mb := majorOf(a.Version), majorOf(b.Version)
+	if ma != mb && (ma > 1 || mb > 1) {
+		return false, fmt.Errorf("different major versions cannot be mixed: %s and %s belong to different module paths (`/vN`)", a.Version, b.Version)
 	}
 	return CompareVersions(a.Version, b.Version) > 0, nil
 }
