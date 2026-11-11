@@ -64,7 +64,7 @@ func TestEveryTryFunctionHasATwoCallSweep(t *testing.T) {
 				continue
 			}
 			for _, id := range []string{fx.ID, fx.Pair} {
-				if _, err := fixture.Find("../../../testdata", id); err != nil {
+				if _, err := fixture.Find("../../..", id); err != nil {
 					t.Errorf("%s: %v", key, err)
 				}
 			}

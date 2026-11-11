@@ -4,14 +4,11 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 
 	"kigumi/internal/devkit/fixture"
 )
-
-const testdataRoot = "../../../testdata"
 
 // TestManifestFresh regenerates the manifest from disk fixtures (probing the VM for engine modes) and diffs it against testdata/manifest.json; UPDATE=1 rewrites it.
 func TestManifestFresh(t *testing.T) {
@@ -149,32 +146,6 @@ func runFixtures(t *testing.T) []fixture.Fixture {
 	return out
 }
 
-// oomCoversSeed seeds covers for the first schema-2 generation; afterwards the
-// manifest itself is the source of truth and the seed is inert.
-var oomCoversSeed = map[string]string{
-	"array.Array.tryClone": "array_clone", "array.Array.tryCloneWith": "array_clone_with", "array.Array.tryFill": "array_fill",
-	"array.Array.tryWithCapacity": "array_with_capacity", "array.Array.tryEmpty": "array_try_empty", "array.Array.tryCopyRange": "array_take", "array.Array.tryReverse": "array_reverse",
-	"array.Array.tryPush": "array_push", "array.Array.tryReserve": "array_reserve", "array.Array.tryAppendAll": "array_append_all",
-	"array.Array.tryInsertAt": "array_insert_at", "array.Array.tryTake": "array_take", "array.Array.tryMap": "array_map",
-	"array.Array.tryFilter": "array_filter", "array.Array.trySlice": "array_slice", "array.Array.tryConcat": "array_concat",
-	"array.tryJoin": "array_join", "array.trySortedBy": "array_sorted_by", "sort.tryStable": "sort_stable",
-	"prelude.String.trySliceBytes": "string_slice", "prelude.String.tryTrim": "string_trim", "prelude.String.trySplit": "string_split",
-	"prelude.String.tryConcat": "string_concat", "prelude.String.tryRepeat": "string_repeat", "prelude.String.tryToUpper": "string_to_upper",
-	"prelude.String.tryToLower": "string_to_lower", "prelude.String.tryChars": "string_chars", "prelude.String.tryFromBytes": "string_from_bytes",
-	"prelude.Bytes.tryFromArray": "bytes_from_array", "prelude.Bytes.trySlice": "bytes_slice", "prelude.Bytes.tryZeros": "bytes_zeros",
-	"prelude.Bytes.tryFill": "bytes_fill", "prelude.Bytes.tryConcat": "bytes_concat", "prelude.ByteBuffer.tryNew": "byte_buffer_new",
-	"prelude.tryDebug":     "debug",
-	"os.OsString.tryClone": "os_string_try_clone", "os.OsString.tryToStringLossy": "os_string_try_to_string_lossy",
-	"alloc.Arena.tryCreate": "arena_create", "alloc.Shared.tryNew": "shared_new", "alloc.Shared.tryGet": "shared_get",
-	"alloc.Shared.tryDowngrade": "shared_downgrade", "alloc.Box.tryNew": "box_new", "alloc.Block.tryNew": "block_new",
-	"map.Map.tryClone": "map_clone", "map.tryEmpty": "map_try_empty", "map.Map.trySet": "map_set_new_key",
-	"map.Map.tryEntries": "map_entries", "map.Map.tryKeys": "map_keys", "map.Map.tryValues": "map_values",
-	"text.StringBuilder.tryNew": "builder_new", "text.StringBuilder.tryPush": "builder_push", "text.StringBuilder.tryPushByte": "builder_push_byte",
-	"text.StringBuilder.tryFreeze": "builder_freeze",
-	"text.tryLines":                "text_lines", "text.tryScalars": "text_scalars", "text.tryGraphemes": "text_graphemes", "text.tryReplace": "text_replace",
-	"text.tryTrimPrefix": "text_trim_prefix", "text.tryTrimSuffix": "text_trim_suffix", "text.trySlice": "text_slice",
-}
-
 // oomFixtures registers every fault corpus program. A `<name>_twice` file is
 // the pair for `<name>`; the pair id is derived from disk, and `covers` is
 // carried forward from the checked-in manifest because which std try function a
@@ -198,15 +169,11 @@ func oomFixtures(t *testing.T) []fixture.Fixture {
 			Path:  relPath(t, path),
 			Mode:  []string{"fault"},
 		}
+		// covers is authored metadata: the sweep names a std try function,
+		// which the .kg source does not state, so the checked-in manifest is
+		// its home and regeneration carries it forward.
 		if prev := old.ByID(id); prev != nil {
 			fx.Covers = prev.Covers
-		} else {
-			for cover, fixtureName := range oomCoversSeed {
-				if fixtureName == base {
-					fx.Covers = append(fx.Covers, cover)
-				}
-			}
-			slices.Sort(fx.Covers)
 		}
 		ext := fixture.Ext("oom")
 		switch {
