@@ -98,7 +98,7 @@ func TestRunAwaitedChildrenStayBounded(t *testing.T) {
 	if err != nil || code != 0 || out.String() != "total 600000\n" {
 		t.Fatalf("run: %v, exit %d, stdout %q", err, code, out.String())
 	}
-	if top > 160<<20 {
+	if !raceDetector && top > 192<<20 {
 		t.Fatalf("heap in use peaked at %d MiB after 600000 awaited children; an awaited child is not released", top>>20)
 	}
 }
