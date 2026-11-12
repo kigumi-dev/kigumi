@@ -271,7 +271,7 @@ jobs:
             index: "0"
             count: "1"
             driver: "no"
-            zig: "no"
+            zig: "yes"
             # ASan cannot host the deliberate huge allocations (it refuses sizes past its limit and
             # prints a warning that breaks the expected stderr) or the stack-overflow fixtures (the
             # sanitizer's own frames change the depth). Everything else runs instrumented.
