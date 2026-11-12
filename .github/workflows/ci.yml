@@ -56,7 +56,7 @@ jobs:
     # shard. The VM corpus alone outgrew one 45-minute race run.
     name: race (${{ matrix.pkg }}, shard ${{ matrix.index }}/${{ matrix.count }})
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -66,16 +66,28 @@ jobs:
             count: "1"
           - pkg: compiler/sem
             index: "0"
-            count: "2"
+            count: "4"
           - pkg: compiler/sem
             index: "1"
-            count: "2"
+            count: "4"
+          - pkg: compiler/sem
+            index: "2"
+            count: "4"
+          - pkg: compiler/sem
+            index: "3"
+            count: "4"
           - pkg: compiler/mir
             index: "0"
-            count: "2"
+            count: "4"
           - pkg: compiler/mir
             index: "1"
-            count: "2"
+            count: "4"
+          - pkg: compiler/mir
+            index: "2"
+            count: "4"
+          - pkg: compiler/mir
+            index: "3"
+            count: "4"
           - pkg: backend/vm
             index: "0"
             count: "4"
@@ -114,7 +126,7 @@ jobs:
           go-version: "1.26"
       # The race detector's shadow memory makes the corpus runs several times
       # slower than a plain build, so the default 10m test timeout is too short.
-      - run: go test -race -timeout 45m ./internal/${{ matrix.pkg }}/...
+      - run: go test -race -timeout 60m ./internal/${{ matrix.pkg }}/...
 
   release-tool:
     name: release tool
@@ -297,7 +309,13 @@ jobs:
       # linux/386 runs on the amd64 kernel; linux/arm needs the user-mode
       # emulator for the AOT smoke test that executes what it cross-built.
       - if: matrix.driver == 'yes'
-        run: sudo apt-get update && sudo apt-get install -y qemu-user
+        run: |
+          for i in 1 2 3; do
+            sudo apt-get -o Acquire::Retries=5 update &&
+              sudo apt-get -o Acquire::Retries=5 install -y qemu-user && break
+            sleep 15
+          done
+          command -v qemu-arm >/dev/null || { echo "qemu-user is unavailable"; exit 1; }
       - if: matrix.driver == 'yes'
         run: go test -run '^TestTarget32CrossBuildRuns$' -count=1 -timeout 10m ./internal/toolchain/driver/
       - if: matrix.driver == 'yes'
@@ -329,7 +347,13 @@ jobs:
           key: kigumi-zig-${{ runner.os }}-${{ runner.arch }}-${{ needs.zig-version.outputs.version }}
       - run: go run . zig install ${{ needs.zig-version.outputs.version }}
       - run: echo "$HOME/.local/share/kigumi/zig/${{ needs.zig-version.outputs.version }}" >> "$GITHUB_PATH"
-      - run: sudo apt-get update && sudo apt-get install -y qemu-system-x86 ovmf ovmf-ia32 qemu-user
+      - run: |
+          for i in 1 2 3; do
+            sudo apt-get -o Acquire::Retries=5 update &&
+              sudo apt-get -o Acquire::Retries=5 install -y qemu-system-x86 ovmf && break
+            sleep 15
+          done
+          command -v qemu-system-x86_64 >/dev/null
       - run: |
           OVMF=
           for f in /usr/share/ovmf/OVMF.fd /usr/share/OVMF/OVMF_CODE*.fd; do

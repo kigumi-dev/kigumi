@@ -15,6 +15,7 @@ func fakeLookup(found map[string]string) Lookup {
 }
 
 func TestNoCCompilerEnvHidesToolchain(t *testing.T) {
+	t.Setenv("KIGUMI_TEST_NO_CC", "")
 	look := fakeLookup(map[string]string{"zig": "/opt/zig", "clang": "/usr/bin/clang"})
 	if got := DiscoverToolchain(look); !got.Zig || !got.Clang {
 		t.Fatalf("DiscoverToolchain = %+v, want both tools before the gate", got)

@@ -9,6 +9,7 @@ import (
 // The hermetic CI job must run with no C toolchain even though the runner
 // image ships clang; the no-CC gate has to beat a compiler on the search path.
 func TestNoCCompilerEnvHidesToolchain(t *testing.T) {
+	t.Setenv("KIGUMI_TEST_NO_CC", "")
 	dir := t.TempDir()
 	for _, name := range []string{"zig", "clang"} {
 		p := filepath.Join(dir, name)

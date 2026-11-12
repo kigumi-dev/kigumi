@@ -16,5 +16,5 @@ func maxRSSKiB(cmd *exec.Cmd) int64 {
 	if !ok {
 		return 0
 	}
-	return ru.Maxrss
+	return int64(ru.Maxrss)
 }

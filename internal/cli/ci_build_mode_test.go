@@ -10,6 +10,9 @@ import (
 
 // Codifies the rule .github/workflows/kigumi-test.yml's build step applies: a build.kg module takes --out-dir, a plain module takes -o.
 func TestReusableWorkflowPicksBuildFlagByModuleMode(t *testing.T) {
+	if os.Getenv("KIGUMI_TEST_NO_CC") != "" {
+		t.Skip("native build needs a C compiler")
+	}
 	std, _ := filepath.Abs("../../std")
 	plain := t.TempDir()
 	os.WriteFile(filepath.Join(plain, "mod.kg"), clitest.Manifest("plainmod", ""), 0o644)
