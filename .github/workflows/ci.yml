@@ -161,8 +161,12 @@ jobs:
         if: matrix.pkg == 'toolchain/driver'
       # The race detector's shadow memory makes the corpus runs several times
       # slower than a plain build, so the default 10m test timeout is too short.
+      # The conformance oracles and whole-corpus sweeps hold no shared driver
+      # state to race on and already run in the hermetic/AOT jobs; under -race
+      # each one alone outlives the 75-minute budget.
       - run: >-
           go test -race -timeout 75m
+          -skip '^(TestCryptoConformance|TestCvmConformance|TestManifestFresh|TestMutatedMIR|TestSgxConformance)$'
           -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} ${{ matrix.count }} kigumi/internal/${{ matrix.pkg }} all)"
           ./internal/${{ matrix.pkg }}/...
 

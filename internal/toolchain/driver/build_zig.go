@@ -106,6 +106,21 @@ func compileZigRuntime(m *Module, cc []string, t buildconfig.Target, dir string,
 	return zigRuntime{object: out, compiler: zig}, nil
 }
 
+// RuntimeZigVersion is the version of the zig that builds the float runtime
+// for m, using the same resolution as a build: the pinned or on-PATH zig, or
+// an installed managed-store zig when the C compiler is not zig.
+func RuntimeZigVersion(m *Module) (string, error) {
+	cc, err := CCompilerFor(m)
+	if err != nil {
+		return "", err
+	}
+	path, err := zigCompilerFor(m, cc)
+	if err != nil {
+		return "", err
+	}
+	return link.ZigVersionOf([]string{path}), nil
+}
+
 // zigRuntimeVersion is the zig version the fingerprint records: the C
 // compiler's when it is zig, else the zig that built the float object.
 func zigRuntimeVersion(cc []string, zrt zigRuntime) string {

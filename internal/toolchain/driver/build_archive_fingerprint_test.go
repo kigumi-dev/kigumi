@@ -14,7 +14,6 @@ import (
 	"kigumi/internal/toolchain/artifact"
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/driver"
-	"kigumi/internal/toolchain/native/link"
 	"kigumi/internal/toolchain/version"
 )
 
@@ -41,11 +40,11 @@ func TestBuildArchiveFingerprint(t *testing.T) {
 	if ok, err := driver.BuildWith(m, archive, &buildErr, driver.BuildOptions{Target: target}); err != nil || !ok {
 		t.Fatalf("build: %v\n%s", err, buildErr.String())
 	}
-	cc, err := driver.CCompilerFor(m)
+	zigVersion, err := driver.RuntimeZigVersion(m)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := driver.CurrentFingerprint(target, link.ZigVersionOf(cc))
+	want := driver.CurrentFingerprint(target, zigVersion)
 	got, ok, err := artifact.ReadFingerprintSidecar(archive)
 	if err != nil || !ok {
 		t.Fatalf("expected a fingerprint sidecar: ok=%v err=%v", ok, err)

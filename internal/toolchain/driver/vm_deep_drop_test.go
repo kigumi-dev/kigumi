@@ -69,7 +69,7 @@ print "arrays ${arrays(300000)}"
 	if want := "boxes 1000000\noptions 300000\narrays 300000\n"; out.String() != want {
 		t.Errorf("got %q, want %q", out.String(), want)
 	}
-	if d := time.Since(start); d > 30*time.Second {
+	if d := time.Since(start); !raceDetector && d > 30*time.Second {
 		t.Errorf("took %v, want under 30s", d)
 	}
 }
