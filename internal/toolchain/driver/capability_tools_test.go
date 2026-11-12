@@ -13,6 +13,9 @@ import (
 
 func TestToolCapabilitiesNamesToolchainUse(t *testing.T) {
 	t.Parallel()
+	if testCompiler().CCompiler() == nil {
+		t.Skip("a build toolchain names the C compiler, and this host has none")
+	}
 	root, out := t.TempDir(), t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"tc3\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "hello.c"), []byte("int main(void) { return 0; }\n"), 0o644)

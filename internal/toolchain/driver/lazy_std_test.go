@@ -10,14 +10,19 @@ import (
 	"testing"
 
 	"kigumi/internal/compiler/sem"
+	"kigumi/internal/devkit/fixture"
 	"kigumi/internal/toolchain/driver"
 )
 
 // TestLazyStdCheckMatchesEager checks every corpus program with std bodies on demand, as units on a cold cache, and with every body, and wants the same diagnostics from check and from the editor.
 func TestLazyStdCheckMatchesEager(t *testing.T) {
+	if raceDetector {
+		t.Skip("the race detector makes the full-corpus equivalence sweep too slow; the plain run covers it")
+	}
 	for _, corpus := range []string{"sem", "mir", "run"} {
 		t.Run(corpus, func(t *testing.T) {
-			paths, _ := filepath.Glob(filepath.Join("../../../testdata", corpus, "*.txtar"))
+			paths, _ := fixture.Files(filepath.Join("../../../testdata", corpus), ".txtar")
+			paths = fixture.ShardPaths(paths)
 			var lazy, retries, skipped, editorLazy atomic.Int64
 			t.Cleanup(func() {
 				t.Logf("%s: lazy=%d retries=%d skipped bodies=%d editor lazy=%d", corpus, lazy.Load(), retries.Load(), skipped.Load(), editorLazy.Load())
@@ -80,10 +85,14 @@ func TestLazyStdCheckMatchesEager(t *testing.T) {
 
 // TestLazyStdBuildMatchesEager compares what run and build produce with std bodies on demand and with all of them: the MIR, the LLVM IR and the VM's output.
 func TestLazyStdBuildMatchesEager(t *testing.T) {
+	if raceDetector {
+		t.Skip("the race detector makes the full-corpus equivalence sweep too slow; the plain run covers it")
+	}
 	manifest := loadManifest(t)
 	for _, corpus := range []string{"mir", "run"} {
 		t.Run(corpus, func(t *testing.T) {
-			paths, _ := filepath.Glob(filepath.Join("../../../testdata", corpus, "*.txtar"))
+			paths, _ := fixture.Files(filepath.Join("../../../testdata", corpus), ".txtar")
+			paths = fixture.ShardPaths(paths)
 			var lazy, retries atomic.Int64
 			t.Cleanup(func() { t.Logf("%s: lazy=%d retries=%d", corpus, lazy.Load(), retries.Load()) })
 			for _, path := range paths {

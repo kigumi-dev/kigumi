@@ -27,6 +27,8 @@ vm_tests='TestArrayAcceleratorsMatchKigumiBodies
 TestConstFixturesEmitNatively
 TestCorpusOwnershipBeforeVerifier
 TestIRDump
+TestLazyStdBuildMatchesEager
+TestLazyStdCheckMatchesEager
 TestRunCorpusEngines
 TestRunCorpusVMCoverage
 TestSemDriverFixtures

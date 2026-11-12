@@ -40,7 +40,8 @@ func TestUnitLazyImportChain(t *testing.T) {
 	app := "import lib from xmod/lib\n\nnoalloc fn use(x: Int) -> Int {\n    lib.%s(x)\n}\n\nprint \"${use(2)}\"\n"
 	files := map[string]string{"mod.kg": scenarioMod, "leaf/leaf.kg": leaf, "lib/lib.kg": lib, "cmd/app/main.kg": strings.Replace(app, "%s", "quiet", 1)}
 	lazyAppSteps(t, files, "error[", strings.Replace(app, "%s", "size", 1))
-	lazyAppSteps(t, files, "", strings.Replace(app, "%s", "quiet", 1)+"\n")
+	clean := strings.Replace(app, "%s", "quiet", 1)
+	lazyAppSteps(t, files, "", strings.Replace(clean, "use(2)", "use(3)", 1))
 }
 
 func TestUnitLazyPrivateCallAcrossPackages(t *testing.T) {

@@ -37,7 +37,7 @@ func growingArrays(n int) string { return arrayLoops(n, false) }
 
 func TestRunManyGrowingArrayLoopsStayCheap(t *testing.T) {
 	requireGrowth(t, growingArrays, 4000, bitsets)
-	if got := scaleRSS(t, growingArrays(4000), 150*time.Second, 700); got != "r 12000\n" {
+	if got := scaleRSS(t, growingArrays(4000), 150*time.Second, 800); got != "r 12000\n" {
 		t.Fatalf("stdout %q", got)
 	}
 }

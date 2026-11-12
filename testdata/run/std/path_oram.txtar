@@ -267,3 +267,5 @@ sealedShape=true
 sealed=77
 tamper=true
 path-oram-ok
+-- secret-san --
+panic: SecretSan: secret value reaches a conditional branch in main

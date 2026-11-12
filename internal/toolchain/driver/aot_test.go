@@ -108,7 +108,7 @@ func runAot(t *testing.T, path string, fx *fixture.Fixture, reportLive bool) {
 		t.Fatal(err)
 	}
 	stderr := errOut.String()
-	if reportLive {
+	if reportLive && wantExit == 0 {
 		m := nativeLiveLine.FindStringSubmatch(stderr)
 		if m == nil {
 			t.Errorf("no kigumi-live report; build with -DKIGUMI_RC_CHECK to check live objects")

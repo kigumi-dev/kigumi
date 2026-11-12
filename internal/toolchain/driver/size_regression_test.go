@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	buildconfig "kigumi/internal/toolchain/config"
@@ -23,37 +22,39 @@ import (
 // --size-min "-Os -flto, no unwind tables, stripped". The doc's fourth program,
 // exp's tui, lives in the exp repository and is not pinned here.
 
-// pinnedSizes are stripped x86_64-linux-musl executables in bytes, built from
-// examples/ with zig 0.17.0; repin when a change is meant to grow one.
+// pinnedSizes pin the stripped x86_64-linux-musl executables built from run
+// fixtures with zig 0.17.0; repin when a change is meant to grow one.
 var pinnedSizes = []struct {
-	example string
+	fixture string
 	sizeMin bool
 	bytes   int64
 }{
-	{"hello", false, 45080},
-	{"word_count", false, 97848},
-	{"json", false, 100088},
-	{"hello", true, 24640},
-	{"json", true, 64768},
+	{"hello", false, 57304},
+	{"json_derive", false, 236008},
+	{"hello", true, 32184},
+	{"json_derive", true, 187608},
 }
 
 // pinnedFixtureSizes pin the same two modes for the trim and sha256 programs
-// the restructure doc sizes; they only exist as run fixtures.
+// the restructure doc sizes.
 var pinnedFixtureSizes = []struct {
 	fixture string
 	sizeMin bool
 	bytes   int64
 }{
-	{"text_trim_edge_longer.txtar", false, 55112},
-	{"text_trim_edge_longer.txtar", true, 29056},
-	{"crypto_sha256.txtar", false, 75608},
-	{"crypto_sha256.txtar", true, 45696},
+	{"text_trim_edge_longer", false, 56904},
+	{"text_trim_edge_longer", true, 33864},
+	{"crypto_sha256", false, 77416},
+	{"crypto_sha256", true, 50504},
 }
 
 // sizeMarginPercent is how much a pinned executable may grow before TestExecutableSizeRegression fails.
 const sizeMarginPercent = 3
 
 func TestExecutableSizeRegression(t *testing.T) {
+	if os.Getenv("KIGUMI_CFLAGS") != "" {
+		t.Skip("the pinned sizes are the default C flags")
+	}
 	cc := testCompiler().CCompiler()
 	if cc == nil || link.ZigVersionOf(cc) != "0.17.0" {
 		t.Skip("the pinned sizes are zig 0.17.0's")
@@ -75,17 +76,26 @@ func TestExecutableSizeRegression(t *testing.T) {
 		}
 	}
 	for _, p := range pinnedSizes {
-		name := p.example
+		name := p.fixture
 		if p.sizeMin {
 			name += "/size-min"
 		}
 		t.Run(name, func(t *testing.T) {
-			root, _ := filepath.Abs(filepath.Join("../../../examples", p.example))
+			root, _, _, _ := loadRunFixture(t, fixturePath(t, "run/"+p.fixture))
+			m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../../std", Entry: "main/main.kg"})
+			if err != nil {
+				t.Fatal(err)
+			}
 			opts := driver.BuildOptions{Target: target, SizeMin: p.sizeMin}
 			if !p.sizeMin {
 				opts.LinkFlags = []string{"-s"}
 			}
-			check(t, name, buildRootWith(t, root, opts), p.bytes)
+			exe := filepath.Join(t.TempDir(), "prog")
+			var buildErr bytes.Buffer
+			if ok, err := driver.BuildWith(m, exe, &buildErr, opts); err != nil || !ok {
+				t.Fatalf("build: %v\n%s", err, buildErr.String())
+			}
+			check(t, name, exe, p.bytes)
 		})
 	}
 	for _, p := range pinnedFixtureSizes {
@@ -94,7 +104,7 @@ func TestExecutableSizeRegression(t *testing.T) {
 			name += "/size-min"
 		}
 		t.Run(name, func(t *testing.T) {
-			root, _, _, _ := loadRunFixture(t, fixturePath(t, "run/"+strings.TrimSuffix(p.fixture, ".txtar")))
+			root, _, _, _ := loadRunFixture(t, fixturePath(t, "run/"+p.fixture))
 			m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../../std", Entry: "main/main.kg"})
 			if err != nil {
 				t.Fatal(err)

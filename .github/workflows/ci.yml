@@ -52,8 +52,9 @@ jobs:
         if: matrix.index == '0'
 
   race:
-    # KIGUMI_TEST_SHARD slices the corpus loops as in the hermetic job; the other tests run in every
-    # shard. The VM corpus alone outgrew one 45-minute race run.
+    # KIGUMI_TEST_SHARD slices the corpus loops and shard_tests.sh assigns every other top-level test
+    # to one shard, so the race run is the slowest slice rather than one process running everything.
+    needs: zig-version
     name: race (${{ matrix.pkg }}, shard ${{ matrix.index }}/${{ matrix.count }})
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -90,16 +91,28 @@ jobs:
             count: "4"
           - pkg: backend/vm
             index: "0"
-            count: "4"
+            count: "8"
           - pkg: backend/vm
             index: "1"
-            count: "4"
+            count: "8"
           - pkg: backend/vm
             index: "2"
-            count: "4"
+            count: "8"
           - pkg: backend/vm
             index: "3"
-            count: "4"
+            count: "8"
+          - pkg: backend/vm
+            index: "4"
+            count: "8"
+          - pkg: backend/vm
+            index: "5"
+            count: "8"
+          - pkg: backend/vm
+            index: "6"
+            count: "8"
+          - pkg: backend/vm
+            index: "7"
+            count: "8"
           - pkg: backend/llgen
             index: "0"
             count: "1"
@@ -107,16 +120,28 @@ jobs:
           # missing from this matrix.
           - pkg: toolchain/driver
             index: "0"
-            count: "4"
+            count: "8"
           - pkg: toolchain/driver
             index: "1"
-            count: "4"
+            count: "8"
           - pkg: toolchain/driver
             index: "2"
-            count: "4"
+            count: "8"
           - pkg: toolchain/driver
             index: "3"
-            count: "4"
+            count: "8"
+          - pkg: toolchain/driver
+            index: "4"
+            count: "8"
+          - pkg: toolchain/driver
+            index: "5"
+            count: "8"
+          - pkg: toolchain/driver
+            index: "6"
+            count: "8"
+          - pkg: toolchain/driver
+            index: "7"
+            count: "8"
     env:
       KIGUMI_TEST_SHARD: ${{ matrix.index }}/${{ matrix.count }}
     steps:
@@ -124,9 +149,22 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26"
+      # Native driver tests compile the Zig float runtime, but they still pick
+      # clang from PATH for C, so install zig in its store without adding it to
+      # PATH. Other packages do not build native code.
+      - uses: actions/cache@v4
+        if: matrix.pkg == 'toolchain/driver'
+        with:
+          path: ~/.local/share/kigumi/zig
+          key: kigumi-zig-${{ runner.os }}-${{ runner.arch }}-${{ needs.zig-version.outputs.version }}
+      - run: go run . zig install ${{ needs.zig-version.outputs.version }}
+        if: matrix.pkg == 'toolchain/driver'
       # The race detector's shadow memory makes the corpus runs several times
       # slower than a plain build, so the default 10m test timeout is too short.
-      - run: go test -race -timeout 60m ./internal/${{ matrix.pkg }}/...
+      - run: >-
+          go test -race -timeout 75m
+          -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} ${{ matrix.count }} kigumi/internal/${{ matrix.pkg }} all)"
+          ./internal/${{ matrix.pkg }}/...
 
   release-tool:
     name: release tool
@@ -272,6 +310,8 @@ jobs:
             count: "1"
             driver: "no"
             zig: "yes"
+            # Keep zig off PATH: the sanitizer flags need clang's instrumented runtime, and the
+            # driver finds the pinned zig in its store to compile the runtime's float module.
             # ASan cannot host the deliberate huge allocations (it refuses sizes past its limit and
             # prints a warning that breaks the expected stderr) or the stack-overflow fixtures (the
             # sanitizer's own frames change the depth). Everything else runs instrumented.
@@ -305,7 +345,7 @@ jobs:
       # The driver tests pick their C compiler from PATH; the installed store
       # holds the pinned zig, not the runner image's clang.
       - run: echo "$HOME/.local/share/kigumi/zig/${{ needs.zig-version.outputs.version }}" >> "$GITHUB_PATH"
-        if: matrix.zig == 'yes'
+        if: matrix.zig == 'yes' && matrix.name != 'sanitizers'
       # linux/386 runs on the amd64 kernel; linux/arm needs the user-mode
       # emulator for the AOT smoke test that executes what it cross-built.
       - if: matrix.driver == 'yes'

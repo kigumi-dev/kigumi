@@ -136,6 +136,8 @@ func TestShardScriptSplitsAOTAndVMCorpus(t *testing.T) {
 		"TestConstFixturesEmitNatively",
 		"TestCorpusOwnershipBeforeVerifier",
 		"TestIRDump",
+		"TestLazyStdBuildMatchesEager",
+		"TestLazyStdCheckMatchesEager",
 		"TestRunCorpusEngines",
 		"TestRunCorpusVMCoverage",
 		"TestSemDriverFixtures",

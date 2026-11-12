@@ -10,6 +10,9 @@ import (
 func scaleRSS(t *testing.T, src string, cpuLimit time.Duration, maxMB int64) string {
 	t.Helper()
 	out, rss, cpu := probedUsage(t, func() string { return runGeneratedVM(t, src, 10*time.Minute) })
+	if raceDetector {
+		return out
+	}
 	if cpu > cpuLimit {
 		t.Fatalf("cpu time %v, limit %v", cpu, cpuLimit)
 	}
