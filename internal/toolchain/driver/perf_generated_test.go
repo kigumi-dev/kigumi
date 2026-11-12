@@ -34,7 +34,7 @@ func runGeneratedVM(t *testing.T, src string, limit time.Duration) string {
 	if err != nil || code != 0 {
 		t.Fatalf("vm: exit %d, err %v\n%s", code, err, errOut.String())
 	}
-	if took > limit {
+	if !raceDetector && took > limit {
 		t.Fatalf("vm took %v, limit %v", took, limit)
 	}
 	return out.String()

@@ -31,7 +31,7 @@ func TestRunFixedArrayStaysCompact(t *testing.T) {
 		t.Fatalf("stdout %q", out)
 	}
 	t.Logf("peak rss %d MB", rss>>10)
-	if rss>>10 > 300 {
+	if !raceDetector && rss>>10 > 300 {
 		t.Fatalf("peak rss %d MB for 4M scalar elements, limit 300 MB", rss>>10)
 	}
 }
