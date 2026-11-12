@@ -44,7 +44,7 @@ jobs:
       - run: go run . fmt --check std testdata examples
       - run: go vet ./...
       - run: go list ./... | grep -v '^kigumi/internal/toolchain/driver$' | xargs go test -timeout 60m
-      - run: go test -timeout 60m -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} 4 kigumi/internal/toolchain/driver vm)" ./internal/toolchain/driver
+      - run: go test -timeout 60m -skip '^TestLazyStd' -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} 4 kigumi/internal/toolchain/driver vm)" ./internal/toolchain/driver
       # The verifier's oracle: mutated MIR must never crash verify, llgen or the
       # VM. It needs no C toolchain, so the hermetic job can run it; the nightly
       # workflow keeps the longer pass.
@@ -166,9 +166,31 @@ jobs:
       # each one alone outlives the 75-minute budget.
       - run: >-
           go test -race -timeout 75m
-          -skip '^(TestCryptoConformance|TestCvmConformance|TestManifestFresh|TestMutatedMIR|TestSgxConformance)$'
+          -skip '^(TestCryptoConformance|TestCvmConformance|TestLazyStdBuildMatchesEager|TestLazyStdCheckMatchesEager|TestManifestFresh|TestMutatedMIR|TestSgxConformance)$'
           -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} ${{ matrix.count }} kigumi/internal/${{ matrix.pkg }} all)"
           ./internal/${{ matrix.pkg }}/...
+
+
+  lazy-std:
+    # The lazy/eager equivalence sweep builds and runs the whole corpus twice;
+    # it is split here instead of inside the package jobs, whose test budgets
+    # cannot hold it on a race or sanitizer runner.
+    name: lazy std corpus (shard ${{ matrix.index }}/8)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        index: ["0", "1", "2", "3", "4", "5", "6", "7"]
+    env:
+      KIGUMI_TEST_SHARD: ${{ matrix.index }}/8
+      KIGUMI_TEST_NO_CC: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+      - run: go test -timeout 50m -run '^TestLazyStd(Check|Build)MatchesEager$' ./internal/toolchain/driver/
 
   release-tool:
     name: release tool
@@ -363,7 +385,7 @@ jobs:
       - if: matrix.driver == 'yes'
         run: go test -run '^TestTarget32CrossBuildRuns$' -count=1 -timeout 10m ./internal/toolchain/driver/
       - if: matrix.driver == 'yes'
-        run: go test -timeout 120m -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} ${{ matrix.count }} kigumi/internal/toolchain/driver aot)" ./internal/toolchain/driver/
+        run: go test -timeout 120m -skip '^TestLazyStd' -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} ${{ matrix.count }} kigumi/internal/toolchain/driver aot)" ./internal/toolchain/driver/
         env:
           KIGUMI_CFLAGS: ${{ matrix.cflags }}
           ASAN_OPTIONS: ${{ matrix.asan }}
