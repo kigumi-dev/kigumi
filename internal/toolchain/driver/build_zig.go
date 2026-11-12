@@ -5,9 +5,12 @@ import (
 	"io"
 	"os/exec"
 	"path/filepath"
+	"sort"
 
 	buildconfig "kigumi/internal/toolchain/config"
+	"kigumi/internal/toolchain/module"
 	"kigumi/internal/toolchain/native/link"
+	"kigumi/internal/toolchain/zig/store"
 )
 
 // zigRuntime is the compiled Zig translation unit of the runtime: its object
@@ -34,7 +37,29 @@ func zigCompilerFor(m *Module, cc []string) (string, error) {
 	if path, err := m.compiler.LookTool("zig"); err == nil {
 		return path, nil
 	}
+	if path := m.installedZig(); path != "" {
+		return path, nil
+	}
 	return "", fmt.Errorf("the runtime's float module is Zig source and needs a zig compiler; install zig or pin it in the manifest")
+}
+
+// installedZig returns the newest zig in the managed store. An unpinned
+// module does not need one specific version, but a test or toolchain that
+// installed zig in the store should not also have to put it on PATH.
+func (m *Module) installedZig() string {
+	root, err := m.compiler.ZigStoreRoot(m.zigHome)
+	if err != nil || root == "" {
+		return ""
+	}
+	versions, err := store.List(root)
+	if err != nil || len(versions) == 0 {
+		return ""
+	}
+	sort.Slice(versions, func(i, j int) bool {
+		return module.CompareVersions(versions[i], versions[j]) < 0
+	})
+	path, _ := store.Installed(root, versions[len(versions)-1])
+	return path
 }
 
 // compileZigRuntime builds zig/rt_float.zig (already written under dir) into
