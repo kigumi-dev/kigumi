@@ -29,10 +29,10 @@ var pinnedSizes = []struct {
 	sizeMin bool
 	bytes   int64
 }{
-	{"hello", false, 57304},
-	{"json_derive", false, 236008},
-	{"hello", true, 32184},
-	{"json_derive", true, 187608},
+	{"hello", false, 57288},
+	{"json_derive", false, 236584},
+	{"hello", true, 32856},
+	{"json_derive", true, 188888},
 }
 
 // pinnedFixtureSizes pin the same two modes for the trim and sha256 programs
@@ -42,10 +42,10 @@ var pinnedFixtureSizes = []struct {
 	sizeMin bool
 	bytes   int64
 }{
-	{"text_trim_edge_longer", false, 56904},
-	{"text_trim_edge_longer", true, 33864},
-	{"crypto_sha256", false, 77416},
-	{"crypto_sha256", true, 50504},
+	{"text_trim_edge_longer", false, 56888},
+	{"text_trim_edge_longer", true, 34536},
+	{"crypto_sha256", false, 77400},
+	{"crypto_sha256", true, 51176},
 }
 
 // sizeMarginPercent is how much a pinned executable may grow before TestExecutableSizeRegression fails.

@@ -51,10 +51,10 @@ pub fn shortest(fd: Decomp, digits: *[64]u8, ndigits: *i32, dp: *i32) void {
     const pow2 = fd.m == (@as(u64, 1) << @as(u6, @intCast(fd.p - 1)));
     const asymmetric = pow2 and fd.e > fd.min_exp;
 
-    var R: Bn = .{};
-    var S: Bn = .{};
-    var mP: Bn = .{};
-    var mM: Bn = .{};
+    var R: Bn = .{ .n = 0 };
+    var S: Bn = .{ .n = 0 };
+    var mP: Bn = .{ .n = 0 };
+    var mM: Bn = .{ .n = 0 };
     bn.fromU64(&R, fd.m);
     bn.mulU32(&R, 4);
     bn.fromU64(&S, 4);
@@ -80,7 +80,7 @@ pub fn shortest(fd: Decomp, digits: *[64]u8, ndigits: *i32, dp: *i32) void {
         bn.mulPow10(&mM, -k);
     }
     while (true) {
-        var t: Bn = .{};
+        var t: Bn = .{ .n = 0 };
         bn.copy(&t, &R);
         bn.add(&t, &mP);
         if (bn.cmp(&t, &S) > 0) {
@@ -88,7 +88,7 @@ pub fn shortest(fd: Decomp, digits: *[64]u8, ndigits: *i32, dp: *i32) void {
             k += 1;
             continue;
         }
-        var t10: Bn = .{};
+        var t10: Bn = .{ .n = 0 };
         bn.copy(&t10, &t);
         bn.mulU32(&t10, 10);
         if (bn.cmp(&t10, &S) <= 0) {
@@ -116,7 +116,7 @@ pub fn shortest(fd: Decomp, digits: *[64]u8, ndigits: *i32, dp: *i32) void {
             d += 1;
         }
         const low = if (round_even) bn.cmp(&R, &mM) <= 0 else bn.cmp(&R, &mM) < 0;
-        var t: Bn = .{};
+        var t: Bn = .{ .n = 0 };
         bn.copy(&t, &R);
         bn.add(&t, &mP);
         const high = if (round_even) bn.cmp(&t, &S) >= 0 else bn.cmp(&t, &S) > 0;

@@ -91,8 +91,8 @@ fn ciLit(s: [*c]const u8, lit: []const u8) usize {
 /// to the format's max exponent for overflow and out_mant to 2^(p-1) for
 /// the subnormal/normal split.
 pub fn decimalToBinary(D: *const Bn, dec_exp: i32, sticky: c_int, p: i32, min_exp_normal: i32, out_mant: *u64, out_e: *i32) void {
-    var num: Bn = .{};
-    var den: Bn = .{};
+    var num: Bn = .{ .n = 0 };
+    var den: Bn = .{ .n = 0 };
     if (dec_exp >= 0) {
         bn.copy(&num, D);
         bn.mulPow10(&num, dec_exp);
@@ -106,12 +106,12 @@ pub fn decimalToBinary(D: *const Bn, dec_exp: i32, sticky: c_int, p: i32, min_ex
     var s: i32 = (p - 1) - (bn.bitlen(&num) - bn.bitlen(&den));
     if (s > s_cap) s = s_cap;
 
-    var q: Bn = .{};
-    var r: Bn = .{};
-    var d_used: Bn = .{};
+    var q: Bn = .{ .n = 0 };
+    var r: Bn = .{ .n = 0 };
+    var d_used: Bn = .{ .n = 0 };
     while (true) {
-        var n2: Bn = .{};
-        var d2: Bn = .{};
+        var n2: Bn = .{ .n = 0 };
+        var d2: Bn = .{ .n = 0 };
         if (s >= 0) {
             bn.copy(&n2, &num);
             bn.shl(&n2, @intCast(s));
@@ -183,7 +183,7 @@ pub fn parseGeneric(s0: [*c]const u8, end: *[*c]const u8, p: i32, min_exp_normal
         end.* = s;
         return 1;
     }
-    var D: Bn = .{};
+    var D: Bn = .{ .n = 0 };
     var dec_exp: i32 = 0;
     var sticky: c_int = 0;
     var sig_count: i32 = 0;

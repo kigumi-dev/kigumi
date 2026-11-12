@@ -67,18 +67,20 @@ func (m *Module) installedZig() string {
 // a broken bignum or digit-buffer invariant traps deterministically instead of
 // corrupting the stack, which is what the port is for. -fno-stack-check matches
 // the C runtime objects (which carry no probes either) and keeps freestanding
-// archives from referencing compiler-rt's __zig_probe_stack. -fstrip drops the
-// DWARF that would otherwise embed the temp directory and break --reproducible
-// builds. A position-independent object is not requested for wasm32, where it
-// would import __memory_base/__table_base (the C compile path skips -fPIE for
-// the same reason).
+// archives from referencing compiler-rt's __zig_probe_stack. -fno-builtin
+// expands the runtime's own memory loops instead of emitting memcpy, memmove
+// or memset calls that a freestanding archive has no libc to satisfy. -fstrip
+// drops the DWARF that would otherwise embed the temp directory and break
+// --reproducible builds. A position-independent object is not requested for
+// wasm32, where it would import __memory_base/__table_base (the C compile
+// path skips -fPIE for the same reason).
 func compileZigRuntime(m *Module, cc []string, t buildconfig.Target, dir string, env []string, stderr io.Writer) (zigRuntime, error) {
 	zig, err := zigCompilerFor(m, cc)
 	if err != nil {
 		return zigRuntime{}, err
 	}
 	out := filepath.Join(dir, "rt_float.o")
-	args := []string{"build-obj", "-OReleaseSafe", "-fno-compiler-rt", "-fno-stack-check", "-fstrip", "-ffunction-sections", "-fdata-sections", "-femit-bin=" + out}
+	args := []string{"build-obj", "-OReleaseSafe", "-fno-compiler-rt", "-fno-builtin", "-fno-stack-check", "-fstrip", "-ffunction-sections", "-fdata-sections", "-femit-bin=" + out}
 	if t.Arch != "wasm32" {
 		args = append(args, "-fPIC")
 	}

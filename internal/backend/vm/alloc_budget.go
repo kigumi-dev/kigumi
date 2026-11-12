@@ -3,6 +3,7 @@ package vm
 import (
 	"fmt"
 	"runtime/debug"
+	"sync/atomic"
 )
 
 // objOverhead approximates one obj allocation's fixed bookkeeping cost.
@@ -50,7 +51,7 @@ func approxSize(v *obj) int64 {
 		// a boxed object, while an interned scalar is already accounted.
 		n := int64(len(v.fields))*8 + objOverhead
 		for _, f := range v.fields {
-			if f == nil || f.rc < 0 {
+			if f == nil || atomic.LoadInt32(&f.rc) < 0 {
 				continue
 			}
 			switch f.k {

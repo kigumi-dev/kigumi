@@ -3,6 +3,7 @@ package vm
 import (
 	"slices"
 	"sync"
+	"sync/atomic"
 	"unsafe"
 )
 
@@ -38,7 +39,7 @@ func (r *rawArrObj) at(i int64) *obj {
 // borrowed is at for a reference nothing releases: the object is never freed.
 func (r *rawArrObj) borrowed(i int64) *obj {
 	v := r.at(i)
-	if v.rc > 0 {
+	if atomic.LoadInt32(&v.rc) > 0 {
 		setImmortal(v)
 	}
 	return v

@@ -37,7 +37,7 @@ pub fn isZero(a: *const Bn) bool {
 
 pub fn copy(dst: *Bn, src: *const Bn) void {
     dst.n = src.n;
-    @memcpy(dst.d[0..src.n], src.d[0..src.n]);
+    for (0..src.n) |i| dst.d[i] = src.d[i];
 }
 
 pub fn cmp(a: *const Bn, b: *const Bn) i32 {
@@ -193,7 +193,7 @@ pub fn divmod(a: *const Bn, b: *const Bn, q: *Bn, r: *Bn) void {
 
 /// 2*r compared against b, without doubling into a possibly-overflowing bignum.
 pub fn cmp2x(r: *const Bn, b: *const Bn) i32 {
-    var t: Bn = .{};
+    var t: Bn = .{ .n = 0 };
     copy(&t, r);
     shl(&t, 1);
     return cmp(&t, b);
