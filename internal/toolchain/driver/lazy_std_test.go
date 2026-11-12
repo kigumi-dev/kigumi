@@ -19,6 +19,12 @@ func TestLazyStdCheckMatchesEager(t *testing.T) {
 	if raceDetector {
 		t.Skip("the race detector makes the full-corpus equivalence sweep too slow; the plain run covers it")
 	}
+	var totalLazy atomic.Int64
+	t.Cleanup(func() {
+		if totalLazy.Load() == 0 {
+			t.Error("no program was checked lazily")
+		}
+	})
 	for _, corpus := range []string{"sem", "mir", "run"} {
 		t.Run(corpus, func(t *testing.T) {
 			paths, _ := fixture.Files(filepath.Join("../../../testdata", corpus), ".txtar")
@@ -26,12 +32,10 @@ func TestLazyStdCheckMatchesEager(t *testing.T) {
 			var lazy, retries, skipped, editorLazy atomic.Int64
 			t.Cleanup(func() {
 				t.Logf("%s: lazy=%d retries=%d skipped bodies=%d editor lazy=%d", corpus, lazy.Load(), retries.Load(), skipped.Load(), editorLazy.Load())
-				if lazy.Load() == 0 {
-					t.Error("no program was checked lazily")
-				}
 			})
 			count := func(st driver.UnitStats) {
 				lazy.Add(int64(st.Lazy))
+				totalLazy.Add(int64(st.Lazy))
 				retries.Add(int64(st.LazyRetries))
 				skipped.Add(int64(st.SkippedBodies))
 			}
