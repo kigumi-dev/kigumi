@@ -3,6 +3,7 @@ package driver_test
 import (
 	"bytes"
 	"os/exec"
+	"time"
 )
 
 // runFaultCmd runs a fault-injection child and retries one that died from a signal without writing
@@ -16,8 +17,11 @@ func runFaultCmd(cmd *exec.Cmd) (int, string, string) {
 		var stdout, stderr bytes.Buffer
 		next.Stdout, next.Stderr = &stdout, &stderr
 		code := exitCodeOf(next.Run())
-		if code >= 0 || stdout.Len() > 0 || stderr.Len() > 0 || attempt == 2 {
+		if code >= 0 || stdout.Len() > 0 || stderr.Len() > 0 || attempt == 100 {
 			return code, stdout.String(), stderr.String()
 		}
+		// A just-written executable can still be open for writing by another
+		// parallel test's build; retry ETXTBSY instead of reporting a crash.
+		time.Sleep(10 * time.Millisecond)
 	}
 }

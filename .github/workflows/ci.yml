@@ -166,7 +166,7 @@ jobs:
       # coverage, so this job keeps the driver's unit tests instead.
       - run: >-
           go test -race -timeout 75m
-          -skip '^(TestAotCorpus|TestArrayAcceleratorsMatchKigumiBodies|TestConstFixturesEmitNatively|TestCorpusOwnershipBeforeVerifier|TestCryptoConformance|TestCvmConformance|TestIRDump|TestLazyStdBuildMatchesEager|TestLazyStdCheckMatchesEager|TestManifestFresh|TestMutatedMIR|TestRunCorpusEngines|TestRunCorpusVMCoverage|TestSemDriverFixtures|TestSgxConformance|TestStaticFixturesEmitNatively|TestTextAcceleratorsMatchKigumiBodies|TestUnitSweepSemFixtures)$'
+          -skip '^(TestAotCorpus|TestArrayAcceleratorsMatchKigumiBodies|TestConstFixturesEmitNatively|TestCorpusOwnershipBeforeVerifier|TestCryptoConformance|TestCvmConformance|TestIRDump|TestLazyStdBuildMatchesEager|TestLazyStdCheckMatchesEager|TestManifestFresh|TestMutatedMIR|TestRunCorpusEngines|TestRunCorpusVMCoverage|TestSemDriverFixtures|TestSgxConformance|TestStaticFixturesEmitNatively|TestTargetScalarModelMatchesCompiler|TestTextAcceleratorsMatchKigumiBodies|TestUnitSweepSemFixtures)$'
           -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} ${{ matrix.count }} kigumi/internal/${{ matrix.pkg }} all)"
           ./internal/${{ matrix.pkg }}/...
 
