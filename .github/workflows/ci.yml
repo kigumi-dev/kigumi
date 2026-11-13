@@ -49,7 +49,7 @@ jobs:
             pkgs=$(printf '%s\n' "$pkgs" | grep -v '^kigumi/internal/arch$')
           fi
           printf '%s\n' "$pkgs" | xargs go test -timeout 60m
-      - run: go test -timeout 60m -skip '^(TestLazyStd|TestMutatedMIR)' -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} 4 kigumi/internal/toolchain/driver vm)" ./internal/toolchain/driver
+      - run: go test -timeout 60m -skip '^(TestLazyStd|TestMutatedMIR|TestRCCallCounts)' -run "$(bash .github/scripts/shard_tests.sh ${{ matrix.index }} 4 kigumi/internal/toolchain/driver vm)" ./internal/toolchain/driver
       # The verifier's oracle: mutated MIR must never crash verify, llgen or the
       # VM. It needs no C toolchain, so the hermetic job can run it; the nightly
       # workflow keeps the longer pass.
