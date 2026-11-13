@@ -15121,6 +15121,16 @@
     "status": "ok"
   },
   {
+    "key": "io.findFrom",
+    "signature": "pure fn(\u0026Array[u8], Bytes, usize) -\u003e usize?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "io.findIn",
     "signature": "pure fn(\u0026Array[u8], Bytes) -\u003e usize?",
     "has_body": true,
@@ -22274,6 +22284,16 @@
   {
     "key": "platform.fcntlSetFl",
     "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.fopenMode",
+    "signature": "fn(String) -\u003e String",
     "has_body": true,
     "kind": "",
     "vm": "gap",

@@ -87,10 +87,19 @@ func (e *emitter) checkedShift(sb *strings.Builder, op string, nk int, l, r Valu
 		}
 		return vi64text(e.binOp(sb, "lshr", l, r))
 	}
-	// `<<` discards bits shifted past the width; only the count is checked.
-	// Truncating here also keeps a narrow value from escaping as a wide i64.
 	v := e.binOp(sb, "shl", l, r)
-	return vi64text(e.truncateTo(sb, nk, v))
+	bad := e.outOfRange(sb, nk, v)
+	if intBits(nk) == 64 {
+		back := "lshr"
+		if isSignedNk(nk) {
+			back = "ashr"
+		}
+		bad = e.icmp(sb, "ne", TI64, vi64text(e.binOp(sb, back, vi64text(v), r)), l)
+	}
+	if bad != "false" {
+		e.overflowTrap(sb, bad, "integer overflow")
+	}
+	return vi64text(v)
 }
 
 func (e *emitter) checkedNeg(sb *strings.Builder, nk int, x Value) Value {

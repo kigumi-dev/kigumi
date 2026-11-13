@@ -104,11 +104,18 @@ func (c *borrowCheck) refCallees(k *keptCtx, in midir.Inst) []calleeUse {
 				return uses
 			}
 		}
-		s := c.valueKeeps(k.g.Locals[in.Args[0]].Type)
+		ft := k.g.Locals[in.Args[0]].Type
+		s := c.valueKeeps(ft)
+		refArgs := false
+		if n := c.p.R.Types.Node(ft); n.Kind == sem.KFn {
+			for _, a := range n.Args {
+				refArgs = refArgs || c.p.R.Types.Kind(a) == sem.KRef
+			}
+		}
 		return []calleeUse{{
 			s:      s,
 			slots:  argSlots(len(in.Args)-1, 1),
-			opaque: c.p.R.Types.Kind(k.g.Locals[in.Args[0]].Type) == sem.KFn && c.facts().DeclaredLifetime(k.g.Locals[in.Args[0]].Type) == 0,
+			opaque: c.p.R.Types.Kind(ft) == sem.KFn && !refArgs && c.facts().DeclaredLifetime(ft) == 0,
 		}}
 	case in.Op == midir.OpCall && in.Ent != 0 && c.ifaceRequirement(in.Ent):
 		if uses := c.implementerKeeps(k, in.Ent, in.Args, 0); uses != nil {
