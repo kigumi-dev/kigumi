@@ -55,6 +55,23 @@ timestamps.
 | [http_service](http_service/) | advanced | std/net/http: a loopback server and client with routing, middleware, JSON, status codes, timeouts and shutdown. | net.http, io.json |
 | [secret](secret/) | advanced | std/secret and std/crypto: SecretU, Choice, constant-time compare/select, SecretBuffer, SecretIndex, SHA-256 and HMAC. | secret.ct, secret.buffer, crypto.hash |
 
+## Size and coverage
+
+The set is 1,860 lines across the eight module roots, with a 154–320 line range.
+`features.json` requires 49 tags; the catalog covers all of them, and the three
+blocked tags do not appear in an example.
+
+| Example | Lines | Test files |
+|---|---:|---:|
+| tour | 295 | 0 |
+| ownership | 229 | 0 |
+| data_tools | 320 | 2 |
+| concurrency | 175 | 0 |
+| ffi_native | 250 | 0 |
+| build_system | 188 | 0 |
+| http_service | 249 | 0 |
+| secret | 154 | 0 |
+
 ## Checking the examples
 
 ```
