@@ -11,7 +11,7 @@
 @op STRING_TRY_FROM_BYTES
  {
         if (!rt_utf8_valid(a0->u.s.data, a0->u.s.len)) return rt_err_msg("invalid UTF-8");
-        char* d = strdup_or_null(a0->u.s.data, a0->u.s.len);
+        char* d = try_dup(a0->u.s.data, a0->u.s.len);
         if (!d) return oom_error();
         val v = rt_str_take_try(d, a0->u.s.len);
         if (!v) {
@@ -54,7 +54,7 @@
 @op BYTES_TRY_FROM_ARRAY
  {
         int64_t n2 = a0->u.arr.len;
-        char* d = fault_tick() ? NULL : malloc(n2 + 1);
+        char* d = fault_tick() ? NULL : kg_malloc_n(n2);
         if (!d) return alloc_error();
         for (int64_t i = 0; i < n2; i++) d[i] = (char)rt_deref(a0->u.arr.items[i])->u.i;
         d[n2] = 0;
@@ -69,7 +69,8 @@
 @op BYTES_TRY_CONCAT
  {
         int64_t l0 = a0->u.s.len, l1 = a1->u.s.len;
-        char* d = fault_tick() ? NULL : malloc(l0 + l1 + 1);
+        if (l0 < 0 || l1 < 0 || (uint64_t)l0 + (uint64_t)l1 > SIZE_MAX / 2 - 1) return alloc_error();
+        char* d = fault_tick() ? NULL : kg_malloc_n(l0 + l1);
         if (!d) return alloc_error();
         memcpy(d, a0->u.s.data, l0);
         memcpy(d + l0, a1->u.s.data, l1);

@@ -213,6 +213,8 @@ pub type BufReader = {
     mut src Reader
     mut buf Array[u8]
     mut done Bool
+    /// First unconsumed offset the delimiter scan must revisit after a fill.
+    mut scanned usize
 }
 
 /// Wraps `r`. Nothing is read until the first call.
@@ -221,6 +223,7 @@ pub fn BufReader.new(r: Reader) -> BufReader {
         src: r
         buf: Array.empty()
         done: false
+        scanned: 0
     }
 }
 
@@ -251,13 +254,19 @@ pub fn BufReader.readUntil(mut self, delim: Bytes) -> Bytes?! {
         fail IoError { text: "BufReader.readUntil needs a non-empty delimiter" }
     }
     for true {
-        match findIn(&self.buf, delim) {
+        match findFrom(&self.buf, delim, self.scanned) {
             Some(at) -> {
                 let cut = at + delim.len()
                 return Ok(Some(self.takeFront(cut)))
             }
             None -> {
+                let old = self.buf.len()
                 let n = self.fill()?
+                self.scanned = if old + 1 > delim.len() {
+                    old + 1 - delim.len()
+                } else {
+                    0
+                }
                 if n == 0 {
                     let len = self.buf.len()
                     if len == 0 {
@@ -327,16 +336,17 @@ fn BufReader.takeFront(mut self, count: usize) -> Bytes {
         i = i + 1
     }
     self.buf = rest
+    self.scanned = 0
     head
 }
 
-/// Byte offset of `sub` in `items`, or None.
-pure fn findIn(items: &Array[u8], sub: Bytes) -> usize? {
-    if sub.len() == 0 || sub.len() > items.len() {
+/// Byte offset of `sub` in `items` at or after `from`, or None.
+pure fn findFrom(items: &Array[u8], sub: Bytes, from: usize) -> usize? {
+    if sub.len() == 0 || sub.len() > items.len() || from > items.len() - sub.len() {
         return None
     }
     let last = items.len() - sub.len()
-    let mut i: usize = 0
+    let mut i: usize = from
     for i <= last {
         let mut j: usize = 0
         let mut hit = true
@@ -353,6 +363,11 @@ pure fn findIn(items: &Array[u8], sub: Bytes) -> usize? {
         i = i + 1
     }
     None
+}
+
+/// Byte offset of `sub` in `items`, or None.
+pure fn findIn(items: &Array[u8], sub: Bytes) -> usize? {
+    findFrom(items, sub, 0)
 }
 
 /// Reads exactly n bytes; fails with IoError when the input ends first.

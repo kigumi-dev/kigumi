@@ -52,26 +52,58 @@ func Shards(ids []string) []string {
 	return out
 }
 
-// ShardPaths splits a corpus path list by fixture id instead of by path: the
-// physical group is not part of an id, so moving a fixture between groups must
-// not reshuffle the CI shards. Each path is mapped through IDFromPath, Shards
-// selects the ids, and the matching paths are returned in their input order.
+// ShardPaths splits a corpus path list by fixture id instead of by path and
+// balances the byte weight of each shard. File count alone lets two huge
+// fixtures land in one shard, where every corpus test recompiles them. The
+// assignment is still ID-based (never group-based), so a move keeps its shard.
 func ShardPaths(paths []string) []string {
 	if len(paths) == 0 {
 		return paths
 	}
-	ids := make([]string, len(paths))
-	for i, p := range paths {
-		ids[i] = IDFromPath(p)
+	shard, count, ok := shardSpec()
+	if !ok || count <= 1 {
+		return paths
 	}
-	picked := make(map[string]bool, len(ids))
-	for _, id := range Shards(ids) {
-		picked[id] = true
+	type item struct {
+		pos    int
+		id     string
+		weight int64
+		hash   [sha256.Size]byte
 	}
-	out := make([]string, 0, len(picked))
-	for i, id := range ids {
-		if picked[id] {
-			out = append(out, paths[i])
+	items := make([]item, len(paths))
+	for pos, path := range paths {
+		id := IDFromPath(path)
+		weight := int64(1)
+		if info, err := os.Stat(path); err == nil && info.Size() > 0 {
+			weight = info.Size()
+		}
+		items[pos] = item{pos: pos, id: id, weight: weight, hash: sha256.Sum256([]byte(id))}
+	}
+	slices.SortFunc(items, func(a, b item) int {
+		if a.weight != b.weight {
+			return cmp.Compare(b.weight, a.weight)
+		}
+		if c := bytes.Compare(a.hash[:], b.hash[:]); c != 0 {
+			return c
+		}
+		return cmp.Compare(a.id, b.id)
+	})
+	load := make([]int64, count)
+	assigned := make([]bool, len(paths))
+	for _, it := range items {
+		pick := 0
+		for s := 1; s < count; s++ {
+			if load[s] < load[pick] {
+				pick = s
+			}
+		}
+		load[pick] += it.weight
+		assigned[it.pos] = pick == shard
+	}
+	out := make([]string, 0, len(paths)/count+1)
+	for pos, path := range paths {
+		if assigned[pos] {
+			out = append(out, path)
 		}
 	}
 	return out

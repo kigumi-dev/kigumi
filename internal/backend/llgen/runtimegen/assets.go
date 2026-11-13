@@ -5,9 +5,6 @@ import _ "embed"
 //go:embed runtime/rt.h
 var runtimeHeader string
 
-//go:embed runtime/rt_internal.h
-var runtimeInternalHeader string
-
 //go:embed runtime/rt_std_ops.h
 var runtimeStdOps string
 

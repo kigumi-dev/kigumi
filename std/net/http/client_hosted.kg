@@ -372,6 +372,7 @@ pub async fn Client.post(self, url: String, body: String) -> Response! {
     let mut session = (await self.open(url))?
     let mut req = Request.new("POST", target)
     req.headers.add("Content-Type", "text/plain")
+    req.headers.set("Connection", "close")
     req.body = body.toBytes()
     await session.send(req)
 }

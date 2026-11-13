@@ -15,7 +15,10 @@ func (c *checker) checkCArgs(n syntax.NodeID, name string, sn typeNode, args []s
 			c.checkArg(a, params[i], 0, false, callResult{})
 			continue
 		}
-		t := c.readThrough(c.vars.resolve(c.synthRead(a)))
+		// A C variadic slot has no parameter type to coerce to. Do not unwrap
+		// &T through readThrough: a borrow is not a C scalar or raw pointer, and
+		// accepting it would pass the referent as a pointer-shaped value.
+		t := c.vars.resolve(c.synthRead(a))
 		if c.r.Types.Kind(t) == KUntyped {
 			t = c.adopt(c.literalNode(a), c.variadicLiteralType(a, t))
 		}

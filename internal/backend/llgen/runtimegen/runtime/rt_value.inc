@@ -101,15 +101,6 @@ val strdup_val(const char* s, int64_t len) {
     d[len] = 0;
     return rt_str_take(d, len);
 }
-// NULL on refusal instead of strdup_val's panic, for the fallible primitives.
-static char* strdup_or_null(const char* s, int64_t len) {
-    if (len < 0 || fault_tick()) return NULL;
-    char* d = kg_malloc_n(len);
-    if (!d) return NULL;
-    memcpy(d, s, len);
-    d[len] = 0;
-    return d;
-}
 val bytes_val(const char* s, int64_t len) {
     val v = strdup_val(s, len);
     v->kind = K_BYTES;

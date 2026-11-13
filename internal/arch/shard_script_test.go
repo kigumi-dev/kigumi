@@ -138,6 +138,7 @@ func TestShardScriptSplitsAOTAndVMCorpus(t *testing.T) {
 		"TestIRDump",
 		"TestLazyStdBuildMatchesEager",
 		"TestLazyStdCheckMatchesEager",
+		"TestMutatedMIR",
 		"TestRunCorpusEngines",
 		"TestRunCorpusVMCoverage",
 		"TestSemDriverFixtures",

@@ -80,3 +80,6 @@ static int subtle_constant_time_eq(val a, val b) {
     }
     return diff == 0;
 }
+static uint64_t secret_eq_bytes(val a, val b) {
+    return (uint64_t)0 - (uint64_t)subtle_constant_time_eq(a, b);
+}

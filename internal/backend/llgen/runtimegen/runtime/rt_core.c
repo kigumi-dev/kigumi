@@ -11,7 +11,6 @@
 #endif
 
 #include "rt.h"
-#include "rt_internal.h"
 #include "rt_std_ops.h"
 #ifdef KIGUMI_THREADS
 #include <pthread.h>
@@ -232,16 +231,6 @@ static uint64_t secret_select_u64(uint64_t m, uint64_t a, uint64_t b) {
     m = secret_barrier_u64(m);
     return (a & m) | (b & ~m);
 }
-static uint64_t secret_eq_bytes(val a, val b) {
-    int64_t n = a->u.s.len;
-    if (n != b->u.s.len) return 0;
-    volatile uint8_t diff = 0;
-    for (int64_t i = 0; i < n; i++) {
-        diff |= (uint8_t)a->u.s.data[i] ^ (uint8_t)b->u.s.data[i];
-    }
-    return (uint64_t)0 - (uint64_t)(diff == 0);
-}
-
 // A rounding of NaN returns the argument quiet with its payload, as the inline lowering and the VM do.
 static inline double rounded_nan(double (*f)(double), double x) {
     if (x != x) {
@@ -261,10 +250,7 @@ static inline double rounded_nan(double (*f)(double), double x) {
 val rt_std(const char* key, int n, val* a) {
     int op = rt_std_op_of(key);
     if (op >= 0) return rt_std_id(op, n, a);
-    val a0 = n > 0 ? rt_deref(a[0]) : NULL, a1 = n > 1 ? rt_deref(a[1]) : NULL, a2 = n > 2 ? rt_deref(a[2]) : NULL;
-    if (a0 && a0->kind == K_BOX) a0 = a0->u.box.v;
-    val r = rt_sys_std(key, n, a, a0, a1, a2);
-    if (r) return r;
+    (void)a;
     rt_panicf("no runtime for %s", key);
     return NULL;
 }

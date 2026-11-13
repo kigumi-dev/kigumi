@@ -27,7 +27,7 @@ type Op struct {
 func StdOpHeader(ops []Op) string {
 	var sb strings.Builder
 	sb.WriteString("// Generated from internal/compiler/mir/ops/stdops.reg by TestStdOpHeaderFresh; do not edit.\n")
-	sb.WriteString("#ifndef KIGUMI_RT_STD_OPS_H\n#define KIGUMI_RT_STD_OPS_H\n")
+	sb.WriteString("#ifndef KIGUMI_RT_STD_OPS_H\n#define KIGUMI_RT_STD_OPS_H\n#ifndef KIGUMI_FREESTANDING\n#include <string.h>\n#endif\n")
 	sb.WriteString("enum std_op {\n")
 	for _, op := range ops {
 		fmt.Fprintf(&sb, "    OP_%s = %d,\n", op.Name, op.ID)

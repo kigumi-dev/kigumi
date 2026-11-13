@@ -1,6 +1,9 @@
 // Generated from internal/compiler/mir/ops/stdops.reg by TestStdOpHeaderFresh; do not edit.
 #ifndef KIGUMI_RT_STD_OPS_H
 #define KIGUMI_RT_STD_OPS_H
+#ifndef KIGUMI_FREESTANDING
+#include <string.h>
+#endif
 enum std_op {
     OP_LEN = 0,
     OP_STRING_TO_BYTES = 1,

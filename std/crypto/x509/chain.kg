@@ -58,9 +58,6 @@ pub fn verifyChain(anchors: &Array[Certificate], chain: &Array[Certificate], hos
         fail validationFailure("certificate chain is empty")
     }
     let leaf = &chain[0]
-    if certificateIsSelfSigned(leaf) {
-        fail validationFailure("leaf certificate is self-signed")
-    }
     leaf.checkValidity(nowMillis)?
     checkSupportedExtensions(leaf)?
     leaf.verifyHostname(host)?
@@ -80,16 +77,32 @@ pub fn verifyChain(anchors: &Array[Certificate], chain: &Array[Certificate], hos
             cert.verifySignedBy(issuer)?
         } else {
             let mut found = false
+            let mut lastError = ""
             let mut a: usize = 0
             for a < anchors.len() {
                 let anchor = &anchors[a]
                 if cert.issuer.raw.equals(&anchor.subject.raw) {
-                    checkAnchor(cert, anchor, chain.len() - 1, nowMillis)?
-                    found = true
+                    match checkAnchor(cert, anchor, chain.len() - 1, nowMillis) {
+                        Ok(_) -> {
+                            found = true
+                            break
+                        }
+                        Err(e) -> {
+                            lastError = e.text
+                        }
+                    }
                 }
                 a = a + 1
             }
             if !found {
+                // Keep the historical self-signed diagnostic when no anchor
+                // matched; an explicitly pinned self-signed leaf is accepted.
+                if i == 0 && certificateIsSelfSigned(cert) {
+                    fail validationFailure("leaf certificate is self-signed")
+                }
+                if lastError != "" {
+                    fail ValidationError { text: lastError }
+                }
                 fail validationFailure("certificate chain does not reach a trust anchor")
             }
         }

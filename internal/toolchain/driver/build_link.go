@@ -26,6 +26,12 @@ type hostLink struct {
 	stderr         io.Writer
 }
 
+// needsLibdl limits -ldl to targets with a separate libdl; macOS, Windows,
+// WASI and the BSDs either fold it into libc or reject the flag.
+func needsLibdl(t buildconfig.Target) bool {
+	return t.OS == "linux" && !t.Bare()
+}
+
 // run links h into staged. zig links libm itself and only for the symbols the program references, so -lm goes only to another compiler.
 func (h hostLink) run(staged string) error {
 	m, cc, opts, t := h.m, h.cc, h.opts, h.t
@@ -51,7 +57,7 @@ func (h hostLink) run(staged string) error {
 	if !link.IsZig(cc) {
 		linkArgs = append(linkArgs, "-lm")
 	}
-	if _, ok := m.Packages["std/ffi/dl"]; ok && !h.link.Static {
+	if _, ok := m.Packages["std/ffi/dl"]; ok && !h.link.Static && needsLibdl(t) {
 		linkArgs = append(linkArgs, "-ldl")
 	}
 	for _, l := range m.Links {

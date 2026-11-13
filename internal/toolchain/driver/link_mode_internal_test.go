@@ -135,3 +135,26 @@ func TestArtifactLink(t *testing.T) {
 		t.Errorf("auto link = %q, %v", got, err)
 	}
 }
+
+func TestNeedsLibdlByTarget(t *testing.T) {
+	for _, tc := range []struct {
+		os   string
+		want bool
+	}{
+		{"linux", true},
+		{"darwin", false},
+		{"freebsd", false},
+		{"netbsd", false},
+		{"openbsd", false},
+		{"windows", false},
+		{"wasi", false},
+	} {
+		got := needsLibdl(buildconfig.Target{OS: tc.os, Sys: "posix"})
+		if got != tc.want {
+			t.Errorf("needsLibdl(%q) = %v, want %v", tc.os, got, tc.want)
+		}
+	}
+	if needsLibdl(buildconfig.Target{OS: "linux", Sys: "none"}) {
+		t.Error("a bare target must not link libdl")
+	}
+}

@@ -26,7 +26,7 @@ extern(C) {
 
 fn openFile(path: &String, mode: String) -> File! {
     let c = ffi.CString.new(path)?
-    let m = ffi.CString.new(&mode)?
+    let m = ffi.CString.new(&platform.fopenMode(mode))?
     let f = unsafe {
         fopen(c.ptr(), m.ptr())
     }
@@ -56,7 +56,7 @@ pub fn Files.createWithMode(self, path: Path, mode: u32) -> File! {
     if fd < 0 {
         fail ffi.lastError()
     }
-    let m = ffi.CString.new(&"w")?
+    let m = ffi.CString.new(&platform.fopenMode("w"))?
     let f = unsafe {
         fdopen(fd, m.ptr())
     }

@@ -82,9 +82,6 @@ static int64_t checked_i64(int64_t v, int nk, int over) {
     if (over) rt_panic("integer overflow");
     return v;
 }
-static val checked(int64_t v, int nk, int over) {
-    return rt_int(checked_i64(v, nk, over), nk);
-}
 static int64_t int_add(int64_t x, int64_t y, int nk) {
     int sg = is_signed(nk);
     int64_t r;

@@ -59,7 +59,9 @@ struct kgexec {
 #endif
 };
 static KG_TLS kgtask* g_cur_task;
+#ifdef KIGUMI_CAP_TASK_EXECUTOR
 static KG_TLS int g_cur_lane;
+#endif
 #ifdef KIGUMI_THREADS
 // A worker with an empty queue may leave only once the handle is gone and
 // nothing it admitted is still running.
@@ -116,6 +118,7 @@ val rt_future_complete(val fut, val v) {
     frame_of(fut)->state = -1;
     return v;
 }
+#ifdef KIGUMI_CAP_TASK_EXECUTOR
 // A value that is not a compiler-built Future (a BlockingPool result) has
 // no mobility summary, so it stays on the lane that created it.
 static int future_mobile(val fut) {
@@ -123,6 +126,7 @@ static int future_mobile(val fut) {
     if (!d || d->kind != K_OPAQUE || strcmp(d->u.op.kind, "Future")) return 0;
     return ((kgframe*)d->u.op.data)->desc->mobile;
 }
+#endif
 val rt_future_new(val callee, int n, val* args) {
     val clo = rt_deref(callee);
     if (clo->kind != K_CLOSURE || !clo->u.clo.fn) rt_panic("this Future has no async body to run");

@@ -14,6 +14,7 @@ import (
 
 	"kigumi/internal/compiler/mir"
 	mirverify "kigumi/internal/compiler/mir/verify"
+	"kigumi/internal/devkit/fixture"
 	"kigumi/internal/toolchain/driver"
 )
 
@@ -128,7 +129,7 @@ func TestMutatedMIR(t *testing.T) {
 	from := int64(envInt("KIGUMI_MIR_FUZZ_FROM", 0))
 	maxFindings := envInt("KIGUMI_MIR_FUZZ_MAXFINDINGS", defaultMaxFindings)
 	var mu sync.Mutex
-	for _, name := range mutantBases {
+	for _, name := range fixture.Shards(mutantBases) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			base := analyzeFixture(t, fixtureFile(name))

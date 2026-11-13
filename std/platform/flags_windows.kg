@@ -2,3 +2,8 @@
 pub fn createFlags() -> i32 {
     769
 }
+
+/// fopen mode with close-on-exec on POSIX; other targets ignore the flag.
+pub fn fopenMode(mode: String) -> String {
+    mode
+}

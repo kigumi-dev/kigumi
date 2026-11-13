@@ -1,6 +1,10 @@
 package fixture
 
 import (
+	"bytes"
+	"fmt"
+	"os"
+	"path/filepath"
 	"slices"
 	"testing"
 )
@@ -106,4 +110,44 @@ func itoa(n int) string {
 		b = append([]byte{byte('0' + n%10)}, b...)
 	}
 	return string(b)
+}
+
+// ShardPaths balances bytes, not just file count: one huge fixture must not
+// share a shard with another huge fixture when a cheaper placement exists.
+func TestShardPathsBalancesBytes(t *testing.T) {
+	dir := t.TempDir()
+	weights := []int{1000, 1000, 1000, 1000, 100, 100, 100, 100}
+	var paths []string
+	for i, n := range weights {
+		path := filepath.Join(dir, fmt.Sprintf("f%d.txtar", i))
+		if err := os.WriteFile(path, bytes.Repeat([]byte("x"), n), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		paths = append(paths, path)
+	}
+	seen := map[string]int{}
+	var loads [4]int
+	for shard := range 4 {
+		t.Setenv("KIGUMI_TEST_SHARD", fmt.Sprintf("%d/4", shard))
+		for _, path := range ShardPaths(paths) {
+			seen[path]++
+			info, err := os.Stat(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			loads[shard] += int(info.Size())
+		}
+	}
+	if len(seen) != len(paths) {
+		t.Fatalf("ShardPaths covered %d of %d paths", len(seen), len(paths))
+	}
+	for path, n := range seen {
+		if n != 1 {
+			t.Errorf("%s ran in %d shards", path, n)
+		}
+	}
+	least, most := slices.Min(loads[:]), slices.Max(loads[:])
+	if most > least*2 {
+		t.Errorf("shard byte loads %v are not balanced", loads)
+	}
 }

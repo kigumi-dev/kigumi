@@ -13,8 +13,9 @@ func (c *borrowCheck) withRefKeeps(k *keptCtx, in midir.Inst, res uint64, lent f
 // calleeUse is one callee a call may run, with each of its argument slots' operand: an index into the call's
 // operands, or via for a value the called callable holds itself (a capture, a method value's receiver).
 type calleeUse struct {
-	s     *refSummary
-	slots []useSlot
+	s      *refSummary
+	slots  []useSlot
+	opaque bool
 }
 
 type useSlot struct {
@@ -34,8 +35,17 @@ func (c *borrowCheck) refKeepCall(k *keptCtx, in midir.Inst) (uint64, func(int) 
 	}
 	orig := c.refOrigins(k)
 	every := c.windowBits(k)
+	opaque := false
+	for _, u := range uses {
+		opaque = opaque || u.opaque
+	}
 	pick := func(sl useSlot, kind refKind) uint64 {
 		o := orig[in.Args[sl.arg]]
+		if opaque {
+			// A plain fn value has no body or declared result lifetime: it may
+			// pass a borrow on, but cannot return a fresh own borrow of it.
+			return o.held
+		}
 		switch {
 		case o.unknown, sl.applied && kind == refOwn:
 			return every
@@ -95,7 +105,11 @@ func (c *borrowCheck) refCallees(k *keptCtx, in midir.Inst) []calleeUse {
 			}
 		}
 		s := c.valueKeeps(k.g.Locals[in.Args[0]].Type)
-		return []calleeUse{{s: s, slots: argSlots(len(in.Args)-1, 1)}}
+		return []calleeUse{{
+			s:      s,
+			slots:  argSlots(len(in.Args)-1, 1),
+			opaque: c.p.R.Types.Kind(k.g.Locals[in.Args[0]].Type) == sem.KFn && c.facts().DeclaredLifetime(k.g.Locals[in.Args[0]].Type) == 0,
+		}}
 	case in.Op == midir.OpCall && in.Ent != 0 && c.ifaceRequirement(in.Ent):
 		if uses := c.implementerKeeps(k, in.Ent, in.Args, 0); uses != nil {
 			return uses

@@ -42,14 +42,14 @@ func (m *Machine) registerFileReads() {
 	h["fs.Files.readBytesUpTo"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		b, bad := m.readLimited(pathText(a[1]), deref(a[2]).i)
 		if bad != "" {
-			return m.errMsg(bad)
+			return m.cErrorMsg(bad)
 		}
 		return m.ok(mkBytes(b))
 	}
 	h["fs.Files.readBytes"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		b, bad := m.readLimited(pathText(a[1]), defaultReadLimit)
 		if bad != "" {
-			return m.errMsg(bad)
+			return m.cErrorMsg(bad)
 		}
 		return m.ok(mkBytes(b))
 	}
@@ -57,16 +57,16 @@ func (m *Machine) registerFileReads() {
 		b, bad := m.readLimited(pathText(a[1]), defaultReadLimit)
 		switch {
 		case bad != "":
-			return m.errMsg(bad)
+			return m.cErrorMsg(bad)
 		case !utf8.Valid(b):
-			return m.errMsg("invalid UTF-8")
+			return m.cErrorMsg("invalid UTF-8")
 		}
 		return m.ok(mkStr(b))
 	}
 	h["fs.Files.createWithMode"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		fh, err := os.OpenFile(m.resolvePath(pathText(a[1])), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, unixMode(deref(a[2]).i))
 		if err != nil {
-			return m.errMsg(shell.OSErrText(err))
+			return m.cErrorMsg(shell.OSErrText(err))
 		}
 		file := m.r.Types.Node(m.resultPayload(fn)).Ent
 		return m.ok(mkRecord(file, []*obj{mkOpaque("Ptr", fh)}))
@@ -74,10 +74,10 @@ func (m *Machine) registerFileReads() {
 	h["fs.Files.remove"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		path := m.resolvePath(pathText(a[1]))
 		if info, err := os.Lstat(path); err == nil && info.IsDir() {
-			return m.errMsg(shell.OSErrText(syscall.EISDIR))
+			return m.cErrorMsg(shell.OSErrText(syscall.EISDIR))
 		}
 		if err := os.Remove(path); err != nil {
-			return m.errMsg(shell.OSErrText(err))
+			return m.cErrorMsg(shell.OSErrText(err))
 		}
 		return m.ok(unitObj)
 	}
@@ -92,28 +92,28 @@ func (m *Machine) registerFileReads() {
 	}
 	h["fs.Files.chmod"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		if err := os.Chmod(m.resolvePath(pathText(a[1])), unixMode(deref(a[2]).i)); err != nil {
-			return m.errMsg(shell.OSErrText(err))
+			return m.cErrorMsg(shell.OSErrText(err))
 		}
 		return m.ok(unitObj)
 	}
 	h["fs.Files.isDir"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		info, err := os.Stat(m.resolvePath(pathText(a[1])))
 		if err != nil {
-			return m.errMsg(shell.OSErrText(err))
+			return m.cErrorMsg(shell.OSErrText(err))
 		}
 		return m.ok(mkBool(info.IsDir()))
 	}
 	h["fs.Files.isFile"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		info, err := os.Stat(m.resolvePath(pathText(a[1])))
 		if err != nil {
-			return m.errMsg(shell.OSErrText(err))
+			return m.cErrorMsg(shell.OSErrText(err))
 		}
 		return m.ok(mkBool(info.Mode().IsRegular()))
 	}
 	h["fs.Files.stat"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		info, err := os.Stat(m.resolvePath(pathText(a[1])))
 		if err != nil {
-			return m.errMsg(shell.OSErrText(err))
+			return m.cErrorMsg(shell.OSErrText(err))
 		}
 		kind, size := "Other", int64(0)
 		switch {
@@ -130,28 +130,28 @@ func (m *Machine) registerFileReads() {
 	}
 	h["fs.Files.rename"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		if err := os.Rename(m.resolvePath(pathText(a[1])), m.resolvePath(pathText(a[2]))); err != nil {
-			return m.errMsg(shell.OSErrText(err))
+			return m.cErrorMsg(shell.OSErrText(err))
 		}
 		return m.ok(unitObj)
 	}
 	h["fs.Files.size"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		f, err := os.Open(m.resolvePath(pathText(a[1])))
 		if err != nil {
-			return m.errMsg(shell.OSErrText(err))
+			return m.cErrorMsg(shell.OSErrText(err))
 		}
 		defer f.Close()
 		info, err := f.Stat()
 		if err != nil {
-			return m.errMsg(shell.OSErrText(err))
+			return m.cErrorMsg(shell.OSErrText(err))
 		}
 		if info.IsDir() {
-			return m.errMsg(shell.OSErrText(syscall.EISDIR))
+			return m.cErrorMsg(shell.OSErrText(syscall.EISDIR))
 		}
 		return m.ok(mkInt(info.Size(), m.numKind(sem.TyI64)))
 	}
 	h["fs.Files.removeDir"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		if err := syscall.Rmdir(m.resolvePath(pathText(a[1]))); err != nil {
-			return m.errMsg(shell.OSErrText(err))
+			return m.cErrorMsg(shell.OSErrText(err))
 		}
 		return m.ok(unitObj)
 	}
@@ -160,11 +160,11 @@ func (m *Machine) registerFileReads() {
 func seekFile(m *Machine, a []*obj, whence int) *obj {
 	fh := fileOf(a[0])
 	if fh == nil {
-		return m.errMsg("file is closed")
+		return m.cErrorMsg("file is closed")
 	}
 	at, err := fh.Seek(deref(a[1]).i, whence)
 	if err != nil {
-		return m.errMsg(shell.OSErrText(err))
+		return m.cErrorMsg(shell.OSErrText(err))
 	}
 	return m.ok(mkInt(at, m.numKind(sem.TyI64)))
 }

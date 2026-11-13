@@ -21,3 +21,34 @@ func TestRuntimeFilesSignalGatingMatchesReach(t *testing.T) {
 		}
 	}
 }
+
+// TestRuntimeFilesTargetGating keeps the target-only translation units out of
+// builds that cannot use them: no FS TU on a bare target, and no guard TU on a
+// POSIX OS where it would compile only empty stubs.
+func TestRuntimeFilesTargetGating(t *testing.T) {
+	for _, tc := range []struct {
+		sys, os string
+		fs      bool
+		guard   bool
+	}{
+		{"posix", "linux", true, true},
+		{"posix", "darwin", true, true},
+		{"posix", "freebsd", true, true},
+		{"posix", "netbsd", true, false},
+		{"posix", "openbsd", true, false},
+		{"posix", "windows", true, false},
+		{"posix", "wasi", true, false},
+		{"none", "linux", false, false},
+		{"none", "freestanding", false, false},
+		{"posix", "uefi", false, false},
+	} {
+		hasFS, hasGuard := false, false
+		for _, f := range RuntimeFiles(tc.sys, tc.os) {
+			hasFS = hasFS || f.Name == "rt_fs.c"
+			hasGuard = hasGuard || f.Name == "rt_stack_guard_hosted.c"
+		}
+		if hasFS != tc.fs || hasGuard != tc.guard {
+			t.Errorf("RuntimeFiles(%q, %q): fs=%v guard=%v, want fs=%v guard=%v", tc.sys, tc.os, hasFS, hasGuard, tc.fs, tc.guard)
+		}
+	}
+}

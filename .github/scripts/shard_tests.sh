@@ -29,6 +29,7 @@ TestCorpusOwnershipBeforeVerifier
 TestIRDump
 TestLazyStdBuildMatchesEager
 TestLazyStdCheckMatchesEager
+TestMutatedMIR
 TestRunCorpusEngines
 TestRunCorpusVMCoverage
 TestSemDriverFixtures

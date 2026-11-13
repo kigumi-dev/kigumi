@@ -79,7 +79,6 @@ rt_sys_exit
 rt_sys_seed
 rt_sys_stack_force
 rt_sys_stack_guard
-rt_sys_std
 rt_sys_write
 sqrt
 strchr

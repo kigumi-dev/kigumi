@@ -84,7 +84,7 @@ jobs:
           go mod verify
           test -f internal/toolchain/version/version.go
           test -f .github/scripts/release/targets.txt
-          for header in rt.h rt_internal.h rt_std_ops.h rt_freestanding.h freestanding_symbols.txt; do
+          for header in rt.h rt_std_ops.h rt_freestanding.h freestanding_symbols.txt; do
             test -f "internal/backend/llgen/runtimegen/runtime/$header"
           done
 
@@ -220,7 +220,7 @@ jobs:
           set -euo pipefail
           mkdir -p headers/include
           src=internal/backend/llgen/runtimegen/runtime
-          cp "$src/rt.h" "$src/rt_internal.h" "$src/rt_std_ops.h" "$src/rt_freestanding.h" headers/include/
+          cp "$src/rt.h" "$src/rt_std_ops.h" "$src/rt_freestanding.h" headers/include/
           cp "$src/freestanding_symbols.txt" headers/
           ( cd .github/scripts/release && go run . version --root ../../.. ) > headers/VERSION
           ( cd .github/scripts/release && go run . archive \

@@ -1,0 +1,35 @@
+package driver_test
+
+import (
+	"testing"
+	"time"
+)
+
+// Vectors produced by Intel SGX SDK 2.26.100.0 in SGX_MODE=SIM:
+// /tmp/sgxsim2 in the verification run. The simulator produces a genuine
+// enclave report, but only a v2 EPID quote; kigumi supports v3 ECDSA quotes.
+func TestSGXSimulatorReportAndQuote(t *testing.T) {
+	const src = `import sgx from std/cvm/sgx
+import hex from std/encoding/hex
+
+fn b(text: String) -> Bytes {
+    hex.decode(text).expect("hex")
+}
+let report = match sgx.Report.parse(b("4820f3376ae6b2f2034d3b7a4b48a778000000000000000000000000000000000000000000000000000000000000000007000000000000000700000000000000ab78d257eb37cafb1d2c8e0ec8542ae379ee0995fb70d08bacd34a94213a89a3000000000000000000000000000000000000000000000000000000000000000083d719e77deaca1470f6baf62a4d774303c899db69020f9c70ee1dfc08c7ce9e0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")) {
+    Ok(r) -> r
+    Err(e) -> { print "report-${e.code.name()}"; return }
+}
+print "${hex.encode(report.mrEnclave)} ${hex.encode(report.mrSigner)} ${report.isvProdId}/${report.isvSvn} ${report.debug()} ${report.mode64()}"
+match sgx.Quote.parse(b("020000000b000000ef00ef00efefefef00000000000000000000000000000000bfa1337da822f126d3ed0bf8fe6fc8804820f3376ae6b2f2034d3b7a4b48a778000000000000000000000000000000000000000000000000000000000000000007000000000000000700000000000000ab78d257eb37cafb1d2c8e0ec8542ae379ee0995fb70d08bacd34a94213a89a3000000000000000000000000000000000000000000000000000000000000000083d719e77deaca1470f6baf62a4d774303c899db69020f9c70ee1dfc08c7ce9e0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a8020000eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee0aa28a68b3e6d95200ae1b7168010000eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee60041d225837cb54dc8469f5fa00c2af")) {
+    Ok(_) -> print "quote-ok"
+    Err(e) -> print "quote-${e.code.name()}"
+}
+`
+	const want = "ab78d257eb37cafb1d2c8e0ec8542ae379ee0995fb70d08bacd34a94213a89a3 83d719e77deaca1470f6baf62a4d774303c899db69020f9c70ee1dfc08c7ce9e 0/0 true true\nquote-unsupported-version\n"
+	if got := runGeneratedVM(t, src, time.Minute); got != want {
+		t.Fatalf("vm: got %q, want %q", got, want)
+	}
+	if got := runGeneratedAOT(t, src, time.Minute); got != want {
+		t.Fatalf("native: got %q, want %q", got, want)
+	}
+}

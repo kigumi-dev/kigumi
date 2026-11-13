@@ -134,8 +134,9 @@ func (m *Machine) binopCore(c bop, op string, a, b *obj) *obj {
 		if y < 0 || y >= int64(bitsOf(nk)) {
 			m.abort("shift count out of range")
 		}
-		v := x << uint(y)
-		return m.checked(v, nk, shiftedOut(v, x, uint(y), sg))
+		// `<<` discards bits shifted past the width; only the count is checked.
+		// The masked forms (`wrappingShiftLeft`) are separate std operations.
+		return m.newInt(truncateTo(x<<uint(y), nk), nk)
 	case bopShr:
 		if y < 0 || y >= int64(bitsOf(nk)) {
 			m.abort("shift count out of range")
@@ -147,12 +148,4 @@ func (m *Machine) binopCore(c bop, op string, a, b *obj) *obj {
 	}
 	m.abort("unsupported operator " + op)
 	return nil
-}
-
-// shiftedOut catches bits a 64-bit shift drops; a narrower width keeps them in int64 and fails checked's range test instead.
-func shiftedOut(v, x int64, n uint, signed bool) bool {
-	if signed {
-		return v>>n != x
-	}
-	return uint64(v)>>n != uint64(x)
 }

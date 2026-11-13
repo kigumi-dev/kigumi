@@ -1,10 +1,12 @@
 package vm
 
 import (
+	"errors"
 	"io"
 	"os"
 	"sort"
 	"strings"
+	"syscall"
 	"unicode/utf8"
 
 	"kigumi/internal/backend/vm/host/shell"
@@ -13,6 +15,28 @@ import (
 
 // readChunk caps one File.read, like the hosted runtime.
 const readChunk = 65536
+
+// cError is the VM fast path's CError result, matching the Kigumi std/fs body
+// that fails with ffi.lastError() on the same OS error.
+func (m *Machine) cError(err error) *obj {
+	var errno syscall.Errno
+	code := int64(0)
+	if errors.As(err, &errno) {
+		code = int64(errno)
+	}
+	return m.cErrorCode(code, shell.OSErrText(err))
+}
+
+func (m *Machine) cErrorMsg(msg string) *obj { return m.cErrorCode(0, msg) }
+
+func (m *Machine) cErrorCode(code int64, text string) *obj {
+	ent := m.lookup("std/ffi", "CError")
+	ce := mkRecord(ent, []*obj{mkInt(code, 32), mkStr([]byte(text))})
+	box := newObj(kBox)
+	box.i, box.inner = int64(m.r.Types.Named(ent, nil)), ce
+	m.chargeMemory(box)
+	return mkVariant(m.variantOf(m.r.Types.ResultEnt(), "Err"), []*obj{box})
+}
 
 func pathText(v *obj) string { return string(deref(deref(v).fields[0]).str()) }
 
@@ -30,7 +54,7 @@ func (m *Machine) resultPayload(fn sem.EntityID) sem.TypeID {
 func readFile(m *Machine, fn sem.EntityID, a []*obj) *obj {
 	fh := fileOf(a[0])
 	if fh == nil {
-		return m.errMsg("file is closed")
+		return m.cErrorMsg("file is closed")
 	}
 	want := deref(a[2]).i
 	if want < 0 || want > readChunk {
@@ -42,7 +66,7 @@ func readFile(m *Machine, fn sem.EntityID, a []*obj) *obj {
 	buf := make([]byte, want)
 	got, err := fh.Read(buf)
 	if err != nil && err != io.EOF {
-		return m.errMsg(shell.OSErrText(err))
+		return m.cError(err)
 	}
 	arr := deref(a[1])
 	for _, b := range buf[:got] {
@@ -56,7 +80,7 @@ func (m *Machine) registerFiles() {
 	m.registerFileReads()
 	openAs := func(m *Machine, fn sem.EntityID, fh *os.File, err error) *obj {
 		if err != nil {
-			return m.errMsg(shell.OSErrText(err))
+			return m.cError(err)
 		}
 		file := m.r.Types.Node(m.resultPayload(fn)).Ent
 		return m.ok(mkRecord(file, []*obj{mkOpaque("Ptr", fh)}))
@@ -77,18 +101,18 @@ func (m *Machine) registerFiles() {
 	h["fs.File.write"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		fh := fileOf(a[0])
 		if fh == nil {
-			return m.errMsg("file is closed")
+			return m.cErrorMsg("file is closed")
 		}
 		n, err := fh.Write(deref(a[1]).str())
 		if err != nil {
-			return m.errMsg(shell.OSErrText(err))
+			return m.cError(err)
 		}
 		return m.ok(mkInt(int64(n), m.numKind(sem.TyUsize)))
 	}
 	h["fs.File.close"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		if fh := fileOf(a[0]); fh != nil {
 			if err := fh.Sync(); err != nil && !strings.Contains(err.Error(), "invalid argument") {
-				return m.errMsg(shell.OSErrText(err))
+				return m.cError(err)
 			}
 		}
 		return m.ok(unitObj)
@@ -101,7 +125,7 @@ func (m *Machine) registerFiles() {
 	}
 	h["fs.Files.mkdir"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		if err := m.mkdirAll(pathText(a[1])); err != nil {
-			return m.errMsg(shell.OSErrText(err))
+			return m.cError(err)
 		}
 		return m.ok(unitObj)
 	}
@@ -116,7 +140,7 @@ func (m *Machine) registerFiles() {
 		dir := pathText(a[1])
 		entries, err := os.ReadDir(m.resolvePath(dir))
 		if err != nil {
-			return m.errMsg(shell.OSErrText(err))
+			return m.cError(err)
 		}
 		var names []string
 		for _, e := range entries {

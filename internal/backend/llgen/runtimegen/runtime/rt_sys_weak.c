@@ -1,6 +1,7 @@
 // write, exit and close are weak so hosted std or an embedder can
-// override them; every other host primitive is answered by std's Kigumi bodies.
-#include "rt.h"
+// override them; the remaining host primitives use their weak defaults.
+#include <stddef.h>
+#include <stdint.h>
 
 #if defined(__wasi__)
 #include <unistd.h>
@@ -33,12 +34,3 @@ __attribute__((weak)) int rt_sys_close(int fd) {
 __attribute__((weak)) int64_t rt_sys_seed(void) { return 0; }
 __attribute__((weak)) void rt_sys_stack_guard(void) {}
 __attribute__((weak)) void rt_sys_stack_force(void) {}
-val rt_sys_std(const char* k, int n, val* a, val a0, val a1, val a2) {
-    (void)k;
-    (void)n;
-    (void)a;
-    (void)a0;
-    (void)a1;
-    (void)a2;
-    return NULL;
-}
