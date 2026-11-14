@@ -1,0 +1,429 @@
+-- src --
+import simd from std/simd
+import math from std/math
+
+// Every std/simd primitive through a generic wrapper: the const N and the lane
+// type T are only concrete at the instantiation, so each of these calls must
+// specialize the wrapper before llgen lowers a 128-bit vector.
+fn splatT[T: Copy, const N: usize](v: T) -> simd.Vec[T, N] {
+    simd.Vec.splat[T, N](v)
+}
+
+fn addT[T: Copy, const N: usize](a: simd.Vec[T, N], b: simd.Vec[T, N]) -> simd.Vec[T, N] {
+    a.add(b)
+}
+
+fn subT[T: Copy, const N: usize](a: simd.Vec[T, N], b: simd.Vec[T, N]) -> simd.Vec[T, N] {
+    a.sub(b)
+}
+
+fn mulT[T: Copy, const N: usize](a: simd.Vec[T, N], b: simd.Vec[T, N]) -> simd.Vec[T, N] {
+    a.mul(b)
+}
+
+fn loadT[T: Copy, const N: usize](a: FixedArray[T, N]) -> simd.Vec[T, N] {
+    simd.Vec.fromArray(a)
+}
+
+fn dumpT[T: Copy, const N: usize](v: simd.Vec[T, N]) -> FixedArray[T, N] {
+    v.toArray()
+}
+
+fn fillT[T: Copy, const N: usize](v: simd.Vec[T, N], x: T) -> simd.Vec[T, N] {
+    let mut w = v
+    for i in 0..N {
+        w.setLane(i, x)
+    }
+    w
+}
+
+fn splatI16[const N: usize](v: i16) -> simd.Vec[i16, N] {
+    simd.Vec.splat[i16, N](v)
+}
+
+// const-only wrappers over the same primitives: no type parameter, so only N
+// names the shape.
+fn addI16[const N: usize](a: simd.Vec[i16, N], b: simd.Vec[i16, N]) -> simd.Vec[i16, N] {
+    a.add(b)
+}
+
+fn makeU8[const N: usize](v: u8) -> simd.Vec[u8, N] {
+    simd.Vec.splat[u8, N](v)
+}
+
+// u8: 16 lanes
+let u8_splat = splatT[u8, 16](255)
+for i in 0..16 {
+    print "u8 splat ${i} 255 - ${u8_splat.lane(i)}"
+}
+let u8_add = addT[u8, 16](splatT[u8, 16](255), splatT[u8, 16](2))
+let u8_sub = subT[u8, 16](splatT[u8, 16](0), splatT[u8, 16](1))
+let u8_mul = mulT[u8, 16](splatT[u8, 16](255), splatT[u8, 16](3))
+for i in 0..16 {
+    print "u8 add ${i} 255 2 ${u8_add.lane(i)}"
+}
+for i in 0..16 {
+    print "u8 sub ${i} 0 1 ${u8_sub.lane(i)}"
+}
+for i in 0..16 {
+    print "u8 mul ${i} 255 3 ${u8_mul.lane(i)}"
+}
+let u8_rt = loadT[u8, 16](FixedArray.filled[u8, 16](200))
+for i in 0..16 {
+    print "u8 roundtrip ${i} 200 ${dumpT[u8, 16](u8_rt)[i]} ${u8_rt.lane(i)}"
+}
+let u8_set = fillT[u8, 16](u8_rt, 7)
+for i in 0..16 {
+    print "u8 setlane ${i} 7 ${dumpT[u8, 16](u8_set)[i]} ${u8_set.lane(i)}"
+}
+print "u8 splat 0 255 - ${makeU8[16](255).lane(0)}"
+
+// i16: 8 lanes
+let i16_splat = splatT[i16, 8](-32768)
+for i in 0..8 {
+    print "i16 splat ${i} -32768 - ${i16_splat.lane(i)}"
+}
+let i16_add = addI16[8](splatI16[8](-32768), splatI16[8](-1))
+let i16_sub = subT[i16, 8](splatT[i16, 8](-32768), splatT[i16, 8](1))
+let i16_mul = mulT[i16, 8](splatT[i16, 8](-32768), splatT[i16, 8](-1))
+for i in 0..8 {
+    print "i16 add ${i} -32768 -1 ${i16_add.lane(i)}"
+}
+for i in 0..8 {
+    print "i16 sub ${i} -32768 1 ${i16_sub.lane(i)}"
+}
+for i in 0..8 {
+    print "i16 mul ${i} -32768 -1 ${i16_mul.lane(i)}"
+}
+let i16_rt = loadT[i16, 8](FixedArray.filled[i16, 8](-7))
+for i in 0..8 {
+    print "i16 roundtrip ${i} -7 ${dumpT[i16, 8](i16_rt)[i]} ${i16_rt.lane(i)}"
+}
+let i16_set = fillT[i16, 8](i16_rt, 123)
+for i in 0..8 {
+    print "i16 setlane ${i} 123 ${dumpT[i16, 8](i16_set)[i]} ${i16_set.lane(i)}"
+}
+
+// i32: 4 lanes
+let i32_splat = splatT[i32, 4](-2147483648)
+for i in 0..4 {
+    print "i32 splat ${i} -2147483648 - ${i32_splat.lane(i)}"
+}
+let i32_add = addT[i32, 4](splatT[i32, 4](2147483647), splatT[i32, 4](1))
+let i32_sub = subT[i32, 4](splatT[i32, 4](-2147483648), splatT[i32, 4](1))
+let i32_mul = mulT[i32, 4](splatT[i32, 4](-2147483648), splatT[i32, 4](-1))
+for i in 0..4 {
+    print "i32 add ${i} 2147483647 1 ${i32_add.lane(i)}"
+}
+for i in 0..4 {
+    print "i32 sub ${i} -2147483648 1 ${i32_sub.lane(i)}"
+}
+for i in 0..4 {
+    print "i32 mul ${i} -2147483648 -1 ${i32_mul.lane(i)}"
+}
+
+let i32_rt = loadT[i32, 4](FixedArray.filled[i32, 4](42))
+for i in 0..4 {
+    print "i32 roundtrip ${i} 42 ${dumpT[i32, 4](i32_rt)[i]} ${i32_rt.lane(i)}"
+}
+let i32_set = fillT[i32, 4](i32_rt, -9)
+for i in 0..4 {
+    print "i32 setlane ${i} -9 ${dumpT[i32, 4](i32_set)[i]} ${i32_set.lane(i)}"
+}
+
+// u64: 2 lanes
+let u64_splat = splatT[u64, 2](18446744073709551615)
+for i in 0..2 {
+    print "u64 splat ${i} 18446744073709551615 - ${u64_splat.lane(i)}"
+}
+let u64_add = addT[u64, 2](splatT[u64, 2](18446744073709551615), splatT[u64, 2](1))
+let u64_sub = subT[u64, 2](splatT[u64, 2](0), splatT[u64, 2](1))
+let u64_mul = mulT[u64, 2](splatT[u64, 2](18446744073709551615), splatT[u64, 2](18446744073709551615))
+for i in 0..2 {
+    print "u64 add ${i} 18446744073709551615 1 ${u64_add.lane(i)}"
+}
+for i in 0..2 {
+    print "u64 sub ${i} 0 1 ${u64_sub.lane(i)}"
+}
+for i in 0..2 {
+    print "u64 mul ${i} 18446744073709551615 18446744073709551615 ${u64_mul.lane(i)}"
+}
+
+let u64_rt = loadT[u64, 2](FixedArray.filled[u64, 2](12345678901234567890))
+for i in 0..2 {
+    print "u64 roundtrip ${i} 12345678901234567890 ${dumpT[u64, 2](u64_rt)[i]} ${u64_rt.lane(i)}"
+}
+let u64_set = fillT[u64, 2](u64_rt, 1)
+for i in 0..2 {
+    print "u64 setlane ${i} 1 ${dumpT[u64, 2](u64_set)[i]} ${u64_set.lane(i)}"
+}
+
+// f32: 4 lanes
+let f32_splat = splatT[f32, 4](0.1)
+for i in 0..4 {
+    print "f32 splat ${i} ${math.toBits(0.1.toF32().toF64())} - ${math.toBits(f32_splat.lane(i).toF64())}"
+}
+let f32_add = addT[f32, 4](splatT[f32, 4](0.1), splatT[f32, 4](0.2))
+let f32_sub = subT[f32, 4](splatT[f32, 4](1.5), splatT[f32, 4](2.0))
+let f32_mul = mulT[f32, 4](splatT[f32, 4](3.0e38), splatT[f32, 4](3.0e38))
+for i in 0..4 {
+    print "f32 add ${i} ${math.toBits(0.1.toF32().toF64())} ${math.toBits(0.2.toF32().toF64())} ${math.toBits(f32_add.lane(i).toF64())}"
+}
+for i in 0..4 {
+    print "f32 sub ${i} ${math.toBits(1.5.toF32().toF64())} ${math.toBits(2.0.toF32().toF64())} ${math.toBits(f32_sub.lane(i).toF64())}"
+}
+for i in 0..4 {
+    print "f32 mul ${i} ${math.toBits(3.0e38.toF32().toF64())} ${math.toBits(3.0e38.toF32().toF64())} ${math.toBits(f32_mul.lane(i).toF64())}"
+}
+let f32_rt = loadT[f32, 4](FixedArray.filled[f32, 4](0.5))
+for i in 0..4 {
+    print "f32 roundtrip ${i} ${math.toBits(0.5.toF32().toF64())} ${math.toBits(dumpT[f32, 4](f32_rt)[i].toF64())} ${math.toBits(f32_rt.lane(i).toF64())}"
+}
+let f32_set = fillT[f32, 4](f32_rt, -0.0)
+for i in 0..4 {
+    print "f32 setlane ${i} ${math.toBits((-0.0).toF32().toF64())} ${math.toBits(dumpT[f32, 4](f32_set)[i].toF64())} ${math.toBits(f32_set.lane(i).toF64())}"
+}
+
+// f64: 2 lanes
+let f64_splat = splatT[f64, 2](-0.0)
+for i in 0..2 {
+    print "f64 splat ${i} ${math.toBits(-0.0)} - ${math.toBits(f64_splat.lane(i))}"
+}
+let f64_add = addT[f64, 2](splatT[f64, 2](1.5), splatT[f64, 2](-2.25))
+let f64_mul = mulT[f64, 2](splatT[f64, 2](-1.5), splatT[f64, 2](0.0))
+for i in 0..2 {
+    print "f64 add ${i} ${math.toBits(1.5)} ${math.toBits(-2.25)} ${math.toBits(f64_add.lane(i))}"
+}
+for i in 0..2 {
+    print "f64 mul ${i} ${math.toBits(-1.5)} ${math.toBits(0.0)} ${math.toBits(f64_mul.lane(i))}"
+}
+let f64_sub = subT[f64, 2](splatT[f64, 2](1.5), splatT[f64, 2](2.0))
+for i in 0..2 {
+    print "f64 sub ${i} ${math.toBits(1.5)} ${math.toBits(2.0)} ${math.toBits(f64_sub.lane(i))}"
+}
+let f64_rt = loadT[f64, 2](FixedArray.filled[f64, 2](0.25))
+for i in 0..2 {
+    print "f64 roundtrip ${i} ${math.toBits(0.25)} ${math.toBits(dumpT[f64, 2](f64_rt)[i])} ${math.toBits(f64_rt.lane(i))}"
+}
+let f64_set = fillT[f64, 2](f64_rt, 1.0e308)
+for i in 0..2 {
+    print "f64 setlane ${i} ${math.toBits(1.0e308)} ${math.toBits(dumpT[f64, 2](f64_set)[i])} ${math.toBits(f64_set.lane(i))}"
+}
+-- stdout --
+u8 splat 0 255 - 255
+u8 splat 1 255 - 255
+u8 splat 2 255 - 255
+u8 splat 3 255 - 255
+u8 splat 4 255 - 255
+u8 splat 5 255 - 255
+u8 splat 6 255 - 255
+u8 splat 7 255 - 255
+u8 splat 8 255 - 255
+u8 splat 9 255 - 255
+u8 splat 10 255 - 255
+u8 splat 11 255 - 255
+u8 splat 12 255 - 255
+u8 splat 13 255 - 255
+u8 splat 14 255 - 255
+u8 splat 15 255 - 255
+u8 add 0 255 2 1
+u8 add 1 255 2 1
+u8 add 2 255 2 1
+u8 add 3 255 2 1
+u8 add 4 255 2 1
+u8 add 5 255 2 1
+u8 add 6 255 2 1
+u8 add 7 255 2 1
+u8 add 8 255 2 1
+u8 add 9 255 2 1
+u8 add 10 255 2 1
+u8 add 11 255 2 1
+u8 add 12 255 2 1
+u8 add 13 255 2 1
+u8 add 14 255 2 1
+u8 add 15 255 2 1
+u8 sub 0 0 1 255
+u8 sub 1 0 1 255
+u8 sub 2 0 1 255
+u8 sub 3 0 1 255
+u8 sub 4 0 1 255
+u8 sub 5 0 1 255
+u8 sub 6 0 1 255
+u8 sub 7 0 1 255
+u8 sub 8 0 1 255
+u8 sub 9 0 1 255
+u8 sub 10 0 1 255
+u8 sub 11 0 1 255
+u8 sub 12 0 1 255
+u8 sub 13 0 1 255
+u8 sub 14 0 1 255
+u8 sub 15 0 1 255
+u8 mul 0 255 3 253
+u8 mul 1 255 3 253
+u8 mul 2 255 3 253
+u8 mul 3 255 3 253
+u8 mul 4 255 3 253
+u8 mul 5 255 3 253
+u8 mul 6 255 3 253
+u8 mul 7 255 3 253
+u8 mul 8 255 3 253
+u8 mul 9 255 3 253
+u8 mul 10 255 3 253
+u8 mul 11 255 3 253
+u8 mul 12 255 3 253
+u8 mul 13 255 3 253
+u8 mul 14 255 3 253
+u8 mul 15 255 3 253
+u8 roundtrip 0 200 200 200
+u8 roundtrip 1 200 200 200
+u8 roundtrip 2 200 200 200
+u8 roundtrip 3 200 200 200
+u8 roundtrip 4 200 200 200
+u8 roundtrip 5 200 200 200
+u8 roundtrip 6 200 200 200
+u8 roundtrip 7 200 200 200
+u8 roundtrip 8 200 200 200
+u8 roundtrip 9 200 200 200
+u8 roundtrip 10 200 200 200
+u8 roundtrip 11 200 200 200
+u8 roundtrip 12 200 200 200
+u8 roundtrip 13 200 200 200
+u8 roundtrip 14 200 200 200
+u8 roundtrip 15 200 200 200
+u8 setlane 0 7 7 7
+u8 setlane 1 7 7 7
+u8 setlane 2 7 7 7
+u8 setlane 3 7 7 7
+u8 setlane 4 7 7 7
+u8 setlane 5 7 7 7
+u8 setlane 6 7 7 7
+u8 setlane 7 7 7 7
+u8 setlane 8 7 7 7
+u8 setlane 9 7 7 7
+u8 setlane 10 7 7 7
+u8 setlane 11 7 7 7
+u8 setlane 12 7 7 7
+u8 setlane 13 7 7 7
+u8 setlane 14 7 7 7
+u8 setlane 15 7 7 7
+u8 splat 0 255 - 255
+i16 splat 0 -32768 - -32768
+i16 splat 1 -32768 - -32768
+i16 splat 2 -32768 - -32768
+i16 splat 3 -32768 - -32768
+i16 splat 4 -32768 - -32768
+i16 splat 5 -32768 - -32768
+i16 splat 6 -32768 - -32768
+i16 splat 7 -32768 - -32768
+i16 add 0 -32768 -1 32767
+i16 add 1 -32768 -1 32767
+i16 add 2 -32768 -1 32767
+i16 add 3 -32768 -1 32767
+i16 add 4 -32768 -1 32767
+i16 add 5 -32768 -1 32767
+i16 add 6 -32768 -1 32767
+i16 add 7 -32768 -1 32767
+i16 sub 0 -32768 1 32767
+i16 sub 1 -32768 1 32767
+i16 sub 2 -32768 1 32767
+i16 sub 3 -32768 1 32767
+i16 sub 4 -32768 1 32767
+i16 sub 5 -32768 1 32767
+i16 sub 6 -32768 1 32767
+i16 sub 7 -32768 1 32767
+i16 mul 0 -32768 -1 -32768
+i16 mul 1 -32768 -1 -32768
+i16 mul 2 -32768 -1 -32768
+i16 mul 3 -32768 -1 -32768
+i16 mul 4 -32768 -1 -32768
+i16 mul 5 -32768 -1 -32768
+i16 mul 6 -32768 -1 -32768
+i16 mul 7 -32768 -1 -32768
+i16 roundtrip 0 -7 -7 -7
+i16 roundtrip 1 -7 -7 -7
+i16 roundtrip 2 -7 -7 -7
+i16 roundtrip 3 -7 -7 -7
+i16 roundtrip 4 -7 -7 -7
+i16 roundtrip 5 -7 -7 -7
+i16 roundtrip 6 -7 -7 -7
+i16 roundtrip 7 -7 -7 -7
+i16 setlane 0 123 123 123
+i16 setlane 1 123 123 123
+i16 setlane 2 123 123 123
+i16 setlane 3 123 123 123
+i16 setlane 4 123 123 123
+i16 setlane 5 123 123 123
+i16 setlane 6 123 123 123
+i16 setlane 7 123 123 123
+i32 splat 0 -2147483648 - -2147483648
+i32 splat 1 -2147483648 - -2147483648
+i32 splat 2 -2147483648 - -2147483648
+i32 splat 3 -2147483648 - -2147483648
+i32 add 0 2147483647 1 -2147483648
+i32 add 1 2147483647 1 -2147483648
+i32 add 2 2147483647 1 -2147483648
+i32 add 3 2147483647 1 -2147483648
+i32 sub 0 -2147483648 1 2147483647
+i32 sub 1 -2147483648 1 2147483647
+i32 sub 2 -2147483648 1 2147483647
+i32 sub 3 -2147483648 1 2147483647
+i32 mul 0 -2147483648 -1 -2147483648
+i32 mul 1 -2147483648 -1 -2147483648
+i32 mul 2 -2147483648 -1 -2147483648
+i32 mul 3 -2147483648 -1 -2147483648
+i32 roundtrip 0 42 42 42
+i32 roundtrip 1 42 42 42
+i32 roundtrip 2 42 42 42
+i32 roundtrip 3 42 42 42
+i32 setlane 0 -9 -9 -9
+i32 setlane 1 -9 -9 -9
+i32 setlane 2 -9 -9 -9
+i32 setlane 3 -9 -9 -9
+u64 splat 0 18446744073709551615 - 18446744073709551615
+u64 splat 1 18446744073709551615 - 18446744073709551615
+u64 add 0 18446744073709551615 1 0
+u64 add 1 18446744073709551615 1 0
+u64 sub 0 0 1 18446744073709551615
+u64 sub 1 0 1 18446744073709551615
+u64 mul 0 18446744073709551615 18446744073709551615 1
+u64 mul 1 18446744073709551615 18446744073709551615 1
+u64 roundtrip 0 12345678901234567890 12345678901234567890 12345678901234567890
+u64 roundtrip 1 12345678901234567890 12345678901234567890 12345678901234567890
+u64 setlane 0 1 1 1
+u64 setlane 1 1 1 1
+f32 splat 0 4591870180174331904 - 4591870180174331904
+f32 splat 1 4591870180174331904 - 4591870180174331904
+f32 splat 2 4591870180174331904 - 4591870180174331904
+f32 splat 3 4591870180174331904 - 4591870180174331904
+f32 add 0 4591870180174331904 4596373779801702400 4599075939685498880
+f32 add 1 4591870180174331904 4596373779801702400 4599075939685498880
+f32 add 2 4591870180174331904 4596373779801702400 4599075939685498880
+f32 add 3 4591870180174331904 4596373779801702400 4599075939685498880
+f32 sub 0 4609434218613702656 4611686018427387904 13826050856027422720
+f32 sub 1 4609434218613702656 4611686018427387904 13826050856027422720
+f32 sub 2 4609434218613702656 4611686018427387904 13826050856027422720
+f32 sub 3 4609434218613702656 4611686018427387904 13826050856027422720
+f32 mul 0 5182576905743761408 5182576905743761408 9218868437227405312
+f32 mul 1 5182576905743761408 5182576905743761408 9218868437227405312
+f32 mul 2 5182576905743761408 5182576905743761408 9218868437227405312
+f32 mul 3 5182576905743761408 5182576905743761408 9218868437227405312
+f32 roundtrip 0 4602678819172646912 4602678819172646912 4602678819172646912
+f32 roundtrip 1 4602678819172646912 4602678819172646912 4602678819172646912
+f32 roundtrip 2 4602678819172646912 4602678819172646912 4602678819172646912
+f32 roundtrip 3 4602678819172646912 4602678819172646912 4602678819172646912
+f32 setlane 0 9223372036854775808 9223372036854775808 9223372036854775808
+f32 setlane 1 9223372036854775808 9223372036854775808 9223372036854775808
+f32 setlane 2 9223372036854775808 9223372036854775808 9223372036854775808
+f32 setlane 3 9223372036854775808 9223372036854775808 9223372036854775808
+f64 splat 0 9223372036854775808 - 9223372036854775808
+f64 splat 1 9223372036854775808 - 9223372036854775808
+f64 add 0 4609434218613702656 13835621005235585024 13828302655841107968
+f64 add 1 4609434218613702656 13835621005235585024 13828302655841107968
+f64 mul 0 13832806255468478464 0 9223372036854775808
+f64 mul 1 13832806255468478464 0 9223372036854775808
+f64 sub 0 4609434218613702656 4611686018427387904 13826050856027422720
+f64 sub 1 4609434218613702656 4611686018427387904 13826050856027422720
+f64 roundtrip 0 4598175219545276416 4598175219545276416 4598175219545276416
+f64 roundtrip 1 4598175219545276416 4598175219545276416 4598175219545276416
+f64 setlane 0 9214871658872686752 9214871658872686752 9214871658872686752
+f64 setlane 1 9214871658872686752 9214871658872686752 9214871658872686752

@@ -1,0 +1,19 @@
+-- src --
+import simd from std/simd
+
+fn put[const N: usize](v: simd.Vec[u8, N], i: usize, x: u8) -> simd.Vec[u8, N] {
+    let mut w = v
+    w.setLane(i, x)
+    w
+}
+
+let v = simd.Vec.splat[u8, 16](1)
+print "start"
+let w = put[16](v, 16, 2)
+print "unreachable ${w.lane(0)}"
+-- stdout --
+start
+-- stderr --
+panic: index out of range: index 16, length 16 at std/simd/simd.kg:25
+-- exit --
+2

@@ -63,12 +63,42 @@ var simdComp = map[string]string{
 	"array":   "10",
 }
 
+// simdGenericLanes are the lane types the generic-wrapper fixture
+// instantiates: enough shapes to cover 8-, 16-, 32- and 64-bit integer lanes
+// plus both float widths, each through a const-generic or type-generic call.
+var simdGenericLanes = []simdLane{
+	{name: "u8", lanes: 16, bits: 8},
+	{name: "i16", lanes: 8, bits: 16, signed: true},
+	{name: "i32", lanes: 4, bits: 32, signed: true},
+	{name: "u64", lanes: 2, bits: 64},
+	{name: "f32", lanes: 4, bits: 32, float: true},
+	{name: "f64", lanes: 2, bits: 64, float: true},
+}
+
 // TestSimdExhaustiveVmNativeParity runs the exhaustive std/simd table through
 // the VM and the native backend and checks every line against a scalar
-// two's-complement/IEEE-754 reference. VM and native must agree byte for byte,
-// and both must reproduce the fixture's golden stdout.
+// two's-complement/IEEE-754 reference.
 func TestSimdExhaustiveVmNativeParity(t *testing.T) {
-	path := fixturePath(t, "run/simd_parity")
+	_, vmOut := runSimdParityFixture(t, fixturePath(t, "run/simd_parity"))
+	seen, compSeen := checkSimdLines(t, vmOut, simdComp)
+	checkSimdCoverage(t, seen, compSeen, append(append([]simdLane{}, simdIntLanes...), simdFloatLanes...), simdOps, simdComp)
+}
+
+// TestSimdGenericVmNativeParity covers the same primitives reached through
+// generic wrappers: a const N and lane type T become concrete only at the
+// instantiation, so the planner has to specialize the wrapper before llgen can
+// lower a vector. The fixture's lines are checked with the same scalar
+// reference as the exhaustive table.
+func TestSimdGenericVmNativeParity(t *testing.T) {
+	_, vmOut := runSimdParityFixture(t, fixturePath(t, "run/simd_generic"))
+	seen, _ := checkSimdLines(t, vmOut, nil)
+	checkSimdCoverage(t, seen, nil, simdGenericLanes, simdOps, nil)
+}
+
+// runSimdParityFixture runs one fixture on the VM and the native backend and
+// requires both to reproduce its golden stdout byte for byte.
+func runSimdParityFixture(t *testing.T, path string) (wantOut, vmOut string) {
+	t.Helper()
 	root, wantOut, wantErr, wantExit := loadRunFixture(t, path)
 	if wantExit != 0 || wantErr != "" {
 		t.Fatalf("fixture %s: want exit 0 and no stderr, got exit %d, stderr %q", path, wantExit, wantErr)
@@ -77,19 +107,17 @@ func TestSimdExhaustiveVmNativeParity(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
-	var vmOut, vmErr bytes.Buffer
-	code, err := driver.RunWith(m, driver.RunOptions{Cwd: root}, &vmOut, &vmErr, []string{"main/main.kg"})
+	var got, vmErr bytes.Buffer
+	code, err := driver.RunWith(m, driver.RunOptions{Cwd: root}, &got, &vmErr, []string{"main/main.kg"})
 	if err != nil || code != 0 {
 		t.Fatalf("vm run: err %v exit %d\nstderr:\n%s", err, code, vmErr.String())
 	}
-	if vmOut.String() != wantOut {
-		t.Fatalf("vm output differs from the fixture golden\n--- got ---\n%s--- want ---\n%s", vmOut.String(), wantOut)
+	if got.String() != wantOut {
+		t.Fatalf("vm output differs from the fixture golden\n--- got ---\n%s--- want ---\n%s", got.String(), wantOut)
 	}
-	checkSimdScalarReference(t, vmOut.String())
-
 	if testCompiler().CCompiler() == nil {
 		t.Log("native engine skipped: no C compiler")
-		return
+		return wantOut, got.String()
 	}
 	exe := filepath.Join(root, "simd-parity")
 	var buildErr bytes.Buffer
@@ -108,29 +136,27 @@ func TestSimdExhaustiveVmNativeParity(t *testing.T) {
 	if nativeErr.Len() != 0 {
 		t.Fatalf("native stderr:\n%s", nativeErr.String())
 	}
-	if nativeOut.String() != vmOut.String() {
-		t.Fatalf("native output differs from the VM\n--- vm ---\n%s--- native ---\n%s", vmOut.String(), nativeOut.String())
+	if nativeOut.String() != got.String() {
+		t.Fatalf("native output differs from the VM\n--- vm ---\n%s--- native ---\n%s", got.String(), nativeOut.String())
 	}
 	if nativeOut.String() != wantOut {
 		t.Fatalf("native output differs from the fixture golden\n--- got ---\n%s--- want ---\n%s", nativeOut.String(), wantOut)
 	}
+	return wantOut, got.String()
 }
 
-// checkSimdScalarReference parses the fixture output and recomputes every
-// result with scalar integer wraparound and Go's IEEE-754 arithmetic. The
-// operand values are read from the output itself, so the reference never
-// duplicates the fixture's tables.
-func checkSimdScalarReference(t *testing.T, out string) {
+// checkSimdLines parses fixture output and recomputes every result with scalar
+// integer wraparound and Go's IEEE-754 arithmetic. The operand values are read
+// from the output itself, so the reference never duplicates the fixture's
+// tables. comp names the composition labels the fixture must print, if any.
+func checkSimdLines(t *testing.T, out string, comp map[string]string) (seen map[string]map[int]bool, compSeen map[string]bool) {
 	t.Helper()
 	lanes := map[string]simdLane{}
-	for _, l := range simdIntLanes {
+	for _, l := range append(append([]simdLane{}, simdIntLanes...), simdFloatLanes...) {
 		lanes[l.name] = l
 	}
-	for _, l := range simdFloatLanes {
-		lanes[l.name] = l
-	}
-	seen := map[string]map[int]bool{}
-	compSeen := map[string]bool{}
+	seen = map[string]map[int]bool{}
+	compSeen = map[string]bool{}
 	for n, line := range strings.Split(strings.TrimSuffix(out, "\n"), "\n") {
 		fields := strings.Split(line, " ")
 		if len(fields) != 6 {
@@ -138,7 +164,7 @@ func checkSimdScalarReference(t *testing.T, out string) {
 		}
 		name, op, idxText, a, b, got := fields[0], fields[1], fields[2], fields[3], fields[4], fields[5]
 		if name == "comp" {
-			want, ok := simdComp[op]
+			want, ok := comp[op]
 			if !ok {
 				t.Fatalf("line %d: unknown composition %q", n+1, line)
 			}
@@ -168,12 +194,20 @@ func checkSimdScalarReference(t *testing.T, out string) {
 		if seen[key] == nil {
 			seen[key] = map[int]bool{}
 		}
-		// Several operand sets repeat a lane index on purpose; coverage
-		// below only requires every index to appear at least once.
+		// Several operand sets repeat a lane index on purpose; coverage only
+		// requires every index to appear at least once.
 		seen[key][idx] = true
 	}
-	for _, lt := range append(append([]simdLane{}, simdIntLanes...), simdFloatLanes...) {
-		for _, op := range simdOps {
+	return seen, compSeen
+}
+
+// checkSimdCoverage asserts a fixture still names every lane of every (type,
+// op) pair the caller expects, so deleting a case fails instead of shrinking
+// the audit silently.
+func checkSimdCoverage(t *testing.T, seen map[string]map[int]bool, compSeen map[string]bool, lanes []simdLane, ops []string, comp map[string]string) {
+	t.Helper()
+	for _, lt := range lanes {
+		for _, op := range ops {
 			key := lt.name + " " + op
 			if len(seen[key]) != lt.lanes {
 				t.Errorf("%s: %d of %d lanes checked", key, len(seen[key]), lt.lanes)
@@ -186,7 +220,7 @@ func checkSimdScalarReference(t *testing.T, out string) {
 			}
 		}
 	}
-	for label := range simdComp {
+	for label := range comp {
 		if !compSeen[label] {
 			t.Errorf("composition %q missing", label)
 		}

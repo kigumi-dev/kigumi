@@ -4,6 +4,7 @@ import (
 	"kigumi/internal/compiler/mir"
 	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
+	"kigumi/internal/lang/diag"
 )
 
 type spec struct {
@@ -41,6 +42,7 @@ type specializer struct {
 	work     []*spec
 	names    map[string]*nameHolder
 	noSpec   map[sem.EntityID]bool
+	simdBody map[sem.EntityID]bool
 	reported map[string]bool
 	scanned  map[*midir.Func]bool
 	rooted   map[*midir.Func]*heldRoot
@@ -73,13 +75,38 @@ func (p *planner) specialize() error {
 		}
 		s.rollback(mark)
 	}
+	p.Diags = dedupeFileDiags(p.Diags, mark)
 	p.inlineProtoCalls()
 	p.dropStaleComptime()
 	return nil
 }
 
+// dedupeFileDiags drops repeats a retried run reported for the same place and
+// message; a retry re-detects a refusal deterministically, and the phase that
+// re-scans a call before its instance exists can report it once per pass.
+func dedupeFileDiags(ds []midir.FileDiag, from int) []midir.FileDiag {
+	type key struct {
+		file     sem.FileID
+		loc      diag.Location
+		severity diag.Severity
+		code     string
+		msg      string
+	}
+	seen := map[key]bool{}
+	out := ds[:from]
+	for _, d := range ds[from:] {
+		k := key{file: d.File, loc: d.Diag.Loc, severity: d.Diag.Severity, code: d.Diag.Code, msg: d.Diag.Msg}
+		if seen[k] {
+			continue
+		}
+		seen[k] = true
+		out = append(out, d)
+	}
+	return out
+}
+
 func newSpecializer(p *planner, bonus map[string]int) *specializer {
-	s := &specializer{p: p, byKey: map[string]*spec{}, byEnt: map[sem.EntityID]*spec{}, byFunc: map[*midir.Func]*spec{}, names: map[string]*nameHolder{}, noSpec: map[sem.EntityID]bool{}, reported: map[string]bool{}, scanned: map[*midir.Func]bool{}, bonus: bonus}
+	s := &specializer{p: p, byKey: map[string]*spec{}, byEnt: map[sem.EntityID]*spec{}, byFunc: map[*midir.Func]*spec{}, names: map[string]*nameHolder{}, noSpec: map[sem.EntityID]bool{}, simdBody: map[sem.EntityID]bool{}, reported: map[string]bool{}, scanned: map[*midir.Func]bool{}, bonus: bonus}
 	for _, f := range p.Funcs {
 		s.names[f.Name] = nil
 	}
@@ -155,6 +182,12 @@ func (s *specializer) get(f *midir.Func, ctx *spec, in midir.Inst, args []sem.Ty
 	name, holder := s.name(gen, args, wit)
 	fn := s.p.cloneFor(g, ent, name, sub, ents)
 	holder.fn = fn
+	// The checker's E976 rule sees a concrete call site; a call inside a
+	// generic body names its lane type and count only as parameters, so the
+	// specialized body is where an invalid instance becomes visible.
+	if s.reportSimdProblem(f, in.Node, gen, fn) {
+		return nil
+	}
 	if kind := s.p.R.ProtoKind(gen); kind != "" {
 		if t, ok := s.p.protoSubject(fn); ok && s.p.R.ProtocolDirect(t, kind) {
 			s.p.intrinsify(fn, kind, t)

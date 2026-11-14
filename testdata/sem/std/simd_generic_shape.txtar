@@ -1,0 +1,52 @@
+-- module --
+mir: planned
+-- src --
+import simd from std/simd
+
+fn make[const N: usize](v: u8) -> simd.Vec[u8, N] {
+    simd.Vec.splat[u8, N](v)
+}
+
+fn anyN[T: Copy](v: T) -> simd.Vec[T, 16] {
+    simd.Vec.splat[T, 16](v)
+}
+
+fn mkI32[const N: usize](v: i32) -> simd.Vec[i32, N] {
+    simd.Vec.splat[i32, N](v)
+}
+
+fn addN[const N: usize](a: simd.Vec[i32, N], b: simd.Vec[i32, N]) -> simd.Vec[i32, N] {
+    a.add(b)
+}
+
+fn main() {
+    let unused = make[3](9) //~ ERROR it is 24 bits
+    let bad_lane = anyN[Bool](true) //~ ERROR `Bool` is not a lane type
+    let v2 = mkI32[2](1) //~ ERROR it is 64 bits
+    let bad_add = addN[2](v2, v2) //~ ERROR it is 64 bits
+}
+-- expect --
+error[E976]: `Vec[u8, 3]` cannot be a SIMD vector: it is 24 bits, but a vector holds exactly 128
+  --> main.kg:20:18
+   |
+20 |     let unused = make[3](9) //~ ERROR it is 24 bits
+   |                  ^^^^^^^^^
+
+error[E976]: `Vec[i32, 2]` cannot be a SIMD vector: it is 64 bits, but a vector holds exactly 128
+  --> main.kg:22:14
+   |
+22 |     let v2 = mkI32[2](1) //~ ERROR it is 64 bits
+   |              ^^^^^^^^^^
+
+error[E976]: `Vec[i32, 2]` cannot be a SIMD vector: it is 64 bits, but a vector holds exactly 128
+  --> main.kg:23:19
+   |
+23 |     let bad_add = addN[2](v2, v2) //~ ERROR it is 64 bits
+   |                   ^^^^^^^^^^^^^^
+
+error[E976]: `Vec[Bool, 16]` cannot be a SIMD vector: `Bool` is not a lane type; use i8, i16, i32, i64, u8, u16, u32, u64, f32 or f64
+  --> main.kg:21:20
+   |
+21 |     let bad_lane = anyN[Bool](true) //~ ERROR `Bool` is not a lane type
+   |                    ^^^^^^^^^^^^^^^
+

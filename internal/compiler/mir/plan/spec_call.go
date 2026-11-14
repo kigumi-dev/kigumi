@@ -24,7 +24,7 @@ func (s *specializer) instance(f *midir.Func, ctx *spec, in midir.Inst) ([]sem.T
 		}
 	}
 	args = r.EraseLifetimes(args)
-	if !r.SpecializeArgs(args) && !s.protoInstance(gen, args) && !s.scalarArgs(args) || s.grows(ctx, args) {
+	if !r.SpecializeArgs(args) && !s.protoInstance(gen, args) && !s.scalarArgs(args) && !s.simdShapeArgs(gen, args) || s.grows(ctx, args) {
 		return nil, nil, false
 	}
 	if in.Op == midir.OpFnItem {

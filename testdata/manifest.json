@@ -15068,6 +15068,39 @@
       ]
     },
     {
+      "id": "run/simd_generic",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/simd_generic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/simd_generic_lane_bounds",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/simd_generic_lane_bounds.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/simd_generic_setlane_bounds",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/simd_generic_setlane_bounds.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/simd_lane_bounds",
       "kind": "run",
       "group": "std",
@@ -23777,6 +23810,16 @@
       "group": "runtime",
       "stage": "check",
       "path": "testdata/sem/runtime/shift_literal_reject.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/simd_generic_shape",
+      "kind": "sem",
+      "group": "std",
+      "stage": "planned",
+      "path": "testdata/sem/std/simd_generic_shape.txtar",
       "mode": [
         "check"
       ]

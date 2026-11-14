@@ -1,0 +1,17 @@
+-- src --
+import simd from std/simd
+
+fn at[const N: usize](v: simd.Vec[u8, N], i: usize) -> u8 {
+    v.lane(i)
+}
+
+let v = simd.Vec.splat[u8, 16](1)
+print "start"
+print "${at[16](v, 16)}"
+print "unreachable"
+-- stdout --
+start
+-- stderr --
+panic: index out of range: index 16, length 16 at std/simd/simd.kg:20
+-- exit --
+2
