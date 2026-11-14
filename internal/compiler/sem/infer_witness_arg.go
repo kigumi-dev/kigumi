@@ -37,7 +37,7 @@ func (c *checker) witnessArg(n syntax.NodeID, t, iface TypeID, req EntityID) Wit
 	c.recordCtxValueRef(n, m)
 	out := WitnessArg{Kind: WitnessFn, Ent: m}
 	slots := c.r.Fn(m).Witnesses
-	constParams := c.r.constParamsOf(m)
+	constParams := c.r.ownerConstParamsOf(m)
 	if len(slots) > 0 || len(constParams) > 0 {
 		out.Kind = WitnessBind
 		subst := map[EntityID]TypeID{}
@@ -63,7 +63,9 @@ func (c *checker) witnessArg(n syntax.NodeID, t, iface TypeID, req EntityID) Wit
 			out.Args = append(out.Args, c.witnessArg(n, tt.Subst(tt.Param(slot.Param), subst), tt.Subst(slot.Iface, subst), slot.Req))
 		}
 		for _, p := range constParams {
-			out.ConstArgs = append(out.ConstArgs, c.constArgFromType(n, tt.Subst(tt.Param(p), subst)))
+			if a := c.constArgFromType(n, tt.Subst(tt.Param(p), subst)); a.Valid() {
+				out.ConstArgs = append(out.ConstArgs, a)
+			}
 		}
 	}
 	return out

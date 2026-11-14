@@ -24,6 +24,12 @@ type ConstArg struct {
 	Local EntityID
 }
 
+// Valid reports whether a resolved argument can be lowered; the zero ConstArg
+// is ConstArgLit with no value.
+func (a ConstArg) Valid() bool {
+	return a.Value != nil || a.Kind == ConstArgLocal && a.Local != 0
+}
+
 // constParamsOf must enumerate params in the same order declareConstParams
 // binds their hidden locals, since calls match ConstArgs positionally.
 func (r *Result) constParamsOf(id EntityID) []EntityID {
@@ -36,6 +42,19 @@ func (r *Result) constParamsOf(id EntityID) []EntityID {
 		}
 		seen[p] = true
 		out = append(out, p)
+	}
+	return out
+}
+
+// ownerConstParamsOf lists the const params fixed by the receiver type; a
+// witness bind captures exactly these and leaves method-own const params to
+// the call.
+func (r *Result) ownerConstParamsOf(id EntityID) []EntityID {
+	var out []EntityID
+	for _, p := range r.ownerParams(id) {
+		if r.typeParam(p).IsConst {
+			out = append(out, p)
+		}
 	}
 	return out
 }

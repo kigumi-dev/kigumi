@@ -47,6 +47,14 @@ func (c *checker) coerceSteps(n syntax.NodeID, got, want TypeID) ([]CoStep, bool
 		}
 	case c.vars.unifiable(got, want):
 		c.vars.unify(got, want)
+		if tt.Kind(want) == KFn {
+			// An exactly matching item still needs its deferrals checked.
+			if item, _, ok := c.fnItemAt(n); ok {
+				if need := Effects(tt.Node(want).Flags) & (EffPure | EffNoalloc); need != 0 {
+					c.edge(EffectEdge{Kind: EdgeContract, Target: item, Mods: need, Node: n})
+				}
+			}
+		}
 		return nil, true
 	case tt.Kind(got) == KUntyped && tt.IsNumeric(want):
 		if c.fitsQuiet(c.literalNode(n), want) {
@@ -128,15 +136,20 @@ func (c *checker) coerceToFn(n syntax.NodeID, got, want TypeID) ([]CoStep, bool)
 		return nil, true
 	}
 	need := Effects(w.Flags) & (EffPure | EffNoalloc)
-	if Effects(g.Flags)&need != need {
-		if item := c.info.Uses[n]; item != 0 && c.r.Entities[item].Kind == EntFn {
+	item, _, _ := c.fnItemAt(n)
+	isItem := item != 0 && c.r.Entities[item].Kind == EntFn
+	if isItem {
+		// A fn item's declared flags can promise `pure` while its body calls
+		// a `pure?` field or witness whose effect is only known here, so the
+		// erasure site must re-check the deferral even when the flags suffice.
+		if need != 0 {
 			c.edge(EffectEdge{Kind: EdgeContract, Target: item, Mods: need, Node: n})
-		} else {
-			c.errAt(n, cFnValueEffects, got, want, effectsText(need&^Effects(g.Flags)))
-			return nil, true
 		}
+	} else if Effects(g.Flags)&need != need {
+		c.errAt(n, cFnValueEffects, got, want, effectsText(need&^Effects(g.Flags)))
+		return nil, true
 	}
-	if item := c.info.Uses[n]; item != 0 && c.r.Entities[item].Kind == EntFn {
+	if isItem {
 		c.noteNoallocErase(n, want)
 		return []CoStep{{CoFnItem, want}}, true
 	}

@@ -34,6 +34,11 @@ func (b *builder) witnessArg(w sem.WitnessArg, n syntax.NodeID) midir.LocalID {
 		// Bound with nothing: the bind adapter (or the std bind of a
 		// primitive) also settles a borrowed receiver the way a direct
 		// method call would.
+		if info := b.r.Fn(w.Ent); len(info.Witnesses)+len(info.ConstParams) > 0 {
+			// A raw item keeps its hidden params open, so the requirement
+			// call can supply its own const args.
+			return b.emit(midir.Inst{Op: midir.OpFnItem, Dst: b.temp(info.Sig), Ent: w.Ent, Node: n})
+		}
 		return b.emit(midir.Inst{Op: midir.OpBind, Dst: b.temp(b.r.Fn(w.Ent).Sig), Ent: w.Ent, Node: n})
 	case sem.WitnessBind:
 		caps := append(b.witnessArgs(w.Args, n), b.constArgs(w.ConstArgs, n)...)

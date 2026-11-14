@@ -61,11 +61,20 @@ func (c *checker) instantiateFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID,
 	return tt.Subst(info.Sig, subst), inst, bad
 }
 
+// fnItemAt resolves the fn item a value expression names, looking through
+// argument wrappers and parentheses; inner is the node the item's use is
+// recorded on.
+func (c *checker) fnItemAt(n syntax.NodeID) (item EntityID, inner syntax.NodeID, ok bool) {
+	inner = c.t.Unparen(c.t.View(n).ArgValue().ID())
+	item = c.info.Uses[inner]
+	return item, inner, item != 0 && c.r.Entities[item].Kind == EntFn
+}
+
 // genericFnItemCallable reports whether n is a generic fn item (not yet
 // resolved to a fixed signature) being matched against a callable type.
 func (c *checker) genericFnItemCallable(n syntax.NodeID) (EntityID, bool) {
-	item := c.info.Uses[n]
-	if item == 0 || c.r.Entities[item].Kind != EntFn || len(c.ownGenerics(item)) == 0 {
+	item, _, ok := c.fnItemAt(n)
+	if !ok || len(c.ownGenerics(item)) == 0 {
 		return 0, false
 	}
 	return item, true
@@ -73,9 +82,10 @@ func (c *checker) genericFnItemCallable(n syntax.NodeID) (EntityID, bool) {
 
 // A bare type parameter never adopts a `&T` slot's referent: the item's body expects an owned parameter.
 func (c *checker) coerceGenericFnItem(n syntax.NodeID, item EntityID, got, want TypeID) bool {
+	_, inner, _ := c.fnItemAt(n)
 	var fresh []TypeID
 	for i := len(c.r.Instances[item]) - 1; i >= 0; i-- {
-		if c.r.Instances[item][i].Node == n {
+		if c.r.Instances[item][i].Node == inner {
 			fresh = c.r.Instances[item][i].Args
 			break
 		}
@@ -109,7 +119,10 @@ func (c *checker) coerceGenericFnItem(n syntax.NodeID, item EntityID, got, want 
 		c.errAt(n, cEscapingCoerce, c.typeText(got), i+1, c.typeText(want))
 		return true
 	}
-	if need := Effects(w.Flags) & (EffPure | EffNoalloc); Effects(g.Flags)&need != need {
+	// A generic item's declared flags can promise `pure` while its body calls
+	// a `pure?` field or witness whose effect is only known here, so always
+	// re-check the deferral at the erasure site.
+	if need := Effects(w.Flags) & (EffPure | EffNoalloc); need != 0 {
 		c.edge(EffectEdge{Kind: EdgeContract, Target: item, Mods: need, Node: n})
 	}
 	c.noteNoallocErase(n, want)

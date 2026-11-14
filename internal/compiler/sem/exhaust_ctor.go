@@ -55,13 +55,23 @@ func (c *checker) buildCtorSet(t TypeID) ([]ctorDesc, bool) {
 	}
 	switch info.Form {
 	case FormAdt:
-		var out []ctorDesc
+		var out, all []ctorDesc
 		for _, v := range info.Variants {
 			var args []TypeID
 			for _, p := range c.r.variant(v).Payload {
 				args = append(args, tt.Subst(p, subst))
 			}
-			out = append(out, ctorDesc{key: variantKey(v), name: c.r.Entities[v].Name, args: args})
+			d := ctorDesc{key: variantKey(v), name: c.r.Entities[v].Name, args: args}
+			all = append(all, d)
+			if !c.uninhabitedPayloads(args, map[TypeID]bool{}) {
+				out = append(out, d)
+			}
+		}
+		if len(out) == 0 {
+			// An empty match over a wholly uninhabited ADT is not lowered yet;
+			// keep the conservative set so the match reports E814 instead of
+			// producing an undefined terminator.
+			out = all
 		}
 		return out, true
 	case FormRecord, FormResource:

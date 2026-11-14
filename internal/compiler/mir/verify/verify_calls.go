@@ -128,8 +128,8 @@ func (p *callVerifier) valueCallMismatch(f *midir.Func, in midir.Inst) string {
 		if info.Recv != sem.RecvNone {
 			want++
 		}
-		if len(args) != want {
-			return "passes " + itoa(len(args)) + " values to the witness of " + p.R.Entity(in.Ent).Name + ", which takes " + itoa(want)
+		if hidden := len(info.ConstParams); len(args) != want+hidden {
+			return "passes " + itoa(len(args)) + " values to the witness of " + p.R.Entity(in.Ent).Name + ", which takes " + itoa(want+hidden)
 		}
 		return p.witnessCallMismatch(f, in, info.Recv != sem.RecvNone)
 	}

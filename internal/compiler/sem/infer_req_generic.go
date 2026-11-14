@@ -30,6 +30,24 @@ func (c *checker) instantiateRequirement(n syntax.NodeID, req EntityID, sig Type
 	return c.r.Types.Subst(sig, subst), subst
 }
 
+// requirementConstArgs materializes the hidden const args a requirement call
+// passes to its witness. They are the requirement's own const params, resolved
+// by checkArgs from the call's arguments; a witness bind cannot fix them
+// because they belong to each call.
+func (c *checker) requirementConstArgs(n syntax.NodeID, req EntityID, subst map[EntityID]TypeID) []ConstArg {
+	var out []ConstArg
+	for _, p := range c.r.constParamsOf(req) {
+		t := subst[p]
+		if t == 0 {
+			continue
+		}
+		if a := c.constArgFromType(n, c.vars.resolve(t)); a.Valid() {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+
 func (c *checker) hasRequirement(t TypeID, name string) bool {
 	node := c.r.Types.Node(t)
 	switch node.Kind {

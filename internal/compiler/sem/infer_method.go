@@ -99,6 +99,7 @@ func (c *checker) callRequirement(n, callee, base syntax.NodeID, recv TypeID, re
 	}
 	c.checkSelfAliasArgs(base, c.r.Fn(req).Recv, c.r.Fn(req).Declared&EffAsync != 0, effArgs)
 	call := CallInfo{Kind: CallMethod, Callee: req, Recv: c.r.Fn(req).Recv, Variadic: c.variadicForm(effArgs, sig), Plan: plan}
+	call.ConstArgs = c.requirementConstArgs(n, req, subst)
 	if paramEnt != 0 {
 		call.Witness = c.witnessLocal(n, paramEnt, req)
 	}

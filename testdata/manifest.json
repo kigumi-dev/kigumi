@@ -7124,6 +7124,17 @@
       ]
     },
     {
+      "id": "run/const_generic_witness",
+      "kind": "run",
+      "group": "language",
+      "stage": "run",
+      "path": "testdata/run/language/const_generic_witness.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/const_pattern_qualified",
       "kind": "run",
       "group": "language",
@@ -19908,6 +19919,16 @@
       ]
     },
     {
+      "id": "sem/effects_poly_static_self_result",
+      "kind": "sem",
+      "group": "effects",
+      "stage": "check",
+      "path": "testdata/sem/effects/effects_poly_static_self_result.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/effects_pure",
       "kind": "sem",
       "group": "effects",
@@ -19933,6 +19954,16 @@
       "group": "effects",
       "stage": "driver",
       "path": "testdata/sem/effects/effects_pure_local_closure.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/effects_pure_value_erase",
+      "kind": "sem",
+      "group": "effects",
+      "stage": "check",
+      "path": "testdata/sem/effects/effects_pure_value_erase.txtar",
       "mode": [
         "check"
       ]
@@ -22103,6 +22134,16 @@
       "group": "types",
       "stage": "check",
       "path": "testdata/sem/types/match_patterns.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/match_uninhabited_payload",
+      "kind": "sem",
+      "group": "types",
+      "stage": "check",
+      "path": "testdata/sem/types/match_uninhabited_payload.txtar",
       "mode": [
         "check"
       ]

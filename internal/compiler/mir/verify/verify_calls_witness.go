@@ -15,12 +15,19 @@ func (p *callVerifier) witnessCallMismatch(f *midir.Func, in midir.Inst, recv bo
 		args = args[1:]
 	}
 	if node := tt.Node(t); node.Kind == sem.KFn {
-		if len(node.Args) != len(args) {
+		hidden := len(p.R.Fn(in.Ent).ConstParams)
+		if len(args) < len(node.Args) || len(args) > len(node.Args)+hidden {
 			return "passes " + itoa(len(args)) + " values to a witness of type " + p.R.TypeString(t)
 		}
 		for k, want := range node.Args {
 			if !p.compatibleGeneric(want, f.Locals[args[k]].Type) {
 				return "passes " + p.R.TypeString(f.Locals[args[k]].Type) + " as argument " + itoa(k) + " of the witness of type " + p.R.TypeString(t)
+			}
+		}
+		for k, param := range p.R.Fn(in.Ent).ConstParams {
+			got, want := f.Locals[args[len(node.Args)+k]].Type, p.R.Entity(param).Type
+			if !p.compatibleGeneric(want, got) {
+				return "passes " + p.R.TypeString(got) + " as const argument " + itoa(k) + " of the witness of type " + p.R.TypeString(t)
 			}
 		}
 		if !p.compatibleGeneric(node.Elem, f.Locals[in.Dst].Type) {

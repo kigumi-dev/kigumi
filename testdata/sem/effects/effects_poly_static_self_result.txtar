@@ -1,0 +1,7 @@
+-- src --
+interface I { pure? fn make() -> Self }
+type P = { pub n Int }
+fn P.make() -> P { print "make"; P { n: 1 } }
+fn f[T: I](x: T) -> T { T.make() }
+fn main() { print "${f(P { n: 2 }).n}" }
+-- expect --

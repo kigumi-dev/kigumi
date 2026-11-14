@@ -1,0 +1,5 @@
+-- src --
+fn pick(x: Never?) -> Int { match x { None -> 1 } }
+fn err(r: Result[Never, Int]) -> Int { match r { Err(e) -> e } }
+fn main() { print "${pick(None)} ${err(Err(3))}" }
+-- expect --

@@ -59,7 +59,9 @@ func (s *Server) Initialize(ctx context.Context, p *protocol.InitializeParams) (
 		TextDocumentSync:        protocol.TextDocumentSyncKindFull,
 		HoverProvider:           protocol.Boolean(true),
 		DefinitionProvider:      protocol.Boolean(true),
+		TypeDefinitionProvider:  protocol.Boolean(true),
 		ImplementationProvider:  protocol.Boolean(true),
+		InlayHintProvider:       protocol.Boolean(true),
 		ReferencesProvider:      protocol.Boolean(true),
 		WorkspaceSymbolProvider: protocol.Boolean(true),
 		CodeActionProvider: &protocol.CodeActionOptions{CodeActionKinds: []protocol.CodeActionKind{

@@ -1,0 +1,30 @@
+-- src --
+interface I { pure? fn run(self) -> Int }
+type P = { pub n Int }
+fn P.run(self) -> Int { print "side effect"; self.n }
+pure fn call[T: I](x: T) -> Int { x.run() }
+pure fn leak(g: pure fn(P) -> Int) -> Int { g(P { n: 7 }) }
+
+type App = { pub view pure? fn(Int) -> Int }
+fn plain(x: Int) -> Int { print "side effect"; x }
+pure fn withParam(app: App) -> Int { app.view(1) }
+fn runIt(f: pure fn(App) -> Int) -> Int { f(App { view: plain }) }
+
+fn main() {
+    let g: pure fn(P) -> Int = call //~ ERROR `call` is not `pure` (calls `T.run`)
+    print "${leak(g)}"
+    print "${runIt(withParam)}" //~ ERROR `withParam` is not `pure` (calls `app.view`)
+}
+-- expect --
+error[E423]: `call` is not `pure` (calls `T.run`)
+  --> main/main.kg:13:32
+   |
+13 |     let g: pure fn(P) -> Int = call //~ ERROR `call` is not `pure` (calls `T.run`)
+   |                                ^^^^
+
+error[E423]: `withParam` is not `pure` (calls `app.view`)
+  --> main/main.kg:15:20
+   |
+15 |     print "${runIt(withParam)}" //~ ERROR `withParam` is not `pure` (calls `app.view`)
+   |                    ^^^^^^^^^
+

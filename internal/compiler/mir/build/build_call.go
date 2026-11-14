@@ -38,6 +38,7 @@ func (b *builder) call(e *hir.Expr) midir.LocalID {
 			return b.emit(midir.Inst{Op: midir.OpFutureNew, Dst: b.temp(t), Args: append([]midir.LocalID{fnv}, args...), Node: n})
 		}
 		if e.Witness != 0 {
+			args = append(args, b.constArgs(e.ConstArgs, n)...)
 			args = append(args, b.ctxArgs(e)...)
 			dst := b.emit(midir.Inst{Op: midir.OpCallValue, Dst: b.temp(t), Ent: e.Ent, Args: append([]midir.LocalID{b.witnessLocal(e.Witness)}, args...), Node: n})
 			b.applyArgFixups(mark)

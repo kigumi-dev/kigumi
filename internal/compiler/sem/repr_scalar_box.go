@@ -14,6 +14,12 @@ func (r *Result) ScalarBoxes(t TypeID) bool {
 // boxCharged reports whether a box edge over t allocates; a witness boxes a scalar only in a shared body, which the built program decides.
 func (r *Result) boxCharged(why uint8, t TypeID) bool {
 	if witnessWhy(why) {
+		// A witness call returning the receiver's own type parameter may box
+		// whatever the instantiation is; the generic summary cannot prove it
+		// avoids the box, so it must not claim noalloc.
+		if why == whyWitnessResult && r.Types.Kind(t) == KParam {
+			return true
+		}
 		return r.BoxAllocates(t)
 	}
 	return r.BoxAllocates(t) || r.ScalarBoxes(t)

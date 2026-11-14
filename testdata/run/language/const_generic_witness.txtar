@@ -1,0 +1,12 @@
+-- src --
+interface I { fn f[const N: usize](self, a: FixedArray[Int, N]) -> usize }
+type P = { pub n Int }
+fn P.f[const M: usize](self, a: FixedArray[Int, M]) -> usize { M }
+fn use[T: I](x: T, a: FixedArray[Int, 4]) -> usize { x.f(a) }
+fn run[const N: usize](x: P, a: FixedArray[Int, 4]) -> usize { use(x, a) }
+fn main() {
+    let a = FixedArray.filled[Int, 4](0)
+    print "${run[9](P { n: 1 }, a)}"
+}
+-- stdout --
+4
