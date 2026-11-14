@@ -1,0 +1,13 @@
+-- src --
+import simd from std/simd
+
+let v = simd.Vec.splat[u8, 16](1)
+print "start"
+print "${v.lane(16)}"
+print "unreachable"
+-- stdout --
+start
+-- stderr --
+panic: index out of range: index 16, length 16 at std/simd/simd.kg:20
+-- exit --
+2

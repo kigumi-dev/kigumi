@@ -15068,6 +15068,39 @@
       ]
     },
     {
+      "id": "run/simd_lane_bounds",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/simd_lane_bounds.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/simd_parity",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/simd_parity.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/simd_setlane_bounds",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/simd_setlane_bounds.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/slice_element_mut_ok",
       "kind": "run",
       "group": "ownership",

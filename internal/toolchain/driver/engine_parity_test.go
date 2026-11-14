@@ -26,6 +26,7 @@ var parityFixtures = []string{
 	"generics",
 	"iface_static",
 	"map_debug_insertion_order",
+	"simd_parity",
 	"static_record_constant",
 	"strings_edge",
 	"text_parsefloat",

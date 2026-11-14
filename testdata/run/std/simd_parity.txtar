@@ -1,0 +1,1893 @@
+-- src --
+import simd from std/simd
+import math from std/math
+
+// Exhaustive std/simd parity table: every public Vec operation over every
+// lane type, with boundary and deterministic pseudo-random lanes. Each line
+// is "<type> <op> <lane> <a> <b> <result>"; simd_exhaustive_test.go checks
+// the result against a scalar two's-complement/IEEE-754 reference.
+
+// i8: 16 lanes
+let mut a_i8_0 = FixedArray.filled[i8, 16](0)
+a_i8_0[0] = -128
+a_i8_0[1] = -1
+a_i8_0[2] = 127
+a_i8_0[3] = 0
+a_i8_0[4] = 1
+a_i8_0[5] = -64
+a_i8_0[6] = 64
+a_i8_0[7] = 127
+a_i8_0[8] = -128
+a_i8_0[9] = 2
+a_i8_0[10] = 100
+a_i8_0[11] = -3
+a_i8_0[12] = 63
+a_i8_0[13] = -65
+a_i8_0[14] = 1
+a_i8_0[15] = 127
+let mut b_i8_0 = FixedArray.filled[i8, 16](0)
+b_i8_0[0] = -1
+b_i8_0[1] = -128
+b_i8_0[2] = 1
+b_i8_0[3] = -1
+b_i8_0[4] = 127
+b_i8_0[5] = -2
+b_i8_0[6] = 127
+b_i8_0[7] = 127
+b_i8_0[8] = -128
+b_i8_0[9] = 127
+b_i8_0[10] = -100
+b_i8_0[11] = 3
+b_i8_0[12] = 2
+b_i8_0[13] = 127
+b_i8_0[14] = -2
+b_i8_0[15] = -128
+let va_i8_0 = simd.Vec.fromArray(a_i8_0)
+let vb_i8_0 = simd.Vec.fromArray(b_i8_0)
+let r_i8_0_add = va_i8_0.add(vb_i8_0)
+let r_i8_0_sub = va_i8_0.sub(vb_i8_0)
+let r_i8_0_mul = va_i8_0.mul(vb_i8_0)
+let mut a_i8_1 = FixedArray.filled[i8, 16](0)
+a_i8_1[0] = 127
+a_i8_1[1] = 127
+a_i8_1[2] = -128
+a_i8_1[3] = -128
+a_i8_1[4] = 127
+a_i8_1[5] = -128
+a_i8_1[6] = -1
+a_i8_1[7] = 1
+a_i8_1[8] = 127
+a_i8_1[9] = -128
+a_i8_1[10] = 0
+a_i8_1[11] = 0
+a_i8_1[12] = 64
+a_i8_1[13] = -64
+a_i8_1[14] = 1
+a_i8_1[15] = -1
+let mut b_i8_1 = FixedArray.filled[i8, 16](0)
+b_i8_1[0] = 1
+b_i8_1[1] = 127
+b_i8_1[2] = -1
+b_i8_1[3] = -128
+b_i8_1[4] = -128
+b_i8_1[5] = 127
+b_i8_1[6] = -128
+b_i8_1[7] = 127
+b_i8_1[8] = 2
+b_i8_1[9] = 3
+b_i8_1[10] = -1
+b_i8_1[11] = 127
+b_i8_1[12] = 127
+b_i8_1[13] = 127
+b_i8_1[14] = 127
+b_i8_1[15] = -128
+let va_i8_1 = simd.Vec.fromArray(a_i8_1)
+let vb_i8_1 = simd.Vec.fromArray(b_i8_1)
+let r_i8_1_add = va_i8_1.add(vb_i8_1)
+let r_i8_1_sub = va_i8_1.sub(vb_i8_1)
+let r_i8_1_mul = va_i8_1.mul(vb_i8_1)
+let mut a_i8_2 = FixedArray.filled[i8, 16](0)
+a_i8_2[0] = 16
+a_i8_2[1] = -115
+a_i8_2[2] = -19
+a_i8_2[3] = -127
+a_i8_2[4] = 33
+a_i8_2[5] = 6
+a_i8_2[6] = -56
+a_i8_2[7] = 60
+a_i8_2[8] = -8
+a_i8_2[9] = 39
+a_i8_2[10] = -39
+a_i8_2[11] = -43
+a_i8_2[12] = -89
+a_i8_2[13] = -118
+a_i8_2[14] = 101
+a_i8_2[15] = 69
+let mut b_i8_2 = FixedArray.filled[i8, 16](0)
+b_i8_2[0] = 61
+b_i8_2[1] = -106
+b_i8_2[2] = 123
+b_i8_2[3] = -61
+b_i8_2[4] = 127
+b_i8_2[5] = 112
+b_i8_2[6] = -40
+b_i8_2[7] = 110
+b_i8_2[8] = -67
+b_i8_2[9] = 6
+b_i8_2[10] = 107
+b_i8_2[11] = -99
+b_i8_2[12] = -59
+b_i8_2[13] = 97
+b_i8_2[14] = -78
+b_i8_2[15] = 56
+let va_i8_2 = simd.Vec.fromArray(a_i8_2)
+let vb_i8_2 = simd.Vec.fromArray(b_i8_2)
+let r_i8_2_add = va_i8_2.add(vb_i8_2)
+let r_i8_2_sub = va_i8_2.sub(vb_i8_2)
+let r_i8_2_mul = va_i8_2.mul(vb_i8_2)
+for i in 0..16 {
+    print "i8 roundtrip ${i} ${a_i8_0[i]} ${va_i8_0.toArray()[i]} ${va_i8_0.lane(i)}"
+}
+for i in 0..16 {
+    print "i8 add ${i} ${a_i8_0[i]} ${b_i8_0[i]} ${r_i8_0_add.lane(i)}"
+}
+for i in 0..16 {
+    print "i8 sub ${i} ${a_i8_0[i]} ${b_i8_0[i]} ${r_i8_0_sub.lane(i)}"
+}
+for i in 0..16 {
+    print "i8 mul ${i} ${a_i8_0[i]} ${b_i8_0[i]} ${r_i8_0_mul.lane(i)}"
+}
+for i in 0..16 {
+    print "i8 add ${i} ${a_i8_1[i]} ${b_i8_1[i]} ${r_i8_1_add.lane(i)}"
+}
+for i in 0..16 {
+    print "i8 sub ${i} ${a_i8_1[i]} ${b_i8_1[i]} ${r_i8_1_sub.lane(i)}"
+}
+for i in 0..16 {
+    print "i8 mul ${i} ${a_i8_1[i]} ${b_i8_1[i]} ${r_i8_1_mul.lane(i)}"
+}
+for i in 0..16 {
+    print "i8 add ${i} ${a_i8_2[i]} ${b_i8_2[i]} ${r_i8_2_add.lane(i)}"
+}
+for i in 0..16 {
+    print "i8 sub ${i} ${a_i8_2[i]} ${b_i8_2[i]} ${r_i8_2_sub.lane(i)}"
+}
+for i in 0..16 {
+    print "i8 mul ${i} ${a_i8_2[i]} ${b_i8_2[i]} ${r_i8_2_mul.lane(i)}"
+}
+let mut sl_i8 = va_i8_0
+for i in 0..16 { sl_i8.setLane(i, b_i8_0[i]) }
+for i in 0..16 {
+    print "i8 setlane ${i} ${b_i8_0[i]} ${sl_i8.toArray()[i]} ${sl_i8.lane(i)}"
+}
+let sv_i8_0: i8 = -128
+let sv_i8_1: i8 = -1
+let sp_i8_0 = simd.Vec.splat[i8, 16](sv_i8_0)
+let sp_i8_1 = simd.Vec.splat[i8, 16](sv_i8_1)
+for i in 0..16 {
+    print "i8 splat ${i} ${sv_i8_0} - ${sp_i8_0.lane(i)}"
+}
+print "i8 splat 0 ${sv_i8_1} - ${sp_i8_1.lane(0)}"
+
+// u8: 16 lanes
+let mut a_u8_0 = FixedArray.filled[u8, 16](0)
+a_u8_0[0] = 0
+a_u8_0[1] = 255
+a_u8_0[2] = 255
+a_u8_0[3] = 1
+a_u8_0[4] = 128
+a_u8_0[5] = 127
+a_u8_0[6] = 2
+a_u8_0[7] = 254
+a_u8_0[8] = 0
+a_u8_0[9] = 255
+a_u8_0[10] = 1
+a_u8_0[11] = 200
+a_u8_0[12] = 100
+a_u8_0[13] = 3
+a_u8_0[14] = 253
+a_u8_0[15] = 64
+let mut b_u8_0 = FixedArray.filled[u8, 16](0)
+b_u8_0[0] = 1
+b_u8_0[1] = 1
+b_u8_0[2] = 255
+b_u8_0[3] = 255
+b_u8_0[4] = 128
+b_u8_0[5] = 127
+b_u8_0[6] = 254
+b_u8_0[7] = 2
+b_u8_0[8] = 255
+b_u8_0[9] = 2
+b_u8_0[10] = 3
+b_u8_0[11] = 100
+b_u8_0[12] = 200
+b_u8_0[13] = 253
+b_u8_0[14] = 3
+b_u8_0[15] = 192
+let va_u8_0 = simd.Vec.fromArray(a_u8_0)
+let vb_u8_0 = simd.Vec.fromArray(b_u8_0)
+let r_u8_0_add = va_u8_0.add(vb_u8_0)
+let r_u8_0_sub = va_u8_0.sub(vb_u8_0)
+let r_u8_0_mul = va_u8_0.mul(vb_u8_0)
+let mut a_u8_1 = FixedArray.filled[u8, 16](0)
+a_u8_1[0] = 255
+a_u8_1[1] = 255
+a_u8_1[2] = 0
+a_u8_1[3] = 0
+a_u8_1[4] = 1
+a_u8_1[5] = 254
+a_u8_1[6] = 128
+a_u8_1[7] = 127
+a_u8_1[8] = 255
+a_u8_1[9] = 0
+a_u8_1[10] = 255
+a_u8_1[11] = 128
+a_u8_1[12] = 1
+a_u8_1[13] = 255
+a_u8_1[14] = 200
+a_u8_1[15] = 100
+let mut b_u8_1 = FixedArray.filled[u8, 16](0)
+b_u8_1[0] = 1
+b_u8_1[1] = 255
+b_u8_1[2] = 1
+b_u8_1[3] = 255
+b_u8_1[4] = 255
+b_u8_1[5] = 255
+b_u8_1[6] = 128
+b_u8_1[7] = 127
+b_u8_1[8] = 2
+b_u8_1[9] = 3
+b_u8_1[10] = 255
+b_u8_1[11] = 128
+b_u8_1[12] = 254
+b_u8_1[13] = 1
+b_u8_1[14] = 100
+b_u8_1[15] = 200
+let va_u8_1 = simd.Vec.fromArray(a_u8_1)
+let vb_u8_1 = simd.Vec.fromArray(b_u8_1)
+let r_u8_1_add = va_u8_1.add(vb_u8_1)
+let r_u8_1_sub = va_u8_1.sub(vb_u8_1)
+let r_u8_1_mul = va_u8_1.mul(vb_u8_1)
+let mut a_u8_2 = FixedArray.filled[u8, 16](0)
+a_u8_2[0] = 61
+a_u8_2[1] = 38
+a_u8_2[2] = 240
+a_u8_2[3] = 144
+a_u8_2[4] = 226
+a_u8_2[5] = 216
+a_u8_2[6] = 234
+a_u8_2[7] = 101
+a_u8_2[8] = 123
+a_u8_2[9] = 198
+a_u8_2[10] = 187
+a_u8_2[11] = 163
+a_u8_2[12] = 251
+a_u8_2[13] = 248
+a_u8_2[14] = 91
+a_u8_2[15] = 45
+let mut b_u8_2 = FixedArray.filled[u8, 16](0)
+b_u8_2[0] = 116
+b_u8_2[1] = 167
+b_u8_2[2] = 133
+b_u8_2[3] = 54
+b_u8_2[4] = 94
+b_u8_2[5] = 225
+b_u8_2[6] = 49
+b_u8_2[7] = 248
+b_u8_2[8] = 74
+b_u8_2[9] = 246
+b_u8_2[10] = 31
+b_u8_2[11] = 47
+b_u8_2[12] = 144
+b_u8_2[13] = 232
+b_u8_2[14] = 210
+b_u8_2[15] = 117
+let va_u8_2 = simd.Vec.fromArray(a_u8_2)
+let vb_u8_2 = simd.Vec.fromArray(b_u8_2)
+let r_u8_2_add = va_u8_2.add(vb_u8_2)
+let r_u8_2_sub = va_u8_2.sub(vb_u8_2)
+let r_u8_2_mul = va_u8_2.mul(vb_u8_2)
+for i in 0..16 {
+    print "u8 roundtrip ${i} ${a_u8_0[i]} ${va_u8_0.toArray()[i]} ${va_u8_0.lane(i)}"
+}
+for i in 0..16 {
+    print "u8 add ${i} ${a_u8_0[i]} ${b_u8_0[i]} ${r_u8_0_add.lane(i)}"
+}
+for i in 0..16 {
+    print "u8 sub ${i} ${a_u8_0[i]} ${b_u8_0[i]} ${r_u8_0_sub.lane(i)}"
+}
+for i in 0..16 {
+    print "u8 mul ${i} ${a_u8_0[i]} ${b_u8_0[i]} ${r_u8_0_mul.lane(i)}"
+}
+for i in 0..16 {
+    print "u8 add ${i} ${a_u8_1[i]} ${b_u8_1[i]} ${r_u8_1_add.lane(i)}"
+}
+for i in 0..16 {
+    print "u8 sub ${i} ${a_u8_1[i]} ${b_u8_1[i]} ${r_u8_1_sub.lane(i)}"
+}
+for i in 0..16 {
+    print "u8 mul ${i} ${a_u8_1[i]} ${b_u8_1[i]} ${r_u8_1_mul.lane(i)}"
+}
+for i in 0..16 {
+    print "u8 add ${i} ${a_u8_2[i]} ${b_u8_2[i]} ${r_u8_2_add.lane(i)}"
+}
+for i in 0..16 {
+    print "u8 sub ${i} ${a_u8_2[i]} ${b_u8_2[i]} ${r_u8_2_sub.lane(i)}"
+}
+for i in 0..16 {
+    print "u8 mul ${i} ${a_u8_2[i]} ${b_u8_2[i]} ${r_u8_2_mul.lane(i)}"
+}
+let mut sl_u8 = va_u8_0
+for i in 0..16 { sl_u8.setLane(i, b_u8_0[i]) }
+for i in 0..16 {
+    print "u8 setlane ${i} ${b_u8_0[i]} ${sl_u8.toArray()[i]} ${sl_u8.lane(i)}"
+}
+let sv_u8_0: u8 = 0
+let sv_u8_1: u8 = 255
+let sp_u8_0 = simd.Vec.splat[u8, 16](sv_u8_0)
+let sp_u8_1 = simd.Vec.splat[u8, 16](sv_u8_1)
+for i in 0..16 {
+    print "u8 splat ${i} ${sv_u8_0} - ${sp_u8_0.lane(i)}"
+}
+print "u8 splat 0 ${sv_u8_1} - ${sp_u8_1.lane(0)}"
+
+// i16: 8 lanes
+let mut a_i16_0 = FixedArray.filled[i16, 8](0)
+a_i16_0[0] = -32768
+a_i16_0[1] = -1
+a_i16_0[2] = 32767
+a_i16_0[3] = 0
+a_i16_0[4] = 1
+a_i16_0[5] = -16384
+a_i16_0[6] = 16384
+a_i16_0[7] = 32767
+let mut b_i16_0 = FixedArray.filled[i16, 8](0)
+b_i16_0[0] = -1
+b_i16_0[1] = -32768
+b_i16_0[2] = 1
+b_i16_0[3] = -1
+b_i16_0[4] = 32767
+b_i16_0[5] = -2
+b_i16_0[6] = 32767
+b_i16_0[7] = 32767
+let va_i16_0 = simd.Vec.fromArray(a_i16_0)
+let vb_i16_0 = simd.Vec.fromArray(b_i16_0)
+let r_i16_0_add = va_i16_0.add(vb_i16_0)
+let r_i16_0_sub = va_i16_0.sub(vb_i16_0)
+let r_i16_0_mul = va_i16_0.mul(vb_i16_0)
+let mut a_i16_1 = FixedArray.filled[i16, 8](0)
+a_i16_1[0] = 32767
+a_i16_1[1] = 32767
+a_i16_1[2] = -32768
+a_i16_1[3] = -32768
+a_i16_1[4] = 32767
+a_i16_1[5] = -32768
+a_i16_1[6] = -1
+a_i16_1[7] = 1
+let mut b_i16_1 = FixedArray.filled[i16, 8](0)
+b_i16_1[0] = 1
+b_i16_1[1] = 32767
+b_i16_1[2] = -1
+b_i16_1[3] = -32768
+b_i16_1[4] = -32768
+b_i16_1[5] = 32767
+b_i16_1[6] = -32768
+b_i16_1[7] = 32767
+let va_i16_1 = simd.Vec.fromArray(a_i16_1)
+let vb_i16_1 = simd.Vec.fromArray(b_i16_1)
+let r_i16_1_add = va_i16_1.add(vb_i16_1)
+let r_i16_1_sub = va_i16_1.sub(vb_i16_1)
+let r_i16_1_mul = va_i16_1.mul(vb_i16_1)
+let mut a_i16_2 = FixedArray.filled[i16, 8](0)
+a_i16_2[0] = -23479
+a_i16_2[1] = 27515
+a_i16_2[2] = -7259
+a_i16_2[3] = 9246
+a_i16_2[4] = 4857
+a_i16_2[5] = 14399
+a_i16_2[6] = 7396
+a_i16_2[7] = -31035
+let mut b_i16_2 = FixedArray.filled[i16, 8](0)
+b_i16_2[0] = -6772
+b_i16_2[1] = -23949
+b_i16_2[2] = -24261
+b_i16_2[3] = -25561
+b_i16_2[4] = -9556
+b_i16_2[5] = 12027
+b_i16_2[6] = 23823
+b_i16_2[7] = 11707
+let va_i16_2 = simd.Vec.fromArray(a_i16_2)
+let vb_i16_2 = simd.Vec.fromArray(b_i16_2)
+let r_i16_2_add = va_i16_2.add(vb_i16_2)
+let r_i16_2_sub = va_i16_2.sub(vb_i16_2)
+let r_i16_2_mul = va_i16_2.mul(vb_i16_2)
+for i in 0..8 {
+    print "i16 roundtrip ${i} ${a_i16_0[i]} ${va_i16_0.toArray()[i]} ${va_i16_0.lane(i)}"
+}
+for i in 0..8 {
+    print "i16 add ${i} ${a_i16_0[i]} ${b_i16_0[i]} ${r_i16_0_add.lane(i)}"
+}
+for i in 0..8 {
+    print "i16 sub ${i} ${a_i16_0[i]} ${b_i16_0[i]} ${r_i16_0_sub.lane(i)}"
+}
+for i in 0..8 {
+    print "i16 mul ${i} ${a_i16_0[i]} ${b_i16_0[i]} ${r_i16_0_mul.lane(i)}"
+}
+for i in 0..8 {
+    print "i16 add ${i} ${a_i16_1[i]} ${b_i16_1[i]} ${r_i16_1_add.lane(i)}"
+}
+for i in 0..8 {
+    print "i16 sub ${i} ${a_i16_1[i]} ${b_i16_1[i]} ${r_i16_1_sub.lane(i)}"
+}
+for i in 0..8 {
+    print "i16 mul ${i} ${a_i16_1[i]} ${b_i16_1[i]} ${r_i16_1_mul.lane(i)}"
+}
+for i in 0..8 {
+    print "i16 add ${i} ${a_i16_2[i]} ${b_i16_2[i]} ${r_i16_2_add.lane(i)}"
+}
+for i in 0..8 {
+    print "i16 sub ${i} ${a_i16_2[i]} ${b_i16_2[i]} ${r_i16_2_sub.lane(i)}"
+}
+for i in 0..8 {
+    print "i16 mul ${i} ${a_i16_2[i]} ${b_i16_2[i]} ${r_i16_2_mul.lane(i)}"
+}
+let mut sl_i16 = va_i16_0
+for i in 0..8 { sl_i16.setLane(i, b_i16_0[i]) }
+for i in 0..8 {
+    print "i16 setlane ${i} ${b_i16_0[i]} ${sl_i16.toArray()[i]} ${sl_i16.lane(i)}"
+}
+let sv_i16_0: i16 = -32768
+let sv_i16_1: i16 = -1
+let sp_i16_0 = simd.Vec.splat[i16, 8](sv_i16_0)
+let sp_i16_1 = simd.Vec.splat[i16, 8](sv_i16_1)
+for i in 0..8 {
+    print "i16 splat ${i} ${sv_i16_0} - ${sp_i16_0.lane(i)}"
+}
+print "i16 splat 0 ${sv_i16_1} - ${sp_i16_1.lane(0)}"
+
+// u16: 8 lanes
+let mut a_u16_0 = FixedArray.filled[u16, 8](0)
+a_u16_0[0] = 0
+a_u16_0[1] = 65535
+a_u16_0[2] = 65535
+a_u16_0[3] = 1
+a_u16_0[4] = 32768
+a_u16_0[5] = 32767
+a_u16_0[6] = 2
+a_u16_0[7] = 65534
+let mut b_u16_0 = FixedArray.filled[u16, 8](0)
+b_u16_0[0] = 1
+b_u16_0[1] = 1
+b_u16_0[2] = 65535
+b_u16_0[3] = 65535
+b_u16_0[4] = 32768
+b_u16_0[5] = 32767
+b_u16_0[6] = 65534
+b_u16_0[7] = 2
+let va_u16_0 = simd.Vec.fromArray(a_u16_0)
+let vb_u16_0 = simd.Vec.fromArray(b_u16_0)
+let r_u16_0_add = va_u16_0.add(vb_u16_0)
+let r_u16_0_sub = va_u16_0.sub(vb_u16_0)
+let r_u16_0_mul = va_u16_0.mul(vb_u16_0)
+let mut a_u16_1 = FixedArray.filled[u16, 8](0)
+a_u16_1[0] = 65535
+a_u16_1[1] = 65535
+a_u16_1[2] = 0
+a_u16_1[3] = 0
+a_u16_1[4] = 1
+a_u16_1[5] = 65534
+a_u16_1[6] = 32768
+a_u16_1[7] = 32767
+let mut b_u16_1 = FixedArray.filled[u16, 8](0)
+b_u16_1[0] = 1
+b_u16_1[1] = 65535
+b_u16_1[2] = 1
+b_u16_1[3] = 65535
+b_u16_1[4] = 65535
+b_u16_1[5] = 65535
+b_u16_1[6] = 32768
+b_u16_1[7] = 32767
+let va_u16_1 = simd.Vec.fromArray(a_u16_1)
+let vb_u16_1 = simd.Vec.fromArray(b_u16_1)
+let r_u16_1_add = va_u16_1.add(vb_u16_1)
+let r_u16_1_sub = va_u16_1.sub(vb_u16_1)
+let r_u16_1_mul = va_u16_1.mul(vb_u16_1)
+let mut a_u16_2 = FixedArray.filled[u16, 8](0)
+a_u16_2[0] = 63150
+a_u16_2[1] = 21892
+a_u16_2[2] = 60598
+a_u16_2[3] = 9182
+a_u16_2[4] = 52874
+a_u16_2[5] = 18457
+a_u16_2[6] = 9774
+a_u16_2[7] = 48135
+let mut b_u16_2 = FixedArray.filled[u16, 8](0)
+b_u16_2[0] = 41911
+b_u16_2[1] = 44550
+b_u16_2[2] = 53412
+b_u16_2[3] = 53637
+b_u16_2[4] = 28686
+b_u16_2[5] = 11546
+b_u16_2[6] = 24633
+b_u16_2[7] = 17354
+let va_u16_2 = simd.Vec.fromArray(a_u16_2)
+let vb_u16_2 = simd.Vec.fromArray(b_u16_2)
+let r_u16_2_add = va_u16_2.add(vb_u16_2)
+let r_u16_2_sub = va_u16_2.sub(vb_u16_2)
+let r_u16_2_mul = va_u16_2.mul(vb_u16_2)
+for i in 0..8 {
+    print "u16 roundtrip ${i} ${a_u16_0[i]} ${va_u16_0.toArray()[i]} ${va_u16_0.lane(i)}"
+}
+for i in 0..8 {
+    print "u16 add ${i} ${a_u16_0[i]} ${b_u16_0[i]} ${r_u16_0_add.lane(i)}"
+}
+for i in 0..8 {
+    print "u16 sub ${i} ${a_u16_0[i]} ${b_u16_0[i]} ${r_u16_0_sub.lane(i)}"
+}
+for i in 0..8 {
+    print "u16 mul ${i} ${a_u16_0[i]} ${b_u16_0[i]} ${r_u16_0_mul.lane(i)}"
+}
+for i in 0..8 {
+    print "u16 add ${i} ${a_u16_1[i]} ${b_u16_1[i]} ${r_u16_1_add.lane(i)}"
+}
+for i in 0..8 {
+    print "u16 sub ${i} ${a_u16_1[i]} ${b_u16_1[i]} ${r_u16_1_sub.lane(i)}"
+}
+for i in 0..8 {
+    print "u16 mul ${i} ${a_u16_1[i]} ${b_u16_1[i]} ${r_u16_1_mul.lane(i)}"
+}
+for i in 0..8 {
+    print "u16 add ${i} ${a_u16_2[i]} ${b_u16_2[i]} ${r_u16_2_add.lane(i)}"
+}
+for i in 0..8 {
+    print "u16 sub ${i} ${a_u16_2[i]} ${b_u16_2[i]} ${r_u16_2_sub.lane(i)}"
+}
+for i in 0..8 {
+    print "u16 mul ${i} ${a_u16_2[i]} ${b_u16_2[i]} ${r_u16_2_mul.lane(i)}"
+}
+let mut sl_u16 = va_u16_0
+for i in 0..8 { sl_u16.setLane(i, b_u16_0[i]) }
+for i in 0..8 {
+    print "u16 setlane ${i} ${b_u16_0[i]} ${sl_u16.toArray()[i]} ${sl_u16.lane(i)}"
+}
+let sv_u16_0: u16 = 0
+let sv_u16_1: u16 = 65535
+let sp_u16_0 = simd.Vec.splat[u16, 8](sv_u16_0)
+let sp_u16_1 = simd.Vec.splat[u16, 8](sv_u16_1)
+for i in 0..8 {
+    print "u16 splat ${i} ${sv_u16_0} - ${sp_u16_0.lane(i)}"
+}
+print "u16 splat 0 ${sv_u16_1} - ${sp_u16_1.lane(0)}"
+
+// i32: 4 lanes
+let mut a_i32_0 = FixedArray.filled[i32, 4](0)
+a_i32_0[0] = -2147483648
+a_i32_0[1] = -1
+a_i32_0[2] = 2147483647
+a_i32_0[3] = 0
+let mut b_i32_0 = FixedArray.filled[i32, 4](0)
+b_i32_0[0] = -1
+b_i32_0[1] = -2147483648
+b_i32_0[2] = 1
+b_i32_0[3] = -1
+let va_i32_0 = simd.Vec.fromArray(a_i32_0)
+let vb_i32_0 = simd.Vec.fromArray(b_i32_0)
+let r_i32_0_add = va_i32_0.add(vb_i32_0)
+let r_i32_0_sub = va_i32_0.sub(vb_i32_0)
+let r_i32_0_mul = va_i32_0.mul(vb_i32_0)
+let mut a_i32_1 = FixedArray.filled[i32, 4](0)
+a_i32_1[0] = 2147483647
+a_i32_1[1] = 2147483647
+a_i32_1[2] = -2147483648
+a_i32_1[3] = -2147483648
+let mut b_i32_1 = FixedArray.filled[i32, 4](0)
+b_i32_1[0] = 1
+b_i32_1[1] = 2147483647
+b_i32_1[2] = -1
+b_i32_1[3] = -2147483648
+let va_i32_1 = simd.Vec.fromArray(a_i32_1)
+let vb_i32_1 = simd.Vec.fromArray(b_i32_1)
+let r_i32_1_add = va_i32_1.add(vb_i32_1)
+let r_i32_1_sub = va_i32_1.sub(vb_i32_1)
+let r_i32_1_mul = va_i32_1.mul(vb_i32_1)
+let mut a_i32_2 = FixedArray.filled[i32, 4](0)
+a_i32_2[0] = -790838194
+a_i32_2[1] = 969647724
+a_i32_2[2] = 261245343
+a_i32_2[3] = 1814954303
+let mut b_i32_2 = FixedArray.filled[i32, 4](0)
+b_i32_2[0] = 636972059
+b_i32_2[1] = 772778591
+b_i32_2[2] = 645742511
+b_i32_2[3] = 2050333976
+let va_i32_2 = simd.Vec.fromArray(a_i32_2)
+let vb_i32_2 = simd.Vec.fromArray(b_i32_2)
+let r_i32_2_add = va_i32_2.add(vb_i32_2)
+let r_i32_2_sub = va_i32_2.sub(vb_i32_2)
+let r_i32_2_mul = va_i32_2.mul(vb_i32_2)
+for i in 0..4 {
+    print "i32 roundtrip ${i} ${a_i32_0[i]} ${va_i32_0.toArray()[i]} ${va_i32_0.lane(i)}"
+}
+for i in 0..4 {
+    print "i32 add ${i} ${a_i32_0[i]} ${b_i32_0[i]} ${r_i32_0_add.lane(i)}"
+}
+for i in 0..4 {
+    print "i32 sub ${i} ${a_i32_0[i]} ${b_i32_0[i]} ${r_i32_0_sub.lane(i)}"
+}
+for i in 0..4 {
+    print "i32 mul ${i} ${a_i32_0[i]} ${b_i32_0[i]} ${r_i32_0_mul.lane(i)}"
+}
+for i in 0..4 {
+    print "i32 add ${i} ${a_i32_1[i]} ${b_i32_1[i]} ${r_i32_1_add.lane(i)}"
+}
+for i in 0..4 {
+    print "i32 sub ${i} ${a_i32_1[i]} ${b_i32_1[i]} ${r_i32_1_sub.lane(i)}"
+}
+for i in 0..4 {
+    print "i32 mul ${i} ${a_i32_1[i]} ${b_i32_1[i]} ${r_i32_1_mul.lane(i)}"
+}
+for i in 0..4 {
+    print "i32 add ${i} ${a_i32_2[i]} ${b_i32_2[i]} ${r_i32_2_add.lane(i)}"
+}
+for i in 0..4 {
+    print "i32 sub ${i} ${a_i32_2[i]} ${b_i32_2[i]} ${r_i32_2_sub.lane(i)}"
+}
+for i in 0..4 {
+    print "i32 mul ${i} ${a_i32_2[i]} ${b_i32_2[i]} ${r_i32_2_mul.lane(i)}"
+}
+let mut sl_i32 = va_i32_0
+for i in 0..4 { sl_i32.setLane(i, b_i32_0[i]) }
+for i in 0..4 {
+    print "i32 setlane ${i} ${b_i32_0[i]} ${sl_i32.toArray()[i]} ${sl_i32.lane(i)}"
+}
+let sv_i32_0: i32 = -2147483648
+let sv_i32_1: i32 = -1
+let sp_i32_0 = simd.Vec.splat[i32, 4](sv_i32_0)
+let sp_i32_1 = simd.Vec.splat[i32, 4](sv_i32_1)
+for i in 0..4 {
+    print "i32 splat ${i} ${sv_i32_0} - ${sp_i32_0.lane(i)}"
+}
+print "i32 splat 0 ${sv_i32_1} - ${sp_i32_1.lane(0)}"
+
+// u32: 4 lanes
+let mut a_u32_0 = FixedArray.filled[u32, 4](0)
+a_u32_0[0] = 0
+a_u32_0[1] = 4294967295
+a_u32_0[2] = 4294967295
+a_u32_0[3] = 1
+let mut b_u32_0 = FixedArray.filled[u32, 4](0)
+b_u32_0[0] = 1
+b_u32_0[1] = 1
+b_u32_0[2] = 4294967295
+b_u32_0[3] = 4294967295
+let va_u32_0 = simd.Vec.fromArray(a_u32_0)
+let vb_u32_0 = simd.Vec.fromArray(b_u32_0)
+let r_u32_0_add = va_u32_0.add(vb_u32_0)
+let r_u32_0_sub = va_u32_0.sub(vb_u32_0)
+let r_u32_0_mul = va_u32_0.mul(vb_u32_0)
+let mut a_u32_1 = FixedArray.filled[u32, 4](0)
+a_u32_1[0] = 4294967295
+a_u32_1[1] = 4294967295
+a_u32_1[2] = 0
+a_u32_1[3] = 1
+let mut b_u32_1 = FixedArray.filled[u32, 4](0)
+b_u32_1[0] = 1
+b_u32_1[1] = 4294967295
+b_u32_1[2] = 1
+b_u32_1[3] = 4294967295
+let va_u32_1 = simd.Vec.fromArray(a_u32_1)
+let vb_u32_1 = simd.Vec.fromArray(b_u32_1)
+let r_u32_1_add = va_u32_1.add(vb_u32_1)
+let r_u32_1_sub = va_u32_1.sub(vb_u32_1)
+let r_u32_1_mul = va_u32_1.mul(vb_u32_1)
+let mut a_u32_2 = FixedArray.filled[u32, 4](0)
+a_u32_2[0] = 2169384771
+a_u32_2[1] = 1531907076
+a_u32_2[2] = 2594416794
+a_u32_2[3] = 3647349421
+let mut b_u32_2 = FixedArray.filled[u32, 4](0)
+b_u32_2[0] = 1823945380
+b_u32_2[1] = 1677966670
+b_u32_2[2] = 4112020160
+b_u32_2[3] = 646856651
+let va_u32_2 = simd.Vec.fromArray(a_u32_2)
+let vb_u32_2 = simd.Vec.fromArray(b_u32_2)
+let r_u32_2_add = va_u32_2.add(vb_u32_2)
+let r_u32_2_sub = va_u32_2.sub(vb_u32_2)
+let r_u32_2_mul = va_u32_2.mul(vb_u32_2)
+for i in 0..4 {
+    print "u32 roundtrip ${i} ${a_u32_0[i]} ${va_u32_0.toArray()[i]} ${va_u32_0.lane(i)}"
+}
+for i in 0..4 {
+    print "u32 add ${i} ${a_u32_0[i]} ${b_u32_0[i]} ${r_u32_0_add.lane(i)}"
+}
+for i in 0..4 {
+    print "u32 sub ${i} ${a_u32_0[i]} ${b_u32_0[i]} ${r_u32_0_sub.lane(i)}"
+}
+for i in 0..4 {
+    print "u32 mul ${i} ${a_u32_0[i]} ${b_u32_0[i]} ${r_u32_0_mul.lane(i)}"
+}
+for i in 0..4 {
+    print "u32 add ${i} ${a_u32_1[i]} ${b_u32_1[i]} ${r_u32_1_add.lane(i)}"
+}
+for i in 0..4 {
+    print "u32 sub ${i} ${a_u32_1[i]} ${b_u32_1[i]} ${r_u32_1_sub.lane(i)}"
+}
+for i in 0..4 {
+    print "u32 mul ${i} ${a_u32_1[i]} ${b_u32_1[i]} ${r_u32_1_mul.lane(i)}"
+}
+for i in 0..4 {
+    print "u32 add ${i} ${a_u32_2[i]} ${b_u32_2[i]} ${r_u32_2_add.lane(i)}"
+}
+for i in 0..4 {
+    print "u32 sub ${i} ${a_u32_2[i]} ${b_u32_2[i]} ${r_u32_2_sub.lane(i)}"
+}
+for i in 0..4 {
+    print "u32 mul ${i} ${a_u32_2[i]} ${b_u32_2[i]} ${r_u32_2_mul.lane(i)}"
+}
+let mut sl_u32 = va_u32_0
+for i in 0..4 { sl_u32.setLane(i, b_u32_0[i]) }
+for i in 0..4 {
+    print "u32 setlane ${i} ${b_u32_0[i]} ${sl_u32.toArray()[i]} ${sl_u32.lane(i)}"
+}
+let sv_u32_0: u32 = 0
+let sv_u32_1: u32 = 4294967295
+let sp_u32_0 = simd.Vec.splat[u32, 4](sv_u32_0)
+let sp_u32_1 = simd.Vec.splat[u32, 4](sv_u32_1)
+for i in 0..4 {
+    print "u32 splat ${i} ${sv_u32_0} - ${sp_u32_0.lane(i)}"
+}
+print "u32 splat 0 ${sv_u32_1} - ${sp_u32_1.lane(0)}"
+
+// i64: 2 lanes
+let mut a_i64_0 = FixedArray.filled[i64, 2](0)
+a_i64_0[0] = -9223372036854775808
+a_i64_0[1] = -1
+let mut b_i64_0 = FixedArray.filled[i64, 2](0)
+b_i64_0[0] = -1
+b_i64_0[1] = -9223372036854775808
+let va_i64_0 = simd.Vec.fromArray(a_i64_0)
+let vb_i64_0 = simd.Vec.fromArray(b_i64_0)
+let r_i64_0_add = va_i64_0.add(vb_i64_0)
+let r_i64_0_sub = va_i64_0.sub(vb_i64_0)
+let r_i64_0_mul = va_i64_0.mul(vb_i64_0)
+let mut a_i64_1 = FixedArray.filled[i64, 2](0)
+a_i64_1[0] = 9223372036854775807
+a_i64_1[1] = 9223372036854775807
+let mut b_i64_1 = FixedArray.filled[i64, 2](0)
+b_i64_1[0] = 1
+b_i64_1[1] = 9223372036854775807
+let va_i64_1 = simd.Vec.fromArray(a_i64_1)
+let vb_i64_1 = simd.Vec.fromArray(b_i64_1)
+let r_i64_1_add = va_i64_1.add(vb_i64_1)
+let r_i64_1_sub = va_i64_1.sub(vb_i64_1)
+let r_i64_1_mul = va_i64_1.mul(vb_i64_1)
+let mut a_i64_2 = FixedArray.filled[i64, 2](0)
+a_i64_2[0] = -7100955319804283671
+a_i64_2[1] = 6681638517803898418
+let mut b_i64_2 = FixedArray.filled[i64, 2](0)
+b_i64_2[0] = -7275722607050309950
+b_i64_2[1] = -8733545483118812639
+let va_i64_2 = simd.Vec.fromArray(a_i64_2)
+let vb_i64_2 = simd.Vec.fromArray(b_i64_2)
+let r_i64_2_add = va_i64_2.add(vb_i64_2)
+let r_i64_2_sub = va_i64_2.sub(vb_i64_2)
+let r_i64_2_mul = va_i64_2.mul(vb_i64_2)
+for i in 0..2 {
+    print "i64 roundtrip ${i} ${a_i64_0[i]} ${va_i64_0.toArray()[i]} ${va_i64_0.lane(i)}"
+}
+for i in 0..2 {
+    print "i64 add ${i} ${a_i64_0[i]} ${b_i64_0[i]} ${r_i64_0_add.lane(i)}"
+}
+for i in 0..2 {
+    print "i64 sub ${i} ${a_i64_0[i]} ${b_i64_0[i]} ${r_i64_0_sub.lane(i)}"
+}
+for i in 0..2 {
+    print "i64 mul ${i} ${a_i64_0[i]} ${b_i64_0[i]} ${r_i64_0_mul.lane(i)}"
+}
+for i in 0..2 {
+    print "i64 add ${i} ${a_i64_1[i]} ${b_i64_1[i]} ${r_i64_1_add.lane(i)}"
+}
+for i in 0..2 {
+    print "i64 sub ${i} ${a_i64_1[i]} ${b_i64_1[i]} ${r_i64_1_sub.lane(i)}"
+}
+for i in 0..2 {
+    print "i64 mul ${i} ${a_i64_1[i]} ${b_i64_1[i]} ${r_i64_1_mul.lane(i)}"
+}
+for i in 0..2 {
+    print "i64 add ${i} ${a_i64_2[i]} ${b_i64_2[i]} ${r_i64_2_add.lane(i)}"
+}
+for i in 0..2 {
+    print "i64 sub ${i} ${a_i64_2[i]} ${b_i64_2[i]} ${r_i64_2_sub.lane(i)}"
+}
+for i in 0..2 {
+    print "i64 mul ${i} ${a_i64_2[i]} ${b_i64_2[i]} ${r_i64_2_mul.lane(i)}"
+}
+let mut sl_i64 = va_i64_0
+for i in 0..2 { sl_i64.setLane(i, b_i64_0[i]) }
+for i in 0..2 {
+    print "i64 setlane ${i} ${b_i64_0[i]} ${sl_i64.toArray()[i]} ${sl_i64.lane(i)}"
+}
+let sv_i64_0: i64 = -9223372036854775808
+let sv_i64_1: i64 = -1
+let sp_i64_0 = simd.Vec.splat[i64, 2](sv_i64_0)
+let sp_i64_1 = simd.Vec.splat[i64, 2](sv_i64_1)
+for i in 0..2 {
+    print "i64 splat ${i} ${sv_i64_0} - ${sp_i64_0.lane(i)}"
+}
+print "i64 splat 0 ${sv_i64_1} - ${sp_i64_1.lane(0)}"
+
+// u64: 2 lanes
+let mut a_u64_0 = FixedArray.filled[u64, 2](0)
+a_u64_0[0] = 0
+a_u64_0[1] = 18446744073709551615
+let mut b_u64_0 = FixedArray.filled[u64, 2](0)
+b_u64_0[0] = 1
+b_u64_0[1] = 1
+let va_u64_0 = simd.Vec.fromArray(a_u64_0)
+let vb_u64_0 = simd.Vec.fromArray(b_u64_0)
+let r_u64_0_add = va_u64_0.add(vb_u64_0)
+let r_u64_0_sub = va_u64_0.sub(vb_u64_0)
+let r_u64_0_mul = va_u64_0.mul(vb_u64_0)
+let mut a_u64_1 = FixedArray.filled[u64, 2](0)
+a_u64_1[0] = 18446744073709551615
+a_u64_1[1] = 1
+let mut b_u64_1 = FixedArray.filled[u64, 2](0)
+b_u64_1[0] = 18446744073709551615
+b_u64_1[1] = 18446744073709551615
+let va_u64_1 = simd.Vec.fromArray(a_u64_1)
+let vb_u64_1 = simd.Vec.fromArray(b_u64_1)
+let r_u64_1_add = va_u64_1.add(vb_u64_1)
+let r_u64_1_sub = va_u64_1.sub(vb_u64_1)
+let r_u64_1_mul = va_u64_1.mul(vb_u64_1)
+let mut a_u64_2 = FixedArray.filled[u64, 2](0)
+a_u64_2[0] = 3791157470103050137
+a_u64_2[1] = 17140300300960631026
+let mut b_u64_2 = FixedArray.filled[u64, 2](0)
+b_u64_2[0] = 8984652368648757482
+b_u64_2[1] = 5931472002488837783
+let va_u64_2 = simd.Vec.fromArray(a_u64_2)
+let vb_u64_2 = simd.Vec.fromArray(b_u64_2)
+let r_u64_2_add = va_u64_2.add(vb_u64_2)
+let r_u64_2_sub = va_u64_2.sub(vb_u64_2)
+let r_u64_2_mul = va_u64_2.mul(vb_u64_2)
+for i in 0..2 {
+    print "u64 roundtrip ${i} ${a_u64_0[i]} ${va_u64_0.toArray()[i]} ${va_u64_0.lane(i)}"
+}
+for i in 0..2 {
+    print "u64 add ${i} ${a_u64_0[i]} ${b_u64_0[i]} ${r_u64_0_add.lane(i)}"
+}
+for i in 0..2 {
+    print "u64 sub ${i} ${a_u64_0[i]} ${b_u64_0[i]} ${r_u64_0_sub.lane(i)}"
+}
+for i in 0..2 {
+    print "u64 mul ${i} ${a_u64_0[i]} ${b_u64_0[i]} ${r_u64_0_mul.lane(i)}"
+}
+for i in 0..2 {
+    print "u64 add ${i} ${a_u64_1[i]} ${b_u64_1[i]} ${r_u64_1_add.lane(i)}"
+}
+for i in 0..2 {
+    print "u64 sub ${i} ${a_u64_1[i]} ${b_u64_1[i]} ${r_u64_1_sub.lane(i)}"
+}
+for i in 0..2 {
+    print "u64 mul ${i} ${a_u64_1[i]} ${b_u64_1[i]} ${r_u64_1_mul.lane(i)}"
+}
+for i in 0..2 {
+    print "u64 add ${i} ${a_u64_2[i]} ${b_u64_2[i]} ${r_u64_2_add.lane(i)}"
+}
+for i in 0..2 {
+    print "u64 sub ${i} ${a_u64_2[i]} ${b_u64_2[i]} ${r_u64_2_sub.lane(i)}"
+}
+for i in 0..2 {
+    print "u64 mul ${i} ${a_u64_2[i]} ${b_u64_2[i]} ${r_u64_2_mul.lane(i)}"
+}
+let mut sl_u64 = va_u64_0
+for i in 0..2 { sl_u64.setLane(i, b_u64_0[i]) }
+for i in 0..2 {
+    print "u64 setlane ${i} ${b_u64_0[i]} ${sl_u64.toArray()[i]} ${sl_u64.lane(i)}"
+}
+let sv_u64_0: u64 = 0
+let sv_u64_1: u64 = 18446744073709551615
+let sp_u64_0 = simd.Vec.splat[u64, 2](sv_u64_0)
+let sp_u64_1 = simd.Vec.splat[u64, 2](sv_u64_1)
+for i in 0..2 {
+    print "u64 splat ${i} ${sv_u64_0} - ${sp_u64_0.lane(i)}"
+}
+print "u64 splat 0 ${sv_u64_1} - ${sp_u64_1.lane(0)}"
+
+// f32: 4 lanes
+let mut a_f32_0 = FixedArray.filled[f32, 4](0.0)
+a_f32_0[0] = 1.5
+a_f32_0[1] = -2.25
+a_f32_0[2] = -0.0
+a_f32_0[3] = 0.1
+let mut b_f32_0 = FixedArray.filled[f32, 4](0.0)
+b_f32_0[0] = 2.0
+b_f32_0[1] = 3.5
+b_f32_0[2] = 0.0
+b_f32_0[3] = 0.2
+let va_f32_0 = simd.Vec.fromArray(a_f32_0)
+let vb_f32_0 = simd.Vec.fromArray(b_f32_0)
+let r_f32_0_add = va_f32_0.add(vb_f32_0)
+let r_f32_0_sub = va_f32_0.sub(vb_f32_0)
+let r_f32_0_mul = va_f32_0.mul(vb_f32_0)
+let mut a_f32_1 = FixedArray.filled[f32, 4](0.0)
+a_f32_1[0] = 3e+38
+a_f32_1[1] = 1e-40
+a_f32_1[2] = 1.0
+a_f32_1[3] = -1.0
+let mut b_f32_1 = FixedArray.filled[f32, 4](0.0)
+b_f32_1[0] = 3e+38
+b_f32_1[1] = 1e-40
+b_f32_1[2] = 3e+38
+b_f32_1[3] = 1e-45
+let va_f32_1 = simd.Vec.fromArray(a_f32_1)
+let vb_f32_1 = simd.Vec.fromArray(b_f32_1)
+let r_f32_1_add = va_f32_1.add(vb_f32_1)
+let r_f32_1_sub = va_f32_1.sub(vb_f32_1)
+let r_f32_1_mul = va_f32_1.mul(vb_f32_1)
+let mut a_f32_2 = FixedArray.filled[f32, 4](0.0)
+a_f32_2[0] = -0.0
+a_f32_2[1] = 0.0
+a_f32_2[2] = -0.0
+a_f32_2[3] = 0.0
+let mut b_f32_2 = FixedArray.filled[f32, 4](0.0)
+b_f32_2[0] = 3.8191227957895535e-09
+b_f32_2[1] = -0.0
+b_f32_2[2] = 0.0
+b_f32_2[3] = 0.0
+let va_f32_2 = simd.Vec.fromArray(a_f32_2)
+let vb_f32_2 = simd.Vec.fromArray(b_f32_2)
+let r_f32_2_add = va_f32_2.add(vb_f32_2)
+let r_f32_2_sub = va_f32_2.sub(vb_f32_2)
+let r_f32_2_mul = va_f32_2.mul(vb_f32_2)
+for i in 0..4 {
+    print "f32 roundtrip ${i} ${math.toBits(a_f32_0[i].toF64())} ${math.toBits(va_f32_0.toArray()[i].toF64())} ${math.toBits(va_f32_0.lane(i).toF64())}"
+}
+for i in 0..4 {
+    print "f32 add ${i} ${math.toBits(a_f32_0[i].toF64())} ${math.toBits(b_f32_0[i].toF64())} ${math.toBits(r_f32_0_add.lane(i).toF64())}"
+}
+for i in 0..4 {
+    print "f32 sub ${i} ${math.toBits(a_f32_0[i].toF64())} ${math.toBits(b_f32_0[i].toF64())} ${math.toBits(r_f32_0_sub.lane(i).toF64())}"
+}
+for i in 0..4 {
+    print "f32 mul ${i} ${math.toBits(a_f32_0[i].toF64())} ${math.toBits(b_f32_0[i].toF64())} ${math.toBits(r_f32_0_mul.lane(i).toF64())}"
+}
+for i in 0..4 {
+    print "f32 add ${i} ${math.toBits(a_f32_1[i].toF64())} ${math.toBits(b_f32_1[i].toF64())} ${math.toBits(r_f32_1_add.lane(i).toF64())}"
+}
+for i in 0..4 {
+    print "f32 sub ${i} ${math.toBits(a_f32_1[i].toF64())} ${math.toBits(b_f32_1[i].toF64())} ${math.toBits(r_f32_1_sub.lane(i).toF64())}"
+}
+for i in 0..4 {
+    print "f32 mul ${i} ${math.toBits(a_f32_1[i].toF64())} ${math.toBits(b_f32_1[i].toF64())} ${math.toBits(r_f32_1_mul.lane(i).toF64())}"
+}
+for i in 0..4 {
+    print "f32 add ${i} ${math.toBits(a_f32_2[i].toF64())} ${math.toBits(b_f32_2[i].toF64())} ${math.toBits(r_f32_2_add.lane(i).toF64())}"
+}
+for i in 0..4 {
+    print "f32 sub ${i} ${math.toBits(a_f32_2[i].toF64())} ${math.toBits(b_f32_2[i].toF64())} ${math.toBits(r_f32_2_sub.lane(i).toF64())}"
+}
+for i in 0..4 {
+    print "f32 mul ${i} ${math.toBits(a_f32_2[i].toF64())} ${math.toBits(b_f32_2[i].toF64())} ${math.toBits(r_f32_2_mul.lane(i).toF64())}"
+}
+let mut sl_f32 = va_f32_0
+for i in 0..4 { sl_f32.setLane(i, b_f32_0[i]) }
+for i in 0..4 {
+    print "f32 setlane ${i} ${math.toBits(b_f32_0[i].toF64())} ${math.toBits(sl_f32.toArray()[i].toF64())} ${math.toBits(sl_f32.lane(i).toF64())}"
+}
+let sv_f32_0: f32 = 1.5
+let sv_f32_1: f32 = -2.25
+let sp_f32_0 = simd.Vec.splat[f32, 4](sv_f32_0)
+let sp_f32_1 = simd.Vec.splat[f32, 4](sv_f32_1)
+for i in 0..4 {
+    print "f32 splat ${i} ${math.toBits(sv_f32_0.toF64())} - ${math.toBits(sp_f32_0.lane(i).toF64())}"
+}
+print "f32 splat 0 ${math.toBits(sv_f32_1.toF64())} - ${math.toBits(sp_f32_1.lane(0).toF64())}"
+
+// f64: 2 lanes
+let mut a_f64_0 = FixedArray.filled[f64, 2](0.0)
+a_f64_0[0] = 1.5
+a_f64_0[1] = -2.25
+let mut b_f64_0 = FixedArray.filled[f64, 2](0.0)
+b_f64_0[0] = 2.0
+b_f64_0[1] = 3.5
+let va_f64_0 = simd.Vec.fromArray(a_f64_0)
+let vb_f64_0 = simd.Vec.fromArray(b_f64_0)
+let r_f64_0_add = va_f64_0.add(vb_f64_0)
+let r_f64_0_sub = va_f64_0.sub(vb_f64_0)
+let r_f64_0_mul = va_f64_0.mul(vb_f64_0)
+let mut a_f64_1 = FixedArray.filled[f64, 2](0.0)
+a_f64_1[0] = 1e+308
+a_f64_1[1] = 5e-324
+let mut b_f64_1 = FixedArray.filled[f64, 2](0.0)
+b_f64_1[0] = 1e+308
+b_f64_1[1] = 5e-324
+let va_f64_1 = simd.Vec.fromArray(a_f64_1)
+let vb_f64_1 = simd.Vec.fromArray(b_f64_1)
+let r_f64_1_add = va_f64_1.add(vb_f64_1)
+let r_f64_1_sub = va_f64_1.sub(vb_f64_1)
+let r_f64_1_mul = va_f64_1.mul(vb_f64_1)
+let mut a_f64_2 = FixedArray.filled[f64, 2](0.0)
+a_f64_2[0] = 1.1050499966123669e+225
+a_f64_2[1] = 5.828930711709915e+215
+let mut b_f64_2 = FixedArray.filled[f64, 2](0.0)
+b_f64_2[0] = -5.195391678242802e+79
+b_f64_2[1] = -6.725811610373815e+191
+let va_f64_2 = simd.Vec.fromArray(a_f64_2)
+let vb_f64_2 = simd.Vec.fromArray(b_f64_2)
+let r_f64_2_add = va_f64_2.add(vb_f64_2)
+let r_f64_2_sub = va_f64_2.sub(vb_f64_2)
+let r_f64_2_mul = va_f64_2.mul(vb_f64_2)
+for i in 0..2 {
+    print "f64 roundtrip ${i} ${math.toBits(a_f64_0[i])} ${math.toBits(va_f64_0.toArray()[i])} ${math.toBits(va_f64_0.lane(i))}"
+}
+for i in 0..2 {
+    print "f64 add ${i} ${math.toBits(a_f64_0[i])} ${math.toBits(b_f64_0[i])} ${math.toBits(r_f64_0_add.lane(i))}"
+}
+for i in 0..2 {
+    print "f64 sub ${i} ${math.toBits(a_f64_0[i])} ${math.toBits(b_f64_0[i])} ${math.toBits(r_f64_0_sub.lane(i))}"
+}
+for i in 0..2 {
+    print "f64 mul ${i} ${math.toBits(a_f64_0[i])} ${math.toBits(b_f64_0[i])} ${math.toBits(r_f64_0_mul.lane(i))}"
+}
+for i in 0..2 {
+    print "f64 add ${i} ${math.toBits(a_f64_1[i])} ${math.toBits(b_f64_1[i])} ${math.toBits(r_f64_1_add.lane(i))}"
+}
+for i in 0..2 {
+    print "f64 sub ${i} ${math.toBits(a_f64_1[i])} ${math.toBits(b_f64_1[i])} ${math.toBits(r_f64_1_sub.lane(i))}"
+}
+for i in 0..2 {
+    print "f64 mul ${i} ${math.toBits(a_f64_1[i])} ${math.toBits(b_f64_1[i])} ${math.toBits(r_f64_1_mul.lane(i))}"
+}
+for i in 0..2 {
+    print "f64 add ${i} ${math.toBits(a_f64_2[i])} ${math.toBits(b_f64_2[i])} ${math.toBits(r_f64_2_add.lane(i))}"
+}
+for i in 0..2 {
+    print "f64 sub ${i} ${math.toBits(a_f64_2[i])} ${math.toBits(b_f64_2[i])} ${math.toBits(r_f64_2_sub.lane(i))}"
+}
+for i in 0..2 {
+    print "f64 mul ${i} ${math.toBits(a_f64_2[i])} ${math.toBits(b_f64_2[i])} ${math.toBits(r_f64_2_mul.lane(i))}"
+}
+let mut sl_f64 = va_f64_0
+for i in 0..2 { sl_f64.setLane(i, b_f64_0[i]) }
+for i in 0..2 {
+    print "f64 setlane ${i} ${math.toBits(b_f64_0[i])} ${math.toBits(sl_f64.toArray()[i])} ${math.toBits(sl_f64.lane(i))}"
+}
+let sv_f64_0: f64 = 1.5
+let sv_f64_1: f64 = -2.25
+let sp_f64_0 = simd.Vec.splat[f64, 2](sv_f64_0)
+let sp_f64_1 = simd.Vec.splat[f64, 2](sv_f64_1)
+for i in 0..2 {
+    print "f64 splat ${i} ${math.toBits(sv_f64_0)} - ${math.toBits(sp_f64_0.lane(i))}"
+}
+print "f64 splat 0 ${math.toBits(sv_f64_1)} - ${math.toBits(sp_f64_1.lane(0))}"
+
+// composition: concrete wrappers, record field, array element
+type Slots = {
+    pub mut v simd.Vec[i32, 4]
+}
+fn addPair(a: simd.Vec[i32, 4], b: simd.Vec[i32, 4]) -> simd.Vec[i32, 4] {
+    a.add(b)
+}
+fn makeU8(v: u8) -> simd.Vec[u8, 16] {
+    simd.Vec.splat[u8, 16](v)
+}
+let p = simd.Vec.splat[i32, 4](7)
+let q = simd.Vec.splat[i32, 4](5)
+let c = addPair(p, q)
+print "comp call 0 7 5 ${c.lane(0)}"
+let made = makeU8(200)
+print "comp wrapper 0 200 - ${made.lane(15)}"
+let mut slots = Slots { v: simd.Vec.splat[i32, 4](3) }
+slots.v.setLane(1, 9)
+print "comp field 0 9 - ${slots.v.lane(1)}"
+let all = Array.of(simd.Vec.splat[i32, 4](4), simd.Vec.splat[i32, 4](6))
+print "comp array 0 4 6 ${all[0].add(all[1]).lane(2)}"
+-- stdout --
+i8 roundtrip 0 -128 -128 -128
+i8 roundtrip 1 -1 -1 -1
+i8 roundtrip 2 127 127 127
+i8 roundtrip 3 0 0 0
+i8 roundtrip 4 1 1 1
+i8 roundtrip 5 -64 -64 -64
+i8 roundtrip 6 64 64 64
+i8 roundtrip 7 127 127 127
+i8 roundtrip 8 -128 -128 -128
+i8 roundtrip 9 2 2 2
+i8 roundtrip 10 100 100 100
+i8 roundtrip 11 -3 -3 -3
+i8 roundtrip 12 63 63 63
+i8 roundtrip 13 -65 -65 -65
+i8 roundtrip 14 1 1 1
+i8 roundtrip 15 127 127 127
+i8 add 0 -128 -1 127
+i8 add 1 -1 -128 127
+i8 add 2 127 1 -128
+i8 add 3 0 -1 -1
+i8 add 4 1 127 -128
+i8 add 5 -64 -2 -66
+i8 add 6 64 127 -65
+i8 add 7 127 127 -2
+i8 add 8 -128 -128 0
+i8 add 9 2 127 -127
+i8 add 10 100 -100 0
+i8 add 11 -3 3 0
+i8 add 12 63 2 65
+i8 add 13 -65 127 62
+i8 add 14 1 -2 -1
+i8 add 15 127 -128 -1
+i8 sub 0 -128 -1 -127
+i8 sub 1 -1 -128 127
+i8 sub 2 127 1 126
+i8 sub 3 0 -1 1
+i8 sub 4 1 127 -126
+i8 sub 5 -64 -2 -62
+i8 sub 6 64 127 -63
+i8 sub 7 127 127 0
+i8 sub 8 -128 -128 0
+i8 sub 9 2 127 -125
+i8 sub 10 100 -100 -56
+i8 sub 11 -3 3 -6
+i8 sub 12 63 2 61
+i8 sub 13 -65 127 64
+i8 sub 14 1 -2 3
+i8 sub 15 127 -128 -1
+i8 mul 0 -128 -1 -128
+i8 mul 1 -1 -128 -128
+i8 mul 2 127 1 127
+i8 mul 3 0 -1 0
+i8 mul 4 1 127 127
+i8 mul 5 -64 -2 -128
+i8 mul 6 64 127 -64
+i8 mul 7 127 127 1
+i8 mul 8 -128 -128 0
+i8 mul 9 2 127 -2
+i8 mul 10 100 -100 -16
+i8 mul 11 -3 3 -9
+i8 mul 12 63 2 126
+i8 mul 13 -65 127 -63
+i8 mul 14 1 -2 -2
+i8 mul 15 127 -128 -128
+i8 add 0 127 1 -128
+i8 add 1 127 127 -2
+i8 add 2 -128 -1 127
+i8 add 3 -128 -128 0
+i8 add 4 127 -128 -1
+i8 add 5 -128 127 -1
+i8 add 6 -1 -128 127
+i8 add 7 1 127 -128
+i8 add 8 127 2 -127
+i8 add 9 -128 3 -125
+i8 add 10 0 -1 -1
+i8 add 11 0 127 127
+i8 add 12 64 127 -65
+i8 add 13 -64 127 63
+i8 add 14 1 127 -128
+i8 add 15 -1 -128 127
+i8 sub 0 127 1 126
+i8 sub 1 127 127 0
+i8 sub 2 -128 -1 -127
+i8 sub 3 -128 -128 0
+i8 sub 4 127 -128 -1
+i8 sub 5 -128 127 1
+i8 sub 6 -1 -128 127
+i8 sub 7 1 127 -126
+i8 sub 8 127 2 125
+i8 sub 9 -128 3 125
+i8 sub 10 0 -1 1
+i8 sub 11 0 127 -127
+i8 sub 12 64 127 -63
+i8 sub 13 -64 127 65
+i8 sub 14 1 127 -126
+i8 sub 15 -1 -128 127
+i8 mul 0 127 1 127
+i8 mul 1 127 127 1
+i8 mul 2 -128 -1 -128
+i8 mul 3 -128 -128 0
+i8 mul 4 127 -128 -128
+i8 mul 5 -128 127 -128
+i8 mul 6 -1 -128 -128
+i8 mul 7 1 127 127
+i8 mul 8 127 2 -2
+i8 mul 9 -128 3 -128
+i8 mul 10 0 -1 0
+i8 mul 11 0 127 0
+i8 mul 12 64 127 -64
+i8 mul 13 -64 127 64
+i8 mul 14 1 127 127
+i8 mul 15 -1 -128 -128
+i8 add 0 16 61 77
+i8 add 1 -115 -106 35
+i8 add 2 -19 123 104
+i8 add 3 -127 -61 68
+i8 add 4 33 127 -96
+i8 add 5 6 112 118
+i8 add 6 -56 -40 -96
+i8 add 7 60 110 -86
+i8 add 8 -8 -67 -75
+i8 add 9 39 6 45
+i8 add 10 -39 107 68
+i8 add 11 -43 -99 114
+i8 add 12 -89 -59 108
+i8 add 13 -118 97 -21
+i8 add 14 101 -78 23
+i8 add 15 69 56 125
+i8 sub 0 16 61 -45
+i8 sub 1 -115 -106 -9
+i8 sub 2 -19 123 114
+i8 sub 3 -127 -61 -66
+i8 sub 4 33 127 -94
+i8 sub 5 6 112 -106
+i8 sub 6 -56 -40 -16
+i8 sub 7 60 110 -50
+i8 sub 8 -8 -67 59
+i8 sub 9 39 6 33
+i8 sub 10 -39 107 110
+i8 sub 11 -43 -99 56
+i8 sub 12 -89 -59 -30
+i8 sub 13 -118 97 41
+i8 sub 14 101 -78 -77
+i8 sub 15 69 56 13
+i8 mul 0 16 61 -48
+i8 mul 1 -115 -106 -98
+i8 mul 2 -19 123 -33
+i8 mul 3 -127 -61 67
+i8 mul 4 33 127 95
+i8 mul 5 6 112 -96
+i8 mul 6 -56 -40 -64
+i8 mul 7 60 110 -56
+i8 mul 8 -8 -67 24
+i8 mul 9 39 6 -22
+i8 mul 10 -39 107 -77
+i8 mul 11 -43 -99 -95
+i8 mul 12 -89 -59 -125
+i8 mul 13 -118 97 74
+i8 mul 14 101 -78 58
+i8 mul 15 69 56 24
+i8 setlane 0 -1 -1 -1
+i8 setlane 1 -128 -128 -128
+i8 setlane 2 1 1 1
+i8 setlane 3 -1 -1 -1
+i8 setlane 4 127 127 127
+i8 setlane 5 -2 -2 -2
+i8 setlane 6 127 127 127
+i8 setlane 7 127 127 127
+i8 setlane 8 -128 -128 -128
+i8 setlane 9 127 127 127
+i8 setlane 10 -100 -100 -100
+i8 setlane 11 3 3 3
+i8 setlane 12 2 2 2
+i8 setlane 13 127 127 127
+i8 setlane 14 -2 -2 -2
+i8 setlane 15 -128 -128 -128
+i8 splat 0 -128 - -128
+i8 splat 1 -128 - -128
+i8 splat 2 -128 - -128
+i8 splat 3 -128 - -128
+i8 splat 4 -128 - -128
+i8 splat 5 -128 - -128
+i8 splat 6 -128 - -128
+i8 splat 7 -128 - -128
+i8 splat 8 -128 - -128
+i8 splat 9 -128 - -128
+i8 splat 10 -128 - -128
+i8 splat 11 -128 - -128
+i8 splat 12 -128 - -128
+i8 splat 13 -128 - -128
+i8 splat 14 -128 - -128
+i8 splat 15 -128 - -128
+i8 splat 0 -1 - -1
+u8 roundtrip 0 0 0 0
+u8 roundtrip 1 255 255 255
+u8 roundtrip 2 255 255 255
+u8 roundtrip 3 1 1 1
+u8 roundtrip 4 128 128 128
+u8 roundtrip 5 127 127 127
+u8 roundtrip 6 2 2 2
+u8 roundtrip 7 254 254 254
+u8 roundtrip 8 0 0 0
+u8 roundtrip 9 255 255 255
+u8 roundtrip 10 1 1 1
+u8 roundtrip 11 200 200 200
+u8 roundtrip 12 100 100 100
+u8 roundtrip 13 3 3 3
+u8 roundtrip 14 253 253 253
+u8 roundtrip 15 64 64 64
+u8 add 0 0 1 1
+u8 add 1 255 1 0
+u8 add 2 255 255 254
+u8 add 3 1 255 0
+u8 add 4 128 128 0
+u8 add 5 127 127 254
+u8 add 6 2 254 0
+u8 add 7 254 2 0
+u8 add 8 0 255 255
+u8 add 9 255 2 1
+u8 add 10 1 3 4
+u8 add 11 200 100 44
+u8 add 12 100 200 44
+u8 add 13 3 253 0
+u8 add 14 253 3 0
+u8 add 15 64 192 0
+u8 sub 0 0 1 255
+u8 sub 1 255 1 254
+u8 sub 2 255 255 0
+u8 sub 3 1 255 2
+u8 sub 4 128 128 0
+u8 sub 5 127 127 0
+u8 sub 6 2 254 4
+u8 sub 7 254 2 252
+u8 sub 8 0 255 1
+u8 sub 9 255 2 253
+u8 sub 10 1 3 254
+u8 sub 11 200 100 100
+u8 sub 12 100 200 156
+u8 sub 13 3 253 6
+u8 sub 14 253 3 250
+u8 sub 15 64 192 128
+u8 mul 0 0 1 0
+u8 mul 1 255 1 255
+u8 mul 2 255 255 1
+u8 mul 3 1 255 255
+u8 mul 4 128 128 0
+u8 mul 5 127 127 1
+u8 mul 6 2 254 252
+u8 mul 7 254 2 252
+u8 mul 8 0 255 0
+u8 mul 9 255 2 254
+u8 mul 10 1 3 3
+u8 mul 11 200 100 32
+u8 mul 12 100 200 32
+u8 mul 13 3 253 247
+u8 mul 14 253 3 247
+u8 mul 15 64 192 0
+u8 add 0 255 1 0
+u8 add 1 255 255 254
+u8 add 2 0 1 1
+u8 add 3 0 255 255
+u8 add 4 1 255 0
+u8 add 5 254 255 253
+u8 add 6 128 128 0
+u8 add 7 127 127 254
+u8 add 8 255 2 1
+u8 add 9 0 3 3
+u8 add 10 255 255 254
+u8 add 11 128 128 0
+u8 add 12 1 254 255
+u8 add 13 255 1 0
+u8 add 14 200 100 44
+u8 add 15 100 200 44
+u8 sub 0 255 1 254
+u8 sub 1 255 255 0
+u8 sub 2 0 1 255
+u8 sub 3 0 255 1
+u8 sub 4 1 255 2
+u8 sub 5 254 255 255
+u8 sub 6 128 128 0
+u8 sub 7 127 127 0
+u8 sub 8 255 2 253
+u8 sub 9 0 3 253
+u8 sub 10 255 255 0
+u8 sub 11 128 128 0
+u8 sub 12 1 254 3
+u8 sub 13 255 1 254
+u8 sub 14 200 100 100
+u8 sub 15 100 200 156
+u8 mul 0 255 1 255
+u8 mul 1 255 255 1
+u8 mul 2 0 1 0
+u8 mul 3 0 255 0
+u8 mul 4 1 255 255
+u8 mul 5 254 255 2
+u8 mul 6 128 128 0
+u8 mul 7 127 127 1
+u8 mul 8 255 2 254
+u8 mul 9 0 3 0
+u8 mul 10 255 255 1
+u8 mul 11 128 128 0
+u8 mul 12 1 254 254
+u8 mul 13 255 1 255
+u8 mul 14 200 100 32
+u8 mul 15 100 200 32
+u8 add 0 61 116 177
+u8 add 1 38 167 205
+u8 add 2 240 133 117
+u8 add 3 144 54 198
+u8 add 4 226 94 64
+u8 add 5 216 225 185
+u8 add 6 234 49 27
+u8 add 7 101 248 93
+u8 add 8 123 74 197
+u8 add 9 198 246 188
+u8 add 10 187 31 218
+u8 add 11 163 47 210
+u8 add 12 251 144 139
+u8 add 13 248 232 224
+u8 add 14 91 210 45
+u8 add 15 45 117 162
+u8 sub 0 61 116 201
+u8 sub 1 38 167 127
+u8 sub 2 240 133 107
+u8 sub 3 144 54 90
+u8 sub 4 226 94 132
+u8 sub 5 216 225 247
+u8 sub 6 234 49 185
+u8 sub 7 101 248 109
+u8 sub 8 123 74 49
+u8 sub 9 198 246 208
+u8 sub 10 187 31 156
+u8 sub 11 163 47 116
+u8 sub 12 251 144 107
+u8 sub 13 248 232 16
+u8 sub 14 91 210 137
+u8 sub 15 45 117 184
+u8 mul 0 61 116 164
+u8 mul 1 38 167 202
+u8 mul 2 240 133 176
+u8 mul 3 144 54 96
+u8 mul 4 226 94 252
+u8 mul 5 216 225 216
+u8 mul 6 234 49 202
+u8 mul 7 101 248 216
+u8 mul 8 123 74 142
+u8 mul 9 198 246 68
+u8 mul 10 187 31 165
+u8 mul 11 163 47 237
+u8 mul 12 251 144 48
+u8 mul 13 248 232 192
+u8 mul 14 91 210 166
+u8 mul 15 45 117 145
+u8 setlane 0 1 1 1
+u8 setlane 1 1 1 1
+u8 setlane 2 255 255 255
+u8 setlane 3 255 255 255
+u8 setlane 4 128 128 128
+u8 setlane 5 127 127 127
+u8 setlane 6 254 254 254
+u8 setlane 7 2 2 2
+u8 setlane 8 255 255 255
+u8 setlane 9 2 2 2
+u8 setlane 10 3 3 3
+u8 setlane 11 100 100 100
+u8 setlane 12 200 200 200
+u8 setlane 13 253 253 253
+u8 setlane 14 3 3 3
+u8 setlane 15 192 192 192
+u8 splat 0 0 - 0
+u8 splat 1 0 - 0
+u8 splat 2 0 - 0
+u8 splat 3 0 - 0
+u8 splat 4 0 - 0
+u8 splat 5 0 - 0
+u8 splat 6 0 - 0
+u8 splat 7 0 - 0
+u8 splat 8 0 - 0
+u8 splat 9 0 - 0
+u8 splat 10 0 - 0
+u8 splat 11 0 - 0
+u8 splat 12 0 - 0
+u8 splat 13 0 - 0
+u8 splat 14 0 - 0
+u8 splat 15 0 - 0
+u8 splat 0 255 - 255
+i16 roundtrip 0 -32768 -32768 -32768
+i16 roundtrip 1 -1 -1 -1
+i16 roundtrip 2 32767 32767 32767
+i16 roundtrip 3 0 0 0
+i16 roundtrip 4 1 1 1
+i16 roundtrip 5 -16384 -16384 -16384
+i16 roundtrip 6 16384 16384 16384
+i16 roundtrip 7 32767 32767 32767
+i16 add 0 -32768 -1 32767
+i16 add 1 -1 -32768 32767
+i16 add 2 32767 1 -32768
+i16 add 3 0 -1 -1
+i16 add 4 1 32767 -32768
+i16 add 5 -16384 -2 -16386
+i16 add 6 16384 32767 -16385
+i16 add 7 32767 32767 -2
+i16 sub 0 -32768 -1 -32767
+i16 sub 1 -1 -32768 32767
+i16 sub 2 32767 1 32766
+i16 sub 3 0 -1 1
+i16 sub 4 1 32767 -32766
+i16 sub 5 -16384 -2 -16382
+i16 sub 6 16384 32767 -16383
+i16 sub 7 32767 32767 0
+i16 mul 0 -32768 -1 -32768
+i16 mul 1 -1 -32768 -32768
+i16 mul 2 32767 1 32767
+i16 mul 3 0 -1 0
+i16 mul 4 1 32767 32767
+i16 mul 5 -16384 -2 -32768
+i16 mul 6 16384 32767 -16384
+i16 mul 7 32767 32767 1
+i16 add 0 32767 1 -32768
+i16 add 1 32767 32767 -2
+i16 add 2 -32768 -1 32767
+i16 add 3 -32768 -32768 0
+i16 add 4 32767 -32768 -1
+i16 add 5 -32768 32767 -1
+i16 add 6 -1 -32768 32767
+i16 add 7 1 32767 -32768
+i16 sub 0 32767 1 32766
+i16 sub 1 32767 32767 0
+i16 sub 2 -32768 -1 -32767
+i16 sub 3 -32768 -32768 0
+i16 sub 4 32767 -32768 -1
+i16 sub 5 -32768 32767 1
+i16 sub 6 -1 -32768 32767
+i16 sub 7 1 32767 -32766
+i16 mul 0 32767 1 32767
+i16 mul 1 32767 32767 1
+i16 mul 2 -32768 -1 -32768
+i16 mul 3 -32768 -32768 0
+i16 mul 4 32767 -32768 -32768
+i16 mul 5 -32768 32767 -32768
+i16 mul 6 -1 -32768 -32768
+i16 mul 7 1 32767 32767
+i16 add 0 -23479 -6772 -30251
+i16 add 1 27515 -23949 3566
+i16 add 2 -7259 -24261 -31520
+i16 add 3 9246 -25561 -16315
+i16 add 4 4857 -9556 -4699
+i16 add 5 14399 12027 26426
+i16 add 6 7396 23823 31219
+i16 add 7 -31035 11707 -19328
+i16 sub 0 -23479 -6772 -16707
+i16 sub 1 27515 -23949 -14072
+i16 sub 2 -7259 -24261 17002
+i16 sub 3 9246 -25561 -30729
+i16 sub 4 4857 -9556 14413
+i16 sub 5 14399 12027 2372
+i16 sub 6 7396 23823 -16427
+i16 sub 7 -31035 11707 22794
+i16 mul 0 -23479 -6772 9452
+i16 mul 1 27515 -23949 7745
+i16 mul 2 -7259 -24261 15367
+i16 mul 3 9246 -25561 -14190
+i16 mul 4 4857 -9556 -14004
+i16 mul 5 14399 12027 30661
+i16 mul 6 7396 23823 -31396
+i16 mul 7 -31035 11707 4839
+i16 setlane 0 -1 -1 -1
+i16 setlane 1 -32768 -32768 -32768
+i16 setlane 2 1 1 1
+i16 setlane 3 -1 -1 -1
+i16 setlane 4 32767 32767 32767
+i16 setlane 5 -2 -2 -2
+i16 setlane 6 32767 32767 32767
+i16 setlane 7 32767 32767 32767
+i16 splat 0 -32768 - -32768
+i16 splat 1 -32768 - -32768
+i16 splat 2 -32768 - -32768
+i16 splat 3 -32768 - -32768
+i16 splat 4 -32768 - -32768
+i16 splat 5 -32768 - -32768
+i16 splat 6 -32768 - -32768
+i16 splat 7 -32768 - -32768
+i16 splat 0 -1 - -1
+u16 roundtrip 0 0 0 0
+u16 roundtrip 1 65535 65535 65535
+u16 roundtrip 2 65535 65535 65535
+u16 roundtrip 3 1 1 1
+u16 roundtrip 4 32768 32768 32768
+u16 roundtrip 5 32767 32767 32767
+u16 roundtrip 6 2 2 2
+u16 roundtrip 7 65534 65534 65534
+u16 add 0 0 1 1
+u16 add 1 65535 1 0
+u16 add 2 65535 65535 65534
+u16 add 3 1 65535 0
+u16 add 4 32768 32768 0
+u16 add 5 32767 32767 65534
+u16 add 6 2 65534 0
+u16 add 7 65534 2 0
+u16 sub 0 0 1 65535
+u16 sub 1 65535 1 65534
+u16 sub 2 65535 65535 0
+u16 sub 3 1 65535 2
+u16 sub 4 32768 32768 0
+u16 sub 5 32767 32767 0
+u16 sub 6 2 65534 4
+u16 sub 7 65534 2 65532
+u16 mul 0 0 1 0
+u16 mul 1 65535 1 65535
+u16 mul 2 65535 65535 1
+u16 mul 3 1 65535 65535
+u16 mul 4 32768 32768 0
+u16 mul 5 32767 32767 1
+u16 mul 6 2 65534 65532
+u16 mul 7 65534 2 65532
+u16 add 0 65535 1 0
+u16 add 1 65535 65535 65534
+u16 add 2 0 1 1
+u16 add 3 0 65535 65535
+u16 add 4 1 65535 0
+u16 add 5 65534 65535 65533
+u16 add 6 32768 32768 0
+u16 add 7 32767 32767 65534
+u16 sub 0 65535 1 65534
+u16 sub 1 65535 65535 0
+u16 sub 2 0 1 65535
+u16 sub 3 0 65535 1
+u16 sub 4 1 65535 2
+u16 sub 5 65534 65535 65535
+u16 sub 6 32768 32768 0
+u16 sub 7 32767 32767 0
+u16 mul 0 65535 1 65535
+u16 mul 1 65535 65535 1
+u16 mul 2 0 1 0
+u16 mul 3 0 65535 0
+u16 mul 4 1 65535 65535
+u16 mul 5 65534 65535 2
+u16 mul 6 32768 32768 0
+u16 mul 7 32767 32767 1
+u16 add 0 63150 41911 39525
+u16 add 1 21892 44550 906
+u16 add 2 60598 53412 48474
+u16 add 3 9182 53637 62819
+u16 add 4 52874 28686 16024
+u16 add 5 18457 11546 30003
+u16 add 6 9774 24633 34407
+u16 add 7 48135 17354 65489
+u16 sub 0 63150 41911 21239
+u16 sub 1 21892 44550 42878
+u16 sub 2 60598 53412 7186
+u16 sub 3 9182 53637 21081
+u16 sub 4 52874 28686 24188
+u16 sub 5 18457 11546 6911
+u16 sub 6 9774 24633 50677
+u16 sub 7 48135 17354 30781
+u16 mul 0 63150 41911 8290
+u16 mul 1 21892 44550 47384
+u16 mul 2 60598 53412 33944
+u16 mul 3 9182 53637 57430
+u16 mul 4 52874 28686 43916
+u16 mul 5 18457 11546 46986
+u16 mul 6 9774 24633 49214
+u16 mul 7 48135 17354 12934
+u16 setlane 0 1 1 1
+u16 setlane 1 1 1 1
+u16 setlane 2 65535 65535 65535
+u16 setlane 3 65535 65535 65535
+u16 setlane 4 32768 32768 32768
+u16 setlane 5 32767 32767 32767
+u16 setlane 6 65534 65534 65534
+u16 setlane 7 2 2 2
+u16 splat 0 0 - 0
+u16 splat 1 0 - 0
+u16 splat 2 0 - 0
+u16 splat 3 0 - 0
+u16 splat 4 0 - 0
+u16 splat 5 0 - 0
+u16 splat 6 0 - 0
+u16 splat 7 0 - 0
+u16 splat 0 65535 - 65535
+i32 roundtrip 0 -2147483648 -2147483648 -2147483648
+i32 roundtrip 1 -1 -1 -1
+i32 roundtrip 2 2147483647 2147483647 2147483647
+i32 roundtrip 3 0 0 0
+i32 add 0 -2147483648 -1 2147483647
+i32 add 1 -1 -2147483648 2147483647
+i32 add 2 2147483647 1 -2147483648
+i32 add 3 0 -1 -1
+i32 sub 0 -2147483648 -1 -2147483647
+i32 sub 1 -1 -2147483648 2147483647
+i32 sub 2 2147483647 1 2147483646
+i32 sub 3 0 -1 1
+i32 mul 0 -2147483648 -1 -2147483648
+i32 mul 1 -1 -2147483648 -2147483648
+i32 mul 2 2147483647 1 2147483647
+i32 mul 3 0 -1 0
+i32 add 0 2147483647 1 -2147483648
+i32 add 1 2147483647 2147483647 -2
+i32 add 2 -2147483648 -1 2147483647
+i32 add 3 -2147483648 -2147483648 0
+i32 sub 0 2147483647 1 2147483646
+i32 sub 1 2147483647 2147483647 0
+i32 sub 2 -2147483648 -1 -2147483647
+i32 sub 3 -2147483648 -2147483648 0
+i32 mul 0 2147483647 1 2147483647
+i32 mul 1 2147483647 2147483647 1
+i32 mul 2 -2147483648 -1 -2147483648
+i32 mul 3 -2147483648 -2147483648 0
+i32 add 0 -790838194 636972059 -153866135
+i32 add 1 969647724 772778591 1742426315
+i32 add 2 261245343 645742511 906987854
+i32 add 3 1814954303 2050333976 -429679017
+i32 sub 0 -790838194 636972059 -1427810253
+i32 sub 1 969647724 772778591 196869133
+i32 sub 2 261245343 645742511 -384497168
+i32 sub 3 1814954303 2050333976 -235379673
+i32 mul 0 -790838194 636972059 -681862086
+i32 mul 1 969647724 772778591 -680887788
+i32 mul 2 261245343 645742511 834761905
+i32 mul 3 1814954303 2050333976 -1558265624
+i32 setlane 0 -1 -1 -1
+i32 setlane 1 -2147483648 -2147483648 -2147483648
+i32 setlane 2 1 1 1
+i32 setlane 3 -1 -1 -1
+i32 splat 0 -2147483648 - -2147483648
+i32 splat 1 -2147483648 - -2147483648
+i32 splat 2 -2147483648 - -2147483648
+i32 splat 3 -2147483648 - -2147483648
+i32 splat 0 -1 - -1
+u32 roundtrip 0 0 0 0
+u32 roundtrip 1 4294967295 4294967295 4294967295
+u32 roundtrip 2 4294967295 4294967295 4294967295
+u32 roundtrip 3 1 1 1
+u32 add 0 0 1 1
+u32 add 1 4294967295 1 0
+u32 add 2 4294967295 4294967295 4294967294
+u32 add 3 1 4294967295 0
+u32 sub 0 0 1 4294967295
+u32 sub 1 4294967295 1 4294967294
+u32 sub 2 4294967295 4294967295 0
+u32 sub 3 1 4294967295 2
+u32 mul 0 0 1 0
+u32 mul 1 4294967295 1 4294967295
+u32 mul 2 4294967295 4294967295 1
+u32 mul 3 1 4294967295 4294967295
+u32 add 0 4294967295 1 0
+u32 add 1 4294967295 4294967295 4294967294
+u32 add 2 0 1 1
+u32 add 3 1 4294967295 0
+u32 sub 0 4294967295 1 4294967294
+u32 sub 1 4294967295 4294967295 0
+u32 sub 2 0 1 4294967295
+u32 sub 3 1 4294967295 2
+u32 mul 0 4294967295 1 4294967295
+u32 mul 1 4294967295 4294967295 1
+u32 mul 2 0 1 0
+u32 mul 3 1 4294967295 4294967295
+u32 add 0 2169384771 1823945380 3993330151
+u32 add 1 1531907076 1677966670 3209873746
+u32 add 2 2594416794 4112020160 2411469658
+u32 add 3 3647349421 646856651 4294206072
+u32 sub 0 2169384771 1823945380 345439391
+u32 sub 1 1531907076 1677966670 4148907702
+u32 sub 2 2594416794 4112020160 2777363930
+u32 sub 3 3647349421 646856651 3000492770
+u32 mul 0 2169384771 1823945380 674651372
+u32 mul 1 1531907076 1677966670 3791691064
+u32 mul 2 2594416794 4112020160 205719424
+u32 mul 3 3647349421 646856651 1887179311
+u32 setlane 0 1 1 1
+u32 setlane 1 1 1 1
+u32 setlane 2 4294967295 4294967295 4294967295
+u32 setlane 3 4294967295 4294967295 4294967295
+u32 splat 0 0 - 0
+u32 splat 1 0 - 0
+u32 splat 2 0 - 0
+u32 splat 3 0 - 0
+u32 splat 0 4294967295 - 4294967295
+i64 roundtrip 0 -9223372036854775808 -9223372036854775808 -9223372036854775808
+i64 roundtrip 1 -1 -1 -1
+i64 add 0 -9223372036854775808 -1 9223372036854775807
+i64 add 1 -1 -9223372036854775808 9223372036854775807
+i64 sub 0 -9223372036854775808 -1 -9223372036854775807
+i64 sub 1 -1 -9223372036854775808 9223372036854775807
+i64 mul 0 -9223372036854775808 -1 -9223372036854775808
+i64 mul 1 -1 -9223372036854775808 -9223372036854775808
+i64 add 0 9223372036854775807 1 -9223372036854775808
+i64 add 1 9223372036854775807 9223372036854775807 -2
+i64 sub 0 9223372036854775807 1 9223372036854775806
+i64 sub 1 9223372036854775807 9223372036854775807 0
+i64 mul 0 9223372036854775807 1 9223372036854775807
+i64 mul 1 9223372036854775807 9223372036854775807 1
+i64 add 0 -7100955319804283671 -7275722607050309950 4070066146854957995
+i64 add 1 6681638517803898418 -8733545483118812639 -2051906965314914221
+i64 sub 0 -7100955319804283671 -7275722607050309950 174767287246026279
+i64 sub 1 6681638517803898418 -8733545483118812639 -3031560072786840559
+i64 mul 0 -7100955319804283671 -7275722607050309950 -270928617166141806
+i64 mul 1 6681638517803898418 -8733545483118812639 2871614195371524210
+i64 setlane 0 -1 -1 -1
+i64 setlane 1 -9223372036854775808 -9223372036854775808 -9223372036854775808
+i64 splat 0 -9223372036854775808 - -9223372036854775808
+i64 splat 1 -9223372036854775808 - -9223372036854775808
+i64 splat 0 -1 - -1
+u64 roundtrip 0 0 0 0
+u64 roundtrip 1 18446744073709551615 18446744073709551615 18446744073709551615
+u64 add 0 0 1 1
+u64 add 1 18446744073709551615 1 0
+u64 sub 0 0 1 18446744073709551615
+u64 sub 1 18446744073709551615 1 18446744073709551614
+u64 mul 0 0 1 0
+u64 mul 1 18446744073709551615 1 18446744073709551615
+u64 add 0 18446744073709551615 18446744073709551615 18446744073709551614
+u64 add 1 1 18446744073709551615 0
+u64 sub 0 18446744073709551615 18446744073709551615 0
+u64 sub 1 1 18446744073709551615 2
+u64 mul 0 18446744073709551615 18446744073709551615 1
+u64 mul 1 1 18446744073709551615 18446744073709551615
+u64 add 0 3791157470103050137 8984652368648757482 12775809838751807619
+u64 add 1 17140300300960631026 5931472002488837783 4625028229739917193
+u64 sub 0 3791157470103050137 8984652368648757482 13253249175163844271
+u64 sub 1 17140300300960631026 5931472002488837783 11208828298471793243
+u64 mul 0 3791157470103050137 8984652368648757482 2102377400189317594
+u64 mul 1 17140300300960631026 5931472002488837783 3146400703056491198
+u64 setlane 0 1 1 1
+u64 setlane 1 1 1 1
+u64 splat 0 0 - 0
+u64 splat 1 0 - 0
+u64 splat 0 18446744073709551615 - 18446744073709551615
+f32 roundtrip 0 4609434218613702656 4609434218613702656 4609434218613702656
+f32 roundtrip 1 13835621005235585024 13835621005235585024 13835621005235585024
+f32 roundtrip 2 9223372036854775808 9223372036854775808 9223372036854775808
+f32 roundtrip 3 4591870180174331904 4591870180174331904 4591870180174331904
+f32 add 0 4609434218613702656 4611686018427387904 4615063718147915776
+f32 add 1 13835621005235585024 4615063718147915776 4608308318706860032
+f32 add 2 9223372036854775808 0 0
+f32 add 3 4591870180174331904 4596373779801702400 4599075939685498880
+f32 sub 0 4609434218613702656 4611686018427387904 13826050856027422720
+f32 sub 1 13835621005235585024 4615063718147915776 13841531979746508800
+f32 sub 2 9223372036854775808 0 9223372036854775808
+f32 sub 3 4591870180174331904 4596373779801702400 13815242217029107712
+f32 mul 0 4609434218613702656 4611686018427387904 4613937818241073152
+f32 mul 1 13835621005235585024 4615063718147915776 13843924517048549376
+f32 mul 2 9223372036854775808 0 9223372036854775808
+f32 mul 3 4591870180174331904 4596373779801702400 4581421829339480064
+f32 add 0 5182576905743761408 5182576905743761408 9218868437227405312
+f32 add 1 4008604028031205376 4008604028031205376 4013107627658575872
+f32 add 2 4607182418800017408 5182576905743761408 5182576905743761408
+f32 add 3 13830554455654793216 3936146074321813504 13830554455654793216
+f32 sub 0 5182576905743761408 5182576905743761408 0
+f32 sub 1 4008604028031205376 4008604028031205376 0
+f32 sub 2 4607182418800017408 5182576905743761408 14405948942598537216
+f32 sub 3 13830554455654793216 3936146074321813504 13830554455654793216
+f32 mul 0 5182576905743761408 5182576905743761408 9218868437227405312
+f32 mul 1 4008604028031205376 4008604028031205376 0
+f32 mul 2 4607182418800017408 5182576905743761408 5182576905743761408
+f32 mul 3 13830554455654793216 3936146074321813504 13159518111176589312
+f32 add 0 9223372036854775808 4481195065762381824 4481195065762381824
+f32 add 1 0 9223372036854775808 0
+f32 add 2 9223372036854775808 0 0
+f32 add 3 0 0 0
+f32 sub 0 9223372036854775808 4481195065762381824 13704567102617157632
+f32 sub 1 0 9223372036854775808 0
+f32 sub 2 9223372036854775808 0 9223372036854775808
+f32 sub 3 0 0 0
+f32 mul 0 9223372036854775808 4481195065762381824 9223372036854775808
+f32 mul 1 0 9223372036854775808 9223372036854775808
+f32 mul 2 9223372036854775808 0 9223372036854775808
+f32 mul 3 0 0 0
+f32 setlane 0 4611686018427387904 4611686018427387904 4611686018427387904
+f32 setlane 1 4615063718147915776 4615063718147915776 4615063718147915776
+f32 setlane 2 0 0 0
+f32 setlane 3 4596373779801702400 4596373779801702400 4596373779801702400
+f32 splat 0 4609434218613702656 - 4609434218613702656
+f32 splat 1 4609434218613702656 - 4609434218613702656
+f32 splat 2 4609434218613702656 - 4609434218613702656
+f32 splat 3 4609434218613702656 - 4609434218613702656
+f32 splat 0 13835621005235585024 - 13835621005235585024
+f64 roundtrip 0 4609434218613702656 4609434218613702656 4609434218613702656
+f64 roundtrip 1 13835621005235585024 13835621005235585024 13835621005235585024
+f64 add 0 4609434218613702656 4611686018427387904 4615063718147915776
+f64 add 1 13835621005235585024 4615063718147915776 4608308318706860032
+f64 sub 0 4609434218613702656 4611686018427387904 13826050856027422720
+f64 sub 1 13835621005235585024 4615063718147915776 13841531979746508800
+f64 mul 0 4609434218613702656 4611686018427387904 4613937818241073152
+f64 mul 1 13835621005235585024 4615063718147915776 13843924517048549376
+f64 add 0 9214871658872686752 9214871658872686752 9218868437227405312
+f64 add 1 1 1 2
+f64 sub 0 9214871658872686752 9214871658872686752 0
+f64 sub 1 1 1 0
+f64 mul 0 9214871658872686752 9214871658872686752 9218868437227405312
+f64 mul 1 1 1 0
+f64 add 0 7973590304750869074 15022894468636675459 7973590304750869074
+f64 add 1 7834871185059879664 16700155074667865531 7834871185059879664
+f64 sub 0 7973590304750869074 15022894468636675459 7973590304750869074
+f64 sub 1 7834871185059879664 16700155074667865531 7834871185059879664
+f64 mul 0 7973590304750869074 15022894468636675459 18389584887305823918
+f64 mul 1 7834871185059879664 16700155074667865531 18442240474082181120
+f64 setlane 0 4611686018427387904 4611686018427387904 4611686018427387904
+f64 setlane 1 4615063718147915776 4615063718147915776 4615063718147915776
+f64 splat 0 4609434218613702656 - 4609434218613702656
+f64 splat 1 4609434218613702656 - 4609434218613702656
+f64 splat 0 13835621005235585024 - 13835621005235585024
+comp call 0 7 5 12
+comp wrapper 0 200 - 200
+comp field 0 9 - 9
+comp array 0 4 6 10
