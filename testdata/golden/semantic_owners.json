@@ -21581,6 +21581,16 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.publicRecordType",
+    "signature": "fn(u8) -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.putExtension",
     "signature": "pure fn(\u0026mut Array[u8], u16, Array[u8]) -\u003e Result[Void, Error]",
     "has_body": true,
