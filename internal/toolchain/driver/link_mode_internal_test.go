@@ -158,3 +158,42 @@ func TestNeedsLibdlByTarget(t *testing.T) {
 		t.Error("a bare target must not link libdl")
 	}
 }
+
+// TestResolveLinkageMintsConsistentTarget: the hosted target resolveLinkage
+// returns for a static musl build must be exactly what ParseTarget reads back
+// from its own Triple and Sys. Mutating only Triple used to keep the host's
+// verified Tier even where the new triple is unverified (arm-linux-musleabihf).
+func TestResolveLinkageMintsConsistentTarget(t *testing.T) {
+	options := buildconfig.CompilerOptions{}
+	// The reverse map that names the static triple must agree with the
+	// forward parse the constructor applies to that triple.
+	for arch, triple := range muslTriples {
+		got, err := buildconfig.TargetFromTriple(triple, "")
+		if err != nil {
+			t.Fatalf("%s: %v", triple, err)
+		}
+		if got.OS != "linux" || got.Arch != arch || !got.StaticLibc() {
+			t.Errorf("muslTriples[%q] = %q parses as %s/%s (static=%v)", arch, triple, got.OS, got.Arch, got.StaticLibc())
+		}
+	}
+	for _, arch := range []string{"amd64", "arm64", "riscv64", "386", "arm"} {
+		t.Run(arch, func(t *testing.T) {
+			host := buildconfig.Target{OS: "linux", Arch: arch, Sys: "posix"}
+			got, link, err := resolveLinkage(&Module{}, host, LinkAuto, true, compiled{}, nil, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want, ok := muslTriples[arch]
+			if !ok || got.Triple != want || link.Triple != want || !link.Static {
+				t.Fatalf("linkage = %+v / %+v, want the static %s triple", got, link, want)
+			}
+			back, err := buildconfig.ParseTarget(options, got.Triple, got.Sys)
+			if err != nil {
+				t.Fatalf("the linkage target must parse back: %v", err)
+			}
+			if back.OS != got.OS || back.Arch != got.Arch || back.Sys != got.Sys || back.Unverified() != got.Unverified() {
+				t.Fatalf("linkage target drifted from its own triple: %+v, ParseTarget gives %+v", got, back)
+			}
+		})
+	}
+}

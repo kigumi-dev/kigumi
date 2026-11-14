@@ -33,7 +33,10 @@ type PrefixMap struct {
 	Prefix string
 }
 
-// HostTarget is the machine kigumi runs on, the fallback for CompilerOptions.Host.
+// HostTarget is the machine kigumi runs on, the fallback for CompilerOptions.Host
+// and the one target minted without a triple: Triple stays empty as the host
+// marker, while OS and Arch are the platform-file names. Any other target
+// comes from TargetFromTriple.
 func HostTarget() Target {
 	return Target{OS: runtime.GOOS, Arch: runtime.GOARCH, Sys: "posix"}
 }

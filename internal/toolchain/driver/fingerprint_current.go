@@ -1,21 +1,19 @@
 package driver
 
 import (
-	"fmt"
-
 	"kigumi/internal/backend/llgen"
 	"kigumi/internal/toolchain/artifact"
 	buildconfig "kigumi/internal/toolchain/config"
 	"kigumi/internal/toolchain/version"
 )
 
-// targetIdentity falls back to OS/Arch/Sys because HostTarget leaves
-// Triple empty.
+// targetIdentity is the target's Name(), plus Sys, because HostTarget leaves
+// Triple empty and OS/Arch alone would make every layer the same build.
 func targetIdentity(t buildconfig.Target) string {
-	if t.Triple != "" {
-		return t.Triple
+	id := t.Name()
+	if t.Triple == "" {
+		id += "-" + t.Sys
 	}
-	id := fmt.Sprintf("%s-%s-%s", t.OS, t.Arch, t.Sys)
 	if t.Allocator != "" {
 		id += "+allocator=" + t.Allocator
 	}
@@ -62,9 +60,9 @@ func fingerprintTargets(t buildconfig.Target) []buildconfig.Target {
 		return out
 	}
 	if triple, ok := muslTriples[t.Arch]; ok && t.OS == "linux" {
-		static := t
-		static.Triple = triple
-		out = append(out, static)
+		if static, err := t.WithTriple(triple); err == nil {
+			out = append(out, static)
+		}
 	}
 	return out
 }

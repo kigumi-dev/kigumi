@@ -46,10 +46,7 @@ func run(io session.IO, opts options) error {
 	if err != nil {
 		return &exit.ValueError{Err: err}
 	}
-	target := tgt.Triple
-	if target == "" {
-		target = tgt.OS + "-" + tgt.Arch
-	}
+	target := tgt.Name()
 	out, err := doc.SchemaIRJSON(m, res, opts.attr, target, tgt.Profile)
 	if err != nil {
 		return errors.WrapErr(err, "build schema IR")

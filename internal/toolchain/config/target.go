@@ -49,10 +49,16 @@ var knownABI = map[string]map[string]bool{
 // a known list; the build passes it to the external compiler as given.
 func (t Target) Unverified() bool { return t.Tier == "unverified" }
 
-// parsedTriple is ParseTarget's structural reading of a triple, before
-// normalize and resolve apply cross-field invariants.
+// parsedTriple is the one structural reading of a triple: the target facts a
+// Target is minted from, and the raw components ABISegment and CompileTriple
+// read, so no method has to split the triple a second time.
 type parsedTriple struct {
+	// parts are the triple's dash-separated components as written.
+	parts    []string
 	arch, os string
+	// abi is the ABI segment of a well-formed <arch>-<os>-<abi> triple; ""
+	// when the triple names no ABI segment.
+	abi string
 	// abiKnown false means an unrecognized ABI segment; still builds, Unverified.
 	abiKnown bool
 }
@@ -73,9 +79,16 @@ func parseTripleStructure(triple string) (parsedTriple, error) {
 	if os == "uefi" && arch == "wasm32" {
 		return parsedTriple{}, fmt.Errorf("target %q: wasm32 has no UEFI ABI", triple)
 	}
-	p := parsedTriple{arch: arch, os: os, abiKnown: true}
-	if len(parts) >= 3 {
-		p.abiKnown = len(parts) == 3 && knownABI[parts[1]][parts[2]]
+	p := parsedTriple{parts: parts, arch: arch, os: os, abiKnown: true}
+	switch {
+	case len(parts) == 3:
+		// Exactly one component after <arch>-<os> is the ABI; it may still be
+		// unrecognized, which only marks the target unverified.
+		p.abi, p.abiKnown = parts[2], knownABI[parts[1]][parts[2]]
+	case len(parts) > 3:
+		// A longer triple has no single ABI segment: whatever follows the OS
+		// is unverified and cannot pick a C library.
+		p.abiKnown = false
 	}
 	return p, nil
 }
@@ -104,21 +117,57 @@ func resolveSys(t Target, sys, triple string) (Target, error) {
 	return t, nil
 }
 
-// ParseTarget reads a triple; "" is o's host.
-func ParseTarget(o CompilerOptions, triple, sys string) (Target, error) {
-	t := o.HostOrAmbient()
-	if triple != "" {
-		p, err := parseTripleStructure(triple)
-		if err != nil {
-			return t, err
-		}
-		t = Target{Triple: triple, OS: p.os, Arch: p.arch, Sys: "posix"}
-		if !p.abiKnown {
-			t.Tier = "unverified"
-		}
+// TargetFromTriple mints a target from a zig-style triple. Triple, OS, Arch,
+// Sys and Tier all come from one reading of the string, so the four facts can
+// never disagree with each other or with the triple. It is the only way to
+// get a non-host Target; the host's own facts are HostTarget's, since an
+// empty triple is a marker for it, not a triple. sys is "" (the triple
+// decides), "posix" or "none"; a freestanding or UEFI triple has no
+// operating system, so "none" is forced and "posix" is rejected.
+func TargetFromTriple(triple, sys string) (Target, error) {
+	p, err := parseTripleStructure(triple)
+	if err != nil {
+		return Target{}, err
 	}
-	t = normalizeTarget(t)
-	return resolveSys(t, sys, triple)
+	t := Target{Triple: triple, OS: p.os, Arch: p.arch, Sys: "posix"}
+	if !p.abiKnown {
+		t.Tier = "unverified"
+	}
+	return resolveSys(normalizeTarget(t), sys, triple)
+}
+
+// ParseTarget reads a triple; "" is o's host. A named triple always goes
+// through TargetFromTriple; the host keeps its explicit default.
+func ParseTarget(o CompilerOptions, triple, sys string) (Target, error) {
+	if triple != "" {
+		return TargetFromTriple(triple, sys)
+	}
+	return resolveSys(normalizeTarget(o.HostOrAmbient()), sys, triple)
+}
+
+// WithTriple returns t retargeted at triple, the way resolveLinkage moves a
+// host target to the C library triple it links. The policy fields pass
+// through unchanged, while Triple, OS, Arch, Sys and Tier are re-derived
+// together, so the old target's facts can never survive beside a new Triple.
+// It returns t unchanged when triple does not parse.
+func (t Target) WithTriple(triple string) (Target, error) {
+	// A --sys none build stays bare; otherwise the triple decides the layer,
+	// so retargeting a hosted target at a freestanding triple cannot leave a
+	// posix layer beside a target that has no operating system.
+	sys := ""
+	if t.Sys == "none" {
+		sys = "none"
+	}
+	next, err := TargetFromTriple(triple, sys)
+	if err != nil {
+		return t, err
+	}
+	next.Allocator = t.Allocator
+	next.Profile = t.Profile
+	next.BlockingExecutor = t.BlockingExecutor
+	next.StrictStack = t.StrictStack
+	next.StackBudgetKiB = t.StackBudgetKiB
+	return next, nil
 }
 
 // Freestanding targets have no operating system: the build is an archive
@@ -140,13 +189,29 @@ func (t Target) Layout() target.Layout {
 }
 
 // ABISegment is the triple's optional third component ("gnu", "msvc",
-// "musl", ...); "" leaves the platform's default C library ABI.
+// "musl", ...); "" leaves the platform's default C library ABI and is also
+// what an unverified triple with extra components gets, since it names no
+// single ABI segment.
 func (t Target) ABISegment() string {
-	parts := strings.Split(t.Triple, "-")
-	if len(parts) < 3 {
+	p, err := parseTripleStructure(t.Triple)
+	if err != nil {
 		return ""
 	}
-	return parts[2]
+	return p.abi
+}
+
+// StaticLibc reports a triple whose ABI segment selects the static musl C
+// library, the only one kigumi links statically.
+func (t Target) StaticLibc() bool { return strings.HasPrefix(t.ABISegment(), "musl") }
+
+// Name is the target as a report records it: the triple when the user named
+// one, else the host's platform names. The host's form is a label, not a
+// parsable triple, because HostTarget deliberately leaves Triple empty.
+func (t Target) Name() string {
+	if t.Triple != "" {
+		return t.Triple
+	}
+	return t.OS + "-" + t.Arch
 }
 
 // NoDefaultAllocator reports the `--allocator none` profile.
@@ -170,14 +235,15 @@ func (t Target) StrictBlocking() bool { return strictBlockingProfiles[t.Blocking
 // CompileTriple is the triple handed to the C compiler: as given, except that zig names the OS-less "none" OS "freestanding"
 // and has no 32-bit ARM Windows ABI in ARM mode, which UEFI on arm needs as thumb.
 func (t Target) CompileTriple() string {
-	parts := strings.Split(t.Triple, "-")
-	if len(parts) < 2 {
+	p, err := parseTripleStructure(t.Triple)
+	if err != nil {
 		return t.Triple
 	}
+	parts := append([]string(nil), p.parts...)
 	if parts[1] == "none" {
 		parts[1] = "freestanding"
 	}
-	if t.OS == "uefi" && t.Arch == "arm" {
+	if p.os == "uefi" && p.arch == "arm" {
 		parts[0] = "thumb"
 	}
 	return strings.Join(parts, "-")

@@ -110,7 +110,7 @@ func resolveLinkage(m *Module, t buildconfig.Target, mode LinkMode, zig bool, co
 		return t, Linkage{}, nil
 	}
 	if t.Triple != "" {
-		static := strings.Contains(t.Triple, "-musl")
+		static := t.StaticLibc()
 		form := LinkDynamic
 		if static || t.OS == "wasi" {
 			form = LinkStatic
@@ -145,12 +145,15 @@ func resolveLinkage(m *Module, t buildconfig.Target, mode LinkMode, zig bool, co
 	case mode == LinkAuto && len(needs) > 0:
 		return t, Linkage{Reason: strings.Join(needs, "; ")}, nil
 	}
-	t.Triple = triple
+	linkTarget, err := t.WithTriple(triple)
+	if err != nil {
+		return t, Linkage{}, err
+	}
 	reason := "nothing reached needs the dynamic loader"
 	if mode == LinkStatic {
 		reason = "--link static"
 	}
-	return t, Linkage{Static: true, Triple: triple, Reason: reason}, nil
+	return linkTarget, Linkage{Static: true, Triple: triple, Reason: reason}, nil
 }
 
 // artifactLink is the --link a build graph artifact gets: only executables for the host target take it, and the

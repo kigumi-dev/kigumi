@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	buildconfig "kigumi/internal/toolchain/config"
@@ -16,7 +15,7 @@ func CompilerOptions() buildconfig.CompilerOptions {
 	cwd, _ := os.Getwd()
 	home, _ := os.UserHomeDir()
 	return buildconfig.CompilerOptions{
-		Host:     buildconfig.Target{OS: runtime.GOOS, Arch: runtime.GOARCH, Sys: "posix"},
+		Host:     buildconfig.HostTarget(),
 		CacheDir: cache,
 		Cwd:      cwd,
 		PathDirs: filepath.SplitList(os.Getenv("PATH")),

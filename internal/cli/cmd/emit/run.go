@@ -78,10 +78,7 @@ func build(m *driver.Module, res *sem.Result, attr string, s session.Session) (*
 	if err != nil {
 		return nil, &exit.ValueError{Err: err}
 	}
-	target := tgt.Triple
-	if target == "" {
-		target = tgt.OS + "-" + tgt.Arch
-	}
+	target := tgt.Name()
 	mod, _ := schema.Build(m, res, schema.Options{Attr: attr, Target: target, Profile: tgt.Profile})
 	return mod, nil
 }
