@@ -27,7 +27,10 @@ func TestLazyStdCheckMatchesEager(t *testing.T) {
 	})
 	for _, corpus := range []string{"sem", "mir", "run"} {
 		t.Run(corpus, func(t *testing.T) {
-			paths, _ := fixture.Files(filepath.Join("../../../testdata", corpus), ".txtar")
+			paths, err := fixture.Corpus("../../..", corpus)
+			if err != nil {
+				t.Fatal(err)
+			}
 			paths = fixture.ShardPaths(paths)
 			var lazy, retries, skipped, editorLazy atomic.Int64
 			t.Cleanup(func() {
@@ -95,7 +98,10 @@ func TestLazyStdBuildMatchesEager(t *testing.T) {
 	manifest := loadManifest(t)
 	for _, corpus := range []string{"mir", "run"} {
 		t.Run(corpus, func(t *testing.T) {
-			paths, _ := fixture.Files(filepath.Join("../../../testdata", corpus), ".txtar")
+			paths, err := fixture.Corpus("../../..", corpus)
+			if err != nil {
+				t.Fatal(err)
+			}
 			paths = fixture.ShardPaths(paths)
 			var lazy, retries atomic.Int64
 			t.Cleanup(func() { t.Logf("%s: lazy=%d retries=%d", corpus, lazy.Load(), retries.Load()) })

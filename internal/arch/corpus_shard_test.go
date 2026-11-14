@@ -6,7 +6,6 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -15,19 +14,74 @@ import (
 	"kigumi/internal/devkit/fixture"
 )
 
-// corpusDirLiteral matches a source string that names one of the shared fixture
-// corpora directly. Corpus tests must go through fixture.Corpus / fixture.Find,
-// so a group move changes paths in one place only.
-var corpusDirLiteral = regexp.MustCompile(`testdata/(run|sem|mir|parser|fmt|oom)/`)
+// corpusKinds is derived from the fixture package so this lint follows a kind
+// that is renamed or added instead of keeping a second list in sync.
+var corpusKinds = func() map[string]bool {
+	kinds := make(map[string]bool, len(fixture.Kinds))
+	for _, kind := range fixture.Kinds {
+		kinds[kind] = true
+	}
+	return kinds
+}()
 
-// TestCorpusLoopsUseFixtureFiles fails when Go source outside the fixture
+// corpusPathViolation reports whether a string literal spells out where the
+// shared fixtures live: a "testdata" path segment followed by a corpus kind, or
+// a repo-rooted handle that ends at "testdata" and is therefore combined with a
+// kind by its caller. Prose such as "fixtures belong in testdata/sem" has no
+// bare "testdata" segment and does not match.
+func corpusPathViolation(path string) bool {
+	segs := strings.FieldsFunc(path, func(r rune) bool { return r == '/' || r == '\\' })
+	for i, seg := range segs {
+		if seg != "testdata" {
+			continue
+		}
+		if i+1 < len(segs) && corpusKinds[segs[i+1]] {
+			return true
+		}
+		if i == len(segs)-1 && slices.Contains(segs[:i], "..") {
+			return true
+		}
+	}
+	return false
+}
+
+// isJoinCall reports whether fun is filepath.Join or path.Join.
+func isJoinCall(fun ast.Expr) bool {
+	sel, ok := fun.(*ast.SelectorExpr)
+	if !ok || sel.Sel.Name != "Join" {
+		return false
+	}
+	x, ok := sel.X.(*ast.Ident)
+	return ok && (x.Name == "filepath" || x.Name == "path")
+}
+
+// TestCorpusSourcesUseFixtureAPI fails when Go source outside the fixture
 // package builds a corpus path itself. The fixture package owns the
-// testdata/<kind> layout; manifest_test.go may regenerate the whole manifest.
-func TestCorpusLoopsUseFixtureFiles(t *testing.T) {
+// testdata/<kind> layout and the group a fixture lives in, so a test must
+// enumerate with fixture.Corpus/fixture.Files and locate one fixture with
+// fixture.Find; a group move then changes paths in one place only.
+func TestCorpusSourcesUseFixtureAPI(t *testing.T) {
 	root := "../.."
 	skipDir := map[string]bool{".git": true, "testdata": true, "node_modules": true, "docs": true, "docs-new": true, ".work": true}
-	exempt := map[string]bool{
-		"corpus_shard_test.go": true, // this lint names the corpus directories in its pattern
+	// allow lists the exact literals a file may still spell out under testdata.
+	// Every entry is a non-corpus use: a whole-tree source sweep, not a lookup
+	// of a fixture by kind or group.
+	allow := map[string]map[string]bool{
+		// Walks every shipped .kg and .txtar source under testdata to feed it
+		// through the parser; it never looks a corpus entry up by kind.
+		"internal/compiler/syntax/schema_validate_internal_test.go": {"../../../testdata": true},
+		// Sweeps every shipped .kg file (the oom corpus stores .kg sources) to
+		// check LSP symbol ranges; the recursive walk is the point.
+		"internal/tooling/lsp/symbols_test.go": {"../../../testdata": true},
+	}
+	// This lint's allowlist necessarily spells an allowed path.
+	skipFile := map[string]bool{"internal/arch/corpus_shard_test.go": true}
+	report := func(rel, literal string) {
+		t.Helper()
+		if rel == "" || skipFile[rel] || allow[rel][literal] {
+			return
+		}
+		t.Errorf("%s: names a corpus path directly (%q); enumerate with fixture.Corpus and locate one fixture with fixture.Find", rel, literal)
 	}
 	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -42,9 +96,14 @@ func TestCorpusLoopsUseFixtureFiles(t *testing.T) {
 			}
 			return nil
 		}
-		if !strings.HasSuffix(path, ".go") || exempt[d.Name()] {
+		if !strings.HasSuffix(path, ".go") {
 			return nil
 		}
+		rel, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+		rel = filepath.ToSlash(rel)
 		src, err := os.ReadFile(path)
 		if err != nil {
 			return err
@@ -54,16 +113,45 @@ func TestCorpusLoopsUseFixtureFiles(t *testing.T) {
 			return err
 		}
 		ast.Inspect(f, func(n ast.Node) bool {
-			lit, ok := n.(*ast.BasicLit)
-			if !ok || lit.Kind != token.STRING {
-				return true
-			}
-			s, err := strconv.Unquote(lit.Value)
-			if err != nil {
-				return true
-			}
-			if corpusDirLiteral.MatchString(s) {
-				t.Errorf("%s: names a corpus directory directly (%q); list it with fixture.Corpus or locate one fixture with fixture.Find", path, s)
+			switch n := n.(type) {
+			case *ast.BasicLit:
+				if n.Kind != token.STRING {
+					return true
+				}
+				s, err := strconv.Unquote(n.Value)
+				if err != nil {
+					return true
+				}
+				if corpusPathViolation(s) {
+					report(rel, s)
+				}
+			case *ast.CallExpr:
+				// A split join such as Join("../../..", "testdata", kind)
+				// hides the corpus root across two literals; rejoin the
+				// all-literal arguments before testing them.
+				if !isJoinCall(n.Fun) {
+					return true
+				}
+				parts := make([]string, 0, len(n.Args))
+				for _, arg := range n.Args {
+					lit, ok := arg.(*ast.BasicLit)
+					if !ok || lit.Kind != token.STRING {
+						return true
+					}
+					s, err := strconv.Unquote(lit.Value)
+					if err != nil {
+						return true
+					}
+					parts = append(parts, s)
+				}
+				if joined := strings.Join(parts, "/"); corpusPathViolation(joined) {
+					for _, part := range parts {
+						if allow[rel][part] {
+							return true
+						}
+					}
+					report(rel, joined)
+				}
 			}
 			return true
 		})
