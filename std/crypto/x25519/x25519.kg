@@ -4,6 +4,7 @@
 // bit only feeds a mask-based swap and the doubled-and-add formulas, and the
 // field helpers in `field.kg` keep every limb branchless. Only the native
 // backend gives a timing guarantee; the VM makes no such promise.
+import mem from std/mem
 import secret from std/secret
 
 /// Bytes of a scalar, u-coordinate or shared secret.
@@ -43,7 +44,10 @@ fn scalarMultBytes(scalar: &secret.SecretBuffer, point: Bytes) -> Result[Bytes, 
     if point.len() != keySize {
         return Err(Error.BadPointSize)
     }
-    Ok(ladder(clamp(scalarBytes(scalar)), point))
+    let mut raw = scalarBytes(scalar)
+    let out = ladder(clamp(raw), point)
+    mem.secureErase(&mut raw)
+    Ok(out)
 }
 
 /// Multiplies `point` by the clamped secret `scalar`, as RFC 7748 defines
