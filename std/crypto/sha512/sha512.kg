@@ -232,7 +232,6 @@ pure fn iv384() -> Array[u64] {
 // Used by HMAC/HKDF when the key is secret. The chaining state, the message
 // buffer and the digest stay in the `SecretU64` domain; only the round
 // counter and the public constants are ordinary values.
-
 /// SHA-512 state for secret input; satisfies `hash.SecretDigest`.
 pub type SecretHasher = {
     mut h Array[secret.SecretU64]

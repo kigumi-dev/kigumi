@@ -1,3 +1,4 @@
+import hash from std/crypto/hash
 // HMAC (RFC 2104, FIPS 198-1) over a secret-input digest.
 //
 // The key and every key-derived pad stay in `SecretBuffer`; the digest is a
@@ -5,7 +6,6 @@
 // The tag is secret, and `verify` compares it with public wire bytes through
 // a `Choice`, never a Bool.
 import secret from std/secret
-import hash from std/crypto/hash
 
 const ipad: u8 = 0x36
 const opad: u8 = 0x5C

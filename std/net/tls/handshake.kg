@@ -1,5 +1,4 @@
 import sha256 from std/crypto/sha256
-import sec from std/secret
 // TLS 1.3 handshake messages (RFC 8446 §4): building the ClientHello and
 // parsing the server's flight.
 //
@@ -17,6 +16,7 @@ import sec from std/secret
 // the client did not advertise, or one it already sent a share for, is
 // refused.
 import binary from std/encoding/binary
+import sec from std/secret
 
 /// Handshake message type numbers used here.
 pub const clientHelloType: u8 = 1
@@ -316,7 +316,9 @@ fn buildClientHello(group: u16, random: Bytes, sessionId: Bytes, keyShare: Bytes
             let mut sealed = Array.empty[u8]()
             append(&mut sealed, message.slice(0, message.len() - 32) || fail Error.MalformedHandshake("binder slice out of bounds"))
             // The binder is public ClientHello wire data.
-            append(&mut sealed, unsafe { binder.declassify() })
+            append(&mut sealed, unsafe {
+                binder.declassify()
+            })
             Ok(freeze(&sealed))
         }
         None -> Ok(message)
@@ -490,7 +492,9 @@ pub pure fn clientHelloBinderHash(fullHello: Bytes, bindersAtBody: usize) -> Res
 pub fn verifyPskBinder(fullHello: Bytes, bindersAtBody: usize, psk: &sec.SecretBuffer, binder: Bytes) -> Result[Void, Error] {
     let hash = clientHelloBinderHash(fullHello, bindersAtBody)?
     let expected = binderVerifyData(psk, hash)?
-    if !unsafe { expected.ctEqPublic(&binder).declassify() } {
+    if !unsafe {
+        expected.ctEqPublic(&binder).declassify()
+    } {
         fail Error.BadSignature
     }
     Ok(())

@@ -1,5 +1,4 @@
 import p256 from std/crypto/p256
-import sec from std/secret
 import sha256 from std/crypto/sha256
 import x509 from std/crypto/x509
 // A TLS 1.3 server (RFC 8446) over an existing `net.Conn`, the mirror of
@@ -32,6 +31,7 @@ import x509 from std/crypto/x509
 // is dropped.
 import binary from std/encoding/binary
 import net from std/net
+import sec from std/secret
 import time from std/time
 
 /// The server's signing key. Only ECDSA P-256 is implemented, and the key
@@ -387,7 +387,9 @@ async fn Session.runServerHandshake(mut self, config: ServerConfig) -> Result[Vo
     }
 
     let serverVerify = finishedVerifyData(&self.writeKeys.secret, sha256.sum(transcript))?
-    let finishedMessage = encodeHandshake(finishedType, unsafe { serverVerify.declassify() })?
+    let finishedMessage = encodeHandshake(finishedType, unsafe {
+        serverVerify.declassify()
+    })?
     transcript = transcript.concat(finishedMessage)
     flight = flight.concat(finishedMessage)
     // RFC 8446 §7.1: application secrets cover the transcript through the
@@ -436,7 +438,9 @@ async fn Session.runServerHandshake(mut self, config: ServerConfig) -> Result[Vo
     }
     let claimed = parseFinished(clientFinished.body)?
     let expected = finishedVerifyData(&self.readKeys.secret, sha256.sum(clientTranscript))?
-    if !unsafe { expected.ctEqPublic(&claimed).declassify() } {
+    if !unsafe {
+        expected.ctEqPublic(&claimed).declassify()
+    } {
         fail Error.BadFinished
     }
     clientTranscript = clientTranscript.concat(clientFinished.raw)

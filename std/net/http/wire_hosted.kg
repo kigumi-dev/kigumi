@@ -1,7 +1,7 @@
 import alloc from std/alloc
-import sec from std/secret
 import net from std/net
 import tls from std/net/tls
+import sec from std/secret
 import task from std/task
 import time from std/time
 
@@ -80,7 +80,9 @@ async fn Wire.fill(mut self, deadline: Deadline, stop: Shutdown) -> Fill! {
                     }
                     // HTTP is the application boundary: TLS plaintext leaves
                     // the secret domain here.
-                    self.pending = self.pending.concat(unsafe { data.declassify() })
+                    self.pending = self.pending.concat(unsafe {
+                        data.declassify()
+                    })
                     return Got
                 }
                 Err(err) -> fail failure(400, err.message())

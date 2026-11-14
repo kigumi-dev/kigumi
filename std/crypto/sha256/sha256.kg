@@ -147,7 +147,6 @@ pub pure noalloc fn Hasher.size() -> usize {
 // ever handed to a public `Bytes` slot. The compression has no branch or
 // table index that depends on the message: the 64 round constants are indexed
 // by the public round counter only.
-
 pub type SecretRound = {
     pub a secret.SecretU32
     pub b secret.SecretU32
@@ -194,15 +193,7 @@ pub type SecretHasher = {
 /// A hasher with the FIPS 180-4 initial state and no message bytes yet.
 pub pure fn SecretHasher.new() -> SecretHasher {
     SecretHasher {
-        h: Array.of[secret.SecretU32](
-            secret.SecretU32.classify(0x6A09E667),
-            secret.SecretU32.classify(0xBB67AE85),
-            secret.SecretU32.classify(0x3C6EF372),
-            secret.SecretU32.classify(0xA54FF53A),
-            secret.SecretU32.classify(0x510E527F),
-            secret.SecretU32.classify(0x9B05688C),
-            secret.SecretU32.classify(0x1F83D9AB),
-            secret.SecretU32.classify(0x5BE0CD19))
+        h: Array.of[secret.SecretU32](secret.SecretU32.classify(0x6A09E667), secret.SecretU32.classify(0xBB67AE85), secret.SecretU32.classify(0x3C6EF372), secret.SecretU32.classify(0xA54FF53A), secret.SecretU32.classify(0x510E527F), secret.SecretU32.classify(0x9B05688C), secret.SecretU32.classify(0x1F83D9AB), secret.SecretU32.classify(0x5BE0CD19))
         buf: Array.empty()
         total: secret.SecretU64.classify(0)
         k: roundConstants()

@@ -67,7 +67,6 @@ pure noalloc fn pLeWord(data: Bytes, at: usize) -> u32 {
     w | (data[at + 3].toU32() << 24)
 }
 
-
 /// A MAC that has consumed no message bytes yet.
 /// The key is `r` followed by `s`, clamped as RFC 8439 §2.5 requires.
 pub pure fn Poly1305.new(key: &secret.SecretBuffer) -> Poly1305 {

@@ -102,7 +102,9 @@ pub fn open(key: &secret.SecretBuffer, nonce: Bytes, aad: Bytes, sealed: Bytes) 
     mac.absorbLengths(aad.len(), textLen)
     let tag = mac.finish()
     let claimed = sealed.slice(textLen, sealed.len()).expect("tag range is within sealed")
-    if !unsafe { tag.ctEqPublic(&claimed).declassify() } {
+    if !unsafe {
+        tag.ctEqPublic(&claimed).declassify()
+    } {
         return Err(Error.TagMismatch)
     }
     Ok(xorRangePublic(key, 1, nonce, sealed, 0, textLen))

@@ -23,6 +23,7 @@ import net from std/net
 import task from std/task
 import text from std/text
 import tls from std/net/tls
+import secret from std/secret
 import x509 from std/crypto/x509
 
 /// A pool result cannot carry the Error box across threads, so failures cross as text.
@@ -55,16 +56,20 @@ async fn run() -> Void! {
     let mut config = tls.Config.new("localhost", anchors, (k) => host.entropy().bytes(k))
     let mut session = (await tls.Client.connect(conn, config))?
     print "alpn ${session.alpn()}"
-    (await session.write("GET / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n".toBytes()))?
+    let request = secret.SecretBuffer.fromBytes("GET / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n".toBytes())
+    (await session.write(&request))?
     let mut got = Bytes.zeros(0)
     let mut tries: usize = 0
     for tries < 8 && got.len() < 16 {
         match await session.read(16384) {
             Ok(chunk) -> {
-                if chunk.len() == 0 {
+                let bytes = unsafe {
+                    chunk.declassify()
+                }
+                if bytes.len() == 0 {
                     break
                 }
-                got = got.concat(chunk)
+                got = got.concat(bytes)
             }
             Err(e) -> {
                 if got.len() > 0 {

@@ -1,10 +1,10 @@
 import p256 from std/crypto/p256
-import sec from std/secret
 import sha256 from std/crypto/sha256
 import x25519 from std/crypto/x25519
 import x509 from std/crypto/x509
 import binary from std/encoding/binary
 import net from std/net
+import sec from std/secret
 import task from std/task
 
 /// The TLS client entry point: `Client.connect(conn, config)`.
@@ -436,9 +436,13 @@ async fn Session.nextHandshake(mut self) -> Result[Message, Error] {
         if record.typ == handshakeType {
             // Handshake messages are protocol data: the parser is the
             // explicit boundary where record plaintext becomes public.
-            append(&mut self.hsBuf, unsafe { record.payload.declassify() })
+            append(&mut self.hsBuf, unsafe {
+                record.payload.declassify()
+            })
         } else if record.typ == alertType {
-            fail alertError(unsafe { record.payload.declassify() })
+            fail alertError(unsafe {
+                record.payload.declassify()
+            })
         } else if record.typ == applicationDataType {
             fail Error.UnexpectedMessage("application data arrived during the handshake")
         } else {
@@ -756,7 +760,9 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
 
     let claimed = parseFinished(next.body)?
     let expected = finishedVerifyData(&self.readKeys.secret, sha256.sum(transcript))?
-    if !unsafe { expected.ctEqPublic(&claimed).declassify() } {
+    if !unsafe {
+        expected.ctEqPublic(&claimed).declassify()
+    } {
         fail Error.BadFinished
     }
     transcript = transcript.concat(next.raw)
@@ -831,7 +837,9 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
     let finalHash = sha256.sum(transcript)
     let clientVerify = finishedVerifyData(&self.writeKeys.secret, finalHash)?
     // The Finished value is public handshake wire data.
-    let clientFinished = encodeHandshake(finishedType, unsafe { clientVerify.declassify() })?
+    let clientFinished = encodeHandshake(finishedType, unsafe {
+        clientVerify.declassify()
+    })?
     (await self.sendHandshake(clientFinished))?
     transcript = transcript.concat(clientFinished)
 
@@ -991,9 +999,13 @@ pub async fn Session.read(mut self, max: usize) -> Result[sec.SecretBuffer, Erro
                 self.appBuf = move record.payload
             }
         } else if record.typ == handshakeType {
-            append(&mut self.hsBuf, unsafe { record.payload.declassify() })
+            append(&mut self.hsBuf, unsafe {
+                record.payload.declassify()
+            })
         } else if record.typ == alertType {
-            let alertBytes = unsafe { record.payload.declassify() }
+            let alertBytes = unsafe {
+                record.payload.declassify()
+            }
             let err = alertError(alertBytes)
             self.open = false
             if alertBytes.len() == 2 && alertBytes[1] == 0 {

@@ -4,8 +4,8 @@
 // each candidate as another HMAC of V. `skip` returns a later candidate, so
 // signing retries after r or s is zero without ever using randomness.
 import hmac from std/crypto/hmac
-import secret from std/secret
 import sha256 from std/crypto/sha256
+import secret from std/secret
 
 /// HMAC-SHA-256 of `data` under secret `key`. The nonce candidate leaves the
 /// secret domain at the scalar boundary below; P-256 itself is a public-key

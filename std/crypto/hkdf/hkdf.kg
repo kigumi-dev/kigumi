@@ -1,11 +1,11 @@
+import hash from std/crypto/hash
+import hmac from std/crypto/hmac
 // HKDF (RFC 5869) over a secret-input HMAC.
 //
 // The input keying material, the PRK and every output key are
 // `SecretBuffer`s. Salt is an HMAC key, so it is secret-typed too; a public
 // salt is wrapped explicitly with `SecretBuffer.fromBytes` at the caller.
 import secret from std/secret
-import hash from std/crypto/hash
-import hmac from std/crypto/hmac
 
 /// An HKDF failure: a request past the RFC 5869 §2.3 length limit, or a short
 /// final output slice.
