@@ -1,0 +1,177 @@
+name: nightly chaos
+
+# Ownership: nightly-fuzz.yml owns coverage-guided `go test -fuzz` (FuzzParse,
+# FuzzMutatedMIR), whose findings land in testdata/fuzz corpora. This workflow owns the
+# seeded sweeps a plain `go test` can run: TestMutatedMIR through its KIGUMI_MIR_FUZZ_*
+# knobs, TestUnitSweepSemFixtures, and the allocation fault-injection sweeps. Every
+# entry is deterministic per (seed, shard), so a red run replays from the seed printed
+# below instead of from a fuzzer's cache.
+#
+# The plan comes from .github/scripts/chaos.sh --plan, so the local runner and the CI
+# matrix are the same list; internal/arch/chaos_workflow_test.go checks that contract.
+on:
+  schedule:
+    - cron: "30 9 * * *"
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: "Base seed; empty derives one from the run id"
+        required: false
+        default: ""
+      seconds:
+        description: "KIGUMI_MIR_FUZZ_SECONDS per mir shard"
+        required: false
+        default: "600"
+      count:
+        description: "KIGUMI_MIR_FUZZ_COUNT mutants per base fixture (floor; seconds is the budget)"
+        required: false
+        default: "4"
+      shards:
+        description: "Chaos shard count"
+        required: false
+        default: "4"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-chaos
+  cancel-in-progress: false
+
+jobs:
+  zig-version:
+    name: resolve pinned zig version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: read
+        run: echo "version=$(cat ZIG_VERSION)" >> "$GITHUB_OUTPUT"
+
+  plan:
+    name: plan chaos shards
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      seed: ${{ steps.plan.outputs.seed }}
+      seconds: ${{ steps.plan.outputs.seconds }}
+      count: ${{ steps.plan.outputs.count }}
+      shards: ${{ steps.plan.outputs.shards }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: plan
+        env:
+          SEED_INPUT: ${{ inputs.seed }}
+          SECONDS_INPUT: ${{ inputs.seconds || '600' }}
+          COUNT_INPUT: ${{ inputs.count || '4' }}
+          SHARDS_INPUT: ${{ inputs.shards || '4' }}
+        run: |
+          args=(--shards "$SHARDS_INPUT" --seconds "$SECONDS_INPUT" --count "$COUNT_INPUT")
+          if [ -n "$SEED_INPUT" ]; then
+            args+=(--seed "$SEED_INPUT")
+          fi
+          seed=$(bash .github/scripts/chaos.sh "${args[@]}" --print-seed)
+          matrix=$(bash .github/scripts/chaos.sh "${args[@]}" --seed "$seed" --plan)
+          {
+            echo "seed=$seed"
+            echo "matrix=$matrix"
+            echo "seconds=$SECONDS_INPUT"
+            echo "count=$COUNT_INPUT"
+            echo "shards=$SHARDS_INPUT"
+          } >> "$GITHUB_OUTPUT"
+
+  chaos:
+    name: chaos (${{ matrix.suite }} shard ${{ matrix.shard }}/${{ matrix.count }})
+    needs: [plan, zig-version]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      # One shard's finding must not hide another's: the plan is a whole corpus of
+      # independent sweeps, and the summary job reports every shard's result.
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+      - uses: actions/cache@v4
+        if: matrix.toolchain == 'zig'
+        with:
+          path: ~/.local/share/kigumi/zig
+          key: kigumi-zig-${{ runner.os }}-${{ runner.arch }}-${{ needs.zig-version.outputs.version }}
+      - run: go run . zig install ${{ needs.zig-version.outputs.version }}
+        if: matrix.toolchain == 'zig'
+      - run: echo "$HOME/.local/share/kigumi/zig/${{ needs.zig-version.outputs.version }}" >> "$GITHUB_PATH"
+        if: matrix.toolchain == 'zig'
+      - name: run ${{ matrix.suite }} shard ${{ matrix.shard }}
+        run: |
+          bash .github/scripts/chaos.sh \
+            --suite "${{ matrix.suite }}" \
+            --shard "${{ matrix.shard }}" \
+            --shards "${{ matrix.count }}" \
+            --seed "${{ needs.plan.outputs.seed }}" \
+            --seconds "${{ needs.plan.outputs.seconds }}" \
+            --count "${{ needs.plan.outputs.count }}" \
+            --out chaos-logs
+      - name: keep this shard's summary under a unique name
+        if: always()
+        run: |
+          if [ -f chaos-logs/summary.md ]; then
+            cp chaos-logs/summary.md "chaos-logs/summary-${{ matrix.suite }}-${{ matrix.shard }}.md"
+          fi
+      - name: upload chaos logs and replay blocks
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chaos-${{ matrix.suite }}-${{ matrix.shard }}-${{ needs.plan.outputs.seed }}
+          path: chaos-logs/
+          if-no-files-found: error
+
+  summary:
+    # The matrix finishes out of order; this job gives one stable place for the
+    # seed, the replay commands and the aggregate verdict.
+    name: chaos summary
+    needs: [plan, chaos]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: chaos-*
+          path: chaos-artifacts
+          merge-multiple: true
+      - run: |
+          {
+            echo "## nightly chaos"
+            echo
+            echo "base seed: \`${{ needs.plan.outputs.seed }}\` — shards: ${{ needs.plan.outputs.shards }}, mir seconds: ${{ needs.plan.outputs.seconds }}, mir mutants/base: ${{ needs.plan.outputs.count }}"
+            echo "chaos result: **${{ needs.chaos.result }}**"
+            echo
+            shopt -s nullglob
+            files=(chaos-artifacts/summary-*.md)
+            if [ "${#files[@]}" -eq 0 ]; then
+              echo 'no shard summary was uploaded'
+            else
+              # One canonical table sorted by artifact name, then the per-shard replay blocks.
+              echo '| suite | shard | status | replay |'
+              echo '|---|---|---|---|'
+              for f in $(printf '%s\n' "${files[@]}" | sort); do
+                grep -E '^\| [a-z-]+ \| [0-9]+/[0-9]+ \| (PASS|FAIL) \|' "$f" | head -n 1 || true
+              done
+              echo
+              for f in $(printf '%s\n' "${files[@]}" | sort); do
+                sed -n '/^### /,$p' "$f"
+                echo
+              done
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: fail when any chaos shard failed
+        if: needs.chaos.result != 'success'
+        run: |
+          echo "chaos result: ${{ needs.chaos.result }}" >&2
+          exit 1
