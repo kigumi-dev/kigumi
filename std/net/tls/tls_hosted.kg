@@ -16,6 +16,15 @@ type Message = {
     raw Bytes
 }
 
+/// The record's content type is protocol metadata released by `openRecord`;
+/// the aggregate also carries a secret payload, so re-release the public field
+/// before branching on it.
+fn publicRecordType(typ: u8) -> u8 {
+    unsafe {
+        sec.SecretU8.classify(typ).declassify()
+    }
+}
+
 fn noKeys() -> Direction {
     Direction {
         secret: sec.SecretBuffer.fromBytes(Bytes.zeros(hashSize))
@@ -433,20 +442,21 @@ async fn Session.nextHandshake(mut self) -> Result[Message, Error] {
             fail Error.HandshakeOverflow
         }
         let record = (await self.readRecord())?
-        if record.typ == handshakeType {
+        let typ = publicRecordType(record.typ)
+        if typ == handshakeType {
             // Handshake messages are protocol data: the parser is the
             // explicit boundary where record plaintext becomes public.
             append(&mut self.hsBuf, unsafe {
                 record.payload.declassify()
             })
-        } else if record.typ == alertType {
+        } else if typ == alertType {
             fail alertError(unsafe {
                 record.payload.declassify()
             })
-        } else if record.typ == applicationDataType {
+        } else if typ == applicationDataType {
             fail Error.UnexpectedMessage("application data arrived during the handshake")
         } else {
-            fail Error.UnexpectedMessage("content type ${record.typ} arrived during the handshake")
+            fail Error.UnexpectedMessage("content type ${typ} arrived during the handshake")
         }
     }
     fail Error.ConnectionClosed
@@ -901,8 +911,9 @@ async fn Session.drainEarlyData(mut self, limit: usize, keep: Bool) -> Result[Vo
         let opened = openRecord(&self.earlyReadKeys, self.earlyReadSeq, raw.header, raw.payload)
         match opened {
             Ok(record) -> {
-                if record.typ != applicationDataType {
-                    fail Error.BadRecord("early record has inner content type ${record.typ}")
+                let typ = publicRecordType(record.typ)
+                if typ != applicationDataType {
+                    fail Error.BadRecord("early record has inner content type ${typ}")
                 }
                 if keep {
                     let got = record.payload.len()
@@ -994,15 +1005,16 @@ pub async fn Session.read(mut self, max: usize) -> Result[sec.SecretBuffer, Erro
                 fail e
             }
         }
-        if record.typ == applicationDataType {
+        let typ = publicRecordType(record.typ)
+        if typ == applicationDataType {
             if record.payload.len() != 0 {
                 self.appBuf = move record.payload
             }
-        } else if record.typ == handshakeType {
+        } else if typ == handshakeType {
             append(&mut self.hsBuf, unsafe {
                 record.payload.declassify()
             })
-        } else if record.typ == alertType {
+        } else if typ == alertType {
             let alertBytes = unsafe {
                 record.payload.declassify()
             }
@@ -1013,7 +1025,7 @@ pub async fn Session.read(mut self, max: usize) -> Result[sec.SecretBuffer, Erro
             }
             fail err
         } else {
-            fail Error.UnexpectedMessage("content type ${record.typ} after the handshake")
+            fail Error.UnexpectedMessage("content type ${typ} after the handshake")
         }
     }
     fail Error.Closed
