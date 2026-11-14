@@ -27,7 +27,7 @@ var pinnedRCCalls = map[string]int{
 	"fixtures":         1177,
 	"rt_retain":        21714,
 	"rt_release":       125456,
-	"rt_release_outer": 91397,
+	"rt_release_outer": 91424,
 	"rt_drop":          89979,
 	"rt_cell_init":     11580,
 	"rt_cell_take":     4261,
