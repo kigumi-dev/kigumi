@@ -454,7 +454,7 @@ async fn wrongFinishedCase(n: net.Net) -> String! {
     let mut wire = Wire { conn: conn, pending: Bytes.zeros(0) }
 
     let clientSecret = dec("aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899")
-    let clientPublic = match x25519.publicKey(clientSecret) {
+    let clientPublic = match x25519.publicKey(&secretOf(clientSecret)) {
         Ok(value) -> value
         Err(e) -> fail Fail { text: e.message() }
     }
@@ -476,11 +476,10 @@ async fn wrongFinishedCase(n: net.Net) -> String! {
         tls.ServerReply.Hello(value) -> value
         tls.ServerReply.Retry(_) -> fail Fail { text: "client: server sent a HelloRetryRequest" }
     }
-    let shared = match x25519.sharedSecret(clientSecret, parsed.keyShare) {
+    let sharedSecret = match x25519.sharedSecret(&secretOf(clientSecret), parsed.keyShare) {
         Ok(value) -> value
         Err(e) -> fail Fail { text: e.message() }
     }
-    let sharedSecret = secretOf(shared)
     let secrets = (tls.deriveHandshake(&sharedSecret, sha256.sum(hello.concat(serverHello))))?
 
     let mut flightHeader = Bytes.zeros(0)

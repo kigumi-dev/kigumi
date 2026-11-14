@@ -1,12 +1,14 @@
 -- src --
 import hex from std/encoding/hex
 import p256 from std/crypto/p256
+import secret from std/secret
 
 fn main() -> Void! {
     let d = hex.decode("C9AFA9D845BA75166B5C215767B1D6934E50C3DB36E89B127B8A622B120F6721")?
+    let dSecret = secret.SecretBuffer.fromBytes(d)
     let g = p256.publicKey(d)?
     let digest = hex.decode("0000000000000000000000000000000000000000000000000000000000000001")?
-    let good = p256.sign(d, digest)?
+    let good = p256.sign(&dSecret, digest)?
     print "valid-g ${p256.isValidPublicKey(g)}"
     print "valid-roundtrip ${p256.verify(g, digest, good)?}"
 
@@ -74,7 +76,7 @@ fn main() -> Void! {
         Err(e) -> print "verify-short-key ${e.message()}"
         Ok(v) -> print "verify-short-key ${v}"
     }
-    match p256.sign(d, Bytes.zeros(31)) {
+    match p256.sign(&dSecret, Bytes.zeros(31)) {
         Err(e) -> print "sign-short-digest ${e.message()}"
         Ok(_) -> print "sign-short-digest accepted"
     }

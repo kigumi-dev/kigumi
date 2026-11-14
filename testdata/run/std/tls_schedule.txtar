@@ -43,7 +43,7 @@ let shared = dec(SHARED)
 // The RFC's own x25519 inputs must land on the shared secret it records.
 let serverPublic = dec("c9828876112095fe66762bdbf7c672e156d6cc253b833df1dd69b1b04e751f0f")
 let clientSecret = dec("49af42ba7f7994852d713ef2784bcbcaa7911de26adc5642cb634540e7ea5005")
-let derivedShared = (x25519.sharedSecret(clientSecret, serverPublic))?
+let derivedShared = reveal(&(x25519.sharedSecret(&sec.SecretBuffer.fromBytes(clientSecret), serverPublic))?)
 show("shared", derivedShared, SHARED)
 
 // Transcript hash through ServerHello.

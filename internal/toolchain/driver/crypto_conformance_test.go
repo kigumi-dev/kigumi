@@ -313,8 +313,12 @@ func buildCryptoProgram(t *testing.T, m *cryptoManifest, native bool) string {
 				imports["secret"] = "std/secret"
 			case "x25519", "x25519-public":
 				imports["x25519"] = "std/crypto/x25519"
+				imports["secret"] = "std/secret"
 			case "p256-public", "p256-ecdh", "p256-ecdsa-sign", "p256-ecdsa-verify":
 				imports["p256"] = "std/crypto/p256"
+				if v.Op == "p256-ecdsa-sign" {
+					imports["secret"] = "std/secret"
+				}
 			case "rsa-pkcs1-sha256-verify", "rsa-pss-sha256-verify":
 				imports["rsa"] = "std/crypto/rsa"
 			case "x509-parse", "x509-chain":
@@ -453,17 +457,17 @@ func emitCryptoVector(b *strings.Builder, v cryptoVector, idx int) {
 		emitResultSecret(b, v.ID, idx, fmt.Sprintf("chacha20poly1305.open(&secret.SecretBuffer.fromBytes(%s), %s, %s, %s)",
 			hexArg(v.Key), hexArg(v.Nonce), hexArg(v.AAD), hexArg(v.Sealed)))
 	case "x25519":
-		emitResultBytes(b, v.ID, idx, fmt.Sprintf("x25519.sharedSecret(%s, %s)",
+		emitResultSecret(b, v.ID, idx, fmt.Sprintf("x25519.sharedSecret(&secret.SecretBuffer.fromBytes(%s), %s)",
 			hexArg(v.Secret), hexArg(v.PeerPublic)))
 	case "x25519-public":
-		emitResultBytes(b, v.ID, idx, fmt.Sprintf("x25519.publicKey(%s)", hexArg(v.Secret)))
+		emitResultBytes(b, v.ID, idx, fmt.Sprintf("x25519.publicKey(&secret.SecretBuffer.fromBytes(%s))", hexArg(v.Secret)))
 	case "p256-public":
 		emitResultBytes(b, v.ID, idx, fmt.Sprintf("p256.publicKey(%s)", hexArg(v.Secret)))
 	case "p256-ecdh":
 		emitResultBytes(b, v.ID, idx, fmt.Sprintf("p256.sharedSecret(%s, %s)",
 			hexArg(v.Secret), hexArg(v.PeerPublic)))
 	case "p256-ecdsa-sign":
-		emitResultBytes(b, v.ID, idx, fmt.Sprintf("p256.signMessage(%s, %s)",
+		emitResultBytes(b, v.ID, idx, fmt.Sprintf("p256.signMessage(&secret.SecretBuffer.fromBytes(%s), %s)",
 			hexArg(v.Secret), hexArg(v.Message)))
 	case "p256-ecdsa-verify":
 		emitResultBool(b, v.ID, idx, fmt.Sprintf("p256.verifyMessage(%s, %s, %s)",

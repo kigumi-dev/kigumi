@@ -2,6 +2,7 @@
 import hex from std/encoding/hex
 import p256 from std/crypto/p256
 import sha256 from std/crypto/sha256
+import secret from std/secret
 
 fn show(b: Bytes) -> String {
     hex.encode(b)
@@ -10,13 +11,14 @@ fn show(b: Bytes) -> String {
 fn main() -> Void! {
     // RFC 6979 appendix A.2.5, NIST P-256 with SHA-256.
     let d = hex.decode("C9AFA9D845BA75166B5C215767B1D6934E50C3DB36E89B127B8A622B120F6721")?
+    let dSecret = secret.SecretBuffer.fromBytes(d)
     let pubKey = p256.publicKey(d)?
     print "signer ${show(pubKey)}"
-    print "sig-sample ${show(p256.signMessage(d, b"sample")?)}"
-    print "sig-test ${show(p256.signMessage(d, b"test")?)}"
+    print "sig-sample ${show(p256.signMessage(&dSecret, b"sample")?)}"
+    print "sig-test ${show(p256.signMessage(&dSecret, b"test")?)}"
 
     // The prehashed entry point takes the SHA-256 digest directly.
-    print "sig-prehash ${show(p256.sign(d, sha256.sum(b"sample"))?)}"
+    print "sig-prehash ${show(p256.sign(&dSecret, sha256.sum(b"sample"))?)}"
 
     // The published r || s for "sample", verified without signing first.
     let published = hex.decode("EFD48B2AACB6A8FD1140DD9CD45E81D69D2C877B56AAF991C34D0EA84EAF3716F7CB1C942D657C41D436C7A1B6E29F65F3E900DBB9AFF4064DC4AB2F843ACDA8")?

@@ -186,11 +186,12 @@ async fn Session.runServerHandshake(mut self, config: ServerConfig) -> Result[Vo
     if certificates.len() == 0 {
         fail Error.BadCertificate("no certificate chain was configured")
     }
-    let key = match config.key {
-        // P-256 is a public-key primitive that still takes a plain byte
-        // string; the private key leaves the secret domain here.
-        ServerKey.EcP256(secret) -> unsafe { secret.declassify() }
+    let keySecret = match config.key {
+        ServerKey.EcP256(secret) -> secret
     }
+    // The P-256 public-key derivation still takes public limbs; signing keeps
+    // the private scalar secret-typed.
+    let key = p256Scalar(&keySecret)
     if key.len() != p256.scalarSize {
         fail Error.BadCertificate("server key must be 32 bytes")
     }
@@ -244,10 +245,10 @@ async fn Session.runServerHandshake(mut self, config: ServerConfig) -> Result[Vo
     if serverRandom.equals(&helloRetryRequestRandom()) {
         fail Error.Random("random source produced the HelloRetryRequest value")
     }
-    let secret = match randomFn(32) {
+    let secret = sec.SecretBuffer.fromBytes(match randomFn(32) {
         Ok(value) -> value
         Err(e) -> fail Error.Random(e.message())
-    }
+    })
     if secret.len() != 32 {
         fail Error.Random("random source returned ${secret.len()} bytes, not 32")
     }
@@ -269,9 +270,8 @@ async fn Session.runServerHandshake(mut self, config: ServerConfig) -> Result[Vo
 
     let selectedAlpn = selectAlpn(&config.alpn, &parsed.alpn)?
     let group = parsed.group
-    let serverPublic = ephemeralPublic(group, secret)?
-    let shared = keyExchangeShared(group, secret, parsed.keyShare)?
-    let sharedSecret = sec.SecretBuffer.fromBytes(shared)
+    let serverPublic = ephemeralPublic(group, &secret)?
+    let sharedSecret = keyExchangeShared(group, &secret, parsed.keyShare)?
 
     // Resolve and authenticate a resumption offer before touching the key
     // schedule. An unknown ticket falls back to a full handshake; a ticket
@@ -377,7 +377,7 @@ async fn Session.runServerHandshake(mut self, config: ServerConfig) -> Result[Vo
         transcript = transcript.concat(certMessage)
         flight = flight.concat(certMessage)
 
-        let signature = match p256.signMessage(key, certificateVerifyMessage(sha256.sum(transcript))) {
+        let signature = match p256.signMessage(&keySecret, certificateVerifyMessage(sha256.sum(transcript))) {
             Ok(value) -> value
             Err(e) -> fail Error.KeySchedule(e.message())
         }

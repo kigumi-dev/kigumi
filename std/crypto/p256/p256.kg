@@ -11,6 +11,8 @@
 // native backend turns that into a timing guarantee. The limb arithmetic
 // allocates nothing; encoding allocates the output bytes.
 import sha256 from std/crypto/sha256
+import mem from std/mem
+import secret from std/secret
 
 /// Bytes of a scalar, coordinate or digest.
 pub const scalarSize: usize = 32
@@ -114,13 +116,27 @@ pub pure fn sharedSecret(secret: Bytes, peerPublic: Bytes) -> Result[Bytes, Erro
     Ok(toBytes(affineX))
 }
 
-/// ECDSA over a 32-byte prehashed digest, with an RFC 6979 nonce.
-pub fn sign(secret: Bytes, digest: Bytes) -> Result[Bytes, Error] {
+/// ECDSA over a 32-byte prehashed digest, with an RFC 6979 nonce. The private
+/// scalar is a `SecretBuffer`; the signature is public.
+pub fn sign(secret: &secret.SecretBuffer, digest: Bytes) -> Result[Bytes, Error] {
     if digest.len() != scalarSize {
         return Err(Error.BadDigestSize)
     }
-    let d = secretScalar(secret)?
-    signDigest(d, digestScalar(digest), secret, digest)
+    if secret.len() != scalarSize {
+        return Err(Error.BadScalarSize)
+    }
+    // The scalar and the nonce generator are written over public limbs. This
+    // is the explicit boundary that feeds them; the caller's buffer stays
+    // secret and the released copy is wiped before returning.
+    let mut raw = unsafe {
+        secret.copy().declassify()
+    }
+    let result = match secretScalar(raw) {
+        Ok(d) -> signDigest(d, digestScalar(digest), raw, digest)
+        Err(e) -> Err(e)
+    }
+    mem.secureErase(&mut raw)
+    result
 }
 
 /// ECDSA verification of a 32-byte prehashed digest.
@@ -145,7 +161,7 @@ pub pure fn verify(public: Bytes, digest: Bytes, signature: Bytes) -> Result[Boo
 }
 
 /// ECDSA over the SHA-256 hash of `message`.
-pub fn signMessage(secret: Bytes, message: Bytes) -> Result[Bytes, Error] {
+pub fn signMessage(secret: &secret.SecretBuffer, message: Bytes) -> Result[Bytes, Error] {
     sign(secret, sha256.sum(message))
 }
 

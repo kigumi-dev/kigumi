@@ -4,6 +4,8 @@
 // bit only feeds a mask-based swap and the doubled-and-add formulas, and the
 // field helpers in `field.kg` keep every limb branchless. Only the native
 // backend gives a timing guarantee; the VM makes no such promise.
+import secret from std/secret
+
 /// Bytes of a scalar, u-coordinate or shared secret.
 pub const keySize: usize = 32
 
@@ -23,34 +25,54 @@ pub fn Error.message(self) -> String {
     }
 }
 
-/// Multiplies `point` by the clamped `scalar`, as RFC 7748 defines X25519.
-/// Both arguments must be 32 bytes; the u-coordinate's top bit is masked.
-///
-/// An all-zero output means the peer point had small order; callers that need
-/// contributory behaviour MUST reject it.
-pub pure fn scalarMult(scalar: Bytes, point: Bytes) -> Result[Bytes, Error] {
+/// The private scalar's bytes. X25519's field and ladder are written over
+/// public integers; this is the one release boundary that feeds them. Callers
+/// cannot reach it with a public `Bytes`: the API below demands a
+/// `SecretBuffer`. The copy is independent of the caller's buffer, which is
+/// wiped when it drops.
+fn scalarBytes(scalar: &secret.SecretBuffer) -> Bytes {
+    unsafe {
+        scalar.copy().declassify()
+    }
+}
+
+fn scalarMultBytes(scalar: &secret.SecretBuffer, point: Bytes) -> Result[Bytes, Error] {
     if scalar.len() != keySize {
         return Err(Error.BadScalarSize)
     }
     if point.len() != keySize {
         return Err(Error.BadPointSize)
     }
-    Ok(ladder(clamp(scalar), point))
+    Ok(ladder(clamp(scalarBytes(scalar)), point))
 }
 
-/// Multiplies the Curve25519 base point (u = 9) by `scalar`.
-pub pure fn baseMult(scalar: Bytes) -> Result[Bytes, Error] {
-    scalarMult(scalar, basePoint())
+/// Multiplies `point` by the clamped secret `scalar`, as RFC 7748 defines
+/// X25519. The result stays secret. Both arguments must be 32 bytes; the
+/// u-coordinate's top bit is masked.
+///
+/// An all-zero output means the peer point had small order; callers that need
+/// contributory behaviour MUST reject it.
+pub fn scalarMult(scalar: &secret.SecretBuffer, point: Bytes) -> Result[secret.SecretBuffer, Error] {
+    let out = scalarMultBytes(scalar, point)?
+    Ok(secret.SecretBuffer.fromBytes(out))
 }
 
-/// The public key for `secret`: `baseMult` under its standard name.
-pub pure fn publicKey(secret: Bytes) -> Result[Bytes, Error] {
-    baseMult(secret)
+/// Multiplies the Curve25519 base point (u = 9) by the secret `scalar`. The
+/// output is a public key.
+pub fn baseMult(scalar: &secret.SecretBuffer) -> Result[Bytes, Error] {
+    publicKey(scalar)
 }
 
-/// The shared secret between `secret` and a 32-byte peer public key.
-pub pure fn sharedSecret(secret: Bytes, peerPublic: Bytes) -> Result[Bytes, Error] {
-    scalarMult(secret, peerPublic)
+/// The public key for the secret `secret`: `baseMult` under its standard
+/// name. The private scalar is secret; the public key is public.
+pub fn publicKey(secret: &secret.SecretBuffer) -> Result[Bytes, Error] {
+    scalarMultBytes(secret, basePoint())
+}
+
+/// The shared secret between the secret scalar `secret` and a 32-byte peer
+/// public key. The output is secret.
+pub fn sharedSecret(scalar: &secret.SecretBuffer, peerPublic: Bytes) -> Result[secret.SecretBuffer, Error] {
+    scalarMult(scalar, peerPublic)
 }
 
 pure fn clamp(scalar: Bytes) -> FixedArray[u8, keySize] {

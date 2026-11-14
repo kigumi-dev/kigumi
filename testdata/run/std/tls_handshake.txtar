@@ -662,7 +662,7 @@ async fn serverRun(conn: net.Conn, mode: Mode, cert: Bytes, key: Bytes) -> Void!
     let certMsg = hs(11, certificateBody(cert))
 
     let transcriptCv = sha256.sum(transcriptBase.concat(eeMsg).concat(certMsg))
-    let signature = (p256.signMessage(key, tls.certificateVerifyMessage(transcriptCv)))?
+    let signature = (p256.signMessage(&secretOf(key), tls.certificateVerifyMessage(transcriptCv)))?
     let der = derSignature(signature)
     let mut cvBody = Array.empty[u8]()
     put16(&mut cvBody, 0x0403)
@@ -757,15 +757,15 @@ fn certificateBody(cert: Bytes) -> Bytes {
 import x25519 from std/crypto/x25519
 
 fn x25519Public(secret: Bytes) -> Bytes! {
-    match x25519.publicKey(secret) {
+    match x25519.publicKey(&secretOf(secret)) {
         Ok(v) -> v
         Err(e) -> fail Fail { text: e.message() }
     }
 }
 
 fn x25519Shared(secret: Bytes, peer: Bytes) -> Bytes! {
-    match x25519.sharedSecret(secret, peer) {
-        Ok(v) -> v
+    match x25519.sharedSecret(&secretOf(secret), peer) {
+        Ok(v) -> unsafe { v.declassify() }
         Err(e) -> fail Fail { text: e.message() }
     }
 }

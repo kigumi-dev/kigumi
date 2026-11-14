@@ -71,7 +71,23 @@ fn allZero(b: Bytes) -> Bool {
 /// The public half of an ephemeral ECDH secret for a group this client
 /// supports. The first ClientHello uses x25519; secp256r1 is only reached
 /// when a HelloRetryRequest selects it.
-fn ephemeralPublic(group: u16, secret: Bytes) -> Result[Bytes, Error] {
+/// The P-256 scalar parser still takes public limbs; the TLS key exchange
+/// releases a copy at this explicit boundary.
+fn p256Scalar(secret: &sec.SecretBuffer) -> Bytes {
+    unsafe {
+        secret.copy().declassify()
+    }
+}
+
+/// Whether a secret buffer is all zero, compared without a data-dependent
+/// branch. The answer is the public accept/reject decision.
+fn secretAllZero(b: &sec.SecretBuffer) -> Bool {
+    unsafe {
+        b.ctEqPublic(&Bytes.zeros(b.len())).declassify()
+    }
+}
+
+fn ephemeralPublic(group: u16, secret: &sec.SecretBuffer) -> Result[Bytes, Error] {
     if group == x25519Group {
         if secret.len() != x25519.keySize {
             fail Error.MalformedHandshake("x25519 secret must be 32 bytes")
@@ -88,7 +104,7 @@ fn ephemeralPublic(group: u16, secret: Bytes) -> Result[Bytes, Error] {
         if secret.len() != p256.scalarSize {
             fail Error.MalformedHandshake("secp256r1 secret must be 32 bytes")
         }
-        match p256.publicKey(secret) {
+        match p256.publicKey(p256Scalar(secret)) {
             Ok(value) -> Ok(value)
             Err(e) -> fail Error.KeySchedule(e.message())
         }
@@ -99,7 +115,7 @@ fn ephemeralPublic(group: u16, secret: Bytes) -> Result[Bytes, Error] {
 
 /// The ECDH shared secret for a group, with the peer's public key checked
 /// by the curve implementation.
-fn keyExchangeShared(group: u16, secret: Bytes, peer: Bytes) -> Result[Bytes, Error] {
+fn keyExchangeShared(group: u16, secret: &sec.SecretBuffer, peer: Bytes) -> Result[sec.SecretBuffer, Error] {
     if group == x25519Group {
         if peer.len() != 32 {
             fail Error.MalformedHandshake("x25519 key share must be 32 bytes")
@@ -108,13 +124,13 @@ fn keyExchangeShared(group: u16, secret: Bytes, peer: Bytes) -> Result[Bytes, Er
             Ok(value) -> value
             Err(e) -> fail Error.KeySchedule(e.message())
         }
-        if allZero(shared) {
+        if secretAllZero(&shared) {
             fail Error.KeySchedule("x25519 shared secret is all zero")
         }
         Ok(shared)
     } else if group == secp256r1Group {
-        match p256.sharedSecret(secret, peer) {
-            Ok(value) -> Ok(value)
+        match p256.sharedSecret(p256Scalar(secret), peer) {
+            Ok(value) -> Ok(sec.SecretBuffer.fromBytes(value))
             Err(e) -> fail Error.KeySchedule(e.message())
         }
     } else {
@@ -522,11 +538,11 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
         fail Error.MalformedHandshake("session id from the random source is too long")
     }
     let mut group = x25519Group
-    let mut secret = match randomFn(32) {
+    let mut secret = sec.SecretBuffer.fromBytes(match randomFn(32) {
         Ok(value) -> value
         Err(e) -> fail Error.Random(e.message())
-    }
-    let mut public = ephemeralPublic(group, secret)?
+    })
+    let mut public = ephemeralPublic(group, &secret)?
     let offeredAlpn = alpn.clone()
 
     // A ticket is offered only to the server and protocol that issued it,
@@ -606,11 +622,11 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
                 }
                 if nextGroup != group {
                     group = nextGroup
-                    secret = match randomFn(32) {
+                    secret = sec.SecretBuffer.fromBytes(match randomFn(32) {
                         Ok(value) -> value
                         Err(e) -> fail Error.Random(e.message())
-                    }
-                    public = ephemeralPublic(group, secret)?
+                    })
+                    public = ephemeralPublic(group, &secret)?
                 }
                 // A second ClientHello never carries the PSK: the server
                 // did not select it in the first exchange.
@@ -660,8 +676,7 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
         fail Error.UnexpectedMessage("plaintext handshake bytes follow the ServerHello")
     }
 
-    let shared = keyExchangeShared(group, secret, helloParsed.keyShare)?
-    let sharedSecret = sec.SecretBuffer.fromBytes(shared)
+    let sharedSecret = keyExchangeShared(group, &secret, helloParsed.keyShare)?
     let secrets = match if resumed {
         deriveHandshakePsk(&pskValue, &sharedSecret, sha256.sum(transcript))
     } else {
@@ -774,12 +789,12 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
                 Some(value) -> value
                 None -> fail Error.ClientAuthRequired
             }
-            let keyBytes = match key {
-                // P-256 signing is a public-key primitive that still takes a
-                // plain byte string; the private key leaves the secret domain
-                // at this explicit boundary.
-                ClientKey.EcP256(secret) -> unsafe { secret.declassify() }
+            let keySecret = match key {
+                ClientKey.EcP256(secret) -> secret
             }
+            // Deriving the public half needs the limb parser; the signing
+            // call below keeps the private scalar secret-typed.
+            let keyBytes = p256Scalar(&keySecret)
             let public = match leaf.publicKey {
                 x509.PublicKey.EcP256(bytes) -> bytes
                 x509.PublicKey.Rsa(_) -> fail Error.Unsupported("an RSA client key is not implemented")
@@ -796,7 +811,7 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
             (await self.sendHandshake(responseMessage))?
             // RFC 8446 §4.4.3: the client signature covers the transcript
             // through the client Certificate message just sent.
-            let signature = match p256.signMessage(keyBytes, clientCertificateVerifyMessage(sha256.sum(transcript))) {
+            let signature = match p256.signMessage(&keySecret, clientCertificateVerifyMessage(sha256.sum(transcript))) {
                 Ok(value) -> value
                 Err(e) -> fail Error.KeySchedule(e.message())
             }
