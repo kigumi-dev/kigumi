@@ -1,3 +1,5 @@
+import secret from std/secret
+
 /// The contract a cryptographic hash implements so that HMAC, HKDF and the
 /// rest of `std/crypto` never name a concrete algorithm.
 ///
@@ -25,4 +27,22 @@ pub pure fn sumAll[D: Digest](pieces: &Array[Bytes]) -> Bytes {
         h.update(p)
     }
     h.finish()
+}
+
+/// The secret-input extension of `Digest`, used by HMAC and HKDF. A type
+/// satisfies it only when it can absorb secret bytes and return a secret
+/// digest without handing the key to a public `Bytes` slot.
+pub interface SecretDigest {
+    pure fn new() -> Self
+    pure noalloc fn blockSize() -> usize
+    pure noalloc fn size() -> usize
+    pure fn updateSecret(mut self, data: &secret.SecretBuffer)
+    pure fn finishSecret(move self) -> secret.SecretBuffer
+}
+
+/// Secret digest of `data` in one call.
+pub pure fn sumSecret[D: SecretDigest](data: &secret.SecretBuffer) -> secret.SecretBuffer {
+    let mut h = D.new()
+    h.updateSecret(data)
+    h.finishSecret()
 }

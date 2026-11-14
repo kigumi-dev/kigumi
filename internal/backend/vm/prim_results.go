@@ -21,19 +21,28 @@ const (
 // primResultTable lists the primitives more precise than resultAll. Every fallible allocation whose Result tag
 // depends only on sizes is here; one whose output length follows the contents (trim, split, join) keeps resultAll.
 var primResultTable = map[string]resultRule{
-	"array.Array.len":                 resultLen,
-	"prelude.String.len":              resultLen,
-	"prelude.Bytes.len":               resultLen,
-	"array.Array.of":                  resultShapes,
-	"array.Array.get":                 resultShapes,
-	"array.Array.first":               resultShapes,
-	"array.Array.last":                resultShapes,
-	"array.Array.with":                resultShapes,
-	"array.Array.withMut":             resultShapes,
-	"array.Array.takeAt":              resultShapes,
-	"array.Array.trySlice":            resultShapes,
-	"array.Array.tryCopyRange":        resultShapes,
-	"array.Array.tryReverse":          resultShapes,
+	"array.Array.len":          resultLen,
+	"prelude.String.len":       resultLen,
+	"prelude.Bytes.len":        resultLen,
+	"array.Array.of":           resultShapes,
+	"array.Array.get":          resultShapes,
+	"array.Array.first":        resultShapes,
+	"array.Array.last":         resultShapes,
+	"array.Array.with":         resultShapes,
+	"array.Array.withMut":      resultShapes,
+	"array.Array.takeAt":       resultShapes,
+	"array.Array.trySlice":     resultShapes,
+	"array.Array.tryCopyRange": resultShapes,
+	"array.Array.tryReverse":   resultShapes,
+	// These return an allocation success Bool/Result tag, which depends only
+	// on sizes and capacity, never on the stored secret bytes. Without this
+	// rule the default resultAll taints the Bool from the array's label and a
+	// secret container's ordinary push branch becomes a false sink.
+	"array.Array.pushCopy":            resultNone,
+	"array.Array.growBy":              resultShapes,
+	"array.Array.tryPush":             resultShapes,
+	"array.Array.tryReserve":          resultShapes,
+	"array.Array.tryAppendAll":        resultShapes,
 	"prelude.FixedArray.adopt":        resultShapes,
 	"prelude.FixedArray.withMut":      resultShapes,
 	"prelude.String.toBytes":          resultShapes,

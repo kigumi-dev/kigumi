@@ -1,16 +1,25 @@
 -- src --
 import aead from std/crypto/chacha20poly1305
 import hex from std/encoding/hex
+import secret from std/secret
 
 fn show(b: Bytes) -> String {
     hex.encode(b)
+}
+
+fn showSecret(b: &secret.SecretBuffer) -> String {
+    hex.encode(unsafe { b.copy().declassify() })
+}
+
+fn sec(b: Bytes) -> secret.SecretBuffer {
+    secret.SecretBuffer.fromBytes(b)
 }
 
 fn dec(s: String) -> Bytes {
     hex.decode(s).expect("hex")
 }
 
-fn outcome(r: Result[Bytes, aead.Error]) -> String {
+fn outcome(r: Result[secret.SecretBuffer, aead.Error]) -> String {
     match r {
         Ok(b) -> "ok:${b.len()}"
         Err(aead.Error.BadKeySize) -> "bad-key-size"
@@ -20,9 +29,9 @@ fn outcome(r: Result[Bytes, aead.Error]) -> String {
     }
 }
 
-fn openHex(r: Result[Bytes, aead.Error]) -> String {
+fn openHex(r: Result[secret.SecretBuffer, aead.Error]) -> String {
     match r {
-        Ok(b) -> hex.encode(b)
+        Ok(b) -> showSecret(&b)
         Err(_) -> "err"
     }
 }
@@ -42,50 +51,52 @@ fn flip(b: Bytes, at: usize) -> Bytes {
 }
 
 // RFC 8439 §2.8.2
-let key = dec("808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f")
+let key = sec(dec("808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f"))
 let nonce = dec("070000004041424344454647")
 let aad = dec("50515253c0c1c2c3c4c5c6c7")
-let plaintext = b"Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen would be it."
-let sealed = aead.seal(key, nonce, aad, plaintext).expect("seal")
+let plaintext = sec(b"Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen would be it.")
+let sealedSecret = aead.seal(&key, nonce, aad, &plaintext).expect("seal")
+// The test boundary releases the sealed bytes so they can be compared.
+let sealed = unsafe { sealedSecret.copy().declassify() }
 print "rfc-seal ${show(sealed)}"
-print "rfc-open ${openHex(aead.open(key, nonce, aad, sealed))}"
-print "rfc-roundtrip ${outcome(aead.open(key, nonce, aad, sealed))}"
+print "rfc-open ${openHex(aead.open(&key, nonce, aad, sealed))}"
+print "rfc-roundtrip ${outcome(aead.open(&key, nonce, aad, sealed))}"
 
 // RFC 8439 §A.5: a 265-byte ciphertext in twelve blocks
-let a5key = dec("1c9240a5eb55d38af333888604f6b5f0473917c1402b80099dca5cbc207075c0")
+let a5key = sec(dec("1c9240a5eb55d38af333888604f6b5f0473917c1402b80099dca5cbc207075c0"))
 let a5nonce = dec("000000000102030405060708")
 let a5aad = dec("f33388860000000000004e91")
 let a5cipher = dec("64a0861575861af460f062c79be643bd5e805cfd345cf389f108670ac76c8cb24c6cfc18755d43eea09ee94e382d26b0bdb7b73c321b0100d4f03b7f355894cf332f830e710b97ce98c8a84abd0b948114ad176e008d33bd60f982b1ff37c8559797a06ef4f0ef61c186324e2b3506383606907b6a7c02b0f9f6157b53c867e4b9166c767b804d46a59b5216cde7a4e99040c5a40433225ee282a1b0a06c523eaf4534d7f83fa1155b0047718cbc546a0d072b04b3564eea1b422273f548271a0bb2316053fa76991955ebd63159434ecebb4e466dae5a1073a6727627097a1049e617d91d361094fa68f0ff77987130305beaba2eda04df997b714d6c6f2c29a6ad5cb4022b02709b")
 let a5sealed = a5cipher.concat(dec("eead9d67890cbb22392336fea1851f38"))
-print "a5-open ${openHex(aead.open(a5key, a5nonce, a5aad, a5sealed))}"
-print "a5-empty ${show(aead.seal(a5key, a5nonce, a5aad, Bytes.zeros(0)).expect("seal"))}"
+print "a5-open ${openHex(aead.open(&a5key, a5nonce, a5aad, a5sealed))}"
+print "a5-empty ${showSecret(&aead.seal(&a5key, a5nonce, a5aad, &sec(Bytes.zeros(0))).expect("seal"))}"
 
 // Tampering with any authenticated byte, or with the tag, is refused
-print "tag-flip ${outcome(aead.open(key, nonce, aad, flip(sealed, sealed.len() - 1)))}"
-print "ct-flip ${outcome(aead.open(key, nonce, aad, flip(sealed, 0)))}"
-print "aad-mismatch ${outcome(aead.open(key, nonce, Bytes.zeros(0), sealed))}"
-print "nonce-mismatch ${outcome(aead.open(key, dec("000000000000000000000000"), aad, sealed))}"
-print "short-input ${outcome(aead.open(key, nonce, aad, Bytes.zeros(15)))}"
-print "empty-input ${outcome(aead.open(key, nonce, aad, Bytes.zeros(0)))}"
-print "bad-key ${outcome(aead.open(Bytes.zeros(31), nonce, aad, sealed))}"
-print "bad-nonce ${outcome(aead.open(key, Bytes.zeros(11), aad, sealed))}"
-print "seal-bad-key ${outcome(aead.seal(Bytes.zeros(33), nonce, aad, plaintext))}"
-print "seal-bad-nonce ${outcome(aead.seal(key, Bytes.fill(0, 13), aad, plaintext))}"
+print "tag-flip ${outcome(aead.open(&key, nonce, aad, flip(sealed, sealed.len() - 1)))}"
+print "ct-flip ${outcome(aead.open(&key, nonce, aad, flip(sealed, 0)))}"
+print "aad-mismatch ${outcome(aead.open(&key, nonce, Bytes.zeros(0), sealed))}"
+print "nonce-mismatch ${outcome(aead.open(&key, dec("000000000000000000000000"), aad, sealed))}"
+print "short-input ${outcome(aead.open(&key, nonce, aad, Bytes.zeros(15)))}"
+print "empty-input ${outcome(aead.open(&key, nonce, aad, Bytes.zeros(0)))}"
+print "bad-key ${outcome(aead.open(&sec(Bytes.zeros(31)), nonce, aad, sealed))}"
+print "bad-nonce ${outcome(aead.open(&key, Bytes.zeros(11), aad, sealed))}"
+print "seal-bad-key ${outcome(aead.seal(&sec(Bytes.zeros(33)), nonce, aad, &plaintext))}"
+print "seal-bad-nonce ${outcome(aead.seal(&key, Bytes.fill(0, 13), aad, &plaintext))}"
 
 // Empty and non-block-aligned shapes
-let ek = dec("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
-print "empty-empty ${show(aead.seal(ek, dec("000000000000000000000000"), Bytes.zeros(0), Bytes.zeros(0)).expect("seal"))}"
-print "empty-empty-open ${outcome(aead.open(ek, dec("000000000000000000000000"), Bytes.zeros(0), aead.seal(ek, dec("000000000000000000000000"), Bytes.zeros(0), Bytes.zeros(0)).expect("seal")))}"
-print "empty-aad ${show(aead.seal(ek, dec("0102030405060708090a0b0c"), dec("aabbccddee"), Bytes.zeros(0)).expect("seal"))}"
-print "pt-no-aad ${show(aead.seal(ek, dec("0c0b0a090807060504030201"), Bytes.zeros(0), b"abc").expect("seal"))}"
-print "odd-aad ${show(aead.seal(ek, dec("ffffffffffffffffffffffff"), Bytes.fill(0x00, 15), b"0123456789abcdef0123456789abcde").expect("seal"))}"
+let ek = sec(dec("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"))
+print "empty-empty ${showSecret(&aead.seal(&ek, dec("000000000000000000000000"), Bytes.zeros(0), &sec(Bytes.zeros(0))).expect("seal"))}"
+print "empty-empty-open ${outcome(aead.open(&ek, dec("000000000000000000000000"), Bytes.zeros(0), unsafe { aead.seal(&ek, dec("000000000000000000000000"), Bytes.zeros(0), &sec(Bytes.zeros(0))).expect("seal").declassify() }))}"
+print "empty-aad ${showSecret(&aead.seal(&ek, dec("0102030405060708090a0b0c"), dec("aabbccddee"), &sec(Bytes.zeros(0))).expect("seal"))}"
+print "pt-no-aad ${showSecret(&aead.seal(&ek, dec("0c0b0a090807060504030201"), Bytes.zeros(0), &sec(b"abc")).expect("seal"))}"
+print "odd-aad ${showSecret(&aead.seal(&ek, dec("ffffffffffffffffffffffff"), Bytes.fill(0x00, 15), &sec(b"0123456789abcdef0123456789abcde")).expect("seal"))}"
 let mut block = Array.empty[u8]()
 let mut i: usize = 0
 for i < 64 {
     block.push(i.truncate[u8]())
     i = i + 1
 }
-print "block64 ${show(aead.seal(ek, dec("000000000000000000000001"), Bytes.fill(0x78, 17), Bytes.fromArray(&block)).expect("seal"))}"
+print "block64 ${showSecret(&aead.seal(&ek, dec("000000000000000000000001"), Bytes.fill(0x78, 17), &sec(Bytes.fromArray(&block))).expect("seal"))}"
 -- stdout --
 rfc-seal d31a8d34648e60db7b86afbc53ef7ec2a4aded51296e08fea9e2b5a736ee62d63dbea45e8ca9671282fafb69da92728b1a71de0a9e060b2905d6a5b67ecd3b3692ddbd7f2d778b8c9803aee328091b58fab324e4fad675945585808b4831d7bc3ff4def08e4b7a9de576d26586cec64b61161ae10b594f09e26a7e902ecbd0600691
 rfc-open 4c616469657320616e642047656e746c656d656e206f662074686520636c617373206f66202739393a204966204920636f756c64206f6666657220796f75206f6e6c79206f6e652074697020666f7220746865206675747572652c2073756e73637265656e20776f756c642062652069742e

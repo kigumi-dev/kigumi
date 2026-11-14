@@ -8,6 +8,7 @@ import p256 from std/crypto/p256
 import sha256 from std/crypto/sha256
 import task from std/task
 import tls from std/net/tls
+import sec from std/secret
 import x509 from std/crypto/x509
 
 const ROOT = "3082019330820139a003020102020101300a06082a8648ce3d0403023030310f300d060355040a0c064b6967756d69311d301b06035504030c144b6967756d6920544c53205465737420526f6f743020170d3236313130363030303030305a180f32303534303332353030303030305a3030310f300d060355040a0c064b6967756d69311d301b06035504030c144b6967756d6920544c53205465737420526f6f743059301306072a8648ce3d020106082a8648ce3d0301070342000456288617c1b007e78bb5b6d887ee84d7f905065078935ba3e6ece0213b1a03add07e7c4e42a1ec6a295fd288d16452b4a2107fe53105766eef03408ad4486fa9a3423040300f0603551d130101ff040530030101ff300e0603551d0f0101ff040403020106301d0603551d0e041604149809187f1e20cecd2dd8d5ab7b5f105f867d351b300a06082a8648ce3d0403020348003045022042bf4931f52f7940ba11ffc6156cf68f72e7c775eaeb0dcc5854add148c691fb022100b533846a2deedef6e82f412e0f96a0e46f7bde105580dcd8a31eaf7293b5db7d"
@@ -120,6 +121,18 @@ fn putBytes(out: &mut Array[u8], b: Bytes) {
         out.push(b[i])
         i = i + 1
     }
+}
+
+fn secretOf(b: Bytes) -> sec.SecretBuffer {
+    sec.SecretBuffer.fromBytes(b)
+}
+
+fn reveal(b: &sec.SecretBuffer) -> Bytes {
+    unsafe { b.copy().declassify() }
+}
+
+fn truth(c: sec.Choice) -> Bool {
+    unsafe { c.declassify() }
 }
 
 fn hs(typ: u8, body: Bytes) -> Bytes {
@@ -629,7 +642,8 @@ async fn serverRun(conn: net.Conn, mode: Mode, cert: Bytes, key: Bytes) -> Void!
 
     let transcriptBase = prefix.concat(shMsg)
     let transcript1 = sha256.sum(transcriptBase)
-    let handshake = (tls.deriveHandshake(shared, transcript1))?
+    let sharedSecret = secretOf(shared)
+    let handshake = (tls.deriveHandshake(&sharedSecret, transcript1))?
 
     // EncryptedExtensions.
     let mut eeExts = Array.empty[u8]()
@@ -657,7 +671,8 @@ async fn serverRun(conn: net.Conn, mode: Mode, cert: Bytes, key: Bytes) -> Void!
     let cvMsg = hs(15, Bytes.fromArray(&cvBody))
 
     let transcriptCv = sha256.sum(transcriptBase.concat(eeMsg).concat(certMsg).concat(cvMsg))
-    let mut verify = (tls.finishedVerifyData(handshake.server.secret, transcriptCv))?
+    let verifySecret = (tls.finishedVerifyData(&handshake.server.secret, transcriptCv))?
+    let mut verify = reveal(&verifySecret)
     if mode is Mode.WrongFinished {
         let mut flipped = Array.empty[u8]()
         let mut k: usize = 0
@@ -670,7 +685,7 @@ async fn serverRun(conn: net.Conn, mode: Mode, cert: Bytes, key: Bytes) -> Void!
     let finMsg = hs(20, verify)
 
     let flight = eeMsg.concat(certMsg).concat(cvMsg).concat(finMsg)
-    (await wire.writeAll((tls.sealRecord(handshake.server, 0, 22, flight))?))?
+    (await wire.writeAll((tls.sealRecord(&handshake.server, 0, 22, &secretOf(flight)))?))?
     if mode is Mode.WrongFinished || mode is Mode.EarlyData {
         return Ok(())
     }
@@ -680,35 +695,36 @@ async fn serverRun(conn: net.Conn, mode: Mode, cert: Bytes, key: Bytes) -> Void!
     if finishedRecord.typ != 23 {
         fail Fail { text: "server: client Finished record type ${finishedRecord.typ}" }
     }
-    let opened = (tls.openRecord(handshake.client, 0, finishedRecord.header, finishedRecord.payload))?
-    if opened.typ != 22 || opened.payload.len() != 36 || opened.payload[0] != 20 {
+    let opened = (tls.openRecord(&handshake.client, 0, finishedRecord.header, finishedRecord.payload))?
+    let openedBytes = reveal(&opened.payload)
+    if opened.typ != 22 || openedBytes.len() != 36 || openedBytes[0] != 20 {
         fail Fail { text: "server: client Finished framing" }
     }
-    let claimed = opened.payload.slice(4, 36).expect("verify")
+    let claimed = openedBytes.slice(4, 36).expect("verify")
     let transcriptApp = sha256.sum(transcriptBase.concat(eeMsg).concat(certMsg).concat(cvMsg).concat(finMsg))
-    let expected = (tls.finishedVerifyData(handshake.client.secret, transcriptApp))?
-    if !claimed.equals(&expected) {
+    let expected = (tls.finishedVerifyData(&handshake.client.secret, transcriptApp))?
+    if !truth(expected.ctEqPublic(&claimed)) {
         fail Fail { text: "server: client Finished verify_data" }
     }
 
-    let application = (tls.deriveApplication(handshake.master, transcriptApp))?
+    let application = (tls.deriveApplication(&handshake.master, transcriptApp))?
     let request = (await wire.readRecord())?
     if request.typ != 23 {
         fail Fail { text: "server: application record type" }
     }
-    let plain = (tls.openRecord(application.client, 0, request.header, request.payload))?
+    let plain = (tls.openRecord(&application.client, 0, request.header, request.payload))?
     if plain.typ != 23 {
         fail Fail { text: "server: inner application type" }
     }
-    let text = String.fromBytes(plain.payload)?
+    let text = String.fromBytes(reveal(&plain.payload))?
     if text != "hello tls" {
         fail Fail { text: "server: request `${text}`" }
     }
-    (await wire.writeAll((tls.sealRecord(application.server, 0, 23, "welcome".toBytes()))?))?
+    (await wire.writeAll((tls.sealRecord(&application.server, 0, 23, &secretOf("welcome".toBytes())))?))?
     let mut close = Array.empty[u8]()
     close.push(1)
     close.push(0)
-    (await wire.writeAll((tls.sealRecord(application.server, 1, 21, Bytes.fromArray(&close)))?))?
+    (await wire.writeAll((tls.sealRecord(&application.server, 1, 21, &secretOf(Bytes.fromArray(&close))))?))?
     Ok(())
 }
 
@@ -825,7 +841,8 @@ async fn runCase(n: net.Net, c: Case) -> String! {
     }
     if let Some(held) = session {
         let mut s = held
-        match await s.write("hello tls".toBytes()) {
+        let helloPlain = secretOf("hello tls".toBytes())
+        match await s.write(&helloPlain) {
             Ok(_) -> {}
             Err(e) -> { summary = "write: ${e.message()}" }
         }
@@ -836,7 +853,7 @@ async fn runCase(n: net.Net, c: Case) -> String! {
                     let secondResult = await s.read(64)
                     match secondResult {
                         Ok(second) -> {
-                            let text = match String.fromBytes(first) {
+                            let text = match String.fromBytes(reveal(&first)) {
                                 Ok(value) -> value
                                 Err(_) -> ""
                             }

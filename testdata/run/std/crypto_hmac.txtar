@@ -2,26 +2,35 @@
 import hex from std/encoding/hex
 import hmac from std/crypto/hmac
 import sha256 from std/crypto/sha256
+import secret from std/secret
 
-fn show(b: Bytes) -> String {
-    hex.encode(b)
+fn showSecret(b: &secret.SecretBuffer) -> String {
+    hex.encode(unsafe { b.copy().declassify() })
+}
+
+fn sec(b: Bytes) -> secret.SecretBuffer {
+    secret.SecretBuffer.fromBytes(b)
+}
+
+fn truth(c: secret.Choice) -> Bool {
+    unsafe { c.declassify() }
 }
 
 // RFC 4231 §4 の vector
-print "case1 ${show(hmac.sum[sha256.Hasher](Bytes.fill(0x0b, 20), b"Hi There"))}"
-print "case2 ${show(hmac.sum[sha256.Hasher](b"Jefe", b"what do ya want for nothing?"))}"
-print "case3 ${show(hmac.sum[sha256.Hasher](Bytes.fill(0xaa, 20), Bytes.fill(0xdd, 50)))}"
-print "case6 ${show(hmac.sum[sha256.Hasher](Bytes.fill(0xaa, 131), b"Test Using Larger Than Block-Size Key - Hash Key First"))}"
-print "case7 ${show(hmac.sum[sha256.Hasher](Bytes.fill(0xaa, 131), b"This is a test using a larger than block-size key and a larger than block-size data. The key needs to be hashed before being used by the HMAC algorithm."))}"
+print "case1 ${showSecret(&hmac.sum[sha256.SecretHasher](&sec(Bytes.fill(0x0b, 20)), &sec(b"Hi There")))}"
+print "case2 ${showSecret(&hmac.sum[sha256.SecretHasher](&sec(b"Jefe"), &sec(b"what do ya want for nothing?")))}"
+print "case3 ${showSecret(&hmac.sum[sha256.SecretHasher](&sec(Bytes.fill(0xaa, 20)), &sec(Bytes.fill(0xdd, 50))))}"
+print "case6 ${showSecret(&hmac.sum[sha256.SecretHasher](&sec(Bytes.fill(0xaa, 131)), &sec(b"Test Using Larger Than Block-Size Key - Hash Key First")))}"
+print "case7 ${showSecret(&hmac.sum[sha256.SecretHasher](&sec(Bytes.fill(0xaa, 131)), &sec(b"This is a test using a larger than block-size key and a larger than block-size data. The key needs to be hashed before being used by the HMAC algorithm.")))}"
 
 // 分割して update しても同じ tag になる
-let mut m = hmac.Hmac.new[sha256.Hasher](Bytes.fill(0x0b, 20))
-m.update(b"Hi ")
-m.update(b"There")
-print "split ${show(m.finish())}"
+let mut m = hmac.Hmac.new[sha256.SecretHasher](&sec(Bytes.fill(0x0b, 20)))
+m.update(&sec(b"Hi "))
+m.update(&sec(b"There"))
+print "split ${showSecret(&m.finish())}"
 
-print "verify ${hmac.verify[sha256.Hasher](b"Jefe", b"what do ya want for nothing?", hex.decode("5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843").unwrap())}"
-print "reject ${hmac.verify[sha256.Hasher](b"Jefe", b"what do ya want for nothing?", hex.decode("5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3844").unwrap())}"
+print "verify ${truth(hmac.verify[sha256.SecretHasher](&sec(b"Jefe"), &sec(b"what do ya want for nothing?"), hex.decode("5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843").unwrap()))}"
+print "reject ${truth(hmac.verify[sha256.SecretHasher](&sec(b"Jefe"), &sec(b"what do ya want for nothing?"), hex.decode("5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3844").unwrap()))}"
 -- stdout --
 case1 b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7
 case2 5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843

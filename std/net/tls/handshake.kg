@@ -1,4 +1,5 @@
 import sha256 from std/crypto/sha256
+import sec from std/secret
 // TLS 1.3 handshake messages (RFC 8446 §4): building the ClientHello and
 // parsing the server's flight.
 //
@@ -155,7 +156,7 @@ pure fn wrap8(body: &Array[u8]) -> Result[Array[u8], Error] {
 /// Builds the first ClientHello handshake message for an (EC)DHE-only TLS
 /// 1.3 handshake with one x25519 key share. secp256r1 is advertised in
 /// supported_groups so a server may ask for it in a HelloRetryRequest.
-pub pure fn clientHello(random: Bytes, sessionId: Bytes, keyShare: Bytes, serverName: String, alpn: Array[String]) -> Result[Bytes, Error] {
+pub fn clientHello(random: Bytes, sessionId: Bytes, keyShare: Bytes, serverName: String, alpn: Array[String]) -> Result[Bytes, Error] {
     clientHelloWithShare(x25519Group, random, sessionId, keyShare, None, serverName, alpn)
 }
 
@@ -165,7 +166,7 @@ pub pure fn clientHello(random: Bytes, sessionId: Bytes, keyShare: Bytes, server
 pub type PskOffer = {
     pub identity Bytes
     pub obfuscatedAge u32
-    pub psk Bytes
+    pub psk sec.SecretBuffer
     pub earlyData Bool
 }
 
@@ -173,18 +174,18 @@ pub type PskOffer = {
 /// cookie. The supported_groups order is fixed, and the key share must be
 /// for one of those groups; the retried ClientHello carries the group the
 /// server selected instead of the initial x25519 share.
-pub pure fn clientHelloWithShare(group: u16, random: Bytes, sessionId: Bytes, keyShare: Bytes, cookie: Bytes?, serverName: String, alpn: Array[String]) -> Result[Bytes, Error] {
+pub fn clientHelloWithShare(group: u16, random: Bytes, sessionId: Bytes, keyShare: Bytes, cookie: Bytes?, serverName: String, alpn: Array[String]) -> Result[Bytes, Error] {
     buildClientHello(group, random, sessionId, keyShare, cookie, serverName, alpn, None)
 }
 
 /// Builds a ClientHello that offers one resumption PSK, optionally with
 /// early data. The pre_shared_key extension is last, as RFC 8446 §4.2.11
 /// requires, and its binder is computed over the truncated ClientHello.
-pub pure fn clientHelloPsk(group: u16, random: Bytes, sessionId: Bytes, keyShare: Bytes, cookie: Bytes?, serverName: String, alpn: Array[String], offer: PskOffer) -> Result[Bytes, Error] {
+pub fn clientHelloPsk(group: u16, random: Bytes, sessionId: Bytes, keyShare: Bytes, cookie: Bytes?, serverName: String, alpn: Array[String], offer: PskOffer) -> Result[Bytes, Error] {
     buildClientHello(group, random, sessionId, keyShare, cookie, serverName, alpn, Some(offer))
 }
 
-pure fn buildClientHello(group: u16, random: Bytes, sessionId: Bytes, keyShare: Bytes, cookie: Bytes?, serverName: String, alpn: Array[String], offer: PskOffer?) -> Result[Bytes, Error] {
+fn buildClientHello(group: u16, random: Bytes, sessionId: Bytes, keyShare: Bytes, cookie: Bytes?, serverName: String, alpn: Array[String], offer: PskOffer?) -> Result[Bytes, Error] {
     if random.len() != 32 {
         fail Error.MalformedHandshake("client random must be 32 bytes")
     }
@@ -261,7 +262,7 @@ pure fn buildClientHello(group: u16, random: Bytes, sessionId: Bytes, keyShare: 
         putExtension(&mut exts, cookieExt, body)?
     }
 
-    if let Some(pskOffer) = offer {
+    if let Some(pskOffer) = &offer {
         if pskOffer.identity.len() == 0 {
             fail Error.MalformedHandshake("resumption ticket identity is empty")
         }
@@ -311,10 +312,11 @@ pure fn buildClientHello(group: u16, random: Bytes, sessionId: Bytes, keyShare: 
                 fail Error.MalformedHandshake("ClientHello is too short to carry a binder")
             }
             let truncated = message.slice(0, message.len() - 35) || fail Error.MalformedHandshake("binder slice out of bounds")
-            let binder = binderVerifyData(pskOffer.psk, sha256.sum(truncated))?
+            let binder = binderVerifyData(&pskOffer.psk, sha256.sum(truncated))?
             let mut sealed = Array.empty[u8]()
             append(&mut sealed, message.slice(0, message.len() - 32) || fail Error.MalformedHandshake("binder slice out of bounds"))
-            append(&mut sealed, binder)
+            // The binder is public ClientHello wire data.
+            append(&mut sealed, unsafe { binder.declassify() })
             Ok(freeze(&sealed))
         }
         None -> Ok(message)
@@ -485,10 +487,10 @@ pub pure fn clientHelloBinderHash(fullHello: Bytes, bindersAtBody: usize) -> Res
 }
 
 /// Checks one PSK binder in constant time.
-pub pure fn verifyPskBinder(fullHello: Bytes, bindersAtBody: usize, psk: Bytes, binder: Bytes) -> Result[Void, Error] {
+pub fn verifyPskBinder(fullHello: Bytes, bindersAtBody: usize, psk: &sec.SecretBuffer, binder: Bytes) -> Result[Void, Error] {
     let hash = clientHelloBinderHash(fullHello, bindersAtBody)?
     let expected = binderVerifyData(psk, hash)?
-    if !equalConstantTime(expected, binder) {
+    if !unsafe { expected.ctEqPublic(&binder).declassify() } {
         fail Error.BadSignature
     }
     Ok(())

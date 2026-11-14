@@ -23,6 +23,8 @@ func TestSecretPrimitivesHaveNoSecretBranches(t *testing.T) {
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"ct\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(`import secret from std/secret
+import aead from std/crypto/chacha20poly1305
+import sha256 from std/crypto/sha256
 
 fn secret_safe(a: secret.SecretU32, b: secret.SecretU32) -> secret.SecretU32 {
     let lt = a.ctLt(b)
@@ -31,7 +33,15 @@ fn secret_safe(a: secret.SecretU32, b: secret.SecretU32) -> secret.SecretU32 {
 
 let x = secret.SecretU32.classify(1)
 let y = secret.SecretU32.classify(2)
-print "${(unsafe { secret_safe(x, y).declassify() })}"
+let q = aead.secretQuarterRound(x, y, x, y)
+let p = aead.secretBlock(x, y, x, y, x, y, x, y, x, y, x, y, x, y, x, y, x, y, x)
+let r = sha256.secretSha256Round(x, y, x, y, x, y, x, y, x, y)
+let buf = secret.SecretBuffer.fromString("shape")
+let eq = secret.secretEqPublic(&buf, &Bytes.fill(1, 5))
+let qv = unsafe { q.a.declassify() }
+let pv = unsafe { p.h0.declassify() }
+let rv = unsafe { r.a.declassify() }
+print "${(unsafe { secret_safe(x, y).declassify() })} ${qv} ${pv} ${rv} ${(unsafe { eq.declassify() })}"
 `), 0o644)
 	std, _ := filepath.Abs("../../../std")
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Entry: "main.kg"})
@@ -66,6 +76,17 @@ print "${(unsafe { secret_safe(x, y).declassify() })}"
 				funcs := ctSecretFunctions(string(data))
 				if len(funcs) < 2 {
 					t.Fatalf("found %d secret functions in assembly", len(funcs))
+				}
+				for _, want := range []string{"secretQuarterRound", "secretBlock", "secretSha256Round", "secretEqPublic"} {
+					found := false
+					for _, fn := range funcs {
+						if strings.Contains(fn.name, want) {
+							found = true
+						}
+					}
+					if !found {
+						t.Errorf("CT shape %s was not emitted; the test would not check it", want)
+					}
 				}
 				for _, fn := range funcs {
 					for _, ins := range bad[triple] {
@@ -135,7 +156,20 @@ func ctSecretFunctions(asm string) []ctAsmFunc {
 	if cur != nil {
 		out = append(out, *cur)
 	}
-	return out
+	// A label such as `std/secret.SecretBuffer.fromString` contains the
+	// package path but not a secret-named function; only the leaf counts, so
+	// allocating helpers in `std/secret` are not mistaken for CT primitives.
+	kept := out[:0]
+	for _, fn := range out {
+		leaf := fn.name
+		if i := strings.LastIndexByte(leaf, '.'); i >= 0 {
+			leaf = leaf[i+1:]
+		}
+		if strings.Contains(leaf, "secret") {
+			kept = append(kept, fn)
+		}
+	}
+	return kept
 }
 
 // ctAssemble lets the .ll extension select LLVM IR: zig cc rejects `-x ir`, which clang alone accepts.

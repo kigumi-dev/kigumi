@@ -1,4 +1,5 @@
 import p256 from std/crypto/p256
+import sec from std/secret
 import sha256 from std/crypto/sha256
 import x25519 from std/crypto/x25519
 import x509 from std/crypto/x509
@@ -17,9 +18,9 @@ type Message = {
 
 fn noKeys() -> Direction {
     Direction {
-        secret: Bytes.zeros(hashSize)
-        key: Bytes.zeros(keySize)
-        iv: Bytes.zeros(ivSize)
+        secret: sec.SecretBuffer.fromBytes(Bytes.zeros(hashSize))
+        key: sec.SecretBuffer.fromBytes(Bytes.zeros(keySize))
+        iv: sec.SecretBuffer.fromBytes(Bytes.zeros(ivSize))
     }
 }
 
@@ -126,7 +127,7 @@ pub type Session = resource {
     mut conn net.Conn
     mut pending Bytes
     mut hsBuf Array[u8]
-    mut appBuf Bytes
+    mut appBuf sec.SecretBuffer
     mut readKeys Direction
     mut writeKeys Direction
     mut readSeq u64
@@ -142,7 +143,7 @@ pub type Session = resource {
     mut serverName String
     // The resumption master secret and the tickets the peer issued. Both
     // are only meaningful after the handshake.
-    mut resumptionMaster Bytes
+    mut resumptionMaster sec.SecretBuffer
     mut resumptionTranscript Bytes
     mut ticket SessionTicket?
     mut resumedSession Bool
@@ -194,7 +195,7 @@ fn newSession(conn: net.Conn, maxRecordBytes: usize, maxHandshakeBytes: usize, m
         conn: conn
         pending: Bytes.zeros(0)
         hsBuf: Array.empty[u8]()
-        appBuf: Bytes.zeros(0)
+        appBuf: sec.SecretBuffer.fromBytes(Bytes.zeros(0))
         readKeys: noKeys()
         writeKeys: noKeys()
         readSeq: 0
@@ -208,7 +209,7 @@ fn newSession(conn: net.Conn, maxRecordBytes: usize, maxHandshakeBytes: usize, m
         maxCertificateBytes: maxCertificateBytes
         negotiatedProtocol: ""
         serverName: ""
-        resumptionMaster: Bytes.zeros(0)
+        resumptionMaster: sec.SecretBuffer.fromBytes(Bytes.zeros(0))
         resumptionTranscript: Bytes.zeros(0)
         ticket: None
         resumedSession: false
@@ -248,7 +249,19 @@ pub fn Session.earlyDataAccepted(self) -> Bool {
 
 /// The newest resumption ticket the server issued, if any.
 pub fn Session.resumptionTicket(self) -> SessionTicket? {
-    self.ticket
+    match &self.ticket {
+        Some(value) -> Some(SessionTicket {
+            serverName: value.serverName
+            alpn: value.alpn
+            ticket: value.ticket
+            psk: value.psk
+            lifetimeMillis: value.lifetimeMillis
+            issuedAtMillis: value.issuedAtMillis
+            ageAdd: value.ageAdd
+            maxEarlyData: value.maxEarlyData
+        })
+        None -> None
+    }
 }
 
 // ---- transport ----------------------------------------------------------
@@ -358,13 +371,13 @@ async fn Session.readRecord(mut self) -> Result[Record, Error] {
             if self.readSeq == 18446744073709551615 {
                 fail Error.BadRecord("record sequence number exhausted")
             }
-            let record = openRecord(self.readKeys, self.readSeq, raw.header, raw.payload)?
+            let record = openRecord(&self.readKeys, self.readSeq, raw.header, raw.payload)?
             self.readSeq = self.readSeq.wrappingAdd(1)
             return record
         }
         return Record {
             typ: raw.typ
-            payload: raw.payload
+            payload: sec.SecretBuffer.fromBytes(raw.payload)
         }
     }
     fail Error.ConnectionClosed
@@ -405,9 +418,11 @@ async fn Session.nextHandshake(mut self) -> Result[Message, Error] {
         }
         let record = (await self.readRecord())?
         if record.typ == handshakeType {
-            append(&mut self.hsBuf, record.payload)
+            // Handshake messages are protocol data: the parser is the
+            // explicit boundary where record plaintext becomes public.
+            append(&mut self.hsBuf, unsafe { record.payload.declassify() })
         } else if record.typ == alertType {
-            fail alertError(record.payload)
+            fail alertError(unsafe { record.payload.declassify() })
         } else if record.typ == applicationDataType {
             fail Error.UnexpectedMessage("application data arrived during the handshake")
         } else {
@@ -425,7 +440,7 @@ async fn Session.sendHandshake(mut self, message: Bytes) -> Result[Void, Error] 
     if self.writeSeq == 18446744073709551615 {
         fail Error.BadRecord("record sequence number exhausted")
     }
-    let record = sealRecord(self.writeKeys, self.writeSeq, handshakeType, message)?
+    let record = sealRecord(&self.writeKeys, self.writeSeq, handshakeType, &sec.SecretBuffer.fromBytes(message))?
     self.writeSeq = self.writeSeq.wrappingAdd(1)
     await self.writeRaw(record)
 }
@@ -447,7 +462,7 @@ async fn Session.sendHandshakeFlight(mut self, flight: Bytes) -> Result[Void, Er
             fail Error.BadRecord("record sequence number exhausted")
         }
         let chunk = flight.slice(off, off + take) || fail Error.BadRecord("flight slice out of bounds")
-        let record = sealRecord(self.writeKeys, self.writeSeq, handshakeType, chunk)?
+        let record = sealRecord(&self.writeKeys, self.writeSeq, handshakeType, &sec.SecretBuffer.fromBytes(chunk))?
         self.writeSeq = self.writeSeq.wrappingAdd(1)
         (await self.writeRaw(record))?
         off = off + take
@@ -462,7 +477,7 @@ async fn Session.sendAlert(mut self, level: u8, description: u8) {
             _ = await self.writeRaw(record)
         }
     } else if self.writeSeq != 18446744073709551615 {
-        if sealRecord(self.writeKeys, self.writeSeq, alertType, body) is Ok(record) {
+        if sealRecord(&self.writeKeys, self.writeSeq, alertType, &sec.SecretBuffer.fromBytes(body)) is Ok(record) {
             _ = await self.writeRaw(record)
         }
     }
@@ -517,8 +532,8 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
     // A ticket is offered only to the server and protocol that issued it,
     // while it is live, and 0-RTT is attempted only inside its age window.
     let mut pskOffer: PskOffer? = None
-    let mut pskValue = Bytes.zeros(0)
-    let mut earlyBytes = Bytes.zeros(0)
+    let mut pskValue = sec.SecretBuffer.fromBytes(Bytes.zeros(0))
+    let mut earlyBytes = sec.SecretBuffer.fromBytes(Bytes.zeros(0))
     if let Some(ticket) = sessionOffer {
         let age = nowMillis - ticket.issuedAtMillis
         let live = ticket.lifetimeMillis > 0 && age >= 0 && age <= ticket.lifetimeMillis
@@ -529,7 +544,7 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
             }
         }
         if ticket.serverName == serverName && sameAlpn && live {
-            pskValue = ticket.psk
+            pskValue = ticket.psk.toBuffer()
             if earlyPayload.len() != 0 && age <= earlyMaxAge && earlyPayload.len().toU64() <= ticket.maxEarlyData.toU64() {
                 earlyBytes = earlyPayload
             }
@@ -537,7 +552,7 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
             pskOffer = Some(PskOffer {
                 identity: ticket.ticket
                 obfuscatedAge: obfuscated
-                psk: ticket.psk
+                psk: ticket.psk.toBuffer()
                 earlyData: earlyBytes.len() != 0
             })
         }
@@ -554,11 +569,11 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
     // traffic secret, which is the only key the server can use before it
     // answers.
     if earlyBytes.len() != 0 {
-        self.earlyWriteKeys = deriveEarlyTraffic(pskValue, sha256.sum(hello))?
+        self.earlyWriteKeys = deriveEarlyTraffic(&pskValue, sha256.sum(hello))?
         self.earlyWriteSeq = 0
         self.earlyWriteOpen = true
         self.sentEarlyData = true
-        (await self.sendEarlyData(earlyBytes))?
+        (await self.sendEarlyData(&earlyBytes))?
     }
 
     let mut transcript = hello
@@ -646,16 +661,17 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
     }
 
     let shared = keyExchangeShared(group, secret, helloParsed.keyShare)?
+    let sharedSecret = sec.SecretBuffer.fromBytes(shared)
     let secrets = match if resumed {
-        deriveHandshakePsk(pskValue, shared, sha256.sum(transcript))
+        deriveHandshakePsk(&pskValue, &sharedSecret, sha256.sum(transcript))
     } else {
-        deriveHandshake(shared, sha256.sum(transcript))
+        deriveHandshake(&sharedSecret, sha256.sum(transcript))
     } {
         Ok(value) -> value
         Err(e) -> fail e
     }
-    self.readKeys = secrets.server
-    self.writeKeys = secrets.client
+    self.readKeys = move secrets.server
+    self.writeKeys = move secrets.client
     self.readProtected = true
     self.writeProtected = true
     self.readSeq = 0
@@ -724,15 +740,15 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
     }
 
     let claimed = parseFinished(next.body)?
-    let expected = finishedVerifyData(secrets.server.secret, sha256.sum(transcript))?
-    if !equalConstantTime(expected, claimed) {
+    let expected = finishedVerifyData(&self.readKeys.secret, sha256.sum(transcript))?
+    if !unsafe { expected.ctEqPublic(&claimed).declassify() } {
         fail Error.BadFinished
     }
     transcript = transcript.concat(next.raw)
 
     // RFC 8446 §7.1: application secrets cover the transcript through the
     // server Finished, before any client authentication flight.
-    let application = match deriveApplication(secrets.master, sha256.sum(transcript)) {
+    let application = match deriveApplication(&secrets.master, sha256.sum(transcript)) {
         Ok(value) -> value
         Err(e) -> fail e
     }
@@ -758,14 +774,17 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
                 Some(value) -> value
                 None -> fail Error.ClientAuthRequired
             }
-            let secret = match key {
-                ClientKey.EcP256(secret) -> secret
+            let keyBytes = match key {
+                // P-256 signing is a public-key primitive that still takes a
+                // plain byte string; the private key leaves the secret domain
+                // at this explicit boundary.
+                ClientKey.EcP256(secret) -> unsafe { secret.declassify() }
             }
             let public = match leaf.publicKey {
                 x509.PublicKey.EcP256(bytes) -> bytes
                 x509.PublicKey.Rsa(_) -> fail Error.Unsupported("an RSA client key is not implemented")
             }
-            let expectedPublic = match p256.publicKey(secret) {
+            let expectedPublic = match p256.publicKey(keyBytes) {
                 Ok(value) -> value
                 Err(_) -> fail Error.BadSignature
             }
@@ -777,7 +796,7 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
             (await self.sendHandshake(responseMessage))?
             // RFC 8446 §4.4.3: the client signature covers the transcript
             // through the client Certificate message just sent.
-            let signature = match p256.signMessage(secret, clientCertificateVerifyMessage(sha256.sum(transcript))) {
+            let signature = match p256.signMessage(keyBytes, clientCertificateVerifyMessage(sha256.sum(transcript))) {
                 Ok(value) -> value
                 Err(e) -> fail Error.KeySchedule(e.message())
             }
@@ -795,18 +814,19 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
     }
 
     let finalHash = sha256.sum(transcript)
-    let clientVerify = finishedVerifyData(secrets.client.secret, finalHash)?
-    let clientFinished = encodeHandshake(finishedType, clientVerify)?
+    let clientVerify = finishedVerifyData(&self.writeKeys.secret, finalHash)?
+    // The Finished value is public handshake wire data.
+    let clientFinished = encodeHandshake(finishedType, unsafe { clientVerify.declassify() })?
     (await self.sendHandshake(clientFinished))?
     transcript = transcript.concat(clientFinished)
 
     // From here the handshake keys are dead: both directions use the
     // application traffic secrets, whose sequence numbers restart at zero.
-    self.writeKeys = application.client
-    self.readKeys = application.server
+    self.writeKeys = move application.client
+    self.readKeys = move application.server
     self.writeSeq = 0
     self.readSeq = 0
-    let resumption = deriveResumptionMaster(secrets.master, sha256.sum(transcript))?
+    let resumption = deriveResumptionMaster(&secrets.master, sha256.sum(transcript))?
     self.resumptionMaster = resumption
     self.resumptionTranscript = sha256.sum(transcript)
     self.established = true
@@ -815,7 +835,7 @@ async fn Session.runHandshake(mut self, config: Config) -> Result[Void, Error] {
 /// Sends 0-RTT plaintext under the early traffic keys, fragmenting at the
 /// plaintext cap. The early sequence number is separate from the handshake
 /// and application spaces.
-async fn Session.sendEarlyData(mut self, data: Bytes) -> Result[Void, Error] {
+async fn Session.sendEarlyData(mut self, data: &sec.SecretBuffer) -> Result[Void, Error] {
     let mut off: usize = 0
     for off < data.len() {
         let left = data.len() - off
@@ -827,8 +847,8 @@ async fn Session.sendEarlyData(mut self, data: Bytes) -> Result[Void, Error] {
         if self.earlyWriteSeq == 18446744073709551615 {
             fail Error.BadRecord("early record sequence number exhausted")
         }
-        let chunk = data.slice(off, off + take) || fail Error.Io("early write slice out of bounds")
-        let record = sealRecord(self.earlyWriteKeys, self.earlyWriteSeq, applicationDataType, chunk)?
+        let chunk = data.sliceSecret(off, off + take)
+        let record = sealRecord(&self.earlyWriteKeys, self.earlyWriteSeq, applicationDataType, &chunk)?
         self.earlyWriteSeq = self.earlyWriteSeq.wrappingAdd(1)
         (await self.writeRaw(record))?
         off = off + take
@@ -855,20 +875,21 @@ async fn Session.drainEarlyData(mut self, limit: usize, keep: Bool) -> Result[Vo
         if self.earlyReadSeq == 18446744073709551615 {
             fail Error.BadRecord("early record sequence number exhausted")
         }
-        let opened = openRecord(self.earlyReadKeys, self.earlyReadSeq, raw.header, raw.payload)
+        let opened = openRecord(&self.earlyReadKeys, self.earlyReadSeq, raw.header, raw.payload)
         match opened {
             Ok(record) -> {
                 if record.typ != applicationDataType {
                     fail Error.BadRecord("early record has inner content type ${record.typ}")
                 }
                 if keep {
-                    if total + record.payload.len() > limit {
+                    let got = record.payload.len()
+                    if total + got > limit {
                         fail Error.EarlyDataRejected("early data exceeds the ticket limit")
                     }
-                    if record.payload.len() != 0 {
+                    if got != 0 {
                         self.appBuf = self.appBuf.concat(record.payload)
                     }
-                    total = total + record.payload.len()
+                    total = total + got
                 }
                 self.earlyReadSeq = self.earlyReadSeq.wrappingAdd(1)
             }
@@ -884,20 +905,20 @@ async fn Session.drainEarlyData(mut self, limit: usize, keep: Bool) -> Result[Vo
 }
 
 // ---- application data ---------------------------------------------------
-fn Session.takeApplication(mut self, max: usize) -> Bytes {
+fn Session.takeApplication(mut self, max: usize) -> sec.SecretBuffer {
     let n = if self.appBuf.len() < max {
         self.appBuf.len()
     } else {
         max
     }
-    let head = self.appBuf.slice(0, n) || Bytes.zeros(0)
-    self.appBuf = self.appBuf.slice(n, self.appBuf.len()) || Bytes.zeros(0)
+    let head = self.appBuf.sliceSecret(0, n)
+    self.appBuf = self.appBuf.sliceSecret(n, self.appBuf.len())
     head
 }
 
 /// Reads up to max plaintext bytes. An empty result means the peer sent
 /// close_notify; any other alert is a typed error.
-pub async fn Session.read(mut self, max: usize) -> Result[Bytes, Error] {
+pub async fn Session.read(mut self, max: usize) -> Result[sec.SecretBuffer, Error] {
     if !self.open {
         fail Error.Closed
     }
@@ -905,7 +926,7 @@ pub async fn Session.read(mut self, max: usize) -> Result[Bytes, Error] {
         fail Error.NotEstablished
     }
     if max == 0 {
-        return Bytes.zeros(0)
+        return sec.SecretBuffer.fromBytes(Bytes.zeros(0))
     }
     for true {
         if self.appBuf.len() != 0 {
@@ -918,7 +939,11 @@ pub async fn Session.read(mut self, max: usize) -> Result[Bytes, Error] {
                 }
                 let parsed = parseNewSessionTicket(message.body)?
                 if parsed.lifetime != 0 {
-                    let psk = resumptionPsk(self.resumptionMaster, parsed.nonce)?
+                    let pskBuffer = resumptionPsk(&self.resumptionMaster, parsed.nonce)?
+                    let psk = match sec.SecretNat[4].fromBuffer(&pskBuffer) {
+                        Ok(value) -> value
+                        Err(_) -> fail Error.KeySchedule("resumption PSK is not 32 bytes")
+                    }
                     self.ticket = Some(SessionTicket {
                         serverName: self.serverName
                         alpn: self.negotiatedProtocol
@@ -948,15 +973,16 @@ pub async fn Session.read(mut self, max: usize) -> Result[Bytes, Error] {
         }
         if record.typ == applicationDataType {
             if record.payload.len() != 0 {
-                self.appBuf = record.payload
+                self.appBuf = move record.payload
             }
         } else if record.typ == handshakeType {
-            append(&mut self.hsBuf, record.payload)
+            append(&mut self.hsBuf, unsafe { record.payload.declassify() })
         } else if record.typ == alertType {
-            let err = alertError(record.payload)
+            let alertBytes = unsafe { record.payload.declassify() }
+            let err = alertError(alertBytes)
             self.open = false
-            if record.payload.len() == 2 && record.payload[1] == 0 {
-                return Bytes.zeros(0)
+            if alertBytes.len() == 2 && alertBytes[1] == 0 {
+                return sec.SecretBuffer.fromBytes(Bytes.zeros(0))
             }
             fail err
         } else {
@@ -967,7 +993,7 @@ pub async fn Session.read(mut self, max: usize) -> Result[Bytes, Error] {
 }
 
 /// Writes plaintext, splitting it into records of at most 2^14 bytes.
-pub async fn Session.write(mut self, data: Bytes) -> Result[Void, Error] {
+pub async fn Session.write(mut self, data: &sec.SecretBuffer) -> Result[Void, Error] {
     if !self.open {
         fail Error.Closed
     }
@@ -985,8 +1011,8 @@ pub async fn Session.write(mut self, data: Bytes) -> Result[Void, Error] {
         if self.writeSeq == 18446744073709551615 {
             fail Error.BadRecord("record sequence number exhausted")
         }
-        let chunk = data.slice(off, off + take) || fail Error.Io("write slice out of bounds")
-        let record = sealRecord(self.writeKeys, self.writeSeq, applicationDataType, chunk)?
+        let chunk = data.sliceSecret(off, off + take)
+        let record = sealRecord(&self.writeKeys, self.writeSeq, applicationDataType, &chunk)?
         self.writeSeq = self.writeSeq.wrappingAdd(1)
         (await self.writeRaw(record))?
         off = off + take

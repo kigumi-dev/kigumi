@@ -1,4 +1,5 @@
 import x509 from std/crypto/x509
+import secret from std/secret
 // A TLS 1.3 client and server (RFC 8446) over an existing `net.Conn`, with
 // AEAD_CHACHA20_POLY1305 and x25519 / secp256r1 ECDHE. `Client`, `Server`
 // and `Session` need `net.Conn`, so they exist only on hosted targets
@@ -102,7 +103,7 @@ pub fn Error.message(self) -> String {
 
 /// A client authentication key. Only ECDSA P-256 is implemented, and the
 /// key must match the leaf of the configured client certificate chain.
-pub type ClientKey = | EcP256(Bytes)
+pub type ClientKey = | EcP256(secret.SecretBuffer)
 
 /// A resumption ticket a client can offer on a later connection. The PSK is
 /// derived from the NewSessionTicket nonce and never leaves the process.
@@ -110,7 +111,7 @@ pub type SessionTicket = {
     pub serverName String
     pub alpn String
     pub ticket Bytes
-    pub psk Bytes
+    pub psk secret.SecretNat[4]
     pub lifetimeMillis Int
     pub issuedAtMillis Int
     pub ageAdd u32
@@ -153,7 +154,7 @@ pub type Config = {
     // different server, ALPN protocol or curve, or when it has expired.
     pub mut session SessionTicket?
     // 0-RTT bytes sent with the ClientHello when the ticket allows them.
-    pub mut earlyData Bytes
+    pub mut earlyData secret.SecretBuffer
     // Oldest ticket age at which this client still attempts 0-RTT.
     pub mut earlyDataMaxAgeMillis Int
     // Client certificate chain, DER leaf first, sent when the server asks.
@@ -175,7 +176,7 @@ pub fn Config.new(serverName: String, anchors: Array[x509.Certificate], random: 
         maxHandshakeBytes: 1048576
         maxCertificateBytes: 1048576
         session: None
-        earlyData: Bytes.zeros(0)
+        earlyData: secret.SecretBuffer.fromBytes(Bytes.zeros(0))
         earlyDataMaxAgeMillis: 60000
         clientCertificates: Array.empty[Bytes]()
         clientKey: None

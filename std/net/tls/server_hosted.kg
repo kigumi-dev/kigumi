@@ -1,4 +1,5 @@
 import p256 from std/crypto/p256
+import sec from std/secret
 import sha256 from std/crypto/sha256
 import x509 from std/crypto/x509
 // A TLS 1.3 server (RFC 8446) over an existing `net.Conn`, the mirror of
@@ -35,7 +36,7 @@ import time from std/time
 
 /// The server's signing key. Only ECDSA P-256 is implemented, and the key
 /// must match the leaf certificate's public key.
-pub type ServerKey = | EcP256(Bytes)
+pub type ServerKey = | EcP256(sec.SecretBuffer)
 
 /// Server settings. `certificates` is the DER chain leaf first, `key` signs
 /// CertificateVerify, and `random` must return cryptographically random
@@ -186,7 +187,9 @@ async fn Session.runServerHandshake(mut self, config: ServerConfig) -> Result[Vo
         fail Error.BadCertificate("no certificate chain was configured")
     }
     let key = match config.key {
-        ServerKey.EcP256(secret) -> secret
+        // P-256 is a public-key primitive that still takes a plain byte
+        // string; the private key leaves the secret domain here.
+        ServerKey.EcP256(secret) -> unsafe { secret.declassify() }
     }
     if key.len() != p256.scalarSize {
         fail Error.BadCertificate("server key must be 32 bytes")
@@ -268,13 +271,14 @@ async fn Session.runServerHandshake(mut self, config: ServerConfig) -> Result[Vo
     let group = parsed.group
     let serverPublic = ephemeralPublic(group, secret)?
     let shared = keyExchangeShared(group, secret, parsed.keyShare)?
+    let sharedSecret = sec.SecretBuffer.fromBytes(shared)
 
     // Resolve and authenticate a resumption offer before touching the key
     // schedule. An unknown ticket falls back to a full handshake; a ticket
     // that exists but is stale, replayed or bound to another ALPN protocol
     // is refused rather than silently downgraded.
     let mut resumed = false
-    let mut ticketPsk = Bytes.zeros(0)
+    let mut ticketPsk = sec.SecretBuffer.fromBytes(Bytes.zeros(0))
     let mut selectedIdentity: u16? = None
     let mut earlyRequested = parsed.earlyData
     let mut earlyAccepted = false
@@ -293,9 +297,10 @@ async fn Session.runServerHandshake(mut self, config: ServerConfig) -> Result[Vo
                     None -> ticket.alpn == ""
                 }
                 if alpnMatches {
-                    verifyPskBinder(hello.raw, offer.bindersAt, ticket.psk, offer.binders[i])?
+                    let binderPsk = ticket.psk.toBuffer()
+                    verifyPskBinder(hello.raw, offer.bindersAt, &binderPsk, offer.binders[i])?
                     resumed = true
-                    ticketPsk = ticket.psk
+                    ticketPsk = ticket.psk.toBuffer()
                     selectedIdentity = Some((i.toU16() || 0))
                     if earlyRequested {
                         if maxEarlyData == 0 || ticket.maxEarlyData == 0 {
@@ -336,15 +341,15 @@ async fn Session.runServerHandshake(mut self, config: ServerConfig) -> Result[Vo
     transcript = transcript.concat(serverHelloMessage)
 
     let secrets = match if resumed {
-        deriveHandshakePsk(ticketPsk, shared, sha256.sum(transcript))
+        deriveHandshakePsk(&ticketPsk, &sharedSecret, sha256.sum(transcript))
     } else {
-        deriveHandshake(shared, sha256.sum(transcript))
+        deriveHandshake(&sharedSecret, sha256.sum(transcript))
     } {
         Ok(value) -> value
         Err(e) -> fail e
     }
-    self.readKeys = secrets.client
-    self.writeKeys = secrets.server
+    self.readKeys = move secrets.client
+    self.writeKeys = move secrets.server
     self.readProtected = true
     self.writeProtected = true
     self.readSeq = 0
@@ -381,8 +386,8 @@ async fn Session.runServerHandshake(mut self, config: ServerConfig) -> Result[Vo
         flight = flight.concat(cvMessage)
     }
 
-    let serverVerify = finishedVerifyData(secrets.server.secret, sha256.sum(transcript))?
-    let finishedMessage = encodeHandshake(finishedType, serverVerify)?
+    let serverVerify = finishedVerifyData(&self.writeKeys.secret, sha256.sum(transcript))?
+    let finishedMessage = encodeHandshake(finishedType, unsafe { serverVerify.declassify() })?
     transcript = transcript.concat(finishedMessage)
     flight = flight.concat(finishedMessage)
     // RFC 8446 §7.1: application secrets cover the transcript through the
@@ -395,7 +400,7 @@ async fn Session.runServerHandshake(mut self, config: ServerConfig) -> Result[Vo
     // protected handshake record; a rejected offer is discarded under the
     // same keys instead of being handed to the application.
     if earlyRequested {
-        self.earlyReadKeys = deriveEarlyTraffic(ticketPsk, sha256.sum(hello.raw))?
+        self.earlyReadKeys = deriveEarlyTraffic(&ticketPsk, sha256.sum(hello.raw))?
         self.earlyReadSeq = 0
         self.earlyReadOpen = true
         (await self.drainEarlyData(earlyLimit, earlyAccepted))?
@@ -430,24 +435,24 @@ async fn Session.runServerHandshake(mut self, config: ServerConfig) -> Result[Vo
         fail Error.UnexpectedMessage("expected Finished, got handshake type ${clientFinished.typ}")
     }
     let claimed = parseFinished(clientFinished.body)?
-    let expected = finishedVerifyData(secrets.client.secret, sha256.sum(clientTranscript))?
-    if !equalConstantTime(expected, claimed) {
+    let expected = finishedVerifyData(&self.readKeys.secret, sha256.sum(clientTranscript))?
+    if !unsafe { expected.ctEqPublic(&claimed).declassify() } {
         fail Error.BadFinished
     }
     clientTranscript = clientTranscript.concat(clientFinished.raw)
 
-    let application = match deriveApplication(secrets.master, applicationTranscript) {
+    let application = match deriveApplication(&secrets.master, applicationTranscript) {
         Ok(value) -> value
         Err(e) -> fail e
     }
-    self.readKeys = application.client
-    self.writeKeys = application.server
+    self.readKeys = move application.client
+    self.writeKeys = move application.server
     self.readSeq = 0
     self.writeSeq = 0
     self.established = true
 
-    let resumption = deriveResumptionMaster(secrets.master, sha256.sum(clientTranscript))?
-    self.resumptionMaster = resumption
+    let resumption = deriveResumptionMaster(&secrets.master, sha256.sum(clientTranscript))?
+    self.resumptionMaster = resumption.copy()
     self.resumptionTranscript = sha256.sum(clientTranscript)
 
     if ticketCount > 0 {
@@ -475,7 +480,11 @@ async fn Session.runServerHandshake(mut self, config: ServerConfig) -> Result[Vo
                 Err(e) -> fail Error.Random(e.message())
             }
             let ageAdd = binary.u32Be(ageRandom, 0) || 0
-            let psk = resumptionPsk(resumption, nonce)?
+            let pskBuffer = resumptionPsk(&resumption, nonce)?
+            let psk = match sec.SecretNat[4].fromBuffer(&pskBuffer) {
+                Ok(value) -> value
+                Err(_) -> fail Error.KeySchedule("resumption PSK is not 32 bytes")
+            }
             match &ticketStore {
                 Some(store) -> store.insert(StoredTicket {
                     ticket: ticketBytes

@@ -10,6 +10,7 @@ import net from std/net
 import sha256 from std/crypto/sha256
 import task from std/task
 import tls from std/net/tls
+import sec from std/secret
 import x25519 from std/crypto/x25519
 import x509 from std/crypto/x509
 
@@ -23,6 +24,14 @@ type Fail = {
 
 fn Fail.message(self) -> String {
     self.text
+}
+
+fn secretOf(b: Bytes) -> sec.SecretBuffer {
+    sec.SecretBuffer.fromBytes(b)
+}
+
+fn revealOwned(b: sec.SecretBuffer) -> Bytes {
+    unsafe { b.declassify() }
 }
 
 fn dec(text: String) -> Bytes {
@@ -357,7 +366,7 @@ async fn Wire.writeAll(mut self, data: Bytes) -> Void! {
 // ---- a real server with a scripted client -------------------------------
 
 fn serverConfig() -> tls.ServerConfig {
-    let mut config = tls.ServerConfig.new(Array.of(dec(LEAF)), tls.ServerKey.EcP256(dec(LEAF_KEY)), (k) => deterministicRandom(k))
+    let mut config = tls.ServerConfig.new(Array.of(dec(LEAF)), tls.ServerKey.EcP256(secretOf(dec(LEAF_KEY))), (k) => deterministicRandom(k))
     config.alpn = Array.of("http/1.1")
     config
 }
@@ -471,7 +480,8 @@ async fn wrongFinishedCase(n: net.Net) -> String! {
         Ok(value) -> value
         Err(e) -> fail Fail { text: e.message() }
     }
-    let secrets = (tls.deriveHandshake(shared, sha256.sum(hello.concat(serverHello))))?
+    let sharedSecret = secretOf(shared)
+    let secrets = (tls.deriveHandshake(&sharedSecret, sha256.sum(hello.concat(serverHello))))?
 
     let mut flightHeader = Bytes.zeros(0)
     let mut flightPayload = Bytes.zeros(0)
@@ -486,11 +496,12 @@ async fn wrongFinishedCase(n: net.Net) -> String! {
         flightHeader = record.header
         flightPayload = record.payload
     }
-    let opened = (tls.openRecord(secrets.server, 0, flightHeader, flightPayload))?
+    let opened = (tls.openRecord(&secrets.server, 0, flightHeader, flightPayload))?
     if opened.typ != 22 {
         fail Fail { text: "client: flight inner content type ${opened.typ}" }
     }
-    let mut cursor = MsgCursor { data: opened.payload, at: 0 }
+    let openedLen = opened.payload.len()
+    let mut cursor = MsgCursor { data: revealOwned(opened.payload), at: 0 }
     let mut transcript = hello.concat(serverHello)
 
     let eeRaw = cursor.next()?
@@ -529,30 +540,31 @@ async fn wrongFinishedCase(n: net.Net) -> String! {
         fail Fail { text: "client: expected Finished" }
     }
     let claimed = (tls.parseFinished(finRaw.slice(4, finRaw.len()).expect("Finished body")))?
-    let expected = (tls.finishedVerifyData(secrets.server.secret, sha256.sum(transcript)))?
+    let expected = revealOwned((tls.finishedVerifyData(&secrets.server.secret, sha256.sum(transcript)))?)
     if !tls.equalConstantTime(expected, claimed) {
         fail Fail { text: "client: server Finished does not verify" }
     }
     transcript = transcript.concat(finRaw)
-    if cursor.at != opened.payload.len() {
+    if cursor.at != openedLen {
         fail Fail { text: "client: trailing bytes after the server flight" }
     }
 
     // A single flipped byte in verify_data: the record still authenticates,
     // so the server must reject it on the constant-time compare.
-    let correct = (tls.finishedVerifyData(secrets.client.secret, sha256.sum(transcript)))?
+    let correct = revealOwned((tls.finishedVerifyData(&secrets.client.secret, sha256.sum(transcript)))?)
     let mut flipped = byteArray(correct)
     flipped[0] = flipped[0] ^ 1
-    (await wire.writeAll((tls.sealRecord(secrets.client, 0, 22, hs(20, Bytes.fromArray(&flipped))))?))?
+    (await wire.writeAll((tls.sealRecord(&secrets.client, 0, 22, &secretOf(hs(20, Bytes.fromArray(&flipped)))))?))?
 
     let alertRecord = (await wire.readRecord())?
     let server = await running
     if alertRecord.typ != 23 {
         return "wrong-finished => record type ${alertRecord.typ}, not protected"
     }
-    let alert = (tls.openRecord(secrets.server, 1, alertRecord.header, alertRecord.payload))?
-    if alert.typ != 21 || alert.payload.len() != 2 || alert.payload[0] != 2 || alert.payload[1] != 51 {
-        return "wrong-finished => alert ${hex.encode(alert.payload)} type ${alert.typ}"
+    let alert = (tls.openRecord(&secrets.server, 1, alertRecord.header, alertRecord.payload))?
+    let alertBytes = revealOwned(alert.payload)
+    if alert.typ != 21 || alertBytes.len() != 2 || alertBytes[0] != 2 || alertBytes[1] != 51 {
+        return "wrong-finished => alert ${hex.encode(alertBytes)} type ${alert.typ}"
     }
     if !server.contains("Finished verify_data does not match") {
         return "wrong-finished => server ${server}"

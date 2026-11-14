@@ -7,11 +7,12 @@
 // `consume(... early: true)` refuses a second use and reports replay instead
 // of falling back, which keeps a replayed 0-RTT flight from being accepted.
 import alloc from std/alloc
+import secret from std/secret
 
 /// One issued resumption ticket.
 pub type StoredTicket = {
     pub ticket Bytes
-    pub psk Bytes
+    pub psk secret.SecretNat[4]
     pub issuedAtMillis Int
     pub lifetimeMillis Int
     pub ageAdd u32

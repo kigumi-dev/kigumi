@@ -115,7 +115,7 @@ pub pure fn sharedSecret(secret: Bytes, peerPublic: Bytes) -> Result[Bytes, Erro
 }
 
 /// ECDSA over a 32-byte prehashed digest, with an RFC 6979 nonce.
-pub pure fn sign(secret: Bytes, digest: Bytes) -> Result[Bytes, Error] {
+pub fn sign(secret: Bytes, digest: Bytes) -> Result[Bytes, Error] {
     if digest.len() != scalarSize {
         return Err(Error.BadDigestSize)
     }
@@ -145,7 +145,7 @@ pub pure fn verify(public: Bytes, digest: Bytes, signature: Bytes) -> Result[Boo
 }
 
 /// ECDSA over the SHA-256 hash of `message`.
-pub pure fn signMessage(secret: Bytes, message: Bytes) -> Result[Bytes, Error] {
+pub fn signMessage(secret: Bytes, message: Bytes) -> Result[Bytes, Error] {
     sign(secret, sha256.sum(message))
 }
 

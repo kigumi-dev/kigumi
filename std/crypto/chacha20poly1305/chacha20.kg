@@ -1,3 +1,11 @@
+// ChaCha20 (RFC 8439) over secret key material.
+//
+// The key and every word of the state that depends on it stay in the
+// `SecretU32` domain: quarter rounds use wrapping arithmetic and rotations
+// only, and no branch, index, loop bound or panic condition depends on a key
+// byte or on a keystream byte. The nonce, counter and lengths are public.
+import secret from std/secret
+
 /// Bytes in a ChaCha20 key (RFC 8439 §2.3).
 pub const keySize: usize = 32
 
@@ -7,17 +15,16 @@ pub const nonceSize: usize = 12
 /// Bytes in one ChaCha20 keystream block.
 pub const blockSize: usize = 64
 
-/// The four words one quarter round returns.
+/// The four secret words one quarter round returns.
 type Quad = {
-    a u32
-    b u32
-    c u32
-    d u32
+    a secret.SecretU32
+    b secret.SecretU32
+    c secret.SecretU32
+    d secret.SecretU32
 }
 
-/// Reports a bad key or nonce length for the raw entry points, which take
-/// `Bytes` rather than fixed-size types.
-fn checkLengths(key: Bytes, nonce: Bytes) {
+/// Reports a bad key or nonce length. Only public lengths are tested.
+fn checkLengths(key: &secret.SecretBuffer, nonce: Bytes) {
     if key.len() != keySize {
         panic("chacha20: key must be 32 bytes")
     }
@@ -26,7 +33,7 @@ fn checkLengths(key: Bytes, nonce: Bytes) {
     }
 }
 
-/// The four-byte little-endian word at `at`.
+/// The four-byte little-endian word at `at` of public data.
 pure noalloc fn leWord(data: Bytes, at: usize) -> u32 {
     let mut w = data[at].toU32()
     w = w | (data[at + 1].toU32() << 8)
@@ -42,8 +49,8 @@ pure noalloc fn arrayWord(data: &Array[u8], at: usize) -> u32 {
     w | (data[at + 3].toU32() << 24)
 }
 
-/// RFC 8439 §2.1's quarter round on four words.
-pure noalloc fn quarterRound(a: u32, b: u32, c: u32, d: u32) -> Quad {
+/// RFC 8439 §2.1's quarter round on four secret words.
+pure noalloc fn quarterRound(a: secret.SecretU32, b: secret.SecretU32, c: secret.SecretU32, d: secret.SecretU32) -> Quad {
     let a1 = a.wrappingAdd(b)
     let d1 = (d ^ a1).rotateLeft(16)
     let c1 = c.wrappingAdd(d1)
@@ -60,25 +67,34 @@ pure noalloc fn quarterRound(a: u32, b: u32, c: u32, d: u32) -> Quad {
     }
 }
 
-/// Fills `st` (sixteen words) with the ChaCha20 block for `counter`, after the
-/// twenty rounds and the feed-forward addition of the input state.
-pure fn fillBlock(mut st: &mut Array[u32], key: Bytes, counter: u32, nonce: Bytes) {
-    st[0] = 0x61707865
-    st[1] = 0x3320646E
-    st[2] = 0x79622D32
-    st[3] = 0x6B206574
-    st[4] = leWord(key, 0)
-    st[5] = leWord(key, 4)
-    st[6] = leWord(key, 8)
-    st[7] = leWord(key, 12)
-    st[8] = leWord(key, 16)
-    st[9] = leWord(key, 20)
-    st[10] = leWord(key, 24)
-    st[11] = leWord(key, 28)
-    st[12] = counter
-    st[13] = leWord(nonce, 0)
-    st[14] = leWord(nonce, 4)
-    st[15] = leWord(nonce, 8)
+pure noalloc fn word(value: u32) -> secret.SecretU32 {
+    secret.SecretU32.classify(value)
+}
+
+/// The key word at a public offset, read through the secret-domain accessor.
+pure noalloc fn keyWord(key: &secret.SecretBuffer, at: usize) -> secret.SecretU32 {
+    key.wordLE(at)
+}
+
+/// Fills `st` (sixteen secret words) with the ChaCha20 block for `counter`,
+/// after the twenty rounds and the feed-forward addition of the input state.
+pure fn fillBlock(mut st: &mut Array[secret.SecretU32], key: &secret.SecretBuffer, counter: u32, nonce: Bytes) {
+    st[0] = word(0x61707865)
+    st[1] = word(0x3320646E)
+    st[2] = word(0x79622D32)
+    st[3] = word(0x6B206574)
+    st[4] = keyWord(key, 0)
+    st[5] = keyWord(key, 4)
+    st[6] = keyWord(key, 8)
+    st[7] = keyWord(key, 12)
+    st[8] = keyWord(key, 16)
+    st[9] = keyWord(key, 20)
+    st[10] = keyWord(key, 24)
+    st[11] = keyWord(key, 28)
+    st[12] = word(counter)
+    st[13] = word(leWord(nonce, 0))
+    st[14] = word(leWord(nonce, 4))
+    st[15] = word(leWord(nonce, 8))
 
     let mut round: usize = 0
     for round < 10 {
@@ -126,61 +142,63 @@ pure fn fillBlock(mut st: &mut Array[u32], key: Bytes, counter: u32, nonce: Byte
         round = round + 1
     }
 
-    st[0] = st[0].wrappingAdd(0x61707865)
-    st[1] = st[1].wrappingAdd(0x3320646E)
-    st[2] = st[2].wrappingAdd(0x79622D32)
-    st[3] = st[3].wrappingAdd(0x6B206574)
-    st[4] = st[4].wrappingAdd(leWord(key, 0))
-    st[5] = st[5].wrappingAdd(leWord(key, 4))
-    st[6] = st[6].wrappingAdd(leWord(key, 8))
-    st[7] = st[7].wrappingAdd(leWord(key, 12))
-    st[8] = st[8].wrappingAdd(leWord(key, 16))
-    st[9] = st[9].wrappingAdd(leWord(key, 20))
-    st[10] = st[10].wrappingAdd(leWord(key, 24))
-    st[11] = st[11].wrappingAdd(leWord(key, 28))
-    st[12] = st[12].wrappingAdd(counter)
-    st[13] = st[13].wrappingAdd(leWord(nonce, 0))
-    st[14] = st[14].wrappingAdd(leWord(nonce, 4))
-    st[15] = st[15].wrappingAdd(leWord(nonce, 8))
+    st[0] = st[0].wrappingAdd(word(0x61707865))
+    st[1] = st[1].wrappingAdd(word(0x3320646E))
+    st[2] = st[2].wrappingAdd(word(0x79622D32))
+    st[3] = st[3].wrappingAdd(word(0x6B206574))
+    st[4] = st[4].wrappingAdd(keyWord(key, 0))
+    st[5] = st[5].wrappingAdd(keyWord(key, 4))
+    st[6] = st[6].wrappingAdd(keyWord(key, 8))
+    st[7] = st[7].wrappingAdd(keyWord(key, 12))
+    st[8] = st[8].wrappingAdd(keyWord(key, 16))
+    st[9] = st[9].wrappingAdd(keyWord(key, 20))
+    st[10] = st[10].wrappingAdd(keyWord(key, 24))
+    st[11] = st[11].wrappingAdd(keyWord(key, 28))
+    st[12] = st[12].wrappingAdd(word(counter))
+    st[13] = st[13].wrappingAdd(word(leWord(nonce, 0)))
+    st[14] = st[14].wrappingAdd(word(leWord(nonce, 4)))
+    st[15] = st[15].wrappingAdd(word(leWord(nonce, 8)))
 }
 
 /// The `at`-th keystream byte of a filled block, little-endian within each word.
-pure noalloc fn blockByte(st: &Array[u32], at: usize) -> u8 {
-    (st[at >> 2] >> ((at & 3) * 8)).truncate[u8]()
+pure noalloc fn blockByte(st: &Array[secret.SecretU32], at: usize) -> secret.SecretU8 {
+    st[at >> 2].shiftRight(((at & 3) * 8).toU32() || 0).truncateU8()
 }
 
-/// Serializes a filled block as its 64 keystream bytes.
-pure fn blockBytes(st: &Array[u32]) -> Bytes {
-    let mut out = ByteBuffer.tryNew(blockSize) || panic("out of memory")
+/// Serializes a filled block as its 64 secret keystream bytes.
+pure fn blockBytes(st: &Array[secret.SecretU32]) -> secret.SecretBuffer {
+    let mut out = Array.tryWithCapacity[secret.SecretU8](blockSize) || panic("out of memory")
     let mut i: usize = 0
     for i < blockSize {
-        out.set(i, blockByte(st, i))
+        let b = blockByte(st, i)
+        out.push(b)
         i = i + 1
     }
-    out.freeze()
+    secret.SecretBuffer.fromSecretArray(out)
 }
 
-/// The sixteen words of the ChaCha20 block for `counter` (RFC 8439 §2.3).
-pub pure fn chacha20BlockWords(key: Bytes, counter: u32, nonce: Bytes) -> Array[u32] {
+/// The sixteen secret words of the ChaCha20 block for `counter` (RFC 8439 §2.3).
+pub pure fn chacha20BlockWords(key: &secret.SecretBuffer, counter: u32, nonce: Bytes) -> Array[secret.SecretU32] {
     checkLengths(key, nonce)
-    let mut st = Array.fill[u32](0, 16)
+    let mut st = Array.fill[secret.SecretU32](word(0), 16)
     fillBlock(&mut st, key, counter, nonce)
     st
 }
 
-/// The 64 keystream bytes of the ChaCha20 block for `counter` (RFC 8439 §2.3.2).
-pub pure fn chacha20Block(key: Bytes, counter: u32, nonce: Bytes) -> Bytes {
+/// The 64 secret keystream bytes of the ChaCha20 block for `counter`
+/// (RFC 8439 §2.3.2).
+pub pure fn chacha20Block(key: &secret.SecretBuffer, counter: u32, nonce: Bytes) -> secret.SecretBuffer {
     let st = chacha20BlockWords(key, counter, nonce)
     blockBytes(&st)
 }
 
-/// XORs `data[start..end]` with the ChaCha20 keystream beginning at `counter`.
-/// Encryption and decryption are the same operation. The sixteen-word state is
-/// allocated once and refilled per block.
-pure fn xorRange(key: Bytes, counter: u32, nonce: Bytes, data: Bytes, start: usize, end: usize) -> Bytes {
+/// XORs secret `data[start..end]` with the ChaCha20 keystream beginning at
+/// `counter`. Encryption and decryption are the same operation. The
+/// sixteen-word state is allocated once and refilled per block.
+pure fn xorRangeSecret(key: &secret.SecretBuffer, counter: u32, nonce: Bytes, data: &secret.SecretBuffer, start: usize, end: usize) -> secret.SecretBuffer {
     checkLengths(key, nonce)
-    let mut out = ByteBuffer.tryNew(end - start) || panic("out of memory")
-    let mut st = Array.fill[u32](0, 16)
+    let mut out = Array.tryWithCapacity[secret.SecretU8](end - start) || panic("out of memory")
+    let mut st = Array.fill[secret.SecretU32](word(0), 16)
     let mut ctr = counter
     let mut at = start
     for at < end {
@@ -193,30 +211,85 @@ pure fn xorRange(key: Bytes, counter: u32, nonce: Bytes, data: Bytes, start: usi
         }
         let mut i: usize = 0
         for i < take {
-            out.set(at - start + i, data[at + i] ^ blockByte(&st, i))
+            let b = data.byteAt(at + i) ^ blockByte(&st, i)
+            out.push(b)
             i = i + 1
         }
         at = at + take
         ctr = ctr.wrappingAdd(1)
     }
-    out.freeze()
+    secret.SecretBuffer.fromSecretArray(out)
 }
 
-/// ChaCha20 encryption of `data` with the block counter starting at `counter`
-/// (RFC 8439 §2.4). The output has the same length as the input.
-pub pure fn chacha20Xor(key: Bytes, counter: u32, nonce: Bytes, data: Bytes) -> Bytes {
-    xorRange(key, counter, nonce, data, 0, data.len())
+/// XORs public `data[start..end]` with the secret keystream. The result is
+/// secret, because it is the plaintext of a public ciphertext.
+pure fn xorRangePublic(key: &secret.SecretBuffer, counter: u32, nonce: Bytes, data: Bytes, start: usize, end: usize) -> secret.SecretBuffer {
+    checkLengths(key, nonce)
+    let mut out = Array.tryWithCapacity[secret.SecretU8](end - start) || panic("out of memory")
+    let mut st = Array.fill[secret.SecretU32](word(0), 16)
+    let mut ctr = counter
+    let mut at = start
+    for at < end {
+        fillBlock(&mut st, key, ctr, nonce)
+        let left = end - at
+        let take = if left < blockSize {
+            left
+        } else {
+            blockSize
+        }
+        let mut i: usize = 0
+        for i < take {
+            let b = secret.SecretU8.classify(data[at + i]) ^ blockByte(&st, i)
+            out.push(b)
+            i = i + 1
+        }
+        at = at + take
+        ctr = ctr.wrappingAdd(1)
+    }
+    secret.SecretBuffer.fromSecretArray(out)
+}
+
+/// ChaCha20 encryption of secret `data` with the block counter starting at
+/// `counter` (RFC 8439 §2.4). The output has the same length as the input.
+pub pure fn chacha20Xor(key: &secret.SecretBuffer, counter: u32, nonce: Bytes, data: &secret.SecretBuffer) -> secret.SecretBuffer {
+    xorRangeSecret(key, counter, nonce, data, 0, data.len())
+}
+
+/// ChaCha20 decryption of public `data` into secret plaintext.
+pub pure fn chacha20XorPublic(key: &secret.SecretBuffer, counter: u32, nonce: Bytes, data: Bytes) -> secret.SecretBuffer {
+    xorRangePublic(key, counter, nonce, data, 0, data.len())
 }
 
 /// The Poly1305 one-time key for an AEAD message: the first 32 bytes of the
 /// ChaCha20 block at counter zero (RFC 8439 §2.6).
-pub pure fn poly1305Key(key: Bytes, nonce: Bytes) -> Bytes {
+pub pure fn poly1305Key(key: &secret.SecretBuffer, nonce: Bytes) -> secret.SecretBuffer {
     let st = chacha20BlockWords(key, 0, nonce)
-    let mut out = ByteBuffer.tryNew(keySize) || panic("out of memory")
+    let mut out = Array.tryWithCapacity[secret.SecretU8](keySize) || panic("out of memory")
     let mut i: usize = 0
     for i < keySize {
-        out.set(i, blockByte(&st, i))
+        let b = blockByte(&st, i)
+        out.push(b)
         i = i + 1
     }
-    out.freeze()
+    secret.SecretBuffer.fromSecretArray(out)
+}
+
+/// The four words of a secret quarter round, for the CT conformance shape.
+pub type SecretQuad = {
+    pub a secret.SecretU32
+    pub b secret.SecretU32
+    pub c secret.SecretU32
+    pub d secret.SecretU32
+}
+
+/// A single ChaCha20 quarter round on secret words, exported as the CT
+/// conformance shape. It has no loop, index, allocation or branch.
+pub pure noalloc fn secretQuarterRound(a: secret.SecretU32, b: secret.SecretU32, c: secret.SecretU32, d: secret.SecretU32) -> SecretQuad {
+    let q = quarterRound(a, b, c, d)
+    SecretQuad {
+        a: q.a
+        b: q.b
+        c: q.c
+        d: q.d
+    }
 }

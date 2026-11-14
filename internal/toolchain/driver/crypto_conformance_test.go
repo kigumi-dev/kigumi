@@ -294,6 +294,7 @@ func buildCryptoProgram(t *testing.T, m *cryptoManifest, native bool) string {
 				}
 			case "hmac":
 				imports["hmac"] = "std/crypto/hmac"
+				imports["secret"] = "std/secret"
 				if v.Alg == "sha256" {
 					imports["sha256"] = "std/crypto/sha256"
 				} else {
@@ -301,6 +302,7 @@ func buildCryptoProgram(t *testing.T, m *cryptoManifest, native bool) string {
 				}
 			case "hkdf":
 				imports["hkdf"] = "std/crypto/hkdf"
+				imports["secret"] = "std/secret"
 				if v.Alg == "sha256" {
 					imports["sha256"] = "std/crypto/sha256"
 				} else {
@@ -308,6 +310,7 @@ func buildCryptoProgram(t *testing.T, m *cryptoManifest, native bool) string {
 				}
 			case "chacha20poly1305-seal", "chacha20poly1305-open":
 				imports["chacha20poly1305"] = "std/crypto/chacha20poly1305"
+				imports["secret"] = "std/secret"
 			case "x25519", "x25519-public":
 				imports["x25519"] = "std/crypto/x25519"
 			case "p256-public", "p256-ecdh", "p256-ecdsa-sign", "p256-ecdsa-verify":
@@ -378,6 +381,16 @@ func emitResultBytes(b *strings.Builder, id string, idx int, call string) {
 	fmt.Fprintf(b, "    print %q\n", id+"\t${result"+fmt.Sprint(idx)+"}")
 }
 
+// emitResultSecret prints a Result[secret.SecretBuffer, E] by releasing the
+// output at the test boundary; the key and plaintext inputs stay secret.
+func emitResultSecret(b *strings.Builder, id string, idx int, call string) {
+	fmt.Fprintf(b, "    let result%d = match %s {\n", idx, call)
+	b.WriteString("        Ok(value) -> show(unsafe { value.declassify() })\n")
+	b.WriteString("        Err(err) -> \"error:${err.message()}\"\n")
+	b.WriteString("    }\n")
+	fmt.Fprintf(b, "    print %q\n", id+"\t${result"+fmt.Sprint(idx)+"}")
+}
+
 func emitResultBool(b *strings.Builder, id string, idx int, call string) {
 	fmt.Fprintf(b, "    let result%d = match %s {\n", idx, call)
 	b.WriteString("        Ok(value) -> \"${value}\"\n")
@@ -419,23 +432,25 @@ func emitCryptoVector(b *strings.Builder, v cryptoVector, idx int) {
 		}
 		printHex(b, v.ID, idx, fmt.Sprintf("%s(%s, %d)", call, hexArg(v.Message), v.OutputLen))
 	case "hmac":
-		hasher := "sha256.Hasher"
+		hasher := "sha256.SecretHasher"
 		if v.Alg == "sha512" {
-			hasher = "sha512.Hasher"
+			hasher = "sha512.SecretHasher"
 		}
-		printHex(b, v.ID, idx, fmt.Sprintf("hmac.sum[%s](%s, %s)", hasher, hexArg(v.Key), hexArg(v.Message)))
+		call := fmt.Sprintf("unsafe { hmac.sum[%s](&secret.SecretBuffer.fromBytes(%s), &secret.SecretBuffer.fromBytes(%s)).declassify() }",
+			hasher, hexArg(v.Key), hexArg(v.Message))
+		printHex(b, v.ID, idx, call)
 	case "hkdf":
-		hasher := "sha256.Hasher"
+		hasher := "sha256.SecretHasher"
 		if v.Alg == "sha512" {
-			hasher = "sha512.Hasher"
+			hasher = "sha512.SecretHasher"
 		}
-		emitResultBytes(b, v.ID, idx, fmt.Sprintf("hkdf.derive[%s](%s, %s, %s, %d)",
+		emitResultSecret(b, v.ID, idx, fmt.Sprintf("hkdf.derive[%s](&secret.SecretBuffer.fromBytes(%s), &secret.SecretBuffer.fromBytes(%s), %s, %d)",
 			hasher, hexArg(v.Salt), hexArg(v.IKM), hexArg(v.Info), v.Length))
 	case "chacha20poly1305-seal":
-		emitResultBytes(b, v.ID, idx, fmt.Sprintf("chacha20poly1305.seal(%s, %s, %s, %s)",
+		emitResultSecret(b, v.ID, idx, fmt.Sprintf("chacha20poly1305.seal(&secret.SecretBuffer.fromBytes(%s), %s, %s, &secret.SecretBuffer.fromBytes(%s))",
 			hexArg(v.Key), hexArg(v.Nonce), hexArg(v.AAD), hexArg(v.Plaintext)))
 	case "chacha20poly1305-open":
-		emitResultBytes(b, v.ID, idx, fmt.Sprintf("chacha20poly1305.open(%s, %s, %s, %s)",
+		emitResultSecret(b, v.ID, idx, fmt.Sprintf("chacha20poly1305.open(&secret.SecretBuffer.fromBytes(%s), %s, %s, %s)",
 			hexArg(v.Key), hexArg(v.Nonce), hexArg(v.AAD), hexArg(v.Sealed)))
 	case "x25519":
 		emitResultBytes(b, v.ID, idx, fmt.Sprintf("x25519.sharedSecret(%s, %s)",

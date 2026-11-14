@@ -2,10 +2,19 @@
 import hex from std/encoding/hex
 import sha256 from std/crypto/sha256
 import tls from std/net/tls
+import sec from std/secret
 import x25519 from std/crypto/x25519
 
 fn dec(s: String) -> Bytes {
     hex.decode(s).expect("hex")
+}
+
+fn reveal(b: &sec.SecretBuffer) -> Bytes {
+    unsafe { b.copy().declassify() }
+}
+
+fn secretOf(b: Bytes) -> sec.SecretBuffer {
+    sec.SecretBuffer.fromBytes(b)
 }
 
 fn show(name: String, got: Bytes, want: String) {
@@ -42,33 +51,34 @@ let th1 = sha256.sum(ch.concat(sh))
 show("th1", th1, "860c06edc07858ee8e78f0e7428c58edd6b43f2ca3e6e95f02ed063cf0e1cad8")
 
 // Handshake secrets and traffic keys.
-let secret = (tls.deriveHandshake(shared, th1))?
-show("c-hs", secret.client.secret, "b3eddb126e067f35a780b3abf45e2d8f3b1a950738f52e9600746a0e27a55a21")
-show("s-hs", secret.server.secret, "b67b7d690cc16c4e75e54213cb2d37b4e9c912bcded9105d42befd59d391ad38")
-show("c-hs-key", secret.client.key, "73bfffe9212112f34b54106f2be9617a394d95c8f360452bd4ef2be66b9d8392")
-show("c-hs-iv", secret.client.iv, "5bd3c71b836e0b76bb73265f")
-show("s-hs-key", secret.server.key, "ac70443f7fe3bdaf568b1dcdb0a7f3fea098bca189c3455ba41fcd9d488348a4")
-show("s-hs-iv", secret.server.iv, "5d313eb2671276ee13000b30")
-show("master", secret.master, "18df06843d13a08bf2a449844c5f8a478001bc4d4c627984d5a41da8d0402919")
+let sharedSecret = sec.SecretBuffer.fromBytes(shared)
+let secret = (tls.deriveHandshake(&sharedSecret, th1))?
+show("c-hs", reveal(&secret.client.secret), "b3eddb126e067f35a780b3abf45e2d8f3b1a950738f52e9600746a0e27a55a21")
+show("s-hs", reveal(&secret.server.secret), "b67b7d690cc16c4e75e54213cb2d37b4e9c912bcded9105d42befd59d391ad38")
+show("c-hs-key", reveal(&secret.client.key), "73bfffe9212112f34b54106f2be9617a394d95c8f360452bd4ef2be66b9d8392")
+show("c-hs-iv", reveal(&secret.client.iv), "5bd3c71b836e0b76bb73265f")
+show("s-hs-key", reveal(&secret.server.key), "ac70443f7fe3bdaf568b1dcdb0a7f3fea098bca189c3455ba41fcd9d488348a4")
+show("s-hs-iv", reveal(&secret.server.iv), "5d313eb2671276ee13000b30")
+show("master", reveal(&secret.master), "18df06843d13a08bf2a449844c5f8a478001bc4d4c627984d5a41da8d0402919")
 
 // The server Finished covers ClientHello..CertificateVerify.
 let thCv = sha256.sum(ch.concat(sh).concat(ee).concat(cert).concat(cv))
-show("s-finished", (tls.finishedVerifyData(secret.server.secret, thCv))?, "9b9b141d906337fbd2cbdce71df4deda4ab42c309572cb7fffee5454b78f0718")
+show("s-finished", reveal(&(tls.finishedVerifyData(&secret.server.secret, thCv))?), "9b9b141d906337fbd2cbdce71df4deda4ab42c309572cb7fffee5454b78f0718")
 
 // Application secrets cover ClientHello..server Finished.
 let thApp = sha256.sum(ch.concat(sh).concat(ee).concat(cert).concat(cv).concat(fin))
 show("th-app", thApp, "9608102a0f1ccc6db6250b7b7e417b1a000eaada3daae4777a7686c9ff83df13")
-let app = (tls.deriveApplication(secret.master, thApp))?
-show("c-ap", app.client.secret, "9e40646ce79a7f9dc05af8889bce6552875afa0b06df0087f792ebb7c17504a5")
-show("s-ap", app.server.secret, "a11af9f05531f856ad47116b45a950328204b4f44bfb6b3a4b4f1f3fcb631643")
-show("c-ap-key", app.client.key, "c8afd24f48952725381a54085e8d8e3856d8d89e3019243b30a9db54809a3732")
-show("c-ap-iv", app.client.iv, "5b78923dee08579033e523d9")
-show("s-ap-key", app.server.key, "848e80ab93efeb09c572c66873c184f99207c95b0fc817f91e8e7e8e14ac5ca9")
-show("s-ap-iv", app.server.iv, "cf782b88dd83549aadf1e984")
-show("c-finished", (tls.finishedVerifyData(secret.client.secret, thApp))?, "a8ec436d677634ae525ac1fcebe11a039ec17694fac6e98527b642f2edd5ce61")
+let app = (tls.deriveApplication(&secret.master, thApp))?
+show("c-ap", reveal(&app.client.secret), "9e40646ce79a7f9dc05af8889bce6552875afa0b06df0087f792ebb7c17504a5")
+show("s-ap", reveal(&app.server.secret), "a11af9f05531f856ad47116b45a950328204b4f44bfb6b3a4b4f1f3fcb631643")
+show("c-ap-key", reveal(&app.client.key), "c8afd24f48952725381a54085e8d8e3856d8d89e3019243b30a9db54809a3732")
+show("c-ap-iv", reveal(&app.client.iv), "5b78923dee08579033e523d9")
+show("s-ap-key", reveal(&app.server.key), "848e80ab93efeb09c572c66873c184f99207c95b0fc817f91e8e7e8e14ac5ca9")
+show("s-ap-iv", reveal(&app.server.iv), "cf782b88dd83549aadf1e984")
+show("c-finished", reveal(&(tls.finishedVerifyData(&secret.client.secret, thApp))?), "a8ec436d677634ae525ac1fcebe11a039ec17694fac6e98527b642f2edd5ce61")
 
 // Record protection: sealing the client Finished must match the RFC's record.
-let sealedFinished = (tls.sealRecord(secret.client, 0, tls.handshakeType, cfin))?
+let sealedFinished = (tls.sealRecord(&secret.client, 0, tls.handshakeType, &secretOf(cfin)))?
 show("seal-finished", sealedFinished, "17030300353f93cf6eede469f3366311067b9748ae755acd0d127f344779d418b2e4b6417ac007757369494eae4ac2177f13881bdde64dfd879b")
 
 // Opening the server's application record with its keys yields 00..31.
@@ -78,24 +88,24 @@ for i < 50 {
     payload.push(i.toU8() || 0)
     i = i + 1
 }
-let sealedApp = (tls.sealRecord(app.client, 0, tls.applicationDataType, Bytes.fromArray(&payload)))?
+let sealedApp = (tls.sealRecord(&app.client, 0, tls.applicationDataType, &secretOf(Bytes.fromArray(&payload))))?
 show("seal-app", sealedApp, "17030300431fd0486e9713f060eaebc04aadd9df0a5448b51a6675c2deacc5c3f774203c979cf2e49f999bcf33e553e632e48ba372130aed733b75a8db3a214bd3cadf535cc92bd5")
 
 let serverRecord = dec("1703030043a8d6956fabad53a643ebe342ee5ac4d9f56e48bad6d7c1b5e873cd2e212b2debec78ddf53fbe8c3522bde3cc869c7ca519693edd2d2aea37ae35c4ddfd6b40f6edcb0a")
-let opened = (tls.openRecord(app.server, 0, serverRecord.slice(0, 5).expect("header"), serverRecord.slice(5, serverRecord.len()).expect("body")))?
+let opened = (tls.openRecord(&app.server, 0, serverRecord.slice(0, 5).expect("header"), serverRecord.slice(5, serverRecord.len()).expect("body")))?
 print "open-app-type ${opened.typ == tls.applicationDataType}"
-show("open-app", opened.payload, "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3031")
+show("open-app", reveal(&opened.payload), "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3031")
 
 // The RFC 8448 AES-128 keys also prove the label and context encoding: an
 // expansion of 16 bytes starts at the same HKDF block layout and reproduces
 // the RFC value exactly.
-show("label-16", (tls.expandLabel(secret.client.secret, "key", Bytes.zeros(0), 16))?, "dbfaa693d1762c5b666af5d950258d01")
+show("label-16", reveal(&(tls.expandLabel(&secret.client.secret, "key", Bytes.zeros(0), 16))?), "dbfaa693d1762c5b666af5d950258d01")
 
 // The record nonce is the IV XOR the sequence number: sequence 5 opens the
 // record whose header and tag were built for it.
 let seq5 = dec("17030300433ed272749904d6d4191dacefc1849f39c7e0a68a21339feecd3645ebae610c74b38c1da55d64cac371258fab54437183871f26d58f28b226205393288961f1c9864c8d")
-let opened5 = (tls.openRecord(app.client, 5, seq5.slice(0, 5).expect("header"), seq5.slice(5, seq5.len()).expect("body")))?
-show("open-seq5", opened5.payload, "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3031")
+let opened5 = (tls.openRecord(&app.client, 5, seq5.slice(0, 5).expect("header"), seq5.slice(5, seq5.len()).expect("body")))?
+show("open-seq5", reveal(&opened5.payload), "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3031")
 
 // A tampered tag must be refused, and an old sequence number must not open
 // the record sealed under sequence zero.
@@ -112,9 +122,9 @@ for j < recordBytes.len() {
     j = j + 1
 }
 let tamperedBytes = Bytes.fromArray(&tampered)
-let refused = tls.openRecord(app.client, 0, tamperedBytes.slice(0, 5).expect("header"), tamperedBytes.slice(5, tamperedBytes.len()).expect("body")) is Err(_)
+let refused = tls.openRecord(&app.client, 0, tamperedBytes.slice(0, 5).expect("header"), tamperedBytes.slice(5, tamperedBytes.len()).expect("body")) is Err(_)
 print "tamper ${refused}"
-let wrongSeq = tls.openRecord(app.client, 1, recordBytes.slice(0, 5).expect("header"), recordBytes.slice(5, recordBytes.len()).expect("body")) is Err(_)
+let wrongSeq = tls.openRecord(&app.client, 1, recordBytes.slice(0, 5).expect("header"), recordBytes.slice(5, recordBytes.len()).expect("body")) is Err(_)
 print "wrong-seq ${wrongSeq}"
 -- stdout --
 shared true

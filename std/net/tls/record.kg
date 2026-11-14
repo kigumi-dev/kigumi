@@ -3,9 +3,16 @@
 //
 // The outer record always carries content type application_data (23), a
 // legacy version of 0x0303 and the ciphertext; the real content type is the
-// last non-zero byte of the decrypted inner plaintext. The additional data
-// is the five-byte outer header, so a flipped type, version or length fails
-// the tag.
+// last non-zero byte of the decrypted inner plaintext. The additional data is
+// the five-byte outer header, so a flipped type, version or length fails the
+// tag.
+//
+// Record keys and IVs are `SecretBuffer`s and the record payload is secret.
+// Ciphertext, headers and sequence numbers are public. The only declassify
+// points here are the wire boundary (emitting a sealed record) and the
+// protocol metadata of an opened record (its content type and padding
+// length); the padding scan itself is mask arithmetic with no branch.
+import sec from std/secret
 import poly from std/crypto/chacha20poly1305
 import subtle from std/crypto/subtle
 
@@ -30,10 +37,11 @@ pub const maxPlaintext: usize = 16384
 /// Largest TLSCiphertext accepted: plaintext plus the tag.
 pub const maxCiphertext: usize = 16384 + 256
 
-/// A decrypted record: its content type and payload, with padding removed.
+/// A decrypted record: its content type and secret payload, with padding
+/// removed.
 pub type Record = {
     pub typ u8
-    pub payload Bytes
+    pub payload sec.SecretBuffer
 }
 
 /// A record's five-byte header.
@@ -49,15 +57,19 @@ pub pure fn recordHeader(typ: u8, length: usize) -> Result[Bytes, Error] {
 }
 
 /// The per-record nonce: the IV with the record sequence number XORed into
-/// its low eight bytes (RFC 8446 §5.3).
-pub pure fn recordNonce(iv: Bytes, seq: u64) -> Result[Bytes, Error] {
+/// its low eight bytes (RFC 8446 §5.3). The nonce is public, so the IV copy
+/// is released at this boundary; the original IV stays secret.
+pub fn recordNonce(iv: &sec.SecretBuffer, seq: u64) -> Result[Bytes, Error] {
     if iv.len() != ivSize {
         fail Error.BadRecord("record IV must be ${ivSize} bytes")
+    }
+    let mut raw = unsafe {
+        iv.copy().declassify()
     }
     let mut out = Array.empty[u8]()
     let mut i: usize = 0
     for i < ivSize {
-        out.push(iv[i])
+        out.push(raw[i])
         i = i + 1
     }
     let mut b: usize = 0
@@ -65,67 +77,68 @@ pub pure fn recordNonce(iv: Bytes, seq: u64) -> Result[Bytes, Error] {
         let shift = (7 - b) * 8
         let byte = ((seq >> shift) & 255).toU8() || 0
         let at = ivSize - 8 + b
-        out[at] = iv[at] ^ byte
+        out[at] = raw[at] ^ byte
         b = b + 1
     }
     Ok(freeze(&out))
 }
 
-/// Seals one record. `payload` must already be no longer than
+/// Seals one secret `payload`. `payload` must already be no longer than
 /// `maxPlaintext`; no padding is added, so the inner plaintext is
-/// payload || contentType.
-pub pure fn sealRecord(keys: Direction, seq: u64, typ: u8, payload: Bytes) -> Result[Bytes, Error] {
+/// payload || contentType. The sealed bytes are public wire data and leave
+/// the secret domain at this boundary.
+pub fn sealRecord(keys: &Direction, seq: u64, typ: u8, payload: &sec.SecretBuffer) -> Result[Bytes, Error] {
     if payload.len() > maxPlaintext {
         fail Error.RecordOverflow
     }
-    let nonce = recordNonce(keys.iv, seq)?
-    let mut inner = Array.empty[u8]()
-    append(&mut inner, payload)
-    putU8(&mut inner, typ)
-    let innerBytes = freeze(&inner)
-    let header = recordHeader(protectedType, innerBytes.len() + tagSize)?
-    let sealed = match poly.seal(keys.key, nonce, header, innerBytes) {
+    let nonce = recordNonce(&keys.iv, seq)?
+    let inner = payload.concat(sec.SecretBuffer.fromBytes(Bytes.fill(typ, 1)))
+    let header = recordHeader(protectedType, inner.len() + tagSize)?
+    let sealed = match poly.seal(&keys.key, nonce, header, &inner) {
         Ok(value) -> value
         Err(e) -> fail Error.BadRecord(e.message())
     }
-    Ok(header.concat(sealed))
+    let sealedBytes = unsafe {
+        sealed.declassify()
+    }
+    Ok(header.concat(sealedBytes))
 }
 
 /// Opens a protected record whose outer header is `header` (the five wire
 /// bytes) and whose ciphertext, tag included, is `sealed`.
 ///
-/// Padding is the run of zero bytes before the content type; scanning from
-/// the end finds the type byte, and everything before it is the payload.
-pub pure fn openRecord(keys: Direction, seq: u64, header: Bytes, sealed: Bytes) -> Result[Record, Error] {
+/// Padding is the run of zero bytes before the content type; the scan visits
+/// every byte through a secret mask, so its timing does not depend on where
+/// the type byte is. The type and payload length are then released as
+/// protocol metadata.
+pub fn openRecord(keys: &Direction, seq: u64, header: Bytes, sealed: Bytes) -> Result[Record, Error] {
     if sealed.len() < tagSize + 1 {
         fail Error.BadRecord("protected record is shorter than its tag and type")
     }
     if sealed.len() > maxCiphertext {
         fail Error.RecordOverflow
     }
-    let nonce = recordNonce(keys.iv, seq)?
-    let inner = match poly.open(keys.key, nonce, header, sealed) {
+    let nonce = recordNonce(&keys.iv, seq)?
+    let inner = match poly.open(&keys.key, nonce, header, sealed) {
         Ok(value) -> value
         Err(e) -> fail Error.BadRecord(e.message())
     }
-    let mut end = inner.len()
-    let mut typ: u8 = 0
-    for end > 0 {
-        end = end - 1
-        let b = inner[end]
-        if b != 0 {
-            typ = b
-            break
-        }
+    let mut end = sec.SecretU32.classify(0)
+    let mut at: usize = 0
+    for at < inner.len() {
+        let nz = ~inner.byteAt(at).ctIsZero()
+        end = nz.selectU32(sec.SecretU32.classify(at.toU32() || 0), end)
+        at = at + 1
     }
+    let endAt = (unsafe { end.declassify() }).toUsize()
+    let typ = unsafe { inner.byteAt(endAt).declassify() }
     if typ != alertType && typ != handshakeType && typ != applicationDataType {
         fail Error.BadRecord("inner content type ${typ} is not allowed")
     }
-    let payload = inner.slice(0, end) || fail Error.BadRecord("inner slice out of bounds")
-    Record {
+    Ok(Record {
         typ: typ
-        payload: payload
-    }
+        payload: inner.sliceSecret(0, endAt)
+    })
 }
 
 /// A plaintext record header and payload, for alerts and the ClientHello.
@@ -137,7 +150,7 @@ pub pure fn sealPlaintext(typ: u8, payload: Bytes) -> Result[Bytes, Error] {
     Ok(header.concat(payload))
 }
 
-/// Compares two equal-length byte strings without an early exit.
+/// Compares two equal-length public byte strings without an early exit.
 pub pure fn equalConstantTime(a: Bytes, b: Bytes) -> Bool {
     subtle.constantTimeEq(a, b)
 }

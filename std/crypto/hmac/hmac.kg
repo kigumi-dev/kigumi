@@ -1,81 +1,74 @@
+// HMAC (RFC 2104, FIPS 198-1) over a secret-input digest.
+//
+// The key and every key-derived pad stay in `SecretBuffer`; the digest is a
+// `hash.SecretDigest`, so the key is never handed to a public `Bytes` slot.
+// The tag is secret, and `verify` compares it with public wire bytes through
+// a `Choice`, never a Bool.
+import secret from std/secret
 import hash from std/crypto/hash
-import subtle from std/crypto/subtle
 
 const ipad: u8 = 0x36
 const opad: u8 = 0x5C
 
-/// Keyed MAC over any `hash.Digest` (RFC 2104, FIPS 198-1).
-pub type Hmac[D: hash.Digest] = {
+/// A MAC that has consumed no message bytes yet. `outer` is the opad block,
+/// secret for the life of the MAC.
+pub type Hmac[D: hash.SecretDigest] = {
     mut inner D
-    outer Bytes
+    outer secret.SecretBuffer
 }
 
-/// Appends every byte of data to out.
-pure fn appendBytes(out: &mut Array[u8], data: Bytes) {
-    let mut i: usize = 0
-    for i < data.len() {
-        out.push(data[i])
-        i = i + 1
-    }
-}
-
-/// Key padded or hashed to one block, as RFC 2104 §2 requires.
-pure fn blockKey[D: hash.Digest](key: Bytes) -> Bytes {
+/// Key padded or hashed to one block, as RFC 2104 §2 requires. Its length is
+/// public; its bytes are not.
+pure fn blockKey[D: hash.SecretDigest](key: &secret.SecretBuffer) -> secret.SecretBuffer {
     let n = D.blockSize()
     let short = if key.len() > n {
-        hash.sum[D](key)
+        hash.sumSecret[D](key)
     } else {
-        key
+        key.copy()
     }
-    let mut out = Array.empty[u8]()
-    appendBytes(&mut out, short)
-    out.appendAll(Array.fill[u8](0, n - short.len()))
-    Bytes.fromArray(&out)
+    short.concat(secret.SecretBuffer.fromBytes(Bytes.zeros(n - short.len())))
 }
 
-pure fn padded(key: Bytes, pad: u8) -> Bytes {
-    let mut out = Array.empty[u8]()
-    let mut i: usize = 0
-    for i < key.len() {
-        out.push(key[i] ^ pad)
-        i = i + 1
-    }
-    Bytes.fromArray(&out)
+pure fn padded(key: &secret.SecretBuffer, pad: u8) -> secret.SecretBuffer {
+    key.xorByte(pad)
 }
 
 /// A MAC that has consumed no message bytes yet.
-pub pure fn Hmac.new[D: hash.Digest](key: Bytes) -> Hmac[D] {
+pub pure fn Hmac.new[D: hash.SecretDigest](key: &secret.SecretBuffer) -> Hmac[D] {
     let k = blockKey[D](key)
+    let innerPad = padded(&k, ipad)
+    let outerPad = padded(&k, opad)
     let mut inner = D.new()
-    inner.update(padded(k, ipad))
+    inner.updateSecret(&innerPad)
     Hmac {
         inner: inner
-        outer: padded(k, opad)
+        outer: outerPad
     }
 }
 
-/// Adds message bytes.
-pub pure fn Hmac[D: hash.Digest].update(mut self, data: Bytes) {
-    self.inner.update(data)
+/// Adds secret message bytes.
+pub pure fn Hmac[D: hash.SecretDigest].update(mut self, data: &secret.SecretBuffer) {
+    self.inner.updateSecret(data)
 }
 
-/// The MAC of everything added so far.
-pub pure fn Hmac[D: hash.Digest].finish(move self) -> Bytes {
-    let digest = self.inner.finish()
+/// The secret MAC of everything added so far.
+pub pure fn Hmac[D: hash.SecretDigest].finish(move self) -> secret.SecretBuffer {
+    let digest = self.inner.finishSecret()
     let mut outer = D.new()
-    outer.update(self.outer)
-    outer.update(digest)
-    outer.finish()
+    outer.updateSecret(&self.outer)
+    outer.updateSecret(&digest)
+    outer.finishSecret()
 }
 
-/// MAC of data under key in one call.
-pub pure fn sum[D: hash.Digest](key: Bytes, data: Bytes) -> Bytes {
+/// MAC of secret data under a secret key in one call.
+pub pure fn sum[D: hash.SecretDigest](key: &secret.SecretBuffer, data: &secret.SecretBuffer) -> secret.SecretBuffer {
     let mut m = Hmac.new[D](key)
     m.update(data)
     m.finish()
 }
 
-/// Whether tag is the MAC of data under key, compared in constant time.
-pub pure fn verify[D: hash.Digest](key: Bytes, data: Bytes, tag: Bytes) -> Bool {
-    subtle.constantTimeEq(sum[D](key, data), tag)
+/// Whether `tag` is the MAC of `data` under `key`, compared in constant time
+/// and without releasing the computed tag.
+pub pure fn verify[D: hash.SecretDigest](key: &secret.SecretBuffer, data: &secret.SecretBuffer, tag: Bytes) -> secret.Choice {
+    sum[D](key, data).ctEqPublic(&tag)
 }

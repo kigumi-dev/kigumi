@@ -7,6 +7,7 @@ import hex from std/encoding/hex
 import net from std/net
 import task from std/task
 import tls from std/net/tls
+import sec from std/secret
 import x509 from std/crypto/x509
 
 const CA = "308201b130820157a00302010202146ad2bbf44ddf36e4f64dcc360694f4294afe655c300a06082a8648ce3d04030230253123302106035504030c1a4b6967756d6920544c5320526573756d7074696f6e20526f6f743020170d3236313131313031333730355a180f32303534303332393031333730355a30253123302106035504030c1a4b6967756d6920544c5320526573756d7074696f6e20526f6f743059301306072a8648ce3d020106082a8648ce3d03010703420004d78720fcadb5e66100e62718590cd5b13e90ef62da9198d8a84f4195537da3103582f0ad01ba277cb6982c97223ba07bbc73437093ae42026e75a2c884cbd5ffa3633061301d0603551d0e041604144d80d1d752f5c5189d16b4953378ca9c39d539d0301f0603551d230418301680144d80d1d752f5c5189d16b4953378ca9c39d539d0300f0603551d130101ff040530030101ff300e0603551d0f0101ff040403020106300a06082a8648ce3d0403020348003045022100a19169e3b0f828e061689e1a6439b8414a80d1beaaf0586100f26634c129201c022047d3f125c4c6c2dd7f7150aa9814e75b4d8a9cb053e2f6c1ab8134217f593711"
@@ -14,6 +15,18 @@ const SERVER = "308201ca30820170a00302010202144f328d47857b325e3de85c78593b321d93
 const SERVER_KEY = "179f6244a3702a818aa6fefe5649fa5d4c7d2871bbe1a7aa982caee2874e30a9"
 
 const NOW: Int = 1800000000000
+
+fn secretOf(b: Bytes) -> sec.SecretBuffer {
+    sec.SecretBuffer.fromBytes(b)
+}
+
+fn reveal(b: &sec.SecretBuffer) -> Bytes {
+    unsafe { b.copy().declassify() }
+}
+
+fn revealOwned(b: sec.SecretBuffer) -> Bytes {
+    unsafe { b.declassify() }
+}
 
 fn dec(text: String) -> Bytes {
     hex.decode(text).expect("hex")
@@ -28,7 +41,7 @@ fn anchors() -> Array[x509.Certificate] {
 }
 
 fn serverConfig(store: tls.TicketStore, now: Int, early: usize, lifetimeMillis: Int) -> tls.ServerConfig {
-    let mut config = tls.ServerConfig.new(Array.of(dec(SERVER)), tls.ServerKey.EcP256(dec(SERVER_KEY)), (k) => deterministicRandom(k))
+    let mut config = tls.ServerConfig.new(Array.of(dec(SERVER)), tls.ServerKey.EcP256(secretOf(dec(SERVER_KEY))), (k) => deterministicRandom(k))
     config.alpn = Array.of("http/1.1")
     config.nowMillis = now
     config.tickets = 1
@@ -57,12 +70,12 @@ async fn serve(mut listener: net.Listener, config: tls.ServerConfig, expect: Str
             return "read: ${e.message()}"
         }
     }
-    let text = String.fromBytes(got) || ""
+    let text = String.fromBytes(revealOwned(got)) || ""
     if text != expect {
         await session.close()
         return "request `${text}`"
     }
-    match await session.write("pong".toBytes()) {
+    match await session.write(&secretOf("pong".toBytes())) {
         Ok(_) -> {}
         Err(e) -> {
             await session.close()
@@ -77,7 +90,7 @@ async fn connect(n: net.Net, port: Int, ticket: tls.SessionTicket?, early: Bytes
     let mut config = tls.Config.new("localhost", anchors(), (k) => deterministicRandom(k))
     config.nowMillis = NOW
     config.session = ticket
-    config.earlyData = early
+    config.earlyData = secretOf(early)
     let pool = task.BlockingPool.new(1)
     let conn = await pool.run(() => n.connect("127.0.0.1", port).unwrap()).unwrap()
     let session = (await tls.Client.connect(conn, config))?
@@ -91,7 +104,7 @@ async fn bootstrap(n: net.Net, store: tls.TicketStore, early: usize, lifetime: I
     let port = listener.port()
     let running = task.spawn(serve(listener, serverConfig(store, NOW, early, lifetime), "hello"))
     let mut session = (await connect(n, port, None, Bytes.zeros(0)))?
-    (await session.write("hello".toBytes()))?
+    (await session.write(&secretOf("hello".toBytes())))?
     _ = (await session.read(64))?
     let ticket = session.resumptionTicket()
     await session.close()
@@ -122,8 +135,8 @@ async fn resumptionCase(n: net.Net) -> String! {
     let running = task.spawn(serve(listener, serverConfig(store, NOW, 64, 60000), "again"))
     let mut session = (await connect(n, port, Some(ticket), Bytes.zeros(0)))?
     let resumed = session.resumed()
-    (await session.write("again".toBytes()))?
-    let response = String.fromBytes((await session.read(64))?) || ""
+    (await session.write(&secretOf("again".toBytes())))?
+    let response = String.fromBytes(revealOwned((await session.read(64))?)) || ""
     await session.close()
     let server = await running
     "resume => ${resumed} ${response} ${server}"
@@ -138,7 +151,7 @@ async fn earlyCase(n: net.Net) -> String! {
     let running = task.spawn(serve(listener, serverConfig(store.clone(), NOW, 64, 60000), "early hi"))
     let mut session = (await connect(n, port, Some(ticket.clone()), "early hi".toBytes()))?
     let accepted = session.earlyDataAccepted()
-    let response = String.fromBytes((await session.read(64))?) || ""
+    let response = String.fromBytes(revealOwned((await session.read(64))?)) || ""
     await session.close()
     let first = await running
     // The same ticket again must be refused: 0-RTT is single use.
@@ -198,10 +211,11 @@ async fn limitCase(n: net.Net) -> String! {
 
 fn binderChecks() -> Bool {
     let psk = Bytes.fill(0x11, 32)
+    let pskSecret = secretOf(psk)
     let offer = tls.PskOffer {
         identity: "ticket".toBytes()
         obfuscatedAge: 0
-        psk: psk
+        psk: pskSecret.copy()
         earlyData: false
     }
     let hello = match tls.clientHelloPsk(tls.x25519Group, Bytes.fill(0x22, 32), Bytes.zeros(0), Bytes.fill(0x33, 32), None, "", Array.of("http/1.1"), offer) {
@@ -210,7 +224,7 @@ fn binderChecks() -> Bool {
     }
     let bindersAt = hello.len() - 39
     let binder = hello.slice(hello.len() - 32, hello.len()) || Bytes.zeros(0)
-    let valid = match tls.verifyPskBinder(hello, bindersAt, psk, binder) {
+    let valid = match tls.verifyPskBinder(hello, bindersAt, &pskSecret, binder) {
         Ok(_) -> true
         Err(_) -> false
     }
@@ -221,11 +235,11 @@ fn binderChecks() -> Bool {
         i = i + 1
     }
     let tampered = Bytes.fromArray(&bytes)
-    let rejected = match tls.verifyPskBinder(hello, bindersAt, psk, tampered) {
+    let rejected = match tls.verifyPskBinder(hello, bindersAt, &pskSecret, tampered) {
         Ok(_) -> false
         Err(_) -> true
     }
-    let wrongPsk = match tls.verifyPskBinder(hello, bindersAt, Bytes.fill(0x44, 32), binder) {
+    let wrongPsk = match tls.verifyPskBinder(hello, bindersAt, &secretOf(Bytes.fill(0x44, 32)), binder) {
         Ok(_) -> false
         Err(_) -> true
     }
