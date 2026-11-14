@@ -4431,7 +4431,7 @@
   },
   {
     "key": "crypto/chacha20poly1305.Poly1305.absorb",
-    "signature": "pure fn(u8) -\u003e Void",
+    "signature": "pure fn(SecretU8) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4460,7 +4460,7 @@
     "status": "ok"
   },
   {
-    "key": "crypto/chacha20poly1305.Poly1305.absorbRange",
+    "key": "crypto/chacha20poly1305.Poly1305.absorbRangePublic",
     "signature": "pure fn(Bytes, usize, usize) -\u003e Void",
     "has_body": true,
     "kind": "",
@@ -4470,8 +4470,28 @@
     "status": "ok"
   },
   {
+    "key": "crypto/chacha20poly1305.Poly1305.absorbRangeSecret",
+    "signature": "pure fn(\u0026SecretBuffer, usize, usize) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "crypto/chacha20poly1305.Poly1305.absorbWords",
-    "signature": "pure fn(u32, u32, u32, u32, u32) -\u003e Void",
+    "signature": "pure fn(SecretU32, SecretU32, SecretU32, SecretU32, SecretU32) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.Poly1305.appendBuffered",
+    "signature": "pure fn(SecretU8) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4481,7 +4501,7 @@
   },
   {
     "key": "crypto/chacha20poly1305.Poly1305.finish",
-    "signature": "pure fn() -\u003e Bytes",
+    "signature": "pure fn() -\u003e SecretBuffer",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4491,7 +4511,7 @@
   },
   {
     "key": "crypto/chacha20poly1305.Poly1305.new",
-    "signature": "pure fn(Bytes) -\u003e Poly1305",
+    "signature": "pure fn(\u0026SecretBuffer) -\u003e Poly1305",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4511,6 +4531,16 @@
   },
   {
     "key": "crypto/chacha20poly1305.Poly1305.update",
+    "signature": "pure fn(\u0026SecretBuffer) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.Poly1305.updatePublic",
     "signature": "pure fn(Bytes) -\u003e Void",
     "has_body": true,
     "kind": "",
@@ -4531,7 +4561,7 @@
   },
   {
     "key": "crypto/chacha20poly1305.blockByte",
-    "signature": "pure noalloc fn(\u0026Array[u32], usize) -\u003e u8",
+    "signature": "pure noalloc fn(\u0026Array[SecretU32], usize) -\u003e SecretU8",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4541,7 +4571,7 @@
   },
   {
     "key": "crypto/chacha20poly1305.blockBytes",
-    "signature": "pure fn(\u0026Array[u32]) -\u003e Bytes",
+    "signature": "pure fn(\u0026Array[SecretU32]) -\u003e SecretBuffer",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4551,7 +4581,7 @@
   },
   {
     "key": "crypto/chacha20poly1305.chacha20Block",
-    "signature": "pure fn(Bytes, u32, Bytes) -\u003e Bytes",
+    "signature": "pure fn(\u0026SecretBuffer, u32, Bytes) -\u003e SecretBuffer",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4561,7 +4591,7 @@
   },
   {
     "key": "crypto/chacha20poly1305.chacha20BlockWords",
-    "signature": "pure fn(Bytes, u32, Bytes) -\u003e Array[u32]",
+    "signature": "pure fn(\u0026SecretBuffer, u32, Bytes) -\u003e Array[SecretU32]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4571,7 +4601,17 @@
   },
   {
     "key": "crypto/chacha20poly1305.chacha20Xor",
-    "signature": "pure fn(Bytes, u32, Bytes, Bytes) -\u003e Bytes",
+    "signature": "pure fn(\u0026SecretBuffer, u32, Bytes, \u0026SecretBuffer) -\u003e SecretBuffer",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.chacha20XorPublic",
+    "signature": "pure fn(\u0026SecretBuffer, u32, Bytes, Bytes) -\u003e SecretBuffer",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4581,7 +4621,7 @@
   },
   {
     "key": "crypto/chacha20poly1305.checkLengths",
-    "signature": "fn(Bytes, Bytes) -\u003e Void",
+    "signature": "fn(\u0026SecretBuffer, Bytes) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4591,7 +4631,17 @@
   },
   {
     "key": "crypto/chacha20poly1305.fillBlock",
-    "signature": "pure fn(\u0026mut Array[u32], Bytes, u32, Bytes) -\u003e Void",
+    "signature": "pure fn(\u0026mut Array[SecretU32], \u0026SecretBuffer, u32, Bytes) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.keyWord",
+    "signature": "pure noalloc fn(\u0026SecretBuffer, usize) -\u003e SecretU32",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4611,7 +4661,57 @@
   },
   {
     "key": "crypto/chacha20poly1305.open",
-    "signature": "pure fn(Bytes, Bytes, Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "signature": "fn(\u0026SecretBuffer, Bytes, Bytes, Bytes) -\u003e Result[SecretBuffer, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.pLeWord",
+    "signature": "pure noalloc fn(Bytes, usize) -\u003e u32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.pMaskWide",
+    "signature": "pure noalloc fn() -\u003e SecretU64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.pMaskWord",
+    "signature": "pure noalloc fn() -\u003e SecretU32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.pWide",
+    "signature": "pure noalloc fn(u64) -\u003e SecretU64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.pWord",
+    "signature": "pure noalloc fn(u32) -\u003e SecretU32",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4631,7 +4731,17 @@
   },
   {
     "key": "crypto/chacha20poly1305.poly1305Key",
-    "signature": "pure fn(Bytes, Bytes) -\u003e Bytes",
+    "signature": "pure fn(\u0026SecretBuffer, Bytes) -\u003e SecretBuffer",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.pushWordLE",
+    "signature": "pure fn(\u0026mut Array[SecretU8], SecretU32) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4641,7 +4751,7 @@
   },
   {
     "key": "crypto/chacha20poly1305.quarterRound",
-    "signature": "pure noalloc fn(u32, u32, u32, u32) -\u003e Quad",
+    "signature": "pure noalloc fn(SecretU32, SecretU32, SecretU32, SecretU32) -\u003e Quad",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4651,7 +4761,27 @@
   },
   {
     "key": "crypto/chacha20poly1305.seal",
-    "signature": "pure fn(Bytes, Bytes, Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "signature": "pure fn(\u0026SecretBuffer, Bytes, Bytes, \u0026SecretBuffer) -\u003e Result[SecretBuffer, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.secretBlock",
+    "signature": "pure fn(SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32) -\u003e SecretLimbs",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.secretQuarterRound",
+    "signature": "pure noalloc fn(SecretU32, SecretU32, SecretU32, SecretU32) -\u003e SecretQuad",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4661,7 +4791,17 @@
   },
   {
     "key": "crypto/chacha20poly1305.sum",
-    "signature": "pure fn(Bytes, Bytes) -\u003e Bytes",
+    "signature": "pure fn(\u0026SecretBuffer, \u0026SecretBuffer) -\u003e SecretBuffer",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.sumPublic",
+    "signature": "pure fn(\u0026SecretBuffer, Bytes) -\u003e SecretBuffer",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4671,7 +4811,7 @@
   },
   {
     "key": "crypto/chacha20poly1305.verify",
-    "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Bool",
+    "signature": "pure fn(\u0026SecretBuffer, \u0026SecretBuffer, Bytes) -\u003e Choice",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4680,8 +4820,28 @@
     "status": "ok"
   },
   {
-    "key": "crypto/chacha20poly1305.xorRange",
-    "signature": "pure fn(Bytes, u32, Bytes, Bytes, usize, usize) -\u003e Bytes",
+    "key": "crypto/chacha20poly1305.word",
+    "signature": "pure noalloc fn(u32) -\u003e SecretU32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.xorRangePublic",
+    "signature": "pure fn(\u0026SecretBuffer, u32, Bytes, Bytes, usize, usize) -\u003e SecretBuffer",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/chacha20poly1305.xorRangeSecret",
+    "signature": "pure fn(\u0026SecretBuffer, u32, Bytes, \u0026SecretBuffer, usize, usize) -\u003e SecretBuffer",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -6280,6 +6440,16 @@
     "status": "ok"
   },
   {
+    "key": "crypto/hash.sumSecret",
+    "signature": "pure fn(\u0026SecretBuffer) -\u003e SecretBuffer",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "crypto/hkdf.HkdfError.message",
     "signature": "fn() -\u003e String",
     "has_body": true,
@@ -6290,18 +6460,8 @@
     "status": "ok"
   },
   {
-    "key": "crypto/hkdf.appendBytes",
-    "signature": "pure fn(\u0026mut Array[u8], Bytes) -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
     "key": "crypto/hkdf.derive",
-    "signature": "pure fn(Bytes, Bytes, Bytes, usize) -\u003e Result[Bytes, HkdfError]",
+    "signature": "pure fn(\u0026SecretBuffer, \u0026SecretBuffer, Bytes, usize) -\u003e Result[SecretBuffer, HkdfError]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -6311,7 +6471,7 @@
   },
   {
     "key": "crypto/hkdf.expand",
-    "signature": "pure fn(Bytes, Bytes, usize) -\u003e Result[Bytes, HkdfError]",
+    "signature": "pure fn(\u0026SecretBuffer, Bytes, usize) -\u003e Result[SecretBuffer, HkdfError]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -6321,7 +6481,7 @@
   },
   {
     "key": "crypto/hkdf.extract",
-    "signature": "pure fn(Bytes, Bytes) -\u003e Bytes",
+    "signature": "pure fn(\u0026SecretBuffer, \u0026SecretBuffer) -\u003e SecretBuffer",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -6331,7 +6491,7 @@
   },
   {
     "key": "crypto/hmac.Hmac.finish",
-    "signature": "pure fn() -\u003e Bytes",
+    "signature": "pure fn() -\u003e SecretBuffer",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -6341,7 +6501,7 @@
   },
   {
     "key": "crypto/hmac.Hmac.new",
-    "signature": "pure fn(Bytes) -\u003e Hmac[D]",
+    "signature": "pure fn(\u0026SecretBuffer) -\u003e Hmac[D]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -6351,17 +6511,7 @@
   },
   {
     "key": "crypto/hmac.Hmac.update",
-    "signature": "pure fn(Bytes) -\u003e Void",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "crypto/hmac.appendBytes",
-    "signature": "pure fn(\u0026mut Array[u8], Bytes) -\u003e Void",
+    "signature": "pure fn(\u0026SecretBuffer) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -6371,7 +6521,7 @@
   },
   {
     "key": "crypto/hmac.blockKey",
-    "signature": "pure fn(Bytes) -\u003e Bytes",
+    "signature": "pure fn(\u0026SecretBuffer) -\u003e SecretBuffer",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -6381,7 +6531,7 @@
   },
   {
     "key": "crypto/hmac.padded",
-    "signature": "pure fn(Bytes, u8) -\u003e Bytes",
+    "signature": "pure fn(\u0026SecretBuffer, u8) -\u003e SecretBuffer",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -6391,7 +6541,7 @@
   },
   {
     "key": "crypto/hmac.sum",
-    "signature": "pure fn(Bytes, Bytes) -\u003e Bytes",
+    "signature": "pure fn(\u0026SecretBuffer, \u0026SecretBuffer) -\u003e SecretBuffer",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -6401,7 +6551,7 @@
   },
   {
     "key": "crypto/hmac.verify",
-    "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Bool",
+    "signature": "pure fn(\u0026SecretBuffer, \u0026SecretBuffer, Bytes) -\u003e Choice",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -7631,7 +7781,7 @@
   },
   {
     "key": "crypto/p256.hmacBytes",
-    "signature": "fn(Bytes, Bytes) -\u003e Bytes",
+    "signature": "fn(\u0026SecretBuffer, Bytes) -\u003e Bytes",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -7901,7 +8051,7 @@
   },
   {
     "key": "crypto/p256.sign",
-    "signature": "pure fn(Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "signature": "fn(\u0026SecretBuffer, Bytes) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -7921,7 +8071,7 @@
   },
   {
     "key": "crypto/p256.signMessage",
-    "signature": "pure fn(Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "signature": "fn(\u0026SecretBuffer, Bytes) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -8510,8 +8660,108 @@
     "status": "ok"
   },
   {
+    "key": "crypto/sha256.SecretHasher.blockSize",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha256.SecretHasher.compressSecret",
+    "signature": "fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha256.SecretHasher.finishSecret",
+    "signature": "pure fn() -\u003e SecretBuffer",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha256.SecretHasher.new",
+    "signature": "pure fn() -\u003e SecretHasher",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha256.SecretHasher.size",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha256.SecretHasher.updateSecret",
+    "signature": "pure fn(\u0026SecretBuffer) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha256.pushU32BE",
+    "signature": "pure fn(\u0026mut Array[SecretU8], SecretU32) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "crypto/sha256.roundConstants",
     "signature": "pure fn() -\u003e Array[u32]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha256.secretSha256Round",
+    "signature": "pure noalloc fn(SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32) -\u003e SecretRound",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha256.secretWord",
+    "signature": "pure noalloc fn(u32) -\u003e SecretU32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha256.sha256Round",
+    "signature": "pure noalloc fn(SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32, SecretU32) -\u003e SecretRound",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -9010,6 +9260,66 @@
     "status": "ok"
   },
   {
+    "key": "crypto/sha512.SecretHasher.blockSize",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.SecretHasher.compressSecret",
+    "signature": "fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.SecretHasher.finishSecret",
+    "signature": "pure fn() -\u003e SecretBuffer",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.SecretHasher.new",
+    "signature": "pure fn() -\u003e SecretHasher",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.SecretHasher.size",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.SecretHasher.updateSecret",
+    "signature": "pure fn(\u0026SecretBuffer) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "crypto/sha512.iv384",
     "signature": "pure fn() -\u003e Array[u64]",
     "has_body": true,
@@ -9030,8 +9340,28 @@
     "status": "ok"
   },
   {
+    "key": "crypto/sha512.pushU64BE",
+    "signature": "pure fn(\u0026mut Array[SecretU8], SecretU64) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "crypto/sha512.roundConstants",
     "signature": "pure fn() -\u003e Array[u64]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/sha512.secretWord",
+    "signature": "pure noalloc fn(u64) -\u003e SecretU64",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -9971,7 +10301,7 @@
   },
   {
     "key": "crypto/x25519.baseMult",
-    "signature": "pure fn(Bytes) -\u003e Result[Bytes, Error]",
+    "signature": "fn(\u0026SecretBuffer) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10081,7 +10411,17 @@
   },
   {
     "key": "crypto/x25519.publicKey",
-    "signature": "pure fn(Bytes) -\u003e Result[Bytes, Error]",
+    "signature": "fn(\u0026SecretBuffer) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.scalarBytes",
+    "signature": "fn(\u0026SecretBuffer) -\u003e Bytes",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10091,7 +10431,17 @@
   },
   {
     "key": "crypto/x25519.scalarMult",
-    "signature": "pure fn(Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "signature": "fn(\u0026SecretBuffer, Bytes) -\u003e Result[SecretBuffer, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x25519.scalarMultBytes",
+    "signature": "fn(\u0026SecretBuffer, Bytes) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10101,7 +10451,7 @@
   },
   {
     "key": "crypto/x25519.sharedSecret",
-    "signature": "pure fn(Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "signature": "fn(\u0026SecretBuffer, Bytes) -\u003e Result[SecretBuffer, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20382,7 +20732,7 @@
   },
   {
     "key": "net/tls.Session.read",
-    "signature": "fn(usize) -\u003e Result[Bytes, Error]",
+    "signature": "fn(usize) -\u003e Result[SecretBuffer, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20472,7 +20822,7 @@
   },
   {
     "key": "net/tls.Session.sendEarlyData",
-    "signature": "fn(Bytes) -\u003e Result[Void, Error]",
+    "signature": "fn(\u0026SecretBuffer) -\u003e Result[Void, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20502,7 +20852,7 @@
   },
   {
     "key": "net/tls.Session.takeApplication",
-    "signature": "fn(usize) -\u003e Bytes",
+    "signature": "fn(usize) -\u003e SecretBuffer",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20522,7 +20872,7 @@
   },
   {
     "key": "net/tls.Session.write",
-    "signature": "fn(Bytes) -\u003e Result[Void, Error]",
+    "signature": "fn(\u0026SecretBuffer) -\u003e Result[Void, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20632,7 +20982,7 @@
   },
   {
     "key": "net/tls.binderKey",
-    "signature": "pure fn(Bytes) -\u003e Result[Bytes, Error]",
+    "signature": "pure fn(\u0026SecretBuffer) -\u003e Result[SecretBuffer, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20642,7 +20992,7 @@
   },
   {
     "key": "net/tls.binderVerifyData",
-    "signature": "pure fn(Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "signature": "pure fn(\u0026SecretBuffer, Bytes) -\u003e Result[SecretBuffer, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20652,7 +21002,7 @@
   },
   {
     "key": "net/tls.buildClientHello",
-    "signature": "pure fn(u16, Bytes, Bytes, Bytes, Bytes?, String, Array[String], PskOffer?) -\u003e Result[Bytes, Error]",
+    "signature": "fn(u16, Bytes, Bytes, Bytes, Bytes?, String, Array[String], PskOffer?) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20722,7 +21072,7 @@
   },
   {
     "key": "net/tls.clientHello",
-    "signature": "pure fn(Bytes, Bytes, Bytes, String, Array[String]) -\u003e Result[Bytes, Error]",
+    "signature": "fn(Bytes, Bytes, Bytes, String, Array[String]) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20742,7 +21092,7 @@
   },
   {
     "key": "net/tls.clientHelloPsk",
-    "signature": "pure fn(u16, Bytes, Bytes, Bytes, Bytes?, String, Array[String], PskOffer) -\u003e Result[Bytes, Error]",
+    "signature": "fn(u16, Bytes, Bytes, Bytes, Bytes?, String, Array[String], PskOffer) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20752,7 +21102,7 @@
   },
   {
     "key": "net/tls.clientHelloWithShare",
-    "signature": "pure fn(u16, Bytes, Bytes, Bytes, Bytes?, String, Array[String]) -\u003e Result[Bytes, Error]",
+    "signature": "fn(u16, Bytes, Bytes, Bytes, Bytes?, String, Array[String]) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20792,7 +21142,7 @@
   },
   {
     "key": "net/tls.deriveApplication",
-    "signature": "pure fn(Bytes, Bytes) -\u003e Result[ApplicationSecrets, Error]",
+    "signature": "pure fn(\u0026SecretBuffer, Bytes) -\u003e Result[ApplicationSecrets, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20802,7 +21152,7 @@
   },
   {
     "key": "net/tls.deriveEarlyTraffic",
-    "signature": "pure fn(Bytes, Bytes) -\u003e Result[Direction, Error]",
+    "signature": "pure fn(\u0026SecretBuffer, Bytes) -\u003e Result[Direction, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20812,7 +21162,7 @@
   },
   {
     "key": "net/tls.deriveHandshake",
-    "signature": "pure fn(Bytes, Bytes) -\u003e Result[HandshakeSecrets, Error]",
+    "signature": "pure fn(\u0026SecretBuffer, Bytes) -\u003e Result[HandshakeSecrets, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20822,7 +21172,7 @@
   },
   {
     "key": "net/tls.deriveHandshakePsk",
-    "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Result[HandshakeSecrets, Error]",
+    "signature": "pure fn(\u0026SecretBuffer, \u0026SecretBuffer, Bytes) -\u003e Result[HandshakeSecrets, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20832,7 +21182,7 @@
   },
   {
     "key": "net/tls.deriveResumptionMaster",
-    "signature": "pure fn(Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "signature": "pure fn(\u0026SecretBuffer, Bytes) -\u003e Result[SecretBuffer, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20842,7 +21192,7 @@
   },
   {
     "key": "net/tls.deriveSecret",
-    "signature": "pure fn(Bytes, String, Bytes) -\u003e Result[Bytes, Error]",
+    "signature": "pure fn(\u0026SecretBuffer, String, Bytes) -\u003e Result[SecretBuffer, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20852,7 +21202,7 @@
   },
   {
     "key": "net/tls.earlySecret",
-    "signature": "pure fn(Bytes) -\u003e Bytes",
+    "signature": "pure fn(\u0026SecretBuffer) -\u003e SecretBuffer",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20902,7 +21252,7 @@
   },
   {
     "key": "net/tls.ephemeralPublic",
-    "signature": "fn(u16, Bytes) -\u003e Result[Bytes, Error]",
+    "signature": "fn(u16, \u0026SecretBuffer) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20922,7 +21272,7 @@
   },
   {
     "key": "net/tls.expandLabel",
-    "signature": "pure fn(Bytes, String, Bytes, usize) -\u003e Result[Bytes, Error]",
+    "signature": "pure fn(\u0026SecretBuffer, String, Bytes, usize) -\u003e Result[SecretBuffer, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20932,7 +21282,7 @@
   },
   {
     "key": "net/tls.expandLabelRaw",
-    "signature": "pure fn(Bytes, String, Bytes, usize) -\u003e Result[Bytes, HkdfError]",
+    "signature": "pure fn(\u0026SecretBuffer, String, Bytes, usize) -\u003e Result[SecretBuffer, HkdfError]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20942,7 +21292,7 @@
   },
   {
     "key": "net/tls.extract",
-    "signature": "pure fn(Bytes, Bytes) -\u003e Bytes",
+    "signature": "pure fn(\u0026SecretBuffer, \u0026SecretBuffer) -\u003e SecretBuffer",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20952,7 +21302,7 @@
   },
   {
     "key": "net/tls.finishedKey",
-    "signature": "pure fn(Bytes) -\u003e Result[Bytes, Error]",
+    "signature": "pure fn(\u0026SecretBuffer) -\u003e Result[SecretBuffer, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20962,7 +21312,7 @@
   },
   {
     "key": "net/tls.finishedVerifyData",
-    "signature": "pure fn(Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "signature": "pure fn(\u0026SecretBuffer, Bytes) -\u003e Result[SecretBuffer, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20982,7 +21332,7 @@
   },
   {
     "key": "net/tls.handshakeSecrets",
-    "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Result[HandshakeSecrets, Error]",
+    "signature": "pure fn(SecretBuffer, \u0026SecretBuffer, Bytes) -\u003e Result[HandshakeSecrets, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -21012,7 +21362,7 @@
   },
   {
     "key": "net/tls.keyExchangeShared",
-    "signature": "fn(u16, Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "signature": "fn(u16, \u0026SecretBuffer, Bytes) -\u003e Result[SecretBuffer, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -21022,7 +21372,7 @@
   },
   {
     "key": "net/tls.keysFor",
-    "signature": "pure fn(Bytes) -\u003e Result[Direction, Error]",
+    "signature": "pure fn(SecretBuffer) -\u003e Result[Direction, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -21072,7 +21422,7 @@
   },
   {
     "key": "net/tls.openRecord",
-    "signature": "pure fn(Direction, u64, Bytes, Bytes) -\u003e Result[Record, Error]",
+    "signature": "fn(\u0026Direction, u64, Bytes, Bytes) -\u003e Result[Record, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -21083,6 +21433,16 @@
   {
     "key": "net/tls.outboundAlert",
     "signature": "fn(u8, u8) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.p256Scalar",
+    "signature": "fn(\u0026SecretBuffer) -\u003e Bytes",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -21302,7 +21662,7 @@
   },
   {
     "key": "net/tls.recordNonce",
-    "signature": "pure fn(Bytes, u64) -\u003e Result[Bytes, Error]",
+    "signature": "fn(\u0026SecretBuffer, u64) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -21312,7 +21672,7 @@
   },
   {
     "key": "net/tls.resumptionPsk",
-    "signature": "pure fn(Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "signature": "pure fn(\u0026SecretBuffer, Bytes) -\u003e Result[SecretBuffer, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -21332,7 +21692,17 @@
   },
   {
     "key": "net/tls.sealRecord",
-    "signature": "pure fn(Direction, u64, u8, Bytes) -\u003e Result[Bytes, Error]",
+    "signature": "fn(\u0026Direction, u64, u8, \u0026SecretBuffer) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.secretAllZero",
+    "signature": "fn(\u0026SecretBuffer) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -21402,7 +21772,7 @@
   },
   {
     "key": "net/tls.verifyPskBinder",
-    "signature": "pure fn(Bytes, usize, Bytes, Bytes) -\u003e Result[Void, Error]",
+    "signature": "fn(Bytes, usize, \u0026SecretBuffer, Bytes) -\u003e Result[Void, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -27842,8 +28212,48 @@
     "status": "ok"
   },
   {
+    "key": "secret.SecretBuffer.byteAt",
+    "signature": "pure noalloc fn(usize) -\u003e SecretU8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretBuffer.concat",
+    "signature": "pure fn(SecretBuffer) -\u003e SecretBuffer",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretBuffer.copy",
+    "signature": "pure fn() -\u003e SecretBuffer",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "secret.SecretBuffer.ctEq",
     "signature": "pure noalloc fn(\u0026SecretBuffer) -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretBuffer.ctEqPublic",
+    "signature": "pure noalloc fn(\u0026Bytes) -\u003e Choice",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -27902,6 +28312,16 @@
     "status": "ok"
   },
   {
+    "key": "secret.SecretBuffer.fromSecretArray",
+    "signature": "pure fn(Array[SecretU8]) -\u003e SecretBuffer",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "secret.SecretBuffer.fromString",
     "signature": "pure fn(String) -\u003e SecretBuffer",
     "has_body": true,
@@ -27932,6 +28352,46 @@
     "status": "ok"
   },
   {
+    "key": "secret.SecretBuffer.sliceSecret",
+    "signature": "pure fn(usize, usize) -\u003e SecretBuffer",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretBuffer.wordBE",
+    "signature": "pure noalloc fn(usize) -\u003e SecretU32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretBuffer.wordLE",
+    "signature": "pure noalloc fn(usize) -\u003e SecretU32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretBuffer.xorByte",
+    "signature": "pure fn(u8) -\u003e SecretBuffer",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "secret.SecretIndex.from",
     "signature": "pure noalloc fn(SecretU32) -\u003e SecretIndex[N]",
     "has_body": true,
@@ -27954,6 +28414,16 @@
   {
     "key": "secret.SecretNat.declassify",
     "signature": "pure unsafe fn() -\u003e FixedArray[u64, N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretNat.fromBuffer",
+    "signature": "pure fn(\u0026SecretBuffer) -\u003e Result[SecretNat[N], NatError]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -28004,6 +28474,16 @@
   {
     "key": "secret.SecretNat.limbCount",
     "signature": "pure fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretNat.toBuffer",
+    "signature": "pure fn() -\u003e SecretBuffer",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -28362,6 +28842,16 @@
     "status": "ok"
   },
   {
+    "key": "secret.SecretU32.truncateU8",
+    "signature": "pure noalloc fn() -\u003e SecretU8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "secret.SecretU32.wrappingAdd",
     "signature": "pure noalloc fn(SecretU32) -\u003e SecretU32",
     "has_body": true,
@@ -28544,6 +29034,26 @@
   {
     "key": "secret.SecretU64.shiftRight",
     "signature": "pure noalloc fn(u32) -\u003e SecretU64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU64.truncateU32",
+    "signature": "pure noalloc fn() -\u003e SecretU32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU64.truncateU8",
+    "signature": "pure noalloc fn() -\u003e SecretU8",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -28742,6 +29252,26 @@
     "status": "ok"
   },
   {
+    "key": "secret.SecretU8.toU32",
+    "signature": "pure noalloc fn() -\u003e SecretU32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.SecretU8.toU64",
+    "signature": "pure noalloc fn() -\u003e SecretU64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "secret.SecretU8.wrappingAdd",
     "signature": "pure noalloc fn(SecretU8) -\u003e SecretU8",
     "has_body": true,
@@ -28868,6 +29398,16 @@
     "kind": "primitive",
     "vm": "implemented",
     "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "secret.secretEqPublic",
+    "signature": "pure noalloc fn(\u0026SecretBuffer, \u0026Bytes) -\u003e Choice",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
     "accelerated": false,
     "status": "ok"
   },
@@ -29462,8 +30002,8 @@
     "status": "ok"
   },
   {
-    "key": "secret/oram.SealedStore.drop",
-    "signature": "fn() -\u003e Void",
+    "key": "secret/oram.SealedStore.fromKey",
+    "signature": "fn(P, SecretBuffer, u64, usize, usize) -\u003e SealedStore[P]!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -29564,16 +30104,6 @@
   {
     "key": "secret/oram.SealedStore.withInnerMut",
     "signature": "fn(fn(\u0026mut P) -\u003e R) -\u003e R",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "secret/oram.SealedStore.withKeyBytes",
-    "signature": "fn(P, Bytes, u64, usize, usize) -\u003e SealedStore[P]!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -29714,16 +30244,6 @@
   {
     "key": "secret/oram.choiceMask",
     "signature": "pure noalloc fn(Choice) -\u003e u64",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "secret/oram.copyBytes",
-    "signature": "fn(Bytes) -\u003e Bytes",
     "has_body": true,
     "kind": "",
     "vm": "gap",

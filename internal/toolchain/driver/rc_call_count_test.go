@@ -24,15 +24,15 @@ var rcCallSites = map[string]*regexp.Regexp{
 
 // Call sites of the count and cell runtime calls in the IR of every native run fixture, std included.
 var pinnedRCCalls = map[string]int{
-	"fixtures":         1170,
-	"rt_retain":        21727,
-	"rt_release":       123530,
-	"rt_release_outer": 86940,
-	"rt_drop":          93860,
-	"rt_cell_init":     11486,
-	"rt_cell_take":     4096,
-	"rt_setfield_swap": 1315,
-	"rt_setindex_swap": 1478,
+	"fixtures":         1176,
+	"rt_retain":        21069,
+	"rt_release":       124989,
+	"rt_release_outer": 87237,
+	"rt_drop":          89979,
+	"rt_cell_init":     11439,
+	"rt_cell_take":     4201,
+	"rt_setfield_swap": 1235,
+	"rt_setindex_swap": 1630,
 }
 
 // The same call sites over the fixtures that existed before the retain / release elimination, re-measured when a
@@ -650,6 +650,13 @@ var addedAfterBaseline = map[string]bool{
 	"witness_ref_kept_ok.txtar":                     true,
 	"witness_ref_kept_round_ok.txtar":               true,
 	"witness_ref_kept_round2_ok.txtar":              true,
+	"const_generic_witness.txtar":                   true,
+	"simd_parity.txtar":                             true,
+	"simd_lane_bounds.txtar":                        true,
+	"simd_setlane_bounds.txtar":                     true,
+	"simd_generic.txtar":                            true,
+	"simd_generic_lane_bounds.txtar":                true,
+	"simd_generic_setlane_bounds.txtar":             true,
 	"std_fs_mkdir_empty.txtar":                      true,
 	"https_client_url.txtar":                        true,
 	"zlib_roundtrip.txtar":                          true,
