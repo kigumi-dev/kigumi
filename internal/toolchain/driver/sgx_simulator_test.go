@@ -9,7 +9,7 @@ import (
 // /tmp/sgxsim2 in the verification run. The simulator produces a genuine
 // enclave report, but only a v2 EPID quote; kigumi supports v3 ECDSA quotes.
 func TestSGXSimulatorReportAndQuote(t *testing.T) {
-	const src = `import sgx from std/cvm/sgx
+	const src = `import sgx from std/tee/sgx
 import hex from std/encoding/hex
 
 fn b(text: String) -> Bytes {

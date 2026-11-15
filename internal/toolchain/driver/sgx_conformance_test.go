@@ -159,7 +159,7 @@ func validateSgxVector(v *sgxVector) error {
 
 func buildSgxProgram(m *sgxManifest) string {
 	var prog strings.Builder
-	prog.WriteString(`import sgx from std/cvm/sgx
+	prog.WriteString(`import sgx from std/tee/sgx
 import hex from std/encoding/hex
 
 fn b(text: String) -> Bytes {
