@@ -275,7 +275,7 @@ cmd_check() {
 	need_go
 	prepare_tmp
 	local unformatted bin
-	unformatted=$(gofmt -l .) || die "gofmt failed"
+	unformatted=$(git ls-files -z -- '*.go' | xargs -0 -r gofmt -l) || die "gofmt failed"
 	[ -z "$unformatted" ] || die "gofmt -l lists files that need formatting:"$'\n'"$unformatted"
 	bin=$(build_kigumi)
 	"$bin" fmt --check std testdata examples || die "kigumi fmt --check failed"
