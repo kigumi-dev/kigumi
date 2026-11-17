@@ -25,6 +25,7 @@ import (
 	"kigumi/internal/cli/cmd/run"
 	"kigumi/internal/cli/cmd/schema"
 	"kigumi/internal/cli/cmd/test"
+	tokencmd "kigumi/internal/cli/cmd/token"
 	"kigumi/internal/cli/cmd/zig"
 	"kigumi/internal/cli/exit"
 	"kigumi/internal/cli/session"
@@ -74,7 +75,7 @@ func New() *cobra.Command {
 	}
 	root.Version = version.Display()
 	root.SetVersionTemplate("kigumi version {{.Version}}\n")
-	root.AddCommand(parse.New(), fmt.New(), check.New(), lint.New(), run.New(), repl.New(), test.New(), build.New(), doc.New(), schema.New(), expand.New(), emit.New("schema"), emit.New("header"), get.New(), mod.New(), lsp.New(), explain.New(), doctor.New(), zig.New())
+	root.AddCommand(parse.New(), fmt.New(), check.New(), lint.New(), run.New(), repl.New(), test.New(), build.New(), doc.New(), schema.New(), expand.New(), emit.New("schema"), emit.New("header"), get.New(), mod.New(), lsp.New(), explain.New(), doctor.New(), zig.New(), tokencmd.New())
 	return root
 }
 

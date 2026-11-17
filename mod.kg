@@ -1,0 +1,4 @@
+Module {
+    name: "github.com/kigumilang/kigumi"
+    kigumi: "0.1"
+}

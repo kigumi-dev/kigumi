@@ -1,0 +1,23 @@
+import testlib from std/test
+import shell from std/shell
+
+test "command plan keeps argv boundaries" {
+    let plan = commandPlan(Array.of("kigumi", "test", "--std", "std", "src/lang/token"))
+    let stages = shell.stages(&plan)
+    testlib.expectEq(stages.len(), 1)?
+    let argv = stages[0].argv.clone()
+    testlib.expectEq(argv.len(), 5)?
+    testlib.expectEq(argv[0], "kigumi")?
+    testlib.expectEq(argv[1], "test")?
+    testlib.expectEq(argv[2], "--std")?
+    testlib.expectEq(argv[3], "std")?
+    testlib.expectEq(argv[4], "src/lang/token")?
+}
+
+test "build redirects llvm output" {
+    let plan = buildPlan(Array.of("kigumi", "build", "--emit-llvm", "main.kg"), "/tmp/main.ll")
+    let stages = shell.stages(&plan)
+    testlib.expectEq(stages.len(), 1)?
+    testlib.expectEq(stages[0].redirs.len(), 1)?
+    testlib.expectEq(stages[0].redirs[0].target, "/tmp/main.ll")?
+}

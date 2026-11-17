@@ -1,0 +1,149 @@
+import shell from std/shell
+import token from github.com/kigumilang/kigumi/src/lang/token
+import selfhost from github.com/kigumilang/kigumi/src/toolchain/selfhost
+
+type Usage = {
+    text String
+}
+
+fn Usage.message(self) -> String {
+    self.text
+}
+
+fn runGo(plan: shell.Plan) -> Void! {
+    let result = plan |> shell.runHere(host.shell())?
+    shell.check(result)?
+}
+
+fn runGoToken(word: String) -> Void! {
+    let mut plan = $"go run . token"
+    plan = shell.planPush(plan, shell.Item.Word)
+    plan = shell.planPush(plan, shell.Item.Text(word))
+    runGo(plan)
+}
+
+fn implementation(command: String, default: String, forced: String?) -> String {
+    if forced is Some(v) {
+        return v.toLower()
+    }
+    let specific = host.env("KIGUMI_IMPL_${command.toUpper()}")
+    if specific is Some(v) {
+        return v.toLower()
+    }
+    let global = host.env("KIGUMI_IMPL")
+    if global is Some(v) {
+        return v.toLower()
+    }
+    default
+}
+
+fn validate(command: String, impl: String) -> Void! {
+    if impl != "go" && impl != "kigumi" {
+        fail Usage { text: "unknown implementation ${impl} for ${command}; want go or kigumi" }
+    }
+}
+
+fn unavailable(command: String, impl: String) -> Void! {
+    fail Usage { text: "${command} has no ${impl} implementation" }
+}
+
+fn runToken(word: String, forced: String?) -> Void! {
+    let impl = implementation("token", "kigumi", forced)
+    validate("token", impl)?
+    if impl == "kigumi" {
+        print token.name(token.lookup(word))
+    } else {
+        runGoToken(word)
+    }
+}
+
+fn runVersion(forced: String?) -> Void! {
+    let impl = implementation("version", "kigumi", forced)
+    validate("version", impl)?
+    if impl == "kigumi" {
+        print "kigumi bootstrap"
+    } else {
+        runGo($"go run . --version")
+    }
+}
+
+fn compilerPath() -> String {
+    let configured = host.env("KIGUMI_COMPILER")
+    if configured is Some(v) {
+        return v
+    }
+    "kigumi"
+}
+
+fn stdPath() -> String {
+    let configured = host.env("KIGUMI_STD")
+    if configured is Some(v) {
+        return v
+    }
+    "std"
+}
+
+fn runTest(forced: String?) -> Void! {
+    let impl = implementation("test", "kigumi", forced)
+    validate("test", impl)?
+    if impl == "go" {
+        runGo($"go test ./...")
+    } else {
+        selfhost.test(host.shell(), compilerPath(), stdPath())
+    }
+}
+
+fn runVet(forced: String?) -> Void! {
+    let impl = implementation("vet", "kigumi", forced)
+    validate("vet", impl)?
+    if impl == "go" {
+        runGo($"go vet ./...")
+    } else {
+        selfhost.vet(host.shell(), compilerPath(), stdPath())
+    }
+}
+
+fn runBuild(forced: String?) -> Void! {
+    let impl = implementation("build", "kigumi", forced)
+    validate("build", impl)?
+    if impl == "go" {
+        runGo($"go build -o /tmp/kigumi-dev .")
+    } else {
+        selfhost.build(host.shell(), compilerPath(), stdPath())
+    }
+}
+
+fn main() -> Void! {
+    let args = host.args()
+    let mut commandAt: usize = 1
+    let mut forced: String? = None
+    let first = args.get(1) || ""
+    if first.startsWith("--impl=") {
+        forced = Some(first.sliceBytes(7, first.len()).expect("--impl= is a prefix"))
+        commandAt = 2
+    } else if first == "--impl" {
+        forced = Some(args.get(2) || "")
+        commandAt = 3
+    }
+    let command = args.get(commandAt) || "test"
+    let word = args.get(commandAt + 1) || ""
+    if command == "test" {
+        runTest(forced)
+    } else if command == "vet" {
+        runVet(forced)
+    } else if command == "build" {
+        runBuild(forced)
+    } else if command == "version" {
+        runVersion(forced)
+    } else if command == "token" {
+        runToken(word, forced)
+    } else if command == "impl" {
+        print "token ${implementation("token", "kigumi", forced)}"
+        print "version ${implementation("version", "kigumi", forced)}"
+        print "test ${implementation("test", "kigumi", forced)}"
+        print "vet ${implementation("vet", "kigumi", forced)}"
+        print "build ${implementation("build", "kigumi", forced)}"
+    } else {
+        fail Usage { text: "usage: main.kg [--impl=go|kigumi] test|vet|build|version|token <word>|impl" }
+    }
+}

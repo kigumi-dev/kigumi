@@ -1,0 +1,71 @@
+pub type File = {
+    pub mut id SourceID
+    pub generated Bool
+    pub name String
+    pub src Bytes
+    lines Array[u32]
+}
+
+pub fn File.clone(self) -> File {
+    File {
+        id: self.id
+        generated: self.generated
+        name: self.name
+        src: self.src
+        lines: self.lines.clone()
+    }
+}
+
+pub fn newFile(name: String, src: Bytes) -> File {
+    let mut lines: Array[u32] = Array.of[u32](0)
+    let mut i: usize = 0
+    for i < src.len() {
+        if src[i] == 10 {
+            lines.push((i + 1).toU32().expect("source exceeds u32 offsets"))
+        }
+        i = i + 1
+    }
+    File { id: 0, generated: false, name: name, src: src, lines: lines }
+}
+
+pub pure noalloc fn File.lineCount(self) -> usize {
+    self.lines.len()
+}
+
+pub pure fn File.line(self, pos: Pos) -> usize {
+    let mut lo: usize = 0
+    let mut hi = self.lines.len()
+    for lo < hi {
+        let mid = lo + (hi - lo) / 2
+        if self.lines[mid] > pos {
+            hi = mid
+        } else {
+            lo = mid + 1
+        }
+    }
+    lo
+}
+
+pub pure fn File.column(self, pos: Pos) -> usize {
+    let line = self.line(pos)
+    (pos - self.lines[line - 1]).toUsize() + 1
+}
+
+pub pure fn File.lineSpan(self, line: usize) -> Span {
+    if line < 1 || line > self.lines.len() {
+        return Span { start: 0, end: 0 }
+    }
+    let start = self.lines[line - 1]
+    let end = if line < self.lines.len() {
+        self.lines[line] - 1
+    } else {
+        self.src.len().toU32().expect("source exceeds u32 offsets")
+    }
+    Span { start: start, end: end }
+}
+
+pub fn File.lineText(self, line: usize) -> String {
+    let span = self.lineSpan(line)
+    let bytes = self.src.slice(span.start.toUsize(), span.end.toUsize()).expect("line span is out of range")
+    String.fromBytes(bytes).expect("line text is not UTF-8")
+}

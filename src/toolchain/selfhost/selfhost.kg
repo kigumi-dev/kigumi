@@ -1,0 +1,49 @@
+import shell from std/shell
+
+pub fn commandPlan(argv: Array[String]) -> shell.Plan {
+    let mut plan = shell.planNew()
+    let mut i: usize = 0
+    for i < argv.len() {
+        plan = shell.planPush(plan, shell.Item.Word)
+        plan = shell.planPush(plan, shell.Item.Text(argv[i]))
+        i = i + 1
+    }
+    plan
+}
+
+pub fn buildPlan(argv: Array[String], path: String) -> shell.Plan {
+    let mut plan = commandPlan(argv)
+    plan = shell.planPush(plan, shell.Item.Redirect(2, 1))
+    plan = shell.planPush(plan, shell.Item.Text(path))
+    plan
+}
+
+fn run(plan: shell.Plan, sh: shell.Shell) -> Void! {
+    let result = plan |> shell.runHere(sh)?
+    shell.check(result)?
+}
+
+fn runSourceTests(sh: shell.Shell, compiler: String, std: String) -> Void! {
+    run(commandPlan(Array.of(compiler, "test", "--std", std, "src/base/hashkey")), sh)?
+    run(commandPlan(Array.of(compiler, "test", "--std", std, "src/lang/token")), sh)
+}
+
+fn runSourceChecks(sh: shell.Shell, compiler: String, std: String) -> Void! {
+    run(commandPlan(Array.of(compiler, "check", "--std", std, "src/base/hashkey")), sh)?
+    run(commandPlan(Array.of(compiler, "check", "--std", std, "src/lang/token")), sh)
+}
+
+pub fn test(sh: shell.Shell, compiler: String, std: String) -> Void! {
+    runSourceTests(sh, compiler, std)?
+    run(commandPlan(Array.of("go", "test", "./...")), sh)
+}
+
+pub fn vet(sh: shell.Shell, compiler: String, std: String) -> Void! {
+    runSourceChecks(sh, compiler, std)?
+    run(commandPlan(Array.of("go", "vet", "./...")), sh)
+}
+
+pub fn build(sh: shell.Shell, compiler: String, std: String) -> Void! {
+    run(buildPlan(Array.of(compiler, "build", "--std", std, "--emit-llvm", "main.kg"), "/tmp/kigumi-main.ll"), sh)?
+    run(commandPlan(Array.of("go", "build", "-o", "/tmp/kigumi-dev", ".")), sh)
+}

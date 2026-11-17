@@ -1,0 +1,92 @@
+import test from std/test
+
+test "keyword lookup" {
+    test.expectEq(lookup("fn"), KwFn)?
+    test.expectEq(lookup("nil"), Ident)?
+    test.expectEq(lookup("static"), Ident)?
+    test.expectEq(lookup("impl"), Ident)?
+    test.expectEq(lookup("allocator"), Ident)?
+    test.expectEq(lookup("with"), Ident)?
+    test.expectEq(lookup("weak"), Ident)?
+    test.expectEq(lookup("errdefer"), Ident)?
+}
+
+test "keyword tables" {
+    test.expectEq(keywords().len(), 29)?
+    test.expectEq(contextual().len(), 13)?
+    for word in keywords() {
+        test.expectEq(isKeyword(lookup(word)), true)?
+    }
+    for word in contextual() {
+        test.expectEq(lookup(word), Ident)?
+    }
+}
+
+test "kind string and predicates" {
+    test.expectEq(name(PipeGt), "|>")?
+    test.expectEq(name(KwDefer), "defer")?
+    test.expectEq(name(Invalid), "invalid")?
+    test.expectEq(name(200), "kind(200)")?
+    test.expectEq(isKeyword(KwFalse), true)?
+    test.expectEq(isKeyword(Ident), false)?
+    test.expectEq(isTrivia(DocComment), true)?
+    test.expectEq(isTrivia(Newline), false)?
+    test.expectEq(isLiteral(KwTrue), true)?
+    test.expectEq(isLiteral(Ident), false)?
+    test.expectEq(isCompoundAssign(ShlAssign), true)?
+    test.expectEq(isCompoundAssign(Assign), false)?
+    test.expectEq(binaryOf(PlusAssign), Plus)?
+    test.expectEq(binaryOf(Assign), Invalid)?
+}
+
+test "file line and column" {
+    let f = newFile("x", b"ab\ncd\n\nef")
+    let cases: Array[(Pos, usize, usize)] = Array.of(
+        (0, 1, 1), (1, 1, 2), (2, 1, 3), (3, 2, 1), (4, 2, 2),
+        (6, 3, 1), (7, 4, 1), (8, 4, 2)
+    )
+    for c in cases {
+        let (pos, line, column) = c
+        test.expectEq(f.line(pos), line)?
+        test.expectEq(f.column(pos), column)?
+    }
+    test.expectEq(f.lineCount(), 4)?
+    test.expectEq(f.lineText(2), "cd")?
+    test.expectEq(f.lineText(4), "ef")?
+}
+
+test "file line spans" {
+    let f = newFile("x", b"ab\ncd\n\nef")
+    let span = f.lineSpan(2)
+    test.expectEq(span.start, 3)?
+    test.expectEq(span.end, 5)?
+    test.expectEq(span.len(), 2)?
+    test.expectEq(f.lineSpan(0).len(), 0)?
+}
+
+test "token fields" {
+    let t = Token { kind: KwFn, flags: SpaceBefore, start: 0, end: 2 }
+    test.expectEq(t.hasSpaceBefore(), true)?
+    test.expectEq(t.text(b"fn x"), "fn")?
+    let span = t.span()
+    test.expectEq(span.start, 0)?
+    test.expectEq(span.end, 2)?
+}
+
+test "source store" {
+    let mut store = SourceStore.empty()
+    let mut file = newFile("a.kg", b"x")
+    let id = store.add(&mut file)
+    test.expectEq(id, 1)?
+    test.expectEq(file.id, id)?
+    test.expectEq(store.len(), 1)?
+    test.expectEq(store.add(&mut file), id)?
+    test.expectEq(store.len(), 1)?
+    let name = store.withFile(id, (f: &File) => f.name).expect("registered file")
+    test.expectEq(name, "a.kg")?
+    if store.withFile(0, (f: &File) => f.name) is None {
+        test.expectEq(true, true)?
+    } else {
+        fail test.failure("id 0 must not resolve")
+    }
+}

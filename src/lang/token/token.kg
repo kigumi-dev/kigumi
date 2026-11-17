@@ -1,0 +1,32 @@
+pub type Pos = alias u32
+
+pub const SpaceBefore: u8 = 1
+
+pub type Span = {
+    pub start Pos
+    pub end Pos
+}
+
+pub pure noalloc fn Span.len(self) -> usize {
+    (self.end - self.start).toUsize()
+}
+
+pub type Token = {
+    pub kind Kind
+    pub flags u8
+    pub start Pos
+    pub end Pos
+}
+
+pub pure noalloc fn Token.hasSpaceBefore(self) -> Bool {
+    (self.flags & SpaceBefore) != 0
+}
+
+pub pure noalloc fn Token.span(self) -> Span {
+    Span { start: self.start, end: self.end }
+}
+
+pub fn Token.text(self, src: Bytes) -> String {
+    let bytes = src.slice(self.start.toUsize(), self.end.toUsize()).expect("token span is out of range")
+    String.fromBytes(bytes).expect("token text is not UTF-8")
+}

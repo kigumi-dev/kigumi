@@ -1,0 +1,4 @@
+Module {
+    name: "github.com/kigumilang/kigumi/src/base/hashkey"
+    kigumi: "0.1"
+}

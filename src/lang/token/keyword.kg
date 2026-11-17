@@ -1,0 +1,84 @@
+pub pure fn lookup(ident: String) -> Kind {
+    if ident == "fn" { return KwFn }
+    if ident == "let" { return KwLet }
+    if ident == "const" { return KwConst }
+    if ident == "mut" { return KwMut }
+    if ident == "type" { return KwType }
+    if ident == "interface" { return KwInterface }
+    if ident == "pub" { return KwPub }
+    if ident == "import" { return KwImport }
+    if ident == "if" { return KwIf }
+    if ident == "else" { return KwElse }
+    if ident == "match" { return KwMatch }
+    if ident == "is" { return KwIs }
+    if ident == "for" { return KwFor }
+    if ident == "in" { return KwIn }
+    if ident == "return" { return KwReturn }
+    if ident == "break" { return KwBreak }
+    if ident == "continue" { return KwContinue }
+    if ident == "defer" { return KwDefer }
+    if ident == "fail" { return KwFail }
+    if ident == "pure" { return KwPure }
+    if ident == "noalloc" { return KwNoalloc }
+    if ident == "async" { return KwAsync }
+    if ident == "await" { return KwAwait }
+    if ident == "unsafe" { return KwUnsafe }
+    if ident == "move" { return KwMove }
+    if ident == "extern" { return KwExtern }
+    if ident == "comptime" { return KwComptime }
+    if ident == "true" { return KwTrue }
+    if ident == "false" { return KwFalse }
+    Ident
+}
+
+pub fn keywords() -> Array[String] {
+    Array.of[String](
+        "fn",
+        "let",
+        "const",
+        "mut",
+        "type",
+        "interface",
+        "pub",
+        "import",
+        "if",
+        "else",
+        "match",
+        "is",
+        "for",
+        "in",
+        "return",
+        "break",
+        "continue",
+        "defer",
+        "fail",
+        "pure",
+        "noalloc",
+        "async",
+        "await",
+        "unsafe",
+        "move",
+        "extern",
+        "comptime",
+        "true",
+        "false"
+    )
+}
+
+pub fn contextual() -> Array[String] {
+    Array.of[String](
+        "allocator",
+        "resource",
+        "from",
+        "export",
+        "instantiate",
+        "asm",
+        "layout",
+        "test",
+        "module",
+        "super",
+        "self",
+        "static",
+        "context"
+    )
+}

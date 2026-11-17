@@ -1,0 +1,30 @@
+pub type SourceID = alias u32
+
+pub type SourceStore = {
+    mut files Array[File]
+}
+
+pub fn SourceStore.empty() -> SourceStore {
+    SourceStore { files: Array.empty[File]() }
+}
+
+pub fn SourceStore.add(mut self, f: &mut File) -> SourceID {
+    if f.id != 0 && f.id.toUsize() <= self.files.len() {
+        return f.id
+    }
+    let id = (self.files.len() + 1).toU32().expect("source count exceeds u32")
+    f.id = id
+    self.files.push(f.clone())
+    id
+}
+
+pub pure noalloc fn SourceStore.len(self) -> usize {
+    self.files.len()
+}
+
+pub fn SourceStore.withFile[R](self, id: SourceID, f: fn(&File) -> R) -> R? {
+    if id == 0 || id.toUsize() > self.files.len() {
+        return None
+    }
+    self.files.with(id.toUsize() - 1, f)
+}
