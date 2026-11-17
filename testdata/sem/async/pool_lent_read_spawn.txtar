@@ -79,6 +79,35 @@ async fn handOffRootSync(other: task.Executor) -> Int {
     let a = other.handoff(rootSync())
     await a
 }
+
+type Two[A, B] = {
+    a A
+    b B
+}
+
+// h has returned, but it made two readers of its c: one goes to the task, root keeps calling the other.
+async fn rootTwoReaders() -> Int {
+    let h = () => {
+        let c = Counter { c: mem.UnsafeCell.new(0) }
+        let mk = () => () => c.bump()
+        Two { a: mk(), b: mk() }
+    }
+    let p = h()
+    let t = task.spawn(worker(p.a))
+    _ = p.b()
+    _ = await t
+    p.b()
+}
+
+async fn spawnTwoReaders() -> Int {
+    let a = task.spawn(rootTwoReaders())
+    await a
+}
+
+async fn handOffTwoReaders(other: task.Executor) -> Int {
+    let a = other.handoff(rootTwoReaders()) //~ ERROR this future is bound to one executor
+    await a
+}
 -- expect --
 error[E1462]: this future is bound to one executor by `c` and cannot be handed to another; start it on the running task's own executor with `task.spawn`
   --> main.kg:44:13
@@ -101,4 +130,10 @@ note: `c`, a `Counter` that is not Sync, is read in place by this closure, which
    |
 52 |         let w = () => c.bump() //~ NOTE is read in place by this closure, which is handed to another task
    |                 ^^^^^^^^^^^^^
+
+error[E1462]: this future is bound to one executor by `Two[closure fn() -> Int, closure fn() -> Int]` and cannot be handed to another; start it on the running task's own executor with `task.spawn`
+   --> main.kg:105:13
+    |
+105 |     let a = other.handoff(rootTwoReaders()) //~ ERROR this future is bound to one executor
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

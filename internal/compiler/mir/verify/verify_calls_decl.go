@@ -39,6 +39,9 @@ func (p *callVerifier) bindMismatch(f *midir.Func, in midir.Inst) string {
 	var params []sem.TypeID
 	var ret sem.TypeID
 	if callee != nil {
+		if in.Index < 0 || in.Index+len(in.Args) > len(callee.Params) {
+			return "leaves an invalid number of const parameters open"
+		}
 		if msg := p.captureMismatch(f, in, callee); msg != "" {
 			return msg
 		}
@@ -46,7 +49,10 @@ func (p *callVerifier) bindMismatch(f *midir.Func, in midir.Inst) string {
 			params = append(params, callee.Locals[prm].Type)
 		}
 		ret = callee.Ret
-		params = params[:len(params)-len(in.Args)]
+		if in.Index < 0 || in.Index > len(params)-len(in.Args) {
+			return "leaves an invalid number of const parameters open"
+		}
+		params = params[:len(params)-len(in.Args)-in.Index]
 	} else {
 		var hidden int
 		params, ret, hidden, _ = p.declaredSig(in.Ent)

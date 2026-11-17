@@ -95,7 +95,7 @@ func (p *callVerifier) captureMismatch(f *midir.Func, in midir.Inst, callee *mid
 	trails := midir.BoundTrails(in.Op)
 	open := in.Op == midir.OpBind || in.Str == "method"
 	for k, a := range in.Args {
-		if want := callee.Locals[callee.Params[midir.BoundParam(trails, len(callee.Params)-len(in.Args), k)]].Type; !p.compat(want, f.Locals[a].Type, open) {
+		if want := callee.Locals[callee.Params[midir.BoundParam(trails, len(callee.Params)-len(in.Args), k, in.Index)]].Type; !p.compat(want, f.Locals[a].Type, open) {
 			return "captures " + p.R.TypeString(f.Locals[a].Type) + " for a parameter of " + p.R.TypeString(want) + " of " + callee.Name
 		}
 	}

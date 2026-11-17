@@ -5,9 +5,14 @@ package ir
 func BoundTrails(op Opcode) bool { return op == OpBind }
 
 // AppendValueParams appends to dst the parameters a body runs with when a value binding bound is called with args.
-func AppendValueParams[T any](dst []T, trails bool, bound, args []T) []T {
+func AppendValueParams[T any](dst []T, trails bool, bound, args []T, open ...int) []T {
 	if trails {
-		return append(append(dst, args...), bound...)
+		gap := 0
+		if len(open) > 0 {
+			gap = open[0]
+		}
+		at := len(args) - gap
+		return append(append(append(dst, args[:at]...), bound...), args[at:]...)
 	}
 	return append(append(dst, bound...), args...)
 }
@@ -21,8 +26,11 @@ func ArgParam(trails bool, nbound, k int) int {
 }
 
 // BoundParam is the body parameter bound operand j lands on when the call passes nargs arguments.
-func BoundParam(trails bool, nargs, j int) int {
+func BoundParam(trails bool, nargs, j int, open ...int) int {
 	if trails {
+		if len(open) > 0 {
+			nargs -= open[0]
+		}
 		return nargs + j
 	}
 	return j

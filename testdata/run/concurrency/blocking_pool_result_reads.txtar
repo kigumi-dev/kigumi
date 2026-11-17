@@ -68,11 +68,32 @@ async fn shipped() -> Int {
     h()
 }
 
+fn compute() -> Int { 7 }
+
+fn ident[G](g: G) -> G { g }
+
+async fn identity() -> Int {
+    await task.BlockingPool.new(1).run(ident(compute)).unwrap()
+}
+
+async fn single() -> Int {
+    let h = () => {
+        let s = Socket { fd: 9 }
+        () => s.peek()
+    }
+    await task.BlockingPool.new(1).run(h()).unwrap()
+}
+
+print "identity ${task.threadPoolExecutor(2).runToCompletion(identity())}"
+print "single ${task.threadPoolExecutor(2).runToCompletion(single())}"
 print "nested ${task.threadPoolExecutor(2).runToCompletion(nested())}"
 print "arms ${task.threadPoolExecutor(2).runToCompletion(arms(0))}"
 print "moved ${task.threadPoolExecutor(2).runToCompletion(moved())}"
 print "shipped ${task.threadPoolExecutor(2).runToCompletion(shipped())}"
 -- stdout --
+identity 7
+dropped 9
+single 9
 got
 dropped 5
 nested 5

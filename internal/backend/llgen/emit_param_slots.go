@@ -14,7 +14,7 @@ type paramSlot struct {
 
 // paramSlots lays out nparams body parameters over nbound environment slots and the argument array, as the value's
 // call runs its body.
-func paramSlots(trails bool, nbound, nparams int) []paramSlot {
+func paramSlots(trails bool, nbound, nparams int, open ...int) []paramSlot {
 	env := make([]paramSlot, nbound)
 	for i := range env {
 		env[i] = paramSlot{env: true, index: i}
@@ -23,7 +23,7 @@ func paramSlots(trails bool, nbound, nparams int) []paramSlot {
 	for i := range args {
 		args[i] = paramSlot{index: i}
 	}
-	return midir.AppendValueParams(nil, trails, env, args)
+	return midir.AppendValueParams(nil, trails, env, args, open...)
 }
 
 // slotArg loads s from %env or %args into v.

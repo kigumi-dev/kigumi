@@ -20,6 +20,7 @@ type threadState struct {
 	settled   bool
 	transient map[threadKey]bool
 	reads     map[TypeID][]ReadSite
+	readers   map[EntityID][]EntityID
 	checks    []pendingThread
 }
 

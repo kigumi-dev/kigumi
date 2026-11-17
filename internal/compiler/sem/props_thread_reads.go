@@ -85,10 +85,43 @@ func (r *Result) within(body, h EntityID) bool {
 	return false
 }
 
-// readReleased: a holder lambda that has returned the closure, and is not running at site, leaves it the read.
-func (r *Result) readReleased(rs ReadSite, site EntityID) bool {
+type crossing struct {
+	site, producer EntityID
+	strict         bool
+}
+
+func (r *Result) readReleased(rs ReadSite, x crossing) bool {
 	h := r.HolderOf(rs)
-	return r.Entities[h].Kind == EntClosure && !r.within(site, h) && r.reachesClosure(r.closure(h).Ret, rs.Closure)
+	if x.strict || r.Entities[h].Kind != EntClosure || r.within(x.site, h) {
+		return false
+	}
+	c := r.closure(rs.Closure)
+	if c.Creator != h || c.InLoop || !r.soleReader(rs) || !r.reachesClosure(r.closure(h).Ret, rs.Closure) {
+		return false
+	}
+	return r.frameOf(rs.Local) == h || h == x.producer
+}
+
+func (r *Result) soleReader(rs ReadSite) bool {
+	st := &r.thread
+	if !st.settled {
+		return false
+	}
+	if st.readers == nil {
+		st.readers = map[EntityID][]EntityID{}
+		for id := 1; id < len(r.Entities); id++ {
+			if r.Entities[id].Kind != EntClosure {
+				continue
+			}
+			for _, cp := range r.closure(EntityID(id)).Captures {
+				if roleOf(cp) == roleFrameRead {
+					st.readers[cp.Local] = append(st.readers[cp.Local], EntityID(id))
+				}
+			}
+		}
+	}
+	rd := st.readers[rs.Local]
+	return len(rd) == 1 && rd[0] == rs.Closure
 }
 
 // reachesClosure reports whether a value of type t holds closure cl, itself or through closures it owns.
@@ -114,10 +147,9 @@ func (r *Result) reachesClosure(t TypeID, cl EntityID) bool {
 	return slices.ContainsFunc(n.Args, func(a TypeID) bool { return r.reachesClosure(a, cl) })
 }
 
-// leavesAlone: no read inside t is still held by a running frame when the value leaves site by itself.
-func (r *Result) leavesAlone(t TypeID, site EntityID) bool {
+func (r *Result) leavesAlone(t TypeID, x crossing) bool {
 	for _, rs := range r.ReadSites(t) {
-		if !r.readReleased(rs, site) {
+		if !r.readReleased(rs, x) {
 			return false
 		}
 	}
@@ -130,9 +162,20 @@ func (r *Result) IsSendInFrame(t TypeID, fn EntityID) bool {
 		return false
 	}
 	for _, rs := range r.ReadSites(t) {
-		if r.HolderOf(rs) != fn && !r.readReleased(rs, fn) {
+		if r.HolderOf(rs) != fn && !r.readReleased(rs, crossing{site: fn}) {
 			return false
 		}
 	}
 	return true
+}
+
+func (r *Result) ReadReleased(rs ReadSite, site EntityID) bool {
+	return r.readReleased(rs, crossing{site: site})
+}
+
+func (r *Result) FrameFn(e EntityID) EntityID {
+	for r.Entities[e].Kind == EntClosure && r.closure(e).Creator != 0 {
+		e = r.closure(e).Creator
+	}
+	return e
 }

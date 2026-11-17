@@ -73,18 +73,23 @@ func (e *emitter) adapter(f *midir.Func) string {
 
 // bindSym names the adapter of a function whose trailing witness
 // parameters come from a closure environment (mir.OpBind).
-func (e *emitter) bindSym(f *midir.Func) string { return "@\"" + e.symName(f) + "$bind\"" }
+func (e *emitter) bindSym(f *midir.Func, open int) string {
+	if open > 0 {
+		return fmt.Sprintf("@\"%s$bind.%d\"", e.symName(f), open)
+	}
+	return "@\"" + e.symName(f) + "$bind\""
+}
 
 // bindAdapter: rt_at's retain on the witness slots offsets invoke's
 // release of the argument array, so a lent receiver's refcount stays
 // balanced and the caller's reference is untouched.
-func (e *emitter) bindAdapter(f *midir.Func) string {
+func (e *emitter) bindAdapter(f *midir.Func, open int) string {
 	var sb strings.Builder
 	info := e.r.Fn(f.Ent)
-	nw := len(info.Witnesses) + len(info.ConstParams)
-	fmt.Fprintf(&sb, "define ptr %s(ptr %%env, ptr %%args) {\n", e.bindSym(f))
+	nw := len(info.Witnesses) + len(info.ConstParams) - open
+	fmt.Fprintf(&sb, "define ptr %s(ptr %%env, ptr %%args) {\n", e.bindSym(f, open))
 	var vals []string
-	slots := paramSlots(midir.BoundTrails(midir.OpBind), nw, len(f.Params))
+	slots := paramSlots(midir.BoundTrails(midir.OpBind), nw, len(f.Params), open)
 	for i := range f.Params {
 		v := fmt.Sprintf("%%a%d", i)
 		e.slotArg(&sb, v, slots[i])

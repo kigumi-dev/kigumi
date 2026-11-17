@@ -35,10 +35,15 @@ func (c *checker) rejectFnItemBound(n, a syntax.NodeID, fn EntityID, i int) {
 	}
 }
 
-func (c *checker) argFnItems(a syntax.NodeID) []EntityID {
+func (c *checker) argFnItems(a syntax.NodeID) []EntityID { return c.fnItemsOf(a, 4) }
+
+func (c *checker) fnItemsOf(a syntax.NodeID, depth int) []EntityID {
 	a = c.t.Unparen(a)
 	if u := c.info.Uses[a]; u != 0 && c.r.Entities[u].Kind == EntFn {
 		return []EntityID{u}
+	}
+	if items := c.identityItems(a, depth); len(items) > 0 {
+		return items
 	}
 	var items []EntityID
 	for _, item := range c.localKnownFns(a) {

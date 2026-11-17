@@ -121,12 +121,12 @@ func (c *checker) unsatisfied(arg TypeID, con Constraint) string {
 		if c.r.isSend(arg) {
 			return ""
 		}
-		return c.r.closureThreadWhy(arg, false, 0)
+		return c.r.closureThreadWhy(arg, false, crossing{strict: true})
 	case CSync:
 		if c.r.isSync(arg) {
 			return ""
 		}
-		return c.r.closureThreadWhy(arg, true, 0)
+		return c.r.closureThreadWhy(arg, true, crossing{strict: true})
 	case CFn, CFnMut, CFnOnce:
 		return c.fnUnsatisfied(arg, con)
 	}

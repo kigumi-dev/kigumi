@@ -92,6 +92,9 @@ func (r *Result) removeLine(f FileID, n syntax.NodeID, title string) diag.Fix {
 func (r *Result) removeNodeGap(f FileID, n syntax.NodeID, title string) diag.Fix {
 	t := r.Files[f].Tree
 	sp := t.Span(n)
+	if t.Kind(n) == syntax.Visibility {
+		sp = t.VisibilitySpan(n)
+	}
 	src := t.File.Src
 	end := int(sp.End)
 	for end < len(src) && (src[end] == ' ' || src[end] == '\t') {

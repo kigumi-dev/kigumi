@@ -77,11 +77,24 @@ func (w *leaseWalk) call(n syntax.NodeID) {
 		callee, args = v.Callee().ID(), v.Args().AppendIDs(nil)
 	}
 	carries := false
+	if t.Kind(callee) == syntax.MemberExpr {
+		carries = w.mentions(t.View(callee).AsMember().Base().ID())
+	}
+	feeds := carries
 	for _, a := range args {
 		carries = carries || w.mentions(a)
+		v := t.View(a).ArgValue().ID()
+		if !w.callable(v) {
+			feeds = feeds || w.mentions(v)
+		}
 	}
 	if !carries {
 		return
+	}
+	if feeds {
+		for _, a := range args {
+			w.taintCallback(t.View(a).ArgValue().ID())
+		}
 	}
 	if t.Kind(callee) == syntax.MemberExpr {
 		base := t.View(callee).AsMember().Base().ID()
@@ -102,22 +115,11 @@ func (w *leaseWalk) call(n syntax.NodeID) {
 			}
 		}
 	}
-	// A callee the check cannot see through can store the pointer in state
-	// that outlives the call, which the direct assign/return/borrow forms
-	// above never see: `stash(h, p)` writes p into the record h points at,
-	// and `h` reaches the call as an ordinary `&mut` binding, not a borrow
-	// expression. Rejecting the hand-off itself closes the whole family
-	// (callee parameter, closure, field, Result) instead of enumerating
-	// syntax shapes. std is trusted (it is checked with these same rules)
-	// and a C declaration keeps C's own contract.
 	if name, ok := w.retainingCallee(callee); ok {
 		w.c.errAt(n, cLeasePassed, w.fn, name)
 	}
 }
 
-// retainingCallee names a call target that may retain a lease pointer: a
-// Kigumi body outside std, or a function value whose body is out of reach
-// here. Construction, intrinsics, std and extern(C) declarations pass.
 func (w *leaseWalk) retainingCallee(callee syntax.NodeID) (string, bool) {
 	ent := w.c.info.Uses[callee]
 	if ent == 0 {

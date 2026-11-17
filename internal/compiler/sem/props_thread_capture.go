@@ -37,8 +37,7 @@ func (r *Result) frameOf(local EntityID) EntityID {
 	return e.Parent
 }
 
-// closureThreadWhy names the first capture, in capture order, that keeps a closure from leaving site's frame.
-func (r *Result) closureThreadWhy(t TypeID, sync bool, site EntityID) string {
+func (r *Result) closureThreadWhy(t TypeID, sync bool, x crossing) string {
 	what := "cannot move to another thread"
 	if sync {
 		what = "cannot be shared between threads"
@@ -59,11 +58,11 @@ func (r *Result) closureThreadWhy(t TypeID, sync bool, site EntityID) string {
 		case !r.threadProp(e.Type, sync):
 			return "it captures " + name + ", a `" + r.TypeString(e.Type) + "`, which " + what
 		case sync:
-		case roleOf(cp) == roleFrameRead && !r.readReleased(ReadSite{cl, cp.Local}, site):
+		case roleOf(cp) == roleFrameRead && !r.readReleased(ReadSite{cl, cp.Local}, x):
 			return "it reads " + name + " where the code around it keeps it; a `move` closure takes its own"
 		case roleOf(cp) == roleOwned:
 			for _, rs := range r.ReadSites(e.Type) {
-				if !r.readReleased(rs, site) {
+				if !r.readReleased(rs, x) {
 					return "it captures " + name + ", which reads `" + r.Entities[rs.Local].Name + "` where the code around it keeps it"
 				}
 			}

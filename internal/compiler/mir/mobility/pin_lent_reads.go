@@ -6,8 +6,6 @@ import (
 	"kigumi/internal/compiler/sem"
 )
 
-// PinLentReads keeps an async fn on its lane when a closure handed on reads a non-Sync local of its frame in place: the
-// closure may run in a task on that lane; a lambda's own locals are gone before the fn can suspend.
 func PinLentReads(p *mir.Program) {
 	r := p.R
 	for _, g := range p.AllFuncs() {
@@ -21,7 +19,7 @@ func PinLentReads(p *mir.Program) {
 						continue
 					}
 					for _, rs := range r.ReadSites(g.Locals[a].Type) {
-						pinHolder(p, rs)
+						pinHolder(p, rs, g.Ent)
 					}
 				}
 			}
@@ -29,10 +27,13 @@ func PinLentReads(p *mir.Program) {
 	}
 }
 
-func pinHolder(p *mir.Program, rs sem.ReadSite) {
+func pinHolder(p *mir.Program, rs sem.ReadSite, site sem.EntityID) {
 	r := p.R
-	h := r.HolderOf(rs)
-	if body := p.ByEnt[h]; body == nil || !body.Async || r.Entity(h).Kind != sem.EntFn || r.IsSync(r.Entity(rs.Local).Type) {
+	if r.ReadReleased(rs, site) || r.IsSync(r.Entity(rs.Local).Type) {
+		return
+	}
+	h := r.FrameFn(r.HolderOf(rs))
+	if body := p.ByEnt[h]; body == nil || !body.Async {
 		return
 	}
 	if info := r.Fn(h); info.Mobility == sem.MobilityMigratable {

@@ -50,6 +50,7 @@ type ClosureInfo struct {
 	Scoped bool
 	// Method is set on a method value that owns its receiver: no body, one move capture.
 	Method EntityID
+	InLoop bool
 }
 
 func (c *ClosureInfo) IsMethodValue() bool { return c.Method != 0 }

@@ -12,10 +12,15 @@ import (
 type cshim struct {
 	types, fns strings.Builder
 	structs    map[sem.EntityID]bool
-	sigs       map[string]string
+	sigs       map[cshimKey]string
 }
 
-func newCshim() *cshim { return &cshim{structs: map[sem.EntityID]bool{}, sigs: map[string]string{}} }
+type cshimKey struct {
+	ent sem.EntityID
+	sig sem.TypeID
+}
+
+func newCshim() *cshim { return &cshim{structs: map[sem.EntityID]bool{}, sigs: map[cshimKey]string{}} }
 
 func (s *cshim) text() string {
 	if s.fns.Len() == 0 {
@@ -132,10 +137,11 @@ func (e *emitter) shimFn(shim string, sig sem.TypeID, callee string, viaPtr bool
 func (e *emitter) byvalShim(ent sem.EntityID) string {
 	name := e.cName(ent)
 	shim := "kg_byval_" + name
-	if _, done := e.shim.sigs[shim]; done {
+	key := cshimKey{ent: ent}
+	if _, done := e.shim.sigs[key]; done {
 		return shim
 	}
-	e.shim.sigs[shim] = shim
+	e.shim.sigs[key] = shim
 	sn := e.r.Types.Node(e.r.Fn(ent).Sig)
 	var ptypes []string
 	for _, a := range sn.Args {
@@ -147,7 +153,7 @@ func (e *emitter) byvalShim(ent sem.EntityID) string {
 }
 
 func (e *emitter) callShim(sig sem.TypeID) string {
-	key := e.r.TypeString(sig)
+	key := cshimKey{sig: sig}
 	if s, ok := e.shim.sigs[key]; ok {
 		return s
 	}

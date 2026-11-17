@@ -12,6 +12,7 @@ type valueInstData struct {
 	escapeAt    syntax.NodeID
 	escapeUse   string
 	flows       map[EntityID]*fnFlow
+	sites       []EntityID
 }
 
 // recordValueExpr remembers the value at n, its instantiation and the bound checks it made, for the proof at direct
@@ -139,6 +140,7 @@ func (c *checker) proveValue(d *valueInstData, args []syntax.NodeID) {
 		d.flows = map[EntityID]*fnFlow{}
 		c.noteRecvFlows(d.flows, d.m)
 	}
+	d.sites = append(d.sites, c.refOwner())
 	for i := range args {
 		if decl, inner := c.declaredArg(sig, args, i); decl != 0 {
 			c.slotContractsMode(inner, decl, d.subst, slotRoot, true)

@@ -237,6 +237,20 @@ async fn extraFromFinishedLambda(pool: task.BlockingPool) -> Int {
     h()
 }
 
+fn ident[G](g: G) -> G { g }
+
+async fn identityFnItem(pool: task.BlockingPool) -> Int {
+    await pool.run(ident(compute)).unwrap()
+}
+
+async fn singleReader(pool: task.BlockingPool) -> Int {
+    let h = () => {
+        let s = Socket { fd: 3 }
+        () => s.peek()
+    }
+    await pool.run(h()).unwrap()
+}
+
 async fn helperSendValue(pool: task.BlockingPool) -> Int {
     let s = Socket { fd: 11 }
     await offloadSend(pool, () => s.close())

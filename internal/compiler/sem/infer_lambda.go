@@ -38,6 +38,7 @@ func (c *checker) synthLambda(n syntax.NodeID, want TypeID) TypeID {
 	c.info.Defs[n] = id
 	saved := c.scope
 	c.pushScope(ScopeLambda, n)
+	inLoop := c.loop > 0
 	ctx := &lambdaCtx{ent: id, scope: c.scope, captured: map[EntityID]int{}, immediate: c.argLambda[n], later: c.laterArgs[n]}
 	c.lambdas = append(c.lambdas, ctx)
 	ptypes, pents, bad := c.lambdaParams(id, params, target)
@@ -87,7 +88,7 @@ func (c *checker) synthLambda(n syntax.NodeID, want TypeID) TypeID {
 	info.Edges = edges
 	c.closures = append(c.closures, id)
 	result := tt.Closure(id)
-	info.Creator = c.fn
+	info.Creator, info.InLoop = c.fn, inLoop
 	if depth := len(c.lambdas); depth > 0 {
 		info.Creator = c.lambdas[depth-1].ent
 	}

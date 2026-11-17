@@ -25,17 +25,40 @@ func (tc threadCheck) fnItems() []EntityID {
 	return tc.flow.itemsOnly()
 }
 
+func (tc threadCheck) crossings() []crossing {
+	d := tc.held
+	switch {
+	case d == nil:
+		return []crossing{{site: tc.site, producer: tc.producer}}
+	case d.escapeAt != 0 || !d.called:
+		return []crossing{{strict: true}}
+	}
+	out := make([]crossing, 0, len(d.sites))
+	for _, s := range d.sites {
+		out = append(out, crossing{site: s, producer: tc.producer})
+	}
+	return out
+}
+
 // A function item captures nothing, and one that needs a context key cannot be a value at all (E1217), so what holds
 // only function items meets either bound.
 func (r *Result) threadCheckWhy(tc threadCheck) string {
 	sync := tc.con.Kind == CSync
-	switch {
-	case len(tc.fnItems()) > 0:
-		return ""
-	case sync && r.isSync(tc.arg), !sync && r.isSend(tc.arg) && r.leavesAlone(tc.arg, tc.site):
+	if len(tc.fnItems()) > 0 || sync && r.isSync(tc.arg) {
 		return ""
 	}
-	return r.closureThreadWhy(tc.arg, sync, tc.site)
+	if !sync && !r.isSend(tc.arg) {
+		return r.closureThreadWhy(tc.arg, sync, crossing{strict: true})
+	}
+	for _, x := range tc.crossings() {
+		if !sync && !r.leavesAlone(tc.arg, x) {
+			return r.closureThreadWhy(tc.arg, sync, x)
+		}
+	}
+	if sync {
+		return r.closureThreadWhy(tc.arg, sync, crossing{strict: true})
+	}
+	return ""
 }
 
 // ThreadBoundWhy is why a value of type t, holding only the function items items when there are any, fails a Send

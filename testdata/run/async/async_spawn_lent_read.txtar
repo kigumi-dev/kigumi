@@ -75,6 +75,33 @@ async fn rootSync() -> Int {
     s + await t
 }
 
+type Two[A, B] = {
+    a A
+    b B
+}
+
+// h has returned two readers of its c; one goes to the task while root calls the other, so root stays on that lane.
+async fn rootTwoReaders() -> Int {
+    let h = () => {
+        let c = Counter { c: mem.UnsafeCell.new(0) }
+        let mk = () => () => c.bump()
+        Two { a: mk(), b: () => c.bump() + c.read() }
+    }
+    let p = h()
+    let t = task.spawn(worker(p.a))
+    for j in 0..30000 {
+        _ = p.b()
+        if j % 100 == 0 { await task.yieldNow() }
+    }
+    _ = await t
+    p.b() - 1
+}
+
+async fn topTwoReaders() -> Int {
+    let a = task.spawn(rootTwoReaders())
+    await a
+}
+
 async fn top() -> Int {
     let a = task.spawn(root())
     await a
@@ -93,9 +120,11 @@ async fn handSync(other: task.Executor) -> Int {
 print "current ${task.currentThreadExecutor().runToCompletion(top())}"
 print "threads ${task.threadPoolExecutor(4).runToCompletion(top())}"
 print "lambda ${task.threadPoolExecutor(4).runToCompletion(topViaLambda())}"
+print "pair ${task.threadPoolExecutor(4).runToCompletion(topTwoReaders())}"
 print "sync ${task.threadPoolExecutor(4).runToCompletion(handSync(task.threadPoolExecutor(2)))}"
 -- stdout --
 current 60000
 threads 60000
 lambda 60000
+pair 60000
 sync 120000
