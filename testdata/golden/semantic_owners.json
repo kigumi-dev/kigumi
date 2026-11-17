@@ -11380,6 +11380,16 @@
     "status": "ok"
   },
   {
+    "key": "cvm/attest.tcbMeetsFloor",
+    "signature": "pure fn(u64, u64) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "cvm/attest.tdxEvidenceFailure",
     "signature": "pure fn(Error) -\u003e TdxError",
     "has_body": true,
@@ -11650,6 +11660,16 @@
     "status": "ok"
   },
   {
+    "key": "cvm/cca.Cursor.readHeaderLabel",
+    "signature": "pure fn(\u0026mut HeaderLabels) -\u003e Result[Int?, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "cvm/cca.Cursor.readInteger",
     "signature": "pure fn() -\u003e Result[Int, Error]",
     "has_body": true,
@@ -11802,6 +11822,16 @@
   {
     "key": "cvm/cca.HashAlgorithm.size",
     "signature": "pure fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "cvm/cca.HeaderLabels.new",
+    "signature": "pure fn() -\u003e HeaderLabels",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -23243,7 +23273,7 @@
   },
   {
     "key": "prelude.String.twoWay",
-    "signature": "pure noalloc fn(\u0026String) -\u003e usize",
+    "signature": "pure noalloc fn(\u0026String, usize) -\u003e usize",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -29933,7 +29963,17 @@
   },
   {
     "key": "shell.applyRedirs",
-    "signature": "fn(\u0026Array[Redir], i32) -\u003e Bool",
+    "signature": "fn(\u0026Array[ProcessRedir], i32) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.cBytes",
+    "signature": "fn(Bytes) -\u003e *mut u8",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -30183,7 +30223,7 @@
   },
   {
     "key": "shell.hasNul",
-    "signature": "fn(String) -\u003e Bool",
+    "signature": "fn(Bytes) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -30332,6 +30372,16 @@
     "status": "ok"
   },
   {
+    "key": "shell.processStages",
+    "signature": "pure fn(\u0026Plan) -\u003e Array[ProcessStage]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "shell.pushBytes",
     "signature": "fn(\u0026mut Array[u8], \u0026Bytes) -\u003e Void",
     "has_body": true,
@@ -30403,7 +30453,7 @@
   },
   {
     "key": "shell.runChild",
-    "signature": "fn(\u0026Stage, i32, i32, i32, i32) -\u003e Never",
+    "signature": "fn(\u0026ProcessStage, i32, i32, i32, i32) -\u003e Never",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31462,6 +31512,16 @@
     "status": "ok"
   },
   {
+    "key": "tee/sgx.checkAnchor",
+    "signature": "fn(\u0026Certificate, \u0026Certificate, Int, usize, Bool) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "tee/sgx.checkClaims",
     "signature": "pure fn(\u0026Claims, \u0026Policy) -\u003e Result[Void, Error]",
     "has_body": true,
@@ -31592,16 +31652,6 @@
     "status": "ok"
   },
   {
-    "key": "tee/sgx.hasP384Oid",
-    "signature": "pure noalloc fn(Bytes) -\u003e Bool",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
     "key": "tee/sgx.intelQeVendorByte",
     "signature": "pure noalloc fn(usize) -\u003e u8",
     "has_body": true,
@@ -31632,6 +31682,26 @@
     "status": "ok"
   },
   {
+    "key": "tee/sgx.needsConfiguration",
+    "signature": "pure fn(Status) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.needsHardening",
+    "signature": "pure fn(Status) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "tee/sgx.parseAnchors",
     "signature": "fn(String) -\u003e Result[Array[Certificate], Error]",
     "has_body": true,
@@ -31653,7 +31723,7 @@
   },
   {
     "key": "tee/sgx.parseQeCertification",
-    "signature": "pure fn(Bytes) -\u003e Result[QeCertification, Error]",
+    "signature": "pure fn(Bytes) -\u003e Result[CertificationData, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31684,6 +31754,16 @@
   {
     "key": "tee/sgx.qeReportData",
     "signature": "pure fn(Bytes, Bytes) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.reachAnchor",
+    "signature": "fn(\u0026Certificate, \u0026Array[Certificate], Int, usize, Bool) -\u003e Result[Void, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",

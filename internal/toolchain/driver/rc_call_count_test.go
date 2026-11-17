@@ -24,14 +24,14 @@ var rcCallSites = map[string]*regexp.Regexp{
 
 // Call sites of the count and cell runtime calls in the IR of every native run fixture, std included.
 var pinnedRCCalls = map[string]int{
-	"fixtures":         1177,
-	"rt_retain":        21714,
-	"rt_release":       125418,
-	"rt_release_outer": 91424,
-	"rt_drop":          89979,
-	"rt_cell_init":     11580,
-	"rt_cell_take":     4261,
-	"rt_setfield_swap": 1285,
+	"fixtures":         1183,
+	"rt_retain":        21776,
+	"rt_release":       127133,
+	"rt_release_outer": 91685,
+	"rt_drop":          91373,
+	"rt_cell_init":     11728,
+	"rt_cell_take":     4287,
+	"rt_setfield_swap": 1292,
 	"rt_setindex_swap": 1702,
 }
 
@@ -50,6 +50,12 @@ var baselineRCCalls = map[string]int{
 }
 
 var addedAfterBaseline = map[string]bool{
+	"partial_self_branch.txtar":                     true,
+	"simd_wrapper_chain.txtar":                      true,
+	"const_generic_owner_witness.txtar":             true,
+	"shell_os_string_bytes.txtar":                   true,
+	"drop_store_kept_ok.txtar":                      true,
+	"witness_capture_kept_ok.txtar":                 true,
 	"partial_self_take.txtar":                       true,
 	"map_update_in_place.txtar":                     true,
 	"task_handle_join_forms.txtar":                  true,
@@ -738,7 +744,7 @@ func TestRCCallCounts(t *testing.T) {
 				var stderr bytes.Buffer
 				ir, ok, err := driver.Compile(m, &stderr)
 				if err != nil || !ok {
-					t.Skipf("no IR: %v %s", err, stderr.String())
+					t.Fatalf("no IR: %v %s", err, stderr.String())
 				}
 				mu.Lock()
 				defer mu.Unlock()

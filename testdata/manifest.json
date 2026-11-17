@@ -7124,6 +7124,17 @@
       ]
     },
     {
+      "id": "run/const_generic_owner_witness",
+      "kind": "run",
+      "group": "language",
+      "stage": "run",
+      "path": "testdata/run/language/const_generic_owner_witness.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/const_generic_witness",
       "kind": "run",
       "group": "language",
@@ -8966,6 +8977,17 @@
       "group": "ownership",
       "stage": "run",
       "path": "testdata/run/ownership/drop_panic_replace_field.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/drop_store_kept_ok",
+      "kind": "run",
+      "group": "ownership",
+      "stage": "run",
+      "path": "testdata/run/ownership/drop_store_kept_ok.txtar",
       "mode": [
         "vm",
         "native"
@@ -13911,6 +13933,17 @@
       ]
     },
     {
+      "id": "run/partial_self_branch",
+      "kind": "run",
+      "group": "ownership",
+      "stage": "run",
+      "path": "testdata/run/ownership/partial_self_branch.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/partial_self_take",
       "kind": "run",
       "group": "ownership",
@@ -15013,6 +15046,17 @@
       ]
     },
     {
+      "id": "run/shell_os_string_bytes",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/shell_os_string_bytes.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/shell_quote_states",
       "kind": "run",
       "group": "std",
@@ -15128,6 +15172,17 @@
       "group": "std",
       "stage": "run",
       "path": "testdata/run/std/simd_setlane_bounds.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/simd_wrapper_chain",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/simd_wrapper_chain.txtar",
       "mode": [
         "vm",
         "native"
@@ -16893,6 +16948,17 @@
       "group": "types",
       "stage": "run",
       "path": "testdata/run/types/witness_bound_own_package.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/witness_capture_kept_ok",
+      "kind": "run",
+      "group": "modules",
+      "stage": "run",
+      "path": "testdata/run/modules/witness_capture_kept_ok.txtar",
       "mode": [
         "vm",
         "native"
@@ -19530,6 +19596,16 @@
       "group": "ownership",
       "stage": "planned",
       "path": "testdata/sem/ownership/drop_self_only_mir_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/drop_store_kept_err",
+      "kind": "sem",
+      "group": "ownership",
+      "stage": "planned",
+      "path": "testdata/sem/ownership/drop_store_kept_err.txtar",
       "mode": [
         "check"
       ]
@@ -24900,6 +24976,16 @@
       "group": "modules",
       "stage": "driver",
       "path": "testdata/sem/modules/witness_call_lifetime_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/witness_capture_kept_err",
+      "kind": "sem",
+      "group": "modules",
+      "stage": "planned",
+      "path": "testdata/sem/modules/witness_capture_kept_err.txtar",
       "mode": [
         "check"
       ]
