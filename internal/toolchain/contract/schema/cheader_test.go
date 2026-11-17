@@ -122,3 +122,23 @@ func TestSchemaIRIncludesABIDeclarations(t *testing.T) {
 		t.Errorf("open's return type is %+v, want i32", open.Return)
 	}
 }
+
+func TestEmitCHeaderArrayPointers(t *testing.T) {
+	m, res := loadModule(t, `
+pub type Buffers layout(C) = {
+    pub data *mut FixedArray[u8, 16]
+    pub rows *const FixedArray[FixedArray[u8, 4], 2]
+}
+extern(C) { fn fill(data: *mut FixedArray[u8, 16]) }
+`)
+	mod, _ := schema.Build(m, res, schema.Options{})
+	h := schema.EmitCHeader(mod, schema.CHeaderOptions{})
+	if len(h.Diagnostics) != 0 {
+		t.Fatalf("diagnostics: %+v", h.Diagnostics)
+	}
+	for _, want := range []string{"uint8_t (*data)[16];", "const uint8_t (*rows)[2][4];", "void fill(uint8_t (*data)[16]);"} {
+		if !strings.Contains(h.Text, want) {
+			t.Errorf("missing %q in:\n%s", want, h.Text)
+		}
+	}
+}

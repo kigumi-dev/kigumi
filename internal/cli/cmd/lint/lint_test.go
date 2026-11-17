@@ -200,13 +200,17 @@ func TestLintFixRedundantModifier(t *testing.T) {
 
 // --fix drops the redundant `pub` on an interface requirement.
 func TestLintFixRedundantPub(t *testing.T) {
-	dir := module(t, "main.kg", "interface I {\n    pub fn f(self) -> Int\n}\n\nfn main() -> Void {}\n")
-	if code, _, errOut := execute(t, "lint", "--fix", dir); code != 0 {
-		t.Fatalf("exit = %d, stderr %q", code, errOut)
-	}
-	got := read(t, dir)
-	if strings.Contains(got, "pub fn") || !strings.Contains(got, "fn f(self)") {
-		t.Errorf("redundant pub survived --fix:\n%s", got)
+	for _, vis := range []string{"pub", "pub(module)", "pub(super)"} {
+		t.Run(vis, func(t *testing.T) {
+			dir := module(t, "main.kg", "interface I {\n    "+vis+" fn f(self) -> Int\n}\n\nfn main() -> Void {}\n")
+			if code, _, errOut := execute(t, "lint", "--fix", dir); code != 0 {
+				t.Fatalf("exit = %d, stderr %q", code, errOut)
+			}
+			want := "interface I {\n    fn f(self) -> Int\n}\n\nfn main() -> Void {}\n"
+			if got := read(t, dir); got != want {
+				t.Errorf("fixed source = %q, want %q", got, want)
+			}
+		})
 	}
 }
 

@@ -114,12 +114,16 @@ func RenameModule(root, old, next string) (changes, warnings []string, err error
 	if err != nil {
 		return nil, nil, err
 	}
+	names := []string{mf.Name, next}
+	for _, r := range mf.Requires {
+		names = append(names, r.Name)
+	}
 	for _, path := range files {
 		src, err := os.ReadFile(path)
 		if err != nil {
 			return nil, nil, err
 		}
-		edits, err := importEdits(path, src, old, next)
+		edits, err := importEdits(path, src, old, next, names)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -261,7 +265,7 @@ func nameFieldEdits(name string, src []byte, kinds map[string]bool, old, next st
 
 // importEdits rewrites the import paths owned by old. A file that already
 // imports next would make the rename ambiguous, so it is refused.
-func importEdits(name string, src []byte, old, next string) ([]sourceEdit, error) {
+func importEdits(name string, src []byte, old, next string, names []string) ([]sourceEdit, error) {
 	f := token.NewFile(name, src)
 	t := syntax.Parse(f)
 	if len(t.Diags) > 0 {
@@ -277,10 +281,11 @@ func importEdits(name string, src []byte, old, next string) ([]sourceEdit, error
 			continue
 		}
 		text := path.Join("/")
-		if text == next || strings.HasPrefix(text, next+"/") {
+		owner := OwnerOf(text, names)
+		if owner == next {
 			return nil, fmt.Errorf("%s already imports %s; a rename cannot merge two modules", name, next)
 		}
-		if text != old && !strings.HasPrefix(text, old+"/") {
+		if owner != old {
 			continue
 		}
 		first, last := path.At(0).Span(), path.Last().Span()

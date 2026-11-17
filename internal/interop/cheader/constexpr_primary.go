@@ -69,6 +69,9 @@ func (p *cparser) primary() cval {
 		if !ok {
 			return p.fail()
 		}
+		if !p.abi.CharUnsigned && v.Int64() >= 0x80 {
+			v.Sub(v, big.NewInt(0x100))
+		}
 		return p.promote("c_int", v, false)
 	case t != "" && t[0] >= '0' && t[0] <= '9':
 		v, good := new(big.Int).SetString(t, 0)

@@ -55,7 +55,7 @@ func (p *parser) parsePrefix() prefix {
 			case pf.vis == 0:
 				pf.vis = v
 			case p.sameVisibility(pf.vis, v):
-				p.warnRedundant(p.visibilitySpan(v), "duplicate visibility")
+				p.warnRedundant(p.tree.VisibilitySpan(v), "duplicate visibility")
 			default:
 				p.errorAt(p.tree.Span(v), "conflicting visibility modifiers")
 				pf.vis = v

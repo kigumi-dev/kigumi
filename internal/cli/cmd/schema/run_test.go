@@ -187,3 +187,31 @@ func TestSchemaResolvedMetadataUnchanged(t *testing.T) {
 		t.Errorf("missing resolved attribute:\n%s", out)
 	}
 }
+
+func TestEmptySchemaDeclarationList(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "mod.kg"), clitest.Manifest("empty", ""), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "main.kg"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	std, _ := filepath.Abs("../../../../std")
+	for _, flag := range []string{"", "--ir"} {
+		args := []string{"--std", std, "schema"}
+		if flag != "" {
+			args = append(args, flag)
+		}
+		code, out, errOut := clitest.Execute(t, append(args, root)...)
+		if code != 0 {
+			t.Fatalf("schema %s: %s", flag, errOut)
+		}
+		var doc map[string]json.RawMessage
+		if err := json.Unmarshal([]byte(out), &doc); err != nil {
+			t.Fatal(err)
+		}
+		if got := strings.TrimSpace(string(doc["declarations"])); got != "[]" {
+			t.Fatalf("schema %s declarations = %s", flag, got)
+		}
+	}
+}

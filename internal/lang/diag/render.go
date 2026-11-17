@@ -66,11 +66,10 @@ func renderSnippet(sb *strings.Builder, f *token.File, span token.Span, sev Seve
 	fmt.Fprintf(sb, "%s%s %s:%d:%d\n", pad, paint(ansiBlue, "-->"), f.Name, line, col)
 	fmt.Fprintf(sb, "%s %s\n", pad, paint(ansiBlue, "|"))
 	num := strconv.Itoa(line)
-	lineText := escapeC0(f.LineText(line))
-	fmt.Fprintf(sb, "%s%s %s %s\n", strings.Repeat(" ", width-len(num)), paint(ansiBlue, num), paint(ansiBlue, "|"), lineText)
 	lineStart := f.LineSpan(line).Start
-	leadCells := displayWidth(lineText[:int(span.Start-lineStart)])
-	carets := strings.Repeat("^", caretCells(f, span, line))
+	lineText, leadCells, cells := snippetLine(f.LineText(line), int(span.Start-lineStart), int(span.End-lineStart))
+	fmt.Fprintf(sb, "%s%s %s %s\n", strings.Repeat(" ", width-len(num)), paint(ansiBlue, num), paint(ansiBlue, "|"), lineText)
+	carets := strings.Repeat("^", cells)
 	fmt.Fprintf(sb, "%s %s %s%s\n", pad, paint(ansiBlue, "|"), strings.Repeat(" ", leadCells), paint(underlineColor(sev), carets))
 }
 
@@ -88,16 +87,6 @@ func gutterWidth(src Sources, d Diagnostic) int {
 		consider(n.Loc)
 	}
 	return width
-}
-
-// caretCells is the underline's width in display cells, covering the part
-// of span that lies on line.
-func caretCells(f *token.File, span token.Span, line int) int {
-	ls := f.LineSpan(line)
-	end := min(span.End, ls.End)
-	text := f.LineText(line)
-	cells := displayWidth(text[int(span.Start-ls.Start):int(end-ls.Start)])
-	return max(cells, 1)
 }
 
 // escapeC0 keeps control bytes out of the terminal; tabs and newlines are

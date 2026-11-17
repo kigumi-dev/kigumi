@@ -41,7 +41,7 @@ func (p *printer) flushTrivia(limit uint32, docs bool) {
 		text := tk.Text(p.t.File.Src)
 		p.write(text)
 		p.newline()
-		if tk.Start == 0 && strings.HasPrefix(text, "#!") {
+		if strings.HasPrefix(text, "#!") {
 			p.blank()
 		}
 	}

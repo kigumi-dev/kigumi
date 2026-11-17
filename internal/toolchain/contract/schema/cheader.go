@@ -435,7 +435,11 @@ func (w *headerWriter) declType(tr *TypeRef, name string, depth int) (string, bo
 		if elem != nil && elem.Kind == TRFn {
 			return w.fnPointer(elem, name, depth)
 		}
-		inner, ok := w.declType(tr.Elem, "*"+name, depth+1)
+		ptr := "*" + name
+		if elem != nil && elem.Kind == TRNamed && elem.WellKnown == WKFixedArray {
+			ptr = "(" + ptr + ")"
+		}
+		inner, ok := w.declType(tr.Elem, ptr, depth+1)
 		if !ok {
 			return "", false
 		}

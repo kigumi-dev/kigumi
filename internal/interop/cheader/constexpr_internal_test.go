@@ -80,6 +80,22 @@ func TestEvalConstResolvesEarlierConstants(t *testing.T) {
 	}
 }
 
+func TestEvalCharacterSignedness(t *testing.T) {
+	for _, arch := range []string{"amd64", "arm64"} {
+		abi := ABIFor("linux", arch)
+		for _, in := range []string{`'\xff'`, `'\377'`} {
+			want := "-1"
+			if abi.CharUnsigned {
+				want = "255"
+			}
+			typ, lit, ok := evalConst(in, abi)
+			if !ok || typ != "i32" || lit != want {
+				t.Errorf("%s %s: got %s %s %v, want i32 %s", arch, in, typ, lit, ok, want)
+			}
+		}
+	}
+}
+
 func TestGenerateSkipsWideStringMacros(t *testing.T) {
 	full := `pub const INT64_MAX = __INT64_C(__helpers.promoteIntLiteral(c_int, 9223372036854775807, .decimal));
 pub const BIG = INT64_MAX;

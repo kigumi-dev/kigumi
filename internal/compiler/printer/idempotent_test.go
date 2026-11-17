@@ -32,16 +32,22 @@ func printTiming(t *testing.T, n int) (out string, elapsed time.Duration) {
 	return out, time.Since(start)
 }
 
-// TestPrintDeepNestingStaysFast compares ns/byte at two sizes (output is
-// quadratic in n) instead of a fixed wall-clock ceiling, which either flakes
-// under load or gets too loose to catch a regression.
 func TestPrintDeepNestingStaysFast(t *testing.T) {
 	const n = 3000 // block nesting; under the parser's depth limit
 	const baseline = 300
 	baseOut, baseElapsed := printTiming(t, baseline)
 	out, elapsed := printTiming(t, n)
-	if out == "" {
-		t.Fatal("empty output")
+	for range 2 {
+		_, sample := printTiming(t, baseline)
+		baseElapsed = min(baseElapsed, sample)
+		_, sample = printTiming(t, n)
+		elapsed = min(elapsed, sample)
+	}
+	if out == "" || len(out) > 400*n {
+		t.Fatalf("output length = %d, want bounded nonempty output", len(out))
+	}
+	if twice := printer.Print(syntax.Parse(token.NewFile("again", []byte(out)))); twice != out {
+		t.Fatal("deep formatting is not idempotent")
 	}
 	if baseElapsed < 100*time.Microsecond {
 		baseElapsed = 100 * time.Microsecond // floor: avoid timer-noise ratios

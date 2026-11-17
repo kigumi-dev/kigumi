@@ -116,6 +116,9 @@ func (s *Server) Rename(ctx context.Context, p *protocol.RenameParams) (*protoco
 			}
 		}
 	}
+	if err := s.checkRenameBindings(ctx, snap, changes); err != nil {
+		return nil, err
+	}
 	return s.workspaceEdit(changes), nil
 }
 

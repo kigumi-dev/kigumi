@@ -30,7 +30,7 @@ type ModuleScope interface {
 func Build(m ModuleScope, res *sem.Result, opt Options) (*Module, map[sem.EntityID]*Declaration) {
 	byEntity := map[sem.EntityID]*Declaration{}
 	var scope []string
-	var decls []*Declaration
+	decls := []*Declaration{}
 	for _, p := range m.OwnPackages() {
 		path := p.Path
 		scope = append(scope, path)

@@ -8,6 +8,10 @@ import (
 )
 
 func (p *printer) closingBrace(id syntax.NodeID) uint32 {
+	first := p.firstTok(id)
+	if p.t.Toks[first].Kind == token.LBrace && p.closing[first] != 0 {
+		return p.closing[first]
+	}
 	start := p.t.Span(id).Start
 	depth := 0
 	for i, tk := range p.t.Toks {
@@ -70,7 +74,11 @@ func (p *printer) lastTok(s syntax.NodeID) uint32 {
 	for i := first; i < len(toks); i++ {
 		switch toks[i].Kind {
 		case token.LParen, token.LBracket, token.LBrace:
-			depth++
+			if close := p.closing[i]; close != 0 {
+				i = int(close)
+			} else {
+				depth++
+			}
 		case token.RParen, token.RBracket, token.RBrace:
 			depth--
 		}

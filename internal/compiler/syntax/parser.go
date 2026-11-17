@@ -185,25 +185,6 @@ func (p *parser) warnRedundant(span token.Span, msg string) {
 	p.bag.Add(d)
 }
 
-// visibilitySpan widens a visibility node to its closing parenthesis: the
-// Span of a qualifierless `pub(module)` would otherwise stop after `pub`,
-// and a fix built from it would leave `(module)` behind.
-func (p *parser) visibilitySpan(id NodeID) token.Span {
-	sp := p.tree.Span(id)
-	if p.tree.nodes[id].Lhs == 0 {
-		return sp
-	}
-	src := p.tree.File.Src
-	end := int(sp.End)
-	for end < len(src) && src[end] != ')' && src[end] != '\n' {
-		end++
-	}
-	if end < len(src) && src[end] == ')' {
-		end++
-	}
-	return token.Span{Start: sp.Start, End: token.Pos(end)}
-}
-
 // sameVisibility reports whether two visibility nodes name the same
 // visibility, so repeating it is redundant rather than conflicting. The
 // qualifier lives in Lhs and the `pub(in path)` path in Rhs.

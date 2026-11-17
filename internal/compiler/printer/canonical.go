@@ -10,6 +10,7 @@ import (
 // for trees without diagnostics; callers must check Tree.Diags first.
 func Print(t *syntax.Tree) string {
 	pr := &printer{t: t, cm: newComments(t)}
+	pr.indexDelimiters()
 	pr.file(t.Root)
 	pr.flushComments(uint32(len(t.Toks)))
 	return pr.sb.String()
@@ -27,8 +28,9 @@ type printer struct {
 	lineStart bool
 	// chain is set once a statement has broken a method chain onto new lines,
 	// so later `.` segments do not indent again.
-	chain  bool
-	eofIdx int
+	chain   bool
+	eofIdx  int
+	closing []uint32
 }
 
 // withIndent runs f and restores the indent (and chain state) afterwards, so
@@ -48,7 +50,7 @@ func (p *printer) write(s string) {
 }
 
 func (p *printer) writeIndent() {
-	need := p.indent * 4
+	need := min(p.indent, 32) * 4
 	for len(p.indentBuf) < need {
 		p.indentBuf = append(p.indentBuf, ' ')
 	}
