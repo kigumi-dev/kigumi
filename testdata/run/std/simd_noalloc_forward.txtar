@@ -1,0 +1,28 @@
+-- src --
+import simd from std/simd
+
+interface Value { noalloc fn number(self) -> Int }
+
+type A = { pub x Int }
+
+noalloc fn A.number(self) -> Int { self.x }
+
+noalloc fn strict[T: Value, const N: usize](x: T, v: simd.Vec[i32, N]) -> simd.Vec[i32, N] {
+    _ = x.number()
+    v.add(v)
+}
+
+noalloc fn relay[T: Value, const N: usize](x: T, v: simd.Vec[i32, N]) -> simd.Vec[i32, N] { strict(x, v) }
+
+noalloc fn twice[T: Copy, const N: usize](v: simd.Vec[T, N]) -> simd.Vec[T, N] { v.add(v) }
+
+noalloc fn forward[T: Copy, const N: usize](v: simd.Vec[T, N]) -> simd.Vec[T, N] {
+    let w = v
+    twice(w)
+}
+
+print "${relay(A { x: 5 }, simd.Vec.splat[i32, 4](1)).lane(0)}"
+print "${forward(simd.Vec.splat[i32, 4](3)).lane(3)} ${forward(simd.Vec.splat[u8, 16](20)).lane(15)}"
+-- stdout --
+2
+6 40

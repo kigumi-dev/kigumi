@@ -1,0 +1,38 @@
+-- module --
+mir: planned
+-- src --
+import simd from std/simd
+
+noalloc fn dup[const N: usize](a: FixedArray[Int, 2000], v: simd.Vec[i32, N]) -> Int {
+    let mut b = a //~ ERROR copying `FixedArray[Int, 2000]` here allocates
+    b[0] = 1
+    a[0] + b[0] + v.add(v).toArray()[0].toInt()
+}
+
+fn copies[const N: usize](a: FixedArray[Int, 2000]) -> Int {
+    let v = simd.Vec.splat[i32, N](1)
+    let mut b = a
+    b[0] = 1
+    a[0] + b[0] + v.add(v).toArray()[0].toInt()
+}
+
+noalloc fn top(a: FixedArray[Int, 2000]) -> Int { copies[4](a) } //~ ERROR `copies` is not `noalloc`
+
+fn main() {
+    let a = FixedArray.filled[Int, 2000](5)
+    print "${dup(a, simd.Vec.splat[i32, 4](1))} ${top(a)}"
+}
+-- expect --
+error[E1700]: copying `FixedArray[Int, 2000]` here allocates a box of its own for the copy
+ --> main.kg:4:13
+  |
+4 |     let mut b = a //~ ERROR copying `FixedArray[Int, 2000]` here allocates
+  |             ^
+  = help: use the original instead of a copy, or drop the declaration
+
+error[E907]: `copies` is not `noalloc`
+  --> main.kg:16:51
+   |
+16 | noalloc fn top(a: FixedArray[Int, 2000]) -> Int { copies[4](a) } //~ ERROR `copies` is not `noalloc`
+   |                                                   ^^^^^^^^^^^
+

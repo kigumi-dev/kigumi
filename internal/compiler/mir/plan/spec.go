@@ -78,6 +78,7 @@ func (p *planner) specialize() error {
 		}
 		s.rollback(mark)
 	}
+	p.InstanceOnly = newSpecializer(p, nil).instanceOnly()
 	p.Diags = dedupeFileDiags(p.Diags, mark)
 	p.inlineProtoCalls()
 	p.dropStaleComptime()
@@ -131,7 +132,7 @@ func (s *specializer) scan(f *midir.Func, ctx *spec) {
 	for bid := range f.Blocks {
 		insts := f.Blocks[bid].Insts
 		for i := range insts {
-			if insts[i].Op != midir.OpCall && insts[i].Op != midir.OpFnItem {
+			if !specSite(insts[i]) {
 				continue
 			}
 			// A copy of a body scanned before it was copied already names the instantiation.

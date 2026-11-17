@@ -170,8 +170,15 @@ func buildProgram(res *sem.Result, o progOptions) (*mir.Program, error) {
 	for _, d := range prog.Diags[loweredDiags:] {
 		res.AppendDiag(d.File, d.Diag)
 	}
-	for _, c := range claimDiags(prog) {
-		res.AppendDiag(c.File, c.Diag)
+	entry := prog.Entry
+	if o.root != 0 {
+		entry = prog.ByEnt[o.root]
+	}
+	// A claim check lowers bodies natively, which a shared SIMD body would abort.
+	if !reportSimdShapes(res, prog, mirreach.Reachable(prog.R, entry, prog.Funcs, prog.ByEnt)) {
+		for _, c := range claimDiags(prog) {
+			res.AppendDiag(c.File, c.Diag)
+		}
 	}
 	if o.root != 0 {
 		prog.Entry = prog.ByEnt[o.root]

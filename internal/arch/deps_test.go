@@ -19,7 +19,7 @@ var allowed = map[string][]string{
 	"compiler/mir/layout":           {"compiler/mir/ir", "compiler/sem"},
 	"compiler/mir/ir":               {"compiler/mir/ops", "compiler/sem", "compiler/syntax", "lang/diag"},
 	"compiler/mir/ops":              {"compiler/sem", "lang/isr"},
-	"compiler/mir/verify":           {"lang/diag", "compiler/syntax", "compiler/sem", "compiler/mir", "compiler/mir/flow", "compiler/mir/ir", "compiler/mir/ops", "compiler/mir/ownership"},
+	"compiler/mir/verify":           {"lang/diag", "compiler/syntax", "compiler/sem", "compiler/mir", "compiler/mir/flow", "compiler/mir/ir", "compiler/mir/ops", "compiler/mir/ownership", "compiler/mir/reach"},
 	"compiler/mir/plan":             {"lang/diag", "compiler/syntax", "compiler/sem", "compiler/mir", "compiler/mir/flow", "compiler/mir/ir", "compiler/mir/layout", "compiler/mir/mobility", "compiler/mir/ops", "compiler/mir/ownership", "compiler/mir/unwind", "compiler/mir/verify"},
 	"arch":                          {},
 	"toolchain/native/object":       {},

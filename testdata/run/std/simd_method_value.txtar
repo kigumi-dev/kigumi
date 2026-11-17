@@ -1,0 +1,37 @@
+-- src --
+import simd from std/simd
+import task from std/task
+
+type B[T] = { pub v simd.Vec[T, 4] }
+
+fn B[T: Copy].first(self) -> T { self.v.add(self.v).lane(0) }
+
+fn B[T: Copy].sum(self, w: simd.Vec[T, 4]) -> T { self.v.add(w).lane(1) }
+
+async fn B[T: Copy].later(self) -> T {
+    await task.yieldNow()
+    self.v.mul(self.v).lane(2)
+}
+
+fn viaGeneric[T: Copy](b: B[T]) -> T {
+    let m = b.first
+    m()
+}
+
+async fn viaAsync[T: Copy](b: B[T]) -> T {
+    let m = b.later
+    await m()
+}
+
+let b = B[i32] { v: simd.Vec.splat[i32, 4](3) }
+let first = b.first
+let sum = b.sum
+print "${first()} ${sum(simd.Vec.splat[i32, 4](4))}"
+print "${viaGeneric(B[f32] { v: simd.Vec.splat[f32, 4](0.25) })}"
+let ex = task.currentThreadExecutor()
+let later = b.later
+print "${ex.runToCompletion(later())} ${ex.runToCompletion(viaAsync(B[u32] { v: simd.Vec.splat[u32, 4](300) }))}"
+-- stdout --
+6 7
+0.5
+9 90000

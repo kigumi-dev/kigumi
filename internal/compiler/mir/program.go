@@ -22,6 +22,9 @@ type Program struct {
 	Diags     []midir.FileDiag
 	// Entries holds every Func.Entry; they are not in Funcs, so nothing keyed by entity sees them.
 	Entries []*midir.Func
+	// InstanceOnly holds the generic bodies specialize runs only as their instances, whose SIMD lanes the
+	// type arguments fix.
+	InstanceOnly map[sem.EntityID]bool
 	// VerifyEach makes Apply verify before the passes and after each one, not only after the last.
 	VerifyEach bool
 	unlowered  []bool

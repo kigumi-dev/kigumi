@@ -1,0 +1,32 @@
+-- src --
+import simd from std/simd
+import task from std/task
+
+async fn g[T: Copy](v: simd.Vec[T, 4]) -> simd.Vec[T, 4] {
+    await task.yieldNow()
+    v.add(v)
+}
+
+fn relay[T: Copy](v: simd.Vec[T, 4]) -> T {
+    let f = g[T]
+    let ex = task.currentThreadExecutor()
+    ex.runToCompletion(f(v)).lane(0)
+}
+
+fn pick[T: Copy]() -> fn(simd.Vec[T, 4]) -> Future[simd.Vec[T, 4]] { g[T] }
+
+async fn spawned() -> i32 {
+    let f = g[i32]
+    let t = task.spawn(f(simd.Vec.splat[i32, 4](5)))
+    (await t).lane(3)
+}
+
+let f = g[i32]
+let ex = task.currentThreadExecutor()
+print "${ex.runToCompletion(f(simd.Vec.splat[i32, 4](3))).lane(0)}"
+print "${relay(simd.Vec.splat[u32, 4](7))} ${ex.runToCompletion(spawned())}"
+print "${ex.runToCompletion(pick[f32]()(simd.Vec.splat[f32, 4](1.5))).lane(2)}"
+-- stdout --
+6
+14 10
+3

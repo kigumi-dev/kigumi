@@ -35,7 +35,7 @@ func (p *planner) chargeCalls(facts paramCopies) []sem.CopySite {
 	for changed := len(facts) > 0; changed; {
 		changed, sites = false, sites[:0]
 		for _, f := range p.Funcs {
-			if f.Ent == 0 {
+			if !p.charged(f) {
 				continue
 			}
 			for _, blk := range f.Blocks {

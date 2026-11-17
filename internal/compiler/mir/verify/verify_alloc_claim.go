@@ -4,7 +4,7 @@ import midir "kigumi/internal/compiler/mir/ir"
 
 // A box is reported as a diagnostic; a copy in a `noalloc` body is a compiler fault unless sem charged it, where a declaration already rejected it.
 func (p *verifier) verifyAllocClaim(f *midir.Func) *Error {
-	if f.Ent == 0 {
+	if f.Ent == 0 || p.InstanceOnly[f.Ent] {
 		return nil
 	}
 	declared := p.DeclaredNoalloc(f)

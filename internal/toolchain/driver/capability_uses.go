@@ -45,6 +45,7 @@ func (a *Analysis) checkProvision(t buildconfig.Target) *mirreach.Reachability {
 	// A published analysis is read-only: a target first seen after publication
 	// still gets its reachability, but cannot add diagnostics to the snapshot.
 	if !a.Res.Sealed() {
+		reportSimdShapes(a.Res, a.Prog, reach)
 		a.Res.CheckCapabilityProvision(capabilityUses(a.Prog, reach, capabilityPlatform(t)))
 		a.warnTaskPanicFatal(t, reach)
 	}

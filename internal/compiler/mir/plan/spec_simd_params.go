@@ -67,3 +67,14 @@ func (s *specializer) simdShapeParams() map[sem.EntityID]map[sem.EntityID]bool {
 	}
 	return s.simdArgs
 }
+
+// instanceOnly lists the generic bodies a shape parameter makes run only as instances.
+func (s *specializer) instanceOnly() map[sem.EntityID]bool {
+	out := map[sem.EntityID]bool{}
+	for ent, params := range s.simdShapeParams() {
+		if len(params) > 0 {
+			out[ent] = true
+		}
+	}
+	return out
+}

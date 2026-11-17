@@ -14,7 +14,7 @@ func checkNoallocBodies(t *testing.T, res *sem.Result, prog *mir.Program) {
 		t.Fatalf("planning broke a declaration:\n%s", res.Render())
 	}
 	for _, f := range prog.Funcs {
-		if f.Ent == 0 || !res.Summary(f.Ent).Noalloc {
+		if f.Ent == 0 || prog.InstanceOnly[f.Ent] || !res.Summary(f.Ent).Noalloc {
 			continue
 		}
 		for _, blk := range f.Blocks {

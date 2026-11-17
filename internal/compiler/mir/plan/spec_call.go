@@ -20,7 +20,7 @@ func (s *specializer) instance(f *midir.Func, ctx *spec, in midir.Inst) ([]sem.T
 		return nil, nil, false
 	}
 	shapeArgs, shape := s.simdArgsOnly(gen, args)
-	if !r.Specializable(gen) && !shape {
+	if !r.Specializable(gen) && !shape || in.Op == midir.OpClosure && !shape {
 		return nil, nil, false
 	}
 	sharedShape := shape && s.heldIn(f, ctx) == nil && !s.p.DeclaredNoalloc(s.p.ByEnt[gen])
@@ -36,7 +36,7 @@ func (s *specializer) instance(f *midir.Func, ctx *spec, in midir.Inst) ([]sem.T
 	if !r.SpecializeArgs(args) && !s.protoInstance(gen, args) && !s.scalarArgs(args) && !shape || !shape && s.grows(ctx, args) {
 		return nil, nil, false
 	}
-	if in.Op == midir.OpFnItem {
+	if in.Op == midir.OpFnItem || in.Op == midir.OpClosure {
 		// A function value reaches a scalar instance through an adapter that boxes the result again.
 		return args, nil, shape || r.SpecializeArgs(args) || s.protoInstance(gen, args)
 	}
@@ -44,6 +44,11 @@ func (s *specializer) instance(f *midir.Func, ctx *spec, in midir.Inst) ([]sem.T
 		return args, nil, true
 	}
 	return args, s.witnesses(ctx, gen, r.Files[f.File].Calls[in.Node]), true
+}
+
+// specSite is an instruction naming a body by entity: a call, a fn item, or a method value.
+func specSite(in midir.Inst) bool {
+	return in.Op == midir.OpCall || in.Op == midir.OpFnItem || in.Form() == midir.FormMethod
 }
 
 func (p *planner) bindTypeArgs(f *midir.Func, in midir.Inst, subst func(sem.TypeID) sem.TypeID) ([]sem.TypeID, bool) {
@@ -55,11 +60,8 @@ func (p *planner) bindTypeArgs(f *midir.Func, in midir.Inst, subst func(sem.Type
 		want[tp] = !r.IsLifetimeParam(tp)
 	}
 	bound := map[sem.EntityID]sem.TypeID{}
-	if in.Op == midir.OpFnItem {
-		if info.Recv != sem.RecvNone || len(info.Witnesses) > 0 {
-			return nil, false
-		}
-		if !r.Types.BindParams(info.Sig, f.Locals[in.Dst].Type, want, bound) {
+	if in.Op == midir.OpFnItem || in.Op == midir.OpClosure {
+		if !p.bindValueArgs(f, in, want, bound) {
 			return nil, false
 		}
 		return p.boundArgs(gen, want, bound)

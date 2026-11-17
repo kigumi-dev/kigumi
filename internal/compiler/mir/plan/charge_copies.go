@@ -7,7 +7,7 @@ func (p *planner) chargeCopies() {
 	var sites []sem.CopySite
 	facts := paramCopies{}
 	for _, f := range p.Funcs {
-		if f.Ent == 0 {
+		if !p.charged(f) {
 			continue
 		}
 		for _, blk := range f.Blocks {
@@ -24,5 +24,5 @@ func (p *planner) chargeCopies() {
 		}
 	}
 	sites = append(sites, p.chargeCalls(facts)...)
-	p.R.ChargeCopies(sites)
+	p.R.ChargeCopies(p.chargeGenerics(sites))
 }

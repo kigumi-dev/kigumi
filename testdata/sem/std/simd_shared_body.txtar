@@ -1,0 +1,43 @@
+-- module --
+mir: planned
+-- src --
+import simd from std/simd
+
+type W[const N: usize] = resource { pub v simd.Vec[i32, N] } //~ NOTE the drop glue of `W` runs this one body
+
+fn W[N].drop(move self) { print "drop ${self.v.add(self.v).lane(0)}" } //~ ERROR `W.drop` is reached as one shared body
+
+interface Sh { fn run(self) -> Int }
+type H[T] = { pub v simd.Vec[T, 4] }
+fn H[T: Copy].run(self) -> Int { _ = self.v.add(self.v); 1 } //~ ERROR `H.run` is reached as one shared body
+
+fn main() { //~ NOTE `main` builds an interface method table that runs it
+    let w = W[4] { v: simd.Vec.splat[i32, 4](3) }
+    let s: Sh = H[i32] { v: simd.Vec.splat[i32, 4](1) }
+    print "made ${w.v.lane(1)} ${s.run()}"
+}
+-- expect --
+error[E1713]: `W.drop` is reached as one shared body for every instantiation, which cannot lower this SIMD operation on `Vec[i32, N]` before an instantiation fixes its lane type and count
+ --> main.kg:5:41
+  |
+5 | fn W[N].drop(move self) { print "drop ${self.v.add(self.v).lane(0)}" } //~ ERROR `W.drop` is reached as one shared body
+  |                                         ^^^^^^^^^^^^^^^^^
+  = help: call it directly with concrete type arguments, or keep the vector operation out of a body that only a destructor, an interface method table or an erased function value reaches
+note: the drop glue of `W` runs this one body for every `W`
+ --> main.kg:3:1
+  |
+3 | type W[const N: usize] = resource { pub v simd.Vec[i32, N] } //~ NOTE the drop glue of `W` runs this one body
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1713]: `H.run` is reached as one shared body for every instantiation, which cannot lower this SIMD operation on `Vec[T, 4]` before an instantiation fixes its lane type and count
+  --> main.kg:9:38
+   |
+ 9 | fn H[T: Copy].run(self) -> Int { _ = self.v.add(self.v); 1 } //~ ERROR `H.run` is reached as one shared body
+   |                                      ^^^^^^^^^^^^^^^^^
+   = help: call it directly with concrete type arguments, or keep the vector operation out of a body that only a destructor, an interface method table or an erased function value reaches
+note: `main` builds an interface method table that runs it
+  --> main.kg:11:1
+   |
+11 | fn main() { //~ NOTE `main` builds an interface method table that runs it
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

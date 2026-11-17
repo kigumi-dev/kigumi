@@ -15145,6 +15145,17 @@
       ]
     },
     {
+      "id": "run/simd_async_fn_value",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/simd_async_fn_value.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/simd_generic",
       "kind": "run",
       "group": "std",
@@ -15183,6 +15194,28 @@
       "group": "std",
       "stage": "run",
       "path": "testdata/run/std/simd_lane_bounds.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/simd_method_value",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/simd_method_value.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/simd_noalloc_forward",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/simd_noalloc_forward.txtar",
       "mode": [
         "vm",
         "native"
@@ -23961,6 +23994,26 @@
       "group": "std",
       "stage": "planned",
       "path": "testdata/sem/std/simd_generic_shape.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/simd_shape_noalloc_copy",
+      "kind": "sem",
+      "group": "std",
+      "stage": "planned",
+      "path": "testdata/sem/std/simd_shape_noalloc_copy.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/simd_shared_body",
+      "kind": "sem",
+      "group": "std",
+      "stage": "planned",
+      "path": "testdata/sem/std/simd_shared_body.txtar",
       "mode": [
         "check"
       ]
