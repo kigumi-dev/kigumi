@@ -43,6 +43,8 @@ type Repl struct {
 	out, err io.Writer
 	entry    string
 	decls    string
+	chunks   []replDeclChunk
+	cells    int
 	bindings []ReplBinding
 	seq      int
 	status   int
@@ -200,43 +202,28 @@ func (r *Repl) Eval(src string, interactive bool) (EvalResult, error) {
 	if cell.decls == "" && len(cell.body) == 0 && !cell.lastExpr {
 		return EvalResult{}, nil
 	}
+	r.cells++
 	for _, let := range cell.lets {
 		if strings.HasPrefix(let.name, "__repl_") || let.name == "lastStatus" {
 			r.setLastStatus(1)
 			return EvalResult{Message: fmt.Sprintf("repl: `%s` is reserved for the evaluator", let.name), Status: 1}, nil
 		}
 		if r.binding(let.name) >= 0 {
+			r.setLastStatus(1)
 			return EvalResult{Message: fmt.Sprintf("repl: `%s` is already a session binding; choose a fresh name", let.name), Status: 1}, nil
 		}
 	}
 	needShell := replNeedsShell(src)
 	needPrelude := replNeedsPrelude(src)
-	declsTry := r.decls
-	if needPrelude && !r.prelude {
-		if declsTry != "" {
-			declsTry += "\n"
-		}
-		declsTry += replPrelude
-	}
-	if needShell && !r.shell {
-		if declsTry != "" {
-			declsTry += "\n"
-		}
-		declsTry += replShellPrelude
-	}
-	if cell.decls != "" {
-		if declsTry != "" {
-			declsTry += "\n"
-		}
-		declsTry += cell.decls
-	}
+	chunksTry := r.chunksFor(cell, needPrelude, needShell)
+	declsTry := joinDeclChunks(chunksTry)
 	if len(cell.body) == 0 && !cell.lastExpr {
 		// Declarations persist without running a cell.
-		if err := r.validate(declsTry); err != nil {
+		if err := r.validate(declsTry, cell, chunksTry); err != nil {
 			r.setLastStatus(1)
 			return EvalResult{Message: err.Error(), Status: 1}, nil
 		}
-		r.decls = declsTry
+		r.decls, r.chunks = declsTry, chunksTry
 		if needShell {
 			r.shell = true
 		}
@@ -255,7 +242,7 @@ func (r *Repl) Eval(src string, interactive bool) (EvalResult, error) {
 	}
 	if res.HasErrors() {
 		r.setLastStatus(1)
-		return EvalResult{Message: r.renderDiags(res, tree, cell), Status: 1}, nil
+		return EvalResult{Message: r.renderDiags(res, tree, cell, chunksTry), Status: 1}, nil
 	}
 	letEnts, _, _ := generatedCellLocals(m, res, tree, cellName)
 	lastType := sem.TypeID(0)
@@ -349,7 +336,7 @@ func (r *Repl) Eval(src string, interactive bool) (EvalResult, error) {
 		drop := replOutputErrors(fres, ftree, outName, specs)
 		if len(drop) == 0 {
 			r.setLastStatus(1)
-			return EvalResult{Message: r.renderDiags(fres, ftree, cell), Status: 1}, nil
+			return EvalResult{Message: r.renderDiags(fres, ftree, cell, chunksTry), Status: 1}, nil
 		}
 		var nextOut []replOutField
 		var nextSpecs []replOutSpec
@@ -452,7 +439,7 @@ func (r *Repl) Eval(src string, interactive bool) (EvalResult, error) {
 		b.Value.Release()
 	}
 	r.bindings = next
-	r.decls = declsTry
+	r.decls, r.chunks = declsTry, chunksTry
 	if needShell {
 		r.shell = true
 	}
@@ -535,9 +522,9 @@ func (r *Repl) check(src string) (*Module, *sem.Result, *syntax.Tree, *Package, 
 	return m, res, tree, pkg, nil
 }
 
-func (r *Repl) validate(decls string) error {
-	src := decls + "\n"
-	m, err := r.loadModule(src)
+func (r *Repl) validate(decls string, cell *replCell, chunks []replDeclChunk) error {
+	probe := fmt.Sprintf("__repl_cell_%d", r.seq)
+	m, err := r.loadModule(replWrapper(decls, probe, nil, "", nil, nil, "", false, ""))
 	if err != nil {
 		return err
 	}
@@ -545,8 +532,21 @@ func (r *Repl) validate(decls string) error {
 	if err != nil {
 		return err
 	}
+	pkg, tree := generatedFile(m, r.entry)
+	if !res.HasErrors() {
+		if pkg == nil {
+			return fmt.Errorf("repl: generated package is missing")
+		}
+		ent := res.PackageMember(res.PackageByPath(pkg.Path), probe)
+		if ent == 0 {
+			return fmt.Errorf("repl: generated probe %q is missing", probe)
+		}
+		if _, err := m.LowerCheckedRoot(res, ent); err != nil {
+			return err
+		}
+	}
 	if res.HasErrors() {
-		return fmt.Errorf("%s", strings.TrimSpace(res.Render()))
+		return fmt.Errorf("%s", strings.TrimSpace(r.renderDiags(res, tree, cell, chunks)))
 	}
 	return nil
 }
@@ -583,7 +583,7 @@ func (r *Repl) loadModule(src string) (*Module, error) {
 	return LoadModule(r.root, opts)
 }
 
-func (r *Repl) renderDiags(res *sem.Result, tree *syntax.Tree, cell *replCell) string {
+func (r *Repl) renderDiags(res *sem.Result, tree *syntax.Tree, cell *replCell, chunks []replDeclChunk) string {
 	if tree == nil || cell == nil {
 		return res.Render()
 	}
@@ -625,6 +625,7 @@ func (r *Repl) renderDiags(res *sem.Result, tree *syntax.Tree, cell *replCell) s
 			text := strings.TrimSpace(tree.File.LineText(line))
 			cellLine, ok := findCellLine(text)
 			if !ok {
+				b.WriteString(renderDeclDiag(res, chunks, line, d))
 				continue
 			}
 			d.Loc = diag.At(cell.file, cellLineSpan(cell.file, cellLine))

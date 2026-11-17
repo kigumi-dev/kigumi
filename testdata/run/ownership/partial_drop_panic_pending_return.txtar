@@ -1,0 +1,29 @@
+-- src --
+type Inner = resource { pub id Int }
+fn Inner.drop(move self) {
+    if self.id == 2 {
+        let none: Int? = None
+        print "${none.unwrap()}"
+    }
+    print "inner drop ${self.id}"
+}
+
+type Outer = resource { pub taken Inner, pub kept Inner }
+fn Outer.drop(move self) {
+    print "outer drop ${self.taken.id} ${self.kept.id}"
+}
+
+fn Outer.take(move self) -> Inner {
+    let t = move self.taken
+    t
+}
+
+let o = Outer { taken: Inner { id: 7 }, kept: Inner { id: 2 } }
+let i = o.take()
+print "taken ${i.id}"
+-- stdout --
+inner drop 7
+-- stderr --
+panic: unwrap on None
+-- exit --
+2

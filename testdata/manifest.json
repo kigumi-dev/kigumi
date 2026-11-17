@@ -13911,6 +13911,17 @@
       ]
     },
     {
+      "id": "run/partial_drop_panic_pending_return",
+      "kind": "run",
+      "group": "ownership",
+      "stage": "run",
+      "path": "testdata/run/ownership/partial_drop_panic_pending_return.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/partial_move",
       "kind": "run",
       "group": "ownership",

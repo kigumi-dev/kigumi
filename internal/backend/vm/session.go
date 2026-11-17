@@ -503,8 +503,8 @@ func (v *Value) TakeFields() []Value {
 	return out
 }
 
-// entityKey names a declaration by its package, kind, name and parent, not
-// by the id the checker happened to allocate.
+// entityKey names a declaration by package, kind, name, parent and type
+// arguments, not by checker ids; a specialization shares its generic's name.
 func entityKey(r *sem.Result, id sem.EntityID) string {
 	if id == 0 || int(id) >= len(r.Entities) {
 		return ""
@@ -518,7 +518,14 @@ func entityKey(r *sem.Result, id sem.EntityID) string {
 	if e.Parent != 0 {
 		parent = entityKey(r, e.Parent)
 	}
-	return pkg + "\x00" + fmt.Sprint(e.Kind) + "\x00" + e.Name + "\x00" + parent
+	key := pkg + "\x00" + fmt.Sprint(e.Kind) + "\x00" + e.Name + "\x00" + parent
+	if in, ok := r.InstanceOf(id); ok {
+		for _, arg := range in.Args {
+			key += "\x00" + string(r.TypeKey(arg))
+		}
+		key += "\x00" + fmt.Sprint(len(in.Args))
+	}
+	return key
 }
 
 // Remap applies the last UseProgram's entity-key mapping to a held value,
@@ -605,7 +612,7 @@ func compatibleResults(old, new *sem.Result) (map[sem.EntityID]sem.EntityID, err
 		key := entityKey(old, sem.EntityID(id))
 		nid, ok := newByKey[key]
 		if !ok {
-			if old.Packages[o.Pkg].Std {
+			if _, spec := old.InstanceOf(sem.EntityID(id)); spec || old.Packages[o.Pkg].Std {
 				continue
 			}
 			return nil, fmt.Errorf("%w: entity %s %q in package %q is missing from the new program", ErrInvalidProg, o.Kind, o.Name, old.Packages[o.Pkg].Path)

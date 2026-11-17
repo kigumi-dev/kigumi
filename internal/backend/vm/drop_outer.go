@@ -1,9 +1,11 @@
 package vm
 
 // Like native, only where the build can contain a drop panic; elsewhere a drop outside a task ends it at once.
-func (m *Machine) dropChecked(fr *frame, v *obj) {
+func (m *Machine) dropChecked(fr *frame, v *obj) { m.dropCheckedWith(fr, v, m.release) }
+
+func (m *Machine) dropCheckedWith(fr *frame, v *obj, release func(*obj)) {
 	if m.cur != nil || m.outerDepth > 0 || v == nil || m.opts.Sandbox || !m.p.ContainsDropPanics() {
-		m.release(v)
+		release(v)
 		return
 	}
 	base := len(m.frames)
@@ -18,7 +20,7 @@ func (m *Machine) dropChecked(fr *frame, v *obj) {
 			m.throw(m.sweepOuter(fr, base, p))
 		}
 	}()
-	m.release(v)
+	release(v)
 }
 
 func (m *Machine) sweepOuter(fr *frame, base int, fault *Panic) *Panic {

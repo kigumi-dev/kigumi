@@ -65,10 +65,8 @@ func atoi(s string) int64 {
 	return n
 }
 
-// planOf turns a Plan record into the host plan by asking std/shell.stages
-// for the stage records, so word joining lives in one place. Every filter is
-// validated by the same std/shell.filterProblem the native runner uses, so
-// both engines reject the same options with the same message.
+// planOf turns a Plan record into the host plan through std/shell.processStages,
+// and checks each filter with std/shell.filterProblem as the native runner does.
 func (m *Machine) planOf(v *obj, cwd string) (*shell.Plan, string) {
 	stages := m.callStd("std/shell", "processStages", []*obj{v})
 	defer m.release(stages)
