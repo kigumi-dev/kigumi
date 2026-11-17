@@ -2,9 +2,11 @@ package vm_test
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"sort"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -483,6 +485,23 @@ func TestSessionUseProgram(t *testing.T) {
 		t.Errorf("after rejected swap: got %q, want 42", got)
 	}
 	v.Release()
+}
+
+func TestSessionRejectsClippedTypeChange(t *testing.T) {
+	var params []string
+	for i := range 419 {
+		params = append(params, fmt.Sprintf("p%d: Int", i))
+	}
+	source := func(last string) string {
+		return "fn long(" + strings.Join(params, ", ") + ", last: " + last + ") -> Int { p0 }\nprint \"session\"\n"
+	}
+	base := buildSessionProgram(t, source("Int"))
+	next := buildSessionProgram(t, source("String"))
+	s := newSession(t, base)
+	defer s.Close()
+	if err := s.UseProgram(next); err == nil || !strings.Contains(err.Error(), "changed type") {
+		t.Fatalf("changed long signature: %v", err)
+	}
 }
 
 // A wrapper record's fields can be detached without double-releasing them.

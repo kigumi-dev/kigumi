@@ -45,6 +45,7 @@ type Repl struct {
 	decls    string
 	bindings []ReplBinding
 	seq      int
+	status   int
 	prelude  bool
 	shell    bool
 	sess     *vm.Session
@@ -112,7 +113,8 @@ func NewRepl(root string, opts ReplOptions) (*Repl, error) {
 		return nil, fmt.Errorf("repl: entry %q must be a root-relative file name", entry)
 	}
 	opts.Entry = entry
-	return &Repl{root: abs, load: opts.Load, vmOpts: opts.VM, out: opts.Out, err: opts.Err, entry: entry}, nil
+	return &Repl{root: abs, load: opts.Load, vmOpts: opts.VM, out: opts.Out, err: opts.Err, entry: entry,
+		bindings: []ReplBinding{{Name: "lastStatus", Type: "Int", Mut: true}}}, nil
 }
 
 // replPrelude is the shell-independent part of the session scope. The shell
@@ -199,7 +201,8 @@ func (r *Repl) Eval(src string, interactive bool) (EvalResult, error) {
 		return EvalResult{}, nil
 	}
 	for _, let := range cell.lets {
-		if strings.HasPrefix(let.name, "__repl_") {
+		if strings.HasPrefix(let.name, "__repl_") || let.name == "lastStatus" {
+			r.setLastStatus(1)
 			return EvalResult{Message: fmt.Sprintf("repl: `%s` is reserved for the evaluator", let.name), Status: 1}, nil
 		}
 		if r.binding(let.name) >= 0 {
@@ -240,6 +243,7 @@ func (r *Repl) Eval(src string, interactive bool) (EvalResult, error) {
 		if needPrelude {
 			r.prelude = true
 		}
+		r.setLastStatus(0)
 		return EvalResult{}, nil
 	}
 
@@ -370,6 +374,7 @@ func (r *Repl) Eval(src string, interactive bool) (EvalResult, error) {
 			return EvalResult{}, err
 		}
 		r.sess = s
+		r.setLastStatus(r.status)
 	} else if err := r.sess.UseProgram(finalProg); err != nil {
 		r.setLastStatus(1)
 		return EvalResult{Message: "repl: session state is incompatible with this cell: " + err.Error(), Status: 1}, nil
@@ -488,6 +493,10 @@ func (r *Repl) binding(name string) int {
 }
 
 func (r *Repl) setLastStatus(code int) {
+	r.status = code
+	if r.sess == nil {
+		return
+	}
 	i := r.binding("lastStatus")
 	if i < 0 {
 		if r.sess != nil {

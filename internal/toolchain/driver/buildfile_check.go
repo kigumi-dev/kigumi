@@ -109,10 +109,11 @@ func checkBuildFileOn(m *Module, tree *syntax.Tree) *BuildFile {
 	if tree.HasErrors() {
 		return &BuildFile{Tree: tree}
 	}
-	res, err := checkBuildFileContext(m, tree)
+	a, err := analyzeBuildFileContext(m, tree)
 	if err != nil {
 		return buildFileFailure(tree, err)
 	}
+	res := a.Res
 	b := &BuildFile{Tree: tree, Res: res}
 	if !res.HasErrors() {
 		if _, d := configureEntity(res, tree); d != nil {
@@ -122,9 +123,9 @@ func checkBuildFileOn(m *Module, tree *syntax.Tree) *BuildFile {
 	return b
 }
 
-// checkBuildFileContext checks tree as the package named build over m's std
+// analyzeBuildFileContext checks tree as the package named build over m's std
 // and dependency packages. It never includes the module build.kg configures.
-func checkBuildFileContext(m *Module, tree *syntax.Tree) (*sem.Result, error) {
+func analyzeBuildFileContext(m *Module, tree *syntax.Tree) (*Analysis, error) {
 	mod := &sem.Module{}
 	for _, path := range m.Order {
 		p := m.Packages[path]
@@ -151,7 +152,7 @@ func checkBuildFileContext(m *Module, tree *syntax.Tree) (*sem.Result, error) {
 		return nil, err
 	}
 	a.Snapshot()
-	return a.Res, nil
+	return a, nil
 }
 
 // buildFileFailure locates a build.kg-wide failure at the file's first byte,

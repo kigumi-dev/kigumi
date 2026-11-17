@@ -3,10 +3,8 @@ package vm
 import (
 	"bufio"
 	"io"
-	"os"
 	"sync"
 	"sync/atomic"
-	"syscall"
 
 	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
@@ -109,10 +107,6 @@ func (m *Machine) underlyingRepr(t sem.TypeID) sem.TypeID {
 func (m *Machine) writeOut(b []byte) (int, error) {
 	m.sh.out.Lock()
 	defer m.sh.out.Unlock()
-	// The runtime turns a closed fd 1 into /dev/null before main, so this is the only place the loss can be noticed.
-	if f, ok := m.out.(*os.File); ok && f == os.Stdout && stdoutWasClosed() {
-		return 0, syscall.EBADF
-	}
 	return m.out.Write(b)
 }
 

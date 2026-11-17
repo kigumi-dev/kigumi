@@ -43,10 +43,11 @@ func LoadBuildProgram(root string, opts LoadOptions) (*BuildProgram, bool, error
 	if err != nil {
 		return nil, true, err
 	}
-	res, err := checkBuildFileContext(m, tree)
+	a, err := analyzeBuildFileContext(m, tree)
 	if err != nil {
 		return nil, true, err
 	}
+	res := a.Res
 	if res.HasErrors() {
 		return nil, true, fmt.Errorf("%s", res.Render())
 	}
@@ -54,7 +55,7 @@ func LoadBuildProgram(root string, opts LoadOptions) (*BuildProgram, bool, error
 	if d != nil {
 		return nil, true, fmt.Errorf("%s", d.Msg)
 	}
-	return &BuildProgram{Module: m, Res: res, Configure: configure, Tree: tree}, true, nil
+	return &BuildProgram{Module: m, Res: res, Configure: configure, Tree: tree, prog: a.Prog}, true, nil
 }
 
 // configureEntity finds `fn configure(b: build.Builder) -> Void!` and
@@ -98,16 +99,6 @@ func (p *BuildProgram) Run(target buildconfig.Target, flags []string, outDir str
 		req.Flags = append(req.Flags, strings.TrimLeft(f, "-"))
 	}
 	host := p.Module.compiler.HostOrAmbient()
-	if p.prog == nil {
-		prog, err := buildProgram(p.Res, progOptions{verifyEach: p.Module.verifyPasses, target: p.Module.target})
-		if err != nil {
-			return nil, err
-		}
-		if p.Res.HasErrors() {
-			return nil, fmt.Errorf("%s", strings.TrimSpace(p.Res.Render()))
-		}
-		p.prog = prog
-	}
 	return vm.EvalBuild(p.prog, p.Configure, req, buildgraph.Roots{Roots: roots, Host: buildgraph.Target{Sys: host.Sys, Allocator: target.Allocator}})
 }
 

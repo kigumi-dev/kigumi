@@ -617,7 +617,7 @@ func compatibleResults(old, new *sem.Result) (map[sem.EntityID]sem.EntityID, err
 			}
 			return nil, fmt.Errorf("%w: entity %s %q changed at its key", ErrInvalidProg, o.Kind, o.Name)
 		}
-		if old.TypeString(o.Type) != new.TypeString(n.Type) {
+		if !sameSessionType(old, new, o.Type, n.Type) {
 			if old.Packages[o.Pkg].Std {
 				continue
 			}

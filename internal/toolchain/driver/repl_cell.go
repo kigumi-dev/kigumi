@@ -59,8 +59,15 @@ func parseReplCell(src string) (*replCell, string) {
 			end = int(items[i+1].Span().Start)
 		}
 		text := strings.TrimSpace(string(file.Src[start:end]))
+		if !replDeclKind(item.Kind()) && c.lastExpr {
+			statements = append(statements, c.last)
+			c.last, c.lastNode, c.lastExpr = "", 0, false
+		}
 		switch {
 		case replDeclKind(item.Kind()):
+			if item.AsDecl().Name().Text() == "lastStatus" {
+				return nil, "repl: `lastStatus` is reserved for the evaluator"
+			}
 			decls.WriteString(text)
 			decls.WriteByte('\n')
 		case item.Kind() == syntax.LetStmt:

@@ -146,7 +146,11 @@ type progOptions struct {
 
 // buildProgram returns a program with diagnostics unverified.
 func buildProgram(res *sem.Result, o progOptions) (*mir.Program, error) {
+	if res.Sealed() {
+		return nil, fmt.Errorf("cannot lower a published semantic result")
+	}
 	prog := lowerProgram(res, o.lowerAll, o.rootKeep)
+	loweredDiags := len(prog.Diags)
 	if o.root != 0 {
 		// The REPL cell is reached by the host with its bindings as
 		// arguments; the ordinary entry verifier expects a main/Host entry.
@@ -163,13 +167,11 @@ func buildProgram(res *sem.Result, o progOptions) (*mir.Program, error) {
 	prog.Resources = resbound.Compute(prog.R, prog.Funcs, prog.ByEnt)
 	resbound.SettleAsync(prog.R, prog.Funcs, prog.Resources)
 	prog.Diags = append(prog.Diags, resbound.CheckBudget(prog.R, prog.ByEnt, prog.Resources, resbound.Options{Strict: o.strict, BudgetKiB: o.budgetKiB})...)
-	if !res.Sealed() {
-		for _, d := range prog.Diags {
-			res.AppendDiag(d.File, d.Diag)
-		}
-		for _, c := range claimDiags(prog) {
-			res.AppendDiag(c.File, c.Diag)
-		}
+	for _, d := range prog.Diags[loweredDiags:] {
+		res.AppendDiag(d.File, d.Diag)
+	}
+	for _, c := range claimDiags(prog) {
+		res.AppendDiag(c.File, c.Diag)
 	}
 	if o.root != 0 {
 		prog.Entry = prog.ByEnt[o.root]
@@ -199,13 +201,14 @@ func lowerProgram(res *sem.Result, all bool, keep func(path string) bool) *mir.P
 	default:
 		prog = mirbuild.Program(res)
 	}
-	if !res.Sealed() {
-		for _, f := range prog.Funcs {
-			res.AppendDiags(f.File, f.Diags)
-		}
-		for _, cf := range prog.Comptime {
-			res.AppendDiags(cf.Func.File, cf.Func.Diags)
-		}
+	for _, f := range prog.Funcs {
+		res.AppendDiags(f.File, f.Diags)
+	}
+	for _, cf := range prog.Comptime {
+		res.AppendDiags(cf.Func.File, cf.Func.Diags)
+	}
+	for _, d := range prog.Diags {
+		res.AppendDiag(d.File, d.Diag)
 	}
 	return prog
 }
@@ -297,7 +300,7 @@ func CheckLazyRoot(m *Module) (*sem.Result, error) {
 	res := sem.CheckWith(mod, schema.GenerateDerive)
 	if res.LazyMissed() {
 		m.unitStats.LazyRetries++
-		return CheckOnly(m)
+		return checkOnly(m)
 	}
 	m.unitStats.Lazy++
 	m.unitStats.SkippedBodies += res.SkippedBodies()
@@ -305,8 +308,6 @@ func CheckLazyRoot(m *Module) (*sem.Result, error) {
 	return res, nil
 }
 
-// LowerCheckedRoot lowers root from an already checked result and records the
-// analysis. It is the no-repeat-check path for a REPL cell.
 func (m *Module) LowerCheckedRoot(res *sem.Result, root sem.EntityID) (*Analysis, error) {
 	a := &Analysis{Res: res, Provenance: schema.BuildProvenance(res, nil)}
 	m.lastAnalysis = a

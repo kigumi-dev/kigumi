@@ -55,7 +55,7 @@ func (m *Machine) exec(fr *frame, in *midir.Inst, ic *instCode) {
 			loc[in.Args[0]] = nil
 		}
 		if v != nil && atomic.LoadInt32(&v.rc) >= 0 {
-			if in.Partial {
+			if in.DropKind != midir.DropWhole {
 				m.releasePartial(v)
 			} else {
 				m.dropChecked(fr, v)
