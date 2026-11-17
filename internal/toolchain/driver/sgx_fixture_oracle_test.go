@@ -186,3 +186,14 @@ func sgxPemCertificates(t *testing.T, raw []byte) []*x509.Certificate {
 	}
 	return certs
 }
+
+func oracleSelfSignedAnchor(t *testing.T, anchors string) *x509.Certificate {
+	t.Helper()
+	for _, anchor := range sgxPemCertificates(t, mustHex(t, anchors)) {
+		if bytes.Equal(anchor.RawSubject, anchor.RawIssuer) && anchor.CheckSignatureFrom(anchor) == nil {
+			return anchor
+		}
+	}
+	t.Fatal("a positive vector pins no self-signed root")
+	return nil
+}

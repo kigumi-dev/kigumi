@@ -151,6 +151,15 @@ func verifySuite(w *world) suite {
 	add("required-fmspc", up, good, "", "error:policy-rejected").Hex2 = "00906ed50001"
 	add("minimum-evaluation", up, good, "", "error:policy-rejected").MinEvaluation = 18
 	add("chain-without-root", quote(leaves["up-to-date"], 8, func(s *quoteSpec) { s.chain = w.chain(leaves["up-to-date"], false) }), good, "", goodResult)
+	caPem, rootPem := pemCert(w.ca.der), pemCert(w.root.der)
+	add("anchors-ca-and-root", up, good, "", goodResult).Anchors = hex.EncodeToString(append(caPem, rootPem...))
+	add("anchor-ca-without-root", up, good, "", "error:pck-chain-mismatch").Anchors = hex.EncodeToString(caPem)
+	add("anchor-ca-foreign-root", up, good, "", "error:pck-chain-mismatch").Anchors = hex.EncodeToString(append(caPem, pemCert(w.otherRoot.der)...))
+	otherCa := issue(certSpec{serial: 2, name: caName, key: "collateral other pck ca", ca: true, pathLen: 0, notBefore: date(2020, 1, 1), notAfter: date(2040, 1, 1)}, w.root)
+	offPath := quote(leaves["up-to-date"], 8, func(s *quoteSpec) {
+		s.chain = append(append(pemCert(leaves["up-to-date"].der), pemCert(otherCa.der)...), rootPem...)
+	})
+	add("chain-ca-off-path", offPath, good, "", "error:pck-chain-mismatch").Anchors = hex.EncodeToString(append(caPem, rootPem...))
 	return file
 }
 

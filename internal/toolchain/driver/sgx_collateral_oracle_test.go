@@ -210,7 +210,7 @@ func verifyCollateralOracle(t *testing.T, blobs map[string]string, v sgxVector, 
 	sig := quote[436:]
 	authLen := int(binary.LittleEndian.Uint16(sig[576:578]))
 	chain := sgxPemCertificates(t, sig[578+authLen+6:])
-	root := sgxPemCertificates(t, mustHex(t, v.Anchors))[0]
+	root := oracleSelfSignedAnchor(t, v.Anchors)
 	signers := sgxPemCertificates(t, oracleBlob(t, blobs, v.Collateral.TcbChain))
 	if signers[0].CheckSignatureFrom(root) != nil || chain[1].CheckSignatureFrom(root) != nil {
 		t.Fatal("signing or PCK CA certificate is not issued by the pinned root")

@@ -1,7 +1,5 @@
 // TCB appraisal after Intel QVL QuoteVerifier and sgxEvaluateTCB: the platform
 // level comes from the PCK certificate's TCB, never the quote header.
-import x509 from std/crypto/x509
-
 /// What the collateral says about the platform and the QE.
 pub type Appraisal = {
     pub fmspc Bytes
@@ -34,8 +32,8 @@ pure fn checkEvaluationNumber(policy: &Policy, value: u32, what: String) -> Resu
     }
 }
 
-fn appraise(collateral: &Collateral, chain: &Chain, root: &x509.Certificate, qeReport: &Report, policy: &Policy) -> Result[Appraised, Error] {
-    let auth = authenticate(collateral, chain, root, policy.nowMillis)?
+fn appraise(collateral: &Collateral, path: &PckPath, qeReport: &Report, policy: &Policy) -> Result[Appraised, Error] {
+    let auth = authenticate(collateral, path, policy.nowMillis)?
     if !auth.tcbInfo.fmspc.equals(&auth.pck.fmspc) {
         fail failure(TcbInfoMismatch, "TCB Info FMSPC does not match the PCK certificate")
     }

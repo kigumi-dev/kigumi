@@ -51,8 +51,8 @@ pure fn terminalFailure(status: Status) -> Error {
     }
 }
 
-/// Verifies a quote, its QE report and PCK chain, the policy claims and the
-/// collateral; there is no Ok result without authenticated collateral.
+/// Verifies the quote, QE, PCK chain, claims and collateral, never Ok without it;
+/// collateral needs the pinned root even when the PCK chain stops at a pinned CA.
 pub fn verify(quoteBytes: Bytes, policy: &Policy) -> Result[VerificationResult, Error] {
     let quote = Quote.parse(quoteBytes)?
     verifyQuoteSignature(&quote)?
@@ -64,7 +64,7 @@ pub fn verify(quoteBytes: Bytes, policy: &Policy) -> Result[VerificationResult, 
     let anchors = parseAnchors(policy.pckAnchorsPem)?
     let qeReport = move verified.report
     let chain = move verified.chain
-    let anchor = chain.verifyTo(&anchors, policy.nowMillis)?
+    let reached = chain.verifyTo(&anchors, policy.nowMillis)?
     let claims = claimsOf(&quote.report, &qeReport, quote.header.qeSvn, quote.header.pceSvn)
     checkClaims(&claims, policy)?
 
@@ -72,7 +72,8 @@ pub fn verify(quoteBytes: Bytes, policy: &Policy) -> Result[VerificationResult, 
         Some(value) -> value
         None -> fail terminalFailure(Status.Unevaluated)
     }
-    let appraised = appraise(collateral, &chain, &anchors[anchor], &qeReport, policy)?
+    let path = pckPath(&chain, &anchors, reached, policy.nowMillis)?
+    let appraised = appraise(collateral, &path, &qeReport, policy)?
     let status = match appraised.status.acceptable() {
         Some(value) -> value
         None -> fail terminalFailure(appraised.status)

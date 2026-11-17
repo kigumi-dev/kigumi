@@ -18,31 +18,66 @@ pure fn requireCommonName(cert: &x509.Certificate, phrase: String, code: Code, w
     fail failure(code, "${what} common name does not contain `${phrase}`")
 }
 
-/// Splits a chain that reached `root` into a non-CA leaf, a CA that is not
-/// self-issued and was issued by `root`, and optionally `root` itself.
-pure fn pckPath(chain: &Chain, root: &x509.Certificate) -> Result[PckPath, Error] {
+/// The pinned self-issued root that signed the PCK CA anchor `ca`; collateral
+/// is authenticated against the root, not the CA.
+fn issuingRoot(ca: &x509.Certificate, anchors: &Array[x509.Certificate], nowMillis: Int) -> Result[x509.Certificate, Error] {
+    let mut rejected: Error? = None
+    for root in anchors {
+        if selfIssued(root) && root.subject.raw.equals(&ca.issuer.raw) {
+            match checkAnchor(ca, root, nowMillis, 1, false) {
+                Ok(_) -> return Ok(root.clone())
+                Err(error) -> {
+                    rejected = Some(error)
+                }
+            }
+        }
+    }
+    match rejected {
+        Some(error) -> fail error
+        None -> fail failure(PckChainMismatch, "the PCK CA anchor is not issued by a pinned self-issued root")
+    }
+}
+
+/// Extends the verified path to its pinned root as a non-CA leaf, a CA that is not
+/// self-issued, and the root; the supplied chain must be a prefix of that path.
+fn pckPath(chain: &Chain, anchors: &Array[x509.Certificate], reached: Anchored, nowMillis: Int) -> Result[PckPath, Error] {
     let certs = &chain.certificates
     if certs.len() < 2 || certs.len() > 3 {
         fail failure(BadPckChain, "a production PCK chain is the PCK certificate, its CA and optionally the root")
     }
-    let leaf = &certs[0]
-    let ca = &certs[1]
-    if leaf.basicConstraints.ca {
+    let mut path = Array.empty[x509.Certificate]()
+    let mut i: usize = 0
+    for i < reached.depth {
+        path.push(certs[i].clone())
+        i = i + 1
+    }
+    let anchor = &anchors[reached.anchor]
+    path.push(anchor.clone())
+    if path.len() == 2 && !selfIssued(anchor) {
+        path.push(issuingRoot(anchor, anchors, nowMillis)?)
+    }
+    if path[0].basicConstraints.ca {
         fail failure(BadPckChain, "the PCK certificate is a CA")
     }
-    if !ca.basicConstraints.ca || ca.subject.raw.equals(&ca.issuer.raw) {
+    if path.len() > 3 {
+        fail failure(BadPckChain, "a production PCK path is the PCK certificate, its CA and the root")
+    }
+    if path.len() < 3 || !path[1].basicConstraints.ca || selfIssued(&path[1]) {
         fail failure(BadPckChain, "the PCK certificate must be issued by an intermediate CA, not the root")
     }
-    if !root.subject.raw.equals(&root.issuer.raw) || !root.subject.raw.equals(&ca.issuer.raw) {
+    if !selfIssued(&path[2]) {
         fail failure(PckChainMismatch, "the PCK CA is not issued by a pinned self-issued root")
     }
-    if certs.len() == 3 && !certs[2].tbsCertificate().equals(&root.tbsCertificate()) {
-        fail failure(PckChainMismatch, "the root in the PCK chain is not the pinned root")
+    for i < certs.len() {
+        if !certs[i].tbsCertificate().equals(&path[i].tbsCertificate()) {
+            fail failure(PckChainMismatch, "the PCK chain carries a certificate off its verified path")
+        }
+        i = i + 1
     }
     Ok(PckPath {
-        leaf: leaf.clone()
-        ca: ca.clone()
-        root: root.clone()
+        leaf: path[0].clone()
+        ca: path[1].clone()
+        root: path[2].clone()
     })
 }
 

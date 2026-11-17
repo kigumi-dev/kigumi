@@ -1,0 +1,108 @@
+import x509 from std/crypto/x509
+
+/// Where path construction stopped: the chain's first `depth` certificates
+/// were verified up to `anchors[anchor]`.
+type Anchored = {
+    depth usize
+    anchor usize
+}
+
+pure fn selfIssued(cert: &x509.Certificate) -> Bool {
+    cert.subject.raw.equals(&cert.issuer.raw)
+}
+
+/// Verifies issuers from the leaf up to the first pinned anchor or one it issued; later
+/// certificates are ignored here, but `verify` rejects those off the path to the root.
+pub fn Chain.verify(self, anchors: &Array[x509.Certificate], nowMillis: Int) -> Result[Void, Error] {
+    _ = self.verifyTo(anchors, nowMillis)?
+}
+
+/// `Chain.verify`, returning where the path met its anchor.
+fn Chain.verifyTo(self, anchors: &Array[x509.Certificate], nowMillis: Int) -> Result[Anchored, Error] {
+    if self.certificates.len() == 0 {
+        fail failure(BadPckChain, "PCK chain has no certificate")
+    }
+    if anchors.len() == 0 {
+        fail failure(MissingTrustAnchor, "no PCK trust anchor was supplied")
+    }
+    let mut rejected: Error? = None
+    let mut below: usize = 0
+    let mut i: usize = 0
+    for i < self.certificates.len() {
+        let cert = &self.certificates[i]
+        checkValidity(cert, nowMillis, "PCK certificate")?
+        let above = if i > 0 && !selfIssued(cert) {
+            below + 1
+        } else {
+            below
+        }
+        match reachAnchor(cert, i, anchors, nowMillis, below, above) {
+            Ok(Some(reached)) -> return Ok(reached)
+            Ok(None) -> {}
+            Err(error) -> {
+                rejected = Some(error)
+            }
+        }
+        let next = i + 1
+        if next < self.certificates.len() {
+            let issuer = &self.certificates[next]
+            if !cert.issuer.raw.equals(&issuer.subject.raw) {
+                fail failure(PckChainMismatch, "PCK issuer and subject names do not match")
+            }
+            requireCertificateAuthority(issuer, above)?
+            checkSignature(cert, issuer)?
+        }
+        below = above
+        i = next
+    }
+    match rejected {
+        Some(error) -> fail error
+        None -> fail failure(PckChainMismatch, "PCK chain does not reach a pinned trust anchor")
+    }
+}
+
+/// The anchor that is `cert` or its issuer, `Err` only if every match was refused;
+/// `below` and `above` count the intermediates under `cert` and under its issuer.
+fn reachAnchor(cert: &x509.Certificate, at: usize, anchors: &Array[x509.Certificate], nowMillis: Int, below: usize, above: usize) -> Result[Anchored?, Error] {
+    let body = cert.tbsCertificate()
+    let mut rejected: Error? = None
+    let mut index: usize = 0
+    for index < anchors.len() {
+        let anchor = &anchors[index]
+        let included = body.equals(&anchor.tbsCertificate())
+        if included || cert.issuer.raw.equals(&anchor.subject.raw) {
+            let depth = if included {
+                at
+            } else {
+                at + 1
+            }
+            let intermediates = if included {
+                below
+            } else {
+                above
+            }
+            match checkAnchor(cert, anchor, nowMillis, intermediates, included) {
+                Ok(_) -> return Ok(Some(Anchored {
+                    depth: depth
+                    anchor: index
+                }))
+                Err(error) -> {
+                    rejected = Some(error)
+                }
+            }
+        }
+        index = index + 1
+    }
+    match rejected {
+        Some(error) -> fail error
+        None -> Ok(None)
+    }
+}
+
+fn checkAnchor(cert: &x509.Certificate, anchor: &x509.Certificate, nowMillis: Int, below: usize, included: Bool) -> Result[Void, Error] {
+    checkValidity(anchor, nowMillis, "PCK trust anchor")?
+    requireCertificateAuthority(anchor, below)?
+    if !included {
+        checkSignature(cert, anchor)?
+    }
+}

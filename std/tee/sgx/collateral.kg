@@ -79,10 +79,9 @@ pub fn QeIdentity.parseVerified(document: String, issuerChain: String, rootPem: 
     authenticQeIdentity(document, signingKey(issuerChain, &root, &rootCrl, nowMillis, "QE Identity")?, nowMillis)
 }
 
-/// Authenticates `collateral` for a PCK chain that `Chain.verify` anchored
-/// at `root`. Identical issuer chains are checked once.
-fn authenticate(collateral: &Collateral, chain: &Chain, root: &x509.Certificate, nowMillis: Int) -> Result[Authenticated, Error] {
-    let path = pckPath(chain, root)?
+/// Authenticates `collateral` for a verified PCK path. Identical issuer chains
+/// are checked once.
+fn authenticate(collateral: &Collateral, path: &PckPath, nowMillis: Int) -> Result[Authenticated, Error] {
     let rootCrl = checkCrl(collateral.rootCaCrl, &path.root, nowMillis, "root CA CRL")?
     let pckCrl = checkCrl(collateral.pckCrl, &path.ca, nowMillis, "PCK CRL")?
     refuseRevoked(&rootCrl, &path.ca, "PCK CA certificate")?

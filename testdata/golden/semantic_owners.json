@@ -31593,7 +31593,7 @@
   },
   {
     "key": "tee/sgx.Chain.verifyTo",
-    "signature": "fn(\u0026Array[Certificate], Int) -\u003e Result[usize, Error]",
+    "signature": "fn(\u0026Array[Certificate], Int) -\u003e Result[Anchored, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -32053,7 +32053,7 @@
   },
   {
     "key": "tee/sgx.appraise",
-    "signature": "fn(\u0026Collateral, \u0026Chain, \u0026Certificate, \u0026Report, \u0026Policy) -\u003e Result[Appraised, Error]",
+    "signature": "fn(\u0026Collateral, \u0026PckPath, \u0026Report, \u0026Policy) -\u003e Result[Appraised, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -32093,7 +32093,7 @@
   },
   {
     "key": "tee/sgx.authenticate",
-    "signature": "fn(\u0026Collateral, \u0026Chain, \u0026Certificate, Int) -\u003e Result[Authenticated, Error]",
+    "signature": "fn(\u0026Collateral, \u0026PckPath, Int) -\u003e Result[Authenticated, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -32392,6 +32392,16 @@
     "status": "ok"
   },
   {
+    "key": "tee/sgx.issuingRoot",
+    "signature": "fn(\u0026Certificate, \u0026Array[Certificate], Int) -\u003e Result[Certificate, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "tee/sgx.levelOrder",
     "signature": "pure fn(\u0026TcbLevel, \u0026TcbLevel) -\u003e Int",
     "has_body": true,
@@ -32473,7 +32483,7 @@
   },
   {
     "key": "tee/sgx.pckPath",
-    "signature": "pure fn(\u0026Chain, \u0026Certificate) -\u003e Result[PckPath, Error]",
+    "signature": "fn(\u0026Chain, \u0026Array[Certificate], Anchored, Int) -\u003e Result[PckPath, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -32523,7 +32533,7 @@
   },
   {
     "key": "tee/sgx.reachAnchor",
-    "signature": "fn(\u0026Certificate, \u0026Array[Certificate], Int, usize, Bool) -\u003e Result[usize, Error]",
+    "signature": "fn(\u0026Certificate, usize, \u0026Array[Certificate], Int, usize, usize) -\u003e Result[Anchored?, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -32594,6 +32604,16 @@
   {
     "key": "tee/sgx.requireZero",
     "signature": "pure fn(Bytes, usize, usize, String) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.selfIssued",
+    "signature": "pure fn(\u0026Certificate) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
