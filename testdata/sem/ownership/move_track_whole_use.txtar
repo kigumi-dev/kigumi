@@ -370,12 +370,12 @@ fn localAssignMoveThenUse(w: Pair) {
 fn branchMoveThenUse(w: Pair, c: Bool) {
     let x = if c { move w.left } else { mkr(0) }
     x.close()
-    let t = move w.left //~ ERROR `w.left` was moved
+    let t = move w.left //~ ERROR `w.left` is moved on some paths but not others
 }
 
 fn argBranchMoveThenUse(w: Pair, c: Bool) {
     take(if c { move w.left } else { mkr(0) })
-    let t = move w.left //~ ERROR `w.left` was moved
+    let t = move w.left //~ ERROR `w.left` is moved on some paths but not others
 }
 
 type WO = {
@@ -791,19 +791,17 @@ note: `w.left` is moved here
 363 |     x = move w.left
     |     ^
 
-error[E2197]: `w.left` was moved; it cannot be used again
+error[move-join-mismatch]: `w.left` is moved on some paths but not others
    --> main.kg:370:18
     |
-370 |     let t = move w.left //~ ERROR `w.left` was moved
+370 |     let t = move w.left //~ ERROR `w.left` is moved on some paths but not others
     |                  ^^^^^^
-    = help: borrow it with `&` where it is used before the move, or make the move its last use
 
-error[E2197]: `w.left` was moved; it cannot be used again
+error[move-join-mismatch]: `w.left` is moved on some paths but not others
    --> main.kg:375:18
     |
-375 |     let t = move w.left //~ ERROR `w.left` was moved
+375 |     let t = move w.left //~ ERROR `w.left` is moved on some paths but not others
     |                  ^^^^^^
-    = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[E1025]: `w.o` was moved out of `w`; using the whole value needs it back
    --> main.kg:396:13

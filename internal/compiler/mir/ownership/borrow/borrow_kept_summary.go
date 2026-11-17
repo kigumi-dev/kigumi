@@ -171,6 +171,9 @@ func (c *borrowCheck) keptStep(k *keptCtx, in midir.Inst) {
 			k.put(r, f)
 		}
 	}
+	if (in.Op == midir.OpDrop || in.Op == midir.OpRelease) && c.dropSources(g, in) != nil {
+		into(in.Args[0], k.facts[in.Args[0]])
+	}
 	switch bodyRoles[in.Op] {
 	case roleCarry:
 		var from uint64
@@ -195,6 +198,6 @@ func (c *borrowCheck) keptStep(k *keptCtx, in midir.Inst) {
 				into(a, lent(i))
 			}
 		}
-		c.keptCaptures(k, in)
+		c.keptCaptures(k, in, into)
 	}
 }

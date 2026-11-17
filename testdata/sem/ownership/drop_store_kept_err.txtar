@@ -1,0 +1,198 @@
+-- module --
+mir: planned
+-- src --
+pub type V['a] = {
+    pub s &'a String
+}
+
+pub type Sink['a] = {
+    pub mut items &'a mut Array[V['a]]
+}
+
+type Pusher['a] = resource {
+    pub out Sink['a]
+    pub v V['a]
+}
+
+fn Pusher['a].drop(move self) {
+    self.out.items.push(self.v)
+}
+
+type Plain['a] = {
+    pub out Sink['a]
+    pub v V['a]
+}
+
+fn letDrop['a](k: Sink['a], x: &'a String) {
+    let p = Pusher { out: k, v: V { s: x } }
+}
+
+fn discard['a](k: Sink['a], x: &'a String) {
+    _ = Pusher { out: k, v: V { s: x } }
+}
+
+fn moved['a](k: Sink['a], x: &'a String) {
+    let p = Pusher { out: k, v: V { s: x } }
+    let q = p
+}
+
+fn wrapped['a](k: Sink['a], x: &'a String) {
+    let o = Some(Pusher { out: k, v: V { s: x } })
+}
+
+fn mkP['a](k: Sink['a], x: &'a String) -> Pusher['a] {
+    Pusher { out: k, v: V { s: x } }
+}
+
+fn helper['a](k: Sink['a], x: &'a String) {
+    let p = mkP(k, x)
+}
+
+fn consume['a](p: Pusher['a]) {
+}
+
+fn stash['a](p: Plain['a]) {
+    p.out.items.push(p.v)
+}
+
+fn callers['a](k: Sink['a], j: Sink['a], i: Sink['a], h: Sink['a], g: Sink['a], f: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    letDrop(k, &loc) //~ ERROR a borrow cannot be stored into `k` here
+    discard(j, &loc) //~ ERROR a borrow cannot be stored into `j` here
+    moved(i, &loc) //~ ERROR a borrow cannot be stored into `i` here
+    wrapped(h, &loc) //~ ERROR a borrow cannot be stored into `h` here
+    helper(g, &loc) //~ ERROR a borrow cannot be stored into `g` here
+    let d = letDrop
+    d(f, &loc) //~ ERROR a borrow cannot be stored into `f` here
+}
+
+fn ownLocal['a](k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    let p = Pusher { out: k, v: V { s: &loc } } //~ ERROR a borrow cannot be stored into `k` here
+}
+
+fn consumed['a](k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    consume(Pusher { out: k, v: V { s: &loc } }) //~ ERROR a borrow cannot be stored into `k` here
+}
+
+fn stashed['a](k: Sink['a]) {
+    let loc = "local-${40 + 2}"
+    stash(Plain { out: k, v: V { s: &loc } }) //~ ERROR a borrow cannot be stored into `k` here
+}
+
+fn shortLived() -> usize {
+    let base = "base"
+    let mut arr = Array.of(V { s: &base })
+    if arr.len() > 0 {
+        let short = "short-${1}" //~ ERROR `short` is still borrowed when its scope ends here
+        let p = Pusher { out: Sink { items: &mut arr }, v: V { s: &short } }
+    }
+    arr.len()
+}
+
+fn relay['a](k: Sink['a], x: &'a String) {
+    letDrop(k, x)
+}
+
+fn longLived() -> usize {
+    let base = "base"
+    let keep = "keep-${1}"
+    let mut arr = Array.of(V { s: &base })
+    if keep.len() > 0 {
+        let p = Pusher { out: Sink { items: &mut arr }, v: V { s: &keep } }
+    }
+    letDrop(Sink { items: &mut arr }, &keep)
+    arr.len()
+}
+
+let text = "hello"
+let more = "more"
+let mut items = Array.of(V { s: &text })
+relay(Sink { items: &mut items }, &more)
+print "${items.len()} ${shortLived()} ${longLived()}"
+fn discardGeneric[T](x: T) {}
+fn relayGeneric[T](x: T) { discardGeneric(x) }
+
+fn genericLocal['a](k: Sink['a]) {
+    let local = "local-${1}"
+    discardGeneric(Pusher { out: k, v: V { s: &local } }) //~ ERROR a borrow cannot be stored into `k` here
+}
+
+fn genericRelay['a](k: Sink['a]) {
+    let local = "local-${1}"
+    relayGeneric(Pusher { out: k, v: V { s: &local } }) //~ ERROR a borrow cannot be stored into `k` here
+}
+-- expect --
+error[E2159]: a borrow cannot be stored into `f` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:63:5
+   |
+63 |     d(f, &loc) //~ ERROR a borrow cannot be stored into `f` here
+   |     ^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `g` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:61:5
+   |
+61 |     helper(g, &loc) //~ ERROR a borrow cannot be stored into `g` here
+   |     ^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `h` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:60:5
+   |
+60 |     wrapped(h, &loc) //~ ERROR a borrow cannot be stored into `h` here
+   |     ^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `i` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:59:5
+   |
+59 |     moved(i, &loc) //~ ERROR a borrow cannot be stored into `i` here
+   |     ^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `j` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:58:5
+   |
+58 |     discard(j, &loc) //~ ERROR a borrow cannot be stored into `j` here
+   |     ^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:57:5
+   |
+57 |     letDrop(k, &loc) //~ ERROR a borrow cannot be stored into `k` here
+   |     ^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:68:9
+   |
+68 |     let p = Pusher { out: k, v: V { s: &loc } } //~ ERROR a borrow cannot be stored into `k` here
+   |         ^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:73:5
+   |
+73 |     consume(Pusher { out: k, v: V { s: &loc } }) //~ ERROR a borrow cannot be stored into `k` here
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:78:5
+   |
+78 |     stash(Plain { out: k, v: V { s: &loc } }) //~ ERROR a borrow cannot be stored into `k` here
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `short` is still borrowed when its scope ends here
+  --> main.kg:85:13
+   |
+85 |         let short = "short-${1}" //~ ERROR `short` is still borrowed when its scope ends here
+   |             ^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:116:5
+    |
+116 |     discardGeneric(Pusher { out: k, v: V { s: &local } }) //~ ERROR a borrow cannot be stored into `k` here
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:121:5
+    |
+121 |     relayGeneric(Pusher { out: k, v: V { s: &local } }) //~ ERROR a borrow cannot be stored into `k` here
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

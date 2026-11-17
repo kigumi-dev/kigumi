@@ -1,0 +1,106 @@
+-- module --
+mir: planned
+-- src --
+interface FromRef[K] {
+    fn fromRef(k: &K) -> Self
+}
+
+type View['a] = {
+    pub s &'a String
+}
+
+fn View['a].fromRef(k: &'a String) -> View['a] {
+    View { s: k }
+}
+
+fn apply[V](g: fn(V) -> Void, x: V) {
+    g(x)
+}
+
+fn apply2[V](g: fn(V) -> Void, x: V) {
+    apply(g, x)
+}
+
+type Wrapped[V] = { pub v V }
+
+fn mk[K, V: FromRef[K]](k: &K) -> V {
+    V.fromRef(k)
+}
+
+fn addVia[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    apply((y: V) => { dst.push(y) }, V.fromRef(k))
+}
+
+fn addViaLet[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    let v: V = mk(k)
+    apply((y: V) => { dst.push(y) }, v)
+}
+
+fn addViaRelay[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    apply2((y: V) => { dst.push(y) }, V.fromRef(k))
+}
+
+fn addViaWrapped[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    apply((y: Wrapped[V]) => { dst.push(y.v) }, Wrapped { v: V.fromRef(k) })
+}
+
+fn relay[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    addVia(dst, k)
+    addViaLet(dst, k)
+    addViaRelay(dst, k)
+    addViaWrapped(dst, k)
+}
+
+fn ownLocal[K, V: FromRef[K]](dst: &mut Array[V], k: K) {
+    addVia(dst, &k) //~ ERROR a borrow cannot be stored into `dst` here
+}
+
+fn ownLocalLet[K, V: FromRef[K]](dst: &mut Array[V], k: K) {
+    addViaLet(dst, &k) //~ ERROR a borrow cannot be stored into `dst` here
+}
+
+fn ownLocalRelay[K, V: FromRef[K]](dst: &mut Array[V], k: K) {
+    addViaRelay(dst, &k) //~ ERROR a borrow cannot be stored into `dst` here
+}
+
+fn ownLocalWrapped[K, V: FromRef[K]](dst: &mut Array[V], k: K) {
+    addViaWrapped(dst, &k) //~ ERROR a borrow cannot be stored into `dst` here
+}
+
+fn go() -> usize {
+    let name = "named"
+    let mut xs = Array.of(View { s: &name })
+    relay(&mut xs, &name)
+    ownLocal(&mut xs, "gone-${1}")
+    ownLocalLet(&mut xs, "gone-${2}")
+    ownLocalRelay(&mut xs, "gone-${3}")
+    ownLocalWrapped(&mut xs, "gone-${4}")
+    xs.len()
+}
+
+print "${go()}"
+-- expect --
+error[E2159]: a borrow cannot be stored into `dst` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:52:5
+   |
+52 |     addVia(dst, &k) //~ ERROR a borrow cannot be stored into `dst` here
+   |     ^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `dst` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:56:5
+   |
+56 |     addViaLet(dst, &k) //~ ERROR a borrow cannot be stored into `dst` here
+   |     ^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `dst` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:60:5
+   |
+60 |     addViaRelay(dst, &k) //~ ERROR a borrow cannot be stored into `dst` here
+   |     ^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `dst` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:64:5
+   |
+64 |     addViaWrapped(dst, &k) //~ ERROR a borrow cannot be stored into `dst` here
+   |     ^^^^^^^^^^^^^^^^^^^^^
+

@@ -200,18 +200,12 @@ func (b *builder) exprRaw(e *hir.Expr) midir.LocalID {
 	return b.emit(midir.Inst{Op: midir.OpPanic, Dst: b.temp(t), Str: e.Name, Node: n})
 }
 
-// shellArgText converts an interpolation whose type has a standard text form
-// to that text, so both engines see a String word like any other. §10.7 lists
-// `fs.Path` and `os.OsString` beside String and integers; the checker accepts
-// them and this call is their implementation. A plan word is a String, so an
-// OsString that is not valid UTF-8 keeps its display text (U+FFFD for the
-// undecodable bytes), the same lossy conversion `debug` shows.
 func (b *builder) shellArgText(v midir.LocalID, t sem.TypeID, n syntax.NodeID) midir.LocalID {
 	method := b.shellArgTextMethod(t)
 	if method == 0 {
 		return v
 	}
-	return b.emit(midir.Inst{Op: midir.OpCall, Dst: b.temp(sem.TyString), Ent: method, Args: []midir.LocalID{v}, Node: n})
+	return b.emit(midir.Inst{Op: midir.OpCall, Dst: b.temp(b.r.Types.Node(b.r.Fn(method).Sig).Elem), Ent: method, Args: []midir.LocalID{v}, Node: n})
 }
 
 // shellArgTextMethod is the zero-argument text method of a shell argument
@@ -232,7 +226,7 @@ func (b *builder) shellArgTextMethod(t sem.TypeID) sem.EntityID {
 	case pkg == "std/fs" && e.Name == "Path":
 		name = "toString"
 	case pkg == "std/os" && e.Name == "OsString":
-		name = "toStringLossy"
+		name = "toUnixBytes"
 	default:
 		return 0
 	}

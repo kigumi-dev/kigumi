@@ -17,12 +17,12 @@ type freeFrame struct {
 }
 
 // freeDeep visits children in the order freeAt does, so drop hooks run in the same order.
-func (m *Machine) freeDeep(root *obj) {
-	stack := []freeFrame{m.openFree(root)}
+func (m *Machine) freeDeep(root *obj, partial bool) {
+	stack := []freeFrame{m.openFree(root, partial)}
 	for len(stack) > 0 {
 		top := &stack[len(stack)-1]
 		if c, ok := top.nextChild(m); ok {
-			if frame, push := m.childFrame(c); push {
+			if frame, push := m.childFrame(c, partial); push {
 				stack = append(stack, frame)
 			}
 			continue
@@ -40,7 +40,7 @@ func (m *Machine) freeDeep(root *obj) {
 	}
 }
 
-func (m *Machine) childFrame(c *obj) (freeFrame, bool) {
+func (m *Machine) childFrame(c *obj, partial bool) (freeFrame, bool) {
 	if c == nil {
 		return freeFrame{}, false
 	}
@@ -58,16 +58,21 @@ func (m *Machine) childFrame(c *obj) (freeFrame, bool) {
 		m.free(c)
 		return freeFrame{}, false
 	}
-	return m.openFree(c), true
+	return m.openFree(c, partial), true
 }
 
-func (m *Machine) openFree(v *obj) freeFrame {
+func (m *Machine) openFree(v *obj, partial bool) freeFrame {
+	if m.opts.SecretSan {
+		m.clearLabel(v)
+	}
 	m.unchargeMemory(v)
 	fr := freeFrame{v: v, step: 1}
 	switch v.k {
 	case kRecord:
 		setImmortal(v)
-		fr.fault = m.runDropHook(v, nil)
+		if !partial || !m.partialRecord(v) {
+			fr.fault = m.runDropHook(v, nil)
+		}
 		atomic.StoreInt32(&v.rc, 0)
 		fr.fields, fr.i, fr.step, fr.borrow = v.fields, len(v.fields)-1, -1, true
 	case kVariant:

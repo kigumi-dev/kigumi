@@ -77,10 +77,9 @@ const (
 	runsCallable
 	runsHandle
 	runsShared
+	runsOwnedDrop
 )
 
-// typeRuns memoizes a typeHolds question about t: runsCall (mayRunType), runsSpawn (a Future or Task), runsDrop (a user
-// `drop` may run), runsCallable (a callableNode), runsHandle (holdsHandle) or runsShared (a sharedNode).
 func (c *borrowCheck) typeRuns(t sem.TypeID, kind uint8) bool {
 	key := typeRunKey{t, kind}
 	if v, ok := c.typeRunMemo[key]; ok {
@@ -100,27 +99,23 @@ func (c *borrowCheck) typeRuns(t sem.TypeID, kind uint8) bool {
 	case runsHandle:
 		v = c.holdsHandle(t)
 	case runsShared:
-		v = c.typeHoldsUntil(t, c.sharedNode, func(t sem.TypeID) bool { return c.p.R.Types.Kind(t) == sem.KFn })
+		v = c.valueHolds(t, c.sharedNode, func(t sem.TypeID) bool { return c.p.R.Types.Kind(t) == sem.KFn })
 	case runsDrop:
 		c.typeRunMemo[key] = false
-		v = c.typeHolds(t, func(t sem.TypeID) bool {
-			n := c.p.R.Types.Node(t)
-			if n.Kind == sem.KIface {
-				return true
-			}
+		v = c.typeHolds(t, c.dropNode)
+	case runsOwnedDrop:
+		c.typeRunMemo[key] = false
+		v = c.valueHolds(t, func(u sem.TypeID) bool {
+			n := c.p.R.Types.Node(u)
 			if n.Kind == sem.KClosure && n.Ent != 0 && c.p.R.Entity(n.Ent).Kind == sem.EntClosure {
-				for _, cp := range c.p.R.Closure(n.Ent).Captures {
-					if c.typeRuns(c.p.R.Entity(cp.Local).Type, runsDrop) {
-						return true
-					}
-				}
-				return false
+				return slices.ContainsFunc(c.p.R.Closure(n.Ent).Captures, func(cp sem.Capture) bool {
+					return c.typeRuns(c.p.R.Entity(cp.Local).Type, runsOwnedDrop)
+				})
 			}
-			if n.Kind != sem.KNamed || c.p.R.Entity(n.Ent).Kind != sem.EntType {
-				return false
-			}
-			d := c.p.R.TypeDecl(n.Ent)
-			return d != nil && d.Form == sem.FormResource && d.Drop != 0
+			return n.Kind == sem.KParam && !c.p.R.TypeParam(n.Ent).IsLifetime || n.Kind == sem.KVar || c.dropNode(u)
+		}, func(u sem.TypeID) bool {
+			k := c.p.R.Types.Kind(u)
+			return k == sem.KRef || k == sem.KFn || k == sem.KClosure
 		})
 	}
 	c.typeRunMemo[key] = v
@@ -148,4 +143,24 @@ func (c *borrowCheck) callableNode(t sem.TypeID) bool {
 		})
 	}
 	return false
+}
+
+func (c *borrowCheck) dropNode(t sem.TypeID) bool {
+	n := c.p.R.Types.Node(t)
+	if n.Kind == sem.KIface {
+		return true
+	}
+	if n.Kind == sem.KClosure && n.Ent != 0 && c.p.R.Entity(n.Ent).Kind == sem.EntClosure {
+		for _, cp := range c.p.R.Closure(n.Ent).Captures {
+			if c.typeRuns(c.p.R.Entity(cp.Local).Type, runsDrop) {
+				return true
+			}
+		}
+		return false
+	}
+	if n.Kind != sem.KNamed || c.p.R.Entity(n.Ent).Kind != sem.EntType {
+		return false
+	}
+	d := c.p.R.TypeDecl(n.Ent)
+	return d != nil && d.Form == sem.FormResource && d.Drop != 0
 }

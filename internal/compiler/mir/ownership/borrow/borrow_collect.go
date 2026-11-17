@@ -108,7 +108,7 @@ func (c *borrowCheck) collectInst(in midir.Inst) bool {
 		return set(c.lendBoxInfo(in), true)
 	case midir.OpArray:
 		c.collectArray(in)
-	case midir.OpSetIndex, midir.OpSetField:
+	case midir.OpSetIndex, midir.OpSetField, midir.OpDrop, midir.OpRelease:
 		c.collectFlows(in)
 	case midir.OpRecord, midir.OpVariant, midir.OpCall, midir.OpCallValue, midir.OpFutureNew:
 		c.collectFlows(in)

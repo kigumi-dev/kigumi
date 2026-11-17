@@ -1,0 +1,90 @@
+-- src --
+pub type V['a] = {
+    pub s &'a String
+}
+
+pub type Sink['a] = {
+    pub mut items &'a mut Array[V['a]]
+}
+
+type Pusher['a] = resource {
+    pub out Sink['a]
+    pub v V['a]
+}
+
+fn Pusher['a].drop(move self) {
+    self.out.items.push(self.v)
+}
+
+fn Pusher['a].unpack(move self) {
+    let out = move self.out
+    let value = move self.v
+    _ = out
+    _ = value
+}
+
+fn unpackLocal['a](k: Sink['a]) {
+    let local = "local-${1}"
+    let p = Pusher { out: k, v: V { s: &local } }
+    p.unpack()
+}
+
+fn letDrop['a](k: Sink['a], x: &'a String) {
+    let p = Pusher { out: k, v: V { s: x } }
+}
+
+fn discard['a](k: Sink['a], x: &'a String) {
+    _ = Pusher { out: k, v: V { s: x } }
+}
+
+fn wrapped['a](k: Sink['a], x: &'a String) {
+    let o = Some(Pusher { out: k, v: V { s: x } })
+}
+
+fn mkP['a](k: Sink['a], x: &'a String) -> Pusher['a] {
+    Pusher { out: k, v: V { s: x } }
+}
+
+fn helper['a](k: Sink['a], x: &'a String) {
+    let p = mkP(k, x)
+}
+
+fn localSink() -> usize {
+    let base = "base"
+    let keep = "keep-${1}"
+    let mut arr = Array.of(V { s: &base })
+    if keep.len() > 0 {
+        let p = Pusher { out: Sink { items: &mut arr }, v: V { s: &keep } }
+    }
+    letDrop(Sink { items: &mut arr }, &keep)
+    print "local ${arr.len()} ${arr[1].s} ${arr[2].s}"
+    arr.len()
+}
+
+let text = "hello"
+let more = "more-${2}"
+let mut items = Array.of(V { s: &text })
+unpackLocal(Sink { items: &mut items })
+letDrop(Sink { items: &mut items }, &more)
+discard(Sink { items: &mut items }, &more)
+wrapped(Sink { items: &mut items }, &more)
+helper(Sink { items: &mut items }, &more)
+let n = localSink()
+let junk = "junk-${3}"
+print "${items.len()} ${items[1].s} ${items[4].s} ${n}"
+fn discardGeneric[T](x: T) {}
+fn relayGeneric[T](x: T) { discardGeneric(x) }
+
+let genericBase = "generic-base"
+let genericKeep = "generic-keep-${1}"
+let mut genericItems = Array.of(V { s: &genericBase })
+discardGeneric(Pusher { out: Sink { items: &mut genericItems }, v: V { s: &genericKeep } })
+relayGeneric(Pusher { out: Sink { items: &mut genericItems }, v: V { s: &genericKeep } })
+discardGeneric(V { s: &genericKeep })
+discardGeneric(42)
+discardGeneric("owned-${1}")
+print "generic ${genericItems.len()} ${genericItems[2].s}"
+-- stdout --
+local 3 keep-1 keep-1
+5 more-2 more-2 3
+generic 3 generic-keep-1

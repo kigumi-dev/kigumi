@@ -115,7 +115,7 @@ func (pl *places) stored(f *midir.Func, in midir.Inst) (midir.LocalID, bool) {
 func (pl *places) resetFields(root midir.LocalID, st *dstate) {
 	for _, rep := range pl.children[root] {
 		st.val.del(rep)
-		st.field.del(rep)
+		st.field.set(rep, ownValid)
 		st.called.del(rep)
 		st.at.del(rep)
 		st.callAt.del(rep)

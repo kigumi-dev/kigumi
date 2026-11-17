@@ -18,6 +18,13 @@ fn viaValue(h: Hub) {
     k(Shared.new(2))
 }
 fn shipped(h: Hub) { h.ship(3) }
+fn viaCapture(h: Hub) {
+    let n: Int = 4
+    let k = h.ship
+    k(n)
+    let g = () => k(n)
+    g()
+}
 `
 
 // TestThreadBoundBackstop turns a call of keep into one of ship, a value sem never saw reach a Send bound.
@@ -69,4 +76,32 @@ func methodNamed(t *testing.T, r *sem.Result, name string) sem.EntityID {
 	}
 	t.Fatalf("no method %s", name)
 	return 0
+}
+
+func TestThreadBoundBackstopCapturedValue(t *testing.T) {
+	p, body := srcProgram(t, threadBoundSrc)
+	var shared sem.TypeID
+	for _, l := range body("direct").Locals {
+		if p.R.TypeString(l.Type) == "Shared[Int]" {
+			shared = l.Type
+		}
+	}
+	for _, g := range p.Funcs {
+		if g == nil || p.R.Entity(g.Ent).Kind != sem.EntClosure {
+			continue
+		}
+		for _, b := range g.Blocks {
+			for _, in := range b.Insts {
+				if in.Op == midir.OpCallValue && len(in.Args) == 2 {
+					g.Locals[in.Args[1]].Type = shared
+				}
+			}
+		}
+		bc := &borrowCheck{p: p.input, state: New(p.input, nil), f: g, holders: map[midir.LocalID]*borrowInfo{}, reported: map[reportKey]int{}, keptTemp: map[midir.LocalID]bool{}}
+		bc.checkThreadBounds()
+		if len(g.Diags) == 1 && g.Diags[0].Code == "E300" {
+			return
+		}
+	}
+	t.Fatal("the captured method value's call was not checked against ship's Send bound")
 }

@@ -54,7 +54,7 @@ func (c *borrowCheck) asyncPlace(a midir.LocalID) bool {
 
 func (c *borrowCheck) asyncType(t sem.TypeID) bool {
 	tt := c.p.R.Types
-	return c.typeHoldsUntil(t, func(u sem.TypeID) bool {
+	return c.valueHolds(t, func(u sem.TypeID) bool {
 		return tt.Kind(u) == sem.KIface || tt.Kind(u) == sem.KNamed && tt.Node(u).Ent == tt.FutureEnt() || c.p.R.IsTaskType(u)
 	}, func(u sem.TypeID) bool { return tt.Kind(u) == sem.KFn || tt.Kind(u) == sem.KClosure })
 }
@@ -65,7 +65,7 @@ func (c *borrowCheck) heldAsync(a midir.LocalID) bool {
 }
 
 func (c *borrowCheck) heldAsyncType(t sem.TypeID) bool {
-	return c.hidesLayout(t) || c.mutHolder(t) && c.typeHoldsUntil(t, func(u sem.TypeID) bool {
+	return c.hidesLayout(t) || c.mutHolder(t) && c.valueHolds(t, func(u sem.TypeID) bool {
 		elem, mut := c.p.R.MutRefElem(u)
 		return mut && (c.asyncType(elem) || c.hidesLayout(elem))
 	}, func(u sem.TypeID) bool {

@@ -115,9 +115,8 @@ type Inst struct {
 	// Rest marks the OpMove and OpDrop that empty a scrutinee a pattern moved a resource out of.
 	Rest bool
 	// Emptied marks an OpDrop of a record whose every non-Copy field was moved out on every path.
-	Emptied bool
-	// Partial marks an OpDrop of a record with some field moved out; its custom drop hook is skipped.
-	Partial bool
+	Emptied  bool
+	DropKind DropKind
 	// FullEnd numbers the full expression this instruction ends (see Local.FullExpr).
 	FullEnd int32
 	// GiveArgs marks the value-call arguments a site hands over at a type-parameter slot, declared to the call (see rt_callv_m).

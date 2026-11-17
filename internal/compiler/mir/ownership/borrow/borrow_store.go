@@ -5,6 +5,7 @@ import (
 
 	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
+	"kigumi/internal/compiler/syntax"
 )
 
 type storeFlow struct {
@@ -25,6 +26,8 @@ type storeFlow struct {
 	byValue bool
 	// args are a named call's arguments by parameter, for the callee's sites that hand on to code an argument gives.
 	args []midir.LocalID
+	drop bool
+	node syntax.NodeID
 }
 
 // storeTargets finds, before any holder is known, the locals some store may
@@ -44,6 +47,14 @@ func (c *borrowCheck) storeTargets() map[midir.LocalID]bool {
 }
 
 func (c *borrowCheck) storeFlows(in midir.Inst) []storeFlow {
+	flows := c.instructionStores(in)
+	for i := range flows {
+		flows[i].node = in.Node
+	}
+	return flows
+}
+
+func (c *borrowCheck) instructionStores(in midir.Inst) []storeFlow {
 	switch in.Op {
 	case midir.OpSetIndex, midir.OpSetField:
 		v := in.Args[len(in.Args)-1]
@@ -54,6 +65,8 @@ func (c *borrowCheck) storeFlows(in midir.Inst) []storeFlow {
 		return []storeFlow{{target: in.Args[0], values: []flowArg{{arg: v}}, generic: !lifetime}}
 	case midir.OpCall, midir.OpCallValue, midir.OpFutureNew:
 		return c.withKeptFlows(in, append(c.callFlows(in), c.opaqueFlows(in)...))
+	case midir.OpDrop, midir.OpRelease:
+		return c.dropFlows(in)
 	}
 	return nil
 }
@@ -83,10 +96,10 @@ func (c *borrowCheck) storeRoot(fl storeFlow) (root midir.LocalID, place sem.Typ
 	l := fl.target
 	place = c.f.Locals[l].Type
 	if fl.byValue {
-		l = c.valueSource(l)
-		if p, ok := c.heldOrigin(l); ok {
-			return p, c.f.Locals[l].Type, true, true
+		if p, ok := c.flowOrigin(fl, l); ok {
+			return p, place, true, true
 		}
+		l = c.valueSource(l)
 		return l, c.f.Locals[l].Type, false, true
 	}
 	if fl.ref {
@@ -147,13 +160,16 @@ func (c *borrowCheck) checkFlow(fl storeFlow, in midir.Inst) {
 	root, place, caller, ok := c.storeRoot(fl)
 	for _, v := range fl.values {
 		b, has := c.storedInfo(fl, v, caller)
-		if !has || b.empty || v.at != nil {
+		if has && fl.drop && ok {
+			b, has = c.droppedParts(b, v.arg, root)
+		}
+		if !has || b.empty || v.at != nil && !fl.byValue {
 			continue
 		}
 		switch {
 		case !ok:
 			c.reportCode(in.Node, v.arg, "borrow-store-untracked", c.untrackedPlace(fl))
-		case !c.placeKeeps(place, v) && (v.tie == tieNone || !c.callerKept(b)) && (!fl.byValue || c.closureLiteral(root) == nil):
+		case v.at == nil && !c.placeKeeps(place, v) && (v.tie == tieNone || !c.callerKept(b)) && (!fl.byValue || c.closureLiteral(root) == nil):
 			c.reportCode(in.Node, v.arg, "borrow-store-untracked", c.typeName(place))
 		case !caller && c.keepsTemp(b):
 			c.reportCode(in.Node, v.arg, "temporary-borrow-kept", c.f.Locals[root].Name, tempDropped)

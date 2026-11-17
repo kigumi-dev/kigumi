@@ -18,7 +18,7 @@ func (c *borrowCheck) mayHoldPlace(g *midir.Func, a midir.LocalID) bool {
 
 func (c *borrowCheck) hidesLayout(t sem.TypeID) bool {
 	tt := c.p.R.Types
-	return c.typeHoldsUntil(t, func(u sem.TypeID) bool {
+	return c.valueHolds(t, func(u sem.TypeID) bool {
 		switch n := tt.Node(u); n.Kind {
 		case sem.KIface, sem.KVar:
 			return true

@@ -152,7 +152,7 @@ fn cputLocal['a](out: &mut V['a], s: &'a String) {
 }
 
 fn pushLocal[U](f: fn(&String) -> U, show: fn(U) -> usize) -> usize {
-    let mut arr: Array[U] = Array.empty()
+    let mut arr: Array[U] = Array.empty() //~ ERROR `arr` keeps a borrow of a temporary
     arr.push(f(&mks(18))) //~ ERROR `arr` keeps a borrow of a temporary
     show(arr.takeAt(0).unwrap()) //~ ERROR a value borrowing a temporary cannot go into shared storage
 }
@@ -338,10 +338,10 @@ error[E2235]: `w` keeps a borrow of a temporary past the statement, `match` or `
    |         ^
 
 error[borrow-escape]: a borrow cannot be returned
-  --> main.kg:86:8
+  --> main.kg:86:5
    |
 86 |     mk(&s) //~ ERROR a borrow cannot be returned
-   |        ^^
+   |     ^^^^^
 
 error[move-while-borrowed]: `s` is still borrowed when its scope ends here
   --> main.kg:85:9
@@ -384,6 +384,12 @@ error[borrow-escape]: a borrow of a value this function owns cannot be stored th
     |
 148 |     out = mkV(&t) //~ ERROR cannot be stored through `out`
     |     ^^^
+
+error[E2235]: `arr` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+   --> main.kg:152:13
+    |
+152 |     let mut arr: Array[U] = Array.empty() //~ ERROR `arr` keeps a borrow of a temporary
+    |             ^^^
 
 error[E2158]: a value borrowing a temporary cannot go into shared storage: another handle to that storage can keep it after a temporary is gone
    --> main.kg:154:5
@@ -451,11 +457,6 @@ error[E2158]: a value borrowing `first` cannot go into shared storage: another h
 217 |         acc = step(acc, &first) //~ ERROR a borrow cannot be stored into `A` //~ ERROR a value borrowing `first` cannot go into shared storage
     |               ^^^^^^^^^^^^^^^^
     = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
-note: `first` is borrowed here
-   --> main.kg:217:25
-    |
-217 |         acc = step(acc, &first) //~ ERROR a borrow cannot be stored into `A` //~ ERROR a value borrowing `first` cannot go into shared storage
-    |                         ^^^^^^
 
 error[E2198]: `first` is borrowed and cannot be mutated here
    --> main.kg:216:13
@@ -464,10 +465,10 @@ error[E2198]: `first` is borrowed and cannot be mutated here
     |             ^^^^^
     = help: end the borrow first or use a copy
 note: `first` is borrowed here
-   --> main.kg:217:25
+   --> main.kg:217:15
     |
 217 |         acc = step(acc, &first) //~ ERROR a borrow cannot be stored into `A` //~ ERROR a value borrowing `first` cannot go into shared storage
-    |                         ^^^^^^
+    |               ^^^^^^^^^^^^^^^^
 
 error[E2158]: a value borrowing `first` cannot go into shared storage: another handle to that storage can keep it after `first` is gone
    --> main.kg:219:5
@@ -476,10 +477,10 @@ error[E2158]: a value borrowing `first` cannot go into shared storage: another h
     |     ^^^^^^^^
     = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
 note: `first` is borrowed here
-   --> main.kg:217:25
+   --> main.kg:217:15
     |
 217 |         acc = step(acc, &first) //~ ERROR a borrow cannot be stored into `A` //~ ERROR a value borrowing `first` cannot go into shared storage
-    |                         ^^^^^^
+    |               ^^^^^^^^^^^^^^^^
 
 error[borrow-escape]: a borrow of a value this function owns cannot be stored through `out`, which outlives the call
    --> main.kg:225:5

@@ -38,7 +38,7 @@ func (c *borrowCheck) mayStoreThrough(t sem.TypeID) bool {
 // store through; a function type keeps none of the references its signature names.
 func (c *borrowCheck) storesMutRef(t sem.TypeID) bool {
 	tt := c.p.R.Types
-	return c.typeHoldsUntil(t, func(t sem.TypeID) bool { return tt.Kind(t) == sem.KRef && tt.RefMut(t) }, func(t sem.TypeID) bool {
+	return c.valueHolds(t, func(t sem.TypeID) bool { return tt.Kind(t) == sem.KRef && tt.RefMut(t) }, func(t sem.TypeID) bool {
 		k := tt.Kind(t)
 		return k == sem.KFn || k == sem.KClosure || k == sem.KIface
 	})

@@ -1,0 +1,64 @@
+-- src --
+interface FromRef[K] {
+    fn fromRef(k: &K) -> Self
+}
+
+type View['a] = {
+    pub s &'a String
+}
+
+fn View['a].fromRef(k: &'a String) -> View['a] {
+    View { s: k }
+}
+
+fn apply[V](g: fn(V) -> Void, x: V) {
+    g(x)
+}
+
+fn apply2[V](g: fn(V) -> Void, x: V) {
+    apply(g, x)
+}
+
+type Wrapped[V] = { pub v V }
+
+fn mk[K, V: FromRef[K]](k: &K) -> V {
+    V.fromRef(k)
+}
+
+fn addVia[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    apply((y: V) => { dst.push(y) }, V.fromRef(k))
+}
+
+fn addViaLet[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    let v: V = mk(k)
+    apply((y: V) => { dst.push(y) }, v)
+}
+
+fn addViaRelay[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    apply2((y: V) => { dst.push(y) }, V.fromRef(k))
+}
+
+fn addViaWrapped[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    apply((y: Wrapped[V]) => { dst.push(y.v) }, Wrapped { v: V.fromRef(k) })
+}
+
+fn relay[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
+    addVia(dst, k)
+    addViaLet(dst, k)
+    addViaRelay(dst, k)
+    addViaWrapped(dst, k)
+}
+
+fn go() -> usize {
+    let name = "named"
+    let other = "other-${1}"
+    let mut xs = Array.of(View { s: &name })
+    relay(&mut xs, &other)
+    print "${xs.len()} ${xs[1].s} ${xs[2].s} ${xs[3].s} ${xs[4].s}"
+    xs.len()
+}
+
+print "${go()}"
+-- stdout --
+5 other-1 other-1 other-1 other-1
+5

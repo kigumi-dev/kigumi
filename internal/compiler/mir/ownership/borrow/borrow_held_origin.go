@@ -74,7 +74,7 @@ func (c *borrowCheck) heldOrigins() map[midir.LocalID]midir.LocalID {
 				continue
 			}
 			if edges[i] == nil {
-				e := c.originEdge(in, defs, keeps)
+				e := c.originEdge(in, defs, keeps, false)
 				edges[i] = &e
 			}
 			k := slices.IndexFunc(edges[i].srcs, has)
@@ -93,11 +93,11 @@ func (c *borrowCheck) heldOrigins() map[midir.LocalID]midir.LocalID {
 
 // originEdge is where in may carry what its operands keep: its result, the place a store writes, and for a call each
 // place an argument lends; a callee with a body passes on what its summaries say it may move out or store.
-func (c *borrowCheck) originEdge(in midir.Inst, defs map[midir.LocalID]*midir.Inst, keeps func(midir.LocalID) bool) originEdge {
+func (c *borrowCheck) originEdge(in midir.Inst, defs map[midir.LocalID]*midir.Inst, keeps func(midir.LocalID) bool, stopCell bool) originEdge {
 	var e originEdge
 	switch {
 	case in.Op == midir.OpSetField || in.Op == midir.OpSetIndex || in.Op == midir.OpCellSet:
-		return originEdge{dsts: writtenPlaces(c.f, in.Args[0], defs, keeps), srcs: in.Args[len(in.Args)-1:]}
+		return originEdge{dsts: writtenPlaces(c.f, in.Args[0], defs, keeps, stopCell), srcs: in.Args[len(in.Args)-1:]}
 	case in.Op == midir.OpCall || in.Op == midir.OpCallValue || in.Op == midir.OpBuiltin || in.Op == midir.OpFutureNew:
 		h := c.bodyCallee(in)
 		for k, a := range in.Args {
@@ -108,7 +108,7 @@ func (c *borrowCheck) originEdge(in midir.Inst, defs map[midir.LocalID]*midir.In
 				e.srcs = append(e.srcs, a)
 			}
 			if h == nil || c.paramStores(h, k) {
-				e.dsts = append(e.dsts, writtenPlaces(c.f, a, defs, keeps)...)
+				e.dsts = append(e.dsts, writtenPlaces(c.f, a, defs, keeps, stopCell)...)
 			}
 		}
 	case !in.Op.Yields() || valueFlowFresh[in.Op]:
@@ -124,7 +124,7 @@ func (c *borrowCheck) originEdge(in midir.Inst, defs map[midir.LocalID]*midir.In
 
 // writtenPlaces are the named locals a write into or through a may reach: back through how a's value was made, every
 // local it was read, copied or `&mut` borrowed from, as far as those keep a `&mut`; a shared borrow lends no write.
-func writtenPlaces(f *midir.Func, a midir.LocalID, defs map[midir.LocalID]*midir.Inst, keeps func(midir.LocalID) bool) []midir.LocalID {
+func writtenPlaces(f *midir.Func, a midir.LocalID, defs map[midir.LocalID]*midir.Inst, keeps func(midir.LocalID) bool, stopCell bool) []midir.LocalID {
 	var out []midir.LocalID
 	seen := map[midir.LocalID]bool{}
 	work := []midir.LocalID{a}
@@ -135,10 +135,14 @@ func writtenPlaces(f *midir.Func, a midir.LocalID, defs map[midir.LocalID]*midir
 			continue
 		}
 		seen[l] = true
+		d := defs[l]
+		if stopCell && d != nil && d.Op == midir.OpNewCell {
+			out = append(out, l)
+			continue
+		}
 		if f.Locals[l].Ent != 0 {
 			out = append(out, l)
 		}
-		d := defs[l]
 		if d == nil || valueFlowFresh[d.Op] || d.Op == midir.OpBorrow && d.Index != 1 {
 			continue
 		}

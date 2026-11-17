@@ -140,6 +140,7 @@ func (c *borrowCheck) checkInst(in midir.Inst, liveAfter, realAfter map[midir.Lo
 	c.checkCapture(in)
 	c.checkTempKept(in)
 	c.checkRecvArgs(in)
+	c.checkValueArgBorrows(in)
 	c.checkViewReuse(in, liveAfter)
 	c.checkViewSpawn(in)
 	c.checkSuspend(in, liveAfter)

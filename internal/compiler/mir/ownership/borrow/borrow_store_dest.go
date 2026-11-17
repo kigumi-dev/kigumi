@@ -53,7 +53,7 @@ func (c *borrowCheck) storeReach(fl storeFlow) (out, callers []midir.LocalID) {
 	}
 	via := slices.ContainsFunc(sites, func(s paramStore) bool { return s.via })
 	for _, d := range holders {
-		if p, ok := c.heldOrigin(d); ok && via && c.keepsMutRef(c.f.Locals[d].Type) {
+		if p, ok := c.flowOrigin(fl, d); ok && via && c.keepsMutRef(c.f.Locals[d].Type) {
 			addCaller(p)
 		}
 		for _, u := range c.siteOwners(d, sites) {

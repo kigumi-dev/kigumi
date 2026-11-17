@@ -1,0 +1,31 @@
+-- src --
+type Inner = resource { pub id Int }
+fn Inner.drop(move self) { print "inner ${self.id}" }
+type Pair = { pub mut taken Inner, pub kept Inner }
+type Outer = resource { pub mut pair Pair, pub n Int }
+fn Outer.drop(move self) { print "outer ${self.n} ${self.pair.taken.id} ${self.pair.kept.id}" }
+fn Outer.maybeTake(move self, take: Bool) {
+    if take {
+        let x = move self.pair.taken
+        print "taken ${x.id}"
+    }
+}
+fn Outer.restore(move self) {
+    let x = move self.pair.taken
+    self.pair.taken = Inner { id: 9 }
+}
+fn make(n: Int) -> Outer { Outer { pair: Pair { taken: Inner { id: 7 }, kept: Inner { id: 2 } }, n: n } }
+make(1).maybeTake(false)
+make(2).maybeTake(true)
+make(3).restore()
+-- stdout --
+outer 1 7 2
+inner 2
+inner 7
+taken 7
+inner 7
+inner 2
+inner 7
+outer 3 9 2
+inner 2
+inner 9

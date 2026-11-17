@@ -86,6 +86,6 @@ func (m *Machine) envSpan(f *midir.Func, nparams, nargs int, bind bool) (first, 
 	if nparams == nargs || kind != sem.EntFn && kind != sem.EntClosure {
 		return 0, 0
 	}
-	first = midir.BoundParam(bind, nargs, 0)
+	first = midir.BoundParam(bind, nargs, 0, m.bindOpen(f, nparams-nargs, bind))
 	return first, first + nparams - nargs
 }

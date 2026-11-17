@@ -34,6 +34,9 @@ func Analyze(p *Input, f *midir.Func, ghosts []GhostRun) ([]MoveEvent, bool) {
 	a := &owner{p: p, f: f, ghosts: ghosts, pl: pl, tracked: tracked, in: make([]*dstate, len(f.Blocks)),
 		reported: map[syntax.NodeID]bool{}, defNode: map[midir.LocalID]syntax.NodeID{}, thread: mirflow.NewFlagThread(f)}
 	entry := newDstate()
+	for field := range pl.parent {
+		entry.field.set(field, ownValid)
+	}
 	for _, prm := range f.Params {
 		if tracked[prm] {
 			entry.val.set(prm, ownValid)
@@ -104,7 +107,9 @@ func (a *owner) transfer(bid midir.BlockID, st *dstate, report bool) *dstate {
 			// a moved-out (null) one, so the fields still there are
 			// released the same way a whole value's would be.
 			in.Emptied = report && a.emptied(l, st)
-			in.Partial = report && a.partial(l, st)
+			if report {
+				in.DropKind = a.partial(l, st)
+			}
 			st.val.set(l, ownUninit)
 			continue
 		case midir.OpMove:

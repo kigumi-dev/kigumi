@@ -33,7 +33,7 @@ func (m *Machine) invokeAs(f, body *midir.Func, env *obj, bind bool, args []*obj
 	if env != nil {
 		bound = env.fields
 	}
-	params := midir.AppendValueParams(m.argSlice(len(bound) + len(args))[:0], bind, bound, args)
+	params := midir.AppendValueParams(m.argSlice(len(bound) + len(args))[:0], bind, bound, args, m.bindOpen(f, len(bound), bind))
 	for _, p := range params {
 		retain(p)
 	}
@@ -46,6 +46,14 @@ func (m *Machine) invokeAs(f, body *midir.Func, env *obj, bind bool, args []*obj
 	r := m.call(body, params)
 	m.raiseJoined(m.settleInflight(rec))
 	return r
+}
+
+func (m *Machine) bindOpen(f *midir.Func, nbound int, bind bool) int {
+	if !bind {
+		return 0
+	}
+	info := m.r.Fn(f.Ent)
+	return max(len(info.Witnesses)+len(info.ConstParams)-nbound, 0)
 }
 
 func envLen(fv *obj) int {

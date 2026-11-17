@@ -43,8 +43,12 @@ func (c *borrowCheck) refKeptTie(in midir.Inst) []*borrowInfo {
 		return nil
 	}
 	generic := !c.facts().HoldsBorrow(c.f.Locals[in.Dst].Type)
+	targets := c.flowCallees(in)
+	if len(targets) == 0 {
+		return c.unknownResultBorrows(in)
+	}
 	var out []*borrowInfo
-	for _, t := range c.flowCallees(in) {
+	for _, t := range targets {
 		s := c.calleeRefKeeps(t.ent, c.refBindSite(t.ent, t.args))
 		if t.erased {
 			s = s.join(c.declaredRefKeeps(t.ent))

@@ -31,11 +31,21 @@ func (a *owner) emptied(root midir.LocalID, st *dstate) bool {
 	return true
 }
 
-func (a *owner) partial(root midir.LocalID, st *dstate) bool {
+func (a *owner) partial(root midir.LocalID, st *dstate) midir.DropKind {
+	kind := midir.DropWhole
 	for _, child := range a.pl.children[root] {
-		if st.field.get(child) == ownMoved || st.val.get(child) == ownMoved || a.partial(child, st) {
-			return true
+		if st.field.get(child) == ownMoved || st.val.get(child) == ownMoved {
+			return midir.DropPartial
+		}
+		if st.field.get(child) == ownConflict || st.val.get(child) == ownConflict {
+			kind = midir.DropConditional
+		}
+		switch a.partial(child, st) {
+		case midir.DropPartial:
+			return midir.DropPartial
+		case midir.DropConditional:
+			kind = midir.DropConditional
 		}
 	}
-	return false
+	return kind
 }

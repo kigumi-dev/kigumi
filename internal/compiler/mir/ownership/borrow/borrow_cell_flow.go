@@ -30,6 +30,7 @@ type cellState struct {
 	offloadNode     map[sem.EntityID]syntax.NodeID
 	keeperState     *keeperGraph
 	origins         map[midir.LocalID]midir.LocalID
+	originsAt       map[valueOriginKey]map[uint32]bool
 }
 
 // dropFact marks, among the closure facts, a value that may hold a resource whose user `drop` runs when it is dropped.

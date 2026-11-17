@@ -12,22 +12,37 @@ func (c *borrowCheck) checkThreadBounds() {
 		for _, in := range blk.Insts {
 			switch {
 			case in.Op == midir.OpCall && in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn:
-				c.threadBoundArgs(in, in.Ent, in.Args)
+				c.threadBoundArgs(in, in.Ent, in.Args, 0)
 			case in.Op == midir.OpCallValue && in.Ent == 0 && len(in.Args) > 0:
 				origins, ok := c.calleeOrigins(c.f, c.soleDefMap(), in.Args[0])
+				known := false
 				for _, o := range origins {
 					if ok && !o.isParam && o.ent != 0 && c.p.R.Entity(o.ent).Kind == sem.EntFn {
-						c.threadBoundArgs(in, o.ent, o.params(in.Args[1:]))
+						c.threadBoundArgs(in, o.ent, o.params(in.Args[1:]), 0)
+						known = true
 					}
+				}
+				if !known {
+					c.unknownCalleeBounds(in)
 				}
 			}
 		}
 	}
 }
 
-// threadBoundArgs lines args up with fn's declared parameters, the receiver first, as the call passes them, and checks
-// what each Send- or Sync-bound type parameter is instantiated with there.
-func (c *borrowCheck) threadBoundArgs(in midir.Inst, fn sem.EntityID, args []midir.LocalID) {
+func (c *borrowCheck) unknownCalleeBounds(in midir.Inst) {
+	r := c.p.R
+	root := copiedFrom(c.f, c.soleDefMap(), in.Args[0])
+	for _, fn := range r.KnownCallees(c.f.Locals[root].Ent) {
+		bound := 0
+		if r.Fn(fn).Recv != sem.RecvNone {
+			bound = 1
+		}
+		c.threadBoundArgs(in, fn, in.Args[1:], bound)
+	}
+}
+
+func (c *borrowCheck) threadBoundArgs(in midir.Inst, fn sem.EntityID, args []midir.LocalID, bound int) {
 	r := c.p.R
 	info := r.Fn(fn)
 	var params []sem.TypeID
@@ -35,7 +50,10 @@ func (c *borrowCheck) threadBoundArgs(in midir.Inst, fn sem.EntityID, args []mid
 		params = append(params, r.Entity(info.SelfParam).Type)
 	}
 	params = append(params, r.Types.Node(info.Sig).Args...)
-	for k, want := range params {
+	if bound > len(params) {
+		return
+	}
+	for k, want := range params[bound:] {
 		if k >= len(args) {
 			continue
 		}

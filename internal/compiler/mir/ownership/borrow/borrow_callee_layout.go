@@ -10,10 +10,11 @@ import (
 type binding struct {
 	trails bool
 	bound  []midir.LocalID
+	open   int
 }
 
 func bindingOf(d *midir.Inst, bound []midir.LocalID) binding {
-	return binding{trails: midir.BoundTrails(d.Op), bound: bound}
+	return binding{trails: midir.BoundTrails(d.Op), bound: bound, open: d.Index}
 }
 
 // operand is what a body parameter of a callee origin gets: operand index of binding layer, or argument index of the
@@ -36,7 +37,7 @@ func (o calleeOrigin) operands(nargs int) []operand {
 		for j, l := range b.bound {
 			bound[j] = operand{local: l, index: j, layer: n, bound: true}
 		}
-		out = midir.AppendValueParams(nil, b.trails, bound, out)
+		out = midir.AppendValueParams(nil, b.trails, bound, out, b.open)
 	}
 	return out
 }
@@ -63,6 +64,11 @@ func (o calleeOrigin) params(args []midir.LocalID) []midir.LocalID {
 }
 
 func (o calleeOrigin) argParam(k int) int {
+	if o.body != nil && slices.ContainsFunc(o.layers, func(b binding) bool { return b.trails && b.open > 0 }) {
+		return slices.IndexFunc(o.operands(max(len(o.body.Params)-o.nbound(), 0)), func(x operand) bool {
+			return !x.bound && x.index == k
+		})
+	}
 	for _, b := range o.layers {
 		k = midir.ArgParam(b.trails, len(b.bound), k)
 	}

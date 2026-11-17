@@ -6,9 +6,11 @@ type View['a] = { pub s &'a String }
 fn View['a].fromRef(k: &'a String) -> View['a] { View { s: k } }
 fn apply[V](g: fn(V) -> Void, x: V) { g(x) }
 fn addVia[K, V: FromRef[K]](dst: &mut Array[V], k: &K) {
-    apply((y: V) => { dst.push(y) }, V.fromRef(k)) //~ ERROR borrow cannot be stored
+    apply((y: V) => { dst.push(y) }, V.fromRef(k))
 }
-fn ownLocal[K, V: FromRef[K]](dst: &mut Array[V], k: K) { addVia(dst, &k) }
+fn ownLocal[K, V: FromRef[K]](dst: &mut Array[V], k: K) {
+    addVia(dst, &k) //~ ERROR borrow cannot be stored
+}
 fn go() {
     let name = "named"
     let mut xs = Array.of(View { s: &name })
@@ -18,8 +20,8 @@ fn go() {
 go()
 -- expect --
 error[E2159]: a borrow cannot be stored into `dst` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
- --> main.kg:6:5
+ --> main.kg:9:5
   |
-6 |     apply((y: V) => { dst.push(y) }, V.fromRef(k)) //~ ERROR borrow cannot be stored
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+9 |     addVia(dst, &k) //~ ERROR borrow cannot be stored
+  |     ^^^^^^^^^^^^^^
 

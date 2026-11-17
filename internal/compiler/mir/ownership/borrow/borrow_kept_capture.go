@@ -4,26 +4,18 @@ import (
 	midir "kigumi/internal/compiler/mir/ir"
 )
 
-// keptCaptures puts what call in passes into each parameter place a closure built here and handed to the call captured
-// part of: the call may run the closure, which can store the other operands there.
-func (c *borrowCheck) keptCaptures(k *keptCtx, in midir.Inst) {
-	// A refs run follows callables through refCallees, and its facts carry no parameter bits.
-	if k.refs != nil {
-		return
-	}
-	var from, captured uint64
+func (c *borrowCheck) keptCaptures(k *keptCtx, in midir.Inst, into func(midir.LocalID, uint64)) {
+	var from uint64
 	for _, a := range in.Args {
 		from |= k.facts[a]
+	}
+	for _, a := range in.Args {
 		for _, lit := range c.builtClosures(k, a, 8) {
 			for _, cp := range lit.Args {
-				captured |= k.facts[cp]
+				if c.lendsPlace(k.g, cp) || c.mayHoldPlace(k.g, cp) {
+					into(cp, from)
+				}
 			}
-		}
-	}
-	for _, l := range k.g.Params {
-		i := k.index(l)
-		if i >= 0 && captured&(1<<i|1<<(i+contentShift)) != 0 && (c.lendsPlace(k.g, l) || c.mayHoldPlace(k.g, l)) {
-			k.put(l, from)
 		}
 	}
 }

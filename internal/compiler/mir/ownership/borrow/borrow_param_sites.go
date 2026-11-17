@@ -131,6 +131,11 @@ func (c *borrowCheck) instSelfSources(g *midir.Func, in midir.Inst, from map[mid
 			add(from[v], paramStore{})
 		}
 		return
+	case (in.Op == midir.OpDrop || in.Op == midir.OpRelease) && len(in.Args) > 0 && derived(in.Args[0]):
+		for _, p := range c.dropSources(g, in) {
+			add(from[in.Args[0]], paramStore{path: p})
+		}
+		return
 	case derives[in.Op], inertOp(in.Op):
 		return
 	}

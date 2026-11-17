@@ -55,11 +55,9 @@ func (m *Machine) releasePartial(v *obj) {
 	}
 }
 
-func (m *Machine) freePartial(v *obj) { m.freeAtMode(v, 0, true) }
+func (m *Machine) freePartial(v *obj) { m.freeDeep(v, true) }
 
-func (m *Machine) freeAt(v *obj, d int) { m.freeAtMode(v, d, false) }
-
-func (m *Machine) freeAtMode(v *obj, d int, skipHook bool) {
+func (m *Machine) freeAt(v *obj, d int) {
 	if m.opts.SecretSan {
 		m.clearLabel(v)
 	}
@@ -77,7 +75,7 @@ func (m *Machine) freeAtMode(v *obj, d int, skipHook bool) {
 		return
 	}
 	if d >= freeDepthMax {
-		m.freeDeep(v)
+		m.freeDeep(v, false)
 		return
 	}
 	m.unchargeMemory(v)
@@ -86,9 +84,7 @@ func (m *Machine) freeAtMode(v *obj, d int, skipHook bool) {
 	switch v.k {
 	case kRecord:
 		setImmortal(v)
-		if !skipHook {
-			fault = m.runDropHook(v, nil)
-		}
+		fault = m.runDropHook(v, nil)
 		atomic.StoreInt32(&v.rc, 0)
 		for i := len(v.fields) - 1; i >= 0; i-- {
 			if !m.borrowField(v, i) {

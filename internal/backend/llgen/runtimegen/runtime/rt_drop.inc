@@ -1,11 +1,39 @@
+static int record_partial(val root) {
+    if (root->kind != K_RECORD && root->kind != K_VARIANT) return 0;
+    dstack st;
+    st.f = st.inl;
+    st.n = 0;
+    st.cap = DSTACK_INL;
+    dframe fr = {.v = root, .i = root->kind == K_RECORD ? root->u.rec.n - 1 : 0};
+    drain_push(&st, &fr);
+    while (st.n > 0) {
+        val* slot = child_slot(&st.f[st.n - 1], 1);
+        if (!slot) {
+            st.n--;
+            continue;
+        }
+        val v = *slot;
+        if (!v) {
+            drain_discard(&st);
+            return 1;
+        }
+        if (v->kind == K_RECORD || v->kind == K_VARIANT) {
+            dframe child = {.v = v, .i = v->kind == K_RECORD ? v->u.rec.n - 1 : 0};
+            if (!drain_push(&st, &child)) rt_fatal("out of memory");
+        }
+    }
+    drain_discard(&st);
+    return 0;
+}
+
 // Children are released from an explicit stack, in the order a recursive release would visit them, so any ownership depth drops in constant C stack.
-static void free_obj_mode(val root, int skip_hook) {
+static void free_obj_mode(val root, int partial) {
     dstack st;
     st.f = st.inl;
     st.n = 0;
     st.cap = DSTACK_INL;
     st.base = DEPTH_NOW();
-    drain_open(&st, root, 0, skip_hook);
+    drain_open(&st, root, 0, partial && record_partial(root));
     while (st.n > 0) {
         dframe* fr = &st.f[st.n - 1];
         val* slot = child_slot(fr, 1);
@@ -24,7 +52,7 @@ static void free_obj_mode(val root, int skip_hook) {
             free_storage(fr->v);
             st.n--;
         }
-        drain_open(&st, c, pend, 0);
+        drain_open(&st, c, pend, partial && record_partial(c));
     }
     drain_discard(&st);
 }
