@@ -171,6 +171,8 @@ func (c *borrowCheck) checkFlow(fl storeFlow, in midir.Inst) {
 			c.reportCode(in.Node, v.arg, "borrow-store-untracked", c.untrackedPlace(fl))
 		case v.at == nil && !c.placeKeeps(place, v) && (v.tie == tieNone || !c.callerKept(b)) && (!fl.byValue || c.closureLiteral(root) == nil):
 			c.reportCode(in.Node, v.arg, "borrow-store-untracked", c.typeName(place))
+		case !caller && fl.drop:
+			// With no caller origin a drop lands in the value itself, which already kept what its stores were checked for.
 		case !caller && c.keepsTemp(b):
 			c.reportCode(in.Node, v.arg, "temporary-borrow-kept", c.f.Locals[root].Name, tempDropped)
 			c.noteKept(b)

@@ -52,10 +52,17 @@ func (c *borrowCheck) relayStoreValues(in midir.Inst) []relayStore {
 		return out
 	}
 	param, held := -1, false
+	var out []relayStore
 	if ok && origins[0].isParam {
 		param, held = origins[0].param, origins[0].held
+		for _, o := range origins[1:] {
+			if o.body == nil {
+				param, out = -1, nil
+				break
+			}
+			out = append(out, c.bodyRelays(o.body, o.params(in.Args[1:]))...)
+		}
 	}
-	var out []relayStore
 	sig := c.slotFnType(c.f.Locals[in.Args[0]].Type)
 	for k, a := range in.Args[1:] {
 		decl, _ := c.callParam(c.f, in, k+1)

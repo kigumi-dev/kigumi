@@ -46,7 +46,7 @@ fn twice() -> usize {
     let base = "base"
     let mut out = Array.of(V { s: &base })
     let mut loc = "loc-${40 + 2}"
-    assignedTwice(keeper, Sink { items: &mut out }, &loc) //~ ERROR a value borrowing `out` cannot go into shared storage
+    assignedTwice(keeper, Sink { items: &mut out }, &loc)
     loc = "changed-${1}" //~ ERROR `loc` is borrowed and cannot be mutated here //~ ERROR `loc` is borrowed and cannot be moved or dropped here
     out.len()
 }
@@ -55,7 +55,7 @@ fn once() -> usize {
     let base = "base"
     let mut out = Array.of(V { s: &base })
     let mut loc = "loc-${40 + 2}"
-    assignedOnce(keeper, Sink { items: &mut out }, &loc) //~ ERROR a value borrowing `out` cannot go into shared storage
+    assignedOnce(keeper, Sink { items: &mut out }, &loc)
     loc = "changed-${1}" //~ ERROR `loc` is borrowed and cannot be mutated here //~ ERROR `loc` is borrowed and cannot be moved or dropped here
     out.len()
 }
@@ -135,9 +135,23 @@ fn put(sh: Shared[Future[Int]?]) {
     sharedOnce(stash, readTag(&t), sh) //~ ERROR a value borrowing `t` cannot go into shared storage
 }
 
+fn assignedKeep['a](mut f: fn(&'a String, Sink['a]) -> Void, k: Sink['a], x: &'a String) {
+    if k.items.len() > 0 { f = keeper }
+    f(x, k)
+}
+
+fn keptByAssigned() -> usize {
+    let base = "base"
+    let mut out = Array.of(V { s: &base })
+    let mut loc = "loc-${40 + 3}"
+    assignedKeep(nop, Sink { items: &mut out }, &loc)
+    loc = "changed-${2}" //~ ERROR `loc` is borrowed and cannot be mutated here //~ ERROR `loc` is borrowed and cannot be moved or dropped here
+    out.len()
+}
+
 let text = "hello"
 let mut items = Array.of(V { s: &text })
-callerAssigned(keeper, Sink { items: &mut items }) //~ ERROR a value borrowing `items` cannot go into shared storage
+callerAssigned(keeper, Sink { items: &mut items })
 let name = "named"
 let mut xs = Array.of(View { s: &name })
 generic(&mut xs, "gone-${2}")
@@ -171,7 +185,7 @@ error[E2198]: `loc` is borrowed and cannot be mutated here
 note: `loc` is borrowed here
   --> main.kg:46:53
    |
-46 |     assignedTwice(keeper, Sink { items: &mut out }, &loc) //~ ERROR a value borrowing `out` cannot go into shared storage
+46 |     assignedTwice(keeper, Sink { items: &mut out }, &loc)
    |                                                     ^^^^
 
 error[move-while-borrowed]: `loc` is borrowed and cannot be moved or dropped here
@@ -179,18 +193,6 @@ error[move-while-borrowed]: `loc` is borrowed and cannot be moved or dropped her
    |
 47 |     loc = "changed-${1}" //~ ERROR `loc` is borrowed and cannot be mutated here //~ ERROR `loc` is borrowed and cannot be moved or dropped here
    |     ^^^
-
-error[E2158]: a value borrowing `out` cannot go into shared storage: another handle to that storage can keep it after `out` is gone
-  --> main.kg:46:5
-   |
-46 |     assignedTwice(keeper, Sink { items: &mut out }, &loc) //~ ERROR a value borrowing `out` cannot go into shared storage
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
-note: `out` is borrowed here
-  --> main.kg:46:41
-   |
-46 |     assignedTwice(keeper, Sink { items: &mut out }, &loc) //~ ERROR a value borrowing `out` cannot go into shared storage
-   |                                         ^^^^^^^^
 
 error[E2198]: `loc` is borrowed and cannot be mutated here
   --> main.kg:56:5
@@ -201,7 +203,7 @@ error[E2198]: `loc` is borrowed and cannot be mutated here
 note: `loc` is borrowed here
   --> main.kg:55:52
    |
-55 |     assignedOnce(keeper, Sink { items: &mut out }, &loc) //~ ERROR a value borrowing `out` cannot go into shared storage
+55 |     assignedOnce(keeper, Sink { items: &mut out }, &loc)
    |                                                    ^^^^
 
 error[move-while-borrowed]: `loc` is borrowed and cannot be moved or dropped here
@@ -209,18 +211,6 @@ error[move-while-borrowed]: `loc` is borrowed and cannot be moved or dropped her
    |
 56 |     loc = "changed-${1}" //~ ERROR `loc` is borrowed and cannot be mutated here //~ ERROR `loc` is borrowed and cannot be moved or dropped here
    |     ^^^
-
-error[E2158]: a value borrowing `out` cannot go into shared storage: another handle to that storage can keep it after `out` is gone
-  --> main.kg:55:5
-   |
-55 |     assignedOnce(keeper, Sink { items: &mut out }, &loc) //~ ERROR a value borrowing `out` cannot go into shared storage
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
-note: `out` is borrowed here
-  --> main.kg:55:40
-   |
-55 |     assignedOnce(keeper, Sink { items: &mut out }, &loc) //~ ERROR a value borrowing `out` cannot go into shared storage
-   |                                        ^^^^^^^^
 
 error[E2159]: a borrow cannot be stored into `dst` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
    --> main.kg:100:49
@@ -240,15 +230,21 @@ note: `t` is borrowed here
 132 |     sharedOnce(stash, readTag(&t), sh) //~ ERROR a value borrowing `t` cannot go into shared storage
     |                               ^^
 
-error[E2158]: a value borrowing `items` cannot go into shared storage: another handle to that storage can keep it after `items` is gone
-   --> main.kg:137:1
+error[E2198]: `loc` is borrowed and cannot be mutated here
+   --> main.kg:145:5
     |
-137 | callerAssigned(keeper, Sink { items: &mut items }) //~ ERROR a value borrowing `items` cannot go into shared storage
-    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    = help: finish with the value first (await a Future before storing what it returns), or store a value that borrows nothing
-note: `items` is borrowed here
-   --> main.kg:137:38
+145 |     loc = "changed-${2}" //~ ERROR `loc` is borrowed and cannot be mutated here //~ ERROR `loc` is borrowed and cannot be moved or dropped here
+    |     ^^^
+    = help: end the borrow first or use a copy
+note: `loc` is borrowed here
+   --> main.kg:144:49
     |
-137 | callerAssigned(keeper, Sink { items: &mut items }) //~ ERROR a value borrowing `items` cannot go into shared storage
-    |                                      ^^^^^^^^^^
+144 |     assignedKeep(nop, Sink { items: &mut out }, &loc)
+    |                                                 ^^^^
+
+error[move-while-borrowed]: `loc` is borrowed and cannot be moved or dropped here
+   --> main.kg:145:5
+    |
+145 |     loc = "changed-${2}" //~ ERROR `loc` is borrowed and cannot be mutated here //~ ERROR `loc` is borrowed and cannot be moved or dropped here
+    |     ^^^
 

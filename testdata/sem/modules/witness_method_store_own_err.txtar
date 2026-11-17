@@ -33,12 +33,12 @@ fn Stash[V: FromRef[String]].take(mut self, k: &String) {
     self.vs.push(V.fromRef(k))
 }
 
-fn holder[T: Take](mut t: T, k: String) { //~ ERROR a borrow cannot be stored into `t` here
-    t.take(&k) //~ ERROR cannot be stored //~ ERROR cannot be stored
+fn holder[T: Take](mut t: T, k: String) {
+    t.take(&k) //~ ERROR cannot be stored
 }
 
 fn returned[T: Take](mut t: T, k: String) -> T { //~ ERROR `k` is still borrowed when its scope ends here
-    t.take(&k) //~ ERROR cannot be stored //~ ERROR cannot be returned //~ ERROR cannot be stored
+    t.take(&k) //~ ERROR cannot be stored //~ ERROR cannot be returned
     t
 }
 
@@ -74,28 +74,16 @@ useHolder()
 useReturned()
 useTwoLayer()
 -- expect --
-error[E2159]: a borrow cannot be stored into `t` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
-  --> main.kg:33:24
-   |
-33 | fn holder[T: Take](mut t: T, k: String) { //~ ERROR a borrow cannot be stored into `t` here
-   |                        ^^^^
-
-error[E2159]: a borrow cannot be stored into `t` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
-  --> main.kg:34:5
-   |
-34 |     t.take(&k) //~ ERROR cannot be stored //~ ERROR cannot be stored
-   |     ^
-
 error[E2160]: a borrow cannot be stored into `T`: the checker does not track where its contents borrow from; it follows writes only into an array, fixed array, map, record or variant held in a local, a `&mut` parameter, or a reference bound once to one of those, so write through that local or store a value it can own
   --> main.kg:34:5
    |
-34 |     t.take(&k) //~ ERROR cannot be stored //~ ERROR cannot be stored
+34 |     t.take(&k) //~ ERROR cannot be stored
    |     ^^^^^^^^^
 
 error[borrow-escape]: a borrow cannot be returned
   --> main.kg:38:5
    |
-38 |     t.take(&k) //~ ERROR cannot be stored //~ ERROR cannot be returned //~ ERROR cannot be stored
+38 |     t.take(&k) //~ ERROR cannot be stored //~ ERROR cannot be returned
    |     ^^^^^^^^^
 
 error[move-while-borrowed]: `k` is still borrowed when its scope ends here
@@ -104,15 +92,9 @@ error[move-while-borrowed]: `k` is still borrowed when its scope ends here
 37 | fn returned[T: Take](mut t: T, k: String) -> T { //~ ERROR `k` is still borrowed when its scope ends here
    |                                ^^^^^^^^^
 
-error[E2159]: a borrow cannot be stored into `t` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
-  --> main.kg:38:5
-   |
-38 |     t.take(&k) //~ ERROR cannot be stored //~ ERROR cannot be returned //~ ERROR cannot be stored
-   |     ^
-
 error[E2160]: a borrow cannot be stored into `T`: the checker does not track where its contents borrow from; it follows writes only into an array, fixed array, map, record or variant held in a local, a `&mut` parameter, or a reference bound once to one of those, so write through that local or store a value it can own
   --> main.kg:38:5
    |
-38 |     t.take(&k) //~ ERROR cannot be stored //~ ERROR cannot be returned //~ ERROR cannot be stored
+38 |     t.take(&k) //~ ERROR cannot be stored //~ ERROR cannot be returned
    |     ^^^^^^^^^
 

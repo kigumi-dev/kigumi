@@ -16,7 +16,12 @@ type threadCheck struct {
 	flow     *fnFlow
 	held     *valueInstData
 	site     EntityID
-	producer EntityID
+	producer producer
+}
+
+// producer is the closure whose call made a value: fn's type parameter param, bound to return it, holds the closure.
+type producer struct {
+	closure, fn, param EntityID
 }
 
 // pendingThread is a threadCheck with what its diagnostic needs from the checker that made it.
@@ -75,11 +80,11 @@ func (tt *TypeTable) mentionsClosure(t TypeID) bool {
 	return false
 }
 
-func (c *checker) resultProducer(cc constraintCheck) EntityID {
+func (c *checker) resultProducer(cc constraintCheck) producer {
 	tt := c.r.Types
 	fn := c.r.Entities[cc.param].Parent
 	if c.r.Entities[fn].Kind != EntFn {
-		return 0
+		return producer{}
 	}
 	info := c.r.Fn(fn)
 	params := slices.Clone(tt.Node(info.Sig).Args)
@@ -88,7 +93,7 @@ func (c *checker) resultProducer(cc constraintCheck) EntityID {
 	}
 	for _, p := range params {
 		if slices.Contains(tt.paramsIn(p, nil), cc.param) {
-			return 0
+			return producer{}
 		}
 	}
 	for _, f := range slices.Concat(info.TypeParams, info.RecvParams) {
@@ -98,9 +103,9 @@ func (c *checker) resultProducer(cc constraintCheck) EntityID {
 				continue
 			}
 			if got := c.vars.resolve(cc.subst[f]); tt.Kind(got) == KClosure {
-				return tt.Node(got).Ent
+				return producer{tt.Node(got).Ent, fn, f}
 			}
 		}
 	}
-	return 0
+	return producer{}
 }

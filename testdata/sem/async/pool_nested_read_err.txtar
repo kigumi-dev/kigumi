@@ -1,0 +1,72 @@
+-- src --
+import task from std/task
+import mem from std/mem
+
+type Counter = {
+    c mem.UnsafeCell[Int]
+}
+
+fn Counter.bump(self) -> Int {
+    unsafe { self.c.set(self.c.get() + 1) }
+    unsafe { self.c.get() }
+}
+
+async fn runIt[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int {
+    await pool.run(mk()).unwrap()
+}
+
+// A reader that reads another closure in place carries that closure's reads: q reads r, r reads c.
+async fn nestedRead(pool: task.BlockingPool) -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(0) }
+    let keeper = () => {
+        let r = () => c.bump()
+        () => r()
+    }
+    let f = pool.run(keeper()).unwrap() //~ ERROR it reads `c` where the code around it keeps it
+    let mine = c.bump()
+    (await f) + mine
+}
+
+async fn flatRead(pool: task.BlockingPool) -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(0) }
+    let keeper = () => () => c.bump()
+    let f = pool.run(keeper()).unwrap() //~ ERROR it reads `c` where the code around it keeps it
+    let mine = c.bump()
+    (await f) + mine
+}
+
+// A call in both the condition and an arm is two calls on the taken path.
+async fn condAndArm[F: Fn[fn() -> T] + FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int {
+    if mk()() > 0 {
+        await pool.run(mk()).unwrap()
+    } else {
+        0
+    }
+}
+
+async fn condArmHolder(pool: task.BlockingPool) -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(0) }
+    let keeper = move () => () => c.bump()
+    await condAndArm(pool, keeper) //~ ERROR it reads `c` where the code around it keeps it
+}
+
+print "total ${task.threadPoolExecutor(2).runToCompletion(nestedRead(task.BlockingPool.new(1)))}"
+-- expect --
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it reads `c` where the code around it keeps it; a `move` closure takes its own
+  --> main/main.kg:24:13
+   |
+24 |     let f = pool.run(keeper()).unwrap() //~ ERROR it reads `c` where the code around it keeps it
+   |             ^^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it reads `c` where the code around it keeps it; a `move` closure takes its own
+  --> main/main.kg:32:13
+   |
+32 |     let f = pool.run(keeper()).unwrap() //~ ERROR it reads `c` where the code around it keeps it
+   |             ^^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it reads `c` where the code around it keeps it; a `move` closure takes its own
+  --> main/main.kg:49:11
+   |
+49 |     await condAndArm(pool, keeper) //~ ERROR it reads `c` where the code around it keeps it
+   |           ^^^^^^^^^^^^^^^^^^^^^^^
+

@@ -1,0 +1,34 @@
+-- src --
+import task from std/task
+import mem from std/mem
+
+type Counter = {
+    c mem.UnsafeCell[Int]
+}
+
+fn Counter.spin(self) -> Int {
+    for i in 0..1000 {
+        unsafe { self.c.set(self.c.get() + 1) }
+    }
+    unsafe { self.c.get() }
+}
+
+fn ck() -> Counter { Counter { c: mem.UnsafeCell.new(0) } }
+
+// Every path through the body leaves the loop, so the body, and mk with it, runs once.
+async fn breakOnce[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int {
+    let mut out = 0
+    for i in 0..3 {
+        out = await pool.run(mk()).unwrap()
+        break
+    }
+    out
+}
+
+async fn root() -> Int {
+    let c = ck()
+    await breakOnce(task.BlockingPool.new(1), move () => () => c.spin())
+}
+print "total ${task.threadPoolExecutor(2).runToCompletion(root())}"
+-- stdout --
+total 1000

@@ -43,8 +43,10 @@ func (c *borrowCheck) directDestructor(t sem.TypeID) sem.EntityID {
 	return d.Drop
 }
 
+// dropFlows: a type parameter's value holds what this frame stored into it, reported at that store, or what a call
+// returned, which the callee's bound keeps from its arguments; only its callers' summaries need its drop.
 func (c *borrowCheck) dropFlows(in midir.Inst) []storeFlow {
-	if len(in.Args) == 0 {
+	if len(in.Args) == 0 || c.p.R.Types.Kind(c.f.Locals[in.Args[0]].Type) == sem.KParam {
 		return nil
 	}
 	a := in.Args[0]

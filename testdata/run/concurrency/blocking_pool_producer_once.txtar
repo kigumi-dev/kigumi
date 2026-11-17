@@ -1,0 +1,150 @@
+-- src --
+import task from std/task
+import mem from std/mem
+
+/// For one thread at a time: Send (moving it moves the Int) but not Sync.
+type Counter = {
+    c mem.UnsafeCell[Int]
+}
+
+fn Counter.bump(self) -> Int {
+    unsafe { self.c.set(self.c.get() + 1) }
+    unsafe { self.c.get() }
+}
+
+type Box2[R] = {
+    r R
+}
+
+type Runner = {
+    n Int
+}
+
+async fn runIt[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int {
+    await pool.run(mk()).unwrap()
+}
+
+async fn runOuter[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int {
+    await runIt(pool, mk)
+}
+
+async fn Runner.inner[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](self, pool: task.BlockingPool, mk: F) -> Int {
+    await pool.run(mk()).unwrap()
+}
+
+// Liveness and exclusivity: each pool job takes the only reader of its Counter, made by a holder called once or by a
+// frame whose other readers are gone before the job starts.
+async fn consumedOnce(pool: task.BlockingPool) -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(100) }
+    let keeper = move () => () => c.bump()
+    await runIt(pool, keeper)
+}
+
+async fn frameReaderAfterTake(pool: task.BlockingPool) -> Int {
+    let h = () => {
+        let c = Counter { c: mem.UnsafeCell.new(200) }
+        () => c.bump()
+    }
+    let f = pool.run(h()).unwrap()
+    let mine = h()()
+    (await f) + mine
+}
+
+async fn rebound(pool: task.BlockingPool) -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(300) }
+    let keeper = move () => () => c.bump()
+    let k2 = keeper
+    await runIt(pool, k2)
+}
+
+async fn fromRecord(pool: task.BlockingPool) -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(400) }
+    let b = Box2 { r: move () => () => c.bump() }
+    await runIt(pool, b.r)
+}
+
+async fn oneMoreLayer(pool: task.BlockingPool) -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(500) }
+    let keeper = move () => () => c.bump()
+    await runOuter(pool, keeper)
+}
+
+async fn heldMethodValue(pool: task.BlockingPool) -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(600) }
+    let keeper = move () => () => c.bump()
+    let go = Runner { n: 0 }.inner
+    await go(pool, keeper)
+}
+
+async fn holderPerIteration(pool: task.BlockingPool) -> Int {
+    let mut total = 0
+    for i in 0..3 {
+        let c = Counter { c: mem.UnsafeCell.new(i * 10) }
+        let keeper = move () => () => c.bump()
+        total = total + await runIt(pool, keeper)
+    }
+    total
+}
+
+async fn readerPerIteration(pool: task.BlockingPool) -> Int {
+    let h = () => {
+        let c = Counter { c: mem.UnsafeCell.new(7) }
+        () => c.bump()
+    }
+    let mut total = 0
+    for i in 0..3 {
+        total = total + await pool.run(h()).unwrap()
+    }
+    total
+}
+
+async fn deferInHolder(pool: task.BlockingPool) -> Int {
+    let h = () => {
+        let c = Counter { c: mem.UnsafeCell.new(800) }
+        let a = () => c.bump()
+        defer {
+            _ = a()
+        }
+        () => c.bump()
+    }
+    await pool.run(h()).unwrap()
+}
+
+async fn deferAfterReturn(pool: task.BlockingPool) -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(900) }
+    let g = await pool.run(move () => { () => c.bump() }).unwrap()
+    defer {
+        print "deferred ${g()}"
+    }
+    1
+}
+
+async fn root() -> Int {
+    let pool = task.BlockingPool.new(1)
+    print "consumed ${await consumedOnce(pool)}"
+    print "after take ${await frameReaderAfterTake(pool)}"
+    print "rebound ${await rebound(pool)}"
+    print "record ${await fromRecord(pool)}"
+    print "layer ${await oneMoreLayer(pool)}"
+    print "method value ${await heldMethodValue(pool)}"
+    print "holder loop ${await holderPerIteration(pool)}"
+    print "reader loop ${await readerPerIteration(pool)}"
+    print "defer in holder ${await deferInHolder(pool)}"
+    print "defer after ${await deferAfterReturn(pool)}"
+    0
+}
+
+print "done ${task.threadPoolExecutor(2).runToCompletion(root())}"
+-- stdout --
+consumed 101
+after take 402
+rebound 301
+record 401
+layer 501
+method value 601
+holder loop 33
+reader loop 24
+defer in holder 802
+deferred 901
+defer after 1
+done 0

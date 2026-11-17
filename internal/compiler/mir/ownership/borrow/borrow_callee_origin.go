@@ -62,6 +62,9 @@ func (c *borrowCheck) calleeOrigin(g *midir.Func, defs map[midir.LocalID]*midir.
 // calleeOrigins are what the callable local l of g may run, the one answer every check of a value call reads: a
 // parameter, each fn item fnItemOrigins names, or calleeOrigin's value; false when they are unknown.
 func (c *borrowCheck) calleeOrigins(g *midir.Func, defs map[midir.LocalID]*midir.Inst, l midir.LocalID) ([]calleeOrigin, bool) {
+	if i := paramIndex(g, defs, l); i >= 0 && c.assignedParam(g, g.Params[i]) {
+		return c.assignedParamOrigins(g, defs, i)
+	}
 	if o := c.calleeOrigin(g, defs, l); o.known || o.isParam {
 		return []calleeOrigin{o}, true
 	}

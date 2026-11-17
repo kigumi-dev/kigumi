@@ -1,0 +1,66 @@
+-- src --
+import task from std/task
+import mem from std/mem
+
+type Counter = {
+    c mem.UnsafeCell[Int]
+}
+
+fn Counter.spin(self) -> Int {
+    for i in 0..1000000 {
+        unsafe { self.c.set(self.c.get() + 1) }
+    }
+    unsafe { self.c.get() }
+}
+
+fn ck() -> Counter { Counter { c: mem.UnsafeCell.new(0) } }
+fn maxOf(a: Int, b: Int) -> Int { if a > b { a } else { b } }
+
+async fn runIt[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int {
+    await pool.run(mk()).unwrap()
+}
+
+// h's own c, read through a local closure r that the returned closure reads in place.
+async fn nestedLocal(pool: task.BlockingPool) -> Int {
+    let h = () => {
+        let c = ck()
+        let r = () => c.spin()
+        () => r()
+    }
+    let f = pool.run(h()).unwrap()
+    let mine = h()()
+    maxOf(mine, await f)
+}
+
+// keeper owns c and is taken once; the reader reads a local closure in place.
+async fn nestedProducer() -> Int {
+    let c = ck()
+    let keeper = move () => {
+        let r = () => c.spin()
+        () => r()
+    }
+    await runIt(task.BlockingPool.new(1), keeper)
+}
+
+// The returning arm ends its path, so only one consuming call runs on any path.
+async fn early[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F, k: Int) -> Int {
+    if k == 0 {
+        let x = await pool.run(mk()).unwrap()
+        return x
+    }
+    await pool.run(mk()).unwrap() + 1
+}
+
+async fn root() -> Int {
+    print "local ${await nestedLocal(task.BlockingPool.new(1))}"
+    print "producer ${await nestedProducer()}"
+    let c = ck()
+    print "early ${await early(task.BlockingPool.new(1), move () => () => c.spin(), 1)}"
+    0
+}
+print "done ${task.threadPoolExecutor(2).runToCompletion(root())}"
+-- stdout --
+local 1000000
+producer 1000000
+early 1000001
+done 0

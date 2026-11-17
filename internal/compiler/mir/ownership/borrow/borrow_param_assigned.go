@@ -32,3 +32,23 @@ func (c *borrowCheck) assignedParam(g *midir.Func, l midir.LocalID) bool {
 	}
 	return m[l] || g.Locals[l].Cell
 }
+
+// Another parameter assigned to it stays unknown: a relay names one parameter per call.
+func (c *borrowCheck) assignedParamOrigins(g *midir.Func, defs map[midir.LocalID]*midir.Inst, i int) ([]calleeOrigin, bool) {
+	p := g.Params[i]
+	if g.Locals[p].Cell {
+		return nil, false
+	}
+	out := []calleeOrigin{{param: i, isParam: true}}
+	for _, d := range c.within(g).defsOf(p) {
+		if d.Op != midir.OpCopy && d.Op != midir.OpMove || len(d.Args) == 0 || paramIndex(g, defs, d.Args[0]) >= 0 {
+			return nil, false
+		}
+		origins, ok := c.calleeOrigins(g, defs, d.Args[0])
+		if !ok || slices.ContainsFunc(origins, func(o calleeOrigin) bool { return o.isParam }) {
+			return nil, false
+		}
+		out = append(out, origins...)
+	}
+	return out, true
+}

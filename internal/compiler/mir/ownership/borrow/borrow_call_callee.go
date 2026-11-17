@@ -1,6 +1,8 @@
 package borrow
 
 import (
+	"slices"
+
 	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
@@ -52,14 +54,12 @@ func (c *borrowCheck) flowCallees(in midir.Inst) []callTarget {
 		return c.fnTarget(d.Ent, args)
 	}
 	origins, ok := c.calleeOrigins(c.f, c.soleDefMap(), callee)
-	if !ok {
+	if !ok || slices.ContainsFunc(origins, func(o calleeOrigin) bool { return o.isParam }) {
 		return nil
 	}
 	var out []callTarget
 	for _, o := range origins {
-		if !o.isParam {
-			out = append(out, c.fnTarget(o.ent, o.params(args))...)
-		}
+		out = append(out, c.fnTarget(o.ent, o.params(args))...)
 	}
 	return out
 }

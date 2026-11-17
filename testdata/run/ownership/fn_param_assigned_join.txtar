@@ -1,0 +1,43 @@
+-- src --
+// A callee that reassigns its callable parameter runs what the caller passed or what it assigned, nothing unknown.
+pub type V['a] = {
+    pub s &'a String
+}
+
+pub type Sink['a] = {
+    pub mut items &'a mut Array[V['a]]
+}
+
+fn nop['a](x: &'a String, k: Sink['a]) {
+}
+
+fn nop2['a](x: &'a String, k: Sink['a]) {
+}
+
+fn keep['a](x: &'a String, k: Sink['a]) {
+    k.items.push(V { s: x })
+}
+
+fn app['a](mut f: fn(&'a String, Sink['a]) -> Void, k: Sink['a], x: &'a String) {
+    if k.items.len() > 5 {
+        f = nop2
+    }
+    f(x, k)
+}
+
+fn appKeep['a](mut f: fn(&'a String, Sink['a]) -> Void, k: Sink['a], x: &'a String) {
+    if k.items.len() > 0 {
+        f = keep
+    }
+    f(x, k)
+}
+
+let text = "hello"
+let more = "more"
+let mut items = Array.of(V { s: &text })
+app(nop, Sink { items: &mut items }, &more)
+app(keep, Sink { items: &mut items }, &more)
+appKeep(nop, Sink { items: &mut items }, &more)
+print "${items.len()} ${items[1].s} ${items[2].s}"
+-- stdout --
+3 more more

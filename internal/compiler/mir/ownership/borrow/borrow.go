@@ -89,6 +89,7 @@ type borrowCheck struct {
 	borrowedIn  []map[midir.LocalID]bool
 	firstBorrow map[midir.LocalID]int
 	curBlock    midir.BlockID
+	preds       [][]midir.BlockID
 	loopReach   [][]bool
 	curIdx      int
 	keptTemp    map[midir.LocalID]bool

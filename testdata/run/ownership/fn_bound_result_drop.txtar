@@ -1,0 +1,40 @@
+-- src --
+// A callback result dropped in the frame stores nothing, whether the callback is a bound type parameter or a fn type.
+fn applyBoundInt[F: Fn[fn(&String) -> Int]](f: F) -> Int {
+    let local = "local-${1}"
+    let r = f(&local)
+    r
+}
+
+fn applyBoundVoid[F: Fn[fn(&String) -> Void]](f: F) -> usize {
+    let local = "local-${2}"
+    f(&local)
+    local.len()
+}
+
+fn applyBoundU[U, F: Fn[fn(&String) -> U]](f: F) -> usize {
+    let local = "local-${3}"
+    _ = f(&local)
+    local.len()
+}
+
+fn applyPlainU[U](f: fn(&String) -> U) -> usize {
+    let local = "local-${4}"
+    _ = f(&local)
+    local.len()
+}
+
+fn mapLocal[U, F: Fn[fn(&String) -> U]](xs: &Array[String], f: F) -> Int {
+    let mut n = 0
+    for x in xs {
+        let copy = "${x}!"
+        let r = f(&copy)
+        n = n + 1
+    }
+    n
+}
+
+let xs = Array.of("a", "b")
+print "${applyBoundInt((s: &String) => 1)} ${applyBoundVoid((s: &String) => {})} ${applyBoundU((s: &String) => s.len())} ${applyPlainU((s: &String) => s.len())} ${mapLocal(&xs, (s: &String) => s.len())}"
+-- stdout --
+1 7 7 7 2

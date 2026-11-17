@@ -152,7 +152,7 @@ fn cputLocal['a](out: &mut V['a], s: &'a String) {
 }
 
 fn pushLocal[U](f: fn(&String) -> U, show: fn(U) -> usize) -> usize {
-    let mut arr: Array[U] = Array.empty() //~ ERROR `arr` keeps a borrow of a temporary
+    let mut arr: Array[U] = Array.empty()
     arr.push(f(&mks(18))) //~ ERROR `arr` keeps a borrow of a temporary
     show(arr.takeAt(0).unwrap()) //~ ERROR a value borrowing a temporary cannot go into shared storage
 }
@@ -384,12 +384,6 @@ error[borrow-escape]: a borrow of a value this function owns cannot be stored th
     |
 148 |     out = mkV(&t) //~ ERROR cannot be stored through `out`
     |     ^^^
-
-error[E2235]: `arr` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
-   --> main.kg:152:13
-    |
-152 |     let mut arr: Array[U] = Array.empty() //~ ERROR `arr` keeps a borrow of a temporary
-    |             ^^^
 
 error[E2158]: a value borrowing a temporary cannot go into shared storage: another handle to that storage can keep it after a temporary is gone
    --> main.kg:154:5

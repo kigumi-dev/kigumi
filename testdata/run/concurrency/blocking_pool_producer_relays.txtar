@@ -1,0 +1,84 @@
+-- src --
+import task from std/task
+import mem from std/mem
+
+/// For one thread at a time: Send (moving it moves the Int) but not Sync.
+type Counter = {
+    c mem.UnsafeCell[Int]
+}
+
+fn Counter.bump(self) -> Int {
+    unsafe { self.c.set(self.c.get() + 1) }
+    unsafe { self.c.get() }
+}
+
+interface Marker {}
+
+async fn runIt[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int {
+    await pool.run(mk()).unwrap()
+}
+
+// The default is omitted at the call, so its thunk names the holder's type but takes no value of it.
+async fn runDef[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F, early: Int = 0) -> Int {
+    await pool.run(mk()).unwrap() + early
+}
+
+// One consuming call on each mutually exclusive path is one dynamic call.
+async fn ifArms[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F, a: Bool) -> Int {
+    if a {
+        await pool.run(mk()).unwrap()
+    } else {
+        await pool.run(mk()).unwrap() + 1
+    }
+}
+
+async fn matchArms[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F, k: Int) -> Int {
+    match k {
+        0 -> await pool.run(mk()).unwrap()
+        _ -> await pool.run(mk()).unwrap() + 2
+    }
+}
+
+// A marker interface beside FnOnce adds no way to call mk again.
+async fn marked[F: FnOnce[fn() -> T] + Marker, T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int {
+    await pool.run(mk()).unwrap()
+}
+
+async fn c1[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int { await runIt(pool, mk) }
+async fn c2[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int { await c1(pool, mk) }
+async fn c3[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int { await c2(pool, mk) }
+async fn c4[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int { await c3(pool, mk) }
+async fn c5[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int { await c4(pool, mk) }
+async fn c6[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int { await c5(pool, mk) }
+async fn c7[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int { await c6(pool, mk) }
+async fn c8[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int { await c7(pool, mk) }
+async fn c9[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int { await c8(pool, mk) }
+
+fn mk(n: Int) -> Counter { Counter { c: mem.UnsafeCell.new(n) } }
+
+// A fresh pool per call keeps `pool` from being reused across a defaulted-parameter callee (a separate move-tracking issue).
+async fn root() -> Int {
+    let c = mk(10)
+    print "default ${await runDef(task.BlockingPool.new(1), move () => () => c.bump())}"
+    let d = mk(20)
+    print "if ${await ifArms(task.BlockingPool.new(1), move () => () => d.bump(), true)}"
+    let e = mk(30)
+    print "match ${await matchArms(task.BlockingPool.new(1), move () => () => e.bump(), 7)}"
+    let g = mk(40)
+    print "marker ${await marked(task.BlockingPool.new(1), move () => () => g.bump())}"
+    let h = mk(50)
+    print "deep ${await c9(task.BlockingPool.new(1), move () => () => h.bump())}"
+    let i = mk(60)
+    print "shallow ${await c1(task.BlockingPool.new(1), move () => () => i.bump())}"
+    0
+}
+
+print "done ${task.threadPoolExecutor(2).runToCompletion(root())}"
+-- stdout --
+default 11
+if 21
+match 33
+marker 41
+deep 51
+shallow 61
+done 0

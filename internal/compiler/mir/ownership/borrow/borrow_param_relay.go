@@ -38,13 +38,16 @@ func (c *borrowCheck) relayTargets(g *midir.Func, defs map[midir.LocalID]*midir.
 		return nil
 	}
 	origins, ok := c.argOrigins(g, defs, l, held)
+	var out []relayTarget
 	if ok && len(origins) > 0 && origins[0].isParam {
-		return []relayTarget{{kind: relayParam, param: origins[0].param, held: origins[0].held}}
+		out = append(out, relayTarget{kind: relayParam, param: origins[0].param, held: origins[0].held})
+		if origins = origins[1:]; len(origins) == 0 {
+			return out
+		}
 	}
 	if !ok || depth == 0 {
 		return []relayTarget{{kind: relayUnknown}}
 	}
-	var out []relayTarget
 	for _, o := range origins {
 		if o.body == nil {
 			return []relayTarget{{kind: relayUnknown}}

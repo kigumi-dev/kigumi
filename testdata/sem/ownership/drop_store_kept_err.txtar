@@ -106,6 +106,12 @@ fn longLived() -> usize {
     arr.len()
 }
 
+fn reassignedHolder['a](k: Sink['a], k2: Sink['a], x: &'a String) {
+    let loc = "local-${40 + 2}"
+    let mut p = Pusher { out: k, v: V { s: x } }
+    p = Pusher { out: k2, v: V { s: &loc } } //~ ERROR a borrow cannot be stored into `k2` here
+}
+
 let text = "hello"
 let more = "more"
 let mut items = Array.of(V { s: &text })
@@ -184,15 +190,21 @@ error[move-while-borrowed]: `short` is still borrowed when its scope ends here
 85 |         let short = "short-${1}" //~ ERROR `short` is still borrowed when its scope ends here
    |             ^^^^^
 
-error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
-   --> main.kg:116:5
+error[E2159]: a borrow cannot be stored into `k2` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:109:5
     |
-116 |     discardGeneric(Pusher { out: k, v: V { s: &local } }) //~ ERROR a borrow cannot be stored into `k` here
+109 |     p = Pusher { out: k2, v: V { s: &loc } } //~ ERROR a borrow cannot be stored into `k2` here
+    |     ^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:122:5
+    |
+122 |     discardGeneric(Pusher { out: k, v: V { s: &local } }) //~ ERROR a borrow cannot be stored into `k` here
     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
-   --> main.kg:121:5
+   --> main.kg:127:5
     |
-121 |     relayGeneric(Pusher { out: k, v: V { s: &local } }) //~ ERROR a borrow cannot be stored into `k` here
+127 |     relayGeneric(Pusher { out: k, v: V { s: &local } }) //~ ERROR a borrow cannot be stored into `k` here
     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

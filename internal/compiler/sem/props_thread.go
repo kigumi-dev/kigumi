@@ -21,6 +21,10 @@ type threadState struct {
 	transient map[threadKey]bool
 	reads     map[TypeID][]ReadSite
 	readers   map[EntityID][]EntityID
+	kept      map[TypeID][]EntityID
+	keepers   map[EntityID][]EntityID
+	uses      map[FileID]map[EntityID][]closureUse
+	once      map[producer]bool
 	checks    []pendingThread
 }
 

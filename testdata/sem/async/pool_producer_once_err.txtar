@@ -1,0 +1,187 @@
+-- src --
+import task from std/task
+import mem from std/mem
+
+/// For one thread at a time: Send (moving it moves the Int) but not Sync.
+type Counter = {
+    c mem.UnsafeCell[Int]
+}
+
+fn Counter.bump(self) -> Int {
+    unsafe { self.c.set(self.c.get() + 1) }
+    unsafe { self.c.get() }
+}
+
+type Two[A, B] = {
+    a A
+    b B
+}
+
+type Box2[R] = {
+    r R
+}
+
+type Runner = {
+    n Int
+}
+
+async fn runIt[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int {
+    await pool.run(mk()).unwrap()
+}
+
+async fn Runner.inner[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](self, pool: task.BlockingPool, mk: F) -> Int {
+    await pool.run(mk()).unwrap()
+}
+
+// Exclusivity: with an Fn bound beside FnOnce, runBoth may call mk twice through a borrow, so two readers of c exist.
+async fn runBoth[F: Fn[fn() -> T] + FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int {
+    let r = &mk
+    let a = r()
+    let b = r()
+    let fa = pool.run(a).unwrap()
+    let mine = b()
+    (await fa) + mine
+}
+
+async fn bothBounds(pool: task.BlockingPool) -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(0) }
+    let keeper = move () => () => c.bump()
+    await runBoth(pool, keeper) //~ ERROR it reads `c` where the code around it keeps it
+}
+
+// Liveness of the holder: each fn below calls or hands on keeper outside the one call that takes it, or keeps a
+// reader alive across it, so the reader runIt hands to the pool is not the only one.
+async fn viaMethodValue[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int {
+    let go = Runner { n: 0 }.inner
+    await go(pool, mk)
+}
+
+async fn relayedThroughValue(pool: task.BlockingPool) -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(0) }
+    let keeper = move () => () => c.bump()
+    await viaMethodValue(pool, keeper) //~ ERROR it reads `c` where the code around it keeps it
+}
+
+async fn recordCalledBeforeTake(pool: task.BlockingPool) -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(0) }
+    let b = Box2 { r: move () => () => c.bump() }
+    let r0 = (b.r)()
+    let x = await runIt(pool, b.r) //~ ERROR it reads `c` where the code around it keeps it
+    x + r0()
+}
+
+async fn branchTakeOrCall(pool: task.BlockingPool, take: Bool) -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(0) }
+    let keeper = move () => () => c.bump()
+    if take {
+        await runIt(pool, keeper) //~ ERROR it reads `c` where the code around it keeps it
+    } else {
+        keeper()()
+    }
+}
+
+async fn readerInArray(pool: task.BlockingPool) -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(0) }
+    let keeper = move () => () => c.bump()
+    let mut rs = Array.of(keeper())
+    let x = await runIt(pool, keeper) //~ ERROR it reads `c` where the code around it keeps it
+    x + rs.takeAt(0).unwrap()()
+}
+
+async fn readerInOption(pool: task.BlockingPool) -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(0) }
+    let keeper = move () => () => c.bump()
+    let ro = Some(keeper())
+    let x = await runIt(pool, keeper) //~ ERROR it reads `c` where the code around it keeps it
+    match ro {
+        Some(r) -> x + r()
+        None -> x
+    }
+}
+
+async fn readerInRecord(pool: task.BlockingPool) -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(0) }
+    let keeper = move () => () => c.bump()
+    let rr = Box2 { r: keeper() }
+    let x = await runIt(pool, keeper) //~ ERROR it reads `c` where the code around it keeps it
+    x + (rr.r)()
+}
+
+async fn makeReader[F: Fn[fn() -> T], T](f: escaping F) -> Two[T, F] {
+    let r = f()
+    await task.yieldNow()
+    Two { a: r, b: f }
+}
+
+async fn readerFromOtherTask(pool: task.BlockingPool) -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(0) }
+    let keeper = move () => () => c.bump()
+    let t = task.spawn(makeReader(keeper))
+    let p = await t
+    let x = await runIt(pool, p.b) //~ ERROR it reads `c` where the code around it keeps it
+    x + p.a()
+}
+
+async fn calledAfterTake(pool: task.BlockingPool) -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(0) }
+    let keeper = move () => () => c.bump()
+    let t = task.spawn(runIt(pool, keeper)) //~ ERROR it reads `c` where the code around it keeps it
+    let mine = keeper()()
+    (await t) + mine
+}
+
+-- expect --
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it reads `c` where the code around it keeps it; a `move` closure takes its own
+  --> main/main.kg:48:11
+   |
+48 |     await runBoth(pool, keeper) //~ ERROR it reads `c` where the code around it keeps it
+   |           ^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it reads `c` where the code around it keeps it; a `move` closure takes its own
+  --> main/main.kg:61:11
+   |
+61 |     await viaMethodValue(pool, keeper) //~ ERROR it reads `c` where the code around it keeps it
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it reads `c` where the code around it keeps it; a `move` closure takes its own
+  --> main/main.kg:68:19
+   |
+68 |     let x = await runIt(pool, b.r) //~ ERROR it reads `c` where the code around it keeps it
+   |                   ^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it reads `c` where the code around it keeps it; a `move` closure takes its own
+  --> main/main.kg:76:15
+   |
+76 |         await runIt(pool, keeper) //~ ERROR it reads `c` where the code around it keeps it
+   |               ^^^^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it reads `c` where the code around it keeps it; a `move` closure takes its own
+  --> main/main.kg:86:19
+   |
+86 |     let x = await runIt(pool, keeper) //~ ERROR it reads `c` where the code around it keeps it
+   |                   ^^^^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it reads `c` where the code around it keeps it; a `move` closure takes its own
+  --> main/main.kg:94:19
+   |
+94 |     let x = await runIt(pool, keeper) //~ ERROR it reads `c` where the code around it keeps it
+   |                   ^^^^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it reads `c` where the code around it keeps it; a `move` closure takes its own
+   --> main/main.kg:105:19
+    |
+105 |     let x = await runIt(pool, keeper) //~ ERROR it reads `c` where the code around it keeps it
+    |                   ^^^^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it reads `c` where the code around it keeps it; a `move` closure takes its own
+   --> main/main.kg:120:19
+    |
+120 |     let x = await runIt(pool, p.b) //~ ERROR it reads `c` where the code around it keeps it
+    |                   ^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it reads `c` where the code around it keeps it; a `move` closure takes its own
+   --> main/main.kg:127:24
+    |
+127 |     let t = task.spawn(runIt(pool, keeper)) //~ ERROR it reads `c` where the code around it keeps it
+    |                        ^^^^^^^^^^^^^^^^^^
+

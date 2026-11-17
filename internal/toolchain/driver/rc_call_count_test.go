@@ -24,13 +24,13 @@ var rcCallSites = map[string]*regexp.Regexp{
 
 // Call sites of the count and cell runtime calls in the IR of every native run fixture, std included.
 var pinnedRCCalls = map[string]int{
-	"fixtures":         1191,
-	"rt_retain":        22730,
-	"rt_release":       132116,
-	"rt_release_outer": 97002,
-	"rt_drop":          93911,
-	"rt_cell_init":     12148,
-	"rt_cell_take":     4424,
+	"fixtures":         1198,
+	"rt_retain":        22741,
+	"rt_release":       132723,
+	"rt_release_outer": 97125,
+	"rt_drop":          94105,
+	"rt_cell_init":     12149,
+	"rt_cell_take":     4425,
 	"rt_setfield_swap": 1394,
 	"rt_setindex_swap": 1860,
 }
@@ -712,6 +712,13 @@ var addedAfterBaseline = map[string]bool{
 	"crypto_mlkem_keygen.txtar":                     true,
 	"crypto_mlkem_encapdecap.txtar":                 true,
 	"crypto_mlkem_errors.txtar":                     true,
+	"blocking_pool_reader_release.txtar":            true,
+	"fn_bound_result_drop.txtar":                    true,
+	"fn_param_assigned_join.txtar":                  true,
+	"blocking_pool_producer_once.txtar":             true,
+	"blocking_pool_producer_relays.txtar":           true,
+	"blocking_pool_nested_release.txtar":            true,
+	"blocking_pool_loop_once.txtar":                 true,
 }
 
 func TestRCCallCounts(t *testing.T) {

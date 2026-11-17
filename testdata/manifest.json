@@ -5723,6 +5723,17 @@
       ]
     },
     {
+      "id": "run/blocking_pool_loop_once",
+      "kind": "run",
+      "group": "concurrency",
+      "stage": "run",
+      "path": "testdata/run/concurrency/blocking_pool_loop_once.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/blocking_pool_many",
       "kind": "run",
       "group": "concurrency",
@@ -5756,6 +5767,17 @@
       ]
     },
     {
+      "id": "run/blocking_pool_nested_release",
+      "kind": "run",
+      "group": "concurrency",
+      "stage": "run",
+      "path": "testdata/run/concurrency/blocking_pool_nested_release.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/blocking_pool_overlap",
       "kind": "run",
       "group": "concurrency",
@@ -5772,6 +5794,39 @@
       "group": "concurrency",
       "stage": "run",
       "path": "testdata/run/concurrency/blocking_pool_panic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/blocking_pool_producer_once",
+      "kind": "run",
+      "group": "concurrency",
+      "stage": "run",
+      "path": "testdata/run/concurrency/blocking_pool_producer_once.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/blocking_pool_producer_relays",
+      "kind": "run",
+      "group": "concurrency",
+      "stage": "run",
+      "path": "testdata/run/concurrency/blocking_pool_producer_relays.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/blocking_pool_reader_release",
+      "kind": "run",
+      "group": "concurrency",
+      "stage": "run",
+      "path": "testdata/run/concurrency/blocking_pool_reader_release.txtar",
       "mode": [
         "vm",
         "native"
@@ -10368,6 +10423,28 @@
       "group": "language",
       "stage": "run",
       "path": "testdata/run/language/float_total_eq_ord.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/fn_bound_result_drop",
+      "kind": "run",
+      "group": "ownership",
+      "stage": "run",
+      "path": "testdata/run/ownership/fn_bound_result_drop.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/fn_param_assigned_join",
+      "kind": "run",
+      "group": "ownership",
+      "stage": "run",
+      "path": "testdata/run/ownership/fn_param_assigned_join.txtar",
       "mode": [
         "vm",
         "native"
@@ -23204,6 +23281,56 @@
       "group": "async",
       "stage": "planned",
       "path": "testdata/sem/async/pool_lent_read_spawn.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/pool_loop_repeat_err",
+      "kind": "sem",
+      "group": "async",
+      "stage": "check",
+      "path": "testdata/sem/async/pool_loop_repeat_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/pool_nested_read_err",
+      "kind": "sem",
+      "group": "async",
+      "stage": "check",
+      "path": "testdata/sem/async/pool_nested_read_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/pool_producer_once_err",
+      "kind": "sem",
+      "group": "async",
+      "stage": "check",
+      "path": "testdata/sem/async/pool_producer_once_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/pool_reader_escape_err",
+      "kind": "sem",
+      "group": "async",
+      "stage": "check",
+      "path": "testdata/sem/async/pool_reader_escape_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/pool_reader_release_err",
+      "kind": "sem",
+      "group": "async",
+      "stage": "check",
+      "path": "testdata/sem/async/pool_reader_release_err.txtar",
       "mode": [
         "check"
       ]

@@ -1,0 +1,76 @@
+-- src --
+import task from std/task
+import mem from std/mem
+
+// Each pool job here takes the only closure that reads its Counter, so the frame never reads it at the same time.
+/// For one thread at a time: Send (moving it moves the Int) but not Sync.
+type Counter = {
+    c mem.UnsafeCell[Int]
+}
+
+fn Counter.bump(self) -> Int {
+    unsafe { self.c.set(self.c.get() + 1) }
+    unsafe { self.c.get() }
+}
+
+fn keepValue[F](f: F) -> Int { 0 }
+
+async fn runMade[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int {
+    await pool.run(mk()).unwrap()
+}
+
+async fn innerReaderDone(pool: task.BlockingPool) -> Int {
+    let h = () => {
+        let c = Counter { c: mem.UnsafeCell.new(10) }
+        let a = () => c.bump()
+        _ = a()
+        () => c.bump()
+    }
+    await pool.run(h()).unwrap()
+}
+
+async fn heldValueKeptAside(pool: task.BlockingPool) -> Int {
+    let run = pool.run
+    let h = () => {
+        let c = Counter { c: mem.UnsafeCell.new(20) }
+        () => c.bump()
+    }
+    let f = run(h()).unwrap()
+    let k = keepValue(run)
+    (await f) + k
+}
+
+async fn keeperHandedOnce(pool: task.BlockingPool) -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(30) }
+    let keeper = move () => () => {
+        for i in 0..1000 {
+            _ = c.bump()
+        }
+        c.bump()
+    }
+    await runMade(pool, keeper)
+}
+
+async fn heldProducer(pool: task.BlockingPool) -> Int {
+    let c = Counter { c: mem.UnsafeCell.new(40) }
+    let run = pool.run
+    let g = await run(move () => { () => c.bump() }).unwrap()
+    g()
+}
+
+async fn root() -> Int {
+    let pool = task.BlockingPool.new(1)
+    print "inner ${await innerReaderDone(pool)}"
+    print "aside ${await heldValueKeptAside(pool)}"
+    print "once ${await keeperHandedOnce(pool)}"
+    print "held ${await heldProducer(pool)}"
+    0
+}
+
+print "done ${task.threadPoolExecutor(2).runToCompletion(root())}"
+-- stdout --
+inner 12
+aside 21
+once 1031
+held 41
+done 0

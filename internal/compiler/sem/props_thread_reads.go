@@ -48,6 +48,8 @@ func (r *Result) collectReadSites(t TypeID, out []ReadSite) []ReadSite {
 		switch roleOf(cp) {
 		case roleFrameRead:
 			add([]ReadSite{{n.Ent, cp.Local}})
+			// Reading a closure in place reads everything it reads, so its own read sites cross too.
+			add(r.ReadSites(r.Entities[cp.Local].Type))
 		case roleOwned:
 			add(r.ReadSites(r.Entities[cp.Local].Type))
 		}
@@ -85,46 +87,29 @@ func (r *Result) within(body, h EntityID) bool {
 	return false
 }
 
+// escaped stands for the calls an escaped function value makes anywhere.
 type crossing struct {
-	site, producer EntityID
-	strict         bool
+	site            EntityID
+	producer        producer
+	at              callRef
+	strict, escaped bool
 }
 
 func (r *Result) readReleased(rs ReadSite, x crossing) bool {
 	h := r.HolderOf(rs)
-	if x.strict || r.Entities[h].Kind != EntClosure || r.within(x.site, h) {
+	if x.strict || r.Entities[h].Kind != EntClosure || r.within(x.site, h) || x.escaped && r.reachesFnValue(h) {
 		return false
 	}
 	c := r.closure(rs.Closure)
-	if c.Creator != h || c.InLoop || !r.soleReader(rs) || !r.reachesClosure(r.closure(h).Ret, rs.Closure) {
+	if c.Creator != h || c.InLoop || !r.soleReader(rs, h) || !r.reachesClosure(r.closure(h).Ret, rs.Closure) {
 		return false
 	}
-	return r.frameOf(rs.Local) == h || h == x.producer
+	p := x.producer
+	return r.frameOf(rs.Local) == h || h == p.closure && r.callsOnce(p.fn, p.param) && r.takenOnlyAt(h, x.at)
 }
 
-func (r *Result) soleReader(rs ReadSite) bool {
-	st := &r.thread
-	if !st.settled {
-		return false
-	}
-	if st.readers == nil {
-		st.readers = map[EntityID][]EntityID{}
-		for id := 1; id < len(r.Entities); id++ {
-			if r.Entities[id].Kind != EntClosure {
-				continue
-			}
-			for _, cp := range r.closure(EntityID(id)).Captures {
-				if roleOf(cp) == roleFrameRead {
-					st.readers[cp.Local] = append(st.readers[cp.Local], EntityID(id))
-				}
-			}
-		}
-	}
-	rd := st.readers[rs.Local]
-	return len(rd) == 1 && rd[0] == rs.Closure
-}
-
-// reachesClosure reports whether a value of type t holds closure cl, itself or through closures it owns.
+// reachesClosure reports whether a value of type t holds closure cl, itself or through closures it owns or reads in
+// place; a read-in-place link is released on its own read site, so following it here does not skip that check.
 func (r *Result) reachesClosure(t TypeID, cl EntityID) bool {
 	if t == 0 || !r.Types.mentionsClosure(t) {
 		return false
@@ -135,7 +120,7 @@ func (r *Result) reachesClosure(t TypeID, cl EntityID) bool {
 			return true
 		}
 		for _, cp := range r.closure(n.Ent).Captures {
-			if roleOf(cp) == roleOwned && r.reachesClosure(r.Entities[cp.Local].Type, cl) {
+			if roleOf(cp) != roleCell && r.reachesClosure(r.Entities[cp.Local].Type, cl) {
 				return true
 			}
 		}

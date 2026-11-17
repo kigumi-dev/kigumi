@@ -1,6 +1,8 @@
 package borrow
 
 import (
+	"slices"
+
 	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 )
@@ -22,7 +24,7 @@ func (c *borrowCheck) checkThreadBounds() {
 						known = true
 					}
 				}
-				if !known {
+				if !known || slices.ContainsFunc(origins, func(o calleeOrigin) bool { return o.isParam }) {
 					c.unknownCalleeBounds(in)
 				}
 			}

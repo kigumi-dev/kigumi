@@ -15,7 +15,7 @@ pub fn erase['a](sink: Sink['a]) {
 
 fn apply['a, U, F: Fn[fn(&String, Sink['a]) -> U]](f: F, sink: Sink['a]) {
     let local = "local"
-    let result = f(&local, sink) //~ ERROR a borrow cannot be stored into `f` here
+    let result = f(&local, sink)
 }
 
 pub fn bound['a](sink: Sink['a]) {
@@ -27,12 +27,6 @@ pub fn array['a](sink: Sink['a]) {
     let f: fn(&String, Sink['a]) -> View['a] = fs[0] //~ ERROR cannot be erased
 }
 -- expect --
-error[E2159]: a borrow cannot be stored into `f` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
-  --> main.kg:15:9
-   |
-15 |     let result = f(&local, sink) //~ ERROR a borrow cannot be stored into `f` here
-   |         ^^^^^^
-
 error[E2297]: the reference lifetime of `retain` cannot be erased: the callable may retain that reference outside its result
   --> main.kg:10:48
    |

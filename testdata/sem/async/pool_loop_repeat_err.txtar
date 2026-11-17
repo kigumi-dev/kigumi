@@ -1,0 +1,48 @@
+-- src --
+import task from std/task
+import mem from std/mem
+
+type Counter = {
+    c mem.UnsafeCell[Int]
+}
+
+fn Counter.spin(self) -> Int {
+    for i in 0..1000 {
+        unsafe { self.c.set(self.c.get() + 1) }
+    }
+    unsafe { self.c.get() }
+}
+
+fn ck() -> Counter { Counter { c: mem.UnsafeCell.new(0) } }
+
+// A path that does not break reaches the next iteration, so mk may run again.
+async fn condBreak[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F, k: Int) -> Int {
+    let mut out = 0
+    for i in 0..3 {
+        out = out + await pool.run(mk()).unwrap() //~ ERROR `mk` is bound by `FnOnce` and cannot be called inside a loop
+        if i == k {
+            break
+        }
+    }
+    out
+}
+
+async fn viaCond() -> Int {
+    let c = ck()
+    await condBreak(task.BlockingPool.new(1), move () => () => c.spin(), 1) //~ ERROR it reads `c` where the code around it keeps it
+}
+
+-- expect --
+error[E2176]: `mk` is bound by `FnOnce` and cannot be called inside a loop or a closure, which may call it more than once
+  --> main/main.kg:21:36
+   |
+21 |         out = out + await pool.run(mk()).unwrap() //~ ERROR `mk` is bound by `FnOnce` and cannot be called inside a loop
+   |                                    ^^^
+   = help: bind it with `FnMut` or `Fn`, or call it outside the loop or closure
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it reads `c` where the code around it keeps it; a `move` closure takes its own
+  --> main/main.kg:31:11
+   |
+31 |     await condBreak(task.BlockingPool.new(1), move () => () => c.spin(), 1) //~ ERROR it reads `c` where the code around it keeps it
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

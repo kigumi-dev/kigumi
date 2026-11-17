@@ -1,0 +1,79 @@
+-- src --
+import task from std/task
+import mem from std/mem
+
+type Counter = {
+    c mem.UnsafeCell[Int]
+}
+
+fn Counter.spin(self) -> Int {
+    for i in 0..1000000 {
+        unsafe { self.c.set(self.c.get() + 1) }
+    }
+    unsafe { self.c.get() }
+}
+
+fn ck() -> Counter { Counter { c: mem.UnsafeCell.new(0) } }
+fn maxOf(a: Int, b: Int) -> Int { if a > b { a } else { b } }
+
+interface Poke {
+    fn poke(self) -> Int
+}
+
+type W[F] = {
+    f F
+}
+
+fn W[F: Fn[fn() -> Int]].poke(self) -> Int {
+    (self.f)()
+}
+
+type Two[A, B] = {
+    a A
+    b B
+}
+
+// A second reader of c leaves the holder inside a Poke value, so it still runs while the pool runs the returned one.
+async fn sideReturn(pool: task.BlockingPool) -> Int {
+    let h = () => {
+        let c = ck()
+        let o = () => c.spin()
+        let side: Poke = W { f: o }
+        Two { a: () => c.spin(), b: side }
+    }
+    let p = h()
+    let f = pool.run(p.a).unwrap() //~ ERROR it reads `c` where the code around it keeps it
+    let mine = p.b.poke()
+    maxOf(mine, await f)
+}
+
+async fn sinkPush(pool: task.BlockingPool) -> Int {
+    let mut out: Array[Poke] = Array.empty()
+    let h = (sink: &mut Array[Poke]) => {
+        let c = ck()
+        let o = () => c.spin()
+        sink.push(W { f: o })
+        () => c.spin()
+    }
+    let f = pool.run(h(&mut out)).unwrap() //~ ERROR it reads `c` where the code around it keeps it
+    let mine = match out.takeAt(0) {
+        Some(p) -> p.poke()
+        None -> 0
+    }
+    maxOf(mine, await f)
+}
+
+print "total ${task.threadPoolExecutor(2).runToCompletion(sideReturn(task.BlockingPool.new(1)))}"
+-- expect --
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it reads `c` where the code around it keeps it; a `move` closure takes its own
+  --> main/main.kg:44:13
+   |
+44 |     let f = pool.run(p.a).unwrap() //~ ERROR it reads `c` where the code around it keeps it
+   |             ^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it reads `c` where the code around it keeps it; a `move` closure takes its own
+  --> main/main.kg:57:13
+   |
+57 |     let f = pool.run(h(&mut out)).unwrap() //~ ERROR it reads `c` where the code around it keeps it
+   |             ^^^^^^^^^^^^^^^^^^^
+

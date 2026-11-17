@@ -60,6 +60,12 @@ func (r *Result) closureThreadWhy(t TypeID, sync bool, x crossing) string {
 		case sync:
 		case roleOf(cp) == roleFrameRead && !r.readReleased(ReadSite{cl, cp.Local}, x):
 			return "it reads " + name + " where the code around it keeps it; a `move` closure takes its own"
+		case roleOf(cp) == roleFrameRead:
+			for _, rs := range r.ReadSites(e.Type) {
+				if !r.readReleased(rs, x) {
+					return "it reads `" + r.Entities[rs.Local].Name + "` where the code around it keeps it; a `move` closure takes its own"
+				}
+			}
 		case roleOf(cp) == roleOwned:
 			for _, rs := range r.ReadSites(e.Type) {
 				if !r.readReleased(rs, x) {
