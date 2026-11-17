@@ -1,0 +1,79 @@
+// Extensions this package does not interpret, such as vendor or CRL extensions.
+import asn1 from std/crypto/asn1
+
+/// One decoded Extension: its OID, criticality and the OCTET STRING content.
+pub type Extension = {
+    pub oid String
+    pub critical Bool
+    pub value Bytes
+}
+
+/// Decodes a `SEQUENCE OF Extension`; a repeated OID is refused.
+pure fn extensionList(e: asn1.Element) -> Result[Array[Extension], ParseError] {
+    let entries = sequence(e)?
+    let mut out = Array.empty[Extension]()
+    let mut i: usize = 0
+    for i < entries.len() {
+        let parts = sequence(entries[i])?
+        if parts.len() < 2 || parts.len() > 3 {
+            fail parseFailure("Extension must have two or three fields")
+        }
+        let oid = oidOf(parts[0])?
+        let mut j: usize = 0
+        for j < out.len() {
+            if out[j].oid == oid {
+                fail parseFailure("duplicate extension ${oid}")
+            }
+            j = j + 1
+        }
+        let mut critical = false
+        if parts.len() == 3 {
+            critical = booleanOf(parts[1])?
+        }
+        out.push(Extension {
+            oid: oid
+            critical: critical
+            value: octetsOf(parts[parts.len() - 1])?
+        })
+        i = i + 1
+    }
+    Ok(out)
+}
+
+/// The extensions of the certificate, interpreted or not, in encoding order.
+pub pure fn Certificate.extensions(self) -> Result[Array[Extension], ParseError] {
+    let root = match asn1.parse(self.tbs) {
+        Ok(value) -> value
+        Err(err) -> fail parseFailure(err.message())
+    }
+    let fields = sequence(root)?
+    let mut i: usize = 0
+    for i < fields.len() {
+        let field = fields[i]
+        if field.tagClass is asn1.TagClass.Context && field.constructed && field.tag == 3 {
+            let wrapper = match field.children() {
+                Ok(value) -> value
+                Err(err) -> fail parseFailure(err.message())
+            }
+            if wrapper.len() != 1 {
+                fail parseFailure("extensions wrapper must hold one SEQUENCE")
+            }
+            return extensionList(wrapper[0])
+        }
+        i = i + 1
+    }
+    Ok(Array.empty[Extension]())
+}
+
+/// The OCTET STRING content of the extension `oid`, or None when absent.
+pub pure fn Certificate.extensionValue(self, oid: String) -> Result[Bytes?, ParseError] {
+    let all = self.extensions()?
+    let mut i: usize = 0
+    for i < all.len() {
+        if all[i].oid == oid {
+            return Ok(Some(all[i].value))
+        }
+        i = i + 1
+    }
+    Ok(None)
+}

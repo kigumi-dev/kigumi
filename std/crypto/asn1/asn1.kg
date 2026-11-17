@@ -52,13 +52,13 @@ type CursorValue = {
 
 /// Reads one element from the start of `input`; trailing bytes are ignored.
 pub pure fn parse(input: Bytes) -> Result[Element, Error] {
-    parseElementAt(input, 0, 0)
+    parseElementAt(&input, 0, 0)
 }
 
 /// Reads one element at byte offset `at`; the returned offset is absolute and
 /// no prefix is copied.
 pub pure fn parseAt(input: Bytes, at: usize) -> Result[Element, Error] {
-    parseElementAt(input, at, 0)
+    parseElementAt(&input, at, 0)
 }
 
 /// Reads elements until the end of `input`; an empty input has no elements.
@@ -78,14 +78,16 @@ pure fn parseAllAt(input: Bytes, base: usize) -> Result[Array[Element], Error] {
     let mut out = Array.empty[Element]()
     let mut at: usize = 0
     for at < input.len() {
-        let element = parseElementAt(input, at, base)?
+        let element = parseElementAt(&input, at, base)?
         at = at + element.totalLen()
         out.push(element)
     }
     Ok(out)
 }
 
-pure fn parseElementAt(input: Bytes, at: usize, base: usize) -> Result[Element, Error] {
+// Helpers take `&Bytes`: a by-value Bytes argument costs a copy per call, which made
+// walking a long SEQUENCE quadratic.
+pure fn parseElementAt(input: &Bytes, at: usize, base: usize) -> Result[Element, Error] {
     let header = parseHeader(input, at)?
     if header.tagClass is Universal && header.tag == 0 {
         fail asn1Error("end-of-contents is not allowed in DER")
@@ -108,7 +110,7 @@ pure fn parseElementAt(input: Bytes, at: usize, base: usize) -> Result[Element, 
     })
 }
 
-pure fn parseHeader(input: Bytes, at: usize) -> Result[Header, Error] {
+pure fn parseHeader(input: &Bytes, at: usize) -> Result[Header, Error] {
     if at >= input.len() {
         fail asn1Error("truncated element identifier")
     }
@@ -137,7 +139,7 @@ pure fn parseHeader(input: Bytes, at: usize) -> Result[Header, Error] {
     })
 }
 
-pure fn parseHighTag(input: Bytes, start: usize) -> Result[CursorValue, Error] {
+pure fn parseHighTag(input: &Bytes, start: usize) -> Result[CursorValue, Error] {
     let mut value: usize = 0
     let mut cursor = start
     let mut first = true
@@ -170,7 +172,7 @@ pure fn parseHighTag(input: Bytes, start: usize) -> Result[CursorValue, Error] {
     })
 }
 
-pure fn parseLength(input: Bytes, at: usize) -> Result[CursorValue, Error] {
+pure fn parseLength(input: &Bytes, at: usize) -> Result[CursorValue, Error] {
     if at >= input.len() {
         fail asn1Error("truncated length")
     }

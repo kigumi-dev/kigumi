@@ -1,0 +1,102 @@
+// Authentication after Intel QVL PckCertVerifier, TCBInfoVerifier and
+// EnclaveIdentityVerifier; std has no clock, so the time comes from the caller.
+import p256 from std/crypto/p256
+import x509 from std/crypto/x509
+
+/// Collateral for one quote as Intel PCS serves it: JSON documents, PEM issuer
+/// chains (signing certificate, then root), and DER PCK and root CA CRLs.
+pub type Collateral = {
+    pub tcbInfo String
+    pub tcbInfoIssuerChain String
+    pub qeIdentity String
+    pub qeIdentityIssuerChain String
+    pub pckCrl Bytes
+    pub rootCaCrl Bytes
+}
+
+/// Collateral whose signatures, issuers, revocation and freshness passed.
+type Authenticated = {
+    tcbInfo TcbInfo
+    qeIdentity QeIdentity
+    pck PckExtension
+}
+
+fn verifyBody(body: Bytes, signature: Bytes, key: Bytes, what: String) -> Result[Void, Error] {
+    match p256.verifyMessage(key, body, signature) {
+        Ok(true) -> Ok(())
+        Ok(false) -> fail failure(CollateralSignatureInvalid, "${what} signature does not verify with the TCB signing key")
+        Err(err) -> fail failure(CollateralSignatureInvalid, "${what} signature: ${err.message()}")
+    }
+}
+
+fn pinnedRoot(rootPem: String, nowMillis: Int) -> Result[x509.Certificate, Error] {
+    let roots = parseAnchors(rootPem)?
+    if roots.len() != 1 {
+        fail failure(MissingTrustAnchor, "exactly one pinned root is expected")
+    }
+    let root = roots[0].clone()
+    if !root.subject.raw.equals(&root.issuer.raw) {
+        fail failure(BadSigningChain, "the pinned root is not self-issued")
+    }
+    match root.verifySignedBy(&root) {
+        Ok(_) -> {}
+        Err(err) -> fail failure(BadSigningChain, "the pinned root is not self-signed: ${err.message()}")
+    }
+    requireUnexpired(root.validity.notAfterMillis(), nowMillis, "pinned root")?
+    Ok(root)
+}
+
+// Each document is decoded only after its signature verifies, so unsigned
+// input costs one linear scan.
+fn authenticTcbInfo(document: String, key: Bytes, nowMillis: Int) -> Result[TcbInfo, Error] {
+    let signed = splitSigned(document, "tcbInfo", BadTcbInfo, "TCB Info")?
+    verifyBody(signed.body.toBytes(), signed.signature, key, "TCB Info")?
+    let info = TcbInfo.fromSigned(signed)?
+    requireUnexpired(info.nextUpdateMillis, nowMillis, "TCB Info")?
+    Ok(info)
+}
+
+fn authenticQeIdentity(document: String, key: Bytes, nowMillis: Int) -> Result[QeIdentity, Error] {
+    let signed = splitSigned(document, "enclaveIdentity", BadQeIdentity, "QE Identity")?
+    verifyBody(signed.body.toBytes(), signed.signature, key, "QE Identity")?
+    let identity = QeIdentity.fromSigned(signed)?
+    requireUnexpired(identity.nextUpdateMillis, nowMillis, "QE Identity")?
+    Ok(identity)
+}
+
+/// Parses TCB Info signed under `issuerChain` (signing certificate, then root)
+/// that chains to the one root in `rootPem`, passes its CRL and is unexpired.
+pub fn TcbInfo.parseVerified(document: String, issuerChain: String, rootPem: String, rootCaCrl: Bytes, nowMillis: Int) -> Result[TcbInfo, Error] {
+    let root = pinnedRoot(rootPem, nowMillis)?
+    let rootCrl = checkCrl(rootCaCrl, &root, nowMillis, "root CA CRL")?
+    authenticTcbInfo(document, signingKey(issuerChain, &root, &rootCrl, nowMillis, "TCB Info")?, nowMillis)
+}
+
+/// `TcbInfo.parseVerified` for a QE Identity document.
+pub fn QeIdentity.parseVerified(document: String, issuerChain: String, rootPem: String, rootCaCrl: Bytes, nowMillis: Int) -> Result[QeIdentity, Error] {
+    let root = pinnedRoot(rootPem, nowMillis)?
+    let rootCrl = checkCrl(rootCaCrl, &root, nowMillis, "root CA CRL")?
+    authenticQeIdentity(document, signingKey(issuerChain, &root, &rootCrl, nowMillis, "QE Identity")?, nowMillis)
+}
+
+/// Authenticates `collateral` for a PCK chain that `Chain.verify` anchored
+/// at `root`. Identical issuer chains are checked once.
+fn authenticate(collateral: &Collateral, chain: &Chain, root: &x509.Certificate, nowMillis: Int) -> Result[Authenticated, Error] {
+    let path = pckPath(chain, root)?
+    let rootCrl = checkCrl(collateral.rootCaCrl, &path.root, nowMillis, "root CA CRL")?
+    let pckCrl = checkCrl(collateral.pckCrl, &path.ca, nowMillis, "PCK CRL")?
+    refuseRevoked(&rootCrl, &path.ca, "PCK CA certificate")?
+    refuseRevoked(&pckCrl, &path.leaf, "PCK certificate")?
+    let tcbKey = signingKey(collateral.tcbInfoIssuerChain, &path.root, &rootCrl, nowMillis, "TCB Info")?
+    let tcbInfo = authenticTcbInfo(collateral.tcbInfo, tcbKey, nowMillis)?
+    let qeKey = if collateral.qeIdentityIssuerChain == collateral.tcbInfoIssuerChain {
+        tcbKey
+    } else {
+        signingKey(collateral.qeIdentityIssuerChain, &path.root, &rootCrl, nowMillis, "QE Identity")?
+    }
+    Ok(Authenticated {
+        tcbInfo: tcbInfo
+        qeIdentity: authenticQeIdentity(collateral.qeIdentity, qeKey, nowMillis)?
+        pck: PckExtension.of(&path.leaf)?
+    })
+}

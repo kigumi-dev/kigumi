@@ -45,6 +45,40 @@ pub pure fn Element.generalizedTime(self) -> Result[Time, Error] {
     checkedTime(digits(b, 0, 4)?, digits(b, 4, 2)?, digits(b, 6, 2)?, digits(b, 8, 2)?, digits(b, 10, 2)?, digits(b, 12, 2)?)
 }
 
+/// A calendar time checked the same way as a decoded DER time.
+pub pure fn Time.of(year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int) -> Result[Time, Error] {
+    checkedTime(year, month, day, hour, minute, second)
+}
+
+/// Milliseconds since 1970-01-01T00:00:00Z.
+pub pure fn Time.unixMillis(self) -> Int {
+    let y = self.year - (if self.month <= 2 {
+        1
+    } else {
+        0
+    })
+    let era = floorDiv(y, 400)
+    let yoe = y - era * 400
+    let mp = self.month + (if self.month > 2 {
+        -3
+    } else {
+        9
+    })
+    let doy = (153 * mp + 2) / 5 + self.day - 1
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy
+    let days = era * 146097 + doe - 719468
+    (days * 86400 + self.hour * 3600 + self.minute * 60 + self.second) * 1000
+}
+
+pure fn floorDiv(a: Int, b: Int) -> Int {
+    let q = a / b
+    if a % b < 0 {
+        q - 1
+    } else {
+        q
+    }
+}
+
 pure fn digits(b: Bytes, at: usize, count: usize) -> Result[Int, Error] {
     let mut value: Int = 0
     let mut i: usize = 0

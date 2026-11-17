@@ -23841,6 +23841,16 @@
       ]
     },
     {
+      "id": "sem/sgx_accept_revoked",
+      "kind": "sem",
+      "group": "std",
+      "stage": "check",
+      "path": "testdata/sem/std/sgx_accept_revoked.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/shared_borrow_store_err",
       "kind": "sem",
       "group": "ownership",

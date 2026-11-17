@@ -1,0 +1,192 @@
+// A strict collateral JSON scanner that copies each value in compact form: no
+// escapes, integers only, bounded nesting, and with `unique` no repeated member.
+import map from std/map
+
+type JsonScan = {
+    src Bytes
+    mut at usize
+    mut out Array[u8]
+    code Code
+    what String
+    unique Bool
+}
+
+pure fn newScan(text: String, code: Code, what: String, unique: Bool) -> JsonScan {
+    JsonScan {
+        src: text.toBytes()
+        at: 0
+        out: Array.empty[u8]()
+        code: code
+        what: what
+        unique: unique
+    }
+}
+
+const maxSignedJsonDepth: Int = 32
+
+fn JsonScan.reject(self, text: String) -> Error {
+    failure(self.code, "${self.what}: ${text}")
+}
+
+fn JsonScan.peek(self) -> Int {
+    if self.at < self.src.len() {
+        self.src[self.at].toInt()
+    } else {
+        -1
+    }
+}
+
+fn JsonScan.space(mut self) {
+    for {
+        let b = self.peek()
+        if b != 32 && b != 9 && b != 10 && b != 13 {
+            return
+        }
+        self.at = self.at + 1
+    }
+}
+
+fn JsonScan.copy(mut self) {
+    self.out.push(self.src[self.at])
+    self.at = self.at + 1
+}
+
+fn JsonScan.expect(mut self, byte: Int, text: String) -> Result[Void, Error] {
+    self.space()
+    if self.peek() != byte {
+        fail self.reject("expected ${text}")
+    }
+    self.copy()
+}
+
+fn JsonScan.isDigit(self) -> Bool {
+    let b = self.peek()
+    b >= 48 && b <= 57
+}
+
+/// A string, whose raw content is also returned for key comparison.
+fn JsonScan.string(mut self) -> Result[String, Error] {
+    self.expect(34, "a string")?
+    let start = self.at
+    for {
+        let b = self.peek()
+        if b < 0 {
+            fail self.reject("unterminated string")
+        }
+        if b == 92 {
+            fail self.reject("string escapes are not accepted in signed collateral")
+        }
+        if b < 32 {
+            fail self.reject("control character in a string")
+        }
+        if b == 34 {
+            break
+        }
+        self.copy()
+    }
+    let raw = self.src.slice(start, self.at) || fail self.reject("string bounds")
+    self.copy()
+    match String.fromBytes(raw) {
+        Ok(text) -> Ok(text)
+        Err(_) -> fail self.reject("string is not UTF-8")
+    }
+}
+
+fn JsonScan.integer(mut self) -> Result[Void, Error] {
+    if self.peek() == 45 {
+        self.copy()
+    }
+    if !self.isDigit() {
+        fail self.reject("expected a value")
+    }
+    let leadingZero = self.peek() == 48
+    self.copy()
+    if leadingZero && self.isDigit() {
+        fail self.reject("number has a leading zero")
+    }
+    for self.isDigit() {
+        self.copy()
+    }
+    let b = self.peek()
+    if b == 46 || b == 101 || b == 69 {
+        fail self.reject("only integer numbers are accepted in signed collateral")
+    }
+}
+
+fn JsonScan.literal(mut self, word: String) -> Result[Void, Error] {
+    let bytes = word.toBytes()
+    let mut i: usize = 0
+    for i < bytes.len() {
+        if self.peek() != bytes[i].toInt() {
+            fail self.reject("invalid literal")
+        }
+        self.copy()
+        i = i + 1
+    }
+}
+
+fn JsonScan.members(mut self, depth: Int) -> Result[Void, Error] {
+    self.expect(123, "an object")?
+    self.space()
+    if self.peek() == 125 {
+        return self.expect(125, "`}`")
+    }
+    let mut keys = map.empty[String, Bool]()
+    for {
+        let key = self.string()?
+        if self.unique {
+            if keys.contains(&key) {
+                fail self.reject("duplicate member `${key}`")
+            }
+            keys.set(key, true)
+        }
+        self.expect(58, "`:`")?
+        self.value(depth + 1)?
+        self.space()
+        if self.peek() == 125 {
+            return self.expect(125, "`}`")
+        }
+        self.expect(44, "`,` or `}`")?
+    }
+}
+
+fn JsonScan.elements(mut self, depth: Int) -> Result[Void, Error] {
+    self.expect(91, "an array")?
+    self.space()
+    if self.peek() == 93 {
+        return self.expect(93, "`]`")
+    }
+    for {
+        self.value(depth + 1)?
+        self.space()
+        if self.peek() == 93 {
+            return self.expect(93, "`]`")
+        }
+        self.expect(44, "`,` or `]`")?
+    }
+}
+
+fn JsonScan.value(mut self, depth: Int) -> Result[Void, Error] {
+    if depth > maxSignedJsonDepth {
+        fail self.reject("nested too deeply")
+    }
+    self.space()
+    match self.peek() {
+        123 -> self.members(depth)
+        91 -> self.elements(depth)
+        34 -> {
+            _ = self.string()?
+            Ok(())
+        }
+        116 -> self.literal("true")
+        102 -> self.literal("false")
+        110 -> self.literal("null")
+        _ -> self.integer()
+    }
+}
+
+fn JsonScan.take(mut self) -> String {
+    let text = String.fromBytes(Bytes.fromArray(&self.out)) || ""
+    self.out = Array.empty[u8]()
+    text
+}

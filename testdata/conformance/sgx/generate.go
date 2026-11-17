@@ -11,24 +11,29 @@ import (
 )
 
 type vector struct {
-	ID         string `json:"id"`
-	Op         string `json:"op"`
-	Hex        string `json:"hex,omitempty"`
-	Hex2       string `json:"hex2,omitempty"`
-	Anchors    string `json:"anchors,omitempty"`
-	Now        int64  `json:"now,omitempty"`
-	TcbInfo    string `json:"tcbInfo,omitempty"`
-	QeIdentity string `json:"qeIdentity,omitempty"`
-	ReportData string `json:"reportData,omitempty"`
-	CpuSvn     string `json:"cpuSvn,omitempty"`
-	PceSvn     uint16 `json:"pceSvn,omitempty"`
-	Expected   string `json:"expected"`
+	ID            string         `json:"id"`
+	Op            string         `json:"op"`
+	Quote         string         `json:"quote,omitempty"`
+	Hex           string         `json:"hex,omitempty"`
+	Hex2          string         `json:"hex2,omitempty"`
+	Anchors       string         `json:"anchors,omitempty"`
+	Now           int64          `json:"now,omitempty"`
+	ReportData    string         `json:"reportData,omitempty"`
+	Measurement   string         `json:"measurement,omitempty"`
+	CpuSvn        string         `json:"cpuSvn,omitempty"`
+	PceSvn        uint16         `json:"pceSvn,omitempty"`
+	Args          []string       `json:"args,omitempty"`
+	Collateral    *collateralRef `json:"collateral,omitempty"`
+	Accept        string         `json:"accept,omitempty"`
+	MinEvaluation uint32         `json:"minEvaluation,omitempty"`
+	Expected      string         `json:"expected"`
 }
 
 type suite struct {
-	Primitive string   `json:"primitive"`
-	Source    string   `json:"source"`
-	Vectors   []vector `json:"vectors"`
+	Primitive string            `json:"primitive"`
+	Source    string            `json:"source"`
+	Blobs     map[string]string `json:"blobs,omitempty"`
+	Vectors   []vector          `json:"vectors"`
 }
 
 func must[T any](value T, err error) T {
@@ -68,19 +73,17 @@ func main() {
 		for j := range file.Vectors {
 			regenerate(&file.Vectors[j], material, base)
 		}
-		data := append(must(json.MarshalIndent(file, "", "  ")), '\n')
-		if *check {
-			if !bytes.Equal(data, must(os.ReadFile(path))) {
-				panic(fmt.Sprintf("stale fixture %s", path))
-			}
-		} else if err := os.WriteFile(path, data, 0o644); err != nil {
-			panic(err)
-		}
+		write(path, *file, *check)
 	}
-	pathFile := pathVectors(material)
-	data := append(must(json.MarshalIndent(pathFile, "", "  ")), '\n')
-	path := filepath.Join(*dir, "pck_paths.json")
-	if *check {
+	write(filepath.Join(*dir, "pck_paths.json"), pathVectors(material), *check)
+	collateral := newWorld()
+	write(filepath.Join(*dir, "collateral_verify.json"), verifySuite(collateral), *check)
+	write(filepath.Join(*dir, "collateral_parts.json"), partsSuite(collateral), *check)
+}
+
+func write(path string, file suite, check bool) {
+	data := append(must(json.MarshalIndent(file, "", "  ")), '\n')
+	if check {
 		if !bytes.Equal(data, must(os.ReadFile(path))) {
 			panic(fmt.Sprintf("stale fixture %s", path))
 		}

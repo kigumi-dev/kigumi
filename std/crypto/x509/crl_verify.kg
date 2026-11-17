@@ -1,0 +1,104 @@
+// CRL accessors, signature verification and serial lookup.
+import p256 from std/crypto/p256
+import rsa from std/crypto/rsa
+import sha256 from std/crypto/sha256
+
+/// The DER bytes of the TBSCertList, i.e. the signed data.
+pub pure fn RevocationList.tbsCertList(self) -> Bytes {
+    self.tbs
+}
+
+/// Milliseconds since the epoch at which the list was issued.
+pub pure fn RevocationList.thisUpdateMillis(self) -> Int {
+    timeMillis(self.thisUpdate)
+}
+
+/// Milliseconds since the epoch by which the next list is due, if stated.
+pub pure fn RevocationList.nextUpdateMillis(self) -> Int? {
+    match self.nextUpdate {
+        Some(time) -> Some(timeMillis(time))
+        None -> None
+    }
+}
+
+/// Whether the list names `cert`'s serial number. The issuer must be
+/// checked separately: serial numbers are unique per issuer only.
+pub pure fn RevocationList.revokes(self, cert: &Certificate) -> Bool {
+    for entry in &self.revoked {
+        if entry.serial.equals(&cert.serial) {
+            return true
+        }
+    }
+    false
+}
+
+pure fn malformedCrl(text: String) -> ValidationError {
+    validationFailure("CRL: ${text}")
+}
+
+fn verifyCrlBytes(tbs: Bytes, signature: Bytes, algorithm: SignatureAlgorithm, issuerName: &Name, issuer: &Certificate) -> Result[Void, ValidationError] {
+    if !issuerName.raw.equals(&issuer.subject.raw) {
+        fail validationFailure("CRL issuer does not match the certificate subject")
+    }
+    if issuer.keyUsage.present && !issuer.keyUsage.crlSign {
+        fail validationFailure("CRL issuer keyUsage lacks cRLSign")
+    }
+    let digest = sha256.sum(tbs)
+    match algorithm {
+        Sha256WithRsa -> match issuer.publicKey {
+            PublicKey.Rsa(publicKey) -> rsaVerdict(rsa.verifyPkcs1v15Sha256Digest(publicKey, digest, signature))
+            _ -> fail validationFailure("RSA CRL signature requires an RSA issuer key")
+        }
+        RsaPssSha256 -> match issuer.publicKey {
+            PublicKey.Rsa(publicKey) -> rsaVerdict(rsa.verifyPssSha256Digest(publicKey, digest, signature, rsa.SaltLength.Exact(32)))
+            _ -> fail validationFailure("RSA-PSS CRL signature requires an RSA issuer key")
+        }
+        EcdsaSha256 -> match issuer.publicKey {
+            PublicKey.EcP256(publicKey) -> ecdsaVerdict(p256.verify(publicKey, digest, ecdsaSignature(signature)?))
+            _ -> fail validationFailure("ECDSA CRL signature requires a P-256 issuer key")
+        }
+    }
+}
+
+/// Verifies that `issuer` signed the list: the issuer name must equal the
+/// certificate subject and a present keyUsage must allow cRLSign.
+pub fn RevocationList.verifySignedBy(self, issuer: &Certificate) -> Result[Void, ValidationError] {
+    verifyCrlBytes(self.tbs, self.signature, self.signatureAlgorithm, &self.issuer, issuer)
+}
+
+/// `RevocationList.verifySignedBy` over the DER list before its entries are
+/// decoded, so an unsigned list costs no more than reading its header fields.
+pub fn verifyCrlSignature(der: Bytes, issuer: &Certificate) -> Result[Void, ValidationError] {
+    let envelope = match crlEnvelope(der) {
+        Ok(value) -> value
+        Err(err) -> fail malformedCrl(err.message())
+    }
+    let fields = match sequence(envelope.tbs) {
+        Ok(value) -> value
+        Err(err) -> fail malformedCrl(err.message())
+    }
+    let at: usize = if fields.len() > 0 && universal(fields[0]) && fields[0].tag == 2 {
+        1
+    } else {
+        0
+    }
+    if fields.len() < at + 2 {
+        fail malformedCrl("TBSCertList is missing required fields")
+    }
+    let inner = match parseSignatureAlgorithm(fields[at]) {
+        Ok(value) -> value
+        Err(err) -> fail malformedCrl(err.message())
+    }
+    if !sameAlgorithm(inner, envelope.algorithm) {
+        fail malformedCrl("inner and outer CRL signature algorithms differ")
+    }
+    let name = match parseName(der, fields[at + 1]) {
+        Ok(value) -> value
+        Err(err) -> fail malformedCrl(err.message())
+    }
+    let tbs = match rawElement(der, envelope.tbs) {
+        Ok(value) -> value
+        Err(err) -> fail malformedCrl(err.message())
+    }
+    verifyCrlBytes(tbs, envelope.signature, envelope.algorithm, &name, issuer)
+}

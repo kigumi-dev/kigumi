@@ -1,0 +1,70 @@
+// TCB appraisal after Intel QVL QuoteVerifier and sgxEvaluateTCB: the platform
+// level comes from the PCK certificate's TCB, never the quote header.
+import x509 from std/crypto/x509
+
+/// What the collateral says about the platform and the QE.
+pub type Appraisal = {
+    pub fmspc Bytes
+    pub pceId Bytes
+    pub platform TcbEvaluation
+    pub qe QeIdentityEvaluation
+    pub tcbDate String
+    pub tcbEvaluationDataNumber u32
+    pub qeEvaluationDataNumber u32
+}
+
+type Appraised = {
+    status Status
+    appraisal Appraisal
+}
+
+pure fn earlierDate(a: &TcbEvaluation, b: &QeIdentityEvaluation) -> String {
+    if b.tcbDateMillis < a.tcbDateMillis {
+        b.tcbDate
+    } else {
+        a.tcbDate
+    }
+}
+
+pure fn checkEvaluationNumber(policy: &Policy, value: u32, what: String) -> Result[Void, Error] {
+    if let Some(minimum) = policy.minimumTcbEvaluationDataNumber {
+        if value < minimum {
+            fail failure(PolicyRejected, "${what} tcbEvaluationDataNumber ${value} is below ${minimum}")
+        }
+    }
+}
+
+fn appraise(collateral: &Collateral, chain: &Chain, root: &x509.Certificate, qeReport: &Report, policy: &Policy) -> Result[Appraised, Error] {
+    let auth = authenticate(collateral, chain, root, policy.nowMillis)?
+    if !auth.tcbInfo.fmspc.equals(&auth.pck.fmspc) {
+        fail failure(TcbInfoMismatch, "TCB Info FMSPC does not match the PCK certificate")
+    }
+    if !auth.tcbInfo.pceId.equals(&auth.pck.pceId) {
+        fail failure(TcbInfoMismatch, "TCB Info PCE ID does not match the PCK certificate")
+    }
+    if policy.requireFmspc is Some(expected) {
+        if !auth.pck.fmspc.equals(&expected) {
+            fail failure(PolicyRejected, "PCK certificate FMSPC does not match the required value")
+        }
+    }
+    if auth.qeIdentity.id != "QE" {
+        fail failure(QeIdentityMismatch, "enclave identity `${auth.qeIdentity.id}` is not the SGX QE")
+    }
+    checkEvaluationNumber(policy, auth.tcbInfo.tcbEvaluationDataNumber, "TCB Info")?
+    checkEvaluationNumber(policy, auth.qeIdentity.tcbEvaluationDataNumber, "QE Identity")?
+    let qe = auth.qeIdentity.evaluate(qeReport)?
+    let platform = auth.tcbInfo.evaluate(auth.pck.components, auth.pck.pceSvn)?
+    let status = convergeStatus(platform.status, qe.status)?
+    Ok(Appraised {
+        status: status
+        appraisal: Appraisal {
+            fmspc: auth.pck.fmspc
+            pceId: auth.pck.pceId
+            tcbDate: earlierDate(&platform, &qe)
+            platform: platform
+            qe: qe
+            tcbEvaluationDataNumber: auth.tcbInfo.tcbEvaluationDataNumber
+            qeEvaluationDataNumber: auth.qeIdentity.tcbEvaluationDataNumber
+        }
+    })
+}

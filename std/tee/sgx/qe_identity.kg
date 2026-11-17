@@ -1,0 +1,159 @@
+// QE Identity after Intel QVL EnclaveIdentity and EnclaveReportVerifier, which
+// compare the masked report with the identity value as published.
+import json from std/json
+
+/// One QE TCB level, selected by the QE report's ISV SVN.
+pub type QeTcbLevel = {
+    pub isvSvn u16
+    pub tcbDate String
+    pub tcbDateMillis Int
+    pub status TcbStatus
+    pub advisoryIds Array[String]
+}
+
+/// A structurally valid QE Identity document (version 2). `miscSelect` and
+/// its mask hold the four bytes in report byte order.
+pub type QeIdentity = {
+    pub id String
+    pub issueDateMillis Int
+    pub nextUpdateMillis Int
+    pub tcbEvaluationDataNumber u32
+    pub miscSelect Bytes
+    pub miscSelectMask Bytes
+    pub attributes Bytes
+    pub attributesMask Bytes
+    pub mrSigner Bytes
+    pub isvProdId u16
+    pub tcbLevels Array[QeTcbLevel]
+}
+
+/// The QE TCB level a QE report reached.
+pub type QeIdentityEvaluation = {
+    pub status TcbStatus
+    pub isvSvn u16
+    pub tcbDate String
+    pub tcbDateMillis Int
+    pub advisoryIds Array[String]
+}
+
+pure fn decodeQeLevel(level: &QeTcbLevelJson) -> Result[QeTcbLevel, Error] {
+    Ok(QeTcbLevel {
+        isvSvn: level.tcb.isvsvn
+        tcbDate: level.tcbDate
+        tcbDateMillis: collateralDate(level.tcbDate, "tcbDate", BadQeIdentity)?
+        status: statusFromText(level.tcbStatus, BadQeIdentity)?
+        advisoryIds: match &level.advisoryIDs {
+            Some(ids) -> ids.clone()
+            None -> Array.empty[String]()
+        }
+    })
+}
+
+pure fn insertQeLevel(levels: &mut Array[QeTcbLevel], level: QeTcbLevel) -> Result[Void, Error] {
+    let mut at: usize = 0
+    for at < levels.len() {
+        if levels[at].isvSvn == level.isvSvn {
+            fail failure(BadQeIdentity, "duplicate QE TCB level")
+        }
+        if level.isvSvn > levels[at].isvSvn {
+            break
+        }
+        at = at + 1
+    }
+    if !levels.insertAt(at, level) {
+        fail failure(BadQeIdentity, "QE TCB level position is out of range")
+    }
+}
+
+/// Parses a PCS QE Identity document `{"enclaveIdentity": {...},
+/// "signature": "..."}` without checking the signature.
+pub fn QeIdentity.parse(document: String) -> Result[QeIdentity, Error] {
+    QeIdentity.fromSigned(splitSigned(document, "enclaveIdentity", BadQeIdentity, "QE Identity")?)
+}
+
+fn QeIdentity.fromSigned(signed: SignedJson) -> Result[QeIdentity, Error] {
+    requireUniqueMembers(signed.body, BadQeIdentity, "QE Identity")?
+    let doc = match json.decode[QeIdentityBodyJson](signed.body) {
+        Ok(value) -> value
+        Err(err) -> fail failure(BadQeIdentity, err.message())
+    }
+    if doc.id != "QE" && doc.id != "QVE" && doc.id != "TD_QE" {
+        fail failure(BadQeIdentity, "enclave identity id `${doc.id}` is not supported")
+    }
+    if doc.version != 2 {
+        fail failure(BadQeIdentity, "enclave identity version ${doc.version} is not supported (need 2)")
+    }
+    if doc.tcbLevels.len() == 0 {
+        fail failure(BadQeIdentity, "QE Identity has no TCB levels")
+    }
+    let mut levels = Array.empty[QeTcbLevel]()
+    for level in &doc.tcbLevels {
+        insertQeLevel(&mut levels, decodeQeLevel(level)?)?
+    }
+    Ok(QeIdentity {
+        id: doc.id
+        issueDateMillis: collateralDate(doc.issueDate, "issueDate", BadQeIdentity)?
+        nextUpdateMillis: collateralDate(doc.nextUpdate, "nextUpdate", BadQeIdentity)?
+        tcbEvaluationDataNumber: doc.tcbEvaluationDataNumber
+        miscSelect: hexField(doc.miscselect, "miscselect", 4, BadQeIdentity)?
+        miscSelectMask: hexField(doc.miscselectMask, "miscselectMask", 4, BadQeIdentity)?
+        attributes: hexField(doc.attributes, "attributes", 16, BadQeIdentity)?
+        attributesMask: hexField(doc.attributesMask, "attributesMask", 16, BadQeIdentity)?
+        mrSigner: hexField(doc.mrsigner, "mrsigner", 32, BadQeIdentity)?
+        isvProdId: doc.isvprodid
+        tcbLevels: levels
+    })
+}
+
+pure fn wordBytes(word: u32) -> Bytes {
+    let mut out = Array.empty[u8]()
+    let mut shift: usize = 0
+    for shift < 32 {
+        out.push(((word >> shift) & 0xFF).toU8() || 0)
+        shift = shift + 8
+    }
+    Bytes.fromArray(&out)
+}
+
+pure fn maskedEquals(value: Bytes, mask: Bytes, expected: Bytes) -> Bool {
+    if value.len() != expected.len() || mask.len() != expected.len() {
+        return false
+    }
+    let mut i: usize = 0
+    for i < expected.len() {
+        if (value[i] & mask[i]) != expected[i] {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}
+
+/// Checks the QE report against the identity and selects its TCB level: the
+/// highest level whose ISV SVN the report reaches, or `TcbNotSupported`.
+pub fn QeIdentity.evaluate(self, report: &Report) -> Result[QeIdentityEvaluation, Error] {
+    if !maskedEquals(wordBytes(report.miscSelect), self.miscSelectMask, self.miscSelect) {
+        fail failure(QeIdentityMismatch, "QE report MISCSELECT does not match the identity")
+    }
+    if !maskedEquals(report.attributes, self.attributesMask, self.attributes) {
+        fail failure(QeIdentityMismatch, "QE report ATTRIBUTES do not match the identity")
+    }
+    if !report.mrSigner.equals(&self.mrSigner) {
+        fail failure(QeIdentityMismatch, "QE report MR_SIGNER does not match the identity")
+    }
+    if report.isvProdId != self.isvProdId {
+        fail failure(QeIdentityMismatch, "QE report ISV_PROD_ID does not match the identity")
+    }
+    for level in &self.tcbLevels {
+        if level.isvSvn <= report.isvSvn {
+            return Ok(QeIdentityEvaluation {
+                status: level.status
+                isvSvn: report.isvSvn
+                tcbDate: level.tcbDate
+                tcbDateMillis: level.tcbDateMillis
+                advisoryIds: level.advisoryIds.clone()
+            })
+        }
+    }
+    fail failure(TcbNotSupported, "QE report ISV_SVN ${report.isvSvn} is below every QE TCB level")
+}

@@ -62,7 +62,11 @@ func TestSgxFixtureOracle(t *testing.T) {
 	for _, suite := range loadSgxCorpus(t).Suites {
 		for _, vector := range suite.Vectors {
 			t.Run(suite.Primitive+"/"+vector.ID, func(t *testing.T) {
-				data, err := hex.DecodeString(vector.Hex)
+				input := vector.Hex
+				if vector.Op == "sgx-verify" {
+					input = suite.Blobs[vector.Quote]
+				}
+				data, err := hex.DecodeString(input)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -85,6 +89,11 @@ func TestSgxFixtureOracle(t *testing.T) {
 					if positive || vector.ID == "forged-quote" || vector.ID == "forged-qe" || vector.ID == "forged" || vector.ID == "wrong-binding" {
 						verifySgxQuoteOracle(t, vector, data)
 					}
+					if vector.Op == "sgx-verify" && positive && vector.Collateral != nil {
+						verifyCollateralOracle(t, suite.Blobs, vector, data)
+					}
+				default:
+					collateralPartOracle(t, suite.Blobs, vector)
 				}
 			})
 		}

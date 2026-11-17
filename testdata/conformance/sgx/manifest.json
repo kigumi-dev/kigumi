@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "comment": "SGX v3 structural and cryptographic cases: deterministic local keys plus pinned Intel QVL sample data; no hardware isolation claim.",
+  "comment": "SGX v3 structural, cryptographic and collateral cases: deterministic local keys and a synthetic Intel-shaped P-256 hierarchy, plus pinned Intel QVL sample data and the Intel SGX Root CA; no hardware isolation claim.",
   "suites": [
     {
       "primitive": "sgx-quote-parse",
@@ -23,14 +23,14 @@
       "path": "sgx_pck.json"
     },
     {
-      "primitive": "sgx-tcb",
-      "source": "Intel TCB Info JSON shapes evaluated against a fixed CPU SVN",
-      "path": "sgx_tcb.json"
+      "primitive": "sgx-verify",
+      "source": "End-to-end production DCAP verification: quote, QE, P-256 PCK chain, then TCB Info and QE Identity signed by a TCB signing certificate, PCK and root CA CRLs and freshness at a caller-supplied time",
+      "path": "collateral_verify.json"
     },
     {
-      "primitive": "sgx-verify",
-      "source": "End-to-end DCAP verification: quote + QE + P-256 PCK chain + TCB/QE identity",
-      "path": "sgx_verify.json"
+      "primitive": "sgx-collateral",
+      "source": "Collateral components: QVL TcbInfo / EnclaveIdentity parsing and level selection, convergeTcbStatuses, TCB signing chain, CRLs and the PCK SGX extension",
+      "path": "collateral_parts.json"
     },
     {
       "primitive": "sgx-pck-path",
@@ -41,6 +41,11 @@
       "primitive": "sgx-intel-vendor",
       "source": "Intel QVL d12717e3f1f2ab81313f88001fd902b5ef5f9c8c Src/AttestationApp/sampleData; BSD-3-Clause (INTEL-LICENSE.txt). Type-5 variant replaces the type-1 certificate locator with the matching vendor PCK chain; signed bytes are unchanged.",
       "path": "intel_vendor.json"
+    },
+    {
+      "primitive": "sgx-intel-collateral",
+      "source": "Intel-signed QVL sample collateral (BSD-3-Clause, INTEL-LICENSE.txt) and the production Intel SGX Root CA",
+      "path": "intel_collateral.json"
     }
   ]
 }

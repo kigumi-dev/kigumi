@@ -1,0 +1,55 @@
+// Collateral timestamps and freshness.
+import asn1 from std/crypto/asn1
+
+pure fn dateDigits(b: Bytes, at: usize, count: usize) -> Int? {
+    let mut value: Int = 0
+    let mut i: usize = 0
+    for i < count {
+        let c = b[at + i]
+        if c < 48 || c > 57 {
+            return None
+        }
+        value = value * 10 + (c.toInt() - 48)
+        i = i + 1
+    }
+    Some(value)
+}
+
+pure fn separatorsMatch(b: Bytes) -> Bool {
+    b[4] == 45 && b[7] == 45 && b[10] == 84 && b[13] == 58 && b[16] == 58 && b[19] == 90
+}
+
+/// Parses the `YYYY-MM-DDTHH:MM:SSZ` form Intel collateral uses into Unix
+/// milliseconds; any other form or an impossible date is refused.
+pure fn collateralDate(text: String, field: String, code: Code) -> Result[Int, Error] {
+    let b = text.toBytes()
+    if b.len() != 20 || !separatorsMatch(b) {
+        fail failure(code, "${field} must be YYYY-MM-DDTHH:MM:SSZ")
+    }
+    let year = dateDigits(b, 0, 4) || fail failure(code, "${field} has a non-digit")
+    let month = dateDigits(b, 5, 2) || fail failure(code, "${field} has a non-digit")
+    let day = dateDigits(b, 8, 2) || fail failure(code, "${field} has a non-digit")
+    let hour = dateDigits(b, 11, 2) || fail failure(code, "${field} has a non-digit")
+    let minute = dateDigits(b, 14, 2) || fail failure(code, "${field} has a non-digit")
+    let second = dateDigits(b, 17, 2) || fail failure(code, "${field} has a non-digit")
+    match asn1.Time.of(year, month, day, hour, minute, second) {
+        Ok(time) -> Ok(time.unixMillis())
+        Err(_) -> fail failure(code, "${field} is not a calendar date")
+    }
+}
+
+/// Refuses a CRL outside [thisUpdate, nextUpdate], as QVL's CRL validity does.
+pure fn requireWithin(startMillis: Int, endMillis: Int, nowMillis: Int, what: String) -> Result[Void, Error] {
+    if nowMillis < startMillis {
+        fail failure(CollateralNotYetValid, "${what} is issued after the verification time")
+    }
+    requireUnexpired(endMillis, nowMillis, what)
+}
+
+/// Refuses collateral past `nextUpdate` or a certificate past notAfter. As in
+/// Intel QVL, a later issue date is accepted, so a lagging clock is harmless.
+pure fn requireUnexpired(endMillis: Int, nowMillis: Int, what: String) -> Result[Void, Error] {
+    if nowMillis > endMillis {
+        fail failure(CollateralExpired, "${what} is past its next update or expiry")
+    }
+}

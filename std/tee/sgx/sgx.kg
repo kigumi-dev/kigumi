@@ -22,6 +22,18 @@ pub type Code =
     | BadQeIdentity
     | PolicyRejected
     | MissingTrustAnchor
+    | BadPckExtension
+    | BadSigningChain
+    | BadCrl
+    | CertificateRevoked
+    | CollateralSignatureInvalid
+    | CollateralExpired
+    | CollateralNotYetValid
+    | TcbInfoMismatch
+    | TcbNotSupported
+    | StatusRejected
+    | TcbRevoked
+    | MissingCollateral
 
 pub fn Code.name(self) -> String {
     match self {
@@ -44,6 +56,18 @@ pub fn Code.name(self) -> String {
         BadQeIdentity -> "bad-qe-identity"
         PolicyRejected -> "policy-rejected"
         MissingTrustAnchor -> "missing-trust-anchor"
+        BadPckExtension -> "bad-pck-extension"
+        BadSigningChain -> "bad-signing-chain"
+        BadCrl -> "bad-crl"
+        CertificateRevoked -> "certificate-revoked"
+        CollateralSignatureInvalid -> "collateral-signature-invalid"
+        CollateralExpired -> "collateral-expired"
+        CollateralNotYetValid -> "collateral-not-yet-valid"
+        TcbInfoMismatch -> "tcb-info-mismatch"
+        TcbNotSupported -> "tcb-not-supported"
+        StatusRejected -> "status-rejected"
+        TcbRevoked -> "tcb-revoked"
+        MissingCollateral -> "missing-collateral"
     }
 }
 

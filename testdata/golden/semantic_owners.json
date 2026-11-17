@@ -3760,6 +3760,26 @@
     "status": "ok"
   },
   {
+    "key": "crypto/asn1.Time.of",
+    "signature": "pure fn(Int, Int, Int, Int, Int, Int) -\u003e Result[Time, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.Time.unixMillis",
+    "signature": "pure fn() -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "crypto/asn1.asn1Error",
     "signature": "pure fn(String) -\u003e Error",
     "has_body": true,
@@ -3802,6 +3822,16 @@
   {
     "key": "crypto/asn1.digits",
     "signature": "pure fn(Bytes, usize, usize) -\u003e Result[Int, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/asn1.floorDiv",
+    "signature": "pure fn(Int, Int) -\u003e Int",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3881,7 +3911,7 @@
   },
   {
     "key": "crypto/asn1.parseElementAt",
-    "signature": "pure fn(Bytes, usize, usize) -\u003e Result[Element, Error]",
+    "signature": "pure fn(\u0026Bytes, usize, usize) -\u003e Result[Element, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3891,7 +3921,7 @@
   },
   {
     "key": "crypto/asn1.parseHeader",
-    "signature": "pure fn(Bytes, usize) -\u003e Result[Header, Error]",
+    "signature": "pure fn(\u0026Bytes, usize) -\u003e Result[Header, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3901,7 +3931,7 @@
   },
   {
     "key": "crypto/asn1.parseHighTag",
-    "signature": "pure fn(Bytes, usize) -\u003e Result[CursorValue, Error]",
+    "signature": "pure fn(\u0026Bytes, usize) -\u003e Result[CursorValue, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3911,7 +3941,7 @@
   },
   {
     "key": "crypto/asn1.parseLength",
-    "signature": "pure fn(Bytes, usize) -\u003e Result[CursorValue, Error]",
+    "signature": "pure fn(\u0026Bytes, usize) -\u003e Result[CursorValue, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10530,6 +10560,26 @@
     "status": "ok"
   },
   {
+    "key": "crypto/x509.Certificate.extensionValue",
+    "signature": "pure fn(String) -\u003e Result[Bytes?, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.Certificate.extensions",
+    "signature": "pure fn() -\u003e Result[Array[Extension], ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "crypto/x509.Certificate.signatureValue",
     "signature": "pure fn() -\u003e Bytes",
     "has_body": true,
@@ -10582,6 +10632,56 @@
   {
     "key": "crypto/x509.ParseError.message",
     "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.RevocationList.nextUpdateMillis",
+    "signature": "pure fn() -\u003e Int?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.RevocationList.revokes",
+    "signature": "pure fn(\u0026Certificate) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.RevocationList.tbsCertList",
+    "signature": "pure fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.RevocationList.thisUpdateMillis",
+    "signature": "pure fn() -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.RevocationList.verifySignedBy",
+    "signature": "fn(\u0026Certificate) -\u003e Result[Void, ValidationError]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10710,6 +10810,26 @@
     "status": "ok"
   },
   {
+    "key": "crypto/x509.crlEnvelope",
+    "signature": "pure fn(Bytes) -\u003e Result[CrlEnvelope, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.crlVersion",
+    "signature": "pure fn(Element) -\u003e Result[Int, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "crypto/x509.daysFromCivil",
     "signature": "pure fn(Int, Int, Int) -\u003e Int",
     "has_body": true,
@@ -10780,6 +10900,16 @@
     "status": "ok"
   },
   {
+    "key": "crypto/x509.extensionList",
+    "signature": "pure fn(Element) -\u003e Result[Array[Extension], ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "crypto/x509.floorDiv",
     "signature": "pure fn(Int, Int) -\u003e Int",
     "has_body": true,
@@ -10812,6 +10942,26 @@
   {
     "key": "crypto/x509.keyUsageValue",
     "signature": "pure fn(Bytes) -\u003e Result[KeyUsage, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.listExtensions",
+    "signature": "pure fn(Element, \u0026mut Array[String]) -\u003e Result[ListExtensions, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.malformedCrl",
+    "signature": "pure fn(String) -\u003e ValidationError",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10910,6 +11060,16 @@
     "status": "ok"
   },
   {
+    "key": "crypto/x509.parseCrl",
+    "signature": "pure fn(Bytes) -\u003e Result[RevocationList, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "crypto/x509.parseExtensions",
     "signature": "pure fn(Element) -\u003e Result[Extensions, ParseError]",
     "has_body": true,
@@ -11000,6 +11160,16 @@
     "status": "ok"
   },
   {
+    "key": "crypto/x509.parseTbsCertList",
+    "signature": "pure fn(Bytes, Element, SignatureAlgorithm, Bytes) -\u003e Result[RevocationList, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "crypto/x509.parseTime",
     "signature": "pure fn(Element) -\u003e Result[Time, ParseError]",
     "has_body": true,
@@ -11052,6 +11222,16 @@
   {
     "key": "crypto/x509.requireSha256",
     "signature": "pure fn(Element) -\u003e Result[Void, ParseError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.revokedEntry",
+    "signature": "pure fn(Element, \u0026mut Array[String]) -\u003e Result[RevokedCertificate, ParseError]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -11182,6 +11362,26 @@
   {
     "key": "crypto/x509.verifyChain",
     "signature": "fn(\u0026Array[Certificate], \u0026Array[Certificate], String, Int) -\u003e Result[Void, ValidationError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.verifyCrlBytes",
+    "signature": "fn(Bytes, Bytes, SignatureAlgorithm, \u0026Name, \u0026Certificate) -\u003e Result[Void, ValidationError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.verifyCrlSignature",
+    "signature": "fn(Bytes, \u0026Certificate) -\u003e Result[Void, ValidationError]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31202,6 +31402,46 @@
     "status": "ok"
   },
   {
+    "key": "tee/sgx.AcceptableStatus.all",
+    "signature": "pure fn() -\u003e Array[AcceptableStatus]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.AcceptableStatus.code",
+    "signature": "pure fn() -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.AcceptableStatus.name",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.AcceptableStatus.same",
+    "signature": "pure fn(AcceptableStatus) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "tee/sgx.Chain.leafPublicKey",
     "signature": "pure fn() -\u003e Result[Bytes, Error]",
     "has_body": true,
@@ -31222,8 +31462,28 @@
     "status": "ok"
   },
   {
+    "key": "tee/sgx.Chain.verifyTo",
+    "signature": "fn(\u0026Array[Certificate], Int) -\u003e Result[usize, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "tee/sgx.Code.name",
     "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.ComponentJson.fromJson",
+    "signature": "fn(Value) -\u003e ComponentJson!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31242,8 +31502,168 @@
     "status": "ok"
   },
   {
+    "key": "tee/sgx.JsonScan.copy",
+    "signature": "fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.JsonScan.elements",
+    "signature": "fn(Int) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.JsonScan.expect",
+    "signature": "fn(Int, String) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.JsonScan.integer",
+    "signature": "fn() -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.JsonScan.isDigit",
+    "signature": "fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.JsonScan.literal",
+    "signature": "fn(String) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.JsonScan.members",
+    "signature": "fn(Int) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.JsonScan.peek",
+    "signature": "fn() -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.JsonScan.reject",
+    "signature": "fn(String) -\u003e Error",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.JsonScan.space",
+    "signature": "fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.JsonScan.string",
+    "signature": "fn() -\u003e Result[String, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.JsonScan.take",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.JsonScan.value",
+    "signature": "fn(Int) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.PckExtension.of",
+    "signature": "fn(\u0026Certificate) -\u003e Result[PckExtension, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.Policy.accepts",
+    "signature": "pure fn(AcceptableStatus) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "tee/sgx.Policy.production",
-    "signature": "pure fn(String, Int) -\u003e Policy",
+    "signature": "pure fn(String, Int, Collateral, Bytes, Measurement) -\u003e Policy",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.PresentJson.fromJson",
+    "signature": "fn(Value) -\u003e PresentJson!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31262,6 +31682,16 @@
     "status": "ok"
   },
   {
+    "key": "tee/sgx.QeIdentity.fromSigned",
+    "signature": "fn(SignedJson) -\u003e Result[QeIdentity, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "tee/sgx.QeIdentity.parse",
     "signature": "fn(String) -\u003e Result[QeIdentity, Error]",
     "has_body": true,
@@ -31272,8 +31702,8 @@
     "status": "ok"
   },
   {
-    "key": "tee/sgx.QeIdentityDocJson.fromJson",
-    "signature": "fn(Value) -\u003e QeIdentityDocJson!",
+    "key": "tee/sgx.QeIdentity.parseVerified",
+    "signature": "fn(String, String, String, Bytes, Int) -\u003e Result[QeIdentity, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31282,8 +31712,8 @@
     "status": "ok"
   },
   {
-    "key": "tee/sgx.QeIdentityJson.fromJson",
-    "signature": "fn(Value) -\u003e QeIdentityJson!",
+    "key": "tee/sgx.QeIdentityBodyJson.fromJson",
+    "signature": "fn(Value) -\u003e QeIdentityBodyJson!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31372,8 +31802,8 @@
     "status": "ok"
   },
   {
-    "key": "tee/sgx.SgxComponentJson.fromJson",
-    "signature": "fn(Value) -\u003e SgxComponentJson!",
+    "key": "tee/sgx.SgxTcbJson.fromJson",
+    "signature": "fn(Value) -\u003e SgxTcbJson!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31382,8 +31812,8 @@
     "status": "ok"
   },
   {
-    "key": "tee/sgx.SgxTcbJson.fromJson",
-    "signature": "fn(Value) -\u003e SgxTcbJson!",
+    "key": "tee/sgx.Status.acceptable",
+    "signature": "pure fn() -\u003e AcceptableStatus?",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31402,8 +31832,8 @@
     "status": "ok"
   },
   {
-    "key": "tee/sgx.Status.rank",
-    "signature": "pure fn() -\u003e Int",
+    "key": "tee/sgx.TcbInfo.evaluate",
+    "signature": "fn(Bytes, u16) -\u003e Result[TcbEvaluation, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31412,8 +31842,8 @@
     "status": "ok"
   },
   {
-    "key": "tee/sgx.TcbInfo.evaluate",
-    "signature": "fn(Bytes, u16) -\u003e TcbEvaluation",
+    "key": "tee/sgx.TcbInfo.fromSigned",
+    "signature": "fn(SignedJson) -\u003e Result[TcbInfo, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31432,8 +31862,8 @@
     "status": "ok"
   },
   {
-    "key": "tee/sgx.TcbInfoDocJson.fromJson",
-    "signature": "fn(Value) -\u003e TcbInfoDocJson!",
+    "key": "tee/sgx.TcbInfo.parseVerified",
+    "signature": "fn(String, String, String, Bytes, Int) -\u003e Result[TcbInfo, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31442,8 +31872,8 @@
     "status": "ok"
   },
   {
-    "key": "tee/sgx.TcbInfoJson.fromJson",
-    "signature": "fn(Value) -\u003e TcbInfoJson!",
+    "key": "tee/sgx.TcbInfoBodyJson.fromJson",
+    "signature": "fn(Value) -\u003e TcbInfoBodyJson!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31472,8 +31902,8 @@
     "status": "ok"
   },
   {
-    "key": "tee/sgx.TcbStatus.rank",
-    "signature": "pure fn() -\u003e Int",
+    "key": "tee/sgx.TcbStatus.parse",
+    "signature": "pure fn(String) -\u003e Result[TcbStatus, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31492,8 +31922,8 @@
     "status": "ok"
   },
   {
-    "key": "tee/sgx.appendUnique",
-    "signature": "pure fn(\u0026mut Array[String], \u0026Array[String]) -\u003e Void",
+    "key": "tee/sgx.appraise",
+    "signature": "fn(\u0026Collateral, \u0026Chain, \u0026Certificate, \u0026Report, \u0026Policy) -\u003e Result[Appraised, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31504,6 +31934,36 @@
   {
     "key": "tee/sgx.attributeBit",
     "signature": "pure fn(Bytes, usize) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.authenticQeIdentity",
+    "signature": "fn(String, Bytes, Int) -\u003e Result[QeIdentity, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.authenticTcbInfo",
+    "signature": "fn(String, Bytes, Int) -\u003e Result[TcbInfo, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.authenticate",
+    "signature": "fn(\u0026Collateral, \u0026Chain, \u0026Certificate, Int) -\u003e Result[Authenticated, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31532,8 +31992,38 @@
     "status": "ok"
   },
   {
+    "key": "tee/sgx.checkCrl",
+    "signature": "fn(Bytes, \u0026Certificate, Int, String) -\u003e Result[RevocationList, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.checkEvaluationNumber",
+    "signature": "pure fn(\u0026Policy, u32, String) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "tee/sgx.checkSignature",
     "signature": "pure fn(\u0026Certificate, \u0026Certificate) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.checkTcbInfoShape",
+    "signature": "pure fn(\u0026TcbInfoBodyJson) -\u003e Result[Void, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31572,6 +32062,26 @@
     "status": "ok"
   },
   {
+    "key": "tee/sgx.collateralDate",
+    "signature": "pure fn(String, String, Code) -\u003e Result[Int, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.componentName",
+    "signature": "fn(usize) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "tee/sgx.componentsReach",
     "signature": "pure fn(Bytes, \u0026TcbLevel) -\u003e Bool",
     "has_body": true,
@@ -31582,8 +32092,38 @@
     "status": "ok"
   },
   {
-    "key": "tee/sgx.decodeHexField",
-    "signature": "pure fn(String, String, usize, Code) -\u003e Result[Bytes, Error]",
+    "key": "tee/sgx.convergeStatus",
+    "signature": "pure fn(TcbStatus, TcbStatus) -\u003e Result[Status, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.crlError",
+    "signature": "pure fn(String, String) -\u003e Error",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.dateDigits",
+    "signature": "pure fn(Bytes, usize, usize) -\u003e Int?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.decodeLevel",
+    "signature": "pure fn(\u0026TcbLevelJson, u32) -\u003e Result[TcbLevel, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31602,8 +32142,8 @@
     "status": "ok"
   },
   {
-    "key": "tee/sgx.decodeTcbLevel",
-    "signature": "pure fn(\u0026TcbLevelJson) -\u003e Result[TcbLevel, Error]",
+    "key": "tee/sgx.decodeQeLevel",
+    "signature": "pure fn(\u0026QeTcbLevelJson) -\u003e Result[QeTcbLevel, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31612,8 +32152,8 @@
     "status": "ok"
   },
   {
-    "key": "tee/sgx.decodeWordField",
-    "signature": "pure fn(String, String) -\u003e Result[u32, Error]",
+    "key": "tee/sgx.earlierDate",
+    "signature": "pure fn(\u0026TcbEvaluation, \u0026QeIdentityEvaluation) -\u003e String",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31632,6 +32172,26 @@
     "status": "ok"
   },
   {
+    "key": "tee/sgx.extensionError",
+    "signature": "pure fn(String) -\u003e Error",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.extensionFields",
+    "signature": "pure fn(Element, String) -\u003e Result[Array[ExtensionField], Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "tee/sgx.failure",
     "signature": "pure fn(Code, String) -\u003e Error",
     "has_body": true,
@@ -31642,8 +32202,38 @@
     "status": "ok"
   },
   {
-    "key": "tee/sgx.fromTcb",
-    "signature": "pure fn(TcbStatus) -\u003e Status",
+    "key": "tee/sgx.fieldNamed",
+    "signature": "pure fn(\u0026Array[ExtensionField], String, String) -\u003e Result[Element, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.hexField",
+    "signature": "pure fn(String, String, usize, Code) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.insertLevel",
+    "signature": "pure fn(\u0026mut Array[TcbLevel], TcbLevel) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.insertQeLevel",
+    "signature": "pure fn(\u0026mut Array[QeTcbLevel], QeTcbLevel) -\u003e Result[Void, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31672,7 +32262,17 @@
     "status": "ok"
   },
   {
-    "key": "tee/sgx.maskedAttributesMatch",
+    "key": "tee/sgx.levelOrder",
+    "signature": "pure fn(\u0026TcbLevel, \u0026TcbLevel) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.maskedEquals",
     "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Bool",
     "has_body": true,
     "kind": "",
@@ -31682,8 +32282,8 @@
     "status": "ok"
   },
   {
-    "key": "tee/sgx.needsConfiguration",
-    "signature": "pure fn(Status) -\u003e Bool",
+    "key": "tee/sgx.newScan",
+    "signature": "pure fn(String, Code, String, Bool) -\u003e JsonScan",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31692,8 +32292,18 @@
     "status": "ok"
   },
   {
-    "key": "tee/sgx.needsHardening",
-    "signature": "pure fn(Status) -\u003e Bool",
+    "key": "tee/sgx.octetsOfLength",
+    "signature": "pure fn(Element, usize, String) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.outOfDate",
+    "signature": "pure fn(TcbStatus) -\u003e Status",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31732,8 +32342,28 @@
     "status": "ok"
   },
   {
-    "key": "tee/sgx.pushUnique",
-    "signature": "pure fn(\u0026mut Array[String], String) -\u003e Void",
+    "key": "tee/sgx.pckPath",
+    "signature": "pure fn(\u0026Chain, \u0026Certificate) -\u003e Result[PckPath, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.pinnedRoot",
+    "signature": "fn(String, Int) -\u003e Result[Certificate, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.platformStatus",
+    "signature": "pure fn(TcbStatus) -\u003e Status",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31763,7 +32393,17 @@
   },
   {
     "key": "tee/sgx.reachAnchor",
-    "signature": "fn(\u0026Certificate, \u0026Array[Certificate], Int, usize, Bool) -\u003e Result[Void, Error]",
+    "signature": "fn(\u0026Certificate, \u0026Array[Certificate], Int, usize, Bool) -\u003e Result[usize, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.refuseRevoked",
+    "signature": "pure fn(\u0026RevocationList, \u0026Certificate, String) -\u003e Result[Void, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31782,8 +32422,98 @@
     "status": "ok"
   },
   {
+    "key": "tee/sgx.requireCommonName",
+    "signature": "pure fn(\u0026Certificate, String, Code, String) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.requireUnexpired",
+    "signature": "pure fn(Int, Int, String) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.requireUniqueMembers",
+    "signature": "fn(String, Code, String) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.requireWithin",
+    "signature": "pure fn(Int, Int, Int, String) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "tee/sgx.requireZero",
     "signature": "pure fn(Bytes, usize, usize, String) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.separatorsMatch",
+    "signature": "pure fn(Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.sequenceOf",
+    "signature": "pure fn(Element, String) -\u003e Result[Array[Element], Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.sgxTypeOf",
+    "signature": "pure fn(Element) -\u003e Result[u8, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.signatureOf",
+    "signature": "fn(String, \u0026JsonScan) -\u003e Result[Bytes, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.signingKey",
+    "signature": "fn(String, \u0026Certificate, \u0026RevocationList, Int, String) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31802,8 +32532,48 @@
     "status": "ok"
   },
   {
+    "key": "tee/sgx.smallInteger",
+    "signature": "pure fn(Element, u64, String) -\u003e Result[u64, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.splitSigned",
+    "signature": "fn(String, String, Code, String) -\u003e Result[SignedJson, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "tee/sgx.statusFromText",
-    "signature": "pure fn(String) -\u003e Result[TcbStatus, Error]",
+    "signature": "pure fn(String, Code) -\u003e Result[TcbStatus, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.tcbOf",
+    "signature": "pure fn(Element) -\u003e Result[PckTcb, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.terminalFailure",
+    "signature": "pure fn(Status) -\u003e Error",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -31842,6 +32612,16 @@
     "status": "ok"
   },
   {
+    "key": "tee/sgx.verifyBody",
+    "signature": "fn(Bytes, Bytes, Bytes, String) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "tee/sgx.verifyQe",
     "signature": "pure fn(\u0026QeCertification, Bytes) -\u003e Result[Verified, Error]",
     "has_body": true,
@@ -31862,8 +32642,8 @@
     "status": "ok"
   },
   {
-    "key": "tee/sgx.worse",
-    "signature": "pure fn(Status, Status) -\u003e Status",
+    "key": "tee/sgx.wordBytes",
+    "signature": "pure fn(u32) -\u003e Bytes",
     "has_body": true,
     "kind": "",
     "vm": "gap",

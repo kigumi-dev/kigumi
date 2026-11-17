@@ -1,0 +1,184 @@
+// RFC 5280 CRLs. Delta, indirect and partitioned lists carry critical
+// extensions this package does not interpret, so they surface in `unsupportedCritical`.
+import asn1 from std/crypto/asn1
+
+/// One revoked certificate.
+pub type RevokedCertificate = {
+    pub serial Bytes
+    pub revocationDate asn1.Time
+}
+
+/// A parsed CRL. A validating caller MUST refuse one whose
+/// `unsupportedCritical` (uninterpreted critical extensions) is not empty.
+pub type RevocationList = {
+    pub version Int
+    pub issuer Name
+    pub thisUpdate asn1.Time
+    pub nextUpdate asn1.Time?
+    pub revoked Array[RevokedCertificate]
+    pub crlNumber Bytes?
+    pub authorityKeyId Bytes?
+    pub signatureAlgorithm SignatureAlgorithm
+    pub unsupportedCritical Array[String]
+    tbs Bytes
+    signature Bytes
+}
+
+type ListExtensions = {
+    crlNumber Bytes?
+    authorityKeyId Bytes?
+}
+
+pure fn crlVersion(e: asn1.Element) -> Result[Int, ParseError] {
+    if uintOf(e)? != 1 {
+        fail parseFailure("an explicit CRL version must be v2")
+    }
+    Ok(2)
+}
+
+pure fn revokedEntry(e: asn1.Element, unsupported: &mut Array[String]) -> Result[RevokedCertificate, ParseError] {
+    let fields = sequence(e)?
+    if fields.len() < 2 || fields.len() > 3 {
+        fail parseFailure("revoked certificate entry must have two or three fields")
+    }
+    if fields.len() == 3 {
+        for extension in extensionList(fields[2])? {
+            if extension.critical && !unsupported.contains(extension.oid) {
+                unsupported.push(extension.oid)
+            }
+        }
+    }
+    Ok(RevokedCertificate {
+        serial: uintBytesOf(fields[0])?
+        revocationDate: parseTime(fields[1])?
+    })
+}
+
+pure fn listExtensions(e: asn1.Element, unsupported: &mut Array[String]) -> Result[ListExtensions, ParseError] {
+    if !(e.tagClass is asn1.TagClass.Context) || !e.constructed || e.tag != 0 {
+        fail parseFailure("crlExtensions must be [0] EXPLICIT")
+    }
+    let wrapper = match e.children() {
+        Ok(value) -> value
+        Err(err) -> fail parseFailure(err.message())
+    }
+    if wrapper.len() != 1 {
+        fail parseFailure("crlExtensions wrapper must hold one SEQUENCE")
+    }
+    let mut crlNumber: Bytes? = None
+    let mut authorityKeyId: Bytes? = None
+    for extension in extensionList(wrapper[0])? {
+        match extension.oid {
+            "2.5.29.20" -> {
+                crlNumber = Some(uintBytesOf(innerElement(extension.value)?)?)
+            }
+            "2.5.29.35" -> {
+                authorityKeyId = Some(authorityKeyIdValue(extension.value)?)
+            }
+            _ -> {
+                if extension.critical {
+                    unsupported.push(extension.oid)
+                }
+            }
+        }
+    }
+    Ok(ListExtensions {
+        crlNumber: crlNumber
+        authorityKeyId: authorityKeyId
+    })
+}
+
+pure fn parseTbsCertList(der: Bytes, tbs: asn1.Element, outerAlgorithm: SignatureAlgorithm, signature: Bytes) -> Result[RevocationList, ParseError] {
+    let fields = sequence(tbs)?
+    let mut at: usize = 0
+    let mut version: Int = 1
+    if at < fields.len() && universal(fields[at]) && fields[at].tag == 2 {
+        version = crlVersion(fields[at])?
+        at = at + 1
+    }
+    if fields.len() - at < 3 {
+        fail parseFailure("TBSCertList is missing required fields")
+    }
+    if !sameAlgorithm(parseSignatureAlgorithm(fields[at])?, outerAlgorithm) {
+        fail parseFailure("inner and outer CRL signature algorithms differ")
+    }
+    let issuer = parseName(der, fields[at + 1])?
+    let thisUpdate = parseTime(fields[at + 2])?
+    at = at + 3
+    let mut nextUpdate: asn1.Time? = None
+    if at < fields.len() && universal(fields[at]) && (fields[at].tag == 23 || fields[at].tag == 24) {
+        nextUpdate = Some(parseTime(fields[at])?)
+        at = at + 1
+    }
+    let mut unsupported = Array.empty[String]()
+    let mut revoked = Array.empty[RevokedCertificate]()
+    if at < fields.len() && universal(fields[at]) && fields[at].tag == 16 {
+        for entry in sequence(fields[at])? {
+            revoked.push(revokedEntry(entry, &mut unsupported)?)
+        }
+        at = at + 1
+    }
+    let mut extensions = ListExtensions {
+        crlNumber: None
+        authorityKeyId: None
+    }
+    if at < fields.len() {
+        extensions = listExtensions(fields[at], &mut unsupported)?
+        at = at + 1
+    }
+    if at != fields.len() {
+        fail parseFailure("unexpected field after crlExtensions")
+    }
+    if version == 1 && (unsupported.len() != 0 || extensions.crlNumber is Some(_) || extensions.authorityKeyId is Some(_)) {
+        fail parseFailure("a v1 CRL cannot carry extensions")
+    }
+    Ok(RevocationList {
+        version: version
+        issuer: issuer
+        thisUpdate: thisUpdate
+        nextUpdate: nextUpdate
+        revoked: revoked
+        crlNumber: extensions.crlNumber
+        authorityKeyId: extensions.authorityKeyId
+        signatureAlgorithm: outerAlgorithm
+        unsupportedCritical: unsupported
+        tbs: rawElement(der, tbs)?
+        signature: signature
+    })
+}
+
+type CrlEnvelope = {
+    tbs asn1.Element
+    algorithm SignatureAlgorithm
+    signature Bytes
+}
+
+/// The three CertificateList fields, without walking the TBSCertList.
+pure fn crlEnvelope(der: Bytes) -> Result[CrlEnvelope, ParseError] {
+    let root = match asn1.parse(der) {
+        Ok(value) -> value
+        Err(err) -> fail parseFailure(err.message())
+    }
+    if root.totalLen() != der.len() {
+        fail parseFailure("trailing bytes after the CRL")
+    }
+    let fields = sequence(root)?
+    if fields.len() != 3 {
+        fail parseFailure("CertificateList must have three fields")
+    }
+    let bits = bitStringOf(fields[2])?
+    if bits.unusedBits != 0 {
+        fail parseFailure("CRL signature BIT STRING must be byte aligned")
+    }
+    Ok(CrlEnvelope {
+        tbs: fields[0]
+        algorithm: parseSignatureAlgorithm(fields[1])?
+        signature: bits.bytes
+    })
+}
+
+/// Parses one DER CertificateList; trailing bytes and BER are refused.
+pub pure fn parseCrl(der: Bytes) -> Result[RevocationList, ParseError] {
+    let envelope = crlEnvelope(der)?
+    parseTbsCertList(der, envelope.tbs, envelope.algorithm, envelope.signature)
+}

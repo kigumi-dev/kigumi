@@ -1,0 +1,80 @@
+// The PCK path is decided by structure; the TCB signing certificate's
+// common-name phrase is the one Intel QVL requires.
+import x509 from std/crypto/x509
+
+/// The PCK certificate, its issuing CA and the pinned root it chains to.
+type PckPath = {
+    leaf x509.Certificate
+    ca x509.Certificate
+    root x509.Certificate
+}
+
+pure fn requireCommonName(cert: &x509.Certificate, phrase: String, code: Code, what: String) -> Result[Void, Error] {
+    if let Some(name) = cert.subject.commonName {
+        if name.contains(phrase) {
+            return Ok(())
+        }
+    }
+    fail failure(code, "${what} common name does not contain `${phrase}`")
+}
+
+/// Splits a chain that reached `root` into a non-CA leaf, a CA that is not
+/// self-issued and was issued by `root`, and optionally `root` itself.
+pure fn pckPath(chain: &Chain, root: &x509.Certificate) -> Result[PckPath, Error] {
+    let certs = &chain.certificates
+    if certs.len() < 2 || certs.len() > 3 {
+        fail failure(BadPckChain, "a production PCK chain is the PCK certificate, its CA and optionally the root")
+    }
+    let leaf = &certs[0]
+    let ca = &certs[1]
+    if leaf.basicConstraints.ca {
+        fail failure(BadPckChain, "the PCK certificate is a CA")
+    }
+    if !ca.basicConstraints.ca || ca.subject.raw.equals(&ca.issuer.raw) {
+        fail failure(BadPckChain, "the PCK certificate must be issued by an intermediate CA, not the root")
+    }
+    if !root.subject.raw.equals(&root.issuer.raw) || !root.subject.raw.equals(&ca.issuer.raw) {
+        fail failure(PckChainMismatch, "the PCK CA is not issued by a pinned self-issued root")
+    }
+    if certs.len() == 3 && !certs[2].tbsCertificate().equals(&root.tbsCertificate()) {
+        fail failure(PckChainMismatch, "the root in the PCK chain is not the pinned root")
+    }
+    Ok(PckPath {
+        leaf: leaf.clone()
+        ca: ca.clone()
+        root: root.clone()
+    })
+}
+
+/// Returns the key of an issuer chain (TCB signing certificate, then the
+/// pinned root) after checking it against the root and its CRL.
+fn signingKey(pem: String, root: &x509.Certificate, rootCrl: &x509.RevocationList, nowMillis: Int, what: String) -> Result[Bytes, Error] {
+    let certs = match x509.parsePem(pem) {
+        Ok(value) -> value
+        Err(err) -> fail failure(BadSigningChain, "${what} issuer chain: ${err.message()}")
+    }
+    if certs.len() != 2 {
+        fail failure(BadSigningChain, "${what} issuer chain must be the TCB signing certificate and the root")
+    }
+    let signer = &certs[0]
+    if !certs[1].tbsCertificate().equals(&root.tbsCertificate()) {
+        fail failure(BadSigningChain, "${what} issuer chain does not end at the pinned root")
+    }
+    requireCommonName(signer, "SGX TCB Signing", BadSigningChain, "${what} signing certificate")?
+    if signer.unsupportedCritical.len() != 0 {
+        fail failure(BadSigningChain, "${what} signing certificate has an unsupported critical extension")
+    }
+    if !signer.issuer.raw.equals(&root.subject.raw) {
+        fail failure(BadSigningChain, "${what} signing certificate is not issued by the root")
+    }
+    match signer.verifySignedBy(root) {
+        Ok(_) -> {}
+        Err(err) -> fail failure(BadSigningChain, "${what} signing certificate: ${err.message()}")
+    }
+    requireUnexpired(signer.validity.notAfterMillis(), nowMillis, "${what} signing certificate")?
+    refuseRevoked(rootCrl, signer, "${what} signing certificate")?
+    match &signer.publicKey {
+        x509.PublicKey.EcP256(key) -> Ok(key)
+        x509.PublicKey.Rsa(_) -> fail failure(UnsupportedAlgorithm, "${what} signing key is not P-256")
+    }
+}

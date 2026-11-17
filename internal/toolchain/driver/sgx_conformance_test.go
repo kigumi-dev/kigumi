@@ -13,10 +13,8 @@ import (
 	"kigumi/internal/toolchain/driver"
 )
 
-// SEC-14's SGX DCAP Tier 0 half: deterministic SGX quotes, QE reports, P-256
-// PCK chains and TCB/QE identity collateral compiled once and run on the VM
-// and the native backend. Every malformed or forged vector expects an exact
-// error code, so a parser that starts accepting it fails here.
+// Every malformed or forged vector expects an exact error code, so a parser
+// that starts accepting it fails here.
 const sgxCorpus = "../../../testdata/conformance/sgx"
 
 type sgxManifest struct {
@@ -26,31 +24,46 @@ type sgxManifest struct {
 }
 
 type sgxSuite struct {
-	Primitive string      `json:"primitive"`
-	Source    string      `json:"source"`
-	Path      string      `json:"path"`
-	Vectors   []sgxVector `json:"vectors"`
+	Primitive string            `json:"primitive"`
+	Source    string            `json:"source"`
+	Path      string            `json:"path"`
+	Blobs     map[string]string `json:"-"`
+	Vectors   []sgxVector       `json:"vectors"`
 }
 
 type sgxVectorFile struct {
-	Primitive string      `json:"primitive"`
-	Source    string      `json:"source"`
-	Vectors   []sgxVector `json:"vectors"`
+	Primitive string            `json:"primitive"`
+	Source    string            `json:"source"`
+	Blobs     map[string]string `json:"blobs"`
+	Vectors   []sgxVector       `json:"vectors"`
 }
 
 type sgxVector struct {
-	ID         string `json:"id"`
-	Op         string `json:"op"`
-	Hex        string `json:"hex"`
-	Hex2       string `json:"hex2"`
-	Anchors    string `json:"anchors"`
-	Now        int64  `json:"now"`
+	ID            string         `json:"id"`
+	Op            string         `json:"op"`
+	Quote         string         `json:"quote"`
+	Hex           string         `json:"hex"`
+	Hex2          string         `json:"hex2"`
+	Anchors       string         `json:"anchors"`
+	Now           int64          `json:"now"`
+	ReportData    string         `json:"reportData"`
+	Measurement   string         `json:"measurement"`
+	CpuSvn        string         `json:"cpuSvn"`
+	PceSvn        uint16         `json:"pceSvn"`
+	Args          []string       `json:"args"`
+	Collateral    *sgxCollateral `json:"collateral"`
+	Accept        string         `json:"accept"`
+	MinEvaluation uint32         `json:"minEvaluation"`
+	Expected      string         `json:"expected"`
+}
+
+type sgxCollateral struct {
 	TcbInfo    string `json:"tcbInfo"`
+	TcbChain   string `json:"tcbChain"`
 	QeIdentity string `json:"qeIdentity"`
-	ReportData string `json:"reportData"`
-	CpuSvn     string `json:"cpuSvn"`
-	PceSvn     uint16 `json:"pceSvn"`
-	Expected   string `json:"expected"`
+	QeChain    string `json:"qeChain"`
+	PckCrl     string `json:"pckCrl"`
+	RootCrl    string `json:"rootCrl"`
 }
 
 func loadSgxCorpus(t *testing.T) *sgxManifest {
@@ -115,11 +128,12 @@ func loadSgxCorpus(t *testing.T) *sgxManifest {
 				t.Fatalf("vector id %q is used by both %s and %s", key, other, suite.Primitive)
 			}
 			seenVector[key] = suite.Primitive
-			if err := validateSgxVector(v); err != nil {
+			if err := validateSgxVector(v, f.Blobs); err != nil {
 				t.Fatalf("%s/%s: %v", suite.Primitive, v.ID, err)
 			}
 		}
 		suite.Vectors = f.Vectors
+		suite.Blobs = f.Blobs
 		if suite.Source == "" {
 			suite.Source = f.Source
 		}
@@ -137,84 +151,44 @@ func loadSgxCorpus(t *testing.T) *sgxManifest {
 	return &m
 }
 
-func validateSgxVector(v *sgxVector) error {
+func validateSgxVector(v *sgxVector, blobs map[string]string) error {
 	switch v.Op {
-	case "sgx-parse", "sgx-signature", "sgx-qe", "sgx-verify":
+	case "sgx-parse", "sgx-signature", "sgx-qe", "sgx-root", "sgx-pck-extension":
 		if v.Hex == "" {
-			return fmt.Errorf("needs a quote")
+			return fmt.Errorf("needs input bytes")
 		}
 	case "sgx-pck":
 		if v.Hex == "" || v.Anchors == "" {
 			return fmt.Errorf("needs a chain and anchors")
 		}
-	case "sgx-tcb":
-		if v.Hex == "" || v.CpuSvn == "" {
-			return fmt.Errorf("needs TCB Info and a CPU SVN")
-		}
 	case "sgx-qe-binding":
 		if v.Hex == "" {
 			return fmt.Errorf("needs an attestation public key")
 		}
+	case "sgx-crl":
+		if v.Hex == "" || v.Anchors == "" || v.Hex2 == "" {
+			return fmt.Errorf("needs a CRL, its issuer and a certificate")
+		}
+	case "sgx-converge":
+		if len(v.Args) != 2 {
+			return fmt.Errorf("needs a platform and a QE status")
+		}
+	case "sgx-verify", "sgx-tcb", "sgx-qe-identity", "sgx-collateral-auth":
+		return validateCollateralVector(v, blobs)
 	default:
 		return fmt.Errorf("unsupported operation %q", v.Op)
 	}
 	return nil
 }
 
-func buildSgxProgram(m *sgxManifest) string {
-	var prog strings.Builder
-	prog.WriteString(`import sgx from std/tee/sgx
-import hex from std/encoding/hex
-
-fn b(text: String) -> Bytes {
-    hex.decode(text).expect("vector hex")
-}
-
-fn s(text: String) -> String {
-    String.fromBytes(b(text)).expect("vector text")
-}
-
-fn p(flag: Bool) -> String {
-    if flag { "true" } else { "false" }
-}
-
-fn tcbName(t: sgx.TcbEvaluation?) -> String {
-    match t {
-        Some(e) -> e.status.name()
-        None -> "none"
-    }
-}
-
-fn qeName(t: sgx.QeIdentityEvaluation?) -> String {
-    match t {
-        Some(e) -> e.status.name()
-        None -> "none"
-    }
-}
-
-fn result(r: sgx.VerificationResult) -> String {
-    "status=${r.status.name()} advisories=${r.advisoryIds.len()} tcb=${tcbName(r.tcb)} qe=${qeName(r.qe)}"
-}
-
-fn main() -> Void! {
-`)
-	idx := 0
-	for _, suite := range m.Suites {
-		for _, v := range suite.Vectors {
-			fmt.Fprintf(&prog, "\n    // %s/%s\n", suite.Primitive, v.ID)
-			emitSgxVector(&prog, v, idx)
-			fmt.Fprintf(&prog, "    print %q\n", suite.Primitive+"/"+v.ID+"\t${result"+fmt.Sprint(idx)+"}")
-			idx++
-		}
-	}
-	prog.WriteString("}\n")
-	return prog.String()
-}
-
-func emitSgxVector(b *strings.Builder, v sgxVector, idx int) {
+func emitSgxVector(b *strings.Builder, v sgxVector, idx int, blob func(string) string) {
 	hexArg := func(field string) string { return fmt.Sprintf("b(%q)", field) }
 	emit := func(body string) {
 		fmt.Fprintf(b, "    let result%d = %s\n", idx, body)
+	}
+	if body, ok := emitCollateralVector(v, blob); ok {
+		emit(body)
+		return
 	}
 	switch v.Op {
 	case "sgx-qe-binding":
@@ -257,50 +231,6 @@ func emitSgxVector(b *strings.Builder, v sgxVector, idx int) {
         }
         Err(err) -> "error:${err.code.name()}"
     }`, hexArg(v.Hex), v.Anchors, v.Now))
-	case "sgx-tcb":
-		emit(fmt.Sprintf(`match sgx.TcbInfo.parse(s(%q)) {
-        Ok(info) -> {
-            let evaluation = info.evaluate(%s, %d)
-            "ok status=${evaluation.status.name()} matched=${p(evaluation.matched)} advisories=${evaluation.advisoryIds.len()}"
-        }
-        Err(err) -> "error:${err.code.name()}"
-    }`, v.Hex, hexArg(v.CpuSvn), v.PceSvn))
-	case "sgx-verify":
-		var body strings.Builder
-		fmt.Fprintf(&body, `{
-        let mut policy = sgx.Policy.production(s(%q), %d)
-        let mut policyError = ""
-`, v.Anchors, v.Now)
-		if v.ReportData != "" {
-			fmt.Fprintf(&body, "        policy.requireReportData = Some(%s)\n", hexArg(v.ReportData))
-		}
-		if v.Hex2 != "" {
-			fmt.Fprintf(&body, "        policy.requireFmspc = Some(%s)\n", hexArg(v.Hex2))
-		}
-		if v.TcbInfo != "" {
-			fmt.Fprintf(&body, `        match sgx.TcbInfo.parse(s(%q)) {
-            Ok(info) -> { policy.tcbInfo = Some(info) }
-            Err(err) -> { policyError = "error:${err.code.name()}" }
-        }
-`, v.TcbInfo)
-		}
-		if v.QeIdentity != "" {
-			fmt.Fprintf(&body, `        match sgx.QeIdentity.parse(s(%q)) {
-            Ok(identity) -> { policy.qeIdentity = Some(identity) }
-            Err(err) -> { policyError = "error:${err.code.name()}" }
-        }
-`, v.QeIdentity)
-		}
-		fmt.Fprintf(&body, `        if policyError != "" {
-            policyError
-        } else {
-            match sgx.verify(%s, &policy) {
-                Ok(verified) -> result(verified)
-                Err(err) -> "error:${err.code.name()}"
-            }
-        }
-    }`, hexArg(v.Hex))
-		emit(body.String())
 	}
 }
 
@@ -325,66 +255,10 @@ func parseSgxResults(t *testing.T, out string) map[string]string {
 
 func TestSgxConformance(t *testing.T) {
 	corpus := loadSgxCorpus(t)
-	source := buildSgxProgram(corpus)
-
-	root := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(root, "main"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	sourcePath := filepath.Join(root, "main", "main.kg")
-	if err := os.WriteFile(sourcePath, []byte(source), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../../std", Entry: "main/main.kg"})
-	if err != nil {
-		t.Fatalf("load generated sgx program (%s): %v", sourcePath, err)
-	}
-
-	var vmOut, vmErr bytes.Buffer
-	code, err := driver.RunWith(m, driver.RunOptions{Cwd: root}, &vmOut, &vmErr, []string{"main/main.kg"})
-	if err != nil || code != 0 {
-		t.Fatalf("vm run: err %v exit %d\nstderr:\n%s", err, code, vmErr.String())
-	}
-	vm := parseSgxResults(t, vmOut.String())
-
-	var native map[string]string
-	if testCompiler().CCompiler() == nil {
-		t.Log("native engine skipped: no C compiler")
-	} else {
-		exe := filepath.Join(root, "sgx-conformance")
-		var buildErr bytes.Buffer
-		ok, err := testBuild(m, exe, &buildErr)
-		if err != nil || !ok {
-			t.Fatalf("native build: %v\n%s", err, buildErr.String())
-		}
-		cmd := exec.Command(exe)
-		cmd.Dir = root
-		if countsNativeLive() {
-			cmd.Env = append(os.Environ(), "KIGUMI_LIVE_REPORT=1")
-		}
-		var out, errOut bytes.Buffer
-		cmd.Stdout = &out
-		cmd.Stderr = &errOut
-		if err := cmd.Run(); err != nil {
-			t.Fatalf("native run: %v\nstderr:\n%s", err, errOut.String())
-		}
-		stderr := errOut.String()
-		if countsNativeLive() {
-			live := nativeLiveLine.FindStringSubmatch(stderr)
-			if live == nil || live[1] != "0" {
-				t.Fatalf("expected zero native live objects: %s", stderr)
-			}
-			stderr = nativeLiveLine.ReplaceAllString(stderr, "")
-		}
-		if stderr != "" {
-			t.Fatalf("unexpected native stderr: %s", stderr)
-		}
-		native = parseSgxResults(t, out.String())
-	}
-
+	vm := runSgxShardsOnVM(t, corpus, 4)
+	native := runSgxNative(t, corpus)
 	for _, suite := range corpus.Suites {
 		for _, v := range suite.Vectors {
-			v := v
 			key := suite.Primitive + "/" + v.ID
 			t.Run(key, func(t *testing.T) {
 				if got, ok := vm[key]; !ok {
@@ -403,4 +277,59 @@ func TestSgxConformance(t *testing.T) {
 			})
 		}
 	}
+}
+
+func loadSgxProgram(t *testing.T, source string) (*driver.Module, string) {
+	t.Helper()
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "main"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	sourcePath := filepath.Join(root, "main", "main.kg")
+	if err := os.WriteFile(sourcePath, []byte(source), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../../std", Entry: "main/main.kg"})
+	if err != nil {
+		t.Fatalf("load generated sgx program (%s): %v", sourcePath, err)
+	}
+	return m, root
+}
+
+func runSgxNative(t *testing.T, corpus *sgxManifest) map[string]string {
+	t.Helper()
+	if testCompiler().CCompiler() == nil {
+		t.Log("native engine skipped: no C compiler")
+		return nil
+	}
+	m, root := loadSgxProgram(t, buildSgxProgram(corpus))
+	exe := filepath.Join(root, "sgx-conformance")
+	var buildErr bytes.Buffer
+	ok, err := testBuild(m, exe, &buildErr)
+	if err != nil || !ok {
+		t.Fatalf("native build: %v\n%s", err, buildErr.String())
+	}
+	cmd := exec.Command(exe)
+	cmd.Dir = root
+	if countsNativeLive() {
+		cmd.Env = append(os.Environ(), "KIGUMI_LIVE_REPORT=1")
+	}
+	var out, errOut bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &errOut
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("native run: %v\nstderr:\n%s", err, errOut.String())
+	}
+	stderr := errOut.String()
+	if countsNativeLive() {
+		live := nativeLiveLine.FindStringSubmatch(stderr)
+		if live == nil || live[1] != "0" {
+			t.Fatalf("expected zero native live objects: %s", stderr)
+		}
+		stderr = nativeLiveLine.ReplaceAllString(stderr, "")
+	}
+	if stderr != "" {
+		t.Fatalf("unexpected native stderr: %s", stderr)
+	}
+	return parseSgxResults(t, out.String())
 }

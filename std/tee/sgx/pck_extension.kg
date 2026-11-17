@@ -1,0 +1,182 @@
+// The SGX extension (1.2.840.113741.1.13.1) of a PCK certificate; required
+// members follow Intel QVL PckCertificate and Tcb, and none may repeat.
+import asn1 from std/crypto/asn1
+import x509 from std/crypto/x509
+
+const sgxExtensionOid = "1.2.840.113741.1.13.1"
+
+/// The platform identity and TCB a PCK certificate certifies.
+pub type PckExtension = {
+    pub ppid Bytes
+    pub components Bytes
+    pub pceSvn u16
+    pub cpuSvn Bytes
+    pub pceId Bytes
+    pub fmspc Bytes
+    pub sgxType u8
+}
+
+type ExtensionField = {
+    oid String
+    value asn1.Element
+}
+
+pure fn extensionError(text: String) -> Error {
+    failure(BadPckExtension, "PCK SGX extension: ${text}")
+}
+
+pure fn sequenceOf(e: asn1.Element, what: String) -> Result[Array[asn1.Element], Error] {
+    if !(e.tagClass is asn1.TagClass.Universal) || e.tag != 16 || !e.constructed {
+        fail extensionError("${what} must be a SEQUENCE")
+    }
+    match e.children() {
+        Ok(children) -> Ok(children)
+        Err(err) -> fail extensionError(err.message())
+    }
+}
+
+/// The members of a `SEQUENCE OF SEQUENCE { OID, value }` list.
+pure fn extensionFields(e: asn1.Element, what: String) -> Result[Array[ExtensionField], Error] {
+    let mut out = Array.empty[ExtensionField]()
+    for entry in sequenceOf(e, what)? {
+        let pair = sequenceOf(entry, "${what} member")?
+        if pair.len() != 2 {
+            fail extensionError("${what} member must hold an OID and a value")
+        }
+        let oid = match pair[0].oid() {
+            Ok(text) -> text
+            Err(err) -> fail extensionError(err.message())
+        }
+        for seen in &out {
+            if seen.oid == oid {
+                fail extensionError("${oid} appears twice")
+            }
+        }
+        out.push(ExtensionField {
+            oid: oid
+            value: pair[1]
+        })
+    }
+    Ok(out)
+}
+
+pure fn octetsOfLength(e: asn1.Element, expected: usize, what: String) -> Result[Bytes, Error] {
+    let value = match e.octets() {
+        Ok(bytes) -> bytes
+        Err(err) -> fail extensionError("${what}: ${err.message()}")
+    }
+    if value.len() != expected {
+        fail extensionError("${what} must be ${expected} bytes, got ${value.len()}")
+    }
+    Ok(value)
+}
+
+pure fn smallInteger(e: asn1.Element, limit: u64, what: String) -> Result[u64, Error] {
+    let value = match e.uint() {
+        Ok(number) -> number
+        Err(err) -> fail extensionError("${what}: ${err.message()}")
+    }
+    if value > limit {
+        fail extensionError("${what} ${value} exceeds ${limit}")
+    }
+    Ok(value)
+}
+
+pure fn sgxTypeOf(e: asn1.Element) -> Result[u8, Error] {
+    if !(e.tagClass is asn1.TagClass.Universal) || e.tag != 10 || e.constructed || e.content.len() != 1 || e.content[0] >= 0x80 {
+        fail extensionError("SGX type must be a one-byte non-negative ENUMERATED")
+    }
+    Ok(e.content[0])
+}
+
+type PckTcb = {
+    components Bytes
+    pceSvn u16
+    cpuSvn Bytes
+}
+
+pure fn fieldNamed(fields: &Array[ExtensionField], oid: String, what: String) -> Result[asn1.Element, Error] {
+    for field in fields {
+        if field.oid == oid {
+            return Ok(field.value)
+        }
+    }
+    fail extensionError("missing ${what}")
+}
+
+pure fn tcbOf(e: asn1.Element) -> Result[PckTcb, Error] {
+    let fields = extensionFields(e, "TCB")?
+    if fields.len() != 18 {
+        fail extensionError("TCB must have 18 members, got ${fields.len()}")
+    }
+    let mut components = Array.empty[u8]()
+    let mut index: usize = 1
+    for index <= 16 {
+        let element = fieldNamed(&fields, "${sgxExtensionOid}.2.${index}", "TCB component ${index}")?
+        let svn = smallInteger(element, 255, "TCB component ${index}")?
+        components.push(svn.toU8() || 0)
+        index = index + 1
+    }
+    let pceSvn = smallInteger(fieldNamed(&fields, "${sgxExtensionOid}.2.17", "PCESVN")?, 65535, "PCESVN")?
+    Ok(PckTcb {
+        components: Bytes.fromArray(&components)
+        pceSvn: pceSvn.toU16() || 0
+        cpuSvn: octetsOfLength(fieldNamed(&fields, "${sgxExtensionOid}.2.18", "CPUSVN")?, 16, "CPUSVN")?
+    })
+}
+
+/// Decodes the SGX extension of a PCK certificate. A certificate without it,
+/// or with a member missing or malformed, is `BadPckExtension`.
+pub fn PckExtension.of(cert: &x509.Certificate) -> Result[PckExtension, Error] {
+    let raw = match cert.extensionValue(sgxExtensionOid) {
+        Ok(Some(value)) -> value
+        Ok(None) -> fail extensionError("the certificate has no SGX extension")
+        Err(err) -> fail extensionError(err.message())
+    }
+    let top = match asn1.parse(raw) {
+        Ok(element) -> element
+        Err(err) -> fail extensionError(err.message())
+    }
+    if top.totalLen() != raw.len() {
+        fail extensionError("trailing bytes after the extension")
+    }
+    let fields = extensionFields(top, "extension")?
+    if fields.len() != 5 && fields.len() != 7 {
+        fail extensionError("expected 5 or 7 members, got ${fields.len()}")
+    }
+    let mut ppid: Bytes? = None
+    let mut tcb: PckTcb? = None
+    let mut pceId: Bytes? = None
+    let mut fmspc: Bytes? = None
+    let mut sgxType: u8? = None
+    for field in &fields {
+        match field.oid {
+            "1.2.840.113741.1.13.1.1" -> {
+                ppid = Some(octetsOfLength(field.value, 16, "PPID")?)
+            }
+            "1.2.840.113741.1.13.1.2" -> {
+                tcb = Some(tcbOf(field.value)?)
+            }
+            "1.2.840.113741.1.13.1.3" -> {
+                pceId = Some(octetsOfLength(field.value, 2, "PCE ID")?)
+            }
+            "1.2.840.113741.1.13.1.4" -> {
+                fmspc = Some(octetsOfLength(field.value, 6, "FMSPC")?)
+            }
+            "1.2.840.113741.1.13.1.5" -> {
+                sgxType = Some(sgxTypeOf(field.value)?)
+            }
+            _ -> {}
+        }
+    }
+    let platform = tcb || fail extensionError("missing TCB")
+    Ok(PckExtension {
+        ppid: ppid || fail extensionError("missing PPID")
+        components: platform.components
+        pceSvn: platform.pceSvn
+        cpuSvn: platform.cpuSvn
+        pceId: pceId || fail extensionError("missing PCE ID")
+        fmspc: fmspc || fail extensionError("missing FMSPC")
+        sgxType: sgxType || fail extensionError("missing SGX type")
+    })
+}

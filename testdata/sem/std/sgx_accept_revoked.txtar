@@ -1,0 +1,13 @@
+-- app/m/m.kg --
+import sgx from std/tee/sgx
+
+pub fn widen(policy: &mut sgx.Policy) {
+    policy.acceptedStatuses = Array.of(sgx.AcceptableStatus.Good, sgx.AcceptableStatus.Revoked) //~ ERROR `AcceptableStatus` has no field or method `Revoked`
+}
+-- expect --
+error[E510]: `AcceptableStatus` has no field or method `Revoked`
+ --> app/m/m.kg:4:67
+  |
+4 |     policy.acceptedStatuses = Array.of(sgx.AcceptableStatus.Good, sgx.AcceptableStatus.Revoked) //~ ERROR `AcceptableStatus` has no field or method `Revoked`
+  |                                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

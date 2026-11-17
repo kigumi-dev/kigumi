@@ -1,0 +1,177 @@
+// JSON mirrors of the TCB Info (v2, v3) and QE Identity (v2) bodies; std cannot
+// use derived codecs, so each mirror decodes field for field.
+import json from std/json
+
+type PresentJson = {
+    pub present Bool
+}
+
+fn PresentJson.fromJson(value: json.Value) -> PresentJson! {
+    match value {
+        _ -> Ok(PresentJson { present: true })
+    }
+}
+
+type ComponentJson = {
+    pub svn u8
+}
+
+fn ComponentJson.fromJson(value: json.Value) -> ComponentJson! {
+    let mut o = json.Record.expect(value, "SGX TCB component")?
+    Ok(ComponentJson { svn: o.field("svn")? })
+}
+
+/// The SGX half of a TCB level; `shape` is the TCB Info version whose
+/// layout it used, 2 for `sgxtcbcompNNsvn` members and 3 for the array.
+type SgxTcbJson = {
+    pub components Bytes
+    pub pcesvn u16
+    pub shape u32
+}
+
+fn componentName(index: usize) -> String {
+    if index < 10 {
+        "sgxtcbcomp0${index}svn"
+    } else {
+        "sgxtcbcomp${index}svn"
+    }
+}
+
+fn SgxTcbJson.fromJson(value: json.Value) -> SgxTcbJson! {
+    let mut o = json.Record.expect(value, "SGX TCB")?
+    let pcesvn: u16 = o.field("pcesvn")?
+    let listed: Array[ComponentJson]? = o.optional("sgxtcbcomponents")?
+    let mut components = Array.empty[u8]()
+    let mut shape: u32 = 2
+    match listed {
+        Some(list) -> {
+            if list.len() != 16 {
+                fail json.Error { text: "sgxtcbcomponents must have 16 entries, got ${list.len()}" }
+            }
+            for component in &list {
+                components.push(component.svn)
+            }
+            shape = 3
+        }
+        None -> {
+            let mut index: usize = 1
+            for index <= 16 {
+                let svn: u8 = o.field(componentName(index))?
+                components.push(svn)
+                index = index + 1
+            }
+        }
+    }
+    Ok(SgxTcbJson {
+        components: Bytes.fromArray(&components)
+        pcesvn: pcesvn
+        shape: shape
+    })
+}
+
+type TcbLevelJson = {
+    pub tcb SgxTcbJson
+    pub tcbDate String
+    pub tcbStatus String
+    pub advisoryIDs Array[String]?
+}
+
+fn TcbLevelJson.fromJson(value: json.Value) -> TcbLevelJson! {
+    let mut o = json.Record.expect(value, "TCB level")?
+    Ok(TcbLevelJson {
+        tcb: o.field("tcb")?
+        tcbDate: o.field("tcbDate")?
+        tcbStatus: o.field("tcbStatus")?
+        advisoryIDs: o.optional("advisoryIDs")?
+    })
+}
+
+type TcbInfoBodyJson = {
+    pub id String?
+    pub version u32
+    pub issueDate String
+    pub nextUpdate String
+    pub fmspc String
+    pub pceId String
+    pub tcbType Int
+    pub tcbEvaluationDataNumber u32
+    pub tcbLevels Array[TcbLevelJson]
+    pub tdxModule PresentJson?
+    pub tdxModuleIdentities PresentJson?
+}
+
+fn TcbInfoBodyJson.fromJson(value: json.Value) -> TcbInfoBodyJson! {
+    let mut o = json.Record.expect(value, "TCB Info")?
+    Ok(TcbInfoBodyJson {
+        id: o.optional("id")?
+        version: o.field("version")?
+        issueDate: o.field("issueDate")?
+        nextUpdate: o.field("nextUpdate")?
+        fmspc: o.field("fmspc")?
+        pceId: o.field("pceId")?
+        tcbType: o.field("tcbType")?
+        tcbEvaluationDataNumber: o.field("tcbEvaluationDataNumber")?
+        tcbLevels: o.field("tcbLevels")?
+        tdxModule: o.optional("tdxModule")?
+        tdxModuleIdentities: o.optional("tdxModuleIdentities")?
+    })
+}
+
+type QeTcbJson = {
+    pub isvsvn u16
+}
+
+fn QeTcbJson.fromJson(value: json.Value) -> QeTcbJson! {
+    let mut o = json.Record.expect(value, "QE TCB")?
+    Ok(QeTcbJson { isvsvn: o.field("isvsvn")? })
+}
+
+type QeTcbLevelJson = {
+    pub tcb QeTcbJson
+    pub tcbDate String
+    pub tcbStatus String
+    pub advisoryIDs Array[String]?
+}
+
+fn QeTcbLevelJson.fromJson(value: json.Value) -> QeTcbLevelJson! {
+    let mut o = json.Record.expect(value, "QE TCB level")?
+    Ok(QeTcbLevelJson {
+        tcb: o.field("tcb")?
+        tcbDate: o.field("tcbDate")?
+        tcbStatus: o.field("tcbStatus")?
+        advisoryIDs: o.optional("advisoryIDs")?
+    })
+}
+
+type QeIdentityBodyJson = {
+    pub id String
+    pub version u32
+    pub issueDate String
+    pub nextUpdate String
+    pub tcbEvaluationDataNumber u32
+    pub miscselect String
+    pub miscselectMask String
+    pub attributes String
+    pub attributesMask String
+    pub mrsigner String
+    pub isvprodid u16
+    pub tcbLevels Array[QeTcbLevelJson]
+}
+
+fn QeIdentityBodyJson.fromJson(value: json.Value) -> QeIdentityBodyJson! {
+    let mut o = json.Record.expect(value, "QE Identity")?
+    Ok(QeIdentityBodyJson {
+        id: o.field("id")?
+        version: o.field("version")?
+        issueDate: o.field("issueDate")?
+        nextUpdate: o.field("nextUpdate")?
+        tcbEvaluationDataNumber: o.field("tcbEvaluationDataNumber")?
+        miscselect: o.field("miscselect")?
+        miscselectMask: o.field("miscselectMask")?
+        attributes: o.field("attributes")?
+        attributesMask: o.field("attributesMask")?
+        mrsigner: o.field("mrsigner")?
+        isvprodid: o.field("isvprodid")?
+        tcbLevels: o.field("tcbLevels")?
+    })
+}

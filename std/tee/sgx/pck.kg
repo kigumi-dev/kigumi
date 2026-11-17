@@ -39,7 +39,8 @@ pub fn parseChain(pem: Bytes) -> Result[Chain, Error] {
     Ok(Chain { certificates: certificates })
 }
 
-/// Parses pinned trust anchors, including Intel's P-256 SGX Root CA.
+/// Parses pinned trust anchors. Intel's SGX Root CA is a P-256 key with
+/// basicConstraints pathLen 1, which this parser and `Chain.verify` accept.
 pub fn parseAnchors(pem: String) -> Result[Array[x509.Certificate], Error] {
     let bytes = pem.toBytes()
     if bytes.len() == 0 {
@@ -105,6 +106,11 @@ pure fn checkSignature(cert: &x509.Certificate, issuer: &x509.Certificate) -> Re
 
 /// Anchors the chain at a pinned certificate or issuer and enforces CA constraints.
 pub fn Chain.verify(self, anchors: &Array[x509.Certificate], nowMillis: Int) -> Result[Void, Error] {
+    _ = self.verifyTo(anchors, nowMillis)?
+}
+
+/// `Chain.verify`, returning the index of the anchor the chain reached.
+fn Chain.verifyTo(self, anchors: &Array[x509.Certificate], nowMillis: Int) -> Result[usize, Error] {
     if self.certificates.len() == 0 {
         fail failure(BadPckChain, "PCK chain has no certificate")
     }
@@ -132,12 +138,14 @@ pub fn Chain.verify(self, anchors: &Array[x509.Certificate], nowMillis: Int) -> 
         }
         i = next
     }
-    Ok(())
+    fail failure(BadPckChain, "PCK chain has no certificate")
 }
 
-fn reachAnchor(cert: &x509.Certificate, anchors: &Array[x509.Certificate], nowMillis: Int, below: usize, isCa: Bool) -> Result[Void, Error] {
+fn reachAnchor(cert: &x509.Certificate, anchors: &Array[x509.Certificate], nowMillis: Int, below: usize, isCa: Bool) -> Result[usize, Error] {
     let mut rejected: Error? = None
-    for anchor in anchors {
+    let mut index: usize = 0
+    for index < anchors.len() {
+        let anchor = &anchors[index]
         let anchorBody = anchor.tbsCertificate()
         let included = cert.tbsCertificate().equals(&anchorBody)
         if included || cert.issuer.raw.equals(&anchor.subject.raw) {
@@ -147,12 +155,13 @@ fn reachAnchor(cert: &x509.Certificate, anchors: &Array[x509.Certificate], nowMi
                 below
             }
             match checkAnchor(cert, anchor, nowMillis, count, included) {
-                Ok(_) -> return Ok(())
+                Ok(_) -> return Ok(index)
                 Err(error) -> {
                     rejected = Some(error)
                 }
             }
         }
+        index = index + 1
     }
     match rejected {
         Some(error) -> fail error

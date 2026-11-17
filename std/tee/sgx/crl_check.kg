@@ -1,0 +1,46 @@
+// CRL acceptance after Intel QVL PckCrlVerifier: CRL Number and Authority Key
+// Identifier are required, and the list must be current.
+import x509 from std/crypto/x509
+
+pure fn crlError(what: String, text: String) -> Error {
+    failure(BadCrl, "${what}: ${text}")
+}
+
+/// The largest CRL the verifier reads. Intel's live PCK and root CA CRLs are a
+/// few kilobytes; 2 MiB still admits about 40000 revoked serials.
+pub const maxCrlBytes: usize = 2097152
+
+/// Checks `der` against `issuer`; size and signature come first, so an unsigned
+/// or oversized list never has its entries decoded.
+fn checkCrl(der: Bytes, issuer: &x509.Certificate, nowMillis: Int, what: String) -> Result[x509.RevocationList, Error] {
+    if der.len() > maxCrlBytes {
+        fail crlError(what, "is ${der.len()} bytes, more than ${maxCrlBytes}")
+    }
+    match x509.verifyCrlSignature(der, issuer) {
+        Ok(_) -> {}
+        Err(err) -> fail crlError(what, err.message())
+    }
+    let crl = match x509.parseCrl(der) {
+        Ok(value) -> value
+        Err(err) -> fail crlError(what, err.message())
+    }
+    if crl.unsupportedCritical.len() != 0 {
+        fail crlError(what, "unsupported critical extension ${crl.unsupportedCritical[0]}")
+    }
+    if crl.crlNumber is None || crl.authorityKeyId is None {
+        fail crlError(what, "CRL Number and Authority Key Identifier are required")
+    }
+    let nextUpdate = crl.nextUpdateMillis() || fail crlError(what, "nextUpdate is required")
+    requireWithin(crl.thisUpdateMillis(), nextUpdate, nowMillis, what)?
+    Ok(crl)
+}
+
+/// Refuses `cert` when the list, already checked against its issuer, names it.
+pure fn refuseRevoked(crl: &x509.RevocationList, cert: &x509.Certificate, what: String) -> Result[Void, Error] {
+    if !crl.issuer.raw.equals(&cert.issuer.raw) {
+        fail crlError(what, "the CRL issuer is not the certificate's issuer")
+    }
+    if crl.revokes(cert) {
+        fail failure(CertificateRevoked, "${what} is revoked")
+    }
+}

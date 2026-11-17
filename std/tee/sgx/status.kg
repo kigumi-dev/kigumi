@@ -1,0 +1,157 @@
+/// The status of one TCB Info or QE Identity TCB level.
+pub type TcbStatus =
+    | UpToDate
+    | ConfigurationNeeded
+    | SWHardeningNeeded
+    | ConfigurationAndSWHardeningNeeded
+    | OutOfDate
+    | OutOfDateConfigurationNeeded
+    | Revoked
+
+/// The status in kebab case, as printed in diagnostics.
+pub fn TcbStatus.name(self) -> String {
+    match self {
+        TcbStatus.UpToDate -> "up-to-date"
+        TcbStatus.ConfigurationNeeded -> "configuration-needed"
+        TcbStatus.SWHardeningNeeded -> "sw-hardening-needed"
+        TcbStatus.ConfigurationAndSWHardeningNeeded -> "configuration-and-sw-hardening-needed"
+        TcbStatus.OutOfDate -> "out-of-date"
+        TcbStatus.OutOfDateConfigurationNeeded -> "out-of-date-configuration-needed"
+        TcbStatus.Revoked -> "revoked"
+    }
+}
+
+/// Decodes a PCS status string such as `OutOfDateConfigurationNeeded`.
+pub pure fn TcbStatus.parse(text: String) -> Result[TcbStatus, Error] {
+    statusFromText(text, BadTcbInfo)
+}
+
+pure fn statusFromText(text: String, code: Code) -> Result[TcbStatus, Error] {
+    match text {
+        "UpToDate" -> Ok(TcbStatus.UpToDate)
+        "ConfigurationNeeded" -> Ok(TcbStatus.ConfigurationNeeded)
+        "SWHardeningNeeded" -> Ok(TcbStatus.SWHardeningNeeded)
+        "ConfigurationAndSWHardeningNeeded" -> Ok(TcbStatus.ConfigurationAndSWHardeningNeeded)
+        "OutOfDate" -> Ok(TcbStatus.OutOfDate)
+        "OutOfDateConfigurationNeeded" -> Ok(TcbStatus.OutOfDateConfigurationNeeded)
+        "Revoked" -> Ok(TcbStatus.Revoked)
+        _ -> fail failure(code, "unknown TCB status `${text}`")
+    }
+}
+
+/// Overall outcome of appraising a quote. `Revoked` and `Unevaluated` are
+/// terminal: `verify` fails on them whatever the policy accepts.
+pub type Status =
+    | Good
+    | SwHardeningNeeded
+    | ConfigurationNeeded
+    | ConfigurationAndSwHardeningNeeded
+    | OutOfDate
+    | OutOfDateConfigurationNeeded
+    | Revoked
+    | Unevaluated
+
+/// The status in kebab case, as printed in diagnostics.
+pub fn Status.name(self) -> String {
+    match self {
+        Status.Good -> "good"
+        Status.SwHardeningNeeded -> "sw-hardening-needed"
+        Status.ConfigurationNeeded -> "configuration-needed"
+        Status.ConfigurationAndSwHardeningNeeded -> "configuration-and-sw-hardening-needed"
+        Status.OutOfDate -> "out-of-date"
+        Status.OutOfDateConfigurationNeeded -> "out-of-date-configuration-needed"
+        Status.Revoked -> "revoked"
+        Status.Unevaluated -> "unevaluated"
+    }
+}
+
+/// A status a policy may accept. Revoked and Unevaluated have no variant here,
+/// so no policy can accept them; Intel QvE also treats a revoked TCB as terminal.
+pub type AcceptableStatus =
+    | Good
+    | SwHardeningNeeded
+    | ConfigurationNeeded
+    | ConfigurationAndSwHardeningNeeded
+    | OutOfDate
+    | OutOfDateConfigurationNeeded
+
+/// The status in kebab case, as printed in diagnostics.
+pub fn AcceptableStatus.name(self) -> String {
+    match self {
+        AcceptableStatus.Good -> "good"
+        AcceptableStatus.SwHardeningNeeded -> "sw-hardening-needed"
+        AcceptableStatus.ConfigurationNeeded -> "configuration-needed"
+        AcceptableStatus.ConfigurationAndSwHardeningNeeded -> "configuration-and-sw-hardening-needed"
+        AcceptableStatus.OutOfDate -> "out-of-date"
+        AcceptableStatus.OutOfDateConfigurationNeeded -> "out-of-date-configuration-needed"
+    }
+}
+
+pure fn AcceptableStatus.code(self) -> Int {
+    match self {
+        AcceptableStatus.Good -> 0
+        AcceptableStatus.SwHardeningNeeded -> 1
+        AcceptableStatus.ConfigurationNeeded -> 2
+        AcceptableStatus.ConfigurationAndSwHardeningNeeded -> 3
+        AcceptableStatus.OutOfDate -> 4
+        AcceptableStatus.OutOfDateConfigurationNeeded -> 5
+    }
+}
+
+/// Whether both values are the same status.
+pub pure fn AcceptableStatus.same(self, other: AcceptableStatus) -> Bool {
+    self.code() == other.code()
+}
+
+/// Every acceptable status, for a policy that inspects the outcome itself.
+pub pure fn AcceptableStatus.all() -> Array[AcceptableStatus] {
+    Array.of(AcceptableStatus.Good, AcceptableStatus.SwHardeningNeeded, AcceptableStatus.ConfigurationNeeded, AcceptableStatus.ConfigurationAndSwHardeningNeeded, AcceptableStatus.OutOfDate, AcceptableStatus.OutOfDateConfigurationNeeded)
+}
+
+/// The acceptable counterpart, or None for a terminal status.
+pub pure fn Status.acceptable(self) -> AcceptableStatus? {
+    match self {
+        Status.Good -> Some(AcceptableStatus.Good)
+        Status.SwHardeningNeeded -> Some(AcceptableStatus.SwHardeningNeeded)
+        Status.ConfigurationNeeded -> Some(AcceptableStatus.ConfigurationNeeded)
+        Status.ConfigurationAndSwHardeningNeeded -> Some(AcceptableStatus.ConfigurationAndSwHardeningNeeded)
+        Status.OutOfDate -> Some(AcceptableStatus.OutOfDate)
+        Status.OutOfDateConfigurationNeeded -> Some(AcceptableStatus.OutOfDateConfigurationNeeded)
+        Status.Revoked -> None
+        Status.Unevaluated -> None
+    }
+}
+
+pure fn platformStatus(level: TcbStatus) -> Status {
+    match level {
+        TcbStatus.UpToDate -> Status.Good
+        TcbStatus.ConfigurationNeeded -> Status.ConfigurationNeeded
+        TcbStatus.SWHardeningNeeded -> Status.SwHardeningNeeded
+        TcbStatus.ConfigurationAndSWHardeningNeeded -> Status.ConfigurationAndSwHardeningNeeded
+        TcbStatus.OutOfDate -> Status.OutOfDate
+        TcbStatus.OutOfDateConfigurationNeeded -> Status.OutOfDateConfigurationNeeded
+        TcbStatus.Revoked -> Status.Revoked
+    }
+}
+
+pure fn outOfDate(platform: TcbStatus) -> Status {
+    match platform {
+        TcbStatus.UpToDate -> Status.OutOfDate
+        TcbStatus.SWHardeningNeeded -> Status.OutOfDate
+        TcbStatus.ConfigurationNeeded -> Status.OutOfDateConfigurationNeeded
+        TcbStatus.ConfigurationAndSWHardeningNeeded -> Status.OutOfDateConfigurationNeeded
+        _ -> platformStatus(platform)
+    }
+}
+
+/// Intel QVL's convergence: only an out-of-date or revoked QE level moves the
+/// platform status, and a hardening status for the QE is refused.
+pub pure fn convergeStatus(platform: TcbStatus, qe: TcbStatus) -> Result[Status, Error] {
+    match qe {
+        TcbStatus.SWHardeningNeeded -> fail failure(TcbNotSupported, "QE Identity level status sw-hardening-needed is not a QE status")
+        TcbStatus.ConfigurationAndSWHardeningNeeded -> fail failure(TcbNotSupported, "QE Identity level status configuration-and-sw-hardening-needed is not a QE status")
+        TcbStatus.Revoked -> Ok(Status.Revoked)
+        TcbStatus.OutOfDate -> Ok(outOfDate(platform))
+        _ -> Ok(platformStatus(platform))
+    }
+}

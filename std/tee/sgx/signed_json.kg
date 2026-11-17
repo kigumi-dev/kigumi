@@ -1,0 +1,78 @@
+// QVL hashes the body as RapidJSON re-serialises it: for the accepted subset,
+// the input without insignificant whitespace, which is also what gets decoded.
+import hex from std/encoding/hex
+import map from std/map
+
+/// The largest TCB Info or QE Identity document the verifier reads; Intel's
+/// are tens of kilobytes.
+pub const maxCollateralJsonBytes: usize = 1048576
+
+/// The compact signed body and the raw r || s signature of one document.
+type SignedJson = {
+    body String
+    signature Bytes
+}
+
+fn signatureOf(compact: String, scan: &JsonScan) -> Result[Bytes, Error] {
+    let quoted = compact.toBytes()
+    if quoted.len() != 130 || quoted[0] != 34 || quoted[129] != 34 {
+        fail scan.reject("signature must be a string of 128 hex digits")
+    }
+    let digits = compact.sliceBytes(1, 129) || fail scan.reject("signature bounds")
+    match hex.decode(digits) {
+        Ok(value) -> Ok(value)
+        Err(_) -> fail scan.reject("signature is not hex")
+    }
+}
+
+/// Splits a document into the compact `bodyKey` object and the signature in one
+/// linear scan; `requireUniqueMembers` runs only after the signature verifies.
+fn splitSigned(text: String, bodyKey: String, code: Code, what: String) -> Result[SignedJson, Error] {
+    if text.len() > maxCollateralJsonBytes {
+        fail failure(code, "${what} is ${text.len()} bytes, more than ${maxCollateralJsonBytes}")
+    }
+    let mut scan = newScan(text, code, what, false)
+    let mut body: String? = None
+    let mut signature: Bytes? = None
+    scan.expect(123, "a document object")?
+    let mut keys = map.empty[String, Bool]()
+    for {
+        let key = scan.string()?
+        if keys.contains(&key) {
+            fail scan.reject("duplicate member `${key}`")
+        }
+        keys.set(key, true)
+        scan.expect(58, "`:`")?
+        scan.out = Array.empty[u8]()
+        scan.value(1)?
+        let compact = scan.take()
+        if key == bodyKey {
+            if !compact.startsWith("{") {
+                fail scan.reject("`${bodyKey}` must be an object")
+            }
+            body = Some(compact)
+        } else if key == "signature" {
+            signature = Some(signatureOf(compact, &scan)?)
+        }
+        scan.space()
+        if scan.peek() == 125 {
+            break
+        }
+        scan.expect(44, "`,` or `}`")?
+    }
+    scan.at = scan.at + 1
+    scan.space()
+    if scan.at != scan.src.len() {
+        fail scan.reject("trailing bytes after the document")
+    }
+    Ok(SignedJson {
+        body: body || fail scan.reject("missing `${bodyKey}`")
+        signature: signature || fail scan.reject("missing `signature`")
+    })
+}
+
+/// Refuses a repeated member anywhere in a compact body.
+fn requireUniqueMembers(body: String, code: Code, what: String) -> Result[Void, Error] {
+    let mut scan = newScan(body, code, what, true)
+    scan.value(1)
+}
