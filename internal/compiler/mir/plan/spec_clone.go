@@ -12,7 +12,7 @@ import (
 // ents renames the closures g builds to their copies.
 func (p *planner) cloneFor(g *midir.Func, ent sem.EntityID, name string, subst map[sem.EntityID]sem.TypeID, ents map[sem.EntityID]sem.EntityID) *midir.Func {
 	ty := func(t sem.TypeID) sem.TypeID { return p.R.Types.Subst(t, subst) }
-	f := &midir.Func{Name: name, Ent: ent, File: g.File, Ret: ty(g.Ret), ImplicitOk: g.ImplicitOk, RCBase: g.RCBase}
+	f := &midir.Func{Name: name, Ent: ent, File: g.File, Ret: ty(g.Ret), ImplicitOk: g.ImplicitOk, RCBase: g.RCBase, Async: g.Async, Suspends: g.Suspends}
 	f.Params = append([]midir.LocalID(nil), g.Params...)
 	f.PanicDrop = append([]midir.LocalID(nil), g.PanicDrop...)
 	f.Locals = make([]midir.Local, len(g.Locals))
@@ -40,6 +40,9 @@ func (p *planner) cloneFor(g *midir.Func, ent sem.EntityID, name string, subst m
 		}
 		term := midir.Term{Op: blk.Term.Op, Args: append([]midir.LocalID(nil), blk.Term.Args...), Targets: append([]midir.BlockID(nil), blk.Term.Targets...)}
 		f.Blocks[bid] = midir.Block{Insts: insts, Term: term}
+	}
+	if f.Async {
+		planFrame(f, p)
 	}
 	return f
 }

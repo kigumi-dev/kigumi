@@ -1,6 +1,6 @@
 package sem
 
-// InstanceInfo's Args follow Gen's TypeParams, 0 for a lifetime.
+// Args follow Gen's TypeParams; 0 leaves a parameter erased.
 type InstanceInfo struct {
 	Gen  EntityID
 	Args []TypeID

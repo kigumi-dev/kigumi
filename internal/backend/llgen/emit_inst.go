@@ -171,7 +171,7 @@ func (e *emitter) instBody(sb *strings.Builder, f *midir.Func, in midir.Inst) {
 	case midir.OpInterp:
 		res = e.interp(sb, in, args)
 	case midir.OpShell:
-		res = e.shell(sb, in, args)
+		res = e.shell(sb, f, in, args)
 	case midir.OpDrop:
 		if e.lentFrameCell(f, in.Args[0]) {
 			return
@@ -180,7 +180,7 @@ func (e *emitter) instBody(sb *strings.Builder, f *midir.Func, in midir.Inst) {
 		if f.Locals[in.Args[0]].Ent != 0 {
 			e.store(sb, in.Args[0], "null")
 		}
-		if in.Partial {
+		if in.DropKind != midir.DropWhole {
 			e.dropCall(sb, f, rtDropPartial, args[0], true)
 		} else {
 			e.dropCall(sb, f, rtDrop, args[0])

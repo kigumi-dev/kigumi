@@ -1,0 +1,16 @@
+-- src --
+interface I {
+    fn measure[const M: usize](self, a: FixedArray[Int, M]) -> usize
+}
+
+type Buf[const N: usize] = { pub n Int }
+fn Buf[N].measure[const M: usize](self, a: FixedArray[Int, M]) -> usize { N * 10 + M }
+fn use[T: I](x: T, a: FixedArray[Int, 4]) -> usize { x.measure(a) }
+fn relay[T: I](x: T, a: FixedArray[Int, 4]) -> usize { use(x, a) }
+
+let a = FixedArray.filled[Int, 4](0)
+print "${use(Buf[7] { n: 1 }, a)} ${relay(Buf[2] { n: 3 }, a)}"
+print "${Buf[9] { n: 1 }.measure(FixedArray.filled[Int, 2](0))}"
+-- stdout --
+74 24
+92

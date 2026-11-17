@@ -7,8 +7,9 @@ import (
 
 func (s *specializer) instance(f *midir.Func, ctx *spec, in midir.Inst) ([]sem.TypeID, []sem.WitnessArg, bool) {
 	r := s.p.R
+	in = s.callBinding(f, in)
 	gen := in.Ent
-	if s.p.ByEnt[gen] == nil || !r.Specializable(gen) || s.noSpec[gen] {
+	if s.p.ByEnt[gen] == nil || !r.Specializable(gen) && !s.simdAsync(gen) || s.noSpec[gen] {
 		return nil, nil, false
 	}
 	if _, minted := r.InstanceOf(gen); minted {
@@ -18,18 +19,29 @@ func (s *specializer) instance(f *midir.Func, ctx *spec, in midir.Inst) ([]sem.T
 	if !ok {
 		return nil, nil, false
 	}
+	shapeArgs, shape := s.simdArgsOnly(gen, args)
+	if !r.Specializable(gen) && !shape {
+		return nil, nil, false
+	}
+	sharedShape := shape && s.heldIn(f, ctx) == nil && !s.p.DeclaredNoalloc(s.p.ByEnt[gen])
+	if sharedShape {
+		args = shapeArgs
+	}
 	for _, t := range args {
 		if t != 0 && !r.ConcreteArg(t) {
 			return nil, nil, false
 		}
 	}
 	args = r.EraseLifetimes(args)
-	if !r.SpecializeArgs(args) && !s.protoInstance(gen, args) && !s.scalarArgs(args) && !s.simdShapeArgs(gen, args) || s.grows(ctx, args) {
+	if !r.SpecializeArgs(args) && !s.protoInstance(gen, args) && !s.scalarArgs(args) && !shape || !shape && s.grows(ctx, args) {
 		return nil, nil, false
 	}
 	if in.Op == midir.OpFnItem {
 		// A function value reaches a scalar instance through an adapter that boxes the result again.
-		return args, nil, r.SpecializeArgs(args) || s.protoInstance(gen, args)
+		return args, nil, shape || r.SpecializeArgs(args) || s.protoInstance(gen, args)
+	}
+	if sharedShape {
+		return args, nil, true
 	}
 	return args, s.witnesses(ctx, gen, r.Files[f.File].Calls[in.Node]), true
 }
@@ -44,7 +56,7 @@ func (p *planner) bindTypeArgs(f *midir.Func, in midir.Inst, subst func(sem.Type
 	}
 	bound := map[sem.EntityID]sem.TypeID{}
 	if in.Op == midir.OpFnItem {
-		if in.Async || info.Recv != sem.RecvNone || len(info.Witnesses) > 0 {
+		if info.Recv != sem.RecvNone || len(info.Witnesses) > 0 {
 			return nil, false
 		}
 		if !r.Types.BindParams(info.Sig, f.Locals[in.Dst].Type, want, bound) {
@@ -74,7 +86,15 @@ func (p *planner) bindTypeArgs(f *midir.Func, in midir.Inst, subst func(sem.Type
 			return nil, false
 		}
 	}
-	if !r.Types.BindParams(r.Types.Node(info.Sig).Elem, f.Locals[in.Dst].Type, want, bound) {
+	ret := f.Locals[in.Dst].Type
+	if in.Op == midir.OpFutureNew {
+		n := r.Types.Node(ret)
+		if n.Kind != sem.KNamed || n.Ent != r.Types.FutureEnt() || len(n.Args) != 1 {
+			return nil, false
+		}
+		ret = n.Args[0]
+	}
+	if !r.Types.BindParams(r.Types.Node(info.Sig).Elem, ret, want, bound) {
 		return nil, false
 	}
 	return p.boundArgs(gen, want, bound)

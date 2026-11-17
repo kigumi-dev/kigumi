@@ -1,0 +1,19 @@
+-- src --
+import simd from std/simd
+
+fn make[const N: usize](v: i32) -> simd.Vec[i32, N] {
+    simd.Vec.splat[i32, N](v)
+}
+fn relay[const N: usize](v: i32) -> simd.Vec[i32, N] { make[N](v) }
+fn outer[const N: usize](v: i32) -> simd.Vec[i32, N] { relay[N](v) }
+fn add[T: Copy, const N: usize](v: simd.Vec[T, N]) -> simd.Vec[T, N] { v.add(v) }
+fn twice[const N: usize](v: simd.Vec[u8, N]) -> simd.Vec[u8, N] { add[u8, N](v) }
+fn recurse[const N: usize](v: i32, depth: Int) -> simd.Vec[i32, N] {
+    if depth == 0 { outer[N](v) } else { recurse[N](v, depth - 1) }
+}
+
+print "${outer[4](5).lane(3)} ${twice[16](simd.Vec.splat[u8, 16](7)).lane(0)}"
+print "${recurse[4](8, 2).lane(1)}"
+-- stdout --
+5 14
+8

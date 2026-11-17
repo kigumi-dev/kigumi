@@ -42,6 +42,9 @@ func (s *specializer) dryRun(live []*spec, pins map[*midir.Func][]bool) bool {
 	s.reboxFlows = nil
 	fixed := map[*midir.Func][]bool{}
 	for _, sp := range live {
+		if sp.shape {
+			continue
+		}
 		changed = s.revertCostly(sp, fixed) || changed
 		if !s.pays(sp) || s.deepens(sp) {
 			s.drop(sp)

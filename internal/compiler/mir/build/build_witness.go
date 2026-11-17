@@ -42,7 +42,8 @@ func (b *builder) witnessArg(w sem.WitnessArg, n syntax.NodeID) midir.LocalID {
 		return b.emit(midir.Inst{Op: midir.OpBind, Dst: b.temp(b.r.Fn(w.Ent).Sig), Ent: w.Ent, Node: n})
 	case sem.WitnessBind:
 		caps := append(b.witnessArgs(w.Args, n), b.constArgs(w.ConstArgs, n)...)
-		return b.emit(midir.Inst{Op: midir.OpBind, Dst: b.temp(b.r.Fn(w.Ent).Sig), Ent: w.Ent, Args: caps, Node: n})
+		info := b.r.Fn(w.Ent)
+		return b.emit(midir.Inst{Op: midir.OpBind, Dst: b.temp(info.Sig), Ent: w.Ent, Args: caps, Index: len(info.ConstParams) - len(w.ConstArgs), Node: n})
 	}
 	// Zero Kind means sem accepted a call it could not build a witness
 	// for: a checker bug, not a user error, so this must never reach a

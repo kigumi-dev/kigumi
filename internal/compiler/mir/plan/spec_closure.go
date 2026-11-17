@@ -8,7 +8,7 @@ import (
 type funcPair struct{ fn, gen *midir.Func }
 
 // The copies' closure types join sub, which the copy of the outer body reads.
-func (s *specializer) closureClones(g *midir.Func, sub map[sem.EntityID]sem.TypeID) ([]funcPair, map[sem.EntityID]sem.EntityID, bool) {
+func (s *specializer) closureClones(g *midir.Func, sub map[sem.EntityID]sem.TypeID, shape bool) ([]funcPair, map[sem.EntityID]sem.EntityID, bool) {
 	all := s.withMethodValues(s.closuresBuilt(g), g)
 	needs := map[sem.EntityID]bool{}
 	for changed := true; changed; {
@@ -26,7 +26,7 @@ func (s *specializer) closureClones(g *midir.Func, sub map[sem.EntityID]sem.Type
 			if _, done := ents[c]; done || !needs[c] || !s.depsMinted(c, needs, ents) {
 				continue
 			}
-			if body := s.p.ByEnt[c]; body != nil && (body.Async || body.Suspends > 0) {
+			if body := s.p.ByEnt[c]; !shape && body != nil && (body.Async || body.Suspends > 0) {
 				return nil, nil, false
 			}
 			c2 := s.p.R.InstantiateClosure(c, sub)

@@ -90,7 +90,7 @@ func (e *emitter) interp(sb *strings.Builder, in midir.Inst, args []string) stri
 
 // shell turns a `$"..."` literal into a std/shell.Plan, one
 // std/shell.Item builder call per piece, in source order.
-func (e *emitter) shell(sb *strings.Builder, in midir.Inst, args []string) string {
+func (e *emitter) shell(sb *strings.Builder, f *midir.Func, in midir.Inst, args []string) string {
 	plan := e.callStd(sb, "std/shell", "planNew", nil)
 	ai := 0
 	push := func(item string) { plan = e.callStd(sb, "std/shell", "planPush", []string{plan, item}) }
@@ -101,9 +101,16 @@ func (e *emitter) shell(sb *strings.Builder, in midir.Inst, args []string) strin
 		case s == " ":
 			push(e.shellItem(sb, "Word", nil))
 		case s == "$":
-			text := e.irb(sb).Call(rtDisplay, vptr(args[ai])).Text
+			name := "Text"
+			var text string
+			if e.r.UnderlyingRepr(f.Locals[in.Args[ai]].Type) == sem.TyBytes {
+				name = "RawText"
+				text = e.irb(sb).Call(rtCopy, vptr(args[ai])).Text
+			} else {
+				text = e.irb(sb).Call(rtDisplay, vptr(args[ai])).Text
+			}
 			ai++
-			push(e.shellItem(sb, "Text", []string{text}))
+			push(e.shellItem(sb, name, []string{text}))
 		case s[0] == 'r':
 			op, fd, _ := strings.Cut(s[1:], ":")
 			opv := e.constSlotName(e.constNum(kInt, 320, op))

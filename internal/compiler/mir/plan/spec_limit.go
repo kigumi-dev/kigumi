@@ -59,7 +59,9 @@ func charge(sp, ctx *spec) {
 		return
 	}
 	sp.root = ctx.root
-	sp.root.brought++
+	if !sp.shape {
+		sp.root.brought++
+	}
 }
 
 // The warning goes once to the call that brought the root in, where the caller can act on it.

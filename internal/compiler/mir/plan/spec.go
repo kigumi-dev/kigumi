@@ -24,6 +24,7 @@ type spec struct {
 	sites   []*callSite
 	dead    bool
 	scalar  bool
+	shape   bool
 	held    *heldRoot
 }
 
@@ -43,6 +44,7 @@ type specializer struct {
 	names    map[string]*nameHolder
 	noSpec   map[sem.EntityID]bool
 	simdBody map[sem.EntityID]bool
+	simdArgs map[sem.EntityID]map[sem.EntityID]bool
 	reported map[string]bool
 	scanned  map[*midir.Func]bool
 	rooted   map[*midir.Func]*heldRoot
@@ -50,6 +52,7 @@ type specializer struct {
 	bonus    map[string]int
 	lent     map[lendParam]bool
 	edits    []siteEdit
+	futures  map[*midir.Func]map[midir.LocalID]midir.Inst
 	// Rebuilt per dry run; a revert drops its caller's entry.
 	reboxFlows map[*midir.Func]*reboxFlow
 }
@@ -169,11 +172,15 @@ func (s *specializer) get(f *midir.Func, ctx *spec, in midir.Inst, args []sem.Ty
 		return nil
 	}
 	g := s.p.ByEnt[gen]
-	if s.noSpec[gen] || held != nil && s.overHeldLimit(f, in, held, gen, args) || held == nil && s.overBudget(ctx) {
+	shape := s.simdShapeArgs(gen, args)
+	if shape && held == nil && s.p.DeclaredNoalloc(g) {
+		held = s.rooted[g]
+	}
+	if s.noSpec[gen] || held != nil && s.overHeldLimit(f, in, held, gen, args) || held == nil && !shape && s.overBudget(ctx) {
 		return nil
 	}
 	sub := s.p.R.InstanceSubst(gen, args)
-	clones, ents, ok := s.closureClones(g, sub)
+	clones, ents, ok := s.closureClones(g, sub, shape)
 	if !ok {
 		s.noSpec[gen] = true
 		return nil
@@ -182,22 +189,24 @@ func (s *specializer) get(f *midir.Func, ctx *spec, in midir.Inst, args []sem.Ty
 	name, holder := s.name(gen, args, wit)
 	fn := s.p.cloneFor(g, ent, name, sub, ents)
 	holder.fn = fn
-	// The checker's E976 rule sees a concrete call site; a call inside a
-	// generic body names its lane type and count only as parameters, so the
-	// specialized body is where an invalid instance becomes visible.
 	if s.reportSimdProblem(f, in.Node, gen, fn) {
 		return nil
+	}
+	for _, c := range clones {
+		if s.reportSimdProblem(f, in.Node, c.gen.Ent, c.fn) {
+			return nil
+		}
 	}
 	if kind := s.p.R.ProtoKind(gen); kind != "" {
 		if t, ok := s.p.protoSubject(fn); ok && s.p.R.ProtocolDirect(t, kind) {
 			s.p.intrinsify(fn, kind, t)
 		}
 	}
-	if s.leftGeneric(append([]*midir.Func{fn}, funcsOf(clones)...)) {
+	if (!shape || held != nil) && s.leftGeneric(append([]*midir.Func{fn}, funcsOf(clones)...)) {
 		s.noSpec[gen] = true
 		return nil
 	}
-	sp := &spec{key: key, ent: ent, gen: gen, args: args, wit: wit, parent: ctx, fn: fn, sub: sub, clones: clones, scalar: s.scalars, held: held}
+	sp := &spec{key: key, ent: ent, gen: gen, args: args, wit: wit, parent: ctx, fn: fn, sub: sub, clones: clones, scalar: s.scalars, shape: shape, held: held}
 	charge(sp, ctx)
 	s.p.Funcs = append(s.p.Funcs, fn)
 	s.p.ByEnt[ent] = fn
