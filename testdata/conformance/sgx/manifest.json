@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "comment": "Deterministic Intel SGX DCAP Tier 0 vectors generated from fixed P-256/P-384 keys; no hardware is involved and no vector marks an unverified structure as valid.",
+  "comment": "SGX v3 structural and cryptographic cases: deterministic local keys plus pinned Intel QVL sample data; no hardware isolation claim.",
   "suites": [
     {
       "primitive": "sgx-quote-parse",
@@ -31,6 +31,16 @@
       "primitive": "sgx-verify",
       "source": "End-to-end DCAP verification: quote + QE + P-256 PCK chain + TCB/QE identity",
       "path": "sgx_verify.json"
+    },
+    {
+      "primitive": "sgx-pck-path",
+      "source": "RFC 5280 path, trust-anchor and critical-extension cases generated with fixed P-256 keys",
+      "path": "pck_paths.json"
+    },
+    {
+      "primitive": "sgx-intel-vendor",
+      "source": "Intel QVL d12717e3f1f2ab81313f88001fd902b5ef5f9c8c Src/AttestationApp/sampleData; BSD-3-Clause (INTEL-LICENSE.txt). Type-5 variant replaces the type-1 certificate locator with the matching vendor PCK chain; signed bytes are unchanged.",
+      "path": "intel_vendor.json"
     }
   ]
 }

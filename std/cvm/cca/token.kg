@@ -55,19 +55,15 @@ pure fn parseProtected(bytes: Bytes) -> Result[Int, Error] {
     }
     let pairs = cursor.readMapHeader()?
     let mut algorithm: Int? = None
-    let mut seen: Bool = false
+    let mut seen = HeaderLabels.new()
     let mut i: usize = 0
     for i < pairs {
-        let label = match cursor.readLabel()? {
+        let label = match cursor.readHeaderLabel(&mut seen)? {
             Some(label) -> label
             None -> 0
         }
         match label {
             1 -> {
-                if seen {
-                    fail Malformed("duplicate COSE algorithm header")
-                }
-                seen = true
                 algorithm = Some(cursor.readInteger()?)
             }
             2 -> fail Unsupported("COSE critical header")
@@ -116,9 +112,12 @@ pub pure fn parseCoseSign1(data: Bytes) -> Result[CoseSign1, Error] {
     let algorithm = parseProtected(protectedHeader)?
 
     let unprotectedPairs = cursor.readMapHeader()?
+    let mut seen = HeaderLabels.new()
     let mut i: usize = 0
     for i < unprotectedPairs {
-        let _ = cursor.readLabel()?
+        if cursor.readHeaderLabel(&mut seen)? is Some(2) {
+            fail Malformed("COSE critical header must be protected")
+        }
         cursor.skipValue(64)?
         i = i + 1
     }

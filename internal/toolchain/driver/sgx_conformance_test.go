@@ -151,6 +151,10 @@ func validateSgxVector(v *sgxVector) error {
 		if v.Hex == "" || v.CpuSvn == "" {
 			return fmt.Errorf("needs TCB Info and a CPU SVN")
 		}
+	case "sgx-qe-binding":
+		if v.Hex == "" {
+			return fmt.Errorf("needs an attestation public key")
+		}
 	default:
 		return fmt.Errorf("unsupported operation %q", v.Op)
 	}
@@ -213,6 +217,11 @@ func emitSgxVector(b *strings.Builder, v sgxVector, idx int) {
 		fmt.Fprintf(b, "    let result%d = %s\n", idx, body)
 	}
 	switch v.Op {
+	case "sgx-qe-binding":
+		emit(fmt.Sprintf(`match sgx.qeReportData(%s, %s) {
+        Ok(data) -> hex.encode(data)
+        Err(err) -> "error:${err.code.name()}"
+    }`, hexArg(v.Hex), hexArg(v.Hex2)))
 	case "sgx-parse":
 		emit(fmt.Sprintf(`match sgx.Quote.parse(%s) {
         Ok(q) -> "ok mr=${hex.encode(q.report.mrEnclave)} signer=${hex.encode(q.report.mrSigner)} isv=${q.report.isvProdId}/${q.report.isvSvn} debug=${p(q.report.debug())} qeSvn=${q.header.qeSvn}"
@@ -350,11 +359,25 @@ func TestSgxConformance(t *testing.T) {
 		}
 		cmd := exec.Command(exe)
 		cmd.Dir = root
+		if countsNativeLive() {
+			cmd.Env = append(os.Environ(), "KIGUMI_LIVE_REPORT=1")
+		}
 		var out, errOut bytes.Buffer
 		cmd.Stdout = &out
 		cmd.Stderr = &errOut
 		if err := cmd.Run(); err != nil {
 			t.Fatalf("native run: %v\nstderr:\n%s", err, errOut.String())
+		}
+		stderr := errOut.String()
+		if countsNativeLive() {
+			live := nativeLiveLine.FindStringSubmatch(stderr)
+			if live == nil || live[1] != "0" {
+				t.Fatalf("expected zero native live objects: %s", stderr)
+			}
+			stderr = nativeLiveLine.ReplaceAllString(stderr, "")
+		}
+		if stderr != "" {
+			t.Fatalf("unexpected native stderr: %s", stderr)
 		}
 		native = parseSgxResults(t, out.String())
 	}

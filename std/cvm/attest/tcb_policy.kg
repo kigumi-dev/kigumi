@@ -1,0 +1,10 @@
+pure fn tcbMeetsFloor(current: u64, floor: u64) -> Bool {
+    let mut shift: usize = 0
+    for shift < 64 {
+        if ((current >> shift) & 255) < ((floor >> shift) & 255) {
+            return false
+        }
+        shift = shift + 8
+    }
+    true
+}

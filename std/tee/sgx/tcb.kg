@@ -1,18 +1,3 @@
-// TCB and QE identity collateral, evaluated the way dcap-qvl does: the quote
-// supplies the CPU SVN, PCE SVN and QE SVN, and caller-supplied Intel PCS
-// collateral supplies the levels those values must reach.
-//
-// `TcbInfo` mirrors the `tcbInfo` document (SGX TCB Info v3/v4): the
-// FMSPC plus an ordered list of TCB levels. Intel lists levels from newest
-// to oldest, so the first level whose sixteen `sgxtcbcomponents` are all at
-// or below the quote's `cpu_svn` and whose `pcesvn` is at or below the
-// quote's PCE SVN wins. No matching level means out of date.
-//
-// `QeIdentity` mirrors the `enclaveIdentity` part of the QvE Identity
-// document: the masked MISCSELECT/ATTRIBUTES comparison, MR_SIGNER and
-// ISV_PROD_ID, then the first `isvsvn` TCB level at or below the QE report's
-// ISV SVN. The JSON signature over the collateral is the caller's
-// responsibility; this package does not fetch or authenticate PCS responses.
 import hex from std/encoding/hex
 import json from std/json
 
@@ -23,6 +8,7 @@ pub type TcbStatus =
     | SWHardeningNeeded
     | ConfigurationAndSWHardeningNeeded
     | OutOfDate
+    | OutOfDateConfigurationNeeded
     | Revoked
 
 pub fn TcbStatus.name(self) -> String {
@@ -32,6 +18,7 @@ pub fn TcbStatus.name(self) -> String {
         TcbStatus.SWHardeningNeeded -> "sw-hardening-needed"
         TcbStatus.ConfigurationAndSWHardeningNeeded -> "configuration-and-sw-hardening-needed"
         TcbStatus.OutOfDate -> "out-of-date"
+        TcbStatus.OutOfDateConfigurationNeeded -> "out-of-date-configuration-needed"
         TcbStatus.Revoked -> "revoked"
     }
 }
@@ -44,7 +31,8 @@ pub pure fn TcbStatus.rank(self) -> Int {
         TcbStatus.SWHardeningNeeded -> 2
         TcbStatus.ConfigurationAndSWHardeningNeeded -> 3
         TcbStatus.OutOfDate -> 4
-        TcbStatus.Revoked -> 5
+        TcbStatus.OutOfDateConfigurationNeeded -> 5
+        TcbStatus.Revoked -> 6
     }
 }
 
@@ -55,6 +43,7 @@ pure fn statusFromText(text: String) -> Result[TcbStatus, Error] {
         "SWHardeningNeeded" -> Ok(TcbStatus.SWHardeningNeeded)
         "ConfigurationAndSWHardeningNeeded" -> Ok(TcbStatus.ConfigurationAndSWHardeningNeeded)
         "OutOfDate" -> Ok(TcbStatus.OutOfDate)
+        "OutOfDateConfigurationNeeded" -> Ok(TcbStatus.OutOfDateConfigurationNeeded)
         "Revoked" -> Ok(TcbStatus.Revoked)
         _ -> fail failure(BadTcbInfo, "unknown TCB status `${text}`")
     }

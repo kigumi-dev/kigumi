@@ -1,0 +1,40 @@
+import {Map, empty} from std/map
+
+type HeaderLabels = {
+    mut integers Map[Int, Bool]
+    mut texts Map[String, Bool]
+}
+
+pure fn HeaderLabels.new() -> HeaderLabels {
+    HeaderLabels {
+        integers: empty[Int, Bool]()
+        texts: empty[String, Bool]()
+    }
+}
+
+pure fn Cursor.readHeaderLabel(mut self, seen: &mut HeaderLabels) -> Result[Int?, Error] {
+    let head = self.head()?
+    if head.major == 3 {
+        if head.arg > self.remaining().toU64() {
+            fail Truncated("COSE text label")
+        }
+        let raw = self.take(head.arg.toUsize())?
+        let label = String.fromBytes(raw) || fail Malformed("COSE text label")
+        if seen.texts.contains(&label) {
+            fail Malformed("duplicate COSE header label")
+        }
+        seen.texts.set(label, true)
+        return Ok(None)
+    }
+    let value = head.arg.toInt() || fail Malformed("COSE integer label")
+    let label = match head.major {
+        0 -> value
+        1 -> -1 - value
+        _ -> fail Malformed("COSE header label")
+    }
+    if seen.integers.contains(&label) {
+        fail Malformed("duplicate COSE header label")
+    }
+    seen.integers.set(label, true)
+    Ok(Some(label))
+}

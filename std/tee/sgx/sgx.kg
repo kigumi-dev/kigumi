@@ -1,14 +1,3 @@
-// Intel SGX DCAP Tier 0: quote parsing, the QE report / PCK chain boundary,
-// TCB and QE identity claims, and a dcap-qvl-style verification result.
-//
-// This package deliberately stops at the boundary `std` can actually prove.
-// The SGX quote and QE report signatures are ECDSA P-256 over SHA-256, which
-// `std/crypto/p256` verifies. Intel's SGX Root CA is ECDSA P-384, which
-// `std/crypto/x509` cannot verify; `pck.verify` therefore refuses a P-384
-// anchor or chain with `UnsupportedAlgorithm` instead of treating a
-// host-supplied chain as trusted. Quotes whose header selects P-384 parse but
-// fail verification with the same code. This is not a hardware claim: every
-// vector in the tests is generated locally from fixed keys.
 import binary from std/encoding/binary
 
 /// Why an SGX structure or verification was refused. `code` is the stable

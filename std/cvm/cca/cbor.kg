@@ -165,12 +165,18 @@ pub pure fn Cursor.readLabel(mut self) -> Result[Int?, Error] {
 /// Reads an array header and returns the number of items.
 pub pure fn Cursor.readArrayHeader(mut self) -> Result[usize, Error] {
     let head = self.requireMajor(4, "CBOR array")?
+    if head.arg > self.remaining().toU64() {
+        fail Truncated("CBOR array")
+    }
     Ok(head.arg.toUsize())
 }
 
 /// Reads a map header and returns the number of pairs.
 pub pure fn Cursor.readMapHeader(mut self) -> Result[usize, Error] {
     let head = self.requireMajor(5, "CBOR map")?
+    if head.arg > (self.remaining() / 2).toU64() {
+        fail Truncated("CBOR map")
+    }
     Ok(head.arg.toUsize())
 }
 
@@ -203,6 +209,9 @@ pub pure fn Cursor.skipValue(mut self, depth: usize) -> Result[Void, Error] {
             self.take(head.arg.toUsize())?
         }
         4 -> {
+            if head.arg > self.remaining().toU64() {
+                fail Truncated("CBOR array")
+            }
             let mut i: u64 = 0
             for i < head.arg {
                 self.skipValue(depth - 1)?
@@ -210,8 +219,12 @@ pub pure fn Cursor.skipValue(mut self, depth: usize) -> Result[Void, Error] {
             }
         }
         5 -> {
+            if head.arg > (self.remaining() / 2).toU64() {
+                fail Truncated("CBOR map")
+            }
             let mut i: u64 = 0
-            for i < head.arg * 2 {
+            for i < head.arg {
+                self.skipValue(depth - 1)?
                 self.skipValue(depth - 1)?
                 i = i + 1
             }

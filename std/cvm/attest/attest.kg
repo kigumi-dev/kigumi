@@ -44,10 +44,9 @@ pub type Evidence = {
 /// The checks applied after the evidence's integrity is established.
 ///
 /// `nonce` and `measurement` are exact matches when present. `minimumTcb`
-/// compares the packed `CURRENT_TCB` value; callers that need component-wise
-/// comparison for a particular CPU family should use the `TcbVersion`
-/// accessors on the report before calling this. `requireIdBlock` demands
-/// launch evidence even when the caller supplied none.
+/// compares each SVN byte of `CURRENT_TCB` with the same byte of the floor;
+/// the floor must use the report's CPU-family layout. `requireIdBlock`
+/// demands launch evidence even when the caller supplied none.
 pub type Policy = {
     pub nonce Bytes?
     pub measurement Bytes?
@@ -93,6 +92,18 @@ pure fn parseIdAuth(value: Bytes?) -> Result[snp.IdAuth?, Error] {
 }
 
 pure fn checkIdEvidence(report: &snp.Report, block: &snp.IdBlock, auth: &snp.IdAuth) -> Result[Void, Error] {
+    if !block.launchDigest.equals(&report.measurement) {
+        fail Forged("ID block launch digest does not match the report")
+    }
+    if !block.familyId.equals(&report.familyId) {
+        fail Forged("ID block family ID does not match the report")
+    }
+    if !block.imageId.equals(&report.imageId) {
+        fail Forged("ID block image ID does not match the report")
+    }
+    if block.guestSvn != report.guestSvn {
+        fail Forged("ID block guest SVN does not match the report")
+    }
     if !block.policy.raw.equals(&report.policy.raw) {
         fail Forged("ID block policy does not match the report")
     }
@@ -146,7 +157,7 @@ pure fn checkPolicy(report: &snp.Report, policy: &Policy) -> Result[Void, Error]
     }
     match policy.minimumTcb {
         Some(floor) -> {
-            if report.currentTcb.raw < floor {
+            if !tcbMeetsFloor(report.currentTcb.raw, floor) {
                 fail PolicyFailure("CURRENT_TCB is below the required floor")
             }
         }

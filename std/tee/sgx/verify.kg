@@ -20,6 +20,7 @@ pub type Status =
     | SWHardeningNeeded
     | ConfigurationAndSWHardeningNeeded
     | OutOfDate
+    | OutOfDateConfigurationNeeded
     | Revoked
 
 pub fn Status.name(self) -> String {
@@ -29,6 +30,7 @@ pub fn Status.name(self) -> String {
         Status.SWHardeningNeeded -> "sw-hardening-needed"
         Status.ConfigurationAndSWHardeningNeeded -> "config-and-sw-hardening-needed"
         Status.OutOfDate -> "out-of-date"
+        Status.OutOfDateConfigurationNeeded -> "out-of-date-configuration-needed"
         Status.Revoked -> "revoked"
     }
 }
@@ -40,7 +42,8 @@ pub pure fn Status.rank(self) -> Int {
         Status.SWHardeningNeeded -> 2
         Status.ConfigurationAndSWHardeningNeeded -> 3
         Status.OutOfDate -> 4
-        Status.Revoked -> 5
+        Status.OutOfDateConfigurationNeeded -> 5
+        Status.Revoked -> 6
     }
 }
 
@@ -51,16 +54,43 @@ pure fn fromTcb(status: TcbStatus) -> Status {
         TcbStatus.SWHardeningNeeded -> Status.SWHardeningNeeded
         TcbStatus.ConfigurationAndSWHardeningNeeded -> Status.ConfigurationAndSWHardeningNeeded
         TcbStatus.OutOfDate -> Status.OutOfDate
+        TcbStatus.OutOfDateConfigurationNeeded -> Status.OutOfDateConfigurationNeeded
         TcbStatus.Revoked -> Status.Revoked
     }
 }
 
 pure fn worse(a: Status, b: Status) -> Status {
-    if b.rank() > a.rank() {
-        b
-    } else {
-        a
+    if a is Status.Revoked || b is Status.Revoked {
+        return Status.Revoked
     }
+    let configuration = needsConfiguration(a) || needsConfiguration(b)
+    if a is Status.OutOfDate || b is Status.OutOfDate || a is Status.OutOfDateConfigurationNeeded || b is Status.OutOfDateConfigurationNeeded {
+        return if configuration {
+            Status.OutOfDateConfigurationNeeded
+        } else {
+            Status.OutOfDate
+        }
+    }
+    let hardening = needsHardening(a) || needsHardening(b)
+    if configuration {
+        return if hardening {
+            Status.ConfigurationAndSWHardeningNeeded
+        } else {
+            Status.ConfigNeeded
+        }
+    }
+    if hardening {
+        return Status.SWHardeningNeeded
+    }
+    Status.Good
+}
+
+pure fn needsConfiguration(status: Status) -> Bool {
+    status is Status.ConfigNeeded || status is Status.ConfigurationAndSWHardeningNeeded || status is Status.OutOfDateConfigurationNeeded
+}
+
+pure fn needsHardening(status: Status) -> Bool {
+    status is Status.SWHardeningNeeded || status is Status.ConfigurationAndSWHardeningNeeded
 }
 
 /// The verifier's view of an enclave plus the QE that signed its quote.
