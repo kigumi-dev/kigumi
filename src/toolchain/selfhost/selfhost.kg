@@ -1,6 +1,6 @@
 import shell from std/shell
 
-pub fn commandPlan(argv: Array[String]) -> shell.Plan {
+fn commandPlan(argv: Array[String]) -> shell.Plan {
     let mut plan = shell.planNew()
     let mut i: usize = 0
     for i < argv.len() {
@@ -11,7 +11,7 @@ pub fn commandPlan(argv: Array[String]) -> shell.Plan {
     plan
 }
 
-pub fn buildPlan(argv: Array[String], path: String) -> shell.Plan {
+fn buildPlan(argv: Array[String], path: String) -> shell.Plan {
     let mut plan = commandPlan(argv)
     plan = shell.planPush(plan, shell.Item.Redirect(2, 1))
     plan = shell.planPush(plan, shell.Item.Text(path))

@@ -22,7 +22,7 @@ pub pure noalloc fn Token.hasSpaceBefore(self) -> Bool {
     (self.flags & SpaceBefore) != 0
 }
 
-pub pure noalloc fn Token.span(self) -> Span {
+pure noalloc fn Token.span(self) -> Span {
     Span { start: self.start, end: self.end }
 }
 

@@ -6,7 +6,7 @@ pub type File = {
     lines Array[u32]
 }
 
-pub fn File.clone(self) -> File {
+fn File.clone(self) -> File {
     File {
         id: self.id
         generated: self.generated
