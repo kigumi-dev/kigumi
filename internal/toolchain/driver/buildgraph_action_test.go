@@ -35,6 +35,11 @@ func actionRoot(t *testing.T) string {
 // reported on stderr.
 func actionBuild(t *testing.T, root, out, version, script string) string {
 	t.Helper()
+	return actionBuildWith(t, root, out, version, script, true)
+}
+
+func actionBuildWith(t *testing.T, root, out, version, script string, cache bool) string {
+	t.Helper()
 	if err := os.WriteFile(filepath.Join(root, "kigumi.framework.kg"), []byte(
 		"Framework { name: \"t/act\", version: \""+version+"\" }\nTool { name: \"copy\", program: \"tools/copy.sh\" }\n"), 0o644); err != nil {
 		t.Fatal(err)
@@ -73,7 +78,7 @@ func actionBuild(t *testing.T, root, out, version, script string) string {
 		t.Fatal(err)
 	}
 	var stderr bytes.Buffer
-	if err := driver.ExecuteGraph(p, rg, out, driver.ExecOptions{ToolEnv: []string{"PATH=" + os.Getenv("PATH")}}, &stderr); err != nil {
+	if err := driver.ExecuteGraph(p, rg, out, driver.ExecOptions{CacheTools: cache, ToolEnv: []string{"PATH=" + os.Getenv("PATH")}}, &stderr); err != nil {
 		t.Fatalf("execute: %v\n%s", err, stderr.String())
 	}
 	return stderr.String()

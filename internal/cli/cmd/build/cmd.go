@@ -17,6 +17,7 @@ func New() *cobra.Command {
 	}
 	cmd.Flags().StringP("output", "o", "", "output path (default: a.out, or kigumi.a for a freestanding or --sys none target)")
 	cmd.Flags().Bool("emit-llvm", false, "print the LLVM IR instead of linking")
+	cmd.Flags().Bool("cache-tools", false, "with a build.kg, reuse tool outputs; requires tools to read only declared inputs and environment")
 	cmd.Flags().Bool("plan", false, "with a build.kg, print the resolved build graph as JSON and stop")
 	cmd.Flags().String("out-dir", ".", "with a build.kg, the directory artifacts and generated files go to")
 	cmd.Flags().StringArray("secret", nil, "with a build.kg, name=file of a secret a tool step may read")

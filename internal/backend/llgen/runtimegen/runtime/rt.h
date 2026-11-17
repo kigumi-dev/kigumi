@@ -141,6 +141,8 @@ int64_t rt_sys_seed(void);
 // Called once per OS thread that runs Kigumi code; a hosted POSIX target installs its stack-overflow guard here.
 void rt_sys_stack_guard(void);
 void rt_sys_stack_force(void);
+// Runs in the fatal signal handler and must be async-signal-safe.
+void rt_sys_fault_cleanup(void);
 
 // ---- core helpers ----
 void rt_panic(const char* msg);

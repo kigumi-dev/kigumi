@@ -79,7 +79,7 @@ func runProgram(io session.IO, opts options) error {
 		}
 	}
 	reports := map[string]driver.BuildReport{}
-	exec := driver.ExecOptions{Secrets: secrets, CFlags: session.CFlags(), ToolEnv: session.ToolEnv(), Reproducible: opts.reproducible, Env: session.CCEnv(), Link: opts.shape.link, SizeMin: opts.shape.sizeMin, Reports: reports}
+	exec := driver.ExecOptions{CacheTools: opts.cacheTools, Secrets: secrets, CFlags: session.CFlags(), ToolEnv: session.ToolEnv(), Reproducible: opts.reproducible, Env: session.CCEnv(), Link: opts.shape.link, SizeMin: opts.shape.sizeMin, Reports: reports}
 	if err := driver.ExecuteGraph(p, rg, opts.outDir, exec, io.Err); err != nil {
 		fmt.Fprintln(io.Err, "build: "+err.Error())
 		return exit.Code(1)

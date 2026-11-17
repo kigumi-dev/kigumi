@@ -34,3 +34,4 @@ __attribute__((weak)) int rt_sys_close(int fd) {
 __attribute__((weak)) int64_t rt_sys_seed(void) { return 0; }
 __attribute__((weak)) void rt_sys_stack_guard(void) {}
 __attribute__((weak)) void rt_sys_stack_force(void) {}
+__attribute__((weak)) void rt_sys_fault_cleanup(void) {}

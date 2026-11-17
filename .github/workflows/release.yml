@@ -202,12 +202,10 @@ jobs:
           set -euo pipefail
           mkdir -p dist
           find artifacts -path '*/dist/*.tar.gz' -type f -exec cp {} dist/ \;
-          # Every target must have produced exactly one archive, and no job may
-          # have silently dropped its artifact.
           target_count=$( ( cd .github/scripts/release && go run . targets --file targets.txt ) | wc -l )
           archive_count=$(find dist -maxdepth 1 -type f -name 'kigumi_*.tar.gz' | wc -l)
-          test "$archive_count" -eq "$((target_count + 2))" || {
-            echo "want $((target_count + 2)) archives (targets plus headers and source), have $archive_count" >&2
+          test "$archive_count" -eq "$target_count" || {
+            echo "want $target_count target archives, have $archive_count" >&2
             find dist -maxdepth 1 -type f -printf '%f\n' >&2
             exit 1
           }

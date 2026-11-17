@@ -19,6 +19,7 @@ type options struct {
 	outDir       string
 	secrets      []string
 	reproducible bool
+	cacheTools   bool
 	programOnly  bool
 	shape        outputShape
 }
@@ -32,7 +33,8 @@ func parseOptions(cmd *cobra.Command, args []string) (options, error) {
 	opts.outDir, _ = f.GetString("out-dir")
 	opts.secrets, _ = f.GetStringArray("secret")
 	opts.reproducible, _ = f.GetBool("reproducible")
-	opts.programOnly = f.Changed("plan") || f.Changed("out-dir") || f.Changed("secret")
+	opts.cacheTools, _ = f.GetBool("cache-tools")
+	opts.programOnly = f.Changed("plan") || f.Changed("out-dir") || f.Changed("secret") || f.Changed("cache-tools")
 	if opts.reproducible && opts.emit {
 		return opts, &exit.UsageError{Err: errors.NewErr("--reproducible and --emit-llvm are incompatible")}
 	}

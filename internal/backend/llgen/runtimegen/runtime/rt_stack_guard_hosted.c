@@ -60,7 +60,9 @@ static void on_fault(int sig, siginfo_t* si, void* ctx) {
         rt_stack_floor = 0;
         rt_panic("stack overflow");
     }
+    rt_sys_fault_cleanup();
     signal(sig, SIG_DFL);
+    raise(sig);
 }
 
 static void free_alt(void* alt) {

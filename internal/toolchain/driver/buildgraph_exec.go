@@ -24,6 +24,7 @@ type ExecOptions struct {
 	// Reproducible builds every artifact with BuildOptions.Reproducible,
 	// for the --reproducible flag.
 	Reproducible bool
+	CacheTools   bool
 	// Env is the allowlisted compiler environment (shared.CCEnv) each
 	// artifact's Reproducible build runs its two internal builds in.
 	Env     []string
@@ -47,10 +48,10 @@ func ExecuteGraph(p *BuildProgram, rg *ResolvedGraph, outDir string, opts ExecOp
 		return err
 	}
 	g := rg.Graph
-	// The action cache lives under the build's own output directory, so the
-	// tool environment needs no HOME and a later build into the same
-	// directory can reuse an unchanged tool's outputs.
-	cache := newActionCache(filepath.Join(outDir, actionCacheDirName))
+	var cache *actionCache
+	if opts.CacheTools {
+		cache = newActionCache(filepath.Join(outDir, actionCacheDirName))
+	}
 	for _, f := range g.Files {
 		// Re-check literal files at execution: the tree may have changed
 		// since configure ran, and a symlink must not lead outside.
@@ -92,7 +93,6 @@ func ExecuteGraph(p *BuildProgram, rg *ResolvedGraph, outDir string, opts ExecOp
 }
 
 // runToolStep runs one registered tool or earlier-built artifact with $in/$out/$secret filled in; a secret is copied to a private file for the run and removed afterward.
-// A step whose action key matches a recorded one restores that action's outputs instead of running, so an unchanged tool, argv, environment and input set never reruns.
 func runToolStep(rg *ResolvedGraph, idx int, filePath func(int) string, opts ExecOptions, outDir string, cache *actionCache, stderr io.Writer) error {
 	secrets := opts.Secrets
 	s := rg.Graph.ToolSteps[idx]
