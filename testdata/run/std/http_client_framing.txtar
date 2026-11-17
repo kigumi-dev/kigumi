@@ -1,0 +1,299 @@
+-- src --
+import gzip from std/compress/gzip
+import zlib from std/compress/zlib
+import error from std/error
+import http from std/net/http
+import net from std/net
+import task from std/task
+
+async fn writeAll(conn: &mut net.Conn, data: Bytes) -> Void! {
+    let mut off: usize = 0
+    for off < data.len() {
+        match conn.pollWrite(data.slice(off, data.len()) || "".toBytes())? {
+            Some(n) -> { off = off + n }
+            None -> await task.yieldNow()
+        }
+    }
+}
+
+// Answers each reply to one request on the same connection, then closes it.
+async fn replyAll(listener: net.Listener, replies: Array[Bytes]) -> Void! {
+    let mut listener = listener
+    let mut conn = for {
+        if listener.pollAccept()? is Some(c) { break c }
+        await task.yieldNow()
+    }
+    for reply in replies {
+        let mut got = Array.empty[u8]()
+        for !Bytes.fromArray(&got).contains("\r\n\r\n".toBytes()) {
+            match conn.pollRead(&mut got, 4096)? {
+                Some(0) -> return
+                Some(_) -> {}
+                None -> await task.yieldNow()
+            }
+        }
+        (await writeAll(&mut conn, reply))?
+    }
+}
+
+fn show(name: String, r: http.Response!) {
+    match r {
+        Ok(x) -> print "${name}: ${x.status} [${x.text() || "?"}] fold=${x.header("X-Fold") || "-"}"
+        Err(e) -> print "${name}: err ${e.message()} client=${error.as[http.ClientError](&e) is Some(_)}"
+    }
+}
+
+async fn once(n: net.Net, name: String, method: String, reply: Bytes) -> Void! {
+    let listener = n.listen("127.0.0.1", 0)?
+    let port = listener.port()
+    let peer = task.spawn(replyAll(listener, Array.of(reply)))
+    let client = http.Client.new(n, task.BlockingPool.new(1))
+    show(name, await client.send("http://127.0.0.1:${port}/", http.Request.new(method, "/")))
+    (await peer)?
+}
+
+async fn sendTwo(client: http.Client, port: Int, name: String, method: String) -> Void! {
+    let mut session = (await client.open("http://127.0.0.1:${port}"))?
+    show("${name} first", await session.send(http.Request.new(method, "/")))
+    show("${name} second", await session.send(http.Request.new("GET", "/")))
+}
+
+// The peer would answer a second request on the same connection, so only the session decides whether there is one.
+async fn twice(n: net.Net, name: String, method: String, first: Bytes) -> Void! {
+    (await twiceWith(n, name, method, first, "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok".toBytes()))?
+}
+
+async fn twiceWith(n: net.Net, name: String, method: String, first: Bytes, second: Bytes) -> Void! {
+    let listener = n.listen("127.0.0.1", 0)?
+    let port = listener.port()
+    let peer = task.spawn(replyAll(listener, Array.of(first, second)))
+    let client = http.Client.new(n, task.BlockingPool.new(1))
+    (await sendTwo(client, port, name, method))?
+    (await peer)?
+}
+
+async fn closing(n: net.Net, name: String, reply: Bytes) -> Void! {
+    let listener = n.listen("127.0.0.1", 0)?
+    let port = listener.port()
+    let peer = task.spawn(replyAll(listener, Array.of(reply)))
+    let client = http.Client.new(n, task.BlockingPool.new(1))
+    let mut session = (await client.open("http://127.0.0.1:${port}"))?
+    show("${name} first", await session.send(http.Request.new("GET", "/")))
+    show("${name} second", await session.send(http.Request.new("GET", "/")))
+    (await peer)?
+}
+
+fn echo(req: http.Request) -> http.Response! {
+    http.Response.ofText(200, "${req.method} ${req.target} ct=${req.headers.get("Content-Type") || "-"} conn=${req.headers.get("Connection") || "-"} body=${req.text()?}")
+}
+
+async fn posts(n: net.Net, listener: net.Listener) -> Void! {
+    let port = listener.port()
+    let server = http.Server.new(http.Router.new().post("/echo", echo).handler(), (line) => print "log: ${line}")
+    let stop = http.Shutdown.new()
+    let running = task.spawn(server.serve(listener, stop.clone()))
+    let client = http.Client.new(n, task.BlockingPool.new(1))
+    show("post two", await client.post("http://127.0.0.1:${port}/echo?q=1", "hello"))
+    show("post three", await client.post("http://127.0.0.1:${port}/echo?q=2", "text/plain", "hello".toBytes()))
+    stop.request()
+    (await running)?
+}
+
+fn hostEcho(req: http.Request) -> http.Response! {
+    http.Response.ofText(200, req.headers.get("Host") || "-")
+}
+
+async fn hosts(n: net.Net) -> Void! {
+    let listener = n.listen("127.0.0.1", 0)?
+    let port = listener.port()
+    let server = http.Server.new(http.Router.new().get("/", hostEcho).handler(), (line) => print "log: ${line}")
+    let stop = http.Shutdown.new()
+    let running = task.spawn(server.serve(listener, stop.clone()))
+    let client = http.Client.new(n, task.BlockingPool.new(1))
+    let got = match await client.get("http://127.0.0.1:${port}/") {
+        Ok(r) -> r.text()?
+        Err(e) -> e.message()
+    }
+    print "explicit port host: ${got == "127.0.0.1:${port}"}"
+    stop.request()
+    (await running)?
+}
+
+async fn onceSmall(n: net.Net, name: String, reply: Bytes) -> Void! {
+    let listener = n.listen("127.0.0.1", 0)?
+    let port = listener.port()
+    let peer = task.spawn(replyAll(listener, Array.of(reply)))
+    let mut client = http.Client.new(n, task.BlockingPool.new(1))
+    client.maxBodyBytes = 4
+    show(name, await client.get("http://127.0.0.1:${port}/"))
+    (await peer)?
+}
+
+async fn urlKind(n: net.Net) -> Void! {
+    let client = http.Client.new(n, task.BlockingPool.new(1))
+    for url in Array.of("http://127.0.0.1:/", "http://a]b:80/", "http://127.0.0.1]/", "http://[::1]:/") {
+        let kind = match await client.get(url) {
+            Ok(_) -> "response"
+            Err(e) -> if e.message().startsWith("invalid URL") { e.message() } else { "not a URL error" }
+        }
+        print "${url}: ${kind}"
+    }
+}
+
+async fn urls(n: net.Net) -> Void! {
+    let client = http.Client.new(n, task.BlockingPool.new(1))
+    for url in Array.of("http://[::1/", "http://[]:80/", "http://[::1]x/", "http://foo[::1]:80/", "http://[::1]:99999/") {
+        show(url, await client.get(url))
+    }
+}
+
+async fn root(n: net.Net, listener: net.Listener) -> Void! {
+    let gz = "Content-Encoding: gzip\r\n"
+    let obs = Bytes.fill(233, 1)
+    let packed = gzip.encode("hello gzip".toBytes())
+    let twice2 = gzip.encode(packed)
+    (await once(n, "304 with length", "GET", "HTTP/1.1 304 Not Modified\r\nETag: \"x\"\r\nContent-Length: 1234\r\nConnection: close\r\n\r\n".toBytes()))?
+    (await once(n, "304 gzip", "GET", "HTTP/1.1 304 Not Modified\r\n${gz}Content-Length: 1234\r\nConnection: close\r\n\r\n".toBytes()))?
+    (await once(n, "304 chunked", "GET", "HTTP/1.1 304 Not Modified\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n".toBytes()))?
+    (await once(n, "200 gzip empty", "GET", "HTTP/1.1 200 OK\r\n${gz}Content-Length: 0\r\nConnection: close\r\n\r\n".toBytes()))?
+    (await once(n, "head gzip", "HEAD", "HTTP/1.1 200 OK\r\n${gz}Content-Length: 10\r\nConnection: close\r\n\r\n".toBytes()))?
+    (await once(n, "204 gzip", "GET", "HTTP/1.1 204 No Content\r\n${gz}Connection: close\r\n\r\n".toBytes()))?
+    (await once(n, "chunked gzip empty", "GET", "HTTP/1.1 200 OK\r\n${gz}Transfer-Encoding: chunked\r\nConnection: close\r\n\r\n0\r\n\r\n".toBytes()))?
+    (await once(n, "gzip body", "GET", "HTTP/1.1 200 OK\r\n${gz}Content-Length: ${packed.len()}\r\nConnection: close\r\n\r\n".toBytes().concat(packed)))?
+    (await once(n, "gzip junk", "GET", "HTTP/1.1 200 OK\r\n${gz}Content-Length: 4\r\nConnection: close\r\n\r\nabcd".toBytes()))?
+    (await once(n, "unknown coding", "GET", "HTTP/1.1 200 OK\r\nContent-Encoding: br\r\nContent-Length: 2\r\nConnection: close\r\n\r\nab".toBytes()))?
+    (await once(n, "unknown coding head", "HEAD", "HTTP/1.1 200 OK\r\nContent-Encoding: br\r\nContent-Length: 2\r\nConnection: close\r\n\r\n".toBytes()))?
+    (await once(n, "204 sized", "GET", "HTTP/1.1 204 No Content\r\nContent-Length: 5\r\nConnection: close\r\n\r\nhello".toBytes()))?
+    (await once(n, "204 chunked", "GET", "HTTP/1.1 204 No Content\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n0\r\n\r\n".toBytes()))?
+    (await once(n, "205 empty", "GET", "HTTP/1.1 205 Reset Content\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".toBytes()))?
+    (await once(n, "reason phrase obs-text", "GET", "HTTP/1.1 200 caf".toBytes().concat(obs).concat("\r\nX: ".toBytes()).concat(obs).concat("\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok".toBytes())))?
+    (await twice(n, "keep-alive 304", "GET", "HTTP/1.1 304 Not Modified\r\nContent-Length: 1234\r\n\r\n".toBytes()))?
+    (await twice(n, "keep-alive head", "HEAD", "HTTP/1.1 200 OK\r\nContent-Length: 1234\r\n\r\n".toBytes()))?
+    (await closing(n, "stray", "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nokHTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nextra".toBytes()))?
+    (await twice(n, "http/1.0", "GET", "HTTP/1.0 200 OK\r\nContent-Length: 2\r\n\r\nok".toBytes()))?
+    (await twice(n, "http/1.0 keep-alive", "GET", "HTTP/1.0 200 OK\r\nConnection: keep-alive\r\nContent-Length: 2\r\n\r\nok".toBytes()))?
+    (await twice(n, "http/1.0 keep-alive close", "GET", "HTTP/1.0 200 OK\r\nConnection: keep-alive, close\r\nContent-Length: 2\r\n\r\nok".toBytes()))?
+    (await twice(n, "http/1.0 close keep-alive", "GET", "HTTP/1.0 200 OK\r\nConnection: Close\r\nConnection: Keep-Alive\r\nContent-Length: 2\r\n\r\nok".toBytes()))?
+    (await twice(n, "http/1.1 keep-alive close", "GET", "HTTP/1.1 200 OK\r\nConnection: keep-alive, close\r\nContent-Length: 2\r\n\r\nok".toBytes()))?
+    (await twice(n, "http/1.1 close keep-alive", "GET", "HTTP/1.1 200 OK\r\nConnection: upgrade,close , keep-alive\r\nContent-Length: 2\r\n\r\nok".toBytes()))?
+    (await once(n, "obs-fold", "GET", "HTTP/1.1 200 OK\r\nX-Fold: a\r\n b\r\n\tc\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok".toBytes()))?
+    (await once(n, "framing error", "GET", "HTTP/1.1 200 OK\r\nContent-Length: 1\r\nContent-Length: 2\r\nConnection: close\r\n\r\nab".toBytes()))?
+    (await once(n, "bad chunk", "GET", "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\nzz\r\n".toBytes()))?
+    (await once(n, "bare LF", "GET", "HTTP/1.1 200 OK\nConnection: close\r\n\r\n".toBytes()))?
+    (await once(n, "205 chunked", "GET", "HTTP/1.1 205 Reset Content\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n0\r\n\r\n".toBytes()))?
+    (await once(n, "205 unframed", "GET", "HTTP/1.1 205 Reset Content\r\nConnection: close\r\n\r\nxx".toBytes()))?
+    (await once(n, "100 length", "GET", "HTTP/1.1 100 Continue\r\nContent-Length: 5\r\n\r\nHTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok".toBytes()))?
+    (await once(n, "103 length", "GET", "HTTP/1.1 103 Early Hints\r\nContent-Length: 5\r\n\r\nHTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok".toBytes()))?
+    (await once(n, "101", "GET", "HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\n\r\n".toBytes()))?
+    (await twice(n, "101 session", "GET", "HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: x\r\nContent-Length: 3\r\n\r\n".toBytes()))?
+    (await once(n, "gzip twice", "GET", "HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Encoding: gzip\r\nContent-Length: ${twice2.len()}\r\nConnection: close\r\n\r\n".toBytes().concat(twice2)))?
+    (await once(n, "gzip list twice", "GET", "HTTP/1.1 200 OK\r\nContent-Encoding: gzip, gzip\r\nContent-Length: ${twice2.len()}\r\nConnection: close\r\n\r\n".toBytes().concat(twice2)))?
+    (await once(n, "identity gzip", "GET", "HTTP/1.1 200 OK\r\nContent-Encoding: identity, gzip\r\nContent-Length: ${packed.len()}\r\nConnection: close\r\n\r\n".toBytes().concat(packed)))?
+    (await once(n, "x-gzip", "GET", "HTTP/1.1 200 OK\r\nContent-Encoding: x-gzip\r\nContent-Length: ${packed.len()}\r\nConnection: close\r\n\r\n".toBytes().concat(packed)))?
+    (await once(n, "gzip br", "GET", "HTTP/1.1 200 OK\r\nContent-Encoding: gzip, br\r\nContent-Length: ${packed.len()}\r\nConnection: close\r\n\r\n".toBytes().concat(packed)))?
+    (await posts(n, listener))?
+    (await urls(n))?
+    (await urlKind(n))?
+    (await hosts(n))?
+    (await twiceWith(n, "204 smuggle", "GET", "HTTP/1.1 204 No Content\r\nContent-Length: 40\r\n\r\n".toBytes(), "HTTP/1.1 200 OK\r\nContent-Length: 8\r\n\r\nsmuggled".toBytes()))?
+    (await twiceWith(n, "204 chunked smuggle", "GET", "HTTP/1.1 204 No Content\r\nTransfer-Encoding: chunked\r\n\r\n".toBytes(), "HTTP/1.1 200 OK\r\nContent-Length: 8\r\n\r\nsmuggled".toBytes()))?
+    (await twice(n, "204 plain", "GET", "HTTP/1.1 204 No Content\r\n\r\n".toBytes()))?
+    (await twice(n, "http/1.2", "GET", "HTTP/1.2 200 OK\r\nContent-Length: 2\r\n\r\nok".toBytes()))?
+    (await once(n, "206 gzip", "GET", "HTTP/1.1 206 Partial Content\r\nContent-Encoding: gzip\r\nContent-Range: bytes 0-4/99\r\nContent-Length: 5\r\nConnection: close\r\n\r\nhello".toBytes()))?
+    (await once(n, "trailer fold", "GET", "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n2\r\nok\r\n0\r\nT: a\r\n b\r\n\r\n".toBytes()))?
+    (await once(n, "trailer fold first", "GET", "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n2\r\nok\r\n0\r\n a\r\n\r\n".toBytes()))?
+    (await onceSmall(n, "chunked too large", "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\na\r\n0123456789\r\n0\r\n\r\n".toBytes()))?
+    let df = "Content-Encoding: deflate\r\n"
+    let deflated = zlib.encode("hello deflate".toBytes())
+    let layered = gzip.encode(zlib.encode("hello layers".toBytes()))
+    (await once(n, "200 deflate empty", "GET", "HTTP/1.1 200 OK\r\n${df}Content-Length: 0\r\nConnection: close\r\n\r\n".toBytes()))?
+    (await once(n, "head deflate", "HEAD", "HTTP/1.1 200 OK\r\n${df}Content-Length: 10\r\nConnection: close\r\n\r\n".toBytes()))?
+    (await once(n, "304 deflate", "GET", "HTTP/1.1 304 Not Modified\r\n${df}Content-Length: 99\r\nConnection: close\r\n\r\n".toBytes()))?
+    (await once(n, "deflate body", "GET", "HTTP/1.1 200 OK\r\n${df}Content-Length: ${deflated.len()}\r\nConnection: close\r\n\r\n".toBytes().concat(deflated)))?
+    (await once(n, "deflate gzip", "GET", "HTTP/1.1 200 OK\r\nContent-Encoding: deflate\r\nContent-Encoding: gzip\r\nContent-Length: ${layered.len()}\r\nConnection: close\r\n\r\n".toBytes().concat(layered)))?
+    (await once(n, "deflate junk", "GET", "HTTP/1.1 200 OK\r\n${df}Content-Length: 4\r\nConnection: close\r\n\r\nabcd".toBytes()))?
+}
+
+let n = host.net()
+let listener = n.listen("127.0.0.1", 0)?
+task.currentThreadExecutor().runToCompletion(root(n, listener))?
+-- stdout --
+304 with length: 304 [] fold=-
+304 gzip: 304 [] fold=-
+304 chunked: 304 [] fold=-
+200 gzip empty: 200 [] fold=-
+head gzip: 200 [] fold=-
+204 gzip: 204 [] fold=-
+chunked gzip empty: 200 [] fold=-
+gzip body: 200 [hello gzip] fold=-
+gzip junk: err malformed response: gzip: header is shorter than its 10 fixed bytes client=true
+unknown coding: err malformed response: unsupported content-encoding `br` client=true
+unknown coding head: 200 [] fold=-
+204 sized: 204 [] fold=-
+204 chunked: 204 [] fold=-
+205 empty: 205 [] fold=-
+reason phrase obs-text: 200 [ok] fold=-
+keep-alive 304 first: 304 [] fold=-
+keep-alive 304 second: 200 [ok] fold=-
+keep-alive head first: 200 [] fold=-
+keep-alive head second: 200 [ok] fold=-
+stray first: 200 [ok] fold=-
+stray second: err connection closed before the response client=true
+http/1.0 first: 200 [ok] fold=-
+http/1.0 second: err connection closed before the response client=true
+http/1.0 keep-alive first: 200 [ok] fold=-
+http/1.0 keep-alive second: 200 [ok] fold=-
+http/1.0 keep-alive close first: 200 [ok] fold=-
+http/1.0 keep-alive close second: err connection closed before the response client=true
+http/1.0 close keep-alive first: 200 [ok] fold=-
+http/1.0 close keep-alive second: err connection closed before the response client=true
+http/1.1 keep-alive close first: 200 [ok] fold=-
+http/1.1 keep-alive close second: err connection closed before the response client=true
+http/1.1 close keep-alive first: 200 [ok] fold=-
+http/1.1 close keep-alive second: err connection closed before the response client=true
+obs-fold: 200 [ok] fold=a b c
+framing error: err malformed response: conflicting Content-Length client=true
+bad chunk: err malformed response: invalid chunk size client=true
+bare LF: err malformed response: bare LF in message head client=true
+205 chunked: 205 [] fold=-
+205 unframed: 205 [xx] fold=-
+100 length: 200 [ok] fold=-
+103 length: 200 [ok] fold=-
+101: 101 [] fold=-
+101 session first: 101 [] fold=-
+101 session second: err connection closed before the response client=true
+gzip twice: 200 [hello gzip] fold=-
+gzip list twice: 200 [hello gzip] fold=-
+identity gzip: 200 [hello gzip] fold=-
+x-gzip: 200 [hello gzip] fold=-
+gzip br: err malformed response: unsupported content-encoding `br` client=true
+post two: 200 [POST /echo?q=1 ct=text/plain conn=close body=hello] fold=-
+post three: 200 [POST /echo?q=2 ct=text/plain conn=close body=hello] fold=-
+http://[::1/: err invalid URL: bad IPv6 host client=true
+http://[]:80/: err invalid URL: bad IPv6 host client=true
+http://[::1]x/: err invalid URL: bad authority client=true
+http://foo[::1]:80/: err invalid URL: bad port client=true
+http://[::1]:99999/: err invalid URL: bad host or port client=true
+http://127.0.0.1:/: not a URL error
+http://a]b:80/: invalid URL: bad authority
+http://127.0.0.1]/: invalid URL: bad authority
+http://[::1]:/: not a URL error
+explicit port host: true
+204 smuggle first: 204 [] fold=-
+204 smuggle second: err connection closed before the response client=true
+204 chunked smuggle first: 204 [] fold=-
+204 chunked smuggle second: err connection closed before the response client=true
+204 plain first: 204 [] fold=-
+204 plain second: 200 [ok] fold=-
+http/1.2 first: 200 [ok] fold=-
+http/1.2 second: 200 [ok] fold=-
+206 gzip: 206 [hello] fold=-
+trailer fold: 200 [ok] fold=-
+trailer fold first: err malformed response: folded header line client=true
+chunked too large: err malformed response: response body too large client=true
+200 deflate empty: 200 [] fold=-
+head deflate: 200 [] fold=-
+304 deflate: 304 [] fold=-
+deflate body: 200 [hello deflate] fold=-
+deflate gzip: 200 [hello layers] fold=-
+deflate junk: err malformed response: zlib: input is shorter than its header and trailer client=true

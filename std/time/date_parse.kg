@@ -12,7 +12,10 @@ pub pure fn parseDate(s: String) -> Instant? {
 
 // Sun, 06 Nov 1994 08:49:37 GMT
 pure fn parseImf(s: String) -> Instant? {
-    if !commaSpaced(s, 3) {
+    if !commaSpaced(s, 3) || weekdayFromName(s.sliceBytes(0, 3) || "") is None {
+        return None
+    }
+    if byteAt(s, 7) != 32 || byteAt(s, 11) != 32 || byteAt(s, 16) != 32 || byteAt(s, 19) != 58 || byteAt(s, 22) != 58 {
         return None
     }
     let gmt = s.sliceBytes(25, 29) || return None
@@ -32,7 +35,7 @@ pure fn parseImf(s: String) -> Instant? {
 // Sunday, 06-Nov-94 08:49:37 GMT
 pure fn parseRfc850(s: String) -> Instant? {
     let comma = indexOfByte(s, 44) || return None
-    if !commaSpaced(s, comma) || s.len() != comma + 24 {
+    if !commaSpaced(s, comma) || s.len() != comma + 24 || weekdayFromLongName(s.sliceBytes(0, comma) || "") is None {
         return None
     }
     if byteAt(s, comma + 4) != 45 || byteAt(s, comma + 8) != 45 || byteAt(s, comma + 11) != 32 || byteAt(s, comma + 14) != 58 || byteAt(s, comma + 17) != 58 {
@@ -62,6 +65,9 @@ pure fn parseAsctime(s: String) -> Instant? {
     if byteAt(s, 3) != 32 || byteAt(s, 7) != 32 || byteAt(s, 10) != 32 || byteAt(s, 13) != 58 || byteAt(s, 16) != 58 || byteAt(s, 19) != 32 {
         return None
     }
+    if weekdayFromName(s.sliceBytes(0, 3) || "") is None {
+        return None
+    }
     let monthText = s.sliceBytes(4, 7) || return None
     let month = monthFromName(monthText) || return None
     let day = if byteAt(s, 8) == 32 {
@@ -77,7 +83,7 @@ pure fn parseAsctime(s: String) -> Instant? {
 }
 
 pure noalloc fn buildInstant(year: i64, month: i64, day: i64, hour: i64, minute: i64, second: i64) -> Instant? {
-    if month < 1 || month > 12 || day < 1 || day > daysInMonth(year, month) || hour > 23 || minute > 59 || second > 59 {
+    if month < 1 || month > 12 || day < 1 || day > daysInMonth(year, month) || hour > 23 || minute > 59 || second > 60 || (second == 60 && (hour != 23 || minute != 59)) {
         return None
     }
     let days = daysFromCivil(year, month, day)
@@ -118,4 +124,26 @@ pure noalloc fn indexOfByte(s: String, b: u8) -> usize? {
 
 pure noalloc fn commaSpaced(s: String, comma: usize) -> Bool {
     comma + 1 < s.len() && byteAt(s, comma + 1) == 32
+}
+
+pure noalloc fn weekdayFromName(name: String) -> i64? {
+    for day in 0..7 {
+        if weekdayName(day) == name {
+            return Some(day)
+        }
+    }
+    None
+}
+
+pure noalloc fn weekdayFromLongName(name: String) -> i64? {
+    match name {
+        "Sunday" -> Some(0)
+        "Monday" -> Some(1)
+        "Tuesday" -> Some(2)
+        "Wednesday" -> Some(3)
+        "Thursday" -> Some(4)
+        "Friday" -> Some(5)
+        "Saturday" -> Some(6)
+        _ -> None
+    }
 }

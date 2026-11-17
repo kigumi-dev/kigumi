@@ -1,9 +1,3 @@
-// A message head: the request or status line and the header fields after it.
-type Head = {
-    first String
-    headers Headers
-}
-
 fn crlf() -> Bytes {
     "\r\n".toBytes()
 }
@@ -41,6 +35,16 @@ fn isFieldValue(text: String) -> Bool {
     true
 }
 
+fn isAscii(text: String) -> Bool {
+    let b = text.bytes()
+    for i in 0..b.len() {
+        if (b.get(i) || 0) >= 128 {
+            return false
+        }
+    }
+    true
+}
+
 fn hasControlOrSpace(text: String) -> Bool {
     let b = text.bytes()
     for i in 0..b.len() {
@@ -50,125 +54,6 @@ fn hasControlOrSpace(text: String) -> Bool {
         }
     }
     false
-}
-
-// headEnd finds the offset just past the blank line ending a head, or None for more input; it resumes
-// at from, where an earlier call stopped, and refuses a LF without its CR.
-fn headEnd(data: &Bytes, from: usize) -> usize?! {
-    let n = data.len()
-    let mut i = from
-    for i < n {
-        if (data.get(i) || 0) == 10 {
-            if i == 0 || (data.get(i - 1) || 0) != 13 {
-                fail failure(400, "bare LF in message head")
-            }
-            if i >= 3 && (data.get(i - 2) || 0) == 10 && (data.get(i - 3) || 0) == 13 {
-                return Some(i + 1)
-            }
-        }
-        i = i + 1
-    }
-    None
-}
-
-// headText accepts RFC 9110 obs-text: a head that is not UTF-8 is read
-// byte-for-byte as Latin-1, which keeps every 0x80..0xFF value visible.
-fn headText(raw: Bytes) -> String {
-    if String.fromBytes(raw) is Ok(t) {
-        return t
-    }
-    let mut out = Array.empty[u8]()
-    for b in raw {
-        let c = b.toInt()
-        if c < 0x80 {
-            out.push(b)
-        } else {
-            out.push((0xC0 | (c >> 6)).toU8() || 0)
-            out.push((0x80 | (c & 0x3F)).toU8() || 0)
-        }
-    }
-    String.fromBytes(Bytes.fromArray(&out)) || ""
-}
-
-// parseHead reads a head ending in CRLF CRLF; maxFields bounds the header count.
-fn parseHead(raw: Bytes, maxFields: usize) -> Head! {
-    let text = headText(raw)
-    let lines = text.split("\r\n")
-    let first = lines.get(0) || ""
-    let mut headers = Headers.new()
-    let mut i: usize = 1
-    for i < lines.len() {
-        let line = lines.get(i) || ""
-        i = i + 1
-        if line == "" {
-            continue
-        }
-        if line.startsWith(" ") || line.startsWith("\t") {
-            fail failure(400, "folded header line")
-        }
-        let colon = indexOfByte(line, 58) || fail failure(400, "header line without a colon")
-        let name = line.sliceBytes(0, colon) || ""
-        if !isToken(name) {
-            fail failure(400, "invalid header name")
-        }
-        let value = (line.sliceBytes(colon + 1, line.len()) || "").trim()
-        if !isFieldValue(value) || value.contains("\r") {
-            fail failure(400, "invalid header value")
-        }
-        if headers.len() >= maxFields {
-            fail failure(431, "too many header fields")
-        }
-        headers.add(name, value)
-    }
-    Head {
-        first: first
-        headers: headers
-    }
-}
-
-// How the body after a head is delimited.
-type Framing =
-    | NoBody
-    | Sized(usize)
-    | Chunked
-    | UntilClose
-
-// framingOf applies RFC 9112 section 6.3: a Transfer-Encoding
-// other than chunked is refused, and so is one sent alongside Content-Length.
-fn framingOf(headers: &Headers, request: Bool) -> Framing! {
-    let te = headers.all("Transfer-Encoding")
-    let cl = headers.all("Content-Length")
-    if te.len() > 0 {
-        if cl.len() > 0 {
-            fail failure(400, "both Transfer-Encoding and Content-Length")
-        }
-        let mut codings = ""
-        for s in &te {
-            codings = if codings == "" {
-                s
-            } else {
-                "${codings},${s}"
-            }
-        }
-        if codings.trim().toLower() != "chunked" {
-            fail failure(501, "unsupported transfer coding")
-        }
-        return Chunked
-    }
-    if cl.len() == 0 {
-        return if request {
-            NoBody
-        } else {
-            UntilClose
-        }
-    }
-    let first = cl.get(0) || ""
-    for v in &cl {
-        if v != first {
-            fail failure(400, "conflicting Content-Length")
-        }
-    }
-    Sized(parseDecimal(first) || fail failure(400, "invalid Content-Length"))
 }
 
 // validHost checks the RFC 9112 Host grammar: an IPv4/reg-name or a bracketed
@@ -289,12 +174,13 @@ fn renderHead(first: String, headers: &Headers, bodyLen: usize?, close: Bool) ->
 // wantsClose reads the Connection field: HTTP/1.1 stays open unless it says close,
 // and HTTP/1.0 is always closed here since its keep-alive is opt-in and rarely needed.
 fn wantsClose(headers: &Headers, version: String) -> Bool {
-    if version != "HTTP/1.1" {
-        return true
-    }
+    version != "HTTP/1.1" || connectionHas(headers, "close")
+}
+
+fn connectionHas(headers: &Headers, option: String) -> Bool {
     for v in headers.all("Connection") {
         for part in v.split(",") {
-            if part.trim().toLower() == "close" {
+            if part.trim().toLower() == option {
                 return true
             }
         }

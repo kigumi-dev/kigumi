@@ -15,7 +15,7 @@ fn parseRequestLine(line: String) -> RequestLine! {
     let method = parts.get(0) || ""
     let target = parts.get(1) || ""
     let version = parts.get(2) || ""
-    if !isToken(method) || target == "" || hasControlOrSpace(target) {
+    if !isToken(method) || target == "" || hasControlOrSpace(target) || !isAscii(target) {
         fail failure(400, "malformed request line")
     }
     let absolute = target.startsWith("http://") || target.startsWith("https://")
@@ -136,7 +136,7 @@ type Incoming = {
 
 // readRequest reads the rest of one request after its head is buffered.
 async fn Wire.readRequest(mut self, end: usize, limits: Limits, deadline: Deadline) -> Incoming! {
-    let head = parseHead(self.consume(end), limits.maxHeaders)?
+    let head = parseHead(self.consume(end), limits.maxHeaders, RequestHead)?
     let line = parseRequestLine(head.first)?
     let hosts = head.headers.all("Host")
     if hosts.len() > 1 || (hosts.len() == 0 && line.version == "HTTP/1.1") {

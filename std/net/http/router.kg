@@ -166,12 +166,11 @@ fn joinComma(items: &Array[String]) -> String {
     out
 }
 
-// Segments compare exactly, so `/a/` and `//a` stay distinct from `/a` and a
-// middleware reading req.path sees the same path the route matched.
+// Segments compare exactly, so `/a/` and `//a` stay distinct from `/a`. The path is split
+// before decoding, since an encoded slash is data and not a separator.
 fn matchPattern(patternText: String, path: String) -> Array[Param]? {
-    let decoded = percentDecode(path) || return None
     let pattern = patternText.split("/")
-    let parts = decoded.split("/")
+    let parts = path.split("/")
     if pattern.len() != parts.len() {
         return None
     }
@@ -179,9 +178,9 @@ fn matchPattern(patternText: String, path: String) -> Array[Param]? {
     let mut i: usize = 0
     for i < pattern.len() {
         let want = pattern.get(i) || ""
-        let got = parts.get(i) || ""
+        let got = percentDecode(parts.get(i) || "") || return None
         if want.startsWith("{") && want.endsWith("}") && want.len() > 2 {
-            if got == "" {
+            if got == "" || got == "." || got == ".." {
                 return None
             }
             params.push(Param {

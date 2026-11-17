@@ -4,12 +4,12 @@ import time from std/time
 fn main() {
     let a = time.Duration.fromSeconds(2)
     let b = time.Duration.fromMillis(500)
-    match a.compareTo(b) {
+    match a.compareTo(&b) {
         Ordering.Less -> print "less"
         Ordering.Equal -> print "equal"
         Ordering.Greater -> print "greater"
     }
-    match a.compareTo(a) {
+    match a.compareTo(&a) {
         Ordering.Less -> print "less"
         Ordering.Equal -> print "equal"
         Ordering.Greater -> print "greater"

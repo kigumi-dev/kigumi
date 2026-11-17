@@ -19052,7 +19052,7 @@
   },
   {
     "key": "net/http.Dechunker.new",
-    "signature": "fn() -\u003e Dechunker",
+    "signature": "fn(HeadSide) -\u003e Dechunker",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -19071,8 +19071,28 @@
     "status": "ok"
   },
   {
+    "key": "net/http.Dechunker.subject",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/http.Failure.message",
     "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.Framing.carriesBody",
+    "signature": "fn() -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -19562,7 +19582,7 @@
   },
   {
     "key": "net/http.Wire.readResponse",
-    "signature": "fn(Bool, Int, usize, usize) -\u003e Response!",
+    "signature": "fn(Bool, Int, usize, usize) -\u003e Received!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -19651,6 +19671,16 @@
     "status": "ok"
   },
   {
+    "key": "net/http.connectionHas",
+    "signature": "fn(\u0026Headers, String) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/http.crlf",
     "signature": "fn() -\u003e Bytes",
     "has_body": true,
@@ -19671,8 +19701,28 @@
     "status": "ok"
   },
   {
+    "key": "net/http.decodeBody",
+    "signature": "fn(\u0026Headers, Int, Framing, Bytes, usize) -\u003e Bytes!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/http.decodeEscapes",
     "signature": "fn(String, Bool) -\u003e String?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.desyncs",
+    "signature": "fn(\u0026Headers, Int) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -19741,16 +19791,6 @@
     "status": "ok"
   },
   {
-    "key": "net/http.headText",
-    "signature": "fn(Bytes) -\u003e String",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
     "key": "net/http.hexValue",
     "signature": "fn(u8) -\u003e Int?",
     "has_body": true,
@@ -19761,8 +19801,28 @@
     "status": "ok"
   },
   {
+    "key": "net/http.hostField",
+    "signature": "fn(String, Bool, usize, usize) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/http.indexOfByte",
     "signature": "fn(String, u8) -\u003e usize?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.isAscii",
+    "signature": "fn(String) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -19803,6 +19863,16 @@
   {
     "key": "net/http.joinComma",
     "signature": "fn(\u0026Array[String]) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.keepsAlive",
+    "signature": "fn(\u0026Headers, String) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -19861,6 +19931,16 @@
     "status": "ok"
   },
   {
+    "key": "net/http.obsText",
+    "signature": "fn(Bytes) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/http.parseAuthority",
     "signature": "fn(String, usize, usize) -\u003e Target!",
     "has_body": true,
@@ -19882,7 +19962,7 @@
   },
   {
     "key": "net/http.parseHead",
-    "signature": "fn(Bytes, usize) -\u003e Head!",
+    "signature": "fn(Bytes, usize, HeadSide) -\u003e Head!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -19951,6 +20031,26 @@
     "status": "ok"
   },
   {
+    "key": "net/http.physicalLines",
+    "signature": "fn(Bytes, usize) -\u003e Array[Bytes]!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.portOf",
+    "signature": "fn(String, usize) -\u003e usize!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/http.rawCap",
     "signature": "fn(usize, usize) -\u003e usize",
     "has_body": true,
@@ -20001,6 +20101,16 @@
     "status": "ok"
   },
   {
+    "key": "net/http.responseFraming",
+    "signature": "fn(\u0026Headers, Int, Bool) -\u003e Framing!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/http.serveConn",
     "signature": "fn(Wire, escaping fn(Request) -\u003e Response!, escaping fn(String) -\u003e Void, Limits, Shutdown, Active) -\u003e Void",
     "has_body": true,
@@ -20033,6 +20143,26 @@
   {
     "key": "net/http.trailerFieldOk",
     "signature": "fn(\u0026Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.undoCoding",
+    "signature": "fn(String, Bytes, usize) -\u003e Bytes!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.unfold",
+    "signature": "fn(Array[Bytes], HeadSide) -\u003e Array[Bytes]!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -33313,7 +33443,7 @@
   },
   {
     "key": "time.Duration.compareTo",
-    "signature": "pure noalloc fn(Duration) -\u003e Ordering",
+    "signature": "pure noalloc fn(\u0026Duration) -\u003e Ordering",
     "has_body": true,
     "kind": "primitive",
     "vm": "implemented",
@@ -33719,6 +33849,26 @@
     "vm": "implemented",
     "native": "gap",
     "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "time.weekdayFromLongName",
+    "signature": "pure noalloc fn(String) -\u003e Int?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.weekdayFromName",
+    "signature": "pure noalloc fn(String) -\u003e Int?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
     "status": "ok"
   },
   {

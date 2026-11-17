@@ -1,0 +1,26 @@
+-- src --
+import time from std/time
+
+fn longest[T: Ord](a: T, b: T) -> T {
+    if a.compareTo(&b) == Ordering.Less { b } else { a }
+}
+
+fn bad(text: String) -> Bool {
+    time.parseDate(text) is None
+}
+
+fn main() {
+    print "separators=${bad("Sun, 06xNov%1994x08x49x37 GMT")} ${bad("Sun, 06 Nov 1994 08x49:37 GMT")} ${bad("Sun, 06 Nov 1994 08:49x37 GMT")} ${bad("Sun, 06-Nov 1994 08:49:37 GMT")}"
+    print "weekday=${bad("Xyz, 06 Nov 1994 08:49:37 GMT")} ${bad("sun, 06 Nov 1994 08:49:37 GMT")} ${bad("Foo, 06-Nov-94 08:49:37 GMT")} ${bad("Sun, 06-Nov-94 08:49:37 GMT")} ${bad("Xyz Nov  6 08:49:37 1994")}"
+    print "valid=${bad("Sun, 06 Nov 1994 08:49:37 GMT")} ${bad("Sunday, 06-Nov-94 08:49:37 GMT")} ${bad("Sun Nov  6 08:49:37 1994")}"
+    print "leap=${time.parseDate("Sat, 31 Dec 2016 23:59:60 GMT").unwrap().httpDate()} ${bad("Sat, 31 Dec 2016 12:59:60 GMT")} ${bad("Sat, 31 Dec 2016 23:59:61 GMT")}"
+    let short = time.Duration.fromMillis(500)
+    let long = time.Duration.fromSeconds(2)
+    print "ord=${short < long} ${long < short} ${short <= short} ${longest(short, long).millis()}"
+}
+-- stdout --
+separators=true true true true
+weekday=true true true true true
+valid=false false false
+leap=Sun, 01 Jan 2017 00:00:00 GMT true true
+ord=true false true 2000

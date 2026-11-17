@@ -12,5 +12,5 @@ for target in Array.of("/caf%C3%A9", "/a%2Fb", "/%zz") {
 }
 -- stdout --
 /caf%C3%A9: 200
-/a%2Fb: 200
+/a%2Fb: 404
 /%zz: 400

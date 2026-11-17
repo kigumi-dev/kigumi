@@ -1,0 +1,105 @@
+type Target = {
+    host String
+    port Int
+    authority String
+    path String
+}
+
+// authorityEnd is where the authority after the scheme stops: the first '/', '?' or '#'.
+fn authorityEnd(rest: String) -> usize {
+    let b = rest.bytes()
+    for i in 0..b.len() {
+        let c = b.get(i) || 0
+        if c == 47 || c == 63 || c == 35 {
+            return i
+        }
+    }
+    b.len()
+}
+
+// An empty port is allowed by RFC 3986 and means the scheme's default.
+fn portOf(text: String, defaultPort: usize) -> usize! {
+    if text == "" {
+        return defaultPort
+    }
+    parseDecimal(text) || fail InvalidUrl("bad port")
+}
+
+fn parseUrl(url: String) -> Target! {
+    let lower = url.toLower()
+    if lower.startsWith("https://") {
+        fail HttpsUnsupported
+    }
+    if !lower.startsWith("http://") {
+        fail InvalidUrl("only http:// URLs are supported")
+    }
+    parseAuthority(url, 7, 80)
+}
+
+fn parseTlsUrl(url: String) -> Target! {
+    if !url.toLower().startsWith("https://") {
+        fail InvalidUrl("only https:// URLs are supported")
+    }
+    parseAuthority(url, 8, 443)
+}
+
+fn parseAuthority(url: String, schemeBytes: usize, defaultPort: usize) -> Target! {
+    let rest = url.sliceBytes(schemeBytes, url.len()) || ""
+    let cut = authorityEnd(rest)
+    let authority = rest.sliceBytes(0, cut) || ""
+    let mut path = rest.sliceBytes(cut, rest.len()) || ""
+    if indexOfByte(path, 35) is Some(hash) {
+        path = path.sliceBytes(0, hash) || ""
+    }
+    if !path.startsWith("/") {
+        path = "/${path}"
+    }
+    if hasControlOrSpace(authority) || hasControlOrSpace(path) || indexOfByte(authority, 64) is Some(_) {
+        fail InvalidUrl("bad authority or path")
+    }
+    let mut host = authority
+    let mut port: usize = defaultPort
+    if authority.startsWith("[") {
+        let right = indexOfByte(authority, 93) || fail InvalidUrl("bad IPv6 host")
+        if right <= 1 {
+            fail InvalidUrl("bad IPv6 host")
+        }
+        host = authority.sliceBytes(1, right) || ""
+        let after = authority.sliceBytes(right + 1, authority.len()) || ""
+        if after != "" {
+            if !after.startsWith(":") {
+                fail InvalidUrl("bad authority")
+            }
+            port = portOf(after.sliceBytes(1, after.len()) || "", defaultPort)?
+        }
+    } else if indexOfByte(authority, 58) is Some(i) {
+        host = authority.sliceBytes(0, i) || ""
+        port = portOf(authority.sliceBytes(i + 1, authority.len()) || "", defaultPort)?
+    }
+    if !authority.startsWith("[") && (indexOfByte(host, 91) is Some(_) || indexOfByte(host, 93) is Some(_)) {
+        fail InvalidUrl("bad authority")
+    }
+    if host == "" || port > 65535 {
+        fail InvalidUrl("bad host or port")
+    }
+    Target {
+        host: host
+        port: port.toInt() || 0
+        authority: hostField(host, authority.startsWith("["), port, defaultPort)
+        path: path
+    }
+}
+
+// hostField is the Host value for a parsed authority: an empty or default port is left out (RFC 3986 6.2.3).
+fn hostField(host: String, bracketed: Bool, port: usize, defaultPort: usize) -> String {
+    let name = if bracketed {
+        "[${host}]"
+    } else {
+        host
+    }
+    if port == defaultPort {
+        name
+    } else {
+        "${name}:${port}"
+    }
+}

@@ -1,0 +1,110 @@
+-- src --
+import hex from std/encoding/hex
+import http from std/net/http
+import net from std/net
+import task from std/task
+
+fn echo(req: http.Request) -> http.Response! {
+    let x = hex.encode((req.headers.get("X") || "none").toBytes())
+    let y = hex.encode((req.headers.get("Y") || "none").toBytes())
+    http.Response.ofText(200, "x=${x} y=${y} body=${req.body.len()}")
+}
+
+fn noContent(req: http.Request) -> http.Response! {
+    http.Response.new(205)
+}
+
+async fn writeAll(conn: &mut net.Conn, data: Bytes) -> Void! {
+    let mut off: usize = 0
+    for off < data.len() {
+        match conn.pollWrite(data.slice(off, data.len()) || "".toBytes())? {
+            Some(n) -> { off = off + n }
+            None -> await task.yieldNow()
+        }
+    }
+}
+
+// Sends data and summarizes what the server writes before it closes: status line, Content-Length and body.
+async fn raw(n: net.Net, port: Int, data: Bytes) -> String! {
+    let pool = task.BlockingPool.new(1)
+    let mut conn = await pool.run(() => n.connect("127.0.0.1", port).unwrap()).unwrap()
+    (await writeAll(&mut conn, data))?
+    let mut got = Array.empty[u8]()
+    for true {
+        match conn.pollRead(&mut got, 4096)? {
+            Some(0) -> break
+            Some(_) -> {}
+            None -> await task.yieldNow()
+        }
+    }
+    let text = String.fromBytes(Bytes.fromArray(&got))?
+    let parts = text.split("\r\n\r\n")
+    let lines = (parts.get(0) || "").split("\r\n")
+    let mut length = "-"
+    for line in &lines {
+        if line.startsWith("Content-Length: ") {
+            length = line
+        }
+    }
+    "${lines.get(0) || ""} | ${length} | ${parts.get(1) || ""}"
+}
+
+async fn case(n: net.Net, port: Int, name: String, data: Bytes) -> Void! {
+    print "${name}: ${(await raw(n, port, data))?}"
+}
+
+async fn root(n: net.Net, listener: net.Listener) -> Void! {
+    let port = listener.port()
+    let router = http.Router.new().get("/", echo).post("/", echo).get("/reset", noContent)
+    let mut server = http.Server.new(router.handler(), (line) => print "log: ${line}")
+    server.limits.readTimeoutMillis = 600000
+    server.limits.idleTimeoutMillis = 600000
+    server.limits.maxHeaders = 5000
+    server.limits.maxHeaderBytes = 65536
+    let stop = http.Shutdown.new()
+    let running = task.spawn(server.serve(listener, stop.clone()))
+    let obs = Bytes.fill(255, 1)
+    let utf = "\u{e9}".toBytes()
+    let head = "GET / HTTP/1.1\r\nHost: t\r\nConnection: close\r\n".toBytes()
+    let end = "\r\n".toBytes()
+    (await case(n, port, "utf8 value", head.concat("X: ".toBytes()).concat(utf).concat(end).concat(end)))?
+    (await case(n, port, "obs-text value", head.concat("Y: ".toBytes()).concat(obs).concat(end).concat(end)))?
+    (await case(n, port, "utf8 beside obs-text", head.concat("X: ".toBytes()).concat(utf).concat(end).concat("Y: ".toBytes()).concat(obs).concat(end).concat(end)))?
+    (await case(n, port, "obs-text target", "GET /".toBytes().concat(obs).concat(" HTTP/1.1\r\nHost: t\r\nConnection: close\r\n\r\n".toBytes())))?
+    (await case(n, port, "utf8 target", "GET /\u{e9} HTTP/1.1\r\nHost: t\r\nConnection: close\r\n\r\n".toBytes()))?
+    (await case(n, port, "folded field", head.concat("X: a\r\n b\r\n\r\n".toBytes())))?
+    (await case(n, port, "obs-text name", head.concat("X".toBytes()).concat(obs).concat(": v\r\n\r\n".toBytes())))?
+    let post = "POST / HTTP/1.1\r\nHost: t\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n".toBytes()
+    (await case(n, port, "trailer field", post.concat("0\r\nX-T: v\r\n\r\n".toBytes())))?
+    (await case(n, port, "bare trailer line", post.concat("0\r\nbare trailer\r\n\r\n".toBytes())))?
+    (await case(n, port, "empty trailer name", post.concat("0\r\n:v\r\n\r\n".toBytes())))?
+    (await case(n, port, "trailer fold", post.concat("0\r\nX-T: v\r\n w\r\n\r\n".toBytes())))?
+    let mut many = head
+    for i in 0..4000 {
+        many = many.concat("X: 1\r\n".toBytes())
+    }
+    (await case(n, port, "4000 fields", many.concat(end)))?
+    (await case(n, port, "205 length", "GET /reset HTTP/1.1\r\nHost: t\r\nConnection: close\r\n\r\n".toBytes()))?
+    stop.request()
+    (await running)?
+    print "stopped"
+}
+
+let n = host.net()
+let listener = n.listen("127.0.0.1", 0)?
+task.currentThreadExecutor().runToCompletion(root(n, listener))?
+-- stdout --
+utf8 value: HTTP/1.1 200 OK | Content-Length: 24 | x=c3a9 y=6e6f6e65 body=0
+obs-text value: HTTP/1.1 200 OK | Content-Length: 24 | x=6e6f6e65 y=c3bf body=0
+utf8 beside obs-text: HTTP/1.1 200 OK | Content-Length: 20 | x=c3a9 y=c3bf body=0
+obs-text target: HTTP/1.1 400 Bad Request | Content-Length: 31 | invalid bytes in the start line
+utf8 target: HTTP/1.1 400 Bad Request | Content-Length: 22 | malformed request line
+folded field: HTTP/1.1 400 Bad Request | Content-Length: 18 | folded header line
+obs-text name: HTTP/1.1 400 Bad Request | Content-Length: 19 | invalid header name
+trailer field: HTTP/1.1 200 OK | Content-Length: 28 | x=6e6f6e65 y=6e6f6e65 body=0
+bare trailer line: HTTP/1.1 400 Bad Request | Content-Length: 21 | invalid trailer field
+empty trailer name: HTTP/1.1 400 Bad Request | Content-Length: 21 | invalid trailer field
+trailer fold: HTTP/1.1 400 Bad Request | Content-Length: 18 | folded header line
+4000 fields: HTTP/1.1 200 OK | Content-Length: 22 | x=31 y=6e6f6e65 body=0
+205 length: HTTP/1.1 205 Reset Content | Content-Length: 0 | 
+stopped

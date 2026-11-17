@@ -1,0 +1,44 @@
+// How the body after a head is delimited.
+type Framing =
+    | NoBody
+    | Sized(usize)
+    | Chunked
+    | UntilClose
+
+// framingOf applies RFC 9112 section 6.3: a Transfer-Encoding
+// other than chunked is refused, and so is one sent alongside Content-Length.
+fn framingOf(headers: &Headers, request: Bool) -> Framing! {
+    let te = headers.all("Transfer-Encoding")
+    let cl = headers.all("Content-Length")
+    if te.len() > 0 {
+        if cl.len() > 0 {
+            fail failure(400, "both Transfer-Encoding and Content-Length")
+        }
+        let mut codings = ""
+        for s in &te {
+            codings = if codings == "" {
+                s
+            } else {
+                "${codings},${s}"
+            }
+        }
+        if codings.trim().toLower() != "chunked" {
+            fail failure(501, "unsupported transfer coding")
+        }
+        return Chunked
+    }
+    if cl.len() == 0 {
+        return if request {
+            NoBody
+        } else {
+            UntilClose
+        }
+    }
+    let first = cl.get(0) || ""
+    for v in &cl {
+        if v != first {
+            fail failure(400, "conflicting Content-Length")
+        }
+    }
+    Sized(parseDecimal(first) || fail failure(400, "invalid Content-Length"))
+}

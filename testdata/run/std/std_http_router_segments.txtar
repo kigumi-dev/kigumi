@@ -1,0 +1,29 @@
+-- src --
+import http from std/net/http
+
+fn show(req: http.Request) -> http.Response! {
+    http.Response.ofText(200, "name=${req.param("name") || "-"}")
+}
+
+fn admin(_req: http.Request) -> http.Response! {
+    http.Response.ofText(200, "admin")
+}
+
+let h = http.Router.new().get("/files/{name}", show).get("/admin/secret", admin).get("/café", admin).handler()
+for target in Array.of("/files/a%2Fb", "/files/a%2fb", "/files/a/b", "/admin%2Fsecret", "/admin/secret", "/caf%C3%A9", "/files/%zz", "/files/c%C3%A9", "/files/..", "/files/%2e%2E", "/files/.", "/files/...") {
+    let resp = h(http.Request.new("GET", target))?
+    print "${target}: ${resp.status} ${resp.text()?}"
+}
+-- stdout --
+/files/a%2Fb: 200 name=a/b
+/files/a%2fb: 200 name=a/b
+/files/a/b: 404 not found
+/admin%2Fsecret: 404 not found
+/admin/secret: 200 admin
+/caf%C3%A9: 200 admin
+/files/%zz: 400 invalid percent-encoding
+/files/c%C3%A9: 200 name=cé
+/files/..: 404 not found
+/files/%2e%2E: 404 not found
+/files/.: 404 not found
+/files/...: 200 name=...

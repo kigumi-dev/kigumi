@@ -11,13 +11,24 @@ type Dechunker = {
     mut stage ChunkStage
     mut pieces Array[Bytes]
     mut size usize
+    mut trailers Array[Bytes]
+    side HeadSide
 }
 
-fn Dechunker.new() -> Dechunker {
+fn Dechunker.new(side: HeadSide) -> Dechunker {
     Dechunker {
         stage: SizeLine
         pieces: Array.empty[Bytes]()
         size: 0
+        trailers: Array.empty[Bytes]()
+        side: side
+    }
+}
+
+fn Dechunker.subject(self) -> String {
+    match self.side {
+        RequestHead -> "request"
+        ResponseHead -> "response"
     }
 }
 
@@ -121,7 +132,7 @@ fn Dechunker.step(mut self, data: &Bytes, maxBody: usize) -> usize! {
                     self.stage = Trailers
                 } else {
                     if n > maxBody.saturatingSub(self.size) {
-                        fail failure(413, "request body too large")
+                        fail failure(413, "${self.subject()} body too large")
                     }
                     self.stage = Data(n)
                 }
@@ -158,13 +169,20 @@ fn Dechunker.step(mut self, data: &Bytes, maxBody: usize) -> usize! {
                 let end = lineAt(data, at)? || return at
                 let blank = end == at
                 if !blank {
-                    let line = data.slice(at, end) || "".toBytes()
-                    if !trailerFieldOk(&line) {
-                        fail failure(400, "invalid trailer field")
+                    if self.trailers.len() >= 1000 {
+                        fail failure(431, "too many trailer fields")
                     }
+                    self.trailers.push(data.slice(at, end) || "".toBytes())
                 }
                 at = end + 2
                 if blank {
+                    let lines = move self.trailers
+                    self.trailers = Array.empty[Bytes]()
+                    for field in unfold(lines, self.side)? {
+                        if !trailerFieldOk(&field) {
+                            fail failure(400, "invalid trailer field")
+                        }
+                    }
                     self.stage = Done
                 }
             }

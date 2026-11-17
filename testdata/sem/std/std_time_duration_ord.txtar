@@ -1,0 +1,14 @@
+-- src --
+import time from std/time
+
+fn longest[T: Ord](a: T, b: T) -> T {
+    if a.compareTo(&b) == Ordering.Less { b } else { a }
+}
+
+fn main() {
+    let short = time.Duration.fromMillis(500)
+    let long = time.Duration.fromSeconds(2)
+    let _ = short < long
+    let _ = longest(short, long)
+}
+-- expect --

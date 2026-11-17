@@ -29,7 +29,7 @@ pub pure fn Duration.add(self, other: Duration) -> Duration {
 }
 
 /// Orders two spans by length.
-pub pure noalloc fn Duration.compareTo(self, other: Duration) -> Ordering {
+pub pure noalloc fn Duration.compareTo(self, other: &Duration) -> Ordering {
     if self.ms < other.ms {
         Ordering.Less
     } else if self.ms > other.ms {

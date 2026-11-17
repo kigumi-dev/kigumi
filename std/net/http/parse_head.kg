@@ -1,0 +1,122 @@
+// A message head: the request or status line and the header fields after it.
+type Head = {
+    first String
+    headers Headers
+}
+
+// headEnd finds the offset just past the blank line ending a head, or None for more input; it resumes
+// at from, where an earlier call stopped, and refuses a LF without its CR.
+fn headEnd(data: &Bytes, from: usize) -> usize?! {
+    let n = data.len()
+    let mut i = from
+    for i < n {
+        if (data.get(i) || 0) == 10 {
+            if i == 0 || (data.get(i - 1) || 0) != 13 {
+                fail failure(400, "bare LF in message head")
+            }
+            if i >= 3 && (data.get(i - 2) || 0) == 10 && (data.get(i - 3) || 0) == 13 {
+                return Some(i + 1)
+            }
+        }
+        i = i + 1
+    }
+    None
+}
+
+// Which side's head is read: a request line must be UTF-8 and a folded field line is refused, while a
+// reason phrase may carry RFC 9110 obs-text and a folded line is joined to the one before (RFC 9112 5.2).
+type HeadSide =
+    | RequestHead
+    | ResponseHead
+
+// obsText reads bytes as UTF-8 when they are, and otherwise byte-for-byte as Latin-1, which
+// keeps every 0x80..0xFF value visible.
+fn obsText(raw: Bytes) -> String {
+    if String.fromBytes(raw) is Ok(t) {
+        return t
+    }
+    let mut out = Array.empty[u8]()
+    for b in raw {
+        let c = b.toInt()
+        if c < 0x80 {
+            out.push(b)
+        } else {
+            out.push((0xC0 | (c >> 6)).toU8() || 0)
+            out.push((0x80 | (c & 0x3F)).toU8() || 0)
+        }
+    }
+    String.fromBytes(Bytes.fromArray(&out)) || ""
+}
+
+// physicalLines splits raw, which starts at the CRLF before its first line, in one pass; empty lines are dropped.
+fn physicalLines(raw: Bytes, maxLines: usize) -> Array[Bytes]! {
+    let n = raw.len()
+    let mut lines = Array.empty[Bytes]()
+    let mut at: usize = 0
+    for at + 2 <= n {
+        let start = at + 2
+        let mut end = start
+        for end < n && !((raw.get(end) || 0) == 13 && (raw.get(end + 1) || 0) == 10) {
+            end = end + 1
+        }
+        if end > start {
+            if lines.len() >= maxLines {
+                fail failure(431, "too many header fields")
+            }
+            lines.push(raw.slice(start, end) || "".toBytes())
+        }
+        at = end
+    }
+    lines
+}
+
+// unfold joins a response's folded lines to the line before with a space; elsewhere a fold is refused.
+fn unfold(lines: Array[Bytes], side: HeadSide) -> Array[Bytes]! {
+    let mut fields = Array.empty[Bytes]()
+    let mut current = "".toBytes()
+    for line in lines {
+        let lead = line.get(0) || 0
+        if lead != 32 && lead != 9 {
+            if current.len() > 0 {
+                fields.push(current)
+            }
+            current = line
+        } else if side is ResponseHead && current.len() > 0 {
+            current = current.concat(" ".toBytes()).concat(line.slice(1, line.len()) || "".toBytes())
+        } else {
+            fail failure(400, "folded header line")
+        }
+    }
+    if current.len() > 0 {
+        fields.push(current)
+    }
+    fields
+}
+
+// parseHead reads a head ending in CRLF CRLF; maxFields bounds the header count. Each field
+// value picks its own text decoding, so one obs-text value leaves the others alone.
+fn parseHead(raw: Bytes, maxFields: usize, side: HeadSide) -> Head! {
+    let firstEnd = raw.indexOf(crlf()) || raw.len()
+    let firstRaw = raw.slice(0, firstEnd) || "".toBytes()
+    let first = match side {
+        RequestHead -> String.fromBytes(firstRaw) || fail failure(400, "invalid bytes in the start line")
+        ResponseHead -> obsText(firstRaw)
+    }
+    let mut headers = Headers.new()
+    for line in unfold(physicalLines(raw.slice(firstEnd, raw.len()) || "".toBytes(), maxFields)?, side)? {
+        let colon = line.indexOf(":".toBytes()) || fail failure(400, "header line without a colon")
+        let name = String.fromBytes(line.slice(0, colon) || "".toBytes()) || fail failure(400, "invalid header name")
+        if !isToken(name) {
+            fail failure(400, "invalid header name")
+        }
+        let value = obsText(line.slice(colon + 1, line.len()) || "".toBytes()).trim()
+        if !isFieldValue(value) {
+            fail failure(400, "invalid header value")
+        }
+        headers.add(name, value)
+    }
+    Head {
+        first: first
+        headers: headers
+    }
+}

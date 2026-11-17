@@ -11333,6 +11333,17 @@
       ]
     },
     {
+      "id": "run/http_client_framing",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/http_client_framing.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/http_deflate_client",
       "kind": "run",
       "group": "std",
@@ -11349,6 +11360,17 @@
       "group": "std",
       "stage": "run",
       "path": "testdata/run/std/http_gzip_client.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/http_server_head",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/http_server_head.txtar",
       "mode": [
         "vm",
         "native"
@@ -15612,6 +15634,17 @@
       ]
     },
     {
+      "id": "run/std_http_router_segments",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/std_http_router_segments.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/std_http_routing",
       "kind": "run",
       "group": "std",
@@ -15870,6 +15903,17 @@
       "group": "std",
       "stage": "run",
       "path": "testdata/run/std/std_time_date.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/std_time_date_malformed",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/std_time_date_malformed.txtar",
       "mode": [
         "vm",
         "native"
@@ -24006,6 +24050,16 @@
       "group": "std",
       "stage": "check",
       "path": "testdata/sem/std/std_layer_direction.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/std_time_duration_ord",
+      "kind": "sem",
+      "group": "std",
+      "stage": "check",
+      "path": "testdata/sem/std/std_time_duration_ord.txtar",
       "mode": [
         "check"
       ]

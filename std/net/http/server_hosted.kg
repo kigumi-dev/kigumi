@@ -200,7 +200,7 @@ async fn Wire.readBody(mut self, framing: Framing, limits: Limits, deadline: Dea
             return self.consume(n)
         }
         Chunked -> {
-            let mut d = Dechunker.new()
+            let mut d = Dechunker.new(RequestHead)
             let mut raw: usize = 0
             for true {
                 let used = d.step(&self.pending, limits.maxBodyBytes)?
