@@ -40,7 +40,11 @@ func (m *Machine) shellPlan(in *midir.Inst, args []*obj) *obj {
 		case s == " ":
 			it = variant("Word", nil)
 		case s == "$":
-			it = variant("Text", []*obj{mkStr([]byte(m.display(args[ai])))})
+			if deref(args[ai]).k == kBytes {
+				it = variant("RawText", []*obj{m.copy(args[ai])})
+			} else {
+				it = variant("Text", []*obj{mkStr([]byte(m.display(args[ai])))})
+			}
 			ai++
 		case s[0] == 'r':
 			op, fd, _ := strings.Cut(s[1:], ":")
@@ -66,7 +70,7 @@ func atoi(s string) int64 {
 // validated by the same std/shell.filterProblem the native runner uses, so
 // both engines reject the same options with the same message.
 func (m *Machine) planOf(v *obj, cwd string) (*shell.Plan, string) {
-	stages := m.callStd("std/shell", "stages", []*obj{v})
+	stages := m.callStd("std/shell", "processStages", []*obj{v})
 	defer m.release(stages)
 	p := &shell.Plan{}
 	for _, sv := range deref(stages).fields {

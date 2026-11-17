@@ -1,39 +1,53 @@
 //go:build unix
 
-package vm
+package vm_test
 
 import (
+	"bytes"
 	"os"
+	"os/exec"
 	"testing"
+
+	"kigumi/internal/backend/vm"
+	mirbuild "kigumi/internal/compiler/mir/build"
+	mirplan "kigumi/internal/compiler/mir/plan"
 )
 
-// The Go runtime replaces a closed 0/1/2 with /dev/null before main, so the closed-at-start probe has to tell that
-// placeholder (O_RDWR) from the /dev/null a shell redirects (O_RDONLY).
-func TestFDClosedAtStart(t *testing.T) {
-	rw, err := os.OpenFile(os.DevNull, os.O_RDWR, 0)
+func TestReadWriteDevNull(t *testing.T) {
+	if os.Getenv("KIGUMI_TEST_DEVNULL") == "1" {
+		res := checkSource(t, "let data = host.stdin().readAll()?\nprint \"${data.len()}\"\n")
+		if res.HasErrors() {
+			t.Fatal(res.Render())
+		}
+		prog := mirbuild.Program(res)
+		if prog.HasErrors() {
+			t.Fatal("ownership errors")
+		}
+		if err := mirplan.Apply(prog, mirplan.Transform{Name: "plan-rc", Run: mirplan.RC}); err != nil {
+			t.Fatal(err)
+		}
+		var stderr bytes.Buffer
+		code, err := vm.Run(prog, vm.Options{}, os.Stdout, &stderr)
+		if err != nil || code != 0 || stderr.Len() != 0 {
+			t.Fatalf("exit %d: %v\n%s", code, err, stderr.String())
+		}
+		return
+	}
+	null, err := os.OpenFile(os.DevNull, os.O_RDWR, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rw.Close()
-	if !fdClosedAtStart(rw.Fd()) {
-		t.Errorf("/dev/null opened O_RDWR is the runtime's closed-descriptor placeholder, want closed")
-	}
-
-	ro, err := os.Open(os.DevNull)
+	defer null.Close()
+	exe, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ro.Close()
-	if fdClosedAtStart(ro.Fd()) {
-		t.Errorf("/dev/null opened O_RDONLY is a redirection, not a closed descriptor")
-	}
-
-	file, err := os.CreateTemp(t.TempDir(), "fd")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer file.Close()
-	if fdClosedAtStart(file.Fd()) {
-		t.Errorf("a regular file is not a closed descriptor")
+	cmd := exec.Command(exe, "-test.run=^TestReadWriteDevNull$")
+	cmd.Env = append(os.Environ(), "KIGUMI_TEST_DEVNULL=1")
+	cmd.Stdin, cmd.Stdout = null, null
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("child: %v\n%s", err, stderr.String())
 	}
 }

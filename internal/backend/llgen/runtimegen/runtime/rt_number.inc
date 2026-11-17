@@ -137,19 +137,15 @@ static int64_t divmod64(int64_t x, int64_t y, int rem) {
 }
 #endif
 #if defined(_M_IX86)
-// The x86 MSVC C ABI (UEFI included) names its 64-bit division helpers
-// __alldiv/__aulldiv/__allrem/__aullrem instead of the __divdi3 family, and
-// no compiler-rt build for the target supplies them, so the runtime defines
-// the four from the same loop. The asm label keeps COFF's leading underscore
-// from decorating the names a second time.
-int64_t __alldiv(int64_t, int64_t) __asm__("__alldiv");
-int64_t __alldiv(int64_t x, int64_t y) { return divmod64(x, y, 0); }
-int64_t __allrem(int64_t, int64_t) __asm__("__allrem");
-int64_t __allrem(int64_t x, int64_t y) { return divmod64(x, y, 1); }
-uint64_t __aulldiv(uint64_t, uint64_t) __asm__("__aulldiv");
-uint64_t __aulldiv(uint64_t x, uint64_t y) { return udivmod64(x, y, 0); }
-uint64_t __aullrem(uint64_t, uint64_t) __asm__("__aullrem");
-uint64_t __aullrem(uint64_t x, uint64_t y) { return udivmod64(x, y, 1); }
+// The MSVC helpers clean the stack; asm labels suppress COFF name decoration.
+int64_t __attribute__((stdcall)) __alldiv(int64_t, int64_t) __asm__("__alldiv");
+int64_t __attribute__((stdcall)) __alldiv(int64_t x, int64_t y) { return divmod64(x, y, 0); }
+int64_t __attribute__((stdcall)) __allrem(int64_t, int64_t) __asm__("__allrem");
+int64_t __attribute__((stdcall)) __allrem(int64_t x, int64_t y) { return divmod64(x, y, 1); }
+uint64_t __attribute__((stdcall)) __aulldiv(uint64_t, uint64_t) __asm__("__aulldiv");
+uint64_t __attribute__((stdcall)) __aulldiv(uint64_t x, uint64_t y) { return udivmod64(x, y, 0); }
+uint64_t __attribute__((stdcall)) __aullrem(uint64_t, uint64_t) __asm__("__aullrem");
+uint64_t __attribute__((stdcall)) __aullrem(uint64_t x, uint64_t y) { return udivmod64(x, y, 1); }
 #endif
 static int64_t int_div(int64_t x, int64_t y, int nk) {
     if (y == 0) rt_panic("division by zero");

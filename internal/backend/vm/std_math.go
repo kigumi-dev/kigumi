@@ -20,7 +20,7 @@ var mathPrims = map[string]func(a *obj) *obj{
 func (m *Machine) registerMath() {
 	for key, f := range mathPrims {
 		m.host[key] = func(m *Machine, _ sem.EntityID, a []*obj) *obj {
-			return m.stdResultTaint(key, a, f(deref(a[0])))
+			return m.stdResultTaint(0, key, a, f(deref(a[0])))
 		}
 	}
 }

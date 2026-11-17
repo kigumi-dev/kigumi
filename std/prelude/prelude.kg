@@ -472,7 +472,7 @@ pub pure fn String.tryChars(self) -> Result[Array[Char], AllocError]
 
 /// Whether sub occurs in the string; the empty string occurs in every string. Runs in time linear in both lengths.
 pub pure noalloc fn String.contains(self, sub: String) -> Bool {
-    self.twoWay(&sub) <= self.len()
+    self.twoWay(&sub, 0) <= self.len()
 }
 
 /// Whether the bytes of sub appear at byte offset at; false for any offset past the end.
@@ -551,15 +551,13 @@ pub pure fn String.trySplit(self, sep: String) -> Result[Array[String], AllocErr
         return AllocError.wrap(out)
     }
     let mut start: usize = 0
-    let mut i: usize = 0
-    for i + sep.len() <= self.len() {
-        if self.matchesAt(sep, i) {
-            out.tryPush(self.boundaryPiece(start, i)?)?
-            i = i + sep.len()
-            start = i
-        } else {
-            i = i + 1
+    for start <= self.len() {
+        let at = self.twoWay(&sep, start)
+        if at > self.len() {
+            break
         }
+        out.tryPush(self.boundaryPiece(start, at)?)?
+        start = at + sep.len()
     }
     out.tryPush(self.boundaryPiece(start, self.len())?)?
     AllocError.wrap(out)

@@ -108,7 +108,7 @@ func TestSecretSanBitRules(t *testing.T) {
 		{"shl_three", vm.ShadowValue{Lo: full << 3}},
 		{"shr_three", vm.ShadowValue{Lo: full >> 3}},
 		{"not_bits", vm.ShadowValue{Lo: full}},
-		{"wrapping_add_zero", vm.ShadowValue{Lo: full}},
+		{"wrapping_add_zero", vm.ShadowValue{Any: true}},
 	}
 	for _, tc := range tests {
 		t.Run(tc.fn, func(t *testing.T) {

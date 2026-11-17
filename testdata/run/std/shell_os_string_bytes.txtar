@@ -1,0 +1,27 @@
+-- src --
+import shell from std/shell
+import os from std/os
+
+let bytes = Bytes.fromArray(&Array.of[u8](97, 255, 98))
+let word = os.OsString.fromUnixBytes(bytes)
+let captured = ($"printf %s ${word}" |> shell.capture(host.shell()))?
+print "${captured.stdout.len()} ${captured.stdout.get(0) || 0} ${captured.stdout.get(1) || 0} ${captured.stdout.get(2) || 0}"
+
+let joined = ($"printf %s before${word}after" |> shell.capture(host.shell()))?
+print "${joined.stdout.len()} ${joined.stdout.get(7) || 0}"
+
+let redirected = ($"printf ok >${word}" |> shell.capture(host.shell()))?
+let read = ($"cat ${word}" |> shell.capture(host.shell()))?
+let removed = ($"rm -- ${word}" |> shell.capture(host.shell()))?
+print "redirect ${read.stdout.len()} ${read.stdout.get(0) || 0} ${read.stdout.get(1) || 0}"
+
+let nul = os.OsString.fromUnixBytes(Bytes.fromArray(&Array.of[u8](97, 0, 98)))
+match $"printf %s ${nul}" |> shell.capture(host.shell()) {
+    Ok(_) -> print "unexpected success"
+    Err(e) -> print e.message()
+}
+-- stdout --
+3 97 255 98
+14 255
+redirect 2 111 107
+argument contains a NUL byte

@@ -1,5 +1,7 @@
 package vm
 
+import "kigumi/internal/compiler/sem"
+
 // resultRule says how the arguments of a primitive or builtin reach its result.
 type resultRule uint8
 
@@ -94,10 +96,10 @@ func (m *Machine) labelResult(rule resultRule, roles []primArg, args []*obj, r *
 		}
 		return r
 	case resultDeep:
-		t := m.deepTaint(args)
+		t := coarse(m.deepTaint(args))
 		return m.withLabel(r, label{elem: t, shape: t.tainted()})
 	case resultShapes:
-		l := label{elem: m.joinTaint(args), shape: m.anyShape(args)}
+		l := label{elem: coarse(m.joinTaint(args)), shape: m.anyShape(args)}
 		for _, a := range roles {
 			if a.role != roleValue && a.at < len(args) && m.taintOf(args[a.at]).tainted() {
 				l.shape = true
@@ -105,8 +107,15 @@ func (m *Machine) labelResult(rule resultRule, roles []primArg, args []*obj, r *
 		}
 		return m.withLabel(r, l)
 	}
-	t := m.joinTaint(args)
+	t := coarse(m.joinTaint(args))
 	return m.withLabel(r, label{elem: t, shape: t.tainted()})
+}
+
+func coarse(t shadow) shadow {
+	if t.tainted() {
+		return secretCoarse
+	}
+	return t
 }
 
 // lengthTainted reports whether the length of v depends on a secret: a container's shape, a map's key list, or a range's bounds.
@@ -123,13 +132,18 @@ func (m *Machine) lengthTainted(v *obj) bool {
 	return m.taintOf(v).tainted()
 }
 
-// stdResultTaint labels a primitive's result by its rule; select is bit-precise.
-func (m *Machine) stdResultTaint(key string, args []*obj, r *obj) *obj {
+func (m *Machine) stdResultTaint(ent sem.EntityID, key string, args []*obj, r *obj) *obj {
 	if !m.opts.SecretSan {
 		return r
 	}
 	if key == "secret.selectU64" && len(args) >= 3 && m.taintOf(args[0]).tainted() {
 		return m.withTaint(r, m.selectShadow(args[0], args[1], args[2]))
 	}
-	return m.labelResult(primResultTable[key], primArgTable[key], args, r)
+	if rule, ok := primResultTable[key]; ok || !numericConversion(key) {
+		return m.labelResult(rule, primArgTable[key], args, r)
+	}
+	if out, ok := m.conversionLabel(ent, args, r); ok {
+		return out
+	}
+	return m.labelResult(resultAll, nil, args, r)
 }

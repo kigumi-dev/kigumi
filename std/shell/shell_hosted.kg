@@ -1,4 +1,5 @@
 import ffi from std/ffi
+import os from std/os
 import platform from std/platform
 
 extern(C) {
@@ -56,7 +57,7 @@ pub fn run(plan: Plan, sh: Shell) -> PipelineResult! {
 /// stderr, so the first stage reads the terminal and the last writes it; no
 /// output is captured or written by the runner. Fails when a command cannot start.
 pub fn runHere(plan: Plan, sh: Shell) -> PipelineResult! {
-    let stages = stages(&plan)
+    let stages = processStages(&plan)
     let n = stages.len()
     if n == 0 {
         return PipelineResult { statuses: Array.empty() }
@@ -299,8 +300,7 @@ fn parseFd(text: String) -> Int? {
     Some(n)
 }
 
-fn hasNul(s: String) -> Bool {
-    let b = s.bytes()
+fn hasNul(b: Bytes) -> Bool {
     for i in 0..b.len() {
         if (b.get(i) || 1) == 0 {
             return true
@@ -312,7 +312,7 @@ fn hasNul(s: String) -> Bool {
 // Redirects run after the pipeline's own dup2s and in source order, so
 // `2>&1 >out` sends stderr to the pipe and stdout to the file while
 // `>out 2>&1` sends both to the file.
-fn applyRedirs(redirs: &Array[Redir], statusfd: i32) -> Bool {
+fn applyRedirs(redirs: &Array[ProcessRedir], statusfd: i32) -> Bool {
     let flags = platform.openFlags()
     for r in redirs {
         if r.fd < 0 {
@@ -320,11 +320,11 @@ fn applyRedirs(redirs: &Array[Redir], statusfd: i32) -> Bool {
             return false
         }
         if r.op == 4 || r.op == 5 {
-            let n = parseFd(r.target) || -1
+            let n = parseFd(String.fromBytes(r.target) || "") || -1
             if n < 0 || unsafe {
                 dup2(n.toI32() || -1, r.fd.toI32() || -1)
             } < 0 {
-                report(statusfd, "`${r.target}` is not a file descriptor that can be duplicated")
+                report(statusfd, "`${os.OsString.fromUnixBytes(r.target).toStringLossy()}` is not a file descriptor that can be duplicated")
                 return false
             }
             continue
@@ -336,25 +336,27 @@ fn applyRedirs(redirs: &Array[Redir], statusfd: i32) -> Bool {
         } else {
             flags.wronly | flags.creat | flags.trunc
         }
-        let c = match ffi.CString.new(&r.target) {
-            Ok(v) -> v
-            Err(_) -> {
-                report(statusfd, "cannot open redirect target: it contains a NUL byte")
-                return false
-            }
+        if hasNul(r.target) {
+            report(statusfd, "cannot open redirect target: it contains a NUL byte")
+            return false
         }
+        let c = cBytes(r.target)
         let fd = unsafe {
-            open(c.ptr(), mode, 420)
+            open(ffi.toConst(c), mode, 420)
+        }
+        let err = ffi.errno()
+        unsafe {
+            free(c)
         }
         if fd < 0 {
-            report(statusfd, "cannot open ${r.target}: ${ffi.errorText(ffi.errno())}")
+            report(statusfd, "cannot open ${os.OsString.fromUnixBytes(r.target).toStringLossy()}: ${ffi.errorText(err)}")
             return false
         }
         let want = r.fd.toI32() || -1
         if fd != want && unsafe {
             dup2(fd, want)
         } < 0 {
-            report(statusfd, "cannot duplicate descriptor for ${r.target}: ${ffi.errorText(ffi.errno())}")
+            report(statusfd, "cannot duplicate descriptor for ${os.OsString.fromUnixBytes(r.target).toStringLossy()}: ${ffi.errorText(ffi.errno())}")
             _ = unsafe {
                 close(fd)
             }
@@ -422,7 +424,7 @@ fn lineMatches(re: *const u8, input: &Bytes, start: usize, end: usize) -> Bool {
 // execs, a grep filters in-process. Either way it reports a startup
 // failure (bad exec, bad regex, bad redirect) through statusfd instead of
 // aborting.
-fn runChild(st: &Stage, infd: i32, outfd: i32, errfd: i32, statusfd: i32) -> Never {
+fn runChild(st: &ProcessStage, infd: i32, outfd: i32, errfd: i32, statusfd: i32) -> Never {
     if infd != 0 && !dupOnto(infd, 0, "stdin", statusfd) {
         unsafe {
             _exit(126)
@@ -455,15 +457,12 @@ fn runChild(st: &Stage, infd: i32, outfd: i32, errfd: i32, statusfd: i32) -> Nev
     let argv = unsafe {
         malloc((n + 1) * ptrSize)
     }
-    let mut keep: Array[ffi.CString] = Array.empty()
     for i in 0..n {
-        let arg = st.argv.get(i) || ""
-        // runPlan already rejected a NUL anywhere in argv before forking.
-        let c = ffi.CString.new(&arg).unwrap()
+        let arg = st.argv.get(i) || b""
+        let c = cBytes(arg)
         unsafe {
-            ffi.writePtr(ffi.toMut(ffi.offset(ffi.toConst(argv), (i * ptrSize).toInt() || 0)), c.ptr())
+            ffi.writePtr(ffi.toMut(ffi.offset(ffi.toConst(argv), (i * ptrSize).toInt() || 0)), ffi.toConst(c))
         }
-        keep.push(c)
     }
     unsafe {
         ffi.writePtr(ffi.toMut(ffi.offset(ffi.toConst(argv), (n * ptrSize).toInt() || 0)), ffi.null[u8]())
@@ -656,7 +655,7 @@ fn pollfdAt(pfds: *mut u8, k: usize) -> *mut Pollfd {
 // through its own close-on-exec status pipe instead of turning into a fake
 // exit status.
 fn runPlan(plan: &Plan) -> Run! {
-    let stages = stages(plan)
+    let stages = processStages(plan)
     let n = stages.len()
     if n == 0 {
         return Run {

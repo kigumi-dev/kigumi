@@ -1,3 +1,5 @@
+import os from std/os
+
 /// Ability to run external commands, obtained from `host.shell()`.
 /// Safety: a stateless capability marker; every command it runs is independent, so sharing or duplicating it is free.
 @unsafeGuarantee(Copy, Send, Sync)
@@ -6,6 +8,7 @@ pub type Shell
 /// One piece of a plan; a `$"..."` literal pushes them in source order.
 pub type Item =
     | Text(String)
+    | RawText(Bytes)
     | Word
     | Pipe
     | Redirect(Int, Int)
@@ -89,89 +92,30 @@ pub pure fn check(result: PipelineResult) -> Void! {
     }
 }
 
-type Building = {
-    mut out Array[Stage]
-    mut argv Array[String]
-    mut redirs Array[Redir]
-    mut word String
-    mut inWord Bool
-    mut rop Int
-    mut rfd Int
-}
-
-fn Building.endWord(mut self) {
-    if !self.inWord {
-        return
-    }
-    if self.rop != 0 {
-        self.redirs.push(Redir {
-            op: self.rop
-            fd: self.rfd
-            target: self.word
-        })
-        self.rop = 0
-    } else {
-        self.argv.push(self.word)
-    }
-    self.word = ""
-    self.inWord = false
-}
-
-fn Building.endStage(mut self, filter: Filter?) {
-    self.endWord()
-    if self.argv.len() > 0 || filter is Some(_) {
-        self.out.push(Stage {
-            argv: self.argv.clone()
-            redirs: self.redirs.clone()
-            filter: filter
-        })
-    }
-    self.argv = Array.empty()
-    self.redirs = Array.empty()
-}
-
-/// Splits a plan into its stages, joining the text pieces of each word.
 pub pure fn stages(plan: &Plan) -> Array[Stage] {
-    let mut b = Building {
-        out: Array.empty()
-        argv: Array.empty()
-        redirs: Array.empty()
-        word: ""
-        inWord: false
-        rop: 0
-        rfd: 0
-    }
-    for item in &plan.items {
-        match item {
-            Text(s) -> {
-                b.word = "${b.word}${s}"
-            }
-            Word -> {
-                b.endWord()
-                b.inWord = true
-            }
-            Redirect(op, fd) -> {
-                b.endWord()
-                b.rop = op
-                b.rfd = fd
-                b.inWord = true
-            }
-            Pipe -> {
-                b.endStage(None)
-            }
-            Builtin(f) -> {
-                b.endStage(None)
-                b.endStage(Some(filterClone(f)))
-            }
+    let mut out = Array.empty[Stage]()
+    for st in processStages(plan) {
+        let mut argv = Array.empty[String]()
+        for arg in st.argv {
+            argv.push(os.OsString.fromUnixBytes(arg).toStringLossy())
         }
+        let mut redirs = Array.empty[Redir]()
+        for r in st.redirs {
+            redirs.push(Redir {
+                op: r.op
+                fd: r.fd
+                target: os.OsString.fromUnixBytes(r.target).toStringLossy()
+            })
+        }
+        out.push(Stage {
+            argv: argv
+            redirs: redirs
+            filter: move st.filter
+        })
     }
-    b.endStage(None)
-    b.out
+    out
 }
 
-/// A copy of `f`, for a plan piece that is read from a borrowed list. String
-/// and Bool payloads copy; the field list is rebuilt element by element
-/// because `Array[Int]` is move-only.
 pub pure fn filterClone(f: &Filter) -> Filter {
     match f {
         Cat -> Cat

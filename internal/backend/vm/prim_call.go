@@ -28,7 +28,7 @@ func (m *Machine) callPrim(ent sem.EntityID, key string, h hostFn, args []*obj) 
 		return m.untaint(r)
 	}
 	m.joinWritable(ent, args)
-	return m.stdResultTaint(key, args, r)
+	return m.stdResultTaint(ent, key, args, r)
 }
 
 func (m *Machine) primSinks(key string, host bool, args []*obj) {

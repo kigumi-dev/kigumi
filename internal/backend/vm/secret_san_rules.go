@@ -66,13 +66,31 @@ func (m *Machine) shiftShadow(c bop, ta shadow, count *obj, nk int) shadow {
 	if is128(nk) {
 		s := wideShadow(shrW(wide{ta.lo, ta.hi}, n))
 		if isSigned(nk) && ta.hi>>63 != 0 && n > 0 {
-			s.hi |= ^uint64(0) << (64 - n)
+			fill := bitRange(128-int(min(n, 128)), 128)
+			s.lo |= fill.lo
+			s.hi |= fill.hi
 		}
 		return s
 	}
 	s := shadow{lo: ta.lo >> n}
-	if isSigned(nk) && ta.lo>>63 != 0 && n > 0 {
-		s.lo |= ^uint64(0) << (64 - n)
+	if w := uint(bitsOf(nk)); isSigned(nk) && ta.lo>>(w-1)&1 != 0 && n > 0 {
+		s.lo |= (^uint64(0) << (w - min(n, w))) & (^uint64(0) >> (64 - w))
+	}
+	return s
+}
+
+func signExtendShadow(s shadow, nk int) shadow {
+	w := uint(bitsOf(nk))
+	switch {
+	case !isSigned(nk) || w >= 128:
+		return s
+	case w == 64:
+		if s.lo>>63 != 0 {
+			s.hi = ^uint64(0)
+		}
+	case s.lo>>(w-1)&1 != 0:
+		s.lo |= ^uint64(0) << w
+		s.hi = ^uint64(0)
 	}
 	return s
 }
@@ -103,8 +121,9 @@ func (m *Machine) castShadow(a *obj, nk int) shadow {
 	if nk&512 != 0 {
 		return secretCoarse
 	}
-	if da := deref(a); da.k != kInt {
+	da := deref(a)
+	if da.k != kInt {
 		return secretCoarse
 	}
-	return maskTo(ta, nk)
+	return maskTo(signExtendShadow(ta, da.nkind()), nk)
 }

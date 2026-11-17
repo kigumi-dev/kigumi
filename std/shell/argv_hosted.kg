@@ -1,0 +1,19 @@
+import ffi from std/ffi
+
+fn cBytes(bytes: Bytes) -> *mut u8 {
+    let out = unsafe {
+        malloc(bytes.len() + 1)
+    }
+    if ffi.isNull(ffi.toConst(out)) {
+        panic("out of memory")
+    }
+    for i in 0..bytes.len() {
+        unsafe {
+            ffi.writeU8(ffi.toMut(ffi.offset(ffi.toConst(out), i.toInt() || 0)), bytes.get(i) || 0)
+        }
+    }
+    unsafe {
+        ffi.writeU8(ffi.toMut(ffi.offset(ffi.toConst(out), bytes.len().toInt() || 0)), 0)
+    }
+    out
+}

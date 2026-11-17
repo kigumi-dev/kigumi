@@ -1,0 +1,93 @@
+type ProcessStage = {
+    pub argv Array[Bytes]
+    pub redirs Array[ProcessRedir]
+    pub filter Filter?
+}
+
+type ProcessRedir = {
+    pub op Int
+    pub fd Int
+    pub target Bytes
+}
+
+type Building = {
+    mut out Array[ProcessStage]
+    mut argv Array[Bytes]
+    mut redirs Array[ProcessRedir]
+    mut word Bytes
+    mut inWord Bool
+    mut rop Int
+    mut rfd Int
+}
+
+fn Building.endWord(mut self) {
+    if !self.inWord {
+        return
+    }
+    if self.rop != 0 {
+        self.redirs.push(ProcessRedir {
+            op: self.rop
+            fd: self.rfd
+            target: self.word
+        })
+        self.rop = 0
+    } else {
+        self.argv.push(self.word)
+    }
+    self.word = b""
+    self.inWord = false
+}
+
+fn Building.endStage(mut self, filter: Filter?) {
+    self.endWord()
+    if self.argv.len() > 0 || filter is Some(_) {
+        self.out.push(ProcessStage {
+            argv: self.argv.clone()
+            redirs: self.redirs.clone()
+            filter: filter
+        })
+    }
+    self.argv = Array.empty()
+    self.redirs = Array.empty()
+}
+
+pure fn processStages(plan: &Plan) -> Array[ProcessStage] {
+    let mut b = Building {
+        out: Array.empty()
+        argv: Array.empty()
+        redirs: Array.empty()
+        word: b""
+        inWord: false
+        rop: 0
+        rfd: 0
+    }
+    for item in &plan.items {
+        match item {
+            Text(s) -> {
+                b.word = b.word.concat(s.toBytes())
+            }
+            RawText(bytes) -> {
+                b.word = b.word.concat(bytes)
+            }
+            Word -> {
+                b.endWord()
+                b.inWord = true
+            }
+            Redirect(op, fd) -> {
+                b.endWord()
+                b.rop = op
+                b.rfd = fd
+                b.inWord = true
+            }
+            Pipe -> {
+                b.endStage(None)
+            }
+            Builtin(f) -> {
+                b.endStage(None)
+                b.endStage(Some(filterClone(f)))
+            }
+        }
+    }
+    b.endStage(None)
+    b.out
+}

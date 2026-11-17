@@ -143,14 +143,14 @@ pure noalloc fn String.maxSuffix(self, flip: Bool, wantPeriod: Bool) -> usize {
     }
 }
 
-pure noalloc fn String.twoWay(self, sub: &String) -> usize {
+pure noalloc fn String.twoWay(self, sub: &String, start: usize) -> usize {
     let n = self.len()
     let m = sub.len()
-    if m == 0 {
-        return 0
-    }
-    if m > n {
+    if start > n || m > n - start {
         return n + 1
+    }
+    if m == 0 {
+        return start
     }
     let i1 = sub.maxSuffix(false, false)
     let j1 = sub.maxSuffix(true, false)
@@ -173,9 +173,9 @@ pure noalloc fn String.twoWay(self, sub: &String) -> usize {
         }
         per = per + 1
     }
-    let mut pos: usize = 0
+    let mut pos = start
     let mut memory1: usize = 0
-    for pos + m <= n {
+    for pos <= n - m {
         let mut k = ell1
         if periodic && ell1 < memory1 {
             k = memory1
