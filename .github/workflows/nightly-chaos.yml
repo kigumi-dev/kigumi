@@ -74,10 +74,11 @@ jobs:
             args+=(--seed "$SEED_INPUT")
           fi
           seed=$(bash .github/scripts/chaos.sh "${args[@]}" --print-seed)
-          matrix=$(bash .github/scripts/chaos.sh "${args[@]}" --seed "$seed" --plan)
+          entries=$(bash .github/scripts/chaos.sh "${args[@]}" --seed "$seed" --plan)
           {
             echo "seed=$seed"
-            echo "matrix=$matrix"
+            # strategy.matrix needs an object; the script's --plan is the include list.
+            echo "matrix={\"include\":$entries}"
             echo "seconds=$SECONDS_INPUT"
             echo "count=$COUNT_INPUT"
             echo "shards=$SHARDS_INPUT"

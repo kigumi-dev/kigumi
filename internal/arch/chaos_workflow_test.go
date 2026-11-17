@@ -307,6 +307,7 @@ func TestChaosWorkflowContract(t *testing.T) {
 		"shards:",
 		"fail-fast: false",
 		"fromJSON(needs.plan.outputs.matrix)",
+		`echo "matrix={\"include\":$entries}"`,
 		chaosScript,
 		"--print-seed",
 		"--plan",
@@ -356,5 +357,27 @@ func TestChaosWorkflowContract(t *testing.T) {
 	}
 	if !strings.Contains(string(fuzz), "-fuzz") {
 		t.Error("nightly-fuzz.yml stopped fuzzing; the ownership split assumed it keeps -fuzz")
+	}
+}
+
+// strategy.matrix rejects a bare JSON array, so the plan job wraps the script's --plan in
+// an include object; this keeps the wrapped text a valid matrix.
+func TestChaosPlanWrapsAsMatrixInclude(t *testing.T) {
+	plan := runChaos(t, nil, "--plan", "--shards", "4", "--seed", "7")
+	var matrix struct {
+		Include []map[string]any `json:"include"`
+	}
+	if err := json.Unmarshal([]byte(`{"include":`+strings.TrimSpace(plan)+`}`), &matrix); err != nil {
+		t.Fatalf("wrapped plan is not a matrix object: %v", err)
+	}
+	if len(matrix.Include) == 0 {
+		t.Fatal("wrapped plan has no include entries")
+	}
+	for i, e := range matrix.Include {
+		for _, key := range []string{"suite", "shard", "count", "toolchain"} {
+			if _, ok := e[key]; !ok {
+				t.Errorf("include entry %d lacks %q", i, key)
+			}
+		}
 	}
 }
