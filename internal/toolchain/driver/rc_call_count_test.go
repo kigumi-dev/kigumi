@@ -712,6 +712,9 @@ var addedAfterBaseline = map[string]bool{
 }
 
 func TestRCCallCounts(t *testing.T) {
+	if testCompiler().CCompiler() == nil {
+		t.Skip("no C compiler: the native IR cannot be produced")
+	}
 	manifest := loadManifest(t)
 	files, err := fixture.Corpus("../../..", "run")
 	if err != nil {

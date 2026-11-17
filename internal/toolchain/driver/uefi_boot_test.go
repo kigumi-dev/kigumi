@@ -69,7 +69,7 @@ func bootUEFI(t *testing.T, c uefiBootCase) {
 	}
 
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"uefiboot\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
-	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hi\"\n"), 0o644)
+	os.WriteFile(filepath.Join(root, "main.kg"), []byte(uefiBootProgram), 0o644)
 	target, err := buildconfig.ParseTarget(testCompiler(), c.triple, "")
 	if err != nil {
 		t.Fatal(err)
@@ -122,7 +122,20 @@ func bootUEFI(t *testing.T, c uefiBootCase) {
 	if !strings.Contains(string(out), "EFI-RET") {
 		t.Fatalf("firmware boot did not reach EFI-RET (qemu err %v)\n%s", err, out)
 	}
+	if !strings.Contains(string(out), uefiBootOutput) {
+		t.Fatalf("firmware boot printed the wrong results (qemu err %v)\n%s", err, out)
+	}
 }
+
+const uefiBootProgram = `fn divide(a: i128, b: i128) -> i128 { a / b }
+fn remainder(a: i128, b: i128) -> i128 { a % b }
+fn scale(x: f64, k: f64) -> f64 { x * k }
+
+let big: i128 = 170141183460469231731687303715884105727
+print "${divide(big, 1000000007)} ${remainder(big, 1000000007)} ${scale(1.5, 3.0)}"
+`
+
+const uefiBootOutput = "170141182269480955845320612798 639816141 4.5"
 
 // uefi64Firmware finds the 64-bit OVMF image CI installs or a local one.
 func uefi64Firmware(t *testing.T) string {

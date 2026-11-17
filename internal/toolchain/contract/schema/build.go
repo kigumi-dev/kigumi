@@ -29,7 +29,7 @@ type ModuleScope interface {
 // map looks a Declaration back up by its originating sem.EntityID.
 func Build(m ModuleScope, res *sem.Result, opt Options) (*Module, map[sem.EntityID]*Declaration) {
 	byEntity := map[sem.EntityID]*Declaration{}
-	var scope []string
+	scope := []string{}
 	decls := []*Declaration{}
 	for _, p := range m.OwnPackages() {
 		path := p.Path

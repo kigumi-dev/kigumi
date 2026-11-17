@@ -22,3 +22,11 @@ func TestShebangAfterBlankLine(t *testing.T) {
 		t.Fatalf("first:\n%s\nsecond:\n%s", once, twice)
 	}
 }
+
+func TestShebangOnlyAtFileStartGetsBlankLine(t *testing.T) {
+	src := "fn f() -> Int {\n    #! careful\n    let x = 1\n    x\n}\n\nprint \"${f()}\"\n"
+	tree := syntax.Parse(token.NewFile("s.kg", []byte(src)))
+	if got := printer.Print(tree); got != src {
+		t.Fatalf("got:\n%s", got)
+	}
+}

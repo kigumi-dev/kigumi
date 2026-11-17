@@ -7,6 +7,9 @@ import (
 	"kigumi/internal/lang/token"
 )
 
+// MaxIndentDepth bounds the indentation of the dump and the formatter so deeply nested input stays linear in size.
+const MaxIndentDepth = 32
+
 // Dump renders the tree as indented text; the parser golden tests compare it.
 func (t *Tree) Dump() string {
 	d := &dumper{}
@@ -16,12 +19,24 @@ func (t *Tree) Dump() string {
 
 // dumper reuses one indent buffer instead of rebuilding it for every line.
 type dumper struct {
-	sb  strings.Builder
-	ind []byte
+	sb    strings.Builder
+	ind   []byte
+	depth int
 }
 
-func (d *dumper) push() { d.ind = append(d.ind, ' ', ' ') }
-func (d *dumper) pop()  { d.ind = d.ind[:len(d.ind)-2] }
+func (d *dumper) push() {
+	if d.depth < MaxIndentDepth {
+		d.ind = append(d.ind, ' ', ' ')
+	}
+	d.depth++
+}
+
+func (d *dumper) pop() {
+	d.depth--
+	if d.depth < MaxIndentDepth {
+		d.ind = d.ind[:len(d.ind)-2]
+	}
+}
 
 func (t *Tree) dump(d *dumper, id NodeID, label string) {
 	d.sb.Write(d.ind)

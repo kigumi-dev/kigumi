@@ -19,10 +19,10 @@ pub type QeCertification = {
     pub pckCertChain Bytes
 }
 
-/// Certification data carried after the attestation key.
+/// Certification data carried after the attestation key, by its inner type:
+/// type 5 is the PCK chain that vouches for the QE, anything else is kept raw.
 pub type CertificationData =
-    | PckCertChain(Bytes)
-    | QeReport(QeCertification)
+    | PckCertChain(QeCertification)
     | Unknown(tag: u16, data: Bytes)
 
 /// A parsed SGX quote. `signed` is the exact header || report range the quote
@@ -135,7 +135,7 @@ pure fn parseQeCertification(data: Bytes) -> Result[CertificationData, Error] {
     if innerType != 5 {
         return Ok(CertificationData.Unknown(innerType, certificate))
     }
-    Ok(CertificationData.QeReport(QeCertification {
+    Ok(CertificationData.PckCertChain(QeCertification {
         report: report
         signature: signature
         authData: authData
@@ -166,13 +166,12 @@ pub pure fn Quote.verifySignature(self) -> Result[Void, Error] {
 /// Returns the QE report and PCK chain carried in a v3 quote.
 pub pure fn qeCertificationOf(quote: &Quote) -> Result[QeCertification, Error] {
     match &quote.certificationData {
-        CertificationData.QeReport(qe) -> Ok(QeCertification {
+        CertificationData.PckCertChain(qe) -> Ok(QeCertification {
             report: qe.report
             signature: qe.signature
             authData: qe.authData
             pckCertChain: qe.pckCertChain
         })
-        CertificationData.PckCertChain(_) -> fail failure(MissingQeReport, "quote carries a PCK chain but no QE report")
         CertificationData.Unknown(tag, _) -> fail failure(BadCertificationData, "unknown certification data type ${tag}")
     }
 }

@@ -50,7 +50,7 @@ func (p *printer) write(s string) {
 }
 
 func (p *printer) writeIndent() {
-	need := min(p.indent, 32) * 4
+	need := min(p.indent, syntax.MaxIndentDepth) * 4
 	for len(p.indentBuf) < need {
 		p.indentBuf = append(p.indentBuf, ' ')
 	}

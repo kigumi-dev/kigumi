@@ -1,8 +1,6 @@
 package printer
 
 import (
-	"strings"
-
 	"kigumi/internal/compiler/syntax"
 	"kigumi/internal/lang/token"
 )
@@ -75,7 +73,7 @@ func (p *printer) leadComments(from, to uint32, isFirst bool) (lead []uint32, he
 		case tk.Kind == token.Newline && tk.Len() > 1 && isFirst:
 			lead, header = nil, i+1
 		case tk.Kind == token.Comment || tk.Kind == token.BlockComment:
-			if tk.Start == 0 && strings.HasPrefix(tk.Text(p.t.File.Src), "#!") {
+			if p.isShebang(int(i)) {
 				header = i + 1
 				continue
 			}

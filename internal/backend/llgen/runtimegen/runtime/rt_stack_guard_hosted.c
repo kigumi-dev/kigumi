@@ -62,6 +62,8 @@ static void on_fault(int sig, siginfo_t* si, void* ctx) {
     }
     rt_sys_fault_cleanup();
     signal(sig, SIG_DFL);
+    // A hardware fault re-executes into the default action with its real siginfo and core; only a sent signal needs raise.
+    if (si->si_code > 0 && si->si_code != SI_USER) return;
     raise(sig);
 }
 

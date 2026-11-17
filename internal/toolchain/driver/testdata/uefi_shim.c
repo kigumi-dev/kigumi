@@ -1,4 +1,4 @@
-typedef unsigned char u8; typedef unsigned int u32; typedef unsigned long long u64; typedef unsigned long usize; typedef long i64;
+typedef unsigned char u8; typedef unsigned int u32; typedef unsigned long long u64; typedef __UINTPTR_TYPE__ usize; typedef long long i64;
 static inline void outb(unsigned short p, u8 v) { __asm__ volatile("outb %0, %1" : : "a"(v), "Nd"(p)); }
 void serial_putc(u8 c) { outb(0x3f8, c); }
 void serial_write(const char *s, usize n) { for (usize i = 0; i < n; i++) serial_putc((u8)s[i]); }
@@ -6,7 +6,7 @@ void qemu_exit(u8 code) { outb(0x501, code); for (;;) __asm__ volatile("hlt"); }
 void rt_sys_write(int fd, const char *p, usize n) { (void)fd; serial_write(p, n); }
 void rt_sys_exit(int code) { serial_write("SYS-EXIT\n", 9); qemu_exit((u8)code); }
 struct efi_table_header { u64 sig; u32 rev; u32 hdrsize; u32 crc; u32 reserved; };
-struct efi_boot_services { struct efi_table_header hdr; void *a,*b,*c,*d,*e; u64 (*allocate_pool)(u32, usize, void **); u64 (*free_pool)(void *); };
+struct efi_boot_services { struct efi_table_header hdr; void *a,*b,*c,*d,*e; usize (*allocate_pool)(u32, usize, void **); usize (*free_pool)(void *); };
 struct efi_system_table { struct efi_table_header hdr; void *a,*b,*c,*d,*e,*f,*g,*h,*i; struct efi_boot_services *boot; };
 static struct efi_boot_services *g_bs;
 struct hdr { usize size; };

@@ -215,3 +215,17 @@ func TestEmptySchemaDeclarationList(t *testing.T) {
 		}
 	}
 }
+
+// TestSchemaEmptyModuleScope checks a module without sources prints empty arrays, never null.
+func TestSchemaEmptyModuleScope(t *testing.T) {
+	root := t.TempDir()
+	os.WriteFile(filepath.Join(root, "mod.kg"), clitest.Manifest("nosrc", ""), 0o644)
+	std, _ := filepath.Abs("../../../../std")
+	code, out, errOut := clitest.Execute(t, "--std", std, "schema", "--ir", root)
+	if code != 0 {
+		t.Fatalf("schema --ir: %s", errOut)
+	}
+	if strings.Contains(out, "null") || !strings.Contains(out, "\"scope\": []") {
+		t.Errorf("scope must be an empty array:\n%s", out)
+	}
+}

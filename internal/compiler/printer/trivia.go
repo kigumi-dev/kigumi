@@ -41,7 +41,7 @@ func (p *printer) flushTrivia(limit uint32, docs bool) {
 		text := tk.Text(p.t.File.Src)
 		p.write(text)
 		p.newline()
-		if strings.HasPrefix(text, "#!") {
+		if p.isShebang(p.cm.next - 1) {
 			p.blank()
 		}
 	}
@@ -108,4 +108,18 @@ func (p *printer) peekTrailing(afterTok uint32) string {
 		return p.t.Toks[i].Text(p.t.File.Src)
 	}
 	return ""
+}
+
+// isShebang is true for a `#!` comment that is the first thing in the file; leading blank lines are dropped on output, so they do not count.
+func (p *printer) isShebang(i int) bool {
+	toks := p.t.Toks
+	if toks[i].Kind != token.Comment || !strings.HasPrefix(toks[i].Text(p.t.File.Src), "#!") {
+		return false
+	}
+	for _, tk := range toks[:i] {
+		if tk.Kind != token.Newline && tk.Kind != token.BOF {
+			return false
+		}
+	}
+	return true
 }

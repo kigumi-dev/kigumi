@@ -14,7 +14,6 @@ pub type Code =
     | SignatureInvalid
     | QeReportMismatch
     | QeIdentityMismatch
-    | MissingQeReport
     | BadPckChain
     | PckChainMismatch
     | UnsupportedAlgorithm
@@ -48,7 +47,6 @@ pub fn Code.name(self) -> String {
         SignatureInvalid -> "signature-invalid"
         QeReportMismatch -> "qe-report-mismatch"
         QeIdentityMismatch -> "qe-identity-mismatch"
-        MissingQeReport -> "missing-qe-report"
         BadPckChain -> "bad-pck-chain"
         PckChainMismatch -> "pck-chain-mismatch"
         UnsupportedAlgorithm -> "unsupported-algorithm"
