@@ -25,12 +25,16 @@ fn run(plan: shell.Plan, sh: shell.Shell) -> Void! {
 
 fn runSourceTests(sh: shell.Shell, compiler: String, std: String) -> Void! {
     run(commandPlan(Array.of(compiler, "test", "--std", std, "src/base/hashkey")), sh)?
-    run(commandPlan(Array.of(compiler, "test", "--std", std, "src/lang/token")), sh)
+    run(commandPlan(Array.of(compiler, "test", "--std", std, "src/lang/token")), sh)?
+    run(commandPlan(Array.of(compiler, "test", "--std", std, "src/lang/isr")), sh)?
+    run(commandPlan(Array.of(compiler, "test", "--std", std, "src/toolchain/policy")), sh)
 }
 
 fn runSourceChecks(sh: shell.Shell, compiler: String, std: String) -> Void! {
     run(commandPlan(Array.of(compiler, "check", "--std", std, "src/base/hashkey")), sh)?
-    run(commandPlan(Array.of(compiler, "check", "--std", std, "src/lang/token")), sh)
+    run(commandPlan(Array.of(compiler, "check", "--std", std, "src/lang/token")), sh)?
+    run(commandPlan(Array.of(compiler, "check", "--std", std, "src/lang/isr")), sh)?
+    run(commandPlan(Array.of(compiler, "check", "--std", std, "src/toolchain/policy")), sh)
 }
 
 pub fn test(sh: shell.Shell, compiler: String, std: String) -> Void! {
