@@ -1,0 +1,29 @@
+-- src --
+import task from std/task
+
+// An async generic fn named as a value boxes and tests the instantiation it
+// was named with.
+interface Show { fn show(self) -> String }
+
+type W[T: Copy] = { pub value T }
+
+fn W[T].show(self) -> String { "w" }
+
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+
+async fn produce[T: Copy](v: T) -> Show { W { value: v } }
+
+async fn check[T: Copy](v: T, s: &Show) -> Bool { W { value: v }.same(s) }
+
+async fn root() -> String {
+    let p = produce[String]
+    let a = await p("x")
+    let c = check[Int]
+    let d = check[String]
+    "${W { value: "" }.same(&a)} ${W { value: 0 }.same(&a)} ${await c(1, &a)} ${await d("y", &a)}"
+}
+
+let ex = task.currentThreadExecutor()
+print "async: ${ex.runToCompletion(root())}"
+-- stdout --
+async: true false false true

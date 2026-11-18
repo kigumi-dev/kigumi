@@ -13,9 +13,14 @@ type executorMemo struct {
 	hook bool
 }
 
+// Reachable walks p as planned, with the bodies its descriptors reach.
+func (p *Program) Reachable() *mirreach.Reachability {
+	return mirreach.ReachableWith(p.R, p.Entry, p.Funcs, p.ByEnt, &p.Desc)
+}
+
 func (p *Program) reachMemo() *executorMemo {
 	p.executor.once.Do(func() {
-		rs := mirreach.Reachable(p.R, p.Entry, p.Funcs, p.ByEnt)
+		rs := p.Reachable()
 		for _, c := range opdef.Capabilities(rs.Ops) {
 			if opdef.Capability(c) == opdef.CapTaskExecutor {
 				p.executor.exec = true

@@ -38,7 +38,7 @@ func llEscape(s string) string {
 func (e *emitter) numKind(t sem.TypeID) int { return mir.NumKind(e.r.Types, e.r.UnderlyingRepr(t)) }
 
 // Must mirror %rt_type and %rt_variant in the header (emit.go).
-var rtTypeStruct = StructType{Name: "%rt_type", Fields: []Type{TPtr, TI32, TI32, TPtr, TI32, TPtr, TPtr, TI64, TI64}}
+var rtTypeStruct = StructType{Name: "%rt_type", Fields: []Type{TPtr, TI32, TI32, TPtr, TI32, TPtr, TPtr, TI64, TI64, TPtr, TPtr}}
 var rtVariantStruct = StructType{Name: "%rt_variant", Fields: []Type{TPtr, TPtr, TI32, TI32, TObjSlot}}
 
 // Bit 10 of rt_convert's dnk parameter means "target is Char" (rt_core.c).
@@ -59,6 +59,20 @@ func (e *emitter) descOfType(t sem.TypeID) string {
 }
 
 func (e *emitter) typeCount() int { return e.ntypes }
+
+func (e *emitter) typeKind(ent sem.EntityID, info *sem.TypeDeclInfo) int {
+	switch {
+	case info.Form == sem.FormResource:
+		return 1
+	case info.Form == sem.FormAdt:
+		return 2
+	case ent == e.r.LangItem("Range"):
+		return 3
+	case e.r.RecordWritable(ent):
+		return rtWritableRecord
+	}
+	return 0
+}
 
 // privateFieldMask bits the fields no debug/Display rendering may show: a
 // field's value stays private to its package, so both backends print
@@ -135,20 +149,9 @@ func (e *emitter) data() string {
 			variants = e.ptrTable(subSymbol(name, "variants"), vn)
 		}
 		drop := e.typeDrop(info)
-		kind := 0
-		switch {
-		case info.Form == sem.FormResource:
-			kind = 1
-		case info.Form == sem.FormAdt:
-			kind = 2
-		case ent == e.r.LangItem("Range"):
-			kind = 3
-		case e.r.RecordWritable(ent):
-			kind = rtWritableRecord
-		}
 		e.irb(&sb).GlobalStruct(name, rtTypeStruct,
-			vptr(e.cstr(e.r.Packages[x.Pkg].Path+"."+x.Name)), vi32(kind), vi32(len(info.Fields)),
-			vptr(fields), vi32(len(info.Variants)), vptr(variants), vptr(drop), vi64(int(e.borrowFieldMask(info))), vi64(int(e.privateFieldMask(info))))
+			vptr(e.cstr(e.r.Packages[x.Pkg].Path+"."+x.Name)), vi32(e.typeKind(ent, info)), vi32(len(info.Fields)),
+			vptr(fields), vi32(len(info.Variants)), vptr(variants), vptr(drop), vi64(int(e.borrowFieldMask(info))), vi64(int(e.privateFieldMask(info))), vptr("null"), vptr("null"))
 		for i, v := range info.Variants {
 			e.irb(&sb).GlobalStruct(e.vdesc(v), rtVariantStruct, vptr(e.cstr(e.r.Entity(v).Name)), vptr(name), vi32(i), vi32(len(e.r.Variant(v).Payload)), vobjslot())
 		}
@@ -163,12 +166,13 @@ func (e *emitter) data() string {
 	for _, id := range descEnts {
 		ent, name := sem.EntityID(id), e.descs[sem.EntityID(id)]
 		if e.r.Entity(ent).Kind != sem.EntType {
-			e.irb(&sb).GlobalStruct(name, rtTypeStruct, vptr(e.cstr(e.r.Entity(ent).Name)), vi32(0), vi32(0), vptr("null"), vi32(0), vptr("null"), vptr("null"), vi64(0), vi64(0))
+			e.irb(&sb).GlobalStruct(name, rtTypeStruct, vptr(e.cstr(e.r.Entity(ent).Name)), vi32(0), vi32(0), vptr("null"), vi32(0), vptr("null"), vptr("null"), vi64(0), vi64(0), vptr("null"), vptr("null"))
 		}
 	}
 	for _, key := range slices.Sorted(maps.Keys(e.primDescs)) {
-		e.irb(&sb).GlobalStruct(e.primDescs[key], rtTypeStruct, vptr(e.cstr("prim")), vi32(0), vi32(0), vptr("null"), vi32(0), vptr("null"), vptr("null"), vi64(0), vi64(0))
+		e.irb(&sb).GlobalStruct(e.primDescs[key], rtTypeStruct, vptr(e.cstr("prim")), vi32(0), vi32(0), vptr("null"), vi32(0), vptr("null"), vptr("null"), vi64(0), vi64(0), vptr("null"), vptr("null"))
 	}
+	e.instDescData(&sb)
 	drops := make([]int, 0, len(e.stdDrops))
 	for ent := range e.stdDrops {
 		drops = append(drops, int(ent))

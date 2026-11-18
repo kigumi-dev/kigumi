@@ -1,0 +1,24 @@
+-- src --
+// The value a wildcard test opens in plain code keeps its instantiation in a
+// method value, a lambda capture and a lambda parameter.
+interface Show { fn show(self) -> String }
+type Fault[T: Copy] = { pub value T }
+fn Fault[T].show(self) -> String { "f" }
+fn Fault[T].same(self, s: &Show) -> Bool { s is Fault(_) }
+type Holder[U] = { pub h U }
+fn byMethodValue(a: &Show, b: &Show) -> Bool { if a is Fault(x) { let m = x.same; m(b) } else { false } }
+
+fn byCapture(a: &Show, b: &Show) -> Bool { if a is Fault(x) { let l = (e: &Show) => x.same(e); l(b) } else { false } }
+
+fn app[T: Copy](x: Fault[T], f: fn(Fault[T]) -> Bool) -> Bool { f(x) }
+
+fn byParam(a: &Show, b: &Show) -> Bool { if a is Fault(x) { app(x, (y) => y.same(b)) } else { false } }
+let i1: Show = Fault { value: 1 }
+let s1: Show = Fault { value: "s" }
+print "method value: ${byMethodValue(&i1, &i1)} ${byMethodValue(&i1, &s1)} ${byMethodValue(&s1, &s1)} ${byMethodValue(&s1, &i1)}"
+print "capture: ${byCapture(&i1, &i1)} ${byCapture(&i1, &s1)} ${byCapture(&s1, &s1)} ${byCapture(&s1, &i1)}"
+print "parameter: ${byParam(&i1, &i1)} ${byParam(&i1, &s1)} ${byParam(&s1, &s1)} ${byParam(&s1, &i1)}"
+-- stdout --
+method value: true false true false
+capture: true false true false
+parameter: true false true false

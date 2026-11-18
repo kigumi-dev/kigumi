@@ -1,0 +1,61 @@
+-- src --
+// Const arguments keep their full 128 bits in a runtime type: 2^64, 0, 2^128-1
+// and i128::MIN are four types, in a type test, in a drop and in a global.
+interface Show { fn show(self) -> String }
+type Buf[T: Copy, const N: u128] = { pub v T }
+fn Buf[T, N].show(self) -> String { "b${N}" }
+fn Buf[T, N].same(self, s: &Show) -> Bool { s is Buf(_) }
+type Wrap[T: Copy] = { pub w T }
+fn Wrap[T].step[const N: u128](self, n: Int) -> String { nest[Wrap[T], N](self, n) }
+fn nest[T: Copy, const N: u128](v: T, n: Int) -> String {
+    if n == 0 {
+        let q: Show = Buf[T, N] { v: v }
+        return "${Buf[T, 0] { v: v }.same(&q)} ${Buf[T, 18446744073709551616] { v: v }.same(&q)} ${Buf[T, 1] { v: v }.same(&q)} ${q.show()}"
+    }
+    Wrap[T] { w: v }.step[N](n - 1)
+}
+type IB[T: Copy, const N: i128] = { pub v T }
+fn IB[T, N].show(self) -> String { "i${N}" }
+fn IB[T, N].same(self, s: &Show) -> Bool { s is IB(_) }
+fn inest[T: Copy, const N: i128](v: T) -> String {
+    let q: Show = IB[T, N] { v: v }
+    "${IB[T, 0] { v: v }.same(&q)} ${IB[T, -170141183460469231731687303715884105728] { v: v }.same(&q)} ${q.show()}"
+}
+type R[const N: u128] = resource { pub tag Int }
+fn R[N].drop(move self) { print "drop ${self.tag} N=${N}" }
+fn make[const N: u128](tag: Int) -> R[N] { R { tag: tag } }
+type RI[const N: i128] = resource { pub tag Int }
+fn RI[N].drop(move self) { print "dropi ${self.tag} N=${N}" }
+fn makei[const N: i128](tag: Int) -> RI[N] { RI { tag: tag } }
+static wideN: u128 = 18446744073709551616
+let wide = Buf[Int, 18446744073709551616] { v: 7 }
+let kept = make[340282366920938463463374607431768211455](0)
+print "d0 big ${nest[Int, 18446744073709551616](1, 0)}"
+print "d30 big ${nest[Int, 18446744073709551616](1, 30)}"
+print "d30 zero ${nest[Int, 0](1, 30)}"
+print "d30 max ${nest[Int, 340282366920938463463374607431768211455](1, 30)}"
+print "i128 ${inest[Int, -170141183460469231731687303715884105728](1)} / ${inest[Int, 0](1)}"
+let sw: Show = wide
+print "static ${Buf[Int, 18446744073709551616] { v: 1 }.same(&sw)} ${Buf[Int, 0] { v: 1 }.same(&sw)} ${sw.show()}"
+{
+    let a = R[340282366920938463463374607431768211455] { tag: 1 }
+    let b = R[18446744073709551616] { tag: 2 }
+    let c = make[18446744073709551616](3)
+    let d = makei[-170141183460469231731687303715884105728](4)
+    let e = makei[-3](5)
+}
+print "end ${wideN}"
+-- stdout --
+d0 big false true false b18446744073709551616
+d30 big false true false b18446744073709551616
+d30 zero true false false b0
+d30 max false false false b340282366920938463463374607431768211455
+i128 false true i-170141183460469231731687303715884105728 / true false i0
+static true false b18446744073709551616
+dropi 5 N=-3
+dropi 4 N=-170141183460469231731687303715884105728
+drop 3 N=18446744073709551616
+drop 2 N=18446744073709551616
+drop 1 N=340282366920938463463374607431768211455
+end 18446744073709551616
+drop 0 N=340282366920938463463374607431768211455

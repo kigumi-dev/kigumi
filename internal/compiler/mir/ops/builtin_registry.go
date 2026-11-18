@@ -18,6 +18,8 @@ type BuiltinSpec struct {
 	Iter   bool
 	VM     bool
 	Native BuiltinNative
+	// Variadic repeats the last argument class without limit.
+	Variadic bool
 }
 
 var builtinSpecs = Registry.Builtins

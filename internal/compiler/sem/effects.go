@@ -11,6 +11,7 @@ func (r *Result) checkEffects() {
 	r.settleBoxedParams()
 	r.dropSharedValueAllocs(nodes)
 	r.dropDirectBuildAllocs(nodes)
+	r.settleEnvCaptures(nodes)
 	r.inferSummaries(nodes)
 	for _, id := range nodes {
 		r.checkContracts(id)

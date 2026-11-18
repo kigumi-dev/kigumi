@@ -1,0 +1,29 @@
+-- src --
+// A drop reached through a runtime descriptor builds a generic fn value for
+// the instantiation it drops.
+interface Show { fn show(self) -> String }
+type W[T: Copy] = { pub value T }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+fn sameAs[T: Copy](v: T, p: &Show) -> Bool { W { value: v }.same(p) }
+type Res[T: Copy] = resource { pub v T }
+fn Res[T].drop(move self) {
+    let w0: Show = W { value: 0 }
+    let g = sameAs[T]
+    print "drop ${g(self.v, &w0)}"
+}
+type Wrap[T: Copy] = { pub w T }
+fn Wrap[T].step(self, n: Int) -> Int { deep(self, n) }
+fn deep[T: Copy](v: T, n: Int) -> Int {
+    if n == 0 {
+        let r = Res { v: v }
+        return 1
+    }
+    Wrap { w: v }.step(n - 1)
+}
+print "${deep(1, 0)} ${deep("s", 0)} ${deep(1, 4)}"
+-- stdout --
+drop true
+drop false
+drop false
+1 1 1

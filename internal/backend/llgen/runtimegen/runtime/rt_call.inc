@@ -101,7 +101,7 @@ val rt_call_slot(val recv, int slot, int n, val* args, int recvmode) {
         all[0] = target->u.box.v;
     }
     for (int i = 0; i < n; i++) all[i + 1] = args[i];
-    val r = invoke_args(fn, NULL, (int)total, all, all != stackbuf);
+    val r = invoke_args(fn, (val)target->u.box.dyn, (int)total, all, all != stackbuf);
     if (recvmode == 1 && target->u.box.src) {
         target->u.box.v = rt_deref(target->u.box.src);
     } else if (recvmode == 1 && target->owned) {

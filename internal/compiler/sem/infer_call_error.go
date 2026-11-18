@@ -8,8 +8,7 @@ import "kigumi/internal/compiler/syntax"
 // E must also be Copy: as[E] extracts it from behind a shared &Error
 // borrow, so a non-Copy E would let two owners share one unique value.
 func (c *checker) errorAsCheck(n syntax.NodeID, fn EntityID, inst []TypeID) {
-	e := &c.r.Entities[fn]
-	if c.r.Packages[e.Pkg].Path != "std/error" || e.Name != "as" || len(inst) == 0 {
+	if !c.r.IsErrorAs(fn) || len(inst) == 0 {
 		return
 	}
 	c.r.langItem(c.f, n, "Context")

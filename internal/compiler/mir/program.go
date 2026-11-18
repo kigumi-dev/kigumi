@@ -2,6 +2,7 @@
 package mir
 
 import (
+	"kigumi/internal/compiler/mir/instance"
 	midir "kigumi/internal/compiler/mir/ir"
 	resbound "kigumi/internal/compiler/mir/resource"
 	"kigumi/internal/compiler/sem"
@@ -35,6 +36,10 @@ type Program struct {
 	Moves map[*midir.Func][]midir.LocalID
 	// NativeBoxes reports scalar allocations made by native lowering; profiles require this hook.
 	NativeBoxes func(*Program) NativeBoxSites
+	// Desc holds the bodies specialize made for a method-table slot or a drop hook of one instantiation.
+	Desc instance.Bodies
+	// Canon interns the runtime identities the plan and both backends compare.
+	Canon instance.Canon
 }
 
 // Unlowered reports whether ent has a body the builder left out because nothing reaches it.

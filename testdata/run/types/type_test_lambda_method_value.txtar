@@ -1,0 +1,20 @@
+-- src --
+// A lambda whose only runtime type is a method value of a generic method that
+// tests T captures the environment for it.
+interface Show { fn show(self) -> String }
+type W[T] = { pub n Int }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+fn g[T](x: T) -> fn(&Show) -> Bool {
+    (s: &Show) => {
+        let m = W[T] { n: 0 }.same
+        m(s)
+    }
+}
+let wi: Show = W[Int] { n: 0 }
+let ws: Show = W[String] { n: 0 }
+let f = g(1)
+let h = g("s")
+print "${f(&wi)} ${f(&ws)} ${h(&ws)} ${h(&wi)}"
+-- stdout --
+true false true false

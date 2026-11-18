@@ -58,6 +58,7 @@ func (b *builder) bindPattern(p *hir.Pat, v midir.LocalID) {
 	case hir.PatCtor:
 		if p.IsType {
 			if len(p.Subs) == 1 {
+				b.openArgs(p, v)
 				b.bindPattern(p.Subs[0], b.emit(midir.Inst{Op: midir.OpUnbox, Dst: b.temp(p.Subs[0].Type), Args: []midir.LocalID{v}, Node: p.Node}))
 			}
 			return

@@ -40,7 +40,8 @@ func (e *emitter) callEntity(sb *strings.Builder, f *midir.Func, in midir.Inst, 
 		return e.dlCall(sb, f, in, args)
 	}
 	if key == "std/error.as" {
-		return e.errorAsCall(sb, args[0], dst)
+		opt, _ := e.r.Types.IsOption(dst)
+		return e.errorAsCall(sb, args[0], e.siteNode(sb, in, opt))
 	}
 	if strings.HasPrefix(key, "std/ffi.") || strings.HasPrefix(key, "std/mem.volatile") {
 		var types []sem.TypeID

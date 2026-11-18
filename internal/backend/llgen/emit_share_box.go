@@ -30,7 +30,8 @@ func (e *emitter) lendBox(sb *strings.Builder, f *midir.Func, in midir.Inst, v s
 	} else {
 		slot = e.stackSlot(sb, objSlotType()+", align 16")
 	}
-	iface := e.r.Types.Node(f.Locals[in.Dst].Type).Elem
-	e.irb(sb).Call(rtBoxLent, vptr(slot), vptr(v), vptr(e.descOfType(in.Type)), vptr(e.vtable(in.Type, iface, e.r.Entity(f.Ent).Pkg)))
+	node := e.siteNode(sb, in, in.Type)
+	vt := e.vtable(in.Type, e.r.Types.Node(f.Locals[in.Dst].Type).Elem, e.r.Entity(f.Ent).Pkg)
+	e.irb(sb).Call(rtBoxLent, vptr(slot), vptr(v), vptr(node), vptr(vt))
 	return slot
 }

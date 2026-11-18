@@ -1,0 +1,38 @@
+-- src --
+import error from std/error
+
+// A downcast compares the full instantiation: Fault[Int] is not Fault[String],
+// including nested type arguments and through a context chain.
+type Fault[T] = { pub value T }
+
+fn Fault[T].message(self) -> String { "fault" }
+
+type Pair[T] = { pub a T, pub b T }
+
+fn wrap[T](v: T) -> Error { Fault { value: v } }
+
+let s: Error = Fault { value: "text" }
+let i: Error = wrap(41)
+print "string: ${error.as[Fault[String]](&s) is Some(_)} ${error.as[Fault[String]](&i) is Some(_)}"
+print "int: ${error.as[Fault[Int]](&s) is Some(_)} ${error.as[Fault[Int]](&i) is Some(_)}"
+if error.as[Fault[Int]](&i) is Some(n) {
+    print "value ${n.value + 1}"
+}
+let c = error.context(wrap("deep"), "outer")
+print "chain: ${error.as[Fault[String]](&c) is Some(_)} ${error.as[Fault[Int]](&c) is Some(_)}"
+let pi: Error = Fault { value: Pair { a: 1, b: 2 } }
+let ps: Error = Fault { value: Pair { a: "x", b: "y" } }
+print "pair: ${error.as[Fault[Pair[Int]]](&pi) is Some(_)} ${error.as[Fault[Pair[String]]](&pi) is Some(_)} ${error.as[Fault[Pair[String]]](&ps) is Some(_)} ${error.as[Fault[Pair[Int]]](&ps) is Some(_)}"
+if error.as[Fault[Pair[Int]]](&pi) is Some(f) {
+    print "sum ${f.value.a + f.value.b}"
+}
+let oi: Error = Fault { value: Some(4) }
+print "option: ${error.as[Fault[Int?]](&oi) is Some(_)} ${error.as[Fault[String?]](&oi) is Some(_)}"
+-- stdout --
+string: true false
+int: false true
+value 42
+chain: true false
+pair: true false true false
+sum 3
+option: true false

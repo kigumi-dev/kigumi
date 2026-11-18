@@ -1,0 +1,50 @@
+-- src --
+// A closure built where a type test opened a box is a type per opened
+// argument.
+interface Show { fn show(self) -> String }
+type W[T: Copy] = { pub value T }
+fn W[T].show(self) -> String { "w" }
+type Box1[F] = { pub f F }
+fn Box1[F].show(self) -> String { "b" }
+fn Box1[F].same(self, b: &Show) -> Bool { b is Box1(_) }
+
+fn lambda(s: &Show) -> Show {
+    if s is W(x) {
+        let v = x.value
+        let f = () => { let k = v; 1 }
+        let b: Show = Box1 { f: f }
+        return b
+    }
+    let n: Show = W { value: 0 }
+    n
+}
+fn nested(s: &Show) -> Show {
+    if s is W(x) {
+        let v = x.value
+        let outer = () => {
+            let inner = () => { let k = v; 1 }
+            let b: Show = Box1 { f: inner }
+            b
+        }
+        return outer()
+    }
+    let n: Show = W { value: 0 }
+    n
+}
+fn same(a: &Show, b: &Show) -> Bool {
+    if a is Box1(p) { p.same(b) } else { false }
+}
+
+let i: Show = W { value: 1 }
+let j: Show = W { value: 2 }
+let t: Show = W { value: true }
+let li = lambda(&i)
+let lj = lambda(&j)
+let lt = lambda(&t)
+print "lambda: ${same(&li, &lj)} ${same(&li, &lt)}"
+let ni = nested(&i)
+let nt = nested(&t)
+print "nested: ${same(&ni, &nested(&j))} ${same(&ni, &nt)} ${same(&ni, &li)}"
+-- stdout --
+lambda: true false
+nested: true false false

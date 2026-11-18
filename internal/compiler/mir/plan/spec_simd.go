@@ -7,33 +7,6 @@ import (
 	"kigumi/internal/lang/diag"
 )
 
-func (s *specializer) simdShapeArgs(gen sem.EntityID, args []sem.TypeID) bool {
-	_, ok := s.simdArgsOnly(gen, args)
-	return ok
-}
-
-func (s *specializer) simdArgsOnly(gen sem.EntityID, args []sem.TypeID) ([]sem.TypeID, bool) {
-	r := s.p.R
-	info := r.Fn(gen)
-	shapeParams := s.simdShapeParams()[gen]
-	if len(shapeParams) == 0 {
-		return nil, false
-	}
-	out := make([]sem.TypeID, len(args))
-	selected := false
-	for i, p := range info.TypeParams {
-		if !shapeParams[p] || r.IsLifetimeParam(p) {
-			continue
-		}
-		if i >= len(args) || !r.ConcreteArg(args[i]) {
-			return nil, false
-		}
-		out[i] = args[i]
-		selected = true
-	}
-	return out, selected
-}
-
 func (s *specializer) bodyLowersSimd(gen sem.EntityID) bool {
 	if has, ok := s.simdBody[gen]; ok {
 		return has

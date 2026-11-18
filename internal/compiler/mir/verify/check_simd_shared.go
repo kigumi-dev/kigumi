@@ -11,20 +11,41 @@ import (
 // maxReachNotes bounds the path back toward the root that keeps a body.
 const maxReachNotes = 6
 
-// CheckSimdShapes reports each body rs keeps that lowers a SIMD operation whose lanes only an instantiation fixes:
-// the native backend lowers such a body only as its instances.
+// CheckSimdShapes reports each body rs keeps that lowers a SIMD operation whose lanes only an instantiation fixes,
+// and that runs shared: the native backend lowers such a body only as its instances.
 func CheckSimdShapes(p *mir.Program, rs *mirreach.Reachability) []AllocClaim {
 	c, ok := sem.CodeByName("simd-shared-body")
 	if !ok || rs == nil {
 		return nil
 	}
+	named := namedBodies(p, rs)
 	var out []AllocClaim
 	for _, f := range p.Funcs {
-		if f.Ent == 0 || !rs.Keep(f.Ent) {
+		if f.Ent == 0 || !rs.Keep(f.Ent) || !named[f.Ent] && p.Desc.Specialized(f.Ent) {
 			continue
 		}
 		if claim, open := simdSharedClaim(p, rs, c, f); open {
 			out = append(out, claim)
+		}
+	}
+	return out
+}
+
+// namedBodies are the bodies an instruction rs keeps names by entity; a body only descriptors reach runs shared only
+// when the descriptors have no instance of their own to run.
+func namedBodies(p *mir.Program, rs *mirreach.Reachability) map[sem.EntityID]bool {
+	out := map[sem.EntityID]bool{}
+	for _, f := range p.Funcs {
+		if f.Ent != 0 && !rs.Keep(f.Ent) {
+			continue
+		}
+		for _, blk := range f.Blocks {
+			for _, in := range blk.Insts {
+				switch in.Op {
+				case midir.OpCall, midir.OpFnItem, midir.OpBind, midir.OpClosure:
+					out[in.Ent] = true
+				}
+			}
 		}
 	}
 	return out

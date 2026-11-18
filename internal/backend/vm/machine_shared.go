@@ -39,6 +39,11 @@ type shared struct {
 	named      map[string]sem.EntityID
 	borrowMask map[sem.EntityID]uint64
 	underlying map[sem.TypeID]sem.TypeID
+	// typeValues and constVals hold the immortal value of each runtime type and const argument met; envs the
+	// environment of each method reached through a descriptor.
+	typeValues map[sem.TypeID]*obj
+	constVals  map[sem.TypeID]*obj
+	envs       map[envKey]sem.TypeID
 	// store covers the tables a program's own values index into; what one entry
 	// holds belongs to a move-only resource, so only the table itself is shared.
 	store        sync.Mutex
@@ -78,6 +83,9 @@ func newShared() *shared {
 		named:      map[string]sem.EntityID{},
 		borrowMask: map[sem.EntityID]uint64{},
 		underlying: map[sem.TypeID]sem.TypeID{},
+		typeValues: map[sem.TypeID]*obj{},
+		constVals:  map[sem.TypeID]*obj{},
+		envs:       map[envKey]sem.TypeID{},
 		globals:    map[sem.EntityID]*obj{},
 	}
 }

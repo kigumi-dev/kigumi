@@ -31,9 +31,10 @@ type Pat struct {
 	Lit    *Expr
 	Subs   []*Pat
 	Fields []*PatField
-	// IsType marks a PatCtor that tests an existential's dynamic type;
+	// IsType marks a PatCtor that tests an existential's dynamic type, Target;
 	// Variant marks a PatRecord over a variant's named payloads.
 	IsType  bool
+	Target  sem.TypeID
 	Variant bool
 	// Borrow marks a pattern matched through a borrow; see sem.PatInfo.
 	Borrow bool

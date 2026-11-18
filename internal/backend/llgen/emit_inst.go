@@ -12,7 +12,7 @@ func (e *emitter) instBody(sb *strings.Builder, f *midir.Func, in midir.Inst) {
 	if e.tryScalarInst(sb, f, in) {
 		return
 	}
-	if e.tryDirectInst(sb, f, in) || e.iterBuiltin(sb, f, in) {
+	if e.tryDirectInst(sb, f, in) || e.iterBuiltin(sb, f, in) || e.typeOfInst(sb, f, in) {
 		return
 	}
 	if in.Op == midir.OpNop {
@@ -75,8 +75,9 @@ func (e *emitter) instBody(sb *strings.Builder, f *midir.Func, in midir.Inst) {
 			res = e.irb(sb).Call(rtUnop, vptr(e.cstr(in.Str)), vptr(args[0])).Text
 		}
 	case midir.OpRecord:
+		desc := e.recordDesc(sb, in, in.Ent, f.Locals[in.Dst].Type)
 		arr := e.argArray(sb, args)
-		res = e.irb(sb).Call(rtRecord, vptr(e.desc(in.Ent)), vi64(len(args)), vptr(arr)).Text
+		res = e.irb(sb).Call(rtRecord, vptr(desc), vi64(len(args)), vptr(arr)).Text
 	case midir.OpVariant:
 		res = e.variant(sb, in, args)
 	case midir.OpField:
@@ -100,11 +101,11 @@ func (e *emitter) instBody(sb *strings.Builder, f *midir.Func, in midir.Inst) {
 	case midir.OpIsVariant:
 		res = e.irb(sb).Call(rtIsvariant, vptr(args[0]), vptr(e.vdesc(in.Ent))).Text
 	case midir.OpIsType:
-		res = e.irb(sb).Call(rtIstype, vptr(args[0]), vptr(e.desc(in.Ent))).Text
+		res = e.typeTest(sb, in, args[0])
 	case midir.OpUnbox:
 		res = e.irb(sb).Call(rtUnbox, vptr(args[0])).Text
 	case midir.OpBox:
-		res = e.irb(sb).Call(rtBox, vptr(args[0]), vptr(e.descOfType(in.Type)), vptr(e.vtable(in.Type, f.Locals[in.Dst].Type, e.r.Entity(f.Ent).Pkg))).Text
+		res = e.boxSite(sb, f, in, args[0])
 	case midir.OpLendBox:
 		res = e.lendBox(sb, f, in, args[0])
 	case midir.OpAsm:

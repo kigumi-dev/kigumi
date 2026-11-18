@@ -1,0 +1,15 @@
+-- src --
+// A wildcard test of a type with a const parameter reads the const from the
+// box for the methods it calls.
+type Buf[const N: usize] = { pub tag Int }
+fn Buf[N].message(self) -> String { "buf N=${N}" }
+interface Show { fn show(self) -> String }
+fn Buf[N].show(self) -> String { "b" }
+fn probe(e: &Show) -> String {
+    if e is Buf(b) { return b.message() }
+    "none"
+}
+let x: Show = Buf[4] { tag: 1 }
+print probe(&x)
+-- stdout --
+buf N=4

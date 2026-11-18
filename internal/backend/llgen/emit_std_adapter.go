@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"kigumi/internal/compiler/mir"
+	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
 )
@@ -76,7 +77,8 @@ func (e *emitter) stdAdapterWith(fn sem.EntityID, sym string, bound int, value s
 		return fmt.Sprintf("  ret ptr %s\n}\n\n", res)
 	}
 	if e.stdKey(fn) == "std/error.as" && len(vals) == 1 {
-		res := e.errorAsCall(&sb, vals[0], result)
+		opt, _ := e.r.Types.IsOption(result)
+		res := e.errorAsCall(&sb, vals[0], e.siteNode(&sb, midir.Inst{}, opt))
 		sb.WriteString(finish(res))
 		return sb.String()
 	}

@@ -28,14 +28,14 @@ func (p *verifier) builtinMismatch(f *midir.Func, in midir.Inst) string {
 	if !ok {
 		return "no runtime entry \"" + in.Str + "\""
 	}
-	if len(in.Args) < spec.Min || len(in.Args) > len(spec.Args) {
+	if len(in.Args) < spec.Min || len(in.Args) > len(spec.Args) && !spec.Variadic {
 		return in.Str + " takes " + itoa(spec.Min) + " to " + itoa(len(spec.Args)) + " arguments, got " + itoa(len(in.Args))
 	}
 	if msg := p.iterMismatch(f, in); msg != "" {
 		return msg
 	}
 	for k, a := range in.Args {
-		if msg := p.builtinArgMismatch(in.Str, k, spec.Args[k], f.Locals[a].Type); msg != "" {
+		if msg := p.builtinArgMismatch(in.Str, k, spec.Args[min(k, len(spec.Args)-1)], f.Locals[a].Type); msg != "" {
 			return msg
 		}
 	}

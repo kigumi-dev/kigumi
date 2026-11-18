@@ -1,0 +1,27 @@
+-- src --
+// A drop that boxes its instantiation, reached past polymorphic recursion, reads
+// the type arguments from the descriptor the record was built with.
+interface Show { fn show(self) -> String }
+type W[T: Copy] = { pub value T }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+type Res[T: Copy] = resource { pub v T }
+fn Res[T].drop(move self) {
+    let s: Show = W { value: self.v }
+    print "drop ${W { value: 0 }.same(&s)} ${W { value: "" }.same(&s)}"
+}
+type Wrap[T: Copy] = { pub w T }
+fn Wrap[T].step(self, n: Int) -> Int { deep(self, n) }
+fn deep[T: Copy](v: T, n: Int) -> Int {
+    if n == 0 {
+        let r = Res { v: v }
+        return 1
+    }
+    Wrap { w: v }.step(n - 1)
+}
+print "${deep(1, 0)} ${deep("s", 0)} ${deep(1, 4)}"
+-- stdout --
+drop true false
+drop false true
+drop false false
+1 1 1

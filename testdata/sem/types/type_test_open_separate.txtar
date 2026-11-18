@@ -1,0 +1,40 @@
+-- app/t/t.kg --
+interface Show { fn show(self) -> String }
+type Fault[T: Copy] = { pub value T }
+fn Fault[T].show(self) -> String { "f" }
+type Two[T: Copy] = { pub a T, pub b T }
+
+// Each test opens its own parameter: the two payloads need not share a type,
+// and a diagnostic names each by the test that opened it.
+fn pick(a: &Show, b: &Show) -> Int {
+    if a is Fault(x) {
+        if b is Fault(y) {
+            let t = Two { a: x.value, b: y.value } //~ ERROR expected `T opened at app/t/t.kg:9:13`, found `T opened at app/t/t.kg:10:17`
+            return 1
+        }
+    }
+    0
+}
+
+fn branch(a: &Show, b: &Show, left: Bool) -> Int {
+    if a is Fault(x) {
+        if b is Fault(y) {
+            let o = if left { Some(x) } else { Some(y) } //~ ERROR branches have different types: `(Fault[T opened at app/t/t.kg:19:13])?` and `(Fault[T opened at app/t/t.kg:20:17])?`
+            return 1
+        }
+    }
+    0
+}
+-- expect --
+error[E400]: expected `T opened at app/t/t.kg:9:13`, found `T opened at app/t/t.kg:10:17`
+  --> app/t/t.kg:11:42
+   |
+11 |             let t = Two { a: x.value, b: y.value } //~ ERROR expected `T opened at app/t/t.kg:9:13`, found `T opened at app/t/t.kg:10:17`
+   |                                          ^^^^^^^
+
+error[E401]: branches have different types: `(Fault[T opened at app/t/t.kg:19:13])?` and `(Fault[T opened at app/t/t.kg:20:17])?`
+  --> app/t/t.kg:21:46
+   |
+21 |             let o = if left { Some(x) } else { Some(y) } //~ ERROR branches have different types: `(Fault[T opened at app/t/t.kg:19:13])?` and `(Fault[T opened at app/t/t.kg:20:17])?`
+   |                                              ^^^^^^^^
+

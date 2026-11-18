@@ -1,0 +1,28 @@
+-- src --
+// An async body reached past polymorphic recursion takes its type arguments at
+// runtime and keeps them across awaits.
+import task from std/task
+interface Show { fn show(self) -> String }
+type W[T: Copy] = { pub value T }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+type Wrap[T: Copy] = { pub w T }
+async fn Wrap[T].step(self, n: Int, p: Show) -> Bool { await nest(self, n, p) }
+async fn tick() -> Int { 1 }
+async fn nest[T: Copy](v: T, n: Int, p: Show) -> Bool {
+    if n == 0 {
+        let k = await tick()
+        let b = W { value: v }
+        let x = await tick()
+        return b.same(&p)
+    }
+    await Wrap { w: v }.step(n - 1, p)
+}
+fn w5() -> Show { W { value: Wrap { w: Wrap { w: Wrap { w: Wrap { w: Wrap { w: 1 } } } } } } }
+async fn root() -> String {
+    "${await nest(1, 5, w5())} ${await nest(1, 4, w5())} ${await nest("s", 5, w5())}"
+}
+let ex = task.currentThreadExecutor()
+print "${ex.runToCompletion(root())}"
+-- stdout --
+true false false

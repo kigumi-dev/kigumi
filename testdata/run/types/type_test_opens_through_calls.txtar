@@ -1,0 +1,25 @@
+-- src --
+// Two wildcard tests of one type bind separate parameters, so values passed
+// through a generic call keep each its own.
+interface Show { fn show(self) -> String }
+type Fault[T: Copy] = { pub value T }
+fn Fault[T].show(self) -> String { "f" }
+fn Fault[T].same(self, s: &Show) -> Bool { s is Fault(_) }
+fn id[T](x: T) -> T { x }
+fn probe(a: &Show, b: &Show, c: &Show) -> String {
+    if a is Fault(x) {
+        if b is Fault(y) {
+            let x2 = id(x)
+            let y2 = id(y)
+            return "${x2.same(c)} ${y2.same(c)}"
+        }
+    }
+    "none"
+}
+let i1: Show = Fault { value: 1 }
+let s1: Show = Fault { value: "s" }
+print probe(&i1, &s1, &i1)
+print probe(&s1, &i1, &i1)
+-- stdout --
+true false
+false true

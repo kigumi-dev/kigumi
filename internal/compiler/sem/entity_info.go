@@ -177,4 +177,6 @@ type LocalInfo struct {
 	// Lifetime is the parameter entity a parameter's own `&'a T` tag names,
 	// 0 for an untagged reference or a non-reference parameter.
 	Lifetime EntityID
+	// Opens is the parameter a type test opened whose argument this hidden local holds.
+	Opens EntityID
 }

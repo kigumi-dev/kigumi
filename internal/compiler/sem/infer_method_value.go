@@ -26,6 +26,10 @@ func (c *checker) methodValue(n, base syntax.NodeID, valueType TypeID, m EntityI
 		shape := sig
 		from := len(c.constraints)
 		sig, inst, _ = c.instantiateFn(n, m, nil, valueType)
+		if c.info.ItemInst == nil {
+			c.info.ItemInst = map[syntax.NodeID][]TypeID{}
+		}
+		c.info.ItemInst[n] = inst
 		c.markValueInstance(from)
 		c.recordValueExpr(n, m, inst, valueType, from)
 		c.markDeferrable(inst, shape)
@@ -39,7 +43,7 @@ func (c *checker) methodValue(n, base syntax.NodeID, valueType TypeID, m EntityI
 		c.errAt(n, cMethodValueMoveOnly, valueType)
 		return TyPoison
 	}
-	c.recvContracts(base, m, c.callSubst(m, inst, valueType))
+	c.recvContracts(base, m, c.calleeUse(m, inst, valueType))
 	if owned && !c.takeReceiver(n, base, valueType, viaRef) {
 		return TyPoison
 	}
@@ -94,6 +98,7 @@ func (c *checker) ownedMethodValue(n, base syntax.NodeID, recv, sig TypeID, m En
 		Method:   m,
 	})
 	c.closures = append(c.closures, id)
+	c.noteMethodClosure(id, m, key.recv)
 	if c.methodValues.shared == nil {
 		c.methodValues.shared = map[methodClosureKey][]EntityID{}
 	}

@@ -77,10 +77,11 @@ func (e *emitter) mainWrapper(main string) string {
 	}
 	sb.WriteString("  call void @kg_init_immortals()\n")
 	e.irb(&sb).Call(rtInit, vi32text("%argc"), vptr("%argv"), vi32(e.typeCount()), vptr("@rt_types"))
+	e.initTn(&sb)
 	sb.WriteString("  call void @kg_init_statics()\n")
 	if e.p.Entry == nil {
 		sb.WriteString("  ret i32 0\n}\n")
-		return sb.String()
+		return sb.String() + e.tnGlobals()
 	}
 	if e.directMain() {
 		e.callDirectMain(&sb, main)
@@ -91,7 +92,7 @@ func (e *emitter) mainWrapper(main string) string {
 	exitDesc, ctxDesc, wrapped, code := e.exitDescriptors()
 	e.irb(&sb).CallAs("%c", rtExitCode, vptr("%r"), vptr(exitDesc), vptr(ctxDesc), vi64(wrapped), vi64(code))
 	sb.WriteString("  ret i32 %c\n}\n")
-	return sb.String()
+	return sb.String() + e.tnGlobals()
 }
 
 // A type nothing in the program builds has no descriptor and no value, so null is exact for it.

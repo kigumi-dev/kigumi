@@ -1,0 +1,37 @@
+-- src --
+import simd from std/simd
+
+// A drop hook runs the body for the value's instantiation, wherever the value
+// was built: here, a lane shape fixed only at the instantiation.
+type Lane[const N: usize] = resource { pub v simd.Vec[i32, N], pub tag Int }
+
+fn Lane[N].drop(move self) {
+    let doubled = self.v.add(self.v)
+    print "lane ${self.tag} N=${N} ${doubled.lane(0)} ${doubled.lane(N - 1)}"
+}
+
+type Bytes16[const N: usize] = resource { pub v simd.Vec[u8, N] }
+
+fn Bytes16[N].drop(move self) { print "bytes N=${N} ${self.v.add(self.v).lane(N - 1)}" }
+
+fn lane[const N: usize](v: simd.Vec[i32, N], tag: Int) -> Lane[N] { Lane { v: v, tag: tag } }
+
+{
+    let a = Lane { v: simd.Vec.splat[i32, 4](5), tag: 1 }
+    let b = lane(simd.Vec.splat[i32, 4](-3), 2)
+    let c = Bytes16 { v: simd.Vec.splat[u8, 16](60) }
+    print "built"
+}
+{
+    let held: Array[Lane[4]] = Array.of(lane(simd.Vec.splat[i32, 4](1), 3))
+    print "held ${held.len()}"
+}
+print "end"
+-- stdout --
+built
+bytes N=16 120
+lane 2 N=4 -6 -6
+lane 1 N=4 10 10
+held 1
+lane 3 N=4 2 2
+end

@@ -1,0 +1,30 @@
+-- src --
+// Polymorphic recursion through a method of another generic type takes its
+// type arguments at runtime once it outgrows instantiation, so the deepest
+// value still tests exactly.
+interface Show { fn show(self) -> String }
+
+type W[T: Copy] = { pub value T }
+
+fn W[T].show(self) -> String { "w" }
+
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+
+type Wrap[T: Copy] = { pub w T }
+
+fn Wrap[T].step(self, n: Int) -> Show { nest(self, n) }
+
+fn nest[T: Copy](v: T, n: Int) -> Show {
+    if n == 0 { return W { value: v } }
+    Wrap { w: v }.step(n - 1)
+}
+
+let b = nest(1, 6)
+let w6 = W { value: Wrap { w: Wrap { w: Wrap { w: Wrap { w: Wrap { w: Wrap { w: 1 } } } } } } }
+let w5 = W { value: Wrap { w: Wrap { w: Wrap { w: Wrap { w: Wrap { w: 1 } } } } } }
+print "d6 ${w6.same(&b)} ${w5.same(&b)} ${W { value: 1 }.same(&b)}"
+let c = nest("s", 9)
+print "d9 ${b is W(_)} ${c is W(_)} ${w6.same(&c)}"
+-- stdout --
+d6 true false false
+d9 true true false

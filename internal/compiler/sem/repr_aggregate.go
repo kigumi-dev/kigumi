@@ -16,7 +16,7 @@ func (r *Result) RegScalar(t TypeID) bool {
 func WideScalar(t TypeID) bool { return t == TyI128 || t == TyU128 }
 
 func (r *Result) directLeaf(t TypeID) bool {
-	return t == TyUnit || r.RegScalar(t) || WideScalar(t) || r.DirectAgg(t) && !r.CountedAdt(t) || r.nominalScalar(t) != 0
+	return t == TyUnit || r.RegScalar(t) || WideScalar(t) || r.Types.IsRtType(t) || r.DirectAgg(t) && !r.CountedAdt(t) || r.nominalScalar(t) != 0
 }
 
 func (r *Result) DirectAgg(t TypeID) bool {

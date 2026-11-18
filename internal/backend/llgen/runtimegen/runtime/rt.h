@@ -17,6 +17,7 @@
 #endif
 typedef struct rt_type rt_type;
 typedef struct rt_vdesc rt_vdesc;
+typedef struct rt_tnode rt_tnode;
 enum { K_INT = 1,
        K_FLOAT,
        K_BOOL,
@@ -78,7 +79,8 @@ struct obj {
             int async;
         } clo;
         struct {
-            rt_type* dyn;
+            // dyn is the interned runtime type of v; its desc, or its generic type's base, describes v.
+            rt_tnode* dyn;
             val v;
             // vt holds one adapter per requirement of the interface the
             // value was boxed as.
@@ -111,7 +113,29 @@ struct rt_type {
     // derived Display print <private> instead of their value, as the
     // compiler-side display does.
     uint64_t private_fields;
+    // base is the entity's descriptor when this one names a single instantiation of a generic type, and tnode
+    // the interned runtime type it describes (NULL for a descriptor no single type owns).
+    rt_type* base;
+    rt_tnode* tnode;
 };
+// A runtime type is an interned node, so identity is pointer equality; a const's (nargs -1) 128-bit words and value
+// sit in args[0..2]. A type value is the node itself, whose leading fields read as an immortal Int.
+struct rt_tnode {
+    int kind, nk;
+    KG_RC rc;
+    int owned;
+    struct rt_allocator* al;
+    uint64_t ctor;
+    // desc describes values of this type: its own descriptor (desc->tnode is this node), or for an instantiation of
+    // a generic type, until a record of it needs its own, the generic type's.
+    rt_type* desc;
+    int32_t nargs;
+    uint32_t hash;
+    rt_tnode* args[];
+};
+// desc is written under the table's lock but read without it, so a reader sees the descriptor's fields filled.
+#define TN_DESC(x) __atomic_load_n(&(x)->desc, __ATOMIC_ACQUIRE)
+#define TN_SET_DESC(x, d) __atomic_store_n(&(x)->desc, (d), __ATOMIC_RELEASE)
 // nullary is this variant's payload-free value: immortal, filled once by
 // rt_init_nullary, so constructing it allocates nothing.
 struct rt_vdesc {

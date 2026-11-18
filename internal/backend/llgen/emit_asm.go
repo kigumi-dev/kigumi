@@ -115,7 +115,7 @@ func (e *emitter) asmRecord(sb *strings.Builder, info *sem.AsmInfo, raw, ret str
 		k++
 	}
 	arr := e.argArray(sb, fields)
-	return e.call(sb, "rt_record", []string{e.descOfType(info.Result), fmt.Sprintf("i64 %d", len(fields)), arr})
+	return e.call(sb, "rt_record", []string{e.recordDescOf(sb, info.Result), fmt.Sprintf("i64 %d", len(fields)), arr})
 }
 
 func (e *emitter) asmConstraint(op sem.AsmOperand, gpr, fpr string) string {

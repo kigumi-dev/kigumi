@@ -3,8 +3,10 @@ package vm
 import (
 	"strings"
 
+	"kigumi/internal/compiler/mir/instance"
 	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
+	"kigumi/internal/compiler/sem"
 )
 
 func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
@@ -23,6 +25,10 @@ func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 	case midir.OpBoxDirect, midir.OpUnboxDirect:
 		res = m.cross(fr, in, args[0])
 	case midir.OpCall:
+		m.siteRt = 0
+		if len(in.Rt) > 0 {
+			m.siteRt = sem.TypeID(deref(fr.locals[in.Rt[0]]).i)
+		}
 		m.callTicks(f, in, fr.locals)
 		m.tryBare = in.DPrim == opdef.DPTryRef || in.DPrim == opdef.DPTryOpt
 		prevRet := m.callRet
@@ -71,6 +77,9 @@ func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 	case midir.OpRecord:
 		m.aggTicks(f, in, args, 2)
 		res = mkRecord(in.Ent, args)
+		if m.instanceDrop(in.Ent) {
+			res.i = int64(m.siteType(fr, in, ic, f.Locals[in.Dst].Type))
+		}
 		m.chargeMemory(res)
 		if m.opts.SecretSan {
 			res = m.withTaint(res, m.joinTaint(args))
@@ -109,7 +118,11 @@ func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 		return
 	case midir.OpIsType:
 		v := deref(args[0])
-		res = m.tagTest(args[0], v.k == kBox && m.typeEnt(v.dynType()) == in.Ent)
+		test, pat := m.typeTestOf(in, ic), sem.TypeID(0)
+		if test == instance.TestExact {
+			pat = m.siteType(fr, in, ic, in.Type)
+		}
+		res = m.tagTest(args[0], v.k == kBox && m.holdsTest(test, in.Ent, pat, v.dynType()))
 	case midir.OpUnbox:
 		v := args[0]
 		if v.k == kBox {
@@ -120,13 +133,13 @@ func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 		v := args[0]
 		if v.k != kBox {
 			b := newObj(kBox)
-			b.i, b.inner = int64(in.Type), v
+			b.i, b.inner = int64(m.siteType(fr, in, ic, in.Type)), v
 			m.chargeMemory(b)
 			v = m.withTaint(b, m.taintOf(args[0]))
 		}
 		res = v
 	case midir.OpLendBox:
-		res = &obj{k: kBox, rc: -1, i: int64(in.Type), inner: deref(args[0]), b: true}
+		res = &obj{k: kBox, rc: -1, i: int64(m.siteType(fr, in, ic, in.Type)), inner: deref(args[0]), b: true}
 		if args[0].k == kCell {
 			res.fields = []*obj{args[0]}
 		}

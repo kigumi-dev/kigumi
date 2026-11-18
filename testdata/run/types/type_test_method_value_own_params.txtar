@@ -1,0 +1,51 @@
+-- src --
+// A method value of a generic method with type parameters of its own takes
+// its environment from the receiver's arguments and its own together, in
+// concrete code, in a generic fn, in a returned lambda and with a receiver it
+// owns; at a concrete instantiation a lambda captures nothing for it.
+interface Show { fn show(self) -> String }
+type W[T] = { pub n Int }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+type P[A, B] = { pub n Int }
+fn W[T].both[U](self, s: &Show) -> Bool { W[P[T, U]] { n: 0 }.same(s) }
+type M[T] = { pub xs Array[Int] }
+fn M[T].both[U](self, s: &Show) -> Bool { W[P[T, U]] { n: 0 }.same(s) }
+
+fn concrete(s: &Show) -> Bool {
+    let m = W[Int] { n: 0 }.both[Bool]
+    m(s)
+}
+fn generic[T](s: &Show) -> Bool {
+    let m = W[T] { n: 0 }.both[Bool]
+    m(s)
+}
+fn returned[T](x: T) -> fn(&Show) -> Bool {
+    (s: &Show) => { let m = W[T] { n: 0 }.both[Bool]
+        m(s) }
+}
+fn fixed[T](x: T) -> fn(&Show) -> Bool {
+    (s: &Show) => { let m = W[Int] { n: 0 }.both[Bool]
+        m(s) }
+}
+fn owned[T](s: &Show) -> Bool {
+    let m = M[T] { xs: Array.of(1) }.both[Bool]
+    m(s)
+}
+
+let wp: Show = W[P[Int, Bool]] { n: 0 }
+let wi: Show = W[Int] { n: 0 }
+let fi = returned(1)
+let fs = returned("s")
+let k = fixed("s")
+print "concrete ${concrete(&wp)} ${concrete(&wi)}"
+print "generic ${generic[Int](&wp)} ${generic[String](&wp)}"
+print "returned ${fi(&wp)} ${fs(&wp)}"
+print "fixed ${k(&wp)} ${k(&wi)}"
+print "owned ${owned[Int](&wp)} ${owned[String](&wp)}"
+-- stdout --
+concrete true false
+generic true false
+returned true false
+fixed true false
+owned true false

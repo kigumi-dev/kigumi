@@ -1,0 +1,54 @@
+-- src --
+// A lambda that captures a runtime type keeps its type wherever a value holds
+// it: inside an Option, a variant of a generic type, or a record that is boxed.
+interface Show { fn show(self) -> String }
+type W[T] = { pub n Int }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+type V[F] = A(F) | B(Int)
+type H[F: Fn[fn(&Show) -> Bool]] = { pub f F }
+fn H[F].show(self) -> String { "h" }
+fn H[F].run(self, s: &Show) -> Bool { (self.f)(s) }
+
+fn inOption[T](s: &Show) -> Bool {
+    let o = Some((t: &Show) => W[T] { n: 2 }.same(t))
+    match o {
+        Some(g) -> g(s)
+        None -> false
+    }
+}
+fn inArm(a: &Show, s: &Show) -> Bool {
+    if a is W(x) {
+        let o = Some((t: &Show) => x.same(t))
+        match o {
+            Some(g) -> g(s)
+            None -> false
+        }
+    } else {
+        false
+    }
+}
+fn inVariant[T](s: &Show) -> Bool {
+    let v = V.A((t: &Show) => W[T] { n: 0 }.same(t))
+    match v {
+        V.A(g) -> g(s)
+        V.B(_) -> false
+    }
+}
+fn inBox[T](s: &Show) -> Bool {
+    let h = H { f: (t: &Show) => W[T] { n: 0 }.same(t) }
+    let b: Show = h
+    if b is H(x) { x.run(s) } else { false }
+}
+
+let wi: Show = W[Int] { n: 0 }
+let ws: Show = W[String] { n: 0 }
+print "option ${inOption[Int](&wi)} ${inOption[String](&wi)} ${inOption[String](&ws)} ${inOption[Int](&ws)}"
+print "arm ${inArm(&wi, &wi)} ${inArm(&wi, &ws)} ${inArm(&ws, &ws)} ${inArm(&ws, &wi)}"
+print "variant ${inVariant[Int](&wi)} ${inVariant[String](&wi)} ${inVariant[String](&ws)} ${inVariant[Int](&ws)}"
+print "box ${inBox[Int](&wi)} ${inBox[String](&wi)} ${inBox[String](&ws)} ${inBox[Int](&ws)}"
+-- stdout --
+option true false true false
+arm true false true false
+variant true false true false
+box true false true false

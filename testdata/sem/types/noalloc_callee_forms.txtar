@@ -1,0 +1,105 @@
+-- app/t/t.kg --
+interface Show { fn show(self) -> String }
+interface Eq2 { fn eq2(self, s: &Show) -> Bool }
+type W[T] = { pub n Int }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+type Hold[T] = { pub n Int }
+fn Hold[T].show(self) -> String { "h" }
+fn Hold[T].eq2(self, s: &Show) -> Bool { s is Hold(_) }
+fn tests[T](s: &Show) -> Bool { W[T] { n: 0 }.same(s) }
+fn pass[T](s: &Show) -> Bool { tests[T](s) }
+fn use[E: Eq2](e: E, s: &Show) -> Bool { e.eq2(s) }
+type P[A, B] = { pub n Int }
+fn W[T].both[U](self, s: &Show) -> Bool { W[P[T, U]] { n: 0 }.same(s) }
+
+// Every way a lambda can reach a body that tests T makes it capture T, so
+// handing it out boxes it.
+noalloc fn byMethodValue[T]() -> fn(&Show) -> Bool {
+    (s: &Show) => { let m = W[T] { n: 0 }.same; m(s) } //~ ERROR boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+}
+noalloc fn byOwnParams[T]() -> fn(&Show) -> Bool {
+    (s: &Show) => { let m = W[T] { n: 0 }.both[Bool]; m(s) } //~ ERROR boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+}
+noalloc fn byFnValue[T]() -> fn(&Show) -> Bool {
+    (s: &Show) => { let t = tests[T]; t(s) } //~ ERROR boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+}
+noalloc fn byDirect[T]() -> fn(&Show) -> Bool {
+    (s: &Show) => tests[T](s) //~ ERROR boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+}
+noalloc fn byTransitive[T]() -> fn(&Show) -> Bool {
+    (s: &Show) => pass[T](s) //~ ERROR boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+}
+noalloc fn byWitness[T]() -> fn(&Show) -> Bool {
+    (s: &Show) => use(Hold[T] { n: 0 }, s) //~ ERROR boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+}
+noalloc fn byBox[T]() -> fn(&Show) -> Bool {
+    (s: &Show) => { let b: Show = W[T] { n: 0 }; b is W(_) } //~ ERROR boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+}
+
+// One that reaches such a body only at a fixed type, or none at all, does not.
+noalloc fn fixedMethod[T]() -> fn(&Show) -> Bool {
+    (s: &Show) => { let m = W[Int] { n: 0 }.same; m(s) }
+}
+noalloc fn fixedOwnParams[T]() -> fn(&Show) -> Bool {
+    (s: &Show) => { let m = W[Int] { n: 0 }.both[Bool]; m(s) }
+}
+noalloc fn plain[T]() -> fn(&Show) -> Bool {
+    (s: &Show) => true
+}
+
+fn instantiate() {
+    let a = byMethodValue[Int]()
+    let a2 = byOwnParams[Int]()
+    let g2 = fixedOwnParams[Int]()
+    let b = byFnValue[Int]()
+    let c = byDirect[Int]()
+    let d = byTransitive[Int]()
+    let e = byWitness[Int]()
+    let f = byBox[Int]()
+    let g = fixedMethod[Int]()
+    let h = plain[Int]()
+}
+-- expect --
+error[E910]: boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+  --> app/t/t.kg:18:5
+   |
+18 |     (s: &Show) => { let m = W[T] { n: 0 }.same; m(s) } //~ ERROR boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E910]: boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+  --> app/t/t.kg:21:5
+   |
+21 |     (s: &Show) => { let m = W[T] { n: 0 }.both[Bool]; m(s) } //~ ERROR boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E910]: boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+  --> app/t/t.kg:24:5
+   |
+24 |     (s: &Show) => { let t = tests[T]; t(s) } //~ ERROR boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E910]: boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+  --> app/t/t.kg:27:5
+   |
+27 |     (s: &Show) => tests[T](s) //~ ERROR boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E910]: boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+  --> app/t/t.kg:30:5
+   |
+30 |     (s: &Show) => pass[T](s) //~ ERROR boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E910]: boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+  --> app/t/t.kg:33:5
+   |
+33 |     (s: &Show) => use(Hold[T] { n: 0 }, s) //~ ERROR boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E910]: boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+  --> app/t/t.kg:36:5
+   |
+36 |     (s: &Show) => { let b: Show = W[T] { n: 0 }; b is W(_) } //~ ERROR boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

@@ -173,8 +173,15 @@ func (c *checker) typeTest(p syntax.NodeID, ent EntityID, scrutinee TypeID, subs
 	if scrutinee != TyPoison && tt.Kind(scrutinee) == KIface && target != TyPoison && !c.r.conforms(target, scrutinee, c.pkg).ok {
 		c.errAt(p, cTypeTestNever, target, scrutinee)
 	}
+	if c.r.Entities[ent].Kind == EntType && target != TyPoison {
+		target = c.openTarget(p, target)
+		c.rtUse(target)
+	}
 	for _, s := range subs {
 		c.patternInner(s, target, false, seen)
 	}
-	return PatInfo{Kind: PatTypeTest, Type: target}
+	// Recorded at any depth: lowering reads every type test's target, nested ones included.
+	info := PatInfo{Kind: PatTypeTest, Type: target}
+	c.info.Pats[p] = info
+	return info
 }

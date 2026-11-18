@@ -16,7 +16,7 @@ func (p *callVerifier) boundMismatch(f *midir.Func, in midir.Inst) string {
 	params, _, _, _ := p.declaredSig(in.Ent)
 	tt := p.R.Types
 	for k, slot := range info.Witnesses {
-		wi := len(params) + k
+		wi := len(params) + p.envCount(in.Ent) + k
 		if wi >= len(in.Args) {
 			break
 		}

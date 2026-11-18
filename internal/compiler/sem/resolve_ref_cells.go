@@ -88,6 +88,7 @@ func (c *checker) noteRefCellSite(ent EntityID, n syntax.NodeID, async bool) {
 func (r *Result) RefCellParam(ent EntityID) bool { return r.refCellParams[ent] }
 
 func (r *Result) resolveRefCells() {
+	r.settleBoxConformances()
 	r.refCellParams = map[EntityID]bool{}
 	r.closeSelfReplacement()
 	var soft []EntityID

@@ -1,0 +1,36 @@
+-- src --
+// A closure's type is part of the instantiation: Fault[the closure of
+// step[Int]] is not Fault[the closure of step[String]], while two calls of
+// step[Int] build the same closure type.
+type Fault[T: Copy] = { pub value T }
+
+fn Fault[T].message(self) -> String { "fault" }
+
+fn Fault[T].pick(self, e: &Error) -> T {
+    if e is Fault(f) { f.value } else { self.value }
+}
+
+fn Fault[T].same(self, e: &Error) -> Bool { e is Fault(_) }
+
+type Dummy = { pub x Int }
+
+fn Dummy.message(self) -> String { "dummy" }
+
+fn step[T: Copy](v: T, prev: &Error, show: fn(T) -> String) -> Error {
+    let c = () => v
+    let mine = Fault { value: c }
+    let got = mine.pick(prev)
+    print "same=${mine.same(prev)} got=${show(got())}"
+    Fault { value: c }
+}
+
+let d: Error = Dummy { x: 0 }
+let es = step("text", &d, (s: String) => s)
+let ei = step(41, &es, (n: Int) => "${n + 1}")
+let ej = step(7, &ei, (n: Int) => "${n + 1}")
+print "ok"
+-- stdout --
+same=false got=text
+same=false got=42
+same=true got=42
+ok

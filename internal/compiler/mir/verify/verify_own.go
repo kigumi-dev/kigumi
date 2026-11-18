@@ -87,7 +87,7 @@ func (p *verifier) destructorSelf(f *midir.Func) (midir.LocalID, bool) {
 		return 0, false
 	}
 	info := p.R.Fn(f.Ent)
-	if info.Owner == 0 || p.R.Entity(info.Owner).Kind != sem.EntType || p.R.TypeDecl(info.Owner).Drop != f.Ent || len(f.Params) == 0 {
+	if info.Owner == 0 || p.R.Entity(info.Owner).Kind != sem.EntType || p.R.TypeDecl(info.Owner).Drop != p.R.GenericOf(f.Ent) || len(f.Params) == 0 {
 		return 0, false
 	}
 	return f.Params[0], true

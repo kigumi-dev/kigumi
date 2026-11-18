@@ -9,6 +9,9 @@ import (
 
 func (e *emitter) bindValue(sb *strings.Builder, in midir.Inst, args []string) string {
 	fn, own := e.p.ByEnt[in.Ent]
+	if !own && len(args) == 1 && e.stdKey(in.Ent) == "std/error.as" {
+		return e.markLent(sb, in, len(args), false, e.closureCtor(sb, e.errorAsValue(), false, args, e.argArray(sb, args)))
+	}
 	if !own && len(args) == 0 {
 		return e.stdBindSlot(e.stdKey(in.Ent), mir.LentMask(e.r, in.Ent))
 	}

@@ -1,0 +1,50 @@
+-- src --
+// `e is Fault(f)` names the owner's own instantiation inside a method of
+// Fault[T], so a box of another instantiation does not match there; outside,
+// it matches any instantiation and binds an opaque T.
+type Fault[T: Copy] = { pub value T }
+
+fn Fault[T].message(self) -> String { "fault" }
+
+type Outcome[T: Copy] = | Good(T) | Bad(String)
+
+fn Outcome[T].message(self) -> String { "outcome" }
+
+fn Fault[T].same(self, e: &Error) -> Bool { e is Fault(_) }
+
+fn Fault[T].pick(self, e: &Error) -> T {
+    if e is Fault(f) { f.value } else { self.value }
+}
+
+fn Outcome[T].good(self, e: &Error) -> Bool {
+    if e is Outcome(o) { o is Good(_) } else { false }
+}
+
+type Holder[T] = { pub value T }
+
+fn Holder[T].message(self) -> String { "holder" }
+
+fn Holder[T].same(self, e: &Error) -> Bool { e is Holder(_) }
+
+let i: Error = Fault { value: 41 }
+let s: Error = Fault { value: "text" }
+let f: Error = Fault { value: 7.5 }
+print "any: ${i is Fault(_)} ${s is Fault(_)} ${f is Outcome(_)}"
+let mine = Fault { value: 1 }
+print "same: ${mine.same(&i)} ${mine.same(&s)} ${mine.same(&f)}"
+print "pick: ${mine.pick(&i) + 1} ${mine.pick(&f) + 1}"
+let g: Error = Outcome.Good(3)
+let b: Error = Outcome[String].Bad("no")
+let mineOut: Outcome[Int] = Outcome.Bad("x")
+print "outcome: ${mineOut.good(&g)} ${mineOut.good(&b)} ${g is Outcome(_)}"
+let ints: Error = Holder { value: Array.of(1, 2) }
+let strs: Error = Holder { value: Array.of("a") }
+let holdsInts = Holder { value: Array.of(3) }
+let holdsStrs = Holder { value: Array.of("b", "c") }
+print "nested: ${holdsInts.same(&ints)} ${holdsInts.same(&strs)} ${holdsStrs.same(&ints)} ${holdsStrs.same(&strs)} ${ints is Holder(_)}"
+-- stdout --
+any: true true false
+same: true false false
+pick: 42 2
+outcome: true false true
+nested: true false false true true

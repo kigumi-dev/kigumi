@@ -39,6 +39,8 @@ func (s *BuiltinSpec) setFlag(flag string) error {
 		s.Iter = true
 	case flag == "vm":
 		s.VM = true
+	case flag == "variadic":
+		s.Variadic = true
 	case flag == "native=runtime":
 		s.Native = NativeRuntime
 	case flag == "native=inline":

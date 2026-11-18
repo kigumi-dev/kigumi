@@ -24,6 +24,8 @@ func (m *Machine) builtin(name string, args []*obj) *obj {
 		return unitObj
 	case "task.close":
 		m.abort("`task.close` outside an async body")
+	case "type.of", "type.arg", "type.param", "type.const":
+		return m.typeBuiltin(m.site, args)
 	case "print", "eprint":
 		line := append([]byte(m.display(args[0])), '\n')
 		if name == "eprint" {

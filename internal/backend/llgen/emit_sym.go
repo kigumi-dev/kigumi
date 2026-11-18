@@ -86,7 +86,7 @@ func (e *emitter) bindSym(f *midir.Func, open int) string {
 func (e *emitter) bindAdapter(f *midir.Func, open int) string {
 	var sb strings.Builder
 	info := e.r.Fn(f.Ent)
-	nw := len(info.Witnesses) + len(info.ConstParams) - open
+	nw := len(info.Witnesses) + len(info.ConstParams) + boolInt(f.HasEnv) - open
 	fmt.Fprintf(&sb, "define ptr %s(ptr %%env, ptr %%args) {\n", e.bindSym(f, open))
 	var vals []string
 	slots := paramSlots(midir.BoundTrails(midir.OpBind), nw, len(f.Params), open)

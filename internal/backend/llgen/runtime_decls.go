@@ -54,7 +54,7 @@ var (
 	rtPayload             = RuntimeFn{Name: "rt_payload", Params: []Type{TPtr, TI64}, Ret: TPtr}
 	rtIsvariant           = RuntimeFn{Name: "rt_isvariant", Params: []Type{TPtr, TPtr}, Ret: TPtr}
 	rtVariantIndex        = RuntimeFn{Name: "rt_variant_index", Params: []Type{TPtr}, Ret: TI32}
-	rtIstype              = RuntimeFn{Name: "rt_istype", Params: []Type{TPtr, TPtr}, Ret: TPtr}
+	rtIstypeAny           = RuntimeFn{Name: "rt_istype_any", Params: []Type{TPtr, TPtr}, Ret: TPtr}
 	rtUnbox               = RuntimeFn{Name: "rt_unbox", Params: []Type{TPtr}, Ret: TPtr}
 	rtBox                 = RuntimeFn{Name: "rt_box", Params: []Type{TPtr, TPtr, TPtr}, Ret: TPtr}
 	rtBoxLent             = RuntimeFn{Name: "rt_box_lent", Params: []Type{TPtr, TPtr, TPtr, TPtr}, Ret: TVoid}
@@ -96,7 +96,6 @@ var (
 	rtCharVal             = RuntimeFn{Name: "rt_char_val", Params: []Type{TPtr}, Ret: TI32}
 	rtCstr                = RuntimeFn{Name: "rt_cstr", Params: []Type{TPtr}, Ret: TPtr}
 	rtFromCstr            = RuntimeFn{Name: "rt_from_cstr", Params: []Type{TPtr}, Ret: TPtr}
-	rtErrorAs             = RuntimeFn{Name: "rt_error_as", Params: []Type{TPtr, TPtr, TPtr, TI64}, Ret: TPtr}
 
 	rtFutureNew        = RuntimeFn{Name: "rt_future_new", Params: []Type{TPtr, TI32, TPtr}, Ret: TPtr}
 	rtFutureSlots      = RuntimeFn{Name: "rt_future_slots", Params: []Type{TPtr}, Ret: TPtr}
@@ -120,6 +119,22 @@ var (
 	rtCellsetSwap      = RuntimeFn{Name: "rt_cellset_swap", Params: []Type{TPtr, TPtr}, Ret: TPtr}
 )
 
+var (
+	rtTnInit       = RuntimeFn{Name: "rt_tn_init", Params: []Type{TI64, TPtr, TPtr, TPtr, TI64, TPtr, TPtr}, Ret: TVoid}
+	rtTnMake       = RuntimeFn{Name: "rt_tn_make", Params: []Type{TI64, TPtr, TI64, TPtr}, Ret: TPtr}
+	rtTnTmpl       = RuntimeFn{Name: "rt_tn_tmpl", Params: []Type{TI32, TPtr}, Ret: TPtr}
+	rtTnTmpl1      = RuntimeFn{Name: "rt_tn_tmpl1", Params: []Type{TI32, TPtr}, Ret: TPtr}
+	rtTnConst      = RuntimeFn{Name: "rt_tn_const", Params: []Type{TPtr, TI64, TI32}, Ret: TPtr}
+	rtTnConstWords = RuntimeFn{Name: "rt_tn_const_words", Params: []Type{TI64, TI64, TI64}, Ret: TPtr}
+	rtTnValue      = RuntimeFn{Name: "rt_tn_value", Params: []Type{TPtr, TI32}, Ret: TPtr}
+	rtTnArg        = RuntimeFn{Name: "rt_tn_arg", Params: []Type{TPtr, TI64}, Ret: TPtr}
+	rtTnDesc       = RuntimeFn{Name: "rt_tn_desc", Params: []Type{TPtr}, Ret: TPtr}
+	rtTnBoxarg     = RuntimeFn{Name: "rt_tn_boxarg", Params: []Type{TPtr, TPtr, TI64}, Ret: TPtr}
+	rtTnEnv        = RuntimeFn{Name: "rt_tn_env", Params: []Type{TPtr, TI64, TI64, TPtr}, Ret: TPtr}
+	rtIstypeTn     = RuntimeFn{Name: "rt_istype_tn", Params: []Type{TPtr, TPtr}, Ret: TPtr}
+	rtErrorAsTn    = RuntimeFn{Name: "rt_error_as_tn", Params: []Type{TPtr, TPtr, TPtr, TI64}, Ret: TPtr}
+)
+
 // runtimeFns lists every RuntimeFn above in `declare` order: the single
 // source ir.RenderExterns and runtime_fns_test.go both read.
 var runtimeFns = []RuntimeFn{
@@ -127,14 +142,15 @@ var runtimeFns = []RuntimeFn{
 	rtTruth, rtAt, rtCallv, rtCallvI64, rtIterCount, rtIterAt, rtIterAtInt, rtBuiltin, rtStd, rtStdId, rtStdClosure, rtStdBind, rtCallSlot,
 	rtBinop, rtUnop, rtCast,
 	rtRecord, rtVariant, rtNullary, rtConstVariant, rtConstRecord, rtConstNum, rtConstInt128, rtBoxInt128, rtInt128Lo, rtInt128Hi, rtConstText, rtInitNullary, rtField, rtFieldMove, rtSetfield, rtArray,
-	rtIndex, rtSetindex, rtSetindexCopy, rtSetfieldCopy, rtPayload, rtIsvariant, rtVariantIndex, rtIstype, rtUnbox, rtBox, rtBoxLent,
+	rtIndex, rtSetindex, rtSetindexCopy, rtSetfieldCopy, rtPayload, rtIsvariant, rtVariantIndex, rtIstypeAny, rtUnbox, rtBox, rtBoxLent,
 	rtClosure, rtClosureAsync, rtClosureBindAsync, rtClosureEnv, rtArrayPush, rtFnItemInit, rtFnItemLent, rtClosureLent, rtCallvM, rtCallvI64M, rtStdItemInit, rtCell, rtCellInit, rtCellget, rtCellTake, rtCellset, rtInterp, rtDisplay, rtDrop,
 	rtRetain, rtRelease, rtPanic, rtPanicIndex, rtIntVal, rtPtr, rtConvert, rtPtrVal,
-	rtFloatVal, rtCstr, rtFromCstr, rtCharVal, rtErrorAs,
+	rtFloatVal, rtCstr, rtFromCstr, rtCharVal,
 	rtFutureNew, rtFutureSlots, rtFutureState, rtFutureArg, rtFutureStarted,
 	rtFutureSuspend, rtFutureResume, rtFutureComplete, rtFutureSettle, rtTaskClose, rtUnwindEnter, rtUnwindEnterSlots, rtUnwindEnterStd, rtUnwindLeave,
 	rtDropOuter, rtReleaseOuter, rtSweepRelease, rtOuterFatal, rtDropPartial, rtDropPartialOuter, rtReleaseOuterPartial,
 	rtSetfieldSwap, rtSetindexSwap, rtSetindexCopySwap, rtSetfieldCopySwap, rtCellsetSwap,
 	rtDLen, rtDArrayLen, rtDMapSeed, rtDBytesGet, rtDArrayGet, rtDParseFloat,
 	rtDHashInt, rtDHashBool, rtDHashChar, rtDHashFloat, rtDTry, rtDTryOpt,
+	rtTnInit, rtTnMake, rtTnTmpl, rtTnTmpl1, rtTnConst, rtTnConstWords, rtTnValue, rtTnArg, rtTnDesc, rtTnBoxarg, rtTnEnv, rtIstypeTn, rtErrorAsTn,
 }

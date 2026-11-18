@@ -20,6 +20,7 @@ var langItemTable = map[string]string{
 	"FixedArray":     "std/prelude",
 	"BoundedArray":   "std/array",
 	"Vec":            "std/simd",
+	"as":             "std/error",
 }
 
 // langItem returns the entity of a lang item, or 0 (and reports
@@ -31,7 +32,12 @@ func (r *Result) langItem(f FileID, node syntax.NodeID, name string) EntityID {
 	pkgPath, known := langItemTable[name]
 	if known {
 		if pkg, ok := r.pathIndex[pkgPath]; ok {
-			if b, ok := r.Scopes[r.Packages[pkg].Scope].Names[name]; ok && b.Ent != 0 {
+			b := r.Scopes[r.Packages[pkg].Scope].Names[name]
+			// A function binds as an overload set; a lang item names one alone.
+			if b.Ent == 0 && b.Set != 0 && len(r.Overloads[b.Set].Members) == 1 {
+				b.Ent = r.Overloads[b.Set].Members[0]
+			}
+			if b.Ent != 0 {
 				r.langItems[name] = b.Ent
 				return b.Ent
 			}

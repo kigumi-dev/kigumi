@@ -34,7 +34,7 @@ const (
 	OpTag                           // Dst = variant tag of Args[0]
 	OpPayload                       // Dst = payload Index of Args[0]
 	OpIsVariant                     // Dst = Args[0] is variant Ent
-	OpIsType                        // Dst = existential Args[0] holds Ent
+	OpIsType                        // Dst = existential Args[0] holds Ent at instantiation Type
 	OpUnbox                         // Dst = value inside existential Args[0]
 	OpBox                           // Dst = existential over Args[0] (Type = dynamic type)
 	OpClosure                       // Dst = closure Ent capturing Args...
@@ -125,6 +125,11 @@ type Inst struct {
 	LendArgs uint32
 	// ArgsDeclared preserves the call masks chosen before specialization.
 	ArgsDeclared bool
+	// Rt holds the runtime type a box, a type test, a downcast or a record stands for when its static type names
+	// parameters; nil when the static type is one runtime type.
+	Rt []LocalID
+	// Holes are the type and const parameters a type.of builtin fills from its arguments, in order.
+	Holes []sem.EntityID
 	// Prim/Prov are zero unless Ent is a registry-covered std call.
 	Prim  opdef.PrimitiveId
 	Prov  opdef.ProviderOpId
@@ -191,4 +196,9 @@ type Func struct {
 	// Entry is the all-boxed body a function value, method table or adapter runs; Wraps points back.
 	Entry *Func
 	Wraps *Func
+	// HasEnv marks a body taking its runtime environment: Env holds the interned descriptor of the instantiation
+	// it runs for, a parameter after the declared ones (a closure's last capture), EnvType the type it stands for.
+	HasEnv  bool
+	Env     LocalID
+	EnvType sem.TypeID
 }

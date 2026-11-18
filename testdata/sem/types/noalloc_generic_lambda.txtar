@@ -1,0 +1,43 @@
+-- app/t/t.kg --
+interface Show { fn show(self) -> String }
+type W[T] = { pub n Int }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+
+// A lambda whose type names T but which does nothing with T at runtime carries
+// no environment, so it costs nothing to hand out.
+noalloc fn id[T: Copy](x: T) -> fn(T) -> T {
+    (y: T) => y
+}
+noalloc fn pick[T: Copy](first: Bool) -> fn(T, T) -> T {
+    if first { (a: T, b: T) => a } else { (a: T, b: T) => b }
+}
+
+fn tests[T](s: &Show) -> Bool { W[T] { n: 0 }.same(s) }
+
+// A lambda that calls a body testing a fixed type needs no environment either.
+noalloc fn fixed[T: Copy](x: T) -> fn(T, &Show) -> T {
+    (y: T, s: &Show) => if tests[Int](s) { y } else { y }
+}
+
+// A lambda that tests T, or hands T to a body that does, needs T at runtime:
+// it captures the environment, and handing it out boxes it.
+noalloc fn tester[T]() -> fn(&Show) -> Bool {
+    (s: &Show) => W[T] { n: 0 }.same(s) //~ ERROR boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+}
+noalloc fn viaHelper[T]() -> fn(&Show) -> Bool {
+    (s: &Show) => tests[T](s) //~ ERROR boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+}
+-- expect --
+error[E910]: boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+  --> app/t/t.kg:25:5
+   |
+25 |     (s: &Show) => W[T] { n: 0 }.same(s) //~ ERROR boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E910]: boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+  --> app/t/t.kg:28:5
+   |
+28 |     (s: &Show) => tests[T](s) //~ ERROR boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+

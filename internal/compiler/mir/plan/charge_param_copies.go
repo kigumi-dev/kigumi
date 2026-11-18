@@ -75,7 +75,7 @@ func (p *planner) chargeArgs(f *midir.Func, in midir.Inst) ([]sem.TypeID, bool) 
 	if !p.R.Types.BindParams(info.Sig, f.Locals[in.Dst].Type, want, bound) {
 		return nil, false
 	}
-	return p.boundArgs(in.Ent, want, bound)
+	return p.boundArgs(in.Ent, want, bound, false)
 }
 
 func (p *planner) chargeCall(f *midir.Func, in midir.Inst, facts paramCopies) (sites []sem.CopySite, grown bool) {

@@ -12,7 +12,15 @@ func (p *callVerifier) declaredSig(ent sem.EntityID) (params []sem.TypeID, ret s
 	if info.Recv != sem.RecvNone {
 		params = append(params, p.R.Entity(info.SelfParam).Type)
 	}
-	return append(params, sig.Args...), sig.Elem, len(info.Witnesses) + len(info.ConstParams), sig.Flags&sem.FnCVariadic != 0
+	return append(params, sig.Args...), sig.Elem, len(info.Witnesses) + len(info.ConstParams) + p.envCount(ent), sig.Flags&sem.FnCVariadic != 0
+}
+
+// envCount is 1 when ent's body takes its runtime environment after the declared parameters.
+func (p *callVerifier) envCount(ent sem.EntityID) int {
+	if f := p.ByEnt[ent]; f != nil && f.HasEnv {
+		return 1
+	}
+	return 0
 }
 
 func (p *callVerifier) declaredCallMismatch(f *midir.Func, in midir.Inst) string {
@@ -56,6 +64,10 @@ func (p *callVerifier) bindMismatch(f *midir.Func, in midir.Inst) string {
 	} else {
 		var hidden int
 		params, ret, hidden, _ = p.declaredSig(in.Ent)
+		// A std/error.as value built where its target is a runtime type holds that type.
+		if p.R.Entity(in.Ent).Flags&sem.EfStd != 0 && opdef.StdKey(p.R, in.Ent, false) == "std/error.as" {
+			hidden++
+		}
 		if len(in.Args) > hidden {
 			return "captures " + itoa(len(in.Args)) + " values for a function with " + itoa(hidden) + " hidden parameters"
 		}

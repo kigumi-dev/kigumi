@@ -43,6 +43,12 @@ type FileInfo struct {
 	Imported map[PackageID]EntityID
 	// FieldMoves marks a `&mut` field read by value, lowered as `move` of the field.
 	FieldMoves map[syntax.NodeID]bool
+	// ItemInst is the instantiation of a generic function, or of a method's own parameters, named as a value, which
+	// its value type need not spell.
+	ItemInst map[syntax.NodeID][]TypeID
+	// Opens are the parameters a type test binds for the type arguments it leaves open, one per argument of
+	// its target (0 where the argument is a parameter already in scope).
+	Opens map[syntax.NodeID][]EntityID
 }
 
 func newFileInfo(t *syntax.Tree, pkg PackageID) FileInfo {

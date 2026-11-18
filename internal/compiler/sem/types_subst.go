@@ -34,10 +34,19 @@ func (tt *TypeTable) Subst(t TypeID, s map[EntityID]TypeID) TypeID {
 		}
 		return tt.Intern(tt.absorbEscMarks(typeNode{Kind: n.Kind, Flags: n.Flags, Ent: n.Ent, Elem: elem, Lifetime: n.Lifetime, Var: n.Var, Args: args}))
 	case KClosure:
-		if r, ok := s[n.Ent]; ok {
-			return r
+		// A closure applied to arguments is already a runtime identity, its source closure's, so only its
+		// arguments change; renaming its entity would drop them.
+		if len(n.Args) == 0 {
+			if r, ok := s[n.Ent]; ok {
+				return r
+			}
+			return t
 		}
-		return t
+		args := make([]TypeID, len(n.Args))
+		for i, a := range n.Args {
+			args[i] = tt.Subst(a, s)
+		}
+		return tt.ClosureInstance(n.Ent, args)
 	case KRef, KPtr:
 		elem, lifetime := tt.Subst(n.Elem, s), tt.Subst(n.Lifetime, s)
 		if elem == n.Elem && lifetime == n.Lifetime {

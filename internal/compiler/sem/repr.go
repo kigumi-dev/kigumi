@@ -39,7 +39,7 @@ func (r *Result) computeRepr(t TypeID) ReprKind {
 	tt := r.Types
 	n := tt.Node(t)
 	switch n.Kind {
-	case KPoison, KPrim, KUntyped, KFn, KPtr, KRef, KConst:
+	case KPoison, KPrim, KUntyped, KFn, KPtr, KRef, KConst, KRtType:
 		return ReprDirect
 	case KClosure:
 		if n.Ent == 0 {

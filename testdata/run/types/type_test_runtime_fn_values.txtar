@@ -1,0 +1,23 @@
+-- src --
+// Generic fn values and method values built in a body reached past
+// polymorphic recursion carry its runtime environment.
+interface Show { fn show(self) -> String }
+type W[T: Copy] = { pub value T }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+type Wrap[T: Copy] = { pub w T }
+fn Wrap[T].step(self, n: Int, p: &Show) -> Bool { nest(self, n, p) }
+fn sameAs[T: Copy](v: T, p: &Show) -> Bool { W { value: v }.same(p) }
+fn nest[T: Copy](v: T, n: Int, p: &Show) -> Bool {
+    if n == 0 {
+        let g = sameAs[T]
+        let h: fn(T, &Show) -> Bool = sameAs
+        let m = W { value: v }.same
+        return g(v, p) && h(v, p) && m(p)
+    }
+    Wrap { w: v }.step(n - 1, p)
+}
+let w5: Show = W { value: Wrap { w: Wrap { w: Wrap { w: Wrap { w: Wrap { w: 1 } } } } } }
+print "${nest(1, 5, &w5)} ${nest(1, 4, &w5)} ${nest("s", 5, &w5)}"
+-- stdout --
+true false false

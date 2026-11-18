@@ -2,6 +2,7 @@ package plan
 
 import (
 	"kigumi/internal/compiler/mir"
+	"kigumi/internal/compiler/mir/instance"
 	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/lang/diag"
@@ -28,10 +29,14 @@ type spec struct {
 	held    *heldRoot
 }
 
+// callSite is a call of the instantiation, or, with desc, a box or record whose descriptor reaches it.
 type callSite struct {
 	f        *midir.Func
 	blk, idx int
 	gone     bool
+	desc     bool
+	// wasType is the fn item's local type before rename retyped it, 0 when it kept its type.
+	wasType sem.TypeID
 }
 
 type specializer struct {
@@ -44,7 +49,7 @@ type specializer struct {
 	names    map[string]*nameHolder
 	noSpec   map[sem.EntityID]bool
 	simdBody map[sem.EntityID]bool
-	simdArgs map[sem.EntityID]map[sem.EntityID]bool
+	shapes   map[sem.EntityID]map[sem.EntityID]bool
 	reported map[string]bool
 	scanned  map[*midir.Func]bool
 	rooted   map[*midir.Func]*heldRoot
@@ -55,12 +60,16 @@ type specializer struct {
 	futures  map[*midir.Func]map[midir.LocalID]midir.Inst
 	// Rebuilt per dry run; a revert drops its caller's entry.
 	reboxFlows map[*midir.Func]*reboxFlow
+	descSeen   map[descSiteKey]bool
+	descRoots  []descRoot
+	defs       map[*midir.Func]map[midir.LocalID]defPos
 }
 
 type siteEdit struct {
 	f        *midir.Func
 	blk, idx int
 	was      sem.EntityID
+	wasType  sem.TypeID
 }
 
 // Specialize runs after plan-rc and before plan-direct, and comptime folds after plan-direct.
@@ -79,6 +88,9 @@ func (p *planner) specialize() error {
 		s.rollback(mark)
 	}
 	p.InstanceOnly = newSpecializer(p, nil).instanceOnly()
+	if err := p.planEnvs(); err != nil {
+		return err
+	}
 	p.Diags = dedupeFileDiags(p.Diags, mark)
 	p.inlineProtoCalls()
 	p.dropStaleComptime()
@@ -110,7 +122,7 @@ func dedupeFileDiags(ds []midir.FileDiag, from int) []midir.FileDiag {
 }
 
 func newSpecializer(p *planner, bonus map[string]int) *specializer {
-	s := &specializer{p: p, byKey: map[string]*spec{}, byEnt: map[sem.EntityID]*spec{}, byFunc: map[*midir.Func]*spec{}, names: map[string]*nameHolder{}, noSpec: map[sem.EntityID]bool{}, simdBody: map[sem.EntityID]bool{}, reported: map[string]bool{}, scanned: map[*midir.Func]bool{}, bonus: bonus}
+	s := &specializer{p: p, byKey: map[string]*spec{}, byEnt: map[sem.EntityID]*spec{}, byFunc: map[*midir.Func]*spec{}, names: map[string]*nameHolder{}, noSpec: map[sem.EntityID]bool{}, simdBody: map[sem.EntityID]bool{}, reported: map[string]bool{}, scanned: map[*midir.Func]bool{}, bonus: bonus, descSeen: map[descSiteKey]bool{}, defs: map[*midir.Func]map[midir.LocalID]defPos{}}
 	for _, f := range p.Funcs {
 		s.names[f.Name] = nil
 	}
@@ -118,21 +130,35 @@ func newSpecializer(p *planner, bonus map[string]int) *specializer {
 }
 
 func (s *specializer) run() {
+	s.p.Desc = instance.Bodies{}
 	s.markRooted()
-	for _, f := range append([]*midir.Func(nil), s.p.Funcs...) {
+	for _, f := range append(s.p.comptimeFuncs(), s.p.Funcs...) {
 		s.scan(f, nil)
 	}
-	s.drain()
+	s.drainDescriptors()
 	s.scalarPhase()
+	s.drainDescriptors()
 	s.settle()
 	s.prune()
+	s.publishDesc()
 }
 
 func (s *specializer) scan(f *midir.Func, ctx *spec) {
 	for bid := range f.Blocks {
 		insts := f.Blocks[bid].Insts
 		for i := range insts {
-			if !specSite(insts[i]) {
+			switch insts[i].Op {
+			case midir.OpCall:
+				s.specializeWitnesses(f, ctx, bid, i)
+			case midir.OpClosure, midir.OpBind, midir.OpFnItem:
+				if insts[i].Op == midir.OpBind {
+					s.specializeWitnesses(f, ctx, bid, i)
+				}
+				if s.specializeValue(f, ctx, bid, i) {
+					continue
+				}
+			}
+			if insts[i].Op != midir.OpCall && insts[i].Op != midir.OpFnItem {
 				continue
 			}
 			// A copy of a body scanned before it was copied already names the instantiation.
@@ -148,9 +174,7 @@ func (s *specializer) scan(f *midir.Func, ctx *spec) {
 				continue
 			}
 			if sp := s.get(f, ctx, insts[i], args, wit); sp != nil {
-				sp.sites = append(sp.sites, &callSite{f: f, blk: bid, idx: i})
-				s.edits = append(s.edits, siteEdit{f, bid, i, insts[i].Ent})
-				insts[i].Ent = sp.ent
+				s.rename(f, bid, i, sp)
 			}
 		}
 	}
@@ -173,7 +197,7 @@ func (s *specializer) get(f *midir.Func, ctx *spec, in midir.Inst, args []sem.Ty
 		return nil
 	}
 	g := s.p.ByEnt[gen]
-	shape := s.simdShapeArgs(gen, args)
+	shape := s.shapeArgs(gen, args)
 	if shape && held == nil && s.p.DeclaredNoalloc(g) {
 		held = s.rooted[g]
 	}

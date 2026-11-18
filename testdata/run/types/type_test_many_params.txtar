@@ -1,0 +1,32 @@
+-- src --
+// A runtime type with nine occurrences of one parameter, or with a closure
+// type inside, composes like any other.
+interface Show { fn show(self) -> String }
+
+type Fault[T] = { pub value T }
+
+fn Fault[T].show(self) -> String { "f" }
+
+fn Fault[T].same(self, s: &Show) -> Bool { s is Fault(_) }
+type W[T: Copy] = { pub value T }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+type Wrap[T: Copy] = { pub w T }
+fn Wrap[T].step(self, n: Int, p: &Show) -> Bool { nest(self, n, p) }
+type N9[A: Copy, B: Copy, C: Copy, D: Copy, E: Copy, F: Copy, G: Copy, H: Copy, I: Copy] = { pub a A, pub b B, pub c C, pub d D, pub e E, pub f F, pub g G, pub h H, pub i I }
+fn N9[A, B, C, D, E, F, G, H, I].show(self) -> String { "n9" }
+fn N9[A, B, C, D, E, F, G, H, I].same(self, s: &Show) -> Bool { s is N9(_) }
+fn nest[T: Copy](v: T, n: Int, p: &Show) -> Bool {
+    if n == 0 {
+        let x = N9 { a: v, b: v, c: v, d: v, e: v, f: v, g: v, h: v, i: v }
+        let q: Show = x
+        let f = Fault { value: Some(() => v) }
+        let c: Show = f
+        return x.same(p) && f.same(&c) && W { value: v }.same(p)
+    }
+    Wrap { w: v }.step(n - 1, p)
+}
+let w5: Show = W { value: Wrap { w: Wrap { w: Wrap { w: Wrap { w: Wrap { w: 1 } } } } } }
+print "${nest(1, 5, &w5)} ${nest(1, 4, &w5)} ${nest("s", 5, &w5)}"
+-- stdout --
+false false false

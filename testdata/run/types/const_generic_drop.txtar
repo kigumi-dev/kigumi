@@ -1,0 +1,45 @@
+-- src --
+// A drop hook receives the const arguments of the value's instantiation,
+// N = 0 included, also when the value was built in a generic body or boxed.
+type Count[const N: usize] = resource { pub tag Int }
+
+fn Count[N].drop(move self) { print "count ${self.tag} N=${N}" }
+
+interface Tagged {
+    fn label(self) -> String
+}
+
+fn Count[N].label(self) -> String { "label ${self.tag} N=${N}" }
+
+fn make[const N: usize](tag: Int) -> Count[N] { Count { tag: tag } }
+
+fn relay[const N: usize](tag: Int) -> Count[N] { make[N](tag) }
+
+{
+    let a = Count[4] { tag: 1 }
+    let b = Count[0] { tag: 2 }
+    let c = make[9](3)
+    let d = relay[0](4)
+    print "built"
+}
+{
+    let held: Array[Count[3]] = Array.of(Count[3] { tag: 5 }, make[3](6))
+    print "array ${held.len()}"
+}
+{
+    let t: Tagged = make[11](7)
+    print t.label()
+}
+print "end"
+-- stdout --
+built
+count 4 N=0
+count 3 N=9
+count 2 N=0
+count 1 N=4
+array 2
+count 6 N=3
+count 5 N=3
+label 7 N=11
+count 7 N=11
+end

@@ -209,6 +209,8 @@ type Result struct {
 	varNames                  []string
 	closureOrdinals           map[EntityID]int
 	lifetimeStandIns          []EntityID
+	closureSubsts             map[EntityID]map[EntityID]TypeID
+	envUse                    envUses
 	localLifetimes            map[localLifetimeKey]EntityID
 	localLifetimeFn           EntityID
 	deferredClaims            bool

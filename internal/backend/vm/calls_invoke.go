@@ -53,7 +53,7 @@ func (m *Machine) bindOpen(f *midir.Func, nbound int, bind bool) int {
 		return 0
 	}
 	info := m.r.Fn(f.Ent)
-	return max(len(info.Witnesses)+len(info.ConstParams)-nbound, 0)
+	return max(len(info.Witnesses)+len(info.ConstParams)+boolBit(f.HasEnv)-nbound, 0)
 }
 
 func envLen(fv *obj) int {

@@ -20,12 +20,16 @@ func (e *emitter) vtable(t, iface sem.TypeID, from sem.PackageID) string {
 	for _, w := range e.r.Witnesses(t, iface, from) {
 		switch {
 		case e.p.ByEnt[w] != nil:
-			entries = append(entries, "ptr "+e.useAdapter(e.p.ByEnt[w]))
+			entries = append(entries, "ptr "+e.useDescAdapter(w, t))
 		default:
 			e.stdDrops[w] = true
 			entries = append(entries, "ptr "+e.stdAdapterSym(w))
 		}
 	}
+	return e.vtableDef(name, entries)
+}
+
+func (e *emitter) vtableDef(name string, entries []string) string {
 	if len(entries) == 0 {
 		entries = []string{"ptr null"}
 	}

@@ -22,7 +22,9 @@ func (l *lowerer) pattern(p syntax.NodeID) *Pat {
 			return out
 		}
 		out.Kind, out.Ent = PatCtor, l.info.Uses[p]
-		out.IsType = l.r.Entity(out.Ent).Kind != sem.EntVariant
+		if out.IsType = l.r.Entity(out.Ent).Kind != sem.EntVariant; out.IsType {
+			out.Target = l.info.Pats[p].Type
+		}
 		for s := range v.AsPatCtor().Args().IDs() {
 			out.Subs = append(out.Subs, l.pattern(s))
 		}

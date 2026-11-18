@@ -1,0 +1,264 @@
+-- src --
+// Downcasts to fifty error types at two instantiations each match the
+// instantiation the error was built with.
+import err from std/error
+type E0[T] = { pub v T }
+fn E0[T].message(self) -> String { "e0" }
+type E1[T] = { pub v T }
+fn E1[T].message(self) -> String { "e1" }
+type E2[T] = { pub v T }
+fn E2[T].message(self) -> String { "e2" }
+type E3[T] = { pub v T }
+fn E3[T].message(self) -> String { "e3" }
+type E4[T] = { pub v T }
+fn E4[T].message(self) -> String { "e4" }
+type E5[T] = { pub v T }
+fn E5[T].message(self) -> String { "e5" }
+type E6[T] = { pub v T }
+fn E6[T].message(self) -> String { "e6" }
+type E7[T] = { pub v T }
+fn E7[T].message(self) -> String { "e7" }
+type E8[T] = { pub v T }
+fn E8[T].message(self) -> String { "e8" }
+type E9[T] = { pub v T }
+fn E9[T].message(self) -> String { "e9" }
+type E10[T] = { pub v T }
+fn E10[T].message(self) -> String { "e10" }
+type E11[T] = { pub v T }
+fn E11[T].message(self) -> String { "e11" }
+type E12[T] = { pub v T }
+fn E12[T].message(self) -> String { "e12" }
+type E13[T] = { pub v T }
+fn E13[T].message(self) -> String { "e13" }
+type E14[T] = { pub v T }
+fn E14[T].message(self) -> String { "e14" }
+type E15[T] = { pub v T }
+fn E15[T].message(self) -> String { "e15" }
+type E16[T] = { pub v T }
+fn E16[T].message(self) -> String { "e16" }
+type E17[T] = { pub v T }
+fn E17[T].message(self) -> String { "e17" }
+type E18[T] = { pub v T }
+fn E18[T].message(self) -> String { "e18" }
+type E19[T] = { pub v T }
+fn E19[T].message(self) -> String { "e19" }
+type E20[T] = { pub v T }
+fn E20[T].message(self) -> String { "e20" }
+type E21[T] = { pub v T }
+fn E21[T].message(self) -> String { "e21" }
+type E22[T] = { pub v T }
+fn E22[T].message(self) -> String { "e22" }
+type E23[T] = { pub v T }
+fn E23[T].message(self) -> String { "e23" }
+type E24[T] = { pub v T }
+fn E24[T].message(self) -> String { "e24" }
+type E25[T] = { pub v T }
+fn E25[T].message(self) -> String { "e25" }
+type E26[T] = { pub v T }
+fn E26[T].message(self) -> String { "e26" }
+type E27[T] = { pub v T }
+fn E27[T].message(self) -> String { "e27" }
+type E28[T] = { pub v T }
+fn E28[T].message(self) -> String { "e28" }
+type E29[T] = { pub v T }
+fn E29[T].message(self) -> String { "e29" }
+type E30[T] = { pub v T }
+fn E30[T].message(self) -> String { "e30" }
+type E31[T] = { pub v T }
+fn E31[T].message(self) -> String { "e31" }
+type E32[T] = { pub v T }
+fn E32[T].message(self) -> String { "e32" }
+type E33[T] = { pub v T }
+fn E33[T].message(self) -> String { "e33" }
+type E34[T] = { pub v T }
+fn E34[T].message(self) -> String { "e34" }
+type E35[T] = { pub v T }
+fn E35[T].message(self) -> String { "e35" }
+type E36[T] = { pub v T }
+fn E36[T].message(self) -> String { "e36" }
+type E37[T] = { pub v T }
+fn E37[T].message(self) -> String { "e37" }
+type E38[T] = { pub v T }
+fn E38[T].message(self) -> String { "e38" }
+type E39[T] = { pub v T }
+fn E39[T].message(self) -> String { "e39" }
+type E40[T] = { pub v T }
+fn E40[T].message(self) -> String { "e40" }
+type E41[T] = { pub v T }
+fn E41[T].message(self) -> String { "e41" }
+type E42[T] = { pub v T }
+fn E42[T].message(self) -> String { "e42" }
+type E43[T] = { pub v T }
+fn E43[T].message(self) -> String { "e43" }
+type E44[T] = { pub v T }
+fn E44[T].message(self) -> String { "e44" }
+type E45[T] = { pub v T }
+fn E45[T].message(self) -> String { "e45" }
+type E46[T] = { pub v T }
+fn E46[T].message(self) -> String { "e46" }
+type E47[T] = { pub v T }
+fn E47[T].message(self) -> String { "e47" }
+type E48[T] = { pub v T }
+fn E48[T].message(self) -> String { "e48" }
+type E49[T] = { pub v T }
+fn E49[T].message(self) -> String { "e49" }
+fn pick(k: Int) -> Error {
+    if k == 0 { return E0 { v: k } }
+    if k == 1 { return E1 { v: k } }
+    if k == 2 { return E2 { v: k } }
+    if k == 3 { return E3 { v: k } }
+    if k == 4 { return E4 { v: k } }
+    if k == 5 { return E5 { v: k } }
+    if k == 6 { return E6 { v: k } }
+    if k == 7 { return E7 { v: k } }
+    if k == 8 { return E8 { v: k } }
+    if k == 9 { return E9 { v: k } }
+    if k == 10 { return E10 { v: k } }
+    if k == 11 { return E11 { v: k } }
+    if k == 12 { return E12 { v: k } }
+    if k == 13 { return E13 { v: k } }
+    if k == 14 { return E14 { v: k } }
+    if k == 15 { return E15 { v: k } }
+    if k == 16 { return E16 { v: k } }
+    if k == 17 { return E17 { v: k } }
+    if k == 18 { return E18 { v: k } }
+    if k == 19 { return E19 { v: k } }
+    if k == 20 { return E20 { v: k } }
+    if k == 21 { return E21 { v: k } }
+    if k == 22 { return E22 { v: k } }
+    if k == 23 { return E23 { v: k } }
+    if k == 24 { return E24 { v: k } }
+    if k == 25 { return E25 { v: k } }
+    if k == 26 { return E26 { v: k } }
+    if k == 27 { return E27 { v: k } }
+    if k == 28 { return E28 { v: k } }
+    if k == 29 { return E29 { v: k } }
+    if k == 30 { return E30 { v: k } }
+    if k == 31 { return E31 { v: k } }
+    if k == 32 { return E32 { v: k } }
+    if k == 33 { return E33 { v: k } }
+    if k == 34 { return E34 { v: k } }
+    if k == 35 { return E35 { v: k } }
+    if k == 36 { return E36 { v: k } }
+    if k == 37 { return E37 { v: k } }
+    if k == 38 { return E38 { v: k } }
+    if k == 39 { return E39 { v: k } }
+    if k == 40 { return E40 { v: k } }
+    if k == 41 { return E41 { v: k } }
+    if k == 42 { return E42 { v: k } }
+    if k == 43 { return E43 { v: k } }
+    if k == 44 { return E44 { v: k } }
+    if k == 45 { return E45 { v: k } }
+    if k == 46 { return E46 { v: k } }
+    if k == 47 { return E47 { v: k } }
+    if k == 48 { return E48 { v: k } }
+    if k == 49 { return E49 { v: k } }
+    E0 { v: k }
+}
+let mut hits = 0
+for k in 0..50 {
+    let e = pick(k)
+    if err.as[E0[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E0[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E1[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E1[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E2[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E2[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E3[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E3[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E4[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E4[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E5[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E5[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E6[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E6[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E7[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E7[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E8[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E8[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E9[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E9[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E10[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E10[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E11[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E11[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E12[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E12[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E13[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E13[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E14[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E14[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E15[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E15[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E16[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E16[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E17[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E17[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E18[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E18[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E19[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E19[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E20[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E20[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E21[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E21[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E22[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E22[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E23[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E23[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E24[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E24[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E25[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E25[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E26[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E26[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E27[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E27[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E28[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E28[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E29[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E29[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E30[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E30[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E31[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E31[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E32[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E32[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E33[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E33[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E34[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E34[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E35[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E35[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E36[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E36[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E37[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E37[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E38[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E38[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E39[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E39[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E40[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E40[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E41[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E41[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E42[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E42[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E43[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E43[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E44[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E44[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E45[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E45[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E46[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E46[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E47[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E47[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E48[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E48[String]](&e) is Some(_) { hits = hits + 100 }
+    if err.as[E49[Int]](&e) is Some(_) { hits = hits + 1 }
+    if err.as[E49[String]](&e) is Some(_) { hits = hits + 100 }
+}
+print "hits ${hits}"
+-- stdout --
+hits 50

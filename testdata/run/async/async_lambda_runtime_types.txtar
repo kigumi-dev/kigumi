@@ -1,0 +1,28 @@
+-- src --
+// An async generic fn whose only runtime type is a lambda's capture keeps its
+// environment in its frame.
+import task from std/task
+interface Show { fn show(self) -> String }
+type W[T: Copy] = { pub value T }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+type V[T] = { pub n Int }
+fn V[T].show(self) -> String { "v" }
+fn V[T].same(self, s: &Show) -> Bool { s is V(_) }
+fn apply[T: Copy](v: T, f: fn(T) -> Bool) -> Bool { f(v) }
+async fn byValue[T: Copy](v: T) -> Bool {
+    let want: Show = W[Int] { value: 0 }
+    apply(v, (x) => W { value: x }.same(&want))
+}
+async fn byType[T](p: Int) -> Bool {
+    let want: Show = V[Int] { n: 0 }
+    let f = (s: &Show) => V[T] { n: p }.same(s)
+    f(&want)
+}
+async fn root() -> String {
+    "${await byValue(1)} ${await byValue("s")} ${await byType[Int](1)} ${await byType[Bool](1)}"
+}
+let ex = task.currentThreadExecutor()
+print ex.runToCompletion(root())
+-- stdout --
+true false true false

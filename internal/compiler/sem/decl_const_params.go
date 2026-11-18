@@ -30,6 +30,14 @@ func (a ConstArg) Valid() bool {
 	return a.Value != nil || a.Kind == ConstArgLocal && a.Local != 0
 }
 
+// Literal is the value a literal argument is passed as: a Bool parameter as a Bool, any other as an Int.
+func (a ConstArg) Literal() Literal {
+	if a.Type == TyBool {
+		return Literal{Kind: LitBool, Bool: a.Value.Sign() != 0}
+	}
+	return Literal{Kind: LitInt, Int: new(big.Int).Set(a.Value)}
+}
+
 // constParamsOf must enumerate params in the same order declareConstParams
 // binds their hidden locals, since calls match ConstArgs positionally.
 func (r *Result) constParamsOf(id EntityID) []EntityID {
@@ -63,6 +71,9 @@ func (r *Result) ownerConstParamsOf(id EntityID) []EntityID {
 // owner's type-param entity unchanged, since two methods never share a
 // declScope.
 func constParamLocalName(r *Result, param EntityID) string {
+	if r.typeParam(param).Opened {
+		return "$const:" + r.Entities[param].Name + "#" + itoa(int(param))
+	}
 	return "$const:" + r.Entities[param].Name
 }
 

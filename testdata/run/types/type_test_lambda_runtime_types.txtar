@@ -1,0 +1,55 @@
+-- src --
+// A lambda that reads a runtime type holds it as a capture of its own kind,
+// whether it sits in a generic fn, is handed to an Fn-bounded generic, runs
+// in a drop or closes over a value a test opened.
+interface Show { fn show(self) -> String }
+type W[T] = { pub n Int }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+fn applyF[F: Fn[fn(&Show) -> Bool]](f: F, s: &Show) -> Bool { f(s) }
+
+fn local[T](a: &Show, b: &Show) -> String {
+    let f = (s: &Show) => W[T] { n: 0 }.same(s)
+    "${f(a)} ${f(b)}"
+}
+fn bounded[T](a: &Show, b: &Show) -> String {
+    "${applyF((s: &Show) => W[T] { n: 0 }.same(s), a)} ${applyF((s: &Show) => W[T] { n: 0 }.same(s), b)}"
+}
+fn W[T].check(self, s: &Show) -> Bool { applyF((t: &Show) => self.same(t), s) }
+type R[T] = resource { pub a Show, pub b Show }
+fn R[T].drop(move self) {
+    let g = (s: &Show) => W[T] { n: 1 }.same(s)
+    print "drop ${g(&self.a)} ${g(&self.b)}"
+}
+fn chk(got: &Show, want: &Show) -> Bool {
+    if got is W(x) {
+        let f = (s: &Show) => x.same(s)
+        f(want)
+    } else {
+        false
+    }
+}
+
+let wi: Show = W[Int] { n: 0 }
+let ws: Show = W[String] { n: 0 }
+print "local ${local[Int](&wi, &ws)} ${local[String](&wi, &ws)}"
+print "bounded ${bounded[Int](&wi, &ws)} ${bounded[String](&wi, &ws)}"
+print "method ${W[Int] { n: 1 }.check(&wi)} ${W[Int] { n: 1 }.check(&ws)} ${W[String] { n: 1 }.check(&wi)} ${W[String] { n: 1 }.check(&ws)}"
+print "arm ${chk(&ws, &ws)} ${chk(&ws, &wi)} ${chk(&wi, &wi)} ${chk(&wi, &ws)}"
+let mut hits = 0
+for k in 0..100 {
+    if local[Int](&wi, &ws) == "true false" { hits = hits + 1 }
+}
+print "hits ${hits}"
+{
+    let ri = R[Int] { a: W[Int] { n: 0 }, b: W[String] { n: 0 } }
+    let rs = R[String] { a: W[Int] { n: 0 }, b: W[String] { n: 0 } }
+}
+-- stdout --
+local true false false true
+bounded true false false true
+method true false false true
+arm true false true false
+hits 100
+drop false true
+drop true false

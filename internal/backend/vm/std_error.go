@@ -1,11 +1,23 @@
 package vm
 
-import "kigumi/internal/compiler/sem"
+import (
+	"kigumi/internal/compiler/mir/instance"
+	"kigumi/internal/compiler/sem"
+)
 
 func (m *Machine) registerError() {
 	m.host["error.as"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		opt, _ := m.r.Types.IsOption(m.siteFn.Locals[m.site.Dst].Type)
-		want := m.r.Types.Node(opt).Ent
+		var opt sem.TypeID
+		switch {
+		case len(a) == 2:
+			opt, a = sem.TypeID(deref(a[0]).i), a[1:]
+		case m.siteRt != 0 && len(m.site.Rt) > 0:
+			opt = m.siteRt
+		default:
+			opt, _ = m.r.Types.IsOption(m.siteFn.Locals[m.site.Dst].Type)
+			opt = m.staticType(opt)
+		}
+		want, test := m.r.Types.Node(opt).Ent, instance.TestExact
 		ctxEnt := m.r.LangItem("Context")
 		cur := deref(a[0])
 		owned := false
@@ -14,7 +26,7 @@ func (m *Machine) registerError() {
 				break
 			}
 			et := m.typeEnt(cur.dynType())
-			if et == want {
+			if m.holdsTest(test, want, opt, cur.dynType()) {
 				v := m.copiedResult(m.stdKey(fn), cur.inner)
 				if owned {
 					m.release(cur)

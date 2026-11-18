@@ -193,7 +193,7 @@ func claimDiags(prog *mir.Program) []mirverify.AllocClaim {
 func nativeBoxSites(t buildconfig.Target) func(*mir.Program) mir.NativeBoxSites {
 	return func(p *mir.Program) mir.NativeBoxSites {
 		opts := emitOptionsFor(t)
-		opts.Reachable = mirreach.Reachable(p.R, p.Entry, p.Funcs, p.ByEnt)
+		opts.Reachable = p.Reachable()
 		return llgen.ScalarBoxSites(p, opts)
 	}
 }

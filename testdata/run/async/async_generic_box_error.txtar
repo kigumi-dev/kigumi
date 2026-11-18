@@ -1,0 +1,37 @@
+-- src --
+import err from std/error
+import task from std/task
+
+// An async generic body that boxes an instantiation of its type parameter is
+// instantiated per type argument like a synchronous one.
+type Fault[T: Copy] = { pub value T }
+
+fn Fault[T].message(self) -> String { "fault" }
+
+async fn check[T: Copy](v: T, ok: Bool) -> Int! {
+    if !ok {
+        fail Fault { value: v }
+    }
+    1
+}
+
+async fn produce[T: Copy](v: T) -> Error { Fault { value: v } }
+
+async fn root() -> Int {
+    let a = await check(5, true) || 0
+    let b = await check("s", false) || 7
+    a + b
+}
+
+async fn spawned() -> Bool {
+    let t = task.spawn(produce(5))
+    let e = await t
+    err.as[Fault[Int]](&e) is Some(_) && !(err.as[Fault[String]](&e) is Some(_))
+}
+
+let ex = task.currentThreadExecutor()
+print "sum: ${ex.runToCompletion(root())}"
+print "task: ${ex.runToCompletion(spawned())}"
+-- stdout --
+sum: 8
+task: true

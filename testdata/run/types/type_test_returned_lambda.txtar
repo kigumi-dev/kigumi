@@ -1,0 +1,26 @@
+-- src --
+// A generic fn that returns a lambda reading its type parameter only at
+// runtime hands the lambda its environment, which is a capture like any
+// other.
+import err from std/error
+interface Show { fn show(self) -> String }
+type Fault[T: Copy] = { pub value T }
+fn Fault[T].message(self) -> String { "fault" }
+type W[T] = { pub n Int }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+fn capt[T: Copy](v: T) -> fn(&Error) -> Bool { (e: &Error) => err.as[Fault[T]](e) is Some(_) }
+fn tester[T]() -> fn(&Show) -> Bool { (s: &Show) => W[T] { n: 0 }.same(s) }
+let ei: Error = Fault { value: 1 }
+let es: Error = Fault { value: "s" }
+let ci = capt(0)
+let cs = capt("")
+print "closure: ${ci(&ei)} ${ci(&es)} ${cs(&es)} ${cs(&ei)}"
+let wi: Show = W[Int] { n: 0 }
+let ws: Show = W[String] { n: 0 }
+let ti = tester[Int]()
+let ts = tester[String]()
+print "tester: ${ti(&wi)} ${ti(&ws)} ${ts(&ws)} ${ts(&wi)}"
+-- stdout --
+closure: true false true false
+tester: true false true false

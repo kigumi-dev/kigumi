@@ -62,6 +62,7 @@ func (c *checker) foreignLifetimes(ts ...TypeID) map[EntityID]bool {
 
 func (c *checker) lifetimeString(t TypeID, qualify map[EntityID]bool) string {
 	w := newTypeWriter()
+	w.sites = true
 	c.r.writeTypeQualifyingLifetimes(w, t, qualify)
 	return w.str()
 }

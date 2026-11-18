@@ -1,0 +1,48 @@
+-- src --
+import simd from std/simd
+
+// A method reached through a box's method table runs the body for the box's
+// instantiation: the lane shape and N come from the dynamic type.
+interface Lanes {
+    fn first(self) -> String
+}
+
+type Wide[const N: usize] = { pub v simd.Vec[i32, N], pub tag Int }
+type Narrow[const N: usize] = { pub v simd.Vec[u8, N], pub tag Int }
+type Plain[const N: usize] = { pub tag Int }
+
+fn Wide[N].first(self) -> String {
+    let doubled = self.v.add(self.v)
+    "wide ${self.tag} N=${N} ${doubled.lane(0)} ${doubled.lane(N - 1)}"
+}
+
+fn Narrow[N].first(self) -> String {
+    let doubled = self.v.add(self.v)
+    "narrow ${self.tag} N=${N} ${doubled.lane(0)} ${doubled.lane(N - 1)}"
+}
+
+fn Plain[N].first(self) -> String { "plain ${self.tag} N=${N}" }
+
+fn show(x: Lanes) -> String { x.first() }
+
+fn boxed[const N: usize](tag: Int) -> Lanes { Plain[N] { tag: tag } }
+
+fn wide[const N: usize](v: simd.Vec[i32, N], tag: Int) -> Lanes { Wide { v: v, tag: tag } }
+
+let mut all: Array[Lanes] = Array.empty()
+all.push(Wide { v: simd.Vec.splat[i32, 4](3), tag: 1 })
+all.push(Narrow { v: simd.Vec.splat[u8, 16](100), tag: 2 })
+all.push(Plain[2] { tag: 3 })
+all.push(Plain[5] { tag: 4 })
+all.push(boxed[7](5))
+all.push(wide(simd.Vec.splat[i32, 4](-4), 6))
+for x in all {
+    print show(x)
+}
+-- stdout --
+wide 1 N=4 6 6
+narrow 2 N=16 200 200
+plain 3 N=2
+plain 4 N=5
+plain 5 N=7
+wide 6 N=4 -8 -8

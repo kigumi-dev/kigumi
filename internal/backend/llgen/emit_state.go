@@ -64,6 +64,9 @@ type emitter struct {
 	ssigs        map[*midir.Func]*scalarSig
 	ssig         *scalarSig
 	wrapNeed     map[wrapperKey]bool
+	instDescs    map[sem.TypeID]instDesc
+	descAdapters map[string]*descAdapter
+	tn           tnTable
 	wrapDone     map[wrapperKey]bool
 	catch        bool
 	abiSym       string

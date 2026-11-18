@@ -53,7 +53,9 @@ func (c *checker) synthLambda(n syntax.NodeID, want TypeID) TypeID {
 	c.locals = nil
 	savedConsumed, savedBranch := c.consumed, c.branch
 	c.consumed, c.branch = consumeLog{}, 0
+	mark := len(c.opens)
 	ret = c.lambdaBody(body, ret)
+	c.noteLambdaOuter(id, mark)
 	// A closure is reached through a value, so its result crosses as a carrier; a payload-free variant's box is an immortal.
 	if res := c.vars.resolve(ret); c.r.Types.ContainsVar(res) || c.r.containsClosure(res) || c.r.BoxAllocates(res) {
 		c.crossDirect(body, res)

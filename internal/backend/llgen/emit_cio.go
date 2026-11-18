@@ -159,7 +159,7 @@ func (e *emitter) ffiRecordCall(sb *strings.Builder, key string, args []string, 
 		fmt.Fprintf(sb, "  %s = ptrtoint ptr %s to i64\n", asInt, mem)
 		h := e.irb(sb).Call(rtInt, vi64text(asInt), vi32(e.numKind(sem.TyI64))).Text
 		fields := e.argArray(sb, []string{h})
-		return e.irb(sb).Call(rtRecord, vptr(e.descOfType(dst)), vi64(1), vptr(fields)).Text, true
+		return e.irb(sb).Call(rtRecord, vptr(e.recordDescOf(sb, dst)), vi64(1), vptr(fields)).Text, true
 	case "std/ffi.CValue.ptr":
 		return e.irb(sb).Call(rtPtr, vptr(handle(args[0]))).Text, true
 	case "std/ffi.CValue.get":
@@ -182,19 +182,4 @@ func (e *emitter) ffiRecordCall(sb *strings.Builder, key string, args []string, 
 		return e.irb(sb).Call(rtUnit).Text, true
 	}
 	return e.ffiScalarCall(sb, key, args, types, dst)
-}
-
-// errorAsCall passes two descriptors because a generic E can't check
-// `e is E(x)` directly at runtime (E101): E itself, and
-// Context for rt_error_as's wrap-chain walk.
-func (e *emitter) errorAsCall(sb *strings.Builder, arg string, dst sem.TypeID) string {
-	opt, _ := e.r.Types.IsOption(dst)
-	want := e.r.Types.Node(opt).Ent
-	ctxEnt := e.r.LangItem("Context")
-	ctxDesc, wrapped := "null", 0
-	if ctxEnt != 0 {
-		ctxDesc = e.desc(ctxEnt)
-		wrapped = e.r.Field(e.r.FindField(ctxEnt, "wrapped")).Index
-	}
-	return e.irb(sb).Call(rtErrorAs, vptr(arg), vptr(e.desc(want)), vptr(ctxDesc), vi64(wrapped)).Text
 }

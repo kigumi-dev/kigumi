@@ -1,0 +1,26 @@
+-- src --
+// A comptime call reaching a generic fn value past polymorphic recursion
+// composes its runtime types as a run does.
+interface Show { fn show(self) -> String }
+type W[T: Copy] = { pub value T }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+type Wrap[T: Copy] = { pub w T }
+fn Wrap[T].step(self, n: Int, p: &Show) -> Bool { nest(self, n, p) }
+fn sameAs[T: Copy](v: T, p: &Show) -> Bool { W { value: v }.same(p) }
+fn nest[T: Copy](v: T, n: Int, p: &Show) -> Bool {
+    if n == 0 {
+        let g = sameAs[T]
+        return g(v, p)
+    }
+    Wrap { w: v }.step(n - 1, p)
+}
+fn run(k: Int) -> Bool {
+    let w5: Show = W { value: Wrap { w: Wrap { w: Wrap { w: Wrap { w: Wrap { w: 1 } } } } } }
+    nest(1, k, &w5)
+}
+const A: Bool = comptime run(5)
+const B: Bool = comptime run(4)
+print "${A} ${B}"
+-- stdout --
+true false

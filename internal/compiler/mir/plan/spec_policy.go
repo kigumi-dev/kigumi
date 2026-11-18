@@ -86,9 +86,16 @@ func (s *specializer) drop(sp *spec) {
 }
 
 func (s *specializer) revert(sp *spec, site *callSite) {
+	if site.desc {
+		return
+	}
 	site.gone = true
 	delete(s.reboxFlows, site.f)
-	site.f.Blocks[site.blk].Insts[site.idx].Ent = sp.gen
+	in := &site.f.Blocks[site.blk].Insts[site.idx]
+	in.Ent = sp.gen
+	if site.wasType != 0 {
+		site.f.Locals[in.Dst].Type = site.wasType
+	}
 }
 
 func (s *specializer) live() []*spec {

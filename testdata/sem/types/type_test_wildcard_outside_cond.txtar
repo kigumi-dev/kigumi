@@ -1,0 +1,18 @@
+-- app/t/t.kg --
+interface Show { fn show(self) -> String }
+type W[T] = { pub value T }
+fn W[T].show(self) -> String { "w" }
+
+// A wildcard test outside a condition binds nothing, though it opens a type.
+fn tests(b: &Show) -> Bool {
+    let t = b is W(_)
+    let u = b is W(v) //~ WARNING bindings of `is` are only in scope inside a condition
+    t && u
+}
+-- expect --
+warning[W805]: bindings of `is` are only in scope inside a condition
+ --> app/t/t.kg:8:13
+  |
+8 |     let u = b is W(v) //~ WARNING bindings of `is` are only in scope inside a condition
+  |             ^^^^^^^^
+

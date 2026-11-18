@@ -29,6 +29,14 @@ func (r *Result) InstanceOf(id EntityID) (InstanceInfo, bool) {
 	return in, ok
 }
 
+// GenericOf is the generic body id instantiates, or id itself.
+func (r *Result) GenericOf(id EntityID) EntityID {
+	if in, ok := r.instances[id]; ok {
+		return in.Gen
+	}
+	return id
+}
+
 func (r *Result) InstanceSubst(gen EntityID, args []TypeID) map[EntityID]TypeID {
 	s := map[EntityID]TypeID{}
 	for i, p := range r.Fn(gen).TypeParams {

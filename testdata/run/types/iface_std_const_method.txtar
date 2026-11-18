@@ -1,0 +1,12 @@
+-- src --
+// A std method with a const parameter reached through a method table gets the
+// const argument of the boxed value's instantiation.
+interface Sized {
+    fn len(self) -> usize
+}
+
+let a: Sized = FixedArray.filled[Int, 4](7)
+let b: Sized = FixedArray.filled[Int, 9](7)
+print "${a.len()} ${b.len()}"
+-- stdout --
+4 9

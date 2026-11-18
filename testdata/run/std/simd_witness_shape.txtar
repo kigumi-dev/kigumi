@@ -1,0 +1,31 @@
+-- src --
+import simd from std/simd
+
+// A witness a constrained generic call hands over is the body for the type
+// argument's instantiation, even when the call forwards it or sits in a generic body.
+interface Eval {
+    fn value(self) -> Int
+}
+
+type Wrap[const N: usize] = { pub v simd.Vec[i32, N] }
+
+fn Wrap[N].value(self) -> Int { self.v.add(self.v).lane(N - 1).toInt() }
+
+type Lanes[T: Copy] = { pub v simd.Vec[T, 4], pub n Int }
+
+fn Lanes[T].value(self) -> Int {
+    _ = self.v.add(self.v)
+    self.n
+}
+
+fn use[T: Eval](x: T) -> Int { x.value() }
+
+fn relay[T: Eval](x: T) -> Int { use(x) + 1 }
+
+fn mk[const N: usize](v: simd.Vec[i32, N]) -> Int { relay(Wrap { v: v }) }
+
+print "${use(Wrap { v: simd.Vec.splat[i32, 4](3) })} ${relay(Wrap { v: simd.Vec.splat[i32, 4](4) })} ${mk(simd.Vec.splat[i32, 4](5))}"
+print "${use(Lanes { v: simd.Vec.splat[i32, 4](1), n: 7 })} ${relay(Lanes { v: simd.Vec.splat[f32, 4](1.5), n: 8 })}"
+-- stdout --
+6 9 11
+7 9

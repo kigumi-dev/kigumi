@@ -1,6 +1,8 @@
 package build
 
 import (
+	"fmt"
+
 	"kigumi/internal/compiler/hir"
 	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
@@ -44,7 +46,10 @@ func (b *builder) testRange(p *hir.Pat, v midir.LocalID) midir.LocalID {
 
 func (b *builder) testCtor(p *hir.Pat, v midir.LocalID) midir.LocalID {
 	if p.IsType {
-		cond := b.emit(midir.Inst{Op: midir.OpIsType, Dst: b.temp(sem.TyBool), Ent: p.Ent, Args: []midir.LocalID{v}, Node: p.Node})
+		if p.Target == 0 {
+			panic(fmt.Sprintf("mir: %s: type test without its target type", b.fn.Name))
+		}
+		cond := b.emit(midir.Inst{Op: midir.OpIsType, Dst: b.temp(sem.TyBool), Ent: p.Ent, Type: p.Target, Args: []midir.LocalID{v}, Node: p.Node})
 		if len(p.Subs) == 1 {
 			return b.andThen(cond, func() midir.LocalID {
 				inner := b.emit(midir.Inst{Op: midir.OpUnbox, Dst: b.temp(p.Subs[0].Type), Args: []midir.LocalID{v}, Node: p.Node})

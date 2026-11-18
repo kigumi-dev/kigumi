@@ -1,0 +1,40 @@
+-- src --
+// A record holding a lambda that reads a runtime type is a type per
+// instantiation of the lambda's generic, or per type a test opened for it, and
+// boxing it keeps that type on both sides of an exact test.
+interface Show {
+    fn show(self) -> String
+    fn same(self, s: &Show) -> Bool
+}
+type W[T] = { pub n Int }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+type H[F] = { pub f F }
+fn H[F].show(self) -> String { "h" }
+fn H[F].same(self, s: &Show) -> Bool { s is H(_) }
+fn mk[T]() -> Show {
+    let h = H { f: (t: &Show) => W[T] { n: 0 }.same(t) }
+    let b: Show = h
+    b
+}
+fn opened(a: &Show) -> Show {
+    if a is W(x) {
+        let h = H { f: (t: &Show) => x.same(t) }
+        let b: Show = h
+        return b
+    }
+    W[Bool] { n: 0 }
+}
+let a = mk[Int]()
+let b = mk[String]()
+let c = mk[Int]()
+print "generic ${a.same(&a)} ${a.same(&b)} ${a.same(&c)} ${b.same(&b)}"
+let wi: Show = W[Int] { n: 0 }
+let ws: Show = W[String] { n: 0 }
+let oa = opened(&wi)
+let ob = opened(&ws)
+let oc = opened(&wi)
+print "opened ${oa.same(&oa)} ${oa.same(&ob)} ${oa.same(&oc)} ${ob.same(&ob)}"
+-- stdout --
+generic true false true true
+opened true false true true

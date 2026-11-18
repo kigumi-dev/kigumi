@@ -143,7 +143,7 @@ func (e *emitter) classifyArgs(f *midir.Func, in midir.Inst, disqualify func(mid
 	case midir.OpBuiltin:
 		if !e.inPlaceBuiltin(in) {
 			for i, a := range in.Args {
-				if i != 1 || iterModes[in.Str] == 0 {
+				if (i != 1 || iterModes[in.Str] == 0) && !e.constHole(f, in, i) {
 					disqualify(a)
 				}
 			}

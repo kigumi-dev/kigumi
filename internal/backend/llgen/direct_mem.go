@@ -39,7 +39,7 @@ func (e *emitter) storeLeaf(sb *strings.Builder, fld aggField, p string, l midir
 	case fld.Unit:
 	case fld.Agg != nil:
 		copyAgg(sb, fld.Agg, p, aggPtr(l))
-	case fld.Ref:
+	case fld.Ref, fld.Rt:
 		e.storeRef(sb, p, e.load(sb, l))
 	default:
 		e.storeLeafScalar(sb, fld, p, e.leafScalar(sb, fld, l))
@@ -57,6 +57,8 @@ func (e *emitter) loadLeaf(sb *strings.Builder, f *midir.Func, fld aggField, p s
 		}
 	case fld.Ref:
 		e.store(sb, dst, e.irb(sb).Call(rtRetain, vptr(e.loadRef(sb, p))).Text)
+	case fld.Rt:
+		e.store(sb, dst, e.loadRef(sb, p))
 	default:
 		e.storeScalarResult(sb, f, dst, Value{Type: fld.Ty, Text: e.loadLeafScalar(sb, fld, p)})
 	}

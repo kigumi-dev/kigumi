@@ -1,0 +1,27 @@
+-- src --
+// A constrained generic named as a value runs its witness for the
+// instantiation it was named with, so the box the witness makes tests exactly.
+interface Show { fn show(self) -> String }
+
+type W[T: Copy] = { pub value T }
+
+fn W[T].show(self) -> String { "w" }
+
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+
+interface Maker { fn make(self) -> Show }
+
+type Holder[T: Copy] = { pub v T }
+
+fn Holder[T].make(self) -> Show { W { value: self.v } }
+
+fn use[T: Maker](m: T) -> Show { m.make() }
+
+let u = use[Holder[String]]
+let e = u(Holder { v: "s" })
+print "${W { value: "x" }.same(&e)} ${W { value: 0 }.same(&e)}"
+let direct = use(Holder { v: 1 })
+print "${W { value: "x" }.same(&direct)} ${W { value: 0 }.same(&direct)}"
+-- stdout --
+true false
+false true

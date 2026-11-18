@@ -108,7 +108,11 @@ func (c *checker) resolveWitnesses() {
 		for _, slot := range c.r.Fn(w.fn).Witnesses {
 			t := c.r.Types.Subst(c.r.Types.Param(slot.Param), subst)
 			iface := c.r.Types.Subst(slot.Iface, subst)
-			call.Passes = append(call.Passes, c.witnessArg(w.node, t, iface, slot.Req))
+			pass := c.witnessArg(w.node, t, iface, slot.Req)
+			if c.r.Entities[pass.Ent].Kind == EntFn {
+				c.calleeUse(pass.Ent, nil, t)
+			}
+			call.Passes = append(call.Passes, pass)
 		}
 		for _, p := range c.r.constParamsOf(w.fn) {
 			call.ConstArgs = append(call.ConstArgs, c.constArgFromType(w.node, c.r.Types.Subst(c.r.Types.Param(p), subst)))

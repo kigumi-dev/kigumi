@@ -25,7 +25,7 @@ func (reg *StdOpRegistry) Canonical() string {
 		}
 	}
 	for _, b := range reg.Builtins {
-		fmt.Fprintf(&sb, "builtin %s %s min=%d iter=%t vm=%t native=%d\n", b.Name, b.Desc(), b.Min, b.Iter, b.VM, b.Native)
+		fmt.Fprintf(&sb, "builtin %s %s min=%d iter=%t vm=%t native=%d variadic=%t\n", b.Name, b.Desc(), b.Min, b.Iter, b.VM, b.Native, b.Variadic)
 	}
 	return sb.String()
 }

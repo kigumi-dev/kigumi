@@ -83,6 +83,9 @@ func (r *Result) EraseLifetimes(args []TypeID) []TypeID {
 	return out
 }
 
+// LifetimeStandIn is the one lifetime a runtime type spells for every lifetime: lifetimes do not exist at runtime.
+func (r *Result) LifetimeStandIn(like EntityID) EntityID { return r.standInLifetime(0, like) }
+
 func (r *Result) standInLifetime(k int, like EntityID) EntityID {
 	for len(r.lifetimeStandIns) <= k {
 		e := r.Entities[like]

@@ -19,6 +19,10 @@ type instCode struct {
 	call       atomic.Pointer[callPlan]
 	clo        atomic.Pointer[closurePlan]
 	inlineCopy bool
+	// typeTest caches an OpIsType's instance.Test, plus one so zero is unset; canon the identity of the static
+	// type a box, test or record names.
+	typeTest atomic.Int32
+	canon    atomic.Uint32
 }
 
 type planKind uint8

@@ -1,0 +1,21 @@
+-- src --
+// A lambda whose only runtime type is the one it hands a generic helper
+// captures the environment, also when the generic fn that builds it is
+// specialized; one that calls the helper at a fixed type captures nothing.
+interface Show { fn show(self) -> String }
+type W[T] = { pub n Int }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+fn tests[T](s: &Show) -> Bool { W[T] { n: 0 }.same(s) }
+fn g[T](x: T) -> fn(&Show) -> Bool { (s: &Show) => tests[T](s) }
+noalloc fn fixed[T: Copy](x: T) -> fn(T, &Show) -> T { (y: T, s: &Show) => if tests[Int](s) { y } else { y } }
+let wi: Show = W[Int] { n: 0 }
+let ws: Show = W[String] { n: 0 }
+let f = g(1)
+let h = g("s")
+print "helper ${f(&wi)} ${f(&ws)} ${h(&ws)} ${h(&wi)}"
+let k = fixed(9)
+print "fixed ${k(3, &wi)} ${k(4, &ws)}"
+-- stdout --
+helper true false true false
+fixed 3 4

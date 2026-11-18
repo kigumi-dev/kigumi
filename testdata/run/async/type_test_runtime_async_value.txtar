@@ -1,0 +1,26 @@
+-- src --
+// An async generic fn value built past polymorphic recursion carries its
+// instantiation into the Future it builds.
+import task from std/task
+interface Show { fn show(self) -> String }
+type W[T: Copy] = { pub value T }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+type Wrap[T: Copy] = { pub w T }
+async fn Wrap[T].step(self, n: Int, p: Show) -> Bool { await nest(self, n, p) }
+async fn chk[T: Copy](v: T, p: Show) -> Bool { W { value: v }.same(&p) }
+async fn nest[T: Copy](v: T, n: Int, p: Show) -> Bool {
+    if n == 0 {
+        let f = chk[T]
+        return await f(v, p)
+    }
+    await Wrap { w: v }.step(n - 1, p)
+}
+fn w5() -> Show { W { value: Wrap { w: Wrap { w: Wrap { w: Wrap { w: Wrap { w: 1 } } } } } } }
+async fn root() -> String {
+    "${await nest(1, 5, w5())} ${await nest(1, 4, w5())} ${await nest("s", 5, w5())}"
+}
+let ex = task.currentThreadExecutor()
+print "${ex.runToCompletion(root())}"
+-- stdout --
+true false false

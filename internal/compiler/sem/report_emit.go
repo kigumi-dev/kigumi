@@ -52,7 +52,7 @@ func (r *Result) suppressed(args []any) bool {
 func (r *Result) fmtArg(a any) string {
 	switch v := a.(type) {
 	case TypeID:
-		return r.TypeString(v)
+		return r.diagType(v)
 	case EntityID:
 		return r.entityName(v)
 	case string:

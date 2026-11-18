@@ -1,0 +1,21 @@
+-- src --
+// A SIMD body that drop glue or an interface method table reaches runs as the
+// instance each value's descriptor names, on both backends.
+import simd from std/simd
+
+type W[const N: usize] = resource { pub v simd.Vec[i32, N] }
+fn W[N].drop(move self) { print "drop ${self.v.add(self.v).lane(0)}" }
+
+interface Sh { fn run(self) -> Int }
+type H[T] = { pub v simd.Vec[T, 4] }
+fn H[T: Copy].run(self) -> Int { _ = self.v.add(self.v); 1 }
+
+fn main() {
+    let w = W[4] { v: simd.Vec.splat[i32, 4](3) }
+    let s: Sh = H[i32] { v: simd.Vec.splat[i32, 4](1) }
+    let t: Sh = H[f32] { v: simd.Vec.splat[f32, 4](5.0) }
+    print "made ${w.v.lane(1)} ${s.run()} ${t.run()}"
+}
+-- stdout --
+made 3 1 1
+drop 6

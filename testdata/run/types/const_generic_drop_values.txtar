@@ -1,0 +1,60 @@
+-- src --
+import err from std/error
+
+// A resource whose drop needs its instantiation, built in a body reached as a
+// fn value with a witness bound or as a method value, drops with the
+// arguments of the instantiation it was built at.
+type Guard[T: Copy, const N: usize] = resource { pub v T }
+
+fn Guard[T, N].drop(move self) { print "drop N=${N}" }
+
+fn mkg[T: Copy + Eq](v: T) -> Int {
+    let g = Guard[T, 4] { v: v }
+    1
+}
+
+fn plain[T: Copy](v: T) -> Int {
+    let g = Guard[T, 5] { v: v }
+    2
+}
+
+type Fault[T: Copy] = { pub value T }
+
+fn Fault[T].message(self) -> String { "fault" }
+
+type Probe[T: Copy] = resource { pub e Error, pub v T }
+
+fn Probe[T].drop(move self) { print "probe as=${err.as[Fault[T]](&self.e) is Some(_)}" }
+
+type Maker[T: Copy] = { pub v T }
+
+fn Maker[T].make(self) -> Int {
+    let g = Probe { e: Fault { value: self.v }, v: self.v }
+    1
+}
+
+print "direct ${plain(1)}"
+print "directw ${mkg(1)}"
+let f = mkg[Int]
+print "value ${f(3)}"
+{
+    let a = Probe { e: Fault { value: 1 }, v: 2 }
+}
+let m = Maker { v: 5 }
+print "maker ${m.make()}"
+let mv = m.make
+print "maker value ${mv()}"
+print "end"
+-- stdout --
+drop N=5
+direct 2
+drop N=4
+directw 1
+drop N=4
+value 1
+probe as=true
+probe as=true
+maker 1
+probe as=true
+maker value 1
+end

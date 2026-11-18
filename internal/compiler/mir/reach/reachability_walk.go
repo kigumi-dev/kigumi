@@ -1,6 +1,7 @@
 package reach
 
 import (
+	"kigumi/internal/compiler/mir/instance"
 	midir "kigumi/internal/compiler/mir/ir"
 	opdef "kigumi/internal/compiler/mir/ops"
 	"kigumi/internal/compiler/sem"
@@ -9,6 +10,7 @@ import (
 
 type reachWalk struct {
 	byEnt     map[sem.EntityID]*midir.Func
+	desc      *instance.Bodies
 	lower     func(sem.EntityID)
 	lowerable func(sem.EntityID) bool
 	r         *sem.Result
@@ -40,7 +42,9 @@ func (w *reachWalk) markType(id sem.EntityID) {
 		}
 	}
 	w.walkType(decl.Underlying)
-	w.root(decl.Drop, RootDropGlue)
+	if !w.desc.Specialized(decl.Drop) {
+		w.root(decl.Drop, RootDropGlue)
+	}
 }
 
 // rt_error_as walks Context values by descriptor, so std/error.as keeps the type even when nothing builds one.
@@ -59,6 +63,7 @@ func (w *reachWalk) walkType(t sem.TypeID) {
 	n := w.r.Types.Node(t)
 	if n.Kind == sem.KNamed {
 		w.markType(n.Ent)
+		w.rootInstanceDrop(t, n.Ent)
 	}
 	w.walkType(n.Elem)
 	for _, a := range n.Args {
@@ -137,7 +142,7 @@ func (w *reachWalk) inst(f *midir.Func, id sem.EntityID, pkg sem.PackageID, in *
 			dstT = w.r.Types.Node(dstT).Elem
 		}
 		for _, wit := range w.r.Witnesses(in.Type, dstT, pkg) {
-			w.visit(id, wit, "witness")
+			w.visit(id, w.witnessBody(wit, in.Type), "witness")
 		}
 		if w.r.Types.Kind(in.Type) != sem.KNamed {
 			w.markType(w.r.EntityOfName(w.r.TypeString(in.Type)))
@@ -158,7 +163,13 @@ func newReachWalk(r *sem.Result, byEnt map[sem.EntityID]*midir.Func) *reachWalk 
 
 // Reachable walks from the entry, the exports and the tests among funcs, keeping every static's value types.
 func Reachable(r *sem.Result, entry *midir.Func, funcs []*midir.Func, byEnt map[sem.EntityID]*midir.Func) *Reachability {
+	return ReachableWith(r, entry, funcs, byEnt, nil)
+}
+
+// ReachableWith is Reachable over a planned program whose descriptors reach the bodies in desc.
+func ReachableWith(r *sem.Result, entry *midir.Func, funcs []*midir.Func, byEnt map[sem.EntityID]*midir.Func, desc *instance.Bodies) *Reachability {
 	w := newReachWalk(r, byEnt)
+	w.desc = desc
 	if entry != nil {
 		w.root(entry.Ent, RootEntry)
 	}

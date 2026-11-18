@@ -1,0 +1,68 @@
+-- app/t/t.kg --
+interface Show { fn show(self) -> String }
+type W[T: Copy] = { pub value T }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+
+// A type a test opened stands for what that one run of the test found, so a
+// value of it cannot leave the test's branch, through a lambda's result or
+// any other branch's.
+fn escapes(s: &Show) -> Int {
+    let f = (t: &Show) => if t is W(x) { Some(x.value) } else { None } //~ ERROR `(T opened at app/t/t.kg:10:35)?` names a type an `is` test opened, so it cannot leave that test's branch
+    let o = if s is W(x) { Some(x) } else { None } //~ ERROR `(W[T opened at app/t/t.kg:11:21])?` names a type an `is` test opened, so it cannot leave that test's branch
+    let g = (t: &Show) => { //~ ERROR `closure fn(&Show) -> (T opened at app/t/t.kg:13:17)?` names a type an `is` test opened, so it cannot leave that test's branch
+        if t is W(y) {
+            return Some(y.value)
+        }
+        None
+    }
+    let b = for { //~ ERROR `(W[T opened at app/t/t.kg:19:17])?` names a type an `is` test opened, so it cannot leave that test's branch
+        if s is W(z) { break Some(z) }
+        break None
+    }
+    0
+}
+
+// Inside its branch the opened type is an ordinary one, lambdas included.
+fn stays(s: &Show, want: &Show) -> Bool {
+    if s is W(x) {
+        let f = (t: &Show) => x.same(t)
+        let v = if f(want) { Some(x.value) } else { None }
+        v is Some(_)
+    } else {
+        false
+    }
+}
+
+// A loop may break out of the branch with a value of a type the test did not open.
+fn breaks(s: &Show, want: &Show) -> Bool {
+    for {
+        if s is W(x) { break x.same(want) }
+        break false
+    }
+}
+-- expect --
+error[E426]: `(T opened at app/t/t.kg:10:35)?` names a type an `is` test opened, so it cannot leave that test's branch
+  --> app/t/t.kg:10:27
+   |
+10 |     let f = (t: &Show) => if t is W(x) { Some(x.value) } else { None } //~ ERROR `(T opened at app/t/t.kg:10:35)?` names a type an `is` test opened, so it cannot leave that test's branch
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E426]: `(W[T opened at app/t/t.kg:11:21])?` names a type an `is` test opened, so it cannot leave that test's branch
+  --> app/t/t.kg:11:13
+   |
+11 |     let o = if s is W(x) { Some(x) } else { None } //~ ERROR `(W[T opened at app/t/t.kg:11:21])?` names a type an `is` test opened, so it cannot leave that test's branch
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E426]: `closure fn(&Show) -> (T opened at app/t/t.kg:13:17)?` names a type an `is` test opened, so it cannot leave that test's branch
+  --> app/t/t.kg:12:13
+   |
+12 |     let g = (t: &Show) => { //~ ERROR `closure fn(&Show) -> (T opened at app/t/t.kg:13:17)?` names a type an `is` test opened, so it cannot leave that test's branch
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E426]: `(W[T opened at app/t/t.kg:19:17])?` names a type an `is` test opened, so it cannot leave that test's branch
+  --> app/t/t.kg:18:13
+   |
+18 |     let b = for { //~ ERROR `(W[T opened at app/t/t.kg:19:17])?` names a type an `is` test opened, so it cannot leave that test's branch
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

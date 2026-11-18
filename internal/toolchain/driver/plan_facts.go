@@ -106,7 +106,7 @@ func (c *planCache) artifactFacts(p *BuildProgram, a *buildgraph.Artifact, t bui
 	}
 	f := &planFacts{provenance: an.Provenance, res: an.Res}
 	if an.Prog != nil {
-		f.reach = mirreach.Reachable(an.Prog.R, an.Prog.Entry, an.Prog.Funcs, an.Prog.ByEnt)
+		f.reach = an.Prog.Reachable()
 	}
 	c.facts[key] = f
 	return f

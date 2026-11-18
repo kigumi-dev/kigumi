@@ -1,6 +1,10 @@
 package vm
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+
+	"kigumi/internal/compiler/sem"
+)
 
 // Inside a task a panic from one child's drop joins the others instead of ending the free.
 func (m *Machine) releaseChild(c *obj, fault *Panic) *Panic { return m.releaseChildAt(c, fault, 0) }
@@ -20,7 +24,8 @@ func (m *Machine) runDropHook(v *obj, fault *Panic) (out *Panic) {
 	case h != nil && m.hostWins(drop != nil):
 		return m.callJoined(fault, func() { h(m, ent, []*obj{v}) })
 	case drop != nil:
-		return m.callJoined(fault, func() { m.invoke(drop, nil, false, []*obj{v}) })
+		body, args := m.descCall(drop.Ent, sem.TypeID(v.i), []*obj{v})
+		return m.callJoined(fault, func() { m.invoke(body, nil, false, args) })
 	}
 	return fault
 }

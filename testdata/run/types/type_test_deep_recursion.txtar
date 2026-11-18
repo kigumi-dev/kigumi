@@ -1,0 +1,18 @@
+-- src --
+// Ten thousand levels of polymorphic recursion, one new instantiation each,
+// build each runtime type once and reuse it by pointer.
+interface Show { fn show(self) -> String }
+type W[T] = { pub n Int }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+type Wrap[T] = { pub n Int }
+fn Wrap[T].step(self, n: Int, acc: Int) -> Int { nest[Wrap[T]](n, acc) }
+fn nest[T](n: Int, acc: Int) -> Int {
+    let q: Show = W[T] { n: 0 }
+    let a = if W[T] { n: 0 }.same(&q) { acc + 1 } else { acc }
+    if n == 0 { return a }
+    Wrap[T] { n: 0 }.step(n - 1, a)
+}
+print "${nest[Int](10000, 0)}"
+-- stdout --
+10001

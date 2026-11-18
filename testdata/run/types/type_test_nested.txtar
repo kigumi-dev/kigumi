@@ -1,0 +1,91 @@
+-- src --
+import error from std/error
+
+// A type test nested in another pattern, in an or-pattern, in `if ... is` and
+// in `let ... else` compares like a top-level one.
+type Fault = { pub code Int }
+
+fn Fault.message(self) -> String { "fault" }
+
+type Other = { pub code Int }
+
+fn Other.message(self) -> String { "other" }
+
+type Third = { pub code Int }
+
+fn Third.message(self) -> String { "third" }
+
+type Boxed[T: Copy] = { pub value T }
+
+fn Boxed[T].message(self) -> String { "boxed" }
+
+fn Boxed[T].opt(self, e: Error?) -> T {
+    match e {
+        Some(Boxed(b)) -> b.value
+        _ -> self.value
+    }
+}
+
+fn classify(e: Error?) -> String {
+    match e {
+        Some(Fault(f)) -> "fault ${f.code}"
+        Some(_) -> "some other"
+        None -> "none"
+    }
+}
+
+fn res(r: Int!) -> String {
+    match r {
+        Ok(v) -> "ok ${v}"
+        Err(Fault(f)) -> "err fault ${f.code}"
+        Err(_) -> "err other"
+    }
+}
+
+fn fails(n: Int) -> Int! {
+    if n == 0 {
+        fail Fault { code: 1 }
+    }
+    if n == 1 {
+        fail Other { code: 2 }
+    }
+    n
+}
+
+fn alt(e: &Error) -> String {
+    match e {
+        Fault(_) | Other(_) -> "known"
+        _ -> "unknown"
+    }
+}
+
+fn main() -> Void! {
+    let a: Error? = Some(Fault { code: 7 })
+    let b: Error? = Some(Other { code: 8 })
+    print "${classify(a)} ${classify(b)} ${classify(None)}"
+    print "${res(fails(0))} ${res(fails(1))} ${res(fails(5))}"
+    let x: Error = Fault { code: 1 }
+    let y: Error = Other { code: 2 }
+    let z: Error = Third { code: 3 }
+    print "${alt(&x)} ${alt(&y)} ${alt(&z)}"
+    let o: Error? = Some(Fault { code: 4 })
+    if o is Some(Fault(f)) {
+        print "if-is nested ${f.code}"
+    } else {
+        print "if-is nested miss"
+    }
+    let Some(Fault(g)) = o else {
+        print "let-else miss"
+        return
+    }
+    print "let-else ${g.code}"
+    let mine = Boxed { value: 1 }
+    print "opt: ${mine.opt(Some(Boxed { value: 41 })) + 1} ${mine.opt(Some(Boxed { value: 7.5 })) + 1} ${mine.opt(None) + 1}"
+}
+-- stdout --
+fault 7 some other none
+err fault 1 err other ok 5
+known known unknown
+if-is nested 4
+let-else 4
+opt: 42 2 2

@@ -15,12 +15,16 @@ func (s *specializer) instance(f *midir.Func, ctx *spec, in midir.Inst) ([]sem.T
 	if _, minted := r.InstanceOf(gen); minted {
 		return nil, nil, false
 	}
-	args, ok := s.p.bindTypeArgs(f, in, func(t sem.TypeID) sem.TypeID { return s.inCtx(ctx, t) })
+	mode := bindOptional
+	if len(s.shapeParams()[gen]) > 0 {
+		mode = bindForced
+	}
+	args, ok := s.p.bindTypeArgsVia(f, in, func(t sem.TypeID) sem.TypeID { return s.inCtx(ctx, t) }, mode)
 	if !ok {
 		return nil, nil, false
 	}
-	shapeArgs, shape := s.simdArgsOnly(gen, args)
-	if !r.Specializable(gen) && !shape || in.Op == midir.OpClosure && !shape {
+	shapeArgs, shape := s.shapeArgsOnly(gen, args)
+	if !r.Specializable(gen) && !shape {
 		return nil, nil, false
 	}
 	sharedShape := shape && s.heldIn(f, ctx) == nil && !s.p.DeclaredNoalloc(s.p.ByEnt[gen])
@@ -36,7 +40,7 @@ func (s *specializer) instance(f *midir.Func, ctx *spec, in midir.Inst) ([]sem.T
 	if !r.SpecializeArgs(args) && !s.protoInstance(gen, args) && !s.scalarArgs(args) && !shape || !shape && s.grows(ctx, args) {
 		return nil, nil, false
 	}
-	if in.Op == midir.OpFnItem || in.Op == midir.OpClosure {
+	if in.Op == midir.OpFnItem {
 		// A function value reaches a scalar instance through an adapter that boxes the result again.
 		return args, nil, shape || r.SpecializeArgs(args) || s.protoInstance(gen, args)
 	}
@@ -46,12 +50,21 @@ func (s *specializer) instance(f *midir.Func, ctx *spec, in midir.Inst) ([]sem.T
 	return args, s.witnesses(ctx, gen, r.Files[f.File].Calls[in.Node]), true
 }
 
-// specSite is an instruction naming a body by entity: a call, a fn item, or a method value.
-func specSite(in midir.Inst) bool {
-	return in.Op == midir.OpCall || in.Op == midir.OpFnItem || in.Form() == midir.FormMethod
+func (p *planner) bindTypeArgs(f *midir.Func, in midir.Inst, subst func(sem.TypeID) sem.TypeID) ([]sem.TypeID, bool) {
+	return p.bindTypeArgsVia(f, in, subst, bindOptional)
 }
 
-func (p *planner) bindTypeArgs(f *midir.Func, in midir.Inst, subst func(sem.TypeID) sem.TypeID) ([]sem.TypeID, bool) {
+// bindMode is how far a binding goes: a forced one also binds a lambda through its signature, which optional
+// specialization never did, and a runtime one lets a parameter the caller's types name stand for itself.
+type bindMode int
+
+const (
+	bindOptional bindMode = iota
+	bindForced
+	bindRuntime
+)
+
+func (p *planner) bindTypeArgsVia(f *midir.Func, in midir.Inst, subst func(sem.TypeID) sem.TypeID, mode bindMode) ([]sem.TypeID, bool) {
 	r := p.R
 	gen := in.Ent
 	info := r.Fn(gen)
@@ -60,11 +73,11 @@ func (p *planner) bindTypeArgs(f *midir.Func, in midir.Inst, subst func(sem.Type
 		want[tp] = !r.IsLifetimeParam(tp)
 	}
 	bound := map[sem.EntityID]sem.TypeID{}
-	if in.Op == midir.OpFnItem || in.Op == midir.OpClosure {
-		if !p.bindValueArgs(f, in, want, bound) {
+	if in.Op == midir.OpFnItem {
+		if info.Recv != sem.RecvNone || len(info.Witnesses) > 0 || !p.itemArgs(f, in, want, bound, subst) {
 			return nil, false
 		}
-		return p.boundArgs(gen, want, bound)
+		return p.boundArgs(gen, want, bound, mode == bindRuntime)
 	}
 	call := r.Files[f.File].Calls[in.Node]
 	if call.Callee == gen {
@@ -84,6 +97,9 @@ func (p *planner) bindTypeArgs(f *midir.Func, in midir.Inst, subst func(sem.Type
 		if i == 0 && info.Recv != sem.RecvNone && r.Types.Kind(at) == sem.KRef {
 			at = r.Types.Node(at).Elem
 		}
+		if mode != bindOptional && r.Types.Kind(at) == sem.KClosure && r.Types.Kind(d) == sem.KFn {
+			at = r.Closure(r.Types.Node(at).Ent).Sig
+		}
 		if !r.Types.BindParams(d, at, want, bound) {
 			return nil, false
 		}
@@ -99,10 +115,12 @@ func (p *planner) bindTypeArgs(f *midir.Func, in midir.Inst, subst func(sem.Type
 	if !r.Types.BindParams(r.Types.Node(info.Sig).Elem, ret, want, bound) {
 		return nil, false
 	}
-	return p.boundArgs(gen, want, bound)
+	return p.boundArgs(gen, want, bound, mode == bindRuntime)
 }
 
-func (p *planner) boundArgs(gen sem.EntityID, want map[sem.EntityID]bool, bound map[sem.EntityID]sem.TypeID) ([]sem.TypeID, bool) {
+// boundArgs lines the bindings up with gen's type parameters; with self, one left unbound stands for itself, as
+// it does where the caller's types name the callee's own parameter.
+func (p *planner) boundArgs(gen sem.EntityID, want map[sem.EntityID]bool, bound map[sem.EntityID]sem.TypeID, self bool) ([]sem.TypeID, bool) {
 	r := p.R
 	tps := r.Fn(gen).TypeParams
 	args := make([]sem.TypeID, len(tps))
@@ -111,6 +129,9 @@ func (p *planner) boundArgs(gen sem.EntityID, want map[sem.EntityID]bool, bound 
 			continue
 		}
 		t, ok := bound[tp]
+		if !ok && self {
+			t, ok = r.Types.Param(tp), true
+		}
 		if !ok {
 			return nil, false
 		}

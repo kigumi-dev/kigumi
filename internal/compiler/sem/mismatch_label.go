@@ -13,11 +13,12 @@ func (r *Result) mismatchLabels(want, got TypeID) (string, string) {
 	// Lifetime parameters of different declarations can both be spelled `'a`; qualify each with its declaring item.
 	if qualify := r.collidingLifetimeParams(want, got); qualify != nil {
 		ww, gw := newTypeWriter(), newTypeWriter()
+		ww.sites, gw.sites = true, true
 		r.writeTypeQualifyingLifetimes(ww, want, qualify)
 		r.writeTypeQualifyingLifetimes(gw, got, qualify)
 		return ww.str(), gw.str()
 	}
-	return r.TypeString(want), r.TypeString(got)
+	return r.diagType(want), r.diagType(got)
 }
 
 func (r *Result) collidingLifetimeParams(a, b TypeID) map[EntityID]bool {

@@ -59,7 +59,11 @@ type checker struct {
 	patMoved     patMoveLog
 	contracts    []Effects
 	lambdas      []*lambdaCtx
-	exits        exitLeaves
+	// opens are the parameters this file's type tests opened, in order; a construct's are those past a mark.
+	opens []EntityID
+	// rtPending are the runtime type uses of the current full expression, settled when it ends.
+	rtPending []rtRef
+	exits     exitLeaves
 	// captureSites indexes every Capture entry of a local across open and closed closures, so a write seen after a
 	// closure finishes can still promote that closure's entry.
 	captureSites map[EntityID][]captureSite

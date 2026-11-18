@@ -4425,6 +4425,28 @@
       ]
     },
     {
+      "id": "run/async_generic_box_error",
+      "kind": "run",
+      "group": "async",
+      "stage": "run",
+      "path": "testdata/run/async/async_generic_box_error.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/async_generic_fn_value_type_test",
+      "kind": "run",
+      "group": "async",
+      "stage": "run",
+      "path": "testdata/run/async/async_generic_fn_value_type_test.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/async_handoff_frame_read",
       "kind": "run",
       "group": "async",
@@ -4452,6 +4474,17 @@
       "group": "async",
       "stage": "run",
       "path": "testdata/run/async/async_handoff_returned_read.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/async_lambda_runtime_types",
+      "kind": "run",
+      "group": "async",
+      "stage": "run",
+      "path": "testdata/run/async/async_lambda_runtime_types.txtar",
       "mode": [
         "vm",
         "native"
@@ -4650,6 +4683,17 @@
       "group": "async",
       "stage": "run",
       "path": "testdata/run/async/async_root_panic_sync_callee_no_drop.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/async_runtime_type_args",
+      "kind": "run",
+      "group": "async",
+      "stage": "run",
+      "path": "testdata/run/async/async_runtime_type_args.txtar",
       "mode": [
         "vm",
         "native"
@@ -7025,6 +7069,17 @@
       ]
     },
     {
+      "id": "run/comptime_generic_type_test",
+      "kind": "run",
+      "group": "compiler",
+      "stage": "run",
+      "path": "testdata/run/compiler/comptime_generic_type_test.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/comptime_multi_block",
       "kind": "run",
       "group": "compiler",
@@ -7146,6 +7201,28 @@
       ]
     },
     {
+      "id": "run/const_generic_drop",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/const_generic_drop.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/const_generic_drop_values",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/const_generic_drop_values.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/const_generic_eq_operator",
       "kind": "run",
       "group": "language",
@@ -7184,6 +7261,17 @@
       "group": "language",
       "stage": "run",
       "path": "testdata/run/language/const_generic_owner_witness.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/const_generic_wide_identity",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/const_generic_wide_identity.txtar",
       "mode": [
         "vm",
         "native"
@@ -9038,6 +9126,17 @@
       ]
     },
     {
+      "id": "run/drop_runtime_instance",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/drop_runtime_instance.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/drop_store_kept_ok",
       "kind": "run",
       "group": "ownership",
@@ -9230,6 +9329,39 @@
       "group": "errors",
       "stage": "run",
       "path": "testdata/run/errors/error_as.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/error_as_erased_values",
+      "kind": "run",
+      "group": "errors",
+      "stage": "run",
+      "path": "testdata/run/errors/error_as_erased_values.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/error_as_generic_instance",
+      "kind": "run",
+      "group": "errors",
+      "stage": "run",
+      "path": "testdata/run/errors/error_as_generic_instance.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/error_as_many_types",
+      "kind": "run",
+      "group": "errors",
+      "stage": "run",
+      "path": "testdata/run/errors/error_as_many_types.txtar",
       "mode": [
         "vm",
         "native"
@@ -11481,6 +11613,17 @@
       "group": "types",
       "stage": "run",
       "path": "testdata/run/types/iface_static.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/iface_std_const_method",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/iface_std_const_method.txtar",
       "mode": [
         "vm",
         "native"
@@ -15233,6 +15376,28 @@
       ]
     },
     {
+      "id": "run/simd_descriptor_drop",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/simd_descriptor_drop.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/simd_descriptor_method",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/simd_descriptor_method.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/simd_generic",
       "kind": "run",
       "group": "std",
@@ -15315,6 +15480,28 @@
       "group": "std",
       "stage": "run",
       "path": "testdata/run/std/simd_setlane_bounds.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/simd_shared_body_runs",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/simd_shared_body_runs.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/simd_witness_shape",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/simd_witness_shape.txtar",
       "mode": [
         "vm",
         "native"
@@ -16629,6 +16816,314 @@
       "group": "language",
       "stage": "run",
       "path": "testdata/run/language/tuple.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_closure_instance",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_closure_instance.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_const_open",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_const_open.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_deep_recursion",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_deep_recursion.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_fn_value_instance",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_fn_value_instance.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_generic_instance",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_generic_instance.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_instantiation_budget",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_instantiation_budget.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_lambda_box_identity",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_lambda_box_identity.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_lambda_generic_helper",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_lambda_generic_helper.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_lambda_in_values",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_lambda_in_values.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_lambda_method_value",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_lambda_method_value.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_lambda_runtime_types",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_lambda_runtime_types.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_many_params",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_many_params.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_method_value_own_params",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_method_value_own_params.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_nested",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_nested.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_opened_box_fn_value",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_opened_box_fn_value.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_opened_closure_identity",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_opened_closure_identity.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_opened_value_uses",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_opened_value_uses.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_opens_through_calls",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_opens_through_calls.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_poly_recursion_method",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_poly_recursion_method.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_poly_recursion_vtable",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_poly_recursion_vtable.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_returned_lambda",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_returned_lambda.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_runtime_async_value",
+      "kind": "run",
+      "group": "async",
+      "stage": "run",
+      "path": "testdata/run/async/type_test_runtime_async_value.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_runtime_comptime_value",
+      "kind": "run",
+      "group": "compiler",
+      "stage": "run",
+      "path": "testdata/run/compiler/type_test_runtime_comptime_value.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_runtime_drop_value",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_runtime_drop_value.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_runtime_fn_values",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_runtime_fn_values.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_runtime_lambda",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_runtime_lambda.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_wildcard_forward",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_wildcard_forward.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_witness_fn_value",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_witness_fn_value.txtar",
       "mode": [
         "vm",
         "native"
@@ -22936,6 +23431,36 @@
       ]
     },
     {
+      "id": "sem/noalloc_callee_forms",
+      "kind": "sem",
+      "group": "types",
+      "stage": "check",
+      "path": "testdata/sem/types/noalloc_callee_forms.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/noalloc_drop_lambda",
+      "kind": "sem",
+      "group": "types",
+      "stage": "check",
+      "path": "testdata/sem/types/noalloc_drop_lambda.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/noalloc_generic_lambda",
+      "kind": "sem",
+      "group": "types",
+      "stage": "check",
+      "path": "testdata/sem/types/noalloc_generic_lambda.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/noalloc_hash_err",
       "kind": "sem",
       "group": "effects",
@@ -24661,6 +25186,36 @@
       "group": "types",
       "stage": "check",
       "path": "testdata/sem/types/type_nomono_recursion.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/type_test_open_escape",
+      "kind": "sem",
+      "group": "types",
+      "stage": "check",
+      "path": "testdata/sem/types/type_test_open_escape.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/type_test_open_separate",
+      "kind": "sem",
+      "group": "types",
+      "stage": "check",
+      "path": "testdata/sem/types/type_test_open_separate.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/type_test_wildcard_outside_cond",
+      "kind": "sem",
+      "group": "types",
+      "stage": "check",
+      "path": "testdata/sem/types/type_test_wildcard_outside_cond.txtar",
       "mode": [
         "check"
       ]

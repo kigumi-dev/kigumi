@@ -37,17 +37,31 @@ func (r *Result) signatureKey(fn EntityID, t TypeID) string {
 }
 
 func (r *Result) writeKey(sb *strings.Builder, t TypeID, num paramNumbering) {
+	r.writeKeyAs(sb, t, num, false)
+}
+
+// writeKeyAs with closures also spells each closure type's own entity, which an instantiated closure does not
+// share with the generic one it was cloned from.
+func (r *Result) writeKeyAs(sb *strings.Builder, t TypeID, num paramNumbering, closures bool) {
 	n := r.Types.nodes[t]
 	switch n.Kind {
 	case KNamed, KIface:
 		sb.WriteString(r.entityKey(n.Ent))
 		if len(n.Args) > 0 {
 			sb.WriteString("[")
-			r.writeKeys(sb, n.Args, num)
+			r.writeKeysAs(sb, n.Args, num, closures)
 			sb.WriteString("]")
 		}
 	case KClosure:
 		sb.WriteString(r.entityKey(n.Ent))
+		if closures {
+			sb.WriteString("#" + itoa(int(n.Ent)))
+		}
+		if len(n.Args) > 0 {
+			sb.WriteString("[")
+			r.writeKeysAs(sb, n.Args, num, closures)
+			sb.WriteString("]")
+		}
 	case KParam:
 		if num != nil {
 			sb.WriteString(num(n.Ent))
@@ -57,36 +71,36 @@ func (r *Result) writeKey(sb *strings.Builder, t TypeID, num paramNumbering) {
 	case KRef:
 		if n.Lifetime != 0 {
 			sb.WriteString("&")
-			r.writeKey(sb, n.Lifetime, num)
+			r.writeKeyAs(sb, n.Lifetime, num, closures)
 			sb.WriteByte(' ')
 			if n.Flags&flagMut != 0 {
 				sb.WriteString("mut ")
 			}
-			r.writeKey(sb, n.Elem, num)
+			r.writeKeyAs(sb, n.Elem, num, closures)
 			return
 		}
 		if n.Flags&flagMut != 0 {
 			sb.WriteString("&mut(")
-			r.writeKey(sb, n.Elem, num)
+			r.writeKeyAs(sb, n.Elem, num, closures)
 			sb.WriteString(")")
 			return
 		}
 		sb.WriteString("&")
-		r.writeKey(sb, n.Elem, num)
+		r.writeKeyAs(sb, n.Elem, num, closures)
 	case KPtr:
 		if n.Flags&flagMut != 0 {
 			sb.WriteString("*mut ")
 		} else {
 			sb.WriteString("*const ")
 		}
-		r.writeKey(sb, n.Elem, num)
+		r.writeKeyAs(sb, n.Elem, num, closures)
 	case KFn:
 		sb.WriteString(fnKeyPrefix(n.Flags))
 		if n.Var != 0 {
 			sb.WriteString("escaping#" + hex.EncodeToString([]byte(r.Types.escSets[n.Var-1])) + " ")
 		}
 		sb.WriteString("fn(")
-		r.writeKeys(sb, n.Args, num)
+		r.writeKeysAs(sb, n.Args, num, closures)
 		if n.Flags&fnCVariadic != 0 {
 			sb.WriteString(",...")
 		}
@@ -94,13 +108,17 @@ func (r *Result) writeKey(sb *strings.Builder, t TypeID, num paramNumbering) {
 			sb.WriteString(";variadic")
 		}
 		sb.WriteString(")->")
-		r.writeKey(sb, n.Elem, num)
+		r.writeKeyAs(sb, n.Elem, num, closures)
 	default:
 		sb.WriteString(strings.ReplaceAll(r.TypeString(t), " ", ""))
 	}
 }
 
 func (r *Result) writeKeys(sb *strings.Builder, ts []TypeID, num paramNumbering) {
+	r.writeKeysAs(sb, ts, num, false)
+}
+
+func (r *Result) writeKeysAs(sb *strings.Builder, ts []TypeID, num paramNumbering, closures bool) {
 	first := true
 	for _, a := range ts {
 		if a == 0 {
@@ -110,7 +128,7 @@ func (r *Result) writeKeys(sb *strings.Builder, ts []TypeID, num paramNumbering)
 			sb.WriteString(",")
 		}
 		first = false
-		r.writeKey(sb, a, num)
+		r.writeKeyAs(sb, a, num, closures)
 	}
 }
 

@@ -33,6 +33,8 @@ type typeWriter struct {
 	left      int
 	depth     int
 	truncated bool
+	// sites names each opened parameter with the test that opened it, as a diagnostic must.
+	sites bool
 }
 
 func newTypeWriter() *typeWriter { return &typeWriter{left: typeRenderBudget} }
@@ -68,6 +70,32 @@ func (r *Result) TypeString(t TypeID) string {
 	return w.str()
 }
 
+// writeSuffixed writes inner then suffix; a diagnostic brackets an inner type of several words, so the suffix
+// reads as part of the whole type, not of its last word.
+func (r *Result) writeSuffixed(w *typeWriter, inner TypeID, suffix string) {
+	if !w.sites {
+		r.writeType(w, inner)
+		w.write(suffix)
+		return
+	}
+	sub := &typeWriter{left: w.left, depth: w.depth, sites: true}
+	r.writeType(sub, inner)
+	text := sub.str()
+	if strings.Contains(text, " ") {
+		text = "(" + text + ")"
+	}
+	w.truncated = w.truncated || sub.truncated
+	w.write(text + suffix)
+}
+
+// diagType is t as a diagnostic spells it: two parameters opened from one declared one read apart.
+func (r *Result) diagType(t TypeID) string {
+	w := newTypeWriter()
+	w.sites = true
+	r.writeType(w, t)
+	return w.str()
+}
+
 func (r *Result) writeType(w *typeWriter, t TypeID) {
 	if w.spent() {
 		w.truncated = true
@@ -96,13 +124,11 @@ func (r *Result) writeTypeNode(w *typeWriter, t TypeID) {
 	switch n.Kind {
 	case KNamed, KIface:
 		if elem, ok := tt.IsOption(t); ok {
-			r.writeType(w, elem)
-			w.write("?")
+			r.writeSuffixed(w, elem, "?")
 			return
 		}
 		if val, err, ok := tt.IsResult(t); ok && err == tt.errorType() {
-			r.writeType(w, val)
-			w.write("!")
+			r.writeSuffixed(w, val, "!")
 			return
 		}
 		if tt.isTupleEnt(n.Ent) {
@@ -120,6 +146,11 @@ func (r *Result) writeTypeNode(w *typeWriter, t TypeID) {
 		r.writeArgs(w, n.Args)
 	case KParam:
 		w.write(r.entityName(n.Ent))
+		if site := r.openSite(n.Ent); w.sites && site != "" {
+			w.write(" opened at " + site)
+		}
+	case KRtType:
+		w.write("$type")
 	case KConst:
 		v, ty := tt.ConstValueBig(t)
 		if ty == TyBool {

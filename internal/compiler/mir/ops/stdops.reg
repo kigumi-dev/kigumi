@@ -423,6 +423,10 @@ builtin direct.hash (any) -> int min=1 vm native=inline
 builtin cmp.unordered (any, any, any) -> bool min=3 vm native=runtime
 builtin cmp.guard (bool, bool) -> bool min=2 vm native=runtime
 builtin task.close () -> any vm native=inline
+builtin type.of (any) -> any variadic vm native=inline
+builtin type.arg (any) -> any min=1 vm native=inline
+builtin type.param (any) -> any min=1 vm native=inline
+builtin type.const (any) -> any min=1 vm native=inline
 op 135 ARRAY_TRY_CLONE retired
 op 136 BOX_NEW retired
 op 137 BOX_TRY_NEW primitive (any) -> result

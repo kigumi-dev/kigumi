@@ -143,7 +143,11 @@ func (s *specializer) capAffected() map[*spec]bool {
 func (s *specializer) rollback(mark int) {
 	for i := len(s.edits) - 1; i >= 0; i-- {
 		e := s.edits[i]
-		e.f.Blocks[e.blk].Insts[e.idx].Ent = e.was
+		in := &e.f.Blocks[e.blk].Insts[e.idx]
+		in.Ent = e.was
+		if e.wasType != 0 {
+			e.f.Locals[in.Dst].Type = e.wasType
+		}
 	}
 	out := s.p.Funcs[:0]
 	for _, f := range s.p.Funcs {

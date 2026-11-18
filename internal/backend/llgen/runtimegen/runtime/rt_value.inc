@@ -362,7 +362,7 @@ int rt_variant_index(val v) {
     if (!v || v->kind != K_VARIANT) rt_panic("no match arm matched");
     return v->u.var.v->index;
 }
-val rt_box(val v, rt_type* dyn, void** vt) {
+val rt_box(val v, rt_tnode* dyn, void** vt) {
     if (v->kind == K_BOX) return v;
     val b = alloc(K_BOX);
     b->u.box.dyn = dyn;
@@ -372,7 +372,7 @@ val rt_box(val v, rt_type* dyn, void** vt) {
     return b;
 }
 // An `&Interface` view in its caller's frame: immortal, and owned marks that it holds no count of v.
-void rt_box_lent(void* slot, val v, rt_type* dyn, void** vt) {
+void rt_box_lent(void* slot, val v, rt_tnode* dyn, void** vt) {
     val b = (val)slot;
     b->kind = K_BOX;
     b->rc = -1;
@@ -385,25 +385,6 @@ void rt_box_lent(void* slot, val v, rt_type* dyn, void** vt) {
 }
 val rt_unbox(val b) {
     return b->kind == K_BOX ? rt_retain(b->u.box.v) : b;
-}
-val rt_istype(val b, rt_type* t) {
-    b = rt_deref(b);
-    return rt_bool(b->kind == K_BOX && b->u.box.dyn == t);
-}
-// std/error.as[E]: e is E(x) doesn't type-check over a type parameter
-// (E101), so this runtime downcast runs here instead. target
-// and ctx are compile-time descriptors; wrapped is Context's "wrapped"
-// field index, so a field reorder in error.kg still walks the right slot.
-// sem requires E: Copy, so the match is duplicated with rt_copy, never
-// aliased into the caller's borrow.
-val rt_error_as(val e, rt_type* target, rt_type* ctx, int64_t wrapped) {
-    val cur = rt_deref(e);
-    for (;;) {
-        if (cur->kind != K_BOX) return rt_none();
-        if (cur->u.box.dyn == target) return rt_some(rt_copy(cur->u.box.v));
-        if (!ctx || cur->u.box.dyn != ctx) return rt_none();
-        cur = rt_deref(cur->u.box.v->u.rec.fields[wrapped]);
-    }
 }
 static int boundary(const char* s, int64_t n, int64_t i) {
     return i == n || (s[i] & 0xC0) != 0x80;

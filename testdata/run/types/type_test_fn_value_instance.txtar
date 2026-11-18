@@ -1,0 +1,25 @@
+-- src --
+import err from std/error
+
+// A generic fn named as a value with a type argument its signature does not
+// spell tests that instantiation, as a direct call does.
+type Fault[T: Copy] = { pub value T? }
+
+fn Fault[T].message(self) -> String { "fault" }
+
+fn mk[T: Copy](n: Int) -> Error { Fault[T] { value: None } }
+
+fn f[T: Copy](e: &Error) -> Bool { err.as[Fault[T]](e) is Some(_) }
+
+let d = mk[String](1)
+print "direct: ${err.as[Fault[String]](&d) is Some(_)} ${err.as[Fault[Int]](&d) is Some(_)} ${f[String](&d)}"
+let g = mk[String]
+let e = g(1)
+print "value: ${err.as[Fault[String]](&e) is Some(_)} ${err.as[Fault[Int]](&e) is Some(_)}"
+let h = f[String]
+let k = f[Int]
+print "fvalue: ${h(&d)} ${k(&d)}"
+-- stdout --
+direct: true false true
+value: true false
+fvalue: true false

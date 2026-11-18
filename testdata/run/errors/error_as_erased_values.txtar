@@ -1,0 +1,57 @@
+-- src --
+import err from std/error
+
+// Method values, fn values of generic fns with a witness bound, and a std fn
+// value of error.as run the body for their instantiation, so a downcast in
+// them answers for the value's own type arguments.
+type Fault[T: Copy] = { pub value T }
+
+fn Fault[T].message(self) -> String { "fault" }
+
+type Holder[T: Copy] = { pub v T }
+
+fn Holder[T].make(self) -> Error { Fault { value: self.v } }
+
+fn Holder[T].check(self, e: &Error) -> Bool { err.as[Fault[T]](e) is Some(_) }
+
+fn Holder[T].pick(self, e: &Error) -> T {
+    let f = err.as[Fault[T]]
+    match f(e) {
+        Some(x) -> x.value
+        None -> self.v
+    }
+}
+
+fn mk[T: Copy](v: T) -> Error { Fault { value: v } }
+
+fn mkd[T: Copy + Eq](v: T) -> Error { Fault { value: v } }
+
+let h = Holder { v: 5 }
+let m = h.make
+let e = m()
+print "method value: ${err.as[Fault[Int]](&e) is Some(_)} ${err.as[Fault[String]](&e) is Some(_)}"
+let c = h.check
+let s: Error = Fault { value: "s" }
+let i: Error = Fault { value: 9 }
+print "method value check: ${c(&i)} ${c(&s)}"
+print "direct: ${h.check(&i)} ${h.check(&s)}"
+let one = Holder { v: 1 }
+let p = one.pick
+print "pick: ${one.pick(&s) + 1} ${one.pick(&i) + 1} ${p(&s) + 1} ${p(&i) + 1}"
+let g = mk[Int]
+let e1 = g(1)
+print "fnvalue: ${err.as[Fault[Int]](&e1) is Some(_)} ${err.as[Fault[String]](&e1) is Some(_)}"
+let w = mkd[Int]
+let e2 = w(2)
+print "fnvalue-wit: ${err.as[Fault[Int]](&e2) is Some(_)} ${err.as[Fault[String]](&e2) is Some(_)}"
+let k: fn(Int) -> Error = mkd
+let e3 = k(3)
+print "fnvalue-typed: ${err.as[Fault[Int]](&e3) is Some(_)} ${err.as[Fault[String]](&e3) is Some(_)}"
+-- stdout --
+method value: true false
+method value check: true false
+direct: true false
+pick: 2 10 2 10
+fnvalue: true false
+fnvalue-wit: true false
+fnvalue-typed: true false

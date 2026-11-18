@@ -28,6 +28,7 @@ var (
 	cFnItemContract      = defineCode("E423", "fn-item-contract", "`{name}` is not `{mod}` ({why})")
 	cVariantCtorValue    = defineCode("E424", "variant-ctor-value", "`{name}` needs a payload; write `(x) => {name}(x)`")
 	cErrorNotConform     = defineCode("E425", "error-not-conform", "`{type}` does not conform to `Error` (no `fn message(self) -> String`)")
+	cOpenedEscape        = defineCode("E426", "opened-type-escape", "`{type}` names a type an `is` test opened, so it cannot leave that test's branch")
 
 	cNotCallable         = defineCode("E500", "not-callable", "`{type}` is not callable")
 	cCallArity           = defineCode("E501", "call-arity", "`{name}` expects {n} argument{s}, {m} given")

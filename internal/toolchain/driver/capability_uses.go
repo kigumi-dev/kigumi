@@ -41,7 +41,7 @@ func (a *Analysis) checkProvision(t buildconfig.Target) *mirreach.Reachability {
 	if reach, ok := a.provision[key]; ok {
 		return reach
 	}
-	reach := mirreach.Reachable(a.Prog.R, a.Prog.Entry, a.Prog.Funcs, a.Prog.ByEnt)
+	reach := a.Prog.Reachable()
 	// A published analysis is read-only: a target first seen after publication
 	// still gets its reachability, but cannot add diagnostics to the snapshot.
 	if !a.Res.Sealed() {

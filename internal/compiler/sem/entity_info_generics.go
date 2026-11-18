@@ -12,6 +12,10 @@ type TypeParamInfo struct {
 	// IsLifetime marks a `'a` parameter: its Type is still a
 	// KParam like an ordinary type parameter, matched by entity identity.
 	IsLifetime bool
+	// Opened marks a parameter a type test binds to an argument it reads from the box; Local is the hidden
+	// local holding it, a runtime type or, for a const parameter, its value.
+	Opened bool
+	Local  EntityID
 }
 
 type ConstraintKind uint8

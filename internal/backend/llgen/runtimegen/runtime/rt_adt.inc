@@ -55,7 +55,7 @@ void rt_init(int argc, char** argv, int ntypes, rt_type** types) {
     g_oom_text.u.op.data = (void*)"out of memory";
     g_oom_box.kind = K_BOX;
     g_oom_box.rc = -1;
-    g_oom_box.u.box.dyn = &T_Error;
+    g_oom_box.u.box.dyn = &TN_Error;
     g_oom_box.u.box.v = &g_oom_text;
     g_oom_box.u.box.vt = T_Error_vt;
     g_oom_error_payload[0] = &g_oom_box;
@@ -74,7 +74,7 @@ val rt_err_val(val e) {
     return rt_variant(V_Err, 1, &e);
 }
 val rt_err_msg(const char* msg) {
-    val e = rt_box(rt_opaque("Error", (void*)msg), &T_Error, T_Error_vt);
+    val e = rt_box(rt_opaque("Error", (void*)msg), &TN_Error, T_Error_vt);
     return rt_err_val(e);
 }
 static val alloc_error(void) {
@@ -366,8 +366,8 @@ int rt_exit_code(val r, rt_type* exit_t, rt_type* ctx, int64_t wrapped, int64_t 
     r = rt_deref(r);
     if (r && r->kind == K_VARIANT && r->u.var.v == V_Err) {
         for (val cur = rt_deref(r->u.var.payload[0]); exit_t && cur->kind == K_BOX;) {
-            if (cur->u.box.dyn == exit_t) return (int)rt_deref(cur->u.box.v->u.rec.fields[code])->u.i;
-            if (!ctx || cur->u.box.dyn != ctx) break;
+            if (TN_DESC(cur->u.box.dyn) == exit_t) return (int)rt_deref(cur->u.box.v->u.rec.fields[code])->u.i;
+            if (!ctx || TN_DESC(cur->u.box.dyn) != ctx) break;
             cur = rt_deref(cur->u.box.v->u.rec.fields[wrapped]);
         }
         val m = rt_display(error_message(r->u.var.payload[0]));

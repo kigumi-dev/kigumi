@@ -139,8 +139,11 @@ func (c *checker) closureErase(n syntax.NodeID, closure EntityID, want TypeID) (
 	if need != 0 {
 		c.edge(EffectEdge{Kind: EdgeContract, Target: closure, Mods: need, Node: n})
 	}
-	if len(info.Captures) > 0 {
+	switch {
+	case len(info.Captures) > 0:
 		c.edge(EffectEdge{Kind: EdgeAlloc, Type: want, From: c.r.Types.Closure(closure), Node: n})
+	case c.r.envUse.outer[closure] != nil:
+		c.edge(EffectEdge{Kind: EdgeAlloc, Type: want, From: c.r.Types.Closure(closure), Node: n, Why: whyEnvErase})
 	}
 	return []CoStep{{CoClosureErase, want}}, true
 }

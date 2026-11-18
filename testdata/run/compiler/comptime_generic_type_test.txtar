@@ -1,0 +1,22 @@
+-- src --
+import err from std/error
+
+// A comptime call of a generic fn or of a generic type's method tests the
+// instantiation it runs for.
+type Fault[T: Copy] = { pub value T }
+
+fn Fault[T].message(self) -> String { "fault" }
+
+fn Fault[T].same(self, e: &Error) -> Bool { e is Fault(_) }
+
+fn probe[T: Copy](v: T) -> Bool {
+    let e: Error = Fault { value: v }
+    err.as[Fault[T]](&e) is Some(_) && !(err.as[Fault[Bool]](&e) is Some(_))
+}
+
+const D: Bool = comptime probe(5)
+const M: Bool = comptime Fault { value: 3 }.same(&Fault { value: 4 })
+const N: Bool = comptime Fault { value: 3 }.same(&Fault { value: "s" })
+print "${D} ${M} ${N} ${probe(6)}"
+-- stdout --
+true true false true

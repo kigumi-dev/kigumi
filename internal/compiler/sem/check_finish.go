@@ -18,6 +18,7 @@ func (c *checker) finishWith(nested bool) {
 	c.runTruncateValueChecks()
 	c.resolveClosures(c.closures[c.closureBase:])
 	c.resolveTouched(c.touched[c.touchedBase:])
+	c.settleRtUses()
 	c.keepUnsettled()
 	c.vars.boundary()
 	if nested {
@@ -56,6 +57,11 @@ func (c *checker) resolveTouched(nodes []syntax.NodeID) {
 			}
 			c.info.Coerce[n] = co
 			c.r.noteTaskConversions(c.fn, c.f, n, co)
+		}
+		if inst, ok := c.info.ItemInst[n]; ok {
+			for i := range inst {
+				inst[i] = c.vars.resolve(inst[i])
+			}
 		}
 		if call, ok := c.info.Calls[n]; ok {
 			for i := range call.Inst {

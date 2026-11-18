@@ -16,8 +16,10 @@ type aggField struct {
 	Nk   int
 	Agg  *aggInfo
 	Unit bool
-	// Ref holds one counted reference as an i64, so the layout stays the same on every target.
+	// Ref holds one counted reference as an i64, so the layout stays the same on every target; Rt holds a runtime
+	// type there, which is immortal and so never counted.
 	Ref bool
+	Rt  bool
 }
 
 func (f aggField) mem() Type {
@@ -127,6 +129,10 @@ func (e *emitter) leafField(t sem.TypeID) aggField {
 		f.Agg = sub
 		return f
 	}
+	if e.r.Types.IsRtType(t) {
+		f.Rt = true
+		return f
+	}
 	if e.r.CountedSlot(t) {
 		f.Ref = true
 		return f
@@ -142,7 +148,7 @@ func (f aggField) llType() string {
 		return "[0 x i8]"
 	case f.Agg != nil:
 		return f.Agg.Name
-	case f.Ref:
+	case f.Ref, f.Rt:
 		return "i64"
 	case f.mem() == TI128:
 		return wideSlot

@@ -142,7 +142,7 @@ func (c *checker) synthIs(n syntax.NodeID) TypeID {
 		c.pushScope(ScopeArm, n)
 		c.checkPatternOn(pat, subject, scrutinee, false, c.scope)
 		c.taintPatternBindings(pat, rp)
-		if len(c.r.Scopes[c.scope].Names) > 0 {
+		if c.r.bindsNames(c.scope) {
 			c.errAt(n, cIsBindingOutsideCond)
 		}
 		c.popScope(saved)

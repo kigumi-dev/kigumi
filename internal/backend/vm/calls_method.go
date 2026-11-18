@@ -32,7 +32,7 @@ func (m *Machine) callMethod(recv *obj, name string, args []*obj, kind sem.RecvK
 		cell = mkCell(retain(target))
 		self = cell
 	}
-	r := m.dispatch(fn, append([]*obj{self}, args...))
+	r := m.dispatchAt(fn, t, append([]*obj{self}, args...))
 	if lentCell {
 		box.inner = deref(box.fields[0])
 	}
@@ -50,9 +50,10 @@ func (m *Machine) callMethod(recv *obj, name string, args []*obj, kind sem.RecvK
 	return r
 }
 
-// all leads with the receiver, which stays lent.
-func (m *Machine) dispatch(fn sem.EntityID, all []*obj) *obj {
-	f, lowered := m.lowered(fn)
+// dispatchAt runs fn as the method table of a value of dynamic type t would; all leads with the receiver,
+// which stays lent.
+func (m *Machine) dispatchAt(fn sem.EntityID, t sem.TypeID, all []*obj) *obj {
+	_, lowered := m.lowered(fn)
 	if e := m.r.Entity(fn); e.Kind == sem.EntFn && e.Flags&sem.EfStd != 0 {
 		key := m.stdKey(fn)
 		if m.opts.Sandbox && hostEffect(key) {
@@ -65,7 +66,8 @@ func (m *Machine) dispatch(fn sem.EntityID, all []*obj) *obj {
 		}
 	}
 	if lowered {
-		return m.invoke(f, nil, false, all)
+		body, all := m.descCall(fn, t, all)
+		return m.invoke(body, nil, false, all)
 	}
 	r := m.callPrim(fn, m.stdKey(fn), nil, all)
 	m.releaseArgs(fn, all)

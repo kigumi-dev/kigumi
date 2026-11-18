@@ -94,6 +94,9 @@ func (e *emitter) emitWrappers() string {
 				}
 			}
 		}
+		if e.emitDescAdapters(&sb) {
+			progress = true
+		}
 		if !progress {
 			return sb.String()
 		}
@@ -119,8 +122,8 @@ func (e *emitter) typeDrop(info *sem.TypeDeclInfo) string {
 	if info.Drop == 0 {
 		return "null"
 	}
-	if fn, ok := e.p.ByEnt[info.Drop]; ok {
-		return e.useAdapter(fn)
+	if e.p.ByEnt[info.Drop] != nil {
+		return e.useDescAdapter(info.Drop, 0)
 	}
 	if ownquery.IsStdPrimitive(e.p.R, info.Drop) {
 		e.stdDrops[info.Drop] = true

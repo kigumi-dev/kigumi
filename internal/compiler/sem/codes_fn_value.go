@@ -54,6 +54,11 @@ func (c *checker) bindMethodWitnesses(n syntax.NodeID, fn EntityID, recv TypeID,
 
 // fnItemHidden binds the witnesses of a constrained generic into its function value.
 func (c *checker) fnItemHidden(n syntax.NodeID, fn EntityID, inst []TypeID) {
+	if c.info.ItemInst == nil {
+		c.info.ItemInst = map[syntax.NodeID][]TypeID{}
+	}
+	c.info.ItemInst[n] = inst
+	c.calleeUse(fn, inst, 0)
 	info := c.r.Fn(fn)
 	if len(info.ConstParams) > 0 {
 		c.errAt(n, cConstFnValue, c.r.Entities[fn].Name)

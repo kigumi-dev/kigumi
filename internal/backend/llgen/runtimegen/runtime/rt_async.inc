@@ -434,7 +434,7 @@ static void free_opaque_cb(val v) {
 }
 static void run_drop_hook(val v) {
     val a[1] = {v};
-    rt_invoke((adapter_fn)v->u.rec.type->drop, NULL, 1, a);
+    rt_invoke((adapter_fn)v->u.rec.type->drop, (val)v->u.rec.type->tnode, 1, a);
 }
 static int has_drop_hook(val v) {
     return v->kind == K_RECORD && v->u.rec.type->kind == 1 && v->u.rec.type->drop;
@@ -614,7 +614,7 @@ static void drain_open(dstack* st, val v, int64_t pend, int skip_hook) {
         if (!skip_hook && !guarded && t->kind == 1 && t->drop) {
             v->rc = -1;
             val a[1] = {v};
-            rt_invoke((adapter_fn)t->drop, NULL, 1, a);
+            rt_invoke((adapter_fn)t->drop, (val)t->tnode, 1, a);
             v->rc = 0;
         }
         fr.i = v->u.rec.n - 1;

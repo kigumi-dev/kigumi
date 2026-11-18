@@ -148,6 +148,7 @@ static int g_ntypes;
 static rt_type** g_types;
 static rt_vdesc *V_Some, *V_None, *V_Ok, *V_Err, *V_Less, *V_Equal, *V_Greater;
 static rt_type T_Error = {.name = "Error"};
+static rt_tnode TN_Error = {.kind = K_INT, .rc = -1, .ctor = 1, .desc = &T_Error};
 // The runtime's own errors are boxed as Error with `message` in slot 0.
 // The retain offsets rt_invoke's release of the argument array, as rt_at does.
 static val error_message_adapter(val env, val args) {
@@ -166,6 +167,7 @@ static void* T_Error_vt[1] = {(void*)error_message_adapter};
 
 #include "rt_adt.inc"
 #include "rt_call.inc"
+#include "rt_types.inc"
 void rt_drop(val v) {
     rt_release(v);
 }

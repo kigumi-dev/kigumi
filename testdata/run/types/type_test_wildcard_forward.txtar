@@ -1,0 +1,47 @@
+-- src --
+// The value a wildcard type test binds outside the type's methods carries
+// its instantiation into the methods and generics it reaches, also when two
+// tests of the same type are open at once.
+type Fault[T: Copy] = { pub value T }
+
+fn Fault[T].message(self) -> String { "fault" }
+
+fn Fault[T].same(self, e: &Error) -> Bool { e is Fault(_) }
+
+fn fwd[T: Copy](f: Fault[T], e: &Error) -> Bool { f.same(e) }
+
+fn check(a: &Error, b: &Error) -> Bool {
+    if a is Fault(x) { x.same(b) } else { false }
+}
+
+fn forward(a: &Error, b: &Error) -> Bool {
+    if a is Fault(x) { fwd(x, b) } else { false }
+}
+
+fn nested(a: &Error, b: &Error, c: &Error) -> String {
+    if a is Fault(x) {
+        if b is Fault(y) {
+            return "${x.same(c)} ${y.same(c)} ${fwd(x, c)} ${fwd(y, c)}"
+        }
+    }
+    "no"
+}
+
+fn twice(a: &Error, b: &Error, c: &Error) -> String {
+    let r1 = if a is Fault(x) { x.same(c) } else { false }
+    let r2 = if b is Fault(y) { y.same(c) } else { false }
+    "${r1} ${r2}"
+}
+
+let a: Error = Fault { value: 1 }
+let b: Error = Fault { value: "str" }
+let c: Error = Fault { value: 2 }
+print "same: ${check(&a, &b)} ${check(&a, &c)} ${check(&b, &b)}"
+print "forward: ${forward(&a, &b)} ${forward(&a, &c)} ${forward(&b, &b)}"
+print "nested: ${nested(&a, &b, &c)} / ${nested(&b, &a, &c)}"
+print "twice: ${twice(&a, &b, &c)} / ${twice(&b, &a, &c)}"
+-- stdout --
+same: false true true
+forward: false true true
+nested: true false true false / false true false true
+twice: true false / false true

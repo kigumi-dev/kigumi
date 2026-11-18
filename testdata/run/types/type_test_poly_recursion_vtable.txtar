@@ -1,0 +1,31 @@
+-- src --
+// Polymorphic recursion through an interface call: the method table of a box
+// whose type is known only at runtime reads its type arguments from the box.
+interface Show { fn show(self) -> String }
+
+type W[T: Copy] = { pub value T }
+
+fn W[T].show(self) -> String { "w" }
+
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+
+type Wrap[T: Copy] = { pub w T }
+
+interface Step { fn step(self, n: Int) -> Show }
+
+fn Wrap[T].step(self, n: Int) -> Show { nest(self, n) }
+
+fn nest[T: Copy](v: T, n: Int) -> Show {
+    if n == 0 { return W { value: v } }
+    let s: Step = Wrap { w: v }
+    s.step(n - 1)
+}
+
+let a = nest(1, 0)
+let b = nest(1, 6)
+print "${W { value: 1 }.same(&a)} ${b is W(_)}"
+let w = W { value: Wrap { w: Wrap { w: 1 } } }
+print "${w.same(&nest(1, 2))} ${w.same(&nest(1, 3))} ${w.same(&nest("s", 2))}"
+-- stdout --
+true true
+true false false

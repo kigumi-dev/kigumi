@@ -1,0 +1,22 @@
+-- src --
+// A lambda built in a body that takes its type arguments at runtime captures
+// them, so the type test it reaches answers for the instantiation.
+interface Show { fn show(self) -> String }
+type W[T: Copy] = { pub value T }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+type Wrap[T: Copy] = { pub w T }
+fn Wrap[T].step(self, n: Int, p: &Show) -> Bool { nest(self, n, p) }
+fn apply[T: Copy](v: T, f: fn(T) -> Bool) -> Bool { f(v) }
+fn nest[T: Copy](v: T, n: Int, p: &Show) -> Bool {
+    if n == 0 {
+        let b = W { value: v }
+        return apply(v, (x) => W { value: x }.same(p))
+    }
+    Wrap { w: v }.step(n - 1, p)
+}
+let w5: Show = W { value: Wrap { w: Wrap { w: Wrap { w: Wrap { w: Wrap { w: 1 } } } } } }
+let w1: Show = W { value: Wrap { w: 1 } }
+print "${nest(1, 5, &w5)} ${nest(1, 4, &w5)} ${nest(1, 1, &w1)}"
+-- stdout --
+true false true

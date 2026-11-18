@@ -54,7 +54,7 @@ type obj struct {
 	async bool
 	live  bool
 	numk  int16
-	// i holds an Int, the bits of a Float, a Char, or a Box's dynamic type.
+	// i holds an Int, the bits of a Float, a Char, a Box's dynamic type, or a record's instantiation its drop needs.
 	i int64
 	// w holds the high half of a wide Int, or the bytes last charged for any other value.
 	w      int64

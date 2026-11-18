@@ -1,0 +1,111 @@
+-- src --
+// A chain of generic wrappers with two type arguments per level needs no
+// instantiation to test exactly: each body composes its runtime types from
+// its environment.
+interface Show { fn show(self) -> String }
+
+type W[T: Copy] = { pub value T }
+
+fn W[T].show(self) -> String { "w" }
+
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+
+type P2[A: Copy, B: Copy] = { pub a A, pub b B }
+
+fn wr0[T: Copy](v: T, n: Int) -> Show { W { value: v } }
+
+fn wr1[T: Copy](v: T, n: Int) -> Show {
+    if n == 1 { return W { value: v } }
+    if n % 2 == 0 { wr0(P2 { a: v, b: "s" }, n) } else { wr0(P2 { a: v, b: 1 }, n) }
+}
+
+fn wr2[T: Copy](v: T, n: Int) -> Show {
+    if n == 2 { return W { value: v } }
+    if n % 2 == 0 { wr1(P2 { a: v, b: "s" }, n) } else { wr1(P2 { a: v, b: 1 }, n) }
+}
+
+fn wr3[T: Copy](v: T, n: Int) -> Show {
+    if n == 3 { return W { value: v } }
+    if n % 2 == 0 { wr2(P2 { a: v, b: "s" }, n) } else { wr2(P2 { a: v, b: 1 }, n) }
+}
+
+fn wr4[T: Copy](v: T, n: Int) -> Show {
+    if n == 4 { return W { value: v } }
+    if n % 2 == 0 { wr3(P2 { a: v, b: "s" }, n) } else { wr3(P2 { a: v, b: 1 }, n) }
+}
+
+fn wr5[T: Copy](v: T, n: Int) -> Show {
+    if n == 5 { return W { value: v } }
+    if n % 2 == 0 { wr4(P2 { a: v, b: "s" }, n) } else { wr4(P2 { a: v, b: 1 }, n) }
+}
+
+fn wr6[T: Copy](v: T, n: Int) -> Show {
+    if n == 6 { return W { value: v } }
+    if n % 2 == 0 { wr5(P2 { a: v, b: "s" }, n) } else { wr5(P2 { a: v, b: 1 }, n) }
+}
+
+fn wr7[T: Copy](v: T, n: Int) -> Show {
+    if n == 7 { return W { value: v } }
+    if n % 2 == 0 { wr6(P2 { a: v, b: "s" }, n) } else { wr6(P2 { a: v, b: 1 }, n) }
+}
+
+fn wr8[T: Copy](v: T, n: Int) -> Show {
+    if n == 8 { return W { value: v } }
+    if n % 2 == 0 { wr7(P2 { a: v, b: "s" }, n) } else { wr7(P2 { a: v, b: 1 }, n) }
+}
+
+fn wr9[T: Copy](v: T, n: Int) -> Show {
+    if n == 9 { return W { value: v } }
+    if n % 2 == 0 { wr8(P2 { a: v, b: "s" }, n) } else { wr8(P2 { a: v, b: 1 }, n) }
+}
+
+fn wr10[T: Copy](v: T, n: Int) -> Show {
+    if n == 10 { return W { value: v } }
+    if n % 2 == 0 { wr9(P2 { a: v, b: "s" }, n) } else { wr9(P2 { a: v, b: 1 }, n) }
+}
+
+fn wr11[T: Copy](v: T, n: Int) -> Show {
+    if n == 11 { return W { value: v } }
+    if n % 2 == 0 { wr10(P2 { a: v, b: "s" }, n) } else { wr10(P2 { a: v, b: 1 }, n) }
+}
+
+fn wr12[T: Copy](v: T, n: Int) -> Show {
+    if n == 12 { return W { value: v } }
+    if n % 2 == 0 { wr11(P2 { a: v, b: "s" }, n) } else { wr11(P2 { a: v, b: 1 }, n) }
+}
+
+fn wr13[T: Copy](v: T, n: Int) -> Show {
+    if n == 13 { return W { value: v } }
+    if n % 2 == 0 { wr12(P2 { a: v, b: "s" }, n) } else { wr12(P2 { a: v, b: 1 }, n) }
+}
+
+fn wr14[T: Copy](v: T, n: Int) -> Show {
+    if n == 14 { return W { value: v } }
+    if n % 2 == 0 { wr13(P2 { a: v, b: "s" }, n) } else { wr13(P2 { a: v, b: 1 }, n) }
+}
+
+fn wr15[T: Copy](v: T, n: Int) -> Show {
+    if n == 15 { return W { value: v } }
+    if n % 2 == 0 { wr14(P2 { a: v, b: "s" }, n) } else { wr14(P2 { a: v, b: 1 }, n) }
+}
+
+fn wr16[T: Copy](v: T, n: Int) -> Show {
+    if n == 16 { return W { value: v } }
+    if n % 2 == 0 { wr15(P2 { a: v, b: "s" }, n) } else { wr15(P2 { a: v, b: 1 }, n) }
+}
+
+fn wr17[T: Copy](v: T, n: Int) -> Show {
+    if n == 17 { return W { value: v } }
+    if n % 2 == 0 { wr16(P2 { a: v, b: "s" }, n) } else { wr16(P2 { a: v, b: 1 }, n) }
+}
+
+let a = wr17(1, 3)
+let b = wr17(1, 16)
+let c = wr17(1, 15)
+print "${a is W(_)} ${b is W(_)}"
+print "${W { value: P2 { a: 0, b: "" } }.same(&b)} ${W { value: P2 { a: 0, b: 0 } }.same(&b)}"
+print "${W { value: P2 { a: P2 { a: 0, b: 0 }, b: 0 } }.same(&c)} ${W { value: P2 { a: 0, b: 0 } }.same(&c)} ${W { value: 0 }.same(&a)}"
+-- stdout --
+true true
+true false
+true false false

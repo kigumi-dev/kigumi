@@ -1,0 +1,22 @@
+-- app/t/t.kg --
+interface Show { fn show(self) -> String }
+type W[T] = { pub n Int }
+fn W[T].show(self) -> String { "w" }
+type R[T] = resource { pub tag Int }
+fn R[T].drop(move self) { let w: Show = W[T] { n: 0 } }
+fn makeR[T]() -> Bool { let r = R[T] { tag: 1 }; true }
+
+// A lambda that drops a value whose drop needs T captures T.
+noalloc fn byDrop[T]() -> fn(&Show) -> Bool {
+    (s: &Show) => makeR[T]() //~ ERROR boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+}
+fn instantiate() {
+    let a = byDrop[Int]()
+}
+-- expect --
+error[E910]: boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+  --> app/t/t.kg:10:5
+   |
+10 |     (s: &Show) => makeR[T]() //~ ERROR boxing `closure fn(&Show) -> Bool` into `fn(&Show) -> Bool` allocates
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+

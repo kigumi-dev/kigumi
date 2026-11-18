@@ -56,6 +56,8 @@ const (
 	// KConst is a const generic argument: Var indexes constVals, Elem is the
 	// value's declared type.
 	KConst
+	// KRtType is the compiler's handle on an interned runtime type: immortal, so never counted.
+	KRtType
 )
 
 // Effects shares bit positions with syntax.Mod* so Effects(mods) converts.

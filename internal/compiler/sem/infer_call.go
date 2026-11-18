@@ -55,7 +55,7 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 	if plan != nil {
 		effArgs = plan.placed()
 	}
-	subst := c.callSubst(fn, inst, recv)
+	subst := c.calleeUse(fn, inst, recv)
 	c.callbackEdges(n, fn, sig, effArgs, subst)
 	c.argContracts(effArgs, info.Sig, subst, fn, recvBase)
 	c.fieldCallbackEdges(fn, effArgs)

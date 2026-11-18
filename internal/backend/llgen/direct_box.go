@@ -2,6 +2,7 @@ package llgen
 
 import (
 	"fmt"
+	midir "kigumi/internal/compiler/mir/ir"
 	"strings"
 )
 
@@ -52,7 +53,7 @@ func (e *emitter) aggBoxFn(a *aggInfo) string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "define internal ptr %s(ptr %%v) {\nentry:\n", e.aggBoxSym(a))
 	arr, _ := e.boxLeaves(&sb, a, "%v")
-	fmt.Fprintf(&sb, "  %%r = call ptr @rt_record(ptr %s, i64 %d, ptr %s)\n", e.desc(a.Ent), len(a.Fields), arr)
+	fmt.Fprintf(&sb, "  %%r = call ptr @rt_record(ptr %s, i64 %d, ptr %s)\n", e.recordDesc(&sb, midir.Inst{}, a.Ent, a.T), len(a.Fields), arr)
 	sb.WriteString("  ret ptr %r\n}\n\n")
 	return sb.String()
 }
@@ -70,7 +71,7 @@ func (e *emitter) boxLeaves(sb *strings.Builder, a *aggInfo, src string) (arr st
 }
 
 func (e *emitter) boxLeafAt(sb *strings.Builder, f aggField, p string) string {
-	if f.Ref {
+	if f.Ref || f.Rt {
 		return e.loadRef(sb, p)
 	}
 	b := e.newTmp()
@@ -98,7 +99,7 @@ func (e *emitter) boxLeafAt(sb *strings.Builder, f aggField, p string) string {
 }
 
 func (e *emitter) unboxLeafAt(sb *strings.Builder, f aggField, p, box string) {
-	if f.Ref {
+	if f.Ref || f.Rt {
 		e.storeRef(sb, p, box)
 		return
 	}

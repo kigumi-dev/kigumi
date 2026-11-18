@@ -95,6 +95,8 @@ type Machine struct {
 	valueSites map[valueSiteKey]valueSite
 	boxFacts   map[*midir.Func]localFacts
 	boxParams  *mir.BoxedParams
+	// siteRt is the runtime type the OpCall at site carries for a downcast, 0 when its type is static.
+	siteRt sem.TypeID
 	// curFn/curInst track every instruction (not just calls, unlike site/siteFn), for Panic's Site.
 	curFn   *midir.Func
 	curInst *midir.Inst

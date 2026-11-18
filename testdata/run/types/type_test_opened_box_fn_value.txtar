@@ -1,0 +1,28 @@
+-- src --
+// A box a generic fn value builds past polymorphic recursion carries its
+// instantiation, so a wildcard test that opens it reads the right argument.
+interface Show { fn show(self) -> String }
+type W[T: Copy] = { pub value T }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+fn mkbox[T: Copy](v: T) -> Show { W { value: v } }
+type Wrap[T: Copy] = { pub w T }
+fn Wrap[T].step(self, n: Int) -> Show { nest(self, n) }
+fn nest[T: Copy](v: T, n: Int) -> Show {
+    if n == 0 {
+        let g = mkbox[T]
+        return g(v)
+    }
+    Wrap { w: v }.step(n - 1)
+}
+fn Wrap[T].plain(self, n: Int) -> Show { direct(self, n) }
+fn direct[T: Copy](v: T, n: Int) -> Show {
+    if n == 0 { return W { value: v } }
+    Wrap { w: v }.plain(n - 1)
+}
+let q = nest(1, 5)
+let other = direct(1, 5)
+let wrong = direct("s", 5)
+if q is W(x) { print "opened ${x.same(&other)} ${x.same(&wrong)}" } else { print "not W" }
+-- stdout --
+opened true false

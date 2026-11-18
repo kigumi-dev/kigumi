@@ -18,8 +18,22 @@ func (tt *TypeTable) Param(ent EntityID) TypeID {
 	return tt.Intern(typeNode{Kind: KParam, Ent: ent})
 }
 
+// RtType is the type of a value that holds a runtime type: a type node the backends intern.
+func (tt *TypeTable) RtType() TypeID { return tt.Intern(typeNode{Kind: KRtType}) }
+
+func (tt *TypeTable) IsRtType(t TypeID) bool { return t != 0 && tt.Kind(t) == KRtType }
+
 func (tt *TypeTable) Closure(ent EntityID) TypeID {
 	return tt.Intern(typeNode{Kind: KClosure, Ent: ent})
+}
+
+// ClosureInstance is the runtime identity of closure ent built for the instantiation args of its enclosing
+// generic: a source closure is one type per instantiation, as its monomorphized copies are.
+func (tt *TypeTable) ClosureInstance(ent EntityID, args []TypeID) TypeID {
+	if len(args) == 0 {
+		return tt.Closure(ent)
+	}
+	return tt.Intern(typeNode{Kind: KClosure, Ent: ent, Args: args})
 }
 
 func (tt *TypeTable) Var(n uint32) TypeID { return tt.Intern(typeNode{Kind: KVar, Var: n}) }
@@ -61,3 +75,15 @@ func (tt *TypeTable) ConstValueBig(t TypeID) (*big.Int, TypeID) {
 
 // IsConst reports whether t is a const generic argument value.
 func (tt *TypeTable) IsConst(t TypeID) bool { return t != 0 && tt.nodes[t].Kind == KConst }
+
+// Rebuild is the named, interface or fn type t with args and elem in place of its own.
+func (tt *TypeTable) Rebuild(t TypeID, args []TypeID, elem TypeID) TypeID {
+	n := tt.nodes[t]
+	return tt.Intern(tt.absorbEscMarks(typeNode{Kind: n.Kind, Flags: n.Flags, Ent: n.Ent, Elem: elem, Lifetime: n.Lifetime, Var: n.Var, Args: args}))
+}
+
+// RebuildRef is the reference or pointer type t over elem, without a lifetime.
+func (tt *TypeTable) RebuildRef(t TypeID, elem TypeID) TypeID {
+	n := tt.nodes[t]
+	return tt.Intern(typeNode{Kind: n.Kind, Flags: n.Flags, Elem: elem})
+}

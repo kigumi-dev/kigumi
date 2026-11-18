@@ -16,14 +16,14 @@ func Capabilities(a *Analysis) []string {
 	if a == nil || a.Prog == nil {
 		return nil
 	}
-	return opdef.Capabilities(mirreach.Reachable(a.Prog.R, a.Prog.Entry, a.Prog.Funcs, a.Prog.ByEnt).Ops)
+	return opdef.Capabilities(a.Prog.Reachable().Ops)
 }
 
 func CapabilityReasons(a *Analysis, t buildconfig.Target) []CapabilityReason {
 	if a == nil || a.Prog == nil {
 		return nil
 	}
-	return capabilityReasons(mirreach.Reachable(a.Prog.R, a.Prog.Entry, a.Prog.Funcs, a.Prog.ByEnt), a.Res, t)
+	return capabilityReasons(a.Prog.Reachable(), a.Res, t)
 }
 
 // capabilityReasons is reach's capability report as the artifact's sidecar records.

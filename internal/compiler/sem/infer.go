@@ -81,7 +81,13 @@ func (c *checker) check(n syntax.NodeID, want TypeID) TypeID {
 }
 
 // synthKind dispatches on node kind; want is 0 in synth mode.
+// synthKind types expression n; a type a test inside n opened ends with n, so n's value must not name it.
 func (c *checker) synthKind(n syntax.NodeID, want TypeID) TypeID {
+	mark := len(c.opens)
+	return c.keepOpened(n, mark, c.synthNode(n, want))
+}
+
+func (c *checker) synthNode(n syntax.NodeID, want TypeID) TypeID {
 	if root := c.optChainRoot(n); root != 0 {
 		return c.synthOptChain(n, root)
 	}

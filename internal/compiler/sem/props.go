@@ -28,7 +28,7 @@ func (r *Result) computeCopy(t TypeID) bool {
 	tt := r.Types
 	n := tt.Node(t)
 	switch n.Kind {
-	case KPoison, KPrim, KUntyped, KFn, KPtr:
+	case KPoison, KPrim, KUntyped, KFn, KPtr, KRtType:
 		return true
 	case KRef:
 		return n.Flags&flagMut == 0
