@@ -26,6 +26,7 @@ type emitter struct {
 	descs        map[sem.EntityID]string
 	vdescs       map[sem.EntityID]string
 	primDescs    map[string]string
+	ctorKeys     map[int64]string
 	tables       strings.Builder
 	foreign      map[string]string
 	helpers      strings.Builder

@@ -5723,6 +5723,17 @@
       ]
     },
     {
+      "id": "run/blocking_pool_continue_release",
+      "kind": "run",
+      "group": "concurrency",
+      "stage": "run",
+      "path": "testdata/run/concurrency/blocking_pool_continue_release.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/blocking_pool_contract",
       "kind": "run",
       "group": "concurrency",
@@ -8983,6 +8994,17 @@
       ]
     },
     {
+      "id": "run/drop_instance_lambda_build",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/drop_instance_lambda_build.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/drop_moves_with_value",
       "kind": "run",
       "group": "ownership",
@@ -10566,6 +10588,17 @@
       "group": "ownership",
       "stage": "run",
       "path": "testdata/run/ownership/fn_bound_result_drop.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/fn_callback_result_wrapped_drop",
+      "kind": "run",
+      "group": "ownership",
+      "stage": "run",
+      "path": "testdata/run/ownership/fn_callback_result_wrapped_drop.txtar",
       "mode": [
         "vm",
         "native"
@@ -15398,6 +15431,17 @@
       ]
     },
     {
+      "id": "run/simd_drop_lambda_build",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/simd_drop_lambda_build.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/simd_generic",
       "kind": "run",
       "group": "std",
@@ -16849,6 +16893,17 @@
       "group": "types",
       "stage": "run",
       "path": "testdata/run/types/type_test_deep_recursion.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/type_test_env_passed_again",
+      "kind": "run",
+      "group": "types",
+      "stage": "run",
+      "path": "testdata/run/types/type_test_env_passed_again.txtar",
       "mode": [
         "vm",
         "native"
@@ -23826,6 +23881,16 @@
       "group": "async",
       "stage": "check",
       "path": "testdata/sem/async/pool_nested_read_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/pool_once_paths_err",
+      "kind": "sem",
+      "group": "async",
+      "stage": "check",
+      "path": "testdata/sem/async/pool_once_paths_err.txtar",
       "mode": [
         "check"
       ]

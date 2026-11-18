@@ -66,64 +66,24 @@ func (r *Result) soleParamOf(info *FnInfo, f EntityID) (EntityID, bool) {
 	return out, out != 0
 }
 
-// pathCount holds the calls on the completing path through a node (fall) and the most on a path that returns or breaks
-// inside it (term); diverges marks a node every path leaves through such a jump.
-type pathCount struct {
-	fall, term int
-	diverges   bool
-}
-
-func (a pathCount) max() int {
-	if a.diverges {
-		return a.term
-	}
-	return max(a.fall, a.term)
-}
-
-// seq runs a then b; if a diverges b never runs, and a term path before b keeps its own count.
-func seqCount(a, b pathCount) pathCount {
-	if a.diverges {
-		return a
-	}
-	return pathCount{fall: min(2, a.fall+b.fall), term: min(2, max(a.term, a.fall+b.term)), diverges: b.diverges}
-}
-
-// branchCount joins mutually exclusive arms: the completing path is the busiest arm that completes, and a diverging arm
-// ends a path at its own count.
-func branchCount(arms ...pathCount) pathCount {
-	out := pathCount{diverges: true}
-	for _, a := range arms {
-		if !a.diverges {
-			out.fall = max(out.fall, a.fall)
-			out.diverges = false
-		}
-		term := a.term
-		if a.diverges {
-			term = max(a.term, a.fall)
-		}
-		out.term = max(out.term, term)
-	}
-	return out
-}
-
-// paramCalls counts, over fn's body, the calls through p on the busiest complete path, or 2 for a use that may call it
-// more than once; a returning arm ends its path rather than feeding the statements after it.
+// paramCalls counts, over fn's body, the calls through p on the busiest path, or 2 for a use that may call it more
+// than once.
 func (r *Result) paramCalls(fn, p EntityID) int {
 	fi := &r.Files[r.Entities[fn].File]
 	roles := map[syntax.NodeID]paramRole{}
-	var path func(v syntax.View, nested bool) pathCount
+	var path pathFn
 	path = func(v syntax.View, nested bool) pathCount {
 		if !v.Valid() {
-			return pathCount{}
+			return zeroPath
 		}
 		switch v.Kind() {
 		case syntax.ForExpr:
 			return r.loopPathCount(v, nested, path)
 		case syntax.Lambda:
-			nested = true
+			return fallPath(max(0, r.childPathCount(v, true, path).max()))
 		}
 		r.noteCallRoles(fi, v.ID(), roles)
-		self := pathCount{}
+		self := zeroPath
 		if fi.Uses[v.ID()] == p {
 			if nested || !r.roleCallsOnce(fi, roles[v.ID()]) {
 				self.fall = 2
@@ -133,14 +93,14 @@ func (r *Result) paramCalls(fn, p EntityID) int {
 		}
 		out := seqCount(self, r.childPathCount(v, nested, path))
 		if fi.Types[v.ID()] == TyNever {
-			out.diverges = true
+			out = out.jump(v.Kind())
 		}
 		return out
 	}
 	return path(fi.Tree.View(r.Fn(fn).Body), false).max()
 }
 
-func (r *Result) childPathCount(v syntax.View, nested bool, path func(syntax.View, bool) pathCount) pathCount {
+func (r *Result) childPathCount(v syntax.View, nested bool, path pathFn) pathCount {
 	switch v.Kind() {
 	case syntax.IfExpr:
 		f := v.AsIf()
@@ -150,14 +110,9 @@ func (r *Result) childPathCount(v syntax.View, nested bool, path func(syntax.Vie
 		head := seqCount(path(f.Init().View, nested), path(f.Guard().View, nested))
 		return seqCount(head, branchCount(path(f.Then().View, nested), path(f.Else().View, nested)))
 	case syntax.MatchExpr:
-		m := v.AsMatch()
-		arms := make([]pathCount, 0, m.Arms().Len())
-		for arm := range m.Arms().Views() {
-			arms = append(arms, path(arm, nested))
-		}
-		return seqCount(path(m.Scrutinee().View, nested), branchCount(arms...))
+		return r.matchPathCount(v.AsMatch(), nested, path)
 	}
-	out := pathCount{}
+	out := zeroPath
 	for child := range v.Children() {
 		out = seqCount(out, path(child, nested))
 	}
@@ -211,32 +166,4 @@ func (r *Result) roleCallsOnce(fi *FileInfo, role paramRole) bool {
 	}
 	t := r.Entities[g.Params[role.slot]].Type
 	return r.Types.Kind(t) == KParam && r.callsOnce(ci.Callee, r.Types.Node(t).Ent)
-}
-
-// A loop body runs once when every path through it leaves the loop by `break` or `return`; a `continue` or a path
-// that falls off the end reaches the next iteration, so its calls repeat.
-func (r *Result) loopPathCount(v syntax.View, nested bool, path func(syntax.View, bool) pathCount) pathCount {
-	f := v.AsFor()
-	head := path(f.Head().View, nested)
-	body := path(f.Body().View, nested)
-	if !body.diverges || hasContinue(f.Body().View) {
-		body = path(f.Body().View, true)
-	}
-	return seqCount(head, pathCount{fall: min(2, body.max())})
-}
-
-// hasContinue reports a `continue` in v outside the loops and lambdas nested in it.
-func hasContinue(v syntax.View) bool {
-	for child := range v.Children() {
-		switch child.Kind() {
-		case syntax.ContinueExpr:
-			return true
-		case syntax.ForExpr, syntax.Lambda:
-			continue
-		}
-		if hasContinue(child) {
-			return true
-		}
-	}
-	return false
 }

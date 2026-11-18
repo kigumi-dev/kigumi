@@ -77,7 +77,7 @@ func (m *Machine) execArgs(fr *frame, in *midir.Inst, ic *instCode) {
 	case midir.OpRecord:
 		m.aggTicks(f, in, args, 2)
 		res = mkRecord(in.Ent, args)
-		if m.instanceDrop(in.Ent) {
+		if m.r.DropReadsInstance(in.Ent) {
 			res.i = int64(m.siteType(fr, in, ic, f.Locals[in.Dst].Type))
 		}
 		m.chargeMemory(res)

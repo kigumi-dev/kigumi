@@ -1,0 +1,52 @@
+-- src --
+// A callback's result takes none of the caller's places, wrapped or not, so
+// dropping it stores nothing there, whether the callback is a bound type
+// parameter or a fn type.
+fn applyOpt[U, F: Fn[fn(&String) -> U]](f: F) -> usize {
+    let local = "local-${3}"
+    let r = Some(f(&local))
+    local.len()
+}
+
+fn applyArr[U, F: Fn[fn(&String) -> U]](f: F) -> usize {
+    let local = "local-${4}"
+    let r = Array.of(f(&local))
+    local.len()
+}
+
+fn applyPlainOpt[U](f: fn(&String) -> U) -> usize {
+    let local = "local-${5}"
+    let r = Some(f(&local))
+    local.len()
+}
+
+type Box1[U] = { pub v U }
+
+fn applyRecord[U, F: Fn[fn(&String) -> U]](f: F) -> usize {
+    let local = "local-${66}"
+    let r = Box1 { v: f(&local) }
+    local.len()
+}
+
+type Sink['a] = { pub values &'a mut Array[usize] }
+
+fn applySink['a, U, F: Fn[fn(&String, Sink['a]) -> U]](f: F, sink: Sink['a]) -> usize {
+    let local = "local-${7}"
+    let r = Some(f(&local, sink))
+    local.len()
+}
+
+fn applyPlainSink['a, U](f: fn(&String, Sink['a]) -> U, sink: Sink['a]) -> usize {
+    let local = "local-${8}"
+    let r = Some(f(&local, sink))
+    local.len()
+}
+
+let mut xs: Array[usize] = Array.of(1)
+let n = applySink((s, k) => { k.values.push(s.len()); 0 }, Sink { values: &mut xs })
+let m = applyPlainSink((s, k) => { k.values.push(s.len()); 0 }, Sink { values: &mut xs })
+print "${applyOpt((s: &String) => s.len())} ${applyArr((s: &String) => s.len())} ${applyPlainOpt((s: &String) => s.len())} ${applyRecord((s: &String) => s.len())}"
+print "${n} ${m} ${xs.len()} ${xs[1]} ${xs[2]}"
+-- stdout --
+7 7 7 8
+7 7 3 7 7

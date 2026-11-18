@@ -3,7 +3,6 @@ package llgen
 import (
 	"maps"
 	"slices"
-	"strconv"
 	"strings"
 
 	"kigumi/internal/compiler/sem"
@@ -31,7 +30,7 @@ func (e *emitter) simdInstDesc(t sem.TypeID) string {
 	if e.instDescs == nil {
 		e.instDescs = map[sem.TypeID]instDesc{}
 	}
-	name := "@\".type.inst." + llEscape(e.r.TypeString(t)) + "." + strconv.Itoa(int(t)) + "\""
+	name := "@\".type.inst." + llEscape(string(e.r.TypeKey(t))) + "\""
 	e.instDescs[t] = instDesc{name: name, t: t}
 	e.desc(ent)
 	e.useDescAdapter(drop, t)
@@ -40,8 +39,8 @@ func (e *emitter) simdInstDesc(t sem.TypeID) string {
 
 // instDescData writes the static instantiation descriptors; each shares its entity's field and variant tables.
 func (e *emitter) instDescData(sb *strings.Builder) {
-	for _, t := range slices.Sorted(maps.Keys(e.instDescs)) {
-		d := e.instDescs[t]
+	descs := slices.SortedFunc(maps.Values(e.instDescs), func(a, b instDesc) int { return strings.Compare(a.name, b.name) })
+	for _, d := range descs {
 		ent := e.r.Types.Node(d.t).Ent
 		x, info, base := e.r.Entity(ent), e.r.TypeDecl(ent), e.desc(ent)
 		fields, variants := "null", "null"

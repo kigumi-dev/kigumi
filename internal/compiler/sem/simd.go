@@ -82,7 +82,7 @@ func (c *checker) checkSimdVectors(n syntax.NodeID, sig, recv TypeID) {
 
 // inStdSimd reports whether fn is declared in std/simd, the only package
 // whose call signatures the vector shape rule checks.
-func (c *checker) inStdSimd(fn EntityID) bool {
-	e := c.r.Entity(fn)
-	return e.Kind == EntFn && c.r.Packages[e.Pkg].Path == "std/simd"
+func (r *Result) inStdSimd(fn EntityID) bool {
+	e := r.Entity(fn)
+	return e.Kind == EntFn && r.Packages[e.Pkg].Path == "std/simd"
 }

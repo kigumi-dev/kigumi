@@ -1,4 +1,4 @@
-%rt_type = type { ptr, i32, i32, ptr, i32, ptr, ptr, i64, i64 }
+%rt_type = type { ptr, i32, i32, ptr, i32, ptr, ptr, i64, i64, ptr, ptr }
 %rt_variant = type { ptr, ptr, i32, i32, [64 x i8] }
 %"kg.adt.Result[usize,std/prelude.Error]" = type { i32, [1 x i64] }
 %"kg.adt.Result[Void,std/prelude.Error]" = type { i32, [1 x i64] }
@@ -14,20 +14,21 @@ declare void @rt_cell_init(ptr, ptr)
 declare void @rt_drop(ptr)
 declare ptr @rt_retain(ptr)
 declare void @rt_release(ptr)
-@".type.universe.Option" = global %rt_type { ptr @.p0, i32 2, i32 0, ptr null, i32 2, ptr @".type.universe.Option.variants", ptr null, i64 0, i64 0 }
+declare void @rt_tn_init(i64, ptr, ptr, ptr, i64, ptr, ptr)
+@".type.universe.Option" = global %rt_type { ptr @.p0, i32 2, i32 0, ptr null, i32 2, ptr @".type.universe.Option.variants", ptr null, i64 0, i64 0, ptr null, ptr null }
 @".variant.universe.Option.Some" = global %rt_variant { ptr @.p1, ptr @".type.universe.Option", i32 0, i32 1, [64 x i8] zeroinitializer }
 @".variant.universe.Option.None" = global %rt_variant { ptr @.p2, ptr @".type.universe.Option", i32 1, i32 0, [64 x i8] zeroinitializer }
 @".type.universe.Option.variants" = global [2 x ptr] [ptr @".variant.universe.Option.Some", ptr @".variant.universe.Option.None"]
-@".type.universe.Result" = global %rt_type { ptr @.p3, i32 2, i32 0, ptr null, i32 2, ptr @".type.universe.Result.variants", ptr null, i64 0, i64 0 }
+@".type.universe.Result" = global %rt_type { ptr @.p3, i32 2, i32 0, ptr null, i32 2, ptr @".type.universe.Result.variants", ptr null, i64 0, i64 0, ptr null, ptr null }
 @".variant.universe.Result.Ok" = global %rt_variant { ptr @.p4, ptr @".type.universe.Result", i32 0, i32 1, [64 x i8] zeroinitializer }
 @".variant.universe.Result.Err" = global %rt_variant { ptr @.p5, ptr @".type.universe.Result", i32 1, i32 1, [64 x i8] zeroinitializer }
 @".type.universe.Result.variants" = global [2 x ptr] [ptr @".variant.universe.Result.Ok", ptr @".variant.universe.Result.Err"]
-@".type.universe.Array" = global %rt_type { ptr @.p6, i32 0, i32 0, ptr null, i32 0, ptr null, ptr null, i64 0, i64 0 }
-@".type.std/ffi.CError" = global %rt_type { ptr @.p7, i32 0, i32 2, ptr @".type.std/ffi.CError.fields", i32 0, ptr null, ptr null, i64 0, i64 0 }
+@".type.universe.Array" = global %rt_type { ptr @.p6, i32 0, i32 0, ptr null, i32 0, ptr null, ptr null, i64 0, i64 0, ptr null, ptr null }
+@".type.std/ffi.CError" = global %rt_type { ptr @.p7, i32 0, i32 2, ptr @".type.std/ffi.CError.fields", i32 0, ptr null, ptr null, i64 0, i64 0, ptr null, ptr null }
 @".type.std/ffi.CError.fields" = global [2 x ptr] [ptr @.p8, ptr @.p9]
-@".type.std/os.Host" = global %rt_type { ptr @.p10, i32 0, i32 0, ptr null, i32 0, ptr null, ptr null, i64 0, i64 0 }
-@".type.std/os.Stdout" = global %rt_type { ptr @.p11, i32 0, i32 0, ptr null, i32 0, ptr null, ptr null, i64 0, i64 0 }
-@".type.std/prelude.AllocError" = global %rt_type { ptr @.p12, i32 2, i32 0, ptr null, i32 1, ptr @".type.std/prelude.AllocError.variants", ptr null, i64 0, i64 0 }
+@".type.std/os.Host" = global %rt_type { ptr @.p10, i32 0, i32 0, ptr null, i32 0, ptr null, ptr null, i64 0, i64 0, ptr null, ptr null }
+@".type.std/os.Stdout" = global %rt_type { ptr @.p11, i32 0, i32 0, ptr null, i32 0, ptr null, ptr null, i64 0, i64 0, ptr null, ptr null }
+@".type.std/prelude.AllocError" = global %rt_type { ptr @.p12, i32 2, i32 0, ptr null, i32 1, ptr @".type.std/prelude.AllocError.variants", ptr null, i64 0, i64 0, ptr null, ptr null }
 @".variant.std/prelude.AllocError.OutOfMemory" = global %rt_variant { ptr @.p13, ptr @".type.std/prelude.AllocError", i32 0, i32 0, [64 x i8] zeroinitializer }
 @".type.std/prelude.AllocError.variants" = global [1 x ptr] [ptr @".variant.std/prelude.AllocError.OutOfMemory"]
 @rt_types = global [7 x ptr] [ptr @".type.universe.Option", ptr @".type.universe.Result", ptr @".type.universe.Array", ptr @".type.std/ffi.CError", ptr @".type.std/os.Host", ptr @".type.std/os.Stdout", ptr @".type.std/prelude.AllocError"]
@@ -304,12 +305,18 @@ define i32 @main(i32 %argc, ptr %argv) {
   call void @rt_abi_check(ptr @.p19)
   call void @kg_init_immortals()
   call void @rt_init(i32 %argc, ptr %argv, i32 7, ptr @rt_types)
+  call void @rt_tn_init(i64 1, ptr @rt_tn_defs, ptr @rt_tn_args, ptr @rt_tn, i64 0, ptr @rt_tt, ptr @rt_tt_args)
   call void @kg_init_statics()
   %r = call ptr @"kigumi.main"()
   call void @kg_fini_statics()
   %c = call i32 @rt_exit_code(ptr %r, ptr null, ptr null, i64 0, i64 0)
   ret i32 %c
 }
+@rt_tn_defs = private constant [1 x { i64, ptr, ptr, i32, i32 }] [{ i64, ptr, ptr, i32, i32 } { i64 251388765370047318, ptr null, ptr @".type.std/ffi.CError", i32 0, i32 0 }]
+@rt_tn_args = private constant [1 x i32] [i32 0]
+@rt_tt = private constant [1 x { i64, ptr, ptr, i32, i32 }] [{ i64, ptr, ptr, i32, i32 } zeroinitializer]
+@rt_tt_args = private constant [1 x i32] [i32 0]
+@rt_tn = internal global [1 x ptr] zeroinitializer
 
 @.p0 = private constant [8 x i8] c".Option\00"
 @.p1 = private constant [5 x i8] c"Some\00"

@@ -58,7 +58,11 @@ func (c *borrowCheck) collectOriginsAt() {
 	edges := make([][]originEdge, len(c.f.Blocks))
 	for bid, blk := range c.f.Blocks {
 		for _, in := range blk.Insts {
-			edges[bid] = append(edges[bid], c.originEdge(in, defs, keeps, true))
+			e := c.originEdge(in, defs, keeps, true)
+			if c.signatureCall(in) {
+				e.dsts = slices.DeleteFunc(e.dsts, func(d midir.LocalID) bool { return d == in.Dst })
+			}
+			edges[bid] = append(edges[bid], e)
 		}
 	}
 	order := mirflow.ReversePostorder(c.f)
@@ -99,4 +103,20 @@ func (c *borrowCheck) collectOriginsAt() {
 			}
 		}
 	}
+}
+
+// signatureCall reports a call through a declared signature, a fn type or a type parameter's fn bound: like a type
+// parameter's value, what it returns is dropped as the callers' summaries see it, so it takes no caller place here.
+func (c *borrowCheck) signatureCall(in midir.Inst) bool {
+	if in.Op != midir.OpCallValue || in.Ent != 0 || len(in.Args) == 0 {
+		return false
+	}
+	t := c.f.Locals[in.Args[0]].Type
+	switch c.p.R.Types.Kind(t) {
+	case sem.KFn:
+		return true
+	case sem.KParam:
+		return c.slotFnType(t) != 0
+	}
+	return false
 }

@@ -1,4 +1,4 @@
-%rt_type = type { ptr, i32, i32, ptr, i32, ptr, ptr, i64, i64 }
+%rt_type = type { ptr, i32, i32, ptr, i32, ptr, ptr, i64, i64, ptr, ptr }
 %rt_variant = type { ptr, ptr, i32, i32, [64 x i8] }
 declare { i64, i1 } @llvm.sadd.with.overflow.i64(i64, i64)
 declare void @rt_init(i32, ptr, i32, ptr)
@@ -19,18 +19,18 @@ declare void @rt_drop(ptr)
 declare void @rt_release(ptr)
 declare void @rt_panic(ptr)
 declare i64 @rt_int_val(ptr)
-@".type.universe.Option" = global %rt_type { ptr @.p0, i32 2, i32 0, ptr null, i32 2, ptr @".type.universe.Option.variants", ptr null, i64 0, i64 0 }
+@".type.universe.Option" = global %rt_type { ptr @.p0, i32 2, i32 0, ptr null, i32 2, ptr @".type.universe.Option.variants", ptr null, i64 0, i64 0, ptr null, ptr null }
 @".variant.universe.Option.Some" = global %rt_variant { ptr @.p1, ptr @".type.universe.Option", i32 0, i32 1, [64 x i8] zeroinitializer }
 @".variant.universe.Option.None" = global %rt_variant { ptr @.p2, ptr @".type.universe.Option", i32 1, i32 0, [64 x i8] zeroinitializer }
 @".type.universe.Option.variants" = global [2 x ptr] [ptr @".variant.universe.Option.Some", ptr @".variant.universe.Option.None"]
-@".type.universe.Result" = global %rt_type { ptr @.p3, i32 2, i32 0, ptr null, i32 2, ptr @".type.universe.Result.variants", ptr null, i64 0, i64 0 }
+@".type.universe.Result" = global %rt_type { ptr @.p3, i32 2, i32 0, ptr null, i32 2, ptr @".type.universe.Result.variants", ptr null, i64 0, i64 0, ptr null, ptr null }
 @".variant.universe.Result.Ok" = global %rt_variant { ptr @.p4, ptr @".type.universe.Result", i32 0, i32 1, [64 x i8] zeroinitializer }
 @".variant.universe.Result.Err" = global %rt_variant { ptr @.p5, ptr @".type.universe.Result", i32 1, i32 1, [64 x i8] zeroinitializer }
 @".type.universe.Result.variants" = global [2 x ptr] [ptr @".variant.universe.Result.Ok", ptr @".variant.universe.Result.Err"]
-@".type.universe.Array" = global %rt_type { ptr @.p6, i32 0, i32 0, ptr null, i32 0, ptr null, ptr null, i64 0, i64 0 }
-@".type.std/map.Map" = global %rt_type { ptr @.p7, i32 4, i32 5, ptr @".type.std/map.Map.fields", i32 0, ptr null, ptr null, i64 0, i64 31 }
+@".type.universe.Array" = global %rt_type { ptr @.p6, i32 0, i32 0, ptr null, i32 0, ptr null, ptr null, i64 0, i64 0, ptr null, ptr null }
+@".type.std/map.Map" = global %rt_type { ptr @.p7, i32 4, i32 5, ptr @".type.std/map.Map.fields", i32 0, ptr null, ptr null, i64 0, i64 31, ptr null, ptr null }
 @".type.std/map.Map.fields" = global [5 x ptr] [ptr @.p8, ptr @.p9, ptr @.p10, ptr @.p11, ptr @.p12]
-@".type.std/prelude.AllocError" = global %rt_type { ptr @.p13, i32 2, i32 0, ptr null, i32 1, ptr @".type.std/prelude.AllocError.variants", ptr null, i64 0, i64 0 }
+@".type.std/prelude.AllocError" = global %rt_type { ptr @.p13, i32 2, i32 0, ptr null, i32 1, ptr @".type.std/prelude.AllocError.variants", ptr null, i64 0, i64 0, ptr null, ptr null }
 @".variant.std/prelude.AllocError.OutOfMemory" = global %rt_variant { ptr @.p14, ptr @".type.std/prelude.AllocError", i32 0, i32 0, [64 x i8] zeroinitializer }
 @".type.std/prelude.AllocError.variants" = global [1 x ptr] [ptr @".variant.std/prelude.AllocError.OutOfMemory"]
 @rt_types = global [5 x ptr] [ptr @".type.universe.Option", ptr @".type.universe.Result", ptr @".type.universe.Array", ptr @".type.std/map.Map", ptr @".type.std/prelude.AllocError"]

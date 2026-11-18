@@ -56,19 +56,6 @@ func (m *Machine) typeTestOf(in *midir.Inst, ic *instCode) instance.Test {
 	return t
 }
 
-// instanceDrop reports whether a value of type ent keeps its instantiation for its drop.
-func (m *Machine) instanceDrop(ent sem.EntityID) bool {
-	if m.r.Entity(ent).Kind != sem.EntType {
-		return false
-	}
-	drop := m.r.TypeDecl(ent).Drop
-	if drop == 0 {
-		return false
-	}
-	body, _ := m.lowered(drop)
-	return instance.Bound(m.r, &m.p.Desc, drop) || body != nil && body.HasEnv || len(m.r.Fn(drop).Witnesses) > 0
-}
-
 // descCall is the body and arguments a method-table slot or drop hook of fn runs for the instantiation inst: the
 // body made for it, or the generic one with inst's environment.
 func (m *Machine) descCall(fn sem.EntityID, inst sem.TypeID, all []*obj) (*midir.Func, []*obj) {

@@ -36,7 +36,7 @@ func (e *emitter) compose(sb *strings.Builder, t sem.TypeID, holes map[sem.Entit
 			return "null"
 		case h.value:
 			ty := r.TypeParam(p).ConstType
-			vals[i] = e.irb(sb).Call(rtTnConst, vptr(h.val), vi64(int(constCtor(ty))), vi32(e.constNk(ty))).Text
+			vals[i] = e.irb(sb).Call(rtTnConst, vptr(h.val), vi64(int(e.constCtor(ty))), vi32(e.constNk(ty))).Text
 		default:
 			vals[i] = h.val
 		}

@@ -101,7 +101,7 @@ func (ps *envPass) rewriteInst(b *binder, in midir.Inst) []midir.Inst {
 	case midir.OpBox, midir.OpLendBox:
 		site = in.Type
 	case midir.OpRecord:
-		if ps.dropReadsInstance(in.Ent) {
+		if r.DropReadsInstance(in.Ent) {
 			site = f.Locals[in.Dst].Type
 		}
 	case midir.OpCall:

@@ -72,9 +72,13 @@ func (c *borrowCheck) checkCapture(in midir.Inst) {
 	case midir.OpCellSet:
 		c.checkCallerStore(in)
 	case midir.OpDrop, midir.OpRelease:
+		fls := c.storeFlows(in)
+		if len(fls) == 0 {
+			return
+		}
 		at := in
 		at.Node = c.dropStoreNode(in)
-		for _, fl := range c.storeFlows(in) {
+		for _, fl := range fls {
 			c.checkFlow(fl, at)
 		}
 	case midir.OpSetField, midir.OpSetIndex:

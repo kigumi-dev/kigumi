@@ -36,7 +36,7 @@ func (ps *envPass) siteType(f *midir.Func, in midir.Inst) sem.TypeID {
 	case midir.OpBox, midir.OpLendBox:
 		return in.Type
 	case midir.OpRecord:
-		if ps.dropReadsInstance(in.Ent) {
+		if r.DropReadsInstance(in.Ent) {
 			return f.Locals[in.Dst].Type
 		}
 	case midir.OpCall:
@@ -65,16 +65,6 @@ func errorAsValueTarget(r *sem.Result, f *midir.Func, in midir.Inst) (sem.TypeID
 		return 0, false
 	}
 	return r.Types.IsOption(n.Elem)
-}
-
-// dropReadsInstance reports whether the drop of type ent reads the instantiation of the value it drops.
-func (ps *envPass) dropReadsInstance(ent sem.EntityID) bool {
-	r := ps.p.R
-	if r.Entity(ent).Kind != sem.EntType {
-		return false
-	}
-	drop := r.TypeDecl(ent).Drop
-	return drop != 0 && ps.p.ByEnt[drop] != nil && (instance.Bound(r, &ps.p.Desc, drop) || ps.calleeTakesEnv(drop))
 }
 
 // calleeEnv is the body in calls or makes a value of, when that body takes an environment, and the environment

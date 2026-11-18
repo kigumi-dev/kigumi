@@ -14,7 +14,7 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 		want = 0
 	}
 	sig, inst, badTypeArgs := c.instantiateFn(n, fn, typeArgs, recv)
-	if c.inStdSimd(fn) {
+	if c.r.inStdSimd(fn) {
 		c.checkSimdVectors(n, sig, recv)
 	}
 	c.noteTaskUse(n, fn, recv)

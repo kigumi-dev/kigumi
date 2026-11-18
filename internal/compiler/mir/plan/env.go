@@ -38,6 +38,9 @@ func (p *planner) planEnvs() error {
 			ps.addEnvParam(f)
 		}
 	}
+	if err := ps.checkDropsCharged(bodies); err != nil {
+		return err
+	}
 	for _, f := range bodies {
 		if ps.p.R.Entity(f.Ent).Kind != sem.EntClosure || len(ps.free[f]) == 0 {
 			continue

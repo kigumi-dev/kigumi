@@ -1,0 +1,54 @@
+-- src --
+import task from std/task
+import mem from std/mem
+
+type Counter = {
+    c mem.UnsafeCell[Int]
+}
+
+fn Counter.spin(self) -> Int {
+    for i in 0..1000000 {
+        unsafe { self.c.set(self.c.get() + 1) }
+    }
+    unsafe { self.c.get() }
+}
+
+fn ck() -> Counter { Counter { c: mem.UnsafeCell.new(0) } }
+
+// A `continue` before the consuming call returns to the loop head with no call
+// made, and the call's path leaves by `break`, so mk runs at most once.
+async fn contLoop[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int {
+    let mut out = 0
+    for i in 0..3 {
+        if i == 0 { continue }
+        out = await pool.run(mk()).unwrap()
+        break
+    }
+    out
+}
+
+// Every path that reaches the next iteration makes no call.
+async fn idleFall[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int {
+    let mut out = 0
+    for i in 0..3 {
+        if i == 0 { continue }
+        if i == 1 {
+            out = await pool.run(mk()).unwrap() + 1
+            break
+        }
+    }
+    out
+}
+
+async fn root() -> Int {
+    let c = ck()
+    print "continue ${await contLoop(task.BlockingPool.new(1), move () => () => c.spin())}"
+    let d = ck()
+    print "fall ${await idleFall(task.BlockingPool.new(1), move () => () => d.spin())}"
+    0
+}
+print "done ${task.threadPoolExecutor(2).runToCompletion(root())}"
+-- stdout --
+continue 1000000
+fall 1000001
+done 0

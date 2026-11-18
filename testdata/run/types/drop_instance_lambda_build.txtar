@@ -1,0 +1,57 @@
+-- src --
+// A lambda that only builds a record whose drop reads its instantiation
+// captures the runtime types for it: a drop that tests a type, one that reads
+// a const parameter, and one whose witnesses need no instantiation.
+interface Show { fn show(self) -> String }
+type W[T] = { pub n Int }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+
+type R[T] = resource { pub tag Int }
+fn R[T].drop(move self) {
+    let q: Show = W[Int] { n: 0 }
+    print "drop ${self.tag} int=${W[T] { n: 0 }.same(&q)}"
+}
+
+fn direct[T](tag: Int) -> Int {
+    let f = () => R[T] { tag: tag }
+    let r = f()
+    r.tag
+}
+
+fn built[T](tag: Int) -> Int {
+    let f = () => {
+        let r = R[T] { tag: tag }
+        r.tag
+    }
+    f()
+}
+
+type RS[const N: i32] = resource { pub tag Int }
+fn RS[N].drop(move self) { print "drop ${self.tag} N=${N}" }
+fn mkL[const N: i32](tag: Int) -> fn() -> RS[N] { () => RS { tag: tag } }
+
+type I = { pub n Int }
+fn I.show(self) -> String { "i${self.n}" }
+type H[T: Show] = resource { pub v T, pub k Int }
+fn H[T: Show].drop(move self) { print "drop ${self.k}" }
+fn held[T: Show](v: T, k: Int) -> Int {
+    let h = H { v: v, k: k }
+    h.k
+}
+
+print "${direct[Int](1)} ${built[String](2)}"
+{
+    let f = mkL[3](7)
+    let r = f()
+    print "tag ${r.tag}"
+}
+print "held ${held(I { n: 4 }, 9)}"
+-- stdout --
+drop 1 int=true
+drop 2 int=false
+1 2
+tag 7
+drop 7 N=3
+drop 9
+held 9

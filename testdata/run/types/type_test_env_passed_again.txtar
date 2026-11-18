@@ -1,0 +1,70 @@
+-- src --
+import task from std/task
+import error from std/error
+
+// A body passes its own runtime type environment to the bodies it calls as
+// often as it likes and keeps reading it after: plain, recursive, as fn
+// values, across awaits and for downcasts.
+interface Show { fn show(self) -> String }
+type W[T] = { pub n Int }
+fn W[T].show(self) -> String { "w" }
+fn W[T].same(self, s: &Show) -> Bool { s is W(_) }
+
+fn tst[T](s: &Show) -> Bool { W[T] { n: 0 }.same(s) }
+fn bit[T](s: &Show, v: Int) -> Int { if tst[T](s) { v } else { 0 } }
+
+fn twice[T](s: &Show) -> Int {
+    let a = if tst[T](s) { 1 } else { 0 }
+    let b = if tst[T](s) { 10 } else { 0 }
+    a + b + bit[T](s, 100)
+}
+
+fn depth[T](s: &Show, n: Int) -> Int {
+    if n == 0 {
+        return bit[T](s, 1)
+    }
+    bit[T](s, 1) + depth[T](s, n - 1) + bit[T](s, 1)
+}
+
+fn values[T](s: &Show) -> Int {
+    let f = tst[T]
+    let g = tst[T]
+    let a = if f(s) { 1 } else { 0 }
+    a + bit[T](s, 10) + (if g(s) { 100 } else { 0 })
+}
+
+async fn one() -> Int { 1 }
+fn probe() -> Show { W[Int] { n: 5 } }
+async fn asyncBit[T](v: Int) -> Int {
+    let p = probe()
+    if tst[T](&p) { v * await one() } else { 0 }
+}
+async fn asyncTwice[T]() -> Int {
+    let p = probe()
+    let a = bit[T](&p, 1) + bit[T](&p, 10)
+    let b = await asyncBit[T](100) + await asyncBit[T](1000)
+    a + b + bit[T](&p, 10000)
+}
+async fn root() -> Int { await asyncTwice[Int]() * 100000 + await asyncTwice[String]() }
+
+type Fault[T] = { pub value T }
+fn Fault[T].message(self) -> String { "fault" }
+fn mk[T: Copy](v: T) -> Error { Fault { value: v } }
+fn downcast[T: Copy](seed: T) -> Int {
+    let e = mk(seed)
+    let f = mk(seed)
+    (if error.as[Fault[T]](&e) is Some(_) { 1 } else { 0 }) + (if error.as[Fault[T]](&f) is Some(_) { 10 } else { 0 })
+}
+
+let wi: Show = W[Int] { n: 5 }
+print "twice ${twice[Int](&wi)} ${twice[String](&wi)}"
+print "depth ${depth[Int](&wi, 4)} ${depth[String](&wi, 4)}"
+print "values ${values[Int](&wi)} ${values[String](&wi)}"
+print "async ${task.currentThreadExecutor().runToCompletion(root())}"
+print "downcast ${downcast(3)} ${downcast(true)}"
+-- stdout --
+twice 111 0
+depth 9 0
+values 111 0
+async 1111100000
+downcast 11 11

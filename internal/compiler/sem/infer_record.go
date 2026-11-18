@@ -94,6 +94,7 @@ func (c *checker) synthRecord(n syntax.NodeID, want TypeID) TypeID {
 		c.errAt(n, cMissingField, plural(len(missing)), joinComma(missing), e.Name)
 	}
 	c.buildEdge(n, result)
+	c.rtBuilt(result)
 	c.info.Calls[n] = CallInfo{Kind: CallRecord, Callee: ent, Inst: typeArgs}
 	c.touched = append(c.touched, n)
 	return result

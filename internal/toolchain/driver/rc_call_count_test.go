@@ -24,13 +24,13 @@ var rcCallSites = map[string]*regexp.Regexp{
 
 // Call sites of the count and cell runtime calls in the IR of every native run fixture, std included.
 var pinnedRCCalls = map[string]int{
-	"fixtures":         1243,
-	"rt_retain":        22816,
-	"rt_release":       134310,
-	"rt_release_outer": 98011,
-	"rt_drop":          95293,
-	"rt_cell_init":     12187,
-	"rt_cell_take":     4436,
+	"fixtures":         1248,
+	"rt_retain":        22824,
+	"rt_release":       134469,
+	"rt_release_outer": 98096,
+	"rt_drop":          95350,
+	"rt_cell_init":     12189,
+	"rt_cell_take":     4438,
 	"rt_setfield_swap": 1405,
 	"rt_setindex_swap": 1860,
 }
@@ -764,6 +764,11 @@ var addedAfterBaseline = map[string]bool{
 	"type_test_lambda_method_value.txtar":           true,
 	"type_test_method_value_own_params.txtar":       true,
 	"simd_shared_body_runs.txtar":                   true,
+	"type_test_env_passed_again.txtar":              true,
+	"drop_instance_lambda_build.txtar":              true,
+	"simd_drop_lambda_build.txtar":                  true,
+	"blocking_pool_continue_release.txtar":          true,
+	"fn_callback_result_wrapped_drop.txtar":         true,
 }
 
 func TestRCCallCounts(t *testing.T) {

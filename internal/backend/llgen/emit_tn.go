@@ -23,26 +23,6 @@ type tnTable struct {
 // canon is t's runtime identity.
 func (e *emitter) canon(t sem.TypeID) sem.TypeID { return e.p.Canon.Of(e.r, t) }
 
-// ctorID tells the constructors of runtime types apart: the kind, its flags, and the entity or the type of a
-// primitive or a const.
-func (e *emitter) ctorID(t sem.TypeID) int64 {
-	n := e.r.Types.Node(t)
-	kind := int64(n.Kind) << 56
-	switch n.Kind {
-	case sem.KPrim, sem.KUntyped:
-		return kind | int64(t)
-	case sem.KConst:
-		_, ty := e.r.Types.ConstValueBig(t)
-		return kind | int64(ty)
-	case sem.KFn:
-		return kind | int64(n.Flags)<<32 | int64(n.Var)
-	}
-	return kind | int64(n.Flags)<<32 | int64(n.Ent)
-}
-
-// constCtor is the constructor id of a const argument of type ty.
-func constCtor(ty sem.TypeID) int64 { return int64(sem.KConst)<<56 | int64(ty) }
-
 // tnArgs are the argument types of runtime type t, its element last.
 func (e *emitter) tnArgs(t sem.TypeID) []sem.TypeID {
 	n := e.r.Types.Node(t)

@@ -35,20 +35,10 @@ func (e *emitter) boxSite(sb *strings.Builder, f *midir.Func, in midir.Inst, v s
 	return e.irb(sb).Call(rtBox, vptr(v), vptr(node), vptr(vt)).Text
 }
 
-// dropReadsInstance reports whether the drop of type ent reads the instantiation of the record it drops.
-func (e *emitter) dropReadsInstance(ent sem.EntityID) bool {
-	if e.r.Entity(ent).Kind != sem.EntType {
-		return false
-	}
-	drop := e.r.TypeDecl(ent).Drop
-	f := e.p.ByEnt[drop]
-	return drop != 0 && f != nil && (f.HasEnv || instance.Bound(e.r, &e.p.Desc, drop))
-}
-
 // recordDesc is the descriptor a record of type t carries: the one made for its runtime type when its drop
 // reads that, else its entity's.
 func (e *emitter) recordDesc(sb *strings.Builder, in midir.Inst, ent sem.EntityID, t sem.TypeID) string {
-	if !e.dropReadsInstance(ent) {
+	if !e.r.DropReadsInstance(ent) {
 		return e.desc(ent)
 	}
 	return e.irb(sb).Call(rtTnDesc, vptr(e.siteNode(sb, in, t))).Text
@@ -128,7 +118,7 @@ func (e *emitter) scalarConstNode(sb *strings.Builder, a midir.LocalID, ty sem.T
 			sb.WriteString("  " + hi + " = ashr i64 " + v.Text + ", 63\n")
 		}
 	}
-	return e.irb(sb).Call(rtTnConstWords, vi64(int(constCtor(ty))), vi64text(lo), vi64text(hi)).Text
+	return e.irb(sb).Call(rtTnConstWords, vi64(int(e.constCtor(ty))), vi64text(lo), vi64text(hi)).Text
 }
 
 // errorAsValue names the adapter of a std/error.as value built where its target is a runtime type: the value

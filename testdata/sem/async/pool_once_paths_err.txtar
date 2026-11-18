@@ -1,0 +1,125 @@
+-- src --
+import task from std/task
+import mem from std/mem
+
+type Counter = {
+    c mem.UnsafeCell[Int]
+}
+
+fn Counter.spin(self) -> Int {
+    for i in 0..1000 {
+        unsafe { self.c.set(self.c.get() + 1) }
+    }
+    unsafe { self.c.get() }
+}
+
+fn ck() -> Counter { Counter { c: mem.UnsafeCell.new(0) } }
+fn maxOf(a: Int, b: Int) -> Int { if a > b { a } else { b } }
+
+// A `continue` after the call returns to the loop head, from where the call runs again.
+async fn contAfter[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int {
+    let mut out = 0
+    for i in 0..3 {
+        out = await pool.run(mk()).unwrap() //~ ERROR cannot be called inside a loop
+        if i == 0 { continue }
+        break
+    }
+    out
+}
+
+// A guard that fails falls through to the next arm, which calls mk again.
+async fn guarded[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F, k: Int) -> Int {
+    let mut kept: T? = None
+    match k {
+        0 if { kept = Some(mk()); false } -> 0,
+        _ -> {
+            let f = pool.run(mk()).unwrap()
+            let mine = match kept { Some(r) -> r(), None -> 0 }
+            maxOf(mine, await f)
+        }
+    }
+}
+
+// A `return` inside a lambda ends the lambda, not the body around it.
+async fn lambdaReturn[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int {
+    let g = () => { return 1 }
+    let f = pool.run(mk()).unwrap()
+    let mine = mk()() //~ ERROR may already have been called
+    maxOf(mine, await f) + g()
+}
+
+// A loop condition runs again on every iteration.
+async fn condition[F: FnOnce[fn() -> T], T: FnOnce[fn() -> Int] + Send](pool: task.BlockingPool, mk: F) -> Int {
+    let mut out = 0
+    for (await pool.run(mk()).unwrap()) > 0 { //~ ERROR cannot be called inside a loop
+        out = out + 1
+    }
+    out
+}
+
+async fn viaContAfter() -> Int {
+    let c = ck()
+    await contAfter(task.BlockingPool.new(1), move () => () => c.spin()) //~ ERROR it reads `c` where the code around it keeps it
+}
+
+async fn viaGuarded() -> Int {
+    let c = ck()
+    await guarded(task.BlockingPool.new(1), move () => () => c.spin(), 0) //~ ERROR it reads `c` where the code around it keeps it
+}
+
+async fn viaLambdaReturn() -> Int {
+    let c = ck()
+    await lambdaReturn(task.BlockingPool.new(1), move () => () => c.spin()) //~ ERROR it reads `c` where the code around it keeps it
+}
+
+async fn viaCondition() -> Int {
+    let c = ck()
+    await condition(task.BlockingPool.new(1), move () => () => c.spin()) //~ ERROR it reads `c` where the code around it keeps it
+}
+
+-- expect --
+error[E2176]: `mk` is bound by `FnOnce` and cannot be called inside a loop or a closure, which may call it more than once
+  --> main/main.kg:22:30
+   |
+22 |         out = await pool.run(mk()).unwrap() //~ ERROR cannot be called inside a loop
+   |                              ^^^
+   = help: bind it with `FnMut` or `Fn`, or call it outside the loop or closure
+
+error[E2175]: `mk` is bound by `FnOnce` and may already have been called, so it cannot be called again
+  --> main/main.kg:46:16
+   |
+46 |     let mine = mk()() //~ ERROR may already have been called
+   |                ^^^
+   = help: bind it with `FnMut` or `Fn` to call it more than once
+
+error[E2176]: `mk` is bound by `FnOnce` and cannot be called inside a loop or a closure, which may call it more than once
+  --> main/main.kg:53:25
+   |
+53 |     for (await pool.run(mk()).unwrap()) > 0 { //~ ERROR cannot be called inside a loop
+   |                         ^^^
+   = help: bind it with `FnMut` or `Fn`, or call it outside the loop or closure
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it reads `c` where the code around it keeps it; a `move` closure takes its own
+  --> main/main.kg:61:11
+   |
+61 |     await contAfter(task.BlockingPool.new(1), move () => () => c.spin()) //~ ERROR it reads `c` where the code around it keeps it
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it reads `c` where the code around it keeps it; a `move` closure takes its own
+  --> main/main.kg:66:11
+   |
+66 |     await guarded(task.BlockingPool.new(1), move () => () => c.spin(), 0) //~ ERROR it reads `c` where the code around it keeps it
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it reads `c` where the code around it keeps it; a `move` closure takes its own
+  --> main/main.kg:71:11
+   |
+71 |     await lambdaReturn(task.BlockingPool.new(1), move () => () => c.spin()) //~ ERROR it reads `c` where the code around it keeps it
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Int` does not satisfy `Send`: it reads `c` where the code around it keeps it; a `move` closure takes its own
+  --> main/main.kg:76:11
+   |
+76 |     await condition(task.BlockingPool.new(1), move () => () => c.spin()) //~ ERROR it reads `c` where the code around it keeps it
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

@@ -1,4 +1,4 @@
-%rt_type = type { ptr, i32, i32, ptr, i32, ptr, ptr, i64, i64 }
+%rt_type = type { ptr, i32, i32, ptr, i32, ptr, ptr, i64, i64, ptr, ptr }
 %rt_variant = type { ptr, ptr, i32, i32, [64 x i8] }
 @kg_cancel_marker = external global i8
 declare void @llvm.memset.p0.i64(ptr, i8, i64, i1)
@@ -34,17 +34,17 @@ declare void @rt_drop_outer(ptr)
 declare i32 @rt_release_outer(ptr)
 declare void @rt_sweep_release(ptr)
 declare void @rt_outer_fatal()
-@".type.universe.Option" = global %rt_type { ptr @.p0, i32 2, i32 0, ptr null, i32 2, ptr @".type.universe.Option.variants", ptr null, i64 0, i64 0 }
+@".type.universe.Option" = global %rt_type { ptr @.p0, i32 2, i32 0, ptr null, i32 2, ptr @".type.universe.Option.variants", ptr null, i64 0, i64 0, ptr null, ptr null }
 @".variant.universe.Option.Some" = global %rt_variant { ptr @.p1, ptr @".type.universe.Option", i32 0, i32 1, [64 x i8] zeroinitializer }
 @".variant.universe.Option.None" = global %rt_variant { ptr @.p2, ptr @".type.universe.Option", i32 1, i32 0, [64 x i8] zeroinitializer }
 @".type.universe.Option.variants" = global [2 x ptr] [ptr @".variant.universe.Option.Some", ptr @".variant.universe.Option.None"]
-@".type.universe.Result" = global %rt_type { ptr @.p3, i32 2, i32 0, ptr null, i32 2, ptr @".type.universe.Result.variants", ptr null, i64 0, i64 0 }
+@".type.universe.Result" = global %rt_type { ptr @.p3, i32 2, i32 0, ptr null, i32 2, ptr @".type.universe.Result.variants", ptr null, i64 0, i64 0, ptr null, ptr null }
 @".variant.universe.Result.Ok" = global %rt_variant { ptr @.p4, ptr @".type.universe.Result", i32 0, i32 1, [64 x i8] zeroinitializer }
 @".variant.universe.Result.Err" = global %rt_variant { ptr @.p5, ptr @".type.universe.Result", i32 1, i32 1, [64 x i8] zeroinitializer }
 @".type.universe.Result.variants" = global [2 x ptr] [ptr @".variant.universe.Result.Ok", ptr @".variant.universe.Result.Err"]
-@".type.universe.Future" = global %rt_type { ptr @.p6, i32 0, i32 0, ptr null, i32 0, ptr null, ptr null, i64 0, i64 0 }
-@".type.std/task.Executor" = global %rt_type { ptr @.p7, i32 0, i32 0, ptr null, i32 0, ptr null, ptr null, i64 0, i64 0 }
-@".type.std/task.Task" = global %rt_type { ptr @.p8, i32 0, i32 0, ptr null, i32 0, ptr null, ptr null, i64 0, i64 0 }
+@".type.universe.Future" = global %rt_type { ptr @.p6, i32 0, i32 0, ptr null, i32 0, ptr null, ptr null, i64 0, i64 0, ptr null, ptr null }
+@".type.std/task.Executor" = global %rt_type { ptr @.p7, i32 0, i32 0, ptr null, i32 0, ptr null, ptr null, i64 0, i64 0, ptr null, ptr null }
+@".type.std/task.Task" = global %rt_type { ptr @.p8, i32 0, i32 0, ptr null, i32 0, ptr null, ptr null, i64 0, i64 0, ptr null, ptr null }
 @rt_types = global [5 x ptr] [ptr @".type.universe.Option", ptr @".type.universe.Result", ptr @".type.universe.Future", ptr @".type.std/task.Executor", ptr @".type.std/task.Task"]
 @"golden.root$async.fnitem.async" = internal global [64 x i8] zeroinitializer, align 16
 @"golden.total$async.fnitem.async" = internal global [64 x i8] zeroinitializer, align 16

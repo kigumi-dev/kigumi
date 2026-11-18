@@ -1,6 +1,7 @@
 package plan
 
 import (
+	"fmt"
 	"maps"
 	"slices"
 
@@ -9,14 +10,31 @@ import (
 	"kigumi/internal/compiler/sem"
 )
 
-// addEnvParam gives generic function f its environment, a parameter after the declared ones.
+// addEnvParam gives generic function f its environment, a borrowed parameter after the declared ones: a runtime
+// type is immortal, so a caller may pass its own environment any number of times.
 func (ps *envPass) addEnvParam(f *midir.Func) {
 	r := ps.p.R
 	env, _ := instance.EnvType(r, f.Ent)
 	l := newTypeLocal(r, f, "$env")
+	f.Locals[l].Borrowed = true
 	at := len(f.Params) - hiddenCount(r, f.Ent)
 	f.Params = slices.Insert(f.Params, at, l)
 	f.HasEnv, f.Env, f.EnvType = true, l, ps.p.Canon.Of(r, env)
+}
+
+// checkDropsCharged holds sem to each drop reading its instantiation here, by an environment or a body made per
+// instantiation: sem must have charged the records of its type for that.
+func (ps *envPass) checkDropsCharged(bodies []*midir.Func) error {
+	r := ps.p.R
+	for _, f := range bodies {
+		if f.Ent == 0 || !r.IsDropFn(f.Ent) || r.GenericOf(f.Ent) != f.Ent {
+			continue
+		}
+		if (f.HasEnv || instance.Bound(r, &ps.p.Desc, f.Ent)) && !r.DropReadsInstance(r.Fn(f.Ent).Owner) {
+			return fmt.Errorf("internal error: %s reads an instantiation sem did not charge its records for", f.Name)
+		}
+	}
+	return nil
 }
 
 // hiddenCount is the number of witness and const parameters fn takes after its declared ones.
