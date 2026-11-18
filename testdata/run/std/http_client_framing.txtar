@@ -129,9 +129,84 @@ async fn onceSmall(n: net.Net, name: String, reply: Bytes) -> Void! {
     (await peer)?
 }
 
+async fn urlBrackets(n: net.Net) -> Void! {
+    let client = http.Client.new(n, task.BlockingPool.new(1))
+    for url in Array.of("http://[[::1]:80/", "http://[::1[]:80/", "http://[::1]]:80/", "http://[::g]:80/", "http://[1:2:3:4:5:6:7:8:9]:80/", "http://[1::2::3]:80/", "http://[:::1]:80/", "http://[::1.2.3]:80/", "http://[::ffff:1.2.3.256]:80/", "http://[1:2:3:4:5:6:7:8::]:80/", "http://[12345::]:80/", "http://[fe80::1%25eth0]:80/", "http://[::1.2.3.04]:80/", "http://[::1.02.3.4]:80/", "http://[::ffff:127.0.0.01]:80/") {
+        show(url, await client.get(url))
+    }
+}
+
+async fn flood(listener: net.Listener, pieces: usize) -> usize! {
+    let mut listener = listener
+    let mut conn = for {
+        if listener.pollAccept()? is Some(c) { break c }
+        await task.yieldNow()
+    }
+    let mut got = Array.empty[u8]()
+    for !Bytes.fromArray(&got).contains("\r\n\r\n".toBytes()) {
+        match conn.pollRead(&mut got, 4096)? {
+            Some(0) -> return 0
+            Some(_) -> {}
+            None -> await task.yieldNow()
+        }
+    }
+    let mut piece = Array.empty[u8]()
+    for i in 0..21845 {
+        piece.push(84)
+        piece.push(13)
+        piece.push(10)
+    }
+    let chunk = Bytes.fromArray(&piece)
+    (await writeAll(&mut conn, "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n0\r\n".toBytes()))?
+    let mut sent: usize = 0
+    for i in 0..pieces {
+        let mut off: usize = 0
+        for off < chunk.len() {
+            match conn.pollWrite(chunk.slice(off, chunk.len()) || "".toBytes()) {
+                Ok(Some(n)) -> { off = off + n }
+                Ok(None) -> await task.yieldNow()
+                Err(_) -> return sent
+            }
+        }
+        sent = sent + chunk.len()
+    }
+    sent
+}
+
+async fn trailerFlood(n: net.Net) -> Void! {
+    let listener = n.listen("127.0.0.1", 0)?
+    let port = listener.port()
+    let peer = task.spawn(flood(listener, 384))
+    let client = http.Client.new(n, task.BlockingPool.new(1))
+    show("trailer flood", await client.get("http://127.0.0.1:${port}/"))
+    print "trailer flood stopped early: ${(await peer)? < 16777216}"
+    let folded = "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n0\r\nT: a\r\n".toBytes()
+    let mut lines = Array.empty[u8]()
+    for i in 0..100000 {
+        lines.push(32)
+        lines.push(97)
+        lines.push(13)
+        lines.push(10)
+    }
+    (await once(n, "100k trailer continuations", "GET", folded.concat(Bytes.fromArray(&lines)).concat("\r\n".toBytes())))?
+}
+
+async fn folds(n: net.Net) -> Void! {
+    let mut folded = "HTTP/1.1 200 OK\r\n".toBytes()
+    for i in 0..600 {
+        folded = folded.concat("X: a\r\n b\r\n".toBytes())
+    }
+    (await once(n, "600 folded fields", "GET", folded.concat("Content-Length: 2\r\nConnection: close\r\n\r\nok".toBytes())))?
+    for i in 0..398 {
+        folded = folded.concat("X: a\r\n b\r\n".toBytes())
+    }
+    (await once(n, "1000 fields", "GET", folded.concat("Content-Length: 2\r\nConnection: close\r\n\r\nok".toBytes())))?
+    (await once(n, "1001 folded fields", "GET", folded.concat("X: a\r\n b\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok".toBytes())))?
+}
+
 async fn urlKind(n: net.Net) -> Void! {
     let client = http.Client.new(n, task.BlockingPool.new(1))
-    for url in Array.of("http://127.0.0.1:/", "http://a]b:80/", "http://127.0.0.1]/", "http://[::1]:/") {
+    for url in Array.of("http://127.0.0.1:/", "http://a]b:80/", "http://127.0.0.1]/", "http://[::1]:/", "http://[0:0:0:0:0:0:0:1]:/", "http://[::ffff:127.0.0.1]:/") {
         let kind = match await client.get(url) {
             Ok(_) -> "response"
             Err(e) -> if e.message().startsWith("invalid URL") { e.message() } else { "not a URL error" }
@@ -185,6 +260,8 @@ async fn root(n: net.Net, listener: net.Listener) -> Void! {
     (await once(n, "100 length", "GET", "HTTP/1.1 100 Continue\r\nContent-Length: 5\r\n\r\nHTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok".toBytes()))?
     (await once(n, "103 length", "GET", "HTTP/1.1 103 Early Hints\r\nContent-Length: 5\r\n\r\nHTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok".toBytes()))?
     (await once(n, "101", "GET", "HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\n\r\n".toBytes()))?
+    (await twice(n, "101 gzip te", "GET", "HTTP/1.1 101 Switching Protocols\r\nUpgrade: x\r\nTransfer-Encoding: gzip\r\n\r\n".toBytes()))?
+    (await twice(n, "101 cl and te", "GET", "HTTP/1.1 101 Switching Protocols\r\nUpgrade: x\r\nContent-Length: abc\r\nTransfer-Encoding: chunked\r\n\r\n".toBytes()))?
     (await twice(n, "101 session", "GET", "HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: x\r\nContent-Length: 3\r\n\r\n".toBytes()))?
     (await once(n, "gzip twice", "GET", "HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Encoding: gzip\r\nContent-Length: ${twice2.len()}\r\nConnection: close\r\n\r\n".toBytes().concat(twice2)))?
     (await once(n, "gzip list twice", "GET", "HTTP/1.1 200 OK\r\nContent-Encoding: gzip, gzip\r\nContent-Length: ${twice2.len()}\r\nConnection: close\r\n\r\n".toBytes().concat(twice2)))?
@@ -197,6 +274,16 @@ async fn root(n: net.Net, listener: net.Listener) -> Void! {
     (await hosts(n))?
     (await twiceWith(n, "204 smuggle", "GET", "HTTP/1.1 204 No Content\r\nContent-Length: 40\r\n\r\n".toBytes(), "HTTP/1.1 200 OK\r\nContent-Length: 8\r\n\r\nsmuggled".toBytes()))?
     (await twiceWith(n, "204 chunked smuggle", "GET", "HTTP/1.1 204 No Content\r\nTransfer-Encoding: chunked\r\n\r\n".toBytes(), "HTTP/1.1 200 OK\r\nContent-Length: 8\r\n\r\nsmuggled".toBytes()))?
+    (await twiceWith(n, "204 cl and te", "GET", "HTTP/1.1 204 No Content\r\nContent-Length: 40\r\nTransfer-Encoding: chunked\r\n\r\n".toBytes(), "HTTP/1.1 200 OK\r\nContent-Length: 8\r\n\r\nsmuggled".toBytes()))?
+    (await twiceWith(n, "204 gzip te", "GET", "HTTP/1.1 204 No Content\r\nTransfer-Encoding: gzip\r\n\r\n".toBytes(), "HTTP/1.1 200 OK\r\nContent-Length: 8\r\n\r\nsmuggled".toBytes()))?
+    (await twiceWith(n, "204 cl text", "GET", "HTTP/1.1 204 No Content\r\nContent-Length: abc\r\n\r\n".toBytes(), "HTTP/1.1 200 OK\r\nContent-Length: 8\r\n\r\nsmuggled".toBytes()))?
+    (await twiceWith(n, "204 cl conflict", "GET", "HTTP/1.1 204 No Content\r\nContent-Length: 40\r\nContent-Length: 41\r\n\r\n".toBytes(), "HTTP/1.1 200 OK\r\nContent-Length: 8\r\n\r\nsmuggled".toBytes()))?
+    (await twiceWith(n, "304 cl and te", "GET", "HTTP/1.1 304 Not Modified\r\nContent-Length: 40\r\nTransfer-Encoding: chunked\r\n\r\n".toBytes(), "HTTP/1.1 200 OK\r\nContent-Length: 8\r\n\r\nsmuggled".toBytes()))?
+    (await twiceWith(n, "head cl and te", "HEAD", "HTTP/1.1 200 OK\r\nContent-Length: 40\r\nTransfer-Encoding: chunked\r\n\r\n".toBytes(), "HTTP/1.1 200 OK\r\nContent-Length: 8\r\n\r\nsmuggled".toBytes()))?
+    (await twice(n, "head sized", "HEAD", "HTTP/1.1 200 OK\r\nContent-Length: 40\r\n\r\n".toBytes()))?
+    (await urlBrackets(n))?
+    (await folds(n))?
+    (await trailerFlood(n))?
     (await twice(n, "204 plain", "GET", "HTTP/1.1 204 No Content\r\n\r\n".toBytes()))?
     (await twice(n, "http/1.2", "GET", "HTTP/1.2 200 OK\r\nContent-Length: 2\r\n\r\nok".toBytes()))?
     (await once(n, "206 gzip", "GET", "HTTP/1.1 206 Partial Content\r\nContent-Encoding: gzip\r\nContent-Range: bytes 0-4/99\r\nContent-Length: 5\r\nConnection: close\r\n\r\nhello".toBytes()))?
@@ -260,6 +347,10 @@ bare LF: err malformed response: bare LF in message head client=true
 100 length: 200 [ok] fold=-
 103 length: 200 [ok] fold=-
 101: 101 [] fold=-
+101 gzip te first: 101 [] fold=-
+101 gzip te second: err connection closed before the response client=true
+101 cl and te first: 101 [] fold=-
+101 cl and te second: err connection closed before the response client=true
 101 session first: 101 [] fold=-
 101 session second: err connection closed before the response client=true
 gzip twice: 200 [hello gzip] fold=-
@@ -278,11 +369,48 @@ http://127.0.0.1:/: not a URL error
 http://a]b:80/: invalid URL: bad authority
 http://127.0.0.1]/: invalid URL: bad authority
 http://[::1]:/: not a URL error
+http://[0:0:0:0:0:0:0:1]:/: not a URL error
+http://[::ffff:127.0.0.1]:/: not a URL error
 explicit port host: true
 204 smuggle first: 204 [] fold=-
 204 smuggle second: err connection closed before the response client=true
 204 chunked smuggle first: 204 [] fold=-
 204 chunked smuggle second: err connection closed before the response client=true
+204 cl and te first: err malformed response: both Transfer-Encoding and Content-Length client=true
+204 cl and te second: err connection closed before the response client=true
+204 gzip te first: err malformed response: unsupported transfer coding client=true
+204 gzip te second: err connection closed before the response client=true
+204 cl text first: err malformed response: invalid Content-Length client=true
+204 cl text second: err connection closed before the response client=true
+204 cl conflict first: err malformed response: conflicting Content-Length client=true
+204 cl conflict second: err connection closed before the response client=true
+304 cl and te first: err malformed response: both Transfer-Encoding and Content-Length client=true
+304 cl and te second: err connection closed before the response client=true
+head cl and te first: err malformed response: both Transfer-Encoding and Content-Length client=true
+head cl and te second: err connection closed before the response client=true
+head sized first: 200 [] fold=-
+head sized second: 200 [ok] fold=-
+http://[[::1]:80/: err invalid URL: bad IPv6 host client=true
+http://[::1[]:80/: err invalid URL: bad IPv6 host client=true
+http://[::1]]:80/: err invalid URL: bad authority client=true
+http://[::g]:80/: err invalid URL: bad IPv6 host client=true
+http://[1:2:3:4:5:6:7:8:9]:80/: err invalid URL: bad IPv6 host client=true
+http://[1::2::3]:80/: err invalid URL: bad IPv6 host client=true
+http://[:::1]:80/: err invalid URL: bad IPv6 host client=true
+http://[::1.2.3]:80/: err invalid URL: bad IPv6 host client=true
+http://[::ffff:1.2.3.256]:80/: err invalid URL: bad IPv6 host client=true
+http://[1:2:3:4:5:6:7:8::]:80/: err invalid URL: bad IPv6 host client=true
+http://[12345::]:80/: err invalid URL: bad IPv6 host client=true
+http://[fe80::1%25eth0]:80/: err invalid URL: bad IPv6 host client=true
+http://[::1.2.3.04]:80/: err invalid URL: bad IPv6 host client=true
+http://[::1.02.3.4]:80/: err invalid URL: bad IPv6 host client=true
+http://[::ffff:127.0.0.01]:80/: err invalid URL: bad IPv6 host client=true
+600 folded fields: 200 [ok] fold=-
+1000 fields: 200 [ok] fold=-
+1001 folded fields: err malformed response: too many header fields client=true
+trailer flood: err malformed response: too many trailer fields client=true
+trailer flood stopped early: true
+100k trailer continuations: err malformed response: too many trailer fields client=true
 204 plain first: 204 [] fold=-
 204 plain second: 200 [ok] fold=-
 http/1.2 first: 200 [ok] fold=-

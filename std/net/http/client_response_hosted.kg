@@ -17,28 +17,42 @@ fn Framing.carriesBody(self) -> Bool {
     }
 }
 
-// Message framing of a response, RFC 9112 section 6.3.
-fn responseFraming(headers: &Headers, status: Int, headOnly: Bool) -> Framing! {
-    if headOnly || status == 101 || status == 204 || status == 304 {
-        return NoBody
+fn maxResponseFields() -> usize {
+    1000
+}
+
+// How a response body is delimited and whether the bytes after the head still belong to this response.
+type Decision = {
+    framing Framing
+    desynced Bool
+}
+
+// Message framing of a response (RFC 9112 6.3): fields are validated even without a body, except
+// after a 101; a 204 announcing a body, like a 101, leaves the connection unusable.
+fn responseFraming(headers: &Headers, status: Int, headOnly: Bool) -> Decision! {
+    if status == 101 {
+        return Decision {
+            framing: NoBody
+            desynced: true
+        }
     }
-    match framingOf(headers, false) {
+    let announced = match framingOf(headers, false) {
         Ok(framing) -> framing
         Err(e) -> fail MalformedResponse(e.message())
     }
-}
-
-// After a 101 the connection carries another protocol, and a 204 that announces a body may still
-// send it; either way the bytes after the head are not the next response.
-fn desyncs(headers: &Headers, status: Int) -> Bool {
-    match status {
-        101 -> true
-        204 -> match framingOf(headers, false) {
-            Ok(Sized(n)) -> n > 0
-            Ok(Chunked) -> true
-            _ -> false
-        }
+    let announcesBody = match announced {
+        Sized(n) -> n > 0
+        Chunked -> true
         _ -> false
+    }
+    let bodiless = headOnly || status == 101 || status == 204 || status == 304
+    Decision {
+        framing: if bodiless {
+            NoBody
+        } else {
+            announced
+        }
+        desynced: status == 204 && announcesBody
     }
 }
 
@@ -92,7 +106,7 @@ async fn Wire.readResponse(mut self, headOnly: Bool, timeout: i64, maxBody: usiz
             if end > maxHead {
                 fail MalformedResponse("head too large")
             }
-            let head = match parseHead(self.consume(end), 1000, ResponseHead) {
+            let head = match parseHead(self.consume(end), maxResponseFields(), ResponseHead) {
                 Ok(h) -> h
                 Err(e) -> fail MalformedResponse(e.message())
             }
@@ -103,12 +117,12 @@ async fn Wire.readResponse(mut self, headOnly: Bool, timeout: i64, maxBody: usiz
                 "HTTP/1.1"
             }
             let status = statusOf(head.first) || fail MalformedResponse("bad status line")
-            let desynced = desyncs(&head.headers, status)
             if status < 200 && status != 101 {
                 continue
             }
-            let framing = responseFraming(&head.headers, status, headOnly)?
-            let body = (await self.responseBody(framing, deadline, maxBody))?
+            let decision = responseFraming(&head.headers, status, headOnly)?
+            let framing = decision.framing
+            let body = (await self.responseBody(framing, deadline, maxBody, maxHead))?
             let body = decodeBody(&head.headers, status, framing, body, maxBody)?
             let mut resp = Response.new(status)
             resp.headers = move head.headers
@@ -117,7 +131,7 @@ async fn Wire.readResponse(mut self, headOnly: Bool, timeout: i64, maxBody: usiz
                 response: resp
                 version: version
                 framing: framing
-                desynced: desynced
+                desynced: decision.desynced
             }
         }
         if self.pending.len() > maxHead {
@@ -133,8 +147,8 @@ async fn Wire.readResponse(mut self, headOnly: Bool, timeout: i64, maxBody: usiz
     fail TimedOut
 }
 
-async fn Wire.responseBody(mut self, framing: Framing, deadline: Deadline, maxBody: usize) -> Bytes! {
-    let mut d = Dechunker.new(ResponseHead)
+async fn Wire.responseBody(mut self, framing: Framing, deadline: Deadline, maxBody: usize, maxHead: usize) -> Bytes! {
+    let mut d = Dechunker.new(ResponseHead, maxResponseFields(), maxHead)
     let mut raw: usize = 0
     for true {
         let ready = match framing {

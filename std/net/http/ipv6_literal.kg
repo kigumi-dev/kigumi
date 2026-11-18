@@ -1,0 +1,72 @@
+// validIpv6 checks the RFC 4291 text forms: up to eight hex groups, one optional "::" and an
+// optional dotted IPv4 tail; zone ids are not part of a URL host.
+fn validIpv6(text: String) -> Bool {
+    let halves = text.split("::")
+    if halves.len() > 2 {
+        return false
+    }
+    if halves.len() == 1 {
+        return (groupCount(halves.get(0) || "", true) || return false) == 8
+    }
+    let head = groupCount(halves.get(0) || "", false) || return false
+    let tail = groupCount(halves.get(1) || "", true) || return false
+    head + tail <= 7
+}
+
+// groupCount counts the 16-bit groups in a colon-separated run, or None when one is malformed;
+// only the final run of an address may end in an IPv4 address, which counts as two groups.
+fn groupCount(run: String, final: Bool) -> usize? {
+    if run == "" {
+        return Some(0)
+    }
+    let groups = run.split(":")
+    let mut count: usize = 0
+    for i in 0..groups.len() {
+        let group = groups.get(i) || ""
+        if final && i + 1 == groups.len() && indexOfByte(group, 46) is Some(_) {
+            if !validIpv4(group) {
+                return None
+            }
+            count = count + 2
+        } else if validHexGroup(group) {
+            count = count + 1
+        } else {
+            return None
+        }
+    }
+    Some(count)
+}
+
+fn validHexGroup(group: String) -> Bool {
+    if group.len() == 0 || group.len() > 4 {
+        return false
+    }
+    for i in 0..group.len() {
+        let c = group[i]
+        if !((c >= 48 && c <= 57) || (c >= 65 && c <= 70) || (c >= 97 && c <= 102)) {
+            return false
+        }
+    }
+    true
+}
+
+fn validIpv4(text: String) -> Bool {
+    let octets = text.split(".")
+    if octets.len() != 4 {
+        return false
+    }
+    for octet in octets {
+        if octet.len() == 0 || octet.len() > 3 || (octet.len() > 1 && octet[0] == 48) {
+            return false
+        }
+        for i in 0..octet.len() {
+            if octet[i] < 48 || octet[i] > 57 {
+                return false
+            }
+        }
+        if (parseDecimal(octet) || return false) > 255 {
+            return false
+        }
+    }
+    true
+}

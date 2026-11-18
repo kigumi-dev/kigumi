@@ -25,13 +25,13 @@ var rcCallSites = map[string]*regexp.Regexp{
 // Call sites of the count and cell runtime calls in the IR of every native run fixture, std included.
 var pinnedRCCalls = map[string]int{
 	"fixtures":         1243,
-	"rt_retain":        22766,
-	"rt_release":       133861,
-	"rt_release_outer": 97299,
-	"rt_drop":          94949,
-	"rt_cell_init":     12155,
-	"rt_cell_take":     4425,
-	"rt_setfield_swap": 1394,
+	"rt_retain":        22816,
+	"rt_release":       134310,
+	"rt_release_outer": 98011,
+	"rt_drop":          95293,
+	"rt_cell_init":     12187,
+	"rt_cell_take":     4436,
+	"rt_setfield_swap": 1405,
 	"rt_setindex_swap": 1860,
 }
 

@@ -12,16 +12,27 @@ type Dechunker = {
     mut pieces Array[Bytes]
     mut size usize
     mut trailers Array[Bytes]
+    mut trailerBytes usize
     side HeadSide
+    maxFields usize
+    maxBytes usize
 }
 
-fn Dechunker.new(side: HeadSide) -> Dechunker {
+// A folded field takes a few lines, so the raw line cap is a small multiple of the field cap.
+fn foldFactor() -> usize {
+    4
+}
+
+fn Dechunker.new(side: HeadSide, maxFields: usize, maxBytes: usize) -> Dechunker {
     Dechunker {
         stage: SizeLine
         pieces: Array.empty[Bytes]()
         size: 0
         trailers: Array.empty[Bytes]()
+        trailerBytes: 0
         side: side
+        maxFields: maxFields
+        maxBytes: maxBytes
     }
 }
 
@@ -169,7 +180,8 @@ fn Dechunker.step(mut self, data: &Bytes, maxBody: usize) -> usize! {
                 let end = lineAt(data, at)? || return at
                 let blank = end == at
                 if !blank {
-                    if self.trailers.len() >= 1000 {
+                    self.trailerBytes = self.trailerBytes + (end - at) + 2
+                    if self.trailers.len() >= self.maxFields.saturatingMul(foldFactor()) || self.trailerBytes > self.maxBytes {
                         fail failure(431, "too many trailer fields")
                     }
                     self.trailers.push(data.slice(at, end) || "".toBytes())
@@ -178,7 +190,11 @@ fn Dechunker.step(mut self, data: &Bytes, maxBody: usize) -> usize! {
                 if blank {
                     let lines = move self.trailers
                     self.trailers = Array.empty[Bytes]()
-                    for field in unfold(lines, self.side)? {
+                    let fields = unfold(lines, self.side)?
+                    if fields.len() > self.maxFields {
+                        fail failure(431, "too many trailer fields")
+                    }
+                    for field in fields {
                         if !trailerFieldOk(&field) {
                             fail failure(400, "invalid trailer field")
                         }

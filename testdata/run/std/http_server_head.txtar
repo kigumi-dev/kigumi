@@ -84,6 +84,15 @@ async fn root(n: net.Net, listener: net.Listener) -> Void! {
         many = many.concat("X: 1\r\n".toBytes())
     }
     (await case(n, port, "4000 fields", many.concat(end)))?
+    let mut trailers = post.concat("0\r\n".toBytes())
+    for i in 0..4000 {
+        trailers = trailers.concat("T: 1\r\n".toBytes())
+    }
+    (await case(n, port, "4000 trailers", trailers.concat(end)))?
+    for i in 0..1001 {
+        trailers = trailers.concat("T: 1\r\n".toBytes())
+    }
+    (await case(n, port, "5001 trailers", trailers.concat(end)))?
     (await case(n, port, "205 length", "GET /reset HTTP/1.1\r\nHost: t\r\nConnection: close\r\n\r\n".toBytes()))?
     stop.request()
     (await running)?
@@ -106,5 +115,7 @@ bare trailer line: HTTP/1.1 400 Bad Request | Content-Length: 21 | invalid trail
 empty trailer name: HTTP/1.1 400 Bad Request | Content-Length: 21 | invalid trailer field
 trailer fold: HTTP/1.1 400 Bad Request | Content-Length: 18 | folded header line
 4000 fields: HTTP/1.1 200 OK | Content-Length: 22 | x=31 y=6e6f6e65 body=0
+4000 trailers: HTTP/1.1 200 OK | Content-Length: 28 | x=6e6f6e65 y=6e6f6e65 body=0
+5001 trailers: HTTP/1.1 431 Request Header Fields Too Large | Content-Length: 23 | too many trailer fields
 205 length: HTTP/1.1 205 Reset Content | Content-Length: 0 | 
 stopped

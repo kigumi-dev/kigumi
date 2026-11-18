@@ -65,6 +65,9 @@ fn parseAuthority(url: String, schemeBytes: usize, defaultPort: usize) -> Target
             fail InvalidUrl("bad IPv6 host")
         }
         host = authority.sliceBytes(1, right) || ""
+        if !validIpv6(host) {
+            fail InvalidUrl("bad IPv6 host")
+        }
         let after = authority.sliceBytes(right + 1, authority.len()) || ""
         if after != "" {
             if !after.startsWith(":") {

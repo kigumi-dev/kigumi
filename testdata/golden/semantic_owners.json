@@ -19052,7 +19052,7 @@
   },
   {
     "key": "net/http.Dechunker.new",
-    "signature": "fn(HeadSide) -\u003e Dechunker",
+    "signature": "fn(HeadSide, usize, usize) -\u003e Dechunker",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -19602,7 +19602,7 @@
   },
   {
     "key": "net/http.Wire.responseBody",
-    "signature": "fn(Framing, Deadline, usize) -\u003e Bytes!",
+    "signature": "fn(Framing, Deadline, usize, usize) -\u003e Bytes!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -19721,16 +19721,6 @@
     "status": "ok"
   },
   {
-    "key": "net/http.desyncs",
-    "signature": "fn(\u0026Headers, Int) -\u003e Bool",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
     "key": "net/http.failure",
     "signature": "fn(Int, String) -\u003e Failure",
     "has_body": true,
@@ -19751,6 +19741,16 @@
     "status": "ok"
   },
   {
+    "key": "net/http.foldFactor",
+    "signature": "fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/http.formDecode",
     "signature": "fn(String) -\u003e String?",
     "has_body": true,
@@ -19763,6 +19763,16 @@
   {
     "key": "net/http.framingOf",
     "signature": "fn(\u0026Headers, Bool) -\u003e Framing!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.groupCount",
+    "signature": "fn(String, Bool) -\u003e usize?",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -19921,6 +19931,16 @@
     "status": "ok"
   },
   {
+    "key": "net/http.maxResponseFields",
+    "signature": "fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/http.noBodyStatus",
     "signature": "fn(Int) -\u003e Bool",
     "has_body": true,
@@ -20032,7 +20052,7 @@
   },
   {
     "key": "net/http.physicalLines",
-    "signature": "fn(Bytes, usize) -\u003e Array[Bytes]!",
+    "signature": "fn(Bytes) -\u003e Array[Bytes]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20043,6 +20063,16 @@
   {
     "key": "net/http.portOf",
     "signature": "fn(String, usize) -\u003e usize!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.pushFrom",
+    "signature": "fn(\u0026mut Array[u8], Bytes, usize) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20102,7 +20132,7 @@
   },
   {
     "key": "net/http.responseFraming",
-    "signature": "fn(\u0026Headers, Int, Bool) -\u003e Framing!",
+    "signature": "fn(\u0026Headers, Int, Bool) -\u003e Decision!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20181,7 +20211,37 @@
     "status": "ok"
   },
   {
+    "key": "net/http.validHexGroup",
+    "signature": "fn(String) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/http.validHost",
+    "signature": "fn(String) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.validIpv4",
+    "signature": "fn(String) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.validIpv6",
     "signature": "fn(String) -\u003e Bool",
     "has_body": true,
     "kind": "",

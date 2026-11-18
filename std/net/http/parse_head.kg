@@ -49,7 +49,8 @@ fn obsText(raw: Bytes) -> String {
 }
 
 // physicalLines splits raw, which starts at the CRLF before its first line, in one pass; empty lines are dropped.
-fn physicalLines(raw: Bytes, maxLines: usize) -> Array[Bytes]! {
+// The head's byte size is bounded by the caller, and the field count is checked after unfolding.
+fn physicalLines(raw: Bytes) -> Array[Bytes] {
     let n = raw.len()
     let mut lines = Array.empty[Bytes]()
     let mut at: usize = 0
@@ -60,9 +61,6 @@ fn physicalLines(raw: Bytes, maxLines: usize) -> Array[Bytes]! {
             end = end + 1
         }
         if end > start {
-            if lines.len() >= maxLines {
-                fail failure(431, "too many header fields")
-            }
             lines.push(raw.slice(start, end) || "".toBytes())
         }
         at = end
@@ -73,24 +71,32 @@ fn physicalLines(raw: Bytes, maxLines: usize) -> Array[Bytes]! {
 // unfold joins a response's folded lines to the line before with a space; elsewhere a fold is refused.
 fn unfold(lines: Array[Bytes], side: HeadSide) -> Array[Bytes]! {
     let mut fields = Array.empty[Bytes]()
-    let mut current = "".toBytes()
+    let mut current = Array.empty[u8]()
     for line in lines {
         let lead = line.get(0) || 0
         if lead != 32 && lead != 9 {
             if current.len() > 0 {
-                fields.push(current)
+                fields.push(Bytes.fromArray(&current))
             }
-            current = line
+            current = Array.empty[u8]()
+            pushFrom(&mut current, line, 0)
         } else if side is ResponseHead && current.len() > 0 {
-            current = current.concat(" ".toBytes()).concat(line.slice(1, line.len()) || "".toBytes())
+            current.push(32)
+            pushFrom(&mut current, line, 1)
         } else {
             fail failure(400, "folded header line")
         }
     }
     if current.len() > 0 {
-        fields.push(current)
+        fields.push(Bytes.fromArray(&current))
     }
     fields
+}
+
+fn pushFrom(out: &mut Array[u8], bytes: Bytes, from: usize) {
+    for i in from..bytes.len() {
+        out.push(bytes.get(i) || 0)
+    }
 }
 
 // parseHead reads a head ending in CRLF CRLF; maxFields bounds the header count. Each field
@@ -103,7 +109,11 @@ fn parseHead(raw: Bytes, maxFields: usize, side: HeadSide) -> Head! {
         ResponseHead -> obsText(firstRaw)
     }
     let mut headers = Headers.new()
-    for line in unfold(physicalLines(raw.slice(firstEnd, raw.len()) || "".toBytes(), maxFields)?, side)? {
+    let fields = unfold(physicalLines(raw.slice(firstEnd, raw.len()) || "".toBytes()), side)?
+    if fields.len() > maxFields {
+        fail failure(431, "too many header fields")
+    }
+    for line in fields {
         let colon = line.indexOf(":".toBytes()) || fail failure(400, "header line without a colon")
         let name = String.fromBytes(line.slice(0, colon) || "".toBytes()) || fail failure(400, "invalid header name")
         if !isToken(name) {
