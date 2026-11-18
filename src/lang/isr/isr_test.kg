@@ -1,0 +1,39 @@
+import testlib from std/test
+import map from std/map
+
+test "permission parsing" {
+    let inert = parsePermission("inert")?
+    testlib.expectEq(inert.kind(), Kind.Inert)?
+    testlib.expectEq(inert.id(), "")?
+
+    let mmio = parsePermission("mmio uart.write")?
+    testlib.expectEq(mmio.kind(), Kind.MMIO)?
+    testlib.expectEq(mmio.id(), "mmio uart.write")?
+
+    let sync = parsePermission("sync lock.acquire width=32 impl=cas nest=flat")?
+    testlib.expectEq(sync.kind(), Kind.Sync)?
+    testlib.expectEq(sync.id(), "sync lock.acquire width=32 impl=cas nest=flat")?
+}
+
+test "sync field order canonicalizes" {
+    let a = parsePermission("sync irq.ack impl=mask width=64")?
+    let b = parsePermission("sync irq.ack width=64 impl=mask")?
+    testlib.expectEq(a.id(), b.id())?
+    testlib.expectEq(a.id(), "sync irq.ack width=64 impl=mask")?
+}
+
+test "invalid permissions fail" {
+    for text in Array.of("", "inert extra", "mmio uart", "sync", "sync op width=32", "sync op width=32 width=64 impl=cas", "sync op width=32 impl=cas;") {
+        if parsePermission(text) is Ok(_) {
+            fail testlib.failure("accepted invalid permission ${text}")
+        }
+    }
+}
+
+test "config canonicalizes handler order" {
+    let mut handlers = map.empty[String, Array[String]]()
+    handlers.set("b", Array.of("sync b width=8 impl=atomic"))
+    handlers.set("a", Array.of("inert"))
+    let config = Config { root: Array.of("inert", "mmio uart.write"), handlers: handlers }
+    testlib.expectEq(config.canonical(), "v2 root=inert;mmio uart.write a=inert b=sync b width=8 impl=atomic")?
+}

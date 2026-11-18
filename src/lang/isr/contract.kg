@@ -1,0 +1,141 @@
+/// What a reviewed contract says a bodiless primitive does inside an interrupt handler.
+pub type Kind =
+    | Unspecified
+    | Inert
+    | Sync
+    | MMIO
+
+/// One reviewed contract. Inert carries no ID; Sync and MMIO carry the canonical permission text.
+pub type Contract =
+    | Inert
+    | Sync(id: String)
+    | MMIO(id: String)
+
+pub fn Contract.kind(self) -> Kind {
+    match self {
+        Contract.Inert -> Kind.Inert
+        Contract.Sync(_) -> Kind.Sync
+        Contract.MMIO(_) -> Kind.MMIO
+    }
+}
+
+pub fn Contract.id(self) -> String {
+    match self {
+        Contract.Inert -> ""
+        Contract.Sync(id) -> id
+        Contract.MMIO(id) -> id
+    }
+}
+
+/// Why a permission text did not parse.
+pub type ParseError = {
+    pub text String
+}
+
+pub fn ParseError.message(self) -> String {
+    self.text
+}
+
+/// Canonicalizes one contract or permission text:
+/// `inert`, `mmio DEVICE.OP`, or `sync OP width=W impl=I [nest=C]`.
+pub fn parsePermission(text: String) -> Contract! {
+    let words = fields(text)
+    if words.len() == 0 {
+        fail ParseError { text: "empty interrupt operation" }
+    }
+    for w in &words {
+        if w.contains(";") || w.contains(",") {
+            fail ParseError { text: "\"${text}\": an operation name cannot hold `;` or `,`" }
+        }
+    }
+    if words[0] == "inert" {
+        if words.len() != 1 {
+            fail ParseError { text: "\"${text}\": `inert` takes nothing after it" }
+        }
+        return Contract.Inert
+    }
+    if words[0] == "mmio" {
+        if words.len() != 2 || !words[1].contains(".") {
+            fail ParseError { text: "\"${text}\": want `mmio DEVICE.OPERATION`" }
+        }
+        return Contract.MMIO("mmio ${words[1]}")
+    }
+    if words[0] == "sync" {
+        return parseSync(text, &words)
+    }
+    fail ParseError { text: "\"${text}\": want `mmio ...` or `sync ...`" }
+}
+
+fn parseSync(text: String, words: &Array[String]) -> Contract! {
+    if words.len() < 2 || words[1].contains("=") {
+        fail ParseError { text: "\"${text}\": want `sync OPERATION width=W impl=I [nest=C]`" }
+    }
+    let mut width: String? = None
+    let mut implementation: String? = None
+    let mut nesting: String? = None
+    let mut i: usize = 2
+    for i < words.len() {
+        let word = words[i]
+        let at = match word.toBytes().indexOf(b"=") {
+            Some(at) -> at
+            None -> fail ParseError { text: "\"${text}\": \"${word}\" is not one of width=, impl=, nest=, each given once" }
+        }
+        if at == 0 || at == word.len() - 1 {
+            fail ParseError { text: "\"${text}\": \"${word}\" is not one of width=, impl=, nest=, each given once" }
+        }
+        let key = word.sliceBytes(0, at).expect("cut on a byte boundary")
+        let value = word.sliceBytes(at + 1, word.len()).expect("cut on a byte boundary")
+        if key == "width" {
+            if width is Some(_) {
+                fail ParseError { text: "\"${text}\": \"${word}\" is not one of width=, impl=, nest=, each given once" }
+            }
+            width = Some(value)
+        } else if key == "impl" {
+            if implementation is Some(_) {
+                fail ParseError { text: "\"${text}\": \"${word}\" is not one of width=, impl=, nest=, each given once" }
+            }
+            implementation = Some(value)
+        } else if key == "nest" {
+            if nesting is Some(_) {
+                fail ParseError { text: "\"${text}\": \"${word}\" is not one of width=, impl=, nest=, each given once" }
+            }
+            nesting = Some(value)
+        } else {
+            fail ParseError { text: "\"${text}\": \"${word}\" is not one of width=, impl=, nest=, each given once" }
+        }
+        i = i + 1
+    }
+    if width is None || implementation is None {
+        fail ParseError { text: "\"${text}\": a synchronization operation names its width= and impl=" }
+    }
+    let mut id = "sync ${words[1]} width=${width.expect("checked above")} impl=${implementation.expect("checked above")}"
+    if nesting is Some(n) {
+        id = id.concat(" nest=").concat(n)
+    }
+    Contract.Sync(id)
+}
+
+fn fields(text: String) -> Array[String] {
+    let mut out = Array.empty[String]()
+    let mut start: usize = 0
+    let mut inWord = false
+    let mut i: usize = 0
+    for i < text.len() {
+        let b = text[i]
+        let space = b == 32 || b == 9 || b == 10 || b == 11 || b == 12 || b == 13
+        if space {
+            if inWord {
+                out.push(text.sliceBytes(start, i).expect("field boundary"))
+                inWord = false
+            }
+        } else if !inWord {
+            start = i
+            inWord = true
+        }
+        i = i + 1
+    }
+    if inWord {
+        out.push(text.sliceBytes(start, text.len()).expect("field boundary"))
+    }
+    out
+}

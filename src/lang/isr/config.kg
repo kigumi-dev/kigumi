@@ -1,0 +1,24 @@
+import array from std/array
+import map from std/map
+import sort from std/sort
+
+/// Moves when the meaning of Config or of a contract identity changes.
+pub const ConfigVersion: Int = 2
+
+/// The root module's resolved interrupt configuration: root is both the root
+/// limit and the common configuration; handlers narrows it for the keyed handler.
+pub type Config = {
+    pub root Array[String]
+    pub handlers map.Map[String, Array[String]]
+}
+
+pub fn Config.canonical(self) -> String {
+    let keys = self.handlers.keys()
+    let sorted = sort.stable(&keys, (a: &String, b: &String) => a.compareTo(b))
+    let mut out = "v${ConfigVersion} root=${array.join(&self.root, ";")}"
+    for key in sorted {
+        let values = self.handlers.with(&key, (v: &Array[String]) => array.join(v, ";")).expect("handler key")
+        out = out.concat(" ").concat(key).concat("=").concat(values)
+    }
+    out
+}
