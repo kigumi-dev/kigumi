@@ -1,0 +1,61 @@
+import testlib from std/test
+
+test "policy presets" {
+    let dev = development()
+    testlib.expectEq(dev.isRelease(), false)?
+    testlib.expectEq(dev.name(), "development")?
+    let rel = release()
+    testlib.expectEq(rel.isRelease(), true)?
+    testlib.expectEq(rel.name(), "release-v1")?
+}
+
+test "report rendering" {
+    let v = Violation {
+        id: "release-local-replace"
+        subject: "github.com/acme/codec is resolved from a local directory"
+        detail: Array.of(detail("selected by", "/work/mod.local.kg:3"), detail("replacement", "/work/codec"))
+        policy: "rejected because the content is not the locked module tree"
+        help: "update and lock the dependency, or keep this as a development build"
+    }
+    let out = evaluate(Array.of(v), development()).render()
+    let want = "warning[release-local-replace]: github.com/acme/codec is resolved from a local directory\n  selected by: /work/mod.local.kg:3\n  replacement: /work/codec\n  release policy: rejected because the content is not the locked module tree\n  help: update and lock the dependency, or keep this as a development build\nrelease readiness: 1 warning(s); would fail with --release\n"
+    testlib.expectEq(out, want)?
+}
+
+test "ambient severity" {
+    let dev = evaluate(Array.empty[Violation](), development(), ambientStdViolation("/env/std"), ambientCFlagsViolation(Array.of("-march=native")))
+    testlib.expectEq(dev.warnings.len(), 2)?
+    testlib.expectEq(dev.errors.len(), 0)?
+    let rel = evaluate(Array.empty[Violation](), release(), ambientStdViolation("/env/std"), ambientCFlagsViolation(Array.of("-march=native")))
+    testlib.expectEq(rel.warnings.len(), 0)?
+    testlib.expectEq(rel.errors.len(), 2)?
+    testlib.expectEq(rel.hasErrors(), true)?
+}
+
+test "violation ids sort" {
+    let out = evaluate(Array.of(
+        ambientStdViolation("/env/std"),
+        localReplaceViolation("codec", "/work/codec", "/work/mod.local.kg:3")
+    ), development()).render()
+    let local = out.toBytes().indexOf("release-local-replace".toBytes())
+    let ambient = out.toBytes().indexOf("release-ambient-std".toBytes())
+    if local is Some(a) && ambient is Some(b) && b < a {
+        testlib.expectEq(true, true)?
+    } else {
+        fail testlib.failure("violations are not sorted by id")
+    }
+}
+
+test "same id keeps input order" {
+    let out = evaluate(Array.of(
+        localReplaceViolation("first", "/first", "/work/mod.local.kg:1"),
+        localReplaceViolation("second", "/second", "/work/mod.local.kg:2")
+    ), development()).render()
+    let first = out.toBytes().indexOf("first is resolved".toBytes())
+    let second = out.toBytes().indexOf("second is resolved".toBytes())
+    if first is Some(a) && second is Some(b) && a < b {
+        testlib.expectEq(true, true)?
+    } else {
+        fail testlib.failure("equal ids lost input order")
+    }
+}

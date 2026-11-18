@@ -1,0 +1,87 @@
+import array from std/array
+
+pub fn localReplaceViolation(name: String, path: String, provenance: String) -> Violation {
+    Violation {
+        id: "release-local-replace"
+        subject: "${name} is resolved from a local directory"
+        detail: Array.of(detail("selected by", provenance), detail("replacement", path))
+        policy: "rejected because the content is not the locked module tree"
+        help: "update and lock the dependency, or keep this as a development build"
+    }
+}
+
+pub fn unusedLocalReplaceViolation(name: String, hint: String, provenance: String) -> Violation {
+    Violation {
+        id: "local-replace-unused"
+        subject: "Replace ${name} (${provenance}) names a module nothing in the dependency graph requires${hint}"
+        detail: Array.empty[KV]()
+        policy: ""
+        help: ""
+    }
+}
+
+pub fn unlockedScriptViolation(scriptFile: String, lockPath: String) -> Violation {
+    Violation {
+        id: "release-unlocked-script"
+        subject: "${scriptFile} requires dependencies but has no sidecar lock"
+        detail: Array.of(detail("expected lock", lockPath))
+        policy: "rejected because a release build requires every dependency locked with a verified hash"
+        help: "run `kigumi get --lock` to write ${lockPath}, or keep this as a development build"
+    }
+}
+
+pub fn nativeLinkUnresolvedViolation(module: String, search: String) -> Violation {
+    Violation {
+        id: "release-native-link-unresolved"
+        subject: "${module} declares a Link search path that does not exist"
+        detail: Array.of(detail("search", search))
+        policy: "rejected because a release build's native declarations must resolve against the locked tree"
+        help: "fix the Link search path and re-run `kigumi get`, or keep this as a development build"
+    }
+}
+
+pub fn nativeLinkIdentityUnknownViolation(module: String, library: String) -> Violation {
+    Violation {
+        id: "release-native-link-identity-unknown"
+        subject: "Link { library: \"${library}\" } (${module}) does not resolve to a library file this host's search list can find"
+        detail: Array.of(detail("library", library))
+        policy: "rejected because release requires the actual resolved library identity to be recorded, not only the declared name"
+        help: "add a Link search path that holds lib${library}, install the library where this host's linker would find it, or keep this as a development build"
+    }
+}
+
+pub fn ambientStdViolation(path: String) -> Violation {
+    Violation {
+        id: "release-ambient-std"
+        subject: "the std library is selected by $KIGUMI_STD rather than a recorded path"
+        detail: Array.of(detail("KIGUMI_STD", path))
+        policy: "rejected because release requires the toolchain identity to be recorded, not read from the environment"
+        help: "pass --std explicitly, or keep this as a development build"
+    }
+}
+
+pub fn ambientCFlagsViolation(flags: Array[String]) -> Violation {
+    Violation {
+        id: "release-ambient-cflags"
+        subject: "the build adds compiler/linker flags from $KIGUMI_CFLAGS"
+        detail: Array.of(detail("KIGUMI_CFLAGS", array.join(&flags, " ")))
+        policy: "rejected because release requires build inputs to be recorded, not read from the environment"
+        help: "record these flags in the build configuration, or keep this as a development build"
+    }
+}
+
+pub fn unverifiedTargetViolation(triple: String) -> Violation {
+    Violation {
+        id: "release-unverified-target"
+        subject: "target \"${triple}\" has an ABI this build does not recognize"
+        detail: Array.of(detail("triple", triple))
+        policy: "rejected because release requires a target this toolchain has verified support for"
+        help: "use a recognized triple, or keep this as a development build"
+    }
+}
+
+pub fn error(v: Violation) -> String {
+    let report = Report { warnings: Array.empty[Violation]()
+        errors: Array.of(v) }
+    report.render().trim()
+}

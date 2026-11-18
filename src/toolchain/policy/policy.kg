@@ -1,0 +1,162 @@
+import map from std/map
+import sort from std/sort
+import text from std/text
+
+pub type DependencyPolicy =
+    | DependencyAllowUnlocked
+    | DependencyLocked
+
+pub type LocalOverridePolicy =
+    | LocalOverrideAllow
+    | LocalOverrideDeny
+
+pub type AmbientPolicy =
+    | AmbientWarn
+    | AmbientDeny
+
+/// A resolved build policy: independent fields a release predicate reads.
+pub type BuildPolicy = {
+    pub optimized Bool
+    pub dependency DependencyPolicy
+    pub localOverride LocalOverridePolicy
+    pub ambient AmbientPolicy
+    pub policyVersion String
+}
+
+/// The development build policy: local replacements, unlocked scripts and ambient overrides warn.
+pub fn development() -> BuildPolicy {
+    BuildPolicy {
+        optimized: false
+        dependency: DependencyPolicy.DependencyAllowUnlocked
+        localOverride: LocalOverridePolicy.LocalOverrideAllow
+        ambient: AmbientPolicy.AmbientWarn
+        policyVersion: ""
+    }
+}
+
+/// The release build policy: the same violations become build errors.
+pub fn release() -> BuildPolicy {
+    BuildPolicy {
+        optimized: true
+        dependency: DependencyPolicy.DependencyLocked
+        localOverride: LocalOverridePolicy.LocalOverrideDeny
+        ambient: AmbientPolicy.AmbientDeny
+        policyVersion: "release-v1"
+    }
+}
+
+pub fn BuildPolicy.isRelease(self) -> Bool {
+    self.policyVersion != ""
+}
+
+/// Names the policy for the build summary.
+pub fn BuildPolicy.name(self) -> String {
+    if self.policyVersion == "" {
+        "development"
+    } else {
+        self.policyVersion
+    }
+}
+
+fn BuildPolicy.severity(self, id: String) -> Bool {
+    match id {
+        "release-local-replace" -> self.localOverride is LocalOverridePolicy.LocalOverrideDeny
+        "release-unlocked-script" -> self.dependency is DependencyPolicy.DependencyLocked
+        "release-ambient-std" -> self.ambient is AmbientPolicy.AmbientDeny
+        "release-ambient-cflags" -> self.ambient is AmbientPolicy.AmbientDeny
+        "release-native-link-unresolved" -> self.dependency is DependencyPolicy.DependencyLocked
+        "release-native-link-identity-unknown" -> self.isRelease()
+        "release-unverified-target" -> self.isRelease()
+        _ -> false
+    }
+}
+
+/// One release-policy finding: a stable ID, a one-line subject, ordered details and release wording.
+pub type Violation = {
+    pub id String
+    pub subject String
+    pub detail Array[KV]
+    pub policy String
+    pub help String
+}
+
+pub type KV = {
+    pub key String
+    pub value String
+}
+
+pub fn detail(key: String, value: String) -> KV {
+    KV { key: key, value: value }
+}
+
+pub type Report = {
+    pub warnings Array[Violation]
+    pub errors Array[Violation]
+}
+
+pub fn Report.hasErrors(self) -> Bool {
+    self.errors.len() > 0
+}
+
+/// Classifies violations under policy: development warns, release fails the build.
+pub fn evaluate(violations: Array[Violation], policy: BuildPolicy, extra: ...Violation) -> Report {
+    let mut all = violations
+    for v in extra {
+        all.push(v)
+    }
+    let mut groups = map.empty[String, Array[Violation]]()
+    for v in all {
+        let id = v.id
+        let mut group = match groups.take(&id) {
+            Some(group) -> group
+            None -> Array.empty[Violation]()
+        }
+        group.push(v)
+        groups.set(id, group)
+    }
+    let keys = groups.keys()
+    let sorted = sort.stable(&keys, (a: &String, b: &String) => a.compareTo(b))
+    let mut warnings = Array.empty[Violation]()
+    let mut errors = Array.empty[Violation]()
+    for key in sorted {
+        for v in groups.take(&key).expect("grouped violation") {
+            if policy.severity(v.id) {
+                errors.push(v)
+            } else {
+                warnings.push(v)
+            }
+        }
+    }
+    Report { warnings: warnings, errors: errors }
+}
+
+/// Formats every violation (warnings first, then errors) followed by a release-readiness summary.
+pub fn Report.render(self) -> String {
+    let mut out = text.StringBuilder.new()
+    for v in &self.warnings {
+        out = renderViolation(out, "warning", v)
+    }
+    for v in &self.errors {
+        out = renderViolation(out, "error", v)
+    }
+    if self.errors.len() > 0 {
+        out.push("release readiness: ${self.errors.len()} error(s), ${self.warnings.len()} warning(s); build refused\n")
+    } else if self.warnings.len() > 0 {
+        out.push("release readiness: ${self.warnings.len()} warning(s); would fail with --release\n")
+    }
+    out.freeze().expect("policy report")
+}
+
+fn renderViolation(mut out: text.StringBuilder, severity: String, v: &Violation) -> text.StringBuilder {
+    out.push("${severity}[${v.id}]: ${v.subject}\n")
+    for d in &v.detail {
+        out.push("  ${d.key}: ${d.value}\n")
+    }
+    if v.policy != "" {
+        out.push("  release policy: ${v.policy}\n")
+    }
+    if v.help != "" {
+        out.push("  help: ${v.help}\n")
+    }
+    out
+}
