@@ -51,7 +51,7 @@ fn runToken(word: String, forced: String?) -> Void! {
     let impl = implementation("token", "kigumi", forced)
     validate("token", impl)?
     if impl == "kigumi" {
-        print token.name(token.lookup(word))
+        print token.lookup(word).name()
     } else {
         runGoToken(word)
     }

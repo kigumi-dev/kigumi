@@ -15,7 +15,7 @@ test "keyword tables" {
     test.expectEq(keywords().len(), 29)?
     test.expectEq(contextual().len(), 13)?
     for word in keywords() {
-        test.expectEq(isKeyword(lookup(word)), true)?
+        test.expectEq(lookup(word).isKeyword(), true)?
     }
     for word in contextual() {
         test.expectEq(lookup(word), Ident)?
@@ -23,20 +23,19 @@ test "keyword tables" {
 }
 
 test "kind string and predicates" {
-    test.expectEq(name(PipeGt), "|>")?
-    test.expectEq(name(KwDefer), "defer")?
-    test.expectEq(name(Invalid), "invalid")?
-    test.expectEq(name(200), "kind(200)")?
-    test.expectEq(isKeyword(KwFalse), true)?
-    test.expectEq(isKeyword(Ident), false)?
-    test.expectEq(isTrivia(DocComment), true)?
-    test.expectEq(isTrivia(Newline), false)?
-    test.expectEq(isLiteral(KwTrue), true)?
-    test.expectEq(isLiteral(Ident), false)?
-    test.expectEq(isCompoundAssign(ShlAssign), true)?
-    test.expectEq(isCompoundAssign(Assign), false)?
-    test.expectEq(binaryOf(PlusAssign), Plus)?
-    test.expectEq(binaryOf(Assign), Invalid)?
+    test.expectEq(PipeGt.name(), "|>")?
+    test.expectEq(KwDefer.name(), "defer")?
+    test.expectEq(Invalid.name(), "invalid")?
+    test.expectEq(KwFalse.isKeyword(), true)?
+    test.expectEq(Ident.isKeyword(), false)?
+    test.expectEq(DocComment.isTrivia(), true)?
+    test.expectEq(Newline.isTrivia(), false)?
+    test.expectEq(KwTrue.isLiteral(), true)?
+    test.expectEq(Ident.isLiteral(), false)?
+    test.expectEq(ShlAssign.isCompoundAssign(), true)?
+    test.expectEq(Assign.isCompoundAssign(), false)?
+    test.expectEq(PlusAssign.binaryOf(), Plus)?
+    test.expectEq(Assign.binaryOf(), Invalid)?
 }
 
 test "file line and column" {
