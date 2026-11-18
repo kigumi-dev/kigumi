@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -360,23 +361,74 @@ func TestChaosWorkflowContract(t *testing.T) {
 	}
 }
 
-// strategy.matrix rejects a bare JSON array, so the plan job wraps the script's --plan in
-// an include object; this keeps the wrapped text a valid matrix.
-func TestChaosPlanWrapsAsMatrixInclude(t *testing.T) {
-	plan := runChaos(t, nil, "--plan", "--shards", "4", "--seed", "7")
-	var matrix struct {
+// planStepScript is the run block of the workflow step with id `plan`, dedented.
+func planStepScript(t *testing.T, text string) string {
+	t.Helper()
+	lines := strings.Split(text, "\n")
+	start := slices.IndexFunc(lines, func(l string) bool { return strings.TrimSpace(l) == "- id: plan" })
+	if start < 0 {
+		t.Fatal("nightly-chaos.yml has no step with id plan")
+	}
+	run := slices.IndexFunc(lines[start:], func(l string) bool { return strings.TrimSpace(l) == "run: |" })
+	if run < 0 {
+		t.Fatal("the plan step has no run block")
+	}
+	var body []string
+	for _, l := range lines[start+run+1:] {
+		if strings.TrimSpace(l) != "" && !strings.HasPrefix(l, "          ") {
+			break
+		}
+		body = append(body, strings.TrimPrefix(l, "          "))
+	}
+	return strings.Join(body, "\n")
+}
+
+// strategy.matrix rejects a bare JSON array, so the plan step wraps the script's --plan in an
+// include object; running the step's own shell keeps that wrapping tied to the yaml.
+func TestChaosPlanStepWritesMatrixInclude(t *testing.T) {
+	workflow, err := os.ReadFile(filepath.Join("..", "..", ".github", "workflows", "nightly-chaos.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(workflow)
+	output := filepath.Join(t.TempDir(), "github_output")
+	cmd := exec.Command("bash", "-c", planStepScript(t, text))
+	cmd.Dir = "../.."
+	cmd.Env = append(envWithout("GITHUB_RUN_ID", "GITHUB_OUTPUT"),
+		"SEED_INPUT=7", "SECONDS_INPUT=30", "COUNT_INPUT=4", "SHARDS_INPUT=4", "GITHUB_OUTPUT="+output)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("plan step: %v\n%s", err, out)
+	}
+	raw, err := os.ReadFile(output)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var matrix string
+	for _, line := range strings.Split(string(raw), "\n") {
+		if v, ok := strings.CutPrefix(line, "matrix="); ok {
+			matrix = v
+		}
+	}
+	var parsed struct {
 		Include []map[string]any `json:"include"`
 	}
-	if err := json.Unmarshal([]byte(`{"include":`+strings.TrimSpace(plan)+`}`), &matrix); err != nil {
-		t.Fatalf("wrapped plan is not a matrix object: %v", err)
+	if err := json.Unmarshal([]byte(matrix), &parsed); err != nil {
+		t.Fatalf("matrix output is not an include object: %v\n%s", err, matrix)
 	}
-	if len(matrix.Include) == 0 {
-		t.Fatal("wrapped plan has no include entries")
+	if len(parsed.Include) == 0 {
+		t.Fatal("matrix output has no include entries")
 	}
-	for i, e := range matrix.Include {
-		for _, key := range []string{"suite", "shard", "count", "toolchain"} {
+	var keys []string
+	for _, m := range regexp.MustCompile(`matrix\.([a-z]+)`).FindAllStringSubmatch(text, -1) {
+		keys = append(keys, m[1])
+	}
+	if len(keys) == 0 {
+		t.Fatal("the workflow reads no matrix field")
+	}
+	for i, e := range parsed.Include {
+		for _, key := range keys {
 			if _, ok := e[key]; !ok {
-				t.Errorf("include entry %d lacks %q", i, key)
+				t.Errorf("include entry %d lacks %q, which the workflow reads", i, key)
 			}
 		}
 	}

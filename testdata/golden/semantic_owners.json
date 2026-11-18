@@ -31653,7 +31653,7 @@
   },
   {
     "key": "tee/sgx.Chain.verifyTo",
-    "signature": "fn(\u0026Array[Certificate], Int) -\u003e Result[Anchored, Error]",
+    "signature": "fn(\u0026Array[Certificate], Int) -\u003e Result[Array[Anchored], Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -32352,6 +32352,16 @@
     "status": "ok"
   },
   {
+    "key": "tee/sgx.endOfPath",
+    "signature": "fn(\u0026Array[Anchored], Error) -\u003e Result[Array[Anchored], Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "tee/sgx.expectBytes",
     "signature": "pure fn(Bytes?, usize, String) -\u003e Result[Void, Error]",
     "has_body": true,
@@ -32472,8 +32482,28 @@
     "status": "ok"
   },
   {
+    "key": "tee/sgx.linkIssuer",
+    "signature": "fn(\u0026Certificate, \u0026Certificate, usize) -\u003e Result[Void, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "tee/sgx.maskedEquals",
     "signature": "pure fn(Bytes, Bytes, Bytes) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "tee/sgx.mrSignerField",
+    "signature": "pure fn(String) -\u003e Result[Bytes, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -32542,8 +32572,18 @@
     "status": "ok"
   },
   {
+    "key": "tee/sgx.pathVia",
+    "signature": "fn(\u0026Chain, \u0026Array[Certificate], \u0026Anchored, Int) -\u003e Result[PckPath, Error]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "tee/sgx.pckPath",
-    "signature": "fn(\u0026Chain, \u0026Array[Certificate], Anchored, Int) -\u003e Result[PckPath, Error]",
+    "signature": "fn(\u0026Chain, \u0026Array[Certificate], \u0026Array[Anchored], Int) -\u003e Result[PckPath, Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -32592,8 +32632,8 @@
     "status": "ok"
   },
   {
-    "key": "tee/sgx.reachAnchor",
-    "signature": "fn(\u0026Certificate, usize, \u0026Array[Certificate], Int, usize, usize) -\u003e Result[Anchored?, Error]",
+    "key": "tee/sgx.reachAnchors",
+    "signature": "fn(\u0026Certificate, usize, \u0026Array[Certificate], Int, usize, usize) -\u003e Result[Array[Anchored], Error]",
     "has_body": true,
     "kind": "",
     "vm": "gap",

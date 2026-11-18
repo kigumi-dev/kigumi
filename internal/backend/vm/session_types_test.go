@@ -30,3 +30,26 @@ func TestSessionAcceptsUnchangedStructuredTypes(t *testing.T) {
 		t.Fatalf("unchanged structured types were refused: %v", err)
 	}
 }
+
+func TestSessionAcceptsOverloadsOfOneName(t *testing.T) {
+	cases := map[string][2]string{
+		"parameter types": {"fn f(x: Int) -> Int { x }\n", "fn f(x: Float) -> Float { x }\n"},
+		"arity":           {"fn f() -> Int { 0 }\n", "fn f(x: Int) -> Int { x }\n"},
+		"generic":         {"fn f(x: Int) -> Int { x }\n", "fn f[T](x: T, y: T) -> T { x }\n"},
+		"methods": {"type A = { n Int }\nfn A.m(self, x: Int) -> Int { x }\n",
+			"fn A.m(self, x: Float) -> Float { x }\n"},
+	}
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			s := newSession(t, buildSessionProgram(t, c[0]+"print \"a\"\n"))
+			defer s.Close()
+			both := c[0] + c[1] + "print \"a\"\n"
+			if err := s.UseProgram(buildSessionProgram(t, both)); err != nil {
+				t.Fatalf("adding an overload was refused: %v", err)
+			}
+			if err := s.UseProgram(buildSessionProgram(t, both+"fn extra() -> Int { 1 }\n")); err != nil {
+				t.Fatalf("a later cell was refused: %v", err)
+			}
+		})
+	}
+}

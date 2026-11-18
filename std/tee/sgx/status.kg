@@ -39,8 +39,8 @@ pure fn statusFromText(text: String, code: Code) -> Result[TcbStatus, Error] {
     }
 }
 
-/// Overall outcome of appraising a quote. `Revoked` and `Unevaluated` are
-/// terminal: `verify` fails on them whatever the policy accepts.
+/// Overall outcome of appraising a quote. `Revoked` is terminal: `verify`
+/// fails on it whatever the policy accepts.
 pub type Status =
     | Good
     | SwHardeningNeeded
@@ -49,7 +49,6 @@ pub type Status =
     | OutOfDate
     | OutOfDateConfigurationNeeded
     | Revoked
-    | Unevaluated
 
 /// The status in kebab case, as printed in diagnostics.
 pub fn Status.name(self) -> String {
@@ -61,12 +60,11 @@ pub fn Status.name(self) -> String {
         Status.OutOfDate -> "out-of-date"
         Status.OutOfDateConfigurationNeeded -> "out-of-date-configuration-needed"
         Status.Revoked -> "revoked"
-        Status.Unevaluated -> "unevaluated"
     }
 }
 
-/// A status a policy may accept. Revoked and Unevaluated have no variant here,
-/// so no policy can accept them; Intel QvE also treats a revoked TCB as terminal.
+/// A status a policy may accept. Revoked has no variant here, so no policy
+/// can accept it; Intel QvE also treats a revoked TCB as terminal.
 pub type AcceptableStatus =
     | Good
     | SwHardeningNeeded
@@ -118,7 +116,6 @@ pub pure fn Status.acceptable(self) -> AcceptableStatus? {
         Status.OutOfDate -> Some(AcceptableStatus.OutOfDate)
         Status.OutOfDateConfigurationNeeded -> Some(AcceptableStatus.OutOfDateConfigurationNeeded)
         Status.Revoked -> None
-        Status.Unevaluated -> None
     }
 }
 

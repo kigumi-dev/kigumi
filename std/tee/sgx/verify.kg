@@ -45,10 +45,7 @@ pure fn claimsOf(quoteReport: &Report, qeReport: &Report, qeSvn: u16, pceSvn: u1
 }
 
 pure fn terminalFailure(status: Status) -> Error {
-    match status {
-        Status.Unevaluated -> failure(MissingCollateral, "the quote is unevaluated: the policy supplies no collateral")
-        _ -> failure(TcbRevoked, "TCB status ${status.name()} is terminal")
-    }
+    failure(TcbRevoked, "TCB status ${status.name()} is terminal")
 }
 
 /// Verifies the quote, QE, PCK chain, claims and collateral, never Ok without it;
@@ -70,9 +67,9 @@ pub fn verify(quoteBytes: Bytes, policy: &Policy) -> Result[VerificationResult, 
 
     let collateral = match &policy.collateral {
         Some(value) -> value
-        None -> fail terminalFailure(Status.Unevaluated)
+        None -> fail failure(MissingCollateral, "the policy supplies no collateral")
     }
-    let path = pckPath(&chain, &anchors, reached, policy.nowMillis)?
+    let path = pckPath(&chain, &anchors, &reached, policy.nowMillis)?
     let appraised = appraise(collateral, &path, &qeReport, policy)?
     let status = match appraised.status.acceptable() {
         Some(value) -> value

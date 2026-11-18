@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"strings"
 
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
@@ -118,8 +119,26 @@ func renameEntityKey(res *sem.Result, ent sem.EntityID, edits map[string][]renam
 	e := res.Entity(ent)
 	if e.File != 0 && e.Tok != 0 {
 		tree := res.Tree(e.File)
-		pos := renamedOffset(tree.Toks[e.Tok].Span.Start, edits[tree.File.Name])
+		list := edits[tree.File.Name]
+		old := tree.Toks[e.Tok].Span.Start
+		pos := renamedOffset(old, list)
+		if shorthandPatField(tree, e.Node) {
+			pos += token.Pos(bindingShift(old, list))
+		}
 		return fmt.Sprint(tree.File.Name, ":", pos, ":", e.Kind)
 	}
 	return fmt.Sprint(e.Kind, ":", e.Pkg, ":", e.Name)
+}
+
+// bindingShift is how far a shorthand pattern's binding moves when the edit at
+// pos rewrites it as `field: binding`.
+func bindingShift(pos token.Pos, edits []renameSpan) int {
+	for _, e := range edits {
+		if e.start == pos {
+			if i := strings.Index(e.text, ": "); i >= 0 {
+				return i + 2
+			}
+		}
+	}
+	return 0
 }

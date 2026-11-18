@@ -83,7 +83,7 @@ func (s *Server) Rename(ctx context.Context, p *protocol.RenameParams) (*protoco
 	targets = slices.Compact(targets)
 	changes := map[uri.URI][]protocol.TextEdit{}
 	seen := map[string]bool{}
-	add := func(f *token.File, sp token.Span) {
+	add := func(f *token.File, sp token.Span, text string) {
 		key := fmt.Sprint(f.Name, sp)
 		if seen[key] {
 			return
@@ -94,12 +94,16 @@ func (s *Server) Rename(ctx context.Context, p *protocol.RenameParams) (*protoco
 			return
 		}
 		u := uri.File(s.pathOfFile(snap, f.Name))
-		changes[u] = append(changes[u], protocol.TextEdit{Range: spanRange(f, sp), NewText: p.NewName})
+		changes[u] = append(changes[u], protocol.TextEdit{Range: spanRange(f, sp), NewText: text})
 	}
 	for _, id := range targets {
 		e := snap.res.Entity(id)
 		decl := snap.res.Tree(e.File)
-		add(decl.File, decl.Toks[e.Tok].Span)
+		text := p.NewName
+		if shorthandPatField(decl, e.Node) {
+			text = e.Name + ": " + p.NewName
+		}
+		add(decl.File, decl.Toks[e.Tok].Span, text)
 	}
 	old := snap.res.Entity(ent).Name
 	for _, u := range snap.semIndex().usesOf(targets) {
@@ -107,12 +111,16 @@ func (s *Server) Rename(ctx context.Context, p *protocol.RenameParams) (*protoco
 		if text := string(u.tree.File.Src[sp.Start:sp.End]); text != old && isIdentifier(text) {
 			continue
 		}
-		add(u.tree.File, sp)
+		text := p.NewName
+		if shorthandPatField(u.tree, u.node) {
+			text += ": " + old
+		}
+		add(u.tree.File, sp, text)
 	}
 	for _, id := range targets {
 		for _, imp := range snap.semIndex().imports[id] {
 			if f, sp, ok := importedName(snap.res, imp, old); ok {
-				add(f, sp)
+				add(f, sp, p.NewName)
 			}
 		}
 	}
@@ -120,6 +128,12 @@ func (s *Server) Rename(ctx context.Context, p *protocol.RenameParams) (*protoco
 		return nil, err
 	}
 	return s.workspaceEdit(changes), nil
+}
+
+// shorthandPatField is a record pattern field written as a bare name, which is
+// both a use of the field and the declaration of a binding.
+func shorthandPatField(t *syntax.Tree, n syntax.NodeID) bool {
+	return n != 0 && t.Kind(n) == syntax.PatField && !t.View(n).AsPatField().Sub().Valid()
 }
 
 // importedName is the span of the name an import binding takes from its

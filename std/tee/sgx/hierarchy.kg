@@ -38,9 +38,30 @@ fn issuingRoot(ca: &x509.Certificate, anchors: &Array[x509.Certificate], nowMill
     }
 }
 
+/// The first reached anchor whose path is accepted by `pathVia`; when none is, the first refusal.
+fn pckPath(chain: &Chain, anchors: &Array[x509.Certificate], reached: &Array[Anchored], nowMillis: Int) -> Result[PckPath, Error] {
+    let mut first: Error? = None
+    let mut refused = false
+    for candidate in reached {
+        match pathVia(chain, anchors, candidate, nowMillis) {
+            Ok(path) -> return Ok(path)
+            Err(error) -> {
+                if !refused {
+                    refused = true
+                    first = Some(error)
+                }
+            }
+        }
+    }
+    match first {
+        Some(error) -> fail error
+        None -> fail failure(PckChainMismatch, "the PCK chain does not reach a pinned trust anchor")
+    }
+}
+
 /// Extends the verified path to its pinned root as a non-CA leaf, a CA that is not
 /// self-issued, and the root; the supplied chain must be a prefix of that path.
-fn pckPath(chain: &Chain, anchors: &Array[x509.Certificate], reached: Anchored, nowMillis: Int) -> Result[PckPath, Error] {
+fn pathVia(chain: &Chain, anchors: &Array[x509.Certificate], reached: &Anchored, nowMillis: Int) -> Result[PckPath, Error] {
     let certs = &chain.certificates
     if certs.len() < 2 || certs.len() > 3 {
         fail failure(BadPckChain, "a production PCK chain is the PCK certificate, its CA and optionally the root")

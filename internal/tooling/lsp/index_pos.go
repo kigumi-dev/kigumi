@@ -33,7 +33,7 @@ func (snap *snapshot) posIndexOf(t *syntax.Tree) *posIndex {
 
 func isNameNode(k syntax.NodeKind) bool {
 	switch k {
-	case syntax.Ident, syntax.MemberExpr, syntax.PatBind, syntax.Param, syntax.PatCtor, syntax.TypePath, syntax.FieldInit, syntax.PatField:
+	case syntax.Ident, syntax.MemberExpr, syntax.PatBind, syntax.Param, syntax.PatCtor, syntax.TypePath, syntax.FieldInit, syntax.PatField, syntax.NamedArg:
 		return true
 	}
 	return false
@@ -46,7 +46,7 @@ func newPosIndex(t *syntax.Tree) *posIndex {
 			continue
 		}
 		sp := v.Span()
-		if v.Kind() == syntax.MemberExpr {
+		if v.Kind() == syntax.MemberExpr || v.Kind() == syntax.NamedArg {
 			sp = v.Tok().Span()
 		}
 		pi.names = append(pi.names, spanNode{sp, v.ID()})

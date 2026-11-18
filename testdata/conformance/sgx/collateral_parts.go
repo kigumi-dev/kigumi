@@ -102,6 +102,14 @@ func partsSuite(w *world) suite {
 	unmasked := qeIdentityBody("QE", issuedAt, nextUpdate, 17, fixtureQeLevels())
 	unmasked.Attributes, unmasked.AttributesMask = "15000000000000000000000000000000", "FBFFFFFFFFFFFFFF0000000000000000"
 	b.put("qe-unmasked", signedDocument("enclaveIdentity", unmasked, w.signer.key, nil))
+	noSigner := qeIdentityBody("QE", issuedAt, nextUpdate, 17, fixtureQeLevels())
+	noSigner.Mrsigner = ""
+	b.put("qe-no-mrsigner", signedDocument("enclaveIdentity", noSigner, w.signer.key, nil))
+	for name, signer := range map[string]string{"qe-mrsigner-31": strings.Repeat("ab", 31), "qe-mrsigner-33": strings.Repeat("ab", 33), "qe-mrsigner-blank": " "} {
+		doc := qeIdentityBody("QE", issuedAt, nextUpdate, 17, fixtureQeLevels())
+		doc.Mrsigner = signer
+		b.put(name, signedDocument("enclaveIdentity", doc, w.signer.key, nil))
+	}
 	b.put("qe-qve", signedDocument("enclaveIdentity", qeIdentityBody("QVE", issuedAt, nextUpdate, 17, fixtureQeLevels()), w.signer.key, nil))
 	v1 := qeIdentityBody("QE", issuedAt, nextUpdate, 17, fixtureQeLevels())
 	v1.Version = 1
@@ -183,6 +191,10 @@ func partsSuite(w *world) suite {
 	qe("qe-attribute-mismatch", "qe", qeReport(8, func(r *reportBody) { r.attributes = decode("13000000000000000700000000000000") }), "error:qe-identity-mismatch")
 	qe("qe-misc-mismatch", "qe", qeReport(8, func(r *reportBody) { r.misc = 1 }), "error:qe-identity-mismatch")
 	qe("qe-mrsigner-mismatch", "qe", qeReport(8, func(r *reportBody) { r.mrSigner = bytes.Repeat([]byte{0x44}, 32) }), "error:qe-identity-mismatch")
+	qe("qe-empty-mrsigner-skips-comparison", "qe-no-mrsigner", qeReport(8, func(r *reportBody) { r.mrSigner = bytes.Repeat([]byte{0x44}, 32) }), "ok status=up-to-date isvSvn=8 date=2025-02-12T00:00:00Z advisories=")
+	for _, name := range []string{"qe-mrsigner-31", "qe-mrsigner-33", "qe-mrsigner-blank"} {
+		qe(name, name, qeReport(8, nil), "error:bad-qe-identity")
+	}
 	qe("qe-prodid-mismatch", "qe", qeReport(8, func(r *reportBody) { r.isvProdID = 2 }), "error:qe-identity-mismatch")
 	qe("qe-misc-little-endian", "qe-misc-le", qeReport(8, func(r *reportBody) { r.misc = 1 }), "ok status=up-to-date isvSvn=8 date=2025-02-12T00:00:00Z advisories=")
 	qe("qe-misc-required", "qe-misc-le", qeReport(8, nil), "error:qe-identity-mismatch")

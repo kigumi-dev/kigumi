@@ -56,6 +56,7 @@ func verifySuite(w *world) suite {
 	b.put("qe-future", signedDocument("enclaveIdentity", qeIdentityBody("QE", date(2025, 6, 10), date(2025, 7, 10), 18, qeLevels), w.signer.key, nil))
 	b.put("qe-older", signedDocument("enclaveIdentity", qeIdentityBody("QE", issuedAt, nextUpdate, 16, qeLevels), w.signer.key, nil))
 	b.put("tcb-issued-after-now", signedDocument("tcbInfo", tcbInfoBody(fixtureFmsp, fixturePce, verifyAt.Add(time.Second), nextUpdate, 17, levels), w.signer.key, nil))
+	b.put("tcb-other-pce", signedDocument("tcbInfo", tcbInfoBody(fixtureFmsp, decode("0001"), issuedAt, nextUpdate, 17, levels), w.signer.key, nil))
 	b.put("chain", w.signingChain(w.signer, w.root))
 	b.put("chain-foreign", w.signingChain(w.otherSigner, w.otherRoot))
 	leaves := map[string]*authority{}
@@ -66,6 +67,7 @@ func verifySuite(w *world) suite {
 	b.put("pck-crl", crl(w.ca, crlSpec{thisUpdate: crlThis, nextUpdate: crlNext, revoked: []revocation{{serial: bigInt(999), reason: 1}}}))
 	b.put("pck-crl-revokes-leaf", w.pckCrl(leaves["up-to-date"]))
 	b.put("pck-crl-expired", crl(w.ca, crlSpec{thisUpdate: date(2025, 5, 1), nextUpdate: date(2025, 5, 31)}))
+	b.put("pck-crl-not-yet-valid", crl(w.ca, crlSpec{thisUpdate: verifyAt.Add(time.Hour), nextUpdate: crlNext}))
 	b.put("pck-crl-by-root", crl(w.root, crlSpec{thisUpdate: crlThis, nextUpdate: crlNext}))
 	b.put("root-crl", w.rootCrl())
 	b.put("root-crl-revokes-ca", w.rootCrl(w.ca))
@@ -130,6 +132,8 @@ func verifySuite(w *world) suite {
 	add("pck-ca-revoked", up, good.with(func(c *collateralRef) { c.RootCrl = "root-crl-revokes-ca" }), "all", "error:certificate-revoked")
 	add("tcb-signer-revoked", up, good.with(func(c *collateralRef) { c.RootCrl = "root-crl-revokes-signer" }), "all", "error:certificate-revoked")
 	add("pck-crl-expired", up, good.with(func(c *collateralRef) { c.PckCrl = "pck-crl-expired" }), "all", "error:collateral-expired")
+	add("pck-crl-not-yet-valid", up, good.with(func(c *collateralRef) { c.PckCrl = "pck-crl-not-yet-valid" }), "all", "error:collateral-not-yet-valid")
+	add("pce-mismatch", up, good.with(func(c *collateralRef) { c.TcbInfo = "tcb-other-pce" }), "all", "error:tcb-info-mismatch")
 	add("pck-crl-wrong-issuer", up, good.with(func(c *collateralRef) { c.PckCrl = "pck-crl-by-root" }), "all", "error:bad-crl")
 	add("no-sgx-extension", quote(noExtension, 8, nil), good, "all", "error:bad-pck-extension")
 	add("wrong-qe-vendor", quote(leaves["up-to-date"], 8, func(s *quoteSpec) { s.vendor = make([]byte, 16) }), good, "", "error:policy-rejected")
@@ -160,6 +164,15 @@ func verifySuite(w *world) suite {
 		s.chain = append(append(pemCert(leaves["up-to-date"].der), pemCert(otherCa.der)...), rootPem...)
 	})
 	add("chain-ca-off-path", offPath, good, "", "error:pck-chain-mismatch").Anchors = hex.EncodeToString(append(caPem, rootPem...))
+	renewed := issue(certSpec{serial: 22, name: caName, key: "collateral pck ca", ca: true, pathLen: 0, notBefore: date(2021, 1, 1), notAfter: date(2041, 1, 1)}, w.root)
+	renewedPem := pemCert(renewed.der)
+	add("anchors-renewed-ca-first", up, good, "", goodResult).Anchors = hex.EncodeToString(append(append([]byte(nil), renewedPem...), rootPem...))
+	add("anchors-renewed-ca-last", up, good, "", goodResult).Anchors = hex.EncodeToString(append(append([]byte(nil), rootPem...), renewedPem...))
+	renewedChain := quote(leaves["up-to-date"], 8, func(s *quoteSpec) {
+		s.chain = append(append(pemCert(leaves["up-to-date"].der), renewedPem...), rootPem...)
+	})
+	add("chain-renewed-ca-anchors-original", renewedChain, good, "", goodResult).Anchors = hex.EncodeToString(append(append([]byte(nil), caPem...), rootPem...))
+	add("anchor-renewed-ca-without-root", up, good, "", "error:pck-chain-mismatch").Anchors = hex.EncodeToString(renewedPem)
 	return file
 }
 

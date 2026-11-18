@@ -99,10 +99,18 @@ fn QeIdentity.fromSigned(signed: SignedJson) -> Result[QeIdentity, Error] {
         miscSelectMask: hexField(doc.miscselectMask, "miscselectMask", 4, BadQeIdentity)?
         attributes: hexField(doc.attributes, "attributes", 16, BadQeIdentity)?
         attributesMask: hexField(doc.attributesMask, "attributesMask", 16, BadQeIdentity)?
-        mrSigner: hexField(doc.mrsigner, "mrsigner", 32, BadQeIdentity)?
+        mrSigner: mrSignerField(doc.mrsigner)?
         isvProdId: doc.isvprodid
         tcbLevels: levels
     })
+}
+
+/// An empty value is kept as empty: Intel QVL then skips the MRSIGNER comparison.
+pure fn mrSignerField(text: String) -> Result[Bytes, Error] {
+    if text.len() == 0 {
+        return Ok(Bytes.fromArray(&Array.empty[u8]()))
+    }
+    hexField(text, "mrsigner", 32, BadQeIdentity)
 }
 
 pure fn wordBytes(word: u32) -> Bytes {
@@ -138,7 +146,7 @@ pub fn QeIdentity.evaluate(self, report: &Report) -> Result[QeIdentityEvaluation
     if !maskedEquals(report.attributes, self.attributesMask, self.attributes) {
         fail failure(QeIdentityMismatch, "QE report ATTRIBUTES do not match the identity")
     }
-    if !report.mrSigner.equals(&self.mrSigner) {
+    if self.mrSigner.len() != 0 && !report.mrSigner.equals(&self.mrSigner) {
         fail failure(QeIdentityMismatch, "QE report MR_SIGNER does not match the identity")
     }
     if report.isvProdId != self.isvProdId {

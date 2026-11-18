@@ -4,7 +4,7 @@ pub type Measurement =
     | Signer(Bytes, u16)
 
 /// Business policy; `None` constraints are unconstrained. Without `collateral`
-/// the quote is `Unevaluated` and `verify` fails.
+/// `verify` fails with `MissingCollateral`.
 pub type Policy = {
     pub mut requireReportData Bytes?
     pub mut requireMrEnclave Bytes?

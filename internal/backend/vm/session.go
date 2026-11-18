@@ -503,8 +503,8 @@ func (v *Value) TakeFields() []Value {
 	return out
 }
 
-// entityKey names a declaration by package, kind, name, parent and type
-// arguments, not by checker ids; a specialization shares its generic's name.
+// entityKey names a declaration by package, kind, name, parent, parameter
+// types and type arguments, not by checker ids; overloads differ by parameters.
 func entityKey(r *sem.Result, id sem.EntityID) string {
 	if id == 0 || int(id) >= len(r.Entities) {
 		return ""
@@ -519,6 +519,9 @@ func entityKey(r *sem.Result, id sem.EntityID) string {
 		parent = entityKey(r, e.Parent)
 	}
 	key := pkg + "\x00" + fmt.Sprint(e.Kind) + "\x00" + e.Name + "\x00" + parent
+	if e.Kind == sem.EntFn {
+		key += "\x00" + r.ParamsKey(r.GenericOf(id))
+	}
 	if in, ok := r.InstanceOf(id); ok {
 		for _, arg := range in.Args {
 			key += "\x00" + string(r.TypeKey(arg))

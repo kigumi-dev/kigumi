@@ -43,6 +43,18 @@ static pthread_key_t g_alt_key;
 static pthread_once_t g_once = PTHREAD_ONCE_INIT;
 static int g_installed;
 
+// Only these codes come from an access that faults again once the handler returns; other positive codes can be sent.
+static int refaults(int sig, int code) {
+    if (sig == SIGSEGV) {
+#ifdef SI_KERNEL
+        // x86 reports a general-protection fault, such as a non-canonical address, this way.
+        if (code == SI_KERNEL) return 1;
+#endif
+        return code == SEGV_MAPERR || code == SEGV_ACCERR;
+    }
+    return code == BUS_ADRALN || code == BUS_ADRERR || code == BUS_OBJERR;
+}
+
 static void on_fault(int sig, siginfo_t* si, void* ctx) {
     (void)ctx;
     uintptr_t addr = (uintptr_t)si->si_addr;
@@ -63,7 +75,7 @@ static void on_fault(int sig, siginfo_t* si, void* ctx) {
     rt_sys_fault_cleanup();
     signal(sig, SIG_DFL);
     // A hardware fault re-executes into the default action with its real siginfo and core; only a sent signal needs raise.
-    if (si->si_code > 0 && si->si_code != SI_USER) return;
+    if (refaults(sig, si->si_code)) return;
     raise(sig);
 }
 

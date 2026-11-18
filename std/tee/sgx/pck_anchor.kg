@@ -11,49 +11,51 @@ pure fn selfIssued(cert: &x509.Certificate) -> Bool {
     cert.subject.raw.equals(&cert.issuer.raw)
 }
 
-/// Verifies issuers from the leaf up to the first pinned anchor or one it issued; later
-/// certificates are ignored here, but `verify` rejects those off the path to the root.
+/// Verifies issuers from the leaf through every pinned anchor, or one it issued, that the chain
+/// reaches; certificates past the last of them are ignored, but `verify` rejects any off its path.
 pub fn Chain.verify(self, anchors: &Array[x509.Certificate], nowMillis: Int) -> Result[Void, Error] {
     _ = self.verifyTo(anchors, nowMillis)?
 }
 
-/// `Chain.verify`, returning where the path met its anchor.
-fn Chain.verifyTo(self, anchors: &Array[x509.Certificate], nowMillis: Int) -> Result[Anchored, Error] {
+/// `Chain.verify`, returning every place the path meets an anchor, nearest the leaf first.
+fn Chain.verifyTo(self, anchors: &Array[x509.Certificate], nowMillis: Int) -> Result[Array[Anchored], Error] {
     if self.certificates.len() == 0 {
         fail failure(BadPckChain, "PCK chain has no certificate")
     }
     if anchors.len() == 0 {
         fail failure(MissingTrustAnchor, "no PCK trust anchor was supplied")
     }
+    let mut found = Array.empty[Anchored]()
     let mut rejected: Error? = None
     let mut below: usize = 0
     let mut i: usize = 0
     for i < self.certificates.len() {
         let cert = &self.certificates[i]
-        checkValidity(cert, nowMillis, "PCK certificate")?
+        if let Err(error) = checkValidity(cert, nowMillis, "PCK certificate") {
+            return endOfPath(&found, error)
+        }
         let above = if i > 0 && !selfIssued(cert) {
             below + 1
         } else {
             below
         }
-        match reachAnchor(cert, i, anchors, nowMillis, below, above) {
-            Ok(Some(reached)) -> return Ok(reached)
-            Ok(None) -> {}
+        match reachAnchors(cert, i, anchors, nowMillis, below, above) {
+            Ok(reached) -> found.appendAll(reached)
             Err(error) -> {
                 rejected = Some(error)
             }
         }
         let next = i + 1
         if next < self.certificates.len() {
-            let issuer = &self.certificates[next]
-            if !cert.issuer.raw.equals(&issuer.subject.raw) {
-                fail failure(PckChainMismatch, "PCK issuer and subject names do not match")
+            if let Err(error) = linkIssuer(cert, &self.certificates[next], above) {
+                return endOfPath(&found, error)
             }
-            requireCertificateAuthority(issuer, above)?
-            checkSignature(cert, issuer)?
         }
         below = above
         i = next
+    }
+    if found.len() > 0 {
+        return Ok(found)
     }
     match rejected {
         Some(error) -> fail error
@@ -61,10 +63,28 @@ fn Chain.verifyTo(self, anchors: &Array[x509.Certificate], nowMillis: Int) -> Re
     }
 }
 
-/// The anchor that is `cert` or its issuer, `Err` only if every match was refused;
+/// Anchors already reached stand when a later certificate fails; without one the failure is the answer.
+fn endOfPath(found: &Array[Anchored], error: Error) -> Result[Array[Anchored], Error] {
+    if found.len() > 0 {
+        Ok(found.clone())
+    } else {
+        Err(error)
+    }
+}
+
+fn linkIssuer(cert: &x509.Certificate, issuer: &x509.Certificate, above: usize) -> Result[Void, Error] {
+    if !cert.issuer.raw.equals(&issuer.subject.raw) {
+        fail failure(PckChainMismatch, "PCK issuer and subject names do not match")
+    }
+    requireCertificateAuthority(issuer, above)?
+    checkSignature(cert, issuer)?
+}
+
+/// Every anchor that is `cert` or its issuer, `Err` only if all matches were refused;
 /// `below` and `above` count the intermediates under `cert` and under its issuer.
-fn reachAnchor(cert: &x509.Certificate, at: usize, anchors: &Array[x509.Certificate], nowMillis: Int, below: usize, above: usize) -> Result[Anchored?, Error] {
+fn reachAnchors(cert: &x509.Certificate, at: usize, anchors: &Array[x509.Certificate], nowMillis: Int, below: usize, above: usize) -> Result[Array[Anchored], Error] {
     let body = cert.tbsCertificate()
+    let mut found = Array.empty[Anchored]()
     let mut rejected: Error? = None
     let mut index: usize = 0
     for index < anchors.len() {
@@ -82,10 +102,10 @@ fn reachAnchor(cert: &x509.Certificate, at: usize, anchors: &Array[x509.Certific
                 above
             }
             match checkAnchor(cert, anchor, nowMillis, intermediates, included) {
-                Ok(_) -> return Ok(Some(Anchored {
+                Ok(_) -> found.push(Anchored {
                     depth: depth
                     anchor: index
-                }))
+                })
                 Err(error) -> {
                     rejected = Some(error)
                 }
@@ -93,10 +113,12 @@ fn reachAnchor(cert: &x509.Certificate, at: usize, anchors: &Array[x509.Certific
         }
         index = index + 1
     }
-    match rejected {
-        Some(error) -> fail error
-        None -> Ok(None)
+    if found.len() == 0 {
+        if let Some(error) = rejected {
+            fail error
+        }
     }
+    Ok(found)
 }
 
 fn checkAnchor(cert: &x509.Certificate, anchor: &x509.Certificate, nowMillis: Int, below: usize, included: Bool) -> Result[Void, Error] {

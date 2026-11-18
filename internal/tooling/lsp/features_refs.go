@@ -30,11 +30,11 @@ func (s *Server) entityLocation(snap *snapshot, ent sem.EntityID) *protocol.Loca
 	return &protocol.Location{URI: uri.File(s.pathOfFile(snap, target.File.Name)), Range: s.rng(snap, target.File, sp)}
 }
 
-// nameSpan is the span of the name a use node refers with: the member
-// token of a member expression or record field, the path of a type, the whole node otherwise.
+// nameSpan is the span of the name a use node refers with: the name token of a
+// member, record field or named argument, the path of a type, the whole node otherwise.
 func nameSpan(t *syntax.Tree, n syntax.NodeID) token.Span {
 	switch t.Kind(n) {
-	case syntax.MemberExpr, syntax.FieldInit, syntax.PatField:
+	case syntax.MemberExpr, syntax.FieldInit, syntax.PatField, syntax.NamedArg:
 		return t.View(n).Tok().Span()
 	case syntax.TypePath:
 		return t.View(n).AsTypePath().Path().Span()

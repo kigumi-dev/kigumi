@@ -492,11 +492,11 @@ func TestSessionRejectsClippedTypeChange(t *testing.T) {
 	for i := range 419 {
 		params = append(params, fmt.Sprintf("p%d: Int", i))
 	}
-	source := func(last string) string {
-		return "fn long(" + strings.Join(params, ", ") + ", last: " + last + ") -> Int { p0 }\nprint \"session\"\n"
+	source := func(ret, body string) string {
+		return "fn long(" + strings.Join(params, ", ") + ") -> " + ret + " { " + body + " }\nprint \"session\"\n"
 	}
-	base := buildSessionProgram(t, source("Int"))
-	next := buildSessionProgram(t, source("String"))
+	base := buildSessionProgram(t, source("Int", "p0"))
+	next := buildSessionProgram(t, source("String", "\"\""))
 	s := newSession(t, base)
 	defer s.Close()
 	if err := s.UseProgram(next); err == nil || !strings.Contains(err.Error(), "changed type") {

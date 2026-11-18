@@ -98,6 +98,11 @@ func (c *checker) resolveNamedArgs(fnName string, args []syntax.NodeID, declPara
 		c.reportNamedLayout(fnName, lay)
 		return nil, false
 	}
+	for slot, i := range lay.order {
+		if i >= 0 && c.t.Kind(args[i]) == syntax.NamedArg {
+			c.info.Uses[args[i]] = declParams[slot]
+		}
+	}
 	return lay.place(), true
 }
 

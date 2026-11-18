@@ -20,6 +20,9 @@ func (r *Result) overloadSig(ent EntityID) string {
 	return full + r.boundsKey(ent)
 }
 
+// ParamsKey spells the receiver mode and parameter types of fn, the part of its identity that tells two overloads apart.
+func (r *Result) ParamsKey(fn EntityID) string { return r.paramsKey(fn) }
+
 func (r *Result) siblingMatches(ent EntityID, members []EntityID, key func(EntityID) string) bool {
 	own := key(ent)
 	for _, m := range members {
