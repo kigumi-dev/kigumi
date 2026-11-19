@@ -4,6 +4,7 @@ import (
 	"kigumi/internal/compiler/mir/instance"
 	midir "kigumi/internal/compiler/mir/ir"
 	"kigumi/internal/compiler/sem"
+	"sync/atomic"
 )
 
 // typeValue is the Int a runtime type travels as, the TypeID of its identity: one immortal per type, not counted
@@ -20,8 +21,11 @@ func (m *Machine) typeValue(t sem.TypeID) *obj {
 	return v
 }
 
-// immortal is a fresh value's uncounted immortal copy.
+// immortal is a fresh value's uncounted immortal copy; a value another machine may be pinning is shared as is.
 func (m *Machine) immortal(v *obj) *obj {
+	if atomic.LoadInt32(&v.rc) < 0 {
+		return v
+	}
 	c := new(obj)
 	*c = *v
 	c.rc = -1
