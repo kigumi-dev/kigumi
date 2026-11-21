@@ -207,6 +207,9 @@ fn Cursor.number(mut self) -> Value! {
         if text.parseU128(digits) is Some(m) {
             return Ok(Value.Wide(negative, m))
         }
+        if text.parseFloat(literal) is Some(f) {
+            return Ok(Value.Number(f))
+        }
         fail Error { text: "integer literal ${literal} is out of range for 128-bit integers (magnitude max 340282366920938463463374607431768211455)" }
     }
     if text.parseFloat(literal) is Some(f) {

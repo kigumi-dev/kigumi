@@ -294,11 +294,19 @@ pub fn f32.toJson(self) -> Value {
 }
 
 pub fn f32.fromJson(value: Value) -> f32! {
-    Ok((f64.fromJson(value)?).toF32())
+    let f = f64.fromJson(value)?
+    if f >= 3.4028235677973366e38 || f <= -3.4028235677973366e38 {
+        fail Error { text: "${f} does not fit f32" }
+    }
+    Ok(f.toF32())
 }
 
 pub fn f32.fromKeyText(s: String) -> f32! {
-    Ok((f64.fromKeyText(s)?).toF32())
+    let f = f64.fromKeyText(s)?
+    if f >= 3.4028235677973366e38 || f <= -3.4028235677973366e38 {
+        fail Error { text: "${f} does not fit f32" }
+    }
+    Ok(f.toF32())
 }
 
 pub fn Bool.toJson(self) -> Value {

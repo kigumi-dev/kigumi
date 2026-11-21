@@ -24,6 +24,11 @@ print "note=${report.note || "none"} tags=${report.tags.len()} y=${report.tags.g
 print "roundtrip=${json.encode(report)?}"
 let nums = json.decode[Array[Int]]("[1, 2, 3]")?
 print "nums=${nums.len()} sum=${nums.fold(0, (a, b) => a + b)}"
+print "big=${json.parse("340282366920938463463374607431768211456") is Ok(_)}"
+match json.decode[f32]("1e300") {
+    Ok(_) -> print "unexpected"
+    Err(e) -> print "f32 error: ${e.message()}"
+}
 let maybe = json.decode[Int?]("null")?
 print "maybe=${maybe || -1}"
 match json.decode[Report]("{\"ratio\": 1.0}") {
@@ -43,6 +48,8 @@ total=3 active=true authors=2 first=alice
 note=none tags=2 y=2 order=true ratio-half=true
 roundtrip={"total_commits":3,"ratio":0.5,"active":true,"authors":[{"name":"alice","commits":2},{"name":"bob","commits":1}],"tags":{"x":1,"y":2},"order":"Less"}
 nums=3 sum=6
+big=true
+f32 error: 1e+300 does not fit f32
 maybe=-1
 error: missing field `total_commits` of Report
 error: expected integer, found string
