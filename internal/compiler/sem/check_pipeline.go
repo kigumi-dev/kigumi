@@ -29,6 +29,7 @@ func (r *Result) phases() []func() {
 		r.checkCSymbols,
 		r.declareConsts,
 		r.declareStatics,
+		r.checkConstStaticVisibility,
 		r.declareContextKeys,
 		r.checkContextProviders,
 		r.checkImpls,

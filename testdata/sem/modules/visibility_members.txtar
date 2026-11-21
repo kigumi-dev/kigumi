@@ -49,6 +49,15 @@ pub(module) type ModShown = {
 pub(module) fn ModShown.display(self) -> String {
     ""
 }
+fn mkHidden() -> Hidden {
+    Hidden { v: 1 }
+}
+
+pub const leakConst: Hidden = comptime mkHidden() //~ ERROR `Hidden` is private but appears in the pub signature of `leakConst`
+pub static leakStatic: Hidden = comptime mkHidden() //~ ERROR `Hidden` is private but appears in the pub signature of `leakStatic`
+pub const okConst: Int = 1
+pub static okStatic: Int = 1
+
 -- expect --
 error[E118]: `Hidden` is private but appears in the pub signature of `leak`
  --> app/v/v.kg:5:1
@@ -91,4 +100,16 @@ error[E120]: `Shown` asserts `Display` with pub visibility but witness `display`
    |
 34 | @impl(Display) //~ ERROR `Shown` asserts `Display` with pub visibility but witness `display` is private
    |       ^^^^^^^
+
+error[E118]: `Hidden` is private but appears in the pub signature of `leakConst`
+  --> app/v/v.kg:55:1
+   |
+55 | pub const leakConst: Hidden = comptime mkHidden() //~ ERROR `Hidden` is private but appears in the pub signature of `leakConst`
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E118]: `Hidden` is private but appears in the pub signature of `leakStatic`
+  --> app/v/v.kg:56:1
+   |
+56 | pub static leakStatic: Hidden = comptime mkHidden() //~ ERROR `Hidden` is private but appears in the pub signature of `leakStatic`
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

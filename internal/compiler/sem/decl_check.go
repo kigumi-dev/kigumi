@@ -30,7 +30,21 @@ func (r *Result) checkDeclarations() {
 			}
 		case EntAlias:
 			r.checkSignatureVisibility(EntityID(id), e.Vis, e.Type)
-		case EntConst:
+		}
+	}
+}
+
+// checkConstStaticVisibility runs after declareConsts and declareStatics, when
+// their types are resolved; the earlier cross-declaration pass cannot inspect
+// a const or static signature.
+func (r *Result) checkConstStaticVisibility() {
+	for id := 1; id < len(r.Entities); id++ {
+		e := &r.Entities[id]
+		if e.File == 0 || e.Flags&EfPoison != 0 {
+			continue
+		}
+		switch e.Kind {
+		case EntConst, EntStatic:
 			r.checkSignatureVisibility(EntityID(id), e.Vis, e.Type)
 		}
 	}
