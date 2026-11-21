@@ -70,7 +70,10 @@ print "float ${h} ${h2} ${h3}"
 let src = G { v: 1, w: 2 }
 let copy: G[Int] = G { ..src }
 let again = G { ..src, w: 7 }
+let overrideAfter = G { ..src, v: 4, w: 5 }
+let overrideBefore = G { v: 4, w: 5, ..src }
 print "spread ${copy.v} ${copy.w} ${again.w}"
+print "spread override ${overrideAfter.v} ${overrideAfter.w} ${overrideBefore.v} ${overrideBefore.w}"
 
 let empty = Array.empty[FixedArray[Int, 3]]()
 print "empty ${empty.len()}"
@@ -131,6 +134,7 @@ index 1 6
 unary -5 255 5
 float -5 -5 -3
 spread 1 2 7
+spread override 4 5 4 5
 empty 0
 never lambda
 break -

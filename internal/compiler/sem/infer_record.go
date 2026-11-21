@@ -52,6 +52,7 @@ func (c *checker) synthRecord(n syntax.NodeID, want TypeID) TypeID {
 		subst[p] = typeArgs[i]
 	}
 	given := map[EntityID]bool{}
+	explicit := map[EntityID]bool{}
 	spreadOK := true
 	for _, entry := range entries {
 		en := c.t.View(entry)
@@ -69,9 +70,10 @@ func (c *checker) synthRecord(n syntax.NodeID, want TypeID) TypeID {
 		}
 		c.r.useEntity(c.f, entry, fld)
 		c.info.Uses[entry] = fld
-		if given[fld] && c.t.Kind(prevEntry(c.t, entries, entry)) != syntax.Spread {
+		if explicit[fld] {
 			c.errAt(entry, cDuplicateFieldInit, name)
 		}
+		explicit[fld] = true
 		given[fld] = true
 		fieldType := c.r.Types.Subst(c.r.Entities[fld].Type, subst)
 		start := c.vars.count()
@@ -98,15 +100,6 @@ func (c *checker) synthRecord(n syntax.NodeID, want TypeID) TypeID {
 	c.info.Calls[n] = CallInfo{Kind: CallRecord, Callee: ent, Inst: typeArgs}
 	c.touched = append(c.touched, n)
 	return result
-}
-
-func prevEntry(t *syntax.Tree, entries []syntax.NodeID, entry syntax.NodeID) syntax.NodeID {
-	for i, e := range entries {
-		if e == entry && i > 0 {
-			return entries[i-1]
-		}
-	}
-	return 0
 }
 
 func (c *checker) synthEntries(entries []syntax.NodeID) {

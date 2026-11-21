@@ -26,6 +26,8 @@ fn spread(u: User, b: Big) -> Summary {
     let x = Summary { id: 1 } //~ ERROR missing field `name` in `Summary` literal
     let y = Summary { id: 1, name: "a", nme: "b" } //~ ERROR `Summary` has no field `nme`
     let z = Summary { id: 1, id: 2, name: "a" } //~ ERROR field `id` is given twice
+    let dupAfter = Summary { ..u, id: 1, name: "x", id: 2 } //~ ERROR field `id` is given twice
+    let dupBefore = Summary { id: 1, ..u, id: 2, name: "x" } //~ ERROR field `id` is given twice
     let w = Summary { id: "s", name: "a" } //~ ERROR expected `Int`, found `String`
     let v = Summary { .."s" } //~ ERROR cannot spread a value of type `String`
     let q = u.id //~ TYPE q : Int
@@ -67,54 +69,66 @@ error[E819]: field `id` is given twice
 27 |     let z = Summary { id: 1, id: 2, name: "a" } //~ ERROR field `id` is given twice
    |                              ^^^^^
 
-error[E400]: expected `Int`, found `String`
-  --> lib/rec.kg:28:27
+error[E819]: field `id` is given twice
+  --> lib/rec.kg:28:53
    |
-28 |     let w = Summary { id: "s", name: "a" } //~ ERROR expected `Int`, found `String`
+28 |     let dupAfter = Summary { ..u, id: 1, name: "x", id: 2 } //~ ERROR field `id` is given twice
+   |                                                     ^^^^^
+
+error[E819]: field `id` is given twice
+  --> lib/rec.kg:29:43
+   |
+29 |     let dupBefore = Summary { id: 1, ..u, id: 2, name: "x" } //~ ERROR field `id` is given twice
+   |                                           ^^^^^
+
+error[E400]: expected `Int`, found `String`
+  --> lib/rec.kg:30:27
+   |
+30 |     let w = Summary { id: "s", name: "a" } //~ ERROR expected `Int`, found `String`
    |                           ^^^
 
 error[E822]: cannot spread a value of type `String`
-  --> lib/rec.kg:29:25
+  --> lib/rec.kg:31:25
    |
-29 |     let v = Summary { .."s" } //~ ERROR cannot spread a value of type `String`
+31 |     let v = Summary { .."s" } //~ ERROR cannot spread a value of type `String`
    |                         ^^^
 
 error[E510]: `User` has no field or method `missing`
-  --> lib/rec.kg:32:13
+  --> lib/rec.kg:34:13
    |
-32 |     let e = u.missing //~ ERROR `User` has no field or method `missing`
+34 |     let e = u.missing //~ ERROR `User` has no field or method `missing`
    |             ^^^^^^^^^
 
 error[E508]: `Square` has no payload
-  --> lib/rec.kg:41:13
+  --> lib/rec.kg:43:13
    |
-41 |     let t = Square() //~ ERROR `Square` has no payload
+43 |     let t = Square() //~ ERROR `Square` has no payload
    |             ^^^^^^^
    = help: write `Square` without parentheses
 
 error[E522]: `Circle` takes 1 payload value, 0 given
-  --> lib/rec.kg:42:13
+  --> lib/rec.kg:44:13
    |
-42 |     let u = Circle() //~ ERROR `Circle` takes 1 payload value, 0 given
+44 |     let u = Circle() //~ ERROR `Circle` takes 1 payload value, 0 given
    |             ^^^^^^^
 
 error[E424]: `Circle` needs a payload
-  --> lib/rec.kg:43:13
+  --> lib/rec.kg:45:13
    |
-43 |     let v = Circle //~ ERROR `Circle` needs a payload
+45 |     let v = Circle //~ ERROR `Circle` needs a payload
    |             ^^^^^^
    = help: write `(x) => Circle(x)`
 
 error[E815]: `Shape` is a type
-  --> lib/rec.kg:44:13
+  --> lib/rec.kg:46:13
    |
-44 |     let w = Shape { r: 1.0 } //~ ERROR `Shape` is a type
+46 |     let w = Shape { r: 1.0 } //~ ERROR `Shape` is a type
    |             ^^^^^
    = help: a record literal needs a record type
 
 error[E123]: `User` is a type, not a value
-  --> lib/rec.kg:45:13
+  --> lib/rec.kg:47:13
    |
-45 |     let a = User(1) //~ ERROR `User` is a type, not a value
+47 |     let a = User(1) //~ ERROR `User` is a type, not a value
    |             ^^^^
 
