@@ -54,6 +54,7 @@ func (c *checker) synthRecord(n syntax.NodeID, want TypeID) TypeID {
 	given := map[EntityID]bool{}
 	explicit := map[EntityID]bool{}
 	spreadOK := true
+	bad := false
 	for _, entry := range entries {
 		en := c.t.View(entry)
 		value := en.ArgValue().ID()
@@ -66,6 +67,7 @@ func (c *checker) synthRecord(n syntax.NodeID, want TypeID) TypeID {
 		if fld == 0 {
 			c.errSuggest(entry, cUnknownField, name, c.r.memberNames(ent), e.Name, name)
 			c.synth(value)
+			bad = true
 			continue
 		}
 		c.r.useEntity(c.f, entry, fld)
@@ -94,6 +96,10 @@ func (c *checker) synthRecord(n syntax.NodeID, want TypeID) TypeID {
 	}
 	if len(missing) > 0 && spreadOK {
 		c.errAt(n, cMissingField, plural(len(missing)), joinComma(missing), e.Name)
+		bad = true
+	}
+	if bad {
+		return TyPoison
 	}
 	c.buildEdge(n, result)
 	c.rtBuilt(result)
