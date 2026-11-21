@@ -107,7 +107,7 @@ func renderTree(t *syntax.Tree) string {
 // entry) keeps every package in scope. Std is implicit, never imported.
 func (m *Module) buildScope() map[string]bool {
 	m.ensureParsed()
-	if !m.ExplicitEntry {
+	if !m.ExplicitEntry || m.allOwn {
 		return nil
 	}
 	start := m.entryPackage()
@@ -185,9 +185,22 @@ func (m *Module) semModuleOf(keep func(path string) bool) (*sem.Module, error) {
 		if p.Std {
 			sp.Module = "std"
 		}
+		entryHere := m.ExplicitEntry && m.Entry != ""
+		if entryHere {
+			entryHere = false
+			for _, t := range p.Files {
+				if t.File.Name == m.Entry {
+					entryHere = true
+					break
+				}
+			}
+		}
 		for _, t := range p.Files {
 			if m.Entry != "" && t.File.Name == m.Entry {
 				sp.Entry = t
+				continue
+			}
+			if entryHere {
 				continue
 			}
 			// Every cmd/ package keeps its own script as an entry, so one

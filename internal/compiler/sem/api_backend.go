@@ -84,7 +84,7 @@ func (r *Result) IsMutSelf(ent EntityID) bool { return lentReceiver(&r.Entities[
 // MainFn names the process entry: the implicit main of an entry file, or an
 // explicit top-level `fn main` when the module has no script file.
 func (r *Result) MainFn() EntityID {
-	var implicit, explicit EntityID
+	var implicit, explicit, entryExplicit EntityID
 	for id := 1; id < len(r.Entities); id++ {
 		e := &r.Entities[id]
 		if e.File == 0 || e.Flags&EfPoison != 0 {
@@ -98,7 +98,13 @@ func (r *Result) MainFn() EntityID {
 			implicit = EntityID(id)
 		case e.Kind == EntFn && e.Name == "main" && explicit == 0 && r.Fn(EntityID(id)).Owner == 0:
 			explicit = EntityID(id)
+			if r.Packages[e.Pkg].Entry == e.File && entryExplicit == 0 {
+				entryExplicit = EntityID(id)
+			}
 		}
+	}
+	if entryExplicit != 0 {
+		return entryExplicit
 	}
 	if implicit != 0 {
 		return implicit

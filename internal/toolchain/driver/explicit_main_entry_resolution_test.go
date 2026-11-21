@@ -87,3 +87,71 @@ func TestCheckExplicitMainCmdPackage(t *testing.T) {
 		t.Fatalf("both cmd/ entry styles should check clean:\n%s", res.Render())
 	}
 }
+
+func TestExplicitEntryDoesNotPromoteSiblingCmdScript(t *testing.T) {
+	root := t.TempDir()
+	writeEntryScopeModule(t, root, map[string]string{
+		"cmd/app/main.kg":  "print \"main\"\n",
+		"cmd/app/other.kg": "print \"other\"\n",
+	})
+	std, _ := filepath.Abs("../../../std")
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Entry: "cmd/app/main.kg"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := driver.Check(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := res.Render()
+	if strings.Contains(out, "two script files") || strings.Contains(out, "--> cmd/app/main.kg") || !strings.Contains(out, "--> cmd/app/other.kg") {
+		t.Fatalf("explicit entry should leave only the sibling stray, got:\n%s", out)
+	}
+}
+
+func TestExplicitMainInSelectedEntryWins(t *testing.T) {
+	root := t.TempDir()
+	writeEntryScopeModule(t, root, map[string]string{
+		"mod.kg":       "Module {\n    name: \"m\"\n    kigumi: \"0.1\"\n}\n",
+		"aaa/lib.kg":   "fn main() -> Void { print \"aaa\" }\n",
+		"main/main.kg": "fn main() -> Void { print \"main\" }\n",
+	})
+	std, _ := filepath.Abs("../../../std")
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Entry: "main/main.kg"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(t.TempDir())
+	var out, errOut bytes.Buffer
+	code, err := driver.RunWith(m, driver.RunOptions{}, &out, &errOut, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if code != 0 || out.String() != "main\n" {
+		t.Fatalf("selected explicit main = %q, exit %d, stderr %s", out.String(), code, errOut.String())
+	}
+}
+
+func TestDefaultEntryIgnoresMainPackageUnderManifest(t *testing.T) {
+	root := t.TempDir()
+	writeEntryScopeModule(t, root, map[string]string{
+		"mod.kg":       "Module {\n    name: \"m\"\n    kigumi: \"0.1\"\n}\n",
+		"app.kg":       "print \"app\"\n",
+		"main/main.kg": "print \"pkg\"\n",
+	})
+	std, _ := filepath.Abs("../../../std")
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := driver.Check(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.Entry != "app.kg" {
+		t.Fatalf("Entry = %q, want app.kg", m.Entry)
+	}
+	if strings.Contains(res.Render(), "--> app.kg") || !strings.Contains(res.Render(), "--> main/main.kg") {
+		t.Fatalf("root script should be the only stray, got:\n%s", res.Render())
+	}
+}

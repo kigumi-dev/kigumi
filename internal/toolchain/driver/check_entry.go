@@ -42,7 +42,7 @@ func (m *Module) defaultEntry() string {
 			if t.HasTopLevelStatements() || t.HasExplicitMain() {
 				scripts = append(scripts, t.File.Name)
 				// A manifest-less root package is named "main".
-				if rel == "" || rel == "." || rel == "main" {
+				if rel == "" || rel == "." || (m.Name == "" && rel == "main") {
 					rootScripts = append(rootScripts, t.File.Name)
 				}
 			}
