@@ -180,6 +180,10 @@ for i < 8 {
 }
 table.verify()?
 print "data=${ok}"
+let repeated = table.read(ix8(4))?
+let outOfRange = table.read(ix8(9))?
+let afterOutOfRange = table.read(ix8(4))?
+print "repeat=${repeated} oob=${outOfRange} after=${afterOutOfRange}"
 
 // A size the controller does not support is an explicit error, not a
 // truncation or a silently padded tree.
@@ -259,6 +263,7 @@ print "path-oram-ok"
 -- stdout --
 shape=true steps=60
 data=1
+repeat=999 oob=0 after=999
 unsupported=true
 mismatch=true
 recursive=1 levels=2
