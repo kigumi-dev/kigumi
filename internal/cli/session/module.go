@@ -63,6 +63,13 @@ func (s Session) load(target string, test, deferParse, whole, report bool, errOu
 			return nil, errors.WrapErrf(err, "load module %s", target)
 		}
 	} else {
+		st, err := os.Stat(target)
+		if err != nil {
+			return nil, errors.WrapErrf(err, "load module %s", target)
+		}
+		if !st.IsDir() {
+			return nil, &exit.ValueError{Err: errors.NewErrf("%s is not a .kg file or a directory", target)}
+		}
 		target = packageEntry(target)
 	}
 	if strings.HasSuffix(target, ".kg") {

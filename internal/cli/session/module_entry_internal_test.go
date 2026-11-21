@@ -1,8 +1,10 @@
 package session
 
 import (
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -45,5 +47,17 @@ func TestPackageEntryIgnoresCmdOnlyAncestor(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"m\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	if got, want := packageEntry(dir), filepath.Join(dir, "main.kg"); got != want {
 		t.Errorf("packageEntry(%s) = %s, want %s", dir, got, want)
+	}
+}
+
+func TestLoadRejectsNonDirectoryTarget(t *testing.T) {
+	dir := t.TempDir()
+	file := filepath.Join(dir, "main.txt")
+	if err := os.WriteFile(file, []byte("not a module"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := (Session{}).Load(file, false, io.Discard)
+	if err == nil || !strings.Contains(err.Error(), "is not a .kg file or a directory") {
+		t.Fatalf("Load(%s) error = %v", file, err)
 	}
 }
