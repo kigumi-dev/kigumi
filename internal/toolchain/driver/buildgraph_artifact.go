@@ -107,6 +107,11 @@ func scriptUnder(m *Module, dir string) (string, error) {
 			}
 		}
 	}
+	for _, name := range scripts {
+		if filepath.Base(name) == "main.kg" {
+			return name, nil
+		}
+	}
 	switch len(scripts) {
 	case 1:
 		return scripts[0], nil
