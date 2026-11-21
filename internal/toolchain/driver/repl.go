@@ -245,6 +245,16 @@ func (r *Repl) Eval(src string, interactive bool) (EvalResult, error) {
 		return EvalResult{Message: r.renderDiags(res, tree, cell, chunksTry), Status: 1}, nil
 	}
 	letEnts, _, _ := generatedCellLocals(m, res, tree, cellName)
+	for _, let := range cell.lets {
+		if strings.HasPrefix(let.name, "__repl_") {
+			continue
+		}
+		ent := letEnts[let.name]
+		if ent != 0 && res.Types.Kind(res.Entity(ent).Type) == sem.KRef {
+			r.setLastStatus(1)
+			return EvalResult{Message: fmt.Sprintf("repl: top-level `let %s` holds a borrow; wrap it in a block so the borrow ends in the cell", let.name), Status: 1}, nil
+		}
+	}
 	lastType := sem.TypeID(0)
 	if ent := letEnts["__repl_probe"]; ent != 0 {
 		lastType = res.Entity(ent).Type

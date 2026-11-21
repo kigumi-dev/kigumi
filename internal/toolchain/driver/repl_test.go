@@ -166,3 +166,14 @@ func TestReplShadowAndFieldMove(t *testing.T) {
 		t.Fatalf("field read: %+v %v\n%s", res, err, errOut.String())
 	}
 }
+
+func TestReplRejectsTopLevelBorrow(t *testing.T) {
+	r, _, errOut := newTestRepl(t)
+	res, err := r.Eval("let x = 1; let r = &x; r", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Status != 1 || !strings.Contains(res.Message, "wrap it in a block") {
+		t.Fatalf("top-level borrow = %+v, want status 1 with block guidance\n%s", res, errOut.String())
+	}
+}
