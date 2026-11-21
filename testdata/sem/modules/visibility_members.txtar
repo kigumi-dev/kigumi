@@ -53,6 +53,15 @@ fn mkHidden() -> Hidden {
     Hidden { v: 1 }
 }
 
+interface HiddenIface {
+    fn show(self) -> String
+}
+
+pub context leakContext: Hidden //~ ERROR `Hidden` is private but appears in the pub signature of `leakContext`
+pub interface Bounded[T: HiddenIface] { //~ ERROR `HiddenIface` is private but appears in the pub signature of `Bounded`
+    fn id(self) -> T
+}
+pub type Wrapped = Hidden //~ ERROR `Hidden` is private but appears in the pub signature of `Wrapped`
 pub const leakConst: Hidden = comptime mkHidden() //~ ERROR `Hidden` is private but appears in the pub signature of `leakConst`
 pub static leakStatic: Hidden = comptime mkHidden() //~ ERROR `Hidden` is private but appears in the pub signature of `leakStatic`
 pub const okConst: Int = 1
@@ -101,15 +110,33 @@ error[E120]: `Shown` asserts `Display` with pub visibility but witness `display`
 34 | @impl(Display) //~ ERROR `Shown` asserts `Display` with pub visibility but witness `display` is private
    |       ^^^^^^^
 
-error[E118]: `Hidden` is private but appears in the pub signature of `leakConst`
-  --> app/v/v.kg:55:1
+error[E118]: `Hidden` is private but appears in the pub signature of `leakContext`
+  --> app/v/v.kg:59:1
    |
-55 | pub const leakConst: Hidden = comptime mkHidden() //~ ERROR `Hidden` is private but appears in the pub signature of `leakConst`
+59 | pub context leakContext: Hidden //~ ERROR `Hidden` is private but appears in the pub signature of `leakContext`
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E118]: `HiddenIface` is private but appears in the pub signature of `Bounded`
+  --> app/v/v.kg:60:1
+   |
+60 | pub interface Bounded[T: HiddenIface] { //~ ERROR `HiddenIface` is private but appears in the pub signature of `Bounded`
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E118]: `Hidden` is private but appears in the pub signature of `Wrapped`
+  --> app/v/v.kg:63:1
+   |
+63 | pub type Wrapped = Hidden //~ ERROR `Hidden` is private but appears in the pub signature of `Wrapped`
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E118]: `Hidden` is private but appears in the pub signature of `leakConst`
+  --> app/v/v.kg:64:1
+   |
+64 | pub const leakConst: Hidden = comptime mkHidden() //~ ERROR `Hidden` is private but appears in the pub signature of `leakConst`
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E118]: `Hidden` is private but appears in the pub signature of `leakStatic`
-  --> app/v/v.kg:56:1
+  --> app/v/v.kg:65:1
    |
-56 | pub static leakStatic: Hidden = comptime mkHidden() //~ ERROR `Hidden` is private but appears in the pub signature of `leakStatic`
+65 | pub static leakStatic: Hidden = comptime mkHidden() //~ ERROR `Hidden` is private but appears in the pub signature of `leakStatic`
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

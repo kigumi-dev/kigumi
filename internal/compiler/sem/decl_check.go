@@ -22,6 +22,11 @@ func (r *Result) checkDeclarations() {
 			}
 		case EntType:
 			r.checkBoundVisibility(EntityID(id), e.Vis, r.typeDecl(EntityID(id)).Params)
+			if r.typeDecl(EntityID(id)).Form == FormDefined {
+				r.checkSignatureVisibility(EntityID(id), e.Vis, r.typeDecl(EntityID(id)).Underlying)
+			}
+		case EntInterface:
+			r.checkBoundVisibility(EntityID(id), e.Vis, r.iface(EntityID(id)).Params)
 		case EntField:
 			r.checkSignatureVisibility(EntityID(id), r.Entities[e.Parent].Vis, e.Type)
 		case EntVariant:
@@ -44,7 +49,7 @@ func (r *Result) checkConstStaticVisibility() {
 			continue
 		}
 		switch e.Kind {
-		case EntConst, EntStatic:
+		case EntConst, EntStatic, EntContextKey:
 			r.checkSignatureVisibility(EntityID(id), e.Vis, e.Type)
 		}
 	}
