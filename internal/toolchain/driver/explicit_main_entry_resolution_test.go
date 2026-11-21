@@ -3,6 +3,7 @@ package driver_test
 import (
 	"bytes"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"kigumi/internal/toolchain/driver"
@@ -32,6 +33,33 @@ func TestRunExplicitMainNoExplicitEntry(t *testing.T) {
 	}
 	if code != 0 {
 		t.Errorf("exit = %d, want 0\nstderr:\n%s", code, errOut.String())
+	}
+}
+
+// TestDefaultEntryPrefersMainKg covers `kigumi run <dir>` with main.kg and a
+// sibling script: main.kg is the conventional entry even when both files have
+// top-level statements.
+func TestDefaultEntryPrefersMainKg(t *testing.T) {
+	root := t.TempDir()
+	writeEntryScopeModule(t, root, map[string]string{
+		"main.kg":  "print \"main\"\n",
+		"other.kg": "print \"other\"\n",
+	})
+	std, _ := filepath.Abs("../../../std")
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := driver.Check(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.Entry != "main.kg" {
+		t.Fatalf("Entry = %q, want main.kg", m.Entry)
+	}
+	out := res.Render()
+	if !strings.Contains(out, "--> other.kg") || strings.Contains(out, "--> main.kg") {
+		t.Fatalf("only the sibling script should be stray, got:\n%s", out)
 	}
 }
 

@@ -1,6 +1,9 @@
 package driver
 
-import "strings"
+import (
+	"path/filepath"
+	"strings"
+)
 
 // entryPackage finds the package holding m.Entry, the root-relative file
 // name an explicit entry selected.
@@ -31,16 +34,23 @@ func (m *Module) defaultEntry() string {
 		if p.Std || p.Module != "" {
 			continue
 		}
-		if strings.HasPrefix(m.Rel(path), "cmd/") {
+		rel := m.Rel(path)
+		if strings.HasPrefix(rel, "cmd/") {
 			return ""
 		}
 		for _, t := range p.Files {
 			if t.HasTopLevelStatements() || t.HasExplicitMain() {
 				scripts = append(scripts, t.File.Name)
-				if m.Rel(path) == "" {
+				// A manifest-less root package is named "main".
+				if rel == "" || rel == "." || rel == "main" {
 					rootScripts = append(rootScripts, t.File.Name)
 				}
 			}
+		}
+	}
+	for _, name := range rootScripts {
+		if filepath.Base(name) == "main.kg" {
+			return name
 		}
 	}
 	switch {
