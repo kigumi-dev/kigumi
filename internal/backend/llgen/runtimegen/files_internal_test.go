@@ -34,3 +34,36 @@ func TestRuntimeFilesSignalGating(t *testing.T) {
 		}
 	}
 }
+
+// TestRuntimeFilesTimeGating checks the <time.h> shim rides with the hosted
+// runtime: a bare or --sys none build has no libc to call.
+func TestRuntimeFilesTimeGating(t *testing.T) {
+	has := func(files []RuntimeFile, name string) bool {
+		for _, f := range files {
+			if f.Name == name {
+				return true
+			}
+		}
+		return false
+	}
+	cases := []struct {
+		sys, os string
+		want    bool
+	}{
+		{"posix", "linux", true},
+		{"posix", "darwin", true},
+		{"posix", "freebsd", true},
+		{"posix", "netbsd", true},
+		{"posix", "openbsd", true},
+		{"posix", "wasi", true},
+		{"posix", "windows", true},
+		{"none", "linux", false},
+		{"none", "freestanding", false},
+	}
+	for _, c := range cases {
+		got := has(Files(c.sys, c.os), "rt_time_hosted.c")
+		if got != c.want {
+			t.Errorf("Files(%q, %q) has rt_time_hosted.c = %v, want %v", c.sys, c.os, got, c.want)
+		}
+	}
+}

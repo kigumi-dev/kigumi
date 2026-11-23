@@ -1,0 +1,54 @@
+/// `struct timespec` as the C library's clock_gettime(2) and nanosleep(2)
+/// take it.
+///
+/// Every target std/time supports has a 16-byte timespec with `tv_sec` at
+/// offset 0 and `tv_nsec` at offset 8: musl, WASI and the 32-bit Arm BSDs
+/// use 64-bit time_t (time64), the 64-bit BSD and Darwin targets are LP64,
+/// and Windows keeps a 64-bit `time_t` under LLP64. `tv_nsec` is C `long`,
+/// 4 bytes where pointers are and 8 on LP64, so the record spells out the
+/// low 32 bits that hold any valid POSIX value (below 1e9) and `pad`
+/// mirrors the tail padding the C struct has after it. On LP64 the upper
+/// half of the C `long` reads back as zero because the record starts zeroed
+/// before the call, so the C struct still sees a valid 8-byte `tv_nsec`.
+pub type Timespec layout(C) = {
+    pub sec i64
+    pub nsec i32
+    /// Padding to the C struct's size; always 0.
+    pub pad i32
+}
+
+extern(C) {
+    fn rt_time_clock(clock: i32, out: *mut Timespec) -> i32
+    fn rt_time_sleep(req: *const Timespec, rem: *mut Timespec) -> i32
+}
+
+/// Selects the real-time clock for `clockGettime`. The C runtime maps it to
+/// the target's own `CLOCK_REALTIME`, since a clock id is not a plain
+/// integer everywhere (wasi-libc's `clockid_t` is a pointer) and 32-bit
+/// musl calls the time64 symbol instead of `clock_gettime`.
+pub fn clockRealtime() -> i32 {
+    0
+}
+
+/// Selects the monotonic clock for `clockGettime`. The value is a marker,
+/// not the OS's id: the C runtime maps it to the target's own
+/// `CLOCK_MONOTONIC` (Linux 1, FreeBSD 4, Darwin 6, NetBSD and OpenBSD 3),
+/// so no caller repeats those numbers.
+pub fn clockMonotonic() -> i32 {
+    1
+}
+
+/// Reads clock into out: 0 on success, else the errno that stopped the call.
+pub fn clockGettime(clock: i32, out: *mut Timespec) -> i32 {
+    unsafe {
+        rt_time_clock(clock, out)
+    }
+}
+
+/// Pauses for req like nanosleep(2), leaving the unslept time in rem:
+/// 0 on success, else the errno that stopped the call.
+pub fn nanosleep(req: *const Timespec, rem: *mut Timespec) -> i32 {
+    unsafe {
+        rt_time_sleep(req, rem)
+    }
+}

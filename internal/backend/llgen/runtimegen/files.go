@@ -24,11 +24,11 @@ var stackGuardOS = map[string]bool{"linux": true, "darwin": true, "freebsd": tru
 
 // Files includes rt_signal_hosted.c only for hosted POSIX OSes, which alone
 // have <signal.h>; rt_stack_guard_hosted.c only where it has a body or seed;
-// and rt_fs.c only for hosted targets.
+// and rt_fs.c and rt_time_hosted.c only for hosted targets.
 func Files(sys, os string) []RuntimeFile {
 	files := []RuntimeFile{{"rt.h", runtimeHeader}, {"rt_std_ops.h", runtimeStdOps}, {"rt_core.c", runtimeCore}, {"rt_sys_weak.c", runtimeSys}}
 	if sys != "none" && !freestandingOS[os] {
-		files = append(files, RuntimeFile{"rt_fs.c", runtimeFS})
+		files = append(files, RuntimeFile{"rt_fs.c", runtimeFS}, RuntimeFile{"rt_time_hosted.c", runtimeTime})
 	}
 	files = append(files, capFiles...)
 	files = append(files, coreFragments...)
@@ -60,7 +60,7 @@ func ZigFiles() []RuntimeFile {
 // Source is the C runtime as one text, for tests that scan it; the Zig
 // translation units are separate and have no C preprocessor to scan.
 func Source() string {
-	out := runtimeHeader + runtimeStdOps + runtimeCore + runtimeSys + runtimeFS
+	out := runtimeHeader + runtimeStdOps + runtimeCore + runtimeSys + runtimeFS + runtimeTime
 	for _, f := range append(slices.Clone(capFiles), coreFragments...) {
 		out += f.Src
 	}

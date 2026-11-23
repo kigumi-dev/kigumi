@@ -1,63 +1,36 @@
 import ffi from std/ffi
 import platform from std/platform
 
-// POSIX struct timespec is time_t + long; both are pointer-sized on Linux and
-// macOS, unlike i64, which the 32-bit Linux C ABI would truncate.
-type Timespec layout(C) = {
-    pub sec isize
-    pub nsec isize
-}
-
-extern(C) {
-    fn clock_gettime(clock: i32, ts: *mut Timespec) -> i32
-    fn nanosleep(req: *const Timespec, rem: *mut Timespec) -> i32
+// Reads clock into a timespec, panicking when the C library refuses it; every
+// caller has no better answer than a panic.
+fn readClock(clock: i32) -> platform.Timespec {
+    let cv = ffi.CValue.new(platform.Timespec {
+        sec: 0
+        nsec: 0
+        pad: 0
+    })
+    let err = platform.clockGettime(clock, cv.ptr())
+    if err != 0 {
+        panic("clock_gettime failed")
+    }
+    cv.get()
 }
 
 /// The current time.
 pub fn now() -> Instant {
-    let cv = ffi.CValue.new(Timespec {
-        sec: 0
-        nsec: 0
-    })
-    let rc = unsafe {
-        clock_gettime(0, cv.ptr())
-    }
-    if rc != 0 {
-        panic("clock_gettime failed")
-    }
-    let ts = cv.get()
-    Instant { ms: ts.sec.toInt() * 1000 + ts.nsec.toInt() / 1000000 }
+    let ts = readClock(platform.clockRealtime())
+    Instant { ms: ts.sec * 1000 + ts.nsec.toInt() / 1000000 }
 }
 
-/// The current reading of the monotonic clock (`CLOCK_MONOTONIC`).
+/// The current reading of the monotonic clock.
 pub fn monotonic() -> Monotonic {
-    let cv = ffi.CValue.new(Timespec {
-        sec: 0
-        nsec: 0
-    })
-    let rc = unsafe {
-        clock_gettime(1, cv.ptr())
-    }
-    if rc != 0 {
-        panic("clock_gettime failed")
-    }
-    let ts = cv.get()
-    Monotonic { ticks: ts.sec.toInt() * 1000 + ts.nsec.toInt() / 1000000 }
+    let ts = readClock(platform.clockMonotonic())
+    Monotonic { ticks: ts.sec * 1000 + ts.nsec.toInt() / 1000000 }
 }
 
 fn monotonicNanos() -> i64 {
-    let cv = ffi.CValue.new(Timespec {
-        sec: 0
-        nsec: 0
-    })
-    let rc = unsafe {
-        clock_gettime(1, cv.ptr())
-    }
-    if rc != 0 {
-        panic("clock_gettime failed")
-    }
-    let ts = cv.get()
-    ts.sec.toInt() * 1000000000 + ts.nsec.toInt()
+    let ts = readClock(platform.clockMonotonic())
+    ts.sec * 1000000000 + ts.nsec.toInt()
 }
 
 /// Pauses the current thread for millis milliseconds; a signal handler running meanwhile does not shorten the pause.
@@ -66,25 +39,30 @@ pub fn sleep(millis: i64) {
         return
     }
     let start = monotonicNanos()
-    let req = ffi.CValue.new(Timespec {
-        sec: (millis / 1000).toIsize()
-        nsec: (millis % 1000 * 1000000).toIsize()
+    let req = ffi.CValue.new(platform.Timespec {
+        sec: millis / 1000
+        nsec: (millis % 1000 * 1000000).toI32() || 0
+        pad: 0
     })
     let mut waiting = true
     for waiting {
-        let rc = unsafe {
-            nanosleep(ffi.toConst(req.ptr()), ffi.toMut(ffi.null[Timespec]()))
+        let rem = unsafe {
+            ffi.toMut(ffi.null[platform.Timespec]())
         }
-        if rc == 0 || ffi.errno() != platform.eintr() {
+        let err = platform.nanosleep(ffi.toConst(req.ptr()), rem)
+        if err == 0 {
             waiting = false
+        } else if err != platform.eintr() {
+            panic("nanosleep failed")
         } else {
             let left = millis - (monotonicNanos() - start) / 1000000
             if left <= 0 {
                 waiting = false
             } else {
-                req.set(&Timespec {
-                    sec: (left / 1000).toIsize()
-                    nsec: (left % 1000 * 1000000).toIsize()
+                req.set(&platform.Timespec {
+                    sec: left / 1000
+                    nsec: (left % 1000 * 1000000).toI32() || 0
+                    pad: 0
                 })
             }
         }

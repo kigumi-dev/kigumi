@@ -32,6 +32,9 @@ var runtimeSys string
 //go:embed runtime/rt_signal_hosted.c
 var runtimeSignal string
 
+//go:embed runtime/rt_time_hosted.c
+var runtimeTime string
+
 //go:embed runtime/rt_stack_guard_hosted.c
 var runtimeStackGuard string
 
