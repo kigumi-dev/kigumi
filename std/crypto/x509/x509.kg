@@ -38,6 +38,13 @@ pub type ExtKeyUsage = {
     pub other Array[String]
 }
 
+/// The TLS application purpose a path is validated for. Issuer extended key
+/// usage is checked against this purpose; `verifyChain` is the server
+/// shorthand, and client-authentication callers use `verifyChainFor`.
+pub type ChainPurpose =
+    | ServerAuth
+    | ClientAuth
+
 /// Basic constraints; `present` is false when the extension is absent, in
 /// which case the certificate is not a CA.
 pub type BasicConstraints = {

@@ -6,6 +6,20 @@
 // certificate must be a CA, have keyCertSign when keyUsage is present, and
 // respect its basicConstraints pathLen. Trust anchors are checked the same
 // way (including expiry), so a v1 anchor without basicConstraints is
+// refused.
+//
+// RFC 5280 §4.2.1.12: an issuing certificate that carries extended key usage
+// may only issue certificates for the listed purposes. `verifyChainFor` takes
+// the TLS application purpose and requires every issuer (intermediate or
+// anchor) to list that purpose or the special anyExtendedKeyUsage
+// (2.5.29.37.0); a certificate without the extension is unrestricted.
+// `verifyChain` is the server-auth shorthand. The leaf's own purpose policy
+// stays with the caller (`std/net/tls`).
+//
+// A self-signed leaf can be pinned as its own trust anchor, but only when it
+// is byte-identical to an anchor (TBSCertificate, signature and signature
+// algorithm): a same-subject renewal or a reissued key is not a pin. Such a
+// pinned leaf is not required to assert cA. Any other self-signed leaf is
 // refused. Revocation, name constraints, policies and cross-signing beyond
 // the supplied anchor list are out of scope.
 pure fn certificateIsSelfSigned(cert: &Certificate) -> Bool {
@@ -32,6 +46,37 @@ pure fn requireCertificateAuthority(cert: &Certificate, intermediatesBelow: usiz
     }
 }
 
+// RFC 5280 §4.2.1.12: an absent extension is unrestricted; when present, the
+// listed purposes are the only ones the key may be used for. anyPurpose
+// (`anyExtendedKeyUsage`) lifts that restriction even when other purposes are
+// listed beside it.
+pure fn requirePermittedIssuer(cert: &Certificate, purpose: ChainPurpose) -> Result[Void, ValidationError] {
+    if !cert.extKeyUsage.present || cert.extKeyUsage.anyPurpose {
+        return Ok(())
+    }
+    let permitted = match purpose {
+        ChainPurpose.ServerAuth -> cert.extKeyUsage.serverAuth
+        ChainPurpose.ClientAuth -> cert.extKeyUsage.clientAuth
+    }
+    if permitted {
+        return Ok(())
+    }
+    match purpose {
+        ChainPurpose.ServerAuth -> fail validationFailure("issuer certificate extendedKeyUsage does not permit TLS server authentication")
+        ChainPurpose.ClientAuth -> fail validationFailure("issuer certificate extendedKeyUsage does not permit TLS client authentication")
+    }
+}
+
+// True when both certificates encode the same signed bytes. The DER fields
+// that are not part of `tbs` (the outer algorithm and signature) are compared
+// too, so an exact pin cannot be satisfied by a re-encoded or re-signed
+// certificate.
+pure fn certificatesIdentical(a: &Certificate, b: &Certificate) -> Bool {
+    a.tbs.equals(&b.tbs)
+        && a.signature.equals(&b.signature)
+        && sameAlgorithm(a.signatureAlgorithm, b.signatureAlgorithm)
+}
+
 pure fn checkSupportedExtensions(cert: &Certificate) -> Result[Void, ValidationError] {
     if cert.unsupportedCritical.len() != 0 {
         fail validationFailure("certificate has an unsupported critical extension")
@@ -41,19 +86,33 @@ pure fn checkSupportedExtensions(cert: &Certificate) -> Result[Void, ValidationE
     }
 }
 
-pure fn checkAnchor(cert: &Certificate, anchor: &Certificate, intermediatesBelow: usize, nowMillis: Int) -> Result[Void, ValidationError] {
+pure fn checkAnchor(cert: &Certificate, anchor: &Certificate, intermediatesBelow: usize, nowMillis: Int, purpose: ChainPurpose) -> Result[Void, ValidationError] {
     match cert.verifySignedBy(anchor) {
         Ok(_) -> {}
         Err(_) -> fail validationFailure("certificate is not signed by a trust anchor")
     }
     anchor.checkValidity(nowMillis)?
     checkSupportedExtensions(anchor)?
-    requireCertificateAuthority(anchor, intermediatesBelow)
+    requireCertificateAuthority(anchor, intermediatesBelow)?
+    requirePermittedIssuer(anchor, purpose)
 }
 
 /// Validates `chain` (leaf first, anchor excluded) at `nowMillis` for
-/// `host`, using `anchors` as trust roots.
+/// `host` as a TLS server path. Equivalent to `verifyChainFor` with
+/// `ChainPurpose.ServerAuth`.
 pub fn verifyChain(anchors: &Array[Certificate], chain: &Array[Certificate], host: String, nowMillis: Int) -> Result[Void, ValidationError] {
+    verifyChainFor(anchors, chain, host, nowMillis, ChainPurpose.ServerAuth)
+}
+
+/// Validates `chain` (leaf first, anchor excluded) at `nowMillis` for
+/// `host`, using `anchors` as trust roots and `purpose` as the TLS
+/// application the path is being used for.
+///
+/// A self-signed leaf is accepted only when it is byte-identical to one of
+/// `anchors`. Every issuer (intermediate or anchor) whose extendedKeyUsage
+/// is present must permit `purpose` or anyPurpose. Leaf extended key usage,
+/// including that of a pinned self-signed leaf, is left to the caller.
+pub fn verifyChainFor(anchors: &Array[Certificate], chain: &Array[Certificate], host: String, nowMillis: Int, purpose: ChainPurpose) -> Result[Void, ValidationError] {
     if chain.len() == 0 {
         fail validationFailure("certificate chain is empty")
     }
@@ -74,30 +133,43 @@ pub fn verifyChain(anchors: &Array[Certificate], chain: &Array[Certificate], hos
                 fail validationFailure("issuer and subject names do not match")
             }
             requireCertificateAuthority(issuer, i)?
+            requirePermittedIssuer(issuer, purpose)?
             cert.verifySignedBy(issuer)?
         } else {
             let mut found = false
             let mut lastError = ""
+            let selfSignedLeaf = i == 0 && certificateIsSelfSigned(cert)
             let mut a: usize = 0
             for a < anchors.len() {
                 let anchor = &anchors[a]
                 if cert.issuer.raw.equals(&anchor.subject.raw) {
-                    match checkAnchor(cert, anchor, chain.len() - 1, nowMillis) {
-                        Ok(_) -> {
+                    if selfSignedLeaf {
+                        // A self-signed leaf is only its own trust anchor when
+                        // the caller pinned those exact bytes. Falling through
+                        // to checkAnchor would also accept a same-subject,
+                        // same-key renewal that this leaf did not pin.
+                        if certificatesIdentical(cert, anchor) {
                             found = true
                             break
                         }
-                        Err(e) -> {
-                            lastError = e.text
+                    } else {
+                        match checkAnchor(cert, anchor, chain.len() - 1, nowMillis, purpose) {
+                            Ok(_) -> {
+                                found = true
+                                break
+                            }
+                            Err(e) -> {
+                                lastError = e.text
+                            }
                         }
                     }
                 }
                 a = a + 1
             }
             if !found {
-                // Keep the historical self-signed diagnostic when no anchor
-                // matched; an explicitly pinned self-signed leaf is accepted.
-                if i == 0 && certificateIsSelfSigned(cert) {
+                // An unpinned self-signed leaf is not a trust anchor, even if
+                // an anchor shares its subject and key.
+                if selfSignedLeaf {
                     fail validationFailure("leaf certificate is self-signed")
                 }
                 if lastError != "" {
