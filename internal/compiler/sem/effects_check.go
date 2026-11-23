@@ -20,7 +20,16 @@ func (r *Result) checkContracts(id EntityID) {
 			continue
 		}
 		for _, mod := range []Effects{EffPure, EffNoalloc} {
-			if declared&mod != 0 && !r.edgeAllows(e, mod) {
+			if declared&mod == 0 {
+				continue
+			}
+			// A std API's `pure` contract excludes I/O and other external
+			// effects, but its `mut self`/`&mut` signature says it may alter
+			// the storage those callers pass; call sites judge the origin.
+			if mod == EffPure && r.pureIsMutationContract(id, e) {
+				continue
+			}
+			if !r.edgeAllows(e, mod) {
 				r.reportEdge(e, mod)
 			}
 		}
@@ -111,12 +120,14 @@ func (r *Result) violationText(target EntityID, mod Effects) string {
 func (r *Result) reportContractEdge(e EffectEdge, mod Effects) {
 	pure := mod == EffPure
 	switch e.Kind {
-	case EdgeCall, EdgeWitness:
+	case EdgeCall, EdgeWitness, EdgeKnownCall:
 		name := r.Entities[e.Target].Name
 		if r.Entities[e.Target].Kind == EntClosure {
 			name = r.exprName(e.File, e.Node)
 		}
 		switch {
+		case pure && r.summary(e.Target).MutOnly:
+			r.errAt(e.File, e.Node, cImpureMutation, r.exprName(e.File, e.Node))
 		case pure && r.Entities[r.Entities[e.Target].Parent].Kind == EntInterface:
 			r.errAt(e.File, e.Node, cImpureWitness, name, r.entityName(r.Entities[e.Target].Parent))
 		case pure:
@@ -192,4 +203,19 @@ func (r *Result) exprName(f FileID, n syntax.NodeID) string {
 		return "this expression"
 	}
 	return string(src[sp.Start:sp.End])
+}
+
+// pureIsMutationContract exempts a std body's own parameter mutation from its
+// declared `pure` check; the mutation still reaches callers through MutOnly.
+func (r *Result) pureIsMutationContract(id EntityID, e EffectEdge) bool {
+	if !r.Packages[r.Entities[id].Pkg].Std {
+		return false
+	}
+	switch e.Kind {
+	case EdgeMutateCaller:
+		return true
+	case EdgeCall, EdgeKnownCall, EdgeWitness:
+		return r.summary(e.Target).MutOnly
+	}
+	return false
 }

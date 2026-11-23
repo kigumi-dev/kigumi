@@ -144,3 +144,154 @@ func (e *emitter) asmType(t sem.TypeID, arch string) string {
 	}
 	return "ptr"
 }
+
+// asmDirect is asm's lowering when the result is a direct aggregate: the
+// output registers go straight into the record's slots.
+func (e *emitter) asmDirect(sb *strings.Builder, f *midir.Func, in midir.Inst, a *aggInfo) {
+	info := e.r.AsmOf(f.File, in.Node)
+	gpr, fpr, flags, _ := asmtable.Constraints(info.Arch)
+	var outs, cons, vals []string
+	index := map[int]int{}
+	for i, op := range info.Operands {
+		if op.Kind == sem.AsmOut || op.Kind == sem.AsmInOut || op.Kind == sem.AsmLateOut {
+			index[i] = len(outs)
+			prefix := "=&"
+			if op.Kind == sem.AsmLateOut {
+				prefix = "="
+			}
+			cons = append(cons, prefix+e.asmConstraint(op, gpr, fpr))
+			outs = append(outs, e.asmType(op.Type, info.Arch))
+		}
+	}
+	argi := 0
+	for i, op := range info.Operands {
+		switch op.Kind {
+		case sem.AsmIn, sem.AsmInOut:
+			ct := e.asmType(op.Type, info.Arch)
+			if op.Kind == sem.AsmIn {
+				index[i] = len(outs) + len(vals)
+				cons = append(cons, e.asmConstraint(op, gpr, fpr))
+			} else {
+				cons = append(cons, fmt.Sprint(index[i]))
+			}
+			vals = append(vals, ct+" "+e.asmArg(sb, f, in, argi, op.Type, ct))
+			argi++
+		case sem.AsmConst:
+			index[i] = len(outs) + len(vals)
+			cons = append(cons, "i")
+			vals = append(vals, fmt.Sprintf("i64 %d", op.Const))
+		case sem.AsmSym:
+			index[i] = len(outs) + len(vals)
+			cons = append(cons, "s")
+			vals = append(vals, "ptr "+e.cSymbol(op.Sym))
+		}
+	}
+	for _, c := range info.Clobbers {
+		cons = append(cons, "~{"+c+"}")
+	}
+	if info.ClobberAbi != "" {
+		used := map[string]bool{}
+		for _, op := range info.Operands {
+			used[op.Reg] = true
+		}
+		for _, c := range asmAbiClobbers(info.Arch) {
+			if !used[c] {
+				cons = append(cons, "~{"+c+"}")
+			}
+		}
+	}
+	if !info.Options["nomem"] && !info.Options["readonly"] {
+		cons = append(cons, "~{memory}")
+	}
+	if !info.Options["preserves_flags"] {
+		for _, fl := range flags {
+			cons = append(cons, "~{"+fl+"}")
+		}
+	}
+	kw := ""
+	if !info.Options["pure"] {
+		kw += "sideeffect "
+	}
+	if (info.Arch == "amd64" || info.Arch == "386") && !info.Options["att_syntax"] {
+		kw += "inteldialect "
+	}
+	tmpl := e.asmTemplate(info, index)
+	ret := "void"
+	switch len(outs) {
+	case 0:
+	case 1:
+		ret = outs[0]
+	default:
+		ret = "{ " + strings.Join(outs, ", ") + " }"
+	}
+	if ret == "void" {
+		fmt.Fprintf(sb, "  call void asm %s\"%s\", \"%s\"(%s)\n", kw, tmpl, strings.Join(cons, ","), strings.Join(vals, ", "))
+		return
+	}
+	raw := e.newTmp()
+	fmt.Fprintf(sb, "  %s = call %s asm %s\"%s\", \"%s\"(%s)\n", raw, ret, kw, tmpl, strings.Join(cons, ","), strings.Join(vals, ", "))
+	k := 0
+	for _, op := range info.Operands {
+		if op.Field < 0 {
+			continue
+		}
+		if op.Field < len(a.Fields) && k < len(outs) {
+			v := raw
+			if len(outs) > 1 {
+				v = e.newTmp()
+				fmt.Fprintf(sb, "  %s = extractvalue %s %s, %d\n", v, ret, raw, k)
+			}
+			e.storeAsmLeaf(sb, a.Fields[op.Field], e.fieldPtr(sb, a, aggPtr(in.Dst), op.Field), v, outs[k], op.Type)
+		}
+		k++
+	}
+}
+
+// asmArg reads an asm input: a register scalar is narrowed to the constraint's
+// type, a boxed one is unboxed.
+func (e *emitter) asmArg(sb *strings.Builder, f *midir.Func, in midir.Inst, i int, t sem.TypeID, ct string) string {
+	if v, ok := e.scalarOperand(sb, f, in.Args[i]); ok {
+		if v.Type.String() == ct {
+			return v.Text
+		}
+		return e.narrowTo(sb, v, ct)
+	}
+	return e.unbox(sb, e.load(sb, in.Args[i]), t, ct)
+}
+
+// storeAsmLeaf stores one asm output register into a direct slot.
+func (e *emitter) storeAsmLeaf(sb *strings.Builder, fld aggField, p, v, asmTy string, t sem.TypeID) {
+	if fld.Unit {
+		return
+	}
+	want := fld.Ty.String()
+	switch {
+	case asmTy == "ptr":
+		fmt.Fprintf(sb, "  store ptr %s, ptr %s\n", v, p)
+	case asmTy == "float" || asmTy == "double":
+		fmt.Fprintf(sb, "  store %s %s, ptr %s\n", asmTy, v, p)
+	default:
+		if asmTy != want {
+			if asmBits(asmTy) < asmBits(want) {
+				ext := "zext"
+				if e.r.Types.IsSigned(t) {
+					ext = "sext"
+				}
+				n := e.newTmp()
+				fmt.Fprintf(sb, "  %s = %s %s %s to %s\n", n, ext, asmTy, v, want)
+				v = n
+			} else {
+				n := e.newTmp()
+				fmt.Fprintf(sb, "  %s = trunc %s %s to %s\n", n, asmTy, v, want)
+				v = n
+			}
+		}
+		e.storeLeafScalar(sb, fld, p, v)
+	}
+}
+
+func asmBits(ty string) int {
+	var bits int
+	fmt.Sscanf(ty, "i%d", &bits)
+	return bits
+}

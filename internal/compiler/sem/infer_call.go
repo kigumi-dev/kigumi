@@ -55,11 +55,12 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 	if plan != nil {
 		effArgs = plan.placed()
 	}
+	c.setCallOrigins(from, effArgs, recvBase)
 	subst := c.calleeUse(fn, inst, recv)
 	c.callbackEdges(n, fn, sig, effArgs, subst)
 	c.argContracts(effArgs, info.Sig, subst, fn, recvBase)
 	c.fieldCallbackEdges(fn, effArgs)
-	c.knownFieldCallEdges(n, fn, effArgs)
+	c.knownFieldCallEdges(n, fn, effArgs, recvBase)
 	c.ifaceFieldArgEdges(n, fn, effArgs)
 	c.recordBorrowFieldCallSites(n, fn, effArgs)
 	c.noteContainerIntrinsic(n, fn, effArgs, recvBase, ret)

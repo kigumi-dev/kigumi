@@ -10,11 +10,11 @@ fn Counter.inc(mut self) {
 }
 
 pure fn Counter.bump(mut self) {
-    self.n += 1
+    self.n += 1 //~ ERROR cannot mutate caller storage
 }
 
 pure fn viaRef(c: &mut Counter) {
-    c.inc()
+    c.inc() //~ ERROR cannot mutate caller storage
 }
 
 pure fn local() -> Int {
@@ -158,6 +158,18 @@ fn block(files: fs.Files, p: fs.Path) -> Int {
     v + w
 }
 -- expect --
+error[E904]: `pure fn` cannot mutate caller storage (`self.n`)
+  --> lib/eff.kg:12:5
+   |
+12 |     self.n += 1 //~ ERROR cannot mutate caller storage
+   |     ^^^^^^
+
+error[E904]: `pure fn` cannot mutate caller storage (`c.inc`)
+  --> lib/eff.kg:16:5
+   |
+16 |     c.inc() //~ ERROR cannot mutate caller storage
+   |     ^^^^^^
+
 error[E900]: `write` is not `pure`
   --> lib/eff.kg:30:5
    |

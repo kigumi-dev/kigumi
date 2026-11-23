@@ -36,11 +36,16 @@ func (r *Result) phases() []func() {
 		r.closeFieldParamForwarding,
 		r.planLazyBodies,
 		r.checkBodies,
+		r.markForwardedFieldCalls,
 		r.bindLateFieldCalls,
 		r.resolveRefCells,
 		r.reportHiddenTasks,
 		r.checkAccelKeys,
 		r.resolvePendingWitnessCallbacks,
+		// Must precede checkEffects: late field edges add the concrete callee a
+		// field or local eventually holds, and operation summaries read them.
+		r.closeMethodFieldWrites,
+		r.closeLateFieldEdges,
 		// Must precede checkEffects: it appends hidden provider captures to
 		// ClosureInfo.Captures, which computeDrop/computeDropOp read.
 		r.checkContextRequirements,
@@ -50,8 +55,6 @@ func (r *Result) phases() []func() {
 		r.checkAsyncDirectBlocking,
 		r.checkThreadPool,
 		r.resolveExitItems,
-		r.closeMethodFieldWrites,
-		r.closeLateFieldEdges,
 		r.pruneEntryBinds,
 		r.retractPoisonedBindings,
 		r.checkRootBridges,

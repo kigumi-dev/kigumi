@@ -13,6 +13,11 @@ func (r *Result) inferOpSummaries(nodes []EntityID) {
 	}
 	for changed := true; changed; {
 		changed = false
+		// A type's drop summary is built from destructor and field summaries,
+		// which this pass grows. Reusing the previous pass's memo would feed
+		// callers a stale summary, so each pass derives a fresh memo; the
+		// per-type neutral seed still breaks recursion.
+		r.opDropMemo = map[TypeID]OpSummary{}
 		for _, id := range inferred {
 			next := r.computeOpSummary(id)
 			cur := r.opSummaryPtr(id)
@@ -55,12 +60,14 @@ func (r *Result) applyOpEdge(s *OpSummary, e EffectEdge) {
 		setDirect(s, FactSuspend, e, false)
 	case EdgeDrop:
 		mergeInto(s, r.dropOpSummary(e.Type), e, false)
-	case EdgeCall, EdgeWitness:
+	case EdgeCall, EdgeWitness, EdgeKnownCall:
 		if e.Target != 0 {
 			mergeInto(s, r.opSummary(e.Target), e, false)
 		}
 	case EdgeCallback:
 		r.applyCallbackOpEdge(s, e)
+	case EdgeFieldBind:
+		r.applyFieldBindOpEdge(s, e)
 	case EdgeParamCall, EdgeWitnessCall:
 		// Deferred to whichever call site resolves the parameter/witness
 		// with a concrete argument; see OpSummary's Unresolved doc.
@@ -88,6 +95,28 @@ func (r *Result) applyCallbackOpEdge(s *OpSummary, e EffectEdge) {
 			setUnknown(s, f, e, e.Offloaded)
 		}
 	}
+}
+
+// applyFieldBindOpEdge merges a concrete fn bound to a field that the callee
+// actually calls. A field only written, never invoked, contributes nothing:
+// EdgeFieldBind also carries stored values.
+func (r *Result) applyFieldBindOpEdge(s *OpSummary, e EffectEdge) {
+	if e.Target == 0 || e.Param == 0 {
+		return
+	}
+	key, ok := r.fieldKeyByEnt[e.Param]
+	if !ok || r.Entities[key.Ent].Kind != EntParam {
+		return
+	}
+	fn := r.Entities[key.Ent].Parent
+	if fn == 0 || r.Entities[fn].Kind != EntFn {
+		return
+	}
+	fk := FieldParamKey{Param: key.Ent, Field: key.Field}
+	if !slices.Contains(r.Fn(fn).CalledFieldParams, fk) && !slices.Contains(r.flow.fwdCalled[fn], fk) {
+		return
+	}
+	mergeInto(s, r.opSummary(e.Target), e, false)
 }
 
 func setDirect(s *OpSummary, f OpFact, e EffectEdge, offloaded bool) {

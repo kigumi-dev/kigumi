@@ -27,12 +27,12 @@ fn usePlain(p: Plain) -> Int {
     needsSend(p) //~ ERROR does not satisfy `Send`
 }
 
-async fn spawnFile(f: fs.File) -> Int {
+async fn spawnFile(f: fs.File) -> Int { //~ WARNING reaches a direct-blocking operation
     let k = task.spawn(readFile(f))
     await k
 }
 
-async fn readFile(f: fs.File) -> Int {
+async fn readFile(f: fs.File) -> Int { //~ WARNING reaches a direct-blocking operation
     1
 }
 
@@ -76,4 +76,33 @@ error[E300]: `Plain` does not satisfy `Send`: it cannot move to another thread
    |
 26 |     needsSend(p) //~ ERROR does not satisfy `Send`
    |     ^^^^^^^^^^^
+
+warning[W1320]: `spawnFile` reaches a direct-blocking operation from its async body, occupying the current executor worker
+  --> main/main.kg:29:7
+   |
+29 | async fn spawnFile(f: fs.File) -> Int { //~ WARNING reaches a direct-blocking operation
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: run it through a blocking execution provider or use an async-native operation instead
+note: calls `readFile`
+  --> main/main.kg:30:24
+   |
+30 |     let k = task.spawn(readFile(f))
+   |                        ^^^^^^^^^^
+note: drops `File`, which may block
+  --> main/main.kg:34:19
+   |
+34 | async fn readFile(f: fs.File) -> Int { //~ WARNING reaches a direct-blocking operation
+   |                   ^^^^^^^^^^
+
+warning[W1320]: `readFile` reaches a direct-blocking operation from its async body, occupying the current executor worker
+  --> main/main.kg:34:7
+   |
+34 | async fn readFile(f: fs.File) -> Int { //~ WARNING reaches a direct-blocking operation
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: run it through a blocking execution provider or use an async-native operation instead
+note: drops `File`, which may block
+  --> main/main.kg:34:19
+   |
+34 | async fn readFile(f: fs.File) -> Int { //~ WARNING reaches a direct-blocking operation
+   |                   ^^^^^^^^^^
 

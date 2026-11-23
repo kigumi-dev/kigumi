@@ -45,12 +45,12 @@ func (e *emitter) keepsUnboxed(f *midir.Func, prm midir.LocalID, regs map[midir.
 }
 
 func copyLike(op midir.Opcode) bool {
-	return op == midir.OpAlias || op == midir.OpShare || op == midir.OpMove
+	return op == midir.OpAlias || op == midir.OpShare || op == midir.OpMove || op == midir.OpCopy
 }
 
 func (e *emitter) unboxedUse(f *midir.Func, in midir.Inst, i int) bool {
 	switch in.Op {
-	case midir.OpAlias, midir.OpShare, midir.OpMove, midir.OpDrop, midir.OpRelease, midir.OpInterp:
+	case midir.OpAlias, midir.OpShare, midir.OpMove, midir.OpCopy, midir.OpDrop, midir.OpRelease, midir.OpInterp:
 		return true
 	case midir.OpBinary:
 		ty, _ := e.scalarType(f.Locals[in.Args[0]].Type)
@@ -60,6 +60,9 @@ func (e *emitter) unboxedUse(f *midir.Func, in midir.Inst, i int) bool {
 		ty, _ := e.scalarType(f.Locals[in.Args[0]].Type)
 		return in.Str == "!" && ty == TI1 || in.Str == "-" && (ty == TI64 || ty == TI128 || ty == TDouble || ty == TFloat) || in.Str == "~" && (ty == TI64 || ty == TI128)
 	case midir.OpCall:
+		if e.volatileReadCall(in) {
+			return true
+		}
 		_, ok := e.calleeScalarSig(in).param(i)
 		return in.DPrim != opdef.DPNone || ok || e.wideCallOp(f, in) != "" || e.rawConvert(f, in) || e.cNative(in) && e.cArgInReg(in, i)
 	case midir.OpRecord, midir.OpVariant, midir.OpClosure:

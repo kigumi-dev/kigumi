@@ -101,7 +101,7 @@ func (e *emitter) classifyDst(f *midir.Func, in midir.Inst, disqualify func(midi
 		if t, _ := e.scalarType(f.Locals[in.Dst].Type); t == TCPtr {
 			disqualify(in.Dst)
 		}
-	case midir.OpBinary, midir.OpAlias, midir.OpShare, midir.OpMove:
+	case midir.OpBinary, midir.OpAlias, midir.OpShare, midir.OpMove, midir.OpCopy:
 	case midir.OpGlobalGet:
 		if _, ok := e.directStatic(in.Ent); !ok {
 			disqualify(in.Dst)
@@ -111,6 +111,9 @@ func (e *emitter) classifyDst(f *midir.Func, in midir.Inst, disqualify func(midi
 			disqualify(in.Dst)
 		}
 	case midir.OpCall:
+		if e.volatileReadCall(in) {
+			break
+		}
 		if _, ok := e.calleeScalarSig(in).ret(); in.DPrim == opdef.DPNone && !ok && e.wideCallOp(f, in) == "" && !e.rawConvert(f, in) && !(e.cNative(in) && e.cDstInReg(f, in)) {
 			disqualify(in.Dst)
 		}
@@ -150,7 +153,7 @@ func (e *emitter) classifyArgs(f *midir.Func, in midir.Inst, disqualify func(mid
 		}
 	case midir.OpBorrow:
 		disqualify(in.Args[0])
-	case midir.OpAlias, midir.OpShare, midir.OpMove:
+	case midir.OpAlias, midir.OpShare, midir.OpMove, midir.OpCopy:
 	case midir.OpUnary:
 		if in.Str == "cast" {
 			disqualify(in.Args[0])
@@ -174,6 +177,9 @@ func (e *emitter) classifyArgs(f *midir.Func, in midir.Inst, disqualify func(mid
 			disqualify(in.Args[0])
 		}
 	case midir.OpCall:
+		if e.volatileReadCall(in) {
+			break
+		}
 		if in.DPrim == opdef.DPNone && e.wideCallOp(f, in) == "" && !e.rawConvert(f, in) {
 			sig, c := e.calleeScalarSig(in), e.cNative(in)
 			for i, a := range in.Args {

@@ -9,11 +9,18 @@ var directBlockingPrimitives = map[string]bool{
 	"net.write":       true,
 	"net.poll":        true,
 	"fs.fopen":        true,
+	"fs.fdopen":       true,
 	"fs.fclose":       true,
 	"fs.fflush":       true,
 	"fs.fread":        true,
 	"fs.fwrite":       true,
 	"fs.remove":       true,
+	"fs.unlink":       true,
+	"fs.rmdir":        true,
+	"fs.rename":       true,
+	"fs.rt_fs_stat":   true,
+	"fs.open":         true,
+	"fs.chmod":        true,
 	"fs.access":       true,
 	"fs.mkdir":        true,
 	"fs.opendir":      true,
@@ -26,6 +33,9 @@ var directBlockingPrimitives = map[string]bool{
 	"shell.write":     true,
 	"shell.poll":      true,
 	"shell.waitpid":   true,
+	// The platform layer's terminal primitives: chmod(2) and nanosleep(2).
+	"platform.chmod":         true,
+	"platform.rt_time_sleep": true,
 }
 
 // nonBlockingStd are bodied std fns that make their descriptor non-blocking first.

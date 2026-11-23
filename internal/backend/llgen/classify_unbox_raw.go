@@ -39,8 +39,14 @@ func (e *emitter) rawDef(f *midir.Func, in midir.Inst, raw map[midir.LocalID]boo
 	case midir.OpCallValue:
 		return e.callvI64(f, in)
 	case midir.OpCall:
+		if e.volatileReadCall(in) {
+			return true
+		}
 		_, native := e.calleeScalarSig(in).ret()
 		return in.DPrim != opdef.DPNone || native || e.wideCallOp(f, in) != "" || e.rawConvert(f, in) || e.cNative(in) && e.cDstInReg(f, in)
+	case midir.OpGlobalGet:
+		_, ok := e.directStatic(in.Ent)
+		return ok
 	case midir.OpAlias, midir.OpMove, midir.OpShare:
 		return raw[in.Args[0]]
 	}

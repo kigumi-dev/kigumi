@@ -31,6 +31,13 @@ func (e *emitter) tryDirectInst(sb *strings.Builder, f *midir.Func, in midir.Ins
 			e.buildVariant(sb, a, in)
 			return true
 		}
+	case midir.OpAsm:
+		// An asm block producing a direct record writes each output register
+		// into its slot; building a boxed record here would allocate.
+		if a, ok := e.direct[in.Dst]; ok && !a.isAdt() {
+			e.asmDirect(sb, f, in, a)
+			return true
+		}
 	case midir.OpPayload:
 		if a, ok := e.direct[in.Args[0]]; ok {
 			e.readPayload(sb, f, a, in)

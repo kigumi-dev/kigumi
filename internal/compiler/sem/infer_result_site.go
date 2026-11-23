@@ -81,11 +81,31 @@ func (c *checker) recordResultLeaves(body syntax.NodeID) {
 func (c *checker) recordResultLeaf(ret EntityID, leaf syntax.NodeID, depth int) {
 	if lit := c.stripParen(leaf); c.t.Kind(lit) == syntax.RecordLit {
 		c.recordKnownFieldFns(lit, ret)
+		c.recordResultLiteralParams(lit)
 	} else if src := c.r.fnChainEnt(c.f, leaf); src != 0 && c.r.concretePlace(src) {
 		c.unionInto(ret, src, c.retType, leaf)
 		c.noteLocalResultParams(src, c.retType, nil, leaf, 0)
 	} else if src != 0 {
 		c.noteResultParam(src, leaf)
 		c.recordParamReassigns(ret, src, depth)
+	}
+}
+
+// recordResultLiteralParams keeps a returned record field that forwards a
+// parameter a result param, so a call such as Server.new(handler, log) binds
+// the caller's handler to the returned value's field.
+func (c *checker) recordResultLiteralParams(lit syntax.NodeID) {
+	for entry := range c.t.View(lit).AsRecordLit().Fields().IDs() {
+		if c.t.Kind(entry) == syntax.Spread {
+			continue
+		}
+		fld := c.info.Uses[entry]
+		if fld == 0 {
+			continue
+		}
+		val := c.t.View(entry).AsFieldInit().Value().ID()
+		if src := c.r.fnChainEnt(c.f, val); src != 0 {
+			c.noteResultParamAt([]EntityID{fld}, src, val)
+		}
 	}
 }

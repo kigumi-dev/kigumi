@@ -75,6 +75,11 @@ func (c *checker) capturedHere(ent EntityID) bool {
 }
 
 func (c *checker) noteCaptureWrite(n syntax.NodeID, ent EntityID, selfCall bool) {
+	// A write rooted at a parameter changes storage the caller lent us,
+	// whether directly or through a `&mut`; a fresh local stays internal.
+	if c.r.Entities[ent].Kind == EntParam && (c.r.Entities[ent].Flags&(EfSelf|EfMut) == EfSelf|EfMut || c.paramBackedByCaller(ent, n)) {
+		c.edge(EffectEdge{Kind: EdgeMutateCaller, Target: ent, Node: n})
+	}
 	// A write through a borrow changes the referent, not the local.
 	if c.r.Types.Kind(c.r.Entities[ent].Type) == KRef {
 		return

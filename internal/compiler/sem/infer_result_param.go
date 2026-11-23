@@ -113,12 +113,40 @@ func (r *Result) forwardResultArg(site methodFieldCallSite, rp resultParam, typ 
 	if t.Kind(expr) == syntax.RecordLit {
 		return len(rp.path) == 0 && r.writeLiteralFields(site, dst, expr, typ, 0, rp.overwritten)
 	}
+	// A fn item or a local already holding one is a known value; fnChainEnt
+	// only names places, so resolve the known set first.
+	if fns := r.chainKnownFnRefs(site.file, expr); len(fns) > 0 && len(rp.into) > 0 {
+		owner := site.recv
+		for _, f := range rp.into[:len(rp.into)-1] {
+			owner = r.nestedFnOwner(fieldFnKey{Ent: owner, Field: f})
+		}
+		key := fieldFnKey{Ent: owner, Field: rp.into[len(rp.into)-1]}
+		return r.joinKnownFieldFnAt(key, fns, fnSiteSrc{file: site.file, node: site.node})
+	}
 	src := r.fnChainEnt(site.file, expr)
-	if src == 0 || !r.concretePlace(src) {
+	if src == 0 {
+		return false
+	}
+	if !r.concretePlace(src) && r.Entities[src].Kind != EntFn && r.Entities[src].Kind != EntClosure {
 		return false
 	}
 	for _, f := range rp.path {
 		src = r.nestedFnOwner(fieldFnKey{Ent: src, Field: f})
+	}
+	if len(rp.into) > 0 {
+		// The argument lands in a named result field: that field's known-fn
+		// set is the destination, not the field's own nested owner.
+		owner := site.recv
+		for _, f := range rp.into[:len(rp.into)-1] {
+			owner = r.nestedFnOwner(fieldFnKey{Ent: owner, Field: f})
+		}
+		key := fieldFnKey{Ent: owner, Field: rp.into[len(rp.into)-1]}
+		switch r.Entities[src].Kind {
+		case EntFn, EntClosure:
+			return r.joinKnownFieldFnAt(key, []EntityID{src}, fnSiteSrc{file: site.file, node: site.node})
+		case EntParam:
+			return r.addFieldBindEdge(site.caller, EdgeFieldBind, src, key, site.file, site.node)
+		}
 	}
 	return r.addFnUnion(fnUnion{dst: dst, src: src, typ: typ, file: site.file, node: site.node, skip: r.skipSetID(rp.overwritten)})
 }

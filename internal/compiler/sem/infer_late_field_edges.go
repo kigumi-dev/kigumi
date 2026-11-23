@@ -66,15 +66,16 @@ type lateBindSite struct {
 	node       syntax.NodeID
 	callee     EntityID
 	args       []syntax.NodeID
+	recv       syntax.NodeID
 	seen       int
 	seenNested int
 	seenFwd    int
 	scoped     bool
 }
 
-func (c *checker) stageLateBindSite(n syntax.NodeID, callee EntityID, args []syntax.NodeID, seen int) {
+func (c *checker) stageLateBindSite(n syntax.NodeID, callee EntityID, args []syntax.NodeID, recv syntax.NodeID, seen int) {
 	c.r.lateBindSites = append(c.r.lateBindSites, lateBindSite{caller: c.fn, file: c.f, node: n, callee: callee,
-		args: slices.Clone(args), seen: seen, seenNested: len(c.r.nestedCalled[callee]), seenFwd: len(c.r.flow.fwdCalled[callee]), scoped: c.allocDepth > 0})
+		args: slices.Clone(args), recv: recv, seen: seen, seenNested: len(c.r.nestedCalled[callee]), seenFwd: len(c.r.flow.fwdCalled[callee]), scoped: c.allocDepth > 0})
 }
 
 // Binding late keeps a call site's edges independent of declaration order; a nested key a callee gains by forwarding reaches its callers on a later pass.
@@ -101,12 +102,11 @@ func (r *Result) bindLateSite(site *lateBindSite) bool {
 	if site.scoped {
 		c.allocDepth = 1
 	}
-	params := r.Fn(site.callee).Params
 	for _, key := range keys[min(site.seen, len(keys)):] {
-		c.bindCalledKey(site.node, params, site.args, key)
+		c.bindCalledField(site.node, r.Fn(site.callee), site.args, site.recv, key)
 	}
 	for _, key := range fwd[min(site.seenFwd, len(fwd)):] {
-		c.bindCalledKey(site.node, params, site.args, key)
+		c.bindCalledField(site.node, r.Fn(site.callee), site.args, site.recv, key)
 	}
 	c.nestedArgEdges(site.node, site.callee, site.args, site.seenNested)
 	site.seen, site.seenNested, site.seenFwd = len(keys), len(nested), len(fwd)

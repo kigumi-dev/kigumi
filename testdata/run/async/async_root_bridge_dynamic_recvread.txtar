@@ -35,8 +35,33 @@ print "start"
 let ex = task.currentThreadExecutor()
 print "got ${ex.runToCompletion(outer())}"
 -- stdout --
-start
 -- stderr --
-panic: `Executor.runToCompletion` cannot run inside a task; `await` the future instead
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> main/main.kg:30:5
+   |
+30 |     h.fire()
+   |     ^^^^^^^
+   = help: `await` the future instead
+note: calls `self.cb`
+  --> main/main.kg:25:5
+   |
+25 |     self.cb()
+   |     ^^^^^^^^
+note: `syncRoot` is bound to `self.cb` here
+  --> main/main.kg:30:5
+   |
+30 |     h.fire()
+   |     ^^^^^^^
+note: `syncRoot` is stored in the field here
+  --> main/main.kg:29:26
+   |
+29 |     let h = Holder { cb: syncRoot }
+   |                          ^^^^^^^^
+note: drives a new root task here
+  --> main/main.kg:13:5
+   |
+13 |     ex.runToCompletion(leaf(7))
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
 -- exit --
-2
+1

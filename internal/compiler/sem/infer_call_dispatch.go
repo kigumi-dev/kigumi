@@ -25,6 +25,14 @@ func (c *checker) synthCall(n syntax.NodeID, want TypeID) TypeID {
 }
 
 func (c *checker) synthCallWith(n, callee syntax.NodeID, args []syntax.NodeID, want TypeID) TypeID {
+	// Parentheses around a name or member change no dispatch: `(f)()` and
+	// `(h.f)()` resolve like `f()` and `h.f()`. A parenthesized generic
+	// bracket stays a value, which resetArguments expects to type-check.
+	if c.t.Kind(callee) == syntax.Paren {
+		if inner := c.t.Unparen(callee); c.t.Kind(inner) == syntax.Ident || c.t.Kind(inner) == syntax.MemberExpr {
+			callee = inner
+		}
+	}
 	head := c.resolveHead(callee)
 	switch head.kind {
 	case headFn:

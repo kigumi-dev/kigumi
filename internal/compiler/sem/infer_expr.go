@@ -49,6 +49,9 @@ func (c *checker) synthIdent(n syntax.NodeID) TypeID {
 	case EntStatic:
 		c.r.useEntity(c.f, n, ent)
 		c.checkStaticAccess(n, ent, name)
+		if c.r.StaticReadAllocates(ent) {
+			c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: e.Type})
+		}
 		return e.Type
 	case EntFn:
 		return c.fnItemValue(n, c.r.Fn(ent).Set)

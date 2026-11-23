@@ -63,8 +63,34 @@ func (c *checker) flowPlace(dst, src EntityID, t TypeID, node syntax.NodeID) {
 func (c *checker) recordContainerResult(body syntax.NodeID) {
 	ret := c.r.fnResultEnt(c.fn)
 	for _, leaf := range c.expandLetLeaves(c.resultLeaves(body), 0) {
+		if lit := c.stripParen(leaf); c.t.Kind(lit) == syntax.RecordLit {
+			if owner, ok := c.containerPayloadOwner(ret, c.retType); ok {
+				c.recordKnownFieldFns(lit, owner)
+				continue
+			}
+		}
 		c.recordResultElems(ret, nil, c.retType, c.stripParen(leaf))
 	}
+}
+
+// containerPayloadOwner is where a record returned as a Result's Ok or an
+// Option's payload keeps its fn fields, so a `T!`/`T?` factory is traced like
+// a factory returning T.
+func (c *checker) containerPayloadOwner(ret EntityID, t TypeID) (EntityID, bool) {
+	n := c.r.Types.Node(c.vars.resolve(t))
+	if n.Kind != KNamed {
+		return 0, false
+	}
+	var field int
+	switch {
+	case n.Ent == c.r.Types.optionEnt:
+		field = fieldPayload
+	case n.Ent == c.r.Types.resultEnt && c.r.Types.resultEnt != 0:
+		field = fieldOk
+	default:
+		return 0, false
+	}
+	return c.r.nestedFnOwner(fieldFnKey{Ent: ret, Field: c.r.containerField(field)}), true
 }
 
 // recordResultElems follows a container literal returned at path below the result: a param stays a call-site flow, anything else is recorded here.

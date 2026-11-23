@@ -10,6 +10,13 @@ type EffectSummary struct {
 	Noalloc bool
 	Default bool
 	Known   bool
+	// MutSelf and MutParams record caller-visible storage this body changes:
+	// the receiver and the bitset indexed by explicit parameter position.
+	// MutOnly says parameter mutation is the sole reason Pure is false, so a
+	// caller passing fresh locals may still be pure.
+	MutSelf   bool
+	MutParams uint64
+	MutOnly   bool
 }
 
 // inferDefault settles Default for every body: it starts true and drops to

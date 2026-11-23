@@ -42,13 +42,24 @@ func (r *Result) StaticOwnerOf(id EntityID) (owner StaticOwner, mut bool) {
 	return info.Owner, info.Mut
 }
 
-// DirectStatic reports a Kigumi-owned `static mut` of a register scalar type, which the back ends keep as a raw slot, so a store to it takes no box.
+// DirectStatic reports a static of a register scalar type. Kigumi-owned storage
+// is a raw slot; an extern/export static is already the C object, so reading it
+// needs no box either.
 func (r *Result) DirectStatic(id EntityID) bool {
 	if r.Entities[id].Kind != EntStatic {
 		return false
 	}
+	return r.RegScalar(r.Entities[id].Type)
+}
+
+// StaticReadAllocates reports a read that lowers by building a boxed copy: a
+// foreign/export static whose type is not a register scalar.
+func (r *Result) StaticReadAllocates(id EntityID) bool {
+	if r.Entities[id].Kind != EntStatic {
+		return false
+	}
 	info := r.Static(id)
-	return info.Mut && info.Owner == StaticOwned && r.RegScalar(r.Entities[id].Type)
+	return info.Owner != StaticOwned && !r.DirectStatic(id)
 }
 
 // ImmortalStatic reports a Kigumi-owned non-mut static whose value is a record of literals with no `mut` field at any

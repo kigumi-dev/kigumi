@@ -1,6 +1,10 @@
 package sem
 
-import "kigumi/internal/compiler/syntax"
+import (
+	"slices"
+
+	"kigumi/internal/compiler/syntax"
+)
 
 // fieldForwardEdge: case-(b) forwarding relation.
 type fieldForwardEdge struct {
@@ -163,4 +167,55 @@ func (r *Result) overloadFnMembers(set OverloadSetID) []EntityID {
 		}
 	}
 	return out
+}
+
+// markForwardedFieldCalls closes the link a field makes through an ordinary
+// fn-typed parameter: when a body hands `self.handler` to a callee parameter
+// that the callee calls, the field is forwarded and its own callers must bind
+// it, exactly as if the body had called the field itself.
+func (r *Result) markForwardedFieldCalls() {
+	for changed := true; changed; {
+		changed = false
+		for id := 1; id < len(r.Entities); id++ {
+			e := &r.Entities[id]
+			if e.Kind != EntFn || e.Flags&EfPoison != 0 || e.File == 0 {
+				continue
+			}
+			info := r.Fn(EntityID(id))
+			if info.Body == 0 {
+				continue
+			}
+			for _, edge := range info.Edges {
+				if edge.Kind != EdgeFieldBind || edge.Param == 0 || edge.Target == 0 {
+					continue
+				}
+				caller := r.Entities[edge.Param].Parent
+				if caller == 0 || r.Entities[caller].Kind != EntFn || !slices.Contains(r.Fn(caller).CalledParams, edge.Param) {
+					continue
+				}
+				if r.Entities[edge.Target].Kind != EntFieldParam {
+					continue
+				}
+				key, ok := r.fieldKeyByEnt[edge.Target]
+				if !ok || r.Entities[key.Ent].Parent != EntityID(id) {
+					continue
+				}
+				if r.addCalledFieldParam(EntityID(id), key.Ent, key.Field) {
+					changed = true
+				}
+			}
+			for _, late := range r.lateFieldEdges {
+				if late.kind != EdgeFieldBind || late.caller != EntityID(id) || late.param == 0 || r.Entities[late.param].Parent == 0 {
+					continue
+				}
+				caller := r.Entities[late.param].Parent
+				if r.Entities[caller].Kind != EntFn || !slices.Contains(r.Fn(caller).CalledParams, late.param) {
+					continue
+				}
+				if r.addCalledFieldParam(EntityID(id), late.src.Ent, late.src.Field) {
+					changed = true
+				}
+			}
+		}
+	}
 }

@@ -1,6 +1,10 @@
 package sem
 
-import "kigumi/internal/compiler/syntax"
+import (
+	"slices"
+
+	"kigumi/internal/compiler/syntax"
+)
 
 // fieldParamEnt mints (or returns the cached) EntFieldParam standing for
 // param's field, named for reporting exactly like a bound parameter.
@@ -27,7 +31,49 @@ func (c *checker) knownFnRefs(expr syntax.NodeID) []EntityID { return c.r.chainK
 func (c *checker) trackKnownFn(init syntax.NodeID, local EntityID) {
 	if w := c.knownFnRefs(init); len(w) > 0 {
 		c.r.knownFn[local] = w
+		return
 	}
+	if w := c.knownCallResultFns(init); len(w) > 0 {
+		c.r.knownFn[local] = w
+	}
+}
+
+// knownCallResultFns resolves a call whose callee returns one of its fn
+// arguments, such as an identity wrapper. A callee whose return value is not
+// entirely fn items or forwarded parameters stays unknown.
+func (c *checker) knownCallResultFns(init syntax.NodeID) []EntityID {
+	init = c.stripParen(init)
+	if c.t.Kind(init) != syntax.CallExpr {
+		return nil
+	}
+	call, ok := c.info.Calls[init]
+	if !ok || call.Callee == 0 {
+		return nil
+	}
+	res := c.r.fnResults[call.Callee]
+	if res == nil || res.unknown {
+		return nil
+	}
+	out := slices.Clone(res.fns)
+	var args []syntax.NodeID
+	if call.Plan != nil {
+		args = call.Plan.placed()
+	}
+	for _, i := range res.params {
+		if i < 0 || i >= len(args) {
+			return nil
+		}
+		fns := c.knownFnRefs(args[i])
+		if len(fns) == 0 {
+			return nil
+		}
+		for _, fn := range fns {
+			if !slices.Contains(out, fn) {
+				out = append(out, fn)
+			}
+		}
+	}
+	return out
 }
 
 func (c *checker) recordKnownFieldFns(lit syntax.NodeID, local EntityID) {
@@ -87,6 +133,7 @@ func (c *checker) knownCallTargets(callee syntax.NodeID) []EntityID {
 	if callee == 0 {
 		return nil
 	}
+	callee = c.t.Unparen(callee)
 	switch c.t.Kind(callee) {
 	case syntax.Ident:
 		ent := c.info.Uses[callee]
@@ -94,6 +141,8 @@ func (c *checker) knownCallTargets(callee syntax.NodeID) []EntityID {
 			return nil
 		}
 		switch c.r.Entities[ent].Kind {
+		case EntFn:
+			return []EntityID{ent}
 		case EntLocal, EntParam:
 			return c.r.knownFn[ent]
 		}
@@ -106,18 +155,30 @@ func (c *checker) knownCallTargets(callee syntax.NodeID) []EntityID {
 }
 
 func (c *checker) knownFieldCallKeyOf(callee syntax.NodeID) (fieldFnKey, bool) {
-	if callee == 0 || c.t.Kind(callee) != syntax.MemberExpr {
+	if callee == 0 {
+		return fieldFnKey{}, false
+	}
+	callee = c.t.Unparen(callee)
+	if c.t.Kind(callee) != syntax.MemberExpr {
 		return fieldFnKey{}, false
 	}
 	return c.knownFieldCallKey(callee)
 }
 
 func (c *checker) knownFieldCallKey(callee syntax.NodeID) (fieldFnKey, bool) {
+	if callee == 0 {
+		return fieldFnKey{}, false
+	}
+	callee = c.t.Unparen(callee)
+	if c.t.Kind(callee) != syntax.MemberExpr {
+		return fieldFnKey{}, false
+	}
 	field := c.info.Uses[callee]
 	if field == 0 || c.r.Entities[field].Kind != EntField {
 		return fieldFnKey{}, false
 	}
 	base := c.t.View(callee).AsMember().Base().ID()
+	base = c.t.Unparen(base)
 	switch c.t.Kind(base) {
 	case syntax.Ident, syntax.MemberExpr, syntax.CallExpr, syntax.BracketExpr:
 		if baseEnt := c.r.fnChainEnt(c.f, base); baseEnt != 0 {
@@ -129,16 +190,29 @@ func (c *checker) knownFieldCallKey(callee syntax.NodeID) (fieldFnKey, bool) {
 
 // knownFieldCallEdges binds each call-site argument's known fn to the field
 // fn reads; n is EdgeFieldBind's Node, so forwardSubst can narrow per call site.
-func (c *checker) knownFieldCallEdges(n syntax.NodeID, fn EntityID, args []syntax.NodeID) {
+func (c *checker) knownFieldCallEdges(n syntax.NodeID, fn EntityID, args []syntax.NodeID, recv syntax.NodeID) {
 	info := c.r.Fn(fn)
 	if c.fn != 0 {
-		c.stageLateBindSite(n, fn, args, len(info.CalledFieldParams))
+		c.stageLateBindSite(n, fn, args, recv, len(info.CalledFieldParams))
 	}
 	c.nestedArgEdges(n, fn, args, 0)
 	for _, key := range info.CalledFieldParams {
-		c.bindCalledKey(n, info.Params, args, key)
+		c.bindCalledField(n, info, args, recv, key)
 	}
 	for _, key := range c.r.flow.fwdCalled[fn] {
-		c.bindCalledKey(n, info.Params, args, key)
+		c.bindCalledField(n, info, args, recv, key)
 	}
+}
+
+// bindCalledField resolves one field the callee invokes: an ordinary
+// parameter from the argument in its slot, and the receiver from the call's
+// receiver expression, which no argument list holds.
+func (c *checker) bindCalledField(n syntax.NodeID, info *FnInfo, args []syntax.NodeID, recv syntax.NodeID, key FieldParamKey) {
+	if key.Param == info.SelfParam {
+		if recv != 0 {
+			c.knownFieldArgEdge(n, recv, fieldFnKey{Ent: key.Param, Field: key.Field})
+		}
+		return
+	}
+	c.bindCalledKey(n, info.Params, args, key)
 }

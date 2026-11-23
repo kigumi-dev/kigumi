@@ -21,9 +21,13 @@ func (e *emitter) tryScalarInst(sb *strings.Builder, f *midir.Func, in midir.Ins
 			return false
 		}
 		return e.scalarUnary(sb, f, in)
-	case midir.OpAlias, midir.OpShare, midir.OpMove:
+	case midir.OpAlias, midir.OpShare, midir.OpMove, midir.OpCopy:
 		return e.scalarCopyLike(sb, f, in)
 	case midir.OpCall:
+		if e.volatileReadCall(in) && e.isScalar(in.Dst) {
+			e.volatileReadNative(sb, f, in)
+			return true
+		}
 		if op := e.wideCallOp(f, in); op != "" {
 			return e.wideCall(sb, f, in, op)
 		}

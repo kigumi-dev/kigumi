@@ -15,14 +15,23 @@ func (e *emitter) directStatic(ent sem.EntityID) (Type, bool) {
 	return e.scalarType(e.r.Entity(ent).Type)
 }
 
+// directStaticSym is the slot holding a direct static: Kigumi-owned storage is
+// internal, while an extern/export static is the C object at its link name.
+func (e *emitter) directStaticSym(ent sem.EntityID) string {
+	if owner, _ := e.r.StaticOwnerOf(ent); owner != sem.StaticOwned {
+		return "@" + e.r.StaticSymbolOf(ent)
+	}
+	return e.globalSym(ent)
+}
+
 func (e *emitter) loadDirectStatic(sb *strings.Builder, ent sem.EntityID, ty Type) Value {
 	t := e.newTmp()
-	fmt.Fprintf(sb, "  %s = load %s, ptr %s\n", t, ty, e.globalSym(ent))
+	fmt.Fprintf(sb, "  %s = load %s, ptr %s\n", t, ty, e.directStaticSym(ent))
 	return Value{Type: ty, Text: t}
 }
 
 func (e *emitter) storeDirectStatic(sb *strings.Builder, ent sem.EntityID, v Value) {
-	fmt.Fprintf(sb, "  store %s %s, ptr %s\n", v.Type, v.Text, e.globalSym(ent))
+	fmt.Fprintf(sb, "  store %s %s, ptr %s\n", v.Type, v.Text, e.directStaticSym(ent))
 }
 
 // tryDirectStaticInst reads or writes a direct static on registers, so a store allocates no box.
