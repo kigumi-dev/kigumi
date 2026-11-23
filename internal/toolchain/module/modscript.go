@@ -13,7 +13,7 @@ import (
 var scriptFields = map[string][]string{
 	"Kigumi":  {"version"},
 	"Zig":     {"version"},
-	"Require": {"name", "version", "url"},
+	"Require": {"name", "version", "url", "alias"},
 	"Link":    {"library", "search"},
 }
 

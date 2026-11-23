@@ -3,6 +3,7 @@ package module
 import (
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"kigumi/internal/lang/diag"
@@ -15,18 +16,36 @@ import (
 // module can never redirect its users.
 const LocalName = "mod.local.kg"
 
-var localFields = map[string][]string{"Replace": {"name", "path"}}
+var localFields = map[string][]string{"Replace": {"name", "alias", "path"}}
 
 // Local is a parsed mod.local.kg: replaced module names mapped to absolute
-// directories. Provenance carries the same keys mapped to "file:line" of
-// the Replace record, for release-mode diagnostics. Vendor and Vendored
-// describe the root's vendor directory when WithVendor attached one.
+// directories. A Replace with an alias is keyed by that alias, so two
+// aliased versions of one module can be replaced independently; a Replace
+// without one keeps its name key and applies to any Require of that name.
+// Provenance carries the same keys mapped to "file:line" of the Replace
+// record, for release-mode diagnostics. Vendor and Vendored describe the
+// root's vendor directory when WithVendor attached one.
 type Local struct {
 	File       string
 	Replaces   map[string]string
 	Provenance map[string]string
 	Vendor     string
 	Vendored   map[string]VendorEntry
+}
+
+// Replacement resolves the local directory for r: an alias-specific Replace
+// wins, then a plain name Replace, preserving the behavior of a manifest
+// written before aliases existed.
+func (l Local) Replacement(r Require) (string, bool) {
+	if p, ok := l.Replaces[r.Key()]; ok {
+		return p, true
+	}
+	if r.Alias != "" {
+		if p, ok := l.Replaces[r.Name]; ok {
+			return p, true
+		}
+	}
+	return "", false
 }
 
 // WithVendor attaches root's vendor tree, when it has one, so dependency
@@ -81,13 +100,23 @@ func ParseLocal(f *token.File, dir string) (Local, []diag.Diagnostic) {
 	lc := Local{Replaces: map[string]string{}, Provenance: map[string]string{}}
 	recs, ds := ParseRecords(f, localFields)
 	for _, r := range recs {
-		name, p := r.Fields["name"], r.Fields["path"]
+		name, alias, p := r.Fields["name"], r.Fields["alias"], r.Fields["path"]
 		if err := ValidModuleName(name); err != nil {
 			ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, err.Error()))
 			continue
 		}
-		if _, dup := lc.Replaces[name]; dup {
-			ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, fmt.Sprintf("%s is replaced twice", name)))
+		if alias != "" {
+			if err := ValidAlias(alias); err != nil {
+				ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, err.Error()))
+				continue
+			}
+		}
+		key := alias
+		if key == "" {
+			key = name
+		}
+		if _, dup := lc.Replaces[key]; dup {
+			ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, fmt.Sprintf("%s is replaced twice", key)))
 			continue
 		}
 		if p == "" {
@@ -97,8 +126,8 @@ func ParseLocal(f *token.File, dir string) (Local, []diag.Diagnostic) {
 		if !filepath.IsAbs(p) {
 			p = filepath.Join(dir, p)
 		}
-		lc.Replaces[name] = p
-		lc.Provenance[name] = fmt.Sprintf("%s:%d", f.Name, f.Line(r.Span.Start))
+		lc.Replaces[key] = p
+		lc.Provenance[key] = f.Name + ":" + strconv.Itoa(f.Line(r.Span.Start))
 	}
 	return lc, ds
 }

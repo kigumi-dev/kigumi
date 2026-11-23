@@ -122,21 +122,21 @@ func VendorTree(o buildconfig.CompilerOptions, root string) ([]VendoredModule, e
 		}
 	}
 	var mods []VendoredModule
-	for _, name := range sel.Names() {
-		r := sel.Requires[name]
-		if _, replaced := local.Replaces[name]; replaced {
-			return nil, fmt.Errorf("%s is replaced by %s; a vendored tree holds the locked dependency, so commit the checkout or drop the Replace first", name, LocalName)
+	for _, key := range sel.Names() {
+		r := sel.Requires[key]
+		if _, replaced := local.Replacement(r); replaced {
+			return nil, fmt.Errorf("%s is replaced by %s; a vendored tree holds the locked dependency, so commit the checkout or drop the Replace first", DescribeRequire(r), LocalName)
 		}
-		entry, locked := lock.Entries[name]
+		entry, locked := lock.Entries[key]
 		if !locked || entry.Version != r.Version {
-			return nil, fmt.Errorf("%s %s is not in %s at that version; run `kigumi get` first", name, r.Version, LockName)
+			return nil, fmt.Errorf("%s %s is not in %s at that version; run `kigumi get` first", DescribeRequire(r), r.Version, LockName)
 		}
 		dir, err := CacheDir(o, r)
 		if err != nil {
 			return nil, err
 		}
 		if !CacheReady(dir) {
-			return nil, fmt.Errorf("%s %s is not fetched into %s; run `kigumi get` first", name, r.Version, dir)
+			return nil, fmt.Errorf("%s %s is not fetched into %s; run `kigumi get` first", DescribeRequire(r), r.Version, dir)
 		}
 		if err := CheckCacheTree(dir); err != nil {
 			return nil, err
@@ -146,11 +146,29 @@ func VendorTree(o buildconfig.CompilerOptions, root string) ([]VendoredModule, e
 			return nil, err
 		}
 		if hash != entry.Hash {
-			return nil, fmt.Errorf("%s %s in %s does not match %s; remove that directory and run `kigumi get` again", name, r.Version, dir, LockName)
+			return nil, fmt.Errorf("%s %s in %s does not match %s; remove that directory and run `kigumi get` again", DescribeRequire(r), r.Version, dir, LockName)
 		}
-		mods = append(mods, VendoredModule{Name: name, Version: r.Version, Commit: entry.Commit, Hash: ""})
+		mods = append(mods, VendoredModule{Name: r.Name, Version: r.Version, Commit: entry.Commit, Hash: ""})
 	}
-	sort.Slice(mods, func(i, j int) bool { return mods[i].Name < mods[j].Name })
+	sort.Slice(mods, func(i, j int) bool {
+		if mods[i].Name != mods[j].Name {
+			return mods[i].Name < mods[j].Name
+		}
+		return mods[i].Version < mods[j].Version
+	})
+	// vendor/<module path> holds one directory per real name, so two aliased
+	// versions of the same module cannot both be vendored.
+	deduped := mods[:0]
+	for i, m := range mods {
+		if i > 0 && m.Name == mods[i-1].Name {
+			if m.Version != mods[i-1].Version {
+				return nil, fmt.Errorf("%s is selected at both %s and %s; vendor/ holds one directory per module path, so vendor one version at a time or drop the aliases", m.Name, mods[i-1].Version, m.Version)
+			}
+			continue
+		}
+		deduped = append(deduped, m)
+	}
+	mods = deduped
 	if len(mods) == 0 {
 		return nil, removeVendor(root)
 	}

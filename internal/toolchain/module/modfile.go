@@ -20,6 +20,7 @@ import (
 //	    name: "greet"
 //	    version: "v0.1.0"
 //	    url: "https://example.com/greet.git"
+//	    alias: "greet1"   // optional import prefix; lets two versions coexist
 //	}
 //	Replace {
 //	    name: "greet"
@@ -81,6 +82,19 @@ type Link struct {
 
 type Require struct {
 	Name, Version, URL string
+	// Alias is an optional import prefix that replaces Name as this
+	// Require's effective key, so two versions of one module can coexist.
+	Alias string
+}
+
+// Key is the effective import and selection prefix of a Require: its alias
+// when it has one, else its real module name. Two Requires for the same real
+// name with different aliases are independent dependencies.
+func (r Require) Key() string {
+	if r.Alias != "" {
+		return r.Alias
+	}
+	return r.Name
 }
 
 // HeaderImport is a `Header { path, package }` record: a C header, relative
@@ -91,7 +105,7 @@ type HeaderImport struct {
 
 var manifestFields = map[string][]string{
 	"Module":    {"name", "kigumi", "zig"},
-	"Require":   {"name", "version", "url"},
+	"Require":   {"name", "version", "url", "alias"},
 	"Replace":   {"name", "path"},
 	"Link":      {"library", "search"},
 	"Source":    {"c", "asm"},

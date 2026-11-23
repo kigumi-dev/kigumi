@@ -9,9 +9,9 @@ import (
 )
 
 func runReplace(io session.IO, opts options) error {
-	if err := module.AppendLocalReplace(opts.root, opts.args[0], opts.args[1]); err != nil {
+	if err := module.AppendLocalReplaceFor(opts.root, module.Require{Name: opts.args[0], Alias: opts.alias}, opts.args[1]); err != nil {
 		return errors.WrapErr(err, "edit local overrides")
 	}
-	fmt.Fprintf(io.Err, "%s now resolves from %s (%s)\n", opts.args[0], opts.args[1], module.LocalName)
+	fmt.Fprintf(io.Err, "%s now resolves from %s (%s)\n", module.DescribeRequire(module.Require{Name: opts.args[0], Alias: opts.alias}), opts.args[1], module.LocalName)
 	return nil
 }

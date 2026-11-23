@@ -43,7 +43,7 @@ func AppendRequire(root string, r Require) error {
 	path := filepath.Join(root, ManifestName)
 	var sb strings.Builder
 	sb.WriteString("\n")
-	writeRecord(&sb, "Require", "name", r.Name, "version", r.Version, "url", r.URL)
+	writeRecord(&sb, "Require", "name", r.Name, "version", r.Version, "alias", r.Alias, "url", r.URL)
 	next, err := nextFileContent(path, sb.String())
 	if err != nil {
 		return err
@@ -78,7 +78,7 @@ func AppendScriptRequire(path string, r Require) error {
 	if !has {
 		writeRecord(&sb, "Kigumi", "version", version.Toolchain)
 	}
-	writeRecord(&sb, "Require", "name", r.Name, "version", r.Version, "url", r.URL)
+	writeRecord(&sb, "Require", "name", r.Name, "version", r.Version, "alias", r.Alias, "url", r.URL)
 	at := len(src)
 	if stmts := t.List(t.Root); stmts.Len() > 0 {
 		if n := leadingRecords(t); n > 0 {
@@ -114,8 +114,8 @@ func lineStart(src []byte, pos int) int {
 
 func alreadyRequired(mf ModFile, r Require) error {
 	for _, have := range mf.Requires {
-		if have.Name == r.Name {
-			return fmt.Errorf("%s is already required at %s", r.Name, have.Version)
+		if have.Key() == r.Key() {
+			return fmt.Errorf("%s is already required at %s", r.Key(), have.Version)
 		}
 	}
 	return nil
@@ -133,7 +133,16 @@ func RemoveRequires(root string, names map[string]bool) error {
 	if len(ds) > 0 {
 		return fmt.Errorf("%s has errors; fix them first", path)
 	}
-	next, changed := dropRecords(f, recs, true, func(r Record) bool { return r.Kind == "Require" && names[r.Fields["name"]] })
+	next, changed := dropRecords(f, recs, true, func(r Record) bool {
+		if r.Kind != "Require" {
+			return false
+		}
+		key := r.Fields["alias"]
+		if key == "" {
+			key = r.Fields["name"]
+		}
+		return names[key]
+	})
 	if !changed {
 		return nil
 	}

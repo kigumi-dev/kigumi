@@ -37,9 +37,17 @@ func runVerify(io session.IO, opts options) error {
 			fmt.Fprintln(io.Out, p)
 		}
 	}
-	for _, name := range sortedNames(lock) {
-		e := lock.Entries[name]
-		if _, replaced := local.Replaces[name]; replaced {
+	for _, key := range sortedNames(lock) {
+		e := lock.Entries[key]
+		name := e.Name
+		if name == "" {
+			name = key
+		}
+		label := key
+		if name != key {
+			label = key + " (" + name + ")"
+		}
+		if _, replaced := local.Replacement(e.RequireAt(key)); replaced {
 			// A Replace is not locked: `mod vendor` refuses to copy one, and
 			// `get` never fetched it.
 			continue
@@ -49,41 +57,41 @@ func runVerify(io session.IO, opts options) error {
 			switch {
 			case vendored.Version != e.Version:
 				bad++
-				fmt.Fprintf(io.Out, "%s %s: vendor has %s\n", name, e.Version, vendored.Version)
+				fmt.Fprintf(io.Out, "%s %s: vendor has %s\n", label, e.Version, vendored.Version)
 			case !dirExists(dir):
 				bad++
-				fmt.Fprintf(io.Out, "%s %s: missing from %s; run `kigumi mod vendor`\n", name, e.Version, local.Vendor)
+				fmt.Fprintf(io.Out, "%s %s: missing from %s; run `kigumi mod vendor`\n", label, e.Version, local.Vendor)
 			default:
 				hash, err := module.ContentTreeHash(dir)
 				if err != nil {
 					return errors.WrapErr(err, "hash vendored module")
 				}
 				if hash == vendored.Hash {
-					fmt.Fprintf(io.Out, "%s %s: ok (vendored)\n", name, e.Version)
+					fmt.Fprintf(io.Out, "%s %s: ok (vendored)\n", label, e.Version)
 				} else {
 					bad++
-					fmt.Fprintf(io.Out, "%s %s: MISMATCH in %s\n", name, e.Version, dir)
+					fmt.Fprintf(io.Out, "%s %s: MISMATCH in %s\n", label, e.Version, dir)
 				}
 			}
 			continue
 		}
-		dir, err := module.CacheDir(session.CompilerOptions(), module.Require{Name: name, Version: e.Version})
+		dir, err := module.CacheDir(session.CompilerOptions(), module.Require{Name: name, Version: e.Version, Alias: e.Alias})
 		if err != nil {
 			return err
 		}
 		if _, err := os.Stat(dir); err != nil {
 			bad++
-			fmt.Fprintf(io.Out, "%s %s: not fetched\n", name, e.Version)
+			fmt.Fprintf(io.Out, "%s %s: not fetched\n", label, e.Version)
 			continue
 		}
 		if !module.CacheReady(dir) {
 			bad++
-			fmt.Fprintf(io.Out, "%s %s: incomplete cache entry in %s (missing origin marker or manifest)\n", name, e.Version, dir)
+			fmt.Fprintf(io.Out, "%s %s: incomplete cache entry in %s (missing origin marker or manifest)\n", label, e.Version, dir)
 			continue
 		}
 		if err := module.CheckCacheTree(dir); err != nil {
 			bad++
-			fmt.Fprintf(io.Out, "%s %s: %s\n", name, e.Version, err)
+			fmt.Fprintf(io.Out, "%s %s: %s\n", label, e.Version, err)
 			continue
 		}
 		hash, err := module.TreeHash(dir)
@@ -91,10 +99,10 @@ func runVerify(io session.IO, opts options) error {
 			return errors.WrapErr(err, "hash dependency")
 		}
 		if hash == e.Hash {
-			fmt.Fprintf(io.Out, "%s %s: ok\n", name, e.Version)
+			fmt.Fprintf(io.Out, "%s %s: ok\n", label, e.Version)
 		} else {
 			bad++
-			fmt.Fprintf(io.Out, "%s %s: MISMATCH in %s\n", name, e.Version, dir)
+			fmt.Fprintf(io.Out, "%s %s: MISMATCH in %s\n", label, e.Version, dir)
 		}
 	}
 	if bad > 0 {

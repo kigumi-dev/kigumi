@@ -73,7 +73,7 @@ func escapeSegment(seg string) string {
 
 // DepDir resolves a required module's directory: a local override (root only), the root's vendored copy, or the fetched cache copy; missing is true when uncached.
 func DepDir(o buildconfig.CompilerOptions, local Local, r Require, isRoot bool) (dir string, missing bool, err error) {
-	if p, ok := local.Replaces[r.Name]; ok && isRoot {
+	if p, ok := local.Replacement(r); ok && isRoot {
 		return p, false, nil
 	}
 	if isRoot && local.Vendor != "" {

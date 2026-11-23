@@ -92,7 +92,7 @@ func (r *Result) checkModuleCycle(comp []PackageID) {
 				if t.Kind(d) != syntax.ImportDecl {
 					continue
 				}
-				target, ok := r.pathIndex[pathText(t, importDecl(t, d).Path, "/")]
+				target, ok := r.pathIndex[r.translateImport(p, pathText(t, importDecl(t, d).Path, "/"))]
 				if ok && inComp[target] && !r.sameModule(p, target) {
 					r.errAt(f, d, cModuleCycle, chain)
 				}

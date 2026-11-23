@@ -45,58 +45,63 @@ func (f *fetcher) module(mf module.ModFile) error {
 			return err
 		}
 	}
-	for _, name := range sel.Names() {
-		r := sel.Requires[name]
+	for _, key := range sel.Names() {
+		r := sel.Requires[key]
 		dir, missing, err := module.DepDir(session.CompilerOptions(), f.local, r, true)
 		if err != nil {
 			return errors.WrapErr(err, "resolve dependency")
 		}
-		if _, replaced := f.local.Replaces[r.Name]; replaced {
-			fmt.Fprintf(f.io.Err, "%s %s: %s (replace)\n", r.Name, r.Version, dir)
+		if _, replaced := f.local.Replacement(r); replaced {
+			fmt.Fprintf(f.io.Err, "%s %s: %s (replace)\n", module.DescribeRequire(r), r.Version, dir)
 		} else if err := f.cached(r, dir, missing); err != nil {
 			return err
 		}
 		if depMf, ok, err := module.ReadModFile(dir); err != nil {
 			return errors.WrapErr(err, "read dependency manifest")
 		} else if ok {
-			f.native(r.Name, depMf)
+			f.native(key, depMf)
 		}
 	}
-	for name := range f.next.Entries {
-		if _, ok := sel.Requires[name]; !ok {
-			delete(f.next.Entries, name)
+	for key := range f.next.Entries {
+		if _, ok := sel.Requires[key]; !ok {
+			delete(f.next.Entries, key)
 		}
 	}
 	return nil
 }
 
-// native lists what a dependency adds to the link line, so the root sees what it trusts, and records it for the diff.
-func (f *fetcher) native(name string, mf module.ModFile) {
+// native lists what a dependency adds to the link line, so the root sees what it trusts, and records it for the diff. key is the effective (possibly aliased) dependency key.
+func (f *fetcher) native(key string, mf module.ModFile) {
 	if f.after != nil {
-		f.after[name] = mf
+		f.after[key] = mf
+	}
+	label := key
+	if mf.Name != "" && mf.Name != key {
+		label = key + " (" + mf.Name + ")"
 	}
 	for _, l := range mf.Links {
 		if l.Library != "" {
-			fmt.Fprintf(f.io.Err, "  %s links -l%s\n", name, l.Library)
+			fmt.Fprintf(f.io.Err, "  %s links -l%s\n", label, l.Library)
 		}
 		if l.Search != "" {
-			fmt.Fprintf(f.io.Err, "  %s adds search path %s\n", name, l.Search)
+			fmt.Fprintf(f.io.Err, "  %s adds search path %s\n", label, l.Search)
 		}
 	}
 	for _, s := range mf.Sources {
-		fmt.Fprintf(f.io.Err, "  %s compiles %s\n", name, s.Path)
+		fmt.Fprintf(f.io.Err, "  %s compiles %s\n", label, s.Path)
 	}
 }
 
 // cached makes sure the cache holds r and that it agrees with the lock.
 func (f *fetcher) cached(r module.Require, dir string, missing bool) error {
-	if done, ok := f.next.Entries[r.Name]; ok && done.Version == r.Version {
+	key := r.Key()
+	if done, ok := f.next.Entries[key]; ok && done.Version == r.Version {
 		return nil
 	}
-	prev, locked := f.lock.Entries[r.Name]
-	locked = locked && prev.Version == r.Version
+	prev, locked := f.lock.Entries[key]
+	locked = locked && prev.Version == r.Version && prev.Alias == r.Alias && (prev.Name == "" || prev.Name == r.Name)
 	if want := module.RepoURLKey(r); locked && !f.update && prev.URL != "" && want != "" && prev.URL != want {
-		return errors.NewErrf("%s %s is now fetched from %s but the lock recorded %s; run `kigumi get -u` to accept the new source", r.Name, r.Version, want, prev.URL)
+		return errors.NewErrf("%s %s is now fetched from %s but the lock recorded %s; run `kigumi get -u` to accept the new source", module.DescribeRequire(r), r.Version, want, prev.URL)
 	}
 	if missing {
 		rawCommit, err := f.git.Clone(r, dir)
@@ -106,37 +111,37 @@ func (f *fetcher) cached(r module.Require, dir string, missing bool) error {
 		commit := module.TagCommit(rawCommit)
 		if locked && !f.update && prev.Commit != commit {
 			os.RemoveAll(dir)
-			return errors.NewErrf("%s %s now points at %s but the lock recorded %s; run `kigumi get -u` to accept the new commit", r.Name, r.Version, short(commit), short(prev.Commit))
+			return errors.NewErrf("%s %s now points at %s but the lock recorded %s; run `kigumi get -u` to accept the new commit", module.DescribeRequire(r), r.Version, short(commit), short(prev.Commit))
 		}
-		fmt.Fprintf(f.io.Err, "%s %s: fetched into %s\n", r.Name, r.Version, dir)
+		fmt.Fprintf(f.io.Err, "%s %s: fetched into %s\n", module.DescribeRequire(r), r.Version, dir)
 	} else if f.update && locked && !module.IsCommitHash(r.Version) {
 		remote, err := f.git.RemoteTagCommit(r)
 		if err != nil {
-			return errors.WrapErrf(err, "%s %s: check the remote tag", r.Name, r.Version)
+			return errors.WrapErrf(err, "%s %s: check the remote tag", module.DescribeRequire(r), r.Version)
 		}
 		if module.TagCommit(remote) == module.NormalizeCommit(prev.Commit) {
-			fmt.Fprintf(f.io.Err, "%s %s: %s (up to date)\n", r.Name, r.Version, dir)
+			fmt.Fprintf(f.io.Err, "%s %s: %s (up to date)\n", module.DescribeRequire(r), r.Version, dir)
 		} else if newCommit, err := f.git.Refetch(r, dir); err != nil {
 			return err
 		} else {
-			fmt.Fprintf(f.io.Err, "%s %s: moved from %s to %s; refetched into %s\n", r.Name, r.Version, short(prev.Commit), short(newCommit), dir)
+			fmt.Fprintf(f.io.Err, "%s %s: moved from %s to %s; refetched into %s\n", module.DescribeRequire(r), r.Version, short(prev.Commit), short(newCommit), dir)
 			missing = true
 		}
 	} else {
-		fmt.Fprintf(f.io.Err, "%s %s: %s\n", r.Name, r.Version, dir)
+		fmt.Fprintf(f.io.Err, "%s %s: %s\n", module.DescribeRequire(r), r.Version, dir)
 	}
 	hash, err := module.TreeHash(dir)
 	if err != nil {
 		return errors.WrapErr(err, "hash dependency")
 	}
 	if locked && prev.Hash != hash && !(missing && f.update) {
-		return errors.NewErrf("%s %s in %s does not match the lock; remove that directory and run `kigumi get` again", r.Name, r.Version, dir)
+		return errors.NewErrf("%s %s in %s does not match the lock; remove that directory and run `kigumi get` again", module.DescribeRequire(r), r.Version, dir)
 	}
 	commit, err := os.ReadFile(filepath.Join(dir, module.OriginFileName))
 	if err != nil {
-		return errors.WrapErrf(err, "%s %s: read the origin marker", r.Name, r.Version)
+		return errors.WrapErrf(err, "%s %s: read the origin marker", module.DescribeRequire(r), r.Version)
 	}
-	f.next.Entries[r.Name] = module.LockEntry{Version: r.Version, Commit: module.TagCommit(strings.TrimSpace(string(commit))), Hash: hash, URL: module.RepoURLKey(r)}
+	f.next.Entries[key] = module.LockEntry{Name: r.Name, Alias: r.Alias, Version: r.Version, Commit: module.TagCommit(strings.TrimSpace(string(commit))), Hash: hash, URL: module.RepoURLKey(r)}
 	return nil
 }
 

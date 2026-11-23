@@ -49,6 +49,12 @@ func modFileOf(recs []Record, module bool) (ModFile, []diag.Diagnostic) {
 				ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, err.Error()))
 				versionOK = false
 			}
+			alias := r.Fields["alias"]
+			if alias != "" {
+				if err := ValidAlias(alias); err != nil {
+					ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, err.Error()))
+				}
+			}
 			if err := ValidModuleName(r.Fields["name"]); err != nil {
 				ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, err.Error()))
 			} else if versionOK {
@@ -56,7 +62,7 @@ func modFileOf(recs []Record, module bool) (ModFile, []diag.Diagnostic) {
 					ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, err.Error()))
 				}
 			}
-			mf.Requires = append(mf.Requires, Require{Name: r.Fields["name"], Version: r.Fields["version"], URL: r.Fields["url"]})
+			mf.Requires = append(mf.Requires, Require{Name: r.Fields["name"], Version: r.Fields["version"], URL: r.Fields["url"], Alias: alias})
 		case "Replace":
 			ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, "Replace belongs in "+LocalName+", which is never published"))
 		case "Link":
@@ -84,6 +90,7 @@ func modFileOf(recs []Record, module bool) (ModFile, []diag.Diagnostic) {
 			mf.Headers = append(mf.Headers, HeaderImport{Path: r.Fields["path"], Package: r.Fields["package"]})
 		}
 	}
+	ds = append(ds, requireAliasDiags(mf, recs)...)
 	if mf.Kigumi != "" {
 		if atLeast, err := versionAtLeast(version.Toolchain, mf.Kigumi); err != nil {
 			ds = append(ds, diag.Errorf(diag.Location{Span: recs[0].Span}, err.Error()))
@@ -104,6 +111,56 @@ func modFileOf(recs []Record, module bool) (ModFile, []diag.Diagnostic) {
 		ds = append(ds, diag.Errorf(diag.Location{Span: span}, "the manifest needs a Module record"))
 	}
 	return mf, ds
+}
+
+// requireAliasDiags checks that each alias is a unique import prefix: no two
+// Requires may share an effective key or overlapping alias prefixes, and an
+// alias may not overlap the root module's own package prefix.
+func requireAliasDiags(mf ModFile, recs []Record) []diag.Diagnostic {
+	var ds []diag.Diagnostic
+	keyAt := map[string]Record{}
+	aliasAt := map[string]Record{}
+	names := map[string]bool{}
+	for _, r := range recs {
+		if r.Kind != "Require" {
+			continue
+		}
+		name, alias := r.Fields["name"], r.Fields["alias"]
+		if alias == "" {
+			// A real name may only collide with an alias; duplicate plain
+			// Requires keep the old tolerant MVS behavior.
+			if prev, dup := keyAt[name]; dup && prev.Fields["alias"] != "" {
+				ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, fmt.Sprintf("alias %q collides with the module %q required here", prev.Fields["alias"], name)))
+			}
+			names[name] = true
+			continue
+		}
+		if names[alias] {
+			ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, fmt.Sprintf("alias %q collides with the module %q required without an alias", alias, alias)))
+		}
+		if _, dup := keyAt[alias]; dup {
+			ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, fmt.Sprintf("alias %q is used by two Require records", alias)))
+			continue
+		}
+		for prevAlias := range aliasAt {
+			if prefixOverlap(alias, prevAlias) {
+				ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, fmt.Sprintf("alias %q overlaps alias %q", alias, prevAlias)))
+			}
+		}
+		if mf.Name != "" && prefixOverlap(alias, mf.Name) {
+			ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, fmt.Sprintf("alias %q overlaps this module's name %q", alias, mf.Name)))
+		}
+		keyAt[alias] = r
+		aliasAt[alias] = r
+	}
+	return ds
+}
+
+// prefixOverlap reports whether one path is the other or contains the other
+// as a leading segment path, the relation that makes two import prefixes
+// claim the same package paths.
+func prefixOverlap(a, b string) bool {
+	return a == b || strings.HasPrefix(a, b+"/") || strings.HasPrefix(b, a+"/")
 }
 
 // linkDiags keeps Link records to what cannot reach outside the module: a

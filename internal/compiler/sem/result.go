@@ -18,6 +18,8 @@ type PackageInfo struct {
 	Std       bool
 	Files     []FileID
 	tests     map[string]EntityID
+	// ImportPrefixes is Package.ImportPrefixes copied for import resolution.
+	ImportPrefixes map[string]string
 }
 
 // Result is the checked module. The checker builds it; Snapshot seals it into

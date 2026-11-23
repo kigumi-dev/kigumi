@@ -10,6 +10,8 @@ type options struct {
 	root string
 	args []string
 	url  string
+	// alias is the import prefix for `mod add` or an alias-specific `mod replace`.
+	alias string
 	// update accepts the version changes tidy lists.
 	update  bool
 	session session.Session
@@ -20,5 +22,6 @@ func parseOptions(cmd *cobra.Command, args []string) (options, error) {
 	opts.root, _ = cmd.Flags().GetString("chdir")
 	opts.update, _ = cmd.Flags().GetBool("update")
 	opts.url, _ = cmd.Flags().GetString("url")
+	opts.alias, _ = cmd.Flags().GetString("alias")
 	return opts, nil
 }

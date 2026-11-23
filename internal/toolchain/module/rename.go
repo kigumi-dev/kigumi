@@ -52,11 +52,19 @@ func RenameModule(root, old, next string) (changes, warnings []string, err error
 	if !own && len(renamed) == 0 {
 		return nil, nil, fmt.Errorf("%s names no module %s", ManifestName, old)
 	}
+	for _, r := range mf.Requires {
+		if r.Alias == old {
+			return nil, nil, fmt.Errorf("%s is an alias of %s, not a module path; rename the Require's name instead", old, r.Name)
+		}
+		if r.Alias == next {
+			return nil, nil, fmt.Errorf("%s is already an alias of %s; a rename cannot collide with an alias", next, r.Name)
+		}
+	}
 	if mf.Name == next {
 		return nil, nil, fmt.Errorf("the module is already named %s", next)
 	}
 	for _, r := range mf.Requires {
-		if r.Name == next {
+		if r.Key() == next {
 			return nil, nil, fmt.Errorf("%s is already required; a rename cannot merge two modules", next)
 		}
 	}
@@ -154,8 +162,11 @@ func RenameModule(root, old, next string) (changes, warnings []string, err error
 	// The lock and vendor tree are stale after a rename; report it rather than
 	// failing a rename whose writes already succeeded.
 	if lk, err := ReadLock(root); err == nil {
-		if _, ok := lk.Entries[old]; ok {
-			warnings = append(warnings, fmt.Sprintf("%s still records %s; run `kigumi get` to fetch and lock %s", LockName, old, next))
+		for key, e := range lk.Entries {
+			if e.Name == old || key == old {
+				warnings = append(warnings, fmt.Sprintf("%s still records %s; run `kigumi get` to fetch and lock %s", LockName, key, next))
+				break
+			}
 		}
 	}
 	if v, _, err := ReadVendor(root); err == nil {

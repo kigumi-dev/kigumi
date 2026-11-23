@@ -48,13 +48,17 @@ type nativeChange struct {
 // before `kigumi get` fetches or updates anything.
 func snapshotNative(lock module.Lock) map[string]module.ModFile {
 	out := map[string]module.ModFile{}
-	for name, entry := range lock.Entries {
-		dir, err := module.CacheDir(session.CompilerOptions(), module.Require{Name: name, Version: entry.Version})
+	for key, entry := range lock.Entries {
+		name := entry.Name
+		if name == "" {
+			name = key
+		}
+		dir, err := module.CacheDir(session.CompilerOptions(), module.Require{Name: name, Version: entry.Version, Alias: entry.Alias})
 		if err != nil {
 			continue
 		}
 		if mf, ok, err := module.ReadModFile(dir); err == nil && ok {
-			out[name] = mf
+			out[key] = mf
 		}
 	}
 	return out

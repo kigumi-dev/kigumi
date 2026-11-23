@@ -3,6 +3,7 @@ package mod
 import (
 	stderrors "errors"
 	"fmt"
+	"slices"
 
 	"kigumi/internal/base/errors"
 	"kigumi/internal/cli/exit"
@@ -26,9 +27,11 @@ func runTidy(io session.IO, opts options) error {
 	}
 	used := m.ImportedModules(mf)
 	unused := map[string]bool{}
+	var unusedList []module.Require
 	for _, r := range mf.Requires {
-		if !used[r.Name] {
-			unused[r.Name] = true
+		if !used[r.Key()] {
+			unused[r.Key()] = true
+			unusedList = append(unusedList, r)
 		}
 	}
 	if len(unused) == 0 {
@@ -49,12 +52,23 @@ func runTidy(io session.IO, opts options) error {
 	kept := mf
 	kept.Requires = nil
 	for _, r := range mf.Requires {
-		if !unused[r.Name] {
+		if !unused[r.Key()] {
 			kept.Requires = append(kept.Requires, r)
 		}
 	}
-	for name := range unused {
-		delete(local.Replaces, name)
+	// A plain-name Replace applies to every alias of that name; only drop it
+	// once no kept Require shares the real name.
+	removeLocal := map[string]bool{}
+	for key := range unused {
+		removeLocal[key] = true
+	}
+	for _, r := range unusedList {
+		if !slices.ContainsFunc(kept.Requires, func(have module.Require) bool { return have.Name == r.Name }) {
+			removeLocal[r.Name] = true
+		}
+	}
+	for key := range removeLocal {
+		delete(local.Replaces, key)
 	}
 	// Compare against the lock before dropping the removed Requires' own entries:
 	// a Require that only sets a version floor changes the selection when it goes,
@@ -84,7 +98,7 @@ func runTidy(io session.IO, opts options) error {
 	if err := module.RemoveRequires(opts.root, unused); err != nil {
 		return errors.WrapErr(err, "edit manifest")
 	}
-	if err := module.RemoveLocalReplaces(opts.root, unused); err != nil {
+	if err := module.RemoveLocalReplaces(opts.root, removeLocal); err != nil {
 		return errors.WrapErr(err, "edit local overrides")
 	}
 	if err := module.WriteLock(opts.root, lock); err != nil {

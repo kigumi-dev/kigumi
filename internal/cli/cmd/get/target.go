@@ -47,9 +47,9 @@ func fileExists(p string) bool {
 }
 
 // add appends a Require for `path[@version]`, asking the repo for its newest tag when no version is given.
-func (t *target) add(io session.IO, git vcs.Git, spec, url string) error {
+func (t *target) add(io session.IO, git vcs.Git, spec, url, alias string) error {
 	name, version, _ := strings.Cut(spec, "@")
-	r := module.Require{Name: name, Version: version, URL: url}
+	r := module.Require{Name: name, Version: version, URL: url, Alias: alias}
 	if _, _, ok := module.RepoOf(r); !ok {
 		return &exit.ValueError{Err: errors.NewErrf("cannot derive where %s lives; give --url", name)}
 	}
@@ -69,7 +69,7 @@ func (t *target) add(io session.IO, git vcs.Git, spec, url string) error {
 	if err != nil {
 		return &exit.ValueError{Err: err}
 	}
-	fmt.Fprintf(io.Err, "added %s %s\n", r.Name, r.Version)
+	fmt.Fprintf(io.Err, "added %s %s\n", module.DescribeRequire(r), r.Version)
 	t.manifest.Requires = append(t.manifest.Requires, r)
 	return nil
 }

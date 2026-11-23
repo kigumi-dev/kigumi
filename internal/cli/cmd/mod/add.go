@@ -10,13 +10,13 @@ import (
 )
 
 func runAdd(io session.IO, opts options) error {
-	r := module.Require{Name: opts.args[0], Version: opts.args[1], URL: opts.url}
+	r := module.Require{Name: opts.args[0], Version: opts.args[1], URL: opts.url, Alias: opts.alias}
 	if _, _, ok := module.RepoOf(r); !ok {
 		return &exit.ValueError{Err: errors.NewErrf("cannot derive where %s lives; give --url", r.Name)}
 	}
 	if err := module.AppendRequire(opts.root, r); err != nil {
 		return &exit.ValueError{Err: err}
 	}
-	fmt.Fprintf(io.Err, "added %s %s; run `kigumi get` to fetch it\n", r.Name, r.Version)
+	fmt.Fprintf(io.Err, "added %s %s; run `kigumi get` to fetch it\n", module.DescribeRequire(r), r.Version)
 	return nil
 }

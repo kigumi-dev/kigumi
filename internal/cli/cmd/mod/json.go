@@ -26,11 +26,14 @@ type manifestJSON struct {
 
 type requireJSON struct {
 	Name    string `json:"name"`
+	Alias   string `json:"alias,omitempty"`
 	Version string `json:"version"`
 	URL     string `json:"url,omitempty"`
 }
 
 type lockJSON struct {
+	Name    string `json:"name,omitempty"`
+	Alias   string `json:"alias,omitempty"`
 	Version string `json:"version"`
 	Commit  string `json:"commit,omitempty"`
 	Hash    string `json:"hash"`
@@ -55,10 +58,10 @@ func runJSON(io session.IO, opts options) error {
 	}
 	out := manifestJSON{FormatVersion: version.ModJSONFormatVersion, Toolchain: version.Current(), Name: mf.Name, Kigumi: mf.Kigumi, Zig: mf.Zig, Requires: []requireJSON{}, Links: mf.Links, Sources: mf.Sources, Local: local.Replaces, Lock: map[string]lockJSON{}}
 	for _, r := range mf.Requires {
-		out.Requires = append(out.Requires, requireJSON{Name: r.Name, Version: r.Version, URL: r.URL})
+		out.Requires = append(out.Requires, requireJSON{Name: r.Name, Alias: r.Alias, Version: r.Version, URL: r.URL})
 	}
 	for name, e := range lock.Entries {
-		out.Lock[name] = lockJSON{Version: e.Version, Commit: e.Commit, Hash: e.Hash}
+		out.Lock[name] = lockJSON{Name: e.Name, Alias: e.Alias, Version: e.Version, Commit: e.Commit, Hash: e.Hash}
 	}
 	data, err := json.MarshalIndent(out, "", "  ")
 	if err != nil {

@@ -5,13 +5,18 @@ import (
 	"sort"
 
 	buildconfig "kigumi/internal/toolchain/config"
+	"kigumi/internal/toolchain/module"
 	"kigumi/internal/toolchain/native/link"
 	"kigumi/internal/toolchain/policy"
 )
 
-// LocalReplaceDir reports the directory a Replace record sent name to, so
-// callers can tell a developer's checkout apart from the module cache.
+// LocalReplaceDir reports the directory a Replace record sent a dependency
+// to, so callers can tell a developer's checkout apart from the module cache.
+// name is the package's effective module key, which may be an alias.
 func (m *Module) LocalReplaceDir(name string) (string, bool) {
+	if r, ok := m.Selected[name]; ok {
+		return m.local.Replacement(r)
+	}
 	p, ok := m.local.Replaces[name]
 	return p, ok
 }
@@ -28,16 +33,14 @@ func (m *Module) LocalOverrides() []string {
 }
 
 // Dependencies lists what minimal version selection resolved, sorted by
-// name, for the build summary.
+// effective key, for the build summary. An aliased dependency shows both the
+// alias and the real module name.
 func (m *Module) Dependencies() []string {
-	names := make([]string, 0, len(m.Selected))
-	for name := range m.Selected {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	out := make([]string, len(names))
-	for i, name := range names {
-		out[i] = fmt.Sprintf("%s %s", name, m.Selected[name].Version)
+	keys := m.SelectedKeys()
+	out := make([]string, len(keys))
+	for i, key := range keys {
+		r := m.Selected[key]
+		out[i] = fmt.Sprintf("%s %s", module.DescribeRequire(r), r.Version)
 	}
 	return out
 }

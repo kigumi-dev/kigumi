@@ -17,7 +17,7 @@ func (r *Result) addPackages(mod *Module) {
 	})
 	for _, p := range pkgs {
 		id := PackageID(len(r.Packages))
-		info := PackageInfo{Path: p.Path, Module: p.Module, Std: p.Std}
+		info := PackageInfo{Path: p.Path, Module: p.Module, Std: p.Std, ImportPrefixes: p.ImportPrefixes}
 		info.Scope = r.newScope(ScopePackage, r.prelude, 0, 0)
 		files := slices.Clone(p.Files)
 		slices.SortStableFunc(files, func(a, b *syntax.Tree) int { return cmp.Compare(a.File.Name, b.File.Name) })

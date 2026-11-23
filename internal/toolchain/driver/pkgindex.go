@@ -28,8 +28,11 @@ type indexedPackage struct {
 	dir    string
 	std    bool
 	module string
-	files  []*indexedFile
-	parsed bool
+	// importPrefixes translates this package's own module's real name to the
+	// alias it was required under; nil when the two are the same.
+	importPrefixes map[string]string
+	files          []*indexedFile
+	parsed         bool
 }
 
 type pkgIndex struct {

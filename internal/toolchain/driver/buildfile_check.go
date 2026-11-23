@@ -132,7 +132,7 @@ func analyzeBuildFileContext(m *Module, tree *syntax.Tree) (*Analysis, error) {
 		if !p.Std && p.Module == "" {
 			continue
 		}
-		sp := &sem.Package{Path: p.Path, Files: p.Files, Std: p.Std, Module: p.Module}
+		sp := &sem.Package{Path: p.Path, Files: p.Files, Std: p.Std, Module: p.Module, ImportPrefixes: p.ImportPrefixes}
 		if p.Std {
 			sp.Module = "std"
 		}

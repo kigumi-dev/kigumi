@@ -15,18 +15,35 @@ import (
 	"kigumi/internal/lang/token"
 )
 
-// Lock is mod.lock.kg: what each fetched Require resolved to, keyed by module
-// name. A Replace'd dependency has no entry.
+// Lock is mod.lock.kg: what each fetched Require resolved to, keyed by
+// Require.Key() (the alias when one is given, else the module name). A
+// Replace'd dependency has no entry. Entries from a lock written before
+// aliases existed carry no Alias and stay keyed by their name.
 type Lock struct {
 	Entries map[string]LockEntry
 }
 
 type LockEntry struct {
+	// Name is the real module name; it is empty for a legacy entry that was
+	// keyed by its name alone, and Alias is the import prefix the Require
+	// gave it ("" for a plain name-keyed dependency).
+	Name, Alias           string
 	Version, Commit, Hash string
 	URL                   string
 }
 
-var lockFields = map[string][]string{"Lock": {"name", "version", "commit", "hash", "url"}}
+// RequireAt reconstructs the Require a lock entry was written for. key is
+// the map key the entry was read under, which supplies the name of a legacy
+// entry that records only its key.
+func (e LockEntry) RequireAt(key string) Require {
+	name := e.Name
+	if name == "" {
+		name = key
+	}
+	return Require{Name: name, Version: e.Version, Alias: e.Alias}
+}
+
+var lockFields = map[string][]string{"Lock": {"name", "alias", "version", "commit", "hash", "url"}}
 
 // ReadLock parses root/mod.lock.kg; a missing file is an empty lock.
 func ReadLock(root string) (Lock, error) { return ReadLockFile(filepath.Join(root, LockName)) }
@@ -54,16 +71,32 @@ func ParseLock(f *token.File) (Lock, []diag.Diagnostic) {
 	lk := Lock{Entries: map[string]LockEntry{}}
 	recs, ds := ParseRecords(f, lockFields)
 	for _, r := range recs {
-		if _, dup := lk.Entries[r.Fields["name"]]; dup {
-			ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, fmt.Sprintf("%s is locked twice", r.Fields["name"])))
+		name, alias := r.Fields["name"], r.Fields["alias"]
+		if alias != "" {
+			if err := ValidAlias(alias); err != nil {
+				ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, err.Error()))
+				continue
+			}
 		}
-		lk.Entries[r.Fields["name"]] = LockEntry{Version: r.Fields["version"], Commit: NormalizeCommit(r.Fields["commit"]), Hash: r.Fields["hash"], URL: r.Fields["url"]}
+		key := alias
+		if key == "" {
+			key = name
+		}
+		if _, dup := lk.Entries[key]; dup {
+			ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, fmt.Sprintf("%s is locked twice", key)))
+		}
+		e := LockEntry{Alias: alias, Version: r.Fields["version"], Commit: NormalizeCommit(r.Fields["commit"]), Hash: r.Fields["hash"], URL: r.Fields["url"]}
+		if alias != "" {
+			// An alias key cannot recover the real name by itself.
+			e.Name = name
+		}
+		lk.Entries[key] = e
 	}
 	return lk, ds
 }
 
-// WriteLock rewrites root/mod.lock.kg sorted by name; an empty lock removes
-// the file.
+// WriteLock rewrites root/mod.lock.kg sorted by effective key; an empty lock
+// removes the file.
 func WriteLock(root string, lk Lock) error { return WriteLockFile(filepath.Join(root, LockName), lk) }
 
 // WriteLockFile writes a lock to an explicit path (a script's lock).
@@ -84,8 +117,13 @@ func WriteLockFile(path string, lk Lock) error {
 	sb.WriteString("// Written by `kigumi get`: the commit and tree hash each Require resolved to.\n")
 	for _, n := range names {
 		e := lk.Entries[n]
+		name := e.Name
+		if name == "" {
+			// Legacy callers key an entry by its module name only.
+			name = n
+		}
 		sb.WriteString("\n")
-		writeRecord(&sb, "Lock", "name", n, "version", e.Version, "commit", e.Commit, "hash", e.Hash, "url", e.URL)
+		writeRecord(&sb, "Lock", "name", name, "version", e.Version, "alias", e.Alias, "commit", e.Commit, "hash", e.Hash, "url", e.URL)
 	}
 	return fsx.WriteFileAtomic(path, []byte(sb.String()), 0o644)
 }

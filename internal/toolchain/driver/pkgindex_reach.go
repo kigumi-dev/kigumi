@@ -67,7 +67,9 @@ func (m *Module) importsOf(path string, scanOnly bool) ([]string, error) {
 	if p, ok := m.Packages[path]; ok && !scanOnly {
 		var out []string
 		for _, t := range p.Files {
-			out = append(out, importPaths(t)...)
+			for _, imp := range importPaths(t) {
+				out = append(out, m.translateImport(path, imp))
+			}
 		}
 		sort.Strings(out)
 		return slices.Compact(out), nil
@@ -81,10 +83,38 @@ func (m *Module) importsOf(path string, scanOnly bool) ([]string, error) {
 		if err := m.scan(f); err != nil {
 			return nil, err
 		}
-		out = append(out, f.imports...)
+		for _, imp := range f.imports {
+			out = append(out, m.translateImport(path, imp))
+		}
 	}
 	sort.Strings(out)
 	return slices.Compact(out), nil
+}
+
+// translateImport applies the package's own-module alias translation: a
+// dependency indexed under an alias may still spell its internal imports with
+// its real module name.
+func (m *Module) translateImport(pkgPath, imp string) string {
+	ip := m.index.pkgs[pkgPath]
+	if ip == nil {
+		return imp
+	}
+	return TranslateImportPrefixes(ip.importPrefixes, imp)
+}
+
+// TranslateImportPrefixes rewrites imp when it names one of the module
+// prefixes in prefixes, matching whole segments only. An empty map returns
+// imp unchanged.
+func TranslateImportPrefixes(prefixes map[string]string, imp string) string {
+	for from, to := range prefixes {
+		if imp == from {
+			return to
+		}
+		if rest, ok := strings.CutPrefix(imp, from+"/"); ok {
+			return to + "/" + rest
+		}
+	}
+	return imp
 }
 
 // reach follows imports from the roots over the index, parsing what it reaches when asked; a path nothing indexes yet is found by a later call.

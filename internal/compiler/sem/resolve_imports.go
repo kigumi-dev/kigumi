@@ -1,6 +1,10 @@
 package sem
 
-import "kigumi/internal/compiler/syntax"
+import (
+	"strings"
+
+	"kigumi/internal/compiler/syntax"
+)
 
 func (r *Result) resolveImports() {
 	r.stdImportGraph = r.buildStdImportGraph()
@@ -22,22 +26,23 @@ func (r *Result) resolveImport(f FileID, d syntax.NodeID) {
 	t := r.tree(f)
 	s := importDecl(t, d)
 	from := r.packageOf(f)
-	path := pathText(t, s.Path, "/")
+	origPath := pathText(t, s.Path, "/")
+	path := r.translateImport(from, origPath)
 	target, ok := r.pathIndex[path]
 	blockCode, offendingPath, platformBlocked := r.platformAvailability(from, path)
 	artifactOffender, artifactBlocked := r.artifactAvailability(from, path)
 	switch {
 	case !ok:
-		r.packageNotFound(f, t, s, path)
+		r.packageNotFound(f, t, s, origPath)
 		return
 	case path == "std/prelude":
 		r.errAt(f, s.Path, cImportPreludeExplicit)
 		return
 	case target == from:
-		r.errAt(f, s.Path, cImportSelf, path)
+		r.errAt(f, s.Path, cImportSelf, origPath)
 		return
 	case r.Packages[target].HasScript:
-		r.errAt(f, s.Path, cImportEntryPackage, path)
+		r.errAt(f, s.Path, cImportEntryPackage, origPath)
 		return
 	case platformBlocked:
 		r.errAt(f, s.Path, blockCode, offendingPath)
@@ -67,6 +72,21 @@ func (r *Result) resolveImport(f FileID, d syntax.NodeID) {
 		return
 	}
 	r.bindImport(f, s.Binding, from, target, t.View(s.Binding).Tok().Text(), vis, reexport, false, "", 0)
+}
+
+// translateImport resolves an import path through the source package's
+// own-module alias map: a dependency imported under an alias can still spell
+// its internal imports with its real module name.
+func (r *Result) translateImport(from PackageID, path string) string {
+	for real, alias := range r.Packages[from].ImportPrefixes {
+		if path == real {
+			return alias
+		}
+		if rest, ok := strings.CutPrefix(path, real+"/"); ok {
+			return alias + "/" + rest
+		}
+	}
+	return path
 }
 
 // origName/origNode name the pre-`as` identifier of a renamed selected

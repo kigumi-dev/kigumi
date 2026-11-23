@@ -35,16 +35,19 @@ func addCmd() *cobra.Command {
 		RunE:  session.RunE(parseOptions, runAdd),
 	}
 	cmd.Flags().String("url", "", "clone URL, when it cannot be derived from the module path")
+	cmd.Flags().String("alias", "", "import prefix for this Require, letting two versions of one module coexist")
 	return cmd
 }
 
 func replaceCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "replace <module path> <directory>",
 		Short: "Resolve a dependency from a local directory (written to mod.local.kg)",
 		Args:  cobra.ExactArgs(2),
 		RunE:  session.RunE(parseOptions, runReplace),
 	}
+	cmd.Flags().String("alias", "", "replace only the Require with this alias")
+	return cmd
 }
 
 func tidyCmd() *cobra.Command {

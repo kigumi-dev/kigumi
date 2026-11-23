@@ -14,7 +14,7 @@ func run(io session.IO, opts options) error {
 	}
 	git := newGit(io)
 	if opts.add != "" {
-		if err := t.add(io, git, opts.add, opts.url); err != nil {
+		if err := t.add(io, git, opts.add, opts.url, opts.alias); err != nil {
 			return err
 		}
 	}
@@ -22,7 +22,11 @@ func run(io session.IO, opts options) error {
 		// Roll back the add so a failed fetch leaves no orphaned Require; scripts have no removal helper yet.
 		if opts.add != "" && t.script == "" {
 			name, _, _ := strings.Cut(opts.add, "@")
-			module.RemoveRequires(t.dir, map[string]bool{name: true})
+			key := name
+			if opts.alias != "" {
+				key = opts.alias
+			}
+			module.RemoveRequires(t.dir, map[string]bool{key: true})
 		}
 		return err
 	}

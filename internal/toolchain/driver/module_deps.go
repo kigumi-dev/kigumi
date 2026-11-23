@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"kigumi/internal/compiler/sem"
 	"kigumi/internal/lang/isr"
@@ -29,48 +30,53 @@ func (m *Module) loadDeps(opts LoadOptions, lock module.Lock, enforceLock bool) 
 	for p := range m.index.pkgs {
 		rootOwned[p] = true
 	}
-	for _, name := range sel.Names() {
-		r := sel.Requires[name]
+	for _, key := range sel.Names() {
+		r := sel.Requires[key]
 		depDir, _, err := module.DepDir(m.compiler, m.local, r, true)
 		if err != nil {
 			return err
 		}
-		if _, replaced := m.local.Replaces[r.Name]; !replaced {
+		if _, replaced := m.local.Replacement(r); !replaced {
 			if err := module.CheckCacheTree(depDir); err != nil {
 				return err
 			}
-			entry, locked := lock.Entries[r.Name]
+			entry, locked := lock.Entries[key]
+			if locked && (entry.Alias != r.Alias || (entry.Name != "" && entry.Name != r.Name)) {
+				// A lock written for another alias or module cannot verify this
+				// Require even when it happens to share the map key.
+				locked = false
+			}
 			if vendored, ok := m.local.Vendored[r.Name]; ok && m.local.Vendor != "" {
 				// vendor/ is part of the checkout: compare it with its own
 				// manifest, and still require the lock to name this version.
 				if !locked || entry.Version != r.Version {
 					if enforceLock {
-						return fmt.Errorf("%s %s is not in %s; run `kigumi get` to lock it", r.Name, r.Version, module.LockName)
+						return fmt.Errorf("%s %s is not in %s; run `kigumi get` to lock it", module.DescribeRequire(r), r.Version, module.LockName)
 					}
 				} else if want := module.RepoURLKey(r); entry.URL != "" && want != "" && entry.URL != want {
-					return fmt.Errorf("%s %s is fetched from %s but %s locked %s; run `kigumi get` to accept the new source", r.Name, r.Version, want, module.LockName, entry.URL)
+					return fmt.Errorf("%s %s is fetched from %s but %s locked %s; run `kigumi get` to accept the new source", module.DescribeRequire(r), r.Version, want, module.LockName, entry.URL)
 				}
 				hash, err := module.ContentTreeHash(depDir)
 				if err != nil {
 					return err
 				}
 				if hash != vendored.Hash {
-					return fmt.Errorf("%s %s in %s does not match %s; edit the dependency in its module, not in vendor/, or run `kigumi mod vendor` again", r.Name, r.Version, depDir, filepath.Join(m.local.Vendor, module.VendorFileName))
+					return fmt.Errorf("%s %s in %s does not match %s; edit the dependency in its module, not in vendor/, or run `kigumi mod vendor` again", module.DescribeRequire(r), r.Version, depDir, filepath.Join(m.local.Vendor, module.VendorFileName))
 				}
 			} else if !locked || entry.Version != r.Version {
 				if enforceLock {
-					return fmt.Errorf("%s %s is not in %s; run `kigumi get` to lock it", r.Name, r.Version, module.LockName)
+					return fmt.Errorf("%s %s is not in %s; run `kigumi get` to lock it", module.DescribeRequire(r), r.Version, module.LockName)
 				}
 			} else {
 				if want := module.RepoURLKey(r); entry.URL != "" && want != "" && entry.URL != want {
-					return fmt.Errorf("%s %s is fetched from %s but %s locked %s; run `kigumi get` to accept the new source", r.Name, r.Version, want, module.LockName, entry.URL)
+					return fmt.Errorf("%s %s is fetched from %s but %s locked %s; run `kigumi get` to accept the new source", module.DescribeRequire(r), r.Version, want, module.LockName, entry.URL)
 				}
 				hash, err := module.TreeHash(depDir)
 				if err != nil {
 					return err
 				}
 				if hash != entry.Hash {
-					return fmt.Errorf("%s %s in %s does not match %s; the cache may be corrupted or tampered with, remove that directory and run `kigumi get` again", r.Name, entry.Version, depDir, module.LockName)
+					return fmt.Errorf("%s %s in %s does not match %s; the cache may be corrupted or tampered with, remove that directory and run `kigumi get` again", module.DescribeRequire(r), r.Version, depDir, module.LockName)
 				}
 			}
 		}
@@ -79,7 +85,20 @@ func (m *Module) loadDeps(opts LoadOptions, lock module.Lock, enforceLock bool) 
 			return err
 		}
 		if len(depMod.Interrupt.Handlers) > 0 {
-			m.depInterrupt = append(m.depInterrupt, sem.DepInterrupt{Module: r.Name, Config: isr.Config{Handlers: depMod.Interrupt.Handlers}})
+			handlers := depMod.Interrupt.Handlers
+			if r.Alias != "" {
+				// A handler key names a package path; translate the dependency's
+				// own real-name keys to the alias its packages carry.
+				prefixes := map[string]string{r.Name: r.Alias}
+				handlers = make(map[string][]string, len(depMod.Interrupt.Handlers))
+				for k, allow := range depMod.Interrupt.Handlers {
+					if i := strings.LastIndexByte(k, '.'); i > 0 {
+						k = TranslateImportPrefixes(prefixes, k[:i]) + k[i:]
+					}
+					handlers[k] = allow
+				}
+			}
+			m.depInterrupt = append(m.depInterrupt, sem.DepInterrupt{Module: key, Config: isr.Config{Handlers: handlers}})
 		}
 		if err := m.addNative(depDir, depMod); err != nil {
 			return err
@@ -94,15 +113,21 @@ func (m *Module) loadDeps(opts LoadOptions, lock module.Lock, enforceLock bool) 
 		}
 		// A name-prefix relation alone is not an overlap; only an
 		// actual package-path collision is.
-		if overlap := m.dependencyOverlap(depDir, r.Name, skip); overlap != "" {
-			return fmt.Errorf("dependency %s overlaps this module's name %s", r.Name, m.Name)
+		if overlap := m.dependencyOverlap(depDir, key, skip); overlap != "" {
+			return fmt.Errorf("dependency %s overlaps this module's name %s", module.DescribeRequire(r), m.Name)
 		}
-		if err := m.indexTree(depDir, r.Name, false, false, skip); err != nil {
+		if err := m.indexTree(depDir, key, false, false, skip); err != nil {
 			return err
 		}
 		for path, ip := range m.index.pkgs {
-			if ip.module == "" && !ip.std && !rootOwned[path] && module.OwnerOf(path, []string{r.Name}) != "" {
-				ip.module = r.Name
+			if ip.module == "" && !ip.std && !rootOwned[path] && module.OwnerOf(path, []string{key}) != "" {
+				// The effective key, not the real name, is the package's
+				// module identity: two aliases of one real module are
+				// distinct modules for visibility and cycle checks.
+				ip.module = key
+				if r.Alias != "" {
+					ip.importPrefixes = map[string]string{r.Name: r.Alias}
+				}
 			}
 		}
 	}
@@ -174,12 +199,13 @@ func (m *Module) selectSources(path string, asm bool) ([]string, error) {
 }
 
 // ImportedModules lists the Requires that the module's own packages
-// import, matching import paths to the longest Require name.
+// import, matching import paths to the longest effective Require key (the
+// alias when one is given).
 func (m *Module) ImportedModules(mf module.ModFile) map[string]bool {
 	m.ensureParsed()
 	names := make([]string, 0, len(mf.Requires))
 	for _, r := range mf.Requires {
-		names = append(names, r.Name)
+		names = append(names, r.Key())
 	}
 	used := map[string]bool{}
 	for _, p := range m.Packages {

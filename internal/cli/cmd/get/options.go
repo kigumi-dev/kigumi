@@ -16,6 +16,7 @@ type options struct {
 	target   string
 	add      string
 	url      string
+	alias    string
 	update   bool
 	lock     bool
 	diffJSON bool
@@ -38,6 +39,7 @@ func parseOptions(cmd *cobra.Command, args []string) (options, error) {
 	opts.update, _ = f.GetBool("update")
 	opts.lock, _ = f.GetBool("lock")
 	opts.url, _ = f.GetString("url")
+	opts.alias, _ = f.GetString("alias")
 	opts.diffJSON, _ = f.GetBool("diff-json")
 	return opts, nil
 }

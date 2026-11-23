@@ -181,7 +181,7 @@ func (m *Module) semModuleOf(keep func(path string) bool) (*sem.Module, error) {
 		if keep != nil && !p.Std && !keep(path) {
 			continue
 		}
-		sp := &sem.Package{Path: p.Path, Files: p.Files, Std: p.Std, Module: p.Module}
+		sp := &sem.Package{Path: p.Path, Files: p.Files, Std: p.Std, Module: p.Module, ImportPrefixes: p.ImportPrefixes}
 		if p.Std {
 			sp.Module = "std"
 		}

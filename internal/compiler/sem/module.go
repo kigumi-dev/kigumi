@@ -22,6 +22,10 @@ type Package struct {
 	Files  []*syntax.Tree
 	Std    bool
 	Entry  *syntax.Tree
+	// ImportPrefixes maps this package's own module's real name to the
+	// alias prefix its packages are indexed under, so internal imports
+	// spelled with the real name resolve without rewriting source text.
+	ImportPrefixes map[string]string
 }
 
 type Module struct {

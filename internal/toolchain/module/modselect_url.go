@@ -25,10 +25,11 @@ func (c urlClaims) claim(r Require, from string, isRoot bool) error {
 	if key == "" {
 		return nil
 	}
-	m := c[r.Name]
+	name := r.Key()
+	m := c[name]
 	if m == nil {
 		m = &moduleClaims{}
-		c[r.Name] = m
+		c[name] = m
 	}
 	here := &urlClaim{key, from}
 	switch {
@@ -36,7 +37,7 @@ func (c urlClaims) claim(r Require, from string, isRoot bool) error {
 		if m.root == nil {
 			m.root = here
 		} else if m.root.url != key {
-			return urlMoved(r.Name, m.root, here)
+			return urlMoved(name, m.root, here)
 		}
 	case r.URL != "":
 		if m.explicit == nil {
@@ -52,10 +53,10 @@ func (c urlClaims) claim(r Require, from string, isRoot bool) error {
 		against = m.explicit
 	}
 	if against != nil && r.URL != "" && !isRoot && against.url != key {
-		return urlMoved(r.Name, against, here)
+		return urlMoved(name, against, here)
 	}
 	if m.root == nil && m.explicit != nil && m.derived != nil && m.explicit.url != m.derived.url {
-		return urlMoved(r.Name, m.derived, m.explicit)
+		return urlMoved(name, m.derived, m.explicit)
 	}
 	return nil
 }

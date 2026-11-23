@@ -42,6 +42,20 @@ func ValidModuleName(name string) error {
 	return nil
 }
 
+// ValidAlias checks an alias used as an import prefix: the module-name
+// grammar (so it can never escape a cache path or a source path), without
+// being looked up as a module, and never under the standard library's
+// reserved `std` prefix.
+func ValidAlias(alias string) error {
+	if err := ValidModuleName(alias); err != nil {
+		return fmt.Errorf("alias %q is not a valid import prefix: %w", alias, err)
+	}
+	if alias == "std" || strings.HasPrefix(alias, "std/") {
+		return fmt.Errorf("alias %q is reserved for the standard library", alias)
+	}
+	return nil
+}
+
 var semverTag = regexp.MustCompile(`^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$`)
 
 // zigVersionTag is semverTag without the `v` prefix: `zig version` prints

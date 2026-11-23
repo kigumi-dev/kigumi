@@ -10,9 +10,10 @@ import (
 )
 
 // Selection is the result of minimal version selection: for every
-// module reached through Require records, the highest version any path
-// asked for. Versions are semver tags; a commit hash only agrees with an
-// identical hash.
+// dependency reached through Require records, the highest version any path
+// asked for. Requires and By are keyed by Require.Key(): an alias when the
+// Require has one, else the real module name. Versions are semver tags; a
+// commit hash only agrees with an identical hash.
 type Selection struct {
 	Requires map[string]Require
 	// By names the module that asked for the selected version.
@@ -24,6 +25,9 @@ type Selection struct {
 type MissingError struct{ Require Require }
 
 func (e *MissingError) Error() string {
+	if e.Require.Alias != "" {
+		return fmt.Sprintf("dependency %s (alias %s) %s is not fetched; run `kigumi get`", e.Require.Name, e.Require.Alias, e.Require.Version)
+	}
 	return fmt.Sprintf("dependency %s %s is not fetched; run `kigumi get`", e.Require.Name, e.Require.Version)
 }
 
@@ -43,10 +47,10 @@ func SelectVersions(o buildconfig.CompilerOptions, root ModFile, local Local) (*
 
 	claims := urlClaims{}
 	visit := func(r Require, from string, isRoot bool) error {
-		if err := claims.claim(r, from, isRoot); err != nil {
+		if err := mergeRequire(max, by, r, from); err != nil {
 			return err
 		}
-		if err := mergeRequire(max, by, r, from); err != nil {
+		if err := claims.claim(r, from, isRoot); err != nil {
 			return err
 		}
 		key := verKey{r.Name, r.Version}
@@ -91,12 +95,12 @@ func SelectVersions(o buildconfig.CompilerOptions, root ModFile, local Local) (*
 	root2 := DisplayName(root)
 	edges := map[string][]string{}
 	for _, r := range root.Requires {
-		edges[root2] = append(edges[root2], r.Name)
+		edges[root2] = append(edges[root2], r.Key())
 	}
-	for name, r := range max {
-		mf := manifests[verKey{name, r.Version}]
+	for key, r := range max {
+		mf := manifests[verKey{r.Name, r.Version}]
 		for _, sub := range mf.Requires {
-			edges[name] = append(edges[name], sub.Name)
+			edges[key] = append(edges[key], sub.Key())
 		}
 	}
 	if chain := findCycle(edges, root2); chain != nil {
@@ -122,10 +126,65 @@ func SelectVersions(o buildconfig.CompilerOptions, root ModFile, local Local) (*
 			sel.Requires[name], sel.By[name] = r, by[name]
 		}
 	}
+	if err := checkSelectionAliases(root.Name, sel); err != nil {
+		return nil, err
+	}
+	if err := checkVersionOrigins(sel); err != nil {
+		return nil, err
+	}
 	if err := checkVendor(local, sel); err != nil {
 		return nil, err
 	}
 	return sel, nil
+}
+
+// checkSelectionAliases rejects an alias that overlaps a selected import
+// prefix or the root module's own prefix. Plain module names may nest; only
+// aliases, which are local import prefixes, have to stay disjoint.
+func checkSelectionAliases(rootName string, sel *Selection) error {
+	for key, r := range sel.Requires {
+		if r.Alias == "" {
+			continue
+		}
+		if rootName != "" && prefixOverlap(key, rootName) {
+			return fmt.Errorf("alias %s overlaps the root module's name %s", key, rootName)
+		}
+		for other := range sel.Requires {
+			if other != key && prefixOverlap(key, other) {
+				return fmt.Errorf("alias %s overlaps selected dependency %s; aliases must be disjoint import prefixes", key, other)
+			}
+		}
+	}
+	return nil
+}
+
+// checkVersionOrigins refuses two effective keys that would share one cache
+// entry (same real name and literal version) but name different sources:
+// the cache cannot hold both, so selection would silently use one.
+func checkVersionOrigins(sel *Selection) error {
+	type origin struct {
+		key, url string
+		aliased  bool
+	}
+	seen := map[verKey]origin{}
+	for _, key := range sel.Names() {
+		r := sel.Requires[key]
+		url := RepoURLKey(r)
+		k := verKey{r.Name, r.Version}
+		prev, ok := seen[k]
+		if !ok {
+			seen[k] = origin{key, url, r.Alias != ""}
+			continue
+		}
+		if (prev.aliased || r.Alias != "") && prev.url != "" && url != "" && prev.url != url {
+			return fmt.Errorf("%s and %s share %s %s but name different sources (%s and %s); one cache entry cannot hold both", prev.key, key, r.Name, r.Version, prev.url, url)
+		}
+		if r.Alias != "" {
+			prev.aliased = true
+			seen[k] = prev
+		}
+	}
+	return nil
 }
 
 // checkVendor refuses a vendored tree that disagrees with what selection
@@ -135,16 +194,17 @@ func checkVendor(local Local, sel *Selection) error {
 	if local.Vendor == "" {
 		return nil
 	}
-	for _, name := range sel.Names() {
-		if _, replaced := local.Replaces[name]; replaced {
+	for _, key := range sel.Names() {
+		r := sel.Requires[key]
+		if _, replaced := local.Replacement(r); replaced {
 			continue
 		}
-		e, ok := local.Vendored[name]
+		e, ok := local.Vendored[r.Name]
 		if !ok {
-			return fmt.Errorf("%s %s is selected but not in %s; run `kigumi mod vendor`", name, sel.Requires[name].Version, filepath.Join(local.Vendor, VendorFileName))
+			return fmt.Errorf("%s %s is selected but not in %s; run `kigumi mod vendor`", key, r.Version, filepath.Join(local.Vendor, VendorFileName))
 		}
-		if want := sel.Requires[name].Version; e.Version != want {
-			return fmt.Errorf("%s is vendored at %s but selection picks %s; run `kigumi get` and `kigumi mod vendor`", name, e.Version, want)
+		if want := r.Version; e.Version != want {
+			return fmt.Errorf("%s is vendored at %s but selection picks %s; run `kigumi get` and `kigumi mod vendor`", key, e.Version, want)
 		}
 	}
 	return nil

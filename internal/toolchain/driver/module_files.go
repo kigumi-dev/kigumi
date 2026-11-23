@@ -12,6 +12,53 @@ import (
 	"kigumi/internal/toolchain/module"
 )
 
+// indexScript records exactly the manifest-less script at entry as the module's
+// sole own package file. A sibling .kg in the same directory is not part of the
+// package, so nothing can resolve a name from it or report its diagnostics.
+func (m *Module) indexScript(root, entry string) error {
+	display := entry
+	abs := filepath.Join(root, filepath.FromSlash(entry))
+	if filepath.IsAbs(entry) {
+		abs = entry
+		rel, err := filepath.Rel(root, abs)
+		if err != nil {
+			return err
+		}
+		display = filepath.ToSlash(rel)
+	}
+	st, err := os.Stat(abs)
+	if err != nil {
+		return err
+	}
+	dir := filepath.Dir(abs)
+	relDir, err := filepath.Rel(root, dir)
+	if err != nil {
+		return err
+	}
+	pkgPath := filepath.ToSlash(relDir)
+	if pkgPath == "." {
+		pkgPath = ""
+	}
+	// A manifest-less script's directory forms package main, matching what the
+	// directory walker names the root package of a module.
+	if pkgPath == "" {
+		pkgPath = "main"
+	}
+	if _, dup := m.index.pkgs[pkgPath]; dup {
+		return fmt.Errorf("package %q is defined by two directories", pkgPath)
+	}
+	f := &indexedFile{name: filepath.Base(abs), display: display, abs: abs}
+	if src, ok := m.overlay[abs]; ok {
+		f.src, f.loaded, f.overlay, f.size = src, true, true, int64(len(src))
+	} else {
+		f.size, f.mtime, f.ctime = st.Size(), st.ModTime().UnixNano(), changeTime(st)
+	}
+	m.index.pkgs[pkgPath] = &indexedPackage{path: pkgPath, dir: dir, files: []*indexedFile{f}}
+	m.index.order = append(m.index.order, pkgPath)
+	m.idxStats.PackagesIndexed++
+	return nil
+}
+
 // indexPackage records the files of one directory as a package header, without reading them.
 func (m *Module) indexPackage(dir, pkgPath, fileRel string, std, test bool) error {
 	entries, err := os.ReadDir(dir)
@@ -101,7 +148,7 @@ func (m *Module) parsePackage(ip *indexedPackage) error {
 	ip.parsed = true
 	m.idxStats.PackagesParsed++
 	m.idxStats.FilesParsed += len(trees)
-	m.Packages[ip.path] = &Package{Path: ip.path, Dir: ip.dir, Files: trees, Std: ip.std, Module: ip.module}
+	m.Packages[ip.path] = &Package{Path: ip.path, Dir: ip.dir, Files: trees, Std: ip.std, Module: ip.module, ImportPrefixes: ip.importPrefixes}
 	return nil
 }
 
