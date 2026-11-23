@@ -7,3 +7,9 @@ pub fn createFlags() -> i32 {
 pub fn fopenMode(mode: String) -> String {
     mode.concat("e")
 }
+
+/// Whether the OS keeps a file name's bytes exactly as given. POSIX entry
+/// points take byte strings, so a name that is not UTF-8 still addresses one entry.
+pub fn exactPathNames() -> Bool {
+    true
+}

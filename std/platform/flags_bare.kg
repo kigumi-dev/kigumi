@@ -7,3 +7,9 @@ pub fn createFlags() -> i32 {
 pub fn fopenMode(mode: String) -> String {
     mode
 }
+
+/// Whether the OS keeps a file name's bytes exactly as given. There is no bare
+/// file system, so callers never reach an entry that would need a conversion.
+pub fn exactPathNames() -> Bool {
+    true
+}

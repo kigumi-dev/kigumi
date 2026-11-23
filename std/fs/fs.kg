@@ -1,6 +1,6 @@
 import ffi from std/ffi
 import os from std/os
-import path from std/path
+import platform from std/platform
 
 /// File system access, obtained from `host.files()`.
 /// Safety: a stateless capability marker; every call it makes is independent, so sharing or duplicating it is free.
@@ -10,9 +10,17 @@ pub type Files
 /// The most bytes `Files.read` and `Files.readBytes` load; `Files.readBytesUpTo` takes another limit.
 pub const defaultReadLimit: usize = 268435456
 
-/// Validated file system path.
+/// File system path, validated to hold no NUL byte.
+/// `text` is the display form: valid UTF-8, with U+FFFD where the OS name is not.
+/// `raw` is the exact OS name that every file operation uses, so names that differ only in
+/// bytes which `text` renders the same stay distinct. On Unix and WASI that is the byte
+/// string the kernel uses. Windows entry points take UTF-16 text, so a name that is not
+/// valid UTF-8 cannot be carried there: parsing such a name, or listing an entry whose
+/// name is one, fails explicitly instead of substituting its lossy display text for an
+/// entry the OS cannot address.
 pub type Path = {
     text String
+    raw Bytes
 }
 
 /// Open file, from `Files.open` (read) or `Files.create` / `Files.append` (write); close it explicitly or let the drop close it.
@@ -33,64 +41,217 @@ pub pure fn Path.fromString(s: String) -> Path! {
             }
         }
     }
-    Path { text: s }
-}
-
-/// Parses an OS string as a path; fails when it contains a NUL byte, and
-/// when it is not valid UTF-8 because a Path holds text.
-pub pure fn Path.fromOsString(s: &os.OsString) -> Path! {
-    match s.checkedString() {
-        Some(text) -> Path.fromString(text)
-        None -> fail ffi.CError {
-            code: 0
-            text: "path is not valid UTF-8"
-        }
+    Path {
+        text: s
+        raw: b
     }
 }
 
-/// The path as text.
+/// Parses an OS string as a path, keeping every byte; fails when it contains a NUL byte.
+/// The display text replaces bytes that are not valid UTF-8, but `toOsString` returns them unchanged.
+/// A platform whose entry points take text rather than bytes (Windows) also fails here when
+/// the name is not valid UTF-8, because it cannot carry that name exactly.
+pub fn Path.fromOsString(s: &os.OsString) -> Path! {
+    Path.fromRawBytes(s.toUnixBytes())
+}
+
+/// The display text, with U+FFFD for every byte that is not valid UTF-8.
 pub pure noalloc fn Path.toString(self) -> String {
     self.text
 }
 
 /// Whether the path starts at the root.
-pub pure fn Path.isAbsolute(self) -> Bool {
-    path.isAbs(self.text)
+pub pure noalloc fn Path.isAbsolute(self) -> Bool {
+    (self.raw.get(0) || 0) == 47
 }
 
-/// The last element, without a trailing separator.
+/// The last element, without a trailing separator, as display text.
 pub pure fn Path.fileName(self) -> String {
-    path.base(self.text)
+    rawPath(rawBase(self.raw)).toString()
 }
 
 /// The parent directory.
 pub pure fn Path.parent(self) -> Path {
-    Path { text: path.dir(self.text) }
+    rawPath(rawDir(self.raw))
 }
 
-/// The last element without its extension.
-pub pure fn Path.stem(self) -> String {
-    path.stem(self.text)
+/// The last element without its extension, as display text.
+pub fn Path.stem(self) -> String {
+    let b = rawBase(self.raw)
+    let e = rawExt(b)
+    if e.len() == 0 {
+        return rawPath(b).toString()
+    }
+    rawPath(b.slice(0, b.len() - e.len()) || b).toString()
 }
 
-/// The extension of the last element, dot included.
+/// The extension of the last element, dot included, as display text.
 pub pure fn Path.extension(self) -> String {
-    path.ext(self.text)
+    rawPath(rawExt(rawBase(self.raw))).toString()
 }
 
 /// other appended below this path, with redundant separators and `.`/`..` cleaned.
-pub pure fn Path.join(self, other: Path) -> Path {
-    Path { text: path.join2(self.text, other.text) }
+pub fn Path.join(self, other: Path) -> Path {
+    if self.raw.len() == 0 {
+        return rawPath(rawClean(other.raw))
+    }
+    if other.raw.len() == 0 {
+        return rawPath(rawClean(self.raw))
+    }
+    rawPath(rawClean(self.raw.concat(b"/").concat(other.raw)))
 }
 
 /// The lexical form with redundant separators and `.`/`..` removed.
 pub pure fn Path.normalize(self) -> Path {
-    Path { text: path.clean(self.text) }
+    rawPath(rawClean(self.raw))
 }
 
-/// The bytes of the path as an OS string.
+/// The exact OS name as an OS string.
 pub pure fn Path.toOsString(self) -> os.OsString {
-    os.OsString.fromString(self.text)
+    os.OsString.fromUnixBytes(self.raw)
+}
+
+/// Parses raw OS name bytes as a path; fails when they contain a NUL byte, and
+/// on a platform whose file entry points cannot carry them exactly when they are
+/// not valid UTF-8. The failure is explicit, so a lossy form never stands in for
+/// a name the OS cannot address.
+fn Path.fromRawBytes(raw: Bytes) -> Path! {
+    for i in 0..raw.len() {
+        if (raw.get(i) || 1) == 0 {
+            fail ffi.CError {
+                code: 0
+                text: "path contains NUL"
+            }
+        }
+    }
+    checkedRawPath(raw)
+}
+
+/// A path for bytes already checked for NUL. When the platform takes text rather
+/// than bytes, a name that is not valid UTF-8 is rejected instead of being
+/// converted to the display text, which could address a different entry.
+fn checkedRawPath(raw: Bytes) -> Path! {
+    if !platform.exactPathNames() {
+        match os.OsString.fromUnixBytes(raw).checkedString() {
+            Some(_) -> {}
+            None -> fail ffi.CError {
+                code: 0
+                text: "path is not valid UTF-8 on this platform"
+            }
+        }
+    }
+    rawPath(raw)
+}
+
+/// A path for bytes already checked for NUL: the display form is their lossy UTF-8 reading.
+fn rawPath(raw: Bytes) -> Path {
+    Path {
+        text: os.OsString.fromUnixBytes(raw).toStringLossy()
+        raw: raw
+    }
+}
+
+/// The bytes before the last separator, keeping the root itself, like `std/path.dir`.
+pure fn rawDir(raw: Bytes) -> Bytes {
+    let trimmed = rawDropTrailing(raw)
+    match trimmed.lastIndexOf(b"/") {
+        Some(0) -> b"/"
+        Some(at) -> trimmed.slice(0, at) || b"."
+        None -> if trimmed.len() == 0 && (raw.get(0) || 0) == 47 {
+            b"/"
+        } else {
+            b"."
+        }
+    }
+}
+
+/// The last element without a trailing separator, like `std/path.base`.
+pure fn rawBase(raw: Bytes) -> Bytes {
+    if raw.len() == 0 {
+        return b""
+    }
+    let trimmed = rawDropTrailing(raw)
+    if trimmed.equals(&b"/") {
+        return b"/"
+    }
+    match trimmed.lastIndexOf(b"/") {
+        Some(at) -> trimmed.slice(at + 1, trimmed.len()) || trimmed
+        None -> trimmed
+    }
+}
+
+/// The extension of the last element, dot included, like `std/path.ext`.
+fn rawExt(base: Bytes) -> Bytes {
+    match base.lastIndexOf(b".") {
+        Some(0) -> b""
+        Some(at) -> base.slice(at, base.len()) || b""
+        None -> b""
+    }
+}
+
+/// Drops the trailing separators of a path, keeping the root itself.
+fn rawDropTrailing(raw: Bytes) -> Bytes {
+    let mut end = raw.len()
+    for end > 1 && (raw.get(end - 1) || 0) == 47 {
+        end = end - 1
+    }
+    raw.slice(0, end) || raw
+}
+
+/// The path split on separators, with the empty strings that leading, trailing and repeated
+/// separators produce left in, like `std/path.elements`.
+fn rawElements(raw: Bytes) -> Array[Bytes] {
+    let mut out = Array.empty[Bytes]()
+    let mut start: usize = 0
+    for i in 0..raw.len() {
+        if (raw.get(i) || 0) == 47 {
+            out.push(raw.slice(start, i) || b"")
+            start = i + 1
+        }
+    }
+    out.push(raw.slice(start, raw.len()) || b"")
+    out
+}
+
+/// The cleaned form of raw bytes, like `std/path.clean`.
+fn rawClean(raw: Bytes) -> Bytes {
+    let abs = (raw.get(0) || 0) == 47
+    let mut kept = Array.empty[Bytes]()
+    for part in rawElements(raw) {
+        if part.len() == 0 || part.equals(&b".") {
+            continue
+        }
+        if part.equals(&b"..") {
+            if kept.len() > 0 && !(kept.last() || b"..").equals(&b"..") {
+                _ = kept.takeAt(kept.len() - 1)
+                continue
+            }
+            if abs {
+                continue
+            }
+        }
+        kept.push(part)
+    }
+    let body = rawJoinKept(&kept)
+    if abs {
+        return b"/".concat(body)
+    }
+    if body.len() == 0 {
+        return b"."
+    }
+    body
+}
+
+pure fn rawJoinKept(kept: &Array[Bytes]) -> Bytes {
+    let mut out = b""
+    for part in kept {
+        if out.len() == 0 {
+            out = part
+        } else {
+            out = out.concat(b"/").concat(part)
+        }
+    }
+    out
 }
 
 /// Creates or truncates the file at path and writes text into it; loops

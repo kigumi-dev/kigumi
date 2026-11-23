@@ -46,7 +46,7 @@ match fs.Path.fromOsString(&nul) {
     Err(e) -> print "path nul: ${e.message()}"
 }
 match fs.Path.fromOsString(&raw) {
-    Ok(p) -> print "path ok ${p.toString()}"
+    Ok(p) -> print "path ok ${p.toString()} lossless=${p.toOsString().equals(&raw)}"
     Err(e) -> print "path raw: ${e.message()}"
 }
 match fs.Path.fromOsString(&text) {
@@ -70,5 +70,5 @@ nul: len=3 unicode=true lossy=3
 nul text: 3
 nul clone: true
 path nul: path contains NUL
-path raw: path is not valid UTF-8
+path ok ab�c�� lossless=true
 path ok héllo

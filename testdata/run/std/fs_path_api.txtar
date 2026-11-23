@@ -1,12 +1,27 @@
 -- src --
 import fs from std/fs
+import os from std/os
 
 let a = fs.Path.fromString("a/b/").unwrap()
 let b = fs.Path.fromString("../c").unwrap()
 print "${a.fileName()} ${a.parent().toString()} ${a.join(b).normalize().toString()}"
 print "${a.isAbsolute()} ${a.stem()} ${a.extension()}"
 print "${a.toOsString().toStringLossy()}"
+
+let raw = os.OsString.fromUnixBytes(b"bad-\xff")
+let cooked = os.OsString.fromUnixBytes(b"bad-\xef\xbf\xbd")
+let rp = fs.Path.fromOsString(&raw).unwrap()
+let cp = fs.Path.fromOsString(&cooked).unwrap()
+print "distinct text=${rp.toString() == cp.toString()} bytes=${rp.toOsString().equals(&cp.toOsString())}"
+print "roundtrip=${rp.toOsString().equals(&raw)}"
+let dir = fs.Path.fromString("dir")?
+let dirOs = dir.toOsString()
+let nested = dir.join(rp)
+print "nested=${nested.toOsString().toUnixBytes().len()} parent=${nested.parent().toOsString().equals(&dirOs)}"
 -- stdout --
 b a a/c
 false b 
 a/b/
+distinct text=true bytes=false
+roundtrip=true
+nested=9 parent=true

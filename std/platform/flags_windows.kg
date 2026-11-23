@@ -7,3 +7,10 @@ pub fn createFlags() -> i32 {
 pub fn fopenMode(mode: String) -> String {
     mode
 }
+
+/// Whether the OS keeps a file name's bytes exactly as given. Windows entry
+/// points take UTF-16 text, so a name that is not valid UTF-8 cannot be carried;
+/// callers reject it instead of converting it to some other path.
+pub fn exactPathNames() -> Bool {
+    false
+}

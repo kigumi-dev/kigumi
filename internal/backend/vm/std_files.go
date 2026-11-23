@@ -38,7 +38,11 @@ func (m *Machine) cErrorCode(code int64, text string) *obj {
 	return mkVariant(m.variantOf(m.r.Types.ResultEnt(), "Err"), []*obj{box})
 }
 
-func pathText(v *obj) string { return string(deref(deref(v).fields[0]).str()) }
+// pathRaw is the exact OS name bytes of a fs.Path: field 1 (`raw`), not the
+// lossy display text in field 0.
+func pathRaw(v *obj) []byte { return deref(deref(v).fields[1]).str() }
+
+func pathText(v *obj) string { return string(pathRaw(v)) }
 
 func fileOf(v *obj) *os.File {
 	fh, _ := deref(deref(v).fields[0]).opaqueData().(*os.File)
@@ -144,7 +148,7 @@ func (m *Machine) registerFiles() {
 		}
 		var names []string
 		for _, e := range entries {
-			names = append(names, utf8Lossy(e.Name()))
+			names = append(names, e.Name())
 		}
 		sort.Strings(names)
 		if dir != "" && !strings.HasSuffix(dir, "/") {
@@ -153,7 +157,11 @@ func (m *Machine) registerFiles() {
 		path := m.r.Types.Node(m.r.Types.Node(m.resultPayload(fn)).Args[0]).Ent
 		out := mkArray(nil)
 		for _, name := range names {
-			out.fields = append(out.fields, mkRecord(path, []*obj{mkStr([]byte(dir + name))}))
+			raw := []byte(dir + name)
+			out.fields = append(out.fields, mkRecord(path, []*obj{
+				mkStr([]byte(utf8Lossy(string(raw)))),
+				mkBytes(raw),
+			}))
 		}
 		return m.ok(out)
 	}

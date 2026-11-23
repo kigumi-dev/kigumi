@@ -22,10 +22,47 @@ extern(C) {
     fn malloc(n: usize) -> *mut u8
     fn realloc(p: *mut u8, n: usize) -> *mut u8
     fn free(p: *mut u8)
+    fn strlen(s: *const u8) -> usize
 }
 
-fn openFile(path: &String, mode: String) -> File! {
-    let c = ffi.CString.new(path)?
+/// A NUL-terminated C copy of a path's exact bytes, freed when it goes out of scope.
+type PathCString = resource {
+    bytes Bytes
+}
+
+fn bytesCString(raw: &Bytes) -> PathCString {
+    PathCString { bytes: raw.concat(b"\x00") }
+}
+
+fn pathCString(path: &Path) -> PathCString {
+    bytesCString(&path.raw)
+}
+
+fn PathCString.ptr(self) -> *const u8 {
+    unsafe {
+        ffi.bytesPtr(&self.bytes)
+    }
+}
+
+/// Whether path can be handed to this platform's file entry points exactly.
+/// Windows entry points take text, so a name whose raw bytes are not valid UTF-8
+/// would be converted lossily; reject it instead of addressing another entry.
+fn exactPath(path: &Path) -> Bool {
+    platform.exactPathNames() || path.text.bytes().equals(&path.raw)
+}
+
+fn requireExactPath(path: &Path) -> Void! {
+    if !exactPath(path) {
+        fail ffi.CError {
+            code: 0
+            text: "path is not valid UTF-8 on this platform"
+        }
+    }
+}
+
+fn openFile(path: &Path, mode: String) -> File! {
+    requireExactPath(path)?
+    let c = pathCString(path)
     let m = ffi.CString.new(&platform.fopenMode(mode))?
     let f = unsafe {
         fopen(c.ptr(), m.ptr())
@@ -38,18 +75,19 @@ fn openFile(path: &String, mode: String) -> File! {
 
 /// Creates the file at path, truncating an existing one, and opens it for writing.
 pub fn Files.create(self, path: Path) -> File! {
-    openFile(&path.text, "w")
+    openFile(&path, "w")
 }
 
 /// Opens the file at path for writing at its end, creating it when missing;
 /// unlike create it never truncates, so a redirected /dev/stdout keeps its content.
 pub fn Files.append(self, path: Path) -> File! {
-    openFile(&path.text, "a")
+    openFile(&path, "a")
 }
 
 /// Creates the file at path like `create`, with permission bits mode (before the umask is applied), for example 0o600 for a file only its owner can read.
 pub fn Files.createWithMode(self, path: Path, mode: u32) -> File! {
-    let c = ffi.CString.new(&path.text)?
+    requireExactPath(&path)?
+    let c = pathCString(&path)
     let fd = unsafe {
         open(c.ptr(), platform.createFlags(), mode)
     }
@@ -72,7 +110,8 @@ pub fn Files.createWithMode(self, path: Path, mode: u32) -> File! {
 
 /// Deletes the file at path; a directory is an error, `removeDir` deletes an empty one.
 pub fn Files.remove(self, path: Path) -> Void! {
-    let c = ffi.CString.new(&path.text)?
+    requireExactPath(&path)?
+    let c = pathCString(&path)
     if unsafe {
         unlink(c.ptr())
     } != 0 {
@@ -82,7 +121,8 @@ pub fn Files.remove(self, path: Path) -> Void! {
 
 /// Deletes the empty directory at path.
 pub fn Files.removeDir(self, path: Path) -> Void! {
-    let c = ffi.CString.new(&path.text)?
+    requireExactPath(&path)?
+    let c = pathCString(&path)
     if unsafe {
         rmdir(c.ptr())
     } != 0 {
@@ -136,8 +176,9 @@ pub fn Files.readBytes(self, path: Path) -> Bytes! {
 
 /// Whole file as bytes; fails once it turns out to hold more than limit bytes, so a device such as /dev/zero cannot exhaust memory.
 pub fn Files.readBytesUpTo(self, path: Path, limit: usize) -> Bytes! {
+    requireExactPath(&path)?
     // fopen happily opens a directory; report it as EISDIR up front.
-    let c = ffi.CString.new(&path.text)?
+    let c = pathCString(&path)
     let d = unsafe {
         opendir(c.ptr())
     }
@@ -150,7 +191,7 @@ pub fn Files.readBytesUpTo(self, path: Path, limit: usize) -> Bytes! {
             text: ffi.errorText(21)
         }
     }
-    let file = openFile(&path.text, "rb")?
+    let file = openFile(&path, "rb")?
     let mut most = limit.wrappingAdd(1)
     if most == 0 {
         most = limit
@@ -226,8 +267,9 @@ pub fn Files.readBytesUpTo(self, path: Path, limit: usize) -> Bytes! {
 
 /// Creates the directory at path and any missing parents; an existing directory is fine, an existing file is an error.
 pub fn Files.mkdir(self, path: Path) -> Void! {
-    if path.text == "" {
-        let c = ffi.CString.new(&path.text)?
+    requireExactPath(&path)?
+    if path.raw.len() == 0 {
+        let c = pathCString(&path)
         if unsafe {
             mkdir(c.ptr(), 493)
         } != 0 {
@@ -235,17 +277,17 @@ pub fn Files.mkdir(self, path: Path) -> Void! {
         }
         return
     }
-    let parts = path.text.split("/")
-    let mut cur = ""
+    let parts = rawElements(path.raw)
+    let mut cur = b""
     for i in 0..parts.len() {
         if i > 0 {
-            cur = "${cur}/"
+            cur = cur.concat(b"/")
         }
-        cur = "${cur}${parts.get(i) || ""}"
-        if cur == "" || cur == "/" {
+        cur = cur.concat(parts.get(i) || b"")
+        if cur.len() == 0 || cur.equals(&b"/") {
             continue
         }
-        let c = ffi.CString.new(&cur)?
+        let c = bytesCString(&cur)
         if unsafe {
             mkdir(c.ptr(), 493)
         } != 0 {
@@ -277,22 +319,26 @@ pub fn Files.mkdir(self, path: Path) -> Void! {
 
 /// Whether something exists at path.
 pub fn Files.exists(self, path: Path) -> Bool {
-    let c = ffi.CString.new(&path.text) || (_) => return false
+    if !exactPath(&path) {
+        return false
+    }
+    let c = pathCString(&path)
     unsafe {
         access(c.ptr(), 0)
     } == 0
 }
 
-/// Paths of the entries directly inside the directory at path, sorted by name.
+/// Paths of the entries directly inside the directory at path, sorted by their exact OS name bytes.
 pub fn Files.list(self, path: Path) -> Array[Path]! {
-    let c = ffi.CString.new(&path.text)?
+    requireExactPath(&path)?
+    let c = pathCString(&path)
     let d = unsafe {
         opendir(c.ptr())
     }
     if ffi.isNull(ffi.toConst(d)) {
         fail ffi.lastError()
     }
-    let mut names: Array[String] = Array.empty()
+    let mut names: Array[Bytes] = Array.empty()
     for true {
         ffi.clearErrno()
         let e = unsafe {
@@ -312,30 +358,31 @@ pub fn Files.list(self, path: Path) -> Array[Path]! {
             break
         }
         let name = unsafe {
-            ffi.stringLossy(ffi.offset(ffi.toConst(e), platform.direntNameOffset()))
+            let at = ffi.offset(ffi.toConst(e), platform.direntNameOffset())
+            ffi.bytesFrom(at, strlen(at))
         }
-        if name != "." && name != ".." {
+        if !name.equals(&b".") && !name.equals(&b"..") {
             names.push(name)
         }
     }
     _ = unsafe {
         closedir(d)
     }
-    let dir = if path.text.endsWith("/") || path.text == "" {
-        path.text
+    let dir = if path.raw.len() == 0 || (path.raw.get(path.raw.len() - 1) || 0) == 47 {
+        path.raw
     } else {
-        "${path.text}/"
+        path.raw.concat(b"/")
     }
     let mut out: Array[Path] = Array.empty()
     for name in array.sortedBy(&names, (a, b) => a.compareTo(b)) {
-        out.push(Path { text: "${dir}${name}" })
+        out.push(checkedRawPath(dir.concat(name))?)
     }
     out
 }
 
 /// Opens the existing file at path for reading; read it with `File.read`, or wrap it in an `io.BufReader` to read line by line.
 pub fn Files.open(self, path: Path) -> File! {
-    openFile(&path.text, "rb")
+    openFile(&path, "rb")
 }
 
 /// Appends up to max bytes read from the file to into and returns how many; 0 means end of file (std/io's Reader).
@@ -385,8 +432,10 @@ pub fn File.read(mut self, into: &mut Array[u8], max: usize) -> usize! {
 /// when the destination exists on a system that does not replace it, or when
 /// the two paths are on different file systems.
 pub fn Files.rename(self, from: Path, to: Path) -> Void! {
-    let a = ffi.CString.new(&from.text)?
-    let b = ffi.CString.new(&to.text)?
+    requireExactPath(&from)?
+    requireExactPath(&to)?
+    let a = pathCString(&from)
+    let b = pathCString(&to)
     if unsafe {
         rename(a.ptr(), b.ptr())
     } != 0 {
@@ -456,7 +505,8 @@ fn seekTo(f: *mut u8, offset: i64, whence: i32) -> i64! {
 
 /// Metadata for path: directory, regular file with its byte size, or another entry.
 pub fn Files.stat(self, path: Path) -> Stat! {
-    let c = ffi.CString.new(&path.text)?
+    requireExactPath(&path)?
+    let c = pathCString(&path)
     let cv = ffi.CValue.new(FsMeta {
         kind: 2
         size: 0
@@ -508,6 +558,14 @@ extern(C) {
 }
 
 /// Changes the permission bits of path to mode (before the umask, which chmod does not apply).
+/// Fails for a name that is not valid UTF-8: the platform chmod entry point takes text,
+/// and using the display form would silently change a different path.
 pub fn Files.chmod(self, path: Path, mode: u32) -> Void! {
+    if !path.text.bytes().equals(&path.raw) {
+        fail ffi.CError {
+            code: 0
+            text: "chmod needs a path that is valid UTF-8"
+        }
+    }
     platform.chmodFile(path.text, mode)
 }
