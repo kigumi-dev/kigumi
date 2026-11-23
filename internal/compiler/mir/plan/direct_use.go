@@ -33,6 +33,9 @@ func (p *planner) markDirectUse(f *midir.Func, in midir.Inst, out []bool) {
 	switch in.Op {
 	case midir.OpRecord, midir.OpClosure:
 		out[in.Dst] = true
+	case midir.OpAsm:
+		// An asm block's record result is an ordinary direct aggregate.
+		out[in.Dst] = true
 	case midir.OpCallValue:
 		out[in.Args[0]] = true
 		p.markValueCall(f, in, out)

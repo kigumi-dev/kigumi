@@ -83,6 +83,8 @@ func (p *Program) DstPos(f *midir.Func, in midir.Inst) sem.TypeID {
 		if body := p.valueCallee(f, in); body != nil {
 			return body.DSig.Result()
 		}
+	case midir.OpAsm:
+		return p.WholePos(f, in.Dst)
 	}
 	return 0
 }
