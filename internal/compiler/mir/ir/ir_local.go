@@ -2,6 +2,9 @@ package ir
 
 import "kigumi/internal/compiler/sem"
 
+// A local is appended when it is created or bound, so f.Locals order is
+// creation order; the ownership plan reads a higher LocalID as a later-created
+// value when it orders releases.
 type Local struct {
 	Name string
 	Type sem.TypeID

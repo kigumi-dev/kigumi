@@ -16,6 +16,8 @@ type use struct{ block, inst int }
 
 // Plan is the ownership plan every backend shares: where temporaries are
 // released, how often each is defined, and which aliases take a reference.
+// Releases and Splits list newest-created first, so a backend that emits them
+// in order destroys resources in reverse creation order.
 type Plan struct {
 	Releases    map[Point][]midir.LocalID
 	Splits      map[mir.Edge][]midir.LocalID
@@ -128,9 +130,15 @@ func (p *planner) planFunc(f *midir.Func) *Plan {
 	if live != nil {
 		split = live.edgePoints()
 	}
+	late.into(plan)
+	// Resources created earlier are released last, so every release point
+	// lists its temporaries newest first. The builder appends a temporary when
+	// it creates it, so LocalID order is creation order; a point can gather
+	// temporaries placed by the last-read, liveness and full-expression paths,
+	// and sorting the merged list is what keeps them in one reverse order.
 	for _, ts := range plan {
 		slices.Sort(ts)
+		slices.Reverse(ts)
 	}
-	late.into(plan)
 	return &Plan{Releases: plan, Splits: split, Defs: defs, Materialize: materialize, LentJoins: joins}
 }

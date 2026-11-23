@@ -7,7 +7,8 @@ import (
 	"kigumi/internal/compiler/sem"
 )
 
-// lateReleases are resource temporaries released at their full expression's end, latest created first.
+// lateReleases are resource temporaries released at their full expression's
+// end; planFunc orders the merged release point newest created first.
 type lateReleases map[Point][]midir.LocalID
 
 // releasedLate leaves out a temporary its last use hands to a callee or a
@@ -59,8 +60,6 @@ func (l lateReleases) add(f *midir.Func, t midir.LocalID, u use) {
 
 func (l lateReleases) into(plan map[Point][]midir.LocalID) {
 	for at, ts := range l {
-		slices.Sort(ts)
-		slices.Reverse(ts)
 		plan[at] = append(plan[at], ts...)
 	}
 }

@@ -131,11 +131,12 @@ func (c *liveCtx) release(at Point, t midir.LocalID) {
 	}
 }
 
-// edgePoints returns the edge releases that need a block of their own.
+// edgePoints returns the edge releases that need a block of their own, newest created first.
 func (c *liveCtx) edgePoints() map[mir.Edge][]midir.LocalID {
 	split := map[mir.Edge][]midir.LocalID{}
 	for e, ts := range c.edges {
 		slices.Sort(ts)
+		slices.Reverse(ts)
 		blk := c.g.f.Blocks[e.From]
 		to := int(blk.Term.Targets[e.Slot])
 		switch {
