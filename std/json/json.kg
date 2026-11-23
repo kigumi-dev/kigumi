@@ -56,7 +56,8 @@ pub interface DecodeKey {
     fn fromKeyText(text: String) -> Self!
 }
 
-/// Serializes value to JSON text, following the field metadata of record types.
+/// Serializes value to JSON text, following the field metadata of record types; fails on a non-finite float
+/// or on nesting deeper than the shared depth bound.
 pub fn encode[T: Encode](value: T) -> String! {
     render(value.toJson())
 }
@@ -66,7 +67,8 @@ pub fn encodeRef[T: Encode](value: &T) -> String! {
     render(value.toJson())
 }
 
-/// Parses JSON text into a T; fails on malformed input or a shape that does not match T.
+/// Parses JSON text into a T; fails on malformed input, nesting deeper than the shared depth bound, or a
+/// shape that does not match T.
 pub fn decode[T: Decode](text: String) -> T! {
     T.fromJson(parse(text)?)
 }

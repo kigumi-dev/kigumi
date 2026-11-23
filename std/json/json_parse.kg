@@ -8,7 +8,9 @@ type Cursor = {
     mut depth Int
 }
 
-const maxDepth = 5000
+/// Shared by parse and render: native aborts near 4400 nested parses or 5000 nested encodes, the VM near
+/// 100000 calls, so 1000 leaves more than a 4x margin and always returns a depth error instead of aborting.
+const maxDepth = 1000
 
 /// Parses JSON text (RFC 8259) into a Value; any deviation fails with "invalid JSON".
 pub fn parse(source: String) -> Value! {

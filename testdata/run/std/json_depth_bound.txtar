@@ -1,0 +1,65 @@
+-- src --
+import {Box} from std/alloc
+import json from std/json
+
+type Chain = {
+    pub value Int
+    pub next Box[Chain]?
+}
+
+fn doc(depth: usize) -> String {
+    let mut s = ""
+    for _ in 0..depth {
+        s = "${s}["
+    }
+    s = "${s}0"
+    for _ in 0..depth {
+        s = "${s}]"
+    }
+    s
+}
+
+fn value(depth: usize) -> json.Value {
+    let mut v = json.Value.Integer(0)
+    let mut i: usize = 0
+    for i < depth {
+        v = json.Value.List(Array.of(v))
+        i = i + 1
+    }
+    v
+}
+
+fn chain(depth: usize) -> Box[Chain]? {
+    let mut cur: Box[Chain]? = None
+    let mut i: usize = 0
+    for i < depth {
+        cur = Some(Box.new(Chain {
+            value: i.toInt() || 0
+            next: cur
+        }))
+        i = i + 1
+    }
+    cur
+}
+
+fn parseResult(r: json.Value!) -> String {
+    match r {
+        Ok(_) -> "Ok"
+        Err(e) -> "Err ${e.message()}"
+    }
+}
+
+fn textResult(r: String!) -> String {
+    match r {
+        Ok(_) -> "Ok"
+        Err(e) -> "Err ${e.message()}"
+    }
+}
+
+print "parse=${parseResult(json.parse(doc(999)))} ${parseResult(json.parse(doc(1000)))}"
+print "render=${textResult(json.render(value(999)))} ${textResult(json.render(value(1000)))}"
+print "encode=${textResult(json.encodeRef(&chain(999)))} ${textResult(json.encodeRef(&chain(1000)))}"
+-- stdout --
+parse=Ok Err invalid JSON
+render=Ok Err cannot encode JSON nested deeper than 1000
+encode=Ok Err cannot encode JSON nested deeper than 1000

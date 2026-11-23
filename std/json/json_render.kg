@@ -1,7 +1,8 @@
-/// Renders a value as compact JSON text; fails on a non-finite float, which JSON cannot express.
+/// Renders a value as compact JSON text; fails on a non-finite float, which JSON cannot express, and on
+/// nesting deeper than maxDepth, so a program-built tree cannot overflow the stack.
 pub fn render(value: Value) -> String! {
     let mut b = Buffer { bytes: Array.empty[u8]() }
-    b.value(value)?
+    b.value(value, 0)?
     b.finish()
 }
 
@@ -64,7 +65,10 @@ fn Buffer.string(mut self, s: String) {
     self.bytes.push(34)
 }
 
-fn Buffer.value(mut self, value: Value) -> Void! {
+fn Buffer.value(mut self, value: Value, depth: Int) -> Void! {
+    if depth >= maxDepth {
+        fail Error { text: "cannot encode JSON nested deeper than ${maxDepth}" }
+    }
     match value {
         Value.Null -> self.text("null")
         Value.Boolean(b) -> self.text("${b}")
@@ -95,7 +99,7 @@ fn Buffer.value(mut self, value: Value) -> Void! {
                     self.bytes.push(44)
                 }
                 first = false
-                self.value(item)?
+                self.value(item, depth + 1)?
             }
             self.bytes.push(93)
         }
@@ -110,7 +114,7 @@ fn Buffer.value(mut self, value: Value) -> Void! {
                 first = false
                 self.string(key)
                 self.bytes.push(58)
-                self.value(fields.take(&key) || Value.Null)?
+                self.value(fields.take(&key) || Value.Null, depth + 1)?
             }
             self.bytes.push(125)
         }

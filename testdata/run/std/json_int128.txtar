@@ -178,8 +178,8 @@ error: expected integer, found number
 error: expected integer, found string
 error: -1 does not fit u128
 error: -18446744073709551616 does not fit u128
-error: integer literal 340282366920938463463374607431768211456 is out of range for 128-bit integers (magnitude max 340282366920938463463374607431768211455)
-error: integer literal -340282366920938463463374607431768211456 is out of range for 128-bit integers (magnitude max 340282366920938463463374607431768211455)
+error: expected integer, found number
+error: expected integer, found number
 error: expected integer, found number
 error: 18446744073709551616 does not fit u64
 error: -18446744073709551616 does not fit usize

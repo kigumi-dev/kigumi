@@ -283,6 +283,17 @@ pub fn f64.fromJson(value: Value) -> Float! {
 }
 
 pub fn f64.fromKeyText(s: String) -> Float! {
+    // Map keys spell the values JSON numbers cannot express the way Float itself prints them; these
+    // words are outside the number grammar, so they cannot alias a finite key's text.
+    if s == "NaN" {
+        return Ok(math.nan())
+    }
+    if s == "+Inf" {
+        return Ok(math.inf())
+    }
+    if s == "-Inf" {
+        return Ok(0.0 - math.inf())
+    }
     if !canonicalNumberText(s) {
         fail Error { text: "expected a number key, found \"${s}\"" }
     }
@@ -303,7 +314,7 @@ pub fn f32.fromJson(value: Value) -> f32! {
 
 pub fn f32.fromKeyText(s: String) -> f32! {
     let f = f64.fromKeyText(s)?
-    if f >= 3.4028235677973366e38 || f <= -3.4028235677973366e38 {
+    if math.isFinite(f) && (f >= 3.4028235677973366e38 || f <= -3.4028235677973366e38) {
         fail Error { text: "${f} does not fit f32" }
     }
     Ok(f.toF32())
@@ -444,10 +455,24 @@ pub fn Array[T: Decode].fromJson(value: Value) -> Array[T]! {
     }
 }
 
-/// Keys that are not strings are written with their own JSON text.
+/// Keys that are not strings are written with their own JSON text; a non-finite float, which has no JSON
+/// number spelling, uses the text Float prints ("NaN", "+Inf", "-Inf") so distinct keys stay decodable.
 fn keyText(key: Value) -> String {
     match key {
         Value.Text(s) -> s
+        Value.Number(f) -> {
+            if math.isNaN(f) {
+                return "NaN"
+            }
+            if math.isInf(f) {
+                return if f > 0.0 {
+                    "+Inf"
+                } else {
+                    "-Inf"
+                }
+            }
+            render(key) || ""
+        }
         other -> render(other) || ""
     }
 }
