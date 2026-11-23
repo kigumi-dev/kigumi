@@ -56,9 +56,9 @@ fn tag(name: String) -> fn(escaping fn(http.Request) -> http.Response!) -> fn(ht
         let out = next(req)
         print "${name} out"
         if out is Ok(r) {
-            let mut r = r
-            r.headers.add("X-Seen", name)
-            return r
+            let mut resp = r
+            resp.headers.add("X-Seen", name)
+            return resp
         }
         out
     }
@@ -169,7 +169,7 @@ outer in DELETE /sum
 inner in DELETE /sum
 inner out
 outer out
-DELETE /sum: 405 [method not allowed] seen=2 allow=POST
+DELETE /sum: 405 [method not allowed] seen=2 allow=POST, OPTIONS
 outer in GET /search
 inner in GET /search
 inner out

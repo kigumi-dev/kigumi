@@ -670,8 +670,8 @@ async fn serverRun(conn: net.Conn, mode: Mode, cert: Bytes, key: Bytes) -> Void!
     putBytes(&mut cvBody, der)
     let cvMsg = hs(15, Bytes.fromArray(&cvBody))
 
-    let transcriptCv = sha256.sum(transcriptBase.concat(eeMsg).concat(certMsg).concat(cvMsg))
-    let verifySecret = (tls.finishedVerifyData(&handshake.server.secret, transcriptCv))?
+    let transcriptCvFin = sha256.sum(transcriptBase.concat(eeMsg).concat(certMsg).concat(cvMsg))
+    let verifySecret = (tls.finishedVerifyData(&handshake.server.secret, transcriptCvFin))?
     let mut verify = reveal(&verifySecret)
     if mode is Mode.WrongFinished {
         let mut flipped = Array.empty[u8]()

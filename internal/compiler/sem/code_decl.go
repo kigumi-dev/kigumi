@@ -57,4 +57,5 @@ var (
 	cFnRedeclared            = defineCode("E249", "fn-redeclared", "`{name}` with parameters ({types}) is already declared")
 	cParamDuplicate          = defineCode("E250", "param-duplicate", "duplicate parameter `{name}`")
 	cEffectPolyNotReq        = defineCode("E257", "effect-poly-not-requirement", "`pure?` is only allowed on an interface requirement")
+	cLocalRedeclared         = defineCode("E258", "local-redeclared", "`{name}` is already bound in this scope; rename it or move the binding into an inner block to shadow the earlier one")
 )

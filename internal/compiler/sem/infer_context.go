@@ -23,7 +23,7 @@ func (c *checker) synthContext(n syntax.NodeID, want TypeID) TypeID {
 			c.errAt(item, cCtxWrongProviderType, pt)
 			continue
 		}
-		local := c.declareLocal(item, fmt.Sprintf("$ctx%d", i), pt, true)
+		local := c.declareInternalLocal(item, fmt.Sprintf("$ctx%d", i), pt, true)
 		locals[i] = local
 		for _, b := range bindings {
 			if _, dup := frame.bind[b.Key]; dup {

@@ -2,7 +2,27 @@ package sem
 
 import "kigumi/internal/compiler/syntax"
 
+// declareLocal declares a source-level local binding in the current scope. A
+// name already bound by a local or parameter in that same scope is a
+// redeclaration error (E258); an inner scope may still shadow an outer one.
 func (c *checker) declareLocal(n syntax.NodeID, name string, typ TypeID, mut bool) EntityID {
+	return c.bindLocal(n, name, typ, mut, true)
+}
+
+// declareLocalDup declares a binding whose repeat inside one pattern the
+// pattern checker already reported (E809); rechecking here would duplicate it.
+func (c *checker) declareLocalDup(n syntax.NodeID, name string, typ TypeID, mut bool) EntityID {
+	return c.bindLocal(n, name, typ, mut, false)
+}
+
+// declareInternalLocal declares a compiler-synthesized binding whose name
+// cannot be written in source (`$ctxN`, `?`). Such names are never resolved by
+// name and may repeat in one scope, so they skip the redeclaration check.
+func (c *checker) declareInternalLocal(n syntax.NodeID, name string, typ TypeID, mut bool) EntityID {
+	return c.bindLocal(n, name, typ, mut, false)
+}
+
+func (c *checker) bindLocal(n syntax.NodeID, name string, typ TypeID, mut bool, redeclare bool) EntityID {
 	e := Entity{Kind: EntLocal, Name: name, Pkg: c.pkg, File: c.f, Node: n, Tok: c.t.View(n).Tok().Index(), Parent: c.fn, Type: typ}
 	if mut {
 		e.Flags |= EfMut
@@ -19,9 +39,50 @@ func (c *checker) declareLocal(n syntax.NodeID, name string, typ TypeID, mut boo
 		c.errAt(n, cNilName)
 	}
 	if name != "_" {
+		if redeclare {
+			c.redeclaredLocal(n, name)
+		}
 		c.r.Scopes[c.scope].Names[name] = Binding{Ent: id}
 	}
 	return id
+}
+
+// redeclaredLocal reports E258 when name is already bound by a local or
+// parameter declared in the current scope. Outer scopes are shadowable, except
+// that a callable's parameters and its outermost body block are one lexical
+// declaration scope: `fn f(x: Int) { let x = ... }` redeclares `x`. A block
+// nested inside that body is a new scope and may shadow the parameter.
+func (c *checker) redeclaredLocal(n syntax.NodeID, name string) bool {
+	if c.patOr > 0 {
+		return false
+	}
+	if c.localIn(c.scope, name) {
+		c.errAt(n, cLocalRedeclared, name)
+		return true
+	}
+	s := &c.r.Scopes[c.scope]
+	if s.Kind != ScopeBlock {
+		return false
+	}
+	if c.r.Scopes[s.Parent].Params && c.localIn(s.Parent, name) {
+		c.errAt(n, cLocalRedeclared, name)
+		return true
+	}
+	return false
+}
+
+// localIn reports whether scope itself binds name to a local or parameter.
+func (c *checker) localIn(scope ScopeID, name string) bool {
+	b, ok := c.r.Scopes[scope].Names[name]
+	if !ok || b.Ent == 0 {
+		return false
+	}
+	switch c.r.Entities[b.Ent].Kind {
+	case EntLocal, EntParam:
+	default:
+		return false
+	}
+	return c.r.local(b.Ent).Scope == scope
 }
 
 // dropsAtScopeExit emits every owning binding's EdgeDrop except one already consumed.

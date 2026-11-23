@@ -23,14 +23,20 @@ func (c *checker) patternInner(p syntax.NodeID, scrutinee TypeID, mut bool, seen
 		return PatInfo{Kind: PatWild, Type: scrutinee}
 	case syntax.PatBind:
 		name := node.Tok().Text()
+		dupBinding := false
 		if prev, dup := seen[name]; dup && prev != p {
 			c.errAt(p, cPatternDuplicateBinding, name)
+			dupBinding = true
 		}
 		seen[name] = p
 		if scrutinee != TyPoison && c.shadowsVariant(scrutinee, name) {
 			c.errAt(p, cBindingShadowsVariant, name, c.r.entityName(tt.Node(scrutinee).Ent), name)
 		}
-		c.noteCopyBinding(c.declareLocal(p, name, c.bindingType(scrutinee), mut))
+		declare := c.declareLocal
+		if dupBinding {
+			declare = c.declareLocalDup
+		}
+		c.noteCopyBinding(declare(p, name, c.bindingType(scrutinee), mut))
 		c.notePatternMove(scrutinee)
 		return PatInfo{Kind: PatBinding, Type: scrutinee, Moves: !c.patBorrow && !c.r.isCopy(scrutinee)}
 	case syntax.PatLit:
@@ -46,6 +52,7 @@ func (c *checker) patternInner(p syntax.NodeID, scrutinee TypeID, mut bool, seen
 		return c.rangePattern(p, scrutinee)
 	case syntax.PatOr:
 		reported := false
+		c.patOr++
 		for alt := range c.t.List(p).IDs() {
 			c.patternInner(alt, scrutinee, mut, map[string]syntax.NodeID{})
 			if b := firstBinding(c.t, alt); b != 0 && !reported {
@@ -53,6 +60,7 @@ func (c *checker) patternInner(p syntax.NodeID, scrutinee TypeID, mut bool, seen
 				reported = true
 			}
 		}
+		c.patOr--
 		return PatInfo{Kind: PatWild, Type: scrutinee}
 	}
 	c.errAt(p, cPatternKind, scrutinee)

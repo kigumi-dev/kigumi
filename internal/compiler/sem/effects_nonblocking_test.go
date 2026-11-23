@@ -11,13 +11,13 @@ import net from std/net
 import task from std/task
 
 async fn pump(l: net.Listener) -> Void! {
-    let mut l = l
+    let mut listener = l
     let mut buf = Array.empty[u8]()
     for true {
-        if l.pollAccept()? is Some(c) {
-            let mut c = c
-            _ = c.pollRead(&mut buf, 16)?
-            _ = c.pollWrite("x".toBytes())?
+        if listener.pollAccept()? is Some(c) {
+            let mut conn = c
+            _ = conn.pollRead(&mut buf, 16)?
+            _ = conn.pollWrite("x".toBytes())?
             return
         }
         await task.yieldNow()
@@ -34,9 +34,9 @@ func TestAsyncBlockingSocketReadStillRejected(t *testing.T) {
 import net from std/net
 
 async fn pull(c: net.Conn) -> usize! {
-    let mut c = c
+    let mut conn = c
     let mut buf = Array.empty[u8]()
-    c.read(&mut buf, 16)
+    conn.read(&mut buf, 16)
 }
 `)
 	if out := res.Render(); !res.HasErrors() || !strings.Contains(out, "E1320") {

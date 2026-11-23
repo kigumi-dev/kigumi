@@ -83,7 +83,7 @@ func (c *checker) optChainOn(n, o syntax.NodeID, base TypeID) TypeID {
 	c.growTables()
 	saved := c.scope
 	c.pushScope(ScopeArm, n)
-	local := c.declareLocal(hole, "?", holeType, false)
+	local := c.declareInternalLocal(hole, "?", holeType, false)
 	if c.info.ChainHoles == nil {
 		c.info.ChainHoles = map[syntax.NodeID]EntityID{}
 	}

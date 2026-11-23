@@ -74,13 +74,13 @@ async fn root(label: String) -> String {
     let l = context (Limits { limit: 4 }) {
         await task.BlockingPool.new(1).run(() => doubled()).unwrap()
     }
-    let m = await task.BlockingPool.new(1).run((compute)).unwrap()
+    let m2 = await task.BlockingPool.new(1).run((compute)).unwrap()
     let reader = await task.BlockingPool.new(1).run(() => {
         let own = Socket { fd: 9 }
         () => own.peek()
     }).unwrap()
     let o = reader()
-    "${label}: ${a} ${b} ${c} ${d} ${e} ${f} ${g} ${h} ${i} ${j} ${l} ${m} ${o}"
+    "${label}: ${a} ${b} ${c} ${d} ${e} ${f} ${g} ${h} ${i} ${j} ${l} ${m2} ${o}"
 }
 
 let threads = task.threadPoolExecutor(2)

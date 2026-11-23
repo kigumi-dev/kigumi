@@ -56,9 +56,12 @@ type checker struct {
 	// patBorrowMut is patBorrow's mutability, meaningful only when patBorrow
 	// is set (a `for` head can borrow mutably, unlike match).
 	patBorrowMut bool
-	patMoved     patMoveLog
-	contracts    []Effects
-	lambdas      []*lambdaCtx
+	// patOr counts enclosing `|` alternatives, whose bindings E509 already
+	// rejects; they are not reported again as local redeclarations.
+	patOr     int
+	patMoved  patMoveLog
+	contracts []Effects
+	lambdas   []*lambdaCtx
 	// opens are the parameters this file's type tests opened, in order; a construct's are those past a mark.
 	opens []EntityID
 	// rtPending are the runtime type uses of the current full expression, settled when it ends.

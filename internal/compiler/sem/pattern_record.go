@@ -106,11 +106,17 @@ func (c *checker) recordPattern(p syntax.NodeID, scrutinee TypeID, seen map[stri
 			})
 			continue
 		}
+		dupBinding := false
 		if prev, dup := seen[name]; dup && prev != f {
 			c.errAt(f, cPatternDuplicateBinding, name)
+			dupBinding = true
 		}
 		seen[name] = f
-		c.noteCopyBinding(c.declareLocal(f, name, c.bindingType(ft), false), fld)
+		declare := c.declareLocal
+		if dupBinding {
+			declare = c.declareLocalDup
+		}
+		c.noteCopyBinding(declare(f, name, c.bindingType(ft), false), fld)
 		c.patternInField(fld, func() { c.notePatternMove(ft) })
 		if !c.patBorrow && !c.r.isCopy(ft) {
 			info.Moves = true

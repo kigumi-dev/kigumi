@@ -26,7 +26,7 @@ func TestRenamePreservesBindings(t *testing.T) {
 		{"function-capture", "fn §first() -> Int { 1 }\nfn calc() -> Int { let second = () => 2; first() + second() }", "second", false},
 		{"constant-capture", "const §first: Int = 1\nfn calc() -> Int { let second = 2; first + second }", "second", false},
 		{"type-capture", "type §First = { value Int }\nfn calc[Second]() -> First? { None }", "Second", false},
-		{"later-shadow", "fn calc() -> Int { let §longName = 1; let result = longName; let second = 2; result + second }", "second", true},
+		{"later-shadow", "fn calc() -> Int { let §longName = 1; let result = longName; let second = 2; result + second }", "second", false},
 		{"disjoint-scope", "fn calc() -> Int { let §first = 1; let result = { let second = 2; second }; first + result }", "second", true},
 		{"outer-name", "const second: Int = 2\nfn calc() -> Int { let §first = 1; first }\nprint \"${second}\"", "second", true},
 		{"unicode", "fn calc() -> Int { let 日本語 = 2; let §first = 1; 日本語 + first }", "二", true},

@@ -663,14 +663,14 @@ fn main() {
     let hm3 = harr.map(wrapLen(wrapLen(wrapLen(strLen))))
     print "hof ${hm1[0]} ${hm2[1]} ${hw1} ${hc1[1]} ${hb1} ${hs1} ${hm3[1]}"
     let ht = harr.tryMap(wrapLen(strLen))
-    let hf = harr.filter(wrapB(nonEmpty))
+    let hfilter = harr.filter(wrapB(nonEmpty))
     let hsm = Shared.new(mks(37)).withMut(wrapLen(mutLen))
     let hsort = array.sortedBy(&harr, wrap2(cmpLen))
     let htl = match ht {
         Ok(v) -> v.len()
         Err(e) -> 0
     }
-    print "hof2 ${htl} ${hf.len()} ${hsm} ${hsort[0]}"
+    print "hof2 ${htl} ${hfilter.len()} ${hsm} ${hsort[0]}"
     let mut tot = 0
     for i in 0..1000 {
         tot = tot + (fwdV(strLen, passStr(&mks(i))).toInt() || 0)

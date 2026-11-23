@@ -26,8 +26,10 @@ fn shadowing() {
     let mut count = 1
     defer { print "shadow count=${count}" }
     count = 5
-    let count = 100
-    print "shadowed ${count}"
+    {
+        let count = 100
+        print "shadowed ${count}"
+    }
 }
 
 fn lifo() {

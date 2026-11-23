@@ -15,9 +15,9 @@ async fn writeAll(conn: &mut net.Conn, data: Bytes) -> Void! {
 }
 
 async fn replyOnce(listener: net.Listener, payload: Bytes) -> Void! {
-    let mut listener = listener
+    let mut srv = listener
     let mut conn = for {
-        if listener.pollAccept()? is Some(c) { break c }
+        if srv.pollAccept()? is Some(c) { break c }
         await task.yieldNow()
     }
     let mut got = Array.empty[u8]()

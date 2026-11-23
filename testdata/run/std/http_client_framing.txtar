@@ -18,9 +18,9 @@ async fn writeAll(conn: &mut net.Conn, data: Bytes) -> Void! {
 
 // Answers each reply to one request on the same connection, then closes it.
 async fn replyAll(listener: net.Listener, replies: Array[Bytes]) -> Void! {
-    let mut listener = listener
+    let mut srv = listener
     let mut conn = for {
-        if listener.pollAccept()? is Some(c) { break c }
+        if srv.pollAccept()? is Some(c) { break c }
         await task.yieldNow()
     }
     for reply in replies {
@@ -137,9 +137,9 @@ async fn urlBrackets(n: net.Net) -> Void! {
 }
 
 async fn flood(listener: net.Listener, pieces: usize) -> usize! {
-    let mut listener = listener
+    let mut srv = listener
     let mut conn = for {
-        if listener.pollAccept()? is Some(c) { break c }
+        if srv.pollAccept()? is Some(c) { break c }
         await task.yieldNow()
     }
     let mut got = Array.empty[u8]()

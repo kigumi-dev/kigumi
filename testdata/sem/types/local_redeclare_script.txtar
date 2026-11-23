@@ -1,0 +1,14 @@
+-- src --
+let x = 1
+let x = 2 //~ ERROR `x` is already bound in this scope
+let _ = 3
+let _ = 4
+print "${x}"
+-- expect --
+error[E258]: `x` is already bound in this scope
+ --> main/main.kg:2:5
+  |
+2 | let x = 2 //~ ERROR `x` is already bound in this scope
+  |     ^
+  = help: rename it or move the binding into an inner block to shadow the earlier one
+

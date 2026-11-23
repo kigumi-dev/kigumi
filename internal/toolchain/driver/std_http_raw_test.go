@@ -25,9 +25,9 @@ fn echo(req: http.Request) -> http.Response! {
 }
 
 async fn watch(control: net.Listener, stop: http.Shutdown) -> Void! {
-    let mut control = control
+    let mut acceptor = control
     for true {
-        if control.pollAccept()? is Some(_) {
+        if acceptor.pollAccept()? is Some(_) {
             stop.request()
             return
         }

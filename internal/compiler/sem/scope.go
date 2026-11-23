@@ -30,11 +30,14 @@ type Scope struct {
 	File   FileID
 	Fn     EntityID
 	Loop   bool
+	// Params marks a scope declaring callable parameters; that scope and the
+	// outermost block of its body are one declaration scope for E258.
+	Params bool
 	Names  map[string]Binding
 }
 
 func (r *Result) newScope(kind ScopeKind, parent ScopeID, file FileID, node syntax.NodeID) ScopeID {
-	s := Scope{Kind: kind, Parent: parent, File: file, Node: node, Names: map[string]Binding{}}
+	s := Scope{Kind: kind, Parent: parent, File: file, Node: node, Params: kind == ScopeFn || kind == ScopeLambda, Names: map[string]Binding{}}
 	if parent != 0 {
 		s.Fn = r.Scopes[parent].Fn
 	}

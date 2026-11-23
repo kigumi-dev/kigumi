@@ -110,9 +110,9 @@ async fn writeAll(conn: &mut net.Conn, data: Bytes) -> Bool! {
 
 // Answers one connection with reply after its request head; with junk it then sends a 1 KB header line every 5 ms until stop.
 async fn canned(listener: net.Listener, reply: String, junk: Bool, stop: http.Shutdown) -> Void! {
-    let mut listener = listener
+    let mut srv = listener
     let mut conn = for {
-        if listener.pollAccept()? is Some(c) {
+        if srv.pollAccept()? is Some(c) {
             break c
         }
         await task.yieldNow()
@@ -175,7 +175,7 @@ fn client(n: net.Net, timeout: i64, maxHead: usize) -> http.Client {
 }
 
 async fn root(n: net.Net, listener: net.Listener, peers: Array[net.Listener]) -> Void! {
-    let mut peers = peers
+    let mut listeners = peers
     let port = listener.port()
     let mut server = http.Server.new(http.Router.new().get("/one", slow).get("/two", target).get("/", target).handler(), (line) => print "log: ${line}")
     server.limits.readTimeoutMillis = 600000
@@ -206,16 +206,16 @@ async fn root(n: net.Net, listener: net.Listener, peers: Array[net.Listener]) ->
     let fragmentR = (await quick.get("${base}#only"))?
     print "fragment: ${fragmentR.text()?}"
 
-    (await tryCanned(peers.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 099 Odd\r\nContent-Length: 0\r\n\r\n", false, client(n, 600000, 65536)))?
-    (await tryCanned(peers.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 600 Odd\r\nContent-Length: 0\r\n\r\n", false, client(n, 600000, 65536)))?
-    (await tryCanned(peers.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 200 OK\r\n", true, client(n, 600000, 4096)))?
-    (await tryCanned(peers.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 200 OK\r\n", true, client(n, 300, 16777216)))?
-    (await tryCanned(peers.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n3;x\r\nabc\r\n2\r\nde\r\n0\r\nT: 1\r\n\r\n", false, client(n, 600000, 65536)))?
-    (await tryCanned(peers.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 100 Continue\r\n\r\nHTTP/1.1 204 No Content\r\n\r\n", false, client(n, 600000, 65536)))?
+    (await tryCanned(listeners.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 099 Odd\r\nContent-Length: 0\r\n\r\n", false, client(n, 600000, 65536)))?
+    (await tryCanned(listeners.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 600 Odd\r\nContent-Length: 0\r\n\r\n", false, client(n, 600000, 65536)))?
+    (await tryCanned(listeners.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 200 OK\r\n", true, client(n, 600000, 4096)))?
+    (await tryCanned(listeners.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 200 OK\r\n", true, client(n, 300, 16777216)))?
+    (await tryCanned(listeners.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n3;x\r\nabc\r\n2\r\nde\r\n0\r\nT: 1\r\n\r\n", false, client(n, 600000, 65536)))?
+    (await tryCanned(listeners.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 100 Continue\r\n\r\nHTTP/1.1 204 No Content\r\n\r\n", false, client(n, 600000, 65536)))?
 
-    (await unframed(peers.takeAt(0) || fail http.failure(500, "no listener"), n))?
-    (await stalled(n, peers.takeAt(0) || fail http.failure(500, "no listener")))?
-    (await capped(n, peers.takeAt(0) || fail http.failure(500, "no listener")))?
+    (await unframed(listeners.takeAt(0) || fail http.failure(500, "no listener"), n))?
+    (await stalled(n, listeners.takeAt(0) || fail http.failure(500, "no listener")))?
+    (await capped(n, listeners.takeAt(0) || fail http.failure(500, "no listener")))?
 
     stop.request()
     (await running)?
