@@ -57,34 +57,15 @@ func (s Session) LoadReport(target string, test bool) (*driver.Module, error) {
 }
 
 func (s Session) load(target string, test, deferParse, whole, report bool, errOut io.Writer) (*driver.Module, error) {
-	root, entry := target, ""
-	if strings.HasSuffix(target, ".kg") {
-		if _, err := os.Stat(target); err != nil {
-			return nil, errors.WrapErrf(err, "load module %s", target)
-		}
-	} else {
-		st, err := os.Stat(target)
-		if err != nil {
-			return nil, errors.WrapErrf(err, "load module %s", target)
-		}
-		if !st.IsDir() {
-			return nil, &exit.ValueError{Err: errors.NewErrf("%s is not a .kg file or a directory", target)}
-		}
-		target = packageEntry(target)
-	}
-	if strings.HasSuffix(target, ".kg") {
-		root = moduleRoot(target)
-		rel, err := filepath.Rel(root, target)
-		if err != nil {
-			return nil, errors.WrapErr(err, "resolve entry file")
-		}
-		entry = filepath.ToSlash(rel)
+	root, entry, scriptOnly, err := resolveTarget(target)
+	if err != nil {
+		return nil, err
 	}
 	tgt, err := s.Target()
 	if err != nil {
 		return nil, &exit.ValueError{Err: err}
 	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: s.StdRoot(), Test: test, Entry: entry, NoLocal: s.NoLocal || LocalOff(), Target: tgt, Policy: s.Policy(), ZigPath: ZigPath(), ZigHome: ZigHome(), Offline: s.Offline, VerifyPasses: VerifyPasses(), Compiler: CompilerOptions(), PackageCache: PackageCache(), DeferParse: deferParse, UnitCheck: deferParse && UnitCheck(), NoSettled: !UnitCheck(), LazyStd: UnitCheck(), AllOwnPackages: whole})
+	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: s.StdRoot(), Test: test, Entry: entry, ScriptOnly: scriptOnly, NoLocal: s.NoLocal || LocalOff(), Target: tgt, Policy: s.Policy(), ZigPath: ZigPath(), ZigHome: ZigHome(), Offline: s.Offline, VerifyPasses: VerifyPasses(), Compiler: CompilerOptions(), PackageCache: PackageCache(), DeferParse: deferParse, UnitCheck: deferParse && UnitCheck(), NoSettled: !UnitCheck(), LazyStd: UnitCheck(), AllOwnPackages: whole})
 	if err != nil {
 		return nil, errors.WrapErrf(err, "load module %s", root)
 	}
@@ -97,6 +78,91 @@ func (s Session) load(target string, test, deferParse, whole, report bool, errOu
 		}
 	}
 	return m, nil
+}
+
+// resolveTarget maps a command target to the module root, the root-relative entry file and whether it is a
+// manifest-less script. A mod.kg module keeps package=directory; outside one, only the selected script file is a
+// package file, so its siblings never join its package.
+func resolveTarget(target string) (root, entry string, scriptOnly bool, err error) {
+	st, err := os.Stat(target)
+	if err != nil {
+		return "", "", false, errors.WrapErrf(err, "load module %s", target)
+	}
+	if st.IsDir() {
+		return resolveDirTarget(target)
+	}
+	if !strings.HasSuffix(target, ".kg") {
+		return "", "", false, &exit.ValueError{Err: errors.NewErrf("%s is not a .kg file or a directory", target)}
+	}
+	return resolveFileTarget(target)
+}
+
+// resolveFileTarget keeps a file under a mod.kg in that module; otherwise it is a script rooted where moduleRoot
+// puts it, compiled on its own.
+func resolveFileTarget(target string) (string, string, bool, error) {
+	root := moduleRoot(target)
+	rel, err := filepath.Rel(root, target)
+	if err != nil {
+		return "", "", false, errors.WrapErr(err, "resolve entry file")
+	}
+	_, hasMod := manifestRoot(filepath.Dir(target))
+	return root, filepath.ToSlash(rel), !hasMod, nil
+}
+
+// resolveDirTarget picks a directory's entry. Inside a module a package directory names main.kg or its only .kg
+// file, as before. A manifest-less directory selects main.kg or its only script, and an ambiguous one is an error
+// that asks for the file (or a mod.kg) rather than compiling every sibling.
+func resolveDirTarget(dir string) (string, string, bool, error) {
+	if _, hasMod := manifestRoot(dir); !hasMod && !module.IsModuleRoot(dir) {
+		entry, err := scriptEntry(dir)
+		if err != nil {
+			return "", "", false, err
+		}
+		if entry != "" {
+			return dir, entry, true, nil
+		}
+		// No .kg of its own: keep the package walk over subdirectories, as before.
+		return dir, "", false, nil
+	}
+	target := packageEntry(dir)
+	if !strings.HasSuffix(target, ".kg") {
+		return target, "", false, nil
+	}
+	root := moduleRoot(target)
+	rel, err := filepath.Rel(root, target)
+	if err != nil {
+		return "", "", false, errors.WrapErr(err, "resolve entry file")
+	}
+	return root, filepath.ToSlash(rel), false, nil
+}
+
+// scriptEntry names the one entry file directly in a manifest-less directory: main.kg first, else the only .kg
+// that is a package file. "" means the directory has no package file of its own; several without main.kg return
+// the ambiguity error.
+func scriptEntry(dir string) (string, error) {
+	names, err := filepath.Glob(filepath.Join(dir, "*.kg"))
+	if err != nil {
+		return "", err
+	}
+	var files []string
+	for _, name := range names {
+		if module.IsManifest(filepath.Base(name)) || filepath.Base(name) == driver.BuildFileName {
+			continue
+		}
+		files = append(files, name)
+	}
+	for _, name := range files {
+		if filepath.Base(name) == "main.kg" {
+			return filepath.Base(name), nil
+		}
+	}
+	switch len(files) {
+	case 0:
+		return "", nil
+	case 1:
+		return filepath.Base(files[0]), nil
+	}
+	return "", &exit.ValueError{Err: errors.NewErrf("%s has several .kg files and no main.kg; pass one file, or add mod.kg to make the directory a module", dir)}
 }
 
 // packageEntry turns a package directory inside a module (`cmd/app`) into main.kg or its only .kg file; anything else

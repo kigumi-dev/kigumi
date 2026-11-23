@@ -18,6 +18,11 @@ type LoadOptions struct {
 	// Entry names the entry file (root-relative); empty selects the script
 	// file of a package under cmd/.
 	Entry string
+	// ScriptOnly makes a manifest-less load compile exactly Entry and nothing
+	// else: the sibling .kg files of its directory are not package files, so
+	// they are never indexed, parsed or checked. A module with mod.kg ignores
+	// it; its packages stay one directory each.
+	ScriptOnly bool
 	// NoDeps leaves required modules out (manifest tooling that must work
 	// before `kigumi get`).
 	NoDeps bool
@@ -93,6 +98,7 @@ type LoadOptions struct {
 func (m *Module) loadOptions() LoadOptions {
 	return LoadOptions{
 		StdRoot:      m.opts.StdRoot,
+		ScriptOnly:   m.opts.ScriptOnly,
 		NoLocal:      m.opts.NoLocal,
 		Target:       m.target,
 		ZigPath:      m.opts.ZigPath,

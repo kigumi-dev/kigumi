@@ -1,6 +1,7 @@
 package driver
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -9,7 +10,7 @@ import (
 	"kigumi/internal/toolchain/policy"
 )
 
-// loadModule indexes every package under root and the std stubs, then parses the packages the root set reaches. Parse diagnostics stay on each Tree; loading itself only fails on I/O.
+// loadModule indexes every package under root (or, under ScriptOnly, only the entry file) and the std stubs, then parses the packages the root set reaches. Parse diagnostics stay on each Tree; loading itself only fails on I/O.
 func loadModule(root string, opts LoadOptions) (*Module, error) {
 	m := &Module{Root: root, Entry: opts.Entry, ExplicitEntry: opts.Entry != "", overlay: opts.Overlay, Packages: map[string]*Package{}, local: module.Local{Replaces: map[string]string{}}, target: opts.Target, deny: opts.Deny, ceiling: opts.Ceiling, artifactName: opts.ArtifactName, explicitZig: opts.ZigPath, zigHome: opts.ZigHome, zigIndexURL: opts.ZigIndexURL, zigPublicKey: opts.ZigPublicKey, offline: opts.Offline, zigNotice: opts.ZigNotice, verifyPasses: opts.VerifyPasses, rootDirs: opts.RootDirs, rootImports: opts.RootImports, allPackages: opts.AllPackages, allOwn: opts.AllOwnPackages, deferred: opts.DeferParse, unitCheck: opts.UnitCheck, lazyStd: opts.LazyStd, test: opts.Test, keyEntry: opts.Entry, keyExplicit: opts.Entry != "", fileOrder: opts.FileOrder, compiler: opts.Compiler, opts: opts, headers: headerLibc{opts: opts}}
 	m.index = newPkgIndex(opts.PackageCache, root, opts.Compiler, time.Now)
@@ -25,9 +26,20 @@ func loadModule(root string, opts LoadOptions) (*Module, error) {
 		return nil, err
 	}
 	m.Name, m.Manifest = mf.Name, mf
-	skip := m.skipper(root, opts)
-	if err := m.indexTree(root, m.Name, false, opts.Test, skip); err != nil {
-		return nil, err
+	// A mod.kg always keeps package=directory; ScriptOnly is only for a manifest-less load.
+	m.scriptOnly = opts.ScriptOnly && !hasMod
+	if m.scriptOnly && opts.Entry == "" {
+		return nil, fmt.Errorf("a script-only load needs an entry file")
+	}
+	if m.scriptOnly {
+		if err := m.indexScript(root, opts.Entry); err != nil {
+			return nil, err
+		}
+	} else {
+		skip := m.skipper(root, opts)
+		if err := m.indexTree(root, m.Name, false, opts.Test, skip); err != nil {
+			return nil, err
+		}
 	}
 	// A script's manifest records live in a parsed file; a module's manifest is mod.kg.
 	if !m.deferred || !hasMod {
