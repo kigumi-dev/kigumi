@@ -42,14 +42,14 @@ func (p *printer) emptyBlock(id syntax.NodeID) {
 	p.write("{")
 	p.openBraceComment(p.firstTok(id))
 	p.indent++
-	p.flushComments(closing)
+	p.flushDocComments(closing)
 	p.indent--
 	p.write("}")
 }
 
 func (p *printer) hasCommentBefore(limit uint32) bool {
 	for i := p.cm.next; i < int(limit) && i < len(p.t.Toks); i++ {
-		if k := p.t.Toks[i].Kind; k == token.Comment || k == token.BlockComment {
+		if k := p.t.Toks[i].Kind; k == token.Comment || k == token.BlockComment || k == token.DocComment {
 			return true
 		}
 	}

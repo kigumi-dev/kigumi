@@ -47,7 +47,7 @@ func (p *printer) commentsOrEmpty(open, closing uint32) {
 	p.write("{")
 	p.openBraceComment(open)
 	p.indent++
-	p.flushComments(closing)
+	p.flushDocComments(closing)
 	p.indent--
 	p.write("}")
 }

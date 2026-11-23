@@ -104,7 +104,7 @@ func (p *printer) blankBefore(i int) bool {
 
 func (p *printer) peekTrailing(afterTok uint32) string {
 	i := int(afterTok) + 1
-	if i < len(p.t.Toks) && (p.t.Toks[i].Kind == token.Comment || p.t.Toks[i].Kind == token.BlockComment) && i >= p.cm.next {
+	if i < len(p.t.Toks) && (p.t.Toks[i].Kind == token.Comment || p.t.Toks[i].Kind == token.BlockComment || p.t.Toks[i].Kind == token.DocComment) && i >= p.cm.next {
 		return p.t.Toks[i].Text(p.t.File.Src)
 	}
 	return ""

@@ -30,9 +30,17 @@ func (p *parser) block() NodeID {
 }
 
 func (p *parser) stmt() NodeID {
+	var docs bool
 	for p.at(token.DocComment) {
 		p.advance()
 		p.skipNewlines()
+		docs = true
+	}
+	if docs && (p.at(token.RBrace) || p.at(token.EOF)) {
+		// Doc comments left over before the closing brace belong to no
+		// statement; leave the trivia in the token stream so the formatter
+		// keeps it instead of reporting a missing expression.
+		return 0
 	}
 	switch {
 	case p.at(token.KwLet):

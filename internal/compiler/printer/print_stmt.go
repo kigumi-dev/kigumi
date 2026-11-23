@@ -18,11 +18,11 @@ func (p *printer) block(id syntax.NodeID) {
 		if c.Index() > 0 && p.blankBefore(int(p.firstTok(s))) {
 			p.blank()
 		}
-		p.flushComments(p.firstTok(s))
+		p.flushDocComments(p.firstTok(s))
 		p.withIndent(func() { p.stmt(s) })
 		p.endLine(s)
 	}
-	p.flushComments(p.closingBrace(id))
+	p.flushDocComments(p.closingBrace(id))
 	p.indent--
 	p.write("}")
 }

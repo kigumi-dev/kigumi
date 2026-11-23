@@ -35,13 +35,29 @@ func (s *shellParser) errorf(start int, msg string) {
 
 func (s *shellParser) plan(tok uint32) NodeID {
 	var cmds []NodeID
+	afterPipe := false
+	pipe := 0
 	for {
-		cmds = append(cmds, s.command(tok))
+		s.skipSpace()
+		stage := s.pos
+		cmd, empty := s.command(tok)
+		cmds = append(cmds, cmd)
 		s.skipSpace()
 		c, n, _ := s.at(s.pos)
 		if c != '|' {
+			if empty && afterPipe {
+				if stage >= s.end {
+					stage = pipe
+				}
+				s.errorf(stage, "pipeline stage needs a command")
+			}
 			break
 		}
+		if empty {
+			s.errorf(stage, "pipeline stage needs a command")
+		}
+		afterPipe = true
+		pipe = s.pos
 		if next, m, _ := s.at(s.pos + n); next == '|' {
 			s.errorf(s.pos, "`||` is not part of the portable shell dialect")
 			n += m
@@ -60,7 +76,7 @@ func (s *shellParser) skipSpace() {
 	}
 }
 
-func (s *shellParser) command(tok uint32) NodeID {
+func (s *shellParser) command(tok uint32) (NodeID, bool) {
 	var parts []NodeID
 	for {
 		s.skipSpace()
@@ -71,7 +87,7 @@ func (s *shellParser) command(tok uint32) NodeID {
 		next, m, _ := s.at(s.pos + n)
 		switch {
 		case c == '|':
-			return s.p.tree.addList(ShellCmd, tok, parts)
+			return s.p.tree.addList(ShellCmd, tok, parts), len(parts) == 0
 		case c == '&' && next == '&':
 			s.errorf(s.pos, "`&&` is not part of the portable shell dialect")
 			s.pos += n + m
@@ -89,7 +105,7 @@ func (s *shellParser) command(tok uint32) NodeID {
 			}
 		}
 	}
-	return s.p.tree.addList(ShellCmd, tok, parts)
+	return s.p.tree.addList(ShellCmd, tok, parts), len(parts) == 0
 }
 
 func (s *shellParser) isRedirectAfterDigits() bool {
@@ -148,7 +164,7 @@ func (s *shellParser) redirect(tok uint32) NodeID {
 		}
 	}
 	s.skipSpace()
-	if c, n, _ = s.at(s.pos); n == 0 || c == '|' {
+	if c, n, _ = s.at(s.pos); n == 0 || isShellBreak(c) {
 		s.errorf(start, "redirect needs a target")
 		return s.p.tree.addRec(ShellRedirect, tok, []uint32{op, fd, 0})
 	}
