@@ -96,7 +96,28 @@ func (r *Result) constBinary(f FileID, n syntax.NodeID, op token.Kind, a, b cons
 	if a.Kind == constString && b.Kind == constString && (op == token.EqEq || op == token.NotEq) {
 		return constValue{Kind: constBool, Bool: (a.Str == b.Str) == (op == token.EqEq)}, true
 	}
+	if a.Kind == constChar && b.Kind == constChar {
+		switch op {
+		case token.EqEq, token.NotEq, token.Lt, token.LtEq, token.Gt, token.GtEq:
+			return constValue{Kind: constBool, Bool: compareResult(op, cmpRune(a.Char, b.Char))}, true
+		}
+	}
+	if a.Kind == constBytes && b.Kind == constBytes && (op == token.EqEq || op == token.NotEq) {
+		return constValue{Kind: constBool, Bool: (a.Str == b.Str) == (op == token.EqEq)}, true
+	}
 	return fail()
+}
+
+// cmpRune compares Char values by scalar value, the order the runtime's
+// Char.compareTo and its comparison operators use.
+func cmpRune(a, b rune) int {
+	switch {
+	case a < b:
+		return -1
+	case a > b:
+		return 1
+	}
+	return 0
 }
 
 // floatPrec is the mantissa width the declared float type keeps; an untyped expression defaults to Float.

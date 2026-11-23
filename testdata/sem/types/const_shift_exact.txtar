@@ -45,7 +45,7 @@ fn main() {
     let lc = comptime ((1 << 70) >> C65)
     let x: Int = -(1 << 70) >> 10
     let t: Int = (~(1 << 70)) >> 65
-    let b = (1 << 70) > (1 << 69)
-    print "${V} ${W} ${CV} ${lc} ${x} ${t} ${b}"
+    let gt = (1 << 70) > (1 << 69)
+    print "${V} ${W} ${CV} ${lc} ${x} ${t} ${gt}"
 }
 -- expect --

@@ -2,6 +2,7 @@ package vm
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"strings"
 
@@ -50,6 +51,25 @@ type ComptimeFailure struct {
 
 func (e *ComptimeFailure) Error() string { return e.Msg }
 
+// NonFiniteError reports a comptime result that no constant literal can hold:
+// float literals are finite, so NaN and ±Inf are refused at the fold boundary
+// rather than reaching big.NewFloat, whose NaN contract is a panic. A NaN used
+// only inside the block to compute a finite or Bool result never gets here.
+// FieldPath names the record field that held the value, "" for the result.
+type NonFiniteError struct {
+	Type      string
+	Value     string
+	FieldPath string
+}
+
+func (e *NonFiniteError) Error() string {
+	where := ""
+	if e.FieldPath != "" {
+		where = " in field `" + e.FieldPath + "`"
+	}
+	return fmt.Sprintf("comptime produced %s%s, which is not a finite `%s` constant", e.Value, where, e.Type)
+}
+
 // EvalComptime runs one comptime block in the sandbox and returns the
 // literal it produced; output the block printed is discarded.
 func EvalComptime(prog *mir.Program, cf *mir.ComptimeFunc) (lit sem.Literal, err error) {
@@ -89,6 +109,12 @@ func (c *byteCounter) Write(p []byte) (int, error) {
 }
 
 func (m *Machine) literalOf(v *obj, t sem.TypeID) (sem.Literal, error) {
+	return m.literalOfAt(v, t, "")
+}
+
+// literalOfAt is literalOf carrying the path to a value nested in the result,
+// so a non-finite record field is named in its diagnostic.
+func (m *Machine) literalOfAt(v *obj, t sem.TypeID, path string) (sem.Literal, error) {
 	v = deref(v)
 	switch v.k {
 	case kInt:
@@ -97,6 +123,9 @@ func (m *Machine) literalOf(v *obj, t sem.TypeID) (sem.Literal, error) {
 		}
 		return sem.Literal{Kind: sem.LitInt, Int: big.NewInt(v.i)}, nil
 	case kFloat:
+		if f := v.fl(); math.IsNaN(f) || math.IsInf(f, 0) {
+			return sem.Literal{}, &NonFiniteError{Type: m.r.TypeString(t), Value: m.display(v), FieldPath: path}
+		}
 		return sem.Literal{Kind: sem.LitFloat, Float: big.NewFloat(v.fl())}, nil
 	case kBool:
 		return sem.Literal{Kind: sem.LitBool, Bool: v.b}, nil
@@ -113,7 +142,12 @@ func (m *Machine) literalOf(v *obj, t sem.TypeID) (sem.Literal, error) {
 		}
 		out := sem.Literal{Kind: sem.LitRecord}
 		for i, f := range fields {
-			fl, err := m.literalOf(v.fields[i], m.r.Entity(f).Type)
+			name := m.r.Entity(f).Name
+			fieldPath := name
+			if path != "" {
+				fieldPath = path + "." + name
+			}
+			fl, err := m.literalOfAt(v.fields[i], m.r.Entity(f).Type, fieldPath)
 			if err != nil {
 				return fl, err
 			}

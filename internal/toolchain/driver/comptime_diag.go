@@ -20,6 +20,20 @@ func comptimeDiag(res *sem.Result, ce vm.ComptimeError) diag.Diagnostic {
 	}
 	var fail *vm.ComptimeFailure
 	if !errors.As(ce.Err, &fail) {
+		var nonFinite *vm.NonFiniteError
+		if errors.As(ce.Err, &nonFinite) {
+			where := ""
+			if nonFinite.FieldPath != "" {
+				where = " in field `" + nonFinite.FieldPath + "`"
+			}
+			code, _ := sem.CodeByName("comptime-nonfinite")
+			d := diag.Errorf(loc, sem.FillTemplate(code.Template, nonFinite.Value, where, nonFinite.Type))
+			d.Code = code.Num
+			if code.Help != "" {
+				d = d.WithHelp(code.Help)
+			}
+			return d
+		}
 		return diag.Errorf(loc, "comptime: "+ce.Err.Error())
 	}
 	name, args := "comptime-panic", []any{fail.Msg}
