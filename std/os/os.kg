@@ -10,7 +10,10 @@ import shell from std/shell
 @unsafeGuarantee(Copy, Send, Sync)
 pub type Host
 
-/// Command line arguments; index 0 is the program path.
+/// Command line arguments in the same layout as Go's `os.Args`: index 0 is the launch target
+/// (the entry's argv[0], not necessarily a filesystem path) and user arguments start at index 1.
+/// `len()` therefore counts index 0 as well. `toArray()` is the explicit conversion to an owned
+/// `Array[OsString]` with the same order and exact bytes.
 /// Safety: a read-only view of the process argv; duplicating or sharing it touches nothing.
 @unsafeGuarantee(Copy, Send, Sync)
 pub type Args
@@ -18,10 +21,14 @@ pub type Args
 /// Shell for running external commands.
 pub fn Host.shell(self) -> shell.Shell
 
-/// Command line arguments of the process.
+/// Command line arguments of the process: index 0 is the launch target and user arguments
+/// start at index 1. `kigumi run <target> ...` stores the CLI target token at 0; a native
+/// build stores argv[0]; `kigumi test` has no arguments; the REPL uses `"kgsh"`.
+/// Use `Args.toArray()` to take an owned copy, for example to append arguments to an array.
 pub fn Host.args(self) -> Args
 
 /// Argument at index, or None when there are fewer arguments or it is not valid UTF-8;
+/// index 0 is the launch target, so the first user argument is at index 1.
 /// `getOsString` keeps every argument and tells the two cases apart.
 pub pure noalloc fn Args.get(self, index: usize) -> String?
 
@@ -34,6 +41,21 @@ pub pure fn Args.getOsString(self, index: usize) -> OsString? {
         Some(bytes) -> Some(OsString.fromUnixBytes(bytes))
         None -> None
     }
+}
+
+/// The whole argument list as an owned array in index order, index 0 (the launch target)
+/// included; every element keeps the exact bytes the OS passed, invalid UTF-8 and all.
+/// The array is independent of the process argument view and always has `self.len()` items,
+/// so it is empty when there are no arguments, as in `kigumi test`.
+pub fn Args.toArray(self) -> Array[OsString] {
+    let n = self.len()
+    let mut out = Array.tryWithCapacity[OsString](n) || panic("out of memory")
+    let mut i: usize = 0
+    for i < n {
+        out.push(self.getOsString(i) || panic("argument vanished during conversion"))
+        i += 1
+    }
+    out
 }
 
 /// Value of the environment variable name exactly as the OS holds it,
@@ -59,7 +81,8 @@ pub type Stdin
 /// Standard input.
 pub fn Host.stdin(self) -> Stdin
 
-/// Number of arguments, the program path included.
+/// Number of arguments, index 0 (the launch target) included; zero when there are no arguments,
+/// as in `kigumi test`.
 pub pure noalloc fn Args.len(self) -> usize
 
 /// Standard output of the process, obtained from `host.stdout()`.

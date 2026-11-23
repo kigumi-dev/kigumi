@@ -69,7 +69,7 @@ fn Parser.fromTokens(name: String, toks: Array[Bytes], errors: Array[ParseError]
     }
 }
 
-/// A parser for argv, the arguments after the program name; the strings are copied, so argv stays usable.
+/// A parser for a raw argument vector, index 0 included; the strings are copied, so argv stays usable.
 pub fn Parser.new(name: String, argv: &Array[os.OsString], about: String = "") -> Parser {
     let mut toks = Array.empty[Bytes]()
     let mut errors = Array.empty[ParseError]()
@@ -87,7 +87,7 @@ pub fn Parser.new(name: String, argv: &Array[os.OsString], about: String = "") -
     Parser.fromTokens(name, toks, errors, about)
 }
 
-/// A parser for the process arguments; index 0 of `args` is the program path and is not read as an argument.
+/// A parser for the process arguments; index 0 is the launch target and is not read as an argument.
 pub fn Parser.fromArgs(name: String, args: os.Args) -> Parser {
     Parser.fromArgs(name, args, "")
 }

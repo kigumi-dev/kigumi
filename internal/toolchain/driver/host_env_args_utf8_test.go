@@ -5,7 +5,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"testing"
+	"unicode/utf8"
 
 	"kigumi/internal/toolchain/driver"
 )
@@ -174,6 +176,122 @@ func TestHostEnvArgsLosslessOsString(t *testing.T) {
 			}
 			if out.String() != tc.want {
 				t.Errorf("native stdout = %q, want %q", out.String(), tc.want)
+			}
+		})
+	}
+}
+
+const argsToArraySrc = `fn show(index: usize, arg: &os.OsString) -> String {
+    let bytes = arg.toUnixBytes()
+    let mut out = "arg ${index} unicode=${arg.isUnicode()} bytes="
+    let mut i: usize = 0
+    for i < bytes.len() {
+        let sep = if i == 0 { "" } else { "," }
+        out = "${out}${sep}${bytes[i].toInt()}"
+        i += 1
+    }
+    out
+}
+let argv = host.args().toArray()
+print "len=${argv.len()}"
+let mut i: usize = 0
+for arg in argv {
+    print show(i, &arg)
+    i += 1
+}
+`
+
+// argsToArrayText renders the same lines argsToArraySrc prints, from the argv
+// the OS would hand the process. Bytes are decimal so exact bytes are pinned,
+// invalid UTF-8 included.
+func argsToArrayText(args []string) string {
+	var b bytes.Buffer
+	b.WriteString("len=")
+	b.WriteString(strconv.Itoa(len(args)))
+	b.WriteByte('\n')
+	for i, a := range args {
+		b.WriteString("arg ")
+		b.WriteString(strconv.Itoa(i))
+		b.WriteString(" unicode=")
+		b.WriteString(strconv.FormatBool(utf8.ValidString(a)))
+		b.WriteString(" bytes=")
+		for k := range a {
+			if k > 0 {
+				b.WriteByte(',')
+			}
+			b.WriteString(strconv.Itoa(int(a[k])))
+		}
+		b.WriteByte('\n')
+	}
+	return b.String()
+}
+
+// TestArgsToArray covers the explicit Args -> Array[OsString] conversion:
+// index 0 stays the launch target, ordinary and empty argument lists keep their
+// shape, and an argv entry that is not valid UTF-8 survives byte for byte.
+func TestArgsToArray(t *testing.T) {
+	std, _ := filepath.Abs("../../../std")
+	root := t.TempDir()
+	os.MkdirAll(filepath.Join(root, "main"), 0o755)
+	os.WriteFile(filepath.Join(root, "main/main.kg"), []byte("import os from std/os\n"+argsToArraySrc), 0o644)
+
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Entry: "main/main.kg"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	invalidUTF8 := string([]byte{0xff, 0xfe, 0xfd})
+	ordinary := []string{"main/main.kg", "hi", "--flag"}
+
+	t.Run("vm", func(t *testing.T) {
+		cases := []struct {
+			name string
+			args []string
+		}{
+			{"ordinary", ordinary},
+			{"empty", nil},
+			{"invalid_utf8", []string{"main/main.kg", invalidUTF8}},
+		}
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				var out, errOut bytes.Buffer
+				code, err := driver.RunWith(m, driver.RunOptions{}, &out, &errOut, tc.args)
+				if err != nil || code != 0 {
+					t.Fatalf("vm: err %v exit %d\nstderr: %s", err, code, errOut.String())
+				}
+				if want := argsToArrayText(tc.args); out.String() != want {
+					t.Errorf("vm stdout = %q, want %q", out.String(), want)
+				}
+			})
+		}
+	})
+
+	if testCompiler().CCompiler() == nil {
+		t.Skip("no C compiler")
+	}
+	exe := filepath.Join(t.TempDir(), "prog")
+	var buildErr bytes.Buffer
+	if ok, err := testBuild(m, exe, &buildErr); err != nil || !ok {
+		t.Fatalf("build: %v\n%s", err, buildErr.String())
+	}
+	cases := []struct {
+		name string
+		args []string
+	}{
+		{"ordinary", []string{"hi", "--flag"}},
+		{"invalid_utf8", []string{invalidUTF8}},
+	}
+	for _, tc := range cases {
+		t.Run("native/"+tc.name, func(t *testing.T) {
+			cmd := exec.Command(exe, tc.args...)
+			cmd.Dir = t.TempDir()
+			var out, errOut bytes.Buffer
+			cmd.Stdout, cmd.Stderr = &out, &errOut
+			if err := cmd.Run(); err != nil {
+				t.Fatalf("run: %v\nstderr: %s", err, errOut.String())
+			}
+			// A native build receives its own executable path at argv[0].
+			if got, want := out.String(), argsToArrayText(append([]string{exe}, tc.args...)); got != want {
+				t.Errorf("native stdout = %q, want %q", got, want)
 			}
 		})
 	}
