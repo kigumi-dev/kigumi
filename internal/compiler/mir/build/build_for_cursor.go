@@ -8,9 +8,15 @@ import (
 )
 
 type forCursor interface {
-	test(n syntax.NodeID) midir.LocalID
+	test(n syntax.NodeID, exit midir.BlockID) midir.LocalID
 	elem(n syntax.NodeID) midir.LocalID
 	advance(n syntax.NodeID, cond, exit midir.BlockID)
+}
+
+// elemAlways marks a cursor whose elem must run even for a `_` pattern: a
+// user-defined iterator consumes its `Option` there.
+type elemAlways interface {
+	needsElem() bool
 }
 
 func (b *builder) forCursorFor(e *hir.Expr) forCursor {
@@ -21,6 +27,9 @@ func (b *builder) forCursorFor(e *hir.Expr) forCursor {
 		if n := b.r.Types.Node(e.Cond.Type); n.Kind == sem.KNamed && n.Ent == rng {
 			return b.valueRangeCursor(e)
 		}
+	}
+	if e.IterEnt != 0 {
+		return b.protocolCursor(e)
 	}
 	return b.indexCursor(e)
 }
@@ -65,7 +74,7 @@ func (b *builder) indexCursor(e *hir.Expr) *indexCursor {
 	return c
 }
 
-func (c *indexCursor) test(n syntax.NodeID) midir.LocalID {
+func (c *indexCursor) test(n syntax.NodeID, _ midir.BlockID) midir.LocalID {
 	return c.b.emit(midir.Inst{Op: midir.OpBinary, Dst: c.b.temp(sem.TyBool), Str: "<", Args: []midir.LocalID{c.idx, c.length}, Node: n})
 }
 

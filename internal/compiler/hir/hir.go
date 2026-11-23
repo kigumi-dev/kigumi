@@ -108,12 +108,22 @@ type Expr struct {
 	CtxArgs []*Expr
 	// BoxType is the concrete error type a `?` boxes, 0 for none.
 	BoxType sem.TypeID
-	Pat     *Pat
-	Guard   *Expr
-	Arms    []*Arm
-	Entries []*RecordEntry
-	Param   *LocalDecl
-	Fn      *Func
+	// IterEnt, NextEnt and IterType carry a Loop's user-defined iterator
+	// protocol: `iter(self) -> IterType` and `IterType.next(mut self) -> Item?`.
+	// IterEnt is 0 for a built-in loop.
+	IterEnt  sem.EntityID
+	NextEnt  sem.EntityID
+	IterType sem.TypeID
+	// IterCtxArgs and NextCtxArgs are the hidden provider arguments the
+	// protocol's `iter` and `next` calls need.
+	IterCtxArgs []*Expr
+	NextCtxArgs []*Expr
+	Pat         *Pat
+	Guard       *Expr
+	Arms        []*Arm
+	Entries     []*RecordEntry
+	Param       *LocalDecl
+	Fn          *Func
 	// HitLift marks a Fallback whose Coercion lifts the hit value only.
 	HitLift bool
 	Coercion

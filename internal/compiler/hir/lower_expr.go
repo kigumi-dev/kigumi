@@ -45,6 +45,8 @@ func (l *lowerer) exprRaw(n syntax.NodeID) *Expr {
 		out.Name, out.Args = u.Op().Text(), []*Expr{l.expr(u.Operand().ID())}
 		if call, ok := l.info.Calls[n]; ok && call.Kind == sem.CallOperator {
 			out.Ent = call.Callee
+			out.Passes, out.ConstArgs = call.Passes, call.ConstArgs
+			out.CtxArgs = l.ctxCallExprs(n, call.Callee)
 		}
 		return out
 	case syntax.Binary:
@@ -71,6 +73,7 @@ func (l *lowerer) exprRaw(n syntax.NodeID) *Expr {
 			out := l.node(n, MethodCall)
 			out.Ent, out.Args = call.Callee, []*Expr{l.expr(base), l.expr(idx)}
 			out.Witness, out.Passes, out.ConstArgs = call.Witness, call.Passes, call.ConstArgs
+			out.CtxArgs = l.ctxCallExprs(n, call.Callee)
 			out.Async = l.r.Fn(call.Callee).Declared&sem.EffAsync != 0
 			out.IndexWitness = true
 			return out

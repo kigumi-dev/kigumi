@@ -14,6 +14,7 @@ func (l *lowerer) defaultArg(n syntax.NodeID) *Expr {
 	var ofCallee, ofThunk map[sem.EntityID]sem.TypeID
 	out := l.node(n, Call)
 	out.Ent = thunk
+	out.CtxArgs = l.ctxCallExprs(n, thunk)
 	if generic {
 		ofCallee, ofThunk = l.r.InstanceSubst(info.DefaultOf, call.Inst), l.r.InstanceSubst(thunk, call.Inst)
 		out.Passes, out.ConstArgs = call.Passes, call.ConstArgs

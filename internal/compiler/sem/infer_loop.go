@@ -35,6 +35,13 @@ func (c *checker) synthFor(n syntax.NodeID) TypeID {
 		}
 		c.reserveUse(s.Head)
 		c.checkPattern(s.Pattern, elem, false, c.scope)
+		// `for _ in xs` over the name-based protocol discards a non-Copy item
+		// with an OpDrop; a named binding already records its own scope-exit drop.
+		if call, ok := c.info.Calls[n]; ok && call.Kind == CallIterProtocol && c.t.Kind(s.Pattern) == syntax.PatWildcard {
+			if e := c.vars.resolve(elem); e != TyPoison && !c.r.isCopy(e) {
+				c.edge(EffectEdge{Kind: EdgeDrop, Type: e, Node: s.Pattern})
+			}
+		}
 		c.trackLoopPlaces(s.Pattern, s.Head)
 		c.noteLoopAlias(s.Pattern, s.Head)
 		c.taintPatternBindings(s.Pattern, c.restrictedAliasOf(s.Head))

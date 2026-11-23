@@ -110,7 +110,7 @@ func (b *builder) forExpr(e *hir.Expr) midir.LocalID {
 	b.cur = cond
 	switch {
 	case pattern != nil:
-		b.term(midir.Term{Op: midir.TermBranch, Args: []midir.LocalID{cur.test(n)}, Targets: []midir.BlockID{loop, exit}})
+		b.term(midir.Term{Op: midir.TermBranch, Args: []midir.LocalID{cur.test(n, exit)}, Targets: []midir.BlockID{loop, exit}})
 	case head != nil:
 		var c midir.LocalID
 		b.fullExpr(func() { c, headBound, headMoves = b.loopHead(head) })
@@ -122,7 +122,13 @@ func (b *builder) forExpr(e *hir.Expr) midir.LocalID {
 	b.loops = append(b.loops, &loopCtx{cont: next, exit: exit, depth: len(b.scopes), valued: valued, result: result})
 	b.pushScope()
 	b.markGuardMoves(headMoves)
-	if pattern != nil && (pattern.Kind != hir.PatWild || !b.r.IsCopy(pattern.Type)) {
+	needElem := pattern != nil && (pattern.Kind != hir.PatWild || !b.r.IsCopy(pattern.Type))
+	if pattern != nil {
+		if ea, ok := cur.(elemAlways); ok && ea.needsElem() {
+			needElem = true
+		}
+	}
+	if needElem {
 		b.bindPattern(pattern, cur.elem(n))
 	}
 	b.blockExpr(e.Block)

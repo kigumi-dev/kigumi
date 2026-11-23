@@ -1,0 +1,144 @@
+-- src --
+// A user-defined `for` protocol: `iter(self) -> Cursor` runs once, then
+// `Cursor.next(mut self) -> Item?` runs before every iteration. The iterator
+// state is a resource, so its drop must run exactly once on normal exit,
+// break, and return.
+type Count = {
+    pub start Int
+    pub limit Int
+}
+
+type Cursor = resource {
+    mut i Int
+    limit Int
+}
+
+fn Cursor.drop(move self) {
+    print "cursor drop ${self.i}"
+}
+
+fn Count.iter(self) -> Cursor {
+    print "iter"
+    Cursor { i: self.start, limit: self.limit }
+}
+
+fn Cursor.next(mut self) -> Int? {
+    if self.i >= self.limit {
+        None
+    } else {
+        let v = self.i
+        self.i = self.i + 1
+        Some(v)
+    }
+}
+
+fn sum(c: Count) -> Int {
+    let mut s = 0
+    for v in c {
+        s = s + v
+    }
+    s
+}
+
+fn first(c: Count) -> Int {
+    for v in c {
+        return v * 10
+    }
+    0
+}
+
+fn untilBreak(c: Count) -> Int {
+    let mut s = 0
+    for v in c {
+        if v == 2 {
+            break
+        }
+        s = s + v
+    }
+    s
+}
+
+type Item = resource {
+    pub id Int
+}
+
+fn Item.drop(move self) {
+    print "item drop ${self.id}"
+}
+
+type Gen = {
+    pub n Int
+}
+
+type GenCursor = resource {
+    mut i Int
+    limit Int
+}
+
+fn GenCursor.drop(move self) {
+    print "gen drop ${self.i}"
+}
+
+fn Gen.iter(self) -> GenCursor {
+    GenCursor { i: self.n, limit: self.n + 2 }
+}
+
+fn GenCursor.next(mut self) -> Item? {
+    if self.i >= self.limit {
+        None
+    } else {
+        let id = self.i
+        self.i = self.i + 1
+        Some(Item { id: id })
+    }
+}
+
+fn consume(g: Gen) {
+    for item in g {
+        print "item ${item.id}"
+    }
+    print "consume done"
+}
+
+fn discardAll(g: Gen) {
+    for _ in g {}
+}
+
+fn main() {
+    print "sum=${sum(Count { start: 1, limit: 4 })}"
+    print "first=${first(Count { start: 5, limit: 8 })}"
+    print "break=${untilBreak(Count { start: 0, limit: 5 })}"
+    let c = Count { start: 7, limit: 9 }
+    for v in c {
+        print "v=${v}"
+    }
+    print "done"
+    consume(Gen { n: 10 })
+    discardAll(Gen { n: 20 })
+    print "discard done"
+}
+-- stdout --
+iter
+cursor drop 4
+sum=6
+iter
+cursor drop 6
+first=50
+iter
+cursor drop 3
+break=1
+iter
+v=7
+v=8
+cursor drop 9
+done
+item 10
+item drop 10
+item 11
+item drop 11
+gen drop 12
+consume done
+item drop 20
+item drop 21
+gen drop 22
+discard done

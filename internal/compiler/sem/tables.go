@@ -34,6 +34,10 @@ type FileInfo struct {
 	// CtxCall resolves one call's hidden provider arguments, in the
 	// callee's CtxRequires order.
 	CtxCall map[syntax.NodeID][]CtxBind
+	// CtxCallEnt is CtxCall keyed by callee as well, so a node that hosts
+	// several calls (a `for` head's `iter` and `next`) keeps each call's
+	// provider arguments instead of the last edge overwriting the first.
+	CtxCallEnt map[syntax.NodeID]map[EntityID][]CtxBind
 	// CtxProviders maps a `context (...) { }` node to the hidden local
 	// holding each provider expression's one-time evaluated value.
 	CtxProviders map[syntax.NodeID][]EntityID
@@ -133,7 +137,8 @@ const (
 	// EdgeIfaceArg carries an argument's known witnesses (Target) to the
 	// parameter (Param) it binds; root-bridge reachability only.
 	EdgeIfaceArg
-	// EdgeKnownCall is a call to a statically known fn item (Target); root-bridge only.
+	// EdgeKnownCall is a call to a statically known fn item (Target); root-bridge
+	// reachability and operation effects both read it.
 	EdgeKnownCall
 	// EdgeFieldBind binds a call-site argument's known fn (Target) to the
 	// callee's field-param entity (Param); root-bridge reachability only.
@@ -169,6 +174,13 @@ type EffectEdge struct {
 	// Offloaded marks an EdgeCallback whose target runs on a bounded blocking provider's worker, not the
 	// caller's own frame; op_summary_infer merges the target's facts as Offloaded regardless of their own cause.
 	Offloaded bool
+	// ArgRoots and RecvRoot follow caller storage through a call: each entry
+	// is a caller parameter index, argRootLocal for a fresh local, or
+	// argRootUnknown. RecvKnown says RecvRoot was recorded.
+	ArgRoots  [8]int16
+	ArgCount  uint8
+	RecvRoot  int16
+	RecvKnown bool
 }
 
 type BodyRef struct {

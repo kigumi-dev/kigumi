@@ -27,7 +27,7 @@ func (b *builder) valueRangeCursor(e *hir.Expr) *valueRangeCursor {
 	return &valueRangeCursor{b: b, typ: t, cur: field(0, t), hi: field(1, t), inc: field(2, sem.TyBool)}
 }
 
-func (c *valueRangeCursor) test(n syntax.NodeID) midir.LocalID {
+func (c *valueRangeCursor) test(n syntax.NodeID, _ midir.BlockID) midir.LocalID {
 	b := c.b
 	res := b.temp(sem.TyBool)
 	closed, open, join := b.newBlockAt(), b.newBlockAt(), b.newBlockAt()

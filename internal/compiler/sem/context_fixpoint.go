@@ -175,5 +175,14 @@ func (r *Result) resolveCtxFn(fn EntityID) {
 			fi.CtxCall = map[syntax.NodeID][]CtxBind{}
 		}
 		fi.CtxCall[e.ref.Node] = binds
+		if fi.CtxCallEnt == nil {
+			fi.CtxCallEnt = map[syntax.NodeID]map[EntityID][]CtxBind{}
+		}
+		byCallee := fi.CtxCallEnt[e.ref.Node]
+		if byCallee == nil {
+			byCallee = map[EntityID][]CtxBind{}
+			fi.CtxCallEnt[e.ref.Node] = byCallee
+		}
+		byCallee[e.callee] = binds
 	}
 }

@@ -69,14 +69,22 @@ func (b *builder) exprRaw(e *hir.Expr) midir.LocalID {
 	case hir.Unary:
 		v := b.expr(e.Args[0])
 		if e.Ent != 0 {
-			return b.emit(midir.Inst{Op: midir.OpCall, Dst: b.temp(t), Ent: e.Ent, Args: []midir.LocalID{v}, Node: n})
+			args := []midir.LocalID{v}
+			args = append(args, b.witnessArgs(e.Passes, n)...)
+			args = append(args, b.constArgs(e.ConstArgs, n)...)
+			args = append(args, b.ctxArgs(e)...)
+			return b.emit(midir.Inst{Op: midir.OpCall, Dst: b.temp(t), Ent: e.Ent, Args: args, Node: n})
 		}
 		return b.emit(midir.Inst{Op: midir.OpUnary, Dst: b.temp(t), Str: e.Name, Args: []midir.LocalID{v}, Node: n})
 	case hir.Binary:
 		l := b.snapshot(b.expr(e.Args[0]), e.Args[0], e.Args[0].Node, e.Args[1])
 		r := b.expr(e.Args[1])
 		if e.Ent != 0 {
-			return b.emit(midir.Inst{Op: midir.OpCall, Dst: b.temp(t), Ent: e.Ent, Args: []midir.LocalID{l, r}, Node: n})
+			args := []midir.LocalID{l, r}
+			args = append(args, b.witnessArgs(e.Passes, n)...)
+			args = append(args, b.constArgs(e.ConstArgs, n)...)
+			args = append(args, b.ctxArgs(e)...)
+			return b.emit(midir.Inst{Op: midir.OpCall, Dst: b.temp(t), Ent: e.Ent, Args: args, Node: n})
 		}
 		return b.emit(midir.Inst{Op: midir.OpBinary, Dst: b.temp(t), Str: e.Name, Args: []midir.LocalID{l, r}, Node: n})
 	case hir.And:

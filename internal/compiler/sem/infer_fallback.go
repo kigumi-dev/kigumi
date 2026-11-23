@@ -72,15 +72,59 @@ func (c *checker) fallbackParts(n, lhs syntax.NodeID, l TypeID) (v, r TypeID, wi
 	}
 	if set := c.memberSetHere(l, "branch"); set != 0 {
 		branch := c.r.langItem(c.f, n, "Branch")
-		m := c.visibleMembers(set)[0]
-		sig, _, _ := c.instantiateFn(n, m, nil, l)
-		ret := c.vars.resolve(tt.Node(sig).Elem)
-		if c.r.Fn(m).Recv == RecvMove && tt.Kind(ret) == KNamed && tt.Node(ret).Ent == branch {
-			c.r.useEntity(c.f, lhs, m)
-			c.checkReceiver(lhs, l, m, nil)
-			c.edge(EffectEdge{Kind: EdgeCall, Target: m, Node: n})
-			return tt.Node(ret).Args[0], tt.Node(ret).Args[1], m, true
+		var methods []EntityID
+		for _, m := range c.visibleMembers(set) {
+			if c.r.Entities[m].Kind == EntFn {
+				methods = append(methods, m)
+			}
 		}
+		if len(methods) == 0 {
+			c.errAt(lhs, cFallbackNotSupported, l)
+			return 0, 0, 0, false
+		}
+		if len(methods) > 1 {
+			c.errAt(lhs, cFallbackBranchAmbiguous, l)
+			return 0, 0, 0, false
+		}
+		m := methods[0]
+		info := c.r.Fn(m)
+		s := tt.Node(info.Sig)
+		switch {
+		case len(s.Args) != 0 || s.Flags&(fnVariadic|fnCVariadic) != 0:
+			c.errAt(lhs, cFallbackBranchArity)
+			return 0, 0, 0, false
+		case info.Recv != RecvMove:
+			c.errAt(lhs, cFallbackBranchReceiver)
+			return 0, 0, 0, false
+		case info.Declared&EffAsync != 0:
+			c.errAt(lhs, cFallbackBranchAsync)
+			return 0, 0, 0, false
+		case len(info.Witnesses) > 0 || len(info.ConstParams) > 0:
+			c.errAt(lhs, cFallbackBranchHidden)
+			return 0, 0, 0, false
+		}
+		sig, _, bad := c.instantiateFn(n, m, nil, l)
+		if bad {
+			return 0, 0, 0, false
+		}
+		ret := c.vars.resolve(tt.Node(sig).Elem)
+		var v, r TypeID
+		ok := false
+		if tt.Kind(ret) == KNamed {
+			if tt.Node(ret).Ent == branch {
+				v, r, ok = tt.Node(ret).Args[0], tt.Node(ret).Args[1], true
+			} else if elem, isOpt := tt.IsOption(ret); isOpt {
+				v, r, ok = elem, TyUnit, true
+			}
+		}
+		if !ok {
+			c.errAt(lhs, cFallbackBranchResult, ret)
+			return 0, 0, 0, false
+		}
+		c.r.useEntity(c.f, lhs, m)
+		c.checkReceiver(lhs, l, m, nil)
+		c.edge(EffectEdge{Kind: EdgeCall, Target: m, Node: n})
+		return v, r, m, true
 	}
 	c.errAt(lhs, cFallbackNotSupported, l)
 	return 0, 0, 0, false
@@ -105,6 +149,7 @@ func (c *checker) fallbackArm(lambda syntax.NodeID, r, want TypeID) {
 	}
 	saved := c.scope
 	c.pushScope(ScopeArm, lambda)
+	c.r.Scopes[c.scope].Params = true
 	c.declareLocal(p, c.t.View(p).Tok().Text(), r, false)
 	c.setType(p, r)
 	c.check(body, want)

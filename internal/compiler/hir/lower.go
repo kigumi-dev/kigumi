@@ -193,6 +193,8 @@ func (l *lowerer) assign(n syntax.NodeID, out *Stmt) *Stmt {
 		out.Compound, out.OpText = true, call.OpText
 		if call.Kind == sem.CallOperator {
 			out.OpEnt = call.Callee
+			out.OpPasses, out.OpConstArgs = call.Passes, call.ConstArgs
+			out.OpCtxArgs = l.ctxCallExprs(n, call.Callee)
 		}
 	}
 	out.Expr = l.expr(rhs)

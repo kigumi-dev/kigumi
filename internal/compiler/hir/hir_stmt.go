@@ -82,6 +82,11 @@ type Stmt struct {
 	Compound bool
 	OpText   string
 	OpEnt    sem.EntityID
+	// OpPasses, OpConstArgs and OpCtxArgs are the user operator call's
+	// hidden arguments, in the same order as a call's.
+	OpPasses    []sem.WitnessArg
+	OpConstArgs []sem.ConstArg
+	OpCtxArgs   []*Expr
 	// Err marks defer(fail); Body or Block is what runs on unwind.
 	Err   bool
 	Body  *Stmt

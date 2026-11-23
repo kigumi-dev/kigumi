@@ -139,8 +139,15 @@ func (c *checker) closureAvoidsField(closure, root, field EntityID) bool {
 		if !ok {
 			return
 		}
-		for _, b := range c.info.CtxCall[n] {
-			ok = ok && !touches(b.Local, b.Field)
+		for _, binds := range c.info.CtxCallEnt[n] {
+			for _, b := range binds {
+				ok = ok && !touches(b.Local, b.Field)
+			}
+		}
+		if c.info.CtxCallEnt[n] == nil {
+			for _, b := range c.info.CtxCall[n] {
+				ok = ok && !touches(b.Local, b.Field)
+			}
 		}
 		switch c.t.Kind(n) {
 		case syntax.MemberExpr, syntax.BracketExpr:

@@ -21,6 +21,7 @@ func (l *lowerer) protoBinary(n syntax.NodeID, op string, call sem.CallInfo, lhs
 	}
 	mc := l.node(n, MethodCall)
 	mc.Ent, mc.Args, mc.Witness, mc.Passes, mc.ConstArgs = call.Callee, []*Expr{left, right}, call.Witness, call.Passes, call.ConstArgs
+	mc.CtxArgs = l.ctxCallExprs(n, call.Callee)
 	if call.Witness != 0 {
 		// MIR builds the NaN-aware form from Cmp.
 		mc.Cmp = op

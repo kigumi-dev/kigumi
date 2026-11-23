@@ -1,0 +1,103 @@
+-- module --
+stage: driver
+-- src --
+type Count = {
+    pub start Int
+    pub limit Int
+}
+
+type Cursor = {
+    mut i Int
+    limit Int
+}
+
+fn Count.iter(self) -> Cursor {
+    Cursor { i: self.start, limit: self.limit }
+}
+
+fn Cursor.next(mut self) -> Int? {
+    if self.i >= self.limit {
+        None
+    } else {
+        let v = self.i
+        self.i = self.i + 1
+        Some(v)
+    }
+}
+
+fn total(c: Count) -> Int {
+    let mut s = 0
+    for v in c {
+        s = s + v
+    }
+    s
+}
+
+type Pair = {
+    pub a Int
+    pub b Int
+}
+
+type PairCursor = {
+    mut cur Pair
+    mut done Bool
+}
+
+fn Pair.iter(self) -> PairCursor {
+    PairCursor { cur: self, done: false }
+}
+
+fn PairCursor.next(mut self) -> Pair? {
+    if self.done {
+        None
+    } else {
+        self.done = true
+        Some(self.cur)
+    }
+}
+
+fn first(p: Pair) -> Int {
+    for q in p {
+        return q.a
+    }
+    0
+}
+
+fn discard(p: Pair) -> Int {
+    for _ in p {}
+    1
+}
+
+type Tagged[T] = {
+    pub tag T
+    pub limit Int
+}
+
+type TaggedCursor = {
+    mut i Int
+    limit Int
+}
+
+fn Tagged[T].iter(self) -> TaggedCursor {
+    TaggedCursor { i: 0, limit: self.limit }
+}
+
+fn TaggedCursor.next(mut self) -> Int? {
+    if self.i >= self.limit {
+        None
+    } else {
+        let v = self.i
+        self.i = self.i + 1
+        Some(v)
+    }
+}
+
+fn taggedTotal(t: Tagged[String]) -> Int {
+    let mut s = 0
+    for v in t {
+        s = s + v
+    }
+    s
+}
+
+-- expect --

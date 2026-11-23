@@ -91,8 +91,12 @@ func (b *builder) call(e *hir.Expr) midir.LocalID {
 // ctxArgs evaluates a call's hidden provider arguments: plain reads, so
 // unlike witnessArgs/constArgs they need no closure construction.
 func (b *builder) ctxArgs(e *hir.Expr) []midir.LocalID {
+	return b.ctxArgList(e.CtxArgs)
+}
+
+func (b *builder) ctxArgList(args []*hir.Expr) []midir.LocalID {
 	var out []midir.LocalID
-	for _, a := range e.CtxArgs {
+	for _, a := range args {
 		out = append(out, b.expr(a))
 	}
 	return out

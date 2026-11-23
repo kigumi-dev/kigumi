@@ -169,7 +169,11 @@ func (b *builder) assignStmt(s *hir.Stmt) {
 		}
 		var out midir.LocalID
 		if s.OpEnt != 0 {
-			out = b.emit(midir.Inst{Op: midir.OpCall, Dst: b.temp(t), Ent: s.OpEnt, Args: []midir.LocalID{cur, r}, Node: s.Node})
+			args := []midir.LocalID{cur, r}
+			args = append(args, b.witnessArgs(s.OpPasses, s.Node)...)
+			args = append(args, b.constArgs(s.OpConstArgs, s.Node)...)
+			args = append(args, b.ctxArgList(s.OpCtxArgs)...)
+			out = b.emit(midir.Inst{Op: midir.OpCall, Dst: b.temp(t), Ent: s.OpEnt, Args: args, Node: s.Node})
 		} else {
 			out = b.emit(midir.Inst{Op: midir.OpBinary, Dst: b.temp(t), Str: s.OpText, Args: []midir.LocalID{cur, r}, Node: s.Node})
 		}

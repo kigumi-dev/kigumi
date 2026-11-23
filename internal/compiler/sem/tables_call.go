@@ -55,8 +55,11 @@ type CallInfo struct {
 	Kind   CallKind
 	Callee EntityID
 	// Box is the concrete error type a default argument's `?` boxes, 0 for none.
-	Box      TypeID
-	Next     EntityID
+	Box  TypeID
+	Next EntityID
+	// IterType is the iterator state I of CallIterProtocol: the type of the
+	// value `iter(self) -> I` returns, which `next(mut self)` advances.
+	IterType TypeID
 	Inst     []TypeID
 	Recv     RecvKind
 	Variadic VariadicForm

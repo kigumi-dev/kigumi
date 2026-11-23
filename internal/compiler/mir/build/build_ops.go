@@ -53,7 +53,9 @@ func (b *builder) fallback(e *hir.Expr) midir.LocalID {
 	if e.Ent != 0 {
 		ret := b.r.Types.Subst(b.r.Types.Node(b.r.Fn(e.Ent).Sig).Elem, b.r.InstanceSubst(e.Ent, b.r.Types.Node(lt).Args))
 		// The witness takes `move self`, so a named left operand moves into the call like any receiver.
-		l = b.emit(midir.Inst{Op: midir.OpCall, Dst: b.temp(ret), Ent: e.Ent, Args: []midir.LocalID{b.exprMoved(e.Args[0])}, Node: n})
+		args := []midir.LocalID{b.exprMoved(e.Args[0])}
+		args = append(args, b.ctxArgs(e)...)
+		l = b.emit(midir.Inst{Op: midir.OpCall, Dst: b.temp(ret), Ent: e.Ent, Args: args, Node: n})
 		lt = ret
 	} else {
 		l = b.expr(e.Args[0])

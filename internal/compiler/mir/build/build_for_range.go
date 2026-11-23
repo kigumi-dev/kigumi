@@ -31,7 +31,7 @@ func (b *builder) rangeCursor(e *hir.Expr) *rangeCursor {
 	return c
 }
 
-func (c *rangeCursor) test(n syntax.NodeID) midir.LocalID {
+func (c *rangeCursor) test(n syntax.NodeID, _ midir.BlockID) midir.LocalID {
 	op := "<"
 	if c.inclusive {
 		op = "<="

@@ -18,6 +18,7 @@ func (l *lowerer) binary(n syntax.NodeID) *Expr {
 		out := l.node(n, Fallback)
 		out.Ent = call.Callee
 		out.HitLift = call.HitLift
+		out.CtxArgs = l.ctxCallExprs(n, call.Callee)
 		out.Args = []*Expr{l.expr(lhs)}
 		// The miss side of `a || (x) => b` binds the miss value.
 		if l.t.Kind(rhs) == syntax.Lambda {
@@ -54,6 +55,8 @@ func (l *lowerer) binary(n syntax.NodeID) *Expr {
 	out.Name, out.Args = op, []*Expr{l.expr(lhs), l.expr(rhs)}
 	if call.Kind == sem.CallOperator {
 		out.Ent = call.Callee
+		out.Passes, out.ConstArgs = call.Passes, call.ConstArgs
+		out.CtxArgs = l.ctxCallExprs(n, call.Callee)
 	}
 	return out
 }
@@ -100,8 +103,26 @@ func (l *lowerer) callWith(n, callee syntax.NodeID, call sem.CallInfo) *Expr {
 		out.Args = append([]*Expr{l.expr(callee)}, args...)
 		out.EvalOrder = prefixEvalOrder(plan, call.Piped != 0)
 	}
-	for _, b := range l.info.CtxCall[n] {
+	for _, b := range l.ctxCallBinds(n, call.Callee) {
 		out.CtxArgs = append(out.CtxArgs, l.ctxBindExpr(n, b))
+	}
+	return out
+}
+
+// ctxCallBinds returns the hidden provider arguments of the call to callee at
+// n. A `for` head hosts both `iter` and `next`, so the per-callee table is
+// authoritative; CtxCall is the single-call fallback.
+func (l *lowerer) ctxCallBinds(n syntax.NodeID, callee sem.EntityID) []sem.CtxBind {
+	if byCallee := l.info.CtxCallEnt[n]; byCallee != nil {
+		return byCallee[callee]
+	}
+	return l.info.CtxCall[n]
+}
+
+func (l *lowerer) ctxCallExprs(n syntax.NodeID, callee sem.EntityID) []*Expr {
+	var out []*Expr
+	for _, b := range l.ctxCallBinds(n, callee) {
+		out = append(out, l.ctxBindExpr(n, b))
 	}
 	return out
 }
@@ -165,6 +186,16 @@ func (l *lowerer) control(n syntax.NodeID) *Expr {
 	}
 	f := v.AsFor()
 	out := l.node(n, Loop)
+	if call, ok := l.info.Calls[n]; ok && call.Kind == sem.CallIterProtocol {
+		out.IterEnt, out.NextEnt, out.IterType = call.Callee, call.Next, call.IterType
+		// The checker records both protocol calls at the loop head node.
+		head := n
+		if h := f.Head(); h.Valid() {
+			head = h.ID()
+		}
+		out.IterCtxArgs = l.ctxCallExprs(head, call.Callee)
+		out.NextCtxArgs = l.ctxCallExprs(head, call.Next)
+	}
 	if p := f.Pattern(); p.Valid() {
 		out.Pat = l.pattern(p.ID())
 	}

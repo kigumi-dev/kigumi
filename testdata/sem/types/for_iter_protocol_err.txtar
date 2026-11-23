@@ -1,0 +1,220 @@
+-- module --
+stage: driver
+-- src --
+type NoIter = { pub n Int }
+
+fn f(x: NoIter) {
+    for v in x { _ = v } //~ ERROR `NoIter` is not iterable
+}
+
+type OnlyIter = { pub n Int }
+type OnlyState = { mut i Int }
+
+fn OnlyIter.iter(self) -> OnlyState {
+    OnlyState { i: self.n }
+}
+
+fn g(x: OnlyIter) {
+    for v in x { _ = v } //~ ERROR `OnlyState` has no visible `next` method
+}
+
+type BadRet = { pub n Int }
+type BadRetState = { mut i Int }
+
+fn BadRet.iter(self) -> BadRetState { BadRetState { i: self.n } }
+fn BadRetState.next(mut self) -> Int { self.i }
+
+fn h(x: BadRet) {
+    for v in x { _ = v } //~ ERROR `next` returns `Int`, not an `Option`
+}
+
+type WrongIterRecv = { pub n Int }
+type WrongIterState = { mut i Int }
+
+fn WrongIterRecv.iter(mut self) -> WrongIterState { WrongIterState { i: self.n } }
+fn WrongIterState.next(mut self) -> Int? { None }
+
+fn i(x: WrongIterRecv) {
+    for v in x { _ = v } //~ ERROR `iter` must take `self`
+}
+
+type ArgIter = { pub n Int }
+type ArgIterState = { mut i Int }
+
+fn ArgIter.iter(self, step: Int) -> ArgIterState { ArgIterState { i: self.n } }
+fn ArgIterState.next(mut self) -> Int? { None }
+
+fn j(x: ArgIter) {
+    for v in x { _ = v } //~ ERROR `iter` must take no arguments
+}
+
+type WrongNextRecv = { pub n Int }
+type WrongNextRecvState = { mut i Int }
+
+fn WrongNextRecv.iter(self) -> WrongNextRecvState { WrongNextRecvState { i: self.n } }
+fn WrongNextRecvState.next(self) -> Int? { None }
+
+fn k(x: WrongNextRecv) {
+    for v in x { _ = v } //~ ERROR `next` must take `mut self`
+}
+
+type ArgNext = { pub n Int }
+type ArgNextState = { mut i Int }
+
+fn ArgNext.iter(self) -> ArgNextState { ArgNextState { i: self.n } }
+fn ArgNextState.next(mut self, step: Int) -> Int? { None }
+
+fn l(x: ArgNext) {
+    for v in x { _ = v } //~ ERROR `next` must take no arguments
+}
+
+type AmbIter = { pub n Int }
+type AmbStateA = { mut i Int }
+type AmbStateB = { mut i Int }
+
+fn AmbIter.iter(self) -> AmbStateA { AmbStateA { i: self.n } }
+fn AmbIter.iter(mut self) -> AmbStateB { AmbStateB { i: self.n } }
+fn AmbStateA.next(mut self) -> Int? { None }
+fn AmbStateB.next(mut self) -> Int? { None }
+
+fn m(x: AmbIter) {
+    for v in x { _ = v } //~ ERROR more than one visible `iter`
+}
+
+type AmbNext = { pub n Int }
+type AmbNextState = { mut i Int }
+
+fn AmbNext.iter(self) -> AmbNextState { AmbNextState { i: self.n } }
+fn AmbNextState.next(mut self) -> Int? { None }
+fn AmbNextState.next(move self) -> Int? { None }
+
+fn n(x: AmbNext) {
+    for v in x { _ = v } //~ ERROR more than one visible `next`
+}
+
+type OwnGeneric = { pub n Int }
+type GenState = { mut i Int }
+
+fn OwnGeneric.iter[U](self) -> GenState { GenState { i: self.n } }
+fn GenState.next(mut self) -> Int? { None }
+
+fn o(x: OwnGeneric) {
+    for v in x { _ = v } //~ ERROR has its own type parameters
+}
+
+type BorrowHead = { pub n Int }
+type BorrowState = { mut i Int }
+
+fn BorrowHead.iter(self) -> BorrowState { BorrowState { i: self.n } }
+fn BorrowState.next(mut self) -> Int? { None }
+
+fn p(x: &BorrowHead) {
+    for v in x { _ = v } //~ ERROR `for` over a borrow `&BorrowHead`
+}
+
+type Boxed[T] = {
+    pub limit Int
+}
+
+type BoxedCursor[T] = {
+    mut i Int
+    limit Int
+}
+
+fn Boxed[T].iter(self) -> BoxedCursor[T] {
+    BoxedCursor { i: 0, limit: self.limit }
+}
+
+fn BoxedCursor[T].next(mut self) -> Int? {
+    if self.i >= self.limit {
+        None
+    } else {
+        let v = self.i
+        self.i = self.i + 1
+        Some(v)
+    }
+}
+
+fn genericNext(b: Boxed[String]) {
+    for v in b { _ = v } //~ ERROR a `for` iterator whose `next` is a method of a generic iterator type
+}
+-- expect --
+error[E707]: `NoIter` is not iterable
+ --> main.kg:4:14
+  |
+4 |     for v in x { _ = v } //~ ERROR `NoIter` is not iterable
+  |              ^
+  = help: define `fn iter(self) -> I` on `NoIter`, where `I.next(mut self)` returns `Item?`
+
+error[E721]: `OnlyState` has no visible `next` method
+  --> main.kg:15:14
+   |
+15 |     for v in x { _ = v } //~ ERROR `OnlyState` has no visible `next` method
+   |              ^
+   = help: a `for` loop needs `fn next(mut self) -> Item?`
+
+error[E725]: `next` returns `Int`, not an `Option`
+  --> main.kg:25:14
+   |
+25 |     for v in x { _ = v } //~ ERROR `next` returns `Int`, not an `Option`
+   |              ^
+   = help: a `for` loop needs `fn next(mut self) -> Item?`
+
+error[E719]: `iter` must take `self` to be used by a `for` loop
+  --> main.kg:35:14
+   |
+35 |     for v in x { _ = v } //~ ERROR `iter` must take `self`
+   |              ^
+
+error[E720]: `iter` must take no arguments to be used by a `for` loop
+  --> main.kg:45:14
+   |
+45 |     for v in x { _ = v } //~ ERROR `iter` must take no arguments
+   |              ^
+
+error[E723]: `next` must take `mut self` to be used by a `for` loop
+  --> main.kg:55:14
+   |
+55 |     for v in x { _ = v } //~ ERROR `next` must take `mut self`
+   |              ^
+
+error[E724]: `next` must take no arguments to be used by a `for` loop
+  --> main.kg:65:14
+   |
+65 |     for v in x { _ = v } //~ ERROR `next` must take no arguments
+   |              ^
+
+error[E718]: `AmbIter` has more than one visible `iter` method
+  --> main.kg:78:14
+   |
+78 |     for v in x { _ = v } //~ ERROR more than one visible `iter`
+   |              ^
+   = help: a `for` loop needs exactly one
+
+error[E722]: `AmbNextState` has more than one visible `next` method
+  --> main.kg:89:14
+   |
+89 |     for v in x { _ = v } //~ ERROR more than one visible `next`
+   |              ^
+   = help: a `for` loop needs exactly one
+
+error[E726]: `iter` has its own type parameters
+  --> main.kg:99:14
+   |
+99 |     for v in x { _ = v } //~ ERROR has its own type parameters
+   |              ^
+   = help: a `for` loop cannot infer them
+
+error[E728]: `for` over a borrow `&BorrowHead` with a user-defined `iter` is not supported yet
+   --> main.kg:109:14
+    |
+109 |     for v in x { _ = v } //~ ERROR `for` over a borrow `&BorrowHead`
+    |              ^
+    = help: iterate the owned value
+
+error[E521]: a `for` iterator whose `next` is a method of a generic iterator type is not supported yet
+   --> main.kg:136:14
+    |
+136 |     for v in b { _ = v } //~ ERROR a `for` iterator whose `next` is a method of a generic iterator type
+    |              ^
+
