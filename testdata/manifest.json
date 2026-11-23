@@ -1,6 +1,7 @@
 {
   "schema": 2,
   "reasons": {
+    "compile-error": "the fixture is expected to fail checking, so no engine can build or run it; VM checks the diagnostic.",
     "native-only": "the construct is native-only (C ABI, asm, ffi, dl); `kigumi build` runs it",
     "static-refusal": "this engine cannot run a construct the fixture needs (the VM's Supports check statically refuses it by name); only the engines left in mode run the fixture."
   },
@@ -4585,9 +4586,11 @@
       "stage": "run",
       "path": "testdata/run/async/async_root_bridge_dynamic_recvread.txtar",
       "mode": [
-        "vm",
-        "native"
-      ]
+        "vm"
+      ],
+      "skip": {
+        "native": "compile-error"
+      }
     },
     {
       "id": "run/async_root_bridge_dynamic_refpick",
@@ -11135,6 +11138,17 @@
       ]
     },
     {
+      "id": "run/for_iter_protocol",
+      "kind": "run",
+      "group": "language",
+      "stage": "run",
+      "path": "testdata/run/language/for_iter_protocol.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/for_map_forms",
       "kind": "run",
       "group": "language",
@@ -12501,6 +12515,17 @@
       ]
     },
     {
+      "id": "run/json_depth_bound",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/json_depth_bound.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
       "id": "run/json_derive",
       "kind": "run",
       "group": "std",
@@ -12550,6 +12575,17 @@
       "group": "std",
       "stage": "run",
       "path": "testdata/run/std/json_f64_large_integers.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ]
+    },
+    {
+      "id": "run/json_float_key_nonfinite",
+      "kind": "run",
+      "group": "std",
+      "stage": "run",
+      "path": "testdata/run/std/json_float_key_nonfinite.txtar",
       "mode": [
         "vm",
         "native"
@@ -22246,6 +22282,26 @@
       ]
     },
     {
+      "id": "sem/for_iter_protocol_err",
+      "kind": "sem",
+      "group": "types",
+      "stage": "driver",
+      "path": "testdata/sem/types/for_iter_protocol_err.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/for_iter_protocol_ok",
+      "kind": "sem",
+      "group": "types",
+      "stage": "driver",
+      "path": "testdata/sem/types/for_iter_protocol_ok.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
       "id": "sem/for_loop_scalar_mut",
       "kind": "sem",
       "group": "runtime",
@@ -22931,6 +22987,26 @@
       "group": "types",
       "stage": "check",
       "path": "testdata/sem/types/literal_receiver_ambiguous.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/local_redeclare",
+      "kind": "sem",
+      "group": "types",
+      "stage": "check",
+      "path": "testdata/sem/types/local_redeclare.txtar",
+      "mode": [
+        "check"
+      ]
+    },
+    {
+      "id": "sem/local_redeclare_script",
+      "kind": "sem",
+      "group": "types",
+      "stage": "check",
+      "path": "testdata/sem/types/local_redeclare_script.txtar",
       "mode": [
         "check"
       ]

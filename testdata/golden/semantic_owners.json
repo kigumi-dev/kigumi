@@ -10790,8 +10790,18 @@
     "status": "ok"
   },
   {
+    "key": "crypto/x509.certificatesIdentical",
+    "signature": "pure fn(\u0026Certificate, \u0026Certificate) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "crypto/x509.checkAnchor",
-    "signature": "pure fn(\u0026Certificate, \u0026Certificate, usize, Int) -\u003e Result[Void, ValidationError]",
+    "signature": "pure fn(\u0026Certificate, \u0026Certificate, usize, Int, ChainPurpose) -\u003e Result[Void, ValidationError]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -11220,6 +11230,16 @@
     "status": "ok"
   },
   {
+    "key": "crypto/x509.requirePermittedIssuer",
+    "signature": "pure fn(\u0026Certificate, ChainPurpose) -\u003e Result[Void, ValidationError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "crypto/x509.requireSha256",
     "signature": "pure fn(Element) -\u003e Result[Void, ParseError]",
     "has_body": true,
@@ -11362,6 +11382,16 @@
   {
     "key": "crypto/x509.verifyChain",
     "signature": "fn(\u0026Array[Certificate], \u0026Array[Certificate], String, Int) -\u003e Result[Void, ValidationError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "crypto/x509.verifyChainFor",
+    "signature": "fn(\u0026Array[Certificate], \u0026Array[Certificate], String, Int, ChainPurpose) -\u003e Result[Void, ValidationError]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14761,6 +14791,16 @@
     "status": "ok"
   },
   {
+    "key": "fs.Path.fromRawBytes",
+    "signature": "pure fn(Bytes) -\u003e Path!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "fs.Path.fromString",
     "signature": "pure fn(String) -\u003e Path!",
     "has_body": true,
@@ -14772,7 +14812,7 @@
   },
   {
     "key": "fs.Path.isAbsolute",
-    "signature": "pure fn() -\u003e Bool",
+    "signature": "pure noalloc fn() -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14841,8 +14881,118 @@
     "status": "ok"
   },
   {
+    "key": "fs.PathCString.ptr",
+    "signature": "fn() -\u003e *const u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.bytesCString",
+    "signature": "fn(\u0026Bytes) -\u003e PathCString",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "fs.openFile",
-    "signature": "fn(\u0026String, String) -\u003e File!",
+    "signature": "fn(\u0026Path, String) -\u003e File!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.pathCString",
+    "signature": "fn(\u0026Path) -\u003e PathCString",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.rawBase",
+    "signature": "pure fn(Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.rawClean",
+    "signature": "pure fn(Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.rawDir",
+    "signature": "pure fn(Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.rawDropTrailing",
+    "signature": "pure fn(Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.rawElements",
+    "signature": "pure fn(Bytes) -\u003e Array[Bytes]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.rawExt",
+    "signature": "pure fn(Bytes) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.rawJoinKept",
+    "signature": "pure fn(\u0026Array[Bytes]) -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.rawPath",
+    "signature": "pure fn(Bytes) -\u003e Path",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -15272,7 +15422,7 @@
   },
   {
     "key": "json.Buffer.value",
-    "signature": "fn(Value) -\u003e Void!",
+    "signature": "fn(Value, Int) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -19031,6 +19181,16 @@
     "status": "ok"
   },
   {
+    "key": "net/http.Deadline.remainingMillis",
+    "signature": "fn() -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/http.Dechunker.body",
     "signature": "fn() -\u003e Bytes",
     "has_body": true,
@@ -19193,6 +19353,16 @@
   {
     "key": "net/http.Limits.defaults",
     "signature": "fn() -\u003e Limits",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/http.RejectedRequest.message",
+    "signature": "fn() -\u003e String",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -19531,6 +19701,16 @@
     "status": "ok"
   },
   {
+    "key": "net/http.Wire.completeRequest",
+    "signature": "fn(Head, RequestLine, Limits, Deadline) -\u003e Incoming!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/http.Wire.consume",
     "signature": "fn(usize) -\u003e Bytes",
     "has_body": true,
@@ -19592,7 +19772,7 @@
   },
   {
     "key": "net/http.Wire.reject",
-    "signature": "fn(Failure, Limits) -\u003e Void",
+    "signature": "fn(Failure, Limits, Bool) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20112,7 +20292,7 @@
   },
   {
     "key": "net/http.renderHead",
-    "signature": "fn(String, \u0026Headers, usize?, Bool) -\u003e Bytes!",
+    "signature": "fn(String, \u0026Headers, usize?, Bool, Bool) -\u003e Bytes!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20153,16 +20333,6 @@
   {
     "key": "net/http.statusOf",
     "signature": "fn(String) -\u003e Int?",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "net/http.tokenByte",
-    "signature": "fn(u8) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20293,6 +20463,16 @@
   {
     "key": "net/tls.Error.message",
     "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Error.timedOut",
+    "signature": "fn() -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -20631,6 +20811,26 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.Session.setReadTimeout",
+    "signature": "fn(Int) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Session.setWriteTimeout",
+    "signature": "fn(Int) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.Session.takeApplication",
     "signature": "fn(usize) -\u003e SecretBuffer",
     "has_body": true,
@@ -20713,6 +20913,16 @@
   {
     "key": "net/tls.TicketStore.new",
     "signature": "fn() -\u003e TicketStore",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net/tls.Timeout.passed",
+    "signature": "fn() -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -21521,6 +21731,16 @@
     "status": "ok"
   },
   {
+    "key": "net/tls.timeoutIn",
+    "signature": "fn(Int) -\u003e Timeout",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net/tls.verifyCertificateVerify",
     "signature": "fn(\u0026Certificate, u16, Bytes, Bytes) -\u003e Result[Void, Error]",
     "has_body": true,
@@ -21637,6 +21857,16 @@
     "kind": "provider",
     "vm": "implemented",
     "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.Args.toArray",
+    "signature": "pure fn() -\u003e Array[OsString]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
     "accelerated": false,
     "status": "ok"
   },
@@ -22332,6 +22562,36 @@
     "status": "ok"
   },
   {
+    "key": "platform.clockGettime",
+    "signature": "fn(i32, *mut Timespec) -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.clockMonotonic",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.clockRealtime",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "platform.createFlags",
     "signature": "fn() -\u003e i32",
     "has_body": true,
@@ -22484,6 +22744,16 @@
   {
     "key": "platform.msgNoSignal",
     "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.nanosleep",
+    "signature": "fn(*const Timespec, *mut Timespec) -\u003e i32",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -33944,6 +34214,16 @@
   {
     "key": "time.parseRfc850",
     "signature": "pure fn(String) -\u003e Instant?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "time.readClock",
+    "signature": "fn(i32) -\u003e Timespec",
     "has_body": true,
     "kind": "",
     "vm": "gap",
