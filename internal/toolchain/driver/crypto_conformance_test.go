@@ -64,6 +64,7 @@ type cryptoVector struct {
 	Chain      []string `json:"chain"`
 	Host       string   `json:"host"`
 	NowMillis  int64    `json:"nowMillis"`
+	Purpose    string   `json:"purpose"`
 	Engines    string   `json:"engines"`
 	Expected   *string  `json:"expected"`
 }
@@ -267,6 +268,9 @@ func validateCryptoVector(v *cryptoVector) error {
 	case "x509-chain":
 		if len(v.Roots) == 0 || v.Host == "" || v.NowMillis == 0 {
 			return fmt.Errorf("x509 chain needs roots, host and nowMillis")
+		}
+		if v.Purpose != "" && v.Purpose != "server" && v.Purpose != "client" {
+			return fmt.Errorf("x509 chain purpose must be server or client")
 		}
 	}
 	return nil
@@ -515,8 +519,17 @@ func emitCryptoVector(b *strings.Builder, v cryptoVector, idx int) {
 			}
 			fmt.Fprintf(b, "    let chain%d = Array.of(%s)\n", idx, strings.Join(items, ", "))
 		}
-		emitResultVoid(b, v.ID, idx, fmt.Sprintf("x509.verifyChain(&anchors%d, &chain%d, %q, %d)",
-			idx, idx, v.Host, v.NowMillis))
+		call := fmt.Sprintf("x509.verifyChain(&anchors%d, &chain%d, %q, %d)",
+			idx, idx, v.Host, v.NowMillis)
+		switch v.Purpose {
+		case "server":
+			call = fmt.Sprintf("x509.verifyChainFor(&anchors%d, &chain%d, %q, %d, x509.ChainPurpose.ServerAuth)",
+				idx, idx, v.Host, v.NowMillis)
+		case "client":
+			call = fmt.Sprintf("x509.verifyChainFor(&anchors%d, &chain%d, %q, %d, x509.ChainPurpose.ClientAuth)",
+				idx, idx, v.Host, v.NowMillis)
+		}
+		emitResultVoid(b, v.ID, idx, call)
 	}
 }
 
