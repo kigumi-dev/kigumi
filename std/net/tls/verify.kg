@@ -137,8 +137,9 @@ pub fn verifyServerChain(anchors: &Array[x509.Certificate], certificates: &Array
 ///
 /// A client certificate has no server hostname, so the name check runs
 /// against the leaf's own first DNS SAN (or common name) purely to satisfy
-/// the path validator's host parameter; the chain, validity, CA constraints
-/// and clientAuth usage are the properties this call enforces.
+/// the path validator's host parameter; the chain, validity, CA constraints,
+/// issuer clientAuth extended key usage and leaf clientAuth usage are the
+/// properties this call enforces.
 pub fn verifyClientChain(anchors: &Array[x509.Certificate], certificates: &Array[Bytes], nowMillis: Int) -> Result[x509.Certificate, Error] {
     if certificates.len() == 0 {
         fail Error.BadCertificate("client sent no certificate")
@@ -170,7 +171,7 @@ pub fn verifyClientChain(anchors: &Array[x509.Certificate], certificates: &Array
     if name == "" {
         fail Error.BadCertificate("client certificate has no name to validate")
     }
-    match x509.verifyChain(anchors, &chain, name, nowMillis) {
+    match x509.verifyChainFor(anchors, &chain, name, nowMillis, x509.ChainPurpose.ClientAuth) {
         Ok(_) -> {}
         Err(e) -> fail Error.BadCertificate(e.message())
     }

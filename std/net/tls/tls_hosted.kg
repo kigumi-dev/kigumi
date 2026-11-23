@@ -6,6 +6,7 @@ import binary from std/encoding/binary
 import net from std/net
 import sec from std/secret
 import task from std/task
+import time from std/time
 
 /// The TLS client entry point: `Client.connect(conn, config)`.
 pub type Client
@@ -173,6 +174,10 @@ pub type Session = resource {
     mut ticket SessionTicket?
     mut resumedSession Bool
     mut nowMillis Int
+    // Bounds on the transport waits of one read or write. A zero `millis`
+    // leaves the operation unbounded, which is what the handshake uses.
+    mut readTimeout Timeout
+    mut writeTimeout Timeout
     // 0-RTT state: client early write keys or server early read keys. The
     // sequence numbers are separate from the handshake and application
     // spaces, as RFC 8446 §5.3 requires.
@@ -239,6 +244,8 @@ fn newSession(conn: net.Conn, maxRecordBytes: usize, maxHandshakeBytes: usize, m
         ticket: None
         resumedSession: false
         nowMillis: 0
+        readTimeout: timeoutIn(0)
+        writeTimeout: timeoutIn(0)
         earlyReadKeys: noKeys()
         earlyWriteKeys: noKeys()
         earlyReadSeq: 0
@@ -259,6 +266,21 @@ pub fn Session.alpn(self) -> String {
 /// Whether the handshake completed and the session was not closed.
 pub fn Session.ready(self) -> Bool {
     self.established && self.open
+}
+
+/// Bounds `read` by millis milliseconds from now; buffered plaintext is
+/// returned at once, and the bound covers every transport wait a read needs.
+/// The bound stays until it is replaced or `millis <= 0` removes it, so a
+/// caller spacing operations over a longer budget sets it again.
+pub fn Session.setReadTimeout(mut self, millis: i64) {
+    self.readTimeout = timeoutIn(millis)
+}
+
+/// Bounds `write` by millis milliseconds from now, covering partial sends of
+/// every record it emits. The bound stays until replaced or `millis <= 0`
+/// removes it.
+pub fn Session.setWriteTimeout(mut self, millis: i64) {
+    self.writeTimeout = timeoutIn(millis)
 }
 
 /// Whether this session resumed from a PSK, so no server certificate was
@@ -292,16 +314,42 @@ pub fn Session.resumptionTicket(self) -> SessionTicket? {
 // ---- transport ----------------------------------------------------------
 type Filled = More | Eof
 
+// One operation's transport bound. It is a fresh span per read/write, so a
+// call can never inherit a deadline from an earlier call it did not set.
+type Timeout = {
+    start time.Monotonic
+    millis i64
+}
+
+fn timeoutIn(millis: i64) -> Timeout {
+    Timeout {
+        start: time.monotonic()
+        millis: millis
+    }
+}
+
+fn Timeout.passed(self) -> Bool {
+    self.millis > 0 && self.start.elapsedMillis() >= self.millis
+}
+
 async fn Session.fill(mut self) -> Result[Filled, Error] {
     let mut chunk = Array.empty[u8]()
     for true {
+        if self.readTimeout.passed() {
+            fail Error.TimedOut
+        }
         match self.conn.pollRead(&mut chunk, 16384) {
             Ok(Some(0)) -> return Eof
             Ok(Some(_)) -> {
                 self.pending = self.pending.concat(Bytes.fromArray(&chunk))
                 return More
             }
-            Ok(None) -> await task.yieldNow()
+            Ok(None) -> {
+                if self.readTimeout.passed() {
+                    fail Error.TimedOut
+                }
+                await task.yieldNow()
+            }
             Err(e) -> fail Error.Io(e.message())
         }
     }
@@ -319,12 +367,20 @@ async fn Session.ensure(mut self, needed: usize) -> Result[Void, Error] {
 async fn Session.writeRaw(mut self, data: Bytes) -> Result[Void, Error] {
     let mut off: usize = 0
     for off < data.len() {
+        if self.writeTimeout.passed() {
+            fail Error.TimedOut
+        }
         let rest = data.slice(off, data.len()) || fail Error.Io("write slice out of bounds")
         match self.conn.pollWrite(rest) {
             Ok(Some(n)) -> {
                 off = off + n
             }
-            Ok(None) -> await task.yieldNow()
+            Ok(None) -> {
+                if self.writeTimeout.passed() {
+                    fail Error.TimedOut
+                }
+                await task.yieldNow()
+            }
             Err(e) -> fail Error.Io(e.message())
         }
     }
@@ -1001,7 +1057,11 @@ pub async fn Session.read(mut self, max: usize) -> Result[sec.SecretBuffer, Erro
         let record = match await self.readRecord() {
             Ok(value) -> value
             Err(e) -> {
-                self.open = false
+                // A timeout consumed no record, so the session can still
+                // carry the server's 408 write; protocol failures end it.
+                if !e.timedOut() {
+                    self.open = false
+                }
                 fail e
             }
         }
@@ -1053,7 +1113,17 @@ pub async fn Session.write(mut self, data: &sec.SecretBuffer) -> Result[Void, Er
         let chunk = data.sliceSecret(off, off + take)
         let record = sealRecord(&self.writeKeys, self.writeSeq, applicationDataType, &chunk)?
         self.writeSeq = self.writeSeq.wrappingAdd(1)
-        (await self.writeRaw(record))?
+        match await self.writeRaw(record) {
+            Ok(_) -> {}
+            Err(e) -> {
+                // A timed-out send may have left part of this record on the
+                // wire, so no later TLS write can be framed.
+                if e.timedOut() {
+                    self.open = false
+                }
+                fail e
+            }
+        }
         off = off + take
     }
 }

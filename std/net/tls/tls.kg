@@ -57,6 +57,7 @@ pub type Error =
     | Closed
     | ConnectionClosed
     | NotEstablished
+    | TimedOut
     | MalformedHandshake(String)
     | UnexpectedMessage(String)
     | Unsupported(String)
@@ -81,6 +82,7 @@ pub fn Error.message(self) -> String {
         Closed -> "tls: session is closed"
         ConnectionClosed -> "tls: connection closed"
         NotEstablished -> "tls: handshake has not finished"
+        TimedOut -> "tls: operation timed out"
         MalformedHandshake(why) -> "tls: malformed handshake: ${why}"
         UnexpectedMessage(why) -> "tls: unexpected message: ${why}"
         Unsupported(why) -> "tls: unsupported: ${why}"
@@ -98,6 +100,14 @@ pub fn Error.message(self) -> String {
         TicketExpired -> "tls: session ticket is expired or outside its age window"
         EarlyDataRejected(why) -> "tls: early data was rejected: ${why}"
         ClientAuthRequired -> "tls: the server requires a client certificate"
+    }
+}
+
+/// Whether a read or write stopped because its configured timeout elapsed.
+pub fn Error.timedOut(self) -> Bool {
+    match self {
+        TimedOut -> true
+        _ -> false
     }
 }
 
