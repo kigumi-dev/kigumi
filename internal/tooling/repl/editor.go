@@ -155,25 +155,18 @@ func (e *Editor) ReadLine(prompt string) (string, error) {
 				}
 			}
 		case 0x1b:
-			r2, _, err := e.reader.ReadRune()
+			k, err := readEscape(e.reader)
 			if err != nil {
 				return "", err
 			}
-			if r2 != '[' {
-				continue
-			}
-			r3, _, err := e.reader.ReadRune()
-			if err != nil {
-				return "", err
-			}
-			switch r3 {
-			case 'A':
+			switch k {
+			case escUp:
 				if e.history != nil && histAt > 0 {
 					histAt--
 					buf = []rune(e.history.lines[histAt])
 					cursor = len(buf)
 				}
-			case 'B':
+			case escDown:
 				if e.history != nil && histAt < len(e.history.lines) {
 					histAt++
 					if histAt == len(e.history.lines) {
@@ -183,18 +176,22 @@ func (e *Editor) ReadLine(prompt string) (string, error) {
 					}
 					cursor = len(buf)
 				}
-			case 'C':
+			case escRight:
 				if cursor < len(buf) {
 					cursor++
 				}
-			case 'D':
+			case escLeft:
 				if cursor > 0 {
 					cursor--
 				}
-			case 'H':
+			case escHome:
 				cursor = 0
-			case 'F':
+			case escEnd:
 				cursor = len(buf)
+			case escDelete:
+				if cursor < len(buf) {
+					buf = append(buf[:cursor], buf[cursor+1:]...)
+				}
 			}
 		default:
 			if r < 0x20 {
@@ -207,6 +204,98 @@ func (e *Editor) ReadLine(prompt string) (string, error) {
 		}
 		e.redraw(prompt, buf, cursor)
 	}
+}
+
+// escKey is the editing movement decoded from one terminal escape sequence.
+// escIgnore covers sequences the editor consumes but does not act on, such as
+// Insert, function keys and unknown CSI parameters.
+type escKey int
+
+const (
+	escIgnore escKey = iota
+	escUp
+	escDown
+	escRight
+	escLeft
+	escHome
+	escEnd
+	escDelete
+)
+
+// readEscape reads one complete escape sequence after ESC and returns the
+// key it denotes. Both CSI (`ESC [ ...`) and SS3 (`ESC O ...`) sequences,
+// including application cursor keys and the `~` keys, are consumed whole so
+// their parameter and terminator bytes never reach the line buffer.
+func readEscape(r *bufio.Reader) (escKey, error) {
+	c, _, err := r.ReadRune()
+	if err != nil {
+		return escIgnore, err
+	}
+	if c != '[' && c != 'O' {
+		// Alt-key or a lone escape: drop the byte that completed it.
+		return escIgnore, nil
+	}
+	var params []int
+	cur := 0
+	started := false
+	for {
+		c, _, err = r.ReadRune()
+		if err != nil {
+			return escIgnore, err
+		}
+		switch {
+		case c >= '0' && c <= '9':
+			if cur < 1_000_000 {
+				cur = cur*10 + int(c-'0')
+			}
+			started = true
+		case c == ';':
+			params = append(params, cur)
+			cur, started = 0, false
+		case c >= 0x20 && c <= 0x3f:
+			// Parameter bytes and private markers such as `?` carry no
+			// editing meaning here; keep consuming until the final byte.
+		case c >= 0x40 && c <= 0x7e:
+			if started || len(params) > 0 {
+				params = append(params, cur)
+			}
+			return escapeKey(c, params), nil
+		default:
+			// Malformed sequence; consume the offending byte and stop.
+			return escIgnore, nil
+		}
+	}
+}
+
+// escapeKey maps a CSI/SS3 final byte and its first parameter to an editing key.
+func escapeKey(final rune, params []int) escKey {
+	switch final {
+	case 'A':
+		return escUp
+	case 'B':
+		return escDown
+	case 'C':
+		return escRight
+	case 'D':
+		return escLeft
+	case 'H':
+		return escHome
+	case 'F':
+		return escEnd
+	case '~':
+		if len(params) == 0 {
+			return escIgnore
+		}
+		switch params[0] {
+		case 1, 7:
+			return escHome
+		case 3:
+			return escDelete
+		case 4, 8:
+			return escEnd
+		}
+	}
+	return escIgnore
 }
 
 func (e *Editor) redraw(prompt string, buf []rune, cursor int) {

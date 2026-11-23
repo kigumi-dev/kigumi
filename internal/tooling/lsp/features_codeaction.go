@@ -87,8 +87,9 @@ func (s *Server) organizeImports(snap *snapshot, t *syntax.Tree, doc uri.URI) *p
 }
 
 // unusedImportFixes turns the W100 warnings into edits that remove just the
-// unused names, keeping the used names of a selected import list. An import
-// whose bindings are all unused loses the whole declaration.
+// unused names, keeping the used names of a selected import list and every
+// comment between them. An import whose bindings are all unused loses the
+// whole declaration.
 func unusedImportFixes(t *syntax.Tree, text string, ds []diag.Diagnostic) []diag.Fix {
 	var unused []token.Span
 	for _, d := range ds {
@@ -108,27 +109,98 @@ func unusedImportFixes(t *syntax.Tree, text string, ds []diag.Diagnostic) []diag
 			continue
 		}
 		list := binding.AsList()
-		var kept []string
+		kept := 0
 		for i := range list.Len() {
-			item := t.View(list.ItemID(i))
-			sp := item.Span()
-			if overlapsAny(sp, unused) {
-				continue
+			if !overlapsAny(t.View(list.ItemID(i)).Span(), unused) {
+				kept++
 			}
-			kept = append(kept, text[sp.Start:sp.End])
 		}
 		open, close := braceInterior(text, v.Span())
-		if len(kept) == 0 || open < 0 {
+		if kept == 0 || open < 0 {
 			out = append(out, removeLinesFix(t, text, v.Span()))
 			continue
 		}
 		out = append(out, diag.Fix{
 			Title:   "Remove unused import",
 			Loc:     diag.At(t.File, token.Span{Start: token.Pos(open), End: token.Pos(close)}),
-			NewText: " " + strings.Join(kept, ", ") + " ",
+			NewText: pruneImportList(t, text, list, open, close, unused),
 		})
 	}
 	return out
+}
+
+// pruneImportList deletes the unused names and one adjacent separator comma
+// from the existing brace interior, preserving every other byte. Comments
+// between names and their whitespace therefore stay where they were rather
+// than being rebuilt from the surviving identifiers.
+func pruneImportList(t *syntax.Tree, text string, list syntax.ListView, open, close int, unused []token.Span) string {
+	if open >= close || close > len(text) {
+		return ""
+	}
+	del := make([]bool, close-open)
+	mark := func(start, end int) {
+		start, end = max(start, open), min(end, close)
+		for p := start; p < end; p++ {
+			del[p-open] = true
+		}
+	}
+	for i := range list.Len() {
+		sp := t.View(list.ItemID(i)).Span()
+		if !overlapsAny(sp, unused) {
+			continue
+		}
+		mark(int(sp.Start), int(sp.End))
+		// Drop the comma after the name when one exists before the next
+		// item or the closing brace; otherwise the comma before it.
+		to := token.Pos(close)
+		if i+1 < list.Len() {
+			to = t.View(list.ItemID(i + 1)).Span().Start
+		}
+		if c, ok := findComma(t, sp.End, to, false); ok {
+			mark(int(c.Start), int(c.End))
+			for p := int(c.End); p < close && (text[p] == ' ' || text[p] == '\t'); p++ {
+				mark(p, p+1)
+			}
+			continue
+		}
+		from := token.Pos(open)
+		if i > 0 {
+			from = t.View(list.ItemID(i - 1)).Span().End
+		}
+		if c, ok := findComma(t, from, sp.Start, true); ok {
+			mark(int(c.Start), int(c.End))
+			// On one line drop the blanks the comma left behind too, so
+			// the survivor keeps its single separating space.
+			if !strings.ContainsRune(text[c.End:sp.Start], '\n') {
+				for p := int(sp.Start); p > int(c.End) && (text[p-1] == ' ' || text[p-1] == '\t'); p-- {
+					mark(p-1, p)
+				}
+			}
+		}
+	}
+	var b strings.Builder
+	b.Grow(close - open)
+	for p := open; p < close; p++ {
+		if !del[p-open] {
+			b.WriteByte(text[p])
+		}
+	}
+	return b.String()
+}
+
+// findComma returns the first or last comma token fully inside [from, to).
+func findComma(t *syntax.Tree, from, to token.Pos, last bool) (token.Span, bool) {
+	var found token.Span
+	ok := false
+	for _, tok := range t.Toks {
+		if tok.Kind != token.Comma || tok.Start < from || tok.End > to {
+			continue
+		}
+		if !ok || last && tok.Start > found.Start || !last && tok.Start < found.Start {
+			found, ok = tok.Span, true
+		}
+	}
+	return found, ok
 }
 
 // removeLinesFix removes every whole line the span touches.

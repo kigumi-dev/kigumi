@@ -49,6 +49,47 @@ func TestEditorNonTerminalReadsPlainLines(t *testing.T) {
 	}
 }
 
+// TestEditorEscapeSequences feeds raw CSI and SS3 sequences to the raw editor
+// and checks both their editing effect and that no parameter or terminator
+// byte leaks into the line buffer.
+func TestEditorEscapeSequences(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		in   string
+		hist []string
+		want string
+	}{
+		{"application left arrows", "ab\x1bOD\x1bODX\r", nil, "Xab"},
+		{"application home and right", "ab\x1bOH\x1bOCX\r", nil, "aXb"},
+		{"application end", "ab\x1bOH\x1bOFX\r", nil, "abX"},
+		{"application up recalls history", "\x1bOA\r", []string{"first", "second"}, "second"},
+		{"application down clears newest", "\x1bOA\x1bOBX\r", []string{"first", "second"}, "X"},
+		{"delete key removes under cursor", "abc\x1b[D\x1b[3~d\r", nil, "abd"},
+		{"delete key at end is consumed", "abc\x1b[3~\r", nil, "abc"},
+		{"insert key is consumed", "ab\x1b[2~X\r", nil, "abX"},
+		{"home tilde", "ab\x1b[1~X\r", nil, "Xab"},
+		{"end tilde", "ab\x1b[1~\x1b[4~X\r", nil, "abX"},
+		{"function key is consumed", "ab\x1b[15~X\r", nil, "abX"},
+		{"modified arrow", "ab\x1b[H\x1b[1;5CX\r", nil, "aXb"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h, _ := NewHistory("")
+			for _, l := range tc.hist {
+				h.Add(l)
+			}
+			var out bytes.Buffer
+			ed := &Editor{raw: true, reader: bufio.NewReader(strings.NewReader(tc.in)), out: &out, history: h}
+			line, err := ed.ReadLine("> ")
+			if err != nil {
+				t.Fatalf("ReadLine = %q, %v", line, err)
+			}
+			if line != tc.want {
+				t.Fatalf("ReadLine(%q) = %q; want %q", tc.in, line, tc.want)
+			}
+		})
+	}
+}
+
 func TestPlainLineTrimsLineEndings(t *testing.T) {
 	for _, tc := range []struct{ in, want string }{
 		{"hello\r\n", "hello"},

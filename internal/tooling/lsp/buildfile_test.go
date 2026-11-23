@@ -153,6 +153,62 @@ func TestOrganizeImportsKeepsUsedSelectedNames(t *testing.T) {
 	}
 }
 
+// Organize imports must keep comments that live inside a selected import
+// list when it drops the unused names around them.
+func TestOrganizeImportsKeepsImportComments(t *testing.T) {
+	root := t.TempDir()
+	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"app\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
+	src := "import {\n    floor, /* drop this name */\n    // sqrt is the one we need\n    sqrt,\n} from std/math\n\nlet x = sqrt(4.0)\nprint \"${x}\"\n"
+	path := filepath.Join(root, "main.kg")
+	os.WriteFile(path, []byte(src), 0o644)
+	std, _ := filepath.Abs("../../../std")
+	rec := &recorder{}
+	ctx := protocol.WithClient(context.Background(), rec)
+	s := newServer(std)
+	if _, err := s.Initialize(ctx, initParams(uri.File(root))); err != nil {
+		t.Fatal(err)
+	}
+	s.Initialized(ctx, &protocol.InitializedParams{})
+	doc := uri.File(path)
+	s.DidOpen(ctx, &protocol.DidOpenTextDocumentParams{TextDocument: protocol.TextDocumentItem{URI: doc, Version: 1, Text: src}})
+	s.WaitIdle()
+
+	kind := protocol.CodeActionKindSourceOrganizeImports
+	actions, err := s.CodeAction(ctx, &protocol.CodeActionParams{
+		TextDocument: protocol.TextDocumentIdentifier{URI: doc},
+		Context:      protocol.CodeActionContext{Only: []protocol.CodeActionKind{kind}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got *protocol.CodeAction
+	for _, a := range actions {
+		if ca := a.(*protocol.CodeAction); ca.Kind != nil && *ca.Kind == kind {
+			got = ca
+		}
+	}
+	if got == nil {
+		t.Fatalf("no organizeImports action: %+v", actions)
+	}
+	edits := got.Edit.Changes[doc]
+	if len(edits) != 1 {
+		t.Fatalf("want one whole-document edit, got %+v", edits)
+	}
+	out := edits[0].NewText
+	if !strings.Contains(out, "// sqrt is the one we need") {
+		t.Errorf("comment inside the import list was lost:\n%s", out)
+	}
+	if !strings.Contains(out, "/* drop this name */") {
+		t.Errorf("block comment inside the import list was lost:\n%s", out)
+	}
+	if strings.Contains(out, "floor") {
+		t.Errorf("unused name not removed:\n%s", out)
+	}
+	if !strings.Contains(out, "sqrt") {
+		t.Errorf("used name lost:\n%s", out)
+	}
+}
+
 func lastDiagnostics(rec *recorder, doc uri.URI) *protocol.PublishDiagnosticsParams {
 	var last *protocol.PublishDiagnosticsParams
 	for _, p := range rec.published {
