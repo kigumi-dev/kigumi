@@ -13,6 +13,6 @@ print "${wrong.status} ${wrong.header("Allow") || "none"}"
 let missing = h(http.Request.new("GET", "/missing"))?
 print "${missing.status}"
 -- stdout --
-204 GET, HEAD, POST
-405 GET, HEAD, POST
+204 GET, HEAD, POST, OPTIONS
+405 GET, HEAD, POST, OPTIONS
 404

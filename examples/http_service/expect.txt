@@ -4,8 +4,8 @@ POST /orders tea x4 -> 201 id=req-4247 type=application/json allow=- etag=- len=
 POST /orders (bad json) -> 400 id=- type=text/plain; charset=utf-8 allow=- etag=- len=31 conn=close cache=- body=invalid JSON body: invalid JSON
 POST /orders tea x0 -> 422 id=- type=text/plain; charset=utf-8 allow=- etag=- len=25 conn=close cache=- body=quantity must be positive
 GET /missing -> 404 id=req-2761 type=text/plain; charset=utf-8 allow=- etag=- len=9 conn=close cache=no-store body=not found
-POST /greet/ada -> 405 id=req-7560 type=text/plain; charset=utf-8 allow=GET, HEAD etag=- len=18 conn=close cache=no-store body=method not allowed
-OPTIONS /orders -> 204 id=req-2834 type=- allow=POST etag=- len=- conn=close cache=no-store body=-
+POST /greet/ada -> 405 id=req-7560 type=text/plain; charset=utf-8 allow=GET, HEAD, OPTIONS etag=- len=18 conn=close cache=no-store body=method not allowed
+OPTIONS /orders -> 204 id=req-2834 type=- allow=POST, OPTIONS etag=- len=- conn=close cache=no-store body=-
 HEAD /greet/ada -> 200 id=req-2157 type=application/json allow=- etag=- len=24 conn=close cache=no-store body=-
 GET /cards/7 -> 200 id=req-8723 type=application/json allow=- etag="card-7-v2" len=27 conn=close cache=no-store body={"id":"7","title":"card 7"}
 GET /cards/7 (cached) -> 304 id=req-8723 type=- allow=- etag="card-7-v2" len=- conn=close cache=no-store body=-

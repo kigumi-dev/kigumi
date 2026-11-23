@@ -122,8 +122,8 @@ async fn Wire.readResponse(mut self, headOnly: Bool, timeout: i64, maxBody: usiz
             }
             let decision = responseFraming(&head.headers, status, headOnly)?
             let framing = decision.framing
-            let body = (await self.responseBody(framing, deadline, maxBody, maxHead))?
-            let body = decodeBody(&head.headers, status, framing, body, maxBody)?
+            let rawBody = (await self.responseBody(framing, deadline, maxBody, maxHead))?
+            let body = decodeBody(&head.headers, status, framing, rawBody, maxBody)?
             let mut resp = Response.new(status)
             resp.headers = move head.headers
             resp.body = body

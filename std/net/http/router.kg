@@ -58,7 +58,8 @@ pub fn Router.use(move self, middleware: escaping fn(escaping fn(Request) -> Res
 }
 
 /// The router as one handler: 404 when no pattern matches the path, 405 with an
-/// `Allow` header when one does but not for this method; HEAD falls back to GET.
+/// `Allow` header when one does but not for this method; OPTIONS answers 204 with
+/// that same header, and HEAD falls back to GET.
 pub fn Router.handler(move self) -> fn(Request) -> Response! {
     let mut table = ""
     for r in &self.routes {
@@ -143,6 +144,10 @@ fn unmatched(table: String, req: Request) -> Response! {
     }
     if allowed.isEmpty() {
         return Response.ofText(404, "not found")
+    }
+    // The router answers OPTIONS for every path it knows, so it belongs in Allow.
+    if !allowed.contains("OPTIONS") {
+        allowed.push("OPTIONS")
     }
     if req.method == "OPTIONS" {
         let mut resp = Response.new(204)

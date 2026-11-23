@@ -87,7 +87,7 @@ fn trailerFieldOk(line: &Bytes) -> Bool {
             colon = i
             break
         }
-        if !tokenByte(c) {
+        if !isTokenByte(c) {
             return false
         }
     }
@@ -104,13 +104,6 @@ fn trailerFieldOk(line: &Bytes) -> Bool {
         }
     }
     true
-}
-
-fn tokenByte(c: u8) -> Bool {
-    if (c >= 48 && c <= 57) || (c >= 65 && c <= 90) || (c >= 97 && c <= 122) {
-        return true
-    }
-    c == 33 || c == 35 || c == 36 || c == 37 || c == 38 || c == 39 || c == 42 || c == 43 || c == 45 || c == 46 || c == 94 || c == 95 || c == 96 || c == 124 || c == 126
 }
 
 // A chunk costs at most six wire bytes per payload byte when sent one byte at a time.

@@ -123,7 +123,7 @@ pub async fn Session.send(mut self, req: Request) -> Response! {
     } else {
         None
     }
-    let head = renderHead("${req.method} ${req.target} HTTP/1.1", &headers, len, close)?
+    let head = renderHead("${req.method} ${req.target} HTTP/1.1", &headers, len, close, false)?
     self.open = false
     (await self.wire.writeAll(head.concat(req.body), deadlineIn(self.timeoutMillis)))?
     let mut got = (await self.wire.readResponse(req.method == "HEAD", self.timeoutMillis, self.maxBodyBytes, self.maxHeaderBytes))?

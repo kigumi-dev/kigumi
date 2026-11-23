@@ -470,13 +470,13 @@ pub fn Net.listen(self, host: String, port: Int) -> Listener! {
         fail fails("port must be between 0 and 65535")
     }
     // An empty host means "every interface", matching internal/backend/vm/host/net.Listen.
-    let host = if host == "" {
+    let bindHost = if host == "" {
         "0.0.0.0"
     } else {
         host
     }
     let portStr = "${port}"
-    let h = ffi.CString.new(&host)?
+    let h = ffi.CString.new(&bindHost)?
     let p = ffi.CString.new(&portStr)?
     let hints = ffi.CValue.new(platform.AddrInfo {
         flags: 0

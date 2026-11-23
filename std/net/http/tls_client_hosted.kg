@@ -61,12 +61,12 @@ pub async fn TlsClient.open(move self, url: String) -> Session! {
     })?
     let outcome = await pending
     let ConnectOutcome {
-        conn
+        conn: opened
         failure
     } = outcome
     let conn = match failure {
         Some(why) -> fail ClientError.Tls(why)
-        None -> match conn {
+        None -> match opened {
             Some(c) -> c
             None -> fail ClientError.Closed
         }

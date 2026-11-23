@@ -79,8 +79,7 @@ pub async fn Server.serve(self, listener: net.Listener, stop: Shutdown) -> Void!
 
 // acceptUntil owns the listener, so it closes as soon as accepting stops rather
 // than after the last connection is done.
-async fn Server.acceptUntil(self, listener: net.Listener, stop: Shutdown, count: alloc.Shared[Int]) {
-    let mut listener = listener
+async fn Server.acceptUntil(self, mut listener: net.Listener, stop: Shutdown, count: alloc.Shared[Int]) {
     let mut backoff: i64 = 0
     for !stop.requested() {
         if count.get() >= self.limits.connectionCap() {

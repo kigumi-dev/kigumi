@@ -14,6 +14,12 @@ fn noContent(req: http.Request) -> http.Response! {
     http.Response.new(205)
 }
 
+fn trailer(_req: http.Request) -> http.Response! {
+    let mut r = http.Response.ofText(200, "body")
+    r.headers.add("Trailer", "X-Checksum")
+    r
+}
+
 async fn writeAll(conn: &mut net.Conn, data: Bytes) -> Void! {
     let mut off: usize = 0
     for off < data.len() {
@@ -55,7 +61,7 @@ async fn case(n: net.Net, port: Int, name: String, data: Bytes) -> Void! {
 
 async fn root(n: net.Net, listener: net.Listener) -> Void! {
     let port = listener.port()
-    let router = http.Router.new().get("/", echo).post("/", echo).get("/reset", noContent)
+    let router = http.Router.new().get("/", echo).post("/", echo).get("/reset", noContent).get("/trailer", trailer)
     let mut server = http.Server.new(router.handler(), (line) => print "log: ${line}")
     server.limits.readTimeoutMillis = 600000
     server.limits.idleTimeoutMillis = 600000
@@ -94,6 +100,14 @@ async fn root(n: net.Net, listener: net.Listener) -> Void! {
     }
     (await case(n, port, "5001 trailers", trailers.concat(end)))?
     (await case(n, port, "205 length", "GET /reset HTTP/1.1\r\nHost: t\r\nConnection: close\r\n\r\n".toBytes()))?
+    (await case(n, port, "HEAD oversized body", "HEAD / HTTP/1.1\r\nHost: t\r\nContent-Length: 1048577\r\nConnection: close\r\n\r\n".toBytes()))?
+    (await case(n, port, "HEAD invalid length", "HEAD / HTTP/1.1\r\nHost: t\r\nContent-Length: nope\r\nConnection: close\r\n\r\n".toBytes()))?
+    (await case(n, port, "HEAD bad version", "HEAD / HTTP/2.0\r\nHost: t\r\nConnection: close\r\n\r\n".toBytes()))?
+    (await case(n, port, "HEAD bad host", "HEAD / HTTP/1.1\r\nHost: [foo:bar]\r\nConnection: close\r\n\r\n".toBytes()))?
+    (await case(n, port, "GET oversized body", "GET / HTTP/1.1\r\nHost: t\r\nContent-Length: 1048577\r\nConnection: close\r\n\r\n".toBytes()))?
+    let c = http.Client.new(n, task.BlockingPool.new(1))
+    let tr = (await c.get("http://127.0.0.1:${port}/trailer"))?
+    print "trailer: ${tr.status} ${tr.header("Trailer") || "-"} ${tr.text()?}"
     stop.request()
     (await running)?
     print "stopped"
@@ -118,4 +132,10 @@ trailer fold: HTTP/1.1 400 Bad Request | Content-Length: 18 | folded header line
 4000 trailers: HTTP/1.1 200 OK | Content-Length: 28 | x=6e6f6e65 y=6e6f6e65 body=0
 5001 trailers: HTTP/1.1 431 Request Header Fields Too Large | Content-Length: 23 | too many trailer fields
 205 length: HTTP/1.1 205 Reset Content | Content-Length: 0 | 
+HEAD oversized body: HTTP/1.1 413 Content Too Large | Content-Length: 22 | 
+HEAD invalid length: HTTP/1.1 400 Bad Request | Content-Length: 22 | 
+HEAD bad version: HTTP/1.1 505 HTTP Version Not Supported | Content-Length: 24 | 
+HEAD bad host: HTTP/1.1 400 Bad Request | Content-Length: 14 | 
+GET oversized body: HTTP/1.1 413 Content Too Large | Content-Length: 22 | request body too large
+trailer: 200 - body
 stopped

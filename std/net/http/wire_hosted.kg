@@ -54,6 +54,20 @@ fn Deadline.passed(self) -> Bool {
     self.millis > 0 && self.start.elapsedMillis() >= self.millis
 }
 
+// remainingMillis is what a transport still has to spend, so handing it to a
+// TLS session does not restart the budget on every fill.
+fn Deadline.remainingMillis(self) -> i64 {
+    if self.millis <= 0 {
+        return 0
+    }
+    let left = self.millis - self.start.elapsedMillis()
+    if left < 0 {
+        0
+    } else {
+        left
+    }
+}
+
 type Fill =
     | Got
     | Eof
@@ -73,6 +87,10 @@ async fn Wire.fill(mut self, deadline: Deadline, stop: Shutdown) -> Fill! {
             return Expired
         }
         if let Some(s) = &mut self.secure {
+            // The session's own transport loops must stop at the same
+            // instant this fill would; otherwise a stalled peer holds the
+            // task while the deadline sits unused.
+            s.setReadTimeout(deadline.remainingMillis())
             match (await s.read(readChunk())) {
                 Ok(data) -> {
                     if data.len() == 0 {
@@ -85,7 +103,12 @@ async fn Wire.fill(mut self, deadline: Deadline, stop: Shutdown) -> Fill! {
                     })
                     return Got
                 }
-                Err(err) -> fail failure(400, err.message())
+                Err(err) -> {
+                    if err.timedOut() {
+                        return Expired
+                    }
+                    fail failure(400, err.message())
+                }
             }
         } else if let Some(c) = &mut self.conn {
             if c.pollRead(&mut chunk, readChunk())? is Some(n) {
@@ -112,11 +135,17 @@ async fn Wire.writeAll(mut self, data: Bytes, deadline: Deadline) -> Void! {
         let rest = data.slice(off, data.len()) || "".toBytes()
         if let Some(s) = &mut self.secure {
             let plain = sec.SecretBuffer.fromBytes(rest)
+            s.setWriteTimeout(deadline.remainingMillis())
             match (await s.write(&plain)) {
                 Ok(_) -> {
                     off = data.len()
                 }
-                Err(err) -> fail failure(400, err.message())
+                Err(err) -> {
+                    if err.timedOut() {
+                        fail failure(408, "write timed out")
+                    }
+                    fail failure(400, err.message())
+                }
             }
         } else if let Some(c) = &mut self.conn {
             if c.pollWrite(rest)? is Some(n) {

@@ -43,6 +43,17 @@ fn failureOf(e: &Error) -> Failure? {
     error.as[Failure](e)
 }
 
+// A rejection after the method token is known. headOnly records HEAD so the
+// answer omits the body (RFC 9110 9.3.2).
+type RejectedRequest = {
+    failure Failure
+    headOnly Bool
+}
+
+fn RejectedRequest.message(self) -> String {
+    self.failure.text
+}
+
 // answer runs the handler and maps its failure: a Failure picks its own status
 // and text, anything else becomes a bare 500 and goes to the log.
 fn answer(handler: fn(Request) -> Response!, log: fn(String) -> Void, req: Request) -> Response {
@@ -61,18 +72,22 @@ fn answer(handler: fn(Request) -> Response!, log: fn(String) -> Void, req: Reque
     result || Response.ofText(500, "internal server error")
 }
 
-async fn Wire.reject(mut self, f: Failure, limits: Limits) {
+async fn Wire.reject(mut self, f: Failure, limits: Limits, headOnly: Bool) {
     let body = f.text.toBytes()
     let mut headers = Headers.new()
     headers.add("Content-Type", "text/plain; charset=utf-8")
     headers.add("Date", time.now().httpDate())
-    if renderHead("HTTP/1.1 ${f.status} ${reason(f.status)}", &headers, Some(body.len()), true) is Ok(head) {
-        _ = await self.writeAll(head.concat(body), deadlineIn(limits.writeTimeoutMillis))
+    if renderHead("HTTP/1.1 ${f.status} ${reason(f.status)}", &headers, Some(body.len()), true, false) is Ok(head) {
+        let data = if headOnly {
+            head
+        } else {
+            head.concat(body)
+        }
+        _ = await self.writeAll(data, deadlineIn(limits.writeTimeoutMillis))
     }
 }
 
-async fn serveConn(wire: Wire, handler: fn(Request) -> Response!, log: fn(String) -> Void, limits: Limits, stop: Shutdown, active: Active) {
-    let mut wire = wire
+async fn serveConn(mut wire: Wire, handler: fn(Request) -> Response!, log: fn(String) -> Void, limits: Limits, stop: Shutdown, active: Active) {
     let keep = active
     for true {
         let read = await wire.readHead(limits, stop.clone())
@@ -84,7 +99,7 @@ async fn serveConn(wire: Wire, handler: fn(Request) -> Response!, log: fn(String
                 started = reading
             }
             Ok(Reject(f)) -> {
-                await wire.reject(f, limits)
+                await wire.reject(f, limits, false)
                 return
             }
             _ -> return
@@ -93,8 +108,10 @@ async fn serveConn(wire: Wire, handler: fn(Request) -> Response!, log: fn(String
         let req = match incoming {
             Ok(r) -> r
             Err(e) -> {
-                if failureOf(&e) is Some(f) {
-                    await wire.reject(f, limits)
+                if error.as[RejectedRequest](&e) is Some(r) {
+                    await wire.reject(r.failure, limits, r.headOnly)
+                } else if failureOf(&e) is Some(f) {
+                    await wire.reject(f, limits, false)
                 }
                 return
             }
@@ -105,8 +122,10 @@ async fn serveConn(wire: Wire, handler: fn(Request) -> Response!, log: fn(String
         let target = req.request.target
         let method = req.request.method
         let resp = if method == "OPTIONS" && target == "*" {
+            // Server-wide OPTIONS says only what this layer itself answers; the
+            // route table is the handler's to describe.
             let mut options = Response.new(200)
-            options.headers.add("Allow", "GET, HEAD, POST, OPTIONS")
+            options.headers.add("Allow", "OPTIONS")
             options
         } else {
             answer(handler, log, move req.request)
@@ -115,7 +134,7 @@ async fn serveConn(wire: Wire, handler: fn(Request) -> Response!, log: fn(String
             Ok(o) -> o
             Err(e) -> {
                 log("http: ${method} ${target}: ${e.message()}")
-                await wire.reject(failure(500, "internal server error"), limits)
+                await wire.reject(failure(500, "internal server error"), limits, headOnly)
                 return
             }
         }
@@ -137,7 +156,38 @@ type Incoming = {
 // readRequest reads the rest of one request after its head is buffered.
 async fn Wire.readRequest(mut self, end: usize, limits: Limits, deadline: Deadline) -> Incoming! {
     let head = parseHead(self.consume(end), limits.maxHeaders, RequestHead)?
-    let line = parseRequestLine(head.first)?
+    // The method token is visible before the rest of the request line passes
+    // validation, so a rejected HEAD is still answered without a body.
+    let headOnly = head.first == "HEAD" || head.first.startsWith("HEAD ")
+    let line = match parseRequestLine(head.first) {
+        Ok(line) -> line
+        Err(e) -> {
+            if failureOf(&e) is Some(f) {
+                fail RejectedRequest {
+                    failure: f
+                    headOnly: headOnly
+                }
+            }
+            fail e
+        }
+    }
+    let read = await self.completeRequest(head, line, limits, deadline)
+    match read {
+        Ok(incoming) -> return incoming
+        Err(e) -> {
+            if failureOf(&e) is Some(f) {
+                fail RejectedRequest {
+                    failure: f
+                    headOnly: headOnly
+                }
+            }
+            fail e
+        }
+    }
+}
+
+// completeRequest validates and reads the request after its line parsed.
+async fn Wire.completeRequest(mut self, head: Head, line: RequestLine, limits: Limits, deadline: Deadline) -> Incoming! {
     let hosts = head.headers.all("Host")
     if hosts.len() > 1 || (hosts.len() == 0 && line.version == "HTTP/1.1") {
         fail failure(400, "missing or repeated Host")
@@ -182,8 +232,7 @@ type Outgoing = {
 }
 
 // renderResponse encodes resp; one that cannot be sent as given fails with a Failure.
-fn renderResponse(resp: Response, version: String, headOnly: Bool, close: Bool) -> Outgoing! {
-    let mut resp = resp
+fn renderResponse(mut resp: Response, version: String, headOnly: Bool, closeRequested: Bool) -> Outgoing! {
     if resp.headers.get("Date") is None {
         resp.headers.add("Date", time.now().httpDate())
     }
@@ -191,7 +240,7 @@ fn renderResponse(resp: Response, version: String, headOnly: Bool, close: Bool) 
         // 101 is the final status of a protocol switch, not an internal error.
         // std/net/http has no connection-takeover API, so the head is sent and
         // the connection closes instead of continuing as HTTP.
-        let out = renderHead("${version} 101 ${reason(101)}", &resp.headers, None, true)?
+        let out = renderHead("${version} 101 ${reason(101)}", &resp.headers, None, true, false)?
         return Ok(Outgoing {
             data: out
             close: true
@@ -200,7 +249,11 @@ fn renderResponse(resp: Response, version: String, headOnly: Bool, close: Bool) 
     if resp.status < 200 || resp.status > 599 {
         fail failure(500, "invalid status ${resp.status}")
     }
-    let close = close || wantsClose(&resp.headers, "HTTP/1.1")
+    // Every response here is framed by Content-Length (or has no body), so it
+    // cannot carry trailers; a handler-set Trailer would describe nothing.
+    resp.headers.remove("Trailer")
+    let close = closeRequested || wantsClose(&resp.headers, "HTTP/1.1")
+    let keepAlive = version == "HTTP/1.0" && !close
     let bodyLen = if noBodyStatus(resp.status) {
         if resp.status == 205 {
             Some(0)
@@ -210,7 +263,7 @@ fn renderResponse(resp: Response, version: String, headOnly: Bool, close: Bool) 
     } else {
         Some(resp.body.len())
     }
-    let mut out = renderHead("${version} ${resp.status} ${reason(resp.status)}", &resp.headers, bodyLen, close)?
+    let mut out = renderHead("${version} ${resp.status} ${reason(resp.status)}", &resp.headers, bodyLen, close, keepAlive)?
     if !headOnly && bodyLen is Some(n) && n > 0 {
         out = out.concat(resp.body)
     }

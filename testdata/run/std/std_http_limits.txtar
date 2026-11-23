@@ -36,7 +36,7 @@ async fn raw(n: net.Net, port: Int, data: String) -> String! {
     let text = String.fromBytes(Bytes.fromArray(&got))?
     let mut out = ""
     for line in text.split("\r\n") {
-        if line.startsWith("HTTP/1.1") || line.startsWith("HTTP/1.0") || line.startsWith("echo") || line.startsWith("request") || line.startsWith("Connection") || line.startsWith("malformed") || line.startsWith("missing") || line.startsWith("unsupported") || line.startsWith("bare") || line.startsWith("both") || line.startsWith("invalid") || line.startsWith("folded") || line.startsWith("header") {
+        if line.startsWith("HTTP/1.1") || line.startsWith("HTTP/1.0") || line.startsWith("echo") || line.startsWith("request") || line.startsWith("Connection") || line.startsWith("malformed") || line.startsWith("missing") || line.startsWith("unsupported") || line.startsWith("bare") || line.startsWith("both") || line.startsWith("invalid") || line.startsWith("folded") || line.startsWith("header") || line.startsWith("Allow") {
             out = if out == "" {
                 line
             } else {
@@ -82,7 +82,12 @@ async fn root(n: net.Net, listener: net.Listener) -> Void! {
         "POST /echo HTTP/1.1\r\nHost: t\r\nExpect: 100-continue\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
         "GET /echo#frag HTTP/1.1\r\nHost: t\r\n\r\n",
         "GET /echo HTTP/1.1\r\nHost: a b\r\n\r\n",
-        "GET /reset HTTP/1.1\r\nHost: t\r\nConnection: close\r\n\r\n"
+        "GET /reset HTTP/1.1\r\nHost: t\r\nConnection: close\r\n\r\n",
+        "OPTIONS * HTTP/1.1\r\nHost: t\r\nConnection: close\r\n\r\n",
+        "GET /echo HTTP/1.1\r\nHost: [foo:bar]\r\n\r\n",
+        "GET /echo HTTP/1.1\r\nHost: [1:2:3:4:5:6:7:8:9]\r\n\r\n",
+        "GET /echo HTTP/1.1\r\nHost: [2001:db8::1]:8080\r\nConnection: close\r\n\r\n",
+        "GET /reset HTTP/1.0\r\nConnection: keep-alive\r\n\r\nGET /echo HTTP/1.0\r\n\r\n"
     )
     for data in cases {
         let line = (await raw(n, port, data))?
@@ -138,6 +143,11 @@ HTTP/1.1 200 OK | Connection: close | echo POST /echo []
 HTTP/1.1 400 Bad Request | Connection: close | malformed request line
 HTTP/1.1 400 Bad Request | Connection: close | malformed Host
 HTTP/1.1 205 Reset Content | Connection: close
+HTTP/1.1 200 OK | Allow: OPTIONS | Connection: close
+HTTP/1.1 400 Bad Request | Connection: close | malformed Host
+HTTP/1.1 400 Bad Request | Connection: close | malformed Host
+HTTP/1.1 200 OK | Connection: close | echo GET /echo []
+HTTP/1.0 205 Reset Content | Connection: keep-alive | HTTP/1.0 200 OK | Connection: close | echo GET /echo []
 keep-alive 1: 200 echo GET /echo []
 keep-alive 2: 200 echo GET /second []
 stopped

@@ -68,7 +68,7 @@ fn validHost(v: String) -> Bool {
             return false
         }
         let inner = v.sliceBytes(1, close) || ""
-        if inner == "" || hasControlOrSpace(inner) || indexOfByte(inner, 58) is None {
+        if !validIpv6(inner) {
             return false
         }
         let after = v.sliceBytes(close + 1, v.len()) || ""
@@ -150,7 +150,9 @@ fn noBodyStatus(status: Int) -> Bool {
 
 // renderHead writes a head line and its fields; Content-Length, Transfer-Encoding
 // and Connection are the caller's to set, so stale copies of them are dropped.
-fn renderHead(first: String, headers: &Headers, bodyLen: usize?, close: Bool) -> Bytes! {
+// keepAlive asks for `Connection: keep-alive`, which an HTTP/1.0 peer needs to
+// know the connection stays open (RFC 9112 6.3).
+fn renderHead(first: String, headers: &Headers, bodyLen: usize?, close: Bool, keepAlive: Bool) -> Bytes! {
     let mut out = "${first}\r\n"
     for h in &headers.items {
         if !isToken(h.name) || !isFieldValue(h.value) {
@@ -167,14 +169,19 @@ fn renderHead(first: String, headers: &Headers, bodyLen: usize?, close: Bool) ->
     }
     if close {
         out = "${out}Connection: close\r\n"
+    } else if keepAlive {
+        out = "${out}Connection: keep-alive\r\n"
     }
     "${out}\r\n".toBytes()
 }
 
 // wantsClose reads the Connection field: HTTP/1.1 stays open unless it says close,
-// and HTTP/1.0 is always closed here since its keep-alive is opt-in and rarely needed.
+// while HTTP/1.0 stays open only when it explicitly asks for keep-alive.
 fn wantsClose(headers: &Headers, version: String) -> Bool {
-    version != "HTTP/1.1" || connectionHas(headers, "close")
+    if connectionHas(headers, "close") {
+        return true
+    }
+    version != "HTTP/1.1" && !connectionHas(headers, "keep-alive")
 }
 
 fn connectionHas(headers: &Headers, option: String) -> Bool {
