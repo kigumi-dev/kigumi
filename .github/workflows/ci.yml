@@ -273,6 +273,9 @@ jobs:
       - run: go test -c -o /tmp/cross-tests/repl.test ./internal/tooling/repl
       - run: go test -c -o /tmp/cross-tests/replcli.test ./internal/cli/cmd/repl
       - run: go test -c -o /tmp/cross-tests/vm.test ./internal/backend/vm
+      # The driver tests are the ones most likely to reach for a host-only syscall; this compiles
+      # them for every target so an untagged Unix-only test cannot break the Windows build alone.
+      - run: go test -c -o /tmp/cross-tests/driver.test ./internal/toolchain/driver
 
   audit:
     name: test audit
@@ -417,6 +420,11 @@ jobs:
           KIGUMI_CFLAGS: ${{ matrix.cflags }}
           ASAN_OPTIONS: ${{ matrix.asan }}
           KIGUMI_TEST_SHARD: ${{ matrix.index }}/${{ matrix.count }}
+      # TestRCCallCounts compiles every run fixture's IR, so it needs the pinned C toolchain and a
+      # whole corpus. The hermetic VM shards skip it and the AOT shards select only corpus tests, so
+      # this dedicated step is its one path; shard 0 of the default configuration is enough.
+      - if: matrix.driver == 'yes' && matrix.name == 'default-0'
+        run: go test -run '^TestRCCallCounts$' -count=1 -timeout 120m ./internal/toolchain/driver/
       - if: matrix.driver == 'no'
         run: ${{ matrix.cmd }}
         env:

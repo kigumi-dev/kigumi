@@ -1,3 +1,5 @@
+//go:build unix
+
 package driver_test
 
 import (

@@ -38,6 +38,9 @@ func parseSemDriverFixture(t *testing.T, path string) semDriverFixture {
 		case "src":
 			fx.files["main.kg"] = body
 		default:
+			if !fixtureSourceSection(name) {
+				t.Fatalf("%s: unknown fixture section %q: want -- expect --, -- module --, -- src --, or a source file ending in .kg or .c", path, name)
+			}
 			fx.files[name] = body
 		}
 	}

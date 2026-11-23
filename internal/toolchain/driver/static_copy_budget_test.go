@@ -76,7 +76,9 @@ func minMemoryLimit(t *testing.T, prog *mir.Program) int64 {
 	t.Helper()
 	fits := func(limit int64) bool {
 		var errOut bytes.Buffer
-		code, err := vm.Run(prog, vm.Options{Sandbox: true, StepLimit: 1 << 40, DepthLimit: 100, MemoryLimit: limit}, &bytes.Buffer{}, &errOut)
+		// StepLimit is an int, so spell "unbounded" as the host's maximum rather than a
+		// constant that overflows a 32-bit cross-compile.
+		code, err := vm.Run(prog, vm.Options{Sandbox: true, StepLimit: int(^uint(0) >> 1), DepthLimit: 100, MemoryLimit: limit}, &bytes.Buffer{}, &errOut)
 		if err != nil && !strings.Contains(err.Error(), "memory limit") {
 			t.Fatalf("limit %d: %v", limit, err)
 		}

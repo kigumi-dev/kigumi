@@ -26,6 +26,27 @@ func cwdModule(t *testing.T, o buildconfig.CompilerOptions) *driver.Module {
 	return m
 }
 
+// openBuiltELF opens a binary the driver just built. A host that produces another object format
+// (Mach-O, PE) has nothing for debug/elf to read, so skip there; a missing or corrupt ELF file is
+// a real build failure and must not be turned into a skip.
+func openBuiltELF(t *testing.T, path string) *elf.File {
+	t.Helper()
+	f, err := elf.Open(path)
+	if err == nil {
+		t.Cleanup(func() { f.Close() })
+		return f
+	}
+	data, readErr := os.ReadFile(path)
+	if readErr != nil {
+		t.Fatalf("open %s: %v", path, readErr)
+	}
+	if len(data) < 4 || !bytes.Equal(data[:4], []byte("\x7fELF")) {
+		t.Skipf("not an ELF host: %s is not an ELF file", path)
+	}
+	t.Fatalf("open ELF %s: %v", path, err)
+	return nil
+}
+
 func TestBuildResolvesOutputAgainstCompilerCwd(t *testing.T) {
 	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
@@ -87,11 +108,7 @@ func TestBuildResolvesLinkerScriptAgainstCompilerCwd(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("link with the script: %v\n%s", err, stderr.String())
 	}
-	f, err := elf.Open(filepath.Join(cwd, "prog"))
-	if err != nil {
-		t.Skipf("not an ELF host: %v", err)
-	}
-	defer f.Close()
+	f := openBuiltELF(t, filepath.Join(cwd, "prog"))
 	syms, err := f.Symbols()
 	if err != nil {
 		t.Fatal(err)
@@ -117,11 +134,7 @@ func TestBuildResolvesRelativeCFlagsAgainstCompilerCwd(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("build with a relative .c flag: %v\n%s", err, stderr.String())
 	}
-	f, err := elf.Open(filepath.Join(cwd, "prog"))
-	if err != nil {
-		t.Skipf("not an ELF host: %v", err)
-	}
-	defer f.Close()
+	f := openBuiltELF(t, filepath.Join(cwd, "prog"))
 	syms, _ := f.Symbols()
 	for _, s := range syms {
 		if s.Name == "kigumi_extra_marker" {

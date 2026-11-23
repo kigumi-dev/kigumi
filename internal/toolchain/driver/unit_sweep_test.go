@@ -28,7 +28,8 @@ type sweepFixture struct {
 
 var sweepOptions = map[string]bool{"entry": true, "mir": true, "test": true}
 
-func readSweepFixture(path string) (sweepFixture, bool) {
+func readSweepFixture(t *testing.T, path string) (sweepFixture, bool) {
+	t.Helper()
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		return sweepFixture{}, false
@@ -37,7 +38,7 @@ func readSweepFixture(path string) (sweepFixture, bool) {
 	var cur string
 	var body strings.Builder
 	flush := func() {
-		if cur == "" {
+		if cur == "" || cur == "!" {
 			return
 		}
 		switch {
@@ -54,8 +55,12 @@ func readSweepFixture(path string) (sweepFixture, bool) {
 			}
 		case cur == "src":
 			fx.files["main/main.kg"] = body.String()
-		case strings.HasSuffix(cur, ".kg"):
+		case fixtureSourceSection(cur):
 			fx.files[cur] = body.String()
+		case runFixtureHeadSections[cur]:
+			// Metadata sections (stdout, exit, engines, ...) of the run corpus; only source is swept.
+		default:
+			t.Fatalf("%s: unknown fixture section %q: want -- expect --, -- module --, -- src --, or a source file", path, cur)
 		}
 		body.Reset()
 	}
@@ -233,7 +238,7 @@ func TestUnitSweepSemFixtures(t *testing.T) {
 	var tot sweepTotals
 	singles := 0
 	for _, p := range fixture.ShardPaths(paths) {
-		fx, ok := readSweepFixture(p)
+		fx, ok := readSweepFixture(t, p)
 		if !ok {
 			continue
 		}
@@ -245,6 +250,14 @@ func TestUnitSweepSemFixtures(t *testing.T) {
 		t.Run(fx.name, func(t *testing.T) { sweepFixtureRun(t, fx, unitSweepMutations, &tot) })
 	}
 	t.Logf("fixtures=%d multi-package=%d semantic runs=%d replayed packages=%d fallbacks=%d lazy runs=%d lazy retries=%d", tot.fixtures, tot.multi, tot.runs, tot.replays, tot.fallbacks, tot.lazy, tot.lazyRetries)
+	// A reader that silently stops recognizing fixtures would otherwise pass with zero work.
+	// ShardShare(least) is 0 when a shard cannot be expected to see that many.
+	if least := fixture.ShardShare(20); tot.fixtures < least {
+		t.Errorf("swept %d fixtures, want at least %d", tot.fixtures, least)
+	}
+	if least := fixture.ShardShare(20); tot.runs < least {
+		t.Errorf("made %d semantic runs, want at least %d", tot.runs, least)
+	}
 }
 
 const (

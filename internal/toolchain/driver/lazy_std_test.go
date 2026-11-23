@@ -43,7 +43,7 @@ func TestLazyStdCheckMatchesEager(t *testing.T) {
 				skipped.Add(int64(st.SkippedBodies))
 			}
 			for _, path := range paths {
-				fx, ok := readSweepFixture(path)
+				fx, ok := readSweepFixture(t, path)
 				if !ok {
 					continue
 				}

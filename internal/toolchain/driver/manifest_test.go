@@ -129,6 +129,10 @@ func runFixtures(t *testing.T) []fixture.Fixture {
 			t.Parallel()
 			c := checkedFixture(t, path)
 			switch {
+			case c.errs != "":
+				// A compile-error fixture is still checked by the VM path; no engine can build it.
+				fx.Mode = []string{"vm"}
+				fx.Skip = map[string]string{"native": "compile-error"}
 			case c.refusal == nil:
 				fx.Mode = []string{"vm", "native"}
 			case strings.Contains(c.refusal.Error(), "kigumi build"):

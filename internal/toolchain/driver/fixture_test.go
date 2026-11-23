@@ -38,6 +38,17 @@ func fixturePath(t testing.TB, id string) string {
 	return path
 }
 
+// runFixtureHeadSections are a run fixture's non-source sections. Every other name must be a
+// source file, so a misspelled section fails the fixture instead of writing a file nothing reads.
+var runFixtureHeadSections = map[string]bool{
+	"src": true, "stdout": true, "stderr": true, "exit": true, "engines": true, "secret-san": true,
+}
+
+// fixtureSourceSection reports whether a fixture section names source the build compiles.
+func fixtureSourceSection(name string) bool {
+	return strings.HasSuffix(name, ".kg") || strings.HasSuffix(name, ".c")
+}
+
 // loadRunFixture writes a testdata/run fixture's source sections under a fresh module root (`-- src --` is
 // main/main.kg) and returns the expected stdout, stderr and exit code.
 func loadRunFixture(t testing.TB, path string) (root, wantOut, wantErr string, wantExit int) {
@@ -60,10 +71,17 @@ func loadRunFixture(t testing.TB, path string) (root, wantOut, wantErr string, w
 		case "stderr":
 			wantErr = body
 		case "exit":
-			wantExit, _ = strconv.Atoi(strings.TrimSpace(body))
+			n, err := strconv.Atoi(strings.TrimSpace(body))
+			if err != nil {
+				t.Fatalf("%s: -- exit -- %q is not an integer", path, strings.TrimSpace(body))
+			}
+			wantExit = n
 		case "engines", "secret-san":
 			// Consumed by fixtureEngines and checkSecretSanRun, not written as a file.
 		default:
+			if !runFixtureHeadSections[name] && !fixtureSourceSection(name) {
+				t.Fatalf("%s: unknown fixture section %q: want -- src --, -- stdout --, -- stderr --, -- exit --, -- engines --, -- secret-san --, or a source file ending in .kg or .c", path, name)
+			}
 			file := name
 			if file == "src" {
 				file = "main/main.kg"
@@ -89,10 +107,12 @@ func loadRunFixture(t testing.TB, path string) (root, wantOut, wantErr string, w
 
 // fixtureEngines reads a run fixture's optional `-- engines --` section: absent runs everywhere, "native" only under
 // TestAotCorpus (a real extern(C) declaration the VM statically refuses leaves the VM tests nothing to assert).
-func fixtureEngines(path string) string {
+// The section is a declaration, not free text: a value outside the run corpus's engine names is a fixture error.
+func fixtureEngines(t testing.TB, path string) string {
+	t.Helper()
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return ""
+		t.Fatal(err)
 	}
 	name, engines := "", ""
 	for _, line := range strings.SplitAfter(string(data), "\n") {
@@ -105,7 +125,12 @@ func fixtureEngines(path string) string {
 			engines += line
 		}
 	}
-	return strings.TrimSpace(engines)
+	switch engines = strings.TrimSpace(engines); engines {
+	case "", "native":
+		return engines
+	}
+	t.Fatalf("%s: -- engines -- = %q, want \"native\" (or omit the section)", path, engines)
+	return ""
 }
 
 // noValuePlaceholder rejects an accepted program that printed the runtime's unknown-value marker:
