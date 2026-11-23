@@ -26,7 +26,7 @@ func (m *Module) settledKey() (string, bool) {
 	}
 	env := m.cacheEnv()
 	h := sha256.New()
-	fmt.Fprintf(h, "env=%s\nstd=%s\nentry=%s,%v\nall=%v,%v\ncolor=%v\ndirs=%q\nimports=%q\n", env, std, m.keyEntry, m.keyExplicit, m.allPackages, m.allOwn, diag.Colored(), m.rootDirs, m.rootImports)
+	fmt.Fprintf(h, "env=%s\nstd=%s\nentry=%s,%v\nscript=%v\nall=%v,%v\ncolor=%v\ndirs=%q\nimports=%q\n", env, std, m.keyEntry, m.keyExplicit, m.scriptOnly, m.allPackages, m.allOwn, diag.Colored(), m.rootDirs, m.rootImports)
 	digests := map[string]string{}
 	for _, comp := range g.sccs {
 		for _, p := range comp {
