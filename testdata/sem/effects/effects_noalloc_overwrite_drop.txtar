@@ -12,7 +12,7 @@ noalloc fn set(w: &mut W, b: Buf) {
     w.h = b //~ ERROR dropping `Buf` may allocate or deallocate
 }
 
-noalloc fn W.pre(move self, fresh: Buf, put: fn(Buf) -> Bool) -> Bool {
+noalloc fn W.pre(move self, fresh: Buf, put: noalloc fn(Buf) -> Bool) -> Bool {
     self.h = fresh //~ ERROR dropping `Buf` may allocate or deallocate
     put(move self.h)
 }
@@ -35,7 +35,7 @@ noalloc fn rebind(a: Buf, b: Buf) -> Buf {
     x
 }
 
-noalloc fn relayLoop(a: Buf, put: fn(Buf) -> Bool, mk: fn() -> Buf) -> Buf {
+noalloc fn relayLoop(a: Buf, put: noalloc fn(Buf) -> Bool, mk: noalloc fn() -> Buf) -> Buf {
     let mut x = a
     let mut i = 0
     for i < 2 {
@@ -45,25 +45,25 @@ noalloc fn relayLoop(a: Buf, put: fn(Buf) -> Bool, mk: fn() -> Buf) -> Buf {
     x
 }
 
-noalloc fn W.refill(move self, fresh: Buf, put: fn(Buf) -> Bool) -> W {
+noalloc fn W.refill(move self, fresh: Buf, put: noalloc fn(Buf) -> Bool) -> W {
     let ok = put(move self.h)
     self.h = fresh
     self
 }
 
-noalloc fn relay(a: Buf, b: Buf, put: fn(Buf) -> Bool) -> Buf {
+noalloc fn relay(a: Buf, b: Buf, put: noalloc fn(Buf) -> Bool) -> Buf {
     let mut x = a
     let ok = put(x)
     x = b
     x
 }
 
-noalloc fn W.rechain(move self, g: fn(Buf) -> Buf) -> W {
+noalloc fn W.rechain(move self, g: noalloc fn(Buf) -> Buf) -> W {
     self.h = g(move self.h)
     self
 }
 
-noalloc fn chain(a: Buf, g: fn(Buf) -> Buf) -> Buf {
+noalloc fn chain(a: Buf, g: noalloc fn(Buf) -> Buf) -> Buf {
     let mut x = a
     x = g(x)
     x

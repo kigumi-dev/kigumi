@@ -44,7 +44,7 @@ pure fn inferredOk(xs: Array[Int]) -> usize {
 }
 
 pure fn cb(f: fn(Int) -> Int) -> Int {
-    f(1)
+    f(1) //~ ERROR `f` may be impure
 }
 
 pure fn cbCaller(files: fs.Files, p: fs.Path) -> Int {
@@ -79,7 +79,7 @@ pure fn cbKeepCaller(files: fs.Files, p: fs.Path) -> Int {
 
 pure fn cbAlias(f: fn(Int) -> Int) -> Int {
     let g = f
-    g(1)
+    g(1) //~ ERROR `f` may be impure
 }
 
 pure fn cbOk(f: pure fn(Int) -> Int) -> Int {
@@ -182,6 +182,13 @@ error[E900]: `remove` is not `pure`
 34 |     files.remove(p)? //~ ERROR `remove` is not `pure`
    |     ^^^^^^^^^^^^^^
 
+error[E901]: `f` may be impure
+  --> lib/eff.kg:46:5
+   |
+46 |     f(1) //~ ERROR `f` may be impure
+   |     ^^^
+   = help: declare it `pure fn(...)`
+
 error[E422]: closure is not `pure` (calls `remove`)
   --> lib/eff.kg:50:8
    |
@@ -193,6 +200,13 @@ error[E422]: closure is not `pure` (calls `remove`)
    |
 61 |     cbForward((x) => { //~ ERROR closure is not `pure` (calls `remove`)
    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E901]: `f` may be impure
+  --> lib/eff.kg:81:5
+   |
+81 |     g(1) //~ ERROR `f` may be impure
+   |     ^^^
+   = help: declare it `pure fn(...)`
 
 error[E905]: `unsafe` blocks are not `pure`
   --> lib/eff.kg:89:5

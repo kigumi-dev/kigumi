@@ -82,15 +82,20 @@ func (c *checker) stashFieldFact(n syntax.NodeID, fact NarrowFact) {
 
 // applyFieldFact covers fieldCallbackEdge's call-site resolution, which has
 // no callee type to upgrade; callMethod instead upgrades the type directly
-// so its unsafe/C-ABI checks see the real flags.
-func (c *checker) applyFieldFact(n syntax.NodeID, fact NarrowFact) {
+// so its unsafe/C-ABI checks see the real flags. need is the callee's own
+// declared contract, owed by the resolved value at this call site.
+func (c *checker) applyFieldFact(n syntax.NodeID, fact NarrowFact, need Effects) {
 	switch {
 	case fact.Param != 0:
 		c.deferToParam(fact.Param)
 		c.edge(EffectEdge{Kind: EdgeParamCall, Target: fact.Param, Node: n})
 	case fact.Target != 0:
 		c.edge(EffectEdge{Kind: EdgeCallback, Target: fact.Target, Node: n})
+		if need != 0 {
+			c.edge(EffectEdge{Kind: EdgeContract, Target: fact.Target, Mods: need, Node: n})
+		}
 	default:
 		c.edge(EffectEdge{Kind: EdgeCallback, Mods: fact.Mods, Node: n})
+		c.deferredValueContract(n, fact.Mods, need)
 	}
 }

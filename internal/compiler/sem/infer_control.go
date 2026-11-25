@@ -76,12 +76,13 @@ func (c *checker) synthIf(n syntax.NodeID, want TypeID) TypeID {
 	c.pushScope(ScopeArm, n)
 	pos, neg := c.condFacts(s.Cond)
 	c.addFacts(pos)
+	postCond := c.snapshotFacts()
 	once := c.onceBegin()
 	then := c.checkBranch(n, s.Then, want, valuePos)
 	c.onceArm(once, then)
 	thenFacts := c.snapshotFacts()
 	c.popScope(saved)
-	c.facts = append(entry, neg...)
+	c.facts = append(survivingFacts(entry, postCond), neg...)
 	if s.Else == 0 {
 		c.onceEnd(once, true)
 		c.joinBranches(then, thenFacts, TyUnit, c.facts)
@@ -146,11 +147,13 @@ func (c *checker) synthIfLet(n syntax.NodeID, want TypeID) TypeID {
 	c.taintPatternBindings(s.Pattern, c.restrictedAliasOf(s.Init))
 	pos, neg := c.patternFacts(s.Pattern, place)
 	c.addFacts(pos)
+	var postCond []NarrowFact
 	if s.Guard != 0 {
 		c.branch++
 		gp, _ := c.condFacts(s.Guard)
 		c.branch--
 		c.addFacts(gp)
+		postCond = c.snapshotFacts()
 		neg = nil
 	}
 	once := c.onceBegin()
@@ -158,7 +161,11 @@ func (c *checker) synthIfLet(n syntax.NodeID, want TypeID) TypeID {
 	c.onceArm(once, then)
 	thenFacts := c.snapshotFacts()
 	c.popScope(saved)
-	c.facts = append(entry, neg...)
+	if s.Guard != 0 {
+		c.facts = append(survivingFacts(entry, postCond), neg...)
+	} else {
+		c.facts = append(entry, neg...)
+	}
 	if s.Else == 0 {
 		c.onceEnd(once, true)
 		c.joinBranches(then, thenFacts, TyUnit, c.facts)

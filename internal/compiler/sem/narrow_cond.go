@@ -22,14 +22,12 @@ func (c *checker) condFacts(n syntax.NodeID) (pos, neg []NarrowFact) {
 				return c.scopedChain(n)
 			}
 			lp, _ := c.condFacts(bin.Left().ID())
-			saved := c.snapshotFacts()
 			c.addFacts(lp)
 			c.branch++
 			rp, _ := c.condFacts(bin.Right().ID())
 			c.branch--
-			c.facts = saved
 			c.setType(n, TyBool)
-			return append(lp, rp...), nil
+			return rp, nil
 		case token.EqEq, token.NotEq:
 			c.condLeaf(n)
 			return c.noneFacts(n)

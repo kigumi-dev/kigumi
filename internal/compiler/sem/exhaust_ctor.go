@@ -117,6 +117,9 @@ func (c *checker) abstract(p syntax.NodeID) pat {
 		ent := c.info.Uses[p]
 		if ent == 0 || c.r.Entities[ent].Kind != EntVariant {
 			if ent != 0 {
+				if p, ok := c.constPat(ent); ok {
+					return p
+				}
 				return pat{kind: pLit, key: "t" + itoa(int(ent)), name: c.r.Entities[ent].Name}
 			}
 			return pat{kind: pWild}
@@ -168,6 +171,32 @@ func (c *checker) abstractLit(lit syntax.NodeID) pat {
 		text = v.Int.String()
 	}
 	return pat{kind: pLit, key: "l" + text, name: text}
+}
+
+// constPat keys a const pattern by its evaluated value, the same key the
+// value's literal spelling gets from abstractLit: `const T = true` must cover
+// the `true` constructor, and an arm naming a const that repeats a spelled
+// literal must still read as redundant. Values with no literal key keep the
+// entity key, which never collides with a constructor or another literal.
+func (c *checker) constPat(ent EntityID) (pat, bool) {
+	v, ok := c.r.ConstValueOf(ent)
+	if !ok {
+		return pat{}, false
+	}
+	name := c.r.Entities[ent].Name
+	switch v.Kind {
+	case LitBool:
+		text := "false"
+		if v.Bool {
+			text = "true"
+		}
+		return pat{kind: pCtor, key: text, name: name}, true
+	case LitInt:
+		if v.Int != nil {
+			return pat{kind: pLit, key: "l" + v.Int.String(), name: name}, true
+		}
+	}
+	return pat{}, false
 }
 
 // abstractRecord orders the field patterns by declaration (records) or by

@@ -50,12 +50,12 @@ func (c *checker) callValue(n, callee syntax.NodeID, ft TypeID, args []syntax.No
 	}
 	if fact, ok := c.fieldFact[n]; ok {
 		delete(c.fieldFact, n)
-		c.applyFieldFact(n, fact)
+		c.applyFieldFact(n, fact, 0)
 	} else if closure != 0 {
 		c.edge(EffectEdge{Kind: EdgeCall, Target: closure, Node: n})
 		c.noteClosureResult(n, closure)
 	} else {
-		c.callbackEdge(n, n, Effects(node.Flags), 0, false)
+		c.callbackEdge(n, n, Effects(node.Flags), 0, false, true)
 		key, viaField := c.knownFieldCallKeyOf(callee)
 		for _, tgt := range c.knownCallTargets(callee) {
 			if viaField && c.r.fnKilledAt(key, tgt, c.f, n) {

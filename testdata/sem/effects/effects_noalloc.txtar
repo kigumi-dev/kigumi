@@ -116,7 +116,7 @@ noalloc fn pushes(mut xs: Array[Int]) {
 }
 
 noalloc fn cb(f: fn() -> Void) {
-    f()
+    f() //~ ERROR `f` may allocate
 }
 
 fn grows() {
@@ -255,6 +255,13 @@ error[E907]: `push` is not `noalloc`
     |
 114 |     xs.push(1) //~ ERROR `push` is not `noalloc`
     |     ^^^^^^^^^
+
+error[E908]: `f` may allocate
+   --> lib/na.kg:118:5
+    |
+118 |     f() //~ ERROR `f` may allocate
+    |     ^^
+    = help: declare it `noalloc fn(...)`
 
 error[E422]: closure is not `noalloc` (calls `grows`)
    --> lib/na.kg:127:8

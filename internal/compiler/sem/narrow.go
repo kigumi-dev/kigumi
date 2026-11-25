@@ -29,6 +29,12 @@ func intersectFacts(a, b []NarrowFact) []NarrowFact {
 	return out
 }
 
+// survivingFacts keeps entry facts that the condition's evaluation did not
+// invalidate, so an else branch does not resurrect a stale narrowing.
+func survivingFacts(entry, after []NarrowFact) []NarrowFact {
+	return intersectFacts(entry, after)
+}
+
 func (c *checker) stablePlace(n syntax.NodeID) PlaceID {
 	id := c.placeOf(n)
 	if id == 0 || !c.r.Places[id].Stable {

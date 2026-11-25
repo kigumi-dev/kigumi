@@ -96,6 +96,46 @@ func TestPureCallerMutationContract(t *testing.T) {
 	}
 }
 
+func TestConstPatternKeysByValue(t *testing.T) {
+	const src = `
+const T: Bool = true
+const F: Bool = false
+fn f(b: Bool) -> Int {
+    match b { T -> 1, F -> 2 }
+}
+fn main() -> Void { print "${f(true)} ${f(false)}" }
+`
+	if out := checkBlocking(t, "", src).Render(); strings.Contains(out, "E814") {
+		t.Errorf("const Bool patterns should be exhaustive, got:\n%s", out)
+	}
+}
+
+func TestConstPatternMissingCaseStillRejected(t *testing.T) {
+	const src = `
+const T: Bool = true
+fn f(b: Bool) -> Int {
+    match b { T -> 1 }
+}
+fn main() -> Void { print "${f(false)}" }
+`
+	if out := checkBlocking(t, "", src).Render(); !strings.Contains(out, "E814") {
+		t.Errorf("uncovered false should stay E814, got:\n%s", out)
+	}
+}
+
+func TestConstPatternOverlapIsRedundant(t *testing.T) {
+	const src = `
+const T: Bool = true
+fn f(b: Bool) -> Int {
+    match b { true -> 1, T -> 2, false -> 3 }
+}
+fn main() -> Void { print "${f(true)}" }
+`
+	if out := checkBlocking(t, "", src).Render(); !strings.Contains(out, "W801") {
+		t.Errorf("const repeating true should be W801, got:\n%s", out)
+	}
+}
+
 func TestHTTPHandlerCallbackReachesServe(t *testing.T) {
 	const src = `
 import fs from std/fs
@@ -120,5 +160,41 @@ async fn serve(listener: net.Listener, stop: http.Shutdown) -> Void! {
 	}
 	if out := checkBlocking(t, "", src).Render(); !strings.Contains(out, "W1320") {
 		t.Errorf("http handler callback should warn under hosted, got:\n%s", out)
+	}
+}
+
+func TestConditionEffectsInvalidateNarrowing(t *testing.T) {
+	cases := map[string]string{
+		"and": `type K = A | B | C
+fn main() -> Void {
+    let mut x: K = A
+    if x is A && { x = B; true } {
+        let s = match x { A -> "A" }
+        print s
+    }
+}`,
+		"payload": `type K = A(Int) | B
+fn main() -> Void {
+    let mut x: K = A(7)
+    if x is A(n) && { x = B; n > 0 } {
+        let s = match x { A(m) -> "A${m}" }
+        print s
+    }
+}`,
+		"else": `type K = A | B | C
+fn main() -> Void {
+    let mut x: K = A
+    if x is A {
+        if { x = B; false } { } else {
+            let s = match x { A -> "A" }
+            print s
+        }
+    }
+}`,
+	}
+	for name, src := range cases {
+		if out := checkBlocking(t, "", src).Render(); !strings.Contains(out, "E814") {
+			t.Errorf("%s: expected E814, got:\n%s", name, out)
+		}
 	}
 }

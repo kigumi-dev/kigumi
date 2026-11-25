@@ -77,7 +77,36 @@ func (r *Result) witnessCallbackEdges(p pendingWitnessCallback) {
 		if i < 0 || i >= len(p.passes) {
 			continue
 		}
-		r.addEdge(p.owner, EffectEdge{Kind: EdgeCallback, Mods: r.witnessArgMods(p.passes[i]), Why: whyWitnessCallback, Node: p.node, File: p.file, Scoped: p.scoped})
+		mods := r.witnessArgMods(p.passes[i])
+		r.addEdge(p.owner, EffectEdge{Kind: EdgeCallback, Mods: mods, Why: whyWitnessCallback, Node: p.node, File: p.file, Scoped: p.scoped})
+		r.checkWitnessContract(p, p.passes[i], mods)
+	}
+}
+
+// checkWitnessContract holds a call to a `pure`/`noalloc` generic to the claim
+// its own declaration makes: the witness resolved here must prove the same,
+// however impure the calling frame is. An erasure site reports through its
+// contract edge instead, and a forwarded witness stays the enclosing call's
+// obligation.
+func (r *Result) checkWitnessContract(p pendingWitnessCallback, pass WitnessArg, have Effects) {
+	if pass.Ent == 0 || pass.Kind == WitnessLocal {
+		return
+	}
+	switch r.tree(p.file).Kind(p.node) {
+	case syntax.CallExpr, syntax.WsCallExpr:
+	default:
+		return
+	}
+	need := r.Fn(p.fn).Declared & (EffPure | EffNoalloc)
+	for _, mod := range []Effects{EffPure, EffNoalloc} {
+		if need&mod == 0 || have&mod != 0 {
+			continue
+		}
+		if mod == EffPure {
+			r.errAt(p.file, p.node, cImpureCallback, r.exprName(p.file, p.node))
+		} else {
+			r.errAt(p.file, p.node, cAllocCallback, r.exprName(p.file, p.node))
+		}
 	}
 }
 

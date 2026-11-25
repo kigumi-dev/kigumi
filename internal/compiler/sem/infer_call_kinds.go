@@ -91,6 +91,12 @@ func (c *checker) callMethod(n, callee syntax.NodeID, args []syntax.NodeID, want
 				c.deferToFieldParam(p, fld)
 				c.stashFieldFact(n, NarrowFact{Kind: FactPureField, Param: p})
 				c.edge(EffectEdge{Kind: EdgeKnownCall, Target: c.r.fieldParamEnt(fieldFnKey{Ent: p, Field: fld}), Node: n})
+				// A field whose type fixes its effects is not deferred: the
+				// value sits in base's own storage, so that shape is this
+				// call's effect no matter who bound the base.
+				if shape := c.r.fnShapeOf(resolved); shape != 0 && !c.r.isEffectPolyField(fld) {
+					c.edge(EffectEdge{Kind: EdgeCallback, Mods: Effects(c.r.Types.Node(shape).Flags), Node: n})
+				}
 			} else if place, ok := c.nestedParamPlace(base); ok {
 				c.nestedFieldCall(n, place, fld)
 			}

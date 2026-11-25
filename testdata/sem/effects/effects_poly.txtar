@@ -21,14 +21,14 @@ pure fn withPlainView() -> Int {
     app.view(1) //~ ERROR `app.view` may be impure
 }
 
-// app is a parameter: withParam is polymorphic in its `view` field, so a caller's
-// own actual argument decides purity, not this body.
+// app is a parameter: withParam is polymorphic in its `view` field, so this body
+// defers to the call site that binds the field's value.
 pure fn withParam(app: App) -> Int {
     app.view(1)
 }
 
 fn callWithImpure() -> Int {
-    withParam(App { view: plainView })
+    withParam(App { view: plainView }) //~ ERROR `App { view: plainView` may be impure
 }
 
 pure fn callWithImpureFromPure() -> Int {
@@ -165,6 +165,13 @@ error[E901]: `app.view` may be impure
    |
 20 |     app.view(1) //~ ERROR `app.view` may be impure
    |     ^^^^^^^^^^
+   = help: declare it `pure fn(...)`
+
+error[E901]: `App { view: plainView` may be impure
+  --> lib/poly.kg:30:15
+   |
+30 |     withParam(App { view: plainView }) //~ ERROR `App { view: plainView` may be impure
+   |               ^^^^^^^^^^^^^^^^^^^^^
    = help: declare it `pure fn(...)`
 
 error[E901]: `App { view: plainView` may be impure

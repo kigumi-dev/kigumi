@@ -60,7 +60,7 @@ func (c *checker) callbackEdges(n syntax.NodeID, fn EntityID, sig TypeID, args [
 			c.fnBoundValue(a, at, bound, need)
 			c.stageFnFieldHandoff(n, a, param)
 			if shape := c.r.fnShapeOf(at); shape != 0 {
-				c.callbackEdge(n, a, Effects(tt.Node(shape).Flags), param, offloaded)
+				c.callbackEdge(n, a, Effects(tt.Node(shape).Flags), param, offloaded, false)
 			}
 		}
 	}
@@ -90,16 +90,59 @@ func (c *checker) ifaceArgEdge(n, a syntax.NodeID, info *FnInfo, i int) {
 
 // When the value is a parameter of the enclosing function, that function
 // becomes polymorphic in it instead of being blamed for its effects.
-func (c *checker) callbackEdge(n, expr syntax.NodeID, mods Effects, param EntityID, offloaded bool) {
+// invoked separates calling the value here from handing it to another callee.
+func (c *checker) callbackEdge(n, expr syntax.NodeID, mods Effects, param EntityID, offloaded, invoked bool) {
 	if p := c.polyParam(expr); p != 0 {
 		c.deferToParam(p)
 		// Param, when set, is the slot p was forwarded into; root-bridge
 		// reachability needs that to tell forwarding from invoking.
 		c.edge(EffectEdge{Kind: EdgeParamCall, Target: p, Param: param, Node: expr})
 		c.fnBoundArgEdge(n, p, param)
+		if invoked {
+			c.rejectUnfixedSlot(expr, p)
+		}
 		return
 	}
 	c.edge(EffectEdge{Kind: EdgeCallback, Mods: mods, Param: param, Node: expr, Offloaded: offloaded})
+}
+
+// rejectUnfixedSlot reports this body calling through a fn-typed parameter
+// whose declared type fixes no effect: the call runs whatever the caller
+// passed, which a `pure`/`noalloc` declaration denies. A `pure?` slot is the
+// declared way to leave that to the caller, and std bodies are trusted
+// contracts, so neither is rechecked here.
+func (c *checker) rejectUnfixedSlot(n syntax.NodeID, p EntityID) {
+	if c.r.Entities[p].Parent != c.fn || c.r.Entities[c.fn].Kind != EntFn {
+		return
+	}
+	if c.r.Packages[c.r.Entities[c.fn].Pkg].Std {
+		return
+	}
+	declared := c.r.Fn(c.fn).Declared & (EffPure | EffNoalloc)
+	for _, mod := range []Effects{EffPure, EffNoalloc} {
+		if declared&mod == 0 || c.r.slotFixesMod(p, mod) {
+			continue
+		}
+		if mod == EffPure {
+			c.errAt(n, cImpureCallback, c.r.Entities[p].Name)
+		} else {
+			c.errAt(n, cAllocCallback, c.r.Entities[p].Name)
+		}
+	}
+}
+
+// slotFixesMod reports whether a fn-typed value's declared shape promises mod;
+// an effect-polymorphic shape leaves it to whoever binds the value.
+func (r *Result) slotFixesMod(target EntityID, mod Effects) bool {
+	shape := r.fnShapeOf(r.Entities[target].Type)
+	if shape == 0 {
+		return true
+	}
+	flags := r.Types.Node(shape).Flags
+	if flags&fnEffectPoly != 0 {
+		return true
+	}
+	return Effects(flags)&mod != 0
 }
 
 // A non-fn-typed p (from a record-typed parameter's field fact) has

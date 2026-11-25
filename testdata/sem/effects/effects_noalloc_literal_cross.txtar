@@ -29,11 +29,11 @@ fn takesTick(t: Tick) -> Int {
 // A literal's type settles after the call is checked, so the crossing
 // into a function value's parameter is judged once it has.
 noalloc fn literalIntoAValue(f: fn(Int?) -> Int) -> Int {
-    f(Some(1)) //~ ERROR handing `Int?` to a slot that holds a reference allocates a box for it //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box
+    f(Some(1)) //~ ERROR `f` may allocate //~ ERROR handing `Int?` to a slot that holds a reference allocates a box for it //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box
 }
 
 noalloc fn tupleIntoAValue(f: fn((Int, Int)) -> Int) -> Int {
-    f((1, 2)) //~ ERROR handing `(Int, Int)` to a slot that holds a reference allocates a box for it //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box
+    f((1, 2)) //~ ERROR `f` may allocate //~ ERROR handing `(Int, Int)` to a slot that holds a reference allocates a box for it //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box
 }
 
 // The instantiation for a direct type argument takes the literal unboxed.
@@ -55,31 +55,45 @@ noalloc fn nullaryIntoAParam() -> Int {
     ident(Flat) + ident(Ordering.Less)
 }
 -- expect --
+error[E908]: `f` may allocate
+  --> lib/na.kg:31:5
+   |
+31 |     f(Some(1)) //~ ERROR `f` may allocate //~ ERROR handing `Int?` to a slot that holds a reference allocates a box for it //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box
+   |     ^^^^^^^^
+   = help: declare it `noalloc fn(...)`
+
 error[E1841]: this call goes through a function value or an interface, so the `Int` it returns arrives in a box the callee allocates
   --> lib/na.kg:31:5
    |
-31 |     f(Some(1)) //~ ERROR handing `Int?` to a slot that holds a reference allocates a box for it //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box
+31 |     f(Some(1)) //~ ERROR `f` may allocate //~ ERROR handing `Int?` to a slot that holds a reference allocates a box for it //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box
    |     ^^^^^^^^
    = help: call the function directly, or drop the declaration
 
 error[E1610]: handing `Int?` to a slot that holds a reference allocates a box for it
   --> lib/na.kg:31:7
    |
-31 |     f(Some(1)) //~ ERROR handing `Int?` to a slot that holds a reference allocates a box for it //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box
+31 |     f(Some(1)) //~ ERROR `f` may allocate //~ ERROR handing `Int?` to a slot that holds a reference allocates a box for it //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box
    |       ^^^^^^
    = help: keep it in a value of its own, or drop the declaration
+
+error[E908]: `f` may allocate
+  --> lib/na.kg:35:5
+   |
+35 |     f((1, 2)) //~ ERROR `f` may allocate //~ ERROR handing `(Int, Int)` to a slot that holds a reference allocates a box for it //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box
+   |     ^^^^^^^
+   = help: declare it `noalloc fn(...)`
 
 error[E1841]: this call goes through a function value or an interface, so the `Int` it returns arrives in a box the callee allocates
   --> lib/na.kg:35:5
    |
-35 |     f((1, 2)) //~ ERROR handing `(Int, Int)` to a slot that holds a reference allocates a box for it //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box
+35 |     f((1, 2)) //~ ERROR `f` may allocate //~ ERROR handing `(Int, Int)` to a slot that holds a reference allocates a box for it //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box
    |     ^^^^^^^
    = help: call the function directly, or drop the declaration
 
 error[E1610]: handing `(Int, Int)` to a slot that holds a reference allocates a box for it
   --> lib/na.kg:35:7
    |
-35 |     f((1, 2)) //~ ERROR handing `(Int, Int)` to a slot that holds a reference allocates a box for it //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box
+35 |     f((1, 2)) //~ ERROR `f` may allocate //~ ERROR handing `(Int, Int)` to a slot that holds a reference allocates a box for it //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box
    |       ^^^^^
    = help: keep it in a value of its own, or drop the declaration
 
