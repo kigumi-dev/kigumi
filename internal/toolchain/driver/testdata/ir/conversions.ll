@@ -993,9 +993,9 @@ b2:
   store ptr %v25, ptr %v26
   %v27 = call ptr @rt_builtin(ptr @.p32, i32 1, ptr %v2)
   store ptr %v27, ptr %l10
-  %v28 = load ptr, ptr %l9
+  %v28 = load ptr, ptr %l10
   call void @rt_release(ptr %v28)
-  %v29 = load ptr, ptr %l10
+  %v29 = load ptr, ptr %l9
   call void @rt_release(ptr %v29)
   br label %b3
 b3:

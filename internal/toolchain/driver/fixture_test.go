@@ -42,6 +42,9 @@ func fixturePath(t testing.TB, id string) string {
 // source file, so a misspelled section fails the fixture instead of writing a file nothing reads.
 var runFixtureHeadSections = map[string]bool{
 	"src": true, "stdout": true, "stderr": true, "exit": true, "engines": true, "secret-san": true,
+	// The MIR corpus stores its expected dump here; TestLazyStdBuildMatchesEager
+	// loads those fixtures through this reader for their source only.
+	"expect": true,
 }
 
 // fixtureSourceSection reports whether a fixture section names source the build compiles.
@@ -76,8 +79,8 @@ func loadRunFixture(t testing.TB, path string) (root, wantOut, wantErr string, w
 				t.Fatalf("%s: -- exit -- %q is not an integer", path, strings.TrimSpace(body))
 			}
 			wantExit = n
-		case "engines", "secret-san":
-			// Consumed by fixtureEngines and checkSecretSanRun, not written as a file.
+		case "engines", "secret-san", "expect":
+			// Consumed elsewhere, or a MIR golden rather than a source file.
 		default:
 			if !runFixtureHeadSections[name] && !fixtureSourceSection(name) {
 				t.Fatalf("%s: unknown fixture section %q: want -- src --, -- stdout --, -- stderr --, -- exit --, -- engines --, -- secret-san --, or a source file ending in .kg or .c", path, name)

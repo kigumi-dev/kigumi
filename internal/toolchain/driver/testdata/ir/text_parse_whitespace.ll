@@ -438,19 +438,19 @@ b0:
   store ptr %v122, ptr %v136
   %v137 = call ptr @rt_interp(i32 14, ptr %v12)
   store ptr %v137, ptr %l10
-  %v138 = load ptr, ptr %l14
+  %v138 = load ptr, ptr %l38
   call void @rt_release(ptr %v138)
-  %v139 = load ptr, ptr %l18
+  %v139 = load ptr, ptr %l34
   call void @rt_release(ptr %v139)
-  %v140 = load ptr, ptr %l22
+  %v140 = load ptr, ptr %l30
   call void @rt_release(ptr %v140)
   %v141 = load ptr, ptr %l26
   call void @rt_release(ptr %v141)
-  %v142 = load ptr, ptr %l30
+  %v142 = load ptr, ptr %l22
   call void @rt_release(ptr %v142)
-  %v143 = load ptr, ptr %l34
+  %v143 = load ptr, ptr %l18
   call void @rt_release(ptr %v143)
-  %v144 = load ptr, ptr %l38
+  %v144 = load ptr, ptr %l14
   call void @rt_release(ptr %v144)
   %v145 = load ptr, ptr %l10
   %v146 = getelementptr ptr, ptr %v13, i32 0
@@ -503,9 +503,9 @@ b0:
   store ptr %v167, ptr %v171
   %v172 = call ptr @rt_interp(i32 4, ptr %v16)
   store ptr %v172, ptr %l40
-  %v173 = load ptr, ptr %l44
+  %v173 = load ptr, ptr %l48
   call void @rt_release(ptr %v173)
-  %v174 = load ptr, ptr %l48
+  %v174 = load ptr, ptr %l44
   call void @rt_release(ptr %v174)
   %v175 = load ptr, ptr %l40
   %v176 = getelementptr ptr, ptr %v17, i32 0
@@ -562,9 +562,9 @@ b0:
   store ptr %v199, ptr %v203
   %v204 = call ptr @rt_interp(i32 4, ptr %v20)
   store ptr %v204, ptr %l50
-  %v205 = load ptr, ptr %l55
+  %v205 = load ptr, ptr %l60
   call void @rt_release(ptr %v205)
-  %v206 = load ptr, ptr %l60
+  %v206 = load ptr, ptr %l55
   call void @rt_release(ptr %v206)
   %v207 = load ptr, ptr %l50
   %v208 = getelementptr ptr, ptr %v21, i32 0
@@ -617,9 +617,9 @@ b0:
   store ptr %v227, ptr %v231
   %v232 = call ptr @rt_interp(i32 4, ptr %v26)
   store ptr %v232, ptr %l62
-  %v233 = load ptr, ptr %l66
+  %v233 = load ptr, ptr %l70
   call void @rt_release(ptr %v233)
-  %v234 = load ptr, ptr %l70
+  %v234 = load ptr, ptr %l66
   call void @rt_release(ptr %v234)
   %v235 = load ptr, ptr %l62
   %v236 = getelementptr ptr, ptr %v27, i32 0

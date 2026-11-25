@@ -462,13 +462,13 @@ b0:
   store ptr %v12, ptr %v14
   %v15 = call ptr @rt_future_new(ptr %v10, i32 2, ptr %v2)
   store ptr %v15, ptr %l3
-  %v16 = load ptr, ptr %l0
-  call void @rt_release(ptr %v16)
-  %v17 = load ptr, ptr %l1
+  %v16 = getelementptr i64, ptr %umask, i64 0
+  store i64 0, ptr %v16
+  %v17 = load ptr, ptr %l2
   call void @rt_release(ptr %v17)
-  %v18 = getelementptr i64, ptr %umask, i64 0
-  store i64 0, ptr %v18
-  %v19 = load ptr, ptr %l2
+  %v18 = load ptr, ptr %l1
+  call void @rt_release(ptr %v18)
+  %v19 = load ptr, ptr %l0
   call void @rt_release(ptr %v19)
   %v20 = load ptr, ptr %l3
   store ptr %v20, ptr %l4
@@ -493,171 +493,169 @@ b0:
   %v30 = call ptr @rt_future_new(ptr %v27, i32 1, ptr %v5)
   store ptr %v30, ptr %l9
   %v31 = getelementptr i64, ptr %umask, i64 0
-  store i64 12, ptr %v31
-  %v32 = load ptr, ptr %l7
+  store i64 8, ptr %v31
+  %v32 = load ptr, ptr %l8
   call void @rt_release(ptr %v32)
-  %v33 = getelementptr i64, ptr %umask, i64 0
-  store i64 8, ptr %v33
-  %v34 = load ptr, ptr %l8
-  call void @rt_release(ptr %v34)
-  %v35 = load ptr, ptr %l9
-  %v36 = getelementptr ptr, ptr %v6, i32 0
-  store ptr %v35, ptr %v36
-  %v37 = call ptr @rt_std_id(i32 55, i32 1, ptr %v6)
-  store ptr %v37, ptr %l10
-  %v38 = getelementptr i64, ptr %umask, i64 0
-  store i64 0, ptr %v38
-  %v39 = load ptr, ptr %l9
-  call void @rt_release(ptr %v39)
-  %v40 = load ptr, ptr %l10
-  store ptr %v40, ptr %l11
-  %v41 = load ptr, ptr %l4
+  %v33 = load ptr, ptr %l7
+  call void @rt_release(ptr %v33)
+  %v34 = load ptr, ptr %l9
+  %v35 = getelementptr ptr, ptr %v6, i32 0
+  store ptr %v34, ptr %v35
+  %v36 = call ptr @rt_std_id(i32 55, i32 1, ptr %v6)
+  store ptr %v36, ptr %l10
+  %v37 = getelementptr i64, ptr %umask, i64 0
+  store i64 0, ptr %v37
+  %v38 = load ptr, ptr %l9
+  call void @rt_release(ptr %v38)
+  %v39 = load ptr, ptr %l10
+  store ptr %v39, ptr %l11
+  %v40 = load ptr, ptr %l4
   store ptr null, ptr %l4
-  store ptr %v41, ptr %l12
-  %v42 = load ptr, ptr %l12
-  call void @rt_future_suspend(ptr %fut, i32 1, ptr %v42)
+  store ptr %v40, ptr %l12
+  %v41 = load ptr, ptr %l12
+  call void @rt_future_suspend(ptr %fut, i32 1, ptr %v41)
   br label %rs1
 rs1:
-  %v43 = getelementptr i64, ptr %umask, i64 0
-  store i64 0, ptr %v43
-  %v44 = call ptr @rt_future_resume(ptr %fut)
-  %v45 = icmp eq ptr %v44, null
-  br i1 %v45, label %pend1, label %ck1
+  %v42 = getelementptr i64, ptr %umask, i64 0
+  store i64 0, ptr %v42
+  %v43 = call ptr @rt_future_resume(ptr %fut)
+  %v44 = icmp eq ptr %v43, null
+  br i1 %v44, label %pend1, label %ck1
 pend1:
   call void @rt_unwind_leave(ptr %urec)
   ret ptr null
 ck1:
-  %v46 = icmp eq ptr %v44, @kg_cancel_marker
-  br i1 %v46, label %can1, label %cont1
+  %v45 = icmp eq ptr %v43, @kg_cancel_marker
+  br i1 %v45, label %can1, label %cont1
 can1:
   store ptr null, ptr %l13
   br label %join1
 cont1:
-  store ptr %v44, ptr %l13
+  store ptr %v43, ptr %l13
   br label %join1
 join1:
   %cf1 = phi i1 [ true, %can1 ], [ false, %cont1 ]
-  %v47 = zext i1 %cf1 to i32
-  %v48 = call ptr @rt_bool(i32 %v47)
-  store ptr %v48, ptr %l14
-  %v49 = load ptr, ptr %l14
-  %v50 = call i1 @rt_truth(ptr %v49)
-  br i1 %v50, label %b5, label %b2
+  %v46 = zext i1 %cf1 to i32
+  %v47 = call ptr @rt_bool(i32 %v46)
+  store ptr %v47, ptr %l14
+  %v48 = load ptr, ptr %l14
+  %v49 = call i1 @rt_truth(ptr %v48)
+  br i1 %v49, label %b5, label %b2
 b1:
-  %v51 = getelementptr i64, ptr %umask, i64 0
-  store i64 0, ptr %v51
-  %v52 = load ptr, ptr %l11
+  %v50 = getelementptr i64, ptr %umask, i64 0
+  store i64 0, ptr %v50
+  %v51 = load ptr, ptr %l11
   store ptr null, ptr %l11
-  call void @rt_drop(ptr %v52)
-  %v53 = call ptr @rt_future_complete(ptr %fut, ptr null)
+  call void @rt_drop(ptr %v51)
+  %v52 = call ptr @rt_future_complete(ptr %fut, ptr null)
   call void @rt_unwind_leave(ptr %urec)
   ret ptr @kg_cancel_marker
 b2:
-  %v54 = load ptr, ptr %l13
-  store ptr %v54, ptr %l15
-  %v55 = load ptr, ptr %l11
+  %v53 = load ptr, ptr %l13
+  store ptr %v53, ptr %l15
+  %v54 = load ptr, ptr %l11
   store ptr null, ptr %l11
-  store ptr %v55, ptr %l16
-  %v56 = getelementptr i64, ptr %umask, i64 0
-  store i64 0, ptr %v56
-  %v57 = load ptr, ptr %l16
-  call void @rt_future_suspend(ptr %fut, i32 2, ptr %v57)
+  store ptr %v54, ptr %l16
+  %v55 = getelementptr i64, ptr %umask, i64 0
+  store i64 0, ptr %v55
+  %v56 = load ptr, ptr %l16
+  call void @rt_future_suspend(ptr %fut, i32 2, ptr %v56)
   br label %rs2
 rs2:
-  %v58 = getelementptr i64, ptr %umask, i64 0
-  store i64 0, ptr %v58
-  %v59 = call ptr @rt_future_resume(ptr %fut)
-  %v60 = icmp eq ptr %v59, null
-  br i1 %v60, label %pend2, label %ck2
+  %v57 = getelementptr i64, ptr %umask, i64 0
+  store i64 0, ptr %v57
+  %v58 = call ptr @rt_future_resume(ptr %fut)
+  %v59 = icmp eq ptr %v58, null
+  br i1 %v59, label %pend2, label %ck2
 pend2:
   call void @rt_unwind_leave(ptr %urec)
   ret ptr null
 ck2:
-  %v61 = icmp eq ptr %v59, @kg_cancel_marker
-  br i1 %v61, label %can2, label %cont2
+  %v60 = icmp eq ptr %v58, @kg_cancel_marker
+  br i1 %v60, label %can2, label %cont2
 can2:
   store ptr null, ptr %l17
   br label %join2
 cont2:
-  store ptr %v59, ptr %l17
+  store ptr %v58, ptr %l17
   br label %join2
 join2:
   %cf2 = phi i1 [ true, %can2 ], [ false, %cont2 ]
-  %v62 = zext i1 %cf2 to i32
-  %v63 = call ptr @rt_bool(i32 %v62)
-  store ptr %v63, ptr %l18
-  %v64 = load ptr, ptr %l18
-  %v65 = call i1 @rt_truth(ptr %v64)
-  br i1 %v65, label %b3, label %b4
+  %v61 = zext i1 %cf2 to i32
+  %v62 = call ptr @rt_bool(i32 %v61)
+  store ptr %v62, ptr %l18
+  %v63 = load ptr, ptr %l18
+  %v64 = call i1 @rt_truth(ptr %v63)
+  br i1 %v64, label %b3, label %b4
 b3:
-  %v66 = getelementptr i64, ptr %umask, i64 0
-  store i64 0, ptr %v66
-  %v67 = load ptr, ptr %l17
-  call void @rt_release(ptr %v67)
-  %v68 = load ptr, ptr %l15
+  %v65 = getelementptr i64, ptr %umask, i64 0
+  store i64 0, ptr %v65
+  %v66 = load ptr, ptr %l17
+  call void @rt_release(ptr %v66)
+  %v67 = load ptr, ptr %l15
   store ptr null, ptr %l15
-  call void @rt_drop(ptr %v68)
+  call void @rt_drop(ptr %v67)
   br label %b1
 b4:
-  %v69 = load ptr, ptr %l17
-  store ptr %v69, ptr %l19
-  %v70 = getelementptr i64, ptr %umask, i64 0
-  store i64 0, ptr %v70
-  %v71 = load ptr, ptr %l15
-  %v72 = load ptr, ptr %l19
-  %v73 = getelementptr ptr, ptr %v7, i32 0
-  store ptr %v71, ptr %v73
-  %v74 = getelementptr ptr, ptr %v7, i32 1
-  store ptr @.p17, ptr %v74
-  %v75 = getelementptr ptr, ptr %v7, i32 2
-  store ptr %v72, ptr %v75
-  %v76 = call ptr @rt_interp(i32 3, ptr %v7)
-  store ptr %v76, ptr %l20
-  %v77 = getelementptr i64, ptr %umask, i64 0
-  store i64 512, ptr %v77
-  %v78 = load ptr, ptr %l20
-  %v79 = getelementptr ptr, ptr %v8, i32 0
-  store ptr %v78, ptr %v79
-  %v80 = call ptr @rt_builtin(ptr @.p11, i32 1, ptr %v8)
-  store ptr %v80, ptr %l21
-  %v81 = getelementptr i64, ptr %umask, i64 0
-  store i64 0, ptr %v81
-  %v82 = load ptr, ptr %l20
-  call void @rt_release(ptr %v82)
-  %v83 = load ptr, ptr %l21
-  call void @rt_drop(ptr %v83)
-  %v84 = load ptr, ptr %l15
-  %v85 = call i64 @rt_int_val(ptr %v84)
-  %v86 = load ptr, ptr %l19
-  %v87 = call i64 @rt_int_val(ptr %v86)
-  %v88 = call { i64, i1 } @llvm.sadd.with.overflow.i64(i64 %v85, i64 %v87)
-  %v89 = extractvalue { i64, i1 } %v88, 0
-  %v90 = extractvalue { i64, i1 } %v88, 1
-  br i1 %v90, label %ovf91, label %ovfok92
-ovf91:
+  %v68 = load ptr, ptr %l17
+  store ptr %v68, ptr %l19
+  %v69 = getelementptr i64, ptr %umask, i64 0
+  store i64 0, ptr %v69
+  %v70 = load ptr, ptr %l15
+  %v71 = load ptr, ptr %l19
+  %v72 = getelementptr ptr, ptr %v7, i32 0
+  store ptr %v70, ptr %v72
+  %v73 = getelementptr ptr, ptr %v7, i32 1
+  store ptr @.p17, ptr %v73
+  %v74 = getelementptr ptr, ptr %v7, i32 2
+  store ptr %v71, ptr %v74
+  %v75 = call ptr @rt_interp(i32 3, ptr %v7)
+  store ptr %v75, ptr %l20
+  %v76 = getelementptr i64, ptr %umask, i64 0
+  store i64 512, ptr %v76
+  %v77 = load ptr, ptr %l20
+  %v78 = getelementptr ptr, ptr %v8, i32 0
+  store ptr %v77, ptr %v78
+  %v79 = call ptr @rt_builtin(ptr @.p11, i32 1, ptr %v8)
+  store ptr %v79, ptr %l21
+  %v80 = getelementptr i64, ptr %umask, i64 0
+  store i64 0, ptr %v80
+  %v81 = load ptr, ptr %l20
+  call void @rt_release(ptr %v81)
+  %v82 = load ptr, ptr %l21
+  call void @rt_drop(ptr %v82)
+  %v83 = load ptr, ptr %l15
+  %v84 = call i64 @rt_int_val(ptr %v83)
+  %v85 = load ptr, ptr %l19
+  %v86 = call i64 @rt_int_val(ptr %v85)
+  %v87 = call { i64, i1 } @llvm.sadd.with.overflow.i64(i64 %v84, i64 %v86)
+  %v88 = extractvalue { i64, i1 } %v87, 0
+  %v89 = extractvalue { i64, i1 } %v87, 1
+  br i1 %v89, label %ovf90, label %ovfok91
+ovf90:
   call void @rt_panic(ptr @.p12)
   unreachable
-ovfok92:
-  %v91 = call ptr @rt_int(i64 %v89, i32 320)
-  store ptr %v91, ptr %l22
-  %v92 = call ptr @rt_task_close(ptr %fut)
-  store ptr %v92, ptr %l23
-  %v93 = load ptr, ptr %l19
+ovfok91:
+  %v90 = call ptr @rt_int(i64 %v88, i32 320)
+  store ptr %v90, ptr %l22
+  %v91 = call ptr @rt_task_close(ptr %fut)
+  store ptr %v91, ptr %l23
+  %v92 = load ptr, ptr %l19
   store ptr null, ptr %l19
-  call void @rt_drop(ptr %v93)
-  %v94 = load ptr, ptr %l15
+  call void @rt_drop(ptr %v92)
+  %v93 = load ptr, ptr %l15
   store ptr null, ptr %l15
-  call void @rt_drop(ptr %v94)
-  %v95 = load ptr, ptr %l22
-  %v96 = call ptr @rt_future_complete(ptr %fut, ptr %v95)
+  call void @rt_drop(ptr %v93)
+  %v94 = load ptr, ptr %l22
+  %v95 = call ptr @rt_future_complete(ptr %fut, ptr %v94)
   call void @rt_unwind_leave(ptr %urec)
-  %v97 = load ptr, ptr %l22
-  ret ptr %v97
+  %v96 = load ptr, ptr %l22
+  ret ptr %v96
 b5:
-  %v98 = getelementptr i64, ptr %umask, i64 0
-  store i64 0, ptr %v98
-  %v99 = load ptr, ptr %l13
-  call void @rt_release(ptr %v99)
+  %v97 = getelementptr i64, ptr %umask, i64 0
+  store i64 0, ptr %v97
+  %v98 = load ptr, ptr %l13
+  call void @rt_release(ptr %v98)
   br label %b1
 }
 define internal void @"golden.root$framedrop"(ptr %fut) {

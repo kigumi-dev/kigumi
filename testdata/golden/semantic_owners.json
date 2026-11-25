@@ -14782,7 +14782,7 @@
   },
   {
     "key": "fs.Path.fromOsString",
-    "signature": "pure fn(\u0026OsString) -\u003e Path!",
+    "signature": "fn(\u0026OsString) -\u003e Path!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14792,7 +14792,7 @@
   },
   {
     "key": "fs.Path.fromRawBytes",
-    "signature": "pure fn(Bytes) -\u003e Path!",
+    "signature": "fn(Bytes) -\u003e Path!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14822,7 +14822,7 @@
   },
   {
     "key": "fs.Path.join",
-    "signature": "pure fn(Path) -\u003e Path",
+    "signature": "fn(Path) -\u003e Path",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14852,7 +14852,7 @@
   },
   {
     "key": "fs.Path.stem",
-    "signature": "pure fn() -\u003e String",
+    "signature": "fn() -\u003e String",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14901,6 +14901,26 @@
     "status": "ok"
   },
   {
+    "key": "fs.checkedRawPath",
+    "signature": "fn(Bytes) -\u003e Path!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.exactPath",
+    "signature": "fn(\u0026Path) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "fs.openFile",
     "signature": "fn(\u0026Path, String) -\u003e File!",
     "has_body": true,
@@ -14932,7 +14952,7 @@
   },
   {
     "key": "fs.rawClean",
-    "signature": "pure fn(Bytes) -\u003e Bytes",
+    "signature": "fn(Bytes) -\u003e Bytes",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14952,7 +14972,7 @@
   },
   {
     "key": "fs.rawDropTrailing",
-    "signature": "pure fn(Bytes) -\u003e Bytes",
+    "signature": "fn(Bytes) -\u003e Bytes",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14962,7 +14982,7 @@
   },
   {
     "key": "fs.rawElements",
-    "signature": "pure fn(Bytes) -\u003e Array[Bytes]",
+    "signature": "fn(Bytes) -\u003e Array[Bytes]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14972,7 +14992,7 @@
   },
   {
     "key": "fs.rawExt",
-    "signature": "pure fn(Bytes) -\u003e Bytes",
+    "signature": "fn(Bytes) -\u003e Bytes",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -14992,7 +15012,17 @@
   },
   {
     "key": "fs.rawPath",
-    "signature": "pure fn(Bytes) -\u003e Path",
+    "signature": "fn(Bytes) -\u003e Path",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.requireExactPath",
+    "signature": "fn(\u0026Path) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -21862,7 +21892,7 @@
   },
   {
     "key": "os.Args.toArray",
-    "signature": "pure fn() -\u003e Array[OsString]",
+    "signature": "fn() -\u003e Array[OsString]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -22684,6 +22714,16 @@
   {
     "key": "platform.enotdir",
     "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "platform.exactPathNames",
+    "signature": "fn() -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",

@@ -112,7 +112,7 @@ func TestBodyErrorKeepsProgramDiagnostics(t *testing.T) {
 	m := editorModule(t, editorBorrowSrc+`
 type View['a] = { pub value &'a String }
 type Sink['a] = { pub values &'a mut Array[View['a]] }
-pure fn retain['a](value: &'a String, sink: Sink['a]) -> View['a] {
+fn retain['a](value: &'a String, sink: Sink['a]) -> View['a] {
     sink.values.push(View { value: value })
     View { value: value }
 }

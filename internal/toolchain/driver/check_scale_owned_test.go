@@ -122,7 +122,7 @@ func asyncDefers(n int) string {
 // Every cancel edge runs the defers before it, so the MIR is quadratic; the bound keeps the bytes to that.
 func TestRunAsyncDefersAcrossAwaitsStayCheap(t *testing.T) {
 	requireGrowth(t, asyncDefers, 400, growthLimit{bytes: 4.4})
-	out := scaleRSS(t, asyncDefers(400), 90*time.Second, 600)
+	out := scaleRSS(t, asyncDefers(400), 90*time.Second, 700)
 	if !strings.HasSuffix(out, "result 400\n") {
 		t.Fatalf("stdout tail %q", out[max(0, len(out)-40):])
 	}

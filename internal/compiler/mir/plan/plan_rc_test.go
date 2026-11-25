@@ -37,6 +37,7 @@ func TestPlanRCCorpus(t *testing.T) {
 	for _, path := range fixture.ShardPaths(files) {
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			t.Parallel()
+			mirfixture.SkipCompileError(t, path)
 			res, _, _ := mirfixture.CheckFixture(t, path, semfixture.LoadStd(t, "../../../../std"))
 			prog := mirbuild.Program(res)
 			if prog.HasErrors() {

@@ -368,8 +368,7 @@ fn subjectSummary(cert: x509.Certificate) -> String {
 				continue
 			}
 			fmt.Fprintf(&b, "    // %s/%s\n", suite.Primitive, v.ID)
-			emitCryptoVector(&b, v, idx)
-			idx++
+			idx += emitCryptoVector(&b, v, idx)
 		}
 	}
 	b.WriteString("}\n")
@@ -415,7 +414,7 @@ func emitResultVoid(b *strings.Builder, id string, idx int, call string) {
 	fmt.Fprintf(b, "    print %q\n", id+"\t${result"+fmt.Sprint(idx)+"}")
 }
 
-func emitCryptoVector(b *strings.Builder, v cryptoVector, idx int) {
+func emitCryptoVector(b *strings.Builder, v cryptoVector, idx int) int {
 	hexArg := func(s string) string { return fmt.Sprintf("b(%q)", s) }
 	switch v.Op {
 	case "digest":
@@ -497,7 +496,7 @@ func emitCryptoVector(b *strings.Builder, v cryptoVector, idx int) {
 		b.WriteString("    }\n")
 		fmt.Fprintf(b, "    print %q\n", v.ID+"\t${result"+fmt.Sprint(idx)+"}")
 	case "slhdsa-keygen", "slhdsa-sign", "slhdsa-verify":
-		emitSLHDSAVector(b, v, idx)
+		return emitSLHDSAVector(b, v, idx)
 	case "x509-chain":
 		for i, der := range v.Roots {
 			fmt.Fprintf(b, "    let anchor%d_%d = x509.parse(%s).expect(\"x509 anchor\")\n", idx, i, hexArg(der))
@@ -531,6 +530,7 @@ func emitCryptoVector(b *strings.Builder, v cryptoVector, idx int) {
 		}
 		emitResultVoid(b, v.ID, idx, call)
 	}
+	return 1
 }
 
 func emitSLHDSASuffix(alg string) string {
@@ -544,7 +544,7 @@ func emitSLHDSABytes(b *strings.Builder, id string, idx int, value string) {
 	fmt.Fprintf(b, "    let slh%d = b(%q)\n", idx, value)
 }
 
-func emitSLHDSAVector(b *strings.Builder, v cryptoVector, idx int) {
+func emitSLHDSAVector(b *strings.Builder, v cryptoVector, idx int) int {
 	suffix := emitSLHDSASuffix(v.Alg)
 	switch v.Op {
 	case "slhdsa-keygen":
@@ -553,6 +553,7 @@ func emitSLHDSAVector(b *strings.Builder, v cryptoVector, idx int) {
 		fmt.Fprintf(b, "    let kp%d = slhdsa.keyGen%s(seeds%d.slice(0, 16).expect(\"skSeed\"), seeds%d.slice(16, 32).expect(\"skPrf\"), seeds%d.slice(32, 48).expect(\"pkSeed\")).expect(\"slhdsa keygen\")\n", idx, suffix, idx, idx, idx)
 		fmt.Fprintf(b, "    let ok%d = hex.encode(kp%d.secretKey) == %q && hex.encode(kp%d.publicKey) == %q\n", idx, idx, v.Secret, idx, v.Public)
 		fmt.Fprintf(b, "    print %q\n", v.ID+"\t${ok"+fmt.Sprint(idx)+"}")
+		return 1
 	case "slhdsa-sign":
 		emitSLHDSABytes(b, v.ID, idx, v.Secret)
 		emitSLHDSABytes(b, v.ID, idx+1, v.Message)
@@ -560,6 +561,7 @@ func emitSLHDSAVector(b *strings.Builder, v cryptoVector, idx int) {
 		fmt.Fprintf(b, "    let sig%d = slhdsa.signDeterministic%s(slh%d, ctx%d, slh%d).expect(\"slhdsa sign\")\n", idx, suffix, idx+1, idx, idx)
 		fmt.Fprintf(b, "    let ok%d = hex.encode(sig%d) == %q\n", idx, idx, v.Signature)
 		fmt.Fprintf(b, "    print %q\n", v.ID+"\t${ok"+fmt.Sprint(idx)+"}")
+		return 2
 	case "slhdsa-verify":
 		emitSLHDSABytes(b, v.ID, idx, v.Public)
 		emitSLHDSABytes(b, v.ID, idx+1, v.Message)
@@ -567,7 +569,9 @@ func emitSLHDSAVector(b *strings.Builder, v cryptoVector, idx int) {
 		fmt.Fprintf(b, "    let ctx%d = b(%q)\n", idx, v.AAD)
 		fmt.Fprintf(b, "    let ok%d = slhdsa.verify%s(slh%d, ctx%d, slh%d, slh%d)\n", idx, suffix, idx+1, idx, idx+2, idx)
 		fmt.Fprintf(b, "    print %q\n", v.ID+"\t${ok"+fmt.Sprint(idx)+"}")
+		return 3
 	}
+	return 1
 }
 
 func parseCryptoResults(t *testing.T, out string) map[string]string {
