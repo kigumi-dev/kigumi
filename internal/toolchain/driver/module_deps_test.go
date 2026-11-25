@@ -188,3 +188,92 @@ func TestVersionSelection(t *testing.T) {
 		t.Fatalf("hash versus tag should be an error: %v", err)
 	}
 }
+
+// A dependency's build.kg is its build program, not a package file: its
+// declarations and errors never leak into the consumer's check.
+func TestDependencyBuildProgramNotAPackage(t *testing.T) {
+	root := t.TempDir()
+	write := func(dir, name, body string) {
+		t.Helper()
+		os.MkdirAll(filepath.Join(root, dir), 0o755)
+		if err := os.WriteFile(filepath.Join(root, dir, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("dep", "mod.kg", string(manifest("example.com/dep", "")))
+	write("dep", "core.kg", "pub fn helper() -> Int {\n    1\n}\n\npub fn c() -> Int {\n    helper()\n}\n")
+	write("dep", "build.kg", "pub fn helper() -> Int {\n    2\n}\n\nfn configure() -> Void! {\n    let x = nope()\n}\n")
+	write("app", "mod.kg", string(manifest("app", "Require { name: \"example.com/dep\", version: \"v1.0.0\" }\n")))
+	write("app", "mod.local.kg", "Replace { name: \"example.com/dep\", path: \"../dep\" }\n")
+	write("app", "main.kg", "import {c} from example.com/dep\nprint \"${c()}\"\n")
+	m, err := driver.LoadModule(filepath.Join(root, "app"), driver.LoadOptions{Compiler: testCompiler()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p := m.Packages["example.com/dep"]; p == nil || len(p.Files) != 1 {
+		t.Fatalf("the dependency root should hold only core.kg: %+v", m.Order)
+	}
+	res, err := driver.Check(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.HasErrors() {
+		t.Fatalf("a dependency's build program must not be checked as a package:\n%s", res.Render())
+	}
+}
+
+// A Replace pointing inside the consumer's own root names files the module
+// already owns: they load once, keep one identity, and report each
+// diagnostic once.
+func TestReplaceInsideModuleRootLoadsOnce(t *testing.T) {
+	root := t.TempDir()
+	write := func(dir, name, body string) {
+		t.Helper()
+		os.MkdirAll(filepath.Join(root, dir), 0o755)
+		if err := os.WriteFile(filepath.Join(root, dir, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("app", "mod.kg", string(manifest("app", "Require { name: \"units\", version: \"v1.0.0\" }\n")))
+	write("app", "mod.local.kg", "Replace { name: \"units\", path: \"./units\" }\n")
+	write("app", "main.kg", "import units from units\nimport own from app/units\nprint \"${units.take(own.mk())}\"\n")
+	write("app/units", "units.kg", "pub type Pt = {\n    x Int\n}\n\npub fn mk() -> Pt {\n    Pt { x: 1 }\n}\n\npub fn take(p: Pt) -> Int {\n    p.x\n}\n")
+	load := func() *driver.Module {
+		t.Helper()
+		m, err := driver.LoadModule(filepath.Join(root, "app"), driver.LoadOptions{Compiler: testCompiler()})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return m
+	}
+	m := load()
+	if _, dup := m.Packages["units"]; dup {
+		t.Fatalf("one directory must not load under two package paths: %v", m.Order)
+	}
+	if _, ok := m.Packages["app/units"]; !ok {
+		t.Fatalf("the own package is missing: %v", m.Order)
+	}
+	res, err := driver.Check(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.HasErrors() {
+		t.Fatalf("the two import spellings must name one type:\n%s", res.Render())
+	}
+	var out, errOut strings.Builder
+	if code, err := driver.Run(m, &out, &errOut, []string{"app"}); err != nil || code != 0 || out.String() != "1\n" {
+		t.Fatalf("run: %v exit %d out %q err %q", err, code, out.String(), errOut.String())
+	}
+	// A diagnostic in the replaced tree renders once, not once per identity.
+	write("app/units", "units.kg", "pub type Pt = {\n    x Int\n}\n\npub fn take(p: Pt) -> Int {\n    missingName\n}\n")
+	res, err = driver.Check(load())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.HasErrors() {
+		t.Fatal("the broken package should still be checked")
+	}
+	if n := strings.Count(res.Render(), "undefined name `missingName`"); n != 1 {
+		t.Fatalf("diagnostic rendered %d times:\n%s", n, res.Render())
+	}
+}

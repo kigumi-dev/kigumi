@@ -50,7 +50,8 @@ func (m *Module) dependencyOverlap(depDir, prefix string, skip func(string) bool
 // definesPackage mirrors loadPackage's file filter: a manifest-only or
 // empty directory produces no package and cannot collide with one.
 func (m *Module) definesPackage(dir string) bool {
-	isProgram := func(name string) bool { return name == BuildFileName && module.SameDir(m.compiler, dir, m.Root) }
+	atModuleRoot := module.SameDir(m.compiler, dir, m.Root) || module.IsModuleRoot(dir)
+	isProgram := func(name string) bool { return name == BuildFileName && atModuleRoot }
 	packageFile := func(name string) bool {
 		return strings.HasSuffix(name, ".kg") && !module.IsManifest(name) && !isProgram(name) &&
 			!strings.HasSuffix(name, "_test.kg")

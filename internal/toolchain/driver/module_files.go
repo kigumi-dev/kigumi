@@ -66,9 +66,11 @@ func (m *Module) indexPackage(dir, pkgPath, fileRel string, std, test bool) erro
 		return err
 	}
 	names := map[string]bool{}
-	// build.kg is the build program only at the module root; a package may
-	// still have a file of that name (std/build does).
-	isProgram := func(name string) bool { return name == BuildFileName && module.SameDir(m.compiler, dir, m.Root) }
+	// build.kg is the build program only at a module root, the root's own or
+	// a dependency's; a package may still have a file of that name (std/build
+	// does).
+	atModuleRoot := module.SameDir(m.compiler, dir, m.Root) || module.IsModuleRoot(dir)
+	isProgram := func(name string) bool { return name == BuildFileName && atModuleRoot }
 	for _, e := range entries {
 		if !e.IsDir() && strings.HasSuffix(e.Name(), ".kg") && !module.IsManifest(e.Name()) && !isProgram(e.Name()) {
 			names[e.Name()] = true
