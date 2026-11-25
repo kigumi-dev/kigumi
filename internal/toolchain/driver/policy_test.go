@@ -8,6 +8,7 @@ import (
 
 	"kigumi/internal/toolchain/driver"
 	"kigumi/internal/toolchain/module"
+	"kigumi/internal/toolchain/module/locktest"
 	"kigumi/internal/toolchain/policy"
 )
 
@@ -130,7 +131,7 @@ func TestLoadRejectsTamperedNativeDeclaration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := module.WriteLock(app, module.Lock{Entries: map[string]module.LockEntry{
+	if err := locktest.Write(app, module.Lock{Entries: map[string]module.LockEntry{
 		"greet": {Version: "v1.0.0", Commit: "deadbeef", Hash: hash},
 	}}); err != nil {
 		t.Fatal(err)

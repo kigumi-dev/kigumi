@@ -119,15 +119,6 @@ func TagCommit(full string) string {
 	}
 }
 
-// NormalizeCommit tags a bare-hash commit id from a lock file older than
-// TagCommit, so it still compares equal to a freshly resolved one.
-func NormalizeCommit(commit string) string {
-	if strings.Contains(commit, ":") {
-		return commit
-	}
-	return TagCommit(commit)
-}
-
 // OwnerOf picks the module a path belongs to: the longest name that is the
 // path itself or a segment-wise prefix of it.
 func OwnerOf(path string, names []string) string {

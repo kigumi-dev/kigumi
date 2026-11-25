@@ -3,6 +3,8 @@ package mod
 import (
 	stderrors "errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"slices"
 
 	"kigumi/internal/base/errors"
@@ -38,10 +40,14 @@ func runTidy(io session.IO, opts options) error {
 		fmt.Fprintln(io.Err, "nothing to remove")
 		return nil
 	}
-	lock, err := module.ReadLock(opts.root)
-	if err != nil {
+	state, err := module.ReadLockState(opts.root, module.LockKindModule)
+	hadLock := true
+	if stderrors.Is(err, module.ErrLockMissing) {
+		state, hadLock = module.EmptyLockState(module.LockKindModule), false
+	} else if err != nil {
 		return errors.WrapErr(err, "read lock")
 	}
+	lock := state.LockView()
 	local, err := opts.session.ReadLocal(opts.root)
 	if err != nil {
 		return errors.WrapErr(err, "read local overrides")
@@ -101,11 +107,36 @@ func runTidy(io session.IO, opts options) error {
 	if err := module.RemoveLocalReplaces(opts.root, removeLocal); err != nil {
 		return errors.WrapErr(err, "edit local overrides")
 	}
-	if err := module.WriteLock(opts.root, lock); err != nil {
-		return errors.WrapErr(err, "write lock")
+	if !hadLock && len(lock.Entries) == 0 {
+		// Tidy never creates a lock; there was none and nothing is left to record.
+	} else {
+		inputs, err := tidyInputs(opts.root, local.File)
+		if err != nil {
+			return err
+		}
+		state = module.RetainLockState(state, lock, inputs)
+		if err := module.WriteLockState(opts.root, state); err != nil {
+			return errors.WrapErr(err, "write lock")
+		}
 	}
 	for name := range unused {
 		fmt.Fprintf(io.Err, "removed %s\n", name)
 	}
 	return nil
+}
+
+// tidyInputs digests the manifest and local declarations as they stand after
+// tidy's edits, so the rewritten lock never records pre-edit inputs.
+func tidyInputs(root, localPath string) (string, error) {
+	src, err := os.ReadFile(filepath.Join(root, module.ManifestName))
+	if err != nil {
+		return "", errors.WrapErr(err, "read manifest bytes")
+	}
+	var localSrc []byte
+	if localPath != "" {
+		if localSrc, err = os.ReadFile(localPath); err != nil {
+			return "", errors.WrapErr(err, "read local declarations")
+		}
+	}
+	return module.LockInputsDigest(module.LockResolverOrderedV1, [][]byte{src}, localSrc), nil
 }

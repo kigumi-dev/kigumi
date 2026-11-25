@@ -181,30 +181,59 @@ func TestRenamePreservesAlias(t *testing.T) {
 	}
 }
 
-// TestLockAliasRoundTripAndDisagreements covers alias fields in mod.lock.kg,
-// legacy entries, and verification against an aliased manifest.
+// TestLockAliasRoundTripAndDisagreements covers alias fields in mod.lock.kg
+// and verification against an aliased manifest.
 func TestLockAliasRoundTripAndDisagreements(t *testing.T) {
 	root := t.TempDir()
-	lk := module.Lock{Entries: map[string]module.LockEntry{
-		"lib1": {Name: "github.com/acme/lib", Alias: "lib1", Version: "v1.0.0", Commit: "sha1:abc", Hash: "h1:1"},
-		"lib2": {Name: "github.com/acme/lib", Alias: "lib2", Version: "v1.1.0", Hash: "h1:2"},
-		"gone": {Version: "v1.0.0", Hash: "h1:3"},
-	}}
-	if err := module.WriteLock(root, lk); err != nil {
+	identity, err := module.NewSourceIdentity("github.com/acme/lib", "https://github.com/acme/lib", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sourceID := module.LockSourceID(identity)
+	commit := mustCommit(t, lockCommit('a'))
+	tm := lockTime(t)
+	binding := func(alias, version string) (module.LockResolution, module.LockBinding) {
+		cv := mustCanonical(t, version)
+		res := module.LockResolution{
+			ID:        module.LockResolutionID(sourceID, version),
+			SourceID:  sourceID,
+			Requested: version,
+			Version:   cv,
+			Commit:    commit,
+			Time:      tm,
+			Manifest:  lockDigest('2'),
+			Tag:       version,
+		}
+		return res, module.LockBinding{
+			Name: identity.Name, Alias: alias, SourceID: sourceID, ResolutionID: res.ID,
+			Version: cv, Commit: commit, Hash: lockDigest('3'), URL: identity.URL,
+		}
+	}
+	res1, lock1 := binding("lib1", "v1.0.0")
+	res2, lock2 := binding("lib2", "v1.1.0")
+	state := module.LockState{
+		Kind:        module.LockKindModule,
+		Format:      module.LockFormat1,
+		Resolver:    module.LockResolverOrderedV1,
+		Inputs:      lockDigest('1'),
+		Sources:     []module.LockSource{{ID: sourceID, Identity: identity}},
+		Resolutions: []module.LockResolution{res1, res2},
+		Locks:       []module.LockBinding{lock1, lock2},
+	}
+	if err := module.WriteLockState(root, state); err != nil {
 		t.Fatal(err)
 	}
 	got, err := module.ReadLock(root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Entries["lib1"] != lk.Entries["lib1"] || got.Entries["lib2"] != lk.Entries["lib2"] {
+	want1 := module.LockEntry{Name: identity.Name, Alias: "lib1", Version: "v1.0.0", Commit: commit.String(), Hash: lockDigest('3'), URL: identity.URL}
+	want2 := module.LockEntry{Name: identity.Name, Alias: "lib2", Version: "v1.1.0", Commit: commit.String(), Hash: lockDigest('3'), URL: identity.URL}
+	if got.Entries["lib1"] != want1 || got.Entries["lib2"] != want2 {
 		t.Fatalf("alias entries did not round trip: %+v", got.Entries)
 	}
-	if e := got.Entries["gone"]; e.Name != "" || e.Alias != "" {
-		t.Fatalf("a legacy name-keyed entry should stay implicit: %+v", e)
-	}
-	if r := got.Entries["gone"].RequireAt("gone"); r.Name != "gone" || r.Version != "v1.0.0" {
-		t.Fatalf("legacy entry reconstruction: %+v", r)
+	if r := got.Entries["lib1"].Require(); r.Name != identity.Name || r.Alias != "lib1" || r.Version != "v1.0.0" {
+		t.Fatalf("Require() = %+v", r)
 	}
 
 	cache := t.TempDir()

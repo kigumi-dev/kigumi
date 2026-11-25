@@ -8,6 +8,7 @@ import (
 
 	"kigumi/internal/toolchain/driver"
 	"kigumi/internal/toolchain/module"
+	"kigumi/internal/toolchain/module/locktest"
 )
 
 // TestReproducibleIndependentOfCwdAndCache builds the same sources with two
@@ -58,7 +59,7 @@ func TestReproducibleIndependentOfCwdAndCache(t *testing.T) {
 			lock := module.Lock{Entries: map[string]module.LockEntry{
 				"example.com/cdep": {Version: "v1.0.0", Commit: "cafebabe", Hash: hash},
 			}}
-			if err := module.WriteLock(project, lock); err != nil {
+			if err := locktest.Write(project, lock); err != nil {
 				t.Fatal(err)
 			}
 			m, err := driver.LoadModule(project, driver.LoadOptions{Compiler: compiler, StdRoot: std})

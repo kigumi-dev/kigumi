@@ -23,7 +23,7 @@ func TestModuleIOErrors(t *testing.T) {
 		}
 		os.Remove(filepath.Join(root, "mod.kg"))
 	}
-	if err := module.WriteLock(root, module.Lock{Entries: map[string]module.LockEntry{"x": {Version: "v1.0.0", Commit: "c", Hash: "h"}}}); err != nil {
+	if err := module.WriteLockState(root, sampleLockState(t, module.LockKindModule)); err != nil {
 		t.Fatal(err)
 	}
 	entries, _ := os.ReadDir(root)

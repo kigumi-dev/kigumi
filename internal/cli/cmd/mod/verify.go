@@ -47,7 +47,7 @@ func runVerify(io session.IO, opts options) error {
 		if name != key {
 			label = key + " (" + name + ")"
 		}
-		if _, replaced := local.Replacement(e.RequireAt(key)); replaced {
+		if _, replaced := local.Replacement(e.Require()); replaced {
 			// A Replace is not locked: `mod vendor` refuses to copy one, and
 			// `get` never fetched it.
 			continue

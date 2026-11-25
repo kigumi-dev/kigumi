@@ -10,6 +10,7 @@ import (
 	"go.lsp.dev/uri"
 
 	"kigumi/internal/toolchain/module"
+	"kigumi/internal/toolchain/module/locktest"
 )
 
 // TestDependencyCacheOrigin: a definition inside a module-cache dependency
@@ -33,7 +34,7 @@ func TestDependencyCacheOrigin(t *testing.T) {
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"app\"\n    kigumi: \"0.1\"\n}\nRequire { name: \"example.com/greet\", version: \"v1.0.0\" }\n"), 0o644)
 	lock := module.Lock{Entries: map[string]module.LockEntry{"example.com/greet": {Version: "v1.0.0", Commit: "cafebabe", Hash: hash}}}
-	if err := module.WriteLock(root, lock); err != nil {
+	if err := locktest.Write(root, lock); err != nil {
 		t.Fatal(err)
 	}
 	src := "import {hello} from example.com/greet\nprint \"${hello()}\"\n"

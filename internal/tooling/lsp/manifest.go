@@ -23,7 +23,9 @@ func (s *Server) manifestDiagnostics(u uri.URI) []protocol.Diagnostic {
 	case f.Name == module.LocalName:
 		_, ds = module.ParseLocal(f, filepath.Dir(path))
 	case strings.HasSuffix(f.Name, ".lock.kg"):
-		_, ds = module.ParseLock(f)
+		if _, err := module.DecodeLock(f.Name, module.LockKindModule, f.Src); err != nil {
+			ds = []diag.Diagnostic{diag.Errorf(diag.Location{}, err.Error())}
+		}
 	default:
 		_, ds = module.ParseModFile(f)
 	}

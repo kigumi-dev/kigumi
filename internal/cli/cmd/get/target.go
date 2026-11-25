@@ -95,8 +95,38 @@ func (t *target) fetch(io session.IO, git vcs.Git, opts options) error {
 	if t.lockPath == "" {
 		return nil
 	}
-	if err := module.WriteLockFile(t.lockPath, f.next); err != nil {
+	inputs, err := t.lockInputs(local)
+	if err != nil {
+		return err
+	}
+	state, err := module.SelectedLockState(inputs, f.next.Entries)
+	if err != nil {
+		return errors.WrapErr(err, "build lock")
+	}
+	if err := module.WriteLockStateFile(t.lockPath, state); err != nil {
 		return errors.WrapErr(err, "write lock")
 	}
 	return nil
+}
+
+// lockInputs digests the bytes that made this fetch's selection: the manifest
+// as written (the module's mod.kg or the script itself) and, when local
+// overrides were read, their declarations. The digest is computed after any
+// `get --add` edit, so the header never records stale inputs.
+func (t *target) lockInputs(local module.Local) (string, error) {
+	manifest := t.script
+	if manifest == "" {
+		manifest = filepath.Join(t.dir, module.ManifestName)
+	}
+	src, err := os.ReadFile(manifest)
+	if err != nil {
+		return "", errors.WrapErr(err, "read manifest bytes")
+	}
+	var localSrc []byte
+	if local.File != "" {
+		if localSrc, err = os.ReadFile(local.File); err != nil {
+			return "", errors.WrapErr(err, "read local declarations")
+		}
+	}
+	return module.LockInputsDigest(module.LockResolverOrderedV1, [][]byte{src}, localSrc), nil
 }

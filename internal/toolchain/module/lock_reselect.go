@@ -22,7 +22,7 @@ func PruneLock(o buildconfig.CompilerOptions, mf ModFile, local Local, lk Lock) 
 	var changes []LockChange
 	for key, e := range lk.Entries {
 		r, ok := sel.Requires[key]
-		if _, replaced := local.Replacement(e.RequireAt(key)); replaced {
+		if _, replaced := local.Replacement(e.Require()); replaced {
 			next.Entries[key] = e
 			continue
 		}
@@ -36,6 +36,49 @@ func PruneLock(o buildconfig.CompilerOptions, mf ModFile, local Local, lk Lock) 
 	}
 	sort.Slice(changes, func(i, j int) bool { return changes[i].Name < changes[j].Name })
 	return next, changes, nil
+}
+
+// RetainLockState keeps the bindings of state whose effective key is still in
+// kept, plus the Source and Resolution records they reference. Resolutions of
+// a retained source stay even when their request lost selection: they are the
+// offline re-selection evidence a later migration must not drop. inputs
+// replaces the header digest because the caller changed the manifest bytes.
+func RetainLockState(state LockState, kept Lock, inputs string) LockState {
+	out := state.Clone()
+	out.Inputs = inputs
+	out.Locks = nil
+	out.Sources = nil
+	out.Resolutions = nil
+	out.Edges = nil
+	sourceIDs := map[string]bool{}
+	for _, b := range state.Locks {
+		if _, ok := kept.Entries[b.Key()]; !ok {
+			continue
+		}
+		out.Locks = append(out.Locks, b)
+		if b.SourceID != "" {
+			sourceIDs[b.SourceID] = true
+		}
+	}
+	for _, src := range state.Sources {
+		if sourceIDs[src.ID] {
+			out.Sources = append(out.Sources, src)
+		}
+	}
+	for _, res := range state.Resolutions {
+		if sourceIDs[res.SourceID] {
+			out.Resolutions = append(out.Resolutions, res)
+		}
+	}
+	for _, e := range state.Edges {
+		_, from := kept.Entries[e.From]
+		_, to := kept.Entries[e.To]
+		if from && to {
+			out.Edges = append(out.Edges, e)
+		}
+	}
+	out.SortRecords()
+	return out
 }
 
 // LockDisagreements lists, sorted, where lk differs from what selection over mf picks, as `run` would see it. Entries are matched by effective Require key, so an alias is checked against its own locked version.

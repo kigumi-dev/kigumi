@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"kigumi/internal/cli/clitest"
+	"kigumi/internal/toolchain/module"
+	"kigumi/internal/toolchain/module/locktest"
 )
 
 // writeRenameModule lays out a module that imports its own package and a
@@ -69,7 +71,15 @@ func TestModRenameCurrentModule(t *testing.T) {
 // Require, its Replace and every import, but never mod.lock.kg.
 func TestModRenameRequiredModule(t *testing.T) {
 	app := writeRenameModule(t, t.TempDir())
-	os.WriteFile(filepath.Join(app, "mod.lock.kg"), []byte("Lock {\n    name: \"github.com/acme/dep\"\n    version: \"v1.0.0\"\n    commit: \"sha1:0000000000000000000000000000000000000000\"\n    hash: \"h1:00\"\n}\n"), 0o644)
+	if err := locktest.Write(app, module.Lock{Entries: map[string]module.LockEntry{
+		"github.com/acme/dep": {
+			Version: "v1.0.0",
+			Commit:  "sha1:" + strings.Repeat("0", 40),
+			Hash:    "h1:" + strings.Repeat("0", 64),
+		},
+	}}); err != nil {
+		t.Fatal(err)
+	}
 	code, _, errOut := clitest.Execute(t, "mod", "rename", "-C", app, "github.com/acme/dep", "example.com/moved/dep")
 	if code != 0 {
 		t.Fatalf("rename: %s", errOut)

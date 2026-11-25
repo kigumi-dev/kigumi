@@ -9,6 +9,7 @@ import (
 
 	"kigumi/internal/toolchain/driver"
 	"kigumi/internal/toolchain/module"
+	"kigumi/internal/toolchain/module/locktest"
 )
 
 // A dependency's own mod.local.kg is never read: only the override next to
@@ -63,7 +64,7 @@ func TestLoadRejectsTamperedCache(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := module.WriteLock(app, module.Lock{Entries: map[string]module.LockEntry{
+	if err := locktest.Write(app, module.Lock{Entries: map[string]module.LockEntry{
 		"greet": {Version: "v1.0.0", Commit: "deadbeef", Hash: hash},
 	}}); err != nil {
 		t.Fatal(err)
@@ -135,7 +136,7 @@ func TestLoadRejectsStaleLockVersion(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "greet.kg"), []byte("pub fn greeting() -> String {\n    \"TAMPERED\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(dir, module.OriginFileName), []byte("deadbeef\n"), 0o644)
 
-	if err := module.WriteLock(app, module.Lock{Entries: map[string]module.LockEntry{
+	if err := locktest.Write(app, module.Lock{Entries: map[string]module.LockEntry{
 		"greet": {Version: "v0.9.0", Commit: "deadbeef", Hash: "h1:0000000000000000000000000000000000000000000000000000000000000000"},
 	}}); err != nil {
 		t.Fatal(err)
@@ -173,7 +174,7 @@ func TestScriptRunsWithoutLockFile(t *testing.T) {
 		t.Fatalf("a script with no lock file should still load from the cache: %v", err)
 	}
 
-	if err := module.WriteLockFile(script+".lock.kg", module.Lock{Entries: map[string]module.LockEntry{
+	if err := locktest.WriteFile(script+".lock.kg", module.Lock{Entries: map[string]module.LockEntry{
 		"greet": {Version: "v0.9.0", Commit: "deadbeef", Hash: "h1:0000000000000000000000000000000000000000000000000000000000000000"},
 	}}); err != nil {
 		t.Fatal(err)

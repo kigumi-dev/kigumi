@@ -111,8 +111,7 @@ func TestRepoOf(t *testing.T) {
 	}
 }
 
-// TestTagCommit checks the lock's algorithm-tagged commit id and that a
-// pre-existing, untagged lock entry still normalizes to it.
+// TestTagCommit checks the lock's algorithm-tagged commit id.
 func TestTagCommit(t *testing.T) {
 	sha1Id := strings.Repeat("a", 40)
 	sha256Id := strings.Repeat("b", 64)
@@ -121,11 +120,5 @@ func TestTagCommit(t *testing.T) {
 	}
 	if got := module.TagCommit(sha256Id); got != "sha256:"+sha256Id {
 		t.Errorf("TagCommit(sha256) = %q", got)
-	}
-	if got := module.NormalizeCommit(sha1Id); got != module.TagCommit(sha1Id) {
-		t.Errorf("NormalizeCommit of a legacy bare hash = %q, want %q", got, module.TagCommit(sha1Id))
-	}
-	if got := module.NormalizeCommit(module.TagCommit(sha1Id)); got != module.TagCommit(sha1Id) {
-		t.Errorf("NormalizeCommit of an already-tagged id must be a no-op, got %q", got)
 	}
 }

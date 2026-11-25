@@ -7,20 +7,23 @@ import (
 	"kigumi/internal/toolchain/module"
 )
 
-func TestLockRoundTripsUrl(t *testing.T) {
+func TestLockViewRoundTripsURL(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "mod.lock.kg")
-	want := module.Lock{Entries: map[string]module.LockEntry{
-		"a": {Version: "v1.0.0", Commit: "abc", Hash: "h1:x", URL: "https://example.com/a"},
-		"b": {Version: "v1.0.0", Commit: "def", Hash: "h1:y"},
-	}}
-	if err := module.WriteLockFile(path, want); err != nil {
+	state := sampleLockState(t, module.LockKindModule)
+	// One selected entry records the source URL; the aliased one omits the
+	// redundant field, which is valid and must stay empty in the view.
+	state.Locks[1].URL = ""
+	if err := module.WriteLockStateFile(path, state); err != nil {
 		t.Fatal(err)
 	}
 	got, err := module.ReadLockFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Entries["a"].URL != "https://example.com/a" || got.Entries["b"].URL != "" {
-		t.Fatalf("got %+v", got.Entries)
+	if got.Entries["example.com/lib/a"].URL != "https://example.com/lib/a" {
+		t.Fatalf("named URL = %q", got.Entries["example.com/lib/a"].URL)
+	}
+	if got.Entries["libalias"].URL != "" {
+		t.Fatalf("aliased URL = %q", got.Entries["libalias"].URL)
 	}
 }

@@ -7,6 +7,7 @@ import (
 
 	"kigumi/internal/toolchain/driver"
 	"kigumi/internal/toolchain/module"
+	"kigumi/internal/toolchain/module/locktest"
 )
 
 // TestBuildProgramRootsFollowSelection covers MOD-002/MOD-004: Roots must
@@ -35,7 +36,7 @@ func TestBuildProgramRootsFollowSelection(t *testing.T) {
 
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), manifest("app", "Require { name: \"github.com/acme/b\", version: \"v1.0.0\" }\nRequire { name: \"github.com/acme/c\", version: \"v1.0.0\" }\n"), 0o644)
-	if err := module.WriteLock(root, lock); err != nil {
+	if err := locktest.Write(root, lock); err != nil {
 		t.Fatal(err)
 	}
 	os.WriteFile(filepath.Join(root, "build.kg"), []byte("import build from std/build\n\nfn configure(b: build.Builder) -> Void! {}\n"), 0o644)

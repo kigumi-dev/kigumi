@@ -119,7 +119,7 @@ func (f *fetcher) cached(r module.Require, dir string, missing bool) error {
 		if err != nil {
 			return errors.WrapErrf(err, "%s %s: check the remote tag", module.DescribeRequire(r), r.Version)
 		}
-		if module.TagCommit(remote) == module.NormalizeCommit(prev.Commit) {
+		if module.TagCommit(remote) == prev.Commit {
 			fmt.Fprintf(f.io.Err, "%s %s: %s (up to date)\n", module.DescribeRequire(r), r.Version, dir)
 		} else if newCommit, err := f.git.Refetch(r, dir); err != nil {
 			return err

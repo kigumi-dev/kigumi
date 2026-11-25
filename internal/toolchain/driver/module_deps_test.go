@@ -8,6 +8,7 @@ import (
 
 	"kigumi/internal/toolchain/driver"
 	"kigumi/internal/toolchain/module"
+	"kigumi/internal/toolchain/module/locktest"
 )
 
 const modHead = "Module {\n    name: \"%s\"\n    kigumi: \"0.1\"\n}\n"
@@ -159,7 +160,7 @@ func TestVersionSelection(t *testing.T) {
 	put("github.com/acme/mid", "v0.1.0", "Require { name: \"github.com/acme/lib\", version: \"v1.2.0\" }\n", map[string]string{"mid.kg": "import {one} from github.com/acme/lib\n\npub fn two() -> Int {\n    one() * 10\n}\n"})
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), manifest("app", "Require { name: \"github.com/acme/lib\", version: \"v1.0.0\" }\nRequire { name: \"github.com/acme/mid\", version: \"v0.1.0\" }\n"), 0o644)
-	if err := module.WriteLock(root, lock); err != nil {
+	if err := locktest.Write(root, lock); err != nil {
 		t.Fatal(err)
 	}
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import {one} from github.com/acme/lib\nimport {two} from github.com/acme/mid\nprint \"${one()} ${two()}\"\n"), 0o644)

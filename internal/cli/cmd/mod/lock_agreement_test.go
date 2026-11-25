@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"kigumi/internal/cli/clitest"
+	"kigumi/internal/toolchain/module"
 )
 
 type world struct {
@@ -117,6 +118,17 @@ func TestModTidyUpdateAcceptsTheFloorDowngradeAndLeavesLockingToGet(t *testing.T
 	}
 	if strings.Contains(w.read("mod.kg"), "example.com/dep") || strings.Contains(w.read("mod.lock.kg"), "v1.1.0") {
 		t.Fatalf("the floor Require and its stale entry must go:\n%s\n%s", w.read("mod.kg"), w.read("mod.lock.kg"))
+	}
+	state, err := module.ReadLockState(w.app, module.LockKindModule)
+	if err != nil {
+		t.Fatalf("read rewritten lock: %v", err)
+	}
+	manifest, err := os.ReadFile(filepath.Join(w.app, "mod.kg"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := module.LockInputsDigest(module.LockResolverOrderedV1, [][]byte{manifest}, nil); state.Inputs != want {
+		t.Fatalf("tidy recorded stale inputs %s, want %s for the edited manifest", state.Inputs, want)
 	}
 	if code, _, e := w.kigumi("get", w.app); code != 0 {
 		t.Fatalf("get: %s", e)

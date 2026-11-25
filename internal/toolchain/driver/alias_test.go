@@ -8,6 +8,7 @@ import (
 
 	"kigumi/internal/toolchain/driver"
 	"kigumi/internal/toolchain/module"
+	"kigumi/internal/toolchain/module/locktest"
 )
 
 // writeFile makes dir/name with body, creating dir.
@@ -133,7 +134,7 @@ func TestAliasCacheAndLock(t *testing.T) {
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), manifest("app", "Require { name: \"github.com/acme/lib\", version: \"v1.0.0\", alias: \"lib1\" }\nRequire { name: \"github.com/acme/lib\", version: \"v1.1.0\", alias: \"lib2\" }\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import {one as one1} from lib1\nimport {one as one2} from lib2\nprint \"${one1()} ${one2()}\"\n"), 0o644)
-	if err := module.WriteLock(root, lock); err != nil {
+	if err := locktest.Write(root, lock); err != nil {
 		t.Fatal(err)
 	}
 
@@ -152,7 +153,7 @@ func TestAliasCacheAndLock(t *testing.T) {
 	e := lock.Entries["lib1"]
 	e.Hash = "h1:0000000000000000000000000000000000000000000000000000000000000000"
 	lock.Entries["lib1"] = e
-	if err := module.WriteLock(root, lock); err != nil {
+	if err := locktest.Write(root, lock); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std}); err == nil || !strings.Contains(err.Error(), "does not match") {
