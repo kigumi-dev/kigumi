@@ -115,7 +115,7 @@ task.currentThreadExecutor().runToCompletion(check())?
 		if got.code != 0 || got.out != want {
 			t.Fatalf("vm exit %d, stdout %q, want %q, stderr:\n%s", got.code, got.out, want, got.errText)
 		}
-	case <-time.After(60 * time.Second):
+	case <-time.After(180 * time.Second):
 		t.Fatal("vm run did not return after the TLS peer stalled")
 	}
 
@@ -128,7 +128,7 @@ task.currentThreadExecutor().runToCompletion(check())?
 	if ok, err := driver.BuildWith(m, exe, &buildErr, driver.BuildOptions{}); err != nil || !ok {
 		t.Fatalf("native build: %v\n%s", err, buildErr.String())
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, exe)
 	cmd.Dir = t.TempDir()

@@ -16,9 +16,13 @@ func TestRunCorpusVMCoverage(t *testing.T) {
 	if len(files) == 0 {
 		t.Fatal("no run fixtures")
 	}
+	manifest := loadManifest(t)
 	for _, path := range devfixture.ShardPaths(files) {
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			t.Parallel()
+			if fx := manifest.ByID(fixtureID(path)); fx != nil && fx.Skip["native"] == "compile-error" {
+				t.Skip("the fixture expects a compile error, so the VM never runs it")
+			}
 			declared := fixtureEngines(t, path)
 			c := checkedFixture(t, path)
 			if c.errs != "" {

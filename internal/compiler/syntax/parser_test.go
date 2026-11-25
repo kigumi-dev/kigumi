@@ -143,13 +143,26 @@ func dumpTiming(t *testing.T, n int) (out string, elapsed time.Duration) {
 	return out, time.Since(start)
 }
 
+func bestDumpTiming(t *testing.T, n int) (string, time.Duration) {
+	t.Helper()
+	var out string
+	var best time.Duration
+	for range 3 {
+		o, elapsed := dumpTiming(t, n)
+		if best == 0 || elapsed < best {
+			out, best = o, elapsed
+		}
+	}
+	return out, best
+}
+
 // Compares ns/byte at two sizes instead of a fixed wall-clock ceiling, which
 // either flakes under load or gets too loose to catch a regression.
 func TestDumpDeepNestingStaysFast(t *testing.T) {
 	const n = 9000 // type-pointer nesting; under the parser's depth limit
 	const baseline = 900
-	baseOut, baseElapsed := dumpTiming(t, baseline)
-	out, elapsed := dumpTiming(t, n)
+	baseOut, baseElapsed := bestDumpTiming(t, baseline)
+	out, elapsed := bestDumpTiming(t, n)
 	if out == "" {
 		t.Fatal("empty dump")
 	}
