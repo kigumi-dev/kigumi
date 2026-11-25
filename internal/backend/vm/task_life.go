@@ -63,10 +63,16 @@ func (m *Machine) pollTask(t *task) (*obj, polled) {
 	m.sh.sched.Lock()
 	if !t.terminal() {
 		t.waiter = m.cur
+		if m.cur != nil {
+			m.cur.awaiting = t
+		}
 		m.sh.sched.Unlock()
 		return nil, pending
 	}
 	t.waiter = nil
+	if m.cur != nil && m.cur.awaiting == t {
+		m.cur.awaiting = nil
+	}
 	st, fault := t.state, t.fault
 	r := t.result
 	t.result = nil
@@ -82,6 +88,31 @@ func (m *Machine) pollTask(t *task) (*obj, polled) {
 	return r, ready
 }
 
+// unawait drops the waiter link a frame installed in pollTask: a cancelled or
+// dropped awaiter must not be left behind, or the awaited task's panic would
+// reach no one and its siblings keep running.
+func (m *Machine) unawait(v *obj) {
+	if v == nil || m.cur == nil {
+		return
+	}
+	d := deref(v)
+	if d.k != kOpaque || d.opaqueOp() != "Task" {
+		return
+	}
+	t, ok := d.opaqueData().(*task)
+	if !ok {
+		return
+	}
+	m.sh.sched.Lock()
+	if m.cur.awaiting == t {
+		m.cur.awaiting = nil
+	}
+	if t.waiter == m.cur {
+		t.waiter = nil
+	}
+	m.sh.sched.Unlock()
+}
+
 // Cancellation is cooperative: this only sets a sticky flag, observed at the next suspension point.
 func (m *Machine) requestCancel(t *task) {
 	m.sh.sched.Lock()
@@ -94,8 +125,23 @@ func (m *Machine) cancelLocked(t *task) {
 		return
 	}
 	t.cancelReq.Store(true)
+	m.dropWait(t)
 	m.cancelKids(t)
 	m.wake(t)
+}
+
+// A cancelled waiter never consumes its awaited result, so dropWait drops its
+// link now: the awaited task's panic then reaches the parent as an unawaited
+// one. Runs under sched.
+func (m *Machine) dropWait(t *task) {
+	a := t.awaiting
+	if a == nil {
+		return
+	}
+	t.awaiting = nil
+	if a.waiter == t {
+		a.waiter = nil
+	}
 }
 
 // wake coalesces: it only marks the task runnable, never runs its code.
@@ -141,6 +187,7 @@ func (m *Machine) finishDrain(t *task) {
 	if t.waiter != nil {
 		w := t.waiter
 		t.waiter = nil
+		w.awaiting = nil
 		m.wake(w)
 	}
 	if t.parent != nil && (t.parent.draining || t.parent.waitKids) {

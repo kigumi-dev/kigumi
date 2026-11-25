@@ -23,9 +23,12 @@ type task struct {
 	ex     *executor
 	// pex is the executor the parent runs on; it differs from ex only for a
 	// handed-off child, whose parent must not be declared stuck while it runs.
-	pex      *executor
-	parent   *task
-	waiter   *task
+	pex    *executor
+	parent *task
+	waiter *task
+	// awaiting is the task this one registered as its waiter in pollTask, so a
+	// cancellation can drop that link without waiting for the next poll.
+	awaiting *task
 	kids     []*task
 	state    taskState
 	ending   taskState

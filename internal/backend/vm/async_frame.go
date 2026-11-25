@@ -70,6 +70,7 @@ func (m *Machine) cancelAwait(fu *future) polled {
 	var fault *Panic
 	if v := fu.awaited; v != nil {
 		fu.awaited = nil
+		m.unawait(v)
 		fault = m.releaseJoined(v, fault)
 	}
 	m.raiseJoined(fault)
@@ -113,6 +114,7 @@ func (m *Machine) dropFrame(fu *future) {
 	if fu.awaited != nil {
 		v := fu.awaited
 		fu.awaited = nil
+		m.unawait(v)
 		fault = m.releaseJoined(v, fault)
 	}
 	co := fu.co
@@ -154,6 +156,7 @@ func (m *Machine) unwindCoro(fu *future) {
 	if fu.awaited != nil {
 		v := fu.awaited
 		fu.awaited = nil
+		m.unawait(v)
 		m.sweepRelease(v)
 	}
 	co := fu.co

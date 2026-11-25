@@ -56,6 +56,14 @@ static void task_wake(kgtask* t) {
     t->notified = 1;
     if (t->state == T_SUSPENDED) exec_push(t->ex, t);
 }
+// A cancelled waiter never consumes its awaited result, so its link goes now:
+// the awaited task's panic then reaches the parent as an unawaited one.
+static void task_drop_wait(kgtask* t) {
+    kgtask* a = t->awaiting;
+    if (!a) return;
+    t->awaiting = NULL;
+    if (a->waiter == t) a->waiter = NULL;
+}
 static void task_request_cancel(kgtask* t);
 static void task_cancel_kids(kgtask* t) {
     for (int i = 0; i < t->nkids; i++)
@@ -64,6 +72,7 @@ static void task_cancel_kids(kgtask* t) {
 static void task_request_cancel(kgtask* t) {
     if (task_terminal(t) || KG_ALOAD(t->cancel)) return;
     KG_ASTORE(t->cancel, 1);
+    task_drop_wait(t);
     task_cancel_kids(t);
     task_wake(t);
 }
@@ -145,6 +154,7 @@ static void task_finish_drain(kgtask* t) {
     if (t->waiter) {
         kgtask* w = t->waiter;
         t->waiter = NULL;
+        w->awaiting = NULL;
         task_wake(w);
     }
     if (t->parent && (t->parent->draining || t->parent->wait_kids)) task_wake(t->parent);
@@ -305,10 +315,12 @@ static val poll_task(kgtask* t) {
     SCHED_LOCK();
     if (!task_terminal(t)) {
         t->waiter = g_cur_task;
+        if (g_cur_task) g_cur_task->awaiting = t;
         SCHED_UNLOCK();
         return NULL;
     }
     t->waiter = NULL;
+    if (g_cur_task && g_cur_task->awaiting == t) g_cur_task->awaiting = NULL;
     int st = t->state;
     val r = t->result;
     t->result = NULL;

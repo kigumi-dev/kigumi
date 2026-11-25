@@ -20,7 +20,9 @@ typedef struct kgexec kgexec;
 struct kgtask {
     val fut, result;
     kgexec *ex, *pex;
-    kgtask *parent, *waiter;
+    // waiter is the task to wake on completion; awaiting is the task this one
+    // registered as its waiter, so a cancellation can drop the link early.
+    kgtask *parent, *waiter, *awaiting;
     kgtask** kids;
     char* fault;
     int nkids, capkids;
@@ -169,6 +171,19 @@ static char* dup_msg(const char* m) {
     return d;
 }
 #endif
+// A frame giving up its awaited Task unlinks itself: the task it stopped
+// waiting on keeps running, and the dropped waiter would be freed before it
+// could be woken.
+static void task_unawait(val awaited) {
+    if (!awaited || !g_cur_task) return;
+    val d = rt_deref(awaited);
+    if (!d || d->kind != K_OPAQUE || strcmp(d->u.op.kind, "Task")) return;
+    kgtask* t = (kgtask*)d->u.op.data;
+    SCHED_LOCK();
+    if (g_cur_task->awaiting == t) g_cur_task->awaiting = NULL;
+    if (t->waiter == g_cur_task) t->waiter = NULL;
+    SCHED_UNLOCK();
+}
 #ifdef KG_CATCH
 static void join_fault(const char* msg) {
     char* m = dup_msg(msg);
@@ -246,6 +261,7 @@ static void frame_release_awaited(val fut) {
     kgframe* f = frame_of(fut);
     val a = f->awaited;
     f->awaited = NULL;
+    task_unawait(a);
     if (!g_task_catch || !a) {
         rt_release(a);
         return;
@@ -263,6 +279,7 @@ static void frame_abandon(val fut) {
     if (!g_task_catch) {
         val a = f->awaited;
         f->awaited = NULL;
+        task_unawait(a);
         rt_release(a);
         if (f->state > 0 && f->desc->drop) f->desc->drop(fut);
         f->state = -1;
@@ -272,6 +289,7 @@ static void frame_abandon(val fut) {
     g_drop_depth++;
     val a = f->awaited;
     f->awaited = NULL;
+    task_unawait(a);
     if (a) contained(frame_release, a);
     if (f->state > 0 && f->desc->drop)
         while (!contained(frame_slots_drop, fut)) {
@@ -285,6 +303,7 @@ static void frame_release_awaited(val fut) {
     kgframe* f = frame_of(fut);
     val a = f->awaited;
     f->awaited = NULL;
+    task_unawait(a);
     rt_release(a);
 }
 static void frame_abandon(val fut) {
@@ -292,6 +311,7 @@ static void frame_abandon(val fut) {
     if (frame_cancel_run(fut)) return;
     val a = f->awaited;
     f->awaited = NULL;
+    task_unawait(a);
     rt_release(a);
     if (f->state > 0 && f->desc->drop) f->desc->drop(fut);
     f->state = -1;
