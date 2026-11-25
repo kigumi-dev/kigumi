@@ -147,6 +147,9 @@ func prefixEvalOrder(plan *sem.CallPlan, piped bool) []int {
 // memberNode is the member expression of a method callee, stepping past
 // explicit type arguments (`recv.get[T](...)`).
 func memberNode(t *syntax.Tree, callee syntax.NodeID) syntax.NodeID {
+	for t.Kind(callee) == syntax.Paren {
+		callee = t.View(callee).AsParen().Inner().ID()
+	}
 	if t.Kind(callee) == syntax.BracketExpr {
 		return t.View(callee).AsBracket().Base().ID()
 	}
