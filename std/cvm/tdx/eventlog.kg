@@ -7,10 +7,10 @@
 // zero and compares the resulting registers with the ones in a signed quote.
 //
 // TDX maps TCG PCRs to measurement registers as the UEFI specification does:
-// PCR 1 and 7 to RTMR0, PCR 2..6 to RTMR1, PCR 8..15 to RTMR2. PCR 0 names
-// MRTD, which the TDX module fixes at build time and which no event extends;
-// RTMR3 has no assigned PCR in this mapping. Events for any other PCR are
-// refused rather than silently dropped.
+// PCR 1 and 7 to RTMR0, PCR 2 through 6 to RTMR1, PCR 8 through 15 to RTMR2.
+// PCR 0 names MRTD, which the TDX module fixes at build time and which no
+// event extends; RTMR3 has no assigned PCR in this mapping. Events for any
+// other PCR are refused rather than silently dropped.
 import sha512 from std/crypto/sha512
 
 /// TPM algorithm ids used by the log.
@@ -199,8 +199,8 @@ pure fn sha384Digest(digests: &Array[Digest]) -> Bytes? {
 pure fn rtmrIndex(pcr: u32) -> u32? {
     match pcr {
         1 | 7 -> Some(0)
-        2..6 -> Some(1)
-        8..15 -> Some(2)
+        2..7 -> Some(1)
+        8..16 -> Some(2)
         _ -> None
     }
 }
