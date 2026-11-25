@@ -165,18 +165,19 @@ pub type Extension = {
 pub pure fn parseExtensions(block: Bytes) -> Result[Array[Extension], Error] {
     let mut r = Reader.new(block)
     let mut out = Array.empty[Extension]()
+    // One bit per extension type; a nested scan made a hostile block of ~16k
+    // extensions quadratic. 65536 bits is 8 KiB.
+    let mut seen = Array.fill[u8](0, 8192)
     for !r.done() {
         let typ = r.u16()?
         let data = r.vec16()?
-        let mut seen = false
-        for e in &out {
-            if e.typ == typ {
-                seen = true
-            }
-        }
-        if seen {
+        let bit = typ.toUsize()
+        let at = bit / 8
+        let mask: u8 = 1 << (bit % 8)
+        if (seen[at] & mask) != 0 {
             fail Error.MalformedHandshake("duplicate extension ${typ}")
         }
+        seen[at] = seen[at] | mask
         out.push(Extension {
             typ: typ
             data: data
