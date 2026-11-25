@@ -13,6 +13,11 @@ import (
 // schedule invalidates the roots path belongs to and re-arms the debounce
 // timer; the analysis itself runs on the timer's goroutine.
 func (s *Server) schedule(ctx context.Context, u uri.URI) {
+	// Unsaved buffers are not files: they own no module root and must not
+	// invalidate or re-analyze the workspace.
+	if !u.IsFile() {
+		return
+	}
 	path := uriToPath(u)
 	if module.IsManifest(filepath.Base(path)) {
 		s.publish(ctx, u, s.manifestDiagnostics(u))

@@ -52,6 +52,19 @@ func (s *Server) allModuleRoots() []string {
 	return roots
 }
 
+// docRoot picks the module root a document is analyzed under. A non-file URI
+// is an unsaved buffer: it belongs to the workspace's first module, never to
+// the process's working directory, and has no root without a workspace.
+func (s *Server) docRoot(u uri.URI) string {
+	if u.IsFile() {
+		return s.moduleRoot(uriToPath(u))
+	}
+	if roots := s.allModuleRoots(); len(roots) > 0 {
+		return roots[0]
+	}
+	return ""
+}
+
 // moduleRoot picks the nearest ancestor module root inside a workspace
 // folder, or outside every folder the file's own directory (script mode).
 func (s *Server) moduleRoot(path string) string {

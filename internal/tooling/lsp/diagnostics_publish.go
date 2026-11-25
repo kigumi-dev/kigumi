@@ -27,6 +27,11 @@ func (s *Server) publish(ctx context.Context, u uri.URI, ds []protocol.Diagnosti
 }
 
 func (s *Server) analyze(ctx context.Context, u uri.URI) {
+	// An unsaved buffer has no path on disk: analyzing its module root would
+	// re-check the workspace and publish file diagnostics for a made-up path.
+	if !u.IsFile() {
+		return
+	}
 	path := uriToPath(u)
 	if module.IsManifest(filepath.Base(path)) {
 		s.publish(ctx, u, s.manifestDiagnostics(u))

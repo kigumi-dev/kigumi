@@ -39,12 +39,19 @@ type snapshot struct {
 
 // loadDoc answers from the last complete snapshot while a newer analysis is pending.
 func (s *Server) loadDoc(ctx context.Context, u uri.URI) *snapshot {
-	return s.load(ctx, s.moduleRoot(uriToPath(u)), u)
+	root := s.docRoot(u)
+	if root == "" {
+		return &snapshot{pos: map[*syntax.Tree]*posIndex{}}
+	}
+	return s.load(ctx, root, u)
 }
 
 // loadDocFresh analyzes now when the root has unanalyzed edits.
 func (s *Server) loadDocFresh(ctx context.Context, u uri.URI) *snapshot {
-	root := s.moduleRoot(uriToPath(u))
+	root := s.docRoot(u)
+	if root == "" {
+		return &snapshot{pos: map[*syntax.Tree]*posIndex{}}
+	}
 	if st := s.states[root]; st != nil && st.dirty {
 		return s.refresh(ctx, root, u, false)
 	}
