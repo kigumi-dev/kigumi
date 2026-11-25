@@ -14,16 +14,14 @@ import (
 func (m *Machine) readSome(timeoutMs int64) ([]byte, error) {
 	m.sh.in.Lock()
 	defer m.sh.in.Unlock()
-	r := m.stdinReader()
-	if r.Buffered() == 0 {
-		if f, ok := m.sh.stdinSrc.(*os.File); ok {
-			ready, err := pollReadable(int(f.Fd()), timeoutMs)
-			if err != nil {
-				return nil, err
-			}
-			if !ready {
-				return nil, nil
-			}
+	r := m.stdinSource()
+	if f, ok := r.(*os.File); ok {
+		ready, err := pollReadable(int(f.Fd()), timeoutMs)
+		if err != nil {
+			return nil, err
+		}
+		if !ready {
+			return nil, nil
 		}
 	}
 	buf := make([]byte, 65536)
@@ -43,7 +41,7 @@ func (m *Machine) readSome(timeoutMs int64) ([]byte, error) {
 func (m *Machine) stdinAll() ([]byte, error) {
 	m.sh.in.Lock()
 	defer m.sh.in.Unlock()
-	r := m.stdinReader()
+	r := m.stdinSource()
 	var out []byte
 	buf := make([]byte, 4096)
 	for {
@@ -58,14 +56,31 @@ func (m *Machine) stdinAll() ([]byte, error) {
 	}
 }
 
+// stdinLine reads one line including its '\n', one byte at a time so it never
+// consumes bytes a later spawned child reads from the same descriptor. Native
+// readLine reads one byte per call for the same reason.
 func (m *Machine) stdinLine() (string, error) {
 	m.sh.in.Lock()
 	defer m.sh.in.Unlock()
-	return m.stdinReader().ReadString('\n')
+	r := m.stdinSource()
+	var line []byte
+	var b [1]byte
+	for {
+		n, err := r.Read(b[:])
+		if n > 0 {
+			line = append(line, b[0])
+			if b[0] == '\n' {
+				return string(line), nil
+			}
+		}
+		if err != nil {
+			return string(line), err
+		}
+	}
 }
 
 func (m *Machine) stdinRead(buf []byte) (int, error) {
 	m.sh.in.Lock()
 	defer m.sh.in.Unlock()
-	return m.stdinReader().Read(buf)
+	return m.stdinSource().Read(buf)
 }

@@ -107,10 +107,26 @@ func Run(p *Plan, cwd string) (stdout, stderr []byte, statuses []int, err error)
 		}
 		statuses = append(statuses, 0)
 	}
+	closeStageOutputs(runs)
 	if rerr != nil {
 		return nil, nil, nil, rerr
 	}
 	return out, errBuf.Bytes(), statuses, nil
+}
+
+// closeStageOutputs releases every pipe reader the runner still holds. Run and
+// RunHere close an intermediate reader once the next external stage owns the
+// descriptor, but a filter stage consumes its upstream reader in-process and
+// the final reader stays open through the capture. Without this, each external
+// stage in a captured pipeline leaves one descriptor behind and a long-lived
+// program hits EMFILE.
+func closeStageOutputs(runs []*stageRun) {
+	for _, r := range runs {
+		if r.out != nil {
+			r.out.Close()
+			r.out = nil
+		}
+	}
 }
 
 func closeAll(fs []*os.File) {
@@ -238,6 +254,7 @@ func RunHere(p *Plan, cwd string, stdin io.Reader, stdout, stderr io.Writer) (st
 		}
 		statuses = append(statuses, 0)
 	}
+	closeStageOutputs(runs)
 	return statuses, err
 }
 

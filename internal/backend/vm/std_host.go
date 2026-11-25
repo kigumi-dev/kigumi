@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"bufio"
 	"io"
 	"os"
 	"path/filepath"
@@ -10,6 +9,11 @@ import (
 
 	"kigumi/internal/compiler/sem"
 )
+
+// stdinReadChunk caps one Stdin.read buffer, like readFile and the hosted
+// runtime's chunked reads: a huge requested size must not become a single
+// make() that Go's runtime turns into an unrecoverable out-of-memory abort.
+const stdinReadChunk = 65536
 
 // hostFn is a host primitive or accelerator: it sees the callee so it can
 // build values of the declared result type.
@@ -124,9 +128,19 @@ func (m *Machine) registerHost() {
 	h["os.Stdin.read"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		max := deref(a[2]).i
 		if max < 0 || uint64(max) >= maxVMAlloc {
-			return m.errMsg("out of memory")
+			return m.cErrorCode(12, "out of memory")
 		}
-		buf := make([]byte, max)
+		if max == 0 {
+			return m.ok(mkInt(0, m.numKind(sem.TyUsize)))
+		}
+		// Read one bounded chunk: a short read is valid POSIX semantics and
+		// the caller loops, while make(max) for a giant max would abort the
+		// whole VM in Go's runtime before any error could be returned.
+		want := max
+		if want > stdinReadChunk {
+			want = stdinReadChunk
+		}
+		buf := make([]byte, want)
 		got, err := m.stdinRead(buf)
 		if err != nil && err != io.EOF {
 			return m.errMsg(err.Error())
@@ -150,18 +164,19 @@ func (m *Machine) registerHost() {
 	m.registerFiles()
 }
 
-// Callers hold sh.in: the reader is machine-wide and one lane's read must not
-// interleave with another's.
-func (m *Machine) stdinReader() *bufio.Reader {
-	if m.sh.stdin == nil {
+// Callers hold sh.in: the source is machine-wide and one lane's read must not
+// interleave with another's. It stays unbuffered on purpose: a reader that
+// read ahead would hold bytes a later spawned child expects on its inherited
+// stdin, which native's one-byte readLine never does.
+func (m *Machine) stdinSource() io.Reader {
+	if m.sh.stdinSrc == nil {
 		r := m.opts.Stdin
 		if r == nil {
 			r = os.Stdin
 		}
 		m.sh.stdinSrc = r
-		m.sh.stdin = bufio.NewReader(r)
 	}
-	return m.sh.stdin
+	return m.sh.stdinSrc
 }
 
 func (m *Machine) resolvePath(p string) string {

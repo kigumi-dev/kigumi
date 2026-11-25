@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"bufio"
 	"errors"
 	"io"
 	"os"
@@ -15,6 +16,50 @@ import (
 
 // readChunk caps one File.read, like the hosted runtime.
 const readChunk = 65536
+
+// fileWriteBufSize is the 4 KiB stdio buffer the hosted runtime's File gets on
+// a device such as /dev/full: a smaller write reports success into the buffer
+// and the device error surfaces at close/flush, while a write of at least this
+// size goes straight to the file, as fwrite does for an empty buffer.
+const fileWriteBufSize = 4096
+
+// fileHandle is an open file plus the pending write buffer. w is nil for a
+// handle opened read-only, so a write fails immediately like fwrite on a
+// read-only stdio stream.
+type fileHandle struct {
+	f *os.File
+	w *bufio.Writer
+}
+
+// writableFile wraps an open file the way the hosted runtime's fopen("w")
+// stream buffers it.
+func writableFile(f *os.File) *fileHandle {
+	return &fileHandle{f: f, w: bufio.NewWriterSize(f, fileWriteBufSize)}
+}
+
+// write mirrors fwrite: an empty buffer and a full-buffer write bypass the
+// buffer, everything else is buffered and the error waits for flush.
+func (h *fileHandle) write(p []byte) (int, error) {
+	if h.w.Buffered() == 0 && len(p) >= fileWriteBufSize {
+		return h.f.Write(p)
+	}
+	n, err := h.w.Write(p)
+	if err != nil {
+		// fwrite drops the stream's failed buffer, so a later close/fflush
+		// reports success instead of replaying this error.
+		h.w.Reset(h.f)
+	}
+	return n, err
+}
+
+// flush pushes buffered writes to the file; drop ignores the error like
+// fclose does, close reports it.
+func (h *fileHandle) flush() error {
+	if h.w == nil {
+		return nil
+	}
+	return h.w.Flush()
+}
 
 // cError is the VM fast path's CError result, matching the Kigumi std/fs body
 // that fails with ffi.lastError() on the same OS error.
@@ -44,8 +89,8 @@ func pathRaw(v *obj) []byte { return deref(deref(v).fields[1]).str() }
 
 func pathText(v *obj) string { return string(pathRaw(v)) }
 
-func fileOf(v *obj) *os.File {
-	fh, _ := deref(deref(v).fields[0]).opaqueData().(*os.File)
+func fileOf(v *obj) *fileHandle {
+	fh, _ := deref(deref(v).fields[0]).opaqueData().(*fileHandle)
 	return fh
 }
 
@@ -68,7 +113,7 @@ func readFile(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		return m.ok(mkInt(0, m.numKind(sem.TyUsize)))
 	}
 	buf := make([]byte, want)
-	got, err := fh.Read(buf)
+	got, err := fh.f.Read(buf)
 	if err != nil && err != io.EOF {
 		return m.cError(err)
 	}
@@ -79,35 +124,45 @@ func readFile(m *Machine, fn sem.EntityID, a []*obj) *obj {
 	return m.ok(mkInt(int64(got), m.numKind(sem.TyUsize)))
 }
 
+func (m *Machine) fileRecord(fn sem.EntityID, fh *fileHandle) *obj {
+	file := m.r.Types.Node(m.resultPayload(fn)).Ent
+	return m.ok(mkRecord(file, []*obj{mkOpaque("Ptr", fh)}))
+}
+
 func (m *Machine) registerFiles() {
 	h := m.host
 	m.registerFileReads()
-	openAs := func(m *Machine, fn sem.EntityID, fh *os.File, err error) *obj {
+	h["fs.Files.open"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		fh, err := os.Open(m.resolvePath(pathText(a[1])))
 		if err != nil {
 			return m.cError(err)
 		}
-		file := m.r.Types.Node(m.resultPayload(fn)).Ent
-		return m.ok(mkRecord(file, []*obj{mkOpaque("Ptr", fh)}))
-	}
-	h["fs.Files.open"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		fh, err := os.Open(m.resolvePath(pathText(a[1])))
-		return openAs(m, fn, fh, err)
+		return m.fileRecord(fn, &fileHandle{f: fh})
 	}
 	h["fs.File.read"] = readFile
 	h["fs.Files.create"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		fh, err := os.OpenFile(m.resolvePath(pathText(a[1])), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o666)
-		return openAs(m, fn, fh, err)
+		if err != nil {
+			return m.cError(err)
+		}
+		return m.fileRecord(fn, writableFile(fh))
 	}
 	h["fs.Files.append"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		fh, err := os.OpenFile(m.resolvePath(pathText(a[1])), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-		return openAs(m, fn, fh, err)
+		if err != nil {
+			return m.cError(err)
+		}
+		return m.fileRecord(fn, writableFile(fh))
 	}
 	h["fs.File.write"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		fh := fileOf(a[0])
 		if fh == nil {
 			return m.cErrorMsg("file is closed")
 		}
-		n, err := fh.Write(deref(a[1]).str())
+		if fh.w == nil {
+			return m.cError(syscall.EBADF)
+		}
+		n, err := fh.write(deref(a[1]).str())
 		if err != nil {
 			return m.cError(err)
 		}
@@ -115,7 +170,7 @@ func (m *Machine) registerFiles() {
 	}
 	h["fs.File.close"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		if fh := fileOf(a[0]); fh != nil {
-			if err := fh.Sync(); err != nil && !strings.Contains(err.Error(), "invalid argument") {
+			if err := fh.flush(); err != nil {
 				return m.cError(err)
 			}
 		}
@@ -123,7 +178,8 @@ func (m *Machine) registerFiles() {
 	}
 	h["fs.File.drop"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		if fh := fileOf(a[0]); fh != nil {
-			fh.Close()
+			_ = fh.flush()
+			fh.f.Close()
 		}
 		return unitObj
 	}

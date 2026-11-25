@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"bufio"
 	"io"
 	"sync"
 	"sync/atomic"
@@ -23,7 +22,6 @@ type shared struct {
 	// separate so a lane parked on a read does not hold the printers.
 	out      sync.Mutex
 	in       sync.Mutex
-	stdin    *bufio.Reader
 	stdinSrc io.Reader
 	// cwd is the directory the program's relative paths resolve against. It
 	// starts at Options.Cwd (the process directory when empty) and Host.chdir
@@ -52,9 +50,11 @@ type shared struct {
 	cvalues      []*obj
 	handleTables []*handleTableState
 	sigWatch     map[string]*sigWatch
-	// procMu guards procs, the live OS processes std/proc spawned.
-	procMu sync.Mutex
-	procs  map[int64]*vmProcess
+	// procMu guards procs, the live OS processes std/proc spawned, and
+	// procSynthetic, the negative keys for children whose exec already failed.
+	procMu        sync.Mutex
+	procs         map[int64]*vmProcess
+	procSynthetic int64
 	// shadows is SecretSan's value-label table (nil unless Options.SecretSan).
 	// A value can migrate to another lane with a task, so the table is shared.
 	shadowMu   sync.Mutex
@@ -143,6 +143,15 @@ func (m *Machine) replaceCValue(hd int64, v *obj) {
 	m.sh.cvalues[hd-1] = v
 	m.sh.store.Unlock()
 	m.release(old)
+}
+
+// takeCValue clears a slot and hands the reference it held to the caller.
+func (m *Machine) takeCValue(hd int64) *obj {
+	m.sh.store.Lock()
+	v := m.sh.cvalues[hd-1]
+	m.sh.cvalues[hd-1] = nil
+	m.sh.store.Unlock()
+	return v
 }
 
 func (m *Machine) addHandleTable() int64 {

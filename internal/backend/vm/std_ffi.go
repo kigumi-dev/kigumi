@@ -76,15 +76,29 @@ func (m *Machine) registerFFI() {
 		return m.callValueLent(a[1], []*obj{v})
 	}
 	// Call-scoped: the handle lives only for f's call, unlike Pin's handle,
-	// which lives until an explicit drop.
-	withAddress := func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		hd := m.addCValue(retain(deref(a[0])))
-		r := m.callValue(a[1], []*obj{mkOpaque("Ptr", hd)})
-		m.replaceCValue(hd, nil)
-		return r
+	// which lives until an explicit drop. What f leaves in the CValue goes
+	// back into the borrowed cell, as native's with_address writes its scalar
+	// lease back; withAddressConst stays read-only.
+	address := func(writeBack bool) hostFn {
+		return func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+			hd := m.addCValue(retain(deref(a[0])))
+			r := m.callValue(a[1], []*obj{mkOpaque("Ptr", hd)})
+			v := m.takeCValue(hd)
+			if v == nil {
+				return r
+			}
+			if writeBack {
+				if c := addressCell(a[0]); c != nil {
+					m.cellSet(c, v)
+					return r
+				}
+			}
+			m.release(v)
+			return r
+		}
 	}
-	h["ffi.withAddress"] = withAddress
-	h["ffi.withAddressConst"] = withAddress
+	h["ffi.withAddress"] = address(true)
+	h["ffi.withAddressConst"] = address(false)
 	h["ffi.Pin.drop"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		// Zero from Pin.release means this is the caller's bogus re-drop
 		// (see above), not a real one: skip it.
@@ -103,6 +117,19 @@ func (m *Machine) registerFFI() {
 		}
 		return mkRecord(m.lookup("std/ffi", "Pin"), []*obj{mkInt(hd, m.numKind(sem.TyI64))})
 	}
+}
+
+// addressCell is the cell withAddress writes back into: the innermost cell of a
+// `&mut` borrow, as native's with_address descends to, or nil when the borrow
+// holds none.
+func addressCell(v *obj) *obj {
+	for v != nil && v.k == kCell && v.inner != nil && v.inner.k == kCell {
+		v = v.inner
+	}
+	if v != nil && v.k == kCell {
+		return v
+	}
+	return nil
 }
 
 // retType is the callee's declared return type.

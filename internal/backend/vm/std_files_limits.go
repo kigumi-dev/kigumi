@@ -68,8 +68,7 @@ func (m *Machine) registerFileReads() {
 		if err != nil {
 			return m.cErrorMsg(shell.OSErrText(err))
 		}
-		file := m.r.Types.Node(m.resultPayload(fn)).Ent
-		return m.ok(mkRecord(file, []*obj{mkOpaque("Ptr", fh)}))
+		return m.fileRecord(fn, writableFile(fh))
 	}
 	h["fs.Files.remove"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		path := m.resolvePath(pathText(a[1]))
@@ -162,7 +161,11 @@ func seekFile(m *Machine, a []*obj, whence int) *obj {
 	if fh == nil {
 		return m.cErrorMsg("file is closed")
 	}
-	at, err := fh.Seek(deref(a[1]).i, whence)
+	// fseek flushes the stream's output buffer first, so its error is reported here.
+	if err := fh.flush(); err != nil {
+		return m.cError(err)
+	}
+	at, err := fh.f.Seek(deref(a[1]).i, whence)
 	if err != nil {
 		return m.cErrorMsg(shell.OSErrText(err))
 	}
