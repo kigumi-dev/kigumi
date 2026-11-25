@@ -26,12 +26,24 @@ func (e *emitter) directStaticSym(ent sem.EntityID) string {
 
 func (e *emitter) loadDirectStatic(sb *strings.Builder, ent sem.EntityID, ty Type) Value {
 	t := e.newTmp()
-	fmt.Fprintf(sb, "  %s = load %s, ptr %s\n", t, ty, e.directStaticSym(ent))
-	return Value{Type: ty, Text: t}
+	if owner, _ := e.r.StaticOwnerOf(ent); owner == sem.StaticOwned {
+		fmt.Fprintf(sb, "  %s = load %s, ptr %s\n", t, ty, e.globalSym(ent))
+		return Value{Type: ty, Text: t}
+	}
+	typ := e.r.Entity(ent).Type
+	ct := e.cType(typ)
+	fmt.Fprintf(sb, "  %s = load %s, ptr %s\n", t, ct, e.directStaticSym(ent))
+	return e.cWiden(sb, t, typ, ct)
 }
 
 func (e *emitter) storeDirectStatic(sb *strings.Builder, ent sem.EntityID, v Value) {
-	fmt.Fprintf(sb, "  store %s %s, ptr %s\n", v.Type, v.Text, e.directStaticSym(ent))
+	if owner, _ := e.r.StaticOwnerOf(ent); owner == sem.StaticOwned {
+		fmt.Fprintf(sb, "  store %s %s, ptr %s\n", v.Type, v.Text, e.globalSym(ent))
+		return
+	}
+	typ := e.r.Entity(ent).Type
+	ct := e.cType(typ)
+	fmt.Fprintf(sb, "  store %s %s, ptr %s\n", ct, e.cNarrow(sb, v, typ, ct), e.directStaticSym(ent))
 }
 
 // tryDirectStaticInst reads or writes a direct static on registers, so a store allocates no box.

@@ -52,6 +52,8 @@ func (e *emitter) nativeVolatileWidth(t sem.TypeID, info scalarInfo) (Type, int)
 	switch info.Ty {
 	case TI1:
 		return TI8, 1
+	case TI32:
+		return TI32, 4
 	case TDouble:
 		return TDouble, 8
 	case TFloat:
@@ -102,6 +104,9 @@ func (e *emitter) volatileWidth(t sem.TypeID) (string, int) {
 	if t == sem.TyBool {
 		return "i8", 1
 	}
+	if t == sem.TyChar {
+		return "i32", 4
+	}
 	bits := e.r.Types.Width(t)
 	return fmt.Sprintf("i%d", bits), bits / 8
 }
@@ -111,6 +116,8 @@ func (e *emitter) narrowTo(sb *strings.Builder, v Value, ty string) string {
 	switch {
 	case v.Type == TI1:
 		fmt.Fprintf(sb, "  %s = zext i1 %s to i8\n", t, v.Text)
+	case v.Type == TI32 && ty == "i32":
+		return v.Text
 	case ty == "i64":
 		return v.Text
 	default:
@@ -125,6 +132,8 @@ func (e *emitter) widenFrom(sb *strings.Builder, raw, ty string, dst sem.TypeID)
 	case dst == sem.TyBool:
 		fmt.Fprintf(sb, "  %s = trunc i8 %s to i1\n", t, raw)
 		return Value{Type: TI1, Text: t}
+	case dst == sem.TyChar:
+		return Value{Type: TI32, Text: raw}
 	case ty == "i64":
 		return Value{Type: TI64, Text: raw}
 	case e.r.Types.IsSigned(dst):
