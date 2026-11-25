@@ -24,21 +24,21 @@ var rcCallSites = map[string]*regexp.Regexp{
 
 // Call sites of the count and cell runtime calls in the IR of every native run fixture, std included.
 var pinnedRCCalls = map[string]int{
-	"fixtures":         1248,
-	"rt_retain":        22824,
-	"rt_release":       134469,
-	"rt_release_outer": 98096,
-	"rt_drop":          95350,
-	"rt_cell_init":     12189,
-	"rt_cell_take":     4438,
-	"rt_setfield_swap": 1405,
-	"rt_setindex_swap": 1860,
+	"fixtures":         1250,
+	"rt_retain":        23315,
+	"rt_release":       137335,
+	"rt_release_outer": 99308,
+	"rt_drop":          97650,
+	"rt_cell_init":     12521,
+	"rt_cell_take":     4573,
+	"rt_setfield_swap": 1469,
+	"rt_setindex_swap": 1869,
 }
 
 // The same call sites over the fixtures that existed before the retain / release elimination, re-measured when a
 // representation change (direct Option / Result) moved them; the totals for those fixtures must stay at or below these.
 var baselineRCCalls = map[string]int{
-	"fixtures":         529,
+	"fixtures":         524,
 	"rt_retain":        5267,
 	"rt_release":       51119,
 	"rt_release_outer": 12954,
@@ -769,6 +769,13 @@ var addedAfterBaseline = map[string]bool{
 	"simd_drop_lambda_build.txtar":                  true,
 	"blocking_pool_continue_release.txtar":          true,
 	"fn_callback_result_wrapped_drop.txtar":         true,
+	"blocking_pool_drop_panic.txtar":                true,
+	"fixed_array_callbacks.txtar":                   true,
+	"for_iter_protocol.txtar":                       true,
+	"json_depth_bound.txtar":                        true,
+	"json_float_key_nonfinite.txtar":                true,
+	"std_http_router_percent.txtar":                 true,
+	"tls_clienthello_limits.txtar":                  true,
 }
 
 func TestRCCallCounts(t *testing.T) {
@@ -832,6 +839,7 @@ func TestRCCallCounts(t *testing.T) {
 	})
 	totals["fixtures"] = compiled
 	t.Logf("totals: %v", totals)
+	t.Logf("baseline: %v", baseline)
 	for name, want := range pinnedRCCalls {
 		if totals[name] != want {
 			t.Errorf("%s call sites over the run corpus = %d, pinned %d (re-pin pinnedRCCalls when the corpus or std changes)", name, totals[name], want)

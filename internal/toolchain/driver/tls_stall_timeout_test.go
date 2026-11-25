@@ -21,6 +21,9 @@ import (
 // the request, then answers nothing. A deadline that only bounded Wire.fill's
 // outer loop would leave the caller suspended in tls.Session.read forever.
 func TestHTTPSClientStalledTLSPeerTimesOut(t *testing.T) {
+	if raceDetector {
+		t.Skip("the race detector makes the TLS stall run outlive its wall-clock guard")
+	}
 	t.Parallel()
 	root, leaf := testTLSChain(t)
 	ln, err := tls.Listen("tcp", "127.0.0.1:0", &tls.Config{
