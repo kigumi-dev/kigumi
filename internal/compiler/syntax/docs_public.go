@@ -23,7 +23,7 @@ func PublicDeclHead(t *Tree, n NodeID) string {
 			from = min(from, t.File.Line(t.Toks[FirstDocTok(t, doc.Index())].Start))
 		}
 		to := t.File.Line(t.Span(f.ID()).End - 1)
-		for to-first+1 < len(lines) && depth([]byte(strings.Join(lines[from-first:to-first+1], "\n"))) > 0 {
+		for to-first+1 < len(lines) && t.braceDepth(t.File.LineSpan(from).Start, t.File.LineSpan(to).End) > 0 {
 			to++
 		}
 		for l := from; l <= to; l++ {

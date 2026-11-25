@@ -1,6 +1,7 @@
 package syntax
 
 import (
+	"sort"
 	"strings"
 
 	"kigumi/internal/lang/token"
@@ -27,7 +28,7 @@ func declSource(t *Tree, n NodeID) (int, []string) {
 		// A node span stops at its last child, so a trailing `]` or `}`
 		// can fall outside it; extend to the line that balances an open brace.
 		sp.End = t.File.LineSpan(t.File.Line(sp.End - 1)).End
-		for depth(t.File.Src[sp.Start:sp.End]) > 0 && int(sp.End) < len(t.File.Src) {
+		for t.braceDepth(sp.Start, sp.End) > 0 && int(sp.End) < len(t.File.Src) {
 			sp.End = t.File.LineSpan(t.File.Line(sp.End) + 0).End
 			if int(sp.End) < len(t.File.Src) && t.File.Src[sp.End] == '\n' {
 				sp.End++
@@ -91,13 +92,17 @@ func FirstDocTok(t *Tree, last uint32) uint32 {
 	return first
 }
 
-func depth(src []byte) int {
+// braceDepth is the net `{`/`}` depth of the token run overlapping [start, end).
+// Braces inside comments and literals live in a single token of another kind,
+// so a doc comment such as `/// uses the { placeholder` cannot skew it.
+func (t *Tree) braceDepth(start, end token.Pos) int {
+	i := sort.Search(len(t.Toks), func(i int) bool { return t.Toks[i].Start >= start })
 	n := 0
-	for _, c := range src {
-		switch c {
-		case '{':
+	for ; i < len(t.Toks) && t.Toks[i].Start < end; i++ {
+		switch t.Toks[i].Kind {
+		case token.LBrace:
 			n++
-		case '}':
+		case token.RBrace:
 			n--
 		}
 	}
