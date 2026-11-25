@@ -70,10 +70,28 @@ func (p *printer) importName(nm syntax.NodeID) {
 	v := p.t.View(nm)
 	if v.Kind() == syntax.ImportAlias {
 		a := v.AsImportAlias()
-		p.write(a.Name().Name().Text() + " as " + a.Alias().Name().Text())
+		name, alias := a.Name().Name(), a.Alias().Name()
+		as := p.asToken(name.Index(), alias.Index())
+		p.write(name.Text())
+		p.inlineBlocks(name.Index()+1, as, true, false)
+		p.write(" as ")
+		p.inlineBlocks(as+1, alias.Index(), false, true)
+		p.write(alias.Text())
 		return
 	}
 	p.write(v.Tok().Text())
+}
+
+// asToken is the `as` keyword between an import name and its alias, used to
+// keep comments on the side of `as` where they were written. It returns the
+// alias index when the keyword is missing, so the comments still print.
+func (p *printer) asToken(name, alias uint32) uint32 {
+	for i := name + 1; i < alias && int(i) < len(p.t.Toks); i++ {
+		if p.t.Toks[i].Kind == token.Ident && p.tok(i) == "as" {
+			return i
+		}
+	}
+	return alias
 }
 
 func (p *printer) anyCommentIn(from, to uint32) bool {

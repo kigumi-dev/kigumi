@@ -80,3 +80,59 @@ func TestEmptyBlockInsideInterpolationKeepsComment(t *testing.T) {
 		t.Errorf("second run differs:\n%s", twice)
 	}
 }
+
+// A comment between `fn` and the name belongs to the header, not to the first
+// parameter type: a fixed point must keep it there after one pass.
+func TestCommentInFnHeaderStaysInPlace(t *testing.T) {
+	cases := []struct{ name, src, want string }{
+		{"fn and name", "fn /* why */ g(a: Int, b: Int) {}\n", "fn /* why */ g(a: Int, b: Int) {}\n"},
+		{"name and generics", "fn f /* c */ [T](x: T) {}\n", "fn f /* c */ [T](x: T) {}\n"},
+		{"generics and params", "fn f[T] /* c */ (x: T) {}\n", "fn f[T] /* c */ (x: T) {}\n"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			once := format(c.src)
+			if once != c.want {
+				t.Fatalf("first run:\n%s\nwant:\n%s", once, c.want)
+			}
+			if twice := format(once); twice != once {
+				t.Fatalf("second run differs:\n%s\nwant:\n%s", twice, once)
+			}
+		})
+	}
+}
+
+// A comment between `$` and the shell string stays in the literal instead of
+// drifting after it and breaking the next pass.
+func TestCommentInShellLiteralPrefix(t *testing.T) {
+	src := "fn f() {\n    print $ /* c */ \"cmd\"\n}\n"
+	once := format(src)
+	if once != src {
+		t.Fatalf("first run:\n%s\nwant:\n%s", once, src)
+	}
+	if twice := format(once); twice != once {
+		t.Fatalf("second run differs:\n%s\nwant:\n%s", twice, once)
+	}
+}
+
+// Comments on either side of `as` in an import alias survive and stay put.
+func TestImportAliasKeepsCommentsAroundAs(t *testing.T) {
+	cases := map[string]string{
+		"before as": "import {a /* why */ as b} from std/math\n",
+		"after as":  "import {a as /* why */ b} from std/math\n",
+	}
+	for name, src := range cases {
+		t.Run(name, func(t *testing.T) {
+			once := format(src)
+			if strings.Count(once, "/* why */") != 1 {
+				t.Fatalf("comment lost or duplicated:\n%s", once)
+			}
+			if !strings.Contains(once, "a") || !strings.Contains(once, "b") {
+				t.Fatalf("alias mangled:\n%s", once)
+			}
+			if twice := format(once); twice != once {
+				t.Fatalf("second run differs:\n%s\nwant:\n%s", twice, once)
+			}
+		})
+	}
+}

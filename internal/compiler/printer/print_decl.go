@@ -171,14 +171,24 @@ func (p *printer) fnDecl(id syntax.NodeID) {
 	p.prefix(id)
 	f := p.t.View(id).AsFnDecl()
 	p.write("fn ")
+	name := f.Name()
+	lead := false
 	if recv := f.Recv(); recv.Valid() {
+		first := p.firstTok(recv.ID())
+		p.inlineBlocks(p.prevCode(first)+1, first, false, true)
 		p.typ(recv.ID())
 		p.write(".")
+		lead = true
 	}
-	p.write(f.Name().Text())
+	p.inlineBlocks(p.prevCode(name.Index())+1, name.Index(), lead, true)
+	p.write(name.Text())
+	prev := name.Index()
 	if g := f.Generics(); g.Valid() {
+		p.inlineBlocks(prev+1, p.nextCode(prev+1), true, true)
 		p.genericParams(g.ID())
+		prev = p.lastTok(g.ID())
 	}
+	p.inlineBlocks(prev+1, p.nextCode(prev+1), true, true)
 	p.params(f.Params().ID())
 	stray := f.Mods()&syntax.ModStrayBang != 0
 	if f.Mods()&syntax.ModBareErr != 0 {

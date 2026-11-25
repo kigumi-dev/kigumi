@@ -33,7 +33,9 @@ func (p *printer) exprNode(id syntax.NodeID) {
 	case syntax.StringLit, syntax.ByteStringLit:
 		p.write(v.Tok().Text())
 	case syntax.ShellLit:
-		p.write("$" + v.AsShellLit().Str().Text())
+		p.write("$")
+		p.inlineBlocks(p.firstTok(id)+1, v.AsShellLit().Str().Index(), true, true)
+		p.write(v.AsShellLit().Str().Text())
 	case syntax.Paren:
 		inner := v.AsParen().Inner()
 		if inner.Kind() == syntax.Paren || inner.Kind() == syntax.Ident && inner.Tok().Text() == "_" {

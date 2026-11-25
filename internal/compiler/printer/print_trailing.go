@@ -79,3 +79,13 @@ func (p *printer) nextCode(i uint32) uint32 {
 	}
 	return i
 }
+
+// prevCode is the last token before i that is neither a newline nor a comment.
+func (p *printer) prevCode(i uint32) uint32 {
+	for j := int(i) - 1; j >= 0; j-- {
+		if k := p.t.Toks[j].Kind; k != token.Newline && !k.IsTrivia() {
+			return uint32(j)
+		}
+	}
+	return 0
+}
