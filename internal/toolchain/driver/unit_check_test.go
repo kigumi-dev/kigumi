@@ -155,3 +155,25 @@ func TestUnitWarningPackageIsCheckedEveryTime(t *testing.T) {
 		t.Fatalf("mid is clean and unchanged: %+v", st)
 	}
 }
+
+// TestUnitDerivedEntryChangeInvalidatesRecords: adding a cmd/ program moves the
+// entry off the module's script file, so that file's stale clean record must not
+// answer for it (AUD-3).
+func TestUnitDerivedEntryChangeInvalidatesRecords(t *testing.T) {
+	t.Parallel()
+	root, cache := t.TempDir(), t.TempDir()
+	writeGraph(t, root, map[string]string{
+		"mod.kg":  graphMod,
+		"main.kg": "import a from graphmod/a\n\nprint \"${a.x()}\"\n",
+		"a/a.kg":  "pub fn x() -> Int {\n    1\n}\n",
+	})
+	sameAsWhole(t, root, cache, "")
+	writeGraph(t, root, map[string]string{"cmd/app/main.kg": "print \"app\"\n"})
+	m, got, gotErr := unitCheck(t, root, cache, "")
+	if want, wantErr := wholeCheck(t, root, ""); got != want || gotErr != wantErr {
+		t.Fatalf("a derived entry change must not replay a stale clean\ngot (errors=%v):\n%s\nwant (errors=%v):\n%s", gotErr, got, wantErr, want)
+	}
+	if m.UnitStats().Replayed["graphmod"] != 0 {
+		t.Fatalf("the module package's script file is no longer the entry and is checked: %+v", m.UnitStats())
+	}
+}

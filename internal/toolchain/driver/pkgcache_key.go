@@ -26,6 +26,8 @@ type pkgGraph struct {
 	unresolved map[string][]string
 	sccs       [][]string
 	sccOf      map[string]int
+	// entry is the entry state every package key carries: an explicit entry file, "cmd" when a cmd/ package moves the entry itself, or "" for the module's own script files.
+	entry string
 }
 
 // keyGraph walks the roots through scanned imports, never the parse, so an unparsed and a parsed load key the same way.
@@ -35,6 +37,12 @@ func (m *Module) keyGraph() (*pkgGraph, error) {
 		return nil, err
 	}
 	g := &pkgGraph{deps: map[string][]string{}, unresolved: map[string][]string{}, sccOf: map[string]int{}}
+	switch {
+	case m.keyExplicit:
+		g.entry = "explicit:" + m.keyEntry
+	case m.derivedCmd():
+		g.entry = "cmd"
+	}
 	for _, p := range reached {
 		if ip := m.index.pkgs[p]; ip != nil && !ip.std {
 			g.nodes = append(g.nodes, p)
@@ -114,18 +122,15 @@ func (m *Module) writeFiles(h hash.Hash, ip *indexedPackage) error {
 	return nil
 }
 
-// packageKey addresses a record by the sources of path and its component, the artifacts it imports and the environment.
+// packageKey addresses a record by the sources of path and its component, the artifacts it imports, the entry state and the environment.
 func (m *Module) packageKey(g *pkgGraph, path, env, std string, digests map[string]string) (string, error) {
 	h := sha256.New()
-	fmt.Fprintf(h, "env=%s\nstd=%s\npkg=%s\n", env, std, path)
+	fmt.Fprintf(h, "env=%s\nstd=%s\npkg=%s\nentry=%s\n", env, std, path, g.entry)
 	comp := g.sccs[g.sccOf[path]]
 	for _, member := range comp {
 		fmt.Fprintf(h, "member=%s\n", member)
 		if err := m.writeFiles(h, m.index.pkgs[member]); err != nil {
 			return "", err
-		}
-		if m.keyExplicit && m.holdsFile(member, m.keyEntry) {
-			fmt.Fprintf(h, "entry=%s\n", m.keyEntry)
 		}
 	}
 	for _, dep := range g.closure(path) {
@@ -139,9 +144,14 @@ func (m *Module) packageKey(g *pkgGraph, path, env, std string, digests map[stri
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-// holdsFile says whether the indexed package has the file with this display name; the explicit entry is the one script file its package may hold outside cmd/.
-func (m *Module) holdsFile(path, display string) bool {
-	return slices.ContainsFunc(m.index.pkgs[path].files, func(f *indexedFile) bool { return f.display == display })
+// derivedCmd says a cmd/ package exists: semModule then makes each cmd/ package's script its own entry and stops treating the module's other script files as entries.
+func (m *Module) derivedCmd() bool {
+	for _, path := range m.index.order {
+		if ip := m.index.pkgs[path]; !ip.std && ip.module == "" && strings.HasPrefix(m.Rel(path), "cmd/") {
+			return true
+		}
+	}
+	return false
 }
 
 // closure lists every package path reaches through imports: a distant public type can decide a layout that flows through an intermediate package.

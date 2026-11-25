@@ -1,8 +1,6 @@
 package driver
 
 import (
-	"strings"
-
 	opdef "kigumi/internal/compiler/mir/ops"
 )
 
@@ -24,17 +22,9 @@ func (m *Module) unitEligible() bool {
 	return len(m.Links) == 0 && len(m.Sources) == 0 && m.entryIsKeyed() && !m.HasParseErrors()
 }
 
-// entryIsKeyed says which file is the entry depends on nothing a package key misses.
+// entryIsKeyed says which file is the entry depends on nothing a package key misses: an explicit entry, or a cmd/ package whose own script is its entry.
 func (m *Module) entryIsKeyed() bool {
-	if m.keyExplicit {
-		return true
-	}
-	for _, path := range m.index.order {
-		if ip := m.index.pkgs[path]; !ip.std && ip.module == "" && strings.HasPrefix(m.Rel(path), "cmd/") {
-			return true
-		}
-	}
-	return false
+	return m.keyExplicit || m.derivedCmd()
 }
 
 // unitGraphUsable rejects a dependency module (its bodies are lowered only when a dependant reaches them), an unresolved import, and a package the graph does not cover.
