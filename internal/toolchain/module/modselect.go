@@ -59,31 +59,12 @@ func SelectVersionsResolved(o buildconfig.CompilerOptions, root ModFile, local L
 	ranges := map[string][]*VersionRange{}
 	localKeys := map[string]bool{}
 	visit := func(r Require, from string, isRoot bool) error {
-		if isRoot {
-			if _, replaced := local.Replacement(r); replaced {
-				if r.IsRange() {
-					localKeys[r.Key()] = true
-					r = r.WithVersion("local")
-				}
-			} else if r.IsRange() {
-				ranges[r.Key()] = append(ranges[r.Key()], r.Range)
-				if resolve == nil {
-					return fmt.Errorf("dependency %s %s: a semver range needs a locked version; run `kigumi get`", DescribeRequire(r), r.Version)
-				}
-				resolved, err := resolve(r)
-				if err != nil {
-					return fmt.Errorf("dependency %s %s: %w", DescribeRequire(r), r.Version, err)
-				}
-				if resolved.Version == "" {
-					return fmt.Errorf("dependency %s %s: resolver returned no concrete version", DescribeRequire(r), r.Version)
-				}
-				if !r.Range.AcceptsString(resolved.Version) {
-					return fmt.Errorf("dependency %s %s: locked version %s does not satisfy the range", DescribeRequire(r), r.Version, resolved.Version)
-				}
-				r = resolved
+		if _, replaced := local.Replacement(r); replaced {
+			if r.IsRange() {
+				localKeys[r.Key()] = true
+				r = r.WithVersion("local")
 			}
 		} else if r.IsRange() {
-			ranges[r.Key()] = append(ranges[r.Key()], r.Range)
 			if resolve == nil {
 				return fmt.Errorf("dependency %s %s: a semver range needs a locked version; run `kigumi get`", DescribeRequire(r), r.Version)
 			}
@@ -122,6 +103,9 @@ func SelectVersionsResolved(o buildconfig.CompilerOptions, root ModFile, local L
 	for len(queue) > 0 {
 		r := queue[0]
 		queue = queue[1:]
+		if winner, ok := max[r.Key()]; ok && winner.Version != r.Version {
+			continue
+		}
 		dir, missing, err := DepDir(o, local, r, true)
 		if err != nil {
 			return nil, err
@@ -145,6 +129,19 @@ func SelectVersionsResolved(o buildconfig.CompilerOptions, root ModFile, local L
 	}
 
 	root2 := DisplayName(root)
+	for _, r := range root.Requires {
+		if r.IsRange() && !localKeys[r.Key()] {
+			ranges[r.Key()] = append(ranges[r.Key()], r.Range)
+		}
+	}
+	for _, r := range max {
+		mf := manifests[verKey{r.Name, r.Version}]
+		for _, sub := range mf.Requires {
+			if sub.IsRange() && !localKeys[sub.Key()] {
+				ranges[sub.Key()] = append(ranges[sub.Key()], sub.Range)
+			}
+		}
+	}
 	edges := map[string][]string{}
 	for _, r := range root.Requires {
 		edges[root2] = append(edges[root2], r.Key())

@@ -146,7 +146,8 @@ func (g Git) LatestTag(r module.Require) (string, error) {
 		return "", err
 	}
 	for i := len(versions) - 1; i >= 0; i-- {
-		if !strings.Contains(versions[i], "-") {
+		tag, err := module.ParseVersionTag(versions[i])
+		if err == nil && !tag.Version.IsPrerelease() {
 			return versions[i], nil
 		}
 	}

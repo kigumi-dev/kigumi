@@ -105,3 +105,70 @@ func TestGetAddSemverRangeWritesRangeAndExactLock(t *testing.T) {
 		t.Fatalf("lock did not select v1.2.0:\n%s", lock)
 	}
 }
+
+// A script range needs its lock on a plain get; run cannot resolve it without one.
+func TestGetRangeScriptWritesLock(t *testing.T) {
+	root := t.TempDir()
+	repo := filepath.Join(root, "repo")
+	os.MkdirAll(repo, 0o755)
+	os.WriteFile(filepath.Join(repo, "mod.kg"), clitest.Manifest("example.com/dep", ""), 0o644)
+	clitest.Git(t, repo, "init", "-q")
+	writeDep := func(version string) {
+		os.WriteFile(filepath.Join(repo, "dep.kg"), []byte("pub fn value() -> String {\n    \""+version+"\"\n}\n"), 0o644)
+		clitest.Git(t, repo, "add", ".")
+		clitest.Git(t, repo, "commit", "-q", "-m", version)
+		clitest.Git(t, repo, "tag", version)
+	}
+	writeDep("v1.0.0")
+	writeDep("v1.4.0")
+
+	script := filepath.Join(root, "tool.kg")
+	os.WriteFile(script, []byte("Kigumi { version: \"0.1\" }\n"+
+		"Require { name: \"example.com/dep\", version: \"^1.0.0\", url: \"file://"+repo+"\" }\n"+
+		"import dep from example.com/dep\nprint dep.value()\n"), 0o644)
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	if code, _, errOut := clitest.Execute(t, "get", script); code != 0 {
+		t.Fatalf("get script: %s", errOut)
+	}
+	lock, err := os.ReadFile(script + ".lock.kg")
+	if err != nil || !strings.Contains(string(lock), `version: "v1.4.0"`) {
+		t.Fatalf("script lock = %q, %v", lock, err)
+	}
+	std, _ := filepath.Abs("../../../../std")
+	if code, out, errOut := clitest.Execute(t, "--std", std, "run", script); code != 0 || out != "v1.4.0\n" {
+		t.Fatalf("run script: exit %d out %q err %q", code, out, errOut)
+	}
+}
+
+// Build metadata may contain a hyphen; it is not a prerelease marker.
+func TestGetLatestTagKeepsBuildMetadataRelease(t *testing.T) {
+	root := t.TempDir()
+	repo := filepath.Join(root, "repo")
+	os.MkdirAll(repo, 0o755)
+	os.WriteFile(filepath.Join(repo, "mod.kg"), clitest.Manifest("example.com/dep", ""), 0o644)
+	clitest.Git(t, repo, "init", "-q")
+	writeDep := func(version, text string) {
+		os.WriteFile(filepath.Join(repo, "dep.kg"), []byte("pub fn value() -> String {\n    \""+text+"\"\n}\n"), 0o644)
+		clitest.Git(t, repo, "add", ".")
+		clitest.Git(t, repo, "commit", "-q", "-m", version)
+		clitest.Git(t, repo, "tag", version)
+	}
+	writeDep("v1.0.0", "old")
+	writeDep("v1.4.0+build-7", "new")
+
+	app := filepath.Join(root, "app")
+	os.MkdirAll(app, 0o755)
+	os.WriteFile(filepath.Join(app, "mod.kg"), clitest.Manifest("app", ""), 0o644)
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	if code, _, errOut := clitest.Execute(t, "get", "example.com/dep", "--url", "file://"+repo, app); code != 0 {
+		t.Fatalf("get: %s", errOut)
+	}
+	mf, _ := os.ReadFile(filepath.Join(app, "mod.kg"))
+	if !strings.Contains(string(mf), `version: "v1.4.0+build-7"`) {
+		t.Fatalf("latest release lost: %s", mf)
+	}
+	lock, _ := os.ReadFile(filepath.Join(app, "mod.lock.kg"))
+	if !strings.Contains(string(lock), `version: "v1.4.0+build-7"`) {
+		t.Fatalf("lock = %s", lock)
+	}
+}

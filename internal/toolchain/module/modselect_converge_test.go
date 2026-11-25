@@ -84,10 +84,51 @@ func TestSelectVersionsBuildMetadataConflict(t *testing.T) {
 	}
 }
 
-// TestSelectVersionsPrunesSupersededOnlyDep covers MOD-003: a dependency
-// reachable only through a require of a now-superseded manifest (not the
-// winning version) must be dropped from the selection, not merely
-// unreachable via the winner's own edges.
+// A range in a superseded version is not a constraint on the winner, and a
+// local Replace applies to a dependency reached through another module.
+func TestSelectVersionsIgnoresLoserRangesAndReplacesNested(t *testing.T) {
+	cache := t.TempDir()
+	t.Setenv("XDG_CACHE_HOME", cache)
+
+	putManifest(t, "b", "v1.4.0", "")
+	putManifest(t, "b", "v1.9.0", "")
+	putManifest(t, "a", "v1.0.0", "Require { name: \"b\", version: \"<1.5.0\" }\n")
+	putManifest(t, "a", "v1.2.0", "Require { name: \"b\", version: \">=1.0.0\" }\n")
+	putManifest(t, "c", "v1.0.0", "Require { name: \"a\", version: \"v1.2.0\" }\n")
+	putManifest(t, "x", "v1.0.0", "Require { name: \"a\", version: \"v1.0.0\" }\n")
+	root := module.ModFile{Requires: []module.Require{
+		{Name: "x", Version: "v1.0.0"},
+		{Name: "c", Version: "v1.0.0"},
+	}}
+	resolve := func(r module.Require) (module.Require, error) {
+		if r.Range.String() == "<1.5.0" {
+			t.Fatalf("resolved a range from the superseded a v1.0.0")
+		}
+		return r.WithVersion("v1.9.0"), nil
+	}
+	sel, err := module.SelectVersionsResolved(testCompiler(), root, module.Local{}, resolve)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sel.Requires["a"].Version != "v1.2.0" || sel.Requires["b"].Version != "v1.9.0" {
+		t.Fatalf("selection = %+v", sel.Requires)
+	}
+
+	localB := t.TempDir()
+	if err := os.WriteFile(filepath.Join(localB, "mod.kg"), []byte(manifest("b", "")), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rootA := module.ModFile{Requires: []module.Require{{Name: "a", Version: "v1.2.0"}}}
+	local := module.Local{Replaces: map[string]string{"b": localB}}
+	sel, err = module.SelectVersions(testCompiler(), rootA, local)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sel.Requires["b"].Version != "local" {
+		t.Fatalf("nested replacement = %+v", sel.Requires)
+	}
+}
+
 func TestSelectVersionsPrunesSupersededOnlyDep(t *testing.T) {
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)

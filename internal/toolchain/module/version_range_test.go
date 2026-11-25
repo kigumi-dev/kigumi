@@ -36,6 +36,14 @@ func TestVersionRangeAccepts(t *testing.T) {
 		{"^0.0.3", []string{"v0.0.3"}, []string{"v0.0.4"}},
 		{"~1.2.3", []string{"v1.2.3", "v1.2.9"}, []string{"v1.3.0"}},
 		{">=1.2.0 <2.0.0", []string{"v1.2.0", "v1.9.0"}, []string{"v1.1.9", "v2.0.0"}},
+		{"^ 1.0.0", []string{"v1.0.0", "v1.2.1"}, []string{"v2.0.0"}},
+		{"~ 1.0.0", []string{"v1.0.1"}, []string{"v1.1.0"}},
+		{">= 1.0.0 < 1.2.0", []string{"v1.1.0"}, []string{"v1.2.0"}},
+		{"< 1.2.0", []string{"v1.1.0"}, []string{"v1.2.0"}},
+		{"<=1.2", []string{"v1.2.5"}, []string{"v1.3.0"}},
+		{"=1.2", []string{"v1.2.5"}, []string{"v1.3.0"}},
+		{">1.2", []string{"v1.3.0"}, []string{"v1.2.5"}},
+		{">1", []string{"v2.0.0"}, []string{"v1.9.0"}},
 		{"1.2.x", []string{"v1.2.0", "v1.2.9"}, []string{"v1.3.0", "v1.1.9"}},
 		{"v1.2.3 || >=2.0.0", []string{"v1.2.3", "v2.1.0"}, []string{"v1.2.4"}},
 		{"*", []string{"v0.0.1", "v9.9.9"}, nil},
@@ -72,6 +80,23 @@ func TestVersionRangePrereleaseOptIn(t *testing.T) {
 	}
 	if !pre.AcceptsString("v1.1.0-rc.1") {
 		t.Fatal("a prerelease range rejected its prerelease")
+	}
+	if pre.AcceptsString("v1.6.0-beta") {
+		t.Fatal("a prerelease range accepted a different tuple's prerelease")
+	}
+	union, err := module.ParseVersionRange(">=1.0.0 || >=2.0.0-alpha")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if union.AcceptsString("v1.5.0-rc.1") || union.AcceptsString("v2.1.0-beta") {
+		t.Fatal("a prerelease leaked into an alternative without its tuple")
+	}
+	upper, err := module.ParseVersionRange(">=1.0.0 <2.0.0-0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if upper.AcceptsString("v1.5.0-rc.1") {
+		t.Fatal("a prerelease upper bound enabled prereleases for other tuples")
 	}
 }
 

@@ -92,6 +92,9 @@ func (v CanonicalVersion) String() string { return v.text }
 // IsZero reports whether v was never built by a parser.
 func (v CanonicalVersion) IsZero() bool { return v.text == "" }
 
+// IsPrerelease reports whether the version has a prerelease suffix.
+func (v CanonicalVersion) IsPrerelease() bool { return v.pre != "" }
+
 // Major returns the major component.
 func (v CanonicalVersion) Major() int64 { return v.nums[0] }
 

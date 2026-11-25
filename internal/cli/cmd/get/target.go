@@ -26,7 +26,7 @@ func openTarget(path string, lock bool) (*target, error) {
 			return nil, errors.WrapErr(err, "read script manifest")
 		}
 		t := &target{dir: filepath.Dir(path), script: path, manifest: mf}
-		if lock || fileExists(path+".lock.kg") {
+		if lock || fileExists(path+".lock.kg") || manifestHasRange(mf) {
 			t.lockPath = path + ".lock.kg"
 		}
 		return t, nil
@@ -44,6 +44,15 @@ func openTarget(path string, lock bool) (*target, error) {
 func fileExists(p string) bool {
 	_, err := os.Stat(p)
 	return err == nil
+}
+
+func manifestHasRange(mf module.ModFile) bool {
+	for _, r := range mf.Requires {
+		if r.IsRange() {
+			return true
+		}
+	}
+	return false
 }
 
 // add appends a Require for `path[@version]`, asking the repo for its newest tag when no version is given.

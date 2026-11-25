@@ -11,12 +11,17 @@ import (
 // wildcards/partial versions, whitespace or comma separated intersections,
 // and `||` unions.
 type VersionRange struct {
-	raw      string
-	alts     []rangeAlt
-	allowPre bool
+	raw  string
+	alts []rangeAlt
 }
 
-type rangeAlt []rangeConstraint
+type rangeAlt struct {
+	constraints []rangeConstraint
+	// pre are the major.minor.patch tuples whose prereleases this alternative
+	// may match. Semver only admits a prerelease when a comparator with the
+	// same tuple itself names a prerelease.
+	pre [][3]int64
+}
 
 type rangeConstraint struct {
 	op      string
@@ -49,7 +54,7 @@ func ValidateVersionRequest(v string) error {
 }
 
 // ParseVersionRange parses a semver range. The grammar is deliberately
-// stricter than npm's: every version still uses Kigumi's full v-prefixed
+// stricter than npm's: every full version still uses Kigumi's v-prefixed
 // SemVer syntax, while partial versions and x/* wildcards are accepted only
 // as range operands.
 func ParseVersionRange(raw string) (*VersionRange, error) {
@@ -63,26 +68,26 @@ func ParseVersionRange(raw string) (*VersionRange, error) {
 		if part == "" {
 			return nil, fmt.Errorf("version range %q has an empty alternative", raw)
 		}
-		alt, allowPre, err := parseRangeAlt(part)
+		alt, err := parseRangeAlt(part)
 		if err != nil {
 			return nil, fmt.Errorf("version range %q: %w", raw, err)
 		}
 		r.alts = append(r.alts, alt)
-		r.allowPre = r.allowPre || allowPre
 	}
 	return r, nil
 }
 
-func parseRangeAlt(part string) (rangeAlt, bool, error) {
+func parseRangeAlt(part string) (rangeAlt, error) {
 	fields := strings.FieldsFunc(part, func(c rune) bool {
 		return c == ' ' || c == '\t' || c == ','
 	})
 	if len(fields) == 0 {
-		return nil, false, fmt.Errorf("empty alternative")
+		return rangeAlt{}, fmt.Errorf("empty alternative")
 	}
 	var alt rangeAlt
-	allowPre := false
-	for i := range fields {
+	// The index is advanced when an operator and its version are separate
+	// tokens, so this cannot be a range-over-fields loop.
+	for i := 0; i < len(fields); i++ {
 		tok := fields[i]
 		if isRangeOperator(tok) && i+1 < len(fields) {
 			tok += fields[i+1]
@@ -90,12 +95,12 @@ func parseRangeAlt(part string) (rangeAlt, bool, error) {
 		}
 		cs, pre, err := parseRangeToken(tok)
 		if err != nil {
-			return nil, false, err
+			return rangeAlt{}, err
 		}
-		alt = append(alt, cs...)
-		allowPre = allowPre || pre
+		alt.constraints = append(alt.constraints, cs...)
+		alt.pre = append(alt.pre, pre...)
 	}
-	return alt, allowPre, nil
+	return alt, nil
 }
 
 func isRangeOperator(s string) bool {
@@ -106,7 +111,7 @@ func isRangeOperator(s string) bool {
 	return false
 }
 
-func parseRangeToken(tok string) ([]rangeConstraint, bool, error) {
+func parseRangeToken(tok string) ([]rangeConstraint, [][3]int64, error) {
 	op := ""
 	for _, candidate := range []string{">=", "<=", ">", "<", "=", "^", "~"} {
 		if strings.HasPrefix(tok, candidate) {
@@ -116,48 +121,68 @@ func parseRangeToken(tok string) ([]rangeConstraint, bool, error) {
 	}
 	if tok == "*" || tok == "x" || tok == "X" {
 		if op != "" && op != "=" {
-			return nil, false, fmt.Errorf("wildcard cannot follow %s", op)
+			return nil, nil, fmt.Errorf("wildcard cannot follow %s", op)
 		}
-		return []rangeConstraint{{op: "any"}}, false, nil
+		return []rangeConstraint{{op: "any"}}, nil, nil
 	}
 	v, precision, pre, err := parseRangeVersion(tok)
 	if err != nil {
-		return nil, false, err
+		return nil, nil, err
 	}
-	allowPre := pre
+	var preTuples [][3]int64
+	if pre {
+		preTuples = append(preTuples, v.nums)
+	}
 	switch op {
 	case "":
 		if precision == 3 {
-			return []rangeConstraint{{op: "=", version: v}}, allowPre, nil
+			return []rangeConstraint{{op: "=", version: v}}, preTuples, nil
 		}
-		return partialBounds(v, precision), allowPre, nil
+		return partialBounds(v, precision), preTuples, nil
 	case "^":
-		return caretBounds(v, precision), allowPre, nil
+		return caretBounds(v, precision), preTuples, nil
 	case "~":
-		return tildeBounds(v, precision), allowPre, nil
-	case ">=", ">", "<=", "<", "=":
-		return []rangeConstraint{{op: op, version: v}}, allowPre, nil
+		return tildeBounds(v, precision), preTuples, nil
+	case "=":
+		if precision == 3 {
+			return []rangeConstraint{{op: "=", version: v}}, preTuples, nil
+		}
+		return partialBounds(v, precision), preTuples, nil
+	case "<=":
+		if precision == 3 {
+			return []rangeConstraint{{op: "<=", version: v}}, preTuples, nil
+		}
+		return []rangeConstraint{{op: "<", version: nextBoundary(v, precision)}}, preTuples, nil
+	case ">":
+		if precision == 3 {
+			return []rangeConstraint{{op: ">", version: v}}, preTuples, nil
+		}
+		return []rangeConstraint{{op: ">=", version: nextBoundary(v, precision)}}, preTuples, nil
+	case ">=":
+		return []rangeConstraint{{op: ">=", version: v}}, preTuples, nil
+	case "<":
+		return []rangeConstraint{{op: "<", version: v}}, preTuples, nil
 	default:
-		return nil, false, fmt.Errorf("unknown range operator %q", op)
+		return nil, nil, fmt.Errorf("unknown range operator %q", op)
 	}
 }
 
 // parseRangeVersion accepts a full canonical version or a partial version
 // with 1-2 numeric components or an x/* wildcard in a trailing component.
 func parseRangeVersion(s string) (CanonicalVersion, int, bool, error) {
-	for _, candidate := range []string{s, "v" + s} {
+	var parseErr error
+	candidates := []string{s}
+	if !strings.HasPrefix(s, "v") {
+		candidates = append(candidates, "v"+s)
+	}
+	for _, candidate := range candidates {
 		if v, err := ParseCanonicalVersion(candidate); err == nil {
 			return v, 3, v.pre != "", nil
+		} else {
+			parseErr = err
 		}
 		if tag, err := ParseVersionTag(candidate); err == nil {
 			return tag.Version, 3, tag.Version.pre != "", nil
-		}
-	}
-	if strings.Count(s, ".") == 2 && !strings.ContainsAny(s, "xX*") {
-		for _, candidate := range []string{s, "v" + s} {
-			if _, err := ParseCanonicalVersion(candidate); err != nil {
-				return CanonicalVersion{}, 0, false, err
-			}
 		}
 	}
 	body := strings.TrimPrefix(s, "v")
@@ -167,6 +192,9 @@ func parseRangeVersion(s string) (CanonicalVersion, int, bool, error) {
 		core = core[:i]
 	}
 	if hasPre {
+		if parseErr != nil {
+			return CanonicalVersion{}, 0, false, parseErr
+		}
 		return CanonicalVersion{}, 0, false, fmt.Errorf("%q: prerelease needs a full three-component version", s)
 	}
 	parts := strings.Split(core, ".")
@@ -208,18 +236,24 @@ func canonicalFromNums(nums [3]int64) (CanonicalVersion, error) {
 	return ParseCanonicalVersion(fmt.Sprintf("v%d.%d.%d", nums[0], nums[1], nums[2]))
 }
 
-func partialBounds(v CanonicalVersion, precision int) []rangeConstraint {
-	lower := v
-	var upper CanonicalVersion
+func nextBoundary(v CanonicalVersion, precision int) CanonicalVersion {
+	var next CanonicalVersion
 	switch precision {
 	case 1:
-		upper, _ = canonicalFromNums([3]int64{v.nums[0] + 1, 0, 0})
+		next, _ = canonicalFromNums([3]int64{v.nums[0] + 1, 0, 0})
 	case 2:
-		upper, _ = canonicalFromNums([3]int64{v.nums[0], v.nums[1] + 1, 0})
+		next, _ = canonicalFromNums([3]int64{v.nums[0], v.nums[1] + 1, 0})
 	default:
+		return v
+	}
+	return next
+}
+
+func partialBounds(v CanonicalVersion, precision int) []rangeConstraint {
+	if precision == 3 {
 		return []rangeConstraint{{op: "=", version: v}}
 	}
-	return []rangeConstraint{{op: ">=", version: lower}, {op: "<", version: upper}}
+	return []rangeConstraint{{op: ">=", version: v}, {op: "<", version: nextBoundary(v, precision)}}
 }
 
 func caretBounds(v CanonicalVersion, precision int) []rangeConstraint {
@@ -257,27 +291,37 @@ func (r *VersionRange) String() string {
 
 // IsAny reports whether the range accepts every version.
 func (r *VersionRange) IsAny() bool {
-	return r == nil || len(r.alts) == 1 && len(r.alts[0]) == 1 && r.alts[0][0].op == "any"
+	return r == nil || len(r.alts) == 1 && len(r.alts[0].constraints) == 1 && r.alts[0].constraints[0].op == "any"
 }
 
-// Accepts reports whether v satisfies the range. Prereleases are accepted
-// only when the range mentions a prerelease, matching semver tooling.
+// Accepts reports whether v satisfies the range. A prerelease is accepted
+// only by an alternative that has a comparator with the same
+// major.minor.patch tuple and a prerelease.
 func (r *VersionRange) Accepts(v CanonicalVersion) bool {
-	if r == nil {
-		return false
-	}
-	if v.IsZero() || v.pre != "" && !r.allowPre {
+	if r == nil || v.IsZero() {
 		return false
 	}
 	for _, alt := range r.alts {
+		if v.pre != "" && !alt.allowsPre(v.nums) {
+			continue
+		}
 		ok := true
-		for _, c := range alt {
+		for _, c := range alt.constraints {
 			if !c.test(v) {
 				ok = false
 				break
 			}
 		}
 		if ok {
+			return true
+		}
+	}
+	return false
+}
+
+func (a rangeAlt) allowsPre(nums [3]int64) bool {
+	for _, p := range a.pre {
+		if p == nums {
 			return true
 		}
 	}
