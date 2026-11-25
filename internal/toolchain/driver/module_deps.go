@@ -20,7 +20,7 @@ func (m *Module) loadDeps(opts LoadOptions, lock module.Lock, enforceLock bool) 
 			return fmt.Errorf("dependency %s overlaps this module's name %s", r.Name, m.Name)
 		}
 	}
-	sel, err := module.SelectVersions(m.compiler, m.Manifest, m.local)
+	sel, err := module.SelectVersionsResolved(m.compiler, m.Manifest, m.local, module.LockResolver(lock))
 	if err != nil {
 		return err
 	}

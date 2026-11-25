@@ -22,6 +22,9 @@ func (g Git) Clone(r module.Require, dir string) (string, error) {
 	if err := checkRequire(r, url); err != nil {
 		return "", err
 	}
+	if r.IsRange() {
+		return "", errors.NewErrf("dependency %s %s: a semver range must be resolved before fetching", r.Name, r.Version)
+	}
 	if err := os.MkdirAll(filepath.Dir(dir), 0o755); err != nil {
 		return "", errors.WrapErr(err, "create module cache")
 	}
@@ -105,25 +108,26 @@ func dropNestedModules(src string) error {
 	return nil
 }
 
-// LatestTag picks the highest release tag (prereleases excluded) of the module's subdirectory in its repo.
-func (g Git) LatestTag(r module.Require) (string, error) {
+// Tags lists every version tag of the module's subdirectory, prereleases
+// included, in ascending order.
+func (g Git) Tags(r module.Require) ([]string, error) {
 	url, subdir, _ := module.RepoOf(r)
 	if err := checkRequire(r, url); err != nil {
-		return "", err
+		return nil, err
 	}
 	ls, err := g.command("ls-remote", "--tags", "--refs", "--", url)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	out, err := ls.Output()
 	if err != nil {
-		return "", errors.WrapErrf(err, "git ls-remote %s", url)
+		return nil, errors.WrapErrf(err, "git ls-remote %s", url)
 	}
 	prefix := "refs/tags/" + module.TagOf(subdir, "")
 	var versions []string
 	for _, line := range bytes.Split(out, []byte("\n")) {
 		_, ref, ok := strings.Cut(string(line), "\t")
-		if v, has := strings.CutPrefix(ref, prefix); ok && has && strings.HasPrefix(v, "v") && !strings.Contains(v, "-") && !strings.Contains(v, "/") {
+		if v, has := strings.CutPrefix(ref, prefix); ok && has && strings.HasPrefix(v, "v") && !strings.Contains(v, "/") {
 			// A /vN path only takes vN tags; an unsuffixed path only v0 and v1.
 			if module.CheckVersionForName(r.Name, v) != nil {
 				continue
@@ -131,11 +135,38 @@ func (g Git) LatestTag(r module.Require) (string, error) {
 			versions = append(versions, v)
 		}
 	}
-	if len(versions) == 0 {
-		return "", errors.NewErrf("%s has no release tag for %s", url, r.Name)
-	}
 	sort.Slice(versions, func(i, j int) bool { return module.CompareVersions(versions[i], versions[j]) < 0 })
-	return versions[len(versions)-1], nil
+	return versions, nil
+}
+
+// LatestTag picks the highest release tag (prereleases excluded) of the module's subdirectory in its repo.
+func (g Git) LatestTag(r module.Require) (string, error) {
+	versions, err := g.Tags(r)
+	if err != nil {
+		return "", err
+	}
+	for i := len(versions) - 1; i >= 0; i-- {
+		if !strings.Contains(versions[i], "-") {
+			return versions[i], nil
+		}
+	}
+	url, _, _ := module.RepoOf(r)
+	return "", errors.NewErrf("%s has no release tag for %s", url, r.Name)
+}
+
+// LatestTagMatching picks the highest tag satisfying rng.
+func (g Git) LatestTagMatching(r module.Require, rng *module.VersionRange) (string, error) {
+	versions, err := g.Tags(r)
+	if err != nil {
+		return "", err
+	}
+	for i := len(versions) - 1; i >= 0; i-- {
+		if rng.AcceptsString(versions[i]) {
+			return versions[i], nil
+		}
+	}
+	url, _, _ := module.RepoOf(r)
+	return "", errors.NewErrf("%s has no tag matching %s for %s", url, rng, r.Name)
 }
 
 // clearIncomplete moves an unpublished dir aside and removes it only if the moved copy is still incomplete; a complete entry that another process published in between is put back, never deleted.

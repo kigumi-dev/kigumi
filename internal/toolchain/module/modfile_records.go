@@ -42,12 +42,16 @@ func modFileOf(recs []Record, module bool) (ModFile, []diag.Diagnostic) {
 			}
 		case "Require":
 			versionOK := true
-			if r.Fields["version"] == "" {
+			rawVersion := r.Fields["version"]
+			var versionRange *VersionRange
+			if rawVersion == "" {
 				ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, "Require needs a version"))
 				versionOK = false
-			} else if err := ValidVersion(r.Fields["version"]); err != nil {
+			} else if rng, err := ParseVersionRequest(rawVersion); err != nil {
 				ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, err.Error()))
 				versionOK = false
+			} else {
+				versionRange = rng
 			}
 			alias := r.Fields["alias"]
 			if alias != "" {
@@ -57,12 +61,12 @@ func modFileOf(recs []Record, module bool) (ModFile, []diag.Diagnostic) {
 			}
 			if err := ValidModuleName(r.Fields["name"]); err != nil {
 				ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, err.Error()))
-			} else if versionOK {
-				if err := CheckVersionForName(r.Fields["name"], r.Fields["version"]); err != nil {
+			} else if versionOK && versionRange == nil {
+				if err := CheckVersionForName(r.Fields["name"], rawVersion); err != nil {
 					ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, err.Error()))
 				}
 			}
-			mf.Requires = append(mf.Requires, Require{Name: r.Fields["name"], Version: r.Fields["version"], URL: r.Fields["url"], Alias: alias})
+			mf.Requires = append(mf.Requires, Require{Name: r.Fields["name"], Version: rawVersion, URL: r.Fields["url"], Alias: alias, Range: versionRange})
 		case "Replace":
 			ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, "Replace belongs in "+LocalName+", which is never published"))
 		case "Link":

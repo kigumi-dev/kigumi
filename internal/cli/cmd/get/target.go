@@ -49,7 +49,14 @@ func fileExists(p string) bool {
 // add appends a Require for `path[@version]`, asking the repo for its newest tag when no version is given.
 func (t *target) add(io session.IO, git vcs.Git, spec, url, alias string) error {
 	name, version, _ := strings.Cut(spec, "@")
-	r := module.Require{Name: name, Version: version, URL: url, Alias: alias}
+	var rng *module.VersionRange
+	if version != "" {
+		var err error
+		if rng, err = module.ParseVersionRequest(version); err != nil {
+			return &exit.ValueError{Err: err}
+		}
+	}
+	r := module.Require{Name: name, Version: version, URL: url, Alias: alias, Range: rng}
 	if _, _, ok := module.RepoOf(r); !ok {
 		return &exit.ValueError{Err: errors.NewErrf("cannot derive where %s lives; give --url", name)}
 	}
@@ -86,8 +93,23 @@ func (t *target) fetch(io session.IO, git vcs.Git, opts options) error {
 	if err != nil {
 		return errors.WrapErr(err, "read local overrides")
 	}
+	resolve := func(r module.Require) (module.Require, error) {
+		if !r.IsRange() {
+			return r, nil
+		}
+		if !opts.update {
+			if e, ok := lock.Entries[r.Key()]; ok && (e.Name == "" || e.Name == r.Name) && e.Alias == r.Alias && r.Range.AcceptsString(e.Version) {
+				return r.WithVersion(e.Version), nil
+			}
+		}
+		v, err := git.LatestTagMatching(r, r.Range)
+		if err != nil {
+			return module.Require{}, err
+		}
+		return r.WithVersion(v), nil
+	}
 	before := snapshotNative(lock)
-	f := &fetcher{io: io, git: git, update: opts.update, lock: lock, local: local, next: module.Lock{Entries: map[string]module.LockEntry{}}, after: map[string]module.ModFile{}}
+	f := &fetcher{io: io, git: git, update: opts.update, lock: lock, local: local, resolve: resolve, next: module.Lock{Entries: map[string]module.LockEntry{}}, after: map[string]module.ModFile{}}
 	if err := f.module(t.manifest); err != nil {
 		return err
 	}

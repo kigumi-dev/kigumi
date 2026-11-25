@@ -18,7 +18,7 @@ import (
 //
 //	Require {
 //	    name: "greet"
-//	    version: "v0.1.0"
+//	    version: "v0.1.0"        // exact tag, commit, or a semver range such as "^1.2"
 //	    url: "https://example.com/greet.git"
 //	    alias: "greet1"   // optional import prefix; lets two versions coexist
 //	}
@@ -85,6 +85,30 @@ type Require struct {
 	// Alias is an optional import prefix that replaces Name as this
 	// Require's effective key, so two versions of one module can coexist.
 	Alias string
+	// Range is set when Version is a semver range rather than an exact
+	// revision. Resolution replaces Version with a concrete selected tag
+	// while keeping Range for validation and diagnostics.
+	Range *VersionRange
+}
+
+// IsRange reports whether the request still needs a concrete version. Range
+// stays attached after WithVersion so Accepts can validate the lock, but a
+// resolved request is no longer unresolved.
+func (r Require) IsRange() bool { return r.Range != nil && ValidVersion(r.Version) != nil }
+
+// WithVersion returns the request with a concrete selected version. A range
+// stays attached so callers can check that a locked version still satisfies it.
+func (r Require) WithVersion(version string) Require {
+	r.Version = version
+	return r
+}
+
+// Accepts reports whether version is the exact request or satisfies its range.
+func (r Require) Accepts(version string) bool {
+	if r.Range == nil {
+		return version == r.Version
+	}
+	return r.Range.AcceptsString(version)
 }
 
 // Key is the effective import and selection prefix of a Require: its alias

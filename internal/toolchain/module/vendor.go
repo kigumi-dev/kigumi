@@ -110,7 +110,7 @@ func VendorTree(o buildconfig.CompilerOptions, root string) ([]VendoredModule, e
 	if err != nil {
 		return nil, err
 	}
-	sel, err := SelectVersions(o, mf, local)
+	sel, err := SelectVersionsResolved(o, mf, local, LockResolver(lock))
 	if err != nil {
 		return nil, err
 	}

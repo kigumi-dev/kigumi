@@ -20,6 +20,7 @@ type fetcher struct {
 	// lock is what the lock file said before; next is what it will say.
 	lock, next module.Lock
 	local      module.Local
+	resolve    module.VersionResolver
 	// after collects each resolved dependency's native declarations for the consent diff against snapshotNative.
 	after map[string]module.ModFile
 }
@@ -29,7 +30,7 @@ func (f *fetcher) module(mf module.ModFile) error {
 	var sel *module.Selection
 	for {
 		var err error
-		sel, err = module.SelectVersions(session.CompilerOptions(), mf, f.local)
+		sel, err = module.SelectVersionsResolved(session.CompilerOptions(), mf, f.local, f.resolve)
 		if err == nil {
 			break
 		}

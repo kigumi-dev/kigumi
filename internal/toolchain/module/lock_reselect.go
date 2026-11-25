@@ -14,7 +14,7 @@ func (c LockChange) String() string { return fmt.Sprintf("%s %s -> %s", c.Name, 
 
 // PruneLock keeps the entries of lk that agree with minimal version selection over mf. Entries are keyed by effective Require key, so aliases are pruned independently. Entries for modules that are no longer selected are dropped; entries whose selected version changed are dropped and listed, since only `get` may lock a new version.
 func PruneLock(o buildconfig.CompilerOptions, mf ModFile, local Local, lk Lock) (Lock, []LockChange, error) {
-	sel, err := SelectVersions(o, mf, local)
+	sel, err := SelectVersionsResolved(o, mf, local, LockResolver(lk))
 	if err != nil {
 		return lk, nil, err
 	}
@@ -83,7 +83,7 @@ func RetainLockState(state LockState, kept Lock, inputs string) LockState {
 
 // LockDisagreements lists, sorted, where lk differs from what selection over mf picks, as `run` would see it. Entries are matched by effective Require key, so an alias is checked against its own locked version.
 func LockDisagreements(o buildconfig.CompilerOptions, mf ModFile, local Local, lk Lock) ([]string, error) {
-	sel, err := SelectVersions(o, mf, local)
+	sel, err := SelectVersionsResolved(o, mf, local, LockResolver(lk))
 	if err != nil {
 		return nil, err
 	}

@@ -66,7 +66,7 @@ func AppendScriptRequire(path string, r Require) error {
 	if err := ValidModuleName(r.Name); err != nil {
 		return err
 	}
-	if err := ValidVersion(r.Version); err != nil {
+	if err := ValidateVersionRequest(r.Version); err != nil {
 		return err
 	}
 	src, err := os.ReadFile(path)

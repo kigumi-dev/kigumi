@@ -34,11 +34,21 @@ func (e *MissingError) Error() string {
 // verKey identifies one manifest: a module name at one exact version.
 type verKey struct{ name, version string }
 
-// SelectVersions runs minimal version selection in two passes: pass 1 reads
-// every reachable (name, version) manifest so the maximum per name does not
-// depend on discovery order; pass 2 rebuilds the edges from the winning
-// manifests only, so dependencies reachable only through a loser drop out.
+// VersionResolver turns a semver range into a concrete request. Exact
+// requests are returned unchanged.
+type VersionResolver func(Require) (Require, error)
+
+// SelectVersions runs minimal version selection for exact requests.
 func SelectVersions(o buildconfig.CompilerOptions, root ModFile, local Local) (*Selection, error) {
+	return SelectVersionsResolved(o, root, local, nil)
+}
+
+// SelectVersionsResolved runs minimal version selection in two passes: pass 1
+// reads every reachable (name, version) manifest so the maximum per name does
+// not depend on discovery order; pass 2 rebuilds the edges from the winning
+// manifests only, so dependencies reachable only through a loser drop out.
+// resolve is required for ranges; nil is sufficient when every request is exact.
+func SelectVersionsResolved(o buildconfig.CompilerOptions, root ModFile, local Local, resolve VersionResolver) (*Selection, error) {
 	max := map[string]Require{}
 	by := map[string]string{}
 	manifests := map[verKey]ModFile{}
@@ -46,7 +56,49 @@ func SelectVersions(o buildconfig.CompilerOptions, root ModFile, local Local) (*
 	var queue []Require
 
 	claims := urlClaims{}
+	ranges := map[string][]*VersionRange{}
+	localKeys := map[string]bool{}
 	visit := func(r Require, from string, isRoot bool) error {
+		if isRoot {
+			if _, replaced := local.Replacement(r); replaced {
+				if r.IsRange() {
+					localKeys[r.Key()] = true
+					r = r.WithVersion("local")
+				}
+			} else if r.IsRange() {
+				ranges[r.Key()] = append(ranges[r.Key()], r.Range)
+				if resolve == nil {
+					return fmt.Errorf("dependency %s %s: a semver range needs a locked version; run `kigumi get`", DescribeRequire(r), r.Version)
+				}
+				resolved, err := resolve(r)
+				if err != nil {
+					return fmt.Errorf("dependency %s %s: %w", DescribeRequire(r), r.Version, err)
+				}
+				if resolved.Version == "" {
+					return fmt.Errorf("dependency %s %s: resolver returned no concrete version", DescribeRequire(r), r.Version)
+				}
+				if !r.Range.AcceptsString(resolved.Version) {
+					return fmt.Errorf("dependency %s %s: locked version %s does not satisfy the range", DescribeRequire(r), r.Version, resolved.Version)
+				}
+				r = resolved
+			}
+		} else if r.IsRange() {
+			ranges[r.Key()] = append(ranges[r.Key()], r.Range)
+			if resolve == nil {
+				return fmt.Errorf("dependency %s %s: a semver range needs a locked version; run `kigumi get`", DescribeRequire(r), r.Version)
+			}
+			resolved, err := resolve(r)
+			if err != nil {
+				return fmt.Errorf("dependency %s %s: %w", DescribeRequire(r), r.Version, err)
+			}
+			if resolved.Version == "" {
+				return fmt.Errorf("dependency %s %s: resolver returned no concrete version", DescribeRequire(r), r.Version)
+			}
+			if !r.Range.AcceptsString(resolved.Version) {
+				return fmt.Errorf("dependency %s %s: locked version %s does not satisfy the range", DescribeRequire(r), r.Version, resolved.Version)
+			}
+			r = resolved
+		}
 		if err := mergeRequire(max, by, r, from); err != nil {
 			return err
 		}
@@ -124,6 +176,13 @@ func SelectVersions(o buildconfig.CompilerOptions, root ModFile, local Local) (*
 	for name, r := range max {
 		if reachable[name] {
 			sel.Requires[name], sel.By[name] = r, by[name]
+			if !localKeys[name] {
+				for _, rng := range ranges[name] {
+					if !rng.AcceptsString(r.Version) {
+						return nil, fmt.Errorf("dependency %s: selected %s does not satisfy every range request", DescribeRequire(r), r.Version)
+					}
+				}
+			}
 		}
 	}
 	if err := checkSelectionAliases(root.Name, sel); err != nil {
@@ -275,4 +334,23 @@ func DisplayName(mf ModFile) string {
 		return "an unnamed module"
 	}
 	return mf.Name
+}
+
+// LockResolver resolves a ranged Require from a lock. It never reads the
+// network, so builds and verification use exactly the version the lock
+// recorded.
+func LockResolver(lock Lock) VersionResolver {
+	return func(r Require) (Require, error) {
+		if !r.IsRange() {
+			return r, nil
+		}
+		e, ok := lock.Entries[r.Key()]
+		if !ok || e.Name != "" && e.Name != r.Name || e.Alias != r.Alias {
+			return Require{}, fmt.Errorf("no locked version for %s; run `kigumi get`", DescribeRequire(r))
+		}
+		if !r.Range.AcceptsString(e.Version) {
+			return Require{}, fmt.Errorf("locked version %s no longer satisfies %s; run `kigumi get`", e.Version, r.Version)
+		}
+		return r.WithVersion(e.Version), nil
+	}
 }

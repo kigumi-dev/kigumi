@@ -71,6 +71,9 @@ func RenameModule(root, old, next string) (changes, warnings []string, err error
 	// A /vN rename changes the versions the path may carry: refuse to write a
 	// manifest whose existing version no longer matches the new path.
 	for _, r := range renamed {
+		if r.IsRange() {
+			continue
+		}
 		if err := CheckVersionForName(next, r.Version); err != nil {
 			return nil, nil, fmt.Errorf("cannot rename %s to %s: %v", old, next, err)
 		}

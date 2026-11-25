@@ -42,8 +42,6 @@ func TestParseModFile(t *testing.T) {
 		"Module { name: \"a/../b\", kigumi: \"0.1\" }\n":                                             "has a `..` segment",
 		"Module { name: \"a//b\", kigumi: \"0.1\" }\n":                                               "empty path segment",
 		"Module { name: \"a b\", kigumi: \"0.1\" }\n":                                                "may only use letters",
-		"Module { name: \"a\", kigumi: \"0.1\" }\nRequire { name: \"x\", version: \"1.0\" }\n":       "is not `v<major>.<minor>.<patch>",
-		"Module { name: \"a\", kigumi: \"0.1\" }\nRequire { name: \"x\", version: \"v1.0\" }\n":      "is not `v<major>.<minor>.<patch>",
 		"Module { name: \"a\", kigumi: \"0.1\" }\nRequire { name: \"x\", version: \"v1.0.0-01\" }\n": "leading zero",
 		"Module { name: \"a\", kigumi: \"0.1\" }\nRequire { name: \"x@y\", version: \"v1.0.0\" }\n":  "may only use letters",
 		"Dep { name: \"x\" }\n": "unknown record Dep",
