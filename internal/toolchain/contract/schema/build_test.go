@@ -279,3 +279,40 @@ func TestAttrFilter(t *testing.T) {
 		t.Fatalf("expected exactly show, got %d declarations", len(mod.Declarations))
 	}
 }
+
+// TestBuildConstGenericWideValue pins the machine-readable `value` of a
+// u128/i128 const generic to the whole decimal literal, not its low 64 bits.
+func TestBuildConstGenericWideValue(t *testing.T) {
+	m, res := loadModule(t, `
+pub type Wide[const N: u128] = { pub v u128 }
+pub type Deep[const N: i128] = { pub v i128 }
+pub fn wide(x: &Wide[18446744073709551616]) -> u128 { x.v }
+pub fn deep(x: &Deep[170141183460469231731687303715884105727]) -> i128 { x.v }
+`)
+	mod, _ := schema.Build(m, res, schema.Options{})
+	want := map[string]string{
+		"wide": "18446744073709551616",
+		"deep": "170141183460469231731687303715884105727",
+	}
+	for _, d := range mod.Declarations {
+		value, ok := want[d.Name]
+		if !ok || d.Kind != schema.KindFn || len(d.Params) != 1 {
+			continue
+		}
+		ref := d.Params[0].Type
+		if ref.Kind != schema.TRBorrow || ref.Elem == nil || len(ref.Elem.Args) != 1 {
+			t.Fatalf("%s parameter is %+v, want a borrow of one const-generic instance", d.Name, ref)
+		}
+		arg := ref.Elem.Args[0]
+		if arg.Kind != schema.TRConst || arg.Value != value {
+			t.Errorf("%s const argument is %+v, want value %q", d.Name, arg, value)
+		}
+		if arg.Display != value {
+			t.Errorf("%s Display = %q, want %q", d.Name, arg.Display, value)
+		}
+		delete(want, d.Name)
+	}
+	if len(want) != 0 {
+		t.Fatalf("missing declarations: %v", want)
+	}
+}

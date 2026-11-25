@@ -1,10 +1,6 @@
 package schema
 
-import (
-	"strconv"
-
-	"kigumi/internal/compiler/sem"
-)
+import "kigumi/internal/compiler/sem"
 
 // typeRef recurses into t's generic/const arguments and element type; nil
 // for NoType.
@@ -48,8 +44,10 @@ func typeRef(res *sem.Result, t sem.TypeID) *TypeRef {
 		// exactly `*mut T`; the IR keeps it because a C emitter needs `const`.
 		return &TypeRef{Kind: TRPointer, Display: display, Elem: typeRef(res, n.Elem), Mutable: n.Flags != 0}
 	case sem.KConst:
-		value, _ := res.Types.ConstValue(t)
-		return &TypeRef{Kind: TRConst, Display: display, Value: strconv.FormatInt(value, 10)}
+		// ConstValueBig keeps an i128/u128 argument's whole value; ConstValue
+		// would cut it to the low 64 bits and contradict Display.
+		value, _ := res.Types.ConstValueBig(t)
+		return &TypeRef{Kind: TRConst, Display: display, Value: value.String()}
 	default:
 		return &TypeRef{Kind: TRPoison, Display: display}
 	}

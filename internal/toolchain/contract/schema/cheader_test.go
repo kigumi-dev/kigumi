@@ -123,9 +123,60 @@ func TestSchemaIRIncludesABIDeclarations(t *testing.T) {
 	}
 }
 
-func TestEmitCHeaderArrayPointers(t *testing.T) {
+// TestEmitCHeaderOpaquePointers checks a pointer to an opaque extern type is
+// representable: the C header a foreign library declares is `typedef struct
+// H H; H *f(void);`, so the prototype and every record field holding that
+// pointer must survive.
+func TestEmitCHeaderOpaquePointers(t *testing.T) {
 	m, res := loadModule(t, `
-pub type Buffers layout(C) = {
+extern(C) {
+    pub type Handle
+    fn hdl_open(path: *const u8) -> *mut Handle
+    fn hdl_close(h: *mut Handle) -> Void
+    fn hdl_name(h: *const Handle) -> *const u8
+}
+pub type Ctx layout(C) = {
+    pub h *mut Handle
+    pub id i32
+}
+`)
+	mod, _ := schema.Build(m, res, schema.Options{})
+	h := schema.EmitCHeader(mod, schema.CHeaderOptions{})
+	if len(h.Diagnostics) != 0 {
+		t.Fatalf("unexpected diagnostics: %+v", h.Diagnostics)
+	}
+	for _, want := range []string{
+		"typedef struct Handle Handle;",
+		"struct Handle * hdl_open(const uint8_t *path);",
+		"void hdl_close(struct Handle *h);",
+		"const uint8_t * hdl_name(const struct Handle *h);",
+		"struct Ctx {\n    struct Handle *h;\n    int32_t id;\n};",
+		"typedef struct Ctx Ctx;",
+	} {
+		if !strings.Contains(h.Text, want) {
+			t.Errorf("missing %q in:\n%s", want, h.Text)
+		}
+	}
+}
+
+// TestEmitCHeaderWideArrayBound pins a C array bound to the const generic's
+// whole decimal value: a usize bound at 2^63 must not become negative.
+func TestEmitCHeaderWideArrayBound(t *testing.T) {
+	m, res := loadModule(t, `
+extern(C) { fn fill(data: *mut FixedArray[u8, 9223372036854775808]) }
+`)
+	mod, _ := schema.Build(m, res, schema.Options{})
+	h := schema.EmitCHeader(mod, schema.CHeaderOptions{})
+	if len(h.Diagnostics) != 0 {
+		t.Fatalf("unexpected diagnostics: %+v", h.Diagnostics)
+	}
+	if want := "void fill(uint8_t (*data)[9223372036854775808]);"; !strings.Contains(h.Text, want) {
+		t.Errorf("missing %q in:\n%s", want, h.Text)
+	}
+}
+
+func TestEmitCHeaderArrayPointers(t *testing.T) {
+	m, res := loadModule(t, `pub type Buffers layout(C) = {
     pub data *mut FixedArray[u8, 16]
     pub rows *const FixedArray[FixedArray[u8, 4], 2]
 }

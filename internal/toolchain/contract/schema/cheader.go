@@ -371,6 +371,21 @@ func (w *headerWriter) resolve(tr *TypeRef, depth int) *TypeRef {
 	return tr
 }
 
+// opaqueStruct spells the C tag of an opaque extern type tr names, or ""
+// when tr names anything else. A pointer to such a struct is representable
+// even though the struct stays incomplete; the type is not representable by
+// value.
+func (w *headerWriter) opaqueStruct(tr *TypeRef) (string, bool) {
+	if tr == nil || tr.Kind != TRNamed {
+		return "", false
+	}
+	d := w.byID[declIDOf(tr)]
+	if d == nil || d.Kind != KindType || !d.Opaque || d.Layout != "" {
+		return "", false
+	}
+	return "struct " + d.Name, true
+}
+
 // typeName renders a type as a C specifier, for a return type.
 func (w *headerWriter) typeName(tr *TypeRef, depth int) (string, bool) {
 	tr = w.resolve(tr, depth)
@@ -388,9 +403,12 @@ func (w *headerWriter) typeName(tr *TypeRef, depth int) (string, bool) {
 		if elem != nil && elem.Kind == TRFn {
 			return "", false
 		}
-		base, ok := w.typeName(tr.Elem, depth)
+		base, ok := w.opaqueStruct(elem)
 		if !ok {
-			return "", false
+			base, ok = w.typeName(tr.Elem, depth)
+			if !ok {
+				return "", false
+			}
 		}
 		if !tr.Mutable && !strings.HasSuffix(base, "*") {
 			base = "const " + base
@@ -434,6 +452,12 @@ func (w *headerWriter) declType(tr *TypeRef, name string, depth int) (string, bo
 		elem := w.resolve(tr.Elem, depth)
 		if elem != nil && elem.Kind == TRFn {
 			return w.fnPointer(elem, name, depth)
+		}
+		if base, ok := w.opaqueStruct(elem); ok {
+			if tr.Mutable {
+				return base + " *" + name, true
+			}
+			return "const " + base + " *" + name, true
 		}
 		ptr := "*" + name
 		if elem != nil && elem.Kind == TRNamed && elem.WellKnown == WKFixedArray {
