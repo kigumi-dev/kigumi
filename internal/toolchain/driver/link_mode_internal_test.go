@@ -51,6 +51,8 @@ func TestResolveLinkage(t *testing.T) {
 		{name: "darwin forced static", t: buildconfig.Target{OS: "darwin", Arch: "arm64", Sys: "posix"}, mode: LinkStatic, failing: "Linux host"},
 		{name: "explicit gnu", t: buildconfig.Target{Triple: "x86_64-linux-gnu", OS: "linux", Arch: "amd64", Sys: "posix"}, triple: "x86_64-linux-gnu", reason: "--target x86_64-linux-gnu"},
 		{name: "explicit musl", t: musl, static: true, triple: "x86_64-linux-musl", reason: "--target"},
+		{name: "explicit musl not zig", t: musl, notZig: true, failing: "needs zig"},
+		{name: "explicit musl not zig forced static", t: musl, notZig: true, mode: LinkStatic, failing: "needs zig"},
 		{name: "gnu triple with link static", t: gnu, mode: LinkStatic, failing: "contradicts --target x86_64-linux-gnu"},
 		{name: "gnu triple with link dynamic", t: gnu, mode: LinkDynamic, triple: "x86_64-linux-gnu", reason: "--target x86_64-linux-gnu"},
 		{name: "musl triple with link static", t: musl, mode: LinkStatic, static: true, triple: "x86_64-linux-musl", reason: "--target"},

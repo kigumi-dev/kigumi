@@ -100,8 +100,9 @@ func dynamicNeeds(m *Module, code compiled, cflags, lflags []string) []string {
 	return why
 }
 
-// resolveLinkage picks the C library of a hosted build. An explicit triple decides and --link may only agree with it;
-// the host default on Linux becomes static musl unless --link dynamic, a non-zig compiler, or dynamicNeeds keeps the host's.
+// resolveLinkage picks the C library of a hosted build. An explicit triple decides and --link may only agree with it,
+// and a static musl triple needs zig, which alone ships that libc; the host default on Linux becomes static musl unless
+// --link dynamic, a non-zig compiler, or dynamicNeeds keeps the host's.
 func resolveLinkage(m *Module, t buildconfig.Target, mode LinkMode, zig bool, code compiled, cflags, lflags []string) (buildconfig.Target, Linkage, error) {
 	if t.Bare() {
 		if mode != LinkAuto {
@@ -117,6 +118,9 @@ func resolveLinkage(m *Module, t buildconfig.Target, mode LinkMode, zig bool, co
 		}
 		if mode != LinkAuto && mode != form {
 			return t, Linkage{}, fmt.Errorf("--link %s contradicts --target %s, whose ABI means --link %s", mode, t.Triple, form)
+		}
+		if static && !zig {
+			return t, Linkage{}, fmt.Errorf("--target %s needs zig, the only C compiler kigumi uses that ships a static musl libc", t.Triple)
 		}
 		if need := loaderNeed(code); static && need != "" {
 			return t, Linkage{}, fmt.Errorf("--target %s links statically, but %s; use a -gnu target", t.Triple, need)
