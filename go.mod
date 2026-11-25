@@ -10,6 +10,7 @@ require (
 	go.lsp.dev/jsonrpc2 v1.0.1
 	go.lsp.dev/protocol v1.0.1
 	go.lsp.dev/uri v1.0.1
+	golang.org/x/mod v0.40.0
 	golang.org/x/sys v0.45.0
 	golang.org/x/text v0.36.0
 )
