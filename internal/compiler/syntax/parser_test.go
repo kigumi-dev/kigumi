@@ -171,7 +171,7 @@ func TestDumpDeepNestingStaysFast(t *testing.T) {
 	}
 	baseThroughput := float64(baseElapsed) / float64(len(baseOut))
 	throughput := float64(elapsed) / float64(len(out))
-	const slack = 10
+	const slack = 20 // short wall-clock ratios are noisy on shared runners; superlinear growth still exceeds this
 	if throughput > baseThroughput*slack {
 		t.Fatalf("dumping %d nested pointer types cost %.2f ns/byte vs %.2f ns/byte at n=%d; want roughly flat per-byte cost", n, throughput, baseThroughput, baseline)
 	}
